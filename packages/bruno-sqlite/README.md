@@ -1,13 +1,10 @@
 # @usebruno/sqlite
 
-SQLite storage for the Bruno API client. You author migrations as `.ts` and statements as `.sql`; the package compiles them into a typed, cached data layer for the Electron main process and the React renderer.
+SQLite storage for the Bruno API client. You author migrations as `.ts` and statements as `.sql`; the package compiles them into a typed data layer for the Electron main process.
 
-## Entry points
+## Entry point
 
-- `@usebruno/sqlite` (or `/node`) — main process. Owns the DB and runs statements.
-- `@usebruno/sqlite/web` — renderer. React Query hooks that call statements over IPC.
-
-Peer deps for the web layer: `react` 19, `@tanstack/react-query` 5. The node layer uses the built-in `node:sqlite`.
+`@usebruno/sqlite` (or `/node`) — main process only. Owns the DB and runs statements, using the built-in `node:sqlite`.
 
 ## Add a migration
 
@@ -38,6 +35,10 @@ npm run migration:verify --workspace=packages/bruno-sqlite
 ```
 
 It fails if a migration errors, or if a migration's content no longer matches what was recorded when it was first applied to that DB.
+
+### Schema
+
+[`SCHEMA.md`](./SCHEMA.md) shows the schema the migrations produce: an ER diagram plus each table's columns, keys and indexes. The pre-commit hook regenerates it whenever a migration is staged; `npm run schema` regenerates it by hand.
 
 ## Add statements (sqlc syntax)
 
@@ -75,37 +76,54 @@ const ada   = statements.execute('get_user', { id: 1 });
 // db.close() on shutdown
 ```
 
-`registerSQLiteIpc(ipcMain, statements)` exposes every statement to the renderer over IPC.
-
-## Use it — renderer
-
-Wrap the app once (Electron's `window.ipcRenderer` works as the bridge):
-
-```jsx
-import { SQLiteProvider } from '@usebruno/sqlite/web';
-
-<SQLiteProvider bridge={window.ipcRenderer}>
-  <App />
-</SQLiteProvider>
-```
-
-Then read and write by statement name:
-
-```jsx
-import { useSqliteQuery, useSqliteMutation } from '@usebruno/sqlite/web';
-
-const { data, isFetching } = useSqliteQuery('list_users');
-const one = useSqliteQuery('get_user', { id: 5 });
-
-const create = useSqliteMutation('create_user');
-create.mutate({ name: 'Ada', email: 'ada@x.com' });
-```
-
-- `useSqliteQuery(name, params?)` returns the React Query result (`data`, `isFetching`, `error`, `refetch`, …); results are cached.
-- `useSqliteMutation(name)` returns `{ mutate, mutateAsync, … }`.
-- After a mutation, any query reading an affected table refreshes **automatically** (across windows too) — no manual invalidation needed.
-
 Params are always an **object** keyed by the named parameters (no positional/array binding).
+
+The package does not expose statements to a renderer. The host application registers its own IPC handler for each statement it wants to expose.
+
+## Files
+
+Rows are a poor home for a large payload, so the package ships a `files` table with a store in front
+of it. Each entry is kept in whichever shape fits its size:
+
+| size | stored as |
+|---|---|
+| up to 1MB | a `BLOB` on the row |
+| over 1MB | a file next to the database, with the row pointing at it |
+
+`createDatabase` returns the store alongside the statements:
+
+```js
+const { db, statements, files } = createDatabase('/path/to/bruno.db');
+
+const entry = await files.write(buffer, { contentType: 'image/png' });  // { id, size, inline, contentType }
+const bytes = await files.read(entry.id);                                // Uint8Array, or null
+files.stat(entry.id);
+await files.remove(entry.id);
+```
+
+`read` returns the whole payload, from the row or from the spilled file.
+
+The files directory defaults to `<database path minus extension>-files`; pass `filesDir` to place it
+elsewhere, and `inlineMaxBytes` to move the threshold.
+
+### Lifetime
+
+A file lives for as long as some row points at it. Declare that with a foreign key:
+
+```sql
+ALTER TABLE runner_responses ADD COLUMN body_file_id INTEGER REFERENCES files(id);
+```
+
+`files.collect()` reads the foreign keys back off the schema, deletes every row no table references,
+removes the files they own, and sweeps files on disk that no row names. Nothing has to be registered
+with the store — adding the column is enough. Call it at startup.
+
+As a safety rule, when *no* table references `files` the store leaves rows alone: with no referrers
+every row would look unreferenced. The disk sweep still runs.
+
+### Reading files from the renderer
+
+The package exposes no renderer API for files, just as for statements. Writes are main-process only; to let the renderer read a file, the host registers its own IPC handler for that read.
 
 ## Development
 

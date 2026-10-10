@@ -620,6 +620,24 @@ const removePath = async (source) => {
   }
 };
 
+const removeWithRetry = (target) => fsPromises.rm(target, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+
+const isGitMetadataName = (name) => name.toLowerCase() === '.git';
+
+const removeGitMetadata = async (dir) => {
+  const children = await fsPromises.readdir(dir, { withFileTypes: true });
+
+  for (const child of children) {
+    const childPath = path.join(dir, child.name);
+
+    if (isGitMetadataName(child.name)) {
+      await removeWithRetry(childPath);
+    } else if (child.isDirectory()) {
+      await removeGitMetadata(childPath);
+    }
+  }
+};
+
 /**
  * Move a collection directory from source to destination.
  * Uses fs-extra's move for cross-device compatibility.
@@ -793,6 +811,7 @@ module.exports = {
   safeWriteFile,
   safeWriteFileSync,
   removePath,
+  removeGitMetadata,
   moveCollectionDirectory,
   getPaths,
   isLargeFile,

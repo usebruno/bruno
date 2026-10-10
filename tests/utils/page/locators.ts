@@ -1,12 +1,12 @@
 import { Locator, Page } from '../../../playwright';
 import { buildApiSpecPanelLocators } from './openapi/render-spec';
-import { buildMockServerLocators } from './mock-server';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
 import { buildCodeEditorSearchLocators } from './code-editor-search';
 import { buildCodeEditorHintLocators } from './code-editor-hints';
 import { buildRequestSettingsLocators } from './request-settings';
+import { buildUnresolvedVariablesInfoLocators } from './unresolved-variables-info';
 import { buildSidebarLocators } from './sidebar';
 import { buildDocsLocators } from './docs';
 import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
@@ -46,6 +46,7 @@ export const buildCommonLocators = (page: Page) => ({
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
   requestSettings: buildRequestSettingsLocators(page),
+  unresolvedVariablesInfo: buildUnresolvedVariablesInfoLocators(page),
   websocket: buildWebsocketCommonLocators(page),
   toast: buildToastLocators(page),
   request: buildRequestLocators(page),
@@ -82,6 +83,8 @@ export const buildCommonLocators = (page: Page) => ({
     collectionSettingsTab: () =>
       page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) }),
     activeRequestTab: () => page.locator('.request-tab.active'),
+    leftChevron: () => page.getByLabel('Left Chevron'),
+    scrollContainer: () => page.locator('.tabs-scroll-container'),
     activeRequestTabMethod: () => page.locator('.request-tab.active .tab-method'),
     closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-tab-close-icon'),
     closableTabs: () => page.locator('.request-tab').filter({ has: page.getByTestId('request-tab-close-icon') }),
@@ -149,7 +152,11 @@ export const buildCommonLocators = (page: Page) => ({
     within: (scope: Locator) => scope.locator('.CodeMirror').first(),
     /** Nth row's value-column editor in an EditableTable (Headers / Params / Vars / Assertions). */
     valueCellAt: (scope: Locator, rowIndex: number = 0) =>
-      scope.locator('table tbody tr').nth(rowIndex).getByTestId('column-value').locator('.CodeMirror')
+      scope.locator('table tbody tr').nth(rowIndex).getByTestId('column-value').locator('.CodeMirror'),
+    /** Warning icon beside a sensitive input. `fieldName` is the field or variable name. */
+    sensitiveWarning: (fieldName: string) => page.getByTestId(`sensitive-field-warning-${fieldName}`),
+    sensitiveWarningIn: (root: Locator, fieldName: string) => root.getByTestId(`sensitive-field-warning-${fieldName}`),
+    sensitiveTooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text })
   },
   // The DataTypeSelector exposes a stable trigger per row (request/folder/collection
   // vars + env vars). Compact mode shows an icon; full mode shows `.type-label`.
@@ -276,9 +283,11 @@ export const buildCommonLocators = (page: Page) => ({
     statusCode: () => page.getByTestId('response-status-code'),
     status: () => page.getByTestId('response-pane-status'),
     elapsedTime: () => page.getByTestId('response-elapsed-time'),
+    time: () => page.getByTestId('response-pane-status').getByTestId('response-time'),
     // Rendered by every response pane (http, grpc, ws) only while a response exists, so its
     // absence doubles as the "response is cleared" signal.
     clearButton: () => page.getByTestId('response-clear-btn'),
+    cancelRequestButton: () => page.getByRole('button', { name: 'Cancel Request' }),
     pane: () => page.locator('.response-pane'),
     errorMessage: () => page.getByTestId('response-pane').locator('.error'),
     copyButton: () => page.locator('button[title="Copy response to clipboard"]'),

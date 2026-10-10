@@ -3,6 +3,7 @@ import { collectionSlug } from '../../../packages/bruno-app/src/utils/collection
 import process from 'node:process';
 import * as path from 'path';
 import * as fs from 'fs';
+import AdmZip from 'adm-zip';
 import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, PresetRequestType } from './locators';
 import { waitForCollectionMount } from './mounting';
 import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
@@ -2738,8 +2739,8 @@ const fieldEditor = (page: Page, labelText: string) =>
   page
     .locator('label')
     .filter({ hasText: new RegExp(`^${escapeRegExp(labelText)}$`) })
-    .locator('..')
-    .locator('.single-line-editor-wrapper .CodeMirror');
+    .locator('xpath=following-sibling::*[contains(@class,"single-line-editor-wrapper")][1]')
+    .locator('.CodeMirror');
 
 /**
  * Open the auth mode dropdown and pick a mode by its visible label.
@@ -2762,6 +2763,16 @@ const typeIntoField = async (page: Page, labelText: string, value: string) => {
   await page.keyboard.type(value);
 };
 
+/** Sets the field next to a label to this text. */
+const writeFieldValue = async (page: Page, labelText: string, value: string) => {
+  const editor = fieldEditor(page, labelText).first();
+  await editor.waitFor({ state: 'visible' });
+  await editor.evaluate((el: any, nextValue: string) => {
+    el.CodeMirror?.setValue(nextValue);
+  }, value);
+  await expect.poll(() => readField(page, labelText)).toBe(value);
+};
+
 /**
  * Read the current value of a single-line CodeMirror editor identified by its sibling label.
  * @param page - The page object
@@ -2771,6 +2782,51 @@ const readField = async (page: Page, labelText: string): Promise<string> => {
   const editor = fieldEditor(page, labelText).first();
   await editor.waitFor({ state: 'visible' });
   return editor.evaluate((el: any) => (el as any).CodeMirror?.getValue() ?? '');
+};
+
+export type CollectionProxyField = 'hostname' | 'port' | 'username' | 'password';
+
+const COLLECTION_PROXY_FIELD_TEST_IDS: Record<CollectionProxyField, string> = {
+  hostname: 'collection-proxy-hostname',
+  port: 'collection-proxy-port',
+  username: 'collection-proxy-username',
+  password: 'collection-proxy-password'
+};
+
+const collectionProxyFieldRoot = (page: Page, field: CollectionProxyField) =>
+  page.getByTestId(COLLECTION_PROXY_FIELD_TEST_IDS[field]);
+
+/** Read a collection proxy hostname, port, username, or password field. */
+const readCollectionProxyField = async (page: Page, field: CollectionProxyField): Promise<string> => {
+  const root = collectionProxyFieldRoot(page, field);
+  await root.waitFor({ state: 'visible' });
+
+  if (field === 'port') {
+    return root.inputValue();
+  }
+
+  const editor = root.locator('.CodeMirror').first();
+  await editor.waitFor({ state: 'visible' });
+  return editor.evaluate((el: any) => (el as any).CodeMirror?.getValue() ?? '');
+};
+
+/** Set a collection proxy hostname, port, username, or password field. */
+const writeCollectionProxyField = async (page: Page, field: CollectionProxyField, value: string) => {
+  const root = collectionProxyFieldRoot(page, field);
+  await root.waitFor({ state: 'visible' });
+
+  if (field === 'port') {
+    await root.fill(value);
+    await expect.poll(() => root.inputValue()).toBe(value);
+    return;
+  }
+
+  const editor = root.locator('.CodeMirror').first();
+  await editor.waitFor({ state: 'visible' });
+  await editor.evaluate((el: any, nextValue: string) => {
+    el.CodeMirror?.setValue(nextValue);
+  }, value);
+  await expect.poll(() => readCollectionProxyField(page, field)).toBe(value);
 };
 
 const openFolderSettings = async (page: Page, collectionName: string, folderName = 'api') => {
@@ -3167,8 +3223,8 @@ const generateCollectionDocs = async (
   });
 };
 
-const openExportToPostmanModal = async (page: Page, collectionName: string) => {
-  await test.step(`Open Export to Postman for "${collectionName}"`, async () => {
+const openShareCollectionModal = async (page: Page, collectionName: string) => {
+  await test.step(`Open Share Collection for "${collectionName}"`, async () => {
     const locators = buildCommonLocators(page);
 
     await openCollection(page, collectionName);
@@ -3179,6 +3235,14 @@ const openExportToPostmanModal = async (page: Page, collectionName: string) => {
     await collectionAction.click();
     await locators.dropdown.item('Share').click();
     await expect(locators.modal.title('Share Collection')).toBeVisible();
+  });
+};
+
+const openExportToPostmanModal = async (page: Page, collectionName: string) => {
+  await test.step(`Open Export to Postman for "${collectionName}"`, async () => {
+    const locators = buildCommonLocators(page);
+
+    await openShareCollectionModal(page, collectionName);
 
     await locators.export.postmanFormatCard().click();
     await locators.modal.button('Proceed').click();
@@ -3236,6 +3300,37 @@ const exportCollectionToPostman = async (
     await expect.poll(() => fs.existsSync(filePath), { timeout: 5000 }).toBe(true);
     return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
   });
+};
+
+const exportCollectionAsZip = async (
+  page: Page,
+  electronApp: ElectronApplication,
+  collectionName: string,
+  outputDir: string
+) => {
+  const zipPath = path.join(outputDir, `${collectionName}.zip`);
+
+  await electronApp.evaluate(({ dialog }, filePath) => {
+    (dialog as any).__savedShowSaveDialog = dialog.showSaveDialog;
+    dialog.showSaveDialog = async () => ({ filePath, canceled: false });
+  }, zipPath);
+
+  try {
+    await openShareCollectionModal(page, collectionName);
+
+    return await test.step('Export as ZIP and read the written entries', async () => {
+      const locators = buildCommonLocators(page);
+      await locators.modal.button('Proceed').click();
+      await expect(locators.modal.title('Share Collection')).toBeHidden();
+      await expect.poll(() => fs.existsSync(zipPath), { timeout: 10000 }).toBe(true);
+      return new AdmZip(zipPath).getEntries().map((entry) => entry.entryName);
+    });
+  } finally {
+    await electronApp.evaluate(({ dialog }) => {
+      dialog.showSaveDialog = (dialog as any).__savedShowSaveDialog;
+      delete (dialog as any).__savedShowSaveDialog;
+    });
+  }
 };
 
 /**
@@ -4019,7 +4114,10 @@ export {
   selectAuthMode,
   fieldEditor,
   typeIntoField,
+  writeFieldValue,
   readField,
+  writeCollectionProxyField,
+  readCollectionProxyField,
   createExampleFromSidebar,
   openExampleFromSidebar,
   openWorkspaceFromDialog,
@@ -4033,10 +4131,12 @@ export {
   LINK_CLICK_MODIFIER,
   openRequestInFolder,
   generateCollectionDocs,
+  openShareCollectionModal,
   openExportToPostmanModal,
   closeExportToPostmanModal,
   dismissModalIfOpen,
   exportCollectionToPostman,
+  exportCollectionAsZip,
   addTag,
   removeTag,
   saveFolderSettings,

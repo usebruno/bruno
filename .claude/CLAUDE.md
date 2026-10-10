@@ -68,7 +68,7 @@ Non-obvious project rules worth holding:
 Path-scoped rules in `.claude/rules/` auto-attach when you touch matching files:
 `architecture.md` (`@usebruno/*` dependency boundaries, manifests), `bruno-app-layout.md` (bruno-app
 module layout), `electron-ipc.md` (IPC handlers + startup), `redux-store.md` (slices/middleware),
-`sqlite.md` (`@usebruno/sqlite` — migrations, statements, main/renderer usage), `testing.md` (e2e
+`sqlite.md` (`@usebruno/sqlite` — migrations, statements, per-statement IPC), `testing.md` (e2e
 patterns & gotchas), `cross-platform.md` (Windows file/process/path pitfalls), `dsl-changes.md`
 (on-disk `.bru`/`.yml` format & backward compat), `feature-parity.md` (co-related features —
 app↔CLI twins, converter/shim/level/protocol pairs), `conventions.md` (readability, reuse,
