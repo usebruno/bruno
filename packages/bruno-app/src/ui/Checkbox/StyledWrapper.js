@@ -69,11 +69,15 @@ const StyledWrapper = styled.div`
     background-color: transparent;
     transition: background-color 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
     pointer-events: none;
+    box-sizing: border-box;
 
     .checkbox-icon {
+      display: block;
+      flex-shrink: 0;
       opacity: 0;
       color: ${(props) => props.theme.button2.color.primary.text};
       transition: opacity 0.1s ease;
+
     }
   }
 
