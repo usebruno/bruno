@@ -124,6 +124,15 @@ lossless no-op, not a diff. Collapsing this structurally (rather than whitelisti
 keeps the whitelist focused on real differences and avoids churn when a fixture's empty fields change.
 Confirmed safe: Postman's importer defaults any missing auth param, so omitting empties never errors.
 
+**Exception — keys with a non-empty Postman default.** "Absent == unset" is false for a param Postman
+omits only because it sits at a non-empty default it still applies: oauth2 `headerPrefix` omitted means
+`Bearer`, so collapsing it would hide Bruno dropping the prefix. `POSTMAN_NON_EMPTY_DEFAULTS` in
+`compare-auth.js` materializes these on the *original* side (key absent or `null`), each with an
+`appliesWhen` predicate since the default is usually conditional — `headerPrefix` applies when the token
+goes in the header, and an absent `addTokenTo` counts as header because Postman resolves an unspecified
+placement to Request Headers. These predicates model **Postman's** defaults, never Bruno's importer:
+matching the importer would make the oracle ratify it instead of checking it.
+
 ### `grantType` on oauth2 diffs
 
 Each oauth2 diff is tagged with the node's grant type (from the original, falling back to the
