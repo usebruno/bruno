@@ -83,6 +83,8 @@ export const buildEnvironmentLocators = (page: Page) => ({
   variableValueEditor: (index: number) =>
     page.locator(`[data-testid="test-multiline-editor-${index}.value"]`).locator('.CodeMirror').first(),
   addVariableButton: () => page.getByTestId('add-variable'),
+  // Floating action pinned to the bottom of the table
+  floatingAddAction: () => page.getByTestId('add-variable-action'),
   // The Name column's input in the row at a given formik index (its cell carries the index).
   variableNameInput: (index: number) => page.getByTestId(`env-var-name-cell-${index}`).getByTestId('env-var-name-input'),
   variableDescriptionEditor: (index: number) =>

@@ -8,7 +8,8 @@ import {
   IconChevronDown,
   IconChevronRight,
   IconGripVertical,
-  IconMinusVertical
+  IconMinusVertical,
+  IconPlus
 } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useSelector, useDispatch } from 'react-redux';
@@ -281,6 +282,7 @@ const EnvironmentVariablesTable = ({
   });
   const scrollerRef = useRef(null);
   const [scrollerEl, setScrollerEl] = useState(null);
+  const pendingFocusInputIdRef = useRef(null);
   scrollerRef.current = scrollerEl;
   const initialTopMostItemIndex = useRef(Math.max(0, Math.floor(scroll / MIN_ROW_HEIGHT))).current;
   useTrackScroll({ ref: scrollerRef, onChange: setScroll, initialValue: scroll, enabled: !!scrollerEl });
@@ -507,6 +509,8 @@ const EnvironmentVariablesTable = ({
 
   useEffect(() => {
     cancelDrag();
+    // Drop any unresolved add request so it cannot steal focus after a tab switch.
+    pendingFocusInputIdRef.current = null;
   }, [variableType, cancelDrag]);
 
   const dragContext = useMemo(() => ({
@@ -947,6 +951,40 @@ const EnvironmentVariablesTable = ({
       ]
     : displayedVariables;
 
+  const addRowIndex = formik.values.length - 1;
+
+  const lastRowIndexRef = useRef(0);
+  lastRowIndexRef.current = variableRows.length - 1;
+
+  const virtuosoRef = useRef(null);
+  const [isAddRowOutOfView, setIsAddRowOutOfView] = useState(false);
+
+  const showFloatingAdd = isAddRowOutOfView && !isSearchActive && !collapsedSections.own;
+
+  const handleRangeChanged = useCallback(({ endIndex }) => {
+    const isOutOfView = endIndex < lastRowIndexRef.current;
+    setIsAddRowOutOfView((prev) => (prev === isOutOfView ? prev : isOutOfView));
+  }, []);
+
+  const registerNameInput = useCallback((node) => {
+    if (!node || node.id !== pendingFocusInputIdRef.current) return;
+    pendingFocusInputIdRef.current = null;
+    node.focus();
+  }, []);
+
+  const handleAddVariable = useCallback(() => {
+    const nameInputId = `${addRowIndex}.name`;
+
+    const mounted = document.getElementById(nameInputId);
+    if (mounted) {
+      mounted.focus();
+      return;
+    }
+
+    pendingFocusInputIdRef.current = nameInputId;
+    virtuosoRef.current?.scrollToIndex({ index: lastRowIndexRef.current, align: 'end' });
+  }, [addRowIndex]);
+
   return (
     <StyledWrapper
       data-testid="env-vars-table"
@@ -958,197 +996,213 @@ const EnvironmentVariablesTable = ({
           No results found for &ldquo;{searchQuery.trim()}&rdquo;
         </div>
       ) : (
-        <TableVirtuoso
-          className="table-container"
-          style={{ height: tableHeight }}
-          scrollerRef={handleScrollerRef}
-          initialTopMostItemIndex={initialTopMostItemIndex}
-          overscan={Math.min(30, variableRows.length)}
-          components={{ TableRow }}
-          context={dragContext}
-          data={variableRows}
-          totalListHeightChanged={handleTotalHeightChanged}
-          fixedHeaderContent={() => (
-            <tr>
-              <td className="text-center"></td>
-              <td
-                data-testid="env-vars-header-name"
-                style={{ width: columnWidths.name }}
-                className="sortable-header"
-                onClick={cycleSortMode}
-              >
-                <ColumnSortHeader label="Name" SortIcon={SortIcon} sortLabel={sortLabel} />
-                <div
-                  data-testid="env-vars-resize-handle-name"
-                  className={`resize-handle ${resizingIdx === 0 ? 'resizing' : ''}`}
-                  style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
-                  onMouseDown={(e) => handleResizeStart(e, 0)}
-                />
-              </td>
-              <td data-testid="env-vars-header-value" style={{ width: columnWidths.value }}>
-                Value
-                <div
-                  data-testid="env-vars-resize-handle-value"
-                  className={`resize-handle ${resizingIdx === 1 ? 'resizing' : ''}`}
-                  style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
-                  onMouseDown={(e) => handleResizeStart(e, 1)}
-                />
-              </td>
-              <td data-testid="env-vars-header-description" style={{ width: columnWidths.description }}>Description</td>
-              <td className="actions-column"></td>
-            </tr>
-          )}
-          defaultItemHeight={35}
-          computeItemKey={(virtualIndex, item) => {
-            if (item.type === ROW_SECTION_HEADER) return `section-${item.section}`;
-            if (item.type === ROW_INHERITED_VARIABLE) return `inherited-${item.variable.uid}`;
-            return item.variable.uid;
-          }}
-          itemContent={(virtualIndex, item) => {
-            if (item.type === ROW_SECTION_HEADER) {
-              const ChevronIcon = collapsedSections[item.section] ? IconChevronRight : IconChevronDown;
-              return (
-                <td colSpan={columns.length + 2}>
-                  <button
-                    type="button"
-                    className="section-toggle"
-                    onClick={() => toggleSection(item.section)}
-                    data-testid={`env-var-section-toggle-${item.section}`}
-                  >
-                    <ChevronIcon size={14} strokeWidth={1.5} />
-                    <span>{item.label}</span>
-                    <span className="section-count">({item.count})</span>
-                  </button>
+        <div className="table-viewport">
+          <TableVirtuoso
+            ref={virtuosoRef}
+            className="table-container"
+            style={{ height: tableHeight }}
+            scrollerRef={handleScrollerRef}
+            rangeChanged={handleRangeChanged}
+            initialTopMostItemIndex={initialTopMostItemIndex}
+            overscan={Math.min(30, variableRows.length)}
+            components={{ TableRow }}
+            context={dragContext}
+            data={variableRows}
+            totalListHeightChanged={handleTotalHeightChanged}
+            fixedHeaderContent={() => (
+              <tr>
+                <td className="text-center"></td>
+                <td
+                  data-testid="env-vars-header-name"
+                  style={{ width: columnWidths.name }}
+                  className="sortable-header"
+                  onClick={cycleSortMode}
+                >
+                  <ColumnSortHeader label="Name" SortIcon={SortIcon} sortLabel={sortLabel} />
+                  <div
+                    data-testid="env-vars-resize-handle-name"
+                    className={`resize-handle ${resizingIdx === 0 ? 'resizing' : ''}`}
+                    style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
+                    onMouseDown={(e) => handleResizeStart(e, 0)}
+                  />
                 </td>
-              );
-            }
-
-            if (item.type === ROW_INHERITED_VARIABLE) {
-              return (
-                <InheritedVariableRow
-                  variable={item.variable}
-                  columnWidths={columnWidths}
-                  sensitiveWarning={renderSensitiveWarning ? renderSensitiveWarning(item.variable) : null}
-                />
-              );
-            }
-
-            const { variable, index: actualIndex } = item;
-            const isLastRow = actualIndex === formik.values.length - 1;
-            const isEmptyRow = !variable.name || variable.name.trim() === '';
-            const isLastEmptyRow = isLastRow && isEmptyRow;
-            const isDuplicateSecret
-              = variable.secret && !isEmptyRow && duplicateSecretNames.has(variable.name.trim());
-            const rowError = isLastEmptyRow
-              ? null
-              : formik.getFieldMeta(`${actualIndex}.name`).error
-                || (isDuplicateSecret ? DUPLICATE_SECRET_NAME_FIELD_ERROR : null);
-
-            return (
-              <>
-                <td className="text-center relative">
-                  {dragEnabled && !isLastEmptyRow && (
-                    <div
-                      data-testid="drag-handle"
-                      className="drag-handle group absolute z-10 left-[-8px] top-1/2 -translate-y-1/2 p-1 cursor-grab"
-                      onMouseDown={(e) => handleDragHandleMouseDown(e, variable.uid, variable.name)}
+                <td data-testid="env-vars-header-value" style={{ width: columnWidths.value }}>
+                  Value
+                  <div
+                    data-testid="env-vars-resize-handle-value"
+                    className={`resize-handle ${resizingIdx === 1 ? 'resizing' : ''}`}
+                    style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
+                    onMouseDown={(e) => handleResizeStart(e, 1)}
+                  />
+                </td>
+                <td data-testid="env-vars-header-description" style={{ width: columnWidths.description }}>Description</td>
+                <td className="actions-column"></td>
+              </tr>
+            )}
+            defaultItemHeight={35}
+            computeItemKey={(virtualIndex, item) => {
+              if (item.type === ROW_SECTION_HEADER) return `section-${item.section}`;
+              if (item.type === ROW_INHERITED_VARIABLE) return `inherited-${item.variable.uid}`;
+              return item.variable.uid;
+            }}
+            itemContent={(virtualIndex, item) => {
+              if (item.type === ROW_SECTION_HEADER) {
+                const ChevronIcon = collapsedSections[item.section] ? IconChevronRight : IconChevronDown;
+                return (
+                  <td colSpan={columns.length + 2}>
+                    <button
+                      type="button"
+                      className="section-toggle"
+                      onClick={() => toggleSection(item.section)}
+                      data-testid={`env-var-section-toggle-${item.section}`}
                     >
-                      <IconGripVertical size={14} className="icon-grip hidden group-hover:block" />
-                      <IconMinusVertical size={14} className="icon-minus block group-hover:hidden" />
-                    </div>
-                  )}
-                  {!isLastEmptyRow && (
-                    <input
-                      type="checkbox"
-                      className="mousetrap"
-                      name={`${actualIndex}.enabled`}
-                      data-testid="env-var-enabled-checkbox"
-                      checked={variable.enabled}
-                      onChange={formik.handleChange}
-                    />
-                  )}
-                </td>
-                <td style={{ width: columnWidths.name }}>
-                  <div className="flex items-center">
-                    <div className="name-cell-wrapper" data-testid={`env-var-name-cell-${actualIndex}`}>
+                      <ChevronIcon size={14} strokeWidth={1.5} />
+                      <span>{item.label}</span>
+                      <span className="section-count">({item.count})</span>
+                    </button>
+                  </td>
+                );
+              }
+
+              if (item.type === ROW_INHERITED_VARIABLE) {
+                return (
+                  <InheritedVariableRow
+                    variable={item.variable}
+                    columnWidths={columnWidths}
+                    sensitiveWarning={renderSensitiveWarning ? renderSensitiveWarning(item.variable) : null}
+                  />
+                );
+              }
+
+              const { variable, index: actualIndex } = item;
+              const isLastRow = actualIndex === formik.values.length - 1;
+              const isEmptyRow = !variable.name || variable.name.trim() === '';
+              const isLastEmptyRow = isLastRow && isEmptyRow;
+              const isDuplicateSecret
+                = variable.secret && !isEmptyRow && duplicateSecretNames.has(variable.name.trim());
+              const rowError = isLastEmptyRow
+                ? null
+                : formik.getFieldMeta(`${actualIndex}.name`).error
+                  || (isDuplicateSecret ? DUPLICATE_SECRET_NAME_FIELD_ERROR : null);
+
+              return (
+                <>
+                  <td className="text-center relative">
+                    {dragEnabled && !isLastEmptyRow && (
+                      <div
+                        data-testid="drag-handle"
+                        className="drag-handle group absolute z-10 left-[-8px] top-1/2 -translate-y-1/2 p-1 cursor-grab"
+                        onMouseDown={(e) => handleDragHandleMouseDown(e, variable.uid, variable.name)}
+                      >
+                        <IconGripVertical size={14} className="icon-grip hidden group-hover:block" />
+                        <IconMinusVertical size={14} className="icon-minus block group-hover:hidden" />
+                      </div>
+                    )}
+                    {!isLastEmptyRow && (
                       <input
-                        type="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
+                        type="checkbox"
                         className="mousetrap"
-                        id={`${actualIndex}.name`}
-                        name={`${actualIndex}.name`}
-                        data-testid="env-var-name-input"
-                        value={variable.name}
-                        placeholder={!variable.name || (typeof variable.name === 'string' && variable.name.trim() === '') ? 'Name' : ''}
-                        onChange={(e) => handleNameChange(actualIndex, e)}
-                        onFocus={() => handleRowFocus(variable.uid)}
-                        onBlur={() => {
-                          handleNameBlur(actualIndex);
-                        }}
-                        onKeyDown={(e) => handleNameKeyDown(actualIndex, e)}
+                        name={`${actualIndex}.enabled`}
+                        data-testid="env-var-enabled-checkbox"
+                        checked={variable.enabled}
+                        onChange={formik.handleChange}
+                      />
+                    )}
+                  </td>
+                  <td style={{ width: columnWidths.name }}>
+                    <div className="flex items-center">
+                      <div className="name-cell-wrapper" data-testid={`env-var-name-cell-${actualIndex}`}>
+                        <input
+                          type="text"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck="false"
+                          className="mousetrap"
+                          ref={registerNameInput}
+                          id={`${actualIndex}.name`}
+                          name={`${actualIndex}.name`}
+                          data-testid="env-var-name-input"
+                          value={variable.name}
+                          placeholder={!variable.name || (typeof variable.name === 'string' && variable.name.trim() === '') ? 'Name' : ''}
+                          onChange={(e) => handleNameChange(actualIndex, e)}
+                          onFocus={() => handleRowFocus(variable.uid)}
+                          onBlur={() => {
+                            handleNameBlur(actualIndex);
+                          }}
+                          onKeyDown={(e) => handleNameKeyDown(actualIndex, e)}
+                        />
+                      </div>
+                      <ErrorMessage
+                        id={`error-${actualIndex}.name-${actualIndex}`}
+                        error={rowError}
                       />
                     </div>
-                    <ErrorMessage
-                      id={`error-${actualIndex}.name-${actualIndex}`}
-                      error={rowError}
+                  </td>
+                  <td style={{ width: columnWidths.value }} className="overflow-hidden">
+                    <EnvVarValueCell
+                      variable={variable}
+                      actualIndex={actualIndex}
+                      isLastRow={isLastRow}
+                      isLastEmptyRow={isLastEmptyRow}
+                      isSecretTab={isSecretTab}
+                      storedTheme={storedTheme}
+                      collection={_collection}
+                      resolvableVariables={resolvableVariables}
+                      formik={formik}
+                      handleRowFocus={handleRowFocus}
+                      handleSave={handleSave}
+                      renderSensitiveWarning={renderSensitiveWarning}
                     />
-                  </div>
-                </td>
-                <td style={{ width: columnWidths.value }} className="overflow-hidden">
-                  <EnvVarValueCell
-                    variable={variable}
-                    actualIndex={actualIndex}
-                    isLastRow={isLastRow}
-                    isLastEmptyRow={isLastEmptyRow}
-                    isSecretTab={isSecretTab}
-                    storedTheme={storedTheme}
-                    collection={_collection}
-                    resolvableVariables={resolvableVariables}
-                    formik={formik}
-                    handleRowFocus={handleRowFocus}
-                    handleSave={handleSave}
-                    renderSensitiveWarning={renderSensitiveWarning}
-                  />
-                </td>
-                <td style={{ width: columnWidths.description }}>
-                  <MultiLineEditor
-                    theme={storedTheme}
-                    collection={_collection}
-                    name={`${actualIndex}.description`}
-                    value={variable.description ?? ''}
-                    placeholder={isLastEmptyRow && (!variable.description || (typeof variable.description === 'string' && variable.description.trim() === '')) ? 'Description' : ''}
-                    onChange={(newValue) => {
-                      formik.setFieldValue(`${actualIndex}.description`, newValue, false);
-                      if (isLastRow) {
-                        setTimeout(() => {
-                          formik.setFieldValue(formik.values.length, {
-                            uid: uuid(),
-                            name: '',
-                            value: '',
-                            type: 'text',
-                            secret: isSecretTab,
-                            enabled: true
-                          }, false);
-                        }, 0);
-                      }
-                    }}
-                    onSave={handleSave}
-                  />
-                </td>
-                <td>
-                  {!isLastEmptyRow && (
-                    <button onClick={() => handleRemoveVar(variable.uid)}>
-                      <IconTrash strokeWidth={1.5} size={18} />
-                    </button>
-                  )}
-                </td>
-              </>
-            );
-          }}
-        />
+                  </td>
+                  <td style={{ width: columnWidths.description }}>
+                    <MultiLineEditor
+                      theme={storedTheme}
+                      collection={_collection}
+                      name={`${actualIndex}.description`}
+                      value={variable.description ?? ''}
+                      placeholder={isLastEmptyRow && (!variable.description || (typeof variable.description === 'string' && variable.description.trim() === '')) ? 'Description' : ''}
+                      onChange={(newValue) => {
+                        formik.setFieldValue(`${actualIndex}.description`, newValue, false);
+                        if (isLastRow) {
+                          setTimeout(() => {
+                            formik.setFieldValue(formik.values.length, {
+                              uid: uuid(),
+                              name: '',
+                              value: '',
+                              type: 'text',
+                              secret: isSecretTab,
+                              enabled: true
+                            }, false);
+                          }, 0);
+                        }
+                      }}
+                      onSave={handleSave}
+                    />
+                  </td>
+                  <td>
+                    {!isLastEmptyRow && (
+                      <button onClick={() => handleRemoveVar(variable.uid)}>
+                        <IconTrash strokeWidth={1.5} size={18} />
+                      </button>
+                    )}
+                  </td>
+                </>
+              );
+            }}
+          />
+          {showFloatingAdd && (
+            <button
+              type="button"
+              className="add-variable-action"
+              onClick={handleAddVariable}
+              data-testid="add-variable-action"
+            >
+              <IconPlus size={14} strokeWidth={1.5} />
+              <span>{isSecretTab ? 'Add secret' : 'Add variable'}</span>
+            </button>
+          )}
+        </div>
       )}
 
       {/* We should re-think of these buttons placement in component as we use TableVirtuoso which because of
