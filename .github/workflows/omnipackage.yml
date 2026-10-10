@@ -1,0 +1,52 @@
+name: Build Linux packages (omnipackage)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  list-distros:
+    runs-on: ubuntu-24.04
+    outputs:
+      distros: ${{ steps.get-distros.outputs.distros }}
+    steps:
+      - name: Install omnipackage
+        run: |
+          echo 'deb https://repositories.omnipackage.org/omnipackage-rs/stable/ubuntu_24.04 stable/' | sudo tee /etc/apt/sources.list.d/omnipackage_omnipackage.list
+          curl -fsSL https://repositories.omnipackage.org/omnipackage-rs/stable/ubuntu_24.04/stable/Release.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/omnipackage_omnipackage.gpg > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y omnipackage
+
+      - uses: actions/checkout@v6
+
+      - name: Get distro list
+        id: get-distros
+        run: echo "distros=$(omnipackage info --list-distros . --format json)" >> "$GITHUB_OUTPUT"
+
+  release:
+    needs: [list-distros]
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: omnipackage-${{ matrix.distro }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: ${{ fromJson(needs.list-distros.outputs.distros) }}
+    steps:
+      - name: Install omnipackage
+        run: |
+          echo 'deb https://repositories.omnipackage.org/omnipackage-rs/stable/ubuntu_24.04 stable/' | sudo tee /etc/apt/sources.list.d/omnipackage_omnipackage.list
+          curl -fsSL https://repositories.omnipackage.org/omnipackage-rs/stable/ubuntu_24.04/stable/Release.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/omnipackage_omnipackage.gpg > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y omnipackage
+
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - run: echo "${{ secrets.OMNIPACKAGE_DOTENV }}" > .env
+
+      - name: Release packages for ${{ matrix.distro }}
+        run: omnipackage release . --distros "${{ matrix.distro }}" --repository "R2 test repo"
