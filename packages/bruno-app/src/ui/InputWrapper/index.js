@@ -11,7 +11,7 @@ import StyledWrapper from './StyledWrapper';
  * @param {string} props.error - Error message below the input
  * @param {string} props.htmlFor - Links label to input id
  * @param {boolean} props.required - Shows asterisk on label
- * @param {string} props.size - Input size: 'sm' | 'md' (default: 'md')
+ * @param {string} props.size - Input size: 'xs' | 'sm' | 'md' (default: 'md')
  * @param {string} props.className - Additional CSS class
  * @param {ReactNode} props.children - The actual input element
  */
