@@ -758,6 +758,13 @@ const CollectionItemRow = ({
         tabIndex={0}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && e.target === e.currentTarget) {
+            e.preventDefault();
+            e.stopPropagation();
+            setRenameItemModalOpen(true);
+          }
+        }}
         onMouseDown={isDragDisabled ? startBlockedDragTracking : undefined}
         onContextMenu={handleContextMenu}
         data-testid="sidebar-collection-item-row"
