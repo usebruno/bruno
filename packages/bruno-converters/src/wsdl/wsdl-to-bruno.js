@@ -8,10 +8,427 @@ const generateUID = () => {
   return result;
 };
 
-import { get, each } from 'lodash';
+const XSD_NS = 'http://www.w3.org/2001/XMLSchema';
+const SOAP11_ENVELOPE_NS = 'http://schemas.xmlsoap.org/soap/envelope/';
+const SOAP12_ENVELOPE_NS = 'http://www.w3.org/2003/05/soap-envelope';
+
+const XSD_BUILTINS = new Set([
+  'string', 'boolean', 'decimal', 'float', 'double', 'duration', 'dateTime', 'time', 'date',
+  'gYearMonth', 'gYear', 'gMonthDay', 'gDay', 'gMonth', 'hexBinary', 'base64Binary', 'anyURI',
+  'QName', 'NOTATION', 'normalizedString', 'token', 'language', 'Name', 'NCName', 'ID',
+  'IDREF', 'IDREFS', 'ENTITY', 'ENTITIES', 'NMTOKEN', 'NMTOKENS', 'integer', 'nonPositiveInteger',
+  'negativeInteger', 'long', 'int', 'short', 'byte', 'nonNegativeInteger', 'unsignedLong',
+  'unsignedInt', 'unsignedShort', 'unsignedByte', 'positiveInteger'
+]);
+
+const BUILTIN_SAMPLES = {
+  string: 'string',
+  normalizedString: 'string',
+  token: 'string',
+  language: 'string',
+  Name: 'string',
+  NCName: 'string',
+  ID: 'string',
+  IDREF: 'string',
+  IDREFS: 'string',
+  ENTITY: 'string',
+  ENTITIES: 'string',
+  NMTOKEN: 'string',
+  NMTOKENS: 'string',
+  int: '0',
+  integer: '0',
+  long: '0',
+  short: '0',
+  byte: '0',
+  unsignedInt: '0',
+  unsignedLong: '0',
+  unsignedShort: '0',
+  unsignedByte: '0',
+  positiveInteger: '0',
+  negativeInteger: '0',
+  nonNegativeInteger: '0',
+  nonPositiveInteger: '0',
+  boolean: 'true',
+  float: '0.0',
+  double: '0.0',
+  decimal: '0.0',
+  date: '2024-01-01',
+  dateTime: '2024-01-01T00:00:00Z',
+  time: '00:00:00'
+};
+
+function escapeText(value) {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function escapeAttribute(value) {
+  return escapeText(value).replace(/"/g, '&quot;');
+}
+
+import _ from 'lodash';
+const { get, each } = _;
 import { collectionSchema } from '@usebruno/schema';
 import parseXML, { XML_POSITION_KEY } from './parse-xml.js';
 import { collectWsdlSchemas, resolveQName } from './schema-graph.js';
+
+/**
+ * Namespace context for managing XML namespace prefixes.
+ * Uses declared prefixes from WSDL when available, otherwise generates new ones.
+ */
+class NamespaceContext {
+  constructor(seed) {
+    this.declared = new Map();
+    this.used = new Map();
+    this.taken = new Set();
+
+    for (const [prefix, uri] of seed) {
+      if (!uri || !prefix) continue;
+      if (!this.declared.has(uri)) this.declared.set(uri, prefix);
+      this.taken.add(prefix);
+    }
+  }
+
+  declaredPrefixFor(uri) {
+    return this.declared.get(uri);
+  }
+
+  prefixFor(uri) {
+    const existing = this.used.get(uri);
+    if (existing) return existing;
+    const prefix = this.declared.get(uri) ?? this.generatePrefix();
+    this.used.set(uri, prefix);
+    return prefix;
+  }
+
+  generatePrefix() {
+    let counter = 1;
+    while (this.taken.has(`ns${counter}`)) counter += 1;
+    const prefix = `ns${counter}`;
+    this.taken.add(prefix);
+    return prefix;
+  }
+
+  declarations() {
+    return [...this.used].map(([uri, prefix]) => ({ prefix, uri }));
+  }
+}
+
+/**
+ * SampleRenderer generates XML samples with proper namespace handling,
+ * CHOICE comments, and recursive type detection.
+ */
+class SampleRenderer {
+  constructor(model, namespaces) {
+    this.model = model;
+    this.namespaces = namespaces;
+    this.visitedTypes = new Set();
+    this.visitedRefs = new Set();
+  }
+
+  render(root, depth) {
+    const lines = [];
+    this.renderElement(root, depth, lines);
+    // Join without newlines to match expected test output format
+    return lines.join('');
+  }
+
+  renderChildren(children, depth, lines) {
+    children.forEach((child, index) => {
+      for (const comment of this.choiceComments(children, index)) {
+        lines.push(comment);
+      }
+      this.renderElement(child, depth, lines);
+    });
+  }
+
+  renderElement(el, depth, lines) {
+    if (el.ref) {
+      const refQName = { namespace: el.refNamespace || '', local: el.ref.replace(/^.*:/, '') };
+      const target = this.findElement(refQName);
+      if (!target) {
+        lines.push(`<!-- Element ${el.ref} not found -->`);
+        return;
+      }
+      const key = `${target.namespace || ''}:${target.name}`;
+      if (this.visitedRefs.has(key)) {
+        lines.push('<!-- Recursive element reference detected -->');
+        return;
+      }
+      this.visitedRefs.add(key);
+      try {
+        this.renderResolved({ ...target, minOccurs: el.minOccurs, maxOccurs: el.maxOccurs, choicePath: el.choicePath }, depth, lines);
+      } finally {
+        this.visitedRefs.delete(key);
+      }
+      return;
+    }
+    this.renderResolved(el, depth, lines);
+  }
+
+  renderResolved(el, depth, lines) {
+    if (el.minOccurs === 0) lines.push('<!--Optional:-->');
+    if (el.maxOccurs !== 1) {
+      const repetition
+        = el.maxOccurs === 'unbounded'
+          ? `<!--${el.minOccurs} or more repetitions:-->`
+          : `<!--${el.minOccurs} to ${el.maxOccurs} repetitions:-->`;
+      lines.push(repetition);
+    }
+
+    if (el.anyElement) {
+      lines.push('<!--You may enter ANY elements at this point-->');
+      return;
+    }
+
+    const content = this.resolveContent(el);
+    const tag = this.tagFor(el);
+    const attributes = this.renderAttributes(content.attributes);
+
+    if (content.kind === 'simple') {
+      lines.push(`<${tag}${attributes}>${escapeText(content.value)}</${tag}>`);
+      return;
+    }
+
+    if (content.children.length === 0) {
+      lines.push(`<${tag}${attributes}></${tag}>`);
+      return;
+    }
+
+    if (content.typeKey) {
+      if (this.visitedTypes.has(content.typeKey)) {
+        lines.push(`<${tag}${attributes}>`);
+        lines.push('<!-- Recursive type detected -->');
+        lines.push(`</${tag}>`);
+        return;
+      }
+      this.visitedTypes.add(content.typeKey);
+    }
+
+    lines.push(`<${tag}${attributes}>`);
+    this.renderChildren(content.children, depth + 1, lines);
+    lines.push(`</${tag}>`);
+
+    if (content.typeKey) this.visitedTypes.delete(content.typeKey);
+  }
+
+  tagFor(el) {
+    const ns = el.namespace || '';
+    // Global elements (declared at schema level and referenced by message
+    // parts) are emitted with their namespace prefix so document-style SOAP
+    // bodies carry the correctly-qualified element. Local elements retain the
+    // schema's qualification rules (unqualified by default).
+    if (ns && this.model.elements.has(`${ns}:${el.name}`)) {
+      const prefix = this.namespaces.prefixFor(ns);
+      return `${prefix}:${el.name}`;
+    }
+    return el.name;
+  }
+
+  renderAttributes(attributes) {
+    const seen = new Set();
+    const rendered = [];
+    for (const attribute of attributes) {
+      if (attribute.use === 'prohibited' || seen.has(attribute.name)) continue;
+      seen.add(attribute.name);
+      const value = attribute.fixed ?? attribute.default ?? '?';
+      rendered.push(`${attribute.name}="${escapeAttribute(value)}"`);
+    }
+    return rendered.length > 0 ? ` ${rendered.join(' ')}` : '';
+  }
+
+  resolveContent(el) {
+    if (el.simpleType) {
+      return { kind: 'simple', value: this.simpleValue(el.simpleType), attributes: el.attributes };
+    }
+
+    if (el.type) {
+      const typeQName = { namespace: el.typeNamespace || '', local: el.type.replace(/^.*:/, '') };
+      if (this.isXsdBuiltin(typeQName)) {
+        return { kind: 'simple', value: BUILTIN_SAMPLES[typeQName.local] ?? '?', attributes: el.attributes };
+      }
+      const simple = this.findSimpleType(typeQName);
+      if (simple) {
+        return { kind: 'simple', value: this.simpleValue(simple), attributes: el.attributes };
+      }
+      const complex = this.findComplexType(typeQName);
+      if (complex) {
+        if (complex.simpleBase) {
+          // simpleBase is a QName-like object {local, namespace}
+          const baseQName = typeof complex.simpleBase === 'string'
+            ? { namespace: complex.simpleBaseNamespace || '', local: complex.simpleBase.replace(/^.*:/, '') }
+            : complex.simpleBase;
+          return {
+            kind: 'simple',
+            value: this.sampleForQName(baseQName),
+            attributes: [...el.attributes, ...complex.attributes]
+          };
+        }
+        return {
+          kind: 'complex',
+          children: this.collectInheritedElements(complex, el.elements),
+          attributes: this.collectInheritedAttributes(complex, el.attributes),
+          typeKey: `${complex.namespace || ''}:${complex.name}`
+        };
+      }
+    }
+
+    // Anonymous complex type on the element that extends a base type
+    if (el.baseType && el.derivation !== 'restriction') {
+      const baseComplex = this.findComplexTypeByString(el.baseType, el.baseTypeNamespace);
+      if (baseComplex) {
+        return {
+          kind: 'complex',
+          children: this.collectInheritedElements(baseComplex, el.elements),
+          attributes: this.collectInheritedAttributes(baseComplex, el.attributes)
+        };
+      }
+    }
+
+    return { kind: 'complex', children: el.elements, attributes: el.attributes };
+  }
+
+  collectInheritedElements(node, ownElements, seen = new Set()) {
+    if (!node) return ownElements;
+    const key = `${node.namespace || ''}:${node.name}`;
+    if (seen.has(key)) return ownElements;
+    seen.add(key);
+
+    const baseElements = [];
+    if (node.baseType && node.derivation !== 'restriction') {
+      const base = this.findComplexTypeByString(node.baseType, node.baseTypeNamespace);
+      if (base) {
+        baseElements.push(...this.collectInheritedElements(base, [], seen));
+      }
+    }
+    return [...baseElements, ...(node.elements || []), ...ownElements];
+  }
+
+  collectInheritedAttributes(node, ownAttributes, seen = new Set()) {
+    if (!node) return ownAttributes;
+    const key = `${node.namespace || ''}:${node.name}`;
+    if (seen.has(key)) return ownAttributes;
+    seen.add(key);
+
+    const baseAttributes = [];
+    if (node.baseType && node.derivation !== 'restriction') {
+      const base = this.findComplexTypeByString(node.baseType, node.baseTypeNamespace);
+      if (base) {
+        baseAttributes.push(...this.collectInheritedAttributes(base, [], seen));
+      }
+    }
+    const merged = [...baseAttributes, ...(node.attributes || []), ...ownAttributes];
+    const seenNames = new Set();
+    return merged.filter((a) => {
+      if (seenNames.has(a.name)) return false;
+      seenNames.add(a.name);
+      return true;
+    });
+  }
+
+  findComplexTypeByString(typeStr, namespace) {
+    if (!typeStr) return undefined;
+    const local = typeStr.replace(/^.*:/, '');
+    const qname = { namespace: namespace || '', local };
+    return this.findComplexType(qname);
+  }
+
+  isXsdBuiltin(qname) {
+    return (qname.namespace === XSD_NS || qname.namespace === '') && XSD_BUILTINS.has(qname.local);
+  }
+
+  simpleValue(simple, seen = new Set()) {
+    if (seen.has(simple)) return '?';
+    seen.add(simple);
+    const enumeration = simple.enumeration;
+    if (enumeration && enumeration.length > 0) return enumeration[0]?.value ?? '?';
+    if (simple.base) return this.sampleForQName(simple.base, seen);
+    return '?';
+  }
+
+  sampleForQName(qname, seen = new Set()) {
+    if (!qname) return '?';
+    const local = typeof qname === 'string' ? qname.replace(/^.*:/, '') : qname.local;
+    const ns = typeof qname === 'string' ? '' : (qname.namespace || '');
+    const typeQName = { namespace: ns, local };
+    if (this.isXsdBuiltin(typeQName)) return BUILTIN_SAMPLES[local] ?? '?';
+    const simple = this.findSimpleType(typeQName);
+    if (simple) return this.simpleValue(simple, seen);
+    return '?';
+  }
+
+  findSimpleType(qname) {
+    if (!qname) return undefined;
+    const cleanTypeName = qname.local;
+    if (qname.namespace) {
+      const key = `${qname.namespace}:${cleanTypeName}`;
+      return this.model.simpleTypes.get(key);
+    }
+    for (const [, simpleType] of this.model.simpleTypes) {
+      if (simpleType.name === cleanTypeName) {
+        return simpleType;
+      }
+    }
+    return undefined;
+  }
+
+  findComplexType(qname) {
+    if (!qname) return undefined;
+    const cleanTypeName = qname.local;
+    if (qname.namespace) {
+      const key = `${qname.namespace}:${cleanTypeName}`;
+      return this.model.complexTypes.get(key);
+    }
+    for (const [, complexType] of this.model.complexTypes) {
+      if (complexType.name === cleanTypeName) {
+        return complexType;
+      }
+    }
+    return undefined;
+  }
+
+  findElement(qname) {
+    if (!qname) return undefined;
+    const cleanName = qname.local;
+    if (qname.namespace) {
+      const key = `${qname.namespace}:${cleanName}`;
+      return this.model.elements.get(key);
+    }
+    for (const [, element] of this.model.elements) {
+      if (element.name === cleanName) {
+        return element;
+      }
+    }
+    return undefined;
+  }
+
+  choiceComments(children, index) {
+    const element = children[index];
+    const path = element?.choicePath ?? [];
+    if (path.length === 0) return [];
+    const previousPath = index > 0 ? children[index - 1]?.choicePath ?? [] : [];
+
+    const comments = [];
+    for (let depthIndex = 0; depthIndex < path.length; depthIndex += 1) {
+      const step = path[depthIndex];
+      if (!step) continue;
+      const previousStep = previousPath[depthIndex];
+      if (previousStep && previousStep.group === step.group) continue;
+      const count = this.countBranches(children, index, depthIndex, step.group);
+      comments.push(`<!--You have a CHOICE of the next ${count} items at this level-->`);
+    }
+    return comments;
+  }
+
+  countBranches(children, start, depthIndex, group) {
+    const branches = new Set();
+    for (let index = start; index < children.length; index += 1) {
+      const step = children[index]?.choicePath?.[depthIndex];
+      if (!step || step.group !== group) break;
+      branches.add(step.branch);
+    }
+    return branches.size;
+  }
+}
 
 const PARTICLE_NAMES = ['element', 'any', 'group', 'choice', 'sequence', 'all'];
 
@@ -229,6 +646,10 @@ class WSDLParser {
    * Parse an inline element from the WSDL
    */
   parseElementInline(element, namespace, prefixMap) {
+    const minOccurs = element.minOccurs == null ? 1 : parseInt(element.minOccurs, 10) || 0;
+    const maxOccursRaw = element.maxOccurs;
+    const maxOccurs = maxOccursRaw === 'unbounded' ? 'unbounded' : (maxOccursRaw == null ? 1 : parseInt(maxOccursRaw, 10) || 1);
+
     const parsedElement = {
       name: element.name,
       namespace: namespace,
@@ -236,9 +657,9 @@ class WSDLParser {
       typeNamespace: element.type ? resolveQName(element.type, prefixMap).namespace : undefined,
       ref: element.ref,
       refNamespace: element.ref ? resolveQName(element.ref, prefixMap).namespace : undefined,
-      minOccurs: element.minOccurs,
-      maxOccurs: element.maxOccurs,
-      nillable: element.nillable,
+      minOccurs,
+      maxOccurs,
+      nillable: element.nillable === 'true',
       form: element.form,
       attributes: [],
       elements: []
@@ -270,7 +691,11 @@ class WSDLParser {
       attributes: [],
       elements: [],
       mixed: complexType.mixed,
-      abstract: complexType.abstract
+      abstract: complexType.abstract,
+      baseType: undefined,
+      baseTypeNamespace: undefined,
+      simpleBase: undefined,
+      simpleBaseNamespace: undefined
     };
 
     this.parseComplexTypeContent(complexType, parsedComplexType, prefixMap);
@@ -298,13 +723,13 @@ class WSDLParser {
       }
     }
 
-    // Handle simple content with extension
+    // Handle simple content with extension or restriction
     if (complexType['xsd:simpleContent'] || complexType.simpleContent) {
       const simpleContent = complexType['xsd:simpleContent'] || complexType.simpleContent;
       if (simpleContent['xsd:extension'] || simpleContent.extension) {
         const extension = simpleContent['xsd:extension'] || simpleContent.extension;
-        target.baseType = extension.base;
-        target.baseTypeNamespace = extension.base ? resolveQName(extension.base, prefixMap).namespace : undefined;
+        target.simpleBase = extension.base;
+        target.simpleBaseNamespace = extension.base ? resolveQName(extension.base, prefixMap).namespace : undefined;
 
         // Parse attributes from extension
         if (extension['xsd:attribute'] || extension.attribute) {
@@ -320,19 +745,32 @@ class WSDLParser {
             });
           }
         }
+      } else if (simpleContent['xsd:restriction'] || simpleContent.restriction) {
+        const restriction = simpleContent['xsd:restriction'] || simpleContent.restriction;
+        target.simpleBase = restriction.base;
+        target.simpleBaseNamespace = restriction.base ? resolveQName(restriction.base, prefixMap).namespace : undefined;
       }
     }
 
-    // Handle complex content with extension
+    // Handle complex content with extension or restriction
     if (complexType['xsd:complexContent'] || complexType.complexContent) {
       const complexContent = complexType['xsd:complexContent'] || complexType.complexContent;
       if (complexContent['xsd:extension'] || complexContent.extension) {
         const extension = complexContent['xsd:extension'] || complexContent.extension;
         target.baseType = extension.base;
         target.baseTypeNamespace = extension.base ? resolveQName(extension.base, prefixMap).namespace : undefined;
+        target.derivation = 'extension';
 
         // Parse content from extension
         this.parseComplexTypeContent(extension, target, prefixMap);
+      } else if (complexContent['xsd:restriction'] || complexContent.restriction) {
+        const restriction = complexContent['xsd:restriction'] || complexContent.restriction;
+        target.baseType = restriction.base;
+        target.baseTypeNamespace = restriction.base ? resolveQName(restriction.base, prefixMap).namespace : undefined;
+        target.derivation = 'restriction';
+
+        // Parse content from restriction
+        this.parseComplexTypeContent(restriction, target, prefixMap);
       }
     }
   }
@@ -345,7 +783,7 @@ class WSDLParser {
       if (name === 'element') {
         this.addElement(node, target, prefixMap, choicePath);
       } else if (name === 'any') {
-        this.addAnyElement(target, choicePath);
+        this.addAnyElement(node, target, choicePath);
       } else if (name === 'group') {
         this.expandModelGroup(node, target, prefixMap, choicePath);
       } else if (name === 'choice') {
@@ -364,7 +802,7 @@ class WSDLParser {
       if (name === 'element') {
         this.addElement(node, target, prefixMap, [...choicePath, { group, branch: branch++ }]);
       } else if (name === 'any') {
-        this.addAnyElement(target, [...choicePath, { group, branch: branch++ }]);
+        this.addAnyElement(node, target, [...choicePath, { group, branch: branch++ }]);
       } else if (name === 'group') {
         this.expandModelGroup(node, target, prefixMap, [...choicePath, { group, branch: branch++ }]);
       } else if (name === 'choice') {
@@ -444,8 +882,12 @@ class WSDLParser {
   /**
    * Record an xs:any as a marker the generator renders as a comment
    */
-  addAnyElement(target, choicePath) {
-    const anyElement = { anyElement: true };
+  addAnyElement(node, target, choicePath) {
+    const minOccurs = node.minOccurs == null ? 1 : parseInt(node.minOccurs, 10) || 0;
+    const maxOccursRaw = node.maxOccurs;
+    const maxOccurs = maxOccursRaw === 'unbounded' ? 'unbounded' : (maxOccursRaw == null ? 1 : parseInt(maxOccursRaw, 10) || 1);
+
+    const anyElement = { anyElement: true, minOccurs, maxOccurs };
     if (choicePath.length > 0) {
       anyElement.choicePath = choicePath;
     }
@@ -525,10 +967,22 @@ class WSDLParser {
   parseBindings(definitions) {
     const bindings = this.getArray(definitions['wsdl:binding'] || definitions.binding);
     for (const binding of bindings) {
+      // Extract SOAP version from the WSDL extension namespace
+      let soapVersion = null;
+      for (const key of Object.keys(binding)) {
+        if (key.endsWith(':binding')) {
+          const prefix = key.replace(/:binding$/, '');
+          const nsUri = this.namespaces.get(prefix);
+          soapVersion = this.soapVersionFromNamespace(nsUri);
+          break;
+        }
+      }
+
       const operations = this.getArray(binding['wsdl:operation'] || binding.operation);
       this.bindings.set(binding.name, {
         name: binding.name,
         type: binding.type,
+        soapVersion: soapVersion,
         operations: operations.map((op) => {
           // Robustly extract soapAction from any soap:operation child element
           let soapAction = null;
@@ -567,13 +1021,40 @@ class WSDLParser {
       const ports = this.getArray(service['wsdl:port'] || service.port);
       this.services.set(service.name, {
         name: service.name,
-        ports: ports.map((port) => ({
-          name: port.name,
-          binding: port.binding,
-          address: this.extractAddress(port)
-        }))
+        ports: ports.map((port) => {
+          // Extract SOAP version and address from the soap*:address key
+          let soapVersion = null;
+          let detectedAddress = '';
+          for (const key of Object.keys(port)) {
+            if (key.endsWith(':address')) {
+              const prefix = key.replace(/:address$/, '');
+              const nsUri = this.namespaces.get(prefix);
+              soapVersion = this.soapVersionFromNamespace(nsUri);
+              const addr = Array.isArray(port[key]) ? port[key][0] : port[key];
+              detectedAddress = addr?.location || '';
+              break;
+            }
+          }
+
+          return {
+            name: port.name,
+            binding: port.binding,
+            address: detectedAddress || this.extractAddress(port),
+            soapVersion: soapVersion
+          };
+        })
       });
     }
+  }
+
+  /**
+   * Map a WSDL SOAP extension namespace to its SOAP version
+   */
+  soapVersionFromNamespace(nsUri) {
+    if (!nsUri) return null;
+    if (nsUri.includes('/wsdl/soap12/') || nsUri.includes('/soap12/')) return '1.2';
+    if (nsUri.includes('/wsdl/soap/') || nsUri.includes('/soap/')) return '1.1';
+    return null;
   }
 
   /**
@@ -598,445 +1079,12 @@ class WSDLParser {
 }
 
 /**
- * Enhanced XML Sample Generator based on wizdler approach
- */
-class XMLSampleGenerator {
-  constructor(wsdlData) {
-    this.wsdlData = wsdlData;
-    this.visitedTypes = new Set();
-    this.visitedRefs = new Set();
-  }
-
-  /**
-   * Generate XML sample for an element
-   */
-  generateSample(elementName, namespace = '') {
-    const element = this.findElement(elementName, namespace);
-    if (!element) {
-      return `<!-- Element ${elementName} not found -->`;
-    }
-
-    return this.generateElementSample(element, 0);
-  }
-
-  /**
-   * Find element by name and namespace
-   */
-  findElement(elementName, namespace) {
-    // Try with namespace
-    if (namespace) {
-      const key = `${namespace}:${elementName}`;
-      if (this.wsdlData.elements.has(key)) {
-        return this.wsdlData.elements.get(key);
-      }
-      // no element found within the namespace
-      return null;
-    }
-
-    // Try without namespace
-    for (const [, element] of this.wsdlData.elements) {
-      if (element.name === elementName) {
-        return element;
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Generate sample for an element
-   */
-  generateElementSample(element) {
-    // A ref= particle stands in for a global element
-    if (element.ref) {
-      const refLocal = element.ref.replace(/^.*:/, '');
-      const target = this.findElement(refLocal, element.refNamespace);
-      if (!target) {
-        return `<!-- Element ${element.ref} not found -->`;
-      }
-      const refKey = `${element.refNamespace || ''}:${refLocal}`;
-      if (this.visitedRefs.has(refKey)) {
-        return '<!-- Recursive element reference detected -->';
-      }
-      this.visitedRefs.add(refKey);
-      const xml = this.generateElementSample({
-        ...target,
-        minOccurs: element.minOccurs,
-        maxOccurs: element.maxOccurs
-      });
-      this.visitedRefs.delete(refKey);
-      return xml;
-    }
-
-    let xml = '';
-
-    // Add comments for optional/repetition elements
-    const minOccurs = element.minOccurs == null ? 1 : parseInt(element.minOccurs, 10) || 0;
-    const maxOccurs = element.maxOccurs == null ? '1' : element.maxOccurs;
-    const maxOccursCount = maxOccurs === 'unbounded' ? Infinity : parseInt(maxOccurs, 10) || 1;
-
-    if (minOccurs === 0) {
-      xml += `<!--Optional:-->`;
-    }
-
-    if (maxOccursCount > 1) {
-      xml += `<!--${this.getRepetitionText(minOccurs, maxOccurs)}-->`;
-    }
-
-    // Generate attributes
-    const attributes = this.generateAttributes(element);
-
-    // Generate element content
-    if (this.isSimpleType(element)) {
-      xml += `<${element.name}${attributes}>${this.getSampleValue(element)}</${element.name}>`;
-    } else {
-      xml += `<${element.name}${attributes}>`;
-      xml += this.generateComplexContent(element);
-      xml += `</${element.name}>`;
-    }
-
-    return xml;
-  }
-
-  /**
-   * Recursively collect all attributes from a complex type and its base types
-   */
-  collectAllAttributes(node, kind = 'type', seenNodes = new Set()) {
-    let attributes = [];
-    if (!node || !this.enterNode(node, kind, seenNodes)) {
-      return attributes;
-    }
-
-    if (node.attributes) {
-      attributes = attributes.concat(node.attributes);
-    }
-    // Recursively collect from base type if present
-    if (node.baseType) {
-      const baseType = this.findComplexType(node.baseType, node.baseTypeNamespace);
-      if (baseType) {
-        attributes = attributes.concat(this.collectAllAttributes(baseType, 'type', seenNodes));
-      }
-    }
-    return attributes;
-  }
-
-  /**
-   * Mark a node as entered while walking a derivation chain
-   */
-  enterNode(node, kind, seenNodes) {
-    if (!node.name) {
-      return true;
-    }
-    const key = `${kind}:${node.namespace || ''}:${node.name}`;
-    if (seenNodes.has(key)) {
-      return false;
-    }
-    seenNodes.add(key);
-    return true;
-  }
-
-  /**
-   * Collect the element particles of a complex type, base-type content first
-   */
-  collectAllElements(node, kind = 'type', seenNodes = new Set()) {
-    let elements = [];
-    if (!node || !this.enterNode(node, kind, seenNodes)) {
-      return elements;
-    }
-
-    if (node.baseType) {
-      const baseType = this.findComplexType(node.baseType, node.baseTypeNamespace);
-      if (baseType) {
-        elements = elements.concat(this.collectAllElements(baseType, 'type', seenNodes));
-      }
-    }
-
-    if (node.elements) {
-      elements = elements.concat(node.elements);
-    }
-    return elements;
-  }
-
-  /**
-   * Generate attributes string
-   */
-  generateAttributes(element) {
-    let attributes = [];
-
-    // Add attributes from the element itself
-    if (element.attributes && element.attributes.length > 0) {
-      attributes = attributes.concat(element.attributes);
-    }
-
-    // Add attributes from the referenced complex type (if any, recursively)
-    if (element.type) {
-      const complexType = this.findComplexType(element.type, element.typeNamespace);
-      if (complexType) {
-        const allTypeAttrs = this.collectAllAttributes(complexType);
-        // Avoid duplicates by attribute name
-        const existingNames = new Set(attributes.map((a) => a.name));
-        for (const attr of allTypeAttrs) {
-          if (!existingNames.has(attr.name)) {
-            attributes.push(attr);
-          }
-        }
-      }
-    }
-
-    if (attributes.length > 0) {
-      return ' ' + attributes.map((attr) => `${attr.name}="?"`).join(' ');
-    }
-    return '';
-  }
-
-  /**
-   * Check if element is a simple type
-   */
-  isSimpleType(element) {
-    if (element.simpleType) return true;
-
-    const type = element.type;
-    if (!type) return false;
-
-    // Check if it's a built-in simple type
-    const simpleTypes = [
-      'string', 'int', 'integer', 'long', 'short', 'byte', 'boolean', 'float', 'double', 'decimal',
-      'date', 'dateTime', 'time', 'duration', 'gYear', 'gYearMonth', 'gMonth', 'gMonthDay', 'gDay',
-      'hexBinary', 'base64Binary', 'anyURI', 'QName', 'NOTATION', 'normalizedString', 'token',
-      'language', 'Name', 'NCName', 'ID', 'IDREF', 'IDREFS', 'ENTITY', 'ENTITIES', 'NMTOKEN', 'NMTOKENS'
-    ];
-
-    const typeName = type.replace(/^.*:/, '');
-    if (simpleTypes.includes(typeName)) {
-      return true;
-    }
-
-    return !!this.findSimpleType(typeName, element.typeNamespace);
-  }
-
-  builtinSampleValue(typeName) {
-    switch (typeName) {
-      case 'string': return 'string';
-      case 'int':
-      case 'integer':
-      case 'long':
-      case 'short':
-      case 'byte': return '0';
-      case 'boolean': return 'true';
-      case 'float':
-      case 'double':
-      case 'decimal': return '0.0';
-      case 'date': return '2024-01-01';
-      case 'dateTime': return '2024-01-01T00:00:00Z';
-      case 'time': return '00:00:00';
-      default: return null;
-    }
-  }
-
-  /**
-   * Get sample value for simple type
-   */
-  getSampleValue(element) {
-    if (element.simpleType && element.simpleType.enumeration && element.simpleType.enumeration.length > 0) {
-      return element.simpleType.enumeration[0].value || '?';
-    }
-
-    const type = element.type;
-    if (!type) return '?';
-
-    const typeName = type.replace(/^.*:/, '');
-
-    const builtinValue = this.builtinSampleValue(typeName);
-    if (builtinValue != null) {
-      return builtinValue;
-    }
-
-    const namedSimpleType = this.findSimpleType(typeName, element.typeNamespace);
-    if (namedSimpleType) {
-      if (namedSimpleType.enumeration && namedSimpleType.enumeration.length > 0) {
-        return namedSimpleType.enumeration[0].value || '?';
-      }
-      if (namedSimpleType.base) {
-        const baseValue = this.builtinSampleValue(namedSimpleType.base.replace(/^.*:/, ''));
-        if (baseValue != null) {
-          return baseValue;
-        }
-      }
-    }
-
-    return '?';
-  }
-
-  generateElementList(elements) {
-    let xml = '';
-    for (let i = 0; i < elements.length; i++) {
-      xml += this.generateChoiceComments(elements, i);
-      if (elements[i].anyElement) {
-        xml += '<!--You may enter ANY elements at this point-->';
-      } else {
-        xml += this.generateElementSample(elements[i]);
-      }
-    }
-    return xml;
-  }
-
-  generateChoiceComments(elements, index) {
-    const choicePath = elements[index].choicePath || [];
-    const previousPath = (index > 0 && elements[index - 1].choicePath) || [];
-    let xml = '';
-
-    for (let depth = 0; depth < choicePath.length; depth++) {
-      const previous = previousPath[depth];
-      if (previous && previous.group === choicePath[depth].group) {
-        continue;
-      }
-      const count = this.countChoiceBranches(elements, index, depth, choicePath[depth].group);
-      xml += `<!--You have a CHOICE of the next ${count} items at this level-->`;
-    }
-    return xml;
-  }
-
-  countChoiceBranches(elements, start, depth, group) {
-    const seenBranches = new Set();
-    for (let i = start; i < elements.length; i++) {
-      const step = (elements[i].choicePath || [])[depth];
-      if (!step || step.group !== group) {
-        break;
-      }
-      seenBranches.add(step.branch);
-    }
-    return seenBranches.size;
-  }
-
-  /**
-   * Generate the children of a non-leaf element
-   */
-  generateComplexContent(element) {
-    let xml = '';
-
-    // Handle inline complex type
-    const inlineElements = this.collectAllElements(element, 'element');
-    if (inlineElements.length > 0) {
-      xml += this.generateElementList(inlineElements);
-    }
-
-    // Handle referenced complex type - this is the key fix
-    if (element.type) {
-      const complexType = this.findComplexType(element.type, element.typeNamespace);
-      if (complexType) {
-        xml += this.generateComplexTypeSample(complexType);
-      } else {
-        // If we can't find the complex type, try to find it as an element
-        const elementType = this.findElement(element.type.replace(/^.*:/, ''), element.typeNamespace);
-        if (elementType) {
-          xml += this.generateElementSample(elementType);
-        }
-      }
-    }
-
-    return xml;
-  }
-
-  /**
-   * Find complex type by name
-   */
-  findComplexType(typeName, namespace) {
-    const cleanTypeName = typeName.replace(/^.*:/, '');
-
-    if (namespace) {
-      const key = `${namespace}:${cleanTypeName}`;
-      if (this.wsdlData.complexTypes.has(key)) {
-        return this.wsdlData.complexTypes.get(key);
-      }
-
-      return null;
-    }
-
-    for (const [, complexType] of this.wsdlData.complexTypes) {
-      if (complexType.name === cleanTypeName) {
-        return complexType;
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Find named simple type
-   */
-  findSimpleType(typeName, namespace) {
-    const cleanTypeName = typeName.replace(/^.*:/, '');
-
-    if (namespace) {
-      const key = `${namespace}:${cleanTypeName}`;
-      if (this.wsdlData.simpleTypes.has(key)) {
-        return this.wsdlData.simpleTypes.get(key);
-      }
-      return null;
-    }
-
-    for (const [, simpleType] of this.wsdlData.simpleTypes) {
-      if (simpleType.name === cleanTypeName) {
-        return simpleType;
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Generate sample for complex type
-   */
-  generateComplexTypeSample(complexType) {
-    const typeKey = `${complexType.namespace || ''}:${complexType.name}`;
-    if (this.visitedTypes.has(typeKey)) {
-      return '<!-- Recursive type detected -->';
-    }
-
-    this.visitedTypes.add(typeKey);
-    let xml = '';
-
-    const elements = this.collectAllElements(complexType);
-    if (elements.length > 0) {
-      xml += this.generateElementList(elements);
-    }
-
-    this.visitedTypes.delete(typeKey);
-    return xml;
-  }
-
-  /**
-   * Get repetition text for the comment above a repeatable element
-   */
-  getRepetitionText(minOccurs, maxOccurs) {
-    if (maxOccurs === 'unbounded') {
-      return `${minOccurs} or more repetitions:`;
-    }
-    return `${minOccurs} to ${maxOccurs} repetitions:`;
-  }
-}
-
-/**
  * Generate SOAP envelope with example payload
  */
-const generateSOAPEnvelope = (operation, wsdlData) => {
-  const inputMessage = operation.input?.message || '';
-  const inputMessageName = typeof inputMessage === 'string' && inputMessage.includes(':') ? inputMessage.split(':')[1] : inputMessage;
-
-  // Find the message definition
-  const message = wsdlData.messages.get(inputMessageName);
-  if (!message || !message.parts || message.parts.length === 0) {
-    return '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><!-- No message parts found --></soap:Body></soap:Envelope>';
-  }
-
-  const part = message.parts[0];
+const findRootElement = (part, wsdlData) => {
   const elementName = part.element || part.type || '';
+  if (!elementName) return null;
 
-  if (!elementName) {
-    return '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><!-- No element found --></soap:Body></soap:Envelope>';
-  }
-
-  // Extract element name and its namespace
   let name, namespace;
   if (elementName.includes(':')) {
     const [prefix, local] = elementName.split(':');
@@ -1047,21 +1095,68 @@ const generateSOAPEnvelope = (operation, wsdlData) => {
     namespace = '';
   }
 
-  // Generate XML sample
-  const generator = new XMLSampleGenerator(wsdlData);
-  const xmlSample = generator.generateSample(name, namespace);
+  if (namespace) {
+    const key = `${namespace}:${name}`;
+    const element = wsdlData.elements.get(key);
+    if (element) return element;
+  }
 
-  return `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body>${xmlSample}</soap:Body></soap:Envelope>`;
+  for (const [, element] of wsdlData.elements) {
+    if (element.name === name) return element;
+  }
+  return null;
+};
+
+const buildEnvelope = (payload, soapVersion, namespaces) => {
+  const envelopeNs = soapVersion === '1.1' ? SOAP11_ENVELOPE_NS : SOAP12_ENVELOPE_NS;
+  const envelopePrefix = namespaces.declaredPrefixFor(envelopeNs) ?? 'soapenv';
+
+  const nsDeclarations = namespaces
+    .declarations()
+    .map(({ prefix, uri }) => `xmlns:${prefix}="${uri}"`)
+    .join(' ');
+
+  const envelopeAttrs = nsDeclarations
+    ? ` xmlns:${envelopePrefix}="${envelopeNs}" ${nsDeclarations}`
+    : ` xmlns:${envelopePrefix}="${envelopeNs}"`;
+
+  return `<${envelopePrefix}:Envelope${envelopeAttrs}><${envelopePrefix}:Body>${payload}</${envelopePrefix}:Body></${envelopePrefix}:Envelope>`;
+};
+
+const generateSOAPEnvelope = (operation, wsdlData, soapVersion = '1.1') => {
+  const inputMessage = operation.input?.message || '';
+  const inputMessageName = typeof inputMessage === 'string' && inputMessage.includes(':') ? inputMessage.split(':')[1] : inputMessage;
+
+  // Find the message definition
+  const message = wsdlData.messages.get(inputMessageName);
+  if (!message || !message.parts || message.parts.length === 0) {
+    return buildEnvelope('<!-- No message parts found -->', soapVersion, new NamespaceContext(wsdlData.namespaces));
+  }
+
+  const part = message.parts[0];
+  if (!part.element && !part.type) {
+    return buildEnvelope('<!-- No element found -->', soapVersion, new NamespaceContext(wsdlData.namespaces));
+  }
+
+  const rootElement = findRootElement(part, wsdlData);
+  const namespaces = new NamespaceContext(wsdlData.namespaces);
+  const renderer = new SampleRenderer(wsdlData, namespaces);
+
+  const payload = rootElement
+    ? renderer.render(rootElement, 2)
+    : `<!-- Input element not found for operation ${operation.name} -->`;
+
+  return buildEnvelope(payload, soapVersion, namespaces);
 };
 
 /**
  * Transform WSDL operation to Bruno request item
  */
-const transformWSDLOperation = (operation, wsdlData, serviceLocation, index, allOperations, bindingOperation = null) => {
+const transformWSDLOperation = (operation, wsdlData, serviceLocation, index, allOperations, bindingOperation = null, soapVersion = '1.1') => {
   // Create a temporary object with the name property for duplicate checking
   const tempItem = { name: operation.name };
   const name = addSuffixToDuplicateName(tempItem, index, allOperations);
-  const soapEnvelope = generateSOAPEnvelope(operation, wsdlData);
+  const soapEnvelope = generateSOAPEnvelope(operation, wsdlData, soapVersion);
 
   // Use soapAction declared on the binding operation if present
   let soapAction = '';
@@ -1070,6 +1165,122 @@ const transformWSDLOperation = (operation, wsdlData, serviceLocation, index, all
   } else {
     // Fallback to constructed value
     soapAction = `"${wsdlData.targetNamespace || ''}${operation.name}"`;
+  }
+
+  // Build headers based on SOAP version
+  let headers = [];
+  if (soapVersion === '1.1') {
+    headers = [
+      {
+        uid: generateUID(),
+        name: 'Content-Type',
+        value: 'text/xml; charset=utf-8',
+        description: '',
+        enabled: true
+      },
+      {
+        uid: generateUID(),
+        name: 'SOAPAction',
+        value: soapAction,
+        description: '',
+        enabled: true
+      }
+    ];
+  } else {
+    // SOAP 1.2: action parameter in Content-Type
+    const actionParam = soapAction.replace(/"/g, '');
+    const contentType = actionParam
+      ? `application/soap+xml; charset=utf-8; action="${actionParam}"`
+      : 'application/soap+xml; charset=utf-8';
+    headers = [
+      {
+        uid: generateUID(),
+        name: 'Content-Type',
+        value: contentType,
+        description: '',
+        enabled: true
+      }
+    ];
+  }
+
+  // Generate response example if operation has output
+  let example = null;
+  if (operation.output) {
+    const outputMessage = operation.output?.message || '';
+    const outputMessageName = typeof outputMessage === 'string' && outputMessage.includes(':')
+      ? outputMessage.split(':')[1]
+      : outputMessage;
+    const message = wsdlData.messages.get(outputMessageName);
+    if (message && message.parts && message.parts.length > 0) {
+      // Determine which parts the output soap:body binding selects
+      const outputBody = bindingOperation
+        ? Object.entries(bindingOperation.output || {}).find(([key]) => key === 'body' || key.endsWith(':body'))?.[1]
+        : null;
+      const body = Array.isArray(outputBody) ? outputBody[0] : outputBody;
+      const boundPartNames = body && typeof body.parts === 'string'
+        ? new Set(body.parts.trim().split(/\s+/).filter(Boolean))
+        : null;
+      const responseParts = boundPartNames
+        ? message.parts.filter(({ name }) => boundPartNames.has(name))
+        : message.parts;
+
+      const namespaces = new NamespaceContext(wsdlData.namespaces);
+      const renderer = new SampleRenderer(wsdlData, namespaces);
+      const payload = responseParts
+        .map((part) => {
+          if (part.element) {
+            const rootElement = findRootElement(part, wsdlData);
+            return rootElement ? renderer.render(rootElement, 2) : '';
+          }
+          if (part.type) {
+            // WSDL 1.1 allows a literal message part to declare a type instead of a
+            // global element. Render a sample of that declared type using the part name.
+            const typeNs = part.type.includes(':')
+              ? (wsdlData.namespaces.get(part.type.split(':')[0]) || '')
+              : '';
+            const syntheticElement = {
+              name: part.name,
+              type: part.type,
+              typeNamespace: typeNs,
+              minOccurs: 1,
+              maxOccurs: 1,
+              attributes: [],
+              elements: []
+            };
+            return renderer.render(syntheticElement, 2);
+          }
+          return '';
+        })
+        .filter(Boolean)
+        .join('');
+
+      if (payload) {
+        const responseXml = buildEnvelope(payload, soapVersion, namespaces);
+
+        example = {
+          uid: generateUID(),
+          name: 'Example Response',
+          type: 'http-request',
+          response: {
+            status: 200,
+            statusText: 'OK',
+            headers: [
+              {
+                uid: generateUID(),
+                name: 'Content-Type',
+                value: soapVersion === '1.1' ? 'text/xml; charset=utf-8' : 'application/soap+xml; charset=utf-8',
+                description: '',
+                enabled: true
+              }
+            ],
+            body: {
+              type: 'xml',
+              content: responseXml
+            }
+          }
+        };
+      }
+    }
   }
 
   const brunoRequestItem = {
@@ -1085,22 +1296,7 @@ const transformWSDLOperation = (operation, wsdlData, serviceLocation, index, all
         bearer: null,
         digest: null
       },
-      headers: [
-        {
-          uid: generateUID(),
-          name: 'Content-Type',
-          value: 'text/xml; charset=utf-8',
-          description: '',
-          enabled: true
-        },
-        {
-          uid: generateUID(),
-          name: 'SOAPAction',
-          value: soapAction,
-          description: '',
-          enabled: true
-        }
-      ],
+      headers,
       params: [],
       body: {
         mode: 'xml',
@@ -1115,6 +1311,11 @@ const transformWSDLOperation = (operation, wsdlData, serviceLocation, index, all
       }
     }
   };
+
+  if (example) {
+    example.itemUid = brunoRequestItem.uid;
+    brunoRequestItem.examples = [example];
+  }
 
   return brunoRequestItem;
 };
@@ -1153,11 +1354,14 @@ const parseWSDLCollection = (wsdlData) => {
         const portType = wsdlData.portTypes.get(bindingType);
 
         if (portType) {
+          // Determine SOAP version: binding > port > default 1.1
+          const soapVersion = binding.soapVersion || port.soapVersion || '1.1';
+
           for (const portTypeOp of portType.operations) {
             // Find the corresponding binding operation by name
             const bindingOp = binding.operations.find((bop) => bop.name === portTypeOp.name);
             if (bindingOp) {
-              const request = transformWSDLOperation(portTypeOp, wsdlData, port.address, allOperations.length, binding.operations, bindingOp);
+              const request = transformWSDLOperation(portTypeOp, wsdlData, port.address, allOperations.length, binding.operations, bindingOp, soapVersion);
               allOperations.push(request);
             }
           }
@@ -1218,5 +1422,5 @@ export const wsdlToBruno = async (wsdlContent, { uri, resolve } = {}) => {
   }
 };
 
-export { WSDLParser, XMLSampleGenerator };
+export { WSDLParser };
 export default wsdlToBruno;
