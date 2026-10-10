@@ -675,6 +675,7 @@ const mergeSpecIntoRequest = (existingRequest, specItem, { fullReset = false, pr
     const mergedHeaders = mergeWithUserValues(specItem.request.headers, existingRequest.request?.headers);
     return {
       ...existingRequest,
+      name: specItem.name,
       request: {
         ...existingRequest.request,
         url: specItem.request.url,
@@ -691,9 +692,11 @@ const mergeSpecIntoRequest = (existingRequest, specItem, { fullReset = false, pr
   // Sync mode: reconcile structure to the spec while preserving the user's values.
   return {
     ...existingRequest,
+    name: specItem.name,
     request: {
       ...existingRequest.request,
       url: specItem.request.url, // Option A: URL always follows the spec
+      docs: specItem.request.docs,
       body: mergeBody(existingRequest.request?.body, specItem.request.body, preserveValues),
       auth: mergeAuth(existingRequest.request?.auth, specItem.request.auth, preserveValues),
       params: mergeFieldListPreserving(specItem.request.params, existingRequest.request?.params, preserveValues),
