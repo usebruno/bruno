@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useSelector, useDispatch, useStore } from 'react-redux';
+import { selectCollections, selectActiveWorkspace } from 'src/selectors/collections';
+import { selectTabs } from 'src/selectors/tab';
 import {
   IconSearch,
   IconX,
@@ -8,11 +10,10 @@ import {
   IconFileText,
   IconBook
 } from '@tabler/icons';
-import { flattenItems, isItemARequest, isItemAFolder, findParentItemInCollection } from 'utils/collections';
+import { flattenItems, isItemARequest, isItemAFolder, findParentItemInCollection, getDefaultRequestPaneTab } from 'utils/collections';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { toggleCollectionItem, toggleCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { getDefaultRequestPaneTab } from 'utils/collections';
 import { normalizePath } from 'utils/common/path';
 import { normalizeQuery, isValidQuery, highlightText, sortResults, getTypeLabel, getItemPath } from './utils/searchUtils';
 import { SEARCH_TYPES, MATCH_TYPES, SEARCH_CONFIG, DOCUMENTATION_RESULT } from './constants';
@@ -27,23 +28,21 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   const debounceTimeoutRef = useRef(null);
   const dispatch = useDispatch();
 
-  const allCollections = useSelector((state) => state.collections.collections);
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
-  const tabs = useSelector((state) => state.tabs.tabs);
+  const store = useStore();
+  const activeWorkspace = useSelector(selectActiveWorkspace);
 
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
-
-  const collections = useMemo(() => {
+  const getCollections = () => {
+    const allCollections = selectCollections(store.getState());
     if (!activeWorkspace) return allCollections;
 
     const workspacePaths = new Set(
       activeWorkspace.collections?.map((wc) => normalizePath(wc.path)) || []
     );
     return allCollections.filter((c) => workspacePaths.has(normalizePath(c.pathname)));
-  }, [activeWorkspace, allCollections, workspaces]);
+  };
 
   const createCollectionResults = () => {
-    const collectionResults = collections.map((collection) => ({
+    const collectionResults = getCollections().map((collection) => ({
       type: SEARCH_TYPES.COLLECTION,
       item: collection,
       name: collection.name,
@@ -65,7 +64,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
       results.push(DOCUMENTATION_RESULT);
     }
 
-    collections.forEach((collection) => {
+    getCollections().forEach((collection) => {
       // Search collection name
       if (searchTerms.every((term) => collection.name.toLowerCase().includes(term))) {
         results.push({
@@ -170,10 +169,10 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     debounceTimeoutRef.current = setTimeout(() => {
       performSearch(searchQuery);
     }, SEARCH_CONFIG.DEBOUNCE_DELAY);
-  }, [collections]); // Depend on collections to recreate when they change
+  }, [activeWorkspace]); // collections are read from the store when the search runs
 
   const expandItemPath = (result) => {
-    const collection = collections.find((c) => c.uid === result.collectionUid);
+    const collection = getCollections().find((c) => c.uid === result.collectionUid);
     if (!collection) return;
 
     ensureCollectionIsMounted(collection);
@@ -246,7 +245,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   };
 
   const handleResultSelection = (result) => {
-    const targetCollection = collections.find((c) => c.uid === result.collectionUid);
+    const targetCollection = getCollections().find((c) => c.uid === result.collectionUid);
     ensureCollectionIsMounted(targetCollection);
 
     if (result.type === SEARCH_TYPES.DOCUMENTATION) {
@@ -258,7 +257,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     expandItemPath(result);
 
     if (result.type === SEARCH_TYPES.REQUEST) {
-      const existingTab = tabs.find((tab) => tab.uid === result.item.uid);
+      const existingTab = selectTabs(store.getState()).find((tab) => tab.uid === result.item.uid);
 
       if (existingTab) {
         dispatch(focusTab({ uid: result.item.uid }));

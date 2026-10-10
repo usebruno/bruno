@@ -13,6 +13,8 @@ import { CollectionItemDragPreview } from './Collection/CollectionItem/Collectio
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import useDebounce from 'hooks/useDebounce';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
+import { selectCollections, selectCollectionSortOrder, selectSelectedSidebarUids } from 'src/selectors/collections';
+import { selectActiveTabUid } from 'src/selectors/tab';
 
 const isEmptyQuery = (value) => typeof value === 'string' && value.trim() === '';
 
@@ -20,9 +22,12 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const [searchText, setSearchText] = useState('');
   const trimmedSearchText = searchText.trim();
   const debouncedSearchText = useDebounce(trimmedSearchText, 300, { shouldSkipDebounce: isEmptyQuery });
-  const { collections, collectionSortOrder, selectedSidebarUids } = useSelector((state) => state.collections);
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const collections = useSelector(selectCollections);
+  const collectionSortOrder = useSelector(selectCollectionSortOrder);
+  const selectedSidebarUids = useSelector(selectSelectedSidebarUids);
+  const workspaces = useSelector((state) => state.workspaces.workspaces);
+  const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
+  const activeTabUid = useSelector(selectActiveTabUid);
   const dispatch = useDispatch();
   const virtuosoRef = useRef(null);
   const lastScrolledTabUidRef = useRef(null);

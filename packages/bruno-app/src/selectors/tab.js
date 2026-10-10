@@ -1,5 +1,28 @@
 import { createSelector } from '@reduxjs/toolkit';
 
+// The full tab array. Use only when the component needs to render all tabs.
+export const selectTabs = (state) => state.tabs.tabs;
+
+export const selectActiveTabUid = (state) => state.tabs.activeTabUid;
+
+export const selectTabByUid = (state, tabUid) =>
+  tabUid ? state.tabs.tabs.find((t) => t.uid === tabUid) : undefined;
+
+export const selectActiveTab = (state) =>
+  selectTabByUid(state, state.tabs.activeTabUid);
+
+/**
+ * Creates a memoized selector for tabs belonging to a collection.
+ *
+ * The selector is created per component instance so each consumer maintains
+ * its own cache. Create it with `useMemo` when used inside a component.
+ */
+export const makeSelectTabsForCollection = () =>
+  createSelector(
+    [selectTabs, (_state, collectionUid) => collectionUid],
+    (tabs, collectionUid) => tabs.filter((t) => t.collectionUid === collectionUid)
+  );
+
 export const getTabUidForItem = ({ itemUid, itemPathname, collectionUid }) => createSelector([
   (state) => state.tabs.tabs
 ], (tabs) => {
@@ -47,13 +70,3 @@ export const isTabForItemActive = ({ itemUid, itemPathname, collectionUid }) => 
 
   return activeTab.type !== 'response-example' && activeTab.pathname === itemPathname;
 });
-
-export const isTabForItemPresent = ({ itemUid, itemPathname, collectionUid }) => createSelector([
-  (state) => state.tabs.tabs
-], (tabs) => tabs.some((tab) => {
-  if (collectionUid && tab.collectionUid !== collectionUid) {
-    return false;
-  }
-
-  return tab.uid === itemUid || (itemPathname && tab.type !== 'response-example' && tab.pathname === itemPathname);
-}));

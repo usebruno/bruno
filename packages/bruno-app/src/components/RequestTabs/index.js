@@ -1,6 +1,4 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import find from 'lodash/find';
-import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
@@ -12,6 +10,8 @@ import StyledWrapper from './StyledWrapper';
 import DraggableTab from './DraggableTab';
 import CreateTransientRequest from 'components/CreateTransientRequest';
 import ActionIcon from 'ui/ActionIcon/index';
+import { selectCollectionByUid } from 'src/selectors/collections';
+import { selectActiveTab, selectActiveTabUid, makeSelectTabsForCollection } from 'src/selectors/tab';
 
 const RequestTabs = () => {
   const dispatch = useDispatch();
@@ -21,13 +21,17 @@ const RequestTabs = () => {
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [tabOverflowStates, setTabOverflowStates] = useState({});
   const [showChevrons, setShowChevrons] = useState(false);
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const collections = useSelector((state) => state.collections.collections);
+  const activeTabUid = useSelector(selectActiveTabUid);
+  const activeTab = useSelector(selectActiveTab);
+  const activeCollection = useSelector((state) => selectCollectionByUid(state, activeTab?.collectionUid));
+  const selectTabsForCollection = useMemo(makeSelectTabsForCollection, []);
+  const collectionRequestTabs = useSelector((state) => selectTabsForCollection(state, activeTab?.collectionUid));
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const screenWidth = useSelector((state) => state.app.screenWidth);
-  const workspaces = useSelector((state) => state.workspaces.workspaces);
+  const isScratchCollection = useSelector((state) =>
+    activeCollection ? state.workspaces.workspaces.some((w) => w.scratchCollectionUid === activeCollection.uid) : false
+  );
 
   const createSetHasOverflow = useCallback((tabUid) => {
     return (hasOverflow) => {
@@ -42,14 +46,6 @@ const RequestTabs = () => {
       });
     };
   }, []);
-
-  const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-  const activeCollection = find(collections, (c) => c?.uid === activeTab?.collectionUid);
-  const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab?.collectionUid);
-
-  const isScratchCollection = useMemo(() => {
-    return activeCollection ? workspaces.some((w) => w.scratchCollectionUid === activeCollection.uid) : false;
-  }, [workspaces, activeCollection]);
 
   useEffect(() => {
     if (!activeTabUid || !activeTab) return;
@@ -77,10 +73,9 @@ const RequestTabs = () => {
     activeTabElement.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
   }, [activeTabUid]);
 
-  const getTabClassname = (tab, index) => {
+  const getTabClassname = (tab) => {
     return classnames('request-tab select-none', {
       'active': tab.uid === activeTabUid,
-      'last-tab': tabs && tabs.length && index === tabs.length - 1,
       'has-overflow': tabOverflowStates[tab.uid]
     });
   };
@@ -155,7 +150,7 @@ const RequestTabs = () => {
                               targetUid: target
                             }));
                           }}
-                          className={getTabClassname(tab, index)}
+                          className={getTabClassname(tab)}
                           active={tab.uid === activeTabUid}
                           onClick={() => handleClick(tab)}
                         >
