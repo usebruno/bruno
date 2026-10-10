@@ -15,7 +15,7 @@ const { refreshExplicitHeaderNames, shouldOmitConnection } = require('@usebruno/
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { setupProxyAgents } = require('../utils/proxy-util');
 const path = require('path');
-const { parseDataFromResponse } = require('../utils/common');
+const { parseDataFromResponse, isBinaryRequestBody } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
 const axios = require('axios');
@@ -24,7 +24,7 @@ const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAx
 const { getCACertificates, transformProxyConfig, applySentHeadersToRequest, measureResponseTime } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
-const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, parsePromptVariable, isFormData, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
+const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, parsePromptVariable, isFormData, getMediaType, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -540,27 +540,29 @@ const runSingleRequest = async function (
       (name) => name.toLowerCase() === 'content-type'
     );
 
-    if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
+    const contentType = contentTypeHeader ? request.headers[contentTypeHeader] : '';
+    const mediaType = getMediaType(contentType);
+
+    if (mediaType === 'application/x-www-form-urlencoded') {
       if (Array.isArray(request.data)) {
         request.data = buildFormUrlEncodedPayload(request.data);
-      } else if (typeof request.data !== 'string') {
+      } else if (typeof request.data !== 'string' && !isBinaryRequestBody(request.data)) {
         request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
       }
-      // if `data` is of string type - return as-is (assumes already encoded)
+      // string and file (Buffer/stream) bodies are sent as-is (assumed already encoded)
     }
 
-    const contentType = contentTypeHeader ? request.headers[contentTypeHeader] : '';
-    if (typeof contentType === 'string' && contentType.startsWith('multipart/')) {
-      if (typeof request.data !== 'string' && !isFormData(request?.data)) {
+    if (mediaType.startsWith('multipart/')) {
+      if (typeof request.data !== 'string' && !isFormData(request?.data) && !isBinaryRequestBody(request.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
-        let form = createFormData(request.data, collectionPath);
+        const existingBoundary = extractBoundaryFromContentType(contentType);
+        let form = createFormData(request.data, collectionPath, existingBoundary);
         request.data = form;
 
         if (contentType !== 'multipart/form-data') {
           // Patch: Axios leverages getHeaders method to get the headers so FormData should be monkey patched
           const formHeaders = form.getHeaders();
-          const existingBoundary = extractBoundaryFromContentType(contentType);
           if (existingBoundary) {
             formHeaders['content-type'] = contentType;
           } else {

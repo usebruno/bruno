@@ -32,9 +32,10 @@ It is **not** the right home for:
   `src/store/` (see `.claude/rules/electron-ipc.md`).
 - **UI state** — Redux, or local `useState` (see `.claude/rules/redux-store.md`).
 
-The database file is `bruno.db` under `app.getPath('userData')`. **Treat it as disposable**: the
-open path below deletes and rebuilds it rather than failing, so never let it hold the only copy of
-anything.
+The database file is `bruno.db` under `app.getPath('userData')`, and the file store spills large
+payloads to `sqlite-files/` beside it. **Treat both as disposable**: the open path below deletes
+and rebuilds the database rather than failing (startup `collect()` then sweeps the spilled files no
+row names), so never let either hold the only copy of anything.
 
 ## Package layout
 
@@ -134,7 +135,8 @@ INSERT INTO users (name, email) VALUES (@name, @email);
 ## Main process
 
 `packages/bruno-electron/src/services/sqlite/index.js` owns the single database instance:
-`openDatabase()` calls `createDatabase` on `bruno.db`, and the service exposes `getStatements()`,
+`openDatabase()` calls `createDatabase` on `bruno.db` and starts a background `files.collect()`; the
+service exposes `getStatements()`, `getFiles()` (the SDK's file store — see the package README),
 `transaction(callback)`, `reclaimDiskSpace()` and `shutdown()`. It never hands out the `DB` itself,
 and it knows nothing about IPC. `index.js`'s ready block opens it (`sqliteService.openDatabase()`),
 and `before-quit` reclaims disk space and shuts it down.
@@ -153,8 +155,9 @@ try {
 
 `getStatements()` never returns `null`. Before `openDatabase()`, after shutdown, and when
 `createDatabase` returns `{ db: undefined, statements: undefined }` (even the in-memory fallback
-failed), it returns a stub whose `execute` logs the skipped statement and throws; `transaction`
-throws the same way. So there is one failure mode, and every caller must handle it:
+failed), it returns a stub whose `execute` logs the skipped statement and throws; `getFiles()`
+returns a matching stub whose methods log and throw (or reject, for the async ones), and
+`transaction` throws the same way. So there is one failure mode, and every caller must handle it:
 
 - **`execute` and `transaction` throw** when the database is unavailable, for an unknown statement,
   for one that couldn't be prepared against this schema (prepare failures are logged at construction
@@ -189,6 +192,11 @@ ipcMain.handle('datastore:runner_responses:get_runner_response', (_event, params
 
 - The handler validates and picks the params it forwards — never pass the renderer's object
   straight through to `execute`.
+- The file store has no channels of its own. File ids are sequential and unscoped, so a channel
+  that takes one would expose every stored blob; the renderer reaches files only through a
+  domain handler that resolves them from a scoped key (e.g. `get_runner_response` by
+  `request_uid`). File writes stay main-process only — the renderer never chooses what gets
+  stored.
 - In the renderer, wrap each channel in a named hook or helper under `src/hooks/useX/index.js`
   (or the relevant util) and call `window.ipcRenderer.invoke(channel, params)` there; no component
   invokes a `datastore:*` channel directly.
