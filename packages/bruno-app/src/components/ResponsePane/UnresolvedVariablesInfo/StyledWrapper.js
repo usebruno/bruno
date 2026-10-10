@@ -4,10 +4,9 @@ const StyledWrapper = styled.div`
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
   padding: 0.75rem;
   background-color: ${(props) => props.theme.background.base};
-  border: solid 1px ${(props) => props.theme.border.border2};
+  border: 1px solid ${(props) => props.theme.border.subtle};
   border-radius: ${(props) => props.theme.border.radius.base};
 
   .info-icon {

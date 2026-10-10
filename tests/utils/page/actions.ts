@@ -4,7 +4,7 @@ import process from 'node:process';
 import * as path from 'path';
 import * as fs from 'fs';
 import AdmZip from 'adm-zip';
-import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, PresetRequestType } from './locators';
+import { buildCommonLocators, buildResponseErrorsLocators, buildGrpcCommonLocators, PresetRequestType } from './locators';
 import { waitForCollectionMount } from './mounting';
 import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
 import { EmptyStateRequestType, revealFolderRow } from './sidebar';
@@ -2690,9 +2690,9 @@ const addCollectionScript = async (
 const sendAndWaitForErrorCard = async (page: Page) => {
   await test.step('Send request and wait for error card', async () => {
     const { request } = buildCommonLocators(page);
-    const scriptErrorLocators = buildScriptErrorLocators(page);
+    const responseErrorsLocators = buildResponseErrorsLocators(page);
     await request.sendButton().click();
-    await scriptErrorLocators.card().waitFor({ state: 'visible', timeout: 15000 });
+    await responseErrorsLocators.card().waitFor({ state: 'visible', timeout: 15000 });
   });
 };
 

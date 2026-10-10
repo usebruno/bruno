@@ -1,6 +1,6 @@
 import { Page } from '@playwright/test';
 import { test, expect } from '../../../playwright';
-import { buildGrpcCommonLocators, buildScriptErrorLocators } from '../../utils/page/locators';
+import { buildGrpcCommonLocators, buildResponseErrorsLocators } from '../../utils/page/locators';
 import {
   selectEnvironment,
   selectResponsePaneTab,
@@ -154,15 +154,15 @@ for (const mode of SANDBOX_MODES) {
 
     test('a throwing beforeCallStart aborts the call and shows a card', async ({ pageWithUserData: page }) => {
       const locators = await openCollection(page);
-      const scriptError = buildScriptErrorLocators(page);
+      const responseErrors = buildResponseErrorsLocators(page);
 
       await test.step('the card names the hook that failed', async () => {
         await sendGrpcRequest(page, 'BrokenHook', 'HelloService/SayHello');
 
-        await expect(scriptError.card()).toBeVisible({ timeout: 30000 });
-        await expect(scriptError.title()).toHaveText('Before Call Start Script Error');
-        await expect(scriptError.message()).toContainText('beforeCallStart exploded');
-        await expect(scriptError.filePath()).toHaveText('BrokenHook.yml');
+        await expect(responseErrors.card()).toBeVisible({ timeout: 30000 });
+        await expect(responseErrors.title()).toHaveText('Before Call Start Script Error');
+        await expect(responseErrors.message()).toContainText('beforeCallStart exploded');
+        await expect(responseErrors.filePath()).toHaveText(/^BrokenHook\.yml(:\d+)?$/);
       });
 
       await test.step('no response arrived', async () => {
@@ -170,7 +170,7 @@ for (const mode of SANDBOX_MODES) {
       });
 
       await test.step('clicking the file path opens the failing hook editor at the failing line', async () => {
-        await scriptError.filePath().click();
+        await responseErrors.filePath().click();
 
         const editor = page.getByTestId('before-call-start-script-editor');
         await expect(editor).toBeVisible();
@@ -302,15 +302,15 @@ for (const mode of SANDBOX_MODES) {
 
     test('a throwing beforeMessageSend aborts the unary call before it opens', async ({ pageWithUserData: page }) => {
       const locators = await openCollection(page);
-      const scriptError = buildScriptErrorLocators(page);
+      const responseErrors = buildResponseErrorsLocators(page);
 
       await test.step('the card names the hook that failed and the message it failed on', async () => {
         await sendGrpcRequest(page, 'BrokenBeforeMessageSend', 'HelloService/SayHello');
 
-        await expect(scriptError.card()).toBeVisible({ timeout: 30000 });
-        await expect(scriptError.title()).toHaveText('Before Message Send Script Error');
-        await expect(scriptError.message()).toContainText('Message 1: beforeMessageSend exploded');
-        await expect(scriptError.filePath()).toHaveText('BrokenBeforeMessageSend.yml');
+        await expect(responseErrors.card()).toBeVisible({ timeout: 30000 });
+        await expect(responseErrors.title()).toHaveText('Before Message Send Script Error');
+        await expect(responseErrors.message()).toContainText('Message 1: beforeMessageSend exploded');
+        await expect(responseErrors.filePath()).toHaveText(/^BrokenBeforeMessageSend\.yml(:\d+)?$/);
       });
 
       await test.step('nothing was put on the wire', async () => {
@@ -318,7 +318,7 @@ for (const mode of SANDBOX_MODES) {
       });
 
       await test.step('clicking the file path opens the failing hook editor at the failing line', async () => {
-        await scriptError.filePath().click();
+        await responseErrors.filePath().click();
 
         const editor = page.getByTestId('before-message-send-script-editor');
         await expect(editor).toBeVisible();
@@ -336,7 +336,7 @@ for (const mode of SANDBOX_MODES) {
 
     test('a throwing beforeMessageSend drops one streamed message and leaves the stream open', async ({ pageWithUserData: page }) => {
       const locators = await openCollection(page);
-      const scriptError = buildScriptErrorLocators(page);
+      const responseErrors = buildResponseErrorsLocators(page);
       const tests = locators.response.tests;
 
       await test.step('open the stream', async () => {
@@ -347,7 +347,7 @@ for (const mode of SANDBOX_MODES) {
       await test.step('the first message is refused, so nothing comes back for it', async () => {
         await locators.request.sendMessage(0).click();
 
-        await expect(scriptError.card()).toBeVisible({ timeout: 30000 });
+        await expect(responseErrors.card()).toBeVisible({ timeout: 30000 });
         await expect(locators.response.content()).toHaveCount(0);
       });
 
@@ -366,9 +366,9 @@ for (const mode of SANDBOX_MODES) {
       });
 
       await test.step('the card names the message the hook refused', async () => {
-        await expect(scriptError.card()).toBeVisible();
-        await expect(scriptError.title()).toHaveText('Before Message Send Script Error');
-        await expect(scriptError.message()).toContainText('Message 1: this message is not going out');
+        await expect(responseErrors.card()).toBeVisible();
+        await expect(responseErrors.title()).toHaveText('Before Message Send Script Error');
+        await expect(responseErrors.message()).toContainText('Message 1: this message is not going out');
       });
 
       // The refused run still consumed an index, so the run that passed is the second one.
@@ -384,7 +384,7 @@ for (const mode of SANDBOX_MODES) {
 
     test('a throwing afterMessageReceive keeps the stream and afterCallEnd alive', async ({ pageWithUserData: page }) => {
       const locators = await openCollection(page);
-      const scriptError = buildScriptErrorLocators(page);
+      const responseErrors = buildResponseErrorsLocators(page);
       const tests = locators.response.tests;
 
       await test.step('every reply still arrives', async () => {
@@ -396,10 +396,10 @@ for (const mode of SANDBOX_MODES) {
 
       // Only the last failure is kept, and the hook ran once per reply, so it is the tenth.
       await test.step('the card reports the last of the ten failures', async () => {
-        await expect(scriptError.card()).toBeVisible();
-        await expect(scriptError.title()).toHaveText('After Message Receive Script Error');
-        await expect(scriptError.message()).toContainText('Message 10: afterMessageReceive exploded');
-        await expect(scriptError.filePath()).toHaveText('BrokenAfterMessageReceive.yml');
+        await expect(responseErrors.card()).toBeVisible();
+        await expect(responseErrors.title()).toHaveText('After Message Receive Script Error');
+        await expect(responseErrors.message()).toContainText('Message 10: afterMessageReceive exploded');
+        await expect(responseErrors.filePath()).toHaveText(/^BrokenAfterMessageReceive\.yml(:\d+)?$/);
       });
 
       await test.step('afterCallEnd still ran behind the ten failures', async () => {
@@ -410,7 +410,7 @@ for (const mode of SANDBOX_MODES) {
       });
 
       await test.step('clicking the file path opens the failing hook editor at the failing line', async () => {
-        await scriptError.filePath().click();
+        await responseErrors.filePath().click();
 
         const editor = page.getByTestId('after-message-receive-script-editor');
         await expect(editor).toBeVisible();
@@ -421,15 +421,15 @@ for (const mode of SANDBOX_MODES) {
 
     test('a throwing afterCallEnd shows a card without taking the response with it', async ({ pageWithUserData: page }) => {
       const locators = await openCollection(page);
-      const scriptError = buildScriptErrorLocators(page);
+      const responseErrors = buildResponseErrorsLocators(page);
 
       await test.step('the card names the hook that failed', async () => {
         await sendGrpcRequest(page, 'BrokenAfterCallEnd', 'HelloService/SayHello');
 
-        await expect(scriptError.card()).toBeVisible({ timeout: 30000 });
-        await expect(scriptError.title()).toHaveText('After Call End Script Error');
-        await expect(scriptError.message()).toContainText('afterCallEnd exploded');
-        await expect(scriptError.filePath()).toHaveText('BrokenAfterCallEnd.yml');
+        await expect(responseErrors.card()).toBeVisible({ timeout: 30000 });
+        await expect(responseErrors.title()).toHaveText('After Call End Script Error');
+        await expect(responseErrors.message()).toContainText('afterCallEnd exploded');
+        await expect(responseErrors.filePath()).toHaveText(/^BrokenAfterCallEnd\.yml(:\d+)?$/);
       });
 
       await test.step('the response arrived and is still readable behind the card', async () => {
@@ -438,7 +438,7 @@ for (const mode of SANDBOX_MODES) {
       });
 
       await test.step('clicking the file path opens the failing hook editor at the failing line', async () => {
-        await scriptError.filePath().click();
+        await responseErrors.filePath().click();
 
         const editor = page.getByTestId('after-call-end-script-editor');
         await expect(editor).toBeVisible();
