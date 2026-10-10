@@ -33,6 +33,7 @@ const ResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const streamEntry = useSelector((state) => state.streamMessages[item.uid]);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const [showErrorCards, setShowErrorCards] = useState(false);
   const rightContentRef = useRef(null);
@@ -101,6 +102,11 @@ const ResponsePane = ({ item, collection }) => {
     );
   };
   const responseSize = useMemo(() => {
+    // For streaming responses, size is tracked in the separate streamMessages slice
+    if (streamEntry?.size) {
+      return streamEntry.size;
+    }
+
     if (typeof response.size === 'number') {
       return response.size;
     }
@@ -114,7 +120,7 @@ const ResponsePane = ({ item, collection }) => {
     } catch (error) {
       return 0;
     }
-  }, [response.size, response.dataBuffer]);
+  }, [streamEntry?.size, response.size, response.dataBuffer]);
   const responseHeadersCount = typeof response.headers === 'object' ? Object.entries(response.headers).length : 0;
 
   const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage;
@@ -156,7 +162,7 @@ const ResponsePane = ({ item, collection }) => {
       case 'response': {
         const isStream = item.response?.stream ?? false;
         if (isStream) {
-          return <WSMessagesList order={-1} messages={item.response.data} item={item} collection={collection} />;
+          return <WSMessagesList order={-1} messages={streamEntry?.messages ?? []} item={item} collection={collection} />;
         }
         return (
           <QueryResult
