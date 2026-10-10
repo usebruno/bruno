@@ -90,6 +90,7 @@ const Select = ({
   const [searchValue, setSearchValue] = useState('');
   const menuRef = useRef(null);
   const inputRef = useRef(null);
+  const triggerRef = useRef(null);
   const tippyRef = useRef(null);
   const autoId = useId();
   const labelId = label ? `${autoId}-label` : undefined;
@@ -175,7 +176,14 @@ const Select = ({
     [onChange, multiple]
   );
 
-  const handleClickOutside = useCallback(() => {
+  // Tippy fires onClickOutside for the very click that opens the dropdown (the trigger lives
+  // outside the popper, which is appended elsewhere), which would slam it shut before it paints.
+  // Ignore clicks that land on the trigger itself — toggling is already handled by its onClick.
+  const handleClickOutside = useCallback((instance, event) => {
+    const target = event?.target;
+    if (triggerRef.current && target && triggerRef.current.contains(target)) {
+      return;
+    }
     handleClose();
   }, [handleClose]);
 
@@ -350,6 +358,7 @@ const Select = ({
 
   const trigger = (
     <div
+      ref={triggerRef}
       className={`select-trigger textbox ${disabled ? 'disabled' : ''} ${isOpen ? 'select-open' : ''}`}
       onClick={triggerClickHandler}
       onKeyDown={triggerKeyHandler}
@@ -422,6 +431,7 @@ const Select = ({
           placement="bottom-start"
           visible={isOpen}
           onClickOutside={handleClickOutside}
+          appendTo={() => document.body}
           popperOptions={{ modifiers: [sameWidthModifier] }}
           maxWidth="none"
         >
