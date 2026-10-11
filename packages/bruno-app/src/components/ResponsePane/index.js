@@ -18,6 +18,7 @@ import UnresolvedVariablesInfo from './UnresolvedVariablesInfo';
 import StyledWrapper from './StyledWrapper';
 import ResponsePaneActions from './ResponsePaneActions';
 import QueryResultTypeSelector from './QueryResult/QueryResultTypeSelector/index';
+import QueryResultFilter from './QueryResult/QueryResultFilter';
 import { useInitialResponseFormat, useResponsePreviewFormatOptions } from './QueryResult/index';
 import SkippedRequest from './SkippedRequest';
 import ClearTimeline from './ClearTimeline/index';
@@ -171,6 +172,7 @@ const ResponsePane = ({ item, collection }) => {
             selectedTab={selectedViewTab}
             filter={focusedTab?.responseFilter}
             filterExpanded={focusedTab?.responseFilterExpanded}
+            showFilter={false}
             onFilterChange={(value) => dispatch(updateResponseFilter({ uid: activeTabUid, responseFilter: value }))}
             onFilterExpandChange={(expanded) => dispatch(updateResponseFilterExpanded({ uid: activeTabUid, responseFilterExpanded: expanded }))}
           />
@@ -242,6 +244,15 @@ const ResponsePane = ({ item, collection }) => {
       )}
       {focusedTab?.responsePaneTab === 'response' && item?.response && !(item.response?.stream ?? false) ? (
         <>
+          {selectedFormat === 'json' && selectedViewTab === 'editor' && !response.error && (
+            <QueryResultFilter
+              filter={focusedTab?.responseFilter}
+              filterExpanded={focusedTab?.responseFilterExpanded}
+              onChange={(value) => dispatch(updateResponseFilter({ uid: activeTabUid, responseFilter: value }))}
+              onExpandChange={(expanded) => dispatch(updateResponseFilterExpanded({ uid: activeTabUid, responseFilterExpanded: expanded }))}
+              mode="application/ld+json"
+            />
+          )}
           {/* Result View Tabs (Visualizations + Response Format) */}
           <div className="result-view-tabs">
 
