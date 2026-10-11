@@ -171,7 +171,7 @@ export const openApiSpec = (workspacePath = null) => async (dispatch, getState) 
 };
 
 export const saveApiSpecToFile
-  = ({ uid, content }) =>
+  = ({ uid, content, silent = false }) =>
     (dispatch, getState) => {
       return new Promise((resolve, reject) => {
         const { ipcRenderer } = window;
@@ -179,7 +179,7 @@ export const saveApiSpecToFile
         const apiSpec = findApiSpecByUid(state.apiSpec.apiSpecs, uid);
 
         if (!apiSpec) {
-          toast.error('Error saving file');
+          if (!silent) toast.error('Error saving file');
           return reject(new Error('API spec not found'));
         }
 
@@ -187,11 +187,11 @@ export const saveApiSpecToFile
           .invoke('renderer:save-api-spec', apiSpec.pathname, content)
           .then(() => {
             dispatch(saveApiSpec({ content, uid }));
-            toast.success('Saved API spec successfully!');
+            if (!silent) toast.success('Saved API spec successfully!');
             resolve();
           })
           .catch((error) => {
-            toast.error('Error saving file');
+            if (!silent) toast.error('Error saving file');
             reject(error);
           });
       });

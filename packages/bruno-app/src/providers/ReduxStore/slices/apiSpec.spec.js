@@ -10,6 +10,7 @@ import apiSpecReducer, {
   closeApiSpecFile,
   openApiSpec,
   openApiSpecTab,
+  saveApiSpecToFile,
   saveApiSpecTabDraft,
   updateApiSpecDraft
 } from 'providers/ReduxStore/slices/apiSpec';
@@ -212,6 +213,53 @@ const buildTwoWorkspaceStore = (apiSpecs = []) =>
   });
 
 const openSpecPaths = (store) => store.getState().tabs.tabs.map((tab) => tab.apiSpecPathname);
+
+describe('saving an API spec without announcing it', () => {
+  beforeEach(() => {
+    toast.error.mockClear();
+    toast.success.mockClear();
+    window.ipcRenderer = { invoke: jest.fn().mockResolvedValue(undefined) };
+  });
+
+  it('announces a save the user asked for', async () => {
+    const store = buildStore({ draft: EDITED_CONTENT });
+
+    await store.dispatch(saveApiSpecToFile({ uid: 'runtime-uid', content: EDITED_CONTENT }));
+
+    expect(toast.success).toHaveBeenCalled();
+  });
+
+  it('stays quiet when the caller is saving in bulk and reports the outcome itself', async () => {
+    const store = buildStore({ draft: EDITED_CONTENT });
+
+    await store.dispatch(saveApiSpecToFile({ uid: 'runtime-uid', content: EDITED_CONTENT, silent: true }));
+
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(getSpec(store).raw).toBe(EDITED_CONTENT);
+  });
+
+  it('stays quiet about a failed bulk save too, while still rejecting', async () => {
+    window.ipcRenderer.invoke.mockRejectedValue(new Error('EACCES: permission denied'));
+    const store = buildStore({ draft: EDITED_CONTENT });
+
+    await expect(
+      store.dispatch(saveApiSpecToFile({ uid: 'runtime-uid', content: EDITED_CONTENT, silent: true }))
+    ).rejects.toThrow('EACCES: permission denied');
+
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('still announces a failure the user triggered directly', async () => {
+    window.ipcRenderer.invoke.mockRejectedValue(new Error('EACCES: permission denied'));
+    const store = buildStore({ draft: EDITED_CONTENT });
+
+    await expect(
+      store.dispatch(saveApiSpecToFile({ uid: 'runtime-uid', content: EDITED_CONTENT }))
+    ).rejects.toThrow('EACCES: permission denied');
+
+    expect(toast.error).toHaveBeenCalled();
+  });
+});
 
 describe('dropApiSpecTabsMissingFrom', () => {
   it('closes the tab of a spec that is no longer part of the workspace', () => {

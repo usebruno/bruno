@@ -1,4 +1,5 @@
-const { describe, it, expect } = require('@jest/globals');
+const { describe, it, expect, beforeEach, afterEach } = require('@jest/globals');
+const { measureResponseTime, addDigestInterceptor } = require('@usebruno/requests');
 const { makeAxiosInstance } = require('../../src/utils/axios-instance');
 
 function createStubAdapter() {
@@ -54,7 +55,7 @@ describe('makeAxiosInstance', () => {
     expect(headers['Accept']).toBeNull();
   });
 
-  it('measures duration from metadata.startTime without sending request-start-time', async () => {
+  it('records the hop time without adding timing headers to the request or response', async () => {
     const stubAdapter = createStubAdapter();
     const instance = makeAxiosInstance();
 
@@ -62,8 +63,8 @@ describe('makeAxiosInstance', () => {
     const config = stubAdapter.getConfig();
 
     expect(config.headers['request-start-time']).toBeUndefined();
-    expect(config.metadata.startTime).toEqual(expect.any(Number));
-    expect(Number(response.headers['request-duration'])).toBeGreaterThanOrEqual(0);
+    expect(config.metadata.completedHopsTime).toEqual(expect.any(Number));
+    expect(response.headers['request-duration']).toBeUndefined();
   });
 
   it('omits Connection on the wire when listed in settings.omitHeaders', async () => {
@@ -124,6 +125,75 @@ describe('makeAxiosInstance', () => {
     });
 
     expect(stubAdapter.getConfig().headers['User-Agent']).toBe('my-client/1.0');
+  });
+
+  describe('timing across redirects', () => {
+    const START_URL = 'https://api.example.com/start';
+    const TARGET_URL = 'https://api.example.com/target';
+    const HOP_MS = 100;
+
+    const timedRedirectAdapter = (config) => {
+      jest.advanceTimersByTime(HOP_MS);
+      if (config.url === START_URL) {
+        const response = { status: 302, statusText: 'Found', headers: { location: TARGET_URL }, data: {} };
+        return Promise.reject(Object.assign(new Error('Redirect 302'), { config, response }));
+      }
+      return Promise.resolve({ data: {}, status: 200, statusText: 'OK', headers: {}, config });
+    };
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('sums both hops so the total covers the whole redirect chain', async () => {
+      const instance = makeAxiosInstance({ followRedirects: true });
+
+      const response = await instance({ url: START_URL, method: 'get', adapter: timedRedirectAdapter });
+
+      expect(measureResponseTime(response.config.metadata)).toBe(2 * HOP_MS);
+    });
+  });
+
+  describe('timing across a digest auth retry', () => {
+    const TARGET_URL = 'https://api.example.com/target';
+    const HOP_MS = 100;
+    const DIGEST_CHALLENGE = 'Digest realm="bruno", nonce="dcd98b7102dd2f0e"';
+
+    /** Challenges the first hop, which the digest interceptor answers by re-sending the request. */
+    const digestChallengeAdapter = (config) => {
+      jest.advanceTimersByTime(HOP_MS);
+      if (!config.headers.has('Authorization')) {
+        const response = { status: 401, statusText: 'Unauthorized', headers: { 'www-authenticate': DIGEST_CHALLENGE }, data: {} };
+        return Promise.reject(Object.assign(new Error('Unauthorized'), { config, response }));
+      }
+      return Promise.resolve({ data: {}, status: 200, statusText: 'OK', headers: {}, config });
+    };
+
+    let consoleDebugSpy;
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+      // The digest interceptor logs each challenge it answers.
+      consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      consoleDebugSpy.mockRestore();
+      jest.useRealTimers();
+    });
+
+    it('sums the challenged hop and the retry into the response time', async () => {
+      const instance = makeAxiosInstance();
+      addDigestInterceptor(instance, { digestConfig: { username: 'user', password: 'secret' } });
+
+      const response = await instance({ url: TARGET_URL, method: 'get', adapter: digestChallengeAdapter });
+
+      expect(measureResponseTime(response.config.metadata)).toBe(2 * HOP_MS);
+    });
   });
 
   describe('cross-origin redirects authorization stripping', () => {

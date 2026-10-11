@@ -607,6 +607,47 @@ describe('prepare-request: prepareRequest', () => {
     });
   });
 
+  describe('Multipart form body mode', () => {
+    const multipartRequest = (headers) => ({
+      request: {
+        method: 'POST',
+        url: 'https://example.com/upload',
+        headers,
+        params: [],
+        body: {
+          mode: 'multipartForm',
+          multipartForm: [{ name: 'name', value: 'John Doe', type: 'text', enabled: true }]
+        }
+      }
+    });
+
+    it('sets Content-Type to multipart/form-data when the request has none', async () => {
+      const result = await prepareRequest(multipartRequest([]));
+
+      expect(result.headers['content-type']).toBe('multipart/form-data');
+    });
+
+    it.each([
+      'multipart/form-data; boundary=custom',
+      'multipart/mixed'
+    ])('keeps the user Content-Type "%s"', async (contentType) => {
+      const item = multipartRequest([{ name: 'content-type', value: contentType, enabled: true }]);
+
+      const result = await prepareRequest(item);
+
+      expect(result.headers['content-type']).toBe(contentType);
+    });
+
+    it('does not add a second Content-Type header when the user header differs in case', async () => {
+      const item = multipartRequest([{ name: 'Content-Type', value: 'multipart/form-data; boundary=custom', enabled: true }]);
+
+      const result = await prepareRequest(item);
+
+      const contentTypeHeaderNames = Object.keys(result.headers).filter((name) => name.toLowerCase() === 'content-type');
+      expect(contentTypeHeaderNames).toEqual(['Content-Type']);
+    });
+  });
+
   describe('Header filtering', () => {
     it('skips headers with empty name', async () => {
       const item = {

@@ -45,6 +45,7 @@ const useOverflowCollapse = (levels) => {
     } finally {
       applyLevelClasses(node, settledDepth);
       node.style.width = width;
+      void node.offsetWidth;
       node.classList.remove(MEASURING_CLASS);
     }
   }, [applyLevelClasses]);
