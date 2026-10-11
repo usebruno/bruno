@@ -22,11 +22,12 @@ import {
   IconBook,
   IconServer,
   IconFileArrowRight,
-  IconAppWindow
+  IconAppWindow,
+  IconFileImport
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveCollectionAndPersist, handleMultipleCollectionItemsDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, moveCollectionAndPersist, handleMultipleCollectionItemsDrop, pasteItem, showInFolder, saveCollectionSecurityConfig, importRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
@@ -389,6 +390,16 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
       onClick: () => {
         ensureCollectionIsMounted();
         setShowNewRequestModal(true);
+      }
+    },
+    {
+      id: 'import-request',
+      leftSection: IconFileImport,
+      label: 'Import Request',
+      onClick: () => {
+        dispatch(importRequest(collection.uid)).catch((error) => {
+          toast.error(error.message || 'Failed to import request');
+        });
       }
     },
     {
