@@ -14,6 +14,7 @@ import { getAllVariables } from 'utils/collections/index';
 import { interpolate } from '@usebruno/common';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
+import { removeLineBreaks } from '../utils';
 
 const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, collection, folder, disabled }) => {
   const dispatch = useDispatch();
@@ -66,7 +67,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
           tokenQueryKey,
           autoFetchToken,
           tokenSource,
-          [key]: value
+          [key]: removeLineBreaks(value)
         }
       })
     );
