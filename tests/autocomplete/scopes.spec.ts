@@ -42,7 +42,7 @@ const expectSingleWinningEntry = async (page: Page, scope: string) => {
   const { itemByName } = buildAutocompleteLocators(page);
   const matches = itemByName(VAR_NAME);
   await expect(matches).toHaveCount(1);
-  await expect(matches.first().getByTestId('autocomplete-variable-icon')).toHaveClass(new RegExp(`CodeMirror-hint-variable-icon-${scope}\\b`));
+  await expect(matches.first().getByTestId('autocomplete-variable-icon')).toHaveAttribute('data-scope', scope);
   await page.keyboard.press('Escape');
 };
 
@@ -192,7 +192,7 @@ test.describe('Variable autocomplete — scopes and shadowing', () => {
       for (const [name, scope] of expected) {
         const matches = itemByName(name);
         await expect(matches).toHaveCount(1);
-        await expect(matches.first().getByTestId('autocomplete-variable-icon')).toHaveClass(new RegExp(`CodeMirror-hint-variable-icon-${scope}\\b`));
+        await expect(matches.first().getByTestId('autocomplete-variable-icon')).toHaveAttribute('data-scope', scope);
       }
     });
   });

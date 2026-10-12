@@ -28,7 +28,7 @@ import {
   showRootHints,
   extractNextSegmentSuggestions,
   WORD_PATTERN,
-  calculateSingleBraceInsertText,
+  buildSingleBraceInsertText,
   truncateHintLabel
 } from './autocomplete';
 import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
@@ -1291,56 +1291,56 @@ describe('Bruno Autocomplete', () => {
     });
   });
 
-  describe('calculateSingleBraceInsertText', () => {
+  describe('buildSingleBraceInsertText', () => {
     it('adds both closing braces when nothing follows the cursor', () => {
       // e.g. user typed a bare `{` at the end of the line, nothing after the cursor
-      const result = calculateSingleBraceInsertText('', 'envVar');
+      const result = buildSingleBraceInsertText('', 'envVar');
 
       expect(result).toBe('{envVar}}');
     });
 
     it('adds both closing braces when unrelated text follows the cursor', () => {
-      const result = calculateSingleBraceInsertText('/api/users', 'envVar');
+      const result = buildSingleBraceInsertText('/api/users', 'envVar');
 
       expect(result).toBe('{envVar}}');
     });
 
     it('adds only one closing brace when a single `}` already follows the cursor', () => {
       // e.g. auto-closing brackets turned the typed `{` into `{|}` (cursor between them)
-      const result = calculateSingleBraceInsertText('}', 'envVar');
+      const result = buildSingleBraceInsertText('}', 'envVar');
 
       expect(result).toBe('{envVar}');
     });
 
     it('adds only one closing brace when a single `}` is followed by other text', () => {
-      const result = calculateSingleBraceInsertText('} rest of the value', 'envVar');
+      const result = buildSingleBraceInsertText('} rest of the value', 'envVar');
 
       expect(result).toBe('{envVar}');
     });
 
     it('adds no closing braces when both already follow the cursor', () => {
       // e.g. completing inside an already-typed `{{|}}` pair
-      const result = calculateSingleBraceInsertText('}}', 'envVar');
+      const result = buildSingleBraceInsertText('}}', 'envVar');
 
       expect(result).toBe('{envVar');
     });
 
     it('adds no closing braces when more than two `}` already follow the cursor', () => {
       // the 3rd+ `}` is the user's own unrelated content — left untouched, not our concern
-      const result = calculateSingleBraceInsertText('}}}', 'envVar');
+      const result = buildSingleBraceInsertText('}}}', 'envVar');
 
       expect(result).toBe('{envVar');
     });
 
     it('treats undefined textAfterCursor the same as empty (end of line)', () => {
-      const result = calculateSingleBraceInsertText(undefined, 'envVar');
+      const result = buildSingleBraceInsertText(undefined, 'envVar');
 
       expect(result).toBe('{envVar}}');
     });
 
     it('works with dynamic ($mock) and process.env-style names', () => {
-      expect(calculateSingleBraceInsertText('', '$guid')).toBe('{$guid}}');
-      expect(calculateSingleBraceInsertText('', 'process.env.FOO')).toBe('{process.env.FOO}}');
+      expect(buildSingleBraceInsertText('', '$guid')).toBe('{$guid}}');
+      expect(buildSingleBraceInsertText('', 'process.env.FOO')).toBe('{process.env.FOO}}');
     });
   });
 

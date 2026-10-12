@@ -2,7 +2,6 @@ import { mockDataFunctions } from '@usebruno/common';
 import { GRPC_API_HINTS } from 'utils/codemirror/grpcAutocompleteHints';
 import { AUTOCOMPLETE_SCOPES, AUTOCOMPLETE_TRIGGER, SCOPE_LABEL } from 'utils/common/constants';
 import { SCOPE_ICON } from 'utils/codemirror/scopeIcons';
-import { SCOPE_ICON_COLOR_CLASS } from 'utils/codemirror/autocompleteScopes';
 
 const CodeMirror = require('codemirror');
 
@@ -461,7 +460,7 @@ const countMissingClosingBraces = (textAfterCursor) => {
  * @param {string} name - The variable name to insert
  * @returns {string} Text to insert right after the `{` that triggered the completion (which stays); it starts with the second `{`
  */
-const calculateSingleBraceInsertText = (textAfterCursor, name) => {
+const buildSingleBraceInsertText = (textAfterCursor, name) => {
   const closersToAdd = countMissingClosingBraces(textAfterCursor);
 
   return `{${name}${'}'.repeat(closersToAdd)}`;
@@ -778,8 +777,9 @@ const truncateHintLabel = (text) => {
  */
 const renderVariableHint = (li, self, completion) => {
   const icon = document.createElement('span');
-  const colorClass = SCOPE_ICON_COLOR_CLASS[completion.scope] || 'muted';
-  icon.className = `CodeMirror-hint-variable-icon CodeMirror-hint-variable-icon-${colorClass}`;
+  icon.className = 'CodeMirror-hint-variable-icon';
+  // The icon's colour is picked by this attribute in globalStyles.js; scopes without a rule stay muted.
+  icon.setAttribute('data-scope', completion.scope || '');
   icon.setAttribute('data-testid', 'autocomplete-variable-icon');
   icon.innerHTML = SCOPE_ICON[completion.scope] || '';
 
@@ -920,7 +920,7 @@ const createSingleBraceVariableHintList = (filteredHints, from, to, variableScop
       return { text: `{${hint}`, displayText: hint };
     }
     return {
-      text: calculateSingleBraceInsertText(textAfterCursor, hint),
+      text: buildSingleBraceInsertText(textAfterCursor, hint),
       displayText: hint,
       scope,
       render: renderVariableHint
@@ -1233,7 +1233,7 @@ export const setupAutoComplete = (editor, options = {}) => {
 };
 
 // Exported for testing
-export { extractNextSegmentSuggestions, WORD_PATTERN, calculateSingleBraceInsertText, truncateHintLabel };
+export { extractNextSegmentSuggestions, WORD_PATTERN, buildSingleBraceInsertText, truncateHintLabel };
 
 // Initialize autocomplete command if not already present
 if (!CodeMirror.commands.autocomplete) {

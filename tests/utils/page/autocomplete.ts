@@ -42,7 +42,7 @@ export const codeMirrorOf = (container: Locator) => container.locator('.CodeMirr
  * The first rendered text line of a CodeMirror field (masked fields render `*` here, not the real value).
  * @param editor - The `.CodeMirror` element
  */
-export const visibleLine = (editor: Locator) => editor.locator('.CodeMirror-line').first();
+export const firstRenderedLine = (editor: Locator) => editor.locator('.CodeMirror-line').first();
 
 /**
  * Click into a CodeMirror-based field, type a single `{`, and assert the variable-autocomplete

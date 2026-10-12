@@ -16,8 +16,7 @@ import {
   getUniqueTagsFromItems,
   getCollectionVersion,
   isCollectionItemCollapsed,
-  getAllVariablesWithScope,
-  getAllVariables,
+  getVariableNamesWithScope,
   getWorkspaceCollections
 } from './index';
 import * as platformUtils from 'utils/common/platform';
@@ -936,7 +935,7 @@ describe('getEnvironmentVariables', () => {
   });
 });
 
-describe('getAllVariablesWithScope', () => {
+describe('getVariableNamesWithScope', () => {
   const buildCollection = () => ({
     uid: 'col-1',
     root: {
@@ -960,7 +959,7 @@ describe('getAllVariablesWithScope', () => {
   });
 
   it('tags every variable across global/collection/environment/runtime with its scope', () => {
-    const all = getAllVariablesWithScope(buildCollection(), null);
+    const all = getVariableNamesWithScope(buildCollection(), null);
     const byName = Object.fromEntries(all.map((v) => [v.name, v.scope]));
 
     expect(byName.globalVar).toBe('global');
@@ -970,26 +969,26 @@ describe('getAllVariablesWithScope', () => {
   });
 
   it('includes prompt variables, tagged with the runtime scope', () => {
-    const all = getAllVariablesWithScope(buildCollection(), null);
+    const all = getVariableNamesWithScope(buildCollection(), null);
     const byName = Object.fromEntries(all.map((v) => [v.name, v.scope]));
 
     expect(byName['?promptVar']).toBe('runtime');
   });
 
   it('includes oauth2 credential variables tagged with scope=oauth2', () => {
-    const all = getAllVariablesWithScope(buildCollection(), null);
+    const all = getVariableNamesWithScope(buildCollection(), null);
 
     expect(all).toContainEqual({ name: '$oauth2.cred1.access_token', scope: 'oauth2' });
   });
 
   it('includes process.env variables prefixed as process.env.<name>', () => {
-    const all = getAllVariablesWithScope(buildCollection(), null);
+    const all = getVariableNamesWithScope(buildCollection(), null);
 
     expect(all).toContainEqual({ name: 'process.env.API_KEY', scope: 'process.env' });
   });
 
   it('includes every built-in dynamic/mock variable, each with no resolved value needed', () => {
-    const all = getAllVariablesWithScope(buildCollection(), null);
+    const all = getVariableNamesWithScope(buildCollection(), null);
     const dynamicEntries = all.filter((v) => v.scope === 'dynamic');
 
     expect(dynamicEntries.length).toBeGreaterThan(0);
@@ -997,7 +996,7 @@ describe('getAllVariablesWithScope', () => {
   });
 
   it('excludes the internal bookkeeping keys getAllVariables() adds (pathParams, maskedEnvVariables, process)', () => {
-    const all = getAllVariablesWithScope(buildCollection(), null);
+    const all = getVariableNamesWithScope(buildCollection(), null);
     const names = all.map((v) => v.name);
 
     expect(names).not.toContain('pathParams');
@@ -1006,7 +1005,7 @@ describe('getAllVariablesWithScope', () => {
   });
 
   it('returns only the built-in dynamic variables when there is no collection', () => {
-    const all = getAllVariablesWithScope(null, null);
+    const all = getVariableNamesWithScope(null, null);
 
     expect(all.length).toBeGreaterThan(0);
     expect(all.every((v) => v.scope === 'dynamic')).toBe(true);

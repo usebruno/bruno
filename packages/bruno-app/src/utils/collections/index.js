@@ -1313,7 +1313,7 @@ export const getTotalRequestCountInCollection = (collection) => {
   return count;
 };
 
-const computeVariableScopeBuckets = (collection, item) => {
+const getVariablesByScope = (collection, item) => {
   if (!collection) {
     return {};
   }
@@ -1388,7 +1388,7 @@ export const getAllVariables = (collection, item) => {
     mergedProcessEnvVariables,
     pathParams,
     maskedEnvVariables
-  } = computeVariableScopeBuckets(collection, item);
+  } = getVariablesByScope(collection, item);
 
   return {
     ...globalEnvironmentVariables,
@@ -1966,7 +1966,7 @@ export const isVariableSecret = (scopeInfo) => {
  * @param {Object} [item] - Request or folder used to resolve local variables
  * @returns {Array<{ name: string, scope: string }>}
  */
-export const getAllVariablesWithScope = (collection, item) => {
+export const getVariableNamesWithScope = (collection, item) => {
   const {
     globalEnvironmentVariables,
     collectionVariables,
@@ -1977,7 +1977,7 @@ export const getAllVariablesWithScope = (collection, item) => {
     promptVariables,
     oauth2CredentialVariables,
     mergedProcessEnvVariables
-  } = computeVariableScopeBuckets(collection, item);
+  } = getVariablesByScope(collection, item);
 
   const scopeByName = {};
 

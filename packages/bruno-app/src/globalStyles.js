@@ -361,7 +361,8 @@ const GlobalStyle = createGlobalStyle`
     margin-right: 10px;
     padding: 2px;
     border-radius: 2px;
-    color: currentColor;
+    color: ${(props) => props.theme.dropdown.mutedText};
+    background: ${(props) => rgba(props.theme.dropdown.mutedText, 0.14)};
   }
 
   .CodeMirror-hint-variable-icon svg {
@@ -370,52 +371,48 @@ const GlobalStyle = createGlobalStyle`
     display: block;
   }
 
-  .CodeMirror-hint-variable-icon-request {
+  .CodeMirror-hint-variable-icon[data-scope='request'] {
     color: ${(props) => props.theme.colors.text.purple};
     background: ${(props) => rgba(props.theme.colors.text.purple, 0.14)};
   }
 
-  .CodeMirror-hint-variable-icon-folder {
+  .CodeMirror-hint-variable-icon[data-scope='folder'] {
     color: ${(props) => props.theme.colors.text.yellow};
     background: ${(props) => rgba(props.theme.colors.text.yellow, 0.14)};
   }
 
-  .CodeMirror-hint-variable-icon-collection {
+  .CodeMirror-hint-variable-icon[data-scope='collection'] {
     color: ${(props) => props.theme.colors.text.subtext1};
     background: ${(props) => rgba(props.theme.colors.text.subtext1, 0.14)};
   }
 
-  .CodeMirror-hint-variable-icon-environment {
+  .CodeMirror-hint-variable-icon[data-scope='environment'] {
     color: ${(props) => props.theme.colors.text.green};
     background: ${(props) => rgba(props.theme.colors.text.green, 0.14)};
   }
 
-  .CodeMirror-hint-variable-icon-global {
+  .CodeMirror-hint-variable-icon[data-scope='global'] {
     color: ${(props) => props.theme.textLink};
     background: ${(props) => rgba(props.theme.textLink, 0.14)};
   }
 
-  .CodeMirror-hint-variable-icon-muted {
-    color: ${(props) => props.theme.dropdown.mutedText};
-    background: ${(props) => rgba(props.theme.dropdown.mutedText, 0.14)};
-  }
 
-  .CodeMirror-hint-variable-icon-dynamic {
+  .CodeMirror-hint-variable-icon[data-scope='dynamic'] {
     color: ${(props) => props.theme.request.gql};
     background: ${(props) => rgba(props.theme.request.gql, 0.14)};
   }
 
-  .CodeMirror-hint-variable-icon-runtime {
+  .CodeMirror-hint-variable-icon[data-scope='runtime'] {
     color: ${(props) => props.theme.request.methods.options};
     background: ${(props) => rgba(props.theme.request.methods.options, 0.14)};
   }
 
-  .CodeMirror-hint-variable-icon-process-env {
+  .CodeMirror-hint-variable-icon[data-scope='process.env'] {
     color: ${(props) => props.theme.request.grpc};
     background: ${(props) => rgba(props.theme.request.grpc, 0.14)};
   }
 
-  .CodeMirror-hint-variable-icon-oauth2 {
+  .CodeMirror-hint-variable-icon[data-scope='oauth2'] {
     color: ${(props) => props.theme.request.ws};
     background: ${(props) => rgba(props.theme.request.ws, 0.14)};
   }

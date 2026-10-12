@@ -17,13 +17,13 @@ import {
   readEditorValue,
   setEditorState,
   pickHint,
-  visibleLine
+  firstRenderedLine
 } from '../utils/page/autocomplete';
 
 const expectFullyMasked = async (editor: Locator, realValue: string) => {
   await expect(maskedCharacters(editor)).toHaveCount(realValue.length);
   if (realValue.length > 0) {
-    await expect(visibleLine(editor)).not.toContainText(realValue);
+    await expect(firstRenderedLine(editor)).not.toContainText(realValue);
   }
 };
 
