@@ -70,16 +70,32 @@ const resolveHandlers = (handlers, correspondence, sideKey) =>
  * do not apply to it.
  */
 const deriveMembers = (pair, { from, to, directionKey, direction }) => {
+  const typeName = pair[from === 'pm' ? 'postman' : 'bruno'];
   const members = {};
 
+  /**
+   * Two members mapping onto one name leaves this direction no way to choose between them,
+   * and the loser would depend on the order of the rows. The row that does not invert has to
+   * say so with `direction`.
+   */
+  const defineMember = (name, spec) => {
+    if (members[name]) {
+      throw new Error(
+        `correspondence: ${typeName} maps two members onto '${name}'; the one that does not invert needs a direction`
+      );
+    }
+
+    members[name] = spec;
+  };
+
   pair.members.forEach((row) => {
-    validateRow(row, pair[from === 'pm' ? 'postman' : 'bruno']);
+    validateRow(row, typeName);
 
     const name = row[from];
     if (!name) return;
 
     if (row.unsupported) {
-      members[name] = { unsupported: row.unsupported };
+      defineMember(name, { unsupported: row.unsupported });
       return;
     }
 
@@ -92,7 +108,7 @@ const deriveMembers = (pair, { from, to, directionKey, direction }) => {
 
     if (row[directionKey]) spec.yields = row[directionKey];
 
-    members[name] = spec;
+    defineMember(name, spec);
   });
 
   return members;

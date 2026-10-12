@@ -150,6 +150,17 @@ describe('semantic registries', () => {
     it('should be rejected when its yield says something the engine cannot act on', () => {
       expect(deriveWith({ pm: 'a', bru: 'b', pmToBru: { wrapped: true } })).toThrow(/expected one of coerce, lost/);
     });
+
+    it('should be rejected when two members map onto one name', () => {
+      const tableOf = (members) => ({ typePairs: { T: { postman: 'P', bruno: 'B', members } }, entryPoints: [] });
+      const colliding = [{ pm: 'json', bru: 'data' }, { pm: 'text', bru: 'data' }];
+
+      expect(() => derive(tableOf(colliding), 'bru')).toThrow(/maps two members onto 'data'/);
+      expect(() => derive(tableOf(colliding), 'pm')).not.toThrow();
+
+      const resolved = [{ pm: 'json', bru: 'data' }, { pm: 'text', bru: 'data', direction: 'pm->bru' }];
+      expect(() => derive(tableOf(resolved), 'bru')).not.toThrow();
+    });
   });
 });
 

@@ -11,13 +11,13 @@
  * A row with both `pm` and `bru` pairs those members. A row with one name declares a member
  * that exists but has no counterpart, and must carry `unsupported`.
  *
- * | Key                 | Meaning                                                              |
- * |---------------------|----------------------------------------------------------------------|
- * | `pm` / `bru`        | Member name on each side                                              |
+ * | Key                 | Meaning                                                                |
+ * |---------------------|------------------------------------------------------------------------|
+ * | `pm` / `bru`        | Member name on each side                                               |
  * | `pmKind` / `bruKind`| `'method'` or `'property'` — given together, and only when they differ |
- * | `direction`         | `'pm->bru'` or `'bru->pm'` when the row applies one way only          |
- * | `pmToBru`/`bruToPm` | What becomes of the yielded value in that direction (see below)       |
- * | `unsupported`       | Why this member has no counterpart                                    |
+ * | `direction`         | `'pm->bru'` or `'bru->pm'` when the row applies one way only           |
+ * | `pmToBru`/`bruToPm` | What becomes of the yielded value in that direction (see below)        |
+ * | `unsupported`       | Why this member has no counterpart                                     |
  *
  * `pmToBru` / `bruToPm` carry one of:
  *   `{ coerce: '<name>' }` — a coercion from coercions.js, applied where the value is
