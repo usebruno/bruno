@@ -36,9 +36,9 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const { isSensitive } = useDetectSensitiveField(collection);
-  const consumerSecretSensitive = isSensitive(oauth1.consumerSecret);
-  const tokenSecretSensitive = isSensitive(oauth1.accessTokenSecret);
-  const privateKeySensitive = isSensitive(oauth1.privateKey);
+  const consumerSecretSensitive = isSensitive(oauth1.consumerSecret, item);
+  const tokenSecretSensitive = isSensitive(oauth1.accessTokenSecret, item);
+  const privateKeySensitive = isSensitive(oauth1.privateKey, item);
 
   const handleRun = item?.uid ? () => dispatch(sendRequest(item, collection.uid)) : undefined;
   const handleSave = () => {

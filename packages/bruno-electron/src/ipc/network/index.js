@@ -1954,7 +1954,7 @@ const registerNetworkIpc = (mainWindow) => {
                 error.response.data = await promisifyStream(error.response.data, currentAbortController, false);
                 completeOpenHop(error.response.config);
                 error.response.responseTime = measureResponseTime(error.response.config.metadata);
-                const { data, dataBuffer } = parseDataFromResponse(error.response);
+                const { data, dataBuffer } = parseDataFromResponse(error.response, request.__brunoDisableParsingResponseJson);
                 error.response.data = data;
                 error.response.dataBuffer = dataBuffer;
 
@@ -1980,7 +1980,8 @@ const registerNetworkIpc = (mainWindow) => {
                   requestUid,
                   error: error ? error.message : 'An error occurred while running the request',
                   responseReceived: response,
-                  eventData
+                  eventData,
+                  disableParsingResponseJson: Boolean(request.__brunoDisableParsingResponseJson)
                 });
               } else {
                 await executeRequestOnFailHandler(request, error, (onFailScriptResult) => {
