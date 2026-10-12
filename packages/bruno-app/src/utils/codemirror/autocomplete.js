@@ -778,7 +778,7 @@ const truncateHintLabel = (text) => {
 const renderVariableHint = (li, self, completion) => {
   const icon = document.createElement('span');
   icon.className = 'CodeMirror-hint-variable-icon';
-  // The icon's colour is picked by this attribute in globalStyles.js; scopes without a rule stay muted.
+  // The icon's colour is picked by this attribute in globalStyles.js.
   icon.setAttribute('data-scope', completion.scope || '');
   icon.setAttribute('data-testid', 'autocomplete-variable-icon');
   icon.innerHTML = SCOPE_ICON[completion.scope] || '';
