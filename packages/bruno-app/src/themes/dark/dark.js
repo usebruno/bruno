@@ -294,6 +294,7 @@ const darkTheme = {
     },
     responseStatus: '#ccc',
     responseOk: palette.hues.GREEN,
+    responseWarning: palette.hues.ORANGE,
     responseError: palette.hues.RED,
     responsePending: palette.hues.BLUE,
     responseOverlayBg: rgba(palette.background.BASE, 0.8),
