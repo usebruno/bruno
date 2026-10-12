@@ -11,6 +11,7 @@ const MockConfirmModal = ({
   confirmButtonColor,
   dataTestId,
   size = 'sm',
+  onClick,
   children
 }) => (
   <Portal>
@@ -24,6 +25,7 @@ const MockConfirmModal = ({
       confirmDisabled={confirmDisabled}
       confirmButtonColor={confirmButtonColor}
       dataTestId={dataTestId}
+      onClick={onClick}
     >
       {children}
     </Modal>
