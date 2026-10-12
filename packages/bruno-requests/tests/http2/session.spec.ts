@@ -2,7 +2,7 @@
  * acquireH2Session: pooled HTTP/2 sessions over TLS via http2-wrapper's Agent, against the lab servers.
  */
 import type { ClientHttp2Session } from 'node:http2';
-import { acquireH2Session, acquireH2cSession, closeAllSessions } from '../../src/http2/session';
+import { acquireH2Session, closeAllSessions } from '../../src/http2/session';
 import { startLab, type Lab } from '../fixtures/http2/lab-server';
 
 let lab: Lab;
@@ -16,7 +16,6 @@ afterAll(async () => {
 afterEach(() => closeAllSessions());
 
 const origin = (port: number) => `https://localhost:${port}`;
-const h2cOrigin = (port: number) => `http://localhost:${port}`;
 const ca = () => ({ ca: lab.certs.ca });
 const mtls = () => ({ ca: lab.certs.ca, cert: lab.certs.clientCert, key: lab.certs.clientKey });
 
@@ -129,58 +128,6 @@ describe('acquireH2Session (TLS, http2-wrapper Agent)', () => {
     closeAllSessions();
     expect(a.destroyed).toBe(true);
     const b = await acquireH2Session({ origin: origin(lab.ports.h2), tlsOptions: ca() });
-    expect(b).not.toBe(a);
-    expect((await echo(b)).httpVersion).toBe('2.0');
-  });
-});
-
-describe('acquireH2cSession (cleartext, prior knowledge)', () => {
-  test('connects and speaks HTTP/2 without TLS', async () => {
-    const session = await acquireH2cSession({ origin: h2cOrigin(lab.ports.h2c) });
-    expect(session.encrypted).toBeFalsy();
-    expect((await echo(session)).httpVersion).toBe('2.0');
-  });
-
-  test('reuses the session for the same origin', async () => {
-    const a = await acquireH2cSession({ origin: h2cOrigin(lab.ports.h2c) });
-    const first = await echo(a);
-    const b = await acquireH2cSession({ origin: h2cOrigin(lab.ports.h2c) });
-    expect(b).toBe(a);
-    expect((await echo(b)).sessions).toBe(first.sessions);
-  });
-
-  test('concurrent cold acquires share one connect', async () => {
-    const sessions = await Promise.all(
-      Array.from({ length: 5 }, () => acquireH2cSession({ origin: h2cOrigin(lab.ports.h2c) }))
-    );
-    expect(new Set(sessions).size).toBe(1);
-  });
-
-  test('rejects against a plain HTTP/1.1 server instead of downgrading', async () => {
-    await expect(acquireH2cSession({ origin: h2cOrigin(lab.ports.h1Plain) })).rejects.toThrow();
-    // The failed attempt is forgotten: a later acquire tries again rather than returning the rejection.
-    await expect(acquireH2cSession({ origin: h2cOrigin(lab.ports.h1Plain) })).rejects.toThrow();
-  });
-
-  test('rejects when nothing is listening', async () => {
-    await expect(acquireH2cSession({ origin: 'http://127.0.0.1:1' })).rejects.toThrow();
-  });
-
-  test('opens a new session after GOAWAY', async () => {
-    const a = await acquireH2cSession({ origin: h2cOrigin(lab.ports.h2c) });
-    await echo(a, '/goaway');
-    await sleep(100);
-    const b = await acquireH2cSession({ origin: h2cOrigin(lab.ports.h2c) });
-    expect(b).not.toBe(a);
-    expect((await echo(b)).httpVersion).toBe('2.0');
-  });
-
-  test('closeAllSessions destroys h2c sessions and the next acquire reconnects', async () => {
-    const a = await acquireH2cSession({ origin: h2cOrigin(lab.ports.h2c) });
-    closeAllSessions();
-    await sleep(10);
-    expect(a.destroyed).toBe(true);
-    const b = await acquireH2cSession({ origin: h2cOrigin(lab.ports.h2c) });
     expect(b).not.toBe(a);
     expect((await echo(b)).httpVersion).toBe('2.0');
   });

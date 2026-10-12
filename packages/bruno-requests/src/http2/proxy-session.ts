@@ -2,25 +2,16 @@ import * as http2wrapper from 'http2-wrapper';
 import { SocksClient, type SocksProxy } from 'socks';
 import type { ClientHttp2Session } from 'node:http2';
 import type { LookupFunction } from 'node:net';
-import { pickTlsFields } from './tls-options';
-import { withSocketGuard } from './socket-guard';
-
-type ProxyKind = 'http' | 'https' | 'socks';
-
-export type ProxyInfo = {
-  kind: ProxyKind;
-  url: string;
-  key: string;
-  proxyTls?: Record<string, unknown> | null;
-};
+import { pickTlsFields, wrapLookup, withSocketGuard } from './tls-options';
+import { H2_IDLE_TIMEOUT_MS } from './session';
+import type { ProxyInfo } from './proxy-info';
 
 type ProxyStreamResult = [stream: unknown, statusCode: number, statusMessage: string];
 type ProxyAgentInternals = { proxyOptions: { url: URL } };
 
 /**
- * The base (Http2OverHttp) does the tunnel wrapping, the TLS-to-target and the pooling.
- * we only replace how the tunnel is opened, a SOCKS CONNECT instead of an
- * HTTP CONNECT.
+ * Reuse http2-wrapper's tunneling and session pooling, but establish
+ * the proxy connection using SOCKS instead of HTTP CONNECT.
  */
 class Http2OverSocksBase extends http2wrapper.proxies.Http2OverHttp {
   async _getProxyStream(authority: string): Promise<ProxyStreamResult> {
@@ -32,7 +23,7 @@ class Http2OverSocksBase extends http2wrapper.proxies.Http2OverHttp {
     const proxy: SocksProxy = {
       host: url.hostname,
       port: Number(url.port),
-      type: url.protocol === 'socks4:' ? 4 : 5
+      type: url.protocol.startsWith('socks4') ? 4 : 5
     };
     if (url.username) {
       proxy.userId = decodeURIComponent(url.username);
@@ -53,15 +44,16 @@ const proxyAgents = new Map<string, InstanceType<typeof http2wrapper.Agent>>();
 
 const buildProxyAgent = (info: ProxyInfo): InstanceType<typeof http2wrapper.Agent> => {
   const proxyOptions: http2wrapper.ProxyOptions = { url: info.url };
+  const agentOptions = { timeout: H2_IDLE_TIMEOUT_MS };
   if (info.kind === 'socks') {
-    return new Http2OverSocks({ proxyOptions });
+    return new Http2OverSocks({ proxyOptions, ...agentOptions });
   }
   if (info.kind === 'https') {
     // The connection to the proxy is itself TLS; forward the proxy's TLS fields so its cert is verified.
     Object.assign(proxyOptions, pickTlsFields(info.proxyTls));
-    return new Http2OverHttps({ proxyOptions });
+    return new Http2OverHttps({ proxyOptions, ...agentOptions });
   }
-  return new Http2OverHttp({ proxyOptions });
+  return new Http2OverHttp({ proxyOptions, ...agentOptions });
 };
 
 export type AcquireH2SessionViaProxyParams = {
@@ -80,7 +72,7 @@ export function acquireH2SessionViaProxy(params: AcquireH2SessionViaProxyParams)
   }
   return agent.getSession(origin, {
     ...pickTlsFields(tlsOptions),
-    ...(lookup ? { lookup } : {})
+    ...(lookup ? { lookup: wrapLookup(lookup) } : {})
   });
 }
 

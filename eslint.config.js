@@ -88,7 +88,7 @@ module.exports = runESMImports().then(() => defineConfig([
       'no-unused-vars': ['warn', { args: 'none', caughtErrors: 'none' }],
       'no-debugger': 'warn',
       'eqeqeq': isFixMode ? 'off' : ['warn', 'always'],
-      'prefer-const': isFixMode ? 'off' : 'warn',
+      'prefer-const': 'off',
       'no-var': 'warn',
       'no-unreachable': 'warn',
       'no-duplicate-imports': 'warn',

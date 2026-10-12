@@ -15,7 +15,8 @@ const {
   readCurrentTime,
   measureTimeSince,
   startHop,
-  completeHop
+  completeHop,
+  http2
 } = require('@usebruno/requests');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { applyOmitHeaders } = require('@usebruno/common');
@@ -238,6 +239,15 @@ function makeAxiosInstance({
       });
     }
 
+    // Decide the http version and attach the transport if version is http2.
+    await http2.applyHttp2Transport({
+      config,
+      httpVersionPreference: preferencesUtil.getHttpVersion(),
+      tlsOptions: agentOptions,
+      proxyInfo: http2.agentToProxyInfo(config.httpsAgent),
+      timeline
+    });
+
     // Node keep-alive agents add Connection; strip it on the ClientRequest.
     if (omitConnection) {
       applyOmitConnectionToAxiosConfig(config);
@@ -279,7 +289,7 @@ function makeAxiosInstance({
         });
       });
 
-      const httpVersion = response?.request?.res?.httpVersion || response?.httpVersion;
+      const httpVersion = response?.request?.res?.httpVersion || response?.request?.httpVersion || response?.httpVersion;
       if (httpVersion?.startsWith('2')) {
         timeline.push({
           timestamp: new Date(),
@@ -294,7 +304,7 @@ function makeAxiosInstance({
       timeline.push({
         timestamp: new Date(),
         type: 'response',
-        message: `HTTP/${httpVersion || '1.1'} ${response.status} ${response.statusText}`
+        message: `HTTP/${httpVersion || '1.1'} ${response.status}${response.statusText ? ` ${response.statusText}` : ''}`
       });
 
       Object.entries(response.headers).forEach(([key, value]) => {
@@ -344,7 +354,7 @@ function makeAxiosInstance({
           timeline.push({
             timestamp: new Date(),
             type: 'response',
-            message: `HTTP/${error.response.httpVersion || '1.1'} ${error.response.status} ${error.response.statusText}`
+            message: `HTTP/${error.response.httpVersion || error.response?.request?.httpVersion || '1.1'} ${error.response.status}${error.response.statusText ? ` ${error.response.statusText}` : ''}`
           });
           Object.entries(error.response.headers).forEach(([key, value]) => {
             timeline.push({
@@ -531,6 +541,15 @@ function makeAxiosInstance({
             });
           }
 
+          // Re-decide the HTTP version for this hop (clears any stale h2 transport from the previous hop).
+          await http2.applyHttp2Transport({
+            config: requestConfig,
+            httpVersionPreference: preferencesUtil.getHttpVersion(),
+            tlsOptions: httpsAgentRequestFields,
+            proxyInfo: http2.agentToProxyInfo(requestConfig.httpsAgent),
+            timeline
+          });
+
           requestConfig.metadata.timeline = timeline;
           // Make the redirected request
           return instance(requestConfig);
@@ -539,7 +558,7 @@ function makeAxiosInstance({
           timeline.push({
             timestamp: new Date(),
             type: 'response',
-            message: `HTTP/${error.response.httpVersion || '1.1'} ${error.response.status} ${error.response.statusText}`
+            message: `HTTP/${error.response.httpVersion || error.response?.request?.httpVersion || '1.1'} ${error.response.status}${error.response.statusText ? ` ${error.response.statusText}` : ''}`
           });
           Object.entries(error?.response?.headers || {}).forEach(([key, value]) => {
             timeline.push({

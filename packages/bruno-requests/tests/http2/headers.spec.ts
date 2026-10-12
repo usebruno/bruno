@@ -17,7 +17,7 @@ describe('buildHttp2Headers', () => {
     expect(h[':authority']).toBe('example.test');
   });
 
-  test(':scheme is http for cleartext (h2c) URLs', () => {
+  test(':scheme is http for cleartext URLs', () => {
     expect(buildHttp2Headers({ method: 'GET', url: 'http://localhost:8080/x' })[':scheme']).toBe('http');
   });
 

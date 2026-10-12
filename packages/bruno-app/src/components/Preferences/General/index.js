@@ -8,9 +8,16 @@ import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
-import { IconTrash, IconUpload } from '@tabler/icons';
+import { IconTrash, IconUpload, IconChevronDown } from '@tabler/icons';
 import path from 'utils/common/path';
 import { SettingsGroup, CheckboxSetting, SettingsField } from '../SettingsLayout';
+import MenuDropdown from 'ui/MenuDropdown';
+
+const HTTP_VERSION_OPTIONS = [
+  { value: 'auto', label: 'Auto' },
+  { value: 'http1.1', label: 'HTTP/1.1' },
+  { value: 'http2', label: 'HTTP/2' }
+];
 
 const General = () => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -29,6 +36,7 @@ const General = () => {
     }),
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
+    httpVersion: Yup.string().oneOf(['auto', 'http1.1', 'http2']),
     timeout: Yup.mixed()
       .transform((value, originalValue) => {
         return originalValue === '' ? undefined : value;
@@ -76,6 +84,7 @@ const General = () => {
         enabled: get(preferences, 'request.keepDefaultCaCertificates.enabled', true)
       },
       timeout: preferences.request.timeout,
+      httpVersion: get(preferences, 'request.httpVersion', 'http1.1'),
       storeCookies: get(preferences, 'request.storeCookies', true),
       sendCookies: get(preferences, 'request.sendCookies', true),
       autoSave: {
@@ -113,6 +122,7 @@ const General = () => {
             enabled: newPreferences.keepDefaultCaCertificates.enabled
           },
           timeout: newPreferences.timeout,
+          httpVersion: newPreferences.httpVersion,
           storeCookies: newPreferences.storeCookies,
           sendCookies: newPreferences.sendCookies,
           oauth2: {
@@ -314,6 +324,36 @@ const General = () => {
         </SettingsGroup>
 
         <SettingsGroup title="Requests">
+          <SettingsField
+            label="HTTP Version"
+            htmlFor="httpVersion"
+            hint="Select the HTTP version to use for sending the request."
+            className="http-version-field"
+          >
+            <MenuDropdown
+              items={HTTP_VERSION_OPTIONS.map((option) => ({
+                id: option.value,
+                label: option.label,
+                onClick: () => formik.setFieldValue('httpVersion', option.value)
+              }))}
+              selectedItemId={formik.values.httpVersion}
+              placement="bottom-start"
+              sameWidth
+              className="http-version-dropdown"
+            >
+              <button
+                type="button"
+                className="textbox http-version-trigger"
+                data-testid="general-http-version"
+              >
+                <span>
+                  {HTTP_VERSION_OPTIONS.find((o) => o.value === formik.values.httpVersion)?.label || 'Auto'}
+                </span>
+                <IconChevronDown size={16} strokeWidth={1.5} />
+              </button>
+            </MenuDropdown>
+          </SettingsField>
+
           <SettingsField label="Request Timeout (ms)" htmlFor="timeout" error={timeoutError}>
             <input
               id="timeout"

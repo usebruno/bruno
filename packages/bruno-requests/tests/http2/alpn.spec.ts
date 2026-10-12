@@ -1,7 +1,3 @@
-/**
- * resolveHttpVersion: preference + URL scheme -> protocol decision, with the ALPN probe (auto only)
- * cached per origin in http2-wrapper's protocolCache. Network cases run against the in-process lab servers.
- */
 import net from 'node:net';
 import tls from 'node:tls';
 import {
@@ -50,14 +46,14 @@ const closedPort = () =>
 describe('auto (ALPN probe)', () => {
   test('negotiates h2 against an h2 server', async () => {
     const r = await resolve(httpsUrl(lab.ports.h2), HTTP_VERSION.AUTO);
-    expect(r).toMatchObject({ protocol: 'http2', cleartext: false, alpn: 'h2', cached: false });
+    expect(r).toMatchObject({ protocol: 'http2', alpn: 'h2', cached: false });
     expect(r.offered).toEqual(['h2', 'http/1.1']);
     expect(tlsConnectSpy).toHaveBeenCalledTimes(1);
   });
 
   test('falls back to http1 against an HTTP/1.1-only server', async () => {
     const r = await resolve(httpsUrl(lab.ports.h1Only), HTTP_VERSION.AUTO);
-    expect(r).toMatchObject({ protocol: 'http1', cleartext: false, alpn: 'http/1.1', cached: false });
+    expect(r).toMatchObject({ protocol: 'http1.1', alpn: 'http/1.1', cached: false });
   });
 
   test('second call to the same origin is served from the cache without a handshake', async () => {
@@ -95,11 +91,11 @@ describe('auto (ALPN probe)', () => {
   test('a failed probe falls back to http1 and is not cached', async () => {
     const port = await closedPort();
     const r = await resolve(httpsUrl(port), HTTP_VERSION.AUTO);
-    expect(r).toMatchObject({ protocol: 'http1', cleartext: false });
+    expect(r).toMatchObject({ protocol: 'http1.1' });
     expect(r.alpn).toBeUndefined();
     expect(r.reason).toMatch(/^ALPN probe failed/);
     const again = await resolve(httpsUrl(port), HTTP_VERSION.AUTO);
-    expect(again.protocol).toBe('http1');
+    expect(again.protocol).toBe('http1.1');
     expect(tlsConnectSpy).toHaveBeenCalledTimes(2);
   });
 
@@ -109,20 +105,19 @@ describe('auto (ALPN probe)', () => {
       httpVersionPreference: HTTP_VERSION.AUTO,
       tlsOptions: { rejectUnauthorized: true } // no `ca`: the self-signed lab cert is untrusted
     });
-    expect(r.protocol).toBe('http1');
+    expect(r.protocol).toBe('http1.1');
     expect(r.reason).toMatch(/^ALPN probe failed/);
   });
 });
 
 describe('explicit preferences over https (no probe)', () => {
   test.each([
-    [HTTP_VERSION.HTTP1, 'http1', /HTTP\/1\.1 selected by preference/],
-    [HTTP_VERSION.HTTP2, 'http2', /HTTP\/2 selected by preference/],
-    [HTTP_VERSION.HTTP2_PRIOR_KNOWLEDGE, 'http2', /HTTP\/2 selected by preference/]
+    [HTTP_VERSION.HTTP1, 'http1.1', /HTTP\/1\.1 selected by preference/],
+    [HTTP_VERSION.HTTP2, 'http2', /HTTP\/2 selected by preference/]
   ] as const)('%s -> %s without a handshake', async (preference, protocol, reason) => {
     // Use the h1-only server on purpose: an explicit preference must not look at the server at all.
     const r = await resolve(httpsUrl(lab.ports.h1Only), preference);
-    expect(r).toMatchObject({ protocol, cleartext: false });
+    expect(r).toMatchObject({ protocol });
     expect(r.reason).toMatch(reason);
     expect(r.alpn).toBeUndefined();
     expect(r.cached).toBeUndefined();
@@ -131,28 +126,19 @@ describe('explicit preferences over https (no probe)', () => {
 });
 
 describe('cleartext http:// URLs', () => {
-  test('http2-prior-knowledge selects h2c without any network', async () => {
-    const r = await resolve(httpUrl(lab.ports.h2c), HTTP_VERSION.HTTP2_PRIOR_KNOWLEDGE);
-    expect(r).toMatchObject({ protocol: 'http2', cleartext: true });
-    expect(r.reason).toMatch(/prior knowledge/);
-    expect(tlsConnectSpy).not.toHaveBeenCalled();
-  });
-
   test.each([HTTP_VERSION.AUTO, HTTP_VERSION.HTTP1, HTTP_VERSION.HTTP2])(
-    '%s selects http1 (no ALPN without TLS)',
+    '%s selects http1.1 (HTTP/2 requires TLS)',
     async (preference) => {
       const r = await resolve(httpUrl(lab.ports.h2c), preference);
-      expect(r).toMatchObject({ protocol: 'http1', cleartext: true });
+      expect(r).toMatchObject({ protocol: 'http1.1' });
       expect(r.reason).toMatch(/cleartext/);
       expect(tlsConnectSpy).not.toHaveBeenCalled();
     }
   );
 
-  test('decision does not depend on the server (h1Plain gets the same answers)', async () => {
-    const pk = await resolve(httpUrl(lab.ports.h1Plain), HTTP_VERSION.HTTP2_PRIOR_KNOWLEDGE);
+  test('decision does not depend on the server (h1Plain gets the same answer)', async () => {
     const auto = await resolve(httpUrl(lab.ports.h1Plain), HTTP_VERSION.AUTO);
-    expect(pk.protocol).toBe('http2'); // the failure surfaces when the session is opened (session.ts), not here
-    expect(auto.protocol).toBe('http1');
+    expect(auto.protocol).toBe('http1.1');
   });
 });
 
@@ -160,7 +146,7 @@ describe('default ports', () => {
   test('cache key uses 443 for https and 80 for http when no port is given', async () => {
     // Only exercises the key path: invalidating a never-probed origin returns false, with default ports.
     expect(invalidateAlpn('example.test', 443)).toBe(false);
-    const r = await resolve('http://example.test/', HTTP_VERSION.HTTP2_PRIOR_KNOWLEDGE);
-    expect(r.protocol).toBe('http2');
+    const r = await resolve('http://example.test/', HTTP_VERSION.AUTO);
+    expect(r.protocol).toBe('http1.1');
   });
 });
