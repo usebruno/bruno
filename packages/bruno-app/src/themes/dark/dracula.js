@@ -175,7 +175,7 @@ const draculaTheme = {
       yellow: colors.YELLOW,
       subtext2: colors.FOREGROUND,
       subtext1: colors.TEXT_MUTED,
-      subtext0: colors.CURRENT_LINE
+      subtext0: colors.TEXT_MUTED
     },
     bg: {
       danger: colors.RED

@@ -1,27 +1,8 @@
-const { safeStringifyJSON } = require('../../utils/common');
-const { getStatements } = require('../sqlite');
-
-const storeRunnerExchange = ({ requestUid, eventData, request = null, response = null }) => {
-  const statements = getStatements();
-  if (!statements) return false;
-
-  try {
-    statements.execute('upsert_runner_response', {
-      request_uid: requestUid,
-      collection_uid: eventData.collectionUid,
-      request,
-      response
-    });
-    return true;
-  } catch (error) {
-    console.error('[runner] failed to store exchange', requestUid, error);
-    return false;
-  }
-};
+const { storeRunnerExchange } = require('../../services/runner-exchange');
 
 const createRunnerExchangeEmitters = (mainWindow) => {
-  const sendRunnerRequestSent = ({ requestUid, requestSent, eventData }) => {
-    const stored = storeRunnerExchange({ requestUid, eventData, request: safeStringifyJSON(requestSent) });
+  const sendRunnerRequestSent = async ({ requestUid, requestSent, eventData }) => {
+    const stored = await storeRunnerExchange({ requestUid, eventData, requestSent });
 
     mainWindow.webContents.send('main:run-folder-event', {
       type: 'request-sent',
@@ -30,8 +11,8 @@ const createRunnerExchangeEmitters = (mainWindow) => {
     });
   };
 
-  const sendRunnerResponseReceived = ({ requestUid, responseReceived, error, eventData }) => {
-    const stored = storeRunnerExchange({ requestUid, eventData, response: safeStringifyJSON(responseReceived) });
+  const sendRunnerResponseReceived = async ({ requestUid, responseReceived, error, eventData, disableParsingResponseJson }) => {
+    const stored = await storeRunnerExchange({ requestUid, eventData, responseReceived, disableParsingResponseJson });
 
     mainWindow.webContents.send('main:run-folder-event', {
       type: 'response-received',
@@ -49,4 +30,4 @@ const createRunnerExchangeEmitters = (mainWindow) => {
   return { sendRunnerRequestSent, sendRunnerResponseReceived };
 };
 
-module.exports = { storeRunnerExchange, createRunnerExchangeEmitters };
+module.exports = { createRunnerExchangeEmitters };

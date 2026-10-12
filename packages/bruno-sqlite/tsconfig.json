@@ -15,12 +15,11 @@
     "declarationMap": true,
     "allowJs": true,
     "checkJs": false,
-    "jsx": "react-jsx",
     "types": ["node", "jest"],
-    "lib": ["ES2020", "DOM"],
+    "lib": ["ES2020"],
     "typeRoots": ["../../node_modules/@types", "./node_modules/@types", "./src/types"],
     "baseUrl": "../.."
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "src/**/*.d.ts"],
+  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

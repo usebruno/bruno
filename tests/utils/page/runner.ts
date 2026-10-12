@@ -1,6 +1,6 @@
 import { Locator, Page, expect, test } from '../../../playwright';
 import { buildCommonLocators, buildSandboxLocators } from './locators';
-import { revealFolderRow } from './sidebar';
+import { MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH, dragSidebarToWidth, revealFolderRow } from './sidebar';
 
 /**
  * Builds locators for the runner results view
@@ -27,8 +27,52 @@ export const buildRunnerLocators = (page: Page) => ({
   failedTestRows: () => page.getByTestId('runner-test-row-failed'),
   requestLoader: () => page.getByTestId('runner-result-item').locator('.animate-spin'),
   requestStatusLabel: () => page.getByTestId('runner-iteration-status-label'),
-  resultTimelineEntries: () => page.getByTestId('timeline-entry')
+  resultTimelineEntries: () => page.getByTestId('timeline-entry'),
+  toolbar: () => page.getByTestId('runner-toolbar'),
+  filterButton: (key: RunnerFilterKey) => page.getByTestId(`runner-filter-${key}`),
+  filterSelect: () => page.getByTestId('runner-filter-select'),
+  filterOption: (label: string) => page.getByRole('menuitem', { name: label, exact: true })
 });
+
+export type RunnerFilterKey = 'all' | 'passed' | 'failed' | 'skipped';
+
+export type RunnerToolbarLevel = 'compact' | 'tiny';
+
+const toolbarHasLevel = (page: Page, level: RunnerToolbarLevel) =>
+  buildRunnerLocators(page).toolbar().evaluate((node, level) => node.classList.contains(level), level);
+
+/**
+ * Binary-searches the sidebar's drag range for the narrowest sidebar at which the runner toolbar
+ * collapses to `level`, and leaves the sidebar at that width. The search stops within 6px, so each
+ * probe lands at least 3px from the current width and the sidebar never ignores it.
+ * @param page - The Playwright page object
+ * @param level - The collapse level to search for
+ * @returns The sidebar width at which the toolbar first collapses to `level`
+ */
+export const findToolbarCollapseSidebarWidth = async (page: Page, level: RunnerToolbarLevel) => {
+  return await test.step(`Find the narrowest sidebar at which the runner toolbar is "${level}"`, async () => {
+    let fits = MIN_SIDEBAR_WIDTH;
+    let collapses = MAX_SIDEBAR_WIDTH;
+
+    await dragSidebarToWidth(page, fits);
+    expect(await toolbarHasLevel(page, level), `toolbar is not "${level}" beside a ${fits}px sidebar`).toBe(false);
+    await dragSidebarToWidth(page, collapses);
+    expect(await toolbarHasLevel(page, level), `toolbar is "${level}" beside a ${collapses}px sidebar`).toBe(true);
+
+    while (collapses - fits > 6) {
+      const middle = Math.floor((fits + collapses) / 2);
+      await dragSidebarToWidth(page, middle);
+      if (await toolbarHasLevel(page, level)) {
+        collapses = middle;
+      } else {
+        fits = middle;
+      }
+    }
+
+    await dragSidebarToWidth(page, collapses);
+    return collapses;
+  });
+};
 
 /**
  * Builds locators for the include/exclude tag filters shared by the runner tab and the sidebar
@@ -113,10 +157,12 @@ export const runnerConfigItem = (page: Page, requestName: string): Locator =>
 export const getRunnerResultCounts = async (page: Page) => {
   const locators = buildRunnerLocators(page);
 
-  const totalRequests = parseInt(await locators.allCount().innerText());
-  const passed = parseInt(await locators.passedCount().innerText());
-  const failed = parseInt(await locators.failedCount().innerText());
-  const skipped = parseInt(await locators.skippedCount().innerText());
+  const readCount = async (locator: Locator) => parseInt((await locator.textContent()) ?? '');
+
+  const totalRequests = await readCount(locators.allCount());
+  const passed = await readCount(locators.passedCount());
+  const failed = await readCount(locators.failedCount());
+  const skipped = await readCount(locators.skippedCount());
 
   return { totalRequests, passed, failed, skipped };
 };

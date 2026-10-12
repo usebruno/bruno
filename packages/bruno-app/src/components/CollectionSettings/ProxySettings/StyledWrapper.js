@@ -22,6 +22,15 @@ const StyledWrapper = styled.div`
       outline: none !important;
     }
   }
+
+  .single-line-editor-wrapper {
+    width: 13.2rem;
+    min-width: 0;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    border: solid 1px ${(props) => props.theme.input.border};
+    background-color: ${(props) => props.theme.input.bg};
+  }
 `;
 
 export default StyledWrapper;

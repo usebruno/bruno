@@ -152,3 +152,31 @@ export const revealFolderRow = async (
     return targetRow;
   });
 };
+
+export const MIN_SIDEBAR_WIDTH = 220;
+export const MAX_SIDEBAR_WIDTH = 600;
+
+/**
+ * Drags the sidebar's edge until the sidebar is `width` wide, and waits until the layout has
+ * settled at that width. The sidebar ignores drags of under 3px, so `width` must be at least that
+ * far from the current width, or equal to it.
+ * @param page - The Playwright page object
+ * @param width - The sidebar width to drag to, between MIN_SIDEBAR_WIDTH and MAX_SIDEBAR_WIDTH
+ * @returns void
+ */
+export const dragSidebarToWidth = async (page: Page, width: number) => {
+  const locators = buildSidebarLocators(page);
+  const handleBox = await locators.dragHandle().boundingBox();
+  expect(handleBox).not.toBeNull();
+
+  // The main pane overlaps the handle's right side, so grab it at its left edge.
+  const y = handleBox!.y + handleBox!.height / 2;
+  await page.mouse.move(handleBox!.x + 1, y);
+  await page.mouse.down();
+  // The sidebar sets its width to the pointer's x plus 2px.
+  await page.mouse.move(width - 2, y, { steps: 5 });
+  await page.mouse.up();
+
+  await expect.poll(() => locators.sidebarContainer().evaluate((node: HTMLElement) => node.offsetWidth)).toBe(width);
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+};
