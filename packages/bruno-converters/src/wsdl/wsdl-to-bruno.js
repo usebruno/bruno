@@ -18,8 +18,7 @@ const PARTICLE_NAMES = ['element', 'any', 'group', 'choice', 'sequence', 'all'];
 // --- Inlined from src/common/index.js ---
 export const validateSchema = (collection = {}) => {
   try {
-    collectionSchema.validateSync(collection);
-    return collection;
+    return collectionSchema.validateSync(collection);
   } catch (err) {
     throw new Error('The Collection has an invalid schema: ' + err.message);
   }
