@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSelector, useDispatch, useStore } from 'react-redux';
 import { selectCollections, selectActiveWorkspace } from 'src/selectors/collections';
-import { selectTabs } from 'src/selectors/tab';
+import { selectTabByUid } from 'src/selectors/tab';
 import {
   IconSearch,
   IconX,
@@ -31,18 +31,22 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   const store = useStore();
   const activeWorkspace = useSelector(selectActiveWorkspace);
 
-  const getCollections = () => {
-    const allCollections = selectCollections(store.getState());
+  // Intentional whole-array subscription: the search renders results derived
+  // from every collection, and the modal is only mounted while open, so it is
+  // never on the keystroke path.
+  const allCollections = useSelector(selectCollections);
+
+  const collections = useMemo(() => {
     if (!activeWorkspace) return allCollections;
 
     const workspacePaths = new Set(
       activeWorkspace.collections?.map((wc) => normalizePath(wc.path)) || []
     );
     return allCollections.filter((c) => workspacePaths.has(normalizePath(c.pathname)));
-  };
+  }, [activeWorkspace, allCollections]);
 
   const createCollectionResults = () => {
-    const collectionResults = getCollections().map((collection) => ({
+    const collectionResults = collections.map((collection) => ({
       type: SEARCH_TYPES.COLLECTION,
       item: collection,
       name: collection.name,
@@ -64,7 +68,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
       results.push(DOCUMENTATION_RESULT);
     }
 
-    getCollections().forEach((collection) => {
+    collections.forEach((collection) => {
       // Search collection name
       if (searchTerms.every((term) => collection.name.toLowerCase().includes(term))) {
         results.push({
@@ -169,10 +173,10 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     debounceTimeoutRef.current = setTimeout(() => {
       performSearch(searchQuery);
     }, SEARCH_CONFIG.DEBOUNCE_DELAY);
-  }, [activeWorkspace]); // collections are read from the store when the search runs
+  }, [collections]); // Depend on collections to recreate when they change
 
   const expandItemPath = (result) => {
-    const collection = getCollections().find((c) => c.uid === result.collectionUid);
+    const collection = collections.find((c) => c.uid === result.collectionUid);
     if (!collection) return;
 
     ensureCollectionIsMounted(collection);
@@ -245,7 +249,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   };
 
   const handleResultSelection = (result) => {
-    const targetCollection = getCollections().find((c) => c.uid === result.collectionUid);
+    const targetCollection = collections.find((c) => c.uid === result.collectionUid);
     ensureCollectionIsMounted(targetCollection);
 
     if (result.type === SEARCH_TYPES.DOCUMENTATION) {
@@ -257,7 +261,8 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     expandItemPath(result);
 
     if (result.type === SEARCH_TYPES.REQUEST) {
-      const existingTab = selectTabs(store.getState()).find((tab) => tab.uid === result.item.uid);
+      // Only needed at click time; no reason to subscribe the modal to tabs.
+      const existingTab = selectTabByUid(store.getState(), result.item.uid);
 
       if (existingTab) {
         dispatch(focusTab({ uid: result.item.uid }));

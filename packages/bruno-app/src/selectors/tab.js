@@ -11,6 +11,9 @@ export const selectTabByUid = (state, tabUid) =>
 export const selectActiveTab = (state) =>
   selectTabByUid(state, state.tabs.activeTabUid);
 
+export const selectFirstTabForCollection = (state, collectionUid) =>
+  collectionUid ? state.tabs.tabs.find((t) => t.collectionUid === collectionUid) : undefined;
+
 /**
  * Creates a memoized selector for tabs belonging to a collection.
  *

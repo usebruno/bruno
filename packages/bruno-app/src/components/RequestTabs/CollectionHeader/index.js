@@ -32,7 +32,7 @@ import { findItemInCollection, findItemInCollectionByPathname, getWorkspaceColle
 import get from 'lodash/get';
 import isEqual from 'lodash/isEqual';
 import { selectCollections, selectActiveWorkspace } from 'src/selectors/collections';
-import { selectActiveTab, selectActiveTabUid, selectTabs } from 'src/selectors/tab';
+import { selectActiveTab, selectActiveTabUid, selectTabs, selectFirstTabForCollection } from 'src/selectors/tab';
 import { addTab, focusTab, setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
 import { uuid } from 'utils/common';
 import toast from 'react-hot-toast';
@@ -253,7 +253,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     switcherRef.current?.hide();
     if (!targetCollection?.uid) return;
 
-    const existingTab = selectTabs(store.getState()).find((t) => t.collectionUid === targetCollection.uid);
+    const existingTab = selectFirstTabForCollection(store.getState(), targetCollection.uid);
     if (existingTab) {
       dispatch(focusTab({ uid: existingTab.uid }));
     } else {

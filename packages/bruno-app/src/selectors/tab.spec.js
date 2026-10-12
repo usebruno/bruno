@@ -6,7 +6,8 @@ import {
   selectActiveTabUid,
   selectTabByUid,
   selectActiveTab,
-  makeSelectTabsForCollection
+  makeSelectTabsForCollection,
+  selectFirstTabForCollection
 } from './tab';
 
 describe('tab selectors', () => {
@@ -147,6 +148,14 @@ describe('tab field selectors', () => {
     const state = buildState();
     expect(selectActiveTab(state)).toBe(state.tabs.tabs[1]);
     expect(selectActiveTab(buildTestState())).toBeUndefined();
+  });
+
+  it('selectFirstTabForCollection returns the first tab of that collection in strip order', () => {
+    const state = buildState();
+    expect(selectFirstTabForCollection(state, 'col-a')).toBe(state.tabs.tabs[0]);
+    expect(selectFirstTabForCollection(state, 'col-b')).toBe(state.tabs.tabs[1]);
+    expect(selectFirstTabForCollection(state, 'col-none')).toBeUndefined();
+    expect(selectFirstTabForCollection(state, undefined)).toBeUndefined();
   });
 
   describe('makeSelectTabsForCollection', () => {
