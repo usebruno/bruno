@@ -1,0 +1,97 @@
+{
+  "info": {
+    "_postman_id": "8d41f2c6-55a7-4e0b-9f3a-7c2b1e4d9a60",
+    "name": "Oauth2 Folder",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "56331529"
+  },
+  "item": [
+    {
+      "name": "Inherited Folder",
+      "item": [
+        {
+          "name": "Inherited",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Emptied Prefix",
+          "request": {
+            "auth": {
+              "type": "oauth2",
+              "oauth2": [
+                { "key": "grant_type", "value": "client_credentials", "type": "string" },
+                { "key": "accessTokenUrl", "value": "http://localhost:3000/oauth2/token", "type": "string" },
+                { "key": "clientId", "value": "client-id-empty-prefix", "type": "string" },
+                { "key": "clientSecret", "value": "client-secret-empty-prefix", "type": "string" },
+                { "key": "addTokenTo", "value": "header", "type": "string" },
+                { "key": "headerPrefix", "value": "", "type": "string" },
+                { "key": "client_authentication", "value": "header", "type": "string" }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Query Placement No Prefix",
+          "request": {
+            "auth": {
+              "type": "oauth2",
+              "oauth2": [
+                { "key": "grant_type", "value": "client_credentials", "type": "string" },
+                { "key": "accessTokenUrl", "value": "http://localhost:3000/oauth2/token", "type": "string" },
+                { "key": "clientId", "value": "client-id-query", "type": "string" },
+                { "key": "clientSecret", "value": "client-secret-query", "type": "string" },
+                { "key": "addTokenTo", "value": "queryParams", "type": "string" },
+                { "key": "client_authentication", "value": "header", "type": "string" }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["health"]
+            }
+          },
+          "response": []
+        }
+      ],
+      "auth": {
+        "type": "oauth2",
+        "oauth2": [
+          { "key": "scope", "value": "example_read example_write", "type": "string" },
+          { "key": "accessTokenUrl", "value": "http://localhost:3000/oauth2/token", "type": "string" },
+          { "key": "clientSecret", "value": "folder-client-secret", "type": "string" },
+          { "key": "clientId", "value": "folder-client-id", "type": "string" },
+          { "key": "tokenName", "value": "folder token", "type": "string" },
+          { "key": "challengeAlgorithm", "value": "S256", "type": "string" },
+          { "key": "grant_type", "value": "client_credentials", "type": "string" },
+          { "key": "addTokenTo", "value": "header", "type": "string" },
+          { "key": "client_authentication", "value": "header", "type": "string" }
+        ]
+      }
+    }
+  ]
+}
