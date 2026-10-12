@@ -61,10 +61,19 @@ WHERE (request_name LIKE @like OR request_path LIKE @like OR request_type LIKE @
   AND (@workspace_path IS NULL OR workspace_path = @workspace_path OR workspace_path IS NULL);
 
 -- name: search_index_search_collections :many
-SELECT DISTINCT collection_path AS collectionPath, collection_name AS collectionName
-FROM search_index_view
-WHERE (collection_name LIKE @like OR collection_path LIKE @like)
-  AND (@workspace_path IS NULL OR workspace_path = @workspace_path OR workspace_path IS NULL);
+SELECT DISTINCT c.collection_path AS collectionPath,
+       COALESCE(
+         (SELECT m.name FROM search_index_meta m
+           WHERE m.collection_path = c.collection_path AND m.kind IN ('collection', 'config') AND m.name IS NOT NULL
+           ORDER BY CASE m.kind WHEN 'collection' THEN 0 ELSE 1 END LIMIT 1),
+         c.collection_name
+       ) AS collectionName
+FROM (
+  SELECT DISTINCT collection_path, collection_name
+  FROM search_index_entries
+  WHERE (@workspace_path IS NULL OR workspace_path = @workspace_path OR workspace_path IS NULL)
+) c
+WHERE collectionName LIKE @like OR c.collection_path LIKE @like;
 
 -- name: search_index_search_folders :many
 SELECT collection_path AS collectionPath, collection_name AS collectionName,

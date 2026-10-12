@@ -21,6 +21,8 @@ export const up = (): string => {
       hash TEXT NOT NULL,
       PRIMARY KEY (collection_path, request_path)
     ) WITHOUT ROWID;
+    CREATE INDEX IF NOT EXISTS idx_search_index_entries_collection
+      ON search_index_entries(collection_path, collection_name, workspace_path);
 
     -- The files that name things: bruno.json / opencollection.yml (the collection) and folder.bru / folder.yml
     -- (a folder). One row per file, with the name and seq read from it.
@@ -36,7 +38,7 @@ export const up = (): string => {
       PRIMARY KEY (collection_path, relative_path)
     ) WITHOUT ROWID;
     CREATE INDEX IF NOT EXISTS idx_search_index_meta_lookup
-      ON search_index_meta(collection_path, kind, folder_path);
+      ON search_index_meta(collection_path, kind, folder_path, name);
 
     -- Every folder of a collection, with or without requests in it: an empty folder is still a folder you can
     -- search for.

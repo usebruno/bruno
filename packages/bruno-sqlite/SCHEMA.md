@@ -148,6 +148,10 @@ erDiagram
 | `mtime` | INTEGER | yes |  |  |
 | `hash` | TEXT | yes |  |  |
 
+**Indexes**
+
+- `idx_search_index_entries_collection` on (`collection_path`, `collection_name`, `workspace_path`)
+
 ## `search_index_folders`
 
 `WITHOUT ROWID`
@@ -177,4 +181,4 @@ erDiagram
 
 **Indexes**
 
-- `idx_search_index_meta_lookup` on (`collection_path`, `kind`, `folder_path`)
+- `idx_search_index_meta_lookup` on (`collection_path`, `kind`, `folder_path`, `name`)
