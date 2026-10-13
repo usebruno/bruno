@@ -7,6 +7,7 @@ import {
 } from 'utils/snapshot';
 import { normalizePath } from 'utils/common/path';
 import { API_SPEC_TAB_TYPE } from 'utils/api-specs';
+import isEqual from 'lodash/isEqual';
 import { getNextSnapshotRevision } from './snapshotRevision';
 
 const COLLECTION_SORT_ORDER_BY_WORKSPACE_SORTING = {
@@ -19,44 +20,12 @@ const normalizeCollectionSortOrder = (sortOrder) => {
   return COLLECTION_SORT_ORDER_BY_WORKSPACE_SORTING[sortOrder] || 'default';
 };
 
-const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+const isPlainObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
-const isDeepEqual = (left, right) => {
-  if (left === right) {
-    return true;
-  }
-
-  if (Array.isArray(left) || Array.isArray(right)) {
-    if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
-      return false;
-    }
-
-    return left.every((value, index) => isDeepEqual(value, right[index]));
-  }
-
-  if (isObject(left) || isObject(right)) {
-    if (!isObject(left) || !isObject(right)) {
-      return false;
-    }
-
-    const leftKeys = Object.keys(left);
-    const rightKeys = Object.keys(right);
-    if (leftKeys.length !== rightKeys.length) {
-      return false;
-    }
-
-    return leftKeys.every((key) => (
-      Object.prototype.hasOwnProperty.call(right, key)
-      && isDeepEqual(left[key], right[key])
-    ));
-  }
-
-  return false;
-};
-
+/** True when every key in patch (except preserveEnvironment) matches existing. */
 const isPatchEqualToExisting = (patch, existing) => {
-  if (isObject(patch)) {
-    if (!isObject(existing)) {
+  if (isPlainObject(patch)) {
+    if (!isPlainObject(existing)) {
       return false;
     }
 
@@ -68,7 +37,7 @@ const isPatchEqualToExisting = (patch, existing) => {
       ));
   }
 
-  return isDeepEqual(patch, existing);
+  return isEqual(patch, existing);
 };
 
 const getWorkspaceByPath = (snapshot, pathname) => {
@@ -282,7 +251,7 @@ export const buildSnapshotDelta = (state, previousSnapshot = null) => {
     revision: patch.revision
   };
 
-  if (!isDeepEqual(patch.activeWorkspacePath, previousSnapshot.activeWorkspacePath)) {
+  if (!isEqual(patch.activeWorkspacePath, previousSnapshot.activeWorkspacePath)) {
     delta.activeWorkspacePath = patch.activeWorkspacePath;
   }
 
