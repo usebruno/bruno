@@ -384,11 +384,9 @@ class SnapshotManager {
         const workspaceIndex = snapshot.workspaces.findIndex(
           (workspace) => normalizeLookupKey(workspace.pathname) === normalizedWorkspacePath
         );
-        const existingWorkspace = workspaceIndex >= 0 ? snapshot.workspaces[workspaceIndex] : null;
         const mergedWorkspace = {
-          ...(existingWorkspace || {}),
-          ...workspacePatch,
-          pathname: workspacePatch.pathname
+          ...(workspaceIndex >= 0 ? snapshot.workspaces[workspaceIndex] : {}),
+          ...workspacePatch
         };
         const normalizedWorkspace = this._normalizeWorkspaceEntry(workspacePatch.pathname, mergedWorkspace);
 
@@ -402,59 +400,46 @@ class SnapshotManager {
 
     if (Array.isArray(collectionPatches)) {
       collectionPatches.forEach((collectionPatch) => {
-        if (!isObject(collectionPatch) || typeof collectionPatch.pathname !== 'string') {
-          return;
-        }
-
-        if (typeof collectionPatch.workspacePathname !== 'string') {
+        if (
+          !isObject(collectionPatch)
+          || typeof collectionPatch.pathname !== 'string'
+          || typeof collectionPatch.workspacePathname !== 'string'
+        ) {
           return;
         }
 
         const normalizedPath = normalizeLookupKey(collectionPatch.pathname);
-        const normalizedRequestedWorkspacePath = normalizeLookupKey(collectionPatch.workspacePathname || '');
+        const normalizedWorkspacePath = normalizeLookupKey(collectionPatch.workspacePathname || '');
         if (!normalizedPath) {
           return;
         }
 
-        const collectionIndex = snapshot.collections.findIndex((collection) => {
-          if (normalizeLookupKey(collection.pathname) !== normalizedPath) {
-            return false;
-          }
-
-          return normalizeLookupKey(collection.workspacePathname || '') === normalizedRequestedWorkspacePath;
-        });
-
-        const existingCollection = collectionIndex >= 0 ? snapshot.collections[collectionIndex] : null;
+        const collectionIndex = snapshot.collections.findIndex((collection) => (
+          normalizeLookupKey(collection.pathname) === normalizedPath
+          && normalizeLookupKey(collection.workspacePathname || '') === normalizedWorkspacePath
+        ));
+        const existing = collectionIndex >= 0 ? snapshot.collections[collectionIndex] : {};
         const preserveEnvironment = collectionPatch.preserveEnvironment === true;
-        const patchEnvironment = isObject(collectionPatch.environment) ? collectionPatch.environment : {};
-        const existingEnvironment = isObject(existingCollection?.environment) ? existingCollection.environment : {};
-        const mergedEnvironment = preserveEnvironment
-          ? {
-              collection: typeof existingEnvironment.collection === 'string' ? existingEnvironment.collection : '',
-              global: 'global' in patchEnvironment
-                ? patchEnvironment.global
-                : (typeof existingEnvironment.global === 'string' ? existingEnvironment.global : '')
-            }
-          : {
-              ...existingEnvironment,
-              ...patchEnvironment
-            };
+        const patchEnv = isObject(collectionPatch.environment) ? collectionPatch.environment : {};
+        const existingEnv = isObject(existing.environment) ? existing.environment : {};
+
         const mergedCollection = {
-          ...(existingCollection || {}),
+          ...existing,
           ...collectionPatch,
-          environment: mergedEnvironment,
-          activeTab: 'activeTab' in collectionPatch ? collectionPatch.activeTab : existingCollection?.activeTab,
-          tabs: 'tabs' in collectionPatch ? collectionPatch.tabs : existingCollection?.tabs,
-          environmentPath: preserveEnvironment
-            ? existingCollection?.environmentPath
-            : ('environmentPath' in collectionPatch
-                ? collectionPatch.environmentPath
-                : existingCollection?.environmentPath),
-          selectedEnvironment: preserveEnvironment
-            ? existingCollection?.selectedEnvironment
-            : ('selectedEnvironment' in collectionPatch
-                ? collectionPatch.selectedEnvironment
-                : existingCollection?.selectedEnvironment)
+          environment: preserveEnvironment
+            ? {
+                collection: typeof existingEnv.collection === 'string' ? existingEnv.collection : '',
+                global: 'global' in patchEnv
+                  ? patchEnv.global
+                  : (typeof existingEnv.global === 'string' ? existingEnv.global : '')
+              }
+            : { ...existingEnv, ...patchEnv },
+          ...(preserveEnvironment
+            ? {
+                environmentPath: existing.environmentPath,
+                selectedEnvironment: existing.selectedEnvironment
+              }
+            : {})
         };
 
         const normalizedCollection = this._normalizeCollectionEntry(collectionPatch.pathname, mergedCollection);
