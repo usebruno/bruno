@@ -6,10 +6,13 @@ import { useDispatch, useSelector } from 'react-redux';
 import useClearStoredRunnerExchanges from 'hooks/useClearStoredRunnerExchanges';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { runCollectionFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { updateRunnerIterationConfig } from 'providers/ReduxStore/slices/collections';
 import { flattenItems } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { areItemsLoading } from 'utils/collections';
 import RunnerTags from 'components/RunnerResults/RunnerTags/index';
+import RunnerDataFile from 'components/RunnerResults/RunnerDataFile';
+import { DEFAULT_ITERATION_CONFIG, isIterationsValid, toRunIterationConfig } from 'utils/collections/runner-iterations';
 import { getEffectiveTagsForItem, getRequestItemsForCollectionRun } from 'utils/collections/index';
 import Button from 'ui/Button';
 
@@ -21,6 +24,10 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
   const [delay, setDelay] = useState('');
 
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
+  const [iterationConfig, setIterationConfig] = useState(
+    () => get(collection, 'runnerConfiguration.iterationConfig', DEFAULT_ITERATION_CONFIG)
+  );
+  const areIterationsValid = isIterationsValid(iterationConfig.iterations);
   const isCollectionRunInProgress = collection?.runnerResult?.info?.status && (collection?.runnerResult?.info?.status !== 'ended');
 
   // tags for the collection run
@@ -37,8 +44,10 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
       })
     );
     if (!isCollectionRunInProgress) {
+      // kept so the Runner tab's "Run Again" repeats the run with the same data
+      dispatch(updateRunnerIterationConfig({ collectionUid: collection.uid, iterationConfig }));
       await clearStoredRunnerExchanges();
-      dispatch(runCollectionFolder(collection.uid, item ? item.uid : null, recursive, delay ? Number(delay) : null, tags));
+      dispatch(runCollectionFolder(collection.uid, item ? item.uid : null, recursive, delay ? Number(delay) : null, tags, null, toRunIterationConfig(iterationConfig)));
     }
     onClose();
   };
@@ -110,6 +119,36 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
           {/* Tags for the collection run */}
           <RunnerTags collectionUid={collection.uid} className="mb-6" />
 
+          {/* Data-driven iterations */}
+          <div className="flex flex-col items-start gap-2 mb-6">
+            <span className="block text-sm">Data file</span>
+            <div className="w-full">
+              <RunnerDataFile
+                dataFile={iterationConfig.dataFile}
+                onChange={(dataFile) => setIterationConfig({ ...iterationConfig, dataFile })}
+              />
+            </div>
+            <label htmlFor="runner-iterations" className="block text-sm mt-2">Iterations</label>
+            <input
+              id="runner-iterations"
+              type="number"
+              min="1"
+              step="1"
+              className="textbox w-1/2"
+              placeholder={iterationConfig.dataFile ? `${Math.max(iterationConfig.dataFile.rowCount, 1)} (one per row)` : '1'}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+              data-testid="run-collection-iterations-input"
+              value={iterationConfig.iterations}
+              onChange={(e) => setIterationConfig({ ...iterationConfig, iterations: e.target.value })}
+            />
+            {!areIterationsValid ? (
+              <div className="warning text-xs">Iterations must be a whole number of at least 1</div>
+            ) : null}
+          </div>
+
           <div className="flex justify-end bruno-modal-footer">
             <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-3">
               Cancel
@@ -123,10 +162,10 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
                   )
                 : (
                     <>
-                      <Button type="submit" disabled={shouldDisableRecursiveFolderRun} onClick={() => onSubmit(true)} className="mr-3">
+                      <Button type="submit" disabled={shouldDisableRecursiveFolderRun || !areIterationsValid} onClick={() => onSubmit(true)} className="mr-3">
                         Recursive Run
                       </Button>
-                      <Button type="submit" disabled={shouldDisableFolderRun} onClick={() => onSubmit(false)}>
+                      <Button type="submit" disabled={shouldDisableFolderRun || !areIterationsValid} onClick={() => onSubmit(false)}>
                         Run
                       </Button>
                     </>

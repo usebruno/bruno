@@ -55,6 +55,9 @@ const simpleTranslations = {
   'bru.getRequestVar': 'pm.variables.get',
   /* Bruno does not have a way to set, has or delete request variables */
 
+  // Iteration data (collection runner data file)
+  'bru.getIterationData': 'pm.iterationData.get',
+
   // Interpolation
   'bru.interpolate': 'pm.variables.replaceIn',
 
@@ -250,6 +253,12 @@ const complexTransformations = [
       // Replace the entire call expression with just the member expression (property access)
       return buildMemberExpressionFromString('pm.environment.name');
     }
+  },
+
+  // bru.getIteration() -> pm.info.iteration (function to property)
+  {
+    pattern: 'bru.getIteration',
+    transform: () => buildMemberExpressionFromString('pm.info.iteration')
   },
 
   // Request helpers: function -> property conversions

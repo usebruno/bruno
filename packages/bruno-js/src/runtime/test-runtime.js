@@ -31,6 +31,7 @@ class TestRuntime {
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
+    const iterationDataVariables = request?.iterationDataVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
@@ -49,6 +50,8 @@ class TestRuntime {
       requestVariables,
       globalEnvironmentVariables,
       oauth2CredentialVariables,
+      iterationDataVariables,
+      iterationIndex: request?.iterationIndex,
       collectionName,
       promptVariables,
       certsAndProxyConfig,

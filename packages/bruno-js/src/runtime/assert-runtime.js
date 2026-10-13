@@ -364,6 +364,7 @@ const evaluateRhsOperand = (rhsOperand, operator, context, runtime, onUnresolved
     requestVariables: context.bru.requestVariables,
     runtimeVariables: context.bru.runtimeVariables,
     envVariables: context.bru.envVariables,
+    iterationDataVariables: context.bru.iterationDataVariables,
     processEnvVars: context.bru.processEnvVars,
     onUnresolved
   };
@@ -410,6 +411,7 @@ class AssertRuntime {
   runAssertions(assertions, request, response, envVariables, runtimeVariables, processEnvVars) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
+    const iterationDataVariables = request?.iterationDataVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
@@ -430,6 +432,8 @@ class AssertRuntime {
       folderVariables,
       requestVariables,
       globalEnvironmentVariables,
+      iterationDataVariables,
+      iterationIndex: request?.iterationIndex,
       promptVariables,
       certsAndProxyConfig,
       requestUrl: request?.url,
@@ -448,6 +452,7 @@ class AssertRuntime {
       ...globalEnvironmentVariables,
       ...collectionVariables,
       ...envVariables,
+      ...iterationDataVariables,
       ...folderVariables,
       ...requestVariables,
       ...oauth2CredentialVariables,

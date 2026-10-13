@@ -56,11 +56,12 @@ const executeRequestOnFailHandler = async (request, error) => {
  * @returns {string[]} An array of extracted prompt variables
  */
 const extractPromptVariablesForRequest = ({ request, collection, envVariables, runtimeVariables, processEnvVars, brunoConfig }) => {
-  const { vars, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, ...requestObj } = request;
+  const { vars, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, iterationDataVariables, ...requestObj } = request;
 
   const allVariables = {
     ...globalEnvironmentVariables,
     ...envVariables,
+    ...iterationDataVariables,
     ...collectionVariables,
     ...folderVariables,
     ...requestVariables,
@@ -114,7 +115,8 @@ const runSingleRequest = async function (
   runSingleRequestByPathname,
   globalEnvVars = {},
   persistPaths = {},
-  runAbortSignal = null
+  runAbortSignal = null,
+  iteration = null
 ) {
   const syncVariableUpdates = (result, currentRequest) => {
     if (!result) return;
@@ -183,6 +185,12 @@ const runSingleRequest = async function (
 
     // Set global environment variables on the request for scripts to access via bru.getGlobalEnvVar()
     request.globalEnvironmentVariables = globalEnvVars;
+
+    // Data-file row for the current `bru run --data-file` iteration ({{column}} and bru.getIterationData())
+    if (iteration) {
+      request.iterationIndex = iteration.iterationIndex;
+      request.iterationDataVariables = iteration.iterationDataVariables;
+    }
 
     // Detect prompt variables before proceeding
     const promptVars = extractPromptVariablesForRequest({ request, collection, envVariables, runtimeVariables, processEnvVars, brunoConfig });

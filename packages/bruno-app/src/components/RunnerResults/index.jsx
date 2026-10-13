@@ -13,7 +13,9 @@ import StyledWrapper from './StyledWrapper';
 import RunnerTags from './RunnerTags/index';
 import RunnerFilter from './RunnerFilter';
 import RunConfigurationPanel from './RunConfigurationPanel';
+import RunnerDataFile from './RunnerDataFile';
 import Button from 'ui/Button/index';
+import { DEFAULT_ITERATION_CONFIG, isIterationsValid, toRunIterationConfig } from 'utils/collections/runner-iterations';
 
 const TOOLBAR_LEVELS = ['compact', 'tiny'];
 
@@ -75,6 +77,9 @@ export default function RunnerResults({ collection }) {
   const [delay, setDelay] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [selectedRequestItems, setSelectedRequestItems] = useState([]);
+  const [iterationConfig, setIterationConfig] = useState(
+    () => get(collection, 'runnerConfiguration.iterationConfig', DEFAULT_ITERATION_CONFIG)
+  );
   const toolbarRef = useOverflowCollapse(TOOLBAR_LEVELS);
   const isReRunningRef = useRef(false);
   // ref for the runner output body
@@ -189,9 +194,9 @@ export default function RunnerResults({ collection }) {
     shouldAutoScrollRef.current = true;
     lastScrollTopRef.current = 0;
     const savedOrder = get(collection, 'runnerConfiguration.requestItemsOrder', selectedRequestItems);
-    dispatch(updateRunnerConfiguration(collection.uid, selectedRequestItems, savedOrder, delay));
+    dispatch(updateRunnerConfiguration(collection.uid, selectedRequestItems, savedOrder, delay, iterationConfig));
     await clearStoredRunnerExchanges();
-    dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tags, selectedRequestItems));
+    dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tags, selectedRequestItems, toRunIterationConfig(iterationConfig)));
   };
 
   const runAgain = async () => {
@@ -203,6 +208,7 @@ export default function RunnerResults({ collection }) {
     const savedConfiguration = get(collection, 'runnerConfiguration', null);
     const savedSelectedItems = savedConfiguration?.selectedRequestItems || [];
     const savedDelay = savedConfiguration?.delay !== undefined ? savedConfiguration.delay : delay;
+    const savedIterationConfig = savedConfiguration?.iterationConfig || iterationConfig;
     await clearStoredRunnerExchanges();
     dispatch(
       runCollectionFolder(
@@ -211,7 +217,8 @@ export default function RunnerResults({ collection }) {
         true,
         Number(savedDelay),
         tags,
-        savedSelectedItems
+        savedSelectedItems,
+        toRunIterationConfig(savedIterationConfig)
       )
     );
   };
@@ -225,6 +232,7 @@ export default function RunnerResults({ collection }) {
       })
     );
     setDelay(null);
+    setIterationConfig(DEFAULT_ITERATION_CONFIG);
   };
 
   const cancelExecution = () => {
@@ -284,16 +292,48 @@ export default function RunnerResults({ collection }) {
 
             {/* Filters */}
             <div className="runner-section-title mt-6">Filters</div>
-            <div className="runner-section mt-2 mb-6">
+            <div className="runner-section mt-2">
               {/* Tags for the collection run */}
               <RunnerTags collectionUid={collection.uid} />
+            </div>
+
+            {/* Data-driven iterations */}
+            <div className="runner-section-title mt-6">Data</div>
+            <div className="runner-section mt-2 mb-6">
+              <label>Data file</label>
+              <div className="mt-2">
+                <RunnerDataFile
+                  dataFile={iterationConfig.dataFile}
+                  onChange={(dataFile) => setIterationConfig({ ...iterationConfig, dataFile })}
+                />
+              </div>
+              <label className="block mt-4">Iterations</label>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                className="block textbox w-full mt-2"
+                placeholder={iterationConfig.dataFile ? `${Math.max(iterationConfig.dataFile.rowCount, 1)} (one per row)` : '1'}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                data-testid="runner-iterations-input"
+                value={iterationConfig.iterations}
+                onChange={(e) => setIterationConfig({ ...iterationConfig, iterations: e.target.value })}
+              />
+              {!isIterationsValid(iterationConfig.iterations) ? (
+                <div className="danger text-xs mt-1" data-testid="runner-iterations-error">
+                  Iterations must be a whole number of at least 1
+                </div>
+              ) : null}
             </div>
 
             <div className="flex flex-row gap-2">
               <Button
                 type="submit"
                 data-testid="runner-run-button"
-                disabled={selectedRequestItems.length === 0 || isCollectionLoading}
+                disabled={selectedRequestItems.length === 0 || isCollectionLoading || !isIterationsValid(iterationConfig.iterations)}
                 onClick={runCollection}
               >
                 Run {selectedRequestItems.length} Request{selectedRequestItems.length !== 1 ? 's' : ''}
@@ -403,9 +443,16 @@ export default function RunnerResults({ collection }) {
 
           {/* Items list */}
           <div className="overflow-y-auto flex-1 " ref={runnerBodyRef} onScroll={handleRunnerBodyScroll}>
-            {filteredItems.map((item) => {
+            {filteredItems.map((item, index) => {
+              const startsIteration = runnerInfo.iterationCount > 1
+                && (index === 0 || filteredItems[index - 1].iterationIndex !== item.iterationIndex);
               return (
-                <div key={item.uid}>
+                <div key={item.requestUid || item.uid}>
+                  {startsIteration ? (
+                    <div className="runner-section-title mt-4" data-testid="runner-iteration-header">
+                      Iteration {item.iterationIndex + 1} of {runnerInfo.iterationCount}
+                    </div>
+                  ) : null}
                   <div className="item-path mt-2" data-testid="runner-result-item">
                     <div className="flex items-center">
                       <span>

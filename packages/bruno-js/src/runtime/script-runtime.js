@@ -31,6 +31,7 @@ class ScriptRuntime {
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
+    const iterationDataVariables = request?.iterationDataVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
@@ -49,6 +50,8 @@ class ScriptRuntime {
       requestVariables,
       globalEnvironmentVariables,
       oauth2CredentialVariables,
+      iterationDataVariables,
+      iterationIndex: request?.iterationIndex,
       collectionName,
       promptVariables,
       certsAndProxyConfig,
@@ -181,6 +184,7 @@ class ScriptRuntime {
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
+    const iterationDataVariables = request?.iterationDataVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
@@ -199,6 +203,8 @@ class ScriptRuntime {
       requestVariables,
       globalEnvironmentVariables,
       oauth2CredentialVariables,
+      iterationDataVariables,
+      iterationIndex: request?.iterationIndex,
       collectionName,
       promptVariables,
       certsAndProxyConfig,

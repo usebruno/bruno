@@ -10,6 +10,8 @@ const makeJUnitOutput = async (results, outputPath) => {
     }
   };
 
+  const hasMultipleIterations = results.some((result) => result.iterationIndex > 0);
+
   results.forEach((result) => {
     const assertionTestCount = result.assertionResults ? result.assertionResults.length : 0;
     const preRequestTestCount = result.preRequestTestResults ? result.preRequestTestResults.length : 0;
@@ -19,7 +21,7 @@ const makeJUnitOutput = async (results, outputPath) => {
     const classname = stripExtension(result.path);
 
     const suite = {
-      '@name': result.name,
+      '@name': hasMultipleIterations ? `${result.name} (iteration ${result.iterationIndex + 1})` : result.name,
       '@file': result.test.filename,
       '@errors': 0,
       '@failures': 0,

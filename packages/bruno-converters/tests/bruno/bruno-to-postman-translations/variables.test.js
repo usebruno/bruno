@@ -154,4 +154,16 @@ console.log(\`Has userId: \${hasUserId}, User ID: \${userId}\`);
     const translatedCode = translateBruToPostman(code);
     expect(translatedCode).toBe('pm.variables.set("fullPath", pm.environment.get("baseUrl") + pm.variables.get("endpoint"));');
   });
+
+  it('should translate bru.getIterationData to pm.iterationData.get', () => {
+    const code = 'const user = bru.getIterationData("username");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const user = pm.iterationData.get("username");');
+  });
+
+  it('should translate bru.getIteration() to pm.info.iteration (function to property)', () => {
+    const code = 'const iteration = bru.getIteration();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const iteration = pm.info.iteration;');
+  });
 });

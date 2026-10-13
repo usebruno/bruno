@@ -38,6 +38,9 @@ const simpleTranslations = {
   'pm.collectionVariables.replaceIn': 'bru.interpolate',
   'pm.collectionVariables.clear': 'bru.deleteAllCollectionVars',
   'pm.collectionVariables.toObject': 'bru.getAllCollectionVars',
+  // Iteration data (collection runner data file)
+  'pm.iterationData.get': 'bru.getIterationData',
+  'pm.info.iteration': 'bru.getIteration()',
 
   // Testing
   'pm.test': 'test',

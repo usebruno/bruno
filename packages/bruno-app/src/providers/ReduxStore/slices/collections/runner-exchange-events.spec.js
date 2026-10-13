@@ -110,4 +110,28 @@ describe('runFolderEvent — runner exchange events', () => {
       expect(item.responseReceived).toEqual(FULL_RESPONSE);
     });
   });
+
+  describe('iterations', () => {
+    it('records the iteration count when the run starts', () => {
+      const state = reducer(makeInitialState(), runFolderEvent({
+        type: 'testrun-started',
+        collectionUid: COLLECTION_UID,
+        folderUid: null,
+        cancelTokenUid: 'cancel-1',
+        iterationCount: 3
+      }));
+
+      expect(state.collections[0].runnerResult.info.iterationCount).toBe(3);
+    });
+
+    it('routes events to the latest queued run of a request across iterations', () => {
+      let state = seedRunner(makeInitialState());
+      state = emit(state, { type: 'request-queued', requestUid: 'run-2', iterationIndex: 1 });
+      state = emit(state, { type: 'response-received', responseReceived: REDUCED_RESPONSE, iterationIndex: 1 });
+
+      const [first, second] = state.collections[0].runnerResult.items;
+      expect(first).toMatchObject({ requestUid: REQUEST_UID, status: 'queued' });
+      expect(second).toMatchObject({ requestUid: 'run-2', iterationIndex: 1, status: 'completed' });
+    });
+  });
 });

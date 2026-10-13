@@ -11,6 +11,7 @@ import trim from 'lodash/trim';
 import path, { normalizePath, isPathExternalToBasePath } from 'utils/common/path';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
+import { formatIpcError } from 'utils/common/error';
 import IpcErrorModal from 'components/Errors/IpcErrorModal/index';
 import SaveFileErrorModal from 'components/Errors/SaveFileErrorModal/index';
 import {
@@ -724,7 +725,7 @@ export const cancelRunnerExecution = (cancelTokenUid) => (dispatch) => {
 };
 
 export const runCollectionFolder
-  = (collectionUid, folderUid, recursive, delay, tags, selectedRequestUids) => (dispatch, getState) => {
+  = (collectionUid, folderUid, recursive, delay, tags, selectedRequestUids, iterationConfig) => (dispatch, getState) => {
     const state = getState();
     const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -771,11 +772,12 @@ export const runCollectionFolder
           recursive,
           delay,
           tags,
-          selectedRequestUids
+          selectedRequestUids,
+          iterationConfig
         )
         .then(resolve)
         .catch((err) => {
-          toast.error(get(err, 'error.message') || 'Something went wrong!');
+          toast.error(formatIpcError(err) || 'Something went wrong!');
           reject(err);
         });
     });
@@ -3455,16 +3457,22 @@ export const showInFolder = (collectionPath) => () => {
 };
 
 export const updateRunnerConfiguration
-  = (collectionUid, selectedRequestItems, requestItemsOrder, delay) => (dispatch) => {
+  = (collectionUid, selectedRequestItems, requestItemsOrder, delay, iterationConfig) => (dispatch) => {
     dispatch(
       _updateRunnerConfiguration({
         collectionUid,
         selectedRequestItems,
         requestItemsOrder,
-        delay
+        delay,
+        iterationConfig
       })
     );
   };
+
+export const getIterationDataPreview = (dataFilePath) => () => {
+  const { ipcRenderer } = window;
+  return ipcRenderer.invoke('renderer:get-iteration-data-preview', dataFilePath);
+};
 
 export const updateActiveConnectionsInStore = (activeConnectionIds) => (dispatch, getState) => {
   dispatch(updateActiveConnections(activeConnectionIds));

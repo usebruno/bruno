@@ -2,7 +2,7 @@ const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
 const { forOwn, cloneDeep } = require('lodash');
-const { getRunnerSummary } = require('@usebruno/common/runner');
+const { getRunnerSummary, getIterationDataFormat, parseIterationData, getIterationCount, getIterationRow } = require('@usebruno/common/runner');
 const { exists, stripExtension, isSafeFileName } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { isRequestTagsIncluded } = require('@usebruno/common');
@@ -44,6 +44,14 @@ const printGenericTable = (headers, rows, title) => {
   rows.forEach((row) => table.push(row));
   console.log('\n' + chalk.bold(title));
   console.log(table.toString());
+};
+
+// Per-iteration reports, the shape the html reporter (and the Enterprise json reporter) consume
+const groupResultsByIteration = (results, iterationCount) => {
+  return Array.from({ length: iterationCount }, (_, iterationIndex) => {
+    const iterationResults = results.filter((result) => (result.iterationIndex ?? 0) === iterationIndex);
+    return { iterationIndex, summary: getRunnerSummary(iterationResults), results: iterationResults };
+  });
 };
 
 const printRunSummary = (results) => {
@@ -227,6 +235,14 @@ const builder = async (yargs) => {
       type: 'string',
       description: 'Tags to exclude from the run, matched against a request\'s own tags and its folders\' tags'
     })
+    .option('data-file', {
+      type: 'string',
+      description: 'Path to a CSV or JSON data file; each row runs as one iteration with its columns available as {{variables}}'
+    })
+    .option('iterations', {
+      type: 'number',
+      description: 'Number of times to run the requests (defaults to one iteration per data-file row, or 1)'
+    })
     .option('verbose', {
       type: 'boolean',
       description: 'Allow verbose output for debugging purposes'
@@ -282,6 +298,11 @@ const builder = async (yargs) => {
       'Run only requests with tags "hello" or "world" and exclude any request with tag "skip".'
     )
     .example(
+      '$0 run folder --data-file users.csv',
+      'Run a folder once per row of users.csv, using its columns as {{variables}}'
+    )
+    .example('$0 run folder --iterations 5', 'Run a folder 5 times')
+    .example(
       '$0 run request.bru --global-env production',
       'Run a request with the global environment set to production'
     )
@@ -330,6 +351,8 @@ const handler = async function (argv) {
       delay,
       tags: includeTags,
       excludeTags,
+      dataFile,
+      iterations,
       verbose
     } = argv;
     const collectionPath = process.cwd();
@@ -658,6 +681,34 @@ const handler = async function (argv) {
       formats['junit'] = reporterJunit;
     }
 
+    let iterationRows = [];
+    if (dataFile) {
+      const dataFilePath = path.resolve(collectionPath, dataFile);
+      const dataFileFormat = getIterationDataFormat(dataFilePath);
+      if (!dataFileFormat) {
+        console.error(chalk.red(`Data file must be a .csv or .json file: `) + chalk.dim(dataFile));
+        process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+      }
+      if (!(await exists(dataFilePath))) {
+        console.error(chalk.red(`Data file not found: `) + chalk.dim(dataFile));
+        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
+      }
+      try {
+        iterationRows = parseIterationData(fs.readFileSync(dataFilePath, 'utf8'), dataFileFormat);
+      } catch (err) {
+        console.error(chalk.red(`Failed to parse data file: ${err.message}`));
+        process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+      }
+    }
+
+    let iterationCount;
+    try {
+      iterationCount = getIterationCount({ rowCount: iterationRows.length, iterations });
+    } catch (err) {
+      console.error(chalk.red(err.message));
+      process.exit(constants.EXIT_STATUS.ERROR_GENERIC);
+    }
+
     // load .env file at root of collection if it exists
     const dotEnvPath = path.join(collectionPath, '.env');
     const dotEnvExists = await exists(dotEnvPath);
@@ -736,9 +787,10 @@ const handler = async function (argv) {
       }
     }
 
-    const createSkippedResult = (requestItem, skipReason) => {
+    const createSkippedResult = (requestItem, skipReason, iterationIndex) => {
       const relativePath = path.relative(collectionPath, requestItem.pathname);
       return {
+        iterationIndex,
         test: { filename: relativePath },
         request: { method: requestItem.request?.method || null, url: requestItem.request?.url || null, headers: null, data: null },
         response: { status: 'skipped', statusText: null, data: null, responseTime: 0 },
@@ -784,6 +836,9 @@ const handler = async function (argv) {
       runAbortController.abort(reason);
     };
 
+    // Iteration of the request currently running; a nested bru.runRequest() runs with the same row
+    let currentIteration = null;
+
     const runSingleRequestByPathname = async (relativeItemPathname) => {
       const ext = FORMAT_CONFIG[collection.format].ext;
       return new Promise(async (resolve, reject) => {
@@ -806,7 +861,8 @@ const handler = async function (argv) {
             runSingleRequestByPathname,
             globalEnvVars,
             persistPaths,
-            runAbortSignal
+            runAbortSignal,
+            currentIteration
           );
           resolve(res?.response);
         }
@@ -814,11 +870,39 @@ const handler = async function (argv) {
       });
     };
 
+    const announceIteration = (index) => {
+      if (iterationCount > 1) {
+        console.log(chalk.bold(`\nIteration ${index + 1}/${iterationCount}`));
+      }
+    };
+
+    // Requests a halt leaves unrun: the rest of the current iteration plus every later iteration
+    const getUnrunRequests = (iterationIndex, currentRequestIndex) => {
+      const unrun = requestItems.slice(currentRequestIndex + 1).map((item) => ({ item, iterationIndex }));
+      for (let laterIteration = iterationIndex + 1; laterIteration < iterationCount; laterIteration++) {
+        unrun.push(...requestItems.map((item) => ({ item, iterationIndex: laterIteration })));
+      }
+      return unrun;
+    };
+
+    let iterationIndex = 0;
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
-    while (currentRequestIndex < requestItems.length) {
+    announceIteration(iterationIndex);
+    while (iterationIndex < iterationCount) {
+      if (currentRequestIndex >= requestItems.length) {
+        iterationIndex++;
+        currentRequestIndex = 0;
+        nJumps = 0;
+        if (iterationIndex < iterationCount) {
+          announceIteration(iterationIndex);
+        }
+        continue;
+      }
+
       const requestItem = cloneDeep(requestItems[currentRequestIndex]);
       const { name, pathname } = requestItem;
+      currentIteration = { iterationIndex, iterationDataVariables: getIterationRow(iterationRows, iterationIndex) };
 
       const start = process.hrtime();
       const result = await runSingleRequest(
@@ -834,10 +918,11 @@ const handler = async function (argv) {
         runSingleRequestByPathname,
         globalEnvVars,
         persistPaths,
-        runAbortSignal
+        runAbortSignal,
+        currentIteration
       );
 
-      const isLastRun = currentRequestIndex === requestItems.length - 1;
+      const isLastRun = currentRequestIndex === requestItems.length - 1 && iterationIndex === iterationCount - 1;
       const isValidDelay = !Number.isNaN(delay) && delay > 0;
       if (isValidDelay && !isLastRun) {
         console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay / 1000).toFixed(3)}s before next request.`));
@@ -850,6 +935,7 @@ const handler = async function (argv) {
 
       results.push({
         ...result,
+        iterationIndex,
         runDuration: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
         suitename: stripExtension(pathname),
         name,
@@ -879,13 +965,13 @@ const handler = async function (argv) {
           else if (postResponseTestFailure) bailReason = 'post-response test failure';
           else bailReason = 'test failure';
 
-          const remainingItems = requestItems.slice(currentRequestIndex + 1);
+          const remainingItems = getUnrunRequests(iterationIndex, currentRequestIndex);
 
           // Synthesize "Skipped (Bail)" placeholder results for the requests that never
           // ran due to bail. These let getRunnerSummary count them as skipped, and the
           // summary table can distinguish them from user-initiated skips via skipReason.
-          for (const request of remainingItems) {
-            results.push(createSkippedResult(request, 'bail'));
+          for (const { item, iterationIndex: unrunIteration } of remainingItems) {
+            results.push(createSkippedResult(item, 'bail', unrunIteration));
           }
 
           haltRun('bail', { haltedAtRequest: name, haltedReason: bailReason, remainingRequests: remainingItems.length });
@@ -904,10 +990,10 @@ const handler = async function (argv) {
       const nextRequestName = result?.nextRequestName;
 
       if (result?.shouldStopRunnerExecution) {
-        const remainingItems = requestItems.slice(currentRequestIndex + 1);
+        const remainingItems = getUnrunRequests(iterationIndex, currentRequestIndex);
 
-        for (const request of remainingItems) {
-          results.push(createSkippedResult(request, 'stopExecution'));
+        for (const { item, iterationIndex: unrunIteration } of remainingItems) {
+          results.push(createSkippedResult(item, 'stopExecution', unrunIteration));
         }
 
         haltRun('stopExecution', {
@@ -925,7 +1011,9 @@ const handler = async function (argv) {
           process.exit(constants.EXIT_STATUS.ERROR_INFINITE_LOOP);
         }
         if (nextRequestName === null) {
-          break;
+          // bru.runner.setNextRequest(null) ends the current iteration; stopExecution() ends the run
+          currentRequestIndex = requestItems.length;
+          continue;
         }
         const nextRequestIdx = requestItems.findIndex((iter) => iter.name === nextRequestName);
         if (nextRequestIdx >= 0) {
@@ -952,10 +1040,8 @@ const handler = async function (argv) {
 
     const formatKeys = Object.keys(formats);
     if (formatKeys && formatKeys.length > 0) {
-      const outputJson = {
-        summary,
-        results
-      };
+      // A multi-iteration run reports one { iterationIndex, summary, results } entry per iteration
+      const outputJson = iterationCount > 1 ? groupResultsByIteration(results, iterationCount) : { summary, results };
 
       const reporters = {
         json: (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
@@ -1005,5 +1091,6 @@ module.exports = {
   desc,
   builder,
   handler,
-  printRunSummary
+  printRunSummary,
+  groupResultsByIteration
 };

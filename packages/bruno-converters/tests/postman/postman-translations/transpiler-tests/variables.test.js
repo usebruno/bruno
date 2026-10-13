@@ -290,4 +290,16 @@ describe('Variables Translation', () => {
 
     expect(translatedCode).toBe('const hasGlobal = bru.hasGlobalEnvVar("config");');
   });
+
+  it('should translate pm.iterationData.get', () => {
+    const code = 'const user = pm.iterationData.get("username");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const user = bru.getIterationData("username");');
+  });
+
+  it('should translate pm.info.iteration', () => {
+    const code = 'const iteration = pm.info.iteration;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const iteration = bru.getIteration();');
+  });
 });

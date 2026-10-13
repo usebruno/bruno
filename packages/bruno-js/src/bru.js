@@ -31,6 +31,8 @@ class Bru {
    * @property {object} [options.requestVariables={}] - Request-level variables
    * @property {object} [options.globalEnvironmentVariables={}] - Global environment variables
    * @property {object} [options.oauth2CredentialVariables={}] - OAuth2 credential variables
+   * @property {object} [options.iterationDataVariables={}] - Data-file row for the current runner iteration
+   * @property {number} [options.iterationIndex=0] - 0-based index of the current runner iteration
    * @property {string} [options.collectionName] - Name of the collection
    * @property {object} [options.promptVariables={}] - Prompt variables
    * @property {object} [options.certsAndProxyConfig] - Configuration for bru.sendRequest (proxy, certs, TLS)
@@ -53,6 +55,8 @@ class Bru {
     requestVariables,
     globalEnvironmentVariables,
     oauth2CredentialVariables,
+    iterationDataVariables,
+    iterationIndex,
     collectionName,
     promptVariables,
     certsAndProxyConfig,
@@ -68,6 +72,8 @@ class Bru {
     this.requestVariables = requestVariables || {};
     this.globalEnvironmentVariables = globalEnvironmentVariables || {};
     this.oauth2CredentialVariables = oauth2CredentialVariables || {};
+    this.iterationDataVariables = iterationDataVariables || {};
+    this.iterationIndex = iterationIndex || 0;
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
     this.#onUnresolved = onUnresolved;
@@ -163,6 +169,7 @@ class Bru {
       ...this.globalEnvironmentVariables,
       ...this.collectionVariables,
       ...this.envVariables,
+      ...this.iterationDataVariables,
       ...this.folderVariables,
       ...this.requestVariables,
       ...this.oauth2CredentialVariables,
@@ -416,6 +423,14 @@ class Bru {
 
   getRequestVar(key) {
     return this.#readVariable(this.requestVariables, key);
+  }
+
+  getIterationData(key) {
+    return this.#readVariable(this.iterationDataVariables, key);
+  }
+
+  getIteration() {
+    return this.iterationIndex;
   }
 
   setNextRequest(nextRequest) {

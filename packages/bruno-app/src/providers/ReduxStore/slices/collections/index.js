@@ -3537,6 +3537,7 @@ export const collectionsSlice = createSlice({
           info.folderUid = folderUid;
           info.isRecursive = isRecursive;
           info.cancelTokenUid = cancelTokenUid;
+          info.iterationCount = action.payload.iterationCount;
           info.status = 'started';
         }
 
@@ -3561,6 +3562,7 @@ export const collectionsSlice = createSlice({
           collection.runnerResult.items.push({
             uid: request.uid,
             requestUid: action.payload.requestUid,
+            iterationIndex: action.payload.iterationIndex,
             status: 'queued'
           });
         }
@@ -3671,6 +3673,16 @@ export const collectionsSlice = createSlice({
         collection.runnerConfiguration = null;
       }
     },
+    updateRunnerIterationConfig: (state, action) => {
+      const { collectionUid, iterationConfig } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        collection.runnerConfiguration = {
+          ...collection.runnerConfiguration,
+          iterationConfig
+        };
+      }
+    },
     updateRunnerTagsDetails: (state, action) => {
       const { collectionUid, tags, tagsEnabled } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -3684,14 +3696,15 @@ export const collectionsSlice = createSlice({
       }
     },
     updateRunnerConfiguration: (state, action) => {
-      const { collectionUid, selectedRequestItems, requestItemsOrder, delay } = action.payload;
+      const { collectionUid, selectedRequestItems, requestItemsOrder, delay, iterationConfig } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (collection) {
         collection.runnerConfiguration = {
           ...collection.runnerConfiguration,
           selectedRequestItems: selectedRequestItems || [],
           requestItemsOrder: requestItemsOrder || [],
-          ...(delay !== undefined && { delay })
+          ...(delay !== undefined && { delay }),
+          ...(iterationConfig !== undefined && { iterationConfig })
         };
       }
     },
@@ -4411,6 +4424,7 @@ export const {
   runRequestEvent,
   runFolderEvent,
   resetCollectionRunner,
+  updateRunnerIterationConfig,
   updateRunnerTagsDetails,
   updateRunnerConfiguration,
   updateRequestDocs,

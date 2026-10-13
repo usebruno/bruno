@@ -29,6 +29,7 @@ class VarsRuntime {
     const requestVariables = request?.requestVariables || {};
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
+    const iterationDataVariables = request?.iterationDataVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const enabledVars = _.filter(vars, (v) => v.enabled);
@@ -48,6 +49,8 @@ class VarsRuntime {
       requestVariables,
       globalEnvironmentVariables,
       oauth2CredentialVariables,
+      iterationDataVariables,
+      iterationIndex: request?.iterationIndex,
       promptVariables,
       certsAndProxyConfig,
       requestUrl: request?.url,

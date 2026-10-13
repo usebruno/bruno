@@ -47,6 +47,8 @@ const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-uti
 const { easterEggResponse } = require('../../utils/woof');
 const { createRunnerExchangeEmitters } = require('./runner-exchange');
 const { saveRunnerResponseBody } = require('../../services/runner-exchange');
+const { getIterationCount, getIterationRow } = require('@usebruno/common/runner');
+const { loadIterationData, getIterationDataPreview } = require('./iteration-data');
 const { buildFormUrlEncodedPayload, isFormData, getMediaType, extractBoundaryFromContentType } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
@@ -760,7 +762,7 @@ const registerNetworkIpc = (mainWindow) => {
     return scriptResult;
   };
 
-  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, callerBru = null, parentExecutionMode = null, parentRunnerEventData = null, parentRequestUid = null, parentUnresolvedVariables = null }) => {
+  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, callerBru = null, parentExecutionMode = null, parentRunnerEventData = null, parentRequestUid = null, parentUnresolvedVariables = null, parentIteration = null }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
@@ -818,7 +820,7 @@ const registerNetworkIpc = (mainWindow) => {
           const startedAt = Date.now();
           let res, err;
           try {
-            res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true, callerBru, parentExecutionMode, parentRunnerEventData, parentRequestUid: requestUid, parentUnresolvedVariables: unresolvedVariables });
+            res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true, callerBru, parentExecutionMode, parentRunnerEventData, parentRequestUid: requestUid, parentUnresolvedVariables: unresolvedVariables, parentIteration });
           } catch (e) {
             err = e;
           }
@@ -896,6 +898,11 @@ const registerNetworkIpc = (mainWindow) => {
 
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
+    // bru.runRequest() inside a data-driven run sees the caller's iteration row
+    if (parentIteration) {
+      request.iterationIndex = parentIteration.iterationIndex;
+      request.iterationDataVariables = parentIteration.iterationDataVariables;
+    }
     if (!runInBackground || parentUnresolvedVariables) {
       unresolvedVariables = trackUnresolvedVariables(request, parentUnresolvedVariables);
     }
@@ -1348,11 +1355,12 @@ const registerNetworkIpc = (mainWindow) => {
    * @returns {string[]} An array of extracted prompt variables
    */
   const extractPromptVariablesForRequest = async ({ request, collection, envVars: collectionEnvironmentVars, runtimeVariables, processEnvVars }) => {
-    const { globalEnvironmentVariables, collectionVariables, folderVariables, requestVariables, ...requestObj } = request;
+    const { globalEnvironmentVariables, collectionVariables, folderVariables, requestVariables, iterationDataVariables, ...requestObj } = request;
 
     const allVariables = {
       ...globalEnvironmentVariables,
       ...collectionEnvironmentVars,
+      ...iterationDataVariables,
       ...collectionVariables,
       ...folderVariables,
       ...requestVariables,
@@ -1454,8 +1462,15 @@ const registerNetworkIpc = (mainWindow) => {
   // handler for fetch-gql-schema
   ipcMain.handle('fetch-gql-schema', fetchGqlSchemaHandler);
 
+  ipcMain.handle('renderer:get-iteration-data-preview', (event, dataFilePath) => getIterationDataPreview(dataFilePath));
+
   ipcMain.handle(
-    'renderer:run-collection-folder', async (event, folder, collection, environment, runtimeVariables, recursive, delay, tags, selectedRequestUids) => {
+    'renderer:run-collection-folder', async (event, folder, collection, environment, runtimeVariables, recursive, delay, tags, selectedRequestUids, iterationConfig) => {
+      const { dataFilePath, iterations } = iterationConfig || {};
+      // Loaded before the run starts so a bad data file rejects the invoke instead of starting an empty run
+      const iterationRows = dataFilePath ? await loadIterationData(dataFilePath) : [];
+      const iterationCount = getIterationCount({ rowCount: iterationRows.length, iterations });
+
       const collectionUid = collection.uid;
       const collectionPath = collection.pathname;
       const folderUid = folder ? folder.uid : null;
@@ -1471,6 +1486,8 @@ const registerNetworkIpc = (mainWindow) => {
       // Tracks the outer runner item currently executing so a nested bru.runRequest
       // can route its oauth2 timeline entry back to this item.
       let currentRunnerEventData = null;
+      // Iteration row of the outer runner item, handed to a nested bru.runRequest
+      let currentIteration = null;
 
       const abortController = new AbortController();
       saveCancelToken(cancelTokenUid, abortController);
@@ -1538,7 +1555,8 @@ const registerNetworkIpc = (mainWindow) => {
                 runtimeVariables,
                 runInBackground: true,
                 parentExecutionMode: 'runner',
-                parentRunnerEventData: currentRunnerEventData
+                parentRunnerEventData: currentRunnerEventData,
+                parentIteration: currentIteration
               });
             } catch (e) {
               err = e;
@@ -1591,7 +1609,8 @@ const registerNetworkIpc = (mainWindow) => {
         isRecursive: recursive,
         collectionUid,
         folderUid,
-        cancelTokenUid
+        cancelTokenUid,
+        iterationCount
       });
 
       try {
@@ -1638,9 +1657,17 @@ const registerNetworkIpc = (mainWindow) => {
             });
         }
 
+        let iterationIndex = 0;
         let currentRequestIndex = 0;
         let nJumps = 0; // count the number of jumps to avoid infinite loops
-        while (currentRequestIndex < folderRequests.length) {
+        while (iterationIndex < iterationCount) {
+          if (currentRequestIndex >= folderRequests.length) {
+            iterationIndex++;
+            currentRequestIndex = 0;
+            nJumps = 0;
+            continue;
+          }
+
           // user requested to cancel runner
           if (abortController.signal.aborted) {
             let error = new Error('Runner execution cancelled');
@@ -1656,7 +1683,8 @@ const registerNetworkIpc = (mainWindow) => {
           const eventData = {
             collectionUid,
             folderUid,
-            itemUid
+            itemUid,
+            iterationIndex
           };
           currentRunnerEventData = eventData;
 
@@ -1703,6 +1731,9 @@ const registerNetworkIpc = (mainWindow) => {
 
           const request = await prepareRequest(item, collection, abortController);
           request.__bruno__executionMode = 'runner';
+          request.iterationIndex = iterationIndex;
+          request.iterationDataVariables = getIterationRow(iterationRows, iterationIndex);
+          currentIteration = { iterationIndex, iterationDataVariables: request.iterationDataVariables };
 
           const promptVars = await extractPromptVariablesForRequest({ request, collection, envVars, runtimeVariables, processEnvVars });
 
@@ -2173,7 +2204,9 @@ const registerNetworkIpc = (mainWindow) => {
               throw new Error('Too many jumps, possible infinite loop');
             }
             if (nextRequestName === null) {
-              break;
+              // bru.runner.setNextRequest(null) ends the current iteration; stopExecution() ends the run
+              currentRequestIndex = folderRequests.length;
+              continue;
             }
             const nextRequestIdx = folderRequests.findIndex((request) => request.name === nextRequestName);
             if (nextRequestIdx >= 0) {

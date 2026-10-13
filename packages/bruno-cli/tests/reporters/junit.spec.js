@@ -299,4 +299,34 @@ describe('makeJUnitOutput', () => {
     expect(suites[3].skipped[0]['@message']).toBe('Request skipped due to bail');
     expect(suites[3].testcase.length).toBe(0);
   });
+
+  it('labels each suite with its iteration when the run has several iterations', () => {
+    const makeResult = (iterationIndex) => ({
+      iterationIndex,
+      name: 'Get User',
+      test: { filename: 'Get User.bru' },
+      request: { method: 'GET', url: 'https://ima.test' },
+      assertionResults: [],
+      testResults: [],
+      runDuration: 0.1
+    });
+
+    makeJUnitOutput([makeResult(0), makeResult(1)], '/tmp/testfile.xml');
+    const suites = xmlbuilder.create.mock.calls[0][0].testsuites.testsuite;
+
+    expect(suites.map((suite) => suite['@name'])).toEqual(['Get User (iteration 1)', 'Get User (iteration 2)']);
+  });
+
+  it('keeps suite names unchanged for a single iteration', () => {
+    makeJUnitOutput([{
+      iterationIndex: 0,
+      name: 'Get User',
+      test: { filename: 'Get User.bru' },
+      request: { method: 'GET', url: 'https://ima.test' },
+      runDuration: 0.1
+    }], '/tmp/testfile.xml');
+    const suites = xmlbuilder.create.mock.calls[0][0].testsuites.testsuite;
+
+    expect(suites[0]['@name']).toBe('Get User');
+  });
 });
