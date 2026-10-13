@@ -3,6 +3,7 @@ const {
   parseRequest: _parseRequest,
   parseCollection: _parseCollection
 } = require('@usebruno/filestore');
+const { toVariablesMap } = require('@usebruno/common').utils;
 
 const collectionBruToJson = (bru) => {
   try {
@@ -128,21 +129,8 @@ const bruToJson = (bru) => {
   }
 };
 
-const getEnvVars = (environment = {}) => {
-  const variables = environment.variables;
-  if (!variables || !variables.length) {
-    return {};
-  }
-
-  const envVars = {};
-  _.each(variables, (variable) => {
-    if (variable.enabled) {
-      envVars[variable.name] = variable.value;
-    }
-  });
-
-  return envVars;
-};
+const getEnvVars = (environment = {}) =>
+  toVariablesMap([...(environment.inheritedVariables || []), ...(environment.variables || [])]);
 
 const options = {};
 const getOptions = () => {

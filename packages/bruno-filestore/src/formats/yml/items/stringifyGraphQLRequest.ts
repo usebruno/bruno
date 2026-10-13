@@ -17,6 +17,7 @@ import { toOpenCollectionActions } from '../common/actions';
 import { toOpenCollectionScripts } from '../common/scripts';
 import { toOpenCollectionAssertions } from '../common/assertions';
 import { resolveTimeoutSetting, toMaxRedirects } from '@usebruno/common/utils';
+import { HTTP_SCRIPT_KEYS } from '@usebruno/common';
 
 const stringifyGraphQLRequest = (item: BrunoItem): string => {
   try {
@@ -97,7 +98,7 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
     }
 
     // scripts
-    const scripts: Scripts | undefined = toOpenCollectionScripts(brunoRequest);
+    const scripts: Scripts | undefined = toOpenCollectionScripts(brunoRequest, HTTP_SCRIPT_KEYS);
     if (scripts) {
       runtime.scripts = scripts;
       hasRuntime = true;

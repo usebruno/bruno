@@ -1,0 +1,6 @@
+{
+  "name": { "value": "Not A Name" },
+  "variables": [
+    { "name": "host", "value": "https://object.example.com", "enabled": true, "secret": false }
+  ]
+}

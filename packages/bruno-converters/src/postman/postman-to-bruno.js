@@ -388,6 +388,12 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         additionalParameters.authorization = [];
       }
 
+      const tokenPlacement = findValueUsingKey('addTokenTo') === 'queryParams' ? 'url' : 'header'; // Postman defaults an unspecified placement to the header
+      const tokenHeaderPrefix
+        = tokenPlacement === 'header' && authValues.headerPrefix == null
+          ? 'Bearer'
+          : findValueUsingKey('headerPrefix');
+
       // Common properties for all OAuth2 grant types
       const baseOAuth2Config = {
         ...(hasAdditionalParameters ? { additionalParameters } : {}),
@@ -398,8 +404,8 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         clientSecret: findValueUsingKey('clientSecret'),
         scope: findValueUsingKey('scope'),
         state: findValueUsingKey('state'),
-        tokenPlacement: findValueUsingKey('addTokenTo') === 'header' ? 'header' : 'url',
-        tokenHeaderPrefix: findValueUsingKey('headerPrefix'),
+        tokenPlacement,
+        tokenHeaderPrefix,
         tokenQueryKey: 'access_token',
         credentialsPlacement: findValueUsingKey('client_authentication') === 'body' ? 'body' : 'basic_auth_header',
         credentialsId: findValueUsingKey('tokenName')
@@ -604,6 +610,18 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
             severity: 'warning',
             message: 'Invalid maxRedirects, ignored (must be a number of 0 or more)'
           });
+        }
+
+        // Handle disabled system headers from Postman's protocolProfileBehavior
+        const disabledSystemHeaders = i.protocolProfileBehavior?.disabledSystemHeaders;
+        if (disabledSystemHeaders && typeof disabledSystemHeaders === 'object') {
+          const omitHeaders = Object.keys(disabledSystemHeaders)
+            .filter((headerName) => disabledSystemHeaders[headerName] === true)
+            .map((headerName) => headerName.trim())
+            .filter((headerName) => headerName.length > 0);
+          if (omitHeaders.length > 0) {
+            settings.omitHeaders = omitHeaders;
+          }
         }
 
         brunoRequestItem.settings = settings;

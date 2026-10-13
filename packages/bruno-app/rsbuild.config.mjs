@@ -35,14 +35,20 @@ export default defineConfig({
     })
   ],
   source: {
+    define: {
+      __BRUNO_BENCHMARK__: JSON.stringify(process.env.BRUNO_BENCHMARK === 'true')
+    },
     tsconfigPath: './jsconfig.json', // Specifies the path to the JavaScript/TypeScript configuration file,
     exclude: [
       '**/test-utils/**',
       '**/*.test.*',
       '**/*.spec.*'
     ],
-    // swagger-ui-react needs immutable@4 (CJS default export). sass hoists
-    // immutable@5 to the repo root; redux-immutable is hoisted there too.
+  },
+  resolve: {
+    // swagger-ui-react nests immutable@3 (CJS default export). sass hoists
+    // immutable@5 to the repo root, which dropped that default; redux-immutable
+    // is also hoisted there, so without this alias it loads v5 and crashes.
     alias: {
       immutable$: swaggerImmutable
     }
@@ -67,7 +73,7 @@ export default defineConfig({
       externals: {
         // List specific Node.js modules you want to exclude
         // Format: 'module-name': 'commonjs module-name'
-        'worker_threads': 'commonjs worker_threads',
+        'node:worker_threads': 'commonjs worker_threads',
         // 'path': 'commonjs path'
       },
       optimization: {

@@ -121,6 +121,64 @@ const COLLECTION_YML = [
   '        });'
 ].join('\n');
 
+// gRPC lifecycle hooks:
+// 11: script:grpc:before-call-start { → blockStartLine = 12
+// 16: script:grpc:after-call-end {    → blockStartLine = 17
+const GRPC_BRU = `meta {
+  name: grpc-test
+  type: grpc
+  seq: 1
+}
+
+grpc {
+  url: grpc://localhost:50051
+}
+
+script:grpc:before-call-start {
+  const token = bru.getEnvVar('token');
+  request.setHeader('authorization', token);
+}
+
+script:grpc:after-call-end {
+  const data = response.data;
+  bru.setVar('userId', data.id);
+  console.log(data);
+}
+
+script:grpc:before-message-send {
+  bru.setVar('outbound', bru.grpc.request.message.data.greeting);
+}
+
+script:grpc:after-message-receive {
+  const message = bru.grpc.response.message;
+  bru.setVar('inbound', message.data.reply);
+}`;
+
+// gRPC yml fixture: blockStartLine = 8 (before-call-start), 12 (after-call-end),
+// 16 (before-message-send), 19 (after-message-receive)
+const GRPC_YML = [
+  'info:',
+  '  name: grpc-yaml-test',
+  '  version: "1"',
+  'runtime:',
+  '  scripts:',
+  '    - type: grpc:before-call-start',
+  '      code: |-',
+  '        const token = bru.getEnvVar(\'token\');',
+  '        request.setHeader(\'authorization\', token);',
+  '    - type: grpc:after-call-end',
+  '      code: |-',
+  '        const data = response.data;',
+  '        bru.setVar(\'userId\', data.id);',
+  '    - type: grpc:before-message-send',
+  '      code: |-',
+  '        bru.setVar(\'outbound\', bru.grpc.request.message.data.greeting);',
+  '    - type: grpc:after-message-receive',
+  '      code: |-',
+  '        const message = bru.grpc.response.message;',
+  '        bru.setVar(\'inbound\', message.data.reply);'
+].join('\n');
+
 // Wrapper offsets: QuickJS = 9 (script line 1 = VM line 10), NodeVM = 2 (script line 1 = VM line 3)
 
 describe('Error Formatter', () => {
@@ -129,6 +187,8 @@ describe('Error Formatter', () => {
   let ymlFilePath;
   let bruWithCommentsPath;
   let collectionYmlPath;
+  let grpcBruPath;
+  let grpcYmlPath;
 
   beforeEach(() => {
     testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-test-'));
@@ -136,10 +196,14 @@ describe('Error Formatter', () => {
     ymlFilePath = path.join(testDir, 'test.yml');
     bruWithCommentsPath = path.join(testDir, 'comments.bru');
     collectionYmlPath = path.join(testDir, 'opencollection.yml');
+    grpcBruPath = path.join(testDir, 'grpc.bru');
+    grpcYmlPath = path.join(testDir, 'grpc.yml');
     fs.writeFileSync(bruFilePath, MULTI_BLOCK_BRU);
     fs.writeFileSync(ymlFilePath, MULTI_BLOCK_YML);
     fs.writeFileSync(bruWithCommentsPath, BRU_WITH_COMMENTS);
     fs.writeFileSync(collectionYmlPath, COLLECTION_YML);
+    fs.writeFileSync(grpcBruPath, GRPC_BRU);
+    fs.writeFileSync(grpcYmlPath, GRPC_YML);
   });
 
   afterEach(() => {
@@ -151,6 +215,13 @@ describe('Error Formatter', () => {
       expect(findScriptBlockStartLine(bruFilePath, 'pre-request')).toBe(14);
       expect(findScriptBlockStartLine(bruFilePath, 'post-response')).toBe(19);
       expect(findScriptBlockStartLine(bruFilePath, 'test')).toBe(25);
+    });
+
+    it('should find gRPC lifecycle hook blocks in .bru files', () => {
+      expect(findScriptBlockStartLine(grpcBruPath, 'before-call-start')).toBe(12);
+      expect(findScriptBlockStartLine(grpcBruPath, 'after-call-end')).toBe(17);
+      expect(findScriptBlockStartLine(grpcBruPath, 'before-message-send')).toBe(23);
+      expect(findScriptBlockStartLine(grpcBruPath, 'after-message-receive')).toBe(27);
     });
 
     it('should return null for missing block or non-.bru files', () => {
@@ -166,6 +237,13 @@ describe('Error Formatter', () => {
       expect(findScriptBlockEndLine(bruFilePath, 'pre-request')).toBe(15);
       expect(findScriptBlockEndLine(bruFilePath, 'post-response')).toBe(21);
       expect(findScriptBlockEndLine(bruFilePath, 'test')).toBe(30);
+    });
+
+    it('should find last content line for gRPC lifecycle hook blocks', () => {
+      expect(findScriptBlockEndLine(grpcBruPath, 'before-call-start')).toBe(13);
+      expect(findScriptBlockEndLine(grpcBruPath, 'after-call-end')).toBe(19);
+      expect(findScriptBlockEndLine(grpcBruPath, 'before-message-send')).toBe(23);
+      expect(findScriptBlockEndLine(grpcBruPath, 'after-message-receive')).toBe(28);
     });
 
     it('should return null for empty block', () => {
@@ -198,6 +276,13 @@ describe('Error Formatter', () => {
       expect(findYmlScriptBlockStartLine(collectionYmlPath, 'test')).toBe(11);
     });
 
+    it('should find gRPC lifecycle hook blocks in .yml files', () => {
+      expect(findYmlScriptBlockStartLine(grpcYmlPath, 'before-call-start')).toBe(8);
+      expect(findYmlScriptBlockStartLine(grpcYmlPath, 'after-call-end')).toBe(12);
+      expect(findYmlScriptBlockStartLine(grpcYmlPath, 'before-message-send')).toBe(16);
+      expect(findYmlScriptBlockStartLine(grpcYmlPath, 'after-message-receive')).toBe(19);
+    });
+
     it('should return null for missing block or non-.yml files', () => {
       const noRuntimePath = path.join(testDir, 'no-runtime.yml');
       fs.writeFileSync(noRuntimePath, 'info:\n  name: simple\n  version: "1"\n');
@@ -215,6 +300,13 @@ describe('Error Formatter', () => {
     it('should find last content line in collection yml (request.scripts)', () => {
       expect(findYmlScriptBlockEndLine(collectionYmlPath, 'pre-request')).toBe(8);
       expect(findYmlScriptBlockEndLine(collectionYmlPath, 'test')).toBe(13);
+    });
+
+    it('should find last content line for gRPC lifecycle hook blocks', () => {
+      expect(findYmlScriptBlockEndLine(grpcYmlPath, 'before-call-start')).toBe(9);
+      expect(findYmlScriptBlockEndLine(grpcYmlPath, 'after-call-end')).toBe(13);
+      expect(findYmlScriptBlockEndLine(grpcYmlPath, 'before-message-send')).toBe(16);
+      expect(findYmlScriptBlockEndLine(grpcYmlPath, 'after-message-receive')).toBe(20);
     });
 
     it('should return null for missing block', () => {

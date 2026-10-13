@@ -1,4 +1,6 @@
+const { getMediaType } = require('@usebruno/common').utils;
 const HeaderList = require('./header-list');
+const { parseUrl } = require('./utils/url');
 
 class BrunoRequest {
   /**
@@ -48,8 +50,7 @@ class BrunoRequest {
 
   getHost() {
     try {
-      const url = new URL(this.req.url);
-      return url.host;
+      return parseUrl(this.req.url).host;
     } catch (e) {
       return '';
     }
@@ -57,8 +58,7 @@ class BrunoRequest {
 
   getPath() {
     try {
-      const url = new URL(this.req.url);
-      let pathname = url.pathname;
+      let { pathname } = parseUrl(this.req.url);
 
       // If path params exist, interpolate them into the pathname
       if (this.req.pathParams && Array.isArray(this.req.pathParams)) {
@@ -91,9 +91,7 @@ class BrunoRequest {
 
   getQueryString() {
     try {
-      const url = new URL(this.req.url);
-      // Return query string without the leading '?'
-      return url.search ? url.search.substring(1) : '';
+      return parseUrl(this.req.url).queryString;
     } catch (e) {
       return '';
     }
@@ -175,7 +173,7 @@ class BrunoRequest {
 
   hasJSONContentType(headers) {
     const contentType = headers?.['Content-Type'] || headers?.['content-type'] || '';
-    return contentType.includes('json');
+    return getMediaType(contentType).includes('json');
   }
 
   /**
@@ -206,9 +204,10 @@ class BrunoRequest {
    *  - We set the body property as the data itself
    *
    * If the user wants to override this behavior, they can pass the raw option as true
+   * A Buffer is always set as-is, since it already holds the exact bytes to send
    */
   setBody(data, options = {}) {
-    if (options.raw) {
+    if (options.raw || Buffer.isBuffer(data)) {
       this.req.data = data;
       this.body = data;
       return;

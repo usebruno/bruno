@@ -20,7 +20,7 @@ const ScriptErrorIcon = ({ itemUid, onClick, className }) => {
       </div>
       <ToolHint
         toolhintId={toolhintId}
-        text="Script execution error occurred"
+        text="Show errors"
         place="bottom"
       />
     </>

@@ -19,6 +19,7 @@ jest.mock('codemirror', () => {
 import {
   getAutoCompleteHints,
   setupAutoComplete,
+  showRootHints,
   extractNextSegmentSuggestions,
   WORD_PATTERN
 } from './autocomplete';
@@ -256,6 +257,63 @@ describe('Bruno Autocomplete', () => {
       });
     });
 
+    describe('gRPC hook context', () => {
+      // gRPC hooks have no `req` / `res`; everything hangs off `bru.grpc`, and each hook is
+      // handed a different subset of it — so the hints are grouped per hook, not per root.
+      const hintsFor = (line, showHintsFor) => {
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: line.length });
+        mockedCodemirror.getLine.mockReturnValue(line);
+        mockedCodemirror.getRange.mockReturnValue(line);
+
+        return getAutoCompleteHints(mockedCodemirror, {}, [], { showHintsFor });
+      };
+
+      const grpcHints = (line, hook) => hintsFor(line, ['bru', `grpc:${hook}`]);
+
+      it('offers only the request model before the call has produced a response', () => {
+        const result = grpcHints('bru.grpc.', 'before-call-start');
+
+        expect(result.list).toEqual(['request']);
+      });
+
+      it('offers both models once a message has been received', () => {
+        const result = grpcHints('bru.grpc.', 'after-message-receive');
+
+        expect(result.list).toEqual(expect.arrayContaining(['request', 'response']));
+      });
+
+      it('offers the metadata write methods only in before-call-start', () => {
+        const writable = grpcHints('bru.grpc.request.metadata.', 'before-call-start');
+        const readOnly = grpcHints('bru.grpc.request.metadata.', 'after-call-end');
+
+        expect(writable.list).toEqual(expect.arrayContaining(['get(key)', 'upsert(key, value)', 'clear()']));
+        expect(readOnly.list).toEqual(expect.arrayContaining(['get(key)']));
+        expect(readOnly.list).not.toEqual(expect.arrayContaining(['upsert(key, value)']));
+      });
+
+      it('offers request.message only in before-message-send', () => {
+        expect(grpcHints('bru.grpc.request.', 'before-message-send').list).toContain('message');
+        expect(grpcHints('bru.grpc.request.', 'before-call-start').list).not.toContain('message');
+      });
+
+      it('offers response.message only in after-message-receive', () => {
+        expect(grpcHints('bru.grpc.response.', 'after-message-receive').list).toContain('message');
+
+        const afterCallEnd = grpcHints('bru.grpc.response.', 'after-call-end');
+        expect(afterCallEnd.list).toContain('statusCode');
+        expect(afterCallEnd.list).not.toContain('message');
+      });
+
+      it('does not leak gRPC hints into an HTTP script editor', () => {
+        expect(hintsFor('bru.grpc.', ['req', 'res', 'bru'])).toBeNull();
+      });
+
+      it('does not leak HTTP globals into a gRPC hook', () => {
+        expect(grpcHints('req.', 'before-call-start')).toBeNull();
+        expect(grpcHints('res.', 'after-call-end')).toBeNull();
+      });
+    });
+
     describe('Custom hints and anyword context', () => {
       it('should provide custom anyword hints', () => {
         mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 7 });
@@ -444,6 +502,33 @@ describe('Bruno Autocomplete', () => {
         expect(result).toBeTruthy();
         expect(result.list.length).toBe(3);
       });
+    });
+  });
+
+  describe('showRootHints', () => {
+    const rootHintsFor = (showHintsFor) => {
+      mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 0 });
+      mockedCodemirror.getLine.mockReturnValue('');
+      mockedCodemirror.getRange.mockReturnValue('');
+
+      const shown = showRootHints(mockedCodemirror, showHintsFor);
+      const list = shown ? mockedCodemirror.showHint.mock.calls[0][0].hint().list : null;
+
+      return { shown, list };
+    };
+
+    it('offers the globals of the requested groups', () => {
+      expect(rootHintsFor(['req', 'bru']).list).toEqual(['bru', 'req']);
+    });
+
+    // The gRPC groups are keyed by hook, but every entry hangs off `bru` — the root list must
+    // report the global, never the group key.
+    it('offers bru for the gRPC hook groups', () => {
+      expect(rootHintsFor(['bru', 'grpc:after-message-receive']).list).toEqual(['bru']);
+    });
+
+    it('shows nothing when no group is requested', () => {
+      expect(rootHintsFor(['variables']).shown).toBe(false);
     });
   });
 

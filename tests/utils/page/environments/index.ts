@@ -1,5 +1,28 @@
-import { expect, Page, test } from '../../../../playwright';
+import { Page, test } from '../../../../playwright';
 import { buildCollectionHeaderLocators } from '../collection/collection-header';
+
+export type EnvironmentScope = 'collection' | 'global';
+export type EnvironmentTableColumn = 'name' | 'value' | 'description';
+
+// The workspace-home "Environments" tab renders the same global-scoped editor as the
+// standalone "Global Environments" tab and shares its label, so both are located by
+// the tab type carried in their testid rather than by text.
+const workspaceEnvTab = (page: Page) => page.getByTestId('request-tab-workspaceEnvironments');
+
+// Create Environment (collection) and Create Global Environment are separate modals.
+const createEnvModal = (page: Page) =>
+  page.getByTestId('create-environment-modal').or(page.getByTestId('create-global-environment-modal'));
+
+// A variables row keyed by its name. The environment editor names its rows
+// `env-var-row-<name>`; collection Vars tables use EditableTable's
+// `data-row-name`, so they're scoped to those tables to stay unambiguous.
+const varRowByName = (page: Page, name: string) =>
+  page
+    .getByTestId(`env-var-row-${name}`)
+    .or(page.getByTestId(/^collection-vars-(req|res)$/).locator(`tr[data-row-name="${name}"]`));
+
+const environmentItemLocator = (page: Page, name: string) => page.locator('.environment-item').filter({ hasText: name });
+const exportModalRoot = (page: Page) => page.locator('.bruno-modal').filter({ hasText: 'Export Environments' });
 
 export const buildEnvironmentLocators = (page: Page) => ({
   selector: () => page.getByTestId('environment-selector-trigger'),
@@ -7,34 +30,36 @@ export const buildEnvironmentLocators = (page: Page) => ({
   globalTab: () => page.getByTestId('env-tab-global'),
   envOption: (name: string) =>
     page.getByTestId('env-list-item').filter({ has: page.getByText(name, { exact: true }) }),
-  listOption: (name: string) => page.locator('.environment-list .dropdown-item', { hasText: name }),
+  listOption: (name: string) => page.getByTestId('env-list-item').filter({ hasText: name }),
   listOptionBadge: (name: string) =>
     page
-      .locator('.environment-list .dropdown-item')
+      .getByTestId('env-list-item')
       .filter({ has: page.getByText(name, { exact: true }) })
       .getByTestId('color-badge'),
-  currentEnvironment: () => page.locator('.current-environment'),
-  configureButton: () => page.locator('#configure-env'),
+  currentEnvironment: () => page.getByTestId('environment-selector-trigger'),
+  configureButton: () => page.getByTestId('configure-env'),
   saveButton: () => page.getByTestId('save-env'),
   varRow: (name: string) => page.getByTestId(`env-var-row-${name}`),
-  // Prefix match — keep as a CSS selector since getByTestId is exact-match only.
-  varRows: () => page.locator('tbody tr[data-testid^="env-var-row-"]'),
+  // Every row's testid carries its variable name, so the prefix matches them all.
+  varRows: () => page.getByTestId(/^env-var-row-/),
   // The Name column's input within a row found by its current name.
-  varRowNameInput: (name: string) => page.getByTestId(`env-var-row-${name}`).locator('input[name$=".name"]'),
+  varRowNameInput: (name: string) => page.getByTestId(`env-var-row-${name}`).getByTestId('env-var-name-input'),
   // Name column's sort-cycle button (Variables tab only).
   sortToggle: () => page.getByTestId('column-sort-toggle'),
+  variablesTable: () => page.getByTestId('env-vars-table'),
+  columnHeader: (column: EnvironmentTableColumn) => page.getByTestId(`env-vars-header-${column}`),
+  // Divider on the right edge of a column header. dragging it resizes that column and the next one.
+  columnResizeHandle: (column: Exclude<EnvironmentTableColumn, 'description'>) =>
+    page.getByTestId(`env-vars-resize-handle-${column}`),
   // Present only when dragging is enabled for this row.
   dragHandle: (name: string) => page.getByTestId(`env-var-row-${name}`).getByTestId('drag-handle'),
   // Every visible row's Name input, in on-screen order.
-  visibleNameInputs: () => page.locator('tbody tr[data-testid^="env-var-row-"]').locator('input[name$=".name"]'),
+  visibleNameInputs: () => page.getByTestId(/^env-var-row-/).getByTestId('env-var-name-input'),
   // Rows for `name` whose CodeMirror value matches `value`. Useful when two rows
   // share a name (e.g. enabled + disabled twins after a script write).
   varRowsByValue: (name: string, value: string | RegExp) =>
     page.getByTestId(`env-var-row-${name}`)
       .filter({ has: page.getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror-line', { hasText: value }) }),
-  // Each env-var row has an `enabled` and a `secret` checkbox; target the latter
-  // by its `<index>.secret` name (the formik index is dynamic).
-  varRowSecretCheckbox: (name: string) => page.getByTestId(`env-var-row-${name}`).locator('input[name$=".secret"]'),
   // Eye icon that masks/reveals a secret variable's value.
   varRowEyeToggle: (name: string) => page.getByTestId(`env-var-row-${name}`).getByTestId('secret-reveal-toggle'),
   varRowValueCell: (name: string) => page.getByTestId(`env-var-row-${name}`).getByTestId(/^test-multiline-editor-\d+\.value$/),
@@ -49,30 +74,38 @@ export const buildEnvironmentLocators = (page: Page) => ({
   varErrors: () => page.getByTestId('env-var-name-error'),
   // The trailing empty "add new variable" row's name input.
   addRowNameInput: () => page.getByTestId('env-var-name-input').last(),
+  // The variables table's scroll container. The table is virtualized, so rows outside the
+  // rendered window reach the DOM only once this element is scrolled to them.
+  variablesScroller: () =>
+    page.locator('.table-container').filter({ has: page.locator('tr[data-testid^="env-var-row-"]') }),
+  // A row addressed by its formik index rather than its name — the only handle on a row that
+  // has no name yet, and one that survives the empty row the table appends while it is filled in.
+  variableValueEditor: (index: number) =>
+    page.locator(`[data-testid="test-multiline-editor-${index}.value"]`).locator('.CodeMirror').first(),
   addVariableButton: () => page.getByTestId('add-variable'),
-  variableNameInput: (index: number) => page.locator(`input[name="${index}.name"]`),
-  variableSecretCheckbox: (index: number) => page.locator(`input[name="${index}.secret"]`),
-  variableRow: (index: number) => page.locator('tr').filter({ has: page.locator(`input[name="${index}.name"]`) }),
+  // The Name column's input in the row at a given formik index (its cell carries the index).
+  variableNameInput: (index: number) => page.getByTestId(`env-var-name-cell-${index}`).getByTestId('env-var-name-input'),
   variableDescriptionEditor: (index: number) =>
-    page.locator(`[data-testid="test-multiline-editor-${index}.description"]`).locator('.CodeMirror'),
+    page.getByTestId(`test-multiline-editor-${index}.description`).locator('.CodeMirror'),
   varRowDescriptionEditor: (name: string) =>
     page.getByTestId(`env-var-row-${name}`).getByTestId(/^test-multiline-editor-\d+\.description$/).locator('.CodeMirror').first(),
-  variableRowByName: (name: string) => page.locator('tbody tr').filter({ has: page.locator(`input[value="${name}"]`) }),
+  variableRowByName: (name: string) => varRowByName(page, name),
   // Targets the `.CodeMirror` wrapper (not `.CodeMirror-line`) so single-line and
   // multi-line values (e.g. formatted JSON for @object vars) are both covered —
   // CodeMirror renders each visual line as a separate `.CodeMirror-line`, so
   // matching on the wrapper is the only way to get the full concatenated text.
   variableValue: (name: string) =>
-    page.locator('tbody tr').filter({ has: page.locator(`input[value="${name}"]`) }).getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first(),
-  createEnvButton: () => page.locator('button[id="create-env"]'),
-  settingsCreateButton: () =>
-    page.locator('.environments-container .sidebar button[title="Create environment"]'),
-  settingsCreateNameInput: () => page.locator('.environment-item.creating .environment-name-input'),
-  settingsCreateSaveButton: () => page.locator('.environment-item.creating .inline-action-btn.save'),
-  createModal: () => page.locator('.bruno-modal').filter({ hasText: /Create( Global)? Environment/ }),
-  createModalNameInput: () => page.locator('.bruno-modal #environment-name'),
-  createModalCreateButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }),
-  envNameInput: () => page.locator('input[name="name"]'),
+    varRowByName(page, name).getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first(),
+  createEnvButton: () => page.getByTestId('create-env'),
+  settingsCreateButton: () => page.getByTestId('create-environment'),
+  settingsCreateNameInput: () => page.getByTestId('env-create-name-input'),
+  settingsCreateSaveButton: () => page.getByTestId('env-create-save'),
+  createModal: () => createEnvModal(page),
+  createModalNameInput: () => page.getByTestId('environment-name-input'),
+  createModalCreateButton: () => createEnvModal(page).getByRole('button', { name: 'Create', exact: true }),
+  envNameInput: () => page.getByTestId('environment-name-input'),
+  settingsListItem: (name: string) => environmentItemLocator(page, name),
+  activatedCheckmark: (name: string) => environmentItemLocator(page, name).locator('.activated-checkmark'),
   // Variables and secrets each live on their own tab in the environment editor.
   variablesTab: () => page.getByTestId('responsive-tab-variables'),
   secretsTab: () => page.getByTestId('responsive-tab-secrets'),
@@ -80,22 +113,52 @@ export const buildEnvironmentLocators = (page: Page) => ({
   // measurement copy (which carries no responsive-tab testid) is excluded.
   tabCount: (tab: string) => page.getByTestId(`responsive-tab-${tab}`).getByTestId('env-tab-count'),
   saveTab: () => page.getByTestId('save-env'),
+  resetTab: () => page.getByTestId('reset-env'),
   saveAll: () => page.getByTestId('save-all-env'),
   searchInput: () => page.getByTestId('env-search-input'),
-  searchClearBtn: () => page.locator('.env-list-search .close-icon'),
+  searchClearBtn: () => page.getByTestId('env-search-input-clear'),
   listItem: (name?: string) => name ? page.getByTestId('env-list-item').filter({ hasText: name }) : page.getByTestId('env-list-item'),
+  // "Inherits from" picker in the environment editor header, and its menu options.
+  // Menu item ids are the parent environment names, lowercased by MenuDropdown.
+  inheritsFromAction: () => page.getByTestId('env-inherits-from-action'),
+  inheritsFromName: () => page.getByTestId('env-inherits-from-action').locator('.inherits-from-name'),
+  inheritsFromOption: (name: string) => page.getByTestId(`env-inherits-from-${name.toLowerCase()}`),
+  inheritsFromNoneOption: () => page.getByTestId('env-inherits-from-no-environment'),
+  missingInheritedEnvironment: () => page.getByTestId('env-missing-inherited-environment'),
+  // Rows merged in from an ancestor environment; they are read-only.
+  inheritedSection: () => page.getByTestId('env-var-section-inherited'),
+  inheritedSectionToggle: () => page.getByTestId('env-var-section-toggle-inherited'),
+  sectionCount: (section: string) => page.getByTestId(`env-var-section-${section}`).locator('.section-count'),
+  inheritedVarRow: (name: string) => page.getByTestId(`env-inherited-var-row-${name}`),
+  inheritedVarValue: (name: string) => page.getByTestId(`env-inherited-var-row-${name}`).locator('.inherited-value'),
+  inheritedVarDataType: (name: string) =>
+    page.getByTestId(`env-inherited-var-row-${name}`).getByTestId('inherited-data-type'),
+  inheritedVarSource: (name: string) => page.getByTestId(`env-inherited-var-row-${name}`).getByTestId('inherited-source'),
+  inheritedVarEyeToggle: (name: string) =>
+    page.getByTestId(`env-inherited-var-row-${name}`).getByTestId('inherited-secret-reveal-toggle'),
+  inheritedVarEnabledCheckbox: (name: string) =>
+    page.getByTestId(`env-inherited-var-row-${name}`).locator('input[type="checkbox"]'),
+  inheritedVarEditableFields: (name: string) =>
+    page.getByTestId(`env-inherited-var-row-${name}`).locator('input:not([type="checkbox"]), .CodeMirror'),
+  detailsTitle: () => page.getByTestId('env-details-title'),
+  copyAction: () => page.getByTestId('env-copy-action'),
+  deleteAction: () => page.getByTestId('env-delete-action'),
   noResults: () => page.getByTestId('env-no-results'),
+  varsNoResults: () => page.getByTestId('env-vars-no-results'),
   noEnvironmentItem: () => page.getByTestId('env-no-environment-item'),
   searchAction: () => page.getByTestId('env-search-action'),
+  renameAction: () => page.getByTestId('env-rename-action'),
+  renameInput: () => page.getByTestId('env-rename-input'),
   savedToast: () => page.getByText('Changes saved successfully').last(),
-  collectionEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Environments$/ }),
-  globalEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Global Environments$/ }),
+  collectionEnvTab: () => page.getByTestId('request-tab-environment-settings'),
+  globalEnvTab: () => page.getByTestId('request-tab-global-environment-settings'),
   unsavedModal: {
     closeWithoutSave: () => page.getByTestId('env-unsaved-close-without-save'),
     cancel: () => page.getByTestId('env-unsaved-cancel'),
     saveAndClose: () => page.getByTestId('env-unsaved-save-and-close')
   },
   importEmptyStateButton: () => page.getByTestId('empty-state-import-env-btn'),
+  importSettingsButton: () => page.getByTestId('import-environment-btn'),
   importModal: (scope: 'collection' | 'global') =>
     page.getByTestId(scope === 'global' ? 'import-global-environment-modal' : 'import-environment-modal'),
   importFileTrigger: (scope: 'collection' | 'global') =>
@@ -104,8 +167,63 @@ export const buildEnvironmentLocators = (page: Page) => ({
     page
       .getByTestId(scope === 'global' ? 'workspace-env-list-item' : 'collection-env-list-item')
       .filter({ hasText: name }),
+  // Exact-name variant — `sidebarListItem` substring-matches, so "Production" also matches
+  // "Production copy"; use this when a batch can contain both a name and its copy suffix.
+  sidebarListItemExact: (scope: 'collection' | 'global', name: string) =>
+    page
+      .getByTestId(scope === 'global' ? 'workspace-env-list-item' : 'collection-env-list-item')
+      .filter({ has: page.getByText(name, { exact: true }) }),
+  exportAction: () => page.locator('button[title="Export environment"]'),
+  exportModal: {
+    root: () => exportModalRoot(page),
+    deselectAll: () => exportModalRoot(page).getByRole('button', { name: 'Deselect All' }),
+    environmentCheckbox: (name: string) =>
+      exportModalRoot(page)
+        .locator('label.environment-item')
+        .filter({ has: page.getByText(name, { exact: true }) })
+        .locator('input[type="checkbox"]'),
+    inheritanceWarning: () => exportModalRoot(page).getByTestId('env-export-inheritance-warning'),
+    location: () => exportModalRoot(page).locator('#export-location'),
+    submit: () => exportModalRoot(page).getByRole('button', { name: /^Export \d+ Environments?$/ })
+  },
   varRowEnabledCheckbox: (name: string) =>
-    page.getByTestId(`env-var-row-${name}`).getByTestId('env-var-enabled-checkbox')
+    page.getByTestId(`env-var-row-${name}`).getByTestId('env-var-enabled-checkbox'),
+  resetButton: () => page.getByTestId('reset-env'),
+  workspaceEnvTab: () => workspaceEnvTab(page),
+  workspaceEnvTabDraftIcon: () => workspaceEnvTab(page).getByTestId('tab-draft-icon'),
+  // The `.env` files section is shared by the collection and workspace environment editors.
+  dotEnvSection: () => page.getByTestId('dotenv-files-section'),
+  createDotEnvFileButton: () => page.getByTestId('create-dotenv-file'),
+  dotEnvNameInput: () => page.getByTestId('dotenv-name-input'),
+  dotEnvFileItem: (filename: string) =>
+    page.getByTestId('dotenv-file-item').filter({ has: page.getByText(filename, { exact: true }) }),
+  dotEnvVarRow: (name: string) => page.getByTestId(`dotenv-var-row-${name}`),
+  // The trailing empty "add new variable" row's name input.
+  dotEnvAddRowNameInput: () => page.getByTestId('dotenv-var-name-input').last(),
+  dotEnvVarValueEditor: (name: string) =>
+    page.getByTestId(`dotenv-var-row-${name}`).getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first(),
+  saveDotEnvButton: () => page.getByTestId('save-dotenv'),
+  resetDotEnvButton: () => page.getByTestId('reset-dotenv'),
+  importSubmitButton: (scope: 'collection' | 'global') =>
+    page.getByTestId(scope === 'global' ? 'import-global-environment-modal-submit-btn' : 'import-environment-modal-submit-btn'),
+  importTotalCount: () => page.getByTestId('env-import-total-count'),
+  importDuplicatesWarning: () => page.getByTestId('import-duplicates-warning'),
+  importInvalidWarning: () => page.getByTestId('import-invalid-warning'),
+  importDuplicatesGroup: () => page.getByTestId('env-import-duplicates-group'),
+  importDuplicatesCount: () => page.getByTestId('env-import-duplicates-count'),
+  importNewGroup: () => page.getByTestId('env-import-new-group'),
+  importNewCount: () => page.getByTestId('env-import-new-count'),
+  importDuplicatesGroupSelectAllCheckbox: () => page.getByTestId('env-import-duplicates-group-checkbox'),
+  importNewGroupSelectAllCheckbox: () => page.getByTestId('env-import-new-group-checkbox'),
+  importSelectedCount: () => page.getByTestId('env-import-selected-count'),
+  importReviewItem: (name: string) => page.getByTestId('env-import-item').filter({ has: page.getByText(name, { exact: true }) }),
+  importItemCheckbox: (name: string) => buildEnvironmentLocators(page).importReviewItem(name).getByTestId('env-import-item-checkbox'),
+  importCreateNewButton: (name: string) => buildEnvironmentLocators(page).importReviewItem(name).getByTestId('env-import-create-new-btn'),
+  importReplaceButton: (name: string) => buildEnvironmentLocators(page).importReviewItem(name).getByTestId('env-import-replace-btn'),
+  importReviewItemNames: () => page.getByTestId('env-import-item').locator('.env-name'),
+  importInvalidGroup: () => page.getByTestId('env-import-invalid-group'),
+  importInvalidCount: () => page.getByTestId('env-import-invalid-count'),
+  importInvalidItem: (fileName: string) => page.getByTestId('env-import-invalid-item').filter({ has: page.getByText(fileName, { exact: true }) })
 });
 
 /**
@@ -146,6 +264,82 @@ export const selectNoEnvironment = async (page: Page) => {
   await test.step('Select "No Environment"', async () => {
     await environment.selector().click();
     await environment.noEnvironmentItem().click();
-    await expect(environment.selector()).toContainText('No Environment');
+    await environment.selector().filter({ hasText: 'No Environment' }).waitFor({ state: 'visible' });
+  });
+};
+
+/**
+ * Opens the workspace-level Environments tab, which edits global-scoped environments.
+ * @param page - The page object
+ */
+export const openWorkspaceEnvironmentsTab = async (page: Page) => {
+  await test.step('Open the workspace Environments tab', async () => {
+    await buildEnvironmentLocators(page).workspaceEnvTab().click();
+    await page
+      .locator('.request-tab.active')
+      .locator('.tab-label')
+      .filter({ hasText: /^\s*Environments\s*$/ })
+      .waitFor({ state: 'visible' });
+  });
+};
+
+/**
+ * Creates an environment from the environment editor's sidebar, using the inline
+ * create row rather than the environment selector dropdown.
+ * @param page - The page object
+ * @param name - Environment name
+ * @param scope - Environment scope the editor is showing
+ */
+export const createEnvironmentFromSidebar = async (
+  page: Page,
+  name: string,
+  scope: EnvironmentScope = 'global'
+) => {
+  await test.step(`Create ${scope} environment "${name}"`, async () => {
+    const environment = buildEnvironmentLocators(page);
+
+    await environment.settingsCreateButton().click();
+    const nameInput = environment.settingsCreateNameInput();
+    await nameInput.waitFor({ state: 'visible' });
+    await nameInput.fill(name);
+    await nameInput.press('Enter');
+
+    await environment.sidebarListItem(scope, name).waitFor({ state: 'visible' });
+  });
+};
+
+/**
+ * Creates a `.env` file from the environment editor's `.env Files` section.
+ * @param page - The page object
+ * @param filename - Name of the file to create (must start with `.env`)
+ */
+export const createDotEnvFile = async (page: Page, filename = '.env') => {
+  await test.step(`Create "${filename}" file`, async () => {
+    const environment = buildEnvironmentLocators(page);
+
+    await environment.dotEnvSection().click();
+    await environment.createDotEnvFileButton().click();
+    await environment.dotEnvNameInput().fill(filename);
+    await environment.dotEnvNameInput().press('Enter');
+
+    await environment.dotEnvFileItem(filename).waitFor({ state: 'visible' });
+  });
+};
+
+/**
+ * Adds a variable to the `.env` file currently open in the environment editor.
+ * @param page - The page object
+ * @param name - Variable name
+ * @param value - Variable value
+ */
+export const addDotEnvVariable = async (page: Page, name: string, value: string) => {
+  await test.step(`Add "${name}" to the open .env file`, async () => {
+    const environment = buildEnvironmentLocators(page);
+
+    await environment.dotEnvAddRowNameInput().fill(name);
+    await environment.dotEnvVarRow(name).waitFor({ state: 'visible' });
+
+    await environment.dotEnvVarValueEditor(name).click();
+    await page.keyboard.type(value);
   });
 };

@@ -143,4 +143,51 @@ describe('Item Schema Validation', () => {
       });
     });
   });
+
+  it('item schema accepts settings.omitHeaders for http-request', async () => {
+    const item = {
+      uid: uuid(),
+      name: 'Omit defaults',
+      type: 'http-request',
+      request: {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: [],
+        params: [],
+        body: {
+          mode: 'none'
+        }
+      },
+      settings: {
+        encodeUrl: true,
+        timeout: 0,
+        omitHeaders: ['User-Agent', 'Accept-Encoding']
+      }
+    };
+
+    const isValid = await itemSchema.validate(item);
+    expect(isValid).toBeTruthy();
+  });
+
+  it('item schema rejects empty strings in settings.omitHeaders', async () => {
+    const item = {
+      uid: uuid(),
+      name: 'Omit defaults',
+      type: 'http-request',
+      request: {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: [],
+        params: [],
+        body: {
+          mode: 'none'
+        }
+      },
+      settings: {
+        omitHeaders: ['']
+      }
+    };
+
+    await expect(itemSchema.validate(item)).rejects.toBeTruthy();
+  });
 });

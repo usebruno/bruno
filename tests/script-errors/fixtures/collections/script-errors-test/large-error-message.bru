@@ -1,0 +1,16 @@
+meta {
+  name: large-error-message
+  type: http
+  seq: 13
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const largeMessage = "X".repeat(10 * 1024);
+  throw new Error(largeMessage);
+}

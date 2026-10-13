@@ -1,0 +1,17 @@
+info:
+  name: binary-preview-json
+  type: http
+  seq: 8
+
+http:
+  method: POST
+  url: http://localhost:8081/api/echo/json
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "hello": "world"
+      }

@@ -1,0 +1,22 @@
+info:
+  name: BrokenAfterCallEnd
+  type: grpc
+  seq: 10
+
+grpc:
+  url: "{{host}}"
+  method: /hello.HelloService/SayHello
+  methodType: unary
+  message:
+    - title: message 1
+      message: |-
+        {
+          "greeting": "after-hook-throws"
+        }
+
+runtime:
+  scripts:
+    - type: grpc:after-call-end
+      code: |-
+        // the throw sits off line 1 so the flashed line number the spec asserts is discriminating
+        throw new Error('afterCallEnd exploded');

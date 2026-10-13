@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import usePrevious from 'hooks/usePrevious';
 import useOnClickOutside from 'hooks/useOnClickOutside';
 import useDebounce from 'hooks/useDebounce';
+import { EnvironmentSelectionProvider } from 'hooks/useEnvironmentSelection';
 import EnvironmentDetails from './EnvironmentDetails';
 import { IconDownload, IconUpload, IconSearch, IconPlus, IconCheck, IconX, IconFileAlert } from '@tabler/icons';
 import Button from 'ui/Button';
@@ -513,18 +514,20 @@ const EnvironmentList = ({
 
     if (selectedEnvironment) {
       return (
-        <EnvironmentDetails
-          environment={selectedEnvironment}
-          setIsModified={setIsModified}
-          originalEnvironmentVariables={originalEnvironmentVariables}
-          collection={collection}
-          searchQuery={envSearchQuery}
-          setSearchQuery={setEnvSearchQuery}
-          isSearchExpanded={isEnvSearchExpanded}
-          setIsSearchExpanded={setIsEnvSearchExpanded}
-          debouncedSearchQuery={debouncedEnvSearchQuery}
-          searchInputRef={envSearchInputRef}
-        />
+        <EnvironmentSelectionProvider environments={environments} onSelect={handleEnvironmentClick}>
+          <EnvironmentDetails
+            environment={selectedEnvironment}
+            setIsModified={setIsModified}
+            originalEnvironmentVariables={originalEnvironmentVariables}
+            collection={collection}
+            searchQuery={envSearchQuery}
+            setSearchQuery={setEnvSearchQuery}
+            isSearchExpanded={isEnvSearchExpanded}
+            setIsSearchExpanded={setIsEnvSearchExpanded}
+            debouncedSearchQuery={debouncedEnvSearchQuery}
+            searchInputRef={envSearchInputRef}
+          />
+        </EnvironmentSelectionProvider>
       );
     }
 
@@ -574,6 +577,7 @@ const EnvironmentList = ({
                       handleCreateEnvClick();
                     }}
                     title="Create environment"
+                    data-testid="create-environment"
                   >
                     <IconPlus size={14} strokeWidth={1.5} />
                   </button>
@@ -587,6 +591,7 @@ const EnvironmentList = ({
                       handleImportClick();
                     }}
                     title="Import environment"
+                    data-testid="import-environment-btn"
                   >
                     <IconDownload size={14} strokeWidth={1.5} />
                   </button>
@@ -703,6 +708,7 @@ const EnvironmentList = ({
                       ref={inputRef}
                       type="text"
                       className="environment-name-input"
+                      data-testid="env-create-name-input"
                       value={newEnvName}
                       onChange={handleEnvNameChange}
                       onKeyDown={handleEnvNameKeyDown}
@@ -718,6 +724,7 @@ const EnvironmentList = ({
                         onClick={handleSaveNewEnv}
                         onMouseDown={(e) => e.preventDefault()}
                         title="Save"
+                        data-testid="env-create-save"
                       >
                         <IconCheck size={14} strokeWidth={2} />
                       </button>
@@ -764,6 +771,7 @@ const EnvironmentList = ({
                 {dotEnvFiles.map((file) => (
                   <div
                     key={file.filename}
+                    data-testid="dotenv-file-item"
                     className={classnames('environment-item', {
                       active: activeView === 'dotenv' && selectedDotEnvFile === file.filename
                     })}

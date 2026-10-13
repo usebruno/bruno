@@ -1,3 +1,4 @@
+import jsyaml from 'js-yaml';
 import { exportApiSpec } from './openapi-spec';
 import path from 'path';
 import openApiToBruno from '../../../../bruno-converters/src/openapi/openapi-to-bruno';
@@ -1000,5 +1001,138 @@ describe('exportApiSpec - descriptions', () => {
         expect.objectContaining({ name: 'X-Version', in: 'header', description: 'API version header' })
       ])
     );
+  });
+});
+
+describe('exportApiSpec - collections that do not have any requests in them', () => {
+  it('still produces a usable spec file when the collection has no requests in it yet', () => {
+    const result = exportApiSpec({ name: 'EmptyColl', variables: {}, items: [], environments: [] });
+    const spec = jsyaml.load(result.content);
+    expect(spec.openapi).toBe('3.0.0');
+    expect(spec.info).toEqual({ title: 'EmptyColl', version: '1.0.0' });
+    expect(spec.paths).toEqual({});
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('keeps the server addresses from each environment even when there are no requests', () => {
+    const result = exportApiSpec({
+      name: 'EmptyColl',
+      variables: { baseUrl: 'https://api.test' },
+      items: [],
+      environments: [{ name: 'Local', variables: [{ name: 'baseUrl', value: 'https://local.test', enabled: true }] }]
+    });
+    const spec = jsyaml.load(result.content);
+    expect(spec.paths).toEqual({});
+    expect(spec.servers.map((server) => server.url)).toEqual(['https://api.test', 'https://local.test']);
+  });
+
+  it('treats a collection that only contains folders as having no requests', () => {
+    const result = exportApiSpec({
+      name: 'FoldersOnly',
+      variables: {},
+      items: [{ type: 'folder', name: 'A' }],
+      environments: []
+    });
+    expect(jsyaml.load(result.content).paths).toEqual({});
+  });
+
+  it('refuses to guess when the list of requests is missing altogether', () => {
+    expect(() => exportApiSpec({ name: 'NoList', variables: {}, environments: [] })).toThrow();
+  });
+});
+
+describe('exportApiSpec - a variable that could not be resolved', () => {
+  const itemWithUrl = (url) => ({
+    name: 'Request',
+    type: 'http-request',
+    request: { url, method: 'GET', params: [], headers: [], body: {}, auth: {} }
+  });
+
+  const pathsIn = (content) =>
+    String(content)
+      .split('\n')
+      .filter((line) => /^ {2}\//.test(line))
+      .map((line) => line.trim().replace(/:$/, ''));
+
+  it('leaves the placeholder readable in the path instead of percent encoding its braces', () => {
+    const { content } = exportApiSpec({
+      variables: { baseUrl: 'https://api.test' },
+      items: [itemWithUrl('https://other.test/api/v1/{{secret-var}}/github')],
+      name: 'Test API'
+    });
+
+    expect(pathsIn(content)).toEqual(['/api/v1/{{secret-var}}/github']);
+    expect(content).not.toContain('%7B');
+  });
+
+  it('writes the placeholder the same way whether or not the url starts with the base url', () => {
+    const viaBaseUrl = exportApiSpec({
+      variables: { baseUrl: 'https://api.test' },
+      items: [itemWithUrl('{{baseUrl}}/api/v1/{{secret-var}}/github')],
+      name: 'Test API'
+    });
+    const viaLiteralHost = exportApiSpec({
+      variables: { baseUrl: 'https://api.test' },
+      items: [itemWithUrl('https://other.test/api/v1/{{secret-var}}/github')],
+      name: 'Test API'
+    });
+
+    expect(pathsIn(viaLiteralHost.content)).toEqual(pathsIn(viaBaseUrl.content));
+  });
+
+  it('keeps a character the user genuinely encoded, which still means what it meant', () => {
+    const { content } = exportApiSpec({
+      variables: { baseUrl: 'https://api.test' },
+      items: [itemWithUrl('https://other.test/api/v1/a%20b')],
+      name: 'Test API'
+    });
+
+    expect(pathsIn(content)).toEqual(['/api/v1/a%20b']);
+  });
+});
+
+describe('exportApiSpec - a secret that has a value', () => {
+  const itemWithUrl = (url) => ({
+    name: 'Request',
+    type: 'http-request',
+    request: { url, method: 'GET', params: [], headers: [], body: {}, auth: {} }
+  });
+
+  const pathsIn = (content) =>
+    String(content)
+      .split('\n')
+      .filter((line) => /^ {2}\//.test(line))
+      .map((line) => line.trim().replace(/:$/, ''));
+
+  const variables = { 'baseUrl': 'https://api.test', 'secret-var': 'secret-value' };
+
+  it('writes the value into the path when the url starts with the base url', () => {
+    const { content } = exportApiSpec({
+      variables,
+      items: [itemWithUrl('{{baseUrl}}/api/v1/{{secret-var}}/some-value/github')],
+      name: 'Test API'
+    });
+
+    expect(pathsIn(content)).toEqual(['/api/v1/secret-value/some-value/github']);
+  });
+
+  it('writes the value into the path when the url names the host outright', () => {
+    const { content } = exportApiSpec({
+      variables,
+      items: [itemWithUrl('https://other.test/api/v1/{{secret-var}}/some-value/github')],
+      name: 'Test API'
+    });
+
+    expect(pathsIn(content)).toEqual(['/api/v1/secret-value/some-value/github']);
+  });
+
+  it('resolves an ordinary variable in the path too, which used to be left as written', () => {
+    const { content } = exportApiSpec({
+      variables: { baseUrl: 'https://api.test', userId: '42' },
+      items: [itemWithUrl('{{baseUrl}}/users/{{userId}}')],
+      name: 'Test API'
+    });
+
+    expect(pathsIn(content)).toEqual(['/users/42']);
   });
 });

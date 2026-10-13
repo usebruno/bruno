@@ -170,6 +170,9 @@ const FileTab = ({
         const filePath = window.ipcRenderer.getFilePath(file);
         const rawContent = await file.text();
         await handleSubmit({ rawData: data, type, filePath, rawContent });
+      } else if (type === 'wsdl') {
+        const filePath = window.ipcRenderer.getFilePath(file);
+        await handleSubmit({ rawData: data, type, filePath });
       } else {
         await handleSubmit({ rawData: data, type });
       }

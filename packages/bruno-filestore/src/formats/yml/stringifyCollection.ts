@@ -5,6 +5,7 @@ import type { ClientCertificate, PemCertificate, Pkcs12Certificate } from '@open
 import type { Variable } from '@opencollection/types/common/variables';
 import type { Action } from '@opencollection/types/common/actions';
 import type { Scripts } from '@opencollection/types/common/scripts';
+import { normalizeOpenApiSyncConfigs } from '@usebruno/common';
 import { stringifyYml } from './utils';
 import { toOpenCollectionAuth } from './common/auth';
 import { toOpenCollectionHttpHeaders } from './common/headers';
@@ -12,6 +13,7 @@ import { toOpenCollectionVariables } from './common/variables';
 import { toOpenCollectionActions } from './common/actions';
 import { toOpenCollectionScripts } from './common/scripts';
 import type { Auth } from '@opencollection/types/common/auth';
+import { HTTP_SCRIPT_KEYS } from '@usebruno/common';
 
 const hasCollectionConfig = (brunoConfig: any): boolean => {
   // protobuf
@@ -209,7 +211,8 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
 
       // scripts
       if (hasRequestScripts(collectionRoot)) {
-        const ocScripts: Scripts | undefined = toOpenCollectionScripts(collectionRoot.request);
+        // TODO: Widen scope to include GRPC scripts once Collection/Folder level inheritance is added to gRPC.
+        const ocScripts: Scripts | undefined = toOpenCollectionScripts(collectionRoot.request, HTTP_SCRIPT_KEYS);
         if (ocScripts) {
           oc.request.scripts = ocScripts;
         }
@@ -280,18 +283,12 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
     }
 
     // bruno-specific extensions
-    if (Array.isArray(brunoConfig.openapi) && brunoConfig.openapi.length > 0) {
+    const openApiEntries = normalizeOpenApiSyncConfigs(brunoConfig.openapi);
+    if (openApiEntries.length > 0) {
       if (!oc.extensions.bruno) {
         oc.extensions.bruno = {};
       }
-      (oc.extensions.bruno as any).openapi = brunoConfig.openapi.map((entry: any) => ({
-        sourceUrl: entry.sourceUrl,
-        groupBy: entry.groupBy,
-        ...(entry.lastSyncDate && { lastSyncDate: entry.lastSyncDate }),
-        ...(entry.specHash && { specHash: entry.specHash }),
-        autoCheck: entry.autoCheck !== false,
-        autoCheckInterval: entry.autoCheckInterval || 5
-      }));
+      (oc.extensions.bruno as any).openapi = openApiEntries;
     }
 
     return stringifyYml(oc);

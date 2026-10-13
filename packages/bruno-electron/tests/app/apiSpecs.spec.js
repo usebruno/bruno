@@ -8,8 +8,8 @@ jest.mock('electron', () => ({
   ipcMain: { emit: jest.fn() }
 }));
 
-const { ipcMain } = require('electron');
-const { openApiSpec } = require('../../src/app/apiSpecs');
+const { dialog, ipcMain } = require('electron');
+const { openApiSpec, openApiSpecDialog } = require('../../src/app/apiSpecs');
 
 describe('openApiSpec', () => {
   let tmpDir;
@@ -91,6 +91,44 @@ describe('openApiSpec', () => {
     expect(win.webContents.send).not.toHaveBeenCalledWith('main:display-error', expect.anything());
   });
 
+  test('sends the referenced files inlined as resolvedJson for a multi-file spec', async () => {
+    writeSpecFile('endpoint.yaml', 'get:\n  summary: Hello endpoint\n  operationId: hello\n');
+    const specPath = writeSpecFile(
+      'openapi.yaml',
+      'openapi: 3.1.0\ninfo:\n  title: Test API\n  version: 1.0.0\npaths:\n  /hello:\n    $ref: "./endpoint.yaml"\n'
+    );
+    watcher.hasWatcher.mockReturnValue(true);
+
+    await openApiSpec(win, watcher, specPath);
+
+    expect(win.webContents.send).toHaveBeenCalledWith(
+      'main:apispec-tree-updated',
+      'addFile',
+      expect.objectContaining({
+        json: expect.objectContaining({ paths: { '/hello': { $ref: './endpoint.yaml' } } }),
+        resolvedJson: expect.objectContaining({
+          paths: { '/hello': { get: { summary: 'Hello endpoint', operationId: 'hello' } } }
+        })
+      })
+    );
+  });
+
+  test('sends resolvedJson as null for a single-file spec', async () => {
+    const specPath = writeSpecFile(
+      'openapi.yaml',
+      'openapi: 3.1.0\ninfo:\n  title: Test API\n  version: 1.0.0\npaths:\n  /hello:\n    get:\n      responses:\n        "200":\n          description: ok\n'
+    );
+    watcher.hasWatcher.mockReturnValue(true);
+
+    await openApiSpec(win, watcher, specPath);
+
+    expect(win.webContents.send).toHaveBeenCalledWith(
+      'main:apispec-tree-updated',
+      'addFile',
+      expect.objectContaining({ resolvedJson: null })
+    );
+  });
+
   test('opens a broken JSON file with a valid extension without throwing, resolving json to null', async () => {
     const specPath = writeSpecFile('broken.json', '{\n  "openapi": "3.0.0",\n  "info": {\n    "title": "Test"\n    "version": "1.0.0"\n  },\n  "paths": {\n');
     watcher.hasWatcher.mockReturnValue(true);
@@ -103,5 +141,63 @@ describe('openApiSpec', () => {
       expect.objectContaining({ pathname: specPath, json: null })
     );
     expect(win.webContents.send).not.toHaveBeenCalledWith('main:display-error', expect.anything());
+  });
+});
+
+describe('the path openApiSpec reports back', () => {
+  let tmpDir;
+  let win;
+  let watcher;
+
+  const writeSpecFile = (filename, content) => {
+    const filePath = path.join(tmpDir, filename);
+    fs.writeFileSync(filePath, content);
+    return filePath;
+  };
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-apispec-opened-'));
+    win = { webContents: { send: jest.fn() } };
+    watcher = { hasWatcher: jest.fn().mockReturnValue(false) };
+    dialog.showOpenDialog.mockReset();
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('is the spec that was opened, so the caller can show it without waiting for the watcher', async () => {
+    const specPath = writeSpecFile('openapi.yaml', 'openapi: 3.0.0\n');
+
+    await expect(openApiSpec(win, watcher, specPath)).resolves.toBe(specPath);
+  });
+
+  test('is null for a file Bruno cannot open, so nothing is shown for it', async () => {
+    const specPath = writeSpecFile('spec.txt', 'not a spec');
+
+    await expect(openApiSpec(win, watcher, specPath)).resolves.toBeNull();
+  });
+
+  test('comes back through the dialog when the user picks a spec', async () => {
+    const specPath = writeSpecFile('openapi.yaml', 'openapi: 3.0.0\n');
+    dialog.showOpenDialog.mockResolvedValue({ canceled: false, filePaths: [specPath] });
+
+    await expect(openApiSpecDialog(win, watcher)).resolves.toBe(specPath);
+  });
+
+  test('is null when the user closes the dialog without picking anything', async () => {
+    dialog.showOpenDialog.mockResolvedValue({ canceled: true, filePaths: [] });
+
+    await expect(openApiSpecDialog(win, watcher)).resolves.toBeNull();
+  });
+
+  test('is null when the user picks a file Bruno cannot open', async () => {
+    const specPath = writeSpecFile('spec.txt', 'not a spec');
+    dialog.showOpenDialog.mockResolvedValue({ canceled: false, filePaths: [specPath] });
+
+    await expect(openApiSpecDialog(win, watcher)).resolves.toBeNull();
+    expect(win.webContents.send).toHaveBeenCalledWith('main:display-error', {
+      message: INVALID_EXTENSION_MESSAGE
+    });
   });
 });

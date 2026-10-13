@@ -1,5 +1,6 @@
 const chai = require('chai');
 const Bru = require('../bru');
+const { getUnresolvedVariableCollector } = require('../unresolved-variables');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
 const { cleanJson } = require('../utils');
@@ -51,13 +52,14 @@ class TestRuntime {
       collectionName,
       promptVariables,
       certsAndProxyConfig,
-      requestUrl: request?.url
+      requestUrl: request?.url,
+      onUnresolved: getUnresolvedVariableCollector(request)
     });
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
 
     // extend bru with result getter methods
-    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
+    const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(bru, assertionResults, chai);
 
     if (!testsFile || !testsFile.length) {
       return {
@@ -103,8 +105,8 @@ class TestRuntime {
 
     let scriptError = null;
 
-    try {
-      if (this.runtime === SANDBOX.NODEVM) {
+    if (this.runtime === SANDBOX.NODEVM) {
+      try {
         await runScriptInNodeVm({
           script: testsFile,
           context,
@@ -112,17 +114,22 @@ class TestRuntime {
           scriptingConfig,
           scriptPath
         });
-      } else {
-        // default runtime is `quickjs`
+      } catch (error) {
+        scriptError = error;
+      }
+      await waitForPendingTests();
+    } else {
+      // default runtime is `quickjs`
+      try {
         await executeQuickJsVmAsync({
           script: testsFile,
           context: context,
           collectionPath,
           scriptPath
         });
+      } catch (error) {
+        scriptError = error;
       }
-    } catch (error) {
-      scriptError = error;
     }
 
     const result = {

@@ -128,10 +128,6 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.brand};
     background-color: ${(props) => rgba(props.theme.brand, 0.1)};
   }
-
-  .cm-search-line-highlight {
-    background: ${(props) => props.theme.codemirror.searchLineHighlightCurrent};
-  }
 `;
 
 export default StyledWrapper;

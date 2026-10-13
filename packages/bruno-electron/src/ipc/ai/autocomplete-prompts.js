@@ -208,9 +208,14 @@ const buildApiUsageRe = (name) => new RegExp(`(?<![\\w$.?])${name}\\s*\\??\\s*[.
 // or arrow param) — in which case a suggestion referencing it is legitimate.
 const buildApiBindingRe = (name) =>
   new RegExp(`\\b(?:const|let|var)\\s+${name}\\b|[(,]\\s*${name}\\s*[,)=]|\\b${name}\\s*=>`);
+// Cursor inside a declarator's own initializer (`const res = res.`), where `<name>` is
+// still the global. Brackets excluded so `const y = foo(a, res` reads as using `res`,
+// not declaring it.
+const buildPendingDeclRe = (name) =>
+  new RegExp(`\\b(?:const|let|var)\\s+(?:[^;{}()\\[\\]\\n]*,\\s*)?${name}\\b\\s*(?:=[^;{}\\n]*)?$`);
 
-const RES = { usage: buildApiUsageRe('res'), binding: buildApiBindingRe('res') };
-const PM = { usage: buildApiUsageRe('pm'), binding: buildApiBindingRe('pm') };
+const RES = { usage: buildApiUsageRe('res'), binding: buildApiBindingRe('res'), pendingDecl: buildPendingDeclRe('res') };
+const PM = { usage: buildApiUsageRe('pm'), binding: buildApiBindingRe('pm'), pendingDecl: buildPendingDeclRe('pm') };
 
 const TRAILING_MEMBER_EXPR_RE = /[\w$.?[\]()]*$/;
 const TRAILING_WORD_RE = /[\w$]+$/;
@@ -220,8 +225,8 @@ const LEADING_WORD_RE = /^[\w$]+/;
 const PREFIX_TAIL_LIMIT = 512;
 const prefixTail = (prefix) => prefix.slice(-PREFIX_TAIL_LIMIT);
 
-const suggestionUsesBareName = (suggestion, prefix, { usage, binding }) => {
-  if (binding.test(prefix)) return false;
+const suggestionUsesBareName = (suggestion, prefix, { usage, binding, pendingDecl }) => {
+  if (binding.test(prefix) && !pendingDecl.test(prefixTail(prefix))) return false;
   const trailingExpr = (prefixTail(prefix).match(TRAILING_MEMBER_EXPR_RE) || [''])[0];
   return usage.test(suggestion) || usage.test(trailingExpr + suggestion);
 };
@@ -256,10 +261,20 @@ const duplicatesPrecedingWord = (prefix, suggestion) => {
   return (pendingWord + head).endsWith(preceding[1]);
 };
 
+// A member accessor applied to a name still being declared, before any `=`:
+// `const req` + `.setUrl(…)` gives `const req.setUrl(…)`, which is not valid JavaScript.
+// Matched against prefix and suggestion joined, because the suggestion may carry part of
+// the name itself (`const re` + `req.setUrl(…)`) and only the join reveals the splice.
+const DECLARATOR_SPLICE_RE = /\b(?:const|let|var)\s+(?:[^;{}()[\]\n]*,\s*)?[\w$]+\s*\??\s*[.([]/;
+
+const splicesIntoDeclarator = (suggestion, prefix) =>
+  DECLARATOR_SPLICE_RE.test(prefixTail(String(prefix || '')) + suggestion);
+
 const sanitizeSuggestion = ({ text, prefix, scriptType }) => {
   const cleaned = cleanSuggestion(text || '');
   const allowed = stripDisallowedApis(cleaned, scriptType, prefix);
   const deduped = stripTypedPrefixOverlap(prefix, allowed);
+  if (splicesIntoDeclarator(deduped, prefix)) return '';
   if (duplicatesPrecedingWord(prefix, deduped)) return '';
   return ensureNewlineAfterComment(prefix, deduped);
 };
@@ -273,5 +288,6 @@ module.exports = {
   stripDisallowedApis,
   stripTypedPrefixOverlap,
   duplicatesPrecedingWord,
+  splicesIntoDeclarator,
   sanitizeSuggestion
 };

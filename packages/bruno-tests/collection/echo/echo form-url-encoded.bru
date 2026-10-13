@@ -10,6 +10,10 @@ post {
   auth: none
 }
 
+headers {
+  Content-Type: application/x-www-form-urlencoded; charset=UTF-8
+}
+
 body:form-urlencoded {
   form-data-key: {{form-data-key}}
   form-data-stringified-object: {{form-data-stringified-object}}

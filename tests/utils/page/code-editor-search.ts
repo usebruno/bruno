@@ -157,6 +157,29 @@ export const setCodeEditorSelection = async (
 };
 
 /**
+ * Focus the editor without changing the cursor, selection, or scroll position.
+ *
+ * Closing the search bar unmounts its input and temporarily leaves the editor
+ * unfocused. Refocus it before the next keyboard action. Using preventScroll
+ * avoids scrolling the cursor into view.
+ */
+export const focusCodeEditor = async (page: Page, editorId: string) => {
+  const cm = page.getByTestId(editorId).locator('.CodeMirror').first();
+
+  await cm.evaluate((el: any) => {
+    const instance = el.CodeMirror;
+    if (!instance) return;
+
+    const input = instance.getInputField?.();
+    if (input?.focus) {
+      input.focus({ preventScroll: true });
+    } else {
+      instance.focus();
+    }
+  });
+};
+
+/**
  * Scroll the editor so that the given line is visible.
  */
 export const scrollCodeEditorToLine = async (page: Page, editorId: string, line: number) => {

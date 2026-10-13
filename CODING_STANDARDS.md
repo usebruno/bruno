@@ -132,3 +132,10 @@ For each test file:
 - Avoid single line abstractions where all that's being done is increasing the call stack with one additional function.
 - Add in meaningful comments instead of obvious ones where complex code flow is explained properly.
 - Avoid optional chaining (`?.`) where it doesn't make sense — it hides whether a value can genuinely be null and works against TypeScript's guarantees. Only use it when the null case is handled right there (fallback, early return, or guard); otherwise fix the type or narrow first.
+
+## Data Copies and Mutations
+
+- MUST: Do not use `cloneDeep` (or equivalent deep clones) in new code. Deep-cloning large objects (collections, environments, request trees) allocates huge heap copies that are often unnecessary.
+- MUST: If a mutation requires a copy, make that copy at the call site - copy only the data that will actually be mutated, as shallowly as possible.
+- Prefer in-place updates of owned draft/local state, immutable updates of the changed path only (`{ ...obj, field: next }`, array spreads, etc.), or a targeted clone of the subtree being edited — not a defensive deep clone of the whole object graph inside helpers.
+- Existing `cloneDeep` call sites may remain until touched; when modifying such code, replace the deep clone with a call-site copy of the minimal data needed.

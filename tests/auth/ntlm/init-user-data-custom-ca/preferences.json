@@ -1,0 +1,14 @@
+{
+  "lastOpenedCollections": [
+    "{{collectionPath}}/ntlm-tls"
+  ],
+  "preferences": {
+    "request": {
+      "sslVerification": true,
+      "customCaCertificate": {
+        "enabled": true,
+        "filePath": "{{certPath}}"
+      }
+    }
+  }
+}

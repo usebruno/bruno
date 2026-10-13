@@ -1,5 +1,8 @@
 import styled from 'styled-components';
 
+export const CHECKBOX_COLUMN_WIDTH = 25;
+export const ACTIONS_COLUMN_WIDTH = 40;
+
 const Wrapper = styled.div`
   display: flex;
   flex-direction: column;
@@ -7,7 +10,6 @@ const Wrapper = styled.div`
   overflow: hidden;
 
   &.is-resizing {
-    cursor: col-resize !important;
     user-select: none;
   }
 
@@ -16,6 +18,10 @@ const Wrapper = styled.div`
     border-radius: 8px;
     border: solid 1px ${(props) => props.theme.border.border0};
     transition: height 75ms cubic-bezier(0,1.12,.84,.64);
+  }
+
+  &.is-measuring .table-container {
+    transition: none;
   }
 
   table {
@@ -29,20 +35,12 @@ const Wrapper = styled.div`
       padding: 2px 10px;
 
       &:nth-child(1) {
-        width: 25px;
+        width: ${CHECKBOX_COLUMN_WIDTH}px;
         border-right: none;
       }
 
-      &:nth-child(4) {
-        width: 80px;
-      }
-      
       &:nth-child(5) {
-        width: 10%;
-      }
-      
-      &:nth-child(6) {
-        width: 5%;
+        width: ${ACTIONS_COLUMN_WIDTH}px;
       }
     }
 
@@ -70,7 +68,7 @@ const Wrapper = styled.div`
           position: absolute;
           right: 0;
           top: 0;
-          width: 4px;
+          width: 3px;
           cursor: col-resize;
           background: transparent;
           z-index: 100;
@@ -84,6 +82,11 @@ const Wrapper = styled.div`
     }
 
     tbody {
+      tr.section-header-row td {
+        border-right: none;
+        padding: 0;
+      }
+
       tr {
         transition: background 0.1s ease;
 
@@ -101,6 +104,26 @@ const Wrapper = styled.div`
         }
       }
     }
+  }
+
+  .section-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 10px;
+    color: ${(props) => props.theme.text};
+    font-size: ${(props) => props.theme.font.size.base};
+    font-weight: 600;
+
+    .section-count {
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+  }
+
+  .inherited-row {
+    color: ${(props) => props.theme.colors.text.muted};
   }
 
   .tooltip-mod {

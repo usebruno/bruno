@@ -105,6 +105,7 @@ const makeJUnitOutput = async (results, outputPath) => {
 
     if (result?.skipped) {
       suite['@skipped'] = 1;
+      suite.skipped = [{ '@message': result.skipReason === 'bail' ? 'Request skipped due to bail' : 'Request Skipped' }];
     } else if (result.error) {
       suite['@errors'] = 1;
       suite['@tests'] = 1;

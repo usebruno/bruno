@@ -1,0 +1,42 @@
+name: base
+variables:
+  - name: host
+    value: http://localhost:8081
+  - name: api_url
+    value: https://base.example.com
+  - name: base_only
+    value: base_only_value
+  - name: api_key
+    value: plain_api_key
+  - name: session_id
+    value: base_session
+  - name: disabled_in_base
+    value: should_not_resolve
+    disabled: true
+  - name: shadowed_by_disabled
+    value: from_base
+  - name: overridden_plain
+    value: plain_from_base
+  - name: base_number
+    value:
+      type: number
+      data: "42"
+  - name: base_boolean
+    value:
+      type: boolean
+      data: "true"
+  - name: base_object
+    value:
+      type: object
+      data: '{"region":"eu"}'
+  - name: typed_override
+    value:
+      type: number
+      data: "1"
+  - secret: true
+    name: base_token
+  - secret: true
+    name: base_secret_object
+    type: object
+  - secret: true
+    name: overridden_secret

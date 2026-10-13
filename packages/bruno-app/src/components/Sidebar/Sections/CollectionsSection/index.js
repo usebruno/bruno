@@ -30,7 +30,7 @@ import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectionLocation';
 import CloneGitRepository from 'components/Sidebar/CloneGitRespository';
-import RemoveCollectionsModal from 'components/Sidebar/Collections/RemoveCollectionsModal/index';
+import RemoveCollections from 'components/Sidebar/Collections/Collection/RemoveCollections/index';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import PostmanPackageReport from 'components/Sidebar/PostmanPackageReport';
 import usePostmanPackagePrompt from 'hooks/usePostmanPackagePrompt';
@@ -39,6 +39,7 @@ import Collections from 'components/Sidebar/Collections';
 import SidebarSection from 'components/Sidebar/SidebarSection';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import useKeybinding from 'hooks/useKeybinding';
+import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
 
 const CollectionsSection = () => {
   const dispatch = useDispatch();
@@ -67,6 +68,7 @@ const CollectionsSection = () => {
     setImportCollectionModalOpen(true);
     return false;
   });
+  const getKeybindingDisplayText = useKeybindingDisplayText();
 
   // Default to true (don't show modal) so that:
   // 1. Existing users who upgrade (no hasSeenWelcomeModal in their prefs) don't see it
@@ -258,6 +260,7 @@ const CollectionsSection = () => {
       id: 'import',
       leftSection: IconDownload,
       label: 'Import collection',
+      shortcut: getKeybindingDisplayText('importCollection'),
       onClick: () => {
         setImportCollectionModalOpen(true);
       }
@@ -325,7 +328,7 @@ const CollectionsSection = () => {
       </MenuDropdown>
 
       {collectionsToClose.length > 0 && (
-        <RemoveCollectionsModal collectionUids={collectionsToClose} onClose={clearCollectionsToClose} />
+        <RemoveCollections collectionUids={collectionsToClose} onClose={clearCollectionsToClose} />
       )}
     </>
   );

@@ -11,7 +11,7 @@ import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
 import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
 import { processOpenCollection } from 'utils/importers/opencollection';
-import { wsdlToBruno } from '@usebruno/converters';
+import { convertWsdlToBruno } from 'utils/importers/wsdl-collection';
 import { toastError } from 'utils/common/error';
 import { addLog } from 'providers/ReduxStore/slices/logs';
 import Portal from 'components/Portal';
@@ -56,7 +56,7 @@ const getCollectionName = (format, rawData) => {
 
 // Convert raw data to Bruno collection format
 // Returns { collection, issues } where issues tracks items that were skipped or degraded
-const convertCollection = async (format, rawData, { groupingType, collectionFormat, preserveScripts } = {}) => {
+const convertCollection = async (format, rawData, { groupingType, collectionFormat, preserveScripts, filePath } = {}) => {
   try {
     let collection;
     let issues = [];
@@ -66,7 +66,7 @@ const convertCollection = async (format, rawData, { groupingType, collectionForm
         collection = convertOpenapiToBruno(rawData, { groupBy: groupingType, collectionFormat });
         break;
       case 'wsdl':
-        collection = await wsdlToBruno(rawData);
+        collection = await convertWsdlToBruno(rawData, filePath);
         break;
       case 'postman': {
         const result = await postmanToBruno(rawData, { preserveScripts });
@@ -145,7 +145,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
         .required('Location is required')
     }),
     onSubmit: async (values) => {
-      const { collection: convertedCollection, issues } = await convertCollection(format, rawData, { groupingType, collectionFormat, preserveScripts });
+      const { collection: convertedCollection, issues } = await convertCollection(format, rawData, { groupingType, collectionFormat, preserveScripts, filePath });
       const options = { format: collectionFormat };
 
       if (showCheckForSpecUpdatesOption && enableCheckForSpecUpdates) {

@@ -11,19 +11,42 @@ const StyledWrapper = styled.div`
   /* Ensure the search bar (position: absolute; top: 8px; ~66px tall with replace open)
      never clips in a short editor that can grow freely (e.g. flex parent).
      Fixed-height parents like SingleWSMessage handle this via onSearchBarVisibilityChange. */
-  &.search-bar-visible {
+  &.search-bar-visible .editor-shell {
     min-height: 90px;
+  }
+
+  .editor-shell {
+    flex: 1 1 0;
+    min-height: 0;
+    width: 100%;
+    border: 1px solid ${(props) => props.theme.codemirror.border};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    overflow: hidden;
+  }
+
+  .editor-container {
+    flex: 1 1 0;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
   }
 
   div.CodeMirror {
     background: ${(props) => props.theme.codemirror.bg};
-    border: solid 1px ${(props) => props.theme.codemirror.border};
+    border: none;
     font-family: ${(props) => (props.font ? props.font : 'default')};
     font-size: ${(props) => (props.fontSize ? `${props.fontSize}px` : 'inherit')};
     line-break: anywhere;
     flex: 1 1 0;
+    min-height: 0;
+    height: auto !important;
     display: flex;
     flex-direction: column-reverse;
+  }
+
+  .editor-container > div.CodeMirror {
+    height: 100% !important;
   }
 
   .CodeMirror-placeholder {
@@ -136,10 +159,6 @@ const StyledWrapper = styled.div`
     text-decoration: unset;
   }
 
-  .cm-search-line-highlight {
-    background: ${(props) => props.theme.codemirror.searchLineHighlightCurrent};
-  }
-
   @keyframes cm-error-line-flash {
     0%, 60% {
       background-color: ${(props) => props.theme.status.danger.background};
@@ -164,14 +183,6 @@ const StyledWrapper = styled.div`
       animation: none;
       background-color: ${(props) => props.theme.status.danger.background};
     }
-  }
-
-  .cm-search-match {
-    background: rgba(255, 193, 7, 0.25);
-  }
-
-  .cm-search-current {
-    background: rgba(255, 193, 7, 0.4);
   }
 
   .lint-error-tooltip {
