@@ -4,8 +4,6 @@
  * axios hands the transport an HTTP/1.1-shaped request: method, URL and a flat headers object. HTTP/2
  * expresses the request line as pseudo-headers (`:method`, `:scheme`, `:authority`, `:path`), requires
  * lowercase names, and forbids the connection-specific headers that only mean something on a single
- * HTTP/1.1 connection (RFC 9113 §8.2.2). A server MUST treat a request carrying them as malformed, so they
- * are stripped here rather than left for the server to reject.
  */
 import type { OutgoingHttpHeaders } from 'node:http2';
 
