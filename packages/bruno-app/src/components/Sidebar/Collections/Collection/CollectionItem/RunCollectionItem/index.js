@@ -124,6 +124,7 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
             <span className="block text-sm">Data file</span>
             <div className="w-full">
               <RunnerDataFile
+                defaultDirectory={item ? item.pathname : collection.pathname}
                 dataFile={iterationConfig.dataFile}
                 onChange={(dataFile) => setIterationConfig({ ...iterationConfig, dataFile })}
               />

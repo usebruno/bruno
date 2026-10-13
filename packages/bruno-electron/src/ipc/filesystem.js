@@ -29,9 +29,9 @@ const registerFilesystemIpc = (mainWindow) => {
     }
   });
 
-  ipcMain.handle('renderer:browse-files', async (_, filters, properties) => {
+  ipcMain.handle('renderer:browse-files', async (_, filters, properties, defaultPath) => {
     try {
-      return await browseFiles(mainWindow, filters, properties);
+      return await browseFiles(mainWindow, filters, properties, defaultPath);
     } catch (error) {
       throw error;
     }

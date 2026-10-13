@@ -2788,11 +2788,11 @@ export const browseDirectories = () => (dispatch, getState) => {
   });
 };
 
-export const browseFiles = (filters, properties) => (_dispatch, _getState) => {
+export const browseFiles = (filters, properties, defaultPath) => (_dispatch, _getState) => {
   const { ipcRenderer } = window;
 
   return new Promise((resolve, reject) => {
-    ipcRenderer.invoke('renderer:browse-files', filters, properties).then(resolve).catch(reject);
+    ipcRenderer.invoke('renderer:browse-files', filters, properties, defaultPath).then(resolve).catch(reject);
   });
 };
 

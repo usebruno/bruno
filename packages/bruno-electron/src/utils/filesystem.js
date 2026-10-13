@@ -305,10 +305,11 @@ const browseDirectories = async (win) => {
   return [...new Set(resolvedPaths)];
 };
 
-const browseFiles = async (win, filters = [], properties = []) => {
+const browseFiles = async (win, filters = [], properties = [], defaultPath) => {
   const { filePaths } = await dialog.showOpenDialog(win, {
     properties: ['openFile', ...properties],
-    filters
+    filters,
+    ...(typeof defaultPath === 'string' && defaultPath ? { defaultPath } : {})
   });
 
   if (!filePaths) {

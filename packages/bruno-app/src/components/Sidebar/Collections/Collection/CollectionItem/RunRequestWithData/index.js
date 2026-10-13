@@ -8,6 +8,7 @@ import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { runCollectionFolder, updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
 import RunnerDataFile from 'components/RunnerResults/RunnerDataFile';
 import { DEFAULT_ITERATION_CONFIG, isIterationsValid, toRunIterationConfig } from 'utils/collections/runner-iterations';
+import path from 'utils/common/path';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 
@@ -67,6 +68,7 @@ const RunRequestWithData = ({ collectionUid, item, onClose }) => {
             <span className="block text-sm">Data file</span>
             <div className="w-full">
               <RunnerDataFile
+                defaultDirectory={path.dirname(item.pathname)}
                 dataFile={iterationConfig.dataFile}
                 onChange={(dataFile) => setIterationConfig({ ...iterationConfig, dataFile })}
               />

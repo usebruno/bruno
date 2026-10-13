@@ -47,7 +47,16 @@ describe('RunnerDataFile', () => {
     fireEvent.click(screen.getByTestId('runner-data-file-select'));
 
     await waitFor(() => expect(onChange).toHaveBeenCalledWith({ path: '/data/users.csv', rowCount: 2, columns: ['name', 'age'] }));
-    expect(mockBrowseFiles).toHaveBeenCalledWith([{ name: 'CSV or JSON', extensions: ['csv', 'json'] }], []);
+    expect(mockBrowseFiles).toHaveBeenCalledWith([{ name: 'CSV or JSON', extensions: ['csv', 'json'] }], [], undefined);
+  });
+
+  it('opens the dialog in the default directory', async () => {
+    mockBrowseFiles.mockResolvedValue([]);
+
+    renderDataFile({ defaultDirectory: '/collections/shop/users' });
+    fireEvent.click(screen.getByTestId('runner-data-file-select'));
+
+    await waitFor(() => expect(mockBrowseFiles).toHaveBeenCalledWith(expect.any(Array), [], '/collections/shop/users'));
   });
 
   it('does nothing when the dialog is cancelled', async () => {

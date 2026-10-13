@@ -46,8 +46,8 @@ jest.mock('ui/Button', () => ({
 
 jest.mock('components/RunnerResults/RunnerDataFile', () => ({
   __esModule: true,
-  default: ({ dataFile, onChange }) => (
-    <button data-testid="mock-select-data-file" onClick={() => onChange({ path: '/data/users.csv', rowCount: 3, columns: ['name'] })}>
+  default: ({ dataFile, onChange, defaultDirectory }) => (
+    <button data-testid="mock-select-data-file" data-default-directory={defaultDirectory} onClick={() => onChange({ path: '/data/users.csv', rowCount: 3, columns: ['name'] })}>
       {dataFile ? dataFile.path : 'select'}
     </button>
   )
@@ -60,7 +60,7 @@ const theme = {
   input: { bg: '#fff', border: '#ddd', focusBorder: '#00f' }
 };
 
-const ITEM = { uid: 'req-1', name: 'Get User', type: 'http-request' };
+const ITEM = { uid: 'req-1', name: 'Get User', type: 'http-request', pathname: '/collections/shop/users/get-user.bru' };
 
 const renderDialog = (collectionOverrides = {}) => {
   const collection = { uid: 'col-1', items: [ITEM], ...collectionOverrides };
@@ -80,6 +80,11 @@ const renderDialog = (collectionOverrides = {}) => {
 describe('RunRequestWithData', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('opens the file picker in the request\'s folder', () => {
+    renderDialog();
+    expect(screen.getByTestId('mock-select-data-file')).toHaveAttribute('data-default-directory', '/collections/shop/users');
   });
 
   it('cannot run until a data file is selected', () => {

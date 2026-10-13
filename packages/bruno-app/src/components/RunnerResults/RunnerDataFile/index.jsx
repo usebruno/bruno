@@ -18,14 +18,14 @@ const formatColumns = (columns) => {
 
 /**
  * Picks the CSV/JSON file whose rows drive a data-driven collection run.
- * `dataFile` is `{ path, rowCount, columns }` or null.
+ * `dataFile` is `{ path, rowCount, columns }` or null; the file dialog opens in `defaultDirectory`.
  */
-const RunnerDataFile = ({ dataFile, onChange }) => {
+const RunnerDataFile = ({ dataFile, onChange, defaultDirectory }) => {
   const dispatch = useDispatch();
   const [error, setError] = useState(null);
 
   const selectDataFile = async () => {
-    const [filePath] = (await dispatch(browseFiles(DATA_FILE_FILTERS, []))) || [];
+    const [filePath] = (await dispatch(browseFiles(DATA_FILE_FILTERS, [], defaultDirectory))) || [];
     if (!filePath) {
       return;
     }

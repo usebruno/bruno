@@ -303,6 +303,7 @@ export default function RunnerResults({ collection }) {
               <label>Data file</label>
               <div className="mt-2">
                 <RunnerDataFile
+                  defaultDirectory={collection.pathname}
                   dataFile={iterationConfig.dataFile}
                   onChange={(dataFile) => setIterationConfig({ ...iterationConfig, dataFile })}
                 />
