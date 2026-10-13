@@ -15,6 +15,13 @@ import { collectWsdlSchemas, resolveQName } from './schema-graph.js';
 
 const PARTICLE_NAMES = ['element', 'any', 'group', 'choice', 'sequence', 'all'];
 
+const SOAP_ENVELOPE_PREFIX = 'soap';
+const SOAP_ENVELOPE_NAMESPACE = 'http://schemas.xmlsoap.org/soap/envelope/';
+const RESERVED_PREFIXES = new Set([SOAP_ENVELOPE_PREFIX, 'xml', 'xmlns']);
+
+// Re-escape special characters before writing them into an attribute
+const escapeXmlAttribute = (value) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+
 // --- Inlined from src/common/index.js ---
 export const validateSchema = (collection = {}) => {
   try {
@@ -122,6 +129,7 @@ class WSDLParser {
     this.bindings = new Map();
     this.services = new Map();
     this.namespaces = new Map();
+    this.prefixDeclarations = [];
     this.modelGroups = new Map();
     this.expandingModelGroups = new Set();
     this.choiceGroupCount = 0;
@@ -136,6 +144,7 @@ class WSDLParser {
 
     // Parse types (XSD schemas, inline and externally resolved)
     this.parseTypes(schemas);
+    this.collectPrefixDeclarations(schemas);
 
     // Parse messages
     this.parseMessages(definitions);
@@ -160,8 +169,20 @@ class WSDLParser {
       portTypes: this.portTypes,
       bindings: this.bindings,
       services: this.services,
-      namespaces: this.namespaces
+      namespaces: this.namespaces,
+      prefixDeclarations: this.prefixDeclarations
     };
+  }
+
+  collectPrefixDeclarations(schemas) {
+    for (const [prefix, namespace] of this.namespaces) {
+      this.prefixDeclarations.push({ prefix, namespace });
+    }
+    for (const { prefixMap } of schemas) {
+      for (const [prefix, namespace] of Object.entries(prefixMap)) {
+        this.prefixDeclarations.push({ prefix, namespace });
+      }
+    }
   }
 
   /**
@@ -183,59 +204,61 @@ class WSDLParser {
    * Parse WSDL types (XSD schemas)
    */
   parseTypes(schemas = []) {
-    for (const { node, prefixMap } of schemas) {
-      const targetNamespace = node.targetNamespace || '';
+    const schemaContexts = schemas.map(({ node, prefixMap }) => ({
+      node,
+      targetNamespace: node.targetNamespace || '',
+      prefixMap,
+      elementFormDefault: node.elementFormDefault || 'unqualified'
+    }));
 
-      const modelGroups = this.getArray(node['xsd:group'] || node.group);
+    for (const schema of schemaContexts) {
+      const modelGroups = this.getArray(schema.node['xsd:group'] || schema.node.group);
       for (const modelGroup of modelGroups) {
-        this.modelGroups.set(`${targetNamespace}:${modelGroup.name}`, { node: modelGroup, prefixMap });
+        this.modelGroups.set(`${schema.targetNamespace}:${modelGroup.name}`, { node: modelGroup, schema });
       }
     }
 
-    for (const { node, prefixMap } of schemas) {
-      const targetNamespace = node.targetNamespace || '';
-
-      const complexTypes = this.getArray(node['xsd:complexType'] || node.complexType);
+    for (const schema of schemaContexts) {
+      const complexTypes = this.getArray(schema.node['xsd:complexType'] || schema.node.complexType);
       for (const complexType of complexTypes) {
-        this.parseComplexType(complexType, targetNamespace, prefixMap);
+        this.parseComplexType(complexType, schema);
       }
 
-      const simpleTypes = this.getArray(node['xsd:simpleType'] || node.simpleType);
+      const simpleTypes = this.getArray(schema.node['xsd:simpleType'] || schema.node.simpleType);
       for (const simpleType of simpleTypes) {
-        this.parseSimpleType(simpleType, targetNamespace);
+        this.parseSimpleType(simpleType, schema.targetNamespace);
       }
     }
 
-    for (const { node, prefixMap } of schemas) {
-      const targetNamespace = node.targetNamespace || '';
-
-      const elements = this.getArray(node['xsd:element'] || node.element);
+    for (const schema of schemaContexts) {
+      const elements = this.getArray(schema.node['xsd:element'] || schema.node.element);
       for (const element of elements) {
-        this.parseElement(element, targetNamespace, prefixMap);
+        this.parseElement(element, schema);
       }
     }
   }
 
   /**
-   * Parse an element from the WSDL
+   * Parse a global element from the WSDL
    */
-  parseElement(element, namespace, prefixMap) {
-    const parsedElement = this.parseElementInline(element, namespace, prefixMap);
-    this.elements.set(`${namespace}:${element.name}`, parsedElement);
+  parseElement(element, schema) {
+    const parsedElement = this.parseElementInline(element, schema, true);
+    this.elements.set(`${schema.targetNamespace}:${element.name}`, parsedElement);
     return parsedElement;
   }
 
   /**
    * Parse an inline element from the WSDL
    */
-  parseElementInline(element, namespace, prefixMap) {
+  parseElementInline(element, schema, qualified) {
     const parsedElement = {
       name: element.name,
-      namespace: namespace,
+      namespace: schema.targetNamespace,
+      qualified,
       type: element.type,
-      typeNamespace: element.type ? resolveQName(element.type, prefixMap).namespace : undefined,
+      typeNamespace: element.type ? resolveQName(element.type, schema.prefixMap).namespace : undefined,
       ref: element.ref,
-      refNamespace: element.ref ? resolveQName(element.ref, prefixMap).namespace : undefined,
+      refNamespace: element.ref ? resolveQName(element.ref, schema.prefixMap).namespace : undefined,
       minOccurs: element.minOccurs,
       maxOccurs: element.maxOccurs,
       nillable: element.nillable,
@@ -247,7 +270,7 @@ class WSDLParser {
     // Inline complex type
     const inlineComplexType = element['xsd:complexType'] || element.complexType;
     if (inlineComplexType) {
-      this.parseComplexTypeContent(inlineComplexType, parsedElement, prefixMap);
+      this.parseComplexTypeContent(inlineComplexType, parsedElement, schema);
     }
 
     // Inline simple type
@@ -262,26 +285,26 @@ class WSDLParser {
   /**
    * Parse an XSD complex type
    */
-  parseComplexType(complexType, namespace, prefixMap) {
-    const key = `${namespace}:${complexType.name}`;
+  parseComplexType(complexType, schema) {
+    const key = `${schema.targetNamespace}:${complexType.name}`;
     const parsedComplexType = {
       name: complexType.name,
-      namespace: namespace,
+      namespace: schema.targetNamespace,
       attributes: [],
       elements: [],
       mixed: complexType.mixed,
       abstract: complexType.abstract
     };
 
-    this.parseComplexTypeContent(complexType, parsedComplexType, prefixMap);
+    this.parseComplexTypeContent(complexType, parsedComplexType, schema);
     this.complexTypes.set(key, parsedComplexType);
   }
 
   /**
    * Parse complex type content (sequence, choice, all, attributes)
    */
-  parseComplexTypeContent(complexType, target, prefixMap) {
-    this.parseParticles(complexType, target, prefixMap, []);
+  parseComplexTypeContent(complexType, target, schema) {
+    this.parseParticles(complexType, target, schema, []);
 
     // Parse attributes
     if (complexType['xsd:attribute'] || complexType.attribute) {
@@ -304,7 +327,7 @@ class WSDLParser {
       if (simpleContent['xsd:extension'] || simpleContent.extension) {
         const extension = simpleContent['xsd:extension'] || simpleContent.extension;
         target.baseType = extension.base;
-        target.baseTypeNamespace = extension.base ? resolveQName(extension.base, prefixMap).namespace : undefined;
+        target.baseTypeNamespace = extension.base ? resolveQName(extension.base, schema.prefixMap).namespace : undefined;
 
         // Parse attributes from extension
         if (extension['xsd:attribute'] || extension.attribute) {
@@ -329,10 +352,10 @@ class WSDLParser {
       if (complexContent['xsd:extension'] || complexContent.extension) {
         const extension = complexContent['xsd:extension'] || complexContent.extension;
         target.baseType = extension.base;
-        target.baseTypeNamespace = extension.base ? resolveQName(extension.base, prefixMap).namespace : undefined;
+        target.baseTypeNamespace = extension.base ? resolveQName(extension.base, schema.prefixMap).namespace : undefined;
 
         // Parse content from extension
-        this.parseComplexTypeContent(extension, target, prefixMap);
+        this.parseComplexTypeContent(extension, target, schema);
       }
     }
   }
@@ -340,18 +363,18 @@ class WSDLParser {
   /**
    * Parse particles of a content model (sequence, choice, all)
    */
-  parseParticles(particle, target, prefixMap, choicePath) {
+  parseParticles(particle, target, schema, choicePath) {
     for (const { name, node } of this.orderedParticles(particle)) {
       if (name === 'element') {
-        this.addElement(node, target, prefixMap, choicePath);
+        this.addElement(node, target, schema, choicePath);
       } else if (name === 'any') {
         this.addAnyElement(target, choicePath);
       } else if (name === 'group') {
-        this.expandModelGroup(node, target, prefixMap, choicePath);
+        this.expandModelGroup(node, target, schema, choicePath);
       } else if (name === 'choice') {
-        this.parseChoiceBranches(node, target, prefixMap, choicePath, ++this.choiceGroupCount, 0);
+        this.parseChoiceBranches(node, target, schema, choicePath, ++this.choiceGroupCount, 0);
       } else {
-        this.parseParticles(node, target, prefixMap, choicePath);
+        this.parseParticles(node, target, schema, choicePath);
       }
     }
   }
@@ -359,18 +382,18 @@ class WSDLParser {
   /**
    * Parse the branches of an xs:choice
    */
-  parseChoiceBranches(choice, target, prefixMap, choicePath, group, branch) {
+  parseChoiceBranches(choice, target, schema, choicePath, group, branch) {
     for (const { name, node } of this.orderedParticles(choice)) {
       if (name === 'element') {
-        this.addElement(node, target, prefixMap, [...choicePath, { group, branch: branch++ }]);
+        this.addElement(node, target, schema, [...choicePath, { group, branch: branch++ }]);
       } else if (name === 'any') {
         this.addAnyElement(target, [...choicePath, { group, branch: branch++ }]);
       } else if (name === 'group') {
-        this.expandModelGroup(node, target, prefixMap, [...choicePath, { group, branch: branch++ }]);
+        this.expandModelGroup(node, target, schema, [...choicePath, { group, branch: branch++ }]);
       } else if (name === 'choice') {
-        branch = this.parseChoiceBranches(node, target, prefixMap, choicePath, group, branch);
+        branch = this.parseChoiceBranches(node, target, schema, choicePath, group, branch);
       } else {
-        this.parseParticles(node, target, prefixMap, [...choicePath, { group, branch: branch++ }]);
+        this.parseParticles(node, target, schema, [...choicePath, { group, branch: branch++ }]);
       }
     }
     return branch;
@@ -393,8 +416,9 @@ class WSDLParser {
     return particles.sort((a, b) => a.node[XML_POSITION_KEY] - b.node[XML_POSITION_KEY]);
   }
 
-  addElement(element, target, prefixMap, choicePath) {
-    const parsedElement = this.parseElementInline(element, target.namespace || '', prefixMap);
+  addElement(element, target, schema, choicePath) {
+    const qualified = (element.form || schema.elementFormDefault) === 'qualified';
+    const parsedElement = this.parseElementInline(element, schema, qualified);
     if (choicePath.length > 0) {
       parsedElement.choicePath = choicePath;
     }
@@ -404,13 +428,13 @@ class WSDLParser {
   /**
    * Expand an xs:group reference in place
    */
-  expandModelGroup(groupRef, target, prefixMap, choicePath) {
+  expandModelGroup(groupRef, target, schema, choicePath) {
     // add a check to skip groups with maxOccurs of 0
     if (!groupRef.ref || groupRef.maxOccurs === '0') {
       return;
     }
 
-    const { namespace, local } = resolveQName(groupRef.ref, prefixMap);
+    const { namespace, local } = resolveQName(groupRef.ref, schema.prefixMap);
     const key = this.findModelGroupKey(local, namespace);
 
     if (!key || this.expandingModelGroups.has(key)) {
@@ -419,7 +443,7 @@ class WSDLParser {
 
     const modelGroup = this.modelGroups.get(key);
     this.expandingModelGroups.add(key);
-    this.parseParticles(modelGroup.node, target, modelGroup.prefixMap, choicePath);
+    this.parseParticles(modelGroup.node, target, modelGroup.schema, choicePath);
     this.expandingModelGroups.delete(key);
   }
 
@@ -605,6 +629,45 @@ class XMLSampleGenerator {
     this.wsdlData = wsdlData;
     this.visitedTypes = new Set();
     this.visitedRefs = new Set();
+    this.prefixes = new Map();
+  }
+
+  getPrefix(namespace) {
+    if (this.prefixes.has(namespace)) {
+      return this.prefixes.get(namespace);
+    }
+
+    const taken = new Set([...RESERVED_PREFIXES, ...this.prefixes.values()]);
+    let prefix = null;
+    for (const declaration of this.wsdlData.prefixDeclarations) {
+      if (declaration.namespace === namespace && declaration.prefix && !taken.has(declaration.prefix)) {
+        prefix = declaration.prefix;
+        break;
+      }
+    }
+    for (let i = 1; prefix === null; i++) {
+      if (!taken.has(`ns${i}`)) {
+        prefix = `ns${i}`;
+      }
+    }
+
+    this.prefixes.set(namespace, prefix);
+    return prefix;
+  }
+
+  getTagName(element) {
+    if (element.qualified && element.namespace) {
+      return `${this.getPrefix(element.namespace)}:${element.name}`;
+    }
+    return element.name;
+  }
+
+  getNamespaceDeclarations() {
+    let declarations = '';
+    for (const [namespace, prefix] of this.prefixes) {
+      declarations += ` xmlns:${prefix}="${escapeXmlAttribute(namespace)}"`;
+    }
+    return declarations;
   }
 
   /**
@@ -685,14 +748,15 @@ class XMLSampleGenerator {
 
     // Generate attributes
     const attributes = this.generateAttributes(element);
+    const tagName = this.getTagName(element);
 
     // Generate element content
     if (this.isSimpleType(element)) {
-      xml += `<${element.name}${attributes}>${this.getSampleValue(element)}</${element.name}>`;
+      xml += `<${tagName}${attributes}>${this.getSampleValue(element)}</${tagName}>`;
     } else {
-      xml += `<${element.name}${attributes}>`;
+      xml += `<${tagName}${attributes}>`;
       xml += this.generateComplexContent(element);
-      xml += `</${element.name}>`;
+      xml += `</${tagName}>`;
     }
 
     return xml;
@@ -1016,6 +1080,13 @@ class XMLSampleGenerator {
   }
 }
 
+const wrapInSOAPEnvelope = (body, namespaceDeclarations = '') => {
+  const envelopeTag = `${SOAP_ENVELOPE_PREFIX}:Envelope`;
+  const bodyTag = `${SOAP_ENVELOPE_PREFIX}:Body`;
+  return `<${envelopeTag} xmlns:${SOAP_ENVELOPE_PREFIX}="${SOAP_ENVELOPE_NAMESPACE}"${namespaceDeclarations}>`
+    + `<${bodyTag}>${body}</${bodyTag}></${envelopeTag}>`;
+};
+
 /**
  * Generate SOAP envelope with example payload
  */
@@ -1026,14 +1097,14 @@ const generateSOAPEnvelope = (operation, wsdlData) => {
   // Find the message definition
   const message = wsdlData.messages.get(inputMessageName);
   if (!message || !message.parts || message.parts.length === 0) {
-    return '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><!-- No message parts found --></soap:Body></soap:Envelope>';
+    return wrapInSOAPEnvelope('<!-- No message parts found -->');
   }
 
   const part = message.parts[0];
   const elementName = part.element || part.type || '';
 
   if (!elementName) {
-    return '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><!-- No element found --></soap:Body></soap:Envelope>';
+    return wrapInSOAPEnvelope('<!-- No element found -->');
   }
 
   // Extract element name and its namespace
@@ -1047,11 +1118,11 @@ const generateSOAPEnvelope = (operation, wsdlData) => {
     namespace = '';
   }
 
-  // Generate XML sample
+  // Generate XML sample and declare the namespaces
   const generator = new XMLSampleGenerator(wsdlData);
   const xmlSample = generator.generateSample(name, namespace);
 
-  return `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body>${xmlSample}</soap:Body></soap:Envelope>`;
+  return wrapInSOAPEnvelope(xmlSample, generator.getNamespaceDeclarations());
 };
 
 /**
