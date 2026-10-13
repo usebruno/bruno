@@ -20,6 +20,6 @@ export const INPUT_SIZES = {
   md: {
     padding: '0.4375rem 0.625rem',
     fontSize: 'sm',
-    borderRadius: 'base'
+    borderRadius: 'sm'
   }
 };
