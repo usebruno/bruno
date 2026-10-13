@@ -325,7 +325,6 @@ export const buildXmlBody = (rawBodySchema) => generateFromRoot(rawBodySchema, (
 
       if (prop.xml?.attribute) return null;
 
-      // Nested object - recurse into children
       if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
         const children = Object.entries(value)
           .map(([k, v]) => buildElement(k, prop.properties?.[k] || {}, v, indent + '  '))
@@ -333,7 +332,6 @@ export const buildXmlBody = (rawBodySchema) => generateFromRoot(rawBodySchema, (
         return `${indent}<${xmlName}>${children.length ? '\n' + children.join('\n') + '\n' + indent : ''}</${xmlName}>`;
       }
 
-      // Object schema without value - build empty structure from schema
       if (prop.type === 'object' || prop.properties) {
         const cycleKey = cycleKeyOf(prop);
         if (visited.has(cycleKey)) return `${indent}<${xmlName}></${xmlName}>`;
@@ -345,7 +343,6 @@ export const buildXmlBody = (rawBodySchema) => generateFromRoot(rawBodySchema, (
         return `${indent}<${xmlName}>${children.length ? '\n' + children.join('\n') + '\n' + indent : ''}</${xmlName}>`;
       }
 
-      // Primitive value
       const content = value != null ? String(value) : '';
       return `${indent}<${xmlName}>${content}</${xmlName}>`;
     });
