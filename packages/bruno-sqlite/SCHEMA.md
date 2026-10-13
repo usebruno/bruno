@@ -37,38 +37,23 @@ erDiagram
     INTEGER created_at "NOT NULL"
     INTEGER updated_at "NOT NULL"
   }
-  search_index_entries {
+  search_index {
     TEXT collection_path PK
+    TEXT path PK
+    TEXT entity "NOT NULL"
+    TEXT name "NOT NULL"
     TEXT collection_name "NOT NULL"
     TEXT folder_path
     TEXT folder_name
-    TEXT request_path PK
-    TEXT request_name "NOT NULL"
-    TEXT request_type
-    TEXT request_url
-    TEXT request_protocol
-    INTEGER request_seq
-    TEXT request_error
-    TEXT workspace_path
-    INTEGER mtime "NOT NULL"
-    TEXT hash "NOT NULL"
-  }
-  search_index_folders {
-    TEXT collection_path PK
-    TEXT collection_name "NOT NULL"
-    TEXT folder_path PK
-    TEXT folder_name "NOT NULL"
-    TEXT workspace_path
-  }
-  search_index_meta {
-    TEXT collection_path PK
-    TEXT relative_path PK
-    TEXT kind "NOT NULL"
-    TEXT folder_path "NOT NULL"
-    TEXT name
+    TEXT method
+    TEXT url
+    TEXT protocol
     INTEGER seq
-    INTEGER mtime "NOT NULL"
-    TEXT hash "NOT NULL"
+    TEXT error
+    TEXT workspace_path
+    TEXT source_path
+    INTEGER mtime
+    TEXT hash
   }
   files ||--o{ runner_responses : "runner_responses.body_file_id -> files.id"
   files ||--o{ runner_responses : "runner_responses.response_file_id -> files.id"
@@ -127,58 +112,25 @@ erDiagram
 - `response_file_id` → `files.id`
 - `request_file_id` → `files.id`
 
-## `search_index_entries`
+## `search_index`
 
 `WITHOUT ROWID`
 
 | Column | Type | Not null | Default | Key |
 |---|---|---|---|---|
 | `collection_path` | TEXT | yes |  | PK (1) |
+| `path` | TEXT | yes |  | PK (2) |
+| `entity` | TEXT | yes |  |  |
+| `name` | TEXT | yes |  |  |
 | `collection_name` | TEXT | yes |  |  |
 | `folder_path` | TEXT |  |  |  |
 | `folder_name` | TEXT |  |  |  |
-| `request_path` | TEXT | yes |  | PK (2) |
-| `request_name` | TEXT | yes |  |  |
-| `request_type` | TEXT |  |  |  |
-| `request_url` | TEXT |  |  |  |
-| `request_protocol` | TEXT |  |  |  |
-| `request_seq` | INTEGER |  |  |  |
-| `request_error` | TEXT |  |  |  |
-| `workspace_path` | TEXT |  |  |  |
-| `mtime` | INTEGER | yes |  |  |
-| `hash` | TEXT | yes |  |  |
-
-**Indexes**
-
-- `idx_search_index_entries_collection` on (`collection_path`, `collection_name`, `workspace_path`)
-
-## `search_index_folders`
-
-`WITHOUT ROWID`
-
-| Column | Type | Not null | Default | Key |
-|---|---|---|---|---|
-| `collection_path` | TEXT | yes |  | PK (1) |
-| `collection_name` | TEXT | yes |  |  |
-| `folder_path` | TEXT | yes |  | PK (2) |
-| `folder_name` | TEXT | yes |  |  |
-| `workspace_path` | TEXT |  |  |  |
-
-## `search_index_meta`
-
-`WITHOUT ROWID`
-
-| Column | Type | Not null | Default | Key |
-|---|---|---|---|---|
-| `collection_path` | TEXT | yes |  | PK (1) |
-| `relative_path` | TEXT | yes |  | PK (2) |
-| `kind` | TEXT | yes |  |  |
-| `folder_path` | TEXT | yes |  |  |
-| `name` | TEXT |  |  |  |
+| `method` | TEXT |  |  |  |
+| `url` | TEXT |  |  |  |
+| `protocol` | TEXT |  |  |  |
 | `seq` | INTEGER |  |  |  |
-| `mtime` | INTEGER | yes |  |  |
-| `hash` | TEXT | yes |  |  |
-
-**Indexes**
-
-- `idx_search_index_meta_lookup` on (`collection_path`, `kind`, `folder_path`, `name`)
+| `error` | TEXT |  |  |  |
+| `workspace_path` | TEXT |  |  |  |
+| `source_path` | TEXT |  |  |  |
+| `mtime` | INTEGER |  |  |  |
+| `hash` | TEXT |  |  |  |

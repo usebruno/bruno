@@ -8,8 +8,10 @@ const {
   idForAbsolutePath,
   resolveDenylist,
   isDenied,
-  walk
+  walk,
+  defaultClassify
 } = require('../../utils/mount');
+const { toCacheData, fromCacheData } = require('./cache-format');
 
 // TODO: Check for trigger (ON UPDATE) and then see if we can use that to update updated_at
 
@@ -79,7 +81,7 @@ class FileIndex {
     const map = new Map();
     for (const row of rows) {
       if (isDenied(posixifyPath(row.relativePath), denylist)) continue;
-      map.set(row.relativePath, { data: JSON.parse(row.data), raw: row.raw });
+      map.set(row.relativePath, { data: fromCacheData(JSON.parse(row.data)), raw: row.raw });
     }
     return map;
   }
@@ -106,15 +108,16 @@ class FileIndex {
       return;
     }
 
-    const { mtime, hash, data, raw } = entry;
+    const { mtime, hash, data } = entry;
+    const isRequest = defaultClassify(relativePath)?.type === 'request';
     this.#statements.execute('file_index_upsert', {
       collection_path: root,
       relative_path: relativePath,
       id: idForAbsolutePath(path.join(root, relativePath)),
       mtime,
       hash,
-      data: JSON.stringify(data),
-      raw: raw ?? null,
+      data: JSON.stringify(isRequest ? toCacheData(data) : data),
+      raw: null,
       application_version: this.#applicationVersion
     });
   }
@@ -130,7 +133,6 @@ class FileIndex {
       relativePath: target.relativePath,
       mtime,
       hash,
-      raw: fs.readFileSync(absolutePath, 'utf8'),
       data
     });
     // the same mtime/hash that were saved, so a caller (the search index) can use them without reading the file again

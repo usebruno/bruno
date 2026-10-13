@@ -9,6 +9,8 @@ const { SearchIndex } = require('../search-index');
 const { indexCollection, toRow, toMetaRow, withParentFolders } = require('../search-index/indexer');
 const { preferencesUtil } = require('../../store/preferences');
 
+const RAW_READ_CONCURRENCY = 64;
+
 // cold start only — collection-watcher handles live changes and writes through to the cache
 
 let _envSecretsStore = null;
@@ -201,43 +203,83 @@ class MountManager {
   async indexCollectionInBackground({ collectionPath, collectionName, workspacePath }) {
     if (!preferencesUtil.isSearchIndexEnabled()) return;
     const root = path.resolve(collectionPath);
-    const alreadyMounted = Array.from(this.#mounts.values()).some((entry) => entry.collectionPath === root);
-    if (alreadyMounted) return;
+    if (this.#isMounted(root)) return;
     const resolvedWorkspacePath = await this.#resolveWorkspacePath(root, workspacePath);
+    const twoPass = this.#isTwoPass();
     await this.#withIndexingSession((onWork) => indexCollection(this.#getSearchIndex(), {
       collectionPath: root,
       collectionName,
       workspacePath: resolvedWorkspacePath,
       fileIndex: this.#getIndex(),
+      mode: twoPass ? 'quick' : 'complete',
       onWork
     }));
+    if (twoPass) {
+      this.#fillCollection({ root, collectionName, workspacePath: resolvedWorkspacePath });
+    }
+  }
+
+  #isMounted(root) {
+    return Array.from(this.#mounts.values()).some((entry) => entry.collectionPath === root);
+  }
+
+  #isTwoPass() {
+    return Boolean(this.#getIndex()) && preferencesUtil.isTwoPassIndexingEnabled();
+  }
+
+  #fillCollection({ root, collectionName, workspacePath }) {
+    return indexCollection(this.#getSearchIndex(), {
+      collectionPath: root,
+      collectionName,
+      workspacePath,
+      fileIndex: this.#getIndex(),
+      mode: 'fill',
+      shouldStop: () => this.#isMounted(root)
+    }).catch(() => {});
   }
 
   async indexManyCollectionsInBackground(collections, workspacePath) {
     if (!preferencesUtil.isSearchIndexEnabled()) return;
-    await this.#withIndexingSession(async (onWork) => {
-      const priorPaths = new Set(this.#getSearchIndex().collectionPaths());
-      const resolved = collections.map(({ path: collectionPath, name: collectionName }) => ({
-        root: path.resolve(collectionPath),
-        collectionName
-      }));
-      // collections the search index already knows are quick (most files are skipped), so they go first
-      const isFast = (c) => priorPaths.has(c.root);
-      const ordered = [
-        ...resolved.filter(isFast),
-        ...resolved.filter((c) => !isFast(c))
-      ];
+    const fileIndex = this.#getIndex();
+    const twoPass = this.#isTwoPass();
+    const sessionStart = performance.now();
+    let didWork = false;
+    const priorPaths = new Set(this.#getSearchIndex().collectionPaths());
+    const resolved = collections.map(({ path: collectionPath, name: collectionName }) => ({
+      root: path.resolve(collectionPath),
+      collectionName
+    }));
+    // collections the search index already knows are quick (most files are skipped), so they go first
+    const isFast = (c) => priorPaths.has(c.root);
+    const ordered = [
+      ...resolved.filter(isFast),
+      ...resolved.filter((c) => !isFast(c))
+    ];
 
+    await this.#withIndexingSession(async (sessionOnWork) => {
+      const onWork = () => {
+        didWork = true;
+        sessionOnWork();
+      };
       for (const { root, collectionName } of ordered) {
         await indexCollection(this.#getSearchIndex(), {
           collectionPath: root,
           collectionName,
           workspacePath,
-          fileIndex: this.#getIndex(),
+          fileIndex,
+          mode: twoPass ? 'quick' : 'complete',
           onWork
         }).catch(() => {});
       }
     });
+    if (!twoPass) return;
+    if (didWork) console.log(`[search-index] SEARCH READY after ${(performance.now() - sessionStart).toFixed(0)} ms (pass 1 over ${ordered.length} collections)`);
+
+    for (const { root, collectionName } of ordered) {
+      if (this.#isMounted(root)) continue;
+      await this.#fillCollection({ root, collectionName, workspacePath });
+    }
+    if (didWork) console.log(`[search-index] ALL PASSES DONE after ${(performance.now() - sessionStart).toFixed(0)} ms (pass 1 + pass 2)`);
   }
 
   getIndexingStatus() {
@@ -301,8 +343,7 @@ class MountManager {
           relativePath: e.relativePath,
           mtime: result.mtime,
           hash: result.hash,
-          data: result.data,
-          raw: result.raw
+          data: result.data
         });
       }
       for (const e of removed) {
@@ -327,6 +368,7 @@ class MountManager {
     const collectionName = searchIndex.collectionNameFor(root) || entry.brunoConfig?.name || path.basename(root);
     const stored = searchIndex.entriesFor(root);
     const storedMeta = searchIndex.metaEntriesFor(root);
+    const rewriteErrors = this.#isTwoPass();
 
     searchIndex.transaction(() => {
       for (const [relativePath, cached] of entry.state) {
@@ -337,7 +379,7 @@ class MountManager {
         if (source.error && !isRequest) continue;
 
         const prior = (isRequest ? stored : storedMeta).get(relativePath);
-        if (prior && prior.mtime === source.mtime && prior.hash === source.hash) continue;
+        if (prior && !(rewriteErrors && source.error) && prior.mtime === source.mtime && prior.hash === source.hash) continue;
 
         const file = { relativePath, mtime: source.mtime, hash: source.hash, data: source.data, error: source.error };
         if (isRequest) {
@@ -395,8 +437,23 @@ class MountManager {
 
   async #emitTree(collectionUid, entry) {
     const { getRequestUid } = require('../../cache/requestUids');
+    await this.#loadMissingRaw(entry);
     const tree = buildTree(entry.collectionPath, entry.state, { uidFor: getRequestUid });
     await sendTree(collectionUid, entry.collectionPath, tree, entry.emit);
+  }
+
+  async #loadMissingRaw(entry) {
+    const missing = [];
+    for (const [relativePath, state] of entry.state) {
+      if (typeof state.raw !== 'string' && defaultClassify(relativePath)?.type === 'request') missing.push([relativePath, state]);
+    }
+    for (let start = 0; start < missing.length; start += RAW_READ_CONCURRENCY) {
+      await Promise.all(missing.slice(start, start + RAW_READ_CONCURRENCY).map(async ([relativePath, state]) => {
+        try {
+          state.raw = await fs.promises.readFile(path.join(entry.collectionPath, relativePath), 'utf8');
+        } catch (_) {}
+      }));
+    }
   }
 
   #getPersistentIndex() {

@@ -66,7 +66,22 @@ const toMetaRow = (collectionPath, { relativePath, mtime, hash, data }) => {
   if (type !== 'config' && type !== 'collection' && type !== 'folder') return null;
   const folderPath = type === 'folder' ? path.dirname(relativePath) : '';
   if (type === 'folder' && folderPath === '.') return null;
-  return { collectionPath, relativePath, kind: type, folderPath, ...metaFrom(type, data), mtime, hash };
+  return { collectionPath, relativePath, entity: type === 'folder' ? 'folder' : 'collection', folderPath, ...metaFrom(type, data), mtime, hash };
+};
+
+const selectNamingFiles = (collectionPath, allFiles) => {
+  const chosen = new Map();
+  for (const file of allFiles) {
+    const row = toMetaRow(collectionPath, { relativePath: file.relativePath });
+    if (!row) continue;
+    if (file.cls.type === 'collection' && file.cls.format !== 'yml') continue;
+
+    const key = row.entity === 'folder' ? `folder:${row.folderPath}` : 'collection';
+    const rank = file.cls.type !== 'config' && file.cls.format === 'yml' ? 0 : 1;
+    const current = chosen.get(key);
+    if (!current || rank < current.rank) chosen.set(key, { file, rank });
+  }
+  return [...chosen.values()].map(({ file }) => file);
 };
 
 // When the worker itself fails (crash, timeout) there is no parse result at all. The file is still recorded as failed
@@ -185,7 +200,7 @@ const indexMetadata = async (searchIndex, collectionPath, metaFiles, cached, fil
   for (const { relativePath, format, type } of statuses.filter((s) => s.kind === 'stale')) {
     let result;
     try {
-      result = await getPool().runOnce(JobType.ParseFile, { collectionPath, relativePath, format, type });
+      result = await getPool().runOnce(JobType.ParseFile, { collectionPath, relativePath, format, type, includeRaw: false });
     } catch (err) {
       result = await failedResult(collectionPath, relativePath, err);
     }
@@ -203,8 +218,7 @@ const indexMetadata = async (searchIndex, collectionPath, metaFiles, cached, fil
             relativePath,
             mtime: result.mtime,
             hash: result.hash,
-            data: result.data,
-            raw: result.raw
+            data: result.data
           }));
         } catch (_) {}
       });
@@ -214,13 +228,16 @@ const indexMetadata = async (searchIndex, collectionPath, metaFiles, cached, fil
   writes.flush();
 };
 
-const indexUncached = async (searchIndex, collectionPath, collectionName, denylist, concurrency, workspacePath, fileIndex, onWork) => {
+const MODE_LABELS = { quick: 'pass 1 meta', fill: 'pass 2 full', complete: 'full' };
+
+const indexUncached = async (searchIndex, collectionPath, collectionName, denylist, concurrency, workspacePath, fileIndex, onWork, mode, shouldStop) => {
   const runStart = performance.now();
+  const logLabel = `${collectionName} (${MODE_LABELS[mode]})`;
   const folderPaths = [];
   const allFiles = walk(collectionPath, resolveDenylist(denylist), folderPaths)
     .map((f) => ({ ...f, cls: defaultClassify(f.relativePath) }));
   const files = allFiles.filter((f) => f.cls?.type === 'request');
-  const metaFiles = allFiles.filter((f) => toMetaRow(collectionPath, { relativePath: f.relativePath }));
+  const metaFiles = selectNamingFiles(collectionPath, allFiles);
   const stored = searchIndex.entriesFor(collectionPath);
   const cached = fileIndex ? fileIndex.entriesWithMetadata(collectionPath) : null;
 
@@ -237,9 +254,25 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
   // Names first: they are a few small files, and every row's collection and folder name depends on them
   await indexMetadata(searchIndex, collectionPath, metaFiles, cached, fileIndex, onWork, writes);
 
+  const failed = mode === 'fill'
+    ? new Set(searchIndex.rowsForCollection(collectionPath).filter((row) => row.requestError).map((row) => row.requestPath))
+    : null;
+
   const statuses = await Promise.all(files.map(async ({ relativePath, absolutePath, cls }) => {
     const stat = await fs.promises.stat(absolutePath, { bigint: true });
     const prior = stored.get(relativePath);
+
+    if (mode === 'fill') {
+      const cachedCopy = cached?.get(relativePath);
+      if (cachedCopy && cachedCopy.mtime === stat.mtimeNs) {
+        return prior && prior.mtime === stat.mtimeNs
+          ? { kind: 'unchanged', relativePath }
+          : { kind: 'cached', relativePath, entry: cachedCopy };
+      }
+      if (prior && prior.mtime === stat.mtimeNs && failed.has(relativePath)) return { kind: 'unchanged', relativePath };
+      return { kind: 'stale', relativePath, format: cls.format };
+    }
+
     if (prior && prior.mtime === stat.mtimeNs) return { kind: 'unchanged', relativePath };
     if (prior) {
       const hash = await hashFileAsync(absolutePath);
@@ -268,7 +301,7 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
   const toParse = statuses.filter((s) => s.kind === 'stale');
   if (!toParse.length) {
     writes.flush();
-    if (writes.stats.writes) logRunSummary(collectionName, writes.stats, runStart);
+    if (writes.stats.writes) logRunSummary(logLabel, writes.stats, runStart);
     return;
   }
 
@@ -276,11 +309,22 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
   const writeMsBeforeParse = writes.stats.ms;
   const parseStart = performance.now();
   const loopBeforeParse = performance.eventLoopUtilization();
+  let yieldedAtBatch = 0;
   await runWithConcurrency(toParse, concurrency, async ({ relativePath, format }) => {
+    if (shouldStop?.()) return;
+
     // One file that cannot be parsed never stops the others
     let result;
     try {
-      result = await pool.runOnce(JobType.ParseFile, { collectionPath, relativePath, format, type: 'request' });
+      result = await pool.runOnce(JobType.ParseFile, {
+        collectionPath,
+        relativePath,
+        format,
+        type: 'request',
+        metaOnly: mode === 'quick',
+        keepMetaOnError: mode !== 'complete',
+        includeRaw: false
+      });
     } catch (err) {
       result = await failedResult(collectionPath, relativePath, err);
     }
@@ -290,24 +334,28 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
     // found, shows the error mark, and is not read again until it changes. It is not saved in the file index.
     writes.add(() => {
       writes.time('si', () => searchIndex.upsert(toRow(collectionPath, collectionName, result, workspacePath)));
-      if (result.error || !fileIndex) return;
+      if (result.error || result.metaOnly || !fileIndex) return;
       try {
         writes.time('fi', () => fileIndex.stage(collectionPath, {
           op: 'add',
           relativePath,
           mtime: result.mtime,
           hash: result.hash,
-          data: result.data,
-          raw: result.raw
+          data: result.data
         }));
       } catch (_) {}
     });
+
+    if (mode === 'fill' && writes.stats.batches !== yieldedAtBatch) {
+      yieldedAtBatch = writes.stats.batches;
+      await new Promise((resolve) => setImmediate(resolve));
+    }
   });
   const parsePhaseMs = performance.now() - parseStart;
   const parseLoop = performance.eventLoopUtilization(performance.eventLoopUtilization(), loopBeforeParse);
   const writeMsInsideParse = writes.stats.ms - writeMsBeforeParse;
   writes.flush();
-  logRunSummary(collectionName, writes.stats, runStart, {
+  logRunSummary(logLabel, writes.stats, runStart, {
     ms: parsePhaseMs - writeMsInsideParse,
     files: toParse.length,
     wallMs: parsePhaseMs,
@@ -320,12 +368,12 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
 const activeRuns = new Map();
 
 // onWork is called once the run finds something to read or write (not while it is only checking for changes)
-const indexCollection = (searchIndex, { collectionPath, collectionName, denylist, concurrency = os.availableParallelism(), workspacePath, fileIndex, onWork }) => {
+const indexCollection = (searchIndex, { collectionPath, collectionName, denylist, concurrency = os.availableParallelism(), workspacePath, fileIndex, onWork, mode = 'complete', shouldStop }) => {
   const root = path.resolve(collectionPath);
   const running = activeRuns.get(root);
   if (running) return running;
 
-  const run = indexUncached(searchIndex, root, collectionName, denylist, concurrency, workspacePath, fileIndex, onWork)
+  const run = indexUncached(searchIndex, root, collectionName, denylist, concurrency, workspacePath, fileIndex, onWork, fileIndex ? mode : 'complete', shouldStop)
     .finally(() => activeRuns.delete(root));
   activeRuns.set(root, run);
   return run;

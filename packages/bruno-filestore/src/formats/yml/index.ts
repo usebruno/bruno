@@ -1,4 +1,5 @@
 import parseYmlItem from './parseItem';
+import parseYmlItemMeta from './parseItemMeta';
 import parseYmlFolder from './parseFolder';
 import parseYmlCollection from './parseCollection';
 import parseYmlEnvironment from './parseEnvironment';
@@ -12,6 +13,7 @@ import stringifyYmlMockServer from './stringifyMockServer';
 
 export {
   parseYmlItem,
+  parseYmlItemMeta,
   parseYmlFolder,
   parseYmlCollection,
   parseYmlEnvironment,

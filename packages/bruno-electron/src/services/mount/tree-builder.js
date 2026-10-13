@@ -244,4 +244,4 @@ const buildTree = (collectionPath, parserResults, options = {}) => {
   return tree;
 };
 
-module.exports = { buildTree, REQUEST_UID_PATHS };
+module.exports = { buildTree, REQUEST_UID_PATHS, EXAMPLE_UID_PATHS };

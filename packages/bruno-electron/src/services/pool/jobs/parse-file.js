@@ -65,19 +65,34 @@ const parseContent = (content, format, type, byteSize) => {
   }
 };
 
-const parseFile = ({ collectionPath, relativePath, format, type }) => {
+const readRequestMeta = (content, format) => {
+  try {
+    return filestore.parseRequestMeta(content, { format });
+  } catch (_) {
+    return null;
+  }
+};
+
+const parseFile = ({ collectionPath, relativePath, format, type, metaOnly, keepMetaOnError, includeRaw = true }) => {
   const absolutePath = path.join(collectionPath, relativePath);
   const buf = fs.readFileSync(absolutePath);
   const stat = fs.statSync(absolutePath, { bigint: true });
   const mtime = stat.mtimeNs;
   const hash = sha256(buf);
   const content = buf.toString('utf8');
+  const rawField = includeRaw ? { raw: content } : {};
+  if (metaOnly && type === 'request') {
+    const data = readRequestMeta(content, format);
+    if (data) return { relativePath, mtime, hash, data, format, type, metaOnly: true };
+  }
   try {
     const data = parseContent(content, format, type, buf.length);
-    return { relativePath, mtime, hash, data, format, type, raw: content };
+    return { relativePath, mtime, hash, data, format, type, ...rawField };
   } catch (err) {
-    const data = format === 'bru' && type === 'request' ? extractBruMeta(content) : {};
-    return { relativePath, mtime, hash, data, format, type, raw: content, partial: true, error: { message: err.message, stack: err.stack } };
+    const data = format === 'bru' && type === 'request'
+      ? extractBruMeta(content)
+      : (type === 'request' && keepMetaOnError && readRequestMeta(content, format)) || {};
+    return { relativePath, mtime, hash, data, format, type, ...rawField, partial: true, error: { message: err.message, stack: err.stack } };
   }
 };
 
