@@ -26,6 +26,11 @@ export type Resolved = {
 
 export type HttpVersionPreference = (typeof HTTP_VERSION)[keyof typeof HTTP_VERSION];
 
+export const canUseHttp2 = (
+  preference?: HttpVersionPreference
+): preference is typeof HTTP_VERSION.HTTP2 | typeof HTTP_VERSION.AUTO =>
+  preference === HTTP_VERSION.HTTP2 || preference === HTTP_VERSION.AUTO;
+
 export type ResolveHttpVersionParams = {
   url: string;
   httpVersionPreference: HttpVersionPreference;

@@ -94,6 +94,7 @@ type TlsOptions = HttpsAgentRequestFields & CertsConfig & {
 type AgentResult = {
   httpAgent?: HttpAgent;
   httpsAgent?: HttpsAgent | HttpsProxyAgent<any> | SocksProxyAgent;
+  tlsOptions?: TlsOptions;
 };
 
 type ConfigOptions = {
@@ -591,7 +592,7 @@ async function createAgents({
     }
   }
 
-  return { httpAgent, httpsAgent };
+  return { httpAgent, httpsAgent, tlsOptions };
 }
 
 const getHttpHttpsAgents = async ({
@@ -623,7 +624,7 @@ const getHttpHttpsAgents = async ({
     httpsAgentRequestFields.rejectUnauthorized = false;
   }
 
-  const { httpAgent, httpsAgent } = await createAgents({
+  const { httpAgent, httpsAgent, tlsOptions } = await createAgents({
     requestUrl,
     proxyMode,
     proxyConfig,
@@ -634,7 +635,7 @@ const getHttpHttpsAgents = async ({
     disableCache: !options.cacheSslSession
   });
 
-  return { httpAgent, httpsAgent };
+  return { httpAgent, httpsAgent, tlsOptions };
 };
 
 export { getHttpHttpsAgents };

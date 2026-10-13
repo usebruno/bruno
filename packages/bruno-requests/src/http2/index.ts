@@ -2,6 +2,7 @@ export {
   resolveHttpVersion,
   invalidateAlpn,
   clearAlpnCache,
+  canUseHttp2,
   HTTP_VERSION
 } from './alpn';
 export type { HttpVersionPreference, Resolved, ResolveHttpVersionParams } from './alpn';

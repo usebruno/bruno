@@ -1,8 +1,8 @@
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { makeAxiosInstance } from '../network';
 import { getSentHeaders } from '../network/sent-headers';
-import { getHttpHttpsAgents } from '../utils/http-https-agents';
-import type { GetHttpHttpsAgentsParams } from '../utils/http-https-agents';
+import { getHttpHttpsAgents, GetHttpHttpsAgentsParams } from '../utils/http-https-agents';
+import { applyHttp2Transport, agentToProxyInfo, canUseHttp2, HttpVersionPreference } from '../http2';
 
 type T_SendRequestCallback = (error: any, response: any) => void;
 
@@ -11,7 +11,9 @@ type T_SendRequestCallback = (error: any, response: any) => void;
  * This is the same config used by getHttpHttpsAgents, minus requestUrl which is
  * extracted from the actual request.
  */
-type SendRequestConfig = Omit<GetHttpHttpsAgentsParams, 'requestUrl'>;
+type SendRequestConfig = Omit<GetHttpHttpsAgentsParams, 'requestUrl'> & {
+  httpVersion?: HttpVersionPreference;
+};
 
 type SendRequestEntry = {
   request: { method: string; url: string | undefined; headers: Record<string, any>; data: any };
@@ -196,7 +198,7 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
     if (config) {
       const requestUrl = normalizedConfig.url;
 
-      const { httpAgent, httpsAgent } = await getHttpHttpsAgents({
+      const { httpAgent, httpsAgent, tlsOptions } = await getHttpHttpsAgents({
         ...config,
         requestUrl
       });
@@ -207,6 +209,15 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
       }
       if (httpsAgent && !normalizedConfig.httpsAgent) {
         normalizedConfig.httpsAgent = httpsAgent;
+      }
+
+      if (canUseHttp2(config.httpVersion) && normalizedConfig.url) {
+        await applyHttp2Transport({
+          config: normalizedConfig as { url: string } & Record<string, unknown>,
+          httpVersionPreference: config.httpVersion,
+          tlsOptions,
+          proxyInfo: agentToProxyInfo(normalizedConfig.httpsAgent)
+        });
       }
     }
 
