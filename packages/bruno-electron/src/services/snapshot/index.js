@@ -2,6 +2,7 @@ const Store = require('electron-store');
 const fs = require('fs');
 const path = require('path');
 const yup = require('yup');
+const { isDeepStrictEqual } = require('util');
 
 const SNAPSHOT_VERSION = '0.0.1';
 const ENV_FILE_EXTENSIONS = ['bru', 'yml', 'yaml'];
@@ -146,6 +147,14 @@ class SnapshotManager {
       defaults: emptySnapshot
     });
     this._lookupCache = null;
+    this._writeQueue = Promise.resolve();
+    this._lastAppliedRevision = 0;
+  }
+
+  _enqueueWrite(operation) {
+    const run = () => Promise.resolve().then(operation);
+    this._writeQueue = this._writeQueue.then(run, run);
+    return this._writeQueue;
   }
 
   // --- Reads ---
@@ -209,6 +218,23 @@ class SnapshotManager {
     return snapshot?.extras?.sidebar || null;
   }
 
+  getWorkspaceSnapshot(workspacePathname) {
+    const normalizedWorkspace = normalizeLookupKey(workspacePathname);
+    if (!normalizedWorkspace) {
+      return { workspace: null, collections: [] };
+    }
+
+    const snapshot = this._normalizeSnapshot(this.store.store);
+    const workspace = snapshot.workspaces.find(
+      (entry) => normalizeLookupKey(entry.pathname) === normalizedWorkspace
+    ) || null;
+    const collections = snapshot.collections.filter(
+      (entry) => normalizeLookupKey(entry.workspacePathname || '') === normalizedWorkspace
+    );
+
+    return { workspace, collections };
+  }
+
   // --- Writes ---
 
   saveSnapshot(data) {
@@ -217,11 +243,248 @@ class SnapshotManager {
       snapshotSchema.validateSync(normalizedSnapshot, { strict: false });
       this.store.store = normalizedSnapshot;
       this._lookupCache = null;
+      this._lastAppliedRevision = 0;
       return true;
     } catch (err) {
       console.error('Failed to save snapshot:', err.message);
       return false;
     }
+  }
+
+  mergeSnapshot(patch = {}) {
+    return this._enqueueWrite(() => {
+      try {
+        return this._mergeSnapshotSync(patch);
+      } catch (err) {
+        console.error('Failed to merge snapshot:', err.message);
+        return {
+          applied: false,
+          changed: false,
+          revision: this._lastAppliedRevision,
+          snapshot: this._normalizeSnapshot(this.store.store)
+        };
+      }
+    });
+  }
+
+  _mergeSnapshotSync(patch = {}) {
+    if (!isObject(patch)) {
+      return false;
+    }
+
+    const {
+      revision,
+      removeWorkspaces,
+      removeCollections,
+      workspaces: workspacePatches,
+      collections: collectionPatches,
+      activeWorkspacePath,
+      extras: extrasPatch,
+      version
+    } = patch;
+
+    if (typeof revision === 'number' && revision <= this._lastAppliedRevision) {
+      return {
+        applied: false,
+        changed: false,
+        revision: this._lastAppliedRevision,
+        snapshot: this._normalizeSnapshot(this.store.store)
+      };
+    }
+
+    const previousSnapshot = this._normalizeSnapshot(this.store.store);
+    let snapshot = JSON.parse(JSON.stringify(previousSnapshot));
+
+    if (typeof version === 'string') {
+      snapshot.version = version;
+    }
+
+    if ('activeWorkspacePath' in patch) {
+      snapshot.activeWorkspacePath = typeof activeWorkspacePath === 'string' ? activeWorkspacePath : null;
+    }
+
+    if (isObject(extrasPatch)) {
+      if (isObject(extrasPatch.sidebar)) {
+        snapshot.extras = snapshot.extras || { devTools: this._normalizeDevTools() };
+        snapshot.extras.sidebar = {
+          ...(snapshot.extras.sidebar || {}),
+          ...extrasPatch.sidebar
+        };
+      }
+
+      if (isObject(extrasPatch.devTools)) {
+        const existingDevTools = snapshot.extras?.devTools || this._normalizeDevTools();
+        const incomingDevTools = extrasPatch.devTools;
+        snapshot.extras = snapshot.extras || {};
+        snapshot.extras.devTools = {
+          open: 'open' in incomingDevTools ? incomingDevTools.open : existingDevTools.open,
+          activeTab: 'activeTab' in incomingDevTools ? incomingDevTools.activeTab : existingDevTools.activeTab,
+          tabs: {
+            ...(existingDevTools.tabs || {}),
+            ...(isObject(incomingDevTools.tabs) ? incomingDevTools.tabs : {})
+          }
+        };
+      }
+    }
+
+    if (Array.isArray(removeWorkspaces)) {
+      const removeWorkspaceSet = new Set(
+        removeWorkspaces
+          .map((pathname) => normalizeLookupKey(pathname))
+          .filter(Boolean)
+      );
+
+      if (removeWorkspaceSet.size > 0) {
+        snapshot.workspaces = snapshot.workspaces.filter(
+          (workspace) => !removeWorkspaceSet.has(normalizeLookupKey(workspace.pathname))
+        );
+        snapshot.collections = snapshot.collections.filter(
+          (collection) => !removeWorkspaceSet.has(normalizeLookupKey(collection.workspacePathname || ''))
+        );
+      }
+    }
+
+    if (Array.isArray(removeCollections)) {
+      const removeCollectionKeys = new Set();
+
+      removeCollections.forEach((entry) => {
+        if (!isObject(entry) || typeof entry.pathname !== 'string') {
+          return;
+        }
+
+        if (typeof entry.workspacePathname !== 'string') {
+          return;
+        }
+
+        const key = buildWorkspaceCollectionLookupKey(entry.workspacePathname, entry.pathname);
+        if (key) {
+          removeCollectionKeys.add(key);
+        }
+      });
+
+      if (removeCollectionKeys.size > 0) {
+        snapshot.collections = snapshot.collections.filter((collection) => {
+          const key = buildWorkspaceCollectionLookupKey(collection.workspacePathname, collection.pathname);
+          return !key || !removeCollectionKeys.has(key);
+        });
+      }
+    }
+
+    if (Array.isArray(workspacePatches)) {
+      workspacePatches.forEach((workspacePatch) => {
+        if (!isObject(workspacePatch) || typeof workspacePatch.pathname !== 'string') {
+          return;
+        }
+
+        const normalizedWorkspacePath = normalizeLookupKey(workspacePatch.pathname);
+        if (!normalizedWorkspacePath) {
+          return;
+        }
+
+        const workspaceIndex = snapshot.workspaces.findIndex(
+          (workspace) => normalizeLookupKey(workspace.pathname) === normalizedWorkspacePath
+        );
+        const existingWorkspace = workspaceIndex >= 0 ? snapshot.workspaces[workspaceIndex] : null;
+        const mergedWorkspace = {
+          ...(existingWorkspace || {}),
+          ...workspacePatch,
+          pathname: workspacePatch.pathname
+        };
+        const normalizedWorkspace = this._normalizeWorkspaceEntry(workspacePatch.pathname, mergedWorkspace);
+
+        if (workspaceIndex >= 0) {
+          snapshot.workspaces[workspaceIndex] = normalizedWorkspace;
+        } else {
+          snapshot.workspaces.push(normalizedWorkspace);
+        }
+      });
+    }
+
+    if (Array.isArray(collectionPatches)) {
+      collectionPatches.forEach((collectionPatch) => {
+        if (!isObject(collectionPatch) || typeof collectionPatch.pathname !== 'string') {
+          return;
+        }
+
+        if (typeof collectionPatch.workspacePathname !== 'string') {
+          return;
+        }
+
+        const normalizedPath = normalizeLookupKey(collectionPatch.pathname);
+        const normalizedRequestedWorkspacePath = normalizeLookupKey(collectionPatch.workspacePathname || '');
+        if (!normalizedPath) {
+          return;
+        }
+
+        const collectionIndex = snapshot.collections.findIndex((collection) => {
+          if (normalizeLookupKey(collection.pathname) !== normalizedPath) {
+            return false;
+          }
+
+          return normalizeLookupKey(collection.workspacePathname || '') === normalizedRequestedWorkspacePath;
+        });
+
+        const existingCollection = collectionIndex >= 0 ? snapshot.collections[collectionIndex] : null;
+        const preserveEnvironment = collectionPatch.preserveEnvironment === true;
+        const patchEnvironment = isObject(collectionPatch.environment) ? collectionPatch.environment : {};
+        const existingEnvironment = isObject(existingCollection?.environment) ? existingCollection.environment : {};
+        const mergedEnvironment = preserveEnvironment
+          ? {
+              collection: typeof existingEnvironment.collection === 'string' ? existingEnvironment.collection : '',
+              global: 'global' in patchEnvironment
+                ? patchEnvironment.global
+                : (typeof existingEnvironment.global === 'string' ? existingEnvironment.global : '')
+            }
+          : {
+              ...existingEnvironment,
+              ...patchEnvironment
+            };
+        const mergedCollection = {
+          ...(existingCollection || {}),
+          ...collectionPatch,
+          environment: mergedEnvironment,
+          activeTab: 'activeTab' in collectionPatch ? collectionPatch.activeTab : existingCollection?.activeTab,
+          tabs: 'tabs' in collectionPatch ? collectionPatch.tabs : existingCollection?.tabs,
+          environmentPath: preserveEnvironment
+            ? existingCollection?.environmentPath
+            : ('environmentPath' in collectionPatch
+                ? collectionPatch.environmentPath
+                : existingCollection?.environmentPath),
+          selectedEnvironment: preserveEnvironment
+            ? existingCollection?.selectedEnvironment
+            : ('selectedEnvironment' in collectionPatch
+                ? collectionPatch.selectedEnvironment
+                : existingCollection?.selectedEnvironment)
+        };
+
+        const normalizedCollection = this._normalizeCollectionEntry(collectionPatch.pathname, mergedCollection);
+
+        if (collectionIndex >= 0) {
+          snapshot.collections[collectionIndex] = normalizedCollection;
+        } else {
+          snapshot.collections.push(normalizedCollection);
+        }
+      });
+    }
+
+    snapshotSchema.validateSync(snapshot, { strict: false });
+    const changed = !isDeepStrictEqual(previousSnapshot, snapshot);
+
+    if (typeof revision === 'number') {
+      this._lastAppliedRevision = revision;
+    }
+
+    if (changed) {
+      this.store.store = snapshot;
+      this._lookupCache = null;
+    }
+
+    return {
+      applied: true,
+      changed,
+      revision: this._lastAppliedRevision,
+      snapshot
+    };
   }
 
   resetSnapshot() {

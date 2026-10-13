@@ -19,7 +19,7 @@ import {
  * 1. Persist ReqA.bru tabs in workspace A for a shared bru collection
  * 2. Open the same collection in workspace B and migrate to yml there
  * 3. Migration flushSnapshotNow only rewrites the active workspace entry
- * 4. Without remap, serializeSnapshot preserves workspace A's ReqA.bru tabs verbatim
+ * 4. Without remap, snapshot delta persistence preserves workspace A's ReqA.bru tabs verbatim
  * 5. Switching back restores a dead "Not Found" tab against the yml collection
  */
 test('migration clears stale tabs for the same collection in another workspace', async ({

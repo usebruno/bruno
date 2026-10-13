@@ -1,40 +1,16 @@
 const { describe, it, expect } = require('@jest/globals');
 const {
-  serializeSnapshot,
+  buildSnapshotDelta,
   shouldPreserveCollectionEnvironmentInSnapshot
 } = require('providers/ReduxStore/middlewares/snapshot/serializeSnapshot');
+
+jest.mock('providers/ReduxStore/middlewares/snapshot/snapshotRevision', () => ({
+  getNextSnapshotRevision: jest.fn(() => 1)
+}));
 
 const WORKSPACE_PATH = '/tmp/workspace';
 const COLLECTION_PATH = '/tmp/workspace/collections/api';
 const ENVIRONMENT_PATH = '/tmp/workspace/collections/api/environments/local.yml';
-
-const makeExistingSnapshot = () => ({
-  version: '0.0.1',
-  activeWorkspacePath: WORKSPACE_PATH,
-  extras: { devTools: { open: false, activeTab: 'terminal', tabs: {} } },
-  workspaces: [
-    {
-      pathname: WORKSPACE_PATH,
-      sorting: 'default',
-      collections: [COLLECTION_PATH]
-    }
-  ],
-  collections: [
-    {
-      pathname: COLLECTION_PATH,
-      workspacePathname: WORKSPACE_PATH,
-      environment: {
-        collection: ENVIRONMENT_PATH,
-        global: ''
-      },
-      environmentPath: ENVIRONMENT_PATH,
-      selectedEnvironment: 'local',
-      isOpen: false,
-      isMounted: false,
-      tabs: []
-    }
-  ]
-});
 
 const makeState = (collectionOverrides = {}) => ({
   app: {
@@ -125,7 +101,7 @@ describe('shouldPreserveCollectionEnvironmentInSnapshot', () => {
   });
 });
 
-describe('serializeSnapshot workspace tab restoration', () => {
+describe('buildSnapshotDelta workspace tab restoration', () => {
   it('records the active workspace tab type when the scratch collection tab is focused', async () => {
     const scratchCollectionUid = 'scratch-1';
     const state = makeState();
@@ -133,9 +109,7 @@ describe('serializeSnapshot workspace tab restoration', () => {
     state.tabs.tabs = [{ uid: `${scratchCollectionUid}-environments`, collectionUid: scratchCollectionUid, type: 'workspaceEnvironments' }];
     state.tabs.activeTabUid = `${scratchCollectionUid}-environments`;
 
-    const snapshot = await serializeSnapshot(state, {
-      getExistingSnapshot: async () => null
-    });
+    const snapshot = buildSnapshotDelta(state);
 
     expect(snapshot.workspaces[0]).toMatchObject({
       activeWorkspaceTabType: 'workspaceEnvironments'
@@ -149,9 +123,7 @@ describe('serializeSnapshot workspace tab restoration', () => {
     state.tabs.tabs = [{ uid: 'req-1', collectionUid: COLLECTION_PATH, type: 'http-request' }];
     state.tabs.activeTabUid = 'req-1';
 
-    const snapshot = await serializeSnapshot(state, {
-      getExistingSnapshot: async () => null
-    });
+    const snapshot = buildSnapshotDelta(state);
 
     expect(snapshot.workspaces[0]).toMatchObject({
       activeWorkspaceTabType: null
@@ -159,7 +131,7 @@ describe('serializeSnapshot workspace tab restoration', () => {
   });
 });
 
-describe('serializeSnapshot API spec tabs', () => {
+describe('buildSnapshotDelta API spec tabs', () => {
   const PETSTORE_PATH = '/tmp/workspace/petstore.yaml';
   const ORDERS_PATH = '/tmp/workspace/orders.yaml';
 
@@ -178,7 +150,7 @@ describe('serializeSnapshot API spec tabs', () => {
   it('remembers every open spec tab, so they all come back after a restart', async () => {
     const state = makeStateWithApiSpecTabs();
 
-    const snapshot = await serializeSnapshot(state, { getExistingSnapshot: async () => null });
+    const snapshot = buildSnapshotDelta(state);
 
     expect(snapshot.workspaces[0].apiSpecTabs).toEqual([PETSTORE_PATH, ORDERS_PATH]);
   });
@@ -187,7 +159,7 @@ describe('serializeSnapshot API spec tabs', () => {
     const state = makeStateWithApiSpecTabs();
     state.tabs.activeTabUid = 'api-spec::' + ORDERS_PATH;
 
-    const snapshot = await serializeSnapshot(state, { getExistingSnapshot: async () => null });
+    const snapshot = buildSnapshotDelta(state);
 
     expect(snapshot.workspaces[0].activeApiSpecTabPathname).toBe(ORDERS_PATH);
   });
@@ -196,7 +168,7 @@ describe('serializeSnapshot API spec tabs', () => {
     const state = makeStateWithApiSpecTabs();
     state.tabs.activeTabUid = 'scratch-1-overview';
 
-    const snapshot = await serializeSnapshot(state, { getExistingSnapshot: async () => null });
+    const snapshot = buildSnapshotDelta(state);
 
     expect(snapshot.workspaces[0].activeApiSpecTabPathname).toBeNull();
   });
@@ -205,17 +177,35 @@ describe('serializeSnapshot API spec tabs', () => {
     const state = makeState();
     state.workspaces.workspaces[0].scratchCollectionUid = 'scratch-1';
 
-    const snapshot = await serializeSnapshot(state, { getExistingSnapshot: async () => null });
+    const snapshot = buildSnapshotDelta(state);
 
     expect(snapshot.workspaces[0].apiSpecTabs).toEqual([]);
   });
 });
 
-describe('serializeSnapshot collection environment preservation', () => {
-  it('creates a safe first-run snapshot when no existing snapshot is available', async () => {
-    const snapshot = await serializeSnapshot(makeState(), {
-      getExistingSnapshot: async () => null
+describe('buildSnapshotDelta collection environment', () => {
+  it('reuses the persisted snapshot as a baseline and emits only changed sections', () => {
+    const state = makeState();
+    const firstPatch = buildSnapshotDelta(state);
+
+    const unchangedPatch = buildSnapshotDelta(state, firstPatch);
+    expect(unchangedPatch).toEqual({ revision: 1 });
+
+    state.collections.collectionSortOrder = 'alphabetical';
+    const changedPatch = buildSnapshotDelta(state, firstPatch);
+
+    expect(changedPatch).toMatchObject({
+      revision: 1,
+      workspaces: [{
+        pathname: WORKSPACE_PATH,
+        sorting: 'alphabetical'
+      }]
     });
+    expect(changedPatch.collections).toBeUndefined();
+  });
+
+  it('creates a safe first-run patch when no existing snapshot is available', () => {
+    const snapshot = buildSnapshotDelta(makeState());
 
     expect(snapshot).toMatchObject({
       extras: {
@@ -230,38 +220,41 @@ describe('serializeSnapshot collection environment preservation', () => {
     });
   });
 
-  it('preserves existing environment fields for an unmounted collection without loaded environments', async () => {
-    const snapshot = await serializeSnapshot(makeState(), {
-      getExistingSnapshot: async () => makeExistingSnapshot()
-    });
+  it('patch contract: unmounted unhydrated collection sends empty collection env and preserveEnvironment', () => {
+    const snapshot = buildSnapshotDelta(makeState());
 
     expect(snapshot.collections).toHaveLength(1);
     expect(snapshot.collections[0]).toMatchObject({
       pathname: COLLECTION_PATH,
       workspacePathname: WORKSPACE_PATH,
-      environmentPath: ENVIRONMENT_PATH,
-      selectedEnvironment: 'local',
       environment: {
-        collection: ENVIRONMENT_PATH,
+        collection: '',
         global: ''
-      }
+      },
+      environmentPath: '',
+      selectedEnvironment: '',
+      preserveEnvironment: true
     });
   });
 
-  it('preserves existing environment fields for a mounted but unhydrated collection', async () => {
-    const snapshot = await serializeSnapshot(
-      makeState({ mountStatus: 'mounted', environments: [], activeEnvironmentUid: null }),
-      { getExistingSnapshot: async () => makeExistingSnapshot() }
+  it('patch contract: mounted unhydrated collection sends empty collection env and preserveEnvironment', () => {
+    const snapshot = buildSnapshotDelta(
+      makeState({ mountStatus: 'mounted', environments: [], activeEnvironmentUid: null })
     );
 
     expect(snapshot.collections[0]).toMatchObject({
-      environmentPath: ENVIRONMENT_PATH,
-      selectedEnvironment: 'local'
+      environment: {
+        collection: '',
+        global: ''
+      },
+      environmentPath: '',
+      selectedEnvironment: '',
+      preserveEnvironment: true
     });
   });
 
-  it('writes redux environment selection when mounted collection is hydrated', async () => {
-    const snapshot = await serializeSnapshot(
+  it('patch contract: mounted hydrated collection sends authoritative redux environment selection', () => {
+    const snapshot = buildSnapshotDelta(
       makeState({
         mountStatus: 'mounted',
         activeEnvironmentUid: 'env-2',
@@ -272,8 +265,7 @@ describe('serializeSnapshot collection environment preservation', () => {
             pathname: '/tmp/workspace/collections/api/environments/staging.yml'
           }
         ]
-      }),
-      { getExistingSnapshot: async () => makeExistingSnapshot() }
+      })
     );
 
     expect(snapshot.collections[0]).toMatchObject({
@@ -282,8 +274,8 @@ describe('serializeSnapshot collection environment preservation', () => {
     });
   });
 
-  it('writes empty environment when mounted hydrated collection selection was cleared', async () => {
-    const snapshot = await serializeSnapshot(
+  it('patch contract: mounted hydrated cleared selection sends empty environment without preserveEnvironment', () => {
+    const snapshot = buildSnapshotDelta(
       makeState({
         mountStatus: 'mounted',
         activeEnvironmentUid: null,
@@ -294,13 +286,28 @@ describe('serializeSnapshot collection environment preservation', () => {
             pathname: ENVIRONMENT_PATH
           }
         ]
-      }),
-      { getExistingSnapshot: async () => makeExistingSnapshot() }
+      })
     );
 
     expect(snapshot.collections[0]).toMatchObject({
       environmentPath: '',
       selectedEnvironment: ''
+    });
+    expect(snapshot.collections[0].preserveEnvironment).toBeUndefined();
+  });
+
+  it('patch contract: preserveEnvironment still sends active global environment uid from redux', () => {
+    const state = makeState();
+    state.globalEnvironments.activeGlobalEnvironmentUid = 'global-env-1';
+
+    const snapshot = buildSnapshotDelta(state);
+
+    expect(snapshot.collections[0]).toMatchObject({
+      preserveEnvironment: true,
+      environment: {
+        collection: '',
+        global: 'global-env-1'
+      }
     });
   });
 });
