@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import tasksMiddleware from './middlewares/tasks/middleware';
 import debugMiddleware from './middlewares/debug/middleware';
+import { profilerMiddleware, profilerInnerMiddleware } from './middlewares/profiler/middleware';
 import appReducer from './slices/app';
 import collectionsReducer from './slices/collections';
 import tabsReducer from './slices/tabs';
@@ -46,8 +47,8 @@ export const store = configureStore({
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
-      .prepend(...(__BRUNO_BENCHMARK__ ? [benchmarkMiddleware] : []))
-      .concat(middleware)
+      .prepend(profilerMiddleware, ...(__BRUNO_BENCHMARK__ ? [benchmarkMiddleware] : []))
+      .concat(middleware, profilerInnerMiddleware)
 });
 
 export default store;

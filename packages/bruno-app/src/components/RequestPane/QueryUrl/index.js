@@ -25,8 +25,10 @@ import StyledWrapper from './StyledWrapper';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem/index';
 import ToolHint from 'components/ToolHint';
 import toast from 'react-hot-toast';
+import { useRenderProbe } from 'hooks/useRenderProbe';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
+  useRenderProbe('QueryUrl', { item, collection, handleRun });
   const { theme, storedTheme } = useTheme();
   const dispatch = useDispatch();
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');

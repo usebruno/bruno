@@ -52,6 +52,7 @@ import { resolveMockServerInstance } from 'utils/mock-server/mock-server-instanc
 import CollapsedPanelIndicator from './CollapsedPanelIndicator';
 import { clampRequestHeightForResponse } from './paneSize';
 import { IconLoader2 } from '@tabler/icons';
+import { useRenderProbe } from 'hooks/useRenderProbe';
 
 const MIN_LEFT_PANE_WIDTH = 350;
 const MIN_RIGHT_PANE_WIDTH = 490;
@@ -69,6 +70,7 @@ const RESPONSE_EXPAND_MIN_HEIGHT = 300;
 const aiAutoCollapsedTabs = new Set();
 
 const RequestTabPanel = () => {
+  useRenderProbe('RequestTabPanel');
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);

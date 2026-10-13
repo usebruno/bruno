@@ -13,6 +13,7 @@ import { findCollectionByUid, findEnvironmentInCollection } from 'utils/collecti
 import toast from 'react-hot-toast';
 import WSRequestBodyMode from '../BodyMode/index';
 import StyledWrapper from './StyledWrapper';
+import { useRenderProbe } from 'hooks/useRenderProbe';
 
 const codemirrorMode = {
   text: 'application/text',
@@ -43,6 +44,20 @@ export const SingleWSMessage = ({
   onSelect,
   paneHeight
 }) => {
+  useRenderProbe('SingleWSMessage', {
+    message,
+    item,
+    collection,
+    index,
+    handleRun,
+    isExpanded,
+    onToggle,
+    isNew,
+    onNewRendered,
+    isSelected,
+    onSelect,
+    paneHeight
+  });
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);

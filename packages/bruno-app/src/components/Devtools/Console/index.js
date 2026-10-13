@@ -9,7 +9,8 @@ import {
   IconBug,
   IconTerminal2,
   IconNetwork,
-  IconDashboard
+  IconDashboard,
+  IconGauge
 } from '@tabler/icons';
 import {
   closeConsole,
@@ -26,6 +27,7 @@ import { DevToolsFilterDropdown } from './FilterDropdown';
 import LogIcon from './LogIcon';
 import NetworkTab from './NetworkTab';
 import TerminalTab from './TerminalTab';
+import ProfilerTab from './ProfilerTab';
 import RequestDetailsPanel from './RequestDetailsPanel';
 // import DebugTab from './DebugTab';
 import ErrorDetailsPanel from './ErrorDetailsPanel';
@@ -350,6 +352,8 @@ const Console = () => {
         return <NetworkTab />;
       case 'performance':
         return <Performance />;
+      case 'profiler':
+        return <ProfilerTab />;
       case 'terminal':
         return <TerminalTab />;
       // case 'debug':
@@ -464,6 +468,14 @@ const Console = () => {
           >
             <IconDashboard size={16} strokeWidth={1.5} />
             <span>Performance</span>
+          </button>
+
+          <button
+            className={`console-tab ${activeTab === 'profiler' ? 'active' : ''}`}
+            onClick={() => handleTabChange('profiler')}
+          >
+            <IconGauge size={16} strokeWidth={1.5} />
+            <span>Profiler</span>
           </button>
 
           <button

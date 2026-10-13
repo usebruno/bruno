@@ -14,10 +14,18 @@ import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import useDebounce from 'hooks/useDebounce';
 import useSidebarAutoReveal from 'hooks/useSidebarAutoReveal';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
+import { useRenderProbe } from 'hooks/useRenderProbe';
 
 const isEmptyQuery = (value) => typeof value === 'string' && value.trim() === '';
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
+  useRenderProbe('Sidebar/Collections', {
+    showSearch,
+    isCreatingCollection,
+    onCreateClick,
+    onDismissCreate,
+    onOpenAdvancedCreate
+  });
   const [searchText, setSearchText] = useState('');
   const trimmedSearchText = searchText.trim();
   const debouncedSearchText = useDebounce(trimmedSearchText, 300, { shouldSkipDebounce: isEmptyQuery });

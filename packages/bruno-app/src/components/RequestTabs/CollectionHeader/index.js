@@ -50,6 +50,7 @@ import { useTheme } from 'providers/Theme';
 import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 import { getMockServerInstances, openMockServerDashboard } from 'utils/mock-server/mock-server-instances';
+import { useRenderProbe } from 'hooks/useRenderProbe';
 
 const readDismissedCollections = () => {
   try {
@@ -63,6 +64,7 @@ const readDismissedCollections = () => {
 };
 
 const CollectionHeader = ({ collection, isScratchCollection }) => {
+  useRenderProbe('CollectionHeader', { collection, isScratchCollection });
   const dispatch = useDispatch();
   const workspaces = useSelector((state) => state.workspaces.workspaces);
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);

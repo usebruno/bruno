@@ -71,6 +71,7 @@ import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections/index';
+import { useRenderProbe } from 'hooks/useRenderProbe';
 
 const CollectionItemRow = ({
   item,
@@ -84,6 +85,17 @@ const CollectionItemRow = ({
   multiDragCollections,
   multiDragItems: multiDragItemsForSelection
 }) => {
+  useRenderProbe('CollectionItemRow', {
+    item,
+    depth,
+    collectionUid,
+    collectionPathname,
+    searchText,
+    openBulkMenu,
+    isItemMultiDragDisabled,
+    multiDragCollections,
+    multiDragItems: multiDragItemsForSelection
+  });
   const { dropdownContainerRef } = useSidebarAccordion();
   const selectorInput = {
     itemUid: item.uid,

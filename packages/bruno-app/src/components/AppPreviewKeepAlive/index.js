@@ -14,6 +14,7 @@ import TabPanelErrorBoundary from 'components/RequestTabPanel/TabPanelErrorBound
 import AppView from 'components/AppView';
 import CollectionApp from 'components/CollectionApp';
 import StyledWrapper from './StyledWrapper';
+import { useRenderProbe } from 'hooks/useRenderProbe';
 
 const APP_CAPABLE_TAB_TYPES = new Set([
   'app',
@@ -25,6 +26,7 @@ const APP_CAPABLE_TAB_TYPES = new Set([
 ]);
 
 const AppPreviewKeepAlive = () => {
+  useRenderProbe('AppPreviewKeepAlive');
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const _collections = useSelector((state) => state.collections.collections);

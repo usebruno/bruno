@@ -21,6 +21,7 @@ import ResponsiveTabs from 'ui/ResponsiveTabs';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import TabBarAiAssist from '../TabBarAiAssist';
 import { hasEffectiveAuth } from 'utils/auth';
+import { useRenderProbe } from 'hooks/useRenderProbe';
 
 const TAB_CONFIG = [
   { key: 'params', label: 'Params' },
@@ -51,6 +52,7 @@ const TAB_PANELS = {
 };
 
 const HttpRequestPane = ({ item, collection }) => {
+  useRenderProbe('HttpRequestPane', { item, collection });
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
