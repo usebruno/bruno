@@ -1,5 +1,5 @@
 import path from 'path';
-import { getResponsePaneErrors, formatResponseErrorForClipboard, getErrorSourceTabUid, extractErrorPreview } from './index';
+import { getResponsePaneErrors, getErrorSourceTabUid } from './index';
 
 jest.mock('platform', () => ({
   os: {
@@ -104,6 +104,16 @@ describe('getResponsePaneErrors', () => {
     expect(error.label).toBe('Before Message Send');
   });
 
+  it('previews the first line of a multi-line message', () => {
+    const [lf, crlf] = getResponsePaneErrors({
+      preRequestScriptErrorMessage: 'Request failed\nat line 3',
+      postResponseScriptErrorMessage: 'Request failed\r\nat line 3'
+    }, collection);
+
+    expect(lf.preview).toBe('Request failed');
+    expect(crlf.preview).toBe('Request failed');
+  });
+
   it('falls back to Error when a script error context has no type', () => {
     const [error] = getResponsePaneErrors({
       preRequestScriptErrorMessage: 'something went wrong',
@@ -113,20 +123,26 @@ describe('getResponsePaneErrors', () => {
     expect(error.errorType).toBe('Error');
   });
 
-  it('keeps the message and nulls error type, file path, line, lines and stack when a script error has no context', () => {
+  it('keeps the message and nulls error type, file path, line, location, lines and details when a script error has no context', () => {
     const [error] = getResponsePaneErrors({ postResponseScriptErrorMessage: 'Request failed with status code 401' }, collection);
 
     expect(error).toEqual({
+      id: 'post-response',
+      kind: 'script',
       scriptType: 'post-response',
       title: 'Post-Response Script Error',
       label: 'Post-Response',
       message: 'Request failed with status code 401',
+      preview: 'Request failed with status code 401',
       source: null,
       errorType: null,
       filePath: null,
       line: null,
+      location: null,
       lines: null,
-      stack: null
+      details: null,
+      displayMessage: 'Request failed with status code 401',
+      clipboardText: 'Request failed with status code 401'
     });
   });
 
@@ -180,11 +196,11 @@ describe('getResponsePaneErrors', () => {
   });
 });
 
-describe('formatResponseErrorForClipboard', () => {
+describe('getResponsePaneErrors clipboard text', () => {
   it('has the file and line, the typed message and the stack trace', () => {
     const [error] = getResponsePaneErrors({ preRequestScriptErrorMessage: 'undefinedVar is not defined', preRequestScriptErrorContext: errorContext }, collection);
 
-    expect(formatResponseErrorForClipboard(error)).toBe(
+    expect(error.clipboardText).toBe(
       'File: echo json.yml:4\n\nReferenceError: undefinedVar is not defined\n\nStack trace:\n    at echo json.yml:4:5'
     );
   });
@@ -200,9 +216,9 @@ describe('formatResponseErrorForClipboard', () => {
     }, collection);
     const [withoutContext] = getResponsePaneErrors({ preRequestScriptErrorMessage: 'token is not defined' }, collection);
 
-    expect(formatResponseErrorForClipboard(withoutLineOrStack)).toBe('File: echo json.yml\n\nReferenceError: token is not defined');
-    expect(formatResponseErrorForClipboard(withoutFile)).toBe('ReferenceError: token is not defined');
-    expect(formatResponseErrorForClipboard(withoutContext)).toBe('token is not defined');
+    expect(withoutLineOrStack.clipboardText).toBe('File: echo json.yml\n\nReferenceError: token is not defined');
+    expect(withoutFile.clipboardText).toBe('ReferenceError: token is not defined');
+    expect(withoutContext.clipboardText).toBe('token is not defined');
   });
 });
 
@@ -225,23 +241,5 @@ describe('getErrorSourceTabUid', () => {
     expect(getErrorSourceTabUid(null, item, collection)).toBeNull();
     expect(getErrorSourceTabUid({ sourceType: 'folder' }, item, collection)).toBeNull();
     expect(getErrorSourceTabUid({ sourceType: 'request' }, item, null)).toBeNull();
-  });
-});
-
-describe('extractErrorPreview', () => {
-  it('returns the first line of a multi-line message', () => {
-    expect(extractErrorPreview({ message: 'Request failed\nat line 3' })).toBe('Request failed');
-  });
-
-  it('returns the first line of a message with CRLF line breaks', () => {
-    expect(extractErrorPreview({ message: 'Request failed\r\nat line 3' })).toBe('Request failed');
-  });
-
-  it('returns a single-line message unchanged', () => {
-    expect(extractErrorPreview({ message: 'token is not defined' })).toBe('token is not defined');
-  });
-
-  it('turns a non-string message into text', () => {
-    expect(extractErrorPreview({ message: 401 })).toBe('401');
   });
 });

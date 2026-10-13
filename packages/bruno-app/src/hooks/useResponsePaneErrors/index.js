@@ -5,30 +5,30 @@ import { getResponsePaneErrors } from 'utils/response-pane-errors';
 const useResponsePaneErrors = (item, collection, { isResponseTabActive, showResponseTab }) => {
   const errors = getResponsePaneErrors(item, collection);
 
-  const [closedRun, setClosedRun] = usePersistedState({ key: `response-pane-errors-closed-${item.uid}`, default: null });
-  const [fullPaneRun, setFullPaneRun] = useState(null);
+  const [closed, setClosed] = usePersistedState({ key: `response-pane-errors-closed-${item.uid}`, default: null });
+  const [fullPane, setFullPane] = useState(null);
 
-  // The send timestamp still tells cancelled runs apart when requestUid gets nulled
-  const runUid = item.requestUid ?? item.requestSent?.timestamp;
-  const isCurrentRun = (run) => Boolean(run) && run.requestUid === runUid;
+  // A cancelled send loses its requestUid, but its send timestamp is still available
+  const sendId = item.requestUid ?? item.requestSent?.timestamp;
+  const isCurrentSend = (send) => Boolean(send) && Boolean(sendId) && send.sendId === sendId;
   const hasErrors = errors.length > 0;
 
-  const isCardRemoved = hasErrors && (!isResponseTabActive || isCurrentRun(closedRun));
-  const isCardFullPane = hasErrors && !isCardRemoved && isCurrentRun(fullPaneRun);
+  const isCardClosed = hasErrors && (!isResponseTabActive || isCurrentSend(closed));
+  const isCardFullPane = hasErrors && !isCardClosed && isCurrentSend(fullPane);
 
   const closeCard = () => {
-    setClosedRun({ requestUid: runUid });
-    setFullPaneRun(null);
+    setClosed({ sendId });
+    setFullPane(null);
   };
 
   const reopenCard = () => {
     showResponseTab();
-    setClosedRun(null);
+    setClosed(null);
   };
 
-  const toggleCardFullPane = () => setFullPaneRun(isCardFullPane ? null : { requestUid: runUid });
+  const toggleCardFullPane = () => setFullPane(isCardFullPane ? null : { sendId });
 
-  return { errors, isCardRemoved, closeCard, reopenCard, isCardFullPane, toggleCardFullPane };
+  return { errors, isCardClosed, closeCard, reopenCard, isCardFullPane, toggleCardFullPane };
 };
 
 export default useResponsePaneErrors;

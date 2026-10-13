@@ -1,11 +1,12 @@
-import React, { useId } from 'react';
+import React from 'react';
 import { IconAlertCircle } from '@tabler/icons';
 import ToolHint from 'components/ToolHint';
+import useTooltipId from 'hooks/useTooltipId';
 import { pluralizeWord } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
 
 const ResponseErrorsIcon = ({ count, onClick }) => {
-  const toolhintId = `response-errors-icon-${useId().replace(/:/g, '')}`;
+  const toolhintId = useTooltipId('response-errors-icon');
 
   return (
     <>

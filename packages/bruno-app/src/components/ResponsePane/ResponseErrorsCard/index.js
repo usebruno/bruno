@@ -1,4 +1,4 @@
-import React, { useId } from 'react';
+import React from 'react';
 import classnames from 'classnames';
 import {
   IconAlertCircle,
@@ -12,14 +12,15 @@ import {
 import ToolHint from 'components/ToolHint';
 import ActionIcon from 'ui/ActionIcon';
 import useExpandedRows from 'hooks/useExpandedRows';
+import useTooltipId from 'hooks/useTooltipId';
 import CopyErrorButton from './CopyErrorButton';
-import ErrorRow from './ErrorRow';
+import CollapsibleError from './CollapsibleError';
 import ErrorDetails from './ErrorDetails';
 import StyledWrapper from './StyledWrapper';
 
 const ResponseErrorsCard = ({ errors, item, collection, isCardFullPane, onToggleCardFullPane, onClose }) => {
-  const { isRowExpanded, areAllRowsExpanded, toggleRow, toggleAllRows } = useExpandedRows(errors.map((error) => error.scriptType));
-  const tooltipId = `response-errors-card-${useId().replace(/:/g, '')}`;
+  const { isRowExpanded, areAllRowsExpanded, toggleRow, toggleAllRows } = useExpandedRows(errors.map((error) => error.id));
+  const tooltipId = useTooltipId('response-errors-card');
 
   const isSingle = errors.length === 1;
   const title = isSingle ? errors[0].title : `${errors.length} errors`;
@@ -31,13 +32,13 @@ const ResponseErrorsCard = ({ errors, item, collection, isCardFullPane, onToggle
     <ErrorDetails error={errors[0]} item={item} collection={collection} />
   ) : (
     errors.map((error) => (
-      <ErrorRow
-        key={error.scriptType}
+      <CollapsibleError
+        key={error.id}
         error={error}
         item={item}
         collection={collection}
-        isExpanded={isRowExpanded(error.scriptType)}
-        onToggleExpanded={() => toggleRow(error.scriptType)}
+        isExpanded={isRowExpanded(error.id)}
+        onToggleExpanded={() => toggleRow(error.id)}
         tooltipId={tooltipId}
       />
     ))

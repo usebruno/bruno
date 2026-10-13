@@ -5,8 +5,8 @@ import UnresolvedVariablesInfo from '../UnresolvedVariablesInfo';
 import StyledWrapper from './StyledWrapper';
 
 const ResponseAlertsSection = ({ item, collection, responsePaneErrors }) => {
-  const { errors, isCardRemoved, closeCard, isCardFullPane, toggleCardFullPane } = responsePaneErrors;
-  const showsErrorsCard = errors.length > 0 && !isCardRemoved;
+  const { errors, isCardClosed, closeCard, isCardFullPane, toggleCardFullPane } = responsePaneErrors;
+  const showsErrorsCard = errors.length > 0 && !isCardClosed;
   const showsUnresolvedVariables = !isCardFullPane && item.unresolvedVariables?.length > 0;
 
   if (!showsErrorsCard && !showsUnresolvedVariables) return null;

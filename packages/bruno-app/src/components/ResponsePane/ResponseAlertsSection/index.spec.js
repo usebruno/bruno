@@ -14,7 +14,7 @@ const item = { uid: 'req-1', requestUid: 'run-1', unresolvedVariables: ['host'] 
 
 const responsePaneErrors = (overrides = {}) => ({
   errors: [{ scriptType: 'test' }],
-  isCardRemoved: false,
+  isCardClosed: false,
   closeCard: jest.fn(),
   isCardFullPane: false,
   toggleCardFullPane: jest.fn(),
@@ -54,7 +54,7 @@ describe('ResponseAlertsSection', () => {
   });
 
   it('leaves out the error card while it is closed', () => {
-    const { container } = renderSection(responsePaneErrors({ isCardRemoved: true }));
+    const { container } = renderSection(responsePaneErrors({ isCardClosed: true }));
     expect(renderedTestIds(container)).toEqual(['unresolved-variables-info']);
   });
 });

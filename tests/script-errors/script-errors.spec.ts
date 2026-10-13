@@ -1,7 +1,7 @@
 import { test, expect, Page } from '../../playwright';
 import { buildResponseErrorsLocators, buildCommonLocators } from '../utils/page/locators';
 import { openRequest, closeAllTabs, sendAndWaitForErrorCard, sendAndWaitForResponse, openFolderRequest, getScrollMetrics, selectResponsePaneTab } from '../utils/page/actions';
-import { setSandboxMode, runCollection, buildRunnerLocators } from '../utils/page/runner';
+import { setSandboxMode, runCollection, buildRunnerLocators, openRunnerResult } from '../utils/page/runner';
 
 for (const mode of ['safe', 'developer'] as const) {
   test.describe(`Script Error Display [${mode} mode]`, () => {
@@ -397,8 +397,7 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Click on test-script-error result to open detail pane', async () => {
-        const resultItem = commonLocators.runnerResults.itemPath('test-script-error');
-        await resultItem.locator('.link').click();
+        await openRunnerResult(page, 'test-script-error');
       });
 
       await test.step('Verify script error card in runner detail pane', async () => {
@@ -566,7 +565,8 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Scrolling into the first row keeps its line at the top of the rows', async () => {
-        await body().evaluate((el) => { el.scrollTop = 40; });
+        const firstRowHeight = (await firstRow().boundingBox())!.height;
+        await body().evaluate((el, scrollTop) => { el.scrollTop = scrollTop; }, Math.round(firstRowHeight / 2));
         await expect.poll(async () => (await getScrollMetrics(body())).scrollTop).toBeGreaterThan(0);
 
         // The row line carries a 1px top border above its toggle
@@ -591,9 +591,15 @@ for (const mode of ['safe', 'developer'] as const) {
         await commonLocators.response.cancelRequestButton().click();
       });
 
-      await test.step('The post-response error shows once the run settles', async () => {
+      await test.step('The card shows the post-response error alone', async () => {
+        const card = responseErrorsLocators.card();
         await expect(responseErrorsLocators.title()).toHaveText('Post-Response Script Error', { timeout: 15000 });
-        await expect(responseErrorsLocators.message()).toContainText('Post-response script failed');
+        await expect(responseErrorsLocators.message(card)).toHaveCount(1);
+        await expect(responseErrorsLocators.message(card)).toContainText('Post-response script failed');
+        await expect(responseErrorsLocators.copyButton(card)).toHaveCount(1);
+        await expect(responseErrorsLocators.rows()).toHaveCount(0);
+        await expect(responseErrorsLocators.toggleAll(card)).toHaveCount(0);
+        await expect(card).not.toContainText('Test script failed');
       });
     });
 
@@ -642,12 +648,12 @@ for (const mode of ['safe', 'developer'] as const) {
     });
 
     test('26. A card closed in the runner shows again once the runner tab is closed and reopened', async ({ pageWithUserData: page }) => {
-      const openMultipleErrorsResult = () => commonLocators.runnerResults.itemPath('multiple-errors').locator('.link').click();
+      test.setTimeout(2 * 60 * 1000);
 
       await test.step('Run the collection and close the card of a result', async () => {
         await closeAllTabs(page);
         await runCollection(page, 'script-errors-test');
-        await openMultipleErrorsResult();
+        await openRunnerResult(page, 'multiple-errors');
         await expect(responseErrorsLocators.title()).toHaveText('2 errors');
         await responseErrorsLocators.closeButton().click();
         await expect(responseErrorsLocators.errorIcon()).toBeVisible();
@@ -661,7 +667,7 @@ for (const mode of ['safe', 'developer'] as const) {
         await collectionMenu.trigger().click();
         await collectionMenu.item('run').click();
         await expect(buildRunnerLocators(page).runAgainButton()).toBeVisible();
-        await openMultipleErrorsResult();
+        await openRunnerResult(page, 'multiple-errors');
       });
 
       await test.step('The card is back and the icon is gone', async () => {

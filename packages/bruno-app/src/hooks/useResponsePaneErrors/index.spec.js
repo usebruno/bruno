@@ -21,47 +21,47 @@ describe('useResponsePaneErrors', () => {
   });
 
   it('shows the card by default', () => {
-    const { result } = renderErrors(itemWithErrors('run-1'));
+    const { result } = renderErrors(itemWithErrors('send-1'));
 
     expect(result.current.errors).toHaveLength(2);
-    expect(result.current.isCardRemoved).toBe(false);
+    expect(result.current.isCardClosed).toBe(false);
     expect(result.current.isCardFullPane).toBe(false);
   });
 
   it('hides the card for the current requestUid on close and shows it again on reopen', () => {
-    const { result } = renderErrors(itemWithErrors('run-1'));
+    const { result } = renderErrors(itemWithErrors('send-1'));
 
     act(() => result.current.closeCard());
-    expect(result.current.isCardRemoved).toBe(true);
+    expect(result.current.isCardClosed).toBe(true);
 
     act(() => result.current.reopenCard());
-    expect(result.current.isCardRemoved).toBe(false);
+    expect(result.current.isCardClosed).toBe(false);
   });
 
   it('shows the card again for a new requestUid', () => {
-    const { result, rerender } = renderErrors(itemWithErrors('run-1'));
+    const { result, rerender } = renderErrors(itemWithErrors('send-1'));
     act(() => result.current.closeCard());
 
-    rerender({ isResponseTabActive: true, item: itemWithErrors('run-2') });
-    expect(result.current.isCardRemoved).toBe(false);
+    rerender({ isResponseTabActive: true, item: itemWithErrors('send-2') });
+    expect(result.current.isCardClosed).toBe(false);
   });
 
   it('takes the card out of full pane for a new requestUid', () => {
-    const { result, rerender } = renderErrors(itemWithErrors('run-1'));
+    const { result, rerender } = renderErrors(itemWithErrors('send-1'));
     act(() => result.current.toggleCardFullPane());
 
-    rerender({ isResponseTabActive: true, item: itemWithErrors('run-2') });
+    rerender({ isResponseTabActive: true, item: itemWithErrors('send-2') });
     expect(result.current.isCardFullPane).toBe(false);
   });
 
   it('is not full pane when there are no errors or the card is closed', () => {
-    const { result, rerender } = renderErrors(itemWithErrors('run-1'));
+    const { result, rerender } = renderErrors(itemWithErrors('send-1'));
     act(() => result.current.toggleCardFullPane());
 
-    rerender({ isResponseTabActive: true, item: { uid: 'req-1', requestUid: 'run-1' } });
+    rerender({ isResponseTabActive: true, item: { uid: 'req-1', requestUid: 'send-1' } });
     expect(result.current.isCardFullPane).toBe(false);
 
-    rerender({ isResponseTabActive: true, item: itemWithErrors('run-1') });
+    rerender({ isResponseTabActive: true, item: itemWithErrors('send-1') });
     act(() => result.current.closeCard());
     act(() => result.current.reopenCard());
     expect(result.current.isCardFullPane).toBe(false);
@@ -69,63 +69,63 @@ describe('useResponsePaneErrors', () => {
 
   it('shows, closes and reopens the card after a cancel clears the requestUid', () => {
     const { result } = renderErrors({ ...itemWithErrors(null), requestSent: { timestamp: 1000 } });
-    expect(result.current.isCardRemoved).toBe(false);
+    expect(result.current.isCardClosed).toBe(false);
     expect(result.current.isCardFullPane).toBe(false);
 
     act(() => result.current.closeCard());
-    expect(result.current.isCardRemoved).toBe(true);
+    expect(result.current.isCardClosed).toBe(true);
 
     act(() => result.current.reopenCard());
-    expect(result.current.isCardRemoved).toBe(false);
+    expect(result.current.isCardClosed).toBe(false);
   });
 
-  it('shows the card again for the next cancelled run after closing it on a cancelled run', () => {
+  it('shows the card again for the next cancelled send after closing it on a cancelled send', () => {
     const { result, rerender } = renderErrors({ ...itemWithErrors(null), requestSent: { timestamp: 1000 } });
     act(() => result.current.closeCard());
 
     rerender({ isResponseTabActive: true, item: { ...itemWithErrors(null), requestSent: { timestamp: 2000 } } });
-    expect(result.current.isCardRemoved).toBe(false);
+    expect(result.current.isCardClosed).toBe(false);
   });
 
   it('removes the card for the icon, and leaves full pane, while another response tab is active', () => {
-    const { result, rerender } = renderErrors(itemWithErrors('run-1'));
+    const { result, rerender } = renderErrors(itemWithErrors('send-1'));
     act(() => result.current.toggleCardFullPane());
 
-    rerender({ item: itemWithErrors('run-1'), isResponseTabActive: false });
-    expect(result.current.isCardRemoved).toBe(true);
+    rerender({ item: itemWithErrors('send-1'), isResponseTabActive: false });
+    expect(result.current.isCardClosed).toBe(true);
     expect(result.current.isCardFullPane).toBe(false);
   });
 
   it('shows the card again when the response tab becomes active', () => {
-    const { result, rerender } = renderErrors(itemWithErrors('run-1'), { isResponseTabActive: false });
+    const { result, rerender } = renderErrors(itemWithErrors('send-1'), { isResponseTabActive: false });
 
-    rerender({ item: itemWithErrors('run-1'), isResponseTabActive: true });
-    expect(result.current.isCardRemoved).toBe(false);
+    rerender({ item: itemWithErrors('send-1'), isResponseTabActive: true });
+    expect(result.current.isCardClosed).toBe(false);
   });
 
   it('switches to the response tab and shows the card on reopen', () => {
     const showResponseTab = jest.fn();
-    const { result, rerender } = renderErrors(itemWithErrors('run-1'), { isResponseTabActive: false, showResponseTab });
+    const { result, rerender } = renderErrors(itemWithErrors('send-1'), { isResponseTabActive: false, showResponseTab });
     act(() => result.current.closeCard());
 
     act(() => result.current.reopenCard());
     expect(showResponseTab).toHaveBeenCalledTimes(1);
 
-    rerender({ item: itemWithErrors('run-1'), isResponseTabActive: true });
-    expect(result.current.isCardRemoved).toBe(false);
+    rerender({ item: itemWithErrors('send-1'), isResponseTabActive: true });
+    expect(result.current.isCardClosed).toBe(false);
   });
 
   it('keeps the closed state across a remount', () => {
-    const first = renderErrors(itemWithErrors('run-1'));
+    const first = renderErrors(itemWithErrors('send-1'));
     act(() => first.result.current.closeCard());
     first.unmount();
 
-    const { result } = renderErrors(itemWithErrors('run-1'));
-    expect(result.current.isCardRemoved).toBe(true);
+    const { result } = renderErrors(itemWithErrors('send-1'));
+    expect(result.current.isCardClosed).toBe(true);
   });
 
   it('flips isCardFullPane when full pane is toggled', () => {
-    const { result } = renderErrors(itemWithErrors('run-1'));
+    const { result } = renderErrors(itemWithErrors('send-1'));
 
     act(() => result.current.toggleCardFullPane());
     expect(result.current.isCardFullPane).toBe(true);

@@ -1,23 +1,24 @@
 import React, { useState } from 'react';
 import { IconChevronDown, IconChevronRight, IconExternalLink } from '@tabler/icons';
 import CodeSnippet from 'components/CodeSnippet';
-import useOpenErrorSource from './useOpenErrorSource';
-import { formatResponseErrorMessage } from 'utils/response-pane-errors';
+import useJumpToErrorSource from './useJumpToErrorSource';
+import StyledWrapper from './StyledWrapper';
+import { ERROR_DETAILS_HEADINGS } from 'utils/response-pane-errors';
 
 const ErrorDetails = ({ error, item, collection }) => {
   const [isStackTraceOpen, setIsStackTraceOpen] = useState(false);
-  const { canOpenSource, openSource } = useOpenErrorSource(error, item, collection);
+  const { canJumpToSource, jumpToSource } = useJumpToErrorSource(error, item, collection);
 
-  const { source, filePath, line, lines, stack } = error;
-  const location = typeof line === 'number' ? `${filePath}:${line}` : filePath;
+  const { kind, source, location, lines, details } = error;
+  const detailsHeading = ERROR_DETAILS_HEADINGS[kind].toLowerCase();
 
   return (
-    <div className="error-details">
+    <StyledWrapper className="error-details">
       {source && (
         <div className="error-source" data-testid="response-errors-source-label">
           <span className="error-source-label">{source.label}</span>
-          {canOpenSource ? (
-            <button type="button" className="error-file-path navigable" data-testid="response-errors-file-path" onClick={openSource} title={`Open ${filePath}`}>
+          {canJumpToSource ? (
+            <button type="button" className="error-file-path navigable" data-testid="response-errors-file-path" onClick={jumpToSource} title={`Open ${location}`}>
               <span>{location}</span>
               <IconExternalLink size={12} className="flex-shrink-0" />
             </button>
@@ -30,9 +31,9 @@ const ErrorDetails = ({ error, item, collection }) => {
       )}
       <CodeSnippet lines={lines} variant="error" />
       <div className="error-message" data-testid="response-errors-message">
-        {formatResponseErrorMessage(error)}
+        {error.displayMessage}
       </div>
-      {stack && (
+      {details && (
         <div>
           <button
             type="button"
@@ -42,14 +43,14 @@ const ErrorDetails = ({ error, item, collection }) => {
             aria-expanded={isStackTraceOpen}
           >
             {isStackTraceOpen ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
-            <span>{isStackTraceOpen ? 'Hide' : 'Show'} stack trace</span>
+            <span>{isStackTraceOpen ? 'Hide' : 'Show'} {detailsHeading}</span>
           </button>
           {isStackTraceOpen && (
-            <pre className="error-stack-trace" data-testid="response-errors-stack-trace">{stack}</pre>
+            <pre className="error-stack-trace" data-testid="response-errors-stack-trace">{details}</pre>
           )}
         </div>
       )}
-    </div>
+    </StyledWrapper>
   );
 };
 

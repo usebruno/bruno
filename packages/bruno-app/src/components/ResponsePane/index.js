@@ -234,14 +234,14 @@ const ResponsePane = ({ item, collection }) => {
     <ResponseAlertsSection item={item} collection={collection} responsePaneErrors={responsePaneErrors} />
   ) : null;
 
-  const errorsIcon = responsePaneErrors.isCardRemoved ? (
+  const errorsIcon = responsePaneErrors.isCardClosed ? (
     <ResponseErrorsIcon count={responsePaneErrors.errors.length} onClick={responsePaneErrors.reopenCard} />
   ) : null;
 
   const rightContent = !isLoading ? (
     <div ref={rightContentRef} className="flex justify-end items-center right-side-container gap-3">
       {errorsIcon}
-      {focusedTab?.responsePaneTab === 'response' && item?.response && !(item.response?.stream ?? false) ? (
+      {isResponseTabActive && item?.response && !(item.response?.stream ?? false) ? (
         <>
           {/* Result View Tabs (Visualizations + Response Format) */}
           <div className="result-view-tabs">

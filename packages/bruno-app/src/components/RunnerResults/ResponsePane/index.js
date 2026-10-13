@@ -102,7 +102,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
     <ResponseAlertsSection item={item} collection={collection} responsePaneErrors={responsePaneErrors} />
   ) : null;
 
-  const errorsIcon = responsePaneErrors.isCardRemoved ? (
+  const errorsIcon = responsePaneErrors.isCardClosed ? (
     <div className="mr-2">
       <ResponseErrorsIcon count={responsePaneErrors.errors.length} onClick={responsePaneErrors.reopenCard} />
     </div>

@@ -3,7 +3,7 @@ import { addTab, updateRequestPaneTab, updateScriptPaneTab, setFocusErrorLine } 
 import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import { getErrorSourceTabUid } from 'utils/response-pane-errors';
 
-const useOpenErrorSource = (error, item, collection) => {
+const useJumpToErrorSource = (error, item, collection) => {
   const dispatch = useDispatch();
   const { scriptType, source, line } = error;
   const tabUid = getErrorSourceTabUid(source, item, collection);
@@ -37,7 +37,7 @@ const useOpenErrorSource = (error, item, collection) => {
     }
   };
 
-  return { canOpenSource: Boolean(tabUid), openSource: () => openSourceBySourceType[source.sourceType]() };
+  return { canJumpToSource: Boolean(tabUid), jumpToSource: () => openSourceBySourceType[source.sourceType]() };
 };
 
-export default useOpenErrorSource;
+export default useJumpToErrorSource;

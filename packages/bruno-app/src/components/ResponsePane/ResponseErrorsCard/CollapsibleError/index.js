@@ -1,13 +1,13 @@
 import React from 'react';
 import classnames from 'classnames';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons';
-import { extractErrorPreview, formatResponseErrorMessage } from 'utils/response-pane-errors';
 import CopyErrorButton from '../CopyErrorButton';
 import ErrorDetails from '../ErrorDetails';
+import StyledWrapper from './StyledWrapper';
 
-const ErrorRow = ({ error, item, collection, isExpanded, onToggleExpanded, tooltipId }) => {
+const CollapsibleError = ({ error, item, collection, isExpanded, onToggleExpanded, tooltipId }) => {
   return (
-    <div className={classnames('error-row', { expanded: isExpanded })} data-testid="response-errors-row">
+    <StyledWrapper className={classnames({ expanded: isExpanded })} data-testid="response-errors-row">
       <div className="error-row-line">
         <button
           type="button"
@@ -21,16 +21,16 @@ const ErrorRow = ({ error, item, collection, isExpanded, onToggleExpanded, toolt
           </span>
           <span className="error-row-label">{error.label}</span>
           {!isExpanded && (
-            <span className="error-row-preview" data-testid="response-errors-row-preview" title={formatResponseErrorMessage(error)}>
-              {extractErrorPreview(error)}
+            <span className="error-row-preview" data-testid="response-errors-row-preview" title={error.displayMessage}>
+              {error.preview}
             </span>
           )}
         </button>
         <CopyErrorButton error={error} tooltipId={tooltipId} />
       </div>
       {isExpanded && <ErrorDetails error={error} item={item} collection={collection} />}
-    </div>
+    </StyledWrapper>
   );
 };
 
-export default ErrorRow;
+export default CollapsibleError;

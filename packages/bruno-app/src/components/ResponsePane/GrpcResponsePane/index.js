@@ -115,11 +115,11 @@ const GrpcResponsePane = ({ item, collection }) => {
     }
   };
 
-  const alertsSection = !isLoading && isResponseTabActive ? (
+  const alertsSection = isResponseTabActive ? (
     <ResponseAlertsSection item={item} collection={collection} responsePaneErrors={responsePaneErrors} />
   ) : null;
 
-  const errorsIcon = responsePaneErrors.isCardRemoved ? (
+  const errorsIcon = responsePaneErrors.isCardClosed ? (
     <ResponseErrorsIcon count={responsePaneErrors.errors.length} onClick={responsePaneErrors.reopenCard} />
   ) : null;
 
