@@ -156,7 +156,7 @@ const ClientCertSettings = ({ collection }) => {
   });
 
   const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage } = isSensitive(formik.values.passphrase);
+  const { showWarning, warningMessage, scope, variableName } = isSensitive(formik.values.passphrase);
 
   const getFile = (e) => {
     const filePath = window?.ipcRenderer?.getFilePath(e?.files?.[0]);
@@ -441,7 +441,7 @@ const ClientCertSettings = ({ collection }) => {
                     collection={collection}
                     isSecret={true}
                   />
-                  {showWarning && <SensitiveFieldWarning fieldName="basic-password" warningMessage={warningMessage} />}
+                  {showWarning && <SensitiveFieldWarning fieldName="basic-password" warningMessage={warningMessage} scope={scope} variableName={variableName} value={formik.values.passphrase} collection={collection} onReplaceValue={(val) => formik.setFieldValue('passphrase', val)} />}
                 </div>
                 {formik.touched.passphrase && formik.errors.passphrase ? (
                   <div className="text-red-500 text-xs">{formik.errors.passphrase}</div>

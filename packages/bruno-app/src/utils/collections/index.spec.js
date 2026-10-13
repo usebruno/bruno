@@ -209,6 +209,25 @@ describe('getVariableScope — global environment secrets', () => {
   });
 });
 
+describe('getVariableScope — ignoreVariableUid', () => {
+  const request = {
+    uid: 'request-1',
+    type: 'http-request',
+    request: { vars: { req: [{ uid: 'request-token', name: 'token', value: 'request', enabled: true }], res: [] } }
+  };
+  const collection = {
+    items: [request],
+    root: { request: { vars: { req: [{ uid: 'collection-token', name: 'token', value: 'collection', enabled: true }], res: [] } } }
+  };
+
+  it('skips the ignored row and returns the next scope that has the name', () => {
+    const scopeInfo = getVariableScope('token', collection, request, { ignoreVariableUid: 'request-token' });
+
+    expect(scopeInfo.type).toBe('collection');
+    expect(scopeInfo.value).toBe('collection');
+  });
+});
+
 describe('getVariableScope — global environment inheritance', () => {
   const buildCollection = () => ({
     activeGlobalEnvironmentUid: 'genv-dev',

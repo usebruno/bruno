@@ -15,7 +15,7 @@ const DigestAuth = ({ collection }) => {
 
   const digestAuth = collection.draft?.root ? get(collection, 'draft.root.request.auth.digest', {}) : get(collection, 'root.request.auth.digest', {});
   const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage } = isSensitive(digestAuth?.password);
+  const { showWarning, warningMessage, scope, variableName } = isSensitive(digestAuth?.password);
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
@@ -70,7 +70,7 @@ const DigestAuth = ({ collection }) => {
           isSecret={true}
           isCompact
         />
-        {showWarning && <SensitiveFieldWarning fieldName="digest-password" warningMessage={warningMessage} />}
+        {showWarning && <SensitiveFieldWarning fieldName="digest-password" warningMessage={warningMessage} scope={scope} variableName={variableName} value={digestAuth?.password} collection={collection} onReplaceValue={(val) => handlePasswordChange(val)} />}
       </div>
     </StyledWrapper>
   );

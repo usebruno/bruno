@@ -156,7 +156,7 @@ export const buildCommonLocators = (page: Page) => ({
     /** Warning icon beside a sensitive input. `fieldName` is the field or variable name. */
     sensitiveWarning: (fieldName: string) => page.getByTestId(`sensitive-field-warning-${fieldName}`),
     sensitiveWarningIn: (root: Locator, fieldName: string) => root.getByTestId(`sensitive-field-warning-${fieldName}`),
-    sensitiveTooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text })
+    sensitiveTooltip: (text: string) => page.getByTestId('sensitive-field-tooltip').filter({ hasText: text })
   },
   // The DataTypeSelector exposes a stable trigger per row (request/folder/collection
   // vars + env vars). Compact mode shows an icon; full mode shows `.type-label`.

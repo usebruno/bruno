@@ -161,7 +161,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
               readOnly={disabled}
               isCompact
             />
-            {consumerSecretSensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-consumer-secret" warningMessage={consumerSecretSensitive.warningMessage} />}
+            {consumerSecretSensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-consumer-secret" warningMessage={consumerSecretSensitive.warningMessage} scope={consumerSecretSensitive.scope} variableName={consumerSecretSensitive.variableName} value={oauth1.consumerSecret} collection={collection} item={item} disabled={disabled} onReplaceValue={(val) => handleChange('consumerSecret', val)} />}
           </div>
         </div>
       )}
@@ -198,7 +198,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
             readOnly={disabled}
             isCompact
           />
-          {tokenSecretSensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-token-secret" warningMessage={tokenSecretSensitive.warningMessage} />}
+          {tokenSecretSensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-token-secret" warningMessage={tokenSecretSensitive.warningMessage} scope={tokenSecretSensitive.scope} variableName={tokenSecretSensitive.variableName} value={oauth1.accessTokenSecret} collection={collection} item={item} disabled={disabled} onReplaceValue={(val) => handleChange('accessTokenSecret', val)} />}
         </div>
       </div>
 
@@ -264,7 +264,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                   readOnly={disabled}
                   allowNewlines={true}
                 />
-                {privateKeySensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-private-key" warningMessage={privateKeySensitive.warningMessage} />}
+                {privateKeySensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-private-key" warningMessage={privateKeySensitive.warningMessage} scope={privateKeySensitive.scope} variableName={privateKeySensitive.variableName} value={oauth1.privateKey} collection={collection} item={item} disabled={disabled} onReplaceValue={handlePrivateKeyChange} />}
               </div>
               <div className="flex flex-row gap-2">
                 <button

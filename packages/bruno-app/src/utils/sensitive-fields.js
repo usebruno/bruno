@@ -55,6 +55,11 @@ const createWarning = (scope, variableName, warningMessage) => ({
 /** {{name}} in a field value. The group is the name. */
 const VARIABLE_INTERPOLATION = /\{\{([^}]+)\}\}/g;
 
+/** Replaces each {{name}} in a value with what `replace(name, match)` returns. */
+export const replaceVariableReferences = (value, replace) => (
+  String(value ?? '').replace(VARIABLE_INTERPOLATION, (match, name) => replace(name.trim(), match))
+);
+
 /** Names inside {{ }} in a field value. */
 export const extractSensitiveVarNames = (value) => {
   if (typeof value !== 'string' || value.length === 0) {
@@ -65,7 +70,7 @@ export const extractSensitiveVarNames = (value) => {
 };
 
 /** Uses the passed scope, or infers it from the item. */
-const resolveFieldScope = (item, scope) => {
+export const resolveFieldScope = (item, scope) => {
   if (scope) {
     return scope;
   }
@@ -88,12 +93,13 @@ const mapScopeInfoToResolved = (scopeInfo) => {
     type: scopeInfo.type,
     name: variable.name,
     variable,
+    owner: scopeInfo.data?.item || scopeInfo.data?.folder || null,
     inheritedFrom: scopeInfo.inheritedFrom || variable.inheritedFrom || null
   };
 };
 
 /** Saved variable used for this name. Skips runtime and process.env. */
-export const resolveSensitiveVariable = (variableName, { collection, item, scope, scanContext } = {}) => {
+export const resolveSensitiveVariable = (variableName, { collection, item, scope, scanContext, ignoreVariableUid } = {}) => {
   if (!variableName || !collection) {
     return null;
   }
@@ -101,9 +107,22 @@ export const resolveSensitiveVariable = (variableName, { collection, item, scope
   const fieldScope = resolveFieldScope(item, scope);
   const scopeInfo = getVariableScope(variableName, collection, fieldScope === 'collection' ? null : item, {
     skipRequestScope: fieldScope === 'folder' || fieldScope === 'collection',
-    scanContext
+    scanContext,
+    ignoreVariableUid
   });
   return mapScopeInfoToResolved(scopeInfo);
+};
+
+/** Lookup order of variable scopes; earlier wins. */
+const SCOPE_PRIORITY = ['request', 'folder', 'environment', 'collection', 'global'];
+
+/** Scope of a same-name variable that would win over a new variable in `targetScope`, or null. */
+export const findOverridingVariableScope = (variableName, { collection, item, targetScope, ignoreVariableUid } = {}) => {
+  const resolved = resolveSensitiveVariable(variableName, { collection, item, ignoreVariableUid });
+  if (!resolved) {
+    return null;
+  }
+  return SCOPE_PRIORITY.indexOf(resolved.type) <= SCOPE_PRIORITY.indexOf(targetScope) ? resolved.type : null;
 };
 
 /** True when the winning row is a secret collection-environment or global-environment variable. */

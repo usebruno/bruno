@@ -1,7 +1,7 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
 import { parseQueryParams, extractPromptVariables, getDataTypeFromValue, resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
-import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT, SIDEBAR_REVEAL_STATUS } from 'utils/common/constants';
+import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT, SIDEBAR_REVEAL_STATUS, VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
@@ -66,10 +66,14 @@ import {
   saveFolderDraft,
   addVar,
   updateVar,
+  deleteVar,
   addFolderVar,
   updateFolderVar,
+  deleteFolderVar,
   addCollectionVar,
   updateCollectionVar,
+  deleteCollectionVar,
+  clearEnvironmentsDraft,
   scriptUpdateCollectionVars,
   setScriptCollVarBaseline,
   _clearScriptCollectionBaselines,
@@ -111,7 +115,7 @@ import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from './index';
 import { migrationStarted, migrationCancelRequested, migrationEnded } from 'providers/ReduxStore/slices/collection-migration';
 import { flushSnapshotNow } from 'providers/ReduxStore/middlewares/snapshot/middleware';
-import { saveGlobalEnvironment, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
+import { saveGlobalEnvironment, clearGlobalEnvironmentDraft, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
 import { getTabToFocusForCurrentWorkspace } from 'providers/ReduxStore/slices/workspaces/getTabToFocusForCurrentWorkspace';
 import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 import {
@@ -2331,6 +2335,110 @@ const resolveOrCreateEnabledVariable = (variables, variableName, newValue, secre
     : [...(variables || []), newVariable];
 
   return { variable, updatedVariables };
+};
+
+/** The environment and its variables, taken from the unsaved draft when one exists. */
+const getEnvironmentWithDraftVariables = (state, collection, environmentScope, environmentUid) => {
+  if (environmentScope === VARIABLE_ADD_SCOPES.GLOBAL) {
+    const { globalEnvironments, globalEnvironmentDraft } = state.globalEnvironments;
+    const environment = find(globalEnvironments, (env) => env.uid === environmentUid);
+    const hasDraft = globalEnvironmentDraft?.environmentUid === environmentUid;
+    return { environment, hasDraft, variables: hasDraft ? globalEnvironmentDraft.variables : environment?.variables };
+  }
+
+  const environment = collection ? findEnvironmentInCollection(collection, environmentUid) : null;
+  const hasDraft = collection?.environmentsDraft?.environmentUid === environmentUid;
+  return { environment, hasDraft, variables: hasDraft ? collection.environmentsDraft.variables : environment?.variables };
+};
+
+/** Applies `update` to the environment variables, saves them, and clears the draft so it can't undo the change. */
+const updateEnvironmentVariables = ({ collectionUid, environmentScope, environmentUid, update }) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const { environment, hasDraft, variables } = getEnvironmentWithDraftVariables(state, collection, environmentScope, environmentUid);
+  if (!environment) {
+    return Promise.reject(new Error('Environment not found'));
+  }
+
+  let updatedVariables;
+  try {
+    updatedVariables = update(variables || [], environment);
+  } catch (error) {
+    return Promise.reject(error);
+  }
+
+  const isGlobal = environmentScope === VARIABLE_ADD_SCOPES.GLOBAL;
+  const save = isGlobal
+    ? dispatch(saveGlobalEnvironment({ variables: updatedVariables, environmentUid }))
+    : dispatch(saveEnvironment(updatedVariables, environmentUid, collectionUid));
+
+  return save.then(() => {
+    if (hasDraft) {
+      dispatch(isGlobal ? clearGlobalEnvironmentDraft() : clearEnvironmentsDraft({ collectionUid }));
+    }
+  });
+};
+
+/** Adds a new secret to the active global or collection environment. Rejects a name that already exists there. */
+export const addSecretToEnvironment = ({ collectionUid, environmentScope, name, value }) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const environmentUid = environmentScope === VARIABLE_ADD_SCOPES.GLOBAL
+    ? state.globalEnvironments.activeGlobalEnvironmentUid
+    : collection?.activeEnvironmentUid;
+  if (!environmentUid) {
+    return Promise.reject(new Error('No environment selected'));
+  }
+
+  return dispatch(updateEnvironmentVariables({
+    collectionUid,
+    environmentScope,
+    environmentUid,
+    update: (variables, environment) => {
+      if (variables.some((variable) => variable.name === name)) {
+        throw new Error(`"${name}" already exists in ${environment.name}`);
+      }
+      return resolveOrCreateEnabledVariable(variables, name, value, true).updatedVariables;
+    }
+  }));
+};
+
+/** Sets `secret: true` on one environment row and keeps its value. */
+export const markEnvironmentVariableAsSecret = ({ collectionUid, environmentScope, environmentUid, variableUid }) => (dispatch) => (
+  dispatch(updateEnvironmentVariables({
+    collectionUid,
+    environmentScope,
+    environmentUid,
+    update: (variables) => {
+      if (!variables.some((variable) => variable.uid === variableUid)) {
+        throw new Error('Variable not found');
+      }
+      return variables.map((variable) => (variable.uid === variableUid ? { ...variable, secret: true } : variable));
+    }
+  }))
+);
+
+/** Silently saves the request, folder or collection draft. */
+export const saveScopeOwner = ({ collectionUid, scope, ownerUid }) => (dispatch) => {
+  if (scope === VARIABLE_ADD_SCOPES.REQUEST) {
+    return dispatch(saveRequest(ownerUid, collectionUid, true));
+  }
+  if (scope === VARIABLE_ADD_SCOPES.FOLDER) {
+    return dispatch(saveFolderRoot(collectionUid, ownerUid, true));
+  }
+  return dispatch(saveCollectionSettings(collectionUid, null, true));
+};
+
+/** Deletes a request, folder or collection var and saves its owner. */
+export const removeVariableFromScope = ({ collectionUid, scope, ownerUid, variableUid }) => (dispatch) => {
+  if (scope === VARIABLE_ADD_SCOPES.REQUEST) {
+    dispatch(deleteVar({ collectionUid, itemUid: ownerUid, type: 'request', varUid: variableUid }));
+  } else if (scope === VARIABLE_ADD_SCOPES.FOLDER) {
+    dispatch(deleteFolderVar({ collectionUid, folderUid: ownerUid, type: 'request', varUid: variableUid }));
+  } else {
+    dispatch(deleteCollectionVar({ collectionUid, type: 'request', varUid: variableUid }));
+  }
+  return dispatch(saveScopeOwner({ collectionUid, scope, ownerUid }));
 };
 
 /**

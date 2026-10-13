@@ -124,7 +124,7 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, isDraft
               )
             : null}
           leadingContent={!isLastEmptyRow && usedVariableUids.has(row.uid) ? (
-            <SensitiveFieldWarning fieldName={row.name} warningMessage={plainVariableUsageWarning(row.name)} />
+            <SensitiveFieldWarning fieldName={row.name} warningMessage={plainVariableUsageWarning(row.name)} scope="request" variableName={row.name} value={row.value} collection={collection} variableUid={row.uid} item={item} />
           ) : null}
         />
       )

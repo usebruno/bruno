@@ -2,7 +2,7 @@ import React, { useCallback, useRef, useMemo, useEffect, useState } from 'react'
 import { useTheme } from 'providers/Theme';
 import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
-import { variableNameRegex } from 'utils/common/regex';
+import { INVALID_VARIABLE_NAME_ERROR, variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import useDeferredLoading from 'hooks/useDeferredLoading';
 
@@ -70,7 +70,7 @@ const DotEnvFileEditor = ({
         } else if (!variableNameRegex.test(variable.name)) {
           if (!errors[index]) errors[index] = {};
           errors[index].name
-            = 'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.';
+            = INVALID_VARIABLE_NAME_ERROR;
         }
       });
       return Object.keys(errors).length > 0 ? errors : {};
