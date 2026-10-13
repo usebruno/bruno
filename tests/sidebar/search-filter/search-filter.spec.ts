@@ -1,6 +1,6 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
 import path from 'path';
-import { buildCommonLocators, createApp, expandFolder, waitForReadyPage } from '../../utils/page';
+import { buildCommonLocators, collapseFolder, createApp, expandFolder, waitForReadyPage } from '../../utils/page';
 import { initBruCollection, writeBruRequest, writeBruFolder } from '../../utils/fixtures/bru-collection';
 
 const COLLECTION_NAME = 'SearchCol';
@@ -65,6 +65,21 @@ test.describe('Sidebar search filtering', () => {
         for (const name of ['search-me', 'health', 'auth', 'log-app']) {
           await expect(row(name)).toBeVisible();
         }
+      });
+
+      await test.step('Opening a filtered match reveals it, expanding `auth` for real rather than at render time', async () => {
+        await searchInput.fill('login');
+        await expect(row('login')).toBeVisible();
+
+        await row('login').click();
+        await expect(locators.tabs.activeRequestTab()).toContainText('login');
+
+        await searchInput.fill('');
+        await expect(row('login')).toBeVisible();
+        await expect(row('logout')).toBeVisible();
+
+        await collapseFolder(page, 'auth');
+        await expect(row('login')).toHaveCount(0);
       });
 
       await test.step('A folder the user expanded stays expanded across a search', async () => {
