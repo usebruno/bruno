@@ -1,3 +1,5 @@
+const path = require('path');
+
 let mockStoreData = {};
 
 jest.mock('electron-store', () => {
@@ -23,9 +25,12 @@ jest.mock('electron-store', () => {
 
 const snapshotManager = require('../../src/services/snapshot');
 
-const WS_A = '/tmp/workspace-a';
-const WS_B = '/tmp/workspace-b';
-const COL_SHARED = '/tmp/collections/shared';
+const WS_A = path.normalize('/tmp/workspace-a');
+const WS_B = path.normalize('/tmp/workspace-b');
+const COL_SHARED = path.normalize('/tmp/collections/shared');
+const ENV_A = path.normalize('/tmp/env-a.yml');
+const ENV_B = path.normalize('/tmp/env-b.yml');
+const SPEC = path.normalize('/tmp/spec.yaml');
 
 const seedMultiWorkspaceSnapshot = () => {
   snapshotManager.saveSnapshot({
@@ -52,7 +57,7 @@ const seedMultiWorkspaceSnapshot = () => {
         environment: '',
         sorting: 'alphabetical',
         lastActiveCollectionPathname: COL_SHARED,
-        apiSpecTabs: ['/tmp/spec.yaml'],
+        apiSpecTabs: [SPEC],
         collections: [COL_SHARED]
       }
     ],
@@ -60,8 +65,8 @@ const seedMultiWorkspaceSnapshot = () => {
       {
         pathname: COL_SHARED,
         workspacePathname: WS_A,
-        environment: { collection: '/tmp/env-a.yml', global: '' },
-        environmentPath: '/tmp/env-a.yml',
+        environment: { collection: ENV_A, global: '' },
+        environmentPath: ENV_A,
         selectedEnvironment: 'a',
         isOpen: true,
         isMounted: true,
@@ -78,8 +83,8 @@ const seedMultiWorkspaceSnapshot = () => {
       {
         pathname: COL_SHARED,
         workspacePathname: WS_B,
-        environment: { collection: '/tmp/env-b.yml', global: '' },
-        environmentPath: '/tmp/env-b.yml',
+        environment: { collection: ENV_B, global: '' },
+        environmentPath: ENV_B,
         selectedEnvironment: 'b',
         isOpen: false,
         isMounted: false,
@@ -149,7 +154,7 @@ describe('SnapshotManager.mergeSnapshot', () => {
 
     expect(workspaceB).toMatchObject({
       sorting: 'alphabetical',
-      apiSpecTabs: ['/tmp/spec.yaml']
+      apiSpecTabs: [SPEC]
     });
 
     const collectionB = snapshot.collections.find(
@@ -191,10 +196,10 @@ describe('SnapshotManager.mergeSnapshot', () => {
 
     const collectionA = snapshotManager.getCollection(COL_SHARED, WS_A);
     expect(collectionA).toMatchObject({
-      environmentPath: '/tmp/env-a.yml',
+      environmentPath: ENV_A,
       selectedEnvironment: 'a',
       environment: {
-        collection: '/tmp/env-a.yml',
+        collection: ENV_A,
         global: ''
       }
     });
@@ -243,10 +248,10 @@ describe('SnapshotManager.mergeSnapshot', () => {
   });
 
   describe('environment preserve end-state parity', () => {
-    const WS = '/tmp/snapshot-parity-workspace';
-    const COL = '/tmp/snapshot-parity-workspace/collections/api';
-    const ENV_LOCAL = '/tmp/snapshot-parity-workspace/collections/api/environments/local.yml';
-    const ENV_STAGING = '/tmp/snapshot-parity-workspace/collections/api/environments/staging.yml';
+    const WS = path.normalize('/tmp/snapshot-parity-workspace');
+    const COL = path.normalize('/tmp/snapshot-parity-workspace/collections/api');
+    const ENV_LOCAL = path.normalize('/tmp/snapshot-parity-workspace/collections/api/environments/local.yml');
+    const ENV_STAGING = path.normalize('/tmp/snapshot-parity-workspace/collections/api/environments/staging.yml');
 
     const seedLocalCollection = (existingOverrides = {}) => {
       snapshotManager.saveSnapshot({
