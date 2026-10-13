@@ -38,7 +38,6 @@
     "is-ip": "^5.0.1",
     "shell-env": "^4.0.1",
     "socks-proxy-agent": "~8.0.5",
-    "socks": "~2.8.3",
     "system-ca": "^2.0.1",
     "tough-cookie": "^6.0.0",
     "ws": "8.21.3"

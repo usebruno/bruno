@@ -1,5 +1,5 @@
 import * as http2wrapper from 'http2-wrapper';
-import { SocksClient, type SocksProxy } from 'socks';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 import type { ClientHttp2Session } from 'node:http2';
 import type { LookupFunction } from 'node:net';
 import { pickTlsFields, wrapLookup, withSocketGuard } from './tls-options';
@@ -7,31 +7,40 @@ import { H2_IDLE_TIMEOUT_MS } from './session';
 import type { ProxyInfo } from './proxy-info';
 
 type ProxyStreamResult = [stream: unknown, statusCode: number, statusMessage: string];
-type ProxyAgentInternals = { proxyOptions: { url: URL } };
+type SocksInternals = {
+  proxyOptions: { url: URL | string };
+  socksAgent?: SocksProxyAgent;
+  socksLookup?: LookupFunction;
+};
 
 /**
- * Reuse http2-wrapper's tunneling and session pooling, but establish
- * the proxy connection using SOCKS instead of HTTP CONNECT.
+ * Reuse http2-wrapper's tunneling and session pooling, but open the proxy connection with
+ * socks-proxy-agent
  */
 class Http2OverSocksBase extends http2wrapper.proxies.Http2OverHttp {
   async _getProxyStream(authority: string): Promise<ProxyStreamResult> {
-    const { url } = (this as unknown as ProxyAgentInternals).proxyOptions;
+    const self = this as unknown as SocksInternals;
+    const { url } = self.proxyOptions;
+    const proxyHref = typeof url === 'string' ? url : url.href;
     const lastColon = authority.lastIndexOf(':');
     const host = authority.slice(0, lastColon);
     const port = Number(authority.slice(lastColon + 1));
 
-    const proxy: SocksProxy = {
-      host: url.hostname,
-      port: Number(url.port),
-      type: url.protocol.startsWith('socks4') ? 4 : 5
-    };
-    if (url.username) {
-      proxy.userId = decodeURIComponent(url.username);
-      proxy.password = decodeURIComponent(url.password || '');
+    // One agent per proxy; it parses the scheme to pick the SOCKS version, auth and DNS behaviour.
+    if (!self.socksAgent) {
+      self.socksAgent = new SocksProxyAgent(proxyHref);
     }
 
-    const info = await SocksClient.createConnection({ proxy, command: 'connect', destination: { host, port } });
-    return [info.socket, 200, 'OK'];
+    // agent-base's connect() returns the raw tunnelled socket when secureEndpoint is false
+    const req = { destroy() {} } as any;
+    const socket = await self.socksAgent.connect(req, {
+      host,
+      port,
+      secureEndpoint: false,
+      ...(self.socksLookup ? { lookup: self.socksLookup } : {})
+    } as any);
+
+    return [socket, 200, 'OK'];
   }
 }
 
@@ -69,6 +78,10 @@ export function acquireH2SessionViaProxy(params: AcquireH2SessionViaProxyParams)
   if (!agent) {
     agent = buildProxyAgent(proxyInfo);
     proxyAgents.set(proxyInfo.key, agent);
+  }
+  // For SOCKS, resolve the destination with custom DNS when one is configured.
+  if (proxyInfo.kind === 'socks' && lookup) {
+    (agent as unknown as SocksInternals).socksLookup = lookup;
   }
   return agent.getSession(origin, {
     ...pickTlsFields(tlsOptions),
