@@ -5,7 +5,6 @@ import WSAuthMode from './WSAuthMode';
 import BearerAuth from '../../Auth/BearerAuth';
 import BasicAuth from '../../Auth/BasicAuth';
 import ApiKeyAuth from '../../Auth/ApiKeyAuth';
-import StyledWrapper from './StyledWrapper';
 import InheritedAuth, { InheritedAuthSourceLabel } from '../../Auth/InheritedAuth';
 import { getEffectiveAuthSource } from 'utils/auth';
 import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
@@ -80,7 +79,7 @@ const WSAuth = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full overflow-y-scroll">
+    <div className="w-full overflow-y-scroll">
       <div className="flex flex-col items-start gap-2 mb-4 min-w-0">
         <WSAuthMode item={item} collection={collection} />
         {authMode === 'inherit' && inheritedSource ? (
@@ -93,7 +92,7 @@ const WSAuth = ({ item, collection }) => {
         ) : null}
       </div>
       {getAuthView()}
-    </StyledWrapper>
+    </div>
   );
 };
 

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { FileStore } from '../../src/node/files';
@@ -42,6 +42,21 @@ describe('FileStore', () => {
 
       expect(entry).toMatchObject({ size: INLINE_MAX + 1, inline: false });
       expect(onDisk()).toHaveLength(1);
+    });
+
+    (process.platform === 'win32' ? it.skip : it)('keeps the files directory and spilled files private to the owner', async () => {
+      const { id } = await files.write(Buffer.alloc(INLINE_MAX + 1, 0x61));
+
+      expect(statSync(files.directory).mode & 0o777).toBe(0o700);
+      expect(statSync(files.locate(id)!.path!).mode & 0o777).toBe(0o600);
+    });
+
+    (process.platform === 'win32' ? it.skip : it)('makes an existing files directory private to the owner', async () => {
+      mkdirSync(files.directory, { recursive: true, mode: 0o755 });
+
+      await files.write(Buffer.alloc(INLINE_MAX + 1, 0x61));
+
+      expect(statSync(files.directory).mode & 0o777).toBe(0o700);
     });
 
     it('lets the schema stamp created_at and updated_at in epoch seconds', async () => {
@@ -110,16 +125,21 @@ describe('FileStore', () => {
     };
 
     it('finds the tables that point at files', () => {
-      expect(files.referrers()).toEqual([]);
+      const before = files.referrers();
+      expect(before).not.toContainEqual({ table: 'notes', column: 'file_id' });
 
       referencingTable();
 
-      expect(files.referrers()).toEqual([{ table: 'notes', column: 'file_id' }]);
+      expect(files.referrers()).toContainEqual({ table: 'notes', column: 'file_id' });
+      expect(files.referrers()).toHaveLength(before.length + 1);
     });
 
     it('leaves every row alone while nothing references files', async () => {
+      // The shipped schema has referrers, so the guard is exercised by taking them away.
+      for (const table of new Set(files.referrers().map((row) => row.table))) db._db.exec(`DROP TABLE ${table}`);
       const { id } = await files.write('orphan by definition');
 
+      expect(files.referrers()).toEqual([]);
       expect(await files.collect()).toMatchObject({ rows: 0 });
       expect(files.stat(id)).not.toBeNull();
     });

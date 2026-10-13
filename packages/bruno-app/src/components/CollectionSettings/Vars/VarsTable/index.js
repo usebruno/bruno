@@ -7,13 +7,14 @@ import MultiLineEditor from 'components/MultiLineEditor';
 import InfoTip from 'components/InfoTip';
 import DataTypeSelector from 'components/DataTypeSelector';
 import VarValueCell from 'components/VarValueCell';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { valueToString } from '@usebruno/common/utils';
 import EditableTable from 'components/EditableTable';
 import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
-import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
 import { getAllVariables } from 'utils/collections';
+import { findUsedVarsRowUids, plainVariableUsageWarning } from 'utils/sensitive-fields';
 import { setCollectionVars, moveCollectionVar } from 'providers/ReduxStore/slices/collections/index';
 import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
@@ -34,6 +35,10 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0, isDraft }) =>
   const onSave = () => dispatch(saveCollectionSettings(collection.uid));
 
   const resolvableVariables = useMemo(() => getAllVariables(collection), [collection]);
+  const usedVariableUids = useMemo(
+    () => (varType === 'request' ? findUsedVarsRowUids(collection, 'collection') : new Set()),
+    [collection, varType]
+  );
 
   const handleVarsChange = useCallback((updatedVars) => {
     dispatch(setCollectionVars({ collectionUid: collection.uid, vars: updatedVars, type: varType }));
@@ -105,6 +110,9 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0, isDraft }) =>
                 />
               )
             : null}
+          leadingContent={!isLastEmptyRow && usedVariableUids.has(row.uid) ? (
+            <SensitiveFieldWarning fieldName={row.name} warningMessage={plainVariableUsageWarning(row.name)} />
+          ) : null}
         />
       )
     },

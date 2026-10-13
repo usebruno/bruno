@@ -1,7 +1,8 @@
 import { describe, it, expect } from '@jest/globals';
 import wsdlToBruno from '../../src/wsdl/wsdl-to-bruno.js';
+import parseXML from '../../src/wsdl/parse-xml.js';
 
-const wsdlWithSchema = (schemaBody) => `<?xml version="1.0" encoding="UTF-8"?>
+const wsdlWithTypes = (typesBody, { partElement = 'tns:SignRequest' } = {}) => `<?xml version="1.0" encoding="UTF-8"?>
 <wsdl:definitions name="SignService"
   targetNamespace="http://example.com/sign"
   xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
@@ -9,12 +10,10 @@ const wsdlWithSchema = (schemaBody) => `<?xml version="1.0" encoding="UTF-8"?>
   xmlns:xsd="http://www.w3.org/2001/XMLSchema"
   xmlns:tns="http://example.com/sign">
   <wsdl:types>
-    <xsd:schema targetNamespace="http://example.com/sign">
-      ${schemaBody}
-    </xsd:schema>
+    ${typesBody}
   </wsdl:types>
   <wsdl:message name="SignRequestMessage">
-    <wsdl:part name="parameters" element="tns:SignRequest"/>
+    <wsdl:part name="parameters" element="${partElement}"/>
   </wsdl:message>
   <wsdl:portType name="SignPortType">
     <wsdl:operation name="Sign">
@@ -36,10 +35,19 @@ const wsdlWithSchema = (schemaBody) => `<?xml version="1.0" encoding="UTF-8"?>
   </wsdl:service>
 </wsdl:definitions>`;
 
-const generateRequestBody = async (schemaBody) => {
-  const collection = await wsdlToBruno(wsdlWithSchema(schemaBody));
-  return collection.items[0].items[0].request.body.xml;
+const wsdlWithSchema = (schemaBody, schemaAttributes = '') => wsdlWithTypes(`
+    <xsd:schema targetNamespace="http://example.com/sign" ${schemaAttributes}>
+      ${schemaBody}
+    </xsd:schema>
+`);
+
+const requestBodyOf = (collection) => collection.items[0].items[0].request.body.xml;
+
+const generateRequestBody = async (schemaBody, schemaAttributes) => {
+  return requestBodyOf(await wsdlToBruno(wsdlWithSchema(schemaBody, schemaAttributes)));
 };
+
+const SOAP_ENVELOPE_OPEN = '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"';
 
 describe('wsdl-to-bruno', () => {
   it('should throw error for non-string input', async () => {
@@ -52,6 +60,192 @@ describe('wsdl-to-bruno', () => {
 
   it('should throw error for invalid XML', async () => {
     await expect(wsdlToBruno('<invalid>xml</invalid>')).rejects.toThrow('Import WSDL collection failed');
+  });
+
+  describe('element namespaces', () => {
+    it('qualifies the root element with the WSDL prefix and declares it on the envelope', async () => {
+      const body = await generateRequestBody(`
+        <xsd:element name="SignRequest" type="xsd:string"/>
+      `);
+
+      expect(body).toBe(
+        `${SOAP_ENVELOPE_OPEN} xmlns:tns="http://example.com/sign"><soap:Body>`
+        + '<tns:SignRequest>string</tns:SignRequest>'
+        + '</soap:Body></soap:Envelope>'
+      );
+    });
+
+    it('leaves local elements unqualified when the schema does not set elementFormDefault', async () => {
+      const body = await generateRequestBody(`
+        <xsd:element name="SignRequest">
+          <xsd:complexType>
+            <xsd:sequence>
+              <xsd:element name="name" type="xsd:string"/>
+            </xsd:sequence>
+          </xsd:complexType>
+        </xsd:element>
+      `);
+
+      expect(body).toContain('<tns:SignRequest><name>string</name></tns:SignRequest>');
+    });
+
+    it('qualifies local elements when the schema sets elementFormDefault to qualified', async () => {
+      const body = await generateRequestBody(`
+        <xsd:element name="SignRequest">
+          <xsd:complexType>
+            <xsd:sequence>
+              <xsd:element name="name" type="xsd:string"/>
+            </xsd:sequence>
+          </xsd:complexType>
+        </xsd:element>
+      `, 'elementFormDefault="qualified"');
+
+      expect(body).toContain('<tns:SignRequest><tns:name>string</tns:name></tns:SignRequest>');
+    });
+
+    it('lets a form attribute on a local element override elementFormDefault', async () => {
+      const body = await generateRequestBody(`
+        <xsd:element name="SignRequest">
+          <xsd:complexType>
+            <xsd:sequence>
+              <xsd:element name="name" type="xsd:string" form="qualified"/>
+              <xsd:element name="note" type="xsd:string" form="unqualified"/>
+            </xsd:sequence>
+          </xsd:complexType>
+        </xsd:element>
+      `);
+
+      expect(body).toContain('<tns:SignRequest><tns:name>string</tns:name><note>string</note></tns:SignRequest>');
+    });
+
+    it('qualifies local elements of a named complex type by the form of the schema that declares the type', async () => {
+      const body = await generateRequestBody(`
+        <xsd:element name="SignRequest" type="tns:SignRequestType"/>
+        <xsd:complexType name="SignRequestType">
+          <xsd:sequence>
+            <xsd:element name="name" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      `, 'elementFormDefault="qualified"');
+
+      expect(body).toContain('<tns:SignRequest><tns:name>string</tns:name></tns:SignRequest>');
+    });
+
+    it('reuses a prefix declared on a schema element for elements referenced from that namespace', async () => {
+      const collection = await wsdlToBruno(wsdlWithTypes(`
+        <xsd:schema targetNamespace="http://example.com/sign" xmlns:c="http://example.com/common">
+          <xsd:import namespace="http://example.com/common"/>
+          <xsd:element name="SignRequest">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element ref="c:Party"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:schema>
+        <xsd:schema targetNamespace="http://example.com/common">
+          <xsd:element name="Party" type="xsd:string"/>
+        </xsd:schema>
+      `));
+
+      expect(requestBodyOf(collection)).toBe(
+        `${SOAP_ENVELOPE_OPEN} xmlns:tns="http://example.com/sign" xmlns:c="http://example.com/common"><soap:Body>`
+        + '<tns:SignRequest><c:Party>string</c:Party></tns:SignRequest>'
+        + '</soap:Body></soap:Envelope>'
+      );
+    });
+
+    it('generates a prefix for a namespace that no document binds to a prefix', async () => {
+      const collection = await wsdlToBruno(wsdlWithTypes(`
+        <xsd:schema targetNamespace="http://example.com/sign" xmlns="http://example.com/common">
+          <xsd:import namespace="http://example.com/common"/>
+          <xsd:element name="SignRequest">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element ref="Party"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:schema>
+        <xsd:schema targetNamespace="http://example.com/common">
+          <xsd:element name="Party" type="xsd:string"/>
+        </xsd:schema>
+      `));
+
+      expect(requestBodyOf(collection)).toBe(
+        `${SOAP_ENVELOPE_OPEN} xmlns:tns="http://example.com/sign" xmlns:ns1="http://example.com/common"><soap:Body>`
+        + '<tns:SignRequest><ns1:Party>string</ns1:Party></tns:SignRequest>'
+        + '</soap:Body></soap:Envelope>'
+      );
+    });
+
+    it('generates a prefix when the declared one is already bound to another namespace in the body', async () => {
+      const collection = await wsdlToBruno(wsdlWithTypes(`
+        <xsd:schema targetNamespace="http://example.com/sign" xmlns:c="http://example.com/common">
+          <xsd:import namespace="http://example.com/common"/>
+          <xsd:element name="SignRequest">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element ref="c:Party"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:schema>
+        <xsd:schema targetNamespace="http://example.com/common" xmlns:c="http://example.com/contact">
+          <xsd:import namespace="http://example.com/contact"/>
+          <xsd:element name="Party">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element ref="c:Email"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:schema>
+        <xsd:schema targetNamespace="http://example.com/contact">
+          <xsd:element name="Email" type="xsd:string"/>
+        </xsd:schema>
+      `));
+
+      expect(requestBodyOf(collection)).toBe(
+        `${SOAP_ENVELOPE_OPEN} xmlns:tns="http://example.com/sign" xmlns:c="http://example.com/common" xmlns:ns1="http://example.com/contact"><soap:Body>`
+        + '<tns:SignRequest><c:Party><ns1:Email>string</ns1:Email></c:Party></tns:SignRequest>'
+        + '</soap:Body></soap:Envelope>'
+      );
+    });
+
+    it('escapes markup characters in a declared namespace so the body stays well-formed XML', async () => {
+      const collection = await wsdlToBruno(wsdlWithTypes(`
+        <xsd:schema targetNamespace="http://example.com/sign" xmlns:q="urn:query?a=1&amp;b=&quot;2&quot;&lt;">
+          <xsd:import namespace="urn:query?a=1&amp;b=&quot;2&quot;&lt;"/>
+          <xsd:element name="SignRequest">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element ref="q:Party"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:schema>
+        <xsd:schema targetNamespace="urn:query?a=1&amp;b=&quot;2&quot;&lt;">
+          <xsd:element name="Party" type="xsd:string"/>
+        </xsd:schema>
+      `));
+      const body = requestBodyOf(collection);
+
+      expect(body).toContain(' xmlns:q="urn:query?a=1&amp;b=&quot;2&quot;&lt;"><soap:Body>');
+      await expect(parseXML(body)).resolves.toBeDefined();
+    });
+
+    it('emits bare elements and no extra declarations when the schema has no target namespace', async () => {
+      const collection = await wsdlToBruno(wsdlWithTypes(`
+        <xsd:schema>
+          <xsd:element name="SignRequest" type="xsd:string"/>
+        </xsd:schema>
+      `, { partElement: 'SignRequest' }));
+
+      expect(requestBodyOf(collection)).toBe(
+        `${SOAP_ENVELOPE_OPEN}><soap:Body><SignRequest>string</SignRequest></soap:Body></soap:Envelope>`
+      );
+    });
   });
 
   describe('choice content models', () => {
@@ -331,7 +525,36 @@ describe('wsdl-to-bruno', () => {
         </xsd:element>
       `);
 
-      expect(body).toContain('<SignRequest><swedishId>string</swedishId></SignRequest>');
+      expect(body).toContain('<tns:SignRequest><swedishId>string</swedishId></tns:SignRequest>');
+    });
+
+    it('places the elements of a group from another namespace in the namespace that declares the group', async () => {
+      const collection = await wsdlToBruno(wsdlWithTypes(`
+        <xsd:schema targetNamespace="http://example.com/sign" xmlns:c="http://example.com/common">
+          <xsd:import namespace="http://example.com/common"/>
+          <xsd:element name="SignRequest">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:group ref="c:identity"/>
+                <xsd:element name="signedAt" type="xsd:dateTime" form="qualified"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:schema>
+        <xsd:schema targetNamespace="http://example.com/common" elementFormDefault="qualified">
+          <xsd:group name="identity">
+            <xsd:sequence>
+              <xsd:element name="swedishId" type="xsd:string"/>
+            </xsd:sequence>
+          </xsd:group>
+        </xsd:schema>
+      `));
+
+      expect(requestBodyOf(collection)).toBe(
+        `${SOAP_ENVELOPE_OPEN} xmlns:tns="http://example.com/sign" xmlns:c="http://example.com/common"><soap:Body>`
+        + '<tns:SignRequest><c:swedishId>string</c:swedishId><tns:signedAt>2024-01-01T00:00:00Z</tns:signedAt></tns:SignRequest>'
+        + '</soap:Body></soap:Envelope>'
+      );
     });
 
     it('stops expanding a group that references itself', async () => {
@@ -351,7 +574,7 @@ describe('wsdl-to-bruno', () => {
         </xsd:element>
       `);
 
-      expect(body).toContain('<SignRequest><label>string</label></SignRequest>');
+      expect(body).toContain('<tns:SignRequest><label>string</label></tns:SignRequest>');
     });
   });
 });

@@ -147,7 +147,7 @@ const EnvVarValueCell = ({
   formik,
   handleRowFocus,
   handleSave,
-  renderExtraValueContent
+  renderSensitiveWarning
 }) => {
   const editorRef = useRef(null);
   const [compact, setCompact] = useState(true);
@@ -174,7 +174,7 @@ const EnvVarValueCell = ({
           className="flex items-center"
           onFocus={() => handleRowFocus(variable.uid)}
         >
-          {renderExtraValueContent && renderExtraValueContent(variable)}
+          {renderSensitiveWarning && renderSensitiveWarning(variable)}
           <MultiLineEditor
             ref={editorRef}
             theme={storedTheme}
@@ -250,7 +250,7 @@ const EnvironmentVariablesTable = ({
   onDraftChange,
   onDraftClear,
   setIsModified,
-  renderExtraValueContent,
+  renderSensitiveWarning,
   searchQuery = '',
   variableType = 'variables'
 }) => {
@@ -1027,7 +1027,11 @@ const EnvironmentVariablesTable = ({
 
             if (item.type === ROW_INHERITED_VARIABLE) {
               return (
-                <InheritedVariableRow variable={item.variable} columnWidths={columnWidths} />
+                <InheritedVariableRow
+                  variable={item.variable}
+                  columnWidths={columnWidths}
+                  sensitiveWarning={renderSensitiveWarning ? renderSensitiveWarning(item.variable) : null}
+                />
               );
             }
 
@@ -1108,7 +1112,7 @@ const EnvironmentVariablesTable = ({
                     formik={formik}
                     handleRowFocus={handleRowFocus}
                     handleSave={handleSave}
-                    renderExtraValueContent={renderExtraValueContent}
+                    renderSensitiveWarning={renderSensitiveWarning}
                   />
                 </td>
                 <td style={{ width: columnWidths.description }}>
