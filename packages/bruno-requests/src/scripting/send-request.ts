@@ -137,6 +137,106 @@ type SendRequestOptions = {
  * @param options - Optional onComplete sink invoked after each call; used by the Timeline.
  * @returns A sendRequest function that applies the config to each request
  */
+const REDIRECT_STATUS_CODES = [301, 302, 303, 307, 308];
+
+const readLocationHeader = (headers: any): string | undefined => {
+  if (!headers) return undefined;
+  if (typeof headers.get === 'function') {
+    const v = headers.get('location');
+    if (v) return String(v);
+  }
+  return headers.location ?? headers.Location;
+};
+
+const isSameOrigin = (a?: string, b?: string): boolean => {
+  try {
+    const ua = new URL(a as string);
+    const ub = new URL(b as string);
+    return ua.protocol === ub.protocol && ua.host === ub.host;
+  } catch {
+    return false;
+  }
+};
+
+const executeScriptedRequest = async (
+  axiosInstance: any,
+  initialConfig: AxiosRequestConfig,
+  config?: SendRequestConfig
+): Promise<AxiosResponse> => {
+  // No HTTP/2 transport installed → let axios follow redirects natively (unchanged behaviour).
+  if (!(initialConfig as any).transport) {
+    return axiosInstance(initialConfig);
+  }
+
+  const maxRedirects = typeof initialConfig.maxRedirects === 'number' ? initialConfig.maxRedirects : 5;
+  let current: AxiosRequestConfig = initialConfig;
+  let redirects = 0;
+
+  // axios rejects a 3xx (default validateStatus is 2xx), so each hop arrives here as error.response.
+  while (true) {
+    try {
+      return await axiosInstance(current);
+    } catch (error: any) {
+      const status: number | undefined = error?.response?.status;
+      const location = readLocationHeader(error?.response?.headers);
+      if (!status || !REDIRECT_STATUS_CODES.includes(status) || !location || redirects >= maxRedirects) {
+        throw error;
+      }
+
+      const fromUrl = current.url as string;
+      const nextUrl = new URL(location, fromUrl).toString();
+      const method = (current.method || 'get').toString().toLowerCase();
+
+      const next: AxiosRequestConfig = { ...current, url: nextUrl };
+      next.headers = current.headers ? { ...(current.headers as any) } : current.headers;
+      // A fresh hop: drop the previous hop's agents and HTTP/2 transport before re-deriving them.
+      delete (next as any).httpAgent;
+      delete (next as any).httpsAgent;
+      delete (next as any).transport;
+
+      // 301/302/303 become GET and drop the body (except HEAD); 307/308 preserve method and body.
+      if ([301, 302, 303].includes(status) && method !== 'head') {
+        next.method = 'get';
+        next.data = undefined;
+        if (next.headers) {
+          delete (next.headers as any)['content-length'];
+          delete (next.headers as any)['Content-Length'];
+          delete (next.headers as any)['content-type'];
+          delete (next.headers as any)['Content-Type'];
+        }
+      }
+
+      // Never forward credentials across origins.
+      if (!isSameOrigin(fromUrl, nextUrl) && next.headers) {
+        for (const key of Object.keys(next.headers as any)) {
+          const lower = key.toLowerCase();
+          if (lower === 'authorization' || lower === 'proxy-authorization') {
+            delete (next.headers as any)[key];
+          }
+        }
+      }
+
+      // Re-establish agents and re-negotiate HTTP/2 for the redirected URL.
+      if (config) {
+        const { httpAgent, httpsAgent, tlsOptions, proxyInfo } = await getHttpHttpsAgents({ ...config, requestUrl: nextUrl });
+        if (httpAgent) next.httpAgent = httpAgent;
+        if (httpsAgent) next.httpsAgent = httpsAgent;
+        if (canUseHttp2(config.httpVersion) && next.url) {
+          await applyHttp2Transport({
+            config: next as { url: string } & Record<string, unknown>,
+            httpVersionPreference: config.httpVersion as HttpVersionPreference,
+            tlsOptions,
+            proxyInfo
+          });
+        }
+      }
+
+      current = next;
+      redirects++;
+    }
+  }
+};
+
 const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOptions) => {
   const onComplete = options?.onComplete;
 
@@ -152,7 +252,10 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
     }
 
     if (response) {
-      const httpVersion = (response as any)?.request?.res?.httpVersion || '1.1';
+      // The HTTP/2 transport reports its version on `request.httpVersion`, not `request.res`
+      // (which only the HTTP/1.1 adapter populates); fall back so h2 responses label correctly.
+      const httpReq = (response as any)?.request;
+      const httpVersion = httpReq?.res?.httpVersion || httpReq?.httpVersion || '1.1';
       add('response', `HTTP/${httpVersion} ${response.status} ${response.statusText}`);
       for (const [name, value] of Object.entries(toPlainHeaders(response.headers))) {
         add('responseHeader', `${name}: ${value}`);
@@ -230,7 +333,7 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
 
     if (!callback) {
       try {
-        const response = await axiosInstance(normalizedConfig);
+        const response = await executeScriptedRequest(axiosInstance, normalizedConfig, config);
         recordEntry(normalizedConfig, response, null, startedAt);
         return response;
       } catch (error: any) {
@@ -240,7 +343,7 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
     }
 
     try {
-      const response = await axiosInstance(normalizedConfig);
+      const response = await executeScriptedRequest(axiosInstance, normalizedConfig, config);
       recordEntry(normalizedConfig, response, null, startedAt);
       try {
         await callback(null, response);
