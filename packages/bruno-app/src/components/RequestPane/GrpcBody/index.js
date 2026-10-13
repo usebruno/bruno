@@ -17,6 +17,8 @@ import { toastError } from 'utils/common/error';
 import toast from 'react-hot-toast';
 import { getAbsoluteFilePath } from 'utils/common/path';
 import { prettifyJsonString } from 'utils/common/index';
+import useKeybinding from 'hooks/useKeybinding';
+import { REQUEST_BODY_EDITOR_CLASS } from 'utils/common/constants';
 
 const MessageToolbar = ({
   index,
@@ -69,7 +71,7 @@ const MessageToolbar = ({
   );
 };
 
-const SingleGrpcMessage = ({ message, item, collection, index, methodType, handleRun, canClientSendMultipleMessages, isLast }) => {
+const SingleGrpcMessage = ({ message, item, collection, index, methodType, handleRun, canClientSendMultipleMessages, isLast, onPrettify }) => {
   const dispatch = useDispatch();
   const editorRef = useRef(null);
   const { displayedTheme } = useTheme();
@@ -168,24 +170,6 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, handl
     }));
   };
 
-  const onPrettify = () => {
-    try {
-      const prettyBodyJson = prettifyJsonString(content);
-      const currentMessages = [...(body.grpc || [])];
-      currentMessages[index] = {
-        name: name ? name : `message ${index + 1}`,
-        content: prettyBodyJson
-      };
-      dispatch(updateRequestBody({
-        content: currentMessages,
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      }));
-    } catch (e) {
-      toastError(new Error('Unable to prettify. Invalid JSON format.'));
-    }
-  };
-
   const isSingleMessage = !canClientSendMultipleMessages || body.grpc.length === 1;
 
   return (
@@ -200,7 +184,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, handl
         onDeleteMessage={onDeleteMessage}
         showDelete={index > 0}
       />
-      <div className="editor-container">
+      <div className={`editor-container ${REQUEST_BODY_EDITOR_CLASS}`}>
         <CodeEditor
           ref={editorRef}
           collection={collection}
@@ -248,6 +232,33 @@ const GrpcBody = ({ item, collection, handleRun }) => {
     }));
   };
 
+  const onPrettifyMessage = (index) => {
+    const message = body?.grpc?.[index];
+    if (!message) return;
+    try {
+      const prettyBodyJson = prettifyJsonString(message.content);
+      const currentMessages = [...body.grpc];
+      currentMessages[index] = {
+        name: message.name ? message.name : `message ${index + 1}`,
+        content: prettyBodyJson
+      };
+      dispatch(updateRequestBody({
+        content: currentMessages,
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      }));
+    } catch (e) {
+      toastError(new Error('Unable to prettify. Invalid JSON format.'));
+    }
+  };
+
+  useKeybinding('prettify', (e) => {
+    if (!e.target.closest(`.${REQUEST_BODY_EDITOR_CLASS}`)) return;
+    const message = e.target.closest('.message-container');
+    onPrettifyMessage([...message.parentElement.children].indexOf(message));
+    return false;
+  });
+
   if (!body?.grpc || !Array.isArray(body.grpc)) {
     return (
       <StyledWrapper>
@@ -287,6 +298,7 @@ const GrpcBody = ({ item, collection, handleRun }) => {
             handleRun={handleRun}
             canClientSendMultipleMessages={canClientSendMultipleMessages}
             isLast={index === messagesToShow.length - 1}
+            onPrettify={() => onPrettifyMessage(index)}
           />
         ))}
       </div>

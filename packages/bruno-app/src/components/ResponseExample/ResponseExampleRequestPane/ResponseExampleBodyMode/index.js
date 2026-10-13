@@ -5,6 +5,8 @@ import BodyModeSelector from 'components/BodyModeSelector';
 import { format, applyEdits } from 'jsonc-parser';
 import xmlFormat from 'xml-formatter';
 import { toastError } from 'utils/common/error';
+import useKeybinding from 'hooks/useKeybinding';
+import { REQUEST_BODY_EDITOR_CLASS } from 'utils/common/constants';
 
 const ResponseExampleBodyMode = ({ item, collection, exampleUid, body, bodyMode, onBodyEdit, editMode = false }) => {
   const dispatch = useDispatch();
@@ -73,6 +75,12 @@ const ResponseExampleBodyMode = ({ item, collection, exampleUid, body, bodyMode,
       }
     }
   };
+
+  useKeybinding('prettify', (e) => {
+    if (!e.target.closest(`.${REQUEST_BODY_EDITOR_CLASS}`)) return;
+    onPrettify();
+    return false;
+  });
 
   return (
     <div className="flex items-center">

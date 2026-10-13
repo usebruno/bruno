@@ -20,6 +20,7 @@ import { toastError } from 'utils/common/error';
 import { prettifyJsonString } from 'utils/common/index';
 import xmlFormat from 'xml-formatter';
 import useKeybinding from 'hooks/useKeybinding';
+import { REQUEST_BODY_EDITOR_CLASS } from 'utils/common/constants';
 
 const DEFAULT_MODES = [
   {
@@ -92,10 +93,11 @@ const RequestBodyMode = ({ item, collection }) => {
     }
   };
 
-  useKeybinding('prettify', () => {
+  useKeybinding('prettify', (e) => {
+    if (!e.target.closest(`.${REQUEST_BODY_EDITOR_CLASS}`)) return;
     onPrettify();
     return false;
-  }, { deps: [body, bodyMode] });
+  });
 
   const menuItems = useMemo(() => {
     return DEFAULT_MODES.map((group) => ({

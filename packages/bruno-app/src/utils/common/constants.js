@@ -2,6 +2,8 @@ export const REQUEST_TYPES = ['http-request', 'graphql-request', 'grpc-request',
 
 export const DEFAULT_COLLECTION_FORMAT = 'yml';
 
+export const REQUEST_BODY_EDITOR_CLASS = 'request-body-editor';
+
 export const PRESET_REQUEST_TYPES = {
   HTTP: 'http',
   GRAPHQL: 'graphql',

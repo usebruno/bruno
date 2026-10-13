@@ -30,6 +30,8 @@ import Settings from 'components/RequestPane/Settings';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import AuthMode from '../Auth/AuthMode/index';
 import StatusDot from 'components/StatusDot';
+import useKeybinding from 'hooks/useKeybinding';
+import { REQUEST_BODY_EDITOR_CLASS } from 'utils/common/constants';
 
 const TAB_CONFIG = [
   { key: 'query', label: 'Query' },
@@ -205,11 +207,17 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
     }
   }, [variables, onVariablesChange]);
 
+  useKeybinding('prettify', (e) => {
+    if (!e.target.closest(`.${REQUEST_BODY_EDITOR_CLASS}`)) return;
+    handlePrettify();
+    return false;
+  });
+
   const tabPanel = useMemo(() => {
     switch (requestPaneTab) {
       case 'query':
         return (
-          <div className="flex flex-col h-full">
+          <div className={`flex flex-col h-full ${REQUEST_BODY_EDITOR_CLASS}`}>
             <div className="flex-1 min-h-0">
               <QueryEditor
                 ref={queryEditorRef}
