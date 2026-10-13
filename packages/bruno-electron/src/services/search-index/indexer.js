@@ -94,16 +94,39 @@ const runWithConcurrency = async (items, limit, task) => {
 
 const WRITE_BATCH_SIZE = 200;
 
+const SLOW_BATCH_MS = 50;
+
 const createWriteBatch = (searchIndex) => {
   let pending = [];
+  let batch = { si: 0, fi: 0 };
+  const stats = { batches: 0, writes: 0, ms: 0, si: 0, fi: 0, slow: 0, maxMs: 0 };
+
+  const time = (part, write) => {
+    const start = performance.now();
+    try {
+      return write();
+    } finally {
+      batch[part] += performance.now() - start;
+    }
+  };
 
   const flush = () => {
     if (!pending.length) return;
     const writes = pending;
     pending = [];
+    batch = { si: 0, fi: 0 };
+    const start = performance.now();
     searchIndex.transaction(() => {
       for (const write of writes) write();
     });
+    const ms = performance.now() - start;
+    stats.batches += 1;
+    stats.writes += writes.length;
+    stats.ms += ms;
+    stats.si += batch.si;
+    stats.fi += batch.fi;
+    if (ms > SLOW_BATCH_MS) stats.slow += 1;
+    stats.maxMs = Math.max(stats.maxMs, ms);
   };
 
   const add = (write) => {
@@ -111,7 +134,20 @@ const createWriteBatch = (searchIndex) => {
     if (pending.length >= WRITE_BATCH_SIZE) flush();
   };
 
-  return { add, flush };
+  return { add, flush, time, stats };
+};
+
+const percentOf = (part, whole) => Math.round(Math.max(0, part) / whole * 100);
+
+const megabytes = (bytes) => Math.round(bytes / 1048576);
+
+const logRunSummary = (label, stats, runStart, parse) => {
+  const busyPart = parse
+    ? ` | MAIN BUSY ${percentOf(parse.activeMs, parse.wallMs)}% of parse phase (writes ${percentOf(parse.writeMs, parse.wallMs)}%, other ${percentOf(parse.activeMs - parse.writeMs, parse.wallMs)}%)`
+    : '';
+  const parsePart = parse ? ` | PARSE ONLY ${parse.ms.toFixed(0)} ms (${parse.files} files)${busyPart}` : '';
+  const { heapUsed, rss } = process.memoryUsage();
+  console.log(`[search-index] ${label}${parsePart} | DB WRITES ${stats.ms.toFixed(0)} ms in ${stats.batches} batches (SI ${stats.si.toFixed(0)}, FI ${stats.fi.toFixed(0)}, commit/other ${(stats.ms - stats.si - stats.fi).toFixed(0)}; ${stats.slow} batches over ${SLOW_BATCH_MS} ms, slowest ${stats.maxMs.toFixed(0)} ms) | TOTAL ${(performance.now() - runStart).toFixed(0)} ms | HEAP ${megabytes(heapUsed)} MB, RSS ${megabytes(rss)} MB`);
 };
 
 // Keeps the collection and folder names/order in step with their files, the same way requests are kept in step:
@@ -138,12 +174,12 @@ const indexMetadata = async (searchIndex, collectionPath, metaFiles, cached, fil
   const removed = [...stored.keys()].filter((relativePath) => !seen.has(relativePath));
   if (removed.length || statuses.some((s) => s.kind !== 'unchanged')) onWork?.();
 
-  for (const relativePath of removed) writes.add(() => searchIndex.removeMeta(collectionPath, relativePath));
+  for (const relativePath of removed) writes.add(() => writes.time('si', () => searchIndex.removeMeta(collectionPath, relativePath)));
 
   for (const status of statuses) {
     if (status.kind !== 'cached') continue;
     const row = toMetaRow(collectionPath, { relativePath: status.relativePath, ...status.entry });
-    if (row) writes.add(() => searchIndex.upsertMeta(row));
+    if (row) writes.add(() => writes.time('si', () => searchIndex.upsertMeta(row)));
   }
 
   for (const { relativePath, format, type } of statuses.filter((s) => s.kind === 'stale')) {
@@ -157,19 +193,19 @@ const indexMetadata = async (searchIndex, collectionPath, metaFiles, cached, fil
 
     // A naming file that cannot be parsed gives no name, but its mtime and hash are kept so it is not read again
     const row = toMetaRow(collectionPath, result);
-    if (row) writes.add(() => searchIndex.upsertMeta(row));
+    if (row) writes.add(() => writes.time('si', () => searchIndex.upsertMeta(row)));
     if (result.error) continue;
     if (fileIndex) {
       writes.add(() => {
         try {
-          fileIndex.stage(collectionPath, {
+          writes.time('fi', () => fileIndex.stage(collectionPath, {
             op: 'add',
             relativePath,
             mtime: result.mtime,
             hash: result.hash,
             data: result.data,
             raw: result.raw
-          });
+          }));
         } catch (_) {}
       });
     }
@@ -179,6 +215,7 @@ const indexMetadata = async (searchIndex, collectionPath, metaFiles, cached, fil
 };
 
 const indexUncached = async (searchIndex, collectionPath, collectionName, denylist, concurrency, workspacePath, fileIndex, onWork) => {
+  const runStart = performance.now();
   const folderPaths = [];
   const allFiles = walk(collectionPath, resolveDenylist(denylist), folderPaths)
     .map((f) => ({ ...f, cls: defaultClassify(f.relativePath) }));
@@ -221,20 +258,24 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
   const removed = [...stored.keys()].filter((relativePath) => !seen.has(relativePath));
   if (removed.length || statuses.some((s) => s.kind !== 'unchanged')) onWork?.();
 
-  for (const relativePath of removed) writes.add(() => searchIndex.remove(collectionPath, relativePath));
+  for (const relativePath of removed) writes.add(() => writes.time('si', () => searchIndex.remove(collectionPath, relativePath)));
 
   for (const status of statuses) {
     if (status.kind !== 'cached') continue;
-    writes.add(() => searchIndex.upsert(toRow(collectionPath, collectionName, { relativePath: status.relativePath, ...status.entry }, workspacePath)));
+    writes.add(() => writes.time('si', () => searchIndex.upsert(toRow(collectionPath, collectionName, { relativePath: status.relativePath, ...status.entry }, workspacePath))));
   }
 
   const toParse = statuses.filter((s) => s.kind === 'stale');
   if (!toParse.length) {
     writes.flush();
+    if (writes.stats.writes) logRunSummary(collectionName, writes.stats, runStart);
     return;
   }
 
   const pool = getPool();
+  const writeMsBeforeParse = writes.stats.ms;
+  const parseStart = performance.now();
+  const loopBeforeParse = performance.eventLoopUtilization();
   await runWithConcurrency(toParse, concurrency, async ({ relativePath, format }) => {
     // One file that cannot be parsed never stops the others
     let result;
@@ -248,21 +289,31 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
     // A file that could not be parsed still gets a row (what could be read from it, plus the error), so it can be
     // found, shows the error mark, and is not read again until it changes. It is not saved in the file index.
     writes.add(() => {
-      searchIndex.upsert(toRow(collectionPath, collectionName, result, workspacePath));
+      writes.time('si', () => searchIndex.upsert(toRow(collectionPath, collectionName, result, workspacePath)));
       if (result.error || !fileIndex) return;
       try {
-        fileIndex.stage(collectionPath, {
+        writes.time('fi', () => fileIndex.stage(collectionPath, {
           op: 'add',
           relativePath,
           mtime: result.mtime,
           hash: result.hash,
           data: result.data,
           raw: result.raw
-        });
+        }));
       } catch (_) {}
     });
   });
+  const parsePhaseMs = performance.now() - parseStart;
+  const parseLoop = performance.eventLoopUtilization(performance.eventLoopUtilization(), loopBeforeParse);
+  const writeMsInsideParse = writes.stats.ms - writeMsBeforeParse;
   writes.flush();
+  logRunSummary(collectionName, writes.stats, runStart, {
+    ms: parsePhaseMs - writeMsInsideParse,
+    files: toParse.length,
+    wallMs: parsePhaseMs,
+    activeMs: parseLoop.active,
+    writeMs: writeMsInsideParse
+  });
 };
 
 // One run per collection at a time; a request that arrives mid-run joins it instead of walking and parsing again
