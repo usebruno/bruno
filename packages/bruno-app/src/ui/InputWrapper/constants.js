@@ -1,26 +1,18 @@
 /**
- * Input size definitions - shared across Input, Select, and the other form components
+ * Input size definitions - shared across TextInput, MaskedInput, Select
  *
- * Approximate heights, at a 1.43 line height (2 * vertical padding + line + 2px border):
- * xs: ~22px - compact inputs for dense/inline contexts
- * sm: ~27px - in between, for toolbars and denser forms
- * md: ~33px - default form input (matches .textbox in modals)
+ * sm: compact inputs for inline/auth contexts
+ * md: default form inputs (matches .textbox)
  */
 export const INPUT_SIZES = {
-  xs: {
-    padding: '0.125rem 0.375rem',
+  sm: {
+    padding: '0.15rem 0.4rem',
     fontSize: 'xs',
     borderRadius: 'sm',
     labelFontSize: 'xs'
   },
-  sm: {
-    padding: '0.25rem 0.5rem',
-    fontSize: 'sm',
-    borderRadius: 'sm',
-    labelFontSize: 'xs'
-  },
   md: {
-    padding: '0.4375rem 0.625rem',
+    padding: '0.45rem',
     fontSize: 'sm',
     borderRadius: 'base',
     labelFontSize: 'sm'

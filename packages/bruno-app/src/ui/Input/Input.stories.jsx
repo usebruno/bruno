@@ -26,7 +26,7 @@ export default {
     size: {
       control: 'inline-radio',
       options: ['xs', 'sm', 'md'],
-      description: 'xs ~22px, sm ~27px, md ~33px (default). Same scale as Select.'
+      description: 'xs ~22px, sm ~27px, md ~33px (default). md lines up with Select.'
     },
     type: { control: 'text', description: 'Passed through to the input element.' },
     error: { control: 'boolean', description: 'Draws the danger border and sets aria-invalid.' },
@@ -64,7 +64,7 @@ export const Default = {
 
 const column = { display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '320px' };
 
-/** xs ~22px, sm ~27px, md ~33px (default, the form height used by Select). */
+/** xs ~22px, sm ~27px, md ~33px (default, within a pixel of a Select trigger). */
 export const Sizes = {
   tags: ['!dev'],
   render: () => (

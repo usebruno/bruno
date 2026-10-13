@@ -1,8 +1,8 @@
 import styled, { css } from 'styled-components';
-import { INPUT_SIZES } from '../InputWrapper/constants';
+import { INPUT_SIZES } from './sizes';
 
-// Sizes come from the same table as Select, so inputs and dropdowns line up in a form. The line
-// height is part of the size: it is what makes the box as tall as a Select trigger (about 33px at md).
+// The line height is part of the size: it is what keeps the md box within a pixel of a Select
+// trigger (about 33px), so inputs and dropdowns still line up in a form.
 const LINE_HEIGHT = '1.42857143';
 
 const getSize = (props) => INPUT_SIZES[props.$size] || INPUT_SIZES.md;
