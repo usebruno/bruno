@@ -19,7 +19,8 @@ import {
   IconInfoCircle,
   IconTerminal2,
   IconAppWindow,
-  IconEyeOff
+  IconEyeOff,
+  IconFileSpreadsheet
 } from '@tabler/icons';
 import { useSelector, useDispatch, useStore } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -36,6 +37,7 @@ import RenameCollectionItem from '../RenameCollectionItem';
 import DeleteCollectionItems from '../DeleteCollectionItems';
 import IgnoreCollectionItem from '../IgnoreCollectionItem';
 import RunCollectionItem from '../RunCollectionItem';
+import RunRequestWithData from '../RunRequestWithData';
 import GenerateCodeItem from '../GenerateCodeItem';
 import { isItemARequest, isItemAFolder } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
@@ -131,6 +133,7 @@ const CollectionItemRow = ({
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [newAppModalOpen, setNewAppModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
+  const [runWithDataModalOpen, setRunWithDataModalOpen] = useState(false);
   const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
   const examplesExpanded = !isCollectionItemCollapsed(item);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
@@ -496,6 +499,12 @@ const CollectionItemRow = ({
 
     if (!isFolder && (item.type === 'http-request' || item.type === 'graphql-request')) {
       items.push({
+        id: 'run-with-data',
+        leftSection: IconFileSpreadsheet,
+        label: 'Run with Data File',
+        onClick: () => setRunWithDataModalOpen(true)
+      });
+      items.push({
         id: 'generate-code',
         leftSection: IconCode,
         label: 'Generate Code',
@@ -738,6 +747,9 @@ const CollectionItemRow = ({
       )}
       {runCollectionModalOpen && (
         <RunCollectionItem collectionUid={collectionUid} item={item} onClose={() => setRunCollectionModalOpen(false)} />
+      )}
+      {runWithDataModalOpen && (
+        <RunRequestWithData collectionUid={collectionUid} item={item} onClose={() => setRunWithDataModalOpen(false)} />
       )}
       {generateCodeItemModalOpen && (
         <GenerateCodeItem collectionUid={collectionUid} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
