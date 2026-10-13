@@ -5,8 +5,10 @@
 
 import each from 'lodash/each';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid, sanitizeTags } from '../common';
+import { registerReferencePlaceholder } from './schema-composition';
 import {
   ensureUrl,
+  resetExampleGenerationState,
   BODY_TYPE_HANDLERS,
   getExampleFromSchema,
   createBrunoExample,
@@ -384,9 +386,11 @@ const resolveRefs = (obj, rootSpec, cache = new Map()) => {
     const resolved = resolveSwaggerRef(obj.$ref, rootSpec);
     if (!resolved) return obj;
     // Prevent circular refs
-    cache.set(obj.$ref, {});
+    const placeholder = {};
+    cache.set(obj.$ref, placeholder);
     const deep = resolveRefs(resolved, rootSpec, cache);
     cache.set(obj.$ref, deep);
+    registerReferencePlaceholder(placeholder, deep);
     return deep;
   }
 
@@ -551,6 +555,7 @@ export const parseSwagger2Collection = (data, options = {}) => {
   };
 
   try {
+    resetExampleGenerationState();
     const collectionData = resolveRefs(data, data);
     if (!collectionData) {
       throw new Error('Invalid Swagger 2.0 specification. Failed to resolve refs.');
