@@ -194,35 +194,39 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
       ? { url: requestConfig }
       : { ...requestConfig };
 
-    // If config is provided, create agents with the request URL for proper proxy bypass
+    const startedAt = Date.now();
+
     if (config) {
-      const requestUrl = normalizedConfig.url;
+      try {
+        const requestUrl = normalizedConfig.url;
 
-      const { httpAgent, httpsAgent, tlsOptions } = await getHttpHttpsAgents({
-        ...config,
-        requestUrl
-      });
-
-      // Apply agents if not explicitly set in normalizedConfig
-      if (httpAgent && !normalizedConfig.httpAgent) {
-        normalizedConfig.httpAgent = httpAgent;
-      }
-      if (httpsAgent && !normalizedConfig.httpsAgent) {
-        normalizedConfig.httpsAgent = httpsAgent;
-      }
-
-      if (canUseHttp2(config.httpVersion) && normalizedConfig.url) {
-        await applyHttp2Transport({
-          config: normalizedConfig as { url: string } & Record<string, unknown>,
-          httpVersionPreference: config.httpVersion,
-          tlsOptions,
-          proxyInfo: agentToProxyInfo(normalizedConfig.httpsAgent)
+        const { httpAgent, httpsAgent, tlsOptions } = await getHttpHttpsAgents({
+          ...config,
+          requestUrl
         });
+
+        if (httpAgent && !normalizedConfig.httpAgent) {
+          normalizedConfig.httpAgent = httpAgent;
+        }
+        if (httpsAgent && !normalizedConfig.httpsAgent) {
+          normalizedConfig.httpsAgent = httpsAgent;
+        }
+
+        if (canUseHttp2(config.httpVersion) && normalizedConfig.url) {
+          await applyHttp2Transport({
+            config: normalizedConfig as { url: string } & Record<string, unknown>,
+            httpVersionPreference: config.httpVersion,
+            tlsOptions,
+            proxyInfo: agentToProxyInfo(normalizedConfig.httpsAgent)
+          });
+        }
+      } catch (error) {
+        recordEntry(normalizedConfig, null, error, startedAt);
+        throw error;
       }
     }
 
     const axiosInstance = makeAxiosInstance();
-    const startedAt = Date.now();
 
     if (!callback) {
       try {
