@@ -2,13 +2,12 @@ const Store = require('electron-store');
 const fs = require('fs');
 const path = require('path');
 const yup = require('yup');
+const { isPlainObject } = require('lodash');
 const { isDeepStrictEqual } = require('util');
 
 const SNAPSHOT_VERSION = '0.0.1';
 const ENV_FILE_EXTENSIONS = ['bru', 'yml', 'yaml'];
 const WORKSPACE_TAB_TYPES = ['workspaceOverview', 'workspaceEnvironments'];
-
-const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
 const normalizeLookupKey = (pathname) => {
   if (typeof pathname !== 'string' || !pathname) {
@@ -268,7 +267,7 @@ class SnapshotManager {
   }
 
   _mergeSnapshotSync(patch = {}) {
-    if (!isObject(patch)) {
+    if (!isPlainObject(patch)) {
       return false;
     }
 
@@ -293,7 +292,7 @@ class SnapshotManager {
     }
 
     const previousSnapshot = this._normalizeSnapshot(this.store.store);
-    let snapshot = JSON.parse(JSON.stringify(previousSnapshot));
+    const snapshot = JSON.parse(JSON.stringify(previousSnapshot));
 
     if (typeof version === 'string') {
       snapshot.version = version;
@@ -303,8 +302,8 @@ class SnapshotManager {
       snapshot.activeWorkspacePath = typeof activeWorkspacePath === 'string' ? activeWorkspacePath : null;
     }
 
-    if (isObject(extrasPatch)) {
-      if (isObject(extrasPatch.sidebar)) {
+    if (isPlainObject(extrasPatch)) {
+      if (isPlainObject(extrasPatch.sidebar)) {
         snapshot.extras = snapshot.extras || { devTools: this._normalizeDevTools() };
         snapshot.extras.sidebar = {
           ...(snapshot.extras.sidebar || {}),
@@ -312,7 +311,7 @@ class SnapshotManager {
         };
       }
 
-      if (isObject(extrasPatch.devTools)) {
+      if (isPlainObject(extrasPatch.devTools)) {
         const existingDevTools = snapshot.extras?.devTools || this._normalizeDevTools();
         const incomingDevTools = extrasPatch.devTools;
         snapshot.extras = snapshot.extras || {};
@@ -321,7 +320,7 @@ class SnapshotManager {
           activeTab: 'activeTab' in incomingDevTools ? incomingDevTools.activeTab : existingDevTools.activeTab,
           tabs: {
             ...(existingDevTools.tabs || {}),
-            ...(isObject(incomingDevTools.tabs) ? incomingDevTools.tabs : {})
+            ...(isPlainObject(incomingDevTools.tabs) ? incomingDevTools.tabs : {})
           }
         };
       }
@@ -348,7 +347,7 @@ class SnapshotManager {
       const removeCollectionKeys = new Set();
 
       removeCollections.forEach((entry) => {
-        if (!isObject(entry) || typeof entry.pathname !== 'string') {
+        if (!isPlainObject(entry) || typeof entry.pathname !== 'string') {
           return;
         }
 
@@ -372,7 +371,7 @@ class SnapshotManager {
 
     if (Array.isArray(workspacePatches)) {
       workspacePatches.forEach((workspacePatch) => {
-        if (!isObject(workspacePatch) || typeof workspacePatch.pathname !== 'string') {
+        if (!isPlainObject(workspacePatch) || typeof workspacePatch.pathname !== 'string') {
           return;
         }
 
@@ -401,7 +400,7 @@ class SnapshotManager {
     if (Array.isArray(collectionPatches)) {
       collectionPatches.forEach((collectionPatch) => {
         if (
-          !isObject(collectionPatch)
+          !isPlainObject(collectionPatch)
           || typeof collectionPatch.pathname !== 'string'
           || typeof collectionPatch.workspacePathname !== 'string'
         ) {
@@ -420,8 +419,8 @@ class SnapshotManager {
         ));
         const existing = collectionIndex >= 0 ? snapshot.collections[collectionIndex] : {};
         const preserveEnvironment = collectionPatch.preserveEnvironment === true;
-        const patchEnv = isObject(collectionPatch.environment) ? collectionPatch.environment : {};
-        const existingEnv = isObject(existing.environment) ? existing.environment : {};
+        const patchEnv = isPlainObject(collectionPatch.environment) ? collectionPatch.environment : {};
+        const existingEnv = isPlainObject(existing.environment) ? existing.environment : {};
 
         const mergedCollection = {
           ...existing,
@@ -496,7 +495,7 @@ class SnapshotManager {
   // Shared collections keep per-workspace tab lists; migrate must update all of them.
   remapCollectionTabPaths(collectionPathname, pathMap) {
     const normalizedCollectionPath = normalizeLookupKey(collectionPathname);
-    if (!normalizedCollectionPath || !isObject(pathMap)) {
+    if (!normalizedCollectionPath || !isPlainObject(pathMap)) {
       return;
     }
 
@@ -521,7 +520,7 @@ class SnapshotManager {
     };
 
     const remapActiveTab = (activeTab) => {
-      if (!isObject(activeTab) || typeof activeTab.value !== 'string') {
+      if (!isPlainObject(activeTab) || typeof activeTab.value !== 'string') {
         return activeTab;
       }
       if (activeTab.accessor === 'pathname') {
@@ -598,13 +597,13 @@ class SnapshotManager {
 
     const mergedCollection = {
       ...(existingCollection || {}),
-      ...(isObject(data) ? data : {}),
+      ...(isPlainObject(data) ? data : {}),
       environment: {
-        ...(isObject(existingCollection?.environment) ? existingCollection.environment : {}),
-        ...(isObject(data?.environment) ? data.environment : {})
+        ...(isPlainObject(existingCollection?.environment) ? existingCollection.environment : {}),
+        ...(isPlainObject(data?.environment) ? data.environment : {})
       },
-      activeTab: isObject(data) && 'activeTab' in data ? data.activeTab : existingCollection?.activeTab,
-      tabs: isObject(data) && 'tabs' in data ? data.tabs : existingCollection?.tabs,
+      activeTab: isPlainObject(data) && 'activeTab' in data ? data.activeTab : existingCollection?.activeTab,
+      tabs: isPlainObject(data) && 'tabs' in data ? data.tabs : existingCollection?.tabs,
       environmentPath: data?.environmentPath ?? existingCollection?.environmentPath,
       selectedEnvironment: data?.selectedEnvironment ?? existingCollection?.selectedEnvironment
     };
@@ -655,7 +654,7 @@ class SnapshotManager {
       : activeWorkspacePath;
 
     const existingCollection = this.getCollection(collectionPath, resolvedWorkspacePathname) || {};
-    const existingEnvironment = isObject(existingCollection.environment) ? existingCollection.environment : {};
+    const existingEnvironment = isPlainObject(existingCollection.environment) ? existingCollection.environment : {};
     const incomingEnvironmentRef = environmentPath === undefined ? selectedEnvironment : environmentPath;
     const normalizedEnvironmentPath = await this._normalizeCollectionEnvironmentRefAsync(collectionPath, incomingEnvironmentRef);
 
@@ -712,7 +711,7 @@ class SnapshotManager {
       'performance',
       'terminal'
     ];
-    const devToolTabs = isObject(devTools.tabs) ? devTools.tabs : {};
+    const devToolTabs = isPlainObject(devTools.tabs) ? devTools.tabs : {};
 
     const _snapshotEntry = {
       open: typeof devTools?.open === 'boolean' ? devTools.open : false,
@@ -734,7 +733,7 @@ class SnapshotManager {
 
     if (Array.isArray(workspaces)) {
       workspaces.forEach((workspace) => {
-        if (!isObject(workspace) || typeof workspace.pathname !== 'string') {
+        if (!isPlainObject(workspace) || typeof workspace.pathname !== 'string') {
           return;
         }
 
@@ -745,7 +744,7 @@ class SnapshotManager {
           workspaceMap.set(normalizedPath, normalizedWorkspace);
         }
       });
-    } else if (isObject(workspaces)) {
+    } else if (isPlainObject(workspaces)) {
       Object.entries(workspaces).forEach(([workspacePathname, workspace]) => {
         const normalizedWorkspace = this._normalizeWorkspaceEntry(workspacePathname, workspace);
         const normalizedPath = normalizeLookupKey(workspacePathname);
@@ -790,7 +789,7 @@ class SnapshotManager {
     paths.forEach((entry) => {
       const rawPath = typeof entry === 'string'
         ? entry
-        : (isObject(entry) && typeof entry.path === 'string' ? entry.path : null);
+        : (isPlainObject(entry) && typeof entry.path === 'string' ? entry.path : null);
 
       if (!rawPath) {
         return;
@@ -814,7 +813,7 @@ class SnapshotManager {
       const rawCollectionsByKey = new Map();
 
       collections.forEach((collection) => {
-        if (!isObject(collection) || typeof collection.pathname !== 'string') {
+        if (!isPlainObject(collection) || typeof collection.pathname !== 'string') {
           return;
         }
 
@@ -832,8 +831,8 @@ class SnapshotManager {
               ...existingRaw,
               ...collection,
               environment: {
-                ...(isObject(existingRaw.environment) ? existingRaw.environment : {}),
-                ...(isObject(collection.environment) ? collection.environment : {})
+                ...(isPlainObject(existingRaw.environment) ? existingRaw.environment : {}),
+                ...(isPlainObject(collection.environment) ? collection.environment : {})
               }
             }
           : collection;
@@ -870,14 +869,14 @@ class SnapshotManager {
   }
 
   _normalizeCollectionEntry(pathname, collection = {}, tabsEntry = {}) {
-    const environment = isObject(collection.environment) ? collection.environment : {};
-    const tabsEntryObject = isObject(tabsEntry) ? tabsEntry : {};
+    const environment = isPlainObject(collection.environment) ? collection.environment : {};
+    const tabsEntryObject = isPlainObject(tabsEntry) ? tabsEntry : {};
     const collectionEnvironmentRef = environment.collection ?? collection.environmentPath ?? collection.selectedEnvironment;
     const normalizedEnvironmentPath = this._normalizeCollectionEnvironmentRef(pathname, collectionEnvironmentRef);
 
     const tabs = Array.isArray(tabsEntryObject.tabs)
-      ? tabsEntryObject.tabs.filter((tab) => isObject(tab))
-      : (Array.isArray(collection.tabs) ? collection.tabs.filter((tab) => isObject(tab)) : []);
+      ? tabsEntryObject.tabs.filter((tab) => isPlainObject(tab))
+      : (Array.isArray(collection.tabs) ? collection.tabs.filter((tab) => isPlainObject(tab)) : []);
 
     return {
       pathname,
@@ -960,7 +959,7 @@ class SnapshotManager {
   }
 
   _normalizeActiveTab(activeTab) {
-    if (!isObject(activeTab)) {
+    if (!isPlainObject(activeTab)) {
       return null;
     }
 
