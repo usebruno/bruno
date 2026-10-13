@@ -10,7 +10,8 @@ const {
   applyOmitConnectionToAxiosConfig,
   handleNtlmRedirect,
   startHop,
-  completeHop
+  completeHop,
+  http2
 } = require('@usebruno/requests');
 
 const redirectResponseCodes = [301, 302, 303, 307, 308];
@@ -91,7 +92,8 @@ function makeAxiosInstance({
   systemProxyConfig,
   httpsAgentRequestFields,
   interpolationOptions,
-  disableCache
+  disableCache,
+  httpVersionPreference
 } = {}) {
   let redirectCount = 0;
 
@@ -228,6 +230,15 @@ function makeAxiosInstance({
             interpolationOptions,
             disableCache
           });
+
+          if (http2.canUseHttp2(httpVersionPreference) && requestConfig.url) {
+            await http2.applyHttp2Transport({
+              config: requestConfig,
+              httpVersionPreference,
+              tlsOptions: httpsAgentRequestFields,
+              proxyInfo: http2.agentToProxyInfo(requestConfig.httpsAgent)
+            });
+          }
 
           if (!disableCookies) {
             const cookieString = getCookieStringForUrl(redirectUrl);

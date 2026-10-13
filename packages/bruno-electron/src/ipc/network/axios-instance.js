@@ -246,7 +246,7 @@ function makeAxiosInstance({
         config,
         httpVersionPreference,
         tlsOptions: agentOptions,
-        proxyInfo: http2.agentToProxyInfo(config.httpsAgent),
+        proxyInfo: config.__http2ProxyInfo,
         timeline
       });
     }
@@ -551,7 +551,7 @@ function makeAxiosInstance({
               config: requestConfig,
               httpVersionPreference: hopHttpVersionPreference,
               tlsOptions: httpsAgentRequestFields,
-              proxyInfo: http2.agentToProxyInfo(requestConfig.httpsAgent),
+              proxyInfo: requestConfig.__http2ProxyInfo,
               timeline
             });
           }

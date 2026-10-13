@@ -26,7 +26,7 @@ export type { Http2Transport, Http2TransportRequestOptions } from './transport';
 export { acquireH2SessionViaProxy, closeAllProxyAgents } from './proxy-session';
 export type { AcquireH2SessionViaProxyParams } from './proxy-session';
 
-export { agentToProxyInfo } from './proxy-info';
+export { proxyUrlToProxyInfo } from './proxy-info';
 export type { ProxyInfo, ProxyKind } from './proxy-info';
 
 export { pickTlsFields, TLS_FIELDS } from './tls-options';
