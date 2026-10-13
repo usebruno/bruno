@@ -36,6 +36,7 @@ const TokenSection = ({ title, token }) => {
     <div className="mb-2 border dark:border-gray-700 rounded-lg overflow-hidden">
       <div
         className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
+        data-testid="oauth2-token-section-toggle"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center space-x-2 w-full">
@@ -62,7 +63,7 @@ const TokenSection = ({ title, token }) => {
                   : <IconCopy size={16} className="text-gray-500" />}
               </button>
             </div>
-            <div className="font-mono text-xs bg-gray-50 dark:bg-gray-800 p-2 rounded break-all">
+            <div className="font-mono text-xs bg-gray-50 dark:bg-gray-800 p-2 rounded break-all" data-testid="oauth2-token-value">
               {token}
             </div>
           </div>

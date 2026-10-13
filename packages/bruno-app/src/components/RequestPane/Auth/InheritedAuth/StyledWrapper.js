@@ -52,7 +52,7 @@ const Wrapper = styled.div`
     opacity: 0.65;
 
     /* Allow expanding collapsed sections so inherited values can be viewed. */
-    .auth-advanced-toggle {
+    .auth-section-toggle {
       pointer-events: auto;
       cursor: pointer;
     }
