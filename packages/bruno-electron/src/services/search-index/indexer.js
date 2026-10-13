@@ -9,8 +9,6 @@ const {
   defaultClassify
 } = require('../../utils/mount');
 
-const BACKGROUND_INDEX_CONCURRENCY = Math.min(4, Math.max(1, Math.floor(os.availableParallelism() / 4)));
-
 const folderInfo = (relativePath) => {
   const dir = path.dirname(relativePath);
   return dir === '.' || dir === '' ? { folderPath: null, folderName: null } : { folderPath: dir, folderName: path.basename(dir) };
@@ -94,9 +92,31 @@ const runWithConcurrency = async (items, limit, task) => {
   await Promise.all(runners);
 };
 
+const WRITE_BATCH_SIZE = 200;
+
+const createWriteBatch = (searchIndex) => {
+  let pending = [];
+
+  const flush = () => {
+    if (!pending.length) return;
+    const writes = pending;
+    pending = [];
+    searchIndex.transaction(() => {
+      for (const write of writes) write();
+    });
+  };
+
+  const add = (write) => {
+    pending.push(write);
+    if (pending.length >= WRITE_BATCH_SIZE) flush();
+  };
+
+  return { add, flush };
+};
+
 // Keeps the collection and folder names/order in step with their files, the same way requests are kept in step:
 // unchanged files are skipped, then the file index is tried, and only then is the file read again.
-const indexMetadata = async (searchIndex, collectionPath, metaFiles, cached, fileIndex, onWork) => {
+const indexMetadata = async (searchIndex, collectionPath, metaFiles, cached, fileIndex, onWork, writes) => {
   const stored = searchIndex.metaEntriesFor(collectionPath);
 
   const statuses = await Promise.all(metaFiles.map(async ({ relativePath, absolutePath, cls }) => {
@@ -118,12 +138,12 @@ const indexMetadata = async (searchIndex, collectionPath, metaFiles, cached, fil
   const removed = [...stored.keys()].filter((relativePath) => !seen.has(relativePath));
   if (removed.length || statuses.some((s) => s.kind !== 'unchanged')) onWork?.();
 
-  for (const relativePath of removed) searchIndex.removeMeta(collectionPath, relativePath);
+  for (const relativePath of removed) writes.add(() => searchIndex.removeMeta(collectionPath, relativePath));
 
   for (const status of statuses) {
     if (status.kind !== 'cached') continue;
     const row = toMetaRow(collectionPath, { relativePath: status.relativePath, ...status.entry });
-    if (row) searchIndex.upsertMeta(row);
+    if (row) writes.add(() => searchIndex.upsertMeta(row));
   }
 
   for (const { relativePath, format, type } of statuses.filter((s) => s.kind === 'stale')) {
@@ -137,21 +157,25 @@ const indexMetadata = async (searchIndex, collectionPath, metaFiles, cached, fil
 
     // A naming file that cannot be parsed gives no name, but its mtime and hash are kept so it is not read again
     const row = toMetaRow(collectionPath, result);
-    if (row) searchIndex.upsertMeta(row);
+    if (row) writes.add(() => searchIndex.upsertMeta(row));
     if (result.error) continue;
     if (fileIndex) {
-      try {
-        fileIndex.stage(collectionPath, {
-          op: 'add',
-          relativePath,
-          mtime: result.mtime,
-          hash: result.hash,
-          data: result.data,
-          raw: result.raw
-        });
-      } catch (_) {}
+      writes.add(() => {
+        try {
+          fileIndex.stage(collectionPath, {
+            op: 'add',
+            relativePath,
+            mtime: result.mtime,
+            hash: result.hash,
+            data: result.data,
+            raw: result.raw
+          });
+        } catch (_) {}
+      });
     }
   }
+
+  writes.flush();
 };
 
 const indexUncached = async (searchIndex, collectionPath, collectionName, denylist, concurrency, workspacePath, fileIndex, onWork) => {
@@ -171,8 +195,10 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
     folderPaths: withParentFolders(folderPaths)
   });
 
+  const writes = createWriteBatch(searchIndex);
+
   // Names first: they are a few small files, and every row's collection and folder name depends on them
-  await indexMetadata(searchIndex, collectionPath, metaFiles, cached, fileIndex, onWork);
+  await indexMetadata(searchIndex, collectionPath, metaFiles, cached, fileIndex, onWork, writes);
 
   const statuses = await Promise.all(files.map(async ({ relativePath, absolutePath, cls }) => {
     const stat = await fs.promises.stat(absolutePath, { bigint: true });
@@ -195,15 +221,18 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
   const removed = [...stored.keys()].filter((relativePath) => !seen.has(relativePath));
   if (removed.length || statuses.some((s) => s.kind !== 'unchanged')) onWork?.();
 
-  for (const relativePath of removed) searchIndex.remove(collectionPath, relativePath);
+  for (const relativePath of removed) writes.add(() => searchIndex.remove(collectionPath, relativePath));
 
   for (const status of statuses) {
     if (status.kind !== 'cached') continue;
-    searchIndex.upsert(toRow(collectionPath, collectionName, { relativePath: status.relativePath, ...status.entry }, workspacePath));
+    writes.add(() => searchIndex.upsert(toRow(collectionPath, collectionName, { relativePath: status.relativePath, ...status.entry }, workspacePath)));
   }
 
   const toParse = statuses.filter((s) => s.kind === 'stale');
-  if (!toParse.length) return;
+  if (!toParse.length) {
+    writes.flush();
+    return;
+  }
 
   const pool = getPool();
   await runWithConcurrency(toParse, concurrency, async ({ relativePath, format }) => {
@@ -218,26 +247,29 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
 
     // A file that could not be parsed still gets a row (what could be read from it, plus the error), so it can be
     // found, shows the error mark, and is not read again until it changes. It is not saved in the file index.
-    searchIndex.upsert(toRow(collectionPath, collectionName, result, workspacePath));
-    if (result.error || !fileIndex) return;
-    try {
-      fileIndex.stage(collectionPath, {
-        op: 'add',
-        relativePath,
-        mtime: result.mtime,
-        hash: result.hash,
-        data: result.data,
-        raw: result.raw
-      });
-    } catch (_) {}
+    writes.add(() => {
+      searchIndex.upsert(toRow(collectionPath, collectionName, result, workspacePath));
+      if (result.error || !fileIndex) return;
+      try {
+        fileIndex.stage(collectionPath, {
+          op: 'add',
+          relativePath,
+          mtime: result.mtime,
+          hash: result.hash,
+          data: result.data,
+          raw: result.raw
+        });
+      } catch (_) {}
+    });
   });
+  writes.flush();
 };
 
 // One run per collection at a time; a request that arrives mid-run joins it instead of walking and parsing again
 const activeRuns = new Map();
 
 // onWork is called once the run finds something to read or write (not while it is only checking for changes)
-const indexCollection = (searchIndex, { collectionPath, collectionName, denylist, concurrency = BACKGROUND_INDEX_CONCURRENCY, workspacePath, fileIndex, onWork }) => {
+const indexCollection = (searchIndex, { collectionPath, collectionName, denylist, concurrency = os.availableParallelism(), workspacePath, fileIndex, onWork }) => {
   const root = path.resolve(collectionPath);
   const running = activeRuns.get(root);
   if (running) return running;
@@ -248,4 +280,4 @@ const indexCollection = (searchIndex, { collectionPath, collectionName, denylist
   return run;
 };
 
-module.exports = { indexCollection, toRow, toMetaRow, isIndexedFolder, withParentFolders, BACKGROUND_INDEX_CONCURRENCY };
+module.exports = { indexCollection, toRow, toMetaRow, isIndexedFolder, withParentFolders };
