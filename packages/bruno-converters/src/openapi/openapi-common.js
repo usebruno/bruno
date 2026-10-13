@@ -266,7 +266,7 @@ const defaultValueFor = (schema, visited) => {
 };
 
 export const getDefaultValueForSchema = (rawSchema, visited) => {
-  if (!visited) {
+  if (!visited || !exampleBudgets.has(visited)) {
     return generateWithinBudget(rawSchema, (budgeted) => getDefaultValueForSchema(rawSchema, budgeted));
   }
   countValue(visited);
@@ -403,7 +403,7 @@ const objectValueFor = (bodySchema, visited) => {
 };
 
 export const buildEmptyJsonBody = (rawBodySchema, visited) => {
-  if (!visited) {
+  if (!visited || !exampleBudgets.has(visited)) {
     return generateWithinBudget(rawBodySchema, (budgeted) => buildEmptyJsonBody(rawBodySchema, budgeted));
   }
   return withResolvedSchema(rawBodySchema, visited, (bodySchema) => objectValueFor(bodySchema, visited));

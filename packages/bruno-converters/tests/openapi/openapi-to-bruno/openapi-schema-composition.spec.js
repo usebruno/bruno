@@ -1,5 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
 import openApiToBruno from '../../../src/openapi/openapi-to-bruno';
+import { getDefaultValueForSchema, buildEmptyJsonBody } from '../../../src/openapi/openapi-common';
 
 const ref = (name) => ({ $ref: `#/components/schemas/${name}` });
 
@@ -581,6 +582,14 @@ describe('openapi schema composition', () => {
   });
 
   describe('robustness', () => {
+    it('accepts a visited map passed by a caller of the exported helpers', () => {
+      const schema = { type: 'object', properties: { id: { type: 'integer' }, pet: { allOf: [{ type: 'object', properties: { name: { type: 'string' } } }] } } };
+      const visited = new Map();
+      expect(getDefaultValueForSchema(schema, visited)).toEqual({ id: 0, pet: { name: '' } });
+      expect(buildEmptyJsonBody(schema, visited)).toEqual({ id: 0, pet: { name: '' } });
+      expect(visited.size).toBe(0);
+    });
+
     it('ignores composition keywords that are malformed', () => {
       const schema = { type: 'object', properties: { kept: { type: 'string' } }, allOf: 'nonsense', oneOf: [null, 1, 'a'], anyOf: {} };
       expect(requestBody(buildSpec({ paths: postBody(schema) }))).toEqual({ kept: '' });
