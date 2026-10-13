@@ -250,4 +250,15 @@ describe('expandItem', () => {
     expect(expandedFolder.items[0].collapsed).toBe(true);
     expect(expandedFolder.items[0].items[0].collapsed).toBe(true);
   });
+
+  it('expands a request so its response examples render', () => {
+    const request = { uid: 'req1', type: 'http-request', request: {}, collapsed: true };
+
+    const next = reducer(
+      makeStateWith(request),
+      expandItem({ collectionUid: 'col1', itemUid: 'req1' })
+    );
+
+    expect(next.collections[0].items[0].collapsed).toBe(false);
+  });
 });
