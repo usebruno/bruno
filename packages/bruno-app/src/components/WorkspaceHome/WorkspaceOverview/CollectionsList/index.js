@@ -1,6 +1,7 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectCollections } from 'src/selectors/collections';
+import isEqual from 'lodash/isEqual';
 import {
   IconBox,
   IconTrash,
@@ -31,7 +32,6 @@ import StyledWrapper from './StyledWrapper';
 
 const CollectionsList = ({ workspace }) => {
   const dispatch = useDispatch();
-  const collections = useSelector(selectCollections);
   const dropdownRefs = useRef({});
 
   const [renameCollectionModalOpen, setRenameCollectionModalOpen] = useState(false);
@@ -47,34 +47,20 @@ const CollectionsList = ({ workspace }) => {
 
   const isNotCloned = (collection) => !isDefaultWorkspace && collection.notFoundLocally;
 
-  const unopenableCollections = useMemo(() => {
-    return (workspace.unopenableCollections || []).map((wc) => ({
+  const workspaceCollections = useSelector((state) => {
+    const collections = selectCollections(state);
+
+    const unopenable = (workspace.unopenableCollections || []).map((wc) => ({
       uid: `unopenable-${wc.path}`,
       name: wc.name,
       pathname: wc.path,
-      items: [],
-      environments: [],
       isGitBacked: false,
       isLoaded: false,
-      failedToOpen: true,
-      git: { gitRootPath: null },
-      brunoConfig: {},
-      root: {
-        request: {
-          headers: [],
-          auth: { mode: 'none' },
-          vars: { req: [], res: [] },
-          script: { req: '', res: '' },
-          tests: ''
-        },
-        docs: ''
-      }
+      failedToOpen: true
     }));
-  }, [workspace.unopenableCollections]);
 
-  const workspaceCollections = useMemo(() => {
     if (!workspace.collections || workspace.collections.length === 0) {
-      return unopenableCollections;
+      return unopenable;
     }
 
     const filteredCollections = workspace.collections.filter((wc) => {
@@ -91,7 +77,13 @@ const CollectionsList = ({ workspace }) => {
 
       if (loadedCollection) {
         return {
-          ...loadedCollection,
+          uid: loadedCollection.uid,
+          name: loadedCollection.name,
+          pathname: loadedCollection.pathname,
+          brunoConfig: loadedCollection.brunoConfig,
+          isLoaded: loadedCollection.isLoaded,
+          failedToOpen: loadedCollection.failedToOpen,
+          notFoundLocally: loadedCollection.notFoundLocally,
           isGitBacked: !!wc.remote,
           gitRemoteUrl: wc.remote
         };
@@ -101,34 +93,20 @@ const CollectionsList = ({ workspace }) => {
         uid: `unloaded-${wc.path}`,
         name: wc.name,
         pathname: wc.path,
-        items: [],
-        environments: [],
         isGitBacked: !!wc.remote,
         isLoaded: false,
         notFoundLocally: !!wc.notFoundLocally,
-        gitRemoteUrl: wc.remote,
-        git: { gitRootPath: null },
-        brunoConfig: {},
-        root: {
-          request: {
-            headers: [],
-            auth: { mode: 'none' },
-            vars: { req: [], res: [] },
-            script: { req: '', res: '' },
-            tests: ''
-          },
-          docs: ''
-        }
+        gitRemoteUrl: wc.remote
       };
     });
 
-    const unopenablePaths = new Set(unopenableCollections.map((c) => normalizePath(c.pathname)));
+    const unopenablePaths = new Set(unopenable.map((c) => normalizePath(c.pathname)));
 
     return [
       ...resolvedCollections.filter((c) => !unopenablePaths.has(normalizePath(c.pathname))),
-      ...unopenableCollections
+      ...unopenable
     ];
-  }, [workspace.collections, workspace.scratchTempDirectory, collections, unopenableCollections]);
+  }, isEqual);
 
   const handleOpenCollectionClick = (collection, event) => {
     if (event.target.closest('.collection-menu')) {
