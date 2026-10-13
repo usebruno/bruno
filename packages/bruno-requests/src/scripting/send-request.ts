@@ -2,7 +2,7 @@ import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { makeAxiosInstance } from '../network';
 import { getSentHeaders } from '../network/sent-headers';
 import { getHttpHttpsAgents, GetHttpHttpsAgentsParams } from '../utils/http-https-agents';
-import { applyHttp2Transport, agentToProxyInfo, canUseHttp2, HttpVersionPreference } from '../http2';
+import { applyHttp2Transport, canUseHttp2, HttpVersionPreference } from '../http2';
 
 type T_SendRequestCallback = (error: any, response: any) => void;
 
@@ -200,7 +200,7 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
       try {
         const requestUrl = normalizedConfig.url;
 
-        const { httpAgent, httpsAgent, tlsOptions } = await getHttpHttpsAgents({
+        const { httpAgent, httpsAgent, tlsOptions, proxyInfo } = await getHttpHttpsAgents({
           ...config,
           requestUrl
         });
@@ -217,7 +217,7 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
             config: normalizedConfig as { url: string } & Record<string, unknown>,
             httpVersionPreference: config.httpVersion,
             tlsOptions,
-            proxyInfo: agentToProxyInfo(normalizedConfig.httpsAgent)
+            proxyInfo
           });
         }
       } catch (error) {
