@@ -8,13 +8,14 @@ import MultiLineEditor from 'components/MultiLineEditor';
 import InfoTip from 'components/InfoTip';
 import DataTypeSelector from 'components/DataTypeSelector';
 import VarValueCell from 'components/VarValueCell';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { valueToString } from '@usebruno/common/utils';
 import EditableTable from 'components/EditableTable';
 import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
-import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
 import { getAllVariables } from 'utils/collections';
+import { findUsedVarsRowUids, plainVariableUsageWarning } from 'utils/sensitive-fields';
 
 const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, isDraft }) => {
   const dispatch = useDispatch();
@@ -34,6 +35,10 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, isDraft
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
   const resolvableVariables = useMemo(() => getAllVariables(collection, item), [collection, item]);
+  const usedVariableUids = useMemo(
+    () => (varType === 'request' ? findUsedVarsRowUids(collection, 'request') : new Set()),
+    [collection, varType]
+  );
 
   const handleVarsChange = useCallback((updatedVars) => {
     dispatch(setRequestVars({
@@ -118,6 +123,9 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, isDraft
                 />
               )
             : null}
+          leadingContent={!isLastEmptyRow && usedVariableUids.has(row.uid) ? (
+            <SensitiveFieldWarning fieldName={row.name} warningMessage={plainVariableUsageWarning(row.name)} />
+          ) : null}
         />
       )
     },
