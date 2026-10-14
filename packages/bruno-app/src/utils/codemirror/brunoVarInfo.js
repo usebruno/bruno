@@ -38,8 +38,7 @@ const { get } = require('lodash');
 let hideActiveVarInfoPopup = () => {};
 let varInfoSuppressed = false;
 
-// The hover timer re-arms on every mousemove, so dismissing once is not enough while another
-// popup owns the selection — suppression has to hold until that popup closes.
+// The hover timer re-arms on every mousemove, so suppression must hold until the owning popup closes.
 export const setVarInfoSuppressed = (suppressed) => {
   varInfoSuppressed = suppressed;
   if (suppressed) {

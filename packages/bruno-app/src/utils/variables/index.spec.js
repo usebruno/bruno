@@ -1,4 +1,10 @@
-import { buildAddToScopes, buildScopeInfo, createEnvironmentForScope, resolveFolderScopeTarget } from './index';
+import {
+  buildAddToScopes,
+  buildScopeInfo,
+  createEnvironmentForScope,
+  inferDataTypeFromText,
+  resolveFolderScopeTarget
+} from './index';
 import { getAvailableAddToScopes } from 'utils/collections';
 import { addEnvironment, selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
@@ -209,5 +215,44 @@ describe('createEnvironmentForScope', () => {
     await expect(
       createEnvironmentForScope({ scope: { type: 'collection', label: 'Collection Variable' }, name: 'Nope', collectionUid: 'col-1', store })
     ).rejects.toThrow('does not support creating a new one');
+  });
+});
+
+describe('inferDataTypeFromText', () => {
+  it.each([
+    ['1', 'number'],
+    ['5000', 'number'],
+    ['-42', 'number'],
+    ['false', 'boolean'],
+    ['true', 'boolean'],
+    ['{"a":1}', 'object'],
+    ['[1,2]', 'object']
+  ])('infers %s as %s', (text, expected) => {
+    expect(inferDataTypeFromText(text)).toBe(expected);
+  });
+
+  it.each([
+    ['foo'],
+    ['abc123'],
+    ['updating a post'],
+    ['"foo"'],
+    ['null'],
+    [''],
+    ['   ']
+  ])('leaves %s as a string', (text) => {
+    expect(inferDataTypeFromText(text)).toBe('string');
+  });
+
+  it.each([
+    ['007'],
+    ['1e3'],
+    ['12345678901234567890'],
+    ['1.50']
+  ])('refuses to call %s a number because it would not round-trip', (text) => {
+    expect(inferDataTypeFromText(text)).toBe('string');
+  });
+
+  it('always names a type, so callers can tell it apart from having no opinion', () => {
+    expect(inferDataTypeFromText('anything')).toBeDefined();
   });
 });

@@ -1,4 +1,4 @@
-import { getCodeMirrorSelectionPayload, replaceSelectionWithVariable } from './selection';
+import { getCodeMirrorSelectionPayload, replaceSelectionWithVariable, resolveSelectionValue } from './selection';
 
 const pos = (line, ch) => ({ line, ch });
 
@@ -23,8 +23,65 @@ const createEditor = ({
     }
     return range === null ? selection : range;
   }),
-  replaceRange: jest.fn()
+  replaceRange: jest.fn(),
+  getLine: jest.fn((line) => (document === null ? selection : document.split('\n')[line] ?? '')),
+  getTokenAt: jest.fn((position) => {
+    const text = document === null ? selection : document.split('\n')[position.line] ?? '';
+    return tokenAt(text, position.ch);
+  })
 });
+
+// Stands in for CodeMirror's javascript mode: the enclosing string literal, or a non-string token.
+const tokenAt = (text, ch) => {
+  const comment = text.indexOf('//');
+  if (comment !== -1 && ch > comment) {
+    return { type: 'comment', start: comment, end: text.length, string: text.slice(comment) };
+  }
+
+  const regex = text.match(/\/[^/\n]+\/[gimsuy]*/);
+  if (regex && ch > regex.index && ch <= regex.index + regex[0].length) {
+    return { type: 'string-2', start: regex.index, end: regex.index + regex[0].length, string: regex[0] };
+  }
+
+  let quote = null;
+  let start = -1;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+
+    if (!quote) {
+      if (char === '\'' || char === '"' || char === '`') {
+        quote = char;
+        start = i;
+      }
+      continue;
+    }
+
+    if (quote === '`' && text.startsWith('${', i)) {
+      const close = text.indexOf('}', i);
+      if (close !== -1 && ch > i + 1 && ch <= close) {
+        return { type: 'variable', start: i + 2, end: close, string: text.slice(i + 2, close) };
+      }
+      i = close === -1 ? i : close;
+      continue;
+    }
+
+    if (char === quote) {
+      if (ch >= start && ch <= i + 1) {
+        return {
+          type: quote === '`' ? 'string-2' : 'string',
+          start,
+          end: i + 1,
+          string: text.slice(start, i + 1)
+        };
+      }
+      quote = null;
+      start = -1;
+    }
+  }
+
+  return { type: null, start: 0, end: text.length, string: text };
+};
 
 const event = { clientX: 10, clientY: 20 };
 
@@ -165,5 +222,231 @@ describe('replaceSelectionWithVariable', () => {
 
   it('does nothing for a dom selection that carries no editor', () => {
     expect(replaceSelectionWithVariable({ editor: null, editable: false }, 'apiKey')).toBe(false);
+  });
+});
+
+describe('replaceSelectionWithVariable in a script editor', () => {
+  const scriptEditor = (document, from, to) =>
+    createEditor({ document, from, to, selection: document.slice(from.ch, to.ch) });
+
+  it.each([
+    ['request', 'bru.getRequestVar'],
+    ['folder', 'bru.getFolderVar'],
+    ['collection', 'bru.getCollectionVar'],
+    ['environment', 'bru.getEnvVar'],
+    ['global', 'bru.getGlobalEnvVar']
+  ])('emits the %s accessor instead of a template', (scopeType, accessor) => {
+    const editor = scriptEditor('const t = abc123;', pos(0, 10), pos(0, 16));
+
+    const selection = { editor, editable: true, from: pos(0, 10), to: pos(0, 16), text: 'abc123', mode: 'javascript' };
+
+    expect(replaceSelectionWithVariable(selection, 'tok', scopeType)).toBe(true);
+    expect(editor.replaceRange).toHaveBeenCalledWith(`${accessor}('tok')`, pos(0, 10), pos(0, 16));
+  });
+
+  it.each([['"'], ['\''], ['`']])('swallows a wrapping %s so the call is not a string literal', (quote) => {
+    const document = `const t = ${quote}abc123${quote};`;
+    const editor = scriptEditor(document, pos(0, 11), pos(0, 17));
+
+    replaceSelectionWithVariable({ editor, editable: true, from: pos(0, 11), to: pos(0, 17), text: 'abc123', mode: 'javascript' }, 'tok', 'environment');
+
+    expect(editor.replaceRange).toHaveBeenCalledWith('bru.getEnvVar(\'tok\')', pos(0, 10), pos(0, 18));
+  });
+
+  it('leaves an unquoted selection alone', () => {
+    const editor = scriptEditor('const t = 5000;', pos(0, 10), pos(0, 14));
+
+    replaceSelectionWithVariable({ editor, editable: true, from: pos(0, 10), to: pos(0, 14), text: '5000', mode: 'javascript' }, 'tok', 'environment');
+
+    expect(editor.replaceRange).toHaveBeenCalledWith('bru.getEnvVar(\'tok\')', pos(0, 10), pos(0, 14));
+  });
+
+  it('still emits a template outside a script editor', () => {
+    const editor = createEditor({ selection: 'abc123' });
+
+    replaceSelectionWithVariable(
+      { editor, editable: true, from: pos(0, 4), to: pos(0, 9), text: 'abc123', mode: 'text/plain' },
+      'tok',
+      'environment'
+    );
+
+    expect(editor.replaceRange).toHaveBeenCalledWith('{{tok}}', pos(0, 4), pos(0, 9));
+  });
+
+  it('falls back to a template for a scope with no accessor', () => {
+    const editor = createEditor({ selection: 'abc123' });
+
+    replaceSelectionWithVariable(
+      { editor, editable: true, from: pos(0, 4), to: pos(0, 9), text: 'abc123', mode: 'javascript' },
+      'tok',
+      'runtime'
+    );
+
+    expect(editor.replaceRange).toHaveBeenCalledWith('{{tok}}', pos(0, 4), pos(0, 9));
+  });
+});
+
+describe('replaceSelectionWithVariable inside a string literal', () => {
+  const spliceResult = (line, word) => {
+    const fromCh = line.indexOf(word);
+    const toCh = fromCh + word.length;
+    const editor = createEditor({ document: line, from: pos(0, fromCh), to: pos(0, toCh) });
+    const selection = {
+      editor,
+      editable: true,
+      from: pos(0, fromCh),
+      to: pos(0, toCh),
+      text: word,
+      mode: 'javascript'
+    };
+
+    replaceSelectionWithVariable(selection, 'tok', 'request');
+
+    const [text, a, b] = editor.replaceRange.mock.calls[0];
+    return line.slice(0, a.ch) + text + line.slice(b.ch);
+  };
+
+  it('interpolates when the selection is at the end of the literal', () => {
+    expect(spliceResult('const hello = \'help world\';', 'world')).toBe(
+      'const hello = `help ${bru.getRequestVar(\'tok\')}`;'
+    );
+  });
+
+  it('interpolates when the selection is at the start of the literal', () => {
+    expect(spliceResult('const hello = \'help world\';', 'help')).toBe(
+      'const hello = `${bru.getRequestVar(\'tok\')} world`;'
+    );
+  });
+
+  it('interpolates in the middle, keeping both sides', () => {
+    expect(spliceResult('const hello = \'help example world happy\';', 'world')).toBe(
+      'const hello = `help example ${bru.getRequestVar(\'tok\')} happy`;'
+    );
+  });
+
+  it('collapses to a bare call when the whole contents are selected', () => {
+    expect(spliceResult('const hello = \'world\';', 'world')).toBe('const hello = bru.getRequestVar(\'tok\');');
+  });
+
+  it('leaves code outside any string untouched', () => {
+    expect(spliceResult('const hello = 5000;', '5000')).toBe('const hello = bru.getRequestVar(\'tok\');');
+  });
+
+  it('ignores a quote that belongs to a different string', () => {
+    expect(spliceResult('const a = \'x\'; const b = \'help world\';', 'world')).toBe(
+      'const a = \'x\'; const b = `help ${bru.getRequestVar(\'tok\')}`;'
+    );
+  });
+
+  it('splices into a literal that is already a template, leaving earlier variables intact', () => {
+    expect(spliceResult('const hello = `help ${bru.getRequestVar(\'hola\')} world happy`;', 'world')).toBe(
+      'const hello = `help ${bru.getRequestVar(\'hola\')} ${bru.getRequestVar(\'tok\')} happy`;'
+    );
+  });
+
+  it('splices into a template when the selection is at its end', () => {
+    expect(spliceResult('const hello = `help ${bru.getRequestVar(\'hola\')} world`;', 'world')).toBe(
+      'const hello = `help ${bru.getRequestVar(\'hola\')} ${bru.getRequestVar(\'tok\')}`;'
+    );
+  });
+
+  it('escapes a backtick already in the literal', () => {
+    expect(spliceResult('const hello = \'a `tick` world\';', 'world')).toBe(
+      'const hello = `a \\`tick\\` ${bru.getRequestVar(\'tok\')}`;'
+    );
+  });
+
+  it('escapes an existing ${ so it is not interpolated', () => {
+    expect(spliceResult('const hello = \'cost ${x} world\';', 'world')).toBe(
+      'const hello = `cost \\${x} ${bru.getRequestVar(\'tok\')}`;'
+    );
+  });
+});
+
+describe('resolveSelectionValue', () => {
+  const selectionIn = (line, word, mode) => {
+    const fromCh = line.indexOf(word);
+    const toCh = fromCh + word.length;
+    return {
+      editor: createEditor({ document: line, from: pos(0, fromCh), to: pos(0, toCh) }),
+      editable: true,
+      from: pos(0, fromCh),
+      to: pos(0, toCh),
+      text: word,
+      mode
+    };
+  };
+
+  it('stores the whole reference when the selection sits inside braces', () => {
+    expect(resolveSelectionValue(selectionIn('{{baseUrl}}/posts', 'baseUrl'))).toBe('{{baseUrl}}');
+  });
+
+  it('stores the selection as-is when there are no wrapping braces', () => {
+    expect(resolveSelectionValue(selectionIn('https://example.com/posts', 'example'))).toBe('example');
+  });
+
+  it('does not add braces that were already selected', () => {
+    expect(resolveSelectionValue(selectionIn('{{baseUrl}}/posts', '{{baseUrl}}'))).toBe('{{baseUrl}}');
+  });
+
+  it('leaves quotes out of the value in a script', () => {
+    expect(resolveSelectionValue(selectionIn('const a = \'help\';', 'help', 'javascript'))).toBe('help');
+  });
+
+  it('returns the text when there is no editor, as on a DOM selection', () => {
+    expect(resolveSelectionValue({ text: 'plain', from: pos(0, 0), to: pos(0, 5) })).toBe('plain');
+  });
+});
+
+describe('replaceSelectionWithVariable — cases the line scanner got wrong', () => {
+  const rewrite = (line, word, lineIdx = 0) => {
+    const lines = line.split('\n');
+    const from = lines[lineIdx].indexOf(word);
+    const editor = createEditor({
+      document: line,
+      from: pos(lineIdx, from),
+      to: pos(lineIdx, from + word.length),
+      selection: word
+    });
+    const replaced = replaceSelectionWithVariable(
+      {
+        editor,
+        editable: true,
+        from: pos(lineIdx, from),
+        to: pos(lineIdx, from + word.length),
+        text: word,
+        mode: 'javascript'
+      },
+      'tok',
+      'environment'
+    );
+
+    if (!replaced) return null;
+    const [text, a, b] = editor.replaceRange.mock.calls[0];
+    return lines[lineIdx].slice(0, a.ch) + text + lines[lineIdx].slice(b.ch);
+  };
+
+  it('does not nest an interpolation inside an existing one', () => {
+    expect(rewrite('const a = `Bearer ${token}`;', 'token')).toBe(
+      'const a = `Bearer ${bru.getEnvVar(\'tok\')}`;'
+    );
+  });
+
+  it('is not fooled by an apostrophe in a comment', () => {
+    expect(rewrite('const a = "help world"; // do not', 'world')).toBe(
+      'const a = `help ${bru.getEnvVar(\'tok\')}`; // do not'
+    );
+  });
+
+  it('declines to rewrite a literal holding an escape sequence rather than corrupt it', () => {
+    expect(rewrite('const a = \'x\\`y world\';', 'world')).toBeNull();
+  });
+
+  it('does not treat a regex literal as a template', () => {
+    expect(rewrite('const re = /hello world/;', 'world')).toBe('const re = /hello bru.getEnvVar(\'tok\')/;');
+  });
+
+  it('replaces plain code outside any literal', () => {
+    expect(rewrite('const a = 5000;', '5000')).toBe('const a = bru.getEnvVar(\'tok\');');
   });
 });

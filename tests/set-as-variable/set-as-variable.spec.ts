@@ -10,8 +10,13 @@ import {
   saveEnvironment,
   closeEnvironmentPanel,
   setRequestUrlAndSave,
+  selectScriptSubTab,
+  editCodeMirrorEditor,
+  setCodeMirrorEditorValue,
   openSetAsVariableMenu,
   openSetAsVariablePopover,
+  openSetAsVariablePopoverAtChar,
+  openEnvironmentConfigTab,
   selectVariableScope
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
@@ -70,8 +75,7 @@ test.describe('Set as variable', () => {
       const menu = await openSetAsVariableMenu(page, request.urlLine(), 150);
       await expect(menu).toBeVisible();
 
-      // Leaving and re-entering the token is what fires mouseover and re-arms the hover timer,
-      // which used to reopen the tooltip underneath the menu.
+      // Re-entering the token is what fires mouseover and re-arms the hover timer.
       await page.mouse.move(0, 0);
       await request.urlVariableToken('posts', 'invalid').hover();
       await page.waitForTimeout(400);
@@ -84,8 +88,7 @@ test.describe('Set as variable', () => {
       await page.keyboard.press('Escape');
       await expect(setAsVariable.menu()).toBeHidden();
 
-      // The pointer is still on the token after the right-click, so move away first or no
-      // fresh mouseover fires.
+      // The pointer still sits on the token, so move away to get a fresh mouseover.
       await page.mouse.move(0, 0);
       await request.urlVariableToken('posts', 'invalid').hover();
       await expect(varInfoPopup.all().first()).toBeVisible();
@@ -181,8 +184,7 @@ test.describe('Set as variable', () => {
 
     await test.step('The new reference resolves against the environment', async () => {
       await expect(request.urlLine()).toContainText('{{scheme}}://example.com/posts');
-      // A token only renders as `valid` once the variable actually resolves, which proves it
-      // was written to the environment rather than just substituted into the URL.
+      // A token renders `valid` only once the variable resolves, proving it reached the environment.
       await expect(request.urlVariableToken('scheme', 'valid')).toBeVisible();
     });
   });
@@ -258,8 +260,7 @@ test.describe('Set as variable', () => {
     });
 
     await test.step('Enter in the name field saves without clicking Save', async () => {
-      // Press on the input itself: the save handler only acts when the Enter event targets it,
-      // and picking a scope leaves focus on the scope button.
+      // The save handler only acts when Enter targets the input, and picking a scope moves focus.
       await setAsVariable.nameInput().press('Enter');
 
       await expect(setAsVariable.popover()).toBeHidden();
@@ -330,6 +331,229 @@ test.describe('Set as variable', () => {
       const contents = fs.readFileSync(requestFile, 'utf8');
       const occurrences = contents.split('\n').filter((line) => /^\s*(-\s*)?name:\s*scheme\s*$/.test(line)).length;
       expect(occurrences, `expected one scheme var, file was:\n${contents}`).toBe(1);
+    });
+  });
+
+  test('inserts a bru accessor instead of a template inside a script', async ({ page, createTmpDir }) => {
+    const { sidebar, setAsVariable } = buildCommonLocators(page);
+    const editorTestId = 'pre-request-script-editor';
+
+    await test.step('Write a pre-request script holding a quoted literal', async () => {
+      await createCollection(page, 'script-var', await createTmpDir('script-var'));
+      await createRequest(page, 'Fetch Posts', 'script-var');
+      await sidebar.request('Fetch Posts').click();
+      await selectScriptSubTab(page, 'pre-request');
+      await editCodeMirrorEditor(page, editorTestId, 'const t = "help example abc123 happy";');
+    });
+
+    await test.step('Save the quoted value as a request variable', async () => {
+      // char 27 sits inside abc123 in `const t = "help example abc123 happy";`
+      await openSetAsVariablePopoverAtChar(page, editorTestId, 27);
+      await setAsVariable.nameInput().fill('tok');
+      await selectVariableScope(page, 'request');
+      await setAsVariable.saveButton().click();
+      await expect(setAsVariable.popover()).toBeHidden();
+    });
+
+    await test.step('The literal becomes a template with the accessor interpolated', async () => {
+      const content = await page
+        .getByTestId(editorTestId)
+        .locator('.CodeMirror')
+        .first()
+        .evaluate((el: any) => el.CodeMirror.getValue());
+
+      expect(content).toBe('const t = `help example ${bru.getRequestVar(\'tok\')} happy`;');
+    });
+  });
+
+  test('stores the whole reference when the selection sits inside braces', async ({ page, createTmpDir }) => {
+    const { sidebar, request, setAsVariable } = buildCommonLocators(page);
+    const dir = await createTmpDir('brace-value');
+
+    await test.step('Point the URL at an existing variable reference', async () => {
+      await createCollection(page, 'brace-value', dir);
+      await createRequest(page, 'Fetch Posts', 'brace-value');
+      await sidebar.request('Fetch Posts').click();
+      await setRequestUrlAndSave(page, '{{baseUrl}}/posts');
+    });
+
+    await test.step('Save the referenced name as a new variable', async () => {
+      // char 5 sits inside baseUrl in `{{baseUrl}}/posts`
+      await openSetAsVariablePopoverAtChar(page, 'request-url', 5);
+      await setAsVariable.nameInput().fill('host');
+      await selectVariableScope(page, 'request');
+      await setAsVariable.saveButton().click();
+      await expect(setAsVariable.popover()).toBeHidden();
+    });
+
+    await test.step('The URL swaps the reference and the value keeps its braces', async () => {
+      await expect(request.urlLine()).toContainText('{{host}}/posts');
+
+      const requestFile = path.join(dir, 'brace-value', 'Fetch Posts.yml');
+      await expect(() => expect(fs.existsSync(requestFile)).toBe(true)).toPass();
+
+      const contents = fs.readFileSync(requestFile, 'utf8');
+      expect(contents, `host must resolve through baseUrl, file was:\n${contents}`).toMatch(
+        /name: host\s*\n\s*value: ["']?\{\{baseUrl\}\}["']?/
+      );
+    });
+  });
+
+  test('persists the inferred data type to disk', async ({ page, createTmpDir }) => {
+    const { sidebar, request, setAsVariable } = buildCommonLocators(page);
+    const dir = await createTmpDir('typed-var');
+
+    await test.step('Put a number in the URL', async () => {
+      await createCollection(page, 'typed-var', dir);
+      await createRequest(page, 'Fetch Posts', 'typed-var');
+      await sidebar.request('Fetch Posts').click();
+      await setRequestUrlAndSave(page, 'https://example.com/5000');
+    });
+
+    await test.step('Save it as a request variable', async () => {
+      await openSetAsVariablePopoverAtChar(page, 'request-url', 22);
+      await setAsVariable.nameInput().fill('timeout');
+      await selectVariableScope(page, 'request');
+      await setAsVariable.saveButton().click();
+      await expect(setAsVariable.popover()).toBeHidden();
+    });
+
+    await test.step('The saved file records it as a number, not a string', async () => {
+      const requestFile = path.join(dir, 'typed-var', 'Fetch Posts.yml');
+      await expect(() => expect(fs.existsSync(requestFile)).toBe(true)).toPass();
+
+      const contents = fs.readFileSync(requestFile, 'utf8');
+      expect(contents, `expected a number data type, file was:\n${contents}`).toMatch(
+        /name: timeout\s*\n\s*value:\s*\n\s*type: number\s*\n\s*data: ["']?5000["']?/
+      );
+    });
+  });
+
+  test('keeps an earlier variable intact when a second one is added to the same line', async ({
+    page,
+    createTmpDir
+  }) => {
+    const { sidebar, setAsVariable } = buildCommonLocators(page);
+    const editorTestId = 'pre-request-script-editor';
+
+    const readScript = () =>
+      page
+        .getByTestId(editorTestId)
+        .locator('.CodeMirror')
+        .first()
+        .evaluate((el: any) => el.CodeMirror.getValue());
+
+    const saveWordAt = async (ch: number, name: string) => {
+      await openSetAsVariablePopoverAtChar(page, editorTestId, ch);
+      await setAsVariable.nameInput().fill(name);
+      await selectVariableScope(page, 'request');
+      await setAsVariable.saveButton().click();
+      await expect(setAsVariable.popover()).toBeHidden();
+    };
+
+    await test.step('Write a script with two words worth extracting', async () => {
+      await createCollection(page, 'two-vars', await createTmpDir('two-vars'));
+      await createRequest(page, 'Fetch Posts', 'two-vars');
+      await sidebar.request('Fetch Posts').click();
+      await selectScriptSubTab(page, 'pre-request');
+      await editCodeMirrorEditor(page, editorTestId, 'const hello = \'help world happy\';');
+    });
+
+    await test.step('Extract the first word', async () => {
+      // char 22 sits inside world in `const hello = 'help world happy';`
+      await saveWordAt(22, 'first');
+      expect(await readScript()).toBe('const hello = `help ${bru.getRequestVar(\'first\')} happy`;');
+    });
+
+    await test.step('Extract the second word without escaping the first', async () => {
+      const line = await readScript();
+      await saveWordAt(line.indexOf('happy') + 2, 'second');
+
+      expect(await readScript()).toBe(
+        'const hello = `help ${bru.getRequestVar(\'first\')} ${bru.getRequestVar(\'second\')}`;'
+      );
+    });
+  });
+
+  test('does not clear an existing secret when overwriting it', async ({ page, createTmpDir }) => {
+    const { sidebar, request, setAsVariable, environment } = buildCommonLocators(page);
+
+    await test.step('Create a collection with an environment and a request', async () => {
+      await createCollection(page, 'secret-keep', await createTmpDir('secret-keep'));
+      await createEnvironment(page, 'Dev', 'collection');
+      await saveEnvironment(page);
+      await closeEnvironmentPanel(page);
+
+      await createRequest(page, 'Fetch Posts', 'secret-keep');
+      await sidebar.request('Fetch Posts').click();
+      await setRequestUrlAndSave(page, 'https://example.com/posts');
+    });
+
+    await test.step('Save a secret environment variable', async () => {
+      await openSetAsVariablePopover(page, request.urlLine(), 10);
+      await setAsVariable.nameInput().fill('token');
+      await selectVariableScope(page, 'environment');
+      await setAsVariable.secretCheckbox().check();
+      await setAsVariable.saveButton().click();
+      await expect(setAsVariable.popover()).toBeHidden();
+    });
+
+    await test.step('Overwrite the same name with the Secret box unchecked', async () => {
+      await openSetAsVariablePopover(page, request.urlLine(), 30);
+      await setAsVariable.nameInput().fill('token');
+      await selectVariableScope(page, 'environment');
+
+      await expect(setAsVariable.secretCheckbox()).not.toBeChecked();
+      await expect(setAsVariable.saveButton()).toHaveText('Overwrite');
+
+      await setAsVariable.saveButton().click();
+      await expect(setAsVariable.popover()).toBeHidden();
+    });
+
+    await test.step('The variable is still a secret, not rewritten in cleartext', async () => {
+      await openEnvironmentConfigTab(page, 'collection');
+
+      await environment.secretsTab().click();
+      await expect(environment.varRow('token')).toBeVisible();
+
+      await environment.variablesTab().click();
+      await expect(environment.varRow('token')).toHaveCount(0);
+
+      await closeEnvironmentPanel(page);
+    });
+  });
+
+  test('interpolates inside a multi-line template instead of inserting dead text', async ({
+    page,
+    createTmpDir
+  }) => {
+    const { sidebar, setAsVariable } = buildCommonLocators(page);
+    const editorTestId = 'pre-request-script-editor';
+
+    const readScript = () =>
+      page
+        .getByTestId(editorTestId)
+        .locator('.CodeMirror')
+        .first()
+        .evaluate((el: any) => el.CodeMirror.getValue());
+
+    await test.step('Write a script holding a multi-line template literal', async () => {
+      await createCollection(page, 'multiline-tpl', await createTmpDir('multiline-tpl'));
+      await createRequest(page, 'Fetch Posts', 'multiline-tpl');
+      await sidebar.request('Fetch Posts').click();
+      await selectScriptSubTab(page, 'pre-request');
+      await setCodeMirrorEditorValue(page, editorTestId, 'const q = `\n  SELECT world\n`;');
+    });
+
+    await test.step('A selection on an inner line becomes an interpolation', async () => {
+      const line = 'const q = `\n  SELECT world\n`;'.split('\n')[1];
+      await openSetAsVariablePopoverAtChar(page, editorTestId, line.indexOf('world') + 1, 1);
+      await setAsVariable.nameInput().fill('tok');
+      await selectVariableScope(page, 'request');
+      await setAsVariable.saveButton().click();
+      await expect(setAsVariable.popover()).toBeHidden();
+
+      expect(await readScript()).toBe('const q = `\n  SELECT ${bru.getRequestVar(\'tok\')}\n`;');
     });
   });
 

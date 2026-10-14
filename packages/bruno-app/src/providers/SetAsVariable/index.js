@@ -30,8 +30,7 @@ export function SetAsVariableProvider({ children }) {
   const activeTabUidRef = useRef(activeTabUid);
   activeTabUidRef.current = activeTabUid;
 
-  // Syncing an imperative, non-React popup: the open callbacks suppress immediately so an
-  // already-visible tooltip goes away on the same tick, and this keeps it in step afterwards.
+  // The open callbacks suppress on the same tick; this keeps the flag in step afterwards.
   useEffect(() => setVarInfoSuppressed(state.view !== 'closed'), [state.view]);
 
   useEffect(() => {
@@ -42,7 +41,7 @@ export function SetAsVariableProvider({ children }) {
 
   const dismissMenu = useCallback(() => setState((current) => (current.view === 'menu' ? CLOSED : current)), []);
 
-  const openFromCodeMirror = useCallback((event, editor, { collection, item } = {}) => {
+  const openFromCodeMirror = useCallback((event, editor, { collection, item, mode } = {}) => {
     if (isInsideFloatingUi(event.target)) return;
 
     const payload = getCodeMirrorSelectionPayload(editor, event);
@@ -63,6 +62,7 @@ export function SetAsVariableProvider({ children }) {
         from: payload.from,
         to: payload.to,
         editable: payload.editable,
+        mode,
         editor,
         collection,
         item

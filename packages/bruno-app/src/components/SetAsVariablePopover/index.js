@@ -6,8 +6,14 @@ import Dropdown from 'components/Dropdown';
 import Button from 'ui/Button';
 import useCopyToClipboard from 'hooks/useCopyToClipboard';
 import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
-import { buildAddToScopes, buildScopeInfo, createEnvironmentForScope, getScopeVariableNames } from 'utils/variables';
-import { replaceSelectionWithVariable } from 'utils/codemirror/selection';
+import {
+  buildAddToScopes,
+  buildScopeInfo,
+  createEnvironmentForScope,
+  getScopeVariableNames,
+  inferDataTypeFromText
+} from 'utils/variables';
+import { replaceSelectionWithVariable, resolveSelectionValue } from 'utils/codemirror/selection';
 import { variableNameRegex } from 'utils/common/regex';
 import { cursorAnchorStyle } from 'utils/common/cursorAnchor';
 import { SCOPE_ICON, SCOPE_LABEL, COPY_SUCCESS_TIMEOUT, VARIABLE_ADD_SCOPES } from 'utils/common/constants';
@@ -108,19 +114,22 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
   const handleSave = () => {
     if (!canSave) return;
 
+    const value = resolveSelectionValue(selection);
+
     const scopeInfo = buildScopeInfo({
       scopeType,
       state: store.getState(),
       collection: selection.collection,
       item: selection.item,
       secret: selectedScope.supportsSecret ? secret : false,
-      variableName: name
+      variableName: name,
+      dataType: inferDataTypeFromText(value)
     });
 
     setSaving(true);
-    dispatch(updateVariableInScope(name, selection.text, scopeInfo, selection.collection?.uid))
+    dispatch(updateVariableInScope(name, value, scopeInfo, selection.collection?.uid))
       .then(() => {
-        const replaced = replaceSelectionWithVariable(selection, name);
+        const replaced = replaceSelectionWithVariable(selection, name, scopeType);
         toast.success(
           replaced || !selection.editable
             ? `Variable "${name}" saved`

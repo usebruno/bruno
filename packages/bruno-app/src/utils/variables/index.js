@@ -3,6 +3,7 @@ import { addEnvironment, selectEnvironment } from 'providers/ReduxStore/slices/c
 import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { validateName, validateNameError } from 'utils/common/regex';
 import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+import { getDataTypeFromValue } from '@usebruno/common/utils';
 
 const NEW_ENVIRONMENT_WAIT_TIMEOUT_MS = 3000;
 
@@ -42,14 +43,40 @@ export const buildAddToScopes = ({ state, collection, item }) => {
 const findEnabledVariable = (variables, variableName) =>
   variableName ? (variables || []).find((variable) => variable.enabled && variable.name === variableName) || null : null;
 
-export const buildScopeInfo = ({ scopeType, state, collection, item, secret = false, variableName }) => {
+export const inferDataTypeFromText = (text) => {
+  const trimmed = (text || '').trim();
+  if (!trimmed) {
+    return 'string';
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch (_) {
+    return 'string';
+  }
+
+  const inferred = getDataTypeFromValue(parsed);
+  if (inferred === 'string') {
+    return 'string';
+  }
+
+  // Stored as text and read back with Number(), so 007 and 1e3 have to stay strings.
+  if (inferred === 'number' && String(parsed) !== trimmed) {
+    return 'string';
+  }
+
+  return inferred;
+};
+
+export const buildScopeInfo = ({ scopeType, state, collection, item, secret = false, variableName, dataType }) => {
   switch (scopeType) {
     case VARIABLE_ADD_SCOPES.COLLECTION: {
       const root = collection?.draft?.root || collection?.root;
       return {
         type: 'collection',
         value: '',
-        data: { collection, variable: findEnabledVariable(root?.request?.vars?.req, variableName) }
+        data: { collection, variable: findEnabledVariable(root?.request?.vars?.req, variableName), dataType }
       };
     }
 
@@ -58,7 +85,7 @@ export const buildScopeInfo = ({ scopeType, state, collection, item, secret = fa
       return {
         type: 'request',
         value: '',
-        data: { item, variable: findEnabledVariable(request?.vars?.req, variableName) }
+        data: { item, variable: findEnabledVariable(request?.vars?.req, variableName), dataType }
       };
     }
 
@@ -68,7 +95,7 @@ export const buildScopeInfo = ({ scopeType, state, collection, item, secret = fa
       return {
         type: 'folder',
         value: '',
-        data: { folder: folderScopeTarget, variable: findEnabledVariable(root?.request?.vars?.req, variableName) }
+        data: { folder: folderScopeTarget, variable: findEnabledVariable(root?.request?.vars?.req, variableName), dataType }
       };
     }
 
@@ -77,7 +104,7 @@ export const buildScopeInfo = ({ scopeType, state, collection, item, secret = fa
       const environment = (freshCollection?.environments || []).find(
         (env) => env.uid === freshCollection?.activeEnvironmentUid
       );
-      return { type: 'environment', value: '', data: { environment, variable: null, secret } };
+      return { type: 'environment', value: '', data: { environment, variable: null, secret, dataType } };
     }
 
     case VARIABLE_ADD_SCOPES.GLOBAL: {
@@ -85,7 +112,7 @@ export const buildScopeInfo = ({ scopeType, state, collection, item, secret = fa
       const environment = (globalEnvironmentsState.globalEnvironments || []).find(
         (env) => env.uid === globalEnvironmentsState.activeGlobalEnvironmentUid
       );
-      return { type: 'global', value: '', data: { environment, variable: null, secret } };
+      return { type: 'global', value: '', data: { environment, variable: null, secret, dataType } };
     }
 
     default:

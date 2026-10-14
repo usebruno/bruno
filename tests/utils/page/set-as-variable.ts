@@ -21,16 +21,10 @@ export const buildSetAsVariableLocators = (page: Page) => ({
   cancelButton: () => page.getByTestId('set-as-variable-cancel')
 });
 
-// Chromium coalesces clicks at the same point within its double-click interval. Without a pause
-// the right-click counts as a third click, which CodeMirror treats as "select the whole line" —
-// the menu still opens, but over the entire line rather than the double-clicked word.
+// Without a pause Chromium counts the right-click as a third click, so CodeMirror selects the line.
 const DOUBLE_CLICK_RESET_MS = 600;
 
-/**
- * Double-clicks to select the word under the pointer, then right-clicks the exact same point.
- * The feature only opens its menu when the right-click lands inside the selection (mirroring
- * CodeMirror's own `resetSelectionOnContextMenu`), so both events must share coordinates.
- */
+/** Double-clicks the word under the pointer, then right-clicks that same point. */
 const selectWordAndRightClick = async (page: Page, target: Locator, offsetX = 12) => {
   let box: Awaited<ReturnType<Locator['boundingBox']>> = null;
   await expect(async () => {
@@ -73,6 +67,37 @@ const openSetAsVariablePopover = async (page: Page, target: Locator, offsetX?: n
   });
 };
 
+/** Opens the form over the word at a character index, via CodeMirror's `charCoords`. */
+const openSetAsVariablePopoverAtChar = async (
+  page: Page,
+  editorTestId: string,
+  ch: number,
+  line = 0
+): Promise<Locator> => {
+  const setAsVariable = buildSetAsVariableLocators(page);
+
+  const point = await page
+    .getByTestId(editorTestId)
+    .locator('.CodeMirror')
+    .first()
+    .evaluate((el: any, { ch: index, line: lineIndex }: { ch: number; line: number }) => {
+      const coords = el.CodeMirror.charCoords({ line: lineIndex, ch: index }, 'window');
+      return { x: (coords.left + coords.right) / 2, y: (coords.top + coords.bottom) / 2 };
+    }, { ch, line });
+
+  await page.mouse.dblclick(point.x, point.y);
+  await expect(page.locator('.CodeMirror-selected').first()).toBeVisible();
+  await page.waitForTimeout(DOUBLE_CLICK_RESET_MS);
+  await page.mouse.click(point.x, point.y, { button: 'right' });
+
+  await expect(setAsVariable.menu()).toBeVisible();
+  await setAsVariable.menuAction().click();
+
+  const popover = setAsVariable.popover();
+  await expect(popover).toBeVisible();
+  return popover;
+};
+
 /** Picks a scope from the collapsed "Add to" list. */
 const selectVariableScope = async (page: Page, scopeType: string) => {
   const setAsVariable = buildSetAsVariableLocators(page);
@@ -84,4 +109,10 @@ const selectVariableScope = async (page: Page, scopeType: string) => {
   });
 };
 
-export { openSetAsVariableMenu, openSetAsVariablePopover, selectVariableScope, selectWordAndRightClick };
+export {
+  openSetAsVariableMenu,
+  openSetAsVariablePopover,
+  openSetAsVariablePopoverAtChar,
+  selectVariableScope,
+  selectWordAndRightClick
+};

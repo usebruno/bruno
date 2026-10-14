@@ -127,7 +127,8 @@ class CodeEditor extends React.Component {
 
     this.context.openFromCodeMirror(event, editor, {
       collection: this.props.collection,
-      item: this.props.item
+      item: this.props.item,
+      mode: this.props.mode
     });
   };
 
