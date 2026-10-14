@@ -118,7 +118,7 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ item, collection, upd
   const renderField = ({ key, label, tooltip, isSecret }: EdgeGridFieldConfig) => {
     const rawValue = key === 'baseURL' ? edgeGridAuth.baseURL || requestUrl : edgeGridAuth[key];
     const fieldValue = rawValue === null || rawValue === undefined ? '' : String(rawValue);
-    const { showWarning, warningMessage } = isSecret ? isSensitive(rawValue) : { showWarning: false, warningMessage: '' };
+    const { showWarning, warningMessage } = isSecret ? isSensitive(rawValue, item) : { showWarning: false, warningMessage: '' };
     return (
       <div key={key}>
         <label>

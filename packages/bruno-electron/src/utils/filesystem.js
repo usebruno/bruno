@@ -620,6 +620,8 @@ const removePath = async (source) => {
   }
 };
 
+const removeWithRetry = (target) => fsPromises.rm(target, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+
 const isGitMetadataName = (name) => name.toLowerCase() === '.git';
 
 const removeGitMetadata = async (dir) => {
@@ -629,7 +631,7 @@ const removeGitMetadata = async (dir) => {
     const childPath = path.join(dir, child.name);
 
     if (isGitMetadataName(child.name)) {
-      await removePath(childPath);
+      await removeWithRetry(childPath);
     } else if (child.isDirectory()) {
       await removeGitMetadata(childPath);
     }
