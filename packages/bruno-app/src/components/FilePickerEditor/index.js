@@ -1,4 +1,4 @@
-import React, { useId } from 'react';
+import React from 'react';
 import { getRelativePathWithinBasePath, getBasename } from 'utils/common/path';
 import { useDispatch } from 'react-redux';
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
@@ -6,6 +6,7 @@ import { IconX, IconUpload, IconFile } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
 import IconAlertTriangleFilled from 'components/Icons/IconAlertTriangleFilled';
 import useMissingFileCheck from 'hooks/useMissingFileCheck';
+import useTooltipId from 'hooks/useTooltipId';
 import StyledWrapper from './StyledWrapper';
 
 /**
@@ -32,7 +33,7 @@ const FilePickerEditor = ({
   icon: CustomIcon
 }) => {
   const dispatch = useDispatch();
-  const warningTooltipId = `file-picker-warning-${useId().replace(/:/g, '')}`;
+  const warningTooltipId = useTooltipId('file-picker-warning');
 
   const filePaths = (isSingleFilePicker ? [value] : value || []).filter((v) => v != null && v != '');
   const filenames = filePaths.map((v) => getBasename(collection.pathname, v));

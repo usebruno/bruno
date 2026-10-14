@@ -1,7 +1,7 @@
 import { test, expect } from '../../playwright';
 import { execSync } from 'child_process';
 import path from 'path';
-import { clickResponseAction } from '../utils/page/actions';
+import { clickResponseAction, toggleRequestExamples } from '../utils/page/actions';
 
 test.describe.serial('Edit Response Examples', () => {
   test.afterAll(async () => {
@@ -27,7 +27,7 @@ test.describe.serial('Edit Response Examples', () => {
     });
 
     await test.step('Open existing example', async () => {
-      await page.locator('.collection-item-name', { hasText: 'edit-example' }).getByTestId('request-item-chevron').click();
+      await toggleRequestExamples(page, 'edit-example', true);
       const exampleItem = page.locator('.collection-item-name').filter({ hasText: 'Test Example' });
       await expect(exampleItem).toBeVisible();
       await exampleItem.click();
