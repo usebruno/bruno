@@ -5,6 +5,8 @@ import { IconCaretDown } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { useTheme } from 'providers/Theme';
 import SingleLineEditor from 'components/SingleLineEditor';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAPIKeyPlacement } from 'utils/collections';
@@ -16,6 +18,8 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
   const apikeyAuth = get(request, 'auth.apikey', {});
+  const { isSensitive } = useDetectSensitiveField(collection);
+  const apiKeyValueSensitive = isSensitive(apikeyAuth.value, item);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
@@ -81,7 +85,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
       </div>
 
       <label className="block mb-1">Value</label>
-      <div className="single-line-editor-wrapper mb-3">
+      <div className="single-line-editor-wrapper mb-3 flex items-center">
         <SingleLineEditor
           value={apikeyAuth.value || ''}
           theme={storedTheme}
@@ -89,9 +93,14 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
           onChange={(val) => handleAuthChange('value', val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
+          isSecret={true}
           isCompact
           readOnly={disabled}
         />
+        {apiKeyValueSensitive.showWarning && (
+          <SensitiveFieldWarning fieldName="apikey-value" warningMessage={apiKeyValueSensitive.warningMessage} />
+        )}
       </div>
 
       <label className="block mb-1">Add To</label>

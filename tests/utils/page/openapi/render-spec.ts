@@ -69,6 +69,7 @@ export const createApiSpec = async (
     const modal = page.locator('.bruno-modal').filter({ hasText: 'Create API Spec' });
     await expect(modal).toBeVisible();
 
+    await modal.getByLabel('Blank Spec').check();
     await modal.locator('#api-spec-name').fill(name);
     await modal.locator('#api-spec-location').click();
     await expect(modal.locator('#api-spec-location')).toHaveValue(location);

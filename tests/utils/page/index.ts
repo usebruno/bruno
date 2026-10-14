@@ -5,6 +5,7 @@ export * from './code-editor-hints';
 export * from './file-mode';
 export * from './runner';
 export * from './locators';
+export * from './tab-strip';
 export * from './websocket';
 export * from './sidebar';
 export * from './git/clone-git-repository';
