@@ -151,7 +151,15 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
     onClose
   ]);
 
-  return <ContextMenu visible={visible} position={position} items={menuItems} onClose={onClose} />;
+  return (
+    <ContextMenu
+      visible={visible}
+      position={position}
+      items={menuItems}
+      onClose={onClose}
+      data-testid="bulk-actions-menu"
+    />
+  );
 };
 
 export default BulkActionsDropdown;

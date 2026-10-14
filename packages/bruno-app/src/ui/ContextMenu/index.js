@@ -14,8 +14,7 @@ import MenuDropdown from 'ui/MenuDropdown';
  * @param {Array} props.items - Menu items forwarded to MenuDropdown
  * @param {function} props.onClose - Called when the menu closes
  * @param {string} [props.placement='right-start'] - Tippy placement
- * @param {string} [props.menuClassName] - Optional className for the menu
- * @param {...*} menuDropdownProps - Additional props forwarded to MenuDropdown
+ * @param {...*} menuDropdownProps - Additional props forwarded to MenuDropdown (e.g. menuClassName, data-testid)
  */
 const ContextMenu = ({
   visible,
@@ -23,7 +22,6 @@ const ContextMenu = ({
   items,
   onClose,
   placement = 'right-start',
-  menuClassName,
   ...menuDropdownProps
 }) => {
   const anchorStyle = {
@@ -42,7 +40,6 @@ const ContextMenu = ({
       opened={visible}
       onChange={(isOpen) => !isOpen && onClose()}
       appendTo={document.body}
-      menuClassName={menuClassName}
       {...menuDropdownProps}
     >
       <div style={anchorStyle} />

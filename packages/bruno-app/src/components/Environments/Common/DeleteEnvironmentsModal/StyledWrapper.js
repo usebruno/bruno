@@ -1,16 +1,6 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  button.submit {
-    color: white;
-    background-color: var(--color-background-danger) !important;
-    border: inherit !important;
-
-    &:hover {
-      border: inherit !important;
-    }
-  }
-
   .env-delete-warning {
     display: flex;
     align-items: flex-start;

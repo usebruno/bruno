@@ -1,51 +1,17 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import MenuDropdown from 'ui/MenuDropdown';
-import { IconDots, IconUpload, IconEdit, IconCopy, IconTrash, IconChecks } from '@tabler/icons';
-import { SelectAllShortcutHint, DeleteShortcutHint } from '../ShortcutHints';
+import { IconDots } from '@tabler/icons';
+import buildEnvironmentMenuItems from '../buildEnvironmentMenuItems';
 
 const RowActionsMenu = ({ onExport, onRename, onDuplicate, onDelete, onSelectAll, isAllSelected }) => {
-  const menuItems = useMemo(() => {
-    const items = [
-      {
-        id: 'export',
-        label: 'Export',
-        leftSection: IconUpload,
-        onClick: onExport
-      },
-      { id: 'divider-1', type: 'divider' },
-      {
-        id: 'rename',
-        label: 'Rename',
-        leftSection: IconEdit,
-        onClick: onRename
-      },
-      {
-        id: 'duplicate',
-        label: 'Duplicate',
-        leftSection: IconCopy,
-        onClick: onDuplicate
-      },
-      { id: 'divider-2', type: 'divider' },
-      {
-        id: 'select-all',
-        label: isAllSelected ? 'Unselect all' : 'Select all',
-        leftSection: IconChecks,
-        shortcut: <SelectAllShortcutHint />,
-        onClick: onSelectAll
-      },
-      { id: 'divider-3', type: 'divider' },
-      {
-        id: 'delete',
-        label: 'Delete',
-        leftSection: IconTrash,
-        shortcut: <DeleteShortcutHint />,
-        className: 'delete-item',
-        onClick: onDelete
-      }
-    ];
-
-    return items;
-  }, [onExport, onRename, onDuplicate, onDelete, onSelectAll, isAllSelected]);
+  const menuItems = buildEnvironmentMenuItems({
+    isAllSelected,
+    onExport,
+    onRename,
+    onDuplicate,
+    onSelectAll,
+    onDelete
+  });
 
   return (
     <div

@@ -24,6 +24,10 @@ const StyledWrapper = styled.div`
     padding: 12px;
   }
 
+  .env-list-scope {
+    outline: none;
+  }
+
   /* Left Sidebar */
   .sidebar {
     width: 240px;

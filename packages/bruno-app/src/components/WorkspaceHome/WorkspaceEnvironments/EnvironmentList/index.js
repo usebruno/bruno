@@ -6,7 +6,8 @@ import { EnvironmentSelectionProvider } from 'hooks/useEnvironmentSelection';
 import EnvironmentDetails from './EnvironmentDetails';
 import { IconDownload, IconUpload, IconSearch, IconPlus, IconCheck, IconX, IconFileAlert } from '@tabler/icons';
 import Button from 'ui/Button';
-import StyledWrapper from './StyledWrapper';
+import ContextMenu from 'ui/ContextMenu';
+import StyledWrapper from 'components/Environments/Common/EnvironmentList/StyledWrapper';
 import ConfirmSwitchEnv from './ConfirmSwitchEnv';
 import ImportEnvironmentModal from 'components/Environments/Common/ImportEnvironmentModal';
 import ExportEnvironmentModal from 'components/Environments/Common/ExportEnvironmentModal';
@@ -16,7 +17,13 @@ import DotEnvFileDetails from 'components/Environments/DotEnvFileDetails';
 import ColorBadge from 'components/ColorBadge';
 import DeleteEnvironments from '../DeleteEnvironments';
 import CopyEnvironment from '../CopyEnvironment';
-import { useEnvironmentBulkSelection, SelectionContextMenu, RowActionsMenu } from 'components/Environments/Common/EnvironmentSelection';
+import {
+  useEnvironmentListSelection,
+  useEnvironmentContextMenu,
+  useEnvironmentShortcuts,
+  buildEnvironmentMenuItems,
+  RowActionsMenu
+} from 'components/Environments/Common/EnvironmentSelection';
 import { isEqual } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import { usePersistedState } from 'hooks/usePersistedState';
@@ -493,12 +500,30 @@ const EnvironmentList = ({
     [environments, searchText]
   );
 
-  const bulkSelection = useEnvironmentBulkSelection({
+  const activeEnvUid = activeView === 'environment' ? selectedEnvironment?.uid : undefined;
+
+  const selection = useEnvironmentListSelection({
     environments,
     filteredEnvironments,
-    activeEnvUid: activeView === 'environment' ? selectedEnvironment?.uid : undefined,
-    onOpenEnvironment: handleEnvironmentClick,
-    onRenameEnvironment: handleEnvironmentDoubleClick
+    activeEnvUid,
+    onOpenEnvironment: handleEnvironmentClick
+  });
+
+  const contextMenu = useEnvironmentContextMenu({
+    environments,
+    selectedEnvUids: selection.selectedEnvUids,
+    activeEnvUid,
+    onRenameEnvironment: handleEnvironmentDoubleClick,
+    onClearSelection: selection.clearSelection,
+    onEnvsDeleted: selection.removeFromSelection
+  });
+
+  const { scopeRef } = useEnvironmentShortcuts({
+    hasSelection: selection.hasSelection,
+    isAnyModalOpen: contextMenu.isAnyModalOpen,
+    onEscape: selection.clearSelection,
+    onSelectAll: selection.selectAllEnvs,
+    onDelete: contextMenu.deleteSelected
   });
 
   const selectedDotEnvData = dotEnvFiles.find((f) => f.filename === selectedDotEnvFile);
@@ -565,41 +590,44 @@ const EnvironmentList = ({
     <StyledWrapper>
       {openImportModal && <ImportEnvironmentModal type="global" onClose={() => setOpenImportModal(false)} />}
 
-      {bulkSelection.showDeleteModal && (
+      {contextMenu.showDeleteModal && (
         <DeleteEnvironments
-          environments={bulkSelection.actionTargetEnvironmentsList}
+          environments={contextMenu.actionTargetEnvironmentsList}
           activeEnvironmentUid={activeEnvironmentUid}
-          onClose={bulkSelection.closeDeleteModal}
-          onDeleted={bulkSelection.handleDeleted}
+          onClose={contextMenu.closeDeleteModal}
+          onDeleted={contextMenu.handleDeleted}
         />
       )}
 
-      {bulkSelection.showExportModal && (
+      {contextMenu.showExportModal && (
         <ExportEnvironmentModal
-          environments={bulkSelection.actionTargetEnvironmentsList}
+          environments={contextMenu.actionTargetEnvironmentsList}
           environmentType="global"
-          onClose={bulkSelection.closeExportModal}
+          onClose={contextMenu.closeExportModal}
         />
       )}
 
-      {bulkSelection.showCopyModal && bulkSelection.actionTargetEnvironmentsList[0] && (
+      {contextMenu.showCopyModal && contextMenu.actionTargetEnvironmentsList[0] && (
         <CopyEnvironment
-          environment={bulkSelection.actionTargetEnvironmentsList[0]}
-          onClose={bulkSelection.closeCopyModal}
+          environment={contextMenu.actionTargetEnvironmentsList[0]}
+          onClose={contextMenu.closeCopyModal}
         />
       )}
 
-      <SelectionContextMenu
-        visible={bulkSelection.menuVisible}
-        position={bulkSelection.menuPosition}
-        selectedCount={bulkSelection.actionTargetUids.length}
-        onSelectAll={bulkSelection.selectAllEnvs}
-        isAllSelected={bulkSelection.isAllSelected}
-        onExport={bulkSelection.openExportModal}
-        onRename={bulkSelection.handleRenameSelected}
-        onDuplicate={bulkSelection.openCopyModal}
-        onDelete={bulkSelection.openDeleteModal}
-        onClose={bulkSelection.closeMenu}
+      <ContextMenu
+        visible={contextMenu.menuVisible}
+        position={contextMenu.menuPosition}
+        items={buildEnvironmentMenuItems({
+          selectedCount: contextMenu.actionTargetUids.length,
+          isAllSelected: selection.isAllSelected,
+          onExport: contextMenu.openExportModal,
+          onRename: contextMenu.handleRenameSelected,
+          onDuplicate: contextMenu.openCopyModal,
+          onSelectAll: selection.selectAllEnvs,
+          onDelete: contextMenu.openDeleteModal
+        })}
+        onClose={contextMenu.closeMenu}
+        data-testid="env-context-menu"
       />
 
       <div className="environments-container">
@@ -612,7 +640,7 @@ const EnvironmentList = ({
         <div className="sidebar">
 
           <div className="sections-container">
-            <div ref={bulkSelection.scopeRef}>
+            <div ref={scopeRef} tabIndex={-1} className="env-list-scope">
               <CollapsibleSection
                 title="Environments"
                 expanded={environmentsExpanded}
@@ -685,8 +713,8 @@ const EnvironmentList = ({
                 </div>
                 <div className="environments-list" ref={envListRef}>
                   {filteredEnvironments.map((env) => {
-                    const isEnvSelected = bulkSelection.isEnvSelected(env.uid);
-                    const isEnvMultiSelected = isEnvSelected && bulkSelection.selectedEnvUids.length > 1;
+                    const isEnvSelected = selection.isEnvSelected(env.uid);
+                    const isEnvMultiSelected = isEnvSelected && selection.selectedEnvUids.length > 1;
                     return (
                       <div
                         key={env.uid}
@@ -700,9 +728,9 @@ const EnvironmentList = ({
                           'activated': activeEnvironmentUid === env.uid,
                           'is-selected': isEnvSelected
                         })}
-                        onClick={(e) => renamingEnvUid !== env.uid && bulkSelection.handleRowInteraction(e, env)}
-                        onContextMenu={(e) => renamingEnvUid !== env.uid && bulkSelection.handleRowContextMenu(e, env)}
-                        onDoubleClick={() => bulkSelection.selectOnlyEnv(env.uid)}
+                        onClick={(e) => renamingEnvUid !== env.uid && selection.handleRowInteraction(e, env)}
+                        onContextMenu={(e) => renamingEnvUid !== env.uid && contextMenu.handleRowContextMenu(e, env)}
+                        onDoubleClick={() => selection.selectOnlyEnv(env.uid)}
                       >
                         {renamingEnvUid === env.uid ? (
                           <div className="rename-container" ref={renameContainerRef}>
@@ -744,12 +772,12 @@ const EnvironmentList = ({
                             <div className="environment-actions">
                               {!isEnvMultiSelected && (
                                 <RowActionsMenu
-                                  onSelectAll={bulkSelection.selectAllEnvs}
-                                  isAllSelected={bulkSelection.isAllSelected}
-                                  onExport={() => bulkSelection.startExportForEnv(env)}
-                                  onRename={() => bulkSelection.startRenameForEnv(env)}
-                                  onDuplicate={() => bulkSelection.startCopyForEnv(env)}
-                                  onDelete={() => bulkSelection.startDeleteForEnv(env)}
+                                  onSelectAll={selection.selectAllEnvs}
+                                  isAllSelected={selection.isAllSelected}
+                                  onExport={() => contextMenu.startExportForEnv(env)}
+                                  onRename={() => handleEnvironmentDoubleClick(env)}
+                                  onDuplicate={() => contextMenu.startCopyForEnv(env)}
+                                  onDelete={() => contextMenu.startDeleteForEnv(env)}
                                 />
                               )}
                               {activeEnvironmentUid === env.uid ? (
