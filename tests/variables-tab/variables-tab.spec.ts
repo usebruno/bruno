@@ -467,6 +467,19 @@ test.describe('Variables tab', () => {
     });
 
     await scrollVariablesTo(page, SCROLL_TOP);
+    // useVariablesScroll debounces persistence (200ms); wait so unmount does not
+    // remount from a stale 0 before the save lands.
+    await expect.poll(async () => {
+      return page.evaluate(() => {
+        for (let i = 0; i < localStorage.length; i += 1) {
+          const key = localStorage.key(i);
+          if (key && key.includes('variables-scroll')) {
+            return Number(JSON.parse(localStorage.getItem(key) || '0'));
+          }
+        }
+        return 0;
+      });
+    }).toBe(SCROLL_TOP);
 
     await reopenVariablesTab(page, 'seed');
 

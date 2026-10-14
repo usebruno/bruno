@@ -1,7 +1,7 @@
 import { test, expect } from '../../playwright';
 import { execSync } from 'child_process';
 import path from 'path';
-import { clickResponseAction } from '../utils/page/actions';
+import { clickResponseAction, expandRequestExamples } from '../utils/page/actions';
 
 test.describe.serial('Edit Response Examples', () => {
   test.afterAll(async () => {
@@ -27,9 +27,10 @@ test.describe.serial('Edit Response Examples', () => {
     });
 
     await test.step('Open existing example', async () => {
-      await page.locator('.collection-item-name', { hasText: 'edit-example' }).getByTestId('request-item-chevron').click();
+      const requestRow = page.locator('.collection-item-name', { hasText: 'edit-example' });
+      await expect(requestRow.getByTestId('request-item-chevron')).toBeVisible({ timeout: 15000 });
+      await expandRequestExamples(page, 'edit-example', 'Test Example');
       const exampleItem = page.locator('.collection-item-name').filter({ hasText: 'Test Example' });
-      await expect(exampleItem).toBeVisible();
       await exampleItem.click();
     });
 

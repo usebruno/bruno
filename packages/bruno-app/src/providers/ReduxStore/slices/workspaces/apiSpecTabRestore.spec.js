@@ -69,8 +69,15 @@ const snapshotFromOlderVersion = () => {
 
 let snapshot = snapshotWith({});
 
-const mockIpcInvoke = (channel) => {
-  if (channel === 'renderer:snapshot:get') return Promise.resolve(snapshot);
+const mockIpcInvoke = (channel, workspacePathname) => {
+  if (channel === 'renderer:snapshot:get-workspace') {
+    const workspace = snapshot.workspaces.find((entry) => entry.pathname === workspacePathname) || null;
+    const collections = (snapshot.collections || []).filter(
+      (entry) => entry.workspacePathname === workspacePathname
+    );
+
+    return Promise.resolve({ workspace, collections });
+  }
   if (channel === 'renderer:get-global-environments') {
     return Promise.resolve({ globalEnvironments: [], activeGlobalEnvironmentUid: null });
   }

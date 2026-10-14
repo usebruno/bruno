@@ -33,6 +33,7 @@ import { hydrateMockServerInstances } from 'utils/mock-server/mock-server-instan
 import { hydrateTabs, getActiveTabFromSnapshot, hydrateSnapshotLookups, getCollectionSnapshotFromLookups, WORKSPACE_TAB_UID_SUFFIX_BY_TYPE } from 'utils/snapshot';
 import toast from 'react-hot-toast';
 import { closeAiSidebar } from '../chat';
+import { updateSnapshotBaseline } from 'providers/ReduxStore/middlewares/snapshot/middleware';
 
 const { ipcRenderer } = window;
 let snapshotHydrationTimer = null;
@@ -354,6 +355,18 @@ export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath
         collectionLocation: collectionPath
       }));
 
+      if (workspace.pathname) {
+        const snapshotResult = await ipcRenderer.invoke('renderer:snapshot:save', {
+          removeCollections: [{
+            workspacePathname: workspace.pathname,
+            pathname: collectionPath
+          }]
+        }).catch(() => null);
+        if (snapshotResult?.snapshot) {
+          updateSnapshotBaseline(snapshotResult.snapshot);
+        }
+      }
+
       return true;
     } catch (error) {
       throw error;
@@ -621,7 +634,7 @@ export const loadWorkspaceApiSpecs = (workspaceUid) => {
   };
 };
 
-export const switchWorkspace = (workspaceUid) => {
+export const switchWorkspace = (workspaceUid, options = {}) => {
   return async (dispatch, getState) => {
     dispatch(closeAiSidebar());
     clearSnapshotHydrationTimeout();
@@ -635,8 +648,22 @@ export const switchWorkspace = (workspaceUid) => {
         return;
       }
 
-      const fullSnapshot = await ipcRenderer.invoke('renderer:snapshot:get').catch(() => null);
-      const snapshotLookups = hydrateSnapshotLookups(fullSnapshot || {});
+      let snapshotLookups = hydrateSnapshotLookups({});
+
+      if (options.snapshot) {
+        snapshotLookups = hydrateSnapshotLookups(options.snapshot);
+      } else if (workspace.pathname) {
+        const workspaceSnapshotSlice = await ipcRenderer
+          .invoke('renderer:snapshot:get-workspace', workspace.pathname)
+          .catch(() => null);
+
+        snapshotLookups = hydrateSnapshotLookups({
+          activeWorkspacePath: workspace.pathname,
+          workspaces: workspaceSnapshotSlice?.workspace ? [workspaceSnapshotSlice.workspace] : [],
+          collections: workspaceSnapshotSlice?.collections || []
+        });
+      }
+
       const workspaceSnapshot = workspace.pathname
         ? snapshotLookups.workspacesByPath[normalizePath(workspace.pathname)] || null
         : null;
@@ -932,8 +959,20 @@ export const restoreActiveWorkspaceFromSnapshot = () => {
 
     try {
       const snapshot = await ipcRenderer.invoke('renderer:snapshot:get');
+      updateSnapshotBaseline(snapshot);
       const activeWorkspacePath = snapshot?.activeWorkspacePath;
       const { workspaces } = getState().workspaces;
+
+      if (snapshot?.extras?.devTools) {
+        const { open } = snapshot.extras.devTools;
+        if (open) {
+          dispatch(openConsole());
+        } else {
+          dispatch(closeConsole());
+        }
+        const { activeTab = 'terminal' } = snapshot.extras.devTools;
+        dispatch(setActiveDevToolsTab(activeTab));
+      }
 
       if (activeWorkspacePath) {
         const normalizedActiveWorkspacePath = normalizePath(activeWorkspacePath);
@@ -942,14 +981,14 @@ export const restoreActiveWorkspaceFromSnapshot = () => {
         );
 
         if (matchingWorkspace) {
-          await dispatch(switchWorkspace(matchingWorkspace.uid));
+          await dispatch(switchWorkspace(matchingWorkspace.uid, { snapshot }));
           return;
         }
       }
 
       const defaultWorkspace = workspaces.find((workspace) => workspace.type === 'default');
       if (defaultWorkspace) {
-        await dispatch(switchWorkspace(defaultWorkspace.uid));
+        await dispatch(switchWorkspace(defaultWorkspace.uid, { snapshot }));
       }
     } catch (err) {
       const defaultWorkspace = getState().workspaces.workspaces.find((workspace) => workspace.type === 'default');
@@ -969,27 +1008,9 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
       ...workspaceConfig
     }));
 
-    let snapshot = null;
     try {
       await dispatch(loadWorkspaceCollections(workspaceUid));
     } catch (error) {
-    }
-
-    try {
-      snapshot = await ipcRenderer.invoke('renderer:snapshot:get');
-      const currentState = getState();
-
-      if (!currentState.app.snapshotReady && snapshot?.extras?.devTools) {
-        const { open } = snapshot.extras.devTools;
-        if (open) {
-          dispatch(openConsole());
-        } else {
-          dispatch(closeConsole());
-        }
-        const { activeTab = 'terminal' } = snapshot.extras.devTools;
-        dispatch(setActiveDevToolsTab(activeTab));
-      }
-    } catch (err) {
     }
 
     if (deferSwitchToStartupRestore) {
@@ -998,21 +1019,7 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
 
     const state = getState();
     const activeWorkspaceUid = state.workspaces.activeWorkspaceUid;
-    let shouldSwitch = false;
-
-    try {
-      const activeWorkspacePath = snapshot?.activeWorkspacePath;
-      const normalizedWorkspacePath = normalizePath(workspacePath || '');
-
-      if (activeWorkspacePath) {
-        const normalizedActiveWorkspacePath = normalizePath(activeWorkspacePath);
-        shouldSwitch = normalizedWorkspacePath === normalizedActiveWorkspacePath;
-      } else {
-        shouldSwitch = !activeWorkspaceUid || workspaceConfig.type === 'default';
-      }
-    } catch (err) {
-      shouldSwitch = !activeWorkspaceUid || workspaceConfig.type === 'default';
-    }
+    const shouldSwitch = !activeWorkspaceUid || workspaceConfig.type === 'default';
 
     if (shouldSwitch) {
       await dispatch(switchWorkspace(workspaceUid));
@@ -1156,6 +1163,15 @@ export const closeWorkspaceAction = (workspaceUid) => {
       }
 
       await ipcRenderer.invoke('renderer:close-workspace', workspace.pathname);
+
+      if (workspace.pathname) {
+        const snapshotResult = await ipcRenderer.invoke('renderer:snapshot:save', {
+          removeWorkspaces: [workspace.pathname]
+        }).catch(() => null);
+        if (snapshotResult?.snapshot) {
+          updateSnapshotBaseline(snapshotResult.snapshot);
+        }
+      }
 
       if (workspace.scratchCollectionUid) {
         dispatch(removeCollection({ collectionUid: workspace.scratchCollectionUid }));

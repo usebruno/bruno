@@ -2934,6 +2934,21 @@ const setTableRowDescriptionValue = async (rowLocator: Locator, value: string) =
   }, value);
 };
 
+/** Expand a request's example rows if they are not already visible. */
+const expandRequestExamples = async (page: Page, requestName: string, exampleName?: string) => {
+  const requestRow = page.locator('.collection-item-name').filter({ hasText: requestName }).first();
+  const exampleRow = exampleName
+    ? page.getByTestId('sidebar-response-example-item').filter({ hasText: exampleName }).first()
+    : page.locator(`[data-parent-name="${requestName}"]`).getByTestId('sidebar-response-example-item').first();
+
+  if (await exampleRow.isVisible()) {
+    return;
+  }
+
+  await requestRow.getByTestId('request-item-chevron').click();
+  await expect(exampleRow).toBeVisible();
+};
+
 const createExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, description: string = '') => {
   const requestRow = page.locator('.collection-item-name').filter({ hasText: requestName }).first();
 
@@ -4119,6 +4134,7 @@ export {
   writeCollectionProxyField,
   readCollectionProxyField,
   createExampleFromSidebar,
+  expandRequestExamples,
   openExampleFromSidebar,
   openWorkspaceFromDialog,
   setCodeMirrorValue,

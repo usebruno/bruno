@@ -18,6 +18,10 @@ const registerSnapshotIpc = () => {
     return snapshotManager.getSidebar();
   });
 
+  ipcMain.handle('renderer:snapshot:get-workspace', async (event, workspacePathname) => {
+    return snapshotManager.getWorkspaceSnapshot(workspacePathname);
+  });
+
   ipcMain.on('internal:snapshot:reset', () => {
     try {
       snapshotManager.resetSnapshot();
@@ -27,6 +31,17 @@ const registerSnapshotIpc = () => {
   });
 
   ipcMain.handle('renderer:snapshot:save', async (event, data) => {
+    if (
+      data
+      && (Array.isArray(data.workspaces)
+        || Array.isArray(data.collections)
+        || 'revision' in data
+        || Array.isArray(data.removeWorkspaces)
+        || Array.isArray(data.removeCollections))
+    ) {
+      return snapshotManager.mergeSnapshot(data);
+    }
+
     return snapshotManager.saveSnapshot(data);
   });
 };

@@ -50,8 +50,8 @@ const makeWorkspace = (uid, scratchUid) => ({
 });
 
 const mockIpcInvoke = (channel) => {
-  if (channel === 'renderer:snapshot:get') {
-    return Promise.resolve(null);
+  if (channel === 'renderer:snapshot:get-workspace') {
+    return Promise.resolve({ workspace: null, collections: [] });
   }
   if (channel === 'renderer:get-global-environments') {
     return Promise.resolve({ globalEnvironments: [], activeGlobalEnvironmentUid: null });

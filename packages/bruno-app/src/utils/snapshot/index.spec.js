@@ -963,6 +963,31 @@ describe('active tab matching', () => {
     expect(isActiveTab(tab, activeTab, collection)).toBe(false);
   });
 
+  it('matches pathname active tabs across Windows and posix separators', () => {
+    const collectionWithWindowsPaths = {
+      uid: 'collection-uid',
+      pathname: 'C:\\collections\\a',
+      items: [
+        {
+          uid: 'request-1',
+          pathname: 'C:\\collections\\a\\request-1.bru'
+        }
+      ]
+    };
+
+    const tab = {
+      uid: 'request-1',
+      type: 'http-request',
+      pathname: 'C:\\collections\\a\\request-1.bru'
+    };
+
+    expect(isActiveTab(
+      tab,
+      { accessor: 'pathname', value: 'C:/collections/a/request-1.bru' },
+      collectionWithWindowsPaths
+    )).toBe(true);
+  });
+
   it('matches mock-response tabs by response uid', () => {
     const tab = {
       uid: 'mock-response-1',

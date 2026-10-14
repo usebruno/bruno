@@ -6,12 +6,26 @@
  */
 
 import { SAVE_TRIGGERS } from 'utils/snapshot';
-import { serializeSnapshot } from './serializeSnapshot';
+import { buildSnapshotDelta } from './serializeSnapshot';
 
 const { ipcRenderer } = window;
 
 let saveTimer = null;
+let persistedSnapshot = null;
 const DEBOUNCE_MS = 1000;
+
+export const updateSnapshotBaseline = (snapshot) => {
+  persistedSnapshot = snapshot || null;
+};
+
+const saveSnapshotDelta = async (state) => {
+  const snapshotDelta = buildSnapshotDelta(state, persistedSnapshot);
+  const result = await ipcRenderer.invoke('renderer:snapshot:save', snapshotDelta);
+
+  if (result?.snapshot) {
+    updateSnapshotBaseline(result.snapshot);
+  }
+};
 
 const scheduleSave = (getState) => {
   if (saveTimer) {
@@ -27,8 +41,7 @@ const scheduleSave = (getState) => {
         return;
       }
 
-      const snapshot = await serializeSnapshot(state);
-      await ipcRenderer.invoke('renderer:snapshot:save', snapshot);
+      await saveSnapshotDelta(state);
     } catch (err) {
       console.error('Failed to save snapshot:', err);
     }
@@ -43,8 +56,7 @@ export const flushSnapshotNow = async (getState) => {
   }
   try {
     const state = getState();
-    const snapshot = await serializeSnapshot(state);
-    await ipcRenderer.invoke('renderer:snapshot:save', snapshot);
+    await saveSnapshotDelta(state);
   } catch (err) {
     console.error('Failed to flush snapshot:', err);
   }

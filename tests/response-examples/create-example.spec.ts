@@ -1,7 +1,7 @@
 import { execSync } from 'child_process';
 import { test, expect } from '../../playwright';
 import path from 'path';
-import { clickResponseAction } from '../utils/page/actions';
+import { clickResponseAction, expandRequestExamples } from '../utils/page/actions';
 
 test.describe.serial('Create and Delete Response Examples', () => {
   test.afterAll(async () => {
@@ -112,9 +112,10 @@ test.describe.serial('Create and Delete Response Examples', () => {
     });
 
     await test.step('Verify example appears in sidebar', async () => {
-      await page.locator('.collection-item-name', { hasText: 'create-example' }).getByTestId('request-item-chevron').click();
-      const exampleItem = page.locator('.collection-item-name').getByText('Sidebar Test Example', { exact: true });
-      await expect(exampleItem).toBeVisible();
+      const requestRow = page.locator('.collection-item-name', { hasText: 'create-example' });
+      // Chevron appears once item.examples is populated (save +/or file watcher).
+      await expect(requestRow.getByTestId('request-item-chevron')).toBeVisible({ timeout: 15000 });
+      await expandRequestExamples(page, 'create-example', 'Sidebar Test Example');
     });
   });
 });

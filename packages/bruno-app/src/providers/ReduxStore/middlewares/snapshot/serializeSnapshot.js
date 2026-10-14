@@ -3,13 +3,12 @@ import {
   serializeTab,
   serializeActiveTab,
   getCollectionEnvironmentPath,
-  hydrateSnapshotLookups,
   WORKSPACE_TAB_TYPES
 } from 'utils/snapshot';
 import { normalizePath } from 'utils/common/path';
 import { API_SPEC_TAB_TYPE } from 'utils/api-specs';
-
-const { ipcRenderer } = window;
+import isEqual from 'lodash/isEqual';
+import { getNextSnapshotRevision } from './snapshotRevision';
 
 const COLLECTION_SORT_ORDER_BY_WORKSPACE_SORTING = {
   default: 'default',
@@ -21,17 +20,304 @@ const normalizeCollectionSortOrder = (sortOrder) => {
   return COLLECTION_SORT_ORDER_BY_WORKSPACE_SORTING[sortOrder] || 'default';
 };
 
-const normalizeWorkspaceSorting = (sorting) => {
-  return COLLECTION_SORT_ORDER_BY_WORKSPACE_SORTING[sorting] || 'default';
-};
+const isPlainObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
-const getWorkspaceCollectionSnapshotKey = (workspacePathname, collectionPathname) => {
-  const normalizedCollectionPathname = normalizePath(collectionPathname);
-  if (!normalizedCollectionPathname) {
-    return '';
+/** True when every key in patch (except preserveEnvironment) matches existing. */
+const isPatchEqualToExisting = (patch, existing) => {
+  if (isPlainObject(patch)) {
+    if (!isPlainObject(existing)) {
+      return false;
+    }
+
+    return Object.keys(patch)
+      .filter((key) => key !== 'preserveEnvironment')
+      .every((key) => (
+        Object.prototype.hasOwnProperty.call(existing, key)
+        && isPatchEqualToExisting(patch[key], existing[key])
+      ));
   }
 
-  return `${normalizePath(workspacePathname || '')}::${normalizedCollectionPathname}`;
+  return isEqual(patch, existing);
+};
+
+const getWorkspaceByPath = (snapshot, pathname) => {
+  const normalizedPathname = normalizePath(pathname || '');
+  return (snapshot?.workspaces || []).find(
+    (workspace) => normalizePath(workspace.pathname || '') === normalizedPathname
+  );
+};
+
+const getCollectionByKey = (snapshot, workspacePathname, collectionPathname) => {
+  const normalizedWorkspacePathname = normalizePath(workspacePathname || '');
+  const normalizedCollectionPathname = normalizePath(collectionPathname || '');
+  return (snapshot?.collections || []).find((collection) => (
+    normalizePath(collection.workspacePathname || '') === normalizedWorkspacePathname
+    && normalizePath(collection.pathname || '') === normalizedCollectionPathname
+  ));
+};
+
+const shouldPreserveCollectionEnvironmentInPatch = (
+  collection,
+  environmentPathFromRedux,
+  selectedEnvironmentFromRedux
+) => {
+  const hasAuthoritativeReduxEnvironment = Boolean(
+    selectedEnvironmentFromRedux || environmentPathFromRedux
+  );
+
+  if (hasAuthoritativeReduxEnvironment) {
+    return false;
+  }
+
+  const isCollectionEnvironmentHydrated = collection.mountStatus === 'mounted'
+    && Array.isArray(collection.environments)
+    && collection.environments.length > 0;
+
+  return collection.mountStatus !== 'mounted' || !isCollectionEnvironmentHydrated;
+};
+
+/**
+ * Build a partial snapshot patch for the active workspace from Redux state.
+ * Main process merges this into the persisted snapshot.
+ */
+export const buildSnapshotDelta = (state, previousSnapshot = null) => {
+  const { workspaces, collections, tabs, logs, globalEnvironments } = state;
+  const snapshotHydration = state.app?.snapshotHydration;
+  const activeWorkspaceCollectionSortOrder = normalizeCollectionSortOrder(collections.collectionSortOrder);
+
+  const scratchCollectionUids = new Set(
+    (workspaces.workspaces || [])
+      .map((w) => w.scratchCollectionUid)
+      .filter(Boolean)
+  );
+
+  const activeWorkspace = workspaces.workspaces.find(
+    (w) => w.uid === workspaces.activeWorkspaceUid
+  );
+
+  const activeWorkspaceCollectionPaths = new Set(
+    (activeWorkspace?.collections || [])
+      .map((collection) => collection?.path)
+      .filter(Boolean)
+      .map((collectionPath) => normalizePath(collectionPath))
+  );
+
+  const pendingHydrationPaths = new Set(
+    (snapshotHydration?.pendingCollectionPathnames || []).map((pathname) => normalizePath(pathname))
+  );
+
+  const resolvedDevToolsActiveTab = logs.activeTab ?? 'terminal';
+
+  const patch = {
+    version: '0.0.1',
+    revision: getNextSnapshotRevision(),
+    activeWorkspacePath: activeWorkspace?.pathname || null,
+    extras: {
+      devTools: {
+        open: logs.isConsoleOpen,
+        activeTab: resolvedDevToolsActiveTab,
+        tabs: {
+          [resolvedDevToolsActiveTab]: {}
+        }
+      },
+      sidebar: {
+        width: state.app.leftSidebarWidth,
+        collapsed: state.app.sidebarCollapsed
+      }
+    },
+    workspaces: [],
+    collections: []
+  };
+
+  if (activeWorkspace?.pathname) {
+    const workspaceCollectionPaths = (activeWorkspace.collections || []).map((c) => c.path).filter(Boolean);
+    const normalizedWorkspacePaths = workspaceCollectionPaths.map((p) => normalizePath(p));
+
+    const activeTab = tabs.tabs.find((t) => t.uid === tabs.activeTabUid);
+    const activeCollection = activeTab
+      ? (collections.collections || []).find((c) => c.uid === activeTab.collectionUid)
+      : null;
+    const normalizedPathname = activeCollection?.pathname ? normalizePath(activeCollection.pathname) : null;
+
+    const lastActiveCollectionPathname = normalizedPathname && normalizedWorkspacePaths.includes(normalizedPathname)
+      ? normalizedPathname
+      : null;
+
+    let activeWorkspaceTabType = null;
+    let apiSpecTabs = [];
+    let activeApiSpecTabPathname = null;
+
+    if (
+      activeTab
+      && activeWorkspace.scratchCollectionUid
+      && activeTab.collectionUid === activeWorkspace.scratchCollectionUid
+      && WORKSPACE_TAB_TYPES.has(activeTab.type)
+    ) {
+      activeWorkspaceTabType = activeTab.type;
+    }
+
+    if (activeWorkspace.scratchCollectionUid) {
+      apiSpecTabs = tabs.tabs
+        .filter((t) => (
+          t.collectionUid === activeWorkspace.scratchCollectionUid
+          && t.type === API_SPEC_TAB_TYPE
+          && t.apiSpecPathname
+        ))
+        .map((t) => normalizePath(t.apiSpecPathname));
+
+      if (
+        activeTab
+        && activeTab.collectionUid === activeWorkspace.scratchCollectionUid
+        && activeTab.type === API_SPEC_TAB_TYPE
+        && activeTab.apiSpecPathname
+      ) {
+        activeApiSpecTabPathname = normalizePath(activeTab.apiSpecPathname);
+      }
+    }
+
+    patch.workspaces.push({
+      pathname: activeWorkspace.pathname,
+      environment: '',
+      lastActiveCollectionPathname,
+      sorting: activeWorkspaceCollectionSortOrder,
+      activeWorkspaceTabType,
+      apiSpecTabs,
+      activeApiSpecTabPathname,
+      collections: [...workspaceCollectionPaths]
+    });
+
+    (collections.collections || []).forEach((collection) => {
+      if (!collection.pathname || scratchCollectionUids.has(collection.uid)) {
+        return;
+      }
+
+      const normalizedPath = normalizePath(collection.pathname);
+
+      if (!activeWorkspaceCollectionPaths.has(normalizedPath)) {
+        return;
+      }
+
+      if (pendingHydrationPaths.has(normalizedPath)) {
+        return;
+      }
+
+      const workspacePathname = activeWorkspace.pathname || '';
+      const transientDirectory = collections.tempDirectories?.[collection.uid];
+
+      const collectionTabs = (tabs.tabs || [])
+        .filter((t) => t.collectionUid === collection.uid && !shouldExcludeTab(t, transientDirectory))
+        .map((t) => serializeTab(t, collection));
+
+      const activeTabInCollection = (tabs.tabs || []).find(
+        (t) => t.collectionUid === collection.uid && t.uid === tabs.activeTabUid && !shouldExcludeTab(t, transientDirectory)
+      );
+
+      const selectedEnvironment = (collection.environments || []).find((env) => env.uid === collection.activeEnvironmentUid);
+      const environmentPathFromRedux = getCollectionEnvironmentPath(collection, selectedEnvironment, '');
+      const selectedEnvironmentFromRedux = selectedEnvironment?.name || '';
+
+      const collectionPatch = {
+        pathname: collection.pathname,
+        workspacePathname,
+        isOpen: !collection.collapsed,
+        isMounted: collection.mountStatus === 'mounted',
+        activeTab: serializeActiveTab(activeTabInCollection, collection),
+        tabs: collectionTabs,
+        environment: {
+          collection: environmentPathFromRedux || '',
+          global: globalEnvironments.activeGlobalEnvironmentUid || ''
+        },
+        environmentPath: environmentPathFromRedux || '',
+        selectedEnvironment: selectedEnvironmentFromRedux
+      };
+
+      if (shouldPreserveCollectionEnvironmentInPatch(
+        collection,
+        environmentPathFromRedux,
+        selectedEnvironmentFromRedux
+      )) {
+        collectionPatch.preserveEnvironment = true;
+      }
+
+      patch.collections.push(collectionPatch);
+    });
+  }
+
+  if (!previousSnapshot) {
+    return patch;
+  }
+
+  const delta = {
+    revision: patch.revision
+  };
+
+  if (!isEqual(patch.activeWorkspacePath, previousSnapshot.activeWorkspacePath)) {
+    delta.activeWorkspacePath = patch.activeWorkspacePath;
+  }
+
+  const previousWorkspace = getWorkspaceByPath(previousSnapshot, activeWorkspace?.pathname);
+  const changedWorkspaces = patch.workspaces.filter((workspace) => (
+    !previousWorkspace || !isPatchEqualToExisting(workspace, previousWorkspace)
+  ));
+  if (changedWorkspaces.length > 0) {
+    delta.workspaces = changedWorkspaces;
+  }
+
+  const changedCollections = patch.collections.filter((collection) => {
+    const previousCollection = getCollectionByKey(
+      previousSnapshot,
+      collection.workspacePathname,
+      collection.pathname
+    );
+    return !previousCollection || !isPatchEqualToExisting(collection, previousCollection);
+  });
+  if (changedCollections.length > 0) {
+    delta.collections = changedCollections;
+  }
+
+  const extras = {};
+  const previousExtras = previousSnapshot.extras || {};
+  const previousDevTools = previousExtras.devTools || {};
+  const devTools = patch.extras?.devTools;
+
+  if (
+    devTools
+    && (
+      !isPatchEqualToExisting(
+        { open: devTools.open, activeTab: devTools.activeTab },
+        previousDevTools
+      )
+      || (
+        devTools.activeTab
+        && !Object.prototype.hasOwnProperty.call(previousDevTools.tabs || {}, devTools.activeTab)
+      )
+    )
+  ) {
+    extras.devTools = {
+      open: devTools.open,
+      activeTab: devTools.activeTab
+    };
+
+    if (
+      devTools.activeTab
+      && !Object.prototype.hasOwnProperty.call(previousDevTools.tabs || {}, devTools.activeTab)
+    ) {
+      extras.devTools.tabs = {
+        [devTools.activeTab]: {}
+      };
+    }
+  }
+
+  const sidebar = patch.extras?.sidebar;
+  if (sidebar && !isPatchEqualToExisting(sidebar, previousExtras.sidebar)) {
+    extras.sidebar = sidebar;
+  }
+
+  if (Object.keys(extras).length > 0) {
+    delta.extras = extras;
+  }
+
+  return delta;
 };
 
 const shouldPreserveCollectionEnvironmentInSnapshot = ({
@@ -62,253 +348,6 @@ const shouldPreserveCollectionEnvironmentInSnapshot = ({
     && collection.environments.length > 0;
 
   return collection.mountStatus !== 'mounted' || !isCollectionEnvironmentHydrated;
-};
-
-/**
- * Serialize the current app state into a snapshot format.
- * Persists array-based schema and supports lookup hydration.
- */
-export const serializeSnapshot = async (state, options = {}) => {
-  const { getExistingSnapshot } = options;
-  const { workspaces, collections, tabs, logs, globalEnvironments } = state;
-  const snapshotHydration = state.app?.snapshotHydration;
-  const activeWorkspaceCollectionSortOrder = normalizeCollectionSortOrder(collections.collectionSortOrder);
-
-  let existingSnapshot = null;
-  try {
-    if (typeof getExistingSnapshot === 'function') {
-      existingSnapshot = await getExistingSnapshot();
-    } else {
-      existingSnapshot = await ipcRenderer.invoke('renderer:snapshot:get');
-    }
-  } catch (err) {
-    // Ignore - will create fresh snapshot
-  }
-
-  const existingSnapshotLookups = hydrateSnapshotLookups(existingSnapshot || {});
-
-  const scratchCollectionUids = new Set(
-    (workspaces.workspaces || [])
-      .map((w) => w.scratchCollectionUid)
-      .filter(Boolean)
-  );
-
-  const activeWorkspace = workspaces.workspaces.find(
-    (w) => w.uid === workspaces.activeWorkspaceUid
-  );
-
-  const activeWorkspaceCollectionPaths = new Set(
-    (activeWorkspace?.collections || [])
-      .map((collection) => collection?.path)
-      .filter(Boolean)
-      .map((collectionPath) => normalizePath(collectionPath))
-  );
-
-  const existingDevTools = existingSnapshot?.extras?.devTools ?? {};
-  const resolvedDevToolsActiveTab = logs.activeTab ?? existingDevTools.activeTab ?? 'terminal';
-  const existingDevToolsTabs = existingDevTools.tabs || {};
-
-  const snapshot = {
-    activeWorkspacePath: activeWorkspace?.pathname || null,
-    extras: {
-      devTools: {
-        open: logs.isConsoleOpen,
-        activeTab: resolvedDevToolsActiveTab,
-        tabs: {
-          ...existingDevToolsTabs,
-          [resolvedDevToolsActiveTab]: existingDevToolsTabs[resolvedDevToolsActiveTab] ?? {}
-        }
-      },
-      sidebar: {
-        width: state.app.leftSidebarWidth,
-        collapsed: state.app.sidebarCollapsed
-      }
-    },
-    workspaces: [],
-    collections: []
-  };
-
-  const serializedCollectionKeys = new Set();
-
-  (workspaces.workspaces || []).forEach((workspace) => {
-    if (!workspace.pathname) return;
-
-    const workspaceCollectionPaths = (workspace.collections || []).map((c) => c.path).filter(Boolean);
-    const normalizedWorkspacePaths = workspaceCollectionPaths.map((p) => normalizePath(p));
-    const isActiveWorkspace = workspace.uid === workspaces.activeWorkspaceUid;
-    const existingWorkspace = existingSnapshotLookups.workspacesByPath[normalizePath(workspace.pathname)];
-
-    let lastActiveCollectionPathname = null;
-    let activeWorkspaceTabType = null;
-    let apiSpecTabs = [];
-    let activeApiSpecTabPathname = null;
-
-    if (isActiveWorkspace) {
-      const activeTab = tabs.tabs.find((t) => t.uid === tabs.activeTabUid);
-      const activeCollection = activeTab
-        ? (collections.collections || []).find((c) => c.uid === activeTab.collectionUid)
-        : null;
-      const normalizedPathname = activeCollection?.pathname ? normalizePath(activeCollection.pathname) : null;
-
-      lastActiveCollectionPathname = normalizedPathname && normalizedWorkspacePaths.includes(normalizedPathname)
-        ? normalizedPathname
-        : null;
-
-      if (
-        activeTab
-        && workspace.scratchCollectionUid
-        && activeTab.collectionUid === workspace.scratchCollectionUid
-        && WORKSPACE_TAB_TYPES.has(activeTab.type)
-      ) {
-        activeWorkspaceTabType = activeTab.type;
-      }
-
-      if (workspace.scratchCollectionUid) {
-        apiSpecTabs = tabs.tabs
-          .filter((t) => (
-            t.collectionUid === workspace.scratchCollectionUid
-            && t.type === API_SPEC_TAB_TYPE
-            && t.apiSpecPathname
-          ))
-          .map((t) => normalizePath(t.apiSpecPathname));
-
-        if (
-          activeTab
-          && activeTab.collectionUid === workspace.scratchCollectionUid
-          && activeTab.type === API_SPEC_TAB_TYPE
-          && activeTab.apiSpecPathname
-        ) {
-          activeApiSpecTabPathname = normalizePath(activeTab.apiSpecPathname);
-        }
-      }
-    } else {
-      lastActiveCollectionPathname = existingWorkspace?.lastActiveCollectionPathname || null;
-      activeWorkspaceTabType = existingWorkspace?.activeWorkspaceTabType || null;
-      apiSpecTabs = existingWorkspace?.apiSpecTabs || [];
-      activeApiSpecTabPathname = existingWorkspace?.activeApiSpecTabPathname || null;
-    }
-
-    const workspaceSorting = isActiveWorkspace
-      ? activeWorkspaceCollectionSortOrder
-      : normalizeWorkspaceSorting(existingWorkspace?.sorting);
-
-    snapshot.workspaces.push({
-      pathname: workspace.pathname,
-      environment: '',
-      lastActiveCollectionPathname,
-      sorting: workspaceSorting,
-      activeWorkspaceTabType,
-      apiSpecTabs,
-      activeApiSpecTabPathname,
-      collections: [...workspaceCollectionPaths]
-    });
-  });
-
-  (collections.collections || []).forEach((collection) => {
-    if (!collection.pathname || scratchCollectionUids.has(collection.uid)) {
-      return;
-    }
-
-    const normalizedPath = normalizePath(collection.pathname);
-
-    if (activeWorkspace && !activeWorkspaceCollectionPaths.has(normalizedPath)) {
-      return;
-    }
-
-    const workspacePathname = activeWorkspace?.pathname || '';
-    const collectionSnapshotKey = getWorkspaceCollectionSnapshotKey(workspacePathname, collection.pathname);
-    const existingCollection = (collectionSnapshotKey && existingSnapshotLookups.collectionsByWorkspaceAndPath?.[collectionSnapshotKey])
-      || existingSnapshotLookups.collectionsByPath?.[normalizedPath]
-      || null;
-    if (collectionSnapshotKey) {
-      serializedCollectionKeys.add(collectionSnapshotKey);
-    }
-
-    const transientDirectory = collections.tempDirectories?.[collection.uid];
-
-    const collectionTabs = (tabs.tabs || [])
-      .filter((t) => t.collectionUid === collection.uid && !shouldExcludeTab(t, transientDirectory))
-      .map((t) => serializeTab(t, collection));
-
-    const activeTabInCollection = (tabs.tabs || []).find(
-      (t) => t.collectionUid === collection.uid && t.uid === tabs.activeTabUid && !shouldExcludeTab(t, transientDirectory)
-    );
-
-    const selectedEnvironment = (collection.environments || []).find((env) => env.uid === collection.activeEnvironmentUid);
-    const environmentPathFromRedux = getCollectionEnvironmentPath(collection, selectedEnvironment, '');
-    const selectedEnvironmentFromRedux = selectedEnvironment?.name || '';
-    const existingEnvironmentPath = existingCollection?.environment?.collection || existingCollection?.environmentPath || '';
-    const existingSelectedEnvironment = existingCollection?.selectedEnvironment || '';
-    const shouldPreserveExistingEnvironment = shouldPreserveCollectionEnvironmentInSnapshot({
-      collection,
-      environmentPathFromRedux,
-      selectedEnvironmentFromRedux,
-      existingEnvironmentPath,
-      existingSelectedEnvironment
-    });
-    const environmentPath = shouldPreserveExistingEnvironment ? existingEnvironmentPath : environmentPathFromRedux;
-    const selectedEnvironmentName = shouldPreserveExistingEnvironment
-      ? existingSelectedEnvironment
-      : selectedEnvironmentFromRedux;
-
-    snapshot.collections.push({
-      pathname: collection.pathname,
-      workspacePathname,
-      environment: {
-        collection: environmentPath,
-        global: globalEnvironments.activeGlobalEnvironmentUid || ''
-      },
-      environmentPath,
-      selectedEnvironment: selectedEnvironmentName,
-      isOpen: !collection.collapsed,
-      isMounted: collection.mountStatus === 'mounted',
-      activeTab: serializeActiveTab(activeTabInCollection, collection),
-      tabs: collectionTabs
-    });
-  });
-
-  const pendingHydrationPaths = new Set(
-    (snapshotHydration?.pendingCollectionPathnames || []).map((pathname) => normalizePath(pathname))
-  );
-
-  const existingCollections = Object.values(existingSnapshotLookups.collectionsByWorkspaceAndPath || {});
-  const fallbackCollections = Object.values(existingSnapshotLookups.collectionsByPath || {});
-
-  (existingCollections.length > 0 ? existingCollections : fallbackCollections).forEach((existingCollection) => {
-    const normalizedPath = normalizePath(existingCollection.pathname || '');
-    const workspacePathname = existingCollection.workspacePathname || '';
-    const collectionSnapshotKey = getWorkspaceCollectionSnapshotKey(workspacePathname, existingCollection.pathname);
-    const isSerializedCollection = collectionSnapshotKey && serializedCollectionKeys.has(collectionSnapshotKey);
-    const shouldPreservePendingHydration = pendingHydrationPaths.has(normalizedPath)
-      && activeWorkspace?.pathname
-      && normalizePath(workspacePathname) === normalizePath(activeWorkspace.pathname);
-
-    if (!normalizedPath || (isSerializedCollection && !shouldPreservePendingHydration)) {
-      return;
-    }
-
-    const existingTabs = (collectionSnapshotKey && existingSnapshotLookups.tabsByWorkspaceAndCollectionPath?.[collectionSnapshotKey])
-      || existingSnapshotLookups.tabsByCollectionPath?.[normalizedPath];
-
-    snapshot.collections.push({
-      pathname: existingCollection.pathname,
-      workspacePathname,
-      environment: {
-        collection: existingCollection.environment?.collection || existingCollection.environmentPath || '',
-        global: existingCollection.environment?.global || ''
-      },
-      environmentPath: existingCollection.environment?.collection || existingCollection.environmentPath || '',
-      selectedEnvironment: existingCollection.selectedEnvironment || '',
-      isOpen: typeof existingCollection.isOpen === 'boolean' ? existingCollection.isOpen : false,
-      isMounted: typeof existingCollection.isMounted === 'boolean' ? existingCollection.isMounted : false,
-      activeTab: existingTabs?.activeTab || existingCollection.activeTab || null,
-      tabs: Array.isArray(existingTabs?.tabs)
-        ? existingTabs.tabs
-        : (Array.isArray(existingCollection.tabs) ? existingCollection.tabs : [])
-    });
-  });
-
-  return snapshot;
 };
 
 export { shouldPreserveCollectionEnvironmentInSnapshot };

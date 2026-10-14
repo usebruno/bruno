@@ -117,8 +117,7 @@ import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvi
 import {
   getCollectionEnvironmentPath,
   findCollectionEnvironmentFromSnapshot,
-  hydrateCollectionTabs,
-  hydrateSnapshotLookups
+  hydrateCollectionTabs
 } from 'utils/snapshot';
 
 // Display name for a cloned/pasted item: always "<source> copy" (semantic).
@@ -2986,16 +2985,14 @@ export const openCollectionEvent = (uid, pathname, brunoConfig, options = {}) =>
 
       const workspacePathname = activeWorkspace?.pathname || null;
 
-      ipcRenderer.invoke('renderer:snapshot:get')
-        .then((snapshot) => hydrateSnapshotLookups(snapshot || {}))
-        .then((snapshotLookups) => hydrateCollectionTabs(
-          existingCollection,
-          dispatch,
-          restoreTabs,
-          snapshotLookups,
-          workspacePathname,
-          true
-        ))
+      hydrateCollectionTabs(
+        existingCollection,
+        dispatch,
+        restoreTabs,
+        null,
+        workspacePathname,
+        true
+      )
         .catch(() => null)
         .finally(resolve);
       return;
