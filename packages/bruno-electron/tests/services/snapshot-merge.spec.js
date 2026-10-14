@@ -1,5 +1,3 @@
-const path = require('path');
-
 let mockStoreData = {};
 
 jest.mock('electron-store', () => {
@@ -25,12 +23,12 @@ jest.mock('electron-store', () => {
 
 const snapshotManager = require('../../src/services/snapshot');
 
-const WS_A = path.normalize('/tmp/workspace-a');
-const WS_B = path.normalize('/tmp/workspace-b');
-const COL_SHARED = path.normalize('/tmp/collections/shared');
-const ENV_A = path.normalize('/tmp/env-a.yml');
-const ENV_B = path.normalize('/tmp/env-b.yml');
-const SPEC = path.normalize('/tmp/spec.yaml');
+const WS_A = '/tmp/workspace-a';
+const WS_B = '/tmp/workspace-b';
+const COL_SHARED = '/tmp/collections/shared';
+const ENV_A = '/tmp/env-a.yml';
+const ENV_B = '/tmp/env-b.yml';
+const SPEC = '/tmp/spec.yaml';
 
 const seedMultiWorkspaceSnapshot = () => {
   snapshotManager.saveSnapshot({
@@ -248,10 +246,10 @@ describe('SnapshotManager.mergeSnapshot', () => {
   });
 
   describe('environment preserve end-state parity', () => {
-    const WS = path.normalize('/tmp/snapshot-parity-workspace');
-    const COL = path.normalize('/tmp/snapshot-parity-workspace/collections/api');
-    const ENV_LOCAL = path.normalize('/tmp/snapshot-parity-workspace/collections/api/environments/local.yml');
-    const ENV_STAGING = path.normalize('/tmp/snapshot-parity-workspace/collections/api/environments/staging.yml');
+    const WS = '/tmp/snapshot-parity-workspace';
+    const COL = '/tmp/snapshot-parity-workspace/collections/api';
+    const ENV_LOCAL = '/tmp/snapshot-parity-workspace/collections/api/environments/local.yml';
+    const ENV_STAGING = '/tmp/snapshot-parity-workspace/collections/api/environments/staging.yml';
 
     const seedLocalCollection = (existingOverrides = {}) => {
       snapshotManager.saveSnapshot({
@@ -420,6 +418,41 @@ describe('SnapshotManager.mergeSnapshot', () => {
       }
     });
     expect(snapshotManager.getSnapshot().activeWorkspacePath).toBe(WS_B);
+  });
+
+  it('treats Windows-separator pathnames as the same collection lookup key', async () => {
+    await snapshotManager.mergeSnapshot({
+      revision: 11,
+      collections: [
+        {
+          pathname: COL_SHARED.replace(/\//g, '\\'),
+          workspacePathname: WS_A.replace(/\//g, '\\'),
+          isOpen: true,
+          isMounted: true,
+          activeTab: { accessor: 'pathname', value: `${COL_SHARED}\\win.bru` },
+          tabs: [
+            {
+              type: 'http-request',
+              accessor: 'pathname',
+              pathname: `${COL_SHARED}\\win.bru`,
+              permanent: true
+            }
+          ],
+          environment: { collection: ENV_A.replace(/\//g, '\\'), global: '' },
+          environmentPath: ENV_A.replace(/\//g, '\\'),
+          selectedEnvironment: 'a'
+        }
+      ]
+    });
+
+    expect(snapshotManager.getCollection(COL_SHARED, WS_A)).toMatchObject({
+      environmentPath: ENV_A,
+      environment: { collection: ENV_A, global: '' }
+    });
+    expect(snapshotManager.getTabs(COL_SHARED, WS_A)).toMatchObject({
+      activeTab: { accessor: 'pathname', value: `${COL_SHARED}\\win.bru` },
+      tabs: [{ pathname: `${COL_SHARED}\\win.bru` }]
+    });
   });
 });
 

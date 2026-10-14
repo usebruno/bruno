@@ -594,23 +594,34 @@ export const isActiveTab = (tab, activeTab, collection) => {
 
   if (accessor === 'pathname') {
     const item = findItemInCollection(collection, tab.uid);
+    const normalizedValue = normalizePath(value);
     return tab.type !== 'response-example'
       && tab.type !== 'mock-response'
-      && (item?.pathname === value || tab.pathname === value);
+      && (normalizePath(item?.pathname) === normalizedValue || normalizePath(tab.pathname) === normalizedValue);
   }
 
   if (accessor === 'pathname::exampleName') {
     const item = findItemInCollection(collection, tab.itemUid);
     const pathname = item?.pathname || tab.pathname;
-    return `${pathname}::${tab.exampleName}` === value;
+    const separatorIndex = typeof value === 'string' ? value.indexOf('::') : -1;
+    if (separatorIndex === -1) {
+      return false;
+    }
+    return normalizePath(pathname) === normalizePath(value.slice(0, separatorIndex))
+      && tab.exampleName === value.slice(separatorIndex + 2);
   }
 
   if (accessor === 'pathname::exampleIndex') {
     const item = findItemInCollection(collection, tab.itemUid);
     const pathname = item?.pathname || tab.pathname;
     const exampleIndex = item?.examples?.findIndex((example) => example.uid === tab.uid);
+    const separatorIndex = typeof value === 'string' ? value.indexOf('::') : -1;
+    if (separatorIndex === -1) {
+      return false;
+    }
 
-    return `${pathname}::${exampleIndex}` === value;
+    return normalizePath(pathname) === normalizePath(value.slice(0, separatorIndex))
+      && String(exampleIndex) === value.slice(separatorIndex + 2);
   }
 
   return false;
@@ -851,19 +862,31 @@ export const getActiveTabFromSnapshot = async (collectionPathname, collection, s
     const normalizedValue = normalizeTabType(value);
     snapshotTab = tabsSnapshot.tabs.find((t) => normalizeTabType(t.type) === normalizedValue);
   } else if (accessor === 'pathname') {
+    const normalizedValue = normalizePath(value);
     snapshotTab = tabsSnapshot.tabs.find((t) => (
-      t.pathname === value && t.type !== 'response-example' && t.type !== 'mock-response'
+      normalizePath(t.pathname) === normalizedValue && t.type !== 'response-example' && t.type !== 'mock-response'
     ));
   } else if (accessor === 'pathname::exampleName') {
-    snapshotTab = tabsSnapshot.tabs.find((t) => `${t.pathname}::${t.exampleName}` === value);
+    const separatorIndex = typeof value === 'string' ? value.indexOf('::') : -1;
+    const normalizedPathname = separatorIndex === -1 ? '' : normalizePath(value.slice(0, separatorIndex));
+    const exampleName = separatorIndex === -1 ? '' : value.slice(separatorIndex + 2);
+    snapshotTab = tabsSnapshot.tabs.find((t) => (
+      normalizePath(t.pathname) === normalizedPathname && t.exampleName === exampleName
+    ));
   } else if (accessor === 'pathname::exampleIndex') {
-    snapshotTab = tabsSnapshot.tabs.find((t) => `${t.pathname}::${t.exampleIndex}` === value);
+    const separatorIndex = typeof value === 'string' ? value.indexOf('::') : -1;
+    const normalizedPathname = separatorIndex === -1 ? '' : normalizePath(value.slice(0, separatorIndex));
+    const rawIndex = separatorIndex === -1 ? '' : value.slice(separatorIndex + 2);
+    snapshotTab = tabsSnapshot.tabs.find((t) => (
+      normalizePath(t.pathname) === normalizedPathname && String(t.exampleIndex) === rawIndex
+    ));
 
     if (!snapshotTab) {
-      const [pathname, rawIndex] = value.split('::');
       const exampleIndex = Number(rawIndex);
-      if (pathname && Number.isInteger(exampleIndex) && exampleIndex >= 0) {
-        const candidateTabs = tabsSnapshot.tabs.filter((t) => t.type === 'response-example' && t.pathname === pathname);
+      if (normalizedPathname && Number.isInteger(exampleIndex) && exampleIndex >= 0) {
+        const candidateTabs = tabsSnapshot.tabs.filter((t) => (
+          t.type === 'response-example' && normalizePath(t.pathname) === normalizedPathname
+        ));
         snapshotTab = candidateTabs[exampleIndex] || null;
       }
     }

@@ -4,6 +4,7 @@ const path = require('path');
 const yup = require('yup');
 const { isPlainObject } = require('lodash');
 const { isDeepStrictEqual } = require('util');
+const { posixifyPath } = require('../../utils/filesystem');
 
 const SNAPSHOT_VERSION = '0.0.1';
 const ENV_FILE_EXTENSIONS = ['bru', 'yml', 'yaml'];
@@ -14,7 +15,8 @@ const normalizeLookupKey = (pathname) => {
     return null;
   }
 
-  return path.normalize(pathname);
+  const normalized = posixifyPath(pathname).replace(/\/+$/, '');
+  return normalized || null;
 };
 
 const buildWorkspaceCollectionLookupKey = (workspacePathname, collectionPathname) => {
@@ -904,8 +906,8 @@ class SnapshotManager {
       return '';
     }
 
-    if (path.isAbsolute(trimmedRef)) {
-      return path.normalize(trimmedRef);
+    if (path.isAbsolute(trimmedRef) || trimmedRef.includes('\\')) {
+      return normalizeLookupKey(trimmedRef) || '';
     }
 
     return trimmedRef;
@@ -921,8 +923,8 @@ class SnapshotManager {
       return '';
     }
 
-    if (path.isAbsolute(trimmedRef)) {
-      return path.normalize(trimmedRef);
+    if (path.isAbsolute(trimmedRef) || trimmedRef.includes('\\')) {
+      return normalizeLookupKey(trimmedRef) || '';
     }
 
     const resolvedEnvironmentPath = await this._resolveEnvironmentPathByNameAsync(collectionPath, trimmedRef);
@@ -949,7 +951,7 @@ class SnapshotManager {
       const environmentFilePath = path.join(environmentsDir, `${environmentName}.${extension}`);
       try {
         await fs.promises.access(environmentFilePath, fs.constants.F_OK);
-        return path.normalize(environmentFilePath);
+        return normalizeLookupKey(environmentFilePath) || environmentFilePath;
       } catch {
         // keep checking other supported extensions
       }
