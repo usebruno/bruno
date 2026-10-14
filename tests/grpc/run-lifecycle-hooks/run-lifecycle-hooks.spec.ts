@@ -159,10 +159,10 @@ for (const mode of SANDBOX_MODES) {
       await test.step('the card names the hook that failed', async () => {
         await sendGrpcRequest(page, 'BrokenHook', 'HelloService/SayHello');
 
-        await expect(responseErrors.card()).toBeVisible({ timeout: 30000 });
+        await expect(responseErrors.card()).toBeVisible();
         await expect(responseErrors.title()).toHaveText('Before Call Start Script Error');
         await expect(responseErrors.message()).toContainText('beforeCallStart exploded');
-        await expect(responseErrors.filePath()).toHaveText(/^BrokenHook\.yml(:\d+)?$/);
+        await expect(responseErrors.filePath()).toHaveText('BrokenHook.yml:2');
       });
 
       await test.step('no response arrived', async () => {
@@ -307,10 +307,10 @@ for (const mode of SANDBOX_MODES) {
       await test.step('the card names the hook that failed and the message it failed on', async () => {
         await sendGrpcRequest(page, 'BrokenBeforeMessageSend', 'HelloService/SayHello');
 
-        await expect(responseErrors.card()).toBeVisible({ timeout: 30000 });
+        await expect(responseErrors.card()).toBeVisible();
         await expect(responseErrors.title()).toHaveText('Before Message Send Script Error');
         await expect(responseErrors.message()).toContainText('Message 1: beforeMessageSend exploded');
-        await expect(responseErrors.filePath()).toHaveText(/^BrokenBeforeMessageSend\.yml(:\d+)?$/);
+        await expect(responseErrors.filePath()).toHaveText('BrokenBeforeMessageSend.yml:2');
       });
 
       await test.step('nothing was put on the wire', async () => {
@@ -347,7 +347,7 @@ for (const mode of SANDBOX_MODES) {
       await test.step('the first message is refused, so nothing comes back for it', async () => {
         await locators.request.sendMessage(0).click();
 
-        await expect(responseErrors.card()).toBeVisible({ timeout: 30000 });
+        await expect(responseErrors.card()).toBeVisible();
         await expect(locators.response.content()).toHaveCount(0);
       });
 
@@ -399,7 +399,7 @@ for (const mode of SANDBOX_MODES) {
         await expect(responseErrors.card()).toBeVisible();
         await expect(responseErrors.title()).toHaveText('After Message Receive Script Error');
         await expect(responseErrors.message()).toContainText('Message 10: afterMessageReceive exploded');
-        await expect(responseErrors.filePath()).toHaveText(/^BrokenAfterMessageReceive\.yml(:\d+)?$/);
+        await expect(responseErrors.filePath()).toHaveText('BrokenAfterMessageReceive.yml:2');
       });
 
       await test.step('afterCallEnd still ran behind the ten failures', async () => {
@@ -424,17 +424,19 @@ for (const mode of SANDBOX_MODES) {
       const locators = await openCollection(page);
       const responseErrors = buildResponseErrorsLocators(page);
 
-      await test.step('the card names the hook that failed', async () => {
+      await test.step('the call completes', async () => {
         await sendGrpcRequest(page, 'BrokenAfterCallEnd', 'HelloService/SayHello');
-
-        await expect(responseErrors.card()).toBeVisible({ timeout: 30000 });
-        await expect(responseErrors.title()).toHaveText('After Call End Script Error');
-        await expect(responseErrors.message()).toContainText('afterCallEnd exploded');
-        await expect(responseErrors.filePath()).toHaveText(/^BrokenAfterCallEnd\.yml(:\d+)?$/);
+        await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
       });
 
-      await test.step('the response arrived and is still readable behind the card', async () => {
-        await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
+      await test.step('the card names the hook that failed', async () => {
+        await expect(responseErrors.card()).toBeVisible();
+        await expect(responseErrors.title()).toHaveText('After Call End Script Error');
+        await expect(responseErrors.message()).toContainText('afterCallEnd exploded');
+        await expect(responseErrors.filePath()).toHaveText('BrokenAfterCallEnd.yml:2');
+      });
+
+      await test.step('the response is still readable behind the card', async () => {
         await expect(locators.response.content()).toContainText('after-hook-throws');
       });
 

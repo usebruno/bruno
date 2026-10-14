@@ -593,7 +593,7 @@ for (const mode of ['safe', 'developer'] as const) {
 
       await test.step('The card shows the post-response error alone', async () => {
         const card = responseErrorsLocators.card();
-        await expect(responseErrorsLocators.title()).toHaveText('Post-Response Script Error', { timeout: 15000 });
+        await expect(responseErrorsLocators.title()).toHaveText('Post-Response Script Error');
         await expect(responseErrorsLocators.message(card)).toHaveCount(1);
         await expect(responseErrorsLocators.message(card)).toContainText('Post-response script failed');
         await expect(responseErrorsLocators.copyButton(card)).toHaveCount(1);
