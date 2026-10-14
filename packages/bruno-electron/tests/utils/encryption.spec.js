@@ -1,7 +1,24 @@
 const { encryptString, decryptString, encryptStringSafe, decryptStringSafe } = require('../../src/utils/encryption');
+const fs = require('fs');
+const path = require('path');
 
 // We can only unit test aes 256 fallback as safeStorage is only available
 // in the main process
+
+// Mock electron app
+jest.mock('electron', () => ({
+  safeStorage: {
+    isEncryptionAvailable: () => false
+  },
+  app: {
+    getPath: jest.fn((name) => {
+      if (name === 'userData') {
+        return '/tmp/test-user-data';
+      }
+      return '/tmp';
+    })
+  }
+}));
 
 describe('Encryption and Decryption Tests', () => {
   it('should encrypt and decrypt using AES-256', () => {
@@ -109,5 +126,157 @@ describe('Safe Encryption and Decryption Tests', () => {
     expect(() => decryptStringSafe(123456789)).not.toThrow();
     expect(() => decryptStringSafe('aes256:')).not.toThrow();
     expect(() => decryptStringSafe('aes256:invalid_base64')).not.toThrow();
+  });
+});
+
+describe('Machine ID Fallback Tests', () => {
+  let mockMachineIdSync;
+  let encryption;
+  let mockFs;
+  
+  beforeEach(() => {
+    // Clear module cache to reset the cached machine ID
+    jest.resetModules();
+    
+    // Mock the node-machine-id module
+    mockMachineIdSync = jest.fn();
+    jest.mock('@usebruno/node-machine-id', () => ({
+      machineIdSync: mockMachineIdSync
+    }));
+    
+    // Mock filesystem
+    mockFs = {
+      readFileSync: jest.fn(),
+      existsSync: jest.fn(),
+      writeFileSync: jest.fn()
+    };
+    
+    jest.spyOn(fs, 'readFileSync').mockImplementation(mockFs.readFileSync);
+    jest.spyOn(fs, 'existsSync').mockImplementation(mockFs.existsSync);
+    jest.spyOn(fs, 'writeFileSync').mockImplementation(mockFs.writeFileSync);
+    
+    // Reload the module to use mocks
+    encryption = require('../../src/utils/encryption');
+  });
+  
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('should fall back to /etc/machine-id when machineIdSync throws EFAULT', () => {
+    mockMachineIdSync.mockImplementation(() => {
+      const error = new Error('EFAULT: bad address in system call argument');
+      error.code = 'EFAULT';
+      throw error;
+    });
+    
+    mockFs.readFileSync.mockImplementation((filePath) => {
+      if (filePath === '/etc/machine-id') {
+        return 'test-machine-id-from-etc\n';
+      }
+      throw new Error('File not found');
+    });
+    
+    const plaintext = 'test-secret-value';
+    const encrypted = encryption.encryptString(plaintext);
+    const decrypted = encryption.decryptString(encrypted);
+    
+    expect(decrypted).toBe(plaintext);
+    expect(mockFs.readFileSync).toHaveBeenCalledWith('/etc/machine-id', 'utf8');
+  });
+
+  it('should fall back to /var/lib/dbus/machine-id when /etc/machine-id is not available', () => {
+    mockMachineIdSync.mockImplementation(() => {
+      throw new Error('EFAULT: bad address in system call argument');
+    });
+    
+    mockFs.readFileSync.mockImplementation((filePath) => {
+      if (filePath === '/etc/machine-id') {
+        throw new Error('File not found');
+      }
+      if (filePath === '/var/lib/dbus/machine-id') {
+        return 'test-machine-id-from-dbus\n';
+      }
+      throw new Error('File not found');
+    });
+    
+    const plaintext = 'test-secret-value';
+    const encrypted = encryption.encryptString(plaintext);
+    const decrypted = encryption.decryptString(encrypted);
+    
+    expect(decrypted).toBe(plaintext);
+    expect(mockFs.readFileSync).toHaveBeenCalledWith('/var/lib/dbus/machine-id', 'utf8');
+  });
+
+  it('should generate and persist a machine ID when all file-based methods fail', () => {
+    mockMachineIdSync.mockImplementation(() => {
+      throw new Error('EFAULT: bad address in system call argument');
+    });
+    
+    const generatedId = 'generated-machine-id-hex';
+    let persistedId = null;
+    
+    mockFs.readFileSync.mockImplementation(() => {
+      throw new Error('File not found');
+    });
+    
+    mockFs.existsSync.mockReturnValue(false);
+    
+    mockFs.writeFileSync.mockImplementation((filePath, content) => {
+      if (filePath === path.join('/tmp/test-user-data', 'machine-id')) {
+        persistedId = content;
+      }
+    });
+    
+    // Mock crypto.randomBytes to return a predictable value
+    const originalRandomBytes = require('crypto').randomBytes;
+    jest.spyOn(require('crypto'), 'randomBytes').mockReturnValue(Buffer.from(generatedId, 'utf8'));
+    
+    const plaintext = 'test-secret-value';
+    const encrypted = encryption.encryptString(plaintext);
+    
+    expect(mockFs.writeFileSync).toHaveBeenCalledWith(
+      path.join('/tmp/test-user-data', 'machine-id'),
+      expect.any(String),
+      'utf8'
+    );
+    expect(persistedId).toBeTruthy();
+    
+    // Verify decryption works with the same generated ID
+    const decrypted = encryption.decryptString(encrypted);
+    expect(decrypted).toBe(plaintext);
+    
+    // Restore original randomBytes
+    require('crypto').randomBytes.mockRestore();
+  });
+
+  it('should use persisted machine ID on subsequent calls', () => {
+    mockMachineIdSync.mockImplementation(() => {
+      throw new Error('EFAULT: bad address in system call argument');
+    });
+    
+    const persistedId = 'persisted-machine-id-12345';
+    
+    mockFs.readFileSync.mockImplementation((filePath) => {
+      if (filePath === '/etc/machine-id' || filePath === '/var/lib/dbus/machine-id') {
+        throw new Error('File not found');
+      }
+      if (filePath === path.join('/tmp/test-user-data', 'machine-id')) {
+        return persistedId;
+      }
+      throw new Error('File not found');
+    });
+    
+    mockFs.existsSync.mockImplementation((filePath) => {
+      return filePath === path.join('/tmp/test-user-data', 'machine-id');
+    });
+    
+    const plaintext = 'test-secret-value';
+    const encrypted = encryption.encryptString(plaintext);
+    const decrypted = encryption.decryptString(encrypted);
+    
+    expect(decrypted).toBe(plaintext);
+    expect(mockFs.existsSync).toHaveBeenCalledWith(path.join('/tmp/test-user-data', 'machine-id'));
+    expect(mockFs.writeFileSync).not.toHaveBeenCalled();
   });
 });
