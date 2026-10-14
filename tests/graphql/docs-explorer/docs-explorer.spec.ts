@@ -23,7 +23,7 @@ test.describe('GraphQL Docs Explorer', () => {
       await page.getByTestId('graphql-request').click();
       await page.getByTestId('request-name').fill('test-graphql');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-      await page.keyboard.type('https://graphql.anilist.co');
+      await page.keyboard.insertText('https://graphql.anilist.co');
       await locators.modal.button('Create').click();
     });
 

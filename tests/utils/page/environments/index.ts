@@ -340,6 +340,6 @@ export const addDotEnvVariable = async (page: Page, name: string, value: string)
     await environment.dotEnvVarRow(name).waitFor({ state: 'visible' });
 
     await environment.dotEnvVarValueEditor(name).click();
-    await page.keyboard.type(value);
+    await page.keyboard.insertText(value);
   });
 };

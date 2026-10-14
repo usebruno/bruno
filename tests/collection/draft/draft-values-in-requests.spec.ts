@@ -66,7 +66,7 @@ test.describe('Draft values are used in requests', () => {
     // Fill in request details - using httpbin.org which echoes headers back
     await page.getByTestId('request-name').fill('Test Request');
     await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-    await page.keyboard.type('https://httpbin.org/headers');
+    await page.keyboard.insertText('https://httpbin.org/headers');
     await page.getByRole('button', { name: 'Create', exact: true }).click();
 
     // Send request and verify draft header is included
@@ -126,7 +126,7 @@ test.describe('Draft values are used in requests', () => {
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByTestId('request-name').fill('Test Request');
     await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-    await page.keyboard.type('https://testbench-sanity.usebruno.com/ping');
+    await page.keyboard.insertText('https://testbench-sanity.usebruno.com/ping');
     await page.getByRole('button', { name: 'Create', exact: true }).click();
 
     // Verify the request is created

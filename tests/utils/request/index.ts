@@ -134,7 +134,7 @@ export type { CreateRequestFromCurlOptions };
 export const fillRequestHeaderName = async (page: Page, row: Locator, name: string) => {
   const nameEditor = row.getByTestId('column-name').locator('.CodeMirror');
   await nameEditor.click();
-  await page.keyboard.type(name);
+  await page.keyboard.insertText(name);
 };
 
 /**
@@ -143,7 +143,7 @@ export const fillRequestHeaderName = async (page: Page, row: Locator, name: stri
 export const fillRequestHeaderValue = async (page: Page, row: Locator, value: string) => {
   const valueEditor = row.getByTestId('column-value').locator('.CodeMirror');
   await valueEditor.click();
-  await page.keyboard.type(value);
+  await page.keyboard.insertText(value);
 };
 
 /**
@@ -217,7 +217,7 @@ export const addVarsRow = async (page: Page, tableId: string, name: string, valu
     const varsTable = table(tableId);
     const nameInput = varsTable.rowNameInput(varsTable.row().last());
     await nameInput.click();
-    await page.keyboard.type(name);
+    await page.keyboard.insertText(name);
 
     const row = varsTable.rowByName(name);
     await expect(row).toBeVisible();

@@ -20,7 +20,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
     });
 
     await test.step('Type code content', async () => {
-      await page.keyboard.type('const x = 1;');
+      await page.keyboard.insertText('const x = 1;');
       await expect(locators.docs.codeBlockContent()).toContainText('const x = 1;');
       await expect(locators.docs.codeBlockLangSelector()).toBeHidden();
     });
@@ -35,9 +35,9 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
 
       await prosemirror.click();
       await clickDocsToolbarBtn(locators, 'Code block');
-      await page.keyboard.type('const x = 1;');
+      await page.keyboard.insertText('const x = 1;');
       await page.keyboard.press('Enter');
-      await page.keyboard.type('const y = 2;');
+      await page.keyboard.insertText('const y = 2;');
     });
 
     await test.step('Verify language selector is visible', async () => {
@@ -115,7 +115,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
 
       await prosemirror.click();
       await clickDocsToolbarBtn(locators, 'Code block');
-      await page.keyboard.type('const x = 1;');
+      await page.keyboard.insertText('const x = 1;');
     });
 
     await test.step('Copy code content', async () => {
@@ -141,7 +141,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
 
     await test.step('Type markdown and verify syntax highlighting', async () => {
       await locators.docs.codeEditor().click();
-      await page.keyboard.type('# Heading');
+      await page.keyboard.insertText('# Heading');
 
       await expect(locators.docs.codeEditor().locator('.cm-header')).toBeVisible();
     });
@@ -155,12 +155,12 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
       await expect(prosemirror).toBeVisible();
       await prosemirror.click();
       await clickDocsToolbarBtn(locators, 'Code block');
-      await page.keyboard.type('const x =');
+      await page.keyboard.insertText('const x =');
     });
 
     await test.step('Press Tab, then keep typing', async () => {
       await page.keyboard.press('Tab');
-      await page.keyboard.type('1;');
+      await page.keyboard.insertText('1;');
     });
 
     await test.step('A literal tab character was inserted', async () => {
@@ -169,7 +169,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
 
     await test.step('Focus stayed inside the editor, so the second line still lands in the code block', async () => {
       await page.keyboard.press('Enter');
-      await page.keyboard.type('const y = 2;');
+      await page.keyboard.insertText('const y = 2;');
       await expect(locators.docs.codeBlockContent()).toContainText('const y = 2;');
     });
   });
@@ -199,7 +199,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
       await expect(prosemirror).toBeVisible();
       await prosemirror.click();
       await clickDocsToolbarBtn(locators, 'Code block');
-      await page.keyboard.type('const x = 1;');
+      await page.keyboard.insertText('const x = 1;');
     });
 
     await test.step('Press Enter three times in a row', async () => {
@@ -211,7 +211,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
     await test.step('The cursor exits into a paragraph after the code block, instead of adding blank lines inside it', async () => {
       await expect(prosemirror.locator('pre')).toHaveCount(1);
       await expect(locators.docs.codeBlockContent()).toHaveText('const x = 1;');
-      await page.keyboard.type('after code block');
+      await page.keyboard.insertText('after code block');
       await expect(prosemirror.locator('p').last()).toContainText('after code block');
     });
   });
@@ -223,7 +223,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
     await test.step('Type a paragraph, then toggle it into a code block via the shortcut', async () => {
       await expect(prosemirror).toBeVisible();
       await prosemirror.click();
-      await page.keyboard.type('const x = 1;');
+      await page.keyboard.insertText('const x = 1;');
       await pressShortcut(page, modifier, 'Alt', 'KeyC');
     });
 

@@ -56,7 +56,7 @@ test.describe('Snapshot: Request Pane Interactivity', () => {
       await page.getByTestId('grpc-request').click();
       await page.getByTestId('request-name').fill('ReqGrpc');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-      await page.keyboard.type('grpc://localhost:50051');
+      await page.keyboard.insertText('grpc://localhost:50051');
       await locators.modal.button('Create').click();
 
       await openRequest(page, 'TestCol', 'ReqGrpc', { persist: true });
@@ -103,7 +103,7 @@ test.describe('Snapshot: Request Pane Interactivity', () => {
       await page.getByTestId('ws-request').click();
       await page.getByTestId('request-name').fill('ReqWs');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-      await page.keyboard.type('ws://localhost:8080');
+      await page.keyboard.insertText('ws://localhost:8080');
       await locators.modal.button('Create').click();
 
       await openRequest(page, 'TestCol', 'ReqWs', { persist: true });
@@ -152,7 +152,7 @@ test.describe('Snapshot: Request Pane Interactivity', () => {
       await page.getByTestId('grpc-request').click();
       await page.getByTestId('request-name').fill('ReqGrpcSnapshot');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-      await page.keyboard.type('grpc://localhost:50051');
+      await page.keyboard.insertText('grpc://localhost:50051');
       await locators.modal.button('Create').click();
 
       await openRequest(page, 'TestCol', 'ReqGrpcSnapshot', { persist: true });
@@ -208,7 +208,7 @@ test.describe('Snapshot: Request Pane Interactivity', () => {
       await page.getByTestId('ws-request').click();
       await page.getByTestId('request-name').fill('ReqWsSnapshot');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-      await page.keyboard.type('ws://localhost:8080');
+      await page.keyboard.insertText('ws://localhost:8080');
       await locators.modal.button('Create').click();
 
       await openRequest(page, 'TestCol', 'ReqWsSnapshot', { persist: true });
@@ -264,7 +264,7 @@ test.describe('Snapshot: Request Pane Interactivity', () => {
       await page.getByTestId('graphql-request').click();
       await page.getByTestId('request-name').fill('ReqGraphSnapshot');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-      await page.keyboard.type('https://echo.usebruno.com/graphql');
+      await page.keyboard.insertText('https://echo.usebruno.com/graphql');
       await locators.modal.button('Create').click();
 
       await openRequest(page, 'TestCol', 'ReqGraphSnapshot', { persist: true });

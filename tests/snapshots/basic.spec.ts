@@ -836,7 +836,7 @@ test.describe('Snapshot: Basic Request Movement', () => {
       await page.getByTestId('graphql-request').click();
       await page.getByTestId('request-name').fill('ReqGraph');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-      await page.keyboard.type('https://echo.usebruno.com/graphql');
+      await page.keyboard.insertText('https://echo.usebruno.com/graphql');
       await locators.modal.button('Create').click();
 
       await openRequest(page, 'TestCol', 'ReqGraph', { persist: true });

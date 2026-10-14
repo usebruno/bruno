@@ -14,7 +14,7 @@ test.describe('Rich Text Editor Edge Cases - Collection and Folder Docs Entry Po
 
     await test.step('Cancel discards the edit', async () => {
       await prosemirror.click();
-      await page.keyboard.type('Draft content that should be discarded');
+      await page.keyboard.insertText('Draft content that should be discarded');
       await expect(prosemirror).toContainText('Draft content that should be discarded');
 
       await locators.docs.collectionDocsCancelBtn().click();
@@ -26,7 +26,7 @@ test.describe('Rich Text Editor Edge Cases - Collection and Folder Docs Entry Po
 
     await test.step('Save persists the edit', async () => {
       await prosemirror.click();
-      await page.keyboard.type('Saved documentation content');
+      await page.keyboard.insertText('Saved documentation content');
 
       await locators.docs.collectionDocsSaveBtn().click();
       await expect(locators.docs.collectionDocsEditToggle()).toBeVisible();
@@ -42,7 +42,7 @@ test.describe('Rich Text Editor Edge Cases - Collection and Folder Docs Entry Po
     await expect(prosemirror).toBeVisible();
 
     await prosemirror.click();
-    await page.keyboard.type('Folder documentation draft');
+    await page.keyboard.insertText('Folder documentation draft');
     await expect(prosemirror).toContainText('Folder documentation draft');
 
     await test.step('Toggling to Preview without saving keeps the draft', async () => {

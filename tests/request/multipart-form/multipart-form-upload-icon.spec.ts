@@ -62,7 +62,7 @@ test.describe.serial('Multipart Form - Upload Icon Visibility', () => {
       const firstRow = page.locator('table tbody tr').first();
       const editor = firstRow.locator('.value-cell .CodeMirror');
       await editor.click({ position: { x: 10, y: 10 } });
-      await page.keyboard.type('some text value');
+      await page.keyboard.insertText('some text value');
     });
 
     await test.step('Verify upload icon is still visible with text value', async () => {

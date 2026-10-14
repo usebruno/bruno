@@ -28,11 +28,11 @@ test.describe.serial('Draft indicator in collection and folder settings', () => 
 
     const nameEditor = headerRow.locator('.CodeMirror').first();
     await nameEditor.click();
-    await page.keyboard.type('X-Custom-Header');
+    await page.keyboard.insertText('X-Custom-Header');
 
     const valueEditor = headerRow.locator('.CodeMirror').nth(1);
     await valueEditor.click();
-    await page.keyboard.type('custom-value');
+    await page.keyboard.insertText('custom-value');
 
     // Verify draft indicator appears in the tab
     await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
@@ -210,7 +210,7 @@ test.describe.serial('Draft indicator in collection and folder settings', () => 
     await varNameInput.fill('testVar');
     const varValueEditor = varRow.getByTestId(/^test-multiline-editor-\d+\.value$/);
     await varValueEditor.click();
-    await page.keyboard.type('testValue');
+    await page.keyboard.insertText('testValue');
 
     // Verify draft indicator appears
     await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
@@ -244,11 +244,11 @@ test.describe.serial('Draft indicator in collection and folder settings', () => 
 
     const nameEditor = headerRow.locator('.CodeMirror').first();
     await nameEditor.click();
-    await page.keyboard.type('X-Folder-Header');
+    await page.keyboard.insertText('X-Folder-Header');
 
     const valueEditor = headerRow.locator('.CodeMirror').nth(1);
     await valueEditor.click();
-    await page.keyboard.type('folder-value');
+    await page.keyboard.insertText('folder-value');
 
     // Verify draft indicator appears in the folder tab
     await expect(folderTab.locator('.has-changes-icon')).toBeVisible();
@@ -313,7 +313,7 @@ test.describe.serial('Draft indicator in collection and folder settings', () => 
 
     const folderVarValueEditor = varRow.getByTestId(/^test-multiline-editor-\d+\.value$/);
     await folderVarValueEditor.click();
-    await page.keyboard.type('folderValue');
+    await page.keyboard.insertText('folderValue');
 
     // Verify draft indicator appears
     await expect(folderTab.locator('.has-changes-icon')).toBeVisible();

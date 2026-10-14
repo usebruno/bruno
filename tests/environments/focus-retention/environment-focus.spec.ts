@@ -15,7 +15,7 @@ test.describe('Environment Variables Focus Retention', () => {
     const nameInput = page.locator('input[name="0.name"]');
     await nameInput.waitFor({ state: 'visible' });
     await nameInput.click();
-    await page.keyboard.type('apiKey');
+    await page.keyboard.insertText('apiKey');
     await expect(nameInput).toBeFocused();
 
     const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';

@@ -156,7 +156,7 @@ test.describe('Rich Text Editor Edge Cases - Raw HTML Passthrough', () => {
       await page.keyboard.down('Shift');
       await page.keyboard.press('Enter');
       await page.keyboard.up('Shift');
-      await page.keyboard.type('Second line');
+      await page.keyboard.insertText('Second line');
 
       await expect(textBlock.locator('br')).toHaveCount(1);
       // Still one block-level div, not split into two.
