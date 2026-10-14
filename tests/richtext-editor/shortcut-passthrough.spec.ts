@@ -114,11 +114,15 @@ test.describe('Rich Text Editor - Keyboard Shortcut with Global Hotkeys (remappe
       await expect(prosemirror).toBeVisible();
       await prosemirror.click();
       await page.keyboard.type('Hello World');
+      // Make sure the typed text has landed before selecting, so a late editor re-render can't wipe the selection.
+      await expect(prosemirror).toContainText('Hello World');
       await page.keyboard.down('Shift');
       for (let i = 0; i < 5; i++) {
         await page.keyboard.press('ArrowLeft');
       }
       await page.keyboard.up('Shift');
+      // Wait for the selection to settle on "World" before firing the shortcut.
+      await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe('World');
     });
 
     await test.step('Cmd/Ctrl+B only bolds the selection. it does not open Preferences', async () => {

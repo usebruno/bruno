@@ -230,13 +230,13 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
     });
 
     await test.step('Flipping (bottom of viewport)', async () => {
-      // Create a link at the very bottom
-      await prosemirror.click();
-
-      // Go to the end of the document
+      const lastParagraph = prosemirror.locator('p').last();
+      await expect(lastParagraph).toHaveText('Line 149');
+      await lastParagraph.click();
       await page.keyboard.down(modifier);
       await page.keyboard.press('ArrowDown');
       await page.keyboard.up(modifier);
+      await expect(lastParagraph).toBeInViewport();
 
       await page.keyboard.press('Enter');
       await page.keyboard.type('Bottom Link');
@@ -248,6 +248,8 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       }
       await page.keyboard.up('Shift');
 
+      // Wait for the selection to settle on 'Bottom Link' before creating the link.
+      await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe('Bottom Link');
       // Create link
       await clickDocsToolbarBtn(locators, 'Link');
       const editPopover = locators.docs.linkEditPopover();
