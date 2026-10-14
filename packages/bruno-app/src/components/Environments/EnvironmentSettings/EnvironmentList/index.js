@@ -18,6 +18,7 @@ import DeleteEnvironment from '../DeleteEnvironment';
 import ExportEnvironmentModal from 'components/Environments/Common/ExportEnvironmentModal';
 import useEnvironmentActions from 'components/Environments/Common/EnvironmentSelection/useEnvironmentActions';
 import RowActionsMenu from 'components/Environments/Common/EnvironmentSelection/RowActionsMenu';
+import useEnvironmentListSelection from 'components/Environments/Common/EnvironmentSelection/useEnvironmentListSelection';
 import { isEqual } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -486,6 +487,15 @@ const EnvironmentList = ({
   const filteredEnvironments
     = environments?.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase())) || [];
 
+  const activeEnvUid = activeView === 'environment' ? selectedEnvironment?.uid : undefined;
+
+  const selection = useEnvironmentListSelection({
+    environments,
+    filteredEnvironments,
+    activeEnvUid,
+    onOpenEnvironment: handleEnvironmentClick
+  });
+
   const selectedDotEnvData = dotEnvFiles.find((f) => f.filename === selectedDotEnvFile);
 
   const renderContent = () => {
@@ -657,81 +667,90 @@ const EnvironmentList = ({
                 )}
               </div>
               <div className="environments-list">
-                {filteredEnvironments.map((env) => (
-                  <div
-                    key={env.uid}
-                    id={env.uid}
-                    data-testid="collection-env-list-item"
-                    className={classnames('environment-item', {
-                      active: activeView === 'environment' && selectedEnvironment?.uid === env.uid,
-                      renaming: renamingEnvUid === env.uid,
-                      activated: activeEnvironmentUid === env.uid
-                    })}
-                    onClick={() => renamingEnvUid !== env.uid && handleEnvironmentClick(env)}
-                    onDoubleClick={() => handleEnvironmentDoubleClick(env)}
-                  >
-                    {renamingEnvUid === env.uid ? (
-                      <div className="rename-container" ref={renameContainerRef}>
-                        <input
-                          ref={inputRef}
-                          type="text"
-                          className="environment-name-input"
-                          value={newEnvName}
-                          onChange={handleEnvNameChange}
-                          onKeyDown={handleEnvNameKeyDown}
-                          autoComplete="off"
-                          autoCorrect="off"
-                          autoCapitalize="off"
-                          spellCheck="false"
-                        />
-                        <div className="inline-actions">
-                          <button
-                            className="inline-action-btn save"
-                            onClick={handleSaveRename}
-                            onMouseDown={(e) => e.preventDefault()}
-                            title="Save"
-                          >
-                            <IconCheck size={14} strokeWidth={2} />
-                          </button>
-                          <button
-                            className="inline-action-btn cancel"
-                            onClick={handleCancelRename}
-                            onMouseDown={(e) => e.preventDefault()}
-                            title="Cancel"
-                          >
-                            <IconX size={14} strokeWidth={2} />
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <ColorBadge color={env.color} size={8} />
-                        <span className="environment-name">{env.name}</span>
-                        <div className="environment-actions">
-                          <RowActionsMenu
-                            onExport={() => actions.openExportModal(env)}
-                            onRename={() => handleEnvironmentDoubleClick(env)}
-                            onDuplicate={() => actions.openCopyModal(env)}
-                            onDelete={() => actions.openDeleteModal(env)}
+                {filteredEnvironments.map((env) => {
+                  const isEnvSelected = selection.isEnvSelected(env.uid);
+                  const isEnvMultiSelected = isEnvSelected && selection.selectedEnvUids.length > 1;
+                  return (
+                    <div
+                      key={env.uid}
+                      id={env.uid}
+                      data-testid="collection-env-list-item"
+                      role="option"
+                      aria-selected={isEnvSelected}
+                      className={classnames('environment-item', {
+                        'active': activeView === 'environment' && selectedEnvironment?.uid === env.uid,
+                        'renaming': renamingEnvUid === env.uid,
+                        'activated': activeEnvironmentUid === env.uid,
+                        'is-selected': isEnvSelected
+                      })}
+                      onClick={(e) => renamingEnvUid !== env.uid && selection.handleRowInteraction(e, env)}
+                      onDoubleClick={() => handleEnvironmentDoubleClick(env)}
+                    >
+                      {renamingEnvUid === env.uid ? (
+                        <div className="rename-container" ref={renameContainerRef}>
+                          <input
+                            ref={inputRef}
+                            type="text"
+                            className="environment-name-input"
+                            value={newEnvName}
+                            onChange={handleEnvNameChange}
+                            onKeyDown={handleEnvNameKeyDown}
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck="false"
                           />
-                          {activeEnvironmentUid === env.uid ? (
-                            <div className="activated-checkmark" title="Active environment">
-                              <IconCheck size={16} strokeWidth={2} />
-                            </div>
-                          ) : (
+                          <div className="inline-actions">
                             <button
-                              className="activate-btn"
-                              onClick={(e) => handleActivateEnvironment(e, env)}
-                              title="Activate environment"
+                              className="inline-action-btn save"
+                              onClick={handleSaveRename}
+                              onMouseDown={(e) => e.preventDefault()}
+                              title="Save"
                             >
-                              <IconCheck size={16} strokeWidth={2} />
+                              <IconCheck size={14} strokeWidth={2} />
                             </button>
-                          )}
+                            <button
+                              className="inline-action-btn cancel"
+                              onClick={handleCancelRename}
+                              onMouseDown={(e) => e.preventDefault()}
+                              title="Cancel"
+                            >
+                              <IconX size={14} strokeWidth={2} />
+                            </button>
+                          </div>
                         </div>
-                      </>
-                    )}
-                  </div>
-                ))}
+                      ) : (
+                        <>
+                          <ColorBadge color={env.color} size={8} />
+                          <span className="environment-name">{env.name}</span>
+                          <div className="environment-actions">
+                            {!isEnvMultiSelected && (
+                              <RowActionsMenu
+                                onExport={() => actions.openExportModal(env)}
+                                onRename={() => handleEnvironmentDoubleClick(env)}
+                                onDuplicate={() => actions.openCopyModal(env)}
+                                onDelete={() => actions.openDeleteModal(env)}
+                              />
+                            )}
+                            {activeEnvironmentUid === env.uid ? (
+                              <div className="activated-checkmark" title="Active environment">
+                                <IconCheck size={16} strokeWidth={2} />
+                              </div>
+                            ) : (
+                              <button
+                                className="activate-btn"
+                                onClick={(e) => handleActivateEnvironment(e, env)}
+                                title="Activate environment"
+                              >
+                                <IconCheck size={16} strokeWidth={2} />
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
 
                 {isCreatingInline && (
                   <div className="environment-item creating" ref={createContainerRef}>

@@ -256,6 +256,14 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.text};
     }
 
+    &.is-selected {
+      background: ${(props) => rgba(props.theme.primary.text, 0.1)};
+
+      &:hover {
+        background: ${(props) => rgba(props.theme.primary.text, 0.16)} !important;
+      }
+    }
+
     &.renaming,
     &.creating {
       cursor: default;
