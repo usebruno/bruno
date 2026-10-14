@@ -329,6 +329,7 @@ class MountManager {
       );
     }
 
+    const omitRaw = preferencesUtil.isFileCacheRawOmitted();
     fileIndex.transaction(() => {
       for (const e of toParse) {
         const result = parsed.get(e.relativePath);
@@ -343,7 +344,8 @@ class MountManager {
           relativePath: e.relativePath,
           mtime: result.mtime,
           hash: result.hash,
-          data: result.data
+          data: result.data,
+          raw: omitRaw ? null : result.raw
         });
       }
       for (const e of removed) {

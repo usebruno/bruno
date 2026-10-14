@@ -12,6 +12,7 @@ const {
   defaultClassify
 } = require('../../utils/mount');
 const { toCacheData, fromCacheData } = require('./cache-format');
+const { preferencesUtil } = require('../../store/preferences');
 
 // TODO: Check for trigger (ON UPDATE) and then see if we can use that to update updated_at
 
@@ -108,7 +109,7 @@ class FileIndex {
       return;
     }
 
-    const { mtime, hash, data } = entry;
+    const { mtime, hash, data, raw } = entry;
     const isRequest = defaultClassify(relativePath)?.type === 'request';
     this.#statements.execute('file_index_upsert', {
       collection_path: root,
@@ -117,7 +118,7 @@ class FileIndex {
       mtime,
       hash,
       data: JSON.stringify(isRequest ? toCacheData(data) : data),
-      raw: null,
+      raw: raw ?? null,
       application_version: this.#applicationVersion
     });
   }
@@ -133,6 +134,7 @@ class FileIndex {
       relativePath: target.relativePath,
       mtime,
       hash,
+      raw: preferencesUtil.isFileCacheRawOmitted() ? null : fs.readFileSync(absolutePath, 'utf8'),
       data
     });
     // the same mtime/hash that were saved, so a caller (the search index) can use them without reading the file again

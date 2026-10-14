@@ -2,6 +2,7 @@ const os = require('node:os');
 const fs = require('node:fs');
 const path = require('node:path');
 const { getPool, JobType } = require('../pool');
+const { preferencesUtil } = require('../../store/preferences');
 const {
   walk,
   hashFileAsync,
@@ -168,6 +169,7 @@ const logRunSummary = (label, stats, runStart, parse) => {
 // Keeps the collection and folder names/order in step with their files, the same way requests are kept in step:
 // unchanged files are skipped, then the file index is tried, and only then is the file read again.
 const indexMetadata = async (searchIndex, collectionPath, metaFiles, cached, fileIndex, onWork, writes) => {
+  const omitRaw = preferencesUtil.isFileCacheRawOmitted();
   const stored = searchIndex.metaEntriesFor(collectionPath);
 
   const statuses = await Promise.all(metaFiles.map(async ({ relativePath, absolutePath, cls }) => {
@@ -200,7 +202,7 @@ const indexMetadata = async (searchIndex, collectionPath, metaFiles, cached, fil
   for (const { relativePath, format, type } of statuses.filter((s) => s.kind === 'stale')) {
     let result;
     try {
-      result = await getPool().runOnce(JobType.ParseFile, { collectionPath, relativePath, format, type, includeRaw: false });
+      result = await getPool().runOnce(JobType.ParseFile, { collectionPath, relativePath, format, type, includeRaw: !omitRaw });
     } catch (err) {
       result = await failedResult(collectionPath, relativePath, err);
     }
@@ -218,7 +220,8 @@ const indexMetadata = async (searchIndex, collectionPath, metaFiles, cached, fil
             relativePath,
             mtime: result.mtime,
             hash: result.hash,
-            data: result.data
+            data: result.data,
+            raw: result.raw
           }));
         } catch (_) {}
       });
@@ -232,6 +235,7 @@ const MODE_LABELS = { quick: 'pass 1 meta', fill: 'pass 2 full', complete: 'full
 
 const indexUncached = async (searchIndex, collectionPath, collectionName, denylist, concurrency, workspacePath, fileIndex, onWork, mode, shouldStop) => {
   const runStart = performance.now();
+  const omitRaw = preferencesUtil.isFileCacheRawOmitted();
   const logLabel = `${collectionName} (${MODE_LABELS[mode]})`;
   const folderPaths = [];
   const allFiles = walk(collectionPath, resolveDenylist(denylist), folderPaths)
@@ -323,7 +327,7 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
         type: 'request',
         metaOnly: mode === 'quick',
         keepMetaOnError: mode !== 'complete',
-        includeRaw: false
+        includeRaw: !omitRaw
       });
     } catch (err) {
       result = await failedResult(collectionPath, relativePath, err);
@@ -341,7 +345,8 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
           relativePath,
           mtime: result.mtime,
           hash: result.hash,
-          data: result.data
+          data: result.data,
+          raw: result.raw
         }));
       } catch (_) {}
     });
