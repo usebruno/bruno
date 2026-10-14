@@ -116,7 +116,7 @@ export default function useProtoFileManagement(collection) {
     brunoConfig.protobuf = updatedProtobuf;
     await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
 
-    if (collection.draft?.brunoConfig) {
+    if (collection.draft) {
       dispatch(updateCollectionProtobuf({ collectionUid: collection.uid, protobuf: updatedProtobuf }));
     }
   };
