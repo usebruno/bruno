@@ -35,7 +35,7 @@ const StyledWrapper = styled.div`
     }
 
     .segment.active {
-     background: ${(props) => darken(0.03, props.theme.background.base)};
+      background: ${(props) => darken(0.03, props.theme.background.base)};
       color: ${(props) => props.theme.button2.color.secondary.text};
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
     }
