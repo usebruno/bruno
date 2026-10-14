@@ -24,6 +24,8 @@ GraphQL and WebSocket requests now resolve external secrets too.
 * **Stop the whole run.** `bru.runner.stopExecution()` now halts the entire run across iterations, in both the desktop app and the CLI.
 * **Runner storage.** Iteration responses are persisted to queryable storage rather than held in memory, so large multi-iteration runs keep memory flat. This completes the runner memory work started in v4.2.0.
 
+![Folder-level tags](https://d3icksk7srk4uh.cloudfront.net/v4.3.0/folder-tags.png)
+
 ### Try Option in Response Examples
 
 Saved response examples gain a **Try** action. It replays the example's request in a new transient tab, without changing the saved request or the example.
@@ -37,7 +39,7 @@ Saved response examples gain a **Try** action. It replays the example's request 
 * **All branches visible.** Imported repos with multiple branches show every branch.
 * **`.git` ignored on import and export.** Collection and workspace zips are imported without any `.git` folder, including nested ones, and exports never include one. This closes a vector where a shared zip could carry malicious Git hooks.
 
-![Resolve deleted-file conflicts in Bruno's Git UI](https://d3icksk7srk4uh.cloudfront.net/v4.3.0/git-branch-conflicts.png)
+![Resolve deleted-file conflicts in Bruno's Git UI](https://d3icksk7srk4uh.cloudfront.net/v4.3.0/delete-conflict-file.png)
 
 ### Themes and Polish
 
@@ -57,6 +59,8 @@ Apps now load from a real isolated origin instead of a `data:` URL. Secure-conte
 A request set to Inherit auth now shows the effective auth, read-only, with a link to where it is configured.
 
 The Headers tab gains an **Inherited Headers (n)** section listing headers from parent folders and the collection. Each one links back to its source, so you can see what will actually be sent without opening every parent.
+
+![Inherited headers](https://d3icksk7srk4uh.cloudfront.net/v4.3.0/inherit-headers.png)
 
 ---
 
