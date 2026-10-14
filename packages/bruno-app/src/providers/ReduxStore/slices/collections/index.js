@@ -2,7 +2,6 @@ import { parseQueryParams, buildQueryString as stringifyQueryParams, getDataType
 import { uuid } from 'utils/common';
 import { find, map, concat, filter, each, cloneDeep, get, set, pick, isEqual } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
-import { hexy as hexdump } from 'hexy';
 import {
   areItemsTheSameExceptSeqUpdate,
   collapseAllItemsInCollection,
@@ -649,7 +648,6 @@ export const collectionsSlice = createSlice({
 
             const startTimestamp = item.requestSent.timestamp;
             item.response.duration = startTimestamp ? Date.now() - startTimestamp : item.response.duration;
-            item.response.data = [{ type: 'info', timestamp: Date.now(), seq: seq, message: 'Connection Closed' }].concat(item.response.data);
           } else {
             item.response = null;
             item.requestUid = null;
@@ -3911,28 +3909,6 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    streamDataReceived: (state, action) => {
-      const { itemUid, collectionUid, seq, timestamp, data } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-
-      if (collection) {
-        const item = findItemInCollection(collection, itemUid);
-        if (data.data) {
-          item.response.data ||= [];
-          item.response.data.push({
-            type: 'incoming',
-            seq,
-            message: data.data,
-            messageHexdump: hexdump(data.data),
-            timestamp: timestamp || Date.now()
-          });
-        }
-        if (data.dataBuffer) {
-          item.response.dataBuffer = Buffer.concat([Buffer.from(item.response.dataBuffer), Buffer.from(data.dataBuffer)]);
-        }
-        item.response.size = data.data?.length + (item.response.size || 0);
-      }
-    },
     addRequestTag: (state, action) => {
       const { tag, collectionUid, itemUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -4421,7 +4397,6 @@ export const {
   toggleAppMode,
   appSetRuntimeVariable,
   moveCollection,
-  streamDataReceived,
   collectionAddOauth2CredentialsByUrl,
   collectionClearOauth2CredentialsByUrlAndCredentialsId,
   collectionClearOauth2CredentialsByCredentialsId,
