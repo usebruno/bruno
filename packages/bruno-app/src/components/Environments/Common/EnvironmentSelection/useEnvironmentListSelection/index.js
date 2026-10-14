@@ -23,6 +23,11 @@ const useEnvironmentListSelection = ({
 
   const hasSelection = validSelectedEnvUids.length > 0;
 
+  const isAllSelected = useMemo(
+    () => filteredEnvUids.length > 0 && filteredEnvUids.every((uid) => selectedEnvUidSet.has(uid)),
+    [filteredEnvUids, selectedEnvUidSet]
+  );
+
   const isEnvSelected = useCallback((uid) => selectedEnvUidSet.has(uid), [selectedEnvUidSet]);
 
   const clearSelection = useCallback(() => {
@@ -38,17 +43,6 @@ const useEnvironmentListSelection = ({
 
       return [...prev, uid];
     });
-  }, []);
-
-  const selectEnvs = useCallback((uids) => {
-    if (!uids?.length) return;
-
-    setSelectedEnvUids((prev) => {
-      const newUids = uids.filter((uid) => !prev.includes(uid));
-      return [...prev, ...newUids];
-    });
-
-    setLastClickedEnvUid(uids[uids.length - 1]);
   }, []);
 
   const selectEnvRange = useCallback((toUid) => {
@@ -73,16 +67,25 @@ const useEnvironmentListSelection = ({
     });
   }, [lastClickedEnvUid, activeEnvUid, filteredEnvUids]);
 
+  const selectAllEnvs = useCallback(() => {
+    if (isAllSelected) {
+      clearSelection();
+      return;
+    }
+    setSelectedEnvUids(filteredEnvUids);
+    setLastClickedEnvUid(filteredEnvUids[filteredEnvUids.length - 1] ?? null);
+  }, [isAllSelected, filteredEnvUids, clearSelection]);
+
   const handleRowInteraction = useCallback((e, env) => {
+    if (isMacOS() && e.ctrlKey) return;
+
     const isSelectionModifierPressed = isMacOS() ? e.metaKey : e.ctrlKey;
 
     if (isSelectionModifierPressed) {
-      e.preventDefault();
-      e.stopPropagation();
       // Seed the selection with the environment that's currently open, so a
       // Cmd/Ctrl-click elsewhere builds a multi-selection that includes it
       if (!hasSelection && activeEnvUid && activeEnvUid !== env.uid) {
-        selectEnvs([activeEnvUid, env.uid]);
+        setSelectedEnvUids([activeEnvUid, env.uid]);
       } else {
         toggleEnvSelection(env.uid);
       }
@@ -91,8 +94,6 @@ const useEnvironmentListSelection = ({
     }
 
     if (e.shiftKey) {
-      e.preventDefault();
-      e.stopPropagation();
       selectEnvRange(env.uid);
       setLastClickedEnvUid(env.uid);
       return;
@@ -102,13 +103,15 @@ const useEnvironmentListSelection = ({
       clearSelection();
     }
 
-    onOpenEnvironment?.(env);
-  }, [toggleEnvSelection, selectEnvs, selectEnvRange, hasSelection, activeEnvUid, clearSelection, onOpenEnvironment]);
+    onOpenEnvironment(env);
+  }, [toggleEnvSelection, selectEnvRange, hasSelection, activeEnvUid, clearSelection, onOpenEnvironment]);
 
   return {
     selectedEnvUids: validSelectedEnvUids,
     hasSelection,
+    isAllSelected,
     isEnvSelected,
+    selectAllEnvs,
     clearSelection,
     handleRowInteraction
   };

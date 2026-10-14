@@ -14,9 +14,11 @@ import DotEnvFileEditor from 'components/Environments/DotEnvFileEditor';
 import DotEnvFileDetails from 'components/Environments/DotEnvFileDetails';
 import ColorBadge from 'components/ColorBadge';
 import CopyEnvironment from '../CopyEnvironment';
-import DeleteEnvironment from '../DeleteEnvironment';
+import DeleteEnvironments from '../DeleteEnvironments';
 import ExportEnvironmentModal from 'components/Environments/Common/ExportEnvironmentModal';
 import useEnvironmentActions from 'components/Environments/Common/EnvironmentSelection/useEnvironmentActions';
+import ContextMenu from 'ui/ContextMenu';
+import buildEnvironmentMenuItems from 'components/Environments/Common/EnvironmentSelection/buildEnvironmentMenuItems';
 import RowActionsMenu from 'components/Environments/Common/EnvironmentSelection/RowActionsMenu';
 import useEnvironmentListSelection from 'components/Environments/Common/EnvironmentSelection/useEnvironmentListSelection';
 import { isEqual } from 'lodash';
@@ -66,8 +68,6 @@ const EnvironmentList = ({
   const inputRef = useRef(null);
   const renameContainerRef = useRef(null);
   const createContainerRef = useRef(null);
-
-  const actions = useEnvironmentActions({ environments });
 
   const [switchEnvConfirmClose, setSwitchEnvConfirmClose] = useState(false);
   const [originalEnvironmentVariables, setOriginalEnvironmentVariables] = useState([]);
@@ -496,6 +496,23 @@ const EnvironmentList = ({
     onOpenEnvironment: handleEnvironmentClick
   });
 
+  const actions = useEnvironmentActions({
+    environments,
+    selectedEnvUids: selection.selectedEnvUids,
+    onRenameEnvironment: handleEnvironmentDoubleClick,
+    onClearSelection: selection.clearSelection
+  });
+
+  const contextMenuItems = buildEnvironmentMenuItems({
+    selectedCount: actions.targetEnvironments.length,
+    isAllSelected: selection.isAllSelected,
+    onExport: actions.openExportModal,
+    onRename: actions.handleRenameTarget,
+    onDuplicate: actions.openCopyModal,
+    onSelectAll: selection.selectAllEnvs,
+    onDelete: actions.openDeleteModal
+  });
+
   const selectedDotEnvData = dotEnvFiles.find((f) => f.filename === selectedDotEnvFile);
 
   const renderContent = () => {
@@ -579,13 +596,22 @@ const EnvironmentList = ({
         />
       )}
 
-      {actions.isDeleteModalOpen && actions.targetEnvironments[0] && (
-        <DeleteEnvironment
+      {actions.isDeleteModalOpen && (
+        <DeleteEnvironments
           collection={collection}
-          environment={actions.targetEnvironments[0]}
+          environments={actions.targetEnvironments}
+          activeEnvironmentUid={activeEnvironmentUid}
           onClose={actions.closeDeleteModal}
         />
       )}
+
+      <ContextMenu
+        visible={actions.isMenuOpen}
+        position={actions.menuPosition}
+        items={contextMenuItems}
+        onClose={actions.closeMenu}
+        data-testid="env-context-menu"
+      />
 
       <div className="environments-container">
         {switchEnvConfirmClose && (
@@ -684,6 +710,7 @@ const EnvironmentList = ({
                         'is-selected': isEnvSelected
                       })}
                       onClick={(e) => renamingEnvUid !== env.uid && selection.handleRowInteraction(e, env)}
+                      onContextMenu={(e) => renamingEnvUid !== env.uid && actions.handleRowContextMenu(e, env)}
                       onDoubleClick={() => handleEnvironmentDoubleClick(env)}
                     >
                       {renamingEnvUid === env.uid ? (
@@ -727,6 +754,8 @@ const EnvironmentList = ({
                             {!isEnvMultiSelected && (
                               <RowActionsMenu
                                 onExport={() => actions.openExportModal(env)}
+                                onSelectAll={selection.selectAllEnvs}
+                                isAllSelected={selection.isAllSelected}
                                 onRename={() => handleEnvironmentDoubleClick(env)}
                                 onDuplicate={() => actions.openCopyModal(env)}
                                 onDelete={() => actions.openDeleteModal(env)}

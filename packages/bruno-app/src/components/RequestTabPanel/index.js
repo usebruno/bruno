@@ -577,7 +577,7 @@ const RequestTabPanel = () => {
   }
 
   if (focusedTab.type === 'environment-settings') {
-    return <EnvironmentSettings key={collection?.uid} collection={collection} />;
+    return <EnvironmentSettings collection={collection} />;
   }
 
   if (focusedTab.type === 'openapi-sync') {

@@ -1,37 +1,17 @@
 import React from 'react';
 import MenuDropdown from 'ui/MenuDropdown';
-import { IconDots, IconUpload, IconEdit, IconCopy, IconTrash } from '@tabler/icons';
+import { IconDots } from '@tabler/icons';
+import buildEnvironmentMenuItems from '../buildEnvironmentMenuItems';
 
-const RowActionsMenu = ({ onExport, onRename, onDuplicate, onDelete }) => {
-  const menuItems = [
-    {
-      id: 'export',
-      label: 'Export',
-      leftSection: IconUpload,
-      onClick: onExport
-    },
-    { id: 'divider-1', type: 'divider' },
-    {
-      id: 'rename',
-      label: 'Rename',
-      leftSection: IconEdit,
-      onClick: onRename
-    },
-    {
-      id: 'duplicate',
-      label: 'Duplicate',
-      leftSection: IconCopy,
-      onClick: onDuplicate
-    },
-    { id: 'divider-2', type: 'divider' },
-    {
-      id: 'delete',
-      label: 'Delete',
-      leftSection: IconTrash,
-      className: 'delete-item',
-      onClick: onDelete
-    }
-  ];
+const RowActionsMenu = ({ onExport, onRename, onDuplicate, onDelete, onSelectAll, isAllSelected }) => {
+  const menuItems = buildEnvironmentMenuItems({
+    isAllSelected,
+    onExport,
+    onRename,
+    onDuplicate,
+    onSelectAll,
+    onDelete
+  });
 
   return (
     <div
@@ -48,7 +28,6 @@ const RowActionsMenu = ({ onExport, onRename, onDuplicate, onDelete }) => {
         <button
           type="button"
           className="env-row-menu-btn"
-          onClick={(e) => e.stopPropagation()}
           aria-label="More actions"
           data-testid="env-row-menu-btn"
         >
