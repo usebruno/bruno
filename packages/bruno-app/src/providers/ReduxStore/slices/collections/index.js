@@ -966,6 +966,11 @@ export const collectionsSlice = createSlice({
           if (item.draft.app) {
             item.app = item.draft.app;
           }
+          // Sidebar/examples UI reads item.examples, not draft. Promote before
+          // clearing draft so rows stay visible until the file watcher lands.
+          if (item.draft.examples) {
+            item.examples = item.draft.examples;
+          }
           item.draft = null;
         }
       }
