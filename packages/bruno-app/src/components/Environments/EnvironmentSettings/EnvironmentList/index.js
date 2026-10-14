@@ -13,6 +13,11 @@ import CollapsibleSection from 'components/Environments/CollapsibleSection';
 import DotEnvFileEditor from 'components/Environments/DotEnvFileEditor';
 import DotEnvFileDetails from 'components/Environments/DotEnvFileDetails';
 import ColorBadge from 'components/ColorBadge';
+import CopyEnvironment from '../CopyEnvironment';
+import DeleteEnvironment from '../DeleteEnvironment';
+import ExportEnvironmentModal from 'components/Environments/Common/ExportEnvironmentModal';
+import useEnvironmentActions from 'components/Environments/Common/EnvironmentSelection/useEnvironmentActions';
+import RowActionsMenu from 'components/Environments/Common/EnvironmentSelection/RowActionsMenu';
 import { isEqual } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -60,6 +65,8 @@ const EnvironmentList = ({
   const inputRef = useRef(null);
   const renameContainerRef = useRef(null);
   const createContainerRef = useRef(null);
+
+  const actions = useEnvironmentActions({ environments });
 
   const [switchEnvConfirmClose, setSwitchEnvConfirmClose] = useState(false);
   const [originalEnvironmentVariables, setOriginalEnvironmentVariables] = useState([]);
@@ -546,6 +553,30 @@ const EnvironmentList = ({
         <ImportEnvironmentModal type="collection" collection={collection} onClose={() => setOpenImportModal(false)} />
       )}
 
+      {actions.isExportModalOpen && (
+        <ExportEnvironmentModal
+          environments={actions.targetEnvironments}
+          environmentType="collection"
+          onClose={actions.closeExportModal}
+        />
+      )}
+
+      {actions.isCopyModalOpen && actions.targetEnvironments[0] && (
+        <CopyEnvironment
+          collection={collection}
+          environment={actions.targetEnvironments[0]}
+          onClose={actions.closeCopyModal}
+        />
+      )}
+
+      {actions.isDeleteModalOpen && actions.targetEnvironments[0] && (
+        <DeleteEnvironment
+          collection={collection}
+          environment={actions.targetEnvironments[0]}
+          onClose={actions.closeDeleteModal}
+        />
+      )}
+
       <div className="environments-container">
         {switchEnvConfirmClose && (
           <div className="confirm-switch-overlay">
@@ -677,6 +708,12 @@ const EnvironmentList = ({
                         <ColorBadge color={env.color} size={8} />
                         <span className="environment-name">{env.name}</span>
                         <div className="environment-actions">
+                          <RowActionsMenu
+                            onExport={() => actions.openExportModal(env)}
+                            onRename={() => handleEnvironmentDoubleClick(env)}
+                            onDuplicate={() => actions.openCopyModal(env)}
+                            onDelete={() => actions.openDeleteModal(env)}
+                          />
                           {activeEnvironmentUid === env.uid ? (
                             <div className="activated-checkmark" title="Active environment">
                               <IconCheck size={16} strokeWidth={2} />
