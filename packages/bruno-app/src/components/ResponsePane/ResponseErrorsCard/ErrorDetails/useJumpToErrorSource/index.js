@@ -1,4 +1,5 @@
 import { useDispatch } from 'react-redux';
+import { SCRIPT_TYPES } from '@usebruno/common';
 import { addTab, updateRequestPaneTab, updateScriptPaneTab, setFocusErrorLine } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import { getErrorSourceTabUid } from 'utils/response-pane-errors';
@@ -7,7 +8,7 @@ const useJumpToErrorSource = (error, item, collection) => {
   const dispatch = useDispatch();
   const { scriptType, source, line } = error;
   const tabUid = getErrorSourceTabUid(source, item, collection);
-  const isTestScript = scriptType === 'test';
+  const isTestScript = scriptType === SCRIPT_TYPES.TEST;
 
   const showScriptAtErrorLine = () => {
     if (!isTestScript) {
