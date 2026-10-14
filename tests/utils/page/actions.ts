@@ -2958,6 +2958,19 @@ const createExampleFromSidebar = async (page: Page, requestName: string, example
   }
 };
 
+/**
+ * Expand or collapse a request's examples in the sidebar. No-op if already in the requested state.
+ */
+const toggleRequestExamples = async (page: Page, requestName: string, expand: boolean) => {
+  await test.step(`${expand ? 'Expand' : 'Collapse'} examples of request "${requestName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const chevron = locators.sidebar.requestExamplesToggle(requestName);
+    await chevron.waitFor({ state: 'visible', timeout: 5000 });
+    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+    if (isExpanded !== expand) await chevron.click();
+  });
+};
+
 const openExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, index: number = 0) => {
   const requestRow = page.locator('.collection-item-name').filter({ hasText: requestName }).first();
   const requestBranch = page.locator(`[data-parent-name="${requestName}"]`);
@@ -4120,6 +4133,7 @@ export {
   readCollectionProxyField,
   createExampleFromSidebar,
   openExampleFromSidebar,
+  toggleRequestExamples,
   openWorkspaceFromDialog,
   setCodeMirrorValue,
   expectTransientRequestOpened,
