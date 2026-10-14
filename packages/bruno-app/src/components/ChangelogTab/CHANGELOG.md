@@ -38,6 +38,8 @@ Bruno's own runtime handles auth and variables, so credentials are never exposed
 
 Saved response examples gain a **Try** action. It replays the example's request in a new transient tab, without changing the saved request or the example.
 
+![Try a saved response example in Bruno](https://d3icksk7srk4uh.cloudfront.net/v4.3.0/try-response-examples.png)
+
 ### Inherited Auth and Headers
 
 A request set to Inherit auth now shows the effective auth, read-only, with a link to where it is configured.
@@ -50,6 +52,8 @@ The Headers tab gains an **Inherited Headers** section listing headers from pare
 * **Deleted-file conflicts.** Merge conflicts on deleted files can be resolved in the Git UI.
 * **All branches visible.** Imported repos with multiple branches show every branch.
 
+![Resolve deleted-file conflicts in Bruno's Git UI](https://d3icksk7srk4uh.cloudfront.net/v4.3.0/git-branch-conflicts.png)
+
 ### API Specs
 
 API specs open as workspace tabs, and a new **From URL** template lets you start a spec from a remote document.
@@ -60,6 +64,8 @@ API specs open as workspace tabs, and a new **From URL** template lets you start
 * Sidebar context menu shortcuts are right-aligned, with the proper modifier symbols.
 * The General pane in Preferences is regrouped into clear sections.
 * License keys are masked in License Settings.
+
+![Additional dark themes in Bruno](https://d3icksk7srk4uh.cloudfront.net/v4.3.0/additional-themes.png)
 
 ---
 
