@@ -28,6 +28,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
         await page.keyboard.press('ArrowLeft');
       }
       await page.keyboard.up('Shift');
+      await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe('here');
 
       // Click the Link button
       await clickDocsToolbarBtn(locators, 'Link');
@@ -94,6 +95,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await page.keyboard.down('Shift');
       for (let i = 0; i < 7; i++) await page.keyboard.press('ArrowLeft');
       await page.keyboard.up('Shift');
+      await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe('LinkOne');
 
       // Create LinkOne
       await clickDocsToolbarBtn(locators, 'Link');
@@ -109,6 +111,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await page.keyboard.down('Shift');
       for (let i = 0; i < 7; i++) await page.keyboard.press('ArrowLeft');
       await page.keyboard.up('Shift');
+      await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe('LinkTwo');
 
       // Create LinkTwo
       await clickDocsToolbarBtn(locators, 'Link');
@@ -166,6 +169,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
         await page.keyboard.press('ArrowLeft');
       }
       await page.keyboard.up('Shift');
+      await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe('Top Link');
 
       // Create a link
       await clickDocsToolbarBtn(locators, 'Link');
@@ -277,6 +281,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await page.keyboard.down('Shift');
       for (let i = 0; i < 8; i++) await page.keyboard.press('ArrowLeft');
       await page.keyboard.up('Shift');
+      await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe('Internal');
 
       await clickDocsToolbarBtn(locators, 'Link');
       await locators.docs.linkEditUrlInput().fill('#preferences/ai');
@@ -307,6 +312,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await page.keyboard.down('Shift');
       for (let i = 0; i < 8; i++) await page.keyboard.press('ArrowLeft');
       await page.keyboard.up('Shift');
+      await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe('External');
 
       await clickDocsToolbarBtn(locators, 'Link');
       await locators.docs.linkEditUrlInput().fill('https://example.org');
