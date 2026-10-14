@@ -152,7 +152,8 @@ const cyberdreamDarkTheme = {
     border3: colors.BORDER3,
     border2: colors.BORDER2,
     border1: colors.BORDER1,
-    border0: colors.BORDER0
+    border0: colors.BORDER0,
+    subtle: colors.BORDER1
   },
 
   colors: {
