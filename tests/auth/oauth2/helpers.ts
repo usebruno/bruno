@@ -1,0 +1,147 @@
+import type { ElectronApplication } from 'playwright';
+import { expect, waitForReadyPage } from '../../../playwright';
+import { openRequest, selectRequestPaneTab, selectEnvironment } from '../../utils/page';
+
+export const COLLECTION = 'oauth2-state';
+export const KEYCLOAK_USER = 'testuser';
+export const KEYCLOAK_PASSWORD = 'testpassword';
+
+// This block stubs Electron's shell.openExternal inside the Bruno app
+// so the OAuth2 test can intercept the authorization URL
+// instead of opening a real browser.
+export const stubOpenExternal = (app: ElectronApplication) =>
+  app.evaluate(({ shell }) => {
+    (globalThis as any).__brunoCapturedAuthUrl = null;
+    shell.openExternal = async (url: string) => {
+      (globalThis as any).__brunoCapturedAuthUrl = url;
+    };
+  });
+
+/**
+ * Wrap the real `second-instance` listener so callback URLs are recorded when Bruno
+ * receives them — same argv path as `getAppProtocolUrlFromArgv` in index.js.
+ */
+export const installCallbackCapture = (app: ElectronApplication) => {
+  return app.evaluate(({ app: electronApp }) => {
+    (globalThis as any).__brunoCapturedCallbackUrl = null;
+
+    electronApp.prependListener('second-instance', (_event, commandLine) => {
+      const url = commandLine?.find((arg: string) => arg?.startsWith('bruno://'));
+      if (url) {
+        (globalThis as any).__brunoCapturedCallbackUrl = url;
+      }
+    });
+  });
+};
+
+export const clickGetAccessToken = async (page: Parameters<typeof openRequest>[0], requestName: string) => {
+  await openRequest(page, COLLECTION, requestName);
+  await selectEnvironment(page, 'Local', 'collection');
+  await selectRequestPaneTab(page, 'Auth');
+  await page.getByRole('button', { name: 'Get Access Token' }).click();
+};
+
+export const getCapturedAuthUrl = (app: ElectronApplication): Promise<string | null> =>
+  app.evaluate(() => (globalThis as any).__brunoCapturedAuthUrl ?? null);
+
+export const waitForAuthorizationStarted = async (app: ElectronApplication) => {
+  await expect.poll(() => getCapturedAuthUrl(app), { timeout: 15_000 }).toBeTruthy();
+};
+
+/**
+ * Common flow bootstrap shared by every test: restart the app, wait for a ready page,
+ * stub `shell.openExternal`, install the callback capture, click "Get Access Token" for
+ * the given request, and wait for the authorization URL to be captured.
+ */
+export const startOAuth2Flow = async (
+  restartApp: (options?: { initUserDataPath?: string }) => Promise<ElectronApplication>,
+  requestName: string
+) => {
+  const app = await restartApp();
+  const page = await waitForReadyPage(app);
+
+  // Fake opening the browser so we can read the login URL.
+  await stubOpenExternal(app);
+  await installCallbackCapture(app);
+
+  await clickGetAccessToken(page, requestName);
+  await waitForAuthorizationStarted(app);
+
+  return { app, page };
+};
+
+/** `state` Bruno sent on the authorization URL (stored internally as expectedState). */
+export const getIssuedStateFromAuthorizationUrl = async (app: ElectronApplication): Promise<string> => {
+  const authUrl = await getCapturedAuthUrl(app);
+  expect(authUrl, 'authorization URL should have been opened').toBeTruthy();
+  const state = new URL(authUrl as string).searchParams.get('state');
+  expect(state, 'issued state should be present on the authorization URL').toBeTruthy();
+  return state as string;
+};
+
+export const loginToKeycloakForAuthCode = async (authorizationUrl: string): Promise<string> => {
+  const loginPage = await fetch(authorizationUrl, { redirect: 'manual' });
+  expect(loginPage.ok, 'Keycloak authorize should return a login page').toBeTruthy();
+
+  const cookies = ((loginPage.headers as Headers & { getSetCookie?: () => string[] }).getSetCookie?.() ?? [])
+    .map((c) => c.split(';')[0])
+    .join('; ');
+
+  const html = await loginPage.text();
+
+  const loginFormActionRegex = /action="([^"]+login-actions\/authenticate[^"]*)"/;
+
+  // Extract the login form's action URL; it carries per-request session params, so it can't be hardcoded.
+  const formActionMatch = html.match(loginFormActionRegex);
+  expect(formActionMatch, 'Keycloak login page should expose a form action').toBeTruthy();
+
+  // HTML escapes & as &amp; inside attributes; restore it so the query params reach Keycloak intact.
+  const formAction = formActionMatch![1].replace(/&amp;/g, '&');
+  const submission = await fetch(formAction, {
+    method: 'POST',
+    redirect: 'manual',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      ...(cookies ? { cookie: cookies } : {})
+    },
+    body: new URLSearchParams({
+      username: KEYCLOAK_USER,
+      password: KEYCLOAK_PASSWORD,
+      credentialId: ''
+    }).toString()
+  });
+
+  const location = submission.headers.get('location');
+  expect(location, 'Keycloak login should redirect to the callback URL').toBeTruthy();
+  const code = new URL(location as string).searchParams.get('code');
+  expect(code, 'Keycloak callback redirect should carry an auth code').toBeTruthy();
+  return code as string;
+};
+
+/** Fire a deep-link callback through the real protocol handler (cross-platform path). */
+export const fireDeepLinkCallback = (app: ElectronApplication, url: string) =>
+  app.evaluate(({ app: electronApp }, callbackUrl) => {
+    electronApp.emit('second-instance', {}, [callbackUrl]);
+  }, url);
+
+export const getCapturedCallbackUrl = (app: ElectronApplication): Promise<string | null> =>
+  app.evaluate(() => (globalThis as any).__brunoCapturedCallbackUrl ?? null);
+
+export type CallbackStyle = 'query' | 'hash';
+
+export const getCallbackParams = (callbackUrl: string, style: CallbackStyle = 'query') => {
+  const url = new URL(callbackUrl);
+  if (style === 'hash') {
+    const hashParams = new URLSearchParams(url.hash.slice(1));
+    return {
+      state: hashParams.get('state'),
+      code: null,
+      access_token: hashParams.get('access_token')
+    };
+  }
+  return {
+    state: url.searchParams.get('state'),
+    code: url.searchParams.get('code'),
+    access_token: null
+  };
+};
