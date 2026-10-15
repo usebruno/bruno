@@ -35,12 +35,11 @@ export const BRUNO_REGISTRY = derive(CORRESPONDENCE, 'bru');
  * @param {Object} registry - The API registry for the direction being translated
  */
 export const applySemanticTypes = (j, ast, registry) => {
-  collectBindings(j, ast, registry).forEach((binding) => {
-    rewriteYields(j, ast, binding, registry);
-    rewriteMembers(j, ast, binding, registry);
-  });
+  const bindings = collectBindings(j, ast, registry);
 
-  rewriteDestructuredDeclarations(j, ast, registry);
+  rewriteYields(j, ast, bindings, registry);
+  rewriteMembers(j, ast, bindings, registry);
+  rewriteDestructuredDeclarations(j, ast, bindings, registry);
 };
 
 export { rewriteMembers, rewritePattern, resolvesToBinding };

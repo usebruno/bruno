@@ -8,7 +8,7 @@ const DIRECTIONS = ['pm->bru', 'bru->pm'];
  * rather than a condition to translate around, so it fails at import instead of quietly
  * dropping the member.
  */
-const validateRow = (row, typeName) => {
+const validateRow = (row, typeName, pairNames) => {
   const where = `${typeName}.${row.pm || row.bru}`;
 
   if (!row.pm && !row.bru) throw new Error(`correspondence: a row of ${typeName} names no member`);
@@ -33,11 +33,14 @@ const validateRow = (row, typeName) => {
   [row.pmToBru, row.bruToPm].forEach((yields) => {
     if (!yields) return;
     const keys = Object.keys(yields);
-    if (keys.length !== 1 || !['coerce', 'lost'].includes(keys[0])) {
-      throw new Error(`correspondence: ${where} yields ${keys.join(', ')}; expected one of coerce, lost`);
+    if (keys.length !== 1 || !['coerce', 'lost', 'type'].includes(keys[0])) {
+      throw new Error(`correspondence: ${where} yields ${keys.join(', ')}; expected one of coerce, lost, type`);
     }
     if (yields.coerce && !COERCIONS[yields.coerce]) {
       throw new Error(`correspondence: ${where} names coercion '${yields.coerce}', which does not exist`);
+    }
+    if (yields.type && !pairNames.includes(yields.type)) {
+      throw new Error(`correspondence: ${where} yields type '${yields.type}', which is not a declared type pair`);
     }
   });
 };
@@ -69,8 +72,9 @@ const resolveHandlers = (handlers, correspondence, sideKey) =>
  * Turns a type pair's rows into the member map for one direction, dropping the rows that
  * do not apply to it.
  */
-const deriveMembers = (pair, { from, to, directionKey, direction }) => {
-  const typeName = pair[from === 'pm' ? 'postman' : 'bruno'];
+const deriveMembers = (pair, { from, to, directionKey, direction, sideKey, typePairs }) => {
+  const typeName = pair[sideKey];
+  const pairNames = Object.keys(typePairs);
   const members = {};
 
   /**
@@ -89,7 +93,7 @@ const deriveMembers = (pair, { from, to, directionKey, direction }) => {
   };
 
   pair.members.forEach((row) => {
-    validateRow(row, typeName);
+    validateRow(row, typeName, pairNames);
 
     const name = row[from];
     if (!name) return;
@@ -106,7 +110,11 @@ const deriveMembers = (pair, { from, to, directionKey, direction }) => {
     const call = deriveCall(row, from);
     if (call) spec.call = call;
 
-    if (row[directionKey]) spec.yields = row[directionKey];
+    const yields = row[directionKey];
+    // a yielded type names a *pair*; the registry wants this side's name for it
+    if (yields) {
+      spec.yields = yields.type ? { type: typePairs[yields.type][sideKey] } : yields;
+    }
 
     defineMember(name, spec);
   });
@@ -133,7 +141,9 @@ const derive = (correspondence, from) => {
 
   const types = {};
   Object.values(correspondence.typePairs).forEach((pair) => {
-    types[pair[sideKey]] = deriveMembers(pair, { from, to, directionKey, direction });
+    types[pair[sideKey]] = deriveMembers(pair, {
+      from, to, directionKey, direction, sideKey, typePairs: correspondence.typePairs
+    });
   });
 
   const producers = {};

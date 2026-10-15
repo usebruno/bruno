@@ -1,4 +1,4 @@
-import { getMemberExpressionString } from '../ast-utils';
+import { getMemberExpressionString, getStaticPropertyName } from '../ast-utils';
 
 /**
  * Whether an identifier reference resolves to a given binding rather than to a different
@@ -68,19 +68,49 @@ const isReassigned = (j, ast, binding) => {
 };
 
 /**
- * The type an expression yields, or null when it isn't one the registry knows.
+ * The registry type an expression evaluates to, or null when the registry cannot say.
  *
- * @param {Object} node - The expression node
+ * Resolving an *expression* rather than only a name is what lets a type reach past its own
+ * members at any depth: `jar.getAll(u)` is typed from `jar`'s type plus the row `getAll`
+ * declares, whether or not it was ever given a name.
+ *
+ * @param {Object} path - Path of the expression
+ * @param {Array} bindings - Bindings collected so far
  * @param {Object} registry - The API registry
  * @returns {string|null} Type name
  */
-export const getProducedType = (node, registry) => {
+export const getExpressionType = (path, bindings, registry) => {
+  const node = path.value;
+
   // Bruno runs scripts in an async closure, so a produced value commonly arrives awaited
-  const produced = node.type === 'AwaitExpression' ? node.argument : node;
+  if (node.type === 'AwaitExpression') {
+    return getExpressionType(path.get('argument'), bindings, registry);
+  }
 
-  if (produced.type !== 'CallExpression') return null;
+  if (node.type === 'Identifier') {
+    const binding = bindings.find(
+      (known) => known.name === node.name && resolvesToBinding(path, known)
+    );
 
-  return registry.producers[getMemberExpressionString(produced.callee)] || null;
+    return binding ? binding.typeName : null;
+  }
+
+  if (node.type !== 'CallExpression') return null;
+
+  const produced = registry.producers[getMemberExpressionString(node.callee)];
+  if (produced) return produced;
+
+  if (node.callee.type !== 'MemberExpression') return null;
+
+  const calleePath = path.get('callee');
+  const receiverType = getExpressionType(calleePath.get('object'), bindings, registry);
+  if (!receiverType) return null;
+
+  const members = registry.types[receiverType];
+  const member = getStaticPropertyName(calleePath.value);
+  const spec = member && members && members[member];
+
+  return (spec && spec.yields && spec.yields.type) || null;
 };
 
 /**
@@ -95,33 +125,49 @@ export const collectBindings = (j, ast, registry) => {
   const bindings = [];
   const declarationCounts = countDeclarationsPerScope(j, ast);
 
-  ast.find(j.VariableDeclarator).forEach((path) => {
-    if (path.value.id.type !== 'Identifier' || !path.value.init) return;
+  const candidates = ast
+    .find(j.VariableDeclarator)
+    .paths()
+    .filter((path) => path.value.id.type === 'Identifier' && path.value.init);
 
-    const typeName = getProducedType(path.value.init, registry);
-    if (!typeName) return;
+  /**
+   * A binding can be typed from one typed in an earlier round, so the sweep repeats until a
+   * round adds nothing. Only pushing a binding sets `grew`, which is what ends it.
+   */
+  let grew = true;
 
-    const name = path.value.id.name;
-    const scopeNode = path.scope.node;
+  while (grew) {
+    grew = false;
 
-    /**
-     * ast-types models function scope, not block scope, so a `const` inside a nested block
-     * resolves to the enclosing function's scope and is indistinguishable from one declared
-     * beside it:
-     *
-     *   const r = await pm.sendRequest(req);
-     *   if (retry) { const r = cached; console.log(r.code); }  // also resolves to Program
-     *
-     * Two declarations of the name in one scope means references can't be attributed to
-     * either, so neither is tracked.
-     */
-    if (declarationCounts.get(scopeNode).get(name) > 1) return;
+    candidates.forEach((path) => {
+      const name = path.value.id.name;
+      const scopeNode = path.scope.node;
 
-    const binding = { name, scopeNode, typeName };
-    if (isReassigned(j, ast, binding)) return;
+      if (bindings.some((known) => known.name === name && known.scopeNode === scopeNode)) return;
 
-    bindings.push(binding);
-  });
+      const typeName = getExpressionType(path.get('init'), bindings, registry);
+      if (!typeName) return;
+
+      /**
+       * ast-types models function scope, not block scope, so a `const` inside a nested block
+       * resolves to the enclosing function's scope and is indistinguishable from one declared
+       * beside it:
+       *
+       *   const r = await pm.sendRequest(req);
+       *   if (retry) { const r = cached; console.log(r.code); }  // also resolves to Program
+       *
+       * Two declarations of the name in one scope means references can't be attributed to
+       * either, so neither is tracked.
+       */
+      if (declarationCounts.get(scopeNode).get(name) > 1) return;
+
+      const binding = { name, scopeNode, typeName };
+      if (isReassigned(j, ast, binding)) return;
+
+      bindings.push(binding);
+      grew = true;
+    });
+  }
 
   return bindings;
 };

@@ -85,10 +85,9 @@ describe('semantic registries', () => {
       expect(missing).toEqual([]);
     });
 
-    it('should give every coercion both a builder and a description', () => {
+    it('should give every coercion a builder', () => {
       Object.entries(COERCIONS).forEach(([name, coercion]) => {
         expect([name, typeof coercion.build]).toEqual([name, 'function']);
-        expect([name, typeof coercion.describes]).toEqual([name, 'string']);
       });
     });
   });

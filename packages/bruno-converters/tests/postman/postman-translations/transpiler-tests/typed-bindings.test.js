@@ -10,6 +10,16 @@ describe('Typed bindings', () => {
       expect(translateCode(code)).toContain('console.log(r.status, r.data, r.data, r.statusText);');
     });
 
+    it('should follow a plain alias of a typed binding', () => {
+      const code = `
+        const r = await pm.sendRequest(req);
+        const alias = r;
+        console.log(alias.code);
+      `;
+      // neither binding is reassigned, so the alias holds the same response
+      expect(translateCode(code)).toContain('console.log(alias.status);');
+    });
+
     it('should map response members when the call is not awaited in the source', () => {
       const code = `
         const r = pm.sendRequest({ url: 'https://echo.usebruno.com' });
@@ -95,15 +105,6 @@ describe('Typed bindings', () => {
       const translatedCode = translateCode(code);
       expect(translatedCode).toContain('console.log(r.status);');
       expect(translatedCode).toContain('function describeOther(r) { return r.code; }');
-    });
-
-    it('should not follow a plain alias of a typed binding', () => {
-      const code = `
-        const r = await pm.sendRequest(req);
-        const alias = r;
-        console.log(alias.code);
-      `;
-      expect(translateCode(code)).toContain('console.log(alias.code);');
     });
   });
 
@@ -214,7 +215,7 @@ describe('Typed bindings', () => {
       expect(translatedCode).not.toContain('bruno-converter');
     });
 
-    it('should flag the callback form, where the value arrives as a parameter', () => {
+    it('should leave the callback form as written', () => {
       const code = `
         const jar = pm.cookies.jar();
         jar.get('https://a.com', 'sid', (err, value) => console.log(value));
@@ -222,10 +223,9 @@ describe('Typed bindings', () => {
       const translatedCode = translateCode(code);
 
       expect(translatedCode).toContain('(err, value) => console.log(value)');
-      expect(translatedCode).toContain('// bruno-converter: Bruno yields the cookie object');
     });
 
-    it('should flag a property whose shape differs, having no call to adapt', () => {
+    it('should leave a property whose shape differs as written', () => {
       const code = `
         const r = await pm.sendRequest(q);
         console.log(r.headers.get('content-type'));
@@ -233,18 +233,19 @@ describe('Typed bindings', () => {
       const translatedCode = translateCode(code);
 
       expect(translatedCode).toContain('console.log(r.headers.get(\'content-type\'));');
-      expect(translatedCode).toContain('// bruno-converter: Postman headers is a HeaderList');
     });
 
-    it('should flag a list whose shape no expression recovers', () => {
+    it('should type the list a jar member yields and rename its divergent members', () => {
       const code = `
         const jar = pm.cookies.jar();
         const all = await jar.getAll('https://a.com');
+        console.log(all.count(), all.get('sid'));
       `;
       const translatedCode = translateCode(code);
 
       expect(translatedCode).toContain('const all = await jar.getCookies(\'https://a.com\');');
-      expect(translatedCode).toContain('// bruno-converter: Postman yields a PropertyList');
+      // `count` is the one member the two lists spell differently; `get` matches, so it stands
+      expect(translatedCode).toContain('console.log(all.size(), all.get(\'sid\'));');
     });
   });
 

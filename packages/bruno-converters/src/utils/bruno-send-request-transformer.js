@@ -213,7 +213,7 @@ const transformCallback = (callbackPath) => {
     rewriteMembers(
       j,
       j(callbackPath),
-      { name: responseVarName, scopeNode: callback, typeName: responseType },
+      [{ name: responseVarName, scopeNode: callback, typeName: responseType }],
       BRUNO_REGISTRY
     );
   }

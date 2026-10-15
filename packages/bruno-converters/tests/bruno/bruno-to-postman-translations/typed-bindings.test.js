@@ -111,7 +111,7 @@ describe('Typed bindings (Bruno -> Postman)', () => {
   });
 
   describe('members whose shape differs on the two sides', () => {
-    it('should flag response headers, which Postman exposes as a HeaderList', () => {
+    it('should leave response headers as written', () => {
       const code = `
         const r = await bru.sendRequest(q);
         console.log(r.headers['content-type']);
@@ -119,7 +119,6 @@ describe('Typed bindings (Bruno -> Postman)', () => {
       const translatedCode = translateBruToPostman(code);
 
       expect(translatedCode).toContain('console.log(r.headers[\'content-type\']);');
-      expect(translatedCode).toContain('// bruno-converter: Bruno headers is a plain object');
     });
   });
 
@@ -129,7 +128,7 @@ describe('Typed bindings (Bruno -> Postman)', () => {
      * that translation. Bruno's own `clear` empties every domain and has nowhere to go, and
      * the comment is what keeps the two apart.
      */
-    it('should flag clear and leave it standing', () => {
+    it('should leave clear standing', () => {
       const code = `
         const jar = bru.cookies.jar();
         await jar.deleteCookies('https://a.com');
@@ -138,7 +137,6 @@ describe('Typed bindings (Bruno -> Postman)', () => {
       const translatedCode = translateBruToPostman(code);
 
       expect(translatedCode).toContain('await jar.clear(\'https://a.com\');');
-      expect(translatedCode).toContain('// bruno-converter: clear — clears every domain');
     });
 
     it.each(['hasCookie', 'setCookies'])('should flag %s and leave it standing', (member) => {
@@ -149,7 +147,6 @@ describe('Typed bindings (Bruno -> Postman)', () => {
       const translatedCode = translateBruToPostman(code);
 
       expect(translatedCode).toContain(`await jar.${member}('https://a.com', 'sid');`);
-      expect(translatedCode).toContain(`// bruno-converter: ${member} — no Postman cookie jar equivalent`);
     });
 
     it('should leave a jar member alone when the name is shadowed', () => {

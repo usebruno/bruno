@@ -259,7 +259,7 @@ const rewriteResponseAccess = (j, handlerPath, responseVarName, typeName) => {
   rewriteMembers(
     j,
     j(handlerPath),
-    { name: responseVarName, scopeNode: handlerPath.value, typeName },
+    [{ name: responseVarName, scopeNode: handlerPath.value, typeName }],
     POSTMAN_REGISTRY
   );
 };

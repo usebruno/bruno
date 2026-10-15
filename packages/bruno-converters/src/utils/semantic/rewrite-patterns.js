@@ -1,4 +1,4 @@
-import { getProducedType } from './type-environment';
+import { getExpressionType } from './type-environment';
 
 /**
  * Rewrites the keys of a destructuring pattern that unpacks a typed value, aliasing each
@@ -47,13 +47,14 @@ export const rewritePattern = (j, pattern, typeName, registry) => {
  *
  * @param {Object} j - jscodeshift API
  * @param {Object} ast - jscodeshift Collection
+ * @param {Array} bindings - Typed bindings in scope
  * @param {Object} registry - The API registry
  */
-export const rewriteDestructuredDeclarations = (j, ast, registry) => {
+export const rewriteDestructuredDeclarations = (j, ast, bindings, registry) => {
   ast.find(j.VariableDeclarator).forEach((path) => {
     if (path.value.id.type !== 'ObjectPattern' || !path.value.init) return;
 
-    const typeName = getProducedType(path.value.init, registry);
+    const typeName = getExpressionType(path.get('init'), bindings, registry);
     if (!typeName) return;
 
     rewritePattern(j, path.value.id, typeName, registry);

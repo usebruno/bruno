@@ -79,8 +79,8 @@ const COOKIE_JAR = {
     {
       pm: 'getAll',
       bru: 'getCookies',
-      pmToBru: { lost: 'Postman yields a PropertyList with .get()/.count(); Bruno yields an array' },
-      bruToPm: { lost: 'Bruno yields an array; Postman yields a PropertyList with .get()/.count()' }
+      pmToBru: { type: 'PropertyList' },
+      bruToPm: { type: 'PropertyList' }
     },
 
     {
@@ -95,6 +95,21 @@ const COOKIE_JAR = {
     },
     { bru: 'hasCookie', unsupported: 'no Postman cookie jar equivalent' },
     { bru: 'setCookies', unsupported: 'no Postman cookie jar equivalent' }
+  ]
+};
+
+/**
+ * Postman's PropertyList against Bruno's. The two surfaces agree on everything the lists are
+ * read with — `get`, `has`, `find`, `each`, `map`, `toObject` — so those need no rows: a
+ * member spelled the same on both sides is already correct untranslated. Only the divergence
+ * is written down.
+ */
+const PROPERTY_LIST = {
+  postman: 'PostmanPropertyList',
+  bruno: 'BrunoPropertyList',
+
+  members: [
+    { pm: 'count', bru: 'size' }
   ]
 };
 
@@ -123,7 +138,8 @@ const ENTRY_POINTS = [
 /** Type pairs, keyed by the short name `yields` and the handler entries use. */
 const TYPE_PAIRS = {
   Response: RESPONSE,
-  CookieJar: COOKIE_JAR
+  CookieJar: COOKIE_JAR,
+  PropertyList: PROPERTY_LIST
 };
 
 export default { typePairs: TYPE_PAIRS, entryPoints: ENTRY_POINTS };
