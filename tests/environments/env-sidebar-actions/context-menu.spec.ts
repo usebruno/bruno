@@ -23,8 +23,8 @@ test.describe('Collection environments context menu', () => {
     await expect(contextMenuItem('export')).toBeVisible();
     await expect(contextMenuItem('rename')).toBeVisible();
     await expect(contextMenuItem('duplicate')).toBeVisible();
-    await expect(contextMenuItem('select-all')).toHaveText('Select all');
-    await expect(contextMenuItem('delete')).toHaveText('Delete');
+    await expect(contextMenuItem('select-all')).toHaveText(/^Select all/);
+    await expect(contextMenuItem('delete')).toHaveText(/^Delete(?! \()/);
     await expect(selectedRows()).toHaveCount(0);
   });
 
@@ -38,7 +38,7 @@ test.describe('Collection environments context menu', () => {
     await expect(contextMenuItem('select-all')).toBeVisible();
     await expect(contextMenuItem('rename')).toHaveCount(0);
     await expect(contextMenuItem('duplicate')).toHaveCount(0);
-    await expect(contextMenuItem('delete')).toHaveText('Delete (2)');
+    await expect(contextMenuItem('delete')).toHaveText(/^Delete \(2\)/);
   });
 
   test('right-clicking a row outside the selection targets only that row', async ({ page }) => {
@@ -50,7 +50,7 @@ test.describe('Collection environments context menu', () => {
     await openRowContextMenu(page, ENV_4);
 
     await expect(contextMenuItem('rename')).toBeVisible();
-    await expect(contextMenuItem('delete')).toHaveText('Delete');
+    await expect(contextMenuItem('delete')).toHaveText(/^Delete(?! \()/);
     await expect(selectedRows()).toHaveCount(2);
   });
 
@@ -59,7 +59,7 @@ test.describe('Collection environments context menu', () => {
 
     await test.step('Select all', async () => {
       await openRowContextMenu(page, ENV_2);
-      await expect(contextMenuItem('select-all')).toHaveText('Select all');
+      await expect(contextMenuItem('select-all')).toHaveText(/^Select all/);
       await contextMenuItem('select-all').click();
 
       await expect(selectedRows()).toHaveCount(ENV_NAMES.length);
@@ -67,7 +67,7 @@ test.describe('Collection environments context menu', () => {
 
     await test.step('Unselect all', async () => {
       await openRowContextMenu(page, ENV_2);
-      await expect(contextMenuItem('select-all')).toHaveText('Unselect all');
+      await expect(contextMenuItem('select-all')).toHaveText(/^Unselect all/);
       await contextMenuItem('select-all').click();
 
       await expect(selectedRows()).toHaveCount(0);

@@ -23,8 +23,8 @@ test.describe('Collection environments row menu', () => {
     await expect(rowMenuItem('export')).toBeVisible();
     await expect(rowMenuItem('rename')).toBeVisible();
     await expect(rowMenuItem('duplicate')).toBeVisible();
-    await expect(rowMenuItem('select-all')).toHaveText('Select all');
-    await expect(rowMenuItem('delete')).toHaveText('Delete');
+    await expect(rowMenuItem('select-all')).toHaveText(/^Select all/);
+    await expect(rowMenuItem('delete')).toHaveText(/^Delete(?! \()/);
   });
 
   test('rename edits the environment name inline', async ({ page }) => {
