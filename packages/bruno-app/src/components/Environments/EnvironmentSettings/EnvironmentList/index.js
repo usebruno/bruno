@@ -340,7 +340,7 @@ const EnvironmentList = ({
     setEnvNameError('');
   }, []);
 
-  useOnClickOutside(renameContainerRef, handleCancelRename, !!renamingEnvUid);
+  useOnClickOutside(renameContainerRef, handleSaveRename, !!renamingEnvUid);
 
   const handleImportClick = () => {
     if (!isModified && !isDotEnvModified) {
@@ -782,7 +782,7 @@ const EnvironmentList = ({
                       onDoubleClick={() => handleEnvironmentDoubleClick(env)}
                     >
                       {renamingEnvUid === env.uid ? (
-                        <div className="rename-container" ref={renameContainerRef}>
+                        <div className="rename-container" ref={renameContainerRef} onDoubleClick={(e) => e.stopPropagation()}>
                           <input
                             ref={inputRef}
                             type="text"

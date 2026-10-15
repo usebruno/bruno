@@ -1,7 +1,7 @@
 import { test, expect } from '../../../playwright';
 import { closeAllCollections } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
-import { ENV_NAMES, openEnvironmentsList } from './helpers';
+import { ENV_NAMES, clickEmptyListSpace, openEnvironmentsList } from './helpers';
 
 const [ENV_1, ENV_2, ENV_3, ENV_4] = ENV_NAMES;
 
@@ -44,6 +44,37 @@ test.describe('Collection environments row menu', () => {
 
     await expect(sidebarActions.rowRenameInput()).toBeHidden();
     await expect(sidebarActions.rowNames()).toHaveText([ENV_1, renamed, ENV_3, ENV_4]);
+  });
+
+  test('rename saves the new name when clicking outside', async ({ page }) => {
+    const { rowMenuButton, rowMenuItem, rowRenameInput, rowNames } = buildCommonLocators(page).environment.sidebarActions;
+    const renamed = `${ENV_2} renamed`;
+
+    await rowMenuButton(ENV_2).click();
+    await rowMenuItem('rename').click();
+    await rowRenameInput().fill(renamed);
+
+    await clickEmptyListSpace(page);
+
+    await expect(rowRenameInput()).toBeHidden();
+    await expect(rowNames()).toHaveText([ENV_1, renamed, ENV_3, ENV_4]);
+  });
+
+  test('rename with an invalid name stays open when clicking outside', async ({ page }) => {
+    const { rowMenuButton, rowMenuItem, rowRenameInput, rowNames } = buildCommonLocators(page).environment.sidebarActions;
+
+    await rowMenuButton(ENV_2).click();
+    await rowMenuItem('rename').click();
+    await rowRenameInput().fill('bad/name');
+
+    await clickEmptyListSpace(page);
+
+    await expect(rowRenameInput()).toBeVisible();
+    await expect(rowRenameInput()).toHaveValue('bad/name');
+
+    await rowRenameInput().press('Escape');
+    await expect(rowRenameInput()).toBeHidden();
+    await expect(rowNames()).toHaveText(ENV_NAMES);
   });
 
   test('duplicate creates a copy of the environment', async ({ page }) => {

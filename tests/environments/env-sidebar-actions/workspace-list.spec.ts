@@ -111,6 +111,37 @@ test.describe('Workspace environments list', () => {
       await expect(rowNames()).toHaveText([ENV_1, renamed, ENV_3, ENV_4]);
     });
 
+    test('rename saves the new name when clicking outside', async ({ page }) => {
+      const { rowMenuButton, rowMenuItem, rowRenameInput, rowNames } = buildCommonLocators(page).environment.workspaceSidebarActions;
+      const renamed = `${ENV_2} renamed`;
+
+      await rowMenuButton(ENV_2).click();
+      await rowMenuItem('rename').click();
+      await rowRenameInput().fill(renamed);
+
+      await clickEmptyListSpace(page, 'global');
+
+      await expect(rowRenameInput()).toBeHidden();
+      await expect(rowNames()).toHaveText([ENV_1, renamed, ENV_3, ENV_4]);
+    });
+
+    test('rename with an invalid name stays open when clicking outside', async ({ page }) => {
+      const { rowMenuButton, rowMenuItem, rowRenameInput, rowNames } = buildCommonLocators(page).environment.workspaceSidebarActions;
+
+      await rowMenuButton(ENV_2).click();
+      await rowMenuItem('rename').click();
+      await rowRenameInput().fill('bad/name');
+
+      await clickEmptyListSpace(page, 'global');
+
+      await expect(rowRenameInput()).toBeVisible();
+      await expect(rowRenameInput()).toHaveValue('bad/name');
+
+      await rowRenameInput().press('Escape');
+      await expect(rowRenameInput()).toBeHidden();
+      await expect(rowNames()).toHaveText(ENV_NAMES);
+    });
+
     test('duplicate creates a copy of the environment', async ({ page }) => {
       const { environment } = buildCommonLocators(page);
       const { rows, rowMenuButton, rowMenuItem, copyModal } = environment.workspaceSidebarActions;
