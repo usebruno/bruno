@@ -1,4 +1,5 @@
-import { VARIABLE_ADD_SCOPES, CHEVRON_ICON_SVG_TEXT, SCOPE_ICON } from 'utils/common/constants';
+import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+import { CHEVRON_ICON_SVG_TEXT, SCOPE_ICON } from 'utils/codemirror/scopeIcons';
 
 const createScopeIcon = (scope, { muted = false } = {}) => {
   const icon = document.createElement('span');
