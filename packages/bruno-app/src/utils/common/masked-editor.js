@@ -70,7 +70,7 @@ export class MaskedEditor {
     this.marks = new Set();
 
     // Bind methods to preserve context
-    this.handleInputRead = this.handleInputRead.bind(this);
+    this.handleChanges = this.handleChanges.bind(this);
     this.handleBeforeChange = this.handleBeforeChange.bind(this);
     this.handleCursorActivity = this.handleCursorActivity.bind(this);
     this.handleSelectionChange = this.handleSelectionChange.bind(this);
@@ -87,7 +87,7 @@ export class MaskedEditor {
 
     try {
       // Add event listeners with proper cleanup
-      this.editor.on('inputRead', this.handleInputRead);
+      this.editor.on('changes', this.handleChanges);
       this.editor.on('beforeChange', this.handleBeforeChange);
       this.editor.on('cursorActivity', this.handleCursorActivity);
       this.editor.on('selectionChange', this.handleSelectionChange);
@@ -110,7 +110,7 @@ export class MaskedEditor {
 
     try {
       // Remove event listeners
-      this.editor.off('inputRead', this.handleInputRead);
+      this.editor.off('changes', this.handleChanges);
       this.editor.off('beforeChange', this.handleBeforeChange);
       this.editor.off('cursorActivity', this.handleCursorActivity);
       this.editor.off('selectionChange', this.handleSelectionChange);
@@ -152,7 +152,6 @@ export class MaskedEditor {
     this.isProcessing = true;
 
     try {
-      const content = this.editor.getValue();
       const lineCount = this.editor.lineCount();
 
       // For multiline content, use more efficient line-based masking
@@ -180,9 +179,9 @@ export class MaskedEditor {
   }
 
   /**
-   * Handle input read events
+    * Handle input read events
    */
-  handleInputRead() {
+  handleChanges() {
     if (!this.enabled || this.isProcessing) return;
 
     // Debounce masking to prevent excessive updates
@@ -318,8 +317,9 @@ export class MaskedEditor {
           currentLine++;
           currentCh = 0;
         } else {
-          // Create masked node
-          const maskedNode = document.createTextNode(this.maskChar);
+          const maskedNode = document.createElement('span');
+          maskedNode.textContent = this.maskChar;
+          maskedNode.setAttribute('data-testid', 'masked-character');
 
           // Create mark with proper bounds checking
           const fromPos = { line: currentLine, ch: currentCh };
@@ -356,8 +356,9 @@ export class MaskedEditor {
         const lineLength = this.editor.getLine(line).length;
 
         if (lineLength > 0) {
-          // Create masked node for entire line
-          const maskedNode = document.createTextNode(this.maskChar.repeat(lineLength));
+          const maskedNode = document.createElement('span');
+          maskedNode.textContent = this.maskChar.repeat(lineLength);
+          maskedNode.setAttribute('data-testid', 'masked-line');
 
           // Create mark with proper bounds checking
           const mark = this.editor.markText({ line, ch: 0 },
