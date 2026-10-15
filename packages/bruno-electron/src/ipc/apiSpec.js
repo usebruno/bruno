@@ -12,8 +12,10 @@ const fs = require('fs');
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedApiSpecs) => {
   ipcMain.handle('renderer:open-api-spec', (event, workspacePath = null) => {
     if (watcher && mainWindow) {
-      openApiSpecDialog(mainWindow, watcher, { workspacePath });
+      return openApiSpecDialog(mainWindow, watcher, { workspacePath });
     }
+
+    return null;
   });
 
   ipcMain.handle('renderer:open-api-spec-file', (event, apiSpecPath, workspacePath = null) => {
@@ -46,7 +48,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedApiSpecs) 
         throw new Error(`path: ${pathname} already exists`);
       }
       await writeFile(pathname, content);
-      openApiSpec(mainWindow, watcher, pathname, { workspacePath });
+      await openApiSpec(mainWindow, watcher, pathname, { workspacePath });
     } catch (error) {
       return Promise.reject(error);
     }

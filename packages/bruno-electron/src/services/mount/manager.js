@@ -79,7 +79,7 @@ class MountManager {
       existing.win = win;
       existing.emit = emit;
       existing.brunoConfig = brunoConfig || existing.brunoConfig;
-      existing.state = this.#getIndex().entries(existing.collectionPath);
+      existing.state = this.#getIndex().entries(existing.collectionPath, { denylist: existing.brunoConfig?.ignore });
       await this.#emitTree(collectionUid, existing);
       return existing.tempDirectoryPath;
     }
@@ -99,7 +99,7 @@ class MountManager {
 
     entry.emit.loading(true);
     try {
-      entry.state = this.#getIndex().entries(collectionPath);
+      entry.state = this.#getIndex().entries(collectionPath, { denylist: brunoConfig?.ignore });
       await this.#reconcile(entry);
       await this.#emitTree(collectionUid, entry);
 

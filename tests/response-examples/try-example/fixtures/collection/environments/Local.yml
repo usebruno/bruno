@@ -1,0 +1,10 @@
+name: Local
+variables:
+  - name: apiVersion
+    value: v1
+    enabled: true
+    secret: false
+  - name: apiToken
+    value: ""
+    enabled: true
+    secret: true

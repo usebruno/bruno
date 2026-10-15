@@ -18,7 +18,7 @@ import StatusBar from './StatusBar';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
-import { getAllVariables } from 'utils/collections';
+import { getAllVariables, getVariableNamesWithScope } from 'utils/collections';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
@@ -366,7 +366,7 @@ class CodeEditor extends React.Component {
     this.addOverlay();
     this.brunoAutoCompleteCleanup = setupAutoComplete(editor, {
       showHintsFor: this.props.showHintsFor,
-      getAllVariables: () => getAllVariables(this.props.collection, this.props.item)
+      getAllVariables: () => getVariableNamesWithScope(this.props.collection, this.props.item)
     });
 
     if (this.props.scriptType) {
@@ -401,7 +401,9 @@ class CodeEditor extends React.Component {
 
   _setLongLineMode = (value, { deferRestore = false } = {}) => {
     const longLineDetected = hasLongLine(value);
-    this.setState({ longLineDetected });
+    if (longLineDetected !== this.state.longLineDetected) {
+      this.setState({ longLineDetected });
+    }
     const degrade = longLineDetected && !this.longLineOverride;
     return this._applyLongLineMode(degrade, value, { deferRestore });
   };

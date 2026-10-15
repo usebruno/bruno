@@ -44,11 +44,13 @@ const openApiSpecDialog = async (win, watcher, options = {}) => {
   if (filePaths && filePaths[0]) {
     const resolvedPath = normalizeAndResolvePath(filePaths[0]);
     try {
-      await openApiSpec(win, watcher, resolvedPath, options);
+      return await openApiSpec(win, watcher, resolvedPath, options);
     } catch (err) {
       console.error(`[ERROR] Cannot open API spec: "${resolvedPath}"`);
     }
   }
+
+  return null;
 };
 
 const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
@@ -107,12 +109,16 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
         resolvedJson: resolvedJson
       });
     }
+
+    return apiSpecPath;
   } catch (err) {
     if (!options.dontSendDisplayErrors) {
       win.webContents.send('main:display-error', {
         message: err.message || 'An error occurred while opening the apiSpec'
       });
     }
+
+    return null;
   }
 };
 

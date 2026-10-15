@@ -12,6 +12,7 @@ import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor/index';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import RadioButton from 'components/RadioButton';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
 const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = false }) => {
   const dispatch = useDispatch();
@@ -162,6 +163,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
           onRun={() => {}}
           collection={collection}
           readOnly={!editMode}
+          variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
         />
       )
     },
