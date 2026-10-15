@@ -16,7 +16,8 @@ import {
 import { replaceSelectionWithVariable, resolveSelectionValue } from 'utils/codemirror/selection';
 import { variableNameRegex } from 'utils/common/regex';
 import { cursorAnchorStyle } from 'utils/common/cursorAnchor';
-import { SCOPE_ICON, SCOPE_LABEL, COPY_SUCCESS_TIMEOUT, VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+import { SCOPE_LABEL, COPY_SUCCESS_TIMEOUT, VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+import { SCOPE_ICON } from 'utils/codemirror/scopeIcons';
 import { INVALID_VARIABLE_NAME_ERROR } from 'utils/common/variables';
 import StyledWrapper from './StyledWrapper';
 

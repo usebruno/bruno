@@ -27,7 +27,8 @@ import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { variableNameRegex } from 'utils/common/regex';
-import { SCOPE_ICON, SCOPE_LABEL, COPY_SUCCESS_TIMEOUT } from 'utils/common/constants';
+import { SCOPE_LABEL, COPY_SUCCESS_TIMEOUT } from 'utils/common/constants';
+import { SCOPE_ICON } from 'utils/codemirror/scopeIcons';
 import { createAddToScopeSwitcher } from 'utils/codemirror/addToScopeSwitcher';
 import { goToVariableDefinition } from 'utils/codemirror/goToVariableDefinition';
 
@@ -91,19 +92,14 @@ const EYE_OFF_ICON_SVG = `
   </svg>
 `;
 
-const getScopeLabel = (scopeType) => {
-  const labels = {
-    ...SCOPE_LABEL,
-    'runtime': 'Runtime',
-    'process.env': 'Process Env',
-    'dynamic': 'Dynamic',
-    'oauth2': 'OAuth2',
-    'undefined': 'Undefined',
-    'unresolved': 'New',
-    'pathParam': 'Path Param'
-  };
-  return labels[scopeType] || scopeType;
+// Labels for states only the popover has (everything else comes from the shared SCOPE_LABEL).
+const POPOVER_ONLY_SCOPE_LABEL = {
+  undefined: 'Undefined',
+  unresolved: 'New',
+  pathParam: 'Path Param'
 };
+
+const getScopeLabel = (scopeType) => SCOPE_LABEL[scopeType] || POPOVER_ONLY_SCOPE_LABEL[scopeType] || scopeType;
 
 const setScopeBadgeContent = (scopeBadge, scopeType, label) => {
   scopeBadge.innerHTML = '';
@@ -118,6 +114,7 @@ const setScopeBadgeContent = (scopeBadge, scopeType, label) => {
 
   const labelSpan = document.createElement('span');
   labelSpan.className = 'var-scope-badge-label';
+  labelSpan.setAttribute('data-testid', 'var-info-scope-badge-label');
   labelSpan.textContent = label;
   scopeBadge.appendChild(labelSpan);
 };
