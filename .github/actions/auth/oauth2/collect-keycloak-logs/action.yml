@@ -22,7 +22,8 @@ runs:
         if (( ${#logs[@]} )); then
           cp "${logs[@]}" keycloak-logs/
         else
-          echo "No Keycloak logs found in $RUNNER_TEMP."
+          echo "::error::No Keycloak logs found in $RUNNER_TEMP."
+          exit 1
         fi
 
     - name: Upload Keycloak logs
