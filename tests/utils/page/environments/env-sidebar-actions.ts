@@ -15,10 +15,12 @@ export const buildEnvSidebarActionsLocators = (page: Page) => ({
   rowActivateButton: (name: string) => envRow(page, name).getByTestId('env-activate-btn'),
   rowMenuButton: (name: string) => envRow(page, name).getByTestId('env-row-menu-btn'),
   rowMenuItem: (id: EnvironmentMenuItemId) => page.getByTestId(`env-row-menu-${id}`),
+  rowMenuShortcut: (id: EnvironmentMenuItemId) => page.getByTestId(`env-row-menu-${id}-shortcut`),
 
   // Right-click context menu.
   contextMenu: () => page.getByTestId('env-context-menu-dropdown'),
   contextMenuItem: (id: EnvironmentMenuItemId) => page.getByTestId(`env-context-menu-${id}`),
+  contextMenuShortcut: (id: EnvironmentMenuItemId) => page.getByTestId(`env-context-menu-${id}-shortcut`),
 
   rows: () => page.getByTestId('collection-env-list-item'),
   rowNames: () => page.getByTestId('collection-env-name'),

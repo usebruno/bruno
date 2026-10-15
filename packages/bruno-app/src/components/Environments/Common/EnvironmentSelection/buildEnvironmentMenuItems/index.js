@@ -1,4 +1,5 @@
 import { IconUpload, IconEdit, IconCopy, IconTrash, IconChecks } from '@tabler/icons';
+import { SelectAllShortcutHint, DeleteShortcutHint } from '../ShortcutHints';
 
 /**
  * @param {Object} params
@@ -47,6 +48,7 @@ const buildEnvironmentMenuItems = ({
       id: 'select-all',
       label: isAllSelected ? 'Unselect all' : 'Select all',
       leftSection: IconChecks,
+      shortcut: <SelectAllShortcutHint />,
       onClick: onSelectAll
     },
     { id: 'divider-3', type: 'divider' },
@@ -55,6 +57,7 @@ const buildEnvironmentMenuItems = ({
       label: selectedCount > 1 ? `Delete (${selectedCount})` : 'Delete',
       leftSection: IconTrash,
       className: 'delete-item',
+      shortcut: <DeleteShortcutHint />,
       onClick: onDelete
     }
   );

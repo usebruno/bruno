@@ -7,8 +7,13 @@ export const COLLECTION_NAME = 'Env Sidebar Actions';
 // Listed in this order by the sidebar, which Shift-click ranges rely on.
 export const ENV_NAMES = ['Env 1', 'Env 2', 'Env 3', 'Env 4'];
 
-// Ctrl on Windows/Linux, Cmd on macOS (matches the app's platform check).
-export const SELECT_MODIFIER: 'Meta' | 'Control' = process.platform === 'darwin' ? 'Meta' : 'Control';
+// Ctrl on Windows/Linux, Cmd on macOS.
+export const IS_MAC = process.platform === 'darwin';
+export const SELECT_MODIFIER: 'Meta' | 'Control' = IS_MAC ? 'Meta' : 'Control';
+
+export const SELECT_ALL_KEY = `${SELECT_MODIFIER}+KeyA`;
+// macOS has no Delete key: Cmd+Backspace. Windows/Linux use the plain Delete key.
+export const DELETE_KEY = IS_MAC ? 'Meta+Backspace' : 'Delete';
 
 /**
  * Open a copy of the fixture collection and show its environments list.

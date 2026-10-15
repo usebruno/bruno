@@ -50,6 +50,12 @@ const useEnvironmentActions = ({
     setIsDeleteModalOpen(true);
   }, []);
 
+  // Shortcut entry point, targets the whole selection.
+  const deleteSelected = useCallback(() => {
+    setTargetEnvUids(selectedEnvUids);
+    setIsDeleteModalOpen(true);
+  }, [selectedEnvUids]);
+
   const closeExportModal = useCallback(() => {
     setIsExportModalOpen(false);
   }, []);
@@ -72,6 +78,7 @@ const useEnvironmentActions = ({
 
   return {
     targetEnvironments,
+    isOverlayOpen: isMenuOpen || isDeleteModalOpen || isExportModalOpen || isCopyModalOpen,
     isMenuOpen,
     menuPosition,
     closeMenu,
@@ -79,6 +86,7 @@ const useEnvironmentActions = ({
     handleRenameTarget,
     isDeleteModalOpen,
     openDeleteModal,
+    deleteSelected,
     closeDeleteModal,
     isExportModalOpen,
     openExportModal,

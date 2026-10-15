@@ -21,6 +21,7 @@ import ContextMenu from 'ui/ContextMenu';
 import buildEnvironmentMenuItems from 'components/Environments/Common/EnvironmentSelection/buildEnvironmentMenuItems';
 import RowActionsMenu from 'components/Environments/Common/EnvironmentSelection/RowActionsMenu';
 import useEnvironmentListSelection from 'components/Environments/Common/EnvironmentSelection/useEnvironmentListSelection';
+import useEnvironmentShortcuts from 'components/Environments/Common/EnvironmentSelection/useEnvironmentShortcuts';
 import { isEqual } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -503,6 +504,14 @@ const EnvironmentList = ({
     onClearSelection: selection.clearSelection
   });
 
+  const { scopeRef: listRef } = useEnvironmentShortcuts({
+    hasSelection: selection.hasSelection,
+    isOverlayOpen: actions.isOverlayOpen,
+    onClearSelection: selection.clearSelection,
+    onSelectAll: selection.selectAllEnvs,
+    onDelete: actions.deleteSelected
+  });
+
   const contextMenuItems = buildEnvironmentMenuItems({
     selectedCount: actions.targetEnvironments.length,
     isAllSelected: selection.isAllSelected,
@@ -692,7 +701,7 @@ const EnvironmentList = ({
                   </button>
                 )}
               </div>
-              <div className="environments-list">
+              <div className="environments-list" ref={listRef} tabIndex={-1}>
                 {filteredEnvironments.map((env) => {
                   const isEnvSelected = selection.isEnvSelected(env.uid);
                   const isEnvMultiSelected = isEnvSelected && selection.selectedEnvUids.length > 1;
