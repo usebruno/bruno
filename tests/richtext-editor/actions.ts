@@ -143,9 +143,10 @@ export const expectDocsToolbarBtnDisabled = async (locators: DocsLocators, label
   }).toPass({ timeout: 15000 });
 };
 
-// Waits until the editor's own selection covers `text`. keyboard.press returns once the key event is sent, and ProseMirror
-// syncs the DOM selection into its state asynchronously, so a command fired in that gap (Bold, Link) acts on a collapsed
-// cursor. This reads the Tiptap editor's state, scoped to this editor, instead of the window's DOM selection.
+/**
+ * Wait for ProseMirror to sync its selection after a keyboard action,
+ * so commands like Bold and Link apply to the selected text.
+*/
 export const expectEditorSelection = async (prosemirror: Locator, text: string) => {
   await expect
     .poll(() =>
