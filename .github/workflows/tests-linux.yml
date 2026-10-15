@@ -249,7 +249,6 @@ jobs:
       - name: Run OAuth2 E2E Tests
         uses: ./.github/actions/auth/oauth2/run-oauth2-e2e-tests
         with:
-          use-xvfb: 'true'
           artifact-suffix: linux
 
       # Runs even when setup-keycloak or the test step failed, so a broken IdP is debuggable.
