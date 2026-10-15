@@ -61,6 +61,7 @@ const EnvironmentList = ({
 
   const [openImportModal, setOpenImportModal] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const [createRowError, setCreateRowError] = useState('');
   const envListSearchInputRef = useRef(null);
   const [isCreatingInline, setIsCreatingInline] = useState(false);
   const [renamingEnvUid, setRenamingEnvUid] = useState(null);
@@ -259,6 +260,18 @@ const EnvironmentList = ({
 
   useOnClickOutside(createContainerRef, handleCancelCreate, isCreatingInline);
 
+  const createEnvironment = (name) => {
+    return dispatch(addEnvironment(name, collection.uid))
+      .then(() => {
+        toast.success('Environment created!');
+        return true;
+      })
+      .catch(() => {
+        toast.error('An error occurred while creating the environment');
+        return false;
+      });
+  };
+
   const handleSaveNewEnv = () => {
     const error = validateEnvironmentName(newEnvName);
     if (error) {
@@ -266,16 +279,13 @@ const EnvironmentList = ({
       return;
     }
 
-    dispatch(addEnvironment(newEnvName, collection.uid))
-      .then(() => {
-        toast.success('Environment created!');
+    createEnvironment(newEnvName).then((created) => {
+      if (created) {
         setIsCreatingInline(false);
         setNewEnvName('');
         setEnvNameError('');
-      })
-      .catch(() => {
-        toast.error('An error occurred while creating the environment');
-      });
+      }
+    });
   };
 
   const handleEnvNameChange = (e) => {
@@ -487,10 +497,32 @@ const EnvironmentList = ({
 
   const activeEnvUid = activeView === 'environment' ? selectedEnvironment?.uid : undefined;
 
+  const trimmedSearchText = searchText.trim();
+
   const filteredEnvironments = useMemo(
-    () => environments?.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase())) || [],
-    [environments, searchText]
+    () => environments?.filter((env) => env.name.toLowerCase().includes(trimmedSearchText.toLowerCase())) || [],
+    [environments, trimmedSearchText]
   );
+
+  const showCreateRow = trimmedSearchText !== '' && filteredEnvironments.length === 0 && !isCreatingInline;
+
+  const handleSearchChange = (value) => {
+    setSearchText(value);
+    setCreateRowError('');
+  };
+
+  const handleCreateRowClick = () => {
+    const error = validateEnvironmentName(trimmedSearchText);
+    if (error) {
+      setCreateRowError(error);
+      return;
+    }
+    if (isModified || isDotEnvModified) {
+      setSwitchEnvConfirmClose(true);
+      return;
+    }
+    createEnvironment(trimmedSearchText);
+  };
 
   const selection = useEnvironmentListSelection({
     filteredEnvironments,
@@ -708,7 +740,7 @@ const EnvironmentList = ({
                   placeholder="Search environments..."
                   data-testid="collection-env-search-input"
                   value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="env-list-search-input"
                   autoComplete="off"
                   autoCorrect="off"
@@ -719,7 +751,7 @@ const EnvironmentList = ({
                   <button
                     className="env-list-search-clear"
                     title="Clear search"
-                    onClick={() => setSearchText('')}
+                    onClick={() => handleSearchChange('')}
                     onMouseDown={(e) => e.preventDefault()}
                   >
                     <IconX size={12} strokeWidth={1.5} />
@@ -864,6 +896,29 @@ const EnvironmentList = ({
                   <div className="no-env-file" data-testid="collection-env-empty">
                     <span>No environments</span>
                   </div>
+                )}
+
+                {showCreateRow && (
+                  <>
+                    <button
+                      type="button"
+                      className="environment-item create-from-search"
+                      data-testid="collection-env-create-from-search"
+                      onClick={handleCreateRowClick}
+                    >
+                      <span className="create-from-search-label">
+                        <IconPlus size={14} strokeWidth={1.5} />
+                        <span className="environment-name">
+                          Create <strong>{`"${trimmedSearchText}"`}</strong>
+                        </span>
+                      </span>
+                    </button>
+                    {createRowError && (
+                      <div className="env-error" data-testid="collection-env-create-from-search-error">
+                        {createRowError}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </CollapsibleSection>

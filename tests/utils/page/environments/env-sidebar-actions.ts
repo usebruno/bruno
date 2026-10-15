@@ -3,31 +3,23 @@ import type { EnvironmentScope } from '.';
 
 export type EnvironmentMenuItemId = 'export' | 'rename' | 'duplicate' | 'select-all' | 'delete';
 
-const SCOPE_TEST_IDS = {
-  collection: {
-    row: 'collection-env-list-item',
-    name: 'collection-env-name',
-    empty: 'collection-env-empty',
-    searchInput: 'collection-env-search-input',
-    sectionBody: 'collection-environments-section-content',
-    deleteModal: 'delete-environments'
-  },
-  global: {
-    row: 'workspace-env-list-item',
-    name: 'workspace-env-name',
-    empty: 'workspace-env-empty',
-    searchInput: 'workspace-env-search-input',
-    sectionBody: 'workspace-environments-section-content',
-    deleteModal: 'delete-global-environments'
-  }
+const SCOPE_PREFIX = {
+  collection: 'collection',
+  global: 'workspace'
+};
+
+const DELETE_MODAL_PREFIX = {
+  collection: 'delete-environments',
+  global: 'delete-global-environments'
 };
 
 /**
  * Locators for the environments list actions of one scope
  */
 export const buildEnvSidebarActionsLocators = (page: Page, scope: EnvironmentScope = 'collection') => {
-  const ids = SCOPE_TEST_IDS[scope];
-  const rows = () => page.getByTestId(ids.row);
+  const scopedTestId = (suffix: string) => page.getByTestId(`${SCOPE_PREFIX[scope]}-${suffix}`);
+  const deleteModalPrefix = DELETE_MODAL_PREFIX[scope];
+  const rows = () => scopedTestId('env-list-item');
   const envRow = (name: string) => rows().filter({ has: page.getByText(name, { exact: true }) });
   const selectedRows = () => rows().and(page.getByRole('option', { selected: true }));
 
@@ -43,22 +35,26 @@ export const buildEnvSidebarActionsLocators = (page: Page, scope: EnvironmentSco
     contextMenuShortcut: (id: EnvironmentMenuItemId) => page.getByTestId(`env-context-menu-${id}-shortcut`),
 
     // The Environments section body: the list, the empty space under it and the search box.
-    sectionBody: () => page.getByTestId(ids.sectionBody),
-    emptyState: () => page.getByTestId(ids.empty),
+    sectionBody: () => scopedTestId('environments-section-content'),
+    emptyState: () => scopedTestId('env-empty'),
 
     rows,
-    rowNames: () => page.getByTestId(ids.name),
-    searchInput: () => page.getByTestId(ids.searchInput),
+    rowNames: () => scopedTestId('env-name'),
+    searchInput: () => scopedTestId('env-search-input'),
+
+    // The create row offered when the search matches no environment.
+    createFromSearch: () => scopedTestId('env-create-from-search'),
+    createFromSearchError: () => scopedTestId('env-create-from-search-error'),
 
     selectedRows,
-    selectedRowNames: () => selectedRows().getByTestId(ids.name),
+    selectedRowNames: () => selectedRows().getByTestId(`${SCOPE_PREFIX[scope]}-env-name`),
 
     rowRenameInput: () => page.getByTestId('env-rename-name-input'),
 
     deleteModal: {
-      root: () => page.getByTestId(`${ids.deleteModal}-modal`),
-      confirm: () => page.getByTestId(`${ids.deleteModal}-modal-submit-btn`),
-      activeWarning: () => page.getByTestId(`${ids.deleteModal}-active-warning`)
+      root: () => page.getByTestId(`${deleteModalPrefix}-modal`),
+      confirm: () => page.getByTestId(`${deleteModalPrefix}-modal-submit-btn`),
+      activeWarning: () => page.getByTestId(`${deleteModalPrefix}-active-warning`)
     },
 
     copyModal: {

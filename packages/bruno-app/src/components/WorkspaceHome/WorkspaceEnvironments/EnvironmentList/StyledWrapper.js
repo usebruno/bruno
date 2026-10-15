@@ -265,6 +265,22 @@ const StyledWrapper = styled.div`
       }
     }
 
+    &.create-from-search {
+      width: 100%;
+      border: none;
+      font-family: inherit;
+      text-align: left;
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+
+      .create-from-search-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        min-width: 0;
+      }
+    }
+
     &.renaming,
     &.creating {
       cursor: default;

@@ -185,4 +185,57 @@ test.describe('Collection environments sidebar menu multi-select', () => {
       await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2]);
     });
   });
+
+  test.describe('provides create env option when no matches found in search', () => {
+    test('provides a create option when no matching environments are found', async ({ page }) => {
+      const { searchInput, rows, emptyState, createFromSearch } = buildCommonLocators(page).environment.sidebarActions;
+
+      await test.step('search with matches does not provide a create option', async () => {
+        await searchInput().fill('Env 4');
+        await expect(rows()).toHaveCount(1);
+        await expect(createFromSearch()).toHaveCount(0);
+      });
+
+      await test.step('search is trimmed so whitespace is ignored', async () => {
+        await searchInput().fill(' Env 4 ');
+        await expect(rows()).toHaveCount(1);
+        await expect(createFromSearch()).toHaveCount(0);
+      });
+
+      await test.step('search with no match provides a create option', async () => {
+        await searchInput().fill('Staging');
+        await expect(rows()).toHaveCount(0);
+        await expect(emptyState()).toBeVisible();
+        await expect(createFromSearch()).toContainText('Create "Staging"');
+      });
+    });
+
+    test('clicking the create row creates the environment and opens it', async ({ page }) => {
+      const { environment } = buildCommonLocators(page);
+      const { searchInput, rows, createFromSearch } = environment.sidebarActions;
+
+      await searchInput().fill('Staging');
+      await createFromSearch().click();
+
+      // The search is kept, so the new environment is the only row.
+      await expect(searchInput()).toHaveValue('Staging');
+      await expect(rows()).toHaveCount(1);
+      await expect(environment.sidebarListItemExact('collection', 'Staging')).toHaveAttribute('aria-current', 'true');
+    });
+
+    test('invalid name shows an error', async ({ page }) => {
+      const { searchInput, rows, createFromSearch, createFromSearchError } = buildCommonLocators(page).environment.sidebarActions;
+
+      await searchInput().fill('bad/name');
+      await expect(createFromSearchError()).toHaveCount(0);
+
+      await createFromSearch().click();
+      await expect(createFromSearchError()).toBeVisible();
+      await expect(rows()).toHaveCount(0);
+
+      // Editing the name clears the error.
+      await searchInput().fill('bad/name2');
+      await expect(createFromSearchError()).toHaveCount(0);
+    });
+  });
 });
