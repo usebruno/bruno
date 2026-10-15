@@ -18,7 +18,6 @@ const Cache = () => {
   const { theme } = useTheme();
 
   const fileCacheEnabled = get(preferences, 'cache.file.enabled', false);
-  const omitRawEnabled = get(preferences, 'cache.file.omitRaw', false);
   const sslSessionEnabled = get(preferences, 'cache.sslSession.enabled', false);
   const searchIndexEnabled = get(preferences, 'cache.searchIndex.enabled', false);
   const twoPassEnabled = get(preferences, 'cache.searchIndex.twoPass', false);
@@ -36,15 +35,7 @@ const Cache = () => {
   const handleToggleFileCache = () => {
     persist({
       ...preferences.cache,
-      file: { ...preferences.cache?.file, enabled: !fileCacheEnabled }
-    });
-  };
-
-  const handleToggleOmitRaw = () => {
-    if (!fileCacheEnabled) return;
-    persist({
-      ...preferences.cache,
-      file: { ...preferences.cache?.file, omitRaw: !omitRawEnabled }
+      file: { enabled: !fileCacheEnabled }
     });
   };
 
@@ -134,27 +125,6 @@ const Cache = () => {
           >
             <IconEraser size={16} strokeWidth={1.5} />
           </ActionIcon>
-        </div>
-        <div className={`cache-item-option ${fileCacheEnabled ? '' : 'disabled'}`}>
-          <div className="cache-item-option-header">
-            <span className="cache-item-option-title">Lean cache</span>
-            <ToggleSwitch
-              data-testid="cache.file.omitRaw"
-              isOn={omitRawEnabled && fileCacheEnabled}
-              handleToggle={handleToggleOmitRaw}
-              size="2xs"
-              activeColor={theme.primary.solid}
-            />
-          </div>
-          <p className="cache-item-description">
-            Makes the file cache smaller, roughly a third for typical requests. Normally Bruno saves a copy of each
-            request file's text next to its parsed form. With this on, that copy is left out and Bruno reads the text
-            from your files when a collection opens, so opening a collection does more disk reads. It applies to files
-            cached from now on. Clear the cache to apply it to everything.
-          </p>
-          {!fileCacheEnabled && (
-            <p className="cache-item-note">Turn on File cache to use this.</p>
-          )}
         </div>
       </div>
 

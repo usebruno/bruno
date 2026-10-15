@@ -19,9 +19,9 @@ const registerMountIpc = () => {
     return manager.getIndexTree({ collectionPath, collectionName });
   });
 
-  ipcMain.handle('renderer:search-index-trees', (_, term, workspacePath) => {
+  ipcMain.handle('renderer:search-index-trees', (_, term, workspacePath, knownRevision, searchWindow) => {
     if (!term || typeof term !== 'string') return {};
-    return manager.searchIndexTrees(term, workspacePath);
+    return manager.searchIndexTrees(term, workspacePath, knownRevision, searchWindow || {});
   });
 
   ipcMain.handle('renderer:clear-search-index', async () => {

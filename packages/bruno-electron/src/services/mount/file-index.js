@@ -12,7 +12,6 @@ const {
   defaultClassify
 } = require('../../utils/mount');
 const { toCacheData, fromCacheData } = require('./cache-format');
-const { preferencesUtil } = require('../../store/preferences');
 
 // TODO: Check for trigger (ON UPDATE) and then see if we can use that to update updated_at
 
@@ -99,6 +98,27 @@ class FileIndex {
     return entries;
   }
 
+  mtimeFor(collectionPath, relativePath) {
+    const row = this.#statements.execute('file_index_mtime_for_path', {
+      collection_path: collectionPath,
+      relative_path: relativePath
+    });
+    return row ? row.mtime : null;
+  }
+
+  entryFor(collectionPath, relativePath) {
+    const row = this.#statements.execute('file_index_entry_for_path', {
+      collection_path: collectionPath,
+      relative_path: relativePath
+    });
+    if (!row) return null;
+    try {
+      return { data: fromCacheData(JSON.parse(row.data)), mtime: row.mtime, hash: row.hash };
+    } catch (_) {
+      return null;
+    }
+  }
+
   stage(collectionPath, entry) {
     const root = collectionPath;
     const { op } = entry;
@@ -134,7 +154,7 @@ class FileIndex {
       relativePath: target.relativePath,
       mtime,
       hash,
-      raw: preferencesUtil.isFileCacheRawOmitted() ? null : fs.readFileSync(absolutePath, 'utf8'),
+      raw: fs.readFileSync(absolutePath, 'utf8'),
       data
     });
     // the same mtime/hash that were saved, so a caller (the search index) can use them without reading the file again

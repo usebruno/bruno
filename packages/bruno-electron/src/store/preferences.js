@@ -78,8 +78,7 @@ const defaultPreferences = {
       enabled: false
     },
     file: {
-      enabled: false,
-      omitRaw: false
+      enabled: false
     },
     searchIndex: {
       enabled: false,
@@ -205,8 +204,7 @@ const preferencesSchema = Yup.object().shape({
       enabled: Yup.boolean()
     }),
     file: Yup.object({
-      enabled: Yup.boolean(),
-      omitRaw: Yup.boolean()
+      enabled: Yup.boolean()
     }),
     searchIndex: Yup.object({
       enabled: Yup.boolean(),
@@ -456,9 +454,6 @@ const preferencesUtil = {
   },
   isFileCacheEnabled: () => {
     return get(getPreferences(), 'cache.file.enabled', false);
-  },
-  isFileCacheRawOmitted: () => {
-    return get(getPreferences(), 'cache.file.omitRaw', false);
   },
   isSearchIndexEnabled: () => {
     return get(getPreferences(), 'cache.searchIndex.enabled', false);

@@ -9,8 +9,6 @@ const { SearchIndex } = require('../search-index');
 const { indexCollection, toRow, toMetaRow, withParentFolders } = require('../search-index/indexer');
 const { preferencesUtil } = require('../../store/preferences');
 
-const RAW_READ_CONCURRENCY = 64;
-
 // cold start only — collection-watcher handles live changes and writes through to the cache
 
 let _envSecretsStore = null;
@@ -178,8 +176,26 @@ class MountManager {
     return this.#getSearchIndex().search(term, options);
   }
 
-  async searchIndexTrees(term, workspacePath) {
-    const matches = this.searchIndex(term, { scope: 'request', workspacePath });
+  async searchIndexTrees(term, workspacePath, knownRevision, { limit, collectionPaths } = {}) {
+    const searchIndex = this.#getSearchIndex();
+    const revision = searchIndex.revision;
+    if (knownRevision === revision) return { revision, unchanged: true };
+
+    let matches = [];
+    let total = 0;
+    if (Number.isInteger(limit) && Array.isArray(collectionPaths)) {
+      for (const collectionPath of collectionPaths) {
+        const root = path.resolve(collectionPath);
+        total += searchIndex.countRequestsInCollection(term, root, { workspacePath });
+        if (matches.length < limit) {
+          matches = matches.concat(searchIndex.searchRequestsInCollection(term, root, { workspacePath, limit: limit - matches.length }));
+        }
+      }
+    } else {
+      matches = this.searchIndex(term, { scope: 'request', workspacePath });
+      total = matches.length;
+    }
+
     const byCollection = new Map();
     for (const row of matches) {
       if (!byCollection.has(row.collectionPath)) byCollection.set(row.collectionPath, []);
@@ -190,7 +206,7 @@ class MountManager {
     for (const [collectionPath, rows] of byCollection) {
       trees[collectionPath] = this.#buildTreeFromIndexRows(collectionPath, rows, { onlyFoldersWithRows: true });
     }
-    return trees;
+    return { revision, trees, total, loaded: matches.length };
   }
 
   async getIndexTree({ collectionPath, collectionName }) {
@@ -273,13 +289,13 @@ class MountManager {
       }
     });
     if (!twoPass) return;
-    if (didWork) console.log(`[search-index] SEARCH READY after ${(performance.now() - sessionStart).toFixed(0)} ms (pass 1 over ${ordered.length} collections)`);
+    // if (didWork) console.log(`[search-index] SEARCH READY after ${(performance.now() - sessionStart).toFixed(0)} ms (pass 1 over ${ordered.length} collections)`);
 
     for (const { root, collectionName } of ordered) {
       if (this.#isMounted(root)) continue;
       await this.#fillCollection({ root, collectionName, workspacePath });
     }
-    if (didWork) console.log(`[search-index] ALL PASSES DONE after ${(performance.now() - sessionStart).toFixed(0)} ms (pass 1 + pass 2)`);
+    // if (didWork) console.log(`[search-index] ALL PASSES DONE after ${(performance.now() - sessionStart).toFixed(0)} ms (pass 1 + pass 2)`);
   }
 
   getIndexingStatus() {
@@ -329,7 +345,6 @@ class MountManager {
       );
     }
 
-    const omitRaw = preferencesUtil.isFileCacheRawOmitted();
     fileIndex.transaction(() => {
       for (const e of toParse) {
         const result = parsed.get(e.relativePath);
@@ -345,7 +360,7 @@ class MountManager {
           mtime: result.mtime,
           hash: result.hash,
           data: result.data,
-          raw: omitRaw ? null : result.raw
+          raw: result.raw
         });
       }
       for (const e of removed) {
@@ -439,23 +454,9 @@ class MountManager {
 
   async #emitTree(collectionUid, entry) {
     const { getRequestUid } = require('../../cache/requestUids');
-    await this.#loadMissingRaw(entry);
     const tree = buildTree(entry.collectionPath, entry.state, { uidFor: getRequestUid });
+    entry.state = new Map();
     await sendTree(collectionUid, entry.collectionPath, tree, entry.emit);
-  }
-
-  async #loadMissingRaw(entry) {
-    const missing = [];
-    for (const [relativePath, state] of entry.state) {
-      if (typeof state.raw !== 'string' && defaultClassify(relativePath)?.type === 'request') missing.push([relativePath, state]);
-    }
-    for (let start = 0; start < missing.length; start += RAW_READ_CONCURRENCY) {
-      await Promise.all(missing.slice(start, start + RAW_READ_CONCURRENCY).map(async ([relativePath, state]) => {
-        try {
-          state.raw = await fs.promises.readFile(path.join(entry.collectionPath, relativePath), 'utf8');
-        } catch (_) {}
-      }));
-    }
   }
 
   #getPersistentIndex() {

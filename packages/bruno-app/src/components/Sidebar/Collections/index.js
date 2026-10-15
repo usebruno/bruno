@@ -1,3 +1,4 @@
+import { SEARCH_CONFIG } from 'components/GlobalSearchModal/constants';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import useDebounce from 'hooks/useDebounce';
@@ -10,6 +11,7 @@ import { Virtuoso } from 'react-virtuoso';
 import IndeterminateProgressBar from 'ui/IndeterminateProgressBar';
 import { buildIndexes, flattenSidebarTree } from 'utils/collections/flattenSidebarTree';
 import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
+import { formatDuration } from 'utils/common';
 import { normalizePath } from 'utils/common/path';
 import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
 import CollectionSearch from './CollectionSearch/index';
@@ -19,9 +21,8 @@ import SidebarRow from './SidebarRow';
 import StyledWrapper from './StyledWrapper';
 
 const SEARCH_DEBOUNCE_MS = 350;
-const SEARCH_INDEX_THROTTLE_MS = 3000;
-// a hair longer than the throttle window, so a refresh tick never lands just inside it and gets dropped
-const SEARCH_INDEX_REFRESH_MS = 3100;
+const SEARCH_PAGE_SIZE = 300;
+const SEARCH_TIMING_LABELS = ['1st', '2nd', '3rd', '4th', '5th'];
 
 const isEmptyQuery = (value) => typeof value === 'string' && value.trim() === '';
 
@@ -51,6 +52,15 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const wasSearchIndexBuildingRef = useRef(false);
   const lastQueriedTextRef = useRef('');
   const searchRequestIdRef = useRef(0);
+  const searchInFlightRef = useRef(false);
+  const lastSearchResultRef = useRef(null);
+  const searchTermStartRef = useRef(null);
+  const searchLimitRef = useRef(SEARCH_PAGE_SIZE);
+  const searchCollectionPathsRef = useRef([]);
+  const [searchCounts, setSearchCounts] = useState(null);
+  const searchCountsRef = useRef(null);
+  searchCountsRef.current = searchCounts;
+  const [searchTimings, setSearchTimings] = useState([]);
 
   const { openBulkMenu, menuProps } = useBulkActionsMenu();
 
@@ -65,6 +75,9 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     () => buildSidebarEntries({ collections, workspaces, activeWorkspace, collectionSortOrder }),
     [activeWorkspace, collections, workspaces, collectionSortOrder]
   );
+  searchCollectionPathsRef.current = sidebarEntries
+    .filter((entry) => entry.kind === 'loaded' && entry.collection.mountStatus !== 'mounted')
+    .map((entry) => entry.collection.pathname);
 
   // A collection that isn't mounted yet has no `collection.items` - its structure lives only in
   // the search index until a real mount runs. Fetched on expand, keyed by uid, and merged into the
@@ -73,20 +86,37 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const [searchTreesByPath, setSearchTreesByPath] = useState({});
   const [isSearchIndexPending, setIsSearchIndexPending] = useState(false);
 
-  // Search runs against the search index only (mounted or not). The first call runs the query immediately and
-  // calls made within the next 3 s are ignored; the refresh interval below picks up whatever was typed meanwhile.
-  const searchIndexThrottled = useLeadingThrottle(() => {
+  // Search runs against the search index only (mounted or not). Only one window of matches is asked for at a time
+  // (collections in sidebar order), and the next window is loaded when the list is scrolled to its end.
+  const runIndexSearch = () => {
     const text = searchTextRef.current.trim();
     if (!text) return;
-    // Once the index is complete, repeating the same text would return the same rows
-    if (!searchIndexBuildingRef.current && text === lastQueriedTextRef.current) return;
-    lastQueriedTextRef.current = text;
+    if (searchInFlightRef.current) return;
+    const limit = searchLimitRef.current;
+    const queryKey = `${text}\n${limit}`;
+    // Once the index is complete, repeating the same query would return the same rows
+    if (!searchIndexBuildingRef.current && queryKey === lastQueriedTextRef.current) return;
+    lastQueriedTextRef.current = queryKey;
 
     const requestId = ++searchRequestIdRef.current;
+    const workspacePath = activeWorkspacePathnameRef.current;
+    const lastResult = lastSearchResultRef.current;
+    const knownRevision = lastResult && lastResult.key === queryKey && lastResult.workspacePath === workspacePath ? lastResult.revision : undefined;
+    searchInFlightRef.current = true;
     setIsSearchIndexPending(true);
-    dispatch(searchCollectionTreesFromIndex(text, activeWorkspacePathnameRef.current))
-      .then((trees) => {
+    dispatch(searchCollectionTreesFromIndex(text, workspacePath, knownRevision, { limit, collectionPaths: searchCollectionPathsRef.current }))
+      .then((result) => {
         if (requestId !== searchRequestIdRef.current) return;
+        const { trees, revision, unchanged, total, loaded } = result || {};
+        const termStart = searchTermStartRef.current;
+        if (termStart && !termStart.logged && termStart.text === text) {
+          termStart.logged = true;
+          const elapsed = performance.now() - termStart.startedAt;
+          setSearchTimings((prev) => (prev.length < SEARCH_TIMING_LABELS.length ? [...prev, elapsed] : prev));
+        }
+        if (unchanged) return;
+        lastSearchResultRef.current = { key: queryKey, workspacePath, revision };
+        setSearchCounts(total === undefined ? null : { total, loaded });
         const byPath = {};
         for (const [collectionPath, items] of Object.entries(trees || {})) {
           byPath[normalizePath(collectionPath)] = items;
@@ -94,12 +124,23 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         setSearchTreesByPath(byPath);
       })
       .catch(() => {
+        lastSearchResultRef.current = null;
         if (requestId === searchRequestIdRef.current) setSearchTreesByPath({});
       })
       .finally(() => {
+        searchInFlightRef.current = false;
         if (requestId === searchRequestIdRef.current && !searchIndexBuildingRef.current) setIsSearchIndexPending(false);
       });
-  }, SEARCH_INDEX_THROTTLE_MS);
+  };
+
+  const searchIndexThrottled = useLeadingThrottle(runIndexSearch, SEARCH_CONFIG.INDEX_THROTTLE_DELAY);
+
+  const loadMoreSearchResults = () => {
+    const counts = searchCountsRef.current;
+    if (!searchTextRef.current.trim() || !counts || counts.loaded >= counts.total || searchInFlightRef.current) return;
+    searchLimitRef.current += SEARCH_PAGE_SIZE;
+    runIndexSearch();
+  };
 
   useEffect(() => {
     const toFetch = sidebarEntries.filter((entry) =>
@@ -133,6 +174,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
       }
       searchIndexThrottled.cancel();
       lastQueriedTextRef.current = '';
+      lastSearchResultRef.current = null;
       wasSearchIndexBuildingRef.current = false;
     };
 
@@ -167,7 +209,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     if (searchIndexBuilding) setIsSearchIndexPending(true);
     searchIndexThrottled();
     if (!pollIntervalRef.current) {
-      pollIntervalRef.current = setInterval(searchIndexThrottled, SEARCH_INDEX_REFRESH_MS);
+      pollIntervalRef.current = setInterval(searchIndexThrottled, SEARCH_CONFIG.INDEX_REFRESH_INTERVAL);
     }
   }, [sidebarEntries, indexTreesByUid, searchText, dispatch, searchIndexEnabled, searchIndexBuilding, searchIndexThrottled]);
 
@@ -198,8 +240,17 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   }, []);
 
   const updateSearchText = (text) => {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      searchTermStartRef.current = null;
+      setSearchTimings([]);
+      setSearchCounts(null);
+    } else if (trimmed !== searchTextRef.current.trim()) {
+      searchTermStartRef.current = { text: trimmed, startedAt: performance.now(), logged: false };
+    }
+    if (trimmed !== searchTextRef.current.trim()) searchLimitRef.current = SEARCH_PAGE_SIZE;
     setSearchText(text);
-    if (!text.trim()) {
+    if (!trimmed) {
       setSearchCollapsedUids(new Set());
     }
   };
@@ -298,6 +349,16 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
           data-testid="sidebar-progress"
         />
       )}
+      {/* {trimmedSearchText && searchTimings.length > 0 && (
+        <div className="search-timings" data-testid="sidebar-search-timings">
+          {searchTimings.map((ms, index) => `${SEARCH_TIMING_LABELS[index]} ${formatDuration(ms)}`).join(' · ')}
+        </div>
+      )} */}
+      {trimmedSearchText && searchCounts && searchCounts.loaded < searchCounts.total && (
+        <div className="search-more-hint" data-testid="sidebar-search-more">
+          Showing {searchCounts.loaded} of {searchCounts.total} matches. Scroll down to load more.
+        </div>
+      )}
 
       {isCreatingCollection && (
         <InlineCollectionCreator
@@ -316,6 +377,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
           data-testid="sidebar-collections-scroller"
           style={{ height: '100%' }}
           data={rows}
+          endReached={loadMoreSearchResults}
           computeItemKey={(_, row) => row.id}
           defaultItemHeight={26}
           increaseViewportBy={{ top: 400, bottom: 600 }}

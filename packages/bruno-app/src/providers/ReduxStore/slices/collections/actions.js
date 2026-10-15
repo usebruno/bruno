@@ -3523,10 +3523,10 @@ export const fetchCollectionTreeFromIndex
     };
 
 export const searchCollectionTreesFromIndex
-  = (term, workspacePath) =>
+  = (term, workspacePath, knownRevision, searchWindow) =>
     async () => {
       const { ipcRenderer } = window;
-      return ipcRenderer.invoke('renderer:search-index-trees', term, workspacePath);
+      return ipcRenderer.invoke('renderer:search-index-trees', term, workspacePath, knownRevision, searchWindow);
     };
 
 export const showInFolder = (collectionPath) => () => {

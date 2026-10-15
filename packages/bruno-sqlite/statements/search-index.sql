@@ -64,6 +64,28 @@ WHERE entity = 'request'
   AND (name LIKE @like OR path LIKE @like OR method LIKE @like OR url LIKE @like)
   AND (@workspace_path IS NULL OR workspace_path = @workspace_path OR workspace_path IS NULL);
 
+-- name: search_index_search_requests_in_collection :many
+SELECT collection_path AS collectionPath, collection_name AS collectionName,
+       folder_path AS folderPath, folder_name AS folderName,
+       path AS requestPath, name AS requestName,
+       method AS requestType, url AS requestUrl,
+       protocol AS requestProtocol, seq AS requestSeq, error AS requestError,
+       workspace_path AS workspacePath
+FROM search_index
+WHERE entity = 'request'
+  AND collection_path = @collection_path
+  AND (name LIKE @like OR path LIKE @like OR method LIKE @like OR url LIKE @like)
+  AND (@workspace_path IS NULL OR workspace_path = @workspace_path OR workspace_path IS NULL)
+LIMIT @limit;
+
+-- name: search_index_count_requests_in_collection :one
+SELECT COUNT(*) AS total
+FROM search_index
+WHERE entity = 'request'
+  AND collection_path = @collection_path
+  AND (name LIKE @like OR path LIKE @like OR method LIKE @like OR url LIKE @like)
+  AND (@workspace_path IS NULL OR workspace_path = @workspace_path OR workspace_path IS NULL);
+
 -- name: search_index_search_collections :many
 SELECT collection_path AS collectionPath, name AS collectionName
 FROM search_index
