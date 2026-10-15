@@ -9,7 +9,11 @@ const CollapsibleSection = ({
   badge,
   actions,
   children,
-  testId
+  testId,
+  contentRef,
+  focusable = false,
+  onContentClick,
+  contentTestId
 }) => {
   return (
     <StyledWrapper className={expanded ? 'expanded' : 'collapsed'}>
@@ -31,7 +35,7 @@ const CollapsibleSection = ({
           </div>
         )}
       </div>
-      <div className="section-content">
+      <div className="section-content" ref={contentRef} tabIndex={focusable ? -1 : undefined} onClick={onContentClick} data-testid={contentTestId}>
         {children}
       </div>
     </StyledWrapper>

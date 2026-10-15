@@ -18,13 +18,17 @@ test.describe('Collection environments row menu', () => {
   test('lists the actions for a single environment', async ({ page }) => {
     const { rowMenuButton, rowMenuItem } = buildCommonLocators(page).environment.sidebarActions;
 
-    await rowMenuButton(ENV_2).click();
+    await test.step('Open the row menu', async () => {
+      await rowMenuButton(ENV_2).click();
+    });
 
-    await expect(rowMenuItem('export')).toBeVisible();
-    await expect(rowMenuItem('rename')).toBeVisible();
-    await expect(rowMenuItem('duplicate')).toBeVisible();
-    await expect(rowMenuItem('select-all')).toHaveText(/^Select all/);
-    await expect(rowMenuItem('delete')).toHaveText(/^Delete(?! \()/);
+    await test.step('It lists the single-environment actions', async () => {
+      await expect(rowMenuItem('export')).toBeVisible();
+      await expect(rowMenuItem('rename')).toBeVisible();
+      await expect(rowMenuItem('duplicate')).toBeVisible();
+      await expect(rowMenuItem('select-all')).toHaveText(/^Select all/);
+      await expect(rowMenuItem('delete')).toHaveText(/^Delete(?! \()/);
+    });
   });
 
   test('rename edits the environment name inline', async ({ page }) => {
@@ -95,6 +99,34 @@ test.describe('Collection environments row menu', () => {
       await expect(deleteModal.root()).toBeHidden();
       await expect(rowNames()).toHaveText([ENV_1, ENV_2, ENV_4]);
     });
+  });
+
+  test('export lists the other environments so an inherited parent can be added', async ({ page }) => {
+    const { exportModal } = buildCommonLocators(page).environment;
+    const { rowMenuButton, rowMenuItem } = buildCommonLocators(page).environment.sidebarActions;
+
+    // Env 3 extends Env 1.
+    await rowMenuButton(ENV_3).click();
+    await rowMenuItem('export').click();
+
+    await test.step('Env 3 is checked, and its parent Env 1 is listed but not checked', async () => {
+      await expect(exportModal.root()).toBeVisible();
+      await expect(exportModal.environmentCheckbox(ENV_3)).toBeChecked();
+      await expect(exportModal.environmentCheckbox(ENV_1)).not.toBeChecked();
+      await expect(exportModal.submit()).toHaveText('Export 1 Environment');
+      await expect(exportModal.inheritanceWarning()).toHaveCount(1);
+      await expect(exportModal.inheritanceWarning()).toHaveText(/inherits\s*Env 1/);
+    });
+
+    await test.step('Checking the parent clears the warning', async () => {
+      await exportModal.environmentCheckbox(ENV_1).check();
+
+      await expect(exportModal.inheritanceWarning()).toHaveCount(0);
+      await expect(exportModal.submit()).toHaveText('Export 2 Environments');
+    });
+
+    await page.keyboard.press('Escape');
+    await expect(exportModal.root()).toBeHidden();
   });
 
   test('export opens the export modal for that environment only', async ({ page }) => {

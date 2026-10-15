@@ -10,8 +10,11 @@ import { getInheritedEnvironments } from '@usebruno/common/utils';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
 
-const ExportEnvironmentModal = ({ onClose, environments = [], environmentType }) => {
+const ExportEnvironmentModal = ({ onClose, environments = [], environmentType, preselectedEnvironmentUids }) => {
   const dispatch = useDispatch();
+
+  // empty or missing list means no preselection, so everything starts selected.
+  const [preselectedUids] = useState(() => (preselectedEnvironmentUids?.length ? new Set(preselectedEnvironmentUids) : null));
 
   // Helper function to truncate environment names
   const truncateEnvName = (name) => {
@@ -30,13 +33,13 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
   useEffect(() => {
     const initialSelection = {};
 
-    // Add all environments and select them by default
+    // List every environment, select all by default, or only the preselected ones when given
     environments.forEach((env) => {
-      initialSelection[env.uid] = true;
+      initialSelection[env.uid] = preselectedUids ? preselectedUids.has(env.uid) : true;
     });
 
     setSelectedEnvironments(initialSelection);
-  }, [environments]);
+  }, [environments, preselectedUids]);
 
   useEffect(() => {
     const selectedCount = Object.values(selectedEnvironments).filter(Boolean).length;

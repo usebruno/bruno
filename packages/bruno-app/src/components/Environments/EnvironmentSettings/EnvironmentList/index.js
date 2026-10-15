@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import usePrevious from 'hooks/usePrevious';
 import useOnClickOutside from 'hooks/useOnClickOutside';
 import useDebounce from 'hooks/useDebounce';
@@ -16,10 +16,10 @@ import ColorBadge from 'components/ColorBadge';
 import CopyEnvironment from '../CopyEnvironment';
 import DeleteEnvironments from '../DeleteEnvironments';
 import ExportEnvironmentModal from 'components/Environments/Common/ExportEnvironmentModal';
-import useEnvironmentActions from 'components/Environments/Common/EnvironmentSelection/useEnvironmentActions';
 import ContextMenu from 'ui/ContextMenu';
-import buildEnvironmentMenuItems from 'components/Environments/Common/EnvironmentSelection/buildEnvironmentMenuItems';
 import RowActionsMenu from 'components/Environments/Common/EnvironmentSelection/RowActionsMenu';
+import useEnvironmentActions from 'components/Environments/Common/EnvironmentSelection/useEnvironmentActions';
+import buildEnvironmentMenuItems from 'components/Environments/Common/EnvironmentSelection/buildEnvironmentMenuItems';
 import useEnvironmentListSelection from 'components/Environments/Common/EnvironmentSelection/useEnvironmentListSelection';
 import useEnvironmentShortcuts from 'components/Environments/Common/EnvironmentSelection/useEnvironmentShortcuts';
 import { isEqual } from 'lodash';
@@ -485,13 +485,14 @@ const EnvironmentList = ({
     setDotEnvViewMode(mode);
   };
 
-  const filteredEnvironments
-    = environments?.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase())) || [];
-
   const activeEnvUid = activeView === 'environment' ? selectedEnvironment?.uid : undefined;
 
+  const filteredEnvironments = useMemo(
+    () => environments?.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase())) || [],
+    [environments, searchText]
+  );
+
   const selection = useEnvironmentListSelection({
-    environments,
     filteredEnvironments,
     activeEnvUid,
     onOpenEnvironment: handleEnvironmentClick
@@ -504,23 +505,41 @@ const EnvironmentList = ({
     onClearSelection: selection.clearSelection
   });
 
-  const { scopeRef: listRef } = useEnvironmentShortcuts({
+  const { closeMenu } = actions;
+  const { selectAllEnvs } = selection;
+
+  // With the context menu open, selecting all also closes it (the row menu closes itself).
+  const handleSelectAllShortcut = useCallback(() => {
+    closeMenu();
+    selectAllEnvs();
+  }, [closeMenu, selectAllEnvs]);
+
+  const { scopeRef } = useEnvironmentShortcuts({
     hasSelection: selection.hasSelection,
-    isOverlayOpen: actions.isOverlayOpen,
+    isModalOpen: actions.isModalOpen,
+    isMenuOpen: actions.isMenuOpen,
     onClearSelection: selection.clearSelection,
-    onSelectAll: selection.selectAllEnvs,
-    onDelete: actions.deleteSelected
+    onSelectAll: handleSelectAllShortcut,
+    onDelete: actions.deleteFromShortcut
   });
 
-  const contextMenuItems = buildEnvironmentMenuItems({
-    selectedCount: actions.targetEnvironments.length,
-    isAllSelected: selection.isAllSelected,
-    onExport: actions.openExportModal,
-    onRename: actions.handleRenameTarget,
-    onDuplicate: actions.openCopyModal,
-    onSelectAll: selection.selectAllEnvs,
-    onDelete: actions.openDeleteModal
-  });
+  const targetCount = actions.targetEnvironments.length;
+  const { isAllSelected } = selection;
+  const { openExportModal, handleRenameTarget, openCopyModal, openDeleteModal } = actions;
+
+  const contextMenuItems = useMemo(
+    () =>
+      buildEnvironmentMenuItems({
+        selectedCount: targetCount,
+        isAllSelected,
+        onExport: openExportModal,
+        onRename: handleRenameTarget,
+        onDuplicate: openCopyModal,
+        onSelectAll: selectAllEnvs,
+        onDelete: openDeleteModal
+      }),
+    [targetCount, isAllSelected, openExportModal, handleRenameTarget, openCopyModal, selectAllEnvs, openDeleteModal]
+  );
 
   const selectedDotEnvData = dotEnvFiles.find((f) => f.filename === selectedDotEnvFile);
 
@@ -591,7 +610,8 @@ const EnvironmentList = ({
 
       {actions.isExportModalOpen && (
         <ExportEnvironmentModal
-          environments={actions.targetEnvironments}
+          environments={environments}
+          preselectedEnvironmentUids={actions.targetEnvironments.map((env) => env.uid)}
           environmentType="collection"
           onClose={actions.closeExportModal}
         />
@@ -615,7 +635,7 @@ const EnvironmentList = ({
       )}
 
       <ContextMenu
-        visible={actions.isMenuOpen}
+        visible={actions.isContextMenuOpen}
         position={actions.menuPosition}
         items={contextMenuItems}
         onClose={actions.closeMenu}
@@ -634,6 +654,10 @@ const EnvironmentList = ({
           <div className="sections-container">
             <CollapsibleSection
               title="Environments"
+              contentRef={scopeRef}
+              focusable
+              contentTestId="collection-environments-section-content"
+              onContentClick={selection.handleBackgroundClick}
               expanded={environmentsExpanded}
               onToggle={() => setEnvironmentsExpanded(!environmentsExpanded)}
               actions={(
@@ -682,6 +706,7 @@ const EnvironmentList = ({
                   ref={envListSearchInputRef}
                   type="text"
                   placeholder="Search environments..."
+                  data-testid="collection-env-search-input"
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
                   className="env-list-search-input"
@@ -701,7 +726,7 @@ const EnvironmentList = ({
                   </button>
                 )}
               </div>
-              <div className="environments-list" ref={listRef} tabIndex={-1}>
+              <div className="environments-list">
                 {filteredEnvironments.map((env) => {
                   const isEnvSelected = selection.isEnvSelected(env.uid);
                   const isEnvMultiSelected = isEnvSelected && selection.selectedEnvUids.length > 1;
@@ -771,6 +796,7 @@ const EnvironmentList = ({
                                 onRename={() => handleEnvironmentDoubleClick(env)}
                                 onDuplicate={() => actions.openCopyModal(env)}
                                 onDelete={() => actions.openDeleteModal(env)}
+                                onOpenChange={(open) => actions.handleRowMenuOpenChange(env, open)}
                               />
                             )}
                             {activeEnvironmentUid === env.uid ? (
@@ -835,7 +861,7 @@ const EnvironmentList = ({
                 {envNameError && (isCreatingInline || renamingEnvUid) && <div className="env-error">{envNameError}</div>}
 
                 {filteredEnvironments.length === 0 && !isCreatingInline && (
-                  <div className="no-env-file">
+                  <div className="no-env-file" data-testid="collection-env-empty">
                     <span>No environments</span>
                   </div>
                 )}

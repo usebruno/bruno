@@ -10,7 +10,8 @@ const useEnvironmentActions = ({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
+  const [isRowMenuOpen, setIsRowMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
 
   const targetEnvUidSet = useMemo(() => new Set(targetEnvUids), [targetEnvUids]);
@@ -20,8 +21,18 @@ const useEnvironmentActions = ({
     [environments, targetEnvUidSet]
   );
 
+  const isMenuOpen = isContextMenuOpen || isRowMenuOpen;
+  const isModalOpen = isDeleteModalOpen || isExportModalOpen || isCopyModalOpen;
+
+  // Closes the context menu. The row menu closes itself.
   const closeMenu = useCallback(() => {
-    setIsMenuOpen(false);
+    setIsContextMenuOpen(false);
+  }, []);
+
+  // The row menu targets its own row.
+  const handleRowMenuOpenChange = useCallback((env, open) => {
+    setIsRowMenuOpen(open);
+    if (open) setTargetEnvUids([env.uid]);
   }, []);
 
   // Right-clicking a selected row applies actions to the entire selection.
@@ -32,7 +43,7 @@ const useEnvironmentActions = ({
     const isPartOfMultiSelection = selectedEnvUids.includes(env.uid) && selectedEnvUids.length > 1;
     setTargetEnvUids(isPartOfMultiSelection ? selectedEnvUids : [env.uid]);
     setMenuPosition({ x: e.clientX, y: e.clientY });
-    setIsMenuOpen(true);
+    setIsContextMenuOpen(true);
   }, [selectedEnvUids]);
 
   const openExportModal = useCallback((env) => {
@@ -50,11 +61,15 @@ const useEnvironmentActions = ({
     setIsDeleteModalOpen(true);
   }, []);
 
-  // Shortcut entry point, targets the whole selection.
-  const deleteSelected = useCallback(() => {
-    setTargetEnvUids(selectedEnvUids);
+  // Delete shortcut entry point, with a menu open it acts on that menu's targets, otherwise on the selection.
+  const deleteFromShortcut = useCallback(() => {
+    if (isMenuOpen) {
+      setIsContextMenuOpen(false);
+    } else {
+      setTargetEnvUids(selectedEnvUids);
+    }
     setIsDeleteModalOpen(true);
-  }, [selectedEnvUids]);
+  }, [isMenuOpen, selectedEnvUids]);
 
   const closeExportModal = useCallback(() => {
     setIsExportModalOpen(false);
@@ -78,15 +93,17 @@ const useEnvironmentActions = ({
 
   return {
     targetEnvironments,
-    isOverlayOpen: isMenuOpen || isDeleteModalOpen || isExportModalOpen || isCopyModalOpen,
+    isModalOpen,
     isMenuOpen,
+    isContextMenuOpen,
+    handleRowMenuOpenChange,
     menuPosition,
     closeMenu,
     handleRowContextMenu,
     handleRenameTarget,
     isDeleteModalOpen,
     openDeleteModal,
-    deleteSelected,
+    deleteFromShortcut,
     closeDeleteModal,
     isExportModalOpen,
     openExportModal,

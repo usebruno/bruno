@@ -20,12 +20,17 @@ test.describe('Collection environments context menu', () => {
 
     await openRowContextMenu(page, ENV_2);
 
-    await expect(contextMenuItem('export')).toBeVisible();
-    await expect(contextMenuItem('rename')).toBeVisible();
-    await expect(contextMenuItem('duplicate')).toBeVisible();
-    await expect(contextMenuItem('select-all')).toHaveText(/^Select all/);
-    await expect(contextMenuItem('delete')).toHaveText(/^Delete(?! \()/);
-    await expect(selectedRows()).toHaveCount(0);
+    await test.step('It lists the single-environment actions', async () => {
+      await expect(contextMenuItem('export')).toBeVisible();
+      await expect(contextMenuItem('rename')).toBeVisible();
+      await expect(contextMenuItem('duplicate')).toBeVisible();
+      await expect(contextMenuItem('select-all')).toHaveText(/^Select all/);
+      await expect(contextMenuItem('delete')).toHaveText(/^Delete(?! \()/);
+    });
+
+    await test.step('The right-clicked row is not selected', async () => {
+      await expect(selectedRows()).toHaveCount(0);
+    });
   });
 
   test('right-clicking a multi-selection hides Rename and Duplicate and counts the selection', async ({ page }) => {
@@ -103,7 +108,8 @@ test.describe('Collection environments context menu', () => {
     await expect(exportModal.root()).toBeVisible();
     await expect(exportModal.environmentCheckbox(ENV_1)).toBeChecked();
     await expect(exportModal.environmentCheckbox(ENV_3)).toBeChecked();
-    await expect(exportModal.environmentCheckbox(ENV_2)).toHaveCount(0);
+    // Every environment is listed, so a parent can be added, but only the targets start checked.
+    await expect(exportModal.environmentCheckbox(ENV_2)).not.toBeChecked();
     await expect(exportModal.submit()).toHaveText('Export 2 Environments');
 
     await page.keyboard.press('Escape');

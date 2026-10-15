@@ -5,26 +5,39 @@ const isTextField = (el) => el?.tagName === 'INPUT' || el?.tagName === 'TEXTAREA
 
 /**
  * Keyboard shortcuts for the environments list. They are active only while focus is inside the
- * element that receives `scopeRef`.
+ * element that receives `scopeRef`, or while one of the list's menus is open (its portal sits outside
+ * the list). Modals block them, and an open menu keeps Escape for itself.
  */
 const useEnvironmentShortcuts = ({
   hasSelection,
-  isOverlayOpen,
+  isModalOpen,
+  isMenuOpen,
   onClearSelection,
   onSelectAll,
   onDelete
 }) => {
   const scopeRef = useRef(null);
+  const wasModalOpenRef = useRef(false);
+
+  // Closing a modal drops focus to <body>, which is outside the list. Hand it back so the shortcuts keep working.
+  useEffect(() => {
+    if (wasModalOpenRef.current && !isModalOpen) {
+      const active = document.activeElement;
+      if (!active || active === document.body) scopeRef.current?.focus();
+    }
+    wasModalOpenRef.current = isModalOpen;
+  }, [isModalOpen]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // While a modal or menu is open every key belongs to it.
-      if (isOverlayOpen) return;
-      // return if focus is not inside the env sidebar list, and leave typing in inputs (like inline rename) alone.
-      if (!scopeRef.current?.contains(document.activeElement) || isTextField(document.activeElement)) return;
+      // While a modal is open every key belongs to it.
+      if (isModalOpen) return;
+      // return if focus is not inside the env sidebar list (or one of its open menus), and leave typing in inputs (like inline rename) alone.
+      const isFocusInScope = scopeRef.current?.contains(document.activeElement) || isMenuOpen;
+      if (!isFocusInScope || isTextField(document.activeElement)) return;
 
       if (e.key === 'Escape') {
-        if (hasSelection) onClearSelection();
+        if (hasSelection && !isMenuOpen) onClearSelection();
         return;
       }
 
@@ -40,7 +53,7 @@ const useEnvironmentShortcuts = ({
       if (isSelectAllShortcut) {
         e.preventDefault();
         onSelectAll();
-      } else if (isDeleteShortcut && hasSelection) {
+      } else if (isDeleteShortcut && (hasSelection || isMenuOpen)) {
         e.preventDefault();
         onDelete();
       }
@@ -48,7 +61,7 @@ const useEnvironmentShortcuts = ({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOverlayOpen, hasSelection, onClearSelection, onSelectAll, onDelete]);
+  }, [isModalOpen, isMenuOpen, hasSelection, onClearSelection, onSelectAll, onDelete]);
 
   return { scopeRef };
 };

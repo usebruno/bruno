@@ -27,6 +27,7 @@ const exportModalRoot = (page: Page) => page.locator('.bruno-modal').filter({ ha
 
 export const buildEnvironmentLocators = (page: Page) => ({
   sidebarActions: buildEnvSidebarActionsLocators(page),
+  workspaceSidebarActions: buildEnvSidebarActionsLocators(page, 'global'),
   selector: () => page.getByTestId('environment-selector-trigger'),
   collectionTab: () => page.getByTestId('env-tab-collection'),
   globalTab: () => page.getByTestId('env-tab-global'),

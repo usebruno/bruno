@@ -125,7 +125,6 @@ const StyledWrapper = styled.div`
   .environments-list {
     overflow-y: auto;
     padding: 0 4px;
-    outline: none;
   }
 
   .btn-action {

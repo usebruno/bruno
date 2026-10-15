@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import usePrevious from 'hooks/usePrevious';
 import useOnClickOutside from 'hooks/useOnClickOutside';
 import useDebounce from 'hooks/useDebounce';
@@ -13,6 +13,15 @@ import CollapsibleSection from 'components/Environments/CollapsibleSection';
 import DotEnvFileEditor from 'components/Environments/DotEnvFileEditor';
 import DotEnvFileDetails from 'components/Environments/DotEnvFileDetails';
 import ColorBadge from 'components/ColorBadge';
+import CopyEnvironment from '../CopyEnvironment';
+import DeleteEnvironments from '../DeleteEnvironments';
+import ExportEnvironmentModal from 'components/Environments/Common/ExportEnvironmentModal';
+import ContextMenu from 'ui/ContextMenu';
+import RowActionsMenu from 'components/Environments/Common/EnvironmentSelection/RowActionsMenu';
+import useEnvironmentActions from 'components/Environments/Common/EnvironmentSelection/useEnvironmentActions';
+import buildEnvironmentMenuItems from 'components/Environments/Common/EnvironmentSelection/buildEnvironmentMenuItems';
+import useEnvironmentListSelection from 'components/Environments/Common/EnvironmentSelection/useEnvironmentListSelection';
+import useEnvironmentShortcuts from 'components/Environments/Common/EnvironmentSelection/useEnvironmentShortcuts';
 import { isEqual } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import { usePersistedState } from 'hooks/usePersistedState';
@@ -484,8 +493,61 @@ const EnvironmentList = ({
     setDotEnvViewMode(mode);
   };
 
-  const filteredEnvironments
-    = environments?.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase())) || [];
+  const activeEnvUid = activeView === 'environment' ? selectedEnvironment?.uid : undefined;
+
+  const filteredEnvironments = useMemo(
+    () => environments?.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase())) || [],
+    [environments, searchText]
+  );
+
+  const selection = useEnvironmentListSelection({
+    filteredEnvironments,
+    activeEnvUid,
+    onOpenEnvironment: handleEnvironmentClick
+  });
+
+  const actions = useEnvironmentActions({
+    environments,
+    selectedEnvUids: selection.selectedEnvUids,
+    onRenameEnvironment: handleEnvironmentDoubleClick,
+    onClearSelection: selection.clearSelection
+  });
+
+  const { closeMenu } = actions;
+  const { selectAllEnvs } = selection;
+
+  // With the context menu open, selecting all also closes it (the row menu closes itself).
+  const handleSelectAllShortcut = useCallback(() => {
+    closeMenu();
+    selectAllEnvs();
+  }, [closeMenu, selectAllEnvs]);
+
+  const { scopeRef } = useEnvironmentShortcuts({
+    hasSelection: selection.hasSelection,
+    isModalOpen: actions.isModalOpen,
+    isMenuOpen: actions.isMenuOpen,
+    onClearSelection: selection.clearSelection,
+    onSelectAll: handleSelectAllShortcut,
+    onDelete: actions.deleteFromShortcut
+  });
+
+  const targetCount = actions.targetEnvironments.length;
+  const { isAllSelected } = selection;
+  const { openExportModal, handleRenameTarget, openCopyModal, openDeleteModal } = actions;
+
+  const contextMenuItems = useMemo(
+    () =>
+      buildEnvironmentMenuItems({
+        selectedCount: targetCount,
+        isAllSelected,
+        onExport: openExportModal,
+        onRename: handleRenameTarget,
+        onDuplicate: openCopyModal,
+        onSelectAll: selectAllEnvs,
+        onDelete: openDeleteModal
+      }),
+    [targetCount, isAllSelected, openExportModal, handleRenameTarget, openCopyModal, selectAllEnvs, openDeleteModal]
+  );
 
   const selectedDotEnvData = dotEnvFiles.find((f) => f.filename === selectedDotEnvFile);
 
@@ -551,6 +613,35 @@ const EnvironmentList = ({
     <StyledWrapper>
       {openImportModal && <ImportEnvironmentModal type="global" onClose={() => setOpenImportModal(false)} />}
 
+      {actions.isExportModalOpen && (
+        <ExportEnvironmentModal
+          environments={environments}
+          preselectedEnvironmentUids={actions.targetEnvironments.map((env) => env.uid)}
+          environmentType="global"
+          onClose={actions.closeExportModal}
+        />
+      )}
+
+      {actions.isCopyModalOpen && actions.targetEnvironments[0] && (
+        <CopyEnvironment environment={actions.targetEnvironments[0]} onClose={actions.closeCopyModal} />
+      )}
+
+      {actions.isDeleteModalOpen && (
+        <DeleteEnvironments
+          environments={actions.targetEnvironments}
+          activeEnvironmentUid={activeEnvironmentUid}
+          onClose={actions.closeDeleteModal}
+        />
+      )}
+
+      <ContextMenu
+        visible={actions.isContextMenuOpen}
+        position={actions.menuPosition}
+        items={contextMenuItems}
+        onClose={actions.closeMenu}
+        data-testid="env-context-menu"
+      />
+
       <div className="environments-container">
         {switchEnvConfirmClose && (
           <div className="confirm-switch-overlay">
@@ -563,6 +654,10 @@ const EnvironmentList = ({
           <div className="sections-container">
             <CollapsibleSection
               title="Environments"
+              contentRef={scopeRef}
+              focusable
+              contentTestId="workspace-environments-section-content"
+              onContentClick={selection.handleBackgroundClick}
               expanded={environmentsExpanded}
               onToggle={() => setEnvironmentsExpanded(!environmentsExpanded)}
               actions={(
@@ -617,6 +712,7 @@ const EnvironmentList = ({
                   ref={envListSearchInputRef}
                   type="text"
                   placeholder="Search environments..."
+                  data-testid="workspace-env-search-input"
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
                   className="env-list-search-input"
@@ -632,75 +728,98 @@ const EnvironmentList = ({
                 )}
               </div>
               <div className="environments-list" ref={envListRef}>
-                {filteredEnvironments.map((env) => (
-                  <div
-                    key={env.uid}
-                    id={env.uid}
-                    data-testid="workspace-env-list-item"
-                    className={classnames('environment-item', {
-                      active: activeView === 'environment' && selectedEnvironment?.uid === env.uid,
-                      renaming: renamingEnvUid === env.uid,
-                      activated: activeEnvironmentUid === env.uid
-                    })}
-                    onClick={() => renamingEnvUid !== env.uid && handleEnvironmentClick(env)}
-                    onDoubleClick={() => handleEnvironmentDoubleClick(env)}
-                  >
-                    {renamingEnvUid === env.uid ? (
-                      <div className="rename-container" ref={renameContainerRef}>
-                        <input
-                          ref={inputRef}
-                          type="text"
-                          className="environment-name-input"
-                          value={newEnvName}
-                          onChange={handleEnvNameChange}
-                          onKeyDown={handleEnvNameKeyDown}
-                          autoComplete="off"
-                          autoCorrect="off"
-                          autoCapitalize="off"
-                          spellCheck="false"
-                        />
-                        <div className="inline-actions">
-                          <button
-                            className="inline-action-btn save"
-                            onClick={handleSaveRename}
-                            onMouseDown={(e) => e.preventDefault()}
-                            title="Save"
-                          >
-                            <IconCheck size={14} strokeWidth={2} />
-                          </button>
-                          <button
-                            className="inline-action-btn cancel"
-                            onClick={handleCancelRename}
-                            onMouseDown={(e) => e.preventDefault()}
-                            title="Cancel"
-                          >
-                            <IconX size={14} strokeWidth={2} />
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <ColorBadge color={env.color} size={8} />
-                        <span className="environment-name">{env.name}</span>
-                        <div className="environment-actions">
-                          {activeEnvironmentUid === env.uid ? (
-                            <div className="activated-checkmark" title="Active environment">
-                              <IconCheck size={16} strokeWidth={2} />
-                            </div>
-                          ) : (
+                {filteredEnvironments.map((env) => {
+                  const isEnvSelected = selection.isEnvSelected(env.uid);
+                  const isEnvMultiSelected = isEnvSelected && selection.selectedEnvUids.length > 1;
+                  const isEnvOpen = activeView === 'environment' && selectedEnvironment?.uid === env.uid;
+                  return (
+                    <div
+                      key={env.uid}
+                      id={env.uid}
+                      data-testid="workspace-env-list-item"
+                      role="option"
+                      aria-selected={isEnvSelected}
+                      aria-current={isEnvOpen ? 'true' : undefined}
+                      className={classnames('environment-item', {
+                        'active': isEnvOpen,
+                        'renaming': renamingEnvUid === env.uid,
+                        'activated': activeEnvironmentUid === env.uid,
+                        'is-selected': isEnvSelected
+                      })}
+                      onClick={(e) => renamingEnvUid !== env.uid && selection.handleRowInteraction(e, env)}
+                      onContextMenu={(e) => renamingEnvUid !== env.uid && actions.handleRowContextMenu(e, env)}
+                      onDoubleClick={() => handleEnvironmentDoubleClick(env)}
+                    >
+                      {renamingEnvUid === env.uid ? (
+                        <div className="rename-container" ref={renameContainerRef}>
+                          <input
+                            ref={inputRef}
+                            type="text"
+                            className="environment-name-input"
+                            data-testid="env-rename-name-input"
+                            value={newEnvName}
+                            onChange={handleEnvNameChange}
+                            onKeyDown={handleEnvNameKeyDown}
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck="false"
+                          />
+                          <div className="inline-actions">
                             <button
-                              className="activate-btn"
-                              onClick={(e) => handleActivateEnvironment(e, env)}
-                              title="Activate environment"
+                              className="inline-action-btn save"
+                              onClick={handleSaveRename}
+                              onMouseDown={(e) => e.preventDefault()}
+                              title="Save"
                             >
-                              <IconCheck size={16} strokeWidth={2} />
+                              <IconCheck size={14} strokeWidth={2} />
                             </button>
-                          )}
+                            <button
+                              className="inline-action-btn cancel"
+                              onClick={handleCancelRename}
+                              onMouseDown={(e) => e.preventDefault()}
+                              title="Cancel"
+                            >
+                              <IconX size={14} strokeWidth={2} />
+                            </button>
+                          </div>
                         </div>
-                      </>
-                    )}
-                  </div>
-                ))}
+                      ) : (
+                        <>
+                          <ColorBadge color={env.color} size={8} />
+                          <span className="environment-name" data-testid="workspace-env-name">{env.name}</span>
+                          <div className="environment-actions">
+                            {!isEnvMultiSelected && (
+                              <RowActionsMenu
+                                onExport={() => actions.openExportModal(env)}
+                                onSelectAll={selection.selectAllEnvs}
+                                isAllSelected={selection.isAllSelected}
+                                onRename={() => handleEnvironmentDoubleClick(env)}
+                                onDuplicate={() => actions.openCopyModal(env)}
+                                onDelete={() => actions.openDeleteModal(env)}
+                                onOpenChange={(open) => actions.handleRowMenuOpenChange(env, open)}
+                              />
+                            )}
+                            {activeEnvironmentUid === env.uid ? (
+                              <div className="activated-checkmark" title="Active environment">
+                                <IconCheck size={16} strokeWidth={2} />
+                              </div>
+                            ) : (
+                              <button
+                                className="activate-btn"
+                                onClick={(e) => handleActivateEnvironment(e, env)}
+                                data-testid="env-activate-btn"
+                                title="Activate environment"
+                              >
+                                <IconCheck size={16} strokeWidth={2} />
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
 
                 {isCreatingInline && (
                   <div className="environment-item creating" ref={createContainerRef}>
@@ -743,7 +862,7 @@ const EnvironmentList = ({
                 {envNameError && (isCreatingInline || renamingEnvUid) && <div className="env-error">{envNameError}</div>}
 
                 {filteredEnvironments.length === 0 && !isCreatingInline && (
-                  <div className="no-env-file">
+                  <div className="no-env-file" data-testid="workspace-env-empty">
                     <span>No environments</span>
                   </div>
                 )}

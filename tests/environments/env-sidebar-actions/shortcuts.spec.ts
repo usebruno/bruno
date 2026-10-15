@@ -48,6 +48,27 @@ test.describe('Collection environments list shortcuts', () => {
     }
   });
 
+  test('Cmd/Ctrl+A with the context menu open selects every environment and closes the menu', async ({ page }) => {
+    const { contextMenu, selectedRowNames } = buildCommonLocators(page).environment.sidebarActions;
+
+    await openRowContextMenu(page, ENV_2);
+    await page.keyboard.press(SELECT_ALL_KEY);
+
+    await expect(contextMenu()).toBeHidden();
+    await expect(selectedRowNames()).toHaveText(ENV_NAMES);
+  });
+
+  test('Cmd/Ctrl+A with the row menu open selects every environment and closes the menu', async ({ page }) => {
+    const { rowMenuButton, rowMenuItem, selectedRowNames } = buildCommonLocators(page).environment.sidebarActions;
+
+    await rowMenuButton(ENV_2).click();
+    await expect(rowMenuItem('select-all')).toBeVisible();
+    await page.keyboard.press(SELECT_ALL_KEY);
+
+    await expect(rowMenuItem('select-all')).toBeHidden();
+    await expect(selectedRowNames()).toHaveText(ENV_NAMES);
+  });
+
   test('Cmd/Ctrl+A selects every environment and pressing it again clears the selection', async ({ page }) => {
     const { environment } = buildCommonLocators(page);
     const { selectedRows, selectedRowNames } = environment.sidebarActions;
@@ -63,13 +84,19 @@ test.describe('Collection environments list shortcuts', () => {
 
   test('the delete key needs a selection and then deletes every selected environment', async ({ page }) => {
     const { environment } = buildCommonLocators(page);
-    const { deleteModal, rowNames } = environment.sidebarActions;
+    const { deleteModal, rowNames, selectedRows, selectedRowNames } = environment.sidebarActions;
 
     await test.step('Nothing is selected, so nothing happens', async () => {
       await environment.sidebarListItemExact('collection', ENV_2).click();
       await page.keyboard.press(DELETE_KEY);
 
+      // Keys are handled in order, so once select all has applied, a modal from the Delete key would be open.
+      await page.keyboard.press(SELECT_ALL_KEY);
+      await expect(selectedRowNames()).toHaveText(ENV_NAMES);
       await expect(deleteModal.root()).toHaveCount(0);
+
+      await page.keyboard.press(SELECT_ALL_KEY);
+      await expect(selectedRows()).toHaveCount(0);
     });
 
     await test.step('With Env 2 and Env 3 selected, the delete modal opens', async () => {
@@ -85,6 +112,57 @@ test.describe('Collection environments list shortcuts', () => {
       await expect(deleteModal.root()).toBeHidden();
       await expect(rowNames()).toHaveText([ENV_1, ENV_4]);
     });
+  });
+
+  test('the delete key with the context menu open deletes the right-clicked environment, not the selection', async ({ page }) => {
+    const { environment } = buildCommonLocators(page);
+    const { deleteModal, rowNames, selectedRowNames } = environment.sidebarActions;
+
+    await ctrlClickRows(page, [ENV_2]);
+    await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2]);
+
+    await openRowContextMenu(page, ENV_4);
+    await page.keyboard.press(DELETE_KEY);
+    await expect(deleteModal.root()).toBeVisible();
+
+    await deleteModal.confirm().click();
+
+    await expect(deleteModal.root()).toBeHidden();
+    await expect(rowNames()).toHaveText([ENV_1, ENV_2, ENV_3]);
+  });
+
+  test('the delete key with the row menu open deletes that row, not the selection', async ({ page }) => {
+    const { environment } = buildCommonLocators(page);
+    const { deleteModal, rowMenuButton, rowNames, selectedRowNames } = environment.sidebarActions;
+
+    await ctrlClickRows(page, [ENV_2]);
+    await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2]);
+
+    await rowMenuButton(ENV_4).click();
+    await page.keyboard.press(DELETE_KEY);
+    await expect(deleteModal.root()).toBeVisible();
+
+    await deleteModal.confirm().click();
+
+    await expect(deleteModal.root()).toBeHidden();
+    await expect(rowNames()).toHaveText([ENV_1, ENV_2, ENV_3]);
+  });
+
+  test('the shortcuts work again after the delete modal is closed with Escape', async ({ page }) => {
+    const { environment } = buildCommonLocators(page);
+    const { deleteModal, selectedRowNames } = environment.sidebarActions;
+
+    await environment.sidebarListItemExact('collection', ENV_2).click();
+    await ctrlClickRows(page, [ENV_3]);
+    await page.keyboard.press(DELETE_KEY);
+    await expect(deleteModal.root()).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(deleteModal.root()).toBeHidden();
+
+    // Focus is back in the list, so select all still works.
+    await page.keyboard.press(SELECT_ALL_KEY);
+    await expect(selectedRowNames()).toHaveText(ENV_NAMES);
   });
 
   test('Escape clears the selection', async ({ page }) => {

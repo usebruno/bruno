@@ -1,0 +1,280 @@
+import { test, expect } from '../../../playwright';
+import { buildCommonLocators } from '../../utils/page/locators';
+import {
+  DELETE_KEY,
+  ENV_NAMES,
+  SELECT_ALL_KEY,
+  clickEmptyListSpace,
+  ctrlClickRows,
+  deleteAllWorkspaceEnvironments,
+  openRowContextMenu,
+  openWorkspaceEnvironments
+} from './helpers';
+
+const [ENV_1, ENV_2, ENV_3, ENV_4] = ENV_NAMES;
+
+test.describe('Workspace environments list', () => {
+  test.beforeEach(async ({ page }) => {
+    await openWorkspaceEnvironments(page);
+
+    const { environment } = buildCommonLocators(page);
+    await expect(environment.workspaceSidebarActions.rowNames()).toHaveText(ENV_NAMES);
+    // aria-current marks the environment open in the editor
+    await expect(environment.sidebarListItemExact('global', ENV_1)).toHaveAttribute('aria-current', 'true');
+  });
+
+  test.afterEach(async ({ page }) => {
+    await deleteAllWorkspaceEnvironments(page);
+  });
+
+  test.describe('multi-select', () => {
+    test('Cmd/Ctrl-click adds the open environment to the selection, then toggles rows', async ({ page }) => {
+      const { selectedRowNames } = buildCommonLocators(page).environment.workspaceSidebarActions;
+
+      await ctrlClickRows(page, [ENV_3], 'global');
+      await expect(selectedRowNames()).toHaveText([ENV_1, ENV_3]);
+
+      await ctrlClickRows(page, [ENV_3], 'global');
+      await expect(selectedRowNames()).toHaveText([ENV_1]);
+    });
+
+    test('a click on the empty space below the rows clears the selection', async ({ page }) => {
+      const { selectedRows } = buildCommonLocators(page).environment.workspaceSidebarActions;
+
+      await ctrlClickRows(page, [ENV_3], 'global');
+      await expect(selectedRows()).toHaveCount(2);
+
+      await clickEmptyListSpace(page, 'global');
+
+      await expect(selectedRows()).toHaveCount(0);
+    });
+
+    test('Shift-click selects the range from the open environment', async ({ page }) => {
+      const { environment } = buildCommonLocators(page);
+
+      await environment.sidebarListItemExact('global', ENV_3).click({ modifiers: ['Shift'] });
+
+      await expect(environment.workspaceSidebarActions.selectedRowNames()).toHaveText([ENV_1, ENV_2, ENV_3]);
+    });
+
+    test('a selection hidden by the search is kept but never acted on', async ({ page }) => {
+      const { rowNames, searchInput, selectedRowNames, contextMenuItem, deleteModal }
+        = buildCommonLocators(page).environment.workspaceSidebarActions;
+
+      await ctrlClickRows(page, [ENV_2, ENV_3], 'global');
+      await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2, ENV_3]);
+
+      await searchInput().fill('3');
+      await expect(rowNames()).toHaveText([ENV_3]);
+      await expect(selectedRowNames()).toHaveText([ENV_3]);
+
+      await openRowContextMenu(page, ENV_3, 'global');
+      await contextMenuItem('delete').click();
+      await deleteModal.confirm().click();
+      await expect(deleteModal.root()).toBeHidden();
+
+      await searchInput().fill('');
+      await expect(rowNames()).toHaveText([ENV_1, ENV_2, ENV_4]);
+      await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2]);
+    });
+  });
+
+  test.describe('row menu', () => {
+    test('lists the actions for a single environment', async ({ page }) => {
+      const { rowMenuButton, rowMenuItem } = buildCommonLocators(page).environment.workspaceSidebarActions;
+
+      await test.step('Open the row menu', async () => {
+        await rowMenuButton(ENV_2).click();
+      });
+
+      await test.step('It lists the single-environment actions', async () => {
+        await expect(rowMenuItem('export')).toBeVisible();
+        await expect(rowMenuItem('rename')).toBeVisible();
+        await expect(rowMenuItem('duplicate')).toBeVisible();
+        await expect(rowMenuItem('select-all')).toHaveText(/^Select all/);
+        await expect(rowMenuItem('delete')).toHaveText(/^Delete(?! \()/);
+      });
+    });
+
+    test('rename edits the environment name inline', async ({ page }) => {
+      const { rowMenuButton, rowMenuItem, rowRenameInput, rowNames } = buildCommonLocators(page).environment.workspaceSidebarActions;
+      const renamed = `${ENV_2} renamed`;
+
+      await rowMenuButton(ENV_2).click();
+      await rowMenuItem('rename').click();
+
+      await expect(rowRenameInput()).toHaveValue(ENV_2);
+      await rowRenameInput().fill(renamed);
+      await rowRenameInput().press('Enter');
+
+      await expect(rowRenameInput()).toBeHidden();
+      await expect(rowNames()).toHaveText([ENV_1, renamed, ENV_3, ENV_4]);
+    });
+
+    test('duplicate creates a copy of the environment', async ({ page }) => {
+      const { environment } = buildCommonLocators(page);
+      const { rows, rowMenuButton, rowMenuItem, copyModal } = environment.workspaceSidebarActions;
+      const copyName = `${ENV_2} - Copy`;
+
+      await rowMenuButton(ENV_2).click();
+      await rowMenuItem('duplicate').click();
+
+      await expect(copyModal.nameInput()).toHaveValue(copyName);
+      await copyModal.submit().click();
+
+      await expect(copyModal.root()).toBeHidden();
+      await expect(environment.sidebarListItemExact('global', copyName)).toBeVisible();
+      await expect(rows()).toHaveCount(ENV_NAMES.length + 1);
+    });
+
+    test('delete removes the environment after confirmation', async ({ page }) => {
+      const { rowMenuButton, rowMenuItem, rowNames, deleteModal } = buildCommonLocators(page).environment.workspaceSidebarActions;
+
+      await rowMenuButton(ENV_2).click();
+      await rowMenuItem('delete').click();
+
+      await expect(deleteModal.root()).toBeVisible();
+      await expect(deleteModal.activeWarning()).toBeHidden();
+
+      await deleteModal.confirm().click();
+
+      await expect(deleteModal.root()).toBeHidden();
+      await expect(rowNames()).toHaveText([ENV_1, ENV_3, ENV_4]);
+    });
+
+    test('delete warns that the workspace is left without an environment when the active one is deleted', async ({ page }) => {
+      const { rowActivateButton, rowMenuButton, rowMenuItem, rowNames, deleteModal } = buildCommonLocators(page).environment.workspaceSidebarActions;
+
+      await rowActivateButton(ENV_3).click();
+      await rowMenuButton(ENV_3).click();
+      await rowMenuItem('delete').click();
+
+      await expect(deleteModal.activeWarning()).toContainText(ENV_3);
+      await expect(deleteModal.activeWarning()).toContainText('the workspace with no environment selected');
+
+      await deleteModal.confirm().click();
+
+      await expect(deleteModal.root()).toBeHidden();
+      await expect(rowNames()).toHaveText([ENV_1, ENV_2, ENV_4]);
+    });
+
+    test('export opens the export modal for that environment only', async ({ page }) => {
+      const { environment } = buildCommonLocators(page);
+      const { exportModal } = environment;
+      const { rowMenuButton, rowMenuItem } = environment.workspaceSidebarActions;
+
+      await rowMenuButton(ENV_2).click();
+      await rowMenuItem('export').click();
+
+      await expect(exportModal.root()).toBeVisible();
+      await expect(exportModal.environmentCheckbox(ENV_2)).toBeChecked();
+      await expect(exportModal.environmentCheckbox(ENV_1)).not.toBeChecked();
+      await expect(exportModal.submit()).toHaveText('Export 1 Environment');
+
+      await page.keyboard.press('Escape');
+      await expect(exportModal.root()).toBeHidden();
+    });
+  });
+
+  test.describe('context menu', () => {
+    test('right-clicking a multi-selection hides Rename and Duplicate, and Delete removes every selected environment', async ({ page }) => {
+      const { environment } = buildCommonLocators(page);
+      const { contextMenuItem, deleteModal, rowNames } = environment.workspaceSidebarActions;
+
+      await test.step('Select Env 2, Env 3 and Env 4', async () => {
+        await environment.sidebarListItemExact('global', ENV_2).click();
+        await ctrlClickRows(page, [ENV_3, ENV_4], 'global');
+      });
+
+      await openRowContextMenu(page, ENV_3, 'global');
+
+      await expect(contextMenuItem('export')).toBeVisible();
+      await expect(contextMenuItem('rename')).toHaveCount(0);
+      await expect(contextMenuItem('duplicate')).toHaveCount(0);
+      await expect(contextMenuItem('delete')).toHaveText(/^Delete \(3\)/);
+
+      await contextMenuItem('delete').click();
+      await expect(deleteModal.confirm()).toHaveText('Delete (3)');
+      await deleteModal.confirm().click();
+
+      await expect(deleteModal.root()).toBeHidden();
+      await expect(rowNames()).toHaveText([ENV_1]);
+    });
+  });
+
+  test.describe('shortcuts', () => {
+    test('Cmd/Ctrl+A selects every environment and pressing it again clears the selection', async ({ page }) => {
+      const { environment } = buildCommonLocators(page);
+      const { selectedRows, selectedRowNames } = environment.workspaceSidebarActions;
+
+      await environment.sidebarListItemExact('global', ENV_2).click();
+
+      await page.keyboard.press(SELECT_ALL_KEY);
+      await expect(selectedRowNames()).toHaveText(ENV_NAMES);
+
+      await page.keyboard.press(SELECT_ALL_KEY);
+      await expect(selectedRows()).toHaveCount(0);
+    });
+
+    test('the delete key needs a selection and then deletes every selected environment', async ({ page }) => {
+      const { environment } = buildCommonLocators(page);
+      const { deleteModal, rowNames, selectedRows, selectedRowNames } = environment.workspaceSidebarActions;
+
+      await test.step('Nothing is selected, so nothing happens', async () => {
+        await environment.sidebarListItemExact('global', ENV_2).click();
+        await page.keyboard.press(DELETE_KEY);
+
+        // Keys are handled in order, so once select all has applied, a modal from the Delete key would be open.
+        await page.keyboard.press(SELECT_ALL_KEY);
+        await expect(selectedRowNames()).toHaveText(ENV_NAMES);
+        await expect(deleteModal.root()).toHaveCount(0);
+
+        await page.keyboard.press(SELECT_ALL_KEY);
+        await expect(selectedRows()).toHaveCount(0);
+      });
+
+      await test.step('With Env 2 and Env 3 selected, the delete modal opens', async () => {
+        await ctrlClickRows(page, [ENV_3], 'global');
+        await page.keyboard.press(DELETE_KEY);
+
+        await expect(deleteModal.confirm()).toHaveText('Delete (2)');
+      });
+
+      await test.step('Confirming removes the selected environments', async () => {
+        await deleteModal.confirm().click();
+
+        await expect(deleteModal.root()).toBeHidden();
+        await expect(rowNames()).toHaveText([ENV_1, ENV_4]);
+      });
+    });
+
+    test('the delete key with the context menu open deletes the right-clicked environment, not the selection', async ({ page }) => {
+      const { selectedRowNames, deleteModal, rowNames } = buildCommonLocators(page).environment.workspaceSidebarActions;
+
+      await ctrlClickRows(page, [ENV_2], 'global');
+      await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2]);
+
+      await openRowContextMenu(page, ENV_4, 'global');
+      await page.keyboard.press(DELETE_KEY);
+      await expect(deleteModal.root()).toBeVisible();
+
+      await deleteModal.confirm().click();
+
+      await expect(deleteModal.root()).toBeHidden();
+      await expect(rowNames()).toHaveText([ENV_1, ENV_2, ENV_3]);
+    });
+
+    test('escape clears the selection', async ({ page }) => {
+      const { environment } = buildCommonLocators(page);
+      const { selectedRows } = environment.workspaceSidebarActions;
+
+      await environment.sidebarListItemExact('global', ENV_2).click();
+      await ctrlClickRows(page, [ENV_3], 'global');
+      await expect(selectedRows()).toHaveCount(2);
+
+      await page.keyboard.press('Escape');
+
+      await expect(selectedRows()).toHaveCount(0);
+    });
+  });
+});

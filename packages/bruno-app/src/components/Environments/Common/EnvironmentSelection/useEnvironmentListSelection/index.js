@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState } from 'react';
 import { isMacOS } from 'utils/common/platform';
 
 const useEnvironmentListSelection = ({
-  environments,
   filteredEnvironments,
   activeEnvUid,
   onOpenEnvironment
@@ -11,13 +10,14 @@ const useEnvironmentListSelection = ({
   // needed to support shift-click range selection, which requires knowing the last clicked environment
   const [lastClickedEnvUid, setLastClickedEnvUid] = useState(null);
 
-  const envUids = useMemo(() => (environments ? environments.map((env) => env.uid) : []), [environments]);
   const filteredEnvUids = useMemo(() => filteredEnvironments.map((env) => env.uid), [filteredEnvironments]);
 
-  // Derived at read time so environments removed elsewhere (delete, file reload) drop out of the selection.
+  // Only visible environments count as selected: rows hidden by the search (or removed elsewhere) are ignored,
+  // so actions never touch what the user can't see. Hidden rows stay selected underneath and come back when the
+  // search is cleared.
   const validSelectedEnvUids = useMemo(
-    () => selectedEnvUids.filter((uid) => envUids.includes(uid)),
-    [selectedEnvUids, envUids]
+    () => selectedEnvUids.filter((uid) => filteredEnvUids.includes(uid)),
+    [selectedEnvUids, filteredEnvUids]
   );
   const selectedEnvUidSet = useMemo(() => new Set(validSelectedEnvUids), [validSelectedEnvUids]);
 
@@ -67,14 +67,16 @@ const useEnvironmentListSelection = ({
     });
   }, [lastClickedEnvUid, activeEnvUid, filteredEnvUids]);
 
+  // Toggles the visible environments only; a selection hidden by the search is kept as it is.
   const selectAllEnvs = useCallback(() => {
     if (isAllSelected) {
-      clearSelection();
+      setSelectedEnvUids((prev) => prev.filter((uid) => !filteredEnvUids.includes(uid)));
+      setLastClickedEnvUid(null);
       return;
     }
-    setSelectedEnvUids(filteredEnvUids);
+    setSelectedEnvUids((prev) => Array.from(new Set([...prev, ...filteredEnvUids])));
     setLastClickedEnvUid(filteredEnvUids[filteredEnvUids.length - 1] ?? null);
-  }, [isAllSelected, filteredEnvUids, clearSelection]);
+  }, [isAllSelected, filteredEnvUids]);
 
   const handleRowInteraction = useCallback((e, env) => {
     if (isMacOS() && e.ctrlKey) return;
@@ -99,12 +101,21 @@ const useEnvironmentListSelection = ({
       return;
     }
 
-    if (hasSelection) {
+    // A plain click starts over, including any selection the search is hiding.
+    if (selectedEnvUids.length > 0) {
       clearSelection();
     }
 
     onOpenEnvironment(env);
-  }, [toggleEnvSelection, selectEnvRange, hasSelection, activeEnvUid, clearSelection, onOpenEnvironment]);
+  }, [toggleEnvSelection, selectEnvRange, hasSelection, selectedEnvUids, activeEnvUid, clearSelection, onOpenEnvironment]);
+
+  // A click on the empty space around the rows clears the selection. Clicks on a row, button or input are
+  // left alone, and so are clicks that reach us through a portal (like a row menu), whose DOM is elsewhere.
+  const handleBackgroundClick = useCallback((e) => {
+    if (!e.currentTarget.contains(e.target)) return;
+    if (e.target.closest('[role="option"], button, input')) return;
+    clearSelection();
+  }, [clearSelection]);
 
   return {
     selectedEnvUids: validSelectedEnvUids,
@@ -113,7 +124,8 @@ const useEnvironmentListSelection = ({
     isEnvSelected,
     selectAllEnvs,
     clearSelection,
-    handleRowInteraction
+    handleRowInteraction,
+    handleBackgroundClick
   };
 };
 
