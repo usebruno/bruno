@@ -111,7 +111,7 @@ const WRITE_BATCH_SIZE = 200;
 
 const SLOW_BATCH_MS = 50;
 
-const createWriteBatch = (searchIndex) => {
+const createWriteBatch = (searchIndex, onWrite) => {
   let pending = [];
   let batch = { si: 0, fi: 0 };
   const stats = { batches: 0, writes: 0, ms: 0, si: 0, fi: 0, slow: 0, maxMs: 0 };
@@ -142,6 +142,7 @@ const createWriteBatch = (searchIndex) => {
     stats.fi += batch.fi;
     if (ms > SLOW_BATCH_MS) stats.slow += 1;
     stats.maxMs = Math.max(stats.maxMs, ms);
+    onWrite?.();
   };
 
   const add = (write) => {
@@ -231,7 +232,7 @@ const indexMetadata = async (searchIndex, collectionPath, metaFiles, fileIndex, 
 
 const MODE_LABELS = { quick: 'pass 1 meta', fill: 'pass 2 full', complete: 'full' };
 
-const indexUncached = async (searchIndex, collectionPath, collectionName, denylist, concurrency, workspacePath, fileIndex, onWork, mode, shouldStop) => {
+const indexUncached = async (searchIndex, collectionPath, collectionName, denylist, concurrency, workspacePath, fileIndex, onWork, onWrite, mode, shouldStop) => {
   const runStart = performance.now();
   const logLabel = `${collectionName} (${MODE_LABELS[mode]})`;
   const folderPaths = [];
@@ -249,7 +250,7 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
     folderPaths: withParentFolders(folderPaths)
   });
 
-  const writes = createWriteBatch(searchIndex);
+  const writes = createWriteBatch(searchIndex, onWrite);
 
   // Names first: they are a few small files, and every row's collection and folder name depends on them
   await indexMetadata(searchIndex, collectionPath, metaFiles, fileIndex, onWork, writes);
@@ -367,12 +368,12 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
 const activeRuns = new Map();
 
 // onWork is called once the run finds something to read or write (not while it is only checking for changes)
-const indexCollection = (searchIndex, { collectionPath, collectionName, denylist, concurrency = os.availableParallelism(), workspacePath, fileIndex, onWork, mode = 'complete', shouldStop }) => {
+const indexCollection = (searchIndex, { collectionPath, collectionName, denylist, concurrency = os.availableParallelism(), workspacePath, fileIndex, onWork, onWrite, mode = 'complete', shouldStop }) => {
   const root = path.resolve(collectionPath);
   const running = activeRuns.get(root);
   if (running) return running;
 
-  const run = indexUncached(searchIndex, root, collectionName, denylist, concurrency, workspacePath, fileIndex, onWork, fileIndex ? mode : 'complete', shouldStop)
+  const run = indexUncached(searchIndex, root, collectionName, denylist, concurrency, workspacePath, fileIndex, onWork, onWrite, fileIndex ? mode : 'complete', shouldStop)
     .finally(() => activeRuns.delete(root));
   activeRuns.set(root, run);
   return run;

@@ -1,8 +1,7 @@
-import { SEARCH_CONFIG } from 'components/GlobalSearchModal/constants';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import useDebounce from 'hooks/useDebounce';
-import useLeadingThrottle from 'hooks/useLeadingThrottle';
+import useSearchIndexWrites from 'hooks/useSearchIndexWrites';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import { fetchCollectionTreeFromIndex, indexActiveWorkspaceCollections, searchCollectionTreesFromIndex } from 'providers/ReduxStore/slices/collections/actions';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -46,13 +45,13 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const searchTextRef = useRef(searchText);
   searchTextRef.current = searchText;
   const activeWorkspacePathnameRef = useRef(null);
-  const pollIntervalRef = useRef(null);
   const searchIndexBuildingRef = useRef(searchIndexBuilding);
   searchIndexBuildingRef.current = searchIndexBuilding;
   const wasSearchIndexBuildingRef = useRef(false);
   const lastQueriedTextRef = useRef('');
   const searchRequestIdRef = useRef(0);
   const searchInFlightRef = useRef(false);
+  const searchRerunRef = useRef(false);
   const lastSearchResultRef = useRef(null);
   const searchTermStartRef = useRef(null);
   const searchLimitRef = useRef(SEARCH_PAGE_SIZE);
@@ -88,10 +87,13 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
 
   // Search runs against the search index only (mounted or not). Only one window of matches is asked for at a time
   // (collections in sidebar order), and the next window is loaded when the list is scrolled to its end.
-  const runIndexSearch = () => {
+  const runIndexSearch = useCallback(() => {
     const text = searchTextRef.current.trim();
     if (!text) return;
-    if (searchInFlightRef.current) return;
+    if (searchInFlightRef.current) {
+      searchRerunRef.current = true;
+      return;
+    }
     const limit = searchLimitRef.current;
     const queryKey = `${text}\n${limit}`;
     // Once the index is complete, repeating the same query would return the same rows
@@ -107,9 +109,9 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     dispatch(searchCollectionTreesFromIndex(text, workspacePath, knownRevision, { limit, collectionPaths: searchCollectionPathsRef.current }))
       .then((result) => {
         if (requestId !== searchRequestIdRef.current) return;
-        const { trees, revision, unchanged, total, loaded } = result || {};
+        const { trees, revision, unchanged, total, loaded, indexing } = result || {};
         const termStart = searchTermStartRef.current;
-        if (termStart && !termStart.logged && termStart.text === text) {
+        if (termStart && !termStart.logged && termStart.text === text && (loaded > 0 || !indexing)) {
           termStart.logged = true;
           const elapsed = performance.now() - termStart.startedAt;
           setSearchTimings((prev) => (prev.length < SEARCH_TIMING_LABELS.length ? [...prev, elapsed] : prev));
@@ -130,10 +132,14 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
       .finally(() => {
         searchInFlightRef.current = false;
         if (requestId === searchRequestIdRef.current && !searchIndexBuildingRef.current) setIsSearchIndexPending(false);
+        if (searchRerunRef.current) {
+          searchRerunRef.current = false;
+          runIndexSearch();
+        }
       });
-  };
+  }, [dispatch]);
 
-  const searchIndexThrottled = useLeadingThrottle(runIndexSearch, SEARCH_CONFIG.INDEX_THROTTLE_DELAY);
+  useSearchIndexWrites(runIndexSearch);
 
   const loadMoreSearchResults = () => {
     const counts = searchCountsRef.current;
@@ -168,11 +174,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     });
 
     const stopSearchIndexRefresh = () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-        pollIntervalRef.current = null;
-      }
-      searchIndexThrottled.cancel();
+      searchRerunRef.current = false;
       lastQueriedTextRef.current = '';
       lastSearchResultRef.current = null;
       wasSearchIndexBuildingRef.current = false;
@@ -199,19 +201,15 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
       dispatch(indexActiveWorkspaceCollections());
     }
 
-    // The index just finished building: the final search must not be swallowed by the throttle window
+    // The index just finished building: the final search must not be skipped as a repeat of the last one
     if (wasSearchIndexBuildingRef.current && !searchIndexBuilding) {
-      searchIndexThrottled.cancel();
       lastQueriedTextRef.current = '';
     }
     wasSearchIndexBuildingRef.current = searchIndexBuilding;
 
     if (searchIndexBuilding) setIsSearchIndexPending(true);
-    searchIndexThrottled();
-    if (!pollIntervalRef.current) {
-      pollIntervalRef.current = setInterval(searchIndexThrottled, SEARCH_CONFIG.INDEX_REFRESH_INTERVAL);
-    }
-  }, [sidebarEntries, indexTreesByUid, searchText, dispatch, searchIndexEnabled, searchIndexBuilding, searchIndexThrottled]);
+    runIndexSearch();
+  }, [sidebarEntries, indexTreesByUid, searchText, dispatch, searchIndexEnabled, searchIndexBuilding, runIndexSearch]);
 
   // A mounted collection keeps its Redux items (filtered in memory below); an unmounted one gets its items
   // from the search index - its browse tree, or the matches of the current search.
@@ -354,11 +352,11 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
           {searchTimings.map((ms, index) => `${SEARCH_TIMING_LABELS[index]} ${formatDuration(ms)}`).join(' · ')}
         </div>
       )} */}
-      {trimmedSearchText && searchCounts && searchCounts.loaded < searchCounts.total && (
+      {/* {trimmedSearchText && searchCounts && searchCounts.loaded < searchCounts.total && (
         <div className="search-more-hint" data-testid="sidebar-search-more">
           Showing {searchCounts.loaded} of {searchCounts.total} matches. Scroll down to load more.
         </div>
-      )}
+      )} */}
 
       {isCreatingCollection && (
         <InlineCollectionCreator

@@ -74,6 +74,7 @@ class MountManager {
   #searchIndex = null;
   #mounts = new Map();
   #activeIndexingCount = 0;
+  #checksInFlight = 0;
 
   async mount({ win, collectionPath, collectionUid, brunoConfig, emit, workspacePath }) {
     collectionPath = path.resolve(collectionPath);
@@ -179,7 +180,8 @@ class MountManager {
   async searchIndexTrees(term, workspacePath, knownRevision, { limit, collectionPaths } = {}) {
     const searchIndex = this.#getSearchIndex();
     const revision = searchIndex.revision;
-    if (knownRevision === revision) return { revision, unchanged: true };
+    const indexing = this.#activeIndexingCount > 0 || this.#checksInFlight > 0;
+    if (knownRevision === revision) return { revision, unchanged: true, indexing };
 
     let matches = [];
     let total = 0;
@@ -206,7 +208,7 @@ class MountManager {
     for (const [collectionPath, rows] of byCollection) {
       trees[collectionPath] = this.#buildTreeFromIndexRows(collectionPath, rows, { onlyFoldersWithRows: true });
     }
-    return { revision, trees, total, loaded: matches.length };
+    return { revision, trees, total, loaded: matches.length, indexing };
   }
 
   async getIndexTree({ collectionPath, collectionName }) {
@@ -228,7 +230,8 @@ class MountManager {
       workspacePath: resolvedWorkspacePath,
       fileIndex: this.#getIndex(),
       mode: twoPass ? 'quick' : 'complete',
-      onWork
+      onWork,
+      onWrite: () => this.#broadcast('main:search-index-written')
     }));
     if (twoPass) {
       this.#fillCollection({ root, collectionName, workspacePath: resolvedWorkspacePath });
@@ -255,6 +258,15 @@ class MountManager {
   }
 
   async indexManyCollectionsInBackground(collections, workspacePath) {
+    this.#checksInFlight += 1;
+    try {
+      await this.#indexManyCollections(collections, workspacePath);
+    } finally {
+      this.#checksInFlight -= 1;
+    }
+  }
+
+  async #indexManyCollections(collections, workspacePath) {
     if (!preferencesUtil.isSearchIndexEnabled()) return;
     const fileIndex = this.#getIndex();
     const twoPass = this.#isTwoPass();
@@ -284,7 +296,8 @@ class MountManager {
           workspacePath,
           fileIndex,
           mode: twoPass ? 'quick' : 'complete',
-          onWork
+          onWork,
+          onWrite: () => this.#broadcast('main:search-index-written')
         }).catch(() => {});
       }
     });
@@ -507,10 +520,13 @@ class MountManager {
   }
 
   #broadcastIndexingStatus() {
+    this.#broadcast('main:search-index-status', this.getIndexingStatus());
+  }
+
+  #broadcast(channel, payload) {
     const { BrowserWindow } = require('electron');
-    const status = this.getIndexingStatus();
     for (const win of BrowserWindow.getAllWindows()) {
-      if (!win.isDestroyed()) win.webContents.send('main:search-index-status', status);
+      if (!win.isDestroyed()) win.webContents.send(channel, payload);
     }
   }
 }

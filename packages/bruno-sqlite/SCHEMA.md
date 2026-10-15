@@ -134,3 +134,8 @@ erDiagram
 | `source_path` | TEXT |  |  |  |
 | `mtime` | INTEGER |  |  |  |
 | `hash` | TEXT |  |  |  |
+
+**Indexes**
+
+- `idx_search_index_collections` on (`collection_path`)
+- `idx_search_index_folders` on (`collection_path`, `path`, `name`, `seq`, `collection_name`, `workspace_path`)
