@@ -1,5 +1,6 @@
 import { Page, test } from '../../../../playwright';
 import { buildCollectionHeaderLocators } from '../collection/collection-header';
+import { buildEnvSidebarActionsLocators } from './env-sidebar-actions';
 
 export type EnvironmentScope = 'collection' | 'global';
 export type EnvironmentTableColumn = 'name' | 'value' | 'description';
@@ -25,6 +26,7 @@ const environmentItemLocator = (page: Page, name: string) => page.locator('.envi
 const exportModalRoot = (page: Page) => page.locator('.bruno-modal').filter({ hasText: 'Export Environments' });
 
 export const buildEnvironmentLocators = (page: Page) => ({
+  sidebarActions: buildEnvSidebarActionsLocators(page),
   selector: () => page.getByTestId('environment-selector-trigger'),
   collectionTab: () => page.getByTestId('env-tab-collection'),
   globalTab: () => page.getByTestId('env-tab-global'),

@@ -696,6 +696,7 @@ const EnvironmentList = ({
                 {filteredEnvironments.map((env) => {
                   const isEnvSelected = selection.isEnvSelected(env.uid);
                   const isEnvMultiSelected = isEnvSelected && selection.selectedEnvUids.length > 1;
+                  const isEnvOpen = activeView === 'environment' && selectedEnvironment?.uid === env.uid;
                   return (
                     <div
                       key={env.uid}
@@ -703,8 +704,9 @@ const EnvironmentList = ({
                       data-testid="collection-env-list-item"
                       role="option"
                       aria-selected={isEnvSelected}
+                      aria-current={isEnvOpen ? 'true' : undefined}
                       className={classnames('environment-item', {
-                        'active': activeView === 'environment' && selectedEnvironment?.uid === env.uid,
+                        'active': isEnvOpen,
                         'renaming': renamingEnvUid === env.uid,
                         'activated': activeEnvironmentUid === env.uid,
                         'is-selected': isEnvSelected
@@ -719,6 +721,7 @@ const EnvironmentList = ({
                             ref={inputRef}
                             type="text"
                             className="environment-name-input"
+                            data-testid="env-rename-name-input"
                             value={newEnvName}
                             onChange={handleEnvNameChange}
                             onKeyDown={handleEnvNameKeyDown}
@@ -749,7 +752,7 @@ const EnvironmentList = ({
                       ) : (
                         <>
                           <ColorBadge color={env.color} size={8} />
-                          <span className="environment-name">{env.name}</span>
+                          <span className="environment-name" data-testid="collection-env-name">{env.name}</span>
                           <div className="environment-actions">
                             {!isEnvMultiSelected && (
                               <RowActionsMenu
@@ -769,6 +772,7 @@ const EnvironmentList = ({
                               <button
                                 className="activate-btn"
                                 onClick={(e) => handleActivateEnvironment(e, env)}
+                                data-testid="env-activate-btn"
                                 title="Activate environment"
                               >
                                 <IconCheck size={16} strokeWidth={2} />
