@@ -11,6 +11,11 @@ const AES256_ALGO = '01';
 // Cached machine ID to avoid repeated filesystem access
 let cachedMachineId = null;
 
+function normalizeAndHashMachineId(rawId) {
+  const normalized = rawId.replace(/\r+|\n+|\s+/g, '').toLowerCase();
+  return crypto.createHash('sha256').update(normalized).digest('hex');
+}
+
 function getMachineId() {
   if (cachedMachineId !== null) {
     return cachedMachineId;
@@ -22,8 +27,9 @@ function getMachineId() {
   } catch (err) {
     // Fallback 1: Try reading /etc/machine-id
     try {
-      cachedMachineId = fs.readFileSync('/etc/machine-id', 'utf8').trim();
-      if (cachedMachineId) {
+      const rawId = fs.readFileSync('/etc/machine-id', 'utf8').trim();
+      if (rawId) {
+        cachedMachineId = normalizeAndHashMachineId(rawId);
         return cachedMachineId;
       }
     } catch (e) {
@@ -32,8 +38,9 @@ function getMachineId() {
 
     // Fallback 2: Try reading /var/lib/dbus/machine-id
     try {
-      cachedMachineId = fs.readFileSync('/var/lib/dbus/machine-id', 'utf8').trim();
-      if (cachedMachineId) {
+      const rawId = fs.readFileSync('/var/lib/dbus/machine-id', 'utf8').trim();
+      if (rawId) {
+        cachedMachineId = normalizeAndHashMachineId(rawId);
         return cachedMachineId;
       }
     } catch (e) {
@@ -47,15 +54,17 @@ function getMachineId() {
 
       // Try to read existing generated ID
       if (fs.existsSync(machineIdPath)) {
-        cachedMachineId = fs.readFileSync(machineIdPath, 'utf8').trim();
-        if (cachedMachineId) {
+        const rawId = fs.readFileSync(machineIdPath, 'utf8').trim();
+        if (rawId) {
+          cachedMachineId = normalizeAndHashMachineId(rawId);
           return cachedMachineId;
         }
       }
 
       // Generate new ID if none exists
-      cachedMachineId = crypto.randomBytes(32).toString('hex');
-      fs.writeFileSync(machineIdPath, cachedMachineId, 'utf8');
+      const rawId = crypto.randomBytes(32).toString('hex');
+      fs.writeFileSync(machineIdPath, rawId, 'utf8');
+      cachedMachineId = normalizeAndHashMachineId(rawId);
       return cachedMachineId;
     } catch (e) {
       throw new Error('Failed to get machine ID: ' + e.message);

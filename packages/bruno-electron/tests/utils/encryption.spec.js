@@ -133,6 +133,7 @@ describe('Machine ID Fallback Tests', () => {
   let mockMachineIdSync;
   let encryption;
   let mockFs;
+  let crypto;
   
   beforeEach(() => {
     // Clear module cache to reset the cached machine ID
@@ -157,6 +158,7 @@ describe('Machine ID Fallback Tests', () => {
     
     // Reload the module to use mocks
     encryption = require('../../src/utils/encryption');
+    crypto = require('crypto');
   });
   
   afterEach(() => {
@@ -278,5 +280,129 @@ describe('Machine ID Fallback Tests', () => {
     expect(decrypted).toBe(plaintext);
     expect(mockFs.existsSync).toHaveBeenCalledWith(path.join('/tmp/test-user-data', 'machine-id'));
     expect(mockFs.writeFileSync).not.toHaveBeenCalled();
+  });
+
+  it('should hash fallback machine ID identically to node-machine-id', () => {
+    const rawMachineId = 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6';
+    const expectedHash = crypto.createHash('sha256').update(rawMachineId.toLowerCase()).digest('hex');
+    
+    mockMachineIdSync.mockImplementation(() => {
+      throw new Error('EFAULT: bad address in system call argument');
+    });
+    
+    mockFs.readFileSync.mockImplementation((filePath) => {
+      if (filePath === '/etc/machine-id') {
+        return rawMachineId + '\n';
+      }
+      throw new Error('File not found');
+    });
+    
+    const plaintext = 'test-secret-value';
+    const encrypted1 = encryption.encryptString(plaintext);
+    
+    jest.resetModules();
+    mockMachineIdSync = jest.fn().mockReturnValue(expectedHash);
+    jest.mock('@usebruno/node-machine-id', () => ({
+      machineIdSync: mockMachineIdSync
+    }));
+    
+    encryption = require('../../src/utils/encryption');
+    const encrypted2 = encryption.encryptString(plaintext);
+    
+    expect(encryption.decryptString(encrypted1)).toBe(plaintext);
+    expect(encryption.decryptString(encrypted2)).toBe(plaintext);
+  });
+
+  it('should successfully decrypt data encrypted with machineIdSync using fallback ID', () => {
+    const rawMachineId = 'd6b9a0c8f3e2a1b7c4d5e8f9a0b1c2d3';
+    const expectedHash = crypto.createHash('sha256').update(rawMachineId.toLowerCase()).digest('hex');
+    
+    mockMachineIdSync.mockReturnValue(expectedHash);
+    
+    const plaintext = 'sensitive-data-123';
+    const encryptedWithNormal = encryption.encryptString(plaintext);
+    
+    jest.resetModules();
+    mockMachineIdSync = jest.fn(() => {
+      throw new Error('EFAULT: bad address in system call argument');
+    });
+    jest.mock('@usebruno/node-machine-id', () => ({
+      machineIdSync: mockMachineIdSync
+    }));
+    
+    mockFs.readFileSync.mockImplementation((filePath) => {
+      if (filePath === '/etc/machine-id') {
+        return rawMachineId;
+      }
+      throw new Error('File not found');
+    });
+    
+    jest.spyOn(fs, 'readFileSync').mockImplementation(mockFs.readFileSync);
+    
+    encryption = require('../../src/utils/encryption');
+    const decryptedWithFallback = encryption.decryptString(encryptedWithNormal);
+    
+    expect(decryptedWithFallback).toBe(plaintext);
+  });
+
+  it('should successfully decrypt data encrypted with fallback using machineIdSync', () => {
+    const rawMachineId = 'e8f9a0b1c2d3d4e5f6g7h8i9j0k1l2m3';
+    const expectedHash = crypto.createHash('sha256').update(rawMachineId.toLowerCase()).digest('hex');
+    
+    mockMachineIdSync.mockImplementation(() => {
+      throw new Error('EFAULT: bad address in system call argument');
+    });
+    
+    mockFs.readFileSync.mockImplementation((filePath) => {
+      if (filePath === '/var/lib/dbus/machine-id') {
+        return rawMachineId + '\n';
+      }
+      throw new Error('File not found');
+    });
+    
+    const plaintext = 'another-sensitive-value';
+    const encryptedWithFallback = encryption.encryptString(plaintext);
+    
+    jest.resetModules();
+    mockMachineIdSync = jest.fn().mockReturnValue(expectedHash);
+    jest.mock('@usebruno/node-machine-id', () => ({
+      machineIdSync: mockMachineIdSync
+    }));
+    
+    encryption = require('../../src/utils/encryption');
+    const decryptedWithNormal = encryption.decryptString(encryptedWithFallback);
+    
+    expect(decryptedWithNormal).toBe(plaintext);
+  });
+
+  it('should normalize machine ID with whitespace and newlines before hashing', () => {
+    const rawMachineId = '  a1b2c3d4e5f6  \n  ';
+    const normalizedId = 'a1b2c3d4e5f6';
+    const expectedHash = crypto.createHash('sha256').update(normalizedId).digest('hex');
+    
+    mockMachineIdSync.mockImplementation(() => {
+      throw new Error('EFAULT: bad address in system call argument');
+    });
+    
+    mockFs.readFileSync.mockImplementation((filePath) => {
+      if (filePath === '/etc/machine-id') {
+        return rawMachineId;
+      }
+      throw new Error('File not found');
+    });
+    
+    const plaintext = 'test-normalization';
+    const encrypted1 = encryption.encryptString(plaintext);
+    
+    jest.resetModules();
+    mockMachineIdSync = jest.fn().mockReturnValue(expectedHash);
+    jest.mock('@usebruno/node-machine-id', () => ({
+      machineIdSync: mockMachineIdSync
+    }));
+    
+    encryption = require('../../src/utils/encryption');
+    const decrypted = encryption.decryptString(encrypted1);
+    
+    expect(decrypted).toBe(plaintext);
   });
 });
