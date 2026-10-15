@@ -7,11 +7,23 @@ import { getAllVariables, getVariableNamesWithScope } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 import { MaskedEditor } from 'utils/common/masked-editor';
+import { SetAsVariableContext } from 'providers/SetAsVariable/context';
 import StyledWrapper from './StyledWrapper';
 
 const CodeMirror = require('codemirror');
 
 class SingleLineEditor extends Component {
+  static contextType = SetAsVariableContext;
+
+  _onContextMenu = (editor, event) => {
+    if (this.props.enableBrunoVarInfo === false || this.state.maskInput) return;
+
+    this.context.openFromCodeMirror(event, editor, {
+      collection: this.props.collection,
+      item: this.props.item
+    });
+  };
+
   constructor(props) {
     super(props);
     // Keep a cached version of the value, this cache will be updated when the
@@ -104,6 +116,7 @@ class SingleLineEditor extends Component {
     this.editor.on('change', this._onEdit);
     this.editor.on('paste', this._onPaste);
     this.editor.on('blur', this._onBlur);
+    this.editor.on('contextmenu', this._onContextMenu);
     this.addOverlay(variables);
     this._enableMaskedEditor(this.props.isSecret);
     this.setState({ maskInput: this.props.isSecret });
@@ -226,6 +239,7 @@ class SingleLineEditor extends Component {
       this.editor.off('change', this._onEdit);
       this.editor.off('paste', this._onPaste);
       this.editor.off('blur', this._onBlur);
+      this.editor.off('contextmenu', this._onContextMenu);
       this._clearNewlineMarkers();
       this.editor.getWrapperElement().remove();
       this.editor = null;
