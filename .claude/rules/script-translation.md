@@ -57,24 +57,45 @@ A row pairs the two names and says how else the sides differ:
 | `pm` / `bru` | the member name on each side |
 | `pmKind` / `bruKind` | `'method'` or `'property'` — given together, and only when they differ |
 | `direction` | `'pm->bru'` or `'bru->pm'` when the row applies one way only |
-| `pmToBru` / `bruToPm` | what becomes of the value the member yields, in that direction |
+| `yields` | how the two sides' values relate — **one** bidirectional fact, not two mirrored ones |
 | `unsupported` | on a row naming **one** side: why that member has no counterpart |
 
-`pmToBru` / `bruToPm` carry exactly one of:
+`yields` carries exactly one of:
 
 | Yield | Means |
 |---|---|
-| `{ coerce: '<name>' }` | an expression from `coercions.js` recovers the shape the source expects |
-| `{ lost: '<reason>' }` | nothing bridges the two shapes; the call is renamed and the occurrence reported |
-| `{ type: '<pair>' }` | the value is itself a declared type pair, so its own members translate in turn |
+| `{ type: '<pair>' }` | both sides yield that pair, so its own members translate in turn |
+| `{ type: '<pair>', pmProjects: '<member>' }`<br>or `bruProjects` | that side yields only this member of what the other side yields whole |
+| `{ differs: '<reason>' }` | the shapes are incomparable; the call is still renamed and the occurrence reported |
+
+**It is one field, not a `pmToBru`/`bruToPm` pair, and that is the point.** A member's two values
+relate in exactly one way; `derive.js` works out what each direction must do about it. Writing the
+fact twice is how the names used to drift, one level down from where the table fixed it.
+
+A **projection** is the asymmetric case, and the one that earns the single-field shape. Declaring
+`{ type: 'Cookie', pmProjects: 'value' }` on `get`/`getCookie` derives both directions at once:
+translating towards the whole value appends the member, and translating away from it cannot rebuild
+what was never there, so that reason is *generated* rather than written by hand.
+
+**A projection always names the pair it projects from**, and the member is spelled as the
+*projecting* side spells it. `derive.js` resolves it to the other side's spelling when it appends,
+and rejects a member the pair does not declare — so the appended name is checked at import instead
+of reaching the output verbatim. It is the same rule every other type reference follows: point at a
+declared pair, never at a bare string.
+
+Three shapes a value difference can take, worth telling apart before reaching for a key:
+
+- **projection** — typed value → one of its members. `type` plus `pmProjects` / `bruProjects`.
+- **construction** — untyped value → a typed one (wrapping an array into a list). Not expressible
+  yet; it would need a builder alongside `type`, and nothing needs it.
+- **incomparable** — neither bridges the other. `differs`.
 
 Nothing is written into the translated script. `reportUntranslated` in `ast-utils.js` is the only
-consumer of a `lost` reason, an `unsupported` reason, and a coercion's `describes` — they reach
-the console and nowhere else.
+consumer of a `differs` reason and an `unsupported` reason — they reach the console and nowhere else.
 
 **No live row yields a `type` today.** The engine supports nesting and
-`tests/utils/semantic-registries.spec.js` pins it directly, so a pair whose members differ can be
-added without an engine change. Until one exists, this is the only place that says so.
+`tests/utils/semantic-registries.spec.js` pins it directly, so a nested pair can be added without an
+engine change. Until one exists, this is the only place that says so.
 
 `derive.js` throws on a row outside that vocabulary. A malformed row is a mistake in the table
 rather than a condition to translate around, so it fails at import instead of quietly dropping
@@ -84,7 +105,7 @@ the member.
 
 1. Add the row to the right type pair in `correspondence.js`
 2. If a new call brings a typed value into a script, add an `ENTRY_POINTS` entry
-3. If the member's result has a different shape on the two sides, say so with `coerce` or `lost`
+3. If the member's result has a different shape on the two sides, say so with one `yields`
 4. **A case in `tests/postman/round-trip/scripts.spec.js`**
 
 There is no mirror entry to remember and no `ONE_WAY_MEMBERS` list: a member that translates only
@@ -101,7 +122,8 @@ parameter without going through binding collection — a change to either has tw
 
 - **`rewrite-yields.js`** adapts what a member *produces*, where the value is produced rather than
   at every later read, so no reference needs visiting:
-  `await jar.get(u, n)` → `(await jar.get(u, n)).value`. It acts only where the result is observed;
+  `await jar.get(u, n)` → `(await jar.get(u, n)).value`, the member coming from the row's
+  projection. It acts only where the result is observed;
   a discarded result needs no adaptation. Two shapes leave nowhere to hang an expression and are
   reported instead: a callback, where the value arrives as a parameter, and a plain property, which
   has no call at all.
@@ -158,7 +180,7 @@ supported at all.
 
 - [ ] Mapping is in the destination the fixed-dotted-path question points to
 - [ ] One row in `correspondence.js`, not an edit to each direction
-- [ ] A shape difference in what a member yields declared with `coerce` or `lost`, never left silent
+- [ ] A shape difference declared as one `yields`, never as two mirrored halves
 - [ ] Round-trip case added when a type pair changed, and
       `tests/utils/semantic-registries.spec.js` still green
 - [ ] Any new guard fails by leaving the source text alone, never by guessing

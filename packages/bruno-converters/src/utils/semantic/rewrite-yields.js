@@ -1,5 +1,4 @@
 import { getStaticPropertyName, reportUntranslated } from '../ast-utils';
-import COERCIONS from './coercions';
 import { getExpressionType } from './type-environment';
 
 const isFunction = (node) =>
@@ -18,7 +17,7 @@ const isFunction = (node) =>
  * script arrived with.
  *
  * A yielded value is only worth adapting where it is read, which is what separates the cases:
- *   - a method whose result is used — coerced, or reported when no expression bridges it
+ *   - a method whose result is used — projected, or reported when nothing bridges it
  *   - a method handed a callback — reported, since the value arrives as a parameter and an
  *     expression has nowhere to go
  *   - a plain property — reported, since there is no call to hang a coercion off
@@ -43,16 +42,17 @@ const rewriteYields = (j, root, bindings, registry) => {
       const yields = spec && spec.yields;
 
       // a yielded *type* is handled by binding collection, not by adapting the value here
-      const adapts = yields && (yields.coerce || yields.lost);
+      const adapts = yields && (yields.project || yields.differs);
 
       return adapts ? { path, propertyName, yields } : null;
     })
     .filter(Boolean);
 
   targets.forEach(({ path: memberPath, propertyName, yields }) => {
-    const coercion = yields.coerce && COERCIONS[yields.coerce];
-    const report = (node) =>
-      reportUntranslated(node, propertyName, yields.lost || coercion.describes);
+    // a projection that cannot be placed still has to say what the source expected
+    const reason = yields.differs
+      || `only '${yields.project}' of this value was expected, and there is nowhere to take it`;
+    const report = (node) => reportUntranslated(node, propertyName, reason);
 
     const parent = memberPath.parent;
     const isMethodCall = parent.value.type === 'CallExpression' && parent.value.callee === memberPath.value;
@@ -72,12 +72,12 @@ const rewriteYields = (j, root, bindings, registry) => {
     const produced = parent.parent.value.type === 'AwaitExpression' ? parent.parent : parent;
     if (produced.parent.value.type === 'ExpressionStatement') return;
 
-    if (!coercion) {
+    if (!yields.project) {
       report(parent.value);
       return;
     }
 
-    j(produced).replaceWith(coercion.build(j, produced.value));
+    j(produced).replaceWith(j.memberExpression(produced.value, j.identifier(yields.project)));
   });
 };
 

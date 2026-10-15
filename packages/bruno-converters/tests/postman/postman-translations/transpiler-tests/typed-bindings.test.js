@@ -233,7 +233,7 @@ describe('Typed bindings', () => {
 
       expect(translatedCode).toContain('(err, value) => console.log(value)');
       expect(warn).toHaveBeenCalledWith(
-        expect.stringContaining('get (line 3) — Bruno yields the cookie object')
+        expect.stringContaining('get (line 3) — only \'value\' of this value was expected')
       );
     });
 

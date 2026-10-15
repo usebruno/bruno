@@ -129,7 +129,7 @@ describe('Typed bindings (Bruno -> Postman)', () => {
 
       expect(translatedCode).toContain('console.log(r.headers[\'content-type\']);');
       expect(warn).toHaveBeenCalledWith(
-        expect.stringContaining('headers (line 3) — Bruno headers is a plain object')
+        expect.stringContaining('headers (line 3) — Postman headers is a HeaderList')
       );
     });
   });

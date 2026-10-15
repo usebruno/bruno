@@ -1,14 +1,61 @@
-import COERCIONS from './coercions';
-
 const KINDS = ['method', 'property'];
+const YIELDS = ['type', 'pmProjects', 'bruProjects', 'differs'];
+const SIDE_NAME = { pm: 'Postman', bru: 'Bruno' };
 const DIRECTIONS = ['pm->bru', 'bru->pm'];
+
+/**
+ * Rejects a `yields` the engine could not act on.
+ *
+ * A projection names the pair it projects *from*, so the member can be checked and, when
+ * derived, resolved to the other side's spelling. Without the pair it would be an unchecked
+ * string that reaches the output verbatim.
+ */
+const validateYields = (yields, where, typePairs) => {
+  const keys = Object.keys(yields);
+
+  if (keys.some((key) => !YIELDS.includes(key))) {
+    throw new Error(`correspondence: ${where} yields ${keys.join(', ')}; expected only ${YIELDS.join(', ')}`);
+  }
+
+  if (yields.pmProjects && yields.bruProjects) {
+    throw new Error(`correspondence: ${where} projects on both sides; one of them has to yield the whole value`);
+  }
+
+  if (yields.differs) {
+    if (keys.length === 1) return;
+    throw new Error(`correspondence: ${where} pairs differs with ${keys.filter((key) => key !== 'differs').join(', ')}; differs stands alone`);
+  }
+
+  if (!yields.type) {
+    throw new Error(`correspondence: ${where} yields ${keys.join(', ')} without a type; a projection names the pair it projects from`);
+  }
+
+  const pair = typePairs[yields.type];
+  if (!pair) {
+    throw new Error(`correspondence: ${where} yields type '${yields.type}', which is not a declared type pair`);
+  }
+
+  const side = yields.pmProjects ? 'pm' : 'bru';
+  const member = yields[`${side}Projects`];
+  if (!member) return;
+
+  const projected = pair.members.find((row) => row[side] === member);
+
+  if (!projected) {
+    throw new Error(`correspondence: ${where} projects '${member}', which ${yields.type} declares no ${side} member for`);
+  }
+
+  if (!projected.pm || !projected.bru) {
+    throw new Error(`correspondence: ${where} projects '${member}', which ${yields.type} pairs with nothing on the other side`);
+  }
+};
 
 /**
  * Rejects a row the engine could not act on. A malformed row is a mistake in the table
  * rather than a condition to translate around, so it fails at import instead of quietly
  * dropping the member.
  */
-const validateRow = (row, typeName, pairNames) => {
+const validateRow = (row, typeName, typePairs) => {
   const where = `${typeName}.${row.pm || row.bru}`;
 
   if (!row.pm && !row.bru) throw new Error(`correspondence: a row of ${typeName} names no member`);
@@ -30,19 +77,37 @@ const validateRow = (row, typeName, pairNames) => {
     throw new Error(`correspondence: ${where} has direction '${row.direction}'`);
   }
 
-  [row.pmToBru, row.bruToPm].forEach((yields) => {
-    if (!yields) return;
-    const keys = Object.keys(yields);
-    if (keys.length !== 1 || !['coerce', 'lost', 'type'].includes(keys[0])) {
-      throw new Error(`correspondence: ${where} yields ${keys.join(', ')}; expected one of coerce, lost, type`);
-    }
-    if (yields.coerce && !COERCIONS[yields.coerce]) {
-      throw new Error(`correspondence: ${where} names coercion '${yields.coerce}', which does not exist`);
-    }
-    if (yields.type && !pairNames.includes(yields.type)) {
-      throw new Error(`correspondence: ${where} yields type '${yields.type}', which is not a declared type pair`);
-    }
-  });
+  if (row.yields) validateYields(row.yields, where, typePairs);
+};
+
+/**
+ * Turns one bidirectional `yields` into what this direction has to do about it.
+ *
+ * A projection is the asymmetric case: one side hands back a whole value, the other hands
+ * back a single member of it. Translating towards the whole value appends that member;
+ * translating away from it cannot rebuild what was never there, so the reason is generated
+ * rather than written twice.
+ */
+const deriveYields = (yields, { from, sideKey, typePairs }) => {
+  if (yields.differs) return { differs: yields.differs };
+
+  const pair = typePairs[yields.type];
+  const projects = yields.pmProjects ? 'pm' : (yields.bruProjects ? 'bru' : null);
+
+  if (!projects) return { type: pair[sideKey] };
+
+  const member = yields[`${projects}Projects`];
+
+  // translating towards the whole value appends the member, spelled as that side spells it
+  if (from === projects) {
+    const to = projects === 'pm' ? 'bru' : 'pm';
+
+    return { project: pair.members.find((row) => row[projects] === member)[to] };
+  }
+
+  return {
+    differs: `${SIDE_NAME[projects]} yields only '${member}', which the whole value cannot be rebuilt from`
+  };
 };
 
 /**
@@ -72,9 +137,8 @@ const resolveHandlers = (handlers, correspondence, sideKey) =>
  * Turns a type pair's rows into the member map for one direction, dropping the rows that
  * do not apply to it.
  */
-const deriveMembers = (pair, { from, to, directionKey, direction, sideKey, typePairs }) => {
+const deriveMembers = (pair, { from, to, direction, sideKey, typePairs }) => {
   const typeName = pair[sideKey];
-  const pairNames = Object.keys(typePairs);
   const members = {};
 
   /**
@@ -93,7 +157,7 @@ const deriveMembers = (pair, { from, to, directionKey, direction, sideKey, typeP
   };
 
   pair.members.forEach((row) => {
-    validateRow(row, typeName, pairNames);
+    validateRow(row, typeName, typePairs);
 
     const name = row[from];
     if (!name) return;
@@ -110,11 +174,7 @@ const deriveMembers = (pair, { from, to, directionKey, direction, sideKey, typeP
     const call = deriveCall(row, from);
     if (call) spec.call = call;
 
-    const yields = row[directionKey];
-    // a yielded type names a *pair*; the registry wants this side's name for it
-    if (yields) {
-      spec.yields = yields.type ? { type: typePairs[yields.type][sideKey] } : yields;
-    }
+    if (row.yields) spec.yields = deriveYields(row.yields, { from, sideKey, typePairs });
 
     defineMember(name, spec);
   });
@@ -136,13 +196,12 @@ const deriveMembers = (pair, { from, to, directionKey, direction, sideKey, typeP
 const derive = (correspondence, from) => {
   const to = from === 'pm' ? 'bru' : 'pm';
   const sideKey = from === 'pm' ? 'postman' : 'bruno';
-  const directionKey = from === 'pm' ? 'pmToBru' : 'bruToPm';
   const direction = `${from}->${to}`;
 
   const types = {};
   Object.values(correspondence.typePairs).forEach((pair) => {
     types[pair[sideKey]] = deriveMembers(pair, {
-      from, to, directionKey, direction, sideKey, typePairs: correspondence.typePairs
+      from, to, direction, sideKey, typePairs: correspondence.typePairs
     });
   });
 

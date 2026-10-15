@@ -16,14 +16,19 @@
  * | `pm` / `bru`        | Member name on each side                                               |
  * | `pmKind` / `bruKind`| `'method'` or `'property'` — given together, and only when they differ |
  * | `direction`         | `'pm->bru'` or `'bru->pm'` when the row applies one way only           |
- * | `pmToBru`/`bruToPm` | What becomes of the yielded value in that direction (see below)        |
+ * | `yields`            | How the two sides' values relate, stated once (see below)              |
  * | `unsupported`       | Why this member has no counterpart                                     |
  *
- * `pmToBru` / `bruToPm` carry one of:
- *   `{ coerce: '<name>' }` — a coercion from coercions.js, applied where the value is
- *                            produced, recovers the shape the source script expects
- *   `{ lost: '<reason>' }` — the two shapes differ and no expression bridges them; the call
- *                            is still renamed, but its result is reported rather than adapted
+ * `yields` is one bidirectional fact, not two mirrored ones — `derive.js` works out what
+ * each direction has to do about it:
+ *   `{ type: '<pair>' }`        — both sides yield that pair, so its members translate in turn
+ *   `{ type: '<pair>',          — that side yields only this member of what the other side
+ *      pmProjects: '<member>' }`   yields whole. The member is named in the projecting side's
+ *     or `bruProjects`             spelling and resolved through the pair, so translating
+ *                                  towards the whole value appends the *other* side's name
+ *                                  for it, and translating away cannot rebuild what was lost
+ *   `{ differs: '<reason>' }`   — the shapes are incomparable; the call is still renamed and
+ *                                 the occurrence reported
  *
  * A member absent from a type's rows is one nobody has classified yet. Rows are added as the
  * surface is worked through; `BrunoCookieJar` is complete against the jar handle in
@@ -53,8 +58,7 @@ const RESPONSE = {
     {
       pm: 'headers',
       bru: 'headers',
-      pmToBru: { lost: 'Postman headers is a HeaderList with .get(); Bruno\'s is a plain object' },
-      bruToPm: { lost: 'Bruno headers is a plain object; Postman\'s is a HeaderList with .get()' }
+      yields: { differs: 'Postman headers is a HeaderList with .get(); Bruno\'s is a plain object' }
     }
   ]
 };
@@ -69,24 +73,19 @@ const COOKIE_JAR = {
     // Postman's clear is url-scoped, which is what deleteCookies does; Bruno's own clear() is not
     { pm: 'clear', bru: 'deleteCookies' },
 
-    {
-      pm: 'get',
-      bru: 'getCookie',
-      pmToBru: { coerce: 'cookieToValue' },
-      bruToPm: { lost: 'Postman jar.get yields the cookie value, not the cookie object' }
-    },
+    // Bruno hands back the cookie, Postman only its value
+    { pm: 'get', bru: 'getCookie', yields: { type: 'Cookie', pmProjects: 'value' } },
 
     {
       pm: 'getAll',
       bru: 'getCookies',
-      pmToBru: { lost: 'Postman yields a PropertyList with .get()/.count(); Bruno yields an array' },
-      bruToPm: { lost: 'Bruno yields an array; Postman yields a PropertyList with .get()/.count()' }
+      yields: { differs: 'Postman yields a PropertyList with .get()/.count(); Bruno yields an array' }
     },
 
     {
       pm: 'set',
       bru: 'setCookie',
-      pmToBru: { lost: 'Postman yields the cookie it set; Bruno\'s setCookie resolves to nothing' }
+      yields: { differs: 'Postman yields the cookie it set; Bruno\'s setCookie resolves to nothing' }
     },
 
     {
@@ -95,6 +94,20 @@ const COOKIE_JAR = {
     },
     { bru: 'hasCookie', unsupported: 'no Postman cookie jar equivalent' },
     { bru: 'setCookies', unsupported: 'no Postman cookie jar equivalent' }
+  ]
+};
+
+/**
+ * The cookie object both jars hand back. Only the member something projects from needs a row
+ * today — the rest of the surface is spelled the same on each side, so it is already correct
+ * untranslated.
+ */
+const COOKIE = {
+  postman: 'PostmanCookie',
+  bruno: 'BrunoCookie',
+
+  members: [
+    { pm: 'value', bru: 'value' }
   ]
 };
 
@@ -123,7 +136,8 @@ const ENTRY_POINTS = [
 /** Type pairs, keyed by the short name `yields` and the handler entries use. */
 const TYPE_PAIRS = {
   Response: RESPONSE,
-  CookieJar: COOKIE_JAR
+  CookieJar: COOKIE_JAR,
+  Cookie: COOKIE
 };
 
 export default { typePairs: TYPE_PAIRS, entryPoints: ENTRY_POINTS };

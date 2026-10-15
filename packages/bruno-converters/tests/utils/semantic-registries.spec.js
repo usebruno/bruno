@@ -1,6 +1,5 @@
 import { POSTMAN_REGISTRY, BRUNO_REGISTRY } from '../../src/utils/semantic';
 import CORRESPONDENCE from '../../src/utils/semantic/correspondence';
-import COERCIONS from '../../src/utils/semantic/coercions';
 import derive from '../../src/utils/semantic/derive';
 
 /**
@@ -76,22 +75,6 @@ describe('semantic registries', () => {
 
       expect(malformed).toEqual([]);
     });
-
-    it('should name only coercions that exist', () => {
-      const missing = eachMember(([where, spec]) =>
-        spec.yields && spec.yields.coerce && !COERCIONS[spec.yields.coerce] ? where : null
-      );
-
-      expect(missing).toEqual([]);
-    });
-
-    it('should give every coercion both a builder and a description', () => {
-      Object.entries(COERCIONS).forEach(([name, coercion]) => {
-        expect([name, typeof coercion.build]).toEqual([name, 'function']);
-        // `describes` is the reason reported where the coercion has nowhere to go
-        expect([name, typeof coercion.describes]).toEqual([name, 'string']);
-      });
-    });
   });
 
   // a new collision is only distinguishable by its console warning, so it needs a human look
@@ -129,16 +112,32 @@ describe('semantic registries', () => {
       expect(deriveWith({ pm: 'a', bru: 'b', pmKind: 'method' })).toThrow(/without the other/);
     });
 
-    it('should be rejected when it names a coercion that does not exist', () => {
-      expect(deriveWith({ pm: 'a', bru: 'b', pmToBru: { coerce: 'nope' } })).toThrow(/does not exist/);
+    it('should be rejected when differs is paired with anything else', () => {
+      expect(deriveWith({ pm: 'a', bru: 'b', yields: { differs: 'x', type: 'T' } }))
+        .toThrow(/differs stands alone/);
+    });
+
+    it('should be rejected when it projects on both sides', () => {
+      expect(deriveWith({ pm: 'a', bru: 'b', yields: { type: 'T', pmProjects: 'x', bruProjects: 'y' } }))
+        .toThrow(/projects on both sides/);
+    });
+
+    it('should be rejected when a projection names no type pair to project from', () => {
+      expect(deriveWith({ pm: 'a', bru: 'b', yields: { pmProjects: 'x' } }))
+        .toThrow(/without a type/);
+    });
+
+    it('should be rejected when it projects a member the pair does not declare', () => {
+      expect(deriveWith({ pm: 'a', bru: 'b', yields: { type: 'T', pmProjects: 'nope' } }))
+        .toThrow(/declares no pm member for/);
     });
 
     it('should be rejected when its yield says something the engine cannot act on', () => {
-      expect(deriveWith({ pm: 'a', bru: 'b', pmToBru: { wrapped: true } })).toThrow(/expected one of coerce, lost/);
+      expect(deriveWith({ pm: 'a', bru: 'b', yields: { wrapped: true } })).toThrow(/expected only/);
     });
 
     it('should be rejected when it yields a type pair that is not declared', () => {
-      expect(deriveWith({ pm: 'a', bru: 'b', pmToBru: { type: 'Nope' } })).toThrow(/not a declared type pair/);
+      expect(deriveWith({ pm: 'a', bru: 'b', yields: { type: 'Nope' } })).toThrow(/not a declared type pair/);
     });
 
     /**
@@ -148,14 +147,31 @@ describe('semantic registries', () => {
     it('should resolve a yielded type pair to the name of the side being derived', () => {
       const table = {
         typePairs: {
-          T: { postman: 'P', bruno: 'B', members: [{ pm: 'a', bru: 'b', pmToBru: { type: 'U' } }] },
+          T: { postman: 'P', bruno: 'B', members: [{ pm: 'a', bru: 'b', yields: { type: 'U' } }] },
           U: { postman: 'PU', bruno: 'BU', members: [{ pm: 'c', bru: 'd' }] }
         },
         entryPoints: []
       };
 
+      // one declaration, resolved to each side's own name for the pair
       expect(derive(table, 'pm').types.P.a.yields).toEqual({ type: 'PU' });
-      expect(derive(table, 'bru').types.B.b.yields).toBeUndefined();
+      expect(derive(table, 'bru').types.B.b.yields).toEqual({ type: 'BU' });
+    });
+
+    it('should derive a projection one way and a generated loss the other', () => {
+      const table = {
+        typePairs: {
+          T: { postman: 'P', bruno: 'B', members: [
+            { pm: 'get', bru: 'getCookie', yields: { type: 'C', pmProjects: 'val' } }] },
+          // the two sides spell the projected member differently on purpose
+          C: { postman: 'PC', bruno: 'BC', members: [{ pm: 'val', bru: 'value' }] }
+        },
+        entryPoints: []
+      };
+
+      // named as Postman spells it, appended as Bruno spells it
+      expect(derive(table, 'pm').types.P.get.yields).toEqual({ project: 'value' });
+      expect(derive(table, 'bru').types.B.getCookie.yields.differs).toMatch(/Postman yields only 'val'/);
     });
 
     it('should be rejected when two members map onto one name', () => {
