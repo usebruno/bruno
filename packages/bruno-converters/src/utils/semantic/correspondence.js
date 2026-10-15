@@ -23,7 +23,7 @@
  *   `{ coerce: '<name>' }` — a coercion from coercions.js, applied where the value is
  *                            produced, recovers the shape the source script expects
  *   `{ lost: '<reason>' }` — the two shapes differ and no expression bridges them; the call
- *                            is still renamed, but its result is flagged rather than typed
+ *                            is still renamed, but its result is reported rather than adapted
  *
  * A member absent from a type's rows is one nobody has classified yet. Rows are added as the
  * surface is worked through; `BrunoCookieJar` is complete against the jar handle in
@@ -79,8 +79,8 @@ const COOKIE_JAR = {
     {
       pm: 'getAll',
       bru: 'getCookies',
-      pmToBru: { type: 'PropertyList' },
-      bruToPm: { type: 'PropertyList' }
+      pmToBru: { lost: 'Postman yields a PropertyList with .get()/.count(); Bruno yields an array' },
+      bruToPm: { lost: 'Bruno yields an array; Postman yields a PropertyList with .get()/.count()' }
     },
 
     {
@@ -95,21 +95,6 @@ const COOKIE_JAR = {
     },
     { bru: 'hasCookie', unsupported: 'no Postman cookie jar equivalent' },
     { bru: 'setCookies', unsupported: 'no Postman cookie jar equivalent' }
-  ]
-};
-
-/**
- * Postman's PropertyList against Bruno's. The two surfaces agree on everything the lists are
- * read with — `get`, `has`, `find`, `each`, `map`, `toObject` — so those need no rows: a
- * member spelled the same on both sides is already correct untranslated. Only the divergence
- * is written down.
- */
-const PROPERTY_LIST = {
-  postman: 'PostmanPropertyList',
-  bruno: 'BrunoPropertyList',
-
-  members: [
-    { pm: 'count', bru: 'size' }
   ]
 };
 
@@ -138,8 +123,7 @@ const ENTRY_POINTS = [
 /** Type pairs, keyed by the short name `yields` and the handler entries use. */
 const TYPE_PAIRS = {
   Response: RESPONSE,
-  CookieJar: COOKIE_JAR,
-  PropertyList: PROPERTY_LIST
+  CookieJar: COOKIE_JAR
 };
 
 export default { typePairs: TYPE_PAIRS, entryPoints: ENTRY_POINTS };

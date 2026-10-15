@@ -1,5 +1,14 @@
 import translateBruToPostman from '../../../src/utils/bruno-to-postman-translator';
 
+let warn;
+
+beforeEach(() => {
+  warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+});
+
+afterEach(() => {
+  warn.mockRestore();
+});
 describe('Typed bindings (Bruno -> Postman)', () => {
   describe('sendRequest response held in a variable', () => {
     it('should map response members on an awaited binding', () => {
@@ -119,6 +128,9 @@ describe('Typed bindings (Bruno -> Postman)', () => {
       const translatedCode = translateBruToPostman(code);
 
       expect(translatedCode).toContain('console.log(r.headers[\'content-type\']);');
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('headers (line 3) — Bruno headers is a plain object')
+      );
     });
   });
 
@@ -137,6 +149,9 @@ describe('Typed bindings (Bruno -> Postman)', () => {
       const translatedCode = translateBruToPostman(code);
 
       expect(translatedCode).toContain('await jar.clear(\'https://a.com\');');
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('clear (line 4) — clears every domain')
+      );
     });
 
     it.each(['hasCookie', 'setCookies'])('should flag %s and leave it standing', (member) => {

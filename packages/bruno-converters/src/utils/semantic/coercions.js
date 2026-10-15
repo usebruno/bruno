@@ -11,7 +11,8 @@
  */
 const COERCIONS = {
   cookieToValue: {
-    build: (j, expression) => j.memberExpression(expression, j.identifier('value'))
+    build: (j, expression) => j.memberExpression(expression, j.identifier('value')),
+    describes: 'Bruno yields the cookie object where Postman yields the value string'
   }
 };
 

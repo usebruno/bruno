@@ -112,12 +112,6 @@ const simpleTranslations = {
   'pm.response.size().total': 'res.getSize().total',
   'pm.cookies.jar': 'bru.cookies.jar',
 
-  'pm.cookies.jar().get': 'bru.cookies.jar().getCookie',
-  'pm.cookies.jar().getAll': 'bru.cookies.jar().getCookies',
-  'pm.cookies.jar().set': 'bru.cookies.jar().setCookie',
-  'pm.cookies.jar().unset': 'bru.cookies.jar().deleteCookie',
-  'pm.cookies.jar().clear': 'bru.cookies.jar().deleteCookies',
-
   // Direct cookie access (pm.cookies.get/has/toObject)
   'pm.cookies.get': 'bru.cookies.get',
   'pm.cookies.has': 'bru.cookies.has',

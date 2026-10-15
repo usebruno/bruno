@@ -137,12 +137,6 @@ const simpleTranslations = {
   // Cookies jar
   'bru.cookies.jar': 'pm.cookies.jar',
 
-  'bru.cookies.jar().getCookie': 'pm.cookies.jar().get',
-  'bru.cookies.jar().getCookies': 'pm.cookies.jar().getAll',
-  'bru.cookies.jar().setCookie': 'pm.cookies.jar().set',
-  'bru.cookies.jar().deleteCookie': 'pm.cookies.jar().unset',
-  'bru.cookies.jar().deleteCookies': 'pm.cookies.jar().clear',
-
   // Direct cookie access
   'bru.cookies.get': 'pm.cookies.get',
   'bru.cookies.has': 'pm.cookies.has',

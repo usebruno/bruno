@@ -2,9 +2,10 @@ import postmanTranslation from '../../../src/postman/postman-translations';
 import translateBruToPostman from '../../../src/utils/bruno-to-postman-translator';
 
 /**
- * The two semantic registries (semantic/postman-registry.js and semantic/bruno-registry.js)
- * describe the same member mappings in opposite directions. Nothing else keeps them in step,
- * so a script that survives a full round trip unchanged is what proves they are still inverses.
+ * Both registries are derived from one correspondence table, so they are inverses by
+ * construction and `tests/utils/semantic-registries.spec.js` asserts the derivation holds.
+ * What that cannot show is whether the engine *applies* them symmetrically — a script that
+ * survives a full round trip unchanged is what proves the rewriters agree with the data.
  */
 describe('Script translation round trip', () => {
   const expectStable = (script) => {

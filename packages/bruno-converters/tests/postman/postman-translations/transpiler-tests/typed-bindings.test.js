@@ -1,5 +1,14 @@
 import translateCode from '../../../../src/utils/postman-to-bruno-translator';
 
+let warn;
+
+beforeEach(() => {
+  warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+});
+
+afterEach(() => {
+  warn.mockRestore();
+});
 describe('Typed bindings', () => {
   describe('sendRequest response held in a variable', () => {
     it('should map response members on an awaited binding', () => {
@@ -223,6 +232,9 @@ describe('Typed bindings', () => {
       const translatedCode = translateCode(code);
 
       expect(translatedCode).toContain('(err, value) => console.log(value)');
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('get (line 3) — Bruno yields the cookie object')
+      );
     });
 
     it('should leave a property whose shape differs as written', () => {
@@ -235,17 +247,17 @@ describe('Typed bindings', () => {
       expect(translatedCode).toContain('console.log(r.headers.get(\'content-type\'));');
     });
 
-    it('should type the list a jar member yields and rename its divergent members', () => {
+    it('should report a list whose shape no expression recovers', () => {
       const code = `
         const jar = pm.cookies.jar();
         const all = await jar.getAll('https://a.com');
-        console.log(all.count(), all.get('sid'));
       `;
       const translatedCode = translateCode(code);
 
       expect(translatedCode).toContain('const all = await jar.getCookies(\'https://a.com\');');
-      // `count` is the one member the two lists spell differently; `get` matches, so it stands
-      expect(translatedCode).toContain('console.log(all.size(), all.get(\'sid\'));');
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('getAll (line 3) — Postman yields a PropertyList')
+      );
     });
   });
 

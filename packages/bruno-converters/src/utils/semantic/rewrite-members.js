@@ -1,4 +1,4 @@
-import { getStaticPropertyName } from '../ast-utils';
+import { getStaticPropertyName, reportUntranslated } from '../ast-utils';
 import { getExpressionType } from './type-environment';
 
 /**
@@ -24,7 +24,8 @@ const buildMember = (j, node, memberName) => {
  * so a pass that replaced as it walked would re-match what it had just written.
  *
  * A member the registry marks unsupported is left as it stands, so it reads in the output
- * exactly like a member something else was renamed onto.
+ * exactly like a member something else was renamed onto — which is why reaching one is
+ * reported.
  *
  * @param {Object} j - jscodeshift API
  * @param {Object} root - jscodeshift Collection to search within
@@ -43,13 +44,16 @@ const rewriteMembers = (j, root, bindings, registry) => {
       const propertyName = getStaticPropertyName(path.value);
       const spec = propertyName && members && members[propertyName];
 
-      return spec ? { path, spec } : null;
+      return spec ? { path, propertyName, spec } : null;
     })
     .filter(Boolean);
 
-  targets.forEach(({ path, spec }) => {
-    // a member with no counterpart is left exactly as it stands
-    if (spec.unsupported) return;
+  targets.forEach(({ path, propertyName, spec }) => {
+    // a member with no counterpart is left exactly as it stands, and reported
+    if (spec.unsupported) {
+      reportUntranslated(path.value, propertyName, spec.unsupported);
+      return;
+    }
 
     const replacement = buildMember(j, path.value, spec.to);
 

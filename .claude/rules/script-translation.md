@@ -60,9 +60,21 @@ A row pairs the two names and says how else the sides differ:
 | `pmToBru` / `bruToPm` | what becomes of the value the member yields, in that direction |
 | `unsupported` | on a row naming **one** side: why that member has no counterpart |
 
-`pmToBru` / `bruToPm` carry exactly one of `{ coerce: '<name>' }` — an expression from
-`coercions.js` recovers the shape the source expects — or `{ lost: '<reason>' }`, when nothing
-bridges the two shapes and the statement is flagged instead.
+`pmToBru` / `bruToPm` carry exactly one of:
+
+| Yield | Means |
+|---|---|
+| `{ coerce: '<name>' }` | an expression from `coercions.js` recovers the shape the source expects |
+| `{ lost: '<reason>' }` | nothing bridges the two shapes; the call is renamed and the occurrence reported |
+| `{ type: '<pair>' }` | the value is itself a declared type pair, so its own members translate in turn |
+
+Nothing is written into the translated script. `reportUntranslated` in `ast-utils.js` is the only
+consumer of a `lost` reason, an `unsupported` reason, and a coercion's `describes` — they reach
+the console and nowhere else.
+
+**No live row yields a `type` today.** The engine supports nesting and
+`tests/utils/semantic-registries.spec.js` pins it directly, so a pair whose members differ can be
+added without an engine change. Until one exists, this is the only place that says so.
 
 `derive.js` throws on a row outside that vocabulary. A malformed row is a mistake in the table
 rather than a condition to translate around, so it fails at import instead of quietly dropping
@@ -91,7 +103,7 @@ parameter without going through binding collection — a change to either has tw
   at every later read, so no reference needs visiting:
   `await jar.get(u, n)` → `(await jar.get(u, n)).value`. It acts only where the result is observed;
   a discarded result needs no adaptation. Two shapes leave nowhere to hang an expression and are
-  flagged instead: a callback, where the value arrives as a parameter, and a plain property, which
+  reported instead: a callback, where the value arrives as a parameter, and a plain property, which
   has no call at all.
 - **`rewrite-members.js`** rewrites `r.code` → `r.status`. It must resolve every reference through
   `path.scope.lookup`, comparing the declaring scope **node** against the binding's — a bare name
@@ -113,8 +125,8 @@ it walked would re-match its own output.
   `direction: 'pm->bru'`.
 - **An unsupported member can collide with a rename target.** Bruno's `deleteCookies` becomes
   Postman's `clear`, while Bruno's own `clear` has no counterpart — both read as `clear` in the
-  output, and only the warning comment tells them apart. The known collisions are pinned in
-  `tests/utils/semantic-registries.spec.js`; a new one has to be looked at, because the comment is
+  output, and only the console warning tells them apart. The known collisions are pinned in
+  `tests/utils/semantic-registries.spec.js`; a new one has to be looked at, because the warning is
   load-bearing from then on.
 - **A member carrying `call` is skipped by destructuring.** A pattern has no call site in reach, so
   `rewrite-patterns.js` leaves those properties alone — `const { json } = res` stays untranslated.

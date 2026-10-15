@@ -1,4 +1,4 @@
-import { getStaticPropertyName } from '../ast-utils';
+import { getStaticPropertyName, reportUntranslated } from '../ast-utils';
 import COERCIONS from './coercions';
 import { getExpressionType } from './type-environment';
 
@@ -17,9 +17,12 @@ const isFunction = (node) =>
  * Runs before the members are renamed, so the registry is still keyed on the names the
  * script arrived with.
  *
- * Three shapes leave nowhere to put the expression, and each is left as written: a plain
- * property, which has no call to hang it off; a method handed a callback, where the value
- * arrives as a parameter; and a result nothing observes.
+ * A yielded value is only worth adapting where it is read, which is what separates the cases:
+ *   - a method whose result is used — coerced, or reported when no expression bridges it
+ *   - a method handed a callback — reported, since the value arrives as a parameter and an
+ *     expression has nowhere to go
+ *   - a plain property — reported, since there is no call to hang a coercion off
+ *   - a method whose result is discarded — left alone; nothing observes the difference
  *
  * @param {Object} j - jscodeshift API
  * @param {Object} root - jscodeshift Collection to search within
@@ -37,22 +40,42 @@ const rewriteYields = (j, root, bindings, registry) => {
       const members = registry.types[receiverType];
       const propertyName = getStaticPropertyName(path.value);
       const spec = propertyName && members && members[propertyName];
-      const coercion = spec && spec.yields && spec.yields.coerce;
+      const yields = spec && spec.yields;
 
-      return coercion ? { path, coercion: COERCIONS[coercion] } : null;
+      // a yielded *type* is handled by binding collection, not by adapting the value here
+      const adapts = yields && (yields.coerce || yields.lost);
+
+      return adapts ? { path, propertyName, yields } : null;
     })
     .filter(Boolean);
 
-  targets.forEach(({ path: memberPath, coercion }) => {
+  targets.forEach(({ path: memberPath, propertyName, yields }) => {
+    const coercion = yields.coerce && COERCIONS[yields.coerce];
+    const report = (node) =>
+      reportUntranslated(node, propertyName, yields.lost || coercion.describes);
+
     const parent = memberPath.parent;
     const isMethodCall = parent.value.type === 'CallExpression' && parent.value.callee === memberPath.value;
 
-    if (!isMethodCall) return;
-    if (parent.value.arguments.some(isFunction)) return;
+    // a property carries its value directly, leaving nowhere to hang a coercion
+    if (!isMethodCall) {
+      report(memberPath.value);
+      return;
+    }
+
+    if (parent.value.arguments.some(isFunction)) {
+      report(parent.value);
+      return;
+    }
 
     // the value to adapt is what the `await` produces, not the promise it produces it from
     const produced = parent.parent.value.type === 'AwaitExpression' ? parent.parent : parent;
     if (produced.parent.value.type === 'ExpressionStatement') return;
+
+    if (!coercion) {
+      report(parent.value);
+      return;
+    }
 
     j(produced).replaceWith(coercion.build(j, produced.value));
   });

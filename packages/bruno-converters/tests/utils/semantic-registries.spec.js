@@ -85,29 +85,16 @@ describe('semantic registries', () => {
       expect(missing).toEqual([]);
     });
 
-    it('should give every coercion a builder', () => {
+    it('should give every coercion both a builder and a description', () => {
       Object.entries(COERCIONS).forEach(([name, coercion]) => {
         expect([name, typeof coercion.build]).toEqual([name, 'function']);
+        // `describes` is the reason reported where the coercion has nowhere to go
+        expect([name, typeof coercion.describes]).toEqual([name, 'string']);
       });
     });
   });
 
-  /**
-   * A member with no counterpart is emitted unchanged, so it reads in the output exactly
-   * like a member something else was renamed onto. `bru.cookies.jar().clear()` is the live
-   * case: Bruno's `deleteCookies` becomes Postman's `clear`, while Bruno's own `clear` has
-   * no counterpart at all. The warning comment is the only thing telling the two apart, so
-   * every collision has to be a declared one rather than a member nobody classified.
-   */
-  /**
-   * A member with no counterpart is emitted unchanged, so it reads in the output exactly
-   * like a member something else was renamed onto. `bru.cookies.jar().clear()` is the live
-   * case: Bruno's `deleteCookies` becomes Postman's `clear`, while Bruno's own `clear` has
-   * no counterpart at all, and only the warning comment tells the two apart.
-   *
-   * Pinning the set here means a new collision cannot arrive unnoticed — adding one is
-   * fine, but it has to be looked at, because the comment is load-bearing from then on.
-   */
+  // a new collision is only distinguishable by its console warning, so it needs a human look
   it('should collide with a rename target only where we know about it', () => {
     const collisions = [POSTMAN_REGISTRY, BRUNO_REGISTRY].flatMap((registry) =>
       Object.entries(registry.types).flatMap(([typeName, members]) => {
@@ -148,6 +135,27 @@ describe('semantic registries', () => {
 
     it('should be rejected when its yield says something the engine cannot act on', () => {
       expect(deriveWith({ pm: 'a', bru: 'b', pmToBru: { wrapped: true } })).toThrow(/expected one of coerce, lost/);
+    });
+
+    it('should be rejected when it yields a type pair that is not declared', () => {
+      expect(deriveWith({ pm: 'a', bru: 'b', pmToBru: { type: 'Nope' } })).toThrow(/not a declared type pair/);
+    });
+
+    /**
+     * No row in the live table yields a type today, so the engine's support for it is pinned
+     * here rather than through `correspondence.js`.
+     */
+    it('should resolve a yielded type pair to the name of the side being derived', () => {
+      const table = {
+        typePairs: {
+          T: { postman: 'P', bruno: 'B', members: [{ pm: 'a', bru: 'b', pmToBru: { type: 'U' } }] },
+          U: { postman: 'PU', bruno: 'BU', members: [{ pm: 'c', bru: 'd' }] }
+        },
+        entryPoints: []
+      };
+
+      expect(derive(table, 'pm').types.P.a.yields).toEqual({ type: 'PU' });
+      expect(derive(table, 'bru').types.B.b.yields).toBeUndefined();
     });
 
     it('should be rejected when two members map onto one name', () => {
