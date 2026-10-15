@@ -112,28 +112,33 @@ const COOKIE = {
 };
 
 /**
- * Calls that bring a typed value into a script. `yields` and the handler entries name a type
- * *pair*, which `derive.js` resolves to that side's type name. `bothSpellings` registers the call
- * under its Postman *and* its Bruno path in both registries, since a script reaching this pass
- * may already be partly translated.
+ * Calls that bring a typed value into a script.
+ *
+ * `yields` takes the same object a member row's does, so the field means one thing everywhere in
+ * this file, and a handler slot names its type the same way. A producer or a parameter can only
+ * say `{ type }` though: neither has a second side to differ from, and a value worth no type is
+ * one to leave the slot empty for.
+ *
+ * `bothSpellings` registers the call under its Postman *and* its Bruno path in both registries,
+ * since a script reaching this pass may already be partly translated.
  */
 const ENTRY_POINTS = [
   {
     pm: 'pm.sendRequest',
     bru: 'bru.sendRequest',
-    yields: 'Response',
+    yields: { type: 'Response' },
     // `callback` is the node-style `(err, res)` argument, `then` a promise-chain handler
-    handlers: { callback: [null, 'Response'], then: ['Response'] }
+    handlers: { callback: [null, { type: 'Response' }], then: [{ type: 'Response' }] }
   },
   {
     pm: 'pm.cookies.jar',
     bru: 'bru.cookies.jar',
-    yields: 'CookieJar',
+    yields: { type: 'CookieJar' },
     bothSpellings: true
   }
 ];
 
-/** Type pairs, keyed by the short name `yields` and the handler entries use. */
+/** Type pairs, keyed by the short name every `{ type }` refers to. */
 const TYPE_PAIRS = {
   Response: RESPONSE,
   CookieJar: COOKIE_JAR,

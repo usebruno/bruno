@@ -129,7 +129,7 @@ const resolveHandlers = (handlers, correspondence, sideKey) =>
   Object.fromEntries(
     Object.entries(handlers).map(([kind, positions]) => [
       kind,
-      positions.map((pairName) => (pairName ? correspondence.typePairs[pairName][sideKey] : null))
+      positions.map((slot) => (slot ? correspondence.typePairs[slot.type][sideKey] : null))
     ])
   );
 
@@ -193,6 +193,35 @@ const deriveMembers = (pair, { from, to, direction, sideKey, typePairs }) => {
  * @param {'pm'|'bru'} from - Side being translated from
  * @returns {{producers: Object, params: Object, types: Object}}
  */
+/**
+ * Rejects a slot that should name a type and does not. A producer and a handler parameter each
+ * have only one side, so the vocabulary a member row uses to relate *two* of them cannot apply —
+ * the object shape is shared for consistency, the vocabulary is not.
+ */
+const validateYieldedType = (yields, where, typePairs) => {
+  const keys = Object.keys(yields || {});
+
+  if (keys.length !== 1 || keys[0] !== 'type') {
+    throw new Error(`correspondence: ${where} yields ${keys.join(', ') || 'nothing'}; expected a type`);
+  }
+
+  if (!typePairs[yields.type]) {
+    throw new Error(`correspondence: ${where} yields type '${yields.type}', which is not a declared type pair`);
+  }
+};
+
+const validateEntryPoint = (entry, typePairs) => {
+  const where = `entry point ${entry.pm || entry.bru}`;
+
+  validateYieldedType(entry.yields, where, typePairs);
+
+  Object.entries(entry.handlers || {}).forEach(([kind, positions]) => {
+    positions.forEach((slot, index) => {
+      if (slot) validateYieldedType(slot, `${where} ${kind}[${index}]`, typePairs);
+    });
+  });
+};
+
 const derive = (correspondence, from) => {
   const to = from === 'pm' ? 'bru' : 'pm';
   const sideKey = from === 'pm' ? 'postman' : 'bruno';
@@ -208,7 +237,9 @@ const derive = (correspondence, from) => {
   const producers = {};
   const params = {};
   correspondence.entryPoints.forEach((entry) => {
-    const typeName = correspondence.typePairs[entry.yields][sideKey];
+    validateEntryPoint(entry, correspondence.typePairs);
+
+    const typeName = correspondence.typePairs[entry.yields.type][sideKey];
 
     producers[entry[from]] = typeName;
     if (entry.bothSpellings) producers[entry[to]] = typeName;

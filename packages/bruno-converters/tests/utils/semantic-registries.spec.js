@@ -92,6 +92,45 @@ describe('semantic registries', () => {
     expect(collisions).toEqual(['BrunoCookieJar.clear']);
   });
 
+  describe('a malformed entry point', () => {
+    const deriveEntry = (yields, handlers) =>
+      () => derive({
+        typePairs: { T: { postman: 'P', bruno: 'B', members: [{ pm: 'a', bru: 'b' }] } },
+        entryPoints: [{ pm: 'pm.x', bru: 'bru.x', yields, handlers }]
+      }, 'pm');
+
+    it('should accept a type', () => {
+      expect(deriveEntry({ type: 'T' })).not.toThrow();
+    });
+
+    it('should be rejected when it names a type pair that is not declared', () => {
+      expect(deriveEntry({ type: 'Nope' })).toThrow(/not a declared type pair/);
+    });
+
+    /**
+     * A producer has only one side, so the vocabulary a member row uses to relate two of them
+     * cannot apply — the shared shape is for consistency, not for the full vocabulary.
+     */
+    it('should be rejected when it says anything a member row would', () => {
+      expect(deriveEntry({ differs: 'why' })).toThrow(/expected a type/);
+      expect(deriveEntry({ type: 'T', pmProjects: 'a' })).toThrow(/expected a type/);
+    });
+
+    it('should be rejected when it yields nothing', () => {
+      expect(deriveEntry(undefined)).toThrow(/yields nothing/);
+    });
+
+    it('should hold a handler slot to the same shape, naming the slot that broke', () => {
+      const ok = { type: 'T' };
+
+      expect(deriveEntry(ok, { callback: [null, ok] })).not.toThrow();
+      expect(deriveEntry(ok, { callback: [null, { type: 'Nope' }] }))
+        .toThrow(/callback\[1\] yields type 'Nope'/);
+      expect(deriveEntry(ok, { then: [{ differs: 'why' }] }))
+        .toThrow(/then\[0\] yields differs; expected a type/);
+    });
+  });
+
   describe('a malformed row', () => {
     const deriveWith = (row) =>
       () => derive({ typePairs: { T: { postman: 'P', bruno: 'B', members: [row] } }, entryPoints: [] }, 'pm');
