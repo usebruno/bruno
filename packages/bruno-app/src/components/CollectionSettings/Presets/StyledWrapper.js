@@ -1,8 +1,6 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  max-width: 800px;
-
   .preset-field {
     margin-top: 1.5rem;
 
