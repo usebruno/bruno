@@ -14,6 +14,7 @@ import MultiLineEditor from 'components/MultiLineEditor';
 import SingleLineEditor from 'components/SingleLineEditor';
 import MultipartFileChipsCell from 'components/MultipartFileChipsCell';
 import StyledWrapper from './StyledWrapper';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
 const fileBasename = (filePath) =>
   filePath ? path.basename(normalizePath(String(filePath))) : '';
@@ -217,6 +218,7 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
                 item={item}
                 readOnly={!editMode}
                 placeholder={!value ? 'Value' : ''}
+                variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
               />
             </div>
             <button
@@ -246,6 +248,7 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
           onRun={() => {}}
           collection={collection}
           readOnly={!editMode}
+          variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
         />
       )
     }
