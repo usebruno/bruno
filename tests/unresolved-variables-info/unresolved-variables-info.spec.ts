@@ -7,6 +7,7 @@ import {
   openRequest,
   openUnresolvedVariablesPopover,
   openUnresolvedVariablesPopoverWithKeyboard,
+  selectResponsePaneTab,
   sendAndWaitForResponse,
   waitForReadyPage
 } from '../utils/page';
@@ -39,6 +40,26 @@ test.describe('Unresolved variables info', () => {
       await openRequest(page, COLLECTION, 'http-unresolved');
       await expect(response.statusCode()).toBeVisible();
       await expect(info.card()).toBeHidden();
+    });
+  });
+
+  test('the info card shows only on the Response tab', async ({ pageWithUserData: page }) => {
+    const { unresolvedVariablesInfo: info } = buildCommonLocators(page);
+
+    await test.step('Send the request', async () => {
+      await openRequest(page, COLLECTION, 'http-unresolved');
+      await sendAndWaitForResponse(page);
+      await expect(info.card()).toBeVisible();
+    });
+
+    await test.step('Another response tab hides the info card', async () => {
+      await selectResponsePaneTab(page, 'Timeline');
+      await expect(info.card()).toBeHidden();
+    });
+
+    await test.step('The Response tab shows it again', async () => {
+      await selectResponsePaneTab(page, 'Response');
+      await expect(info.card()).toBeVisible();
     });
   });
 
