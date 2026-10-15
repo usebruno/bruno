@@ -1,0 +1,29 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "Bruno Script API",
+  "entryPoints": ["types/script-api.d.ts"],
+  "tsconfig": "tsconfig.script-api-docs.json",
+  "out": "docs-dist/script-api",
+  "plugin": ["./typedoc/plugin.mjs"],
+  "readme": "none",
+  "customCss": "./typedoc/theme.css",
+  "favicon": "./typedoc/bruno.svg",
+  "lightHighlightTheme": "github-light",
+  "darkHighlightTheme": "github-dark",
+  "navigationLinks": {
+    "Docs": "https://docs.usebruno.com",
+    "GitHub": "https://github.com/usebruno/bruno",
+    "Discord": "https://discord.com/invite/KgcZUncpjq"
+  },
+  "hideGenerator": true,
+  "customFooterHtml": "<span>© Bruno</span><a href=\"https://docs.usebruno.com\">Documentation</a><a href=\"https://github.com/usebruno/bruno\">GitHub</a><a href=\"https://discord.com/invite/KgcZUncpjq\">Discord</a>",
+  "disableSources": true,
+  "excludeExternals": true,
+  "categorizeByGroup": false,
+  "categoryOrder": ["bru", "req", "res", "Tests & assertions", "bru.grpc", "*"],
+  "navigation": {
+    "includeCategories": true,
+    "includeGroups": false
+  },
+  "treatWarningsAsErrors": true
+}
