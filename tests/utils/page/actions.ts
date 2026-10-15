@@ -4,7 +4,7 @@ import process from 'node:process';
 import * as path from 'path';
 import * as fs from 'fs';
 import AdmZip from 'adm-zip';
-import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, PresetRequestType } from './locators';
+import { buildCommonLocators, buildResponseErrorsLocators, buildGrpcCommonLocators, PresetRequestType } from './locators';
 import { waitForCollectionMount } from './mounting';
 import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
 import { EmptyStateRequestType, revealFolderRow } from './sidebar';
@@ -2690,9 +2690,9 @@ const addCollectionScript = async (
 const sendAndWaitForErrorCard = async (page: Page) => {
   await test.step('Send request and wait for error card', async () => {
     const { request } = buildCommonLocators(page);
-    const scriptErrorLocators = buildScriptErrorLocators(page);
+    const responseErrorsLocators = buildResponseErrorsLocators(page);
     await request.sendButton().click();
-    await scriptErrorLocators.card().waitFor({ state: 'visible', timeout: 15000 });
+    await responseErrorsLocators.card().waitFor({ state: 'visible', timeout: 15000 });
   });
 };
 
@@ -2956,6 +2956,19 @@ const createExampleFromSidebar = async (page: Page, requestName: string, example
   if (description) {
     await expect(page.getByTestId('response-example-description-input')).toHaveValue(description);
   }
+};
+
+/**
+ * Expand or collapse a request's examples in the sidebar. No-op if already in the requested state.
+ */
+const toggleRequestExamples = async (page: Page, requestName: string, expand: boolean) => {
+  await test.step(`${expand ? 'Expand' : 'Collapse'} examples of request "${requestName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const chevron = locators.sidebar.requestExamplesToggle(requestName);
+    await chevron.waitFor({ state: 'visible', timeout: 5000 });
+    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+    if (isExpanded !== expand) await chevron.click();
+  });
 };
 
 const openExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, index: number = 0) => {
@@ -4120,6 +4133,7 @@ export {
   readCollectionProxyField,
   createExampleFromSidebar,
   openExampleFromSidebar,
+  toggleRequestExamples,
   openWorkspaceFromDialog,
   setCodeMirrorValue,
   expectTransientRequestOpened,
