@@ -1,6 +1,6 @@
 import { test, expect } from '../../playwright';
 import { closeAllCollections, setRequestUrlAndSave } from '../utils/page/actions';
-import { setupRequestDocs } from './actions';
+import { setupRequestDocs, expectEditorSelection } from './actions';
 import { modifier, pressShortcut, remapKeybinding, resetKeybindings } from '../shortcuts/helpers';
 
 // keybinding which is bound in Tiptap and also has a global handler (Cmd/Ctrl+B) should not trigger the global handler when docs is focused.
@@ -122,7 +122,7 @@ test.describe('Rich Text Editor - Keyboard Shortcut with Global Hotkeys (remappe
       }
       await page.keyboard.up('Shift');
       // Wait for the selection to settle on "World" before firing the shortcut.
-      await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe('World');
+      await expectEditorSelection(prosemirror, 'World');
     });
 
     await test.step('Cmd/Ctrl+B only bolds the selection. it does not open Preferences', async () => {

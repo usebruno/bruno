@@ -1,4 +1,4 @@
-import { expect, Page } from '../../playwright';
+import { expect, Locator, Page } from '../../playwright';
 import { createCollection, createFolder, openCollectionSettings, openFolderSettings, selectCollectionPaneTab, selectfolderPaneTab, selectRequestPaneTab } from '../utils/page/actions';
 import { buildCommonLocators } from '../utils/page/locators';
 
@@ -141,4 +141,19 @@ export const expectDocsToolbarBtnDisabled = async (locators: DocsLocators, label
 
     throw new Error(`Toolbar button "${label}" not found in visible toolbar or overflow dropdown`);
   }).toPass({ timeout: 15000 });
+};
+
+// Waits until the editor's own selection covers `text`. keyboard.press returns once the key event is sent, and ProseMirror
+// syncs the DOM selection into its state asynchronously, so a command fired in that gap (Bold, Link) acts on a collapsed
+// cursor. This reads the Tiptap editor's state, scoped to this editor, instead of the window's DOM selection.
+export const expectEditorSelection = async (prosemirror: Locator, text: string) => {
+  await expect
+    .poll(() =>
+      prosemirror.evaluate((el) => {
+        const { state } = (el as any).editor;
+        const { from, to } = state.selection;
+        return state.doc.textBetween(from, to);
+      })
+    )
+    .toBe(text);
 };

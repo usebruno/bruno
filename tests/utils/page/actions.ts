@@ -2279,13 +2279,8 @@ const deleteAssertion = async (page: Page, rowIndex: number) => {
 const saveRequest = async (page: Page) => {
   await test.step('Save request', async () => {
     const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
-    // The shortcut can fire before the editor's latest change has reached app state (e.g. right after a
-    // programmatic CodeMirror setValue), in which case there is nothing to save and no toast appears.
-    // Re-press the shortcut until the toast shows up instead of relying on a single press.
-    await expect(async () => {
-      await page.keyboard.press(saveShortcut);
-      await expect(page.getByText('Request saved successfully').last()).toBeVisible({ timeout: 3000 });
-    }).toPass({ timeout: 15000 });
+    await page.keyboard.press(saveShortcut);
+    await expect(page.getByText('Request saved successfully').last()).toBeVisible({ timeout: 10000 });
     await page.waitForTimeout(200);
   });
 };

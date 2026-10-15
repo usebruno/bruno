@@ -181,6 +181,13 @@ export const scrollVariablesTo = async (page: Page, top: number) => {
       await scroller.evaluate((el, y) => { el.scrollTop = y; }, top);
       return (await scroller.evaluate((el) => el.scrollTop)) === top;
     });
+
+    // Setting scrollTop is synchronous, but the app only learns the position from the scroll event, which the
+    // browser dispatches on the next frame. Leaving the tab before that would persist a stale position, so
+    // wait two frames to be sure the event has been handled.
+    await page.evaluate(
+      () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+    );
   });
 };
 

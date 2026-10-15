@@ -1,7 +1,7 @@
 import { test, expect, Locator } from '../../playwright';
 import { closeAllCollections } from '../utils/page/actions';
 import { modifier } from '../shortcuts/helpers';
-import { setupRequestDocs, clickDocsToolbarBtn } from './actions';
+import { setupRequestDocs, clickDocsToolbarBtn, expectEditorSelection } from './actions';
 
 test.describe('Rich Text Editor Edge Cases - Links', () => {
   test.afterEach(async ({ page }) => {
@@ -28,7 +28,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
         await page.keyboard.press('ArrowLeft');
       }
       await page.keyboard.up('Shift');
-      await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe('here');
+      await expectEditorSelection(prosemirror, 'here');
 
       // Click the Link button
       await clickDocsToolbarBtn(locators, 'Link');
@@ -95,7 +95,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await page.keyboard.down('Shift');
       for (let i = 0; i < 7; i++) await page.keyboard.press('ArrowLeft');
       await page.keyboard.up('Shift');
-      await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe('LinkOne');
+      await expectEditorSelection(prosemirror, 'LinkOne');
 
       // Create LinkOne
       await clickDocsToolbarBtn(locators, 'Link');
@@ -111,7 +111,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await page.keyboard.down('Shift');
       for (let i = 0; i < 7; i++) await page.keyboard.press('ArrowLeft');
       await page.keyboard.up('Shift');
-      await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe('LinkTwo');
+      await expectEditorSelection(prosemirror, 'LinkTwo');
 
       // Create LinkTwo
       await clickDocsToolbarBtn(locators, 'Link');
@@ -169,7 +169,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
         await page.keyboard.press('ArrowLeft');
       }
       await page.keyboard.up('Shift');
-      await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe('Top Link');
+      await expectEditorSelection(prosemirror, 'Top Link');
 
       // Create a link
       await clickDocsToolbarBtn(locators, 'Link');
@@ -253,7 +253,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await page.keyboard.up('Shift');
 
       // Wait for the selection to settle on 'Bottom Link' before creating the link.
-      await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe('Bottom Link');
+      await expectEditorSelection(prosemirror, 'Bottom Link');
       // Create link
       await clickDocsToolbarBtn(locators, 'Link');
       const editPopover = locators.docs.linkEditPopover();
@@ -281,7 +281,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await page.keyboard.down('Shift');
       for (let i = 0; i < 8; i++) await page.keyboard.press('ArrowLeft');
       await page.keyboard.up('Shift');
-      await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe('Internal');
+      await expectEditorSelection(prosemirror, 'Internal');
 
       await clickDocsToolbarBtn(locators, 'Link');
       await locators.docs.linkEditUrlInput().fill('#preferences/ai');
@@ -312,7 +312,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await page.keyboard.down('Shift');
       for (let i = 0; i < 8; i++) await page.keyboard.press('ArrowLeft');
       await page.keyboard.up('Shift');
-      await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe('External');
+      await expectEditorSelection(prosemirror, 'External');
 
       await clickDocsToolbarBtn(locators, 'Link');
       await locators.docs.linkEditUrlInput().fill('https://example.org');
