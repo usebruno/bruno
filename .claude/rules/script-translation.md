@@ -93,9 +93,38 @@ Three shapes a value difference can take, worth telling apart before reaching fo
 Nothing is written into the translated script. `reportUntranslated` in `ast-utils.js` is the only
 consumer of a `differs` reason and an `unsupported` reason — they reach the console and nowhere else.
 
-**No live row yields a `type` today.** The engine supports nesting and
-`tests/utils/semantic-registries.spec.js` pins it directly, so a nested pair can be added without an
-engine change. Until one exists, this is the only place that says so.
+### Every type reference is `{ type: '<pair>' }`
+
+Not only member yields — a producer and a handler parameter name their type the same way, so the
+shape means one thing everywhere in the file:
+
+```js
+const ENTRY_POINTS = [
+  {
+    pm: 'pm.sendRequest',
+    bru: 'bru.sendRequest',
+    yields: { type: 'Response' },
+    handlers: { callback: [null, { type: 'Response' }], then: [{ type: 'Response' }] }
+  }
+];
+```
+
+A `null` handler slot is a position that receives nothing — the `err` of `(err, res)`.
+
+A producer and a parameter can only say `{ type }`, though. Neither has a second side to differ
+from, so `differs` and the projection keys are rejected there; a value worth no type is one to
+leave the slot empty for. `derive.js` names the slot that broke:
+
+```
+correspondence: entry point pm.x callback[1] yields type 'Nope', which is not a declared type pair
+correspondence: entry point pm.x then[0] yields differs; expected a type
+```
+
+**Nesting is supported but unexercised.** `{ type }` is live on the producers and on `get`'s
+projection, but no member yields a pair whose members then translate in turn — so the chain
+`collectBindings` can follow has never been walked by a real row.
+`tests/utils/semantic-registries.spec.js` pins it directly, which is the only thing keeping it
+honest until one exists.
 
 `derive.js` throws on a row outside that vocabulary. A malformed row is a mistake in the table
 rather than a condition to translate around, so it fails at import instead of quietly dropping
@@ -104,7 +133,10 @@ the member.
 ## Adding a row
 
 1. Add the row to the right type pair in `correspondence.js`
-2. If a new call brings a typed value into a script, add an `ENTRY_POINTS` entry
+2. If a new call brings a typed value into a script, add an `ENTRY_POINTS` entry with
+   `yields: { type: '<pair>' }` — **and** a `simpleTranslations` row, because the table types the
+   result while the flat map renames the call. One without the other leaves correctly-renamed
+   members hanging off a call that still says `pm`
 3. If the member's result has a different shape on the two sides, say so with one `yields`
 4. **A case in `tests/postman/round-trip/scripts.spec.js`**
 
@@ -181,6 +213,8 @@ supported at all.
 - [ ] Mapping is in the destination the fixed-dotted-path question points to
 - [ ] One row in `correspondence.js`, not an edit to each direction
 - [ ] A shape difference declared as one `yields`, never as two mirrored halves
+- [ ] Every type named as `{ type: '<pair>' }` — in a member yield, a producer, or a handler slot
+- [ ] A projection names the pair it projects from, so the member is checked rather than copied
 - [ ] Round-trip case added when a type pair changed, and
       `tests/utils/semantic-registries.spec.js` still green
 - [ ] Any new guard fails by leaving the source text alone, never by guessing
