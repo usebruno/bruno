@@ -12,6 +12,7 @@ import { buildDocsLocators } from './docs';
 import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
 import { buildWebsocketCommonLocators } from './websocket';
 import { buildToastLocators } from './toast';
+import { buildSecretVariableFormLocators } from './secret-variable-form';
 import { buildRequestLocators } from '../request';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
 import { buildEnvironmentLocators } from './environments';
@@ -49,6 +50,7 @@ export const buildCommonLocators = (page: Page) => ({
   unresolvedVariablesInfo: buildUnresolvedVariablesInfoLocators(page),
   websocket: buildWebsocketCommonLocators(page),
   toast: buildToastLocators(page),
+  secretVariableForm: buildSecretVariableFormLocators(page),
   request: buildRequestLocators(page),
   responseExample: buildResponseExampleLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),

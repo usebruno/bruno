@@ -2,9 +2,13 @@ import { test, expect, Page, Locator } from '../../../playwright';
 import {
   openCollectionSettings,
   openFolderSettings,
+  selectAuthMode,
   selectCollectionPaneTab,
-  selectfolderPaneTab
+  selectfolderPaneTab,
+  selectRequestPaneTab,
+  writeFieldValue
 } from '../page/actions';
+import { AUTH_MODE_LABELS } from '../constants';
 import { buildCommonLocators } from '../page/locators';
 
 export const buildRequestLocators = (page: Page) => ({
@@ -208,6 +212,15 @@ export const seedFolderHeaders = async (
   await openFolderSettings(page, collectionName, folderName);
   await selectfolderPaneTab(page, 'headers');
   await setSettingsHeadersBulk(page, headersText, 'folder');
+};
+
+/** Opens the request's Auth tab, picks API Key and sets its Value field. */
+export const setApiKeyValue = async (page: Page, value: string) => {
+  await test.step(`Set the API key value to "${value}"`, async () => {
+    await selectRequestPaneTab(page, 'Auth');
+    await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
+    await writeFieldValue(page, 'Value', value);
+  });
 };
 
 /** Types a name and value into the last row of a Vars table. */

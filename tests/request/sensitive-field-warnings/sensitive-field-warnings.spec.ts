@@ -12,13 +12,11 @@ import {
   openRequest,
   saveEnvironment,
   saveRequest,
-  selectAuthMode,
   selectCollectionPaneTab,
   selectRequestPaneTab,
   writeFieldValue
 } from '../../utils/page';
-import { AUTH_MODE_LABELS } from '../../utils/constants';
-import { addVarsRow } from '../../utils/request';
+import { addVarsRow, setApiKeyValue } from '../../utils/request';
 
 const PLAINTEXT_WARNING = 'Store sensitive info as a secret variable or in a .env file';
 const ENVIRONMENT_FIELD_WARNING = 'Mark the environment variable as secret for better security';
@@ -55,9 +53,7 @@ test.describe('Sensitive field warnings', () => {
 
     await test.step('Type a plaintext API key value', async () => {
       await openRequest(page, collectionName, 'login');
-      await selectRequestPaneTab(page, 'Auth');
-      await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
-      await writeFieldValue(page, 'Value', 'raw-secret');
+      await setApiKeyValue(page, 'raw-secret');
     });
 
     await test.step('The value warns and the key name does not', async () => {
@@ -77,9 +73,7 @@ test.describe('Sensitive field warnings', () => {
 
     await test.step('Set the API key value to a name that is not saved', async () => {
       await openRequest(page, collectionName, 'login');
-      await selectRequestPaneTab(page, 'Auth');
-      await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
-      await writeFieldValue(page, 'Value', '{{process.env.TOKEN}}');
+      await setApiKeyValue(page, '{{process.env.TOKEN}}');
     });
 
     await test.step('No warning is shown', async () => {
@@ -104,9 +98,7 @@ test.describe('Sensitive field warnings', () => {
 
     await test.step('A value that is only the secret variable does not warn', async () => {
       await openRequest(page, collectionName, 'login');
-      await selectRequestPaneTab(page, 'Auth');
-      await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
-      await writeFieldValue(page, 'Value', '{{token}}');
+      await setApiKeyValue(page, '{{token}}');
       await expect(codeMirror.sensitiveWarning('apikey-value')).toHaveCount(0);
     });
 
@@ -131,9 +123,7 @@ test.describe('Sensitive field warnings', () => {
 
     await test.step('Use that variable as the API key value', async () => {
       await openRequest(page, collectionName, 'login');
-      await selectRequestPaneTab(page, 'Auth');
-      await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
-      await writeFieldValue(page, 'Value', '{{token}}');
+      await setApiKeyValue(page, '{{token}}');
       await expectSensitiveWarning(page, 'apikey-value', requestVariableWarning('token'));
     });
 
@@ -166,9 +156,7 @@ test.describe('Sensitive field warnings', () => {
 
     await test.step('The API key field warns about the environment variable', async () => {
       await openRequest(page, collectionName, 'login');
-      await selectRequestPaneTab(page, 'Auth');
-      await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
-      await writeFieldValue(page, 'Value', '{{token}}');
+      await setApiKeyValue(page, '{{token}}');
       await expectSensitiveWarning(page, 'apikey-value', ENVIRONMENT_FIELD_WARNING);
     });
 

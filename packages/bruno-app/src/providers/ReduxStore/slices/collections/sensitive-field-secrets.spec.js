@@ -178,7 +178,7 @@ describe('markEnvironmentVariableAsSecret', () => {
     ]);
   });
 
-  it('keeps other unsaved draft edits of that environment', async () => {
+  it('saves the unsaved draft edits with the secret and clears the draft', async () => {
     const store = createStore({
       envVars: [makeVar('host', 'localhost'), makeVar('token', 'abc')],
       environmentsDraft: { environmentUid: ENV_UID, variables: [makeVar('host', 'edited-host'), makeVar('token', 'abc')] }

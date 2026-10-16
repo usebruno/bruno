@@ -1,4 +1,4 @@
-import React, { useId, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import find from 'lodash/find';
 import TextInput from 'ui/TextInput';
@@ -34,19 +34,20 @@ const isEnvironmentTarget = (scope) => (
 );
 
 const SecretVariableForm = ({ collection, sourceLabel, defaultName, defaultValue, onSave, onClose }) => {
-  const nameInputId = useId();
-  const valueInputId = useId();
   const [name, setName] = useState(defaultName);
   const [value, setValue] = useState(removeVariableBraces(defaultValue));
   const [selectedTargetType, setSelectedTargetType] = useState(null);
   const [errors, setErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
+
   const formRef = useRef(null);
+
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
 
   const activeEnvironment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
   const activeGlobalEnvironment = find(globalEnvironments, (environment) => environment.uid === activeGlobalEnvironmentUid);
+
   const targets = getAvailableAddToScopes({
     activeEnvironmentUid: activeEnvironment?.uid,
     activeEnvironmentName: activeEnvironment?.name,
@@ -108,7 +109,7 @@ const SecretVariableForm = ({ collection, sourceLabel, defaultName, defaultValue
       </div>
 
       <TextInput
-        id={nameInputId}
+        id="secret-variable-name"
         label="Name"
         value={name}
         error={errors.name}
@@ -119,7 +120,7 @@ const SecretVariableForm = ({ collection, sourceLabel, defaultName, defaultValue
       />
 
       <MaskedInput
-        id={valueInputId}
+        id="secret-variable-value"
         label="Value"
         value={value}
         error={errors.value}

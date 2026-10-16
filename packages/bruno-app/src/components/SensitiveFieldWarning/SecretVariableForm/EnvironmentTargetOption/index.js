@@ -33,7 +33,7 @@ const EnvironmentTargetOption = ({ target, isSelected, onSelect, onCreate }) => 
     }
   };
 
-  const icon = (
+  const targetIcon = (
     <span className={`target-icon target-icon-${target.type} ${target.enabled ? '' : 'target-icon-muted'}`}>
       <Icon size={12} strokeWidth={1.75} />
     </span>
@@ -49,7 +49,7 @@ const EnvironmentTargetOption = ({ target, isSelected, onSelect, onCreate }) => 
           aria-pressed={isSelected}
           onClick={() => onSelect(target.type)}
         >
-          {icon}
+          {targetIcon}
           <span className="target-label" title={target.label}>{target.label}</span>
         </button>
       </StyledWrapper>
@@ -58,7 +58,7 @@ const EnvironmentTargetOption = ({ target, isSelected, onSelect, onCreate }) => 
 
   return (
     <StyledWrapper className="flex-wrap">
-      {icon}
+      {targetIcon}
       {isCreating ? (
         <>
           <input

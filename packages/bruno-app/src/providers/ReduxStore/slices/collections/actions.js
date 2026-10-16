@@ -2339,23 +2339,18 @@ const resolveOrCreateEnabledVariable = (variables, variableName, newValue, secre
 
 /** The environment and its variables, taken from the unsaved draft when one exists. */
 const getEnvironmentWithDraftVariables = (state, collection, environmentScope, environmentUid) => {
-  if (environmentScope === VARIABLE_ADD_SCOPES.GLOBAL) {
-    const { globalEnvironments, globalEnvironmentDraft } = state.globalEnvironments;
-    const environment = find(globalEnvironments, (env) => env.uid === environmentUid);
-    const hasDraft = globalEnvironmentDraft?.environmentUid === environmentUid;
-    return { environment, hasDraft, variables: hasDraft ? globalEnvironmentDraft.variables : environment?.variables };
-  }
+  const isGlobal = environmentScope === VARIABLE_ADD_SCOPES.GLOBAL;
+  const environments = isGlobal ? state.globalEnvironments.globalEnvironments : collection?.environments;
+  const draft = isGlobal ? state.globalEnvironments.globalEnvironmentDraft : collection?.environmentsDraft;
 
-  const environment = collection ? findEnvironmentInCollection(collection, environmentUid) : null;
-  const hasDraft = collection?.environmentsDraft?.environmentUid === environmentUid;
-  return { environment, hasDraft, variables: hasDraft ? collection.environmentsDraft.variables : environment?.variables };
+  const environment = find(environments, (env) => env.uid === environmentUid);
+  const hasDraft = draft?.environmentUid === environmentUid;
+  return { environment, hasDraft, variables: hasDraft ? draft.variables : environment?.variables };
 };
 
 /** Applies `update` to the environment variables, saves them, and clears the draft so it can't undo the change. */
-const updateEnvironmentVariables = ({ collectionUid, environmentScope, environmentUid, update }) => (dispatch, getState) => {
-  const state = getState();
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
-  const { environment, hasDraft, variables } = getEnvironmentWithDraftVariables(state, collection, environmentScope, environmentUid);
+const updateEnvironmentVariables = ({ collection, environmentScope, environmentUid, update }) => (dispatch, getState) => {
+  const { environment, hasDraft, variables } = getEnvironmentWithDraftVariables(getState(), collection, environmentScope, environmentUid);
   if (!environment) {
     return Promise.reject(new Error('Environment not found'));
   }
@@ -2370,11 +2365,11 @@ const updateEnvironmentVariables = ({ collectionUid, environmentScope, environme
   const isGlobal = environmentScope === VARIABLE_ADD_SCOPES.GLOBAL;
   const save = isGlobal
     ? dispatch(saveGlobalEnvironment({ variables: updatedVariables, environmentUid }))
-    : dispatch(saveEnvironment(updatedVariables, environmentUid, collectionUid));
+    : dispatch(saveEnvironment(updatedVariables, environmentUid, collection.uid));
 
   return save.then(() => {
     if (hasDraft) {
-      dispatch(isGlobal ? clearGlobalEnvironmentDraft() : clearEnvironmentsDraft({ collectionUid }));
+      dispatch(isGlobal ? clearGlobalEnvironmentDraft() : clearEnvironmentsDraft({ collectionUid: collection.uid }));
     }
   });
 };
@@ -2386,12 +2381,13 @@ export const addSecretToEnvironment = ({ collectionUid, environmentScope, name, 
   const environmentUid = environmentScope === VARIABLE_ADD_SCOPES.GLOBAL
     ? state.globalEnvironments.activeGlobalEnvironmentUid
     : collection?.activeEnvironmentUid;
+
   if (!environmentUid) {
     return Promise.reject(new Error('No environment selected'));
   }
 
   return dispatch(updateEnvironmentVariables({
-    collectionUid,
+    collection,
     environmentScope,
     environmentUid,
     update: (variables, environment) => {
@@ -2404,9 +2400,9 @@ export const addSecretToEnvironment = ({ collectionUid, environmentScope, name, 
 };
 
 /** Sets `secret: true` on one environment row and keeps its value. */
-export const markEnvironmentVariableAsSecret = ({ collectionUid, environmentScope, environmentUid, variableUid }) => (dispatch) => (
+export const markEnvironmentVariableAsSecret = ({ collectionUid, environmentScope, environmentUid, variableUid }) => (dispatch, getState) => (
   dispatch(updateEnvironmentVariables({
-    collectionUid,
+    collection: findCollectionByUid(getState().collections.collections, collectionUid),
     environmentScope,
     environmentUid,
     update: (variables) => {

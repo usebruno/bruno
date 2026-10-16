@@ -160,6 +160,10 @@ const SensitiveFieldWarning = ({
 
   /** Adds the secret to the environment, then points the field to it and deletes the moved var. */
   const saveSecret = ({ name, value: secretValue, targetType }) => {
+    if (!movedVariable && !onReplaceValue) {
+      return Promise.reject(new Error('This field cannot be updated'));
+    }
+
     const overridingScope = findOverridingVariableScope(name, {
       collection,
       item,

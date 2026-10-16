@@ -240,7 +240,7 @@ const ErrorMessage = React.memo(({ id, error }) => {
 });
 
 /** Rows with a non-empty name. */
-const isNamedVariable = (variable) => variable.name && variable.name.trim() !== '';
+const hasVariableName = (variable) => variable.name && variable.name.trim() !== '';
 
 const EnvironmentVariablesTable = ({
   environment,
@@ -474,7 +474,7 @@ const EnvironmentVariablesTable = ({
   });
   const buildSortOrder = useCallback((variables, mode) => {
     if (mode === 'default') return null;
-    const activeTabVars = variables.filter((v) => !!v.secret === isSecretTab && isNamedVariable(v));
+    const activeTabVars = variables.filter((v) => !!v.secret === isSecretTab && hasVariableName(v));
     return sortRowsByName(activeTabVars, mode, (v) => v.name).map((v) => v.uid);
   }, [isSecretTab]);
 
@@ -562,7 +562,7 @@ const EnvironmentVariablesTable = ({
 
   // Sync modified state
   useEffect(() => {
-    const currentValues = formik.values.filter(isNamedVariable);
+    const currentValues = formik.values.filter(hasVariableName);
     const currentValuesJson = JSON.stringify(currentValues.map(stripEnvVarUid));
     const hasActualChanges = currentValuesJson !== savedValuesJson;
     setIsModified(hasActualChanges);
@@ -571,7 +571,7 @@ const EnvironmentVariablesTable = ({
   // Sync draft state
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      const currentValues = formik.values.filter(isNamedVariable);
+      const currentValues = formik.values.filter(hasVariableName);
       const currentValuesJson = JSON.stringify(currentValues.map(stripEnvVarUid));
       const hasActualChanges = currentValuesJson !== savedValuesJson;
 
@@ -674,7 +674,7 @@ const EnvironmentVariablesTable = ({
   const handleSave = useCallback(() => {
     const belongsToActiveTab = (variable) => (isSecretTab ? !!variable.secret : !variable.secret);
 
-    const namedValues = formik.values.filter(isNamedVariable);
+    const namedValues = formik.values.filter(hasVariableName);
     const savedValues = environment.variables || [];
 
     // Save is scoped to the active tab. Only the active tab's rows are persisted; the
@@ -761,7 +761,7 @@ const EnvironmentVariablesTable = ({
     const activeSaved = savedValues.filter(belongsToActiveTab);
     const otherSaved = savedValues.filter((variable) => !belongsToActiveTab(variable));
     const otherCurrent = formik.values
-      .filter(isNamedVariable)
+      .filter(hasVariableName)
       .filter((variable) => !belongsToActiveTab(variable));
 
     // Reset is scoped to the active tab: revert its rows to the saved baseline while
@@ -795,8 +795,8 @@ const EnvironmentVariablesTable = ({
     setIsModified(otherDirty);
   }, [environment.variables, formik.values, isSecretTab, onDraftChange, onDraftClear, setIsModified, buildSortOrder, sortMode]);
 
-  /** Validates and saves the rows, then resets the form. Rejects with the message to show. */
-  const persistAllVariables = useCallback((namedValues) => {
+  /** Validates and saves the rows, then resets the form.Rejects with the message to show.  */
+  const validateAndSaveVariables = useCallback((namedValues) => {
     const persistedVariables = orderVarsBySecret(namedValues);
 
     const hasValidationErrors = namedValues.some((variable) => {
@@ -845,7 +845,7 @@ const EnvironmentVariablesTable = ({
   }, [formik, onSave, onDraftClear, setIsModified, isSecretTab, buildSortOrder, sortMode]);
 
   const handleSaveAll = useCallback(() => {
-    const namedValues = formik.values.filter(isNamedVariable);
+    const namedValues = formik.values.filter(hasVariableName);
     const savedValues = environment.variables || [];
 
     const persistedVariables = orderVarsBySecret(namedValues);
@@ -857,18 +857,18 @@ const EnvironmentVariablesTable = ({
       return;
     }
 
-    persistAllVariables(namedValues)
+    validateAndSaveVariables(namedValues)
       .then(() => toast.success('Changes saved successfully'))
       .catch((error) => toast.error(error.message));
-  }, [formik.values, environment.variables, persistAllVariables]);
+  }, [formik.values, environment.variables, validateAndSaveVariables]);
 
   /** Marks one row as secret through the form, so unsaved edits in the table are saved with it. */
   const markVariableAsSecret = useCallback((variableUid) => {
     const namedValues = formik.values
-      .filter(isNamedVariable)
+      .filter(hasVariableName)
       .map((variable) => (variable.uid === variableUid ? { ...variable, secret: true } : variable));
-    return persistAllVariables(namedValues);
-  }, [formik.values, persistAllVariables]);
+    return validateAndSaveVariables(namedValues);
+  }, [formik.values, validateAndSaveVariables]);
 
   const renderOwnSensitiveWarning = renderSensitiveWarning
     ? (variable) => renderSensitiveWarning(variable, () => markVariableAsSecret(variable.uid))
@@ -962,7 +962,7 @@ const EnvironmentVariablesTable = ({
           type: ROW_SECTION_HEADER,
           section: 'own',
           label: tabLabel,
-          count: displayedVariables.filter(({ variable }) => isNamedVariable(variable)).length
+          count: displayedVariables.filter(({ variable }) => hasVariableName(variable)).length
         },
         ...(collapsedSections.own ? [] : displayedVariables)
       ]
