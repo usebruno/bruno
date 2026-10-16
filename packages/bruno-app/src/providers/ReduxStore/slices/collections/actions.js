@@ -1,7 +1,7 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
 import { parseQueryParams, extractPromptVariables, getDataTypeFromValue, resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
-import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
+import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT, SIDEBAR_REVEAL_STATUS } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
@@ -77,6 +77,8 @@ import {
   addSaveTransientRequestModal,
   updatePathParam,
   toggleCollection,
+  expandCollection,
+  expandItem,
   setSidebarSelection
 } from './index';
 
@@ -97,7 +99,8 @@ import {
   transformFolderRootToSave,
   getTreePathFromCollectionToItem,
   mergeHeaders,
-  isPathOrDescendant
+  isPathOrDescendant,
+  isCollectionItemCollapsed
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
 import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
@@ -2319,12 +2322,33 @@ const executeVariableUpdate = (dispatch, action, successMessage) => {
  * @returns {{ variable: Object|undefined, updatedVariables: Array }} `variable` is the pre-existing
  *   entry that was updated, or undefined when a new one was appended instead.
  */
-const resolveOrCreateEnabledVariable = (variables, variableName, newValue, secret) => {
+const withDataType = (variable, dataType) => {
+  const next = { ...variable };
+
+  if (dataType === undefined) {
+    return next;
+  }
+
+  if (dataType === 'string') {
+    delete next.dataType;
+  } else {
+    next.dataType = dataType;
+  }
+
+  return next;
+};
+
+const resolveOrCreateEnabledVariable = (variables, variableName, newValue, secret, dataType) => {
   const variable = resolveEnabledVariable(variables, variableName);
-  const newVariable = { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true, secret: !!secret };
+  const newVariable = withDataType(
+    { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true, secret: !!secret },
+    dataType
+  );
 
   const updatedVariables = variable
-    ? variables.map((v) => (v.uid === variable.uid ? { ...v, value: newValue } : v))
+    ? variables.map((v) =>
+        v.uid === variable.uid ? withDataType({ ...v, value: newValue, secret: v.secret || !!secret }, dataType) : v
+      )
     : [...(variables || []), newVariable];
 
   return { variable, updatedVariables };
@@ -2372,7 +2396,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Environment not found'));
           }
 
-          const { variable, updatedVariables } = resolveOrCreateEnabledVariable(environment.variables, variableName, newValue, data.secret);
+          const { variable, updatedVariables } = resolveOrCreateEnabledVariable(environment.variables, variableName, newValue, data.secret, data.dataType);
 
           // not pre-resolving a secret-name collision here
           // saveEnvironment's writesCollidingSecrets guard rejects it instead.
@@ -2392,14 +2416,14 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             dispatch(updateCollectionVar({
               collectionUid,
               type: 'request',
-              var: { ...variable, value: newValue }
+              var: withDataType({ ...variable, value: newValue }, data.dataType)
             }));
           } else {
             // Create new variable in draft with actual values
             dispatch(addCollectionVar({
               collectionUid,
               type: 'request',
-              var: { name: variableName, value: newValue, enabled: true }
+              var: withDataType({ name: variableName, value: newValue, enabled: true }, data.dataType)
             }));
           }
 
@@ -2418,7 +2442,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
               collectionUid,
               folderUid: folder.uid,
               type: 'request',
-              var: { ...variable, value: newValue }
+              var: withDataType({ ...variable, value: newValue }, data.dataType)
             }));
           } else {
             // Create new variable in draft with actual values
@@ -2426,7 +2450,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
               collectionUid,
               folderUid: folder.uid,
               type: 'request',
-              var: { name: variableName, value: newValue, enabled: true }
+              var: withDataType({ name: variableName, value: newValue, enabled: true }, data.dataType)
             }));
           }
 
@@ -2445,7 +2469,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
               collectionUid,
               itemUid: item.uid,
               type: 'request',
-              var: { ...variable, value: newValue }
+              var: withDataType({ ...variable, value: newValue }, data.dataType)
             }));
           } else {
             // Create new variable in draft with actual values
@@ -2453,7 +2477,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
               collectionUid,
               itemUid: item.uid,
               type: 'request',
-              var: { name: variableName, value: newValue, local: false, enabled: true }
+              var: withDataType({ name: variableName, value: newValue, local: false, enabled: true }, data.dataType)
             }));
           }
 
@@ -2477,7 +2501,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Global environment not found'));
           }
 
-          const { variable, updatedVariables } = resolveOrCreateEnabledVariable(environment.variables, variableName, newValue, data.secret);
+          const { variable, updatedVariables } = resolveOrCreateEnabledVariable(environment.variables, variableName, newValue, data.secret, data.dataType);
 
           // Deliberately not pre-resolving a secret-name collision here.
           // saveEnvironment's writesCollidingSecrets guard rejects it instead
@@ -2658,6 +2682,17 @@ export const selectSidebarRange = ({ uid, searchText }) => (dispatch, getState) 
   dispatch(setSidebarSelection(visibleUids.slice(start, end + 1)));
 };
 
+const closeCollectionTabs = (collectionUid) => async (dispatch, getState) => {
+  const tabUids = getState().tabs.tabs
+    .filter((tab) => tab.collectionUid === collectionUid)
+    .map((tab) => tab.uid);
+
+  dispatch(closeAllCollectionTabs({ collectionUid }));
+  // Editors flush their persisted state on unmount; clear it after that flush.
+  await waitForNextTick();
+  each(tabUids, (tabUid) => clearPersistedScope(tabUid));
+};
+
 export const removeCollection = (collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
@@ -2686,9 +2721,9 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
         // Check if the collection still exists in other workspaces
         return ipcRenderer.invoke('renderer:get-collection-workspaces', collection.pathname);
       })
-      .then((remainingWorkspaces) => {
+      .then(async (remainingWorkspaces) => {
         // Close tabs for this collection
-        dispatch(closeAllCollectionTabs({ collectionUid }));
+        await dispatch(closeCollectionTabs(collectionUid));
 
         // Remove collection from workspace in Redux state
         if (activeWorkspace) {
@@ -2746,7 +2781,7 @@ export const moveCollectionToWorkspace = (collectionUid) => (dispatch, getState)
         collectionName: collection.name
       })
       .then(async (result) => {
-        dispatch(closeAllCollectionTabs({ collectionUid }));
+        await dispatch(closeCollectionTabs(collectionUid));
         dispatch(removeCollectionFromWorkspace({
           workspaceUid: activeWorkspace.uid,
           collectionLocation: collection.pathname
@@ -3597,6 +3632,50 @@ export const scanForBrunoFiles = (dir) => (dispatch, getState) => {
   });
 };
 
+export const revealItemInSidebar = ({ collectionUid, itemUid, expandTarget = false }) => (dispatch, getState) => {
+  const collection = findCollectionByUid(getState().collections.collections, collectionUid);
+  if (!collection) {
+    return SIDEBAR_REVEAL_STATUS.SKIPPED;
+  }
+
+  const item = findItemInCollection(collection, itemUid);
+  if (!item) {
+    return collection.mountStatus === 'mounted' && !collection.isLoading
+      ? SIDEBAR_REVEAL_STATUS.SKIPPED
+      : SIDEBAR_REVEAL_STATUS.PENDING;
+  }
+
+  if (collection.collapsed) {
+    dispatch(expandCollection(collection.uid));
+  }
+
+  const treePath = getTreePathFromCollectionToItem(collection, item);
+  const nodes = expandTarget ? treePath : treePath.slice(0, -1);
+
+  nodes.forEach((node) => {
+    if (isCollectionItemCollapsed(node)) {
+      dispatch(expandItem({ collectionUid, itemUid: node.uid }));
+    }
+  });
+
+  return SIDEBAR_REVEAL_STATUS.REVEALED;
+};
+
+export const revealTabInSidebar = (tabUid) => (dispatch, getState) => {
+  const tab = getState().tabs.tabs.find((t) => t.uid === tabUid);
+  if (!tab?.collectionUid) {
+    return SIDEBAR_REVEAL_STATUS.SKIPPED;
+  }
+
+  const isExampleTab = tab.type === 'response-example';
+
+  return dispatch(revealItemInSidebar({
+    collectionUid: tab.collectionUid,
+    itemUid: isExampleTab ? tab.itemUid : tab.uid,
+    expandTarget: isExampleTab
+  }));
+};
+
 /**
  * If the current active tab belongs to another workspace, focus a tab in the current workspace.
  */
@@ -3738,7 +3817,7 @@ export const migrateCollectionToYml = (collectionUid) => async (dispatch, getSta
   };
 
   dispatch(migrationStarted());
-  dispatch(closeAllCollectionTabs({ collectionUid }));
+  await dispatch(closeCollectionTabs(collectionUid));
   dispatch(ensureActiveTabInCurrentWorkspace());
   // Flush the snapshot while the collection is still in the store: its entry serializes
   // with the now-empty tab list, replacing any stale .bru tabs on disk for the active

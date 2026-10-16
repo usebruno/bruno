@@ -18,7 +18,7 @@ import StatusBar from './StatusBar';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
-import { getAllVariables } from 'utils/collections';
+import { getAllVariables, getVariableNamesWithScope } from 'utils/collections';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
@@ -35,6 +35,7 @@ import {
   writePersistedSearchState
 } from './state-persistence';
 import { usePersistenceScope } from 'hooks/usePersistedState/PersistedScopeProvider';
+import { SetAsVariableContext } from 'providers/SetAsVariable/context';
 import {
   changeIntroducesLongLine,
   hasLongLine
@@ -157,6 +158,18 @@ class CodeEditor extends React.Component {
     if (searchPersistenceKey === prevState.searchPersistenceKey) return null;
     return getInitialSearchState(nextProps);
   }
+
+  static contextType = SetAsVariableContext;
+
+  _onContextMenu = (editor, event) => {
+    if (this.props.enableBrunoVarInfo === false) return;
+
+    this.context.openFromCodeMirror(event, editor, {
+      collection: this.props.collection,
+      item: this.props.item,
+      mode: this.props.mode
+    });
+  };
 
   constructor(props) {
     super(props);
@@ -360,6 +373,7 @@ class CodeEditor extends React.Component {
       );
       editor.on('beforeChange', this._onBeforeChange);
       editor.on('change', this._onEdit);
+      editor.on('contextmenu', this._onContextMenu);
 
       // Persist view state immediately when the user folds or unfolds — without
       // this, a fold only gets saved on the next tab switch / unmount. That
@@ -436,7 +450,7 @@ class CodeEditor extends React.Component {
     this.addOverlay();
     this.brunoAutoCompleteCleanup = setupAutoComplete(editor, {
       showHintsFor: this.props.showHintsFor,
-      getAllVariables: () => getAllVariables(this.props.collection, this.props.item)
+      getAllVariables: () => getVariableNamesWithScope(this.props.collection, this.props.item)
     });
 
     if (this.props.scriptType) {
@@ -670,6 +684,7 @@ class CodeEditor extends React.Component {
       this._disableEnhancedFeatures();
       this.editor.off('beforeChange', this._onBeforeChange);
       this.editor.off('change', this._onEdit);
+      this.editor.off('contextmenu', this._onContextMenu);
 
       // Tear down the debounced fold-persistence listener. Cancel any pending
       // call so it can't fire after we've already snapshotted state above.

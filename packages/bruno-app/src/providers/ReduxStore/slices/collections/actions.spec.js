@@ -1,4 +1,8 @@
-import { newHttpRequest, tryResponseExample } from './actions';
+import { newHttpRequest, removeCollection, revealItemInSidebar, revealTabInSidebar, tryResponseExample } from './actions';
+import { SIDEBAR_REVEAL_STATUS } from 'utils/common/constants';
+import { configureStore } from '@reduxjs/toolkit';
+import tabsReducer from '../tabs';
+import { readPersistedSearchState, writePersistedSearchState } from 'components/CodeEditor/state-persistence';
 
 const mockUuid = jest.fn();
 
@@ -28,6 +32,45 @@ describe('collection actions', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    localStorage.clear();
+  });
+
+  it('clears closed collection search state after pending unmount writes and keeps other tabs', async () => {
+    const searchState = { visible: true, searchText: 'sensitive response value' };
+    writePersistedSearchState({ scope: 'closed-tab', key: 'response', state: searchState });
+    writePersistedSearchState({ scope: 'other-tab', key: 'response', state: searchState });
+
+    const store = configureStore({
+      reducer: {
+        tabs: tabsReducer,
+        collections: (state = { collections: [{ uid: 'closing', pathname: '/closing' }] }) => state,
+        workspaces: (state = { workspaces: [] }) => state
+      },
+      preloadedState: {
+        tabs: {
+          tabs: [
+            { uid: 'closed-tab', collectionUid: 'closing' },
+            { uid: 'other-tab', collectionUid: 'other' }
+          ],
+          activeTabUid: 'closed-tab',
+          recentlyClosedTabs: []
+        }
+      }
+    });
+    window.ipcRenderer.invoke.mockResolvedValue(['another-workspace']);
+
+    const unsubscribe = store.subscribe(() => {
+      if (store.getState().tabs.tabs.some((tab) => tab.uid === 'closed-tab')) return;
+      unsubscribe();
+      // Editors persist once more on unmount after the close dispatch.
+      queueMicrotask(() => writePersistedSearchState({ scope: 'closed-tab', key: 'response', state: searchState }));
+    });
+
+    await store.dispatch(removeCollection('closing'));
+
+    expect(store.getState().tabs.tabs.map((tab) => tab.uid)).toEqual(['other-tab']);
+    expect(readPersistedSearchState({ scope: 'closed-tab', key: 'response' })).toBeNull();
+    expect(readPersistedSearchState({ scope: 'other-tab', key: 'response' })).toEqual(searchState);
   });
 
   describe('newHttpRequest', () => {
@@ -96,6 +139,156 @@ describe('collection actions', () => {
           requestPaneTab: 'body'
         })
       });
+    });
+  });
+
+  const makeCollection = (overrides = {}) => ({
+    uid: 'collection-uid',
+    collapsed: true,
+    mountStatus: 'mounted',
+    isLoading: false,
+    items: [
+      {
+        uid: 'folder-a',
+        type: 'folder',
+        collapsed: true,
+        items: [
+          {
+            uid: 'folder-b',
+            type: 'folder',
+            collapsed: true,
+            items: [{ uid: 'deep-req', type: 'http-request', request: {}, collapsed: true }]
+          }
+        ]
+      }
+    ],
+    ...overrides
+  });
+
+  const makeGetState = (collection) => () => ({ collections: { collections: [collection] } });
+
+  describe('revealItemInSidebar', () => {
+    it('expands the collapsed collection and every ancestor folder, leaving the target alone', () => {
+      const dispatch = jest.fn();
+      const status = revealItemInSidebar({ collectionUid: 'collection-uid', itemUid: 'deep-req' })(
+        dispatch,
+        makeGetState(makeCollection())
+      );
+
+      expect(status).toBe(SIDEBAR_REVEAL_STATUS.REVEALED);
+      expect(dispatch.mock.calls.map(([action]) => action)).toEqual([
+        { type: 'collections/expandCollection', payload: 'collection-uid' },
+        { type: 'collections/expandItem', payload: { collectionUid: 'collection-uid', itemUid: 'folder-a' } },
+        { type: 'collections/expandItem', payload: { collectionUid: 'collection-uid', itemUid: 'folder-b' } }
+      ]);
+    });
+
+    it('does not dispatch for ancestors that are already expanded', () => {
+      const collection = makeCollection({ collapsed: false });
+      collection.items[0].collapsed = false;
+
+      const dispatch = jest.fn();
+      revealItemInSidebar({ collectionUid: 'collection-uid', itemUid: 'deep-req' })(
+        dispatch,
+        makeGetState(collection)
+      );
+
+      expect(dispatch.mock.calls.map(([action]) => action)).toEqual([
+        { type: 'collections/expandItem', payload: { collectionUid: 'collection-uid', itemUid: 'folder-b' } }
+      ]);
+    });
+
+    it('expands the target itself when expandTarget is set', () => {
+      const dispatch = jest.fn();
+      revealItemInSidebar({ collectionUid: 'collection-uid', itemUid: 'deep-req', expandTarget: true })(
+        dispatch,
+        makeGetState(makeCollection())
+      );
+
+      expect(dispatch).toHaveBeenCalledWith({
+        type: 'collections/expandItem',
+        payload: { collectionUid: 'collection-uid', itemUid: 'deep-req' }
+      });
+    });
+
+    it('leaves the sidebar untouched for a tab uid that is not a tree item', () => {
+      const dispatch = jest.fn();
+      const status = revealItemInSidebar({ collectionUid: 'collection-uid', itemUid: 'collection-uid' })(
+        dispatch,
+        makeGetState(makeCollection())
+      );
+
+      expect(status).toBe(SIDEBAR_REVEAL_STATUS.SKIPPED);
+      expect(dispatch).not.toHaveBeenCalled();
+    });
+
+    it('reports pending while the collection is still loading so the caller can retry', () => {
+      const dispatch = jest.fn();
+      const loading = revealItemInSidebar({ collectionUid: 'collection-uid', itemUid: 'not-yet-loaded' })(
+        dispatch,
+        makeGetState(makeCollection({ isLoading: true }))
+      );
+      const mounting = revealItemInSidebar({ collectionUid: 'collection-uid', itemUid: 'not-yet-loaded' })(
+        dispatch,
+        makeGetState(makeCollection({ mountStatus: 'mounting' }))
+      );
+
+      expect(loading).toBe(SIDEBAR_REVEAL_STATUS.PENDING);
+      expect(mounting).toBe(SIDEBAR_REVEAL_STATUS.PENDING);
+      expect(dispatch).not.toHaveBeenCalled();
+    });
+
+    it('skips an unknown collection', () => {
+      const dispatch = jest.fn();
+      const status = revealItemInSidebar({ collectionUid: 'missing', itemUid: 'deep-req' })(
+        dispatch,
+        makeGetState(makeCollection())
+      );
+
+      expect(status).toBe(SIDEBAR_REVEAL_STATUS.SKIPPED);
+      expect(dispatch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('revealTabInSidebar', () => {
+    const makeGetStateWithTabs = (collection, tabs) => () => ({
+      collections: { collections: [collection] },
+      tabs: { tabs }
+    });
+
+    it('reveals the item behind a request tab', () => {
+      const getState = makeGetStateWithTabs(makeCollection(), [
+        { uid: 'deep-req', collectionUid: 'collection-uid', type: 'http-request' }
+      ]);
+      const dispatch = jest.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
+
+      expect(revealTabInSidebar('deep-req')(dispatch, getState)).toBe(SIDEBAR_REVEAL_STATUS.REVEALED);
+      expect(dispatch).toHaveBeenCalledWith({
+        type: 'collections/expandItem',
+        payload: { collectionUid: 'collection-uid', itemUid: 'folder-a' }
+      });
+    });
+
+    it('reveals the parent request behind a response-example tab and expands it', () => {
+      const getState = makeGetStateWithTabs(makeCollection(), [
+        { uid: 'example-uid', collectionUid: 'collection-uid', type: 'response-example', itemUid: 'deep-req' }
+      ]);
+      const dispatch = jest.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
+
+      revealTabInSidebar('example-uid')(dispatch, getState);
+
+      expect(dispatch).toHaveBeenCalledWith({
+        type: 'collections/expandItem',
+        payload: { collectionUid: 'collection-uid', itemUid: 'deep-req' }
+      });
+    });
+
+    it('skips a tab that belongs to no collection', () => {
+      const getState = makeGetStateWithTabs(makeCollection(), [{ uid: 'workspace-overview', type: 'workspaceOverview' }]);
+      const dispatch = jest.fn();
+
+      expect(revealTabInSidebar('workspace-overview')(dispatch, getState)).toBe(SIDEBAR_REVEAL_STATUS.SKIPPED);
+      expect(dispatch).not.toHaveBeenCalled();
     });
   });
 
