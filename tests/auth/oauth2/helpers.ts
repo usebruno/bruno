@@ -3,9 +3,9 @@ import { test, expect, waitForReadyPage } from '../../../playwright';
 import { openRequest, selectRequestPaneTab, selectEnvironment } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
-export const COLLECTION = 'oauth2-state';
-export const KEYCLOAK_USER = 'testuser';
-export const KEYCLOAK_PASSWORD = 'testpassword';
+const COLLECTION = 'oauth2-state';
+const KEYCLOAK_USER = 'testuser';
+const KEYCLOAK_PASSWORD = 'testpassword';
 
 const loginFormActionRegex = /action="([^"]+login-actions\/authenticate[^"]*)"/;
 
