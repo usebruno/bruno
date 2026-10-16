@@ -23,7 +23,7 @@ router.post('/token', (req, res) => {
   if (!user) {
     return res.status(401).json({ error: 'Invalid user credentials' });
   }
-  var token = jwt.sign({ username, password }, 'bruno');
+  let token = jwt.sign({ username, password }, 'bruno');
   return res.json({ message: 'Authorization successful', access_token: token });
 });
 
@@ -31,7 +31,7 @@ router.post('/resource', (req, res) => {
   try {
     const tokenString = req.header('Authorization');
     const token = tokenString.split(' ')[1];
-    var decodedJwt = jwt.verify(token, 'bruno');
+    let decodedJwt = jwt.verify(token, 'bruno');
     const { username, password } = decodedJwt;
     const user = users.find((u) => u.username === username && u.password === password);
     if (!user) {
