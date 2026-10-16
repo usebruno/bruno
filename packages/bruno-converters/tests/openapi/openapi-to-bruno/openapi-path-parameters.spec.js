@@ -1383,6 +1383,54 @@ describe('openapi parameters that do not carry a usable value', () => {
   });
 });
 
+describe('openapi named parameter examples', () => {
+  const external = { externalValue: 'https://example.com/examples/roles.json' };
+  const importValues = (param, path) => importParamEntries(param, path).map((entry) => entry.value);
+
+  it('skips a named example that only points to an external value and uses the next one', () => {
+    const schema = { type: 'array', items: { type: 'string', enum: ['a', 'b', 'c'] }, default: ['a'] };
+    const examples = { remote: external, inline: { value: ['b', 'c'] } };
+    expect(importValues({ name: 'roles', in: 'query', schema, examples })).toEqual(['b', 'c']);
+  });
+
+  it('prefers a later named example over the schema example', () => {
+    const examples = { remote: external, inline: { value: 'active' } };
+    expect(importValues({ name: 'status', in: 'query', schema: { type: 'string', example: 'draft' }, examples })).toEqual(['active']);
+  });
+
+  it('switches on a parameter whose only usable value is a later named example', () => {
+    const examples = { remote: external, inline: { value: 'active' } };
+    const entries = importParamEntries({ name: 'status', in: 'query', schema: { type: 'string' }, examples });
+    expect(entries.map((entry) => [entry.value, entry.enabled])).toEqual([['active', true]]);
+  });
+
+  it('keeps using the first named example when it has a value', () => {
+    const examples = { first: { value: 'active' }, second: { value: 'archived' } };
+    expect(importValues({ name: 'status', in: 'query', schema: { type: 'string' }, examples })).toEqual(['active']);
+  });
+
+  it('skips a named example whose value is empty', () => {
+    const examples = { blank: { value: '' }, inline: { value: 'active' } };
+    expect(importValues({ name: 'status', in: 'query', schema: { type: 'string' }, examples })).toEqual(['active']);
+  });
+
+  it('skips a named example that is null', () => {
+    const examples = { broken: null, inline: { value: 'active' } };
+    expect(importValues({ name: 'status', in: 'query', schema: { type: 'string' }, examples })).toEqual(['active']);
+  });
+
+  it('reads dataValue, the OpenAPI 3.2 field for example data', () => {
+    const schema = { type: 'array', items: { type: 'string', enum: ['a', 'b', 'c'] } };
+    const examples = { picked: { dataValue: ['b', 'c'] } };
+    expect(importValues({ name: 'roles', in: 'query', schema, examples })).toEqual(['b', 'c']);
+  });
+
+  it('joins a dataValue array with commas for a path parameter', () => {
+    const param = { name: 'ids', in: 'path', required: true, schema: { type: 'array', items: { type: 'integer' } }, examples: { picked: { dataValue: [1, 2] } } };
+    expect(importValues(param, '/x/{ids}')).toEqual(['1,2']);
+  });
+});
+
 describe('openapi object parameters at the default styles', () => {
   const colour = { R: 100, G: 200, B: 150 };
   const declared = {

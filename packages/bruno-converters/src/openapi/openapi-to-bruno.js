@@ -93,13 +93,21 @@ const paramEntriesFromValue = (val, param) => {
   return value === '' ? null : [{ value, enabled: true }];
 };
 
+const namedExampleValue = (example) => {
+  if (!example || typeof example !== 'object') {
+    return undefined;
+  }
+
+  return example.dataValue !== undefined ? example.dataValue : example.value;
+};
+
 const declaredParamValues = (param) => {
   const schema = param.schema || {};
-  const firstNamedExample = param.examples ? Object.values(param.examples)[0] : undefined;
+  const namedExampleValues = Object.values(param.examples || {}).map(namedExampleValue);
 
   return [
     param.example,
-    firstNamedExample?.value,
+    ...namedExampleValues,
     schema.default,
     schema.example,
     Array.isArray(schema.examples) ? schema.examples[0] : undefined
