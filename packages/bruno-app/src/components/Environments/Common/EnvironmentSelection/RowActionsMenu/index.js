@@ -21,7 +21,7 @@ const RowActionsMenu = ({ onExport, onRename, onDuplicate, onDelete, onSelectAll
 
   return (
     <div
-      style={{ display: 'contents' }}
+      className="contents"
       onClick={(e) => e.stopPropagation()}
       onContextMenu={(e) => e.stopPropagation()}
     >

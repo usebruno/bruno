@@ -14,7 +14,11 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType, p
   const dispatch = useDispatch();
 
   // empty or missing list means no preselection, so everything starts selected.
-  const [preselectedUids] = useState(() => (preselectedEnvironmentUids?.length ? new Set(preselectedEnvironmentUids) : null));
+  const preselectedKey = preselectedEnvironmentUids?.length ? preselectedEnvironmentUids.join(',') : '';
+  const preselectedUids = useMemo(
+    () => (preselectedKey ? new Set(preselectedKey.split(',')) : null),
+    [preselectedKey]
+  );
 
   // With a preselection, list only those environments and the ones they inherit from.
   const visibleEnvironments = useMemo(() => {

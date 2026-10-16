@@ -15,12 +15,11 @@ const useEnvironmentActions = ({
   const [isRowMenuOpen, setIsRowMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
 
-  const targetEnvUidSet = useMemo(() => new Set(targetEnvUids), [targetEnvUids]);
-
-  const targetEnvironments = useMemo(
-    () => environments?.filter((env) => targetEnvUidSet.has(env.uid)) || [],
-    [environments, targetEnvUidSet]
-  );
+  const targetEnvironments = useMemo(() => {
+    if (!environments?.length || !targetEnvUids.length) return [];
+    const targetEnvUidSet = new Set(targetEnvUids);
+    return environments.filter((env) => targetEnvUidSet.has(env.uid));
+  }, [environments, targetEnvUids]);
 
   const isMenuOpen = isContextMenuOpen || isRowMenuOpen;
   const isModalOpen = isDeleteModalOpen || isExportModalOpen || isCopyModalOpen;
