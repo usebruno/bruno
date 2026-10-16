@@ -4,36 +4,80 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 # Bruno UI
 
-The design-system primitives for `bruno-app`, under `src/ui`. Build in isolation
-here, see every state at once, and check appearance across all Bruno themes via the
-**Theme** picker in the toolbar.
+The design-system primitives for `bruno-app`, in `src/ui`. Build them in isolation here,
+see every state at once, and check them against all 13 Bruno themes using the **Theme**
+picker in the toolbar.
+
+```bash
+cd packages/bruno-app && npm run storybook   # http://localhost:6006
+```
+
+## What's here
+
+- `Button` — filled / outline / ghost, five sizes
+- `Input` — single-line text control, with `Field` for the label and helper line
+- `SegmentedControl` — segmented selector built on radios
+
+Other primitives live in `src/ui` without a story yet — read their source until
+they get one.
 
 ## Using a component
 
-Import from the `ui` barrel:
-
 ```jsx
-import { Button, RadioGroup, SegmentedControl } from 'ui';
+import { Field, Input } from 'ui';
 
-<SegmentedControl
-  value={value}
-  onChange={setValue}
-  ariaLabel="Request type"
-  items={[{ value: 'http', label: 'HTTP' }, { value: 'graphql', label: 'GraphQL' }]}
-/>
+<Field label="Collection name" error={touched.name && errors.name}>
+  <Input value={name} onChange={(e) => setName(e.target.value)} />
+</Field>
 ```
 
-Prefer the barrel over deep paths, and don't reach into a component's internals.
+Prefer the barrel over deep paths, and don't reach into a component's internals. Most
+existing code still imports deep paths (`ui/Button`) — either resolves, so don't churn
+files just to switch.
 
 ## Conventions
 
-- **Controlled** components take `value` + `onChange(value, event)`.
-- Components **forward `ref`** and pass through extra props (`...rest`, `data-*`).
-- Every interactive primitive accepts a `dataTestId`.
-- Group primitives (`RadioGroup`, `SegmentedControl`) always need an accessible name
-  (`label` / `ariaLabel` / `ariaLabelledBy`) — they warn in development otherwise.
-- Colors/spacing come from the **theme** (styled-components `props.theme`), not hardcoded values.
+- **Controlled.** Components own no copy of their value. Wrappers around a native
+  element forward the DOM event (`onChange(event)`); composite controls that have no
+  single native element pass the value first (`onChange(value, event)`).
+- **Refs are forwarded** to the element a caller would expect to focus or measure.
+- **Extra props pass through** via `...rest`, so any native attribute keeps working
+  without a component change.
+- **`data-testid`** is a named prop with a per-component default.
+- **Styling** lives in a sibling `StyledWrapper.js`, driven by `$`-prefixed transient
+  props. Colours come from the theme; Tailwind classes are for layout only, never colour.
+- **Accessible names** are required where they can't be derived — `SegmentedControl`
+  warns in development if it has neither `ariaLabel` nor `ariaLabelledBy`.
 
-See **Foundations → Tokens** for the theme's colors, typography, radii, and shadows,
-and each component's **Docs** tab for its full API. More detail lives in
-`packages/bruno-app/storybook/README.md`.
+## Theming
+
+Every colour, radius, spacing and font size comes from `props.theme`. There are 13
+themes (5 light, 8 dark) and a primitive has to hold up in all of them, so check the
+toolbar picker before calling a component done.
+
+Two things worth knowing before you reach for a literal:
+
+- **Never hardcode a colour.** The two monochrome themes have no red at all —
+  `status.danger` is a grey there, deliberately. A hardcoded red breaks their premise.
+- **Adding a token is expensive.** `themes/schema/oss.js` sets
+  `additionalProperties: false`, so a new key must be declared there *and* supplied in
+  every theme that needs it. A theme that fails validation is silently swapped for the
+  default, so prefer an existing token, or branch on `theme.mode`.
+
+## Adding a primitive
+
+1. Build it under `src/ui/<Name>/` as `index.js` plus `StyledWrapper.js`.
+2. Add `<Name>.stories.jsx` — title `Components/<Name>`, `autodocs`, `argTypes`, an
+   explicit `docs.description.component`, and a story per meaningful state. The global
+   decorator already supplies the theme, so don't add a `ThemeProvider`.
+3. Add `<Name>.spec.jsx` with React Testing Library, then export from `src/ui/index.js`.
+
+`SegmentedControl` and `Input` are the closest things to a reference implementation.
+Full detail lives in `packages/bruno-app/storybook/README.md`.
+
+**Testing gotcha:** there is no shared `renderWithTheme`, so a spec builds its own
+minimal theme object. Any token a `StyledWrapper` hands to a `polished` function must be
+a real colour string in that stub, or the test throws rather than rendering oddly.
+
+See the **Design System** section for the theme's colours, typography, radii and
+shadows, and each component's **Docs** tab for its full API.
