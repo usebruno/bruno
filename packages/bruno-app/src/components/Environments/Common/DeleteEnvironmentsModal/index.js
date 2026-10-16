@@ -32,8 +32,12 @@ const DELETE_ENVIRONMENT_TYPE_CONFIG = {
 /**
  * Confirmation modal for deleting one or more environments.
  *
- * @param {'collection'|'global'} environmentType
- * @param {(env: object) => Promise} onDeleteEnvironment - deletes a single environment. reject to mark it failed
+ * @param {Object} props
+ * @param {'collection'|'global'} props.environmentType
+ * @param {Object[]} props.environments
+ * @param {string} [props.activeEnvironmentUid]
+ * @param {(env: Object) => Promise} props.onDeleteEnvironment
+ * @param {() => void} props.onClose
  */
 const DeleteEnvironmentsModal = ({
   environmentType,
