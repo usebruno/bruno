@@ -6,7 +6,6 @@ const StyledWrapper = styled.span`
 
   .invalid-files-count {
     border-radius: 9999px;
-    cursor: default;
   }
 `;
 
