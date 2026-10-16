@@ -1,11 +1,4 @@
-// To test the OAuth2 state validation locally, start a Keycloak instance
-// with the fixture realm imported with the following command:
-//
-//   docker run -d --name bruno-keycloak -p 8090:8080 \
-//     -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
-//     -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
-//     -v "$PWD/tests/auth/oauth2/fixtures/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro" \
-//     quay.io/keycloak/keycloak:26.0 start-dev --http-port=8080 --import-realm
+// Requires a local Keycloak instance; see ./README.md for setup.
 
 import { test, expect } from '../../../playwright';
 import { buildCommonLocators } from '../../utils/page/locators';
