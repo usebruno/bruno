@@ -17,7 +17,8 @@ import {
   getCollectionVersion,
   isCollectionItemCollapsed,
   getVariableNamesWithScope,
-  getWorkspaceCollections
+  getWorkspaceCollections,
+  getTreePathFromCollectionToItem
 } from './index';
 import * as platformUtils from 'utils/common/platform';
 
@@ -1087,5 +1088,42 @@ describe('getWorkspaceCollections', () => {
 
       expect(listFor()).toEqual([]);
     });
+  });
+});
+
+describe('getTreePathFromCollectionToItem', () => {
+  const collection = {
+    uid: 'col',
+    items: [
+      { uid: 'root-req', type: 'http-request' },
+      {
+        uid: 'folder-a',
+        type: 'folder',
+        items: [
+          { uid: 'nested-req', type: 'http-request' },
+          { uid: 'folder-b', type: 'folder', items: [{ uid: 'deep-req', type: 'http-request' }] }
+        ]
+      }
+    ]
+  };
+
+  it('returns the root-first ancestor chain ending with the item', () => {
+    const path = getTreePathFromCollectionToItem(collection, { uid: 'deep-req' });
+    expect(path.map((node) => node.uid)).toEqual(['folder-a', 'folder-b', 'deep-req']);
+  });
+
+  it('returns a single entry for a root-level item', () => {
+    expect(getTreePathFromCollectionToItem(collection, { uid: 'root-req' }).map((n) => n.uid)).toEqual(['root-req']);
+  });
+
+  it('returns live item objects from the collection, not the argument', () => {
+    const [folderA] = getTreePathFromCollectionToItem(collection, { uid: 'nested-req' });
+    expect(folderA).toBe(collection.items[1]);
+  });
+
+  it('returns an empty path for an unknown item, a missing uid, or an empty collection', () => {
+    expect(getTreePathFromCollectionToItem(collection, { uid: 'nope' })).toEqual([]);
+    expect(getTreePathFromCollectionToItem(collection, {})).toEqual([]);
+    expect(getTreePathFromCollectionToItem({ uid: 'empty' }, { uid: 'deep-req' })).toEqual([]);
   });
 });
