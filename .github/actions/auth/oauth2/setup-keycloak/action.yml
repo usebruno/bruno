@@ -1,0 +1,38 @@
+name: 'Setup Keycloak'
+description: 'Provision Keycloak (download + realm import prep) for the OAuth2 e2e tests on Linux, macOS and Windows'
+
+inputs:
+  keycloak-version:
+    description: 'Keycloak release to download'
+    required: false
+    default: '26.3.3'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Java 21 (Temurin)
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '21'
+    # NOTE: On Windows, GitHub Actions terminates child process tree when the step completes.
+    # So keycloak is started in the same step where tests are ran.
+    - name: Download and prepare Keycloak
+      shell: bash
+      working-directory: ${{ runner.temp }}
+      env:
+        KEYCLOAK_VERSION: ${{ inputs.keycloak-version }}
+      run: |
+        set -euo pipefail
+
+        curl -fsSL -o keycloak.tar.gz \
+          "https://github.com/keycloak/keycloak/releases/download/${KEYCLOAK_VERSION}/keycloak-${KEYCLOAK_VERSION}.tar.gz"
+        tar -xzf keycloak.tar.gz
+        KC_HOME="${RUNNER_TEMP}/keycloak-${KEYCLOAK_VERSION}"
+
+        mkdir -p "${KC_HOME}/data/import"
+        cp "${GITHUB_WORKSPACE}/tests/auth/oauth2/fixtures/keycloak/realm-export.json" \
+          "${KC_HOME}/data/import/realm-export.json"
+
+        echo "KC_HOME=${KC_HOME}" >> "${GITHUB_ENV}"
+        echo "Keycloak prepared at ${KC_HOME}"
