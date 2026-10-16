@@ -15,6 +15,7 @@ import { createDescriptionColumn } from 'components/EditableTable/descriptionCol
 import StyledWrapper from './StyledWrapper';
 import { variableNameRegex } from 'utils/common/regex';
 import { getAllVariables } from 'utils/collections';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 import { findUsedVarsRowUids, plainVariableUsageWarning } from 'utils/sensitive-fields';
 
 const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, isDraft }) => {
@@ -107,6 +108,7 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, isDraft
               collection={collection}
               item={item}
               placeholder={value == null || (typeof value === 'string' && value.trim() === '') ? (varType === 'request' ? 'Value' : 'Expr') : ''}
+              variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
             />
           )}
           renderTypeSelector={!isLastEmptyRow && varType === 'request'

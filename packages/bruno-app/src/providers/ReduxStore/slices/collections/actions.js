@@ -2326,12 +2326,33 @@ const executeVariableUpdate = (dispatch, action, successMessage) => {
  * @returns {{ variable: Object|undefined, updatedVariables: Array }} `variable` is the pre-existing
  *   entry that was updated, or undefined when a new one was appended instead.
  */
-const resolveOrCreateEnabledVariable = (variables, variableName, newValue, secret) => {
+const withDataType = (variable, dataType) => {
+  const next = { ...variable };
+
+  if (dataType === undefined) {
+    return next;
+  }
+
+  if (dataType === 'string') {
+    delete next.dataType;
+  } else {
+    next.dataType = dataType;
+  }
+
+  return next;
+};
+
+const resolveOrCreateEnabledVariable = (variables, variableName, newValue, secret, dataType) => {
   const variable = resolveEnabledVariable(variables, variableName);
-  const newVariable = { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true, secret: !!secret };
+  const newVariable = withDataType(
+    { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true, secret: !!secret },
+    dataType
+  );
 
   const updatedVariables = variable
-    ? variables.map((v) => (v.uid === variable.uid ? { ...v, value: newValue } : v))
+    ? variables.map((v) =>
+        v.uid === variable.uid ? withDataType({ ...v, value: newValue, secret: v.secret || !!secret }, dataType) : v
+      )
     : [...(variables || []), newVariable];
 
   return { variable, updatedVariables };
@@ -2479,7 +2500,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Environment not found'));
           }
 
-          const { variable, updatedVariables } = resolveOrCreateEnabledVariable(environment.variables, variableName, newValue, data.secret);
+          const { variable, updatedVariables } = resolveOrCreateEnabledVariable(environment.variables, variableName, newValue, data.secret, data.dataType);
 
           // not pre-resolving a secret-name collision here
           // saveEnvironment's writesCollidingSecrets guard rejects it instead.
@@ -2499,14 +2520,14 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             dispatch(updateCollectionVar({
               collectionUid,
               type: 'request',
-              var: { ...variable, value: newValue }
+              var: withDataType({ ...variable, value: newValue }, data.dataType)
             }));
           } else {
             // Create new variable in draft with actual values
             dispatch(addCollectionVar({
               collectionUid,
               type: 'request',
-              var: { name: variableName, value: newValue, enabled: true }
+              var: withDataType({ name: variableName, value: newValue, enabled: true }, data.dataType)
             }));
           }
 
@@ -2525,7 +2546,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
               collectionUid,
               folderUid: folder.uid,
               type: 'request',
-              var: { ...variable, value: newValue }
+              var: withDataType({ ...variable, value: newValue }, data.dataType)
             }));
           } else {
             // Create new variable in draft with actual values
@@ -2533,7 +2554,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
               collectionUid,
               folderUid: folder.uid,
               type: 'request',
-              var: { name: variableName, value: newValue, enabled: true }
+              var: withDataType({ name: variableName, value: newValue, enabled: true }, data.dataType)
             }));
           }
 
@@ -2552,7 +2573,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
               collectionUid,
               itemUid: item.uid,
               type: 'request',
-              var: { ...variable, value: newValue }
+              var: withDataType({ ...variable, value: newValue }, data.dataType)
             }));
           } else {
             // Create new variable in draft with actual values
@@ -2560,7 +2581,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
               collectionUid,
               itemUid: item.uid,
               type: 'request',
-              var: { name: variableName, value: newValue, local: false, enabled: true }
+              var: withDataType({ name: variableName, value: newValue, local: false, enabled: true }, data.dataType)
             }));
           }
 
@@ -2584,7 +2605,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Global environment not found'));
           }
 
-          const { variable, updatedVariables } = resolveOrCreateEnabledVariable(environment.variables, variableName, newValue, data.secret);
+          const { variable, updatedVariables } = resolveOrCreateEnabledVariable(environment.variables, variableName, newValue, data.secret, data.dataType);
 
           // Deliberately not pre-resolving a secret-name collision here.
           // saveEnvironment's writesCollidingSecrets guard rejects it instead

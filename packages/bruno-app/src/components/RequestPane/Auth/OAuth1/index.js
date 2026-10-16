@@ -339,7 +339,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
       {/* Advanced Section (collapsible) */}
       <button
         type="button"
-        className="flex items-center gap-2.5 mt-2 cursor-pointer select-none auth-advanced-toggle"
+        className="flex items-center gap-2.5 mt-2 cursor-pointer select-none auth-section-toggle"
         onClick={() => setAdvancedOpen(!advancedOpen)}
         aria-expanded={advancedOpen}
       >
