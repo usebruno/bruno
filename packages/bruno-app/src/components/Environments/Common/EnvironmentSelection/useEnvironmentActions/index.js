@@ -28,7 +28,6 @@ const useEnvironmentActions = ({
     setIsContextMenuOpen(false);
   }, []);
 
-  // The row menu targets its own row.
   const handleRowMenuOpenChange = useCallback((env, open) => {
     setIsRowMenuOpen(open);
     if (open) setTargetEnvUids([env.uid]);
