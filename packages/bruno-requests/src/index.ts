@@ -35,3 +35,5 @@ export {
   completeHop,
   measureResponseTime
 } from './network';
+
+export * as http2 from './http2';

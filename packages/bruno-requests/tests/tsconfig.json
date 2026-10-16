@@ -1,0 +1,12 @@
+{
+  // Type-checking config for the tests directory (IDE + `tsc -p tests`). It is NOT used by the
+  // rollup build, which only sees ../tsconfig.json (include: src/**) — so test code and fixtures
+  // never reach dist/ or the published tarball.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "noEmit": true,
+    "types": ["jest", "node"]
+  },
+  "include": ["./**/*.ts"]
+}

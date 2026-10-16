@@ -33,6 +33,7 @@
     "google-protobuf": "^4.0.0",
     "grpc-js-reflection-client": "^1.3.0",
     "http-proxy-agent": "~7.0.2",
+    "http2-wrapper": "~2.2.1",
     "https-proxy-agent": "~7.0.6",
     "is-ip": "^5.0.1",
     "shell-env": "^4.0.1",
