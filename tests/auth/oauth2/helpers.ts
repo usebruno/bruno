@@ -19,23 +19,6 @@ export const stubOpenExternal = (app: ElectronApplication) =>
     };
   });
 
-/**
- * Wrap the real `second-instance` listener so callback URLs are recorded when Bruno
- * receives them — same argv path as `getAppProtocolUrlFromArgv` in index.js.
- */
-export const installCallbackCapture = (app: ElectronApplication) => {
-  return app.evaluate(({ app: electronApp }) => {
-    (globalThis as any).__brunoCapturedCallbackUrl = null;
-
-    electronApp.prependListener('second-instance', (_event, commandLine) => {
-      const url = commandLine?.find((arg: string) => arg?.startsWith('bruno://'));
-      if (url) {
-        (globalThis as any).__brunoCapturedCallbackUrl = url;
-      }
-    });
-  });
-};
-
 export const clickGetAccessToken = async (page: Parameters<typeof openRequest>[0], requestName: string) => {
   await openRequest(page, COLLECTION, requestName);
   await selectEnvironment(page, 'Local', 'collection');
@@ -59,7 +42,6 @@ export const startOAuth2Flow = async (
 
   // Fake opening the browser so we can read the login URL.
   await stubOpenExternal(app);
-  await installCallbackCapture(app);
 
   await clickGetAccessToken(page, requestName);
   await waitForAuthorizationStarted(app);
@@ -119,26 +101,12 @@ export const fireDeepLinkCallback = (app: ElectronApplication, url: string) =>
     electronApp.emit('second-instance', {}, [callbackUrl]);
   }, url);
 
-export const getCapturedCallbackUrl = (app: ElectronApplication): Promise<string | null> =>
-  app.evaluate(() => (globalThis as any).__brunoCapturedCallbackUrl ?? null);
-
-export type CallbackStyle = 'query' | 'hash';
-
-export const getCallbackParams = (callbackUrl: string, style: CallbackStyle = 'query') => {
-  const url = new URL(callbackUrl);
-  if (style === 'hash') {
-    const hashParams = new URLSearchParams(url.hash.slice(1));
-    return {
-      state: hashParams.get('state'),
-      code: null,
-      access_token: hashParams.get('access_token')
-    };
-  }
-  return {
-    state: url.searchParams.get('state'),
-    code: url.searchParams.get('code'),
-    access_token: null
-  };
+/** Expand the Access Token section of the token viewer and return the stored token. */
+export const readFetchedAccessToken = async (page: Parameters<typeof openRequest>[0]) => {
+  const { tokenSection, tokenValue } = buildCommonLocators(page).auth.oauth2;
+  await expect(tokenSection('Access Token')).toBeVisible({ timeout: 15_000 });
+  await tokenSection('Access Token').click();
+  return tokenValue('Access Token').textContent();
 };
 
 const STATE_MISMATCH_ERROR
