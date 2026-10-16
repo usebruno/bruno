@@ -22,7 +22,8 @@ import {
   selectRequestPaneTab,
   setEnvironmentVariableValue
 } from '../../utils/page';
-import { addVarsRow, setApiKeyValue } from '../../utils/request';
+import { setApiKeyValue } from '../../utils/request';
+import { addVarsRow } from '../../utils/request/vars';
 import { readFileIfExists } from '../../utils/helpers';
 
 const API_KEY_FIELD = 'apikey-value';

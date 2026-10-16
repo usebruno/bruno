@@ -7,9 +7,11 @@ import {
   isItemARequest
 } from './collections';
 
-export const PLAINTEXT_SENSITIVE_WARNING = 'Store sensitive info as a secret variable or in a .env file';
-export const ENVIRONMENT_SENSITIVE_WARNING = 'Mark the environment variable as secret for better security';
-export const ENVIRONMENT_USAGE_WARNING = 'This variable is used in sensitive fields. Add it as a secret for security';
+export const SENSITIVE_FIELD_WARNING = {
+  USED_AS_PLAIN_TEXT: 'Store sensitive info as a secret variable or in a .env file',
+  MARK_AS_SECRET: 'Mark the environment variable as secret for better security',
+  USED_IN_SENSITIVE_FIELD: 'This variable is used in sensitive fields. Add it as a secret for security'
+};
 
 export const plainVariableUsageWarning = (variableName) => (
   `"${variableName}" is used in a sensitive field and is stored in plain text. Move it to an environment as a secret.`
@@ -148,14 +150,14 @@ export const classifySensitiveValue = (value, context = {}) => {
     }
 
     if (resolved.type === 'environment' || resolved.type === 'global') {
-      return createWarning(resolved.type, variableName, ENVIRONMENT_SENSITIVE_WARNING);
+      return createWarning(resolved.type, variableName, SENSITIVE_FIELD_WARNING.MARK_AS_SECRET);
     }
 
     return createWarning(resolved.type, variableName, scopedSensitiveWarning(variableName, resolved.type));
   }
 
   if (variableNames.length === 0 || hasPlaintextOutsideVariables(value)) {
-    return createWarning('plaintext', null, PLAINTEXT_SENSITIVE_WARNING);
+    return createWarning('plaintext', null, SENSITIVE_FIELD_WARNING.USED_AS_PLAIN_TEXT);
   }
 
   return getNoWarning();

@@ -1,16 +1,15 @@
 import {
   classifySensitiveValue,
-  ENVIRONMENT_SENSITIVE_WARNING,
   extractSensitiveVarNames,
   findUsedEnvironmentVariableUids,
   findUsedGlobalEnvironmentVariableUids,
   findOverridingVariableScope,
   findUsedVarsRowUids,
-  PLAINTEXT_SENSITIVE_WARNING,
   removeUnknownVariableBraces,
   replaceVariableReferences,
   resolveSensitiveVariable,
-  scopedSensitiveWarning
+  scopedSensitiveWarning,
+  SENSITIVE_FIELD_WARNING
 } from './sensitive-fields';
 
 const secret = (name, value = '') => ({ name, value, enabled: true, secret: true });
@@ -74,7 +73,7 @@ describe('classifySensitiveValue', () => {
   it('warns when the field contains a plain value', () => {
     expect(classifySensitiveValue('abc123')).toEqual({
       showWarning: true,
-      warningMessage: PLAINTEXT_SENSITIVE_WARNING,
+      warningMessage: SENSITIVE_FIELD_WARNING.USED_AS_PLAIN_TEXT,
       scope: 'plaintext',
       variableName: null
     });
@@ -101,7 +100,7 @@ describe('classifySensitiveValue', () => {
 
     expect(classifySensitiveValue('Bearer {{token}}', { collection, item: request })).toEqual({
       showWarning: true,
-      warningMessage: PLAINTEXT_SENSITIVE_WARNING,
+      warningMessage: SENSITIVE_FIELD_WARNING.USED_AS_PLAIN_TEXT,
       scope: 'plaintext',
       variableName: null
     });
@@ -120,7 +119,7 @@ describe('classifySensitiveValue', () => {
 
     expect(classifySensitiveValue('Bearer {{token}}', { collection, item: request })).toEqual({
       showWarning: true,
-      warningMessage: ENVIRONMENT_SENSITIVE_WARNING,
+      warningMessage: SENSITIVE_FIELD_WARNING.MARK_AS_SECRET,
       scope: 'environment',
       variableName: 'token'
     });
@@ -261,7 +260,7 @@ describe('classifySensitiveValue', () => {
 
     expect(classifySensitiveValue('{{token}}', { collection })).toEqual({
       showWarning: true,
-      warningMessage: ENVIRONMENT_SENSITIVE_WARNING,
+      warningMessage: SENSITIVE_FIELD_WARNING.MARK_AS_SECRET,
       scope: 'global',
       variableName: 'token'
     });

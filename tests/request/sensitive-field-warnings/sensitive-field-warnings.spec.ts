@@ -16,7 +16,8 @@ import {
   selectRequestPaneTab,
   writeFieldValue
 } from '../../utils/page';
-import { addVarsRow, setApiKeyValue } from '../../utils/request';
+import { setApiKeyValue } from '../../utils/request';
+import { addVarsRow } from '../../utils/request/vars';
 
 const PLAINTEXT_WARNING = 'Store sensitive info as a secret variable or in a .env file';
 const ENVIRONMENT_FIELD_WARNING = 'Mark the environment variable as secret for better security';

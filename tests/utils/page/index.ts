@@ -11,6 +11,7 @@ export * from './sidebar';
 export * from './git/clone-git-repository';
 export * from './mounting';
 export * from './collection/migrate-to-yml';
+export * from './collection/proxy';
 export * from './preferences';
 export * from './ai';
 export * from './mock-server';
