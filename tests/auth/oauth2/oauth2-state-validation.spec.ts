@@ -1,7 +1,6 @@
 // Requires a local Keycloak instance; see ./README.md for setup.
 
 import { test, expect } from '../../../playwright';
-import { buildCommonLocators } from '../../utils/page/locators';
 import {
   startOAuth2Flow,
   getCapturedAuthUrl,
@@ -9,7 +8,8 @@ import {
   loginToKeycloakForAuthCode,
   fireDeepLinkCallback,
   getCapturedCallbackUrl,
-  getCallbackParams
+  getCallbackParams,
+  expectStateMismatchWithoutToken
 } from './helpers';
 
 const KEYCLOAK_BASE_URL = 'http://127.0.0.1:8090';
@@ -20,8 +20,6 @@ const PROVIDER_ACCESS_TOKEN = 'provider-access-token';
 const WRONG_STATE = 'not-the-issued-state';
 // Bruno issues crypto.randomBytes(16).toString('hex') when no user state is configured.
 const GENERATED_STATE_PATTERN = /^[0-9a-f]{32}$/;
-const STATE_MISMATCH_ERROR
-  = 'OAuth2 state mismatch: the returned state does not match the issued state.';
 
 test.beforeAll(async () => {
   const response = await fetch(`${KEYCLOAK_BASE_URL}/realms/${KEYCLOAK_REALM}/.well-known/openid-configuration`);
@@ -118,11 +116,7 @@ test.describe('OAuth2 callback state validation', () => {
       expect(code).toBe(PROVIDER_AUTH_CODE);
     });
 
-    await test.step('Check for mismatch error in the response pane', async () => {
-      await expect(
-        buildCommonLocators(page).response.pane().getByText(STATE_MISMATCH_ERROR)
-      ).toBeVisible({ timeout: 15_000 });
-    });
+    await expectStateMismatchWithoutToken(page);
   });
 
   test('implicit grant: (user-supplied state): issues userState accepts matching callback', async ({ restartApp }) => {
@@ -197,10 +191,6 @@ test.describe('OAuth2 callback state validation', () => {
       expect(access_token).toBe(PROVIDER_ACCESS_TOKEN);
     });
 
-    await test.step('surface a state mismatch error', async () => {
-      await expect(
-        buildCommonLocators(page).response.pane().getByText(STATE_MISMATCH_ERROR)
-      ).toBeVisible({ timeout: 15_000 });
-    });
+    await expectStateMismatchWithoutToken(page);
   });
 });
