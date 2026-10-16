@@ -25,7 +25,7 @@ const SCENARIOS = [
   { name: 'S4 Warm + Warm, Mounted', mount: true }
 ];
 
-const collectionDirsFor = (sizeKb: number) => {
+const collectionSetFor = (sizeKb: number) => {
   const setDir = path.join(COLLECTIONS_ROOT, `LC-10-${sizeKb}KB`);
   if (!fs.existsSync(setDir)) {
     throw new Error(`Collection set not found: ${setDir}. These sets are git-ignored; copy collections/LC-10-${sizeKb}KB from the machine that has them, or point BENCH_COLLECTIONS_DIR at them.`);
@@ -36,7 +36,7 @@ const collectionDirsFor = (sizeKb: number) => {
   if (!dirs.length) {
     throw new Error(`Collection set is empty: ${setDir}`);
   }
-  return dirs;
+  return { setDir, count: dirs.length };
 };
 
 const writePreferences = (userDataPath: string) => {
@@ -70,7 +70,7 @@ test.describe('Benchmark: Sidebar Search', () => {
     test(`sidebar search on ${sizeKb}KB collections`, async ({ launchElectronApp, createTmpDir }) => {
       test.setTimeout(120 * 60_000);
 
-      const collectionDirs = collectionDirsFor(sizeKb);
+      const collectionSet = collectionSetFor(sizeKb);
       const userDataPath = await createTmpDir(`sidebar-search-${sizeKb}KB`);
       writePreferences(userDataPath);
 
@@ -86,9 +86,9 @@ test.describe('Benchmark: Sidebar Search', () => {
           const app = await launchElectronApp({ userDataPath });
           try {
             const page = await waitForReadyPage(app, { timeout: 90_000 });
-            const imported = await importCollections(app, page, collectionDirs);
+            const imported = await importCollections(app, page, collectionSet.setDir, collectionSet.count);
             if (imported) {
-              console.log(`[BENCHMARK] ${sizeKb}KB ${scenario.name}: imported ${imported} collections through the Open collection dialog`);
+              console.log(`[BENCHMARK] ${sizeKb}KB ${scenario.name}: imported ${imported} collections with Open collection, Select All, Open`);
             }
             await installProbes(page);
             await page.waitForTimeout(800);

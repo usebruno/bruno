@@ -1,4 +1,5 @@
-import { type ElectronApplication, type Page } from '@playwright/test';
+import { expect, type ElectronApplication, type Page } from '@playwright/test';
+import { buildCommonLocators } from '../../utils/page';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
@@ -8,7 +9,8 @@ const INDEXING_TIMEOUT_MS = 40 * 60_000;
 const MOUNT_TIMEOUT_MS = 10 * 60_000;
 const FIRST_RESULT_TIMEOUT_MS = 10 * 60_000;
 const PERSISTED_COLLECTIONS_TIMEOUT_MS = 5_000;
-const IMPORTED_COLLECTIONS_TIMEOUT_MS = 60_000;
+const IMPORTED_COLLECTIONS_TIMEOUT_MS = 5 * 60_000;
+const SCAN_TIMEOUT_MS = 5 * 60_000;
 const UI_ACTION_TIMEOUT_MS = 60_000;
 const SIDEBAR_COMPONENT = path.join(process.cwd(), 'packages', 'bruno-app', 'src', 'components', 'Sidebar', 'Collections', 'index.js');
 
@@ -31,35 +33,36 @@ export const assertSearchTimingsAreRendered = () => {
   }
 };
 
-const listedCollectionNames = (page: Page) => page.locator('#sidebar-collection-name').allTextContents().then((names) => names.map((name) => name.trim()));
+const listedCollectionCount = (page: Page) => page.locator('#sidebar-collection-name').count();
 
 const waitForListedCollections = (page: Page, expected: number, timeout: number) => page
   .waitForFunction((count) => document.querySelectorAll('#sidebar-collection-name').length >= count, expected, { timeout, polling: 250 })
   .then(() => true, () => false);
 
-const addCollectionThroughDialog = async (app: ElectronApplication, page: Page, dir: string) => {
-  await app.evaluate(({ dialog }, { dir: pickedDir }) => {
-    dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [pickedDir] });
-  }, { dir });
-  await page.getByTestId('collections-header-add-menu').click({ timeout: UI_ACTION_TIMEOUT_MS });
-  await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click({ timeout: UI_ACTION_TIMEOUT_MS });
-  await page.locator('#sidebar-collection-name').filter({ hasText: path.basename(dir) }).waitFor({ state: 'visible', timeout: UI_ACTION_TIMEOUT_MS });
-};
+export const importCollections = async (app: ElectronApplication, page: Page, collectionSetDir: string, expectedCount: number) => {
+  if (await waitForListedCollections(page, expectedCount, PERSISTED_COLLECTIONS_TIMEOUT_MS)) return 0;
 
-export const importCollections = async (app: ElectronApplication, page: Page, collectionDirs: string[]) => {
-  if (await waitForListedCollections(page, collectionDirs.length, PERSISTED_COLLECTIONS_TIMEOUT_MS)) return 0;
+  const locators = buildCommonLocators(page);
+  await app.evaluate(({ dialog }, { dir }) => {
+    dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
+  }, { dir: collectionSetDir });
 
-  const listed = new Set(await listedCollectionNames(page));
-  const missing = collectionDirs.filter((dir) => !listed.has(path.basename(dir)));
-  for (const dir of missing) {
-    await addCollectionThroughDialog(app, page, dir);
+  await locators.plusMenu.button().click({ timeout: UI_ACTION_TIMEOUT_MS });
+  await locators.plusMenu.openCollection().click({ timeout: UI_ACTION_TIMEOUT_MS });
+
+  const modal = locators.modal.byTitle('Open Collection');
+  await modal.waitFor({ state: 'visible', timeout: SCAN_TIMEOUT_MS });
+  await expect(locators.openCollectionPicker.count()).not.toHaveText('0', { timeout: SCAN_TIMEOUT_MS });
+  const found = Number(await locators.openCollectionPicker.count().textContent());
+
+  await locators.openCollectionPicker.selectAllToggle().click({ timeout: UI_ACTION_TIMEOUT_MS });
+  await expect(locators.modal.footer()).toContainText(`${found} of ${found} selected`, { timeout: UI_ACTION_TIMEOUT_MS });
+  await locators.modal.button('Open').click({ timeout: UI_ACTION_TIMEOUT_MS });
+
+  if (!(await waitForListedCollections(page, expectedCount, IMPORTED_COLLECTIONS_TIMEOUT_MS))) {
+    throw new Error(`Expected ${expectedCount} collections in the sidebar after Select All and Open but found ${await listedCollectionCount(page)}`);
   }
-
-  if (!(await waitForListedCollections(page, collectionDirs.length, IMPORTED_COLLECTIONS_TIMEOUT_MS))) {
-    const names = await listedCollectionNames(page);
-    throw new Error(`Expected ${collectionDirs.length} collections in the sidebar after importing but found ${names.length} (${names.join(', ') || 'none'})`);
-  }
-  return missing.length;
+  return found;
 };
 
 export const installProbes = async (page: Page) => {
