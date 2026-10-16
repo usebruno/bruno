@@ -23,7 +23,7 @@ export const clickGetAccessToken = async (page: Parameters<typeof openRequest>[0
   await openRequest(page, COLLECTION, requestName);
   await selectEnvironment(page, 'Local', 'collection');
   await selectRequestPaneTab(page, 'Auth');
-  await page.getByRole('button', { name: 'Get Access Token' }).click();
+  await buildCommonLocators(page).auth.oauth2.getAccessTokenBtn().click();
 };
 
 export const getCapturedAuthUrl = (app: ElectronApplication): Promise<string | null> =>
