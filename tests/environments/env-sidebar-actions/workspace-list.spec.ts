@@ -27,20 +27,23 @@ test.describe('Workspace environments list', () => {
   });
 
   test.describe('multi-select', () => {
-    test('Cmd/Ctrl-click adds the open environment to the selection, then toggles rows', async ({ page }) => {
+    test('Cmd/Ctrl-click toggles rows in the selection without selecting the open environment', async ({ page }) => {
       const { selectedRowNames } = buildCommonLocators(page).environment.workspaceSidebarActions;
 
       await ctrlClickRows(page, [ENV_3], 'global');
-      await expect(selectedRowNames()).toHaveText([ENV_1, ENV_3]);
+      await expect(selectedRowNames()).toHaveText([ENV_3]);
+
+      await ctrlClickRows(page, [ENV_4], 'global');
+      await expect(selectedRowNames()).toHaveText([ENV_3, ENV_4]);
 
       await ctrlClickRows(page, [ENV_3], 'global');
-      await expect(selectedRowNames()).toHaveText([ENV_1]);
+      await expect(selectedRowNames()).toHaveText([ENV_4]);
     });
 
     test('a click on the empty space below the rows clears the selection', async ({ page }) => {
       const { selectedRows } = buildCommonLocators(page).environment.workspaceSidebarActions;
 
-      await ctrlClickRows(page, [ENV_3], 'global');
+      await ctrlClickRows(page, [ENV_1, ENV_3], 'global');
       await expect(selectedRows()).toHaveCount(2);
 
       await clickEmptyListSpace(page, 'global');
@@ -60,7 +63,7 @@ test.describe('Workspace environments list', () => {
       const { rowNames, searchInput, selectedRowNames, contextMenuItem, deleteModal }
         = buildCommonLocators(page).environment.workspaceSidebarActions;
 
-      await ctrlClickRows(page, [ENV_2, ENV_3], 'global');
+      await ctrlClickRows(page, [ENV_1, ENV_2, ENV_3], 'global');
       await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2, ENV_3]);
 
       await test.step('Searching hides Env 1 and Env 2, so only Env 3 counts as selected', async () => {
@@ -232,8 +235,7 @@ test.describe('Workspace environments list', () => {
       const { contextMenuItem, deleteModal, rowNames } = environment.workspaceSidebarActions;
 
       await test.step('Select Env 2, Env 3 and Env 4', async () => {
-        await environment.sidebarListItemExact('global', ENV_2).click();
-        await ctrlClickRows(page, [ENV_3, ENV_4], 'global');
+        await ctrlClickRows(page, [ENV_2, ENV_3, ENV_4], 'global');
       });
 
       await openRowContextMenu(page, ENV_3, 'global');
@@ -284,7 +286,7 @@ test.describe('Workspace environments list', () => {
       });
 
       await test.step('With Env 2 and Env 3 selected, the delete modal opens', async () => {
-        await ctrlClickRows(page, [ENV_3], 'global');
+        await ctrlClickRows(page, [ENV_2, ENV_3], 'global');
         await page.keyboard.press(DELETE_KEY);
 
         await expect(deleteModal.confirm()).toHaveText('Delete (2)');
@@ -301,7 +303,7 @@ test.describe('Workspace environments list', () => {
     test('the delete key with the context menu open deletes the right-clicked environment, not the selection', async ({ page }) => {
       const { selectedRowNames, deleteModal, rowNames } = buildCommonLocators(page).environment.workspaceSidebarActions;
 
-      await ctrlClickRows(page, [ENV_2], 'global');
+      await ctrlClickRows(page, [ENV_1, ENV_2], 'global');
       await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2]);
 
       await openRowContextMenu(page, ENV_4, 'global');
@@ -318,8 +320,7 @@ test.describe('Workspace environments list', () => {
       const { environment } = buildCommonLocators(page);
       const { selectedRows } = environment.workspaceSidebarActions;
 
-      await environment.sidebarListItemExact('global', ENV_2).click();
-      await ctrlClickRows(page, [ENV_3], 'global');
+      await ctrlClickRows(page, [ENV_2, ENV_3], 'global');
       await expect(selectedRows()).toHaveCount(2);
 
       await page.keyboard.press('Escape');

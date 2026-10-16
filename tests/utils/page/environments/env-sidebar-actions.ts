@@ -76,7 +76,7 @@ export const buildEnvSidebarActionsLocators = (page: Page, scope: EnvironmentSco
 };
 
 /**
- * Cmd/Ctrl-click each row in turn. The first click also selects the environment that is open in the editor.
+ * Cmd/Ctrl-click each row in turn. Only the clicked rows are selected, not the environment that is open in the editor.
  */
 export const ctrlClickRows = async (page: Page, names: string[], scope: EnvironmentScope = 'collection') => {
   const { row } = buildEnvSidebarActionsLocators(page, scope);

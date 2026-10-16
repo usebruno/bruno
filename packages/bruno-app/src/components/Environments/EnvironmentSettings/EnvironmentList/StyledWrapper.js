@@ -269,6 +269,7 @@ const StyledWrapper = styled.div`
       border: none;
       font-family: inherit;
       text-align: left;
+      color: ${(props) => props.theme.primary.text};
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
 
       .create-from-search-label {

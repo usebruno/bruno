@@ -21,23 +21,23 @@ test.describe('Collection environments sidebar menu multi-select', () => {
     await closeAllCollections(page);
   });
 
-  test('Cmd/Ctrl-click adds the open environment to the selection', async ({ page }) => {
+  test('Cmd/Ctrl-click toggles rows in the selection without selecting the open environment', async ({ page }) => {
     const { environment } = buildCommonLocators(page);
     const { selectedRowNames } = environment.sidebarActions;
 
-    await test.step('First Cmd/Ctrl-click selects the open environment and the clicked one', async () => {
+    await test.step('First Cmd/Ctrl-click selects only the clicked row', async () => {
       await environment.sidebarListItemExact('collection', ENV_3).click({ modifiers: [SELECT_MODIFIER] });
-      await expect(selectedRowNames()).toHaveText([ENV_1, ENV_3]);
-    });
-
-    await test.step('Cmd/Ctrl-click on a selected row removes it', async () => {
-      await environment.sidebarListItemExact('collection', ENV_3).click({ modifiers: [SELECT_MODIFIER] });
-      await expect(selectedRowNames()).toHaveText([ENV_1]);
+      await expect(selectedRowNames()).toHaveText([ENV_3]);
     });
 
     await test.step('Cmd/Ctrl-click on another row adds it', async () => {
       await environment.sidebarListItemExact('collection', ENV_4).click({ modifiers: [SELECT_MODIFIER] });
-      await expect(selectedRowNames()).toHaveText([ENV_1, ENV_4]);
+      await expect(selectedRowNames()).toHaveText([ENV_3, ENV_4]);
+    });
+
+    await test.step('Cmd/Ctrl-click on a selected row removes it', async () => {
+      await environment.sidebarListItemExact('collection', ENV_3).click({ modifiers: [SELECT_MODIFIER] });
+      await expect(selectedRowNames()).toHaveText([ENV_4]);
     });
   });
 
@@ -56,14 +56,14 @@ test.describe('Collection environments sidebar menu multi-select', () => {
     await environment.sidebarListItemExact('collection', ENV_2).click({ modifiers: [SELECT_MODIFIER] });
     await environment.sidebarListItemExact('collection', ENV_4).click({ modifiers: ['Shift'] });
 
-    await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2, ENV_3, ENV_4]);
+    await expect(selectedRowNames()).toHaveText([ENV_2, ENV_3, ENV_4]);
   });
 
   test('a plain click clears the selection and opens the clicked environment', async ({ page }) => {
     const { environment } = buildCommonLocators(page);
     const { selectedRows } = environment.sidebarActions;
 
-    await environment.sidebarListItemExact('collection', ENV_3).click({ modifiers: [SELECT_MODIFIER] });
+    await ctrlClickRows(page, [ENV_1, ENV_3]);
     await expect(selectedRows()).toHaveCount(2);
 
     await environment.sidebarListItemExact('collection', ENV_4).click();
@@ -76,7 +76,7 @@ test.describe('Collection environments sidebar menu multi-select', () => {
   test('a click on the empty space below the rows clears the selection', async ({ page }) => {
     const { selectedRows } = buildCommonLocators(page).environment.sidebarActions;
 
-    await ctrlClickRows(page, [ENV_3]);
+    await ctrlClickRows(page, [ENV_1, ENV_3]);
     await expect(selectedRows()).toHaveCount(2);
 
     await clickEmptyListSpace(page);
@@ -99,7 +99,7 @@ test.describe('Collection environments sidebar menu multi-select', () => {
 
     await expect(rowMenuButton(ENV_2)).toHaveCount(1);
 
-    await environment.sidebarListItemExact('collection', ENV_3).click({ modifiers: [SELECT_MODIFIER] });
+    await ctrlClickRows(page, [ENV_1, ENV_3]);
 
     // Env 1 and Env 3 are selected, so no menu.
     await expect(rowMenuButton(ENV_1)).toHaveCount(0);
@@ -133,7 +133,7 @@ test.describe('Collection environments sidebar menu multi-select', () => {
     const { environment } = buildCommonLocators(page);
     const { rowNames, searchInput, selectedRowNames, contextMenuItem, deleteModal } = environment.sidebarActions;
 
-    await ctrlClickRows(page, [ENV_2, ENV_3]);
+    await ctrlClickRows(page, [ENV_1, ENV_2, ENV_3]);
     await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2, ENV_3]);
 
     await test.step('Searching hides Env 1 and Env 2, so only Env 3 counts as selected', async () => {
@@ -160,7 +160,7 @@ test.describe('Collection environments sidebar menu multi-select', () => {
     const { environment } = buildCommonLocators(page);
     const { rowNames, searchInput, selectedRowNames, rowMenuButton, rowMenuItem } = environment.sidebarActions;
 
-    await ctrlClickRows(page, [ENV_2]);
+    await ctrlClickRows(page, [ENV_1, ENV_2]);
     await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2]);
 
     await test.step('Select all adds the visible Env 4 and keeps the hidden selection', async () => {

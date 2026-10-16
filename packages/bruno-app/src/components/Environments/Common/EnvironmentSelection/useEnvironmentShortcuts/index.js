@@ -5,8 +5,7 @@ const isTextField = (el) => el?.tagName === 'INPUT' || el?.tagName === 'TEXTAREA
 
 /**
  * Keyboard shortcuts for the environments list. They are active only while focus is inside the
- * element that `scopeRef` points to, or while one of the list's menus is open (its portal sits outside
- * the list). Modals block them, and an open menu keeps Escape for itself.
+ * element that `scopeRef` points to, or while one of the list's menus is open.
  */
 const useEnvironmentShortcuts = ({
   scopeRef,

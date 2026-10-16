@@ -97,7 +97,7 @@ test.describe('Collection environments list shortcuts', () => {
     });
 
     await test.step('With Env 2 and Env 3 selected, the delete modal opens', async () => {
-      await ctrlClickRows(page, [ENV_3]);
+      await ctrlClickRows(page, [ENV_2, ENV_3]);
       await page.keyboard.press(DELETE_KEY);
 
       await expect(deleteModal.confirm()).toHaveText('Delete (2)');
@@ -115,7 +115,7 @@ test.describe('Collection environments list shortcuts', () => {
     const { environment } = buildCommonLocators(page);
     const { deleteModal, rowNames, selectedRowNames } = environment.sidebarActions;
 
-    await ctrlClickRows(page, [ENV_2]);
+    await ctrlClickRows(page, [ENV_1, ENV_2]);
     await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2]);
 
     await openRowContextMenu(page, ENV_4);
@@ -132,7 +132,7 @@ test.describe('Collection environments list shortcuts', () => {
     const { environment } = buildCommonLocators(page);
     const { deleteModal, rowMenuButton, rowNames, selectedRowNames } = environment.sidebarActions;
 
-    await ctrlClickRows(page, [ENV_2]);
+    await ctrlClickRows(page, [ENV_1, ENV_2]);
     await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2]);
 
     await rowMenuButton(ENV_4).click();
@@ -149,8 +149,7 @@ test.describe('Collection environments list shortcuts', () => {
     const { environment } = buildCommonLocators(page);
     const { deleteModal, selectedRowNames } = environment.sidebarActions;
 
-    await environment.sidebarListItemExact('collection', ENV_2).click();
-    await ctrlClickRows(page, [ENV_3]);
+    await ctrlClickRows(page, [ENV_2, ENV_3]);
     await page.keyboard.press(DELETE_KEY);
     await expect(deleteModal.root()).toBeVisible();
 
@@ -166,8 +165,7 @@ test.describe('Collection environments list shortcuts', () => {
     const { environment } = buildCommonLocators(page);
     const { selectedRows } = environment.sidebarActions;
 
-    await environment.sidebarListItemExact('collection', ENV_2).click();
-    await ctrlClickRows(page, [ENV_3]);
+    await ctrlClickRows(page, [ENV_2, ENV_3]);
     await expect(selectedRows()).toHaveCount(2);
 
     await page.keyboard.press('Escape');
@@ -203,8 +201,7 @@ test.describe('Collection environments list shortcuts', () => {
     const { environment } = buildCommonLocators(page);
     const { deleteModal, selectedRows } = environment.sidebarActions;
 
-    await environment.sidebarListItemExact('collection', ENV_2).click();
-    await ctrlClickRows(page, [ENV_3]);
+    await ctrlClickRows(page, [ENV_2, ENV_3]);
     await page.keyboard.press(DELETE_KEY);
     await expect(deleteModal.root()).toBeVisible();
 
@@ -218,8 +215,7 @@ test.describe('Collection environments list shortcuts', () => {
     const { environment } = buildCommonLocators(page);
     const { contextMenu, selectedRows } = environment.sidebarActions;
 
-    await environment.sidebarListItemExact('collection', ENV_2).click();
-    await ctrlClickRows(page, [ENV_3]);
+    await ctrlClickRows(page, [ENV_2, ENV_3]);
     await openRowContextMenu(page, ENV_3);
 
     await page.keyboard.press('Escape');

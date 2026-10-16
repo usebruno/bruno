@@ -10,14 +10,22 @@ const DELETE_ENVIRONMENT_TYPE_CONFIG = {
   collection: {
     testIdPrefix: 'delete-environments',
     scopeLabel: 'collection',
-    getDescription: (isSingle) =>
-      `This permanently deletes the environment ${isSingle ? 'file' : 'files'} from disk. This cannot be undone.`
+    getDescription: (environments) =>
+      environments.length === 1 ? (
+        <>This permanently deletes <span className="env-name">{environments[0].name}</span> and its file from disk. This cannot be undone.</>
+      ) : (
+        'This permanently deletes the environment files from disk. This cannot be undone.'
+      )
   },
   global: {
     testIdPrefix: 'delete-global-environments',
     scopeLabel: 'workspace',
-    getDescription: (isSingle) =>
-      `This permanently deletes the environment${isSingle ? '' : 's'} from this workspace. This cannot be undone.`
+    getDescription: (environments) =>
+      environments.length === 1 ? (
+        <>This permanently deletes <span className="env-name">{environments[0].name}</span> from this workspace. This cannot be undone.</>
+      ) : (
+        'This permanently deletes the environments from this workspace. This cannot be undone.'
+      )
   }
 };
 
@@ -80,7 +88,7 @@ const DeleteEnvironmentsModal = ({
           confirmDisabled={isDeleting}
           dataTestId={`${testIdPrefix}-modal`}
         >
-          <p>{getDescription(isSingleEnv)}</p>
+          <p>{getDescription(environments)}</p>
 
           {activeEnv && (
             <div className="env-delete-warning" data-testid={`${testIdPrefix}-active-warning`}>

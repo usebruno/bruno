@@ -1,6 +1,11 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  .env-name {
+    font-weight: 500;
+    word-break: break-word;
+  }
+
   .env-delete-warning {
     display: flex;
     align-items: flex-start;

@@ -12,9 +12,7 @@ const useEnvironmentListSelection = ({
 
   const filteredEnvUids = useMemo(() => filteredEnvironments.map((env) => env.uid), [filteredEnvironments]);
 
-  // Only visible environments count as selected: rows hidden by the search (or removed elsewhere) are ignored,
-  // so actions never touch what the user can't see. Hidden rows stay selected underneath and come back when the
-  // search is cleared.
+  // Only visible environments count as selected. rows hidden by the search are ignored,
   const validSelectedEnvUids = useMemo(
     () => selectedEnvUids.filter((uid) => filteredEnvUids.includes(uid)),
     [selectedEnvUids, filteredEnvUids]
@@ -67,7 +65,6 @@ const useEnvironmentListSelection = ({
     });
   }, [lastClickedEnvUid, activeEnvUid, filteredEnvUids]);
 
-  // Toggles the visible environments only; a selection hidden by the search is kept as it is.
   const selectAllEnvs = useCallback(() => {
     if (isAllSelected) {
       setSelectedEnvUids((prev) => prev.filter((uid) => !filteredEnvUids.includes(uid)));
@@ -84,13 +81,7 @@ const useEnvironmentListSelection = ({
     const isSelectionModifierPressed = isMacOS() ? e.metaKey : e.ctrlKey;
 
     if (isSelectionModifierPressed) {
-      // Seed the selection with the environment that's currently open, so a
-      // Cmd/Ctrl-click elsewhere builds a multi-selection that includes it
-      if (!hasSelection && activeEnvUid && activeEnvUid !== env.uid) {
-        setSelectedEnvUids([activeEnvUid, env.uid]);
-      } else {
-        toggleEnvSelection(env.uid);
-      }
+      toggleEnvSelection(env.uid);
       setLastClickedEnvUid(env.uid);
       return;
     }
@@ -107,10 +98,9 @@ const useEnvironmentListSelection = ({
     }
 
     onOpenEnvironment(env);
-  }, [toggleEnvSelection, selectEnvRange, hasSelection, selectedEnvUids, activeEnvUid, clearSelection, onOpenEnvironment]);
+  }, [toggleEnvSelection, selectEnvRange, selectedEnvUids, clearSelection, onOpenEnvironment]);
 
-  // A click on the empty space around the rows clears the selection. Clicks on a row, button or input are
-  // left alone, and so are clicks that reach us through a portal (like a row menu), whose DOM is elsewhere.
+  // A click on the empty space around the rows clears the selection.
   const handleBackgroundClick = useCallback((e) => {
     if (!e.currentTarget.contains(e.target)) return;
     if (e.target.closest('[role="option"], button, input')) return;

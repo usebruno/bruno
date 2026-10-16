@@ -37,7 +37,7 @@ test.describe('Collection environments context menu', () => {
   test('right-clicking a multi-selection hides Rename and Duplicate and counts the selection', async ({ page }) => {
     const { contextMenuItem } = buildCommonLocators(page).environment.sidebarActions;
 
-    await ctrlClickRows(page, [ENV_3]);
+    await ctrlClickRows(page, [ENV_1, ENV_3]);
     await openRowContextMenu(page, ENV_3);
 
     await expect(contextMenuItem('export')).toBeVisible();
@@ -50,7 +50,7 @@ test.describe('Collection environments context menu', () => {
   test('right-clicking a row outside the selection targets only that row', async ({ page }) => {
     const { contextMenuItem, selectedRows } = buildCommonLocators(page).environment.sidebarActions;
 
-    await ctrlClickRows(page, [ENV_2]);
+    await ctrlClickRows(page, [ENV_1, ENV_2]);
     await expect(selectedRows()).toHaveCount(2);
 
     await openRowContextMenu(page, ENV_4);
@@ -85,8 +85,7 @@ test.describe('Collection environments context menu', () => {
     const { contextMenuItem, deleteModal, rowNames } = environment.sidebarActions;
 
     await test.step('Select Env 2, Env 3 and Env 4', async () => {
-      await environment.sidebarListItemExact('collection', ENV_2).click();
-      await ctrlClickRows(page, [ENV_3, ENV_4]);
+      await ctrlClickRows(page, [ENV_2, ENV_3, ENV_4]);
     });
 
     await openRowContextMenu(page, ENV_3);
@@ -102,7 +101,7 @@ test.describe('Collection environments context menu', () => {
   test('Export opens the export modal with every selected environment', async ({ page }) => {
     const { exportModal, sidebarActions } = buildCommonLocators(page).environment;
 
-    await ctrlClickRows(page, [ENV_3]);
+    await ctrlClickRows(page, [ENV_1, ENV_3]);
     await openRowContextMenu(page, ENV_3);
     await sidebarActions.contextMenuItem('export').click();
 
@@ -120,7 +119,7 @@ test.describe('Collection environments context menu', () => {
   test('Rename clears the selection and edits the right-clicked environment', async ({ page }) => {
     const { contextMenuItem, selectedRows, rowRenameInput } = buildCommonLocators(page).environment.sidebarActions;
 
-    await ctrlClickRows(page, [ENV_3]);
+    await ctrlClickRows(page, [ENV_1, ENV_3]);
     await expect(selectedRows()).toHaveCount(2);
 
     await openRowContextMenu(page, ENV_2);
