@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import Tippy from '@tippyjs/react';
 import toast from 'react-hot-toast';
@@ -9,6 +9,7 @@ import {
   removeVariableFromScope,
   saveScopeOwner
 } from 'providers/ReduxStore/slices/collections/actions';
+import useCloseOnEscape from 'hooks/useCloseOnEscape';
 import { getActiveEnvironmentUidForScope } from 'utils/collections';
 import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 import { findOverridingVariableScope, replaceVariableReferences, resolveFieldScope, resolveSensitiveVariable } from 'utils/sensitive-fields';
@@ -50,7 +51,10 @@ const findMovedVariable = ({ collection, item, variableName, variableUid, value 
     return { uid: variableUid, value, ownerUid: item?.uid };
   }
   const resolved = resolveSensitiveVariable(variableName, { collection, item });
-  return { uid: resolved?.variable.uid, value: resolved?.variable.value, ownerUid: resolved?.owner?.uid };
+  if (!resolved) {
+    return null;
+  }
+  return { uid: resolved.variable.uid, value: resolved.variable.value, ownerUid: resolved.owner?.uid };
 };
 
 /** The environment row that "Mark as secret" updates. Inherited rows point to their base environment. */
@@ -107,18 +111,7 @@ const SensitiveFieldWarning = ({
     setForm(null);
   };
 
-  // Listens on document so Esc works even when focus is outside the popover.
-  useEffect(() => {
-    if (!isPinned && !form) return;
-    const handleEscape = (event) => {
-      if (event.key === 'Escape') {
-        event.stopPropagation();
-        close();
-      }
-    };
-    document.addEventListener('keydown', handleEscape, true);
-    return () => document.removeEventListener('keydown', handleEscape, true);
-  }, [isPinned, form]);
+  useCloseOnEscape(close, isPinned || !!form);
 
   const handleMouseEnter = () => {
     clearTimeout(closeTimerRef.current);
@@ -149,6 +142,11 @@ const SensitiveFieldWarning = ({
     }
     if (MOVE_SCOPES.includes(scope)) {
       const moved = findMovedVariable({ collection, item, variableName, variableUid, value });
+      if (!moved) {
+        close();
+        toast.error(`"${variableName}" was not found`);
+        return;
+      }
       setForm({ name: variableName, value: moved.value, movedVariable: moved });
       return;
     }

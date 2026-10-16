@@ -1,14 +1,13 @@
 import React, { useRef, useState } from 'react';
 import { useSelector, useStore } from 'react-redux';
-import find from 'lodash/find';
 import TextInput from 'ui/TextInput';
 import MaskedInput from 'ui/MaskedInput';
 import useOnClickOutside from 'hooks/useOnClickOutside';
-import { findEnvironmentInCollection, getAvailableAddToScopes } from 'utils/collections';
-import { INVALID_VARIABLE_NAME_ERROR, variableNameRegex } from 'utils/common/regex';
+import { variableNameRegex } from 'utils/common/regex';
+import { INVALID_VARIABLE_NAME_ERROR } from 'utils/common/variables';
 import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 import { replaceVariableReferences } from 'utils/sensitive-fields';
-import { createEnvironmentForScope } from 'utils/variables';
+import { buildAddToScopes, createEnvironmentForScope } from 'utils/variables';
 import EnvironmentTargetOption from './EnvironmentTargetOption';
 import StyledWrapper from './StyledWrapper';
 
@@ -43,17 +42,12 @@ const SecretVariableForm = ({ collection, sourceLabel, defaultName, defaultValue
   const formRef = useRef(null);
   const store = useStore();
 
-  const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
-  const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
+  const collections = useSelector((state) => state.collections.collections);
+  const globalEnvironments = useSelector((state) => state.globalEnvironments);
 
-  const activeEnvironment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
-  const activeGlobalEnvironment = find(globalEnvironments, (environment) => environment.uid === activeGlobalEnvironmentUid);
-
-  const targets = getAvailableAddToScopes({
-    activeEnvironmentUid: activeEnvironment?.uid,
-    activeEnvironmentName: activeEnvironment?.name,
-    activeGlobalEnvironmentUid: activeGlobalEnvironment?.uid,
-    activeGlobalEnvironmentName: activeGlobalEnvironment?.name
+  const targets = buildAddToScopes({
+    state: { collections: { collections }, globalEnvironments },
+    collection
   }).filter(isEnvironmentTarget);
 
   /** Saves on outside click or Enter. Without a selected environment it only closes. */

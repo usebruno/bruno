@@ -7,6 +7,7 @@ import {
   findOverridingVariableScope,
   findUsedVarsRowUids,
   PLAINTEXT_SENSITIVE_WARNING,
+  removeUnknownVariableBraces,
   replaceVariableReferences,
   resolveSensitiveVariable,
   scopedSensitiveWarning
@@ -741,6 +742,25 @@ describe('replaceVariableReferences', () => {
   it('renames one variable and keeps the others', () => {
     const rename = (name, match) => (name === 'token' ? '{{tokenSecret}}' : match);
     expect(replaceVariableReferences('Bearer {{token}} {{other}}', rename)).toBe('Bearer {{tokenSecret}} {{other}}');
+  });
+});
+
+describe('removeUnknownVariableBraces', () => {
+  const collection = buildCollection({
+    environments: [environment('env-dev', 'Dev', [plain('prefix', 'sk_live_')])],
+    activeEnvironmentUid: 'env-dev'
+  });
+
+  it('keeps the braces around a variable that exists', () => {
+    expect(removeUnknownVariableBraces('{{prefix}}abc12', { collection })).toBe('{{prefix}}abc12');
+  });
+
+  it('removes the braces around a variable that does not exist', () => {
+    expect(removeUnknownVariableBraces('{{missing}}abc12', { collection })).toBe('missingabc12');
+  });
+
+  it('keeps the braces around a known mock variable', () => {
+    expect(removeUnknownVariableBraces('{{$randomUUID}}', { collection })).toBe('{{$randomUUID}}');
   });
 });
 

@@ -2,7 +2,8 @@ import React, { useCallback, useRef, useMemo, useEffect, useState } from 'react'
 import { useTheme } from 'providers/Theme';
 import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
-import { INVALID_VARIABLE_NAME_ERROR, variableNameRegex } from 'utils/common/regex';
+import { variableNameRegex } from 'utils/common/regex';
+import { INVALID_VARIABLE_NAME_ERROR } from 'utils/common/variables';
 import toast from 'react-hot-toast';
 import useDeferredLoading from 'hooks/useDeferredLoading';
 

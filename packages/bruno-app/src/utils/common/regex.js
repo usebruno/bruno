@@ -3,7 +3,6 @@
 export { sanitizeName, validateName, validateNameError } from '@usebruno/common/utils';
 
 export const variableNameRegex = /^[\w-.]*$/;
-export const INVALID_VARIABLE_NAME_ERROR = 'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.';
 
 // HTTP header name should not contain spaces, newlines, or control characters
 export const headerNameRegex = /^[^\s\r\n]*$/;

@@ -70,6 +70,35 @@ const createStore = ({ envVars = [], environmentsDraft = null, globalVars = [], 
   });
 };
 
+const makeRequest = (vars) => ({
+  uid: 'req-1',
+  type: 'http-request',
+  name: 'login',
+  pathname: '/collections/col-1/login.yml',
+  request: {
+    method: 'GET',
+    url: 'https://example.com',
+    params: [],
+    headers: [],
+    body: { mode: 'none' },
+    auth: { mode: 'none' },
+    vars: { req: vars, res: [] },
+    script: {},
+    assertions: [],
+    tests: '',
+    docs: ''
+  }
+});
+
+const makeFolder = (vars) => ({
+  uid: 'folder-1',
+  type: 'folder',
+  name: 'auth',
+  pathname: '/collections/col-1/auth',
+  root: { request: { vars: { req: vars, res: [] } } },
+  items: []
+});
+
 const getCollection = (store) => store.getState().collections.collections[0];
 const getEnvironment = (store) => getCollection(store).environments[0];
 const getGlobalEnvironment = (store) => store.getState().globalEnvironments.globalEnvironments[0];
@@ -198,6 +227,23 @@ describe('markEnvironmentVariableAsSecret', () => {
     expect(getCollection(store).environmentsDraft).toBeNull();
   });
 
+  it('marks the row as secret in the active global environment', async () => {
+    const store = createStore({ globalVars: [makeVar('region', 'us'), makeVar('token', 'abc')] });
+
+    await store.dispatch(markEnvironmentVariableAsSecret({
+      collectionUid: COLLECTION_UID,
+      environmentScope: 'global',
+      environmentUid: GLOBAL_ENV_UID,
+      variableUid: 'uid-token'
+    }));
+
+    expect(getGlobalEnvironment(store).variables).toEqual([
+      makeVar('region', 'us'),
+      makeVar('token', 'abc', { secret: true })
+    ]);
+    expect(invoke).toHaveBeenCalledWith('renderer:save-global-environment', expect.anything());
+  });
+
   it('rejects when the row is not in the environment', async () => {
     const store = createStore({ envVars: [makeVar('host', 'localhost')] });
 
@@ -222,5 +268,36 @@ describe('removeVariableFromScope', () => {
 
     expect(getCollection(store).root.request.vars.req).toEqual([]);
     expect(invoke).toHaveBeenCalledWith('renderer:save-collection-root', expect.anything(), expect.anything(), undefined);
+  });
+
+  it('removes a request variable and saves the request', async () => {
+    const store = createStore({ items: [makeRequest([makeVar('requestToken', 'r1'), makeVar('host', 'localhost')])] });
+
+    await store.dispatch(removeVariableFromScope({
+      collectionUid: COLLECTION_UID,
+      scope: 'request',
+      ownerUid: 'req-1',
+      variableUid: 'uid-requestToken'
+    }));
+
+    const request = getCollection(store).items[0];
+    expect(request.request.vars.req).toEqual([makeVar('host', 'localhost')]);
+    expect(request.draft).toBeNull();
+    expect(invoke).toHaveBeenCalledWith('renderer:save-request', '/collections/col-1/login.yml', expect.anything(), undefined);
+  });
+
+  it('removes a folder variable and saves the folder', async () => {
+    const store = createStore({ items: [makeFolder([makeVar('folderToken', 'f1'), makeVar('host', 'localhost')])] });
+
+    await store.dispatch(removeVariableFromScope({
+      collectionUid: COLLECTION_UID,
+      scope: 'folder',
+      ownerUid: 'folder-1',
+      variableUid: 'uid-folderToken'
+    }));
+
+    const folder = getCollection(store).items[0];
+    expect(folder.root.request.vars.req).toEqual([makeVar('host', 'localhost')]);
+    expect(invoke).toHaveBeenCalledWith('renderer:save-folder-root', expect.objectContaining({ folderPathname: '/collections/col-1/auth' }));
   });
 });

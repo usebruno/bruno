@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
-import { IconDatabase, IconWorld } from '@tabler/icons';
-import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+import { SCOPE_ICON } from 'utils/codemirror/scopeIcons';
 import StyledWrapper from './StyledWrapper';
-
-const TARGET_ICONS = {
-  [VARIABLE_ADD_SCOPES.GLOBAL]: IconWorld,
-  [VARIABLE_ADD_SCOPES.ENVIRONMENT]: IconDatabase
-};
 
 /** One "Save to" row. Without an active environment it shows "Create One" instead. */
 const EnvironmentTargetOption = ({ target, isSelected, onSelect, onCreate }) => {
@@ -14,7 +8,6 @@ const EnvironmentTargetOption = ({ target, isSelected, onSelect, onCreate }) => 
   const [environmentName, setEnvironmentName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  const Icon = TARGET_ICONS[target.type];
 
   const createEnvironment = () => {
     if (isSubmitting) return;
@@ -34,9 +27,10 @@ const EnvironmentTargetOption = ({ target, isSelected, onSelect, onCreate }) => 
   };
 
   const targetIcon = (
-    <span className={`target-icon target-icon-${target.type} ${target.enabled ? '' : 'target-icon-muted'}`}>
-      <Icon size={12} strokeWidth={1.75} />
-    </span>
+    <span
+      className={`target-icon target-icon-${target.type} ${target.enabled ? '' : 'target-icon-muted'}`}
+      dangerouslySetInnerHTML={{ __html: SCOPE_ICON[target.type] }}
+    />
   );
 
   if (target.enabled) {
@@ -87,7 +81,12 @@ const EnvironmentTargetOption = ({ target, isSelected, onSelect, onCreate }) => 
       ) : (
         <span className="target-note" data-testid={`secret-variable-no-env-${target.type}`}>
           No {target.label} selected.{' '}
-          <button type="button" className="create-environment-link" onClick={() => setIsCreating(true)}>
+          <button
+            type="button"
+            className="create-environment-link"
+            data-testid={`secret-variable-create-env-link-${target.type}`}
+            onClick={() => setIsCreating(true)}
+          >
             Create One
           </button>
         </span>
