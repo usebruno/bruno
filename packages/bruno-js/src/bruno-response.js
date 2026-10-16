@@ -11,37 +11,43 @@ class BrunoResponse {
     this.res = res;
     /**
      * The HTTP status code.
-     * @type {number}
+     * @type {number | null}
+     * @readonly
      * @category Status
      */
     this.status = res ? res.status : null;
     /**
      * The HTTP status text, such as `'OK'`.
-     * @type {string}
+     * @type {string | null}
+     * @readonly
      * @category Status
      */
     this.statusText = res ? res.statusText : null;
     /**
      * The response headers, as an object keyed by lowercase name.
-     * @type {Record<string, any>}
+     * @type {Record<string, any> | null}
+     * @readonly
      * @category Headers
      */
     this.headers = res ? res.headers : null;
     /**
      * The response body. A JSON body is parsed.
      * @type {any}
+     * @readonly
      * @category Body
      */
     this.body = res ? res.data : null;
     /**
      * How long the response took, in milliseconds.
-     * @type {number}
+     * @type {number | null}
+     * @readonly
      * @category Timing & size
      */
     this.responseTime = res ? res.responseTime : null;
     /**
      * The URL the response came from.
-     * @type {string}
+     * @type {string | null}
+     * @readonly
      * @category URL
      */
     this.url = res?.request ? res.request.protocol + '//' + res.request.host + res.request.path : null;
@@ -50,6 +56,9 @@ class BrunoResponse {
     /**
      * The response headers as a list, with case-insensitive lookups.
      * @type {import('./header-list').ReadOnlyHeaderList}
+     * @example
+     * const contentType = res.headerList.get('content-type');
+     * @readonly
      * @category Headers
      */
     this.headerList = new HeaderList(res, { writable: false });
@@ -64,7 +73,7 @@ class BrunoResponse {
 
   /**
    * Get the HTTP status code.
-   * @returns {number} The status code.
+   * @returns {number | null} The status code.
    * @example
    * expect(res.getStatus()).to.equal(200);
    * @category Status
@@ -75,7 +84,7 @@ class BrunoResponse {
 
   /**
    * Get the HTTP status text, such as `'OK'`.
-   * @returns {string} The status text.
+   * @returns {string | null} The status text.
    * @category Status
    */
   getStatusText() {
@@ -99,7 +108,7 @@ class BrunoResponse {
 
   /**
    * Get the response headers, as an object keyed by lowercase name.
-   * @returns {Record<string, any>} The headers.
+   * @returns {Record<string, any> | null} The headers.
    * @category Headers
    */
   getHeaders() {
@@ -119,7 +128,7 @@ class BrunoResponse {
 
   /**
    * Get how long the response took, in milliseconds.
-   * @returns {number} The response time.
+   * @returns {number | null} The response time.
    * @category Timing & size
    */
   getResponseTime() {
@@ -128,7 +137,7 @@ class BrunoResponse {
 
   /**
    * Get the URL the response came from.
-   * @returns {string} The URL.
+   * @returns {string | null} The URL.
    * @category URL
    */
   getUrl() {
@@ -217,7 +226,7 @@ class BrunoResponse {
 
   /**
    * Get the response body's raw bytes, as a Node.js `Buffer`.
-   * @returns {Uint8Array} The bytes.
+   * @returns {Uint8Array | null} The bytes.
    * @runtime nodevm
    * @category Body
    */

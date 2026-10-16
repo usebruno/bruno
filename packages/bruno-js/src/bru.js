@@ -79,10 +79,10 @@ const assertValidVariableName = (key) => {
 /**
  * The result of one `test()`.
  * @typedef {object} TestResult
- * @property {string} status - `'pass'` or `'fail'`.
+ * @property {'pass' | 'fail'} status - The outcome.
  * @property {string} description - The test's name.
- * @property {any} expected - What a failed assertion expected.
- * @property {any} actual - What a failed assertion got.
+ * @property {any} [expected] - What a failed assertion expected.
+ * @property {any} [actual] - What a failed assertion got.
  * @property {string} [error] - The error message of a failed test.
  */
 
@@ -96,7 +96,7 @@ const assertValidVariableName = (key) => {
 /**
  * The result of one assertion of the request's Assert tab.
  * @typedef {object} AssertionResult
- * @property {string} status - `'pass'` or `'fail'`.
+ * @property {'pass' | 'fail'} status - The outcome.
  * @property {string} lhsExpr - The expression checked, such as `res.status`.
  * @property {string} rhsExpr - The expected expression, such as `eq 200`.
  * @property {string} operator - The operator, such as `eq`.
@@ -219,6 +219,9 @@ class Bru {
     /**
      * The cookies the current request sends, and `jar()` for the cookies of any URL.
      * @type {CookieList}
+     * @example
+     * const sessionId = bru.cookies.get('sid');
+     * await bru.cookies.upsert({ key: 'lang', value: 'en' });
      * @category Cookies
      */
     this.cookies = new CookieList({
@@ -243,6 +246,10 @@ class Bru {
      * Control the collection runner from a script: skip this request, stop the run, or choose
      * the next request.
      * @type {Runner}
+     * @example
+     * if (!bru.getEnvVar('token')) {
+     *   bru.runner.skipRequest();
+     * }
      * @category Runner
      */
     this.runner = {
@@ -263,6 +270,8 @@ class Bru {
     /**
      * Helpers for minifying JSON and XML.
      * @type {Utils}
+     * @example
+     * req.setBody(bru.utils.minifyJson(req.getBody({ raw: true })), { raw: true });
      * @runtime nodevm
      * @category Utilities
      */
@@ -326,6 +335,9 @@ class Bru {
     /**
      * Get the results of the `test()` calls this script has made so far.
      * @type {() => Promise<TestResults>}
+     * @example
+     * const { summary } = await bru.getTestResults();
+     * console.log(`${summary.passed}/${summary.total} passed`);
      * @category Tests & assertions
      */
     this.getTestResults;
@@ -335,6 +347,9 @@ class Bru {
      * The assertions run after the post-response script, so a tests script is the first to see
      * them.
      * @type {() => Promise<AssertionResults>}
+     * @example
+     * const { summary } = await bru.getAssertionResults();
+     * test('all assertions pass', () => expect(summary.failed).to.equal(0));
      * @category Tests & assertions
      */
     this.getAssertionResults;
@@ -352,7 +367,7 @@ class Bru {
    *
    * Variables resolve as in a request: a runtime variable wins over a request, folder,
    * environment, collection or global one. `{{process.env.NAME}}` reads the process environment.
-   * @param {any} strOrObj - A string, or an object to interpolate a copy of.
+   * @param {string | object} strOrObj - A string, or an object to interpolate a copy of.
    * @returns {any} The interpolated string or object.
    * @example
    * const url = bru.interpolate('{{baseUrl}}/users/{{userId}}');
@@ -555,6 +570,8 @@ class Bru {
    * Names may contain only letters, digits, `-`, `_` and `.`; any other name throws.
    * @param {string} key - The variable's name.
    * @param {any} value - The value.
+   * @example
+   * bru.setGlobalEnvVar('region', 'eu-west-1');
    * @category Global environment
    */
   setGlobalEnvVar(key, value) {
@@ -611,6 +628,8 @@ class Bru {
    * `$oauth2.credentials.access_token`. `{{variables}}` in the value are interpolated.
    * @param {string} key - The key.
    * @returns {any} The value, or `undefined` when there is no such value.
+   * @example
+   * const token = bru.getOauth2CredentialVar('$oauth2.credentials.access_token');
    * @category OAuth 2.0
    */
   getOauth2CredentialVar(key) {

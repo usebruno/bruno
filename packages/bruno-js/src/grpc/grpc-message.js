@@ -21,11 +21,15 @@ class GrpcMessage {
      *
      * It is a copy: changing it does not change the message the call sends or received.
      * @type {any}
+     * @readonly
+     * @category Message
      */
     this.data = cloneDeep(data);
     /**
      * When the message was sent or received, in milliseconds since the epoch.
-     * @type {number}
+     * @type {number | undefined}
+     * @readonly
+     * @category Message
      */
     this.timestamp = timestamp;
   }

@@ -10,7 +10,9 @@
   "scripts": {
     "test": "node --experimental-vm-modules $(npx which jest) --testPathIgnorePatterns test.js",
     "test:ci": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --testPathIgnorePatterns test.js",
-    "sandbox:bundle-libraries": "node ./src/sandbox/bundle-libraries.js"
+    "sandbox:bundle-libraries": "node ./src/sandbox/bundle-libraries.js",
+    "generate:script-api": "node ./scripts/generate-script-api.js",
+    "docs:script-api": "typedoc"
   },
   "dependencies": {
     "@usebruno/common": "0.1.0",
@@ -43,7 +45,10 @@
     "@rollup/plugin-commonjs": "^23.0.2",
     "@rollup/plugin-json": "^6.0.0",
     "@rollup/plugin-node-resolve": "^15.0.1",
+    "@types/chai": "^4.3.20",
     "rollup": "3.30.0",
-    "@rollup/plugin-terser": "^1.0.0"
+    "@rollup/plugin-terser": "^1.0.0",
+    "typedoc": "^0.28.20",
+    "typescript": "^5.9.3"
   }
 }

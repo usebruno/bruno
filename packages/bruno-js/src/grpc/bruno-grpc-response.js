@@ -30,38 +30,52 @@ class BrunoGrpcResponse {
     /**
      * The gRPC status code, `0` for OK. `undefined` while the call is still open.
      * @type {number | undefined}
+     * @readonly
+     * @category Status
      */
     this.statusCode = response.statusCode;
     /**
      * The status message. `undefined` while the call is still open.
      * @type {string | undefined}
+     * @readonly
+     * @category Status
      */
     this.statusText = response.statusText;
     /**
      * The messages received so far.
      * @type {GrpcMessageList}
+     * @readonly
+     * @category Messages
      */
     this.messages = new GrpcMessageList(response.messages);
     /**
      * The metadata the server sent before its messages.
      * @type {import('./grpc-metadata-list').ReadOnlyGrpcMetadataList}
+     * @readonly
+     * @category Metadata
      */
     this.metadata = new GrpcMetadataList(() => toMetadataObject(this.#response.metadata), { writable: false });
     /**
      * The metadata the server sent at the end of the call. Empty while the call is still open.
      * @type {import('./grpc-metadata-list').ReadOnlyGrpcMetadataList}
+     * @readonly
+     * @category Metadata
      */
     this.trailers = new GrpcMetadataList(() => toMetadataObject(this.#response.trailers), { writable: false });
     /**
      * How long the call took, in milliseconds. `undefined` while the call is still open.
      * @type {number | undefined}
+     * @readonly
+     * @category Status
      */
     this.duration = response.duration;
 
     /**
      * The message just received. It is also the last of `messages`.
      * @type {GrpcMessage}
+     * @readonly
      * @context grpc:after-message-receive
+     * @category Messages
      */
     this.message;
     // Assigned conditionally, as on the request, so `afterCallEnd` has no such property at all.

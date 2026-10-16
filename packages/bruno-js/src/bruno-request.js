@@ -26,42 +26,49 @@ class BrunoRequest {
      * The request URL, as when the script started. In a pre-request script its `{{variables}}`
      * are not interpolated yet.
      * @type {string}
+     * @readonly
      * @category URL
      */
     this.url = req.url;
     /**
      * The HTTP method, as when the script started.
      * @type {string}
+     * @readonly
      * @category Method
      */
     this.method = req.method;
     /**
      * The request headers, as an object. Names keep the case they were set with.
      * @type {Record<string, any>}
+     * @readonly
      * @category Headers
      */
     this.headers = req.headers;
     /**
      * The timeout in milliseconds, as when the script started.
-     * @type {number}
+     * @type {number | undefined}
+     * @readonly
      * @category Settings
      */
     this.timeout = req.timeout;
     /**
      * The request's name in the collection.
      * @type {string}
+     * @readonly
      * @category Request info
      */
     this.name = req.name;
     /**
      * The path parameters, such as `id` in `/users/:id`.
-     * @type {{ name: string, value: string, type: string }[]}
+     * @type {{ name: string, value: string, type: string }[] | undefined}
+     * @readonly
      * @category URL
      */
     this.pathParams = req.pathParams;
     /**
      * The request's tags.
      * @type {string[]}
+     * @readonly
      * @category Request info
      */
     this.tags = req.tags || [];
@@ -69,6 +76,10 @@ class BrunoRequest {
      * The request headers as a list, with case-insensitive lookups and the request's disabled
      * headers.
      * @type {import('./header-list')}
+     * @example
+     * req.headerList.upsert({ key: 'Authorization', value: `Bearer ${bru.getVar('token')}` });
+     * req.headerList.remove('X-Debug');
+     * @readonly
      * @category Headers
      */
     this.headerList = new HeaderList(this.req);
@@ -189,8 +200,7 @@ class BrunoRequest {
 
   /**
    * Get the kind of auth the request uses.
-   * @returns {string} One of `'oauth2'`, `'oauth1'`, `'bearer'`, `'basic'`, `'apikey'`, `'awsv4'`,
-   *   `'digest'`, `'wsse'` or `'none'`.
+   * @returns {'oauth2' | 'oauth1' | 'bearer' | 'basic' | 'apikey' | 'awsv4' | 'digest' | 'wsse' | 'none'} The auth mode.
    * @category Auth
    */
   getAuthMode() {
@@ -377,7 +387,7 @@ class BrunoRequest {
 
   /**
    * Get the request timeout.
-   * @returns {number} The timeout, in milliseconds.
+   * @returns {number | undefined} The timeout, in milliseconds.
    * @category Settings
    */
   getTimeout() {
@@ -446,7 +456,7 @@ class BrunoRequest {
 
   /**
    * Get how the request is being run.
-   * @returns {string} `'standalone'` when sent on its own, `'runner'` in the collection runner, or
+   * @returns {'standalone' | 'runner' | 'cli'} `'standalone'` when sent on its own, `'runner'` in the collection runner, or
    *   `'cli'` in the Bruno CLI.
    * @category Request info
    */

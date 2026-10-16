@@ -11,6 +11,11 @@ const ts = require('typescript');
  *   node scripts/generate-script-api.js [--check]
  *   require('./generate-script-api').generateScriptApi()   (the outputs in memory)
  *
+ * Description:
+ *   Writes packages/bruno-js/types/script-api.d.ts, the input of the API
+ *   reference site. The per-member manifest is only built in memory, for the
+ *   parity test (tests/script-api-parity.spec.js).
+ *
  * Options:
  *   --check   Fail instead of writing when the committed script-api.d.ts is
  *             out of date
@@ -21,7 +26,6 @@ const ROOT = path.resolve(JS_PKG, '..', '..');
 const TSCONFIG = path.join(JS_PKG, 'tsconfig.script-api.json');
 const GLOBALS = path.join(JS_PKG, 'types', 'globals.d.ts');
 const DTS_OUT = path.join(JS_PKG, 'types', 'script-api.d.ts');
-const MANIFEST_OUT = path.join(ROOT, 'packages', 'bruno-app', 'src', 'utils', 'codemirror', 'generated', 'script-api-manifest.json');
 
 // The compiler reports file names with forward slashes on every platform.
 const toPosix = (p) => p.split(path.sep).join('/');
@@ -534,7 +538,7 @@ const createGenerator = (program) => {
     return out.join('\n').replace(/\n+$/, '\n');
   };
 
-  // ── Rendering: the editor manifest ───────────────────────────────────
+  // ── Rendering: the member manifest (in memory, for the parity test) ──
 
   const intersect = (inherited, own) => (own ? inherited.filter((value) => own.includes(value)) : inherited);
 
@@ -638,7 +642,7 @@ const generateScriptApi = () => createGenerator(loadProgram()).generate();
 
 const main = () => {
   const check = process.argv.includes('--check');
-  const { declarations, manifest, skipped } = generateScriptApi();
+  const { declarations, skipped } = generateScriptApi();
   if (skipped.length) {
     console.warn(`Left out ${skipped.length} member(s) with no JSDoc summary (document them, or mark them @internal):\n${skipped.map((where) => `  ${where}`).join('\n')}`);
   }
@@ -654,10 +658,7 @@ const main = () => {
     return;
   }
 
-  const outputs = [
-    [DTS_OUT, declarations],
-    [MANIFEST_OUT, JSON.stringify(manifest, null, 2) + '\n']
-  ];
+  const outputs = [[DTS_OUT, declarations]];
   for (const [file, content] of outputs) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, content);

@@ -100,6 +100,8 @@ const PropertyList = require('./property-list');
  *   session cookie.
  * @property {boolean} [secure] - Only send it over HTTPS.
  * @property {boolean} [httpOnly] - Mark it `HttpOnly`.
+ * @property {number} [maxAge] - How many seconds it lives.
+ * @property {'strict' | 'lax' | 'none'} [sameSite] - The SameSite policy.
  */
 
 /**
@@ -256,6 +258,8 @@ class CookieList extends PropertyList {
    * @param {(error?: Error | null) => void} [callback] - Called with an error, or with none on success.
    *   Without it, the method returns a promise.
    * @returns {Promise<void> | void} A promise, unless `callback` is given.
+   * @example
+   * await bru.cookies.delete('sid');
    * @category Write
    */
   delete(name, callback) {
