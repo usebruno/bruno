@@ -177,6 +177,13 @@ npx playwright test tests/common/home-screen.spec.ts
 npx playwright test tests/folder-a/
 ```
 
+### Projects That Need External Services
+
+Most projects run self-contained. Two need a service started by hand first; each suite's readme has the steps:
+
+- `oauth2` (`npm run test:e2e:auth:oauth2`) — a local Keycloak instance, see [`tests/auth/oauth2/README.md`](../tests/auth/oauth2/README.md)
+- `ssl` (`npm run test:e2e:ssl`) — generated certificates and a local HTTPS server, see [`tests/ssl/custom-ca-certs/server/readme.md`](../tests/ssl/custom-ca-certs/server/readme.md)
+
 ### Advanced Options
 
 ```bash
