@@ -164,6 +164,7 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
         onClick={handleFetchOauth2Credentials}
         disabled={disabled || fetchingToken || refreshingToken}
         loading={fetchingToken}
+        data-testid="oauth2-get-access-token"
       >
         Get Access Token
       </Button>

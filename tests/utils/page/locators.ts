@@ -209,6 +209,7 @@ export const buildCommonLocators = (page: Page) => ({
       grantTypeDropdown: () => page.getByTestId('grant-type-dropdown'),
       tokenHeaderPrefixField: () => page.getByTestId('token-header-prefix'),
       tokenQueryParamKeyField: () => page.getByTestId('token-query-param-key'),
+      getAccessTokenBtn: () => page.getByTestId('oauth2-get-access-token'),
       noToken: () => page.getByTestId('oauth2-no-token'),
       tokenSection: (title: string) => page.getByTestId(`oauth2-token-section-${title}`),
       tokenValue: (title: string) => page.getByTestId(`oauth2-token-value-${title}`)
