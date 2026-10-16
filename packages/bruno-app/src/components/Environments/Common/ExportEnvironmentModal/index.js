@@ -189,7 +189,7 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType, p
                       {environments.every((env) => selectedEnvironments[env.uid]) ? 'Deselect All' : 'Select All'}
                     </button>
                   </div>
-                  <div className="flex flex-col gap-1 flex-1 overflow-y-auto">
+                  <div className="environment-list flex flex-col gap-1 flex-1 overflow-y-auto">
                     {environments.map((env) => {
                       const unselectedInheritedEnvironmentNames = unselectedInheritedEnvironmentNamesByUid[env.uid];
 

@@ -1,6 +1,10 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  .environment-list {
+    max-height: 40vh;
+  }
+
   /* Environment item styling */
   .environment-item {
     display: flex;
