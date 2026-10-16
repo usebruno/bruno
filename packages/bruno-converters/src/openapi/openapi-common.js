@@ -1,4 +1,15 @@
 import each from 'lodash/each';
+import isPlainObject from 'lodash/isPlainObject';
+import {
+  resolveSchemaComposition,
+  cycleKeyOf,
+  hasSchemaComposition,
+  hasSchemaAlternatives,
+  usesComposition,
+  withoutComposition,
+  allowedDefault,
+  resetSchemaCompositionState
+} from './schema-composition';
 import { uuid, sanitizeTag } from '../common';
 
 // Content type patterns for matching MIME type variants
@@ -122,6 +133,87 @@ export const getBodyTypeFromContentType = (contentType) => {
   return 'text';
 };
 
+export const getExpandableObjectSchema = (param) => {
+  const schema = param.schema;
+  if (!schema || typeof schema !== 'object') {
+    return null;
+  }
+  if (hasSchemaComposition(schema) && !hasSchemaAlternatives(schema)) {
+    const resolved = resolveSchemaComposition(schema);
+    if (resolved && resolved.properties) {
+      return resolved;
+    }
+  }
+  return schema.properties ? schema : null;
+};
+
+const EXAMPLE_VALUE_LIMIT = 5000;
+
+const COMPOSITION_DEPTH_STEPS = [32, 6, 4, 3, 2, 1, 0];
+
+class ExampleTooLarge extends Error {}
+
+const exampleBudgets = new WeakMap();
+
+let fittedDepthSteps = new WeakMap();
+
+export const resetExampleGenerationState = () => {
+  resetSchemaCompositionState();
+  fittedDepthSteps = new WeakMap();
+};
+
+const generateWithinBudget = (rootSchema, generate) => {
+  const isCacheable = Boolean(rootSchema) && typeof rootSchema === 'object';
+  const firstStep = (isCacheable && fittedDepthSteps.get(rootSchema)) || 0;
+  for (let step = firstStep; step < COMPOSITION_DEPTH_STEPS.length; step += 1) {
+    const visited = new Map();
+    exampleBudgets.set(visited, { values: 0, depthLimit: COMPOSITION_DEPTH_STEPS[step], compositionDepth: 0 });
+    try {
+      const value = generate(visited);
+      if (isCacheable && step > 0) fittedDepthSteps.set(rootSchema, step);
+      return value;
+    } catch (error) {
+      if (!(error instanceof ExampleTooLarge)) throw error;
+    }
+  }
+};
+
+const countValue = (visited) => {
+  const budget = exampleBudgets.get(visited);
+  if (budget.compositionDepth === 0) return;
+  budget.values += 1;
+  if (budget.values > EXAMPLE_VALUE_LIMIT) {
+    throw new ExampleTooLarge();
+  }
+};
+
+const deeperInComposition = (visited, generate, fallback) => {
+  const budget = exampleBudgets.get(visited);
+  if (budget.compositionDepth >= budget.depthLimit) {
+    return fallback();
+  }
+  budget.compositionDepth += 1;
+  try {
+    return generate();
+  } finally {
+    budget.compositionDepth -= 1;
+  }
+};
+
+const withResolvedSchema = (rawSchema, visited, generate) => {
+  if (!hasSchemaComposition(rawSchema)) {
+    return generate(rawSchema);
+  }
+  return deeperInComposition(
+    visited,
+    () => generate(resolveSchemaComposition(rawSchema)),
+    () => generate(withoutComposition(rawSchema))
+  );
+};
+
+const generateFromRoot = (rawSchema, generate) =>
+  generateWithinBudget(rawSchema, (visited) => withResolvedSchema(rawSchema, visited, (schema) => generate(schema, visited)));
+
 /**
  * Gets a default value for a schema based on its type, format, and constraints
  * Prioritizes: explicit example > enum first value > format-specific example > type default
@@ -129,7 +221,11 @@ export const getBodyTypeFromContentType = (contentType) => {
  * @param {Map} visited - Map to track circular references
  * @returns {*} - The default value for the schema
  */
-export const getDefaultValueForSchema = (schema, visited = new Map()) => {
+const defaultValueFor = (schema, visited) => {
+  if (!schema || typeof schema !== 'object') {
+    return '';
+  }
+
   // Check for explicit example first
   if (schema.example !== undefined) {
     return schema.example;
@@ -152,40 +248,61 @@ export const getDefaultValueForSchema = (schema, visited = new Map()) => {
     }
 
     if (schema.items) {
-      if (schema.items.type === 'object' || schema.items.properties) {
-        return [buildEmptyJsonBody(schema.items, visited)];
-      }
-      // For primitive arrays, get example from items
-      if (schema.items.example !== undefined) {
-        return Array.isArray(schema.items.example) ? schema.items.example : [schema.items.example];
-      }
-      // Return array with a single default primitive value
-      const itemDefault = getDefaultValueForSchema(schema.items, visited);
-      if (itemDefault !== '' && itemDefault !== 0 && itemDefault !== false) {
-        return [itemDefault];
-      }
+      return withResolvedSchema(schema.items, visited, (items) => defaultArrayFor(schema, items, visited));
     }
     return [];
   }
 
   if (schema.type === 'integer' || schema.type === 'number') {
-    return 0;
+    return allowedDefault(schema, 0);
   }
 
   if (schema.type === 'boolean') {
-    return false;
+    return allowedDefault(schema, false);
   }
 
   // Default for strings and other types
-  return '';
+  return allowedDefault(schema, '');
+};
+
+export const getDefaultValueForSchema = (rawSchema, visited) => {
+  if (!visited || !exampleBudgets.has(visited)) {
+    return generateWithinBudget(rawSchema, (budgeted) => getDefaultValueForSchema(rawSchema, budgeted));
+  }
+  countValue(visited);
+  return withResolvedSchema(rawSchema, visited, (schema) => defaultValueFor(schema, visited));
+};
+
+const defaultArrayFor = (arraySchema, items, visited) => {
+  if (!items || typeof items !== 'object') {
+    return [];
+  }
+  if (items.type === 'object' || items.properties) {
+    return [buildEmptyJsonBody(items, visited)];
+  }
+  if (items.example !== undefined) {
+    return Array.isArray(items.example) ? items.example : [items.example];
+  }
+  const guardLoop = exampleBudgets.get(visited).compositionDepth > 0;
+  const cycleKey = cycleKeyOf(arraySchema);
+  if (guardLoop && visited.has(cycleKey)) {
+    return [];
+  }
+  if (guardLoop) visited.set(cycleKey, true);
+  const itemDefault = getDefaultValueForSchema(items, visited);
+  if (guardLoop) visited.delete(cycleKey);
+  if (itemDefault !== '' && itemDefault !== 0 && itemDefault !== false) {
+    return [itemDefault];
+  }
+  return [];
 };
 
 /**
  * Builds XML string from OpenAPI schema
- * @param {Object} bodySchema - The OpenAPI schema object
+ * @param {Object} rawBodySchema - The OpenAPI schema object
  * @returns {string} - XML string
  */
-export const buildXmlBody = (bodySchema) => {
+export const buildXmlBody = (rawBodySchema) => generateFromRoot(rawBodySchema, (bodySchema, visited) => {
   if (!bodySchema) return '';
 
   // String example = raw XML, return as-is
@@ -200,35 +317,41 @@ export const buildXmlBody = (bodySchema) => {
   const rootName = bodySchema.xml?.name || 'root';
 
   // Build a single XML element
-  const buildElement = (name, prop = {}, value, indent = '  ') => {
-    const xmlName = prop.xml?.name || name;
+  const buildElement = (name, rawProp, value, indent = '  ') => {
+    countValue(visited);
+    return withResolvedSchema(rawProp || {}, visited, (resolved) => {
+      const prop = resolved || {};
+      const xmlName = prop.xml?.name || name;
 
-    if (prop.xml?.attribute) return null;
+      if (prop.xml?.attribute) return null;
 
-    // Nested object - recurse into children
-    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      const children = Object.entries(value)
-        .map(([k, v]) => buildElement(k, prop.properties?.[k] || {}, v, indent + '  '))
-        .filter(Boolean);
-      return `${indent}<${xmlName}>${children.length ? '\n' + children.join('\n') + '\n' + indent : ''}</${xmlName}>`;
-    }
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        const children = Object.entries(value)
+          .map(([k, v]) => buildElement(k, prop.properties?.[k] || {}, v, indent + '  '))
+          .filter(Boolean);
+        return `${indent}<${xmlName}>${children.length ? '\n' + children.join('\n') + '\n' + indent : ''}</${xmlName}>`;
+      }
 
-    // Object schema without value - build empty structure from schema
-    if (prop.type === 'object' || prop.properties) {
-      const children = Object.entries(prop.properties || {})
-        .map(([k, p]) => buildElement(k, p, undefined, indent + '  '))
-        .filter(Boolean);
-      return `${indent}<${xmlName}>${children.length ? '\n' + children.join('\n') + '\n' + indent : ''}</${xmlName}>`;
-    }
+      if (prop.type === 'object' || prop.properties) {
+        const cycleKey = cycleKeyOf(prop);
+        if (visited.has(cycleKey)) return `${indent}<${xmlName}></${xmlName}>`;
+        visited.set(cycleKey, true);
+        const children = Object.entries(prop.properties || {})
+          .map(([k, p]) => buildElement(k, p, undefined, indent + '  '))
+          .filter(Boolean);
+        visited.delete(cycleKey);
+        return `${indent}<${xmlName}>${children.length ? '\n' + children.join('\n') + '\n' + indent : ''}</${xmlName}>`;
+      }
 
-    // Primitive value
-    const content = value != null ? String(value) : '';
-    return `${indent}<${xmlName}>${content}</${xmlName}>`;
+      const content = value != null ? String(value) : '';
+      return `${indent}<${xmlName}>${content}</${xmlName}>`;
+    });
   };
 
   // Collect attributes
   const attributes = Object.entries(bodySchema.properties || {})
-    .filter(([, p]) => p.xml?.attribute)
+    .map(([name, p]) => [name, resolveSchemaComposition(p)])
+    .filter(([, p]) => p?.xml?.attribute)
     .map(([name, p]) => `${p.xml?.name || name}="${exampleValues?.[name] ?? ''}"`);
 
   // Build child elements
@@ -244,23 +367,51 @@ export const buildXmlBody = (bodySchema) => {
   const childrenStr = children.length ? '\n' + children.join('\n') + '\n' : '';
 
   return `<?xml version="1.0" encoding="UTF-8"?>\n<${rootName}${attrStr}>${childrenStr}</${rootName}>`;
-};
+});
 
-export const buildEmptyJsonBody = (bodySchema, visited = new Map()) => {
+const objectValueFor = (bodySchema, visited) => {
+  if (!bodySchema || typeof bodySchema !== 'object') {
+    return {};
+  }
+
   // Check for circular references
-  if (visited.has(bodySchema)) {
+  const cycleKey = cycleKeyOf(bodySchema);
+  if (visited.has(cycleKey)) {
     return {};
   }
 
   // Add this schema to visited map
-  visited.set(bodySchema, true);
+  visited.set(cycleKey, true);
 
   const _jsonBody = {};
   each(bodySchema.properties || {}, (prop, name) => {
     _jsonBody[name] = getDefaultValueForSchema(prop, visited);
   });
-  visited.delete(bodySchema);
+
+  const additional = bodySchema.additionalProperties;
+  const forbidsEverything = additional && typeof additional.not === 'object' && additional.not !== null && Object.keys(additional.not).length === 0;
+  if (additional && typeof additional === 'object' && !Array.isArray(additional) && !forbidsEverything && usesComposition(additional)) {
+    let index = 1;
+    while (Object.hasOwn(_jsonBody, `additionalProp${index}`)) index += 1;
+    deeperInComposition(visited, () => {
+      _jsonBody[`additionalProp${index}`] = getDefaultValueForSchema(additional, visited);
+    }, () => {});
+  }
+
+  visited.delete(cycleKey);
   return _jsonBody;
+};
+
+export const buildEmptyJsonBody = (rawBodySchema, visited) => {
+  if (!visited || !exampleBudgets.has(visited)) {
+    return generateWithinBudget(rawBodySchema, (budgeted) => buildEmptyJsonBody(rawBodySchema, budgeted));
+  }
+  return withResolvedSchema(rawBodySchema, visited, (bodySchema) => objectValueFor(bodySchema, visited));
+};
+
+const getFormFields = (rawBodySchema, bodySchema) => {
+  const example = hasSchemaComposition(rawBodySchema) && !isPlainObject(bodySchema.example) ? undefined : bodySchema.example;
+  return { fields: example || bodySchema.properties || {}, isExample: !!example };
 };
 
 /**
@@ -274,27 +425,31 @@ export const BODY_TYPE_HANDLERS = [
   {
     match: (mimeType) => CONTENT_TYPE_PATTERNS.JSON.test(mimeType),
     mode: 'json',
-    handle: (body, bodySchema) => {
-      if (bodySchema) {
-        if (bodySchema.example !== undefined) {
-          body.json = JSON.stringify(bodySchema.example, null, 2);
-        } else if (bodySchema.type === 'array') {
-          body.json = JSON.stringify(bodySchema.items ? [getDefaultValueForSchema(bodySchema.items)] : [], null, 2);
-        } else {
-          body.json = JSON.stringify(buildEmptyJsonBody(bodySchema), null, 2);
-        }
+    handle: (body, rawBodySchema) => {
+      if (rawBodySchema) {
+        const value = generateFromRoot(rawBodySchema, (bodySchema, visited) => {
+          if (bodySchema.example !== undefined) {
+            return bodySchema.example;
+          }
+          if (bodySchema.type === 'array') {
+            return bodySchema.items ? [getDefaultValueForSchema(bodySchema.items, visited)] : [];
+          }
+          return buildEmptyJsonBody(bodySchema, visited);
+        });
+        body.json = JSON.stringify(value, null, 2);
       }
     }
   },
   {
     match: (mimeType) => mimeType === 'application/x-www-form-urlencoded',
     mode: 'formUrlEncoded',
-    handle: (body, bodySchema) => {
-      if (!bodySchema) return;
-      const fields = bodySchema.example || bodySchema.properties || {};
-      const isExample = !!bodySchema.example;
+    handle: (body, rawBodySchema) => {
+      if (!rawBodySchema) return;
+      const bodySchema = resolveSchemaComposition(rawBodySchema);
+      const { fields, isExample } = getFormFields(rawBodySchema, bodySchema);
 
-      each(fields, (prop, name) => {
+      each(fields, (rawProp, name) => {
+        const prop = isExample ? rawProp : (resolveSchemaComposition(rawProp) || {});
         const value = isExample ? prop : (prop.example ?? prop.default ?? '');
         body.formUrlEncoded.push({
           uid: uuid(),
@@ -309,12 +464,13 @@ export const BODY_TYPE_HANDLERS = [
   {
     match: (mimeType) => mimeType === 'multipart/form-data',
     mode: 'multipartForm',
-    handle: (body, bodySchema) => {
-      if (!bodySchema) return;
-      const fields = bodySchema.example || bodySchema.properties || {};
-      const isExample = !!bodySchema.example;
+    handle: (body, rawBodySchema) => {
+      if (!rawBodySchema) return;
+      const bodySchema = resolveSchemaComposition(rawBodySchema);
+      const { fields, isExample } = getFormFields(rawBodySchema, bodySchema);
 
-      each(fields, (prop, name) => {
+      each(fields, (rawProp, name) => {
+        const prop = isExample ? rawProp : (resolveSchemaComposition(rawProp) || {});
         const isFileField = !isExample && prop.type === 'string' && prop.format === 'binary';
         const value = isFileField ? [] : isExample ? prop : (prop.example ?? prop.default ?? '');
         body.multipartForm.push({
@@ -340,7 +496,8 @@ export const BODY_TYPE_HANDLERS = [
     mode: 'sparql',
     handle: (body, bodySchema) => {
       // Use example from schema if available
-      body.sparql = bodySchema?.example !== undefined ? String(bodySchema.example) : '';
+      const schema = resolveSchemaComposition(bodySchema);
+      body.sparql = schema?.example !== undefined ? String(schema.example) : '';
     }
   },
   {
@@ -348,18 +505,40 @@ export const BODY_TYPE_HANDLERS = [
     mode: 'text',
     handle: (body, bodySchema) => {
       // Use example from schema if available
-      body.text = bodySchema?.example !== undefined ? String(bodySchema.example) : '';
+      const schema = resolveSchemaComposition(bodySchema);
+      body.text = schema?.example !== undefined ? String(schema.example) : '';
     }
   }
 ];
 
+const exampleArrayFor = (items, visited) => {
+  if (!items || typeof items !== 'object') {
+    return [];
+  }
+  if (items.type === 'object' || items.properties) {
+    return [buildEmptyJsonBody(items, visited)];
+  }
+  if (items.type === 'integer' || items.type === 'number') {
+    return [allowedDefault(items, 0)];
+  } else if (items.type === 'boolean') {
+    return [allowedDefault(items, false)];
+  } else if (items.type === 'string') {
+    return [allowedDefault(items, '')];
+  }
+  return [];
+};
+
 /**
  * Extracts or generates an example value from an OpenAPI schema
  * Handles objects, arrays, primitives, and explicit examples
- * @param {Object} schema - The OpenAPI schema object
+ * @param {Object} rawSchema - The OpenAPI schema object
  * @returns {*} - The example value (object, array, or primitive)
  */
-export const getExampleFromSchema = (schema) => {
+export const getExampleFromSchema = (rawSchema) => generateFromRoot(rawSchema, (schema, visited) => {
+  if (!schema || typeof schema !== 'object') {
+    return '';
+  }
+
   // Check for explicit example first
   if (schema.example !== undefined) {
     return schema.example;
@@ -368,33 +547,22 @@ export const getExampleFromSchema = (schema) => {
   // Handle different schema types
   if (schema.type === 'object' || (schema.properties && !schema.type)) {
     // Handle object type or schema with properties (even if type is not explicitly set)
-    return buildEmptyJsonBody(schema);
+    return buildEmptyJsonBody(schema, visited);
   } else if (schema.type === 'array') {
     if (schema.items) {
-      // If items are objects (either by type or by having properties), create array with one example object
-      if (schema.items.type === 'object' || schema.items.properties) {
-        return [buildEmptyJsonBody(schema.items)];
-      }
-      // For primitive array items, return array with default value
-      if (schema.items.type === 'integer' || schema.items.type === 'number') {
-        return [0];
-      } else if (schema.items.type === 'boolean') {
-        return [false];
-      } else if (schema.items.type === 'string') {
-        return [''];
-      }
+      return withResolvedSchema(schema.items, visited, (items) => exampleArrayFor(items, visited));
     }
     return [];
   } else {
     // For primitive types, use default values
     if (schema.type === 'integer' || schema.type === 'number') {
-      return 0;
+      return allowedDefault(schema, 0);
     } else if (schema.type === 'boolean') {
-      return false;
+      return allowedDefault(schema, false);
     }
-    return '';
+    return allowedDefault(schema, '');
   }
-};
+});
 
 /**
  * Populates request body in Bruno example from schema
