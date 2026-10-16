@@ -62,6 +62,8 @@ export const SCOPE_LABEL = {
   [AUTOCOMPLETE_SCOPES.OAUTH2]: 'OAuth2'
 };
 
+export const COPY_SUCCESS_TIMEOUT = 1000;
+
 export const AUTH_MODES = {
   AWSV4: 'awsv4',
   BASIC: 'basic',
