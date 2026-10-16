@@ -2,6 +2,9 @@ const { getMediaType } = require('@usebruno/common').utils;
 const HeaderList = require('./header-list');
 const { parseUrl } = require('./utils/url');
 
+/**
+ * The HTTP request: URL, method, headers, body and settings.
+ */
 class BrunoRequest {
   /**
    * The following properties are available as shorthand:
@@ -17,14 +20,57 @@ class BrunoRequest {
    * They should use the respective setter methods to set these properties.
    */
   constructor(req) {
+    /** @internal */
     this.req = req;
+    /**
+     * The request URL, as when the script started. In a pre-request script its `{{variables}}`
+     * are not interpolated yet.
+     * @type {string}
+     * @category URL
+     */
     this.url = req.url;
+    /**
+     * The HTTP method, as when the script started.
+     * @type {string}
+     * @category Method
+     */
     this.method = req.method;
+    /**
+     * The request headers, as an object. Names keep the case they were set with.
+     * @type {Record<string, any>}
+     * @category Headers
+     */
     this.headers = req.headers;
+    /**
+     * The timeout in milliseconds, as when the script started.
+     * @type {number}
+     * @category Settings
+     */
     this.timeout = req.timeout;
+    /**
+     * The request's name in the collection.
+     * @type {string}
+     * @category Request info
+     */
     this.name = req.name;
+    /**
+     * The path parameters, such as `id` in `/users/:id`.
+     * @type {{ name: string, value: string, type: string }[]}
+     * @category URL
+     */
     this.pathParams = req.pathParams;
+    /**
+     * The request's tags.
+     * @type {string[]}
+     * @category Request info
+     */
     this.tags = req.tags || [];
+    /**
+     * The request headers as a list, with case-insensitive lookups and the request's disabled
+     * headers.
+     * @type {import('./header-list')}
+     * @category Headers
+     */
     this.headerList = new HeaderList(this.req);
     /**
      * We automatically parse the JSON body if the content type is JSON
@@ -35,19 +81,42 @@ class BrunoRequest {
      */
     const isJson = this.hasJSONContentType(this.req.headers);
     if (isJson) {
+      /**
+       * The request body, parsed when it is JSON. Developer Mode sets it only for a JSON body;
+       * `getBody()` works for every body.
+       * @type {any}
+       * @category Body
+       */
       this.body = this.__safeParseJSON(req.data);
     }
   }
 
+  /**
+   * Get the request URL. In a pre-request script its `{{variables}}` are not interpolated yet.
+   * @returns {string} The URL.
+   * @category URL
+   */
   getUrl() {
     return this.req.url;
   }
 
+  /**
+   * Set the request URL. It may contain `{{variables}}`.
+   * @param {string} url - The new URL.
+   * @example
+   * req.setUrl('{{baseUrl}}/v2/users');
+   * @category URL
+   */
   setUrl(url) {
     this.url = url;
     this.req.url = url;
   }
 
+  /**
+   * Get the host of the request URL, with its port when the URL has one.
+   * @returns {string} The host, or `''` when the URL has none.
+   * @category URL
+   */
   getHost() {
     try {
       return parseUrl(this.req.url).host;
@@ -56,6 +125,13 @@ class BrunoRequest {
     }
   }
 
+  /**
+   * Get the path of the request URL.
+   *
+   * A `:name` segment is replaced with the value of that path parameter, when it has one.
+   * @returns {string} The path, or `''` when the URL has none.
+   * @category URL
+   */
   getPath() {
     try {
       let { pathname } = parseUrl(this.req.url);
@@ -89,6 +165,11 @@ class BrunoRequest {
     }
   }
 
+  /**
+   * Get the query string of the request URL, without the `?`.
+   * @returns {string} The query string, or `''` when there is none.
+   * @category URL
+   */
   getQueryString() {
     try {
       return parseUrl(this.req.url).queryString;
@@ -97,10 +178,21 @@ class BrunoRequest {
     }
   }
 
+  /**
+   * Get the HTTP method.
+   * @returns {string} The method, such as `'GET'`.
+   * @category Method
+   */
   getMethod() {
     return this.req.method;
   }
 
+  /**
+   * Get the kind of auth the request uses.
+   * @returns {string} One of `'oauth2'`, `'oauth1'`, `'bearer'`, `'basic'`, `'apikey'`, `'awsv4'`,
+   *   `'digest'`, `'wsse'` or `'none'`.
+   * @category Auth
+   */
   getAuthMode() {
     const headers = this.req.headers;
     if (this.req?.oauth2) {
@@ -126,35 +218,80 @@ class BrunoRequest {
     }
   }
 
+  /**
+   * Set the HTTP method.
+   * @param {string} method - The new method, such as `'POST'`.
+   * @category Method
+   */
   setMethod(method) {
     this.method = method;
     this.req.method = method;
   }
 
+  /**
+   * Get the request headers, as an object. Names keep the case they were set with.
+   * @returns {Record<string, any>} The headers.
+   * @category Headers
+   */
   getHeaders() {
     return this.req.headers;
   }
 
+  // TODO: make this upsert instead, since setHeaders is the bulk form of setHeader.
   /**
-   * Replaces the whole header set, dropping headers set at collection/folder level.
-   * TODO: make this upsert instead, since setHeaders is the bulk form of setHeader.
+   * Replace all request headers, including those set at the collection and folder level.
+   * @param {Record<string, any>} headers - The new headers, as an object.
+   * @category Headers
    */
   setHeaders(headers) {
     this.req.headers = headers;
   }
 
+  /**
+   * Remove several request headers, as `deleteHeader` does for each.
+   * @param {string[]} headers - The header names, matched exactly.
+   * @category Headers
+   */
   deleteHeaders(headers) {
     headers.forEach((name) => this.deleteHeader(name));
   }
 
+  /**
+   * Get the value of a request header.
+   *
+   * The name must match the case the header was set with; `req.headerList.get()` matches any
+   * case.
+   * @param {string} name - The header's name.
+   * @returns {any} The value, or `undefined` when there is no such header.
+   * @category Headers
+   */
   getHeader(name) {
     return this.req.headers[name];
   }
 
+  /**
+   * Set a request header.
+   *
+   * The name is used exactly as given, so a header whose name differs only in case is kept
+   * alongside; `req.headerList.upsert()` replaces it instead.
+   * @param {string} name - The header's name.
+   * @param {any} value - The header's value.
+   * @example
+   * req.setHeader('Authorization', `Bearer ${bru.getEnvVar('token')}`);
+   * @category Headers
+   */
   setHeader(name, value) {
     this.req.headers[name] = value;
   }
 
+  /**
+   * Remove a request header. The name must match the case the header was set with.
+   *
+   * A default header Bruno adds after the script, such as `User-Agent`, is not added when it has
+   * this name.
+   * @param {string} name - The header's name.
+   * @category Headers
+   */
   deleteHeader(name) {
     delete this.req.headers[name];
 
@@ -171,16 +308,21 @@ class BrunoRequest {
     }
   }
 
+  /** @internal */
   hasJSONContentType(headers) {
     const contentType = headers?.['Content-Type'] || headers?.['content-type'] || '';
     return getMediaType(contentType).includes('json');
   }
 
   /**
-   * Get the body of the request
+   * Get the request body.
    *
-   * We automatically parse and return the JSON body if the content type is JSON
-   * If the user wants the raw body, they can pass the raw option as true
+   * With a JSON content type the body is parsed; pass `{ raw: true }` for the body as it is sent.
+   * @param {{ raw?: boolean }} [options] - `raw: true` returns the body as it is sent.
+   * @returns {any} The body.
+   * @example
+   * const { username } = req.getBody();
+   * @category Body
    */
   getBody(options = {}) {
     if (options.raw) {
@@ -196,15 +338,15 @@ class BrunoRequest {
   }
 
   /**
-   * If the content type is JSON and if the data is an object
-   *  - We set the body property as the object itself
-   *  - We set the request data as the stringified JSON as it is what gets sent over the network
-   * Otherwise
-   *  - We set the request data as the data itself
-   *  - We set the body property as the data itself
+   * Replace the request body.
    *
-   * If the user wants to override this behavior, they can pass the raw option as true
-   * A Buffer is always set as-is, since it already holds the exact bytes to send
+   * With a JSON content type, an object is serialized to JSON. Pass `{ raw: true }` to send `data`
+   * exactly as given. A `Buffer` is always sent as-is.
+   * @param {any} data - The new body.
+   * @param {{ raw?: boolean }} [options] - `raw: true` skips JSON serialization.
+   * @example
+   * req.setBody({ ...req.getBody(), requestedAt: Date.now() });
+   * @category Body
    */
   setBody(data, options = {}) {
     if (options.raw || Buffer.isBuffer(data)) {
@@ -224,19 +366,45 @@ class BrunoRequest {
     this.body = data;
   }
 
+  /**
+   * Set how many redirects the request may follow.
+   * @param {number} maxRedirects - The limit. `0` follows none.
+   * @category Settings
+   */
   setMaxRedirects(maxRedirects) {
     this.req.maxRedirects = maxRedirects;
   }
 
+  /**
+   * Get the request timeout.
+   * @returns {number} The timeout, in milliseconds.
+   * @category Settings
+   */
   getTimeout() {
     return this.req.timeout;
   }
 
+  /**
+   * Set the request timeout.
+   * @param {number} timeout - The timeout, in milliseconds.
+   * @category Settings
+   */
   setTimeout(timeout) {
     this.timeout = timeout;
     this.req.timeout = timeout;
   }
 
+  /**
+   * Run a function when the request fails with an error, such as a network error, instead of
+   * getting a response.
+   * @param {(error: Error) => any} callback - Called with the error.
+   * @example
+   * req.onFail((error) => {
+   *   console.log('Request failed:', error.message);
+   * });
+   * @runtime nodevm
+   * @category Events
+   */
   onFail(callback) {
     if (typeof callback === 'function') {
       this.req.onFailHandler = callback;
@@ -245,6 +413,7 @@ class BrunoRequest {
     }
   }
 
+  /** @internal */
   __safeParseJSON(str) {
     try {
       return JSON.parse(str);
@@ -253,6 +422,7 @@ class BrunoRequest {
     }
   }
 
+  /** @internal */
   __safeStringifyJSON(obj) {
     try {
       return JSON.stringify(obj);
@@ -261,22 +431,43 @@ class BrunoRequest {
     }
   }
 
+  /** @internal */
   __isObject(obj) {
     return obj !== null && typeof obj === 'object';
   }
 
+  /**
+   * Keep the response body as received, rather than parsing it as JSON.
+   * @category Settings
+   */
   disableParsingResponseJson() {
     this.req.__brunoDisableParsingResponseJson = true;
   }
 
+  /**
+   * Get how the request is being run.
+   * @returns {string} `'standalone'` when sent on its own, `'runner'` in the collection runner, or
+   *   `'cli'` in the Bruno CLI.
+   * @category Request info
+   */
   getExecutionMode() {
     return this.req.__bruno__executionMode;
   }
 
+  /**
+   * Get the request's name in the collection.
+   * @returns {string} The name.
+   * @category Request info
+   */
   getName() {
     return this.req.name;
   }
 
+  /**
+   * Get the path parameters, such as `id` in `/users/:id`.
+   * @returns {{ name: string, value: string, type: string }[]} One entry per parameter.
+   * @category URL
+   */
   getPathParams() {
     const params = Array.isArray(this.req.pathParams) ? this.req.pathParams : [];
 
@@ -288,8 +479,9 @@ class BrunoRequest {
   }
 
   /**
-   * Get the tags associated with this request
-   * @returns {Array<string>} Array of tag strings
+   * Get the request's tags.
+   * @returns {string[]} The tags.
+   * @category Request info
    */
   getTags() {
     return this.req.tags || [];
