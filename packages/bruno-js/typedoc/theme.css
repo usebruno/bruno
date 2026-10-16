@@ -242,6 +242,99 @@ pre,
   color: var(--bru-nav);
 }
 
+/* Theme switcher (typedoc/header.html), as Mintlify's theme preference menu. */
+#bru-theme {
+  order: 3;
+  position: relative;
+}
+
+#bru-theme-trigger {
+  display: flex;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: none;
+  color: var(--bru-muted);
+  cursor: pointer;
+}
+
+#bru-theme-trigger:hover,
+#bru-theme-trigger[aria-expanded='true'] {
+  color: var(--bru-heading);
+}
+
+#bru-theme svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The `hidden` attribute does not hide an <svg>; this one only holds the icons' symbols. */
+#bru-theme > svg[hidden] {
+  display: none;
+}
+
+/* The trigger shows the icon of the current choice, which TypeDoc sets on <html> before render. */
+[data-theme-icon] {
+  display: none;
+}
+
+:root[data-theme='os'] [data-theme-icon='os'],
+:root[data-theme='light'] [data-theme-icon='light'],
+:root[data-theme='dark'] [data-theme-icon='dark'] {
+  display: block;
+}
+
+#bru-theme-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 9rem;
+  padding: 0.25rem;
+  border: 1px solid var(--bru-border);
+  border-radius: 0.75rem;
+  background: var(--bru-surface);
+  box-shadow: 0 12px 32px -12px rgb(0 0 0 / 0.25);
+}
+
+#bru-theme-menu[hidden] {
+  display: none;
+}
+
+#bru-theme-menu > button {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: none;
+  color: var(--bru-nav);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+#bru-theme-menu > button:is(:hover, :focus-visible) {
+  background: var(--bru-hover);
+  color: var(--bru-heading);
+  outline: none;
+}
+
+#bru-theme-menu > button[aria-checked='true'] {
+  color: var(--bru-accent-text);
+}
+
 /* ---------- Search dialog ---------- */
 
 #tsd-search[open] {
@@ -328,19 +421,6 @@ pre,
   }
 }
 
-.page-menu {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Settings go below the table of contents, as a footnote. */
-.page-menu > .tsd-navigation.settings {
-  order: 2;
-  margin: 1.5rem 0 0;
-  padding-top: 1rem;
-  border-top: 1px solid var(--bru-border-soft);
-}
-
 /* ---------- Sidebar ---------- */
 
 .site-menu {
@@ -387,6 +467,11 @@ pre,
 
 #tsd-nav-container > li:first-child > .tsd-accordion > .tsd-accordion-summary {
   margin-top: 0;
+}
+
+/* Indent a category's items under its header. */
+#tsd-nav-container > li > .tsd-accordion > .tsd-accordion-details {
+  padding-left: 0.75rem;
 }
 
 /* TypeDoc gives the label a near-full width, which squeezes the chevron beside it. */
@@ -444,14 +529,12 @@ pre,
 
 /* ---------- On this page ---------- */
 
-.tsd-page-navigation > .tsd-accordion-summary,
-.tsd-navigation.settings > .tsd-accordion > .tsd-accordion-summary {
+.tsd-page-navigation > .tsd-accordion-summary {
   gap: 0.5rem;
   margin-bottom: 0.75rem;
 }
 
-.tsd-page-navigation > .tsd-accordion-summary h3,
-.tsd-navigation.settings h3 {
+.tsd-page-navigation > .tsd-accordion-summary h3 {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--bru-heading);
@@ -493,28 +576,6 @@ pre,
   border-left-color: var(--bru-accent);
   color: var(--bru-accent-text);
   font-weight: 500;
-}
-
-.tsd-navigation.settings {
-  font-size: 0.8125rem;
-  color: var(--bru-muted);
-}
-
-.settings-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--bru-muted);
-}
-
-#tsd-theme {
-  padding: 0.25rem 0.5rem;
-  border: 1px solid var(--bru-border);
-  border-radius: 0.5rem;
-  background: var(--bru-surface);
-  color: var(--bru-heading);
-  font: inherit;
-  font-size: 0.8125rem;
 }
 
 /* ---------- Page header ---------- */
@@ -676,6 +737,8 @@ pre > button:hover {
 .tsd-description .tsd-signatures .tsd-signature {
   border-width: 1px;
   border-color: var(--bru-border);
+  /* TypeDoc fades its background, which lags the rest of the page on a theme switch. */
+  transition: none;
 }
 
 .tsd-signature-symbol {

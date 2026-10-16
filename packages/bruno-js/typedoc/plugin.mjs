@@ -1,4 +1,5 @@
-import { Application, Converter } from 'typedoc';
+import { readFileSync } from 'node:fs';
+import { Application, Converter, DefaultTheme, JSX } from 'typedoc';
 
 /**
  * TypeDoc plugin for the script API reference (typedoc.json).
@@ -7,6 +8,9 @@ import { Application, Converter } from 'typedoc';
  * written for scripts/generate-script-api.js, as sentences for the reader:
  * - `@context pre-request tests` -> "Available in pre-request scripts and tests."
  * - `@runtime nodevm` -> "Developer Mode only: not available in Safe Mode."
+ *
+ * Also defines the `bruno` theme, which renders typedoc/header.html as the top bar. It carries a
+ * theme switcher, as on docs.usebruno.com, in place of the sidebar settings.
  */
 
 const CUSTOM_TAGS = ['@context', '@runtime'];
@@ -50,8 +54,21 @@ const rewriteComment = (comment) => {
   }
 };
 
+const HEADER = readFileSync(new URL('./header.html', import.meta.url), 'utf8');
+
+class BrunoTheme extends DefaultTheme {
+  getRenderContext(pageEvent) {
+    const context = super.getRenderContext(pageEvent);
+    context.toolbar = () => JSX.createElement(JSX.Raw, { html: HEADER.replaceAll('{{base}}', context.relativeURL('./')) });
+    context.settings = () => null;
+    return context;
+  }
+}
+
 /** @param {Application} app */
 export function load(app) {
+  app.renderer.defineTheme('bruno', BrunoTheme);
+
   app.on(Application.EVENT_BOOTSTRAP_END, () => {
     const blockTags = app.options.getValue('blockTags');
     app.options.setValue('blockTags', [...new Set([...blockTags, ...CUSTOM_TAGS])]);

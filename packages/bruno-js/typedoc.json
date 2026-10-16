@@ -5,16 +5,12 @@
   "tsconfig": "tsconfig.script-api-docs.json",
   "out": "docs-dist/script-api",
   "plugin": ["./typedoc/plugin.mjs"],
+  "theme": "bruno",
   "readme": "none",
   "customCss": "./typedoc/theme.css",
   "favicon": "./typedoc/bruno.svg",
   "lightHighlightTheme": "github-light",
   "darkHighlightTheme": "github-dark",
-  "navigationLinks": {
-    "Docs": "https://docs.usebruno.com",
-    "GitHub": "https://github.com/usebruno/bruno",
-    "Discord": "https://discord.com/invite/KgcZUncpjq"
-  },
   "hideGenerator": true,
   "visibilityFilters": {},
   "disableSources": true,
