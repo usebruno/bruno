@@ -1,4 +1,4 @@
-import { type Page } from '@playwright/test';
+import { type ElectronApplication, type Page } from '@playwright/test';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
@@ -7,6 +7,8 @@ const POLL_MS = 25;
 const INDEXING_TIMEOUT_MS = 40 * 60_000;
 const MOUNT_TIMEOUT_MS = 10 * 60_000;
 const FIRST_RESULT_TIMEOUT_MS = 10 * 60_000;
+const COLLECTIONS_LISTED_TIMEOUT_MS = 30_000;
+const UI_ACTION_TIMEOUT_MS = 60_000;
 const SIDEBAR_COMPONENT = path.join(process.cwd(), 'packages', 'bruno-app', 'src', 'components', 'Sidebar', 'Collections', 'index.js');
 
 export const buildSidebarSearchLocators = (page: Page) => ({
@@ -26,6 +28,36 @@ export const assertSearchTimingsAreRendered = () => {
   if (before.lastIndexOf('{/*') > before.lastIndexOf('*/}')) {
     throw new Error(`The sidebar search timing line is commented out in ${SIDEBAR_COMPONENT}; the benchmark reads its first-result time from it`);
   }
+};
+
+const listedCollectionNames = (page: Page) => page.locator('#sidebar-collection-name').allTextContents().then((names) => names.map((name) => name.trim()));
+
+const waitForListedCollections = (page: Page, expected: number, timeout: number) => page
+  .waitForFunction((count) => document.querySelectorAll('#sidebar-collection-name').length >= count, expected, { timeout, polling: 250 })
+  .then(() => true, () => false);
+
+const addCollectionThroughDialog = async (app: ElectronApplication, page: Page, dir: string) => {
+  await app.evaluate(({ dialog }, { dir: pickedDir }) => {
+    dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [pickedDir] });
+  }, { dir });
+  await page.getByTestId('collections-header-add-menu').click({ timeout: UI_ACTION_TIMEOUT_MS });
+  await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click({ timeout: UI_ACTION_TIMEOUT_MS });
+  await page.locator('#sidebar-collection-name').filter({ hasText: path.basename(dir) }).waitFor({ state: 'visible', timeout: UI_ACTION_TIMEOUT_MS });
+};
+
+export const ensureCollectionsListed = async (app: ElectronApplication, page: Page, collectionDirs: string[]) => {
+  if (await waitForListedCollections(page, collectionDirs.length, COLLECTIONS_LISTED_TIMEOUT_MS)) return false;
+
+  const listed = new Set(await listedCollectionNames(page));
+  for (const dir of collectionDirs.filter((d) => !listed.has(path.basename(d)))) {
+    await addCollectionThroughDialog(app, page, dir);
+  }
+
+  if (!(await waitForListedCollections(page, collectionDirs.length, COLLECTIONS_LISTED_TIMEOUT_MS))) {
+    const names = await listedCollectionNames(page);
+    throw new Error(`Expected ${collectionDirs.length} collections in the sidebar but found ${names.length} (${names.join(', ') || 'none'})`);
+  }
+  return true;
 };
 
 export const installProbes = async (page: Page) => {
@@ -90,10 +122,10 @@ const parseDurationMs = (text: string) => {
 
 export const searchFor = async (page: Page, term: string) => {
   const { openSearch, input, timings } = buildSidebarSearchLocators(page);
-  await openSearch.click();
+  await openSearch.click({ timeout: UI_ACTION_TIMEOUT_MS });
 
   const startedAt = Date.now();
-  await input.fill(term);
+  await input.fill(term, { timeout: UI_ACTION_TIMEOUT_MS });
   await page.waitForFunction(
     (label) => document.querySelector('[data-testid="sidebar-search-timings"]')?.textContent?.includes(`${label} `),
     FIRST_RESULT_LABEL,

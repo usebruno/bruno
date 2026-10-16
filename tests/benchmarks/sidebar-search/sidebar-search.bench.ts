@@ -2,6 +2,7 @@ import { test, expect, closeElectronApp, waitForReadyPage } from '../../../playw
 import { version } from '../../../packages/bruno-app/package.json';
 import {
   assertSearchTimingsAreRendered,
+  ensureCollectionsListed,
   installProbes,
   mountFirstCollection,
   searchFor
@@ -87,6 +88,9 @@ test.describe('Benchmark: Sidebar Search', () => {
           try {
             const page = await waitForReadyPage(app, { timeout: 90_000 });
             await installProbes(page);
+            if (await ensureCollectionsListed(app, page, collectionDirs)) {
+              console.log(`[BENCHMARK] ${sizeKb}KB ${scenario.name}: collections were added through the Open collection dialog because they were not listed after launch`);
+            }
             await page.waitForTimeout(800);
             if (scenario.mount) {
               measured.mountMs = await mountFirstCollection(page);
