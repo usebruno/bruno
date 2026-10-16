@@ -208,7 +208,8 @@ export const buildCommonLocators = (page: Page) => ({
     oauth2: {
       grantTypeDropdown: () => page.getByTestId('grant-type-dropdown'),
       tokenHeaderPrefixField: () => page.getByTestId('token-header-prefix'),
-      tokenQueryParamKeyField: () => page.getByTestId('token-query-param-key')
+      tokenQueryParamKeyField: () => page.getByTestId('token-query-param-key'),
+      noToken: () => page.getByTestId('oauth2-no-token')
     },
     modeSelector: () => page.getByTestId('auth-mode-selector'),
     modeLabel: () => page.getByTestId('auth-mode-label'),
