@@ -212,3 +212,18 @@ export const appendTextToCodeEditor = async (page: Page, editorId: string, text:
     }
   }, text);
 };
+
+/**
+ * Read the editor's text, cursor position and whether anything is selected.
+ */
+export const getCodeEditorState = async (
+  page: Page,
+  editorId: string
+): Promise<{ value: string; cursor: { line: number; ch: number }; hasSelection: boolean }> => {
+  const cm = page.getByTestId(editorId).locator('.CodeMirror').first();
+  return cm.evaluate((el: any) => {
+    const instance = el.CodeMirror;
+    const { line, ch } = instance.getCursor();
+    return { value: instance.getValue(), cursor: { line, ch }, hasSelection: instance.somethingSelected() };
+  });
+};
