@@ -7,7 +7,8 @@ const POLL_MS = 25;
 const INDEXING_TIMEOUT_MS = 40 * 60_000;
 const MOUNT_TIMEOUT_MS = 10 * 60_000;
 const FIRST_RESULT_TIMEOUT_MS = 10 * 60_000;
-const COLLECTIONS_LISTED_TIMEOUT_MS = 30_000;
+const PERSISTED_COLLECTIONS_TIMEOUT_MS = 5_000;
+const IMPORTED_COLLECTIONS_TIMEOUT_MS = 60_000;
 const UI_ACTION_TIMEOUT_MS = 60_000;
 const SIDEBAR_COMPONENT = path.join(process.cwd(), 'packages', 'bruno-app', 'src', 'components', 'Sidebar', 'Collections', 'index.js');
 
@@ -45,19 +46,20 @@ const addCollectionThroughDialog = async (app: ElectronApplication, page: Page, 
   await page.locator('#sidebar-collection-name').filter({ hasText: path.basename(dir) }).waitFor({ state: 'visible', timeout: UI_ACTION_TIMEOUT_MS });
 };
 
-export const ensureCollectionsListed = async (app: ElectronApplication, page: Page, collectionDirs: string[]) => {
-  if (await waitForListedCollections(page, collectionDirs.length, COLLECTIONS_LISTED_TIMEOUT_MS)) return false;
+export const importCollections = async (app: ElectronApplication, page: Page, collectionDirs: string[]) => {
+  if (await waitForListedCollections(page, collectionDirs.length, PERSISTED_COLLECTIONS_TIMEOUT_MS)) return 0;
 
   const listed = new Set(await listedCollectionNames(page));
-  for (const dir of collectionDirs.filter((d) => !listed.has(path.basename(d)))) {
+  const missing = collectionDirs.filter((dir) => !listed.has(path.basename(dir)));
+  for (const dir of missing) {
     await addCollectionThroughDialog(app, page, dir);
   }
 
-  if (!(await waitForListedCollections(page, collectionDirs.length, COLLECTIONS_LISTED_TIMEOUT_MS))) {
+  if (!(await waitForListedCollections(page, collectionDirs.length, IMPORTED_COLLECTIONS_TIMEOUT_MS))) {
     const names = await listedCollectionNames(page);
-    throw new Error(`Expected ${collectionDirs.length} collections in the sidebar but found ${names.length} (${names.join(', ') || 'none'})`);
+    throw new Error(`Expected ${collectionDirs.length} collections in the sidebar after importing but found ${names.length} (${names.join(', ') || 'none'})`);
   }
-  return true;
+  return missing.length;
 };
 
 export const installProbes = async (page: Page) => {

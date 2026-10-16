@@ -2,7 +2,7 @@ import { test, expect, closeElectronApp, waitForReadyPage } from '../../../playw
 import { version } from '../../../packages/bruno-app/package.json';
 import {
   assertSearchTimingsAreRendered,
-  ensureCollectionsListed,
+  importCollections,
   installProbes,
   mountFirstCollection,
   searchFor
@@ -39,14 +39,13 @@ const collectionDirsFor = (sizeKb: number) => {
   return dirs;
 };
 
-const writePreferences = (userDataPath: string, collectionDirs: string[]) => {
+const writePreferences = (userDataPath: string) => {
   fs.writeFileSync(path.join(userDataPath, 'preferences.json'), JSON.stringify({
     preferences: {
       onboarding: { hasLaunchedBefore: true, hasSeenWelcomeModal: true, lastSeenVersion: version },
       ai: { enabled: false },
       cache: { file: { enabled: true }, searchIndex: { enabled: true } }
-    },
-    lastOpenedCollections: collectionDirs
+    }
   }, null, 2));
 };
 
@@ -73,7 +72,7 @@ test.describe('Benchmark: Sidebar Search', () => {
 
       const collectionDirs = collectionDirsFor(sizeKb);
       const userDataPath = await createTmpDir(`sidebar-search-${sizeKb}KB`);
-      writePreferences(userDataPath, collectionDirs);
+      writePreferences(userDataPath);
 
       const sizeResult: SizeResult = { sizeKb, term: SEARCH_TERM, scenarios: [] };
       results.push(sizeResult);
@@ -87,10 +86,11 @@ test.describe('Benchmark: Sidebar Search', () => {
           const app = await launchElectronApp({ userDataPath });
           try {
             const page = await waitForReadyPage(app, { timeout: 90_000 });
-            await installProbes(page);
-            if (await ensureCollectionsListed(app, page, collectionDirs)) {
-              console.log(`[BENCHMARK] ${sizeKb}KB ${scenario.name}: collections were added through the Open collection dialog because they were not listed after launch`);
+            const imported = await importCollections(app, page, collectionDirs);
+            if (imported) {
+              console.log(`[BENCHMARK] ${sizeKb}KB ${scenario.name}: imported ${imported} collections through the Open collection dialog`);
             }
+            await installProbes(page);
             await page.waitForTimeout(800);
             if (scenario.mount) {
               measured.mountMs = await mountFirstCollection(page);
