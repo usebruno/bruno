@@ -7,8 +7,7 @@ import {
   getIssuedStateFromAuthorizationUrl,
   loginToKeycloakForAuthCode,
   fireDeepLinkCallback,
-  getCapturedCallbackUrl,
-  getCallbackParams,
+  readFetchedAccessToken,
   expectStateMismatchWithoutToken
 } from './helpers';
 
@@ -18,6 +17,7 @@ const CALLBACK_URL = 'bruno://app/oauth2/callback';
 const PROVIDER_AUTH_CODE = 'provider-auth-code';
 const PROVIDER_ACCESS_TOKEN = 'provider-access-token';
 const WRONG_STATE = 'not-the-issued-state';
+const USER_STATE = 'brunoUserState';
 // Bruno issues crypto.randomBytes(16).toString('hex') when no user state is configured.
 const GENERATED_STATE_PATTERN = /^[0-9a-f]{32}$/;
 
@@ -34,7 +34,6 @@ test.describe('OAuth2 callback state validation', () => {
   test.describe.configure({ timeout: 60_000 });
 
   test('authorization code: (user-supplied state): issues userState accepts matching callback', async ({ restartApp }) => {
-    const USER_STATE = 'brunoUserState';
     const { app, page } = await startOAuth2Flow(restartApp, 'AuthCodeUserSuppliedState');
 
     const authUrl = await getCapturedAuthUrl(app);
@@ -52,18 +51,9 @@ test.describe('OAuth2 callback state validation', () => {
 
     const callbackUrl = `${CALLBACK_URL}?code=${authCode}&state=${encodeURIComponent(issuedState)}`;
 
-    await test.step('deliver a callback with the matching state', async () => {
-      await fireDeepLinkCallback(app, callbackUrl);
+    await fireDeepLinkCallback(app, callbackUrl);
 
-      const receivedCallbackUrl = await getCapturedCallbackUrl(app);
-      expect(receivedCallbackUrl).toBe(callbackUrl);
-
-      const { state: returnedState, code } = getCallbackParams(receivedCallbackUrl as string);
-      expect(returnedState).toBe(issuedState);
-      expect(code).toBe(authCode);
-    });
-
-    await expect(page.getByText('Token fetched successfully!')).toBeVisible({ timeout: 15_000 });
+    expect(await readFetchedAccessToken(page)).toBeTruthy();
   });
 
   test('authorization code: (no state): issues a random state accepts matching callback', async ({ restartApp }) => {
@@ -84,43 +74,21 @@ test.describe('OAuth2 callback state validation', () => {
 
     const callbackUrl = `${CALLBACK_URL}?code=${authCode}&state=${encodeURIComponent(issuedState)}`;
 
-    await test.step('deliver a callback with the matching state', async () => {
-      await fireDeepLinkCallback(app, callbackUrl);
+    await fireDeepLinkCallback(app, callbackUrl);
 
-      const receivedCallbackUrl = await getCapturedCallbackUrl(app);
-      expect(receivedCallbackUrl).toBe(callbackUrl);
-
-      const { state: returnedState, code } = getCallbackParams(receivedCallbackUrl as string);
-      expect(returnedState).toBe(issuedState);
-      expect(code).toBe(authCode);
-    });
-
-    await expect(page.getByText('Token fetched successfully!')).toBeVisible({ timeout: 15_000 });
+    expect(await readFetchedAccessToken(page)).toBeTruthy();
   });
 
   test('authorization code: rejects callback when returned state does not match issued state', async ({ restartApp }) => {
     const { app, page } = await startOAuth2Flow(restartApp, 'AuthorizationCode');
 
-    const issuedState = await getIssuedStateFromAuthorizationUrl(app);
-
     const callbackUrl = `${CALLBACK_URL}?code=${PROVIDER_AUTH_CODE}&state=${WRONG_STATE}`;
-    await test.step('deliver a callback with a mismatched state', async () => {
-      await fireDeepLinkCallback(app, callbackUrl);
-
-      const receivedCallbackUrl = await getCapturedCallbackUrl(app);
-      expect(receivedCallbackUrl).toBe(callbackUrl);
-
-      const { state: returnedState, code } = getCallbackParams(receivedCallbackUrl as string);
-      expect(returnedState).toBe(WRONG_STATE);
-      expect(returnedState).not.toBe(issuedState);
-      expect(code).toBe(PROVIDER_AUTH_CODE);
-    });
+    await fireDeepLinkCallback(app, callbackUrl);
 
     await expectStateMismatchWithoutToken(page);
   });
 
   test('implicit grant: (user-supplied state): issues userState accepts matching callback', async ({ restartApp }) => {
-    const USER_STATE = 'brunoUserState';
     const { app, page } = await startOAuth2Flow(restartApp, 'ImplicitUserSuppliedState');
 
     const issuedState = await test.step('capture and verify the issued state carries userState', async () => {
@@ -132,18 +100,9 @@ test.describe('OAuth2 callback state validation', () => {
     const callbackUrl
       = `${CALLBACK_URL}#access_token=${PROVIDER_ACCESS_TOKEN}&token_type=Bearer&expires_in=3600&state=${encodeURIComponent(issuedState)}`;
 
-    await test.step('deliver a callback with the matching state', async () => {
-      await fireDeepLinkCallback(app, callbackUrl);
+    await fireDeepLinkCallback(app, callbackUrl);
 
-      const receivedCallbackUrl = await getCapturedCallbackUrl(app);
-      expect(receivedCallbackUrl).toBe(callbackUrl);
-
-      const { state: returnedState, access_token } = getCallbackParams(receivedCallbackUrl as string, 'hash');
-      expect(returnedState).toBe(issuedState);
-      expect(access_token).toBe(PROVIDER_ACCESS_TOKEN);
-    });
-
-    await expect(page.getByText('Token fetched successfully!')).toBeVisible({ timeout: 15_000 });
+    expect(await readFetchedAccessToken(page)).toBe(PROVIDER_ACCESS_TOKEN);
   });
 
   test('implicit grant: (no state): issues a random state accepts matching callback', async ({ restartApp }) => {
@@ -158,38 +117,17 @@ test.describe('OAuth2 callback state validation', () => {
     const callbackUrl
       = `${CALLBACK_URL}#access_token=${PROVIDER_ACCESS_TOKEN}&token_type=Bearer&expires_in=3600&state=${encodeURIComponent(issuedState)}`;
 
-    await test.step('deliver a callback with the matching state', async () => {
-      await fireDeepLinkCallback(app, callbackUrl);
+    await fireDeepLinkCallback(app, callbackUrl);
 
-      const receivedCallbackUrl = await getCapturedCallbackUrl(app);
-      expect(receivedCallbackUrl).toBe(callbackUrl);
-
-      const { state: returnedState, access_token } = getCallbackParams(receivedCallbackUrl as string, 'hash');
-      expect(returnedState).toBe(issuedState);
-      expect(access_token).toBe(PROVIDER_ACCESS_TOKEN);
-    });
-
-    await expect(page.getByText('Token fetched successfully!')).toBeVisible({ timeout: 15_000 });
+    expect(await readFetchedAccessToken(page)).toBe(PROVIDER_ACCESS_TOKEN);
   });
 
   test('implicit grant: rejects callback when returned state does not match issued state', async ({ restartApp }) => {
     const { app, page } = await startOAuth2Flow(restartApp, 'AuthorizationImplicit');
 
-    const issuedState = await test.step('capture the issued state', () => getIssuedStateFromAuthorizationUrl(app));
-
     const callbackUrl = `${CALLBACK_URL}#access_token=${PROVIDER_ACCESS_TOKEN}&token_type=Bearer&state=${WRONG_STATE}`;
 
-    await test.step('deliver a callback with a mismatched state', async () => {
-      await fireDeepLinkCallback(app, callbackUrl);
-
-      const receivedCallbackUrl = await getCapturedCallbackUrl(app);
-      expect(receivedCallbackUrl).toBe(callbackUrl);
-
-      const { state: returnedState, access_token } = getCallbackParams(receivedCallbackUrl as string, 'hash');
-      expect(returnedState).toBe(WRONG_STATE);
-      expect(returnedState).not.toBe(issuedState);
-      expect(access_token).toBe(PROVIDER_ACCESS_TOKEN);
-    });
+    await fireDeepLinkCallback(app, callbackUrl);
 
     await expectStateMismatchWithoutToken(page);
   });

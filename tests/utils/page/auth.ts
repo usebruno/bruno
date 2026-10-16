@@ -10,7 +10,9 @@ export const buildAuthLocators = (page: Page) => ({
     signatureMethodDropdown: () => page.getByTestId('oauth1-signature-method-dropdown'),
     signatureMethodMenu: () => page.getByTestId('oauth1-signature-method-dropdown-dropdown'),
     placementDropdown: () => page.getByTestId('oauth1-placement-dropdown'),
-    placementMenu: () => page.getByTestId('oauth1-placement-dropdown-dropdown')
+    placementMenu: () => page.getByTestId('oauth1-placement-dropdown-dropdown'),
+    placementSelector: () => page.getByTestId('auth-placement-selector'),
+    placementLabel: () => page.getByTestId('auth-placement-label')
   },
   oauth2: {
     grantTypeDropdown: () => page.getByTestId('grant-type-dropdown'),
@@ -25,7 +27,8 @@ export const buildAuthLocators = (page: Page) => ({
     clearCacheButton: () => page.getByRole('button', { name: 'Clear Cache' }),
     tokenSection: (title: string) => page.getByRole('heading', { name: title, exact: true }),
     copyTokenButton: () => page.getByRole('button', { name: 'Copy token' }),
-    noToken: () => page.getByTestId('oauth2-no-token')
+    noToken: () => page.getByTestId('oauth2-no-token'),
+    tokenValue: (title: string) => page.getByTestId(`oauth2-token-value-${title}`)
   },
   modeSelector: () => page.getByTestId('auth-mode-selector'),
   modeLabel: () => page.getByTestId('auth-mode-label'),
