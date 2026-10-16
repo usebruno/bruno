@@ -46,7 +46,6 @@
   --bru-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   --dim-toolbar-contents-height: 4rem;
-  --dim-footer-height: 4.5rem;
 
   /* TypeDoc tokens, light */
   --light-color-background: #ffffff;
@@ -401,11 +400,14 @@ pre,
   color: var(--bru-heading);
 }
 
+/* TypeDoc's script builds this icon without a viewBox, so a smaller width would crop it rather
+   than scale it. Keep its native 20px and zoom it down to 14px instead. */
 .site-menu .tsd-accordion > .tsd-accordion-summary > svg {
   order: 2;
   flex: none;
-  width: 0.875rem;
-  height: 0.875rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  zoom: 0.7;
   color: var(--bru-muted);
 }
 
@@ -503,25 +505,6 @@ pre,
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--bru-muted);
-}
-
-.tsd-filter-input svg {
-  width: 1.1rem;
-  height: 1.1rem;
-}
-
-.tsd-checkbox-background {
-  fill: var(--bru-inline-code-bg);
-  stroke: var(--bru-border);
-}
-
-input[type='checkbox']:checked ~ svg .tsd-checkbox-background {
-  fill: var(--bru-accent);
-  stroke: var(--bru-accent);
-}
-
-input[type='checkbox']:checked ~ svg .tsd-checkbox-checkmark {
-  stroke: #fff;
 }
 
 #tsd-theme {
@@ -982,31 +965,9 @@ dd.tsd-member-summary:empty {
 
 /* ---------- Footer ---------- */
 
+/* TypeDoc writes a <footer> even with no footer content or generator line. */
 footer {
-  display: flex;
-  align-items: center;
-  border-top: 1px solid var(--bru-border-soft);
-  padding: 1.5rem 2rem;
-  font-size: 0.875rem;
-  color: var(--bru-muted);
-}
-
-footer > p {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  margin: 0 auto;
-  width: 100%;
-  max-width: 92rem;
-}
-
-footer a {
-  color: var(--bru-muted);
-}
-
-footer a:hover {
-  color: var(--bru-heading);
-  text-decoration: none;
+  display: none;
 }
 
 /* ---------- Scrollbars ---------- */

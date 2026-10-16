@@ -16,7 +16,7 @@
     "Discord": "https://discord.com/invite/KgcZUncpjq"
   },
   "hideGenerator": true,
-  "customFooterHtml": "<span>© Bruno</span><a href=\"https://docs.usebruno.com\">Documentation</a><a href=\"https://github.com/usebruno/bruno\">GitHub</a><a href=\"https://discord.com/invite/KgcZUncpjq\">Discord</a>",
+  "visibilityFilters": {},
   "disableSources": true,
   "excludeExternals": true,
   "categorizeByGroup": false,
