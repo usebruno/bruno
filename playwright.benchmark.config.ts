@@ -18,6 +18,12 @@ export default defineConfig({
     {
       name: 'benchmarks',
       testDir: './tests/benchmarks',
+      testMatch: '**/*.bench.ts',
+      testIgnore: 'sidebar-search/**'
+    },
+    {
+      name: 'sidebar-search',
+      testDir: './tests/benchmarks/sidebar-search',
       testMatch: '**/*.bench.ts'
     }
   ],

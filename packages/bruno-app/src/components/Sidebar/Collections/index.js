@@ -347,11 +347,11 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
           data-testid="sidebar-progress"
         />
       )}
-      {/* {trimmedSearchText && searchTimings.length > 0 && (
+      {trimmedSearchText && searchTimings.length > 0 && (
         <div className="search-timings" data-testid="sidebar-search-timings">
           {searchTimings.map((ms, index) => `${SEARCH_TIMING_LABELS[index]} ${formatDuration(ms)}`).join(' · ')}
         </div>
-      )} */}
+      )}
       {/* {trimmedSearchText && searchCounts && searchCounts.loaded < searchCounts.total && (
         <div className="search-more-hint" data-testid="sidebar-search-more">
           Showing {searchCounts.loaded} of {searchCounts.total} matches. Scroll down to load more.

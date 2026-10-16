@@ -1,0 +1,118 @@
+import { type Page } from '@playwright/test';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+
+const FIRST_RESULT_LABEL = '1st';
+const POLL_MS = 25;
+const INDEXING_TIMEOUT_MS = 40 * 60_000;
+const MOUNT_TIMEOUT_MS = 10 * 60_000;
+const FIRST_RESULT_TIMEOUT_MS = 10 * 60_000;
+const SIDEBAR_COMPONENT = path.join(process.cwd(), 'packages', 'bruno-app', 'src', 'components', 'Sidebar', 'Collections', 'index.js');
+
+export const buildSidebarSearchLocators = (page: Page) => ({
+  openSearch: page.getByTitle('Search requests'),
+  input: page.getByTestId('sidebar-search-input'),
+  timings: page.getByTestId('sidebar-search-timings'),
+  firstCollection: page.locator('#sidebar-collection-name').first()
+});
+
+export const assertSearchTimingsAreRendered = () => {
+  const source = fs.readFileSync(SIDEBAR_COMPONENT, 'utf-8');
+  const at = source.indexOf('data-testid="sidebar-search-timings"');
+  if (at === -1) {
+    throw new Error(`The sidebar search timing line (data-testid="sidebar-search-timings") is missing from ${SIDEBAR_COMPONENT}`);
+  }
+  const before = source.slice(0, at);
+  if (before.lastIndexOf('{/*') > before.lastIndexOf('*/}')) {
+    throw new Error(`The sidebar search timing line is commented out in ${SIDEBAR_COMPONENT}; the benchmark reads its first-result time from it`);
+  }
+};
+
+export const installProbes = async (page: Page) => {
+  await page.evaluate(() => {
+    const bench: any = { indexing: [], loader: [], mountDoneAt: null };
+    (window as any).__bench = bench;
+    (window as any).ipcRenderer.on('main:search-index-status', (status: any) => {
+      bench.indexing.push({ t: Date.now(), isIndexing: !!(status && status.isIndexing) });
+    });
+    let loaderVisible = false;
+    const checkLoader = () => {
+      const visible = Boolean(document.querySelector('[data-testid="sidebar-progress"][role="progressbar"]'));
+      if (visible !== loaderVisible) {
+        loaderVisible = visible;
+        bench.loader.push({ t: Date.now(), visible });
+      }
+    };
+    new MutationObserver(checkLoader).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['role'] });
+  });
+};
+
+export const waitForIndexingIdle = async (page: Page, { quietPolls = 3, quietPollsWhenNeverIndexing = 6, timeoutMs = INDEXING_TIMEOUT_MS } = {}) => {
+  const started = Date.now();
+  let quiet = 0;
+  while (Date.now() - started < timeoutMs) {
+    const status = await page.evaluate(() => (window as any).ipcRenderer.invoke('renderer:get-search-index-status')).catch(() => ({ isIndexing: true }));
+    const seen = await page.evaluate(() => (window as any).__bench.indexing.some((e: any) => e.isIndexing)).catch(() => false);
+    quiet = status.isIndexing ? 0 : quiet + 1;
+    if (quiet >= (seen ? quietPolls : quietPollsWhenNeverIndexing)) return;
+    await page.waitForTimeout(1000);
+  }
+  throw new Error(`The search index was still indexing after ${Math.round(timeoutMs / 60_000)} minutes`);
+};
+
+export const mountFirstCollection = async (page: Page) => {
+  const { firstCollection } = buildSidebarSearchLocators(page);
+  await page.evaluate(() => {
+    const bench = (window as any).__bench;
+    bench.mountDoneAt = null;
+    const off = (window as any).ipcRenderer.on('main:collection-loading-state-updated', (state: any) => {
+      if (!state.isLoading) {
+        off();
+        bench.mountDoneAt = Date.now();
+      }
+    });
+  });
+
+  const started = Date.now();
+  await firstCollection.click({ timeout: MOUNT_TIMEOUT_MS });
+  await page.waitForFunction(() => (window as any).__bench.mountDoneAt !== null, null, { timeout: MOUNT_TIMEOUT_MS, polling: 250 });
+  const mountDoneAt = await page.evaluate(() => (window as any).__bench.mountDoneAt as number);
+  await page.waitForTimeout(3000);
+  await waitForIndexingIdle(page, { quietPolls: 2, quietPollsWhenNeverIndexing: 2, timeoutMs: MOUNT_TIMEOUT_MS });
+  return mountDoneAt - started;
+};
+
+const parseDurationMs = (text: string) => {
+  const match = text.match(/^\s*1st\s+([\d.]+)\s*(ms|s)\b/);
+  if (!match) throw new Error(`Could not read the first-result time from the sidebar timing line: "${text}"`);
+  return Number(match[1]) * (match[2] === 's' ? 1000 : 1);
+};
+
+export const searchFor = async (page: Page, term: string) => {
+  const { openSearch, input, timings } = buildSidebarSearchLocators(page);
+  await openSearch.click();
+
+  const startedAt = Date.now();
+  await input.fill(term);
+  await page.waitForFunction(
+    (label) => document.querySelector('[data-testid="sidebar-search-timings"]')?.textContent?.includes(`${label} `),
+    FIRST_RESULT_LABEL,
+    { timeout: FIRST_RESULT_TIMEOUT_MS, polling: POLL_MS }
+  );
+  const labelShownAt = Date.now();
+  const firstResultMs = parseDurationMs((await timings.textContent()) ?? '');
+
+  await waitForIndexingIdle(page);
+
+  const { indexing, loader } = await page.evaluate(() => {
+    const bench = (window as any).__bench;
+    return { indexing: bench.indexing as { t: number; isIndexing: boolean }[], loader: bench.loader as { t: number; visible: boolean }[] };
+  });
+  const lastHidden = [...loader].reverse().find((e) => !e.visible && e.t >= startedAt);
+  const settledMs = Math.max(lastHidden ? lastHidden.t : 0, labelShownAt) - startedAt;
+  const firstIndexingStart = indexing.find((e) => e.isIndexing);
+  const lastIndexingEnd = [...indexing].reverse().find((e) => !e.isIndexing);
+  const indexingMs = firstIndexingStart && lastIndexingEnd ? lastIndexingEnd.t - firstIndexingStart.t : null;
+
+  return { firstResultMs, settledMs, indexingMs };
+};
