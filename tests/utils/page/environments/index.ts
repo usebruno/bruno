@@ -2,6 +2,8 @@ import { Page, test } from '../../../../playwright';
 import { buildCollectionHeaderLocators } from '../collection/collection-header';
 import { buildEnvSidebarActionsLocators } from './env-sidebar-actions';
 
+export * from './env-sidebar-actions';
+
 export type EnvironmentScope = 'collection' | 'global';
 export type EnvironmentTableColumn = 'name' | 'value' | 'description';
 

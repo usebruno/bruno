@@ -11,7 +11,7 @@ const CollapsibleSection = ({
   children,
   testId,
   contentRef,
-  focusable = false,
+  contentTabIndex,
   onContentClick,
   contentTestId
 }) => {
@@ -35,7 +35,7 @@ const CollapsibleSection = ({
           </div>
         )}
       </div>
-      <div className="section-content" ref={contentRef} tabIndex={focusable ? -1 : undefined} onClick={onContentClick} data-testid={contentTestId}>
+      <div className="section-content" ref={contentRef} tabIndex={contentTabIndex} onClick={onContentClick} data-testid={contentTestId}>
         {children}
       </div>
     </StyledWrapper>

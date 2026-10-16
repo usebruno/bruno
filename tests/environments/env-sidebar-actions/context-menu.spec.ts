@@ -1,7 +1,8 @@
 import { test, expect } from '../../../playwright';
 import { closeAllCollections } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
-import { ENV_NAMES, ctrlClickRows, openEnvironmentsList, openRowContextMenu } from './helpers';
+import { ENV_NAMES, openEnvironmentsList } from './helpers';
+import { ctrlClickRows, openRowContextMenu } from '../../utils/page/environments';
 
 const [ENV_1, ENV_2, ENV_3, ENV_4] = ENV_NAMES;
 
@@ -108,8 +109,8 @@ test.describe('Collection environments context menu', () => {
     await expect(exportModal.root()).toBeVisible();
     await expect(exportModal.environmentCheckbox(ENV_1)).toBeChecked();
     await expect(exportModal.environmentCheckbox(ENV_3)).toBeChecked();
-    // Every environment is listed, so a parent can be added, but only the targets start checked.
-    await expect(exportModal.environmentCheckbox(ENV_2)).not.toBeChecked();
+    // Only the targets and what they inherit are listed.
+    await expect(exportModal.environmentCheckbox(ENV_2)).toHaveCount(0);
     await expect(exportModal.submit()).toHaveText('Export 2 Environments');
 
     await page.keyboard.press('Escape');

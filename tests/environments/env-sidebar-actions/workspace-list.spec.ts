@@ -1,15 +1,14 @@
 import { test, expect } from '../../../playwright';
 import { buildCommonLocators } from '../../utils/page/locators';
+import { ENV_NAMES, openWorkspaceEnvironments } from './helpers';
 import {
   DELETE_KEY,
-  ENV_NAMES,
   SELECT_ALL_KEY,
   clickEmptyListSpace,
   ctrlClickRows,
   deleteAllWorkspaceEnvironments,
-  openRowContextMenu,
-  openWorkspaceEnvironments
-} from './helpers';
+  openRowContextMenu
+} from '../../utils/page/environments';
 
 const [ENV_1, ENV_2, ENV_3, ENV_4] = ENV_NAMES;
 
@@ -64,18 +63,24 @@ test.describe('Workspace environments list', () => {
       await ctrlClickRows(page, [ENV_2, ENV_3], 'global');
       await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2, ENV_3]);
 
-      await searchInput().fill('3');
-      await expect(rowNames()).toHaveText([ENV_3]);
-      await expect(selectedRowNames()).toHaveText([ENV_3]);
+      await test.step('Searching hides Env 1 and Env 2, so only Env 3 counts as selected', async () => {
+        await searchInput().fill('3');
+        await expect(rowNames()).toHaveText([ENV_3]);
+        await expect(selectedRowNames()).toHaveText([ENV_3]);
+      });
 
-      await openRowContextMenu(page, ENV_3, 'global');
-      await contextMenuItem('delete').click();
-      await deleteModal.confirm().click();
-      await expect(deleteModal.root()).toBeHidden();
+      await test.step('Deleting from the context menu removes only the visible environment', async () => {
+        await openRowContextMenu(page, ENV_3, 'global');
+        await contextMenuItem('delete').click();
+        await deleteModal.confirm().click();
+        await expect(deleteModal.root()).toBeHidden();
+      });
 
-      await searchInput().fill('');
-      await expect(rowNames()).toHaveText([ENV_1, ENV_2, ENV_4]);
-      await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2]);
+      await test.step('Clearing the search brings the hidden selection back', async () => {
+        await searchInput().fill('');
+        await expect(rowNames()).toHaveText([ENV_1, ENV_2, ENV_4]);
+        await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2]);
+      });
     });
   });
 
@@ -123,6 +128,19 @@ test.describe('Workspace environments list', () => {
 
       await expect(rowRenameInput()).toBeHidden();
       await expect(rowNames()).toHaveText([ENV_1, renamed, ENV_3, ENV_4]);
+    });
+
+    test('rename with an unchanged name closes the input when clicking outside', async ({ page }) => {
+      const { rowMenuButton, rowMenuItem, rowRenameInput, rowNames } = buildCommonLocators(page).environment.workspaceSidebarActions;
+
+      await rowMenuButton(ENV_2).click();
+      await rowMenuItem('rename').click();
+      await expect(rowRenameInput()).toHaveValue(ENV_2);
+
+      await clickEmptyListSpace(page, 'global');
+
+      await expect(rowRenameInput()).toBeHidden();
+      await expect(rowNames()).toHaveText(ENV_NAMES);
     });
 
     test('rename with an invalid name stays open when clicking outside', async ({ page }) => {
@@ -199,7 +217,8 @@ test.describe('Workspace environments list', () => {
 
       await expect(exportModal.root()).toBeVisible();
       await expect(exportModal.environmentCheckbox(ENV_2)).toBeChecked();
-      await expect(exportModal.environmentCheckbox(ENV_1)).not.toBeChecked();
+      // Env 1 is neither exported nor inherited, so it is not listed.
+      await expect(exportModal.environmentCheckbox(ENV_1)).toHaveCount(0);
       await expect(exportModal.submit()).toHaveText('Export 1 Environment');
 
       await page.keyboard.press('Escape');

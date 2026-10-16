@@ -15,6 +15,10 @@ const StyledWrapper = styled.div`
     border-radius: 0.25rem;
     transition: background-color 0.15s ease;
 
+    &:hover {
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+    }
+
     .environment-name {
       color: ${(props) => props.theme.text};
       overflow: hidden;

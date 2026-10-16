@@ -1,41 +1,25 @@
 import React from 'react';
-import styled from 'styled-components';
 import { IconCommand, IconBackspace } from '@tabler/icons';
 import { isMacOS } from 'utils/common/platform';
-
-const Shortcut = styled.span`
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-`;
-
-const Keycap = styled.span`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 12px;
-  height: 15px;
-  font-size: 12px;
-  line-height: 1;
-`;
+import StyledWrapper from './StyledWrapper';
 
 const CommandKeyIcon = () => <IconCommand size={13} strokeWidth={2} />;
 
 export const SelectAllShortcutHint = () => (
-  <Shortcut>
-    <Keycap>{isMacOS() ? <CommandKeyIcon /> : 'Ctrl'}</Keycap>
-    <Keycap>A</Keycap>
-  </Shortcut>
+  <StyledWrapper>
+    <span className="keycap">{isMacOS() ? <CommandKeyIcon /> : 'Ctrl'}</span>
+    <span className="keycap">A</span>
+  </StyledWrapper>
 );
 
 export const DeleteShortcutHint = () =>
   isMacOS() ? (
-    <Shortcut>
-      <Keycap><CommandKeyIcon /></Keycap>
-      <Keycap><IconBackspace size={13} strokeWidth={2} /></Keycap>
-    </Shortcut>
+    <StyledWrapper>
+      <span className="keycap"><CommandKeyIcon /></span>
+      <span className="keycap"><IconBackspace size={13} strokeWidth={2} /></span>
+    </StyledWrapper>
   ) : (
-    <Shortcut>
-      <Keycap>Del</Keycap>
-    </Shortcut>
+    <StyledWrapper>
+      <span className="keycap">Del</span>
+    </StyledWrapper>
   );

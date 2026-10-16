@@ -14,7 +14,7 @@ import DotEnvFileEditor from 'components/Environments/DotEnvFileEditor';
 import DotEnvFileDetails from 'components/Environments/DotEnvFileDetails';
 import ColorBadge from 'components/ColorBadge';
 import CopyEnvironment from '../CopyEnvironment';
-import DeleteEnvironments from '../DeleteEnvironments';
+import DeleteCollectionEnvironments from '../DeleteCollectionEnvironments';
 import ExportEnvironmentModal from 'components/Environments/Common/ExportEnvironmentModal';
 import ContextMenu from 'ui/ContextMenu';
 import RowActionsMenu from 'components/Environments/Common/EnvironmentSelection/RowActionsMenu';
@@ -316,6 +316,14 @@ const EnvironmentList = ({
   };
 
   const handleSaveRename = () => {
+    const renamingEnv = environments?.find((env) => env.uid === renamingEnvUid);
+    if (renamingEnv && newEnvName.trim() === renamingEnv.name) {
+      setRenamingEnvUid(null);
+      setNewEnvName('');
+      setEnvNameError('');
+      return;
+    }
+
     const error = validateEnvironmentName(newEnvName, renamingEnvUid);
     if (error) {
       setEnvNameError(error);
@@ -530,7 +538,10 @@ const EnvironmentList = ({
     onOpenEnvironment: handleEnvironmentClick
   });
 
+  const scopeRef = useRef(null);
+
   const actions = useEnvironmentActions({
+    scopeRef,
     environments,
     selectedEnvUids: selection.selectedEnvUids,
     onRenameEnvironment: handleEnvironmentDoubleClick,
@@ -546,7 +557,8 @@ const EnvironmentList = ({
     selectAllEnvs();
   }, [closeMenu, selectAllEnvs]);
 
-  const { scopeRef } = useEnvironmentShortcuts({
+  useEnvironmentShortcuts({
+    scopeRef,
     hasSelection: selection.hasSelection,
     isModalOpen: actions.isModalOpen,
     isMenuOpen: actions.isMenuOpen,
@@ -658,8 +670,8 @@ const EnvironmentList = ({
       )}
 
       {actions.isDeleteModalOpen && (
-        <DeleteEnvironments
-          collection={collection}
+        <DeleteCollectionEnvironments
+          collectionUid={collection.uid}
           environments={actions.targetEnvironments}
           activeEnvironmentUid={activeEnvironmentUid}
           onClose={actions.closeDeleteModal}
@@ -687,7 +699,7 @@ const EnvironmentList = ({
             <CollapsibleSection
               title="Environments"
               contentRef={scopeRef}
-              focusable
+              contentTabIndex={-1}
               contentTestId="collection-environments-section-content"
               onContentClick={selection.handleBackgroundClick}
               expanded={environmentsExpanded}

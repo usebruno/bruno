@@ -1,15 +1,8 @@
 import { test, expect } from '../../../playwright';
 import { closeAllCollections } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
-import {
-  DELETE_KEY,
-  ENV_NAMES,
-  IS_MAC,
-  SELECT_ALL_KEY,
-  ctrlClickRows,
-  openEnvironmentsList,
-  openRowContextMenu
-} from './helpers';
+import { ENV_NAMES, openEnvironmentsList } from './helpers';
+import { DELETE_KEY, IS_MAC, SELECT_ALL_KEY, ctrlClickRows, openRowContextMenu } from '../../utils/page/environments';
 
 const [ENV_1, ENV_2, ENV_3, ENV_4] = ENV_NAMES;
 
@@ -30,8 +23,10 @@ test.describe('Collection environments list shortcuts', () => {
 
     await expect(rowMenuShortcut('select-all')).toBeVisible();
     await expect(rowMenuShortcut('delete')).toBeVisible();
-    // macOS renders the Delete hint as icons, so its text is only checked elsewhere.
-    if (!IS_MAC) {
+    // macOS renders the Delete hint as two icons (Command and Backspace), the others as text.
+    if (IS_MAC) {
+      await expect(rowMenuShortcut('delete').locator('svg')).toHaveCount(2);
+    } else {
       await expect(rowMenuShortcut('delete')).toHaveText('Del');
     }
   });
@@ -43,7 +38,9 @@ test.describe('Collection environments list shortcuts', () => {
 
     await expect(contextMenuShortcut('select-all')).toBeVisible();
     await expect(contextMenuShortcut('delete')).toBeVisible();
-    if (!IS_MAC) {
+    if (IS_MAC) {
+      await expect(contextMenuShortcut('delete').locator('svg')).toHaveCount(2);
+    } else {
       await expect(contextMenuShortcut('delete')).toHaveText('Del');
     }
   });

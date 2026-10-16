@@ -3,7 +3,7 @@ import { useDispatch } from 'react-redux';
 import DeleteEnvironmentsModal from 'components/Environments/Common/DeleteEnvironmentsModal';
 import { deleteGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 
-const DeleteEnvironments = (props) => {
+const DeleteGlobalEnvironments = (props) => {
   const dispatch = useDispatch();
 
   const onDeleteEnvironment = useCallback(
@@ -14,4 +14,4 @@ const DeleteEnvironments = (props) => {
   return <DeleteEnvironmentsModal environmentType="global" onDeleteEnvironment={onDeleteEnvironment} {...props} />;
 };
 
-export default DeleteEnvironments;
+export default DeleteGlobalEnvironments;

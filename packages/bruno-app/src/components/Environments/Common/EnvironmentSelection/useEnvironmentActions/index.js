@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 
 const useEnvironmentActions = ({
+  scopeRef,
   environments,
   selectedEnvUids,
   onRenameEnvironment,
@@ -73,15 +74,18 @@ const useEnvironmentActions = ({
 
   const closeExportModal = useCallback(() => {
     setIsExportModalOpen(false);
-  }, []);
+    scopeRef.current?.focus();
+  }, [scopeRef]);
 
   const closeCopyModal = useCallback(() => {
     setIsCopyModalOpen(false);
-  }, []);
+    scopeRef.current?.focus();
+  }, [scopeRef]);
 
   const closeDeleteModal = useCallback(() => {
     setIsDeleteModalOpen(false);
-  }, []);
+    scopeRef.current?.focus();
+  }, [scopeRef]);
 
   const handleRenameTarget = useCallback(() => {
     const target = targetEnvironments[0];

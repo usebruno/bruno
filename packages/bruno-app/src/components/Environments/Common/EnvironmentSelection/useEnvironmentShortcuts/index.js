@@ -1,14 +1,15 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { isMacOS } from 'utils/common/platform';
 
 const isTextField = (el) => el?.tagName === 'INPUT' || el?.tagName === 'TEXTAREA' || el?.isContentEditable;
 
 /**
  * Keyboard shortcuts for the environments list. They are active only while focus is inside the
- * element that receives `scopeRef`, or while one of the list's menus is open (its portal sits outside
+ * element that `scopeRef` points to, or while one of the list's menus is open (its portal sits outside
  * the list). Modals block them, and an open menu keeps Escape for itself.
  */
 const useEnvironmentShortcuts = ({
+  scopeRef,
   hasSelection,
   isModalOpen,
   isMenuOpen,
@@ -16,18 +17,6 @@ const useEnvironmentShortcuts = ({
   onSelectAll,
   onDelete
 }) => {
-  const scopeRef = useRef(null);
-  const wasModalOpenRef = useRef(false);
-
-  // Closing a modal drops focus to <body>, which is outside the list. Hand it back so the shortcuts keep working.
-  useEffect(() => {
-    if (wasModalOpenRef.current && !isModalOpen) {
-      const active = document.activeElement;
-      if (!active || active === document.body) scopeRef.current?.focus();
-    }
-    wasModalOpenRef.current = isModalOpen;
-  }, [isModalOpen]);
-
   useEffect(() => {
     const handleKeyDown = (e) => {
       // While a modal is open every key belongs to it.
@@ -61,9 +50,7 @@ const useEnvironmentShortcuts = ({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isModalOpen, isMenuOpen, hasSelection, onClearSelection, onSelectAll, onDelete]);
-
-  return { scopeRef };
+  }, [scopeRef, isModalOpen, isMenuOpen, hasSelection, onClearSelection, onSelectAll, onDelete]);
 };
 
 export default useEnvironmentShortcuts;

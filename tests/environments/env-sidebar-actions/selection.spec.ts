@@ -1,14 +1,13 @@
 import { test, expect } from '../../../playwright';
 import { closeAllCollections } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
+import { ENV_NAMES, openEnvironmentsList } from './helpers';
 import {
-  ENV_NAMES,
   SELECT_MODIFIER,
   clickEmptyListSpace,
   ctrlClickRows,
-  openEnvironmentsList,
   openRowContextMenu
-} from './helpers';
+} from '../../utils/page/environments';
 
 const [ENV_1, ENV_2, ENV_3, ENV_4] = ENV_NAMES;
 

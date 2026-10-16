@@ -1,7 +1,8 @@
 import { test, expect } from '../../../playwright';
 import { closeAllCollections } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
-import { ENV_NAMES, clickEmptyListSpace, openEnvironmentsList } from './helpers';
+import { ENV_NAMES, openEnvironmentsList } from './helpers';
+import { clickEmptyListSpace } from '../../utils/page/environments';
 
 const [ENV_1, ENV_2, ENV_3, ENV_4] = ENV_NAMES;
 
@@ -58,6 +59,19 @@ test.describe('Collection environments row menu', () => {
 
     await expect(rowRenameInput()).toBeHidden();
     await expect(rowNames()).toHaveText([ENV_1, renamed, ENV_3, ENV_4]);
+  });
+
+  test('rename with an unchanged name closes the input when clicking outside', async ({ page }) => {
+    const { rowMenuButton, rowMenuItem, rowRenameInput, rowNames } = buildCommonLocators(page).environment.sidebarActions;
+
+    await rowMenuButton(ENV_2).click();
+    await rowMenuItem('rename').click();
+    await expect(rowRenameInput()).toHaveValue(ENV_2);
+
+    await clickEmptyListSpace(page);
+
+    await expect(rowRenameInput()).toBeHidden();
+    await expect(rowNames()).toHaveText(ENV_NAMES);
   });
 
   test('rename with an invalid name stays open when clicking outside', async ({ page }) => {
@@ -144,6 +158,8 @@ test.describe('Collection environments row menu', () => {
       await expect(exportModal.root()).toBeVisible();
       await expect(exportModal.environmentCheckbox(ENV_3)).toBeChecked();
       await expect(exportModal.environmentCheckbox(ENV_1)).not.toBeChecked();
+      // Env 2 is neither exported nor inherited, so it is not listed.
+      await expect(exportModal.environmentCheckbox(ENV_2)).toHaveCount(0);
       await expect(exportModal.submit()).toHaveText('Export 1 Environment');
       await expect(exportModal.inheritanceWarning()).toHaveCount(1);
       await expect(exportModal.inheritanceWarning()).toHaveText(/inherits\s*Env 1/);
