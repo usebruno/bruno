@@ -6,38 +6,50 @@ import {
   setGlobalEnvironmentDraft,
   clearGlobalEnvironmentDraft
 } from 'providers/ReduxStore/slices/global-environments';
+import { markEnvironmentVariableAsSecret } from 'providers/ReduxStore/slices/collections/actions';
 import EnvironmentVariablesTable from 'components/EnvironmentVariablesTable';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
-import { ENVIRONMENT_USAGE_WARNING, findUsedGlobalEnvironmentVariableUids } from 'utils/sensitive-fields';
+import { SENSITIVE_FIELD_WARNING, findUsedGlobalEnvironmentVariableUids } from 'utils/sensitive-fields';
 
 const EnvironmentVariables = ({ environment, setIsModified, collection, inheritedEnvironmentVariables, searchQuery = '', variableType = 'variables' }) => {
   const dispatch = useDispatch();
   const globalEnvironmentDraft = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft);
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const collections = useSelector((state) => state.collections.collections);
-
   const hasDraftForThisEnv = globalEnvironmentDraft?.environmentUid === environment.uid;
+
   const liveEnvironment = useMemo(() => (
     hasDraftForThisEnv ? { ...environment, variables: globalEnvironmentDraft.variables } : environment
   ), [environment, globalEnvironmentDraft, hasDraftForThisEnv]);
+
   const usedVariableUids = useMemo(
     () => findUsedGlobalEnvironmentVariableUids(collections, globalEnvironments, liveEnvironment),
     [collections, globalEnvironments, liveEnvironment]
   );
+
   const hasSensitiveUsage = useCallback((variable) => (
     !!variable?.uid && usedVariableUids.has(variable.uid)
   ), [usedVariableUids]);
-  const renderSensitiveWarning = useCallback((variable) => {
+
+  const renderSensitiveWarning = useCallback((variable, markOwnVariableAsSecret) => {
     if (!variable.secret && hasSensitiveUsage(variable)) {
+      const markAsSecret = markOwnVariableAsSecret ?? (() => dispatch(markEnvironmentVariableAsSecret({
+        environmentScope: 'global',
+        environmentUid: variable.inheritedFrom.uid,
+        variableUid: variable.uid
+      })));
       return (
         <SensitiveFieldWarning
           fieldName={variable.name}
-          warningMessage={ENVIRONMENT_USAGE_WARNING}
+          warningMessage={SENSITIVE_FIELD_WARNING.USED_IN_SENSITIVE_FIELD}
+          scope="global"
+          variableName={variable.name}
+          onMarkAsSecret={markAsSecret}
         />
       );
     }
     return null;
-  }, [hasSensitiveUsage]);
+  }, [hasSensitiveUsage, dispatch]);
 
   const handleSave = useCallback(
     (variables) => {

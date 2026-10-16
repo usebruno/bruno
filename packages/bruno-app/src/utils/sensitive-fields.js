@@ -7,9 +7,11 @@ import {
   isItemARequest
 } from './collections';
 
-export const PLAINTEXT_SENSITIVE_WARNING = 'Store sensitive info as a secret variable or in a .env file';
-export const ENVIRONMENT_SENSITIVE_WARNING = 'Mark the environment variable as secret for better security';
-export const ENVIRONMENT_USAGE_WARNING = 'This variable is used in sensitive fields. Add it as a secret for security';
+export const SENSITIVE_FIELD_WARNING = {
+  USED_AS_PLAIN_TEXT: 'Store sensitive info as a secret variable or in a .env file',
+  MARK_AS_SECRET: 'Mark the environment variable as secret for better security',
+  USED_IN_SENSITIVE_FIELD: 'This variable is used in sensitive fields. Add it as a secret for security'
+};
 
 export const plainVariableUsageWarning = (variableName) => (
   `"${variableName}" is used in a sensitive field and is stored in plain text. Move it to an environment as a secret.`
@@ -55,6 +57,11 @@ const createWarning = (scope, variableName, warningMessage) => ({
 /** {{name}} in a field value. The group is the name. */
 const VARIABLE_INTERPOLATION = /\{\{([^}]+)\}\}/g;
 
+/** Replaces each {{name}} in a value with what `replace(name, match)` returns. */
+export const replaceVariableReferences = (value, replace) => (
+  String(value ?? '').replace(VARIABLE_INTERPOLATION, (match, name) => replace(name.trim(), match))
+);
+
 /** Names inside {{ }} in a field value. */
 export const extractSensitiveVarNames = (value) => {
   if (typeof value !== 'string' || value.length === 0) {
@@ -65,7 +72,7 @@ export const extractSensitiveVarNames = (value) => {
 };
 
 /** Uses the passed scope, or infers it from the item. */
-const resolveFieldScope = (item, scope) => {
+export const resolveFieldScope = (item, scope) => {
   if (scope) {
     return scope;
   }
@@ -88,12 +95,13 @@ const mapScopeInfoToResolved = (scopeInfo) => {
     type: scopeInfo.type,
     name: variable.name,
     variable,
+    owner: scopeInfo.data?.item || scopeInfo.data?.folder || null,
     inheritedFrom: scopeInfo.inheritedFrom || variable.inheritedFrom || null
   };
 };
 
 /** Saved variable used for this name. Skips runtime and process.env. */
-export const resolveSensitiveVariable = (variableName, { collection, item, scope, scanContext } = {}) => {
+export const resolveSensitiveVariable = (variableName, { collection, item, scope, scanContext, ignoreVariableUid } = {}) => {
   if (!variableName || !collection) {
     return null;
   }
@@ -101,9 +109,22 @@ export const resolveSensitiveVariable = (variableName, { collection, item, scope
   const fieldScope = resolveFieldScope(item, scope);
   const scopeInfo = getVariableScope(variableName, collection, fieldScope === 'collection' ? null : item, {
     skipRequestScope: fieldScope === 'folder' || fieldScope === 'collection',
-    scanContext
+    scanContext,
+    ignoreVariableUid
   });
   return mapScopeInfoToResolved(scopeInfo);
+};
+
+/** Lookup order of variable scopes; earlier wins. */
+const SCOPE_PRIORITY = ['request', 'folder', 'environment', 'collection', 'global'];
+
+/** Scope of a same-name variable that would win over a new variable in `targetScope`, or null. */
+export const findOverridingVariableScope = (variableName, { collection, item, targetScope, ignoreVariableUid } = {}) => {
+  const resolved = resolveSensitiveVariable(variableName, { collection, item, ignoreVariableUid });
+  if (!resolved) {
+    return null;
+  }
+  return SCOPE_PRIORITY.indexOf(resolved.type) <= SCOPE_PRIORITY.indexOf(targetScope) ? resolved.type : null;
 };
 
 /** True when the winning row is a secret collection-environment or global-environment variable. */
@@ -129,14 +150,14 @@ export const classifySensitiveValue = (value, context = {}) => {
     }
 
     if (resolved.type === 'environment' || resolved.type === 'global') {
-      return createWarning(resolved.type, variableName, ENVIRONMENT_SENSITIVE_WARNING);
+      return createWarning(resolved.type, variableName, SENSITIVE_FIELD_WARNING.MARK_AS_SECRET);
     }
 
     return createWarning(resolved.type, variableName, scopedSensitiveWarning(variableName, resolved.type));
   }
 
   if (variableNames.length === 0 || hasPlaintextOutsideVariables(value)) {
-    return createWarning('plaintext', null, PLAINTEXT_SENSITIVE_WARNING);
+    return createWarning('plaintext', null, SENSITIVE_FIELD_WARNING.USED_AS_PLAIN_TEXT);
   }
 
   return getNoWarning();

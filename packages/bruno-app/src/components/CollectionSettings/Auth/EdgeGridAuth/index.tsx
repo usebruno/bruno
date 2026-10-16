@@ -110,7 +110,7 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ collection }) => {
   const renderField = ({ key, label, tooltip, isSecret }: EdgeGridFieldConfig) => {
     const rawValue = edgeGridAuth[key];
     const fieldValue = rawValue === null || rawValue === undefined ? '' : String(rawValue);
-    const { showWarning, warningMessage } = isSecret ? isSensitive(rawValue) : { showWarning: false, warningMessage: '' };
+    const { showWarning, warningMessage, scope, variableName } = isSecret ? isSensitive(rawValue) : { showWarning: false, warningMessage: '' };
     return (
       <div key={key}>
         <label>
@@ -133,7 +133,7 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ collection }) => {
             isCompact
           />
           {showWarning && (
-            <SensitiveFieldWarning fieldName={`edgegrid-${key}`} warningMessage={warningMessage} />
+            <SensitiveFieldWarning fieldName={`edgegrid-${key}`} warningMessage={warningMessage} scope={scope} variableName={variableName} value={rawValue} collection={collection} onReplaceValue={(val: string) => handleFieldChange(key, val)} />
           )}
         </div>
       </div>

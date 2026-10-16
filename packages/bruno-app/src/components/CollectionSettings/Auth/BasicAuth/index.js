@@ -15,7 +15,7 @@ const BasicAuth = ({ collection }) => {
 
   const basicAuth = collection.draft?.root ? get(collection, 'draft.root.request.auth.basic', {}) : get(collection, 'root.request.auth.basic', {});
   const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage } = isSensitive(basicAuth?.password);
+  const { showWarning, warningMessage, scope, variableName } = isSensitive(basicAuth?.password);
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
@@ -70,7 +70,7 @@ const BasicAuth = ({ collection }) => {
           isSecret={true}
           isCompact
         />
-        {showWarning && <SensitiveFieldWarning fieldName="basic-password" warningMessage={warningMessage} />}
+        {showWarning && <SensitiveFieldWarning fieldName="basic-password" warningMessage={warningMessage} scope={scope} variableName={variableName} value={basicAuth?.password} collection={collection} onReplaceValue={(val) => handlePasswordChange(val)} />}
       </div>
     </StyledWrapper>
   );

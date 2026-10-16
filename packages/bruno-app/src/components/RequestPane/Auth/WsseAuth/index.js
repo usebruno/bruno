@@ -15,7 +15,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save, disabled }) => 
 
   const wsseAuth = get(request, 'auth.wsse', {});
   const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage } = isSensitive(wsseAuth?.password, item);
+  const { showWarning, warningMessage, scope, variableName } = isSensitive(wsseAuth?.password, item);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
@@ -82,7 +82,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save, disabled }) => 
           readOnly={disabled}
           isCompact
         />
-        {showWarning && <SensitiveFieldWarning fieldName="wsse-password" warningMessage={warningMessage} />}
+        {showWarning && <SensitiveFieldWarning fieldName="wsse-password" warningMessage={warningMessage} scope={scope} variableName={variableName} value={wsseAuth?.password} collection={collection} item={item} disabled={disabled} onReplaceValue={(val) => handlePasswordChange(val)} />}
       </div>
     </StyledWrapper>
   );

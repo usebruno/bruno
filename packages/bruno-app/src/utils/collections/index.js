@@ -141,6 +141,9 @@ export const findEnvironmentInCollection = (collection, envUid) => {
   return find(collection.environments, (e) => e.uid === envUid);
 };
 
+/** Active collection environment uid; `realActiveEnvironmentUid` wins when set. */
+export const getActiveEnvironmentUidForScope = (collection) => collection.realActiveEnvironmentUid ?? collection.activeEnvironmentUid;
+
 export const findEnvironmentInCollectionByName = (collection, name) => {
   return find(collection.environments, (e) => e.name === name);
 };
@@ -1868,7 +1871,7 @@ export const createVariableScopeScanContext = (collection) => {
 
   let environment = null;
   let environmentVariables = null;
-  const activeEnvironmentUidForScope = collection.realActiveEnvironmentUid ?? collection.activeEnvironmentUid;
+  const activeEnvironmentUidForScope = getActiveEnvironmentUidForScope(collection);
   if (activeEnvironmentUidForScope) {
     environment = findEnvironmentInCollection(collection, activeEnvironmentUidForScope);
     if (environment) {
@@ -1924,7 +1927,12 @@ export const getVariableScope = (variableName, collection, item, options = {}) =
     return null;
   }
 
-  const { skipRequestScope = false, scanContext = null } = options;
+  const { skipRequestScope = false, scanContext = null, ignoreVariableUid = null } = options;
+
+  const findVariable = (variables) => resolveEnabledVariable(
+    ignoreVariableUid ? (variables || []).filter((variable) => variable.uid !== ignoreVariableUid) : variables,
+    variableName
+  );
 
   if (scanContext?.resolutionCache) {
     const cacheKey = variableScopeCacheKey(variableName, item);
@@ -1942,7 +1950,7 @@ export const getVariableScope = (variableName, collection, item, options = {}) =
 
   // 1. Check Request Variables (highest priority)
   if (item && !skipRequestScope) {
-    const requestVar = resolveEnabledVariable(readItemRequestVars(item), variableName);
+    const requestVar = findVariable(readItemRequestVars(item));
     if (requestVar) {
       return storeScopeResult({
         type: 'request',
@@ -1961,7 +1969,7 @@ export const getVariableScope = (variableName, collection, item, options = {}) =
     }
 
     if (pathItem.type === 'folder') {
-      const folderVar = resolveEnabledVariable(readItemRequestVars(pathItem), variableName);
+      const folderVar = findVariable(readItemRequestVars(pathItem));
       if (folderVar) {
         return storeScopeResult({
           type: 'folder',
@@ -1975,7 +1983,7 @@ export const getVariableScope = (variableName, collection, item, options = {}) =
   // 3. Check Environment Variables
   const environment = scanContext?.environment
     ?? (() => {
-      const activeEnvironmentUidForScope = collection.realActiveEnvironmentUid ?? collection.activeEnvironmentUid;
+      const activeEnvironmentUidForScope = getActiveEnvironmentUidForScope(collection);
       return activeEnvironmentUidForScope
         ? findEnvironmentInCollection(collection, activeEnvironmentUidForScope)
         : null;
@@ -2003,7 +2011,7 @@ export const getVariableScope = (variableName, collection, item, options = {}) =
   // 4. Check Collection Variables
   const collectionRoot = scanContext?.collectionRoot
     ?? ((collection.draft && collection.draft.root) || collection.root || {});
-  const collectionVar = resolveEnabledVariable(readItemRequestVars(collectionRoot), variableName);
+  const collectionVar = findVariable(readItemRequestVars(collectionRoot));
   if (collectionVar) {
     return storeScopeResult({
       type: 'collection',

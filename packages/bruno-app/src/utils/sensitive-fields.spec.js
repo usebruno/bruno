@@ -1,13 +1,15 @@
 import {
   classifySensitiveValue,
-  ENVIRONMENT_SENSITIVE_WARNING,
   extractSensitiveVarNames,
   findUsedEnvironmentVariableUids,
   findUsedGlobalEnvironmentVariableUids,
+  findOverridingVariableScope,
   findUsedVarsRowUids,
-  PLAINTEXT_SENSITIVE_WARNING,
+  removeUnknownVariableBraces,
+  replaceVariableReferences,
   resolveSensitiveVariable,
-  scopedSensitiveWarning
+  scopedSensitiveWarning,
+  SENSITIVE_FIELD_WARNING
 } from './sensitive-fields';
 
 const secret = (name, value = '') => ({ name, value, enabled: true, secret: true });
@@ -71,7 +73,7 @@ describe('classifySensitiveValue', () => {
   it('warns when the field contains a plain value', () => {
     expect(classifySensitiveValue('abc123')).toEqual({
       showWarning: true,
-      warningMessage: PLAINTEXT_SENSITIVE_WARNING,
+      warningMessage: SENSITIVE_FIELD_WARNING.USED_AS_PLAIN_TEXT,
       scope: 'plaintext',
       variableName: null
     });
@@ -98,7 +100,7 @@ describe('classifySensitiveValue', () => {
 
     expect(classifySensitiveValue('Bearer {{token}}', { collection, item: request })).toEqual({
       showWarning: true,
-      warningMessage: PLAINTEXT_SENSITIVE_WARNING,
+      warningMessage: SENSITIVE_FIELD_WARNING.USED_AS_PLAIN_TEXT,
       scope: 'plaintext',
       variableName: null
     });
@@ -117,7 +119,7 @@ describe('classifySensitiveValue', () => {
 
     expect(classifySensitiveValue('Bearer {{token}}', { collection, item: request })).toEqual({
       showWarning: true,
-      warningMessage: ENVIRONMENT_SENSITIVE_WARNING,
+      warningMessage: SENSITIVE_FIELD_WARNING.MARK_AS_SECRET,
       scope: 'environment',
       variableName: 'token'
     });
@@ -258,7 +260,7 @@ describe('classifySensitiveValue', () => {
 
     expect(classifySensitiveValue('{{token}}', { collection })).toEqual({
       showWarning: true,
-      warningMessage: ENVIRONMENT_SENSITIVE_WARNING,
+      warningMessage: SENSITIVE_FIELD_WARNING.MARK_AS_SECRET,
       scope: 'global',
       variableName: 'token'
     });
@@ -712,5 +714,104 @@ describe('vars table usage flags', () => {
 
     expect([...findUsedVarsRowUids(withSecretEnvironment, 'collection')]).toEqual([]);
     expect([...findUsedVarsRowUids(withoutEnvironmentVariable, 'collection')]).toEqual(['collection-token']);
+  });
+});
+
+describe('resolveSensitiveVariable owner', () => {
+  it('returns the folder that defines the variable', () => {
+    const request = { uid: 'request-1', type: 'http-request', request: { vars: { req: [], res: [] } } };
+    const folder = folderWithVars('folder-1', [{ ...plain('token', 'from-folder'), uid: 'folder-token' }], [request]);
+    const collection = buildCollection({ folders: [folder] });
+
+    expect(resolveSensitiveVariable('token', { collection, item: request }).owner.uid).toBe('folder-1');
+  });
+
+  it('returns no owner for a collection variable', () => {
+    const collection = buildCollection({ collectionVars: [plain('token', 'from-collection')] });
+
+    expect(resolveSensitiveVariable('token', { collection }).owner).toBeNull();
+  });
+});
+
+describe('replaceVariableReferences', () => {
+  it('removes the braces around every variable', () => {
+    expect(replaceVariableReferences('{{ name }}ddd{{other}}', (name) => name)).toBe('namedddother');
+  });
+
+  it('renames one variable and keeps the others', () => {
+    const rename = (name, match) => (name === 'token' ? '{{tokenSecret}}' : match);
+    expect(replaceVariableReferences('Bearer {{token}} {{other}}', rename)).toBe('Bearer {{tokenSecret}} {{other}}');
+  });
+});
+
+describe('removeUnknownVariableBraces', () => {
+  const collection = buildCollection({
+    environments: [environment('env-dev', 'Dev', [plain('prefix', 'sk_live_')])],
+    activeEnvironmentUid: 'env-dev'
+  });
+
+  it('keeps the braces around a variable that exists', () => {
+    expect(removeUnknownVariableBraces('{{prefix}}abc12', { collection })).toBe('{{prefix}}abc12');
+  });
+
+  it('removes the braces around a variable that does not exist', () => {
+    expect(removeUnknownVariableBraces('{{missing}}abc12', { collection })).toBe('missingabc12');
+  });
+
+  it('keeps the braces around a known mock variable', () => {
+    expect(removeUnknownVariableBraces('{{$randomUUID}}', { collection })).toBe('{{$randomUUID}}');
+  });
+});
+
+describe('findOverridingVariableScope', () => {
+  it('flags a request variable that would win over a new environment secret', () => {
+    const request = requestWithVars([{ ...plain('token', 'raw'), uid: 'request-token' }]);
+    const collection = buildCollection({ request });
+
+    expect(findOverridingVariableScope('token', { collection, item: request, targetScope: 'environment' })).toBe('request');
+  });
+
+  it('ignores the variable that is being moved', () => {
+    const request = requestWithVars([{ ...plain('token', 'raw'), uid: 'request-token' }]);
+    const collection = buildCollection({ request });
+
+    expect(findOverridingVariableScope('token', {
+      collection,
+      item: request,
+      targetScope: 'environment',
+      ignoreVariableUid: 'request-token'
+    })).toBeNull();
+  });
+
+  it('flags a folder variable that would win once the moved request variable is gone', () => {
+    const request = requestWithVars([{ ...plain('token', 'raw'), uid: 'request-token' }]);
+    const folder = folderWithVars('folder-1', [{ ...plain('token', 'folder'), uid: 'folder-token' }], [request]);
+    const collection = buildCollection({ folders: [folder] });
+
+    expect(findOverridingVariableScope('token', {
+      collection,
+      item: request,
+      targetScope: 'environment',
+      ignoreVariableUid: 'request-token'
+    })).toBe('folder');
+  });
+
+  it('flags a collection environment variable when saving to the global environment', () => {
+    const collection = buildCollection({
+      environments: [environment('env-1', 'Dev', [{ ...plain('token', 'dev'), uid: 'env-token' }])],
+      activeEnvironmentUid: 'env-1'
+    });
+
+    expect(findOverridingVariableScope('token', { collection, targetScope: 'global' })).toBe('environment');
+  });
+
+  it('allows a name that a new environment secret would override', () => {
+    const collection = buildCollection({ collectionVars: [{ ...plain('token', 'c'), uid: 'collection-token' }] });
+
+    expect(findOverridingVariableScope('token', { collection, targetScope: 'environment' })).toBeNull();
+  });
+
+  it('allows a name nobody uses', () => {
+    expect(findOverridingVariableScope('token', { collection: buildCollection(), targetScope: 'environment' })).toBeNull();
   });
 });
