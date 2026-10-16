@@ -360,8 +360,8 @@ test.describe('Workspace environments list', () => {
       await searchInput().fill('Staging');
       await createFromSearch().click();
 
-      await expect(searchInput()).toHaveValue('Staging');
-      await expect(rows()).toHaveCount(1);
+      await expect(searchInput()).toHaveValue('');
+      await expect(rows()).toHaveCount(ENV_NAMES.length + 1);
       await expect(environment.sidebarListItemExact('global', 'Staging')).toHaveAttribute('aria-current', 'true');
     });
 

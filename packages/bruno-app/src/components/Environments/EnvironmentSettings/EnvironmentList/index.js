@@ -529,7 +529,9 @@ const EnvironmentList = ({
       setSwitchEnvConfirmClose(true);
       return;
     }
-    createEnvironment(trimmedSearchText);
+    createEnvironment(trimmedSearchText).then((created) => {
+      if (created) handleSearchChange('');
+    });
   };
 
   const selection = useEnvironmentListSelection({

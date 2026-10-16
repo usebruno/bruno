@@ -119,21 +119,27 @@ export const openRowContextMenu = async (page: Page, name: string, scope: Enviro
 /**
  * Delete every workspace (global) environment from the open workspace Environments tab.
  * Workspace environments persist across tests, so this keeps them isolated.
- * Rows are deleted one at a time through the row menu, so the cleanup does not rely on the
- * multi-select or keyboard shortcuts that the tests exercise.
  */
 export const deleteAllWorkspaceEnvironments = async (page: Page) => {
   await test.step('Delete all workspace environments', async () => {
-    const { row, rows, rowNames, emptyState, rowMenuButton, rowMenuItem, deleteModal }
+    const { row, rows, rowNames, emptyState, searchInput, rowMenuButton, rowMenuItem, deleteModal }
       = buildEnvSidebarActionsLocators(page, 'global');
 
-    // Close anything a failed test left open (modal, menu, rename input)
     await page.keyboard.press('Escape');
+
+    // A search left in the box hides rows, so the list would look empty while environments still exist.
+    await searchInput().fill('');
 
     // Wait for the list to settle (a row or the empty state), so a list that is still rendering isn't read as empty.
     await rows().first().or(emptyState()).waitFor({ state: 'visible' });
 
-    for (const name of await rowNames().allTextContents()) {
+    const names = await rowNames().allTextContents();
+    if (names.length === 0) return;
+
+    // A selection left over from a test hides the row menu of its rows, so start over with a plain click.
+    await rows().first().click();
+
+    for (const name of names) {
       await rowMenuButton(name).click();
       await rowMenuItem('delete').click();
       await deleteModal.confirm().click();

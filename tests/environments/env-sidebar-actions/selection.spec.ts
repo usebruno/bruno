@@ -216,9 +216,8 @@ test.describe('Collection environments sidebar menu multi-select', () => {
       await searchInput().fill('Staging');
       await createFromSearch().click();
 
-      // The search is kept, so the new environment is the only row.
-      await expect(searchInput()).toHaveValue('Staging');
-      await expect(rows()).toHaveCount(1);
+      await expect(searchInput()).toHaveValue('');
+      await expect(rows()).toHaveCount(ENV_NAMES.length + 1);
       await expect(environment.sidebarListItemExact('collection', 'Staging')).toHaveAttribute('aria-current', 'true');
     });
 
