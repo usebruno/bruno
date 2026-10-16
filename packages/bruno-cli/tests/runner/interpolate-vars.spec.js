@@ -158,6 +158,56 @@ describe('interpolate-vars: interpolateVars', () => {
 
     expect(result.data).toEqual([{ name: 'note', value: 'first line\nsecond line', type: 'text', enabled: true }]);
   });
+
+  describe('path variables in the request body', () => {
+    it('expands a path variable referenced in the JSON request body', () => {
+      const request = {
+        method: 'POST',
+        mode: 'json',
+        url: 'http://example.com/profiles/:profile_id/export',
+        headers: { 'content-type': 'application/json' },
+        pathParams: [{ type: 'path', name: 'profile_id', value: 'abc123' }],
+        data: '{"path": "export_{{profile_id}}.zip"}'
+      };
+
+      const result = interpolateVars(request, null, null, null);
+
+      expect(result.url).toBe('http://example.com/profiles/abc123/export');
+      expect(result.data).toBe('{"path": "export_abc123.zip"}');
+    });
+
+    it('does not expand disabled path variables in the request body', () => {
+      const request = {
+        method: 'POST',
+        mode: 'json',
+        url: 'http://example.com/profiles/:profile_id/export',
+        headers: { 'content-type': 'application/json' },
+        pathParams: [{ type: 'path', name: 'profile_id', value: 'abc123', enabled: false }],
+        data: '{"path": "export_{{profile_id}}.zip"}'
+      };
+
+      const result = interpolateVars(request, null, null, null);
+
+      expect(result.url).toBe('http://example.com/profiles/:profile_id/export');
+      expect(result.data).toBe('{"path": "export_{{profile_id}}.zip"}');
+    });
+
+    it('prefers the path variable over a same-named env variable, like the URL does', () => {
+      const request = {
+        method: 'POST',
+        mode: 'json',
+        url: 'http://example.com/profiles/:profile_id/export',
+        headers: { 'content-type': 'application/json' },
+        pathParams: [{ type: 'path', name: 'profile_id', value: 'abc123' }],
+        data: '{"path": "export_{{profile_id}}.zip"}'
+      };
+
+      const result = interpolateVars(request, { profile_id: 'from-env' }, null, null);
+
+      expect(result.url).toBe('http://example.com/profiles/abc123/export');
+      expect(result.data).toBe('{"path": "export_abc123.zip"}');
+    });
+  });
 });
 
 describe('interpolate-vars: api key header name sidecar', () => {
