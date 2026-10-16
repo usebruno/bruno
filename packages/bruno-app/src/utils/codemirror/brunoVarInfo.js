@@ -17,7 +17,6 @@ import {
   findItemInCollectionByItemUid
 } from 'utils/collections';
 import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
-import { createScopeEnvironment } from 'utils/collections/createScopeEnvironment';
 import {
   buildAddToScopes as sharedBuildAddToScopes,
   buildScopeInfo,
@@ -28,7 +27,6 @@ import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { variableNameRegex } from 'utils/common/regex';
-import { VARIABLE_ADD_SCOPES, SCOPE_ICON } from 'utils/common/constants';
 import { SCOPE_LABEL, COPY_SUCCESS_TIMEOUT } from 'utils/common/constants';
 import { SCOPE_ICON } from 'utils/codemirror/scopeIcons';
 import { createAddToScopeSwitcher } from 'utils/codemirror/addToScopeSwitcher';
@@ -789,14 +787,6 @@ export const renderVarInfo = (token, options) => {
         setScopeBadgeContent(scopeBadge, newScopeInfo.type, getScopeLabel(newScopeInfo.type));
       };
 
-      const onCreateEnvironment = (scope, name) => {
-        if (scope.type !== VARIABLE_ADD_SCOPES.GLOBAL && scope.type !== VARIABLE_ADD_SCOPES.ENVIRONMENT) {
-          return Promise.reject(new Error(`"${scope.label}" does not support creating a new one`));
-        }
-
-        return createScopeEnvironment(scope.type, name, collection.uid)
-          .then(() => getFreshScopeForType(scope.type));
-      };
       const onCreateEnvironment = (scope, name) =>
         createEnvironmentForScope({ scope, name, collectionUid: collection?.uid, store })
           .then(() => getFreshScopeForType(scope.type));

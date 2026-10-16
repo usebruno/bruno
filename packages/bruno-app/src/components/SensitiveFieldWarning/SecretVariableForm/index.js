@@ -1,14 +1,14 @@
 import React, { useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useStore } from 'react-redux';
 import find from 'lodash/find';
 import TextInput from 'ui/TextInput';
 import MaskedInput from 'ui/MaskedInput';
 import useOnClickOutside from 'hooks/useOnClickOutside';
 import { findEnvironmentInCollection, getAvailableAddToScopes } from 'utils/collections';
-import { createScopeEnvironment } from 'utils/collections/createScopeEnvironment';
 import { INVALID_VARIABLE_NAME_ERROR, variableNameRegex } from 'utils/common/regex';
 import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 import { replaceVariableReferences } from 'utils/sensitive-fields';
+import { createEnvironmentForScope } from 'utils/variables';
 import EnvironmentTargetOption from './EnvironmentTargetOption';
 import StyledWrapper from './StyledWrapper';
 
@@ -41,6 +41,7 @@ const SecretVariableForm = ({ collection, sourceLabel, defaultName, defaultValue
   const [isSaving, setIsSaving] = useState(false);
 
   const formRef = useRef(null);
+  const store = useStore();
 
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
@@ -88,7 +89,7 @@ const SecretVariableForm = ({ collection, sourceLabel, defaultName, defaultValue
 
   /** Creates the environment from "Create One" and selects it as the target. */
   const createEnvironment = (targetType, environmentName) => (
-    createScopeEnvironment(targetType, environmentName, collection.uid)
+    createEnvironmentForScope({ scope: { type: targetType }, name: environmentName, collectionUid: collection.uid, store })
       .then(() => setSelectedTargetType(targetType))
   );
 
