@@ -322,7 +322,8 @@ export const buildCommonLocators = (page: Page) => ({
       rows: () => page.getByTestId('test-result-item'),
       passed: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-pass') }),
       failed: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-fail') })
-    }
+    },
+    responseSize: () => page.locator('div[class*="ResponseSize"]')
   },
   timeline: {
     items: () => page.getByTestId('timeline-item'),
