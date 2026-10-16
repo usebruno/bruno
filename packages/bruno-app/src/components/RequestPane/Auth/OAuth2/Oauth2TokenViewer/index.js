@@ -166,7 +166,7 @@ const Oauth2TokenViewer = ({ collection, item, url, credentialsId, handleRun }) 
           </div>
         )
       ) : (
-        <div className="text-gray-500 dark:text-gray-400">No token found</div>
+        <div className="text-gray-500 dark:text-gray-400" data-testid="oauth2-no-token">No token found</div>
       )}
     </StyledWrapper>
   );

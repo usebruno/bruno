@@ -1,6 +1,7 @@
 import type { ElectronApplication } from 'playwright';
-import { expect, waitForReadyPage } from '../../../playwright';
+import { test, expect, waitForReadyPage } from '../../../playwright';
 import { openRequest, selectRequestPaneTab, selectEnvironment } from '../../utils/page';
+import { buildCommonLocators } from '../../utils/page/locators';
 
 export const COLLECTION = 'oauth2-state';
 export const KEYCLOAK_USER = 'testuser';
@@ -138,4 +139,17 @@ export const getCallbackParams = (callbackUrl: string, style: CallbackStyle = 'q
     code: url.searchParams.get('code'),
     access_token: null
   };
+};
+
+const STATE_MISMATCH_ERROR
+  = 'OAuth2 state mismatch: the returned state does not match the issued state.';
+
+// The rejection must happen before any token exchange, so once the error is
+// visible the flow has settled and the absence of a token is final.
+export const expectStateMismatchWithoutToken = async (page: Parameters<typeof openRequest>[0]) => {
+  const locators = buildCommonLocators(page);
+  await test.step('surface a state mismatch error and no token', async () => {
+    await expect(locators.response.pane().getByText(STATE_MISMATCH_ERROR)).toBeVisible({ timeout: 15_000 });
+    await expect(locators.auth.oauth2.noToken()).toBeVisible();
+  });
 };
