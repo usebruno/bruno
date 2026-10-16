@@ -93,6 +93,34 @@ const paramEntriesFromValue = (val, param) => {
   return value === '' ? null : [{ value, enabled: true }];
 };
 
+const declaredParamValues = (param) => {
+  const schema = param.schema || {};
+  const firstNamedExample = param.examples ? Object.values(param.examples)[0] : undefined;
+
+  return [
+    param.example,
+    firstNamedExample?.value,
+    schema.default,
+    schema.example,
+    Array.isArray(schema.examples) ? schema.examples[0] : undefined
+  ];
+};
+
+const entriesFromDeclaredValues = (param) => {
+  for (const value of declaredParamValues(param)) {
+    if (value === undefined) {
+      continue;
+    }
+
+    const entries = paramEntriesFromValue(value, param);
+    if (entries) {
+      return entries;
+    }
+  }
+
+  return null;
+};
+
 /**
  * @param {Object} param - The OpenAPI parameter object
  * @param {*} [fallbackValue] - Value to use once every source the spec declares has come up empty
@@ -124,14 +152,10 @@ const getParameterEntries = (param, fallbackValue) => {
   // Handle array type with items schema that has enum
   if (schema.type === 'array' && schema.items && schema.items.enum && Array.isArray(schema.items.enum) && schema.items.enum.length > 0) {
     const defaultValue = schema.items.default !== undefined ? String(schema.items.default) : null;
-    const arrayDefault = schema.default !== undefined && Array.isArray(schema.default) ? schema.default : null;
 
-    // If there's a default at array level, use it
-    if (arrayDefault) {
-      const defaultEntries = paramEntriesFromValue(arrayDefault, param);
-      if (defaultEntries) {
-        return defaultEntries;
-      }
+    const declaredEntries = entriesFromDeclaredValues(param);
+    if (declaredEntries) {
+      return declaredEntries;
     }
 
     // Otherwise, create entries for each enum value in items
@@ -149,29 +173,12 @@ const getParameterEntries = (param, fallbackValue) => {
     return entries;
   }
 
-  const firstNamedExample = param.examples ? Object.values(param.examples)[0] : undefined;
-  const valueSources = [
-    param.example,
-    firstNamedExample?.value,
-    schema.default,
-    schema.example,
-    Array.isArray(schema.examples) ? schema.examples[0] : undefined
-  ];
-
-  let enabled = param.required || false;
-
-  for (const source of valueSources) {
-    if (source === undefined) {
-      continue;
-    }
-
-    enabled = true;
-
-    const sourceEntries = paramEntriesFromValue(source, param);
-    if (sourceEntries) {
-      return sourceEntries;
-    }
+  const declaredEntries = entriesFromDeclaredValues(param);
+  if (declaredEntries) {
+    return declaredEntries;
   }
+
+  let enabled = param.required || declaredParamValues(param).some((value) => value !== undefined);
 
   if (fallbackValue !== undefined) {
     const fallbackEntries = paramEntriesFromValue(fallbackValue, param);

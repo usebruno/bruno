@@ -1241,6 +1241,52 @@ describe('openapi explicit explode on array parameters', () => {
     expect(importParam({ name: 'X-Ids', in: 'header', schema })).toEqual(['x,y']);
   });
 
+  describe('an array of enum options with an example', () => {
+    const enumArray = { type: 'array', items: { type: 'string', enum: ['a', 'b', 'c'] } };
+
+    it('uses the parameter example instead of listing every option', () => {
+      expect(importParam({ name: 'roles', in: 'query', schema: enumArray, example: ['b', 'c'] })).toEqual(['b', 'c']);
+    });
+
+    it('switches on the entries drawn from the example', () => {
+      const entries = importParamEntries({ name: 'roles', in: 'query', schema: enumArray, example: ['b', 'c'] });
+      expect(entries.map((entry) => entry.enabled)).toEqual([true, true]);
+    });
+
+    it('uses a named example', () => {
+      const examples = { picked: { value: ['b', 'c'] } };
+      expect(importParam({ name: 'roles', in: 'query', schema: enumArray, examples })).toEqual(['b', 'c']);
+    });
+
+    it('uses the schema example', () => {
+      const schema = { ...enumArray, example: ['b', 'c'] };
+      expect(importParam({ name: 'roles', in: 'query', schema })).toEqual(['b', 'c']);
+    });
+
+    it('uses the schema examples list', () => {
+      const schema = { ...enumArray, examples: [['b', 'c']] };
+      expect(importParam({ name: 'roles', in: 'query', schema })).toEqual(['b', 'c']);
+    });
+
+    it('prefers the parameter example over the schema default, as it does for other parameters', () => {
+      const schema = { ...enumArray, default: ['a'] };
+      expect(importParam({ name: 'roles', in: 'query', schema, example: ['b', 'c'] })).toEqual(['b', 'c']);
+    });
+
+    it('joins the example with commas for a path parameter', () => {
+      const param = { name: 'roles', in: 'path', required: true, schema: enumArray, example: ['b', 'c'] };
+      expect(importParam(param, '/x/{roles}')).toEqual(['b,c']);
+    });
+
+    it('joins the example into one entry when the spec asks for explode false', () => {
+      expect(importParam({ name: 'roles', in: 'query', explode: false, schema: enumArray, example: ['b', 'c'] })).toEqual(['b,c']);
+    });
+
+    it('still lists every option when the only example is an empty array', () => {
+      expect(importParam({ name: 'roles', in: 'query', schema: enumArray, example: [] })).toEqual(['a', 'b', 'c']);
+    });
+  });
+
   it('writes a blank item for a null entry in an array rather than the word null', () => {
     const schema = { type: 'array', items: { type: 'string' } };
     const param = { name: 'tags', in: 'path', required: true, schema, example: ['a', null, 'b'] };
