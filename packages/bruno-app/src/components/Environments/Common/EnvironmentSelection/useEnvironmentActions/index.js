@@ -25,7 +25,6 @@ const useEnvironmentActions = ({
   const isMenuOpen = isContextMenuOpen || isRowMenuOpen;
   const isModalOpen = isDeleteModalOpen || isExportModalOpen || isCopyModalOpen;
 
-  // Closes the context menu. The row menu closes itself.
   const closeMenu = useCallback(() => {
     setIsContextMenuOpen(false);
   }, []);
