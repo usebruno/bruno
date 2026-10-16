@@ -9,9 +9,6 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    # Keycloak logs live in RUNNER_TEMP (outside the workspace), so stage them into the
-    # workspace where upload-artifact can pick them up. bash is available on all three runner
-    # OSes (Git Bash on Windows), so one script covers them all.
     - name: Stage Keycloak logs
       shell: bash
       run: |

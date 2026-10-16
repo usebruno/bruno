@@ -6,9 +6,10 @@ export const COLLECTION = 'oauth2-state';
 export const KEYCLOAK_USER = 'testuser';
 export const KEYCLOAK_PASSWORD = 'testpassword';
 
-// This block stubs Electron's shell.openExternal inside the Bruno app
-// so the OAuth2 test can intercept the authorization URL
-// instead of opening a real browser.
+const loginFormActionRegex = /action="([^"]+login-actions\/authenticate[^"]*)"/;
+
+// This block stubs Electron's shell.openExternal inside the Bruno app so the OAuth2 test
+// can intercept the authorization URL instead of opening a real browser.
 export const stubOpenExternal = (app: ElectronApplication) =>
   app.evaluate(({ shell }) => {
     (globalThis as any).__brunoCapturedAuthUrl = null;
@@ -48,11 +49,6 @@ export const waitForAuthorizationStarted = async (app: ElectronApplication) => {
   await expect.poll(() => getCapturedAuthUrl(app), { timeout: 15_000 }).toBeTruthy();
 };
 
-/**
- * Common flow bootstrap shared by every test: restart the app, wait for a ready page,
- * stub `shell.openExternal`, install the callback capture, click "Get Access Token" for
- * the given request, and wait for the authorization URL to be captured.
- */
 export const startOAuth2Flow = async (
   restartApp: (options?: { initUserDataPath?: string }) => Promise<ElectronApplication>,
   requestName: string
@@ -88,8 +84,6 @@ export const loginToKeycloakForAuthCode = async (authorizationUrl: string): Prom
     .join('; ');
 
   const html = await loginPage.text();
-
-  const loginFormActionRegex = /action="([^"]+login-actions\/authenticate[^"]*)"/;
 
   // Extract the login form's action URL; it carries per-request session params, so it can't be hardcoded.
   const formActionMatch = html.match(loginFormActionRegex);

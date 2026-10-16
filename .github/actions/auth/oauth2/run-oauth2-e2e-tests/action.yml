@@ -13,11 +13,8 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    # Keycloak is started HERE — in the same step as the tests — on purpose. On Windows,
-    # GitHub Actions kills a step's child-process tree when the step ends (Job Object), so a
-    # server started in an earlier step is dead by the time tests run. Doing the same on every
-    # OS keeps a single script. KC_HOME comes from the setup-keycloak step. bash is available
-    # on all three runner OSes (Git Bash on Windows); kc.bat vs kc.sh is the only OS switch.
+    # Keycloak is started here and tests run in same step due cause Github Actions kills a child-process
+    # when the step ends. KC_HOME comes from the setup-keycloak step.
     - name: Start Keycloak and run OAuth2 E2E tests
       shell: bash
       env:
