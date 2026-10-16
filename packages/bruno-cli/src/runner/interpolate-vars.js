@@ -57,7 +57,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   // Path params set in the Params tab (e.g. `:profile_id`) are request-scoped, so they
   // should also resolve in `{{var}}` interpolation everywhere, not just in the URL.
   // See https://github.com/usebruno/bruno/issues/9554
-  const pathParamVariables = {};
+  const pathParamVariables = Object.create(null);
   each(request?.pathParams, (param) => {
     if (param && param.name && hasResolvablePathParamValue(param)) {
       pathParamVariables[param.name] = param.value;

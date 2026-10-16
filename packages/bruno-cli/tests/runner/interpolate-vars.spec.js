@@ -207,6 +207,22 @@ describe('interpolate-vars: interpolateVars', () => {
       expect(result.url).toBe('http://example.com/profiles/abc123/export');
       expect(result.data).toBe('{"path": "export_abc123.zip"}');
     });
+
+    it('preserves __proto__ as a path-parameter key instead of resolving Object.prototype', () => {
+      const request = {
+        method: 'POST',
+        mode: 'json',
+        url: 'http://example.com/profiles/:__proto__/export',
+        headers: { 'content-type': 'application/json' },
+        pathParams: [{ type: 'path', name: '__proto__', value: 'proto-value' }],
+        data: '{"path": "export_{{__proto__}}.zip"}'
+      };
+
+      const result = interpolateVars(request, null, null, null);
+
+      expect(result.url).toBe('http://example.com/profiles/proto-value/export');
+      expect(result.data).toBe('{"path": "export_proto-value.zip"}');
+    });
   });
 });
 
