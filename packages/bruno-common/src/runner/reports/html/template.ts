@@ -19,12 +19,15 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="dns-prefetch" href="https://unpkg.com">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <!-- Would use latest version, you'd better specify a version -->
     <script src="https://unpkg.com/naive-ui"></script>
 
     <title>Bruno</title>
     <style>
+      :root { color-scheme: light dark; }
       .error > .status {
         color: red;
       }
@@ -396,6 +399,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             title="REQUEST BODY"
           >
           <iframe
+            loading="lazy"
             v-if="result.request.isHtml"
             :srcdoc="result.request.data"
             style="width: 100%; height: 400px; border: none;"
@@ -414,6 +418,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             title="RESPONSE BODY"
           >
           <iframe
+            loading="lazy"
             v-if="result.response.isHtml"
             :srcdoc="result.response.data"
             style="width: 100%; height: 400px; border: none;"
