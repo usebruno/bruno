@@ -147,4 +147,20 @@ describe('applyInheritedQueryParams (issue #9553)', () => {
     expect(applyInheritedQueryParams('', [{ name: 'a', value: 'b' }], [])).toBe('');
     expect(applyInheritedQueryParams(null, [{ name: 'a', value: 'b' }], [])).toBe(null);
   });
+
+  it('ignores a ? inside the #fragment when parsing and inserting', () => {
+    expect(
+      applyInheritedQueryParams('https://api.example.com/app#/route?x=1', [{ name: 'pageSize', value: '20' }], [])
+    ).toBe('https://api.example.com/app?pageSize=20#/route?x=1');
+  });
+
+  it('does not treat fragment param names as request-defined names', () => {
+    expect(
+      applyInheritedQueryParams(
+        'https://api.example.com/app#/route?pageSize=1',
+        [{ name: 'pageSize', value: '20' }],
+        []
+      )
+    ).toBe('https://api.example.com/app?pageSize=20#/route?pageSize=1');
+  });
 });

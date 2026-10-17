@@ -189,6 +189,13 @@ const getInheritedQueryParams = (collection, requestTreePath = []) => {
  * Inherited values are appended unencoded, exactly like request-level params, so
  * {{variables}} in them still interpolate at send time.
  */
+// Twinned with the same helpers in the other two packages:
+// packages/bruno-cli/src/utils/collection.js,
+// packages/bruno-electron/src/utils/collection.js,
+// packages/bruno-app/src/utils/collections/index.js.
+// Intentionally duplicated per the repo's app/cli twin convention (neither the
+// app nor the CLI can import the other's utils).
+// Keep all three copies behaviorally identical; fix bugs in all three.
 const applyInheritedQueryParams = (url, inheritedParams, requestParams = []) => {
   if (typeof url !== 'string' || !url.length || !Array.isArray(inheritedParams) || !inheritedParams.length) {
     return url;
@@ -201,9 +208,15 @@ const applyInheritedQueryParams = (url, inheritedParams, requestParams = []) => 
     }
   });
 
-  const queryIndex = url.indexOf('?');
+  // A `?` inside the `#` fragment is not a query string: split the fragment
+  // off first so fragment params are neither parsed as request params nor
+  // corrupted by insertion.
+  const hashIndex = url.indexOf('#');
+  const base = hashIndex === -1 ? url : url.slice(0, hashIndex);
+  const fragment = hashIndex === -1 ? '' : url.slice(hashIndex);
+  const queryIndex = base.indexOf('?');
   if (queryIndex !== -1) {
-    each(url.slice(queryIndex + 1).split('#')[0].split('&'), (pair) => {
+    each(base.slice(queryIndex + 1).split('&'), (pair) => {
       const rawName = pair.split('=')[0];
       if (!rawName) {
         return;
@@ -226,12 +239,8 @@ const applyInheritedQueryParams = (url, inheritedParams, requestParams = []) => 
   }
 
   const query = toAppend.map((param) => `${param.name}=${param.value ?? ''}`).join('&');
-  const separator = queryIndex === -1 ? '?' : url.endsWith('?') || url.endsWith('&') ? '' : '&';
-  const hashIndex = url.indexOf('#');
-  if (hashIndex === -1) {
-    return url + separator + query;
-  }
-  return url.slice(0, hashIndex) + separator + query + url.slice(hashIndex);
+  const separator = queryIndex === -1 ? '?' : base.endsWith('?') || base.endsWith('&') ? '' : '&';
+  return base + separator + query + fragment;
 };
 
 const mergeVars = (collection, request, requestTreePath) => {
