@@ -59,7 +59,8 @@ const General = () => {
     oauth2: Yup.object({
       useSystemBrowser: Yup.boolean()
     }),
-    defaultLocation: Yup.string().max(1024)
+    defaultLocation: Yup.string().max(1024),
+    unifiedTabs: Yup.boolean()
   });
 
   const formik = useFormik({
@@ -82,7 +83,8 @@ const General = () => {
       oauth2: {
         useSystemBrowser: get(preferences, 'request.oauth2.useSystemBrowser', false)
       },
-      defaultLocation: get(preferences, 'general.defaultLocation', '')
+      defaultLocation: get(preferences, 'general.defaultLocation', ''),
+      unifiedTabs: get(preferences, 'general.unifiedTabs', false)
     },
     validationSchema: preferencesSchema,
     onSubmit: async (values) => {
@@ -121,7 +123,8 @@ const General = () => {
           interval: newPreferences.autoSave.interval
         },
         general: {
-          defaultLocation: newPreferences.defaultLocation
+          defaultLocation: newPreferences.defaultLocation,
+          unifiedTabs: newPreferences.unifiedTabs
         }
       }))
       .catch((err) => console.log(err) && toast.error('Failed to update preferences'));
@@ -359,6 +362,20 @@ const General = () => {
               Browse
             </button>
           </SettingsField>
+        </SettingsGroup>
+
+        <SettingsGroup title="Tabs">
+          <CheckboxSetting
+            id="unifiedTabs"
+            name="unifiedTabs"
+            label="Unified Tabs"
+            checked={formik.values.unifiedTabs}
+            onChange={formik.handleChange}
+          >
+            <div className="text-xs text-gray-600 mt-1">
+              When enabled, tabs open across all collections within the workspace instead of being scoped to individual collections
+            </div>
+          </CheckboxSetting>
         </SettingsGroup>
       </form>
     </StyledWrapper>
