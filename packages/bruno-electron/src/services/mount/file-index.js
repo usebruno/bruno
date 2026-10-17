@@ -21,7 +21,7 @@ class FileIndex {
 
   constructor() {
     this.#statements = getStatements();
-    this.#applicationVersion = require('electron').app.getVersion();
+    this.#applicationVersion = process.env.BRUNO_APP_VERSION ?? require('electron').app.getVersion();
   }
 
   async status(collectionPath, options = {}) {

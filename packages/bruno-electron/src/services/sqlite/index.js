@@ -1,7 +1,8 @@
 const fs = require('node:fs');
 const path = require('path');
 const { app } = require('electron');
-const { createDatabase } = require('@usebruno/sqlite');
+const { DatabaseSync } = require('node:sqlite');
+const { createDatabase, DB, Statements, FileStore } = require('@usebruno/sqlite');
 
 let service = null;
 
@@ -28,7 +29,7 @@ class SqliteService {
   constructor() {
     const userData = app.getPath('userData');
     const { db, statements, files } = createDatabase(path.join(userData, 'bruno.db'), {
-      pragmas: { auto_vacuum: 'INCREMENTAL', journal_mode: 'WAL', synchronous: 'NORMAL' },
+      pragmas: { auto_vacuum: 'INCREMENTAL', journal_mode: 'WAL', synchronous: 'NORMAL', busy_timeout: 5000 },
       filesDir: path.join(userData, 'sqlite-files'),
       inlineMaxBytes: 1024 * 1024
     });
@@ -95,6 +96,17 @@ const openDatabase = () => {
   service = new SqliteService();
 };
 
+const attachDatabase = (userData) => {
+  if (service) return;
+  const raw = new DatabaseSync(path.join(userData, 'bruno.db'));
+  raw.exec('PRAGMA busy_timeout = 5000');
+  raw.exec('PRAGMA synchronous = NORMAL');
+  const db = Object.assign(Object.create(DB.prototype), { _db: raw });
+  const statements = new Statements(raw);
+  const files = new FileStore(raw, statements, { directory: path.join(userData, 'sqlite-files'), inlineMaxBytes: 1024 * 1024 });
+  service = { db, statements, files, shutdown: () => db.close() };
+};
+
 const shutdown = () => {
   if (service) {
     service.shutdown();
@@ -143,4 +155,4 @@ const transaction = (callback) => {
 
 const reclaimDiskSpace = (options) => (service ? service.reclaimDiskSpace(options) : Promise.resolve());
 
-module.exports = { openDatabase, shutdown, getStatements, getFiles, transaction, reclaimDiskSpace };
+module.exports = { openDatabase, attachDatabase, shutdown, getStatements, getFiles, transaction, reclaimDiskSpace };

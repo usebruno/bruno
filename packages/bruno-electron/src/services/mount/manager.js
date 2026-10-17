@@ -6,7 +6,8 @@ const { buildTree } = require('./tree-builder');
 const { defaultClassify, uidForSeed } = require('../../utils/mount');
 const { getWsClient } = require('../../ipc/network/ws-event-handlers');
 const { SearchIndex } = require('../search-index');
-const { indexCollection, toRow, toMetaRow, withParentFolders } = require('../search-index/indexer');
+const { toRow, toMetaRow, withParentFolders } = require('../search-index/indexer');
+const { indexCollection, getWrittenBatches, shutdownIndexer } = require('../search-index/client');
 const { preferencesUtil } = require('../../store/preferences');
 
 // cold start only — collection-watcher handles live changes and writes through to the cache
@@ -148,6 +149,7 @@ class MountManager {
     await Promise.all(
       Array.from(this.#mounts.keys()).map((uid) => this.unmount(uid).catch(() => {}))
     );
+    await shutdownIndexer();
     await destroyPool({ force }).catch(() => {});
     // both indexes run on the shared database, which the sqlite service closes
     this.#index = null;
@@ -179,7 +181,7 @@ class MountManager {
 
   async searchIndexTrees(term, workspacePath, knownRevision, { limit, collectionPaths } = {}) {
     const searchIndex = this.#getSearchIndex();
-    const revision = searchIndex.revision;
+    const revision = searchIndex.revision + getWrittenBatches();
     const indexing = this.#activeIndexingCount > 0 || this.#checksInFlight > 0;
     if (knownRevision === revision) return { revision, unchanged: true, indexing };
 
@@ -224,7 +226,7 @@ class MountManager {
     if (this.#isMounted(root)) return;
     const resolvedWorkspacePath = await this.#resolveWorkspacePath(root, workspacePath);
     const twoPass = this.#isTwoPass();
-    await this.#withIndexingSession((onWork) => indexCollection(this.#getSearchIndex(), {
+    await this.#withIndexingSession((onWork) => indexCollection({
       collectionPath: root,
       collectionName,
       workspacePath: resolvedWorkspacePath,
@@ -247,7 +249,7 @@ class MountManager {
   }
 
   #fillCollection({ root, collectionName, workspacePath }) {
-    return indexCollection(this.#getSearchIndex(), {
+    return indexCollection({
       collectionPath: root,
       collectionName,
       workspacePath,
@@ -290,7 +292,7 @@ class MountManager {
         sessionOnWork();
       };
       for (const { root, collectionName } of ordered) {
-        await indexCollection(this.#getSearchIndex(), {
+        await indexCollection({
           collectionPath: root,
           collectionName,
           workspacePath,
