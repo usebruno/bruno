@@ -110,6 +110,11 @@ describe('getResponseJsonPath', () => {
     expect(getResponseJsonPath(keyEl)).toEqual(['token']);
   });
 
+  it('resolves a real key named "false"', () => {
+    const body = mount(rootNode(leafObjectRow('false', '<span class="string-value">"x"</span>')));
+    expect(getResponseJsonPath(body.querySelector('.string-value'))).toEqual(['false']);
+  });
+
   it('returns null outside the JSON tree', () => {
     const body = mount(rootNode(leafObjectRow('token')));
     expect(getResponseJsonPath(body)).toBeNull();
@@ -133,6 +138,12 @@ describe('buildAccessor', () => {
   it('escapes quotes inside bracketed keys', () => {
     expect(buildAccessor(['say "hi"'])).toBe('responseBody["say \\"hi\\""]');
   });
+
+  it('quotes digit-only string keys instead of using bare brackets', () => {
+    // Bare [007] would read key "7" in sloppy mode and is a SyntaxError in
+    // strict mode; only real array indices (numbers) get bare brackets.
+    expect(buildAccessor(['007'])).toBe('responseBody["007"]');
+  });
 });
 
 describe('variableNameForSegments', () => {
@@ -151,14 +162,13 @@ describe('variableNameForSegments', () => {
 });
 
 describe('generatePostResponseSnippet', () => {
-  it('generates bruno post-response script in the documented idiom', () => {
+  it('generates a self-contained block', () => {
     expect(generatePostResponseSnippet(['properties', 'latestReportId'])).toBe(
       [
-        'function onResponse(res) {',
-        '  let responseBody = res.getBody();',
+        '{',
+        '  const responseBody = res.getBody();',
         '  bru.setVar("latestReportId", responseBody.properties.latestReportId); // generated from the response JSON',
-        '}',
-        'onResponse(res);'
+        '}'
       ].join('\n')
     );
   });
@@ -166,6 +176,18 @@ describe('generatePostResponseSnippet', () => {
   it('brackets unsafe segments in the accessor', () => {
     const snippet = generatePostResponseSnippet(['weird key', 0]);
     expect(snippet).toContain('bru.setVar("weirdKey", responseBody["weird key"][0]);');
+  });
+
+  it('does not emit duplicate declarations when appended twice', () => {
+    const combined = appendSnippet(
+      appendSnippet('', generatePostResponseSnippet(['a'])),
+      generatePostResponseSnippet(['b'])
+    );
+    expect(combined).not.toMatch(/function onResponse/);
+    expect(combined).toContain('bru.setVar("a", responseBody.a);');
+    expect(combined).toContain('bru.setVar("b", responseBody.b);');
+    // The combined script must parse: no duplicate declarations, no syntax errors.
+    expect(() => new Function(combined)).not.toThrow();
   });
 });
 
@@ -189,6 +211,12 @@ describe('generateTestSnippet', () => {
   it('handles null and boolean values', () => {
     expect(generateTestSnippet(['active'], true)).toContain('.to.equal(true);');
     expect(generateTestSnippet(['deleted'], null)).toContain('.to.equal(null);');
+  });
+
+  it('escapes the test title', () => {
+    const snippet = generateTestSnippet(['say "hi"'], 'x');
+    expect(snippet).toContain('test("should have say \\"hi\\" in the response", function() {');
+    expect(() => new Function(snippet)).not.toThrow();
   });
 });
 

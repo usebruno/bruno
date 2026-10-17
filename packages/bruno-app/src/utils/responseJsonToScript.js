@@ -20,9 +20,8 @@ const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 // react-json-view renders keys with quotes when `quotesOnKeys` is on.
 const unquote = (text) => {
   const unquoted = (text || '').trim().replace(/^"/, '').replace(/"$/, '');
-  // The root node is rendered with `name={false}`; its key span is empty,
-  // but guard against the literal artifact anyway.
-  return unquoted === '' || unquoted === 'false' ? null : unquoted;
+  // The root node is rendered with `name={false}`; its key span is empty.
+  return unquoted === '' ? null : unquoted;
 };
 
 const toIndex = (text) => {
@@ -108,7 +107,10 @@ export const getResponseJsonPath = (target) => {
 export const buildAccessor = (segments) => {
   let accessor = 'responseBody';
   for (const segment of segments) {
-    if (typeof segment === 'number' || (typeof segment === 'string' && /^\d+$/.test(segment))) {
+    // Only real array indices (numbers from getResponseJsonPath) get bare
+    // brackets. Digit-only string keys are object keys: `responseBody[007]`
+    // would read key "7" in sloppy mode and is a SyntaxError in strict mode.
+    if (typeof segment === 'number') {
       accessor += `[${segment}]`;
     } else if (IDENTIFIER.test(segment)) {
       accessor += `.${segment}`;
@@ -145,19 +147,19 @@ export const variableNameForSegments = (segments) => {
 };
 
 /**
- * Generate a post-response script snippet in bruno's own idiom,
- * following the shape proposed in the feature request:
- * `function onResponse(res) { ... } onResponse(res);`
+ * Generate a post-response script snippet as a self-contained block.
+ * A named function declaration is deliberately avoided: appending the
+ * snippet a second time would declare `onResponse` twice, and the hoisted
+ * duplicate would shadow the first body so the first variable is never set.
  */
 export const generatePostResponseSnippet = (segments) => {
   const accessor = buildAccessor(segments);
   const varName = variableNameForSegments(segments);
   return [
-    'function onResponse(res) {',
-    '  let responseBody = res.getBody();',
-    `  bru.setVar("${varName}", ${accessor}); // generated from the response JSON`,
-    '}',
-    'onResponse(res);'
+    '{',
+    '  const responseBody = res.getBody();',
+    `  bru.setVar(${JSON.stringify(varName)}, ${accessor}); // generated from the response JSON`,
+    '}'
   ].join('\n');
 };
 
@@ -170,7 +172,7 @@ export const generateTestSnippet = (segments, value) => {
   const lastKey = segments[segments.length - 1];
   const matcher = value !== null && typeof value === 'object' ? 'eql' : 'equal';
   return [
-    `test("should have ${lastKey} in the response", function() {`,
+    `test(${JSON.stringify(`should have ${lastKey} in the response`)}, function() {`,
     '  let responseBody = res.getBody();',
     `  expect(${accessor}).to.${matcher}(${JSON.stringify(value)});`,
     '});'
