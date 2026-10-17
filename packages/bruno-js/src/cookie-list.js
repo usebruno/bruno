@@ -77,6 +77,7 @@ const PropertyList = require('./property-list');
 
 /**
  * A cookie from the cookie jar.
+ * @category Types
  * @typedef {object} Cookie
  * @property {string} key - The cookie's name.
  * @property {string} value - The cookie's value.
@@ -90,6 +91,7 @@ const PropertyList = require('./property-list');
 
 /**
  * A cookie to store.
+ * @category Types
  * @typedef {object} CookieInput
  * @property {string} key - The cookie's name.
  * @property {string} value - The cookie's value.
@@ -109,6 +111,7 @@ const PropertyList = require('./property-list');
  *
  * Every function returns a promise, unless you pass a callback: then it returns nothing and calls
  * the callback with an error, or on success with no error and the result.
+ * @category Types
  * @typedef {object} CookieJar
  * @property {(url: string, name: string, callback?: (error: Error | null | undefined, cookie?: Cookie | null) => void) => Promise<Cookie | null> | void} getCookie
  *   Get the cookie with this name that the jar would send to `url`, or `null` when there is none.

@@ -37,6 +37,7 @@ const assertValidVariableName = (key) => {
 
 /**
  * The options of `bru.sendRequest`: a URL and Axios request options.
+ * @category Types
  * @typedef {object} SendRequestOptions
  * @property {string} url - The URL. `{{variables}}` are not interpolated; use `bru.interpolate`.
  * @property {string} [method] - The HTTP method. Defaults to `'GET'`.
@@ -48,6 +49,7 @@ const assertValidVariableName = (key) => {
 
 /**
  * The response `bru.sendRequest` resolves with.
+ * @category Types
  * @typedef {object} SendRequestResponse
  * @property {number} status - The HTTP status code.
  * @property {string} statusText - The HTTP status text.
@@ -57,6 +59,7 @@ const assertValidVariableName = (key) => {
 
 /**
  * The response `bru.runRequest` resolves with.
+ * @category Types
  * @typedef {object} RunRequestResponse
  * @property {number | string} status - The HTTP status code, or `'skipped'` for a request whose
  *   protocol a script can't run.
@@ -69,6 +72,7 @@ const assertValidVariableName = (key) => {
 
 /**
  * The totals of a set of results.
+ * @category Types
  * @typedef {object} ResultsSummary
  * @property {number} total - The number of results.
  * @property {number} passed - The number that passed.
@@ -78,6 +82,7 @@ const assertValidVariableName = (key) => {
 
 /**
  * The result of one `test()`.
+ * @category Types
  * @typedef {object} TestResult
  * @property {'pass' | 'fail'} status - The outcome.
  * @property {string} description - The test's name.
@@ -88,6 +93,7 @@ const assertValidVariableName = (key) => {
 
 /**
  * The results of the `test()` calls so far.
+ * @category Types
  * @typedef {object} TestResults
  * @property {ResultsSummary} summary - The totals.
  * @property {TestResult[]} results - One entry per test, in order.
@@ -95,6 +101,7 @@ const assertValidVariableName = (key) => {
 
 /**
  * The result of one assertion of the request's Assert tab.
+ * @category Types
  * @typedef {object} AssertionResult
  * @property {'pass' | 'fail'} status - The outcome.
  * @property {string} lhsExpr - The expression checked, such as `res.status`.
@@ -106,6 +113,7 @@ const assertValidVariableName = (key) => {
 
 /**
  * The results of the request's assertions.
+ * @category Types
  * @typedef {object} AssertionResults
  * @property {ResultsSummary} summary - The totals.
  * @property {AssertionResult[]} results - One entry per assertion.

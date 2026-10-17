@@ -16,7 +16,7 @@
   "disableSources": true,
   "excludeExternals": true,
   "categorizeByGroup": false,
-  "categoryOrder": ["bru", "req", "res", "Tests & assertions", "bru.grpc", "*"],
+  "categoryOrder": ["bru", "req", "res", "Tests & assertions", "bru.grpc", "Types", "*"],
   "navigation": {
     "includeCategories": true,
     "includeGroups": false

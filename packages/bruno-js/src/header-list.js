@@ -80,6 +80,7 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
 
 /**
  * An HTTP header.
+ * @category Types
  * @typedef {object} Header
  * @property {string} key - The header's name.
  * @property {any} value - The header's value: usually a string, and an array for a repeated

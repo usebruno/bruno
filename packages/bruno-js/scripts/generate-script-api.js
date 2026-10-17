@@ -152,7 +152,14 @@ const createGenerator = (program) => {
       protected: false
     };
 
-    for (const tag of source.getJsDocTags(checker)) {
+    // `getJsDocTags` leaves out the tags a `@typedef` shares its comment with, such as a
+    // `@category` written above it.
+    const typedef = source.declarations?.find(ts.isJSDocTypedefTag);
+    const typedefTags = (typedef?.parent.tags || [])
+      .filter((tag) => tag !== typedef && !ts.isJSDocPropertyTag(tag))
+      .map((tag) => ({ name: tag.tagName.text, text: [{ kind: 'text', text: ts.getTextOfJSDocComment(tag.comment) || '' }] }));
+
+    for (const tag of [...source.getJsDocTags(checker), ...typedefTags]) {
       const parts = tag.text || [];
       if (tag.name === 'param') {
         const name = parts.find((p) => p.kind === 'parameterName')?.text;

@@ -39,6 +39,8 @@
   --bru-border-soft: light-dark(rgb(17 14 12 / 0.05), rgb(255 255 255 / 0.06));
   --bru-hover: light-dark(rgb(87 84 82 / 0.05), rgb(229 227 224 / 0.05));
   --bru-surface: light-dark(#ffffff, var(--bru-background-dark));
+  --bru-sidebar-bg: light-dark(rgb(0 0 0 / 0.025), rgb(255 255 255 / 0.035));
+  --bru-sidebar-inset: 1rem;
   --bru-toolbar: light-dark(rgb(255 255 255 / 0.8), rgb(14 12 12 / 0.75));
   --bru-code-bg: light-dark(var(--bru-gray-50), #161311);
   --bru-inline-code-bg: light-dark(var(--bru-gray-100), rgb(255 255 255 / 0.06));
@@ -398,26 +400,29 @@ pre,
 
 /* ---------- Layout ---------- */
 
+/* The sidebar runs flush from the top bar to the viewport bottom, so the main container drops its
+   vertical margin and the content columns carry their own top spacing instead. */
 @media (min-width: 770px) {
   .container-main {
-    --dim-container-main-margin-y: 1.75rem;
-    grid-template-columns: 16rem minmax(0, 1fr);
+    --dim-container-main-margin-y: 0rem;
+    --bru-main-gap-y: 1.75rem;
+    grid-template-columns: 17rem minmax(0, 1fr);
     column-gap: 2.5rem;
   }
 
   .col-content {
-    padding: 0;
+    padding: var(--bru-main-gap-y) 0;
   }
 }
 
 @media (min-width: 1200px) {
   .container-main {
-    grid-template-columns: 16rem minmax(0, 1fr) 15rem;
+    grid-template-columns: 17rem minmax(0, 1fr) 15rem;
     column-gap: 2.5rem;
   }
 
   .page-menu {
-    padding-left: 0;
+    padding: var(--bru-main-gap-y) 0;
   }
 }
 
@@ -425,6 +430,35 @@ pre,
 
 .site-menu {
   font-size: 0.875rem;
+}
+
+/* As on docs.usebruno.com: a faint panel behind the nav, inset from the top bar and the viewport
+   bottom so it stays clear of both while pinned. Below 1200px TypeDoc makes the whole sidebar column sticky; above, the column
+   is `display: contents` and the site menu is the sticky element. */
+@media (min-width: 770px) and (max-width: 1199px) {
+  .col-sidebar {
+    align-self: start;
+    top: calc(var(--dim-header-height) + var(--bru-sidebar-inset));
+    box-sizing: border-box;
+    height: calc(100vh - var(--dim-header-height) - 2 * var(--bru-sidebar-inset));
+    max-height: none;
+    padding: 1.5rem 0.75rem;
+    border-radius: 0.75rem;
+    background: var(--bru-sidebar-bg);
+  }
+}
+
+@media (min-width: 1200px) {
+  .site-menu {
+    align-self: start;
+    top: calc(var(--dim-header-height) + var(--bru-sidebar-inset));
+    box-sizing: border-box;
+    height: calc(100vh - var(--dim-header-height) - 2 * var(--bru-sidebar-inset));
+    max-height: none;
+    padding: 1.5rem 0.75rem;
+    border-radius: 0.75rem;
+    background: var(--bru-sidebar-bg);
+  }
 }
 
 .tsd-navigation > a,

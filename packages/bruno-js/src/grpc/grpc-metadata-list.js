@@ -6,6 +6,7 @@ const { setMetadataKey } = require('./grpc-metadata');
 
 /**
  * A gRPC metadata entry.
+ * @category Types
  * @typedef {object} MetadataEntry
  * @property {string} key - The key.
  * @property {any} value - The value, usually a string.

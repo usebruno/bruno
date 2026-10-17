@@ -7,6 +7,8 @@ const { cloneDeep } = require('lodash');
 
 /**
  * A gRPC message and when it was sent or received.
+ *
+ * @category Types
  */
 class GrpcMessage {
   /**

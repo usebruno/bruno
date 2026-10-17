@@ -905,7 +905,7 @@ export interface Response {
 /**
  * The options of `bru.sendRequest`: a URL and Axios request options.
  *
- * @category bru
+ * @category Types
  */
 export interface SendRequestOptions {
   /**
@@ -937,7 +937,7 @@ export interface SendRequestOptions {
 /**
  * The response `bru.sendRequest` resolves with.
  *
- * @category bru
+ * @category Types
  */
 export interface SendRequestResponse {
   /**
@@ -1230,7 +1230,7 @@ export interface Utils {
 /**
  * The response `bru.runRequest` resolves with.
  *
- * @category bru
+ * @category Types
  */
 export interface RunRequestResponse {
   /**
@@ -1263,7 +1263,7 @@ export interface RunRequestResponse {
 /**
  * The results of the `test()` calls so far.
  *
- * @category bru
+ * @category Types
  */
 export interface TestResults {
   /**
@@ -1279,7 +1279,7 @@ export interface TestResults {
 /**
  * The results of the request's assertions.
  *
- * @category bru
+ * @category Types
  */
 export interface AssertionResults {
   /**
@@ -1692,7 +1692,7 @@ export interface ReadOnlyHeaderList {
 /**
  * A cookie to store.
  *
- * @category bru
+ * @category Types
  */
 export interface CookieInput {
   /**
@@ -1741,7 +1741,7 @@ export interface CookieInput {
  * Every function returns a promise, unless you pass a callback: then it returns nothing and calls
  * the callback with an error, or on success with no error and the result.
  *
- * @category bru
+ * @category Types
  */
 export interface CookieJar {
   /**
@@ -1788,7 +1788,7 @@ export interface CookieJar {
 /**
  * A cookie from the cookie jar.
  *
- * @category bru
+ * @category Types
  */
 export interface Cookie {
   /**
@@ -1825,7 +1825,7 @@ export interface Cookie {
 /**
  * The totals of a set of results.
  *
- * @category bru
+ * @category Types
  */
 export interface ResultsSummary {
   /**
@@ -1849,7 +1849,7 @@ export interface ResultsSummary {
 /**
  * The result of one `test()`.
  *
- * @category bru
+ * @category Types
  */
 export interface TestResult {
   /**
@@ -1877,7 +1877,7 @@ export interface TestResult {
 /**
  * The result of one assertion of the request's Assert tab.
  *
- * @category bru
+ * @category Types
  */
 export interface AssertionResult {
   /**
@@ -2028,7 +2028,7 @@ export interface GrpcResponse {
 /**
  * An HTTP header.
  *
- * @category req
+ * @category Types
  */
 export interface Header {
   /**
@@ -2315,7 +2315,7 @@ export interface GrpcMessageList {
 /**
  * A gRPC message and when it was sent or received.
  *
- * @category bru.grpc
+ * @category Types
  */
 export interface GrpcMessage {
   /**
@@ -2471,7 +2471,7 @@ export interface ReadOnlyGrpcMetadataList {
 /**
  * A gRPC metadata entry.
  *
- * @category bru.grpc
+ * @category Types
  */
 export interface MetadataEntry {
   /**
