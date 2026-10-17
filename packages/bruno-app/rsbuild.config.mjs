@@ -9,6 +9,8 @@ import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginRemoteImages } from './plugins/remote-images/index.mjs';
 
 const require = createRequire(import.meta.url);
+// Same helper as scripts/dev.js, so the dev server and Electron share one port.
+const { resolveDevPort } = require('../../scripts/dev-port.js');
 const swaggerUiDir = path.dirname(require.resolve('swagger-ui-react'));
 const swaggerImmutable = require.resolve('immutable', { paths: [swaggerUiDir] });
 
@@ -55,6 +57,12 @@ export default defineConfig({
   },
   html: {
     title: 'Bruno'
+  },
+  // Same port scripts/dev.js passes to Electron via BRUNO_DEV_PORT.
+  // strictPort keeps rsbuild from moving to the next free port.
+  server: {
+    port: resolveDevPort(),
+    strictPort: true
   },
   tools: {
     rspack: {
