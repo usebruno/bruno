@@ -19,10 +19,16 @@
 export const STORAGE_PREFIX = 'persisted::';
 export const DEFAULT_PERSISTENCE_SCOPE = 'global';
 export const STORAGE_SEGMENT = 'codeeditor';
+export const SEARCH_STORAGE_SEGMENT = 'codeeditor-search';
 
 export const getScopedStorageKey = (scope, key) => {
   const resolvedScope = scope || DEFAULT_PERSISTENCE_SCOPE;
   return `${STORAGE_PREFIX}${resolvedScope}::${STORAGE_SEGMENT}::${key}`;
+};
+
+export const getScopedSearchStorageKey = (scope, key) => {
+  const resolvedScope = scope || DEFAULT_PERSISTENCE_SCOPE;
+  return `${STORAGE_PREFIX}${resolvedScope}::${SEARCH_STORAGE_SEGMENT}::${key}`;
 };
 
 // Identifies which Doc state belongs to a given CodeEditor instance.
@@ -43,18 +49,17 @@ export const getDocKey = (props) => {
   return `${id}:${mode}:${readOnly}`;
 };
 
-export const readPersistedEditorState = ({ scope, key }) => {
+const readPersistedState = (storageKey) => {
   try {
-    const raw = localStorage.getItem(getScopedStorageKey(scope, key));
+    const raw = localStorage.getItem(storageKey);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 };
 
-export const writePersistedEditorState = ({ scope, key, state }) => {
+const writePersistedState = (storageKey, state) => {
   try {
-    const storageKey = getScopedStorageKey(scope, key);
     if (state == null) {
       localStorage.removeItem(storageKey);
     } else {
@@ -65,6 +70,18 @@ export const writePersistedEditorState = ({ scope, key, state }) => {
     // state is non-critical — content lives in Redux — so silently ignore.
   }
 };
+
+export const readPersistedEditorState = ({ scope, key }) =>
+  readPersistedState(getScopedStorageKey(scope, key));
+
+export const writePersistedEditorState = ({ scope, key, state }) =>
+  writePersistedState(getScopedStorageKey(scope, key), state);
+
+export const readPersistedSearchState = ({ scope, key }) =>
+  readPersistedState(getScopedSearchStorageKey(scope, key));
+
+export const writePersistedSearchState = ({ scope, key, state }) =>
+  writePersistedState(getScopedSearchStorageKey(scope, key), state);
 
 export const captureViewState = (editor) => {
   if (!editor) return null;

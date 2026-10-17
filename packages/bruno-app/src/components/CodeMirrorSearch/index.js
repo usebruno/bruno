@@ -8,13 +8,13 @@ import { findSearchMatches, createCacheKey } from './searchUtils';
 import { markViewportMatches, clearMarks } from './markingUtils';
 import { useSearchBarHandle } from './useSearchBarHandle';
 
-const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref) => {
-  const [searchText, setSearchText] = useState('');
+const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose, initialSearchState, onSearchStateChange }, ref) => {
+  const [searchText, setSearchText] = useState(() => initialSearchState?.searchText ?? '');
   const [replaceText, setReplaceText] = useState('');
   const [replaceVisible, setReplaceVisible] = useState(false);
-  const [regex, setRegex] = useState(false);
-  const [caseSensitive, setCaseSensitive] = useState(false);
-  const [wholeWord, setWholeWord] = useState(false);
+  const [regex, setRegex] = useState(() => initialSearchState?.regex ?? false);
+  const [caseSensitive, setCaseSensitive] = useState(() => initialSearchState?.caseSensitive ?? false);
+  const [wholeWord, setWholeWord] = useState(() => initialSearchState?.wholeWord ?? false);
   const [matchIndex, setMatchIndex] = useState(0);
   const [matchCount, setMatchCount] = useState(0);
 
@@ -32,6 +32,20 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
   const rafRef = useRef(null);
 
   const debouncedSearchText = useDebounce(searchText, 250);
+
+  const handleSearchTextChange = (text) => {
+    setSearchText(text);
+    onSearchStateChange?.({ searchText: text, regex, caseSensitive, wholeWord });
+  };
+
+  useEffect(() => () => {
+    // The editor can outlive this search instance when its persistence key changes.
+    clearMarks(searchMarks.current);
+    if (searchLineHighlight.current !== null && editor) {
+      editor.removeLineClass(searchLineHighlight.current, 'wrap', 'cm-search-line-highlight');
+      searchLineHighlight.current = null;
+    }
+  }, [editor]);
 
   const redrawMarks = useCallback(() => {
     if (!editor) return;
@@ -140,7 +154,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     initialIndexRef,
     inputRef,
     replaceInputRef,
-    setSearchText,
+    setSearchText: handleSearchTextChange,
     setMatchCount,
     setMatchIndex,
     setReplaceVisible,
@@ -240,22 +254,21 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     };
   }, [editor, visible, doSearch, debouncedSearchText]);
 
-  const handleSearchTextChange = (text) => {
-    setSearchText(text);
-  };
-
   const handleToggleRegex = () => {
-    setRegex((prev) => !prev);
+    setRegex(!regex);
+    onSearchStateChange?.({ searchText, regex: !regex, caseSensitive, wholeWord });
     setMatchIndex(0);
   };
 
   const handleToggleCase = () => {
-    setCaseSensitive((prev) => !prev);
+    setCaseSensitive(!caseSensitive);
+    onSearchStateChange?.({ searchText, regex, caseSensitive: !caseSensitive, wholeWord });
     setMatchIndex(0);
   };
 
   const handleToggleWholeWord = () => {
-    setWholeWord((prev) => !prev);
+    setWholeWord(!wholeWord);
+    onSearchStateChange?.({ searchText, regex, caseSensitive, wholeWord: !wholeWord });
     setMatchIndex(0);
   };
 

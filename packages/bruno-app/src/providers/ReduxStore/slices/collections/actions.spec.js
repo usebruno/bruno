@@ -1,5 +1,12 @@
-import { newHttpRequest, revealItemInSidebar, revealTabInSidebar, tryResponseExample } from './actions';
+import { closeTabs, newHttpRequest, removeCollection, revealItemInSidebar, revealTabInSidebar, tryResponseExample } from './actions';
 import { SIDEBAR_REVEAL_STATUS } from 'utils/common/constants';
+import { configureStore } from '@reduxjs/toolkit';
+import React, { Component } from 'react';
+import { act, cleanup, render, screen } from '@testing-library/react';
+import { Provider, useSelector } from 'react-redux';
+import tabsReducer from '../tabs';
+import { readPersistedSearchState, writePersistedSearchState } from 'components/CodeEditor/state-persistence';
+import usePersistedTabCleanup from 'hooks/usePersistedTabCleanup';
 
 const mockUuid = jest.fn();
 
@@ -28,7 +35,69 @@ describe('collection actions', () => {
   });
 
   afterEach(() => {
+    cleanup();
     jest.clearAllMocks();
+    localStorage.clear();
+  });
+
+  it.each([
+    ['removing a collection', () => removeCollection('closing')],
+    ['closing request tabs', () => closeTabs({ tabUids: ['closed-tab'] })]
+  ])('clears search state after React commits editor unmounts when %s and keeps other tabs', async (_, closeAction) => {
+    const searchState = { visible: true, searchText: 'sensitive response value' };
+    writePersistedSearchState({ scope: 'closed-tab', key: 'response', state: searchState });
+    writePersistedSearchState({ scope: 'other-tab', key: 'response', state: searchState });
+
+    const store = configureStore({
+      reducer: {
+        tabs: tabsReducer,
+        collections: (state = { collections: [{ uid: 'closing', pathname: '/closing' }] }) => state,
+        workspaces: (state = { workspaces: [] }) => state
+      },
+      preloadedState: {
+        tabs: {
+          tabs: [
+            { uid: 'closed-tab', collectionUid: 'closing' },
+            { uid: 'other-tab', collectionUid: 'other' }
+          ],
+          activeTabUid: 'closed-tab',
+          recentlyClosedTabs: []
+        }
+      }
+    });
+    window.ipcRenderer.invoke.mockResolvedValue(['another-workspace']);
+
+    class ResponseEditor extends Component {
+      componentWillUnmount() {
+        writePersistedSearchState({ scope: this.props.scope, key: 'response', state: searchState });
+      }
+
+      render() {
+        return <div>{this.props.scope}</div>;
+      }
+    }
+
+    const OpenEditors = () => {
+      usePersistedTabCleanup();
+      const tabs = useSelector((state) => state.tabs.tabs);
+      return tabs.map((tab) => <ResponseEditor key={tab.uid} scope={tab.uid} />);
+    };
+
+    render(
+      <Provider store={store}>
+        <OpenEditors />
+      </Provider>
+    );
+
+    await act(async () => {
+      await store.dispatch(closeAction());
+    });
+
+    expect(screen.queryByText('closed-tab')).not.toBeInTheDocument();
+    expect(screen.getByText('other-tab')).toBeInTheDocument();
+    expect(store.getState().tabs.tabs.map((tab) => tab.uid)).toEqual(['other-tab']);
+    expect(readPersistedSearchState({ scope: 'closed-tab', key: 'response' })).toBeNull();
+    expect(readPersistedSearchState({ scope: 'other-tab', key: 'response' })).toEqual(searchState);
   });
 
   describe('newHttpRequest', () => {

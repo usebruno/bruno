@@ -8,12 +8,12 @@ import {
   updateWorkspaceLoadingState,
   setWorkspaceScratchCollection
 } from '../workspaces';
-import { createCollection, openMultipleCollections, openScratchCollectionEvent, mountCollection, hydrateCollectionWithUiStateSnapshot } from '../collections/actions';
+import { createCollection, openMultipleCollections, openScratchCollectionEvent, mountCollection, hydrateCollectionWithUiStateSnapshot, ensureActiveTabInCurrentWorkspace } from '../collections/actions';
 import { removeCollection, addTransientDirectory, updateCollectionMountStatus, expandCollection, sortCollections } from '../collections';
 import { sanitizeName } from 'utils/common/regex';
 import { clearCollectionState } from '../openapi-sync';
 import { updateGlobalEnvironments } from '../global-environments';
-import { addTab, closeTabs, focusTab, restoreTabs } from '../tabs';
+import { addTab, closeTabs, closeAllCollectionTabs, focusTab, restoreTabs } from '../tabs';
 import {
   API_SPEC_TAB_TYPE,
   findApiSpecByPathname,
@@ -344,6 +344,7 @@ export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath
         );
 
         if (workspaceCollection) {
+          dispatch(closeAllCollectionTabs({ collectionUid: collection.uid }));
           dispatch(removeCollection({ collectionUid: collection.uid }));
           dispatch(clearCollectionState({ collectionUid: collection.uid }));
         }
@@ -353,6 +354,7 @@ export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath
         workspaceUid,
         collectionLocation: collectionPath
       }));
+      await dispatch(ensureActiveTabInCurrentWorkspace());
 
       return true;
     } catch (error) {
