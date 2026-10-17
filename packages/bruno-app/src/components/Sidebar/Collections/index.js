@@ -14,6 +14,7 @@ import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import useDebounce from 'hooks/useDebounce';
 import useSidebarAutoReveal from 'hooks/useSidebarAutoReveal';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
+import { selectCollections, selectCollectionSortOrder, selectSelectedSidebarUids } from 'src/selectors/collections';
 
 const isEmptyQuery = (value) => typeof value === 'string' && value.trim() === '';
 
@@ -21,8 +22,11 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const [searchText, setSearchText] = useState('');
   const trimmedSearchText = searchText.trim();
   const debouncedSearchText = useDebounce(trimmedSearchText, 300, { shouldSkipDebounce: isEmptyQuery });
-  const { collections, collectionSortOrder, selectedSidebarUids } = useSelector((state) => state.collections);
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const collections = useSelector(selectCollections);
+  const collectionSortOrder = useSelector(selectCollectionSortOrder);
+  const selectedSidebarUids = useSelector(selectSelectedSidebarUids);
+  const workspaces = useSelector((state) => state.workspaces.workspaces);
+  const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const dispatch = useDispatch();
   const virtuosoRef = useRef(null);
 

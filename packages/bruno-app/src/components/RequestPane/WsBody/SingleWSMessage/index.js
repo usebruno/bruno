@@ -9,7 +9,8 @@ import { useTheme } from 'providers/Theme';
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { queueWsMessage, ensureWsConnection } from 'utils/network/index';
-import { findCollectionByUid, findEnvironmentInCollection } from 'utils/collections/index';
+import { findEnvironmentInCollection } from 'utils/collections/index';
+import { selectCollectionByUid } from 'src/selectors/collections';
 import toast from 'react-hot-toast';
 import WSRequestBodyMode from '../BodyMode/index';
 import StyledWrapper from './StyledWrapper';
@@ -47,7 +48,8 @@ export const SingleWSMessage = ({
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
-  const collections = useSelector((state) => state.collections.collections);
+
+  const currentCollection = useSelector((state) => selectCollectionByUid(state, collection.uid));
 
   const { name, content, type } = message;
   const displayMode = typeToMode(type);
@@ -162,23 +164,22 @@ export const SingleWSMessage = ({
 
   const onSendMessage = useCallback(async () => {
     try {
-      const col = findCollectionByUid(collections, collection.uid);
       const environment = resolveEnvironmentInheritance({
-        environments: col?.environments,
-        targetEnvironment: findEnvironmentInCollection(col, col?.activeEnvironmentUid)
+        environments: currentCollection?.environments,
+        targetEnvironment: findEnvironmentInCollection(currentCollection, currentCollection?.activeEnvironmentUid)
       });
 
       // Auto-connect if needed; while CONNECTING just queue — open flushes.
-      await ensureWsConnection(item, col, environment, col?.runtimeVariables);
+      await ensureWsConnection(item, currentCollection, environment, currentCollection?.runtimeVariables);
 
-      const result = await queueWsMessage(item, col, environment, col?.runtimeVariables, index);
+      const result = await queueWsMessage(item, currentCollection, environment, currentCollection?.runtimeVariables, index);
       if (!result.success) {
         toast.error(result.error || 'Failed to send message');
       }
     } catch (err) {
       toast.error(err.message || 'Failed to send message');
     }
-  }, [collections]);
+  }, [item, currentCollection, index]);
 
   return (
     <StyledWrapper
