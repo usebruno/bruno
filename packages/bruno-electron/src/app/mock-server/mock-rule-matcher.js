@@ -68,6 +68,10 @@ const compareValues = (operator, actual, expected) => {
       return actualText.includes(expectedText);
     case 'not_equals':
       return actualText !== expectedText;
+    case 'isNotNull':
+      return actual !== null && actual !== undefined && actual !== '';
+    case 'isNull':
+      return actual === null || actual === undefined || actual === '';
     case 'equals':
     default:
       return actualText === expectedText;
