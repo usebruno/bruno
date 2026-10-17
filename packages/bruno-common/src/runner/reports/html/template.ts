@@ -395,13 +395,15 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             v-if="result.request.data"
             title="REQUEST BODY"
           >
-          <iframe
-            v-if="result.request.isHtml"
-            :srcdoc="result.request.data"
-            style="width: 100%; height: 400px; border: none;"
-          ></iframe>
+          <div style="max-height: 350px; overflow-y: auto; border: 1px solid #e5e7eb; padding: 8px; border-radius: 4px;">
+            <iframe
+              v-if="result.request.isHtml"
+              :srcdoc="result.request.data"
+              style="width: 100%; height: 350px; border: none;"
+            ></iframe>
 
-          <pre v-else>{{ result.request.data }}</pre>
+            <pre v-else>{{ result.request.data }}</pre>
+          </div>
           </n-card>
           <n-card title="RESPONSE HEADERS">
             <n-data-table
@@ -413,13 +415,15 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             v-if="result.response.data"
             title="RESPONSE BODY"
           >
-          <iframe
-            v-if="result.response.isHtml"
-            :srcdoc="result.response.data"
-            style="width: 100%; height: 400px; border: none;"
-          ></iframe>
-
-          <pre v-else>{{ result.response.data }}</pre>          </n-card>
+          <div style="max-height: 350px; overflow-y: auto; border: 1px solid #e5e7eb; padding: 8px; border-radius: 4px;"> 
+            <iframe
+              v-if="result.response.isHtml"
+              :srcdoc="result.response.data"
+              style="width: 100%; height: 350px; border: none;"
+            ></iframe>
+            <pre v-else>{{ result.response.data }}</pre>
+          </div>
+          </n-card>
           <n-card title="ASSERTIONS INFORMATION">
             <n-data-table
               :columns="assertionsColumns"
