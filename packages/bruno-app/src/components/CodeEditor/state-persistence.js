@@ -49,18 +49,17 @@ export const getDocKey = (props) => {
   return `${id}:${mode}:${readOnly}`;
 };
 
-export const readPersistedEditorState = ({ scope, key }) => {
+const readPersistedState = (storageKey) => {
   try {
-    const raw = localStorage.getItem(getScopedStorageKey(scope, key));
+    const raw = localStorage.getItem(storageKey);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 };
 
-export const writePersistedEditorState = ({ scope, key, state }) => {
+const writePersistedState = (storageKey, state) => {
   try {
-    const storageKey = getScopedStorageKey(scope, key);
     if (state == null) {
       localStorage.removeItem(storageKey);
     } else {
@@ -72,27 +71,17 @@ export const writePersistedEditorState = ({ scope, key, state }) => {
   }
 };
 
-export const readPersistedSearchState = ({ scope, key }) => {
-  try {
-    const raw = localStorage.getItem(getScopedSearchStorageKey(scope, key));
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-};
+export const readPersistedEditorState = ({ scope, key }) =>
+  readPersistedState(getScopedStorageKey(scope, key));
 
-export const writePersistedSearchState = ({ scope, key, state }) => {
-  try {
-    const storageKey = getScopedSearchStorageKey(scope, key);
-    if (state == null) {
-      localStorage.removeItem(storageKey);
-    } else {
-      localStorage.setItem(storageKey, JSON.stringify(state));
-    }
-  } catch {
-    // Search state is non-critical and localStorage may be unavailable or full.
-  }
-};
+export const writePersistedEditorState = ({ scope, key, state }) =>
+  writePersistedState(getScopedStorageKey(scope, key), state);
+
+export const readPersistedSearchState = ({ scope, key }) =>
+  readPersistedState(getScopedSearchStorageKey(scope, key));
+
+export const writePersistedSearchState = ({ scope, key, state }) =>
+  writePersistedState(getScopedSearchStorageKey(scope, key), state);
 
 export const captureViewState = (editor) => {
   if (!editor) return null;

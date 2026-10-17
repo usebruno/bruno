@@ -127,15 +127,32 @@ describe('CodeMirrorSearch', () => {
       const onSearchStateChange = jest.fn();
       renderSearch({ onSearchStateChange });
 
+      expect(onSearchStateChange).not.toHaveBeenCalled();
       fireEvent.change(screen.getByTestId('codemirror-search-input'), { target: { value: 'term' } });
       fireEvent.click(screen.getByTestId('codemirror-search-regex-btn'));
+      fireEvent.click(screen.getByTestId('codemirror-search-case-btn'));
+      fireEvent.click(screen.getByTestId('codemirror-search-wholeword-btn'));
 
+      expect(onSearchStateChange).toHaveBeenCalledTimes(4);
       expect(onSearchStateChange).toHaveBeenLastCalledWith({
         searchText: 'term',
         regex: true,
-        caseSensitive: false,
-        wholeWord: false
+        caseSensitive: true,
+        wholeWord: true
       });
+    });
+
+    it('removes its text and line highlights when the search instance unmounts', () => {
+      const editor = makeMockEditor([{ from: { line: 0, ch: 0 }, to: { line: 0, ch: 4 } }]);
+      const view = renderSearch({ editor });
+      typeSearch('test');
+      expect(editor._marks.length).toBeGreaterThan(0);
+      editor.removeLineClass.mockClear();
+
+      view.unmount();
+
+      for (const mark of editor._marks) expect(mark.clear).toHaveBeenCalled();
+      expect(editor.removeLineClass).toHaveBeenCalledWith(0, 'wrap', 'cm-search-line-highlight');
     });
   });
 
@@ -218,6 +235,24 @@ describe('CodeMirrorSearch', () => {
       renderSearch({}, ref);
       act(() => ref.current.setSearch('hello'));
       expect(screen.getByTestId('codemirror-search-input')).toHaveValue('hello');
+    });
+
+    it('setSearch reports the selected text and current options to the editor', () => {
+      const onSearchStateChange = jest.fn();
+      const { ref } = renderSearch({
+        initialSearchState: { regex: true, caseSensitive: true, wholeWord: true },
+        onSearchStateChange
+      });
+
+      act(() => ref.current.setSearch('selected text'));
+
+      expect(onSearchStateChange).toHaveBeenCalledTimes(1);
+      expect(onSearchStateChange).toHaveBeenCalledWith({
+        searchText: 'selected text',
+        regex: true,
+        caseSensitive: true,
+        wholeWord: true
+      });
     });
 
     it('setSearch(text, cursorPos) shows the match at cursor position', () => {

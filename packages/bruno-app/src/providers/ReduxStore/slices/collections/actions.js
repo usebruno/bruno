@@ -113,7 +113,6 @@ import { migrationStarted, migrationCancelRequested, migrationEnded } from 'prov
 import { flushSnapshotNow } from 'providers/ReduxStore/middlewares/snapshot/middleware';
 import { saveGlobalEnvironment, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
 import { getTabToFocusForCurrentWorkspace } from 'providers/ReduxStore/slices/workspaces/getTabToFocusForCurrentWorkspace';
-import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 import {
   getCollectionEnvironmentPath,
   findCollectionEnvironmentFromSnapshot,
@@ -2682,17 +2681,6 @@ export const selectSidebarRange = ({ uid, searchText }) => (dispatch, getState) 
   dispatch(setSidebarSelection(visibleUids.slice(start, end + 1)));
 };
 
-const closeCollectionTabs = (collectionUid) => async (dispatch, getState) => {
-  const tabUids = getState().tabs.tabs
-    .filter((tab) => tab.collectionUid === collectionUid)
-    .map((tab) => tab.uid);
-
-  dispatch(closeAllCollectionTabs({ collectionUid }));
-  // Editors flush their persisted state on unmount; clear it after that flush.
-  await waitForNextTick();
-  each(tabUids, (tabUid) => clearPersistedScope(tabUid));
-};
-
 export const removeCollection = (collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
@@ -2723,7 +2711,7 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
       })
       .then(async (remainingWorkspaces) => {
         // Close tabs for this collection
-        await dispatch(closeCollectionTabs(collectionUid));
+        dispatch(closeAllCollectionTabs({ collectionUid }));
 
         // Remove collection from workspace in Redux state
         if (activeWorkspace) {
@@ -2781,7 +2769,7 @@ export const moveCollectionToWorkspace = (collectionUid) => (dispatch, getState)
         collectionName: collection.name
       })
       .then(async (result) => {
-        await dispatch(closeCollectionTabs(collectionUid));
+        dispatch(closeAllCollectionTabs({ collectionUid }));
         dispatch(removeCollectionFromWorkspace({
           workspaceUid: activeWorkspace.uid,
           collectionLocation: collection.pathname
@@ -3730,12 +3718,7 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
     .filter((t) => tabUids.includes(t.uid) && t.type === 'openapi-sync' && t.collectionUid)
     .map((t) => t.collectionUid);
 
-  // Close the tabs first
-  await dispatch(_closeTabs({ tabUids }));
-
-  // Clear persisted scope AFTER unmount — otherwise useTrackScroll's cleanup flush
-  // would rewrite scroll position to localStorage right after we cleared it.
-  each(tabUids, (tabUid) => clearPersistedScope(tabUid));
+  dispatch(_closeTabs({ tabUids }));
 
   // After close, the reducer may have set active tab to one from another workspace. Ensure it belongs to this workspace: prefer any open in-workspace tab, then workspace overview if none.
   // Dispatch is synchronous; state is already updated by _closeTabs above.
@@ -3817,7 +3800,7 @@ export const migrateCollectionToYml = (collectionUid) => async (dispatch, getSta
   };
 
   dispatch(migrationStarted());
-  await dispatch(closeCollectionTabs(collectionUid));
+  dispatch(closeAllCollectionTabs({ collectionUid }));
   dispatch(ensureActiveTabInCurrentWorkspace());
   // Flush the snapshot while the collection is still in the store: its entry serializes
   // with the now-empty tab list, replacing any stale .bru tabs on disk for the active

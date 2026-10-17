@@ -33,9 +33,19 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose, initi
 
   const debouncedSearchText = useDebounce(searchText, 250);
 
-  useEffect(() => {
-    onSearchStateChange?.({ searchText, regex, caseSensitive, wholeWord });
-  }, [searchText, regex, caseSensitive, wholeWord, onSearchStateChange]);
+  const handleSearchTextChange = (text) => {
+    setSearchText(text);
+    onSearchStateChange?.({ searchText: text, regex, caseSensitive, wholeWord });
+  };
+
+  useEffect(() => () => {
+    // The editor can outlive this search instance when its persistence key changes.
+    clearMarks(searchMarks.current);
+    if (searchLineHighlight.current !== null && editor) {
+      editor.removeLineClass(searchLineHighlight.current, 'wrap', 'cm-search-line-highlight');
+      searchLineHighlight.current = null;
+    }
+  }, [editor]);
 
   const redrawMarks = useCallback(() => {
     if (!editor) return;
@@ -144,7 +154,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose, initi
     initialIndexRef,
     inputRef,
     replaceInputRef,
-    setSearchText,
+    setSearchText: handleSearchTextChange,
     setMatchCount,
     setMatchIndex,
     setReplaceVisible,
@@ -244,22 +254,21 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose, initi
     };
   }, [editor, visible, doSearch, debouncedSearchText]);
 
-  const handleSearchTextChange = (text) => {
-    setSearchText(text);
-  };
-
   const handleToggleRegex = () => {
-    setRegex((prev) => !prev);
+    setRegex(!regex);
+    onSearchStateChange?.({ searchText, regex: !regex, caseSensitive, wholeWord });
     setMatchIndex(0);
   };
 
   const handleToggleCase = () => {
-    setCaseSensitive((prev) => !prev);
+    setCaseSensitive(!caseSensitive);
+    onSearchStateChange?.({ searchText, regex, caseSensitive: !caseSensitive, wholeWord });
     setMatchIndex(0);
   };
 
   const handleToggleWholeWord = () => {
-    setWholeWord((prev) => !prev);
+    setWholeWord(!wholeWord);
+    onSearchStateChange?.({ searchText, regex, caseSensitive, wholeWord: !wholeWord });
     setMatchIndex(0);
   };
 

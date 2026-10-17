@@ -14,7 +14,8 @@ jest.mock('../collections/actions', () => ({
   openMultipleCollections: jest.fn(() => () => Promise.resolve({ opened: [], failed: [], invalid: [] })),
   openScratchCollectionEvent: jest.fn(() => () => Promise.resolve()),
   mountCollection: jest.fn(() => () => Promise.resolve()),
-  hydrateCollectionWithUiStateSnapshot: jest.fn(() => () => Promise.resolve())
+  hydrateCollectionWithUiStateSnapshot: jest.fn(() => () => Promise.resolve()),
+  ensureActiveTabInCurrentWorkspace: jest.fn(() => () => Promise.resolve())
 }));
 
 import os from 'os';
@@ -105,11 +106,63 @@ const createStore = ({ activeWorkspaceUid = WS_A } = {}) => {
   });
 };
 
+describe('removeCollectionFromWorkspaceAction', () => {
+  let removeCollectionFromWorkspaceAction;
+
+  beforeAll(async () => {
+    window.ipcRenderer = window.ipcRenderer || {};
+    window.ipcRenderer.invoke = jest.fn(mockIpcInvoke);
+    ({ removeCollectionFromWorkspaceAction } = await import('./actions'));
+  });
+
+  it.each([false, true])('closes only the removed collection tabs when deleteFiles is %s', async (deleteFiles) => {
+    const initial = createStore().getState();
+    const collection = makeScratchCollection('removed');
+    const store = configureStore({
+      reducer: {
+        collections: collectionsReducer,
+        workspaces: workspacesReducer,
+        tabs: tabsReducer
+      },
+      preloadedState: {
+        collections: {
+          ...initial.collections,
+          collections: [...initial.collections.collections, collection]
+        },
+        workspaces: {
+          ...initial.workspaces,
+          workspaces: initial.workspaces.workspaces.map((workspace) =>
+            workspace.uid === WS_A
+              ? { ...workspace, collections: [{ path: collection.pathname }] }
+              : workspace
+          )
+        },
+        tabs: {
+          tabs: [
+            { uid: 'removed-request', collectionUid: collection.uid, preview: false },
+            { uid: 'kept-request', collectionUid: SCRATCH_A, preview: false }
+          ],
+          activeTabUid: 'removed-request',
+          recentlyClosedTabs: []
+        }
+      }
+    });
+
+    await store.dispatch(removeCollectionFromWorkspaceAction(WS_A, collection.pathname, { deleteFiles }));
+
+    expect(store.getState().tabs.tabs.map((tab) => tab.uid)).toEqual(['kept-request']);
+    expect(store.getState().tabs.activeTabUid).toBe('kept-request');
+    expect(store.getState().collections.collections.map((item) => item.uid)).not.toContain(collection.uid);
+    expect(store.getState().workspaces.workspaces.find((workspace) => workspace.uid === WS_A).collections).toEqual([]);
+  });
+});
+
 describe('switchWorkspace', () => {
   let switchWorkspace;
 
   beforeAll(async () => {
-    window.ipcRenderer = { invoke: jest.fn(mockIpcInvoke) };
+    window.ipcRenderer = window.ipcRenderer || {};
+    window.ipcRenderer.invoke = jest.fn(mockIpcInvoke);
     ({ switchWorkspace } = await import('./actions'));
   });
 

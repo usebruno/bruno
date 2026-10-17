@@ -213,10 +213,6 @@ class CodeEditor extends React.Component {
     return getDocKey(this.props);
   }
 
-  _getSearchStateStorageKey() {
-    return getSearchStateStorageKey(this.props);
-  }
-
   _persistSearchState = () => {
     if (!this.props.persistSearchState) return;
 
@@ -739,7 +735,7 @@ class CodeEditor extends React.Component {
       >
         <div className="editor-shell graphiql-container relative flex flex-col flex-1 min-h-0">
           <CodeMirrorSearch
-            key={this.props.persistSearchState ? this._getSearchStateStorageKey() : undefined}
+            key={this.props.persistSearchState ? getSearchStateStorageKey(this.props) : undefined}
             ref={(node) => {
               if (!node) return;
               this.searchBarRef.current = node;
@@ -820,6 +816,7 @@ const CodeEditorWithPersistenceScope = React.forwardRef((props, ref) => {
   return (
     <CodeEditor
       {...props}
+      persistSearchState={Boolean(props.persistSearchState && persistenceScope)}
       persistenceScope={persistenceScope}
       aiPreferences={aiPreferences}
       ref={ref}

@@ -119,9 +119,25 @@ const renderEditor = (props) =>
     </ThemeProvider>
   );
 
+const mockSearchableEditor = () => {
+  const createMockEditor = CodeMirror.getMockImplementation();
+  CodeMirror.mockImplementationOnce((node, options) => {
+    const editor = createMockEditor(node, options);
+    const doc = new CodeMirror.Doc(options.value);
+    return Object.assign(editor, {
+      getSearchCursor: (...args) => doc.getSearchCursor(...args),
+      getViewport: () => ({ from: 0, to: doc.lineCount() }),
+      addLineClass: jest.fn(),
+      removeLineClass: jest.fn(),
+      setSelection: jest.fn()
+    });
+  });
+};
+
 describe('CodeEditor', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    readPersistedSearchState.mockReset();
     jest.resetModules();
   });
 
@@ -321,18 +337,7 @@ describe('CodeEditor', () => {
       wholeWord: true
     });
 
-    const createMockEditor = CodeMirror.getMockImplementation();
-    CodeMirror.mockImplementationOnce((node, options) => {
-      const editor = createMockEditor(node, options);
-      const doc = new CodeMirror.Doc(options.value);
-      return Object.assign(editor, {
-        getSearchCursor: (...args) => doc.getSearchCursor(...args),
-        getViewport: () => ({ from: 0, to: doc.lineCount() }),
-        addLineClass: jest.fn(),
-        removeLineClass: jest.fn(),
-        setSelection: jest.fn()
-      });
-    });
+    mockSearchableEditor();
 
     const view = render(
       <ScopedPersistenceProvider scope="tab-a">
@@ -355,6 +360,66 @@ describe('CodeEditor', () => {
     expect(view.getByTestId('codemirror-search-regex-btn')).toHaveClass('active');
     expect(view.getByTestId('codemirror-search-case-btn')).toHaveClass('active');
     expect(view.getByTestId('codemirror-search-wholeword-btn')).toHaveClass('active');
+    expect(writePersistedSearchState).not.toHaveBeenCalled();
+  });
+
+  it('does not restore or save response searches without a tab persistence scope', () => {
+    readPersistedSearchState.mockReturnValue({ visible: true, searchText: 'another request' });
+    const view = renderEditor({ persistSearchState: true, docKey: 'response:editor', readOnly: true });
+
+    expect(view.queryByTestId('codemirror-search-bar')).not.toBeInTheDocument();
+    expect(readPersistedSearchState).not.toHaveBeenCalled();
+    view.unmount();
+    expect(writePersistedSearchState).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['scope', 'tab-b', 'response:editor'],
+    ['document', 'tab-a', 'response:other']
+  ])('restores the matching search when the %s changes on the same editor instance', (_, nextScope, nextDocKey) => {
+    const first = { visible: true, searchText: 'status', regex: true };
+    const second = { visible: true, searchText: '200', caseSensitive: true, wholeWord: true };
+    readPersistedSearchState.mockImplementation(({ scope, key }) =>
+      scope === 'tab-a' && key === 'response:editor' ? first : second
+    );
+    mockSearchableEditor();
+    const editorRef = React.createRef();
+    const renderScopedEditor = (scope, docKey) => (
+      <ScopedPersistenceProvider scope={scope}>
+        <ThemeProvider theme={darkTheme}>
+          <CodeEditor
+            ref={editorRef}
+            value={'{"status": 200}'}
+            mode="application/json"
+            persistSearchState
+            docKey={docKey}
+            readOnly
+          />
+        </ThemeProvider>
+      </ScopedPersistenceProvider>
+    );
+    const view = render(renderScopedEditor('tab-a', 'response:editor'));
+    const instance = editorRef.current;
+    expect(view.getByTestId('codemirror-search-input')).toHaveValue('status');
+    const oldMarks = CodeMirror.mock.results[0].value.markText.mock.results.map((result) => result.value);
+    expect(oldMarks.length).toBeGreaterThan(0);
+
+    view.rerender(renderScopedEditor(nextScope, nextDocKey));
+
+    for (const mark of oldMarks) expect(mark.clear).toHaveBeenCalled();
+    expect(editorRef.current).toBe(instance);
+    expect(CodeMirror).toHaveBeenCalledTimes(1);
+    expect(view.getByTestId('codemirror-search-input')).toHaveValue('200');
+    expect(view.getByTestId('codemirror-search-regex-btn')).not.toHaveClass('active');
+    expect(view.getByTestId('codemirror-search-case-btn')).toHaveClass('active');
+    expect(view.getByTestId('codemirror-search-wholeword-btn')).toHaveClass('active');
+    expect(readPersistedSearchState).toHaveBeenLastCalledWith({ scope: nextScope, key: nextDocKey });
+
+    view.rerender(renderScopedEditor('tab-a', 'response:editor'));
+    expect(editorRef.current).toBe(instance);
+    expect(view.getByTestId('codemirror-search-input')).toHaveValue('status');
+    expect(view.getByTestId('codemirror-search-regex-btn')).toHaveClass('active');
+    expect(view.getByTestId('codemirror-search-case-btn')).not.toHaveClass('active');
     expect(writePersistedSearchState).not.toHaveBeenCalled();
   });
 
