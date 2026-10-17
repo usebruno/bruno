@@ -107,33 +107,39 @@ export const HotkeysProvider = (props) => {
 
   // Switch to the previous tab (active-collection-tabs-only)
   useEffect(() => {
-    bindAction('switchToPreviousTab', (e) => {
+    const handler = (e) => {
       const collectionTabs = getCollectionTabs();
       if (collectionTabs.length === 0) return false;
       const currentIndex = collectionTabs.findIndex((t) => t.uid === activeTabUid);
       const prevIndex = (currentIndex - 1 + collectionTabs.length) % collectionTabs.length;
       dispatch(focusTab({ uid: collectionTabs[prevIndex].uid }));
       return false;
-    });
+    };
+    bindAction('switchToPreviousTab', handler);
+    bindAction('switchToPreviousTabAlt', handler);
 
     return () => {
       unbindAction('switchToPreviousTab');
+      unbindAction('switchToPreviousTabAlt');
     };
   }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
 
   // Switch to the next tab (active-collection-tabs-only)
   useEffect(() => {
-    bindAction('switchToNextTab', (e) => {
+    const handler = (e) => {
       const collectionTabs = getCollectionTabs();
       if (collectionTabs.length === 0) return false;
       const currentIndex = collectionTabs.findIndex((t) => t.uid === activeTabUid);
       const nextIndex = (currentIndex + 1) % collectionTabs.length;
       dispatch(focusTab({ uid: collectionTabs[nextIndex].uid }));
       return false;
-    });
+    };
+    bindAction('switchToNextTab', handler);
+    bindAction('switchToNextTabAlt', handler);
 
     return () => {
       unbindAction('switchToNextTab');
+      unbindAction('switchToNextTabAlt');
     };
   }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
 
