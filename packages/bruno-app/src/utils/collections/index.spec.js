@@ -3,6 +3,7 @@ import {
   mergeHeaders,
   transformRequestToSaveToFilesystem,
   getCollectionItemCounts,
+  countInvalidItems,
   getVariableScope,
   isVariableSecret,
   getAvailableAddToScopes,
@@ -16,6 +17,7 @@ import {
   getUniqueTagsFromItems,
   getCollectionVersion,
   isCollectionItemCollapsed,
+  getVariableNamesWithScope,
   getWorkspaceCollections
 } from './index';
 import * as platformUtils from 'utils/common/platform';
@@ -103,6 +105,45 @@ describe('transformRequestToSaveToFilesystem', () => {
 
     expect(transformed.request.params[0].annotations).toEqual([{ name: 'param-note', value: 'keep me' }]);
     expect(transformed.request.headers[0].annotations).toEqual([{ name: 'header-note', value: 'keep me' }]);
+  });
+});
+
+describe('countInvalidItems', () => {
+  const parseError = { message: 'Line 11, col 1:\nExpected "\\n"' };
+
+  it('counts files with a parse error at every depth', () => {
+    const items = [
+      {
+        type: 'folder',
+        name: 'Outer',
+        items: [
+          { type: 'http-request', name: 'Broken', error: parseError },
+          {
+            type: 'folder',
+            name: 'Inner',
+            items: [{ type: 'http-request', name: 'AlsoBroken', error: parseError }]
+          }
+        ]
+      },
+      { type: 'http-request', name: 'RootBroken', error: parseError },
+      { type: 'http-request', name: 'Fine', request: {} }
+    ];
+
+    expect(countInvalidItems(items)).toBe(3);
+  });
+
+  it('ignores transient items and files that are only partially loaded', () => {
+    const items = [
+      { type: 'http-request', name: 'Transient', isTransient: true, error: parseError },
+      { type: 'http-request', name: 'TooLarge', partial: true, loading: false }
+    ];
+
+    expect(countInvalidItems(items)).toBe(0);
+  });
+
+  it('returns 0 for an empty or missing tree', () => {
+    expect(countInvalidItems([])).toBe(0);
+    expect(countInvalidItems()).toBe(0);
   });
 });
 
@@ -931,6 +972,83 @@ describe('getEnvironmentVariables', () => {
   it('returns no variables without a collection or an active environment', () => {
     expect(getEnvironmentVariables(null)).toEqual({});
     expect(variablesFor(null)).toEqual({});
+  });
+});
+
+describe('getVariableNamesWithScope', () => {
+  const buildCollection = () => ({
+    uid: 'col-1',
+    root: {
+      request: { vars: { req: [{ uid: 'cv1', name: 'collectionVar', value: 'collection-value', enabled: true }] } }
+    },
+    activeEnvironmentUid: 'env-1',
+    environments: [
+      { uid: 'env-1', name: 'Dev', variables: [{ uid: 'ev1', name: 'envVar', value: 'env-value', enabled: true, secret: false }] }
+    ],
+    globalEnvironmentVariables: { globalVar: 'global-value' },
+    activeGlobalEnvironmentUid: 'genv-1',
+    globalEnvironments: [
+      { uid: 'genv-1', name: 'Workspace', variables: [{ uid: 'gv1', name: 'globalVar', value: 'global-value', enabled: true, secret: false }] }
+    ],
+    runtimeVariables: { runtimeVar: 'runtime-value' },
+    promptVariables: { '?promptVar': 'prompt-value' },
+    processEnvVariables: { API_KEY: 'secret-key' },
+    oauth2Credentials: [
+      { credentialsId: 'cred1', credentials: { access_token: 'token-value' } }
+    ]
+  });
+
+  it('tags every variable across global/collection/environment/runtime with its scope', () => {
+    const all = getVariableNamesWithScope(buildCollection(), null);
+    const byName = Object.fromEntries(all.map((v) => [v.name, v.scope]));
+
+    expect(byName.globalVar).toBe('global');
+    expect(byName.collectionVar).toBe('collection');
+    expect(byName.envVar).toBe('environment');
+    expect(byName.runtimeVar).toBe('runtime');
+  });
+
+  it('includes prompt variables, tagged with the runtime scope', () => {
+    const all = getVariableNamesWithScope(buildCollection(), null);
+    const byName = Object.fromEntries(all.map((v) => [v.name, v.scope]));
+
+    expect(byName['?promptVar']).toBe('runtime');
+  });
+
+  it('includes oauth2 credential variables tagged with scope=oauth2', () => {
+    const all = getVariableNamesWithScope(buildCollection(), null);
+
+    expect(all).toContainEqual({ name: '$oauth2.cred1.access_token', scope: 'oauth2' });
+  });
+
+  it('includes process.env variables prefixed as process.env.<name>', () => {
+    const all = getVariableNamesWithScope(buildCollection(), null);
+
+    expect(all).toContainEqual({ name: 'process.env.API_KEY', scope: 'process.env' });
+  });
+
+  it('includes every built-in dynamic/mock variable, each with no resolved value needed', () => {
+    const all = getVariableNamesWithScope(buildCollection(), null);
+    const dynamicEntries = all.filter((v) => v.scope === 'dynamic');
+
+    expect(dynamicEntries.length).toBeGreaterThan(0);
+    expect(dynamicEntries.every((v) => v.name.startsWith('$'))).toBe(true);
+  });
+
+  it('excludes the internal bookkeeping keys getAllVariables() adds (pathParams, maskedEnvVariables, process)', () => {
+    const all = getVariableNamesWithScope(buildCollection(), null);
+    const names = all.map((v) => v.name);
+
+    expect(names).not.toContain('pathParams');
+    expect(names).not.toContain('maskedEnvVariables');
+    expect(names).not.toContain('process');
+  });
+
+  it('returns only the built-in dynamic variables when there is no collection', () => {
+    const all = getVariableNamesWithScope(null, null);
+
+    expect(all.length).toBeGreaterThan(0);
+    expect(all.every((v) => v.scope === 'dynamic')).toBe(true);
   });
 });
 
