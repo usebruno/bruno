@@ -20,7 +20,7 @@ const CollectionSearch = ({ searchText, setSearchText }) => {
         onChange={(e) => setSearchText(e.target.value.toLowerCase())}
       />
       {searchText !== '' && (
-        <div className="clear-icon" onClick={() => setSearchText('')}>
+        <div className="clear-icon" data-testid="sidebar-search-clear" onClick={() => setSearchText('')}>
           <IconX size={14} strokeWidth={1.5} />
         </div>
       )}

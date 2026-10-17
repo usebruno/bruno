@@ -299,6 +299,7 @@ const CollectionsSection = () => {
       <ActionIcon
         onClick={handleToggleSearch}
         label="Search requests"
+        data-testid="sidebar-search-toggle"
       >
         <IconSearch size={14} stroke={1.5} aria-hidden="true" />
       </ActionIcon>
