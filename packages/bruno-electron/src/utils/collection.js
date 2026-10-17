@@ -78,6 +78,109 @@ const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
   ];
 };
 
+/**
+ * Collects URL query params inherited from the collection root and the folders on the
+ * request's tree path, honoring the same precedence as mergeHeaders: the collection
+ * root applies first, then each folder from outermost to innermost, so a nearer
+ * definition wins. A disabled entry suppresses the name for everything below it.
+ * Only `type: 'query'` (or untyped) entries are considered; path params never inherit.
+ * Returns an ordered array of { name, value } for the names that survive as enabled.
+ */
+const getInheritedQueryParams = (collection, requestTreePath = []) => {
+  const merged = new Map(); // name -> { name, value } | null (null = suppressed by a disabled entry)
+  const collect = (params) => {
+    each(params, (param) => {
+      if (!param || (param.type && param.type !== 'query')) {
+        return;
+      }
+      const name = param.name;
+      if (typeof name !== 'string' || !name.length) {
+        return;
+      }
+      if (param.enabled === false) {
+        merged.set(name, null);
+      } else {
+        merged.set(name, { name, value: param.value ?? '' });
+      }
+    });
+  };
+
+  const collectionRoot = collection?.draft?.root ? get(collection, 'draft.root', {}) : get(collection, 'root', {});
+  collect(get(collectionRoot, 'request.params', []));
+
+  each(requestTreePath, (node) => {
+    if (!node || node.type !== 'folder') {
+      return;
+    }
+    const folderRoot = node?.draft || node?.root;
+    collect(get(folderRoot, 'request.params', []));
+  });
+
+  return [...merged.values()].filter(Boolean);
+};
+
+/**
+ * Appends inherited query params to the request URL. A name the request defines itself
+ * always wins: request-level entries are folded into the URL string by the caller (both
+ * the app and the CLI do this), and anything in request.params — enabled or explicitly
+ * disabled — suppresses the inherited entry of the same name.
+ * Inherited values are appended unencoded, exactly like request-level params, so
+ * {{variables}} in them still interpolate at send time.
+ */
+// Twinned with the same helpers in the other two packages:
+// packages/bruno-cli/src/utils/collection.js,
+// packages/bruno-electron/src/utils/collection.js,
+// packages/bruno-app/src/utils/collections/index.js.
+// Intentionally duplicated per the repo's app/cli twin convention (neither the
+// app nor the CLI can import the other's utils).
+// Keep all three copies behaviorally identical; fix bugs in all three.
+const applyInheritedQueryParams = (url, inheritedParams, requestParams = []) => {
+  if (typeof url !== 'string' || !url.length || !Array.isArray(inheritedParams) || !inheritedParams.length) {
+    return url;
+  }
+
+  const requestNames = new Set();
+  each(requestParams, (param) => {
+    if (param && (!param.type || param.type === 'query') && typeof param.name === 'string' && param.name.length) {
+      requestNames.add(param.name);
+    }
+  });
+
+  // A `?` inside the `#` fragment is not a query string: split the fragment
+  // off first so fragment params are neither parsed as request params nor
+  // corrupted by insertion.
+  const hashIndex = url.indexOf('#');
+  const base = hashIndex === -1 ? url : url.slice(0, hashIndex);
+  const fragment = hashIndex === -1 ? '' : url.slice(hashIndex);
+  const queryIndex = base.indexOf('?');
+  if (queryIndex !== -1) {
+    each(base.slice(queryIndex + 1).split('&'), (pair) => {
+      const rawName = pair.split('=')[0];
+      if (!rawName) {
+        return;
+      }
+      requestNames.add(rawName);
+      try {
+        const decoded = decodeURIComponent(rawName);
+        if (decoded !== rawName) {
+          requestNames.add(decoded);
+        }
+      } catch (e) {
+        // malformed escape sequences stay as-is
+      }
+    });
+  }
+
+  const toAppend = inheritedParams.filter((param) => param && param.name && !requestNames.has(param.name));
+  if (!toAppend.length) {
+    return url;
+  }
+
+  const query = toAppend.map((param) => `${param.name}=${param.value ?? ''}`).join('&');
+  const separator = queryIndex === -1 ? '?' : base.endsWith('?') || base.endsWith('&') ? '' : '&';
+  return base + separator + query + fragment;
+};
+
 const mergeVars = (collection, request, requestTreePath = []) => {
   let reqVars = new Map();
   const collectionRoot = collection?.draft?.root || collection?.root || {};
@@ -1006,6 +1109,8 @@ const getJsSandboxRuntime = (collection) => {
 module.exports = {
   getJsSandboxRuntime,
   mergeHeaders,
+  getInheritedQueryParams,
+  applyInheritedQueryParams,
   mergeVars,
   mergeScripts,
   mergeAuth,

@@ -182,4 +182,70 @@ describe('prepare-request: prepareRequest', () => {
       expect(result.data.variables).toBe('{"apiPermissions": {{permissionsJSON}}}');
     });
   });
+
+  describe('inherited collection/folder query params (issue #9553)', () => {
+    const baseRequest = {
+      method: 'GET',
+      headers: [],
+      url: 'https://api.example.com/users',
+      body: { mode: 'none' },
+      auth: { mode: 'none' },
+      script: {}
+    };
+
+    it('merges collection-level query params into the request URL', async () => {
+      const request = { ...baseRequest, params: [] };
+      const item = { uid: 'req-1', name: 'req', type: 'http-request', request };
+      const collection = {
+        pathname: '/tmp/collection',
+        root: {
+          request: {
+            params: [{ name: 'pageSize', value: '20', enabled: true, type: 'query' }]
+          }
+        },
+        items: [{ uid: 'req-1', type: 'http-request', request }]
+      };
+      const result = await prepareRequest(item, collection);
+      expect(result.url).toBe('https://api.example.com/users?pageSize=20');
+    });
+
+    it('folder params override collection params and request params win overall', async () => {
+      const request = {
+        ...baseRequest,
+        url: 'https://api.example.com/users?pageSize=50',
+        params: [{ name: 'pageSize', value: '50', enabled: true, type: 'query' }]
+      };
+      const item = { uid: 'req-1', name: 'req', type: 'http-request', request };
+      const collection = {
+        pathname: '/tmp/collection',
+        root: {
+          request: {
+            params: [
+              { name: 'pageSize', value: '20', enabled: true, type: 'query' },
+              { name: 'format', value: 'json', enabled: true, type: 'query' }
+            ]
+          }
+        },
+        items: [
+          {
+            uid: 'folder-1',
+            type: 'folder',
+            pathname: '/tmp/collection/folder-1',
+            root: { request: { params: [{ name: 'format', value: 'xml', enabled: true, type: 'query' }] } },
+            items: [{ uid: 'req-1', type: 'http-request', pathname: '/tmp/collection/folder-1/req.bru', request }]
+          }
+        ]
+      };
+      const result = await prepareRequest(item, collection);
+      expect(result.url).toBe('https://api.example.com/users?pageSize=50&format=xml');
+    });
+
+    it('leaves the URL alone when no query params are inherited', async () => {
+      const request = { ...baseRequest, params: [] };
+      const item = { uid: 'req-1', name: 'req', type: 'http-request', request };
+      const collection = { pathname: '/tmp/collection', root: { request: { params: [] } }, items: [] };
+      const result = await prepareRequest(item, collection);
+      expect(result.url).toBe('https://api.example.com/users');
+    });
+  });
 });
