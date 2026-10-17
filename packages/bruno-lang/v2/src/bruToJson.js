@@ -103,7 +103,12 @@ const grammar = ohm.grammar(`Bru {
   assertdictionary = st* "{" assertpairlist? tagend
   assertpairlist = optionalnl* assertpair (~tagend stnl* assertpair)* (~tagend space)*
   assertpair = st* pairannotations st* assertkey st* ":" st* value st*
-  assertkey = ~tagend assertkeychar*
+  assertkey = ~tagend (assertproperty | assertkeychar)*
+  assertproperty = "[" st* assertquotedstring st* "]"
+  assertquotedstring = "\\\"" (assertescape | ~("\\\"" | nl) any)* "\\\""
+                     | "'" (assertescape | ~("'" | nl) any)* "'"
+                     | "\`" (assertescape | ~("\`" | nl) any)* "\`"
+  assertescape = esc_char ~nl any
   assertkeychar = ~(tagend | nl | ":") any
 
   // Text Blocks
