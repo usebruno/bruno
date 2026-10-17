@@ -23,7 +23,7 @@ import {
 } from '@tabler/icons';
 import { useSelector, useDispatch, useStore } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem } from 'providers/ReduxStore/slices/collections/actions';
+import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem, mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
 import { formatIpcError } from 'utils/common/error';
 import { toggleCollectionItem, expandItem, collapseItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
@@ -39,6 +39,7 @@ import RunCollectionItem from '../RunCollectionItem';
 import GenerateCodeItem from '../GenerateCodeItem';
 import { isItemARequest, isItemAFolder } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
+import { highlightText } from 'components/GlobalSearchModal/utils/searchUtils';
 import { getDefaultRequestPaneTab, getItemTypeLabel } from 'utils/collections';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
@@ -80,6 +81,8 @@ const CollectionItemRow = ({
   collectionUid,
   collectionPathname,
   searchText,
+  isSearchCollapsed,
+  onToggleSearchCollapse,
   openBulkMenu,
   children,
   isItemMultiDragDisabled,
@@ -137,7 +140,7 @@ const CollectionItemRow = ({
   const examplesExpanded = !isCollectionItemCollapsed(item);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const hasSearchText = searchText && searchText?.trim()?.length;
-  const itemIsCollapsed = hasSearchText ? false : isCollectionItemCollapsed(item);
+  const itemIsCollapsed = hasSearchText ? Boolean(isSearchCollapsed) : isCollectionItemCollapsed(item);
   const isFolder = isItemAFolder(item);
   const invalidItemCount = useMemo(() => (isFolder ? countInvalidItems(item.items) : 0), [isFolder, item.items]);
 
@@ -328,9 +331,7 @@ const CollectionItemRow = ({
     );
   };
 
-  const handleClick = (event) => {
-    if (handleSelectionClick(event)) return;
-    if (event && event.detail != 1) return;
+  const openItem = () => {
     const isRequest = isItemARequest(item);
     const isApp = item.type === 'app';
     if (isRequest || isApp) {
@@ -371,9 +372,29 @@ const CollectionItemRow = ({
     }
   };
 
+  const handleClick = (event) => {
+    if (handleSelectionClick(event)) return;
+    if (event && event.detail != 1) return;
+    if (collection && collection.mountStatus !== 'mounted' && collection.mountStatus !== 'mounting') {
+      dispatch(mountCollection({
+        collectionUid,
+        collectionPathname: collection.pathname,
+        brunoConfig: collection.brunoConfig
+      }))
+        .then(openItem)
+        .catch(() => {});
+      return;
+    }
+    openItem();
+  };
+
   const handleFolderCollapse = (e) => {
     e.stopPropagation();
     e.preventDefault();
+    if (hasSearchText) {
+      onToggleSearchCollapse(item.uid);
+      return;
+    }
     dispatch(
       toggleCollectionItem({
         itemUid: item.uid,
@@ -816,7 +837,7 @@ const CollectionItemRow = ({
             <div className="ml-1 flex w-full h-full items-center overflow-hidden">
               <CollectionItemIcon item={item} />
               <span className="item-name" title={item.name}>
-                {item.name}
+                {hasSearchText ? highlightText(item.name, searchText) : item.name}
               </span>
               <InvalidFilesBadge count={invalidItemCount} collectionUid={collectionUid} rowUid={item.uid} />
             </div>

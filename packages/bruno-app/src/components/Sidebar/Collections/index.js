@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
 import StyledWrapper from './StyledWrapper';
@@ -13,9 +13,11 @@ import { CollectionItemDragPreview } from './Collection/CollectionItem/Collectio
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import useDebounce from 'hooks/useDebounce';
 import useSidebarAutoReveal from 'hooks/useSidebarAutoReveal';
+import useCollectionsSearch from 'hooks/useCollectionsSearch';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 
 const isEmptyQuery = (value) => typeof value === 'string' && value.trim() === '';
+const EMPTY_SET = new Set();
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
@@ -39,11 +41,42 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     [activeWorkspace, collections, workspaces, collectionSortOrder]
   );
 
+  const [searchCollapsed, setSearchCollapsed] = useState({ text: '', uids: EMPTY_SET });
+  const searchCollapsedUids = searchCollapsed.text === debouncedSearchText ? searchCollapsed.uids : EMPTY_SET;
+
+  const toggleSearchCollapse = useCallback((uid) => {
+    setSearchCollapsed((prev) => {
+      const uids = new Set(prev.text === debouncedSearchText ? prev.uids : []);
+      if (uids.has(uid)) uids.delete(uid);
+      else uids.add(uid);
+      return { text: debouncedSearchText, uids };
+    });
+  }, [debouncedSearchText]);
+
+  const { matchedRoots, itemsByRoot, rowsRef, onRangeChanged } = useCollectionsSearch({
+    enabled: showSearch,
+    searchText: debouncedSearchText,
+    sidebarEntries,
+    collapsedUids: searchCollapsedUids
+  });
+
+  const renderedSidebarEntries = useMemo(
+    () => sidebarEntries.map((entry) => {
+      if (entry.kind !== 'loaded' || entry.collection.mountStatus === 'mounted' || !matchedRoots.has(entry.collection.pathname)) {
+        return entry;
+      }
+      const items = itemsByRoot.get(entry.collection.pathname) || [];
+      return { ...entry, collection: { ...entry.collection, items } };
+    }),
+    [sidebarEntries, matchedRoots, itemsByRoot]
+  );
+
   // Flatten the tree into ordered rows. itemsByUid / collectionsByUid resolve a row's live object.
   const { rows, itemsByUid, collectionsByUid } = useMemo(
-    () => flattenSidebarTree(sidebarEntries, { searchText: debouncedSearchText }),
-    [sidebarEntries, debouncedSearchText]
+    () => flattenSidebarTree(renderedSidebarEntries, { searchText: debouncedSearchText, collapsedUids: searchCollapsedUids }),
+    [renderedSidebarEntries, debouncedSearchText, searchCollapsedUids]
   );
+  rowsRef.current = rows;
 
   // Ghost rows carry only path/name. GitRemoteCollectionRow needs the full entry (for `remote`).
   const ghostsByPath = useMemo(() => {
@@ -131,6 +164,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
           data-testid="sidebar-collections-scroller"
           style={{ height: '100%' }}
           data={rows}
+          rangeChanged={onRangeChanged}
           computeItemKey={(_, row) => row.id}
           defaultItemHeight={26}
           increaseViewportBy={{ top: 400, bottom: 600 }}
@@ -138,6 +172,8 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
             <SidebarRow
               row={row}
               searchText={debouncedSearchText}
+              searchCollapsedUids={searchCollapsedUids}
+              onToggleSearchCollapse={toggleSearchCollapse}
               openBulkMenu={openBulkMenu}
               itemsByUid={itemsByUid}
               collectionsByUid={collectionsByUid}
