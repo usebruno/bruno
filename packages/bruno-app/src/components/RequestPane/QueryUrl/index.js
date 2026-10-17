@@ -13,7 +13,11 @@ import {
   updateAuth
 } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, cancelRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { getRequestFromCurlCommand } from 'utils/curl';
+import {
+  getRequestFromCurlCommand,
+  normalizeCurlFormUrlEncoded,
+  normalizeCurlMultipartForm
+} from 'utils/curl';
 import HttpMethodSelector from './HttpMethodSelector';
 import { useTheme } from 'providers/Theme';
 import { IconDeviceFloppy, IconCode } from '@tabler/icons';
@@ -296,13 +300,23 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             );
           }
         } else if (bodyMode === 'formUrlEncoded' && request.body.formUrlEncoded) {
-          // For formUrlEncoded, we need to set each param individually
-          // This is a limitation - we'd need to clear existing params first
-          // For now, we'll set the body mode and the user can manually adjust
-          // TODO: Implement proper formUrlEncoded param setting
+          // `updateRequestBody` assigns the whole array for this mode, so the
+          // params do not have to be set one at a time.
+          dispatch(
+            updateRequestBody({
+              itemUid: item.uid,
+              collectionUid: collection.uid,
+              content: normalizeCurlFormUrlEncoded(request.body.formUrlEncoded)
+            })
+          );
         } else if (bodyMode === 'multipartForm' && request.body.multipartForm) {
-          // For multipartForm, similar limitation
-          // TODO: Implement proper multipartForm param setting
+          dispatch(
+            updateRequestBody({
+              itemUid: item.uid,
+              collectionUid: collection.uid,
+              content: normalizeCurlMultipartForm(request.body.multipartForm)
+            })
+          );
         }
       }
 
