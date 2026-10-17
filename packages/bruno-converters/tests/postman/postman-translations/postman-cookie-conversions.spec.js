@@ -74,7 +74,7 @@ describe('postmanTranslations - cookie API conversions', () => {
 
     const expectedOutput = `
       bru.cookies.jar().setCookie('https://api.example.com', 'auth', 'token123');
-      const cookie = bru.cookies.jar().getCookie('https://api.example.com', 'auth');
+      const cookie = bru.cookies.jar().getCookie('https://api.example.com', 'auth').value;
       bru.cookies.jar().getCookies('https://api.example.com', (err, cookies) => {
         console.log('All cookies:', cookies);
       });
@@ -95,7 +95,7 @@ describe('postmanTranslations - cookie API conversions', () => {
     const expectedOutput = `
       const jar = bru.cookies.jar();
       jar.setCookie('https://example.com', 'user', 'john');
-      const userCookie = jar.getCookie('https://example.com', 'user');
+      const userCookie = jar.getCookie('https://example.com', 'user').value;
     `;
 
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);

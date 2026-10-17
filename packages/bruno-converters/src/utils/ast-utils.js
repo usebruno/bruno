@@ -91,3 +91,35 @@ export function isIdentifierNamed(node, name) {
 export function isNullLiteral(node) {
   return node && node.type === 'Literal' && node.value === null;
 }
+
+/**
+ * Gets the statically-known property name of a member expression. A computed access
+ * with a non-literal key (`p[someVar]`) has no static name — even an Identifier key
+ * named `then` is a variable there, not the method.
+ *
+ * @param {Object} memberExpr - MemberExpression node
+ * @returns {string|null} - The property name, or null if it isn't statically known
+ */
+export function getStaticPropertyName(memberExpr) {
+  const property = memberExpr.property;
+
+  if (memberExpr.computed) {
+    return property.type === 'Literal' && typeof property.value === 'string' ? property.value : null;
+  }
+  return property.type === 'Identifier' ? property.name : null;
+}
+
+/**
+ * Reports a member the translation could not carry across. The script is left exactly as
+ * written, so this is the only record that the case was reached — it names the member and,
+ * where the parser recorded one, the line it sat on.
+ *
+ * @param {Object} node - The node being reported
+ * @param {string} member - Member name as the source script spelled it
+ * @param {string} reason - Why it could not be translated
+ */
+export function reportUntranslated(node, member, reason) {
+  const line = node.loc ? ` (line ${node.loc.start.line})` : '';
+
+  console.warn(`bruno-converter: ${member}${line} — ${reason}`);
+}
