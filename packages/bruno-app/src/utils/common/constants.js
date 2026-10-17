@@ -2,6 +2,7 @@ export const REQUEST_TYPES = ['http-request', 'graphql-request', 'grpc-request',
 
 export const DEFAULT_COLLECTION_FORMAT = 'yml';
 
+export const REQUEST_BODY_EDITOR_CLASS = 'request-body-editor';
 export const MAX_RENDERABLE_RESPONSE_BYTES = 50 * 1024 * 1024;
 
 export const DEFAULT_SIDEBAR_WIDTH = 250;
