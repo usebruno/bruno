@@ -32,20 +32,7 @@ class FileIndex {
     const seen = new Set();
 
     const files = walk(root, denylist);
-    const results = await Promise.all(files.map(async ({ relativePath, absolutePath }) => {
-      const stat = await fs.promises.stat(absolutePath, { bigint: true });
-      const mtime = stat.mtimeNs;
-      const prior = metadata.get(relativePath);
-
-      if (!prior) {
-        const hash = await hashFileAsync(absolutePath);
-        return { kind: 'added', entry: { relativePath, absolutePath, mtime, hash } };
-      }
-      if (prior.mtime === mtime) return { kind: 'unchanged', relativePath };
-      const hash = await hashFileAsync(absolutePath);
-      if (hash === prior.hash) return { kind: 'unchanged', relativePath };
-      return { kind: 'updated', entry: { relativePath, absolutePath, mtime, hash, prevHash: prior.hash } };
-    }));
+    const results = await Promise.all(files.map((file) => this.#classify(metadata, file)));
 
     for (const r of results) {
       if (r.kind === 'added') {
@@ -65,6 +52,44 @@ class FileIndex {
     }
 
     return { added, updated, removed };
+  }
+
+  async statusFor(collectionPath, relativePaths) {
+    const rows = new Map();
+    for (const relativePath of relativePaths) {
+      const row = this.#statements.execute('file_index_entry', { collection_path: collectionPath, relative_path: relativePath });
+      if (row) rows.set(relativePath, row);
+    }
+
+    const results = await Promise.all(relativePaths.map((relativePath) =>
+      this.#classify(rows, { relativePath, absolutePath: path.join(collectionPath, relativePath) }).catch(() => null)));
+
+    const cached = new Map();
+    const stale = [];
+    for (const result of results) {
+      if (!result) continue;
+      if (result.kind === 'unchanged') {
+        cached.set(result.relativePath, JSON.parse(rows.get(result.relativePath).data));
+      } else {
+        stale.push(result.entry.relativePath);
+      }
+    }
+    return { cached, stale };
+  }
+
+  async #classify(metadata, { relativePath, absolutePath }) {
+    const stat = await fs.promises.stat(absolutePath, { bigint: true });
+    const mtime = stat.mtimeNs;
+    const prior = metadata.get(relativePath);
+
+    if (!prior) {
+      const hash = await hashFileAsync(absolutePath);
+      return { kind: 'added', entry: { relativePath, absolutePath, mtime, hash } };
+    }
+    if (prior.mtime === mtime) return { kind: 'unchanged', relativePath };
+    const hash = await hashFileAsync(absolutePath);
+    if (hash === prior.hash) return { kind: 'unchanged', relativePath };
+    return { kind: 'updated', entry: { relativePath, absolutePath, mtime, hash, prevHash: prior.hash } };
   }
 
   clearCollection(collectionPath) {

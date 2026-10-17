@@ -18,6 +18,10 @@ const Wrapper = styled.div`
     overflow-x: hidden;
 
   }
+
+  .highlight {
+    color: ${(props) => props.theme.brand};
+  }
 `;
 
 export default Wrapper;
