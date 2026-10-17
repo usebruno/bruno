@@ -259,4 +259,30 @@ describe('loadEnvironmentFromFile', () => {
 
     expect(ownVariables.map((row) => row.name)).toEqual(['host']);
   });
+
+  // A shared vault environment holds the external secrets once, and the environments that
+  // extend it inherit the block instead of redeclaring every secret.
+  it('inherits external secrets from the extended environment', () => {
+    fs.writeFileSync(
+      path.join(environmentsDir, 'vault-base.bru'),
+      'vars {\n}\n\nvars:externalsecrets:azurekv {\n  db-password: vault/db-password\n  api-key: vault/api-key\n}\n'
+    );
+    const filePath = path.join(environmentsDir, 'dev.bru');
+    fs.writeFileSync(
+      filePath,
+      'extends: vault-base\n\nvars {\n  host: dev-host\n}\n\nvars:externalsecrets:azurekv {\n  api-key: vault/dev-api-key\n}\n'
+    );
+
+    const { externalSecrets, inheritedExternalSecrets } = loadEnvironmentFromFile({ filePath, name: 'dev' });
+
+    expect(externalSecrets).toEqual({
+      type: 'azurekv',
+      variables: [{ name: 'api-key', value: 'vault/dev-api-key' }]
+    });
+    expect(inheritedExternalSecrets.type).toBe('azurekv');
+    expect(inheritedExternalSecrets.variables.map(({ name, value }) => ({ name, value }))).toEqual([
+      { name: 'db-password', value: 'vault/db-password' }
+    ]);
+    expect(inheritedExternalSecrets.variables[0].inheritedFrom.name).toBe('vault-base');
+  });
 });
