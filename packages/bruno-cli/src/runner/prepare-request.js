@@ -5,7 +5,7 @@ const find = require('lodash/find');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
-const { mergeHeaders, mergeScripts, mergeVars, mergeAuth, getTreePathFromCollectionToItem } = require('../utils/collection');
+const { mergeHeaders, mergeScripts, mergeVars, mergeAuth, getTreePathFromCollectionToItem, getInheritedQueryParams, applyInheritedQueryParams } = require('../utils/collection');
 const { getEffectiveTags, getOwnTags, getInheritedTagsFromTreePath } = require('@usebruno/common');
 const path = require('node:path');
 const { isLargeFile } = require('../utils/filesystem');
@@ -43,7 +43,9 @@ const prepareRequest = async (item = {}, collection = {}) => {
 
   let axiosRequest = {
     method: request.method,
-    url: request.url,
+    // shared query params defined at the collection/folder level merge into the URL;
+    // params the request defines itself (in the URL or request.params) always win
+    url: applyInheritedQueryParams(request.url, getInheritedQueryParams(collection, requestTreePath), request.params),
     headers: headers,
     disabledHeaders,
     name: item.name,
