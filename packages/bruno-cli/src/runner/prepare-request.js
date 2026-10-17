@@ -80,7 +80,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
       if (collectionAuth.apikey?.placement === 'queryparams') {
         if (axiosRequest.url && collectionAuth.apikey?.key) {
           try {
-            const urlObj = new URL(request.url);
+            const urlObj = new URL(axiosRequest.url);
             urlObj.searchParams.set(collectionAuth.apikey?.key, collectionAuth.apikey?.value);
             axiosRequest.url = urlObj.toString();
           } catch (error) {
@@ -336,7 +336,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
       if (request.auth.apikey?.placement === 'queryparams') {
         if (axiosRequest.url && request.auth.apikey?.key) {
           try {
-            const urlObj = new URL(request.url);
+            const urlObj = new URL(axiosRequest.url);
             urlObj.searchParams.set(request.auth.apikey?.key, request.auth.apikey?.value);
             axiosRequest.url = urlObj.toString();
           } catch (error) {
