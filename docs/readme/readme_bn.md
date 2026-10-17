@@ -50,7 +50,7 @@
 
 ```sh
 # Homebrew এর মাধ্যমে Mac-এ
-brew install bruno
+brew install --cask bruno
 
 # চকোলেটির মাধ্যমে উইন্ডোজে
 choco install bruno
