@@ -1,0 +1,17 @@
+info:
+  name: xml-response
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://localhost:8081/api/echo/custom
+  body:
+    type: json
+    data: |-
+      {
+        "headers": {
+          "content-type": "application/xml"
+        },
+        "content": "<catalog version='2'><book id='b1'><title>Bruno</title></book><empty/></catalog>"
+      }

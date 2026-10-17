@@ -272,6 +272,18 @@ test.describe('Generate Code – URL Encoding ON', () => {
       await closeGenerateCodeDialog(page);
     });
 
+    test('encodes a literal colon inside a path segment (: → %3A)', async ({ pageWithUserData: page }) => {
+      await openCollection(page, COLLECTION);
+      await openRequestInFolder(page, FOLDER, 'path-literal-colon');
+      await setUrlEncoding(page, true);
+
+      const snippet = await getGeneratedSnippet(page);
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/values%3Acolon');
+      expect(snippet).not.toContain('http://localhost:8081/api/echo/anything/values:colon');
+
+      await closeGenerateCodeDialog(page);
+    });
+
     test('encodes # and reserved chars in an OAuth callback fragment', async ({ pageWithUserData: page }) => {
       // Scenario 8: OAuth implicit-flow callback URL with token data in the
       // fragment. In ON mode the entire segment after the last `/` is encoded

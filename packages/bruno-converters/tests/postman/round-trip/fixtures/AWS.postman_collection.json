@@ -1,0 +1,133 @@
+{
+  "info": {
+    "_postman_id": "384fe6bf-31cb-4b5b-93cc-d1df944bf745",
+    "name": "AWS",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "56331529",
+    "_collection_link": "https://go.postman.co/collection/56331529-384fe6bf-31cb-4b5b-93cc-d1df944bf745?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Inherit",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Own Auth",
+      "request": {
+        "auth": {
+          "type": "awsv4",
+          "awsv4": [
+            {
+              "key": "region",
+              "value": "us-east1",
+              "type": "string"
+            },
+            {
+              "key": "sessionToken",
+              "value": "sessionToken",
+              "type": "string"
+            },
+            {
+              "key": "service",
+              "value": "service_name",
+              "type": "string"
+            },
+            {
+              "key": "secretKey",
+              "value": "newSecretKey",
+              "type": "string"
+            },
+            {
+              "key": "accessKey",
+              "value": "newAccessKey",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "auth": {
+    "type": "awsv4",
+    "awsv4": [
+      {
+        "key": "service",
+        "value": "serviceName",
+        "type": "string"
+      },
+      {
+        "key": "region",
+        "value": "us-west-1",
+        "type": "string"
+      },
+      {
+        "key": "sessionToken",
+        "value": "{{token}}",
+        "type": "string"
+      },
+      {
+        "key": "secretKey",
+        "value": "secret",
+        "type": "string"
+      },
+      {
+        "key": "accessKey",
+        "value": "accessKey",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}

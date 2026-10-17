@@ -8,6 +8,20 @@ const StyledWrapper = styled.div`
     gap: 4px;
   }
 
+  .header-actions {
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    > * {
+      flex-shrink: 0;
+    }
+  }
+
   .switcher-trigger {
     display: flex;
     align-items: center;

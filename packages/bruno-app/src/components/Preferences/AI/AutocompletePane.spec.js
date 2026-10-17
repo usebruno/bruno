@@ -45,7 +45,7 @@ describe('AutocompletePane shortcut copy', () => {
     ['non-macOS', 'Ctrl']
   ])('shows the %s modifier in the keymap', (_platform, modifier) => {
     renderPane(modifier);
-    expect(screen.getByText(modifier)).toBeInTheDocument();
+    expect(screen.getAllByText(modifier).length).toBeGreaterThan(0);
   });
 
   it('shows the platform modifier in the manual trigger description', () => {

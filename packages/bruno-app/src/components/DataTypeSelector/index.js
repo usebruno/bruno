@@ -8,7 +8,7 @@ import {
   IconToggleRight
 } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
-import { BRUNO_VARIABLE_DATATYPES, parseValueByDataType, validateDataTypeValue } from '@usebruno/common/utils';
+import { BRUNO_VARIABLE_DATATYPES, validateVariableType } from '@usebruno/common/utils';
 import MenuDropdown from 'ui/MenuDropdown';
 import StyledWrapper from './StyledWrapper';
 
@@ -19,10 +19,16 @@ const TYPE_ICONS = {
   object: IconBraces
 };
 
-const DataTypeSelector = ({ variable, onChange, compact = false }) => {
+const TYPE_ICONS_SIZES = {
+  string: 16,
+  number: 18,
+  boolean: 18,
+  object: 18
+};
+
+const DataTypeSelector = ({ variable, resolvableVariables, onChange, compact = false }) => {
   const selectedType = variable.dataType || 'string';
-  const coercedValue = parseValueByDataType(variable.value, selectedType);
-  const typeError = validateDataTypeValue(coercedValue, selectedType);
+  const typeError = validateVariableType(variable.value, selectedType, resolvableVariables);
 
   const handleTypeChange = (type) => {
     onChange({ dataType: type === 'string' ? undefined : type });
@@ -53,7 +59,7 @@ const DataTypeSelector = ({ variable, onChange, compact = false }) => {
             aria-label={`Data type: ${selectedType}`}
           >
             {compact ? (
-              <TypeIcon className="type-icon" size={12} strokeWidth={2} />
+              <TypeIcon className="type-icon" size={TYPE_ICONS_SIZES[selectedType]} strokeWidth={2} />
             ) : (
               <span className="type-label">{selectedType}</span>
             )}
@@ -68,6 +74,7 @@ const DataTypeSelector = ({ variable, onChange, compact = false }) => {
               size={16}
             />
             <Tooltip
+              positionStrategy="absolute"
               className="tooltip-mod"
               id={`type-error-${variable.uid}`}
               content={typeError}

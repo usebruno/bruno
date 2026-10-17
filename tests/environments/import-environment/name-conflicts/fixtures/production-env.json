@@ -1,0 +1,8 @@
+{
+  "name": "Production",
+  "variables": [
+    { "name": "api_url", "value": "https://api.example.com", "enabled": true, "secret": false },
+    { "name": "api_key", "value": "original-secret", "enabled": true, "secret": true }
+  ],
+  "color": "#ff0000"
+}

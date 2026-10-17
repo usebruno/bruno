@@ -7,7 +7,7 @@ import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
-import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
+import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 
@@ -15,10 +15,10 @@ interface AkamaiEdgeGridAuthValues {
   accessToken?: string;
   clientToken?: string;
   clientSecret?: string;
-  nonce?: string;
-  timestamp?: string;
-  baseURL?: string;
-  headersToSign?: string;
+  baseURL?: string | null;
+  nonce?: string | null;
+  timestamp?: string | null;
+  headersToSign?: string | null;
   maxBodySize?: number | null;
 }
 
@@ -35,8 +35,8 @@ interface AkamaiEdgeGridAuthProps {
 }
 
 const FIELDS: Array<{ key: EdgeGridField; label: string; tooltip?: string; isSecret?: boolean }> = [
-  { key: 'accessToken', label: 'Access Token' },
-  { key: 'clientToken', label: 'Client Token' },
+  { key: 'accessToken', label: 'Access Token', isSecret: true },
+  { key: 'clientToken', label: 'Client Token', isSecret: true },
   { key: 'clientSecret', label: 'Client Secret', isSecret: true },
   { key: 'baseURL', label: 'Base URL', tooltip: 'Defaults to the request URL if not specified.' },
   {
@@ -77,11 +77,8 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ collection }) => {
       ? get(collection, 'draft.root.request.auth.akamaiEdgegrid')
       : get(collection, 'root.request.auth.akamaiEdgegrid')) || {};
   const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning: showClientSecretWarning, warningMessage: clientSecretWarningMessage } = isSensitive(
-    edgeGridAuth?.clientSecret
-  );
 
-  const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
+  const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
   const handleFieldChange = (field: EdgeGridField, value: string) => {
     const content: AkamaiEdgeGridAuthValues = {
@@ -111,9 +108,9 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ collection }) => {
   };
 
   const renderField = ({ key, label, tooltip, isSecret }: EdgeGridFieldConfig) => {
-    const showWarning = isSecret && showClientSecretWarning;
     const rawValue = edgeGridAuth[key];
     const fieldValue = rawValue === null || rawValue === undefined ? '' : String(rawValue);
+    const { showWarning, warningMessage } = isSecret ? isSensitive(rawValue) : { showWarning: false, warningMessage: '' };
     return (
       <div key={key}>
         <label>
@@ -136,7 +133,7 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ collection }) => {
             isCompact
           />
           {showWarning && (
-            <SensitiveFieldWarning fieldName="edgegrid-client-secret" warningMessage={clientSecretWarningMessage} />
+            <SensitiveFieldWarning fieldName={`edgegrid-${key}`} warningMessage={warningMessage} />
           )}
         </div>
       </div>

@@ -5,6 +5,10 @@ const StyledWrapper = styled.div`
     border: 1px solid ${(props) => props.theme.examples.urlBar.border};
   }
 
+  .url-prefix {
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
   .method {
     color: #fff;
   }

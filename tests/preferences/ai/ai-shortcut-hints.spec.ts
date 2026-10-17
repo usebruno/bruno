@@ -10,6 +10,6 @@ test.describe('AI shortcut hints', () => {
     await openAiPreferences(page, 'autocomplete');
 
     await expect(ai.autocompleteKeymap()).toBeVisible();
-    await expect(ai.autocompleteKeymapKey(expectedModifier)).toBeVisible();
+    await expect(ai.autocompleteKeymapKey(expectedModifier).first()).toBeVisible();
   });
 });

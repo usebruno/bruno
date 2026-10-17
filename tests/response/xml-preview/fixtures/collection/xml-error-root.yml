@@ -1,0 +1,15 @@
+info:
+  name: xml-error-root
+  type: http
+  seq: 18
+
+http:
+  method: POST
+  url: http://localhost:8081/api/echo/custom
+  body:
+    type: json
+    data: |-
+      {
+        "headers": { "content-type": "application/xml" },
+        "content": "<error xmlns='http://docs.oasis-open.org/odata/ns/metadata'><code>Unauthorized</code><message>The credentials provided are incorrect</message></error>"
+      }

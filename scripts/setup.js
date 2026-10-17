@@ -12,6 +12,14 @@ const icons = {
   working: '⚡'
 };
 
+// Committed fixture directories whose `node_modules` folders must survive the
+// pre-install cleanup — the tests treat them as fixture data, not build output.
+// `additional-context-roots/fixtures` ships a `shared-scripts/node_modules/signature-utils`
+// package that exercises walk-up resolution from an additional context root.
+const PRESERVED_NODE_MODULES_PREFIXES = [
+  path.join('tests', 'scripting', 'additional-context-roots', 'fixtures')
+];
+
 const execCommand = (command, description) => {
   try {
     console.log(`\n${icons.working} ${description}...`);
@@ -80,7 +88,9 @@ async function setup() {
   try {
     // Clean up node_modules (if exists)
     console.log(`\n${icons.clean} Cleaning up node_modules directories...`);
-    const nodeModulesPaths = glob('.', 'node_modules');
+    const nodeModulesPaths = glob('.', 'node_modules').filter((dir) =>
+      !PRESERVED_NODE_MODULES_PREFIXES.some((prefix) => dir.startsWith(prefix))
+    );
     for (const dir of nodeModulesPaths) {
       console.log(`${icons.delete} Removing ${dir}`);
       fs.rmSync(dir, { recursive: true, force: true });
@@ -98,6 +108,7 @@ async function setup() {
     execCommand('npm run build:bruno-requests', 'Building bruno-requests');
     execCommand('npm run build:schema-types', 'Building schema-types');
     execCommand('npm run build:bruno-filestore', 'Building bruno-filestore');
+    execCommand('npm run build:bruno-sqlite', 'Building bruno-sqlite');
 
     // Bundle JS sandbox libraries
     execCommand('npm run sandbox:bundle-libraries --workspace=packages/bruno-js', 'Bundling JS sandbox libraries');

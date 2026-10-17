@@ -165,6 +165,11 @@ export async function closeElectronApp(app: ElectronApplication) {
   }
 }
 
+export type FakeClipboard = {
+  /** The text the app last copied. Throws if nothing was copied, which is never a passing state. */
+  copiedText: () => Promise<string>;
+};
+
 export const test = baseTest.extend<
   {
     context: BrowserContext;
@@ -173,6 +178,7 @@ export const test = baseTest.extend<
     pageWithUserData: Page;
     collectionFixturePath: string | null;
     workspaceFixturePath: string | null;
+    installFakeClipboard: (page: Page) => Promise<FakeClipboard>;
     restartApp: (options?: { initUserDataPath?: string }) => Promise<ElectronApplication>;
   },
   {
@@ -323,6 +329,48 @@ export const test = baseTest.extend<
     },
     { scope: 'worker' }
   ],
+
+  // Stands in for navigator.clipboard on the given page, so a spec can assert what was copied
+  // without touching the real OS clipboard, which every parallel worker shares. Takes the page
+  // rather than depending on one, so it works with `page`, `pageWithUserData` and `newPage` alike.
+  // The window is worker scoped and outlives the test, so the real clipboard is put back at teardown.
+  installFakeClipboard: async ({ }, use) => {
+    const patchedPages: Page[] = [];
+
+    await use(async (page: Page) => {
+      await page.evaluate(() => {
+        const fake = {
+          copied: null as string | null,
+          writeText(text: string) {
+            fake.copied = text;
+            return Promise.resolve();
+          },
+          readText() {
+            return Promise.resolve(fake.copied ?? '');
+          }
+        };
+        Object.defineProperty(navigator, 'clipboard', { value: fake, configurable: true });
+      });
+      patchedPages.push(page);
+
+      return {
+        copiedText: async () => {
+          const copied = await page.evaluate(() => (navigator.clipboard as { copied?: string }).copied);
+          if (typeof copied !== 'string') {
+            throw new Error('expected the app to copy text to the clipboard, but nothing was copied');
+          }
+          return copied;
+        }
+      };
+    });
+
+    // Deleting the own property put there by defineProperty unshadows the real clipboard. A page can
+    // lose its execution context while still reporting open, which rejects the evaluate, so settle
+    // every page independently and one failure can't leave the rest patched.
+    await Promise.allSettled(
+      patchedPages.map((page) => page.evaluate(() => Reflect.deleteProperty(navigator, 'clipboard')))
+    );
+  },
 
   context: async ({ electronApp }, use, testInfo) => {
     const context = await electronApp.context();

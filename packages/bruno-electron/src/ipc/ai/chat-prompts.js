@@ -103,45 +103,49 @@ Post-response scripts run AFTER the response is received, before tests. Availabl
 
 An app is a self-contained HTML/CSS/JS document rendered inside a sandboxed <webview> in Bruno. The user's code is injected into the body of a generated HTML document at runtime. Plain HTML, CSS, and JavaScript only — no bundler, no module imports, no JSX. Output can be a bare HTML fragment or a full \`<html>\` document.
 
-Before any user script runs, the host provides a global \`window.ctx\`. The surface depends on where the app lives:
+Before any user script runs, the host provides a global \`window.bru\`; the app context lives under \`bru.ctx\`. The surface depends on where the app lives:
 
 ### Request-level app — the app you edit via read_content/write_content('app') is ALWAYS this kind
 \`\`\`js
-ctx.theme                // 'light' | 'dark' — also reflected as a class on document.body
-ctx.response             // { status, statusText, headers, data, size, duration, timeline } | null
-ctx.assertionResults     // array of assertion result objects
-ctx.testResults          // array of test result objects
-ctx.variables            // merged env + global + collection + runtime variables (read-only snapshot)
+bru.ctx.theme                 // { name, mode: 'light'|'dark', config } — also reflected as a class on document.body
+bru.ctx.http.response         // { status, statusText, headers, data, size, duration } | null
+bru.ctx.assertions            // array of assertion result objects
+bru.ctx.tests                 // array of test result objects
+bru.ctx.variables.resolved    // merged env + global + collection + runtime variables (read-only snapshot)
 
-ctx.sendRequest(overrides?)        // executes THIS request; returns Promise<response>; overrides may carry { variables: {...} }
-ctx.setRuntimeVariable(key, value) // persist a runtime variable on the collection
-ctx.log(...args)                   // forwarded to the Bruno devtools console
+bru.ctx.submitRequest(options?)          // executes THIS request; returns Promise<response>; options may carry { runtimeVariables: {...} }
+bru.ctx.variables.runtime.set(name, value) // persist a runtime variable on the collection
+bru.ctx.log(...args)                     // forwarded to the Bruno devtools console
 
-ctx.onInit              = (ctx) => { ... }   // called ONCE when the initial state arrives — do the first render here
-ctx.onThemeChange       = (theme) => { ... }
-ctx.onResponseUpdate    = (response) => { ... }
-ctx.onResultsUpdate     = ({ assertionResults, testResults }) => { ... }
-ctx.onVariablesUpdate   = (variables) => { ... }
+bru.ctx.onInit              = (bru) => { ... }   // called ONCE when the initial state arrives — do the first render here
+bru.ctx.onThemeChange       = (theme) => { ... }
+bru.ctx.http.onResponseChange = (response) => { ... }
+bru.ctx.onAssertionsChange  = (assertions) => { ... }
+bru.ctx.onTestsChange       = (tests) => { ... }
+bru.ctx.onVariablesChange   = (variables) => { ... }
 \`\`\`
 
-### Collection-/folder-level app (edited from the collection's own app editor — mentioned here only so you can answer questions about it)
+### Collection-/folder-level app (edited from the collection's own app editor)
 \`\`\`js
-ctx.theme / ctx.variables / ctx.setRuntimeVariable / ctx.log / ctx.onInit   // as above
-ctx.collection                         // { name, pathname } | null
-ctx.listRequests()                     // Promise<Array<{ uid, name, pathname, type, method, url }>>
-ctx.runRequest(pathname, overrides?)   // run a request by pathname; returns Promise<response>
-ctx.onThemeChange / ctx.onVariablesUpdate / ctx.onCollectionUpdate
+bru.ctx.theme / bru.ctx.variables / bru.ctx.variables.runtime.set / bru.ctx.log / bru.ctx.onInit   // as above
+bru.ctx.collection                        // { name, pathname } | null
+bru.ctx.listRequests()                    // Promise<Array<{ uid, name, pathname, type, method, url }>>
+bru.ctx.runRequest(pathname, options?)    // run a request by pathname; returns Promise<response>
+bru.ctx.onThemeChange / bru.ctx.onVariablesChange / bru.ctx.onCollectionChange
 \`\`\`
-There is NO \`ctx.response\` / \`ctx.sendRequest\` / \`ctx.assertionResults\` / \`ctx.testResults\` at collection level. Reference requests by the \`pathname\` from \`ctx.listRequests()\`, not by name.
+There is NO \`bru.ctx.http\` / \`bru.ctx.submitRequest\` / \`bru.ctx.assertions\` / \`bru.ctx.tests\` at collection level. Reference requests by the \`pathname\` from \`bru.ctx.listRequests()\`, not by name.
+
+At design time you also have list_requests() and search_requests(query) tools that return the same shape — call them to enumerate the collection before hard-coding pathnames, and to locate specific requests the user asked about (e.g. "create an app for the login request"). For a targeted app that runs a small known set, you may embed the resolved pathnames directly instead of calling \`bru.ctx.listRequests()\` at runtime.
 
 ## RULES
 1. Generate a single self-contained HTML document (inline styles and scripts are fine — no external CDN)
-2. Use ONLY the \`ctx\` APIs listed above for the app's level — do not invent \`ctx\` methods, do not use \`fetch\` to call the API directly, and do not rely on Bruno internals beyond \`ctx\`
-3. CRITICAL: ctx data (\`ctx.response\`, \`ctx.variables\`, \`ctx.collection\`, …) is delivered asynchronously AFTER the page loads — reading it at the top level or in \`DOMContentLoaded\` yields null/empty. Do the initial render inside \`ctx.onInit = (ctx) => { ... }\` and react to later changes via the \`on*\` callbacks
-4. Always handle loading and error states around \`ctx.sendRequest\` / \`ctx.runRequest\`; bind UI updates to the \`on*\` callbacks instead of polling
-5. Theme changes toggle a \`light\`/\`dark\` class on \`document.body\` — style both states
+2. Use ONLY the \`bru.ctx\` APIs listed above for the app's level — do not invent \`bru.ctx\` methods, do not use \`fetch\` to call the API directly, and do not rely on Bruno internals beyond \`bru.ctx\`
+3. CRITICAL: ctx data (\`bru.ctx.http.response\`, \`bru.ctx.variables.resolved\`, \`bru.ctx.collection\`, …) is delivered asynchronously AFTER the page loads — reading it at the top level or in \`DOMContentLoaded\` yields null/empty. Do the initial render inside \`bru.ctx.onInit = (bru) => { ... }\` and react to later changes via the \`on*Change\` callbacks
+4. Always handle loading and error states around \`bru.ctx.submitRequest\` / \`bru.ctx.runRequest\`; bind UI updates to the \`on*Change\` callbacks instead of polling
+5. Theme changes toggle a \`light\`/\`dark\` class on \`document.body\` (from \`bru.ctx.theme.mode\`) — style both states; \`bru.ctx.theme.config\` is the full resolved theme object
 6. Keep the UI clean, readable, and accessible — neutral styling, no heavy gradients
-7. Write the COMPLETE document when using write_content`
+7. When building a collection/folder-level app that runs specific requests, call list_requests / search_requests first to get real pathnames from this workspace — never invent one. Pass the returned \`pathname\` verbatim to \`bru.ctx.runRequest\`.
+8. Write the COMPLETE document when using write_content`
 };
 
 const SCOPE_GUARD = `## Scope
@@ -181,6 +185,8 @@ This means:
 - read_response(): returns the redacted shape (keys + types) of the last response body. No parameters. Use it to learn paths and types — not to read actual values.
 - If read_response reports that no response is available and the task depends on the response structure (tests on body fields, extracting values, rendering response data), do NOT invent fields or guess the shape. Ask the user to run the request once so you can read the response shape, then continue from there.
 - search_variables(query?): search environment / collection / global / runtime variables by name (case-insensitive substring). Pass a query string when you need to confirm a name before referencing it. Values come back redacted for secrets — never hard-code a returned value. Each result has a \`scope\` field — use it to pick the right runtime accessor: \`bru.getEnvVar\` for \`env\`, \`bru.getGlobalEnvVar\` for \`global\`, \`bru.getCollectionVar\` / \`bru.getFolderVar\` / \`bru.getRequestVar\` for \`collection\`, \`bru.getVar\` for \`runtime\`, and \`bru.getSecretVar\` for any value that came back redacted. Use this when the inline variables list is truncated.
+- list_requests(): list every HTTP / GraphQL / gRPC / WebSocket request in this collection. Returns each request's name, method, url, folder path, and \`pathname\`. Use it when you need the collection map — for collection/folder-level apps, before wiring up buttons that call \`bru.ctx.runRequest\`, or when the user asks "what's in this collection". Prefer search_requests when you already know a keyword.
+- search_requests(query): search this collection's requests by case-insensitive substring against name / url / pathname / folder path (or an exact HTTP method like GET/POST). Returns the same shape as list_requests. Use it to locate a request the user referenced by name, endpoint, or method.
 
 ### Rules
 - ALWAYS call read_content before write_content for the same type
@@ -207,7 +213,9 @@ const TOOL_LABELS = {
     'docs': 'Writing documentation'
   },
   read_response: { default: 'Reading response data' },
-  search_variables: { default: 'Searching variables' }
+  search_variables: { default: 'Searching variables' },
+  list_requests: { default: 'Listing collection requests' },
+  search_requests: { default: 'Searching collection requests' }
 };
 
 const buildSystemPrompt = (contentType, hasMultipleContent) => {

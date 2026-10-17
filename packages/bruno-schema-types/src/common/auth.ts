@@ -39,12 +39,12 @@ export interface AuthApiKey {
 }
 
 export interface AkamaiEdgeGridAuthValues {
-  accessToken?: string | null;
-  clientToken?: string | null;
-  clientSecret?: string | null;
+  accessToken?: string;
+  clientToken?: string;
+  clientSecret?: string;
+  baseURL?: string | null;
   nonce?: string | null;
   timestamp?: string | null;
-  baseURL?: string | null;
   headersToSign?: string | null;
   maxBodySize?: number | null;
 }

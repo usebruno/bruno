@@ -4,6 +4,7 @@ const { JobType, getPool, destroyPool } = require('../pool');
 const { FileIndex } = require('./file-index');
 const { buildTree } = require('./tree-builder');
 const { defaultClassify, uidForSeed } = require('../../utils/mount');
+const { getWsClient } = require('../../ipc/network/ws-event-handlers');
 
 // cold start only — collection-watcher handles live changes and writes through to the cache
 
@@ -24,14 +25,13 @@ const hydrateEnvironments = (collectionPath, environments) => {
   for (const env of environments) {
     if (!Array.isArray(env.variables)) continue;
     env.variables.forEach((variable, i) => {
-      const key = variable.name || `index:${i}`;
-      variable.uid = uidForSeed(`${env.uid}#var#${key}`);
+      variable.uid = uidForSeed(`${env.uid}#var#${i}#${variable.name || ''}`);
     });
     if (!envHasSecrets(env)) continue;
     try {
       const envSecrets = getEnvSecretsStore().getEnvSecrets(collectionPath, env);
       for (const secret of envSecrets || []) {
-        const variable = env.variables.find((v) => v.name === secret.name);
+        const variable = env.variables.find((v) => v.name === secret.name && v.secret);
         if (variable && secret.value) {
           const decrypted = decryptStringSafe(secret.value);
           variable.value = decrypted.value;
@@ -79,7 +79,7 @@ class MountManager {
       existing.win = win;
       existing.emit = emit;
       existing.brunoConfig = brunoConfig || existing.brunoConfig;
-      existing.state = this.#getIndex().entries(existing.collectionPath);
+      existing.state = this.#getIndex().entries(existing.collectionPath, { denylist: existing.brunoConfig?.ignore });
       await this.#emitTree(collectionUid, existing);
       return existing.tempDirectoryPath;
     }
@@ -99,7 +99,7 @@ class MountManager {
 
     entry.emit.loading(true);
     try {
-      entry.state = this.#getIndex().entries(collectionPath);
+      entry.state = this.#getIndex().entries(collectionPath, { denylist: brunoConfig?.ignore });
       await this.#reconcile(entry);
       await this.#emitTree(collectionUid, entry);
 
@@ -110,6 +110,9 @@ class MountManager {
         fileIndex: this.#getIndex()
       });
       collectionWatcher.addTempDirectoryWatcher(entry.win, tempDirectoryPath, collectionUid, collectionPath);
+    } catch (err) {
+      this.#mounts.delete(collectionUid);
+      throw err;
     } finally {
       entry.emit.loading(false);
     }
@@ -117,6 +120,10 @@ class MountManager {
   }
 
   async unmount(collectionUid) {
+    try {
+      getWsClient()?.closeForCollection(collectionUid);
+    } catch (_) {}
+
     const entry = this.#mounts.get(collectionUid);
     if (!entry) return;
     this.#mounts.delete(collectionUid);
@@ -126,11 +133,11 @@ class MountManager {
     } catch (_) {}
   }
 
-  async shutdown() {
+  async shutdown({ force = false } = {}) {
     await Promise.all(
       Array.from(this.#mounts.keys()).map((uid) => this.unmount(uid).catch(() => {}))
     );
-    await destroyPool().catch(() => {});
+    await destroyPool({ force }).catch(() => {});
     if (this.#index) {
       this.#index.close();
       this.#index = null;
@@ -148,6 +155,10 @@ class MountManager {
 
   clearCache() {
     this.#getIndex().clear();
+  }
+
+  clearCollectionIndex(collectionPath) {
+    this.#getIndex().clearCollection(path.resolve(collectionPath));
   }
 
   async #reconcile(entry) {
@@ -216,7 +227,7 @@ class MountManager {
   }
 
   #getIndex() {
-    if (!this.#index) this.#index = new FileIndex({});
+    if (!this.#index) this.#index = new FileIndex();
     return this.#index;
   }
 }

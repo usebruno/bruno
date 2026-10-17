@@ -660,7 +660,7 @@ ${indentString(body.sparql)}
         }
 
         // Convert content to JSON string if it's an object
-        let contentValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
+        let contentValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '';
 
         // Wrap content with triple quotes for multiline support, without extra indentation
         bru += `${indentString(`content: '''\n${indentString(contentValue)}\n'''`)}\n`;
@@ -762,6 +762,38 @@ ${indentString(script.res)}
 `;
   }
 
+  if (script && script.beforeCallStart && script.beforeCallStart.length) {
+    bru += `script:grpc:before-call-start {
+${indentString(script.beforeCallStart)}
+}
+
+`;
+  }
+
+  if (script && script.beforeMessageSend && script.beforeMessageSend.length) {
+    bru += `script:grpc:before-message-send {
+${indentString(script.beforeMessageSend)}
+}
+
+`;
+  }
+
+  if (script && script.afterMessageReceive && script.afterMessageReceive.length) {
+    bru += `script:grpc:after-message-receive {
+${indentString(script.afterMessageReceive)}
+}
+
+`;
+  }
+
+  if (script && script.afterCallEnd && script.afterCallEnd.length) {
+    bru += `script:grpc:after-call-end {
+${indentString(script.afterCallEnd)}
+}
+
+`;
+  }
+
   if (tests && tests.length) {
     bru += `tests {
 ${indentString(tests)}
@@ -782,11 +814,32 @@ ${indentString(tests)}
   }
 
   if (settings && Object.keys(settings).length) {
-    bru += 'settings {\n';
-    for (const key in settings) {
-      bru += `  ${key}: ${settings[key]}\n`;
+    const omitHeaders = settings.omitHeaders;
+    const settingsWithoutOmitHeaders = { ...settings };
+    delete settingsWithoutOmitHeaders.omitHeaders;
+
+    const hasOmitHeaders = Array.isArray(omitHeaders) && omitHeaders.some((name) => name && String(name).trim().length);
+    const hasOtherSettings = Object.keys(settingsWithoutOmitHeaders).length > 0;
+
+    if (hasOmitHeaders || hasOtherSettings) {
+      bru += 'settings {\n';
+
+      for (const key in settingsWithoutOmitHeaders) {
+        bru += `  ${key}: ${settingsWithoutOmitHeaders[key]}\n`;
+      }
+
+      if (hasOmitHeaders) {
+        bru += `  omitHeaders: [\n`;
+        for (const headerName of omitHeaders) {
+          if (headerName && String(headerName).trim().length) {
+            bru += `    ${String(headerName).trim()}\n`;
+          }
+        }
+        bru += `  ]\n`;
+      }
+
+      bru += '}\n\n';
     }
-    bru += '}\n\n';
   }
 
   if (docs && docs.length) {

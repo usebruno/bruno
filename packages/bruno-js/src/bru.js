@@ -7,7 +7,18 @@ const CookieList = require('./cookie-list');
 
 const variableNameRegex = /^[\w-.]*$/;
 
+const assertValidVariableName = (key) => {
+  if (variableNameRegex.test(key) === false) {
+    throw new Error(
+      `Variable name: "${key}" contains invalid characters!`
+      + ' Names must only contain alpha-numeric characters, "-", "_", "."'
+    );
+  }
+};
+
 class Bru {
+  #onUnresolved;
+
   /**
    * @param {object} options - Single options object (destructured)
    * @property {string} options.runtime - The runtime environment ('quickjs' or 'nodevm')
@@ -29,6 +40,7 @@ class Bru {
    * @property {object} [options.certsAndProxyConfig.collectionLevelProxy] - Collection-level proxy settings
    * @property {object} [options.certsAndProxyConfig.systemProxyConfig] - System proxy configuration
    * @property {string} [options.requestUrl] - The URL of the current request (used for cookie access)
+   * @property {function(string): void} [options.onUnresolved] - Called with each variable a script reads or interpolates that is not defined
    */
   constructor({
     runtime,
@@ -44,7 +56,8 @@ class Bru {
     collectionName,
     promptVariables,
     certsAndProxyConfig,
-    requestUrl
+    requestUrl,
+    onUnresolved
   }) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
@@ -57,6 +70,7 @@ class Bru {
     this.oauth2CredentialVariables = oauth2CredentialVariables || {};
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
+    this.#onUnresolved = onUnresolved;
     // Set by the host-side __bruSetScope global at the top of each segment's IIFE.
     this._currentScope = null;
     this.scriptedRequestEntries = [];
@@ -161,9 +175,18 @@ class Bru {
       }
     };
 
-    const interpolatedStr = _interpolate(strToInterpolate, combinedVars);
+    const interpolatedStr = _interpolate(strToInterpolate, combinedVars, {
+      onUnresolved: this.#onUnresolved
+    });
     return isObj ? JSON.parse(interpolatedStr) : interpolatedStr;
   };
+
+  #readVariable(scope, key) {
+    if (!Object.hasOwn(scope, key)) {
+      this.#onUnresolved?.(key);
+    }
+    return this.interpolate(scope[key]);
+  }
 
   cwd() {
     return this.collectionPath;
@@ -184,6 +207,9 @@ class Bru {
   }
 
   getProcessEnv(key) {
+    if (!Object.hasOwn(this.processEnvVars, key)) {
+      this.#onUnresolved?.(`process.env.${key}`);
+    }
     return this.processEnvVars[key];
   }
 
@@ -192,7 +218,7 @@ class Bru {
   }
 
   getEnvVar(key) {
-    return this.interpolate(this.envVariables[key]);
+    return this.#readVariable(this.envVariables, key);
   }
 
   setEnvVar(key, value) {
@@ -200,11 +226,7 @@ class Bru {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
-    if (variableNameRegex.test(key) === false) {
-      throw new Error(
-        `Variable name: "${key}" contains invalid characters! Names must only contain alpha-numeric characters, "-", "_", "."`
-      );
-    }
+    assertValidVariableName(key);
 
     // Deep-equal compare so object/array writes that mutate in place
     // (e.g. `const c = bru.getEnvVar('cfg'); c.port = 4000; bru.setEnvVar('cfg', c);`)
@@ -246,13 +268,15 @@ class Bru {
   }
 
   getGlobalEnvVar(key) {
-    return this.interpolate(this.globalEnvironmentVariables[key]);
+    return this.#readVariable(this.globalEnvironmentVariables, key);
   }
 
   setGlobalEnvVar(key, value) {
     if (!key) {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
+
+    assertValidVariableName(key);
 
     if (!Object.hasOwn(this.globalEnvironmentVariables, key) || !isEqual(this.globalEnvironmentVariables[key], value)) {
       this.globalEnvironmentVariables[key] = value;
@@ -281,7 +305,7 @@ class Bru {
   }
 
   getOauth2CredentialVar(key) {
-    return this.interpolate(this.oauth2CredentialVariables[key]);
+    return this.#readVariable(this.oauth2CredentialVariables, key);
   }
 
   resetOauth2Credential(credentialId) {
@@ -311,12 +335,7 @@ class Bru {
       throw new Error('Creating a variable without specifying a name is not allowed.');
     }
 
-    if (variableNameRegex.test(key) === false) {
-      throw new Error(
-        `Variable name: "${key}" contains invalid characters!`
-        + ' Names must only contain alpha-numeric characters, "-", "_", "."'
-      );
-    }
+    assertValidVariableName(key);
 
     if (!Object.hasOwn(this.runtimeVariables, key) || !isEqual(this.runtimeVariables[key], value)) {
       this.runtimeVariables[key] = value;
@@ -325,14 +344,9 @@ class Bru {
   }
 
   getVar(key) {
-    if (variableNameRegex.test(key) === false) {
-      throw new Error(
-        `Variable name: "${key}" contains invalid characters!`
-        + ' Names must only contain alpha-numeric characters, "-", "_", "."'
-      );
-    }
+    assertValidVariableName(key);
 
-    return this.interpolate(this.runtimeVariables[key]);
+    return this.#readVariable(this.runtimeVariables, key);
   }
 
   deleteVar(key) {
@@ -356,7 +370,7 @@ class Bru {
   }
 
   getCollectionVar(key) {
-    return this.interpolate(this.collectionVariables[key]);
+    return this.#readVariable(this.collectionVariables, key);
   }
 
   setCollectionVar(key, value) {
@@ -364,12 +378,7 @@ class Bru {
       throw new Error('Creating a variable without specifying a name is not allowed.');
     }
 
-    if (variableNameRegex.test(key) === false) {
-      throw new Error(
-        `Variable name: "${key}" contains invalid characters!`
-        + ' Names must only contain alpha-numeric characters, "-", "_", "."'
-      );
-    }
+    assertValidVariableName(key);
 
     if (!Object.hasOwn(this.collectionVariables, key) || !isEqual(this.collectionVariables[key], value)) {
       this.collectionVariables[key] = value;
@@ -402,11 +411,11 @@ class Bru {
   }
 
   getFolderVar(key) {
-    return this.interpolate(this.folderVariables[key]);
+    return this.#readVariable(this.folderVariables, key);
   }
 
   getRequestVar(key) {
-    return this.interpolate(this.requestVariables[key]);
+    return this.#readVariable(this.requestVariables, key);
   }
 
   setNextRequest(nextRequest) {

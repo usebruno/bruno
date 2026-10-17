@@ -1,31 +1,44 @@
-import 'github-markdown-css/github-markdown.css';
-import get from 'lodash/get';
-import { useTheme } from 'providers/Theme';
-import { useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useState, useRef } from 'react';
+import { useDispatch } from 'react-redux';
 import { saveWorkspaceDocs } from 'providers/ReduxStore/slices/workspaces/actions';
-import Markdown from 'components/MarkDown';
-import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
 import { IconFileText, IconEdit, IconX, IconPlus } from '@tabler/icons';
 import Button from 'ui/Button';
 import toast from 'react-hot-toast';
 import ActionIcon from 'ui/ActionIcon/index';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
+import DocsEditor from 'components/Documentation/DocsEditor';
 
 const WorkspaceDocs = ({ workspace }) => {
   const dispatch = useDispatch();
-  const { displayedTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [localDocs, setLocalDocs] = useState(workspace?.docs || '');
-  const preferences = useSelector((state) => state.app.preferences);
 
-  useEffect(() => {
-    setLocalDocs(workspace?.docs || '');
-    setIsEditing(false);
-  }, [workspace?.uid, workspace?.docs]);
+  const wrapperRef = useRef(null);
+  const [scroll, setScroll] = usePersistedState({ key: `workspace-docs-scroll-${workspace?.uid}`, default: 0 });
+  useTrackScroll({
+    ref: wrapperRef,
+    selector: '.rich-text-editor-content',
+    onChange: setScroll,
+    enabled: !isEditing,
+    initialValue: scroll
+  });
 
+  // `workspace` is keyed by uid at the call site, so switching workspaces
+  // remounts this component and re-initializes localDocs/isEditing fresh
+  // instead of needing an effect to reset them. localDocs is only seeded
+  // from workspace.docs on mount and when edit mode is (re-)entered, so an
+  // external update to workspace.docs while the user is mid-edit doesn't
+  // silently overwrite their in-progress changes.
   const toggleViewMode = () => {
-    setIsEditing((prev) => !prev);
+    setIsEditing((prev) => {
+      const next = !prev;
+      if (next) {
+        setLocalDocs(workspace?.docs || '');
+      }
+      return next;
+    });
   };
 
   const onEdit = (value) => {
@@ -78,27 +91,26 @@ const WorkspaceDocs = ({ workspace }) => {
         )}
       </div>
 
-      <div className="docs-content">
-        {isEditing ? (
+      <div className="docs-content" ref={wrapperRef}>
+        {hasDocs || isEditing ? (
           <div className="editor-container">
-            <CodeEditor
-              theme={displayedTheme}
-              value={localDocs}
-              onEdit={onEdit}
-              onSave={onSave}
-              mode="markdown"
-              font={get(preferences, 'font.codeFont', 'default')}
-              fontSize={get(preferences, 'font.codeFontSize')}
-            />
-            <div className="editor-actions">
-              <Button onClick={onSave}>
-                Save
-              </Button>
+            <div className="flex-1 min-h-0 flex flex-col">
+              <DocsEditor
+                docs={localDocs}
+                onEdit={onEdit}
+                onSave={onSave}
+                isEditing={isEditing}
+                collectionPath={workspace?.pathname || ''}
+                onRequestEdit={toggleViewMode}
+              />
             </div>
-          </div>
-        ) : hasDocs ? (
-          <div className="docs-markdown">
-            <Markdown collectionPath={workspace?.pathname || ''} onDoubleClick={toggleViewMode} content={localDocs} />
+            {isEditing && (
+              <div className="editor-actions">
+                <Button onClick={onSave}>
+                  Save
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="empty-state">

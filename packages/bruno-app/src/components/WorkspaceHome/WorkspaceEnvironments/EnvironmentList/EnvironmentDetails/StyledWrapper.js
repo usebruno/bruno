@@ -103,6 +103,10 @@ const StyledWrapper = styled.div`
     padding: 0 20px;
     flex-shrink: 0;
 
+    .env-tab-count.unsaved {
+      color: ${(props) => props.theme.draftColor};
+    }
+
     .env-search-container {
       display: flex;
       align-items: center;

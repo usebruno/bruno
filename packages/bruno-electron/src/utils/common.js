@@ -76,7 +76,7 @@ const generateUidBasedOnHash = (str) => {
 };
 
 const flattenDataForDotNotation = (data) => {
-  var result = {};
+  let result = {};
   function recurse(current, prop) {
     if (Object(current) !== current) {
       result[prop] = current;
@@ -88,8 +88,8 @@ const flattenDataForDotNotation = (data) => {
         result[prop] = [];
       }
     } else {
-      var isEmpty = true;
-      for (var p in current) {
+      let isEmpty = true;
+      for (let p in current) {
         isEmpty = false;
         recurse(current[p], prop ? prop + '.' + p : p);
       }
@@ -159,6 +159,8 @@ const getParamFromUrl = (urlObj, param) => {
   );
 };
 
+const isBinaryRequestBody = (data) => Buffer.isBuffer(data) || typeof data?.pipe === 'function';
+
 module.exports = {
   uuid,
   stringifyJson,
@@ -170,5 +172,6 @@ module.exports = {
   flattenDataForDotNotation,
   parseDataFromResponse,
   parseDataFromRequest,
-  getParamFromUrl
+  getParamFromUrl,
+  isBinaryRequestBody
 };

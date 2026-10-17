@@ -1,0 +1,837 @@
+{
+  "info": {
+    "_postman_id": "1305cc95-5259-4020-89d1-6b5c04bd978e",
+    "name": "Oauth1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "56331529",
+    "_collection_link": "https://go.postman.co/collection/56331529-1305cc95-5259-4020-89d1-6b5c04bd978e?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "type 1",
+      "request": {
+        "auth": {
+          "type": "oauth1",
+          "oauth1": [
+            {
+              "key": "addEmptyParamsToSign",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "includeBodyHash",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "realm",
+              "value": "realm",
+              "type": "string"
+            },
+            {
+              "key": "nonce",
+              "value": "nonce",
+              "type": "string"
+            },
+            {
+              "key": "timestamp",
+              "value": "timestamp",
+              "type": "string"
+            },
+            {
+              "key": "verifier",
+              "value": "verifier",
+              "type": "string"
+            },
+            {
+              "key": "callback",
+              "value": "url",
+              "type": "string"
+            },
+            {
+              "key": "tokenSecret",
+              "value": "tokensecret",
+              "type": "string"
+            },
+            {
+              "key": "token",
+              "value": "token",
+              "type": "string"
+            },
+            {
+              "key": "consumerSecret",
+              "value": "secret",
+              "type": "string"
+            },
+            {
+              "key": "consumerKey",
+              "value": "key",
+              "type": "string"
+            },
+            {
+              "key": "addParamsToHeader",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "signatureMethod",
+              "value": "HMAC-SHA1",
+              "type": "string"
+            },
+            {
+              "key": "version",
+              "value": "1.0",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "type 2",
+      "request": {
+        "auth": {
+          "type": "oauth1",
+          "oauth1": [
+            {
+              "key": "disableHeaderEncoding",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "signatureMethod",
+              "value": "HMAC-SHA256",
+              "type": "string"
+            },
+            {
+              "key": "addEmptyParamsToSign",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "includeBodyHash",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "realm",
+              "value": "realm",
+              "type": "string"
+            },
+            {
+              "key": "nonce",
+              "value": "nonce",
+              "type": "string"
+            },
+            {
+              "key": "timestamp",
+              "value": "timestamp",
+              "type": "string"
+            },
+            {
+              "key": "verifier",
+              "value": "verifier",
+              "type": "string"
+            },
+            {
+              "key": "callback",
+              "value": "url",
+              "type": "string"
+            },
+            {
+              "key": "tokenSecret",
+              "value": "tokensecret",
+              "type": "string"
+            },
+            {
+              "key": "token",
+              "value": "token",
+              "type": "string"
+            },
+            {
+              "key": "consumerSecret",
+              "value": "secret",
+              "type": "string"
+            },
+            {
+              "key": "consumerKey",
+              "value": "key",
+              "type": "string"
+            },
+            {
+              "key": "addParamsToHeader",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "version",
+              "value": "1.0",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "type 3",
+      "request": {
+        "auth": {
+          "type": "oauth1",
+          "oauth1": [
+            {
+              "key": "addParamsToHeader",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "key": "signatureMethod",
+              "value": "HMAC-SHA512",
+              "type": "string"
+            },
+            {
+              "key": "addEmptyParamsToSign",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "includeBodyHash",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "realm",
+              "value": "realm",
+              "type": "string"
+            },
+            {
+              "key": "nonce",
+              "value": "nonce",
+              "type": "string"
+            },
+            {
+              "key": "timestamp",
+              "value": "timestamp",
+              "type": "string"
+            },
+            {
+              "key": "verifier",
+              "value": "verifier",
+              "type": "string"
+            },
+            {
+              "key": "callback",
+              "value": "url",
+              "type": "string"
+            },
+            {
+              "key": "tokenSecret",
+              "value": "tokensecret",
+              "type": "string"
+            },
+            {
+              "key": "token",
+              "value": "token",
+              "type": "string"
+            },
+            {
+              "key": "consumerSecret",
+              "value": "secret",
+              "type": "string"
+            },
+            {
+              "key": "consumerKey",
+              "value": "key",
+              "type": "string"
+            },
+            {
+              "key": "version",
+              "value": "1.0",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "type 4",
+      "request": {
+        "auth": {
+          "type": "oauth1",
+          "oauth1": [
+            {
+              "key": "signatureMethod",
+              "value": "PLAINTEXT",
+              "type": "string"
+            },
+            {
+              "key": "disableHeaderEncoding",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "addEmptyParamsToSign",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "includeBodyHash",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "realm",
+              "value": "realm",
+              "type": "string"
+            },
+            {
+              "key": "nonce",
+              "value": "nonce",
+              "type": "string"
+            },
+            {
+              "key": "timestamp",
+              "value": "timestamp",
+              "type": "string"
+            },
+            {
+              "key": "verifier",
+              "value": "verifier",
+              "type": "string"
+            },
+            {
+              "key": "callback",
+              "value": "url",
+              "type": "string"
+            },
+            {
+              "key": "tokenSecret",
+              "value": "tokensecret",
+              "type": "string"
+            },
+            {
+              "key": "token",
+              "value": "token",
+              "type": "string"
+            },
+            {
+              "key": "consumerSecret",
+              "value": "secret",
+              "type": "string"
+            },
+            {
+              "key": "consumerKey",
+              "value": "key",
+              "type": "string"
+            },
+            {
+              "key": "addParamsToHeader",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "version",
+              "value": "1.0",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "type5",
+      "request": {
+        "auth": {
+          "type": "oauth1",
+          "oauth1": [
+            {
+              "key": "privateKey",
+              "value": "-----BEGIN CERTIFICATE-----\nTest Certificate\n-----END CERTIFICATE-----\n-----BEGIN PRIVATE KEY-----\nTest Private key\n-----END PRIVATE KEY-----",
+              "type": "string"
+            },
+            {
+              "key": "signatureMethod",
+              "value": "RSA-SHA1",
+              "type": "string"
+            },
+            {
+              "key": "disableHeaderEncoding",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "addEmptyParamsToSign",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "includeBodyHash",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "realm",
+              "value": "realm",
+              "type": "string"
+            },
+            {
+              "key": "nonce",
+              "value": "nonce",
+              "type": "string"
+            },
+            {
+              "key": "timestamp",
+              "value": "timestamp",
+              "type": "string"
+            },
+            {
+              "key": "verifier",
+              "value": "verifier",
+              "type": "string"
+            },
+            {
+              "key": "callback",
+              "value": "url",
+              "type": "string"
+            },
+            {
+              "key": "tokenSecret",
+              "value": "tokensecret",
+              "type": "string"
+            },
+            {
+              "key": "token",
+              "value": "token",
+              "type": "string"
+            },
+            {
+              "key": "consumerSecret",
+              "value": "secret",
+              "type": "string"
+            },
+            {
+              "key": "consumerKey",
+              "value": "key",
+              "type": "string"
+            },
+            {
+              "key": "addParamsToHeader",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "version",
+              "value": "1.0",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "type6",
+      "request": {
+        "auth": {
+          "type": "oauth1",
+          "oauth1": [
+            {
+              "key": "privateKey",
+              "value": "-----BEGIN CERTIFICATE-----\nTest Certificate\n-----END CERTIFICATE-----\n-----BEGIN PRIVATE KEY-----\nTest Private key\n-----END PRIVATE KEY-----",
+              "type": "string"
+            },
+            {
+              "key": "signatureMethod",
+              "value": "RSA-SHA256",
+              "type": "string"
+            },
+            {
+              "key": "disableHeaderEncoding",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "addEmptyParamsToSign",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "includeBodyHash",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "realm",
+              "value": "realm",
+              "type": "string"
+            },
+            {
+              "key": "nonce",
+              "value": "nonce",
+              "type": "string"
+            },
+            {
+              "key": "timestamp",
+              "value": "timestamp",
+              "type": "string"
+            },
+            {
+              "key": "verifier",
+              "value": "verifier",
+              "type": "string"
+            },
+            {
+              "key": "callback",
+              "value": "url",
+              "type": "string"
+            },
+            {
+              "key": "tokenSecret",
+              "value": "tokensecret",
+              "type": "string"
+            },
+            {
+              "key": "token",
+              "value": "token",
+              "type": "string"
+            },
+            {
+              "key": "consumerSecret",
+              "value": "secret",
+              "type": "string"
+            },
+            {
+              "key": "consumerKey",
+              "value": "key",
+              "type": "string"
+            },
+            {
+              "key": "addParamsToHeader",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "version",
+              "value": "1.0",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "type7",
+      "request": {
+        "auth": {
+          "type": "oauth1",
+          "oauth1": [
+            {
+              "key": "privateKey",
+              "value": "-----BEGIN CERTIFICATE-----\nTest Certificate\n-----END CERTIFICATE-----\n-----BEGIN PRIVATE KEY-----\nTest Private key\n-----END PRIVATE KEY-----",
+              "type": "string"
+            },
+            {
+              "key": "signatureMethod",
+              "value": "RSA-SHA512",
+              "type": "string"
+            },
+            {
+              "key": "disableHeaderEncoding",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "addEmptyParamsToSign",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "includeBodyHash",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "realm",
+              "value": "realm",
+              "type": "string"
+            },
+            {
+              "key": "nonce",
+              "value": "nonce",
+              "type": "string"
+            },
+            {
+              "key": "timestamp",
+              "value": "timestamp",
+              "type": "string"
+            },
+            {
+              "key": "verifier",
+              "value": "verifier",
+              "type": "string"
+            },
+            {
+              "key": "callback",
+              "value": "url",
+              "type": "string"
+            },
+            {
+              "key": "tokenSecret",
+              "value": "tokensecret",
+              "type": "string"
+            },
+            {
+              "key": "token",
+              "value": "token",
+              "type": "string"
+            },
+            {
+              "key": "consumerSecret",
+              "value": "secret",
+              "type": "string"
+            },
+            {
+              "key": "consumerKey",
+              "value": "key",
+              "type": "string"
+            },
+            {
+              "key": "addParamsToHeader",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "version",
+              "value": "1.0",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Optional values",
+      "request": {
+        "auth": {
+          "type": "oauth1",
+          "oauth1": [
+            {
+              "key": "addEmptyParamsToSign",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "key": "includeBodyHash",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "key": "realm",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "key": "version",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "key": "nonce",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "key": "timestamp",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "key": "privateKey",
+              "value": "-----BEGIN CERTIFICATE-----\nTest Certificate\n-----END CERTIFICATE-----\n-----BEGIN PRIVATE KEY-----\nTest Private key\n-----END PRIVATE KEY-----",
+              "type": "string"
+            },
+            {
+              "key": "signatureMethod",
+              "value": "RSA-SHA512",
+              "type": "string"
+            },
+            {
+              "key": "disableHeaderEncoding",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "key": "verifier",
+              "value": "verifier",
+              "type": "string"
+            },
+            {
+              "key": "callback",
+              "value": "url",
+              "type": "string"
+            },
+            {
+              "key": "tokenSecret",
+              "value": "tokensecret",
+              "type": "string"
+            },
+            {
+              "key": "token",
+              "value": "token",
+              "type": "string"
+            },
+            {
+              "key": "consumerSecret",
+              "value": "secret",
+              "type": "string"
+            },
+            {
+              "key": "consumerKey",
+              "value": "key",
+              "type": "string"
+            },
+            {
+              "key": "addParamsToHeader",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}

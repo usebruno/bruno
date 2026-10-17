@@ -15,6 +15,16 @@ const processHeaders = (headers) => {
   });
 };
 
+const resolveAuthMode = (request, collectionRoot) => {
+  const mode = get(request, 'auth.mode', 'none');
+
+  if (mode !== 'inherit') {
+    return mode;
+  }
+
+  return get(collectionRoot, 'request.auth.mode', 'none');
+};
+
 const placeOAuth2Token = (grpcRequest, credentials, tokenPlacement, tokenHeaderPrefix, tokenQueryKey) => {
   if (tokenPlacement === 'header') {
     grpcRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
@@ -117,7 +127,13 @@ const configureRequest = async (grpcRequest, request, collection, envVars, runti
   }
 };
 
-const prepareGrpcRequest = async (item, collection, environment, runtimeVariables) => {
+/**
+ * Assembles the outgoing gRPC request without interpolating it.
+ *
+ * Interpolation is deliberately left to `interpolateGrpcRequest` so a `beforeCallStart` hook can
+ * run in between
+ */
+const buildGrpcRequest = async (item, collection, environment, runtimeVariables) => {
   const request = item.draft ? item.draft.request : item.request;
   const collectionRoot = collection?.draft?.root ? get(collection, 'draft.root', {}) : get(collection, 'root', {});
   const headers = {};
@@ -147,17 +163,21 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
 
   let grpcRequest = {
     uid: item.uid,
+    name: item.name,
+    pathname: item.pathname,
     mode: request.body.mode,
     method: request.method,
     methodType: request.methodType,
     url,
     headers,
+    authMode: resolveAuthMode(request, collectionRoot),
     processEnvVars,
     envVars,
     runtimeVariables,
     promptVariables,
     body: request.body,
     protoPath: request.protoPath,
+    script: request.script,
     // Add variable properties for interpolation
     vars: request.vars,
     collectionVariables: request.collectionVariables,
@@ -169,11 +189,22 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
 
   grpcRequest = setAuthHeaders(grpcRequest, request, collectionRoot);
 
+  return grpcRequest;
+};
+
+const interpolateGrpcRequest = (grpcRequest) => {
+  const { envVars, runtimeVariables, processEnvVars, promptVariables } = grpcRequest;
+
   interpolateVars(grpcRequest, envVars, runtimeVariables, processEnvVars, promptVariables);
   processHeaders(grpcRequest.headers);
 
   return grpcRequest;
 };
 
+const prepareGrpcRequest = async (item, collection, environment, runtimeVariables) =>
+  interpolateGrpcRequest(await buildGrpcRequest(item, collection, environment, runtimeVariables));
+
 module.exports = prepareGrpcRequest;
 module.exports.configureRequest = configureRequest;
+module.exports.buildGrpcRequest = buildGrpcRequest;
+module.exports.interpolateGrpcRequest = interpolateGrpcRequest;

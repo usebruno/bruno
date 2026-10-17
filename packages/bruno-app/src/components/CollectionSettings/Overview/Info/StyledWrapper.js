@@ -2,6 +2,19 @@ import styled from 'styled-components';
 import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
+  .version-value-wrap {
+    display: flex;
+    min-width: 0;
+    max-width: 220px;
+  }
+
+  .version-value {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .icon-box {
     &.location {
       background-color: ${(props) => rgba(props.theme.textLink, 0.08)};

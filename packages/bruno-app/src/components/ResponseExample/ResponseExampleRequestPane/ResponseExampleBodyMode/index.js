@@ -2,11 +2,11 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 import { updateResponseExampleRequest } from 'providers/ReduxStore/slices/collections';
 import BodyModeSelector from 'components/BodyModeSelector';
-import { format, applyEdits } from 'jsonc-parser';
 import xmlFormat from 'xml-formatter';
 import { toastError } from 'utils/common/error';
 import useKeybinding from 'hooks/useKeybinding';
 import { REQUEST_BODY_EDITOR_CLASS } from 'utils/common/constants';
+import { prettifyJsonString } from 'utils/common/index';
 
 const ResponseExampleBodyMode = ({ item, collection, exampleUid, body, bodyMode, onBodyEdit, editMode = false }) => {
   const dispatch = useDispatch();
@@ -60,8 +60,7 @@ const ResponseExampleBodyMode = ({ item, collection, exampleUid, body, bodyMode,
   const onPrettify = () => {
     if (body?.json && bodyMode === 'json') {
       try {
-        const edits = format(body.json, undefined, { tabSize: 2, insertSpaces: true });
-        const prettyBodyJson = applyEdits(body.json, edits);
+        const prettyBodyJson = prettifyJsonString(body.json);
         onBodyEdit(prettyBodyJson);
       } catch (e) {
         toastError(new Error('Unable to prettify. Invalid JSON format.'));
@@ -96,6 +95,7 @@ const ResponseExampleBodyMode = ({ item, collection, exampleUid, body, bodyMode,
         currentMode={bodyMode}
         onModeChange={onModeChange}
         disabled={!editMode}
+        data-testid="example-body-mode-label"
       />
     </div>
   );

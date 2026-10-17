@@ -9,13 +9,14 @@ import StyledWrapper from './StyledWrapper';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 
-const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
+const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
   const awsv4Auth = get(request, 'auth.awsv4', {});
   const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage } = isSensitive(awsv4Auth?.secretAccessKey);
+  const { showWarning, warningMessage } = isSensitive(awsv4Auth?.secretAccessKey, item);
+  const sessionTokenSensitive = isSensitive(awsv4Auth?.sessionToken, item);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
@@ -143,6 +144,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          readOnly={disabled}
           isCompact
         />
       </div>
@@ -158,6 +160,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           collection={collection}
           item={item}
           isSecret={true}
+          readOnly={disabled}
           isCompact
         />
 
@@ -165,7 +168,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
       </div>
 
       <label className="block mb-1">Session Token</label>
-      <div className="single-line-editor-wrapper mb-3">
+      <div className="single-line-editor-wrapper mb-3 flex items-center">
         <SingleLineEditor
           value={awsv4Auth.sessionToken || ''}
           theme={storedTheme}
@@ -174,8 +177,13 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          isSecret={true}
+          readOnly={disabled}
           isCompact
         />
+        {sessionTokenSensitive.showWarning && (
+          <SensitiveFieldWarning fieldName="awsv4-session-token" warningMessage={sessionTokenSensitive.warningMessage} />
+        )}
       </div>
 
       <label className="block mb-1">Service</label>
@@ -188,6 +196,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          readOnly={disabled}
           isCompact
         />
       </div>
@@ -202,6 +211,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          readOnly={disabled}
           isCompact
         />
       </div>
@@ -216,6 +226,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          readOnly={disabled}
           isCompact
         />
       </div>

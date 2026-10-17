@@ -40,6 +40,7 @@ const StyledWrapper = styled.div`
   .ai-tab-panel {
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
     padding-bottom: 2rem;
@@ -543,7 +544,14 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.text};
   }
 
+  .security-chip-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
   .security-chip-remove {
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;

@@ -8,6 +8,10 @@ inputs:
     description: 'Shell to use (bash, pwsh)'
     required: false
     default: 'bash'
+  shard:
+    description: 'Optional Playwright shard, e.g. 1/4'
+    required: false
+    default: ''
 runs:
   using: 'composite'
   steps:
@@ -16,11 +20,21 @@ runs:
       run: npm ci --prefix packages/bruno-tests/collection
 
     - name: Run Playwright Tests (Ubuntu)
-      if: inputs.os == 'ubuntu'
+      if: inputs.os == 'ubuntu' && inputs.shard == ''
       shell: bash
       run: xvfb-run dbus-run-session -- npm run test:e2e
 
+    - name: Run Playwright Tests (Ubuntu, sharded)
+      if: inputs.os == 'ubuntu' && inputs.shard != ''
+      shell: bash
+      run: xvfb-run dbus-run-session -- npm run test:e2e -- --shard=${{ inputs.shard }}
+
     - name: Run Playwright Tests
-      if: inputs.os != 'ubuntu'
+      if: inputs.os != 'ubuntu' && inputs.shard == ''
       shell: ${{ inputs.shell }}
       run: npm run test:e2e
+
+    - name: Run Playwright Tests (sharded)
+      if: inputs.os != 'ubuntu' && inputs.shard != ''
+      shell: ${{ inputs.shell }}
+      run: npm run test:e2e -- --shard=${{ inputs.shard }}

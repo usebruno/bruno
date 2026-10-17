@@ -86,8 +86,10 @@ async function setupProxyAgents({
   delete requestConfig.httpAgent;
   delete requestConfig.httpsAgent;
 
-  const tlsOptions = { ...httpsAgentRequestFields };
-  const httpAgentOptions = { keepAlive: true };
+  // keepAlive defaults to true; pass false to omit Connection.
+  const keepAlive = httpsAgentRequestFields?.keepAlive !== false;
+  const tlsOptions = { ...httpsAgentRequestFields, keepAlive };
+  const httpAgentOptions = { keepAlive };
 
   const parsedRequestUrl = new URL(requestConfig.url);
   const isHttpsRequest = parsedRequestUrl.protocol === 'https:';

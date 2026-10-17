@@ -39,6 +39,12 @@ describe('Global Environment Variable APIs', () => {
       expect(() => bru.setGlobalEnvVar('', 'v')).toThrow(/without specifying a name/);
     });
 
+    test('rejects key with invalid characters', () => {
+      const bru = makeBru();
+      expect(() => bru.setGlobalEnvVar('invalid key', 'v')).toThrow(/contains invalid characters/);
+      expect(bru.globalEnvironmentVariables).not.toHaveProperty('invalid key');
+    });
+
     test('re-run: setting same key twice does not throw', () => {
       const bru = makeBru();
       bru.setGlobalEnvVar('key', 'first');

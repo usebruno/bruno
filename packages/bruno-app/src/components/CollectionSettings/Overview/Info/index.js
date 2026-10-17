@@ -1,12 +1,13 @@
 import React from 'react';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
 import { IconFolder, IconWorld, IconApi, IconShare, IconBook, IconTag } from '@tabler/icons';
-import { areItemsLoading, getItemsLoadStats, getCollectionVersion } from 'utils/collections/index';
-import { useState } from 'react';
+import { areItemsLoading, getItemsLoadStats, getCollectionVersion, countInvalidItems } from 'utils/collections/index';
+import { useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import ShareCollection from 'components/ShareCollection/index';
 import GenerateDocumentation from 'components/Sidebar/Collections/Collection/GenerateDocumentation';
 import ChangeCollectionVersion from 'components/Sidebar/Collections/Collection/ChangeCollectionVersion';
+import ToolHint from 'components/ToolHint';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import StyledWrapper from './StyledWrapper';
 import Migration from '../Migration';
@@ -14,14 +15,23 @@ import Migration from '../Migration';
 const Info = ({ collection }) => {
   const dispatch = useDispatch();
   const totalRequestsInCollection = getTotalRequestCountInCollection(collection);
+  const invalidItemCount = countInvalidItems(collection.items);
 
   const isCollectionLoading = areItemsLoading(collection);
   const { loading: itemsLoadingCount, total: totalItems } = getItemsLoadStats(collection);
   const [showShareCollectionModal, toggleShowShareCollectionModal] = useState(false);
   const [showGenerateDocumentationModal, setShowGenerateDocumentationModal] = useState(false);
   const [showChangeVersionModal, setShowChangeVersionModal] = useState(false);
+  const [isVersionOverflowing, setIsVersionOverflowing] = useState(false);
 
   const collectionVersion = getCollectionVersion(collection);
+
+  const versionRef = useRef(null);
+
+  const handleVersionHover = () => {
+    const el = versionRef.current;
+    if (el) setIsVersionOverflowing(el.scrollWidth > el.clientWidth);
+  };
 
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
 
@@ -55,10 +65,28 @@ const Info = ({ collection }) => {
             </div>
             <div className="ml-4 h-full flex flex-col justify-start">
               <div className="font-medium h-fit my-auto">Version</div>
-              <div className="flex items-center gap-2">
-                {collectionVersion
-                  ? <span className="text-muted" data-testid="info-version-value">{collectionVersion}</span>
-                  : <span className="text-muted italic" data-testid="info-version-value">Not Set</span>}
+              <div className="flex flex-wrap items-center gap-2">
+                {collectionVersion ? (
+                  <ToolHint
+                    text={collectionVersion}
+                    toolhintId={`info-version-value-${collection.uid}`}
+                    hidden={!isVersionOverflowing}
+                    place="top"
+                    tooltipStyle={{ maxWidth: '320px', whiteSpace: 'normal', wordBreak: 'break-all' }}
+                    className="version-value-wrap"
+                  >
+                    <span
+                      ref={versionRef}
+                      className="text-muted version-value"
+                      onMouseEnter={handleVersionHover}
+                      data-testid="info-version-value"
+                    >
+                      {collectionVersion}
+                    </span>
+                  </ToolHint>
+                ) : (
+                  <span className="text-muted italic" data-testid="info-version-value">Not Set</span>
+                )}
                 <span className="group-hover:underline text-link" data-testid="info-version-change">change</span>
               </div>
             </div>
@@ -118,6 +146,11 @@ const Info = ({ collection }) => {
                 {
                   isCollectionLoading ? `${totalItems - itemsLoadingCount} out of ${totalItems} requests in the collection loaded` : `${totalRequestsInCollection} request${totalRequestsInCollection !== 1 ? 's' : ''} in collection`
                 }
+                {invalidItemCount > 0 ? (
+                  <span data-testid="info-invalid-files-count">
+                    {' '}· {invalidItemCount} invalid
+                  </span>
+                ) : null}
               </div>
             </div>
           </div>

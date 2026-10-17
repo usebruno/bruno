@@ -1,0 +1,8 @@
+opencollection: 1.0.0
+info:
+  name: "Reference Types Workspace"
+  type: workspace
+
+collections:
+  - name: "reference-types"
+    path: "collections/reference-types"

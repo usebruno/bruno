@@ -59,8 +59,8 @@ export default class CodeEditor extends React.Component {
       extraKeys: {
         'Cmd-F': 'findPersistent',
         'Ctrl-F': 'findPersistent',
-        'Cmd-H': 'replace',
-        'Ctrl-H': 'replace',
+        'Cmd-Alt-F': 'replace', // Cmd+Option+F — standard replace shortcut on Mac
+        'Ctrl-H': 'replace', // Ctrl+H — standard replace shortcut on Windows/Linux
         'Tab': function (cm) {
           cm.getSelection().includes('\n') || editor.getLine(cm.getCursor().line) == cm.getSelection()
             ? cm.execCommand('indentMore')
@@ -78,6 +78,11 @@ export default class CodeEditor extends React.Component {
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
+
+      const cmInput = editor.getInputField();
+      if (cmInput) {
+        cmInput.classList.add('mousetrap');
+      }
     }
   }
 
@@ -96,7 +101,12 @@ export default class CodeEditor extends React.Component {
   componentWillUnmount() {
     if (this.editor) {
       this.editor.off('change', this._onEdit);
+      const editorElement = this.editor.getWrapperElement();
+      if (editorElement && editorElement.parentNode) {
+        editorElement.parentNode.removeChild(editorElement);
+      }
       this.editor = null;
+      this._node = null;
     }
   }
 

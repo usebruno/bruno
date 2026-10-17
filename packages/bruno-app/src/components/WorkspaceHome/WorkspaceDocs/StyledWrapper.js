@@ -66,11 +66,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .docs-markdown {
-    height: 100%;
-    overflow-y: auto;
-  }
-
   .empty-state {
     display: flex;
     flex-direction: column;

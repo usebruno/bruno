@@ -9,13 +9,13 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
-const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
+const WsseAuth = ({ item, collection, updateAuth, request, save, disabled }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
   const wsseAuth = get(request, 'auth.wsse', {});
   const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage } = isSensitive(wsseAuth?.password);
+  const { showWarning, warningMessage } = isSensitive(wsseAuth?.password, item);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
@@ -63,6 +63,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          readOnly={disabled}
           isCompact
         />
       </div>
@@ -78,6 +79,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
           collection={collection}
           item={item}
           isSecret={true}
+          readOnly={disabled}
           isCompact
         />
         {showWarning && <SensitiveFieldWarning fieldName="wsse-password" warningMessage={warningMessage} />}

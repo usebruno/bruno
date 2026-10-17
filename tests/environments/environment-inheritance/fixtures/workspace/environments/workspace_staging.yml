@@ -1,0 +1,5 @@
+name: workspace_staging
+extends: workspace_base
+variables:
+  - secret: true
+    name: workspace_api_key

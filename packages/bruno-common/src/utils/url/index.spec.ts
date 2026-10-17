@@ -1,4 +1,14 @@
-import { encodeUrl, parseQueryParams, buildQueryString, hasExplicitScheme, safeDecodeURIComponent } from './index';
+import { describe, expect, it } from '@jest/globals';
+import {
+  encodeUrl,
+  parseQueryParams,
+  buildQueryString,
+  hasExplicitScheme,
+  safeDecodeURIComponent,
+  stripOrigin,
+  extractMockRoutePath,
+  getMockResponseRouteKey
+} from './index';
 
 describe('encodeUrl', () => {
   describe('basic functionality', () => {
@@ -452,4 +462,63 @@ describe('hasExplicitScheme', () => {
     const url = '{{baseUrl}}';
     expect(hasExplicitScheme(url)).toBe(false);
   });
+});
+
+describe('extractMockRoutePath', () => {
+  it('strips hosts and variables from mock endpoint urls', () => {
+    expect(extractMockRoutePath('{{baseUrl}}/breeds')).toBe('/breeds');
+    expect(extractMockRoutePath('google.com/test')).toBe('/test');
+    expect(extractMockRoutePath('https://api.example.com/v1/users')).toBe('/v1/users');
+    expect(extractMockRoutePath('localhost:8080/api')).toBe('/api');
+    expect(extractMockRoutePath('pets')).toBe('/pets');
+    expect(extractMockRoutePath('{{baseUrl}}/users/:userId')).toBe('/users/:userId');
+  });
+
+  it('falls back to path when absolute URL has a templated host', () => {
+    expect(extractMockRoutePath('https://{{host}}/v1/items')).toBe('/v1/items');
+  });
+
+  it('keeps `{{var}}` intact when preserveTemplateVars is set', () => {
+    expect(extractMockRoutePath('{{baseUrl}}/users/{{userId}}', { preserveTemplateVars: true }))
+      .toBe('/users/{{userId}}');
+    expect(extractMockRoutePath('https://api.example.com/v1/{{resource}}', { preserveTemplateVars: true }))
+      .toBe('/v1/{{resource}}');
+  });
+});
+
+describe('getMockResponseRouteKey', () => {
+  it('builds method + normalized path + status keys', () => {
+    expect(getMockResponseRouteKey({
+      request: { method: 'get', url: 'https://api.example.com/users' },
+      response: { status: 200 }
+    })).toBe('GET /users::200');
+  });
+});
+
+describe('stripOrigin', () => {
+  const cases: [string, string, string][] = [
+    ['http origin', 'http://example.com/api/users?name=foo', '/api/users?name=foo'],
+    ['https origin', 'https://example.com/api/users?name=foo', '/api/users?name=foo'],
+    ['no path component', 'http://localhost:3000', '/'],
+    ['port in authority', 'http://localhost:3000/ping', '/ping'],
+    ['fragment kept', 'https://example.com/docs#intro', '/docs#intro'],
+    ['query only', 'https://example.com?a=1', '?a=1'],
+    // Non-http schemes: the origin must still go, or the snippet display-swap
+    // re-grafts it onto the path.
+    ['ftp origin', 'ftp://files.example.com/pub', '/pub'],
+    ['ws origin', 'ws://example.com/socket', '/socket'],
+    ['scheme with +/-/.', 'my-app.v2+beta://host/x', '/x'],
+    // The scheme is a `{{var}}` hashed to an opaque token during code generation.
+    ['hashed placeholder scheme', 'bruno-var-hash--163450413://api.example.com/ping', '/ping'],
+    // Nothing to strip — leave these untouched.
+    ['already origin-relative', '/api/users', '/api/users'],
+    ['schemeless host:port', 'localhost:6000/x', 'localhost:6000/x'],
+    ['unresolved template', '{{baseUrl}}/ping', '{{baseUrl}}/ping']
+  ];
+
+  for (const [label, input, expected] of cases) {
+    it(`${label} — ${input}`, () => {
+      expect(stripOrigin(input)).toBe(expected);
+    });
+  }
 });

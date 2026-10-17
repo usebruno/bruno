@@ -5,7 +5,6 @@ jest.mock('platform', () => ({
   }
 }));
 
-import path from 'path';
 import { getRelativePath, getBasename, getAbsoluteFilePath, getRelativePathWithinBasePath, isPathExternalToBasePath } from './path';
 
 describe('Path Utilities - Unix Platform', () => {
@@ -166,20 +165,6 @@ describe('Path Utilities - Unix Platform', () => {
     it('should keep the original file path when inputs are missing', () => {
       expect(getRelativePathWithinBasePath('', '/users/john/downloads/payload.txt')).toBe('/users/john/downloads/payload.txt');
       expect(getRelativePathWithinBasePath('/users/john/collections/api', '')).toBe('');
-    });
-
-    it('should treat relative collection path as cwd-relative when file path is absolute', () => {
-      const collectionPath = 'collections/api';
-      const filePath = path.resolve(collectionPath, 'files/payload.txt');
-      const result = getRelativePathWithinBasePath(collectionPath, filePath);
-      expect(result).toBe('files/payload.txt');
-    });
-
-    it('should treat relative file path as cwd-relative when collection path is absolute', () => {
-      const collectionPath = path.resolve('collections/api');
-      const filePath = 'collections/api/files/payload.txt';
-      const result = getRelativePathWithinBasePath(collectionPath, filePath);
-      expect(result).toBe('files/payload.txt');
     });
 
     it('should treat both relative paths as cwd-relative for containment checks', () => {

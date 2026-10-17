@@ -1,0 +1,42 @@
+name: workspace_base
+variables:
+  - name: workspace_host
+    value: http://localhost:8081
+  - name: workspace_base_only
+    value: from_workspace_base
+  - name: workspace_session_id
+    value: workspace_base_session
+  - name: workspace_overridden
+    value: from_workspace_base
+  - name: workspace_api_key
+    value: plain_workspace_api_key
+  - name: workspace_disabled
+    value: should_not_resolve
+    disabled: true
+  - name: workspace_shadowed_by_disabled
+    value: shadowed_from_workspace_base
+  - name: workspace_overridden_plain
+    value: plain_from_workspace_base
+  - name: workspace_number
+    value:
+      type: number
+      data: "7"
+  - name: workspace_boolean
+    value:
+      type: boolean
+      data: "true"
+  - name: workspace_object
+    value:
+      type: object
+      data: '{"tier":"free"}'
+  - name: workspace_typed_override
+    value:
+      type: number
+      data: "1"
+  - secret: true
+    name: workspace_token
+  - secret: true
+    name: workspace_secret_object
+    type: object
+  - secret: true
+    name: workspace_overridden_secret

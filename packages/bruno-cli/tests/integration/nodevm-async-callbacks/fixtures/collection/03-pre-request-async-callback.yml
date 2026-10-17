@@ -1,0 +1,70 @@
+info:
+  name: 03-pre-request-async-callback
+  type: http
+  seq: 3
+
+http:
+  method: GET
+  url: "{{baseUrl}}/first"
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        test("pre-request sync test (control)", function () {
+          expect(1).to.equal(1);
+        });
+
+        test("pre-request async test (bug check)", async function () {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          expect("ran").to.equal("ran");
+        });
+
+        // Called without `await`, so it keeps running in the background - for example,
+        // a real script fetching a token without waiting for it.
+        async function setAsyncVar() {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          bru.setVar("asyncPreRequestVar", "set-after-500ms");
+        }
+        setAsyncVar();
+
+        bru.setVar("syncPreRequestVar", "set-immediately");
+    - type: after-response
+      code: |-
+        test("post-response sync test (control)", function () {
+          expect(res.getStatus()).to.be.a("number");
+        });
+
+        test("post-response async test (bug check)", async function () {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          expect("ran").to.equal("ran");
+        });
+
+        async function setAsyncVar() {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          bru.setVar("asyncPostResponseVar", "set-after-500ms");
+        }
+        setAsyncVar();
+
+        bru.setVar("syncPostResponseVar", "set-immediately");
+    - type: tests
+      code: |-
+        test("sync pass (control)", function () {
+          expect(1).to.equal(1);
+        });
+
+        test("sync fail (control)", function () {
+          expect(1).to.equal(2);
+        });
+
+        test("async fail after await (bug check)", async function () {
+          const val = await new Promise((resolve) => {
+            setTimeout(() => resolve("actual"), 500);
+          });
+          expect(val).to.equal("this-will-never-match");
+        });
+
+        test("async assertion never runs (bug check)", async function () {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          expect("ran").to.equal("ran");
+        });

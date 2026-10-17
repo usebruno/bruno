@@ -1,0 +1,14 @@
+opencollection: 1.0.0
+info:
+  name: "Local Only WS"
+  type: workspace
+
+collections:
+  - name: "Healthy Coll"
+    path: "collections/healthy-coll"
+  - name: "Missing Coll"
+    path: "collections/missing-coll"
+
+specs:
+
+docs: ''

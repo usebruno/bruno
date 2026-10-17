@@ -149,7 +149,7 @@ const AutocompletePane = ({
           <div className="flex flex-col gap-1">
             <span className="text-[11.5px] font-medium">Keymap</span>
             <div className="autocomplete-keymap text-[10.5px]">
-              <kbd>Tab</kbd> accept · <kbd>Esc</kbd> dismiss · <kbd>{getPlatformModifierKey()}</kbd>+<kbd>\</kbd> trigger
+              <kbd>Tab</kbd> accept · <kbd>{getPlatformModifierKey()}</kbd>+<kbd>→</kbd> accept word · <kbd>Esc</kbd> dismiss · <kbd>{getPlatformModifierKey()}</kbd>+<kbd>\</kbd> trigger
             </div>
           </div>
         </div>

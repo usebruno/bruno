@@ -1,0 +1,14 @@
+opencollection: 1.0.0
+info:
+  name: "Additional Context Roots Workspace"
+  type: workspace
+
+collections:
+  - name: "Collection A"
+    path: "collections/collectionA"
+  - name: "Collection B"
+    path: "collections/collectionB"
+
+specs:
+
+docs: ''

@@ -5,6 +5,7 @@ const isDev = require('electron-is-dev');
 const os = require('os');
 const { initializeShellEnv, waitForShellEnv } = require('./store/shell-env-state');
 const { percentageToZoomLevel } = require('@usebruno/common');
+const { isBenchmarkEnabled } = require('./utils/benchmark');
 
 if (isDev) {
   if (!fs.existsSync(path.join(__dirname, '../../bruno-js/src/sandbox/bundle-browser-rollup.js'))) {
@@ -33,10 +34,15 @@ if (os.platform() === 'linux') {
   app.commandLine.appendSwitch('xdg-portal-required-version', '4');
 }
 
+if (isBenchmarkEnabled()) {
+  app.commandLine.appendSwitch('enable-precise-memory-info');
+}
+
 const menuTemplate = require('./app/menu-template');
 const { openCollection } = require('./app/collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
+const { registerYmlMigrationIpc } = require('./ipc/yml-migration');
 const registerFilesystemIpc = require('./ipc/filesystem');
 const registerPreferencesIpc = require('./ipc/preferences');
 const registerSnapshotIpc = require('./ipc/snapshot');
@@ -45,9 +51,14 @@ const registerWorkspaceIpc = require('./ipc/workspace');
 const registerApiSpecIpc = require('./ipc/apiSpec');
 const registerGitIpc = require('./ipc/git');
 const registerOpenAPISyncIpc = require('./ipc/openapi-sync');
+const registerMockServerIpc = require('./ipc/mock-server');
 const registerAiIpc = require('./ipc/ai');
 const registerAiAutocompleteIpc = require('./ipc/ai/autocomplete');
 const { registerMountIpc } = require('./ipc/mount');
+const { registerSqliteIpc } = require('./ipc/sqlite');
+const sqliteService = require('./services/sqlite');
+const { clearAllRunnerResponses } = require('./services/runner-exchange');
+const { registerWsdlIpc } = require('./ipc/wsdl');
 const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
 const ApiSpecWatcher = require('./app/apiSpecsWatcher');
@@ -56,6 +67,8 @@ const { preferencesUtil, getPreferences, savePreferences } = require('./store/pr
 const { globalEnvironmentsManager } = require('./store/workspace-environments');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
+const registerAppDocumentIpc = require('./ipc/app-document');
+const AppDocuments = require('./app/app-documents');
 const TerminalManager = require('./ipc/terminal');
 const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
 const { getDomainsWithCookies } = require('./utils/cookies');
@@ -66,9 +79,14 @@ const { handleAppProtocolUrl, getAppProtocolUrlFromArgv } = require('./utils/dee
 
 const systemMonitor = new SystemMonitor();
 const terminalManager = new TerminalManager();
+const { startBenchmark, stopBenchmark } = require('./benchmark');
 
 const workspaceWatcher = new WorkspaceWatcher();
 const apiSpecWatcher = new ApiSpecWatcher();
+const appDocuments = new AppDocuments();
+
+// Scheme privileges are only honoured when registered before `app.ready`.
+AppDocuments.registerScheme();
 
 // Reference: https://content-security-policy.com/
 const contentSecurityPolicy = [
@@ -186,6 +204,8 @@ if (useSingleInstance && !gotTheLock) {
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
   initializeShellEnv();
+
+  startBenchmark();
 
   if (isDev) {
     const { installExtension, REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS } = require('electron-devtools-installer');
@@ -510,6 +530,7 @@ app.on('ready', async () => {
   registerNetworkIpc(mainWindow);
   registerGlobalEnvironmentsIpc(mainWindow, globalEnvironmentsManager);
   registerCollectionsIpc(mainWindow, collectionWatcher);
+  registerYmlMigrationIpc(mainWindow, collectionWatcher);
   registerPreferencesIpc(mainWindow, collectionWatcher);
   registerSnapshotIpc();
   registerWorkspaceIpc(mainWindow, workspaceWatcher);
@@ -519,9 +540,16 @@ app.on('ready', async () => {
   registerSystemMonitorIpc(mainWindow, systemMonitor);
   registerGitIpc(mainWindow);
   registerOpenAPISyncIpc(mainWindow);
+  registerMockServerIpc(mainWindow);
   registerAiIpc(mainWindow);
   registerAiAutocompleteIpc(mainWindow);
   registerMountIpc();
+  sqliteService.openDatabase();
+  clearAllRunnerResponses().catch((err) => console.warn('[runner] failed to clear stored responses', err));
+  registerSqliteIpc();
+  appDocuments.handleProtocol();
+  registerAppDocumentIpc(appDocuments, mainWindow);
+  registerWsdlIpc();
 
   // Internal delegator
   ipcMain.handle('main:cache-clear', async () => {
@@ -543,6 +571,12 @@ app.on('before-quit', (event) => {
 
   (async () => {
     try {
+      await stopBenchmark();
+    } catch (err) {
+      console.error('[benchmark] Failed to stop benchmark writer:', err);
+    }
+
+    try {
       await Promise.race([
         closeAllWatchers(),
         // Cap the wait so a stuck watcher can't block exit indefinitely.
@@ -550,7 +584,13 @@ app.on('before-quit', (event) => {
       ]);
     } catch {}
 
-    try { await require('./ipc/mount').shutdown(); } catch {}
+    try { await require('./ipc/mount').shutdown({ force: true }); } catch { }
+
+    try { await clearAllRunnerResponses(); } catch {}
+
+    try { await sqliteService.reclaimDiskSpace(); } catch {}
+
+    try { sqliteService.shutdown(); } catch {}
 
     if (useSingleInstance && gotTheLock) {
       try { app.releaseSingleInstanceLock(); } catch {}

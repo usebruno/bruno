@@ -1,0 +1,22 @@
+{
+  "version": "1",
+  "name": "client-certs-disabled-bru",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"],
+  "clientCertificates": {
+    "enabled": true,
+    "certs": [
+      {
+        "domain": "localhost",
+        "type": "cert",
+        "certFilePath": "../../../../server/certs/client-cert.pem",
+        "keyFilePath": "../../../../server/certs/client-key.pem",
+        "passphrase": "",
+        "disabled": true
+      }
+    ]
+  },
+  "protobuf": {
+    "protoFiles": [{ "path": "../../../../server/hello.proto", "type": "file" }]
+  }
+}

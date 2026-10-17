@@ -2,11 +2,15 @@ import { test, expect } from '../../playwright';
 
 test.describe('Sidebar Section Auto-Expand', () => {
   test('Clicking action button on collapsed section should expand it', async ({ page }) => {
-    // The api-specs section is collapsed by default (only collections is expanded)
     // Find the api-specs section by its title
     const apiSpecsSection = page.locator('.sidebar-section').filter({ hasText: 'API Specs' });
+    await expect(apiSpecsSection).toBeVisible();
 
-    // Verify the api-specs section is initially collapsed (doesn't have 'expanded' class)
+    if (await apiSpecsSection.evaluate((el) => el.classList.contains('expanded'))) {
+      await apiSpecsSection.locator('.section-header-left').click();
+    }
+
+    // Verify the api-specs section is collapsed (doesn't have 'expanded' class)
     await expect(apiSpecsSection).not.toHaveClass(/expanded/);
 
     // Verify section-content is not visible when collapsed

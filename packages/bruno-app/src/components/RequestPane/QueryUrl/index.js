@@ -398,6 +398,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         </div>
         <div
           id="request-url"
+          data-testid="request-url"
           className="h-full w-full flex flex-row items-center input-container overflow-hidden"
         >
           <SingleLineEditor

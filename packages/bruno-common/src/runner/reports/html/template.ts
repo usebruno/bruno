@@ -327,7 +327,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             :bordered="false"
           >
             <template #header>
-              {{result.path}} - {{result.response.status === 'skipped' ? 'Request Skipped' : (totalPassed + '/' + total + ' Passed')}} {{hasError && result.response.status !== 'skipped' ? " - (request failed)" : "" }}
+              {{result.path}} - {{resultSummary}} {{hasError && result.response.status !== 'skipped' ? " - (request failed)" : "" }}
             </template>
           </n-alert>
         </template>
@@ -363,7 +363,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
                   <n-list-item>
                     <n-thing
                       title="Response Code"
-                      :description="'' + result.response.status"
+                      :description="responseCode"
                     />
                   </n-list-item>
                   <n-list-item>
@@ -772,6 +772,18 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
           const hasFailure = computed(() => total.value !== totalPassed.value);
           const testDuration = computed(() => Math.round(props?.result?.runDuration * 1000) + ' ms');
           const resultTitle = computed(() => props?.result?.path + ' ' + props?.result?.response?.status + ' ' + props?.result?.response?.statusText + ' ' + props?.index);
+          const responseCode = computed(() => {
+            if (props.result.response.status === 'skipped') {
+              return '-';
+            }
+            return '' + props.result.response.status;
+          });
+          const resultSummary = computed(() => {
+            if (props.result.response.status === 'skipped') {
+              return props.result.skipReason === 'bail' ? 'Request skipped due to bail' : 'Request Skipped';
+            }
+            return totalPassed.value + '/' + total.value + ' Passed';
+          });
           const getAlertType = computed(() => {
             if (props.result.response.status === 'skipped') {
               return 'warning';
@@ -792,7 +804,9 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             testsColumns,
             result: props.result,
             testDuration,
+            responseCode,
             resultTitle,
+            resultSummary,
             getAlertType,
             iterationIndex: props?.result?.iterationIndex
           };

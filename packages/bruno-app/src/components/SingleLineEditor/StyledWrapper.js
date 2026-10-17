@@ -35,7 +35,7 @@ const StyledWrapper = styled.div`
 
       .CodeMirror-placeholder {
         color: ${(props) => props.theme.codemirror.placeholder.color} !important;
-        opacity:  ${(props) => props.theme.codemirror.placeholder.opacity} !important
+        opacity:  ${(props) => props.theme.codemirror.placeholder.opacity} !important;
       }
     }
 

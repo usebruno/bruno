@@ -1,8 +1,7 @@
 import { useTheme } from '../../../../providers/Theme';
 import { useDispatch } from 'react-redux';
-import { openCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { setIsOpeningCollection } from 'providers/ReduxStore/slices/app';
 
-import toast from 'react-hot-toast';
 import styled from 'styled-components';
 import StyledWrapper from './StyledWrapper';
 
@@ -15,12 +14,7 @@ const CreateOrOpenCollection = ({ onCreateClick }) => {
   const dispatch = useDispatch();
 
   const handleOpenCollection = () => {
-    dispatch(openCollection()).catch(
-      (err) => {
-        console.log(err);
-        toast.error('An error occurred while opening the collection');
-      }
-    );
+    dispatch(setIsOpeningCollection(true));
   };
   const CreateLink = () => (
     <LinkStyle

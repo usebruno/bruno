@@ -1,8 +1,10 @@
 import { expect, test } from '../../playwright';
 import { closeAllCollections } from '../utils/page';
 import {
+  altShortcutDisplayText,
   closePreferencesTab,
   collectionName,
+  expectResponsePlaceholderShortcut,
   modifier,
   openKeybindingsTab,
   openRequest,
@@ -83,6 +85,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await pressShortcut(page, 'Alt', 'KeyE');
 
         await openRequest(page, 'kb-collection', 'req-7', { persist: true });
+        await expectResponsePlaceholderShortcut(page, 'editEnvironment', 'Edit Environments', altShortcutDisplayText('E'));
 
         await pressShortcut(page, 'Alt', 'KeyE');
 

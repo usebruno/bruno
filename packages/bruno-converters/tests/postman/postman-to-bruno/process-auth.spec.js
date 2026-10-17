@@ -13,7 +13,8 @@ describe('processAuth', () => {
         apikey: null,
         oauth1: null,
         oauth2: null,
-        digest: null
+        digest: null,
+        ntlm: null
       }
     };
   });
@@ -247,6 +248,69 @@ describe('processAuth', () => {
     });
   });
 
+  it('should handle ntlm auth', () => {
+    const auth = {
+      type: 'ntlm',
+      ntlm: {
+        username: 'testuser',
+        password: 'testpass',
+        domain: 'testdomain'
+      }
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('ntlm');
+    expect(requestObject.auth.ntlm).toEqual({
+      username: 'testuser',
+      password: 'testpass',
+      domain: 'testdomain'
+    });
+  });
+
+  it('should handle ntlm auth with v2.1 array format', () => {
+    const auth = {
+      type: 'ntlm',
+      ntlm: [
+        { key: 'username', value: 'testuser', type: 'string' },
+        { key: 'password', value: 'testpass', type: 'string' },
+        { key: 'domain', value: 'testdomain', type: 'string' }
+      ]
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('ntlm');
+    expect(requestObject.auth.ntlm).toEqual({
+      username: 'testuser',
+      password: 'testpass',
+      domain: 'testdomain'
+    });
+  });
+
+  it('should handle ntlm auth with missing values', () => {
+    const auth = {
+      type: 'ntlm',
+      ntlm: {}
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('ntlm');
+    expect(requestObject.auth.ntlm).toEqual({
+      username: '',
+      password: '',
+      domain: ''
+    });
+  });
+
+  it('should handle ntlm auth with missing ntlm key', () => {
+    const auth = {
+      type: 'ntlm'
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('ntlm');
+    expect(requestObject.auth.ntlm).toEqual({
+      username: '',
+      password: '',
+      domain: ''
+    });
+  });
+
   it('should handle oauth2 auth with authorization_code grant type', () => {
     const auth = {
       type: 'oauth2',
@@ -261,7 +325,8 @@ describe('processAuth', () => {
         scope: 'test-scope',
         state: 'test-state',
         addTokenTo: 'header',
-        client_authentication: 'body'
+        client_authentication: 'body',
+        tokenName: 'test-token-name'
       }
     };
     processAuth(auth, requestObject);
@@ -278,9 +343,10 @@ describe('processAuth', () => {
       state: 'test-state',
       pkce: false,
       tokenPlacement: 'header',
-      tokenHeaderPrefix: '',
+      tokenHeaderPrefix: 'Bearer',
       tokenQueryKey: 'access_token',
-      credentialsPlacement: 'body'
+      credentialsPlacement: 'body',
+      credentialsId: 'test-token-name'
     });
   });
 
@@ -298,7 +364,8 @@ describe('processAuth', () => {
         scope: 'test-scope',
         state: 'test-state',
         addTokenTo: 'header',
-        client_authentication: 'body'
+        client_authentication: 'body',
+        tokenName: 'test-token-name'
       }
     };
     processAuth(auth, requestObject);
@@ -314,9 +381,10 @@ describe('processAuth', () => {
       scope: 'test-scope',
       state: 'test-state',
       tokenPlacement: 'header',
-      tokenHeaderPrefix: '',
+      tokenHeaderPrefix: 'Bearer',
       tokenQueryKey: 'access_token',
-      credentialsPlacement: 'body'
+      credentialsPlacement: 'body',
+      credentialsId: 'test-token-name'
     });
   });
 
@@ -332,7 +400,8 @@ describe('processAuth', () => {
         scope: 'test-scope',
         state: 'test-state',
         addTokenTo: 'header',
-        client_authentication: 'body'
+        client_authentication: 'body',
+        tokenName: 'test-token-name'
       }
     };
     processAuth(auth, requestObject);
@@ -346,9 +415,10 @@ describe('processAuth', () => {
       scope: 'test-scope',
       state: 'test-state',
       tokenPlacement: 'header',
-      tokenHeaderPrefix: '',
+      tokenHeaderPrefix: 'Bearer',
       tokenQueryKey: 'access_token',
-      credentialsPlacement: 'body'
+      credentialsPlacement: 'body',
+      credentialsId: 'test-token-name'
     });
   });
 
@@ -367,10 +437,11 @@ describe('processAuth', () => {
       clientSecret: '',
       scope: '',
       state: '',
-      tokenPlacement: 'url',
-      tokenHeaderPrefix: '',
+      tokenPlacement: 'header',
+      tokenHeaderPrefix: 'Bearer',
       tokenQueryKey: 'access_token',
-      credentialsPlacement: 'basic_auth_header'
+      credentialsPlacement: 'basic_auth_header',
+      credentialsId: ''
     });
   });
 
@@ -388,10 +459,11 @@ describe('processAuth', () => {
       clientSecret: '',
       scope: '',
       state: '',
-      tokenPlacement: 'url',
-      tokenHeaderPrefix: '',
+      tokenPlacement: 'header',
+      tokenHeaderPrefix: 'Bearer',
       tokenQueryKey: 'access_token',
-      credentialsPlacement: 'basic_auth_header'
+      credentialsPlacement: 'basic_auth_header',
+      credentialsId: ''
     });
   });
 
@@ -409,7 +481,8 @@ describe('processAuth', () => {
         scope: 'test-scope',
         state: 'test-state',
         addTokenTo: 'header',
-        client_authentication: 'body'
+        client_authentication: 'body',
+        tokenName: 'test-token-name'
       }
     };
     processAuth(auth, requestObject);
@@ -426,9 +499,10 @@ describe('processAuth', () => {
       state: 'test-state',
       pkce: true,
       tokenPlacement: 'header',
-      tokenHeaderPrefix: '',
+      tokenHeaderPrefix: 'Bearer',
       tokenQueryKey: 'access_token',
-      credentialsPlacement: 'body'
+      credentialsPlacement: 'body',
+      credentialsId: 'test-token-name'
     });
   });
 
@@ -448,7 +522,8 @@ describe('processAuth', () => {
         addTokenTo: 'header',
         tokenHeaderPrefix: 'Bearer',
         tokenQueryKey: '',
-        client_authentication: 'body'
+        client_authentication: 'body',
+        tokenName: 'test-token-name'
       }
     };
     processAuth(auth, requestObject);
@@ -464,10 +539,169 @@ describe('processAuth', () => {
       scope: 'test-scope',
       state: 'test-state',
       tokenPlacement: 'header',
-      tokenHeaderPrefix: '',
+      tokenHeaderPrefix: 'Bearer',
       tokenQueryKey: 'access_token',
-      credentialsPlacement: 'body'
+      credentialsPlacement: 'body',
+      credentialsId: 'test-token-name'
     });
+  });
+
+  it('should default oauth2 token placement to the header when addTokenTo is absent', () => {
+    const auth = {
+      type: 'oauth2',
+      oauth2: [
+        { key: 'grant_type', value: 'client_credentials' },
+        { key: 'accessTokenUrl', value: 'https://token.example.com' }
+      ]
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.oauth2.tokenPlacement).toBe('header');
+    expect(requestObject.auth.oauth2.tokenHeaderPrefix).toBe('Bearer');
+  });
+
+  it('should default oauth2 tokenHeaderPrefix to Bearer when headerPrefix is absent and the token goes in the header', () => {
+    const auth = {
+      type: 'oauth2',
+      oauth2: [
+        { key: 'grant_type', value: 'client_credentials' },
+        { key: 'accessTokenUrl', value: 'https://token.example.com' },
+        { key: 'addTokenTo', value: 'header' }
+      ]
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.oauth2.tokenPlacement).toBe('header');
+    expect(requestObject.auth.oauth2.tokenHeaderPrefix).toBe('Bearer');
+  });
+
+  it('should preserve an explicit oauth2 headerPrefix', () => {
+    const auth = {
+      type: 'oauth2',
+      oauth2: [
+        { key: 'grant_type', value: 'client_credentials' },
+        { key: 'addTokenTo', value: 'header' },
+        { key: 'headerPrefix', value: 'Token' }
+      ]
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.oauth2.tokenHeaderPrefix).toBe('Token');
+  });
+
+  it('should preserve an explicitly emptied oauth2 headerPrefix', () => {
+    const auth = {
+      type: 'oauth2',
+      oauth2: [
+        { key: 'grant_type', value: 'client_credentials' },
+        { key: 'addTokenTo', value: 'header' },
+        { key: 'headerPrefix', value: '' }
+      ]
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.oauth2.tokenHeaderPrefix).toBe('');
+  });
+
+  it('should not default the oauth2 tokenHeaderPrefix when the token goes in the url', () => {
+    const auth = {
+      type: 'oauth2',
+      oauth2: [
+        { key: 'grant_type', value: 'client_credentials' },
+        { key: 'addTokenTo', value: 'queryParams' }
+      ]
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.oauth2.tokenPlacement).toBe('url');
+    expect(requestObject.auth.oauth2.tokenHeaderPrefix).toBe('');
+  });
+
+  it('should map oauth2 additionalParameters for authorization/token/refresh with send_as placements', () => {
+    const auth = {
+      type: 'oauth2',
+      oauth2: {
+        grant_type: 'authorization_code',
+        authUrl: 'https://auth.example.com',
+        redirect_uri: 'https://callback.example.com',
+        accessTokenUrl: 'https://token.example.com',
+        clientId: 'test-client-id',
+        authRequestParams: [{ key: 'audience', value: 'https://api.example.com', send_as: 'request_url', enabled: true }],
+        tokenRequestParams: [{ key: 'resource', value: 'res-1', send_as: 'request_body' }],
+        refreshRequestParams: [{ key: 'x-refresh', value: 'r-1', send_as: 'request_header', enabled: false }]
+      }
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('oauth2');
+    expect(requestObject.auth.oauth2.additionalParameters).toEqual({
+      authorization: [{ name: 'audience', value: 'https://api.example.com', sendIn: 'queryparams', enabled: true }],
+      token: [{ name: 'resource', value: 'res-1', sendIn: 'body', enabled: true }],
+      refresh: [{ name: 'x-refresh', value: 'r-1', sendIn: 'headers', enabled: false }]
+    });
+  });
+
+  it('should default additionalParameters sendIn to headers and enabled to true when unspecified', () => {
+    const auth = {
+      type: 'oauth2',
+      oauth2: {
+        grant_type: 'client_credentials',
+        accessTokenUrl: 'https://token.example.com',
+        tokenRequestParams: [
+          { key: 'a', value: '1' }, // no send_as, no enabled
+          { key: 'b', value: '2', send_as: 'unknown_placement' } // unrecognized send_as
+        ]
+      }
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.oauth2.additionalParameters).toEqual({
+      token: [
+        { name: 'a', value: '1', sendIn: 'headers', enabled: true },
+        { name: 'b', value: '2', sendIn: 'headers', enabled: true }
+      ]
+    });
+  });
+
+  it('should only include the additionalParameters keys that are present in the auth', () => {
+    const auth = {
+      type: 'oauth2',
+      oauth2: {
+        grant_type: 'client_credentials',
+        accessTokenUrl: 'https://token.example.com',
+        tokenRequestParams: [{ key: 'scope_extra', value: 'x', send_as: 'request_body' }]
+      }
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.oauth2.additionalParameters).toEqual({
+      token: [{ name: 'scope_extra', value: 'x', sendIn: 'body', enabled: true }]
+    });
+    expect(requestObject.auth.oauth2.additionalParameters).not.toHaveProperty('authorization');
+    expect(requestObject.auth.oauth2.additionalParameters).not.toHaveProperty('refresh');
+  });
+
+  it('should inject an empty authorization array for authorization_code grant when only other params are present', () => {
+    const auth = {
+      type: 'oauth2',
+      oauth2: {
+        grant_type: 'authorization_code_with_pkce',
+        authUrl: 'https://auth.example.com',
+        redirect_uri: 'https://callback.example.com',
+        accessTokenUrl: 'https://token.example.com',
+        tokenRequestParams: [{ key: 'foo', value: 'bar', send_as: 'request_header' }]
+      }
+    };
+    processAuth(auth, requestObject);
+    // targetGrantType maps to 'authorization_code', whose schema requires an authorization array
+    expect(requestObject.auth.oauth2.additionalParameters).toEqual({
+      token: [{ name: 'foo', value: 'bar', sendIn: 'headers', enabled: true }],
+      authorization: []
+    });
+  });
+
+  it('should omit additionalParameters entirely when no request-param arrays are present', () => {
+    const auth = {
+      type: 'oauth2',
+      oauth2: {
+        grant_type: 'client_credentials',
+        accessTokenUrl: 'https://token.example.com'
+      }
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.oauth2).not.toHaveProperty('additionalParameters');
   });
 
   it('should handle auth object with undefined type', () => {

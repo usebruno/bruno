@@ -16,9 +16,9 @@ import {
   IconTerminal2
 } from '@tabler/icons';
 
-import { importCollection, openCollection, importCollectionFromZip, newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { importCollection, importCollectionFromZip, newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
-import { savePreferences, setIsCreatingCollection, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
+import { savePreferences, setIsCreatingCollection, setIsOpeningCollection, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
 import { normalizePath } from 'utils/common/path';
 import { isScratchCollection, flattenItems, isItemTransientRequest } from 'utils/collections';
 import { sanitizeName } from 'utils/common/regex';
@@ -30,7 +30,7 @@ import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectionLocation';
 import CloneGitRepository from 'components/Sidebar/CloneGitRespository';
-import RemoveCollectionsModal from 'components/Sidebar/Collections/RemoveCollectionsModal/index';
+import RemoveCollections from 'components/Sidebar/Collections/Collection/RemoveCollections/index';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import PostmanPackageReport from 'components/Sidebar/PostmanPackageReport';
 import usePostmanPackagePrompt from 'hooks/usePostmanPackagePrompt';
@@ -39,6 +39,7 @@ import Collections from 'components/Sidebar/Collections';
 import SidebarSection from 'components/Sidebar/SidebarSection';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import useKeybinding from 'hooks/useKeybinding';
+import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
 
 const CollectionsSection = () => {
   const dispatch = useDispatch();
@@ -67,6 +68,7 @@ const CollectionsSection = () => {
     setImportCollectionModalOpen(true);
     return false;
   });
+  const getKeybindingDisplayText = useKeybindingDisplayText();
 
   // Default to true (don't show modal) so that:
   // 1. Existing users who upgrade (no hasSeenWelcomeModal in their prefs) don't see it
@@ -184,14 +186,7 @@ const CollectionsSection = () => {
   };
 
   const handleOpenCollection = () => {
-    const options = {};
-    if (activeWorkspace?.pathname) {
-      options.workspaceId = activeWorkspace.pathname;
-    }
-
-    dispatch(openCollection(options)).catch((err) => {
-      toast.error('An error occurred while opening the collection');
-    });
+    dispatch(setIsOpeningCollection(true));
   };
 
   const handleStartRequest = () => {
@@ -265,6 +260,7 @@ const CollectionsSection = () => {
       id: 'import',
       leftSection: IconDownload,
       label: 'Import collection',
+      shortcut: getKeybindingDisplayText('importCollection'),
       onClick: () => {
         setImportCollectionModalOpen(true);
       }
@@ -332,7 +328,7 @@ const CollectionsSection = () => {
       </MenuDropdown>
 
       {collectionsToClose.length > 0 && (
-        <RemoveCollectionsModal collectionUids={collectionsToClose} onClose={clearCollectionsToClose} />
+        <RemoveCollections collectionUids={collectionsToClose} onClose={clearCollectionsToClose} />
       )}
     </>
   );
