@@ -43,7 +43,7 @@ test.describe.serial('Response pane updates when focused and request is re-sent'
       const bodyCodeMirror = locators.request.bodyEditor().locator('.CodeMirror');
       await bodyCodeMirror.click();
       await page.keyboard.press(selectAllShortcut);
-      await page.keyboard.type('{"run": 1}');
+      await page.keyboard.insertText('{"run": 1}');
       await expect(locators.request.bodyEditor()).toContainText('"run": 1', { timeout: 5000 });
     });
 
@@ -58,7 +58,7 @@ test.describe.serial('Response pane updates when focused and request is re-sent'
       const bodyCodeMirror = locators.request.bodyEditor().locator('.CodeMirror');
       await bodyCodeMirror.click();
       await page.keyboard.press(selectAllShortcut);
-      await page.keyboard.type('{"run": 2}');
+      await page.keyboard.insertText('{"run": 2}');
       await expect(locators.request.bodyEditor()).toContainText('"run": 2', { timeout: 5000 });
     });
 

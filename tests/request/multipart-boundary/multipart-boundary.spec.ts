@@ -155,7 +155,7 @@ value1\r
 
       // Tab to value and fill it
       await page.keyboard.press('Tab');
-      await page.keyboard.type('testValue');
+      await page.keyboard.insertText('testValue');
     });
 
     await test.step('Send request and verify boundary was auto-generated', async () => {

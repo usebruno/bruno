@@ -14,9 +14,9 @@ test.describe('Rich Text Editor Edge Cases - Line Formatting', () => {
     await expect(prosemirror).toBeVisible();
 
     await prosemirror.click();
-    await page.keyboard.type('Line 1');
+    await page.keyboard.insertText('Line 1');
     await page.keyboard.press('Enter');
-    await page.keyboard.type('Line 2');
+    await page.keyboard.insertText('Line 2');
 
     await page.keyboard.press('ArrowUp');
 
@@ -46,7 +46,7 @@ test.describe('Rich Text Editor Edge Cases - Line Formatting', () => {
     await expect(prosemirror).toBeVisible();
 
     await prosemirror.click();
-    await page.keyboard.type('Hello World');
+    await page.keyboard.insertText('Hello World');
 
     await page.keyboard.down('Shift');
     for (let i = 0; i < 5; i++) {

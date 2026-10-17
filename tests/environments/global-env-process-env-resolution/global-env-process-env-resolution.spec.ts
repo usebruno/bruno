@@ -38,7 +38,7 @@ test.describe('Global Environment process.env Resolution', () => {
       // Type the variable into the raw editor
       const rawEditor = page.getByTestId('dotenv-raw-editor').locator('.CodeMirror');
       await rawEditor.click();
-      await page.keyboard.type('MY_SECRET=hello-from-dotenv');
+      await page.keyboard.insertText('MY_SECRET=hello-from-dotenv');
 
       // Save the .env file
       await page.getByTestId('save-dotenv-raw').click();

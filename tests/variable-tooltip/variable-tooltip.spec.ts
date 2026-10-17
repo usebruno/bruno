@@ -77,11 +77,11 @@ test.describe('Variable Tooltip', () => {
 
       const headerNameEditor = headerRow.locator('.CodeMirror').first();
       await headerNameEditor.click();
-      await page.keyboard.type('Authorization');
+      await page.keyboard.insertText('Authorization');
 
       const headerValueEditor = headerRow.locator('.CodeMirror').nth(1);
       await headerValueEditor.click();
-      await page.keyboard.type('Bearer {{secretToken}}');
+      await page.keyboard.insertText('Bearer {{secretToken}}');
       await page.keyboard.press(saveShortcut);
 
       // Hover the secret token in the header value editor.
@@ -158,7 +158,7 @@ test.describe('Variable Tooltip', () => {
 
       // Edit the value, click outside to save.
       await page.keyboard.press('End');
-      await page.keyboard.type('/posts');
+      await page.keyboard.insertText('/posts');
       await dismissVarTooltip(page);
 
       // Hover again to verify the change.
@@ -200,7 +200,7 @@ test.describe('Variable Tooltip', () => {
       // Append a process.env variable to the URL.
       await request.urlInput().click();
       await page.keyboard.press('End');
-      await page.keyboard.type('?env={{process.env.HOME}}');
+      await page.keyboard.insertText('?env={{process.env.HOME}}');
       await page.keyboard.press(saveShortcut);
 
       // process.env vars can render as valid or invalid depending on presence.
@@ -231,7 +231,7 @@ test.describe('Variable Tooltip', () => {
     await test.step('Edit URL to create draft with undefined variable', async () => {
       await request.urlInput().click();
       await page.keyboard.press('End');
-      await page.keyboard.type('/users/{{myApiKey}}');
+      await page.keyboard.insertText('/users/{{myApiKey}}');
 
       // Verify draft indicator appears (unsaved changes) in the request tab.
       await expect(requestTab.locator('.has-changes-icon')).toBeVisible();
@@ -245,7 +245,7 @@ test.describe('Variable Tooltip', () => {
       // Click to edit the variable and type a value.
       await varInfoPopup.editableValue(tooltip).click();
       await expect(varInfoPopup.editor(tooltip)).toBeVisible();
-      await page.keyboard.type('secret-key-123');
+      await page.keyboard.insertText('secret-key-123');
 
       // Click outside to close editor - this auto-saves the entire request.
       await dismissVarTooltip(page);
@@ -307,7 +307,7 @@ test.describe('Variable Tooltip', () => {
     await test.step('Type an undefined variable into the URL', async () => {
       await request.urlInput().click();
       await page.keyboard.press('End');
-      await page.keyboard.type('?key={{newApiKey}}');
+      await page.keyboard.insertText('?key={{newApiKey}}');
     });
 
     await test.step('Hover the undefined variable and open the Add-to switcher', async () => {
@@ -357,7 +357,7 @@ test.describe('Variable Tooltip', () => {
     await test.step('Type an undefined variable into the URL', async () => {
       await request.urlInput().click();
       await page.keyboard.press('End');
-      await page.keyboard.type('?key={{afterDeleteVar}}');
+      await page.keyboard.insertText('?key={{afterDeleteVar}}');
     });
 
     await test.step('The Environment scope is offered as "No Environment", not as available', async () => {
@@ -385,7 +385,7 @@ test.describe('Variable Tooltip', () => {
     await test.step('Type an undefined variable into the URL', async () => {
       await request.urlInput().click();
       await page.keyboard.press('End');
-      await page.keyboard.type('?key={{scopeSwitchVar}}');
+      await page.keyboard.insertText('?key={{scopeSwitchVar}}');
     });
 
     await test.step('Switch the guessed scope from Request to Collection without entering a value', async () => {
@@ -417,7 +417,7 @@ test.describe('Variable Tooltip', () => {
 
       await varInfoPopup.editableValue(tooltip).click();
       await expect(varInfoPopup.editor(tooltip)).toBeVisible();
-      await page.keyboard.type('collection-value');
+      await page.keyboard.insertText('collection-value');
       await dismissVarTooltip(page);
     });
 
@@ -463,7 +463,7 @@ test.describe('Variable Tooltip', () => {
       await sidebar.request('Root Request').click();
       await request.urlInput().click();
       await page.keyboard.press('End');
-      await page.keyboard.type('?key={{rootVar}}');
+      await page.keyboard.insertText('?key={{rootVar}}');
 
       const tooltip = await openUrlVarTooltip(page, 'rootVar', 'invalid');
       await varInfoPopup.addToToggle(tooltip).click();
@@ -477,7 +477,7 @@ test.describe('Variable Tooltip', () => {
       await sidebar.folderRequest(folderName, 'Folder Request').click();
       await request.urlInput().click();
       await page.keyboard.press('End');
-      await page.keyboard.type('?key={{folderVar}}');
+      await page.keyboard.insertText('?key={{folderVar}}');
 
       const tooltip = await openUrlVarTooltip(page, 'folderVar', 'invalid');
       await expect(varInfoPopup.scopeBadge(tooltip)).toContainText('Request');
@@ -491,7 +491,7 @@ test.describe('Variable Tooltip', () => {
 
       await varInfoPopup.editableValue(tooltip).click();
       await expect(varInfoPopup.editor(tooltip)).toBeVisible();
-      await page.keyboard.type('folder-value');
+      await page.keyboard.insertText('folder-value');
       await dismissVarTooltip(page);
     });
 
@@ -533,7 +533,7 @@ test.describe('Variable Tooltip', () => {
     await test.step('Add-to Environment with the Secret checkbox left unchecked', async () => {
       await request.urlInput().click();
       await page.keyboard.press('End');
-      await page.keyboard.type('?a={{plainEnvVar}}');
+      await page.keyboard.insertText('?a={{plainEnvVar}}');
 
       const tooltip = await openUrlVarTooltip(page, 'plainEnvVar', 'invalid');
       await varInfoPopup.addToToggle(tooltip).click();
@@ -545,7 +545,7 @@ test.describe('Variable Tooltip', () => {
 
       await varInfoPopup.editableValue(tooltip).click();
       await expect(varInfoPopup.editor(tooltip)).toBeVisible();
-      await page.keyboard.type('plain-value');
+      await page.keyboard.insertText('plain-value');
       await dismissVarTooltip(page);
     });
 
@@ -560,7 +560,7 @@ test.describe('Variable Tooltip', () => {
     await test.step('Add-to Environment with the Secret checkbox checked', async () => {
       await request.urlInput().click();
       await page.keyboard.press('End');
-      await page.keyboard.type('&b={{secretEnvVar}}');
+      await page.keyboard.insertText('&b={{secretEnvVar}}');
 
       const tooltip = await openUrlVarTooltip(page, 'secretEnvVar', 'invalid');
       await varInfoPopup.addToToggle(tooltip).click();
@@ -572,7 +572,7 @@ test.describe('Variable Tooltip', () => {
 
       await varInfoPopup.editableValue(tooltip).click();
       await expect(varInfoPopup.editor(tooltip)).toBeVisible();
-      await page.keyboard.type('secret-value');
+      await page.keyboard.insertText('secret-value');
       await dismissVarTooltip(page);
     });
 
@@ -605,12 +605,12 @@ test.describe('Variable Tooltip', () => {
     await test.step('Type an undefined variable and enter its value', async () => {
       await request.urlInput().click();
       await page.keyboard.press('End');
-      await page.keyboard.type('?key={{freshEnvVar}}');
+      await page.keyboard.insertText('?key={{freshEnvVar}}');
 
       const tooltip = await openUrlVarTooltip(page, 'freshEnvVar', 'invalid');
       await varInfoPopup.editableValue(tooltip).click();
       await expect(varInfoPopup.editor(tooltip)).toBeVisible();
-      await page.keyboard.type('fresh-value');
+      await page.keyboard.insertText('fresh-value');
     });
 
     await test.step('Pick Environment scope, see "No Environment", and create one inline', async () => {
@@ -667,12 +667,12 @@ test.describe('Variable Tooltip', () => {
     await test.step('Type an undefined variable and enter its value', async () => {
       await request.urlInput().click();
       await page.keyboard.press('End');
-      await page.keyboard.type('?key={{errEnvVar}}');
+      await page.keyboard.insertText('?key={{errEnvVar}}');
 
       const tooltip = await openUrlVarTooltip(page, 'errEnvVar', 'invalid');
       await varInfoPopup.editableValue(tooltip).click();
       await expect(varInfoPopup.editor(tooltip)).toBeVisible();
-      await page.keyboard.type('err-value');
+      await page.keyboard.insertText('err-value');
     });
 
     await test.step('Submitting with an empty name shows an inline error and keeps the create form open', async () => {
@@ -872,7 +872,7 @@ test.describe('Variable Tooltip', () => {
 
       await expect(varInfoPopup.editor(tooltip)).toBeVisible();
       await page.keyboard.press('End');
-      await page.keyboard.type('-one');
+      await page.keyboard.insertText('-one');
 
       // Pressing Enter saves and keeps the popup open (does not click outside).
       await page.keyboard.press('Enter');
@@ -890,7 +890,7 @@ test.describe('Variable Tooltip', () => {
 
       await expect(varInfoPopup.editor(tooltip)).toBeVisible();
       await page.keyboard.press('End');
-      await page.keyboard.type('-two');
+      await page.keyboard.insertText('-two');
       await page.keyboard.press('Enter');
 
       await expect(valueDisplay).toContainText('initial-one-two');
@@ -948,7 +948,7 @@ test.describe('Variable Tooltip', () => {
 
       await expect(varInfoPopup.editor(tooltip)).toBeVisible();
       await page.keyboard.press('End');
-      await page.keyboard.type('-edited');
+      await page.keyboard.insertText('-edited');
       await page.keyboard.press('Enter');
 
       // Wait for the display to reflect the saved value before clicking copy.
@@ -1041,7 +1041,7 @@ test.describe('Variable Tooltip', () => {
       const tableContainer = page.getByTestId('folder-vars-req').first();
       const lastRow = tableContainer.locator('tbody tr').last();
       await lastRow.locator('input[type="text"]').first().click();
-      await page.keyboard.type('objVar');
+      await page.keyboard.insertText('objVar');
 
       const namedRow = tableContainer.locator('tbody tr[data-row-name="objVar"]');
       await expect(namedRow).toBeVisible();
@@ -1103,14 +1103,14 @@ test.describe('Variable Tooltip', () => {
       const folderVarsTable = table('folder-vars-req');
       const lastRow = folderVarsTable.allRows().last();
       await folderVarsTable.rowNameInput(lastRow).click();
-      await page.keyboard.type('goToFolderVar');
+      await page.keyboard.insertText('goToFolderVar');
 
       const namedRow = folderVarsTable.rowByName('goToFolderVar');
       await expect(namedRow).toBeVisible();
       const valueEditor = folderVarsTable.rowValueEditor(namedRow);
       await valueEditor.click({ force: true });
       await expect(valueEditor).toHaveClass(/CodeMirror-focused/);
-      await page.keyboard.type('folder-def-value');
+      await page.keyboard.insertText('folder-def-value');
 
       await varsPanel('folder').saveButton().click();
     });
@@ -1122,14 +1122,14 @@ test.describe('Variable Tooltip', () => {
       const collectionVarsTable = table('collection-vars-req');
       const lastRow = collectionVarsTable.allRows().last();
       await collectionVarsTable.rowNameInput(lastRow).click();
-      await page.keyboard.type('goToCollectionVar');
+      await page.keyboard.insertText('goToCollectionVar');
 
       const namedRow = collectionVarsTable.rowByName('goToCollectionVar');
       await expect(namedRow).toBeVisible();
       const valueEditor = collectionVarsTable.rowValueEditor(namedRow);
       await valueEditor.click({ force: true });
       await expect(valueEditor).toHaveClass(/CodeMirror-focused/);
-      await page.keyboard.type('collection-def-value');
+      await page.keyboard.insertText('collection-def-value');
 
       await varsPanel('collection').saveButton().click();
     });
@@ -1261,7 +1261,7 @@ test.describe('Variable Tooltip', () => {
       await expect(editor).toHaveClass(/CodeMirror-focused/);
 
       await page.keyboard.press('End');
-      await page.keyboard.type('-eye');
+      await page.keyboard.insertText('-eye');
 
       await varInfoPopup.secretToggle(tooltip).click();
 
@@ -1289,7 +1289,7 @@ test.describe('Variable Tooltip', () => {
       await expect(editor).toHaveClass(/CodeMirror-focused/);
 
       await page.keyboard.press('End');
-      await page.keyboard.type('-copy');
+      await page.keyboard.insertText('-copy');
 
       await varInfoPopup.copyButton(tooltip).click();
 

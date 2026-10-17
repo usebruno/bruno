@@ -171,7 +171,7 @@ test.describe('Binary response example previews', () => {
       const valueEditor = responseExample.headerRowValueEditor(contentTypeRow);
       await valueEditor.click();
       await page.keyboard.press(process.platform === 'darwin' ? 'Meta+a' : 'Control+a');
-      await page.keyboard.type('application/json');
+      await page.keyboard.insertText('application/json');
       await expect(valueEditor).toContainText('application/json');
     });
 

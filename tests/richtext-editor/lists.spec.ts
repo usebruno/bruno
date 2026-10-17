@@ -14,13 +14,13 @@ test.describe('Rich Text Docs Editor Edge Cases - Lists', () => {
     await expect(prosemirror).toBeVisible();
 
     await prosemirror.click();
-    await page.keyboard.type('Item 1');
+    await page.keyboard.insertText('Item 1');
 
     await clickDocsToolbarBtn(locators, 'Bullet list');
     await expect(prosemirror.locator('ul > li')).toContainText('Item 1');
 
     await page.keyboard.press('Enter');
-    await page.keyboard.type('Item 2');
+    await page.keyboard.insertText('Item 2');
 
     await clickDocsToolbarBtn(locators, 'Numbered list');
     await expect(prosemirror.locator('ol > li').nth(1)).toContainText('Item 2');

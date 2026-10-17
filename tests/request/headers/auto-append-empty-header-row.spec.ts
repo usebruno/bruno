@@ -40,7 +40,7 @@ test('Auto-appends an empty header row when either Name or Value is filled', asy
   await test.step('Typing into the Name field appends a new empty row', async () => {
     const nameEditor = rows.first().getByTestId('column-name').locator('.CodeMirror');
     await nameEditor.click();
-    await page.keyboard.type('Content-Type');
+    await page.keyboard.insertText('Content-Type');
 
     await expect(rows).toHaveCount(2);
   });
@@ -48,7 +48,7 @@ test('Auto-appends an empty header row when either Name or Value is filled', asy
   await test.step('Typing only into the Value field (Name left empty) also appends a new empty row', async () => {
     const valueEditor = rows.nth(1).getByTestId('column-value').locator('.CodeMirror');
     await valueEditor.click();
-    await page.keyboard.type('application/json');
+    await page.keyboard.insertText('application/json');
 
     await expect(rows).toHaveCount(3);
   });

@@ -17,7 +17,7 @@ test.describe('Rich Text Editor Edge Cases - Markdown Sync', () => {
 
     // Type in Markdown
     await codeEditor.click();
-    await page.keyboard.type('Hello MARKDOWN');
+    await page.keyboard.insertText('Hello MARKDOWN');
     await expect(codeEditor).toContainText('Hello MARKDOWN');
 
     // Switch to Rich Text

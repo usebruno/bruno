@@ -28,7 +28,7 @@ test.describe('websocket message name styling', () => {
     const nameInput = websocket.message.nameInput(0);
     await expect(nameInput).toBeVisible();
     await nameInput.selectText();
-    await page.keyboard.type(longName);
+    await page.keyboard.insertText(longName);
     await nameInput.press('Enter');
 
     const messageLabel = websocket.message.label(0).filter({ hasText: longName });

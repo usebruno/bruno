@@ -26,7 +26,7 @@ test.describe('Autosave', () => {
       // Set initial URL and save
       const urlEditor = page.locator('#request-url .CodeMirror');
       await urlEditor.click();
-      await page.keyboard.type('https://api.example.com');
+      await page.keyboard.insertText('https://api.example.com');
       await page.keyboard.press(saveShortcut);
 
       // Verify no draft indicator
@@ -65,7 +65,7 @@ test.describe('Autosave', () => {
       const urlEditor = page.locator('#request-url .CodeMirror');
       await urlEditor.click();
       await page.keyboard.press('End');
-      await page.keyboard.type('/users');
+      await page.keyboard.insertText('/users');
 
       // Wait for draft indicator to appear (change registered)
       const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Test Request' }) });
@@ -121,7 +121,7 @@ test.describe('Autosave', () => {
       const urlEditor = page.locator('#request-url .CodeMirror');
       await urlEditor.click();
       await page.keyboard.press('End');
-      await page.keyboard.type('/posts');
+      await page.keyboard.insertText('/posts');
 
       // Move mouse away from tab to ensure draft icon is visible (hover shows close icon)
       await page.mouse.move(0, 0);
@@ -151,7 +151,7 @@ test.describe('Autosave', () => {
       // Set initial URL and save
       const urlEditor = page.locator('#request-url .CodeMirror');
       await urlEditor.click();
-      await page.keyboard.type('https://api.example.com');
+      await page.keyboard.insertText('https://api.example.com');
       await page.keyboard.press(saveShortcut);
 
       // Verify no draft indicator
@@ -164,7 +164,7 @@ test.describe('Autosave', () => {
       const urlEditor = page.locator('#request-url .CodeMirror');
       await urlEditor.click();
       await page.keyboard.press('End');
-      await page.keyboard.type('/existing-draft');
+      await page.keyboard.insertText('/existing-draft');
 
       // Move mouse away from tab to ensure draft icon is visible (hover shows close icon)
       await page.mouse.move(0, 0);

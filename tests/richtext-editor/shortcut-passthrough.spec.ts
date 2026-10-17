@@ -17,7 +17,7 @@ test.describe('Rich Text Editor - Keyboard Shortcut Interop with Global Hotkeys'
     await test.step('Type into docs', async () => {
       await expect(prosemirror).toBeVisible();
       await prosemirror.click();
-      await page.keyboard.type('Some docs content');
+      await page.keyboard.insertText('Some docs content');
     });
 
     await test.step('Open Preferences (Cmd/Ctrl+,) still fires — no Tiptap binding for it', async () => {
@@ -33,7 +33,7 @@ test.describe('Rich Text Editor - Keyboard Shortcut Interop with Global Hotkeys'
     await test.step('Type into docs', async () => {
       await expect(prosemirror).toBeVisible();
       await prosemirror.click();
-      await page.keyboard.type('Some docs content');
+      await page.keyboard.insertText('Some docs content');
     });
 
     await test.step('Cmd/Ctrl+N still opens the New Request modal', async () => {
@@ -55,10 +55,10 @@ test.describe('Rich Text Editor - Keyboard Shortcut Interop with Global Hotkeys'
 
     await test.step('Cmd/Ctrl+Enter inserts a hard break (Tiptap\'s HardBreak binding)', async () => {
       await prosemirror.click();
-      await page.keyboard.type('Line one');
+      await page.keyboard.insertText('Line one');
       // Mod-Enter is Tiptap's HardBreak binding and Bruno's global "Send Request" shortcut.
       await pressShortcut(page, modifier, 'Enter');
-      await page.keyboard.type('Line two');
+      await page.keyboard.insertText('Line two');
 
       // A hard break keeps both lines in the same paragraph. a real Enter
       // (new paragraph) would split them into two separate <p> elements.
@@ -113,7 +113,7 @@ test.describe('Rich Text Editor - Keyboard Shortcut with Global Hotkeys (remappe
     await test.step('Select text in docs', async () => {
       await expect(prosemirror).toBeVisible();
       await prosemirror.click();
-      await page.keyboard.type('Hello World');
+      await page.keyboard.insertText('Hello World');
       await page.keyboard.down('Shift');
       for (let i = 0; i < 5; i++) {
         await page.keyboard.press('ArrowLeft');

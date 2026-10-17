@@ -26,7 +26,7 @@ test.describe('Create gRPC Requests', () => {
       await page.getByTestId('grpc-request').click();
       await page.getByTestId('request-name').fill('Root gRPC Request');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-      await page.keyboard.type('grpc://localhost:50051');
+      await page.keyboard.insertText('grpc://localhost:50051');
       await locators.modal.button('Create').click();
     });
 
@@ -54,7 +54,7 @@ test.describe('Create gRPC Requests', () => {
       await page.getByTestId('grpc-request').click();
       await page.getByTestId('request-name').fill('Folder gRPC Request');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-      await page.keyboard.type('grpc://localhost:50052');
+      await page.keyboard.insertText('grpc://localhost:50052');
       await locators.modal.button('Create').click();
     });
 

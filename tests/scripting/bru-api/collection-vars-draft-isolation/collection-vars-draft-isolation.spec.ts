@@ -34,7 +34,7 @@ test.describe('Collection vars script persistence does not leak draft headers', 
       const valueCellEditor = headerRow.locator('.CodeMirror').nth(1);
       await valueCellEditor.click();
       await page.keyboard.press(selectAllShortcut);
-      await page.keyboard.type('draft-edited-value');
+      await page.keyboard.insertText('draft-edited-value');
 
       await expect(locators.tabs.collectionSettingsTab().locator('.close-gradient'))
         .toHaveClass(/has-changes/);

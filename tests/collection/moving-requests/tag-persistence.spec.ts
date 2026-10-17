@@ -77,7 +77,7 @@ test.describe('Tag persistence', () => {
     await locators.dropdown.item('New Request').click();
     await locators.request.requestNameInput().fill('request-1');
     await locators.request.newRequestUrl().click();
-    await page.keyboard.type('https://httpfaker.org/api/echo');
+    await page.keyboard.insertText('https://httpfaker.org/api/echo');
     await locators.modal.button('Create').click();
 
     // create another request within folder-1 folder
@@ -86,7 +86,7 @@ test.describe('Tag persistence', () => {
     await locators.dropdown.item('New Request').click();
     await locators.request.requestNameInput().fill('request-2');
     await locators.request.newRequestUrl().click();
-    await page.keyboard.type('https://httpfaker.org/api/echo');
+    await page.keyboard.insertText('https://httpfaker.org/api/echo');
     await locators.modal.button('Create').click();
     await expect(locators.sidebar.folderRequest('folder-1', 'request-2')).toBeVisible();
     await locators.sidebar.folderRequest('folder-1', 'request-2').click();
@@ -116,7 +116,7 @@ test.describe('Tag persistence', () => {
     await locators.dropdown.item('New Request').click();
     await locators.request.requestNameInput().fill('request-3');
     await locators.request.newRequestUrl().click();
-    await page.keyboard.type('https://httpfaker.org/api/echo');
+    await page.keyboard.insertText('https://httpfaker.org/api/echo');
     await locators.modal.button('Create').click();
 
     // Drag and drop request-2 request to folder-2 folder

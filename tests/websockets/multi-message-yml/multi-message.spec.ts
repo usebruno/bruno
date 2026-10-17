@@ -50,7 +50,7 @@ test.describe.serial('websocket multi-message (yml format)', () => {
     const nameInput = websocket.message.nameInputs();
     await expect(nameInput).toBeVisible();
     await nameInput.selectText();
-    await page.keyboard.type('new message');
+    await page.keyboard.insertText('new message');
     await nameInput.press('Enter');
 
     await saveRequest(page);
@@ -77,7 +77,7 @@ test.describe.serial('websocket multi-message (yml format)', () => {
     await expect(nameInput).toBeVisible();
 
     await nameInput.selectText();
-    await page.keyboard.type('ping message');
+    await page.keyboard.insertText('ping message');
     await nameInput.press('Enter');
 
     await expect(websocket.message.labels().filter({ hasText: 'ping message' })).toBeVisible();
@@ -285,7 +285,7 @@ test.describe.serial('websocket multi-message (yml format)', () => {
     await expect(nameInput).toBeVisible();
 
     await nameInput.selectText();
-    await page.keyboard.type('subscribe request');
+    await page.keyboard.insertText('subscribe request');
     await nameInput.press('Enter');
 
     await expect(websocket.message.label(0).filter({ hasText: 'subscribe request' })).toBeVisible();
@@ -308,7 +308,7 @@ test.describe.serial('websocket multi-message (yml format)', () => {
     await expect(nameInput).toBeVisible();
 
     await nameInput.selectText();
-    await page.keyboard.type('renamed via shortcut');
+    await page.keyboard.insertText('renamed via shortcut');
 
     // Press cmd/ctrl+s while the name input still has focus, without pressing
     // Enter or blurring first. This must commit the pending name and persist it.

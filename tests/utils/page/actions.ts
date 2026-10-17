@@ -542,7 +542,7 @@ const createRequest = async (
 
     if (url) {
       await page.locator('#new-request-url .CodeMirror').click();
-      await page.keyboard.type(url);
+      await page.keyboard.insertText(url);
     }
 
     await locators.modal.button('Create').click();
@@ -1244,7 +1244,7 @@ const addRowToActiveTab = async (
       await emptyRowEditor.scrollIntoViewIfNeeded();
       await emptyRowEditor.click({ position: { x: 5, y: 5 } });
       await expect(emptyRowEditor).toHaveClass(/CodeMirror-focused/);
-      await page.keyboard.type(value);
+      await page.keyboard.insertText(value);
       await expect(emptyRowEditor).toContainText(value);
 
       await environment.variableNameInput(rowIndex).fill(name);
@@ -1265,10 +1265,8 @@ const addRowToActiveTab = async (
       await codeMirror.click({ position: { x: 5, y: 5 } });
       if (dataType) {
         await expect(codeMirror).toHaveClass(/CodeMirror-focused/);
-        await page.keyboard.insertText(value);
-      } else {
-        await page.keyboard.type(value);
       }
+      await page.keyboard.insertText(value);
     }
 
     if (dataType) {
@@ -1299,7 +1297,7 @@ const setEnvironmentVariableValue = async (page: Page, name: string, value: stri
     await expect(editor).toHaveClass(/CodeMirror-focused/);
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+a' : 'Control+a');
     await page.keyboard.press('Backspace');
-    await page.keyboard.type(value);
+    await page.keyboard.insertText(value);
     await expect(editor).not.toHaveClass(/CodeMirror-empty/);
   });
 };
@@ -2180,7 +2178,7 @@ const addAssertion = async (page: Page, assertion: AssertionInput): Promise<numb
     const exprInput = table.rowExprInput(targetRowIndex);
     await expect(exprInput).toBeVisible({ timeout: 2000 });
     await exprInput.click();
-    await page.keyboard.type(assertion.expr);
+    await page.keyboard.insertText(assertion.expr);
 
     // The component creates a new empty row when the key field is filled
     await expect(table.allRows()).toHaveCount(rowCount + 1);
@@ -2188,7 +2186,7 @@ const addAssertion = async (page: Page, assertion: AssertionInput): Promise<numb
     // Fill in the value first (defaults to 'eq value')
     const valueInput = table.rowValueInput(targetRowIndex);
     await valueInput.click();
-    await page.keyboard.type(assertion.value);
+    await page.keyboard.insertText(assertion.value);
 
     // Select the operator from dropdown (if provided and not default 'eq')
     // This will update the value field to combine operator + value
@@ -2233,7 +2231,7 @@ const editAssertion = async (page: Page, rowIndex: number, assertion: AssertionI
     // Clear the input and type new value - use triple-click to select all (works cross-platform)
     await exprInput.click({ clickCount: 3 });
     await page.keyboard.press('Backspace'); // Clear selection
-    await page.keyboard.type(assertion.expr);
+    await page.keyboard.insertText(assertion.expr);
 
     // Update the operator from dropdown (if provided)
     if (assertion.operator) {
@@ -2246,7 +2244,7 @@ const editAssertion = async (page: Page, rowIndex: number, assertion: AssertionI
     const valueInput = table.rowValueInput(rowIndex);
     await valueInput.click({ clickCount: 3 });
     await page.keyboard.press('Backspace'); // Clear selection
-    await page.keyboard.type(assertion.value);
+    await page.keyboard.insertText(assertion.value);
   });
 };
 
@@ -2523,7 +2521,7 @@ const editCodeMirrorEditor = async (page: Page, editorTestId: string, newContent
     const selectAll = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
     await page.keyboard.press(selectAll);
     await page.keyboard.press('Backspace');
-    await page.keyboard.type(newContent, { delay: 5 });
+    await page.keyboard.insertText(newContent);
   });
 };
 
@@ -2760,7 +2758,7 @@ const selectAuthMode = async (page: Page, modeLabel: string) => {
  */
 const typeIntoField = async (page: Page, labelText: string, value: string) => {
   await fieldEditor(page, labelText).click();
-  await page.keyboard.type(value);
+  await page.keyboard.insertText(value);
 };
 
 /** Sets the field next to a label to this text. */
@@ -3607,7 +3605,7 @@ const renameWsMessage = async (page: Page, index: number, name: string) => {
     const nameInput = websocket.message.nameInput(index);
     await expect(nameInput).toBeVisible();
     await nameInput.selectText();
-    await page.keyboard.type(name);
+    await page.keyboard.insertText(name);
     await nameInput.press('Enter');
   });
 };
@@ -3655,17 +3653,16 @@ const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
 };
 
 /**
- * Set the active request's URL and save it. Typed char-by-char so CodeMirror
- * tokenizes `{{var}}` references (vs. a bulk fill that skips tokenization).
+ * Set the active request's URL and save it.
  * @param page - The page object
- * @param url - The URL to type into the request URL editor
+ * @param url - The URL to insert into the request URL editor
  */
 const setRequestUrlAndSave = async (page: Page, url: string) => {
   await test.step(`Set request URL: ${url}`, async () => {
     const { request } = buildCommonLocators(page);
     const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
     await request.urlInput().click();
-    await page.keyboard.type(url);
+    await page.keyboard.insertText(url);
     await page.keyboard.press(saveShortcut);
   });
 };

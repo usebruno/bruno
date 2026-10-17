@@ -102,7 +102,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await page.getByTestId('request-name').fill('nr-collection-cenv');
         await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-        await page.keyboard.type('https://echo.usebruno.com');
+        await page.keyboard.insertText('https://echo.usebruno.com');
         await page.getByTestId('create-new-request-button').click();
 
         await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-collection-cenv', { exact: true }) })).toBeVisible();
@@ -116,7 +116,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await page.getByTestId('request-name').fill('nr-folder-cenv');
         await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-        await page.keyboard.type('https://echo.usebruno.com');
+        await page.keyboard.insertText('https://echo.usebruno.com');
         await page.getByTestId('create-new-request-button').click();
 
         await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-folder-cenv', { exact: true }) })).toBeVisible();
@@ -141,7 +141,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await page.getByTestId('request-name').fill('nr-collection-cenv-altn');
         await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-        await page.keyboard.type('https://echo.usebruno.com');
+        await page.keyboard.insertText('https://echo.usebruno.com');
         await page.getByTestId('create-new-request-button').click();
 
         await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-collection-cenv-altn', { exact: true }) })).toBeVisible();
@@ -166,7 +166,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await page.getByTestId('request-name').fill('nr-folder-cenv-altn');
         await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-        await page.keyboard.type('https://echo.usebruno.com');
+        await page.keyboard.insertText('https://echo.usebruno.com');
         await page.getByTestId('create-new-request-button').click();
 
         await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-folder-cenv-altn', { exact: true }) })).toBeVisible();
