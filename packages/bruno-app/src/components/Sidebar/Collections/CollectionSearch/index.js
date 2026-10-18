@@ -1,7 +1,7 @@
 import { IconSearch, IconX } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
-const CollectionSearch = ({ searchText, setSearchText }) => {
+const CollectionSearch = ({ searchText, setSearchText, onFocus }) => {
   return (
     <StyledWrapper>
       <IconSearch size={14} strokeWidth={1.5} className="search-icon" />
@@ -17,6 +17,7 @@ const CollectionSearch = ({ searchText, setSearchText }) => {
         autoFocus
         spellCheck="false"
         value={searchText}
+        onFocus={onFocus}
         onChange={(e) => setSearchText(e.target.value.toLowerCase())}
       />
       {searchText !== '' && (

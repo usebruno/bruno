@@ -11,16 +11,12 @@ import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
 import { flattenSidebarTree } from 'utils/collections/flattenSidebarTree';
 import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
-import useDebounce from 'hooks/useDebounce';
 import useSidebarAutoReveal from 'hooks/useSidebarAutoReveal';
+import useCollectionsSearch from 'hooks/useCollectionsSearch';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
-
-const isEmptyQuery = (value) => typeof value === 'string' && value.trim() === '';
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
-  const trimmedSearchText = searchText.trim();
-  const debouncedSearchText = useDebounce(trimmedSearchText, 300, { shouldSkipDebounce: isEmptyQuery });
   const { collections, collectionSortOrder, selectedSidebarUids } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const dispatch = useDispatch();
@@ -39,11 +35,39 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     [activeWorkspace, collections, workspaces, collectionSortOrder]
   );
 
+  const {
+    query: debouncedSearchText,
+    itemsByRoot,
+    collapsedUids: searchCollapsedUids,
+    searchContext,
+    setQuery,
+    toggleCollapsed: toggleSearchCollapse,
+    warmup,
+    onRangeChanged,
+    onItemsRendered
+  } = useCollectionsSearch({ sidebarEntries });
+
+  const handleSearchTextChange = (text) => {
+    setSearchText(text);
+    setQuery(text);
+  };
+
+  const renderedSidebarEntries = useMemo(
+    () => sidebarEntries.map((entry) => {
+      if (entry.kind !== 'loaded' || entry.collection.mountStatus === 'mounted' || !itemsByRoot.has(entry.collection.pathname)) {
+        return entry;
+      }
+      return { ...entry, collection: { ...entry.collection, items: itemsByRoot.get(entry.collection.pathname) } };
+    }),
+    [sidebarEntries, itemsByRoot]
+  );
+
   // Flatten the tree into ordered rows. itemsByUid / collectionsByUid resolve a row's live object.
   const { rows, itemsByUid, collectionsByUid } = useMemo(
-    () => flattenSidebarTree(sidebarEntries, { searchText: debouncedSearchText }),
-    [sidebarEntries, debouncedSearchText]
+    () => flattenSidebarTree(renderedSidebarEntries, { searchText: debouncedSearchText, collapsedUids: searchCollapsedUids }),
+    [renderedSidebarEntries, debouncedSearchText, searchCollapsedUids]
   );
+  searchContext.rows = rows;
 
   // Ghost rows carry only path/name. GitRemoteCollectionRow needs the full entry (for `remote`).
   const ghostsByPath = useMemo(() => {
@@ -111,7 +135,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   return (
     <StyledWrapper data-testid="collections">
       {showSearch && (
-        <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
+        <CollectionSearch searchText={searchText} setSearchText={handleSearchTextChange} onFocus={warmup} />
       )}
 
       {isCreatingCollection && (
@@ -131,6 +155,8 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
           data-testid="sidebar-collections-scroller"
           style={{ height: '100%' }}
           data={rows}
+          rangeChanged={onRangeChanged}
+          itemsRendered={onItemsRendered}
           computeItemKey={(_, row) => row.id}
           defaultItemHeight={26}
           increaseViewportBy={{ top: 400, bottom: 600 }}
@@ -138,6 +164,8 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
             <SidebarRow
               row={row}
               searchText={debouncedSearchText}
+              searchCollapsedUids={searchCollapsedUids}
+              onToggleSearchCollapse={toggleSearchCollapse}
               openBulkMenu={openBulkMenu}
               itemsByUid={itemsByUid}
               collectionsByUid={collectionsByUid}

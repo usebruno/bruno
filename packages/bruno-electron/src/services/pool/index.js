@@ -11,9 +11,10 @@ const WORKER_FILE = path.join(__dirname, 'worker.js');
 class Pool {
   #pool;
 
-  constructor({ size } = {}) {
+  constructor({ size, minWorkers = 'max' } = {}) {
     const workers = Math.max(1, size ?? os.availableParallelism());
     this.#pool = workerpool.pool(WORKER_FILE, {
+      minWorkers,
       maxWorkers: workers,
       workerType: 'thread',
       workerThreadOpts: { resourceLimits: { maxOldGenerationSizeMb: 512 } }
