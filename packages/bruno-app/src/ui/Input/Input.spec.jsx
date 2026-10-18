@@ -259,7 +259,7 @@ describe('Input', () => {
     });
   });
 
-  it.each(['xs', 'sm', 'md'])('accepts the %s size without forwarding size to the native input', (size) => {
+  it.each(['xs', 'sm', 'md', 'lg'])('accepts the %s size without forwarding size to the native input', (size) => {
     renderWithTheme(<Input value="" onChange={() => {}} size={size} placeholder="Sized" />);
     expect(screen.getByPlaceholderText('Sized')).not.toHaveAttribute('size');
   });

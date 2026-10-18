@@ -12,7 +12,7 @@ export default {
       source: { transform: (code) => code.replace(/\bPlayground\b/g, 'Input') },
       description: {
         component:
-          'A single-line text entry control. Controlled: pass value and onChange. Pass label, description, error or required for a labelled form field (it wraps itself in Field), or use it bare inside a table cell. Wrap other controls in Field directly. Sizes: xs (~22px, compact), sm (~27px), md (~33px, the default — lines up with Select in forms). Use variant="ghost" for a borderless cell input (ghost ignores size).'
+          'A single-line text entry control. Controlled: pass value and onChange. Pass label, description, error or required for a labelled form field (it wraps itself in Field), or use it bare inside a table cell. Wrap other controls in Field directly. Sizes: xs (24px, compact), sm (28px), md (34px, the default — lines up with Select in forms) and lg (40px). Use variant="ghost" for a borderless cell input (ghost ignores size).'
       }
     }
   },
@@ -25,8 +25,8 @@ export default {
     },
     size: {
       control: 'inline-radio',
-      options: ['xs', 'sm', 'md'],
-      description: 'xs ~22px, sm ~27px, md ~33px (default). md lines up with Select.'
+      options: ['xs', 'sm', 'md', 'lg'],
+      description: 'xs 24px, sm 28px, md 34px (default), lg 40px. md lines up with Select.'
     },
     type: { control: 'text', description: 'Passed through to the input element.' },
     error: { control: 'boolean', description: 'Draws the danger border and sets aria-invalid.' },
@@ -64,7 +64,7 @@ export const Default = {
 
 const column = { display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '320px' };
 
-/** xs ~22px, sm ~27px, md ~33px (default, within a pixel of a Select trigger). */
+/** xs 24px, sm 28px, md 34px (default, within a pixel of a Select trigger), lg 40px. */
 export const Sizes = {
   tags: ['!dev'],
   render: () => (
@@ -72,6 +72,7 @@ export const Sizes = {
       <Input size="xs" fullWidth placeholder="Extra small" value="" onChange={() => {}} />
       <Input size="sm" fullWidth placeholder="Small" value="" onChange={() => {}} />
       <Input size="md" fullWidth placeholder="Medium (default)" value="" onChange={() => {}} />
+      <Input size="lg" fullWidth placeholder="Large" value="" onChange={() => {}} />
     </div>
   )
 };

@@ -1,10 +1,6 @@
 import styled, { css } from 'styled-components';
 import { INPUT_SIZES } from './sizes';
 
-// The line height is part of the size: it is what keeps the md box within a pixel of a Select
-// trigger (about 33px), so inputs and dropdowns still line up in a form.
-const LINE_HEIGHT = '1.42857143';
-
 const getSize = (props) => INPUT_SIZES[props.$size] || INPUT_SIZES.md;
 
 const disabledBg = (theme) => (theme.mode === 'dark' ? theme.background.surface0 : theme.background.mantle);
@@ -15,13 +11,14 @@ const StyledWrapper = styled.div`
   align-items: center;
   gap: 0.375rem;
   box-sizing: border-box;
+  height: ${(props) => getSize(props).height};
   padding: ${(props) => getSize(props).padding};
   border: 1px solid ${(props) => props.theme.input.border};
   border-radius: ${(props) => props.theme.border.radius[getSize(props).borderRadius]};
   background-color: ${(props) => props.theme.input.bg};
   color: ${(props) => props.theme.text};
   font-size: ${(props) => props.theme.font.size[getSize(props).fontSize]};
-  line-height: ${LINE_HEIGHT};
+  line-height: normal;
   transition: border-color 0.15s ease;
 
   &:focus-within {
@@ -32,6 +29,7 @@ const StyledWrapper = styled.div`
   ${(props) =>
     props.$ghost
     && css`
+      height: auto;
       padding: 0;
       line-height: 1;
       border-color: transparent;
