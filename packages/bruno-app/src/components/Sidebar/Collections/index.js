@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
 import StyledWrapper from './StyledWrapper';
@@ -14,8 +14,6 @@ import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import useSidebarAutoReveal from 'hooks/useSidebarAutoReveal';
 import useCollectionsSearch from 'hooks/useCollectionsSearch';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
-
-const EMPTY_SET = new Set();
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
@@ -40,8 +38,10 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const {
     query: debouncedSearchText,
     itemsByRoot,
+    collapsedUids: searchCollapsedUids,
     searchContext,
     setQuery,
+    toggleCollapsed: toggleSearchCollapse,
     warmup,
     onRangeChanged,
     onItemsRendered
@@ -51,18 +51,6 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     setSearchText(text);
     setQuery(text);
   };
-
-  const [searchCollapsed, setSearchCollapsed] = useState({ text: '', uids: EMPTY_SET });
-  const searchCollapsedUids = searchCollapsed.text === debouncedSearchText ? searchCollapsed.uids : EMPTY_SET;
-
-  const toggleSearchCollapse = useCallback((uid) => {
-    setSearchCollapsed((prev) => {
-      const uids = new Set(prev.text === debouncedSearchText ? prev.uids : []);
-      if (uids.has(uid)) uids.delete(uid);
-      else uids.add(uid);
-      return { text: debouncedSearchText, uids };
-    });
-  }, [debouncedSearchText]);
 
   const renderedSidebarEntries = useMemo(
     () => sidebarEntries.map((entry) => {
@@ -80,7 +68,6 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     [renderedSidebarEntries, debouncedSearchText, searchCollapsedUids]
   );
   searchContext.rows = rows;
-  searchContext.collapsedUids = searchCollapsedUids;
 
   // Ghost rows carry only path/name. GitRemoteCollectionRow needs the full entry (for `remote`).
   const ghostsByPath = useMemo(() => {

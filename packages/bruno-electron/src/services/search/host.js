@@ -27,7 +27,7 @@ const RG_ARGS = [
 
 let current = null;
 const history = new Map();
-getPool({ minWorkers: 'max' });
+getPool();
 
 const post = (message) => process.parentPort.postMessage(message);
 
@@ -79,12 +79,11 @@ const searchRoot = (id, root, query, targets, narrowed) => new Promise((resolve)
   const patterns = namePatterns(query).flatMap((pattern) => ['--regexp', pattern]);
   const child = spawn(RG_PATH, [...RG_ARGS, ...patterns, '--', ...targets], {
     cwd: narrowed ? root : undefined,
-    stdio: ['ignore', 'pipe', 'pipe']
+    stdio: ['ignore', 'pipe', 'ignore']
   });
   current.child = child;
 
   let buffer = '';
-  let stderr = '';
   let paths = [];
   const matched = [];
 
@@ -110,19 +109,14 @@ const searchRoot = (id, root, query, targets, narrowed) => new Promise((resolve)
     lines.forEach(collect);
   });
 
-  child.stderr.setEncoding('utf8');
-  child.stderr.on('data', (chunk) => {
-    stderr += chunk;
-  });
-
-  child.on('error', (error) => resolve({ matched, error: error.message }));
+  child.on('error', () => resolve({ matched, failed: true }));
 
   child.on('close', (code) => {
     if (isCurrent(id)) {
       collect(buffer);
       flush();
     }
-    resolve({ matched, error: code === 2 ? stderr.trim() : null });
+    resolve({ matched, failed: code === 2 });
   });
 });
 
@@ -130,31 +124,21 @@ const search = async ({ id, roots, query }) => {
   stop();
   current = { id, child: null };
 
-  let total = 0;
-  const errors = [];
   for (const root of query ? roots : []) {
     const prior = findNarrowing(history.get(root), query);
-    const narrowed = Boolean(prior);
     const rootMatches = [];
-    let rootError = null;
-    for (const targets of narrowed ? chunkPaths(prior.paths) : [[root]]) {
-      const { matched, error } = await searchRoot(id, root, query, targets, narrowed);
+    let failed = false;
+    for (const targets of prior ? chunkPaths(prior.paths) : [[root]]) {
+      const result = await searchRoot(id, root, query, targets, Boolean(prior));
       if (!isCurrent(id)) return;
-      rootMatches.push(...matched);
-      rootError = rootError || error;
+      rootMatches.push(...result.matched);
+      failed = failed || result.failed;
     }
-    total += rootMatches.length;
-    if (rootError) {
-      history.delete(root);
-      errors.push({ root, error: rootError });
-    } else {
-      remember(root, query, rootMatches);
-    }
+    if (failed) history.delete(root);
+    else remember(root, query, rootMatches);
   }
 
-  if (!isCurrent(id)) return;
-  current = null;
-  post({ type: 'done', id, total, errors });
+  if (isCurrent(id)) current = null;
 };
 
 const parse = async ({ requestId, collectionPath, files }) => {

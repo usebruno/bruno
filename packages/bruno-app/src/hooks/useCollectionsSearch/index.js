@@ -48,8 +48,8 @@ const findRootToLoad = ({ rows, range, roots, order, matches, requested, collaps
 
 const createSearchStore = () => {
   const listeners = new Set();
-  const context = { roots: [], order: [], rows: [], collapsedUids: new Set(), range: { startIndex: 0, endIndex: getVisibleRows() } };
-  let snapshot = { query: '', itemsByRoot: new Map() };
+  const context = { roots: [], order: [], rows: [], range: { startIndex: 0, endIndex: getVisibleRows() } };
+  let snapshot = { query: '', itemsByRoot: new Map(), collapsedUids: new Set() };
   let searchId = null;
   let generation = 0;
   let matches = new Map();
@@ -69,7 +69,7 @@ const createSearchStore = () => {
       return;
     }
 
-    const root = findRootToLoad({ ...context, matches, requested });
+    const root = findRootToLoad({ ...context, collapsedUids: snapshot.collapsedUids, matches, requested });
     if (!root) return;
 
     loading = true;
@@ -115,7 +115,7 @@ const createSearchStore = () => {
     searchId = null;
     matches = new Map();
     requested = new Map();
-    snapshot = { query, itemsByRoot: new Map() };
+    snapshot = { query, itemsByRoot: new Map(), collapsedUids: new Set() };
     emit();
 
     if (!query || !context.roots.length) {
@@ -155,6 +155,13 @@ const createSearchStore = () => {
         if (query !== snapshot.query) start(query);
       }, DEBOUNCE_MS);
     },
+    toggleCollapsed: (uid) => {
+      const collapsedUids = new Set(snapshot.collapsedUids);
+      if (collapsedUids.has(uid)) collapsedUids.delete(uid);
+      else collapsedUids.add(uid);
+      snapshot = { ...snapshot, collapsedUids };
+      emit();
+    },
     warmup: () => window.ipcRenderer.invoke('renderer:search-warmup'),
     onRangeChanged: (range) => {
       context.range = range;
@@ -176,13 +183,15 @@ const useCollectionsSearch = ({ sidebarEntries }) => {
   const order = useMemo(() => sidebarEntries.map(getEntryPath), [sidebarEntries]);
   store.context.roots = roots;
   store.context.order = order;
-  const { query, itemsByRoot } = useSyncExternalStore(store.subscribe, store.getSnapshot);
+  const { query, itemsByRoot, collapsedUids } = useSyncExternalStore(store.subscribe, store.getSnapshot);
 
   return {
     query,
     itemsByRoot,
+    collapsedUids,
     searchContext: store.context,
     setQuery: store.setQuery,
+    toggleCollapsed: store.toggleCollapsed,
     warmup: store.warmup,
     onRangeChanged: store.onRangeChanged,
     onItemsRendered: store.onItemsRendered

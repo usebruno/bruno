@@ -3,14 +3,12 @@ const { ipcMain, BrowserWindow } = require('electron');
 const { SearchService } = require('../services/search');
 const { defaultClassify } = require('../utils/mount');
 
-const SEARCHABLE_TYPES = new Set(['request', 'folder']);
-
 const service = new SearchService();
 
 const isSearchablePath = (relativePath) => typeof relativePath === 'string'
   && !path.isAbsolute(relativePath)
   && !relativePath.split(/[\\/]/).includes('..')
-  && SEARCHABLE_TYPES.has(defaultClassify(relativePath)?.type);
+  && defaultClassify(relativePath)?.type === 'request';
 
 const searchCollections = (event, { roots, query } = {}) => {
   if (typeof query !== 'string') throw new Error('Search query must be a string');
@@ -31,7 +29,7 @@ const resolveSearchWindow = (_event, { id, collectionPath, relativePaths } = {})
     throw new Error('Collection path must be absolute');
   }
   if (!Array.isArray(relativePaths) || !relativePaths.every(isSearchablePath)) {
-    throw new Error('Window paths must be request or folder files inside the collection');
+    throw new Error('Window paths must be request files inside the collection');
   }
 
   return service.resolveWindow({ id, collectionPath: path.resolve(collectionPath), relativePaths });

@@ -140,7 +140,7 @@ const CollectionRow = ({ collection, searchText, isSearchCollapsed, onToggleSear
   };
 
   const hasSearchText = searchText && searchText?.trim()?.length;
-  const collectionIsCollapsed = hasSearchText ? Boolean(isSearchCollapsed) : collection.collapsed;
+  const collectionIsCollapsed = hasSearchText ? isSearchCollapsed : collection.collapsed;
 
   const iconClassName = classnames({
     'rotate-90': !collectionIsCollapsed

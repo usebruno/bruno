@@ -27,7 +27,7 @@ const withFolderFiles = (probedDirs, relativePaths) => {
 
 class SearchService {
   #host = null;
-  #listeners = new Map();
+  #onMessage = null;
   #pendingParses = new Map();
   #nextId = 0;
   #nextParseId = 0;
@@ -44,18 +44,11 @@ class SearchService {
         this.#pendingParses.delete(message.requestId);
         return;
       }
-      const listener = this.#listeners.get(message.id);
-      if (!listener) return;
-      if (message.type === 'done') this.#listeners.delete(message.id);
-      listener(message);
+      if (message.id === this.#nextId) this.#onMessage?.(message);
     });
     host.on('exit', () => {
       if (this.#host !== host) return;
       this.#host = null;
-      for (const [id, listener] of this.#listeners) {
-        listener({ type: 'done', id, total: 0, errors: [{ root: null, error: 'Search process exited' }] });
-      }
-      this.#listeners.clear();
       for (const { reject } of this.#pendingParses.values()) reject(new Error('Search process exited'));
       this.#pendingParses.clear();
     });
@@ -76,15 +69,14 @@ class SearchService {
   search({ roots, query }, onMessage) {
     const id = ++this.#nextId;
     this.#window = null;
-    this.#listeners.clear();
-    this.#listeners.set(id, onMessage);
+    this.#onMessage = onMessage;
     this.#getHost().postMessage({ type: 'search', id, roots, query });
     return id;
   }
 
   cancel() {
     this.#window = null;
-    this.#listeners.clear();
+    this.#onMessage = null;
     this.#host?.postMessage({ type: 'cancel' });
   }
 
@@ -93,11 +85,11 @@ class SearchService {
     if (this.#window?.id !== id) this.#window = { id, collections: new Map() };
     let collection = this.#window.collections.get(collectionPath);
     if (!collection) {
-      collection = { entries: new Map(), probedDirs: new Set() };
+      collection = { resolved: new Set(), probedDirs: new Set() };
       this.#window.collections.set(collectionPath, collection);
     }
 
-    const wanted = withFolderFiles(collection.probedDirs, relativePaths).filter((relativePath) => !collection.entries.has(relativePath));
+    const wanted = withFolderFiles(collection.probedDirs, relativePaths).filter((relativePath) => !collection.resolved.has(relativePath));
     const fileIndex = preferencesUtil.isFileCacheEnabled() ? this.#getFileIndex() : null;
     const { cached, stale } = fileIndex
       ? await this.#checkFileIndex(fileIndex, collectionPath, wanted)
@@ -109,7 +101,7 @@ class SearchService {
     const windowEntries = new Map();
     for (const [relativePath, data] of cached) windowEntries.set(relativePath, toTreeEntry(relativePath, data));
     for (const { relativePath, data, error } of parsed) windowEntries.set(relativePath, toTreeEntry(relativePath, data, error));
-    for (const [relativePath, entry] of windowEntries) collection.entries.set(relativePath, entry);
+    for (const relativePath of windowEntries.keys()) collection.resolved.add(relativePath);
 
     const { getRequestUid } = require('../../cache/requestUids');
     return { items: buildTree(collectionPath, windowEntries, { uidFor: getRequestUid }).items };
@@ -146,7 +138,7 @@ class SearchService {
   }
 
   shutdown() {
-    this.#listeners.clear();
+    this.#onMessage = null;
     const host = this.#host;
     this.#host = null;
     host?.kill();

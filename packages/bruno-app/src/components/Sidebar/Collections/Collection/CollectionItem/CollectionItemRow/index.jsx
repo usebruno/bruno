@@ -140,7 +140,7 @@ const CollectionItemRow = ({
   const examplesExpanded = !isCollectionItemCollapsed(item);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const hasSearchText = searchText && searchText?.trim()?.length;
-  const itemIsCollapsed = hasSearchText ? Boolean(isSearchCollapsed) : isCollectionItemCollapsed(item);
+  const itemIsCollapsed = hasSearchText ? isSearchCollapsed : isCollectionItemCollapsed(item);
   const isFolder = isItemAFolder(item);
   const invalidItemCount = useMemo(() => (isFolder ? countInvalidItems(item.items) : 0), [isFolder, item.items]);
 
