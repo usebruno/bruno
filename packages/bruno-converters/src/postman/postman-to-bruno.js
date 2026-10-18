@@ -194,7 +194,7 @@ const constructUrlFromParts = (url) => {
   const portStr = port ? `:${port}` : '';
 
   const validQuery = Array.isArray(query)
-    ? query.filter((q) => q && q.key !== null && q.key !== '' && !q.disabled)
+    ? query.filter((q) => q && q.key != null && q.key !== '' && !q.disabled)
     : [];
 
   const queryStr = validQuery.length
@@ -814,7 +814,7 @@ const importPostmanV2CollectionItem = (
             brunoRequestItem.request.body.mode = 'multipartForm';
 
             each(i.request.body.formdata, (param) => {
-              if (param.key === null && param.value === null) return;
+              if (param.key == null && param.value == null) return;
               const isFile
                 = param.type === 'file'
                   || (param.type === 'default' && param.src);
@@ -843,7 +843,7 @@ const importPostmanV2CollectionItem = (
           if (bodyMode === 'urlencoded') {
             brunoRequestItem.request.body.mode = 'formUrlEncoded';
             each(i.request.body.urlencoded, (param) => {
-              if (param.key === null && param.value === null) return;
+              if (param.key == null && param.value == null) return;
               brunoRequestItem.request.body.formUrlEncoded.push({
                 uid: uuid(),
                 name: ensureString(param.key),
@@ -892,7 +892,7 @@ const importPostmanV2CollectionItem = (
         }
 
         each(normalizeHeaders(i.request.header), (header) => {
-          if (header.key === null && header.value === null) return;
+          if (header.key == null && header.value == null) return;
           brunoRequestItem.request.headers.push({
             uid: uuid(),
             name: ensureString(header.key),
@@ -987,7 +987,7 @@ const importPostmanV2CollectionItem = (
             // Convert original request headers
             if (originalRequest.header) {
               normalizeHeaders(originalRequest.header).forEach((header) => {
-                if (header.key === null && header.value === null) return;
+                if (header.key == null && header.value == null) return;
                 example.request.headers.push({
                   uid: uuid(),
                   name: ensureString(header.key),
@@ -1005,7 +1005,7 @@ const importPostmanV2CollectionItem = (
               && Array.isArray(originalRequest.url.query)
             ) {
               originalRequest.url.query.forEach((param) => {
-                if (param.key === null && param.value === null) {
+                if (param.key == null && param.value == null) {
                   return;
                 }
                 example.request.params.push({
@@ -1047,7 +1047,7 @@ const importPostmanV2CollectionItem = (
                   && Array.isArray(originalRequest.body.formdata)
                 ) {
                   originalRequest.body.formdata.forEach((param) => {
-                    if (param.key === null && param.value === null) return;
+                    if (param.key == null && param.value == null) return;
                     const isFile
                       = param.type === 'file'
                         || (param.type === 'default' && param.src);
@@ -1081,7 +1081,7 @@ const importPostmanV2CollectionItem = (
                   && Array.isArray(originalRequest.body.urlencoded)
                 ) {
                   originalRequest.body.urlencoded.forEach((param) => {
-                    if (param.key === null && param.value === null) return;
+                    if (param.key == null && param.value == null) return;
                     example.request.body.formUrlEncoded.push({
                       uid: uuid(),
                       name: ensureString(param.key),
@@ -1126,7 +1126,7 @@ const importPostmanV2CollectionItem = (
             // Convert response headers
             if (response.header) {
               normalizeHeaders(response.header).forEach((header) => {
-                if (header.key === null && header.value === null) return;
+                if (header.key == null && header.value == null) return;
                 example.response.headers.push({
                   uid: uuid(),
                   name: ensureString(header.key),

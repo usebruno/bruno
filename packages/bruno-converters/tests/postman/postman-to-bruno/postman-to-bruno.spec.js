@@ -1494,7 +1494,9 @@ describe('postman-collection formdata import', () => {
               query: [
                 { key: 'search term', value: 'hello & world' },
                 { key: 'empty', value: '' },
-                { key: 'ignored', value: 'no', disabled: true }
+                { key: 'ignored', value: 'no', disabled: true },
+                { value: 'x' }
+
               ]
             }
           }
@@ -1504,6 +1506,7 @@ describe('postman-collection formdata import', () => {
 
     const { collection: brunoCollection } = await postmanToBruno(collection);
 
+    expect(brunoCollection.items[0].request.url).not.toContain('undefined=x');
     expect(brunoCollection.items[0].request.url).toBe(
       'https://example.com/api?search%20term=hello%20%26%20world&empty='
     );
