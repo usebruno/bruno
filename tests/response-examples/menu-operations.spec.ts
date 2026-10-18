@@ -1,7 +1,7 @@
 import { test, expect } from '../../playwright';
 import { execSync } from 'child_process';
 import path from 'path';
-import { clickResponseAction, sendRequest } from '../utils/page/actions';
+import { clickResponseAction, sendRequest, toggleRequestExamples } from '../utils/page/actions';
 
 test.describe.serial('Response Example Menu Operations', () => {
   test.setTimeout(1 * 60 * 1000); // 1 minute for all tests in this describe block, default is 30 seconds.
@@ -24,7 +24,7 @@ test.describe.serial('Response Example Menu Operations', () => {
       await page.getByRole('button', { name: 'Create Example' }).click();
       // Wait for modal to close
       await page.waitForSelector('text=Save Response as Example', { state: 'detached' });
-      await page.locator('.collection-item-name').filter({ hasText: 'menu-operations' }).getByTestId('request-item-chevron').click();
+      await toggleRequestExamples(page, 'menu-operations', true);
 
       const exampleRow = page.locator('.collection-item-name').filter({ hasText: 'Example to Clone' });
       await expect(exampleRow).toBeVisible();

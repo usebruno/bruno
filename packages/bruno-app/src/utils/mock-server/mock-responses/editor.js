@@ -1,4 +1,4 @@
-import { cloneDeep } from 'lodash';
+import { cloneDeep, isEqual } from 'lodash';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { extractMockResponseRoutePath } from 'utils/mock-server/mock-responses';
 
@@ -92,6 +92,16 @@ export const mockResponseFromEditorItem = (item, responseUid, rules, savedMockRe
     rules: stripConditionUids(rules),
     ...(savedMockResponse.copiedFrom ? { copiedFrom: cloneDeep(savedMockResponse.copiedFrom) } : {})
   };
+};
+
+export const hasUnsavedMockResponseChanges = (editor, responseUid) => {
+  if (!editor) return false;
+  try {
+    const draft = mockResponseFromEditorItem(editor.item, responseUid, editor.rules, editor.savedMockResponse);
+    return !isEqual(draft, editor.savedMockResponse);
+  } catch {
+    return true;
+  }
 };
 
 export const findItemForExampleEditor = (state, collectionUid, itemUid) => {
