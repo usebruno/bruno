@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 
 const ROW_HEIGHT = 26;
 const EXTRA_ROWS = 10;
+const DEBOUNCE_MS = 300;
 
 const getVisibleRows = () => Math.ceil(window.innerHeight / ROW_HEIGHT);
 
@@ -18,6 +19,10 @@ const mergeItems = (existing = [], incoming = []) => {
   }
   return merged;
 };
+
+const hasMatchingRequest = (items = [], query) => items.some((item) => (item.type === 'folder'
+  ? hasMatchingRequest(item.items, query)
+  : item.name?.toLowerCase().includes(query.toLowerCase())));
 
 const getEntryPath = (entry) => (entry.kind === 'ghost' ? entry.entry?.path : entry.collection?.pathname);
 
@@ -41,7 +46,127 @@ const findRootToLoad = ({ rows, range, roots, order, matches, requested, collaps
   });
 };
 
-const useCollectionsSearch = ({ enabled, searchText, sidebarEntries, collapsedUids }) => {
+const createSearchStore = () => {
+  const listeners = new Set();
+  const context = { roots: [], order: [], rows: [], collapsedUids: new Set(), range: { startIndex: 0, endIndex: getVisibleRows() } };
+  let snapshot = { query: '', itemsByRoot: new Map() };
+  let searchId = null;
+  let generation = 0;
+  let matches = new Map();
+  let requested = new Map();
+  let loading = false;
+  let recheck = false;
+  let timer = null;
+  let unsubscribeResults = null;
+
+  const emit = () => listeners.forEach((listener) => listener());
+
+  const loadVisible = async () => {
+    const id = searchId;
+    if (!id) return;
+    if (loading) {
+      recheck = true;
+      return;
+    }
+
+    const root = findRootToLoad({ ...context, matches, requested });
+    if (!root) return;
+
+    loading = true;
+    let loaded = false;
+    let showsRows = false;
+    try {
+      const alreadyRequested = requested.get(root) || 0;
+      const matched = matches.get(root);
+      const sorted = [...matched.slice(0, alreadyRequested), ...matched.slice(alreadyRequested).sort()];
+      matches.set(root, sorted);
+      const relativePaths = sorted.slice(alreadyRequested, alreadyRequested + getVisibleRows() + EXTRA_ROWS);
+      requested.set(root, alreadyRequested + relativePaths.length);
+
+      const result = await window.ipcRenderer.invoke('renderer:search-window', { id, collectionPath: root, relativePaths });
+      if (id === searchId && !result.stale) {
+        const itemsByRoot = new Map(snapshot.itemsByRoot).set(root, mergeItems(snapshot.itemsByRoot.get(root), result.items));
+        snapshot = { ...snapshot, itemsByRoot };
+        loaded = true;
+        showsRows = hasMatchingRequest(result.items, snapshot.query);
+        emit();
+      }
+    } catch (error) {
+      console.error('Failed to load search results', error);
+    } finally {
+      loading = false;
+    }
+
+    const again = recheck;
+    recheck = false;
+    if ((!loaded && again) || (loaded && !showsRows)) loadVisible();
+  };
+
+  const onResults = (message) => {
+    if (message.id !== searchId || message.type !== 'batch') return;
+    const matched = matches.get(message.root);
+    if (matched) matched.push(...message.paths);
+    else matches.set(message.root, [...message.paths]);
+    loadVisible();
+  };
+
+  const start = (query) => {
+    const current = ++generation;
+    searchId = null;
+    matches = new Map();
+    requested = new Map();
+    snapshot = { query, itemsByRoot: new Map() };
+    emit();
+
+    if (!query || !context.roots.length) {
+      window.ipcRenderer.invoke('renderer:search-cancel');
+      return;
+    }
+    window.ipcRenderer.invoke('renderer:search-collections', { roots: context.roots, query })
+      .then((id) => {
+        if (current === generation) searchId = id;
+      })
+      .catch((error) => console.error('Failed to search collections', error));
+  };
+
+  return {
+    context,
+    getSnapshot: () => snapshot,
+    subscribe: (listener) => {
+      listeners.add(listener);
+      if (!unsubscribeResults) unsubscribeResults = window.ipcRenderer.on('main:search-results', onResults);
+      return () => {
+        listeners.delete(listener);
+        if (listeners.size) return;
+        clearTimeout(timer);
+        if (snapshot.query) start('');
+        unsubscribeResults?.();
+        unsubscribeResults = null;
+      };
+    },
+    setQuery: (text) => {
+      const query = text.trim();
+      clearTimeout(timer);
+      if (!query) {
+        if (snapshot.query) start('');
+        return;
+      }
+      timer = setTimeout(() => {
+        if (query !== snapshot.query) start(query);
+      }, DEBOUNCE_MS);
+    },
+    warmup: () => window.ipcRenderer.invoke('renderer:search-warmup'),
+    onRangeChanged: (range) => {
+      context.range = range;
+      loadVisible();
+    },
+    onItemsRendered: () => loadVisible()
+  };
+};
+
+const store = createSearchStore();
+
+const useCollectionsSearch = ({ sidebarEntries }) => {
   const roots = useMemo(
     () => sidebarEntries
       .filter((entry) => entry.kind === 'loaded' && entry.collection.mountStatus !== 'mounted')
@@ -49,117 +174,19 @@ const useCollectionsSearch = ({ enabled, searchText, sidebarEntries, collapsedUi
     [sidebarEntries]
   );
   const order = useMemo(() => sidebarEntries.map(getEntryPath), [sidebarEntries]);
-  const [matchedRoots, setMatchedRoots] = useState(() => new Set());
-  const [itemsByRoot, setItemsByRoot] = useState(() => new Map());
-  const rootsRef = useRef(roots);
-  rootsRef.current = roots;
-  const orderRef = useRef(order);
-  orderRef.current = order;
-  const collapsedUidsRef = useRef(collapsedUids);
-  collapsedUidsRef.current = collapsedUids;
-  const rowsRef = useRef([]);
-  const rangeRef = useRef({ startIndex: 0, endIndex: getVisibleRows() });
-  const searchIdRef = useRef(null);
-  const matchesRef = useRef(new Map());
-  const requestedRef = useRef(new Map());
-  const loadingRef = useRef(false);
-  const recheckRef = useRef(false);
-  const rootsKey = [...roots].sort().join('\n');
+  store.context.roots = roots;
+  store.context.order = order;
+  const { query, itemsByRoot } = useSyncExternalStore(store.subscribe, store.getSnapshot);
 
-  const loadVisible = useCallback(async () => {
-    const id = searchIdRef.current;
-    if (!id) return;
-    if (loadingRef.current) {
-      recheckRef.current = true;
-      return;
-    }
-
-    const root = findRootToLoad({
-      rows: rowsRef.current,
-      range: rangeRef.current,
-      roots: rootsRef.current,
-      order: orderRef.current,
-      matches: matchesRef.current,
-      requested: requestedRef.current,
-      collapsedUids: collapsedUidsRef.current
-    });
-    if (!root) return;
-
-    loadingRef.current = true;
-    let loaded = false;
-    try {
-      const requested = requestedRef.current.get(root) || 0;
-      const matched = matchesRef.current.get(root);
-      const sorted = [...matched.slice(0, requested), ...matched.slice(requested).sort()];
-      matchesRef.current.set(root, sorted);
-      const relativePaths = sorted.slice(requested, requested + getVisibleRows() + EXTRA_ROWS);
-      requestedRef.current.set(root, requested + relativePaths.length);
-
-      const result = await window.ipcRenderer.invoke('renderer:search-window', { id, collectionPath: root, relativePaths });
-      if (id === searchIdRef.current && !result.stale) {
-        setItemsByRoot((prev) => new Map(prev).set(root, mergeItems(prev.get(root), result.items)));
-        loaded = true;
-      }
-    } catch (error) {
-      console.error('Failed to load search results', error);
-    } finally {
-      loadingRef.current = false;
-    }
-
-    const recheck = recheckRef.current;
-    recheckRef.current = false;
-    if (!loaded && recheck) loadVisible();
-  }, []);
-
-  const onRangeChanged = useCallback((range) => {
-    rangeRef.current = range;
-    loadVisible();
-  }, [loadVisible]);
-
-  useEffect(() => {
-    loadVisible();
-  }, [matchedRoots, itemsByRoot, collapsedUids, loadVisible]);
-
-  useEffect(() => window.ipcRenderer.on('main:search-results', (message) => {
-    if (message.id !== searchIdRef.current || message.type !== 'batch') return;
-    const matched = matchesRef.current.get(message.root);
-    if (matched) {
-      matched.push(...message.paths);
-      loadVisible();
-    } else {
-      matchesRef.current.set(message.root, [...message.paths]);
-      setMatchedRoots((prev) => new Set(prev).add(message.root));
-    }
-  }), [loadVisible]);
-
-  useEffect(() => {
-    if (enabled) window.ipcRenderer.invoke('renderer:search-warmup');
-  }, [enabled]);
-
-  useEffect(() => {
-    searchIdRef.current = null;
-    matchesRef.current = new Map();
-    requestedRef.current = new Map();
-    setMatchedRoots(new Set());
-    setItemsByRoot(new Map());
-
-    if (!searchText || !rootsRef.current.length) {
-      window.ipcRenderer.invoke('renderer:search-cancel');
-      return;
-    }
-
-    let isCurrent = true;
-    window.ipcRenderer.invoke('renderer:search-collections', { roots: rootsRef.current, query: searchText })
-      .then((id) => {
-        if (isCurrent) searchIdRef.current = id;
-      })
-      .catch((error) => console.error('Failed to search collections', error));
-    return () => {
-      isCurrent = false;
-    };
-  }, [searchText, rootsKey]);
-
-  return { matchedRoots, itemsByRoot, rowsRef, onRangeChanged };
+  return {
+    query,
+    itemsByRoot,
+    searchContext: store.context,
+    setQuery: store.setQuery,
+    warmup: store.warmup,
+    onRangeChanged: store.onRangeChanged,
+    onItemsRendered: store.onItemsRendered
+  };
 };
 
 export default useCollectionsSearch;

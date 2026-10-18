@@ -11,18 +11,14 @@ import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
 import { flattenSidebarTree } from 'utils/collections/flattenSidebarTree';
 import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
-import useDebounce from 'hooks/useDebounce';
 import useSidebarAutoReveal from 'hooks/useSidebarAutoReveal';
 import useCollectionsSearch from 'hooks/useCollectionsSearch';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 
-const isEmptyQuery = (value) => typeof value === 'string' && value.trim() === '';
 const EMPTY_SET = new Set();
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
-  const trimmedSearchText = searchText.trim();
-  const debouncedSearchText = useDebounce(trimmedSearchText, 300, { shouldSkipDebounce: isEmptyQuery });
   const { collections, collectionSortOrder, selectedSidebarUids } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const dispatch = useDispatch();
@@ -41,6 +37,21 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     [activeWorkspace, collections, workspaces, collectionSortOrder]
   );
 
+  const {
+    query: debouncedSearchText,
+    itemsByRoot,
+    searchContext,
+    setQuery,
+    warmup,
+    onRangeChanged,
+    onItemsRendered
+  } = useCollectionsSearch({ sidebarEntries });
+
+  const handleSearchTextChange = (text) => {
+    setSearchText(text);
+    setQuery(text);
+  };
+
   const [searchCollapsed, setSearchCollapsed] = useState({ text: '', uids: EMPTY_SET });
   const searchCollapsedUids = searchCollapsed.text === debouncedSearchText ? searchCollapsed.uids : EMPTY_SET;
 
@@ -53,22 +64,14 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     });
   }, [debouncedSearchText]);
 
-  const { matchedRoots, itemsByRoot, rowsRef, onRangeChanged } = useCollectionsSearch({
-    enabled: showSearch,
-    searchText: debouncedSearchText,
-    sidebarEntries,
-    collapsedUids: searchCollapsedUids
-  });
-
   const renderedSidebarEntries = useMemo(
     () => sidebarEntries.map((entry) => {
-      if (entry.kind !== 'loaded' || entry.collection.mountStatus === 'mounted' || !matchedRoots.has(entry.collection.pathname)) {
+      if (entry.kind !== 'loaded' || entry.collection.mountStatus === 'mounted' || !itemsByRoot.has(entry.collection.pathname)) {
         return entry;
       }
-      const items = itemsByRoot.get(entry.collection.pathname) || [];
-      return { ...entry, collection: { ...entry.collection, items } };
+      return { ...entry, collection: { ...entry.collection, items: itemsByRoot.get(entry.collection.pathname) } };
     }),
-    [sidebarEntries, matchedRoots, itemsByRoot]
+    [sidebarEntries, itemsByRoot]
   );
 
   // Flatten the tree into ordered rows. itemsByUid / collectionsByUid resolve a row's live object.
@@ -76,7 +79,8 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     () => flattenSidebarTree(renderedSidebarEntries, { searchText: debouncedSearchText, collapsedUids: searchCollapsedUids }),
     [renderedSidebarEntries, debouncedSearchText, searchCollapsedUids]
   );
-  rowsRef.current = rows;
+  searchContext.rows = rows;
+  searchContext.collapsedUids = searchCollapsedUids;
 
   // Ghost rows carry only path/name. GitRemoteCollectionRow needs the full entry (for `remote`).
   const ghostsByPath = useMemo(() => {
@@ -144,7 +148,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   return (
     <StyledWrapper data-testid="collections">
       {showSearch && (
-        <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
+        <CollectionSearch searchText={searchText} setSearchText={handleSearchTextChange} onFocus={warmup} />
       )}
 
       {isCreatingCollection && (
@@ -165,6 +169,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
           style={{ height: '100%' }}
           data={rows}
           rangeChanged={onRangeChanged}
+          itemsRendered={onItemsRendered}
           computeItemKey={(_, row) => row.id}
           defaultItemHeight={26}
           increaseViewportBy={{ top: 400, bottom: 600 }}
