@@ -6,12 +6,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import useClearStoredRunnerExchanges from 'hooks/useClearStoredRunnerExchanges';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { runCollectionFolder } from 'providers/ReduxStore/slices/collections/actions';
-import { flattenItems } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { areItemsLoading } from 'utils/collections';
 import RunnerTags from 'components/RunnerResults/RunnerTags/index';
 import { getEffectiveTagsForItem, getRequestItemsForCollectionRun } from 'utils/collections/index';
 import Button from 'ui/Button';
+import Input from 'ui/Input';
 
 // stable reference, so an unset runnerTags doesn't invalidate the run counts on every render
 const NO_RUNNER_TAGS = { include: [], exclude: [] };
@@ -93,18 +93,21 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
           {/* Timings */}
           <div className="flex flex-col items-start gap-2 mb-8">
             <label htmlFor="runner-delay" className="block text-sm">Delay between requests (ms)</label>
-            <input
-              id="runner-delay"
-              type="number"
-              className="textbox w-1/2"
-              placeholder="e.g. 5"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              value={delay}
-              onChange={(e) => setDelay(e.target.value)}
-            />
+            <div className="w-1/2">
+              <Input
+                id="runner-delay"
+                type="number"
+                size="md"
+                fullWidth
+                placeholder="e.g. 5"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                value={delay}
+                onChange={(e) => setDelay(e.target.value)}
+              />
+            </div>
           </div>
 
           {/* Tags for the collection run */}
