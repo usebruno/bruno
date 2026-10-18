@@ -68,7 +68,8 @@ const StyledWrapper = styled.div`
 
     .env-list-search-input {
       width: 100%;
-      padding: 3px 24px 3px 26px;
+      height: 28px;
+      padding: 0 24px 0 26px;
       font-size: 12px;
       background: transparent;
       border: 1px solid ${(props) => props.theme.border.border1};
