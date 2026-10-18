@@ -1475,6 +1475,39 @@ describe('postman-collection formdata import', () => {
     expect(multipartForm[1].value).toEqual(['/path/to/file.txt']);
     expect(multipartForm[1].enabled).toBe(false);
   });
+  it('should encode URL query parameters and exclude disabled parameters when raw URL is missing', async () => {
+    const collection = {
+      info: {
+        name: 'URL query regression',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'query request',
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              protocol: 'https',
+              host: ['example', 'com'],
+              path: ['api'],
+              query: [
+                { key: 'search term', value: 'hello & world' },
+                { key: 'empty', value: '' },
+                { key: 'ignored', value: 'no', disabled: true }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collection);
+
+    expect(brunoCollection.items[0].request.url).toBe(
+      'https://example.com/api?search%20term=hello%20%26%20world&empty='
+    );
+  });
 });
 
 describe('postman-collection binary body import', () => {
