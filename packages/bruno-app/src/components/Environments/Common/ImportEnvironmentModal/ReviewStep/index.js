@@ -21,6 +21,14 @@ const ReviewStep = ({
   setResolutions
 }) => {
   const [searchText, setSearchText] = useState('');
+
+  const handleSearchKeyDown = useCallback((e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, []);
+
   const [expandedGroups, setExpandedGroups] = useState({ [ENV_STATUS.INVALID]: true, [ENV_STATUS.DUPLICATE]: true, [ENV_STATUS.NEW]: true });
 
   const newEnvs = useMemo(() => items.filter((env) => env.status === ENV_STATUS.NEW), [items]);
@@ -131,6 +139,7 @@ const ReviewStep = ({
                       leftIconClassName="!pl-2"
                       data-testid="env-search-input"
                       autoFocus={false}
+                      onKeyDown={handleSearchKeyDown}
                       inputClassName="text-[13px]"
                       iconSize={14}
                     />
