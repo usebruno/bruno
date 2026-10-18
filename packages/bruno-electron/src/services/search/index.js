@@ -5,7 +5,7 @@ const { buildTree } = require('../mount/tree-builder');
 const { defaultClassify, FOLDER_ROOT_BASENAMES } = require('../../utils/mount');
 const { preferencesUtil } = require('../../store/preferences');
 
-const HOST_FILE = path.join(__dirname, 'host.js');
+const RIPGREP_PROCESS_FILE = path.join(__dirname, 'ripgrep-process.js');
 
 const toTreeEntry = (relativePath, data = {}, error) => {
   const treeData = defaultClassify(relativePath)?.type === 'folder'
@@ -37,7 +37,7 @@ class SearchService {
   #getHost() {
     if (this.#host) return this.#host;
 
-    const host = utilityProcess.fork(HOST_FILE, [], { serviceName: 'Bruno Search' });
+    const host = utilityProcess.fork(RIPGREP_PROCESS_FILE, [], { serviceName: 'Bruno Search' });
     host.on('message', (message) => {
       if (message.type === 'parsed') {
         this.#pendingParses.get(message.requestId)?.resolve(message.results);
