@@ -179,7 +179,6 @@ const Wrapper = styled.div`
     }
   }
 
-  /* Colors/border come from the shared theme-aware .tooltip-mod class */
   .sidebar-handle-tooltip {
     .shortcut {
       opacity: 0.6;
