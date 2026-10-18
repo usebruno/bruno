@@ -115,6 +115,7 @@ const createSearchStore = () => {
     searchId = null;
     matches = new Map();
     requested = new Map();
+    context.range = { startIndex: 0, endIndex: getVisibleRows() };
     snapshot = { query, itemsByRoot: new Map(), collapsedUids: new Set() };
     emit();
 
