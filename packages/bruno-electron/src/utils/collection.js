@@ -8,7 +8,7 @@ const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
 const { DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const { parseValueByDataType } = require('@usebruno/common/utils');
-const { GRPC_SCRIPT_KEYS, getEffectiveTags, getFolderTags, getOwnTags } = require('@usebruno/common');
+const { GRPC_SCRIPT_KEYS, getEffectiveTags, getFolderTags, getOwnTags, interpolate } = require('@usebruno/common');
 
 /**
  * Returns the variable's runtime value with datatype-driven coercion applied.
@@ -78,6 +78,24 @@ const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
   ];
 };
 
+/**
+ * Resolves dynamic variable placeholders (`{{$...}}`, e.g. `{{$randomWords}}`)
+ * in a pre-request variable value exactly once, at materialization time.
+ *
+ * Pre-request vars are otherwise stored verbatim, so every later interpolation
+ * (request body, assertions, `bru.getVar()`) re-runs the faker expression and
+ * each reference sees a different random value (#7227). Interpolating with an
+ * empty variable map resolves only the `$`-prefixed mock placeholders;
+ * ordinary `{{var}}` references are left untouched so they keep their
+ * late-bound runtime semantics (#6823).
+ */
+const resolveDynamicVarsOnce = (value) => {
+  if (typeof value !== 'string' || !value.includes('{{$')) {
+    return value;
+  }
+  return interpolate(value, {});
+};
+
 const mergeVars = (collection, request, requestTreePath = []) => {
   let reqVars = new Map();
   const collectionRoot = collection?.draft?.root || collection?.root || {};
@@ -85,7 +103,7 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   let collectionVariables = {};
   collectionRequestVars.forEach((_var) => {
     if (_var.enabled) {
-      const typed = resolveTypedValue(_var);
+      const typed = resolveDynamicVarsOnce(resolveTypedValue(_var));
       reqVars.set(_var.name, typed);
       collectionVariables[_var.name] = typed;
     }
@@ -98,7 +116,7 @@ const mergeVars = (collection, request, requestTreePath = []) => {
       let vars = get(folderRoot, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          const typed = resolveTypedValue(_var);
+          const typed = resolveDynamicVarsOnce(resolveTypedValue(_var));
           reqVars.set(_var.name, typed);
           folderVariables[_var.name] = typed;
         }
@@ -107,7 +125,7 @@ const mergeVars = (collection, request, requestTreePath = []) => {
       const vars = i?.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          const typed = resolveTypedValue(_var);
+          const typed = resolveDynamicVarsOnce(resolveTypedValue(_var));
           reqVars.set(_var.name, typed);
           requestVariables[_var.name] = typed;
         }
