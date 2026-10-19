@@ -98,6 +98,7 @@ const SensitiveFieldWarning = ({
   collection,
   item,
   disabled,
+  skipOwnerSave,
   onReplaceValue,
   onMarkAsSecret
 }) => {
@@ -183,7 +184,7 @@ const SensitiveFieldWarning = ({
       .then(() => {
         if (!movedVariable) {
           onReplaceValue(`{{${name}}}`);
-          return dispatch(saveRequestFolderOrCollection(collectionUid, item));
+          return skipOwnerSave || dispatch(saveRequestFolderOrCollection(collectionUid, item));
         }
         const isFieldRenamed = name !== variableName && !!onReplaceValue;
         if (isFieldRenamed) {
