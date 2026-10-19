@@ -29,6 +29,7 @@ const General = () => {
     }),
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
+    httpVersion: Yup.string().oneOf(['auto', 'http1.1', 'http2']),
     timeout: Yup.mixed()
       .transform((value, originalValue) => {
         return originalValue === '' ? undefined : value;
@@ -75,6 +76,7 @@ const General = () => {
       timeout: preferences.request.timeout,
       storeCookies: get(preferences, 'request.storeCookies', true),
       sendCookies: get(preferences, 'request.sendCookies', true),
+      httpVersion: get(preferences, 'request.httpVersion', 'http1.1'),
       autoSave: {
         enabled: get(preferences, 'autoSave.enabled', false),
         interval: get(preferences, 'autoSave.interval', 1000)
@@ -112,6 +114,7 @@ const General = () => {
           timeout: newPreferences.timeout,
           storeCookies: newPreferences.storeCookies,
           sendCookies: newPreferences.sendCookies,
+          httpVersion: newPreferences.httpVersion,
           oauth2: {
             useSystemBrowser: newPreferences.oauth2.useSystemBrowser
           }
@@ -311,6 +314,20 @@ const General = () => {
         </SettingsGroup>
 
         <SettingsGroup title="Requests">
+          <SettingsField label="HTTP Version" htmlFor="httpVersion">
+            <select
+              id="httpVersion"
+              name="httpVersion"
+              className="textbox"
+              data-testid="general-http-version"
+              value={formik.values.httpVersion}
+              onChange={formik.handleChange}
+            >
+              <option value="auto">Auto</option>
+              <option value="http1.1">HTTP/1.1</option>
+              <option value="http2">HTTP/2</option>
+            </select>
+          </SettingsField>
           <SettingsField label="Request Timeout (ms)" htmlFor="timeout" error={timeoutError}>
             <input
               id="timeout"

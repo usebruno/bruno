@@ -4,6 +4,7 @@ const axios = require('axios');
 const connectionCache = new Map(); // Cache to store checkConnection() results
 const electronApp = require('electron');
 const { setupProxyAgents } = require('../../utils/proxy-util');
+const { applyHttp2Transport, resolveRequestedHttpVersion, canUseHttp2 } = require('./http2-transport');
 const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies');
 const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
@@ -33,7 +34,7 @@ const saveCookies = (url, headers) => {
       setCookieHeaders = Array.isArray(headers['set-cookie'])
         ? headers['set-cookie']
         : [headers['set-cookie']];
-      for (let setCookieHeader of setCookieHeaders) {
+      for (const setCookieHeader of setCookieHeaders) {
         if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
           addCookieToJar(setCookieHeader, url);
         }
@@ -173,7 +174,7 @@ function makeAxiosInstance({
 
     // Add request data if available
     if (config.data) {
-      let requestData = typeof config.data === 'string' ? config.data : JSON.stringify(config.data, null, 2);
+      const requestData = typeof config.data === 'string' ? config.data : JSON.stringify(config.data, null, 2);
       timeline.push({
         timestamp: new Date(),
         type: 'requestData',
@@ -236,6 +237,11 @@ function makeAxiosInstance({
         type: 'error',
         message: `Error setting up proxy agents: ${err?.message}`
       });
+    }
+
+    const requestedHttpVersion = resolveRequestedHttpVersion(config);
+    if (canUseHttp2(requestedHttpVersion)) {
+      await applyHttp2Transport({ config, mode: requestedHttpVersion, agentOptions, timeline });
     }
 
     // Node keep-alive agents add Connection; strip it on the ClientRequest.
