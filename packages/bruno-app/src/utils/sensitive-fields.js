@@ -1,8 +1,10 @@
 import get from 'lodash/get';
+import { interpolate } from '@usebruno/common';
 import { resolveInheritedAuth } from 'utils/auth';
 import {
   createVariableScopeScanContext,
   flattenItems,
+  getAllVariables,
   getVariableScope,
   isItemARequest
 } from './collections';
@@ -115,9 +117,9 @@ export const resolveSensitiveVariable = (variableName, { collection, item, scope
   return mapScopeInfoToResolved(scopeInfo);
 };
 
-/** Replaces each {{name}} with its saved variable's value. Unknown names keep their braces. */
-export const replaceWithVariableValues = (value, context) => (
-  replaceVariableReferences(value, (name, match) => resolveSensitiveVariable(name, context)?.variable.value ?? match)
+/** Interpolates the value. Undefined names are removed. */
+export const replaceWithVariableValues = (value, { collection, item }) => (
+  replaceVariableReferences(interpolate(value, getAllVariables(collection, item)), () => '')
 );
 
 /** Lookup order of variable scopes; earlier wins. */

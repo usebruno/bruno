@@ -762,8 +762,14 @@ describe('replaceWithVariableValues', () => {
     expect(replaceWithVariableValues('{{prefix}}abc12', { collection })).toBe('sk_live_abc12');
   });
 
-  it('keeps the braces around an unknown variable', () => {
-    expect(replaceWithVariableValues('{{missing}}abc12', { collection })).toBe('{{missing}}abc12');
+  it('removes an undefined variable', () => {
+    expect(replaceWithVariableValues('{{missing}}abc12', { collection })).toBe('abc12');
+  });
+
+  it('resolves a variable whose value uses another variable', () => {
+    const nestedCollection = buildCollection({ collectionVars: [plain('mode', 'live'), plain('prefix', 'sk_{{mode}}_')] });
+
+    expect(replaceWithVariableValues('{{prefix}}abc12', { collection: nestedCollection })).toBe('sk_live_abc12');
   });
 });
 

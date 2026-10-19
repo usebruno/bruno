@@ -59,11 +59,11 @@ test.describe('Sensitive field actions', () => {
       await setApiKeyValue(page, 'raw{{x}}secret');
     });
 
-    await test.step('The form opens with the field name and the value without braces', async () => {
+    await test.step('The form opens with the field name and the value without the undefined variable', async () => {
       await clickSensitiveFieldAction(page, codeMirror.sensitiveWarning(API_KEY_FIELD), API_KEY_FIELD);
       await expect(form.nameInput()).toHaveValue('value');
       await expect(form.nameInput()).toBeFocused();
-      await expect(form.valueInput()).toHaveValue('rawxsecret');
+      await expect(form.valueInput()).toHaveValue('rawsecret');
       await expect(form.source()).toHaveCount(0);
     });
 

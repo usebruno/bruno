@@ -6,13 +6,9 @@ import useOnClickOutside from 'hooks/useOnClickOutside';
 import { variableNameRegex } from 'utils/common/regex';
 import { INVALID_VARIABLE_NAME_ERROR } from 'utils/common/variables';
 import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
-import { replaceVariableReferences } from 'utils/sensitive-fields';
 import { buildAddToScopes, createEnvironmentForScope } from 'utils/variables';
 import EnvironmentTargetOption from './EnvironmentTargetOption';
 import StyledWrapper from './StyledWrapper';
-
-/** Turns `{{name}}ddd` into `nameddd`. Variables are kept as text, not resolved. */
-const removeVariableBraces = (text) => replaceVariableReferences(text, (name) => name);
 
 /** Returns an error per field; empty object means valid. */
 const validate = ({ name, value }) => {
@@ -34,7 +30,7 @@ const isEnvironmentTarget = (scope) => (
 
 const SecretVariableForm = ({ collection, sourceLabel, defaultName, defaultValue, onSave, onClose }) => {
   const [name, setName] = useState(defaultName);
-  const [value, setValue] = useState(removeVariableBraces(defaultValue));
+  const [value, setValue] = useState(defaultValue);
   const [selectedTargetType, setSelectedTargetType] = useState(null);
   const [errors, setErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);

@@ -1,7 +1,7 @@
 import React from 'react';
 import StyledWrapper from './StyledWrapper';
 
-const WarningTooltip = ({ fieldName, message, actionLabel, onAction }) => (
+const WarningMessage = ({ fieldName, message, actionLabel, onAction }) => (
   <StyledWrapper role="tooltip" data-testid="sensitive-field-tooltip">
     <p>{message}</p>
     {actionLabel && (
@@ -17,4 +17,4 @@ const WarningTooltip = ({ fieldName, message, actionLabel, onAction }) => (
   </StyledWrapper>
 );
 
-export default WarningTooltip;
+export default WarningMessage;

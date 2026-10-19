@@ -20,10 +20,11 @@ import {
   resolveSensitiveVariable
 } from 'utils/sensitive-fields';
 import SecretVariableForm from './SecretVariableForm';
-import WarningTooltip from './WarningTooltip';
+import WarningMessage from './WarningMessage';
 import StyledWrapper from './StyledWrapper';
 
 const HOVER_CLOSE_DELAY_MS = 150;
+const Z_INDEX = 15;
 
 const ACTION_LABELS = {
   plaintext: 'Save as secret variable',
@@ -155,7 +156,7 @@ const SensitiveFieldWarning = ({
         toast.error(`"${variableName}" was not found`);
         return;
       }
-      setForm({ name: variableName, value: moved.value, movedVariable: moved });
+      setForm({ name: variableName, value: replaceWithVariableValues(moved.value, { collection, item }), movedVariable: moved });
       return;
     }
     close();
@@ -210,7 +211,7 @@ const SensitiveFieldWarning = ({
       onClose={close}
     />
   ) : (
-    <WarningTooltip
+    <WarningMessage
       fieldName={fieldName}
       message={warningMessage}
       actionLabel={disabled ? null : ACTION_LABELS[scope]}
@@ -231,6 +232,7 @@ const SensitiveFieldWarning = ({
         arrow={false}
         animation={false}
         maxWidth="none"
+        zIndex={Z_INDEX}
         appendTo={() => document.body}
         onClickOutside={() => {
           if (!form) close();
