@@ -742,6 +742,16 @@ describe('Send Request Translation', () => {
       `);
     });
 
+    it('keeps a callback passed by reference', () => {
+      // no body to rewrite, but dropping it would lose the handler the request was made for
+      expect(translateCode(`pm.sendRequest(q, handleIt);`)).toBe(`await bru.sendRequest(q, handleIt);`);
+    });
+
+    it('keeps a callback reached through a member expression', () => {
+      expect(translateCode(`pm.sendRequest(q, handlers.onDone);`))
+        .toBe(`await bru.sendRequest(q, handlers.onDone);`);
+    });
+
     it('types a chain hanging off a variable, leaving the promise un-awaited', () => {
       const code = `
         const p = pm.sendRequest(q);

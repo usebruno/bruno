@@ -340,9 +340,16 @@ const sendRequestTransformer = (path, j) => {
   const callbackPath = callPath.get('arguments', 1);
   const transformedCallback = transformCallback(j, callbackPath);
 
+  /**
+   * A callback passed by reference has no body to rewrite, but it is still the script's handler.
+   * Carrying it over untouched leaves one call untranslated; dropping it loses the handler, and
+   * with it everything the request was made for.
+   */
+  const callbackArg = transformedCallback || args[1];
+
   const sendRequestCall = j.callExpression(
     j.identifier('bru.sendRequest'),
-    transformedCallback ? [requestOptions, transformedCallback] : [requestOptions]
+    callbackArg ? [requestOptions, callbackArg] : [requestOptions]
   );
 
   const wasParentAwaited = callPath.parent.value.type === 'AwaitExpression';
