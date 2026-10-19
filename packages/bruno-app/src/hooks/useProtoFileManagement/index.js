@@ -109,7 +109,7 @@ export default function useProtoFileManagement(collection) {
     }
   };
 
-  const persistProtobufFromRequest = async (protobuf) => {
+  const writeProtobufToDiskFromRequest = async (protobuf) => {
     const updatedProtobuf = { ...protobufConfig, ...protobuf };
 
     const brunoConfig = cloneDeep(collection.brunoConfig);
@@ -136,7 +136,7 @@ export default function useProtoFileManagement(collection) {
         type: 'file'
       };
 
-      await persistProtobufFromRequest({ protoFiles: [...collectionProtoFiles, protoFileObj] });
+      await writeProtobufToDiskFromRequest({ protoFiles: [...collectionProtoFiles, protoFileObj] });
 
       return { success: true, relativePath };
     } catch (error) {
@@ -191,7 +191,7 @@ export default function useProtoFileManagement(collection) {
     }
 
     try {
-      await persistProtobufFromRequest({ importPaths: [...collectionImportPaths, importPathObj] });
+      await writeProtobufToDiskFromRequest({ importPaths: [...collectionImportPaths, importPathObj] });
 
       return { success: true, relativePath };
     } catch (error) {
@@ -236,7 +236,7 @@ export default function useProtoFileManagement(collection) {
         enabled: !updatedImportPaths[index].enabled
       };
 
-      await persistProtobufFromRequest({ importPaths: updatedImportPaths });
+      await writeProtobufToDiskFromRequest({ importPaths: updatedImportPaths });
 
       return {
         success: true,
