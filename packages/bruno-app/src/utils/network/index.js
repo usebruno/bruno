@@ -54,6 +54,12 @@ const sendHttpRequest = async (item, collection, environment, runtimeVariables) 
   });
 };
 
+export const runPostResponseScript = (item, collection, environment, runtimeVariables) => {
+  const { ipcRenderer } = window;
+
+  return ipcRenderer.invoke('renderer:run-post-response-script', item, collection, environment, runtimeVariables);
+};
+
 export const sendCollectionOauth2Request = async (collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;

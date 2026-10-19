@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "rerun-post-response-script",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

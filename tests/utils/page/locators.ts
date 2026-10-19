@@ -103,6 +103,7 @@ export const buildCommonLocators = (page: Page) => ({
     collectionSettingsTab: (key: string) => page.getByTestId(`collection-settings-tab-${key}`),
     folderSettingsTab: (key: string) => page.getByTestId(`folder-settings-tab-${key}`),
     folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
+    rerunPostResponseScript: () => page.getByTestId('rerun-post-response-script'),
     tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`),
     collectionSettingsContent: () => page.locator('.collection-settings-content'),
     requestsNotLoadedTable: () => page.getByTestId('requests-not-loaded'),
