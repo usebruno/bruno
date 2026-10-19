@@ -56,7 +56,9 @@ const createRedirectConfig = (error, redirectUrl) => {
       const formData = requestConfig.data;
       if (formData._released || (formData._streams && formData._streams.length === 0)) {
         if (error.config._originalMultipartData && error.config.collectionPath) {
-          const recreatedForm = createFormData(error.config._originalMultipartData, error.config.collectionPath);
+          const recreatedForm = createFormData(error.config._originalMultipartData, error.config.collectionPath, formData.getBoundary());
+          // axios sends getHeaders() as the Content-Type; the consumed form's may carry the request's own multipart media type
+          recreatedForm.getHeaders = formData.getHeaders;
           requestConfig.data = recreatedForm;
           const formHeaders = recreatedForm.getHeaders();
           Object.assign(requestConfig.headers, formHeaders);

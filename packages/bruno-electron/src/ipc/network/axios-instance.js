@@ -480,7 +480,9 @@ function makeAxiosInstance({
                     message: `Recreating consumed FormData for ${statusCode} redirect`
                   });
 
-                  const recreatedForm = createFormData(error.config._originalMultipartData, error.config.collectionPath);
+                  const recreatedForm = createFormData(error.config._originalMultipartData, error.config.collectionPath, formData.getBoundary());
+                  // axios sends getHeaders() as the Content-Type; the consumed form's may carry the request's own multipart media type
+                  recreatedForm.getHeaders = formData.getHeaders;
                   requestConfig.data = recreatedForm;
 
                   const formHeaders = recreatedForm.getHeaders();

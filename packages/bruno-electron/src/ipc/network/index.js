@@ -29,7 +29,7 @@ const { makeAxiosInstance, completeOpenHop } = require('./axios-instance');
 const { refreshExplicitHeaderNames } = require('@usebruno/common');
 const { resolveInheritedSettings } = require('../../utils/collection');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
-const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest } = require('../../utils/common');
+const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest, isBinaryRequestBody } = require('../../utils/common');
 const { chooseFileToSave, writeFile, getCollectionFormat, hasRequestExtension } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
@@ -46,7 +46,8 @@ const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const { easterEggResponse } = require('../../utils/woof');
 const { createRunnerExchangeEmitters } = require('./runner-exchange');
-const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
+const { saveRunnerResponseBody } = require('../../services/runner-exchange');
+const { buildFormUrlEncodedPayload, isFormData, getMediaType, extractBoundaryFromContentType } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
@@ -655,26 +656,28 @@ const registerNetworkIpc = (mainWindow) => {
     // stringify the request url encoded params
     const contentTypeHeader = Object.keys(request.headers).find((name) => name.toLowerCase() === 'content-type');
 
-    if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
+    const contentType = contentTypeHeader ? request.headers[contentTypeHeader] : '';
+    const mediaType = getMediaType(contentType);
+
+    if (mediaType === 'application/x-www-form-urlencoded') {
       if (Array.isArray(request.data)) {
         request.data = buildFormUrlEncodedPayload(request.data);
-      } else if (typeof request.data !== 'string') {
+      } else if (typeof request.data !== 'string' && !isBinaryRequestBody(request.data)) {
         request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
       }
-      // if `data` is of string type - return as-is (assumes already encoded)
+      // string and file (Buffer/stream) bodies are sent as-is (assumed already encoded)
     }
 
-    const contentType = contentTypeHeader ? request.headers[contentTypeHeader] : '';
-    if (typeof contentType === 'string' && contentType.startsWith('multipart/')) {
-      if (typeof request.data !== 'string' && !isFormData(request.data)) {
+    if (mediaType.startsWith('multipart/')) {
+      if (typeof request.data !== 'string' && !isFormData(request.data) && !isBinaryRequestBody(request.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
-        let form = createFormData(request.data, collectionPath);
+        const existingBoundary = extractBoundaryFromContentType(contentType);
+        let form = createFormData(request.data, collectionPath, existingBoundary);
         request.data = form;
         if (contentType !== 'multipart/form-data') {
           // Patch: Axios leverages getHeaders method to get the headers so FormData should be monkey patched
           const formHeaders = form.getHeaders();
-          const existingBoundary = extractBoundaryFromContentType(contentType);
           if (existingBoundary) {
             formHeaders['content-type'] = contentType;
           } else {
@@ -1837,7 +1840,7 @@ const registerNetworkIpc = (mainWindow) => {
             // todo:
             // i have no clue why electron can't send the request object
             // without safeParseJSON(safeStringifyJSON(request.data))
-            sendRunnerRequestSent({ requestUid, requestSent, eventData });
+            await sendRunnerRequestSent({ requestUid, requestSent, eventData });
 
             currentAbortController = new AbortController();
             request.signal = currentAbortController.signal;
@@ -1924,7 +1927,7 @@ const registerNetworkIpc = (mainWindow) => {
 
               mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
-              sendRunnerResponseReceived({
+              await sendRunnerResponseReceived({
                 requestUid,
                 responseReceived: {
                   status: response.status,
@@ -1938,6 +1941,7 @@ const registerNetworkIpc = (mainWindow) => {
                   timeline: response.timeline,
                   url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null
                 },
+                disableParsingResponseJson: Boolean(request.__brunoDisableParsingResponseJson),
                 eventData
               });
             } catch (error) {
@@ -1950,7 +1954,7 @@ const registerNetworkIpc = (mainWindow) => {
                 error.response.data = await promisifyStream(error.response.data, currentAbortController, false);
                 completeOpenHop(error.response.config);
                 error.response.responseTime = measureResponseTime(error.response.config.metadata);
-                const { data, dataBuffer } = parseDataFromResponse(error.response);
+                const { data, dataBuffer } = parseDataFromResponse(error.response, request.__brunoDisableParsingResponseJson);
                 error.response.data = data;
                 error.response.dataBuffer = dataBuffer;
 
@@ -1972,11 +1976,12 @@ const registerNetworkIpc = (mainWindow) => {
                 };
 
                 // if we get a response from the server, we consider it as a success
-                sendRunnerResponseReceived({
+                await sendRunnerResponseReceived({
                   requestUid,
                   error: error ? error.message : 'An error occurred while running the request',
                   responseReceived: response,
-                  eventData
+                  eventData,
+                  disableParsingResponseJson: Boolean(request.__brunoDisableParsingResponseJson)
                 });
               } else {
                 await executeRequestOnFailHandler(request, error, (onFailScriptResult) => {
@@ -2255,6 +2260,10 @@ const registerNetworkIpc = (mainWindow) => {
       const dirPath = path.dirname(pathname);
       const fileName = determineFileName();
       const filePath = await chooseFileToSave(mainWindow, path.join(dirPath, fileName));
+      if (filePath && !response.dataBuffer && typeof response.storedRequestUid === 'string') {
+        await saveRunnerResponseBody(response.storedRequestUid, filePath);
+        return { success: true, filePath };
+      }
       if (filePath) {
         const encoding = getEncodingFormat();
         const data = Buffer.from(response.dataBuffer, 'base64');

@@ -271,8 +271,20 @@ export const flattenSidebarTree = (sidebarEntries = [], options = {}) => {
   const rows = [];
   const itemsByUid = new Map();
   const collectionsByUid = new Map();
+  const rowIndexByItemUid = new Map();
+  const rowIndexByCollectionUid = new Map();
 
-  const appendRow = (row) => rows.push(row);
+  const appendRow = (row) => {
+    const index = rows.push(row) - 1;
+
+    if (row.kind === 'collection' && row.collectionUid) {
+      rowIndexByCollectionUid.set(row.collectionUid, index);
+    } else if (row.kind === 'example' && row.exampleUid) {
+      rowIndexByItemUid.set(row.exampleUid, index);
+    } else if (row.itemUid && ['folder', 'app', 'request'].includes(row.kind)) {
+      rowIndexByItemUid.set(row.itemUid, index);
+    }
+  };
   const addItemToIndex = (uid, item) => itemsByUid.set(uid, item);
   const addCollectionToIndex = (uid, collection) =>
     collectionsByUid.set(uid, collection);
@@ -312,36 +324,7 @@ export const flattenSidebarTree = (sidebarEntries = [], options = {}) => {
   return {
     rows,
     itemsByUid,
-    collectionsByUid
-  };
-};
-
-/**
- * lookups from item/collection UIDs to their row positions.
- * needed for active tab to scroll into view in sidebar
- */
-export const buildIndexes = (rows = []) => {
-  const rowIndexByItemUid = new Map();
-  const rowIndexByCollectionUid = new Map();
-
-  rows.forEach((row, index) => {
-    if (row.kind === 'collection' && row.collectionUid) {
-      rowIndexByCollectionUid.set(row.collectionUid, index);
-    }
-
-    if (
-      ['folder', 'app', 'request'].includes(row.kind)
-      && row.itemUid
-    ) {
-      rowIndexByItemUid.set(row.itemUid, index);
-    }
-
-    if (row.kind === 'example' && row.exampleUid) {
-      rowIndexByItemUid.set(row.exampleUid, index);
-    }
-  });
-
-  return {
+    collectionsByUid,
     rowIndexByItemUid,
     rowIndexByCollectionUid
   };

@@ -55,7 +55,9 @@ jobs:
         if: always()
         with:
           check_name: CLI Test Results (Windows)
-          files: packages/bruno-tests/collection/junit.xml
+          files: |
+            packages/bruno-tests/collection/junit.xml
+            packages/bruno-tests/safe-mode/junit.xml
           comment_mode: off
           check_run: false
 
@@ -85,7 +87,9 @@ jobs:
         if: always()
         with:
           check_name: CLI Test Results with experimental-cache-modules (Windows)
-          files: packages/bruno-tests/collection/junit.xml
+          files: |
+            packages/bruno-tests/collection/junit.xml
+            packages/bruno-tests/safe-mode/junit.xml
           comment_mode: off
           check_run: false
 

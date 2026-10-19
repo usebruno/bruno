@@ -1,5 +1,6 @@
 import React from 'react';
 import MultiLineEditor from 'components/MultiLineEditor';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
 export const createDescriptionColumn = ({
   theme,
@@ -32,6 +33,7 @@ export const createDescriptionColumn = ({
       {...(collection ? { collection } : {})}
       {...(item ? { item } : {})}
       {...(nameFromRowIndex && rowIndex !== undefined ? { name: `${rowIndex}.description` } : {})}
+      variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
     />
   )
 });

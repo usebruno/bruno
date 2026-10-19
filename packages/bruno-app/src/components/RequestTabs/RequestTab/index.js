@@ -1,8 +1,9 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
 import { makeTabPermanent, syncTabUid } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs, saveFile } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs, saveFile } from 'providers/ReduxStore/slices/collections/actions';
 import useKeybinding from 'hooks/useKeybinding';
+import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
 import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft, addSaveTransientRequestModal } from 'providers/ReduxStore/slices/collections';
 import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
@@ -325,13 +326,19 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     return false;
   }, { enabled: isActive, deps: [isActive, tab, item, collection, folder, globalEnvironmentDraft] });
 
-  useKeybinding('newRequest', () => {
+  const openNewRequest = useCallback(() => {
     const target = resolveNewRequestTarget({ tab, item, collection, folder });
     if (target) {
       setNewRequestTarget(target);
     }
+  }, [tab, item, collection, folder]);
+
+  const isNewRequestShortcutEnabled = isActive && !focusedSidebarPath;
+
+  useKeybinding('newRequest', () => {
+    openNewRequest();
     return false;
-  }, { enabled: isActive && !focusedSidebarPath, deps: [isActive, focusedSidebarPath, tab, item, collection, folder] });
+  }, { enabled: isNewRequestShortcutEnabled, deps: [isActive, focusedSidebarPath, tab, item, collection, folder] });
 
   const handleCloseEnvironmentSettings = (event) => {
     if (!collection?.environmentsDraft) {
@@ -393,7 +400,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
               setShowConfirmCollectionClose(false);
             }}
             onSaveAndClose={() => {
-              dispatch(saveCollectionRoot(collection.uid))
+              dispatch(saveCollectionSettings(collection.uid))
                 .then(() => {
                   dispatch(closeTabs({
                     tabUids: [tab.uid]
@@ -622,7 +629,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     <StyledWrapper className="flex items-center justify-between tab-container px-2">
       {showConfirmClose && (
         <ConfirmRequestClose
-          item={item}
+          name={item.name}
+          type="request"
           onCancel={() => setShowConfirmClose(false)}
           onCloseWithoutSave={() => {
             isWS && closeWsConnection(item.uid);
@@ -697,6 +705,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           menuDropdownRef={menuDropdownRef}
           tabLabelRef={tabLabelRef}
           tabIndex={tabIndex}
+          isActive={isActive}
+          showNewRequestShortcut={isNewRequestShortcutEnabled}
+          onNewRequest={openNewRequest}
           collectionRequestTabs={collectionRequestTabs}
           collection={collection}
           dispatch={dispatch}
@@ -720,9 +731,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   );
 };
 
-function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, tabIndex, collection, dispatch, dropdownContainerRef }) {
+function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, tabIndex, isActive, showNewRequestShortcut, onNewRequest, collection, dispatch, dropdownContainerRef }) {
   const [showCloneRequestModal, setShowCloneRequestModal] = useState(false);
-  const [showAddNewRequestModal, setShowAddNewRequestModal] = useState(false);
+  const getKeybindingDisplayText = useKeybindingDisplayText();
 
   // Returns the tab-label's position for dropdown positioning.
   // Returns zero-sized rect if element isn't mounted yet (prevents Tippy errors).
@@ -830,7 +841,9 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     {
       id: 'new-request',
       label: 'New Request',
-      onClick: () => setShowAddNewRequestModal(true)
+      // newRequest fires only for the active tab while no sidebar item is focused; otherwise it targets a different folder
+      shortcut: showNewRequestShortcut ? getKeybindingDisplayText('newRequest') : '',
+      onClick: onNewRequest
     },
     {
       id: 'clone-request',
@@ -846,6 +859,8 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     {
       id: 'close',
       label: 'Close',
+      // closeTab only fires for the active tab, so a background tab's hint would close a different tab
+      shortcut: isActive ? getKeybindingDisplayText('closeTab') : '',
       onClick: () => handleCloseTab(currentTabUid)
     },
     {
@@ -874,9 +889,10 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     {
       id: 'close-all',
       label: 'Close All',
+      shortcut: getKeybindingDisplayText('closeAllTabs'),
       onClick: handleCloseAllTabs
     }
-  ], [currentTabUid, currentTabItem, hasOtherTabs, hasLeftTabs, hasRightTabs, collection, collectionRequestTabs, tabIndex, dispatch]);
+  ], [currentTabUid, currentTabItem, hasOtherTabs, hasLeftTabs, hasRightTabs, collection, collectionRequestTabs, tabIndex, isActive, showNewRequestShortcut, onNewRequest, dispatch, getKeybindingDisplayText]);
 
   const menuDropdown = (
     <MenuDropdown
@@ -892,10 +908,6 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
 
   return (
     <Fragment>
-      {showAddNewRequestModal && (
-        <NewRequest collectionUid={collection.uid} onClose={() => setShowAddNewRequestModal(false)} />
-      )}
-
       {showCloneRequestModal && (
         <CloneCollectionItem
           item={currentTabItem}

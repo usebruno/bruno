@@ -526,6 +526,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                           });
                         }}
                         collection={collection}
+                        item={item}
                         variablesAutocomplete={true}
                       />
                     </div>

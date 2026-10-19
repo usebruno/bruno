@@ -41,6 +41,7 @@ import { useResizableColumns } from 'hooks/useResizableColumns';
 import ColumnSortHeader from 'components/EditableTable/ColumnSortHeader';
 import { useReconcileSavedEnvironment } from './useReconcileSavedEnvironment';
 import InheritedVariableRow from './InheritedVariableRow';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
 const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
@@ -146,7 +147,7 @@ const EnvVarValueCell = ({
   formik,
   handleRowFocus,
   handleSave,
-  renderExtraValueContent
+  renderSensitiveWarning
 }) => {
   const editorRef = useRef(null);
   const [compact, setCompact] = useState(true);
@@ -173,7 +174,7 @@ const EnvVarValueCell = ({
           className="flex items-center"
           onFocus={() => handleRowFocus(variable.uid)}
         >
-          {renderExtraValueContent && renderExtraValueContent(variable)}
+          {renderSensitiveWarning && renderSensitiveWarning(variable)}
           <MultiLineEditor
             ref={editorRef}
             theme={storedTheme}
@@ -205,6 +206,7 @@ const EnvVarValueCell = ({
               }
             }}
             onSave={handleSave}
+            variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
           />
         </div>
       )}
@@ -248,7 +250,7 @@ const EnvironmentVariablesTable = ({
   onDraftChange,
   onDraftClear,
   setIsModified,
-  renderExtraValueContent,
+  renderSensitiveWarning,
   searchQuery = '',
   variableType = 'variables'
 }) => {
@@ -1025,7 +1027,11 @@ const EnvironmentVariablesTable = ({
 
             if (item.type === ROW_INHERITED_VARIABLE) {
               return (
-                <InheritedVariableRow variable={item.variable} columnWidths={columnWidths} />
+                <InheritedVariableRow
+                  variable={item.variable}
+                  columnWidths={columnWidths}
+                  sensitiveWarning={renderSensitiveWarning ? renderSensitiveWarning(item.variable) : null}
+                />
               );
             }
 
@@ -1106,7 +1112,7 @@ const EnvironmentVariablesTable = ({
                     formik={formik}
                     handleRowFocus={handleRowFocus}
                     handleSave={handleSave}
-                    renderExtraValueContent={renderExtraValueContent}
+                    renderSensitiveWarning={renderSensitiveWarning}
                   />
                 </td>
                 <td style={{ width: columnWidths.description }}>
@@ -1132,6 +1138,7 @@ const EnvironmentVariablesTable = ({
                       }
                     }}
                     onSave={handleSave}
+                    variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
                   />
                 </td>
                 <td>
