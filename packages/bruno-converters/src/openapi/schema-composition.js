@@ -17,7 +17,8 @@ const createState = () => ({
   origins: new WeakMap(),
   componentNames: new WeakMap(),
   placeholders: new WeakMap(),
-  compositionUse: new WeakMap()
+  compositionUse: new WeakMap(),
+  exampleCopies: new WeakSet()
 });
 
 // Shared by all imports. Safe only because every import calls resetExampleGenerationState first
@@ -29,6 +30,8 @@ export const resetSchemaCompositionState = () => {
 };
 
 const isSchemaObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+export const isExampleCopy = (schema) => isSchemaObject(schema) && state.exampleCopies.has(schema);
 
 const hasKeys = (value) => isSchemaObject(value) && Object.keys(value).length > 0;
 
@@ -189,8 +192,9 @@ const moveExamplesToProperties = (a, b, merged) => {
     if (!isSchemaObject(example)) return;
     Object.entries(example).forEach(([name, value]) => {
       const property = properties[name];
-      if (property === undefined) properties[name] = { example: value };
-      else if (isSchemaObject(property) && property.example === undefined) properties[name] = { ...property, example: value };
+      if (property !== undefined && (!isSchemaObject(property) || property.example !== undefined)) return;
+      properties[name] = property === undefined ? { example: value } : { ...property, example: value };
+      state.exampleCopies.add(properties[name]);
     });
   });
   merged.properties = properties;

@@ -8,6 +8,7 @@ import {
   usesComposition,
   withoutComposition,
   allowedDefault,
+  isExampleCopy,
   resetSchemaCompositionState
 } from './schema-composition';
 import { uuid, sanitizeTag } from '../common';
@@ -275,7 +276,7 @@ const defaultValueFor = (schema, visited) => {
 };
 
 export const getDefaultValueForSchema = (rawSchema, visited = new Map()) => {
-  countValue(visited);
+  if (!isExampleCopy(rawSchema)) countValue(visited);
   return withResolvedSchema(rawSchema, visited, (schema) => defaultValueFor(schema, visited));
 };
 
@@ -327,7 +328,7 @@ export const buildXmlBody = (rawBodySchema) => generateFromRoot(rawBodySchema, (
 
   // Build a single XML element
   const buildElement = (name, rawProp, value, indent = '  ') => {
-    if (value === undefined) countValue(visited);
+    if (value === undefined && !isExampleCopy(rawProp)) countValue(visited);
     return withResolvedSchema(rawProp || {}, visited, (resolved) => {
       const prop = resolved || {};
       const xmlName = prop.xml?.name || name;

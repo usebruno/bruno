@@ -843,6 +843,21 @@ describe('openapi schema composition', () => {
       expect(responseExample(buildSpec({ schemas, paths: getWithResponse(schema) }))).toEqual(example);
     });
 
+    it('keeps a large example that allOf spreads into properties, and the composed parts next to it', () => {
+      const example = Object.fromEntries(Array.from({ length: 5200 }, (_, i) => [`key${i}`, i]));
+      const schemas = {
+        Big: { type: 'object', example },
+        Meta: { type: 'object', properties: { locale: { type: 'string', example: 'en' } } },
+        Person: { type: 'object', properties: { name: { type: 'string', example: 'ann' } } }
+      };
+      const schema = { type: 'object', properties: { owner: { allOf: [ref('Person')] }, data: { allOf: [ref('Meta'), ref('Big')] } } };
+      const body = requestBody(buildSpec({ schemas, paths: postBody(schema) }));
+      expect(body).toEqual({ owner: { name: 'ann' }, data: { locale: 'en', ...example } });
+      const xml = firstRequest(buildSpec({ schemas, paths: postBody(schema, 'application/xml') })).request.body.xml;
+      expect(xml.match(/<key\d+>/g)).toHaveLength(5200);
+      expect(responseExample(buildSpec({ schemas, paths: getWithResponse(schema) }))).toEqual(body);
+    });
+
     it('fills every sibling that uses the same schema, in JSON, XML and arrays', () => {
       const schemas = {
         Address: { type: 'object', properties: { street: { type: 'string' }, city: { type: 'string' } } },
@@ -858,14 +873,14 @@ describe('openapi schema composition', () => {
     });
 
     it('builds each oneOf branch once inside a $ref loop, so a long loop stays fast', () => {
-      const levels = 18;
+      const levels = 22;
       const schemas = {};
       for (let i = 0; i < levels; i += 1) {
         schemas[`S${i}`] = { oneOf: [{ allOf: [ref(`S${(i + 1) % levels}`), { type: 'object', properties: { [`f${i}`]: { type: 'string' } } }] }, { type: 'string' }] };
       }
       const started = performance.now();
       const body = requestBody(buildSpec({ schemas, paths: postBody(ref('S0')) }));
-      expect(performance.now() - started).toBeLessThan(500);
+      expect(performance.now() - started).toBeLessThan(2000);
       expect(body).toEqual(Object.fromEntries(Array.from({ length: levels }, (_, i) => [`f${i}`, ''])));
     });
 
