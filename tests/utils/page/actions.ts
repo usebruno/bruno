@@ -4010,6 +4010,23 @@ const setWindowContentSize = async (app: ElectronApplication, page: Page, size: 
   await expect.poll(() => page.evaluate(() => window.innerWidth)).toBe(size.width);
 };
 
+/**
+ * Verifies that the response size is at least the expected file size.
+ * @param page - The page object
+ * @param fileSizeInBytes - Uploaded file size in bytes
+ * @returns void
+ */
+const verifyResponseSize = async (
+  page: Page,
+  fileSizeInBytes: number,
+  timeout: number = 30000
+) => {
+  const locators = buildCommonLocators(page);
+  const responseSize = await locators.response.responseSize().innerText({ timeout });
+  const responseBytes = Math.round(parseFloat(responseSize) * 1024);
+  expect(responseBytes).toBeGreaterThanOrEqual(fileSizeInBytes);
+};
+
 export {
   waitForReadyPage,
   readClipboard,
@@ -4199,7 +4216,8 @@ export {
   saveTransientRequestAs,
   openImportReview,
   clickOutsideModal,
-  setWindowContentSize
+  setWindowContentSize,
+  verifyResponseSize
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput, LinkAwareRequestType, ScriptSubTab };

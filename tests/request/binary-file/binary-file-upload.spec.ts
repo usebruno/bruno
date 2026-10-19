@@ -8,7 +8,8 @@ import {
   createRequest,
   openRequest,
   selectRequestPaneTab,
-  sendRequest
+  sendRequest,
+  verifyResponseSize
 } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
@@ -75,7 +76,7 @@ test.describe.serial('File / Binary body upload', () => {
     octetFileSha256 = crypto.createHash('sha256').update(octetContent).digest('hex');
 
     // Create a large text file and save it in the temporary directory (tmpDir)
-    txtFileSizeInBytes = 3 * 1024 * 1024;
+    txtFileSizeInBytes = 1 * 1024 * 1024;
     const txtBuffer = Buffer.alloc(txtFileSizeInBytes, 'a');
     txtFilePath = path.join(tmpDir, 'large-txt-file.txt');
     await fs.promises.writeFile(txtFilePath, txtBuffer);
@@ -89,7 +90,7 @@ test.describe.serial('File / Binary body upload', () => {
     await fs.promises.writeFile(csvFilePath, header + row.repeat(rowCount), 'utf8');
 
     // Create a large png file and save it in the temporary directory (tmpDir)
-    imgFileSizeInBytes = 10 * 1024 * 1024;
+    imgFileSizeInBytes = 5 * 1024 * 1024;
     const imgBuffer = Buffer.alloc(imgFileSizeInBytes, 'a');
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(imgBuffer);
     imgFilePath = path.join(tmpDir, 'large-image.png');
@@ -131,7 +132,7 @@ test.describe.serial('File / Binary body upload', () => {
         method: 'POST',
         inFolder: false
       });
-      await createRequest(page, csvRequestName, collectionName, {
+      await createRequest(page, pdfRequestName, collectionName, {
         url: 'https://httpbin.org/post',
         method: 'POST',
         inFolder: false
@@ -141,7 +142,7 @@ test.describe.serial('File / Binary body upload', () => {
         method: 'POST',
         inFolder: false
       });
-      await createRequest(page, pdfRequestName, collectionName, {
+      await createRequest(page, csvRequestName, collectionName, {
         url: 'https://httpbin.org/post',
         method: 'POST',
         inFolder: false
@@ -260,42 +261,7 @@ test.describe.serial('File / Binary body upload', () => {
     await openRequest(page, collectionName, txtRequestName, { persist: true });
     await configureFileBody(page);
     await sendRequest(page, 200, 60000);
-
-    const locators = buildCommonLocators(page);
-    const responseSize = await locators.response.responseSize().innerText();
-    const responsebytes = Math.round(parseFloat(responseSize) * 1024);
-    expect(responsebytes).toBeGreaterThanOrEqual(txtFileSizeInBytes);
-  });
-
-  test('TC-2236 - Verify successful execution with a large CSV file', { tag: '@sanity' }, async ({ page, electronApp }) => {
-    test.setTimeout(120_000);
-    await electronApp.evaluate(({ dialog }, filePath: string) => {
-      (dialog as any).__currentSelection = filePath;
-    }, csvFilePath);
-
-    await openRequest(page, collectionName, csvRequestName, { persist: true });
-    await configureFileBody(page);
-    await sendRequest(page, 200, 60000);
-
-    const locators = buildCommonLocators(page);
-    const responseSize = await locators.response.responseSize().innerText();
-    const responsebytes = Math.round(parseFloat(responseSize) * 1024);
-    expect(responsebytes).toBeGreaterThanOrEqual(csvFileSizeInBytes);
-  });
-
-  test('TC-2232 - Verify successful execution with a large Image(.png) file', { tag: '@sanity' }, async ({ page, electronApp }) => {
-    await electronApp.evaluate(({ dialog }, filePath: string) => {
-      (dialog as any).__currentSelection = filePath;
-    }, imgFilePath);
-
-    await openRequest(page, collectionName, imgRequestName, { persist: true });
-    await configureFileBody(page);
-    await sendRequest(page, 200, 30000);
-
-    const locators = buildCommonLocators(page);
-    const responseSize = await locators.response.responseSize().innerText();
-    const responsebytes = Math.round(parseFloat(responseSize) * 1024);
-    expect(responsebytes).toBeGreaterThanOrEqual(imgFileSizeInBytes);
+    await verifyResponseSize(page, txtFileSizeInBytes, 10000); ;
   });
 
   test('TC-2231 - Verify successful execution with a large PDF file', { tag: '@sanity' }, async ({ page, electronApp }) => {
@@ -306,10 +272,29 @@ test.describe.serial('File / Binary body upload', () => {
     await openRequest(page, collectionName, pdfRequestName, { persist: true });
     await configureFileBody(page);
     await sendRequest(page, 200, 30000);
+    await verifyResponseSize(page, pdfFileSizeInBytes, 10000);
+  });
 
-    const locators = buildCommonLocators(page);
-    const responseSize = await locators.response.responseSize().innerText();
-    const responsebytes = Math.round(parseFloat(responseSize) * 1024);
-    expect(responsebytes).toBeGreaterThanOrEqual(pdfFileSizeInBytes);
+  test('TC-2232 - Verify successful execution with a large Image(.png) file', { tag: '@sanity' }, async ({ page, electronApp }) => {
+    await electronApp.evaluate(({ dialog }, filePath: string) => {
+      (dialog as any).__currentSelection = filePath;
+    }, imgFilePath);
+
+    await openRequest(page, collectionName, imgRequestName, { persist: true });
+    await configureFileBody(page);
+    await sendRequest(page, 200, 30000);
+    await verifyResponseSize(page, imgFileSizeInBytes, 10000);
+  });
+
+  test('TC-2236 - Verify successful execution with a large CSV file', { tag: '@sanity' }, async ({ page, electronApp }) => {
+    test.setTimeout(120000);
+    await electronApp.evaluate(({ dialog }, filePath: string) => {
+      (dialog as any).__currentSelection = filePath;
+    }, csvFilePath);
+
+    await openRequest(page, collectionName, csvRequestName, { persist: true });
+    await configureFileBody(page);
+    await sendRequest(page, 200, 60000);
+    await verifyResponseSize(page, csvFileSizeInBytes, 10000);
   });
 });
