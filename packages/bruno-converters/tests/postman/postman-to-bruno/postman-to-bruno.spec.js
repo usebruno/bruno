@@ -1728,6 +1728,79 @@ describe('postman-collection binary body import', () => {
   });
 });
 
+describe('postman collection URL query parameter import', () => {
+  it('should encode query parameters, preserve variables, and exclude disabled params when raw URL is missing', async () => {
+    const collection = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'query parameter import',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'search request',
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              protocol: 'https',
+              host: ['example', 'com'],
+              path: ['search'],
+              query: [
+                { key: 'search', value: 'hello world' },
+                { key: 'variable', value: '{{baseUrl}}' },
+                { key: 'percent', value: '50%' },
+                { key: 'empty', value: '' },
+                { key: 'disabled', value: 'ignore me', disabled: true }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collection);
+    const request = brunoCollection.items[0].request;
+
+    expect(request.url).toContain('https://example.com/search');
+    expect(request.url).toContain('search=hello%20world');
+    expect(request.url).toContain('variable={{baseUrl}}');
+    expect(request.url).toContain('percent=50%25');
+    expect(request.url).toContain('empty=');
+    expect(request.url).not.toContain('disabled');
+  });
+
+  it('should handle percent-encoded query values consistently', async () => {
+    const collection = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'encoded query values',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'encoded request',
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              protocol: 'https',
+              host: ['example', 'com'],
+              path: ['search'],
+              query: [
+                { key: 'value', value: 'a%20b' }
+              ]
+            }
+          }
+        }
+      ]
+    };
+    const { collection: brunoCollection } = await postmanToBruno(collection);
+    const requestUrl = brunoCollection.items[0].request.url;
+    expect(requestUrl).toContain('value=a%20b');
+  });
+});
+
 const expectedOutput = {
   name: 'simple collection',
   uid: 'mockeduuidvalue123456',

@@ -171,7 +171,14 @@ const convertV21Auth = (array) => {
 const encodeKeepingVars = (str) =>
   String(str)
     .split(/(\{\{[^{}]*\}\})/)
-    .map((part, i) => (i % 2 === 1 ? part : encodeURIComponent(part)))
+    .map((part, i) => {
+      if (i % 2 === 1) return part;
+      try {
+        return encodeURIComponent(decodeURIComponent(part));
+      } catch (e) {
+        return encodeURIComponent(part);
+      }
+    })
     .join('');
 
 const constructUrlFromParts = (url) => {
@@ -181,13 +188,6 @@ const constructUrlFromParts = (url) => {
   const hostStr = Array.isArray(host)
     ? host.filter(Boolean).join('.')
     : host || '';
-  let segs;
-  if (Array.isArray(path)) {
-    segs = path.map((p) => String(p ?? '').replace(/^\/+/, ''));
-  } else {
-    const s = String(path ?? '');
-    segs = s ? s.split('/') : [];
-  }
 
   const pathStr = Array.isArray(path) ? path.join('/') : path || '';
 
@@ -471,7 +471,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
       const tokenPlacement
         = findValueUsingKey('addTokenTo') === 'queryParams' ? 'url' : 'header'; // Postman defaults an unspecified placement to the header
       const tokenHeaderPrefix
-        = tokenPlacement === 'header' && authValues.headerPrefix === null
+        = tokenPlacement === 'header' && authValues.headerPrefix == null
           ? 'Bearer'
           : findValueUsingKey('headerPrefix');
 
