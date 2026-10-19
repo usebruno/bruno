@@ -1,5 +1,12 @@
-import { getStaticPropertyName } from './ast-utils';
-import { rewriteMembers, rewritePattern, resolvesToBinding, POSTMAN_REGISTRY } from './semantic';
+import { getStaticPropertyName, isFunctionExpression } from './ast-utils';
+import {
+  PROMISE_CHAIN_METHODS,
+  collectChainBindings,
+  collectHandlerBindings,
+  getPromiseChainLinks,
+  rewriteMembers,
+  POSTMAN_REGISTRY
+} from './semantic';
 
 /**
  * Convert Postman header array format to Bruno headers object
@@ -151,49 +158,8 @@ const transformBody = (j, requestOptions) => {
   });
 };
 
-const PROMISE_CHAIN_METHODS = new Set(['then', 'catch', 'finally']);
-
 // Which parameter of each kind of handler receives the response, and as what type
-const { callback: CALLBACK_PARAM_TYPES, then: THEN_PARAM_TYPES } = POSTMAN_REGISTRY.params['pm.sendRequest'];
-const CALLBACK_RESPONSE_INDEX = CALLBACK_PARAM_TYPES.findIndex(Boolean);
-
-/**
- * Whether an argument node is an explicit absent value, as in `.then(null, onError)`.
- * @param {Object} node - Argument node
- * @returns {boolean}
- */
-const isNullish = (node) =>
-  (node.type === 'Literal' && node.value === null)
-  || (node.type === 'Identifier' && node.name === 'undefined');
-
-/**
- * Collect the `.then`/`.catch`/`.finally` calls chained off the given call,
- * innermost first.
- * @param {Object} callPath - Path of the CallExpression the chain hangs off
- * @returns {Array<{callPath: Object, methodName: string}>}
- */
-const getPromiseChainLinks = (callPath) => {
-  const links = [];
-  let currentPath = callPath;
-
-  while (true) {
-    const memberPath = currentPath.parent;
-    if (!memberPath || memberPath.value.type !== 'MemberExpression') break;
-    if (memberPath.value.object !== currentPath.value) break;
-
-    const methodName = getStaticPropertyName(memberPath.value);
-    if (!PROMISE_CHAIN_METHODS.has(methodName)) break;
-
-    const chainedCallPath = memberPath.parent;
-    if (!chainedCallPath || chainedCallPath.value.type !== 'CallExpression') break;
-    if (chainedCallPath.value.callee !== memberPath.value) break;
-
-    links.push({ callPath: chainedCallPath, methodName });
-    currentPath = chainedCallPath;
-  }
-
-  return links;
-};
+const { callback: CALLBACK_SLOT_TYPES, then: THEN_SLOT_TYPES } = POSTMAN_REGISTRY.params['pm.sendRequest'];
 
 /**
  * Whether a function is a `.then`/`.catch`/`.finally` handler argument
@@ -234,114 +200,6 @@ const ensureAsyncContext = (j, path) => {
 };
 
 /**
- * Whether an identifier reference inside a handler resolves to the handler's own
- * parameter rather than a nested re-declaration of the same name.
- * @param {Object} path - Path of the reference
- * @param {string} name - Parameter name
- * @param {Object} handler - Handler function node owning the parameter
- * @returns {boolean}
- */
-const resolvesToHandlerParam = (path, name, handler) =>
-  resolvesToBinding(path, { name, scopeNode: handler });
-
-/**
- * Rewrite Postman response access on a handler's response parameter to its Bruno
- * equivalent (res.json() -> res.data, res.code -> res.status, ...). References
- * that resolve to a different binding — a nested function re-declaring the name —
- * are left alone.
- * @param {Object} j - jscodeshift API
- * @param {Object} handlerPath - Path of the function receiving the response: a `.then`
- *   fulfilled handler or a `pm.sendRequest` callback
- * @param {string} responseVarName - Name of the handler's response parameter
- * @param {string} typeName - Registry type the parameter receives
- */
-const rewriteResponseAccess = (j, handlerPath, responseVarName, typeName) => {
-  rewriteMembers(
-    j,
-    j(handlerPath),
-    [{ name: responseVarName, scopeNode: handlerPath.value, typeName }],
-    POSTMAN_REGISTRY
-  );
-};
-
-/**
-* The return statements belonging to the handler itself.
-* @example
- * sendRequest(req).then((res) => {
- *   const extract = () => {
- *     return res.data;      // nested function's return — not the handler's
- *   };
- *   console.log(extract());
- *   return res;             // the handler's actual return
- * });
- * @param {Object} j - jscodeshift API
- * @param {Object} handlerPath - Path of the `.then` fulfilled handler argument
- * @returns {Object[]} Paths of the handler's own return statements
- */
-const findOwnReturns = (j, handlerPath) =>
-  j(handlerPath)
-    .find(j.ReturnStatement)
-    .paths()
-    .filter((returnPath) => j(returnPath).closest(j.Function).get().value === handlerPath.value);
-
-/**
- * Whether the handler forwards its response parameter untouched, so response-shape
- * rewriting can safely continue on the next `.then` in the chain.
- * @param {Object} j - jscodeshift API
- * @param {Object} handlerPath - Path of the `.then` fulfilled handler argument
- * @returns {boolean}
- */
-const returnsParamUnchanged = (j, handlerPath) => {
-  const handler = handlerPath.value;
-  const paramName = handler.params[0].name;
-  const body = handler.body;
-
-  // a concise arrow body is the returned expression itself, so it only forwards the
-  // response when that expression is the parameter — `res => res` yes, `res => res.data` no
-  if (body.type !== 'BlockStatement') {
-    return body.type === 'Identifier' && body.name === paramName;
-  }
-
-  // Every path must end in a return: a body that can fall through forwards an implicit undefined,
-  // and a handler with no returns at all would pass the `every` check below vacuously.
-  const lastStatement = body.body[body.body.length - 1];
-  if (!lastStatement || lastStatement.type !== 'ReturnStatement') return false;
-
-  const ownReturns = findOwnReturns(j, handlerPath);
-
-  return ownReturns.every((returnPath) => {
-    const argument = returnPath.value.argument;
-    const returnsParamIdentifier = Boolean(argument) && argument.type === 'Identifier' && argument.name === paramName;
-    return returnsParamIdentifier && resolvesToHandlerParam(returnPath, paramName, handler);
-  });
-};
-
-/**
- * Whether the handler rebinds its response parameter, so what it forwards is no
- * longer the response mapped for Bruno.
- * @param {Object} j - jscodeshift API
- * @param {Object} handlerPath - Path of the `.then` fulfilled handler argument
- * @returns {boolean}
- */
-const isResponseParamReassigned = (j, handlerPath) => {
-  const handler = handlerPath.value;
-  const paramName = handler.params[0].name;
-
-  const isParamReassigned = (path, target) =>
-    target.type === 'Identifier'
-    && target.name === paramName
-    && resolvesToHandlerParam(path, paramName, handler);
-
-  // assignment expression example : `res = ...`, `res += ...`, `res ||= ...`
-  const isParamReassignedByAssignmentExpression = j(handlerPath)
-    .find(j.AssignmentExpression)
-    .paths()
-    .some((path) => isParamReassigned(path, path.value.left));
-
-  return isParamReassignedByAssignmentExpression;
-};
-
-/**
  * Transform callback function to Bruno format
  * @param {Object} j - jscodeshift API
  * @param {Object} callbackPath - Path of the callback argument
@@ -349,21 +207,10 @@ const isResponseParamReassigned = (j, handlerPath) => {
  */
 const transformCallback = (j, callbackPath) => {
   const callback = callbackPath.value;
-  if (!callback || (callback.type !== 'FunctionExpression' && callback.type !== 'ArrowFunctionExpression')) return null;
+  if (!isFunctionExpression(callback)) return null;
 
-  const params = callback.params;
-
-  const responseParam = params[CALLBACK_RESPONSE_INDEX];
-  const responseType = CALLBACK_PARAM_TYPES[CALLBACK_RESPONSE_INDEX];
-
-  if (responseParam && responseParam.type === 'ObjectPattern') {
-    rewritePattern(j, responseParam, responseType, POSTMAN_REGISTRY);
-  } else {
-    const responseVarName
-      = responseParam && responseParam.type === 'Identifier' ? responseParam.name : 'response';
-
-    rewriteResponseAccess(j, callbackPath, responseVarName, responseType);
-  }
+  const bindings = collectHandlerBindings(j, callbackPath, CALLBACK_SLOT_TYPES, POSTMAN_REGISTRY);
+  rewriteMembers(j, j(callbackPath), bindings, POSTMAN_REGISTRY);
 
   // `bru.sendRequest` callbacks may await, so the translated callback is always async
   callback.async = true;
@@ -372,45 +219,65 @@ const transformCallback = (j, callbackPath) => {
 };
 
 /**
- * Find and transform variable declaration for request config
+ * The declarator an identifier reference resolves to, or null when it cannot be attributed to
+ * exactly one.
+ *
+ * ast-types models function scope rather than block scope, so two declarations of one name in
+ * nested blocks of the same function are indistinguishable — the same reason `collectBindings`
+ * drops a name declared more than once in a scope.
+ *
  * @param {Object} j - jscodeshift API
- * @param {Object} root - Root AST node
- * @param {string} variableName - Name of the variable to find
- * @param {Set} visited - Set of visited variable names to prevent infinite loops
+ * @param {Object} root - Collection of the enclosing Program
+ * @param {Object} referencePath - Path of the reference to resolve
+ * @param {string} name - Name being referenced
+ * @returns {Object|null} Path of the declarator
+ */
+const findBindingDeclarator = (j, root, referencePath, name) => {
+  const scope = referencePath.scope && referencePath.scope.lookup(name);
+  if (!scope) return null;
+
+  const declarators = root
+    .find(j.VariableDeclarator, { id: { name } })
+    .paths()
+    .filter((declaratorPath) => declaratorPath.scope.node === scope.node);
+
+  return declarators.length === 1 ? declarators[0] : null;
+};
+
+/**
+ * Transform the request config a reference resolves to, following a chain of aliases.
+ *
+ * Only the declaration the reference actually resolves to is transformed: an unrelated object
+ * sharing the name is left alone, and a shadowed outer declaration is not reached.
+ *
+ * @param {Object} j - jscodeshift API
+ * @param {Object} root - Collection of the enclosing Program
+ * @param {Object} referencePath - Path of the reference to the config
+ * @param {string} name - Name being referenced
+ * @param {Set} visited - Declarators already followed, to stop a circular chain
  * @returns {Object|null} - Transformed object expression or null if not found
  */
-const findAndTransformVariableDeclaration = (j, root, variableName, visited = new Set()) => {
-  // Prevent infinite loops from circular references
-  if (visited.has(variableName)) {
-    return null;
+const transformReferencedConfig = (j, root, referencePath, name, visited = new Set()) => {
+  const declaratorPath = findBindingDeclarator(j, root, referencePath, name);
+  if (!declaratorPath || visited.has(declaratorPath.value)) return null;
+  visited.add(declaratorPath.value);
+
+  const init = declaratorPath.value.init;
+  if (!init) return null;
+
+  if (init.type === 'ObjectExpression') {
+    transformHeaders(j, init);
+    transformBody(j, init);
+
+    return init;
   }
-  visited.add(variableName);
 
-  let transformedConfig = null;
+  // the variable references another variable — follow the chain from its own declaration
+  if (init.type === 'Identifier') {
+    return transformReferencedConfig(j, root, declaratorPath.get('init'), init.name, visited);
+  }
 
-  // Find the variable declaration
-  root.find(j.VariableDeclarator, {
-    id: { name: variableName }
-  }).forEach((declaratorPath) => {
-    const init = declaratorPath.value.init;
-
-    if (init && init.type === 'ObjectExpression') {
-      // Found the actual object expression - clone and transform it
-      const configClone = j(init).at(0).get().value;
-
-      // Transform headers and body
-      transformHeaders(j, configClone);
-      transformBody(j, configClone);
-
-      transformedConfig = configClone;
-    } else if (init && init.type === 'Identifier') {
-      // This variable references another variable - follow the chain
-      const referencedVariableName = init.name;
-      transformedConfig = findAndTransformVariableDeclaration(j, root, referencedVariableName, visited);
-    }
-  });
-
-  return transformedConfig;
+  return null;
 };
 
 const sendRequestTransformer = (path, j) => {
@@ -431,14 +298,10 @@ const sendRequestTransformer = (path, j) => {
     // Transform body
     transformBody(j, requestOptions);
   } else if (requestOptions.type === 'Identifier') {
-    // Handle case where requestOptions is a variable reference
-    const variableName = requestOptions.name;
-
-    // Find the root of the current file/program
+    // Resolve from the argument itself, so the reference's own scope decides the declaration
     const root = j(path).closest(j.Program);
 
-    // Find and transform the variable declaration
-    findAndTransformVariableDeclaration(j, root, variableName);
+    transformReferencedConfig(j, root, callPath.get('arguments', 0), requestOptions.name);
   }
 
   const callbackPath = callPath.get('arguments', 1);
@@ -460,43 +323,14 @@ const sendRequestTransformer = (path, j) => {
     return ensureAsyncContext(j, callPath) ? j.awaitExpression(sendRequestCall) : sendRequestCall;
   }
 
-  for (const link of chainLinks) {
-    const [handler] = link.callPath.value.arguments;
+  const outermostPath = chainLinks[chainLinks.length - 1].callPath;
 
-    // a `.catch` handler substitutes its own return value for the rest of the chain, so links
-    // past it no longer receive the response we mapped.
-    if (link.methodName === 'catch') break;
-
-    const hasFulfilledHandler = link.methodName === 'then' && Boolean(handler) && !isNullish(handler);
-
-    if (!hasFulfilledHandler) continue;
-
-    if (handler.type !== 'FunctionExpression' && handler.type !== 'ArrowFunctionExpression') break;
-    if (handler.params.length === 0) break;
-
-    /**
-     * A destructured param is unpacked in place, but what it leaves bound are plain values
-     * rather than the response, so nothing can be said about what this link forwards.
-     */
-    if (handler.params[0].type === 'ObjectPattern') {
-      rewritePattern(j, handler.params[0], THEN_PARAM_TYPES[0], POSTMAN_REGISTRY);
-      break;
-    }
-
-    if (handler.params[0].type !== 'Identifier') break;
-
-    const handlerPath = link.callPath.get('arguments', 0);
-
-    const returnsResponse = returnsParamUnchanged(j, handlerPath);
-    const reassignsResponse = isResponseParamReassigned(j, handlerPath);
-
-    rewriteResponseAccess(j, handlerPath, handler.params[0].name, THEN_PARAM_TYPES[0]);
-
-    if (!returnsResponse) break;
-    if (reassignsResponse) break;
+  // the outermost link contains every inner link and handler, so one pass covers the chain
+  const chainBindings = collectChainBindings(j, chainLinks, THEN_SLOT_TYPES, POSTMAN_REGISTRY);
+  if (chainBindings.length) {
+    rewriteMembers(j, j(outermostPath), chainBindings, POSTMAN_REGISTRY);
   }
 
-  const outermostPath = chainLinks[chainLinks.length - 1].callPath;
   const isAlreadyAwaited = outermostPath.parent.value.type === 'AwaitExpression';
   const shouldAwaitChain = !isAlreadyAwaited && ensureAsyncContext(j, outermostPath);
 

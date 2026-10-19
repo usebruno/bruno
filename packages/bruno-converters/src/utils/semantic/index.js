@@ -4,6 +4,12 @@ import { collectBindings, resolvesToBinding } from './type-environment';
 import rewriteMembers from './rewrite-members';
 import rewriteYields from './rewrite-yields';
 import { rewriteDestructuredDeclarations, rewritePattern } from './rewrite-patterns';
+import {
+  PROMISE_CHAIN_METHODS,
+  collectChainBindings,
+  collectHandlerBindings,
+  getPromiseChainLinks
+} from './promise-chain';
 
 /**
  * Both directions are derived from the one correspondence table, so neither can carry a
@@ -42,4 +48,12 @@ export const applySemanticTypes = (j, ast, registry) => {
   rewriteDestructuredDeclarations(j, ast, bindings, registry);
 };
 
-export { rewriteMembers, rewritePattern, resolvesToBinding };
+export {
+  rewriteMembers,
+  rewritePattern,
+  resolvesToBinding,
+  PROMISE_CHAIN_METHODS,
+  collectChainBindings,
+  collectHandlerBindings,
+  getPromiseChainLinks
+};

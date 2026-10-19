@@ -1,8 +1,5 @@
-import { getStaticPropertyName, reportUntranslated } from '../ast-utils';
+import { getStaticPropertyName, isFunctionExpression, reportUntranslated } from '../ast-utils';
 import { getExpressionType } from './type-environment';
-
-const isFunction = (node) =>
-  node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression';
 
 /**
  * Adapts what a typed member yields, where the two APIs agree on the member but not on the
@@ -63,7 +60,7 @@ const rewriteYields = (j, root, bindings, registry) => {
       return;
     }
 
-    if (parent.value.arguments.some(isFunction)) {
+    if (parent.value.arguments.some(isFunctionExpression)) {
       report(parent.value);
       return;
     }

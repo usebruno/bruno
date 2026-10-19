@@ -83,6 +83,17 @@ export function isIdentifierNamed(node, name) {
 }
 
 /**
+ * Checks if a node is a function literal, so its body is in reach of the pass.
+ * A handler passed by reference — `.then(handleIt)` — is neither.
+ *
+ * @param {Object} node - The AST node to check
+ * @returns {boolean} - True if node is a function or arrow function expression
+ */
+export function isFunctionExpression(node) {
+  return Boolean(node) && (node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression');
+}
+
+/**
  * Checks if a node is the null literal.
  *
  * @param {Object} node - The AST node to check

@@ -1,9 +1,16 @@
 const j = require('jscodeshift');
-import { rewriteMembers, rewritePattern, BRUNO_REGISTRY } from './semantic';
+import { isFunctionExpression } from './ast-utils';
+import {
+  collectChainBindings,
+  collectHandlerBindings,
+  getPromiseChainLinks,
+  rewriteMembers,
+  BRUNO_REGISTRY
+} from './semantic';
 
-// Which parameter of the callback receives the response, and as what type
-const { callback: CALLBACK_PARAM_TYPES } = BRUNO_REGISTRY.params['bru.sendRequest'];
-const CALLBACK_RESPONSE_INDEX = CALLBACK_PARAM_TYPES.findIndex(Boolean);
+// Which parameter of each kind of handler receives the response, and as what type
+const { callback: CALLBACK_SLOT_TYPES, then: THEN_SLOT_TYPES } = BRUNO_REGISTRY.params['bru.sendRequest'];
+const CALLBACK_RESPONSE_INDEX = CALLBACK_SLOT_TYPES.findIndex(Boolean);
 
 /**
  * Content-Type constants for body mode detection
@@ -196,27 +203,17 @@ const transformBody = (requestOptions, contentType) => {
  */
 const transformCallback = (callbackPath) => {
   const callback = callbackPath.value;
-  if (!callback || (callback.type !== 'FunctionExpression' && callback.type !== 'ArrowFunctionExpression')) return null;
+  if (!isFunctionExpression(callback)) return null;
 
   const params = callback.params;
-  const callbackBody = callback.body;
-
   const responseParam = params[CALLBACK_RESPONSE_INDEX];
-  const responseType = CALLBACK_PARAM_TYPES[CALLBACK_RESPONSE_INDEX];
 
-  if (responseParam && responseParam.type === 'ObjectPattern') {
-    rewritePattern(j, responseParam, responseType, BRUNO_REGISTRY);
-  } else {
-    const responseVarName
-      = responseParam && responseParam.type === 'Identifier' ? responseParam.name : 'response';
+  const bindings = collectHandlerBindings(j, callbackPath, CALLBACK_SLOT_TYPES, BRUNO_REGISTRY);
+  rewriteMembers(j, j(callbackPath), bindings, BRUNO_REGISTRY);
 
-    rewriteMembers(
-      j,
-      j(callbackPath),
-      [{ name: responseVarName, scopeNode: callback, typeName: responseType }],
-      BRUNO_REGISTRY
-    );
-  }
+  // read after the rewrite: a concise body is replaced outright, so a reference taken before it
+  // would still point at the untranslated expression
+  const callbackBody = callback.body;
 
   // Create the callback - Postman uses regular functions
   const bodyStatements = callbackBody.type === 'BlockStatement' ? callbackBody.body : [j.returnStatement(callbackBody)];
@@ -243,43 +240,65 @@ const transformCallback = (callbackPath) => {
 };
 
 /**
- * Find and transform variable declaration for request config
- * @param {Object} root - Root AST node (jscodeshift collection)
- * @param {string} variableName - Name of the variable to find
- * @param {Set} visited - Set of visited variable names to prevent infinite loops
+ * The declarator an identifier reference resolves to, or null when it cannot be attributed to
+ * exactly one.
+ *
+ * ast-types models function scope rather than block scope, so two declarations of one name in
+ * nested blocks of the same function are indistinguishable — the same reason `collectBindings`
+ * drops a name declared more than once in a scope.
+ *
+ * @param {Object} root - Collection of the enclosing Program
+ * @param {Object} referencePath - Path of the reference to resolve
+ * @param {string} name - Name being referenced
+ * @returns {Object|null} Path of the declarator
+ */
+const findBindingDeclarator = (root, referencePath, name) => {
+  const scope = referencePath.scope && referencePath.scope.lookup(name);
+  if (!scope) return null;
+
+  const declarators = root
+    .find(j.VariableDeclarator, { id: { name } })
+    .paths()
+    .filter((declaratorPath) => declaratorPath.scope.node === scope.node);
+
+  return declarators.length === 1 ? declarators[0] : null;
+};
+
+/**
+ * Transform the request config a reference resolves to, following a chain of aliases.
+ *
+ * Only the declaration the reference actually resolves to is transformed: an unrelated object
+ * sharing the name is left alone, and a shadowed outer declaration is not reached.
+ *
+ * @param {Object} root - Collection of the enclosing Program
+ * @param {Object} referencePath - Path of the reference to the config
+ * @param {string} name - Name being referenced
+ * @param {Set} visited - Declarators already followed, to stop a circular chain
  * @returns {Object|null} - Transformed object expression or null if not found
  */
-const findAndTransformVariableDeclaration = (root, variableName, visited = new Set()) => {
-  // Prevent infinite loops from circular references
-  if (visited.has(variableName)) {
-    return null;
+const transformReferencedConfig = (root, referencePath, name, visited = new Set()) => {
+  const declaratorPath = findBindingDeclarator(root, referencePath, name);
+  if (!declaratorPath || visited.has(declaratorPath.value)) return null;
+  visited.add(declaratorPath.value);
+
+  const init = declaratorPath.value.init;
+  if (!init) return null;
+
+  if (init.type === 'ObjectExpression') {
+    // Content-Type is read before the headers are renamed, since the rename is to `header`
+    const contentType = getContentType(init);
+    transformHeaders(init);
+    transformBody(init, contentType);
+
+    return init;
   }
-  visited.add(variableName);
 
-  let transformedConfig = null;
+  // the variable references another variable — follow the chain from its own declaration
+  if (init.type === 'Identifier') {
+    return transformReferencedConfig(root, declaratorPath.get('init'), init.name, visited);
+  }
 
-  // Find the variable declaration
-  root.find(j.VariableDeclarator, {
-    id: { name: variableName }
-  }).forEach((declaratorPath) => {
-    const init = declaratorPath.value.init;
-
-    if (init && init.type === 'ObjectExpression') {
-      // Found the actual object expression - transform it in place
-      // Get Content-Type BEFORE transforming headers (since we rename headers to header)
-      const contentType = getContentType(init);
-      transformHeaders(init);
-      transformBody(init, contentType);
-
-      transformedConfig = init;
-    } else if (init && init.type === 'Identifier') {
-      // This variable references another variable - follow the chain
-      const referencedVariableName = init.name;
-      transformedConfig = findAndTransformVariableDeclaration(root, referencedVariableName, visited);
-    }
-  });
-
-  return transformedConfig;
+  return null;
 };
 
 /**
@@ -322,14 +341,10 @@ const bruSendRequestTransformer = (path) => {
     // Transform body
     transformBody(requestOptions, contentType);
   } else if (requestOptions.type === 'Identifier') {
-    // Handle case where requestOptions is a variable reference
-    const variableName = requestOptions.name;
-
-    // Find the root of the current file/program
+    // Resolve from the argument itself, so the reference's own scope decides the declaration
     const root = j(path).closest(j.Program);
 
-    // Find and transform the variable declaration
-    findAndTransformVariableDeclaration(root, variableName);
+    transformReferencedConfig(root, path.get('arguments', 0), requestOptions.name);
   }
 
   // Transform callback if present
@@ -340,6 +355,21 @@ const bruSendRequestTransformer = (path) => {
       transformedArgs.push(transformedCallback);
     } else {
       transformedArgs.push(callback);
+    }
+  }
+
+  /**
+   * A `.then` handler receives the same response the callback form does. Typing it here is what
+   * keeps the flat map from rewriting a handler's own parameter as though it were the global
+   * response — `res.status` inside a handler is the parameter, not `pm.response`.
+   */
+  const chainLinks = getPromiseChainLinks(path);
+  if (chainLinks.length) {
+    const chainBindings = collectChainBindings(j, chainLinks, THEN_SLOT_TYPES, BRUNO_REGISTRY);
+
+    // the outermost link contains every inner link and handler, so one pass covers the chain
+    if (chainBindings.length) {
+      rewriteMembers(j, j(chainLinks[chainLinks.length - 1].callPath), chainBindings, BRUNO_REGISTRY);
     }
   }
 

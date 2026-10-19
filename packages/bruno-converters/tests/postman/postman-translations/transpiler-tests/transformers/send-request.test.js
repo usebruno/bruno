@@ -742,6 +742,39 @@ describe('Send Request Translation', () => {
       `);
     });
 
+    it('leaves an unrelated declaration sharing the config name alone', () => {
+      const code = `
+        function buildHeaders() {
+            const requestConfig = { header: [{ key: 'X', value: '1' }] };
+            return requestConfig;
+        }
+        const requestConfig = { url: 'https://echo.usebruno.com', method: 'GET' };
+        pm.sendRequest(requestConfig);
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        function buildHeaders() {
+            const requestConfig = { header: [{ key: 'X', value: '1' }] };
+            return requestConfig;
+        }
+        const requestConfig = { url: 'https://echo.usebruno.com', method: 'GET' };
+        await bru.sendRequest(requestConfig);
+      `);
+    });
+
+    it('transforms the declaration the reference resolves to, not a shadowed one', () => {
+      const code = `
+        const requestConfig = { url: 'outer', header: [{ key: 'X', value: '1' }] };
+        function send() {
+            const requestConfig = { url: 'inner', header: [{ key: 'Y', value: '2' }] };
+            pm.sendRequest(requestConfig);
+        }
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toContain(`const requestConfig = { url: 'outer', header: [{ key: 'X', value: '1' }] };`);
+      expect(translatedCode).toContain(`"Y": '2'`);
+    });
+
     it('requestConfig passed as a variable with multi-level references', () => {
       const code = `
         const requestConfig = {

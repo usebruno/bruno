@@ -42,15 +42,15 @@ const countDeclarationsPerScope = (j, ast) => {
 };
 
 /**
- * Whether the binding is written to after its declaration, which makes what it holds
- * unknowable from the declaration alone.
+ * Whether the binding is written to anywhere in the given subtree, which makes what it holds
+ * unknowable from its declaration alone.
  *
  * @param {Object} j - jscodeshift API
- * @param {Object} ast - jscodeshift Collection
- * @param {Object} binding - { name, scopeNode, typeName }
+ * @param {Object} ast - jscodeshift Collection to search within
+ * @param {Object} binding - { name, scopeNode }
  * @returns {boolean}
  */
-const isReassigned = (j, ast, binding) => {
+export const isReassigned = (j, ast, binding) => {
   const isTarget = (path, node) =>
     node.type === 'Identifier' && node.name === binding.name && resolvesToBinding(path, binding);
 
