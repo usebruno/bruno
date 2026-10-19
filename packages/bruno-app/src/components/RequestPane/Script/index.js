@@ -128,7 +128,7 @@ const Script = ({ item, collection }) => {
               loading={Boolean(item.postResponseScriptRunning)}
               disabled={!canRerunPostResponseScript(item, responseScript)}
               onClick={onRerunPostResponse}
-              title="Run this script against the last response without sending the request again"
+              title="Run only this script against the last response, without sending the request again. Post-response vars, assertions and tests are not re-run."
               data-testid="rerun-post-response-script"
             >
               Run on last response

@@ -54,6 +54,13 @@ describe('buildScriptResponse', () => {
     expect(response.request).toEqual({ protocol: 'https:', host: 'api.example.com', path: '/v1/responses?stream=false' });
   });
 
+  test('still builds the response when the stored url cannot be parsed', () => {
+    const response = buildScriptResponse({ ...makeStoredResponse(), url: '{{host}}/relative' });
+
+    expect(response.request).toBeUndefined();
+    expect(response.status).toBe(200);
+  });
+
   test('tolerates a stored response without url or body bytes', () => {
     const response = buildScriptResponse({ ...makeStoredResponse(), url: undefined, dataBuffer: undefined });
 

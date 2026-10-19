@@ -735,6 +735,14 @@ export const rerunPostResponseScript = (item, collectionUid) => async (dispatch,
     if (error) {
       toast.error(error);
     }
+
+    // Events of a re-run carry the requestUid of the response it ran on; a send made meanwhile
+    // replaces that response and the renderer discards the re-run's results.
+    const currentCollection = findCollectionByUid(getState().collections.collections, collectionUid);
+    const currentItem = currentCollection && findItemInCollection(currentCollection, item.uid);
+    if (currentItem && currentItem.requestUid !== item.requestUid) {
+      toast.error('The request was sent again, so the post-response script result was discarded');
+    }
   } catch (err) {
     toast.error(err.message || 'Failed to run the post-response script');
   } finally {

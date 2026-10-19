@@ -18,10 +18,13 @@ const buildScriptResponse = (storedResponse) => {
     responseTime: duration
   };
 
-  if (url) {
-    // BrunoResponse derives `res.getUrl()` from the axios ClientRequest fields
+  // BrunoResponse derives `res.getUrl()` from the axios ClientRequest fields. A stored url that
+  // does not parse only costs `res.getUrl()`, it must not stop the script from running.
+  try {
     const { protocol, hostname, pathname, search } = new URL(url);
     response.request = { protocol, host: hostname, path: `${pathname}${search}` };
+  } catch (error) {
+    response.request = undefined;
   }
 
   return response;
