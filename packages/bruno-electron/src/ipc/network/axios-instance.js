@@ -241,7 +241,7 @@ function makeAxiosInstance({
 
     const requestedHttpVersion = resolveRequestedHttpVersion(config);
     if (canUseHttp2(requestedHttpVersion)) {
-      await applyHttp2Transport({ config, mode: requestedHttpVersion, agentOptions, timeline });
+      await applyHttp2Transport({ config, requestedHttpVersion, agentOptions, timeline });
     }
 
     // Node keep-alive agents add Connection; strip it on the ClientRequest.
