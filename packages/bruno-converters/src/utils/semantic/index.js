@@ -3,7 +3,7 @@ import derive from './derive';
 import { collectBindings, resolvesToBinding } from './type-environment';
 import rewriteMembers from './rewrite-members';
 import rewriteYields from './rewrite-yields';
-import { rewriteDestructuredDeclarations, rewritePattern } from './rewrite-patterns';
+import { rewriteDestructuredDeclarations } from './rewrite-patterns';
 import {
   PROMISE_CHAIN_METHODS,
   collectAllChainBindings,
@@ -58,8 +58,6 @@ export const applySemanticTypes = (j, ast, registry) => {
 };
 
 export {
-  rewriteMembers,
-  rewritePattern,
   resolvesToBinding,
   PROMISE_CHAIN_METHODS,
   getPromiseChainLinks

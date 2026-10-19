@@ -1,4 +1,4 @@
-import { getStaticPropertyName, isFunctionExpression } from './ast-utils';
+import { getStaticPropertyName, isFunctionExpression, resolveReferencedObject } from './ast-utils';
 import { PROMISE_CHAIN_METHODS, getPromiseChainLinks, resolvesToBinding } from './semantic';
 
 /**
@@ -190,68 +190,6 @@ const ensureAsyncContext = (j, path) => {
 };
 
 /**
- * The declarator an identifier reference resolves to, or null when it cannot be attributed to
- * exactly one.
- *
- * ast-types models function scope rather than block scope, so two declarations of one name in
- * nested blocks of the same function are indistinguishable — the same reason `collectBindings`
- * drops a name declared more than once in a scope.
- *
- * @param {Object} j - jscodeshift API
- * @param {Object} root - Collection of the enclosing Program
- * @param {Object} referencePath - Path of the reference to resolve
- * @param {string} name - Name being referenced
- * @returns {Object|null} Path of the declarator
- */
-const findBindingDeclarator = (j, root, referencePath, name) => {
-  const scope = referencePath.scope && referencePath.scope.lookup(name);
-  if (!scope) return null;
-
-  const declarators = root
-    .find(j.VariableDeclarator, { id: { name } })
-    .paths()
-    .filter((declaratorPath) => declaratorPath.scope.node === scope.node);
-
-  return declarators.length === 1 ? declarators[0] : null;
-};
-
-/**
- * Transform the request config a reference resolves to, following a chain of aliases.
- *
- * Only the declaration the reference actually resolves to is transformed: an unrelated object
- * sharing the name is left alone, and a shadowed outer declaration is not reached.
- *
- * @param {Object} j - jscodeshift API
- * @param {Object} root - Collection of the enclosing Program
- * @param {Object} referencePath - Path of the reference to the config
- * @param {string} name - Name being referenced
- * @param {Set} visited - Declarators already followed, to stop a circular chain
- * @returns {Object|null} - Transformed object expression or null if not found
- */
-const transformReferencedConfig = (j, root, referencePath, name, visited = new Set()) => {
-  const declaratorPath = findBindingDeclarator(j, root, referencePath, name);
-  if (!declaratorPath || visited.has(declaratorPath.value)) return null;
-  visited.add(declaratorPath.value);
-
-  const init = declaratorPath.value.init;
-  if (!init) return null;
-
-  if (init.type === 'ObjectExpression') {
-    transformHeaders(j, init);
-    transformBody(j, init);
-
-    return init;
-  }
-
-  // the variable references another variable — follow the chain from its own declaration
-  if (init.type === 'Identifier') {
-    return transformReferencedConfig(j, root, declaratorPath.get('init'), init.name, visited);
-  }
-
-  return null;
-};
-
-/**
  * Whether the call's result is bound to a name that is later used as a promise.
  *
  * `const p = pm.sendRequest(q); p.then(h)` must not become `const p = await bru.sendRequest(q)`:
@@ -303,8 +241,12 @@ const sendRequestTransformer = (path, j) => {
   } else if (requestOptions.type === 'Identifier') {
     // Resolve from the argument itself, so the reference's own scope decides the declaration
     const root = j(path).closest(j.Program);
+    const referencedConfig = resolveReferencedObject(root, callPath.get('arguments', 0), requestOptions.name);
 
-    transformReferencedConfig(j, root, callPath.get('arguments', 0), requestOptions.name);
+    if (referencedConfig) {
+      transformHeaders(j, referencedConfig);
+      transformBody(j, referencedConfig);
+    }
   }
 
   const callbackArg = args[1];

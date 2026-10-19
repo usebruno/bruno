@@ -1,5 +1,5 @@
 const j = require('jscodeshift');
-import { isFunctionExpression } from './ast-utils';
+import { isFunctionExpression, resolveReferencedObject } from './ast-utils';
 import { BRUNO_REGISTRY } from './semantic';
 
 // Which parameter of the callback carries the response, so a missing one is filled in the right
@@ -228,68 +228,6 @@ const transformCallback = (callbackPath) => {
 };
 
 /**
- * The declarator an identifier reference resolves to, or null when it cannot be attributed to
- * exactly one.
- *
- * ast-types models function scope rather than block scope, so two declarations of one name in
- * nested blocks of the same function are indistinguishable — the same reason `collectBindings`
- * drops a name declared more than once in a scope.
- *
- * @param {Object} root - Collection of the enclosing Program
- * @param {Object} referencePath - Path of the reference to resolve
- * @param {string} name - Name being referenced
- * @returns {Object|null} Path of the declarator
- */
-const findBindingDeclarator = (root, referencePath, name) => {
-  const scope = referencePath.scope && referencePath.scope.lookup(name);
-  if (!scope) return null;
-
-  const declarators = root
-    .find(j.VariableDeclarator, { id: { name } })
-    .paths()
-    .filter((declaratorPath) => declaratorPath.scope.node === scope.node);
-
-  return declarators.length === 1 ? declarators[0] : null;
-};
-
-/**
- * Transform the request config a reference resolves to, following a chain of aliases.
- *
- * Only the declaration the reference actually resolves to is transformed: an unrelated object
- * sharing the name is left alone, and a shadowed outer declaration is not reached.
- *
- * @param {Object} root - Collection of the enclosing Program
- * @param {Object} referencePath - Path of the reference to the config
- * @param {string} name - Name being referenced
- * @param {Set} visited - Declarators already followed, to stop a circular chain
- * @returns {Object|null} - Transformed object expression or null if not found
- */
-const transformReferencedConfig = (root, referencePath, name, visited = new Set()) => {
-  const declaratorPath = findBindingDeclarator(root, referencePath, name);
-  if (!declaratorPath || visited.has(declaratorPath.value)) return null;
-  visited.add(declaratorPath.value);
-
-  const init = declaratorPath.value.init;
-  if (!init) return null;
-
-  if (init.type === 'ObjectExpression') {
-    // Content-Type is read before the headers are renamed, since the rename is to `header`
-    const contentType = getContentType(init);
-    transformHeaders(init);
-    transformBody(init, contentType);
-
-    return init;
-  }
-
-  // the variable references another variable — follow the chain from its own declaration
-  if (init.type === 'Identifier') {
-    return transformReferencedConfig(root, declaratorPath.get('init'), init.name, visited);
-  }
-
-  return null;
-};
-
-/**
  * Build pm.sendRequest member expression
  * @returns {Object} - MemberExpression AST node
  */
@@ -331,8 +269,14 @@ const bruSendRequestTransformer = (path) => {
   } else if (requestOptions.type === 'Identifier') {
     // Resolve from the argument itself, so the reference's own scope decides the declaration
     const root = j(path).closest(j.Program);
+    const referencedConfig = resolveReferencedObject(root, path.get('arguments', 0), requestOptions.name);
 
-    transformReferencedConfig(root, path.get('arguments', 0), requestOptions.name);
+    if (referencedConfig) {
+      // Content-Type is read before the headers are renamed, since the rename is to `header`
+      const referencedContentType = getContentType(referencedConfig);
+      transformHeaders(referencedConfig);
+      transformBody(referencedConfig, referencedContentType);
+    }
   }
 
   // Transform callback if present

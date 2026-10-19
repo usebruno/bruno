@@ -183,17 +183,6 @@ const deriveMembers = (pair, { from, to, direction, sideKey, typePairs }) => {
 };
 
 /**
- * Builds a one-direction registry from the bidirectional correspondence table.
- *
- * The engine reads a registry, never the correspondence: each direction wants the names of
- * the side it is translating *from* as keys. Deriving both sides from one table is what
- * keeps them inverses — nothing here can produce a mapping the other direction lacks.
- *
- * @param {Object} correspondence - The table from correspondence.js
- * @param {'pm'|'bru'} from - Side being translated from
- * @returns {{producers: Object, params: Object, types: Object}}
- */
-/**
  * Rejects a slot that should name a type and does not. A producer and a handler parameter each
  * have only one side, so the vocabulary a member row uses to relate *two* of them cannot apply —
  * the object shape is shared for consistency, the vocabulary is not.
@@ -222,6 +211,17 @@ const validateEntryPoint = (entry, typePairs) => {
   });
 };
 
+/**
+ * Builds a one-direction registry from the bidirectional correspondence table.
+ *
+ * The engine reads a registry, never the correspondence: each direction wants the names of
+ * the side it is translating *from* as keys. Deriving both sides from one table is what
+ * keeps them inverses — nothing here can produce a mapping the other direction lacks.
+ *
+ * @param {Object} correspondence - The table from correspondence.js
+ * @param {'pm'|'bru'} from - Side being translated from
+ * @returns {{producers: Object, params: Object, types: Object}}
+ */
 const derive = (correspondence, from) => {
   const to = from === 'pm' ? 'bru' : 'pm';
   const sideKey = from === 'pm' ? 'postman' : 'bruno';

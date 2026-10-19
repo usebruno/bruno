@@ -122,7 +122,7 @@ const returnsParamUnchanged = (j, handlerPath) => {
  * @param {Object} registry - The API registry
  * @returns {Array<{name: string, scopeNode: Object, typeName: string}>}
  */
-export const collectHandlerBindings = (j, handlerPath, slotTypes, registry) => {
+const collectHandlerBindings = (j, handlerPath, slotTypes, registry) => {
   const handler = handlerPath.value;
   const bindings = [];
 
@@ -158,7 +158,7 @@ export const collectHandlerBindings = (j, handlerPath, slotTypes, registry) => {
  * @param {Object} registry - The API registry
  * @returns {Array<{name: string, scopeNode: Object, typeName: string}>}
  */
-export const collectChainBindings = (j, chainLinks, typeName, registry) => {
+const collectChainBindings = (j, chainLinks, typeName, registry) => {
   const bindings = [];
 
   for (const link of chainLinks) {
