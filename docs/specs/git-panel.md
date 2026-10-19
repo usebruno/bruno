@@ -61,7 +61,7 @@ Detalhes:
 
 - `git-status` combina `getCurrentGitBranch`, `getAheadBehindCount` e `getChangedFilesInCollectionGit`. Quando não há repositório, retorna `{ isRepo: false }` em vez de erro.
 - `git-commit` rejeita mensagem vazia ou só com espaços.
-- `git-push` usa `origin` e a branch atual. O remote fixo em `origin` é limitação conhecida da Fase 1.
+- `git-push` e `git-pull` usam só `origin` e a branch atual (decisão da seção 11).
 - `git-pull` aceita só `--no-rebase` ou `--ff-only` (já validado em `pullGitChanges`). Padrão: `--ff-only`.
 - Push e pull enviam progresso por `main:update-git-operation-progress` com o `processUid` recebido.
 
@@ -194,8 +194,13 @@ Em `tests/git/`, usando a skill `write-e2e-test`:
 4. `GitStatusButton` e `GitPanel`
 5. Testes E2E
 
-## 11. Questões em aberto
+## 11. Decisões
 
-- Painel lateral fixo ou modal?
-- Suportar remotes com nome diferente de `origin` já na Fase 1?
-- Quando a collection está dentro de um repositório maior, o commit deve conter só arquivos da collection (comportamento proposto) ou permitir arquivos de fora?
+| Questão | Decisão |
+| --- | --- |
+| Remote | Só `origin` na Fase 1. Sem `origin`, push e pull mostram "Nenhum remote configurado." |
+| Escopo do commit | Só arquivos da collection. Stage e unstage rejeitam caminhos fora dela, mesmo dentro de um repositório maior |
+
+## 12. Questões em aberto
+
+- Formato do painel: barra lateral à direita (como o `AiChatSidebar`), aba no painel principal (como Collection Settings) ou gaveta inferior (como o `Devtools`)? Proposta: barra lateral à direita.
