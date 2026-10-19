@@ -6,7 +6,6 @@ import { getRelativePath, getAbsoluteFilePath } from 'utils/common/path';
 import { browseDirectory } from 'utils/filesystem';
 import { loadGrpcMethodsFromProtoFile } from 'utils/network/index';
 import useLocalStorage from 'hooks/useLocalStorage/index';
-import { cloneDeep } from 'lodash';
 import get from 'lodash/get';
 
 /**
@@ -112,8 +111,7 @@ export default function useProtoFileManagement(collection) {
   const writeProtobufToDiskFromRequest = async (protobuf) => {
     const updatedProtobuf = { ...protobufConfig, ...protobuf };
 
-    const brunoConfig = cloneDeep(collection.brunoConfig);
-    brunoConfig.protobuf = updatedProtobuf;
+    const brunoConfig = { ...collection.brunoConfig, protobuf: updatedProtobuf };
     await dispatch(updateBrunoConfig(brunoConfig, collection.uid));
 
     if (collection.draft) {
