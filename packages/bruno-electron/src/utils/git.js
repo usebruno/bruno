@@ -10,6 +10,7 @@ let collectionPathToGitRootPathMap = new Map();
 const simpleGitInstances = new Map();
 
 const REMOTE_BRANCH_LISTING_TIMEOUT_MS = 10000;
+const GIT_NETWORK_TIMEOUT_MS = 60000;
 
 const getGitVersion = () => {
   return new Promise((resolve, reject) => {
@@ -30,6 +31,17 @@ const getSimpleGitInstanceForPath = (gitRootPath) => {
     simpleGitInstances.set(gitRootPath, git);
   }
   return git;
+};
+
+/*
+ * Push and pull get a fresh instance: the output handler they attach carries a processUid, and on the
+ * cached instance it would keep reporting progress for later, unrelated commands.
+ * GIT_TERMINAL_PROMPT=0 makes git fail instead of waiting for a credential prompt no one can answer,
+ * and the block timeout ends a command that stops producing output (a stalled network or SSH prompt).
+ */
+const createNetworkGitInstance = (gitRootPath) => {
+  return simpleGit({ baseDir: gitRootPath, timeout: { block: GIT_NETWORK_TIMEOUT_MS } })
+    .env({ ...process.env, GIT_TERMINAL_PROMPT: '0' });
 };
 
 const handleGitOutput = ({ win, processUid, sendStdout = false }) => (command, stdout, stderr) => {
@@ -244,6 +256,12 @@ const discardChanges = async (gitRootPath, filePaths) => {
       reject(gitStatusError);
     }
   });
+};
+
+const getStagedFilePaths = async (gitRootPath) => {
+  const git = getSimpleGitInstanceForPath(gitRootPath);
+  const output = await git.raw(['diff', '--cached', '--name-only', '-z']);
+  return output.split('\0').filter(Boolean);
 };
 
 const commitChanges = async (gitRootPath, message) => {
@@ -561,7 +579,7 @@ const canPush = async (gitRootPath) => {
 
 const pushGitChanges = async (win, { gitRootPath, processUid, remote, remoteBranch }) => {
   return new Promise(async (resolve, reject) => {
-    const git = getSimpleGitInstanceForPath(gitRootPath);
+    const git = createNetworkGitInstance(gitRootPath);
     git.outputHandler(handleGitOutput({ win, processUid, sendStdout: true }));
 
     try {
@@ -613,7 +631,7 @@ const pullGitChanges = async (win, data) => {
     throw new Error('Invalid strategy');
   }
   return new Promise((resolve, reject) => {
-    const git = getSimpleGitInstanceForPath(gitRootPath);
+    const git = createNetworkGitInstance(gitRootPath);
     git.outputHandler(handleGitOutput({ win, processUid, sendStdout: true })).pull(remote, remoteBranch, [strategy], (err, res) => {
       if (err) {
         reject(err);
@@ -627,7 +645,9 @@ const pullGitChanges = async (win, data) => {
 async function getChangedFilesInCollectionGit(_gitRootPath, _collectionPath) {
   return new Promise((resolve, reject) => {
     const git = getSimpleGitInstanceForPath(_gitRootPath);
-    git.status(['--porcelain', _gitRootPath], async (err, status) => {
+    // Scoped to the collection so a collection inside a larger repository lists only its own files;
+    // porcelain paths stay relative to the repository root.
+    git.status(['--', _collectionPath || _gitRootPath], async (err, status) => {
       if (err) {
         reject(err);
         return;
@@ -1813,6 +1833,7 @@ module.exports = {
   unstageChanges,
   discardChanges,
   commitChanges,
+  getStagedFilePaths,
   getChangedFilesInCollectionGit,
   getCollectionGitBranches,
   getDefaultGitBranch,
