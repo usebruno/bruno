@@ -13,7 +13,7 @@
     "build-storybook": "storybook build --config-dir storybook"
   },
   "dependencies": {
-    "@fontsource/inter": "^5.0.15",
+    "@fontsource/inter": "^5.3.0",
     "@popperjs/core": "^2.11.8",
     "@prantlf/jsonlint": "^16.0.0",
     "@reduxjs/toolkit": "^1.8.0",

@@ -3515,13 +3515,6 @@ export const indexActiveWorkspaceCollections = () => (dispatch, getState) => {
     .catch(() => {});
 };
 
-export const fetchCollectionTreeFromIndex
-  = ({ collectionPath, collectionName }) =>
-    async () => {
-      const { ipcRenderer } = window;
-      return ipcRenderer.invoke('renderer:search-index-tree', { collectionPath, collectionName });
-    };
-
 export const searchCollectionTreesFromIndex
   = (term, workspacePath, knownRevision, searchWindow) =>
     async () => {

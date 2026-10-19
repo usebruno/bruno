@@ -21,7 +21,8 @@ ON CONFLICT(collection_path, path) DO UPDATE SET
   error = excluded.error,
   workspace_path = COALESCE(excluded.workspace_path, search_index.workspace_path),
   mtime = excluded.mtime,
-  hash = excluded.hash;
+  hash = excluded.hash
+WHERE excluded.mtime >= COALESCE(search_index.mtime, 0);
 
 -- name: search_index_delete_entry :exec
 DELETE FROM search_index
@@ -126,7 +127,8 @@ ON CONFLICT(collection_path, path) DO UPDATE SET
   collection_name = COALESCE(@name, search_index.name),
   source_path = excluded.source_path,
   mtime = excluded.mtime,
-  hash = excluded.hash;
+  hash = excluded.hash
+WHERE @mtime IS NULL OR @mtime >= COALESCE(search_index.mtime, 0);
 
 -- name: search_index_apply_collection_name :exec
 UPDATE search_index
@@ -141,7 +143,8 @@ ON CONFLICT(collection_path, path) DO UPDATE SET
   seq = excluded.seq,
   source_path = excluded.source_path,
   mtime = excluded.mtime,
-  hash = excluded.hash;
+  hash = excluded.hash
+WHERE @mtime IS NULL OR @mtime >= COALESCE(search_index.mtime, 0);
 
 -- name: search_index_apply_folder_name :exec
 UPDATE search_index

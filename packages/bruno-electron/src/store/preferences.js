@@ -81,8 +81,7 @@ const defaultPreferences = {
       enabled: false
     },
     searchIndex: {
-      enabled: false,
-      twoPass: false
+      enabled: false
     }
   },
   ai: {
@@ -208,7 +207,6 @@ const preferencesSchema = Yup.object().shape({
     }),
     searchIndex: Yup.object({
       enabled: Yup.boolean(),
-      twoPass: Yup.boolean(),
       buildTrigger: Yup.string().oneOf(['on-search'])
     })
   }).optional(),
@@ -457,9 +455,6 @@ const preferencesUtil = {
   },
   isSearchIndexEnabled: () => {
     return get(getPreferences(), 'cache.searchIndex.enabled', false);
-  },
-  isTwoPassIndexingEnabled: () => {
-    return get(getPreferences(), 'cache.searchIndex.twoPass', false);
   },
   hasLaunchedBefore: () => {
     return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);

@@ -10,7 +10,6 @@ import {
 } from './formats/bru';
 import {
   parseYmlItem,
-  parseYmlItemMeta,
   parseYmlCollection,
   parseYmlFolder,
   parseYmlEnvironment,
@@ -40,13 +39,6 @@ export const parseRequest = (content: string, options: ParseOptions = { format: 
     return parseYmlItem(content);
   }
   throw new Error(`Unsupported format: ${options.format}`);
-};
-
-export const parseRequestMeta = (content: string, options: ParseOptions = { format: DEFAULT_COLLECTION_FORMAT }): any => {
-  if (options.format === 'yml') {
-    return parseYmlItemMeta(content);
-  }
-  return null;
 };
 
 export const parseRequestAndRedactBody = (content: string, options: ParseOptions = { format: 'bru' }): any => {

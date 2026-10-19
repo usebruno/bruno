@@ -44,30 +44,29 @@ const upsertSearchIndexEntry = (collectionPath, pathname, data, stamp) => {
   const registered = searchIndexByCollection.get(collectionPath);
   if (!registered) return;
   const requestPath = path.relative(collectionPath, pathname);
-  const isRequest = defaultClassify(requestPath)?.type === 'request';
   const { searchIndex, workspacePath, collectionName } = registered;
-  const { toRow, toMetaRow } = require('../services/search-index/indexer');
+  const { ingestParsedFile } = require('../services/search-index/ingest');
+  const fileIndex = fileIndexByCollection.get(collectionPath) ?? null;
   try {
-    // Without a file index (file cache OFF) nobody has taken the file's mtime/hash yet, so read them here
     const readStamp = () => stamp ?? {
       mtime: fs.statSync(pathname, { bigint: true }).mtimeNs,
       hash: hashFile(pathname)
     };
-
-    if (!isRequest) {
-      // collection and folder files carry the names and order the index keeps for them
-      const metaRow = toMetaRow(collectionPath, { relativePath: requestPath, data });
-      if (metaRow) searchIndex.upsertMeta({ ...metaRow, ...readStamp() });
-      return;
-    }
-
     const { mtime, hash } = readStamp();
-    searchIndex.upsert(toRow(
+    const changed = ingestParsedFile({
+      searchIndex,
+      fileIndex,
       collectionPath,
-      searchIndex.collectionNameFor(collectionPath) || collectionName,
-      { relativePath: requestPath, mtime, hash, data },
-      workspacePath
-    ));
+      collectionName: searchIndex.collectionNameFor(collectionPath) || collectionName,
+      workspacePath,
+      result: { relativePath: requestPath, mtime, hash, data }
+    });
+    if (changed) {
+      const { BrowserWindow } = require('electron');
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (!win.isDestroyed()) win.webContents.send('main:search-index-written');
+      }
+    }
   } catch (err) {
     console.error('[collection-watcher] search index update failed for', pathname, err);
   }
@@ -105,12 +104,17 @@ const removeSearchIndexFolder = (collectionPath, pathname) => {
   }
 };
 
-const removeFromSearchIndex = (collectionPath, pathname) => {
+const removeFromSearchIndexPath = (collectionPath, pathname) => {
   const registered = searchIndexByCollection.get(collectionPath);
   if (!registered) return;
   const relativePath = path.relative(collectionPath, pathname);
-  registered.searchIndex.remove(collectionPath, relativePath);
-  registered.searchIndex.removeMeta(collectionPath, relativePath);
+  const { removeFromSearchIndex } = require('../services/search-index/ingest');
+  if (removeFromSearchIndex({ searchIndex: registered.searchIndex, collectionPath, relativePath })) {
+    const { BrowserWindow } = require('electron');
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) win.webContents.send('main:search-index-written');
+    }
+  }
 };
 
 const stageToCache = (collectionPath, pathname, data) => {
@@ -134,7 +138,7 @@ const unstageFromCache = (collectionPath, pathname) => {
       console.error('[collection-watcher] cache unstage failed for', pathname, err);
     }
   }
-  removeFromSearchIndex(collectionPath, pathname);
+  removeFromSearchIndexPath(collectionPath, pathname);
 };
 
 const isBrunoConfigFile = (pathname, collectionPath) => {

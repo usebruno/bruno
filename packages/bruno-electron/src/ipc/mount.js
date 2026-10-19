@@ -14,11 +14,6 @@ const registerMountIpc = () => {
     return manager.searchIndex(term, options || {});
   });
 
-  ipcMain.handle('renderer:search-index-tree', (_, { collectionPath, collectionName }) => {
-    if (!collectionPath) return { items: [] };
-    return manager.getIndexTree({ collectionPath, collectionName });
-  });
-
   ipcMain.handle('renderer:search-index-trees', (_, term, workspacePath, knownRevision, searchWindow) => {
     if (!term || typeof term !== 'string') return {};
     return manager.searchIndexTrees(term, workspacePath, knownRevision, searchWindow || {});

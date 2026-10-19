@@ -3,14 +3,13 @@ import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import useDebounce from 'hooks/useDebounce';
 import useSearchIndexWrites from 'hooks/useSearchIndexWrites';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
-import { fetchCollectionTreeFromIndex, indexActiveWorkspaceCollections, searchCollectionTreesFromIndex } from 'providers/ReduxStore/slices/collections/actions';
+import { indexActiveWorkspaceCollections, searchCollectionTreesFromIndex } from 'providers/ReduxStore/slices/collections/actions';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
 import IndeterminateProgressBar from 'ui/IndeterminateProgressBar';
 import { buildIndexes, flattenSidebarTree } from 'utils/collections/flattenSidebarTree';
 import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
-import { formatDuration } from 'utils/common';
 import { normalizePath } from 'utils/common/path';
 import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
 import CollectionSearch from './CollectionSearch/index';
@@ -21,7 +20,6 @@ import StyledWrapper from './StyledWrapper';
 
 const SEARCH_DEBOUNCE_MS = 350;
 const SEARCH_PAGE_SIZE = 300;
-const SEARCH_TIMING_LABELS = ['1st', '2nd', '3rd', '4th', '5th'];
 
 const isEmptyQuery = (value) => typeof value === 'string' && value.trim() === '';
 
@@ -35,13 +33,13 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const { collections, collectionSortOrder, selectedSidebarUids } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const searchIndexBuilding = useSelector((state) => state.app.searchIndexBuilding);
+  const searchIndexStatus = useSelector((state) => state.app.searchIndexStatus);
   const searchIndexEnabled = useSelector((state) => state.app.preferences?.cache?.searchIndex?.enabled);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const dispatch = useDispatch();
   const virtuosoRef = useRef(null);
   const lastScrolledTabUidRef = useRef(null);
   const hasMountedForSearchRef = useRef(false);
-  const pendingTreeFetchUidsRef = useRef(new Set());
   const searchTextRef = useRef(searchText);
   searchTextRef.current = searchText;
   const activeWorkspacePathnameRef = useRef(null);
@@ -50,17 +48,12 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const wasSearchIndexBuildingRef = useRef(false);
   const lastQueriedTextRef = useRef('');
   const searchRequestIdRef = useRef(0);
-  const searchInFlightRef = useRef(false);
-  const searchRerunRef = useRef(false);
   const lastSearchResultRef = useRef(null);
-  const searchTermStartRef = useRef(null);
   const searchLimitRef = useRef(SEARCH_PAGE_SIZE);
   const searchCollectionPathsRef = useRef([]);
   const [searchCounts, setSearchCounts] = useState(null);
   const searchCountsRef = useRef(null);
   searchCountsRef.current = searchCounts;
-  const [searchTimings, setSearchTimings] = useState([]);
-
   const { openBulkMenu, menuProps } = useBulkActionsMenu();
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
@@ -81,7 +74,6 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   // A collection that isn't mounted yet has no `collection.items` - its structure lives only in
   // the search index until a real mount runs. Fetched on expand, keyed by uid, and merged into the
   // entry below rather than written to Redux: it's a read-only stand-in, not collection state.
-  const [indexTreesByUid, setIndexTreesByUid] = useState({});
   const [searchTreesByPath, setSearchTreesByPath] = useState({});
   const [isSearchIndexPending, setIsSearchIndexPending] = useState(false);
 
@@ -90,10 +82,6 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const runIndexSearch = useCallback(() => {
     const text = searchTextRef.current.trim();
     if (!text) return;
-    if (searchInFlightRef.current) {
-      searchRerunRef.current = true;
-      return;
-    }
     const limit = searchLimitRef.current;
     const queryKey = `${text}\n${limit}`;
     // Once the index is complete, repeating the same query would return the same rows
@@ -104,18 +92,11 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     const workspacePath = activeWorkspacePathnameRef.current;
     const lastResult = lastSearchResultRef.current;
     const knownRevision = lastResult && lastResult.key === queryKey && lastResult.workspacePath === workspacePath ? lastResult.revision : undefined;
-    searchInFlightRef.current = true;
     setIsSearchIndexPending(true);
     dispatch(searchCollectionTreesFromIndex(text, workspacePath, knownRevision, { limit, collectionPaths: searchCollectionPathsRef.current }))
       .then((result) => {
         if (requestId !== searchRequestIdRef.current) return;
-        const { trees, revision, unchanged, total, loaded, indexing } = result || {};
-        const termStart = searchTermStartRef.current;
-        if (termStart && !termStart.logged && termStart.text === text && (loaded > 0 || !indexing)) {
-          termStart.logged = true;
-          const elapsed = performance.now() - termStart.startedAt;
-          setSearchTimings((prev) => (prev.length < SEARCH_TIMING_LABELS.length ? [...prev, elapsed] : prev));
-        }
+        const { trees, revision, unchanged, total, loaded } = result || {};
         if (unchanged) return;
         lastSearchResultRef.current = { key: queryKey, workspacePath, revision };
         setSearchCounts(total === undefined ? null : { total, loaded });
@@ -126,16 +107,12 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         setSearchTreesByPath(byPath);
       })
       .catch(() => {
+        if (requestId !== searchRequestIdRef.current) return;
         lastSearchResultRef.current = null;
-        if (requestId === searchRequestIdRef.current) setSearchTreesByPath({});
+        setSearchTreesByPath({});
       })
       .finally(() => {
-        searchInFlightRef.current = false;
         if (requestId === searchRequestIdRef.current && !searchIndexBuildingRef.current) setIsSearchIndexPending(false);
-        if (searchRerunRef.current) {
-          searchRerunRef.current = false;
-          runIndexSearch();
-        }
       });
   }, [dispatch]);
 
@@ -143,38 +120,14 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
 
   const loadMoreSearchResults = () => {
     const counts = searchCountsRef.current;
-    if (!searchTextRef.current.trim() || !counts || counts.loaded >= counts.total || searchInFlightRef.current) return;
+    if (!searchTextRef.current.trim() || !counts || counts.loaded >= counts.total) return;
     searchLimitRef.current += SEARCH_PAGE_SIZE;
     runIndexSearch();
   };
 
   useEffect(() => {
-    const toFetch = sidebarEntries.filter((entry) =>
-      entry.kind === 'loaded'
-      && entry.collection.mountStatus !== 'mounted'
-      && !entry.collection.collapsed
-      && !(entry.collection.uid in indexTreesByUid)
-      && !pendingTreeFetchUidsRef.current.has(entry.collection.uid));
-
-    toFetch.forEach((entry) => {
-      const { collection } = entry;
-      pendingTreeFetchUidsRef.current.add(collection.uid);
-      dispatch(fetchCollectionTreeFromIndex({
-        collectionPath: collection.pathname,
-        collectionName: collection.name
-      }))
-        .then(({ items }) => {
-          pendingTreeFetchUidsRef.current.delete(collection.uid);
-          setIndexTreesByUid((prev) => ({ ...prev, [collection.uid]: items }));
-        })
-        .catch(() => {
-          pendingTreeFetchUidsRef.current.delete(collection.uid);
-          setIndexTreesByUid((prev) => ({ ...prev, [collection.uid]: [] }));
-        });
-    });
-
     const stopSearchIndexRefresh = () => {
-      searchRerunRef.current = false;
+      searchRequestIdRef.current += 1;
       lastQueriedTextRef.current = '';
       lastSearchResultRef.current = null;
       wasSearchIndexBuildingRef.current = false;
@@ -209,16 +162,14 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
 
     if (searchIndexBuilding) setIsSearchIndexPending(true);
     runIndexSearch();
-  }, [sidebarEntries, indexTreesByUid, searchText, dispatch, searchIndexEnabled, searchIndexBuilding, runIndexSearch]);
+  }, [sidebarEntries, searchText, dispatch, searchIndexEnabled, searchIndexBuilding, runIndexSearch]);
 
-  // A mounted collection keeps its Redux items (filtered in memory below); an unmounted one gets its items
-  // from the search index - its browse tree, or the matches of the current search.
   const renderedSidebarEntries = useMemo(() => sidebarEntries.map((entry) => {
     if (entry.kind !== 'loaded' || entry.collection.mountStatus === 'mounted') return entry;
-    const items = indexTreesByUid[entry.collection.uid] || searchTreesByPath[normalizePath(entry.collection.pathname)];
+    const items = searchTreesByPath[normalizePath(entry.collection.pathname)];
     if (!items) return entry;
     return { ...entry, collection: { ...entry.collection, items } };
-  }), [sidebarEntries, indexTreesByUid, searchTreesByPath]);
+  }), [sidebarEntries, searchTreesByPath]);
 
   const { rows, itemsByUid, collectionsByUid } = useMemo(
     () => flattenSidebarTree(renderedSidebarEntries, { searchText: debouncedSearchText, collapsedUids: searchCollapsedUids }),
@@ -240,13 +191,12 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const updateSearchText = (text) => {
     const trimmed = text.trim();
     if (!trimmed) {
-      searchTermStartRef.current = null;
-      setSearchTimings([]);
       setSearchCounts(null);
-    } else if (trimmed !== searchTextRef.current.trim()) {
-      searchTermStartRef.current = { text: trimmed, startedAt: performance.now(), logged: false };
     }
-    if (trimmed !== searchTextRef.current.trim()) searchLimitRef.current = SEARCH_PAGE_SIZE;
+    if (trimmed !== searchTextRef.current.trim()) {
+      searchLimitRef.current = SEARCH_PAGE_SIZE;
+      searchRequestIdRef.current += 1;
+    }
     setSearchText(text);
     if (!trimmed) {
       setSearchCollapsedUids(new Set());
@@ -254,7 +204,14 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   };
 
   const isSearchPending = trimmedSearchText !== debouncedSearchText || isSearchIndexPending;
-  const showIndexingText = searchIndexBuilding && isSearchPending;
+  const showIndexingProgress = Boolean(trimmedSearchText && searchIndexBuilding && searchIndexStatus?.total > 0);
+  const indexingCollectionNumber = searchIndexStatus?.total > 0
+    ? Math.min((searchIndexStatus.completed ?? 0) + 1, searchIndexStatus.total)
+    : null;
+  const indexingProgressValue = searchIndexStatus?.total > 0
+    ? (searchIndexStatus.completed ?? 0) / searchIndexStatus.total
+    : 0;
+  const showQueryPendingText = Boolean(trimmedSearchText && isSearchPending && !searchIndexBuilding);
 
   // Ghost rows carry only path/name. GitRemoteCollectionRow needs the full entry (for `remote`).
   const ghostsByPath = useMemo(() => {
@@ -338,19 +295,19 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         <CollectionSearch searchText={searchText} setSearchText={updateSearchText} />
       )}
 
-      {showSearch && showIndexingText && (
-        <div className="search-index-status" data-testid="sidebar-indexing-status">Indexing…</div>
+      {showSearch && showIndexingProgress && (
+        <div className="search-index-status" data-testid="sidebar-indexing-status">
+          {`Indexing collection ${indexingCollectionNumber} of ${searchIndexStatus.total}…`}
+        </div>
       )}
-      {showSearch && (
+      {showSearch && showQueryPendingText && (
+        <div className="search-index-status" data-testid="sidebar-search-pending">Searching…</div>
+      )}
+      {showSearch && showIndexingProgress && (
         <IndeterminateProgressBar
-          active={isSearchPending || searchIndexBuilding}
+          value={indexingProgressValue}
           data-testid="sidebar-progress"
         />
-      )}
-      {trimmedSearchText && searchTimings.length > 0 && (
-        <div className="search-timings" data-testid="sidebar-search-timings">
-          {searchTimings.map((ms, index) => `${SEARCH_TIMING_LABELS[index]} ${formatDuration(ms)}`).join(' · ')}
-        </div>
       )}
       {/* {trimmedSearchText && searchCounts && searchCounts.loaded < searchCounts.total && (
         <div className="search-more-hint" data-testid="sidebar-search-more">

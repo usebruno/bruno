@@ -1,0 +1,17 @@
+{
+  "lastOpenedCollections": [
+    "{{collectionPath1}}",
+    "{{collectionPath2}}",
+    "{{collectionPath3}}"
+  ],
+  "preferences": {
+    "cache": {
+      "file": {
+        "enabled": false
+      },
+      "searchIndex": {
+        "enabled": true
+      }
+    }
+  }
+}

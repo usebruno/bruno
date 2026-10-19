@@ -6,8 +6,9 @@ const { buildTree } = require('./tree-builder');
 const { defaultClassify, uidForSeed } = require('../../utils/mount');
 const { getWsClient } = require('../../ipc/network/ws-event-handlers');
 const { SearchIndex } = require('../search-index');
-const { toRow, toMetaRow, withParentFolders } = require('../search-index/indexer');
-const { indexCollection, getWrittenBatches, shutdownIndexer } = require('../search-index/client');
+const { withParentFolders } = require('../search-index/indexer');
+const { indexCollection } = require('../search-index/indexer');
+const { ingestParsedFile, ingestCachedFile, removeFromSearchIndex } = require('../search-index/ingest');
 const { preferencesUtil } = require('../../store/preferences');
 
 // cold start only — collection-watcher handles live changes and writes through to the cache
@@ -74,8 +75,8 @@ class MountManager {
   #index = null;
   #searchIndex = null;
   #mounts = new Map();
-  #activeIndexingCount = 0;
-  #checksInFlight = 0;
+  /** @type {{ workspacePath: string, completed: number, total: number, promise: Promise<void> } | null} */
+  #activeBatch = null;
 
   async mount({ win, collectionPath, collectionUid, brunoConfig, emit, workspacePath }) {
     collectionPath = path.resolve(collectionPath);
@@ -149,7 +150,6 @@ class MountManager {
     await Promise.all(
       Array.from(this.#mounts.keys()).map((uid) => this.unmount(uid).catch(() => {}))
     );
-    await shutdownIndexer();
     await destroyPool({ force }).catch(() => {});
     // both indexes run on the shared database, which the sqlite service closes
     this.#index = null;
@@ -181,8 +181,8 @@ class MountManager {
 
   async searchIndexTrees(term, workspacePath, knownRevision, { limit, collectionPaths } = {}) {
     const searchIndex = this.#getSearchIndex();
-    const revision = searchIndex.revision + getWrittenBatches();
-    const indexing = this.#activeIndexingCount > 0 || this.#checksInFlight > 0;
+    const revision = searchIndex.revision;
+    const indexing = this.getIndexingStatus().isIndexing;
     if (knownRevision === revision) return { revision, unchanged: true, indexing };
 
     let matches = [];
@@ -213,68 +213,37 @@ class MountManager {
     return { revision, trees, total, loaded: matches.length, indexing };
   }
 
-  async getIndexTree({ collectionPath, collectionName }) {
-    const root = path.resolve(collectionPath);
-    await this.indexCollectionInBackground({ collectionPath: root, collectionName }).catch(() => {});
-    const rows = this.#getSearchIndex().rowsForCollection(root);
-    return { items: this.#buildTreeFromIndexRows(root, rows) };
-  }
-
   async indexCollectionInBackground({ collectionPath, collectionName, workspacePath }) {
     if (!preferencesUtil.isSearchIndexEnabled()) return;
     const root = path.resolve(collectionPath);
     if (this.#isMounted(root)) return;
     const resolvedWorkspacePath = await this.#resolveWorkspacePath(root, workspacePath);
-    const twoPass = this.#isTwoPass();
-    await this.#withIndexingSession((onWork) => indexCollection({
-      collectionPath: root,
-      collectionName,
-      workspacePath: resolvedWorkspacePath,
-      fileIndex: this.#getIndex(),
-      mode: twoPass ? 'quick' : 'complete',
-      onWork,
-      onWrite: () => this.#broadcast('main:search-index-written')
-    }));
-    if (twoPass) {
-      this.#fillCollection({ root, collectionName, workspacePath: resolvedWorkspacePath });
-    }
+    await this.indexManyCollectionsInBackground(
+      [{ path: root, name: collectionName }],
+      resolvedWorkspacePath
+    );
   }
 
   #isMounted(root) {
     return Array.from(this.#mounts.values()).some((entry) => entry.collectionPath === root);
   }
 
-  #isTwoPass() {
-    return Boolean(this.#getIndex()) && preferencesUtil.isTwoPassIndexingEnabled();
-  }
-
-  #fillCollection({ root, collectionName, workspacePath }) {
-    return indexCollection({
-      collectionPath: root,
-      collectionName,
-      workspacePath,
-      fileIndex: this.#getIndex(),
-      mode: 'fill',
-      shouldStop: () => this.#isMounted(root)
-    }).catch(() => {});
-  }
-
   async indexManyCollectionsInBackground(collections, workspacePath) {
-    this.#checksInFlight += 1;
-    try {
-      await this.#indexManyCollections(collections, workspacePath);
-    } finally {
-      this.#checksInFlight -= 1;
+    const resolvedWorkspace = workspacePath ? path.resolve(workspacePath) : '';
+    if (this.#activeBatch?.workspacePath === resolvedWorkspace && this.#activeBatch.promise) {
+      return this.#activeBatch.promise;
     }
+    if (this.#activeBatch?.promise) {
+      await this.#activeBatch.promise.catch(() => {});
+    }
+    return this.#indexManyCollections(collections, workspacePath);
   }
 
   async #indexManyCollections(collections, workspacePath) {
     if (!preferencesUtil.isSearchIndexEnabled()) return;
     const fileIndex = this.#getIndex();
-    const twoPass = this.#isTwoPass();
-    const sessionStart = performance.now();
-    let didWork = false;
-    const priorPaths = new Set(this.#getSearchIndex().collectionPaths());
+    const searchIndex = this.#getSearchIndex();
+    const priorPaths = new Set(searchIndex.collectionPaths());
     const resolved = collections.map(({ path: collectionPath, name: collectionName }) => ({
       root: path.resolve(collectionPath),
       collectionName
@@ -286,36 +255,44 @@ class MountManager {
       ...resolved.filter((c) => !isFast(c))
     ];
 
-    await this.#withIndexingSession(async (sessionOnWork) => {
-      const onWork = () => {
-        didWork = true;
-        sessionOnWork();
-      };
-      for (const { root, collectionName } of ordered) {
-        await indexCollection({
-          collectionPath: root,
-          collectionName,
-          workspacePath,
-          fileIndex,
-          mode: twoPass ? 'quick' : 'complete',
-          onWork,
-          onWrite: () => this.#broadcast('main:search-index-written')
-        }).catch(() => {});
+    const resolvedWorkspace = workspacePath ? path.resolve(workspacePath) : '';
+    const total = ordered.length;
+    const batch = { workspacePath: resolvedWorkspace, completed: 0, total, promise: null };
+    const runPromise = (async () => {
+      this.#activeBatch = batch;
+      this.#broadcastIndexingStatus();
+      try {
+        for (const { root, collectionName } of ordered) {
+          await indexCollection(searchIndex, {
+            collectionPath: root,
+            collectionName,
+            workspacePath,
+            fileIndex,
+            onWrite: () => this.#broadcast('main:search-index-written')
+          }).catch(() => {});
+          if (this.#activeBatch !== batch) return;
+          batch.completed += 1;
+          this.#broadcastIndexingStatus();
+        }
+      } finally {
+        if (this.#activeBatch === batch) {
+          this.#activeBatch = null;
+          this.#broadcastIndexingStatus();
+        }
       }
-    });
-    if (!twoPass) return;
-    // if (didWork) console.log(`[search-index] SEARCH READY after ${(performance.now() - sessionStart).toFixed(0)} ms (pass 1 over ${ordered.length} collections)`);
-
-    for (const { root, collectionName } of ordered) {
-      if (this.#isMounted(root)) continue;
-      await this.#fillCollection({ root, collectionName, workspacePath });
-    }
-    // if (didWork) console.log(`[search-index] ALL PASSES DONE after ${(performance.now() - sessionStart).toFixed(0)} ms (pass 1 + pass 2)`);
+    })();
+    batch.promise = runPromise;
+    return runPromise;
   }
 
   getIndexingStatus() {
+    if (!this.#activeBatch) {
+      return { isIndexing: false, completed: 0, total: 0 };
+    }
     return {
-      isIndexing: this.#activeIndexingCount > 0
+      isIndexing: true,
+      completed: this.#activeBatch.completed,
+      total: this.#activeBatch.total
     };
   }
 
@@ -386,57 +363,46 @@ class MountManager {
 
     if (indexOptions.searchIndex) {
       try {
-        this.#syncSearchIndex(entry, parsed, indexOptions);
+        this.#ingestReconcile(entry, parsed, removed, indexOptions);
       } catch (err) {
-        console.error(`[mount] search index sync failed for ${entry.collectionPath}`, err);
+        console.error(`[mount] search index ingest failed for ${entry.collectionPath}`, err);
       }
     }
   }
 
-  // Brings the collection's search rows in line with what was just reconciled, reusing the
-  // parse results and cached entries so nothing is parsed a second time for search.
-  #syncSearchIndex(entry, parsed, { searchIndex, workspacePathname }) {
+  #ingestReconcile(entry, parsed, removed, { searchIndex, workspacePathname, fileIndex }) {
     const root = entry.collectionPath;
     const collectionName = searchIndex.collectionNameFor(root) || entry.brunoConfig?.name || path.basename(root);
-    const stored = searchIndex.entriesFor(root);
-    const storedMeta = searchIndex.metaEntriesFor(root);
-    const rewriteErrors = this.#isTwoPass();
+    const ctx = {
+      searchIndex,
+      fileIndex: fileIndex ?? null,
+      collectionPath: root,
+      collectionName,
+      workspacePath: workspacePathname
+    };
+    let changed = false;
 
-    searchIndex.transaction(() => {
-      for (const [relativePath, cached] of entry.state) {
-        const isRequest = defaultClassify(relativePath)?.type === 'request';
-        const source = parsed.get(relativePath) ?? cached;
-        if (source.mtime === undefined) continue;
-        // a request that failed to parse still gets a row with the error; a naming file that failed has nothing to give
-        if (source.error && !isRequest) continue;
+    for (const e of removed) {
+      if (removeFromSearchIndex({ searchIndex, collectionPath: root, relativePath: e.relativePath })) changed = true;
+    }
 
-        const prior = (isRequest ? stored : storedMeta).get(relativePath);
-        if (prior && !(rewriteErrors && source.error) && prior.mtime === source.mtime && prior.hash === source.hash) continue;
+    for (const [relativePath, source] of parsed) {
+      if (ingestParsedFile({ ...ctx, result: source })) changed = true;
+    }
 
-        const file = { relativePath, mtime: source.mtime, hash: source.hash, data: source.data, error: source.error };
-        if (isRequest) {
-          searchIndex.upsert(toRow(root, collectionName, file, workspacePathname));
-        } else {
-          // collection and folder files carry the names and order the index keeps for them
-          const metaRow = toMetaRow(root, file);
-          if (metaRow) searchIndex.upsertMeta(metaRow);
-        }
-      }
-      for (const relativePath of stored.keys()) {
-        if (!entry.state.has(relativePath)) searchIndex.remove(root, relativePath);
-      }
-      for (const relativePath of storedMeta.keys()) {
-        if (!entry.state.has(relativePath)) searchIndex.removeMeta(root, relativePath);
-      }
+    for (const [relativePath, cached] of entry.state) {
+      if (parsed.has(relativePath)) continue;
+      if (ingestCachedFile(ctx, relativePath, cached)) changed = true;
+    }
 
-      // Folders of the files that were read. Empty folders are not visible here; the watcher and the index run add them.
-      searchIndex.addFolders({
-        collectionPath: root,
-        collectionName,
-        workspacePath: workspacePathname,
-        folderPaths: withParentFolders([...entry.state.keys()].map((relativePath) => path.dirname(relativePath)).filter((dir) => dir !== '.'))
-      });
+    searchIndex.addFolders({
+      collectionPath: root,
+      collectionName,
+      workspacePath: workspacePathname,
+      folderPaths: withParentFolders([...entry.state.keys()].map((relativePath) => path.dirname(relativePath)).filter((dir) => dir !== '.'))
     });
+
+    if (changed) this.#broadcast('main:search-index-written');
   }
 
   // The search index rows go through the same tree builder as a mounted collection: each row stands in for a
@@ -493,32 +459,6 @@ class MountManager {
     if (workspacePath) return path.resolve(workspacePath);
     const { findWorkspacePathForCollection } = require('../../utils/workspace-collections');
     return findWorkspacePathForCollection(collectionPath).catch(() => null);
-  }
-
-  // The "indexing" state starts when a run finds something to read or write, not when it starts looking. Every search
-  // session checks all collections for outside changes; when nothing changed there is no indexing to show.
-  async #withIndexingSession(run) {
-    let working = false;
-    const onWork = () => {
-      if (working) return;
-      working = true;
-      this.#beginIndexingSession();
-    };
-    try {
-      return await run(onWork);
-    } finally {
-      if (working) this.#endIndexingSession();
-    }
-  }
-
-  #beginIndexingSession() {
-    this.#activeIndexingCount++;
-    if (this.#activeIndexingCount === 1) this.#broadcastIndexingStatus();
-  }
-
-  #endIndexingSession() {
-    this.#activeIndexingCount--;
-    if (this.#activeIndexingCount === 0) this.#broadcastIndexingStatus();
   }
 
   #broadcastIndexingStatus() {

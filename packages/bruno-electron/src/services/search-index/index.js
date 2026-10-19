@@ -17,9 +17,11 @@ class SearchIndex {
     return getStatements().execute(name, params);
   }
 
-  #write(name, params) {
-    this.#revision += 1;
-    return this.#execute(name, params);
+  #mutate(name, params) {
+    const result = this.#execute(name, params);
+    const changes = typeof result?.changes === 'number' ? result.changes : 1;
+    if (changes > 0) this.#revision += 1;
+    return changes > 0;
   }
 
   upsert(entry) {
@@ -40,7 +42,7 @@ class SearchIndex {
       hash
     } = entry;
 
-    this.#write('search_index_upsert_entry', {
+    return this.#mutate('search_index_upsert_entry', {
       collection_path: collectionPath,
       collection_name: collectionName,
       folder_path: folderPath ?? null,
@@ -59,7 +61,7 @@ class SearchIndex {
   }
 
   remove(collectionPath, requestPath) {
-    this.#write('search_index_delete_entry', { collection_path: collectionPath, request_path: requestPath });
+    return this.#mutate('search_index_delete_entry', { collection_path: collectionPath, request_path: requestPath });
   }
 
   collectionNameFor(collectionPath) {
@@ -74,26 +76,24 @@ class SearchIndex {
 
   upsertMeta({ collectionPath, relativePath, entity, folderPath, name, seq, mtime, hash }) {
     if (entity === 'folder') {
-      this.#nameFolder({ collectionPath, folderPath, name, seq, sourcePath: relativePath, mtime, hash });
-      return;
+      return this.#nameFolder({ collectionPath, folderPath, name, seq, sourcePath: relativePath, mtime, hash });
     }
-    this.#nameCollection({ collectionPath, name, sourcePath: relativePath, mtime, hash });
+    return this.#nameCollection({ collectionPath, name, sourcePath: relativePath, mtime, hash });
   }
 
   removeMeta(collectionPath, relativePath) {
-    if (!NAMING_TYPES.has(defaultClassify(relativePath)?.type)) return;
+    if (!NAMING_TYPES.has(defaultClassify(relativePath)?.type)) return false;
     const owner = this.#execute('search_index_naming_owner', { collection_path: collectionPath, source_path: relativePath });
-    if (!owner) return;
+    if (!owner) return false;
     if (owner.entity === 'folder') {
-      this.#nameFolder({ collectionPath, folderPath: owner.path, name: null, seq: null, sourcePath: null, mtime: null, hash: null });
-      return;
+      return this.#nameFolder({ collectionPath, folderPath: owner.path, name: null, seq: null, sourcePath: null, mtime: null, hash: null });
     }
-    this.#write('search_index_clear_naming', { collection_path: collectionPath, source_path: relativePath });
+    return this.#mutate('search_index_clear_naming', { collection_path: collectionPath, source_path: relativePath });
   }
 
   #nameFolder({ collectionPath, folderPath, name, seq, sourcePath, mtime, hash }) {
     const folderName = name || path.basename(folderPath);
-    this.#write('search_index_name_folder', {
+    let changed = this.#mutate('search_index_name_folder', {
       collection_path: collectionPath,
       folder_path: folderPath,
       folder_name: folderName,
@@ -103,22 +103,23 @@ class SearchIndex {
       mtime: mtime ?? null,
       hash: hash ?? null
     });
-    this.#write('search_index_apply_folder_name', {
+    changed = this.#mutate('search_index_apply_folder_name', {
       collection_path: collectionPath,
       folder_path: folderPath,
       folder_name: folderName
-    });
+    }) || changed;
+    return changed;
   }
 
   #nameCollection({ collectionPath, name, sourcePath, mtime, hash }) {
     const sourceType = defaultClassify(sourcePath)?.type;
-    if (sourceType === 'collection' && !name) return;
+    if (sourceType === 'collection' && !name) return false;
     const current = this.#execute('search_index_collection_source', { collection_path: collectionPath });
     const currentIsCollectionFile = current?.sourcePath && defaultClassify(current.sourcePath)?.type === 'collection';
-    if (sourceType === 'config' && currentIsCollectionFile && current.sourcePath !== sourcePath) return;
+    if (sourceType === 'config' && currentIsCollectionFile && current.sourcePath !== sourcePath) return false;
 
     const before = this.collectionNameFor(collectionPath);
-    this.#write('search_index_name_collection', {
+    let changed = this.#mutate('search_index_name_collection', {
       collection_path: collectionPath,
       name: name || null,
       fallback_name: path.basename(collectionPath),
@@ -128,8 +129,9 @@ class SearchIndex {
     });
     const after = this.collectionNameFor(collectionPath);
     if (after !== before) {
-      this.#write('search_index_apply_collection_name', { collection_path: collectionPath, collection_name: after });
+      changed = this.#mutate('search_index_apply_collection_name', { collection_path: collectionPath, collection_name: after }) || changed;
     }
+    return changed;
   }
 
   foldersFor(collectionPath) {
@@ -139,18 +141,18 @@ class SearchIndex {
   // Adds the folders (and keeps their names/workspace current); never removes any
   addFolders({ collectionPath, collectionName, workspacePath, folderPaths }) {
     const before = this.collectionNameFor(collectionPath);
-    this.#write('search_index_upsert_collection', {
+    this.#mutate('search_index_upsert_collection', {
       collection_path: collectionPath,
       collection_name: collectionName,
       workspace_path: workspacePath ?? null
     });
     const resolvedName = this.collectionNameFor(collectionPath);
     if (before !== null && resolvedName !== before) {
-      this.#write('search_index_apply_collection_name', { collection_path: collectionPath, collection_name: resolvedName });
+      this.#mutate('search_index_apply_collection_name', { collection_path: collectionPath, collection_name: resolvedName });
     }
 
     for (const folderPath of folderPaths) {
-      this.#write('search_index_upsert_folder', {
+      this.#mutate('search_index_upsert_folder', {
         collection_path: collectionPath,
         collection_name: resolvedName,
         folder_path: folderPath,
@@ -168,7 +170,7 @@ class SearchIndex {
       const stored = this.#execute('search_index_folder_paths', { collection_path: collectionPath });
       for (const { folderPath } of stored) {
         if (!wanted.has(folderPath)) {
-          this.#write('search_index_delete_folder', { collection_path: collectionPath, folder_path: folderPath });
+          this.#mutate('search_index_delete_folder', { collection_path: collectionPath, folder_path: folderPath });
         }
       }
     });
@@ -177,7 +179,7 @@ class SearchIndex {
   // Removes a folder and everything under it
   removeFolderTree(collectionPath, folderPath) {
     const prefix = `${folderPath}${path.sep}`;
-    this.#write('search_index_delete_folder_tree', {
+    this.#mutate('search_index_delete_folder_tree', {
       collection_path: collectionPath,
       folder_path: folderPath,
       prefix_length: prefix.length,
@@ -230,11 +232,11 @@ class SearchIndex {
   }
 
   clear() {
-    this.#write('search_index_clear');
+    this.#mutate('search_index_clear');
   }
 
   clearCollection(collectionPath) {
-    this.#write('search_index_clear_collection', { collection_path: collectionPath });
+    this.#mutate('search_index_clear_collection', { collection_path: collectionPath });
   }
 
   transaction(callback) {

@@ -1,9 +1,6 @@
 import { expect, type ElectronApplication, type Page } from '@playwright/test';
 import { buildCommonLocators } from '../../utils/page';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
 
-const FIRST_RESULT_LABEL = '1st';
 const POLL_MS = 25;
 const INDEXING_TIMEOUT_MS = 40 * 60_000;
 const MOUNT_TIMEOUT_MS = 10 * 60_000;
@@ -12,26 +9,11 @@ const PERSISTED_COLLECTIONS_TIMEOUT_MS = 5_000;
 const IMPORTED_COLLECTIONS_TIMEOUT_MS = 5 * 60_000;
 const SCAN_TIMEOUT_MS = 5 * 60_000;
 const UI_ACTION_TIMEOUT_MS = 60_000;
-const SIDEBAR_COMPONENT = path.join(process.cwd(), 'packages', 'bruno-app', 'src', 'components', 'Sidebar', 'Collections', 'index.js');
-
 export const buildSidebarSearchLocators = (page: Page) => ({
   openSearch: page.getByTitle('Search requests'),
   input: page.getByTestId('sidebar-search-input'),
-  timings: page.getByTestId('sidebar-search-timings'),
   firstCollection: page.locator('#sidebar-collection-name').first()
 });
-
-export const assertSearchTimingsAreRendered = () => {
-  const source = fs.readFileSync(SIDEBAR_COMPONENT, 'utf-8');
-  const at = source.indexOf('data-testid="sidebar-search-timings"');
-  if (at === -1) {
-    throw new Error(`The sidebar search timing line (data-testid="sidebar-search-timings") is missing from ${SIDEBAR_COMPONENT}`);
-  }
-  const before = source.slice(0, at);
-  if (before.lastIndexOf('{/*') > before.lastIndexOf('*/}')) {
-    throw new Error(`The sidebar search timing line is commented out in ${SIDEBAR_COMPONENT}; the benchmark reads its first-result time from it`);
-  }
-};
 
 const listedCollectionCount = (page: Page) => page.locator('#sidebar-collection-name').count();
 
@@ -70,7 +52,12 @@ export const installProbes = async (page: Page) => {
     const bench: any = { indexing: [], loader: [], mountDoneAt: null };
     (window as any).__bench = bench;
     (window as any).ipcRenderer.on('main:search-index-status', (status: any) => {
-      bench.indexing.push({ t: Date.now(), isIndexing: !!(status && status.isIndexing) });
+      bench.indexing.push({
+        t: Date.now(),
+        isIndexing: !!(status && status.isIndexing),
+        completed: status?.completed ?? 0,
+        total: status?.total ?? 0
+      });
     });
     let loaderVisible = false;
     const checkLoader = () => {
@@ -90,7 +77,8 @@ export const waitForIndexingIdle = async (page: Page, { quietPolls = 3, quietPol
   while (Date.now() - started < timeoutMs) {
     const status = await page.evaluate(() => (window as any).ipcRenderer.invoke('renderer:get-search-index-status')).catch(() => ({ isIndexing: true }));
     const seen = await page.evaluate(() => (window as any).__bench.indexing.some((e: any) => e.isIndexing)).catch(() => false);
-    quiet = status.isIndexing ? 0 : quiet + 1;
+    const indexing = status.isIndexing || (status.total > 0 && status.completed < status.total);
+    quiet = indexing ? 0 : quiet + 1;
     if (quiet >= (seen ? quietPolls : quietPollsWhenNeverIndexing)) return;
     await page.waitForTimeout(1000);
   }
@@ -119,25 +107,25 @@ export const mountFirstCollection = async (page: Page) => {
   return mountDoneAt - started;
 };
 
-const parseDurationMs = (text: string) => {
-  const match = text.match(/^\s*1st\s+([\d.]+)\s*(ms|s)\b/);
-  if (!match) throw new Error(`Could not read the first-result time from the sidebar timing line: "${text}"`);
-  return Number(match[1]) * (match[2] === 's' ? 1000 : 1);
+const waitForFirstSearchHit = async (page: Page, term: string) => {
+  const needle = term.toLowerCase();
+  await page.waitForFunction((searchTerm) => {
+    const rows = document.querySelectorAll('[data-testid="sidebar-collection-item-row"]');
+    if (!rows.length) return false;
+    const lower = String(searchTerm).toLowerCase();
+    return [...rows].some((row) => row.textContent?.toLowerCase().includes(lower));
+  }, needle, { timeout: FIRST_RESULT_TIMEOUT_MS, polling: POLL_MS });
 };
 
 export const searchFor = async (page: Page, term: string) => {
-  const { openSearch, input, timings } = buildSidebarSearchLocators(page);
+  const { openSearch, input } = buildSidebarSearchLocators(page);
   await openSearch.click({ timeout: UI_ACTION_TIMEOUT_MS });
 
   const startedAt = Date.now();
   await input.fill(term, { timeout: UI_ACTION_TIMEOUT_MS });
-  await page.waitForFunction(
-    (label) => document.querySelector('[data-testid="sidebar-search-timings"]')?.textContent?.includes(`${label} `),
-    FIRST_RESULT_LABEL,
-    { timeout: FIRST_RESULT_TIMEOUT_MS, polling: POLL_MS }
-  );
+  await waitForFirstSearchHit(page, term);
+  const firstResultMs = Date.now() - startedAt;
   const labelShownAt = Date.now();
-  const firstResultMs = parseDurationMs((await timings.textContent()) ?? '');
 
   await waitForIndexingIdle(page);
 

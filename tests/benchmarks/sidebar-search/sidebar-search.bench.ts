@@ -1,7 +1,6 @@
 import { test, expect, closeElectronApp, waitForReadyPage } from '../../../playwright';
 import { version } from '../../../packages/bruno-app/package.json';
 import {
-  assertSearchTimingsAreRendered,
   importCollections,
   installProbes,
   mountFirstCollection,
@@ -39,12 +38,17 @@ const collectionSetFor = (sizeKb: number) => {
   return { setDir, count: dirs.length };
 };
 
+const FILE_CACHE_ENABLED = process.env.BENCH_FILE_CACHE !== 'off';
+
 const writePreferences = (userDataPath: string) => {
   fs.writeFileSync(path.join(userDataPath, 'preferences.json'), JSON.stringify({
     preferences: {
       onboarding: { hasLaunchedBefore: true, hasSeenWelcomeModal: true, lastSeenVersion: version },
       ai: { enabled: false },
-      cache: { file: { enabled: true }, searchIndex: { enabled: true } }
+      cache: {
+        file: { enabled: FILE_CACHE_ENABLED },
+        searchIndex: { enabled: true }
+      }
     }
   }, null, 2));
 };
@@ -62,12 +66,8 @@ test.describe('Benchmark: Sidebar Search', () => {
 
   const results: SizeResult[] = [];
 
-  test.beforeAll(() => {
-    assertSearchTimingsAreRendered();
-  });
-
   for (const sizeKb of SIZES_KB) {
-    test(`sidebar search on ${sizeKb}KB collections`, async ({ launchElectronApp, createTmpDir }) => {
+    test(`sidebar search on ${sizeKb}KB collections (file cache ${FILE_CACHE_ENABLED ? 'on' : 'off'})`, async ({ launchElectronApp, createTmpDir }) => {
       test.setTimeout(120 * 60_000);
 
       const collectionSet = collectionSetFor(sizeKb);

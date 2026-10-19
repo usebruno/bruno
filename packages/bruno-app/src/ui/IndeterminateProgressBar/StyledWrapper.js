@@ -12,14 +12,16 @@ const StyledWrapper = styled.div`
     top: 0;
     left: 0;
     height: 100%;
-    width: 30%;
-    background: linear-gradient(
+    width: ${(props) => (props.$determinate ? `${(props.$progress ?? 0) * 100}%` : '30%')};
+    background: ${(props) => (props.$determinate
+      ? props.theme.colors.accent
+      : `linear-gradient(
       90deg,
       transparent,
-      ${(props) => props.theme.textLink},
+      ${props.theme.textLink},
       transparent
-    );
-    animation: sweep 1.15s ease-in-out infinite;
+    )`)};
+    animation: ${(props) => (props.$determinate ? 'none' : 'sweep 1.15s ease-in-out infinite')};
   }
 
   @keyframes sweep {
@@ -33,9 +35,9 @@ const StyledWrapper = styled.div`
 
   @media (prefers-reduced-motion: reduce) {
     .bar {
-      width: 100%;
+      width: ${(props) => (props.$determinate ? `${(props.$progress ?? 0) * 100}%` : '100%')};
       animation: none;
-      opacity: 0.35;
+      opacity: ${(props) => (props.$determinate ? 1 : 0.35)};
     }
   }
 `;

@@ -20,7 +20,6 @@ const Wrapper = styled.div`
   }
 
   .search-index-status,
-  .search-timings,
   .search-more-hint {
     font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.colors.text.muted};

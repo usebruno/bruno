@@ -20,9 +20,6 @@ const Cache = () => {
   const fileCacheEnabled = get(preferences, 'cache.file.enabled', false);
   const sslSessionEnabled = get(preferences, 'cache.sslSession.enabled', false);
   const searchIndexEnabled = get(preferences, 'cache.searchIndex.enabled', false);
-  const twoPassEnabled = get(preferences, 'cache.searchIndex.twoPass', false);
-  const twoPassAvailable = searchIndexEnabled && fileCacheEnabled;
-
   const { size: fileCacheSize, clear: clearFileCache } = useFileCache();
   const { size: searchIndexSize, building: searchIndexBuilding, clear: clearSearchIndex } = useSearchIndex();
 
@@ -43,14 +40,6 @@ const Cache = () => {
     persist({
       ...preferences.cache,
       searchIndex: { ...preferences.cache?.searchIndex, enabled: !searchIndexEnabled }
-    });
-  };
-
-  const handleToggleTwoPass = () => {
-    if (!twoPassAvailable) return;
-    persist({
-      ...preferences.cache,
-      searchIndex: { ...preferences.cache?.searchIndex, twoPass: !twoPassEnabled }
     });
   };
 
@@ -159,29 +148,6 @@ const Cache = () => {
           >
             <IconEraser size={16} strokeWidth={1.5} />
           </ActionIcon>
-        </div>
-        <div className={`cache-item-option ${twoPassAvailable ? '' : 'disabled'}`}>
-          <div className="cache-item-option-header">
-            <span className="cache-item-option-title">Two-pass indexing</span>
-            <ToggleSwitch
-              data-testid="cache.searchIndex.twoPass"
-              isOn={twoPassEnabled && twoPassAvailable}
-              handleToggle={handleToggleTwoPass}
-              size="2xs"
-              activeColor={theme.primary.solid}
-            />
-          </div>
-          <p className="cache-item-description">
-            Makes search usable sooner. Pass 1 reads only each request's name, method and URL, so search results are
-            ready quickly. Pass 2 then parses the full files in the background to fill the file cache and mark files
-            with errors. The whole run takes about as long as one full pass. A file with an error can show its error
-            mark a little after search is ready.
-          </p>
-          {!twoPassAvailable && (
-            <p className="cache-item-note">
-              Turn on {searchIndexEnabled ? 'File cache' : fileCacheEnabled ? 'Search index' : 'File cache and Search index'} to use this.
-            </p>
-          )}
         </div>
       </div>
 
