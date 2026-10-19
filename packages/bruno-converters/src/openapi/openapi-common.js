@@ -327,8 +327,9 @@ export const buildXmlBody = (rawBodySchema) => generateFromRoot(rawBodySchema, (
   const rootName = bodySchema.xml?.name || 'root';
 
   // Build a single XML element
-  const buildElement = (name, rawProp, value, indent = '  ') => {
-    if (value === undefined && !isExampleCopy(rawProp)) countValue(visited);
+  const buildElement = (name, rawProp, givenValue, indent = '  ') => {
+    const value = givenValue === undefined && isExampleCopy(rawProp) ? rawProp.example : givenValue;
+    if (value === undefined) countValue(visited);
     return withResolvedSchema(rawProp || {}, visited, (resolved) => {
       const prop = resolved || {};
       const xmlName = prop.xml?.name || name;

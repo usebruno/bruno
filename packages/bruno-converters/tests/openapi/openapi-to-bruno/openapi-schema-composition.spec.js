@@ -858,6 +858,20 @@ describe('openapi schema composition', () => {
       expect(responseExample(buildSpec({ schemas, paths: getWithResponse(schema) }))).toEqual(body);
     });
 
+    it('writes an example that allOf spreads into properties as the XML value, instead of building the linked models', () => {
+      const links = Object.fromEntries(Array.from({ length: 6 }, (_, j) => [`m${j}`, ref(`M${j}`)]));
+      const example = Object.fromEntries(Array.from({ length: 6 }, (_, j) => [`m${j}`, {}]));
+      const schemas = { Extra: { type: 'object', properties: { tag: { type: 'string' } } } };
+      for (let i = 0; i < 6; i += 1) {
+        schemas[`B${i}`] = { type: 'object', properties: links, example };
+        schemas[`M${i}`] = { allOf: [ref(`B${i}`), ref('Extra')] };
+      }
+      const schema = { type: 'object', properties: { root: ref('M0') } };
+      expect(requestBody(buildSpec({ schemas, paths: postBody(schema) }))).toEqual({ root: { ...example, tag: '' } });
+      const xml = firstRequest(buildSpec({ schemas, paths: postBody(schema, 'application/xml') })).request.body.xml;
+      expect(xml.match(/<m\d+>/g)).toHaveLength(6);
+    });
+
     it('fills every sibling that uses the same schema, in JSON, XML and arrays', () => {
       const schemas = {
         Address: { type: 'object', properties: { street: { type: 'string' }, city: { type: 'string' } } },
