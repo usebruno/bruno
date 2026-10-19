@@ -273,12 +273,18 @@ export const runCollection = async (page: Page, collectionName: string) => {
   });
 };
 
+export const openRunnerResult = async (page: Page, requestName: string) => {
+  await test.step(`Open the "${requestName}" runner result`, async () => {
+    const result = buildRunnerLocators(page).resultItems().filter({ hasText: requestName });
+    await result.first().waitFor({ state: 'visible', timeout: 10000 });
+    await result.locator('.link').first().click();
+  });
+};
+
 export const openRunnerResultTimeline = async (page: Page, requestName: string) => {
   await test.step(`Open the "${requestName}" runner result on its Timeline tab`, async () => {
     const locators = buildRunnerLocators(page);
-    const result = locators.resultItems().filter({ hasText: requestName });
-    await result.first().waitFor({ state: 'visible', timeout: 10000 });
-    await result.locator('.link').first().click();
+    await openRunnerResult(page, requestName);
 
     const timelineTab = page.locator('[role="tab"]').filter({ hasText: 'Timeline' }).last();
     await timelineTab.click();

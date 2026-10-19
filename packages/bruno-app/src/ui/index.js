@@ -4,6 +4,7 @@
 export { default as ActionIcon } from './ActionIcon';
 export { default as Button } from './Button';
 export { default as Checkbox } from './Checkbox';
+export { default as ContextMenu } from './ContextMenu';
 export { default as CountBadge } from './CountBadge';
 export { default as ErrorBanner } from './ErrorBanner';
 export { default as HeightBoundContainer } from './HeightBoundContainer';
