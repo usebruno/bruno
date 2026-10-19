@@ -87,7 +87,7 @@ import {
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, restoreTabs, reopenLastClosedTab } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, restoreTabs, reopenLastClosedTab, setSidebarRevealRequest } from 'providers/ReduxStore/slices/tabs';
 import { clearOpenApiSyncTabState } from 'providers/ReduxStore/slices/openapi-sync';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
@@ -3728,14 +3728,12 @@ export const scanForBrunoFiles = (dir) => (dispatch, getState) => {
 export const revealItemInSidebar = ({ collectionUid, itemUid, expandTarget = false }) => (dispatch, getState) => {
   const collection = findCollectionByUid(getState().collections.collections, collectionUid);
   if (!collection) {
-    return SIDEBAR_REVEAL_STATUS.SKIPPED;
+    return true;
   }
 
   const item = findItemInCollection(collection, itemUid);
   if (!item) {
-    return collection.mountStatus === 'mounted' && !collection.isLoading
-      ? SIDEBAR_REVEAL_STATUS.SKIPPED
-      : SIDEBAR_REVEAL_STATUS.PENDING;
+    return collection.mountStatus === 'mounted' && !collection.isLoading;
   }
 
   if (collection.collapsed) {
@@ -3751,22 +3749,28 @@ export const revealItemInSidebar = ({ collectionUid, itemUid, expandTarget = fal
     }
   });
 
-  return SIDEBAR_REVEAL_STATUS.REVEALED;
+  return true;
 };
 
 export const revealTabInSidebar = (tabUid) => (dispatch, getState) => {
   const tab = getState().tabs.tabs.find((t) => t.uid === tabUid);
   if (!tab?.collectionUid) {
-    return SIDEBAR_REVEAL_STATUS.SKIPPED;
+    return true;
   }
 
   const isExampleTab = tab.type === 'response-example';
 
-  return dispatch(revealItemInSidebar({
+  const isRevealSettled = dispatch(revealItemInSidebar({
     collectionUid: tab.collectionUid,
     itemUid: isExampleTab ? tab.itemUid : tab.uid,
     expandTarget: isExampleTab
   }));
+
+  if (isRevealSettled) {
+    dispatch(setSidebarRevealRequest({ uid: tabUid, requestedAt: Date.now() }));
+  }
+
+  return isRevealSettled;
 };
 
 /**

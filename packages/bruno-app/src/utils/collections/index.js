@@ -1485,16 +1485,21 @@ export const maskInputValue = (value) => {
     .join('');
 };
 
+const collectTreePath = (items, targetUid, path) => {
+  for (const item of items) {
+    path.push(item);
+    if (item.uid === targetUid) return true;
+    if (item.items && collectTreePath(item.items, targetUid, path)) return true;
+    path.pop();
+  }
+  return false;
+};
+
 export const getTreePathFromCollectionToItem = (collection, _item) => {
   if (!_item?.uid) return [];
 
-  let path = [];
-  let item = findItemInCollection(collection, _item?.uid);
-  while (item) {
-    path.unshift(item);
-    item = findParentItemInCollection(collection, item?.uid);
-  }
-  return path;
+  const path = [];
+  return collectTreePath(collection?.items || [], _item.uid, path) ? path : [];
 };
 
 const mergeVars = (collection, requestTreePath = []) => {
