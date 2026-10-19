@@ -5,8 +5,8 @@ import {
   findUsedGlobalEnvironmentVariableUids,
   findOverridingVariableScope,
   findUsedVarsRowUids,
-  removeUnknownVariableBraces,
   replaceVariableReferences,
+  replaceWithVariableValues,
   resolveSensitiveVariable,
   scopedSensitiveWarning,
   SENSITIVE_FIELD_WARNING
@@ -122,6 +122,17 @@ describe('classifySensitiveValue', () => {
       warningMessage: SENSITIVE_FIELD_WARNING.MARK_AS_SECRET,
       scope: 'environment',
       variableName: 'token'
+    });
+  });
+
+  it('warns about the plain value when plaintext surrounds a collection variable', () => {
+    const collection = buildCollection({ collectionVars: [plain('prefix', 'sk_live_')] });
+
+    expect(classifySensitiveValue('{{prefix}}abc12', { collection })).toEqual({
+      showWarning: true,
+      warningMessage: SENSITIVE_FIELD_WARNING.USED_AS_PLAIN_TEXT,
+      scope: 'plaintext',
+      variableName: null
     });
   });
 
@@ -744,22 +755,15 @@ describe('replaceVariableReferences', () => {
   });
 });
 
-describe('removeUnknownVariableBraces', () => {
-  const collection = buildCollection({
-    environments: [environment('env-dev', 'Dev', [plain('prefix', 'sk_live_')])],
-    activeEnvironmentUid: 'env-dev'
+describe('replaceWithVariableValues', () => {
+  const collection = buildCollection({ collectionVars: [plain('prefix', 'sk_live_')] });
+
+  it('replaces a known variable with its value and keeps the plain text', () => {
+    expect(replaceWithVariableValues('{{prefix}}abc12', { collection })).toBe('sk_live_abc12');
   });
 
-  it('keeps the braces around a variable that exists', () => {
-    expect(removeUnknownVariableBraces('{{prefix}}abc12', { collection })).toBe('{{prefix}}abc12');
-  });
-
-  it('removes the braces around a variable that does not exist', () => {
-    expect(removeUnknownVariableBraces('{{missing}}abc12', { collection })).toBe('missingabc12');
-  });
-
-  it('keeps the braces around a known mock variable', () => {
-    expect(removeUnknownVariableBraces('{{$randomUUID}}', { collection })).toBe('{{$randomUUID}}');
+  it('keeps the braces around an unknown variable', () => {
+    expect(replaceWithVariableValues('{{missing}}abc12', { collection })).toBe('{{missing}}abc12');
   });
 });
 

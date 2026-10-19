@@ -70,7 +70,7 @@ const BasicAuth = ({ collection }) => {
           isSecret={true}
           isCompact
         />
-        {showWarning && <SensitiveFieldWarning fieldName="basic-password" warningMessage={warningMessage} scope={scope} variableName={variableName} value={basicAuth?.password} collection={collection} onReplaceValue={(val) => handlePasswordChange(val)} />}
+        {showWarning && <SensitiveFieldWarning fieldName="basic-password" secretName="password" warningMessage={warningMessage} scope={scope} variableName={variableName} value={basicAuth?.password} collection={collection} onReplaceValue={(val) => handlePasswordChange(val)} />}
       </div>
     </StyledWrapper>
   );

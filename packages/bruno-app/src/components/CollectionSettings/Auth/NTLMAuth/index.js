@@ -87,7 +87,7 @@ const NTLMAuth = ({ collection }) => {
           isSecret={true}
           isCompact
         />
-        {showWarning && <SensitiveFieldWarning fieldName="ntlm-password" warningMessage={warningMessage} scope={scope} variableName={variableName} value={ntlmAuth?.password} collection={collection} onReplaceValue={(val) => handlePasswordChange(val)} />}
+        {showWarning && <SensitiveFieldWarning fieldName="ntlm-password" secretName="password" warningMessage={warningMessage} scope={scope} variableName={variableName} value={ntlmAuth?.password} collection={collection} onReplaceValue={(val) => handlePasswordChange(val)} />}
       </div>
 
       <label className="block mb-1">Domain</label>

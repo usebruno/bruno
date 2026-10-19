@@ -85,7 +85,7 @@ const ApiKeyAuth = ({ collection }) => {
           isCompact
         />
         {apiKeyValueSensitive.showWarning && (
-          <SensitiveFieldWarning fieldName="apikey-value" warningMessage={apiKeyValueSensitive.warningMessage} scope={apiKeyValueSensitive.scope} variableName={apiKeyValueSensitive.variableName} value={apikeyAuth.value} collection={collection} onReplaceValue={(val) => handleAuthChange('value', val)} />
+          <SensitiveFieldWarning fieldName="apikey-value" secretName="value" warningMessage={apiKeyValueSensitive.warningMessage} scope={apiKeyValueSensitive.scope} variableName={apiKeyValueSensitive.variableName} value={apikeyAuth.value} collection={collection} onReplaceValue={(val) => handleAuthChange('value', val)} />
         )}
       </div>
 

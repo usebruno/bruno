@@ -164,7 +164,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           isCompact
         />
 
-        {showWarning && <SensitiveFieldWarning fieldName="awsv4-secret-access-key" warningMessage={warningMessage} scope={scope} variableName={variableName} value={awsv4Auth?.secretAccessKey} collection={collection} item={item} disabled={disabled} onReplaceValue={(val) => handleSecretAccessKeyChange(val)} />}
+        {showWarning && <SensitiveFieldWarning fieldName="awsv4-secret-access-key" secretName="secretAccessKey" warningMessage={warningMessage} scope={scope} variableName={variableName} value={awsv4Auth?.secretAccessKey} collection={collection} item={item} disabled={disabled} onReplaceValue={(val) => handleSecretAccessKeyChange(val)} />}
       </div>
 
       <label className="block mb-1">Session Token</label>
@@ -182,7 +182,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           isCompact
         />
         {sessionTokenSensitive.showWarning && (
-          <SensitiveFieldWarning fieldName="awsv4-session-token" warningMessage={sessionTokenSensitive.warningMessage} scope={sessionTokenSensitive.scope} variableName={sessionTokenSensitive.variableName} value={awsv4Auth?.sessionToken} collection={collection} item={item} disabled={disabled} onReplaceValue={(val) => handleSessionTokenChange(val)} />
+          <SensitiveFieldWarning fieldName="awsv4-session-token" secretName="sessionToken" warningMessage={sessionTokenSensitive.warningMessage} scope={sessionTokenSensitive.scope} variableName={sessionTokenSensitive.variableName} value={awsv4Auth?.sessionToken} collection={collection} item={item} disabled={disabled} onReplaceValue={(val) => handleSessionTokenChange(val)} />
         )}
       </div>
 

@@ -12,7 +12,13 @@ import {
 import useCloseOnEscape from 'hooks/useCloseOnEscape';
 import { getActiveEnvironmentUidForScope } from 'utils/collections';
 import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
-import { findOverridingVariableScope, replaceVariableReferences, resolveFieldScope, resolveSensitiveVariable } from 'utils/sensitive-fields';
+import {
+  findOverridingVariableScope,
+  replaceVariableReferences,
+  replaceWithVariableValues,
+  resolveFieldScope,
+  resolveSensitiveVariable
+} from 'utils/sensitive-fields';
 import SecretVariableForm from './SecretVariableForm';
 import WarningTooltip from './WarningTooltip';
 import StyledWrapper from './StyledWrapper';
@@ -83,6 +89,7 @@ const saveRequestFolderOrCollection = (collectionUid, item) => (
 
 const SensitiveFieldWarning = ({
   fieldName,
+  secretName = '',
   warningMessage,
   scope,
   variableName,
@@ -137,7 +144,7 @@ const SensitiveFieldWarning = ({
   const handleAction = (event) => {
     event.stopPropagation();
     if (scope === 'plaintext') {
-      setForm({ name: '', value });
+      setForm({ name: secretName, value: replaceWithVariableValues(value, { collection, item }) });
       return;
     }
     if (MOVE_SCOPES.includes(scope)) {

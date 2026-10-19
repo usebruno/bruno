@@ -70,7 +70,7 @@ const WsseAuth = ({ collection }) => {
           isSecret={true}
           isCompact
         />
-        {showWarning && <SensitiveFieldWarning fieldName="wsse-password" warningMessage={warningMessage} scope={scope} variableName={variableName} value={wsseAuth?.password} collection={collection} onReplaceValue={(val) => handlePasswordChange(val)} />}
+        {showWarning && <SensitiveFieldWarning fieldName="wsse-password" secretName="password" warningMessage={warningMessage} scope={scope} variableName={variableName} value={wsseAuth?.password} collection={collection} onReplaceValue={(val) => handlePasswordChange(val)} />}
       </div>
     </StyledWrapper>
   );

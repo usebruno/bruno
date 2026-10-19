@@ -133,7 +133,7 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ collection }) => {
             isCompact
           />
           {showWarning && (
-            <SensitiveFieldWarning fieldName={`edgegrid-${key}`} warningMessage={warningMessage} scope={scope} variableName={variableName} value={rawValue} collection={collection} onReplaceValue={(val: string) => handleFieldChange(key, val)} />
+            <SensitiveFieldWarning fieldName={`edgegrid-${key}`} secretName={key} warningMessage={warningMessage} scope={scope} variableName={variableName} value={rawValue} collection={collection} onReplaceValue={(val: string) => handleFieldChange(key, val)} />
           )}
         </div>
       </div>

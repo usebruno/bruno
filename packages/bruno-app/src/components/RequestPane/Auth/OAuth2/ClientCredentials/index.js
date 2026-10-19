@@ -106,7 +106,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
                 readOnly={disabled}
                 isCompact
               />
-              {isSecret && showWarning && <SensitiveFieldWarning fieldName={key} warningMessage={warningMessage} scope={warningScope} variableName={variableName} value={value} collection={collection} item={item} disabled={disabled} onReplaceValue={(val) => handleChange(key, val)} />}
+              {isSecret && showWarning && <SensitiveFieldWarning fieldName={key} secretName={key} warningMessage={warningMessage} scope={warningScope} variableName={variableName} value={value} collection={collection} item={item} disabled={disabled} onReplaceValue={(val) => handleChange(key, val)} />}
             </div>
           </div>
         );

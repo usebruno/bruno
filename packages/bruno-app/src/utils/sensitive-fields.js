@@ -115,6 +115,11 @@ export const resolveSensitiveVariable = (variableName, { collection, item, scope
   return mapScopeInfoToResolved(scopeInfo);
 };
 
+/** Replaces each {{name}} with its saved variable's value. Unknown names keep their braces. */
+export const replaceWithVariableValues = (value, context) => (
+  replaceVariableReferences(value, (name, match) => resolveSensitiveVariable(name, context)?.variable.value ?? match)
+);
+
 /** Lookup order of variable scopes; earlier wins. */
 const SCOPE_PRIORITY = ['request', 'folder', 'environment', 'collection', 'global'];
 
@@ -142,6 +147,7 @@ export const classifySensitiveValue = (value, context = {}) => {
   }
 
   const variableNames = extractSensitiveVarNames(value);
+  const hasPlaintext = variableNames.length === 0 || hasPlaintextOutsideVariables(value);
 
   for (const variableName of variableNames) {
     const resolved = resolveSensitiveVariable(variableName, context);
@@ -153,10 +159,12 @@ export const classifySensitiveValue = (value, context = {}) => {
       return createWarning(resolved.type, variableName, SENSITIVE_FIELD_WARNING.MARK_AS_SECRET);
     }
 
-    return createWarning(resolved.type, variableName, scopedSensitiveWarning(variableName, resolved.type));
+    if (!hasPlaintext) {
+      return createWarning(resolved.type, variableName, scopedSensitiveWarning(variableName, resolved.type));
+    }
   }
 
-  if (variableNames.length === 0 || hasPlaintextOutsideVariables(value)) {
+  if (hasPlaintext) {
     return createWarning('plaintext', null, SENSITIVE_FIELD_WARNING.USED_AS_PLAIN_TEXT);
   }
 

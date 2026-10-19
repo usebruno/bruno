@@ -443,7 +443,7 @@ const ClientCertSettings = ({ collection }) => {
                     isSecret={true}
                     variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
                   />
-                  {showWarning && <SensitiveFieldWarning fieldName="basic-password" warningMessage={warningMessage} scope={scope} variableName={variableName} value={formik.values.passphrase} collection={collection} onReplaceValue={(val) => formik.setFieldValue('passphrase', val)} />}
+                  {showWarning && <SensitiveFieldWarning fieldName="basic-password" secretName="passphrase" warningMessage={warningMessage} scope={scope} variableName={variableName} value={formik.values.passphrase} collection={collection} onReplaceValue={(val) => formik.setFieldValue('passphrase', val)} />}
                 </div>
                 {formik.touched.passphrase && formik.errors.passphrase ? (
                   <div className="text-red-500 text-xs">{formik.errors.passphrase}</div>

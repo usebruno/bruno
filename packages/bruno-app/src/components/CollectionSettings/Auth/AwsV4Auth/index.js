@@ -147,7 +147,7 @@ const AwsV4Auth = ({ collection }) => {
           isSecret={true}
           isCompact
         />
-        {showWarning && <SensitiveFieldWarning fieldName="awsv4-secret-access-key" warningMessage={warningMessage} scope={scope} variableName={variableName} value={awsv4Auth?.secretAccessKey} collection={collection} onReplaceValue={(val) => handleSecretAccessKeyChange(val)} />}
+        {showWarning && <SensitiveFieldWarning fieldName="awsv4-secret-access-key" secretName="secretAccessKey" warningMessage={warningMessage} scope={scope} variableName={variableName} value={awsv4Auth?.secretAccessKey} collection={collection} onReplaceValue={(val) => handleSecretAccessKeyChange(val)} />}
       </div>
 
       <label className="block mb-1">Session Token</label>
@@ -162,7 +162,7 @@ const AwsV4Auth = ({ collection }) => {
           isCompact
         />
         {sessionTokenSensitive.showWarning && (
-          <SensitiveFieldWarning fieldName="awsv4-session-token" warningMessage={sessionTokenSensitive.warningMessage} scope={sessionTokenSensitive.scope} variableName={sessionTokenSensitive.variableName} value={awsv4Auth?.sessionToken} collection={collection} onReplaceValue={(val) => handleSessionTokenChange(val)} />
+          <SensitiveFieldWarning fieldName="awsv4-session-token" secretName="sessionToken" warningMessage={sessionTokenSensitive.warningMessage} scope={sessionTokenSensitive.scope} variableName={sessionTokenSensitive.variableName} value={awsv4Auth?.sessionToken} collection={collection} onReplaceValue={(val) => handleSessionTokenChange(val)} />
         )}
       </div>
 

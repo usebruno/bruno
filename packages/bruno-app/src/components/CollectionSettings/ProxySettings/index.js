@@ -381,7 +381,7 @@ const ProxySettings = ({ collection }) => {
                     isCompact
                     data-testid="collection-proxy-password"
                   />
-                  {showWarning && <SensitiveFieldWarning fieldName="proxy-password" warningMessage={warningMessage} scope={scope} variableName={variableName} value={proxyPassword} collection={collection} onReplaceValue={handleAuthPasswordChange} />}
+                  {showWarning && <SensitiveFieldWarning fieldName="proxy-password" secretName="password" warningMessage={warningMessage} scope={scope} variableName={variableName} value={proxyPassword} collection={collection} onReplaceValue={handleAuthPasswordChange} />}
                 </div>
               </div>
             </div>
