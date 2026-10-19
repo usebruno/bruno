@@ -11,7 +11,7 @@ import {
 import { flattenItems, isItemARequest, isItemAFolder, findParentItemInCollection } from 'utils/collections';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { expandCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, revealItemInSidebar } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, revealItemInSidebar, revealTabInSidebar } from 'providers/ReduxStore/slices/collections/actions';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import { normalizePath } from 'utils/common/path';
 import { normalizeQuery, isValidQuery, highlightText, sortResults, getTypeLabel, getItemPath } from './utils/searchUtils';
@@ -268,6 +268,8 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
           pathname: result.item.pathname
         }));
       }
+
+      dispatch(revealTabInSidebar(result.item.uid));
     } else if (result.type === SEARCH_TYPES.FOLDER) {
       dispatch(addTab({
         uid: result.item.uid,
