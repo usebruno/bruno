@@ -68,6 +68,13 @@ export type PooledSession = {
   readonly lastError: Error | null;
   /** Open a stream. Throws synchronously if the session cannot accept new streams. */
   request(headers: http2.OutgoingHttpHeaders, options?: http2.ClientSessionRequestOptions): http2.ClientHttp2Stream;
+  /**
+   * Resolves once the peer's initial SETTINGS have arrived (so Node knows the real
+   * MAX_CONCURRENT_STREAMS and will queue excess streams instead of opening them optimistically
+   * and getting REFUSED_STREAM). Resolves immediately for an already-ready, draining or closed
+   * session so callers never hang.
+   */
+  whenReady(): Promise<void>;
 };
 
 /** `reused` is returned, not logged, so the caller writes the timeline line for the current request. */
@@ -99,6 +106,9 @@ class SessionEntry implements PooledSession {
   totalStreams = 0;
   goawayLastStreamId: number | null = null;
   lastError: Error | null = null;
+  /** True once the peer's initial SETTINGS frame has been received. */
+  ready = false;
+  private readyWaiters: Array<() => void> = [];
 
   private idleMs: number;
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
@@ -117,6 +127,13 @@ class SessionEntry implements PooledSession {
       if (this.state === 'CONNECTING') this.state = 'ACTIVE';
       // A stream opened while CONNECTING has already ref'd the session; leave it.
       if (this.activeStreams === 0) session.unref();
+    });
+
+    // The peer's initial SETTINGS: now Node knows MAX_CONCURRENT_STREAMS and will queue excess
+    // streams. whenReady() gates the first burst of streams on this so they are not refused.
+    session.once('remoteSettings', () => {
+      this.ready = true;
+      this.drainReadyWaiters();
     });
 
     session.on('error', (err) => {
@@ -139,6 +156,17 @@ class SessionEntry implements PooledSession {
     // The session is gone: server closed an idle connection on its side, our own close(),
     // or the tail of an error/GOAWAY. retire() is idempotent, so double-firing is fine.
     session.once('close', () => this.retire('CLOSED'));
+  }
+
+  whenReady(): Promise<void> {
+    if (this.ready || this.state === 'DRAINING' || this.state === 'CLOSED') return Promise.resolve();
+    return new Promise((resolve) => this.readyWaiters.push(resolve));
+  }
+
+  private drainReadyWaiters(): void {
+    const waiters = this.readyWaiters;
+    this.readyWaiters = [];
+    for (const w of waiters) w();
   }
 
   request(headers: http2.OutgoingHttpHeaders, options?: http2.ClientSessionRequestOptions): http2.ClientHttp2Stream {
@@ -183,6 +211,7 @@ class SessionEntry implements PooledSession {
     if (this.state === 'CLOSED') return;
     if (this.state === 'DRAINING' && state === 'DRAINING') return;
     this.state = state;
+    this.drainReadyWaiters();
     this.onRetire(this);
   }
 
@@ -280,7 +309,16 @@ export function acquireSession(params: AcquireSessionParams): AcquireResult {
   // Hit: retire() removes entries from the map, but checking state as well guards any
   // future path that retires without removing.
   const existing = sessions.get(sessionKey);
-  if (existing && (existing.state === 'CONNECTING' || existing.state === 'ACTIVE')) {
+  // Reuse only a session Node still considers open. After a GOAWAY/HPACK error Node closes the
+  // session before our 'goaway'/'close' listeners retire it, so our state can read ACTIVE while
+  // session.closed/destroyed is already true; reusing it would make request() throw. Skip it and
+  // open a fresh one instead.
+  if (
+    existing &&
+    (existing.state === 'CONNECTING' || existing.state === 'ACTIVE') &&
+    !existing.session.closed &&
+    !existing.session.destroyed
+  ) {
     timeline?.push({
       timestamp: new Date(),
       type: 'info',
@@ -310,6 +348,17 @@ export function acquireSession(params: AcquireSessionParams): AcquireResult {
   });
   sessions.set(sessionKey, entry);
   return { pooled: entry, reused: false };
+}
+
+/**
+ * Is there already a live (CONNECTING/ACTIVE) session for this origin + TLS identity + mode + proxy?
+ * Lets the proxy path skip opening a fresh CONNECT tunnel when the pooled session will be reused.
+ */
+export function hasLiveSession(
+  params: Pick<AcquireSessionParams, 'origin' | 'tlsOptions' | 'mode' | 'proxyUri'>
+): boolean {
+  const entry = sessions.get(getSessionKey(params));
+  return !!entry && (entry.state === 'CONNECTING' || entry.state === 'ACTIVE');
 }
 
 /** Close every pooled session. Call alongside clearAgentCache() and on app quit. */

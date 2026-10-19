@@ -19,6 +19,24 @@ import { buildHttp2RequestHeaders } from './headers';
 import type { HttpVersionMode, BrunoTlsOptions } from './connect-tls';
 import type { TimelineEntry } from './session-pool';
 
+// RST_STREAM error codes -> names, for a readable error when a stream is reset before responding.
+const RST_CODE_NAMES: Record<number, string> = {
+  0: 'NO_ERROR',
+  1: 'PROTOCOL_ERROR',
+  2: 'INTERNAL_ERROR',
+  3: 'FLOW_CONTROL_ERROR',
+  4: 'SETTINGS_TIMEOUT',
+  5: 'STREAM_CLOSED',
+  6: 'FRAME_SIZE_ERROR',
+  7: 'REFUSED_STREAM',
+  8: 'CANCEL',
+  9: 'COMPRESSION_ERROR',
+  10: 'CONNECT_ERROR',
+  11: 'ENHANCE_YOUR_CALM',
+  12: 'INADEQUATE_SECURITY',
+  13: 'HTTP_1_1_REQUIRED'
+};
+
 export type CreateHttp2TransportParams = {
   /** Bruno's tlsOptions (as built by setupProxyAgents); non-TLS fields are ignored by the pool. */
   tlsOptions?: object;
@@ -68,7 +86,12 @@ export function createHttp2Transport(params: CreateHttp2TransportParams) {
   return {
     request(options: AxiosTransportOptions, cb: ResponseCallback): http2.ClientHttp2Stream {
       const port = Number(options.port) || (options.protocol === 'https:' ? 443 : 80);
-      const origin = `${options.protocol}//${options.hostname}:${port}`;
+      // Bracket an IPv6 literal so the origin is a valid URL ("https://[::1]:8443", not
+      // "https://::1:8443" which throws Invalid URL). parseOrigin / connect-tls strip the brackets
+      // back off for the actual TLS connect and the cert's IP-SAN check.
+      const rawHost = options.hostname;
+      const host = rawHost.includes(':') && !rawHost.startsWith('[') ? `[${rawHost}]` : rawHost;
+      const origin = `${options.protocol}//${host}:${port}`;
       const url = `${origin}${options.path || '/'}`;
 
       const { headers } = buildHttp2RequestHeaders({
@@ -90,9 +113,33 @@ export function createHttp2Transport(params: CreateHttp2TransportParams) {
 
       // Throws ERR_H2_SESSION_UNAVAILABLE if the session went away between acquire and here;
       // axios's req 'error' handler rejects the request, same as any connection failure.
-      const stream = pooled.request(headers);
+      // endStream:false keeps the writable side open so a body can be written for ANY method; Node
+      // auto-closes it for GET/DELETE otherwise, making axios' body write throw write-after-end.
+      const stream = pooled.request(headers, { endStream: false });
+
+      // Node does NOT emit 'error' for an RST_STREAM(CANCEL) / RST_STREAM(NO_ERROR) received before
+      // response headers — it just emits 'close'. Without a 'response' or an 'error', axios never
+      // settles and the request hangs. Track settlement and, on a close before any response, surface
+      // an error so axios rejects. Codes that do emit 'error' (REFUSED_STREAM, INTERNAL_ERROR, ...)
+      // settle through that path and the close guard is a no-op.
+      let settled = false;
+      stream.once('error', () => {
+        settled = true;
+      });
+      stream.once('close', () => {
+        if (settled) return;
+        settled = true;
+        const code = (stream as http2.ClientHttp2Stream & { rstCode?: number }).rstCode ?? 0;
+        const name = RST_CODE_NAMES[code] ?? String(code);
+        const err = Object.assign(
+          new Error(`HTTP/2 stream closed before a response was received (RST_STREAM ${name})`),
+          { code: 'ERR_HTTP2_STREAM_CLOSED_EARLY', rstCode: code }
+        );
+        stream.emit('error', err);
+      });
 
       stream.once('response', (responseHeaders: http2.IncomingHttpHeaders) => {
+        settled = true;
         const status = responseHeaders[http2.constants.HTTP2_HEADER_STATUS];
         const responseObj = stream as http2.ClientHttp2Stream & {
           headers: http2.IncomingHttpHeaders;
@@ -102,6 +149,16 @@ export function createHttp2Transport(params: CreateHttp2TransportParams) {
         delete cleaned[http2.constants.HTTP2_HEADER_STATUS];
         responseObj.headers = cleaned;
         responseObj.statusCode = Number(status);
+        // Mirror HTTP/1.1 ClientRequest fields so res.getUrl() (protocol + '//' + host + path) works
+        // on h2 instead of reading 'undefined//undefinedundefined'.
+        const reqLike = responseObj as http2.ClientHttp2Stream & {
+          protocol?: string;
+          host?: string;
+          path?: string;
+        };
+        reqLike.protocol = options.protocol;
+        reqLike.host = options.hostname;
+        reqLike.path = options.path;
         cb(responseObj);
       });
 

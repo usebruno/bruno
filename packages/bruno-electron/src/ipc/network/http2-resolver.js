@@ -50,11 +50,15 @@ const wrapLookup = (lookup) => (hostname, options, callback) => {
 const probeAlpn = ({ hostname, port, tlsOptions = {}, lookup }) =>
   new Promise((resolve) => {
     const { keepAlive, proxy, caCertificatesCount, ...tlsOnly } = tlsOptions;
+    // Strip the brackets off an IPv6 literal ("[::1]" -> "::1") so the probe dials the raw address
+    // and the cert's IP SAN matches; a bracketed host is treated as a DNS name and the probe fails,
+    // which would wrongly fall back to HTTP/1.1.
+    const connectHost = hostname.replace(/^\[|\]$/g, '');
     const options = {
       ...applySecureContext({ ...tlsOnly }),
-      host: hostname,
+      host: connectHost,
       port,
-      servername: hostname,
+      servername: connectHost,
       ALPNProtocols: ['h2', 'http/1.1'],
       rejectUnauthorized: tlsOnly.rejectUnauthorized !== false
     };

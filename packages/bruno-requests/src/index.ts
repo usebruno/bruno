@@ -37,6 +37,7 @@ export {
   acquireSession,
   closeAllSessions,
   getSessionCount,
+  hasLiveSession,
   getSessionEntries,
   connectTls,
   buildHttp2RequestHeaders,

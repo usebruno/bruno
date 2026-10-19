@@ -65,6 +65,18 @@ export function buildHttp2RequestHeaders({ method, url, headers = {} }: ToH2Head
       continue;
     }
 
+    // HTTP/2 permits `te` only with the exact value "trailers" (RFC 9113 §8.2.2); Node rejects any
+    // other value. Keep `te: trailers`, drop anything else rather than failing the request.
+    if (lowerCaseName === 'te') {
+      const teValue = Array.isArray(value) ? value.join(',') : String(value);
+      if (teValue.trim().toLowerCase() === 'trailers') {
+        http2Headers.te = 'trailers';
+      } else {
+        stripped.push(name);
+      }
+      continue;
+    }
+
     // Node lowercases anyway; doing it here keeps `stripped`/timeline consistent with the
     // wire and makes a later header that differs only in case override an earlier one
     // predictably.

@@ -11,7 +11,9 @@ const { URL } = require('url');
 const {
   createHttp2Transport,
   closeAllSessions,
-  getSessionCount
+  getSessionCount,
+  hasLiveSession,
+  acquireSession
 } = require('@usebruno/requests');
 const { resolveHttpVersion } = require('./http2-resolver');
 const { proxyKeyFor, connectThroughProxy } = require('./http2-proxy');
@@ -113,26 +115,36 @@ const applyHttp2Transport = async ({ config, mode, agentOptions, timeline }) => 
     const port = Number(parsed.port) || 443;
     const alpnProtocols = mode === 'auto' ? ['h2', 'http/1.1'] : ['h2'];
     alpnOffered = alpnProtocols;
-    try {
-      const tunnel = await connectThroughProxy({
-        agent: config.httpsAgent,
-        hostname: parsed.hostname,
-        port,
-        tlsOptions: agentOptions,
-        alpnProtocols
-      });
-      alpnAccepted = tunnel.alpn || null;
-      if (tunnel.alpn === 'h2') {
-        httpVersion = 2;
-        tunnelSocket = tunnel.socket;
-        reason = `proxy tunnel via ${proxyKey}: server chose h2 (${tunnel.protocol})`;
-      } else {
-        tunnel.socket.destroy();
-        reason = `proxy tunnel via ${proxyKey}: server chose ${tunnel.alpn || 'none'}; using HTTP/1.1`;
+
+    // Reuse: if a live h2 session to this origin already exists for this proxy + TLS identity, skip
+    // opening a second CONNECT tunnel — acquireSession will hand back the pooled session.
+    const reuseOrigin = `${parsed.protocol}//${parsed.hostname}:${port}`;
+    if (hasLiveSession({ origin: reuseOrigin, tlsOptions: agentOptions, mode: 'http2', proxyUri: proxyKey })) {
+      httpVersion = 2;
+      alpnAccepted = 'h2';
+      reason = `proxy tunnel via ${proxyKey}: reusing pooled h2 session`;
+    } else {
+      try {
+        const tunnel = await connectThroughProxy({
+          agent: config.httpsAgent,
+          hostname: parsed.hostname,
+          port,
+          tlsOptions: agentOptions,
+          alpnProtocols
+        });
+        alpnAccepted = tunnel.alpn || null;
+        if (tunnel.alpn === 'h2') {
+          httpVersion = 2;
+          tunnelSocket = tunnel.socket;
+          reason = `proxy tunnel via ${proxyKey}: server chose h2 (${tunnel.protocol})`;
+        } else {
+          tunnel.socket.destroy();
+          reason = `proxy tunnel via ${proxyKey}: server chose ${tunnel.alpn || 'none'}; using HTTP/1.1`;
+        }
+      } catch (err) {
+        if (mode === 'http2') throw err;
+        reason = `proxy tunnel via ${proxyKey} failed (${err.message}); using HTTP/1.1`;
       }
-    } catch (err) {
-      if (mode === 'http2') throw err;
-      reason = `proxy tunnel via ${proxyKey} failed (${err.message}); using HTTP/1.1`;
     }
   } else {
     const resolved = await resolveHttpVersion({
@@ -177,6 +189,28 @@ const applyHttp2Transport = async ({ config, mode, agentOptions, timeline }) => 
     socket: tunnelSocket,
     timeline
   });
+
+  // Pre-warm a direct session to readiness (peer SETTINGS received) before axios opens streams, so a
+  // concurrent burst queues against the real MAX_CONCURRENT_STREAMS instead of being optimistically
+  // sent and refused. Proxied sessions are seeded by the tunnel socket and skip this.
+  if (!proxyKey) {
+    try {
+      const parsedUrl = new URL(config.url);
+      const originPort = Number(parsedUrl.port) || (parsedUrl.protocol === 'https:' ? 443 : 80);
+      const rawHost = parsedUrl.hostname;
+      const originHost = rawHost.includes(':') && !rawHost.startsWith('[') ? `[${rawHost}]` : rawHost;
+      const preOrigin = `${parsedUrl.protocol}//${originHost}:${originPort}`;
+      const { pooled } = acquireSession({
+        origin: preOrigin,
+        tlsOptions: agentOptions,
+        mode: 'http2',
+        lookup: config.lookup
+      });
+      await pooled.whenReady();
+    } catch (_) {
+      // Ignore: the real request will surface any connection error through axios.
+    }
+  }
 
   if (applyBasicAuthHeader(config)) {
     timeline.push({

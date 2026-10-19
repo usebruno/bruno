@@ -1052,6 +1052,13 @@ const registerNetworkIpc = (mainWindow) => {
         // Prevents the duration on leaking to the actual result
         responseTime = response.headers.get('request-duration');
         response.headers.delete('request-duration');
+
+        // The duration interceptor stops when axios resolves — on a streamed transport (HTTP/2)
+        // that is at response headers, while a buffered body is still read above in promisifyStream.
+        // For a non-stream response, measure to body-complete so responseTime is the full response time.
+        if (!isResponseStream && response.config?.metadata?.startTime) {
+          responseTime = Date.now() - response.config.metadata.startTime;
+        }
       } catch (error) {
         deleteCancelToken(cancelTokenUid);
 
@@ -1075,6 +1082,10 @@ const registerNetworkIpc = (mainWindow) => {
           isResponseStream = hasStreamHeaders(response.headers);
           if (!isResponseStream) {
             response.data = await promisifyStream(response.data);
+          }
+          // Measure to body-complete for a buffered response (see the success path for why).
+          if (!isResponseStream && response.config?.metadata?.startTime) {
+            responseTime = Date.now() - response.config.metadata.startTime;
           }
         } else {
           await executeRequestOnFailHandler(request, error, (onFailScriptResult) => {
@@ -1885,8 +1896,11 @@ const registerNetworkIpc = (mainWindow) => {
               const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
               response.data = data;
               response.dataBuffer = dataBuffer;
-              response.responseTime = response.headers.get('request-duration');
               response.headers.delete('request-duration');
+              // The duration interceptor stops at response headers; on a streamed transport (HTTP/2)
+              // the body is still read above in promisifyStream. timeEnd - timeStart covers headers +
+              // body, so responseTime matches the full response time (same basis as `duration`).
+              response.responseTime = timeEnd - timeStart;
 
               // save cookies
               if (preferencesUtil.shouldStoreCookies()) {

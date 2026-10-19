@@ -109,12 +109,16 @@ export function buildTlsConnectOptions({
 
   const tlsOnly = pickTlsFields(tlsOptions);
 
+  // Strip the brackets off an IPv6 literal ("[::1]" -> "::1") so tls.connect dials the raw address
+  // and the cert's IP SAN matches; a bracketed host is treated as a DNS name and fails both.
+  const connectHost = hostname.replace(/^\[|\]$/g, '');
+
   const opts: tls.ConnectionOptions = {
     ...(applySecureContext(tlsOnly as any) as tls.ConnectionOptions),
-    host: hostname,
+    host: connectHost,
     port,
     // SNI: the server needs the hostname during the handshake to present the right certificate.
-    servername: hostname,
+    servername: connectHost,
     rejectUnauthorized: tlsOnly.rejectUnauthorized !== undefined ? tlsOnly.rejectUnauthorized : true
   };
 
