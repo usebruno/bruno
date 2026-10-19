@@ -1,4 +1,5 @@
-import { VARIABLE_ADD_SCOPES, CHEVRON_ICON_SVG_TEXT, SCOPE_ICON } from 'utils/common/constants';
+import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+import { CHEVRON_ICON_SVG_TEXT, SCOPE_ICON } from 'utils/codemirror/scopeIcons';
 
 const createScopeIcon = (scope, { muted = false } = {}) => {
   const icon = document.createElement('span');
@@ -166,7 +167,7 @@ const renderNoEnvironmentInline = (row, scope, actions) => {
   note.className = 'var-add-to-option-note';
   note.setAttribute('data-testid', 'var-info-add-to-no-env-note');
 
-  note.appendChild(document.createTextNode(`No ${scope.label} selected. `));
+  note.appendChild(document.createTextNode(`No ${scope.label} selected`));
 
   const createLink = document.createElement('button');
   createLink.type = 'button';
@@ -179,8 +180,8 @@ const renderNoEnvironmentInline = (row, scope, actions) => {
     renderCreateEnvironment(row, scope, actions);
   });
 
-  note.appendChild(createLink);
   row.appendChild(note);
+  row.appendChild(createLink);
 };
 
 const buildScopeRow = (scope, actions) => {

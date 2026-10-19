@@ -5,6 +5,7 @@ import classnames from 'classnames';
 import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { focusTab, reorderTabs } from 'providers/ReduxStore/slices/tabs';
+import { revealTabInSidebar } from 'providers/ReduxStore/slices/collections/actions';
 import NewRequest from 'components/Sidebar/NewRequest';
 import CollectionHeader from './CollectionHeader';
 import RequestTab from './RequestTab';
@@ -86,11 +87,17 @@ const RequestTabs = () => {
   };
 
   const handleClick = (tab) => {
+    const isAlreadyActive = tab.uid === activeTabUid;
+
     dispatch(
       focusTab({
         uid: tab.uid
       })
     );
+
+    if (isAlreadyActive) {
+      dispatch(revealTabInSidebar(tab.uid));
+    }
   };
 
   if (!activeTabUid) {
