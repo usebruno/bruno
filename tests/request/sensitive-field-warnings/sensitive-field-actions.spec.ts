@@ -94,6 +94,13 @@ test.describe('Sensitive field actions', () => {
       await setApiKeyValue(page, 'raw-secret');
     });
 
+    await test.step('Esc closes the pinned warning', async () => {
+      await codeMirror.sensitiveWarning(API_KEY_FIELD).click();
+      await expect(form.actionLink(API_KEY_FIELD)).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(form.actionLink(API_KEY_FIELD)).toHaveCount(0);
+    });
+
     await test.step('Esc closes the form', async () => {
       await clickSensitiveFieldAction(page, codeMirror.sensitiveWarning(API_KEY_FIELD), API_KEY_FIELD);
       await expect(form.container()).toBeVisible();

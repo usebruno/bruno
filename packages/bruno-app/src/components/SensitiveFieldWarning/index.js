@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import Tippy from '@tippyjs/react';
 import toast from 'react-hot-toast';
@@ -8,7 +8,6 @@ import {
   markEnvironmentVariableAsSecret,
   removeVariableFromScope
 } from 'providers/ReduxStore/slices/collections/actions';
-import useCloseOnEscape from 'hooks/useCloseOnEscape';
 import { getEffectiveActiveEnvironmentUid } from 'utils/collections';
 import { SCOPE_LABEL, VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 import {
@@ -106,14 +105,19 @@ const SensitiveFieldWarning = ({
   const movedVariable = form?.movedVariable;
   const isOpen = isHovered || isPinned || !!form;
 
-  const close = useCallback(() => {
+  const close = () => {
     clearTimeout(closeTimerRef.current);
     setIsHovered(false);
     setIsPinned(false);
     setForm(null);
-  }, []);
+  };
 
-  useCloseOnEscape(close, isPinned || !!form);
+  const handleKeyDown = (event) => {
+    if (event.key === 'Escape' && (isPinned || form)) {
+      event.stopPropagation();
+      close();
+    }
+  };
 
   const handleMouseEnter = () => {
     clearTimeout(closeTimerRef.current);
@@ -216,6 +220,7 @@ const SensitiveFieldWarning = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={() => setIsPinned(true)}
+      onKeyDown={handleKeyDown}
     >
       <Tippy
         visible={isOpen}
@@ -231,9 +236,9 @@ const SensitiveFieldWarning = ({
         }}
         render={(attrs) => <div {...attrs}>{popoverContent}</div>}
       >
-        <span className="mr-[4px] flex items-center" data-testid={`sensitive-field-warning-${fieldName}`}>
+        <button type="button" className="mr-[4px] flex items-center" data-testid={`sensitive-field-warning-${fieldName}`}>
           <IconAlertTriangle className="tooltip-icon cursor-pointer" size={16} />
-        </span>
+        </button>
       </Tippy>
     </StyledWrapper>
   );
