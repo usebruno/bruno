@@ -316,47 +316,47 @@ const oauth2Schema = Yup.object({
   username: Yup.string().when('grantType', {
     is: (val) => ['client_credentials', 'password'].includes(val),
     then: Yup.string().nullable(),
-    otherwise: Yup.string().nullable().strip()
+    otherwise: Yup.string().nullable()
   }),
   password: Yup.string().when('grantType', {
     is: (val) => ['client_credentials', 'password'].includes(val),
     then: Yup.string().nullable(),
-    otherwise: Yup.string().nullable().strip()
+    otherwise: Yup.string().nullable()
   }),
   callbackUrl: Yup.string().when('grantType', {
     is: (val) => ['authorization_code', 'implicit'].includes(val),
     then: Yup.string().nullable(),
-    otherwise: Yup.string().nullable().strip()
+    otherwise: Yup.string().nullable()
   }),
   authorizationUrl: Yup.string().when('grantType', {
     is: (val) => ['authorization_code', 'implicit'].includes(val),
     then: Yup.string().nullable(),
-    otherwise: Yup.string().nullable().strip()
+    otherwise: Yup.string().nullable()
   }),
   accessTokenUrl: Yup.string().when('grantType', {
     is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
     then: Yup.string().nullable(),
-    otherwise: Yup.string().nullable().strip()
+    otherwise: Yup.string().nullable()
   }),
   clientId: Yup.string().when('grantType', {
     is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(val),
     then: Yup.string().nullable(),
-    otherwise: Yup.string().nullable().strip()
+    otherwise: Yup.string().nullable()
   }),
   clientSecret: Yup.string().when('grantType', {
     is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
     then: Yup.string().nullable(),
-    otherwise: Yup.string().nullable().strip()
+    otherwise: Yup.string().nullable()
   }),
   scope: Yup.string().when('grantType', {
     is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(val),
     then: Yup.string().nullable(),
-    otherwise: Yup.string().nullable().strip()
+    otherwise: Yup.string().nullable()
   }),
   state: Yup.string().when('grantType', {
     is: (val) => ['authorization_code', 'implicit'].includes(val),
     then: Yup.string().nullable(),
-    otherwise: Yup.string().nullable().strip()
+    otherwise: Yup.string().nullable()
   }),
   pkce: Yup.boolean().when('grantType', {
     is: (val) => ['authorization_code'].includes(val),
@@ -366,39 +366,39 @@ const oauth2Schema = Yup.object({
   credentialsPlacement: Yup.string().when('grantType', {
     is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
     then: Yup.string().nullable(),
-    otherwise: Yup.string().nullable().strip()
+    otherwise: Yup.string().nullable()
   }),
   credentialsId: Yup.string().when('grantType', {
     is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(val),
     then: Yup.string().nullable(),
-    otherwise: Yup.string().nullable().strip()
+    otherwise: Yup.string().nullable()
   }),
   tokenSource: Yup.string().when('grantType', {
     is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(val),
     then: Yup.string().oneOf(['access_token', 'id_token']).optional(),
-    otherwise: Yup.string().optional().strip()
+    otherwise: Yup.string().optional()
   }),
   tokenPlacement: Yup.string().when('grantType', {
     is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(val),
     then: Yup.string().nullable(),
-    otherwise: Yup.string().nullable().strip()
+    otherwise: Yup.string().nullable()
   }),
   tokenHeaderPrefix: Yup.string().when(['grantType', 'tokenPlacement'], {
     is: (grantType, tokenPlacement) => 
       ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(grantType) && tokenPlacement === 'header',
     then: Yup.string().nullable(),
-    otherwise: Yup.string().nullable().strip()
+    otherwise: Yup.string().nullable()
   }),
   tokenQueryKey: Yup.string().when(['grantType', 'tokenPlacement'], {
     is: (grantType, tokenPlacement) => 
       ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(grantType) && tokenPlacement === 'url',
     then: Yup.string().nullable(),
-    otherwise: Yup.string().nullable().strip()
+    otherwise: Yup.string().nullable()
   }),
   refreshTokenUrl: Yup.string().when('grantType', {
     is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
     then: Yup.string().nullable(),
-    otherwise: Yup.string().nullable().strip()
+    otherwise: Yup.string().nullable()
   }),
   autoRefreshToken: Yup.boolean().when('grantType', {
     is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
@@ -410,15 +410,12 @@ const oauth2Schema = Yup.object({
     then: Yup.boolean().default(true),
     otherwise: Yup.boolean()
   }),
+  // Nested when('grantType') crashes Yup getDefaultFromShape; keep fields optional.
   additionalParameters: Yup.object({
-    authorization: Yup.mixed().when('grantType', {
-      is: 'authorization_code',
-      then: Yup.array().of(oauth2AuthorizationAdditionalParametersSchema).required(),
-      otherwise: Yup.mixed().nullable().optional()
-    }),
+    authorization: Yup.array().of(oauth2AuthorizationAdditionalParametersSchema).nullable().optional(),
     token: Yup.array().of(oauth2AdditionalParametersSchema).optional(),
     refresh: Yup.array().of(oauth2AdditionalParametersSchema).optional()
-  })
+  }).default(undefined)
 })
   .noUnknown(true);
 
@@ -500,13 +497,15 @@ const requestSchema = Yup.object({
     req: Yup.string().nullable(),
     res: Yup.string().nullable()
   })
-    .noUnknown(true),
+    .noUnknown(true)
+    .default(undefined),
   vars: Yup.object({
     req: Yup.array().of(varsSchema).nullable(),
     res: Yup.array().of(varsSchema).nullable()
   })
     .noUnknown(true)
-    .nullable(),
+    .nullable()
+    .default(undefined),
   assertions: Yup.array().of(assertionSchema).nullable(),
   tests: Yup.string().nullable(),
   docs: Yup.string().nullable()
