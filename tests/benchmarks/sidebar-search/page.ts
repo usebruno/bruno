@@ -77,7 +77,7 @@ export const waitForIndexingIdle = async (page: Page, { quietPolls = 3, quietPol
   while (Date.now() - started < timeoutMs) {
     const status = await page.evaluate(() => (window as any).ipcRenderer.invoke('renderer:get-search-index-status')).catch(() => ({ isIndexing: true }));
     const seen = await page.evaluate(() => (window as any).__bench.indexing.some((e: any) => e.isIndexing)).catch(() => false);
-    const indexing = status.isIndexing || (status.total > 0 && status.completed < status.total);
+    const indexing = status.isIndexing || status.isDiscovering || (status.total > 0 && status.completed < status.total);
     quiet = indexing ? 0 : quiet + 1;
     if (quiet >= (seen ? quietPolls : quietPollsWhenNeverIndexing)) return;
     await page.waitForTimeout(1000);

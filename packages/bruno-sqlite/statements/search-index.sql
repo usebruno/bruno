@@ -62,7 +62,7 @@ SELECT collection_path AS collectionPath, collection_name AS collectionName,
        workspace_path AS workspacePath
 FROM search_index
 WHERE entity = 'request'
-  AND (name LIKE @like OR path LIKE @like OR method LIKE @like OR url LIKE @like OR collection_name LIKE @like)
+  AND (name LIKE @like ESCAPE '\' OR path LIKE @like ESCAPE '\' OR method LIKE @like ESCAPE '\' OR url LIKE @like ESCAPE '\' OR collection_name LIKE @like ESCAPE '\')
   AND (@workspace_path IS NULL OR workspace_path = @workspace_path OR workspace_path IS NULL);
 
 -- name: search_index_search_requests_in_collection :many
@@ -75,7 +75,7 @@ SELECT collection_path AS collectionPath, collection_name AS collectionName,
 FROM search_index
 WHERE entity = 'request'
   AND collection_path = @collection_path
-  AND (name LIKE @like OR path LIKE @like OR method LIKE @like OR url LIKE @like OR collection_name LIKE @like)
+  AND (name LIKE @like ESCAPE '\' OR path LIKE @like ESCAPE '\' OR method LIKE @like ESCAPE '\' OR url LIKE @like ESCAPE '\' OR collection_name LIKE @like ESCAPE '\')
   AND (@workspace_path IS NULL OR workspace_path = @workspace_path OR workspace_path IS NULL)
 LIMIT @limit;
 
@@ -84,7 +84,7 @@ SELECT COUNT(*) AS total
 FROM search_index
 WHERE entity = 'request'
   AND collection_path = @collection_path
-  AND (name LIKE @like OR path LIKE @like OR method LIKE @like OR url LIKE @like OR collection_name LIKE @like)
+  AND (name LIKE @like ESCAPE '\' OR path LIKE @like ESCAPE '\' OR method LIKE @like ESCAPE '\' OR url LIKE @like ESCAPE '\' OR collection_name LIKE @like ESCAPE '\')
   AND (@workspace_path IS NULL OR workspace_path = @workspace_path OR workspace_path IS NULL);
 
 -- name: search_index_search_collections :many

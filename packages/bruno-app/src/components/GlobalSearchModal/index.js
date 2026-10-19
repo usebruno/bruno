@@ -43,6 +43,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   const wasSearchIndexBuildingRef = useRef(false);
   const lastQueriedRef = useRef('');
   const pollIntervalRef = useRef(null);
+  const lastIndexPrepareKeyRef = useRef('');
   const dispatch = useDispatch();
   const store = useStore();
   const { ipcRenderer } = window;
@@ -62,6 +63,15 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     );
     return allCollections.filter((c) => workspacePaths.has(normalizePath(c.pathname)));
   }, [activeWorkspace, allCollections, workspaces]);
+
+  const unmountedCollectionPathsKey = useMemo(
+    () => collections
+      .filter((collection) => collection.mountStatus !== 'mounted')
+      .map((collection) => normalizePath(collection.pathname))
+      .sort()
+      .join('\n'),
+    [collections]
+  );
 
   const findCollectionByPath = useCallback(
     (collectionPath) => allCollections.find((c) => normalizePath(c.pathname) === normalizePath(collectionPath)),
@@ -368,6 +378,23 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   }, [isOpen, throttledFetchIndexResults]);
 
   useEffect(() => {
+    if (!isOpen) {
+      lastIndexPrepareKeyRef.current = '';
+      return;
+    }
+    const term = query.trim();
+    const workspacePath = activeWorkspace?.pathname;
+    if (!term || !searchIndexEnabled || !workspacePath) {
+      lastIndexPrepareKeyRef.current = '';
+      return;
+    }
+    const prepareKey = `${workspacePath}\n${term}\n${unmountedCollectionPathsKey}`;
+    if (prepareKey === lastIndexPrepareKeyRef.current) return;
+    lastIndexPrepareKeyRef.current = prepareKey;
+    dispatch(indexActiveWorkspaceCollections(term));
+  }, [isOpen, query, searchIndexEnabled, activeWorkspace?.pathname, unmountedCollectionPathsKey, dispatch]);
+
+  useEffect(() => {
     if (!isOpen) return;
 
     const stopIndexRefresh = () => {
@@ -395,11 +422,6 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
       return;
     }
 
-    if (!hasMountedForSearchRef.current) {
-      hasMountedForSearchRef.current = true;
-      dispatch(indexActiveWorkspaceCollections());
-    }
-
     // The index just finished building: the final search must not be swallowed by the throttle window
     if (wasSearchIndexBuildingRef.current && !searchIndexBuilding) {
       throttledFetchIndexResults.cancel();
@@ -411,7 +433,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     if (!pollIntervalRef.current) {
       pollIntervalRef.current = setInterval(throttledFetchIndexResults, SEARCH_CONFIG.INDEX_REFRESH_INTERVAL);
     }
-  }, [isOpen, query, performLocalSearch, fetchIndexResults, throttledFetchIndexResults, dispatch, searchIndexEnabled, searchIndexBuilding]);
+  }, [isOpen, query, performLocalSearch, fetchIndexResults, throttledFetchIndexResults, searchIndexEnabled, searchIndexBuilding]);
 
   useEffect(() => {
     if (results.length > 0) {

@@ -1,6 +1,7 @@
 const path = require('node:path');
 const { getStatements, transaction } = require('../sqlite');
 const { defaultClassify } = require('../../utils/mount');
+const { likePattern } = require('./search-term');
 
 const NAMING_TYPES = new Set(['config', 'collection', 'folder']);
 
@@ -201,7 +202,7 @@ class SearchIndex {
   }
 
   search(term, { scope = 'request', workspacePath } = {}) {
-    const params = { like: `%${term}%`, workspace_path: workspacePath ?? null };
+    const params = { like: likePattern(term), workspace_path: workspacePath ?? null };
 
     if (scope === 'collection') return this.#execute('search_index_search_collections', params);
     if (scope === 'folder') return this.#execute('search_index_search_folders', params);
@@ -210,7 +211,7 @@ class SearchIndex {
 
   searchRequestsInCollection(term, collectionPath, { workspacePath, limit }) {
     return this.#execute('search_index_search_requests_in_collection', {
-      like: `%${term}%`,
+      like: likePattern(term),
       collection_path: collectionPath,
       workspace_path: workspacePath ?? null,
       limit
@@ -219,7 +220,7 @@ class SearchIndex {
 
   countRequestsInCollection(term, collectionPath, { workspacePath } = {}) {
     const row = this.#execute('search_index_count_requests_in_collection', {
-      like: `%${term}%`,
+      like: likePattern(term),
       collection_path: collectionPath,
       workspace_path: workspacePath ?? null
     });

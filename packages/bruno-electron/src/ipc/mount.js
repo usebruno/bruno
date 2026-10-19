@@ -24,8 +24,8 @@ const registerMountIpc = () => {
     return { searchIndexSize: manager.getSearchIndexSize() };
   });
 
-  ipcMain.handle('renderer:index-collections', (_, collections, workspacePath) =>
-    manager.indexManyCollectionsInBackground(collections, workspacePath)
+  ipcMain.handle('renderer:index-collections', (_, collections, workspacePath, term) =>
+    manager.indexManyCollectionsInBackground(collections, workspacePath, term)
   );
 
   ipcMain.handle(

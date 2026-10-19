@@ -23,6 +23,7 @@ const config = {
     }
   ],
   files: ['**/*'],
+  asarUnpack: ['**/node_modules/@vscode/ripgrep-universal/**'],
   afterSign: 'notarize.js',
   mac: {
     artifactName: '${name}_${version}_${arch}_${os}.${ext}',

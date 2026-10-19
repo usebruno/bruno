@@ -18,7 +18,7 @@ import {
 const initialState = {
   isDragging: false,
   searchIndexBuilding: false,
-  searchIndexStatus: { isIndexing: false, completed: 0, total: 0 },
+  searchIndexStatus: { isIndexing: false, isDiscovering: false, completed: 0, total: 0 },
   idbConnectionReady: false,
   snapshotReady: false,
   snapshotHydration: {
@@ -137,9 +137,14 @@ export const appSlice = createSlice({
       state.snapshotReady = action.payload;
     },
     setSearchIndexStatus: (state, action) => {
-      const { isIndexing, completed = 0, total = 0 } = action.payload || {};
+      const { isIndexing, isDiscovering = false, completed = 0, total = 0 } = action.payload || {};
       state.searchIndexBuilding = isIndexing;
-      state.searchIndexStatus = { isIndexing, completed, total };
+      state.searchIndexStatus = {
+        isIndexing,
+        isDiscovering,
+        completed,
+        total: total == null ? null : total
+      };
     },
     setSidebarState: (state, action) => {
       const { width, collapsed } = action.payload || {};

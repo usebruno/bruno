@@ -3497,21 +3497,28 @@ export const mountUnmountedActiveWorkspaceCollections = () => (dispatch, getStat
     });
 };
 
-export const indexActiveWorkspaceCollections = () => (dispatch, getState) => {
+export const indexActiveWorkspaceCollections = (searchTerm) => (dispatch, getState) => {
+  const term = (searchTerm || '').trim();
+  if (!term) return Promise.resolve();
+
   const state = getState();
   const { collections, collectionSortOrder } = state.collections;
   const { workspaces, activeWorkspaceUid } = state.workspaces;
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
   if (!activeWorkspace) return Promise.resolve();
 
-  // Sidebar order, so collections are indexed from the top of the list down
+  // Sidebar order; only unmounted collections need background indexing for search
   const activeCollections = buildSidebarEntries({ collections, workspaces, activeWorkspace, collectionSortOrder })
-    .filter((entry) => entry.kind === 'loaded')
-    .map(({ collection }) => ({ path: collection.pathname, name: collection.name }));
+    .filter((entry) => entry.kind === 'loaded' && entry.collection.mountStatus !== 'mounted')
+    .map(({ collection }) => ({
+      path: collection.pathname,
+      name: collection.name,
+      ignore: collection.brunoConfig?.ignore
+    }));
   if (!activeCollections.length) return Promise.resolve();
 
   return window.ipcRenderer
-    .invoke('renderer:index-collections', activeCollections, activeWorkspace.pathname)
+    .invoke('renderer:index-collections', activeCollections, activeWorkspace.pathname, term)
     .catch(() => {});
 };
 

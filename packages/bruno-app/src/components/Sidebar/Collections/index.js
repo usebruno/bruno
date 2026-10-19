@@ -19,6 +19,7 @@ import SidebarRow from './SidebarRow';
 import StyledWrapper from './StyledWrapper';
 
 const SEARCH_DEBOUNCE_MS = 350;
+const INDEX_PREPARE_PATHS_DEBOUNCE_MS = 400;
 const SEARCH_PAGE_SIZE = 300;
 
 const isEmptyQuery = (value) => typeof value === 'string' && value.trim() === '';
@@ -39,13 +40,13 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const dispatch = useDispatch();
   const virtuosoRef = useRef(null);
   const lastScrolledTabUidRef = useRef(null);
-  const hasMountedForSearchRef = useRef(false);
   const searchTextRef = useRef(searchText);
   searchTextRef.current = searchText;
   const activeWorkspacePathnameRef = useRef(null);
   const searchIndexBuildingRef = useRef(searchIndexBuilding);
   searchIndexBuildingRef.current = searchIndexBuilding;
   const wasSearchIndexBuildingRef = useRef(false);
+  const lastIndexPrepareKeyRef = useRef('');
   const lastQueriedTextRef = useRef('');
   const searchRequestIdRef = useRef(0);
   const lastSearchResultRef = useRef(null);
@@ -67,9 +68,20 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     () => buildSidebarEntries({ collections, workspaces, activeWorkspace, collectionSortOrder }),
     [activeWorkspace, collections, workspaces, collectionSortOrder]
   );
-  searchCollectionPathsRef.current = sidebarEntries
-    .filter((entry) => entry.kind === 'loaded' && entry.collection.mountStatus !== 'mounted')
-    .map((entry) => entry.collection.pathname);
+  const unmountedCollectionPathsKey = useMemo(
+    () => sidebarEntries
+      .filter((entry) => entry.kind === 'loaded' && entry.collection.mountStatus !== 'mounted')
+      .map((entry) => normalizePath(entry.collection.pathname))
+      .sort()
+      .join('\n'),
+    [sidebarEntries]
+  );
+  searchCollectionPathsRef.current = unmountedCollectionPathsKey
+    ? unmountedCollectionPathsKey.split('\n')
+    : [];
+  const debouncedUnmountedPathsKey = useDebounce(unmountedCollectionPathsKey, INDEX_PREPARE_PATHS_DEBOUNCE_MS, {
+    shouldSkipDebounce: (value) => value === ''
+  });
 
   // A collection that isn't mounted yet has no `collection.items` - its structure lives only in
   // the search index until a real mount runs. Fetched on expand, keyed by uid, and merged into the
@@ -126,6 +138,20 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   };
 
   useEffect(() => {
+    const term = debouncedSearchText.trim();
+    const workspacePath = activeWorkspace?.pathname;
+    if (!term || !searchIndexEnabled || !workspacePath) {
+      lastIndexPrepareKeyRef.current = '';
+      return;
+    }
+    if (!debouncedUnmountedPathsKey) return;
+    const prepareKey = `${workspacePath}\n${term}\n${debouncedUnmountedPathsKey}`;
+    if (prepareKey === lastIndexPrepareKeyRef.current) return;
+    lastIndexPrepareKeyRef.current = prepareKey;
+    dispatch(indexActiveWorkspaceCollections(term));
+  }, [debouncedSearchText, searchIndexEnabled, activeWorkspace?.pathname, debouncedUnmountedPathsKey, dispatch]);
+
+  useEffect(() => {
     const stopSearchIndexRefresh = () => {
       searchRequestIdRef.current += 1;
       lastQueriedTextRef.current = '';
@@ -137,7 +163,6 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
       stopSearchIndexRefresh();
       setSearchTreesByPath({});
       setIsSearchIndexPending(false);
-      hasMountedForSearchRef.current = false;
       return;
     }
 
@@ -149,11 +174,6 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
       return;
     }
 
-    if (!hasMountedForSearchRef.current) {
-      hasMountedForSearchRef.current = true;
-      dispatch(indexActiveWorkspaceCollections());
-    }
-
     // The index just finished building: the final search must not be skipped as a repeat of the last one
     if (wasSearchIndexBuildingRef.current && !searchIndexBuilding) {
       lastQueriedTextRef.current = '';
@@ -162,7 +182,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
 
     if (searchIndexBuilding) setIsSearchIndexPending(true);
     runIndexSearch();
-  }, [sidebarEntries, searchText, dispatch, searchIndexEnabled, searchIndexBuilding, runIndexSearch]);
+  }, [searchText, debouncedSearchText, searchIndexEnabled, searchIndexBuilding, runIndexSearch]);
 
   const renderedSidebarEntries = useMemo(() => sidebarEntries.map((entry) => {
     if (entry.kind !== 'loaded' || entry.collection.mountStatus === 'mounted') return entry;
@@ -204,7 +224,13 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   };
 
   const isSearchPending = trimmedSearchText !== debouncedSearchText || isSearchIndexPending;
-  const showIndexingProgress = Boolean(trimmedSearchText && searchIndexBuilding && searchIndexStatus?.total > 0);
+  const showDiscoveryText = Boolean(trimmedSearchText && searchIndexStatus?.isDiscovering);
+  const showIndexingProgress = Boolean(
+    trimmedSearchText
+    && searchIndexBuilding
+    && !searchIndexStatus?.isDiscovering
+    && searchIndexStatus?.total > 0
+  );
   const indexingCollectionNumber = searchIndexStatus?.total > 0
     ? Math.min((searchIndexStatus.completed ?? 0) + 1, searchIndexStatus.total)
     : null;
@@ -295,6 +321,9 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         <CollectionSearch searchText={searchText} setSearchText={updateSearchText} />
       )}
 
+      {showSearch && showDiscoveryText && (
+        <div className="search-index-status" data-testid="sidebar-discovery-status">Finding matching collections…</div>
+      )}
       {showSearch && showIndexingProgress && (
         <div className="search-index-status" data-testid="sidebar-indexing-status">
           {`Indexing collection ${indexingCollectionNumber} of ${searchIndexStatus.total}…`}

@@ -24,7 +24,7 @@ const buildCollections = (rootDir: string) => {
 const installIndexStatusProbe = async (page: import('@playwright/test').Page) => {
   await page.evaluate(() => {
     (window as any).__indexStatusEvents = [];
-    window.ipcRenderer.on('main:search-index-status', (status: { completed?: number; total?: number; isIndexing?: boolean }) => {
+    window.ipcRenderer.on('main:search-index-status', (status: { completed?: number; total?: number | null; isIndexing?: boolean; isDiscovering?: boolean }) => {
       (window as any).__indexStatusEvents.push({ ...status });
     });
   });
@@ -165,17 +165,98 @@ test.describe('Sidebar search index progress', () => {
       expect(hasBeta).toBe(true);
       expect(hasAlphaOnly).toBe(false);
 
-      const { indexCollectionsCalls, batchStarts } = await page.evaluate(() => {
-        const events = (window as any).__indexStatusEvents as { isIndexing?: boolean; completed?: number; total?: number }[];
-        const batchStarts = events.filter((event) => event.isIndexing && event.completed === 0 && (event.total ?? 0) > 0).length;
-        return {
-          indexCollectionsCalls: (window as any).__searchIndexProgressTest.indexCollectionsCalls,
-          batchStarts
-        };
-      });
-      expect(indexCollectionsCalls === 1 || batchStarts === 1).toBe(true);
-
       await page.evaluate(() => (window as any).__searchIndexProgressTest.restore());
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+
+  test('indexes only collections that match the search term', async ({ launchElectronApp, createTmpDir }) => {
+    test.setTimeout(120_000);
+    const rootDir = await createTmpDir('search-index-candidates');
+    const matchName = 'MatchOnlyCol';
+    const otherName = 'OtherCol';
+    const uniqueNeedle = 'uniqCandIdx42';
+
+    const matchDir = path.join(rootDir, matchName);
+    const otherDir = path.join(rootDir, otherName);
+    initBruCollection(matchDir, matchName);
+    initBruCollection(otherDir, otherName);
+    writeBruRequest(matchDir, uniqueNeedle, { seq: 1 });
+    writeBruRequest(otherDir, 'plain-request', { seq: 1 });
+
+    const app = await launchElectronApp({
+      initUserDataPath: path.join(__dirname, 'init-user-data'),
+      templateVars: {
+        collectionPath1: matchDir,
+        collectionPath2: otherDir,
+        collectionPath3: otherDir
+      }
+    });
+    const page = await waitForReadyPage(app);
+    await installIndexStatusProbe(page);
+
+    try {
+      const searchInput = await openSidebarSearch(page);
+      await searchInput.fill(uniqueNeedle);
+
+      await page.waitForFunction((term) => {
+        const rows = document.querySelectorAll('[data-testid="sidebar-collection-item-row"]');
+        const lower = String(term).toLowerCase();
+        return [...rows].some((row) => row.textContent?.toLowerCase().includes(lower));
+      }, uniqueNeedle, { timeout: 90_000 });
+
+      const rowTexts = await page.locator('[data-testid="sidebar-collection-item-row"]').allTextContents();
+      const lowerNeedle = uniqueNeedle.toLowerCase();
+      expect(rowTexts.filter((text) => text.toLowerCase().includes(lowerNeedle))).toHaveLength(1);
+      expect(rowTexts.some((text) => text.toLowerCase().includes('plain-request'))).toBe(false);
+
+      const peakTotal = await page.evaluate(() => {
+        const events = (window as any).__indexStatusEvents as { total?: number | null }[];
+        const totals = events.map((event) => event.total).filter((total): total is number => typeof total === 'number' && total > 0);
+        return totals.length ? Math.max(...totals) : 0;
+      });
+      expect(peakTotal).toBe(1);
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+
+  test('does not restart indexing while the search term stays unchanged', async ({ launchElectronApp, createTmpDir }) => {
+    test.setTimeout(120_000);
+    const rootDir = await createTmpDir('search-index-idle');
+    const collectionPaths = buildCollections(rootDir);
+
+    const app = await launchElectronApp({
+      initUserDataPath: path.join(__dirname, 'init-user-data'),
+      templateVars: {
+        collectionPath1: collectionPaths[0],
+        collectionPath2: collectionPaths[1],
+        collectionPath3: collectionPaths[2]
+      }
+    });
+    const page = await waitForReadyPage(app);
+    await installIndexStatusProbe(page);
+
+    try {
+      const searchInput = await openSidebarSearch(page);
+      await searchInput.fill(SHARED_NEEDLE);
+      await page.waitForTimeout(1_000);
+
+      const expectedCollections = COLLECTION_NAMES.length;
+      await page.waitForFunction(async (expected) => {
+        const idle = await window.ipcRenderer.invoke('renderer:get-search-index-status');
+        return !idle.isIndexing && idle.total === expected && idle.completed >= idle.total;
+      }, expectedCollections, { timeout: 90_000 });
+
+      await page.waitForTimeout(1_500);
+
+      for (let i = 0; i < 30; i += 1) {
+        await page.waitForTimeout(100);
+        const idle = await page.evaluate(() => window.ipcRenderer.invoke('renderer:get-search-index-status'));
+        expect(idle.isIndexing).toBe(false);
+        expect(idle.isDiscovering).toBe(false);
+      }
     } finally {
       await closeElectronApp(app);
     }

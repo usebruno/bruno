@@ -10,6 +10,8 @@ const { withParentFolders } = require('../search-index/indexer');
 const { indexCollection } = require('../search-index/indexer');
 const { ingestParsedFile, ingestCachedFile, removeFromSearchIndex } = require('../search-index/ingest');
 const { preferencesUtil } = require('../../store/preferences');
+const { discoverCollections, cancelDiscovery, shutdownRipgrepHost } = require('../search-index/ripgrep-host');
+const { collectionNameMatches } = require('../search-index/search-term');
 
 // cold start only — collection-watcher handles live changes and writes through to the cache
 
@@ -75,8 +77,30 @@ class MountManager {
   #index = null;
   #searchIndex = null;
   #mounts = new Map();
-  /** @type {{ workspacePath: string, completed: number, total: number, promise: Promise<void> } | null} */
+  /** @type {{
+   * workspacePath: string,
+   * term: string,
+   * signature: string,
+   * completed: number,
+   * total: number | null,
+   * isDiscovering: boolean,
+   * discoveryId: number | null,
+   * promise: Promise<void>,
+   * queue: { root: string, collectionName: string, denylist: string[] }[],
+   * discovered: Set<string>,
+   * indexing: boolean
+   * } | null} */
   #activeBatch = null;
+  #discoveryCache = new Map();
+  /** @type {Map<string, Set<string>>} */
+  #discoveredRootsByQuery = new Map();
+  /** @type {Set<string>} */
+  #candidatePathsForSearch = new Set();
+  #searchTerm = '';
+
+  #queryDiscoveryKey(workspacePath, term) {
+    return `${workspacePath}\n${term}`;
+  }
 
   async mount({ win, collectionPath, collectionUid, brunoConfig, emit, workspacePath }) {
     collectionPath = path.resolve(collectionPath);
@@ -151,9 +175,12 @@ class MountManager {
       Array.from(this.#mounts.keys()).map((uid) => this.unmount(uid).catch(() => {}))
     );
     await destroyPool({ force }).catch(() => {});
+    shutdownRipgrepHost();
     // both indexes run on the shared database, which the sqlite service closes
     this.#index = null;
     this.#searchIndex = null;
+    this.#activeBatch = null;
+    this.#candidatePathsForSearch = new Set();
   }
 
   getSearchIndexSize() {
@@ -188,7 +215,12 @@ class MountManager {
     let matches = [];
     let total = 0;
     if (Number.isInteger(limit) && Array.isArray(collectionPaths)) {
-      for (const collectionPath of collectionPaths) {
+      const scopedPaths = collectionPaths.filter((collectionPath) => {
+        const root = path.resolve(collectionPath);
+        if (!this.#searchTerm || term !== this.#searchTerm) return true;
+        return this.#candidatePathsForSearch.has(root);
+      });
+      for (const collectionPath of scopedPaths) {
         const root = path.resolve(collectionPath);
         total += searchIndex.countRequestsInCollection(term, root, { workspacePath });
         if (matches.length < limit) {
@@ -218,81 +250,211 @@ class MountManager {
     const root = path.resolve(collectionPath);
     if (this.#isMounted(root)) return;
     const resolvedWorkspacePath = await this.#resolveWorkspacePath(root, workspacePath);
-    await this.indexManyCollectionsInBackground(
-      [{ path: root, name: collectionName }],
-      resolvedWorkspacePath
-    );
+    await indexCollection(this.#getSearchIndex(), {
+      collectionPath: root,
+      collectionName,
+      workspacePath: resolvedWorkspacePath,
+      fileIndex: this.#getIndex(),
+      onWrite: () => this.#broadcast('main:search-index-written')
+    });
   }
 
   #isMounted(root) {
     return Array.from(this.#mounts.values()).some((entry) => entry.collectionPath === root);
   }
 
-  async indexManyCollectionsInBackground(collections, workspacePath) {
-    const resolvedWorkspace = workspacePath ? path.resolve(workspacePath) : '';
-    if (this.#activeBatch?.workspacePath === resolvedWorkspace && this.#activeBatch.promise) {
-      return this.#activeBatch.promise;
-    }
-    if (this.#activeBatch?.promise) {
-      await this.#activeBatch.promise.catch(() => {});
-    }
-    return this.#indexManyCollections(collections, workspacePath);
+  #collectionsSignature(collections) {
+    return JSON.stringify((collections || []).map((c) => path.resolve(c.path)).sort());
   }
 
-  async #indexManyCollections(collections, workspacePath) {
-    if (!preferencesUtil.isSearchIndexEnabled()) return;
+  #discoveryCacheKey(workspacePath, term, signature) {
+    return `${workspacePath}\n${term}\n${signature}`;
+  }
+
+  #enqueueCandidate(batch, entry) {
+    const root = path.resolve(entry.root ?? entry.path);
+    if (batch.discovered.has(root)) return;
+    batch.discovered.add(root);
+    this.#candidatePathsForSearch.add(root);
+    batch.queue.push({
+      root,
+      collectionName: entry.collectionName ?? entry.name,
+      denylist: entry.denylist ?? entry.ignore ?? []
+    });
+    this.#broadcastIndexingStatus();
+    this.#pumpIndexQueue(batch);
+  }
+
+  async #pumpIndexQueue(batch) {
+    if (batch.indexing || this.#activeBatch !== batch) return;
+    batch.indexing = true;
     const fileIndex = this.#getIndex();
     const searchIndex = this.#getSearchIndex();
-    const priorPaths = new Set(searchIndex.collectionPaths());
-    const resolved = collections.map(({ path: collectionPath, name: collectionName }) => ({
-      root: path.resolve(collectionPath),
-      collectionName
-    }));
-    // collections the search index already knows are quick (most files are skipped), so they go first
-    const isFast = (c) => priorPaths.has(c.root);
-    const ordered = [
-      ...resolved.filter(isFast),
-      ...resolved.filter((c) => !isFast(c))
-    ];
+    try {
+      while (batch.queue.length > 0 && this.#activeBatch === batch) {
+        const next = batch.queue.shift();
+        await indexCollection(searchIndex, {
+          collectionPath: next.root,
+          collectionName: next.collectionName,
+          denylist: next.denylist,
+          workspacePath: batch.workspacePath,
+          fileIndex,
+          onWrite: () => this.#broadcast('main:search-index-written')
+        }).catch(() => {});
+        if (this.#activeBatch !== batch) return;
+        batch.completed += 1;
+        this.#broadcastIndexingStatus();
+      }
+    } finally {
+      batch.indexing = false;
+      if (this.#activeBatch === batch && batch.queue.length > 0) {
+        this.#pumpIndexQueue(batch);
+        return;
+      }
+      if (this.#activeBatch === batch && !batch.isDiscovering && batch.queue.length === 0) {
+        this.#activeBatch = null;
+        this.#broadcastIndexingStatus();
+      }
+    }
+  }
+
+  async #runQueryIndexJob(collections, workspacePath, term) {
+    if (!preferencesUtil.isSearchIndexEnabled()) return;
+    const normalizedTerm = (term || '').trim();
+    if (!normalizedTerm) return;
 
     const resolvedWorkspace = workspacePath ? path.resolve(workspacePath) : '';
-    const total = ordered.length;
-    const batch = { workspacePath: resolvedWorkspace, completed: 0, total, promise: null };
+    const unmounted = (collections || [])
+      .map(({ path: collectionPath, name, ignore }) => ({
+        path: path.resolve(collectionPath),
+        name,
+        ignore
+      }))
+      .filter((c) => !this.#isMounted(c.path));
+
+    const signature = this.#collectionsSignature(unmounted);
+    const cacheKey = this.#discoveryCacheKey(resolvedWorkspace, normalizedTerm, signature);
+    const cached = this.#discoveryCache.get(cacheKey);
+
+    const batch = {
+      workspacePath: resolvedWorkspace,
+      term: normalizedTerm,
+      signature,
+      completed: 0,
+      total: cached ? cached.length : null,
+      isDiscovering: !cached,
+      discoveryId: null,
+      promise: null,
+      queue: [],
+      discovered: new Set(),
+      indexing: false
+    };
+
+    this.#searchTerm = normalizedTerm;
+    this.#candidatePathsForSearch = new Set(cached || []);
+    this.#activeBatch = batch;
+    this.#broadcastIndexingStatus();
+
     const runPromise = (async () => {
-      this.#activeBatch = batch;
-      this.#broadcastIndexingStatus();
       try {
-        for (const { root, collectionName } of ordered) {
-          await indexCollection(searchIndex, {
-            collectionPath: root,
-            collectionName,
-            workspacePath,
-            fileIndex,
-            onWrite: () => this.#broadcast('main:search-index-written')
-          }).catch(() => {});
-          if (this.#activeBatch !== batch) return;
-          batch.completed += 1;
-          this.#broadcastIndexingStatus();
+        const ordered = unmounted.map((c) => ({
+          root: c.path,
+          collectionName: c.name,
+          denylist: c.ignore,
+          path: c.path,
+          name: c.name,
+          ignore: c.ignore
+        }));
+
+        if (cached) {
+          for (const root of cached) {
+            const entry = ordered.find((c) => path.resolve(c.root) === root);
+            if (entry) this.#enqueueCandidate(batch, entry);
+          }
+          this.#discoveredRootsByQuery.set(
+            this.#queryDiscoveryKey(resolvedWorkspace, normalizedTerm),
+            new Set(cached)
+          );
+          return;
         }
+
+        for (const entry of ordered) {
+          if (collectionNameMatches(entry.name, normalizedTerm)) {
+            this.#enqueueCandidate(batch, entry);
+          }
+        }
+
+        const { id, promise } = discoverCollections({
+          term: normalizedTerm,
+          collections: ordered.map((c) => ({ path: c.path, name: c.name, ignore: c.ignore })),
+          onCandidate: (collectionPath) => {
+            if (this.#activeBatch !== batch) return;
+            const entry = ordered.find((c) => path.resolve(c.path) === path.resolve(collectionPath));
+            if (entry) this.#enqueueCandidate(batch, entry);
+          }
+        });
+        batch.discoveryId = id;
+        await promise.catch(() => {});
+        if (this.#activeBatch !== batch) return;
+        batch.isDiscovering = false;
+        batch.total = batch.discovered.size;
+        this.#discoveryCache.set(cacheKey, [...batch.discovered]);
+        this.#discoveredRootsByQuery.set(
+          this.#queryDiscoveryKey(resolvedWorkspace, normalizedTerm),
+          new Set(batch.discovered)
+        );
+        this.#broadcastIndexingStatus();
       } finally {
-        if (this.#activeBatch === batch) {
+        if (this.#activeBatch === batch && !batch.isDiscovering && batch.queue.length === 0 && !batch.indexing) {
           this.#activeBatch = null;
           this.#broadcastIndexingStatus();
         }
       }
     })();
+
     batch.promise = runPromise;
     return runPromise;
   }
 
+  async indexManyCollectionsInBackground(collections, workspacePath, term) {
+    const resolvedWorkspace = workspacePath ? path.resolve(workspacePath) : '';
+    const normalizedTerm = (term || '').trim();
+    const signature = this.#collectionsSignature(collections);
+    if (
+      this.#activeBatch
+      && this.#activeBatch.workspacePath === resolvedWorkspace
+      && this.#activeBatch.term === normalizedTerm
+      && this.#activeBatch.signature === signature
+      && this.#activeBatch.promise
+    ) {
+      return this.#activeBatch.promise;
+    }
+    if (this.#activeBatch?.discoveryId != null) {
+      cancelDiscovery(this.#activeBatch.discoveryId);
+    }
+    const unmounted = (collections || [])
+      .map(({ path: collectionPath }) => path.resolve(collectionPath))
+      .filter((root) => !this.#isMounted(root));
+    const knownRoots = this.#discoveredRootsByQuery.get(this.#queryDiscoveryKey(resolvedWorkspace, normalizedTerm));
+    if (knownRoots && !this.#activeBatch && unmounted.length > 0 && unmounted.every((root) => knownRoots.has(root))) {
+      this.#searchTerm = normalizedTerm;
+      this.#candidatePathsForSearch = new Set(knownRoots);
+      return Promise.resolve();
+    }
+    return this.#runQueryIndexJob(collections, workspacePath, normalizedTerm);
+  }
+
   getIndexingStatus() {
     if (!this.#activeBatch) {
-      return { isIndexing: false, completed: 0, total: 0 };
+      return { isIndexing: false, isDiscovering: false, completed: 0, total: 0 };
     }
+    const { completed, total, isDiscovering, queue, indexing } = this.#activeBatch;
+    const isIndexing = isDiscovering || queue.length > 0 || indexing || (total != null && completed < total);
     return {
-      isIndexing: true,
-      completed: this.#activeBatch.completed,
-      total: this.#activeBatch.total
+      isIndexing,
+      isDiscovering,
+      completed,
+      total: isDiscovering && total == null ? null : (total ?? 0)
     };
   }
 
