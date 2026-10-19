@@ -3,7 +3,7 @@ import { act, cleanup, render, screen } from '@testing-library/react';
 import { configureStore } from '@reduxjs/toolkit';
 import { Provider, useSelector } from 'react-redux';
 import tabsReducer, { addTab, closeAllCollectionTabs, closeTabs, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { readPersistedSearchState, writePersistedSearchState } from 'components/CodeEditor/state-persistence';
+import { clearPersistedSearchScope, readPersistedSearchState, writePersistedSearchState } from 'components/CodeEditor/state-persistence';
 import usePersistedTabCleanup from './index';
 
 const searchState = { visible: true, searchText: 'private response', regex: true };
@@ -56,6 +56,7 @@ describe('persisted tab cleanup', () => {
   afterEach(() => {
     cleanup();
     localStorage.clear();
+    clearPersistedSearchScope();
   });
 
   it('clears replaced previews after unmount and leaves no orphan when the collection closes', () => {

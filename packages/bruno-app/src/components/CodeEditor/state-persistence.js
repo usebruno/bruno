@@ -21,6 +21,9 @@ export const DEFAULT_PERSISTENCE_SCOPE = 'global';
 export const STORAGE_SEGMENT = 'codeeditor';
 export const SEARCH_STORAGE_SEGMENT = 'codeeditor-search';
 
+// Search terms can contain response credentials and must not outlive the renderer session.
+const searchStates = new Map();
+
 export const getScopedStorageKey = (scope, key) => {
   const resolvedScope = scope || DEFAULT_PERSISTENCE_SCOPE;
   return `${STORAGE_PREFIX}${resolvedScope}::${STORAGE_SEGMENT}::${key}`;
@@ -77,11 +80,28 @@ export const readPersistedEditorState = ({ scope, key }) =>
 export const writePersistedEditorState = ({ scope, key, state }) =>
   writePersistedState(getScopedStorageKey(scope, key), state);
 
-export const readPersistedSearchState = ({ scope, key }) =>
-  readPersistedState(getScopedSearchStorageKey(scope, key));
+export const readPersistedSearchState = ({ scope, key }) => {
+  const state = searchStates.get(getScopedSearchStorageKey(scope, key));
+  return state ? { ...state } : null;
+};
 
-export const writePersistedSearchState = ({ scope, key, state }) =>
-  writePersistedState(getScopedSearchStorageKey(scope, key), state);
+export const writePersistedSearchState = ({ scope, key, state }) => {
+  const storageKey = getScopedSearchStorageKey(scope, key);
+  if (state === null || state === undefined) {
+    searchStates.delete(storageKey);
+  } else {
+    searchStates.set(storageKey, { ...state });
+  }
+};
+
+export const clearPersistedSearchScope = (scope) => {
+  const prefix = scope ? `${STORAGE_PREFIX}${scope}::` : STORAGE_PREFIX;
+  for (const key of searchStates.keys()) {
+    if (key.startsWith(prefix)) {
+      searchStates.delete(key);
+    }
+  }
+};
 
 export const captureViewState = (editor) => {
   if (!editor) return null;

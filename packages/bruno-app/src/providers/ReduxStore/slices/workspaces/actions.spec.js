@@ -27,6 +27,7 @@ import chatReducer, { openAiSidebar } from '../chat';
 import appReducer from '../app';
 import tabsReducer from '../tabs';
 import globalEnvironmentsReducer from '../global-environments';
+import { ensureActiveTabInCurrentWorkspace } from '../collections/actions';
 
 const WS_A = 'workspace-a';
 const WS_B = 'workspace-b';
@@ -115,7 +116,15 @@ describe('removeCollectionFromWorkspaceAction', () => {
     ({ removeCollectionFromWorkspaceAction } = await import('./actions'));
   });
 
-  it.each([false, true])('closes only the removed collection tabs when deleteFiles is %s', async (deleteFiles) => {
+  it.each([
+    [false, SCRATCH_A],
+    [true, SCRATCH_A],
+    [false, SCRATCH_B],
+    [true, SCRATCH_B]
+  ])('closes only the removed collection tabs when deleteFiles is %s and the remaining tab belongs to %s', async (deleteFiles, keptCollectionUid) => {
+    ensureActiveTabInCurrentWorkspace.mockImplementationOnce(
+      jest.requireActual('../collections/actions').ensureActiveTabInCurrentWorkspace
+    );
     const initial = createStore().getState();
     const collection = makeScratchCollection('removed');
     const store = configureStore({
@@ -140,7 +149,7 @@ describe('removeCollectionFromWorkspaceAction', () => {
         tabs: {
           tabs: [
             { uid: 'removed-request', collectionUid: collection.uid, preview: false },
-            { uid: 'kept-request', collectionUid: SCRATCH_A, preview: false }
+            { uid: 'kept-request', collectionUid: keptCollectionUid, preview: false }
           ],
           activeTabUid: 'removed-request',
           recentlyClosedTabs: []
@@ -150,8 +159,12 @@ describe('removeCollectionFromWorkspaceAction', () => {
 
     await store.dispatch(removeCollectionFromWorkspaceAction(WS_A, collection.pathname, { deleteFiles }));
 
-    expect(store.getState().tabs.tabs.map((tab) => tab.uid)).toEqual(['kept-request']);
-    expect(store.getState().tabs.activeTabUid).toBe('kept-request');
+    const overviewUid = `${SCRATCH_A}-overview`;
+    expect(store.getState().tabs.tabs.map((tab) => tab.uid)).toEqual(
+      keptCollectionUid === SCRATCH_A ? ['kept-request'] : ['kept-request', overviewUid]
+    );
+    expect(store.getState().tabs.activeTabUid).toBe(keptCollectionUid === SCRATCH_A ? 'kept-request' : overviewUid);
+    expect(store.getState().workspaces.activeWorkspaceUid).toBe(WS_A);
     expect(store.getState().collections.collections.map((item) => item.uid)).not.toContain(collection.uid);
     expect(store.getState().workspaces.workspaces.find((workspace) => workspace.uid === WS_A).collections).toEqual([]);
   });
