@@ -159,6 +159,52 @@ describe('mock-spec-routes', () => {
     expect(responses[0].response.body.content).toBe('{}');
   });
 
+  describe('Swagger 2.0 specs', () => {
+    const swaggerSpec = (response) => ({
+      swagger: '2.0',
+      info: { title: 'Pets', version: '1.0.0' },
+      definitions: {
+        Pet: { type: 'object', properties: { name: { type: 'string', example: 'Rex' } } }
+      },
+      paths: { '/pets': { get: { responses: { 200: { description: 'OK', ...response } } } } }
+    });
+
+    it('uses the response example as the body', () => {
+      const responses = buildMockResponsesFromSpec(swaggerSpec({
+        examples: { 'application/json': { name: 'Fido' } }
+      }));
+
+      expect(JSON.parse(responses[0].response.body.content)).toEqual({ name: 'Fido' });
+    });
+
+    it('serves an XML example with its declared content type', () => {
+      const responses = buildMockResponsesFromSpec(swaggerSpec({
+        examples: { 'application/xml': '<pet><name>Fido</name></pet>' }
+      }));
+
+      expect(responses[0].response.body.content).toBe('<pet><name>Fido</name></pet>');
+      expect(responses[0].response.headers[0].value).toBe('application/xml');
+    });
+
+    it('generates the body from a schema that references #/definitions', () => {
+      const responses = buildMockResponsesFromSpec(swaggerSpec({
+        schema: { type: 'array', items: { $ref: '#/definitions/Pet' } }
+      }), { generateFromSchema: true });
+
+      expect(JSON.parse(responses[0].response.body.content)).toEqual([{ name: 'Rex' }, { name: 'Rex' }]);
+    });
+  });
+
+  it('serves an OpenAPI 3 XML example with its declared content type', () => {
+    const responses = buildMockResponsesFromSpec({
+      openapi: '3.0.0',
+      paths: { '/pets': { get: { responses: { 200: { content: { 'application/xml': { example: '<pet/>' } } } } } } }
+    });
+
+    expect(responses[0].response.body.content).toBe('<pet/>');
+    expect(responses[0].response.headers[0].value).toBe('application/xml');
+  });
+
   it('generates faker-backed bodies when schema generation is enabled', () => {
     const responses = buildMockResponsesFromSpec({
       openapi: '3.1.0',

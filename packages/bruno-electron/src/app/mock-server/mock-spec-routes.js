@@ -15,12 +15,30 @@ const convertOpenApiPath = (path) => {
   return converted.replace(/\/+/g, '/');
 };
 
-const pickResponseContent = (response = {}) => (
-  response.content?.['application/json']
-  || response.content?.['text/plain']
-  || Object.values(response.content || {})[0]
-  || null
+const PREFERRED_MEDIA_TYPES = ['application/json', 'text/plain', 'application/xml'];
+
+const pickMediaType = (byMediaType = {}) => (
+  PREFERRED_MEDIA_TYPES.find((mediaType) => byMediaType[mediaType] !== undefined) || Object.keys(byMediaType)[0]
 );
+
+const pickSwagger2ResponseContent = (response) => {
+  const mediaType = pickMediaType(response.examples);
+  const example = mediaType ? response.examples[mediaType] : undefined;
+  if (example === undefined && !response.schema) {
+    return null;
+  }
+
+  return { example, schema: response.schema, mediaType };
+};
+
+const pickResponseContent = (response = {}) => {
+  const mediaType = pickMediaType(response.content);
+  if (mediaType) {
+    return { ...response.content[mediaType], mediaType };
+  }
+
+  return pickSwagger2ResponseContent(response);
+};
 
 const sortStatusCodes = (statusCodes = []) => (
   [...statusCodes].sort((a, b) => {
@@ -101,10 +119,10 @@ const buildResponseBody = (content, spec, { generateFromSchema = false } = {}) =
   };
 };
 
-const buildResponseHeaders = (body) => ([{
+const buildResponseHeaders = (body, mediaType) => ([{
   uid: uuidv4(),
   name: 'Content-Type',
-  value: body.type === 'json' ? 'application/json' : 'text/plain',
+  value: body.type === 'json' ? 'application/json' : mediaType || 'text/plain',
   description: '',
   enabled: true
 }]);
@@ -144,7 +162,7 @@ const buildMockResponseRecord = ({
     response: {
       status: pickedResponse.status,
       statusText: pickedResponse.statusText || 'OK',
-      headers: buildResponseHeaders(body),
+      headers: buildResponseHeaders(body, pickedResponse.content?.mediaType),
       body
     },
     rules: {

@@ -1,7 +1,37 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { parseApiSpecContent, resolveExternalApiSpecRefs } = require('../apiSpecs');
+const { parseApiSpecContent, parseAndValidateApiSpec, resolveExternalApiSpecRefs } = require('../apiSpecs');
+
+describe('parseAndValidateApiSpec', () => {
+  const validYaml = 'openapi: 3.0.0\ninfo:\n  title: Pets\n  version: 1.0.0\npaths:\n  /pets: {}\n';
+
+  it('returns the parsed spec for valid OpenAPI 3 YAML and Swagger 2.0 JSON', () => {
+    expect(parseAndValidateApiSpec(validYaml).paths).toEqual({ '/pets': {} });
+    const swagger = { swagger: '2.0', info: { title: 'Pets', version: '1' }, paths: { '/pets': {} } };
+    expect(parseAndValidateApiSpec(JSON.stringify(swagger))).toEqual(swagger);
+  });
+
+  it('rejects content that is not valid YAML or JSON', () => {
+    expect(() => parseAndValidateApiSpec('openapi: 3.0.0\ninfo:\n  title: x\n   version: : :\npaths: [')).toThrow('not valid YAML or JSON');
+  });
+
+  it.each([
+    ['plain text', 'just some text'],
+    ['an empty file', ''],
+    ['a missing openapi/swagger field', 'info:\n  title: x\npaths:\n  /a: {}\n'],
+    ['a missing info object', 'openapi: 3.0.0\npaths:\n  /a: {}\n']
+  ])('rejects %s as not an OpenAPI or Swagger spec', (_label, content) => {
+    expect(() => parseAndValidateApiSpec(content)).toThrow('must have an openapi or swagger version and an info object');
+  });
+
+  it.each([
+    ['missing', 'openapi: 3.0.0\ninfo:\n  title: x\n'],
+    ['empty', 'openapi: 3.0.0\ninfo:\n  title: x\npaths: {}\n']
+  ])('rejects a spec whose paths are %s', (_label, content) => {
+    expect(() => parseAndValidateApiSpec(content)).toThrow('does not define any paths');
+  });
+});
 
 describe('parseApiSpecContent', () => {
   it('parses yaml and json by extension', () => {
