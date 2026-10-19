@@ -81,7 +81,3 @@ CI fails when it is stale.
 The run fails on a misspelled `@context` or `@runtime` value, a public `_`-prefixed member
 that is documented but not marked `@internal` or `@protected`, an unresolved type name, or a type
 from outside bruno-js that the API exposes.
-
-`npm run docs:script-api` builds the HTML API reference from `types/script-api.d.ts` into
-`docs-dist/script-api/` inside this package with TypeDoc (`typedoc.json`). `typedoc/plugin.mjs`
-turns the `@context` and `@runtime` tags into sentences for the reader.

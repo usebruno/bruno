@@ -72,7 +72,6 @@
     "build:graphql-docs": "npm run build --workspace=packages/bruno-graphql-docs",
     "build:schema-types": "npm run build --workspace=packages/bruno-schema-types",
     "generate:script-api": "npm run generate:script-api --workspace=packages/bruno-js",
-    "docs:script-api": "npm run docs:script-api --workspace=packages/bruno-js",
     "build:electron": "node ./scripts/build-electron.js",
     "build:electron:benchmark": "cross-env BRUNO_BENCHMARK=true npm run build:benchmark --workspace=packages/bruno-app && cross-env BRUNO_BENCHMARK=true node scripts/build-electron.js",
     "build:electron:mac": "./scripts/build-electron.sh mac",

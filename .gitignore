@@ -19,7 +19,6 @@ coverage
 
 # production
 build
-docs-dist
 chrome-extension
 chrome-extension.pem
 chrome-extension.crx
