@@ -6,8 +6,7 @@ import { IconAlertTriangle } from '@tabler/icons';
 import {
   addSecretToEnvironment,
   markEnvironmentVariableAsSecret,
-  removeVariableFromScope,
-  saveScopeOwner
+  removeVariableFromScope
 } from 'providers/ReduxStore/slices/collections/actions';
 import useCloseOnEscape from 'hooks/useCloseOnEscape';
 import { getActiveEnvironmentUidForScope } from 'utils/collections';
@@ -16,7 +15,6 @@ import {
   findOverridingVariableScope,
   replaceVariableReferences,
   replaceWithVariableValues,
-  resolveFieldScope,
   resolveSensitiveVariable
 } from 'utils/sensitive-fields';
 import SecretVariableForm from './SecretVariableForm';
@@ -83,11 +81,6 @@ const renameVariableReference = (text, from, to) => (
   replaceVariableReferences(text, (name, match) => (name === from ? `{{${to}}}` : match))
 );
 
-/** Saves the request, folder or collection that owns the field, so the plain value leaves the file. */
-const saveRequestFolderOrCollection = (collectionUid, item) => (
-  saveScopeOwner({ collectionUid, scope: resolveFieldScope(item), ownerUid: item?.uid })
-);
-
 const SensitiveFieldWarning = ({
   fieldName,
   secretName = '',
@@ -99,7 +92,6 @@ const SensitiveFieldWarning = ({
   collection,
   item,
   disabled,
-  skipOwnerSave,
   onReplaceValue,
   onMarkAsSecret
 }) => {
@@ -185,18 +177,17 @@ const SensitiveFieldWarning = ({
       .then(() => {
         if (!movedVariable) {
           onReplaceValue(`{{${name}}}`);
-          return skipOwnerSave || dispatch(saveRequestFolderOrCollection(collectionUid, item));
+          return;
         }
-        const isFieldRenamed = name !== variableName && !!onReplaceValue;
-        if (isFieldRenamed) {
+        if (name !== variableName && onReplaceValue) {
           onReplaceValue(renameVariableReference(value, variableName, name));
         }
-        return dispatch(removeVariableFromScope({
+        dispatch(removeVariableFromScope({
           collectionUid,
           scope,
           ownerUid: movedVariable.ownerUid,
           variableUid: movedVariable.uid
-        })).then(() => isFieldRenamed && dispatch(saveRequestFolderOrCollection(collectionUid, item)));
+        }));
       })
       .then(() => toast.success(`Secret "${name}" created`));
   };

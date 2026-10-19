@@ -74,9 +74,10 @@ test.describe('Sensitive field actions', () => {
       await expect(toast.byMessage('Secret "apiKeyValue" created')).toBeVisible();
     });
 
-    await test.step('The field uses the secret and the plaintext is gone from disk', async () => {
+    await test.step('The field uses the secret and the plaintext is gone from disk after saving', async () => {
       await expect.poll(() => readField(page, 'Value')).toBe('{{apiKeyValue}}');
       await expect(codeMirror.sensitiveWarning(API_KEY_FIELD)).toHaveCount(0);
+      await saveRequest(page);
       await expect.poll(() => readFileIfExists(path.join(collectionDir, 'login.yml'))).toContain('{{apiKeyValue}}');
       await expect.poll(() => readFileIfExists(path.join(collectionDir, 'environments', 'dev.yml'))).toContain('apiKeyValue');
     });
@@ -222,9 +223,10 @@ test.describe('Sensitive field actions', () => {
       expect(await readField(page, 'Value')).toBe('{{token}}');
     });
 
-    await test.step('The request variable is gone from the tab and from disk', async () => {
+    await test.step('The request variable is gone from the tab and from disk after saving', async () => {
       await selectRequestPaneTab(page, 'Vars');
       await expect(table('request-vars-req').rowByName('token')).toHaveCount(0);
+      await saveRequest(page);
       await expect.poll(() => readFileIfExists(path.join(collectionDir, 'login.yml'))).not.toContain('from-request');
       await expect.poll(() => readFileIfExists(path.join(collectionDir, 'environments', 'dev.yml'))).toContain('token');
     });
@@ -271,6 +273,7 @@ test.describe('Sensitive field actions', () => {
     await test.step('Only the request variable is removed', async () => {
       await selectRequestPaneTab(page, 'Vars');
       await expect(table('request-vars-req').rowByName('token')).toHaveCount(0);
+      await saveRequest(page);
       await expect.poll(() => readFileIfExists(path.join(collectionDir, 'auth', 'login.yml'))).toContain('{{tokenValue}}');
       expect(readFileIfExists(path.join(collectionDir, 'auth', 'login.yml'))).not.toContain('from-request');
       expect(readFileIfExists(path.join(collectionDir, 'auth', 'folder.yml'))).toContain('from-folder');
@@ -305,6 +308,7 @@ test.describe('Sensitive field actions', () => {
 
     await test.step('The row is gone and the environment holds the secret', async () => {
       await expect(table('request-vars-req').rowByName('token')).toHaveCount(0);
+      await saveRequest(page);
       await expect.poll(() => readFileIfExists(path.join(collectionDir, 'login.yml'))).not.toContain('from-request');
       await expect.poll(() => readFileIfExists(path.join(collectionDir, 'environments', 'dev.yml'))).toContain('token');
     });

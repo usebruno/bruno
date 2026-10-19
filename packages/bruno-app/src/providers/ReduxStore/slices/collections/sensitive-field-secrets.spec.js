@@ -257,23 +257,23 @@ describe('markEnvironmentVariableAsSecret', () => {
 });
 
 describe('removeVariableFromScope', () => {
-  it('removes a collection variable and saves the collection', async () => {
+  it('removes a collection variable from the collection draft without saving', () => {
     const store = createStore();
 
-    await store.dispatch(removeVariableFromScope({
+    store.dispatch(removeVariableFromScope({
       collectionUid: COLLECTION_UID,
       scope: 'collection',
       variableUid: 'uid-collectionToken'
     }));
 
-    expect(getCollection(store).root.request.vars.req).toEqual([]);
-    expect(invoke).toHaveBeenCalledWith('renderer:save-collection-root', expect.anything(), expect.anything(), undefined);
+    expect(getCollection(store).draft.root.request.vars.req).toEqual([]);
+    expect(invoke).not.toHaveBeenCalled();
   });
 
-  it('removes a request variable and saves the request', async () => {
+  it('removes a request variable from the request draft without saving', () => {
     const store = createStore({ items: [makeRequest([makeVar('requestToken', 'r1'), makeVar('host', 'localhost')])] });
 
-    await store.dispatch(removeVariableFromScope({
+    store.dispatch(removeVariableFromScope({
       collectionUid: COLLECTION_UID,
       scope: 'request',
       ownerUid: 'req-1',
@@ -281,15 +281,14 @@ describe('removeVariableFromScope', () => {
     }));
 
     const request = getCollection(store).items[0];
-    expect(request.request.vars.req).toEqual([makeVar('host', 'localhost')]);
-    expect(request.draft).toBeNull();
-    expect(invoke).toHaveBeenCalledWith('renderer:save-request', '/collections/col-1/login.yml', expect.anything(), undefined);
+    expect(request.draft.request.vars.req).toEqual([makeVar('host', 'localhost')]);
+    expect(invoke).not.toHaveBeenCalled();
   });
 
-  it('removes a folder variable and saves the folder', async () => {
+  it('removes a folder variable from the folder draft without saving', () => {
     const store = createStore({ items: [makeFolder([makeVar('folderToken', 'f1'), makeVar('host', 'localhost')])] });
 
-    await store.dispatch(removeVariableFromScope({
+    store.dispatch(removeVariableFromScope({
       collectionUid: COLLECTION_UID,
       scope: 'folder',
       ownerUid: 'folder-1',
@@ -297,7 +296,7 @@ describe('removeVariableFromScope', () => {
     }));
 
     const folder = getCollection(store).items[0];
-    expect(folder.root.request.vars.req).toEqual([makeVar('host', 'localhost')]);
-    expect(invoke).toHaveBeenCalledWith('renderer:save-folder-root', expect.objectContaining({ folderPathname: '/collections/col-1/auth' }));
+    expect(folder.draft.request.vars.req).toEqual([makeVar('host', 'localhost')]);
+    expect(invoke).not.toHaveBeenCalled();
   });
 });

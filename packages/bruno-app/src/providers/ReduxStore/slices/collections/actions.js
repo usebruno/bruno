@@ -2435,18 +2435,7 @@ export const markEnvironmentVariableAsSecret = ({ collectionUid, environmentScop
   }))
 );
 
-/** Silently saves the request, folder or collection draft. */
-export const saveScopeOwner = ({ collectionUid, scope, ownerUid }) => (dispatch) => {
-  if (scope === VARIABLE_ADD_SCOPES.REQUEST) {
-    return dispatch(saveRequest(ownerUid, collectionUid, true));
-  }
-  if (scope === VARIABLE_ADD_SCOPES.FOLDER) {
-    return dispatch(saveFolderRoot(collectionUid, ownerUid, true));
-  }
-  return dispatch(saveCollectionSettings(collectionUid, null, true));
-};
-
-/** Deletes a request, folder or collection var and saves its owner. */
+/** Deletes a request, folder or collection var from its owner's draft. */
 export const removeVariableFromScope = ({ collectionUid, scope, ownerUid, variableUid }) => (dispatch) => {
   if (scope === VARIABLE_ADD_SCOPES.REQUEST) {
     dispatch(deleteVar({ collectionUid, itemUid: ownerUid, type: 'request', varUid: variableUid }));
@@ -2455,7 +2444,6 @@ export const removeVariableFromScope = ({ collectionUid, scope, ownerUid, variab
   } else {
     dispatch(deleteCollectionVar({ collectionUid, type: 'request', varUid: variableUid }));
   }
-  return dispatch(saveScopeOwner({ collectionUid, scope, ownerUid }));
 };
 
 /**
