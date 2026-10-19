@@ -65,6 +65,20 @@ const rewriteMembers = (j, root, bindings, registry) => {
     // along with its name: `res.json()` -> `res.data` drops the call, `res.data` -> `res.json()`
     // adds one back.
     if (spec.call === 'drop' && isMethodCall) {
+      /**
+       * The counterpart is a plain property, so there is nowhere for arguments to go. Leaving
+       * the call as it stands keeps them visible; dropping them would quietly change what it
+       * does.
+       */
+      if (parent.value.arguments.length) {
+        reportUntranslated(
+          parent.value,
+          propertyName,
+          `${spec.to} is a property on the other side and cannot take arguments`
+        );
+        return;
+      }
+
       j(parent).replaceWith(replacement);
     } else if (spec.call === 'add' && !isMethodCall) {
       j(path).replaceWith(j.callExpression(replacement, []));

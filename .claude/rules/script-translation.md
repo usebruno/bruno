@@ -226,10 +226,29 @@ it walked would re-match its own output.
 A missed translation leaves the original text in the output, where it is visible and greppable; a
 wrong one silently changes what the script does. New guards must resolve the same way.
 
-`type-environment.js` drops a binding — rather than guessing — when the name is declared twice in
-one scope (the AST library models function scope, not block scope, so a `const` inside an `if` is
-indistinguishable from one beside it), when the binding is ever reassigned, or when the initialiser
-is not a known producer. Members reached through a key that is not statically known are skipped
+`type-environment.js` drops a binding — rather than guessing — when another declaration of the name
+could claim the same reference, when the binding is ever reassigned, or when the initialiser is not
+a known producer.
+
+**Ambiguity is decided by containment, not by a per-scope count.** The AST library models function
+scope, so `path.scope` alone cannot tell two sibling blocks apart from a shadowing pair.
+`scopeOfDeclaration` confines a `const`/`let` to its nearest enclosing block (a `var` keeps the
+function the library reports), and two declarations collide only when one's scope encloses the
+other — so these two are independent and both translate, where a count would have dropped both:
+
+```js
+if (a) { const r = await pm.sendRequest(q);  r.code }
+if (b) { const r = await pm.sendRequest(q2); r.code }
+```
+
+A binding carries that node as `blockNode`, and `resolvesToBinding` requires it to enclose the
+reference *on top of* the library's own lookup. The extra condition is additive: a handler
+parameter has no `blockNode` and keeps the function-scope answer, which is what stops a nested
+function's same-named parameter from being rewritten.
+
+A member whose counterpart is a plain property is left alone when the call carries arguments —
+there is nowhere on a property for them to go, and discarding them would change what the call
+does. Members reached through a key that is not statically known are skipped
 separately, by `rewrite-members.js` and `rewrite-patterns.js`. Interprocedural flow is not
 supported at all.
 

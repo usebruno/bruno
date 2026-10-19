@@ -242,7 +242,6 @@ const derive = (correspondence, from) => {
     const typeName = correspondence.typePairs[entry.yields.type][sideKey];
 
     producers[entry[from]] = typeName;
-    if (entry.bothSpellings) producers[entry[to]] = typeName;
 
     if (entry.handlers) {
       params[entry[from]] = resolveHandlers(entry.handlers, correspondence, sideKey);

@@ -130,9 +130,6 @@ const COOKIE = {
  * `handlers` declares only the slots that cannot be worked out, which means the callback forms.
  * A promise handler is not declared: `.then` receives what the call yields, and that is promise
  * semantics rather than a fact about either API.
- *
- * `bothSpellings` registers the call under its Postman *and* its Bruno path in both registries,
- * since a script reaching this pass may already be partly translated.
  */
 const ENTRY_POINTS = [
   {
@@ -146,8 +143,7 @@ const ENTRY_POINTS = [
   {
     pm: 'pm.cookies.jar',
     bru: 'bru.cookies.jar',
-    yields: { type: 'CookieJar' },
-    bothSpellings: true
+    yields: { type: 'CookieJar' }
   }
 ];
 
