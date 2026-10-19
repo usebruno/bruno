@@ -158,6 +158,7 @@ A typed value reaches a script by one of two routes, and each has a producer emi
 |---|---|---|
 | `collectBindings` | variable declarations — `const r = await pm.sendRequest(q)` | `type-environment.js` |
 | `collectAllChainBindings` | handler parameters of a promise chain — `.then(r => ...)` | `promise-chain.js` |
+| `collectCallbackBindings` | parameters of a declared callback — `(err, res) => ...` | `promise-chain.js` |
 
 A chain's **head** is whatever it hangs off, which is not always the call: `const p = pm.sendRequest(q); p.then(...)` hangs off a name. Both producers type an *expression*, so neither cares which. A call bound to a name used as a promise is also left un-awaited — `const p = await bru.sendRequest(q)` would leave the chain nothing to attach to.
 
@@ -167,9 +168,14 @@ serves both directions, and why it is driven by the *type of the chain's head* r
 known call: nothing in it names `sendRequest`, so any producer or member that comes to yield a
 type is chainable without a change here.
 
-`collectHandlerBindings` is **also called directly** by `send-request-transformer.js` and
-`bruno-send-request-transformer.js` for the node-style callback form, whose slots are declared
-rather than derived — a change to it has two sets of callers.
+A callback's slots **are** declared, in `handlers`, because nothing about a call's yielded type
+says that `(err, res)` carries it second and an error first. Its *position* is not: the callback is
+the call's trailing function argument, a convention that holds across the surface (`sendRequest`
+arg 1, `jar.get` arg 2, `jar.set` arg 3).
+
+All three producers run inside `applySemanticTypes`, so **no transformer types anything**. The
+transformers shape output only — reshaping the request config, marking a callback `async`, placing
+the `await`.
 
 - **`rewrite-yields.js`** adapts what a member *produces*, where the value is produced rather than
   at every later read, so no reference needs visiting:

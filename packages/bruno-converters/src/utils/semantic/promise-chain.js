@@ -1,4 +1,4 @@
-import { getStaticPropertyName, isFunctionExpression } from '../ast-utils';
+import { getMemberExpressionString, getStaticPropertyName, isFunctionExpression } from '../ast-utils';
 import { getExpressionType, isReassigned, resolvesToBinding } from './type-environment';
 import { rewritePattern } from './rewrite-patterns';
 
@@ -230,4 +230,36 @@ export const collectAllChainBindings = (j, ast, bindings, registry) => {
   });
 
   return chainBindings;
+};
+
+/**
+ * Every declared callback in the script, typed from the slots its call declares.
+ *
+ * The callback is the call's trailing function argument — the node-style convention holds across
+ * this surface, so its position needs no declaring. What each slot *receives* does: nothing about
+ * a call's yielded type says that `(err, res)` carries it second and an error first.
+ *
+ * @param {Object} j - jscodeshift API
+ * @param {Object} ast - jscodeshift Collection
+ * @param {Object} registry - The API registry
+ * @returns {Array<{name: string, scopeNode: Object, typeName: string}>}
+ */
+export const collectCallbackBindings = (j, ast, registry) => {
+  const bindings = [];
+
+  ast.find(j.CallExpression).paths().forEach((callPath) => {
+    const declared = registry.params[getMemberExpressionString(callPath.value.callee)];
+    const slotTypes = declared && declared.callback;
+    if (!slotTypes) return;
+
+    const lastIndex = callPath.value.arguments.length - 1;
+    if (lastIndex < 0) return;
+    if (!isFunctionExpression(callPath.value.arguments[lastIndex])) return;
+
+    bindings.push(
+      ...collectHandlerBindings(j, callPath.get('arguments', lastIndex), slotTypes, registry)
+    );
+  });
+
+  return bindings;
 };

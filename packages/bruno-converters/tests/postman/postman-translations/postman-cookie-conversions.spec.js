@@ -13,6 +13,23 @@ describe('postmanTranslations - cookie API conversions', () => {
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
+  test.each([
+    ['unset', 'deleteCookie', `jar.unset('https://example.com', 'sessionId', (err) => console.log(err));`],
+    ['clear', 'deleteCookies', `jar.clear('https://example.com', (err) => console.log(err));`]
+  ])('should report %s, whose callback Bruno\'s %s cannot receive', (member, _bru, call) => {
+    const warnings = [];
+    const original = console.warn;
+    console.warn = (message) => warnings.push(message);
+
+    try {
+      postmanTranslation(`const jar = pm.cookies.jar();\n${call}`);
+    } finally {
+      console.warn = original;
+    }
+
+    expect(warnings.some((w) => w.includes(member) && w.includes('callback'))).toBe(true);
+  });
+
   test('should not project onto the promise when a jar call enters a promise chain', () => {
     const inputScript = `const jar = pm.cookies.jar();
 jar.get('https://example.com', 'sessionId').then((value) => console.log(value));`;

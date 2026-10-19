@@ -1,11 +1,10 @@
 const j = require('jscodeshift');
 import { isFunctionExpression } from './ast-utils';
-import { collectHandlerBindings, rewriteMembers, BRUNO_REGISTRY } from './semantic';
+import { BRUNO_REGISTRY } from './semantic';
 
-// Which parameter of the callback receives the response, and as what type. A `.then` handler
-// needs no entry here — `applySemanticTypes` types promise chains from what the call yields.
-const { callback: CALLBACK_SLOT_TYPES } = BRUNO_REGISTRY.params['bru.sendRequest'];
-const CALLBACK_RESPONSE_INDEX = CALLBACK_SLOT_TYPES.findIndex(Boolean);
+// Which parameter of the callback carries the response, so a missing one is filled in the right
+// place. Its members were already translated by `applySemanticTypes`.
+const CALLBACK_RESPONSE_INDEX = BRUNO_REGISTRY.params['bru.sendRequest'].callback.findIndex(Boolean);
 
 /**
  * Content-Type constants for body mode detection
@@ -202,12 +201,6 @@ const transformCallback = (callbackPath) => {
 
   const params = callback.params;
   const responseParam = params[CALLBACK_RESPONSE_INDEX];
-
-  const bindings = collectHandlerBindings(j, callbackPath, CALLBACK_SLOT_TYPES, BRUNO_REGISTRY);
-  rewriteMembers(j, j(callbackPath), bindings, BRUNO_REGISTRY);
-
-  // read after the rewrite: a concise body is replaced outright, so a reference taken before it
-  // would still point at the untranslated expression
   const callbackBody = callback.body;
 
   // Create the callback - Postman uses regular functions

@@ -1,12 +1,5 @@
 import { getStaticPropertyName, isFunctionExpression } from './ast-utils';
-import {
-  PROMISE_CHAIN_METHODS,
-  collectHandlerBindings,
-  getPromiseChainLinks,
-  resolvesToBinding,
-  rewriteMembers,
-  POSTMAN_REGISTRY
-} from './semantic';
+import { PROMISE_CHAIN_METHODS, getPromiseChainLinks, resolvesToBinding } from './semantic';
 
 /**
  * Convert Postman header array format to Bruno headers object
@@ -158,10 +151,6 @@ const transformBody = (j, requestOptions) => {
   });
 };
 
-// Which parameter of the callback receives the response, and as what type. A `.then` handler
-// needs no entry here — `applySemanticTypes` types promise chains from what the call yields.
-const { callback: CALLBACK_SLOT_TYPES } = POSTMAN_REGISTRY.params['pm.sendRequest'];
-
 /**
  * Whether a function is a `.then`/`.catch`/`.finally` handler argument
  * @param {Object} functionPath - Path of the function to test
@@ -198,25 +187,6 @@ const ensureAsyncContext = (j, path) => {
   }
 
   return false;
-};
-
-/**
- * Transform callback function to Bruno format
- * @param {Object} j - jscodeshift API
- * @param {Object} callbackPath - Path of the callback argument
- * @returns {Object|null} - The callback, made async with its response access rewritten in place, or null if not a function
- */
-const transformCallback = (j, callbackPath) => {
-  const callback = callbackPath.value;
-  if (!isFunctionExpression(callback)) return null;
-
-  const bindings = collectHandlerBindings(j, callbackPath, CALLBACK_SLOT_TYPES, POSTMAN_REGISTRY);
-  rewriteMembers(j, j(callbackPath), bindings, POSTMAN_REGISTRY);
-
-  // `bru.sendRequest` callbacks may await, so the translated callback is always async
-  callback.async = true;
-
-  return callback;
 };
 
 /**
@@ -337,15 +307,11 @@ const sendRequestTransformer = (path, j) => {
     transformReferencedConfig(j, root, callPath.get('arguments', 0), requestOptions.name);
   }
 
-  const callbackPath = callPath.get('arguments', 1);
-  const transformedCallback = transformCallback(j, callbackPath);
+  const callbackArg = args[1];
 
-  /**
-   * A callback passed by reference has no body to rewrite, but it is still the script's handler.
-   * Carrying it over untouched leaves one call untranslated; dropping it loses the handler, and
-   * with it everything the request was made for.
-   */
-  const callbackArg = transformedCallback || args[1];
+  // `bru.sendRequest` callbacks may await, so a translated callback is always async. Its
+  // parameters were typed by `applySemanticTypes`, before any of these names changed.
+  if (isFunctionExpression(callbackArg)) callbackArg.async = true;
 
   const sendRequestCall = j.callExpression(
     j.identifier('bru.sendRequest'),

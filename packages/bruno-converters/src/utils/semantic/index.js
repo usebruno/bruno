@@ -7,7 +7,7 @@ import { rewriteDestructuredDeclarations, rewritePattern } from './rewrite-patte
 import {
   PROMISE_CHAIN_METHODS,
   collectAllChainBindings,
-  collectHandlerBindings,
+  collectCallbackBindings,
   getPromiseChainLinks
 } from './promise-chain';
 
@@ -49,8 +49,11 @@ export const applySemanticTypes = (j, ast, registry) => {
    */
   const chainBindings = collectAllChainBindings(j, ast, bindings, registry);
 
+  // the same value, delivered to a callback parameter instead
+  const callbackBindings = collectCallbackBindings(j, ast, registry);
+
   rewriteYields(j, ast, bindings, registry);
-  rewriteMembers(j, ast, [...bindings, ...chainBindings], registry);
+  rewriteMembers(j, ast, [...bindings, ...chainBindings, ...callbackBindings], registry);
   rewriteDestructuredDeclarations(j, ast, bindings, registry);
 };
 
@@ -59,6 +62,5 @@ export {
   rewritePattern,
   resolvesToBinding,
   PROMISE_CHAIN_METHODS,
-  collectHandlerBindings,
   getPromiseChainLinks
 };

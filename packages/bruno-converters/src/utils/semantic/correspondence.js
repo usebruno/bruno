@@ -68,10 +68,18 @@ const COOKIE_JAR = {
   bruno: 'BrunoCookieJar',
 
   members: [
-    { pm: 'unset', bru: 'deleteCookie' },
+    {
+      pm: 'unset',
+      bru: 'deleteCookie',
+      yields: { differs: 'Postman reports completion to a callback; Bruno\'s deleteCookie resolves a promise' }
+    },
 
     // Postman's clear is url-scoped, which is what deleteCookies does; Bruno's own clear() is not
-    { pm: 'clear', bru: 'deleteCookies' },
+    {
+      pm: 'clear',
+      bru: 'deleteCookies',
+      yields: { differs: 'Postman reports completion to a callback; Bruno\'s deleteCookies resolves a promise' }
+    },
 
     // Bruno hands back the cookie, Postman only its value
     { pm: 'get', bru: 'getCookie', yields: { type: 'Cookie', pmProjects: 'value' } },
