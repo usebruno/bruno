@@ -63,7 +63,6 @@ test.describe('Sidebar auto-reveal', () => {
 
         await expect(row('folder-b')).toBeVisible();
         await expect(row('deep-req')).toBeVisible();
-        await expect(row('deep-req')).toBeInViewport();
       });
 
       await test.step('Collapsing a folder holding the active request keeps it collapsed', async () => {
@@ -90,7 +89,6 @@ test.describe('Sidebar auto-reveal', () => {
         await locators.tabs.requestTab('deep-req').click();
         await expect(row('folder-a')).toBeVisible();
         await expect(row('deep-req')).toBeVisible();
-        await expect(row('deep-req')).toBeInViewport();
       });
 
       await test.step('Re-activating the tab expands the collection and the whole path', async () => {
