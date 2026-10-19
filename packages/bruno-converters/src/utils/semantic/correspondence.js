@@ -119,6 +119,10 @@ const COOKIE = {
  * say `{ type }` though: neither has a second side to differ from, and a value worth no type is
  * one to leave the slot empty for.
  *
+ * `handlers` declares only the slots that cannot be worked out, which means the callback forms.
+ * A promise handler is not declared: `.then` receives what the call yields, and that is promise
+ * semantics rather than a fact about either API.
+ *
  * `bothSpellings` registers the call under its Postman *and* its Bruno path in both registries,
  * since a script reaching this pass may already be partly translated.
  */
@@ -127,8 +131,9 @@ const ENTRY_POINTS = [
     pm: 'pm.sendRequest',
     bru: 'bru.sendRequest',
     yields: { type: 'Response' },
-    // `callback` is the node-style `(err, res)` argument, `then` a promise-chain handler
-    handlers: { callback: [null, { type: 'Response' }], then: [{ type: 'Response' }] }
+    // the node-style `(err, res)` argument. A promise handler needs no slot: `.then` receives
+    // whatever the call yields, which `yields` already says.
+    handlers: { callback: [null, { type: 'Response' }] }
   },
   {
     pm: 'pm.cookies.jar',

@@ -1,5 +1,6 @@
 import { getStaticPropertyName, isFunctionExpression, reportUntranslated } from '../ast-utils';
 import { getExpressionType } from './type-environment';
+import { getPromiseChainLinks } from './promise-chain';
 
 /**
  * Adapts what a typed member yields, where the two APIs agree on the member but not on the
@@ -66,8 +67,19 @@ const rewriteYields = (j, root, bindings, registry) => {
     }
 
     // the value to adapt is what the `await` produces, not the promise it produces it from
-    const produced = parent.parent.value.type === 'AwaitExpression' ? parent.parent : parent;
+    const isAwaited = parent.parent.value.type === 'AwaitExpression';
+    const produced = isAwaited ? parent.parent : parent;
     if (produced.parent.value.type === 'ExpressionStatement') return;
+
+    /**
+     * An un-awaited call entering a promise chain carries its value to a handler parameter, so
+     * there is no expression here to adapt — appending one would land it on the promise:
+     * `jar.get(u, n).value.then(...)` reads `.value` off a Promise and is undefined.
+     */
+    if (!isAwaited && getPromiseChainLinks(produced).length) {
+      report(parent.value);
+      return;
+    }
 
     if (!yields.project) {
       report(parent.value);

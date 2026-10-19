@@ -6,7 +6,7 @@ import rewriteYields from './rewrite-yields';
 import { rewriteDestructuredDeclarations, rewritePattern } from './rewrite-patterns';
 import {
   PROMISE_CHAIN_METHODS,
-  collectChainBindings,
+  collectAllChainBindings,
   collectHandlerBindings,
   getPromiseChainLinks
 } from './promise-chain';
@@ -43,8 +43,14 @@ export const BRUNO_REGISTRY = derive(CORRESPONDENCE, 'bru');
 export const applySemanticTypes = (j, ast, registry) => {
   const bindings = collectBindings(j, ast, registry);
 
+  /**
+   * A promise chain delivers the same value a variable would have held, to a handler parameter
+   * instead. Collecting both before rewriting is what lets one pass serve either route.
+   */
+  const chainBindings = collectAllChainBindings(j, ast, bindings, registry);
+
   rewriteYields(j, ast, bindings, registry);
-  rewriteMembers(j, ast, bindings, registry);
+  rewriteMembers(j, ast, [...bindings, ...chainBindings], registry);
   rewriteDestructuredDeclarations(j, ast, bindings, registry);
 };
 
@@ -53,7 +59,6 @@ export {
   rewritePattern,
   resolvesToBinding,
   PROMISE_CHAIN_METHODS,
-  collectChainBindings,
   collectHandlerBindings,
   getPromiseChainLinks
 };

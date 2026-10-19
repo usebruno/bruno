@@ -104,12 +104,16 @@ const ENTRY_POINTS = [
     pm: 'pm.sendRequest',
     bru: 'bru.sendRequest',
     yields: { type: 'Response' },
-    handlers: { callback: [null, { type: 'Response' }], then: [{ type: 'Response' }] }
+    handlers: { callback: [null, { type: 'Response' }] }
   }
 ];
 ```
 
 A `null` handler slot is a position that receives nothing — the `err` of `(err, res)`.
+
+**`handlers` declares only the callback forms.** A promise handler is not declared: `.then`
+receives whatever the call yields, which `yields` already says, and that is promise semantics
+rather than a fact about either API. Declaring it would be the same type written twice.
 
 A producer and a parameter can only say `{ type }`, though. Neither has a second side to differ
 from, so `differs` and the projection keys are rejected there; a value worth no type is one to
@@ -145,12 +149,25 @@ one way says `direction` on its own row. `tests/utils/semantic-registries.spec.j
 derivation still inverts, that the vocabulary stays within what the engine implements, and that a
 malformed row is rejected.
 
-## Three rewrite strategies
+## Two binding producers, three rewrite strategies
 
-`applySemanticTypes` drives all three over the bindings `type-environment.js` collects.
-`rewriteMembers` and `rewritePattern` are **also called directly** by
-`send-request-transformer.js` and `bruno-send-request-transformer.js`, which type a handler's
-parameter without going through binding collection — a change to either has two sets of callers.
+A typed value reaches a script by one of two routes, and each has a producer emitting the same
+`{ name, scopeNode, typeName }` record for the rewriters to consume:
+
+| Producer | Types values reaching | Lives in |
+|---|---|---|
+| `collectBindings` | variable declarations — `const r = await pm.sendRequest(q)` | `type-environment.js` |
+| `collectAllChainBindings` | handler parameters of a promise chain — `.then(r => ...)` | `promise-chain.js` |
+
+`promise-chain.js` holds **no fact about either API** — `.then` forwards iff its handler returns
+its parameter, `.catch` may replace, `.finally` always forwards. That is why one implementation
+serves both directions, and why it is driven by the *type of the chain's head* rather than by a
+known call: nothing in it names `sendRequest`, so any producer or member that comes to yield a
+type is chainable without a change here.
+
+`collectHandlerBindings` is **also called directly** by `send-request-transformer.js` and
+`bruno-send-request-transformer.js` for the node-style callback form, whose slots are declared
+rather than derived — a change to it has two sets of callers.
 
 - **`rewrite-yields.js`** adapts what a member *produces*, where the value is produced rather than
   at every later read, so no reference needs visiting:
@@ -192,9 +209,9 @@ it walked would re-match its own output.
   handle in `@usebruno/requests`; `PostmanResponse` is not. A member absent from a type is one
   nobody has classified, and it passes through silently — which is what `unsupported` exists to
   stop, one member at a time.
-- **`params.then` is derived for both directions but read by only one.**
-  `send-request-transformer.js` walks promise chains; its Bruno twin handles the callback form
-  alone, so `bru.sendRequest(q).then(res => res.status)` is still untranslated going back.
+- **A projection cannot be placed on a promise.** `rewrite-yields.js` appends the projected member
+  to the *resolved* value, so an un-awaited call entering a chain is reported rather than rewritten:
+  `jar.get(u, n).value.then(...)` would read `.value` off a Promise. The member is still renamed.
 
 ## When the value is uncertain, emit nothing
 

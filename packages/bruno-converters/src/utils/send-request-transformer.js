@@ -1,7 +1,6 @@
 import { getStaticPropertyName, isFunctionExpression } from './ast-utils';
 import {
   PROMISE_CHAIN_METHODS,
-  collectChainBindings,
   collectHandlerBindings,
   getPromiseChainLinks,
   rewriteMembers,
@@ -158,8 +157,9 @@ const transformBody = (j, requestOptions) => {
   });
 };
 
-// Which parameter of each kind of handler receives the response, and as what type
-const { callback: CALLBACK_SLOT_TYPES, then: THEN_SLOT_TYPES } = POSTMAN_REGISTRY.params['pm.sendRequest'];
+// Which parameter of the callback receives the response, and as what type. A `.then` handler
+// needs no entry here — `applySemanticTypes` types promise chains from what the call yields.
+const { callback: CALLBACK_SLOT_TYPES } = POSTMAN_REGISTRY.params['pm.sendRequest'];
 
 /**
  * Whether a function is a `.then`/`.catch`/`.finally` handler argument
@@ -324,13 +324,6 @@ const sendRequestTransformer = (path, j) => {
   }
 
   const outermostPath = chainLinks[chainLinks.length - 1].callPath;
-
-  // the outermost link contains every inner link and handler, so one pass covers the chain
-  const chainBindings = collectChainBindings(j, chainLinks, THEN_SLOT_TYPES, POSTMAN_REGISTRY);
-  if (chainBindings.length) {
-    rewriteMembers(j, j(outermostPath), chainBindings, POSTMAN_REGISTRY);
-  }
-
   const isAlreadyAwaited = outermostPath.parent.value.type === 'AwaitExpression';
   const shouldAwaitChain = !isAlreadyAwaited && ensureAsyncContext(j, outermostPath);
 

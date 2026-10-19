@@ -1,15 +1,10 @@
 const j = require('jscodeshift');
 import { isFunctionExpression } from './ast-utils';
-import {
-  collectChainBindings,
-  collectHandlerBindings,
-  getPromiseChainLinks,
-  rewriteMembers,
-  BRUNO_REGISTRY
-} from './semantic';
+import { collectHandlerBindings, rewriteMembers, BRUNO_REGISTRY } from './semantic';
 
-// Which parameter of each kind of handler receives the response, and as what type
-const { callback: CALLBACK_SLOT_TYPES, then: THEN_SLOT_TYPES } = BRUNO_REGISTRY.params['bru.sendRequest'];
+// Which parameter of the callback receives the response, and as what type. A `.then` handler
+// needs no entry here — `applySemanticTypes` types promise chains from what the call yields.
+const { callback: CALLBACK_SLOT_TYPES } = BRUNO_REGISTRY.params['bru.sendRequest'];
 const CALLBACK_RESPONSE_INDEX = CALLBACK_SLOT_TYPES.findIndex(Boolean);
 
 /**
@@ -355,21 +350,6 @@ const bruSendRequestTransformer = (path) => {
       transformedArgs.push(transformedCallback);
     } else {
       transformedArgs.push(callback);
-    }
-  }
-
-  /**
-   * A `.then` handler receives the same response the callback form does. Typing it here is what
-   * keeps the flat map from rewriting a handler's own parameter as though it were the global
-   * response — `res.status` inside a handler is the parameter, not `pm.response`.
-   */
-  const chainLinks = getPromiseChainLinks(path);
-  if (chainLinks.length) {
-    const chainBindings = collectChainBindings(j, chainLinks, THEN_SLOT_TYPES, BRUNO_REGISTRY);
-
-    // the outermost link contains every inner link and handler, so one pass covers the chain
-    if (chainBindings.length) {
-      rewriteMembers(j, j(chainLinks[chainLinks.length - 1].callPath), chainBindings, BRUNO_REGISTRY);
     }
   }
 

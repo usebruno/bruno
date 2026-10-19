@@ -1,5 +1,5 @@
 import { getStaticPropertyName, isFunctionExpression } from '../ast-utils';
-import { isReassigned, resolvesToBinding } from './type-environment';
+import { getExpressionType, isReassigned, resolvesToBinding } from './type-environment';
 import { rewritePattern } from './rewrite-patterns';
 
 /**
@@ -153,11 +153,12 @@ export const collectHandlerBindings = (j, handlerPath, slotTypes, registry) => {
  *
  * @param {Object} j - jscodeshift API
  * @param {Array<{callPath: Object, methodName: string}>} chainLinks - Links from `getPromiseChainLinks`
- * @param {Array<string|null>} slotTypes - Registry type per parameter position of a `.then` handler
+ * @param {string} typeName - Registry type the chain's head yields, which is what a fulfilled
+ *   handler's first parameter receives
  * @param {Object} registry - The API registry
  * @returns {Array<{name: string, scopeNode: Object, typeName: string}>}
  */
-export const collectChainBindings = (j, chainLinks, slotTypes, registry) => {
+export const collectChainBindings = (j, chainLinks, typeName, registry) => {
   const bindings = [];
 
   for (const link of chainLinks) {
@@ -177,7 +178,7 @@ export const collectChainBindings = (j, chainLinks, slotTypes, registry) => {
     if (handler.params.length === 0) break;
 
     const handlerPath = link.callPath.get('arguments', 0);
-    bindings.push(...collectHandlerBindings(j, handlerPath, slotTypes, registry));
+    bindings.push(...collectHandlerBindings(j, handlerPath, [typeName], registry));
 
     const param = handler.params[0];
     if (param.type !== 'Identifier') break;
@@ -187,4 +188,34 @@ export const collectChainBindings = (j, chainLinks, slotTypes, registry) => {
   }
 
   return bindings;
+};
+
+/**
+ * Every promise chain in the script whose head the registry can type.
+ *
+ * Driving this from the type of the head expression rather than from a known call is what keeps
+ * it general: nothing here names `sendRequest`, so any producer or member that comes to yield a
+ * type is chainable without a change. An inner link is never a head of its own — no type declares
+ * a `then` member — so each chain is walked once.
+ *
+ * @param {Object} j - jscodeshift API
+ * @param {Object} ast - jscodeshift Collection
+ * @param {Array} bindings - Bindings collected from variable declarations
+ * @param {Object} registry - The API registry
+ * @returns {Array<{name: string, scopeNode: Object, typeName: string}>}
+ */
+export const collectAllChainBindings = (j, ast, bindings, registry) => {
+  const chainBindings = [];
+
+  ast.find(j.CallExpression).paths().forEach((callPath) => {
+    const typeName = getExpressionType(callPath, bindings, registry);
+    if (!typeName) return;
+
+    const chainLinks = getPromiseChainLinks(callPath);
+    if (!chainLinks.length) return;
+
+    chainBindings.push(...collectChainBindings(j, chainLinks, typeName, registry));
+  });
+
+  return chainBindings;
 };
