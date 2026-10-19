@@ -1,0 +1,239 @@
+import { test, expect } from '../../../playwright';
+import { closeAllCollections } from '../../utils/page';
+import { buildCommonLocators } from '../../utils/page/locators';
+import { ENV_NAMES, openEnvironmentsList } from './helpers';
+import {
+  SELECT_MODIFIER,
+  clickEmptyListSpace,
+  ctrlClickRows,
+  openRowContextMenu
+} from '../../utils/page/environments';
+
+const [ENV_1, ENV_2, ENV_3, ENV_4] = ENV_NAMES;
+
+test.describe('Collection environments sidebar menu multi-select', () => {
+  test.beforeEach(async ({ page, electronApp, collectionFixturePath }) => {
+    await openEnvironmentsList(page, electronApp, collectionFixturePath!);
+    await expect(buildCommonLocators(page).environment.sidebarActions.rowNames()).toHaveText(ENV_NAMES);
+  });
+
+  test.afterEach(async ({ page }) => {
+    await closeAllCollections(page);
+  });
+
+  test('Cmd/Ctrl-click toggles rows in the selection without selecting the open environment', async ({ page }) => {
+    const { environment } = buildCommonLocators(page);
+    const { selectedRowNames } = environment.sidebarActions;
+
+    await test.step('First Cmd/Ctrl-click selects only the clicked row', async () => {
+      await environment.sidebarListItemExact('collection', ENV_3).click({ modifiers: [SELECT_MODIFIER] });
+      await expect(selectedRowNames()).toHaveText([ENV_3]);
+    });
+
+    await test.step('Cmd/Ctrl-click on another row adds it', async () => {
+      await environment.sidebarListItemExact('collection', ENV_4).click({ modifiers: [SELECT_MODIFIER] });
+      await expect(selectedRowNames()).toHaveText([ENV_3, ENV_4]);
+    });
+
+    await test.step('Cmd/Ctrl-click on a selected row removes it', async () => {
+      await environment.sidebarListItemExact('collection', ENV_3).click({ modifiers: [SELECT_MODIFIER] });
+      await expect(selectedRowNames()).toHaveText([ENV_4]);
+    });
+  });
+
+  test('Shift-click selects the range from the open environment', async ({ page }) => {
+    const { environment } = buildCommonLocators(page);
+    const { selectedRowNames } = environment.sidebarActions;
+
+    await environment.sidebarListItemExact('collection', ENV_3).click({ modifiers: ['Shift'] });
+    await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2, ENV_3]);
+  });
+
+  test('Shift-click ranges start from the last clicked row', async ({ page }) => {
+    const { environment } = buildCommonLocators(page);
+    const { selectedRowNames } = environment.sidebarActions;
+
+    await environment.sidebarListItemExact('collection', ENV_2).click({ modifiers: [SELECT_MODIFIER] });
+    await environment.sidebarListItemExact('collection', ENV_4).click({ modifiers: ['Shift'] });
+
+    await expect(selectedRowNames()).toHaveText([ENV_2, ENV_3, ENV_4]);
+  });
+
+  test('a plain click clears the selection and opens the clicked environment', async ({ page }) => {
+    const { environment } = buildCommonLocators(page);
+    const { selectedRows } = environment.sidebarActions;
+
+    await ctrlClickRows(page, [ENV_1, ENV_3]);
+    await expect(selectedRows()).toHaveCount(2);
+
+    await environment.sidebarListItemExact('collection', ENV_4).click();
+
+    await expect(selectedRows()).toHaveCount(0);
+    // aria-current marks the environment open in the editor
+    await expect(environment.sidebarListItemExact('collection', ENV_4)).toHaveAttribute('aria-current', 'true');
+  });
+
+  test('a click on the empty space below the rows clears the selection', async ({ page }) => {
+    const { selectedRows } = buildCommonLocators(page).environment.sidebarActions;
+
+    await ctrlClickRows(page, [ENV_1, ENV_3]);
+    await expect(selectedRows()).toHaveCount(2);
+
+    await clickEmptyListSpace(page);
+
+    await expect(selectedRows()).toHaveCount(0);
+  });
+
+  test('Select all from the row menu keeps the selection', async ({ page }) => {
+    const { rowMenuButton, rowMenuItem, selectedRowNames } = buildCommonLocators(page).environment.sidebarActions;
+
+    await rowMenuButton(ENV_2).click();
+    await rowMenuItem('select-all').click();
+
+    await expect(selectedRowNames()).toHaveText(ENV_NAMES);
+  });
+
+  test('the row menu button is hidden on rows that are part of the selection', async ({ page }) => {
+    const { environment } = buildCommonLocators(page);
+    const { rowMenuButton } = environment.sidebarActions;
+
+    await expect(rowMenuButton(ENV_2)).toHaveCount(1);
+
+    await ctrlClickRows(page, [ENV_1, ENV_3]);
+
+    // Env 1 and Env 3 are selected, so no menu.
+    await expect(rowMenuButton(ENV_1)).toHaveCount(0);
+    await expect(rowMenuButton(ENV_3)).toHaveCount(0);
+
+    // Env 2 and Env 4 keep their menu.
+    await expect(rowMenuButton(ENV_2)).toHaveCount(1);
+    await expect(rowMenuButton(ENV_4)).toHaveCount(1);
+  });
+
+  test('Select all from the row menu selects only the environments matching the search', async ({ page }) => {
+    const { environment } = buildCommonLocators(page);
+    const { rows, searchInput, selectedRowNames, rowMenuButton, rowMenuItem } = environment.sidebarActions;
+
+    await test.step('Filter the list to Env 4', async () => {
+      await searchInput().fill('4');
+      await expect(rows()).toHaveCount(1);
+    });
+
+    await test.step('Select all applies to the visible environments only', async () => {
+      await rowMenuButton(ENV_4).click();
+      await rowMenuItem('select-all').click();
+
+      await searchInput().fill('');
+      await expect(rows()).toHaveCount(ENV_NAMES.length);
+      await expect(selectedRowNames()).toHaveText([ENV_4]);
+    });
+  });
+
+  test('a selection hidden by the search is kept but never acted on', async ({ page }) => {
+    const { environment } = buildCommonLocators(page);
+    const { rowNames, searchInput, selectedRowNames, contextMenuItem, deleteModal } = environment.sidebarActions;
+
+    await ctrlClickRows(page, [ENV_1, ENV_2, ENV_3]);
+    await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2, ENV_3]);
+
+    await test.step('Searching hides Env 1 and Env 2, so only Env 3 counts as selected', async () => {
+      await searchInput().fill('3');
+      await expect(rowNames()).toHaveText([ENV_3]);
+      await expect(selectedRowNames()).toHaveText([ENV_3]);
+    });
+
+    await test.step('Deleting from the context menu removes only the visible environment', async () => {
+      await openRowContextMenu(page, ENV_3);
+      await contextMenuItem('delete').click();
+      await deleteModal.confirm().click();
+      await expect(deleteModal.root()).toBeHidden();
+    });
+
+    await test.step('Clearing the search brings the hidden selection back', async () => {
+      await searchInput().fill('');
+      await expect(rowNames()).toHaveText([ENV_1, ENV_2, ENV_4]);
+      await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2]);
+    });
+  });
+
+  test('Select all toggles only the environments matching the search', async ({ page }) => {
+    const { environment } = buildCommonLocators(page);
+    const { rowNames, searchInput, selectedRowNames, rowMenuButton, rowMenuItem } = environment.sidebarActions;
+
+    await ctrlClickRows(page, [ENV_1, ENV_2]);
+    await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2]);
+
+    await test.step('Select all adds the visible Env 4 and keeps the hidden selection', async () => {
+      await searchInput().fill('4');
+      await expect(rowNames()).toHaveText([ENV_4]);
+      await rowMenuButton(ENV_4).click();
+      await rowMenuItem('select-all').click();
+
+      await searchInput().fill('');
+      await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2, ENV_4]);
+    });
+
+    await test.step('Unselect all removes only the visible Env 4', async () => {
+      await searchInput().fill('4');
+      await expect(rowNames()).toHaveText([ENV_4]);
+      await rowMenuButton(ENV_4).click();
+      await expect(rowMenuItem('select-all')).toHaveText(/^Unselect all/);
+      await rowMenuItem('select-all').click();
+
+      await searchInput().fill('');
+      await expect(selectedRowNames()).toHaveText([ENV_1, ENV_2]);
+    });
+  });
+
+  test.describe('provides create env option when no matches found in search', () => {
+    test('provides a create option when no matching environments are found', async ({ page }) => {
+      const { searchInput, rows, emptyState, createFromSearch } = buildCommonLocators(page).environment.sidebarActions;
+
+      await test.step('search with matches does not provide a create option', async () => {
+        await searchInput().fill('Env 4');
+        await expect(rows()).toHaveCount(1);
+        await expect(createFromSearch()).toHaveCount(0);
+      });
+
+      await test.step('search is trimmed so whitespace is ignored', async () => {
+        await searchInput().fill(' Env 4 ');
+        await expect(rows()).toHaveCount(1);
+        await expect(createFromSearch()).toHaveCount(0);
+      });
+
+      await test.step('search with no match provides a create option', async () => {
+        await searchInput().fill('Staging');
+        await expect(rows()).toHaveCount(0);
+        await expect(emptyState()).toBeVisible();
+        await expect(createFromSearch()).toContainText('Create "Staging"');
+      });
+    });
+
+    test('clicking the create row creates the environment and opens it', async ({ page }) => {
+      const { environment } = buildCommonLocators(page);
+      const { searchInput, rows, createFromSearch } = environment.sidebarActions;
+
+      await searchInput().fill('Staging');
+      await createFromSearch().click();
+
+      await expect(searchInput()).toHaveValue('');
+      await expect(rows()).toHaveCount(ENV_NAMES.length + 1);
+      await expect(environment.sidebarListItemExact('collection', 'Staging')).toHaveAttribute('aria-current', 'true');
+    });
+
+    test('invalid name shows an error', async ({ page }) => {
+      const { searchInput, rows, createFromSearch, createFromSearchError } = buildCommonLocators(page).environment.sidebarActions;
+
+      await searchInput().fill('bad/name');
+      await expect(createFromSearchError()).toHaveCount(0);
+
+      await createFromSearch().click();
+      await expect(createFromSearchError()).toBeVisible();
+      await expect(rows()).toHaveCount(0);
+
+      // Editing the name clears the error.
+      await searchInput().fill('bad/name2');
+      await expect(createFromSearchError()).toHaveCount(0);
+    });
+  });
+});
