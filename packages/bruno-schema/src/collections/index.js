@@ -582,14 +582,11 @@ const wsRequestSchema = Yup.object({
   .noUnknown(true)
 
 const wsSettingsSchema = Yup.object({
-  settings: Yup.object({
     timeout: Yup.number()
       .default(500),
     keepAliveInterval: Yup.number()
       .default(0)
-  }).noUnknown(true)
-    .nullable()
-});
+}).noUnknown(true);
 
 const folderRootSchema = Yup.object({
   request: Yup.object({
