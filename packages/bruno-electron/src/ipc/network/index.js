@@ -1037,7 +1037,10 @@ const registerNetworkIpc = (mainWindow) => {
         // Only the post-response script runs, against the response of an earlier run: the request is
         // not sent again and the pre-request pipeline is skipped.
         applyRequestSent(request, item.requestSent);
-        await runPostResponseAndReport(buildScriptResponse(reusedResponse), { scriptOnly: true });
+        await runPostResponseAndReport(
+          buildScriptResponse(reusedResponse, request.__brunoDisableParsingResponseJson),
+          { scriptOnly: true }
+        );
         deleteCancelToken(cancelTokenUid);
         return {};
       }
@@ -1225,6 +1228,9 @@ const registerNetworkIpc = (mainWindow) => {
         : parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
       response.dataBuffer = dataBuffer;
+      // res.setBody() in a post-response script replaces response.dataBuffer; keep the bytes that
+      // were received so a later re-run starts from the real response
+      const receivedDataBuffer = response.dataBuffer;
 
       response.responseTime = responseTime;
 
@@ -1362,6 +1368,7 @@ const registerNetworkIpc = (mainWindow) => {
         sseChunks: isResponseStream ? sseChunks : null,
         cancelTokenUid: cancelTokenUid,
         dataBuffer: response.dataBuffer.toString('base64'),
+        receivedDataBuffer: response.dataBuffer !== receivedDataBuffer ? receivedDataBuffer.toString('base64') : undefined,
         size: Buffer.byteLength(response.dataBuffer),
         duration: responseTime ?? 0,
         url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,

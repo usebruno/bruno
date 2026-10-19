@@ -1,13 +1,15 @@
 const { ScriptRuntime } = require('@usebruno/js');
 const { buildScriptResponse, applyRequestSent } = require('./stored-response');
 
+const receivedBody = { output: [{ type: 'message', content: [{ text: 'Hello\nWorld' }] }] };
+
 const makeStoredResponse = () => ({
   state: 'success',
   status: 200,
   statusText: 'OK',
   headers: { 'content-type': 'application/json', 'x-trace': 'abc' },
-  data: { output: [{ type: 'message', content: [{ text: 'Hello\nWorld' }] }] },
-  dataBuffer: Buffer.from(JSON.stringify({ output: [] })).toString('base64'),
+  data: receivedBody,
+  dataBuffer: Buffer.from(JSON.stringify(receivedBody)).toString('base64'),
   size: 13,
   duration: 42,
   url: 'https://api.example.com:8443/v1/responses?stream=false',
@@ -50,8 +52,34 @@ describe('buildScriptResponse', () => {
     expect(response.data).toEqual(stored.data);
     expect(response.responseTime).toBe(42);
     expect(Buffer.isBuffer(response.dataBuffer)).toBe(true);
-    expect(response.dataBuffer.toString()).toBe('{"output":[]}');
+    expect(response.dataBuffer.toString()).toBe(JSON.stringify(receivedBody));
     expect(response.request).toEqual({ protocol: 'https:', host: 'api.example.com', path: '/v1/responses?stream=false' });
+  });
+
+  test('rebuilds the body from the bytes that were received when a script replaced the stored body', () => {
+    const stored = {
+      ...makeStoredResponse(),
+      data: 'rewritten by the first run',
+      dataBuffer: Buffer.from('rewritten by the first run').toString('base64'),
+      receivedDataBuffer: Buffer.from(JSON.stringify(receivedBody)).toString('base64')
+    };
+
+    const response = buildScriptResponse(stored);
+
+    expect(response.data).toEqual(receivedBody);
+    expect(response.dataBuffer.toString()).toBe(JSON.stringify(receivedBody));
+  });
+
+  test('ignores in-place edits a first-run script made to the stored body object', () => {
+    const stored = { ...makeStoredResponse(), data: { edited: true } };
+
+    expect(buildScriptResponse(stored).data).toEqual(receivedBody);
+  });
+
+  test('keeps the body as text when JSON parsing was disabled for the original send', () => {
+    const response = buildScriptResponse(makeStoredResponse(), true);
+
+    expect(response.data).toBe(JSON.stringify(receivedBody));
   });
 
   test('still builds the response when the stored url cannot be parsed', () => {

@@ -592,6 +592,13 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
+    // Variable updates from a running re-run are not tied to a request and would overwrite the new send's
+    const currentItem = findItemInCollection(collection, itemUid);
+    if (currentItem && currentItem.postResponseScriptRunning) {
+      toast.error('Wait for the post-response script to finish before sending the request');
+      return resolve();
+    }
+
     if (item.response?.stream?.running && item.cancelTokenUid) {
       await dispatch(cancelRequest(item.cancelTokenUid, item, collection));
     }
@@ -734,14 +741,6 @@ export const rerunPostResponseScript = (item, collectionUid) => async (dispatch,
     const { error } = await runPostResponseScript(item, collectionWithGlobals, environment, collection.runtimeVariables);
     if (error) {
       toast.error(error);
-    }
-
-    // Events of a re-run carry the requestUid of the response it ran on; a send made meanwhile
-    // replaces that response and the renderer discards the re-run's results.
-    const currentCollection = findCollectionByUid(getState().collections.collections, collectionUid);
-    const currentItem = currentCollection && findItemInCollection(currentCollection, item.uid);
-    if (currentItem && currentItem.requestUid !== item.requestUid) {
-      toast.error('The request was sent again, so the post-response script result was discarded');
     }
   } catch (err) {
     toast.error(err.message || 'Failed to run the post-response script');

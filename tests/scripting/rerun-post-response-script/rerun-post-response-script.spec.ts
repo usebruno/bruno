@@ -130,6 +130,22 @@ for (const mode of ['safe', 'developer'] as const) {
       await expect(rerun).toBeEnabled();
     });
 
+    test('a request whose script rewrites the body is re-run on the response that was received', async ({ pageWithUserData: page }) => {
+      const locators = buildCommonLocators(page);
+      const rerun = locators.paneTabs.rerunPostResponseScript();
+
+      await openRequest(page, COLLECTION, 'rewrites-body');
+      await sendRequest(page, 200);
+
+      await setPostResponseScript(page, `
+        test('rerun sees the received body', function () { expect(res.getBody()).to.equal('pong'); });
+      `);
+      await rerun.click();
+
+      await selectResponsePaneTab(page, 'Tests');
+      await expect(locators.response.assertionResults.passed()).toContainText(['rerun sees the received body']);
+    });
+
     test('an empty script disables the action', async ({ pageWithUserData: page }) => {
       const rerun = buildCommonLocators(page).paneTabs.rerunPostResponseScript();
 
@@ -198,6 +214,8 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('A real send runs the pre-request script again, so it passes', async () => {
+        // Sending is refused while a re-run is still finishing
+        await expect(rerun).toBeEnabled();
         await sendRequest(page, 200);
         await expect(locators.response.assertionResults.passed()).toContainText(['send token changed']);
       });
