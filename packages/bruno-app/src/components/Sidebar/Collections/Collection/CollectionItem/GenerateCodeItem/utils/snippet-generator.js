@@ -2,7 +2,7 @@ import { buildHar } from '@usebruno/common';
 import { stripOrigin } from '@usebruno/common/utils';
 import { getAllVariables, getTreePathFromCollectionToItem, mergeHeaders } from 'utils/collections/index';
 import { resolveInheritedAuth } from 'utils/auth';
-import { get, escapeRegExp } from 'lodash';
+import { get } from 'lodash';
 import { interpolateUrl, interpolateUrlPathParams, prependDefaultScheme } from 'utils/url/index';
 import { parse } from 'url';
 import { stringify } from 'query-string';
@@ -139,11 +139,14 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
     if (httpSnippetPath !== desiredPath && httpSnippetPath?.length > 1) {
       if (desiredPath.startsWith('?')) {
         // The URL has a query but no path (`http://host?x=1`), so `stripOrigin` leaves a bare `?x=1`.
-        // That is right where the snippet prints the full URL (`http://host?x=1`), but wrong where it
-        // prints only the request target (`GET /?x=1`, `path: '/?x=1'`), which must keep its leading `/`.
-        // So only swap where the path directly follows the authority, not where it opens a token.
-        const followsAuthority = new RegExp(`(?<=[^\\s"'\`(=,])${escapeRegExp(httpSnippetPath)}`, 'g');
-        result = result.replace(followsAuthority, () => desiredPath);
+        // Where the snippet prints the full URL that is what we want (`http://host?x=1`). Where it
+        // prints only the request target (`GET /?x=1`, `path: '/?x=1'`), the target must keep its
+        // leading `/`, so the raw query is swapped in behind a `/` there, as for any URL with a path.
+        result = result.replaceAll(httpSnippetPath, (match, offset, text) => {
+          const prev = text[offset - 1];
+          const followsAuthority = prev !== undefined && !/[\s"'`(=,]/.test(prev);
+          return followsAuthority ? desiredPath : `/${desiredPath}`;
+        });
       } else {
         result = result.replaceAll(httpSnippetPath, desiredPath);
       }

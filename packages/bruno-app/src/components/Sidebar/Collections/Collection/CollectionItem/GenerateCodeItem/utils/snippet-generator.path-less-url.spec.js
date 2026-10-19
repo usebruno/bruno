@@ -1,5 +1,6 @@
 // Uses the real HTTPSnippet (snippet-generator.spec.js mocks it), because the bug lives in how the
 // display-swap in generateSnippet interacts with what each target actually prints.
+import { availableTargets } from 'httpsnippet';
 import { generateSnippet } from './snippet-generator';
 
 const collection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
@@ -39,6 +40,39 @@ describe('generateSnippet – URL with a query but no path', () => {
   it('still shows the URL as typed where the snippet prints the full URL', async () => {
     const result = await generate({ target: 'shell', client: 'curl' }, url, { encodeUrl: false });
     expect(result).toContain('http://example.com?x=1&y=2');
+  });
+
+  describe('query with characters that URL encoding changes', () => {
+    const rawUrl = 'http://example.com?filter[name]=x';
+    const rawCases = [
+      ['http/http1.1', { target: 'http', client: 'http1.1' }, 'GET /?filter[name]=x HTTP/1.1'],
+      ['node/native', { target: 'node', client: 'native' }, 'path: \'/?filter[name]=x\''],
+      ['python/python3', { target: 'python', client: 'python3' }, 'conn.request("GET", "/?filter[name]=x")']
+    ];
+
+    it.each(rawCases)('shows the query as typed after the leading slash for %s when URL encoding is off', async (_label, language, expected) => {
+      const result = await generate(language, rawUrl, { encodeUrl: false });
+      expect(result).toContain(expected);
+    });
+
+    it('shows the encoded query when URL encoding is on', async () => {
+      const result = await generate({ target: 'http', client: 'http1.1' }, rawUrl, { encodeUrl: true });
+      expect(result).toContain('GET /?filter%5Bname%5D=x HTTP/1.1');
+    });
+  });
+
+  // `http://host?x=1` and `http://host/?x=1` are the same request, so every target must print the same snippet,
+  // apart from the full URL, which is shown as typed.
+  describe.each([false, true])('a path-less URL matches the same URL with an explicit "/" (encodeUrl: %s)', (encodeUrl) => {
+    const languages = availableTargets().flatMap((target) =>
+      target.clients.map((client) => [`${target.key}/${client.key}`, { target: target.key, client: client.key }])
+    );
+
+    it.each(languages)('%s', async (_label, language) => {
+      const pathLess = await generate(language, 'http://example.com?filter[name]=x&y=2', { encodeUrl });
+      const withSlash = await generate(language, 'http://example.com/?filter[name]=x&y=2', { encodeUrl });
+      expect(pathLess).toBe(withSlash.split('example.com/?').join('example.com?'));
+    });
   });
 
   it('does not change a URL that has a path', async () => {
