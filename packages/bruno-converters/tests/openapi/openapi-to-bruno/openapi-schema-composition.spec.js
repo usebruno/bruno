@@ -199,6 +199,42 @@ describe('openapi schema composition', () => {
       const schema = { oneOf: [{ type: 'object', properties: { a: { type: 'string' } } }], discriminator };
       expect(requestBody(buildSpec({ paths: postBody(schema) }))).toEqual({ a: '' });
     });
+
+    it.each([
+      ['without a mapping', undefined, 'Cat', 'Dog'],
+      ['with a mapping', { cat: '#/components/schemas/Cat', dog: '#/components/schemas/Dog' }, 'cat', 'dog']
+    ])('labels each subtype of a parent that declares the discriminator but lists no subtypes (%s)', (label, mapping, cat, dog) => {
+      const schemas = {
+        Pet: { type: 'object', properties: { petType: { type: 'string' }, name: { type: 'string' } }, discriminator: { propertyName: 'petType', mapping } },
+        Cat: { allOf: [ref('Pet'), { type: 'object', properties: { huntingSkill: { type: 'string' } } }] },
+        Dog: { allOf: [ref('Pet'), { type: 'object', properties: { packSize: { type: 'integer' } } }] }
+      };
+      const body = (schema) => requestBody(buildSpec({ schemas, paths: postBody(schema) }));
+      expect(body(ref('Cat'))).toEqual({ petType: cat, name: '', huntingSkill: '' });
+      expect(body(ref('Dog'))).toEqual({ petType: dog, name: '', packSize: 0 });
+      expect(body({ oneOf: [ref('Dog'), ref('Cat')] })).toEqual({ petType: dog, name: '', packSize: 0 });
+    });
+
+    it('labels a subtype and a middle level of the classic layout with their own names', () => {
+      const schemas = {
+        Pet: { type: 'object', properties: { petType: { type: 'string' } }, discriminator: { propertyName: 'petType' } },
+        Mammal: { allOf: [ref('Pet'), { type: 'object', properties: { fur: { type: 'boolean' } } }] },
+        Cat: { allOf: [ref('Mammal'), { type: 'object', properties: { meow: { type: 'boolean' } } }] }
+      };
+      const body = (name) => requestBody(buildSpec({ schemas, paths: postBody(ref(name)) }));
+      expect(body('Cat')).toEqual({ petType: 'Cat', fur: false, meow: false });
+      expect(body('Mammal')).toEqual({ petType: 'Mammal', fur: false });
+    });
+
+    it('leaves the base of the classic layout unlabelled, also behind an inline wrapper', () => {
+      const schemas = {
+        Pet: { type: 'object', properties: { petType: { type: 'string' } }, discriminator: { propertyName: 'petType' } },
+        Cat: { allOf: [ref('Pet'), { type: 'object', properties: { meow: { type: 'boolean' } } }] }
+      };
+      const body = (schema) => requestBody(buildSpec({ schemas, paths: postBody(schema) }));
+      expect(body(ref('Pet'))).toEqual({ petType: '' });
+      expect(body({ allOf: [ref('Pet')], description: 'any pet' })).toEqual({ petType: '' });
+    });
   });
 
   describe('allOf', () => {
@@ -329,6 +365,31 @@ describe('openapi schema composition', () => {
       const schema = { allOf: [{ type: 'object', required: true, properties: { a: { type: 'string' } } }, { type: 'object', required: ['b'], properties: { b: { type: 'string' } } }] };
       expect(requestBody(buildSpec({ paths: postBody(schema) }))).toEqual({ a: '', b: '' });
     });
+
+    it('keeps the larger minimum when two branches both set one', () => {
+      const parameters = [{ name: 'limit', in: 'query', schema: { allOf: [{ type: 'integer', minimum: 10 }, { type: 'integer', minimum: 1 }] } }];
+      expect(queryParams(buildSpec({ paths: getWithParameters(parameters) }))).toEqual([['limit', '10']]);
+    });
+
+    it('merges the items of two array branches', () => {
+      const schema = {
+        allOf: [
+          { type: 'array', items: { type: 'object', properties: { a: { type: 'string' } } } },
+          { type: 'array', items: { type: 'object', properties: { b: { type: 'integer' } } } }
+        ]
+      };
+      expect(requestBody(buildSpec({ paths: postBody(schema) }))).toEqual([{ a: '', b: 0 }]);
+    });
+
+    it('merges the additionalProperties of two map branches', () => {
+      const schema = {
+        allOf: [
+          { type: 'object', additionalProperties: { type: 'object', properties: { x: { type: 'string' } } } },
+          { type: 'object', additionalProperties: { type: 'object', properties: { y: { type: 'integer' } } } }
+        ]
+      };
+      expect(requestBody(buildSpec({ paths: postBody(schema) }))).toEqual({ additionalProp1: { x: '', y: 0 } });
+    });
   });
 
   describe('not', () => {
@@ -371,8 +432,10 @@ describe('openapi schema composition', () => {
       expect([0, 1, 2]).not.toContain(notBody({ type: 'integer', not: { enum: [0, 1, 2] } }));
     });
 
-    it('emits a non-empty string when not forbids short ones', () => {
-      expect(notBody({ type: 'string', not: { maxLength: 0 } })).not.toBe('');
+    it('ignores a length rule in not, as the importer does everywhere', () => {
+      expect(notBody({ type: 'string', not: { maxLength: 0 } })).toBe('');
+      expect(notBody({ type: 'string', not: { maxLength: 5000000 } })).toBe('');
+      expect(notBody({ type: 'string', not: { maxLength: Infinity } })).toBe('');
     });
 
     it('emits null when not leaves only the null type', () => {
@@ -399,8 +462,23 @@ describe('openapi schema composition', () => {
       expect(requestBody(buildSpec({ paths: postBody(schema) }))).toEqual({ a: '' });
     });
 
-    it('does not crash on a not that forbids everything', () => {
-      expect(() => notBody({ not: {} })).not.toThrow();
+    it('keeps the plain default when not forbids every value', () => {
+      expect(notBody({ not: {} })).toBe('');
+      expect(notBody({ type: 'boolean', not: { type: 'boolean' } })).toBe(false);
+    });
+
+    it('ignores a pattern in not and still applies the rest of the not', () => {
+      expect(notBody({ type: 'string', not: { pattern: '^(string)?$' } })).toBe('');
+      expect(notBody({ allOf: [{ type: 'string' }], not: { anyOf: [{ pattern: '^(x+)+y$' }, { maxLength: 40 }] } })).toBe('');
+      expect(notBody({ type: 'string', not: { anyOf: [{ pattern: '(' }, { enum: [''] }] } })).toBe('string');
+    });
+
+    it('emits true when not forbids false', () => {
+      expect(notBody({ type: 'boolean', not: { enum: [false] } })).toBe(true);
+    });
+
+    it('finds an allowed value for a schema without a type', () => {
+      expect(notBody({ not: { enum: [''] } })).toBe('string');
     });
   });
 
@@ -450,7 +528,7 @@ describe('openapi schema composition', () => {
       const schemas = { Filter: { type: 'object', properties: { status: { type: 'string' } }, example: { status: 'active' } } };
       const parameters = [{ name: 'X-Filter', in: 'header', schema: { oneOf: [ref('Filter'), { type: 'string' }] } }];
       const headers = firstRequest(buildSpec({ schemas, paths: getWithParameters(parameters) })).request.headers;
-      expect(headers.map((h) => [h.name, h.value])).toEqual([['X-Filter', '']]);
+      expect(headers.map((h) => [h.name, h.value])).toEqual([['X-Filter', 'status,active']]);
     });
 
     it('keeps composed header and path parameters as the declared parameter', () => {
@@ -471,6 +549,43 @@ describe('openapi schema composition', () => {
       expect(request.headers.map((h) => h.name)).toEqual(['X-Trace']);
     });
 
+    it('keeps a composed object header or path parameter in one value built from its properties', () => {
+      const schemas = { Colour: { type: 'object', properties: { R: { type: 'integer', example: 100 }, G: { type: 'integer', example: 200 } } } };
+      const colour = { allOf: [ref('Colour'), { type: 'object', properties: { B: { type: 'integer', example: 150 } } }] };
+      const spec = buildSpec({
+        schemas,
+        paths: {
+          '/colours/{colour}': {
+            get: {
+              summary: 'Target',
+              parameters: [{ name: 'colour', in: 'path', required: true, schema: colour }, { name: 'X-Colour', in: 'header', schema: colour }],
+              responses: { 200: { description: 'ok' } }
+            }
+          }
+        }
+      });
+      const request = firstRequest(spec).request;
+      expect(request.params.filter((p) => p.type === 'path').map((p) => [p.name, p.value])).toEqual([['colour', 'R,100,G,200,B,150']]);
+      expect(request.headers.map((h) => [h.name, h.value])).toEqual([['X-Colour', 'R,100,G,200,B,150']]);
+    });
+
+    it('writes the default a composed parameter inherits in the parameter style', () => {
+      const parameters = [
+        { name: 'colour', in: 'query', schema: { allOf: [{ type: 'object', default: { R: 1, G: 2 } }] } },
+        { name: 'tags', in: 'query', schema: { allOf: [{ type: 'array', items: { type: 'string' }, default: ['a', 'b'] }] } },
+        { name: 'X-Tags', in: 'header', schema: { allOf: [{ type: 'array', items: { type: 'string' }, default: ['a', 'b'] }] } }
+      ];
+      const request = firstRequest(buildSpec({ paths: getWithParameters(parameters) })).request;
+      expect(request.params.map((p) => [p.name, p.value])).toEqual([['R', '1'], ['G', '2'], ['tags', 'a'], ['tags', 'b']]);
+      expect(request.headers.map((h) => [h.name, h.value])).toEqual([['X-Tags', 'a,b']]);
+    });
+
+    it('keeps a composed property that declares an empty value when it builds an object parameter', () => {
+      const schema = { type: 'object', properties: { R: { allOf: [{ type: 'string', example: '' }] }, G: { type: 'integer', example: 2 } } };
+      const headers = firstRequest(buildSpec({ paths: getWithParameters([{ name: 'X-Colour', in: 'header', schema }]) })).request.headers;
+      expect(headers.map((h) => [h.name, h.value])).toEqual([['X-Colour', 'R,,G,2']]);
+    });
+
     it('resolves composition in a query parameter schema', () => {
       const parameters = [{ name: 'status', in: 'query', schema: { oneOf: [{ type: 'string', enum: ['active', 'archived'] }, { type: 'integer' }] } }];
       expect(queryParams(buildSpec({ paths: getWithParameters(parameters) }))).toEqual([['status', 'active'], ['status', 'archived']]);
@@ -479,6 +594,13 @@ describe('openapi schema composition', () => {
     it('resolves composition under array parameter items', () => {
       const parameters = [{ name: 'tags', in: 'query', schema: { type: 'array', items: { allOf: [{ type: 'string', enum: ['x', 'y'] }], not: { enum: ['x'] } } } }];
       expect(queryParams(buildSpec({ paths: getWithParameters(parameters) }))).toEqual([['tags', 'y']]);
+    });
+
+    it('does not send the object example of a composed array item as [object Object]', () => {
+      const schemas = { Filter: { type: 'object', properties: { status: { type: 'string' } }, example: { status: 'active' } } };
+      const parameters = [{ name: 'X-Filters', in: 'header', schema: { type: 'array', items: { allOf: [ref('Filter')] } } }];
+      const headers = firstRequest(buildSpec({ schemas, paths: getWithParameters(parameters) })).request.headers;
+      expect(headers.map((h) => [h.name, h.value])).toEqual([['X-Filters', '']]);
     });
 
     it('resolves composition per form-urlencoded field', () => {
@@ -536,6 +658,17 @@ describe('openapi schema composition', () => {
       const schema = { type: 'object', properties: { additionalProp1: { type: 'boolean' } }, additionalProperties: { oneOf: [{ type: 'integer' }] } };
       expect(requestBody(buildSpec({ paths: postBody(schema) }))).toEqual({ additionalProp1: false, additionalProp2: 0 });
     });
+
+    it('uses the example of a composed SPARQL body', () => {
+      const query = 'SELECT ?s WHERE { ?s ?p ?o }';
+      const spec = buildSpec({ paths: postBody({ allOf: [{ type: 'string', example: query }] }, 'application/sparql-query') });
+      expect(firstRequest(spec).request.body.sparql).toBe(query);
+    });
+
+    it('uses the example of a composed text body', () => {
+      const spec = buildSpec({ paths: postBody({ allOf: [{ type: 'string', example: 'hello' }] }, 'text/plain') });
+      expect(firstRequest(spec).request.body.text).toBe('hello');
+    });
   });
 
   describe.each([true, false])('recursive schemas (components first: %s)', (componentsFirst) => {
@@ -560,12 +693,12 @@ describe('openapi schema composition', () => {
 
     it('imports two schemas that compose each other', () => {
       const schemas = { A: { allOf: [ref('B'), { type: 'object', properties: { a: { type: 'string' } } }] }, B: { allOf: [ref('A'), { type: 'object', properties: { b: { type: 'string' } } }] } };
-      expect(() => importBody(schemas, ref('A'))).not.toThrow();
+      expect(importBody(schemas, ref('A'))).toEqual({ a: '', b: '' });
     });
 
     it('imports a self-referencing array reached through oneOf', () => {
       const schemas = { NestedList: { type: 'array', items: { oneOf: [ref('NestedList'), { type: 'string' }] } } };
-      expect(() => importBody(schemas, ref('NestedList'))).not.toThrow();
+      expect(importBody(schemas, ref('NestedList'))).toEqual([[[]]]);
     });
 
     it('expands a model behind annotated or nullable wrappers no further than behind a plain $ref', () => {
@@ -629,6 +762,34 @@ describe('openapi schema composition', () => {
       expect(JSON.parse(alone)).not.toHaveProperty('hunts');
     });
 
+    it.each([
+      ['one middle level', { Mammal: { allOf: [ref('Pet'), { type: 'object', properties: { fur: { type: 'boolean' } } }] } }, { fur: false }],
+      ['two middle levels', {
+        Animal: { allOf: [ref('Pet'), { type: 'object', properties: { legs: { type: 'integer' } } }] },
+        Mammal: { allOf: [ref('Animal'), { type: 'object', properties: { fur: { type: 'boolean' } } }] }
+      }, { legs: 0, fur: false }]
+    ])('builds a subtype body from its own branch through %s, whatever the spec lists first', (label, middle, inherited) => {
+      const schemas = {
+        Pet: {
+          type: 'object',
+          properties: { petType: { type: 'string' } },
+          oneOf: [ref('Cat'), ref('Dog')],
+          discriminator: { propertyName: 'petType', mapping: { cat: '#/components/schemas/Cat', dog: '#/components/schemas/Dog' } }
+        },
+        ...middle,
+        Cat: { allOf: [ref('Mammal'), { type: 'object', properties: { meow: { type: 'boolean' } } }] },
+        Dog: { allOf: [ref('Mammal'), { type: 'object', properties: { bark: { type: 'string' } } }] }
+      };
+      const op = (name) => ({ post: { summary: name, requestBody: { content: { 'application/json': { schema: ref(name) } } }, responses: { 200: { description: 'ok' } } } });
+      const dog = (names) => {
+        const items = openApiToBruno(buildSpec({ schemas, paths: Object.fromEntries(names.map((name) => [`/${name}`, op(name)])) })).items;
+        return JSON.parse(items.find((item) => item.name === 'Dog').request.body.json);
+      };
+      const expected = { petType: 'dog', ...inherited, bark: '' };
+      expect(dog(['Dog'])).toEqual(expected);
+      expect(dog([...Object.keys(middle), 'Cat', 'Dog'])).toEqual(expected);
+    });
+
     it('reflects an edit to an object that is converted again', () => {
       const schema = { $ref: '#/components/schemas/Missing', allOf: [{ type: 'object', properties: { a: { type: 'string' } } }] };
       const spec = buildSpec({ paths: postBody(schema) });
@@ -672,6 +833,42 @@ describe('openapi schema composition', () => {
       expect(requestBody(buildSpec({ schemas, paths: postBody(schema) })).status).toBe('active');
     });
 
+    it('keeps a large example written in the spec whole, in JSON, XML and response examples', () => {
+      const example = Object.fromEntries(Array.from({ length: 5200 }, (_, i) => [`key${i}`, i]));
+      const schemas = { Big: { type: 'object', example } };
+      const schema = { allOf: [ref('Big')] };
+      expect(requestBody(buildSpec({ schemas, paths: postBody(schema) }))).toEqual(example);
+      const xml = firstRequest(buildSpec({ schemas, paths: postBody(schema, 'application/xml') })).request.body.xml;
+      expect(xml.match(/<key\d+>/g)).toHaveLength(5200);
+      expect(responseExample(buildSpec({ schemas, paths: getWithResponse(schema) }))).toEqual(example);
+    });
+
+    it('fills every sibling that uses the same schema, in JSON, XML and arrays', () => {
+      const schemas = {
+        Address: { type: 'object', properties: { street: { type: 'string' }, city: { type: 'string' } } },
+        Order: { type: 'object', properties: { billingAddress: ref('Address'), shippingAddress: ref('Address') } },
+        Matrix: { type: 'array', items: { type: 'array', items: { anyOf: [ref('Grid'), { type: 'string' }] } } },
+        Grid: { allOf: [{ type: 'object', properties: { rows: ref('Matrix'), cols: ref('Matrix') } }] }
+      };
+      const address = { street: '', city: '' };
+      expect(requestBody(buildSpec({ schemas, paths: postBody(ref('Order')) }))).toEqual({ billingAddress: address, shippingAddress: address });
+      const xml = firstRequest(buildSpec({ schemas, paths: postBody(ref('Order'), 'application/xml') })).request.body.xml;
+      expect(xml.match(/<street><\/street>/g)).toHaveLength(2);
+      expect(requestBody(buildSpec({ schemas, paths: postBody(ref('Grid')) }))).toEqual({ rows: [[{}]], cols: [[{}]] });
+    });
+
+    it('builds each oneOf branch once inside a $ref loop, so a long loop stays fast', () => {
+      const levels = 18;
+      const schemas = {};
+      for (let i = 0; i < levels; i += 1) {
+        schemas[`S${i}`] = { oneOf: [{ allOf: [ref(`S${(i + 1) % levels}`), { type: 'object', properties: { [`f${i}`]: { type: 'string' } } }] }, { type: 'string' }] };
+      }
+      const started = performance.now();
+      const body = requestBody(buildSpec({ schemas, paths: postBody(ref('S0')) }));
+      expect(performance.now() - started).toBeLessThan(500);
+      expect(body).toEqual(Object.fromEntries(Array.from({ length: levels }, (_, i) => [`f${i}`, ''])));
+    });
+
     it('merges plain recursive models of different cycle lengths without overflowing the stack', () => {
       const schemas = {};
       [2, 3, 5, 7, 11].forEach((length, ring) => {
@@ -680,7 +877,11 @@ describe('openapi schema composition', () => {
         }
       });
       const schema = { allOf: [0, 1, 2, 3, 4].map((ring) => ref(`R${ring}N0`)) };
-      expect(() => firstRequest(buildSpec({ schemas, paths: postBody(schema) }))).not.toThrow();
+      const body = requestBody(buildSpec({ schemas, paths: postBody(schema) }));
+      expect(body).toMatchObject({ id: '', next: { id: '', next: { id: '' } } });
+      let levels = 0;
+      for (let node = body; node && typeof node === 'object'; node = node.next) levels += 1;
+      expect(levels).toBeLessThanOrEqual(32);
     });
 
     it('stops a recursive list of objects at the repeated object', () => {

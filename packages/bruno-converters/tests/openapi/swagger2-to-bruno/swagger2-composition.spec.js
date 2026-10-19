@@ -45,4 +45,24 @@ describe('swagger 2.0 schema composition', () => {
     const request = firstRequest(buildSpec({ definitions: recursive, paths: postBody(ref('Employee')), definitionsFirst }));
     expect(JSON.parse(request.request.body.json)).toHaveProperty('department', '');
   });
+
+  it('labels each subtype with its definition name when the parent declares the discriminator', () => {
+    const pets = {
+      Pet: { type: 'object', discriminator: 'petType', required: ['petType'], properties: { petType: { type: 'string' }, name: { type: 'string' } } },
+      Cat: { allOf: [ref('Pet'), { type: 'object', properties: { huntingSkill: { type: 'string' } } }] },
+      Dog: { allOf: [ref('Pet'), { type: 'object', properties: { packSize: { type: 'integer' } } }] }
+    };
+    const body = (name) => JSON.parse(firstRequest(buildSpec({ definitions: pets, paths: postBody(ref(name)) })).request.body.json);
+    expect(body('Cat')).toEqual({ petType: 'Cat', name: '', huntingSkill: '' });
+    expect(body('Dog')).toEqual({ petType: 'Dog', name: '', packSize: 0 });
+  });
+
+  it('reflects an edit to an object that is converted again', () => {
+    const schema = { $ref: '#/definitions/Missing', allOf: [{ type: 'object', properties: { a: { type: 'string' } } }] };
+    const spec = buildSpec({ definitions, paths: postBody(schema) });
+    const body = () => JSON.parse(firstRequest(spec).request.body.json);
+    expect(body()).toEqual({ a: '' });
+    schema.allOf.push({ type: 'object', properties: { b: { type: 'integer' } } });
+    expect(body()).toEqual({ a: '', b: 0 });
+  });
 });

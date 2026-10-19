@@ -5,7 +5,7 @@
 
 import each from 'lodash/each';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid, sanitizeTags } from '../common';
-import { registerReferencePlaceholder } from './schema-composition';
+import { registerComponentNames, registerReferencePlaceholder } from './schema-composition';
 import {
   ensureUrl,
   resetExampleGenerationState,
@@ -560,6 +560,7 @@ export const parseSwagger2Collection = (data, options = {}) => {
     if (!collectionData) {
       throw new Error('Invalid Swagger 2.0 specification. Failed to resolve refs.');
     }
+    registerComponentNames(collectionData.definitions);
 
     brunoCollection.name = collectionData.info?.title?.trim() || 'Untitled Collection';
 

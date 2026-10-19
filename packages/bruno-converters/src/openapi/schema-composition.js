@@ -20,6 +20,8 @@ const createState = () => ({
   compositionUse: new WeakMap()
 });
 
+// Shared by all imports. Safe only because every import calls resetExampleGenerationState first
+// and never awaits, so two imports can never mix their caches.
 let state = createState();
 
 export const resetSchemaCompositionState = () => {
@@ -212,7 +214,6 @@ const mergeSchemas = (a, b) => {
     if (shared.length > 0) merged.enum = shared;
   }
   if (typeof a.minimum === 'number' && typeof b.minimum === 'number') merged.minimum = Math.max(a.minimum, b.minimum);
-  if (typeof a.maximum === 'number' && typeof b.maximum === 'number') merged.maximum = Math.min(a.maximum, b.maximum);
   if (Array.isArray(a.required) || Array.isArray(b.required)) {
     const required = [...(Array.isArray(a.required) ? a.required : []), ...(Array.isArray(b.required) ? b.required : [])];
     merged.required = [...new Set(required)];
@@ -230,7 +231,6 @@ const mergeSchemas = (a, b) => {
   }
   if (a.not !== undefined && b.not !== undefined) merged.not = { anyOf: [a.not, b.not] };
   moveExamplesToProperties(a, b, merged);
-  if (merged.type === undefined && isSchemaObject(merged.properties)) merged.type = 'object';
 
   mergesWithA.set(b, merged);
   return merged;
@@ -263,10 +263,27 @@ const namesOf = (schema, seen = new Set()) => {
   return members.length === 1 && !hasStructure(omit(schema, COMPOSITION_KEYWORDS)) ? namesOf(members[0], seen) : [];
 };
 
-const readDiscriminator = (discriminator) =>
-  (isSchemaObject(discriminator) && typeof discriminator.propertyName === 'string' && discriminator.propertyName
+const readDiscriminator = (discriminator) => {
+  if (typeof discriminator === 'string' && discriminator) return { propertyName: discriminator, mapping: {} };
+  return isSchemaObject(discriminator) && typeof discriminator.propertyName === 'string' && discriminator.propertyName
     ? { propertyName: discriminator.propertyName, mapping: isSchemaObject(discriminator.mapping) ? discriminator.mapping : {} }
-    : null);
+    : null;
+};
+
+const inheritedDiscriminator = (schema, seen = new Set()) => {
+  for (const parent of branchesOf(schema, 'allOf')) {
+    if (seen.has(parent)) continue;
+    seen.add(parent);
+    const discriminator = readDiscriminator(parent.discriminator);
+    if (discriminator) {
+      if (branchesOf(parent, 'oneOf').length === 0 && branchesOf(parent, 'anyOf').length === 0) return discriminator;
+      continue;
+    }
+    const found = inheritedDiscriminator(parent, seen);
+    if (found) return found;
+  }
+  return null;
+};
 
 const discriminatorValueFor = (schema, discriminator) => {
   const names = namesOf(schema);
@@ -275,22 +292,28 @@ const discriminatorValueFor = (schema, discriminator) => {
 };
 
 const selectAlternative = (alternatives, discriminator, context) => {
+  const flattened = new Map();
+  const flattenedAt = (index) => {
+    if (!flattened.has(index)) flattened.set(index, flatten(alternatives[index], context));
+    return flattened.get(index);
+  };
   const valueFor = (index) => (discriminator ? discriminatorValueFor(alternatives[index], discriminator) : undefined);
+  const choose = (index, value) => ({ chosen: flattenedAt(index), value });
 
   const inProgress = alternatives.findIndex((alternative) => context.inProgress.has(alternative));
-  if (inProgress !== -1) return { index: inProgress, value: valueFor(inProgress) };
+  if (inProgress !== -1) return choose(inProgress, valueFor(inProgress));
 
   if (discriminator) {
     for (const key of Object.keys(discriminator.mapping)) {
       const target = refTail(discriminator.mapping[key]);
       const index = alternatives.findIndex((alternative) => namesOf(alternative).includes(target));
-      if (index !== -1 && isMeaningful(flatten(alternatives[index], context))) return { index, value: key };
+      if (index !== -1 && isMeaningful(flattenedAt(index))) return choose(index, key);
     }
   }
 
-  const meaningful = alternatives.findIndex((alternative) => isMeaningful(flatten(alternative, context)));
+  const meaningful = alternatives.findIndex((alternative, index) => isMeaningful(flattenedAt(index)));
   const index = meaningful === -1 ? 0 : meaningful;
-  return { index, value: valueFor(index) };
+  return choose(index, valueFor(index));
 };
 
 const stampDiscriminator = (schema, propertyName, value, context) => {
@@ -326,8 +349,7 @@ const combineBranches = (schema, context) => {
   ['oneOf', 'anyOf'].forEach((keyword) => {
     const alternatives = branchesOf(schema, keyword);
     if (alternatives.length === 0) return;
-    const { index, value } = selectAlternative(alternatives, discriminator, context);
-    const chosen = flatten(alternatives[index], context);
+    const { chosen, value } = selectAlternative(alternatives, discriminator, context);
     merged = mergeSchemas(merged, chosen);
     parts = [...parts, chosen];
     if (value !== undefined) discriminatorValue = value;
@@ -338,15 +360,24 @@ const combineBranches = (schema, context) => {
   if (result.const !== undefined) result = { ...result, enum: [result.const] };
   result = withinAllowedValues(result);
   if (schema.example !== undefined && result.example !== schema.example) result = { ...result, example: schema.example };
-  if (discriminator) result = stampDiscriminator(result, discriminator.propertyName, discriminatorValue, context);
+  if (discriminator) {
+    result = stampDiscriminator(result, discriminator.propertyName, discriminatorValue, context);
+  } else if (state.componentNames.has(schema)) {
+    const inherited = inheritedDiscriminator(schema);
+    if (inherited) result = stampDiscriminator(result, inherited.propertyName, discriminatorValueFor(schema, inherited), context);
+  }
 
   recordOrigin(result, schema, siblings, parts);
   return result;
 };
 
-const isBaseOfSubtypeInProgress = (schema, context) =>
-  context.inProgress.size > 0
-  && [...branchesOf(schema, 'oneOf'), ...branchesOf(schema, 'anyOf')].some((alternative) => context.inProgress.has(alternative));
+const isBaseOfSubtypeInProgress = (schema, context, seen = new Set()) => {
+  if (context.inProgress.size === 0 || seen.has(schema)) return false;
+  seen.add(schema);
+  const alternatives = [...branchesOf(schema, 'oneOf'), ...branchesOf(schema, 'anyOf')];
+  if (alternatives.some((alternative) => context.inProgress.has(alternative))) return true;
+  return branchesOf(schema, 'allOf').some((parent) => isBaseOfSubtypeInProgress(parent, context, seen));
+};
 
 const newContext = () => ({ inProgress: new Map(), cutDepth: Infinity });
 
@@ -373,22 +404,17 @@ function flatten(schema, context) {
 }
 
 const readForbidden = (schema, seen = new Set()) => {
-  const forbidden = { values: [], types: [], patterns: [], maxLengths: [], required: [] };
+  const forbidden = { values: [], types: [], required: [] };
   if (!isSchemaObject(schema) || seen.has(schema)) return forbidden;
   seen.add(schema);
 
   const own = branchesOf(schema, 'allOf').length > 0 ? flatten({ allOf: schema.allOf }, newContext()) : schema;
   const values = allowedValues(own);
   const types = typeSet(own.type);
-  const appliesToStrings = types.length === 0 || types.includes('string');
   if (values) {
     forbidden.values.push(...(types.length > 0 ? values.filter((value) => types.some((type) => matchesType(value, type))) : values));
   } else if (Array.isArray(own.required) && own.required.length > 0) {
     forbidden.required.push(own.required);
-  } else if (typeof own.pattern === 'string' && appliesToStrings) {
-    forbidden.patterns.push(own.pattern);
-  } else if (typeof own.maxLength === 'number' && appliesToStrings) {
-    forbidden.maxLengths.push(own.maxLength);
   } else if (types.length > 0) {
     forbidden.types.push(...types);
   } else {
@@ -403,19 +429,8 @@ const readForbidden = (schema, seen = new Set()) => {
 const isForbiddenType = (type, forbiddenTypes) =>
   forbiddenTypes.includes(type) || (type === 'integer' && forbiddenTypes.includes('number'));
 
-const matchesPattern = (pattern, value) => {
-  try {
-    return new RegExp(pattern).test(value);
-  } catch (error) {
-    return false;
-  }
-};
-
 const isForbidden = (value, forbidden) =>
-  includesValue(forbidden.values, value)
-  || forbidden.types.some((type) => matchesType(value, type))
-  || (typeof value === 'string' && forbidden.patterns.some((pattern) => matchesPattern(pattern, value)))
-  || (typeof value === 'string' && forbidden.maxLengths.some((maxLength) => value.length <= maxLength));
+  includesValue(forbidden.values, value) || forbidden.types.some((type) => matchesType(value, type));
 
 const filterEnum = (schema, keep) => {
   if (!Array.isArray(schema.enum)) return schema;
@@ -463,7 +478,7 @@ const applyNot = (schema) => {
 };
 
 const substitutesFor = (type, forbidden) => {
-  if (type === 'string') return [...STRING_SUBSTITUTES, 'x'.repeat(Math.max(0, ...forbidden.maxLengths) + 1)];
+  if (type === 'string') return STRING_SUBSTITUTES;
   if (type === 'integer' || type === 'number') return Array.from({ length: forbidden.values.length + 2 }, (_, index) => index + 1);
   if (type === 'boolean') return [true, false];
   if (type === 'null') return [null];

@@ -147,8 +147,10 @@ export const getExpandableObjectSchema = (param) => {
   return schema.properties ? schema : null;
 };
 
+// Max values generated under composition per body, so linked models can't make a body huge.
 const EXAMPLE_VALUE_LIMIT = 5000;
 
+// Composition depths tried in order, deepest first, until the body fits under the limit above.
 const COMPOSITION_DEPTH_STEPS = [32, 6, 4, 3, 2, 1, 0];
 
 class ExampleTooLarge extends Error {}
@@ -178,8 +180,15 @@ const generateWithinBudget = (rootSchema, generate) => {
   }
 };
 
+const budgetOf = (visited) => {
+  if (!exampleBudgets.has(visited)) {
+    exampleBudgets.set(visited, { values: 0, depthLimit: COMPOSITION_DEPTH_STEPS[0], compositionDepth: 0 });
+  }
+  return exampleBudgets.get(visited);
+};
+
 const countValue = (visited) => {
-  const budget = exampleBudgets.get(visited);
+  const budget = budgetOf(visited);
   if (budget.compositionDepth === 0) return;
   budget.values += 1;
   if (budget.values > EXAMPLE_VALUE_LIMIT) {
@@ -188,7 +197,7 @@ const countValue = (visited) => {
 };
 
 const deeperInComposition = (visited, generate, fallback) => {
-  const budget = exampleBudgets.get(visited);
+  const budget = budgetOf(visited);
   if (budget.compositionDepth >= budget.depthLimit) {
     return fallback();
   }
@@ -265,12 +274,19 @@ const defaultValueFor = (schema, visited) => {
   return allowedDefault(schema, '');
 };
 
-export const getDefaultValueForSchema = (rawSchema, visited) => {
-  if (!visited || !exampleBudgets.has(visited)) {
-    return generateWithinBudget(rawSchema, (budgeted) => getDefaultValueForSchema(rawSchema, budgeted));
-  }
+export const getDefaultValueForSchema = (rawSchema, visited = new Map()) => {
   countValue(visited);
   return withResolvedSchema(rawSchema, visited, (schema) => defaultValueFor(schema, visited));
+};
+
+const withCycleGuard = (visited, key, onLoop, build) => {
+  if (visited.has(key)) return onLoop();
+  visited.set(key, true);
+  try {
+    return build();
+  } finally {
+    visited.delete(key);
+  }
 };
 
 const defaultArrayFor = (arraySchema, items, visited) => {
@@ -283,18 +299,11 @@ const defaultArrayFor = (arraySchema, items, visited) => {
   if (items.example !== undefined) {
     return Array.isArray(items.example) ? items.example : [items.example];
   }
-  const guardLoop = exampleBudgets.get(visited).compositionDepth > 0;
-  const cycleKey = cycleKeyOf(arraySchema);
-  if (guardLoop && visited.has(cycleKey)) {
-    return [];
-  }
-  if (guardLoop) visited.set(cycleKey, true);
-  const itemDefault = getDefaultValueForSchema(items, visited);
-  if (guardLoop) visited.delete(cycleKey);
-  if (itemDefault !== '' && itemDefault !== 0 && itemDefault !== false) {
-    return [itemDefault];
-  }
-  return [];
+  const itemsOf = () => {
+    const itemDefault = getDefaultValueForSchema(items, visited);
+    return itemDefault !== '' && itemDefault !== 0 && itemDefault !== false ? [itemDefault] : [];
+  };
+  return budgetOf(visited).compositionDepth > 0 ? withCycleGuard(visited, cycleKeyOf(arraySchema), () => [], itemsOf) : itemsOf();
 };
 
 /**
@@ -318,7 +327,7 @@ export const buildXmlBody = (rawBodySchema) => generateFromRoot(rawBodySchema, (
 
   // Build a single XML element
   const buildElement = (name, rawProp, value, indent = '  ') => {
-    countValue(visited);
+    if (value === undefined) countValue(visited);
     return withResolvedSchema(rawProp || {}, visited, (resolved) => {
       const prop = resolved || {};
       const xmlName = prop.xml?.name || name;
@@ -333,14 +342,12 @@ export const buildXmlBody = (rawBodySchema) => generateFromRoot(rawBodySchema, (
       }
 
       if (prop.type === 'object' || prop.properties) {
-        const cycleKey = cycleKeyOf(prop);
-        if (visited.has(cycleKey)) return `${indent}<${xmlName}></${xmlName}>`;
-        visited.set(cycleKey, true);
-        const children = Object.entries(prop.properties || {})
-          .map(([k, p]) => buildElement(k, p, undefined, indent + '  '))
-          .filter(Boolean);
-        visited.delete(cycleKey);
-        return `${indent}<${xmlName}>${children.length ? '\n' + children.join('\n') + '\n' + indent : ''}</${xmlName}>`;
+        return withCycleGuard(visited, cycleKeyOf(prop), () => `${indent}<${xmlName}></${xmlName}>`, () => {
+          const children = Object.entries(prop.properties || {})
+            .map(([k, p]) => buildElement(k, p, undefined, indent + '  '))
+            .filter(Boolean);
+          return `${indent}<${xmlName}>${children.length ? '\n' + children.join('\n') + '\n' + indent : ''}</${xmlName}>`;
+        });
       }
 
       const content = value != null ? String(value) : '';
@@ -374,38 +381,27 @@ const objectValueFor = (bodySchema, visited) => {
     return {};
   }
 
-  // Check for circular references
-  const cycleKey = cycleKeyOf(bodySchema);
-  if (visited.has(cycleKey)) {
-    return {};
-  }
+  return withCycleGuard(visited, cycleKeyOf(bodySchema), () => ({}), () => {
+    const _jsonBody = {};
+    each(bodySchema.properties || {}, (prop, name) => {
+      _jsonBody[name] = getDefaultValueForSchema(prop, visited);
+    });
 
-  // Add this schema to visited map
-  visited.set(cycleKey, true);
+    const additional = bodySchema.additionalProperties;
+    const forbidsEverything = additional && typeof additional.not === 'object' && additional.not !== null && Object.keys(additional.not).length === 0;
+    if (additional && typeof additional === 'object' && !Array.isArray(additional) && !forbidsEverything && usesComposition(additional)) {
+      let index = 1;
+      while (Object.hasOwn(_jsonBody, `additionalProp${index}`)) index += 1;
+      deeperInComposition(visited, () => {
+        _jsonBody[`additionalProp${index}`] = getDefaultValueForSchema(additional, visited);
+      }, () => {});
+    }
 
-  const _jsonBody = {};
-  each(bodySchema.properties || {}, (prop, name) => {
-    _jsonBody[name] = getDefaultValueForSchema(prop, visited);
+    return _jsonBody;
   });
-
-  const additional = bodySchema.additionalProperties;
-  const forbidsEverything = additional && typeof additional.not === 'object' && additional.not !== null && Object.keys(additional.not).length === 0;
-  if (additional && typeof additional === 'object' && !Array.isArray(additional) && !forbidsEverything && usesComposition(additional)) {
-    let index = 1;
-    while (Object.hasOwn(_jsonBody, `additionalProp${index}`)) index += 1;
-    deeperInComposition(visited, () => {
-      _jsonBody[`additionalProp${index}`] = getDefaultValueForSchema(additional, visited);
-    }, () => {});
-  }
-
-  visited.delete(cycleKey);
-  return _jsonBody;
 };
 
-export const buildEmptyJsonBody = (rawBodySchema, visited) => {
-  if (!visited || !exampleBudgets.has(visited)) {
-    return generateWithinBudget(rawBodySchema, (budgeted) => buildEmptyJsonBody(rawBodySchema, budgeted));
-  }
+export const buildEmptyJsonBody = (rawBodySchema, visited = new Map()) => {
   return withResolvedSchema(rawBodySchema, visited, (bodySchema) => objectValueFor(bodySchema, visited));
 };
 
