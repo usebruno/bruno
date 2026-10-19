@@ -137,7 +137,7 @@ Cada componente em sua pasta (`<Nome>/index.js` + `StyledWrapper.js`), cores via
 
 ```
 components/GitPanel/
-  index.js                 # painel lateral ou modal
+  index.js                 # barra lateral à direita, montada em pages/Bruno ao lado do AiChatSidebar
   StyledWrapper.js
   GitChangesList/          # lista staged e unstaged, checkbox por arquivo, "stage all"
   GitCommitBox/            # textarea + botão Commit (desabilitado sem staged ou sem mensagem)
@@ -200,7 +200,4 @@ Em `tests/git/`, usando a skill `write-e2e-test`:
 | --- | --- |
 | Remote | Só `origin` na Fase 1. Sem `origin`, push e pull mostram "Nenhum remote configurado." |
 | Escopo do commit | Só arquivos da collection. Stage e unstage rejeitam caminhos fora dela, mesmo dentro de um repositório maior |
-
-## 12. Questões em aberto
-
-- Formato do painel: barra lateral à direita (como o `AiChatSidebar`), aba no painel principal (como Collection Settings) ou gaveta inferior (como o `Devtools`)? Proposta: barra lateral à direita.
+| Formato do painel | Barra lateral à direita, no padrão do `AiChatSidebar`, para ficar aberta enquanto o usuário edita requests |
