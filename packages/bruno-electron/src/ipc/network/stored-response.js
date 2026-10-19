@@ -14,9 +14,11 @@ const buildScriptResponse = (storedResponse, disableParsingResponseJson = false)
 
   // The stored body is what the first run's scripts left behind. `receivedDataBuffer` holds the bytes
   // as received when a script replaced them, and in-place edits of the stored `data` never reach the
-  // buffer, so parsing the bytes again yields the response the way the original send saw it.
-  const receivedBytes = Buffer.from(receivedDataBuffer || dataBuffer || '', 'base64');
-  const received = receivedBytes.length
+  // buffer, so parsing the bytes again yields the response the way the original send saw it. A
+  // snapshot of an empty body is empty, which is why its presence is checked and not its content.
+  const hasReceivedSnapshot = receivedDataBuffer !== undefined;
+  const receivedBytes = Buffer.from((hasReceivedSnapshot ? receivedDataBuffer : dataBuffer) || '', 'base64');
+  const received = hasReceivedSnapshot || receivedBytes.length
     ? parseDataFromResponse({ data: receivedBytes, headers }, disableParsingResponseJson)
     : { data, dataBuffer: receivedBytes };
 

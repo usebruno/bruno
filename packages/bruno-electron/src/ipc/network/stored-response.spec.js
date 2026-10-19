@@ -70,6 +70,20 @@ describe('buildScriptResponse', () => {
     expect(response.dataBuffer.toString()).toBe(JSON.stringify(receivedBody));
   });
 
+  test('keeps an empty received body when a script replaced it afterwards', () => {
+    const stored = {
+      ...makeStoredResponse(),
+      data: 'changed',
+      dataBuffer: Buffer.from('changed').toString('base64'),
+      receivedDataBuffer: ''
+    };
+
+    const response = buildScriptResponse(stored);
+
+    expect(response.data).toBe('');
+    expect(response.dataBuffer.length).toBe(0);
+  });
+
   test('ignores in-place edits a first-run script made to the stored body object', () => {
     const stored = { ...makeStoredResponse(), data: { edited: true } };
 
