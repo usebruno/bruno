@@ -1228,9 +1228,10 @@ const registerNetworkIpc = (mainWindow) => {
         : parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
       response.dataBuffer = dataBuffer;
-      // res.setBody() in a post-response script replaces response.dataBuffer; keep the bytes that
-      // were received so a later re-run starts from the real response
-      const receivedDataBuffer = response.dataBuffer;
+      // A post-response script can replace response.dataBuffer (res.setBody()) or edit it in place
+      // (res.getDataBuffer()); keep a copy of the bytes that were received so a later re-run starts
+      // from the real response
+      const receivedDataBuffer = Buffer.from(response.dataBuffer);
 
       response.responseTime = responseTime;
 
@@ -1368,7 +1369,7 @@ const registerNetworkIpc = (mainWindow) => {
         sseChunks: isResponseStream ? sseChunks : null,
         cancelTokenUid: cancelTokenUid,
         dataBuffer: response.dataBuffer.toString('base64'),
-        receivedDataBuffer: response.dataBuffer !== receivedDataBuffer ? receivedDataBuffer.toString('base64') : undefined,
+        receivedDataBuffer: response.dataBuffer.equals(receivedDataBuffer) ? undefined : receivedDataBuffer.toString('base64'),
         size: Buffer.byteLength(response.dataBuffer),
         duration: responseTime ?? 0,
         url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,

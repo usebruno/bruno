@@ -146,6 +146,22 @@ for (const mode of ['safe', 'developer'] as const) {
       await expect(locators.response.assertionResults.passed()).toContainText(['rerun sees the received body']);
     });
 
+    test('a request whose script edits the response bytes in place is re-run on the bytes that were received', async ({ pageWithUserData: page }) => {
+      const locators = buildCommonLocators(page);
+      const rerun = locators.paneTabs.rerunPostResponseScript();
+
+      await openRequest(page, COLLECTION, 'edits-buffer');
+      await sendRequest(page, 200);
+
+      await setPostResponseScript(page, `
+        test('rerun sees the received bytes', function () { expect(res.getBody()).to.equal('pong'); });
+      `);
+      await rerun.click();
+
+      await selectResponsePaneTab(page, 'Tests');
+      await expect(locators.response.assertionResults.passed()).toContainText(['rerun sees the received bytes']);
+    });
+
     test('an empty script disables the action', async ({ pageWithUserData: page }) => {
       const rerun = buildCommonLocators(page).paneTabs.rerunPostResponseScript();
 
