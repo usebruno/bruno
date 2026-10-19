@@ -1,3 +1,9 @@
+import { Provider } from 'react-redux';
+import { configureStore } from '@reduxjs/toolkit';
+import { renderHook, act } from '@testing-library/react';
+import collectionsReducer, { updateCollectionRequestScript } from 'providers/ReduxStore/slices/collections';
+import useProtoFileManagement from './index';
+
 jest.mock('nanoid', () => ({
   customAlphabet: () => () => 'mock-uid'
 }));
@@ -16,13 +22,6 @@ jest.mock('react-hot-toast', () => ({
 jest.mock('utils/network/index', () => ({
   loadGrpcMethodsFromProtoFile: jest.fn()
 }));
-
-import React from 'react';
-import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
-import { renderHook, act } from '@testing-library/react';
-import collectionsReducer, { updateCollectionRequestScript } from 'providers/ReduxStore/slices/collections';
-import useProtoFileManagement from './index';
 
 const COLLECTION_UID = 'col-1';
 const COLLECTION_PATH = '/tmp/collection-1';
