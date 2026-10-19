@@ -1,7 +1,7 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
 import { parseQueryParams, extractPromptVariables, getDataTypeFromValue, resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
-import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT, SIDEBAR_REVEAL_STATUS } from 'utils/common/constants';
+import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
@@ -83,7 +83,7 @@ import {
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, restoreTabs, reopenLastClosedTab } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, restoreTabs, reopenLastClosedTab, setSidebarRevealRequest } from 'providers/ReduxStore/slices/tabs';
 import { clearOpenApiSyncTabState } from 'providers/ReduxStore/slices/openapi-sync';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
@@ -2322,12 +2322,33 @@ const executeVariableUpdate = (dispatch, action, successMessage) => {
  * @returns {{ variable: Object|undefined, updatedVariables: Array }} `variable` is the pre-existing
  *   entry that was updated, or undefined when a new one was appended instead.
  */
-const resolveOrCreateEnabledVariable = (variables, variableName, newValue, secret) => {
+const withDataType = (variable, dataType) => {
+  const next = { ...variable };
+
+  if (dataType === undefined) {
+    return next;
+  }
+
+  if (dataType === 'string') {
+    delete next.dataType;
+  } else {
+    next.dataType = dataType;
+  }
+
+  return next;
+};
+
+const resolveOrCreateEnabledVariable = (variables, variableName, newValue, secret, dataType) => {
   const variable = resolveEnabledVariable(variables, variableName);
-  const newVariable = { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true, secret: !!secret };
+  const newVariable = withDataType(
+    { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true, secret: !!secret },
+    dataType
+  );
 
   const updatedVariables = variable
-    ? variables.map((v) => (v.uid === variable.uid ? { ...v, value: newValue } : v))
+    ? variables.map((v) =>
+        v.uid === variable.uid ? withDataType({ ...v, value: newValue, secret: v.secret || !!secret }, dataType) : v
+      )
     : [...(variables || []), newVariable];
 
   return { variable, updatedVariables };
@@ -2375,7 +2396,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Environment not found'));
           }
 
-          const { variable, updatedVariables } = resolveOrCreateEnabledVariable(environment.variables, variableName, newValue, data.secret);
+          const { variable, updatedVariables } = resolveOrCreateEnabledVariable(environment.variables, variableName, newValue, data.secret, data.dataType);
 
           // not pre-resolving a secret-name collision here
           // saveEnvironment's writesCollidingSecrets guard rejects it instead.
@@ -2395,14 +2416,14 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             dispatch(updateCollectionVar({
               collectionUid,
               type: 'request',
-              var: { ...variable, value: newValue }
+              var: withDataType({ ...variable, value: newValue }, data.dataType)
             }));
           } else {
             // Create new variable in draft with actual values
             dispatch(addCollectionVar({
               collectionUid,
               type: 'request',
-              var: { name: variableName, value: newValue, enabled: true }
+              var: withDataType({ name: variableName, value: newValue, enabled: true }, data.dataType)
             }));
           }
 
@@ -2421,7 +2442,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
               collectionUid,
               folderUid: folder.uid,
               type: 'request',
-              var: { ...variable, value: newValue }
+              var: withDataType({ ...variable, value: newValue }, data.dataType)
             }));
           } else {
             // Create new variable in draft with actual values
@@ -2429,7 +2450,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
               collectionUid,
               folderUid: folder.uid,
               type: 'request',
-              var: { name: variableName, value: newValue, enabled: true }
+              var: withDataType({ name: variableName, value: newValue, enabled: true }, data.dataType)
             }));
           }
 
@@ -2448,7 +2469,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
               collectionUid,
               itemUid: item.uid,
               type: 'request',
-              var: { ...variable, value: newValue }
+              var: withDataType({ ...variable, value: newValue }, data.dataType)
             }));
           } else {
             // Create new variable in draft with actual values
@@ -2456,7 +2477,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
               collectionUid,
               itemUid: item.uid,
               type: 'request',
-              var: { name: variableName, value: newValue, local: false, enabled: true }
+              var: withDataType({ name: variableName, value: newValue, local: false, enabled: true }, data.dataType)
             }));
           }
 
@@ -2480,7 +2501,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Global environment not found'));
           }
 
-          const { variable, updatedVariables } = resolveOrCreateEnabledVariable(environment.variables, variableName, newValue, data.secret);
+          const { variable, updatedVariables } = resolveOrCreateEnabledVariable(environment.variables, variableName, newValue, data.secret, data.dataType);
 
           // Deliberately not pre-resolving a secret-name collision here.
           // saveEnvironment's writesCollidingSecrets guard rejects it instead
@@ -3603,14 +3624,12 @@ export const scanForBrunoFiles = (dir) => (dispatch, getState) => {
 export const revealItemInSidebar = ({ collectionUid, itemUid, expandTarget = false }) => (dispatch, getState) => {
   const collection = findCollectionByUid(getState().collections.collections, collectionUid);
   if (!collection) {
-    return SIDEBAR_REVEAL_STATUS.SKIPPED;
+    return true;
   }
 
   const item = findItemInCollection(collection, itemUid);
   if (!item) {
-    return collection.mountStatus === 'mounted' && !collection.isLoading
-      ? SIDEBAR_REVEAL_STATUS.SKIPPED
-      : SIDEBAR_REVEAL_STATUS.PENDING;
+    return collection.mountStatus === 'mounted' && !collection.isLoading;
   }
 
   if (collection.collapsed) {
@@ -3626,22 +3645,28 @@ export const revealItemInSidebar = ({ collectionUid, itemUid, expandTarget = fal
     }
   });
 
-  return SIDEBAR_REVEAL_STATUS.REVEALED;
+  return true;
 };
 
 export const revealTabInSidebar = (tabUid) => (dispatch, getState) => {
   const tab = getState().tabs.tabs.find((t) => t.uid === tabUid);
   if (!tab?.collectionUid) {
-    return SIDEBAR_REVEAL_STATUS.SKIPPED;
+    return true;
   }
 
   const isExampleTab = tab.type === 'response-example';
 
-  return dispatch(revealItemInSidebar({
+  const isRevealSettled = dispatch(revealItemInSidebar({
     collectionUid: tab.collectionUid,
     itemUid: isExampleTab ? tab.itemUid : tab.uid,
     expandTarget: isExampleTab
   }));
+
+  if (isRevealSettled) {
+    dispatch(setSidebarRevealRequest({ uid: tabUid, requestedAt: Date.now() }));
+  }
+
+  return isRevealSettled;
 };
 
 /**

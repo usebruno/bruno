@@ -25,6 +25,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const dispatch = useDispatch();
   const virtuosoRef = useRef(null);
+  const scrollerRef = useRef(null);
 
   const { openBulkMenu, menuProps } = useBulkActionsMenu();
 
@@ -40,7 +41,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   );
 
   // Flatten the tree into ordered rows. itemsByUid / collectionsByUid resolve a row's live object.
-  const { rows, itemsByUid, collectionsByUid } = useMemo(
+  const { rows, itemsByUid, collectionsByUid, rowIndexByItemUid, rowIndexByCollectionUid } = useMemo(
     () => flattenSidebarTree(sidebarEntries, { searchText: debouncedSearchText }),
     [sidebarEntries, debouncedSearchText]
   );
@@ -82,7 +83,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     return selectionInfo.effectiveSelection.map((entry) => ({ ...entry.item, sourceCollectionUid: entry.collectionUid }));
   }, [selectionInfo]);
 
-  useSidebarAutoReveal({ rows, sidebarEntries, virtuosoRef });
+  useSidebarAutoReveal({ rowIndexByItemUid, rowIndexByCollectionUid, sidebarEntries, virtuosoRef, scrollerRef });
 
   // Clear multi-selection only when clicking the bare scroller background.
   // The `contains` guard ignores events propagated from portaled menus/modals in <body>.
@@ -128,6 +129,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
       >
         <Virtuoso
           ref={virtuosoRef}
+          scrollerRef={(el) => { scrollerRef.current = el; }}
           data-testid="sidebar-collections-scroller"
           style={{ height: '100%' }}
           data={rows}
