@@ -742,6 +742,40 @@ describe('Send Request Translation', () => {
       `);
     });
 
+    it('types a chain hanging off a variable, leaving the promise un-awaited', () => {
+      const code = `
+        const p = pm.sendRequest(q);
+        p.then(r => r.code);
+      `;
+      // awaiting would hand `p` the resolved response, leaving `.then` nothing to attach to
+      expect(translateCode(code)).toBe(`
+        const p = bru.sendRequest(q);
+        p.then(r => r.status);
+      `);
+    });
+
+    it('propagates through a chain hanging off a variable', () => {
+      const code = `
+        const p = pm.sendRequest(q);
+        p.then(r => r).then(r => r.code);
+      `;
+      expect(translateCode(code)).toBe(`
+        const p = bru.sendRequest(q);
+        p.then(r => r).then(r => r.status);
+      `);
+    });
+
+    it('still awaits a variable that carries no chain', () => {
+      const code = `
+        const r = pm.sendRequest(q);
+        r.code;
+      `;
+      expect(translateCode(code)).toBe(`
+        const r = await bru.sendRequest(q);
+        r.status;
+      `);
+    });
+
     it('leaves an unrelated declaration sharing the config name alone', () => {
       const code = `
         function buildHeaders() {

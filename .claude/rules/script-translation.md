@@ -159,6 +159,8 @@ A typed value reaches a script by one of two routes, and each has a producer emi
 | `collectBindings` | variable declarations — `const r = await pm.sendRequest(q)` | `type-environment.js` |
 | `collectAllChainBindings` | handler parameters of a promise chain — `.then(r => ...)` | `promise-chain.js` |
 
+A chain's **head** is whatever it hangs off, which is not always the call: `const p = pm.sendRequest(q); p.then(...)` hangs off a name. Both producers type an *expression*, so neither cares which. A call bound to a name used as a promise is also left un-awaited — `const p = await bru.sendRequest(q)` would leave the chain nothing to attach to.
+
 `promise-chain.js` holds **no fact about either API** — `.then` forwards iff its handler returns
 its parameter, `.catch` may replace, `.finally` always forwards. That is why one implementation
 serves both directions, and why it is driven by the *type of the chain's head* rather than by a

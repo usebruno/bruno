@@ -206,14 +206,26 @@ export const collectChainBindings = (j, chainLinks, typeName, registry) => {
  */
 export const collectAllChainBindings = (j, ast, bindings, registry) => {
   const chainBindings = [];
+  const walked = new Set();
 
-  ast.find(j.CallExpression).paths().forEach((callPath) => {
-    const typeName = getExpressionType(callPath, bindings, registry);
+  ast.find(j.MemberExpression).paths().forEach((memberPath) => {
+    if (!PROMISE_CHAIN_METHODS.has(getStaticPropertyName(memberPath.value))) return;
+
+    /**
+     * The head is whatever the chain hangs off — the call itself in
+     * `pm.sendRequest(q).then(...)`, but a name in `const p = pm.sendRequest(q); p.then(...)`.
+     * Typing the expression rather than matching a call shape is what reaches both.
+     */
+    const headPath = memberPath.get('object');
+    if (walked.has(headPath.value)) return;
+
+    const typeName = getExpressionType(headPath, bindings, registry);
     if (!typeName) return;
 
-    const chainLinks = getPromiseChainLinks(callPath);
+    const chainLinks = getPromiseChainLinks(headPath);
     if (!chainLinks.length) return;
 
+    walked.add(headPath.value);
     chainBindings.push(...collectChainBindings(j, chainLinks, typeName, registry));
   });
 

@@ -835,6 +835,11 @@ describe('Bruno to Postman Send Request Translation', () => {
       expect(translateBruToPostman(code)).toBe(`pm.sendRequest(q).then(res => res.code);`);
     });
 
+    it('should type a chain hanging off a variable', () => {
+      const code = `const p = bru.sendRequest(q);\np.then(r => r.status);`;
+      expect(translateBruToPostman(code)).toBe(`const p = pm.sendRequest(q);\np.then(r => r.code);`);
+    });
+
     it('should keep propagating while a handler forwards its parameter', () => {
       const code = `bru.sendRequest(q).then(r => r).then(r => r.status);`;
       expect(translateBruToPostman(code)).toBe(`pm.sendRequest(q).then(r => r).then(r => r.code);`);

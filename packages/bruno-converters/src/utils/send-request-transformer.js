@@ -3,6 +3,7 @@ import {
   PROMISE_CHAIN_METHODS,
   collectHandlerBindings,
   getPromiseChainLinks,
+  resolvesToBinding,
   rewriteMembers,
   POSTMAN_REGISTRY
 } from './semantic';
@@ -280,6 +281,38 @@ const transformReferencedConfig = (j, root, referencePath, name, visited = new S
   return null;
 };
 
+/**
+ * Whether the call's result is bound to a name that is later used as a promise.
+ *
+ * `const p = pm.sendRequest(q); p.then(h)` must not become `const p = await bru.sendRequest(q)`:
+ * awaiting hands `p` the resolved response, and the chain hanging off it would then be calling
+ * `.then` on a value that has none.
+ *
+ * @param {Object} j - jscodeshift API
+ * @param {Object} callPath - Path of the sendRequest CallExpression
+ * @returns {boolean}
+ */
+const bindsAPromise = (j, callPath) => {
+  const declaratorPath = callPath.parent;
+  if (!declaratorPath || declaratorPath.value.type !== 'VariableDeclarator') return false;
+  if (declaratorPath.value.id.type !== 'Identifier') return false;
+
+  const binding = { name: declaratorPath.value.id.name, scopeNode: declaratorPath.scope.node };
+
+  return j(callPath)
+    .closest(j.Program)
+    .find(j.MemberExpression)
+    .paths()
+    .some((memberPath) => {
+      if (!PROMISE_CHAIN_METHODS.has(getStaticPropertyName(memberPath.value))) return false;
+
+      const object = memberPath.value.object;
+      return object.type === 'Identifier'
+        && object.name === binding.name
+        && resolvesToBinding(memberPath.get('object'), binding);
+    });
+};
+
 const sendRequestTransformer = (path, j) => {
   const callPath = path.parent;
   const callExpr = callPath.value;
@@ -320,7 +353,9 @@ const sendRequestTransformer = (path, j) => {
   const chainLinks = getPromiseChainLinks(callPath);
 
   if (!chainLinks.length) {
-    return ensureAsyncContext(j, callPath) ? j.awaitExpression(sendRequestCall) : sendRequestCall;
+    const shouldAwait = !bindsAPromise(j, callPath) && ensureAsyncContext(j, callPath);
+
+    return shouldAwait ? j.awaitExpression(sendRequestCall) : sendRequestCall;
   }
 
   const outermostPath = chainLinks[chainLinks.length - 1].callPath;
