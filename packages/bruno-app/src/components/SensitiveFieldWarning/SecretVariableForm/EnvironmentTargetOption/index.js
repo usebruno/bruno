@@ -76,7 +76,11 @@ const EnvironmentTargetOption = ({ target, isSelected, onSelect, onCreate }) => 
           >
             {isSubmitting ? 'Creating…' : 'Create'}
           </button>
-          {error && <div className="create-environment-error">{error}</div>}
+          {error && (
+            <div className="create-environment-error" data-testid={`secret-variable-create-env-error-${target.type}`}>
+              {error}
+            </div>
+          )}
         </>
       ) : (
         <span className="target-note" data-testid={`secret-variable-no-env-${target.type}`}>

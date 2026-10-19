@@ -1,6 +1,7 @@
 import get from 'lodash/get';
 import { interpolate } from '@usebruno/common';
 import { resolveInheritedAuth } from 'utils/auth';
+import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 import {
   createVariableScopeScanContext,
   flattenItems,
@@ -8,6 +9,8 @@ import {
   getVariableScope,
   isItemARequest
 } from './collections';
+
+export const PLAINTEXT_SCOPE = 'plaintext';
 
 export const SENSITIVE_FIELD_WARNING = {
   USED_AS_PLAIN_TEXT: 'Store sensitive info as a secret variable or in a .env file',
@@ -74,7 +77,7 @@ export const extractSensitiveVarNames = (value) => {
 };
 
 /** Uses the passed scope, or infers it from the item. */
-export const resolveFieldScope = (item, scope) => {
+const resolveFieldScope = (item, scope) => {
   if (scope) {
     return scope;
   }
@@ -123,7 +126,13 @@ export const replaceWithVariableValues = (value, { collection, item }) => (
 );
 
 /** Lookup order of variable scopes; earlier wins. */
-const SCOPE_PRIORITY = ['request', 'folder', 'environment', 'collection', 'global'];
+const SCOPE_PRIORITY = [
+  VARIABLE_ADD_SCOPES.REQUEST,
+  VARIABLE_ADD_SCOPES.FOLDER,
+  VARIABLE_ADD_SCOPES.ENVIRONMENT,
+  VARIABLE_ADD_SCOPES.COLLECTION,
+  VARIABLE_ADD_SCOPES.GLOBAL
+];
 
 /** Scope of a same-name variable that would win over a new variable in `targetScope`, or null. */
 export const findOverridingVariableScope = (variableName, { collection, item, targetScope, ignoreVariableUid } = {}) => {
@@ -167,7 +176,7 @@ export const classifySensitiveValue = (value, context = {}) => {
   }
 
   if (hasPlaintext) {
-    return createWarning('plaintext', null, SENSITIVE_FIELD_WARNING.USED_AS_PLAIN_TEXT);
+    return createWarning(PLAINTEXT_SCOPE, null, SENSITIVE_FIELD_WARNING.USED_AS_PLAIN_TEXT);
   }
 
   return getNoWarning();

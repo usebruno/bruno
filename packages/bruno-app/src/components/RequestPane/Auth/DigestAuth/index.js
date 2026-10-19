@@ -81,7 +81,7 @@ const DigestAuth = ({ item, collection, updateAuth, request, save, disabled }) =
           readOnly={disabled}
           isCompact
         />
-        {showWarning && <SensitiveFieldWarning fieldName="digest-password" secretName="password" warningMessage={warningMessage} scope={scope} variableName={variableName} value={digestAuth?.password} collection={collection} item={item} disabled={disabled} onReplaceValue={(val) => handlePasswordChange(val)} />}
+        {showWarning && <SensitiveFieldWarning fieldName="digest-password" secretName="password" warningMessage={warningMessage} scope={scope} variableName={variableName} value={digestAuth?.password} collection={collection} item={item} disabled={disabled} onReplaceValue={handlePasswordChange} />}
       </div>
     </StyledWrapper>
   );

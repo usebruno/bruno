@@ -142,7 +142,7 @@ export const findEnvironmentInCollection = (collection, envUid) => {
 };
 
 /** Active collection environment uid; `realActiveEnvironmentUid` wins when set. */
-export const getActiveEnvironmentUidForScope = (collection) => collection.realActiveEnvironmentUid ?? collection.activeEnvironmentUid;
+export const getEffectiveActiveEnvironmentUid = (collection) => collection.realActiveEnvironmentUid ?? collection.activeEnvironmentUid;
 
 export const findEnvironmentInCollectionByName = (collection, name) => {
   return find(collection.environments, (e) => e.name === name);
@@ -1876,7 +1876,7 @@ export const createVariableScopeScanContext = (collection) => {
 
   let environment = null;
   let environmentVariables = null;
-  const activeEnvironmentUidForScope = getActiveEnvironmentUidForScope(collection);
+  const activeEnvironmentUidForScope = getEffectiveActiveEnvironmentUid(collection);
   if (activeEnvironmentUidForScope) {
     environment = findEnvironmentInCollection(collection, activeEnvironmentUidForScope);
     if (environment) {
@@ -1988,7 +1988,7 @@ export const getVariableScope = (variableName, collection, item, options = {}) =
   // 3. Check Environment Variables
   const environment = scanContext?.environment
     ?? (() => {
-      const activeEnvironmentUidForScope = getActiveEnvironmentUidForScope(collection);
+      const activeEnvironmentUidForScope = getEffectiveActiveEnvironmentUid(collection);
       return activeEnvironmentUidForScope
         ? findEnvironmentInCollection(collection, activeEnvironmentUidForScope)
         : null;

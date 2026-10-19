@@ -242,7 +242,6 @@ const ErrorMessage = React.memo(({ id, error }) => {
   );
 });
 
-/** Rows with a non-empty name. */
 const hasVariableName = (variable) => variable.name && variable.name.trim() !== '';
 
 const EnvironmentVariablesTable = ({
@@ -798,7 +797,7 @@ const EnvironmentVariablesTable = ({
     setIsModified(otherDirty);
   }, [environment.variables, formik.values, isSecretTab, onDraftChange, onDraftClear, setIsModified, buildSortOrder, sortMode]);
 
-  /** Validates and saves the rows, then resets the form.Rejects with the message to show.  */
+  /** Validates and saves the rows, then resets the form. Rejects with the message to show. */
   const validateAndSaveVariables = useCallback((namedValues) => {
     const persistedVariables = orderVarsBySecret(namedValues);
 

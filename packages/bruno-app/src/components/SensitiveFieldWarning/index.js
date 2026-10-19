@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import Tippy from '@tippyjs/react';
 import toast from 'react-hot-toast';
@@ -9,9 +9,10 @@ import {
   removeVariableFromScope
 } from 'providers/ReduxStore/slices/collections/actions';
 import useCloseOnEscape from 'hooks/useCloseOnEscape';
-import { getActiveEnvironmentUidForScope } from 'utils/collections';
-import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+import { getEffectiveActiveEnvironmentUid } from 'utils/collections';
+import { SCOPE_LABEL, VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 import {
+  PLAINTEXT_SCOPE,
   findOverridingVariableScope,
   replaceVariableReferences,
   replaceWithVariableValues,
@@ -25,7 +26,7 @@ const HOVER_CLOSE_DELAY_MS = 150;
 const Z_INDEX = 15;
 
 const ACTION_LABELS = {
-  plaintext: 'Save as secret variable',
+  [PLAINTEXT_SCOPE]: 'Save as secret variable',
   [VARIABLE_ADD_SCOPES.ENVIRONMENT]: 'Mark as secret',
   [VARIABLE_ADD_SCOPES.GLOBAL]: 'Mark as secret',
   [VARIABLE_ADD_SCOPES.REQUEST]: 'Move to environment',
@@ -34,9 +35,9 @@ const ACTION_LABELS = {
 };
 
 const SCOPE_LABELS = {
-  [VARIABLE_ADD_SCOPES.REQUEST]: 'Request Vars',
-  [VARIABLE_ADD_SCOPES.FOLDER]: 'Folder Vars',
-  [VARIABLE_ADD_SCOPES.COLLECTION]: 'Collection Vars',
+  [VARIABLE_ADD_SCOPES.REQUEST]: `${SCOPE_LABEL[VARIABLE_ADD_SCOPES.REQUEST]} Vars`,
+  [VARIABLE_ADD_SCOPES.FOLDER]: `${SCOPE_LABEL[VARIABLE_ADD_SCOPES.FOLDER]} Vars`,
+  [VARIABLE_ADD_SCOPES.COLLECTION]: `${SCOPE_LABEL[VARIABLE_ADD_SCOPES.COLLECTION]} Vars`,
   [VARIABLE_ADD_SCOPES.ENVIRONMENT]: 'Collection Environment',
   [VARIABLE_ADD_SCOPES.GLOBAL]: 'Global Environment'
 };
@@ -47,7 +48,7 @@ const MOVE_SCOPES = [VARIABLE_ADD_SCOPES.REQUEST, VARIABLE_ADD_SCOPES.FOLDER, VA
 const getActiveEnvironmentUid = (collection, environmentScope) => (
   environmentScope === VARIABLE_ADD_SCOPES.GLOBAL
     ? collection.activeGlobalEnvironmentUid
-    : getActiveEnvironmentUidForScope(collection)
+    : getEffectiveActiveEnvironmentUid(collection)
 );
 
 /** The request/folder/collection var that "Move to environment" deletes. Vars tables pass its uid; auth fields look it up by name. */
@@ -105,12 +106,12 @@ const SensitiveFieldWarning = ({
   const movedVariable = form?.movedVariable;
   const isOpen = isHovered || isPinned || !!form;
 
-  const close = () => {
+  const close = useCallback(() => {
     clearTimeout(closeTimerRef.current);
     setIsHovered(false);
     setIsPinned(false);
     setForm(null);
-  };
+  }, []);
 
   useCloseOnEscape(close, isPinned || !!form);
 
@@ -137,7 +138,7 @@ const SensitiveFieldWarning = ({
   /** Runs the warning link: plain values and scoped vars open the form, env vars are marked as secret directly. */
   const handleAction = (event) => {
     event.stopPropagation();
-    if (scope === 'plaintext') {
+    if (scope === PLAINTEXT_SCOPE) {
       setForm({ name: secretName, value: replaceWithVariableValues(value, { collection, item }) });
       return;
     }

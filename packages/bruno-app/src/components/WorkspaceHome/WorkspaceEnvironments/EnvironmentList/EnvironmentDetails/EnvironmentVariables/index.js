@@ -10,31 +10,29 @@ import { markEnvironmentVariableAsSecret } from 'providers/ReduxStore/slices/col
 import EnvironmentVariablesTable from 'components/EnvironmentVariablesTable';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { SENSITIVE_FIELD_WARNING, findUsedGlobalEnvironmentVariableUids } from 'utils/sensitive-fields';
+import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 
 const EnvironmentVariables = ({ environment, setIsModified, collection, inheritedEnvironmentVariables, searchQuery = '', variableType = 'variables' }) => {
   const dispatch = useDispatch();
   const globalEnvironmentDraft = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft);
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const collections = useSelector((state) => state.collections.collections);
-  const hasDraftForThisEnv = globalEnvironmentDraft?.environmentUid === environment.uid;
 
+  const hasDraftForThisEnv = globalEnvironmentDraft?.environmentUid === environment.uid;
   const liveEnvironment = useMemo(() => (
     hasDraftForThisEnv ? { ...environment, variables: globalEnvironmentDraft.variables } : environment
   ), [environment, globalEnvironmentDraft, hasDraftForThisEnv]);
-
   const usedVariableUids = useMemo(
     () => findUsedGlobalEnvironmentVariableUids(collections, globalEnvironments, liveEnvironment),
     [collections, globalEnvironments, liveEnvironment]
   );
-
   const hasSensitiveUsage = useCallback((variable) => (
     !!variable?.uid && usedVariableUids.has(variable.uid)
   ), [usedVariableUids]);
-
   const renderSensitiveWarning = useCallback((variable, markOwnVariableAsSecret) => {
     if (!variable.secret && hasSensitiveUsage(variable)) {
       const markAsSecret = markOwnVariableAsSecret ?? (() => dispatch(markEnvironmentVariableAsSecret({
-        environmentScope: 'global',
+        environmentScope: VARIABLE_ADD_SCOPES.GLOBAL,
         environmentUid: variable.inheritedFrom.uid,
         variableUid: variable.uid
       })));
@@ -42,7 +40,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, inherite
         <SensitiveFieldWarning
           fieldName={variable.name}
           warningMessage={SENSITIVE_FIELD_WARNING.USED_IN_SENSITIVE_FIELD}
-          scope="global"
+          scope={VARIABLE_ADD_SCOPES.GLOBAL}
           variableName={variable.name}
           onMarkAsSecret={markAsSecret}
         />

@@ -6,6 +6,7 @@ import { setEnvironmentsDraft, clearEnvironmentsDraft } from 'providers/ReduxSto
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import EnvironmentVariablesTable from 'components/EnvironmentVariablesTable';
 import { SENSITIVE_FIELD_WARNING, findUsedEnvironmentVariableUids } from 'utils/sensitive-fields';
+import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 
 const EnvironmentVariables = ({ environment, setIsModified, collection, inheritedEnvironmentVariables, searchQuery = '', variableType = 'variables' }) => {
   const dispatch = useDispatch();
@@ -55,7 +56,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, inherite
       if (!variable.secret && hasSensitiveUsage(variable)) {
         const markAsSecret = markOwnVariableAsSecret ?? (() => dispatch(markEnvironmentVariableAsSecret({
           collectionUid: collection.uid,
-          environmentScope: 'environment',
+          environmentScope: VARIABLE_ADD_SCOPES.ENVIRONMENT,
           environmentUid: variable.inheritedFrom.uid,
           variableUid: variable.uid
         })));
@@ -63,7 +64,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, inherite
           <SensitiveFieldWarning
             fieldName={variable.name}
             warningMessage={SENSITIVE_FIELD_WARNING.USED_IN_SENSITIVE_FIELD}
-            scope="environment"
+            scope={VARIABLE_ADD_SCOPES.ENVIRONMENT}
             variableName={variable.name}
             onMarkAsSecret={markAsSecret}
           />
