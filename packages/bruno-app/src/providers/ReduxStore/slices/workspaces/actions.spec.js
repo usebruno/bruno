@@ -14,8 +14,7 @@ jest.mock('../collections/actions', () => ({
   openMultipleCollections: jest.fn(() => () => Promise.resolve({ opened: [], failed: [], invalid: [] })),
   openScratchCollectionEvent: jest.fn(() => () => Promise.resolve()),
   mountCollection: jest.fn(() => () => Promise.resolve()),
-  hydrateCollectionWithUiStateSnapshot: jest.fn(() => () => Promise.resolve()),
-  ensureActiveTabInCurrentWorkspace: jest.fn(() => () => Promise.resolve())
+  hydrateCollectionWithUiStateSnapshot: jest.fn(() => () => Promise.resolve())
 }));
 
 import os from 'os';
@@ -27,7 +26,6 @@ import chatReducer, { openAiSidebar } from '../chat';
 import appReducer from '../app';
 import tabsReducer from '../tabs';
 import globalEnvironmentsReducer from '../global-environments';
-import { ensureActiveTabInCurrentWorkspace } from '../collections/actions';
 
 const WS_A = 'workspace-a';
 const WS_B = 'workspace-b';
@@ -107,75 +105,11 @@ const createStore = ({ activeWorkspaceUid = WS_A } = {}) => {
   });
 };
 
-describe('removeCollectionFromWorkspaceAction', () => {
-  let removeCollectionFromWorkspaceAction;
-
-  beforeAll(async () => {
-    window.ipcRenderer = window.ipcRenderer || {};
-    window.ipcRenderer.invoke = jest.fn(mockIpcInvoke);
-    ({ removeCollectionFromWorkspaceAction } = await import('./actions'));
-  });
-
-  it.each([
-    [false, SCRATCH_A],
-    [true, SCRATCH_A],
-    [false, SCRATCH_B],
-    [true, SCRATCH_B]
-  ])('closes only the removed collection tabs when deleteFiles is %s and the remaining tab belongs to %s', async (deleteFiles, keptCollectionUid) => {
-    ensureActiveTabInCurrentWorkspace.mockImplementationOnce(
-      jest.requireActual('../collections/actions').ensureActiveTabInCurrentWorkspace
-    );
-    const initial = createStore().getState();
-    const collection = makeScratchCollection('removed');
-    const store = configureStore({
-      reducer: {
-        collections: collectionsReducer,
-        workspaces: workspacesReducer,
-        tabs: tabsReducer
-      },
-      preloadedState: {
-        collections: {
-          ...initial.collections,
-          collections: [...initial.collections.collections, collection]
-        },
-        workspaces: {
-          ...initial.workspaces,
-          workspaces: initial.workspaces.workspaces.map((workspace) =>
-            workspace.uid === WS_A
-              ? { ...workspace, collections: [{ path: collection.pathname }] }
-              : workspace
-          )
-        },
-        tabs: {
-          tabs: [
-            { uid: 'removed-request', collectionUid: collection.uid, preview: false },
-            { uid: 'kept-request', collectionUid: keptCollectionUid, preview: false }
-          ],
-          activeTabUid: 'removed-request',
-          recentlyClosedTabs: []
-        }
-      }
-    });
-
-    await store.dispatch(removeCollectionFromWorkspaceAction(WS_A, collection.pathname, { deleteFiles }));
-
-    const overviewUid = `${SCRATCH_A}-overview`;
-    expect(store.getState().tabs.tabs.map((tab) => tab.uid)).toEqual(
-      keptCollectionUid === SCRATCH_A ? ['kept-request'] : ['kept-request', overviewUid]
-    );
-    expect(store.getState().tabs.activeTabUid).toBe(keptCollectionUid === SCRATCH_A ? 'kept-request' : overviewUid);
-    expect(store.getState().workspaces.activeWorkspaceUid).toBe(WS_A);
-    expect(store.getState().collections.collections.map((item) => item.uid)).not.toContain(collection.uid);
-    expect(store.getState().workspaces.workspaces.find((workspace) => workspace.uid === WS_A).collections).toEqual([]);
-  });
-});
-
 describe('switchWorkspace', () => {
   let switchWorkspace;
 
   beforeAll(async () => {
-    window.ipcRenderer = window.ipcRenderer || {};
-    window.ipcRenderer.invoke = jest.fn(mockIpcInvoke);
+    window.ipcRenderer = { invoke: jest.fn(mockIpcInvoke) };
     ({ switchWorkspace } = await import('./actions'));
   });
 

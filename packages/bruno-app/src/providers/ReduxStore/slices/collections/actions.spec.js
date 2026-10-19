@@ -1,4 +1,6 @@
 import { closeTabs, newHttpRequest, removeCollection, revealItemInSidebar, revealTabInSidebar, tryResponseExample } from './actions';
+import os from 'os';
+import path from 'path';
 import { configureStore } from '@reduxjs/toolkit';
 import React, { Component } from 'react';
 import { act, cleanup, render, screen } from '@testing-library/react';
@@ -51,7 +53,7 @@ describe('collection actions', () => {
     const store = configureStore({
       reducer: {
         tabs: tabsReducer,
-        collections: (state = { collections: [{ uid: 'closing', pathname: '/closing' }] }) => state,
+        collections: (state = { collections: [{ uid: 'closing', pathname: path.join(os.tmpdir(), 'closing') }] }) => state,
         workspaces: (state = { workspaces: [] }) => state
       },
       preloadedState: {
