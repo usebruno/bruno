@@ -879,6 +879,54 @@ describe('Send Request Translation', () => {
         });
       `);
     });
+
+    it('resolves each of two sibling-block configs sharing a name', () => {
+      const code = `
+        if (useJson) {
+            const requestConfig = {
+                url: 'https://echo.usebruno.com',
+                method: 'POST',
+                header: {
+                    'Content-Type': 'application/json',
+                }
+            };
+            pm.sendRequest(requestConfig);
+        }
+        if (useText) {
+            const requestConfig = {
+                url: 'https://echo.usebruno.com',
+                method: 'POST',
+                header: {
+                    'Content-Type': 'text/plain',
+                }
+            };
+            pm.sendRequest(requestConfig);
+        }
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        if (useJson) {
+            const requestConfig = {
+                url: 'https://echo.usebruno.com',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            };
+            await bru.sendRequest(requestConfig);
+        }
+        if (useText) {
+            const requestConfig = {
+                url: 'https://echo.usebruno.com',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain',
+                }
+            };
+            await bru.sendRequest(requestConfig);
+        }
+      `);
+    });
   });
 
   describe('Promise chains', () => {

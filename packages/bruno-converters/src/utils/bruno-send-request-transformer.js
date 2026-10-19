@@ -1,6 +1,6 @@
 const j = require('jscodeshift');
-import { isFunctionExpression, resolveReferencedObject } from './ast-utils';
-import { BRUNO_REGISTRY } from './semantic';
+import { isFunctionExpression } from './ast-utils';
+import { BRUNO_REGISTRY, resolveReferencedObject } from './semantic';
 
 // Which parameter of the callback carries the response, so a missing one is filled in the right
 // place. Its members were already translated by `applySemanticTypes`.
@@ -269,7 +269,7 @@ const bruSendRequestTransformer = (path) => {
   } else if (requestOptions.type === 'Identifier') {
     // Resolve from the argument itself, so the reference's own scope decides the declaration
     const root = j(path).closest(j.Program);
-    const referencedConfig = resolveReferencedObject(root, path.get('arguments', 0), requestOptions.name);
+    const referencedConfig = resolveReferencedObject(j, root, path.get('arguments', 0), requestOptions.name);
 
     if (referencedConfig) {
       // Content-Type is read before the headers are renamed, since the rename is to `header`

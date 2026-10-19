@@ -121,58 +121,15 @@ export function getStaticPropertyName(memberExpr) {
 }
 
 /**
- * The declarator an identifier reference resolves to, or null when it cannot be attributed to
- * exactly one.
+ * Whether a member expression is the callee of a call — `res.json()` rather than `res.json`.
  *
- * ast-types models function scope rather than block scope, so two declarations of one name in
- * nested blocks of the same function are indistinguishable — the same reason `collectBindings`
- * drops a name declared more than once in a scope.
- *
- * @param {Object} root - Collection of the enclosing Program
- * @param {Object} referencePath - Path of the reference to resolve
- * @param {string} name - Name being referenced
- * @returns {Object|null} - Path of the declarator
+ * @param {Object} memberPath - Path of the MemberExpression
+ * @returns {boolean}
  */
-function findBindingDeclarator(root, referencePath, name) {
-  const scope = referencePath.scope && referencePath.scope.lookup(name);
-  if (!scope) return null;
+export function isMethodCall(memberPath) {
+  const parent = memberPath.parent;
 
-  const declarators = root
-    .find(j.VariableDeclarator, { id: { name } })
-    .paths()
-    .filter((declaratorPath) => declaratorPath.scope.node === scope.node);
-
-  return declarators.length === 1 ? declarators[0] : null;
-}
-
-/**
- * The object literal an identifier reference resolves to, following a chain of aliases.
- *
- * Only the declaration the reference actually resolves to is reached: an unrelated object
- * sharing the name is left alone, and a shadowed outer declaration is not reached.
- *
- * @param {Object} root - Collection of the enclosing Program
- * @param {Object} referencePath - Path of the reference to resolve
- * @param {string} name - Name being referenced
- * @param {Set} visited - Declarators already followed, to stop a circular chain
- * @returns {Object|null} - The ObjectExpression node, or null if the reference does not reach one
- */
-export function resolveReferencedObject(root, referencePath, name, visited = new Set()) {
-  const declaratorPath = findBindingDeclarator(root, referencePath, name);
-  if (!declaratorPath || visited.has(declaratorPath.value)) return null;
-  visited.add(declaratorPath.value);
-
-  const init = declaratorPath.value.init;
-  if (!init) return null;
-
-  if (init.type === 'ObjectExpression') return init;
-
-  // the variable references another variable — follow the chain from its own declaration
-  if (init.type === 'Identifier') {
-    return resolveReferencedObject(root, declaratorPath.get('init'), init.name, visited);
-  }
-
-  return null;
+  return parent.value.type === 'CallExpression' && parent.value.callee === memberPath.value;
 }
 
 /**

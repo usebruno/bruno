@@ -87,24 +87,6 @@ describe('Typed bindings', () => {
       expect(translateCode(code)).toContain('console.log(r.code);');
     });
 
-    /**
-     * ast-types models function scope, not block scope, so both declarations of `r` resolve
-     * to the Program scope and references can't be attributed to either.
-     */
-    it('should leave a name re-declared in a nested block alone', () => {
-      const code = `
-        const r = await pm.sendRequest(req);
-        console.log(r.code);
-        if (retry) {
-          const r = cached;
-          console.log(r.code);
-        }
-      `;
-      const translatedCode = translateCode(code);
-      expect(translatedCode).not.toContain('r.status');
-      expect(translatedCode.match(/r\.code/g)).toHaveLength(2);
-    });
-
     it('should rewrite the binding but not a function parameter shadowing its name', () => {
       const code = `
         const r = await pm.sendRequest(req);
@@ -280,6 +262,71 @@ describe('Typed bindings', () => {
         console.log(r?.code);
       `;
       expect(translateCode(code)).toContain('console.log(r?.status);');
+    });
+  });
+
+  describe('block scope', () => {
+    it('types both of two sibling blocks declaring the same name', () => {
+      const code = [
+        'if (x) { const r = await pm.sendRequest(q); console.log(r.code); }',
+        'if (y) { const r = await pm.sendRequest(q2); console.log(r.code); }'
+      ].join('\n');
+
+      expect(translateCode(code)).toBe([
+        'if (x) { const r = await bru.sendRequest(q); console.log(r.status); }',
+        'if (y) { const r = await bru.sendRequest(q2); console.log(r.status); }'
+      ].join('\n'));
+    });
+
+    it('resolves a shadowed name to the declaration each reference sits in', () => {
+      const code = [
+        'const r = await pm.sendRequest(req);',
+        'console.log(r.code);',
+        'if (retry) {',
+        '  const r = cached;',
+        '  console.log(r.code);',
+        '}'
+      ].join('\n');
+
+      // the outer reference is the response; the inner one is `cached` and stays as written
+      expect(translateCode(code)).toBe([
+        'const r = await bru.sendRequest(req);',
+        'console.log(r.status);',
+        'if (retry) {',
+        '  const r = cached;',
+        '  console.log(r.code);',
+        '}'
+      ].join('\n'));
+    });
+
+    it('types a binding a nested block shadows only outside that block', () => {
+      const code = [
+        'const r = other;',
+        'if (x) { const r = await pm.sendRequest(q); console.log(r.code); }'
+      ].join('\n');
+
+      expect(translateCode(code)).toContain('console.log(r.status)');
+    });
+
+    it('drops a var redeclared in the same function', () => {
+      const code = ['var r = await pm.sendRequest(q);', 'var r = other;', 'console.log(r.code);'].join('\n');
+
+      expect(translateCode(code)).toContain('console.log(r.code)');
+    });
+
+    it('reaches a reference nested inside the declaring block', () => {
+      const code = ['const r = await pm.sendRequest(q);', 'if (x) { console.log(r.code); }'].join('\n');
+
+      expect(translateCode(code)).toContain('console.log(r.status)');
+    });
+  });
+
+  describe('a call whose counterpart is a property', () => {
+    it('leaves it alone when it carries arguments', () => {
+      const code = ['const r = await pm.sendRequest(q);', 'r.json(reviver);'].join('\n');
+
+      expect(translateCode(code)).toContain('r.json(reviver)');
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('cannot take arguments'));
     });
   });
 });

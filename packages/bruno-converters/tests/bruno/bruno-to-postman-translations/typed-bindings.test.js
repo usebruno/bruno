@@ -51,18 +51,25 @@ describe('Typed bindings (Bruno -> Postman)', () => {
       expect(translateBruToPostman(code)).toContain('console.log(r.status);');
     });
 
-    it('should leave a name re-declared in a nested block alone', () => {
-      const code = `
-        const r = await bru.sendRequest(req);
-        console.log(r.status);
-        if (retry) {
-          const r = cached;
-          console.log(r.status);
-        }
-      `;
-      const translatedCode = translateBruToPostman(code);
-      expect(translatedCode).not.toContain('r.code');
-      expect(translatedCode.match(/r\.status/g)).toHaveLength(2);
+    it('should resolve a shadowed name to the declaration each reference sits in', () => {
+      const code = [
+        'const r = await bru.sendRequest(req);',
+        'console.log(r.status);',
+        'if (retry) {',
+        '  const r = cached;',
+        '  console.log(r.status);',
+        '}'
+      ].join('\n');
+
+      // the outer reference is the response; the inner one is `cached` and stays as written
+      expect(translateBruToPostman(code)).toBe([
+        'const r = await pm.sendRequest(req);',
+        'console.log(r.code);',
+        'if (retry) {',
+        '  const r = cached;',
+        '  console.log(r.status);',
+        '}'
+      ].join('\n'));
     });
   });
 

@@ -1,5 +1,5 @@
-import { getStaticPropertyName, isFunctionExpression, reportUntranslated } from '../ast-utils';
-import { getExpressionType } from './type-environment';
+import { isFunctionExpression, isMethodCall, reportUntranslated } from '../ast-utils';
+import { collectMemberTargets } from './type-environment';
 import { getPromiseChainLinks } from './promise-chain';
 
 /**
@@ -27,36 +27,20 @@ import { getPromiseChainLinks } from './promise-chain';
  * @param {Object} registry - The API registry
  */
 const rewriteYields = (j, root, bindings, registry) => {
-  const targets = root
-    .find(j.MemberExpression)
-    .paths()
-    .map((path) => {
-      const receiverType = getExpressionType(path.get('object'), bindings, registry);
-      if (!receiverType) return null;
+  const targets = collectMemberTargets(j, root, bindings, registry)
+    // a yielded *type* is handled by binding collection, not by adapting the value here
+    .filter(({ spec }) => spec.yields && (spec.yields.project || spec.yields.differs));
 
-      const members = registry.types[receiverType];
-      const propertyName = getStaticPropertyName(path.value);
-      const spec = propertyName && members && members[propertyName];
-      const yields = spec && spec.yields;
-
-      // a yielded *type* is handled by binding collection, not by adapting the value here
-      const adapts = yields && (yields.project || yields.differs);
-
-      return adapts ? { path, propertyName, yields } : null;
-    })
-    .filter(Boolean);
-
-  targets.forEach(({ path: memberPath, propertyName, yields }) => {
+  targets.forEach(({ path: memberPath, propertyName, spec: { yields } }) => {
     // a projection that cannot be placed still has to say what the source expected
     const reason = yields.differs
       || `only '${yields.project}' of this value was expected, and there is nowhere to take it`;
     const report = (node) => reportUntranslated(node, propertyName, reason);
 
     const parent = memberPath.parent;
-    const isMethodCall = parent.value.type === 'CallExpression' && parent.value.callee === memberPath.value;
 
     // a property carries its value directly, leaving nowhere to hang a coercion
-    if (!isMethodCall) {
+    if (!isMethodCall(memberPath)) {
       report(memberPath.value);
       return;
     }

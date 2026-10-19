@@ -1,5 +1,5 @@
-import { getStaticPropertyName, isFunctionExpression, resolveReferencedObject } from './ast-utils';
-import { PROMISE_CHAIN_METHODS, getPromiseChainLinks, resolvesToBinding } from './semantic';
+import { getStaticPropertyName, isFunctionExpression } from './ast-utils';
+import { PROMISE_CHAIN_METHODS, getPromiseChainLinks, resolveReferencedObject, resolvesToBinding } from './semantic';
 
 /**
  * Convert Postman header array format to Bruno headers object
@@ -241,7 +241,7 @@ const sendRequestTransformer = (path, j) => {
   } else if (requestOptions.type === 'Identifier') {
     // Resolve from the argument itself, so the reference's own scope decides the declaration
     const root = j(path).closest(j.Program);
-    const referencedConfig = resolveReferencedObject(root, callPath.get('arguments', 0), requestOptions.name);
+    const referencedConfig = resolveReferencedObject(j, root, callPath.get('arguments', 0), requestOptions.name);
 
     if (referencedConfig) {
       transformHeaders(j, referencedConfig);

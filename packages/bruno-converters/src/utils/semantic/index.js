@@ -1,6 +1,6 @@
 import CORRESPONDENCE from './correspondence';
 import derive from './derive';
-import { collectBindings, resolvesToBinding } from './type-environment';
+import { collectBindings, resolveReferencedObject, resolvesToBinding } from './type-environment';
 import rewriteMembers from './rewrite-members';
 import rewriteYields from './rewrite-yields';
 import { rewriteDestructuredDeclarations } from './rewrite-patterns';
@@ -58,6 +58,7 @@ export const applySemanticTypes = (j, ast, registry) => {
 };
 
 export {
+  resolveReferencedObject,
   resolvesToBinding,
   PROMISE_CHAIN_METHODS,
   getPromiseChainLinks
