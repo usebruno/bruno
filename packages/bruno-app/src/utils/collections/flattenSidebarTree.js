@@ -4,7 +4,8 @@ import { sortByNameThenSequence } from 'utils/common/index';
 import {
   doesRequestMatchSearchText,
   doesFolderHaveItemsMatchSearchText,
-  doesCollectionHaveItemsMatchingSearchText
+  doesCollectionHaveItemsMatchingSearchText,
+  doesCollectionNameMatchSearchText
 } from './search';
 
 const groupCollectionItems = (collectionItems) => {
@@ -48,6 +49,7 @@ const walkChildren = (
     collectionId,
     hasSearch,
     searchText,
+    searchWholeCollection,
     collapsedUids,
     appendRow,
     addItemToIndex
@@ -63,7 +65,7 @@ const walkChildren = (
   const { folders, apps, requests } = groupCollectionItems(collectionItems);
 
   for (const folder of folders) {
-    if (hasSearch && !doesFolderHaveItemsMatchSearchText(folder, searchText)) {
+    if (hasSearch && !searchWholeCollection && !doesFolderHaveItemsMatchSearchText(folder, searchText)) {
       continue;
     }
 
@@ -131,7 +133,7 @@ const walkChildren = (
   }
 
   for (const request of requests) {
-    if (hasSearch && !doesRequestMatchSearchText(request, searchText)) {
+    if (hasSearch && !searchWholeCollection && !doesRequestMatchSearchText(request, searchText)) {
       continue;
     }
 
@@ -217,12 +219,15 @@ const flattenCollection = ({
 
   if (!isExpanded) return;
 
+  const searchWholeCollection = hasSearch && doesCollectionNameMatchSearchText(collection, searchText);
+
   const collectionContext = {
     collectionUid: collection.uid,
     collectionPathname: collection.pathname || null,
     collectionId,
     hasSearch,
     searchText,
+    searchWholeCollection,
     collapsedUids,
     appendRow,
     addItemToIndex

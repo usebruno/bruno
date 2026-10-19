@@ -47,6 +47,16 @@ describe('whether a folder contains a matching request', () => {
 });
 
 describe('whether a collection contains a matching request', () => {
+  it('matches when the collection name matches even if no request names do', () => {
+    const collection = {
+      name: 'Payments-edge',
+      items: [createRequest('health'), createRequest('status')]
+    };
+
+    expect(doesCollectionHaveItemsMatchingSearchText(collection, '-edge')).toBeTruthy();
+    expect(doesCollectionHaveItemsMatchingSearchText(collection, 'payments')).toBeTruthy();
+  });
+
   it('matches requests anywhere in the collection tree', () => {
     const collection = {
       items: [

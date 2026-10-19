@@ -54,6 +54,12 @@ describe('flattenSidebarTree', () => {
       expect(r).toEqual(expect.arrayContaining(['login', 'logout']));
       expect(r).not.toContain('health');
     });
+    it('shows every request when the collection name matches', () => {
+      const byName = collection('Payments-edge', [request('health'), request('status')]);
+      const nameSearch = flatten([loaded(byName)], { searchText: '-edge' });
+      expect(names(nameSearch.filter((x) => x.kind === 'collection'))).toEqual(['Payments-edge']);
+      expect(names(nameSearch.filter((x) => x.kind === 'request'))).toEqual(['health', 'status']);
+    });
     it('drops a collection with no matching request', () => {
       expect(flatten([loaded(collection('C', [request('health')]))], { searchText: 'zzz' })).toHaveLength(0);
     });
