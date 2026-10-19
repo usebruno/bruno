@@ -39,7 +39,10 @@ export function buildHttp2Headers({ method, url, headers = {} }: BuildH2HeadersP
     const name = rawName.toLowerCase();
 
     if (name.startsWith(':')) {
-      throw new Error(`HTTP/2 pseudo-header "${rawName}" cannot be set directly; it is derived from the request URL and method`);
+      // Pseudo-headers are derived from the method and URL below; a caller/script cannot override
+      // them. Silently drop any ":"-prefixed header instead of failing the whole request (Node's
+      // session.request() would throw on an unexpected pseudo-header).
+      continue;
     }
     if (CONNECTION_SPECIFIC_HEADERS.has(name)) continue;
 

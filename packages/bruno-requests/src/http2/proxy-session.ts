@@ -3,7 +3,7 @@ import { SocksProxyAgent } from 'socks-proxy-agent';
 import type { ClientHttp2Session } from 'node:http2';
 import type { LookupFunction } from 'node:net';
 import { pickTlsFields, wrapLookup, withSocketGuard } from './tls-options';
-import { H2_IDLE_TIMEOUT_MS } from './session';
+import { H2_IDLE_TIMEOUT_MS, acquireFreshH2Session } from './session';
 import type { ProxyInfo } from './proxy-info';
 
 type ProxyStreamResult = [stream: unknown, statusCode: number, statusMessage: string];
@@ -83,7 +83,7 @@ export function acquireH2SessionViaProxy(params: AcquireH2SessionViaProxyParams)
   if (proxyInfo.kind === 'socks' && lookup) {
     (agent as unknown as SocksInternals).socksLookup = lookup;
   }
-  return agent.getSession(origin, {
+  return acquireFreshH2Session(agent as unknown as Parameters<typeof acquireFreshH2Session>[0], origin, {
     ...pickTlsFields(tlsOptions),
     ...(lookup ? { lookup: wrapLookup(lookup) } : {})
   });

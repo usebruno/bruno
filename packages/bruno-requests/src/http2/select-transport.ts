@@ -2,6 +2,8 @@
  * Select the HTTP version for a request and configure the HTTP/2 transport.
  */
 
+import { isIP } from 'node:net';
+import { checkServerIdentity as tlsCheckServerIdentity } from 'node:tls';
 import type { LookupFunction } from 'node:net';
 import {
   resolveHttpVersion,
@@ -40,6 +42,21 @@ export async function applyHttp2Transport(params: ApplyHttp2TransportParams): Pr
   const origin = `${parsed.protocol}//${parsed.hostname}:${port}`;
   const lookup = config.lookup;
 
+  // URL.hostname keeps the brackets for an IPv6 literal ("[::1]"), which net.isIP rejects, so Node's
+  // default TLS identity check treats it as a DNS name and misses the cert's IP SAN. Strip the brackets
+  // before the identity check. We can't just override `servername` (http2-wrapper couples origin and
+  // servername, which then throws "Origin [::1] differs from servername ::1").
+  const bareHost = parsed.hostname.replace(/^\[|\]$/g, '');
+  const isIpv6Literal = parsed.hostname !== bareHost && isIP(bareHost) === 6;
+  const sessionTlsOptions
+    = isIpv6Literal && !(tlsOptions && (tlsOptions as Record<string, unknown>).checkServerIdentity)
+      ? {
+          ...(tlsOptions || {}),
+          checkServerIdentity: (host: string, cert: Parameters<typeof tlsCheckServerIdentity>[1]) =>
+            tlsCheckServerIdentity(host.replace(/^\[|\]$/g, ''), cert)
+        }
+      : tlsOptions;
+
   // Try HTTP/2 through the proxy instead of probing the target directly.
   if (proxyInfo) {
     // Cleartext HTTP/2 through a proxy is not supported.
@@ -54,7 +71,7 @@ export async function applyHttp2Transport(params: ApplyHttp2TransportParams): Pr
     }
 
     try {
-      const session = await acquireH2SessionViaProxy({ origin, proxyInfo, tlsOptions, lookup });
+      const session = await acquireH2SessionViaProxy({ origin, proxyInfo, tlsOptions: sessionTlsOptions, lookup });
       config.transport = createHttp2Transport({ session });
       log('info', `HTTP/2 selected via ${proxyInfo.kind} proxy`);
     } catch (err) {
@@ -72,7 +89,7 @@ export async function applyHttp2Transport(params: ApplyHttp2TransportParams): Pr
   }
 
   // Direct connections use ALPN to select the protocol in auto mode.
-  const resolved = await resolveHttpVersion({ url: config.url, httpVersionPreference, tlsOptions, lookup });
+  const resolved = await resolveHttpVersion({ url: config.url, httpVersionPreference, tlsOptions: sessionTlsOptions, lookup });
 
   if (resolved.offered && resolved.offered.length > 0) {
     log('tls', `ALPN: offered ${resolved.offered.join(', ')} · server selected ${resolved.alpn || 'none'}${resolved.cached ? ' (cached)' : ''}`);
@@ -84,7 +101,7 @@ export async function applyHttp2Transport(params: ApplyHttp2TransportParams): Pr
   }
 
   try {
-    const session = await acquireH2Session({ origin, tlsOptions, lookup });
+    const session = await acquireH2Session({ origin, tlsOptions: sessionTlsOptions, lookup });
     config.transport = createHttp2Transport({ session });
     log('info', `HTTP/2 selected (${resolved.reason})`);
   } catch (err) {

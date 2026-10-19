@@ -12,6 +12,7 @@ export type TlsOptions = Pick<
   | 'passphrase'
   | 'rejectUnauthorized'
   | 'servername'
+  | 'checkServerIdentity'
   | 'minVersion'
   | 'maxVersion'
   | 'ciphers'
@@ -26,6 +27,7 @@ export const TLS_FIELDS = [
   'passphrase',
   'rejectUnauthorized',
   'servername',
+  'checkServerIdentity',
   'minVersion',
   'maxVersion',
   'ciphers',
