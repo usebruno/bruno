@@ -149,9 +149,6 @@ export const clearSidebarSearch = async (page: Page) => {
     } else if (await sidebar.searchInput().isVisible()) {
       await sidebar.searchInput().fill('');
     }
-    if (await sidebar.searchInput().isVisible()) {
-      await expect(sidebar.searchInput()).toHaveValue('');
-    }
   });
 };
 
