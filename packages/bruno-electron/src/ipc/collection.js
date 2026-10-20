@@ -2406,7 +2406,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         || (filesCount > MAX_COLLECTION_FILES_COUNT)
         || (maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
 
-    watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync, { workspacePathname: workspacePathname || null });
+    const { resolveDenylist, walk, defaultClassify } = require('../utils/mount');
+    const requestCount = walk(collectionPathname, resolveDenylist(brunoConfig?.ignore || []))
+      .filter((file) => defaultClassify(file.relativePath)?.type === 'request').length;
+
+    watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync, {
+      workspacePathname: workspacePathname || null,
+      requestCount
+    });
 
     // Add watcher for transient directory
     watcher.addTempDirectoryWatcher(mainWindow, tempDirectoryPath, collectionUid, collectionPathname);

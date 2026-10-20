@@ -163,13 +163,16 @@ export const getItemsLoadStats = (folder) => {
   let loadingCount = 0;
   let flattenedItems = flattenItems(folder.items);
   flattenedItems?.forEach((i) => {
-    if (i?.loading) {
+    if (i?.loading || i?.partial) {
       loadingCount += 1;
     }
   });
+  const discovered = flattenedItems?.length ?? 0;
+  const expected = folder?.expectedRequestCount;
+  const total = expected != null ? Math.max(expected, discovered) : discovered;
   return {
-    loading: loadingCount,
-    total: flattenedItems?.length
+    loading: loadingCount + Math.max(0, total - discovered),
+    total
   };
 };
 

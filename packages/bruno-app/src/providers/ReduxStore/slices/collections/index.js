@@ -306,6 +306,12 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (collection) {
         collection.isLoading = action.payload.isLoading;
+        if (action.payload.requestCount != null) {
+          collection.expectedRequestCount = action.payload.requestCount;
+        }
+        if (!action.payload.isLoading) {
+          delete collection.expectedRequestCount;
+        }
       }
     },
     setCollectionSecurityConfig: (state, action) => {

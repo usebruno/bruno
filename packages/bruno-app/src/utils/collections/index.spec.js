@@ -17,7 +17,8 @@ import {
   getCollectionVersion,
   isCollectionItemCollapsed,
   getVariableNamesWithScope,
-  getWorkspaceCollections
+  getWorkspaceCollections,
+  getItemsLoadStats
 } from './index';
 import * as platformUtils from 'utils/common/platform';
 
@@ -150,6 +151,15 @@ describe('getCollectionItemCounts', () => {
   it('returns zero counts for empty or missing items', () => {
     expect(getCollectionItemCounts([])).toEqual({ folderCount: 0, requestCount: 0 });
     expect(getCollectionItemCounts(undefined)).toEqual({ folderCount: 0, requestCount: 0 });
+  });
+});
+
+describe('getItemsLoadStats', () => {
+  it('uses the upfront request total so progress is not discovered/discovered', () => {
+    expect(getItemsLoadStats({
+      expectedRequestCount: 8000,
+      items: [{ loading: false }, { loading: false }]
+    })).toEqual({ loading: 7998, total: 8000 });
   });
 });
 
