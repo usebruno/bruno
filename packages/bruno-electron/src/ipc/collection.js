@@ -2398,17 +2398,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     const {
       size,
       filesCount,
-      maxFileSize
-    } = await getCollectionStats(collectionPathname);
+      maxFileSize,
+      requestCount
+    } = await getCollectionStats(collectionPathname, brunoConfig?.ignore);
 
     const shouldLoadCollectionAsync
       = (size > MAX_COLLECTION_SIZE_IN_MB)
         || (filesCount > MAX_COLLECTION_FILES_COUNT)
         || (maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
-
-    const { resolveDenylist, walk, defaultClassify } = require('../utils/mount');
-    const requestCount = walk(collectionPathname, resolveDenylist(brunoConfig?.ignore || []))
-      .filter((file) => defaultClassify(file.relativePath)?.type === 'request').length;
 
     watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync, {
       workspacePathname: workspacePathname || null,
