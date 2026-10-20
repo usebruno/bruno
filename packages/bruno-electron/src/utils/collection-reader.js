@@ -2,7 +2,6 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { walk, defaultClassify, resolveDenylist } = require('./mount');
 const { parseRequest, parseEnvironment, parseCollection } = require('@usebruno/filestore');
-const { dotenvToJson } = require('@usebruno/lang');
 
 const resolveConfigFile = (collectionPath) => {
   if (fs.existsSync(path.join(collectionPath, 'opencollection.yml'))) return 'opencollection.yml';
@@ -36,7 +35,6 @@ const readCollectionForApiSpec = async (collectionPath) => {
   const envVariables = {};
   const collectionVariables = {};
   const skipped = [];
-  let processEnvVariables;
 
   const markSkipped = (relativePath) => {
     if (!skipped.includes(relativePath)) {
@@ -59,15 +57,6 @@ const readCollectionForApiSpec = async (collectionPath) => {
 
   for (const { relativePath, absolutePath } of walk(collectionPath, resolveDenylist(brunoConfig?.ignore))) {
     const basename = path.basename(relativePath);
-
-    if (basename === '.env' && path.dirname(relativePath) === '.') {
-      try {
-        processEnvVariables = dotenvToJson(fs.readFileSync(absolutePath, 'utf8'));
-      } catch (err) {
-        console.error(err);
-      }
-      continue;
-    }
 
     const classification = defaultClassify(relativePath);
     if (!classification) continue;
@@ -109,7 +98,6 @@ const readCollectionForApiSpec = async (collectionPath) => {
     configFile,
     requests,
     envVariables,
-    processEnvVariables,
     collectionVariables,
     skipped
   };
