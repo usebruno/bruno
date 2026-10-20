@@ -13,7 +13,8 @@ describe('parseAndValidateApiSpec', () => {
   });
 
   it('rejects content that is not valid YAML or JSON', () => {
-    expect(() => parseAndValidateApiSpec('openapi: 3.0.0\ninfo:\n  title: x\n   version: : :\npaths: [')).toThrow('not valid YAML or JSON');
+    expect(() => parseAndValidateApiSpec('openapi: 3.0.0\ninfo:\n  title: x\n   version: : :\npaths: ['))
+      .toThrow(/^API spec is not valid YAML or JSON: bad indentation of a mapping entry \(line 4, column \d+\)\.$/);
   });
 
   it.each([

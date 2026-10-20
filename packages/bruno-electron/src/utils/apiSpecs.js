@@ -33,7 +33,8 @@ const parseAndValidateApiSpec = (content) => {
   try {
     spec = yaml.load(content);
   } catch (err) {
-    throw new Error(`API spec is not valid YAML or JSON: ${err.message}`);
+    const detail = err.mark ? `${err.reason} (line ${err.mark.line + 1}, column ${err.mark.column + 1}).` : err.message;
+    throw new Error(`API spec is not valid YAML or JSON: ${detail}`);
   }
 
   const version = isPlainObject(spec) ? spec.openapi || spec.swagger : null;
