@@ -6,37 +6,15 @@
  * the result per origin + TLS identity.
  */
 import tls from 'node:tls';
-import crypto from 'node:crypto';
 import type { LookupFunction } from 'node:net';
 import { buildTlsConnectOptions, type HttpVersionMode } from './tls-connect-options';
+import { buildConnectionKey } from './cache-key';
 
 const DEFAULT_TTL_MS = 10 * 60 * 1000;
 const PROBE_TIMEOUT_MS = 10 * 1000;
 
 type CacheEntry = { acceptedAlpnProtocol: string | null; expiresAt: number };
 const alpnCache = new Map<string, CacheEntry>();
-
-const hash = (value: unknown): string => {
-  if (value === undefined || value === null) return '';
-  const list = Array.isArray(value) ? value : [value];
-  const h = crypto.createHash('sha256');
-  for (const v of list) h.update(Buffer.isBuffer(v) ? v : String(v));
-  return h.digest('hex').slice(0, 16);
-};
-
-/**
- * Cache key = origin + TLS identity + proxy.
- */
-const cacheKey = (origin: string, tlsOptions: Record<string, unknown> = {}, proxyUri?: string | null): string =>
-  [
-    origin,
-    hash(tlsOptions.ca),
-    hash(tlsOptions.cert),
-    hash(tlsOptions.key),
-    hash(tlsOptions.pfx),
-    tlsOptions.rejectUnauthorized === false ? 'insecure' : 'verify',
-    proxyUri || 'direct'
-  ].join('|');
 
 export type NegotiationResult = { acceptedAlpnProtocol: string | null; protocol?: string; error?: string };
 
@@ -100,7 +78,7 @@ export async function resolveHttpVersionViaAlpn(params: ResolveHttpVersionViaAlp
   // for auto, negotiate via ALPN, cached per origin + TLS identity.
   const port = Number(parsedUrl.port) || 443;
   const origin = `${parsedUrl.hostname}:${port}`;
-  const key = cacheKey(origin, tlsOptions || {}, proxyUri);
+  const key = buildConnectionKey(origin, tlsOptions || {}, proxyUri);
   const cached = alpnCache.get(key);
   if (cached && cached.expiresAt > Date.now()) {
     return {

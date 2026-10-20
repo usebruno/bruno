@@ -45,6 +45,8 @@ export {
   clearAlpnCache,
   buildHttp2RequestHeaders,
   parseHttp2ResponseHeaders,
-  sendHttp2Request
+  sendHttp2Request,
+  acquireSession,
+  closeAllSessions
 } from './utils/http2';
 export type { HttpVersionMode, Resolved } from './utils/http2';

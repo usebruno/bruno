@@ -6,3 +6,5 @@ export { buildHttp2RequestHeaders, parseHttp2ResponseHeaders } from './headers';
 export type { Http1Headers, Http2RequestHeaders } from './headers';
 export { sendHttp2Request } from './send-request';
 export type { Http2RequestOptions, Http2Response } from './send-request';
+export { acquireSession, closeAllSessions } from './session-pool';
+export type { AcquiredSession, AcquireSessionParams } from './session-pool';

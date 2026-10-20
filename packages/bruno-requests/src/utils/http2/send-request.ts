@@ -1,6 +1,5 @@
-import http2 from 'node:http2';
 import type { LookupFunction } from 'node:net';
-import { buildTlsConnectOptions } from './tls-connect-options';
+import { acquireSession } from './session-pool';
 import { buildHttp2RequestHeaders, parseHttp2ResponseHeaders, type Http1Headers } from './headers';
 
 export type Http2RequestOptions = {
@@ -10,6 +9,7 @@ export type Http2RequestOptions = {
   body?: string | Buffer | null;
   tlsOptions?: Record<string, unknown> | null;
   lookup?: LookupFunction;
+  proxyUri?: string | null;
   timeout?: number;
 };
 
@@ -20,84 +20,97 @@ export type Http2Response = {
   httpVersion: '2.0';
 };
 
-// send an http2 request using node's built-in http2 module. returns a promise that resolves with the response.
 export const sendHttp2Request = (options: Http2RequestOptions): Promise<Http2Response> => {
-  const { method, url, headers = {}, body, tlsOptions, lookup, timeout } = options;
+  const { method, url, headers = {}, body, tlsOptions, lookup, proxyUri, timeout } = options;
 
-  const parsedUrl = new URL(url);
-  const port = Number(parsedUrl.port) || 443;
-  const authority = `${parsedUrl.protocol}//${parsedUrl.host}`;
+  return new Promise((resolve, reject) => {
+    let acquiredSession;
+    try {
+      acquiredSession = acquireSession({ url, tlsOptions, lookup, proxyUri });
+    } catch (err) {
+      reject(err);
+      return;
+    }
 
-  return new Promise<Http2Response>((resolve, reject) => {
-    const connectOptions = buildTlsConnectOptions({
-      hostname: parsedUrl.hostname,
-      port,
-      tlsOptions,
-      mode: 'http2',
-      lookup
-    });
-
-    // create a new HTTP/2 session for the request.
-    const session = http2.connect(authority, connectOptions);
+    const { session, releaseStream } = acquiredSession;
+    const hasBody = body !== null && body !== undefined && body.length > 0;
 
     let settled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
     const cleanup = () => {
       clearTimeout(timer);
-      if (!session.closed && !session.destroyed) {
-        session.close();
-      }
+      releaseStream();
     };
-    const fail = (err: Error) => {
-      if (settled) {
-        return;
-      }
+
+    const rejectRequest = (error: Error) => {
+      if (settled) return;
       settled = true;
       cleanup();
-      reject(err);
+      reject(error);
     };
-    const succeed = (response: Http2Response) => {
-      if (settled) {
-        return;
-      }
+
+    const resolveRequest = (response: Http2Response) => {
+      if (settled) return;
       settled = true;
       cleanup();
       resolve(response);
     };
 
-    const timer = timeout
-      ? setTimeout(() => fail(new Error(`HTTP/2 request timed out after ${timeout} ms`)), timeout)
-      : undefined;
-
-    session.on('error', fail);
-    const hasBody = body != null && body.length > 0;
-
-    const stream = session.request(buildHttp2RequestHeaders(method, url, headers), { endStream: !hasBody });
-
-    if (hasBody) {
-      stream.end(body);
+    let stream;
+    try {
+      stream = session.request(
+        buildHttp2RequestHeaders(method, url, headers),
+        { endStream: !hasBody }
+      );
+    } catch (err) {
+      rejectRequest(err as Error);
+      return;
     }
 
     let status = 0;
     let responseHeaders: Record<string, string | string[]> = {};
+    const chunks: Buffer[] = [];
 
-    stream.on('response', (http2headers) => {
-      const parsedHeaders = parseHttp2ResponseHeaders(http2headers as Record<string, string | string[] | undefined>);
-      status = parsedHeaders.status;
-      responseHeaders = parsedHeaders.headers;
+    stream.on('response', (h2Headers) => {
+      const parsed = parseHttp2ResponseHeaders(
+        h2Headers as Record<string, string | string[] | undefined>
+      );
+
+      status = parsed.status;
+      responseHeaders = parsed.headers;
     });
 
-    const chunks: Buffer[] = [];
-    stream.on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)));
-    stream.on('end', () => succeed({ status, headers: responseHeaders, data: Buffer.concat(chunks), httpVersion: '2.0' }));
+    stream.on('data', (chunk: Buffer) => {
+      chunks.push(Buffer.from(chunk));
+    });
 
-    stream.on('error', fail);
+    stream.on('end', () => {
+      resolveRequest({
+        status,
+        headers: responseHeaders,
+        data: Buffer.concat(chunks),
+        httpVersion: '2.0'
+      });
+    });
+
+    stream.on('error', rejectRequest);
 
     stream.on('close', () => {
-      if (settled) {
-        return;
+      if (!settled) {
+        rejectRequest(new Error(`HTTP/2 stream closed before the response completed (rstCode ${stream.rstCode})`));
       }
-      fail(new Error(`HTTP/2 stream closed before the response completed (rstCode ${stream.rstCode})`));
     });
+
+    if (timeout) {
+      timer = setTimeout(() => {
+        rejectRequest(new Error(`HTTP/2 request timed out after ${timeout} ms`));
+        stream.close();
+      }, timeout);
+    }
+
+    if (hasBody) {
+      stream.end(body);
+    }
   });
 };

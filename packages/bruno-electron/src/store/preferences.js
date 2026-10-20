@@ -396,7 +396,17 @@ const savePreferences = async (newPreferences) => {
     preferencesSchema
       .validate(newPreferences, { abortEarly: true })
       .then((validatedPreferences) => {
+        const previousHttpVersion = get(getPreferences(), 'request.httpVersion', 'http1.1');
         preferencesStore.savePreferences(validatedPreferences);
+        const nextHttpVersion = get(validatedPreferences, 'request.httpVersion', 'http1.1');
+        if (previousHttpVersion !== nextHttpVersion) {
+          // Changing the HTTP version must not reuse sessions opened under the old setting.
+          try {
+            require('@usebruno/requests').closeAllSessions();
+          } catch (err) {
+            console.error('Failed to close HTTP/2 sessions on preference change:', err);
+          }
+        }
         resolve();
       })
       .catch((error) => {
