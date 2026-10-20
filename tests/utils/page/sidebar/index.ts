@@ -21,9 +21,9 @@ export const buildSidebarLocators = (page: Page) => {
     inlineCollectionCreator: {
       root: inlineCollectionCreatorRoot,
       nameInput: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-input'),
-      advancedButton: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-advanced'),
-      createButton: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-save'),
-      cancelButton: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-cancel')
+      advancedButton: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-advanced-btn'),
+      createButton: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-save-btn'),
+      cancelButton: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-cancel-btn')
     },
     collectionsContainer: () => page.getByTestId('collections'),
     collection: (name?: string) => name ? page.locator('#sidebar-collection-name').filter({ hasText: name }) : page.locator('#sidebar-collection-name'),
@@ -77,7 +77,7 @@ export const buildSidebarLocators = (page: Page) => {
     sidebarContainer: () => page.getByTestId('sidebar'),
     searchToggle: () => page.getByTestId('sidebar-search-toggle'),
     searchInput: () => page.getByTestId('sidebar-search-input'),
-    searchClear: () => page.getByTestId('sidebar-search-clear'),
+    searchClear: () => page.getByTestId('sidebar-search-clear-icon'),
 
     // Modals opened from a sidebar row's "..." menu.
     renameItemModal: {
@@ -126,7 +126,7 @@ export const searchSidebarRequests = async (page: Page, query: string) => {
     if (!(await sidebar.searchInput().isVisible())) {
       await sidebar.searchToggle().click();
     }
-    await expect(sidebar.searchInput()).toBeVisible();
+    await sidebar.searchInput().waitFor({ state: 'visible' });
     await sidebar.searchInput().fill(query);
   });
 };

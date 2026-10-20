@@ -6,6 +6,7 @@ import {
   selectfolderPaneTab
 } from '../page/actions';
 import { buildCommonLocators } from '../page/locators';
+import { buildQueryParamsLocators } from './params/query';
 
 export const buildRequestLocators = (page: Page) => ({
   urlInput: () => page.getByTestId('request-url').locator('.CodeMirror'),
@@ -53,11 +54,7 @@ export const buildRequestLocators = (page: Page) => ({
     defaultInfo: (name: string) => page.getByTestId(`default-header-info-${name.toLowerCase()}`),
     defaultInfoTooltip: (name: string) => page.getByTestId(`default-header-info-tooltip-${name.toLowerCase()}`)
   },
-  queryParams: {
-    rowByName: (name: string) => page.getByTestId('query-params-table').locator(`tbody tr[data-row-name="${name}"]`),
-    valueByName: (name: string) =>
-      page.getByTestId('query-params-table').locator(`tbody tr[data-row-name="${name}"]`).getByTestId('column-value')
-  }
+  queryParams: buildQueryParamsLocators(page)
 });
 
 // Request-type radios in the New Request dialog. `from-curl` is the odd one out —

@@ -58,11 +58,13 @@ test.describe('TC-365: Search requests in the sidebar', { tag: '@sanity' }, () =
     await test.step('Filter to requests whose name matches the keyword', async () => {
       await searchSidebarRequests(page, 'user');
 
+      // Requests, folders, and collections matching the search term are visible.
       await expect(locators.sidebar.itemByName(matchingRootRequest)).toBeVisible();
       await expect(locators.sidebar.itemByName(matchingFolderRequest)).toBeVisible();
       await expect(locators.sidebar.itemByName(accountsFolder)).toBeVisible();
       await expect(locators.sidebar.collectionExact(peopleCollection)).toBeVisible();
 
+      // Requests, folders, and collections not matching the search term are hidden.
       await expect(locators.sidebar.itemByName(otherRootRequest)).toBeHidden();
       await expect(locators.sidebar.itemByName(otherFolderRequest)).toBeHidden();
       await expect(locators.sidebar.itemByName(unrelatedRequest)).toBeHidden();
@@ -75,9 +77,12 @@ test.describe('TC-365: Search requests in the sidebar', { tag: '@sanity' }, () =
       await expandFolder(page, accountsFolder);
       await expandCollection(page, healthCollection);
 
+      // All requests, folders, and collections are visible again after clearing the search.
       await expect(locators.sidebar.itemByName(matchingRootRequest)).toBeVisible();
-      await expect(locators.sidebar.itemByName(otherRootRequest)).toBeVisible();
       await expect(locators.sidebar.itemByName(matchingFolderRequest)).toBeVisible();
+      await expect(locators.sidebar.itemByName(accountsFolder)).toBeVisible();
+      await expect(locators.sidebar.collectionExact(peopleCollection)).toBeVisible();
+      await expect(locators.sidebar.itemByName(otherRootRequest)).toBeVisible();
       await expect(locators.sidebar.itemByName(otherFolderRequest)).toBeVisible();
       await expect(locators.sidebar.itemByName(unrelatedRequest)).toBeVisible();
       await expect(locators.sidebar.collectionExact(healthCollection)).toBeVisible();
