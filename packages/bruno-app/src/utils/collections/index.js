@@ -161,8 +161,6 @@ export const areItemsLoading = (folder) => {
 
 export const getItemsLoadStats = (folder) => {
   let loadingCount = 0;
-  // Parse-error rows are typed as requests but may lack a `request` property, so
-  // isItemARequest would drop them from the Requests-row progress counts.
   const flattenedItems = flattenItems(folder.items).filter(
     (item) => REQUEST_TYPES.includes(item?.type) && !item.items
   );
