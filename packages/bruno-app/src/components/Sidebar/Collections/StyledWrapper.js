@@ -19,11 +19,11 @@ const Wrapper = styled.div`
 
   }
 
-  .search-index-status,
-  .search-more-hint {
+  .search-match-count {
     font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.colors.text.muted};
-    padding: 2px 12px;
+    padding: 0 12px 6px 12px;
+    margin-top: -2px;
   }
 `;
 

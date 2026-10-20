@@ -12,7 +12,7 @@ const makeChild = () => {
         const collectionPath = collections?.[0]?.path;
         setImmediate(() => {
           if (collectionPath) {
-            this.handlers.message?.({ id, type: 'candidate', collectionPath });
+            this.handlers.message?.({ id, type: 'hit', collectionPath, relativePath: 'ping.bru' });
           }
           this.handlers.message?.({ id, type: 'complete' });
         });
@@ -42,16 +42,16 @@ describe('ripgrep-host', () => {
     jest.clearAllMocks();
   });
 
-  it('streams candidates and completes discovery', async () => {
+  it('streams file hits and completes discovery', async () => {
     const collectionPath = path.join('/tmp', 'Alpha');
-    const candidates = [];
+    const hits = [];
     const { promise } = discoverCollections({
       term: 'needle',
       collections: [{ path: collectionPath, name: 'Alpha' }],
-      onCandidate: (p) => candidates.push(p)
+      onHit: (root, relativePath) => hits.push({ root, relativePath })
     });
     await promise;
-    expect(candidates).toEqual([collectionPath]);
+    expect(hits).toEqual([{ root: collectionPath, relativePath: 'ping.bru' }]);
   });
 
   it('rejects pending work when the utility process exits', async () => {
@@ -65,7 +65,7 @@ describe('ripgrep-host', () => {
     const { promise } = discoverCollections({
       term: 'x',
       collections: [{ path: collectionPath, name: 'Beta' }],
-      onCandidate: () => {}
+      onHit: () => {}
     });
     stalledChild.handlers.exit?.();
     await expect(promise).rejects.toThrow(/exited/i);
@@ -77,7 +77,7 @@ describe('ripgrep-host', () => {
     const { id, promise } = discoverCollections({
       term: 'y',
       collections: [{ path: collectionPath, name: 'Gamma' }],
-      onCandidate: () => {}
+      onHit: () => {}
     });
     promise.then(() => { settled = true; }).catch(() => {});
     cancelDiscovery(id);

@@ -68,7 +68,7 @@ const openSidebarSearch = async (page: import('@playwright/test').Page) => {
 };
 
 test.describe('Sidebar search index progress', () => {
-  test('reports monotonic collection progress while indexing', async ({ launchElectronApp, createTmpDir }) => {
+  test('shows spinner and match count while indexing', async ({ launchElectronApp, createTmpDir }) => {
     test.setTimeout(120_000);
     const rootDir = await createTmpDir('search-index-progress');
     const collectionPaths = buildCollections(rootDir);
@@ -84,43 +84,21 @@ test.describe('Sidebar search index progress', () => {
     const page = await waitForReadyPage(app);
     await installIndexStatusProbe(page);
     const searchInput = await openSidebarSearch(page);
-    const status = page.getByTestId('sidebar-indexing-status');
-    const progress = page.getByTestId('sidebar-progress');
+    const spinner = page.getByTestId('sidebar-search-spinner');
+    const matchCount = page.getByTestId('sidebar-search-match-count');
 
     try {
       await searchInput.fill(SHARED_NEEDLE);
 
-      const deadline = Date.now() + 90_000;
-      const completedCounts: number[] = [];
-      while (Date.now() < deadline) {
-        const events = await page.evaluate(() => (window as any).__indexStatusEvents as { completed?: number; total?: number; isIndexing?: boolean }[]);
-        for (const event of events) {
-          if (event.total === COLLECTION_NAMES.length && typeof event.completed === 'number') {
-            if (!completedCounts.length || event.completed >= completedCounts[completedCounts.length - 1]) {
-              completedCounts.push(event.completed);
-            }
-          }
-        }
-        const idle = await page.evaluate(() => window.ipcRenderer.invoke('renderer:get-search-index-status'));
-        if (!idle.isIndexing && idle.total === COLLECTION_NAMES.length && idle.completed >= idle.total) {
-          break;
-        }
-        await page.waitForTimeout(50);
-      }
+      await expect(spinner).toBeVisible({ timeout: 60_000 });
 
-      expect(completedCounts.length).toBeGreaterThan(1);
-      expect(completedCounts[completedCounts.length - 1]).toBe(COLLECTION_NAMES.length);
+      await page.waitForFunction(async () => {
+        const idle = await window.ipcRenderer.invoke('renderer:get-search-index-status');
+        return !idle.isIndexing;
+      }, { timeout: 90_000 });
 
-      if (await status.isVisible().catch(() => false)) {
-        await expect(status).toContainText(`of ${COLLECTION_NAMES.length}`);
-      }
-      if (await progress.isVisible().catch(() => false)) {
-        const aria = await progress.getAttribute('aria-valuenow');
-        expect(aria).not.toBeNull();
-      }
-
-      await expect(status).toHaveCount(0, { timeout: 15_000 });
-      await expect(progress).toHaveCount(0, { timeout: 15_000 });
+      await expect(matchCount).toContainText('match', { timeout: 30_000 });
+      await expect(spinner).toHaveCount(0, { timeout: 15_000 });
     } finally {
       await closeElectronApp(app);
     }
@@ -257,6 +235,39 @@ test.describe('Sidebar search index progress', () => {
         expect(idle.isIndexing).toBe(false);
         expect(idle.isDiscovering).toBe(false);
       }
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+
+  test('returns search matches while a collection is mounting', async ({ launchElectronApp, createTmpDir }) => {
+    test.setTimeout(120_000);
+    const rootDir = await createTmpDir('search-index-while-mounting');
+    const collectionPaths = buildCollections(rootDir);
+
+    const app = await launchElectronApp({
+      initUserDataPath: path.join(__dirname, 'init-user-data'),
+      templateVars: {
+        collectionPath1: collectionPaths[0],
+        collectionPath2: collectionPaths[1],
+        collectionPath3: collectionPaths[2]
+      }
+    });
+    const page = await waitForReadyPage(app);
+
+    try {
+      await page.locator('#sidebar-collection-name').filter({ hasText: COLLECTION_NAMES[0] }).click();
+      const searchInput = await openSidebarSearch(page);
+      await searchInput.fill(SHARED_NEEDLE);
+
+      await expect(page.getByTestId('sidebar-search-match-count')).toContainText('match', { timeout: 90_000 });
+
+      await page.waitForFunction(({ needle, held }) => {
+        const rows = [...document.querySelectorAll('[data-testid="sidebar-collection-item-row"]')].map((row) => row.textContent || '');
+        const hasNeedle = rows.some((text) => text.toLowerCase().includes(needle));
+        const hasHeldOnly = rows.some((text) => text.toLowerCase().includes(held) && !text.toLowerCase().includes(needle));
+        return hasNeedle && !hasHeldOnly;
+      }, { needle: SHARED_NEEDLE, held: HELD_TERM }, { timeout: 90_000 });
     } finally {
       await closeElectronApp(app);
     }

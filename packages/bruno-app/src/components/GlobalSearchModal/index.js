@@ -4,6 +4,7 @@ import {
   IconBox,
   IconFileText,
   IconFolder,
+  IconLoader2,
   IconSearch,
   IconX
 } from '@tabler/icons';
@@ -15,7 +16,6 @@ import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector, useStore } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
-import IndeterminateProgressBar from 'ui/IndeterminateProgressBar';
 import { findAncestorFolderUidsByPathname, findItemInCollectionByPathname, getDefaultRequestPaneTab } from 'utils/collections';
 import { normalizePath } from 'utils/common/path';
 import { DOCUMENTATION_RESULT, MATCH_TYPES, SEARCH_CONFIG, SEARCH_TYPES } from './constants';
@@ -34,6 +34,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   const [localResults, setLocalResults] = useState([]);
   const [externalResults, setExternalResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [indexMatchTotal, setIndexMatchTotal] = useState(null);
   const inputRef = useRef(null);
   const virtuosoRef = useRef(null);
   const searchRequestIdRef = useRef(0);
@@ -51,6 +52,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   const allCollections = useSelector((state) => state.collections.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const searchIndexBuilding = useSelector((state) => state.app.searchIndexBuilding);
+  const searchIndexStatus = useSelector((state) => state.app.searchIndexStatus);
   const searchIndexEnabled = useSelector((state) => state.app.preferences?.cache?.searchIndex?.enabled);
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
@@ -158,17 +160,26 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
 
     const term = normalizedQuery.toLowerCase();
 
-    Promise.all(
-      [SEARCH_TYPES.FOLDER, SEARCH_TYPES.REQUEST].map((scope) => ipcRenderer
+    const collectionPaths = collections.map((collection) => normalizePath(collection.pathname));
+
+    Promise.all([
+      ...[SEARCH_TYPES.FOLDER, SEARCH_TYPES.REQUEST].map((scope) => ipcRenderer
         .invoke('renderer:search-index', term, { scope, workspacePath: activeWorkspace?.pathname })
         .then((rows) => (rows || []).map((row) => ({ ...row, __scope: scope })))
-        .catch(() => []))
-    ).then((batches) => {
+        .catch(() => [])),
+      ipcRenderer
+        .invoke('renderer:search-index-trees', term, activeWorkspace?.pathname, undefined, { limit: 1, collectionPaths })
+        .then((result) => result?.total)
+        .catch(() => null)
+    ]).then((results) => {
       if (searchRequestIdRef.current !== requestId) return;
+      const total = results[results.length - 1];
+      const batches = results.slice(0, -1);
+      setIndexMatchTotal(typeof total === 'number' ? total : null);
       setExternalResults(batches.flat());
       setIsSearching(false);
     });
-  }, [ipcRenderer, activeWorkspace]);
+  }, [ipcRenderer, activeWorkspace, collections]);
 
   const mappedExternalResults = useMemo(() => {
     return externalResults
@@ -211,7 +222,12 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     [localResults, mappedExternalResults]
   );
 
-  const showIndexingText = searchIndexBuilding;
+  const showSearchSpinner = Boolean(
+    query.trim()
+    && searchIndexEnabled
+    && (searchIndexBuilding || searchIndexStatus?.isDiscovering || isSearching)
+  );
+  const showMatchCount = Boolean(query.trim() && searchIndexEnabled && typeof indexMatchTotal === 'number');
 
   const ensureCollectionIsMounted = (collection) => {
     if (!collection || collection.mountStatus === 'mounted') return;
@@ -355,6 +371,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
 
   const clearSearch = () => {
     setQuery('');
+    setIndexMatchTotal(null);
   };
 
   useEffect(() => {
@@ -560,6 +577,11 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
                 aria-autocomplete="list"
                 data-testid="global-search-input"
               />
+              {showSearchSpinner && (
+                <div className="search-spinner" data-testid="global-search-spinner" aria-hidden="true">
+                  <IconLoader2 size={18} strokeWidth={1.5} className="animate-spin" />
+                </div>
+              )}
               {query && (
                 <button
                   onClick={clearSearch}
@@ -573,10 +595,11 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
             </div>
           </div>
 
-          {showIndexingText && (
-            <div className="search-index-status" data-testid="global-search-indexing-status">Indexing…</div>
+          {showMatchCount && (
+            <div className="search-match-count" data-testid="global-search-match-count">
+              {indexMatchTotal === 1 ? '1 match' : `${indexMatchTotal} matches`}
+            </div>
           )}
-          <IndeterminateProgressBar active={isSearching || searchIndexBuilding} data-testid="global-search-progress" />
 
           <div
             className="command-k-results"

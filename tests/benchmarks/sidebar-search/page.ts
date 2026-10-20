@@ -61,7 +61,7 @@ export const installProbes = async (page: Page) => {
     });
     let loaderVisible = false;
     const checkLoader = () => {
-      const visible = Boolean(document.querySelector('[data-testid="sidebar-progress"][role="progressbar"]'));
+      const visible = Boolean(document.querySelector('[data-testid="sidebar-search-spinner"]'));
       if (visible !== loaderVisible) {
         loaderVisible = visible;
         bench.loader.push({ t: Date.now(), visible });

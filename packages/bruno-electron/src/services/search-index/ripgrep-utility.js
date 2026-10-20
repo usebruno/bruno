@@ -7,7 +7,6 @@ const {
   ownerForAbsolutePath,
   relativePathAllowed,
   pathStringMatchesTerm,
-  collectionNameMatches,
   buildContentArgs,
   buildFilesArgs
 } = require('./discover-collections');
@@ -15,11 +14,11 @@ const {
 /** @type {Map<number, { children: import('node:child_process').ChildProcess[], emitted: Set<string> }>} */
 const active = new Map();
 
-const emitCandidate = (id, collectionPath, emitted) => {
-  const key = collectionPath;
+const emitHit = (id, collectionPath, relativePath, emitted) => {
+  const key = `${collectionPath}\n${relativePath}`;
   if (emitted.has(key)) return;
   emitted.add(key);
-  process.parentPort.postMessage({ type: 'candidate', id, collectionPath });
+  process.parentPort.postMessage({ type: 'hit', id, collectionPath, relativePath });
 };
 
 const killJob = (id) => {
@@ -56,12 +55,6 @@ const handleDiscover = ({ id, term, collections }) => {
   const children = [];
   active.set(id, { children, emitted });
 
-  for (const entry of roots) {
-    if (collectionNameMatches(entry.name, term)) {
-      emitCandidate(id, entry.root, emitted);
-    }
-  }
-
   if (!roots.length) {
     process.parentPort.postMessage({ type: 'complete', id });
     active.delete(id);
@@ -82,23 +75,23 @@ const handleDiscover = ({ id, term, collections }) => {
     }
   };
 
-  const onPath = (absolutePath) => {
+  const onAbsolutePath = (absolutePath) => {
     const owner = ownerForAbsolutePath(absolutePath, roots);
     if (!owner) return;
     const relativePath = path.relative(owner.root, absolutePath);
     if (!relativePathAllowed(owner, relativePath)) return;
-    emitCandidate(id, owner.root, emitted);
+    emitHit(id, owner.root, relativePath, emitted);
   };
 
   const rgPath = getRipgrepPath();
-  children.push(runRipgrepLines(buildContentArgs(rgPath, term, roots), onPath, finishScan));
+  children.push(runRipgrepLines(buildContentArgs(rgPath, term, roots), onAbsolutePath, finishScan));
   children.push(runRipgrepLines(buildFilesArgs(rgPath, roots), (line) => {
     const owner = ownerForAbsolutePath(line, roots);
     if (!owner) return;
     const relativePath = path.relative(owner.root, line);
     if (!relativePathAllowed(owner, relativePath)) return;
     if (pathStringMatchesTerm(relativePath, term)) {
-      emitCandidate(id, owner.root, emitted);
+      emitHit(id, owner.root, relativePath, emitted);
     }
   }, finishScan));
 };

@@ -1,17 +1,17 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { JobType, getPool, destroyPool } = require('../pool');
+const { destroyPool } = require('../pool');
 const { FileIndex } = require('./file-index');
 const { buildTree } = require('./tree-builder');
 const { defaultClassify, uidForSeed } = require('../../utils/mount');
 const { getWsClient } = require('../../ipc/network/ws-event-handlers');
 const { SearchIndex } = require('../search-index');
 const { withParentFolders } = require('../search-index/indexer');
-const { indexCollection } = require('../search-index/indexer');
+const { indexCollection, indexFiles } = require('../search-index/indexer');
 const { ingestParsedFile, ingestCachedFile, removeFromSearchIndex } = require('../search-index/ingest');
 const { preferencesUtil } = require('../../store/preferences');
 const { discoverCollections, cancelDiscovery, shutdownRipgrepHost } = require('../search-index/ripgrep-host');
-const { collectionNameMatches } = require('../search-index/search-term');
+const { readMetaForRelativePath } = require('../stream-meta');
 
 // cold start only — collection-watcher handles live changes and writes through to the cache
 
@@ -217,6 +217,9 @@ class MountManager {
     if (Number.isInteger(limit) && Array.isArray(collectionPaths)) {
       const scopedPaths = collectionPaths.filter((collectionPath) => {
         const root = path.resolve(collectionPath);
+        // Mounting collections stay in #mounts before their Redux tree exists, so
+        // SQLite is the only result source until mount finishes.
+        if (this.#isMounted(root)) return true;
         if (!this.#searchTerm || term !== this.#searchTerm) return true;
         return this.#candidatePathsForSearch.has(root);
       });
@@ -271,9 +274,28 @@ class MountManager {
     return `${workspacePath}\n${term}\n${signature}`;
   }
 
-  #enqueueCandidate(batch, entry) {
+  #enqueueHit(batch, entry, relativePath) {
     const root = path.resolve(entry.root ?? entry.path);
-    if (batch.discovered.has(root)) return;
+    const posixPath = relativePath.replace(/\\/g, '/');
+    const hitKey = `${root}\n${posixPath}`;
+    if (batch.hitKeys.has(hitKey)) return;
+    batch.hitKeys.add(hitKey);
+    batch.discovered.add(root);
+    this.#candidatePathsForSearch.add(root);
+    batch.hitQueue.push({
+      root,
+      collectionName: entry.collectionName ?? entry.name,
+      denylist: entry.denylist ?? entry.ignore ?? [],
+      relativePath: posixPath
+    });
+    this.#broadcastIndexingStatus();
+    this.#pumpHitQueue(batch);
+  }
+
+  #enqueueBackfill(batch, entry) {
+    const root = path.resolve(entry.root ?? entry.path);
+    if (batch.backfilled.has(root) || batch.backfillQueued.has(root)) return;
+    batch.backfillQueued.add(root);
     batch.discovered.add(root);
     this.#candidatePathsForSearch.add(root);
     batch.queue.push({
@@ -282,17 +304,51 @@ class MountManager {
       denylist: entry.denylist ?? entry.ignore ?? []
     });
     this.#broadcastIndexingStatus();
-    this.#pumpIndexQueue(batch);
+    if (!batch.isDiscovering) this.#pumpIndexQueue(batch);
+  }
+
+  async #pumpHitQueue(batch) {
+    if (batch.hitIndexing || this.#activeBatch !== batch) return;
+    batch.hitIndexing = true;
+    const fileIndex = this.#getIndex();
+    const searchIndex = this.#getSearchIndex();
+    try {
+      while (batch.hitQueue.length > 0 && this.#activeBatch === batch) {
+        const next = batch.hitQueue.shift();
+        await indexFiles(searchIndex, {
+          collectionPath: next.root,
+          collectionName: next.collectionName,
+          relativePaths: [next.relativePath],
+          denylist: next.denylist,
+          workspacePath: batch.workspacePath,
+          fileIndex,
+          onWrite: () => this.#broadcast('main:search-index-written')
+        }).catch(() => {});
+      }
+    } finally {
+      batch.hitIndexing = false;
+      if (this.#activeBatch === batch && batch.hitQueue.length > 0) {
+        this.#pumpHitQueue(batch);
+        return;
+      }
+      this.#maybeFinishBatch(batch);
+    }
   }
 
   async #pumpIndexQueue(batch) {
-    if (batch.indexing || this.#activeBatch !== batch) return;
+    if (batch.indexing || batch.isDiscovering || this.#activeBatch !== batch) return;
     batch.indexing = true;
     const fileIndex = this.#getIndex();
     const searchIndex = this.#getSearchIndex();
     try {
       while (batch.queue.length > 0 && this.#activeBatch === batch) {
         const next = batch.queue.shift();
+        if (this.#isMounted(next.root)) {
+          batch.backfilled.add(next.root);
+          batch.completed += 1;
+          this.#broadcastIndexingStatus();
+          continue;
+        }
         await indexCollection(searchIndex, {
           collectionPath: next.root,
           collectionName: next.collectionName,
@@ -302,19 +358,30 @@ class MountManager {
           onWrite: () => this.#broadcast('main:search-index-written')
         }).catch(() => {});
         if (this.#activeBatch !== batch) return;
+        batch.backfilled.add(next.root);
         batch.completed += 1;
         this.#broadcastIndexingStatus();
       }
     } finally {
       batch.indexing = false;
-      if (this.#activeBatch === batch && batch.queue.length > 0) {
+      if (this.#activeBatch === batch && batch.queue.length > 0 && !batch.isDiscovering) {
         this.#pumpIndexQueue(batch);
         return;
       }
-      if (this.#activeBatch === batch && !batch.isDiscovering && batch.queue.length === 0) {
-        this.#activeBatch = null;
-        this.#broadcastIndexingStatus();
-      }
+      this.#maybeFinishBatch(batch);
+    }
+  }
+
+  #maybeFinishBatch(batch) {
+    if (this.#activeBatch !== batch) return;
+    const busy = batch.isDiscovering
+      || batch.hitQueue.length > 0
+      || batch.hitIndexing
+      || batch.queue.length > 0
+      || batch.indexing;
+    if (!busy) {
+      this.#activeBatch = null;
+      this.#broadcastIndexingStatus();
     }
   }
 
@@ -324,15 +391,17 @@ class MountManager {
     if (!normalizedTerm) return;
 
     const resolvedWorkspace = workspacePath ? path.resolve(workspacePath) : '';
-    const unmounted = (collections || [])
-      .map(({ path: collectionPath, name, ignore }) => ({
-        path: path.resolve(collectionPath),
-        name,
-        ignore
-      }))
-      .filter((c) => !this.#isMounted(c.path));
+    const ordered = (collections || []).map(({ path: collectionPath, name, ignore }) => ({
+      path: path.resolve(collectionPath),
+      root: path.resolve(collectionPath),
+      name,
+      collectionName: name,
+      ignore,
+      denylist: ignore
+    }));
+    const unmounted = ordered.filter((c) => !this.#isMounted(c.path));
 
-    const signature = this.#collectionsSignature(unmounted);
+    const signature = this.#collectionsSignature(ordered);
     const cacheKey = this.#discoveryCacheKey(resolvedWorkspace, normalizedTerm, signature);
     const cached = this.#discoveryCache.get(cacheKey);
 
@@ -345,52 +414,53 @@ class MountManager {
       isDiscovering: !cached,
       discoveryId: null,
       promise: null,
+      hitQueue: [],
+      hitKeys: new Set(),
+      hitIndexing: false,
       queue: [],
+      backfilled: new Set(),
+      backfillQueued: new Set(),
       discovered: new Set(),
       indexing: false
     };
 
     this.#searchTerm = normalizedTerm;
-    this.#candidatePathsForSearch = new Set(cached || []);
+    this.#candidatePathsForSearch = new Set([
+      ...(cached || []),
+      ...ordered.filter((c) => this.#isMounted(c.path)).map((c) => c.path)
+    ]);
     this.#activeBatch = batch;
     this.#broadcastIndexingStatus();
 
     const runPromise = (async () => {
       try {
-        const ordered = unmounted.map((c) => ({
-          root: c.path,
-          collectionName: c.name,
-          denylist: c.ignore,
-          path: c.path,
-          name: c.name,
-          ignore: c.ignore
-        }));
-
         if (cached) {
           for (const root of cached) {
-            const entry = ordered.find((c) => path.resolve(c.root) === root);
-            if (entry) this.#enqueueCandidate(batch, entry);
+            const entry = unmounted.find((c) => c.path === root);
+            if (entry) this.#enqueueBackfill(batch, entry);
           }
+          batch.total = cached.length;
           this.#discoveredRootsByQuery.set(
             this.#queryDiscoveryKey(resolvedWorkspace, normalizedTerm),
             new Set(cached)
           );
+          this.#pumpIndexQueue(batch);
           return;
         }
 
-        for (const entry of ordered) {
-          if (collectionNameMatches(entry.name, normalizedTerm)) {
-            this.#enqueueCandidate(batch, entry);
-          }
+        if (!ordered.length) {
+          batch.isDiscovering = false;
+          batch.total = 0;
+          return;
         }
 
         const { id, promise } = discoverCollections({
           term: normalizedTerm,
           collections: ordered.map((c) => ({ path: c.path, name: c.name, ignore: c.ignore })),
-          onCandidate: (collectionPath) => {
+          onHit: (collectionPath, relativePath) => {
             if (this.#activeBatch !== batch) return;
-            const entry = ordered.find((c) => path.resolve(c.path) === path.resolve(collectionPath));
-            if (entry) this.#enqueueCandidate(batch, entry);
+            const entry = ordered.find((c) => c.path === path.resolve(collectionPath));
+            if (entry) this.#enqueueHit(batch, entry, relativePath);
           }
         });
         batch.discoveryId = id;
@@ -403,12 +473,15 @@ class MountManager {
           this.#queryDiscoveryKey(resolvedWorkspace, normalizedTerm),
           new Set(batch.discovered)
         );
-        this.#broadcastIndexingStatus();
-      } finally {
-        if (this.#activeBatch === batch && !batch.isDiscovering && batch.queue.length === 0 && !batch.indexing) {
-          this.#activeBatch = null;
-          this.#broadcastIndexingStatus();
+        for (const root of batch.discovered) {
+          if (this.#isMounted(root)) continue;
+          const entry = unmounted.find((c) => c.path === root);
+          if (entry) this.#enqueueBackfill(batch, entry);
         }
+        this.#broadcastIndexingStatus();
+        this.#pumpIndexQueue(batch);
+      } finally {
+        this.#maybeFinishBatch(batch);
       }
     })();
 
@@ -432,13 +505,12 @@ class MountManager {
     if (this.#activeBatch?.discoveryId != null) {
       cancelDiscovery(this.#activeBatch.discoveryId);
     }
-    const unmounted = (collections || [])
-      .map(({ path: collectionPath }) => path.resolve(collectionPath))
-      .filter((root) => !this.#isMounted(root));
+    const requested = (collections || []).map(({ path: collectionPath }) => path.resolve(collectionPath));
+    const unmounted = requested.filter((root) => !this.#isMounted(root));
     const knownRoots = this.#discoveredRootsByQuery.get(this.#queryDiscoveryKey(resolvedWorkspace, normalizedTerm));
     if (knownRoots && !this.#activeBatch && unmounted.length > 0 && unmounted.every((root) => knownRoots.has(root))) {
       this.#searchTerm = normalizedTerm;
-      this.#candidatePathsForSearch = new Set(knownRoots);
+      this.#candidatePathsForSearch = new Set([...knownRoots, ...requested.filter((root) => this.#isMounted(root))]);
       return Promise.resolve();
     }
     return this.#runQueryIndexJob(collections, workspacePath, normalizedTerm);
@@ -448,8 +520,21 @@ class MountManager {
     if (!this.#activeBatch) {
       return { isIndexing: false, isDiscovering: false, completed: 0, total: 0 };
     }
-    const { completed, total, isDiscovering, queue, indexing } = this.#activeBatch;
-    const isIndexing = isDiscovering || queue.length > 0 || indexing || (total != null && completed < total);
+    const {
+      completed,
+      total,
+      isDiscovering,
+      queue,
+      indexing,
+      hitQueue,
+      hitIndexing
+    } = this.#activeBatch;
+    const isIndexing = isDiscovering
+      || hitQueue.length > 0
+      || hitIndexing
+      || queue.length > 0
+      || indexing
+      || (total != null && completed < total);
     return {
       isIndexing,
       isDiscovering,
@@ -465,38 +550,89 @@ class MountManager {
   }
 
   async #reconcile(entry, indexOptions) {
-    const { fileIndex } = indexOptions;
+    const { fileIndex, searchIndex, workspacePathname } = indexOptions;
     const denylist = entry.brunoConfig?.ignore || [];
     const { added, updated, removed } = await fileIndex.status(entry.collectionPath, { denylist });
+    const collectionName = searchIndex?.collectionNameFor(entry.collectionPath)
+      || entry.brunoConfig?.name
+      || path.basename(entry.collectionPath);
+
+    if (searchIndex) {
+      let cachedChanged = false;
+      for (const [relativePath, cached] of entry.state) {
+        if (ingestCachedFile({
+          searchIndex,
+          fileIndex: null,
+          collectionPath: entry.collectionPath,
+          collectionName,
+          workspacePath: workspacePathname
+        }, relativePath, cached)) cachedChanged = true;
+      }
+      if (cachedChanged) this.#broadcast('main:search-index-written');
+    }
 
     const toParse = [];
     for (const e of [...added, ...updated]) {
       const cls = defaultClassify(e.relativePath);
       if (!cls) continue;
-      toParse.push({ relativePath: e.relativePath, format: cls.format, type: cls.type });
+      toParse.push({
+        relativePath: e.relativePath,
+        format: cls.format,
+        type: cls.type,
+        mtime: e.mtime,
+        hash: e.hash
+      });
     }
 
     const parsed = new Map();
     if (toParse.length > 0) {
-      const pool = getPool();
+      let pendingSearchWrites = 0;
+      const flushSearchWrites = () => {
+        if (!pendingSearchWrites) return;
+        pendingSearchWrites = 0;
+        this.#broadcast('main:search-index-written');
+      };
       await Promise.allSettled(
         toParse.map(async (e) => {
           try {
-            const result = await pool.runOnce(JobType.ParseFile, {
-              collectionPath: entry.collectionPath,
-              relativePath: e.relativePath,
+            const data = await readMetaForRelativePath(entry.collectionPath, e.relativePath, {
               format: e.format,
               type: e.type
             });
+            const result = {
+              relativePath: e.relativePath,
+              mtime: e.mtime,
+              hash: e.hash,
+              data,
+              partial: true,
+              format: e.format,
+              type: e.type
+            };
             parsed.set(e.relativePath, result);
+            if (searchIndex && ingestParsedFile({
+              searchIndex,
+              fileIndex: null,
+              collectionPath: entry.collectionPath,
+              collectionName,
+              workspacePath: workspacePathname,
+              result
+            })) {
+              pendingSearchWrites += 1;
+              if (pendingSearchWrites >= 20) flushSearchWrites();
+            }
           } catch (err) {
             parsed.set(e.relativePath, {
               relativePath: e.relativePath,
+              mtime: e.mtime,
+              hash: e.hash,
+              data: {},
+              partial: true,
               error: { message: err.message, stack: err.stack }
             });
           }
         })
       );
+      flushSearchWrites();
     }
 
     fileIndex.transaction(() => {
@@ -504,18 +640,10 @@ class MountManager {
         const result = parsed.get(e.relativePath);
         if (!result) continue;
         if (result.error) {
-          entry.state.set(e.relativePath, { data: result.data, error: result.error, raw: result.raw });
+          entry.state.set(e.relativePath, { data: result.data || {}, error: result.error, partial: true });
           continue;
         }
-        entry.state.set(e.relativePath, { data: result.data, raw: result.raw });
-        fileIndex.stage(entry.collectionPath, {
-          op: 'add',
-          relativePath: e.relativePath,
-          mtime: result.mtime,
-          hash: result.hash,
-          data: result.data,
-          raw: result.raw
-        });
+        entry.state.set(e.relativePath, { data: result.data, partial: true });
       }
       for (const e of removed) {
         entry.state.delete(e.relativePath);

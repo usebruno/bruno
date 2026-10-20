@@ -4,7 +4,7 @@ const { utilityProcess } = require('electron');
 let nextId = 1;
 /** @type {import('electron').UtilityProcess | null} */
 let worker = null;
-/** @type {Map<number, { resolve: Function, reject: Function, onCandidate: Function }>} */
+/** @type {Map<number, { resolve: Function, reject: Function, onHit: Function }>} */
 const pending = new Map();
 
 const utilityEntry = path.join(__dirname, 'ripgrep-utility.js');
@@ -16,7 +16,7 @@ const ensureWorker = () => {
     if (!msg || typeof msg !== 'object') return;
     const job = pending.get(msg.id);
     if (!job) return;
-    if (msg.type === 'candidate') job.onCandidate(msg.collectionPath);
+    if (msg.type === 'hit') job.onHit(msg.collectionPath, msg.relativePath);
     if (msg.type === 'complete') {
       pending.delete(msg.id);
       job.resolve();
@@ -36,11 +36,15 @@ const ensureWorker = () => {
   return worker;
 };
 
-const discoverCollections = ({ term, collections, onCandidate }) => {
+const discoverCollections = ({ term, collections, onHit }) => {
   const id = nextId++;
   const child = ensureWorker();
   const promise = new Promise((resolve, reject) => {
-    pending.set(id, { resolve, reject, onCandidate });
+    pending.set(id, {
+      resolve,
+      reject,
+      onHit: (collectionPath, relativePath) => onHit?.(collectionPath, relativePath)
+    });
     child.postMessage({ type: 'discover', id, term, collections });
   });
   return { id, promise };

@@ -1,7 +1,13 @@
-import { IconSearch, IconX } from '@tabler/icons';
+import { IconLoader2, IconSearch, IconX } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
-const CollectionSearch = ({ searchText, setSearchText }) => {
+const CollectionSearch = ({ searchText, setSearchText, showSpinner = false }) => {
+  const hasClear = searchText !== '';
+  const inputClass = [
+    showSpinner ? 'has-spinner' : '',
+    hasClear ? 'has-clear' : ''
+  ].filter(Boolean).join(' ');
+
   return (
     <StyledWrapper>
       <IconSearch size={14} strokeWidth={1.5} className="search-icon" />
@@ -16,10 +22,20 @@ const CollectionSearch = ({ searchText, setSearchText }) => {
         autoCapitalize="off"
         autoFocus
         spellCheck="false"
+        className={inputClass || undefined}
         value={searchText}
         onChange={(e) => setSearchText(e.target.value.toLowerCase())}
       />
-      {searchText !== '' && (
+      {showSpinner && (
+        <div
+          className={`search-spinner${hasClear ? ' with-clear' : ''}`}
+          data-testid="sidebar-search-spinner"
+          aria-hidden="true"
+        >
+          <IconLoader2 size={14} strokeWidth={1.5} className="animate-spin" />
+        </div>
+      )}
+      {hasClear && (
         <div className="clear-icon" onClick={() => setSearchText('')}>
           <IconX size={14} strokeWidth={1.5} />
         </div>

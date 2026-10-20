@@ -108,10 +108,18 @@ const StyledWrapper = styled.div`
       opacity: 0.7;
     }
   }
-  .search-index-status {
+  .search-spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${(props) => props.theme.colors.text.muted};
+    margin-left: 4px;
+    flex-shrink: 0;
+  }
+  .search-match-count {
     font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.colors.text.muted};
-    padding: 6px 12px 0;
+    padding: 4px 12px 0;
   }
   .command-k-results {
     /* Virtuoso owns the scrolling and sizes itself from the result count, so this must not

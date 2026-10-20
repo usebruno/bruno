@@ -237,4 +237,124 @@ const indexCollection = (searchIndex, { collectionPath, collectionName, denylist
   return run;
 };
 
-module.exports = { indexCollection, toRow, toMetaRow, isIndexedFolder, withParentFolders };
+const NAMING_FILE_NAMES = [
+  'bruno.json',
+  'opencollection.yml',
+  'collection.bru',
+  'collection.yml',
+  'folder.bru',
+  'folder.yml'
+];
+
+const namingFilesForRelativePaths = (collectionPath, relativePaths) => {
+  const dirs = new Set(['.']);
+  for (const relativePath of relativePaths) {
+    let dir = path.dirname(relativePath);
+    while (dir && dir !== '.') {
+      dirs.add(dir);
+      dir = path.dirname(dir);
+    }
+  }
+
+  const candidates = [];
+  for (const dir of dirs) {
+    for (const name of NAMING_FILE_NAMES) {
+      const relativePath = dir === '.' ? name : path.join(dir, name);
+      const absolutePath = path.join(collectionPath, relativePath);
+      if (!fs.existsSync(absolutePath)) continue;
+      const cls = defaultClassify(relativePath);
+      if (!cls) continue;
+      candidates.push({ relativePath, absolutePath, cls });
+    }
+  }
+  return selectNamingFiles(collectionPath, candidates);
+};
+
+const indexFiles = async (searchIndex, {
+  collectionPath,
+  collectionName,
+  relativePaths,
+  denylist,
+  workspacePath,
+  fileIndex,
+  onWrite
+}) => {
+  const root = path.resolve(collectionPath);
+  const unique = [...new Set((relativePaths || []).map((p) => p.replace(/\\/g, '/')).filter(Boolean))];
+  if (!unique.length) return;
+
+  const requestPaths = unique.filter((relativePath) => defaultClassify(relativePath)?.type === 'request');
+  const folderPaths = withParentFolders(requestPaths.map((relativePath) => path.dirname(relativePath)).filter((dir) => dir !== '.'));
+  const metaFiles = namingFilesForRelativePaths(root, unique);
+  const ctx = ingestCtx(searchIndex, fileIndex, root, collectionName, workspacePath);
+  const writes = createWriteBatch(onWrite);
+
+  if (folderPaths.length) {
+    searchIndex.addFolders({
+      collectionPath: root,
+      collectionName,
+      workspacePath,
+      folderPaths
+    });
+  }
+
+  await indexMetadata(searchIndex, root, collectionName, workspacePath, metaFiles, fileIndex, null, writes);
+
+  const stored = searchIndex.entriesFor(root);
+  const statuses = await Promise.all(requestPaths.map(async (relativePath) => {
+    const absolutePath = path.join(root, relativePath);
+    const cls = defaultClassify(relativePath);
+    if (!cls || cls.type !== 'request') return null;
+
+    let stat;
+    try {
+      stat = await fs.promises.stat(absolutePath, { bigint: true });
+    } catch (_) {
+      return null;
+    }
+    const prior = stored.get(relativePath);
+    if (prior && prior.mtime === stat.mtimeNs) return { kind: 'unchanged', relativePath };
+    if (prior) {
+      const hash = await hashFileAsync(absolutePath);
+      if (hash === prior.hash) return { kind: 'unchanged', relativePath };
+    }
+
+    const cachedEntry = fileIndex?.entryFor(root, relativePath);
+    if (cachedEntry && cachedEntry.mtime === stat.mtimeNs) {
+      return { kind: 'cached', relativePath, entry: cachedEntry };
+    }
+
+    return { kind: 'stale', relativePath, format: cls.format };
+  }));
+
+  for (const status of statuses) {
+    if (!status || status.kind === 'unchanged') continue;
+    if (status.kind === 'cached') {
+      writes.add(() => ingestCachedFile(ctx, status.relativePath, status.entry));
+      continue;
+    }
+    let result;
+    try {
+      result = await getPool().runOnce(JobType.ParseFile, {
+        collectionPath: root,
+        relativePath: status.relativePath,
+        format: status.format,
+        type: 'request'
+      });
+    } catch (err) {
+      result = await failedResult(root, status.relativePath, err);
+    }
+    if (!result) continue;
+    writes.add(() => ingestParsedFile({ ...ctx, result }));
+  }
+  writes.flush();
+};
+
+module.exports = {
+  indexCollection,
+  indexFiles,
+  toRow,
+  toMetaRow,
+  isIndexedFolder,
+  withParentFolders
+};

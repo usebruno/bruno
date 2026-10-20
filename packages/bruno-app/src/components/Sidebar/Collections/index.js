@@ -7,7 +7,6 @@ import { indexActiveWorkspaceCollections, searchCollectionTreesFromIndex } from 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
-import IndeterminateProgressBar from 'ui/IndeterminateProgressBar';
 import { buildIndexes, flattenSidebarTree } from 'utils/collections/flattenSidebarTree';
 import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
 import { normalizePath } from 'utils/common/path';
@@ -68,6 +67,12 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     () => buildSidebarEntries({ collections, workspaces, activeWorkspace, collectionSortOrder }),
     [activeWorkspace, collections, workspaces, collectionSortOrder]
   );
+  const loadedCollectionPaths = useMemo(
+    () => sidebarEntries
+      .filter((entry) => entry.kind === 'loaded')
+      .map((entry) => normalizePath(entry.collection.pathname)),
+    [sidebarEntries]
+  );
   const unmountedCollectionPathsKey = useMemo(
     () => sidebarEntries
       .filter((entry) => entry.kind === 'loaded' && entry.collection.mountStatus !== 'mounted')
@@ -76,9 +81,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
       .join('\n'),
     [sidebarEntries]
   );
-  searchCollectionPathsRef.current = unmountedCollectionPathsKey
-    ? unmountedCollectionPathsKey.split('\n')
-    : [];
+  searchCollectionPathsRef.current = loadedCollectionPaths;
   const debouncedUnmountedPathsKey = useDebounce(unmountedCollectionPathsKey, INDEX_PREPARE_PATHS_DEBOUNCE_MS, {
     shouldSkipDebounce: (value) => value === ''
   });
@@ -184,12 +187,15 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     runIndexSearch();
   }, [searchText, debouncedSearchText, searchIndexEnabled, searchIndexBuilding, runIndexSearch]);
 
-  const renderedSidebarEntries = useMemo(() => sidebarEntries.map((entry) => {
-    if (entry.kind !== 'loaded' || entry.collection.mountStatus === 'mounted') return entry;
-    const items = searchTreesByPath[normalizePath(entry.collection.pathname)];
-    if (!items) return entry;
-    return { ...entry, collection: { ...entry.collection, items } };
-  }), [sidebarEntries, searchTreesByPath]);
+  const renderedSidebarEntries = useMemo(() => {
+    const searching = Boolean(debouncedSearchText.trim() && searchIndexEnabled);
+    return sidebarEntries.map((entry) => {
+      if (entry.kind !== 'loaded' || !searching) return entry;
+      const items = searchTreesByPath[normalizePath(entry.collection.pathname)];
+      if (items) return { ...entry, collection: { ...entry.collection, items } };
+      return { ...entry, collection: { ...entry.collection, items: [] } };
+    });
+  }, [sidebarEntries, searchTreesByPath, debouncedSearchText, searchIndexEnabled]);
 
   const { rows, itemsByUid, collectionsByUid } = useMemo(
     () => flattenSidebarTree(renderedSidebarEntries, { searchText: debouncedSearchText, collapsedUids: searchCollapsedUids }),
@@ -223,21 +229,13 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     }
   };
 
-  const isSearchPending = trimmedSearchText !== debouncedSearchText || isSearchIndexPending;
-  const showDiscoveryText = Boolean(trimmedSearchText && searchIndexStatus?.isDiscovering);
-  const showIndexingProgress = Boolean(
+  const showSearchSpinner = Boolean(
     trimmedSearchText
-    && searchIndexBuilding
-    && !searchIndexStatus?.isDiscovering
-    && searchIndexStatus?.total > 0
+    && searchIndexEnabled
+    && (searchIndexBuilding || searchIndexStatus?.isDiscovering || isSearchIndexPending)
   );
-  const indexingCollectionNumber = searchIndexStatus?.total > 0
-    ? Math.min((searchIndexStatus.completed ?? 0) + 1, searchIndexStatus.total)
-    : null;
-  const indexingProgressValue = searchIndexStatus?.total > 0
-    ? (searchIndexStatus.completed ?? 0) / searchIndexStatus.total
-    : 0;
-  const showQueryPendingText = Boolean(trimmedSearchText && isSearchPending && !searchIndexBuilding);
+  const matchCount = searchCounts?.total;
+  const showMatchCount = Boolean(trimmedSearchText && searchIndexEnabled && typeof matchCount === 'number');
 
   // Ghost rows carry only path/name. GitRemoteCollectionRow needs the full entry (for `remote`).
   const ghostsByPath = useMemo(() => {
@@ -318,31 +316,18 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   return (
     <StyledWrapper data-testid="collections">
       {showSearch && (
-        <CollectionSearch searchText={searchText} setSearchText={updateSearchText} />
-      )}
-
-      {showSearch && showDiscoveryText && (
-        <div className="search-index-status" data-testid="sidebar-discovery-status">Finding matching collections…</div>
-      )}
-      {showSearch && showIndexingProgress && (
-        <div className="search-index-status" data-testid="sidebar-indexing-status">
-          {`Indexing collection ${indexingCollectionNumber} of ${searchIndexStatus.total}…`}
-        </div>
-      )}
-      {showSearch && showQueryPendingText && (
-        <div className="search-index-status" data-testid="sidebar-search-pending">Searching…</div>
-      )}
-      {showSearch && showIndexingProgress && (
-        <IndeterminateProgressBar
-          value={indexingProgressValue}
-          data-testid="sidebar-progress"
+        <CollectionSearch
+          searchText={searchText}
+          setSearchText={updateSearchText}
+          showSpinner={showSearchSpinner}
         />
       )}
-      {/* {trimmedSearchText && searchCounts && searchCounts.loaded < searchCounts.total && (
-        <div className="search-more-hint" data-testid="sidebar-search-more">
-          Showing {searchCounts.loaded} of {searchCounts.total} matches. Scroll down to load more.
+
+      {showSearch && showMatchCount && (
+        <div className="search-match-count" data-testid="sidebar-search-match-count">
+          {matchCount === 1 ? '1 match' : `${matchCount} matches`}
         </div>
-      )} */}
+      )}
 
       {isCreatingCollection && (
         <InlineCollectionCreator

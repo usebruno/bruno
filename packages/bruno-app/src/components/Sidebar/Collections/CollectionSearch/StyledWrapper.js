@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  margin: 4px 10px 8px 10px;
+  margin: 4px 10px 4px 10px;
   position: relative;
 
   .search-icon {
@@ -25,6 +25,18 @@ const StyledWrapper = styled.div`
     outline: none;
     transition: all 0.15s ease;
 
+    &.has-spinner {
+      padding-right: 52px;
+    }
+
+    &.has-clear.has-spinner {
+      padding-right: 72px;
+    }
+
+    &.has-clear:not(.has-spinner) {
+      padding-right: 32px;
+    }
+
     &::placeholder {
       color: ${(props) => props.theme.sidebar.muted};
     }
@@ -37,6 +49,23 @@ const StyledWrapper = styled.div`
       background: ${(props) => props.theme.input.bg};
       border-color: ${(props) => props.theme.input.border};
     }
+  }
+
+  .search-spinner {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${(props) => props.theme.sidebar.muted};
+    pointer-events: none;
+  }
+
+  input.has-clear .search-spinner,
+  .search-spinner.with-clear {
+    right: 28px;
   }
 
   .clear-icon {

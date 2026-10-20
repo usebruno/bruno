@@ -136,9 +136,9 @@ const buildRequestNode = (absolutePath, basename, entry, uidOverrides, uidFor) =
     filename: basename,
     pathname: absolutePath,
     draft: null,
-    partial: false,
-    loading: false,
-    ...(entry.error ? { error: entry.error, partial: true } : {})
+    partial: Boolean(entry.partial || entry.error),
+    loading: Boolean(entry.partial && !entry.error),
+    ...(entry.error ? { error: entry.error, partial: true, loading: false } : {})
   };
 };
 
