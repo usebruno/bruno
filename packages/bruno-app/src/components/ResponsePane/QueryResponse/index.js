@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import QueryResult from '../QueryResult';
-import { useInitialResponseFormat, useResponsePreviewFormatOptions } from '../QueryResult/index';
+import { useInitialResponseFormat, useResponsePreviewFormatOptions, usePreferredFallbackFormat } from '../QueryResult/index';
 import QueryResultTypeSelector from '../QueryResult/QueryResultTypeSelector/index';
 import StyledWrapper from './StyledWrapper';
 import classnames from 'classnames';
@@ -18,7 +18,8 @@ const QueryResponse = ({
 }) => {
   const { initialFormat, initialTab } = useInitialResponseFormat(dataBuffer, headers);
   const previewFormatOptions = useResponsePreviewFormatOptions(dataBuffer, headers);
-  const [selectedFormat, setSelectedFormat] = useState('raw');
+  const fallbackFormat = usePreferredFallbackFormat();
+  const [selectedFormat, setSelectedFormat] = useState(fallbackFormat);
   const [selectedTab, setSelectedTab] = useState('editor');
   const [filter, setFilter] = useState('');
   const [filterExpanded, setFilterExpanded] = useState(false);
