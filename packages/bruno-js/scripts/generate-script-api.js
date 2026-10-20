@@ -549,8 +549,8 @@ const createGenerator = (program) => {
 
   const intersect = (inherited, own) => (own ? inherited.filter((value) => own.includes(value)) : inherited);
 
-  const manifestEntry = (path, kind, doc, signatureText, scope, signature) => ({
-    path,
+  const manifestEntry = (memberPath, kind, doc, signatureText, scope, signature) => ({
+    path: memberPath,
     kind,
     signature: signatureText,
     summary: doc.summary,
@@ -565,23 +565,23 @@ const createGenerator = (program) => {
 
   const walkMembers = (entries, prefix, typeEntry, inherited, ancestors) => {
     for (const member of describeType(typeEntry).members) {
-      const path = `${prefix}.${member.name}`;
+      const memberPath = `${prefix}.${member.name}`;
       const scope = {
         contexts: intersect(inherited.contexts, member.doc.contexts),
         runtimes: intersect(inherited.runtimes, member.doc.runtimes),
         category: member.doc.category || inherited.category
       };
-      if (!scope.contexts.length) fail(`${path}: its @context leaves it available in no script context`);
+      if (!scope.contexts.length) fail(`${memberPath}: its @context leaves it available in no script context`);
       if (member.kind === 'method') {
         for (const signature of member.signatures) {
-          entries.push(manifestEntry(path, 'method', member.doc, `${member.name}${signature.text}`, scope, signature));
+          entries.push(manifestEntry(memberPath, 'method', member.doc, `${member.name}${signature.text}`, scope, signature));
         }
         continue;
       }
-      entries.push(manifestEntry(path, 'property', member.doc, `${member.name}: ${member.typeText}`, scope, null));
+      entries.push(manifestEntry(memberPath, 'property', member.doc, `${member.name}: ${member.typeText}`, scope, null));
       const target = publicInterfaceOf(member.type);
       if (target && !ancestors.includes(target)) {
-        walkMembers(entries, path, target, scope, [...ancestors, target]);
+        walkMembers(entries, memberPath, target, scope, [...ancestors, target]);
       }
     }
   };
