@@ -173,10 +173,11 @@ const encodeKeepingVars = (str) =>
     .split(/(\{\{[^{}]*\}\})/)
     .map((part, i) => {
       if (i % 2 === 1) return part;
+      const safePart = part.replace(/%(?![0-9A-Fa-f]{2})/g, '%25');
       try {
-        return encodeURIComponent(decodeURIComponent(part));
+        return encodeURIComponent(decodeURIComponent(safePart));
       } catch (e) {
-        return encodeURIComponent(part);
+        return encodeURIComponent(safePart);
       }
     })
     .join('');
