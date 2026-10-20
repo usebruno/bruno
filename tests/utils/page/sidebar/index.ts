@@ -18,6 +18,7 @@ export const buildSidebarLocators = (page: Page) => {
 
   return {
     collectionsContainer: () => page.getByTestId('collections'),
+    collectionsScroller: () => page.getByTestId('sidebar-collections-scroller'),
     collection: (name?: string) => name ? page.locator('#sidebar-collection-name').filter({ hasText: name }) : page.locator('#sidebar-collection-name'),
     item,
     folder: item,
@@ -29,6 +30,11 @@ export const buildSidebarLocators = (page: Page) => {
     closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
     collectionRow,
     collectionRows: () => page.getByTestId('sidebar-collection-row'),
+    invalidFilesBadge: (name: string) => collectionRow(name).getByTestId('invalid-files-badge'),
+    invalidFilesTooltip: () => page.getByTestId('invalid-files-tooltip'),
+    invalidFilesSeeHere: () => page.getByTestId('invalid-files-see-here'),
+    folderInvalidFilesBadge: (collectionName: string, folderName: string) =>
+      collectionScope(collectionName).getByTestId('sidebar-collection-item-row').filter({ has: itemByName(folderName) }).getByTestId('invalid-files-badge'),
     itemRow,
     itemByName,
     itemsIn: (collectionName: string, name: string): Locator =>

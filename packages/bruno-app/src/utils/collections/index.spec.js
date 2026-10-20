@@ -3,6 +3,7 @@ import {
   mergeHeaders,
   transformRequestToSaveToFilesystem,
   getCollectionItemCounts,
+  countInvalidItems,
   getVariableScope,
   isVariableSecret,
   getAvailableAddToScopes,
@@ -18,7 +19,8 @@ import {
   isCollectionItemCollapsed,
   getVariableNamesWithScope,
   getWorkspaceCollections,
-  getItemsLoadStats
+  getItemsLoadStats,
+  getTreePathFromCollectionToItem
 } from './index';
 import * as platformUtils from 'utils/common/platform';
 
@@ -105,6 +107,45 @@ describe('transformRequestToSaveToFilesystem', () => {
 
     expect(transformed.request.params[0].annotations).toEqual([{ name: 'param-note', value: 'keep me' }]);
     expect(transformed.request.headers[0].annotations).toEqual([{ name: 'header-note', value: 'keep me' }]);
+  });
+});
+
+describe('countInvalidItems', () => {
+  const parseError = { message: 'Line 11, col 1:\nExpected "\\n"' };
+
+  it('counts files with a parse error at every depth', () => {
+    const items = [
+      {
+        type: 'folder',
+        name: 'Outer',
+        items: [
+          { type: 'http-request', name: 'Broken', error: parseError },
+          {
+            type: 'folder',
+            name: 'Inner',
+            items: [{ type: 'http-request', name: 'AlsoBroken', error: parseError }]
+          }
+        ]
+      },
+      { type: 'http-request', name: 'RootBroken', error: parseError },
+      { type: 'http-request', name: 'Fine', request: {} }
+    ];
+
+    expect(countInvalidItems(items)).toBe(3);
+  });
+
+  it('ignores transient items and files that are only partially loaded', () => {
+    const items = [
+      { type: 'http-request', name: 'Transient', isTransient: true, error: parseError },
+      { type: 'http-request', name: 'TooLarge', partial: true, loading: false }
+    ];
+
+    expect(countInvalidItems(items)).toBe(0);
+  });
+
+  it('returns 0 for an empty or missing tree', () => {
+    expect(countInvalidItems([])).toBe(0);
+    expect(countInvalidItems()).toBe(0);
   });
 });
 
@@ -1097,5 +1138,42 @@ describe('getWorkspaceCollections', () => {
 
       expect(listFor()).toEqual([]);
     });
+  });
+});
+
+describe('getTreePathFromCollectionToItem', () => {
+  const collection = {
+    uid: 'col',
+    items: [
+      { uid: 'root-req', type: 'http-request' },
+      {
+        uid: 'folder-a',
+        type: 'folder',
+        items: [
+          { uid: 'nested-req', type: 'http-request' },
+          { uid: 'folder-b', type: 'folder', items: [{ uid: 'deep-req', type: 'http-request' }] }
+        ]
+      }
+    ]
+  };
+
+  it('returns the root-first ancestor chain ending with the item', () => {
+    const path = getTreePathFromCollectionToItem(collection, { uid: 'deep-req' });
+    expect(path.map((node) => node.uid)).toEqual(['folder-a', 'folder-b', 'deep-req']);
+  });
+
+  it('returns a single entry for a root-level item', () => {
+    expect(getTreePathFromCollectionToItem(collection, { uid: 'root-req' }).map((n) => n.uid)).toEqual(['root-req']);
+  });
+
+  it('returns live item objects from the collection, not the argument', () => {
+    const [folderA] = getTreePathFromCollectionToItem(collection, { uid: 'nested-req' });
+    expect(folderA).toBe(collection.items[1]);
+  });
+
+  it('returns an empty path for an unknown item, a missing uid, or an empty collection', () => {
+    expect(getTreePathFromCollectionToItem(collection, { uid: 'nope' })).toEqual([]);
+    expect(getTreePathFromCollectionToItem(collection, {})).toEqual([]);
+    expect(getTreePathFromCollectionToItem({ uid: 'empty' }, { uid: 'deep-req' })).toEqual([]);
   });
 });
