@@ -11,7 +11,6 @@ import { updateTabState } from 'providers/ReduxStore/slices/tabs';
 import { validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import CopyEnvironment from '../../CopyEnvironment';
-import DeleteEnvironment from '../../DeleteEnvironment';
 import EnvironmentVariables from './EnvironmentVariables';
 import InheritsFrom from 'components/Environments/Common/InheritsFrom';
 import EnvironmentInheritanceWarning from 'components/Environments/Common/EnvironmentInheritanceWarning';
@@ -20,11 +19,13 @@ import ActionIcon from 'ui/ActionIcon';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import useEnvironmentTabs from 'hooks/useEnvironmentTabs';
 import StyledWrapper from './StyledWrapper';
+import DeleteGlobalEnvironments from '../../DeleteGlobalEnvironments';
 
 const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuery, setSearchQuery, isSearchExpanded, setIsSearchExpanded, debouncedSearchQuery, searchInputRef }) => {
   const dispatch = useDispatch();
   const globalEnvs = useSelector((state) => state?.globalEnvironments?.globalEnvironments);
   const globalEnvironmentDraft = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft);
+  const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
 
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
   const [openCopyModal, setOpenCopyModal] = useState(false);
@@ -199,10 +200,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
   return (
     <StyledWrapper>
       {openDeleteModal && (
-        <DeleteEnvironment
-          onClose={() => setOpenDeleteModal(false)}
-          environment={environment}
-        />
+        <DeleteGlobalEnvironments environments={[environment]} activeEnvironmentUid={activeGlobalEnvironmentUid} onClose={() => setOpenDeleteModal(false)} />
       )}
       {openCopyModal && (
         <CopyEnvironment onClose={() => setOpenCopyModal(false)} environment={environment} />
