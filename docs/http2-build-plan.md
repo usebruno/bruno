@@ -12,7 +12,9 @@ the `HTTP2 QA` collection before the next phase starts.
 - Three surfaces reach parity: **desktop app**, **`bru.sendRequest`** (scripting), **CLI** (`bru run`).
 - Non-goals (documented, not built): TLS session-resumption cache, ORIGIN-frame multi-origin
   coverage, `maxSessions`/`maxFreeSessions` caps. These are optimizations an API client does not need.
-- Tests: Jest unit specs per module (in-process h2 server harness) + the `HTTP2 QA` e2e collection.
+- Tests: **Jest unit specs per module** are the per-phase gate. Real-network/UI **e2e is deferred** —
+  validated manually from the UI against the testbed each phase (the `HTTP2 QA` collection), with an
+  automated pass revisited at the Phase 12 final gate.
 
 ## Where code will live
 - `packages/bruno-requests/src/utils/http2/` — `connect-tls.ts`, `headers.ts`, `session-pool.ts`,
@@ -72,12 +74,26 @@ still routes HTTP/1.1 (no transport yet).
 
 ## Phase 3 — Header translation + minimal single-session transport
 **Why:** prove one real h2 request end-to-end before adding pooling. Simplest correct path first.
-**Build:** `headers.ts` (h1→h2: pseudo-headers from method/URL, drop connection-specific + caller
-pseudo-headers, `Host`→`:authority`, `te` only as `trailers`). `transport.ts` (axios `config.transport`
-that opens **one** `http2.connect` session per request, sends, surfaces the response stream to axios).
-Attach it only when the resolver says h2.
-**Tests:** `headers.spec.ts` (translation, stripping, pseudo/te). `transport.spec.ts` (GET/POST → 200,
-protocol 2.0, body echo).
+**Build (bruno-requests, pure + harness-tested):**
+- `headers.ts` — `toHttp2Headers(method, url, headers)` (pseudo-headers `:method`/`:scheme`/`:authority`/`:path`;
+  lower-case names; drop connection-specific `connection`/`keep-alive`/`proxy-connection`/`transfer-encoding`/`upgrade`
+  and fold `Host`→`:authority`; `:path` = pathname+search only) and `fromHttp2Headers(h2headers)` → `{ status, headers }`.
+- `transport.ts` — `sendHttp2Request(config)` opens **one** `http2.connect` session per request, one stream,
+  writes the body honoring GET/DELETE `endStream` (no write-after-end), **buffers** the full response, maps errors,
+  and **closes the session** in `finally`. Returns a normalized `{ status, headers, data }` — no axios types.
+**Build (bruno-electron, thin wiring):**
+- `http2-adapter.js` — axios custom adapter bridging `config` ↔ `sendHttp2Request`, shaping an axios response back
+  (`statusText` from `http.STATUS_CODES`; `responseType` honored minimally — `arraybuffer`→Buffer else decode to
+  string and let `transformResponse` parse; axios-shaped errors with `response` when headers arrived).
+- `applyHttp2Transport` sets `config.adapter = http2Adapter` when `versionDecision.httpVersion === 2` (replaces the
+  "attaches in a later step" log). `:path` comes straight from `config.url` — Bruno bakes the full query string into
+  the URL upstream (query params + query-param auth reassign `request.url`); axios config carries no `.params`/`baseURL`,
+  so no `buildFullPath`/`paramsSerializer` replication.
+**Deferred to Phase 9 (confirmed):** streaming request bodies, streaming response bodies, and multipart/FormData.
+This phase supports string / Buffer / no body only.
+**Tests:** `headers.spec.ts` (translation, stripping, lower-case, `:authority`, `:path`, `:status` split).
+`transport.spec.ts` (GET/POST → 200, protocol 2.0, body echo, session closed; h1-only path never reaches h2).
+Electron: adapter sets `config.adapter` only when h2 and shapes the response (transport mocked).
 **UI check:** **02 Methods** basic GET/POST to the dual server over h2.
 **Commit:** `feat(http2): h1→h2 header translation + minimal transport`
 
@@ -131,11 +147,13 @@ opening a new tunnel; integrate both direct and proxied paths in `applyHttp2Tran
 **UI check:** **14 Proxy**.
 **Commit:** `feat(http2): proxy CONNECT tunnel with session reuse`
 
-## Phase 9 — Response timing & remaining families
+## Phase 9 — Response timing, streaming & remaining body families
 **Why:** `responseTime` must reflect the full response (h2 resolves at headers while the body streams);
-cookies and redirects must work across h2/h1.
+cookies and redirects must work across h2/h1; and the body families deferred from Phase 3 land here.
 **Build:** measure `responseTime` to body-complete on **both** send paths (single-request + runner);
-verify cookies and cross-protocol redirects (h2→h1-only and back).
+verify cookies and cross-protocol redirects (h2→h1-only and back); **streaming request bodies**,
+**streaming response bodies** (`responseType: 'stream'`, drip timing), and **multipart/FormData** request
+bodies over h2 (deferred from Phase 3).
 **Tests:** timing basis in `transport.spec.ts`; redirect/cookie e2e.
 **UI check:** **08 Streaming** (drip timing), **09 Cookies**, **10 Redirects**.
 **Commit:** `fix(http2): responseTime to body-complete; cookies/redirects over h2`

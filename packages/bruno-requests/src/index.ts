@@ -42,6 +42,9 @@ export {
   resolveHttpVersion,
   negotiateHttpVersion,
   invalidateAlpn,
-  clearAlpnCache
+  clearAlpnCache,
+  toHttp2Headers,
+  fromHttp2Headers,
+  sendHttp2Request
 } from './utils/http2';
 export type { HttpVersionMode, Resolved } from './utils/http2';
