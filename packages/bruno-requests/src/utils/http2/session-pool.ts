@@ -5,7 +5,7 @@ import { buildConnectionKey } from './cache-key';
 
 const IDLE_TIMEOUT_MS = 60 * 1000;
 
-type SessionState = 'connecting' | 'active';
+type SessionState = 'connecting' | 'active' | 'draining';
 
 type PooledSession = {
   session: http2.ClientHttp2Session;
@@ -52,6 +52,19 @@ const startIdleTimer = (key: string, pooledSession: PooledSession): void => {
   pooledSession.idleTimer.unref?.();
 };
 
+// GOAWAY: the server is draining. Stop handing streams to this session and close it
+// once its in-flight streams finish (or immediately if it is already idle).
+const drainSession = (key: string, pooledSession: PooledSession): void => {
+  pooledSession.state = 'draining';
+  clearIdleTimer(pooledSession);
+  if (pool.get(key) === pooledSession) {
+    pool.delete(key);
+  }
+  if (pooledSession.activeStreams === 0 && isReusable(pooledSession.session)) {
+    pooledSession.session.close();
+  }
+};
+
 const createPooledSession = (key: string, params: AcquireSessionParams): PooledSession => {
   const parsed = new URL(params.url);
   const port = Number(parsed.port) || 443;
@@ -79,6 +92,9 @@ const createPooledSession = (key: string, params: AcquireSessionParams): PooledS
   };
   session.once('close', removeSessionFromPool);
   session.once('error', removeSessionFromPool);
+  session.once('goaway', () => {
+    drainSession(key, pooledSession);
+  });
 
   return pooledSession;
 };
@@ -94,6 +110,8 @@ export const acquireSession = (params: AcquireSessionParams): AcquiredSession =>
   const key = buildConnectionKey(origin, params.tlsOptions || {}, params.proxyUri);
 
   let pooledSession = pool.get(key);
+
+  // create a new session if none exists or the existing one is no longer reusable (closed/destroyed).
   if (!pooledSession || !isReusable(pooledSession.session)) {
     pooledSession = createPooledSession(key, params);
     pool.set(key, pooledSession);
@@ -104,15 +122,23 @@ export const acquireSession = (params: AcquireSessionParams): AcquiredSession =>
 
   let released = false;
   const releaseStream = (): void => {
-    if (released) {
+    if (released) return;
+    released = true;
+
+    pooledSession.activeStreams = Math.max(0, pooledSession.activeStreams - 1);
+
+    // Keep the session open while other streams are active.
+    if (pooledSession.activeStreams > 0) return;
+
+    // Close a draining session once all streams have finished.
+    if (pooledSession.state === 'draining') {
+      if (isReusable(pooledSession.session)) {
+        pooledSession.session.close();
+      }
       return;
     }
-    released = true;
-    pooledSession.activeStreams -= 1;
-    if (pooledSession.activeStreams <= 0) {
-      pooledSession.activeStreams = 0;
-      startIdleTimer(key, pooledSession);
-    }
+
+    startIdleTimer(key, pooledSession);
   };
 
   return { session: pooledSession.session, releaseStream };

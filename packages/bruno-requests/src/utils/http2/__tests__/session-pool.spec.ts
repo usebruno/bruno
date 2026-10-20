@@ -92,6 +92,29 @@ describe('session-pool', () => {
     expect((second.session as unknown as { close: jest.Mock }).close).not.toHaveBeenCalled();
   });
 
+  it('evicts a session on GOAWAY and connects fresh for the next request', () => {
+    const a = acquireSession({ url: 'https://a.test/' });
+    a.session.emit('goaway');
+    const b = acquireSession({ url: 'https://a.test/' });
+    expect(b.session).not.toBe(a.session);
+    expect(mockConnect).toHaveBeenCalledTimes(2);
+  });
+
+  it('closes a draining session once its in-flight stream finishes', () => {
+    const a = acquireSession({ url: 'https://a.test/' });
+    a.session.emit('goaway');
+    expect((a.session as unknown as { close: jest.Mock }).close).not.toHaveBeenCalled();
+    a.releaseStream();
+    expect((a.session as unknown as { close: jest.Mock }).close).toHaveBeenCalled();
+  });
+
+  it('closes a draining session immediately when it is already idle', () => {
+    const a = acquireSession({ url: 'https://a.test/' });
+    a.releaseStream();
+    a.session.emit('goaway');
+    expect((a.session as unknown as { close: jest.Mock }).close).toHaveBeenCalled();
+  });
+
   it('closeAllSessions closes everything and empties the pool', () => {
     const a = acquireSession({ url: 'https://a.test/' });
     const b = acquireSession({ url: 'https://b.test/' });

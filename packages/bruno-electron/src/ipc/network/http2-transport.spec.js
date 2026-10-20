@@ -70,5 +70,12 @@ describe('http2 seam (Phase 1)', () => {
       expect(config.adapter).toBeUndefined();
       expect(timeline.some((e) => /HTTP\/1.1 selected/.test(e.message))).toBe(true);
     });
+
+    it('clears a stale h2 adapter carried over from a previous redirect hop', async () => {
+      resolveHttpVersionViaAlpn.mockResolvedValue({ httpVersion: 1, reason: 'auto (http/1.1)', offered: ['h2', 'http/1.1'], alpn: 'http/1.1' });
+      const config = { url: 'https://x.test/', adapter: () => {} };
+      await applyHttp2Transport({ config, requestedHttpVersion: 'auto', agentOptions: {}, timeline: [] });
+      expect(config.adapter).toBeUndefined();
+    });
   });
 });

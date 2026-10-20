@@ -1,6 +1,7 @@
 import type { LookupFunction } from 'node:net';
 import { acquireSession } from './session-pool';
 import { buildHttp2RequestHeaders, parseHttp2ResponseHeaders, type Http1Headers } from './headers';
+import { rstCodeLabel } from './rst-codes';
 
 export type Http2RequestOptions = {
   method: string;
@@ -98,7 +99,7 @@ export const sendHttp2Request = (options: Http2RequestOptions): Promise<Http2Res
 
     stream.on('close', () => {
       if (!settled) {
-        rejectRequest(new Error(`HTTP/2 stream closed before the response completed (rstCode ${stream.rstCode})`));
+        rejectRequest(new Error(`HTTP/2 stream closed before the response completed (${rstCodeLabel(stream.rstCode)})`));
       }
     });
 

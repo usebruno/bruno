@@ -56,6 +56,11 @@ const applyHttp2Transport = async ({ config, requestedHttpVersion, agentOptions,
     return;
   }
 
+  // clear any stale h2 adapter carried over from a previous redirect hop
+  if (config.adapter) {
+    delete config.adapter;
+  }
+
   if (Array.isArray(timeline)) {
     timeline.push({
       timestamp: new Date(),

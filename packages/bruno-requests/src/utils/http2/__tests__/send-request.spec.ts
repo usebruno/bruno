@@ -61,7 +61,7 @@ describe('sendHttp2Request', () => {
     const p = sendHttp2Request({ method: 'GET', url: 'https://x.test/' });
     fakeStream.rstCode = 8;
     fakeStream.emit('close');
-    await expect(p).rejects.toThrow(/closed before the response/);
+    await expect(p).rejects.toThrow(/closed before the response completed \(CANCEL \(8\)\)/);
     expect(mockRelease).toHaveBeenCalledTimes(1);
   });
 
