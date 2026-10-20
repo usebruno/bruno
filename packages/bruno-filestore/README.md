@@ -35,6 +35,20 @@ const bruContent = stringifyRequest(requestData);
 const requestData = parseRequest(yamlContent, { format: 'yaml' });
 ```
 
+### Writing a converted collection to disk
+
+`writeCollectionToDisk` takes a collection as returned by `@usebruno/converters` and writes it as a collection directory that Bruno can open:
+
+```javascript
+const { openApiToBruno } = require('@usebruno/converters');
+const { writeCollectionToDisk } = require('@usebruno/filestore');
+
+const collection = openApiToBruno(openApiSpecification);
+await writeCollectionToDisk(collection, './my-collection');
+```
+
+`outputDir` is created if it does not exist. If it already exists it must be empty, otherwise the call rejects with an error whose `code` is `'ENOTEMPTY'` and nothing is written.
+
 ## API
 
 The package provides the following functions:
@@ -47,4 +61,5 @@ The package provides the following functions:
 - `stringifyFolder(folderObj, options = { format: 'bru' })`: Convert folder object to file content
 - `parseEnvironment(content, options = { format: 'bru' })`: Parse environment file content
 - `stringifyEnvironment(envObj, options = { format: 'bru' })`: Convert environment object to file content
-- `parseDotEnv(content)`: Parse .env file content 
+- `parseDotEnv(content)`: Parse .env file content
+- `writeCollectionToDisk(collection, outputDir, options = { format: 'yml' })`: Write a whole collection to `outputDir` — `opencollection.yml` (yml) or `bruno.json` + `collection.bru` (bru), one folder file per folder, one file per request, and `environments/<name>`. Resolves to `outputDir`. `outputDir` must be missing or empty; otherwise it rejects with `code: 'ENOTEMPTY'` 

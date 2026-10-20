@@ -12,7 +12,6 @@ const FORMAT_CONFIG = {
   yml: { ext: '.yml', collectionFile: 'opencollection.yml', folderFile: 'folder.yml' },
   bru: { ext: '.bru', collectionFile: 'collection.bru', folderFile: 'folder.bru' }
 };
-const REQUEST_ITEM_TYPES = ['http-request', 'graphql-request'];
 
 const getCollectionFormat = (collectionPath) => {
   if (fs.existsSync(path.join(collectionPath, 'opencollection.yml'))) return 'yml';
