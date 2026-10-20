@@ -227,6 +227,7 @@ class GrpcClient {
    * @param {grpc.ChannelCredentials} credentials - defaults to insecure
    * @param {grpc.Metadata} metadata - metadata to be sent with reflection calls (used for insecure connections where credentials can't include metadata)
    * @param {grpc.ChannelOptions} options - channel options
+   * @param {string} pathPrefix - URL subpath the server is hosted under, prefixed to the reflection method paths
    * @returns {Promise<{ client: GrpcReflection, services: string[], callOptions: Object }>}
    */
   async #getReflectionClient(host, credentials = ChannelCredentials.createInsecure(), metadata = null, options = {}, pathPrefix = '') {
@@ -264,8 +265,11 @@ class GrpcClient {
    */
   #applyPathPrefix(reflectionInstance, host, credentials, options, prefix) {
     const originalClient = reflectionInstance.client;
-    const serviceDef = originalClient.constructor?.service;
-    if (!serviceDef) return;
+    const serviceDef = originalClient?.constructor?.service;
+    if (!serviceDef) {
+      console.warn('Could not read the reflection service definition; reflection will skip the URL subpath');
+      return;
+    }
 
     const prefixedDef = {};
     for (const [name, def] of Object.entries(serviceDef)) {

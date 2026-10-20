@@ -1,0 +1,15 @@
+info:
+  name: ReflectionUnderSubpath
+  type: grpc
+  seq: 1
+
+grpc:
+  url: grpc://localhost:50051/Hello.Api
+  method: /hello.HelloService/SayHello
+  methodType: unary
+  message:
+    - title: message 1
+      message: |-
+        {
+          "greeting": "amoveo"
+        }

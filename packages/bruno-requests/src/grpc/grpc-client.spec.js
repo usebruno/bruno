@@ -6,6 +6,7 @@
 let capturedChannelOptions = null;
 let capturedHost = null;
 let capturedRequestPath = null;
+let capturedClientDefinition = null;
 
 // Mock GrpcReflection to capture options
 const mockListServices = jest.fn().mockResolvedValue(['test.Service']);
@@ -23,7 +24,16 @@ jest.mock('grpc-js-reflection-client', () => ({
   GrpcReflection: jest.fn().mockImplementation((host, credentials, options) => {
     capturedChannelOptions = options;
     capturedHost = host;
+    // Mirrors the library's internal grpc-js client, whose method paths get rewritten
+    // to reach a server hosted under a URL subpath.
+    class ReflectionServiceClient {
+      close() {}
+    }
+    ReflectionServiceClient.service = {
+      ServerReflectionInfo: { path: '/grpc.reflection.v1.ServerReflection/ServerReflectionInfo' }
+    };
     return {
+      client: new ReflectionServiceClient(),
       listServices: mockListServices,
       listMethods: mockListMethods
     };
@@ -67,7 +77,8 @@ jest.mock('@grpc/grpc-js', () => {
   };
 
   return {
-    makeGenericClientConstructor: jest.fn(() => {
+    makeGenericClientConstructor: jest.fn((definition) => {
+      capturedClientDefinition = definition;
       return jest.fn().mockImplementation((host, credentials, options) => {
         capturedChannelOptions = options;
         capturedHost = host;
@@ -114,6 +125,7 @@ describe('GrpcClient', () => {
     capturedChannelOptions = null;
     capturedHost = null;
     capturedRequestPath = null;
+    capturedClientDefinition = null;
     mockEventCallback = jest.fn();
     grpcClient = new GrpcClient(mockEventCallback);
   });
@@ -803,6 +815,41 @@ describe('GrpcClient', () => {
       });
 
       expect(capturedHost).toBe('myserver:443');
+    });
+  });
+
+  describe('URL subpath support in loadMethodsFromReflection', () => {
+    const baseParams = {
+      collectionUid: 'test-collection-uid',
+      sendEvent: jest.fn()
+    };
+
+    test('should include URL subpath in the reflection method paths', async () => {
+      const request = {
+        url: 'grpcs://myserver:443/MySubPath',
+        uid: 'test-request-uid',
+        headers: {}
+      };
+
+      const methods = await grpcClient.loadMethodsFromReflection({ request, ...baseParams });
+
+      expect(capturedClientDefinition.ServerReflectionInfo.path).toBe(
+        '/MySubPath/grpc.reflection.v1.ServerReflection/ServerReflectionInfo'
+      );
+      expect(capturedHost).toBe('myserver:443');
+      expect(methods).toHaveLength(1);
+    });
+
+    test('should leave the reflection client untouched without a subpath', async () => {
+      const request = {
+        url: 'grpc://myserver:50051',
+        uid: 'test-request-uid',
+        headers: {}
+      };
+
+      await grpcClient.loadMethodsFromReflection({ request, ...baseParams });
+
+      expect(capturedClientDefinition).toBeNull();
     });
   });
 });
