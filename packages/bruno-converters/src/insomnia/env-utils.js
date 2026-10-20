@@ -12,7 +12,7 @@ export const toBrunoEnv = (env, index = 0) => {
     variables.push({
       uid: uuid(),
       name,
-      value: String(value),
+      value: normalizeVariables(value),
       type: 'text',
       enabled: true,
       secret: false
@@ -87,4 +87,20 @@ export const buildV4Environments = (resources, workspaceId) => {
   });
 
   return result;
+};
+
+/**
+ * Normalizes Insomnia variable references in a string.
+ * - Removes leading '_.'
+ * - Removes spaces inside the variable name
+ * @param value the string to normalize
+ * @returns {string} the normalized string
+ */
+export const normalizeVariables = (value) => {
+  value = String(value ?? '');
+  const variables = value.match(regexVariable) || [];
+  each(variables, (variable) => {
+    value = value.replace(variable, variable.replace('_.', '').replaceAll(' ', ''));
+  });
+  return value;
 };
