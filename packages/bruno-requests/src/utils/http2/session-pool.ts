@@ -4,6 +4,9 @@ import { buildTlsConnectOptions } from './tls-connect-options';
 import { buildConnectionKey } from './cache-key';
 
 const IDLE_TIMEOUT_MS = 60 * 1000;
+// Node's default (128) rejects large response header lists with ENHANCE_YOUR_CALM.
+// raise it.
+const MAX_HEADER_LIST_PAIRS = 512;
 
 type SessionState = 'connecting' | 'active' | 'draining';
 
@@ -12,11 +15,13 @@ type PooledSession = {
   state: SessionState;
   activeStreams: number;
   idleTimer: ReturnType<typeof setTimeout> | null;
+  serverSettingsReceived: Promise<void>;
 };
 
 export type AcquiredSession = {
   session: http2.ClientHttp2Session;
   releaseStream: () => void;
+  serverSettingsReceived: Promise<void>;
 };
 
 export type AcquireSessionParams = {
@@ -77,8 +82,17 @@ const createPooledSession = (key: string, params: AcquireSessionParams): PooledS
     lookup: params.lookup
   });
 
-  const session = http2.connect(authority, connectOptions);
-  const pooledSession: PooledSession = { session, state: 'connecting', activeStreams: 0, idleTimer: null };
+  const session = http2.connect(authority, { ...connectOptions, maxHeaderListPairs: MAX_HEADER_LIST_PAIRS });
+
+  // Wait for the server's SETTINGS, but also unblock if the session fails or closes.
+  const serverSettingsReceived = new Promise<void>((resolve) => {
+    const markReady = (): void => resolve();
+    session.once('remoteSettings', markReady);
+    session.once('error', markReady);
+    session.once('close', markReady);
+  });
+
+  const pooledSession: PooledSession = { session, state: 'connecting', activeStreams: 0, idleTimer: null, serverSettingsReceived };
 
   session.once('connect', () => {
     pooledSession.state = 'active';
@@ -141,7 +155,7 @@ export const acquireSession = (params: AcquireSessionParams): AcquiredSession =>
     startIdleTimer(key, pooledSession);
   };
 
-  return { session: pooledSession.session, releaseStream };
+  return { session: pooledSession.session, releaseStream, serverSettingsReceived: pooledSession.serverSettingsReceived };
 };
 
 // Close every pooled session and empty the pool (shutdown / preference change).

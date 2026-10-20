@@ -77,6 +77,37 @@ describe('createHttp2Adapter', () => {
     expect(res.status).toBe(500);
   });
 
+  it('sets Basic Authorization from URL credentials (url-decoded)', async () => {
+    mockSend.mockResolvedValue(baseResult);
+    await createHttp2Adapter({})({ url: 'https://user:p%40ss@x.test/', headers: {} });
+    expect(mockSend.mock.calls[0][0].headers['Authorization']).toBe(`Basic ${Buffer.from('user:p@ss').toString('base64')}`);
+  });
+
+  it('URL credentials override an existing Authorization header', async () => {
+    mockSend.mockResolvedValue(baseResult);
+    await createHttp2Adapter({})({ url: 'https://user:pass@x.test/', headers: { Authorization: 'Basic folderCreds' } });
+    expect(mockSend.mock.calls[0][0].headers['Authorization']).toBe(`Basic ${Buffer.from('user:pass').toString('base64')}`);
+  });
+
+  it('leaves an existing Authorization header when the URL has no credentials', async () => {
+    mockSend.mockResolvedValue(baseResult);
+    await createHttp2Adapter({})({ url: 'https://x.test/', headers: { Authorization: 'Bearer tok' } });
+    expect(mockSend.mock.calls[0][0].headers['Authorization']).toBe('Bearer tok');
+  });
+
+  it('decompresses a gzip response body and drops content-encoding', async () => {
+    const gz = require('node:zlib').gzipSync(Buffer.from('{"ok":true}'));
+    mockSend.mockResolvedValue({
+      status: 200,
+      headers: { 'content-encoding': 'gzip', 'content-length': String(gz.length) },
+      data: gz,
+      httpVersion: '2.0'
+    });
+    const res = await createHttp2Adapter({})({ url: 'https://x.test/', responseType: 'arraybuffer' });
+    expect(res.data.toString()).toBe('{"ok":true}');
+    expect(res.headers['content-encoding']).toBeUndefined();
+  });
+
   it('maps a transport rejection to an AxiosError', async () => {
     mockSend.mockRejectedValue(new Error('boom'));
     await expect(createHttp2Adapter({})({ url: 'https://x.test/' })).rejects.toMatchObject({

@@ -11,21 +11,31 @@ const CONNECTION_SPECIFIC_HEADERS = new Set([
   'keep-alive',
   'proxy-connection',
   'transfer-encoding',
-  'upgrade'
+  'upgrade',
+  'http2-settings'
 ]);
 
 export const buildHttp2RequestHeaders = (method: string, url: string, headers: Http1Headers = {}): Http2RequestHeaders => {
   const parsed = new URL(url);
 
+  // A user-set Host header overrides the URL host as the :authority.
+  let authority = parsed.host;
+  for (const [rawName, value] of Object.entries(headers)) {
+    if (value !== null && value !== undefined && rawName.toLowerCase() === 'host') {
+      authority = String(value);
+      break;
+    }
+  }
+
   const http2Headers: Http2RequestHeaders = {
     ':method': (method || 'GET').toUpperCase(),
     ':scheme': parsed.protocol.replace(/:$/, ''),
-    ':authority': parsed.host,
+    ':authority': authority,
     ':path': `${parsed.pathname}${parsed.search}` || '/'
   };
 
   for (const [rawName, value] of Object.entries(headers)) {
-    if (value == null) continue;
+    if (value === null || value === undefined) continue;
 
     const name = rawName.toLowerCase();
 

@@ -31,10 +31,10 @@ describe('buildHttp2RequestHeaders', () => {
     expect(h2['x-foo']).toEqual(['a', 'b']);
   });
 
-  it('folds Host into :authority (drops the Host header)', () => {
-    const h2 = buildHttp2RequestHeaders('GET', 'https://x.test/', { Host: 'spoof.test' });
+  it('maps a Host header override to :authority (and drops the Host header)', () => {
+    const h2 = buildHttp2RequestHeaders('GET', 'https://localhost:8443/p', { Host: 'virtual.example:8443' });
     expect(h2['host']).toBeUndefined();
-    expect(h2[':authority']).toBe('x.test');
+    expect(h2[':authority']).toBe('virtual.example:8443');
   });
 
   it('strips connection-specific headers', () => {
@@ -43,7 +43,8 @@ describe('buildHttp2RequestHeaders', () => {
       'Keep-Alive': 'timeout=5',
       'Proxy-Connection': 'keep-alive',
       'Transfer-Encoding': 'chunked',
-      'Upgrade': 'h2c'
+      'Upgrade': 'h2c',
+      'HTTP2-Settings': 'AAMAAABkAAQAAP__'
     });
     expect(Object.keys(h2).filter((k) => !k.startsWith(':'))).toEqual([]);
   });

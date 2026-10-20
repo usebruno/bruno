@@ -115,6 +115,39 @@ describe('session-pool', () => {
     expect((a.session as unknown as { close: jest.Mock }).close).toHaveBeenCalled();
   });
 
+  it('resolves ready when the session receives remoteSettings', async () => {
+    const a = acquireSession({ url: 'https://a.test/' });
+    let readyResolved = false;
+    a.serverSettingsReceived.then(() => {
+      readyResolved = true;
+    });
+    await Promise.resolve();
+    expect(readyResolved).toBe(false);
+    a.session.emit('remoteSettings');
+    await a.serverSettingsReceived;
+    expect(readyResolved).toBe(true);
+  });
+
+  it('ready is already resolved for a reused warm session', async () => {
+    const a = acquireSession({ url: 'https://a.test/' });
+    a.session.emit('remoteSettings');
+    await a.serverSettingsReceived;
+    const b = acquireSession({ url: 'https://a.test/' });
+    expect(b.session).toBe(a.session);
+    await expect(b.serverSettingsReceived).resolves.toBeUndefined();
+  });
+
+  it('ready resolves (does not hang) if the session errors before settings', async () => {
+    const a = acquireSession({ url: 'https://a.test/' });
+    a.session.emit('error', new Error('connect failed'));
+    await expect(a.serverSettingsReceived).resolves.toBeUndefined();
+  });
+
+  it('raises maxHeaderListPairs so large response header lists are accepted', () => {
+    acquireSession({ url: 'https://a.test/' });
+    expect(mockConnect.mock.calls[0][1].maxHeaderListPairs).toBeGreaterThanOrEqual(256);
+  });
+
   it('closeAllSessions closes everything and empties the pool', () => {
     const a = acquireSession({ url: 'https://a.test/' });
     const b = acquireSession({ url: 'https://b.test/' });
