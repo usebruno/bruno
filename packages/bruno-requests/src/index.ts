@@ -39,12 +39,12 @@ export {
 export {
   buildTlsConnectOptions,
   pickTlsFields,
-  resolveHttpVersion,
+  resolveHttpVersionViaAlpn,
   negotiateHttpVersion,
   invalidateAlpn,
   clearAlpnCache,
-  toHttp2Headers,
-  fromHttp2Headers,
+  buildHttp2RequestHeaders,
+  parseHttp2ResponseHeaders,
   sendHttp2Request
 } from './utils/http2';
 export type { HttpVersionMode, Resolved } from './utils/http2';

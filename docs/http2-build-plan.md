@@ -89,8 +89,11 @@ still routes HTTP/1.1 (no transport yet).
   "attaches in a later step" log). `:path` comes straight from `config.url` — Bruno bakes the full query string into
   the URL upstream (query params + query-param auth reassign `request.url`); axios config carries no `.params`/`baseURL`,
   so no `buildFullPath`/`paramsSerializer` replication.
-**Deferred to Phase 9 (confirmed):** streaming request bodies, streaming response bodies, and multipart/FormData.
-This phase supports string / Buffer / no body only.
+**Deferred to Phase 9 (confirmed):** streaming request bodies, *true incremental* streaming response
+bodies (SSE backpressure), and multipart/FormData. This phase supports string / Buffer / no body only.
+**Note:** Bruno's pipeline is stream-first (it forces `responseType: 'stream'` and reads `response.data`
+via `promisifyStream`), so the adapter must return a Node Readable. We buffer the full body and wrap it
+in a `PassThrough` (emit once, end) — correct for normal responses; real-time incremental SSE is Phase 9.
 **Tests:** `headers.spec.ts` (translation, stripping, lower-case, `:authority`, `:path`, `:status` split).
 `transport.spec.ts` (GET/POST → 200, protocol 2.0, body echo, session closed; h1-only path never reaches h2).
 Electron: adapter sets `config.adapter` only when h2 and shapes the response (transport mocked).

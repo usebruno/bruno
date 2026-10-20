@@ -13,7 +13,7 @@ import { buildTlsConnectOptions, type HttpVersionMode } from './tls-connect-opti
 const DEFAULT_TTL_MS = 10 * 60 * 1000;
 const PROBE_TIMEOUT_MS = 10 * 1000;
 
-type CacheEntry = { alpn: string | null; expiresAt: number };
+type CacheEntry = { acceptedAlpnProtocol: string | null; expiresAt: number };
 const alpnCache = new Map<string, CacheEntry>();
 
 const hash = (value: unknown): string => {
@@ -38,7 +38,7 @@ const cacheKey = (origin: string, tlsOptions: Record<string, unknown> = {}, prox
     proxyUri || 'direct'
   ].join('|');
 
-export type NegotiationResult = { alpn: string | null; protocol?: string; error?: string };
+export type NegotiationResult = { acceptedAlpnProtocol: string | null; protocol?: string; error?: string };
 
 /** One TLS handshake offering both protocols. resolves to the negotiated ALPN. */
 export function negotiateHttpVersion(params: {
@@ -59,15 +59,15 @@ export function negotiateHttpVersion(params: {
     };
     const socket = tls.connect(options);
     const timer = setTimeout(
-      () => finish({ alpn: null, error: `ALPN probe timed out after ${PROBE_TIMEOUT_MS} ms` }),
+      () => finish({ acceptedAlpnProtocol: null, error: `ALPN probe timed out after ${PROBE_TIMEOUT_MS} ms` }),
       PROBE_TIMEOUT_MS
     );
-    socket.once('secureConnect', () => finish({ alpn: socket.alpnProtocol || null, protocol: socket.getProtocol() || undefined }));
-    socket.once('error', (err: Error) => finish({ alpn: null, error: err.message }));
+    socket.once('secureConnect', () => finish({ acceptedAlpnProtocol: socket.alpnProtocol || null, protocol: socket.getProtocol() || undefined }));
+    socket.once('error', (err: Error) => finish({ acceptedAlpnProtocol: null, error: err.message }));
   });
 }
 
-export type ResolveHttpVersionParams = {
+export type ResolveHttpVersionViaAlpnParams = {
   url: string;
   mode: HttpVersionMode;
   tlsOptions?: Record<string, unknown> | null;
@@ -76,18 +76,18 @@ export type ResolveHttpVersionParams = {
   ttlMs?: number;
 };
 
-export type Resolved = { httpVersion: 1 | 2; reason: string; offered?: string[]; alpn?: string | null };
+export type Resolved = { httpVersion: 1 | 2; reason: string; offered?: string[]; acceptedAlpnProtocol?: string | null };
 
-export async function resolveHttpVersion(params: ResolveHttpVersionParams): Promise<Resolved> {
+export async function resolveHttpVersionViaAlpn(params: ResolveHttpVersionViaAlpnParams): Promise<Resolved> {
   const { url, mode, tlsOptions = {}, lookup, proxyUri, ttlMs = DEFAULT_TTL_MS } = params;
 
-  let parsed: URL;
+  let parsedUrl: URL;
   try {
-    parsed = new URL(url);
+    parsedUrl = new URL(url);
   } catch {
     return { httpVersion: 1, reason: 'unparseable URL' };
   }
-  if (parsed.protocol !== 'https:') {
+  if (parsedUrl.protocol !== 'https:') {
     return { httpVersion: 1, reason: 'cleartext URL (h2c not supported)' };
   }
   if (mode === 'http1.1') {
@@ -98,29 +98,29 @@ export async function resolveHttpVersion(params: ResolveHttpVersionParams): Prom
   }
 
   // for auto, negotiate via ALPN, cached per origin + TLS identity.
-  const port = Number(parsed.port) || 443;
-  const origin = `${parsed.hostname}:${port}`;
+  const port = Number(parsedUrl.port) || 443;
+  const origin = `${parsedUrl.hostname}:${port}`;
   const key = cacheKey(origin, tlsOptions || {}, proxyUri);
   const cached = alpnCache.get(key);
   if (cached && cached.expiresAt > Date.now()) {
     return {
-      httpVersion: cached.alpn === 'h2' ? 2 : 1,
+      httpVersion: cached.acceptedAlpnProtocol === 'h2' ? 2 : 1,
       reason: 'auto (cached)',
       offered: ['h2', 'http/1.1'],
-      alpn: cached.alpn
+      acceptedAlpnProtocol: cached.acceptedAlpnProtocol
     };
   }
 
-  const negotiated = await negotiateHttpVersion({ hostname: parsed.hostname, port, tlsOptions, lookup });
+  const negotiated = await negotiateHttpVersion({ hostname: parsedUrl.hostname, port, tlsOptions, lookup });
   if (negotiated.error) {
     return { httpVersion: 1, reason: `ALPN negotiation failed (${negotiated.error}); using HTTP/1.1` };
   }
-  alpnCache.set(key, { alpn: negotiated.alpn, expiresAt: Date.now() + ttlMs });
+  alpnCache.set(key, { acceptedAlpnProtocol: negotiated.acceptedAlpnProtocol, expiresAt: Date.now() + ttlMs });
   return {
-    httpVersion: negotiated.alpn === 'h2' ? 2 : 1,
+    httpVersion: negotiated.acceptedAlpnProtocol === 'h2' ? 2 : 1,
     reason: `auto (${negotiated.protocol || 'negotiated'})`,
     offered: ['h2', 'http/1.1'],
-    alpn: negotiated.alpn
+    acceptedAlpnProtocol: negotiated.acceptedAlpnProtocol
   };
 }
 

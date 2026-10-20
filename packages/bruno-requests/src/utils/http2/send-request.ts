@@ -1,7 +1,7 @@
 import http2 from 'node:http2';
 import type { LookupFunction } from 'node:net';
 import { buildTlsConnectOptions } from './tls-connect-options';
-import { toHttp2Headers, fromHttp2Headers, type Http1Headers } from './headers';
+import { buildHttp2RequestHeaders, parseHttp2ResponseHeaders, type Http1Headers } from './headers';
 
 export type Http2RequestOptions = {
   method: string;
@@ -20,22 +20,24 @@ export type Http2Response = {
   httpVersion: '2.0';
 };
 
+// send an http2 request using node's built-in http2 module. returns a promise that resolves with the response.
 export const sendHttp2Request = (options: Http2RequestOptions): Promise<Http2Response> => {
   const { method, url, headers = {}, body, tlsOptions, lookup, timeout } = options;
 
-  const parsed = new URL(url);
-  const port = Number(parsed.port) || 443;
-  const authority = `${parsed.protocol}//${parsed.host}`;
+  const parsedUrl = new URL(url);
+  const port = Number(parsedUrl.port) || 443;
+  const authority = `${parsedUrl.protocol}//${parsedUrl.host}`;
 
   return new Promise<Http2Response>((resolve, reject) => {
     const connectOptions = buildTlsConnectOptions({
-      hostname: parsed.hostname,
+      hostname: parsedUrl.hostname,
       port,
       tlsOptions,
       mode: 'http2',
       lookup
     });
 
+    // create a new HTTP/2 session for the request.
     const session = http2.connect(authority, connectOptions);
 
     let settled = false;
@@ -70,7 +72,7 @@ export const sendHttp2Request = (options: Http2RequestOptions): Promise<Http2Res
     session.on('error', fail);
     const hasBody = body != null && body.length > 0;
 
-    const stream = session.request(toHttp2Headers(method, url, headers), { endStream: !hasBody });
+    const stream = session.request(buildHttp2RequestHeaders(method, url, headers), { endStream: !hasBody });
 
     if (hasBody) {
       stream.end(body);
@@ -79,8 +81,8 @@ export const sendHttp2Request = (options: Http2RequestOptions): Promise<Http2Res
     let status = 0;
     let responseHeaders: Record<string, string | string[]> = {};
 
-    stream.on('response', (h2headers) => {
-      const parsedHeaders = fromHttp2Headers(h2headers as Record<string, string | string[] | undefined>);
+    stream.on('response', (http2headers) => {
+      const parsedHeaders = parseHttp2ResponseHeaders(http2headers as Record<string, string | string[] | undefined>);
       status = parsedHeaders.status;
       responseHeaders = parsedHeaders.headers;
     });

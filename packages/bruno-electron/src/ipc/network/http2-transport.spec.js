@@ -1,11 +1,11 @@
 jest.mock('../../store/preferences', () => ({
   preferencesUtil: { getHttpVersion: jest.fn(() => 'http1.1') }
 }));
-jest.mock('@usebruno/requests', () => ({ resolveHttpVersion: jest.fn() }));
+jest.mock('@usebruno/requests', () => ({ resolveHttpVersionViaAlpn: jest.fn() }));
 
 const { preferencesUtil } = require('../../store/preferences');
 const { resolveRequestedHttpVersion, canUseHttp2, applyHttp2Transport } = require('./http2-transport');
-const { resolveHttpVersion } = require('@usebruno/requests');
+const { resolveHttpVersionViaAlpn } = require('@usebruno/requests');
 
 describe('http2 seam (Phase 1)', () => {
   beforeEach(() => preferencesUtil.getHttpVersion.mockReturnValue('http1.1'));
@@ -36,38 +36,38 @@ describe('http2 seam (Phase 1)', () => {
   });
 
   describe('applyHttp2Transport (Phase 2 — resolve + log, no transport yet)', () => {
-    beforeEach(() => resolveHttpVersion.mockReset());
+    beforeEach(() => resolveHttpVersionViaAlpn.mockReset());
 
     it('skips the h2 path for http1.1 (no resolve, no timeline, no transport)', async () => {
       const config = { url: 'https://x.test/' };
       const timeline = [];
       await applyHttp2Transport({ config, requestedHttpVersion: 'http1.1', agentOptions: {}, timeline });
-      expect(resolveHttpVersion).not.toHaveBeenCalled();
+      expect(resolveHttpVersionViaAlpn).not.toHaveBeenCalled();
       expect(timeline).toHaveLength(0);
       expect(config.transport).toBeUndefined();
     });
 
-    it('logs ALPN + an h2-negotiated note but attaches no transport', async () => {
-      resolveHttpVersion.mockResolvedValue({
+    it('attaches the h2 adapter and logs the negotiated note', async () => {
+      resolveHttpVersionViaAlpn.mockResolvedValue({
         httpVersion: 2,
         reason: 'auto (h2)',
         offered: ['h2', 'http/1.1'],
-        alpn: 'h2'
+        acceptedAlpnProtocol: 'h2'
       });
       const config = { url: 'https://x.test/' };
       const timeline = [];
       await applyHttp2Transport({ config, requestedHttpVersion: 'auto', agentOptions: {}, timeline });
-      expect(config.transport).toBeUndefined();
+      expect(typeof config.adapter).toBe('function');
       expect(timeline.some((e) => /ALPN: offered/.test(e.message))).toBe(true);
       expect(timeline.some((e) => /HTTP\/2 negotiated/.test(e.message))).toBe(true);
     });
 
     it('logs HTTP/1.1 selected when negotiation falls back', async () => {
-      resolveHttpVersion.mockResolvedValue({ httpVersion: 1, reason: 'auto (http/1.1)', offered: ['h2', 'http/1.1'], alpn: 'http/1.1' });
+      resolveHttpVersionViaAlpn.mockResolvedValue({ httpVersion: 1, reason: 'auto (http/1.1)', offered: ['h2', 'http/1.1'], acceptedAlpnProtocol: 'http/1.1' });
       const config = { url: 'https://x.test/' };
       const timeline = [];
       await applyHttp2Transport({ config, requestedHttpVersion: 'auto', agentOptions: {}, timeline });
-      expect(config.transport).toBeUndefined();
+      expect(config.adapter).toBeUndefined();
       expect(timeline.some((e) => /HTTP\/1.1 selected/.test(e.message))).toBe(true);
     });
   });

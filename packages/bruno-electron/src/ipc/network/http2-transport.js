@@ -1,5 +1,6 @@
 const { preferencesUtil } = require('../../store/preferences');
-const { resolveHttpVersion } = require('@usebruno/requests');
+const { resolveHttpVersionViaAlpn } = require('@usebruno/requests');
+const { createHttp2Adapter } = require('./http2-adapter');
 
 /**
  * @returns {'auto' | 'http1.1' | 'http2'}
@@ -28,28 +29,38 @@ const applyHttp2Transport = async ({ config, requestedHttpVersion, agentOptions,
   }
 
   // get the HTTP version to use (1 or 2) and the reason for the decision.
-  const versionDecision = await resolveHttpVersion({
+  const httpVersionDecision = await resolveHttpVersionViaAlpn({
     url: config.url,
     mode: requestedHttpVersion,
     tlsOptions: agentOptions,
     lookup: config.lookup
   });
 
-  if (Array.isArray(timeline)) {
-    if (versionDecision.offered && versionDecision.offered.length > 0) {
+  if (Array.isArray(timeline) && httpVersionDecision.offered && httpVersionDecision.offered.length > 0) {
+    timeline.push({
+      timestamp: new Date(),
+      type: 'tls',
+      message: `ALPN: offered ${httpVersionDecision.offered.join(', ')} · server accepted ${httpVersionDecision.acceptedAlpnProtocol || 'none'}`
+    });
+  }
+
+  if (httpVersionDecision.httpVersion === 2) {
+    config.adapter = createHttp2Adapter({ tlsOptions: agentOptions });
+    if (Array.isArray(timeline)) {
       timeline.push({
         timestamp: new Date(),
-        type: 'tls',
-        message: `ALPN: offered ${versionDecision.offered.join(', ')} · server accepted ${versionDecision.alpn || 'none'}`
+        type: 'info',
+        message: `HTTP/2 negotiated (${httpVersionDecision.reason}); using HTTP/2 transport`
       });
     }
+    return;
+  }
+
+  if (Array.isArray(timeline)) {
     timeline.push({
       timestamp: new Date(),
       type: 'info',
-      message:
-        versionDecision.httpVersion === 2
-          ? `HTTP/2 negotiated (${versionDecision.reason}); transport attaches in a later step — using HTTP/1.1 for now`
-          : `HTTP/1.1 selected (${versionDecision.reason})`
+      message: `HTTP/1.1 selected (${httpVersionDecision.reason})`
     });
   }
 };

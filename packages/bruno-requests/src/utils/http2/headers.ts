@@ -14,7 +14,7 @@ const CONNECTION_SPECIFIC_HEADERS = new Set([
   'upgrade'
 ]);
 
-export const toHttp2Headers = (method: string, url: string, headers: Http1Headers = {}): Http2RequestHeaders => {
+export const buildHttp2RequestHeaders = (method: string, url: string, headers: Http1Headers = {}): Http2RequestHeaders => {
   const parsed = new URL(url);
 
   const http2Headers: Http2RequestHeaders = {
@@ -25,31 +25,23 @@ export const toHttp2Headers = (method: string, url: string, headers: Http1Header
   };
 
   for (const [rawName, value] of Object.entries(headers)) {
-    if (value === undefined || value === null) {
-      continue;
-    }
+    if (value == null) continue;
 
-    // HTTP/2 header names must be lower-case.
     const name = rawName.toLowerCase();
 
-    // drop the caller supplied headers with :
-    if (name.startsWith(':')) {
+    // Skip headers that HTTP/2 doesn't allow or handles separately.
+    if (
+      name.startsWith(':')
+      || name === 'host'
+      || CONNECTION_SPECIFIC_HEADERS.has(name)
+    ) {
       continue;
     }
 
-    // Host is represented by :authority in HTTP/2.
-    if (name === 'host') {
-      continue;
-    }
-
-    if (CONNECTION_SPECIFIC_HEADERS.has(name)) {
-      continue;
-    }
-
-    // te is permitted only as "trailers".
+    // HTTP/2 only allows only "trailers" as the TE value.
     if (name === 'te') {
       if (String(value).toLowerCase() === 'trailers') {
-        http2Headers['te'] = 'trailers';
+        http2Headers.te = 'trailers';
       }
       continue;
     }
@@ -63,7 +55,7 @@ export const toHttp2Headers = (method: string, url: string, headers: Http1Header
 /**
  * Split an HTTP/2 response header block back into the `{ status, headers }` shape
  */
-export const fromHttp2Headers = (
+export const parseHttp2ResponseHeaders = (
   http2headers: Record<string, string | string[] | undefined>
 ): { status: number; headers: Record<string, string | string[]> } => {
   const headers: Record<string, string | string[]> = {};
