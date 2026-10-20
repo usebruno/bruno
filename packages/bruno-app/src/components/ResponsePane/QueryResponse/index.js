@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import QueryResult from '../QueryResult';
 import { useInitialResponseFormat, useResponsePreviewFormatOptions, usePreferredFallbackFormat } from '../QueryResult/index';
 import QueryResultTypeSelector from '../QueryResult/QueryResultTypeSelector/index';
@@ -24,7 +24,18 @@ const QueryResponse = ({
   const [filter, setFilter] = useState('');
   const [filterExpanded, setFilterExpanded] = useState(false);
 
+  // Set once the user picks a format or view tab, so that a change of the detection
+  // preference doesn't override it. A new response starts from the detected defaults again.
+  const hasManualSelection = useRef(false);
+
   useEffect(() => {
+    hasManualSelection.current = false;
+  }, [dataBuffer, headers]);
+
+  useEffect(() => {
+    if (hasManualSelection.current) {
+      return;
+    }
     if (initialFormat !== null && initialTab !== null) {
       setSelectedFormat(initialFormat);
       setSelectedTab(initialTab);
@@ -39,9 +50,11 @@ const QueryResponse = ({
             formatOptions={previewFormatOptions}
             formatValue={selectedFormat}
             onFormatChange={(newFormat) => {
+              hasManualSelection.current = true;
               setSelectedFormat(newFormat);
             }}
             onPreviewTabSelect={() => {
+              hasManualSelection.current = true;
               setSelectedTab((prev) => prev === 'editor' ? 'preview' : 'editor');
             }}
             selectedTab={selectedTab}
