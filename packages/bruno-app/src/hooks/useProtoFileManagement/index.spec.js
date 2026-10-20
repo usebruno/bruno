@@ -54,12 +54,15 @@ const renderProtoHook = (store) => renderHook(() => useProtoFileManagement(getCo
 });
 
 let writtenProtobuf;
+let writeError;
 
 beforeEach(() => {
   writtenProtobuf = null;
+  writeError = null;
   window.ipcRenderer = {
     invoke: jest.fn(async (channel, brunoConfig) => {
       if (channel === 'renderer:update-bruno-config') {
+        if (writeError) throw writeError;
         writtenProtobuf = brunoConfig.protobuf;
       }
     })
@@ -105,5 +108,23 @@ describe('useProtoFileManagement — persisting protobuf config from a request',
 
     expect(writtenProtobuf.protoFiles).toEqual([EXISTING_PROTO, { path: 'protos/new.proto', type: 'file' }]);
     expect(getCollection(store).draft).toBeUndefined();
+  });
+
+  it('leaves the draft untouched when the disk write fails', async () => {
+    const store = createStore();
+    store.dispatch(updateCollectionRequestScript({ collectionUid: COLLECTION_UID, script: SCRIPT }));
+    const { result } = renderProtoHook(store);
+    writeError = new Error('disk full');
+
+    let outcome;
+    await act(async () => {
+      outcome = await result.current.addProtoFileFromRequest(`${COLLECTION_PATH}/protos/new.proto`);
+    });
+
+    expect(outcome).toEqual({ success: false, error: writeError });
+    expect(writtenProtobuf).toBeNull();
+    const { draft } = getCollection(store);
+    expect(draft.brunoConfig).toBeUndefined();
+    expect(draft.root.request.script.req).toBe(SCRIPT);
   });
 });
