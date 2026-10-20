@@ -1,7 +1,7 @@
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { renderHook, act } from '@testing-library/react';
-import collectionsReducer, { updateCollectionRequestScript } from 'providers/ReduxStore/slices/collections';
+import collectionsReducer, { updateCollectionRequestScript, updateCollectionProtobuf } from 'providers/ReduxStore/slices/collections';
 import useProtoFileManagement from './index';
 
 jest.mock('nanoid', () => ({
@@ -108,6 +108,39 @@ describe('useProtoFileManagement — persisting protobuf config from a request',
 
     expect(writtenProtobuf.protoFiles).toEqual([EXISTING_PROTO, { path: 'protos/new.proto', type: 'file' }]);
     expect(getCollection(store).draft).toBeUndefined();
+  });
+
+  it('preserves a file added from the settings tab draft and does not duplicate it on consecutive adds', async () => {
+    const store = createStore();
+    const settingsTabProto = { path: 'protos/from-settings.proto', type: 'file' };
+    store.dispatch(updateCollectionProtobuf({
+      collectionUid: COLLECTION_UID,
+      protobuf: { protoFiles: [EXISTING_PROTO, settingsTabProto], importPaths: [EXISTING_IMPORT_PATH] }
+    }));
+    const { result, rerender } = renderProtoHook(store);
+
+    await act(async () => {
+      await result.current.addProtoFileFromRequest(`${COLLECTION_PATH}/protos/first.proto`);
+    });
+    rerender();
+    await act(async () => {
+      await result.current.addProtoFileFromRequest(`${COLLECTION_PATH}/protos/second.proto`);
+    });
+    rerender();
+    let outcome;
+    await act(async () => {
+      outcome = await result.current.addProtoFileFromRequest(`${COLLECTION_PATH}/protos/first.proto`);
+    });
+
+    const expectedProtoFiles = [
+      EXISTING_PROTO,
+      settingsTabProto,
+      { path: 'protos/first.proto', type: 'file' },
+      { path: 'protos/second.proto', type: 'file' }
+    ];
+    expect(outcome).toEqual({ success: true, relativePath: 'protos/first.proto', alreadyExists: true });
+    expect(writtenProtobuf.protoFiles).toEqual(expectedProtoFiles);
+    expect(getCollection(store).draft.brunoConfig.protobuf.protoFiles).toEqual(expectedProtoFiles);
   });
 
   it('leaves the draft untouched when the disk write fails', async () => {
