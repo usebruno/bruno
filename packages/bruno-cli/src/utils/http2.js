@@ -7,7 +7,7 @@
  * Direct requests only for the POC — a proxied request in http2 falls back to HTTP/1.1.
  */
 const { URL } = require('url');
-const { createHttp2Transport, connectTls } = require('@usebruno/requests');
+const { createHttp2Transport, establishTlsConnection } = require('@usebruno/requests');
 
 const applyBasicAuthHeader = (config) => {
   if (!config) return false;
@@ -53,7 +53,7 @@ const probeHttp2 = async ({ hostname, port, tlsOptions, lookup }) => {
   if (cached && cached.expiresAt > Date.now()) return cached.alpn === 'h2';
   let alpn = null;
   try {
-    const probe = await connectTls({ hostname, port, tlsOptions, mode: 'auto', lookup });
+    const probe = await establishTlsConnection({ hostname, port, tlsOptions, mode: 'auto', lookup });
     alpn = probe ? probe.alpn : null;
     if (probe && probe.socket) probe.socket.destroy();
   } catch (_) {

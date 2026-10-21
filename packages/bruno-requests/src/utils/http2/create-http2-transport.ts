@@ -16,14 +16,12 @@ import type { LookupFunction } from 'node:net';
 import type { Duplex } from 'node:stream';
 import { acquireSession } from './session-pool';
 import { buildHttp2RequestHeaders } from './headers';
-import type { HttpVersionMode, BrunoTlsOptions } from './connect-tls';
+import type { BrunoTlsOptions } from './tls-connect-options';
 import type { TimelineEntry } from './session-pool';
 
 export type CreateHttp2TransportParams = {
   /** Bruno's tlsOptions (as built by setupProxyAgents); non-TLS fields are ignored by the pool. */
   tlsOptions?: object;
-  /** Only `http2` (https) or `http2-prior-knowledge` (h2c) reach the pool; `auto` is resolved before. */
-  mode?: Extract<HttpVersionMode, 'http2' | 'http2-prior-knowledge'>;
   /** Bruno's custom DNS resolver (the *.localhost handling), forwarded to the TLS connect. */
   lookup?: LookupFunction;
   /** Proxy route, when any — part of the pool key so proxied and direct sessions never cross. */
@@ -52,7 +50,7 @@ type AxiosTransportOptions = {
 type ResponseCallback = (res: http2.ClientHttp2Stream) => void;
 
 export function createHttp2Transport(params: CreateHttp2TransportParams) {
-  const { tlsOptions, mode = 'http2', lookup, proxyUri = null, idleMs, timeline } = params;
+  const { tlsOptions, lookup, proxyUri = null, idleMs, timeline } = params;
 
   // The handed-off tunnel socket is single-use: only the first acquire for this origin dials.
   // Later requests reuse the pooled session and never call createConnection.
@@ -80,7 +78,6 @@ export function createHttp2Transport(params: CreateHttp2TransportParams) {
       const { pooled } = acquireSession({
         origin,
         tlsOptions: tlsOptions as BrunoTlsOptions,
-        mode,
         lookup,
         proxyUri,
         createConnection,

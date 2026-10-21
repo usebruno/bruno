@@ -38,7 +38,7 @@ export {
   closeAllSessions,
   getSessionCount,
   getSessionEntries,
-  connectTls,
+  establishTlsConnection,
   buildHttp2RequestHeaders,
   getSessionKey
 } from './utils/http2';
