@@ -27,15 +27,6 @@ export const sendHttp2Request = (options: Http2RequestOptions): Promise<Http2Res
   const { method, url, headers = {}, body, tlsOptions, lookup, proxyUri, timeout } = options;
 
   return new Promise((resolve, reject) => {
-    let acquired;
-    try {
-      acquired = acquireSession({ url, tlsOptions, lookup, proxyUri });
-    } catch (err) {
-      reject(err);
-      return;
-    }
-
-    const { session, releaseStream, serverSettingsReceived } = acquired;
     const isStreamBody = body !== null && body !== undefined && typeof (body as Readable).pipe === 'function';
     const hasBufferBody
       = !isStreamBody && body !== null && body !== undefined && (body as string | Buffer).length > 0;
@@ -44,6 +35,8 @@ export const sendHttp2Request = (options: Http2RequestOptions): Promise<Http2Res
     let settled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let stream: ClientHttp2Stream | undefined;
+    // Assigned once the session is acquired; undefined while the tunnel/handshake is in flight.
+    let releaseStream: (() => void) | undefined;
 
     const cleanup = () => {
       clearTimeout(timer);
@@ -51,7 +44,7 @@ export const sendHttp2Request = (options: Http2RequestOptions): Promise<Http2Res
       if (isStreamBody) {
         (body as Readable).destroy?.();
       }
-      releaseStream();
+      releaseStream?.();
     };
 
     const fail = (error: Error) => {
@@ -80,55 +73,105 @@ export const sendHttp2Request = (options: Http2RequestOptions): Promise<Http2Res
       }, timeout);
     }
 
-    // Wait for the server's SETTINGS before creating streams to avoid
-    // requests being refused before the concurrency limit is known.
-    serverSettingsReceived.then(() => {
-      if (settled) {
-        return;
-      }
-
-      try {
-        stream = session.request(buildHttp2RequestHeaders(method, url, headers), { endStream: !hasBody });
-      } catch (err) {
-        fail(err as Error);
-        return;
-      }
-
-      let status = 0;
-      let responseHeaders: Record<string, string | string[]> = {};
-      const chunks: Buffer[] = [];
-
-      stream.on('response', (h2Headers) => {
-        const parsed = parseHttp2ResponseHeaders(h2Headers as Record<string, string | string[] | undefined>);
-        status = parsed.status;
-        responseHeaders = parsed.headers;
-      });
-
-      stream.on('data', (chunk: Buffer) => {
-        chunks.push(Buffer.from(chunk));
-      });
-
-      stream.on('end', () => {
-        succeed({ status, headers: responseHeaders, data: Buffer.concat(chunks), httpVersion: '2.0' });
-      });
-
-      stream.on('error', fail);
-
-      stream.on('close', () => {
-        if (!settled) {
-          const code = stream ? rstCodeLabel(stream.rstCode) : 'unknown';
-          fail(new Error(`HTTP/2 stream closed before the response completed (${code})`));
+    // Wait for the server's SETTINGS before opening a stream.
+    acquireSession({ url, tlsOptions, lookup, proxyUri })
+      .then((acquired) => {
+        if (settled) {
+          acquired.releaseStream();
+          return;
         }
-      });
 
-      // Send the request body: pipe a stream (e.g. multipart/FormData or a file
-      // upload), or write a string/Buffer.
-      if (isStreamBody) {
-        (body as Readable).on('error', fail);
-        (body as Readable).pipe(stream);
-      } else if (hasBufferBody) {
-        stream.end(body as string | Buffer);
-      }
-    });
+        releaseStream = acquired.releaseStream;
+
+        const { session, serverSettingsReceived } = acquired;
+
+        return serverSettingsReceived.then(() => {
+          if (settled) {
+            return;
+          }
+
+          // Prefer the original connection error over a generic session error.
+          const connectionError = acquired.getConnectionError();
+
+          if (connectionError) {
+            fail(connectionError);
+            return;
+          }
+
+          try {
+            stream = session.request(
+              buildHttp2RequestHeaders(method, url, headers),
+              { endStream: !hasBody }
+            );
+          } catch (error) {
+            fail(acquired.getConnectionError() || (error as Error));
+            return;
+          }
+
+          let status = 0;
+          let responseHeaders: Record<string, string | string[]> = {};
+          let receivedResponse = false;
+          const chunks: Buffer[] = [];
+
+          stream.on('response', (headers) => {
+            const parsed = parseHttp2ResponseHeaders(
+              headers as Record<string, string | string[] | undefined>
+            );
+
+            status = parsed.status;
+            responseHeaders = parsed.headers;
+            receivedResponse = true;
+          });
+
+          stream.on('data', (chunk: Buffer) => {
+            chunks.push(Buffer.from(chunk));
+          });
+
+          stream.on('end', () => {
+            // A stream ending without response headers is a failed request.
+            if (!receivedResponse) {
+              const code = stream ? rstCodeLabel(stream.rstCode) : 'unknown';
+
+              fail(
+                new Error(
+                  `HTTP/2 stream closed before any response was received (${code})`
+                )
+              );
+              return;
+            }
+
+            succeed({
+              status,
+              headers: responseHeaders,
+              data: Buffer.concat(chunks),
+              httpVersion: '2.0'
+            });
+          });
+
+          stream.on('error', fail);
+
+          stream.on('close', () => {
+            if (!settled) {
+              const code = stream ? rstCodeLabel(stream.rstCode) : 'unknown';
+
+              fail(
+                new Error(
+                  `HTTP/2 stream closed before the response completed (${code})`
+                )
+              );
+            }
+          });
+
+          if (isStreamBody) {
+            (body as Readable).on('error', fail);
+            (body as Readable).pipe(stream);
+          } else if (hasBufferBody) {
+            stream.end(body as string | Buffer);
+          }
+        });
+      })
+      .catch((error) => {
+        fail(error as Error);
+      });
   });
 };

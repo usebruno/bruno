@@ -130,7 +130,7 @@ const buildRequestInfo = (url: string): { protocol: string; host: string; path: 
  * axios-compatible response, validating status the same way the default
  * HTTP/1.1 adapter does.
  */
-export const createHttp2Adapter = ({ tlsOptions }: { tlsOptions?: Record<string, unknown> | null }) => (config: any): Promise<any> => {
+export const createHttp2Adapter = ({ tlsOptions, proxyUri }: { tlsOptions?: Record<string, unknown> | null; proxyUri?: string | null }) => (config: any): Promise<any> => {
   const headers = normalizeHeaders(config.headers);
   applyBasicAuthHeader(config.auth, headers);
   applyUrlCredentials(config.url, headers);
@@ -141,6 +141,7 @@ export const createHttp2Adapter = ({ tlsOptions }: { tlsOptions?: Record<string,
     headers,
     body: config.data,
     tlsOptions,
+    proxyUri,
     lookup: config.lookup,
     timeout: config.timeout
   }).then(

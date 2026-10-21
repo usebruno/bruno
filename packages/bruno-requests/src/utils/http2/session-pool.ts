@@ -1,7 +1,9 @@
 import http2 from 'node:http2';
+import tls from 'node:tls';
 import type { LookupFunction } from 'node:net';
 import { buildTlsConnectOptions } from './tls-connect-options';
 import { buildConnectionKey } from './cache-key';
+import { connectThroughProxy } from './http2-proxy';
 
 const IDLE_TIMEOUT_MS = 60 * 1000;
 // Node's default (128) rejects large response header lists with ENHANCE_YOUR_CALM.
@@ -16,12 +18,14 @@ type PooledSession = {
   activeStreams: number;
   idleTimer: ReturnType<typeof setTimeout> | null;
   serverSettingsReceived: Promise<void>;
+  connectionError?: Error;
 };
 
 export type AcquiredSession = {
   session: http2.ClientHttp2Session;
   releaseStream: () => void;
   serverSettingsReceived: Promise<void>;
+  getConnectionError: () => Error | undefined;
 };
 
 export type AcquireSessionParams = {
@@ -32,6 +36,9 @@ export type AcquireSessionParams = {
 };
 
 const pool = new Map<string, PooledSession>();
+
+// track the sessions currently being opened, so that concurrent requests to the same origin share the same connection attempt.
+const connecting = new Map<string, Promise<PooledSession>>();
 
 // skip only sessions Node has already closed/destroyed.
 const isReusable = (session: http2.ClientHttp2Session): boolean => !session.closed && !session.destroyed;
@@ -70,29 +77,67 @@ const drainSession = (key: string, pooledSession: PooledSession): void => {
   }
 };
 
-const createPooledSession = (key: string, params: AcquireSessionParams): PooledSession => {
-  const parsed = new URL(params.url);
-  const port = Number(parsed.port) || 443;
-  const authority = `${parsed.protocol}//${parsed.host}`;
+/**
+ * Create an HTTP/2 session, connecting directly or through a proxy tunnel.
+ * Proxied connections establish TLS to the origin over the tunnel.
+ */
+const connectHttp2Session = async (params: AcquireSessionParams): Promise<http2.ClientHttp2Session> => {
+  const parsedUrl = new URL(params.url);
+  const port = Number(parsedUrl.port) || 443;
+  const authority = `${parsedUrl.protocol}//${parsedUrl.host}`;
+
   const connectOptions = buildTlsConnectOptions({
-    hostname: parsed.hostname,
+    hostname: parsedUrl.hostname,
     port,
     tlsOptions: params.tlsOptions,
     mode: 'http2',
     lookup: params.lookup
   });
 
-  const session = http2.connect(authority, { ...connectOptions, maxHeaderListPairs: MAX_HEADER_LIST_PAIRS });
+  if (!params.proxyUri) {
+    return http2.connect(authority, {
+      ...connectOptions,
+      maxHeaderListPairs: MAX_HEADER_LIST_PAIRS
+    });
+  }
+
+  const tunnel = await connectThroughProxy({
+    proxyUri: params.proxyUri,
+    targetHost: parsedUrl.hostname,
+    targetPort: port,
+    tlsOptions: params.tlsOptions
+  });
+
+  // Use the proxy tunnel for TLS while keeping the origin's TLS settings.
+  const originTlsSocket = tls.connect({
+    ...connectOptions,
+    socket: tunnel
+  } as tls.ConnectionOptions);
+
+  originTlsSocket.once('error', () => tunnel.destroy());
+
+  return http2.connect(authority, {
+    createConnection: () => originTlsSocket,
+    maxHeaderListPairs: MAX_HEADER_LIST_PAIRS
+  });
+};
+
+const createPooledSession = async (key: string, params: AcquireSessionParams): Promise<PooledSession> => {
+  const session = await connectHttp2Session(params);
 
   // Wait for the server's SETTINGS, but also unblock if the session fails or closes.
   const serverSettingsReceived = new Promise<void>((resolve) => {
-    const markReady = (): void => resolve();
-    session.once('remoteSettings', markReady);
-    session.once('error', markReady);
-    session.once('close', markReady);
+    const finishWaiting = (): void => resolve();
+    session.once('remoteSettings', finishWaiting);
+    session.once('error', finishWaiting);
+    session.once('close', finishWaiting);
   });
 
   const pooledSession: PooledSession = { session, state: 'connecting', activeStreams: 0, idleTimer: null, serverSettingsReceived };
+
+  session.once('error', (err: Error) => {
+    pooledSession.connectionError = err;
+  });
 
   session.once('connect', () => {
     pooledSession.state = 'active';
@@ -114,37 +159,53 @@ const createPooledSession = (key: string, params: AcquireSessionParams): PooledS
 };
 
 /**
- * Get an HTTP/2 session, reusing an existing one or creating a new one.
- * releaseStream() frees the stream slot and starts the idle timer when no streams remain.
+ * Reuse an existing HTTP/2 session or create a new one.
+ * releaseStream() tracks active streams and handles idle sessions.
  */
-export const acquireSession = (params: AcquireSessionParams): AcquiredSession => {
-  const parsed = new URL(params.url);
-  const port = Number(parsed.port) || 443;
-  const origin = `${parsed.hostname}:${port}`;
-  const key = buildConnectionKey(origin, params.tlsOptions || {}, params.proxyUri);
+export const acquireSession = async (params: AcquireSessionParams): Promise<AcquiredSession> => {
+  const parsedUrl = new URL(params.url);
+  const port = Number(parsedUrl.port) || 443;
+  const origin = `${parsedUrl.hostname}:${port}`;
+  const connectionKey = buildConnectionKey(origin, params.tlsOptions || {}, params.proxyUri);
 
-  let pooledSession = pool.get(key);
+  let pooledSession = pool.get(connectionKey);
 
-  // create a new session if none exists or the existing one is no longer reusable (closed/destroyed).
   if (!pooledSession || !isReusable(pooledSession.session)) {
-    pooledSession = createPooledSession(key, params);
-    pool.set(key, pooledSession);
+    let pendingSession = connecting.get(connectionKey);
+
+    // Share the same connection attempt across concurrent requests.
+    if (!pendingSession) {
+      pendingSession = createPooledSession(connectionKey, params)
+        .then((createdSession) => {
+          pool.set(connectionKey, createdSession);
+          return createdSession;
+        })
+        .finally(() => {
+          connecting.delete(connectionKey);
+        });
+
+      connecting.set(connectionKey, pendingSession);
+    }
+
+    pooledSession = await pendingSession;
   }
 
   pooledSession.activeStreams += 1;
   clearIdleTimer(pooledSession);
 
   let released = false;
+
   const releaseStream = (): void => {
     if (released) return;
     released = true;
 
     pooledSession.activeStreams = Math.max(0, pooledSession.activeStreams - 1);
 
-    // Keep the session open while other streams are active.
-    if (pooledSession.activeStreams > 0) return;
+    if (pooledSession.activeStreams > 0) {
+      return;
+    }
 
-    // Close a draining session once all streams have finished.
+    // Close draining sessions; otherwise start the idle timer.
     if (pooledSession.state === 'draining') {
       if (isReusable(pooledSession.session)) {
         pooledSession.session.close();
@@ -152,10 +213,15 @@ export const acquireSession = (params: AcquireSessionParams): AcquiredSession =>
       return;
     }
 
-    startIdleTimer(key, pooledSession);
+    startIdleTimer(connectionKey, pooledSession);
   };
 
-  return { session: pooledSession.session, releaseStream, serverSettingsReceived: pooledSession.serverSettingsReceived };
+  return {
+    session: pooledSession.session,
+    releaseStream,
+    serverSettingsReceived: pooledSession.serverSettingsReceived,
+    getConnectionError: () => pooledSession.connectionError
+  };
 };
 
 // Close every pooled session and empty the pool (shutdown / preference change).

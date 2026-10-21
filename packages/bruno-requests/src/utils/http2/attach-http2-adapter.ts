@@ -12,6 +12,7 @@ export type AttachHttp2AdapterParams = {
   config: any;
   requestedHttpVersion: HttpVersionMode;
   tlsOptions?: Record<string, unknown> | null;
+  proxyUri?: string | null;
   lookup?: LookupFunction;
   timeline?: TimelineEntry[];
 };
@@ -21,7 +22,7 @@ export type AttachHttp2AdapterParams = {
  * adapter to the axios config. On HTTP/1.1 it clears any stale adapter left by
  * a previous redirect hop. Optionally records ALPN/decision lines on a timeline.
  */
-export const attachHttp2Adapter = async ({ config, requestedHttpVersion, tlsOptions, lookup, timeline }: AttachHttp2AdapterParams): Promise<void> => {
+export const attachHttp2Adapter = async ({ config, requestedHttpVersion, tlsOptions, proxyUri, lookup, timeline }: AttachHttp2AdapterParams): Promise<void> => {
   if (!canUseHttp2(requestedHttpVersion)) {
     return;
   }
@@ -30,6 +31,7 @@ export const attachHttp2Adapter = async ({ config, requestedHttpVersion, tlsOpti
     url: config.url,
     mode: requestedHttpVersion,
     tlsOptions,
+    proxyUri,
     lookup: lookup ?? config.lookup
   });
 
@@ -42,7 +44,7 @@ export const attachHttp2Adapter = async ({ config, requestedHttpVersion, tlsOpti
   }
 
   if (httpVersionDecision.httpVersion === 2) {
-    config.adapter = createHttp2Adapter({ tlsOptions });
+    config.adapter = createHttp2Adapter({ tlsOptions, proxyUri });
     if (Array.isArray(timeline)) {
       timeline.push({
         timestamp: new Date(),

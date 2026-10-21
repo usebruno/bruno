@@ -221,9 +221,9 @@ function makeAxiosInstance({
       keepAlive: !omitConnection
     };
 
+    let resolvedProxyUri;
     try {
-      // Now call setupProxyAgents and pass the timeline (async - may perform PAC resolution)
-      await setupProxyAgents({
+      resolvedProxyUri = await setupProxyAgents({
         requestConfig: config,
         proxyMode,
         proxyModeReason,
@@ -242,7 +242,7 @@ function makeAxiosInstance({
 
     const requestedHttpVersion = resolveRequestedHttpVersion(config);
     if (canUseHttp2(requestedHttpVersion)) {
-      await attachHttp2Adapter({ config, requestedHttpVersion, tlsOptions: agentOptions, timeline });
+      await attachHttp2Adapter({ config, requestedHttpVersion, tlsOptions: agentOptions, proxyUri: resolvedProxyUri, timeline });
     }
 
     // Node keep-alive agents add Connection; strip it on the ClientRequest.

@@ -95,6 +95,10 @@ async function setupProxyAgents({
   delete requestConfig.httpAgent;
   delete requestConfig.httpsAgent;
 
+  // The proxy URL actually used (if any), returned so the HTTP/2 transport tunnels
+  // through the same proxy.
+  let resolvedProxyUri;
+
   const disableCache = !preferencesUtil.isSslSessionCachingEnabled();
 
   // keepAlive defaults to true; pass false to omit Connection.
@@ -124,7 +128,7 @@ async function setupProxyAgents({
       const proxyAuthEnabled = !get(proxyConfig, 'auth.disabled', false);
       const socksEnabled = proxyProtocol.includes('socks');
 
-      let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
+      const uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
       let proxyUri;
       if (proxyAuthEnabled) {
         const proxyAuthUsername = encodeURIComponent(interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions));
@@ -133,6 +137,7 @@ async function setupProxyAgents({
       } else {
         proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
       }
+      resolvedProxyUri = proxyUri;
 
       // When the proxy itself uses HTTPS, the agent connecting to it needs TLS options
       // (e.g., ca certs) even for plain HTTP requests
@@ -161,9 +166,10 @@ async function setupProxyAgents({
     if (pac_url) {
       if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `Resolving system PAC: ${pac_url}` });
       try {
-        const { directives, httpAgent, httpsAgent } = await resolveAgentsFromPac({ pacSource: pac_url, requestUrl: requestConfig.url, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, httpsAgentRequestFields, timeline, disableCache, hostname });
+        const { directives, httpAgent, httpsAgent, proxyUri } = await resolveAgentsFromPac({ pacSource: pac_url, requestUrl: requestConfig.url, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, httpsAgentRequestFields, timeline, disableCache, hostname });
         if (httpAgent) requestConfig.httpAgent = httpAgent;
         if (httpsAgent) requestConfig.httpsAgent = httpsAgent;
+        if (proxyUri) resolvedProxyUri = proxyUri;
         if (directives) {
           if (timeline) { timeline.push({ timestamp: new Date(), type: 'info', message: `PAC directives: ${directives.join('; ')}` }); }
         } else {
@@ -188,6 +194,7 @@ async function setupProxyAgents({
               });
             }
             requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, timeline, disableCache, hostname });
+            resolvedProxyUri = http_proxy;
           }
         } catch (error) {
           throw new Error(`Invalid system http_proxy "${http_proxy}": ${error.message}`);
@@ -203,6 +210,7 @@ async function setupProxyAgents({
               });
             }
             requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy, timeline, disableCache, hostname });
+            resolvedProxyUri = https_proxy;
           }
         } catch (error) {
           throw new Error(`Invalid system https_proxy "${https_proxy}": ${error.message}`);
@@ -214,9 +222,10 @@ async function setupProxyAgents({
     if (pacSource) {
       if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `Resolving PAC: ${pacSource}` });
       try {
-        const { directives, httpAgent, httpsAgent } = await resolveAgentsFromPac({ pacSource, requestUrl: requestConfig.url, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, httpsAgentRequestFields, timeline, disableCache, hostname });
+        const { directives, httpAgent, httpsAgent, proxyUri } = await resolveAgentsFromPac({ pacSource, requestUrl: requestConfig.url, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, httpsAgentRequestFields, timeline, disableCache, hostname });
         if (httpAgent) requestConfig.httpAgent = httpAgent;
         if (httpsAgent) requestConfig.httpsAgent = httpsAgent;
+        if (proxyUri) resolvedProxyUri = proxyUri;
         if (directives) {
           if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `PAC directives: ${directives.join('; ')}` });
         } else {
@@ -235,6 +244,8 @@ async function setupProxyAgents({
       requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: http.Agent, options: { keepAlive }, proxyUri: null, timeline, disableCache, hostname });
     }
   }
+
+  return resolvedProxyUri;
 }
 
 module.exports = {

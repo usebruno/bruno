@@ -22,10 +22,11 @@ beforeEach(() => {
   mockRelease.mockReset();
   fakeStream = Object.assign(new EventEmitter(), { rstCode: 0, end: jest.fn(), close: jest.fn() }) as FakeStream;
   requestSpy = jest.fn(() => fakeStream);
-  mockAcquire.mockReset().mockReturnValue({
+  mockAcquire.mockReset().mockResolvedValue({
     session: { request: requestSpy },
     releaseStream: mockRelease,
-    serverSettingsReceived: Promise.resolve()
+    serverSettingsReceived: Promise.resolve(),
+    getConnectionError: () => undefined
   });
 });
 
@@ -49,7 +50,7 @@ describe('sendHttp2Request', () => {
     const serverSettingsReceived = new Promise<void>((r) => {
       resolveReady = r;
     });
-    mockAcquire.mockReturnValue({ session: { request: requestSpy }, releaseStream: mockRelease, serverSettingsReceived });
+    mockAcquire.mockResolvedValue({ session: { request: requestSpy }, releaseStream: mockRelease, serverSettingsReceived, getConnectionError: () => undefined });
     sendHttp2Request({ method: 'GET', url: 'https://x.test/' });
     await flush();
     expect(requestSpy).not.toHaveBeenCalled();
@@ -89,6 +90,15 @@ describe('sendHttp2Request', () => {
     expect(mockRelease).toHaveBeenCalledTimes(1);
   });
 
+  it('rejects when the stream ends before any response (RST before headers)', async () => {
+    const p = sendHttp2Request({ method: 'GET', url: 'https://x.test/' });
+    await flush();
+    fakeStream.rstCode = 8; // CANCEL
+    fakeStream.emit('end'); // ended with no 'response' event
+    await expect(p).rejects.toThrow(/before any response/);
+    expect(mockRelease).toHaveBeenCalledTimes(1);
+  });
+
   it('rejects on early close (before a response) and releases', async () => {
     const p = sendHttp2Request({ method: 'GET', url: 'https://x.test/' });
     await flush();
@@ -98,10 +108,21 @@ describe('sendHttp2Request', () => {
     expect(mockRelease).toHaveBeenCalledTimes(1);
   });
 
-  it('rejects when acquireSession throws', async () => {
-    mockAcquire.mockImplementation(() => {
-      throw new Error('connect failed');
+  it('surfaces the real connection error instead of "session destroyed"', async () => {
+    const realError = Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:8999'), { code: 'ECONNREFUSED' });
+    const deadSession = { request: jest.fn(() => { throw new Error('The session has been destroyed'); }) };
+    mockAcquire.mockResolvedValue({
+      session: deadSession,
+      releaseStream: mockRelease,
+      serverSettingsReceived: Promise.resolve(),
+      getConnectionError: () => realError
     });
+    await expect(sendHttp2Request({ method: 'GET', url: 'https://x.test/' })).rejects.toThrow(/ECONNREFUSED/);
+    expect(mockRelease).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects when acquireSession throws', async () => {
+    mockAcquire.mockRejectedValue(new Error('connect failed'));
     await expect(sendHttp2Request({ method: 'GET', url: 'https://x.test/' })).rejects.toThrow('connect failed');
     expect(mockRelease).not.toHaveBeenCalled();
   });

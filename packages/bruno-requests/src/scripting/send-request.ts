@@ -195,13 +195,15 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
       : { ...requestConfig };
 
     // If config is provided, create agents with the request URL for proper proxy bypass
+    let proxyUri: string | undefined;
     if (config) {
       const requestUrl = normalizedConfig.url;
 
-      const { httpAgent, httpsAgent } = await getHttpHttpsAgents({
+      const { httpAgent, httpsAgent, proxyUri: resolvedProxyUri } = await getHttpHttpsAgents({
         ...config,
         requestUrl
       });
+      proxyUri = resolvedProxyUri;
 
       // Apply agents if not explicitly set in normalizedConfig
       if (httpAgent && !normalizedConfig.httpAgent) {
@@ -212,18 +214,16 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
       }
     }
 
-    // Attach the HTTP/2 transport when enabled and the request is direct.
+    // Attach the HTTP/2 transport when enabled. When a proxy applies, the transport
+    // tunnels through it (CONNECT/SOCKS).
     const requestedHttpVersion = config?.httpVersion;
     if (requestedHttpVersion && canUseHttp2(requestedHttpVersion)) {
       const httpsAgent: any = normalizedConfig.httpsAgent;
-      const proxied = /proxy/i.test(httpsAgent?.constructor?.name || '');
-      if (!proxied) {
-        const tlsOptions = httpsAgent?.options || {};
-        try {
-          await attachHttp2Adapter({ config: normalizedConfig, requestedHttpVersion, tlsOptions });
-        } catch (_) {
-          // On any ALPN/resolution error, fall through to the default HTTP/1.1 adapter.
-        }
+      const tlsOptions = httpsAgent?.options || {};
+      try {
+        await attachHttp2Adapter({ config: normalizedConfig, requestedHttpVersion, tlsOptions, proxyUri });
+      } catch (_) {
+        // On any ALPN/resolution error, fall through to the default HTTP/1.1 adapter.
       }
     }
 
