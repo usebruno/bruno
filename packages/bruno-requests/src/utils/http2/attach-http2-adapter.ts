@@ -19,8 +19,7 @@ export type AttachHttp2AdapterParams = {
 
 /**
  * Resolve the HTTP version via ALPN and, when it is HTTP/2, attach the h2
- * adapter to the axios config. On HTTP/1.1 it clears any stale adapter left by
- * a previous redirect hop. Optionally records ALPN/decision lines on a timeline.
+ * adapter to the axios config.
  */
 export const attachHttp2Adapter = async ({ config, requestedHttpVersion, tlsOptions, proxyUri, lookup, timeline }: AttachHttp2AdapterParams): Promise<void> => {
   if (!canUseHttp2(requestedHttpVersion)) {
@@ -46,11 +45,21 @@ export const attachHttp2Adapter = async ({ config, requestedHttpVersion, tlsOpti
   if (httpVersionDecision.httpVersion === 2) {
     config.adapter = createHttp2Adapter({ tlsOptions, proxyUri });
     if (Array.isArray(timeline)) {
-      timeline.push({
-        timestamp: new Date(),
-        type: 'info',
-        message: `HTTP/2 negotiated (${httpVersionDecision.reason}); using HTTP/2 transport`
-      });
+      let isCleartext = false;
+      try {
+        isCleartext = new URL(config.url).protocol !== 'https:';
+      } catch {
+        // leave isCleartext false if the URL can't be parsed
+      }
+      let message: string;
+      if (isCleartext) {
+        message = 'HTTP/2 selected (h2c prior knowledge over cleartext)';
+      } else if (httpVersionDecision.acceptedAlpnProtocol === 'h2') {
+        message = 'HTTP/2 selected (ALPN negotiated)';
+      } else {
+        message = 'HTTP/2 selected (forced, no ALPN)';
+      }
+      timeline.push({ timestamp: new Date(), type: 'info', message });
     }
     return;
   }

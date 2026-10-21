@@ -30,7 +30,19 @@ describe('attachHttp2Adapter', () => {
     await attachHttp2Adapter({ config, requestedHttpVersion: 'auto', tlsOptions: {}, timeline });
     expect(typeof config.adapter).toBe('function');
     expect(timeline.some((e) => /ALPN: offered/.test(e.message))).toBe(true);
-    expect(timeline.some((e) => /HTTP\/2 negotiated/.test(e.message))).toBe(true);
+    expect(timeline.some((e) => /HTTP\/2 selected \(ALPN negotiated\)/.test(e.message))).toBe(true);
+  });
+
+  it('logs prior-knowledge (not "negotiated") for cleartext h2c', async () => {
+    mockResolve.mockResolvedValue({ httpVersion: 2, reason: 'h2c prior knowledge (cleartext)' });
+    const config: any = { url: 'http://x.test/' };
+    const timeline: any[] = [];
+    await attachHttp2Adapter({ config, requestedHttpVersion: 'http2', tlsOptions: {}, timeline });
+    expect(typeof config.adapter).toBe('function');
+    // No ALPN line over cleartext, and the note says prior knowledge, not "negotiated".
+    expect(timeline.some((e) => /ALPN: offered/.test(e.message))).toBe(false);
+    expect(timeline.some((e) => /prior knowledge/i.test(e.message))).toBe(true);
+    expect(timeline.some((e) => /negotiated/i.test(e.message))).toBe(false);
   });
 
   it('logs HTTP/1.1 selected when negotiation falls back', async () => {

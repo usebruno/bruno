@@ -126,7 +126,7 @@ async function setupProxyAgents({
   if (proxyMode === 'on') {
     const shouldProxy = shouldUseProxy(requestConfig.url, get(proxyConfig, 'bypassProxy', ''));
     if (!shouldProxy && timeline) {
-      timeline.push({ timestamp: new Date(), type: 'info', message: `Proxy bypassed for ${hostname} (matched bypass rule); connecting directly` });
+      timeline.push({ timestamp: new Date(), type: 'info', message: `Proxy bypassed for ${hostname} (matched bypass rule), connecting directly` });
     }
     if (shouldProxy) {
       const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
