@@ -74,6 +74,33 @@ const StyledWrapper = styled.div`
     max-width: 14rem;
   }
 
+
+  .http-version-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 14rem;
+    cursor: pointer;
+    user-select: none;
+    font: inherit;
+    text-align: left;
+
+    .caret {
+      color: ${(props) => props.theme.colors.text.muted};
+      flex-shrink: 0;
+    }
+
+    &:hover {
+      border-color: ${(props) => props.theme.input.focusBorder};
+    }
+  }
+
+  .timeout-field {
+    margin-top: 0.5rem;
+  }
+
   .default-location-field {
     .settings-field-control {
       flex-direction: column;

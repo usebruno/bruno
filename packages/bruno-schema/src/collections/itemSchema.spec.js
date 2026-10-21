@@ -89,6 +89,39 @@ describe('Item Schema Validation', () => {
     ]);
   });
 
+  describe('settings.httpVersion', () => {
+    const itemWithHttpVersion = (httpVersion) => ({
+      uid: uuid(),
+      name: 'Get Users',
+      type: 'http-request',
+      request: {
+        url: 'https://restcountries.com/v2/alpha/in',
+        method: 'GET',
+        headers: [],
+        params: [],
+        body: { mode: 'none' }
+      },
+      settings: { httpVersion }
+    });
+
+    it.each(['inherit', 'auto', 'http1.1', 'http2'])('accepts httpVersion %p', async (httpVersion) => {
+      const validated = await itemSchema.validate(itemWithHttpVersion(httpVersion));
+      expect(validated.settings.httpVersion).toBe(httpVersion);
+    });
+
+    it('accepts a null httpVersion', async () => {
+      const validated = await itemSchema.validate(itemWithHttpVersion(null));
+      expect(validated.settings.httpVersion).toBeNull();
+    });
+
+    it('rejects an invalid httpVersion', async () => {
+      await expect(itemSchema.validate(itemWithHttpVersion('http3'))).rejects.toMatchObject({
+        path: 'settings.httpVersion',
+        type: 'oneOf'
+      });
+    });
+  });
+
   describe('settings.maxRedirects', () => {
     const itemWithMaxRedirects = (maxRedirects) => ({
       uid: uuid(),

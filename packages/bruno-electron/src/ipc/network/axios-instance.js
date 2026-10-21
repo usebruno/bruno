@@ -240,7 +240,7 @@ function makeAxiosInstance({
       });
     }
 
-    const requestedHttpVersion = resolveRequestedHttpVersion(config);
+    const requestedHttpVersion = resolveRequestedHttpVersion(config, config.__collectionHttpVersion);
     if (canUseHttp2(requestedHttpVersion)) {
       await attachHttp2Adapter({ config, requestedHttpVersion, tlsOptions: agentOptions, proxyUri: resolvedProxyUri, timeline });
     }

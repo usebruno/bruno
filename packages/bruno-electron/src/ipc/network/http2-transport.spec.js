@@ -22,4 +22,21 @@ describe('resolveRequestedHttpVersion', () => {
     preferencesUtil.getHttpVersion.mockReturnValue('http2');
     expect(resolveRequestedHttpVersion({ settings: { httpVersion: 'inherit' } })).toBe('http2');
   });
+
+  describe('collection level (precedence: request > collection > app)', () => {
+    it('uses the collection setting when the request inherits', () => {
+      expect(resolveRequestedHttpVersion({ settings: { httpVersion: 'inherit' } }, 'http2')).toBe('http2');
+      expect(resolveRequestedHttpVersion({}, 'auto')).toBe('auto');
+    });
+
+    it('request setting wins over the collection setting', () => {
+      expect(resolveRequestedHttpVersion({ settings: { httpVersion: 'http1.1' } }, 'http2')).toBe('http1.1');
+    });
+
+    it('falls through to the app preference when both request and collection inherit', () => {
+      preferencesUtil.getHttpVersion.mockReturnValue('http2');
+      expect(resolveRequestedHttpVersion({ settings: { httpVersion: 'inherit' } }, 'inherit')).toBe('http2');
+      expect(resolveRequestedHttpVersion(null, undefined)).toBe('http2');
+    });
+  });
 });

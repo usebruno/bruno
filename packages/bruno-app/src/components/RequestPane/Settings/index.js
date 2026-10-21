@@ -1,15 +1,19 @@
 import React, { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import get from 'lodash/get';
-import { IconTag } from '@tabler/icons';
+import { IconTag, IconChevronDown } from '@tabler/icons';
 import { utils } from '@usebruno/common';
 import ToggleSelector from 'components/RequestPane/Settings/ToggleSelector';
 import SettingsInput from 'components/SettingsInput';
 import InheritableSettingsInput from 'components/InheritableSettingsInput';
+import MenuDropdown from 'ui/MenuDropdown';
+import { useTheme } from 'providers/Theme';
 import { updateItemSettings, toggleAppMode } from 'providers/ReduxStore/slices/collections';
 import { setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Tags from './Tags/index';
+
+const HTTP_VERSION_LABELS = { 'auto': 'Auto', 'http1.1': 'HTTP/1.1', 'http2': 'HTTP/2' };
 
 // Default settings configuration
 const DEFAULT_SETTINGS = {
@@ -17,11 +21,13 @@ const DEFAULT_SETTINGS = {
   followRedirects: true,
   maxRedirects: utils.DEFAULT_MAX_REDIRECTS,
   timeout: 'inherit',
-  forwardAuthorizationHeader: true
+  forwardAuthorizationHeader: true,
+  httpVersion: 'inherit'
 };
 
 const Settings = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const { theme } = useTheme();
 
   // Get current settings with defaults applied
   const getPropertyFromDraftOrRequest = (propertyKey) =>
@@ -29,8 +35,22 @@ const Settings = ({ item, collection }) => {
 
   const rawSettings = getPropertyFromDraftOrRequest('settings');
   const settings = { ...DEFAULT_SETTINGS, ...rawSettings };
-  const { encodeUrl, followRedirects, maxRedirects, timeout, forwardAuthorizationHeader } = settings;
+  const { encodeUrl, followRedirects, maxRedirects, timeout, forwardAuthorizationHeader, httpVersion } = settings;
   const enableApp = getPropertyFromDraftOrRequest('app.enabled') === true;
+
+  // Resolve what `inherit` actually uses: collection httpVersion, else the app preference.
+  const appHttpVersion = useSelector((state) => get(state.app.preferences, 'request.httpVersion', 'http1.1'));
+  const collectionHttpVersion = collection?.draft?.brunoConfig
+    ? get(collection, 'draft.brunoConfig.http.version')
+    : get(collection, 'brunoConfig.http.version');
+  const resolvedInheritedVersion = collectionHttpVersion && collectionHttpVersion !== 'inherit' ? collectionHttpVersion : appHttpVersion;
+  const httpVersionItems = [
+    { id: 'inherit', label: `Inherit (${HTTP_VERSION_LABELS[resolvedInheritedVersion] || resolvedInheritedVersion})` },
+    { id: 'auto', label: HTTP_VERSION_LABELS['auto'] },
+    { id: 'http1.1', label: HTTP_VERSION_LABELS['http1.1'] },
+    { id: 'http2', label: HTTP_VERSION_LABELS['http2'] }
+  ];
+  const currentHttpVersionLabel = httpVersionItems.find((option) => option.id === httpVersion)?.label || httpVersionItems[0].label;
 
   // Reusable function to update settings
   const updateSetting = useCallback((settingUpdate) => {
@@ -190,6 +210,39 @@ const Settings = ({ item, collection }) => {
             onValueChange={(e) => !isTimeoutInherited && onTimeoutChange(e)}
             onCustomValueReset={() => updateSetting({ timeout: 'inherit' })}
           />
+
+          {item.type === 'http-request' && (
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col">
+                <label className="text-xs font-medium text-gray-900 dark:text-gray-100">HTTP Version</label>
+                <p className="text-xs text-gray-700 dark:text-gray-400">
+                  Select the HTTP version to use for sending the request
+                </p>
+              </div>
+              <MenuDropdown
+                items={httpVersionItems.map((option) => ({
+                  id: option.id,
+                  label: option.label,
+                  onClick: () => updateSetting({ httpVersion: option.id })
+                }))}
+                selectedItemId={httpVersion}
+                placement="bottom-end"
+                appendTo={() => document.body}
+                popperOptions={{ strategy: 'fixed' }}
+                sameWidth
+              >
+                <button
+                  type="button"
+                  className="flex items-center justify-between rounded-sm px-2 py-1 h-8 w-40 outline-none cursor-pointer"
+                  style={{ backgroundColor: theme.input.bg, border: `1px solid ${theme.input.border}` }}
+                  data-testid="request-http-version"
+                >
+                  <span>{currentHttpVersionLabel}</span>
+                  <IconChevronDown size={14} strokeWidth={1.5} />
+                </button>
+              </MenuDropdown>
+            </div>
+          )}
         </div>
       </div>
     </div>

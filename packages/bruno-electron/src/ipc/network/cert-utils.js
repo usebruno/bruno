@@ -5,6 +5,7 @@ const { getCACertificates } = require('@usebruno/requests');
 const { preferencesUtil } = require('../../store/preferences');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { getCachedSystemProxy } = require('../../store/system-proxy');
+const { resolveRequestedHttpVersion } = require('./http2-transport');
 const { interpolateString, interpolateObject } = require('./interpolate-string');
 
 /**
@@ -244,7 +245,7 @@ const buildCertsAndProxyConfig = async ({
     collectionLevelProxy,
     appLevelProxyConfig,
     systemProxyConfig,
-    httpVersion: preferencesUtil.getHttpVersion()
+    httpVersion: resolveRequestedHttpVersion(null, get(brunoConfig, 'http.version'))
   };
 };
 

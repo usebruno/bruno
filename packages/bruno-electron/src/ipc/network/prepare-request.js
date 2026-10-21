@@ -3,6 +3,7 @@ const decomment = require('decomment');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials, mergeAuth } = require('../../utils/collection');
+const { getBrunoConfig } = require('../../store/bruno-config');
 const { getEffectiveTags, getOwnTags, getInheritedTagsFromTreePath } = require('@usebruno/common');
 const path = require('node:path');
 const { isLargeFile } = require('../../utils/filesystem');
@@ -383,7 +384,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   const collectionPath = collection?.pathname;
   const headers = {};
   let contentTypeDefined = false;
-  let url = request.url;
+  const url = request.url;
 
   each(get(collectionRoot, 'request.headers', []), (h) => {
     if (h.enabled && h.name?.toLowerCase() === 'content-type') {
@@ -555,6 +556,9 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     const value = axiosRequest.headers[name];
     return value !== undefined && value !== null && value !== false;
   });
+
+  const collectionBrunoConfig = getBrunoConfig(collection?.uid, collection);
+  axiosRequest.__collectionHttpVersion = get(collectionBrunoConfig, 'http.version');
 
   return axiosRequest;
 };
