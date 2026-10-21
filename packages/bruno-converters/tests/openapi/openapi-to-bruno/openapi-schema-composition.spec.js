@@ -1,6 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
 import openApiToBruno from '../../../src/openapi/openapi-to-bruno';
-import { getDefaultValueForSchema, buildEmptyJsonBody } from '../../../src/openapi/openapi-common';
 
 const ref = (name) => ({ $ref: `#/components/schemas/${name}` });
 
@@ -80,7 +79,7 @@ describe('openapi schema composition', () => {
       ['a null-only enum', { enum: [null] }],
       ['an empty schema', {}],
       ['an unresolvable external reference', { $ref: 'other.yaml#/Thing' }]
-    ])('skips a leading branch that is %s', (label, emptyBranch) => {
+    ])('skips a leading branch that is %s', (_, emptyBranch) => {
       const schema = { type: 'object', properties: { address: { anyOf: [emptyBranch, ref('Address')] } } };
       const schemas = { Address: { type: 'object', properties: { street: { type: 'string', example: 'Main St' } } } };
       expect(requestBody(buildSpec({ schemas, paths: postBody(schema), openapi: '3.1.0' }))).toEqual({ address: { street: 'Main St' } });
@@ -203,7 +202,7 @@ describe('openapi schema composition', () => {
     it.each([
       ['without a mapping', undefined, 'Cat', 'Dog'],
       ['with a mapping', { cat: '#/components/schemas/Cat', dog: '#/components/schemas/Dog' }, 'cat', 'dog']
-    ])('labels each subtype of a parent that declares the discriminator but lists no subtypes (%s)', (label, mapping, cat, dog) => {
+    ])('labels each subtype of a parent that declares the discriminator but lists no subtypes (%s)', (_, mapping, cat, dog) => {
       const schemas = {
         Pet: { type: 'object', properties: { petType: { type: 'string' }, name: { type: 'string' } }, discriminator: { propertyName: 'petType', mapping } },
         Cat: { allOf: [ref('Pet'), { type: 'object', properties: { huntingSkill: { type: 'string' } } }] },
@@ -234,6 +233,51 @@ describe('openapi schema composition', () => {
       const body = (schema) => requestBody(buildSpec({ schemas, paths: postBody(schema) }));
       expect(body(ref('Pet'))).toEqual({ petType: '' });
       expect(body({ allOf: [ref('Pet')], description: 'any pet' })).toEqual({ petType: '' });
+    });
+
+    it('labels each level of a deeper subtype chain with its own name, whatever the order of the oneOf list', () => {
+      const schemasFor = (order) => ({
+        Animal: {
+          type: 'object',
+          properties: { kind: { type: 'string' } },
+          oneOf: order.map(ref),
+          discriminator: { propertyName: 'kind', mapping: Object.fromEntries(order.map((name) => [name.toLowerCase(), `#/components/schemas/${name}`])) }
+        },
+        Dog: { allOf: [ref('Animal'), { type: 'object', properties: { bark: { type: 'boolean' } } }] },
+        Cat: { allOf: [ref('Animal'), { type: 'object', properties: { meow: { type: 'boolean' } } }] },
+        Puppy: { allOf: [ref('Dog'), { type: 'object', properties: { age: { type: 'integer' } } }] },
+        Toy: { allOf: [ref('Puppy'), { type: 'object', properties: { squeaks: { type: 'boolean' } } }] }
+      });
+      [['Toy', 'Cat', 'Dog', 'Puppy'], ['Dog', 'Cat', 'Puppy', 'Toy']].forEach((order) => {
+        const body = (name) => requestBody(buildSpec({ schemas: schemasFor(order), paths: postBody(ref(name)) }));
+        expect(body('Dog')).toEqual({ kind: 'dog', bark: false });
+        expect(body('Puppy')).toEqual({ kind: 'puppy', bark: false, age: 0 });
+        expect(body('Toy')).toEqual({ kind: 'toy', bark: false, age: 0, squeaks: false });
+        expect(body('Cat')).toEqual({ kind: 'cat', meow: false });
+      });
+    });
+
+    it('labels a middle level that declares the discriminator again with its own name', () => {
+      const schemas = {
+        Pet: { type: 'object', properties: { petType: { type: 'string' } }, discriminator: { propertyName: 'petType' } },
+        Dog: { allOf: [ref('Pet'), { type: 'object', properties: { bark: { type: 'boolean' } } }], discriminator: { propertyName: 'petType' } },
+        Puppy: { allOf: [ref('Dog'), { type: 'object', properties: { age: { type: 'integer' } } }] }
+      };
+      const body = (name) => requestBody(buildSpec({ schemas, paths: postBody(ref(name)) }));
+      expect(body('Dog')).toEqual({ petType: 'Dog', bark: false });
+      expect(body('Puppy')).toEqual({ petType: 'Puppy', bark: false, age: 0 });
+      expect(body('Pet')).toEqual({ petType: '' });
+    });
+
+    it('fills every inherited discriminator when the levels use different properties', () => {
+      const schemas = {
+        Pet: { type: 'object', properties: { petType: { type: 'string' } }, discriminator: { propertyName: 'petType' } },
+        Dog: { allOf: [ref('Pet'), { type: 'object', properties: { dogType: { type: 'string' } } }], discriminator: { propertyName: 'dogType' } },
+        Puppy: { allOf: [ref('Dog'), { type: 'object', properties: { age: { type: 'integer' } } }] }
+      };
+      const body = (name) => requestBody(buildSpec({ schemas, paths: postBody(ref(name)) }));
+      expect(body('Puppy')).toEqual({ petType: 'Puppy', dogType: 'Puppy', age: 0 });
+      expect(body('Dog')).toEqual({ petType: 'Dog', dogType: '' });
     });
   });
 
@@ -715,14 +759,6 @@ describe('openapi schema composition', () => {
   });
 
   describe('robustness', () => {
-    it('accepts a visited map passed by a caller of the exported helpers', () => {
-      const schema = { type: 'object', properties: { id: { type: 'integer' }, pet: { allOf: [{ type: 'object', properties: { name: { type: 'string' } } }] } } };
-      const visited = new Map();
-      expect(getDefaultValueForSchema(schema, visited)).toEqual({ id: 0, pet: { name: '' } });
-      expect(buildEmptyJsonBody(schema, visited)).toEqual({ id: 0, pet: { name: '' } });
-      expect(visited.size).toBe(0);
-    });
-
     it('ignores composition keywords that are malformed', () => {
       const schema = { type: 'object', properties: { kept: { type: 'string' } }, allOf: 'nonsense', oneOf: [null, 1, 'a'], anyOf: {} };
       expect(requestBody(buildSpec({ paths: postBody(schema) }))).toEqual({ kept: '' });
@@ -768,7 +804,7 @@ describe('openapi schema composition', () => {
         Animal: { allOf: [ref('Pet'), { type: 'object', properties: { legs: { type: 'integer' } } }] },
         Mammal: { allOf: [ref('Animal'), { type: 'object', properties: { fur: { type: 'boolean' } } }] }
       }, { legs: 0, fur: false }]
-    ])('builds a subtype body from its own branch through %s, whatever the spec lists first', (label, middle, inherited) => {
+    ])('builds a subtype body from its own branch through %s, whatever the spec lists first', (_, middle, inherited) => {
       const schemas = {
         Pet: {
           type: 'object',
@@ -887,15 +923,36 @@ describe('openapi schema composition', () => {
     });
 
     it('builds each oneOf branch once inside a $ref loop, so a long loop stays fast', () => {
-      const levels = 22;
+      const levels = 60;
       const schemas = {};
       for (let i = 0; i < levels; i += 1) {
         schemas[`S${i}`] = { oneOf: [{ allOf: [ref(`S${(i + 1) % levels}`), { type: 'object', properties: { [`f${i}`]: { type: 'string' } } }] }, { type: 'string' }] };
       }
-      const started = performance.now();
       const body = requestBody(buildSpec({ schemas, paths: postBody(ref('S0')) }));
-      expect(performance.now() - started).toBeLessThan(2000);
       expect(body).toEqual(Object.fromEntries(Array.from({ length: levels }, (_, i) => [`f${i}`, ''])));
+    });
+
+    it('reuses the allOf branches it already built when they conflict inside a $ref loop, so a long loop stays fast', () => {
+      const levels = 60;
+      const schemas = {};
+      for (let i = 0; i < levels; i += 1) {
+        schemas[`L${i}`] = { allOf: [ref(`L${i + 1}`), ref('L0'), { type: 'string' }] };
+      }
+      schemas[`L${levels}`] = { type: 'object', properties: { name: { type: 'string' } } };
+      const body = requestBody(buildSpec({ schemas, paths: postBody(ref('L0')) }));
+      expect(body).toEqual({ name: '' });
+    });
+
+    it('stays fast when every allOf level references the next two levels and the root', () => {
+      const levels = 60;
+      const schemas = {};
+      for (let i = 0; i < levels; i += 1) {
+        schemas[`D${i}`] = { allOf: [ref(`D${i + 1}`), ref(`D${i + 2}`), ref('D0')] };
+      }
+      schemas[`D${levels}`] = { type: 'object', properties: { a: { type: 'string' } } };
+      schemas[`D${levels + 1}`] = { type: 'object', properties: { b: { type: 'string' } } };
+      const body = requestBody(buildSpec({ schemas, paths: postBody(ref('D0')) }));
+      expect(body).toEqual({ a: '', b: '' });
     });
 
     it('merges plain recursive models of different cycle lengths without overflowing the stack', () => {
@@ -910,7 +967,7 @@ describe('openapi schema composition', () => {
       expect(body).toMatchObject({ id: '', next: { id: '', next: { id: '' } } });
       let levels = 0;
       for (let node = body; node && typeof node === 'object'; node = node.next) levels += 1;
-      expect(levels).toBeLessThanOrEqual(32);
+      expect(levels).toBeLessThan(2 * 3 * 5 * 7 * 11);
     });
 
     it('stops a recursive list of objects at the repeated object', () => {

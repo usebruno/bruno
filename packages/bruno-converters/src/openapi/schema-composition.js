@@ -1,5 +1,7 @@
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
+import uniq from 'lodash/uniq';
+import uniqBy from 'lodash/uniqBy';
 
 const COMPOSITION_KEYWORDS = ['allOf', 'oneOf', 'anyOf'];
 const CONTENT_KEYWORDS = ['type', 'properties', 'items', 'enum', 'const', 'example', 'default', 'format', 'additionalProperties'];
@@ -18,11 +20,15 @@ const createState = () => ({
   componentNames: new WeakMap(),
   placeholders: new WeakMap(),
   compositionUse: new WeakMap(),
+  inheritedAlternatives: new WeakMap(),
+  contributedDiscriminators: new WeakMap(),
+  stampedCopies: new WeakMap(),
+  stampedOriginals: new WeakMap(),
   exampleCopies: new WeakSet()
 });
 
-// Shared by all imports. Safe only because every import calls resetExampleGenerationState first
-// and never awaits, so two imports can never mix their caches.
+// Shared across openApiToBruno calls. Safe only because every call runs resetExampleGenerationState first
+// and never awaits, so two calls can never mix their caches.
 let state = createState();
 
 export const resetSchemaCompositionState = () => {
@@ -246,7 +252,7 @@ const mergeAllOf = (branches, context) => {
   for (const branch of branches) {
     const flattened = flatten(branch, context);
     if (conflicts(merged, flattened)) {
-      const flattenedBranches = branches.map((each) => flatten(each, context));
+      const flattenedBranches = branches.map((each, index) => (index < parts.length ? parts[index] : index === parts.length ? flattened : flatten(each, context)));
       const fallback = flattenedBranches.find(isMeaningful) || flattenedBranches[0];
       return { merged: fallback, parts: [fallback] };
     }
@@ -274,19 +280,41 @@ const readDiscriminator = (discriminator) => {
     : null;
 };
 
-const inheritedDiscriminator = (schema, seen = new Set()) => {
-  for (const parent of branchesOf(schema, 'allOf')) {
-    if (seen.has(parent)) continue;
-    seen.add(parent);
-    const discriminator = readDiscriminator(parent.discriminator);
-    if (discriminator) {
-      if (branchesOf(parent, 'oneOf').length === 0 && branchesOf(parent, 'anyOf').length === 0) return discriminator;
-      continue;
-    }
-    const found = inheritedDiscriminator(parent, seen);
-    if (found) return found;
+const newWalk = (dedupe) => ({ seen: new Set(), complete: true, found: [], dedupe });
+
+const withAncestryCache = (cache, schema, walk, collect) => {
+  if (cache.has(schema)) {
+    cache.get(schema).forEach((item) => walk.found.push(item));
+    return;
   }
-  return null;
+  if (walk.seen.has(schema)) {
+    walk.complete = false;
+    return;
+  }
+  walk.seen.add(schema);
+  const outerComplete = walk.complete;
+  const start = walk.found.length;
+  walk.complete = true;
+  collect();
+  if (walk.complete) cache.set(schema, walk.dedupe(walk.found.slice(start)));
+  walk.complete = outerComplete && walk.complete;
+};
+
+const firstPerProperty = (discriminators) => uniqBy(discriminators, 'propertyName');
+
+// Classic allOf inheritance labels the child by its own name; oneOf/anyOf parents are left to selectAlternative.
+const collectDiscriminators = (parent, walk) => withAncestryCache(state.contributedDiscriminators, parent, walk, () => {
+  const discriminator = readDiscriminator(parent.discriminator);
+  const hasAlternatives = branchesOf(parent, 'oneOf').length > 0 || branchesOf(parent, 'anyOf').length > 0;
+  if (discriminator && hasAlternatives) return;
+  if (discriminator) walk.found.push(discriminator);
+  branchesOf(parent, 'allOf').forEach((grandparent) => collectDiscriminators(grandparent, walk));
+});
+
+const inheritedDiscriminators = (schema) => {
+  const walk = newWalk(firstPerProperty);
+  branchesOf(schema, 'allOf').forEach((parent) => collectDiscriminators(parent, walk));
+  return walk.dedupe(walk.found);
 };
 
 const discriminatorValueFor = (schema, discriminator) => {
@@ -304,7 +332,10 @@ const selectAlternative = (alternatives, discriminator, context) => {
   const valueFor = (index) => (discriminator ? discriminatorValueFor(alternatives[index], discriminator) : undefined);
   const choose = (index, value) => ({ chosen: flattenedAt(index), value });
 
-  const inProgress = alternatives.findIndex((alternative) => context.inProgress.has(alternative));
+  const inProgress = alternatives.reduce((outermost, alternative, index) => (
+    context.inProgress.has(alternative)
+    && (outermost === -1 || context.inProgress.get(alternative) < context.inProgress.get(alternatives[outermost])) ? index : outermost
+  ), -1);
   if (inProgress !== -1) return choose(inProgress, valueFor(inProgress));
 
   if (discriminator) {
@@ -315,9 +346,21 @@ const selectAlternative = (alternatives, discriminator, context) => {
     }
   }
 
-  const meaningful = alternatives.findIndex((alternative, index) => isMeaningful(flattenedAt(index)));
+  const meaningful = alternatives.findIndex((_, index) => isMeaningful(flattenedAt(index)));
   const index = meaningful === -1 ? 0 : meaningful;
   return choose(index, valueFor(index));
+};
+
+const stampedCopy = (property, example) => {
+  const original = state.stampedOriginals.get(property) || property;
+  if (!state.stampedCopies.has(original)) state.stampedCopies.set(original, new Map());
+  const copies = state.stampedCopies.get(original);
+  if (!copies.has(example)) {
+    const copy = { ...original, example };
+    copies.set(example, copy);
+    state.stampedOriginals.set(copy, original);
+  }
+  return copies.get(example);
 };
 
 const stampDiscriminator = (schema, propertyName, value, context) => {
@@ -329,7 +372,7 @@ const stampDiscriminator = (schema, propertyName, value, context) => {
   const stamped = values ? values.find((entry) => String(entry) === String(value)) : value;
   if (stamped === undefined || property.example === stamped) return schema;
 
-  return { ...schema, properties: { ...schema.properties, [propertyName]: { ...property, example: stamped } } };
+  return { ...schema, properties: { ...schema.properties, [propertyName]: stampedCopy(property, stamped) } };
 };
 
 const withinAllowedValues = (schema) => {
@@ -364,26 +407,38 @@ const combineBranches = (schema, context) => {
   if (result.const !== undefined) result = { ...result, enum: [result.const] };
   result = withinAllowedValues(result);
   if (schema.example !== undefined && result.example !== schema.example) result = { ...result, example: schema.example };
-  if (discriminator) {
+  const stamped = new Set();
+  if (discriminator && discriminatorValue !== undefined) {
     result = stampDiscriminator(result, discriminator.propertyName, discriminatorValue, context);
-  } else if (state.componentNames.has(schema)) {
-    const inherited = inheritedDiscriminator(schema);
-    if (inherited) result = stampDiscriminator(result, inherited.propertyName, discriminatorValueFor(schema, inherited), context);
+    stamped.add(discriminator.propertyName);
+  }
+  if (state.componentNames.has(schema)) {
+    inheritedDiscriminators(schema).forEach((inherited) => {
+      if (stamped.has(inherited.propertyName)) return;
+      result = stampDiscriminator(result, inherited.propertyName, discriminatorValueFor(schema, inherited), context);
+      stamped.add(inherited.propertyName);
+    });
   }
 
   recordOrigin(result, schema, siblings, parts);
   return result;
 };
 
-const isBaseOfSubtypeInProgress = (schema, context, seen = new Set()) => {
-  if (context.inProgress.size === 0 || seen.has(schema)) return false;
-  seen.add(schema);
-  const alternatives = [...branchesOf(schema, 'oneOf'), ...branchesOf(schema, 'anyOf')];
-  if (alternatives.some((alternative) => context.inProgress.has(alternative))) return true;
-  return branchesOf(schema, 'allOf').some((parent) => isBaseOfSubtypeInProgress(parent, context, seen));
+const collectAlternatives = (schema, walk) => withAncestryCache(state.inheritedAlternatives, schema, walk, () => {
+  walk.found.push(...branchesOf(schema, 'oneOf'), ...branchesOf(schema, 'anyOf'));
+  branchesOf(schema, 'allOf').forEach((parent) => collectAlternatives(parent, walk));
+});
+
+const isBaseOfSubtypeInProgress = (schema, context) => {
+  if (context.inProgress.size === 0) return false;
+  const walk = newWalk(uniq);
+  collectAlternatives(schema, walk);
+  return walk.found.some((alternative) => context.inProgress.has(alternative));
 };
 
-const newContext = () => ({ inProgress: new Map(), cutDepth: Infinity });
+const FLATTEN_REBUILD_LIMIT = 2000;
+
+const newContext = () => ({ inProgress: new Map(), cutDepth: Infinity, built: new Set(), rebuilds: 0 });
 
 function flatten(schema, context) {
   if (!hasBranches(schema)) return schema;
@@ -392,6 +447,11 @@ function flatten(schema, context) {
     context.cutDepth = Math.min(context.cutDepth, context.inProgress.get(schema));
     return withoutComposition(schema);
   }
+  if (context.built.has(schema)) {
+    context.rebuilds += 1;
+    if (context.rebuilds > FLATTEN_REBUILD_LIMIT) return withoutComposition(schema);
+  }
+  context.built.add(schema);
 
   const depth = context.inProgress.size;
   context.inProgress.set(schema, depth);
@@ -403,7 +463,7 @@ function flatten(schema, context) {
   context.inProgress.delete(schema);
   const dependsOnOuter = context.cutDepth < depth;
   context.cutDepth = dependsOnOuter ? Math.min(outerCutDepth, context.cutDepth) : outerCutDepth;
-  if (!dependsOnOuter) state.flattened.set(schema, result);
+  if (!dependsOnOuter && context.rebuilds <= FLATTEN_REBUILD_LIMIT) state.flattened.set(schema, result);
   return result;
 }
 

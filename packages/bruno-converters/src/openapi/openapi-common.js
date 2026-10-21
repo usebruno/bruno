@@ -181,15 +181,8 @@ const generateWithinBudget = (rootSchema, generate) => {
   }
 };
 
-const budgetOf = (visited) => {
-  if (!exampleBudgets.has(visited)) {
-    exampleBudgets.set(visited, { values: 0, depthLimit: COMPOSITION_DEPTH_STEPS[0], compositionDepth: 0 });
-  }
-  return exampleBudgets.get(visited);
-};
-
 const countValue = (visited) => {
-  const budget = budgetOf(visited);
+  const budget = exampleBudgets.get(visited);
   if (budget.compositionDepth === 0) return;
   budget.values += 1;
   if (budget.values > EXAMPLE_VALUE_LIMIT) {
@@ -198,7 +191,7 @@ const countValue = (visited) => {
 };
 
 const deeperInComposition = (visited, generate, fallback) => {
-  const budget = budgetOf(visited);
+  const budget = exampleBudgets.get(visited);
   if (budget.compositionDepth >= budget.depthLimit) {
     return fallback();
   }
@@ -275,7 +268,7 @@ const defaultValueFor = (schema, visited) => {
   return allowedDefault(schema, '');
 };
 
-export const getDefaultValueForSchema = (rawSchema, visited = new Map()) => {
+const getDefaultValueForSchema = (rawSchema, visited) => {
   if (!isExampleCopy(rawSchema)) countValue(visited);
   return withResolvedSchema(rawSchema, visited, (schema) => defaultValueFor(schema, visited));
 };
@@ -304,7 +297,7 @@ const defaultArrayFor = (arraySchema, items, visited) => {
     const itemDefault = getDefaultValueForSchema(items, visited);
     return itemDefault !== '' && itemDefault !== 0 && itemDefault !== false ? [itemDefault] : [];
   };
-  return budgetOf(visited).compositionDepth > 0 ? withCycleGuard(visited, cycleKeyOf(arraySchema), () => [], itemsOf) : itemsOf();
+  return exampleBudgets.get(visited).compositionDepth > 0 ? withCycleGuard(visited, cycleKeyOf(arraySchema), () => [], itemsOf) : itemsOf();
 };
 
 /**
@@ -403,7 +396,7 @@ const objectValueFor = (bodySchema, visited) => {
   });
 };
 
-export const buildEmptyJsonBody = (rawBodySchema, visited = new Map()) => {
+const buildEmptyJsonBody = (rawBodySchema, visited) => {
   return withResolvedSchema(rawBodySchema, visited, (bodySchema) => objectValueFor(bodySchema, visited));
 };
 
