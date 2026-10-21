@@ -1,11 +1,10 @@
 const fs = require('node:fs');
 const path = require('path');
 const { get } = require('lodash');
-const { getCACertificates } = require('@usebruno/requests');
+const { getCACertificates, resolveHttpVersion } = require('@usebruno/requests');
 const { preferencesUtil } = require('../../store/preferences');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { getCachedSystemProxy } = require('../../store/system-proxy');
-const { resolveRequestedHttpVersion } = require('./http2-transport');
 const { interpolateString, interpolateObject } = require('./interpolate-string');
 
 /**
@@ -245,7 +244,7 @@ const buildCertsAndProxyConfig = async ({
     collectionLevelProxy,
     appLevelProxyConfig,
     systemProxyConfig,
-    httpVersion: resolveRequestedHttpVersion(null, get(brunoConfig, 'http.version'))
+    httpVersion: resolveHttpVersion(get(brunoConfig, 'http.version'), preferencesUtil.getHttpVersion())
   };
 };
 

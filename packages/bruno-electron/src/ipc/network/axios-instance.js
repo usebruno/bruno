@@ -4,8 +4,7 @@ const axios = require('axios');
 const connectionCache = new Map(); // Cache to store checkConnection() results
 const electronApp = require('electron');
 const { setupProxyAgents } = require('../../utils/proxy-util');
-const { resolveRequestedHttpVersion } = require('./http2-transport');
-const { canUseHttp2, attachHttp2Adapter } = require('@usebruno/requests');
+const { canUseHttp2, attachHttp2Adapter, resolveHttpVersion } = require('@usebruno/requests');
 const { explainRequestError } = require('./explain-request-error');
 const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies');
 const { preferencesUtil } = require('../../store/preferences');
@@ -241,7 +240,7 @@ function makeAxiosInstance({
       });
     }
 
-    const requestedHttpVersion = resolveRequestedHttpVersion(config, config.__collectionHttpVersion);
+    const requestedHttpVersion = resolveHttpVersion(config.__collectionHttpVersion, preferencesUtil.getHttpVersion());
     if (canUseHttp2(requestedHttpVersion)) {
       await attachHttp2Adapter({ config, requestedHttpVersion, tlsOptions: agentOptions, proxyUri: resolvedProxyUri, timeline });
     }

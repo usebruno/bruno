@@ -517,7 +517,6 @@ const runSingleRequest = async function (
     });
 
     const requestedHttpVersion = resolveHttpVersion(
-      request,
       get(brunoConfig, 'http.version'),
       get(options, 'httpVersion', 'http1.1')
     );

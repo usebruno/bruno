@@ -10,6 +10,10 @@ the `HTTP2 QA` collection before the next phase starts.
 - Build on `node:http2` directly. No `http2-wrapper`.
 - Every phase keeps the app runnable; a phase never leaves HTTP/1.1 worse than before.
 - Three surfaces reach parity: **desktop app**, **`bru.sendRequest`** (scripting), **CLI** (`bru run`).
+- Concurrency model: **one session per origin + a readiness gate**, no hand-built queue. A fresh-origin
+  burst dedups on the synchronous `acquireSession` (first caller connects + pools, rest reuse), waits on
+  the session's `ready` promise (peer SETTINGS), then relies on Node's own post-SETTINGS stream queue for
+  `maxConcurrentStreams`. No multi-session packing (h2 is one connection per origin, like browsers).
 - Non-goals (documented, not built): TLS session-resumption cache, ORIGIN-frame multi-origin
   coverage, `maxSessions`/`maxFreeSessions` caps. These are optimizations an API client does not need.
 - Tests: **Jest unit specs per module** are the per-phase gate. Real-network/UI **e2e is deferred** —
@@ -89,8 +93,10 @@ still routes HTTP/1.1 (no transport yet).
   "attaches in a later step" log). `:path` comes straight from `config.url` — Bruno bakes the full query string into
   the URL upstream (query params + query-param auth reassign `request.url`); axios config carries no `.params`/`baseURL`,
   so no `buildFullPath`/`paramsSerializer` replication.
-**Deferred to Phase 9 (confirmed):** streaming request bodies, *true incremental* streaming response
-bodies (SSE backpressure), and multipart/FormData. This phase supports string / Buffer / no body only.
+**Deferred to Phase 9:** *true incremental* streaming **response** bodies (SSE backpressure) only.
+**Streaming request bodies + multipart/FormData are now done** (pulled forward): `send-request` pipes a
+Readable body (form-data stream / `fs.createReadStream`) instead of writing string/Buffer only.
+Also fixed here: strip `http2-settings` (Node rejects it), and map a `Host` header override to `:authority`.
 **Note:** Bruno's pipeline is stream-first (it forces `responseType: 'stream'` and reads `response.data`
 via `promisifyStream`), so the adapter must return a Node Readable. We buffer the full body and wrap it
 in a `PassThrough` (emit once, end) — correct for normal responses; real-time incremental SSE is Phase 9.
@@ -177,13 +183,28 @@ instance; thread the h2 preference.
 **UI/CLI check:** `bru run "HTTP2 QA" --env "HTTP2 forced"` matches the app's results.
 **Commit:** `feat(http2): HTTP/2 support in the CLI`
 
-## Phase 12 — Known finding, non-goals, final gate
+## Phase 12 — Known findings, non-goals, final gate
 **Why:** close out and lock the suite.
 **Build:** decide `Session destroyed mid-response` truncation (fix via `rstCode`-at-end detection, or
-document); write the non-goals note.
+document); **decide transparent retry of GOAWAY-refused streams** (see below); write the non-goals note.
 **Tests:** full `npm test --workspace=packages/bruno-requests` green; QA collection in all 3 envs with
 only expected/manual residuals.
 **Commit / PR:** assemble the phase commits; link this plan.
+
+### Decision item — transparent retry of refused streams (deferred here from Phase 5)
+RFC 9113 §8.7: a stream whose id is above a GOAWAY's Last-Stream-ID was never processed, so it is
+safe to retry on a fresh connection. The testbed invites this: `12 ↳ verify: GOAWAY refusing this
+stream` accepts either a clean error **or** a transparent retry-to-success ("Bruno retried
+transparently — nice"). The design, if we adopt it:
+- Retry **only** when the session received a **GOAWAY** (the connection is gone → pool retires it →
+  retry lands on a new session). A **bare RST_STREAM REFUSED_STREAM on a live session is terminal** —
+  `12 ↳ verify: RST_STREAM REFUSED_STREAM` expects `ok === false` and the same connection id next, so
+  it must **not** be retried. Both surface as `NGHTTP2_REFUSED_STREAM`; distinguish by a per-session
+  `goawayReceived` flag.
+- Retry **re-sendable bodies only** (no consumed request-body stream) and **cap** the attempts (e.g. 2)
+  so a persistently-refusing peer can't loop.
+- A prototype of exactly this was built and reverted on 2026-10-21 pending this decision; re-apply from
+  the session transcript if adopted.
 
 ---
 

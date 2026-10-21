@@ -4,19 +4,6 @@ import jsyaml from 'js-yaml';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
 import { buildV5Environments, buildV4Environments } from './env-utils';
 
-const mapInsomniaHttpVersion = (preferredHttpVersion) => {
-  switch (preferredHttpVersion) {
-    case 'V1_0':
-    case 'V1_1':
-      return 'http1.1';
-    case 'V2_0':
-    case 'V2PriorKnowledge':
-      return 'http2';
-    default:
-      return undefined;
-  }
-};
-
 const parseGraphQL = (text) => {
   try {
     const graphql = JSON.parse(text);
@@ -176,12 +163,6 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
     encodeUrl: request.settings?.encodeUrl !== false && request.settingEncodeUrl !== false, // handles v4 and v5 import
     forwardAuthorizationHeader: false
   };
-
-  const preferredHttpVersion = request.preferredHttpVersion ?? request.settings?.preferredHttpVersion;
-  const mappedHttpVersion = mapInsomniaHttpVersion(preferredHttpVersion);
-  if (mappedHttpVersion) {
-    settings.httpVersion = mappedHttpVersion;
-  }
 
   brunoRequestItem.settings = settings;
 

@@ -13,19 +13,6 @@ import postmanTranslation from './postman-translations';
 
 const { parseMaxRedirects } = utils;
 
-const mapPostmanHttpVersion = (protocolVersion) => {
-  switch (protocolVersion) {
-    case 'http1':
-      return 'http1.1';
-    case 'http2':
-      return 'http2';
-    case 'auto':
-      return 'auto';
-    default:
-      return undefined;
-  }
-};
-
 const AUTH_TYPES = Object.freeze({
   BASIC: 'basic',
   BEARER: 'bearer',
@@ -606,12 +593,6 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
           encodeUrl: i.protocolProfileBehavior?.disableUrlEncoding !== true,
           forwardAuthorizationHeader: i.protocolProfileBehavior?.followAuthorizationHeader ?? false
         };
-
-        // Map Postman's per-request HTTP version (protocolProfileBehavior.protocolVersion).
-        const mappedHttpVersion = mapPostmanHttpVersion(i.protocolProfileBehavior?.protocolVersion);
-        if (mappedHttpVersion) {
-          settings.httpVersion = mappedHttpVersion;
-        }
 
         // Handle followRedirects setting
         if (i.protocolProfileBehavior?.followRedirects !== undefined) {

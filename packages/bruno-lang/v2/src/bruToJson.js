@@ -588,14 +588,6 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         }
       }
     }
-    // Parse httpVersion (inherit | auto | http1.1 | http2)
-    if (settings.httpVersion !== undefined) {
-      const httpVersion = String(settings.httpVersion).trim();
-      if (['inherit', 'auto', 'http1.1', 'http2'].includes(httpVersion)) {
-        parsedSettings.httpVersion = httpVersion;
-      }
-    }
-
     const _settings = {
       encodeUrl: toBool(settings.encodeUrl),
       timeout: parsedSettings.timeout !== undefined ? parsedSettings.timeout : 0
@@ -611,10 +603,6 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     if (parsedSettings.forwardAuthorizationHeader !== undefined) {
       _settings.forwardAuthorizationHeader = parsedSettings.forwardAuthorizationHeader;
-    }
-
-    if (parsedSettings.httpVersion !== undefined) {
-      _settings.httpVersion = parsedSettings.httpVersion;
     }
 
     if (keepAliveInterval) {
