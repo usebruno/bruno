@@ -6,3 +6,6 @@ export { buildHttp2RequestHeaders, CONNECTION_HEADERS } from './headers';
 export type { H2HeadersResult, ToH2HeadersParams } from './headers';
 export { createHttp2Transport } from './create-http2-transport';
 export type { CreateHttp2TransportParams } from './create-http2-transport';
+
+export { negotiateHttpVersion, clearAlpnCache, canUseHttp2 } from './negotiate-http-version';
+export type { NegotiateHttpVersionParams, HttpVersionDecision } from './negotiate-http-version';

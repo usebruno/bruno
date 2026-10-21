@@ -1,87 +1,120 @@
-/**
- * HTTP/2 for Bruno via our own transport (POC, custom-transport branch).
- *
- * The version is decided before the request (http2-resolver / a proxy tunnel), and when it is h2
- * we hand axios `config.transport` — @usebruno/requests' createHttp2Transport, backed by our own
- * session pool. axios honours config.transport only when httpVersion is unset, so this path never
- * sets config.httpVersion. No monkey-patch of http2.connect: the pool owns session lifecycle,
- * error handling, GOAWAY and reuse; headers.ts owns :authority / connection-header stripping.
- */
 const { URL } = require('url');
 const {
   createHttp2Transport,
   closeAllSessions,
-  getSessionCount
+  getSessionCount,
+  negotiateHttpVersion,
+  canUseHttp2
 } = require('@usebruno/requests');
-const { resolveHttpVersion } = require('./http2-resolver');
 const { proxyKeyFor, connectThroughProxy } = require('./http2-proxy');
 
+const HTTP2_ALPN_PROTOCOLS = ['h2'];
+const AUTO_ALPN_PROTOCOLS = ['h2', 'http/1.1'];
+
 /**
- * axios turns config.auth (or user:pass@ in the URL) into options.auth and deletes any Authorization
- * header, relying on Node's http.ClientRequest to write it; our h2 transport never sees options.auth.
- * Build the header here and remove both inputs so axios leaves it alone. Returns true when applied.
+ * Convert Basic Auth credentials into an Authorization header.
+ *
+ * Axios normally handles this through Node's HTTP/1.1 request,
+ * but our HTTP/2 transport needs the header to be set explicitly.
  */
 const applyBasicAuthHeader = (config) => {
   if (!config) return false;
+
   let username;
   let password;
+
   if (config.auth && typeof config.auth === 'object') {
     username = config.auth.username || '';
     password = config.auth.password || '';
   } else if (typeof config.url === 'string') {
     try {
-      const parsed = new URL(config.url);
-      if (parsed.username || parsed.password) {
-        username = decodeURIComponent(parsed.username);
-        password = decodeURIComponent(parsed.password);
-        parsed.username = '';
-        parsed.password = '';
-        config.url = parsed.toString();
+      const url = new URL(config.url);
+
+      if (url.username || url.password) {
+        username = decodeURIComponent(url.username);
+        password = decodeURIComponent(url.password);
+
+        url.username = '';
+        url.password = '';
+        config.url = url.toString();
       }
-    } catch (_) {
+    } catch {
       return false;
     }
   }
+
   if (username === undefined) return false;
-  const value = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
-  if (config.headers && typeof config.headers.set === 'function') config.headers.set('Authorization', value);
-  else config.headers = { ...(config.headers || {}), Authorization: value };
+
+  const credentials = Buffer.from(`${username}:${password}`).toString('base64');
+  const authorization = `Basic ${credentials}`;
+
+  if (typeof config.headers?.set === 'function') {
+    config.headers.set('Authorization', authorization);
+  } else {
+    config.headers = {
+      ...config.headers,
+      Authorization: authorization
+    };
+  }
+
   delete config.auth;
+
   return true;
 };
 
-/** Timeline facts for a response served over an h2 stream (response.request is the ClientHttp2Stream). */
+/**
+ * Collect HTTP/2 request and TLS details for the timeline.
+ */
 const describeHttp2Stream = (stream) => {
-  const socket = stream && stream.session && stream.session.socket;
+  const socket = stream?.session?.socket;
   if (!socket) return null;
-  const cipher = typeof socket.getCipher === 'function' ? socket.getCipher() : null;
+
+  const cipher = socket.getCipher?.() || null;
+  const certificate = socket.getPeerCertificate?.() || null;
+
   const sentHeaders = {};
   const pseudoHeaders = {};
+
   for (const [name, value] of Object.entries(stream.sentHeaders || {})) {
-    if (name.startsWith(':')) pseudoHeaders[name] = value;
-    else sentHeaders[name.toLowerCase()] = value;
+    if (name.startsWith(':')) {
+      pseudoHeaders[name] = value;
+    } else {
+      sentHeaders[name.toLowerCase()] = value;
+    }
   }
-  const order = [':method', ':path', ':authority', ':scheme'];
-  const requestLine = order.filter((k) => k in pseudoHeaders).map((k) => `${k} ${pseudoHeaders[k]}`).join(' · ');
-  const peer = typeof socket.getPeerCertificate === 'function' ? socket.getPeerCertificate() : null;
-  const fmt = (o) => (o ? Object.entries(o).map(([k, v]) => `${k}=${v}`).join(', ') : null);
-  const certificateLines = peer && peer.subject
+
+  const requestLine = [':method', ':path', ':authority', ':scheme']
+    .filter((name) => name in pseudoHeaders)
+    .map((name) => `${name} ${pseudoHeaders[name]}`)
+    .join(' · ');
+
+  const formatCertificateFields = (fields) =>
+    fields
+      ? Object.entries(fields)
+          .map(([key, value]) => `${key}=${value}`)
+          .join(', ')
+      : null;
+
+  const certificateLines = certificate?.subject
     ? [
         'Server certificate:',
-        ` subject: ${fmt(peer.subject)}`,
-        ` start date: ${peer.valid_from}`,
-        ` expire date: ${peer.valid_to}`,
-        ...(peer.subjectaltname ? [` subjectAltName: ${peer.subjectaltname}`] : []),
-        ` issuer: ${fmt(peer.issuer)}`,
+        ` subject: ${formatCertificateFields(certificate.subject)}`,
+        ` start date: ${certificate.valid_from}`,
+        ` expire date: ${certificate.valid_to}`,
+        ...(certificate.subjectaltname
+          ? [` subjectAltName: ${certificate.subjectaltname}`]
+          : []),
+        ` issuer: ${formatCertificateFields(certificate.issuer)}`,
         socket.authorized
           ? 'SSL certificate verify ok.'
           : `SSL certificate verification skipped or failed (${socket.authorizationError || 'rejectUnauthorized: false'}).`
       ]
     : [];
+
   return {
     alpn: socket.alpnProtocol || null,
-    protocol: typeof socket.getProtocol === 'function' ? socket.getProtocol() : null,
-    cipher: cipher ? cipher.name : null,
+    protocol: socket.getProtocol?.() || null,
+    cipher: cipher?.name || null,
     remote: `${socket.remoteAddress}:${socket.remotePort}`,
     sentHeaders,
     pseudoHeaders,
@@ -91,90 +124,159 @@ const describeHttp2Stream = (stream) => {
 };
 
 /**
- * Decide the HTTP version and, if h2, attach our transport to the axios config. Called from the request
- * interceptor after setupProxyAgents (so config.httpsAgent is the final direct/proxy agent).
- *   - direct: http2-resolver probes ALPN (auto) or trusts the mode.
- *   - proxied: open the CONNECT tunnel; its ALPN is the answer, and the socket seeds the pool.
- * On h2 it also builds the Basic-auth header (auth option / URL creds are dropped otherwise).
+ * Negotiate HTTP/2 through a proxy tunnel.
+ *
+ * Reuse the connected socket if the server selects HTTP/2.
+ * Otherwise, close it and let axios use HTTP/1.1.
  */
-const applyHttp2Transport = async ({ config, mode, agentOptions, timeline }) => {
-  if (mode !== 'http2' && mode !== 'auto') return;
+const negotiateHttp2ThroughProxy = async ({
+  config,
+  mode,
+  agentOptions,
+  proxyKey
+}) => {
+  const url = new URL(config.url);
+  const port = Number(url.port) || 443;
 
-  const proxyKey = proxyKeyFor(config.httpsAgent);
-  let httpVersion = 1;
-  let reason = '';
-  let tunnelSocket = null;
-  let alpnOffered = null; // protocols we offered during negotiation (auto/proxy probe)
-  let alpnAccepted = null; // what the server picked
+  const offered = mode === 'auto'
+    ? AUTO_ALPN_PROTOCOLS
+    : HTTP2_ALPN_PROTOCOLS;
 
-  if (proxyKey && /^https:/i.test(config.url || '')) {
-    // Proxied: the tunnel doubles as the ALPN probe; keep the socket for the first session.
-    const parsed = new URL(config.url);
-    const port = Number(parsed.port) || 443;
-    const alpnProtocols = mode === 'auto' ? ['h2', 'http/1.1'] : ['h2'];
-    alpnOffered = alpnProtocols;
-    try {
-      const tunnel = await connectThroughProxy({
-        agent: config.httpsAgent,
-        hostname: parsed.hostname,
-        port,
-        tlsOptions: agentOptions,
-        alpnProtocols
-      });
-      alpnAccepted = tunnel.alpn || null;
-      if (tunnel.alpn === 'h2') {
-        httpVersion = 2;
-        tunnelSocket = tunnel.socket;
-        reason = `proxy tunnel via ${proxyKey}: server chose h2 (${tunnel.protocol})`;
-      } else {
-        tunnel.socket.destroy();
-        reason = `proxy tunnel via ${proxyKey}: server chose ${tunnel.alpn || 'none'}; using HTTP/1.1`;
-      }
-    } catch (err) {
-      if (mode === 'http2') throw err;
-      reason = `proxy tunnel via ${proxyKey} failed (${err.message}); using HTTP/1.1`;
-    }
-  } else {
-    const resolved = await resolveHttpVersion({
-      url: config.url,
-      mode,
+  try {
+    const tunnel = await connectThroughProxy({
+      agent: config.httpsAgent,
+      hostname: url.hostname,
+      port,
       tlsOptions: agentOptions,
-      lookup: config.lookup,
-      proxyUri: proxyKey
+      alpnProtocols: offered
     });
-    httpVersion = resolved.httpVersion;
-    reason = resolved.reason;
-    alpnOffered = resolved.offered || null;
-    alpnAccepted = resolved.alpn || null;
+
+    const alpn = tunnel.alpn || null;
+
+    if (alpn === 'h2') {
+      return {
+        httpVersion: 2,
+        reason: `proxy tunnel via ${proxyKey}: server chose h2 (${tunnel.protocol})`,
+        offered,
+        alpn,
+        socket: tunnel.socket
+      };
+    }
+
+    tunnel.socket.destroy();
+
+    return {
+      httpVersion: 1,
+      reason: `proxy tunnel via ${proxyKey}: server chose ${alpn || 'none'}; using HTTP/1.1`,
+      offered,
+      alpn,
+      socket: null
+    };
+  } catch (error) {
+    if (mode === 'http2') throw error;
+
+    return {
+      httpVersion: 1,
+      reason: `proxy tunnel via ${proxyKey} failed (${error.message}); using HTTP/1.1`,
+      offered,
+      alpn: null,
+      socket: null
+    };
+  }
+};
+
+/**
+ * Select the HTTP version for a direct or proxied connection.
+ */
+const selectHttpVersion = async ({
+  config,
+  mode,
+  agentOptions,
+  proxyKey
+}) => {
+  const isProxiedHttps
+    = proxyKey && /^https:/i.test(config.url || '');
+
+  if (isProxiedHttps) {
+    return negotiateHttp2ThroughProxy({
+      config,
+      mode,
+      agentOptions,
+      proxyKey
+    });
   }
 
-  if (alpnOffered && alpnOffered.length > 0) {
+  const decision = await negotiateHttpVersion({
+    url: config.url,
+    mode,
+    tlsOptions: agentOptions,
+    lookup: config.lookup,
+    proxyUri: proxyKey
+  });
+
+  return {
+    ...decision,
+    socket: null
+  };
+};
+
+/**
+ * Add protocol negotiation and selection details to the timeline.
+ */
+const logHttpVersionDecision = (timeline, decision) => {
+  const { httpVersion, reason, offered, alpn } = decision;
+
+  if (offered?.length) {
     timeline.push({
       timestamp: new Date(),
       type: 'tls',
-      message: `ALPN: offered ${alpnOffered.join(', ')} · server accepted ${alpnAccepted || 'none'}`
+      message: `ALPN: offered ${offered.join(', ')} · server accepted ${alpn || 'none'}`
     });
   }
+
   timeline.push({
     timestamp: new Date(),
     type: 'info',
     message: `HTTP/${httpVersion === 2 ? '2' : '1.1'} selected (${reason})`
   });
+};
 
-  // The redirect loop reuses this config for the next hop, so an h1 decision must undo an earlier
-  // hop's h2 transport — otherwise a h2 -> h1-only redirect keeps the h2 transport and fails ALPN.
-  if (httpVersion !== 2) {
-    delete config.transport;
-    return;
-  }
+/**
+ * Select the HTTP version and attach our custom transport when HTTP/2 is supported.
+ *
+ * Direct connections use ALPN negotiation. Proxied connections negotiate
+ * through a CONNECT tunnel and reuse the connected socket.
+ */
+const applyHttp2Transport = async ({
+  config,
+  mode,
+  agentOptions,
+  timeline
+}) => {
+  // A redirect may reuse the config from an earlier HTTP/2 request.
+  delete config.transport;
 
-  // Through a proxy the tunnel is connected and DNS is the proxy's job: no lookup on the pool side.
+  if (!canUseHttp2(mode)) return;
+
+  const proxyKey = proxyKeyFor(config.httpsAgent);
+
+  const decision = await selectHttpVersion({
+    config,
+    mode,
+    agentOptions,
+    proxyKey
+  });
+
+  logHttpVersionDecision(timeline, decision);
+
+  if (decision.httpVersion !== 2) return;
+
   config.transport = createHttp2Transport({
     tlsOptions: agentOptions,
     mode: 'http2',
     lookup: proxyKey ? undefined : config.lookup,
     proxyUri: proxyKey,
-    socket: tunnelSocket,
+    socket: decision.socket,
     timeline
   });
 
@@ -188,17 +290,30 @@ const applyHttp2Transport = async ({ config, mode, agentOptions, timeline }) => 
 };
 
 /**
- * bru.sendRequest uses @usebruno/requests' own axios instance, not the desktop interceptor. This preparer
- * gives scripted requests the same treatment: resolve the version and, if h2, attach our transport. TLS
- * fields come off the agent the script path already built (already run through applySecureContext).
+ * Apply the same HTTP/2 setup to scripted requests.
+ *
+ * Scripted requests use a separate axios instance and don't have
+ * a request timeline.
  */
-const createScriptedRequestPreparer = ({ getHttpVersionMode }) => async (config) => {
-  const mode = getHttpVersionMode();
-  if (mode !== 'http2' && mode !== 'auto') return;
-  const agentOptions = (config.httpsAgent && config.httpsAgent.options) || {};
-  // Scripted requests have no timeline; give applyHttp2Transport a scratch sink.
-  await applyHttp2Transport({ config, mode, agentOptions, timeline: [] });
-};
+const createScriptedRequestPreparer
+  = ({ getHttpVersionMode }) =>
+    async (config) => {
+      const mode = getHttpVersionMode();
+
+      if (!canUseHttp2(mode)) {
+        delete config.transport;
+        return;
+      }
+
+      const agentOptions = config.httpsAgent?.options || {};
+
+      await applyHttp2Transport({
+        config,
+        mode,
+        agentOptions,
+        timeline: []
+      });
+    };
 
 module.exports = {
   applyHttp2Transport,

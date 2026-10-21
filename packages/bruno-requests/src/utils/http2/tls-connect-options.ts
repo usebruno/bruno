@@ -21,10 +21,14 @@ export type BrunoTlsOptions = Partial<Pick<tls.ConnectionOptions, (typeof TLS_FI
 // Keep only the TLS fields.
 export function pickTlsFields(input: object | undefined): BrunoTlsOptions {
   const out: Record<string, unknown> = {};
-  if (!input) return out;
+  if (!input) {
+    return out;
+  }
   const src = input as Record<string, unknown>;
   for (const field of TLS_FIELDS) {
-    if (src[field] !== undefined) out[field] = src[field];
+    if (src[field] !== undefined) {
+      out[field] = src[field];
+    }
   }
   return out as BrunoTlsOptions;
 }
@@ -81,7 +85,9 @@ export function buildTlsConnectOptions({
 
   opts.ALPNProtocols = ALPN_BY_MODE[mode];
 
-  if (lookup) opts.lookup = wrapLookup(lookup);
+  if (lookup) {
+    opts.lookup = wrapLookup(lookup);
+  }
 
   return opts;
 }
@@ -91,7 +97,7 @@ export type ConnectTlsParams = BuildTlsConnectOptionsParams & { timeoutMs?: numb
 export type ConnectTlsResult = {
   socket: tls.TLSSocket;
   mode: HttpVersionMode;
-  offered: string[] | null;
+  offered: string[];
   alpn: string | null;
   authorized: boolean;
   authorizationError: string | null;

@@ -1,89 +1,143 @@
-/**
- * HTTP/2 through Bruno's proxies (POC) — change 1: identify a proxied request.
- *
- * setupProxyAgents() has already decided the proxy for this request (mode on/system/pac, bypass rules, auth)
- * and expressed it as the agent on config.httpsAgent: a plain https.Agent means direct; an agent-base agent
- * with a .proxy (PatchedHttpsProxyAgent for CONNECT, SocksProxyAgent for SOCKS) means proxied. We key off the
- * agent rather than re-reading preferences so every decision stays Bruno's.
- */
-
 const { EventEmitter } = require('events');
 const { applySecureContext } = require('@usebruno/requests');
 
-/** True for the agents Bruno creates for proxied requests; false for a plain https.Agent (direct). */
-const isProxyAgent = (agent) => Boolean(agent && typeof agent.connect === 'function' && agent.proxy);
+const TUNNEL_TIMEOUT_MS = 10_000;
 
-/** Stable string identifying the proxy an agent talks to; becomes part of the HTTP/2 session key. */
+const isProxyAgent = (agent) =>
+  Boolean(agent && typeof agent.connect === 'function' && agent.proxy);
+
 const proxyKeyFor = (agent) => {
   if (!isProxyAgent(agent)) return null;
-  const p = agent.proxy;
-  if (typeof p.href === 'string') return p.href; // http(s) CONNECT proxy: a URL object (credentials included)
-  return `socks${p.type || ''}://${p.host}:${p.port}`; // SocksProxyAgent: plain { host, port, type } object
+
+  const proxy = agent.proxy;
+
+  if (typeof proxy.href === 'string') {
+    return proxy.href;
+  }
+
+  return `socks${proxy.type || ''}://${proxy.host}:${proxy.port}`;
 };
 
-const TUNNEL_TIMEOUT_MS = 10 * 1000;
+/**
+ * Build TLS options for connecting to the origin through a proxy.
+ */
+const buildProxyTlsOptions = ({ hostname, port, tlsOptions, alpnProtocols }) => {
+  // Remove agent-specific options that shouldn't reach the TLS connection.
+  const { keepAlive, proxy, caCertificatesCount, lookup, ...tlsFields } = tlsOptions;
+
+  const options = {
+    ...applySecureContext({ ...tlsFields }),
+    host: hostname,
+    port,
+    servername: hostname,
+    secureEndpoint: true,
+    rejectUnauthorized: tlsFields.rejectUnauthorized !== false
+  };
+
+  if (alpnProtocols) {
+    options.ALPNProtocols = alpnProtocols;
+  }
+
+  return options;
+};
 
 /**
+ * Open a TLS connection to the origin through the configured proxy.
  *
- * On h1 Node's http asks the agent for a socket and agent-base runs agent.connect(req, opts) for it. Node's http2
- * never asks, so we call connect() ourselves. `req` is only used as an event emitter inside connect(), so a bare
- * EventEmitter is enough. With secureEndpoint the agent returns a TLS socket to the origin over the tunnel, using
- * the TLS fields we pass in opts (PatchedHttpsProxyAgent also forwards its constructor's cert/key/secureContext).
- * Resolves { socket, alpn, protocol, proxyStatus }; rejects on proxy refusal, TLS failure or timeout, and never
- * leaves a socket open on failure. The caller decides whether to keep the socket (alpn === 'h2') or destroy it.
+ * The proxy agent creates the tunnel, and we wait for the TLS handshake
+ * to finish before returning the socket and negotiated ALPN protocol.
  */
-const connectThroughProxy = ({ agent, hostname, port, tlsOptions = {}, alpnProtocols, timeoutMs = TUNNEL_TIMEOUT_MS }) =>
+const connectThroughProxy = ({
+  agent,
+  hostname,
+  port,
+  tlsOptions = {},
+  alpnProtocols,
+  timeoutMs = TUNNEL_TIMEOUT_MS
+}) =>
   new Promise((resolve, reject) => {
-    // Agent-only and non-TLS fields must not reach tls.connect.
-    const { keepAlive, proxy, caCertificatesCount, lookup, ...tlsOnly } = tlsOptions;
-    const req = new EventEmitter();
-    let proxyStatus;
-    req.on('proxyConnect', (c) => {
-      proxyStatus = c && c.statusCode;
-    });
-    const opts = {
-      ...applySecureContext({ ...tlsOnly }), // ca/cert/key/pfx -> secureContext, default roots kept
-      host: hostname,
+    const request = new EventEmitter();
+    const options = buildProxyTlsOptions({
+      hostname,
       port,
-      servername: hostname, // SNI names the origin, not the proxy
-      secureEndpoint: true, // "wrap the tunnel in TLS to the origin"
-      rejectUnauthorized: tlsOnly.rejectUnauthorized !== false
-    };
-    if (alpnProtocols) opts.ALPNProtocols = alpnProtocols;
+      tlsOptions,
+      alpnProtocols
+    });
 
-    let settled = false;
+    let proxyStatus;
     let socket = null;
-    const fail = (err) => {
+    let settled = false;
+
+    request.on('proxyConnect', (response) => {
+      proxyStatus = response?.statusCode;
+    });
+
+    const fail = (error) => {
       if (settled) return;
+
       settled = true;
       clearTimeout(timer);
-      if (socket) socket.destroy();
-      reject(err);
+      socket?.destroy();
+
+      reject(error);
     };
-    const timer = setTimeout(() => fail(Object.assign(new Error(`proxy tunnel timed out after ${timeoutMs} ms`), { code: 'ETIMEDOUT' })), timeoutMs);
+
+    // Prevent stalled proxy connections or TLS handshakes from hanging.
+    const timer = setTimeout(() => {
+      const error = new Error(`proxy tunnel timed out after ${timeoutMs} ms`);
+      error.code = 'ETIMEDOUT';
+      fail(error);
+    }, timeoutMs);
+
+    const complete = () => {
+      if (settled) return;
+
+      settled = true;
+      clearTimeout(timer);
+      socket.removeListener('error', fail);
+
+      resolve({
+        socket,
+        alpn: socket.alpnProtocol || null,
+        protocol: socket.getProtocol(),
+        proxyStatus
+      });
+    };
+
+    const handleSocket = (connectedSocket) => {
+      socket = connectedSocket;
+
+      // A refused CONNECT may return a fake socket instead of throwing.
+      if (!socket?.encrypted) {
+        const error = new Error(
+          `proxy CONNECT refused (${proxyStatus || 'no status'})`
+        );
+
+        error.code = 'EPROXYREFUSED';
+        error.proxyStatus = proxyStatus;
+
+        fail(error);
+        return;
+      }
+
+      socket.once('error', fail);
+
+      // ALPN is available only after the TLS handshake completes.
+      if (socket.alpnProtocol || socket.authorized || socket.authorizationError) {
+        complete();
+      } else {
+        socket.once('secureConnect', complete);
+      }
+    };
 
     Promise.resolve()
-      .then(() => agent.connect(req, opts))
-      .then((s) => {
-        socket = s;
-        // https-proxy-agent does not throw on a refused CONNECT (407/403/...): it returns a fake non-TLS socket
-        // so Node's http can replay the error body. For us that is a failure.
-        if (!socket || !socket.encrypted) {
-          return fail(Object.assign(new Error(`proxy CONNECT refused (${proxyStatus || 'no status'})`), { code: 'EPROXYREFUSED', proxyStatus }));
-        }
-        const done = () => {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timer);
-          socket.removeListener('error', fail);
-          resolve({ socket, alpn: socket.alpnProtocol || null, protocol: socket.getProtocol(), proxyStatus });
-        };
-        socket.once('error', fail);
-        // connect() resolves when tls.connect() returns, before the handshake; ALPN is known only after it.
-        if (socket.alpnProtocol || socket.authorized || socket.authorizationError) done();
-        else socket.once('secureConnect', done);
-      })
+      .then(() => agent.connect(request, options))
+      .then(handleSocket)
       .catch(fail);
   });
 
-module.exports = { isProxyAgent, proxyKeyFor, connectThroughProxy };
+module.exports = {
+  isProxyAgent,
+  proxyKeyFor,
+  connectThroughProxy
+};

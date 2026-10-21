@@ -40,6 +40,9 @@ export {
   getSessionEntries,
   establishTlsConnection,
   buildHttp2RequestHeaders,
-  getSessionKey
+  getSessionKey,
+  negotiateHttpVersion,
+  clearAlpnCache,
+  canUseHttp2
 } from './utils/http2';
-export type { CreateHttp2TransportParams, HttpVersionMode, ConnectTlsResult, PooledSession } from './utils/http2';
+export type { CreateHttp2TransportParams, HttpVersionMode, ConnectTlsResult, PooledSession, HttpVersionDecision } from './utils/http2';

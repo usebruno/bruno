@@ -8,7 +8,7 @@ const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies')
 const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
 const { createFormData } = require('../../utils/form-data');
-const { getSentHeaders, applyOmitConnectionToAxiosConfig, handleNtlmRedirect } = require('@usebruno/requests');
+const { getSentHeaders, applyOmitConnectionToAxiosConfig, handleNtlmRedirect, canUseHttp2 } = require('@usebruno/requests');
 const { STATUS_CODES } = require('http');
 const { applyHttp2Transport, describeHttp2Stream } = require('./http2-transport');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
@@ -27,7 +27,7 @@ const saveCookies = (url, headers) => {
       setCookieHeaders = Array.isArray(headers['set-cookie'])
         ? headers['set-cookie']
         : [headers['set-cookie']];
-      for (let setCookieHeader of setCookieHeaders) {
+      for (const setCookieHeader of setCookieHeaders) {
         if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
           addCookieToJar(setCookieHeader, url);
         }
@@ -206,17 +206,14 @@ function makeAxiosInstance({
       });
     }
 
-    // POC (custom transport): choose HTTP version and, if h2, attach our own transport (config.transport).
-    try {
-      await applyHttp2Transport({
-        config,
-        mode: preferencesUtil.getHttpVersion(),
-        agentOptions,
-        timeline
-      });
-    } catch (err) {
-      timeline.push({ timestamp: new Date(), type: 'error', message: `HTTP/2 setup failed: ${err?.message}` });
-      throw err;
+    const httpVersionMode = preferencesUtil.getHttpVersion();
+    if (canUseHttp2(httpVersionMode)) {
+      try {
+        await applyHttp2Transport({ config, mode: httpVersionMode, agentOptions, timeline });
+      } catch (err) {
+        timeline.push({ timestamp: new Date(), type: 'error', message: `HTTP/2 setup failed: ${err?.message}` });
+        throw err;
+      }
     }
 
     // Node keep-alive agents add Connection; strip it on the ClientRequest.
