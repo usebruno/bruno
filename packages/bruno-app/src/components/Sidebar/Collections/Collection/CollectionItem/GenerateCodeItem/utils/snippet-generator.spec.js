@@ -28,6 +28,9 @@ jest.mock('httpsnippet', () => {
   };
 });
 
+// jest.setup.js stubs strip-json-comments for every suite; the JSON body comment tests need the real one.
+jest.unmock('strip-json-comments');
+
 jest.mock('utils/collections/index', () => {
   const actual = jest.requireActual('utils/collections/index');
 
@@ -840,6 +843,79 @@ describe('generateSnippet with edge-case bodies', () => {
     };
 
     const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: true });
+    expect(result).toMatch(/^curl -X POST/);
+  });
+});
+
+describe('generateSnippet – comments in JSON body', () => {
+  const language = { target: 'shell', client: 'curl' };
+  const collection = {
+    root: { request: { auth: { mode: 'none' }, headers: [] } },
+    globalEnvironmentVariables: { userName: 'Jane' }
+  };
+
+  const makeItem = (json) => ({
+    uid: 'req-json-comments',
+    request: {
+      method: 'POST',
+      url: 'https://example.com',
+      headers: [],
+      body: { mode: 'json', json },
+      auth: { mode: 'none' }
+    }
+  });
+
+  const jsonWithComments = [
+    '{',
+    '  "name": "{{userName}}",',
+    '  // "debug": true,',
+    '  "url": "https://example.com/a//b", /* trailing block comment */',
+    '',
+    '  /*',
+    '    "skipped": 1,',
+    '  */',
+    '  "age": 30 // trailing line comment',
+    '}'
+  ].join('\n');
+
+  it('removes comments from the JSON body when interpolation is disabled', async () => {
+    const result = await generateSnippet({ language, item: makeItem(jsonWithComments), collection, shouldInterpolate: false });
+
+    const expectedBody = [
+      '{',
+      '  "name": "{{userName}}",',
+      '  "url": "https://example.com/a//b",',
+      '',
+      '  "age": 30',
+      '}'
+    ].join('\n');
+    expect(result).toContain(`-d '${expectedBody}'`);
+  });
+
+  it('removes comments from the JSON body when interpolation is enabled', async () => {
+    const result = await generateSnippet({ language, item: makeItem(jsonWithComments), collection, shouldInterpolate: true });
+
+    const expectedBody = JSON.stringify({ name: 'Jane', url: 'https://example.com/a//b', age: 30 }, null, 2);
+    expect(result).toContain(`-d '${expectedBody}'`);
+  });
+
+  it('leaves a JSON body without comments untouched', async () => {
+    const json = '{\n  "path": "/a//b",\n\n  "count": {{count}}\n}';
+    const result = await generateSnippet({ language, item: makeItem(json), collection, shouldInterpolate: false });
+
+    expect(result).toContain(`-d '${json}'`);
+  });
+
+  it('handles a CRLF body', async () => {
+    const json = '{\r\n  "a": 1,\r\n  // "b": 2,\r\n  "c": 3 // note\r\n}';
+    const result = await generateSnippet({ language, item: makeItem(json), collection, shouldInterpolate: false });
+
+    expect(result).toContain(`-d '{\n  "a": 1,\n  "c": 3\n}'`);
+  });
+
+  it('still generates a snippet when the JSON body has no text', async () => {
+    const result = await generateSnippet({ language, item: makeItem(undefined), collection, shouldInterpolate: false });
+
     expect(result).toMatch(/^curl -X POST/);
   });
 });

@@ -6,6 +6,22 @@ import { get } from 'lodash';
 import { interpolateUrl, interpolateUrlPathParams, prependDefaultScheme } from 'utils/url/index';
 import { parse } from 'url';
 import { stringify } from 'query-string';
+import stripJsonComments from 'strip-json-comments';
+
+// Requests are sent with comments removed from the JSON body (`decomment` in the electron and
+// CLI prepare-request), so the snippet must not carry them either. Lines that only held a
+// comment are dropped instead of being left blank.
+const stripJsonBodyComments = (json) => {
+  const originalLines = json.split(/\r\n|\r|\n/);
+  return stripJsonComments(json)
+    .split(/\r\n|\r|\n/)
+    .flatMap((line, index) => {
+      if (line === originalLines[index]) return [line];
+      const withoutComment = line.trimEnd();
+      return withoutComment ? [withoutComment] : [];
+    })
+    .join('\n');
+};
 
 // Folds any `cookie`/`Cookie` header into a single header.
 const mergeCookieHeaders = (headers, capitalizeCookieHeaderName) => {
@@ -70,6 +86,10 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
 
     const settings = item.draft ? get(item, 'draft.settings') : get(item, 'settings');
 
+    const body = request.body?.mode === 'json' && typeof request.body.json === 'string'
+      ? { ...request.body, json: stripJsonBodyComments(request.body.json) }
+      : request.body;
+
     // buildHar intentionally does NOT resolve `{{var}}` / `:pathParam` in the URL
     const sourceUrl = shouldInterpolate
       ? interpolateUrlPathParams(
@@ -87,7 +107,7 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
         params: request.params,
         pathParams: [],
         headers: mergedHeaders,
-        body: request.body,
+        body,
         auth: effectiveAuth,
         settings
       },
