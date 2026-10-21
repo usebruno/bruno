@@ -4,7 +4,9 @@ import { applySecureContext } from '../agent-cache';
 
 export type HttpVersionMode = 'auto' | 'http1.1' | 'http2';
 
-/** ALPN protocols offered per mode. 'auto' offers both (server picks); 'http2' forces h2. */
+/**
+ * ALPN protocols offered per mode. 'auto' offers both (server picks)
+ */
 export const ALPN_BY_MODE: Record<HttpVersionMode, string[] | undefined> = {
   'auto': ['h2', 'http/1.1'],
   'http2': ['h2'],
@@ -26,7 +28,7 @@ const TLS_FIELDS = [
   'secureProtocol'
 ] as const;
 
-/** Keep only TLS fields, dropping HTTP-agent settings (keepAlive, maxSockets, …). */
+// Keep only TLS fields, dropping HTTP-agent settings
 export function pickTlsFields(options?: Record<string, unknown> | null): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   if (!options) return out;

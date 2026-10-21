@@ -58,5 +58,24 @@ describe('alpn resolver', () => {
       expect(second.reason).toBe('auto (cached)');
       expect(second.httpVersion).toBe(2);
     });
+
+    describe('cleartext http2 (h2c prior knowledge)', () => {
+      it('speaks h2 over cleartext when mode is http2 (prior knowledge, no probe)', async () => {
+        const r = await resolveHttpVersionViaAlpn({
+          url: 'http://localhost:9/x',
+          mode: 'http2',
+          tlsOptions
+        });
+        expect(r.httpVersion).toBe(2);
+        expect(r.reason).toBe('h2c prior knowledge (cleartext)');
+        // No ALPN happens over cleartext, so there is nothing to report as "offered".
+        expect(r.offered).toBeUndefined();
+      });
+
+      it('stays on HTTP/1.1 for cleartext auto (cannot negotiate h2 without ALPN)', async () => {
+        const r = await resolveHttpVersionViaAlpn({ url: 'http://localhost:9/x', mode: 'auto', tlsOptions });
+        expect(r.httpVersion).toBe(1);
+      });
+    });
   });
 });

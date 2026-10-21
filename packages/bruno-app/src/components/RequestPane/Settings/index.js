@@ -13,7 +13,11 @@ import { setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Tags from './Tags/index';
 
-const HTTP_VERSION_LABELS = { 'auto': 'Auto', 'http1.1': 'HTTP/1.1', 'http2': 'HTTP/2' };
+const HTTP_VERSION_LABELS = {
+  'auto': 'Auto',
+  'http1.1': 'HTTP/1.1',
+  'http2': 'HTTP/2'
+};
 
 // Default settings configuration
 const DEFAULT_SETTINGS = {
@@ -45,7 +49,11 @@ const Settings = ({ item, collection }) => {
     : get(collection, 'brunoConfig.http.version');
   const resolvedInheritedVersion = collectionHttpVersion && collectionHttpVersion !== 'inherit' ? collectionHttpVersion : appHttpVersion;
   const httpVersionItems = [
-    { id: 'inherit', label: `Inherit (${HTTP_VERSION_LABELS[resolvedInheritedVersion] || resolvedInheritedVersion})` },
+    {
+      id: 'inherit',
+      // Strip the inner parens of 'HTTP/2 (Prior Knowledge)' so Inherit doesn't nest parens.
+      label: `Inherit (${(HTTP_VERSION_LABELS[resolvedInheritedVersion] || resolvedInheritedVersion).replace(/[()]/g, '').trim()})`
+    },
     { id: 'auto', label: HTTP_VERSION_LABELS['auto'] },
     { id: 'http1.1', label: HTTP_VERSION_LABELS['http1.1'] },
     { id: 'http2', label: HTTP_VERSION_LABELS['http2'] }
@@ -233,7 +241,7 @@ const Settings = ({ item, collection }) => {
               >
                 <button
                   type="button"
-                  className="flex items-center justify-between rounded-sm px-2 py-1 h-8 w-40 outline-none cursor-pointer"
+                  className="flex items-center justify-between rounded-sm px-2 py-1 h-8 w-64 outline-none cursor-pointer"
                   style={{ backgroundColor: theme.input.bg, border: `1px solid ${theme.input.border}` }}
                   data-testid="request-http-version"
                 >

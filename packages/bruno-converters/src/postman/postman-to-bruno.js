@@ -13,6 +13,19 @@ import postmanTranslation from './postman-translations';
 
 const { parseMaxRedirects } = utils;
 
+const mapPostmanHttpVersion = (protocolVersion) => {
+  switch (protocolVersion) {
+    case 'http1':
+      return 'http1.1';
+    case 'http2':
+      return 'http2';
+    case 'auto':
+      return 'auto';
+    default:
+      return undefined;
+  }
+};
+
 const AUTH_TYPES = Object.freeze({
   BASIC: 'basic',
   BEARER: 'bearer',
@@ -29,7 +42,7 @@ const AUTH_TYPES = Object.freeze({
 
 const parseGraphQLRequest = (graphqlSource) => {
   try {
-    let queryResultObject = {
+    const queryResultObject = {
       query: '',
       variables: ''
     };
@@ -594,6 +607,12 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
           forwardAuthorizationHeader: i.protocolProfileBehavior?.followAuthorizationHeader ?? false
         };
 
+        // Map Postman's per-request HTTP version (protocolProfileBehavior.protocolVersion).
+        const mappedHttpVersion = mapPostmanHttpVersion(i.protocolProfileBehavior?.protocolVersion);
+        if (mappedHttpVersion) {
+          settings.httpVersion = mappedHttpVersion;
+        }
+
         // Handle followRedirects setting
         if (i.protocolProfileBehavior?.followRedirects !== undefined) {
           settings.followRedirects = i.protocolProfileBehavior.followRedirects;
@@ -963,9 +982,9 @@ const searchLanguageByHeader = (headers) => {
   let contentType;
   each(normalizeHeaders(headers), (header) => {
     if (header.key?.toLowerCase() === 'content-type' && !header.disabled) {
-      if (typeof header.value == 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(header.value)) {
+      if (typeof header.value === 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(header.value)) {
         contentType = 'json';
-      } else if (typeof header.value == 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(header.value)) {
+      } else if (typeof header.value === 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(header.value)) {
         contentType = 'xml';
       }
       return false;
@@ -1190,9 +1209,9 @@ const parsePostmanCollection = async (collection, { useWorkers = false, preserve
     // Newer Postman exports wrap the collection in a { collection: { ... } } envelope
     const parsedCollection = collection.collection?.info ? collection.collection : collection;
 
-    let schema = get(parsedCollection, 'info.schema');
+    const schema = get(parsedCollection, 'info.schema');
 
-    let v2Schemas = [
+    const v2Schemas = [
       'https://schema.getpostman.com/json/collection/v2.0.0/collection.json',
       'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
       'https://schema.postman.com/json/collection/v2.0.0/collection.json',

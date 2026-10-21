@@ -10,7 +10,11 @@ import MenuDropdown from 'ui/MenuDropdown';
 import StyledWrapper from './StyledWrapper';
 
 // Display labels for concrete HTTP versions (Inherit shows the resolved value).
-const HTTP_VERSION_LABELS = { 'auto': 'Auto', 'http1.1': 'HTTP/1.1', 'http2': 'HTTP/2' };
+const HTTP_VERSION_LABELS = {
+  'auto': 'Auto',
+  'http1.1': 'HTTP/1.1',
+  'http2': 'HTTP/2'
+};
 
 const Requests = ({ collection }) => {
   const dispatch = useDispatch();
@@ -29,7 +33,11 @@ const Requests = ({ collection }) => {
   };
 
   const httpVersionItems = [
-    { id: 'inherit', label: `Inherit (${HTTP_VERSION_LABELS[appHttpVersion] || appHttpVersion})`, onClick: () => handleHttpVersionChange('inherit') },
+    {
+      id: 'inherit',
+      label: `Inherit (${(HTTP_VERSION_LABELS[appHttpVersion] || appHttpVersion).replace(/[()]/g, '').trim()})`,
+      onClick: () => handleHttpVersionChange('inherit')
+    },
     { id: 'auto', label: HTTP_VERSION_LABELS['auto'], onClick: () => handleHttpVersionChange('auto') },
     { id: 'http1.1', label: HTTP_VERSION_LABELS['http1.1'], onClick: () => handleHttpVersionChange('http1.1') },
     { id: 'http2', label: HTTP_VERSION_LABELS['http2'], onClick: () => handleHttpVersionChange('http2') }
@@ -56,7 +64,7 @@ const Requests = ({ collection }) => {
           >
             <button
               type="button"
-              className="flex items-center justify-between rounded-sm px-2 py-1 h-8 w-56 outline-none cursor-pointer"
+              className="flex items-center justify-between rounded-sm px-2 py-1 h-8 w-64 outline-none cursor-pointer"
               style={{ backgroundColor: theme.input.bg, border: `1px solid ${theme.input.border}` }}
               data-testid="collection-http-version"
             >

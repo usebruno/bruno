@@ -6,6 +6,7 @@ const electronApp = require('electron');
 const { setupProxyAgents } = require('../../utils/proxy-util');
 const { resolveRequestedHttpVersion } = require('./http2-transport');
 const { canUseHttp2, attachHttp2Adapter } = require('@usebruno/requests');
+const { explainRequestError } = require('./explain-request-error');
 const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies');
 const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
@@ -337,11 +338,22 @@ function makeAxiosInstance({
         });
       });
 
-      timeline?.push({
-        timestamp: new Date(),
-        type: 'error',
-        message: 'there was an error executing the request!'
-      });
+      const { message, originalMessage, code } = explainRequestError(error);
+      const codeSuffix = code ? ` (${code})` : '';
+      if (message) {
+        timeline?.push({ timestamp: new Date(), type: 'error', message: `Error executing the request: ${message}` });
+        if (originalMessage) {
+          timeline?.push({ timestamp: new Date(), type: 'error', message: `Details: ${originalMessage}${codeSuffix}` });
+        }
+      } else {
+        timeline?.push({
+          timestamp: new Date(),
+          type: 'error',
+          message: originalMessage
+            ? `Error executing the request: ${originalMessage}${codeSuffix}`
+            : 'there was an error executing the request!'
+        });
+      }
       if (error.response) {
         const isStreamedBody = config.responseType === 'stream';
         if (isStreamedBody) {

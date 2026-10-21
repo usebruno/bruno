@@ -144,7 +144,7 @@ const collapseDuplicateSlashes = (url) => {
  *
  */
 export const sanitizeUrl = (url) => {
-  let sanitizedUrl = collapseDuplicateSlashes(url.replace(/\\/g, '//'));
+  const sanitizedUrl = collapseDuplicateSlashes(url.replace(/\\/g, '//'));
   return sanitizedUrl;
 };
 
@@ -165,7 +165,7 @@ export const brunoToPostman = (collection, { preserveScripts = false } = {}) => 
 
   const generateCollectionVars = (collection) => {
     const pattern = /{{[^{}]+}}/g;
-    let collectionVars = [];
+    const collectionVars = [];
 
     const findOccurrences = (obj, results) => {
       if (typeof obj === 'object') {
@@ -885,6 +885,19 @@ export const brunoToPostman = (collection, { preserveScripts = false } = {}) => 
     return contentTypeHeader ? contentTypeHeader.value : null;
   };
 
+  const mapBrunoHttpVersionToPostman = (httpVersion) => {
+    switch (httpVersion) {
+      case 'http1.1':
+        return 'http1';
+      case 'http2':
+        return 'http2';
+      case 'auto':
+        return 'auto';
+      default:
+        return undefined;
+    }
+  };
+
   const getDisabledSystemHeaders = (omitHeaders) => {
     if (!omitHeaders || !Array.isArray(omitHeaders) || omitHeaders.length === 0) {
       return null;
@@ -947,6 +960,10 @@ export const brunoToPostman = (collection, { preserveScripts = false } = {}) => 
         }
         if (disabledSystemHeaders) {
           protocolProfileBehavior.disabledSystemHeaders = disabledSystemHeaders;
+        }
+        const postmanProtocolVersion = mapBrunoHttpVersionToPostman(item.settings?.httpVersion);
+        if (postmanProtocolVersion) {
+          protocolProfileBehavior.protocolVersion = postmanProtocolVersion;
         }
 
         const postmanItem = {

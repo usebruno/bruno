@@ -71,7 +71,7 @@ const StyledWrapper = styled.div`
 
   .numeric-input {
     width: 100%;
-    max-width: 14rem;
+    max-width: 16rem;
   }
 
 
@@ -81,7 +81,7 @@ const StyledWrapper = styled.div`
     justify-content: space-between;
     gap: 0.5rem;
     width: 100%;
-    max-width: 14rem;
+    max-width: 16rem;
     cursor: pointer;
     user-select: none;
     font: inherit;

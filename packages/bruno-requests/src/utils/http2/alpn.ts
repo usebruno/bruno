@@ -126,14 +126,21 @@ export async function resolveHttpVersionViaAlpn(params: ResolveHttpVersionViaAlp
     return { httpVersion: 1, reason: 'unparseable URL' };
   }
 
-  if (parsedUrl.protocol !== 'https:') {
-    return { httpVersion: 1, reason: 'cleartext URL (h2c not supported)' };
-  }
-
   if (mode === 'http1.1') {
     return { httpVersion: 1, reason: 'mode http1.1' };
   }
 
+  const isCleartext = parsedUrl.protocol !== 'https:';
+
+  if (isCleartext) {
+    // Over cleartext there is no TLS/ALPN.
+    if (mode === 'http2') {
+      return { httpVersion: 2, reason: 'h2c prior knowledge (cleartext)' };
+    }
+    return { httpVersion: 1, reason: 'cleartext URL; auto resolves to HTTP/1.1' };
+  }
+
+  // url is https now.
   if (mode === 'http2') {
     return { httpVersion: 2, reason: 'mode http2' };
   }
