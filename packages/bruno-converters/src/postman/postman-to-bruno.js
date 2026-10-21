@@ -965,7 +965,7 @@ const searchLanguageByHeader = (headers) => {
     if (header.key?.toLowerCase() === 'content-type' && !header.disabled) {
       if (typeof header.value == 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(header.value)) {
         contentType = 'json';
-      } else if (typeof header.value === 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(header.value)) {
+      } else if (typeof header.value == 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(header.value)) {
         contentType = 'xml';
       }
       return false;
