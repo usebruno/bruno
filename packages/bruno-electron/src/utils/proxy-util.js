@@ -85,8 +85,12 @@ async function setupProxyAgents({
   if (timeline) {
     let modeMsg = `Proxy mode: ${proxyMode}`;
     if (proxyMode === 'pac') modeMsg += ` | PAC URL: ${get(proxyConfig, 'pac.source') || '(empty)'}`;
-    else if (proxyMode === 'on') modeMsg += ` | ${get(proxyConfig, 'protocol')}://${get(proxyConfig, 'hostname')}:${get(proxyConfig, 'port')}`;
-    else if (proxyMode === 'off' && proxyModeReason) modeMsg += ` (${proxyModeReason})`;
+    else if (proxyMode === 'on') {
+      const displayProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
+      const displayHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
+      const displayPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
+      modeMsg += ` | ${displayProtocol}://${displayHostname}:${displayPort}`;
+    } else if (proxyMode === 'off' && proxyModeReason) modeMsg += ` (${proxyModeReason})`;
     timeline.push({ timestamp: new Date(), type: 'info', message: modeMsg });
   }
 
@@ -121,6 +125,9 @@ async function setupProxyAgents({
 
   if (proxyMode === 'on') {
     const shouldProxy = shouldUseProxy(requestConfig.url, get(proxyConfig, 'bypassProxy', ''));
+    if (!shouldProxy && timeline) {
+      timeline.push({ timestamp: new Date(), type: 'info', message: `Proxy bypassed for ${hostname} (matched bypass rule); connecting directly` });
+    }
     if (shouldProxy) {
       const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
       const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
