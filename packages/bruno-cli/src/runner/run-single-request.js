@@ -20,8 +20,20 @@ const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
 const axios = require('axios');
 const { NtlmClient } = require('axios-ntlm');
-const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
-const { getCACertificates, transformProxyConfig, applySentHeadersToRequest, measureResponseTime } = require('@usebruno/requests');
+const {
+  addDigestInterceptor,
+  addEdgeGridInterceptor,
+  getHttpHttpsAgents,
+  makeAxiosInstance: makeAxiosInstanceForOauth2,
+  applyOAuth1ToRequest,
+  getCACertificates,
+  transformProxyConfig,
+  applySentHeadersToRequest,
+  measureResponseTime,
+  canUseHttp2,
+  attachHttp2Adapter,
+  resolveHttpVersion
+} = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, getMediaType, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
@@ -491,7 +503,7 @@ const runSingleRequest = async function (
       explicitHeaderNames: request.__explicitHeaderNames
     });
 
-    await setupProxyAgents({
+    const resolvedProxyUri = await setupProxyAgents({
       requestConfig: request,
       proxyMode,
       proxyConfig,
@@ -503,6 +515,20 @@ const runSingleRequest = async function (
       interpolationOptions,
       disableCache
     });
+
+    const requestedHttpVersion = resolveHttpVersion(
+      request,
+      get(brunoConfig, 'http.version'),
+      get(options, 'httpVersion', 'http1.1')
+    );
+    if (canUseHttp2(requestedHttpVersion)) {
+      await attachHttp2Adapter({
+        config: request,
+        requestedHttpVersion,
+        tlsOptions: { ...httpsAgentRequestFields, keepAlive: !omitConnection },
+        proxyUri: resolvedProxyUri
+      });
+    }
 
     // set cookies if enabled
     if (!options.disableCookies) {

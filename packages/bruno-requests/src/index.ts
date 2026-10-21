@@ -50,6 +50,8 @@ export {
   closeAllSessions,
   createHttp2Adapter,
   canUseHttp2,
-  attachHttp2Adapter
+  attachHttp2Adapter,
+  resolveHttpVersion,
+  HTTP_VERSION_VALUES
 } from './utils/http2';
 export type { HttpVersionMode, Resolved } from './utils/http2';

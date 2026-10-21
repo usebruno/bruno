@@ -95,6 +95,8 @@ async function setupProxyAgents({
   const isHttpsRequest = parsedRequestUrl.protocol === 'https:';
   const hostname = parsedRequestUrl.hostname || null;
 
+  let resolvedProxyUri;
+
   if (proxyMode === 'on') {
     const shouldProxy = shouldUseProxy(requestConfig.url, get(proxyConfig, 'bypassProxy', ''));
     if (shouldProxy) {
@@ -113,6 +115,7 @@ async function setupProxyAgents({
       } else {
         proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
       }
+      resolvedProxyUri = proxyUri;
       // When the proxy itself uses HTTPS, the agent connecting to it needs TLS options
       // (e.g., ca certs) even for plain HTTP requests
       const isHttpsProxy = proxyProtocol === 'https';
@@ -153,6 +156,7 @@ async function setupProxyAgents({
               const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
               const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { ...httpAgentOptions, ...tlsOptions } : httpAgentOptions;
               requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, disableCache, hostname });
+              resolvedProxyUri = http_proxy;
             }
           } catch (error) {
             throw new Error('Invalid system http_proxy');
@@ -161,6 +165,7 @@ async function setupProxyAgents({
             if (https_proxy?.length && isHttpsRequest) {
               new URL(https_proxy);
               requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy, disableCache, hostname });
+              resolvedProxyUri = https_proxy;
             }
           } catch (error) {
             throw new Error('Invalid system https_proxy');
@@ -177,6 +182,8 @@ async function setupProxyAgents({
       requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: http.Agent, options: httpAgentOptions, disableCache, hostname });
     }
   }
+
+  return resolvedProxyUri;
 }
 
 module.exports = {

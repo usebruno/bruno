@@ -13,3 +13,4 @@ export { canUseHttp2, attachHttp2Adapter } from './attach-http2-adapter';
 export type { AttachHttp2AdapterParams } from './attach-http2-adapter';
 export { connectThroughProxy } from './http2-proxy';
 export type { ConnectThroughProxyParams } from './http2-proxy';
+export { resolveHttpVersion, HTTP_VERSION_VALUES } from './resolve-http-version';
