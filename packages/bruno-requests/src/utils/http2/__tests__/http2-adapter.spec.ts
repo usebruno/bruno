@@ -1,7 +1,7 @@
 const mockSend = jest.fn();
-jest.mock('@usebruno/requests', () => ({ sendHttp2Request: (...args) => mockSend(...args) }));
+jest.mock('../send-request', () => ({ sendHttp2Request: (...args: unknown[]) => mockSend(...args) }));
 
-const { createHttp2Adapter } = require('./http2-adapter');
+import { createHttp2Adapter } from '../http2-adapter';
 
 const baseResult = {
   status: 200,
@@ -57,17 +57,23 @@ describe('createHttp2Adapter', () => {
     mockSend.mockResolvedValue({ ...baseResult, data: Buffer.from('streamed-body') });
     const res = await createHttp2Adapter({})({ url: 'https://x.test/', responseType: 'stream' });
     expect(typeof res.data.on).toBe('function');
-    const chunks = [];
+    const chunks: Buffer[] = [];
     for await (const chunk of res.data) {
-      chunks.push(chunk);
+      chunks.push(chunk as Buffer);
     }
     expect(Buffer.concat(chunks).toString()).toBe('streamed-body');
+  });
+
+  it('exposes request protocol/host/path so res.getUrl() works', async () => {
+    mockSend.mockResolvedValue(baseResult);
+    const res = await createHttp2Adapter({})({ url: 'https://x.test:8443/a/b?q=1' });
+    expect(res.request).toEqual({ protocol: 'https:', host: 'x.test:8443', path: '/a/b?q=1' });
   });
 
   it('rejects with an AxiosError carrying the response when validateStatus fails', async () => {
     mockSend.mockResolvedValue({ ...baseResult, status: 404 });
     await expect(
-      createHttp2Adapter({})({ url: 'https://x.test/', validateStatus: (s) => s < 400 })
+      createHttp2Adapter({})({ url: 'https://x.test/', validateStatus: (s: number) => s < 400 })
     ).rejects.toMatchObject({ name: 'AxiosError', response: { status: 404 } });
   });
 
@@ -93,6 +99,24 @@ describe('createHttp2Adapter', () => {
     mockSend.mockResolvedValue(baseResult);
     await createHttp2Adapter({})({ url: 'https://x.test/', headers: { Authorization: 'Bearer tok' } });
     expect(mockSend.mock.calls[0][0].headers['Authorization']).toBe('Bearer tok');
+  });
+
+  it('builds Basic Authorization from the axios auth option', async () => {
+    mockSend.mockResolvedValue(baseResult);
+    await createHttp2Adapter({})({ url: 'https://x.test/', auth: { username: 'sr', password: 'pw' } });
+    expect(mockSend.mock.calls[0][0].headers['Authorization']).toBe(`Basic ${Buffer.from('sr:pw').toString('base64')}`);
+  });
+
+  it('auth option overrides an existing Authorization header', async () => {
+    mockSend.mockResolvedValue(baseResult);
+    await createHttp2Adapter({})({ url: 'https://x.test/', headers: { Authorization: 'Basic inherited' }, auth: { username: 'sr', password: 'pw' } });
+    expect(mockSend.mock.calls[0][0].headers['Authorization']).toBe(`Basic ${Buffer.from('sr:pw').toString('base64')}`);
+  });
+
+  it('URL credentials override the auth option (axios precedence)', async () => {
+    mockSend.mockResolvedValue(baseResult);
+    await createHttp2Adapter({})({ url: 'https://u:p@x.test/', auth: { username: 'sr', password: 'pw' } });
+    expect(mockSend.mock.calls[0][0].headers['Authorization']).toBe(`Basic ${Buffer.from('u:p').toString('base64')}`);
   });
 
   it('decompresses a gzip response body and drops content-encoding', async () => {

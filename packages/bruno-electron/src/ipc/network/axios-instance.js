@@ -4,7 +4,8 @@ const axios = require('axios');
 const connectionCache = new Map(); // Cache to store checkConnection() results
 const electronApp = require('electron');
 const { setupProxyAgents } = require('../../utils/proxy-util');
-const { applyHttp2Transport, resolveRequestedHttpVersion, canUseHttp2 } = require('./http2-transport');
+const { resolveRequestedHttpVersion } = require('./http2-transport');
+const { canUseHttp2, attachHttp2Adapter } = require('@usebruno/requests');
 const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies');
 const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
@@ -241,7 +242,7 @@ function makeAxiosInstance({
 
     const requestedHttpVersion = resolveRequestedHttpVersion(config);
     if (canUseHttp2(requestedHttpVersion)) {
-      await applyHttp2Transport({ config, requestedHttpVersion, agentOptions, timeline });
+      await attachHttp2Adapter({ config, requestedHttpVersion, tlsOptions: agentOptions, timeline });
     }
 
     // Node keep-alive agents add Connection; strip it on the ClientRequest.

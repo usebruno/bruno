@@ -10,6 +10,11 @@ describe('tls-connect-options', () => {
       expect(pickTlsFields(undefined)).toEqual({});
       expect(pickTlsFields(null)).toEqual({});
     });
+    it('preserves a pre-built secureContext (CA already baked in by the agent)', () => {
+      const ctx = { fake: 'secure-context' };
+      const picked = pickTlsFields({ secureContext: ctx, keepAlive: true });
+      expect(picked).toEqual({ secureContext: ctx });
+    });
   });
 
   describe('buildTlsConnectOptions', () => {

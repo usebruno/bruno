@@ -8,3 +8,6 @@ export { sendHttp2Request } from './send-request';
 export type { Http2RequestOptions, Http2Response } from './send-request';
 export { acquireSession, closeAllSessions } from './session-pool';
 export type { AcquiredSession, AcquireSessionParams } from './session-pool';
+export { createHttp2Adapter } from './http2-adapter';
+export { canUseHttp2, attachHttp2Adapter } from './attach-http2-adapter';
+export type { AttachHttp2AdapterParams } from './attach-http2-adapter';

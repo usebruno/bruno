@@ -13,6 +13,7 @@ export const ALPN_BY_MODE: Record<HttpVersionMode, string[] | undefined> = {
 
 const TLS_FIELDS = [
   'ca',
+  'secureContext',
   'cert',
   'key',
   'pfx',

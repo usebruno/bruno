@@ -47,6 +47,9 @@ export {
   parseHttp2ResponseHeaders,
   sendHttp2Request,
   acquireSession,
-  closeAllSessions
+  closeAllSessions,
+  createHttp2Adapter,
+  canUseHttp2,
+  attachHttp2Adapter
 } from './utils/http2';
 export type { HttpVersionMode, Resolved } from './utils/http2';

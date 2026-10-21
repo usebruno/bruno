@@ -34,8 +34,8 @@ const getCertsAndProxyConfig = async ({
 
   // Only load CA certificates if SSL validation is enabled (otherwise they're unused)
   if (preferencesUtil.shouldVerifyTls()) {
-    let caCertFilePath = preferencesUtil.shouldUseCustomCaCertificate() && preferencesUtil.getCustomCaCertificateFilePath();
-    let caCertificatesData = getCACertificates({
+    const caCertFilePath = preferencesUtil.shouldUseCustomCaCertificate() && preferencesUtil.getCustomCaCertificateFilePath();
+    const caCertificatesData = getCACertificates({
       caCertFilePath,
       shouldKeepDefaultCerts: preferencesUtil.shouldKeepDefaultCaCertificates()
     });
@@ -70,7 +70,7 @@ const getCertsAndProxyConfig = async ({
   const globalCerts = preferencesUtil.getGlobalClientCertificates();
   const clientCertConfig = [...collectionCerts, ...globalCerts];
 
-  for (let clientCert of clientCertConfig) {
+  for (const clientCert of clientCertConfig) {
     if (clientCert?.disabled) {
       continue;
     }
@@ -243,7 +243,8 @@ const buildCertsAndProxyConfig = async ({
     clientCertificates,
     collectionLevelProxy,
     appLevelProxyConfig,
-    systemProxyConfig
+    systemProxyConfig,
+    httpVersion: preferencesUtil.getHttpVersion()
   };
 };
 

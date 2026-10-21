@@ -1,20 +1,21 @@
-const http = require('node:http');
-const zlib = require('node:zlib');
-const { PassThrough } = require('node:stream');
-const { AxiosError } = require('axios');
-const { sendHttp2Request } = require('@usebruno/requests');
+import http from 'node:http';
+import zlib from 'node:zlib';
+import { PassThrough } from 'node:stream';
+import { AxiosError } from 'axios';
+import { sendHttp2Request } from './send-request';
 
-/**
- * Axios may hand us an AxiosHeaders instance, flatten it to a plain object
- */
-const normalizeHeaders = (headers) => {
+type AdapterHeaders = Record<string, any>;
+type ResponseHeaders = Record<string, string | string[]>;
+
+/** Axios may hand us an AxiosHeaders instance, flatten it to a plain object. */
+const normalizeHeaders = (headers: any): AdapterHeaders => {
   if (headers && typeof headers.toJSON === 'function') {
     return headers.toJSON();
   }
   return headers || {};
 };
 
-const safeDecode = (value) => {
+const safeDecode = (value: string): string => {
   try {
     return decodeURIComponent(value);
   } catch {
@@ -22,7 +23,7 @@ const safeDecode = (value) => {
   }
 };
 
-const deleteAuthorizationHeader = (headers) => {
+const deleteAuthorizationHeader = (headers: AdapterHeaders): void => {
   for (const name of Object.keys(headers)) {
     if (name.toLowerCase() === 'authorization') {
       delete headers[name];
@@ -31,11 +32,27 @@ const deleteAuthorizationHeader = (headers) => {
 };
 
 /**
- * Convert URL credentials into a Basic Authorization header.
- * Like axios, URL credentials override any existing Authorization header.
+ * Convert axios's auth option into a Basic Authorization header.
  */
-const applyUrlCredentials = (url, headers) => {
-  let parsed;
+const applyBasicAuthHeader = (
+  auth: { username?: string; password?: string } | undefined,
+  headers: AdapterHeaders
+): void => {
+  if (!auth) {
+    return;
+  }
+  const username = auth.username ?? '';
+  const password = auth.password ?? '';
+  deleteAuthorizationHeader(headers);
+  const credentials = `${username}:${password}`;
+  headers['Authorization'] = `Basic ${Buffer.from(credentials).toString('base64')}`;
+};
+
+/**
+ * Convert URL credentials into a Basic Authorization header.
+ */
+const applyUrlCredentials = (url: string, headers: AdapterHeaders): void => {
+  let parsed: URL;
   try {
     parsed = new URL(url);
   } catch {
@@ -49,7 +66,7 @@ const applyUrlCredentials = (url, headers) => {
   headers['Authorization'] = `Basic ${Buffer.from(credentials).toString('base64')}`;
 };
 
-const inflate = (buffer) => {
+const inflate = (buffer: Buffer): Buffer => {
   try {
     return zlib.inflateSync(buffer);
   } catch {
@@ -58,15 +75,15 @@ const inflate = (buffer) => {
 };
 
 /**
- * Decompress gzip, deflate, or Brotli responses and remove outdated headers.
- * Leave the response unchanged if decompression fails or the encoding is unsupported.
+ * Decompress gzip, deflate, or Brotli responses and drop the now-stale
+ * content-encoding/content-length. Left unchanged on an unknown encoding or failure.
  */
-const decompressBody = (buffer, headers) => {
+const decompressBody = (buffer: Buffer, headers: ResponseHeaders): { data: Buffer; headers: ResponseHeaders } => {
   const encoding = String(headers['content-encoding'] || '').toLowerCase();
   if (!encoding || encoding === 'identity' || buffer.length === 0) {
     return { data: buffer, headers };
   }
-  let data;
+  let data: Buffer;
   try {
     if (encoding === 'gzip' || encoding === 'x-gzip') {
       data = zlib.gunzipSync(buffer);
@@ -86,10 +103,8 @@ const decompressBody = (buffer, headers) => {
   return { data, headers: nextHeaders };
 };
 
-/**
- * Decode the response body based on axios's responseType.
- */
-const decodeBody = (buffer, responseType) => {
+/** Decode the response body per axios responseType. */
+const decodeBody = (buffer: Buffer, responseType?: string): Buffer | string | PassThrough => {
   if (responseType === 'stream') {
     const stream = new PassThrough();
     stream.end(buffer);
@@ -101,13 +116,23 @@ const decodeBody = (buffer, responseType) => {
   return buffer.toString('utf-8');
 };
 
+const buildRequestInfo = (url: string): { protocol: string; host: string; path: string } | null => {
+  try {
+    const parsed = new URL(url);
+    return { protocol: parsed.protocol, host: parsed.host, path: `${parsed.pathname}${parsed.search}` };
+  } catch {
+    return null;
+  }
+};
+
 /**
- * Axios adapter for sending requests over HTTP/2.
- * Returns an axios-compatible response and handles status validation
- * the same way as the default HTTP/1.1 adapter.
+ * axios adapter that sends the request over HTTP/2 and returns an
+ * axios-compatible response, validating status the same way the default
+ * HTTP/1.1 adapter does.
  */
-const createHttp2Adapter = ({ tlsOptions }) => (config) => {
+export const createHttp2Adapter = ({ tlsOptions }: { tlsOptions?: Record<string, unknown> | null }) => (config: any): Promise<any> => {
   const headers = normalizeHeaders(config.headers);
+  applyBasicAuthHeader(config.auth, headers);
   applyUrlCredentials(config.url, headers);
 
   return sendHttp2Request({
@@ -132,7 +157,7 @@ const createHttp2Adapter = ({ tlsOptions }) => (config) => {
         headers: responseHeaders,
         httpVersion: result.httpVersion,
         config,
-        request: null
+        request: buildRequestInfo(config.url)
       };
 
       const { validateStatus } = config;
@@ -144,10 +169,10 @@ const createHttp2Adapter = ({ tlsOptions }) => (config) => {
         [AxiosError.ERR_BAD_REQUEST, AxiosError.ERR_BAD_RESPONSE][Math.floor(response.status / 100) - 4],
         config,
         null,
-        response
+        response as any
       );
     },
-    (err) => {
+    (err: any) => {
       if (err instanceof AxiosError) {
         throw err;
       }
@@ -155,5 +180,3 @@ const createHttp2Adapter = ({ tlsOptions }) => (config) => {
     }
   );
 };
-
-module.exports = { createHttp2Adapter };
