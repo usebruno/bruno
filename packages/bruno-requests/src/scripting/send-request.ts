@@ -3,6 +3,8 @@ import { makeAxiosInstance } from '../network';
 import { getSentHeaders } from '../network/sent-headers';
 import { getHttpHttpsAgents } from '../utils/http-https-agents';
 import type { GetHttpHttpsAgentsParams } from '../utils/http-https-agents';
+import { applyHttp2Transport, canUseHttp2 } from '../utils/http2';
+import type { HttpVersionMode } from '../utils/http2';
 
 type T_SendRequestCallback = (error: any, response: any) => void;
 
@@ -12,7 +14,9 @@ type T_SendRequestCallback = (error: any, response: any) => void;
  * extracted from the actual request.
  */
 type SendRequestConfig = Omit<GetHttpHttpsAgentsParams, 'requestUrl'> & {
-  /** Host-supplied hook run on the axios config right before the request (POC: HTTP/2 selection lives in bruno-electron). */
+  /** HTTP version mode (auto | http1 | http2); when http2-capable, the custom transport is attached. */
+  httpVersion?: HttpVersionMode;
+  /** Optional host hook run on the axios config right before the request (kept for back-compat). */
   prepareRequest?: (config: AxiosRequestConfig) => Promise<void> | void;
 };
 
@@ -213,7 +217,17 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
       }
     }
 
-    // POC: host hook (bruno-electron) may attach the HTTP/2 transport before the instance is built.
+    // Attach the HTTP/2 transport when enabled. When a proxy applies, the transport
+    // tunnels through it (CONNECT/SOCKS). On any ALPN/resolution error, fall through to HTTP/1.1.
+    if (config?.httpVersion && canUseHttp2(config.httpVersion)) {
+      try {
+        await applyHttp2Transport({ config: normalizedConfig as any, mode: config.httpVersion });
+      } catch {
+        // negotiation failed; leave the default HTTP/1.1 adapter in place
+      }
+    }
+
+    // Optional host hook (kept for back-compat) may further adjust the config.
     if (config && typeof config.prepareRequest === 'function') {
       await config.prepareRequest(normalizedConfig);
     }

@@ -6,7 +6,6 @@ const { preferencesUtil } = require('../../store/preferences');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { getCachedSystemProxy } = require('../../store/system-proxy');
 const { interpolateString, interpolateObject } = require('./interpolate-string');
-const { createScriptedRequestPreparer } = require('./http2-transport');
 
 /**
  * Gets certificates and proxy configuration for a request
@@ -245,8 +244,7 @@ const buildCertsAndProxyConfig = async ({
     collectionLevelProxy,
     appLevelProxyConfig,
     systemProxyConfig,
-    // POC: lets bru.sendRequest apply the same HTTP/2 transport selection as the request pane.
-    prepareRequest: createScriptedRequestPreparer({ getHttpVersionMode: preferencesUtil.getHttpVersion })
+    httpVersion: preferencesUtil.getHttpVersion()
   };
 };
 

@@ -8,10 +8,16 @@ import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
-import { IconTrash, IconUpload } from '@tabler/icons';
+import { IconTrash, IconUpload, IconChevronDown } from '@tabler/icons';
 import path from 'utils/common/path';
 import { SettingsGroup, CheckboxSetting, SettingsField } from '../SettingsLayout';
-import SegmentedControl from 'ui/SegmentedControl';
+import MenuDropdown from 'ui/MenuDropdown';
+
+const HTTP_VERSION_OPTIONS = [
+  { id: 'auto', label: 'Auto' },
+  { id: 'http1', label: 'HTTP/1.1' },
+  { id: 'http2', label: 'HTTP/2' }
+];
 
 const General = () => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -334,23 +340,28 @@ const General = () => {
             />
           </SettingsField>
           <SettingsField
-            label="HTTP version"
+            label="HTTP Version"
             htmlFor="httpVersion"
-            className="mt-3"
+            hint="Select the HTTP version to use for sending the request."
+            className="http-version-field"
           >
-            <SegmentedControl
-              name="httpVersion"
-              ariaLabel="HTTP version"
-              size="md"
-              value={formik.values.httpVersion}
-              onChange={(value) => formik.setFieldValue('httpVersion', value)}
-              data-testid="general-http-version-select"
-              items={[
-                { value: 'auto', label: 'Auto' },
-                { value: 'http1', label: 'HTTP/1.1' },
-                { value: 'http2', label: 'HTTP/2' }
-              ]}
-            />
+            <MenuDropdown
+              items={HTTP_VERSION_OPTIONS.map((option) => ({
+                id: option.id,
+                label: option.label,
+                onClick: () => formik.setFieldValue('httpVersion', option.id)
+              }))}
+              selectedItemId={formik.values.httpVersion}
+              placement="bottom-start"
+              appendTo={() => document.body}
+              popperOptions={{ strategy: 'fixed' }}
+              sameWidth
+            >
+              <button type="button" className="http-version-trigger textbox" data-testid="general-http-version">
+                <span>{HTTP_VERSION_OPTIONS.find((option) => option.id === formik.values.httpVersion)?.label || 'HTTP/1.1'}</span>
+                <IconChevronDown className="caret" size={16} strokeWidth={1.5} />
+              </button>
+            </MenuDropdown>
           </SettingsField>
         </SettingsGroup>
 

@@ -16,7 +16,7 @@ const makeFakeSession = (): FakeSession =>
 const mockConnect = jest.fn();
 jest.mock('node:http2', () => ({ __esModule: true, default: { connect: (...a: unknown[]) => mockConnect(...a) } }));
 
-import { acquireSession, getSessionKey, closeAllSessions, getSessionCount } from './session-pool';
+import { acquireSession, getSessionKey, closeAllSessions, getSessionCount, hasLiveSession } from './session-pool';
 
 let queued: FakeSession[] = [];
 beforeEach(() => {
@@ -76,7 +76,9 @@ describe('acquireSession', () => {
     closeAllSessions();
     mockConnect.mockClear();
     acquireSession({ origin: 'http://api.test:8080' });
-    expect(mockConnect.mock.calls[0][1]).toEqual({});
+    const h2cOpts = mockConnect.mock.calls[0][1];
+    expect(h2cOpts.ALPNProtocols).toBeUndefined(); // no TLS/ALPN for cleartext h2c
+    expect(h2cOpts.maxHeaderListPairs).toBeGreaterThan(128); // raised above Node's default
   });
 
   it('forwards a handed-off socket as createConnection on a miss', () => {
@@ -147,6 +149,27 @@ describe('session lifecycle', () => {
     expect(pooled.totalStreams).toBe(1);
     stream.emit('close');
     expect(pooled.activeStreams).toBe(0);
+  });
+});
+
+describe('hasLiveSession', () => {
+  it('false with no session, true while CONNECTING/ACTIVE, false once removed', () => {
+    const s = makeFakeSession();
+    queued = [s];
+    expect(hasLiveSession({ origin: HTTPS })).toBe(false);
+    acquireSession({ origin: HTTPS });
+    expect(hasLiveSession({ origin: HTTPS })).toBe(true); // CONNECTING
+    s.emit('connect');
+    expect(hasLiveSession({ origin: HTTPS })).toBe(true); // ACTIVE
+    s.emit('close');
+    expect(hasLiveSession({ origin: HTTPS })).toBe(false); // removed
+  });
+
+  it('keys by TLS identity', () => {
+    queued = [makeFakeSession()];
+    acquireSession({ origin: HTTPS, tlsOptions: { cert: 'A' } });
+    expect(hasLiveSession({ origin: HTTPS, tlsOptions: { cert: 'A' } })).toBe(true);
+    expect(hasLiveSession({ origin: HTTPS, tlsOptions: { cert: 'B' } })).toBe(false);
   });
 });
 

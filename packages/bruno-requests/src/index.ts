@@ -31,7 +31,6 @@ export {
   applyOmitConnectionToAxiosConfig
 } from './network';
 
-// HTTP/2 custom transport (POC)
 export {
   createHttp2Transport,
   acquireSession,
@@ -41,8 +40,16 @@ export {
   establishTlsConnection,
   buildHttp2RequestHeaders,
   getSessionKey,
+  hasLiveSession,
   negotiateHttpVersion,
   clearAlpnCache,
-  canUseHttp2
+  canUseHttp2,
+  isProxyAgent,
+  proxyKeyFor,
+  redactProxyUri,
+  buildProxyTlsOptions,
+  connectThroughProxy,
+  applyHttp2Transport,
+  applyBasicAuthHeader
 } from './utils/http2';
 export type { CreateHttp2TransportParams, HttpVersionMode, ConnectTlsResult, PooledSession, HttpVersionDecision } from './utils/http2';

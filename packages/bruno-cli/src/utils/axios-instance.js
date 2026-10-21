@@ -7,7 +7,7 @@ const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').util
 const { applyOmitHeaders, shouldOmitConnection } = require('@usebruno/common');
 const { getSentHeaders, applyOmitConnectionToAxiosConfig, handleNtlmRedirect } = require('@usebruno/requests');
 const { STATUS_CODES } = require('http');
-const { applyHttp2Transport } = require('./http2');
+const { applyHttp2Transport } = require('@usebruno/requests');
 
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 const METHOD_CHANGING_REDIRECTS = [301, 302, 303];

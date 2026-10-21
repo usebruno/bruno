@@ -4,12 +4,10 @@ const {
   closeAllSessions,
   getSessionCount,
   negotiateHttpVersion,
-  canUseHttp2
+  canUseHttp2,
+  hasLiveSession
 } = require('@usebruno/requests');
-const { proxyKeyFor, connectThroughProxy } = require('./http2-proxy');
-
-const HTTP2_ALPN_PROTOCOLS = ['h2'];
-const AUTO_ALPN_PROTOCOLS = ['h2', 'http/1.1'];
+const { proxyKeyFor, redactProxyUri, connectThroughProxy } = require('@usebruno/requests');
 
 /**
  * Convert Basic Auth credentials into an Authorization header.
@@ -65,13 +63,11 @@ const applyBasicAuthHeader = (config) => {
 /**
  * Collect HTTP/2 request and TLS details for the timeline.
  */
-const describeHttp2Stream = (stream) => {
+const getHttp2RequestDetails = (stream) => {
   const socket = stream?.session?.socket;
   if (!socket) return null;
 
-  const cipher = socket.getCipher?.() || null;
-  const certificate = socket.getPeerCertificate?.() || null;
-
+  // Sent headers come off the stream, not the socket, so they're safe even after the session closes.
   const sentHeaders = {};
   const pseudoHeaders = {};
 
@@ -95,27 +91,49 @@ const describeHttp2Stream = (stream) => {
           .join(', ')
       : null;
 
-  const certificateLines = certificate?.subject
-    ? [
+  let alpn = null;
+  let protocol = null;
+  let cipherName = null;
+  let remote = null;
+  let certificateLines = [];
+
+  try {
+    alpn = socket.alpnProtocol || null;
+    protocol = socket.getProtocol?.() || null;
+    cipherName = socket.getCipher?.()?.name || null;
+    remote = socket.remoteAddress ? `${socket.remoteAddress}:${socket.remotePort}` : null;
+
+    const certificate = socket.getPeerCertificate?.() || null;
+    const certificateLines = [];
+
+    if (certificate?.subject) {
+      certificateLines.push(
         'Server certificate:',
         ` subject: ${formatCertificateFields(certificate.subject)}`,
         ` start date: ${certificate.valid_from}`,
-        ` expire date: ${certificate.valid_to}`,
-        ...(certificate.subjectaltname
-          ? [` subjectAltName: ${certificate.subjectaltname}`]
-          : []),
+        ` expire date: ${certificate.valid_to}`
+      );
+
+      if (certificate.subjectaltname) {
+        certificateLines.push(` subjectAltName: ${certificate.subjectaltname}`);
+      }
+
+      certificateLines.push(
         ` issuer: ${formatCertificateFields(certificate.issuer)}`,
         socket.authorized
           ? 'SSL certificate verify ok.'
           : `SSL certificate verification skipped or failed (${socket.authorizationError || 'rejectUnauthorized: false'}).`
-      ]
-    : [];
+      );
+    }
+  } catch {
+    // Session already torn down, keep the request-line details we gathered above.
+  }
 
   return {
-    alpn: socket.alpnProtocol || null,
-    protocol: socket.getProtocol?.() || null,
-    cipher: cipher?.name || null,
-    remote: `${socket.remoteAddress}:${socket.remotePort}`,
+    alpn,
+    protocol,
+    cipher: cipherName,
+    remote,
     sentHeaders,
     pseudoHeaders,
     requestLine,
@@ -137,10 +155,22 @@ const negotiateHttp2ThroughProxy = async ({
 }) => {
   const url = new URL(config.url);
   const port = Number(url.port) || 443;
+  const origin = `${url.protocol}//${url.hostname}:${port}`;
+  const safeProxy = redactProxyUri(proxyKey);
 
   const offered = mode === 'auto'
-    ? AUTO_ALPN_PROTOCOLS
-    : HTTP2_ALPN_PROTOCOLS;
+    ? ['h2', 'http/1.1']
+    : ['h2'];
+
+  if (hasLiveSession({ origin, tlsOptions: agentOptions, proxyUri: proxyKey })) {
+    return {
+      httpVersion: 2,
+      reason: `reusing pooled HTTP/2 session via ${safeProxy}`,
+      offered: undefined,
+      alpn: null,
+      socket: null
+    };
+  }
 
   try {
     const tunnel = await connectThroughProxy({
@@ -156,7 +186,7 @@ const negotiateHttp2ThroughProxy = async ({
     if (alpn === 'h2') {
       return {
         httpVersion: 2,
-        reason: `proxy tunnel via ${proxyKey}: server chose h2 (${tunnel.protocol})`,
+        reason: `proxy tunnel via ${safeProxy}: server chose h2 (${tunnel.protocol})`,
         offered,
         alpn,
         socket: tunnel.socket
@@ -167,7 +197,7 @@ const negotiateHttp2ThroughProxy = async ({
 
     return {
       httpVersion: 1,
-      reason: `proxy tunnel via ${proxyKey}: server chose ${alpn || 'none'}; using HTTP/1.1`,
+      reason: `proxy tunnel via ${safeProxy}: server chose ${alpn || 'none'}; using HTTP/1.1`,
       offered,
       alpn,
       socket: null
@@ -177,7 +207,7 @@ const negotiateHttp2ThroughProxy = async ({
 
     return {
       httpVersion: 1,
-      reason: `proxy tunnel via ${proxyKey} failed (${error.message}); using HTTP/1.1`,
+      reason: `proxy tunnel via ${safeProxy} failed (${error.message}); using HTTP/1.1`,
       offered,
       alpn: null,
       socket: null
@@ -273,7 +303,6 @@ const applyHttp2Transport = async ({
 
   config.transport = createHttp2Transport({
     tlsOptions: agentOptions,
-    mode: 'http2',
     lookup: proxyKey ? undefined : config.lookup,
     proxyUri: proxyKey,
     socket: decision.socket,
@@ -289,37 +318,10 @@ const applyHttp2Transport = async ({
   }
 };
 
-/**
- * Apply the same HTTP/2 setup to scripted requests.
- *
- * Scripted requests use a separate axios instance and don't have
- * a request timeline.
- */
-const createScriptedRequestPreparer
-  = ({ getHttpVersionMode }) =>
-    async (config) => {
-      const mode = getHttpVersionMode();
-
-      if (!canUseHttp2(mode)) {
-        delete config.transport;
-        return;
-      }
-
-      const agentOptions = config.httpsAgent?.options || {};
-
-      await applyHttp2Transport({
-        config,
-        mode,
-        agentOptions,
-        timeline: []
-      });
-    };
-
 module.exports = {
   applyHttp2Transport,
-  createScriptedRequestPreparer,
   applyBasicAuthHeader,
-  describeHttp2Stream,
+  getHttp2RequestDetails,
   closeAllHttp2Sessions: closeAllSessions,
   getHttp2SessionCount: getSessionCount
 };

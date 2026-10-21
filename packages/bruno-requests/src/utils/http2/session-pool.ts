@@ -46,6 +46,9 @@ const HTTP2_AGENT_CLASS_ID = 0x4832; // 'H2'
 
 const DEFAULT_SESSION_IDLE_MS = 30_000;
 
+// Node accepts only 128 response header pairs by default
+const MAX_HEADER_LIST_PAIRS = 512;
+
 /**
  * A secureContext contains TLS credentials that can't be used directly
  * in a cache key. Assign each context a unique ID to prevent sessions
@@ -243,7 +246,7 @@ export function acquireSession(params: AcquireSessionParams): AcquireResult {
     message: `Opening HTTP/2 session to ${url.host}${url.protocol === 'http:' ? ' (prior knowledge, no ALPN)' : ''}`
   });
 
-  const session = http2.connect(origin, options);
+  const session = http2.connect(origin, { ...options, maxHeaderListPairs: MAX_HEADER_LIST_PAIRS });
   const entry = new SessionEntry(sessionKey, origin, session, idleMs, (removed) => {
     // GOAWAY retires the session, and close triggers this again.
     // Only remove this session if it hasn't been replaced by a newer one.
@@ -259,6 +262,13 @@ export function acquireSession(params: AcquireSessionParams): AcquireResult {
 export function closeAllSessions(): void {
   for (const entry of Array.from(sessions.values())) entry.close();
   sessions.clear();
+}
+
+export function hasLiveSession(
+  params: Pick<AcquireSessionParams, 'origin' | 'tlsOptions' | 'proxyUri'>
+): boolean {
+  const existing = sessions.get(getSessionKey(params));
+  return !!existing && (existing.state === 'CONNECTING' || existing.state === 'ACTIVE');
 }
 
 export function getSessionCount(): number {

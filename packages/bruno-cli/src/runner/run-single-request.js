@@ -251,7 +251,8 @@ const runSingleRequest = async function (
       },
       clientCertificates: rawClientCertificates ? interpolateObject(rawClientCertificates, sendRequestInterpolationOptions) : undefined,
       collectionLevelProxy: transformProxyConfig(interpolateObject(rawProxyConfig, sendRequestInterpolationOptions)),
-      systemProxyConfig
+      systemProxyConfig,
+      httpVersion: get(options, 'httpVersion', 'http1')
     };
 
     // Add certsAndProxyConfig to request object for bru.sendRequest
