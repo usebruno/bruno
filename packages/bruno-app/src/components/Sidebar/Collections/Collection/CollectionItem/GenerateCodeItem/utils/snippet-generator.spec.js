@@ -906,11 +906,21 @@ describe('generateSnippet – comments in JSON body', () => {
     expect(result).toContain(`-d '${json}'`);
   });
 
-  it('handles a CRLF body', async () => {
+  it('keeps the line endings of a CRLF body', async () => {
     const json = '{\r\n  "a": 1,\r\n  // "b": 2,\r\n  "c": 3 // note\r\n}';
     const result = await generateSnippet({ language, item: makeItem(json), collection, shouldInterpolate: false });
 
-    expect(result).toContain(`-d '{\n  "a": 1,\n  "c": 3\n}'`);
+    expect(result).toContain(`-d '{\r\n  "a": 1,\r\n  "c": 3\r\n}'`);
+
+    const jsonWithoutComments = '{\r\n  "a": 1,\r\n  "c": 3\r\n}';
+    const resultWithoutComments = await generateSnippet({
+      language,
+      item: makeItem(jsonWithoutComments),
+      collection,
+      shouldInterpolate: false
+    });
+
+    expect(resultWithoutComments).toContain(`-d '${jsonWithoutComments}'`);
   });
 
   it('still generates a snippet when the JSON body has no text', async () => {

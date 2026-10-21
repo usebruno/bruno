@@ -10,17 +10,21 @@ import stripJsonComments from 'strip-json-comments';
 
 // Requests are sent with comments removed from the JSON body (`decomment` in the electron and
 // CLI prepare-request), so the snippet must not carry them either. Lines that only held a
-// comment are dropped instead of being left blank.
+// comment are dropped instead of being left blank. A body without comments is left as it is,
+// and the line endings of the body are kept.
 const stripJsonBodyComments = (json) => {
+  const stripped = stripJsonComments(json);
+  if (stripped === json) return json;
+  const eol = json.match(/\r\n|\r|\n/)?.[0] ?? '\n';
   const originalLines = json.split(/\r\n|\r|\n/);
-  return stripJsonComments(json)
+  return stripped
     .split(/\r\n|\r|\n/)
     .flatMap((line, index) => {
       if (line === originalLines[index]) return [line];
       const withoutComment = line.trimEnd();
       return withoutComment ? [withoutComment] : [];
     })
-    .join('\n');
+    .join(eol);
 };
 
 // Folds any `cookie`/`Cookie` header into a single header.
