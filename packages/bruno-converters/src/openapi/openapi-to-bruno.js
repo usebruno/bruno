@@ -5,7 +5,7 @@ import omit from 'lodash/omit';
 import jsyaml from 'js-yaml';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid, sanitizeTag, sanitizeTags } from '../common';
 import { swagger2ToBruno } from './swagger2-to-bruno';
-import { resolveSchemaComposition, registerComponentNames, registerReferencePlaceholder } from './schema-composition';
+import { allowedDefault, resolveSchemaComposition, registerComponentNames, registerReferencePlaceholder } from './schema-composition';
 import {
   ensureUrl,
   BODY_TYPE_HANDLERS,
@@ -232,10 +232,10 @@ const getParameterEntries = (param, fallbackValue) => {
   }
 
   if (schema.minimum !== undefined) {
-    return [{ value: String(schema.minimum), enabled }];
+    return [{ value: String(allowedDefault(schema, schema.minimum)), enabled }];
   }
 
-  return [{ value: '', enabled }];
+  return [{ value: param.required ? String(allowedDefault(schema, '') ?? '') : '', enabled }];
 };
 
 const declaresValue = (schema) =>
@@ -914,12 +914,14 @@ export const parseOpenApiCollection = (data, options = {}) => {
   };
   try {
     resetExampleGenerationState();
-    const collectionData = resolveRefs(data);
+    const refCache = new Map();
+    resolveRefs(data?.components, data?.components, refCache);
+    const collectionData = resolveRefs(data, data?.components, refCache);
     if (!collectionData) {
       throw new Error('Invalid OpenAPI collection. Failed to resolve refs.');
       return;
     }
-    registerComponentNames(collectionData.components?.schemas);
+    registerComponentNames(collectionData.components?.schemas, data.components?.schemas);
 
     // Currently parsing of openapi spec is "do your best", that is
     // allows "invalid" openapi spec

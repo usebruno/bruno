@@ -46,6 +46,21 @@ describe('swagger 2.0 schema composition', () => {
     expect(JSON.parse(request.request.body.json)).toHaveProperty('department', '');
   });
 
+  it.each([true, false])('builds a recursive model the same way whatever operation reaches it first (definitions first: %s)', (definitionsFirst) => {
+    const recursive = {
+      Base: { type: 'object', properties: { name: { type: 'string' } } },
+      Folder: { allOf: [ref('Base'), { type: 'object', properties: { children: { type: 'array', items: ref('Item') } } }] },
+      Item: { allOf: [ref('Base'), { type: 'object', properties: { parent: ref('Folder'), size: { type: 'integer' } } }] }
+    };
+    const op = (name) => ({ post: { summary: name, consumes: ['application/json'], parameters: [{ name: 'body', in: 'body', required: true, schema: ref(name) }], responses: { 200: { description: 'ok' } } } });
+    const folder = (names) => {
+      const items = swagger2ToBruno(buildSpec({ definitions: recursive, paths: Object.fromEntries(names.map((name) => [`/${name}`, op(name)])), definitionsFirst })).items;
+      return JSON.parse(items.find((item) => item.name === 'Folder').request.body.json);
+    };
+    expect(folder(['Item', 'Folder'])).toEqual(folder(['Folder']));
+    expect(folder(['Folder'])).toEqual({ name: '', children: [{ name: '', parent: {}, size: 0 }] });
+  });
+
   it('labels each subtype with its definition name when the parent declares the discriminator', () => {
     const pets = {
       Pet: { type: 'object', discriminator: 'petType', required: ['petType'], properties: { petType: { type: 'string' }, name: { type: 'string' } } },
@@ -55,6 +70,15 @@ describe('swagger 2.0 schema composition', () => {
     const body = (name) => JSON.parse(firstRequest(buildSpec({ definitions: pets, paths: postBody(ref(name)) })).request.body.json);
     expect(body('Cat')).toEqual({ petType: 'Cat', name: '', huntingSkill: '' });
     expect(body('Dog')).toEqual({ petType: 'Dog', name: '', packSize: 0 });
+  });
+
+  it('labels a subtype by the name it is declared under rather than an alias defined before it', () => {
+    const pets = {
+      Pet: { type: 'object', discriminator: 'petType', properties: { petType: { type: 'string' } } },
+      Kitty: ref('Cat'),
+      Cat: { allOf: [ref('Pet'), { type: 'object', properties: { meow: { type: 'boolean' } } }] }
+    };
+    expect(JSON.parse(firstRequest(buildSpec({ definitions: pets, paths: postBody(ref('Cat')) })).request.body.json)).toEqual({ petType: 'Cat', meow: false });
   });
 
   it('reflects an edit to an object that is converted again', () => {

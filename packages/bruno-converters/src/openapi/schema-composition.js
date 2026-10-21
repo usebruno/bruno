@@ -1,4 +1,5 @@
 import isEqual from 'lodash/isEqual';
+import minBy from 'lodash/minBy';
 import omit from 'lodash/omit';
 import uniq from 'lodash/uniq';
 import uniqBy from 'lodash/uniqBy';
@@ -23,7 +24,6 @@ const createState = () => ({
   inheritedAlternatives: new WeakMap(),
   contributedDiscriminators: new WeakMap(),
   stampedCopies: new WeakMap(),
-  stampedOriginals: new WeakMap(),
   exampleCopies: new WeakSet()
 });
 
@@ -53,12 +53,14 @@ const allowedValues = (schema) => {
 const hasStructure = (schema) =>
   isSchemaObject(schema) && (hasKeys(schema.properties) || isSchemaObject(schema.items) || isSchemaObject(schema.additionalProperties));
 
-const isMeaningful = (schema) => {
-  if (!isSchemaObject(schema) || typeof schema.$ref === 'string') return false;
+const isNullOnly = (schema) => {
   const types = typeSet(schema.type);
-  if (types.length > 0 && types.every((type) => type === 'null')) return false;
   const values = allowedValues(schema);
-  if (values && values.every((value) => value === null)) return false;
+  return (types.length > 0 && types.every((type) => type === 'null')) || Boolean(values && values.every((value) => value === null));
+};
+
+const isMeaningful = (schema) => {
+  if (!isSchemaObject(schema) || typeof schema.$ref === 'string' || isNullOnly(schema)) return false;
   return CONTENT_KEYWORDS.some((keyword) => schema[keyword] !== undefined);
 };
 
@@ -95,9 +97,11 @@ const branchesOf = (schema, keyword) =>
 const hasBranches = (schema) =>
   isSchemaObject(schema) && (schema.allOf !== undefined || schema.oneOf !== undefined || schema.anyOf !== undefined);
 
-export const registerComponentNames = (schemas) => {
+export const registerComponentNames = (schemas, rawSchemas) => {
   if (!isSchemaObject(schemas)) return;
-  Object.entries(schemas).forEach(([name, schema]) => {
+  const isAlias = ([name]) => isSchemaObject(rawSchemas) && isSchemaObject(rawSchemas[name]) && typeof rawSchemas[name].$ref === 'string';
+  const entries = Object.entries(schemas);
+  [...entries.filter((entry) => !isAlias(entry)), ...entries.filter(isAlias)].forEach(([name, schema]) => {
     if (isSchemaObject(schema)) state.componentNames.set(schema, [...(state.componentNames.get(schema) || []), name]);
   });
 };
@@ -107,13 +111,6 @@ export const registerReferencePlaceholder = (placeholder, target) => {
 };
 
 export const hasSchemaComposition = (schema) => hasBranches(schema) || (isSchemaObject(schema) && schema.not !== undefined);
-
-export const hasSchemaAlternatives = (schema, seen = new Set()) => {
-  if (!isSchemaObject(schema) || seen.has(schema)) return false;
-  seen.add(schema);
-  if (branchesOf(schema, 'oneOf').length > 0 || branchesOf(schema, 'anyOf').length > 0) return true;
-  return branchesOf(schema, 'allOf').some((branch) => hasSchemaAlternatives(branch, seen));
-};
 
 export const usesComposition = (schema) => {
   if (!isSchemaObject(schema)) return false;
@@ -247,17 +244,14 @@ const mergeSchemas = (a, b) => {
 };
 
 const mergeAllOf = (branches, context) => {
+  const parts = branches.map((branch) => flatten(branch, context));
   let merged = {};
-  const parts = [];
-  for (const branch of branches) {
-    const flattened = flatten(branch, context);
-    if (conflicts(merged, flattened)) {
-      const flattenedBranches = branches.map((each, index) => (index < parts.length ? parts[index] : index === parts.length ? flattened : flatten(each, context)));
-      const fallback = flattenedBranches.find(isMeaningful) || flattenedBranches[0];
+  for (const part of parts) {
+    if (conflicts(merged, part)) {
+      const fallback = parts.find(isMeaningful) || parts[0];
       return { merged: fallback, parts: [fallback] };
     }
-    merged = mergeSchemas(merged, flattened);
-    parts.push(flattened);
+    merged = mergeSchemas(merged, part);
   }
   return { merged, parts };
 };
@@ -280,7 +274,7 @@ const readDiscriminator = (discriminator) => {
     : null;
 };
 
-const newWalk = (dedupe) => ({ seen: new Set(), complete: true, found: [], dedupe });
+const newWalk = (dedupe) => ({ seen: new Set(), cuts: 0, found: [], dedupe });
 
 const withAncestryCache = (cache, schema, walk, collect) => {
   if (cache.has(schema)) {
@@ -288,16 +282,14 @@ const withAncestryCache = (cache, schema, walk, collect) => {
     return;
   }
   if (walk.seen.has(schema)) {
-    walk.complete = false;
+    walk.cuts += 1;
     return;
   }
   walk.seen.add(schema);
-  const outerComplete = walk.complete;
+  const cuts = walk.cuts;
   const start = walk.found.length;
-  walk.complete = true;
   collect();
-  if (walk.complete) cache.set(schema, walk.dedupe(walk.found.slice(start)));
-  walk.complete = outerComplete && walk.complete;
+  if (walk.cuts === cuts) cache.set(schema, walk.dedupe(walk.found.slice(start)));
 };
 
 const firstPerProperty = (discriminators) => uniqBy(discriminators, 'propertyName');
@@ -306,9 +298,10 @@ const firstPerProperty = (discriminators) => uniqBy(discriminators, 'propertyNam
 const collectDiscriminators = (parent, walk) => withAncestryCache(state.contributedDiscriminators, parent, walk, () => {
   const discriminator = readDiscriminator(parent.discriminator);
   const hasAlternatives = branchesOf(parent, 'oneOf').length > 0 || branchesOf(parent, 'anyOf').length > 0;
-  if (discriminator && hasAlternatives) return;
-  if (discriminator) walk.found.push(discriminator);
+  if (discriminator && !hasAlternatives) walk.found.push(discriminator);
+  const start = walk.found.length;
   branchesOf(parent, 'allOf').forEach((grandparent) => collectDiscriminators(grandparent, walk));
+  if (discriminator && hasAlternatives) walk.found.push(...walk.found.splice(start).filter((each) => each.propertyName !== discriminator.propertyName));
 });
 
 const inheritedDiscriminators = (schema) => {
@@ -331,36 +324,43 @@ const selectAlternative = (alternatives, discriminator, context) => {
   };
   const valueFor = (index) => (discriminator ? discriminatorValueFor(alternatives[index], discriminator) : undefined);
   const choose = (index, value) => ({ chosen: flattenedAt(index), value });
+  const usable = (index) => isMeaningful(flattenedAt(index)) && !isRuledOut(flattenedAt(index), context);
 
-  const inProgress = alternatives.reduce((outermost, alternative, index) => (
-    context.inProgress.has(alternative)
-    && (outermost === -1 || context.inProgress.get(alternative) < context.inProgress.get(alternatives[outermost])) ? index : outermost
-  ), -1);
+  const inProgress = alternatives.indexOf(minBy(alternatives, (alternative) => context.inProgress.get(alternative)));
   if (inProgress !== -1) return choose(inProgress, valueFor(inProgress));
 
   if (discriminator) {
     for (const key of Object.keys(discriminator.mapping)) {
       const target = refTail(discriminator.mapping[key]);
       const index = alternatives.findIndex((alternative) => namesOf(alternative).includes(target));
-      if (index !== -1 && isMeaningful(flattenedAt(index))) return choose(index, key);
+      if (index !== -1 && usable(index)) return choose(index, key);
     }
   }
 
-  const meaningful = alternatives.findIndex((_, index) => isMeaningful(flattenedAt(index)));
+  const allowed = alternatives.findIndex((_, index) => usable(index));
+  const meaningful = allowed !== -1 ? allowed : alternatives.findIndex((_, index) => isMeaningful(flattenedAt(index)));
   const index = meaningful === -1 ? 0 : meaningful;
   return choose(index, valueFor(index));
 };
 
 const stampedCopy = (property, example) => {
-  const original = state.stampedOriginals.get(property) || property;
-  if (!state.stampedCopies.has(original)) state.stampedCopies.set(original, new Map());
-  const copies = state.stampedCopies.get(original);
+  if (!state.stampedCopies.has(property)) state.stampedCopies.set(property, new Map());
+  const copies = state.stampedCopies.get(property);
   if (!copies.has(example)) {
-    const copy = { ...original, example };
+    const copy = { ...property, example };
     copies.set(example, copy);
-    state.stampedOriginals.set(copy, original);
+    state.stampedCopies.set(copy, copies);
   }
   return copies.get(example);
+};
+
+const valueOfType = (value, types) => {
+  if (types.length === 0 || types.includes('string')) return value;
+  const number = value === '' ? NaN : Number(value);
+  if (types.includes('integer') && Number.isInteger(number)) return number;
+  if (types.includes('number') && Number.isFinite(number)) return number;
+  if (types.includes('boolean') && (value === 'true' || value === 'false')) return value === 'true';
+  return undefined;
 };
 
 const stampDiscriminator = (schema, propertyName, value, context) => {
@@ -369,7 +369,7 @@ const stampDiscriminator = (schema, propertyName, value, context) => {
 
   const constraint = flatten(property, context);
   const values = isSchemaObject(constraint) ? allowedValues(constraint) : null;
-  const stamped = values ? values.find((entry) => String(entry) === String(value)) : value;
+  const stamped = values ? values.find((entry) => String(entry) === String(value)) : valueOfType(value, isSchemaObject(constraint) ? typeSet(constraint.type) : []);
   if (stamped === undefined || property.example === stamped) return schema;
 
   return { ...schema, properties: { ...schema.properties, [propertyName]: stampedCopy(property, stamped) } };
@@ -390,6 +390,8 @@ const recordOrigin = (result, schema, siblings, parts) => {
 
 const combineBranches = (schema, context) => {
   const discriminator = readDiscriminator(schema.discriminator);
+  const forbidden = schema.not === undefined ? null : readForbidden(schema.not);
+  if (forbidden) context.forbidden.push(forbidden);
   let { merged, parts } = mergeAllOf(branchesOf(schema, 'allOf'), context);
 
   let discriminatorValue;
@@ -401,22 +403,18 @@ const combineBranches = (schema, context) => {
     parts = [...parts, chosen];
     if (value !== undefined) discriminatorValue = value;
   });
+  if (forbidden) context.forbidden.pop();
 
   const siblings = omit(schema, COMPOSITION_KEYWORDS);
   let result = mergeSchemas(merged, siblings);
   if (result.const !== undefined) result = { ...result, enum: [result.const] };
   result = withinAllowedValues(result);
   if (schema.example !== undefined && result.example !== schema.example) result = { ...result, example: schema.example };
-  const stamped = new Set();
-  if (discriminator && discriminatorValue !== undefined) {
-    result = stampDiscriminator(result, discriminator.propertyName, discriminatorValue, context);
-    stamped.add(discriminator.propertyName);
-  }
+  if (discriminatorValue !== undefined) result = stampDiscriminator(result, discriminator.propertyName, discriminatorValue, context);
   if (state.componentNames.has(schema)) {
     inheritedDiscriminators(schema).forEach((inherited) => {
-      if (stamped.has(inherited.propertyName)) return;
+      if (discriminatorValue !== undefined && inherited.propertyName === discriminator.propertyName) return;
       result = stampDiscriminator(result, inherited.propertyName, discriminatorValueFor(schema, inherited), context);
-      stamped.add(inherited.propertyName);
     });
   }
 
@@ -429,20 +427,34 @@ const collectAlternatives = (schema, walk) => withAncestryCache(state.inheritedA
   branchesOf(schema, 'allOf').forEach((parent) => collectAlternatives(parent, walk));
 });
 
-const isBaseOfSubtypeInProgress = (schema, context) => {
-  if (context.inProgress.size === 0) return false;
+const alternativesInAncestry = (schema) => {
   const walk = newWalk(uniq);
   collectAlternatives(schema, walk);
-  return walk.found.some((alternative) => context.inProgress.has(alternative));
+  return walk.found;
 };
+
+export const hasSchemaAlternatives = (schema) => {
+  const seen = new Set();
+  const offersChoice = (current) => {
+    if (seen.has(current)) return false;
+    seen.add(current);
+    const shapes = alternativesInAncestry(current).filter((alternative) => !isNullOnly(alternative));
+    return shapes.length > 1 || shapes.some(offersChoice);
+  };
+  return isSchemaObject(schema) && offersChoice(schema);
+};
+
+const isBaseOfSubtypeInProgress = (schema, context) =>
+  context.inProgress.size > 0 && alternativesInAncestry(schema).some((alternative) => context.inProgress.has(alternative));
 
 const FLATTEN_REBUILD_LIMIT = 2000;
 
-const newContext = () => ({ inProgress: new Map(), cutDepth: Infinity, built: new Set(), rebuilds: 0 });
+const newContext = () => ({ inProgress: new Map(), cutDepth: Infinity, built: new Set(), rebuilds: 0, forbidden: [] });
 
 function flatten(schema, context) {
   if (!hasBranches(schema)) return schema;
-  if (state.flattened.has(schema) && !isBaseOfSubtypeInProgress(schema, context)) return state.flattened.get(schema);
+  const constrained = context.forbidden.length > 0 && alternativesInAncestry(schema).length > 0;
+  if (!constrained && state.flattened.has(schema) && !isBaseOfSubtypeInProgress(schema, context)) return state.flattened.get(schema);
   if (context.inProgress.has(schema)) {
     context.cutDepth = Math.min(context.cutDepth, context.inProgress.get(schema));
     return withoutComposition(schema);
@@ -463,16 +475,16 @@ function flatten(schema, context) {
   context.inProgress.delete(schema);
   const dependsOnOuter = context.cutDepth < depth;
   context.cutDepth = dependsOnOuter ? Math.min(outerCutDepth, context.cutDepth) : outerCutDepth;
-  if (!dependsOnOuter && context.rebuilds <= FLATTEN_REBUILD_LIMIT) state.flattened.set(schema, result);
+  if (!constrained && !dependsOnOuter && (depth === 0 || context.rebuilds <= FLATTEN_REBUILD_LIMIT)) state.flattened.set(schema, result);
   return result;
 }
 
-const readForbidden = (schema, seen = new Set()) => {
+function readForbidden(schema, seen = new Set()) {
   const forbidden = { values: [], types: [], required: [] };
   if (!isSchemaObject(schema) || seen.has(schema)) return forbidden;
   seen.add(schema);
 
-  const own = branchesOf(schema, 'allOf').length > 0 ? flatten({ allOf: schema.allOf }, newContext()) : schema;
+  const own = branchesOf(schema, 'allOf').length > 0 ? flatten(omit(schema, ['oneOf', 'anyOf']), newContext()) : schema;
   const values = allowedValues(own);
   const types = typeSet(own.type);
   if (values) {
@@ -488,13 +500,26 @@ const readForbidden = (schema, seen = new Set()) => {
     });
   }
   return forbidden;
-};
+}
 
 const isForbiddenType = (type, forbiddenTypes) =>
   forbiddenTypes.includes(type) || (type === 'integer' && forbiddenTypes.includes('number'));
 
 const isForbidden = (value, forbidden) =>
   includesValue(forbidden.values, value) || forbidden.types.some((type) => matchesType(value, type));
+
+const violatesNot = (value, forbidden) =>
+  isForbidden(value, forbidden) || (isSchemaObject(value) && forbidden.required.some((group) => group.every((name) => Object.hasOwn(value, name))));
+
+function isRuledOut(schema, context) {
+  const values = allowedValues(schema);
+  const types = typeSet(schema.type);
+  return context.forbidden.some((forbidden) => {
+    if (values) return values.every((value) => isForbidden(value, forbidden));
+    if (types.length > 0 && types.every((type) => isForbiddenType(type, forbidden.types))) return true;
+    return Array.isArray(schema.required) && forbidden.required.some((group) => group.every((name) => schema.required.includes(name)));
+  });
+}
 
 const filterEnum = (schema, keep) => {
   if (!Array.isArray(schema.enum)) return schema;
@@ -516,16 +541,15 @@ const dropForbiddenCombinations = (schema, groups) => {
 
 const applyNot = (schema) => {
   const forbidden = readForbidden(schema.not);
-  let base = omit(schema, ['not']);
-
-  if (forbidden.values.length > 0) {
-    base = filterEnum(base, (value) => !includesValue(forbidden.values, value));
-    const removable = ['example', 'default'].filter((keyword) => base[keyword] !== undefined && includesValue(forbidden.values, base[keyword]));
-    if (removable.length > 0) base = omit(base, removable);
+  const removable = ['example', 'default'].filter((keyword) => schema[keyword] !== undefined && violatesNot(schema[keyword], forbidden));
+  let base = omit(schema, ['not', ...removable]);
+  if (Array.isArray(base.examples)) {
+    const examples = base.examples.filter((value) => !violatesNot(value, forbidden));
+    if (examples.length < base.examples.length) base = examples.length > 0 ? { ...base, examples } : omit(base, ['examples']);
   }
+  if (forbidden.values.length > 0 || forbidden.types.length > 0) base = filterEnum(base, (value) => !isForbidden(value, forbidden));
 
   if (forbidden.types.length > 0) {
-    base = filterEnum(base, (value) => !forbidden.types.some((type) => matchesType(value, type)));
     const ownTypes = typeSet(base.type);
     const remaining = ownTypes.filter((type) => !isForbiddenType(type, forbidden.types));
     if (ownTypes.length > 1 && remaining.length > 0) base = { ...base, type: remaining.length === 1 ? remaining[0] : remaining };
@@ -538,6 +562,7 @@ const applyNot = (schema) => {
 
   base = dropForbiddenCombinations(base, forbidden.required);
   state.forbidden.set(base, forbidden);
+  state.origins.set(base, cycleKeyOf(schema));
   return base;
 };
 
@@ -550,24 +575,19 @@ const substitutesFor = (type, forbidden) => {
 };
 
 export const allowedDefault = (schema, generated) => {
-  const forbidden = isSchemaObject(schema) ? state.forbidden.get(schema) : undefined;
+  const forbidden = state.forbidden.get(schema);
   if (!forbidden || !isForbidden(generated, forbidden)) return generated;
   const types = typeSet(schema.type);
-  const candidates = (types.length > 0 ? types : [typeof generated === 'number' ? 'integer' : typeof generated])
-    .flatMap((type) => substitutesFor(type, forbidden));
-  const allowed = candidates.find((candidate) => !isForbidden(candidate, forbidden));
+  const allowed = (types.length > 0 ? types : [typeof generated])
+    .flatMap((type) => substitutesFor(type, forbidden))
+    .find((candidate) => !isForbidden(candidate, forbidden));
   return allowed === undefined ? generated : allowed;
 };
 
 export const resolveSchemaComposition = (schema) => {
   if (!hasSchemaComposition(schema)) return schema;
   const flattened = flatten(schema, newContext());
-  if (!isSchemaObject(flattened) || flattened.not === undefined) return flattened;
-
-  if (!state.constrained.has(flattened)) {
-    const constrained = applyNot(flattened);
-    if (!state.origins.has(constrained)) state.origins.set(constrained, cycleKeyOf(flattened));
-    state.constrained.set(flattened, constrained);
-  }
+  if (flattened.not === undefined) return flattened;
+  if (!state.constrained.has(flattened)) state.constrained.set(flattened, applyNot(flattened));
   return state.constrained.get(flattened);
 };

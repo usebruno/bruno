@@ -139,7 +139,8 @@ export const getExpandableObjectSchema = (param) => {
   if (!schema || typeof schema !== 'object') {
     return null;
   }
-  if (hasSchemaComposition(schema) && !hasSchemaAlternatives(schema)) {
+  const keptWhole = param.in !== 'header' && param.in !== 'path' && hasSchemaAlternatives(schema);
+  if (hasSchemaComposition(schema) && !keptWhole) {
     const resolved = resolveSchemaComposition(schema);
     if (resolved && resolved.properties) {
       return resolved;
@@ -152,42 +153,29 @@ export const getExpandableObjectSchema = (param) => {
 const EXAMPLE_VALUE_LIMIT = 5000;
 
 // Composition depths tried in order, deepest first, until the body fits under the limit above.
-const COMPOSITION_DEPTH_STEPS = [32, 6, 4, 3, 2, 1, 0];
+// If none fits, the last depth is used and values past the limit are left empty.
+const COMPOSITION_DEPTH_STEPS = [32, 6, 4, 3, 2, 1];
 
 class ExampleTooLarge extends Error {}
 
 const exampleBudgets = new WeakMap();
 
-let fittedDepthSteps = new WeakMap();
+const newFittedDepthSteps = () => ({ json: new WeakMap(), xml: new WeakMap(), example: new WeakMap() });
+
+let fittedDepthSteps = newFittedDepthSteps();
 
 export const resetExampleGenerationState = () => {
   resetSchemaCompositionState();
-  fittedDepthSteps = new WeakMap();
-};
-
-const generateWithinBudget = (rootSchema, generate) => {
-  const isCacheable = Boolean(rootSchema) && typeof rootSchema === 'object';
-  const firstStep = (isCacheable && fittedDepthSteps.get(rootSchema)) || 0;
-  for (let step = firstStep; step < COMPOSITION_DEPTH_STEPS.length; step += 1) {
-    const visited = new Map();
-    exampleBudgets.set(visited, { values: 0, depthLimit: COMPOSITION_DEPTH_STEPS[step], compositionDepth: 0 });
-    try {
-      const value = generate(visited);
-      if (isCacheable && step > 0) fittedDepthSteps.set(rootSchema, step);
-      return value;
-    } catch (error) {
-      if (!(error instanceof ExampleTooLarge)) throw error;
-    }
-  }
+  fittedDepthSteps = newFittedDepthSteps();
 };
 
 const countValue = (visited) => {
   const budget = exampleBudgets.get(visited);
-  if (budget.compositionDepth === 0) return;
+  if (budget.compositionDepth === 0) return true;
   budget.values += 1;
-  if (budget.values > EXAMPLE_VALUE_LIMIT) {
-    throw new ExampleTooLarge();
-  }
+  if (budget.values <= EXAMPLE_VALUE_LIMIT) return true;
+  if (budget.truncate) return false;
+  throw new ExampleTooLarge();
 };
 
 const deeperInComposition = (visited, generate, fallback) => {
@@ -214,8 +202,32 @@ const withResolvedSchema = (rawSchema, visited, generate) => {
   );
 };
 
-const generateFromRoot = (rawSchema, generate) =>
-  generateWithinBudget(rawSchema, (visited) => withResolvedSchema(rawSchema, visited, (schema) => generate(schema, visited)));
+const generateFromRoot = (rawSchema, kind, generate) => {
+  const fitted = fittedDepthSteps[kind];
+  const isCacheable = Boolean(rawSchema) && typeof rawSchema === 'object';
+  const firstStep = (isCacheable && fitted.get(rawSchema)) || 0;
+  for (let step = firstStep; step < COMPOSITION_DEPTH_STEPS.length; step += 1) {
+    const visited = new Map();
+    exampleBudgets.set(visited, { values: 0, depthLimit: COMPOSITION_DEPTH_STEPS[step], compositionDepth: 0 });
+    try {
+      const value = withResolvedSchema(rawSchema, visited, (schema) => generate(schema, visited));
+      if (isCacheable && step > 0) fitted.set(rawSchema, step);
+      return value;
+    } catch (error) {
+      if (!(error instanceof ExampleTooLarge)) throw error;
+    }
+  }
+  const visited = new Map();
+  exampleBudgets.set(visited, { values: 0, depthLimit: COMPOSITION_DEPTH_STEPS[COMPOSITION_DEPTH_STEPS.length - 1], compositionDepth: 0, truncate: true });
+  if (isCacheable) fitted.set(rawSchema, COMPOSITION_DEPTH_STEPS.length);
+  return withResolvedSchema(rawSchema, visited, (schema) => generate(schema, visited));
+};
+
+const primitiveDefaultFor = (schema) => {
+  if (schema.type === 'integer' || schema.type === 'number') return allowedDefault(schema, 0);
+  if (schema.type === 'boolean') return allowedDefault(schema, false);
+  return allowedDefault(schema, '');
+};
 
 /**
  * Gets a default value for a schema based on its type, format, and constraints
@@ -256,20 +268,11 @@ const defaultValueFor = (schema, visited) => {
     return [];
   }
 
-  if (schema.type === 'integer' || schema.type === 'number') {
-    return allowedDefault(schema, 0);
-  }
-
-  if (schema.type === 'boolean') {
-    return allowedDefault(schema, false);
-  }
-
-  // Default for strings and other types
-  return allowedDefault(schema, '');
+  return primitiveDefaultFor(schema);
 };
 
 const getDefaultValueForSchema = (rawSchema, visited) => {
-  if (!isExampleCopy(rawSchema)) countValue(visited);
+  if (!isExampleCopy(rawSchema) && !countValue(visited)) return '';
   return withResolvedSchema(rawSchema, visited, (schema) => defaultValueFor(schema, visited));
 };
 
@@ -281,6 +284,15 @@ const withCycleGuard = (visited, key, onLoop, build) => {
   } finally {
     visited.delete(key);
   }
+};
+
+const nestsItself = (arraySchema) => {
+  const seen = new Set();
+  for (let items = arraySchema.items; isPlainObject(items) && items.type === 'array' && !seen.has(items); items = items.items) {
+    if (items === arraySchema) return true;
+    seen.add(items);
+  }
+  return false;
 };
 
 const defaultArrayFor = (arraySchema, items, visited) => {
@@ -297,7 +309,8 @@ const defaultArrayFor = (arraySchema, items, visited) => {
     const itemDefault = getDefaultValueForSchema(items, visited);
     return itemDefault !== '' && itemDefault !== 0 && itemDefault !== false ? [itemDefault] : [];
   };
-  return exampleBudgets.get(visited).compositionDepth > 0 ? withCycleGuard(visited, cycleKeyOf(arraySchema), () => [], itemsOf) : itemsOf();
+  const guarded = exampleBudgets.get(visited).compositionDepth > 0 || nestsItself(arraySchema);
+  return guarded ? withCycleGuard(visited, cycleKeyOf(arraySchema), () => [], itemsOf) : itemsOf();
 };
 
 /**
@@ -305,7 +318,7 @@ const defaultArrayFor = (arraySchema, items, visited) => {
  * @param {Object} rawBodySchema - The OpenAPI schema object
  * @returns {string} - XML string
  */
-export const buildXmlBody = (rawBodySchema) => generateFromRoot(rawBodySchema, (bodySchema, visited) => {
+export const buildXmlBody = (rawBodySchema) => generateFromRoot(rawBodySchema, 'xml', (bodySchema, visited) => {
   if (!bodySchema) return '';
 
   // String example = raw XML, return as-is
@@ -314,51 +327,54 @@ export const buildXmlBody = (rawBodySchema) => generateFromRoot(rawBodySchema, (
   }
 
   const exampleValues = typeof bodySchema.example === 'object' ? bodySchema.example : null;
+  const exampleChoosesAlternative = Boolean(exampleValues) && rawBodySchema.example !== undefined && hasSchemaAlternatives(rawBodySchema);
+  const properties = exampleChoosesAlternative ? undefined : bodySchema.properties;
 
-  if (!bodySchema.properties && !exampleValues) return '';
+  if (!properties && !exampleValues) return '';
 
   const rootName = bodySchema.xml?.name || 'root';
 
   // Build a single XML element
   const buildElement = (name, rawProp, givenValue, indent = '  ') => {
-    const value = givenValue === undefined && isExampleCopy(rawProp) ? rawProp.example : givenValue;
-    if (value === undefined) countValue(visited);
-    return withResolvedSchema(rawProp || {}, visited, (resolved) => {
-      const prop = resolved || {};
+    const copied = givenValue === undefined && isExampleCopy(rawProp);
+    const withinBudget = givenValue !== undefined || copied || countValue(visited);
+    return withResolvedSchema(rawProp || {}, visited, (prop) => {
       const xmlName = prop.xml?.name || name;
 
       if (prop.xml?.attribute) return null;
 
+      const value = copied ? prop.example : givenValue;
+
+      const element = (children) => {
+        const shown = children.filter(Boolean);
+        return `${indent}<${xmlName}>${shown.length ? '\n' + shown.join('\n') + '\n' + indent : ''}</${xmlName}>`;
+      };
+
+      if (!withinBudget) return element([]);
+
       if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-        const children = Object.entries(value)
-          .map(([k, v]) => buildElement(k, prop.properties?.[k] || {}, v, indent + '  '))
-          .filter(Boolean);
-        return `${indent}<${xmlName}>${children.length ? '\n' + children.join('\n') + '\n' + indent : ''}</${xmlName}>`;
+        return element(Object.entries(value).map(([k, v]) => buildElement(k, prop.properties?.[k] || {}, v, indent + '  ')));
       }
 
       if (prop.type === 'object' || prop.properties) {
-        return withCycleGuard(visited, cycleKeyOf(prop), () => `${indent}<${xmlName}></${xmlName}>`, () => {
-          const children = Object.entries(prop.properties || {})
-            .map(([k, p]) => buildElement(k, p, undefined, indent + '  '))
-            .filter(Boolean);
-          return `${indent}<${xmlName}>${children.length ? '\n' + children.join('\n') + '\n' + indent : ''}</${xmlName}>`;
-        });
+        return withCycleGuard(visited, cycleKeyOf(prop), () => element([]), () =>
+          element(Object.entries(prop.properties || {}).map(([k, p]) => buildElement(k, p, undefined, indent + '  '))));
       }
 
-      const content = value != null ? String(value) : '';
+      const content = value != null ? String(value) : String(allowedDefault(prop, '') ?? '');
       return `${indent}<${xmlName}>${content}</${xmlName}>`;
     });
   };
 
   // Collect attributes
-  const attributes = Object.entries(bodySchema.properties || {})
+  const attributes = Object.entries(properties || {})
     .map(([name, p]) => [name, resolveSchemaComposition(p)])
     .filter(([, p]) => p?.xml?.attribute)
     .map(([name, p]) => `${p.xml?.name || name}="${exampleValues?.[name] ?? ''}"`);
 
   // Build child elements
-  const entries = bodySchema.properties
-    ? Object.entries(bodySchema.properties).map(([k, p]) => [k, p, exampleValues?.[k]])
+  const entries = properties
+    ? Object.entries(properties).map(([k, p]) => [k, p, exampleValues?.[k]])
     : Object.entries(exampleValues || {}).map(([k, v]) => [k, {}, v]);
 
   const children = entries
@@ -371,7 +387,7 @@ export const buildXmlBody = (rawBodySchema) => generateFromRoot(rawBodySchema, (
   return `<?xml version="1.0" encoding="UTF-8"?>\n<${rootName}${attrStr}>${childrenStr}</${rootName}>`;
 });
 
-const objectValueFor = (bodySchema, visited) => {
+const buildEmptyJsonBody = (bodySchema, visited) => {
   if (!bodySchema || typeof bodySchema !== 'object') {
     return {};
   }
@@ -396,13 +412,25 @@ const objectValueFor = (bodySchema, visited) => {
   });
 };
 
-const buildEmptyJsonBody = (rawBodySchema, visited) => {
-  return withResolvedSchema(rawBodySchema, visited, (bodySchema) => objectValueFor(bodySchema, visited));
+const formValue = (value, inherited) => (value === undefined || value === null || (inherited && isPlainObject(value)) ? '' : String(value));
+
+const formFieldsOf = (rawBodySchema) => {
+  const bodySchema = resolveSchemaComposition(rawBodySchema);
+  if (isPlainObject(bodySchema.example)) {
+    const inherited = rawBodySchema.example === undefined;
+    return Object.entries(bodySchema.example).map(([name, value]) => ({ name, prop: {}, value: formValue(value, inherited) }));
+  }
+  return Object.entries(bodySchema.properties || {}).map(([name, rawProp]) => {
+    const prop = resolveSchemaComposition(rawProp) || {};
+    const inherited = rawProp?.example === undefined && rawProp?.default === undefined;
+    return { name, prop, value: formValue(prop.example ?? prop.default ?? allowedDefault(prop, ''), inherited) };
+  });
 };
 
-const getFormFields = (rawBodySchema, bodySchema) => {
-  const example = hasSchemaComposition(rawBodySchema) && !isPlainObject(bodySchema.example) ? undefined : bodySchema.example;
-  return { fields: example || bodySchema.properties || {}, isExample: !!example };
+const textExample = (rawSchema) => {
+  const example = resolveSchemaComposition(rawSchema)?.example;
+  const inherited = rawSchema?.example === undefined;
+  return example === undefined || (inherited && isPlainObject(example)) ? '' : String(example);
 };
 
 /**
@@ -418,7 +446,7 @@ export const BODY_TYPE_HANDLERS = [
     mode: 'json',
     handle: (body, rawBodySchema) => {
       if (rawBodySchema) {
-        const value = generateFromRoot(rawBodySchema, (bodySchema, visited) => {
+        const value = generateFromRoot(rawBodySchema, 'json', (bodySchema, visited) => {
           if (bodySchema.example !== undefined) {
             return bodySchema.example;
           }
@@ -436,16 +464,11 @@ export const BODY_TYPE_HANDLERS = [
     mode: 'formUrlEncoded',
     handle: (body, rawBodySchema) => {
       if (!rawBodySchema) return;
-      const bodySchema = resolveSchemaComposition(rawBodySchema);
-      const { fields, isExample } = getFormFields(rawBodySchema, bodySchema);
-
-      each(fields, (rawProp, name) => {
-        const prop = isExample ? rawProp : (resolveSchemaComposition(rawProp) || {});
-        const value = isExample ? prop : (prop.example ?? prop.default ?? '');
+      formFieldsOf(rawBodySchema).forEach(({ name, prop, value }) => {
         body.formUrlEncoded.push({
           uid: uuid(),
           name,
-          value: value !== undefined ? String(value) : '',
+          value,
           description: prop.description || '',
           enabled: true
         });
@@ -457,18 +480,13 @@ export const BODY_TYPE_HANDLERS = [
     mode: 'multipartForm',
     handle: (body, rawBodySchema) => {
       if (!rawBodySchema) return;
-      const bodySchema = resolveSchemaComposition(rawBodySchema);
-      const { fields, isExample } = getFormFields(rawBodySchema, bodySchema);
-
-      each(fields, (rawProp, name) => {
-        const prop = isExample ? rawProp : (resolveSchemaComposition(rawProp) || {});
-        const isFileField = !isExample && prop.type === 'string' && prop.format === 'binary';
-        const value = isFileField ? [] : isExample ? prop : (prop.example ?? prop.default ?? '');
+      formFieldsOf(rawBodySchema).forEach(({ name, prop, value }) => {
+        const isFileField = prop.type === 'string' && prop.format === 'binary';
         body.multipartForm.push({
           uid: uuid(),
           type: isFileField ? 'file' : 'text',
           name,
-          value: isFileField ? [] : (value !== undefined ? String(value) : ''),
+          value: isFileField ? [] : value,
           description: prop.description || '',
           enabled: true
         });
@@ -487,8 +505,7 @@ export const BODY_TYPE_HANDLERS = [
     mode: 'sparql',
     handle: (body, bodySchema) => {
       // Use example from schema if available
-      const schema = resolveSchemaComposition(bodySchema);
-      body.sparql = schema?.example !== undefined ? String(schema.example) : '';
+      body.sparql = textExample(bodySchema);
     }
   },
   {
@@ -496,8 +513,7 @@ export const BODY_TYPE_HANDLERS = [
     mode: 'text',
     handle: (body, bodySchema) => {
       // Use example from schema if available
-      const schema = resolveSchemaComposition(bodySchema);
-      body.text = schema?.example !== undefined ? String(schema.example) : '';
+      body.text = textExample(bodySchema);
     }
   }
 ];
@@ -509,14 +525,7 @@ const exampleArrayFor = (items, visited) => {
   if (items.type === 'object' || items.properties) {
     return [buildEmptyJsonBody(items, visited)];
   }
-  if (items.type === 'integer' || items.type === 'number') {
-    return [allowedDefault(items, 0)];
-  } else if (items.type === 'boolean') {
-    return [allowedDefault(items, false)];
-  } else if (items.type === 'string') {
-    return [allowedDefault(items, '')];
-  }
-  return [];
+  return ['integer', 'number', 'boolean', 'string'].includes(items.type) ? [primitiveDefaultFor(items)] : [];
 };
 
 /**
@@ -525,7 +534,7 @@ const exampleArrayFor = (items, visited) => {
  * @param {Object} rawSchema - The OpenAPI schema object
  * @returns {*} - The example value (object, array, or primitive)
  */
-export const getExampleFromSchema = (rawSchema) => generateFromRoot(rawSchema, (schema, visited) => {
+export const getExampleFromSchema = (rawSchema) => generateFromRoot(rawSchema, 'example', (schema, visited) => {
   if (!schema || typeof schema !== 'object') {
     return '';
   }
@@ -546,12 +555,7 @@ export const getExampleFromSchema = (rawSchema) => generateFromRoot(rawSchema, (
     return [];
   } else {
     // For primitive types, use default values
-    if (schema.type === 'integer' || schema.type === 'number') {
-      return allowedDefault(schema, 0);
-    } else if (schema.type === 'boolean') {
-      return allowedDefault(schema, false);
-    }
-    return allowedDefault(schema, '');
+    return primitiveDefaultFor(schema);
   }
 });
 

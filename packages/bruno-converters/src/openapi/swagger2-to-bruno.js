@@ -556,11 +556,13 @@ export const parseSwagger2Collection = (data, options = {}) => {
 
   try {
     resetExampleGenerationState();
-    const collectionData = resolveRefs(data, data);
+    const refCache = new Map();
+    ['definitions', 'parameters', 'responses'].forEach((section) => resolveRefs(data?.[section], data, refCache));
+    const collectionData = resolveRefs(data, data, refCache);
     if (!collectionData) {
       throw new Error('Invalid Swagger 2.0 specification. Failed to resolve refs.');
     }
-    registerComponentNames(collectionData.definitions);
+    registerComponentNames(collectionData.definitions, data.definitions);
 
     brunoCollection.name = collectionData.info?.title?.trim() || 'Untitled Collection';
 
