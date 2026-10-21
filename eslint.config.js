@@ -108,7 +108,8 @@ module.exports = runESMImports().then(() => defineConfig([
         require: false,
         Buffer: false,
         process: false,
-        ipcRenderer: false
+        ipcRenderer: false,
+        __BRUNO_BENCHMARK__: false
       },
       parserOptions: {
         ecmaFeatures: {

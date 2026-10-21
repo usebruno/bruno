@@ -679,6 +679,30 @@ describe('interpolate - moment() handling', () => {
   });
 });
 
+describe('interpolate - onUnresolved', () => {
+  const collectUnresolved = (str: string, obj: Record<string, any>) => {
+    const names: string[] = [];
+    interpolate(str, obj, { onUnresolved: (name) => names.push(name) });
+    return names;
+  };
+
+  it('reports each missing name once', () => {
+    expect(collectUnresolved('{{a}} {{missing}} {{missing}}', { a: 'x' })).toEqual(['missing']);
+  });
+
+  it('does not report a name whose value is an empty string', () => {
+    expect(collectUnresolved('{{empty}}', { empty: '' })).toEqual([]);
+  });
+
+  it('reports an unknown mock variable', () => {
+    expect(collectUnresolved('{{$randomTypo}} {{$randomInt}}', {})).toEqual(['$randomTypo']);
+  });
+
+  it('reports a missing name reached through a nested variable', () => {
+    expect(collectUnresolved('{{outer}}', { outer: 'pre-{{inner}}' })).toEqual(['inner']);
+  });
+});
+
 describe('interpolateObject', () => {
   it('should interpolate strings in a flat object', () => {
     const obj = {

@@ -8,7 +8,16 @@ const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies')
 const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
 const { createFormData } = require('../../utils/form-data');
-const { getSentHeaders, applyOmitConnectionToAxiosConfig, handleNtlmRedirect, canUseHttp2 } = require('@usebruno/requests');
+const {
+  getSentHeaders,
+  applyOmitConnectionToAxiosConfig,
+  handleNtlmRedirect,
+  readCurrentTime,
+  measureTimeSince,
+  startHop,
+  completeHop,
+  canUseHttp2
+} = require('@usebruno/requests');
 const { STATUS_CODES } = require('http');
 const { applyHttp2Transport, getHttp2RequestDetails } = require('./http2-transport');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
@@ -70,6 +79,31 @@ const checkConnection = (host, port) =>
     }
   });
 
+const recordResponseHeadersReceived = (config) => {
+  config.metadata.timeline.push({
+    timestamp: new Date(),
+    type: 'timing',
+    message: `Response headers received in ${measureTimeSince(config.metadata.hopStartTime)} ms`
+  });
+};
+
+/**
+ * Closes the hop in flight, if any, and logs its duration to the timeline. Called from everywhere
+ * a hop can finish: the response interceptor, a re-send of the request, or the caller that
+ * consumes a streamed body.
+ */
+const completeOpenHop = (config) => {
+  const hopTime = completeHop(config.metadata);
+  if (hopTime === undefined) {
+    return;
+  }
+  config.metadata.timeline.push({
+    timestamp: new Date(),
+    type: 'timing',
+    message: `Request completed in ${hopTime} ms`
+  });
+};
+
 /**
  * Function that configures axios with timing interceptors
  * Important to note here that the timings are not completely accurate.
@@ -114,7 +148,8 @@ function makeAxiosInstance({
   instance.interceptors.request.use(async (config) => {
     const url = URL.parse(config.url);
     config.metadata = config.metadata || {};
-    config.metadata.startTime = new Date().getTime();
+    completeOpenHop(config);
+    const preparationStartTime = readCurrentTime();
     const timeline = config.metadata.timeline || [];
     // Add initial request details to the timeline
     timeline.push({
@@ -222,6 +257,15 @@ function makeAxiosInstance({
     }
 
     config.metadata.timeline = timeline;
+    const preparationTime = measureTimeSince(preparationStartTime);
+    startHop(config.metadata);
+    if (preparationTime > 0) {
+      timeline.push({
+        timestamp: new Date(),
+        type: 'timing',
+        message: `Request prepared in ${preparationTime} ms`
+      });
+    }
     return config;
   });
 
@@ -230,14 +274,10 @@ function makeAxiosInstance({
   instance.interceptors.response.use(
     (response) => {
       let timeline;
-      const end = Date.now();
-      const start = response.config.metadata.startTime;
-      response.headers['request-duration'] = end - start;
       redirectCount = 0;
 
       const config = response.config;
       timeline = config?.metadata?.timeline || [];
-      const duration = end - config?.metadata.startTime;
 
       const http2RequestDetails = getHttp2RequestDetails(response.request);
       const sentHeaders = http2RequestDetails ? http2RequestDetails.sentHeaders : getSentHeaders(response.request);
@@ -286,6 +326,10 @@ function makeAxiosInstance({
           message: `Using HTTP/2, server supports multiplexing`
         });
       }
+      const isStreamedBody = config.responseType === 'stream';
+      if (isStreamedBody) {
+        recordResponseHeadersReceived(config);
+      }
       timeline.push({
         timestamp: new Date(),
         type: 'response',
@@ -300,11 +344,9 @@ function makeAxiosInstance({
         });
       });
 
-      timeline.push({
-        timestamp: new Date(),
-        type: 'info',
-        message: `Request completed in ${duration} ms`
-      });
+      if (!isStreamedBody) {
+        completeOpenHop(config);
+      }
       response.timeline = timeline;
       return response;
     },
@@ -341,10 +383,10 @@ function makeAxiosInstance({
         message: 'there was an error executing the request!'
       });
       if (error.response) {
-        const end = Date.now();
-        const start = error.config.metadata.startTime;
-        error.response.headers['request-duration'] = end - start;
-        const duration = end - config?.metadata?.startTime;
+        const isStreamedBody = config.responseType === 'stream';
+        if (isStreamedBody) {
+          recordResponseHeadersReceived(config);
+        }
         if (error.response && redirectResponseCodes.includes(error.response.status)) {
           timeline.push({
             timestamp: new Date(),
@@ -358,11 +400,10 @@ function makeAxiosInstance({
               message: `${key}: ${value}`
             });
           });
-          timeline.push({
-            timestamp: new Date(),
-            type: 'info',
-            message: `Request completed in ${duration} ms`
-          });
+
+          if (!isStreamedBody) {
+            completeOpenHop(config);
+          }
 
           // Attach the timeline to the response
           error.response.timeline = timeline;
@@ -394,6 +435,8 @@ function makeAxiosInstance({
             error.response.timeline = timeline;
             return Promise.reject(error);
           }
+
+          completeOpenHop(config);
 
           let redirectUrl = locationHeader;
 
@@ -484,7 +527,9 @@ function makeAxiosInstance({
                     message: `Recreating consumed FormData for ${statusCode} redirect`
                   });
 
-                  const recreatedForm = createFormData(error.config._originalMultipartData, error.config.collectionPath);
+                  const recreatedForm = createFormData(error.config._originalMultipartData, error.config.collectionPath, formData.getBoundary());
+                  // axios sends getHeaders() as the Content-Type; the consumed form's may carry the request's own multipart media type
+                  recreatedForm.getHeaders = formData.getHeaders;
                   requestConfig.data = recreatedForm;
 
                   const formHeaders = recreatedForm.getHeaders();
@@ -600,5 +645,6 @@ function makeAxiosInstance({
 }
 
 module.exports = {
-  makeAxiosInstance
+  makeAxiosInstance,
+  completeOpenHop
 };

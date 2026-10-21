@@ -619,7 +619,7 @@ test.describe('Variable Tooltip', () => {
       await varInfoPopup.addToToggle(tooltip).click();
       // Not enabled yet (no environment exists) — shown as an inline note, not a pickable option.
       await expect(varInfoPopup.addToOption(tooltip, 'environment')).toHaveCount(0);
-      await expect(varInfoPopup.addToNoEnvNote(tooltip, 'environment')).toContainText('No Collection Environment selected.');
+      await expect(varInfoPopup.addToNoEnvNote(tooltip, 'environment')).toContainText('No Collection Environment selected');
 
       await varInfoPopup.addToCreateEnvButton(tooltip, 'environment').click();
       await varInfoPopup.addToCreateEnvNameInput(tooltip).fill(envName);

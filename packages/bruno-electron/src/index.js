@@ -5,6 +5,7 @@ const isDev = require('electron-is-dev');
 const os = require('os');
 const { initializeShellEnv, waitForShellEnv } = require('./store/shell-env-state');
 const { percentageToZoomLevel } = require('@usebruno/common');
+const { isBenchmarkEnabled } = require('./utils/benchmark');
 
 if (isDev) {
   if (!fs.existsSync(path.join(__dirname, '../../bruno-js/src/sandbox/bundle-browser-rollup.js'))) {
@@ -33,6 +34,10 @@ if (os.platform() === 'linux') {
   app.commandLine.appendSwitch('xdg-portal-required-version', '4');
 }
 
+if (isBenchmarkEnabled()) {
+  app.commandLine.appendSwitch('enable-precise-memory-info');
+}
+
 const menuTemplate = require('./app/menu-template');
 const { openCollection } = require('./app/collections');
 const registerNetworkIpc = require('./ipc/network');
@@ -51,6 +56,8 @@ const registerAiIpc = require('./ipc/ai');
 const registerAiAutocompleteIpc = require('./ipc/ai/autocomplete');
 const { registerMountIpc } = require('./ipc/mount');
 const { registerSqliteIpc } = require('./ipc/sqlite');
+const sqliteService = require('./services/sqlite');
+const { clearAllRunnerResponses } = require('./services/runner-exchange');
 const { registerWsdlIpc } = require('./ipc/wsdl');
 const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
@@ -72,6 +79,7 @@ const { handleAppProtocolUrl, getAppProtocolUrlFromArgv } = require('./utils/dee
 
 const systemMonitor = new SystemMonitor();
 const terminalManager = new TerminalManager();
+const { startBenchmark, stopBenchmark } = require('./benchmark');
 
 const workspaceWatcher = new WorkspaceWatcher();
 const apiSpecWatcher = new ApiSpecWatcher();
@@ -196,6 +204,8 @@ if (useSingleInstance && !gotTheLock) {
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
   initializeShellEnv();
+
+  startBenchmark();
 
   if (isDev) {
     const { installExtension, REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS } = require('electron-devtools-installer');
@@ -534,7 +544,9 @@ app.on('ready', async () => {
   registerAiIpc(mainWindow);
   registerAiAutocompleteIpc(mainWindow);
   registerMountIpc();
-  registerSqliteIpc(mainWindow);
+  sqliteService.openDatabase();
+  clearAllRunnerResponses().catch((err) => console.warn('[runner] failed to clear stored responses', err));
+  registerSqliteIpc();
   appDocuments.handleProtocol();
   registerAppDocumentIpc(appDocuments, mainWindow);
   registerWsdlIpc();
@@ -559,6 +571,12 @@ app.on('before-quit', (event) => {
 
   (async () => {
     try {
+      await stopBenchmark();
+    } catch (err) {
+      console.error('[benchmark] Failed to stop benchmark writer:', err);
+    }
+
+    try {
       await Promise.race([
         closeAllWatchers(),
         // Cap the wait so a stuck watcher can't block exit indefinitely.
@@ -568,9 +586,11 @@ app.on('before-quit', (event) => {
 
     try { await require('./ipc/mount').shutdown({ force: true }); } catch { }
 
-    try { await require('./ipc/sqlite').reclaimDiskSpace(); } catch {}
+    try { await clearAllRunnerResponses(); } catch {}
 
-    try { require('./ipc/sqlite').shutdown(); } catch {}
+    try { await sqliteService.reclaimDiskSpace(); } catch {}
+
+    try { sqliteService.shutdown(); } catch {}
 
     if (useSingleInstance && gotTheLock) {
       try { app.releaseSingleInstanceLock(); } catch {}
