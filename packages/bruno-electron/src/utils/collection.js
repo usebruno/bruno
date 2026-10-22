@@ -171,6 +171,10 @@ const wrapScriptInClosure = (script, scopeInfo = null, sourcePaths = null) => {
     return '';
   }
 
+  // Scripts can carry CRLF (a yml quoted scalar with \r\n escapes, a Windows-authored
+  // import). Line counting below and the stack-trace mapping assume LF, so normalise.
+  const normalizedScript = script.replace(/\r\n?/g, '\n');
+
   // Wrap script in async IIFE to create isolated scope
   // This prevents variable re-declaration errors and allows early returns
   // to only affect the current script segment
@@ -180,7 +184,7 @@ const wrapScriptInClosure = (script, scopeInfo = null, sourcePaths = null) => {
   const dirnameParam = sourcePaths?.dirname != null ? JSON.stringify(sourcePaths.dirname) : 'undefined';
   const filenameParam = sourcePaths?.filename != null ? JSON.stringify(sourcePaths.filename) : 'undefined';
   return `await (async (__dirname, __filename) => {${scopeSetter}
-${script}
+${normalizedScript}
 })(${dirnameParam}, ${filenameParam});`;
 };
 

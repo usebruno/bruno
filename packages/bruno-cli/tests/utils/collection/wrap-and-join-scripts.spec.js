@@ -58,3 +58,26 @@ describe('CLI wrapAndJoinScripts: hierarchical __dirname/__filename', () => {
     expect(result.code).toContain(')(undefined, undefined);');
   });
 });
+
+describe('CLI wrapAndJoinScripts: line endings', () => {
+  test('normalises CRLF segments to LF so line counts stay correct', () => {
+    const result = wrapAndJoinScripts(['let a = 1;\r\nlet b = 2;', '', 'let c = 3;'], 2);
+    expect(result.code).not.toContain('\r');
+    expect(result.code).toContain('let a = 1;\nlet b = 2;');
+    // Collection segment: opener + 2 body lines + closer = 4 lines, blank separator at 5
+    expect(result.metadata.requestStartLine).toBe(6);
+    expect(result.metadata.requestEndLine).toBe(8);
+  });
+
+  test('normalises lone CR segments to LF', () => {
+    const result = wrapAndJoinScripts(['let a = 1;\rlet b = 2;', '', 'let c = 3;'], 2);
+    expect(result.code).not.toContain('\r');
+    expect(result.metadata.requestStartLine).toBe(6);
+  });
+
+  test('mixed endings across collection, folder and request segments all become LF', () => {
+    const result = wrapAndJoinScripts(['col();\r\n', 'folder();\n', '// note\r\nreq();'], 2);
+    expect(result.code).not.toContain('\r');
+    expect(result.code).toContain('// note\nreq();');
+  });
+});

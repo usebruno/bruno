@@ -651,3 +651,38 @@ describe('runtime', () => {
     });
   });
 });
+
+describe('script-runtime: comments and modern syntax reach the engine untouched', () => {
+  const onConsoleLog = () => {};
+
+  it('runs a // comment followed by code across mixed CRLF and LF lines', async () => {
+    const script = [
+      'function helper() {\r\n  return 1;\r\n}',
+      '',
+      '// Set the pet ID before sending the request\nbru.setEnvVar("petId", 9091)'
+    ].join('\n\n');
+    const runtime = new ScriptRuntime({ runtime: 'quickjs' });
+
+    const result = await runtime.runRequestScript(script, {}, {}, {}, '.', onConsoleLog, process.env);
+
+    expect(result.envVariables.petId).toBe(9091);
+  });
+
+  it('runs a script that is only a // comment', async () => {
+    const runtime = new ScriptRuntime({ runtime: 'quickjs' });
+
+    await expect(runtime.runRequestScript('// nothing to do', {}, {}, {}, '.', onConsoleLog, process.env)).resolves.toBeDefined();
+  });
+
+  it('accepts numeric separators and private class fields', async () => {
+    const script = `
+      class Counter { #n = 1_000; value() { return this.#n; } }
+      bru.setEnvVar("n", new Counter().value());
+    `;
+    const runtime = new ScriptRuntime({ runtime: 'quickjs' });
+
+    const result = await runtime.runRequestScript(script, {}, {}, {}, '.', onConsoleLog, process.env);
+
+    expect(result.envVariables.n).toBe(1000);
+  });
+});

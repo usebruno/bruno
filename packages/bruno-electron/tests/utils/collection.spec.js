@@ -891,3 +891,65 @@ describe('getEffectiveTagsByUid', () => {
     expect(tagsByUid.get('folder-empty')).toEqual(['empty']);
   });
 });
+
+describe('wrapAndJoinScripts line endings', () => {
+  test('normalises CRLF segments to LF so line counts stay correct', () => {
+    const result = wrapAndJoinScripts(['let a = 1;\r\nlet b = 2;', '', 'let c = 3;'], 2);
+    expect(result.code).not.toContain('\r');
+    expect(result.code).toContain('let a = 1;\nlet b = 2;');
+    // Collection segment: opener + 2 body lines + closer = 4 lines, blank separator at 5
+    expect(result.metadata.requestStartLine).toBe(6);
+    expect(result.metadata.requestEndLine).toBe(8);
+  });
+
+  test('normalises lone CR segments to LF', () => {
+    const result = wrapAndJoinScripts(['let a = 1;\rlet b = 2;', '', 'let c = 3;'], 2);
+    expect(result.code).not.toContain('\r');
+    expect(result.metadata.requestStartLine).toBe(6);
+  });
+
+  test('mixed endings across collection, folder and request segments all become LF', () => {
+    const result = wrapAndJoinScripts(['col();\r\n', 'folder();\n', '// note\r\nreq();'], 2);
+    expect(result.code).not.toContain('\r');
+    expect(result.code).toContain('// note\nreq();');
+  });
+});
+
+describe('mergeScripts with CRLF collection script', () => {
+  const collectionScript = [
+    'function extractDataPaths(scRaw) {',
+    '    const placeholderRegExp = /{{([^}]+)}}/g;',
+    '    const dataPaths = [];',
+    '    let match;',
+    '    while ((match = placeholderRegExp.exec(scRaw)) != null) {',
+    '        dataPaths.push(match[1]);',
+    '    }',
+    '    return dataPaths;',
+    '}'
+  ].join('\r\n');
+
+  const run = async (mergedScript) => {
+    const bru = { setVar: jest.fn() };
+    const context = { bru, console, __bruSetScope: jest.fn() };
+    await runScriptInNodeVm({ script: mergedScript, context, collectionPath: '/test/collection', scriptingConfig: {} });
+    return bru;
+  };
+
+  test('request script with a // comment still runs', async () => {
+    const collection = makeCollection({ preReq: collectionScript });
+    const request = makeRequest({ preReq: '// Set the pet ID before sending the request\nbru.setVar("petId", 9091)' });
+    mergeScripts(collection, request, [request], 'sandwich');
+
+    expect(request.script.req).not.toContain('\r');
+    const bru = await run(request.script.req);
+    expect(bru.setVar).toHaveBeenCalledWith('petId', 9091);
+  });
+
+  test('request script that is only a // comment does not break the combined script', async () => {
+    const collection = makeCollection({ preReq: collectionScript });
+    const request = makeRequest({ preReq: '// just a comment' });
+    mergeScripts(collection, request, [request], 'sandwich');
+
+    await expect(run(request.script.req)).resolves.toBeDefined();
+  });
+});
