@@ -2,8 +2,13 @@ import React, { useEffect, useMemo, useRef, useCallback } from 'react';
 import find from 'lodash/find';
 import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
+import { IconBarcode } from '@tabler/icons';
 import { updateResponsePaneTab, updateResponseFormat, updateResponseViewTab, updateResponseFilter, updateResponseFilterExpanded } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
+import LabelPane from './LabelPane';
+import ActionIcon from 'ui/ActionIcon';
+import { detectLabels } from 'utils/response/detectLabels';
+import { usePersistedState } from 'hooks/usePersistedState';
 import Overlay from './Overlay';
 import Placeholder from './Placeholder';
 import ResponseHeaders from './ResponseHeaders';
@@ -31,6 +36,9 @@ import useResponsePaneErrors from 'hooks/useResponsePaneErrors';
 // Width threshold for expanded right-side action buttons
 const RIGHT_CONTENT_EXPANDED_WIDTH = 135;
 
+// Responses above this size are not scanned for labels
+const LABEL_DETECTION_MAX_SIZE = 10 * 1024 * 1024;
+
 const ResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -40,6 +48,13 @@ const ResponsePane = ({ item, collection }) => {
   const setAsVariable = useSetAsVariable();
 
   const response = item.response || {};
+
+  const labels = useMemo(
+    () => (response.size > LABEL_DETECTION_MAX_SIZE ? [] : detectLabels({ data: response.data, dataBuffer: response.dataBuffer })),
+    [response.data, response.dataBuffer, response.size]
+  );
+  const [labelPaneOpen, setLabelPaneOpen] = usePersistedState({ key: `label-pane-open-${item.uid}`, default: false });
+  const showLabelPane = labelPaneOpen && labels.length > 0;
 
   // Get the focused tab for reading persisted format/view state
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -159,21 +174,26 @@ const ResponsePane = ({ item, collection }) => {
           return <WSMessagesList order={-1} messages={item.response.data} item={item} collection={collection} />;
         }
         return (
-          <QueryResult
-            item={item}
-            collection={collection}
-            data={response.data}
-            dataBuffer={response.dataBuffer}
-            headers={response.headers}
-            error={response.error}
-            key={item.filename}
-            selectedFormat={selectedFormat}
-            selectedTab={selectedViewTab}
-            filter={focusedTab?.responseFilter}
-            filterExpanded={focusedTab?.responseFilterExpanded}
-            onFilterChange={(value) => dispatch(updateResponseFilter({ uid: activeTabUid, responseFilter: value }))}
-            onFilterExpandChange={(expanded) => dispatch(updateResponseFilterExpanded({ uid: activeTabUid, responseFilterExpanded: expanded }))}
-          />
+          <div className="flex h-full">
+            <div className="flex-1 min-w-0 h-full">
+              <QueryResult
+                item={item}
+                collection={collection}
+                data={response.data}
+                dataBuffer={response.dataBuffer}
+                headers={response.headers}
+                error={response.error}
+                key={item.filename}
+                selectedFormat={selectedFormat}
+                selectedTab={selectedViewTab}
+                filter={focusedTab?.responseFilter}
+                filterExpanded={focusedTab?.responseFilterExpanded}
+                onFilterChange={(value) => dispatch(updateResponseFilter({ uid: activeTabUid, responseFilter: value }))}
+                onFilterExpandChange={(expanded) => dispatch(updateResponseFilterExpanded({ uid: activeTabUid, responseFilterExpanded: expanded }))}
+              />
+            </div>
+            {showLabelPane ? <LabelPane labels={labels} /> : null}
+          </div>
         );
       }
       case 'headers': {
@@ -260,6 +280,15 @@ const ResponsePane = ({ item, collection }) => {
                 handleViewTabChange('editor');
               }}
             />
+            {labels.length > 0 ? (
+              <ActionIcon
+                label={showLabelPane ? 'Hide label preview' : 'Show label preview'}
+                onClick={() => setLabelPaneOpen(!labelPaneOpen)}
+                data-testid="response-label-toggle"
+              >
+                <IconBarcode size={16} strokeWidth={2} />
+              </ActionIcon>
+            ) : null}
           </div>
         </>
       ) : null}
