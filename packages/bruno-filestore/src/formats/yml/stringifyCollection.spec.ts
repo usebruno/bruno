@@ -221,3 +221,22 @@ describe('stringifyCollection — writing the collection version', () => {
     });
   });
 });
+
+describe('stringifyCollection — HTTP version (collection-level)', () => {
+  const baseRoot = {};
+
+  it('round-trips http.version through the opencollection config', () => {
+    const yml = stringifyCollection(baseRoot, { name: 'c', http: { version: 'http2' } });
+    expect(parseCollection(yml).brunoConfig.http?.version).toBe('http2');
+  });
+
+  it('writes no http config when the collection has none (defaults to inherit/app)', () => {
+    const yml = stringifyCollection(baseRoot, { name: 'c' });
+    expect(parseCollection(yml).brunoConfig.http).toBeUndefined();
+  });
+
+  it('preserves auto and http1 values', () => {
+    expect(parseCollection(stringifyCollection(baseRoot, { name: 'c', http: { version: 'auto' } })).brunoConfig.http?.version).toBe('auto');
+    expect(parseCollection(stringifyCollection(baseRoot, { name: 'c', http: { version: 'http1' } })).brunoConfig.http?.version).toBe('http1');
+  });
+});

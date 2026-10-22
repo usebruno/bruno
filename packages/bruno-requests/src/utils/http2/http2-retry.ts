@@ -4,8 +4,11 @@ const NGHTTP2_REFUSED_STREAM = 7;
 
 export const isRetryableHttp2Error = (error: any): boolean => {
   if (!error) return false;
-  const rstCode = error.rstCode ?? error.request?.rstCode ?? error.response?.request?.rstCode;
 
+  // A proxied-h2 fast path found a live pooled session, but it died before the stream opened.
+  // retry the request to get a new session.
+  if (error.code === 'ERR_H2_PROXY_SESSION_UNAVAILABLE') return true;
+  const rstCode = error.rstCode ?? error.request?.rstCode ?? error.response?.request?.rstCode;
   return rstCode === NGHTTP2_REFUSED_STREAM;
 };
 

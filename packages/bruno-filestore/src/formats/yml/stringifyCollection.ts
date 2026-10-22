@@ -35,7 +35,9 @@ const hasCollectionConfig = (brunoConfig: any): boolean => {
   // client certificates
   const hasClientCertificates = brunoConfig.clientCertificates?.certs?.length > 0;
 
-  return hasProtobuf || hasProxy || hasClientCertificates;
+  const hasHttpVersion = !!brunoConfig.http?.version;
+
+  return hasProtobuf || hasProxy || hasClientCertificates || hasHttpVersion;
 };
 
 const hasRequestDefaults = (collectionRoot: any): boolean => {
@@ -139,6 +141,11 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
             oc.config.proxy.config.auth.disabled = true;
           }
         }
+      }
+
+      // http version (collection-level override of the app default)
+      if (brunoConfig.http?.version) {
+        (oc.config as any).http = { version: brunoConfig.http.version };
       }
 
       // client certificates

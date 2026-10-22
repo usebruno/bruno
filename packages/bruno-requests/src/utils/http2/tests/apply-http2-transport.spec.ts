@@ -14,7 +14,7 @@ jest.mock('../proxy-tunnel', () => ({
   connectThroughProxy: jest.fn()
 }));
 
-import { applyHttp2Transport } from '../apply-http2-transport';
+import { applyHttp2Transport, applyBasicAuthHeader } from '../apply-http2-transport';
 import { createHttp2Transport } from '../create-http2-transport';
 import { negotiateHttpVersion } from '../negotiate-http-version';
 import { hasLiveSession } from '../session-pool';
@@ -204,5 +204,28 @@ describe('applyHttp2Transport (shared)', () => {
       expect(mockCreate).not.toHaveBeenCalled();
       expect(config.transport).toBeUndefined();
     });
+  });
+});
+
+describe('applyBasicAuthHeader (URL-derived auth marking)', () => {
+  it('marks URL userinfo auth as host-bound and strips it from the URL', () => {
+    const config: any = { url: 'https://user:p%40ss@api.test/x', headers: {} };
+    expect(applyBasicAuthHeader(config)).toBe(true);
+    expect(config.headers.Authorization).toBe(`Basic ${Buffer.from('user:p@ss').toString('base64')}`);
+    expect(config.url).toBe('https://api.test/x'); // userinfo stripped
+    expect(config.__urlDerivedAuth).toBe(true);
+  });
+
+  it('does NOT mark explicit config.auth as URL-derived', () => {
+    const config: any = { url: 'https://api.test/x', auth: { username: 'u', password: 'p' }, headers: {} };
+    expect(applyBasicAuthHeader(config)).toBe(true);
+    expect(config.headers.Authorization).toBe(`Basic ${Buffer.from('u:p').toString('base64')}`);
+    expect(config.__urlDerivedAuth).toBe(false);
+  });
+
+  it('returns false and marks nothing when there are no credentials', () => {
+    const config: any = { url: 'https://api.test/x', headers: {} };
+    expect(applyBasicAuthHeader(config)).toBe(false);
+    expect(config.__urlDerivedAuth).toBeUndefined();
   });
 });

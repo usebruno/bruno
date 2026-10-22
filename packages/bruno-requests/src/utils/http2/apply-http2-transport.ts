@@ -17,6 +17,8 @@ export type Http2TransportConfig = {
   httpAgent?: unknown;
   lookup?: LookupFunction;
   transport?: unknown;
+  // Set when the Authorization header was derived from URL userinfo, so they aren't forwarded to a different host on redirects.
+  __urlDerivedAuth?: boolean;
 };
 
 export type ApplyHttp2TransportParams = {
@@ -46,6 +48,7 @@ export const applyBasicAuthHeader = (config: Http2TransportConfig): boolean => {
 
   let username: string | undefined;
   let password = '';
+  let urlDerived = false;
 
   if (config.auth && typeof config.auth === 'object') {
     username = config.auth.username || '';
@@ -61,6 +64,7 @@ export const applyBasicAuthHeader = (config: Http2TransportConfig): boolean => {
         url.username = '';
         url.password = '';
         config.url = url.toString();
+        urlDerived = true;
       }
     } catch {
       return false;
@@ -68,6 +72,9 @@ export const applyBasicAuthHeader = (config: Http2TransportConfig): boolean => {
   }
 
   if (username === undefined) return false;
+
+  // Track credentials from the URL so they aren't forwarded to a different host on redirects.
+  config.__urlDerivedAuth = urlDerived;
 
   const credentials = Buffer.from(`${username}:${password}`).toString('base64');
   const authorization = `Basic ${credentials}`;

@@ -496,6 +496,23 @@ function makeAxiosInstance({
                 message: `Cross-origin redirect: stripping Authorization and Proxy-Authorization headers`
               });
             }
+
+            // URL-derived credentials (from https://user:pass@host) are host-bound: never forward
+            // them across a cross-origin redirect, regardless of forwardAuthorizationHeader. This
+            // matches HTTP/1.1, where the redirect URL carries no userinfo so they never follow.
+            if (requestConfig.__urlDerivedAuth) {
+              Object.keys(requestConfig.headers).forEach((key) => {
+                if (key.toLowerCase() === 'authorization') {
+                  delete requestConfig.headers[key];
+                }
+              });
+              delete requestConfig.__urlDerivedAuth;
+              timeline.push({
+                timestamp: new Date(),
+                type: 'info',
+                message: `Cross-origin redirect: stripping URL-derived Authorization (host-bound credentials)`
+              });
+            }
           }
 
           // Apply proper HTTP redirect behavior based on status code
