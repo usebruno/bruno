@@ -195,6 +195,70 @@ describe('mock-spec-routes', () => {
     });
   });
 
+  describe('JSON media types', () => {
+    const oas3Response = (content) => buildMockResponsesFromSpec({
+      openapi: '3.0.0',
+      paths: { '/status': { get: { responses: { 200: { content } } } } }
+    }, { generateFromSchema: true })[0].response;
+
+    it('keeps a JSON variant media type such as application/problem+json', () => {
+      const response = oas3Response({ 'application/problem+json': { example: { title: 'Not found' } } });
+
+      expect(response.headers[0].value).toBe('application/problem+json');
+      expect(JSON.parse(response.body.content)).toEqual({ title: 'Not found' });
+    });
+
+    it('encodes a plain string example as a JSON string', () => {
+      const response = oas3Response({ 'application/json': { example: 'ready' } });
+
+      expect(response.headers[0].value).toBe('application/json');
+      expect(JSON.parse(response.body.content)).toBe('ready');
+    });
+
+    it('does not double-encode a string example that is already JSON text', () => {
+      const response = oas3Response({ 'application/json': { example: '{"id": 1}' } });
+
+      expect(JSON.parse(response.body.content)).toEqual({ id: 1 });
+    });
+
+    it('encodes a value generated from a string schema as a JSON string', () => {
+      const response = oas3Response({ 'application/json': { schema: { type: 'string', example: 'ok' } } });
+
+      expect(response.headers[0].value).toBe('application/json');
+      expect(JSON.parse(response.body.content)).toBe('ok');
+    });
+  });
+
+  describe('Swagger 2.0 produces for schema-only responses', () => {
+    const responses = buildMockResponsesFromSpec({
+      swagger: '2.0',
+      info: { title: 'Pets', version: '1.0.0' },
+      produces: ['application/xml'],
+      paths: {
+        '/pets': {
+          get: {
+            produces: ['application/vnd.api+json'],
+            responses: { 200: { description: 'OK', schema: { type: 'object', properties: { id: { type: 'integer', example: 1 } } } } }
+          },
+          post: {
+            responses: { 201: { description: 'Created', schema: { type: 'object', properties: { id: { type: 'integer', example: 2 } } } } }
+          }
+        }
+      }
+    }, { generateFromSchema: true });
+    const byMethod = (method) => responses.find((record) => record.request.method === method).response;
+
+    it('uses the operation produces over the spec-level produces', () => {
+      expect(byMethod('GET').headers[0].value).toBe('application/vnd.api+json');
+      expect(JSON.parse(byMethod('GET').body.content)).toEqual({ id: 1 });
+    });
+
+    it('serves JSON generated for an inherited XML produces as application/json', () => {
+      expect(byMethod('POST').headers[0].value).toBe('application/json');
+      expect(JSON.parse(byMethod('POST').body.content)).toEqual({ id: 2 });
+    });
+  });
+
   it('serves an OpenAPI 3 XML example with its declared content type', () => {
     const responses = buildMockResponsesFromSpec({
       openapi: '3.0.0',
