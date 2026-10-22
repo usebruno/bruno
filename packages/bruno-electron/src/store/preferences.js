@@ -51,7 +51,7 @@ const defaultPreferences = {
   },
   labelary: {
     endpoint: 'https://api.labelary.com',
-    consent: false
+    consentedEndpoint: ''
   },
   mockServer: {
     mode: 'isolated',
@@ -167,7 +167,7 @@ const preferencesSchema = Yup.object().shape({
   }),
   labelary: Yup.object({
     endpoint: Yup.string().max(2048),
-    consent: Yup.boolean()
+    consentedEndpoint: Yup.string().max(2048)
   }),
   mockServer: Yup.object({
     instances: Yup.array().of(Yup.object({

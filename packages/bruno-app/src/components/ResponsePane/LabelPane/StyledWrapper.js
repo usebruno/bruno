@@ -16,6 +16,7 @@ const StyledWrapper = styled.div`
 
   .label-image {
     max-width: 100%;
+    /* A label is printed on white stock, so its preview stays white in every theme */
     background: #fff;
     border: solid 1px ${(props) => props.theme.border.border2};
   }

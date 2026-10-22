@@ -20,16 +20,16 @@ const SIZE_OPTIONS = ['4x6', '4x4', '4x3', '4x2', '3x2', '2x1'];
 const ZplLabel = ({ zpl, fileBase }) => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
-  const consented = get(preferences, 'labelary.consent', false);
   const endpoint = get(preferences, 'labelary.endpoint', '');
+  const consented = endpoint !== '' && get(preferences, 'labelary.consentedEndpoint', '') === endpoint;
 
   const [dpmm, setDpmm] = useState(8);
   const [size, setSize] = useState('4x6');
   const [widthInches, heightInches] = size.split('x').map(Number);
-  const { status, image, error } = useZplLabelImage({ zpl, dpmm, widthInches, heightInches, enabled: consented });
+  const { status, image, error } = useZplLabelImage({ zpl, dpmm, widthInches, heightInches, endpoint, enabled: consented });
 
   const allowRendering = () => {
-    dispatch(savePreferences({ ...preferences, labelary: { ...preferences.labelary, consent: true } }));
+    dispatch(savePreferences({ ...preferences, labelary: { ...preferences.labelary, consentedEndpoint: endpoint } }));
   };
 
   return (
@@ -75,7 +75,7 @@ const LabelPane = ({ labels }) => {
       {labels.length > 1 ? (
         <div className="label-toolbar flex items-center gap-2 px-3 py-2 text-xs">
           <button disabled={index === 0} onClick={() => setIndex(index - 1)} data-testid="label-prev">‹</button>
-          <span>Label {index + 1} of {labels.length}</span>
+          <span data-testid="label-position">Label {index + 1} of {labels.length}</span>
           <button disabled={index >= labels.length - 1} onClick={() => setIndex(index + 1)} data-testid="label-next">›</button>
         </div>
       ) : null}
