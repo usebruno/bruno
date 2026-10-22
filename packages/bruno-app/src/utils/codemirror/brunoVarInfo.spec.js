@@ -57,6 +57,10 @@ jest.mock('utils/collections', () => ({
   findItemInCollectionByItemUid: jest.fn(),
   findParentItemInCollection: jest.fn(),
   getAvailableAddToScopes: jest.fn(() => []),
+  getLocalScriptCommands: jest.fn((collection) => {
+    const brunoConfig = collection?.draft?.brunoConfig ? collection.draft.brunoConfig : collection?.brunoConfig;
+    return brunoConfig?.localScripts?.commands || [];
+  }),
   isItemARequest: jest.fn((item) => !!item && item.type !== 'folder')
 }));
 
@@ -562,6 +566,54 @@ describe('renderVarInfo', () => {
 
       expect(readOnlyNote).not.toBeNull();
       expect(readOnlyNote.textContent).toBe('Generates random value on each request');
+    });
+  });
+
+  describe('local script variable rendering', () => {
+    const collection = {
+      uid: 'col1',
+      brunoConfig: {
+        localScripts: {
+          commands: [{ name: 'get-jwt', command: 'node ./get-jwt.js', timeout: 30000 }]
+        }
+      }
+    };
+
+    function setupLocalScriptRender(variableName) {
+      const result = renderVarInfo({ string: `{{${variableName}}}` }, { variables: {}, collection, item: null });
+      const containerDiv = result;
+      const scopeBadge = within(containerDiv).getByTestId('var-info-scope-badge');
+      const readOnlyNote = containerDiv.querySelector('.var-readonly-note');
+      const warningNote = containerDiv.querySelector('.var-warning-note');
+      const valueContainer = containerDiv.querySelector('.var-value-container');
+
+      return { containerDiv, scopeBadge, readOnlyNote, warningNote, valueContainer };
+    }
+
+    it('should show the Local Script badge and read-only note for a registered script', () => {
+      const { scopeBadge, readOnlyNote, valueContainer } = setupLocalScriptRender('$script:get-jwt');
+
+      expect(within(scopeBadge).getByTestId('var-info-scope-badge-label').textContent).toBe('Local Script');
+      expect(readOnlyNote).not.toBeNull();
+      expect(readOnlyNote.textContent).toBe('Runs the registered local command on this machine before each request');
+      // Value comes from command output at request time, so no value display or editor
+      expect(valueContainer).toBeNull();
+    });
+
+    it('should show a warning for an unregistered script name', () => {
+      const { scopeBadge, warningNote, readOnlyNote } = setupLocalScriptRender('$script:not-registered');
+
+      expect(within(scopeBadge).getByTestId('var-info-scope-badge-label').textContent).toBe('Local Script');
+      expect(warningNote).not.toBeNull();
+      expect(warningNote.textContent).toContain('Unknown local script "not-registered"');
+      expect(readOnlyNote).toBeNull();
+    });
+
+    it('should show a warning for a malformed script name', () => {
+      const { warningNote } = setupLocalScriptRender('$script:bad name');
+
+      expect(warningNote).not.toBeNull();
+      expect(warningNote.textContent).toContain('Unknown local script');
     });
   });
 

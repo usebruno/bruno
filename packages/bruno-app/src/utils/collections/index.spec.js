@@ -996,7 +996,12 @@ describe('getVariableNamesWithScope', () => {
     processEnvVariables: { API_KEY: 'secret-key' },
     oauth2Credentials: [
       { credentialsId: 'cred1', credentials: { access_token: 'token-value' } }
-    ]
+    ],
+    brunoConfig: {
+      localScripts: {
+        commands: [{ name: 'get-jwt', command: 'node ./get-jwt.js' }]
+      }
+    }
   });
 
   it('tags every variable across global/collection/environment/runtime with its scope', () => {
@@ -1034,6 +1039,12 @@ describe('getVariableNamesWithScope', () => {
 
     expect(dynamicEntries.length).toBeGreaterThan(0);
     expect(dynamicEntries.every((v) => v.name.startsWith('$'))).toBe(true);
+  });
+
+  it('includes registered local script variables tagged with scope=localScript', () => {
+    const all = getVariableNamesWithScope(buildCollection(), null);
+
+    expect(all).toContainEqual({ name: '$script:get-jwt', scope: 'localScript' });
   });
 
   it('excludes the internal bookkeeping keys getAllVariables() adds (pathParams, maskedEnvVariables, process)', () => {

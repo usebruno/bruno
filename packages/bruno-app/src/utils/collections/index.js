@@ -13,6 +13,7 @@ import {
   mockDataFunctions
 } from '@usebruno/common';
 import { VARIABLE_ADD_SCOPES, AUTOCOMPLETE_SCOPES } from 'utils/common/constants';
+import { localScriptNameRegex } from 'utils/common/regex';
 import {
   doesRequestMatchSearchText,
   doesFolderHaveItemsMatchSearchText,
@@ -2070,6 +2071,16 @@ export const isVariableSecret = (scopeInfo) => {
 };
 
 /**
+ * Returns the local scripts registered on a collection's brunoConfig.
+ * Unsaved Collection Settings edits live on `draft.brunoConfig`, so prefer
+ * the draft when present.
+ */
+export const getLocalScriptCommands = (collection) => {
+  const brunoConfig = collection?.draft?.brunoConfig ? collection.draft.brunoConfig : collection?.brunoConfig;
+  return get(brunoConfig, 'localScripts.commands', []);
+};
+
+/**
  * Returns variable names and their scopes for autocomplete, without exposing values.
  * includes `process.env.<KEY>` variables and dynamic functions like `$randomInt`.
  *
@@ -2113,6 +2124,12 @@ export const getVariableNamesWithScope = (collection, item) => {
 
   Object.keys(mockDataFunctions).forEach((key) => {
     scopeByName[`$${key}`] = AUTOCOMPLETE_SCOPES.DYNAMIC;
+  });
+
+  getLocalScriptCommands(collection).forEach((command) => {
+    if (command && typeof command.name === 'string' && localScriptNameRegex.test(command.name)) {
+      scopeByName[`$script:${command.name}`] = AUTOCOMPLETE_SCOPES.LOCAL_SCRIPT;
+    }
   });
 
   return Object.entries(scopeByName).map(([name, scope]) => ({ name, scope }));

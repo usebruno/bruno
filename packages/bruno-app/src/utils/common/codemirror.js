@@ -1,6 +1,7 @@
 import get from 'lodash/get';
 import { mockDataFunctions } from '@usebruno/common';
 import { PROMPT_VARIABLE_TEXT_PATTERN } from '@usebruno/common/utils';
+import { getLocalScriptName } from 'utils/common/regex';
 
 const CodeMirror = require('codemirror');
 
@@ -39,7 +40,11 @@ export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPa
 
               // Check if it's a mock variable (starts with $) and exists in mockDataFunctions
               const isMockVariable = word.startsWith('$') && mockDataFunctions.hasOwnProperty(word.substring(1));
-              const found = isMockVariable || pathFoundInVariables(word, variables);
+              // `$script:name` commands are user-defined in bruno.json, so the
+              // highlighter validates syntax only; registration is checked in
+              // the variable popover and at request time.
+              const isLocalScriptVariable = getLocalScriptName(word) !== null;
+              const found = isMockVariable || isLocalScriptVariable || pathFoundInVariables(word, variables);
               const status = found ? 'valid' : 'invalid';
               const randomClass = `random-${(Math.random() + 1).toString(36).substring(9)}`;
               return `variable-${status} ${randomClass}`;
