@@ -13,11 +13,9 @@
  * Reflection is registered via `@grpc/reflection` so Bruno's reflection-based
  * method discovery works without a client-side proto file.
  *
- * The service and its reflection are mounted again under each URL subpath in
- * SUBPATH_MOUNTS, which differ only in case. gRPC's HTTP/2 `:path` is
- * case-sensitive, so a client that lowercases the URL reaches the wrong mount
- * instead of the one the user asked for — each mount names itself in its reply
- * so the two are told apart (see tests/grpc/subpath).
+ * The service and its reflection are mounted again under each subpath in SUBPATH_MOUNTS,
+ * which differ only in case; each mount names itself in its reply so a client that
+ * lowercases the URL lands on the wrong one (see tests/grpc/subpath).
  *
  * Usage:
  *   node ./src/grpc/index.js                 # standalone
@@ -88,15 +86,12 @@ const createHandlers = (replySuffix = '') => ({
   }
 });
 
-// gRPC routes on the HTTP/2 `:path`, so a service is "hosted under a subpath" by
-// registering its methods at `<prefix>/<package.Service>/<Method>`.
 const prefixMethodPaths = (serviceDefinition, prefix) =>
   Object.fromEntries(
     Object.entries(serviceDefinition).map(([name, definition]) => [name, { ...definition, path: prefix + definition.path }])
   );
 
-// Stands in for a server to ReflectionService.addToServer, so reflection is
-// served under the subpath too.
+// Stands in for a server to ReflectionService.addToServer, so reflection lands under the prefix.
 const mountedAt = (server, prefix) => ({
   addService: (definition, implementation) => server.addService(prefixMethodPaths(definition, prefix), implementation)
 });

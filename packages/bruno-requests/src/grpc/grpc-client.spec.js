@@ -24,8 +24,7 @@ jest.mock('grpc-js-reflection-client', () => ({
   GrpcReflection: jest.fn().mockImplementation((host, credentials, options) => {
     capturedChannelOptions = options;
     capturedHost = host;
-    // Mirrors the library's internal grpc-js client, whose method paths get rewritten
-    // to reach a server hosted under a URL subpath.
+    // Mirrors the library's internal client, the one whose method paths get prefixed.
     class ReflectionServiceClient {
       close() {}
     }

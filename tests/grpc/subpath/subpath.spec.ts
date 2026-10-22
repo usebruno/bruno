@@ -5,11 +5,8 @@ import { openCollection, sendGrpcRequest } from '../../utils/page/actions';
 const COLLECTION_NAME = 'GrpcSubpath';
 const METHOD = 'HelloService/SayHello';
 
-/**
- * The testbench mounts hello.HelloService at the root and again under the URL subpaths
- * /Hello.Api and /hello.api, which differ only in case. Each mount names itself in its
- * reply, so the reply text says which one the request actually reached.
- */
+// The testbench mounts hello.HelloService at the root and under /Hello.Api and /hello.api,
+// which differ only in case; each reply names its mount, so the text says which one answered.
 test.describe('grpc requests under a URL subpath', () => {
   test('reaches the service mounted under the subpath', async ({ pageWithUserData: page }) => {
     const locators = buildGrpcCommonLocators(page);

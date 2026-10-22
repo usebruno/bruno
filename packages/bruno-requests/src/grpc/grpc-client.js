@@ -259,9 +259,8 @@ class GrpcClient {
   }
 
   /**
-   * Replace a GrpcReflection instance's internal gRPC client with one
-   * whose method paths are prefixed with the URL subpath.
-   * This allows reflection to work when the gRPC server is hosted behind a URL subpath.
+   * Reflection is routed like any other service, so a server hosted under a URL
+   * subpath serves it under that prefix too.
    */
   #applyPathPrefix(reflectionInstance, host, credentials, options, prefix) {
     const originalClient = reflectionInstance.client;
@@ -276,9 +275,8 @@ class GrpcClient {
       prefixedDef[name] = { ...def, path: prefix + def.path };
     }
 
-    const PrefixedClient = makeGenericClientConstructor(prefixedDef);
+    const PrefixedClient = makeGenericClientConstructor(prefixedDef, originalClient.constructor.serviceName);
     const prefixedClient = new PrefixedClient(host, credentials, options);
-    // Close the original client's channel to prevent leaks
     if (typeof originalClient.close === 'function') {
       originalClient.close();
     }
