@@ -703,6 +703,7 @@ export const switchWorkspace = (workspaceUid) => {
       if (scratchCollection?.uid) {
         dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
         dispatch(addTab({ uid: `${scratchCollection.uid}-environments`, collectionUid: scratchCollection.uid, type: 'workspaceEnvironments' }));
+        dispatch(addTab({ uid: `${scratchCollection.uid}-local-scripts`, collectionUid: scratchCollection.uid, type: 'workspaceLocalScripts' }));
 
         const workspaceApiSpecPathsByKey = new Map(
           (getState().workspaces.workspaces.find((w) => w.uid === workspaceUid)?.apiSpecs || [])

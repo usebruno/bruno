@@ -46,6 +46,7 @@ import toast from 'react-hot-toast';
 import { useDispatch, useStore } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
+import { localScriptsLoadedEvent } from 'providers/ReduxStore/slices/local-scripts';
 import { collectionAddOauth2CredentialsByUrl, collectionClearOauth2CredentialsByCredentialsId, updateCollectionLoadingState, collectionLoadedFromTree } from 'providers/ReduxStore/slices/collections/index';
 import { migrationProgressEvent } from 'providers/ReduxStore/slices/collection-migration';
 import { addLog } from 'providers/ReduxStore/slices/logs';
@@ -348,6 +349,10 @@ const useIpcEvents = () => {
       dispatch(updateGlobalEnvironments(val));
     });
 
+    const removeLocalScriptsListener = ipcRenderer.on('main:load-local-scripts', (val) => {
+      dispatch(localScriptsLoadedEvent(val));
+    });
+
     const removeSnapshotHydrationListener = ipcRenderer.on('main:hydrate-app-with-ui-state-snapshot', (val) => {
       dispatch(hydrateCollectionWithUiStateSnapshot(val));
     });
@@ -454,6 +459,7 @@ const useIpcEvents = () => {
       removePreferencesUpdatesListener();
       removeCookieUpdateListener();
       removeGlobalEnvironmentsUpdatesListener();
+      removeLocalScriptsListener();
       removeSnapshotHydrationListener();
       removeCollectionOauth2CredentialsUpdatesListener();
       removeCollectionOauth2CredentialsClearListener();

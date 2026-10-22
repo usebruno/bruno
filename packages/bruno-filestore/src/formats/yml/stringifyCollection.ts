@@ -291,7 +291,8 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
       (oc.extensions.bruno as any).openapi = openApiEntries;
     }
 
-    // host-executed commands referenced via `{{$script:name}}` in env vars
+    // host-executed commands referenced via `{{$script:name}}`; the global
+    // registry lives outside the collection, this is the legacy block
     const localScriptCommands = Array.isArray(brunoConfig.localScripts?.commands)
       ? brunoConfig.localScripts.commands.filter(
           (entry: any) => entry && typeof entry.name === 'string' && typeof entry.command === 'string'

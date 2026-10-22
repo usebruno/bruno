@@ -42,6 +42,7 @@ import WorkspaceOverview from 'components/WorkspaceHome/WorkspaceOverview';
 import Preferences from 'components/Preferences';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
+import WorkspaceLocalScripts from 'components/WorkspaceHome/WorkspaceLocalScripts';
 import OpenAPISyncTab from 'components/OpenAPISyncTab';
 import OpenAPISpecTab from 'components/OpenAPISpecTab';
 import ApiSpecTab from 'components/ApiSpecTab';
@@ -444,6 +445,10 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'workspaceEnvironments') {
     return <GlobalEnvironmentSettings />;
+  }
+
+  if (focusedTab.type === 'workspaceLocalScripts') {
+    return <WorkspaceLocalScripts />;
   }
 
   if (focusedTab.type === 'mock-server') {

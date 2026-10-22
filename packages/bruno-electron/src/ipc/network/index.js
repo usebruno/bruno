@@ -1,7 +1,13 @@
 const https = require('https');
 const axios = require('axios');
 const path = require('path');
-const { applyOAuth1ToRequest, collectLocalScriptRefs, resolveLocalScriptEnvVars } = require('@usebruno/requests');
+const {
+  applyOAuth1ToRequest,
+  collectLocalScriptRefs,
+  resolveLocalScriptEnvVars,
+  mergeLocalScriptsConfigs,
+  loadGlobalLocalScriptsConfig
+} = require('@usebruno/requests');
 const { buildScriptedEntry } = require('@usebruno/requests').scripting;
 const qs = require('qs');
 const decomment = require('decomment');
@@ -936,11 +942,12 @@ const registerNetworkIpc = (mainWindow) => {
 
       // Resolve `{{$script:name}}` references in environment variables and
       // directly inside the request (url, headers, body, auth, …) by running
-      // the commands registered in brunoConfig.localScripts. The outputs are
-      // also injected under their `$script:name` keys so the regular
-      // interpolation pass resolves direct references. Mutating envVars in
-      // place (like bru.setEnvVar does) shares the resolved values with nested
-      // bru.runRequest() calls.
+      // the globally registered local commands (plus, for backward
+      // compatibility, commands registered in brunoConfig.localScripts). The
+      // outputs are also injected under their `$script:name` keys so the
+      // regular interpolation pass resolves direct references. Mutating
+      // envVars in place (like bru.setEnvVar does) shares the resolved values
+      // with nested bru.runRequest() calls.
       const localScriptRefs = [...new Set([...collectLocalScriptRefs(envVars), ...collectLocalScriptRefs(request)])];
       if (localScriptRefs.length > 0) {
         if (!preferencesUtil.isLocalScriptsEnabled()) {
@@ -949,9 +956,13 @@ const registerNetworkIpc = (mainWindow) => {
             + 'Enable "Allow Local Scripts" in Preferences, or run the CLI with --allow-local-scripts.'
           );
         }
+        const localScriptsConfig = mergeLocalScriptsConfigs(
+          loadGlobalLocalScriptsConfig(),
+          get(brunoConfig, 'localScripts', null)
+        );
         const { envVars: resolvedEnvVars, scriptVariables } = await resolveLocalScriptEnvVars(
           envVars,
-          get(brunoConfig, 'localScripts', null),
+          localScriptsConfig,
           {
             cwd: collectionPath,
             env: processEnvVars,

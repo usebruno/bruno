@@ -2,8 +2,10 @@ import { spawn, ChildProcessWithoutNullStreams } from 'node:child_process';
 import process from 'node:process';
 
 /**
- * Local scripts let a collection register shell commands in bruno.json and
- * reference their output from environment variables via `{{$script:name}}`.
+ * Local scripts register shell commands and reference their output through
+ * environment variables via `{{$script:name}}`. Commands are normally
+ * registered globally (see local-scripts-store.ts); a collection's bruno.json
+ * `localScripts` block is still honored for backward compatibility.
  *
  * Commands run on the host machine (never inside the request sandbox), so the
  * host is responsible for gating execution behind an explicit opt-in.
@@ -66,7 +68,7 @@ const isPlainRecord = (value: unknown): value is Record<string, unknown> => {
 };
 
 /**
- * Validate and de-duplicate the `localScripts.commands` list from bruno.json.
+ * Validate and de-duplicate a `localScripts.commands` list.
  * Later entries with the same name win, mirroring object-key semantics.
  */
 export const normalizeLocalScripts = (config: unknown): LocalScript[] => {
@@ -98,6 +100,21 @@ export const normalizeLocalScripts = (config: unknown): LocalScript[] => {
   return [...byName.values()];
 };
 
+/**
+ * Merge script registries (global registry plus, for backward compatibility,
+ * a collection's brunoConfig.localScripts). Entries later in the argument list
+ * win on duplicate names, so collection-level commands override global ones.
+ */
+export const mergeLocalScriptsConfigs = (...configs: unknown[]): { commands: LocalScript[] } => {
+  const byName = new Map<string, LocalScript>();
+  for (const config of configs) {
+    for (const script of normalizeLocalScripts(config)) {
+      byName.set(script.name, script);
+    }
+  }
+  return { commands: [...byName.values()] };
+};
+
 const killProcessTree = (child: ChildProcessWithoutNullStreams, onWindows: boolean) => {
   const pid = child.pid;
   if (!pid || child.killed || child.exitCode !== null || child.signalCode !== null) {
@@ -118,10 +135,11 @@ const killProcessTree = (child: ChildProcessWithoutNullStreams, onWindows: boole
 };
 
 /**
- * Run one registered command through the system shell with the collection
- * directory as cwd. Resolves with trimmed stdout, rejects on non-zero exit,
- * timeout or abort — the trailing newline strip mirrors shell command
- * substitution (`$(...)`).
+ * Run one registered command through the system shell in the given working
+ * directory (the collection directory for request execution, the home
+ * directory for manual test runs). Resolves with trimmed stdout, rejects on
+ * non-zero exit, timeout or abort — the trailing newline strip mirrors shell
+ * command substitution (`$(...)`).
  */
 export const executeLocalScript = (script: LocalScript, context: LocalScriptExecutionContext): Promise<LocalScriptResult> => {
   const timeout = typeof script.timeout === 'number' && script.timeout > 0 ? script.timeout : DEFAULT_TIMEOUT_MS;
@@ -347,7 +365,8 @@ export const resolveLocalScriptEnvVars = async (
   const unknown = referencedNames.filter((name) => !byName.has(name));
   if (unknown.length > 0) {
     throw new LocalScriptError(
-      `Variables reference local scripts that are not registered in bruno.json: ${unknown.join(', ')}`,
+      `Variables reference local scripts that are not registered: ${unknown.join(', ')}. `
+      + 'Register them in Local Scripts (or in the collection\'s bruno.json).',
       { name: unknown[0] }
     );
   }

@@ -110,7 +110,11 @@ const builder = async (yargs) => {
     .option('allow-local-scripts', {
       type: 'boolean',
       default: false,
-      description: 'Allow {{$script:name}} environment variables to execute commands registered in bruno.json on the host machine'
+      description: 'Allow {{$script:name}} variables to execute registered commands on the host machine'
+    })
+    .option('local-scripts', {
+      describe: 'Path to the local scripts registry JSON file (defaults to ~/.bruno/local-scripts.json)',
+      type: 'string'
     })
     .option('env', {
       describe: 'Environment variables',
@@ -333,6 +337,7 @@ const handler = async function (argv) {
       noproxy,
       cacheSslSession,
       allowLocalScripts,
+      localScripts: localScriptsPath,
       delay,
       tags: includeTags,
       excludeTags,
@@ -618,6 +623,14 @@ const handler = async function (argv) {
     }
     if (allowLocalScripts) {
       options['allowLocalScripts'] = true;
+    }
+    if (localScriptsPath) {
+      if (await exists(localScriptsPath)) {
+        options['localScriptsPath'] = localScriptsPath;
+      } else {
+        console.error(chalk.red('Local scripts file not found: ') + chalk.dim(localScriptsPath));
+        process.exit(1);
+      }
     }
     if (verbose) {
       options['verbose'] = true;

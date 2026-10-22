@@ -2071,13 +2071,32 @@ export const isVariableSecret = (scopeInfo) => {
 };
 
 /**
- * Returns the local scripts registered on a collection's brunoConfig.
- * Unsaved Collection Settings edits live on `draft.brunoConfig`, so prefer
- * the draft when present.
+ * Local scripts are registered globally (Local Scripts page) and work in
+ * every collection. The codemirror layer is not React-aware, so the global
+ * registry is mirrored here from the local-scripts Redux slice instead of
+ * being threaded through every editor call site.
+ */
+let globalLocalScriptCommands = [];
+
+export const setGlobalLocalScriptCommands = (commands) => {
+  globalLocalScriptCommands = Array.isArray(commands) ? commands : [];
+};
+
+/**
+ * Returns the globally registered local script commands, followed by any
+ * commands registered on this collection's brunoConfig. The legacy
+ * collection-level registry stays honored read-only for backward
+ * compatibility; collection entries override global entries with same name.
  */
 export const getLocalScriptCommands = (collection) => {
   const brunoConfig = collection?.draft?.brunoConfig ? collection.draft.brunoConfig : collection?.brunoConfig;
-  return get(brunoConfig, 'localScripts.commands', []);
+  const collectionCommands = Array.isArray(get(brunoConfig, 'localScripts.commands', []))
+    ? get(brunoConfig, 'localScripts.commands', [])
+    : [];
+  // Collection-level (legacy) entries override same-named global ones.
+  const collectionNames = new Set(collectionCommands.map((command) => command?.name));
+  const globalCommands = globalLocalScriptCommands.filter((command) => !collectionNames.has(command?.name));
+  return [...globalCommands, ...collectionCommands];
 };
 
 /**

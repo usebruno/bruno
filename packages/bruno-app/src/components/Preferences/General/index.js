@@ -284,7 +284,7 @@ const General = () => {
 
         <SettingsGroup
           title="Local Scripts"
-          description="Allow environment variables to run commands registered in the collection's bruno.json via {{$script:name}}. Commands execute on your machine with your shell — enable only for collections you trust."
+          description="Allow {{$script:name}} variables to run commands registered on the Local Scripts tab. Commands execute on your machine with your shell — enable only for commands you trust."
         >
           <CheckboxSetting
             id="localScriptsEnabled"

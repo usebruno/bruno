@@ -24,15 +24,23 @@ export {
   LOCAL_SCRIPT_VAR_PATTERN,
   LocalScriptError,
   normalizeLocalScripts,
+  mergeLocalScriptsConfigs,
   executeLocalScript,
   collectLocalScriptRefs,
   resolveLocalScriptEnvVars
 } from './utils/local-scripts';
+export {
+  getGlobalLocalScriptsFilePath,
+  loadGlobalLocalScriptsConfig,
+  saveGlobalLocalScriptsConfig,
+  GLOBAL_LOCAL_SCRIPTS_FILE_ENV
+} from './utils/local-scripts-store';
 export type {
   LocalScript,
   LocalScriptResult,
   LocalScriptExecutionContext
 } from './utils/local-scripts';
+export type { GlobalLocalScriptsConfig, GlobalLocalScriptsFileOptions } from './utils/local-scripts-store';
 
 export * as scripting from './scripting';
 

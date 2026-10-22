@@ -2556,22 +2556,6 @@ export const collectionsSlice = createSlice({
         set(collection, 'draft.brunoConfig.clientCertificates', action.payload.clientCertificates);
       }
     },
-    updateCollectionLocalScripts: (state, action) => {
-      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
-
-      if (collection) {
-        if (!collection.draft) {
-          collection.draft = {
-            root: cloneDeep(collection.root),
-            brunoConfig: cloneDeep(collection.brunoConfig)
-          };
-        }
-        if (!collection.draft.brunoConfig) {
-          collection.draft.brunoConfig = cloneDeep(collection.brunoConfig);
-        }
-        set(collection, 'draft.brunoConfig.localScripts', action.payload.localScripts);
-      }
-    },
     updateCollectionPresets: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -4447,7 +4431,6 @@ export const {
   updateCollectionDocs,
   updateCollectionProxy,
   updateCollectionClientCertificates,
-  updateCollectionLocalScripts,
   updateCollectionPresets,
   updateCollectionProtobuf,
   collectionAddFileEvent,

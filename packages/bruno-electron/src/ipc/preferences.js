@@ -8,7 +8,7 @@ const { resolveDefaultLocation } = require('../utils/default-location');
 const onboardUser = require('../app/onboarding');
 const LastOpenedCollections = require('../store/last-opened-collections');
 const WindowStateStore = require('../store/window-state');
-const { clearAgentCache, clearPacCache } = require('@usebruno/requests');
+const { clearAgentCache, clearPacCache, loadGlobalLocalScriptsConfig } = require('@usebruno/requests');
 
 const registerPreferencesIpc = (mainWindow) => {
   const lastOpenedCollections = new LastOpenedCollections();
@@ -39,6 +39,16 @@ const registerPreferencesIpc = (mainWindow) => {
     } catch (error) {
       console.error('Error occured while fetching global environements!');
       console.error(error);
+    }
+
+    try {
+      // load global local scripts registry (~/.bruno/local-scripts.json)
+      const localScripts = loadGlobalLocalScriptsConfig();
+      mainWindow.webContents.send('main:load-local-scripts', localScripts);
+    } catch (error) {
+      console.error('Error occured while fetching global local scripts!');
+      console.error(error);
+      mainWindow.webContents.send('main:load-local-scripts', { commands: [], error: error.message });
     }
 
     const gitVersion = await getGitVersion();

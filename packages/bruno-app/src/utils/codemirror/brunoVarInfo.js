@@ -255,7 +255,7 @@ export const renderVarInfo = (token, options) => {
     };
   } else if (variableName.startsWith('$script:')) {
     // Local script reference (`{{$script:name}}`) — a host command registered
-    // in the collection's bruno.json whose stdout becomes the variable value.
+    // globally in Local Scripts whose stdout becomes the variable value.
     const scriptName = getLocalScriptName(variableName);
     const registeredNames = new Set(
       getLocalScriptCommands(collection)
@@ -448,7 +448,7 @@ export const renderVarInfo = (token, options) => {
     const warningNote = document.createElement('div');
     warningNote.className = 'var-warning-note';
     warningNote.setAttribute('data-testid', 'var-info-warning-note');
-    warningNote.textContent = `Unknown local script "${scopeInfo.scriptName}". Register it in Collection Settings → Local Scripts.`;
+    warningNote.textContent = `Unknown local script "${scopeInfo.scriptName}". Register it on the Local Scripts tab.`;
     into.appendChild(warningNote);
     return into;
   }

@@ -21,7 +21,16 @@ const { createFormData } = require('../utils/form-data');
 const axios = require('axios');
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
-const { getCACertificates, transformProxyConfig, applySentHeadersToRequest, measureResponseTime, collectLocalScriptRefs, resolveLocalScriptEnvVars } = require('@usebruno/requests');
+const {
+  getCACertificates,
+  transformProxyConfig,
+  applySentHeadersToRequest,
+  measureResponseTime,
+  collectLocalScriptRefs,
+  resolveLocalScriptEnvVars,
+  mergeLocalScriptsConfigs,
+  loadGlobalLocalScriptsConfig
+} = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, getMediaType, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
@@ -231,10 +240,12 @@ const runSingleRequest = async function (
 
     // Resolve `{{$script:name}}` references in environment variables and
     // directly inside the request (url, headers, body, auth, …) using
-    // host-executed commands registered in brunoConfig.localScripts. Outputs
-    // are also injected under their `$script:name` keys so direct references
-    // resolve during interpolation. Requires the explicit
-    // --allow-local-scripts opt-in.
+    // host-executed commands from the global local scripts registry
+    // (~/.bruno/local-scripts.json, overridable with --local-scripts) plus,
+    // for backward compatibility, brunoConfig.localScripts. Outputs are also
+    // injected under their `$script:name` keys so direct references resolve
+    // during interpolation. Requires the explicit --allow-local-scripts
+    // opt-in.
     const localScriptRefs = [
       ...new Set([...collectLocalScriptRefs(envVariables), ...collectLocalScriptRefs(request)])
     ];
@@ -245,9 +256,13 @@ const runSingleRequest = async function (
           + 'Re-run with --allow-local-scripts.'
         );
       }
+      const localScriptsConfig = mergeLocalScriptsConfigs(
+        loadGlobalLocalScriptsConfig(get(options, 'localScriptsPath') ? { filePath: options.localScriptsPath } : {}),
+        get(brunoConfig, 'localScripts', null)
+      );
       const { envVars: resolvedEnvVariables, scriptVariables } = await resolveLocalScriptEnvVars(
         envVariables,
-        get(brunoConfig, 'localScripts', null),
+        localScriptsConfig,
         {
           cwd: collectionPath,
           env: processEnvVars,

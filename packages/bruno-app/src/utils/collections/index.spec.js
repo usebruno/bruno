@@ -18,6 +18,8 @@ import {
   getCollectionVersion,
   isCollectionItemCollapsed,
   getVariableNamesWithScope,
+  getLocalScriptCommands,
+  setGlobalLocalScriptCommands,
   getWorkspaceCollections,
   getTreePathFromCollectionToItem
 } from './index';
@@ -1045,6 +1047,53 @@ describe('getVariableNamesWithScope', () => {
     const all = getVariableNamesWithScope(buildCollection(), null);
 
     expect(all).toContainEqual({ name: '$script:get-jwt', scope: 'localScript' });
+  });
+
+  describe('global local script commands', () => {
+    afterEach(() => {
+      setGlobalLocalScriptCommands([]);
+    });
+
+    it('includes globally registered commands for every collection', () => {
+      setGlobalLocalScriptCommands([{ name: 'global-token', command: 'echo global' }]);
+      const collectionWithoutOwnScripts = { uid: 'plain', brunoConfig: {} };
+
+      expect(getLocalScriptCommands(collectionWithoutOwnScripts)).toEqual([
+        { name: 'global-token', command: 'echo global' }
+      ]);
+      const all = getVariableNamesWithScope(collectionWithoutOwnScripts, null);
+      expect(all).toContainEqual({ name: '$script:global-token', scope: 'localScript' });
+    });
+
+    it('keeps collection-level commands working, with collection entries overriding global ones', () => {
+      setGlobalLocalScriptCommands([
+        { name: 'global-only', command: 'echo g' },
+        { name: 'shared', command: 'echo global' }
+      ]);
+      const collectionWithOverride = {
+        uid: 'override',
+        brunoConfig: {
+          localScripts: {
+            commands: [
+              { name: 'shared', command: 'echo collection' },
+              { name: 'collection-only', command: 'echo c' }
+            ]
+          }
+        }
+      };
+      const commands = getLocalScriptCommands(collectionWithOverride);
+
+      expect(commands.map((command) => command.name)).toEqual([
+        'global-only',
+        'shared',
+        'collection-only'
+      ]);
+      expect(commands.find((command) => command.name === 'shared').command).toBe('echo collection');
+
+      // The legacy collection-level registry keeps working on its own too.
+      setGlobalLocalScriptCommands([]);
+      expect(getLocalScriptCommands(buildCollection())).toEqual([{ name: 'get-jwt', command: 'node ./get-jwt.js' }]);
+    });
   });
 
   it('excludes the internal bookkeeping keys getAllVariables() adds (pathParams, maskedEnvVariables, process)', () => {
