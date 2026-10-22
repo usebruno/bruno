@@ -29,6 +29,7 @@ const General = () => {
     }),
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
+    localScriptsEnabled: Yup.boolean(),
     timeout: Yup.mixed()
       .transform((value, originalValue) => {
         return originalValue === '' ? undefined : value;
@@ -75,6 +76,7 @@ const General = () => {
       timeout: preferences.request.timeout,
       storeCookies: get(preferences, 'request.storeCookies', true),
       sendCookies: get(preferences, 'request.sendCookies', true),
+      localScriptsEnabled: get(preferences, 'request.localScriptsEnabled', false),
       autoSave: {
         enabled: get(preferences, 'autoSave.enabled', false),
         interval: get(preferences, 'autoSave.interval', 1000)
@@ -112,6 +114,7 @@ const General = () => {
           timeout: newPreferences.timeout,
           storeCookies: newPreferences.storeCookies,
           sendCookies: newPreferences.sendCookies,
+          localScriptsEnabled: newPreferences.localScriptsEnabled,
           oauth2: {
             useSystemBrowser: newPreferences.oauth2.useSystemBrowser
           }
@@ -275,6 +278,19 @@ const General = () => {
             name="oauth2.useSystemBrowser"
             label="Use System Browser for OAuth2 Authorization"
             checked={formik.values.oauth2.useSystemBrowser}
+            onChange={formik.handleChange}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup
+          title="Local Scripts"
+          description="Allow environment variables to run commands registered in the collection's bruno.json via {{$script:name}}. Commands execute on your machine with your shell — enable only for collections you trust."
+        >
+          <CheckboxSetting
+            id="localScriptsEnabled"
+            name="localScriptsEnabled"
+            label="Allow Local Scripts"
+            checked={formik.values.localScriptsEnabled}
             onChange={formik.handleChange}
           />
         </SettingsGroup>

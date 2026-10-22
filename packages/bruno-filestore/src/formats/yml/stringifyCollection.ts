@@ -291,6 +291,27 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
       (oc.extensions.bruno as any).openapi = openApiEntries;
     }
 
+    // host-executed commands referenced via `{{$script:name}}` in env vars
+    const localScriptCommands = Array.isArray(brunoConfig.localScripts?.commands)
+      ? brunoConfig.localScripts.commands.filter(
+          (entry: any) => entry && typeof entry.name === 'string' && typeof entry.command === 'string'
+        )
+      : [];
+    if (localScriptCommands.length > 0) {
+      if (!oc.extensions.bruno) {
+        oc.extensions.bruno = {};
+      }
+      (oc.extensions.bruno as any).localScripts = {
+        commands: localScriptCommands.map((entry: any) => {
+          const command: any = { name: entry.name, command: entry.command };
+          if (typeof entry.timeout === 'number' && entry.timeout > 0) {
+            command.timeout = entry.timeout;
+          }
+          return command;
+        })
+      };
+    }
+
     return stringifyYml(oc);
   } catch (error) {
     console.error('Error stringifying opencollection.yml:', error);

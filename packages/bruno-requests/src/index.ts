@@ -20,6 +20,19 @@ export { initializeShellEnv, fetchShellEnv } from './utils/shell-env';
 export { getOrCreateHttpsAgent, getOrCreateHttpAgent, clearAgentCache, getAgentCacheSize } from './utils/agent-cache';
 export { getPacResolver, clearPacCache } from './utils/pac-resolver';
 export type { PacWrapper, GetPacResolverParams } from './utils/pac-resolver';
+export {
+  LOCAL_SCRIPT_VAR_PATTERN,
+  LocalScriptError,
+  normalizeLocalScripts,
+  executeLocalScript,
+  collectLocalScriptRefs,
+  resolveLocalScriptEnvVars
+} from './utils/local-scripts';
+export type {
+  LocalScript,
+  LocalScriptResult,
+  LocalScriptExecutionContext
+} from './utils/local-scripts';
 
 export * as scripting from './scripting';
 

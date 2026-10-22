@@ -21,7 +21,7 @@ const { createFormData } = require('../utils/form-data');
 const axios = require('axios');
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
-const { getCACertificates, transformProxyConfig, applySentHeadersToRequest, measureResponseTime } = require('@usebruno/requests');
+const { getCACertificates, transformProxyConfig, applySentHeadersToRequest, measureResponseTime, collectLocalScriptRefs, resolveLocalScriptEnvVars } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, getMediaType, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
@@ -228,6 +228,29 @@ const runSingleRequest = async function (
     const options = getOptions();
     scriptingConfig.cacheModules = get(options, 'cacheModules', false) === true;
     const systemProxyConfig = options['cachedSystemProxy'];
+
+    // Resolve `{{$script:name}}` references in environment variables using
+    // host-executed commands registered in brunoConfig.localScripts. Requires
+    // the explicit --allow-local-scripts opt-in.
+    if (collectLocalScriptRefs(envVariables).length > 0) {
+      if (get(options, 'allowLocalScripts', false) !== true) {
+        throw new Error(
+          'Environment variables reference local scripts ({{$script:name}}), but local script execution is disabled. '
+            + 'Re-run with --allow-local-scripts.'
+        );
+      }
+      const { envVars: resolvedEnvVariables } = await resolveLocalScriptEnvVars(
+        envVariables,
+        get(brunoConfig, 'localScripts', null),
+        {
+          cwd: collectionPath,
+          env: processEnvVars,
+          signal: runAbortSignal
+        }
+      );
+      Object.assign(envVariables, resolvedEnvVariables);
+    }
+
     const sendRequestInterpolationOptions = {
       envVars: envVariables,
       runtimeVariables,

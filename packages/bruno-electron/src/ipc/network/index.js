@@ -1,7 +1,7 @@
 const https = require('https');
 const axios = require('axios');
 const path = require('path');
-const { applyOAuth1ToRequest } = require('@usebruno/requests');
+const { applyOAuth1ToRequest, collectLocalScriptRefs, resolveLocalScriptEnvVars } = require('@usebruno/requests');
 const { buildScriptedEntry } = require('@usebruno/requests').scripting;
 const qs = require('qs');
 const decomment = require('decomment');
@@ -933,6 +933,29 @@ const registerNetworkIpc = (mainWindow) => {
     try {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
+
+      // Resolve `{{$script:name}}` references in environment variables by
+      // running the commands registered in brunoConfig.localScripts. Mutating
+      // envVars in place (like bru.setEnvVar does) also shares the resolved
+      // values with nested bru.runRequest() calls.
+      if (collectLocalScriptRefs(envVars).length > 0) {
+        if (!preferencesUtil.isLocalScriptsEnabled()) {
+          throw new Error(
+            'Environment variables reference local scripts ({{$script:name}}), but local script execution is disabled. '
+              + 'Enable "Allow Local Scripts" in Preferences, or run the CLI with --allow-local-scripts.'
+          );
+        }
+        const { envVars: resolvedEnvVars } = await resolveLocalScriptEnvVars(
+          envVars,
+          get(brunoConfig, 'localScripts', null),
+          {
+            cwd: collectionPath,
+            env: processEnvVars,
+            signal: abortController.signal
+          }
+        );
+        Object.assign(envVars, resolvedEnvVars);
+      }
 
       // Build certsAndProxyConfig for bru.sendRequest
       const certsAndProxyConfig = await buildCertsAndProxyConfig({

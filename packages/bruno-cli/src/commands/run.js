@@ -107,6 +107,11 @@ const builder = async (yargs) => {
       default: false,
       description: 'Automatically save and sent cookies with requests'
     })
+    .option('allow-local-scripts', {
+      type: 'boolean',
+      default: false,
+      description: 'Allow {{$script:name}} environment variables to execute commands registered in bruno.json on the host machine'
+    })
     .option('env', {
       describe: 'Environment variables',
       type: 'string'
@@ -327,6 +332,7 @@ const handler = async function (argv) {
       clientCertConfig,
       noproxy,
       cacheSslSession,
+      allowLocalScripts,
       delay,
       tags: includeTags,
       excludeTags,
@@ -609,6 +615,9 @@ const handler = async function (argv) {
     }
     if (cacheSslSession) {
       options['cacheSslSession'] = true;
+    }
+    if (allowLocalScripts) {
+      options['allowLocalScripts'] = true;
     }
     if (verbose) {
       options['verbose'] = true;
