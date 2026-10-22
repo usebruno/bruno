@@ -313,6 +313,18 @@ const ResponsePane = ({ item, collection }) => {
     </div>
   ) : null;
 
+  const renderTabPanel = () => {
+    if (showLabelPane && focusedTab.responsePaneTab === 'response') {
+      return (
+        <div className="flex h-full">
+          <div className="flex-1 min-w-0 h-full">{getTabPanel('response')}</div>
+          <LabelPane labels={labels} />
+        </div>
+      );
+    }
+    return getTabPanel(focusedTab.responsePaneTab);
+  };
+
   return (
     <StyledWrapper className="flex flex-col h-full relative">
       <div className="px-4">
@@ -342,14 +354,7 @@ const ResponsePane = ({ item, collection }) => {
               />
             ) : null
           ) : (
-            showLabelPane && focusedTab.responsePaneTab === 'response' ? (
-              <div className="flex h-full">
-                <div className="flex-1 min-w-0 h-full">{getTabPanel('response')}</div>
-                <LabelPane labels={labels} />
-              </div>
-            ) : (
-              <>{getTabPanel(focusedTab.responsePaneTab)}</>
-            )
+            <>{renderTabPanel()}</>
           )}
         </div>
       </section>

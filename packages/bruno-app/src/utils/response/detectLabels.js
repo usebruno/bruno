@@ -5,23 +5,30 @@ const MAX_SCAN_DEPTH = 6;
 const MAX_STRING_LENGTH = 4 * 1024 * 1024;
 const MIN_BASE64_LENGTH = 16;
 
-const ZPL_LABEL_REGEX = /\^XA[\s\S]*?\^XZ/gi;
-const BASE64_REGEX = /^[A-Za-z0-9+/\r\n]+={0,2}$/;
+const ZPL_START_REGEX = /\^XA/gi;
+const ZPL_END_REGEX = /\^XZ/gi;
+const BASE64_REGEX = /^[A-Za-z0-9+/\s]+={0,2}$/;
 
 const CDATA_REGEX = /<!\[CDATA\[([\s\S]*?)\]\]>/g;
 const ELEMENT_TEXT_REGEX = />([^<]+)</g;
 const NUMERIC_ENTITY_REGEX = /&#(?:x[0-9a-f]+|\d+);/gi;
+const NAMED_ENTITIES = { '&lt;': '<', '&gt;': '>', '&quot;': '"', '&apos;': '\'', '&amp;': '&' };
+const NAMED_ENTITY_REGEX = /&(?:lt|gt|quot|apos|amp);/g;
 
-const decodeBase64 = (str) => {
-  try {
-    return Buffer.from(str, 'base64').toString('latin1');
-  } catch (err) {
-    return '';
-  }
-};
-
+// Finds each ^XA..^XZ block in a single pass; an unterminated ^XA ends the scan instead of rescanning to the end per start
 const extractZplLabels = (text) => {
-  return (text.match(ZPL_LABEL_REGEX) || []).map((content) => ({ kind: 'zpl', content }));
+  const labels = [];
+  ZPL_START_REGEX.lastIndex = 0;
+
+  let start;
+  while ((start = ZPL_START_REGEX.exec(text))) {
+    ZPL_END_REGEX.lastIndex = start.index + 3;
+    if (!ZPL_END_REGEX.exec(text)) break;
+    labels.push({ kind: 'zpl', content: text.slice(start.index, ZPL_END_REGEX.lastIndex) });
+    ZPL_START_REGEX.lastIndex = ZPL_END_REGEX.lastIndex;
+  }
+
+  return labels;
 };
 
 const detectInString = (str) => {
@@ -42,14 +49,14 @@ const detectInString = (str) => {
     return [{ kind: 'pdf', content: str }];
   }
 
-  return extractZplLabels(decodeBase64(str));
+  return extractZplLabels(Buffer.from(str, 'base64').toString('utf8'));
 };
 
 // Text content of each XML element, so a base64 label is checked on its own instead of as part of the whole document
 const extractElementTexts = (markup) => {
   const unwrapped = markup.replace(CDATA_REGEX, '$1');
   return [...unwrapped.matchAll(ELEMENT_TEXT_REGEX)]
-    .map((match) => match[1].replace(NUMERIC_ENTITY_REGEX, '').trim())
+    .map((match) => match[1].replace(NUMERIC_ENTITY_REGEX, '').replace(NAMED_ENTITY_REGEX, (entity) => NAMED_ENTITIES[entity]).trim())
     .filter(Boolean);
 };
 

@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as http from 'http';
 import path from 'path';
 import { AddressInfo } from 'net';
@@ -47,6 +48,15 @@ const listen = async (server: http.Server) => {
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 };
 
+const closeServer = (server: http.Server) =>
+  new Promise<void>((resolve) => {
+    server.close(() => resolve());
+    server.closeAllConnections();
+  });
+
+// Endpoint the stored consent points at when the test does not want consent to apply
+const OTHER_ENDPOINT = 'https://other-render-service.example.com';
+
 test.describe('Response label pane', () => {
   let apiServer: http.Server;
   let labelaryServer: http.Server;
@@ -54,9 +64,12 @@ test.describe('Response label pane', () => {
   let labelaryUrl: string;
   // ZPL bodies the mock Labelary endpoint received, in order
   let renderedZpl: string[];
+  // What the mock Labelary endpoint answers with
+  let labelaryReply: { status: number; contentType: string; body: Buffer | string };
 
   test.beforeEach(async () => {
     renderedZpl = [];
+    labelaryReply = { status: 200, contentType: 'image/png', body: ONE_PIXEL_PNG };
 
     apiServer = http.createServer((req, res) => {
       const [contentType, body] = RESPONSES[req.url || ''] ?? ['text/plain', 'not found'];
@@ -67,7 +80,7 @@ test.describe('Response label pane', () => {
       req.on('data', (chunk) => (body += chunk));
       req.on('end', () => {
         renderedZpl.push(body);
-        res.writeHead(200, { 'Content-Type': 'image/png' }).end(ONE_PIXEL_PNG);
+        res.writeHead(labelaryReply.status, { 'Content-Type': labelaryReply.contentType }).end(labelaryReply.body);
       });
     });
 
@@ -76,13 +89,13 @@ test.describe('Response label pane', () => {
   });
 
   test.afterEach(async () => {
-    apiServer.close();
-    labelaryServer.close();
+    await Promise.all([closeServer(apiServer), closeServer(labelaryServer)]);
   });
 
   const launchWithRequests = async (
     { launchElectronApp, createTmpDir }: { launchElectronApp: any; createTmpDir: (tag?: string) => Promise<string> },
-    requests: Record<string, string>
+    requests: Record<string, string>,
+    { consented = false } = {}
   ) => {
     const collectionDir = path.join(await createTmpDir('label-pane'), COLLECTION_NAME);
     initBruCollection(collectionDir, COLLECTION_NAME);
@@ -94,11 +107,12 @@ test.describe('Response label pane', () => {
       initUserDataPath: path.join(__dirname, 'init-user-data'),
       templateVars: {
         collectionPath: collectionDir.split(path.sep).join('/'),
-        labelaryEndpoint: labelaryUrl
+        labelaryEndpoint: labelaryUrl,
+        consentedEndpoint: consented ? labelaryUrl : OTHER_ENDPOINT
       }
     });
     const page = await waitForReadyPage(app);
-    return { page, locators: buildCommonLocators(page).responseLabel };
+    return { app, page, locators: buildCommonLocators(page).responseLabel };
   };
 
   test('offers no label preview for ordinary JSON and XML responses', async ({ launchElectronApp, createTmpDir }) => {
@@ -108,62 +122,112 @@ test.describe('Response label pane', () => {
     );
 
     for (const requestName of ['plain-json', 'plain-xml']) {
-      await openRequest(page, COLLECTION_NAME, requestName);
-      await sendRequest(page, 200);
-      await expect(locators.toggle()).toHaveCount(0);
+      await test.step(`Send ${requestName}`, async () => {
+        await openRequest(page, COLLECTION_NAME, requestName);
+        await sendRequest(page, 200);
+        await expect(locators.responseBody()).toBeVisible();
+        await expect(locators.toggle()).toHaveCount(0);
+      });
     }
   });
 
   test('renders a ZPL label only after the user allows sending it to the render endpoint', async ({ launchElectronApp, createTmpDir }) => {
     const { page, locators } = await launchWithRequests({ launchElectronApp, createTmpDir }, { 'zpl-plain': '/zpl' });
 
+    await test.step('Open the label pane', async () => {
+      await openRequest(page, COLLECTION_NAME, 'zpl-plain');
+      await sendRequest(page, 200);
+      await locators.toggle().click();
+      await expect(locators.pane()).toBeVisible();
+    });
+
+    await test.step('Nothing is sent before consent', async () => {
+      await expect(locators.allowRendering()).toBeVisible();
+      await expect(locators.renderedImage()).toHaveCount(0);
+      expect(renderedZpl).toEqual([]);
+    });
+
+    await test.step('Allowing renders the label through the endpoint', async () => {
+      await locators.allowRendering().click();
+      await expect(locators.renderedImage()).toBeVisible();
+      expect(renderedZpl).toEqual([ZPL]);
+    });
+  });
+
+  test('renders without asking again when consent was already given for the endpoint', async ({ launchElectronApp, createTmpDir }) => {
+    const { page, locators } = await launchWithRequests({ launchElectronApp, createTmpDir }, { 'zpl-plain': '/zpl' }, { consented: true });
+
     await openRequest(page, COLLECTION_NAME, 'zpl-plain');
     await sendRequest(page, 200);
     await locators.toggle().click();
 
-    await expect(locators.allowRendering()).toBeVisible();
-    await expect(locators.renderedImage()).toHaveCount(0);
-    expect(renderedZpl).toEqual([]);
-
-    await locators.allowRendering().click();
     await expect(locators.renderedImage()).toBeVisible();
+    await expect(locators.allowRendering()).toHaveCount(0);
     expect(renderedZpl).toEqual([ZPL]);
+  });
+
+  test('shows the render service error when rendering fails', async ({ launchElectronApp, createTmpDir }) => {
+    labelaryReply = { status: 400, contentType: 'text/plain', body: 'ERROR: invalid ZPL' };
+    const { page, locators } = await launchWithRequests({ launchElectronApp, createTmpDir }, { 'zpl-plain': '/zpl' }, { consented: true });
+
+    await openRequest(page, COLLECTION_NAME, 'zpl-plain');
+    await sendRequest(page, 200);
+    await locators.toggle().click();
+
+    await expect(locators.error()).toHaveText('ERROR: invalid ZPL');
+    await expect(locators.renderedImage()).toHaveCount(0);
   });
 
   test('finds ZPL labels inside JSON and XML responses', async ({ launchElectronApp, createTmpDir }) => {
     const { page, locators } = await launchWithRequests(
       { launchElectronApp, createTmpDir },
-      { 'zpl-in-json': '/zpl-json', 'zpl-in-xml': '/zpl-xml' }
+      { 'zpl-in-json': '/zpl-json', 'zpl-in-xml': '/zpl-xml' },
+      { consented: true }
     );
 
-    await openRequest(page, COLLECTION_NAME, 'zpl-in-json');
-    await sendRequest(page, 200);
-    await locators.toggle().click();
-    await locators.allowRendering().click();
-    await expect(locators.renderedImage()).toBeVisible();
+    await test.step('ZPL in JSON', async () => {
+      await openRequest(page, COLLECTION_NAME, 'zpl-in-json');
+      await sendRequest(page, 200);
+      await locators.toggle().click();
+      await expect(locators.renderedImage()).toBeVisible();
+    });
 
-    await openRequest(page, COLLECTION_NAME, 'zpl-in-xml');
-    await sendRequest(page, 200);
-    await locators.toggle().click();
-    await expect(locators.renderedImage()).toBeVisible();
+    await test.step('ZPL in XML', async () => {
+      await openRequest(page, COLLECTION_NAME, 'zpl-in-xml');
+      await sendRequest(page, 200);
+      await locators.toggle().click();
+      await expect(locators.renderedImage()).toBeVisible();
+    });
 
     expect(renderedZpl).toEqual([ZPL, SECOND_ZPL]);
   });
 
   test('pages through several labels in one response', async ({ launchElectronApp, createTmpDir }) => {
-    const { page, locators } = await launchWithRequests({ launchElectronApp, createTmpDir }, { 'zpl-multi': '/zpl-multi' });
+    const { page, locators } = await launchWithRequests({ launchElectronApp, createTmpDir }, { 'zpl-multi': '/zpl-multi' }, { consented: true });
 
     await openRequest(page, COLLECTION_NAME, 'zpl-multi');
     await sendRequest(page, 200);
     await locators.toggle().click();
-    await locators.allowRendering().click();
-    await expect(locators.position()).toHaveText('Label 1 of 2');
-    await expect(locators.renderedImage()).toBeVisible();
 
-    await locators.next().click();
-    await expect(locators.position()).toHaveText('Label 2 of 2');
-    await expect.poll(() => renderedZpl).toEqual([ZPL, SECOND_ZPL]);
-    await expect(locators.next()).toBeDisabled();
+    await test.step('First label', async () => {
+      await expect(locators.position()).toHaveText('Label 1 of 2');
+      await expect(locators.previous()).toBeDisabled();
+      await expect(locators.renderedImage()).toBeVisible();
+    });
+
+    await test.step('Next label', async () => {
+      await locators.next().click();
+      await expect(locators.position()).toHaveText('Label 2 of 2');
+      await expect(locators.next()).toBeDisabled();
+      await expect.poll(() => renderedZpl).toEqual([ZPL, SECOND_ZPL]);
+    });
+
+    await test.step('Back to the first label without rendering it again', async () => {
+      await locators.previous().click();
+      await expect(locators.position()).toHaveText('Label 1 of 2');
+      await expect(locators.renderedImage()).toBeVisible();
+      expect(renderedZpl).toEqual([ZPL, SECOND_ZPL]);
+    });
   });
 
   test('previews PDF labels returned directly, in JSON and in XML', async ({ launchElectronApp, createTmpDir }) => {
@@ -173,12 +237,58 @@ test.describe('Response label pane', () => {
     );
 
     for (const requestName of ['pdf-direct', 'pdf-in-json', 'pdf-in-xml']) {
-      await openRequest(page, COLLECTION_NAME, requestName);
+      await test.step(`Preview ${requestName}`, async () => {
+        await openRequest(page, COLLECTION_NAME, requestName);
+        await sendRequest(page, 200);
+        await locators.toggle().click();
+        await expect(locators.pdfCanvas()).toBeVisible();
+        await expect(locators.downloadPdf()).toBeVisible();
+      });
+    }
+    expect(renderedZpl).toEqual([]);
+  });
+
+  test('saves the ZPL source, the rendered image and the PDF to the chosen file', async ({ launchElectronApp, createTmpDir }) => {
+    const { app, page, locators } = await launchWithRequests(
+      { launchElectronApp, createTmpDir },
+      { 'zpl-plain': '/zpl', 'pdf-direct': '/pdf' },
+      { consented: true }
+    );
+    const saveDir = await createTmpDir('label-downloads');
+
+    // The native save dialog cannot be driven, so the main process answers it with a path in the temp dir
+    const chooseSavePath = async (fileName: string) => {
+      const filePath = path.join(saveDir, fileName);
+      await app.evaluate(({ dialog }: any, target: string) => {
+        dialog.showSaveDialog = async () => ({ canceled: false, filePath: target });
+      }, filePath);
+      return filePath;
+    };
+
+    await test.step('ZPL source and rendered image', async () => {
+      await openRequest(page, COLLECTION_NAME, 'zpl-plain');
+      await sendRequest(page, 200);
+      await locators.toggle().click();
+      await expect(locators.renderedImage()).toBeVisible();
+
+      const zplPath = await chooseSavePath('saved.zpl');
+      await locators.downloadZpl().click();
+      await expect.poll(() => fs.existsSync(zplPath) && fs.readFileSync(zplPath, 'utf8')).toBe(ZPL);
+
+      const pngPath = await chooseSavePath('saved.png');
+      await locators.downloadPng().click();
+      await expect.poll(() => fs.existsSync(pngPath) && fs.readFileSync(pngPath)).toEqual(ONE_PIXEL_PNG);
+    });
+
+    await test.step('PDF', async () => {
+      await openRequest(page, COLLECTION_NAME, 'pdf-direct');
       await sendRequest(page, 200);
       await locators.toggle().click();
       await expect(locators.pdfCanvas()).toBeVisible();
-      await expect(locators.downloadPdf()).toBeVisible();
-    }
-    expect(renderedZpl).toEqual([]);
+
+      const pdfPath = await chooseSavePath('saved.pdf');
+      await locators.downloadPdf().click();
+      await expect.poll(() => fs.existsSync(pdfPath) && fs.readFileSync(pdfPath, 'latin1')).toBe(PDF);
+    });
   });
 });
