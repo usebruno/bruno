@@ -70,4 +70,43 @@ test.describe('Sidebar scroll-to-active-tab', () => {
       await closeElectronApp(app);
     }
   });
+
+  test('re-clicking the already-active tab scrolls its row back into view', async ({ launchElectronApp, createTmpDir }) => {
+    const collectionDir = path.join(await createTmpDir('scroll-reclick'), COLLECTION_NAME);
+    buildCollectionOnDisk(collectionDir, REQUEST_COUNT);
+
+    const app = await launchElectronApp({
+      initUserDataPath: path.join(__dirname, 'init-user-data'),
+      templateVars: { collectionPath: collectionDir.split(path.sep).join('/') }
+    });
+    const page = await waitForReadyPage(app);
+    await page.setViewportSize(WINDOW_SIZE);
+    const locators = buildCommonLocators(page);
+    const bottomRow = locators.sidebar.request(reqName(REQUEST_COUNT));
+
+    try {
+      await test.step('Open the last request so the sidebar sits at the bottom', async () => {
+        await locators.sidebar.collection(COLLECTION_NAME).click();
+        await expect(locators.sidebar.request(reqName(1))).toBeVisible({ timeout: 15000 });
+
+        await openRequest(page, COLLECTION_NAME, reqName(REQUEST_COUNT), { persist: true });
+        await expect(bottomRow).toBeInViewport();
+      });
+
+      await test.step('Scroll the sidebar away without changing the active tab', async () => {
+        await locators.sidebar.collectionsScroller().evaluate((el: HTMLElement) => { el.scrollTop = 0; });
+
+        await expect(bottomRow).not.toBeInViewport();
+        await expect(locators.tabs.activeRequestTab()).toContainText(reqName(REQUEST_COUNT));
+      });
+
+      await test.step('Re-clicking the already-active tab scrolls back to its row', async () => {
+        await locators.tabs.requestTab(reqName(REQUEST_COUNT)).click();
+
+        await expect(bottomRow).toBeInViewport();
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
 });

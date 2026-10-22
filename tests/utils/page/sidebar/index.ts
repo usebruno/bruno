@@ -18,6 +18,7 @@ export const buildSidebarLocators = (page: Page) => {
 
   return {
     collectionsContainer: () => page.getByTestId('collections'),
+    collectionsScroller: () => page.getByTestId('sidebar-collections-scroller'),
     collection: (name?: string) => name ? page.locator('#sidebar-collection-name').filter({ hasText: name }) : page.locator('#sidebar-collection-name'),
     item,
     folder: item,
