@@ -5,6 +5,7 @@
   "main": "src/index.js",
   "files": [
     "src",
+    "types/script-api.d.ts",
     "package.json"
   ],
   "scripts": {
