@@ -62,4 +62,4 @@ The package provides the following functions:
 - `parseEnvironment(content, options = { format: 'bru' })`: Parse environment file content
 - `stringifyEnvironment(envObj, options = { format: 'bru' })`: Convert environment object to file content
 - `parseDotEnv(content)`: Parse .env file content
-- `writeCollectionToDisk(collection, outputDir, options = { format: 'yml' })`: Write a whole collection to `outputDir` — `opencollection.yml` (yml) or `bruno.json` + `collection.bru` (bru), one folder file per folder, one file per request, and `environments/<name>`. Resolves to `outputDir`. `outputDir` must be missing or empty; otherwise it rejects with `code: 'ENOTEMPTY'` 
+- `writeCollectionToDisk(collection, outputDir, options = { format: 'yml' })`: Write a whole collection to `outputDir` in `yml` or `bru` format. Resolves to `outputDir`. `outputDir` must be missing or empty; otherwise it rejects with `code: 'ENOTEMPTY'` 

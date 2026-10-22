@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { BrunoCollection, BrunoItem, BrunoEnvironment } from '@usebruno/schema-types';
+import type { FolderRoot } from '@usebruno/schema-types/collection/folder';
 import { sanitizeName } from '@usebruno/common/utils';
 import {
   stringifyBruRequest,
@@ -16,14 +17,14 @@ import {
 import { DEFAULT_COLLECTION_FORMAT } from '../constants';
 import type { CollectionFormat, WriteCollectionOptions } from '../types';
 
-export const SUPPORTED_WRITE_ITEM_TYPES = ['http-request', 'graphql-request', 'grpc-request', 'ws-request'];
+const SUPPORTED_WRITE_ITEM_TYPES = ['http-request', 'graphql-request', 'grpc-request', 'ws-request'];
 
 const HTTP_ITEM_TYPES = ['http-request', 'graphql-request'];
 
 interface FormatWriter {
   collectionFile: string;
-  stringifyCollection: (collectionRoot: any, brunoConfig: any) => string;
-  stringifyFolder: (folderRoot: any) => string;
+  stringifyCollection: (collectionRoot: FolderRoot, brunoConfig: Record<string, unknown>) => string;
+  stringifyFolder: (folderRoot: FolderRoot) => string;
   stringifyRequest: (item: BrunoItem) => string;
   stringifyEnvironment: (environment: BrunoEnvironment) => string;
 }

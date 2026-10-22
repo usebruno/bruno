@@ -61,8 +61,12 @@ const { writeCollectionToDisk } = require('@usebruno/filestore');
 const fs = require('fs/promises');
 
 async function convertPostmanToBruno(inputFile, outputDir) {
-  const collection = await postmanToBruno(JSON.parse(await fs.readFile(inputFile, 'utf8')));
-  await writeCollectionToDisk(collection, outputDir); // opencollection (yml)
+  const inputData = await fs.readFile(inputFile, 'utf8');
+
+  const collection = await postmanToBruno(JSON.parse(inputData));
+  // Writes YAML (OpenCollection) files by default
+  await writeCollectionToDisk(collection, outputDir);
+  // Pass { format: 'bru' } to write .bru files instead
   // await writeCollectionToDisk(collection, outputDir, { format: 'bru' });
 }
 
@@ -89,8 +93,12 @@ import { writeCollectionToDisk } from '@usebruno/filestore';
 import fs from 'fs/promises';
 
 async function importWSDL() {
-  const collection = await wsdlToBruno(await fs.readFile('service.wsdl', 'utf8'));
-  await writeCollectionToDisk(collection, './soap-collection'); // opencollection (yml)
+  const wsdlContent = await fs.readFile('service.wsdl', 'utf8');
+
+  const collection = await wsdlToBruno(wsdlContent);
+  // Writes YAML (OpenCollection) files by default
+  await writeCollectionToDisk(collection, './soap-collection');
+  // Pass { format: 'bru' } to write .bru files instead
   // await writeCollectionToDisk(collection, './soap-collection', { format: 'bru' });
 }
 
