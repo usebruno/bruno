@@ -193,7 +193,6 @@ test.describe('Sidebar search filtering', () => {
       await expect(locators.sidebar.itemByName(unrelatedRequest)).toBeVisible();
       await expect(locators.sidebar.collectionExact(healthCollection)).toBeVisible();
     });
-    await clearSidebarSearch(page);
     await closeAllCollections(page);
   });
 });
