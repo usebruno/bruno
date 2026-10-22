@@ -1,13 +1,8 @@
 const { describe, it, expect, beforeAll } = require('@jest/globals');
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
 const TestRuntime = require('../src/runtime/test-runtime');
 const ScriptRuntime = require('../src/runtime/script-runtime');
 const AssertRuntime = require('../src/runtime/assert-runtime');
 const { loader: quickJsLoader } = require('../src/sandbox/quickjs');
-const { formatErrorWithContextV2 } = require('../src/utils/error-formatter');
-
 describe('runtime', () => {
   describe('test-runtime', () => {
     const baseRequest = {
@@ -670,7 +665,6 @@ describe('script-runtime: the collection + request scripts from the CRLF comment
     '}'
   ].join('\r\n');
 
-  // Same closure shape mergeScripts emits for each level
   const wrap = (script, file) => `await (async (__dirname, __filename) => {\n${script}\n})("/c", "/c/${file}");`;
   const merge = (requestScript) => [wrap(collectionScript, 'opencollection.yml'), wrap(requestScript, 'FindPetById.yml')].join('\n\n');
   const onConsoleLog = () => {};
