@@ -786,7 +786,14 @@ const removeCollection = async (page: Page, collectionName: string) => {
       // Drafts modal - click "Discard All and Remove"
       await page.getByRole('button', { name: 'Discard All and Remove' }).click();
     } else {
-      // Regular modal - click Remove button
+      await expect(removeModal.locator('.bruno-modal-header-title')).toHaveText('Remove Collection');
+      await expect(removeModal).toContainText('Are you sure you want to close the following collection in Bruno?');
+      await expect(removeModal).toContainText(collectionName);
+      await expect(removeModal).toContainText(
+        'It will still be available in the filesystem at the above location and can be re-opened later.'
+      );
+      await expect(removeModal.getByRole('button', { name: 'Remove', exact: true })).toBeVisible();
+      await expect(removeModal.getByRole('button', { name: 'Cancel', exact: true })).toBeVisible();
       await locators.modal.button('Remove').click();
     }
 

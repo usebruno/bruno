@@ -29,8 +29,9 @@ test.describe('Add folder under collection', () => {
 
     await test.step('Folder is written to the collection on disk', async () => {
       const folderFilePath = path.join(collectionLocation, collectionName, folderName, 'folder.yml');
-      expect(fs.existsSync(folderFilePath)).toBe(true);
-      expect(fs.readFileSync(folderFilePath, 'utf8')).toContain(`name: ${folderName}`);
+      await expect
+        .poll(() => (fs.existsSync(folderFilePath) ? fs.readFileSync(folderFilePath, 'utf8') : ''))
+        .toContain(`name: ${folderName}`);
     });
   });
 });

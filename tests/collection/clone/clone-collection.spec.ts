@@ -54,7 +54,7 @@ test.describe('Clone collection', () => {
       const configPath = path.join(cloneDir, 'opencollection.yml');
       const folderFilePath = path.join(cloneDir, folderName, 'folder.yml');
 
-      await expect.poll(() => fs.existsSync(configPath), { timeout: 10000 }).toBe(true);
+      await expect.poll(() => fs.existsSync(configPath)).toBe(true);
       expect(fs.readFileSync(configPath, 'utf8')).toContain(`name: ${cloneName}`);
       expect(fs.existsSync(folderFilePath)).toBe(true);
     });
