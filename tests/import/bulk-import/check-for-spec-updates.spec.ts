@@ -1,36 +1,8 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import * as fs from 'fs';
-import * as crypto from 'crypto';
-import jsyaml from 'js-yaml';
 import { closeAllCollections, openBulkImportModal } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
-
-const readOpenApiSyncConfig = (collectionDir: string) => {
-  const collection = jsyaml.load(fs.readFileSync(path.join(collectionDir, 'opencollection.yml'), 'utf8'), { schema: jsyaml.JSON_SCHEMA }) as any;
-  return collection.extensions.bruno.openapi;
-};
-
-const readBrunoJsonSyncConfig = (collectionDir: string) => {
-  return JSON.parse(fs.readFileSync(path.join(collectionDir, 'bruno.json'), 'utf8')).openapi;
-};
-
-const specHashOf = (specFile: string) => {
-  return crypto.createHash('md5').update(JSON.stringify(jsyaml.load(fs.readFileSync(specFile, 'utf8')))).digest('hex');
-};
-
-const expectSyncedWithSpec = (collectionDir: string, syncConfig: any, specFile: string) => {
-  expect(syncConfig).toEqual([{
-    sourceUrl: expect.any(String),
-    groupBy: 'tags',
-    autoCheck: true,
-    autoCheckInterval: 5,
-    lastSyncDate: expect.any(String),
-    specHash: specHashOf(specFile)
-  }]);
-  expect(path.isAbsolute(syncConfig[0].sourceUrl)).toBe(false);
-  expect(path.resolve(collectionDir, syncConfig[0].sourceUrl)).toBe(specFile);
-};
+import { expectSyncedWithSpec, readBrunoJsonSyncConfig, readOpenApiSyncConfig } from '../../utils/openapi-sync';
 
 test.describe('Bulk Import check for spec updates', () => {
   const testDataDir = path.join(__dirname, '../test-data');

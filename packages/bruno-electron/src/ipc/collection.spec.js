@@ -79,10 +79,16 @@ describe('IPC collection handlers', () => {
   });
 
   describe('renderer:move-item', () => {
+    beforeEach(() => {
+      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+    });
+
+    afterEach(() => {
+      fs.existsSync.mockRestore();
+    });
+
     it('calls moveRequestUid before copyPathTo to prevent observed uid mismatches', async () => {
       const moveItemHandler = ipcMain._getHandler('renderer:move-item');
-
-      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
 
       let callOrder = [];
       moveRequestUid.mockImplementation(() => callOrder.push('moveRequestUid'));
@@ -98,10 +104,16 @@ describe('IPC collection handlers', () => {
   });
 
   describe('renderer:move-item-cross-format', () => {
+    beforeEach(() => {
+      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+    });
+
+    afterEach(() => {
+      fs.existsSync.mockRestore();
+    });
+
     it('calls moveRequestUid before writing the target file', async () => {
       const moveItemCrossFormatHandler = ipcMain._getHandler('renderer:move-item-cross-format');
-
-      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
 
       let callOrder = [];
       moveRequestUid.mockImplementation(() => callOrder.push('moveRequestUid'));
@@ -127,9 +139,6 @@ describe('IPC collection handlers', () => {
       collectionLocation = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-import-'));
       userDataPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-user-data-'));
       app.getPath.mockReturnValue(userDataPath);
-      if (jest.isMockFunction(fs.existsSync)) {
-        fs.existsSync.mockRestore();
-      }
       importCollectionHandler = ipcMain._getHandler('renderer:import-collection');
     });
 

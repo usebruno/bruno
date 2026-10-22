@@ -18,7 +18,6 @@ import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
 import { convertOpenapiToBruno, isSwagger2Spec, buildOpenApiSyncBrunoConfig } from 'utils/importers/openapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
 import { convertWsdlToBruno } from 'utils/importers/wsdl-collection';
-import { parseImportFileText } from 'utils/importers/common';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { showImportIssuesToast } from 'components/Toast/ImportIssuesToast';
@@ -102,16 +101,6 @@ const convertCollection = async (format, rawData, groupingType, filePath) => {
 };
 
 const canSyncSpec = (fileData) => fileData.type === 'openapi' && !isSwagger2Spec(fileData.data) && Boolean(fileData.filePath);
-
-const readSpecForSync = async (file) => {
-  try {
-    const rawContent = await file.text();
-    return { rawContent, data: parseImportFileText(rawContent, file) };
-  } catch (err) {
-    console.warn(`Failed to read ${file.name} for spec updates:`, err);
-    return null;
-  }
-};
 
 export function normalizeName(name) {
   if (typeof name !== 'string') {
@@ -328,15 +317,14 @@ export const BulkImportCollectionLocation = ({
         const collectedIssues = {};
         for (const item of selectedItems) {
           try {
-            const specForSync = enableCheckForSpecUpdates && canSyncSpec(item._fileData) ? await readSpecForSync(item._fileData.file) : null;
-            const { collection, issues } = await convertCollection(item._fileData.type, specForSync ? specForSync.data : item._fileData.data, groupingType, item._fileData.filePath);
+            const { collection, issues } = await convertCollection(item._fileData.type, item._fileData.data, groupingType, item._fileData.filePath);
             if (collection) {
               // Preserve the synthetic UID so status tracking, rename tracking,
               // and UI rendering all use the same key
               collection.uid = item.uid;
               filteredCollections.push(collection);
-              if (specForSync) {
-                rawOpenAPISpecs[item.uid] = specForSync.rawContent;
+              if (enableCheckForSpecUpdates && canSyncSpec(item._fileData)) {
+                rawOpenAPISpecs[item.uid] = item._fileData.rawContent;
               }
               if (issues && issues.length > 0) {
                 collectedIssues[item.uid] = issues;

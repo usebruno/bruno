@@ -67,16 +67,17 @@ describe('BulkImportCollectionLocation helpers', () => {
 const specText = (title) => `openapi: 3.0.0\ninfo:\n  title: ${title}\n`;
 
 const openApiFile = (fileName, title) => ({
-  file: { name: fileName, text: jest.fn(() => Promise.resolve(specText(title))) },
+  file: { name: fileName },
   type: 'openapi',
   data: { openapi: '3.0.0', info: { title } },
-  filePath: `/specs/${fileName}`
+  filePath: `/specs/${fileName}`,
+  rawContent: specText(title)
 });
 
 const ordersSpec = openApiFile('orders.yaml', 'Orders API');
 const usersSpec = openApiFile('users.yaml', 'Users API');
 const swagger2Spec = {
-  file: { name: 'legacy.json', text: jest.fn(() => Promise.resolve('{ "swagger": "2.0" }')) },
+  file: { name: 'legacy.json' },
   type: 'openapi',
   data: { swagger: '2.0', info: { title: 'Legacy API' } },
   filePath: '/specs/legacy.json'
@@ -232,35 +233,6 @@ describe('BulkImportCollectionLocation check for spec updates', () => {
 
     expect(collections[0].brunoConfig).toBeUndefined();
     expect(options).toEqual({ format: DEFAULT_COLLECTION_FORMAT, rawOpenAPISpecs: {} });
-    expect(ordersSpec.file.text).not.toHaveBeenCalled();
-  });
-
-  it('builds a synced collection and its stored spec from one read at import', async () => {
-    const editedSpec = openApiFile('orders.yaml', 'Orders API');
-    editedSpec.file.text.mockResolvedValue(specText('Orders API v2'));
-    renderBulkImport([editedSpec]);
-    fireEvent.click(specUpdatesCheckbox());
-
-    const [collections, , options] = await submitImport();
-
-    expect(editedSpec.file.text).toHaveBeenCalledTimes(1);
-    expect(collections[0].name).toBe('Orders API v2');
-    expect(options.rawOpenAPISpecs).toEqual({ 'file-0': specText('Orders API v2') });
-  });
-
-  it('imports a spec without sync when it can no longer be read at import', async () => {
-    const movedSpec = openApiFile('orders.yaml', 'Orders API');
-    movedSpec.file.text.mockRejectedValue(new Error('File not found'));
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    renderBulkImport([movedSpec]);
-    fireEvent.click(specUpdatesCheckbox());
-
-    const [collections, , options] = await submitImport();
-
-    expect(collections[0].name).toBe('Orders API');
-    expect(collections[0].brunoConfig).toBeUndefined();
-    expect(options.rawOpenAPISpecs).toEqual({});
-    warn.mockRestore();
   });
 
   it('names the sync config after the renamed duplicate', async () => {

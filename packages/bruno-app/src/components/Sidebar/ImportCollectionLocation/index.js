@@ -398,6 +398,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
                   onChange={(e) => setEnableCheckForSpecUpdates(e.target.checked)}
                   disabled={isSwagger2}
                   className={`checkbox mt-0.5 ${isSwagger2 ? '' : 'cursor-pointer'}`}
+                  data-testid="check-for-spec-updates-toggle"
                 />
                 <div>
                   <span className="checkbox-option-label">Check for Spec Updates</span>

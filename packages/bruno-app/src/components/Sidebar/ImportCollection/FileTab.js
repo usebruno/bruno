@@ -3,7 +3,7 @@ import { IconFileImport } from '@tabler/icons';
 import { toastError } from 'utils/common/error';
 import { isPostmanCollection } from 'utils/importers/postman-collection';
 import { isInsomniaCollection } from 'utils/importers/insomnia-collection';
-import { isOpenApiSpec } from 'utils/importers/openapi-collection';
+import { isOpenApiSpec, isSwagger2Spec } from 'utils/importers/openapi-collection';
 import { isWSDLCollection } from 'utils/importers/wsdl-collection';
 import { isBrunoCollection } from 'utils/importers/bruno-collection';
 import { isOpenCollection } from 'utils/importers/opencollection';
@@ -79,7 +79,8 @@ const FileTab = ({
       // Parse all files
       for (const file of fileArray) {
         try {
-          const data = await convertFileToObject(file);
+          const text = await file.text();
+          const data = parseImportFileText(text, file);
 
           // Determine type for each file
           let type = null;
@@ -98,7 +99,13 @@ const FileTab = ({
           }
 
           if (type) {
-            filesData.push({ file, data, type, filePath: window.ipcRenderer.getFilePath(file) });
+            filesData.push({
+              file,
+              data,
+              type,
+              filePath: window.ipcRenderer.getFilePath(file),
+              rawContent: type === 'openapi' && !isSwagger2Spec(data) ? text : undefined
+            });
           }
         } catch (err) {
           console.warn(`Failed to process file ${file.name}:`, err);

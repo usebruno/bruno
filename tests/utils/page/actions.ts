@@ -661,6 +661,7 @@ type ImportCollectionOptions = {
   expectIssues?: boolean;
   sidebarTimeout?: number;
   preserveScripts?: boolean;
+  checkForSpecUpdates?: boolean;
 };
 
 const importCollection = async (
@@ -700,6 +701,12 @@ const importCollection = async (
       const preserveScriptsCheckbox = locators.import.preserveScriptsToggle();
       await preserveScriptsCheckbox.check();
       await expect(preserveScriptsCheckbox).toBeChecked();
+    }
+
+    if (options.checkForSpecUpdates) {
+      const checkForSpecUpdatesToggle = locators.import.checkForSpecUpdatesToggle();
+      await checkForSpecUpdatesToggle.check();
+      await expect(checkForSpecUpdatesToggle).toBeChecked();
     }
 
     // Set location and import

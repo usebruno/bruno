@@ -30,7 +30,7 @@ export const isOpenApiSpec = (data) => {
   return false;
 };
 
-export const isSwagger2Spec = (spec) => Boolean(spec.swagger) && String(spec.swagger).startsWith('2');
+export const isSwagger2Spec = (spec) => Boolean(spec?.swagger) && String(spec.swagger).startsWith('2');
 
 export const buildOpenApiSyncBrunoConfig = (collection, { sourceUrl, groupBy }) => ({
   version: collection.version || '1',
