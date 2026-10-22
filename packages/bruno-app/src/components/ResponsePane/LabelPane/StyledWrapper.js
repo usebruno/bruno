@@ -5,13 +5,6 @@ const StyledWrapper = styled.div`
 
   .label-toolbar {
     border-bottom: solid 1px ${(props) => props.theme.border.border2};
-
-    select {
-      border: solid 1px ${(props) => props.theme.border.border2};
-      border-radius: ${(props) => props.theme.border.radius.sm};
-      background-color: ${(props) => props.theme.background.base};
-      color: ${(props) => props.theme.text};
-    }
   }
 
   .label-image {

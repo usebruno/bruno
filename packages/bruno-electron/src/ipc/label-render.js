@@ -9,6 +9,9 @@ const { makeAxiosInstance } = require('./network/axios-instance');
 const SUPPORTED_DPMM = [6, 8, 12, 24];
 const MAX_LABEL_INCHES = 15;
 const RENDER_TIMEOUT_MS = 30000;
+const MAX_ZPL_LENGTH = 4 * 1024 * 1024;
+const MAX_RENDERED_IMAGE_BYTES = 25 * 1024 * 1024;
+const MAX_ERROR_MESSAGE_LENGTH = 300;
 
 const fail = (code, message) => ({ error: true, code, message });
 
@@ -17,16 +20,17 @@ const isValidDimension = (value) => typeof value === 'number' && value > 0 && va
 /**
  * Renders a single ZPL label to a PNG through a Labelary-compatible endpoint.
  * The label leaves the machine, so rendering requires the user's recorded consent for this exact endpoint.
+ * The renderer applies the same rule to decide whether to show its consent prompt (LabelPane); keep the two in sync.
  */
-const renderZplLabel = async (req = {}) => {
+const renderZplLabel = async (req) => {
   const { zpl, dpmm, widthInches, heightInches } = req || {};
   const labelary = get(getPreferences(), 'labelary', {});
 
   if (!labelary.endpoint || labelary.consentedEndpoint !== labelary.endpoint) {
     return fail('CONSENT_REQUIRED', 'Rendering ZPL sends the label to the configured Labelary endpoint. Consent is required.');
   }
-  if (typeof zpl !== 'string' || !zpl.trim()) {
-    return fail('INVALID_REQUEST', 'Missing ZPL content');
+  if (typeof zpl !== 'string' || !zpl.trim() || zpl.length > MAX_ZPL_LENGTH) {
+    return fail('INVALID_REQUEST', 'Missing or oversized ZPL content');
   }
   if (!SUPPORTED_DPMM.includes(dpmm) || !isValidDimension(widthInches) || !isValidDimension(heightInches)) {
     return fail('INVALID_REQUEST', 'Invalid label resolution or size');
@@ -73,12 +77,15 @@ const renderZplLabel = async (req = {}) => {
       responseType: 'arraybuffer',
       validateStatus: () => true,
       maxRedirects: 0,
+      maxBodyLength: MAX_ZPL_LENGTH,
+      maxContentLength: MAX_RENDERED_IMAGE_BYTES,
       timeout: RENDER_TIMEOUT_MS
     });
 
     const body = Buffer.from(response.data || '');
     if (response.status !== 200) {
-      return fail(`HTTP_${response.status}`, body.toString('utf8').trim() || `Labelary responded with status ${response.status}`);
+      const message = body.toString('utf8').trim().slice(0, MAX_ERROR_MESSAGE_LENGTH);
+      return fail(`HTTP_${response.status}`, message || `Labelary responded with status ${response.status}`);
     }
 
     return { image: body.toString('base64') };
@@ -93,7 +100,7 @@ const LABEL_FILE_ENCODINGS = ['base64', 'utf8'];
  * Saves a label (PDF, ZPL source or rendered PNG) to a location the user picks.
  * `content` is base64 for binary labels and plain text for ZPL source.
  */
-const saveLabelFile = async (mainWindow, req = {}) => {
+const saveLabelFile = async (mainWindow, req) => {
   const { fileName, content, encoding } = req || {};
 
   if (typeof fileName !== 'string' || !fileName || fileName !== path.basename(fileName)) {

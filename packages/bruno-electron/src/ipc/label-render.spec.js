@@ -38,6 +38,7 @@ describe('renderZplLabel', () => {
 
   it.each([
     [{ ...validRequest, zpl: '  ' }],
+    [{ ...validRequest, zpl: `^XA${'A'.repeat(4 * 1024 * 1024)}^XZ` }],
     [{ ...validRequest, dpmm: 10 }],
     [{ ...validRequest, widthInches: 0 }],
     [{ ...validRequest, heightInches: 99 }]
@@ -65,6 +66,13 @@ describe('renderZplLabel', () => {
   it('surfaces the service error message for a non-200 response', async () => {
     mockRequest.mockResolvedValue({ status: 400, data: Buffer.from('ERROR: Invalid ZPL') });
     expect(await renderZplLabel(validRequest)).toEqual({ error: true, code: 'HTTP_400', message: 'ERROR: Invalid ZPL' });
+  });
+
+  it('truncates a long error body from the render service', async () => {
+    mockRequest.mockResolvedValue({ status: 500, data: Buffer.from('x'.repeat(5000)) });
+    const result = await renderZplLabel(validRequest);
+    expect(result.code).toBe('HTTP_500');
+    expect(result.message).toHaveLength(300);
   });
 
   it('returns a network failure as an error object', async () => {

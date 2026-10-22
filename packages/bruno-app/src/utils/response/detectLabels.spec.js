@@ -52,6 +52,27 @@ describe('detectLabels', () => {
     ]);
   });
 
+  it('decodes named XML entities in ZPL text', () => {
+    expect(detectLabels({ data: '<a><label>^XA^FDTom &amp; Jerry &lt;3^FS^XZ</label></a>' })).toEqual([
+      { kind: 'zpl', content: '^XA^FDTom & Jerry <3^FS^XZ' }
+    ]);
+  });
+
+  it('keeps UTF-8 characters in base64 ZPL', () => {
+    const zpl = '^XA^CI28^FDJosé Müller^FS^XZ';
+    const encoded = Buffer.from(zpl, 'utf8').toString('base64');
+    expect(detectLabels({ data: { label: encoded } })).toEqual([{ kind: 'zpl', content: zpl }]);
+  });
+
+  it('detects base64 wrapped with spaces and indentation', () => {
+    const wrapped = PDF_BASE64.replace(/(.{16})/g, '$1\n    ');
+    expect(detectLabels({ data: { content: wrapped } })).toEqual([{ kind: 'pdf', content: wrapped }]);
+  });
+
+  it('ignores a long run of unterminated labels', () => {
+    expect(detectLabels({ data: '^XA'.repeat(50000) })).toEqual([]);
+  });
+
   it('ignores ordinary XML', () => {
     expect(detectLabels({ data: '<a><b>hello world, nothing to see here</b><c>12345</c></a>' })).toEqual([]);
   });

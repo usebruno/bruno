@@ -2,7 +2,7 @@
   "preferences": {
     "labelary": {
       "endpoint": "{{labelaryEndpoint}}",
-      "consentedEndpoint": ""
+      "consentedEndpoint": "{{consentedEndpoint}}"
     }
   },
   "lastOpenedCollections": ["{{collectionPath}}"]

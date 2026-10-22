@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { IconDownload } from '@tabler/icons';
 import ActionIcon from 'ui/ActionIcon';
 
-const LabelDownloadButton = ({ label, fileName, content, encoding, testId }) => {
+const LabelDownloadButton = ({ tooltip, fileName, content, encoding, testId }) => {
   const saveLabel = () => {
     window.ipcRenderer
       .invoke('renderer:save-label-file', { fileName, content, encoding })
@@ -16,7 +16,7 @@ const LabelDownloadButton = ({ label, fileName, content, encoding, testId }) => 
   };
 
   return (
-    <ActionIcon label={label} onClick={saveLabel} className="p-1" data-testid={testId}>
+    <ActionIcon label={tooltip} onClick={saveLabel} className="p-1" data-testid={testId}>
       <IconDownload size={16} strokeWidth={2} />
     </ActionIcon>
   );
