@@ -9,8 +9,8 @@ const ZPL_START_REGEX = /\^XA/gi;
 const ZPL_END_REGEX = /\^XZ/gi;
 const BASE64_REGEX = /^[A-Za-z0-9+/\s]+={0,2}$/;
 
-const CDATA_REGEX = /<!\[CDATA\[([\s\S]*?)\]\]>/g;
-const ELEMENT_TEXT_REGEX = />([^<]+)</g;
+// Either a CDATA section (group 1) or the ordinary text that follows a '>' up to the next tag (group 2)
+const XML_TEXT_REGEX = /<!\[CDATA\[([\s\S]*?)\]\]>|(?<=>)([^<]+)(?=<)/g;
 const XML_ENTITY_REGEX = /&(?:#x([0-9a-fA-F]+)|#(\d+)|(lt|gt|quot|apos|amp));/g;
 const NAMED_ENTITIES = { lt: '<', gt: '>', quot: '"', apos: '\'', amp: '&' };
 const MAX_CODE_POINT = 0x10FFFF;
@@ -64,13 +64,11 @@ const decodeXmlEntities = (text) => text.replace(XML_ENTITY_REGEX, (entity, hex,
   return String.fromCodePoint(codePoint);
 });
 
-// Text content of each XML element, so a base64 label is checked on its own instead of as part of the whole document
-const extractElementTexts = (markup) => {
-  const unwrapped = markup.replace(CDATA_REGEX, '$1');
-  return [...unwrapped.matchAll(ELEMENT_TEXT_REGEX)]
-    .map((match) => decodeXmlEntities(match[1]).trim())
-    .filter(Boolean);
-};
+// Text content of each XML element, so a base64 label is checked on its own instead of as part of the whole document.
+// CDATA is literal, so only ordinary text has its entities decoded.
+const extractElementTexts = (markup) => [...markup.matchAll(XML_TEXT_REGEX)]
+  .map(([, cdata, text]) => (cdata ?? decodeXmlEntities(text)).trim())
+  .filter(Boolean);
 
 const collectStrings = (value, out, budget, depth = 0) => {
   if (budget.nodes <= 0 || depth > MAX_SCAN_DEPTH) {
