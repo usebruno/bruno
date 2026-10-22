@@ -298,7 +298,7 @@ const AppTitleBar = () => {
         {/* Center section: Bruno logo + text */}
         <div className="titlebar-center">
           <Bruno width={18} />
-          <span className="bruno-text">Bruno</span>
+          <span className="bruno-text">Brunommerce</span>
         </div>
 
         {/* Right section: Action buttons */}

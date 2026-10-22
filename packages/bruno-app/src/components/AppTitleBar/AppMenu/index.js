@@ -122,7 +122,7 @@ const AppMenu = () => {
       submenu: [
         {
           id: 'about',
-          label: 'About Bruno',
+          label: 'About Brunommerce',
           onClick: () => ipcRenderer?.invoke('renderer:open-about')
         },
         {

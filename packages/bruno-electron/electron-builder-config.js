@@ -3,8 +3,8 @@ require('dotenv').config({ path: process.env.DOTENV_PATH });
 const isBenchmark = process.env.BRUNO_BENCHMARK === 'true';
 
 const config = {
-  appId: 'com.usebruno.app',
-  productName: isBenchmark ? 'Bruno Benchmark' : 'Bruno',
+  appId: 'com.brunommerce.app',
+  productName: isBenchmark ? 'Brunommerce Benchmark' : 'Brunommerce',
   extraMetadata: {
     brunoBuild: {
       benchmark: isBenchmark,
@@ -50,9 +50,9 @@ const config = {
     requirements: 'resources/app-requirements.txt',
     protocols: [
       {
-        name: 'Bruno',
+        name: 'Brunommerce',
         schemes: [
-          'bruno'
+          'brunommerce'
         ]
       }
     ]
@@ -76,13 +76,13 @@ const config = {
     ],
     protocols: [
       {
-        name: 'Bruno',
-        schemes: ['bruno']
+        name: 'Brunommerce',
+        schemes: ['brunommerce']
       }
     ],
     category: 'Development',
     desktop: {
-      MimeType: 'x-scheme-handler/bruno;'
+      MimeType: 'x-scheme-handler/brunommerce;'
     }
   },
   deb: {
@@ -119,7 +119,7 @@ const config = {
       }
     ],
     sign: null,
-    publisherName: 'Bruno Software Inc'
+    publisherName: 'Brunommerce'
   },
   nsis: {
     include: 'resources/installer.nsh',

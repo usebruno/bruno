@@ -1,5 +1,14 @@
+<p align="center">
+  <img src="assets/images/brunommerce-logo.png" width="420" alt="Brunommerce"/>
+</p>
+
+# Brunommerce
+
+**Brunommerce is an unofficial fork of [Bruno](https://github.com/usebruno/bruno)** with extra features for e-commerce and logistics APIs, such as previewing PDF and ZPL shipping labels next to the response. It is not made, endorsed or supported by the Bruno maintainers. "Bruno" is a trademark of its owner, and the original license (MIT, see [license.md](license.md)) and copyright notice are kept.
+
+---
+
 <br />
-<img src="assets/images/logo-transparent.png" width="80"/>
 
 ### Bruno - Opensource IDE for exploring and testing APIs.
 

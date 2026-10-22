@@ -165,13 +165,13 @@ if (useSingleInstance && !gotTheLock) {
   // This is the primary instance (or single instance is disabled)
 
   // Try to remove any existing registrations
-  app.removeAsDefaultProtocolClient('bruno');
-  // Register as default handler for `bruno://` protocol URLs
-  app.setAsDefaultProtocolClient('bruno');
+  app.removeAsDefaultProtocolClient('brunommerce');
+  // Register as default handler for `brunommerce://` protocol URLs
+  app.setAsDefaultProtocolClient('brunommerce');
 
   if (isLinux) {
     try {
-      execSync('xdg-mime default bruno.desktop x-scheme-handler/bruno');
+      execSync('xdg-mime default bruno.desktop x-scheme-handler/brunommerce');
     } catch (err) {}
   }
 
@@ -261,7 +261,7 @@ app.on('ready', async () => {
       preload: path.join(__dirname, 'preload.js'),
       webviewTag: true
     },
-    title: 'Bruno',
+    title: 'Brunommerce',
     icon: path.join(__dirname, 'about/256x256.png'),
     titleBarStyle: isMac ? 'hiddenInset' : isWindows ? 'hidden' : undefined,
     frame: isLinux ? false : true,
