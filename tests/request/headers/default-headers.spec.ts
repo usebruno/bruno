@@ -364,7 +364,7 @@ test.describe('TC-6203', { tag: '@sanity' }, () => {
   });
 });
 
-test.describe.only('TC-6204', { tag: '@sanity' }, () => {
+test.describe('TC-6204', { tag: '@sanity' }, () => {
   for (const omitted of ['User-Agent', 'Accept', 'Accept-Encoding', 'Connection'] as const) {
     test(`DevTools Network omits ${omitted} when it is unchecked`, async ({ page, createTmpDir }) => {
       const dir = `default-headers-devtools-${omitted.toLowerCase()}`;
