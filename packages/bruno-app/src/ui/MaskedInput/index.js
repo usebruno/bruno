@@ -1,7 +1,7 @@
 import React, { forwardRef, useState } from 'react';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 import Input from '../Input';
-import StyledWrapper from './StyledWrapper';
+import ToggleButton from './StyledWrapper';
 
 /**
  * A masked input for passwords, tokens, and API keys.
@@ -19,7 +19,7 @@ import StyledWrapper from './StyledWrapper';
  */
 
 const MaskedInput = forwardRef(
-  ({ visible: controlledVisible, onVisibilityChange, disabled = false, rightSection, type, 'data-testid': testId = 'masked-input', ...rest }, ref) => {
+  ({ visible: controlledVisible, onVisibilityChange, disabled = false, rightSection, type, 'data-testid': testId, ...rest }, ref) => {
     // `type` is destructured only so it cannot reach Input through `rest` and fight the masking.
     void type;
     const [internalVisible, setInternalVisible] = useState(false);
@@ -34,14 +34,14 @@ const MaskedInput = forwardRef(
     };
 
     const toggle = disabled ? null : (
-      <StyledWrapper
+      <ToggleButton
         type="button"
         onClick={handleToggle}
         aria-label={isVisible ? 'Hide value' : 'Show value'}
-        data-testid={`${testId}-visibility-toggle`}
+        data-testid={testId ? `${testId}-visibility-toggle` : undefined}
       >
         {isVisible ? <IconEyeOff size={14} strokeWidth={1.5} /> : <IconEye size={14} strokeWidth={1.5} />}
-      </StyledWrapper>
+      </ToggleButton>
     );
 
     return (

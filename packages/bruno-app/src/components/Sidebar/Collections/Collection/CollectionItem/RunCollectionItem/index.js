@@ -104,7 +104,7 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
-                value={delay}
+                value={delay ?? ''}
                 onChange={(e) => setDelay(e.target.value)}
               />
             </div>

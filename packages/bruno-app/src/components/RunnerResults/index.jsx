@@ -280,7 +280,7 @@ export default function RunnerResults({ collection }) {
                 autoCapitalize="off"
                 spellCheck="false"
                 data-testid="runner-delay-input"
-                value={delay}
+                value={delay ?? ''}
                 onChange={(e) => setDelay(e.target.value)}
               />
             </div>

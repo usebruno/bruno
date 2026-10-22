@@ -4,6 +4,13 @@ const StyledWrapper = styled.div`
   display: flex;
   flex-direction: column;
 
+  /* Nothing to show (no label, description or message): take no part in layout. */
+  ${(props) =>
+    props.$bare
+    && css`
+      display: contents;
+    `}
+
   .field-label {
     display: flex;
     align-items: center;

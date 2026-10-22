@@ -20,7 +20,7 @@ const InputControl = forwardRef(
       id,
       name,
       className = '',
-      'data-testid': testId = 'input',
+      'data-testid': testId,
       'aria-describedby': ariaDescribedBy,
       ...rest
     },
@@ -30,7 +30,7 @@ const InputControl = forwardRef(
     const generatedId = useId().replace(/:/g, '');
 
     const inputId = id ?? field?.inputId ?? generatedId;
-    const hasError = Boolean(error ?? field?.hasError ?? false);
+    const hasError = Boolean(error ?? field?.hasError);
     const describedBy = ariaDescribedBy ?? field?.describedBy;
     const isRequired = required ?? field?.required;
 
@@ -72,21 +72,33 @@ const InputControl = forwardRef(
 InputControl.displayName = 'InputControl';
 
 /**
- * A single-line text input with optional field support.
+ * A single-line input with optional label, description, and error.
  *
- * Automatically wraps in Field when `label`, `description`, or a string `error`
- * is provided. Otherwise, renders a standalone input.
+ * Keeps the input mounted when field content changes, preserving focus
+ * and cursor position. Without field content, the wrapper doesn't affect layout.
+ *
+ * When nested inside a Field, inherits its ID, error, and required state.
+ * An error string on the Input still displays its own message.
+ * Avoid passing a label if the parent Field already has one.
+ *
+ * className applies to the Field when a label or description is present,
+ * and to the input wrapper otherwise.
  */
-const Input = forwardRef(({ label, description, error, required, ...props }, ref) => {
-  const hasField = Boolean(label || description || typeof error === 'string');
-
-  if (!hasField) {
-    return <InputControl ref={ref} error={error} required={required} {...props} />;
-  }
+const Input = forwardRef(({ label, description, error, required, className, ...props }, ref) => {
+  const hasLabelOrDescription = Boolean(label || description);
+  const fieldClassName = hasLabelOrDescription ? className : undefined;
+  const controlClassName = hasLabelOrDescription ? undefined : className;
 
   return (
-    <Field label={label} description={description} error={error} required={required} htmlFor={props.id}>
-      <InputControl ref={ref} {...props} />
+    <Field
+      label={label}
+      description={description}
+      error={error}
+      required={required}
+      htmlFor={props.id}
+      className={fieldClassName}
+    >
+      <InputControl ref={ref} {...props} className={controlClassName} />
     </Field>
   );
 });

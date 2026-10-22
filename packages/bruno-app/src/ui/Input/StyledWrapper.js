@@ -1,7 +1,7 @@
 import styled, { css } from 'styled-components';
-import { INPUT_SIZES } from './sizes';
+import { INPUT_SIZE_TOKENS } from './sizes';
 
-const getSize = (props) => INPUT_SIZES[props.$size] || INPUT_SIZES.md;
+const getSize = (props) => INPUT_SIZE_TOKENS[props.$size] || INPUT_SIZE_TOKENS.md;
 
 const disabledBg = (theme) => (theme.mode === 'dark' ? theme.background.surface0 : theme.background.mantle);
 
@@ -56,6 +56,7 @@ const StyledWrapper = styled.div`
     && css`
       background-color: ${disabledBg(props.theme)};
       cursor: not-allowed;
+      opacity: 0.5;
     `}
 
   .input-control {

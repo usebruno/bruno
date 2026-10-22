@@ -1,4 +1,4 @@
-import React, { createContext, useId, useMemo } from 'react';
+import React, { createContext, useContext, useId, useMemo } from 'react';
 import StyledWrapper from './StyledWrapper';
 
 // Carries the generated id, helper-text id, error and required state down to the
@@ -6,9 +6,10 @@ import StyledWrapper from './StyledWrapper';
 export const FieldContext = createContext(null);
 
 /**
- * Label + control + one slot shared by `description` and `error` (the error wins).
+ * Renders a label, control, and a shared space for description or error.
  *
- * `error` takes the Formik/Yup value, not a boolean: a string renders as the message,
+ * A string error displays an alert message. Other truthy values only mark
+ * the control as invalid, keeping the description visible.
  */
 const Field = ({
   label,
@@ -18,31 +19,34 @@ const Field = ({
   htmlFor,
   children,
   className = '',
-  'data-testid': testId = 'field'
+  'data-testid': testId
 }) => {
+  const parent = useContext(FieldContext);
   const generatedId = useId().replace(/:/g, '');
-  const inputId = htmlFor ?? generatedId;
-  const helperId = `${inputId}-helper`;
+  const inputId = htmlFor ?? parent?.inputId ?? generatedId;
+  const helperId = `${generatedId}-helper`;
 
   const errorMessage = typeof error === 'string' ? error : null;
-  const hasError = Boolean(error);
+  const hasOwnError = Boolean(error);
+  const hasError = hasOwnError || Boolean(parent?.hasError);
+  const isRequired = required || Boolean(parent?.required);
   const helper = errorMessage ?? description ?? null;
 
   const context = useMemo(
     () => ({
       inputId,
-      describedBy: helper ? helperId : undefined,
+      describedBy: helper ? helperId : parent?.describedBy,
       hasError,
-      required
+      required: isRequired
     }),
-    [inputId, helperId, helper, hasError, required]
+    [inputId, helperId, helper, parent?.describedBy, hasError, isRequired]
   );
 
   return (
     <FieldContext.Provider value={context}>
-      <StyledWrapper className={className} $error={hasError} data-testid={testId}>
+      <StyledWrapper className={className} $error={hasOwnError} $bare={!label && !helper} data-testid={testId}>
         {label ? (
-          <label className={`field-label${required ? ' is-required' : ''}`} htmlFor={inputId}>
+          <label className={`field-label${isRequired ? ' is-required' : ''}`} htmlFor={inputId}>
             {label}
           </label>
         ) : null}
@@ -50,7 +54,7 @@ const Field = ({
         {children}
 
         {helper ? (
-          <div className="field-helper" id={helperId} role={hasError ? 'alert' : undefined}>
+          <div className="field-helper" id={helperId} role={errorMessage ? 'alert' : undefined}>
             {helper}
           </div>
         ) : null}

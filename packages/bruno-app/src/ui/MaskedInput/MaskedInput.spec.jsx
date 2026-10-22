@@ -25,7 +25,7 @@ const theme = {
 const renderMasked = (props = {}) =>
   render(
     <ThemeProvider theme={theme}>
-      <MaskedInput value="hunter2" onChange={() => {}} {...props} />
+      <MaskedInput value="hunter2" onChange={() => {}} data-testid="masked-input" {...props} />
     </ThemeProvider>
   );
 
@@ -69,7 +69,7 @@ describe('MaskedInput', () => {
 
     rerender(
       <ThemeProvider theme={theme}>
-        <MaskedInput value="hunter2" onChange={() => {}} visible onVisibilityChange={onVisibilityChange} />
+        <MaskedInput value="hunter2" onChange={() => {}} data-testid="masked-input" visible onVisibilityChange={onVisibilityChange} />
       </ThemeProvider>
     );
     expect(screen.getByTestId('masked-input')).toHaveAttribute('type', 'text');

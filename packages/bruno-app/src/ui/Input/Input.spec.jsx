@@ -95,13 +95,43 @@ describe('Input', () => {
     expect(screen.getByTestId('right')).toBeInTheDocument();
   });
 
-  it('applies a default data-testid that callers can override', () => {
+  it('sets data-testid only when the caller passes one', () => {
     const { unmount } = renderWithTheme(<Input value="" onChange={() => {}} />);
-    expect(screen.getByTestId('input')).toBe(screen.getByRole('textbox'));
+    expect(screen.getByRole('textbox')).not.toHaveAttribute('data-testid');
     unmount();
 
     renderWithTheme(<Input value="" onChange={() => {}} data-testid="collection-name" />);
     expect(screen.getByTestId('collection-name')).toBe(screen.getByRole('textbox'));
+  });
+
+  it('keeps the same input element and focus when an error message appears', () => {
+    const ui = (error) => (
+      <ThemeProvider theme={theme}>
+        <Input value="" onChange={() => {}} error={error} />
+      </ThemeProvider>
+    );
+    const { rerender } = render(ui(undefined));
+
+    const input = screen.getByRole('textbox');
+    input.focus();
+    rerender(ui('Name is required'));
+
+    expect(screen.getByRole('textbox')).toBe(input);
+    expect(input).toHaveFocus();
+    expect(screen.getByRole('alert')).toHaveTextContent('Name is required');
+  });
+
+  it('shows its own error message inside a caller Field and keeps the outer label', () => {
+    renderWithTheme(
+      <Field label="Name">
+        <Input value="" onChange={() => {}} error="Name is required" />
+      </Field>
+    );
+
+    const input = screen.getByLabelText('Name');
+    expect(screen.getByRole('alert')).toHaveTextContent('Name is required');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveAttribute('aria-describedby', screen.getByRole('alert').id);
   });
 
   it('leaves autocomplete to the caller', () => {

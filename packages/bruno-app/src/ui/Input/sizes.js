@@ -1,7 +1,7 @@
 /**
  * Input sizes used by Input and MaskedInput.
  */
-export const INPUT_SIZES = {
+export const INPUT_SIZE_TOKENS = {
   xs: {
     height: '24px',
     padding: '0 0.375rem',

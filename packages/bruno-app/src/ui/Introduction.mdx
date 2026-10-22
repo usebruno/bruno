@@ -24,16 +24,16 @@ they get one.
 ## Using a component
 
 ```jsx
-import { Field, Input } from 'ui';
+import Field from 'ui/Field';
+import Input from 'ui/Input';
 
 <Field label="Collection name" error={touched.name && errors.name}>
   <Input value={name} onChange={(e) => setName(e.target.value)} />
 </Field>
 ```
 
-Prefer the barrel over deep paths, and don't reach into a component's internals. Most
-existing code still imports deep paths (`ui/Button`) — either resolves, so don't churn
-files just to switch.
+Import each component from its own folder (`ui/Input`, `ui/Button`) and don't reach into
+a component's internals.
 
 ## Conventions
 
@@ -43,7 +43,8 @@ files just to switch.
 - **Refs are forwarded** to the element a caller would expect to focus or measure.
 - **Extra props pass through** via `...rest`, so any native attribute keeps working
   without a component change.
-- **`data-testid`** is a named prop with a per-component default.
+- **`data-testid`** is a named prop. Pass it where Playwright needs to find the element;
+  components don't set a default.
 - **Styling** lives in a sibling `StyledWrapper.js`, driven by `$`-prefixed transient
   props. Colours come from the theme; Tailwind classes are for layout only, never colour.
 - **Accessible names** are required where they can't be derived — `SegmentedControl`

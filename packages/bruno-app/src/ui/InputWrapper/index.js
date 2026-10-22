@@ -4,7 +4,7 @@ import StyledWrapper from './StyledWrapper';
 /**
  * InputWrapper - Shared form field wrapper for label, description, error
  *
- * Used internally by TextInput, Select, MaskedInput, and other form components.
+ * Used internally by Select and MaskedTextfield.
  *
  * @param {string|ReactNode} props.label - Label above the input
  * @param {string|ReactNode} props.description - Description text below the label

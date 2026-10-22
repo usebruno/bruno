@@ -16,6 +16,12 @@ const StyledWrapper = styled.button`
   &:hover {
     color: ${(props) => props.theme.text};
   }
+
+  &:focus-visible {
+    outline: 2px solid ${(props) => props.theme.input.focusBorder};
+    outline-offset: 1px;
+    color: ${(props) => props.theme.text};
+  }
 `;
 
 export default StyledWrapper;
