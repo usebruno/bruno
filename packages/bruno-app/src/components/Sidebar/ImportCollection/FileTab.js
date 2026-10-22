@@ -1,37 +1,16 @@
 import React, { useState, useRef } from 'react';
 import { IconFileImport } from '@tabler/icons';
 import { toastError } from 'utils/common/error';
-import jsyaml from 'js-yaml';
 import { isPostmanCollection } from 'utils/importers/postman-collection';
 import { isInsomniaCollection } from 'utils/importers/insomnia-collection';
 import { isOpenApiSpec } from 'utils/importers/openapi-collection';
 import { isWSDLCollection } from 'utils/importers/wsdl-collection';
 import { isBrunoCollection } from 'utils/importers/bruno-collection';
 import { isOpenCollection } from 'utils/importers/opencollection';
+import { parseImportFileText } from 'utils/importers/common';
 import { useTheme } from 'providers/Theme';
 
-const convertFileToObject = async (file) => {
-  const text = await file.text();
-
-  // Handle WSDL files - return as plain text
-  if (file.name.endsWith('.wsdl') || file.type === 'text/xml' || file.type === 'application/xml') {
-    return text;
-  }
-
-  try {
-    if (file.type === 'application/json' || file.name.endsWith('.json')) {
-      return JSON.parse(text);
-    }
-
-    const parsed = jsyaml.load(text, { schema: jsyaml.JSON_SCHEMA });
-    if (typeof parsed !== 'object' || parsed === null) {
-      throw new Error();
-    }
-    return parsed;
-  } catch {
-    throw new Error('Failed to parse the file – ensure it is valid JSON or YAML');
-  }
-};
+const convertFileToObject = async (file) => parseImportFileText(await file.text(), file);
 
 const FileTab = ({
   setIsLoading,
@@ -119,7 +98,7 @@ const FileTab = ({
           }
 
           if (type) {
-            filesData.push({ file, data, type });
+            filesData.push({ file, data, type, filePath: window.ipcRenderer.getFilePath(file) });
           }
         } catch (err) {
           console.warn(`Failed to process file ${file.name}:`, err);

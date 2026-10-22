@@ -3180,7 +3180,7 @@ export const importCollection = (collection, collectionLocation, options = {}) =
 
       const result = await ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation, {
         format: options.format || DEFAULT_COLLECTION_FORMAT,
-        rawOpenAPISpec: options.rawOpenAPISpec
+        rawOpenAPISpecs: options.rawOpenAPISpecs
       });
       const importedPaths = result.success.items;
 

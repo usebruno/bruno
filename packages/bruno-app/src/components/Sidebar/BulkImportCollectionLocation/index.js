@@ -15,9 +15,10 @@ import Dropdown from 'components/Dropdown';
 import SelectionList from 'components/SelectionList';
 import { postmanToBruno } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
-import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
+import { convertOpenapiToBruno, isSwagger2Spec, buildOpenApiSyncBrunoConfig } from 'utils/importers/openapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
 import { convertWsdlToBruno } from 'utils/importers/wsdl-collection';
+import { parseImportFileText } from 'utils/importers/common';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { showImportIssuesToast } from 'components/Toast/ImportIssuesToast';
@@ -100,6 +101,18 @@ const convertCollection = async (format, rawData, groupingType, filePath) => {
   return { collection, issues };
 };
 
+const canSyncSpec = (fileData) => fileData.type === 'openapi' && !isSwagger2Spec(fileData.data) && Boolean(fileData.filePath);
+
+const readSpecForSync = async (file) => {
+  try {
+    const rawContent = await file.text();
+    return { rawContent, data: parseImportFileText(rawContent, file) };
+  } catch (err) {
+    console.warn(`Failed to read ${file.name} for spec updates:`, err);
+    return null;
+  }
+};
+
 export function normalizeName(name) {
   if (typeof name !== 'string') {
     return '';
@@ -156,6 +169,7 @@ export const BulkImportCollectionLocation = ({
   const [applyToCollection, setApplyToCollection] = useState(false);
   const [groupingType, setGroupingType] = useState('tags');
   const [collectionFormat, setCollectionFormat] = useState(DEFAULT_COLLECTION_FORMAT);
+  const [enableCheckForSpecUpdates, setEnableCheckForSpecUpdates] = useState(false);
   const [renamedCollectionNames, setRenamedCollectionNames] = useState({});
   const [renamedEnvironmentNames, setRenamedEnvironmentNames] = useState({});
   const [importIssues, setImportIssues] = useState({});
@@ -187,6 +201,7 @@ export const BulkImportCollectionLocation = ({
   // For multiple files import
   const filesData = isMultipleImport ? importData.filesData : [];
   const hasOpenApiSpec = filesData.some((f) => f.type === 'openapi');
+  const hasSyncableSpec = filesData.some(canSyncSpec);
 
   // Create unified collection structure for display
   const importedCollection = isMultipleImport
@@ -205,6 +220,10 @@ export const BulkImportCollectionLocation = ({
   // Initialize selected items based on import type
   const [selectedCollections, setSelectedCollections] = useState(importedCollection.map((col) => col.uid));
   const [selectedEnvironments, setSelectedEnvironments] = useState(isBulkImport ? importedEnvironmentFromBulk.map((env) => env.uid) : []);
+
+  const selectedSwagger2FileNames = importedCollection
+    .filter((col) => selectedCollections.includes(col.uid) && col._fileData?.type === 'openapi' && isSwagger2Spec(col._fileData.data))
+    .map((col) => col._fileData.file.name);
 
   // Sort collections to show selected items first, then unselected items
   // This helps users see their selections at the top of the list
@@ -302,21 +321,23 @@ export const BulkImportCollectionLocation = ({
     onSubmit: async (values) => {
       let filteredCollections = [];
       const selectedItems = importedCollection.filter((col) => selectedCollections.includes(col.uid));
+      const rawOpenAPISpecs = {};
 
       if (isMultipleImport) {
         // Convert selected files to collections at submit time
         const collectedIssues = {};
         for (const item of selectedItems) {
           try {
-            const filePath = item._fileData.type === 'wsdl' && item._fileData.file
-              ? window.ipcRenderer.getFilePath(item._fileData.file)
-              : undefined;
-            const { collection, issues } = await convertCollection(item._fileData.type, item._fileData.data, groupingType, filePath);
+            const specForSync = enableCheckForSpecUpdates && canSyncSpec(item._fileData) ? await readSpecForSync(item._fileData.file) : null;
+            const { collection, issues } = await convertCollection(item._fileData.type, specForSync ? specForSync.data : item._fileData.data, groupingType, item._fileData.filePath);
             if (collection) {
               // Preserve the synthetic UID so status tracking, rename tracking,
               // and UI rendering all use the same key
               collection.uid = item.uid;
               filteredCollections.push(collection);
+              if (specForSync) {
+                rawOpenAPISpecs[item.uid] = specForSync.rawContent;
+              }
               if (issues && issues.length > 0) {
                 collectedIssues[item.uid] = issues;
               }
@@ -396,6 +417,15 @@ export const BulkImportCollectionLocation = ({
       });
 
       setRenamedCollectionNames(renamedNames);
+
+      filteredCollections.forEach((collection) => {
+        if (!Object.hasOwn(rawOpenAPISpecs, collection.uid)) {
+          return;
+        }
+
+        const fileData = selectedItems.find((item) => item.uid === collection.uid)._fileData;
+        collection.brunoConfig = buildOpenApiSyncBrunoConfig(collection, { sourceUrl: fileData.filePath, groupBy: groupingType });
+      });
 
       // Process all selected environments and rename duplicates
       // Don't use getUniqueEnvironments as it filters out duplicates - we want to rename them instead
@@ -479,7 +509,7 @@ export const BulkImportCollectionLocation = ({
       setImportStarted(true);
 
       if (filteredCollections.length > 1 || isBulkImport || isMultipleImport) {
-        dispatch(importCollection(filteredCollections, values.collectionLocation, { format: collectionFormat }))
+        dispatch(importCollection(filteredCollections, values.collectionLocation, { format: collectionFormat, rawOpenAPISpecs }))
           .catch((err) => {
             console.error('Failed to import collections', err);
             filteredCollections.forEach((collection) => {
@@ -922,6 +952,31 @@ export const BulkImportCollectionLocation = ({
                           ))}
                         </Dropdown>
                       </div>
+                    </div>
+                    <label className={`mt-4 flex items-start gap-2 ${hasSyncableSpec ? 'cursor-pointer' : 'opacity-50 pointer-events-none'}`}>
+                      <input
+                        type="checkbox"
+                        checked={enableCheckForSpecUpdates}
+                        onChange={(e) => setEnableCheckForSpecUpdates(e.target.checked)}
+                        disabled={!hasSyncableSpec}
+                        className={`checkbox mt-0.5 ${hasSyncableSpec ? 'cursor-pointer' : ''}`}
+                        data-testid="bulk-import-check-for-spec-updates"
+                      />
+                      <div>
+                        <span className="checkbox-option-label">Check for Spec Updates</span>
+                        <p className="checkbox-option-description" data-testid="bulk-import-check-for-spec-updates-description">
+                          {hasSyncableSpec
+                            ? 'Stay notified of spec changes and sync your collection with the spec.'
+                            : 'OpenAPI Sync is not supported for Swagger 2.0 specs.'}
+                        </p>
+                      </div>
+                    </label>
+                    <div role="status">
+                      {enableCheckForSpecUpdates && selectedSwagger2FileNames.length > 0 && (
+                        <p className="swagger2-sync-note mt-2" data-testid="bulk-import-swagger2-sync-note">
+                          Swagger 2.0 specs are imported without sync: {selectedSwagger2FileNames.join(', ')}
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
