@@ -80,9 +80,19 @@ const storeState = {
   mockServer: { instancesByWorkspace: { 'ws-1': [] } }
 };
 
-const renderModal = () => {
+const renderModal = (props = {}) => {
   useSelector.mockImplementation((selector) => selector(storeState));
-  return render(<CreateMockServerModal onClose={jest.fn()} />);
+  return render(<CreateMockServerModal onClose={jest.fn()} {...props} />);
+};
+
+const specServer = {
+  uid: 'ms-1',
+  workspaceUid: 'ws-1',
+  name: 'Pets',
+  sourceType: 'spec',
+  specPath: '/tmp/pet.yaml',
+  port: 4000,
+  globalDelay: 0
 };
 
 describe('CreateMockServerModal validation', () => {
@@ -190,5 +200,24 @@ describe('CreateMockServerModal API spec validation', () => {
 
     await waitFor(() => expect(saveMockServerInstance).toHaveBeenCalled());
     expect(loadMockResponsesFromSpec).toHaveBeenCalledWith(expect.objectContaining({ specPath: '/tmp/pet.yaml' }));
+  });
+
+  it('refuses to save settings when the linked spec no longer has paths', async () => {
+    mockSpecValidation(() => Promise.reject(new Error('API spec does not define any paths.')));
+
+    renderModal({ editingInstance: specServer });
+    fireEvent.click(screen.getByTestId('modal-submit-btn'));
+
+    expect(await screen.findByText('API spec does not define any paths.')).toBeInTheDocument();
+    expect(saveMockServerInstance).not.toHaveBeenCalled();
+  });
+
+  it('shows a fallback spec error when validation fails without a message', async () => {
+    mockSpecValidation(() => Promise.reject(new Error('')));
+
+    submitSpecServer();
+
+    expect(await screen.findByText('The selected API spec is not valid')).toBeInTheDocument();
+    expect(saveMockServerInstance).not.toHaveBeenCalled();
   });
 });

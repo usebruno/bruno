@@ -186,6 +186,15 @@ describe('mock-spec-routes', () => {
       expect(responses[0].response.headers[0].value).toBe('application/xml');
     });
 
+    it('builds an empty JSON body when a response has no example and no schema', () => {
+      const responses = buildMockResponsesFromSpec(swaggerSpec({}));
+
+      expect(responses).toHaveLength(1);
+      expect(responses[0].request).toEqual(expect.objectContaining({ method: 'GET', url: '/pets' }));
+      expect(responses[0].response.body.content).toBe('{}');
+      expect(responses[0].response.headers[0].value).toBe('application/json');
+    });
+
     it('generates the body from a schema that references #/definitions', () => {
       const responses = buildMockResponsesFromSpec(swaggerSpec({
         schema: { type: 'array', items: { $ref: '#/definitions/Pet' } }
