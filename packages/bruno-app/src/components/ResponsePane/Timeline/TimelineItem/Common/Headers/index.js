@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons';
-import compareHeaderNames from '../../../../utils/compareHeaderNames';
+import compareHeaderNames from 'components/ResponsePane/utils/compareHeaderNames';
 
 const toEntries = (headers) => {
   if (!headers) return [];
