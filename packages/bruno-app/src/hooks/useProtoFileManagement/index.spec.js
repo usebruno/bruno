@@ -49,6 +49,10 @@ const createStore = () => configureStore({
 
 const getCollection = (store) => store.getState().collections.collections[0];
 
+const createDraftWithScript = (store) => {
+  store.dispatch(updateCollectionRequestScript({ collectionUid: COLLECTION_UID, script: SCRIPT }));
+};
+
 const renderProtoHook = (store) => renderHook(() => useProtoFileManagement(getCollection(store)), {
   wrapper: ({ children }) => <Provider store={store}>{children}</Provider>
 });
@@ -70,9 +74,9 @@ beforeEach(() => {
 });
 
 describe('useProtoFileManagement — persisting protobuf config from a request', () => {
-  it('keeps the draft and the written file in sync when the collection has a draft', async () => {
+  it('mirrors the added proto file into the draft and preserves the draft\'s unsaved script', async () => {
     const store = createStore();
-    store.dispatch(updateCollectionRequestScript({ collectionUid: COLLECTION_UID, script: SCRIPT }));
+    createDraftWithScript(store);
     const { result } = renderProtoHook(store);
 
     await act(async () => {
@@ -85,17 +89,19 @@ describe('useProtoFileManagement — persisting protobuf config from a request',
     expect(draft.root.request.script.req).toBe(SCRIPT);
   });
 
-  it('keeps the draft and the written file in sync when an import path is toggled from a request', async () => {
+  it('mirrors the toggled import path into the draft and preserves the draft\'s unsaved script', async () => {
     const store = createStore();
-    store.dispatch(updateCollectionRequestScript({ collectionUid: COLLECTION_UID, script: SCRIPT }));
+    createDraftWithScript(store);
     const { result } = renderProtoHook(store);
 
     await act(async () => {
       await result.current.toggleImportPathFromRequest(0);
     });
 
+    const { draft } = getCollection(store);
     expect(writtenProtobuf.importPaths).toEqual([{ ...EXISTING_IMPORT_PATH, enabled: false }]);
-    expect(getCollection(store).draft.brunoConfig.protobuf).toEqual(writtenProtobuf);
+    expect(draft.brunoConfig.protobuf).toEqual(writtenProtobuf);
+    expect(draft.root.request.script.req).toBe(SCRIPT);
   });
 
   it('writes to disk without creating a draft when the collection has no unsaved changes', async () => {
@@ -145,7 +151,7 @@ describe('useProtoFileManagement — persisting protobuf config from a request',
 
   it('leaves the draft untouched when the disk write fails', async () => {
     const store = createStore();
-    store.dispatch(updateCollectionRequestScript({ collectionUid: COLLECTION_UID, script: SCRIPT }));
+    createDraftWithScript(store);
     const { result } = renderProtoHook(store);
     writeError = new Error('disk full');
 
