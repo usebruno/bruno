@@ -4,7 +4,6 @@ import toast from 'react-hot-toast';
 import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
 import {
   initMockResponseEditor,
-  removeMockResponseEditor,
   updateMockResponseRules,
   cancelMockResponseEditorEdit
 } from 'providers/ReduxStore/slices/collections';
@@ -12,6 +11,7 @@ import { deleteMockResponse, loadMockResponses, startMockServer, syncMockServerS
 import { saveMockResponseEditor } from 'providers/ReduxStore/slices/mock-server/actions';
 import { closeTabs, updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection, tryMockResponseRequest, buildDemoRequestFromRules, buildMockServerTryUrl } from 'utils/mock-server/mock-responses';
+import { hasUnsavedMockResponseChanges, shouldRebuildMockResponseEditor } from 'utils/mock-server/mock-responses/editor';
 import { newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
 import { flattenItems, isItemTransientRequest } from 'utils/collections';
@@ -129,22 +129,19 @@ const MockResponse = ({ instance, collection, responseUid }) => {
       return;
     }
 
-    if (!editor || editor.savedMockResponse?.uid !== storedResponse.uid) {
+    if (shouldRebuildMockResponseEditor(editor, storedResponse)) {
       dispatch(initMockResponseEditor({
         mockResponse: storedResponse,
-        mockServerUid: instance.uid
+        mockServerUid: instance.uid,
+        collectionUid: collection?.uid || instance.collectionUid || null
       }));
     }
   }, [dispatch, storedResponse, editor, resolvedCollection, instance.uid]);
 
-  useEffect(() => {
-    return () => {
-      dispatch(removeMockResponseEditor({ responseUid }));
-    };
-  }, [dispatch, responseUid]);
-
   const item = editor?.item || null;
   const exampleUid = responseUid;
+  const hasUnsavedChanges = useMemo(() => hasUnsavedMockResponseChanges(editor, responseUid), [editor, responseUid]);
+  const isEditing = editMode || hasUnsavedChanges;
 
   const handleMouseMove = (event) => {
     if (dragging && mainSectionRef.current) {
@@ -253,7 +250,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     const handleKeyDown = (event) => {
       if ((event.ctrlKey || event.metaKey) && event.key === 's') {
         event.preventDefault();
-        if (editMode && item) {
+        if (isEditing && item) {
           handleSave();
         }
       }
@@ -263,7 +260,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [editMode, item, editor]);
+  }, [isEditing, item, editor]);
 
   const handleStartServer = async () => {
     try {
@@ -396,7 +393,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
         item={item}
         collection={editorCollection}
         exampleUid={exampleUid}
-        editMode={editMode}
+        editMode={isEditing}
         onEditToggle={() => setEditMode(true)}
         onSave={handleSave}
         onCancel={handleCancel}
@@ -420,7 +417,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
               item={item}
               collection={editorCollection}
               exampleUid={exampleUid}
-              editMode={editMode}
+              editMode={isEditing}
               onSave={handleSave}
               rules={editor.rules}
               onRulesChange={(rules) => dispatch(updateMockResponseRules({ responseUid, rules }))}
@@ -445,7 +442,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
             item={item}
             collection={editorCollection}
             example={item.draft?.examples?.find((entry) => entry.uid === exampleUid)}
-            editMode={editMode}
+            editMode={isEditing}
             exampleUid={exampleUid}
             onSave={handleSave}
             expectedResponseLabel="Expected"

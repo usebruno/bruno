@@ -26,6 +26,7 @@ import { getUniqueTagsFromItems } from 'utils/collections/index';
 import { DEFAULT_HTTP_ITEM_SETTINGS, GRPC_SCRIPT_KEYS, SCRIPT_TYPES } from '@usebruno/common';
 import * as exampleReducers from './exampleReducers';
 import * as mockResponseEditorReducers from './mockResponseEditorReducers';
+import { closeTabs, closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 
 const FILE_DERIVED_REQUEST_FIELDS = [
   'name',
@@ -4293,6 +4294,21 @@ export const collectionsSlice = createSlice({
     cancelMockResponseEditorEdit: mockResponseEditorReducers.cancelMockResponseEditorEdit,
     removeMockResponseEditor: mockResponseEditorReducers.removeMockResponseEditor
     /* End Response Example Actions */
+  },
+  extraReducers: (builder) => {
+    builder.addCase(closeTabs, (state, action) => {
+      for (const tabUid of action.payload.tabUids || []) {
+        delete state.mockResponseEditors[tabUid];
+      }
+    });
+    builder.addCase(closeAllCollectionTabs, (state, action) => {
+      const { collectionUid } = action.payload;
+      for (const responseUid of Object.keys(state.mockResponseEditors)) {
+        if (state.mockResponseEditors[responseUid]?.collectionUid === collectionUid) {
+          delete state.mockResponseEditors[responseUid];
+        }
+      }
+    });
   }
 });
 
