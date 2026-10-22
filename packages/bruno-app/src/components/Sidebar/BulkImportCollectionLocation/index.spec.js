@@ -144,6 +144,25 @@ describe('BulkImportCollectionLocation check for spec updates', () => {
     expect(specUpdatesDescription()).toHaveTextContent('OpenAPI Sync is not supported for Swagger 2.0 specs.');
   });
 
+  it('is disabled while no selected OpenAPI spec can sync', () => {
+    renderBulkImport([ordersSpec, swagger2Spec]);
+
+    toggleFileSelection('Orders API orders.yaml');
+    expect(specUpdatesCheckbox()).toBeDisabled();
+    expect(specUpdatesDescription()).toHaveTextContent('OpenAPI Sync is not supported for Swagger 2.0 specs.');
+
+    toggleFileSelection('Orders API orders.yaml');
+    expect(specUpdatesCheckbox()).toBeEnabled();
+  });
+
+  it('is not offered when no selected file is an OpenAPI spec', () => {
+    renderBulkImport([ordersSpec, postmanFile]);
+
+    toggleFileSelection('Orders API orders.yaml');
+
+    expect(screen.queryByTestId('bulk-import-check-for-spec-updates')).not.toBeInTheDocument();
+  });
+
   it('names the selected Swagger 2.0 specs that will be imported without sync', () => {
     renderBulkImport([ordersSpec, swagger2Spec]);
     expect(swagger2Note()).not.toBeInTheDocument();

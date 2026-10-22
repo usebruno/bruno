@@ -190,7 +190,6 @@ export const BulkImportCollectionLocation = ({
   // For multiple files import
   const filesData = isMultipleImport ? importData.filesData : [];
   const hasOpenApiSpec = filesData.some((f) => f.type === 'openapi');
-  const hasSyncableSpec = filesData.some(canSyncSpec);
 
   // Create unified collection structure for display
   const importedCollection = isMultipleImport
@@ -210,9 +209,14 @@ export const BulkImportCollectionLocation = ({
   const [selectedCollections, setSelectedCollections] = useState(importedCollection.map((col) => col.uid));
   const [selectedEnvironments, setSelectedEnvironments] = useState(isBulkImport ? importedEnvironmentFromBulk.map((env) => env.uid) : []);
 
-  const selectedSwagger2FileNames = importedCollection
-    .filter((col) => selectedCollections.includes(col.uid) && col._fileData?.type === 'openapi' && isSwagger2Spec(col._fileData.data))
-    .map((col) => col._fileData.file.name);
+  const selectedFiles = importedCollection
+    .filter((col) => selectedCollections.includes(col.uid) && col._fileData)
+    .map((col) => col._fileData);
+  const hasSelectedOpenApiSpec = selectedFiles.some((fileData) => fileData.type === 'openapi');
+  const hasSyncableSpec = selectedFiles.some(canSyncSpec);
+  const selectedSwagger2FileNames = selectedFiles
+    .filter((fileData) => fileData.type === 'openapi' && isSwagger2Spec(fileData.data))
+    .map((fileData) => fileData.file.name);
 
   // Sort collections to show selected items first, then unselected items
   // This helps users see their selections at the top of the list
@@ -941,24 +945,26 @@ export const BulkImportCollectionLocation = ({
                         </Dropdown>
                       </div>
                     </div>
-                    <label className={`mt-4 flex items-start gap-2 ${hasSyncableSpec ? 'cursor-pointer' : 'opacity-50 pointer-events-none'}`}>
-                      <input
-                        type="checkbox"
-                        checked={enableCheckForSpecUpdates}
-                        onChange={(e) => setEnableCheckForSpecUpdates(e.target.checked)}
-                        disabled={!hasSyncableSpec}
-                        className={`checkbox mt-0.5 ${hasSyncableSpec ? 'cursor-pointer' : ''}`}
-                        data-testid="bulk-import-check-for-spec-updates"
-                      />
-                      <div>
-                        <span className="checkbox-option-label">Check for Spec Updates</span>
-                        <p className="checkbox-option-description" data-testid="bulk-import-check-for-spec-updates-description">
-                          {hasSyncableSpec
-                            ? 'Stay notified of spec changes and sync your collection with the spec.'
-                            : 'OpenAPI Sync is not supported for Swagger 2.0 specs.'}
-                        </p>
-                      </div>
-                    </label>
+                    {hasSelectedOpenApiSpec && (
+                      <label className={`mt-4 flex items-start gap-2 ${hasSyncableSpec ? 'cursor-pointer' : 'opacity-50 pointer-events-none'}`}>
+                        <input
+                          type="checkbox"
+                          checked={enableCheckForSpecUpdates}
+                          onChange={(e) => setEnableCheckForSpecUpdates(e.target.checked)}
+                          disabled={!hasSyncableSpec}
+                          className={`checkbox mt-0.5 ${hasSyncableSpec ? 'cursor-pointer' : ''}`}
+                          data-testid="bulk-import-check-for-spec-updates"
+                        />
+                        <div>
+                          <span className="checkbox-option-label">Check for Spec Updates</span>
+                          <p className="checkbox-option-description" data-testid="bulk-import-check-for-spec-updates-description">
+                            {hasSyncableSpec
+                              ? 'Stay notified of spec changes and sync your collection with the spec.'
+                              : 'OpenAPI Sync is not supported for Swagger 2.0 specs.'}
+                          </p>
+                        </div>
+                      </label>
+                    )}
                     <div role="status">
                       {enableCheckForSpecUpdates && selectedSwagger2FileNames.length > 0 && (
                         <p className="swagger2-sync-note mt-2" data-testid="bulk-import-swagger2-sync-note">
