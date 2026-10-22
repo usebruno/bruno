@@ -11,9 +11,10 @@ const BASE64_REGEX = /^[A-Za-z0-9+/\s]+={0,2}$/;
 
 const CDATA_REGEX = /<!\[CDATA\[([\s\S]*?)\]\]>/g;
 const ELEMENT_TEXT_REGEX = />([^<]+)</g;
-const NUMERIC_ENTITY_REGEX = /&#(?:x[0-9a-f]+|\d+);/gi;
-const NAMED_ENTITIES = { '&lt;': '<', '&gt;': '>', '&quot;': '"', '&apos;': '\'', '&amp;': '&' };
-const NAMED_ENTITY_REGEX = /&(?:lt|gt|quot|apos|amp);/g;
+const XML_ENTITY_REGEX = /&(?:#x([0-9a-fA-F]+)|#(\d+)|(lt|gt|quot|apos|amp));/g;
+const NAMED_ENTITIES = { lt: '<', gt: '>', quot: '"', apos: '\'', amp: '&' };
+const MAX_CODE_POINT = 0x10FFFF;
+const CARRIAGE_RETURN = 13;
 
 // Finds each ^XA..^XZ block in a single pass; an unterminated ^XA ends the scan instead of rescanning to the end per start
 const extractZplLabels = (text) => {
@@ -52,11 +53,22 @@ const detectInString = (str) => {
   return extractZplLabels(Buffer.from(str, 'base64').toString('utf8'));
 };
 
+// Decodes entities in one pass so a decoded '&' is never decoded again. Carriage returns are dropped because SOAP
+// APIs insert them (as &#13;) into wrapped base64; code points XML cannot represent are dropped too.
+const decodeXmlEntities = (text) => text.replace(XML_ENTITY_REGEX, (entity, hex, decimal, name) => {
+  if (name) return NAMED_ENTITIES[name];
+
+  const codePoint = hex ? parseInt(hex, 16) : parseInt(decimal, 10);
+  const isSurrogate = codePoint >= 0xD800 && codePoint <= 0xDFFF;
+  if (codePoint === CARRIAGE_RETURN || codePoint === 0 || codePoint > MAX_CODE_POINT || isSurrogate) return '';
+  return String.fromCodePoint(codePoint);
+});
+
 // Text content of each XML element, so a base64 label is checked on its own instead of as part of the whole document
 const extractElementTexts = (markup) => {
   const unwrapped = markup.replace(CDATA_REGEX, '$1');
   return [...unwrapped.matchAll(ELEMENT_TEXT_REGEX)]
-    .map((match) => match[1].replace(NUMERIC_ENTITY_REGEX, '').replace(NAMED_ENTITY_REGEX, (entity) => NAMED_ENTITIES[entity]).trim())
+    .map((match) => decodeXmlEntities(match[1]).trim())
     .filter(Boolean);
 };
 

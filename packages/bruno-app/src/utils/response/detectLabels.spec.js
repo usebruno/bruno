@@ -58,6 +58,21 @@ describe('detectLabels', () => {
     ]);
   });
 
+  it('decodes numeric entities in ZPL text but drops carriage returns', () => {
+    const xml = '<a><label>^XA^FDJos&#233; &#x4F60;&#13;^FS^XZ</label></a>';
+    expect(detectLabels({ data: xml })).toEqual([{ kind: 'zpl', content: '^XA^FDJosé 你^FS^XZ' }]);
+  });
+
+  it('drops numeric entities that are not valid code points without throwing', () => {
+    const xml = '<a><label>^XA^FD&#1114112;&#xD800;&#0;ok^FS^XZ</label></a>';
+    expect(detectLabels({ data: xml })).toEqual([{ kind: 'zpl', content: '^XA^FDok^FS^XZ' }]);
+  });
+
+  it('does not decode an entity twice', () => {
+    const xml = '<a><label>^XA^FDa &amp;#233; b^FS^XZ</label></a>';
+    expect(detectLabels({ data: xml })).toEqual([{ kind: 'zpl', content: '^XA^FDa &#233; b^FS^XZ' }]);
+  });
+
   it('keeps UTF-8 characters in base64 ZPL', () => {
     const zpl = '^XA^CI28^FDJosé Müller^FS^XZ';
     const encoded = Buffer.from(zpl, 'utf8').toString('base64');
