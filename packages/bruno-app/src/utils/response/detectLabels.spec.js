@@ -68,6 +68,24 @@ describe('detectLabels', () => {
     expect(detectLabels({ data: xml })).toEqual([{ kind: 'zpl', content: '^XA^FDok^FS^XZ' }]);
   });
 
+  it('keeps entity text inside CDATA literal', () => {
+    const xml = '<a><label><![CDATA[^XA^FDTom &amp; J&#233; &#13;^FS^XZ]]></label></a>';
+    expect(detectLabels({ data: xml })).toEqual([{ kind: 'zpl', content: '^XA^FDTom &amp; J&#233; &#13;^FS^XZ' }]);
+  });
+
+  it('keeps markup characters inside CDATA as part of the label', () => {
+    const xml = '<a><label><![CDATA[^XA^FD<b>bold</b>^FS^XZ]]></label></a>';
+    expect(detectLabels({ data: xml })).toEqual([{ kind: 'zpl', content: '^XA^FD<b>bold</b>^FS^XZ' }]);
+  });
+
+  it('reads text that follows a CDATA section in the same element', () => {
+    const xml = `<a><label><![CDATA[${ZPL}]]>${PDF_BASE64}</label></a>`;
+    expect(detectLabels({ data: xml })).toEqual([
+      { kind: 'zpl', content: ZPL },
+      { kind: 'pdf', content: PDF_BASE64 }
+    ]);
+  });
+
   it('does not decode an entity twice', () => {
     const xml = '<a><label>^XA^FDa &amp;#233; b^FS^XZ</label></a>';
     expect(detectLabels({ data: xml })).toEqual([{ kind: 'zpl', content: '^XA^FDa &#233; b^FS^XZ' }]);
