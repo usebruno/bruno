@@ -16,11 +16,11 @@ import type { BrunoTlsOptions } from './tls-connect-options';
 
 export type CreateHttp2TransportParams = {
   tlsOptions?: object;
+  /** Custom DNS lookup for the direct path; skipped when tunnelling (the proxy resolves the origin). */
   lookup?: LookupFunction;
   proxyUri?: string | null;
-  /** Connected socket to use for the first session, such as a proxy tunnel. */
+  /** A pre-connected socket (proxy tunnel or ALPN probe) to seed the FIRST session only; single-use. */
   socket?: Duplex | null;
-  /** Time to keep a session open after its last stream closes. */
   idleMs?: number;
   timeline?: TimelineEntry[] | null;
 };

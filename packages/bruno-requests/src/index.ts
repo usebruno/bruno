@@ -55,6 +55,7 @@ export {
   buildProxyTlsOptions,
   connectThroughProxy,
   applyHttp2Transport,
-  applyBasicAuthHeader
+  applyBasicAuthHeader,
+  getHttp2RequestDetails
 } from './utils/http2';
 export type { CreateHttp2TransportParams, HttpVersionMode, ConnectTlsResult, PooledSession, HttpVersionDecision } from './utils/http2';

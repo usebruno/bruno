@@ -1,15 +1,11 @@
 import { EventEmitter } from 'node:events';
 import type { TLSSocket } from 'node:tls';
 import { applySecureContext } from '../agent-cache';
+import { pickTlsFields } from './tls-connect-options';
 import type { BrunoTlsOptions } from './tls-connect-options';
 
 const TUNNEL_TIMEOUT_MS = 10_000;
 
-/**
- * The subset of a proxy agent (https-proxy-agent / socks-proxy-agent) that the
- * HTTP/2 tunnel relies on: a `connect()` that opens the tunnel socket and a
- * `proxy` descriptor we can turn into a stable pool key.
- */
 export interface ProxyAgentLike {
   connect: (request: EventEmitter, options: Record<string, unknown>) => TLSSocket | Promise<TLSSocket>;
   proxy?: {
@@ -20,7 +16,6 @@ export interface ProxyAgentLike {
   };
 }
 
-/** A proxy agent is one that can open a tunnel and carries a proxy descriptor. */
 export const isProxyAgent = (agent: unknown): agent is ProxyAgentLike =>
   Boolean(
     agent
@@ -28,10 +23,6 @@ export const isProxyAgent = (agent: unknown): agent is ProxyAgentLike =>
     && (agent as ProxyAgentLike).proxy
   );
 
-/**
- * Derive a stable key for the configured proxy, or null when there is no proxy.
- * HTTP proxies expose `proxy.href`; SOCKS proxies only expose host/port/type.
- */
 export const proxyKeyFor = (agent: unknown): string | null => {
   if (!isProxyAgent(agent)) return null;
 
@@ -44,7 +35,7 @@ export const proxyKeyFor = (agent: unknown): string | null => {
   return `socks${proxy.type || ''}://${proxy.host}:${proxy.port}`;
 };
 
-/** Strip any `user:password@` from a proxy URI so credentials never reach the timeline or errors. */
+// Strip any `user:password@` from a proxy URI so credentials never reach the timeline or errors.
 export const redactProxyUri = (uri: string | null | undefined): string | null | undefined =>
   typeof uri === 'string' ? uri.replace(/\/\/[^/@]*@/, '//***@') : uri;
 
@@ -55,27 +46,22 @@ export type BuildProxyTlsOptionsParams = {
   alpnProtocols?: string[];
 };
 
-/**
- * Build TLS options for the origin handshake performed inside the proxy tunnel.
- * Agent-only fields (keepAlive, proxy, lookup, …) are dropped; a client cert is
- * collapsed into a secureContext by applySecureContext just as the direct path does.
- */
+// Build TLS options for the origin handshake performed inside the proxy tunnel.
 export const buildProxyTlsOptions = ({
   hostname,
   port,
   tlsOptions,
   alpnProtocols
 }: BuildProxyTlsOptionsParams): Record<string, unknown> => {
-  // Remove agent-specific options that shouldn't reach the TLS connection.
-  const { keepAlive, proxy, caCertificatesCount, lookup, ...tlsFields } = tlsOptions as Record<string, unknown>;
+  const tlsOnly = pickTlsFields(tlsOptions);
 
   const options: Record<string, unknown> = {
-    ...applySecureContext({ ...tlsFields }),
+    ...applySecureContext(tlsOnly as any),
     host: hostname,
     port,
     servername: hostname,
     secureEndpoint: true,
-    rejectUnauthorized: (tlsFields as { rejectUnauthorized?: boolean }).rejectUnauthorized !== false
+    rejectUnauthorized: tlsOnly.rejectUnauthorized !== undefined ? tlsOnly.rejectUnauthorized : true
   };
 
   if (alpnProtocols) {
@@ -103,10 +89,6 @@ export type ProxyTunnelResult = {
 
 /**
  * Open a TLS connection to the origin through the configured proxy.
- *
- * The proxy agent opens the CONNECT (or SOCKS) tunnel; we wait for the origin
- * TLS handshake to finish, then return the socket and the ALPN protocol the
- * server selected so the caller can decide between h2 and HTTP/1.1.
  */
 export const connectThroughProxy = ({
   agent,

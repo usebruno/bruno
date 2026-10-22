@@ -8,8 +8,7 @@ const { resolveDefaultLocation } = require('../utils/default-location');
 const onboardUser = require('../app/onboarding');
 const LastOpenedCollections = require('../store/last-opened-collections');
 const WindowStateStore = require('../store/window-state');
-const { clearAgentCache, clearPacCache } = require('@usebruno/requests');
-const { closeAllHttp2Sessions } = require('./network/http2-transport');
+const { clearAgentCache, clearPacCache, closeAllSessions: closeAllHttp2Sessions } = require('@usebruno/requests');
 
 const registerPreferencesIpc = (mainWindow) => {
   const lastOpenedCollections = new LastOpenedCollections();

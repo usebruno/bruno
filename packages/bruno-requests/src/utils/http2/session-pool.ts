@@ -230,6 +230,18 @@ export function acquireSession(params: AcquireSessionParams): AcquireResult {
     return { pooled: existing, reused: true };
   }
 
+  // Proxied HTTP/2 connections must use a tunnel. If the pooled session is gone
+  // and no tunnel socket is available, fail rather than connect directly and
+  // risk sending credentials outside the proxy.
+  if (proxyUri && !createConnection) {
+    const error: CodedError = new Error(
+      `HTTP/2 session to ${url.host} via proxy is unavailable (pooled session was lost); refusing to bypass the proxy`
+    );
+
+    error.code = 'ERR_H2_PROXY_SESSION_UNAVAILABLE';
+    throw error;
+  }
+
   const options: http2.SecureClientSessionOptions = url.protocol === 'https:'
     ? buildTlsConnectOptions({ hostname, port, tlsOptions, mode: 'http2', lookup })
     : {};

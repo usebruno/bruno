@@ -217,14 +217,8 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
       }
     }
 
-    // Attach the HTTP/2 transport when enabled. When a proxy applies, the transport
-    // tunnels through it (CONNECT/SOCKS). On any ALPN/resolution error, fall through to HTTP/1.1.
     if (config?.httpVersion && canUseHttp2(config.httpVersion)) {
-      try {
-        await applyHttp2Transport({ config: normalizedConfig as any, mode: config.httpVersion });
-      } catch {
-        // negotiation failed; leave the default HTTP/1.1 adapter in place
-      }
+      await applyHttp2Transport({ config: normalizedConfig as any, mode: config.httpVersion });
     }
 
     // Optional host hook (kept for back-compat) may further adjust the config.

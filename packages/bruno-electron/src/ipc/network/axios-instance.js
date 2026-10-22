@@ -16,10 +16,11 @@ const {
   measureTimeSince,
   startHop,
   completeHop,
-  canUseHttp2
+  canUseHttp2,
+  applyHttp2Transport,
+  getHttp2RequestDetails
 } = require('@usebruno/requests');
 const { STATUS_CODES } = require('http');
-const { applyHttp2Transport, getHttp2RequestDetails } = require('./http2-transport');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { applyOmitHeaders } = require('@usebruno/common');
 
@@ -280,7 +281,7 @@ function makeAxiosInstance({
       timeline = config?.metadata?.timeline || [];
 
       const http2RequestDetails = getHttp2RequestDetails(response.request);
-      const sentHeaders = http2RequestDetails ? http2RequestDetails.sentHeaders : getSentHeaders(response.request);
+      const sentHeaders = getSentHeaders(response.request);
 
       if (http2RequestDetails) {
         const { alpn, protocol, cipher, remote, certificateLines, requestLine } = http2RequestDetails;
@@ -357,7 +358,7 @@ function makeAxiosInstance({
       // A failed request carries the ClientRequest on the error itself when no response came back.
       const errorRequest = error.response?.request || error.request;
       const http2RequestDetails = getHttp2RequestDetails(errorRequest);
-      const errorHeaders = http2RequestDetails ? http2RequestDetails.sentHeaders : getSentHeaders(errorRequest);
+      const errorHeaders = getSentHeaders(errorRequest);
 
       if (http2RequestDetails && error.response) {
         error.response.httpVersion = '2.0';

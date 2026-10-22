@@ -87,6 +87,32 @@ describe('acquireSession', () => {
     expect(mockConnect.mock.calls[0][1].createConnection).toBe(createConnection);
   });
 
+  it('refuses to direct-dial a proxied origin when no tunnel socket was handed off (TOCTOU guard)', () => {
+    expect(() =>
+      acquireSession({ origin: HTTPS, proxyUri: 'http://proxy:3128' })
+    ).toThrow(/refusing to bypass the proxy/);
+    expect(mockConnect).not.toHaveBeenCalled();
+  });
+
+  it('allows a proxied origin when a tunnel socket is handed off via createConnection', () => {
+    const createConnection = jest.fn();
+    acquireSession({ origin: HTTPS, proxyUri: 'http://proxy:3128', createConnection });
+    expect(mockConnect).toHaveBeenCalledTimes(1);
+    expect(mockConnect.mock.calls[0][1].createConnection).toBe(createConnection);
+  });
+
+  it('still reuses a live proxied session without a handed-off socket (fast path)', () => {
+    const s = makeFakeSession(); queued = [s];
+    const createConnection = jest.fn();
+    const first = acquireSession({ origin: HTTPS, proxyUri: 'http://proxy:3128', createConnection });
+    s.emit('connect');
+    // Fast path: live session, caller hands off nothing — must reuse, not throw.
+    const second = acquireSession({ origin: HTTPS, proxyUri: 'http://proxy:3128' });
+    expect(second.reused).toBe(true);
+    expect(second.pooled).toBe(first.pooled);
+    expect(mockConnect).toHaveBeenCalledTimes(1);
+  });
+
   it('writes open then reuse lines onto the timeline', () => {
     const timeline: any[] = [];
     acquireSession({ origin: HTTPS, timeline });

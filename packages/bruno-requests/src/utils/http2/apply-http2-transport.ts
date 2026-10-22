@@ -3,19 +3,17 @@ import type { Duplex } from 'node:stream';
 import type { LookupFunction } from 'node:net';
 import { createHttp2Transport } from './create-http2-transport';
 import { negotiateHttpVersion, canUseHttp2 } from './negotiate-http-version';
-import { hasLiveSession } from './session-pool';
-import { proxyKeyFor, connectThroughProxy } from './proxy-tunnel';
+import { hasLiveSession, type TimelineEntry } from './session-pool';
+import { proxyKeyFor, redactProxyUri, connectThroughProxy } from './proxy-tunnel';
 import type { HttpVersionMode } from './tls-connect-options';
 
-/**
- * The slice of an axios request config this helper reads and mutates. Kept loose
- * so both the CLI runner and the scripted-request path can pass their configs in.
- */
 export type Http2TransportConfig = {
   url?: string;
   auth?: { username?: string; password?: string } | null;
   headers?: Record<string, unknown> & { set?: (name: string, value: unknown) => void };
   httpsAgent?: { options?: Record<string, unknown> } | null;
+  // Proxy agent for cleartext requests (http://). Used only to detect a configured proxy.
+  httpAgent?: unknown;
   lookup?: LookupFunction;
   transport?: unknown;
 };
@@ -23,9 +21,18 @@ export type Http2TransportConfig = {
 export type ApplyHttp2TransportParams = {
   config: Http2TransportConfig;
   mode: HttpVersionMode | undefined;
+  agentOptions?: Record<string, unknown>;
+  timeline?: TimelineEntry[] | null;
 };
 
-type HttpVersionSelection = { httpVersion: number; socket: Duplex | null };
+/** The resolved HTTP version plus the metadata the timeline reports. */
+type HttpVersionSelection = {
+  httpVersion: number;
+  socket: Duplex | null;
+  reason?: string;
+  offered?: string[];
+  alpn?: string | null;
+};
 
 /**
  * Convert axios's auth configuration into a Basic Authorization header.
@@ -75,31 +82,27 @@ export const applyBasicAuthHeader = (config: Http2TransportConfig): boolean => {
   return true;
 };
 
-/**
- * Negotiate HTTP/2 through a proxy CONNECT (or SOCKS) tunnel.
- *
- * Reuses the connected socket when the server selects HTTP/2; otherwise closes
- * it and lets axios fall back to HTTP/1.1 over the proxy.
- */
 const negotiateHttp2ThroughProxy = async ({
+  url,
   config,
   mode,
   tlsOptions,
   proxyKey
 }: {
+  url: URL;
   config: Http2TransportConfig;
   mode: HttpVersionMode;
   tlsOptions: Record<string, unknown>;
   proxyKey: string;
 }): Promise<HttpVersionSelection> => {
-  const url = new URL(config.url as string);
   const port = Number(url.port) || 443;
   const origin = `${url.protocol}//${url.hostname}:${port}`;
+  const safeProxy = redactProxyUri(proxyKey);
   const offered = mode === 'auto' ? ['h2', 'http/1.1'] : ['h2'];
 
   // A pooled session already proved the proxy speaks h2; skip a wasteful tunnel.
   if (hasLiveSession({ origin, tlsOptions, proxyUri: proxyKey } as any)) {
-    return { httpVersion: 2, socket: null };
+    return { httpVersion: 2, socket: null, reason: `reusing pooled HTTP/2 session via ${safeProxy}`, alpn: null };
   }
 
   try {
@@ -111,38 +114,57 @@ const negotiateHttp2ThroughProxy = async ({
       alpnProtocols: offered
     });
 
-    if ((tunnel.alpn || null) === 'h2') {
-      return { httpVersion: 2, socket: tunnel.socket };
+    const alpn = tunnel.alpn || null;
+
+    if (alpn === 'h2') {
+      return {
+        httpVersion: 2,
+        socket: tunnel.socket,
+        reason: `proxy tunnel via ${safeProxy}: server chose h2 (${tunnel.protocol})`,
+        offered,
+        alpn
+      };
     }
 
-    // Server declined h2 over the tunnel; drop the socket and use HTTP/1.1.
+    // Server declined h2 over the tunnel, drop the socket and use HTTP/1.1.
     tunnel.socket.destroy();
-    return { httpVersion: 1, socket: null };
+    return {
+      httpVersion: 1,
+      socket: null,
+      reason: `proxy tunnel via ${safeProxy}: server chose ${alpn || 'none'}; using HTTP/1.1`,
+      offered,
+      alpn
+    };
   } catch (error) {
     // In forced http2 mode a tunnel failure is fatal; in auto it falls back.
     if (mode === 'http2') throw error;
-    return { httpVersion: 1, socket: null };
+    return {
+      httpVersion: 1,
+      socket: null,
+      reason: `proxy tunnel via ${safeProxy} failed (${(error as Error).message}); using HTTP/1.1`,
+      offered,
+      alpn: null
+    };
   }
 };
 
-/**
- * Select the HTTP version for a direct or proxied connection.
- */
 const selectHttpVersion = async ({
+  url,
   config,
   mode,
   tlsOptions,
   proxyKey
 }: {
+  url: URL | null;
   config: Http2TransportConfig;
   mode: HttpVersionMode;
   tlsOptions: Record<string, unknown>;
   proxyKey: string | null;
 }): Promise<HttpVersionSelection> => {
-  const isProxiedHttps = proxyKey && /^https:/i.test(config.url || '');
+  const isProxiedHttps = proxyKey && url?.protocol === 'https:';
 
-  if (isProxiedHttps) {
-    return negotiateHttp2ThroughProxy({ config, mode, tlsOptions, proxyKey: proxyKey as string });
+  if (isProxiedHttps && url) {
+    return negotiateHttp2ThroughProxy({ url, config, mode, tlsOptions, proxyKey: proxyKey as string });
   }
 
   const decision = await negotiateHttpVersion({
@@ -153,26 +175,66 @@ const selectHttpVersion = async ({
     proxyUri: proxyKey
   });
 
-  return { httpVersion: decision.httpVersion, socket: null };
+  return { ...decision, socket: null };
+};
+
+const logHttpVersionDecision = (timeline: TimelineEntry[], decision: HttpVersionSelection): void => {
+  const { httpVersion, reason, offered, alpn } = decision;
+
+  if (offered?.length) {
+    timeline.push({
+      timestamp: new Date(),
+      type: 'tls',
+      message: `ALPN: offered ${offered.join(', ')} · server accepted ${alpn || 'none'}`
+    });
+  }
+
+  timeline.push({
+    timestamp: new Date(),
+    type: 'info',
+    message: `HTTP/${httpVersion === 2 ? '2' : '1.1'} selected${reason ? ` (${reason})` : ''}`
+  });
 };
 
 /**
  * Negotiate the HTTP version and attach the custom transport when HTTP/2 is selected.
- *
- * Direct connections negotiate via ALPN (or h2c prior knowledge for cleartext);
- * proxied HTTPS connections negotiate through the proxy tunnel and reuse the
- * connected socket. Shared by the CLI runner and the scripted-request path.
  */
-export const applyHttp2Transport = async ({ config, mode }: ApplyHttp2TransportParams): Promise<void> => {
+export const applyHttp2Transport = async ({
+  config,
+  mode,
+  agentOptions,
+  timeline
+}: ApplyHttp2TransportParams): Promise<void> => {
   // Remove any transport left over from a previous redirect.
   delete config.transport;
 
   if (!canUseHttp2(mode)) return;
 
-  const tlsOptions = config.httpsAgent?.options || {};
+  let url: URL | null = null;
+  try {
+    url = new URL(config.url || '');
+  } catch {
+    url = null;
+  }
+
+  // h2c through a proxy tunnel isn't supported: the tunnel path does a TLS handshake, which a
+  // cleartext origin has no counterpart for.
+  const isCleartext = url?.protocol === 'http:';
+  if (isCleartext && (proxyKeyFor(config.httpsAgent) || proxyKeyFor(config.httpAgent))) {
+    timeline?.push({
+      timestamp: new Date(),
+      type: 'info',
+      message: 'HTTP/1.1 selected (cleartext request through a proxy; h2c tunnelling is not supported)'
+    });
+    return;
+  }
+
+  const tlsOptions = agentOptions ?? config.httpsAgent?.options ?? {};
   const proxyKey = proxyKeyFor(config.httpsAgent);
 
-  const decision = await selectHttpVersion({ config, mode: mode as HttpVersionMode, tlsOptions, proxyKey });
+  const decision = await selectHttpVersion({ url, config, mode: mode as HttpVersionMode, tlsOptions, proxyKey });
+
+  if (timeline) logHttpVersionDecision(timeline, decision);
 
   if (decision.httpVersion !== 2) return;
 
@@ -181,8 +243,15 @@ export const applyHttp2Transport = async ({ config, mode }: ApplyHttp2TransportP
     // When tunnelling, DNS/connect happens on the proxy side; skip the custom lookup.
     lookup: proxyKey ? undefined : config.lookup,
     proxyUri: proxyKey,
-    socket: decision.socket
+    socket: decision.socket,
+    timeline
   }) as unknown;
 
-  applyBasicAuthHeader(config);
+  if (applyBasicAuthHeader(config) && timeline) {
+    timeline.push({
+      timestamp: new Date(),
+      type: 'info',
+      message: 'HTTP/2: Authorization header built from auth option / URL credentials (axios drops these on h2)'
+    });
+  }
 };

@@ -15,3 +15,6 @@ export type { ProxyAgentLike, BuildProxyTlsOptionsParams, ConnectThroughProxyPar
 
 export { applyHttp2Transport, applyBasicAuthHeader } from './apply-http2-transport';
 export type { Http2TransportConfig, ApplyHttp2TransportParams } from './apply-http2-transport';
+
+export { getHttp2RequestDetails } from './http2-request-details';
+export type { Http2RequestDetails } from './http2-request-details';

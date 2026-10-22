@@ -10,6 +10,7 @@ jest.mock('./session-pool', () => ({
 }));
 jest.mock('./proxy-tunnel', () => ({
   proxyKeyFor: jest.fn(() => null),
+  redactProxyUri: jest.fn((u: string) => u),
   connectThroughProxy: jest.fn()
 }));
 
@@ -69,6 +70,61 @@ describe('applyHttp2Transport (shared)', () => {
 
       await applyHttp2Transport({ config, mode: 'auto' });
 
+      expect(mockCreate).not.toHaveBeenCalled();
+      expect(config.transport).toBeUndefined();
+    });
+  });
+
+  describe('timeline (desktop app)', () => {
+    it('logs the ALPN line, the version line, and the basic-auth note when h2 is selected', async () => {
+      mockNegotiate.mockResolvedValue({ httpVersion: 2, reason: 'ALPN negotiated h2', offered: ['h2', 'http/1.1'], alpn: 'h2' });
+      const timeline: any[] = [];
+      const config = makeConfig({ auth: { username: 'u', password: 'p' } });
+
+      await applyHttp2Transport({ config, mode: 'auto', timeline });
+
+      const messages = timeline.map((t) => t.message);
+      expect(messages).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining('ALPN: offered h2, http/1.1 · server accepted h2'),
+          expect.stringContaining('HTTP/2 selected (ALPN negotiated h2)'),
+          expect.stringContaining('Authorization header built')
+        ])
+      );
+    });
+
+    it('logs the HTTP/1.1 decision and no basic-auth note when h2 is declined', async () => {
+      mockNegotiate.mockResolvedValue({ httpVersion: 1, reason: 'server lacks h2' });
+      const timeline: any[] = [];
+      const config = makeConfig();
+
+      await applyHttp2Transport({ config, mode: 'auto', timeline });
+
+      const messages = timeline.map((t) => t.message);
+      expect(messages).toEqual(expect.arrayContaining([expect.stringContaining('HTTP/1.1 selected (server lacks h2)')]));
+      expect(messages.some((m) => m.includes('Authorization header built'))).toBe(false);
+    });
+
+    it('uses agentOptions as the TLS override when provided', async () => {
+      mockNegotiate.mockResolvedValue({ httpVersion: 2 });
+      const agentOptions = { rejectUnauthorized: false, ca: 'CUSTOM' };
+      const config = makeConfig();
+
+      await applyHttp2Transport({ config, mode: 'http2', agentOptions, timeline: [] });
+
+      expect(mockNegotiate).toHaveBeenCalledWith(expect.objectContaining({ tlsOptions: agentOptions }));
+      expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ tlsOptions: agentOptions }));
+    });
+  });
+
+  describe('cleartext (http://) through a proxy', () => {
+    it('skips h2 and leaves HTTP/1.1 when a proxy agent is present (no direct dial / no leak)', async () => {
+      mockProxyKey.mockReturnValue('http://proxy:8080');
+      const config = makeConfig({ url: 'http://example.com/x', httpAgent: { proxy: { href: 'http://proxy:8080' } } });
+
+      await applyHttp2Transport({ config, mode: 'http2' });
+
+      expect(mockNegotiate).not.toHaveBeenCalled();
       expect(mockCreate).not.toHaveBeenCalled();
       expect(config.transport).toBeUndefined();
     });
