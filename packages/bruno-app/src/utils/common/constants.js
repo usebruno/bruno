@@ -7,12 +7,6 @@ export const MAX_RENDERABLE_RESPONSE_BYTES = 50 * 1024 * 1024;
 export const DEFAULT_SIDEBAR_WIDTH = 250;
 export const DEFAULT_SIDEBAR_COLLAPSED = false;
 
-export const SIDEBAR_REVEAL_STATUS = {
-  REVEALED: 'revealed',
-  SKIPPED: 'skipped',
-  PENDING: 'pending'
-};
-
 export const PRESET_REQUEST_TYPES = {
   HTTP: 'http',
   GRAPHQL: 'graphql',
@@ -61,6 +55,8 @@ export const SCOPE_LABEL = {
   [AUTOCOMPLETE_SCOPES.DYNAMIC]: 'Dynamic',
   [AUTOCOMPLETE_SCOPES.OAUTH2]: 'OAuth2'
 };
+
+export const COPY_SUCCESS_TIMEOUT = 1000;
 
 export const AUTH_MODES = {
   AWSV4: 'awsv4',
