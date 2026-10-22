@@ -651,3 +651,47 @@ describe('runtime', () => {
     });
   });
 });
+
+describe('script-runtime: the collection + request scripts from the CRLF comment bug report', () => {
+  // Collection-level script exactly as it was stored in opencollection.yml, with CRLF line endings
+  const collectionScript = [
+    'function extractDataPaths(scRaw) {',
+    '    const placeholderRegExp = /{{([^}]+)}}/g;',
+    '    const dataPaths = [];',
+    '    let match;',
+    '    while ((match = placeholderRegExp.exec(scRaw)) != null) {',
+    '        dataPaths.push(match[1]);',
+    '    }',
+    '    return dataPaths;',
+    '}'
+  ].join('\r\n');
+
+  // Same closure shape mergeScripts emits for each level
+  const wrap = (script, file) => `await (async (__dirname, __filename) => {\n${script}\n})("/c", "/c/${file}");`;
+  const merge = (requestScript) => [wrap(collectionScript, 'opencollection.yml'), wrap(requestScript, 'FindPetById.yml')].join('\n\n');
+  const onConsoleLog = () => {};
+
+  it('runs the request script with a // comment before bru.setVar', async () => {
+    const script = merge('// Set the pet ID before sending the request\nbru.setEnvVar("petId", 9091)');
+    const runtime = new ScriptRuntime({ runtime: 'quickjs' });
+
+    const result = await runtime.runRequestScript(script, {}, {}, {}, '.', onConsoleLog, process.env);
+
+    expect(result.envVariables.petId).toBe(9091);
+  });
+
+  it('runs a request script that is only a // comment', async () => {
+    const runtime = new ScriptRuntime({ runtime: 'quickjs' });
+
+    await expect(runtime.runRequestScript(merge('// Set the pet ID before sending the request'), {}, {}, {}, '.', onConsoleLog, process.env)).resolves.toBeDefined();
+  });
+
+  it('runs the same scripts in the Node VM', async () => {
+    const script = merge('// Set the pet ID before sending the request\nbru.setEnvVar("petId", 9091)');
+    const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+
+    const result = await runtime.runRequestScript(script, {}, {}, {}, '.', onConsoleLog, process.env);
+
+    expect(result.envVariables.petId).toBe(9091);
+  });
+});
