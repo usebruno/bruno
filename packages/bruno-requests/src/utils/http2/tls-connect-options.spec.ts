@@ -1,4 +1,4 @@
-import { pickTlsFields, buildTlsConnectOptions, ALPN_BY_MODE, stripIpv6Brackets, wrapLookup, TLS_FIELDS } from './tls-connect-options';
+import { pickTlsFields, buildTlsConnectOptions, ALPN_BY_MODE, stripIpv6Brackets, wrapLookup, TLS_FIELDS, bracketIpv6 } from './tls-connect-options';
 
 describe('ALPN_BY_MODE', () => {
   it('offers both for auto, h2 for http2, http/1.1 for http1', () => {
@@ -80,5 +80,15 @@ describe('wrapLookup', () => {
     wrapLookup(raw)('x.test', {} as any, (_e: any, addr: any, fam: any) => {
       expect(addr).toBe('1.2.3.4'); expect(fam).toBe(4);
     });
+  });
+});
+
+describe('bracketIpv6', () => {
+  it('wraps a bare IPv6 literal and leaves other hosts (and already-bracketed ones) untouched', () => {
+    expect(bracketIpv6('::1')).toBe('[::1]');
+    expect(bracketIpv6('2001:db8::1')).toBe('[2001:db8::1]');
+    expect(bracketIpv6('[::1]')).toBe('[::1]');
+    expect(bracketIpv6('api.test')).toBe('api.test');
+    expect(bracketIpv6('127.0.0.1')).toBe('127.0.0.1');
   });
 });

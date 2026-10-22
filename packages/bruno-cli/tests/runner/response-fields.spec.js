@@ -56,7 +56,8 @@ jest.mock('@usebruno/requests', () => ({
   transformProxyConfig: jest.fn(() => ({})),
   getOrCreateHttpsAgent: jest.fn(() => ({})),
   getOrCreateHttpAgent: jest.fn(() => ({})),
-  measureResponseTime: jest.requireActual('@usebruno/requests').measureResponseTime
+  measureResponseTime: jest.requireActual('@usebruno/requests').measureResponseTime,
+  resolveHttpVersion: jest.requireActual('@usebruno/requests').resolveHttpVersion
 }));
 jest.mock('../../src/utils/oauth2', () => ({
   getOAuth2Token: jest.fn(),

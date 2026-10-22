@@ -5,6 +5,7 @@ import { createHttp2Transport } from './create-http2-transport';
 import { negotiateHttpVersion, canUseHttp2 } from './negotiate-http-version';
 import { hasLiveSession, type TimelineEntry } from './session-pool';
 import { proxyKeyFor, redactProxyUri, connectThroughProxy } from './proxy-tunnel';
+import { bracketIpv6 } from './tls-connect-options';
 import type { HttpVersionMode } from './tls-connect-options';
 
 export type Http2TransportConfig = {
@@ -96,7 +97,7 @@ const negotiateHttp2ThroughProxy = async ({
   proxyKey: string;
 }): Promise<HttpVersionSelection> => {
   const port = Number(url.port) || 443;
-  const origin = `${url.protocol}//${url.hostname}:${port}`;
+  const origin = `${url.protocol}//${bracketIpv6(url.hostname)}:${port}`;
   const safeProxy = redactProxyUri(proxyKey);
   const offered = mode === 'auto' ? ['h2', 'http/1.1'] : ['h2'];
 
@@ -205,8 +206,10 @@ export const applyHttp2Transport = async ({
   agentOptions,
   timeline
 }: ApplyHttp2TransportParams): Promise<void> => {
-  // Remove any transport left over from a previous redirect.
-  delete config.transport;
+  // Remove an HTTP/2 transport left over from a previous redirect hop
+  if ((config.transport as { __bruno_http2?: boolean } | undefined)?.__bruno_http2) {
+    delete config.transport;
+  }
 
   if (!canUseHttp2(mode)) return;
 
@@ -238,14 +241,18 @@ export const applyHttp2Transport = async ({
 
   if (decision.httpVersion !== 2) return;
 
-  config.transport = createHttp2Transport({
-    tlsOptions,
-    // When tunnelling, DNS/connect happens on the proxy side; skip the custom lookup.
-    lookup: proxyKey ? undefined : config.lookup,
-    proxyUri: proxyKey,
-    socket: decision.socket,
-    timeline
-  }) as unknown;
+  // Tag the transport so the redirect cleanup can only clen the http2 added transport
+  config.transport = Object.assign(
+    createHttp2Transport({
+      tlsOptions,
+      // When tunnelling, DNS/connect happens on the proxy side; skip the custom lookup.
+      lookup: proxyKey ? undefined : config.lookup,
+      proxyUri: proxyKey,
+      socket: decision.socket,
+      timeline
+    }),
+    { __bruno_http2: true }
+  ) as unknown;
 
   if (applyBasicAuthHeader(config) && timeline) {
     timeline.push({

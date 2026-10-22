@@ -18,7 +18,8 @@ const {
   completeHop,
   canUseHttp2,
   applyHttp2Transport,
-  getHttp2RequestDetails
+  getHttp2RequestDetails,
+  addHttp2RetryInterceptor
 } = require('@usebruno/requests');
 const { STATUS_CODES } = require('http');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
@@ -642,6 +643,9 @@ function makeAxiosInstance({
       return Promise.reject(error);
     }
   );
+
+  // Transparently retry a REFUSED_STREAM
+  addHttp2RetryInterceptor(instance);
 
   return instance;
 }

@@ -11,7 +11,8 @@ const {
   handleNtlmRedirect,
   startHop,
   completeHop,
-  applyHttp2Transport
+  applyHttp2Transport,
+  addHttp2RetryInterceptor
 } = require('@usebruno/requests');
 const { STATUS_CODES } = require('http');
 
@@ -254,6 +255,9 @@ function makeAxiosInstance({
       return Promise.reject(error);
     }
   );
+
+  // Transparently retry a REFUSED_STREAM
+  addHttp2RetryInterceptor(instance);
 
   return instance;
 }

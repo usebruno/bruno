@@ -36,6 +36,10 @@ export function pickTlsFields(input: object | undefined): BrunoTlsOptions {
 // Remove IPv6 brackets so tls.connect receives a valid IP address.
 export const stripIpv6Brackets = (host: string): string => host.replace(/^\[|\]$/g, '');
 
+/** Wrap a bare IPv6 literal in brackets so it is valid inside a URL authority (e.g. ::1 -> [::1]). */
+export const bracketIpv6 = (host: string): string =>
+  host.includes(':') && !host.startsWith('[') ? `[${host}]` : host;
+
 /**
  * Node may request multiple addresses using `all: true`,
  * Convert it to the expected array format

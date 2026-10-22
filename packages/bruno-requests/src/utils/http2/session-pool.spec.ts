@@ -61,6 +61,25 @@ describe('getSessionKey', () => {
 });
 
 describe('acquireSession', () => {
+  it('does not reuse a session whose Node session has died, and evicts it (opens a fresh one)', () => {
+    const s1 = makeFakeSession(); const s2 = makeFakeSession(); queued = [s1, s2];
+    const first = acquireSession({ origin: HTTPS });
+    s1.emit('connect'); // ACTIVE
+    s1.destroyed = true; // died before our close/goaway handler flipped the state
+    expect(hasLiveSession({ origin: HTTPS })).toBe(false);
+    const second = acquireSession({ origin: HTTPS });
+    expect(second.reused).toBe(false);
+    expect(second.pooled).not.toBe(first.pooled);
+    expect(mockConnect).toHaveBeenCalledTimes(2);
+  });
+
+  it('accepts an IPv6 literal origin without throwing (bracketed authority)', () => {
+    expect(() => acquireSession({ origin: 'https://[::1]:8443' })).not.toThrow();
+    expect(hasLiveSession({ origin: 'https://[::1]:8443' })).toBe(true);
+    // a bracketed and bare form parse to the same host, so they share one session key
+    expect(getSessionKey({ origin: 'https://[::1]:8443' })).toContain('::1');
+  });
+
   it('creates on a miss and reuses on a hit (one connect)', () => {
     const first = acquireSession({ origin: HTTPS, tlsOptions: { cert: 'A' } });
     expect(first.reused).toBe(false);

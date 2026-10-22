@@ -30,7 +30,7 @@ const makeConfig = (over: Record<string, any> = {}): any => ({
   url: 'https://example.com/path',
   headers: {},
   httpsAgent: { options: { rejectUnauthorized: true } },
-  transport: { stale: true }, // left over from a previous redirect
+  transport: { request: () => {}, __bruno_http2: true }, // marked h2 left over from a previous redirect
   ...over
 });
 
@@ -41,11 +41,20 @@ beforeEach(() => {
 });
 
 describe('applyHttp2Transport (shared)', () => {
-  it('clears a stale transport and does nothing for http1 mode', async () => {
-    const config = makeConfig();
+  it('does nothing for http1 mode and preserves a foreign (non-h2) transport', async () => {
+    // A non-h2 transport (e.g. the Connection-omitting wrapper) must survive the http1 path.
+    const foreign = { request: () => {} };
+    const config = makeConfig({ transport: foreign });
+    await applyHttp2Transport({ config, mode: 'http1' });
+    expect(config.transport).toBe(foreign);
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it('clears a stale h2 transport we attached (redirect cleanup), on the http1 path', async () => {
+    const staleH2: any = { request: () => {}, __bruno_http2: true };
+    const config = makeConfig({ transport: staleH2 });
     await applyHttp2Transport({ config, mode: 'http1' });
     expect(config.transport).toBeUndefined();
-    expect(mockCreate).not.toHaveBeenCalled();
   });
 
   describe('direct connection (no proxy)', () => {
@@ -61,7 +70,7 @@ describe('applyHttp2Transport (shared)', () => {
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({ proxyUri: null, socket: null })
       );
-      expect(config.transport).toEqual({ request: expect.any(Function) });
+      expect(config.transport).toEqual(expect.objectContaining({ request: expect.any(Function), __bruno_http2: true }));
     });
 
     it('leaves HTTP/1.1 in place when the server declines h2', async () => {

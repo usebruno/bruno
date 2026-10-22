@@ -1,5 +1,5 @@
 import type { LookupFunction } from 'node:net';
-import { establishTlsConnection, type HttpVersionMode } from './tls-connect-options';
+import { establishTlsConnection, type HttpVersionMode, bracketIpv6 } from './tls-connect-options';
 import { getSessionKey } from './session-pool';
 
 const DEFAULT_ALPN_TTL_MS = 10 * 60 * 1000;
@@ -93,7 +93,7 @@ export async function negotiateHttpVersion(
 
   // In auto mode, negotiate ALPN and cache the result for this origin.
   const port = Number(parsedUrl.port) || 443;
-  const origin = `${parsedUrl.protocol}//${parsedUrl.hostname}:${port}`;
+  const origin = `${parsedUrl.protocol}//${bracketIpv6(parsedUrl.hostname)}:${port}`;
   const cacheKey = getSessionKey({ origin, tlsOptions, proxyUri });
 
   const cached = alpnCache.get(cacheKey);

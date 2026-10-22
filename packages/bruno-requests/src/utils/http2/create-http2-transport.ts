@@ -4,6 +4,7 @@ import type { LookupFunction } from 'node:net';
 import type { Duplex } from 'node:stream';
 import { acquireSession, type TimelineEntry } from './session-pool';
 import { buildHttp2RequestHeaders } from './headers';
+import { bracketIpv6 } from './tls-connect-options';
 import type { BrunoTlsOptions } from './tls-connect-options';
 
 /**
@@ -104,34 +105,62 @@ const handleStreamEvents = (
   options: AxiosTransportOptions,
   onResponse: ResponseCallback
 ): void => {
-  let settled = false;
+  let settled = false; // a response or an error has been seen (close-before-headers guard)
+  let responseReceived = false; // response headers arrived. axios is now reading the body
+  let endedCleanly = false; // the readable ended (END_STREAM received), the body is complete
 
-  stream.once('error', () => {
+  stream.once('error', (err: any) => {
     settled = true;
+    if (err && err.rstCode == null && stream.rstCode != null) {
+      err.rstCode = stream.rstCode;
+    }
   });
 
   stream.once('response', (headers) => {
     settled = true;
+    responseReceived = true;
     onResponse(prepareHttp2Response(stream, headers, options));
   });
 
+  // 'end' fires only when END_STREAM is received, i.e. the response body is complete.
+  stream.once('end', () => {
+    endedCleanly = true;
+  });
+
   stream.once('close', () => {
-    if (settled) return;
+    if (!settled) {
+      // Closed before any response headers: a reset mid-handshake. Surface it so Axios doesn't hang.
+      settled = true;
+      const resetCode = stream.rstCode ?? 0;
+      const error = Object.assign(
+        new Error(
+          `HTTP/2 stream closed before a response (RST_STREAM ${RST_CODE_NAMES[resetCode] ?? String(resetCode)})`
+        ),
+        {
+          code: 'ERR_HTTP2_STREAM_CLOSED_EARLY',
+          rstCode: resetCode
+        }
+      );
+      stream.emit('error', error);
+      return;
+    }
 
-    settled = true;
+    // Headers were received, but the stream closed before the response completed.
+    // Emit an error so Axios rejects the truncated response instead of treating it as successful.
+    if (responseReceived && !endedCleanly) {
+      const resetCode = stream.rstCode ?? 0;
+      const suffix = resetCode ? `, RST_STREAM ${RST_CODE_NAMES[resetCode] ?? String(resetCode)}` : '';
 
-    const resetCode = stream.rstCode ?? 0;
-    const error = Object.assign(
-      new Error(
-        `HTTP/2 stream closed before a response (RST_STREAM ${RST_CODE_NAMES[resetCode] ?? String(resetCode)})`
-      ),
-      {
-        code: 'ERR_HTTP2_STREAM_CLOSED_EARLY',
-        rstCode: resetCode
-      }
-    );
+      const error = Object.assign(
+        new Error(`HTTP/2 response truncated (stream closed before END_STREAM${suffix})`),
+        {
+          code: 'ERR_HTTP2_RESPONSE_TRUNCATED',
+          rstCode: resetCode
+        }
+      );
 
-    stream.emit('error', error);
+      stream.emit('error', error);
+    }
   });
 };
 
@@ -164,7 +193,7 @@ export function createHttp2Transport(params: CreateHttp2TransportParams) {
       onResponse: ResponseCallback
     ): http2.ClientHttp2Stream {
       const port = Number(options.port) || (options.protocol === 'https:' ? 443 : 80);
-      const origin = `${options.protocol}//${options.hostname}:${port}`;
+      const origin = `${options.protocol}//${bracketIpv6(options.hostname)}:${port}`;
       const url = `${origin}${options.path || '/'}`;
 
       const { headers } = buildHttp2RequestHeaders({

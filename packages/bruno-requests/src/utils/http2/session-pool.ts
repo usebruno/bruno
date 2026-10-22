@@ -206,6 +206,11 @@ export function getSessionKey({
  * Get the reusable session for this origin + TLS identity, or create one.
  * Never returns a DRAINING or CLOSED session.
  */
+const isUsable = (entry: SessionEntry): boolean =>
+  (entry.state === 'CONNECTING' || entry.state === 'ACTIVE')
+  && !entry.session.destroyed
+  && !entry.session.closed;
+
 export function acquireSession(params: AcquireSessionParams): AcquireResult {
   const {
     origin,
@@ -221,13 +226,19 @@ export function acquireSession(params: AcquireSessionParams): AcquireResult {
   const { url, hostname, port } = parseOrigin(origin);
 
   const existing = sessions.get(sessionKey);
-  if (existing && (existing.state === 'CONNECTING' || existing.state === 'ACTIVE')) {
+  if (existing && isUsable(existing)) {
     timeline?.push({
       timestamp: new Date(),
       type: 'info',
       message: `Reusing HTTP/2 session to ${url.host} (${existing.totalStreams} streams so far)`
     });
     return { pooled: existing, reused: true };
+  }
+
+  // A pooled entry that is no longer usable (its Node session died)
+  // is dropped here so we open a fresh session instead of reusing a dead one.
+  if (existing) {
+    sessions.delete(sessionKey);
   }
 
   // Proxied HTTP/2 connections must use a tunnel. If the pooled session is gone
@@ -280,7 +291,7 @@ export function hasLiveSession(
   params: Pick<AcquireSessionParams, 'origin' | 'tlsOptions' | 'proxyUri'>
 ): boolean {
   const existing = sessions.get(getSessionKey(params));
-  return !!existing && (existing.state === 'CONNECTING' || existing.state === 'ACTIVE');
+  return !!existing && isUsable(existing);
 }
 
 export function getSessionCount(): number {

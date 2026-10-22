@@ -51,7 +51,7 @@ const Requests = ({ collection }) => {
         <div className="http-version-field">
           <label className="http-version-label">HTTP Version</label>
           <p className="http-version-subtitle">
-            The HTTP version used for requests in this collection. Overrides the app-level default; "Inherit" uses the app setting.
+            Choose the HTTP version for this collection. This overrides the app setting, or select <strong>Inherit</strong> to use the app default.
           </p>
           <MenuDropdown
             items={httpVersionItems}

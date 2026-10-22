@@ -68,14 +68,29 @@ describe('createHttp2Transport', () => {
     expect(err.rstCode).toBe(8);
   });
 
-  it('does not synthesize an error on close after a response was delivered', () => {
+  it('does not error on close after a response that ended cleanly (END_STREAM received)', () => {
     const t = createHttp2Transport({});
     t.request(OPTS, () => {});
     stream.emit('response', { ':status': 200 });
     const onError = jest.fn();
     stream.on('error', onError);
+    stream.emit('end'); // clean end of body
     stream.emit('close');
     expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('errors a truncated response (close after headers, before END_STREAM)', () => {
+    // The server destroyed the session mid-body: headers arrived but the body never ended.
+    const t = createHttp2Transport({});
+    t.request(OPTS, () => {});
+    stream.emit('response', { ':status': 200 });
+    const onError = jest.fn();
+    stream.on('error', onError);
+    stream.emit('close'); // no 'end' first
+    expect(onError).toHaveBeenCalledTimes(1);
+    const err = onError.mock.calls[0][0];
+    expect(err.code).toBe('ERR_HTTP2_RESPONSE_TRUNCATED');
+    expect(err.message).toContain('truncated');
   });
 
   it('does not double-emit when a real error fires before close', () => {

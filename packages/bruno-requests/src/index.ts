@@ -58,6 +58,9 @@ export {
   applyBasicAuthHeader,
   getHttp2RequestDetails,
   resolveHttpVersion,
-  HTTP_VERSION_VALUES
+  HTTP_VERSION_VALUES,
+  isRetryableHttp2Error,
+  isReplayableBody,
+  addHttp2RetryInterceptor
 } from './utils/http2';
 export type { CreateHttp2TransportParams, HttpVersionMode, ConnectTlsResult, PooledSession, HttpVersionDecision } from './utils/http2';
