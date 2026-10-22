@@ -1,4 +1,4 @@
-import { resolveHttpVersion, HTTP_VERSION_VALUES } from './resolve-http-version';
+import { resolveHttpVersion, HTTP_VERSION_VALUES } from '../resolve-http-version';
 
 describe('resolveHttpVersion (collection > app precedence)', () => {
   it('uses the collection value when it is a concrete mode', () => {

@@ -1,5 +1,5 @@
 import { Readable } from 'node:stream';
-import { isRetryableHttp2Error, isReplayableBody, addHttp2RetryInterceptor } from './http2-retry';
+import { isRetryableHttp2Error, isReplayableBody, addHttp2RetryInterceptor } from '../http2-retry';
 
 describe('isRetryableHttp2Error', () => {
   it('is true only for REFUSED_STREAM (rstCode 7), read from the error or the stream', () => {

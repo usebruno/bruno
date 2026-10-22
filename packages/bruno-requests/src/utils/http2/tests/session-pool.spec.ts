@@ -16,7 +16,7 @@ const makeFakeSession = (): FakeSession =>
 const mockConnect = jest.fn();
 jest.mock('node:http2', () => ({ __esModule: true, default: { connect: (...a: unknown[]) => mockConnect(...a) } }));
 
-import { acquireSession, getSessionKey, closeAllSessions, getSessionCount, hasLiveSession } from './session-pool';
+import { acquireSession, getSessionKey, closeAllSessions, getSessionCount, hasLiveSession } from '../session-pool';
 
 let queued: FakeSession[] = [];
 beforeEach(() => {

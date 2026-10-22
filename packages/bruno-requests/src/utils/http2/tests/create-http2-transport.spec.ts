@@ -1,8 +1,8 @@
 const mockAcquire = jest.fn();
-jest.mock('./session-pool', () => ({ acquireSession: (...a: unknown[]) => mockAcquire(...a) }));
+jest.mock('../session-pool', () => ({ acquireSession: (...a: unknown[]) => mockAcquire(...a) }));
 
 import { EventEmitter } from 'node:events';
-import { createHttp2Transport } from './create-http2-transport';
+import { createHttp2Transport } from '../create-http2-transport';
 
 const makeStream = () => Object.assign(new EventEmitter(), { rstCode: 0 });
 let stream: any;

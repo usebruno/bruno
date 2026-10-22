@@ -1,10 +1,10 @@
 const mockEstablish = jest.fn();
-jest.mock('./tls-connect-options', () => ({
-  ...jest.requireActual('./tls-connect-options'),
+jest.mock('../tls-connect-options', () => ({
+  ...jest.requireActual('../tls-connect-options'),
   establishTlsConnection: (...a: unknown[]) => mockEstablish(...a)
 }));
 
-import { negotiateHttpVersion, clearAlpnCache } from './negotiate-http-version';
+import { negotiateHttpVersion, clearAlpnCache } from '../negotiate-http-version';
 
 const h2Probe = { alpn: 'h2', protocol: 'TLSv1.3', offered: ['h2', 'http/1.1'], socket: { destroy: jest.fn() } };
 const h1Probe = { alpn: 'http/1.1', protocol: 'TLSv1.3', offered: ['h2', 'http/1.1'], socket: { destroy: jest.fn() } };

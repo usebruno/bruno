@@ -5,7 +5,7 @@ import {
   redactProxyUri,
   buildProxyTlsOptions,
   connectThroughProxy
-} from './proxy-tunnel';
+} from '../proxy-tunnel';
 
 describe('isProxyAgent / proxyKeyFor', () => {
   it('recognises a proxy agent only when it has connect() and a proxy descriptor', () => {

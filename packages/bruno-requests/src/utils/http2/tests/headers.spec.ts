@@ -1,4 +1,4 @@
-import { buildHttp2RequestHeaders, CONNECTION_HEADERS } from './headers';
+import { buildHttp2RequestHeaders, CONNECTION_HEADERS } from '../headers';
 
 describe('buildHttp2RequestHeaders', () => {
   it('builds the four pseudo-headers from the URL and method', () => {

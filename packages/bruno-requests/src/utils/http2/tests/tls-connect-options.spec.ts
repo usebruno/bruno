@@ -1,4 +1,4 @@
-import { pickTlsFields, buildTlsConnectOptions, ALPN_BY_MODE, stripIpv6Brackets, wrapLookup, TLS_FIELDS, bracketIpv6 } from './tls-connect-options';
+import { pickTlsFields, buildTlsConnectOptions, ALPN_BY_MODE, stripIpv6Brackets, wrapLookup, TLS_FIELDS, bracketIpv6 } from '../tls-connect-options';
 
 describe('ALPN_BY_MODE', () => {
   it('offers both for auto, h2 for http2, http/1.1 for http1', () => {

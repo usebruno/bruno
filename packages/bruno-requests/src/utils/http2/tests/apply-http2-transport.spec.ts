@@ -1,24 +1,24 @@
-jest.mock('./create-http2-transport', () => ({
+jest.mock('../create-http2-transport', () => ({
   createHttp2Transport: jest.fn(() => ({ request: jest.fn() }))
 }));
-jest.mock('./negotiate-http-version', () => ({
+jest.mock('../negotiate-http-version', () => ({
   negotiateHttpVersion: jest.fn(),
   canUseHttp2: jest.fn((mode: string) => mode === 'http2' || mode === 'auto')
 }));
-jest.mock('./session-pool', () => ({
+jest.mock('../session-pool', () => ({
   hasLiveSession: jest.fn(() => false)
 }));
-jest.mock('./proxy-tunnel', () => ({
+jest.mock('../proxy-tunnel', () => ({
   proxyKeyFor: jest.fn(() => null),
   redactProxyUri: jest.fn((u: string) => u),
   connectThroughProxy: jest.fn()
 }));
 
-import { applyHttp2Transport } from './apply-http2-transport';
-import { createHttp2Transport } from './create-http2-transport';
-import { negotiateHttpVersion } from './negotiate-http-version';
-import { hasLiveSession } from './session-pool';
-import { proxyKeyFor, connectThroughProxy } from './proxy-tunnel';
+import { applyHttp2Transport } from '../apply-http2-transport';
+import { createHttp2Transport } from '../create-http2-transport';
+import { negotiateHttpVersion } from '../negotiate-http-version';
+import { hasLiveSession } from '../session-pool';
+import { proxyKeyFor, connectThroughProxy } from '../proxy-tunnel';
 
 const mockCreate = createHttp2Transport as jest.Mock;
 const mockNegotiate = negotiateHttpVersion as jest.Mock;

@@ -1,4 +1,4 @@
-import { getHttp2RequestDetails } from './http2-request-details';
+import { getHttp2RequestDetails } from '../http2-request-details';
 
 const makeStream = (socket: any, sentHeaders: Record<string, unknown> = {}) => ({
   session: { socket },
