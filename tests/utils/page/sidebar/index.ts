@@ -122,7 +122,6 @@ export const buildSidebarLocators = (page: Page) => {
 };
 
 /**
-/**
  * Open the sidebar search (if it is closed) and filter by request name.
  */
 export const searchSidebarRequests = async (page: Page, query: string) => {
