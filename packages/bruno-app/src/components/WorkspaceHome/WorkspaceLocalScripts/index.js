@@ -189,7 +189,7 @@ const WorkspaceLocalScripts = () => {
                   <input
                     type="text"
                     className="textbox w-48"
-                    placeholder="get-token"
+                    placeholder="my-script"
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="off"
@@ -201,7 +201,7 @@ const WorkspaceLocalScripts = () => {
                   <input
                     type="text"
                     className="textbox flex-1"
-                    placeholder={`node "$HOME/.bruno/scripts/${row.name.trim() || 'get-token'}.js"`}
+                    placeholder='echo "hello world"'
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="off"
