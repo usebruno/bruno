@@ -21,8 +21,14 @@ export const buildRunnerLocators = (page: Page) => ({
   selectAllButton: () => page.getByTestId('runner-select-all'),
   configResetButton: () => page.getByTestId('runner-config-reset'),
   requestItems: () => page.getByTestId('runner-request-item'),
+  requestItemNames: () => page.getByTestId('runner-request-item').locator('.request-name > span:first-child'),
+  requestItem: (name: string) =>
+    page.getByTestId('runner-request-item').filter({ has: page.getByText(name, { exact: true }) }),
+  requestDragHandle: (name: string) =>
+    page.getByTestId('runner-request-item').filter({ has: page.getByText(name, { exact: true }) }).locator('.drag-handle'),
   delayInput: () => page.getByTestId('runner-delay-input'),
   resultItems: () => page.getByTestId('runner-result-item'),
+  resultsResetButton: () => page.getByTestId('runner-reset-button'),
   passedTestRows: () => page.getByTestId('runner-test-row-passed'),
   failedTestRows: () => page.getByTestId('runner-test-row-failed'),
   requestLoader: () => page.getByTestId('runner-result-item').locator('.animate-spin'),
@@ -31,7 +37,12 @@ export const buildRunnerLocators = (page: Page) => ({
   toolbar: () => page.getByTestId('runner-toolbar'),
   filterButton: (key: RunnerFilterKey) => page.getByTestId(`runner-filter-${key}`),
   filterSelect: () => page.getByTestId('runner-filter-select'),
-  filterOption: (label: string) => page.getByRole('menuitem', { name: label, exact: true })
+  filterOption: (label: string) => page.getByRole('menuitem', { name: label, exact: true }),
+  requestCheckbox: (name: string) =>
+    page.getByTestId('runner-request-item').filter({ has: page.getByText(name, { exact: true }) }).locator('.checkbox'),
+  requestCheckboxes: () => page.getByTestId('runner-request-item').locator('.checkbox'),
+  requestNameLabel: (name: string) =>
+    page.getByTestId('runner-request-item').filter({ has: page.getByText(name, { exact: true }) }).locator('.request-name')
 });
 
 export type RunnerFilterKey = 'all' | 'passed' | 'failed' | 'skipped';
@@ -149,6 +160,74 @@ export const clearRunnerTags = async (page: Page, root?: Locator) => {
 export const runnerConfigItem = (page: Page, requestName: string): Locator =>
   page.getByTestId('runner-request-item').filter({ has: page.getByText(requestName, { exact: true }) });
 
+/**
+ * Reads the request names in the runner's "Configure requests to run" list, top to bottom.
+ * @param page - The Playwright page object
+ * @returns The request names in their configured order
+ */
+export const getRunnerConfigOrder = async (page: Page): Promise<string[]> => {
+  const locators = buildRunnerLocators(page);
+  await expect(locators.requestItems().first()).toBeVisible();
+  return await locators.requestItemNames().allInnerTexts();
+};
+
+/**
+ * Drags a request in the runner config list onto another one. The drop lands on the upper or
+ * lower half of the target row, which the panel uses to decide whether to insert above or below it.
+ * @param page - The Playwright page object
+ * @param fromName - The request to move
+ * @param toName - The request to drop it on
+ * @param position - Whether to insert above or below `toName`
+ * @returns void
+ */
+export const dragRunnerConfigItem = async (page: Page, fromName: string, toName: string, position: string) => {
+  await test.step(`Drag "${fromName}" ${position} "${toName}" in the runner config list`, async () => {
+    const locators = buildRunnerLocators(page);
+    const target = locators.requestItem(toName);
+    const targetBox = await target.boundingBox();
+    if (targetBox === null) {
+      throw new Error(`Runner config item "${toName}" has no bounding box`);
+    }
+    let y = 4;
+    if (position === 'below') {
+      y = targetBox.height - 4;
+    }
+    await locators.requestDragHandle(fromName).dragTo(target, { targetPosition: { x: targetBox.width / 2, y } });
+  });
+};
+
+/**
+ * Asserts the runner config list shows exactly these requests, in this order.
+ * @param page - The Playwright page object
+ * @param names - The expected request names, top to bottom
+ * @returns void
+ */
+export const expectRunnerConfigOrder = async (page: Page, names: string[]) => {
+  await expect(buildRunnerLocators(page).requestItemNames()).toHaveText(names);
+};
+
+/**
+ * Asserts the runner results list shows exactly these requests, in this order. Results are
+ * appended as each request starts, so their order is the execution order.
+ * @param page - The Playwright page object
+ * @param names - The expected request names, in execution order
+ * @returns void
+ */
+export const expectRunnerResultOrder = async (page: Page, names: string[]) => {
+  await expect(buildRunnerLocators(page).resultItems()).toHaveText(names.map((name) => new RegExp(`^${name}`)));
+};
+
+/**
+ * Leaves the runner results view via its Reset button and waits for the config panel to return.
+ * @param page - The Playwright page object
+ * @returns void
+ */
+export const reopenRunnerConfig = async (page: Page) => {
+  await test.step('Reopen the runner configuration screen', async () => {
+    await buildRunnerLocators(page).resultsResetButton().click();
+    await expect(buildRunnerLocators(page).configPanel()).toBeVisible();
+  });
+};
 /**
  * Reads test result counts from the filter buttons in the runner results view
  * @param page - The Playwright page object
@@ -465,4 +544,36 @@ export const validateRunnerResults = async (page: Page,
 
   // Validate that passed + failed + skipped = totalRequests
   await expect(passed).toBe(totalRequests - skipped - failed);
+};
+
+/**
+ * Clicks the checkbox on a runner config row, which selects or deselects that request.
+ * @param page - The Playwright page object
+ * @param requestName - The request whose checkbox to click
+ * @returns void
+ */
+export const toggleRunnerRequestCheckbox = async (page: Page, requestName: string) => {
+  await test.step(`Toggle the checkbox for "${requestName}"`, async () => {
+    await buildRunnerLocators(page).requestCheckbox(requestName).click();
+  });
+};
+
+/**
+ * Asserts each request checkbox ends before that request's name starts.
+ * @param page - The Playwright page object
+ * @returns void
+ */
+export const expectRunnerCheckboxesClearOfNames = async (page: Page) => {
+  const locators = buildRunnerLocators(page);
+  const items = locators.requestItems();
+  const count = await items.count();
+
+  for (let index = 0; index < count; index++) {
+    const item = items.nth(index);
+    const checkboxBox = await item.locator('.checkbox').boundingBox();
+    const nameBox = await item.locator('.request-name').boundingBox();
+    const checkboxRightEdge = checkboxBox.x + checkboxBox.width;
+    const requestNameLeftEdge = nameBox.x;
+    expect(checkboxRightEdge).toBeLessThanOrEqual(requestNameLeftEdge);
+  }
 };
