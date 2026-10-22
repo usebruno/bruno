@@ -1,9 +1,6 @@
 import { test } from '../../../playwright';
 import { runCollection, validateRunnerResults } from '../../utils/page';
 
-// The collection-level pre-request script is stored as a double-quoted YAML scalar with
-// \r\n escapes, the shape a Windows-authored import produces. Both requests use a `//`
-// line comment in their own script and must still run.
 test('request scripts with // comments run when the collection script has CRLF line endings', async ({
   pageWithUserData: page
 }) => {
