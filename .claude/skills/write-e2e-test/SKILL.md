@@ -2,9 +2,7 @@
 name: write-e2e-test
 description: Write a Playwright E2E test for Bruno. Use when adding or modifying
   tests under tests/, creating a new test suite, or reproducing a bug as an
-  e2e spec. When the user mentions a test case id (for example TC-2606),
-  prefix that single id onto the test() title and set the Playwright tag from
-  the BrowserStack test case Type of Test Case field.
+  e2e spec.
 ---
 
 # Writing a Bruno E2E test
@@ -48,24 +46,18 @@ and projects are `default`, `system-pac`, `auth`, and `ssl`
    the HTML report reads clearly. Prefer several focused assertions over one broad check.
 5. **When the user mentions a test case id**, put that one id at the start of the
    `test()` title, then a colon and a space — `TC-2606: <description>`. One id per
-   test. If the user names several ids, write a separate `test()` for each. Do not
+   test. If several ids are mentioned, write a separate `test()` for each. Do not
    invent an id, and do not put it in a comment or annotation.
-   Look up that test case in BrowserStack Test Management and read its **Type of
-   Test Case** field (`case_type`). Set the Playwright tag from that value:
+   Add a Playwright tag only when a type is mentioned in the request. Do not look
+   the case up in BrowserStack.
 
-   | Type of Test Case | Playwright tag |
+   | Mentioned type | Playwright tag |
    | --- | --- |
-   | Smoke & Sanity (`smoke_sanity`) | `{ tag: '@sanity' }` |
-   | Regression (`regression`) | `{ tag: '@regression' }` |
+   | Smoke & Sanity, or sanity | `{ tag: '@sanity' }` |
+   | regression | `{ tag: '@regression' }` |
 
-   Omit the tag when the type is neither of those.
+   Omit the tag when no type is mentioned.
 
-   ```ts
-   test('TC-2606: Verify opening more than two workspaces without an active license is not allowed', { tag: '@sanity' }, async ({
-     launchElectronApp,
-     createTmpDir
-   }) => {
-   ```
 6. **Wait for readiness**: `await page.locator('[data-app-state="loaded"]').waitFor()`
    before asserting on app state.
 7. **Locate** by `data-testid` (Bruno's dominant convention) or documented classes
@@ -90,4 +82,4 @@ and projects are `default`, `system-pac`, `auth`, and `ssl`
 - [ ] Any mutated committed fixture is restored in `afterAll`
 - [ ] Any codegen-generated draft refactored to fixtures/helpers + stable selectors
 - [ ] Steps wrapped in `test.step`; no `test.only`, no `page.pause()`
-- [ ] If the user gave a test case id, that test's title starts with that single id (`TC-2606:` followed by a space) and its tag matches the BrowserStack Type of Test Case (`Smoke & Sanity` → `@sanity`, `Regression` → `@regression`)
+- [ ] If a test case id was given, that test's title starts with that single id (`TC-2606:` followed by a space). Add `@sanity` or `@regression` only when that type was mentioned
