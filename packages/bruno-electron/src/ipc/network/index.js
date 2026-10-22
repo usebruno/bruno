@@ -4,8 +4,7 @@ const path = require('path');
 const {
   applyOAuth1ToRequest,
   collectLocalScriptRefs,
-  resolveLocalScriptEnvVars,
-  mergeLocalScriptsConfigs,
+  resolveLocalScriptVariables,
   loadGlobalLocalScriptsConfig
 } = require('@usebruno/requests');
 const { buildScriptedEntry } = require('@usebruno/requests').scripting;
@@ -956,20 +955,16 @@ const registerNetworkIpc = (mainWindow) => {
             + 'Enable "Allow Local Scripts" in Preferences, or run the CLI with --allow-local-scripts.'
           );
         }
-        const localScriptsConfig = mergeLocalScriptsConfigs(
-          loadGlobalLocalScriptsConfig(),
-          get(brunoConfig, 'localScripts', null)
-        );
-        const { envVars: resolvedEnvVars, scriptVariables } = await resolveLocalScriptEnvVars(
+        const { envVars: resolvedEnvVars, scriptVariables } = await resolveLocalScriptVariables({
           envVars,
-          localScriptsConfig,
-          {
+          referencedNames: localScriptRefs,
+          scriptsConfigs: [loadGlobalLocalScriptsConfig(), get(brunoConfig, 'localScripts', null)],
+          context: {
             cwd: collectionPath,
             env: processEnvVars,
             signal: abortController.signal
-          },
-          request
-        );
+          }
+        });
         Object.assign(envVars, resolvedEnvVars, scriptVariables);
       }
 

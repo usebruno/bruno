@@ -1,13 +1,15 @@
 // Name/filename helpers are the single shared implementation in @usebruno/common.
 // Re-exported here so existing `utils/common/regex` import paths keep working.
 export { sanitizeName, validateName, validateNameError } from '@usebruno/common/utils';
+import { LOCAL_SCRIPT_NAME_PATTERN, LOCAL_SCRIPT_VAR_PREFIX } from '@usebruno/common/utils';
 
 export const variableNameRegex = /^[\w-.]*$/;
 
-// Local scripts are host-executed commands registered in bruno.json and
-// referenced as `{{$script:name}}` in environment variables.
-export const localScriptNameRegex = /^[A-Za-z0-9_][A-Za-z0-9._-]*$/;
-export const LOCAL_SCRIPT_VARIABLE_PREFIX = '$script:';
+// Local scripts are host-executed commands registered in the global registry
+// and referenced as `{{$script:name}}` in variables and request fields. The
+// name/prefix contract is shared with the Node side via @usebruno/common.
+export const localScriptNameRegex = LOCAL_SCRIPT_NAME_PATTERN;
+export const LOCAL_SCRIPT_VARIABLE_PREFIX = LOCAL_SCRIPT_VAR_PREFIX;
 
 // Returns the script name for a well-formed `{{...}}` token body, otherwise null.
 export const getLocalScriptName = (word) => {

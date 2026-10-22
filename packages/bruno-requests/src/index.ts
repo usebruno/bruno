@@ -27,7 +27,7 @@ export {
   mergeLocalScriptsConfigs,
   executeLocalScript,
   collectLocalScriptRefs,
-  resolveLocalScriptEnvVars
+  resolveLocalScriptVariables
 } from './utils/local-scripts';
 export {
   getGlobalLocalScriptsFilePath,
@@ -36,10 +36,12 @@ export {
   GLOBAL_LOCAL_SCRIPTS_FILE_ENV
 } from './utils/local-scripts-store';
 export type {
-  LocalScript,
   LocalScriptResult,
-  LocalScriptExecutionContext
+  LocalScriptExecutionContext,
+  ResolveLocalScriptVariablesOptions,
+  ResolveLocalScriptVariablesResult
 } from './utils/local-scripts';
+export type { LocalScript } from '@usebruno/common/utils';
 export type { GlobalLocalScriptsConfig, GlobalLocalScriptsFileOptions } from './utils/local-scripts-store';
 
 export * as scripting from './scripting';

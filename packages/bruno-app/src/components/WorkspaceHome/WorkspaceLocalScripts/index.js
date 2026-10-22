@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { IconTrash, IconPlayerPlay, IconPlus } from '@tabler/icons';
+import { LOCAL_SCRIPT_NAME_PATTERN } from '@usebruno/common/utils';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 import { saveLocalScripts } from 'providers/ReduxStore/slices/local-scripts';
 
-const NAME_PATTERN = /^[A-Za-z0-9_][A-Za-z0-9._-]*$/;
 const DEFAULT_TIMEOUT_MS = 30000;
 
 const toRows = (commands) =>
@@ -52,7 +52,7 @@ const WorkspaceLocalScripts = () => {
     const names = new Set();
     for (const row of rowsToValidate) {
       const name = row.name.trim();
-      if (!NAME_PATTERN.test(name)) {
+      if (!LOCAL_SCRIPT_NAME_PATTERN.test(name)) {
         return `Invalid script name "${row.name}". Use letters, digits, "_", ".", "-" and start with a letter, digit or "_".`;
       }
       if (names.has(name)) {

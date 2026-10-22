@@ -27,8 +27,7 @@ const {
   applySentHeadersToRequest,
   measureResponseTime,
   collectLocalScriptRefs,
-  resolveLocalScriptEnvVars,
-  mergeLocalScriptsConfigs,
+  resolveLocalScriptVariables,
   loadGlobalLocalScriptsConfig
 } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
@@ -256,20 +255,19 @@ const runSingleRequest = async function (
           + 'Re-run with --allow-local-scripts.'
         );
       }
-      const localScriptsConfig = mergeLocalScriptsConfigs(
-        loadGlobalLocalScriptsConfig(get(options, 'localScriptsPath') ? { filePath: options.localScriptsPath } : {}),
-        get(brunoConfig, 'localScripts', null)
-      );
-      const { envVars: resolvedEnvVariables, scriptVariables } = await resolveLocalScriptEnvVars(
-        envVariables,
-        localScriptsConfig,
-        {
+      const { envVars: resolvedEnvVariables, scriptVariables } = await resolveLocalScriptVariables({
+        envVars: envVariables,
+        referencedNames: localScriptRefs,
+        scriptsConfigs: [
+          loadGlobalLocalScriptsConfig(get(options, 'localScriptsPath') ? { filePath: options.localScriptsPath } : {}),
+          get(brunoConfig, 'localScripts', null)
+        ],
+        context: {
           cwd: collectionPath,
           env: processEnvVars,
           signal: runAbortSignal
-        },
-        request
-      );
+        }
+      });
       Object.assign(envVariables, resolvedEnvVariables, scriptVariables);
     }
 

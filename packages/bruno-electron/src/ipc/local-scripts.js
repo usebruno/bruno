@@ -5,9 +5,9 @@ const {
   loadGlobalLocalScriptsConfig,
   saveGlobalLocalScriptsConfig
 } = require('@usebruno/requests');
+const { LOCAL_SCRIPT_NAME_PATTERN } = require('@usebruno/common/utils');
 const { preferencesUtil } = require('../store/preferences');
 
-const NAME_PATTERN = /^[A-Za-z0-9_][A-Za-z0-9._-]*$/;
 const MAX_TIMEOUT_MS = 600000;
 
 /**
@@ -47,7 +47,7 @@ const runLocalScript = async (_event, { script } = {}) => {
     throw new Error('A script definition is required.');
   }
   const { name, command, timeout } = script;
-  if (typeof name !== 'string' || !NAME_PATTERN.test(name)) {
+  if (typeof name !== 'string' || !LOCAL_SCRIPT_NAME_PATTERN.test(name)) {
     throw new Error('Invalid script name.');
   }
   if (typeof command !== 'string' || command.trim() === '') {

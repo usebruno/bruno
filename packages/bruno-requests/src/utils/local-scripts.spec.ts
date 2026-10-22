@@ -1,51 +1,27 @@
 import os from 'node:os';
 import fs from 'node:fs';
+import path from 'node:path';
 import {
   collectLocalScriptRefs,
   executeLocalScript,
-  LocalScriptError,
   normalizeLocalScripts,
-  resolveLocalScriptEnvVars
+  resolveLocalScriptVariables
 } from './local-scripts';
 
 const node = `"${process.execPath}"`;
 // /tmp is symlinked to /private/tmp on macOS, so compare against the real path.
 const cwd = fs.realpathSync.native(os.tmpdir());
 
-describe('normalizeLocalScripts', () => {
-  it('returns an empty list when no scripts are configured', () => {
-    expect(normalizeLocalScripts(undefined)).toEqual([]);
-    expect(normalizeLocalScripts({})).toEqual([]);
-    expect(normalizeLocalScripts({ commands: 'nope' })).toEqual([]);
-  });
-
-  it('keeps valid entries and fills no defaults onto the object', () => {
-    const scripts = normalizeLocalScripts({
-      commands: [{ name: 'get-token', command: 'node token.js' }]
-    });
-    expect(scripts).toEqual([{ name: 'get-token', command: 'node token.js' }]);
-  });
-
-  it('rejects invalid names, empty commands and bad timeouts', () => {
-    expect(() => normalizeLocalScripts({ commands: [{ name: 'bad name', command: 'echo x' }] })).toThrow(LocalScriptError);
-    expect(() => normalizeLocalScripts({ commands: [{ name: 'ok', command: '' }] })).toThrow(LocalScriptError);
-    expect(() => normalizeLocalScripts({ commands: [{ name: 'ok', command: 'echo x', timeout: -1 }] })).toThrow(LocalScriptError);
-  });
-
-  it('last entry wins for duplicate names', () => {
-    const scripts = normalizeLocalScripts({
-      commands: [
-        { name: 'token', command: 'echo one' },
-        { name: 'token', command: 'echo two' }
-      ]
-    });
-    expect(scripts).toHaveLength(1);
-    expect(scripts[0].command).toBe('echo two');
+describe('normalizeLocalScripts (smoke — full coverage in @usebruno/common)', () => {
+  it('normalizes a valid list through the re-export', () => {
+    expect(normalizeLocalScripts({ commands: [{ name: 'a', command: 'echo x' }] })).toEqual([
+      { name: 'a', command: 'echo x' }
+    ]);
   });
 });
 
 describe('executeLocalScript', () => {
-  it('runs the command through the shell with the collection cwd', async () => {
+  it('runs the command through the shell with the given cwd', async () => {
     const result = await executeLocalScript(
       { name: 'cwd', command: `${node} -e "process.stdout.write(process.cwd())"` },
       { cwd }
@@ -107,111 +83,113 @@ describe('collectLocalScriptRefs', () => {
   });
 });
 
-describe('resolveLocalScriptEnvVars', () => {
-  const config = {
+describe('resolveLocalScriptVariables', () => {
+  const globalConfig = {
     commands: [
       { name: 'token', command: `${node} -e "process.stdout.write('jwt-abc')"` },
       { name: 'whoami', command: `${node} -e "process.stdout.write(process.env.USER_REF)"` }
     ]
   };
 
-  it('runs each referenced script once and substitutes all occurrences', async () => {
-    const { envVars, results } = await resolveLocalScriptEnvVars(
-      {
+  const resolve = (envVars, referencedNames, extra = {}) =>
+    resolveLocalScriptVariables({
+      envVars,
+      referencedNames,
+      scriptsConfigs: [globalConfig],
+      context: { cwd },
+      ...extra
+    });
+
+  it('runs each referenced script once and substitutes all occurrences in env values', async () => {
+    const counter = path.join(cwd, `bruno-ls-${process.pid}-${Date.now()}.log`);
+    const countingConfig = {
+      commands: [
+        {
+          name: 'token',
+          command: `${node} -e "require('fs').appendFileSync(process.env.LS_COUNTER,'1');process.stdout.write('jwt-abc')"`
+        }
+      ]
+    };
+    const { envVars, scriptVariables } = await resolveLocalScriptVariables({
+      envVars: {
         jwt: '{{$script:token}}',
         authHeader: 'Bearer {{$script:token}}',
         plain: 'untouched',
         nested: '{{indirect}}',
         indirect: '{{$script:token}}'
       },
-      config,
-      { cwd }
-    );
-    expect(results).toHaveLength(1);
+      referencedNames: ['token'],
+      scriptsConfigs: [countingConfig],
+      context: { cwd, env: { LS_COUNTER: counter } }
+    });
+
+    expect(scriptVariables).toEqual({ '$script:token': 'jwt-abc' });
     expect(envVars.jwt).toBe('jwt-abc');
     expect(envVars.authHeader).toBe('Bearer jwt-abc');
     expect(envVars.plain).toBe('untouched');
     expect(envVars.nested).toBe('{{indirect}}');
     expect(envVars.indirect).toBe('jwt-abc');
+    // Referenced from three values, but the command runs exactly once.
+    expect(fs.readFileSync(counter, 'utf8')).toBe('1');
+    fs.unlinkSync(counter);
   });
 
   it('passes bruno environment variables to the referenced command', async () => {
-    const { envVars } = await resolveLocalScriptEnvVars(
-      { USER_REF: 'alice', dynamic: '{{$script:whoami}}' },
-      config,
-      { cwd }
-    );
+    const { envVars } = await resolve({ USER_REF: 'alice', dynamic: '{{$script:whoami}}' }, ['whoami']);
     expect(envVars.dynamic).toBe('alice');
-  });
-
-  it('does not run anything when there are no references', async () => {
-    const { envVars, results } = await resolveLocalScriptEnvVars({ a: '{{b}}' }, config, { cwd });
-    expect(results).toEqual([]);
-    expect(envVars).toEqual({ a: '{{b}}' });
-  });
-
-  it('rejects when a referenced script is not registered', async () => {
-    await expect(
-      resolveLocalScriptEnvVars({ a: '{{$script:missing}}' }, config, { cwd })
-    ).rejects.toThrow('not registered');
   });
 
   it('returns a copy and leaves the input env vars untouched', async () => {
     const input = { jwt: '{{$script:token}}' };
-    const { envVars } = await resolveLocalScriptEnvVars(input, config, { cwd });
+    const { envVars } = await resolve(input, ['token']);
     expect(envVars.jwt).toBe('jwt-abc');
     expect(input.jwt).toBe('{{$script:token}}');
   });
 
-  it('runs scripts referenced directly in the request and returns interpolation variables', async () => {
-    const request = {
-      url: 'https://api.example.com/login?next={{$script:token}}',
-      headers: { Authorization: 'Bearer {{$script:token}}' },
-      data: { refresh: '{{$script:token}}' }
-    };
-    const { envVars, scriptVariables, results } = await resolveLocalScriptEnvVars(
-      { unrelated: 'v' },
-      config,
-      { cwd },
-      request
-    );
-    expect(results).toHaveLength(1);
+  it('returns interpolation variables for scripts referenced directly in the request', async () => {
+    // The runtime hook scans the request itself and passes the names in; the
+    // resolver only needs those names to produce the interpolation variables.
+    const { envVars, scriptVariables } = await resolveLocalScriptVariables({
+      envVars: { unrelated: 'v' },
+      referencedNames: collectLocalScriptRefs({
+        url: 'https://api.example.com/login?next={{$script:token}}',
+        headers: { Authorization: 'Bearer {{$script:token}}' },
+        data: { refresh: '{{$script:token}}' }
+      }),
+      scriptsConfigs: [globalConfig],
+      context: { cwd }
+    });
     expect(scriptVariables).toEqual({ '$script:token': 'jwt-abc' });
     expect(envVars).toEqual({ unrelated: 'v' });
   });
 
-  it('runs a script once when referenced from both env vars and the request', async () => {
-    const { scriptVariables, results } = await resolveLocalScriptEnvVars(
-      { jwt: '{{$script:token}}' },
-      config,
-      { cwd },
-      { headers: { Authorization: 'Bearer {{$script:token}}' } }
-    );
-    expect(results).toHaveLength(1);
-    expect(scriptVariables).toEqual({ '$script:token': 'jwt-abc' });
-  });
-
-  it('rejects when the request references an unregistered script', async () => {
-    await expect(
-      resolveLocalScriptEnvVars({}, config, { cwd }, { headers: { x: '{{$script:nope}}' } })
-    ).rejects.toThrow('not registered');
+  it('rejects when a referenced script is not registered', async () => {
+    await expect(resolve({ a: '{{$script:missing}}' }, ['missing'])).rejects.toThrow('not registered');
   });
 
   it('does not leak injected script variables into the child process environment', async () => {
     const childConfig = {
       commands: [{ name: 'whoami', command: `${node} -e "process.stdout.write(process.env['\\$script:token'] || 'absent')"` }]
     };
-    const envVars = { '$script:token': 'jwt-abc', 'dynamic': '{{$script:whoami}}' };
-    const { envVars: resolved } = await resolveLocalScriptEnvVars(envVars, childConfig, { cwd });
-    expect(resolved.dynamic).toBe('absent');
+    const { envVars } = await resolveLocalScriptVariables({
+      envVars: { '$script:token': 'jwt-abc', 'dynamic': '{{$script:whoami}}' },
+      referencedNames: ['whoami'],
+      scriptsConfigs: [childConfig],
+      context: { cwd }
+    });
+    expect(envVars.dynamic).toBe('absent');
   });
 
-  it('ignores non-plain values like binary buffers in the request', async () => {
-    const request = {
-      headers: { Authorization: 'Bearer {{$script:token}}' },
-      data: Buffer.from([0x00, 0x01, 0x02, 0x80, 0xff])
+  it('merges registries in order, with the collection config overriding the global one', async () => {
+    const collectionConfig = {
+      commands: [{ name: 'token', command: `${node} -e "process.stdout.write('collection-wins')"` }]
     };
-    const { scriptVariables } = await resolveLocalScriptEnvVars({}, config, { cwd }, request);
-    expect(scriptVariables).toEqual({ '$script:token': 'jwt-abc' });
+    const { scriptVariables } = await resolveLocalScriptVariables({
+      envVars: {},
+      referencedNames: ['token'],
+      scriptsConfigs: [globalConfig, collectionConfig],
+      context: { cwd }
+    });
+    expect(scriptVariables['$script:token']).toBe('collection-wins');
   });
 });

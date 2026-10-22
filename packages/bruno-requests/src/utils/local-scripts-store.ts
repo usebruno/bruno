@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
-import { LocalScript, LocalScriptError, normalizeLocalScripts } from './local-scripts';
+import { LocalScriptError, normalizeLocalScripts, type LocalScript } from '@usebruno/common/utils';
 
 /**
  * Global local scripts live outside any collection so they can be referenced
