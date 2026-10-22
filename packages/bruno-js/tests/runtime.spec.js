@@ -1,8 +1,12 @@
 const { describe, it, expect, beforeAll } = require('@jest/globals');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const TestRuntime = require('../src/runtime/test-runtime');
 const ScriptRuntime = require('../src/runtime/script-runtime');
 const AssertRuntime = require('../src/runtime/assert-runtime');
 const { loader: quickJsLoader } = require('../src/sandbox/quickjs');
+const { formatErrorWithContextV2 } = require('../src/utils/error-formatter');
 
 describe('runtime', () => {
   describe('test-runtime', () => {
@@ -693,5 +697,31 @@ describe('script-runtime: the collection + request scripts from the CRLF comment
     const result = await runtime.runRequestScript(script, {}, {}, {}, '.', onConsoleLog, process.env);
 
     expect(result.envVariables.petId).toBe(9091);
+  });
+});
+
+describe('script-runtime: comments in post-response scripts and tests', () => {
+  const baseRequest = { method: 'GET', url: 'http://localhost:3000/', headers: {}, data: undefined };
+  const baseResponse = { status: 200, statusText: 'OK', data: { id: 1 } };
+  const onConsoleLog = () => {};
+
+  it.each(['nodevm', 'quickjs'])('post-response script with // comments before and after the code (%s)', async (runtimeName) => {
+    if (runtimeName === 'quickjs') await quickJsLoader();
+    const script = '// read the id\r\nbru.setVar("id", res.getBody().id);\n// done';
+    const runtime = new ScriptRuntime({ runtime: runtimeName });
+
+    const result = await runtime.runResponseScript(script, { ...baseRequest }, { ...baseResponse }, {}, {}, '.', onConsoleLog, process.env);
+
+    expect(result.runtimeVariables.id).toBe(1);
+  });
+
+  it.each(['nodevm', 'quickjs'])('tests file with // comments before and after the code (%s)', async (runtimeName) => {
+    if (runtimeName === 'quickjs') await quickJsLoader();
+    const testFile = '// status check\r\ntest("status is 200", () => { expect(res.getStatus()).to.equal(200); });\n// done';
+    const runtime = new TestRuntime({ runtime: runtimeName });
+
+    const result = await runtime.runTests(testFile, { ...baseRequest }, { ...baseResponse }, {}, {}, '.', onConsoleLog, process.env);
+
+    expect(result.results).toEqual([expect.objectContaining({ description: 'status is 200', status: 'pass' })]);
   });
 });

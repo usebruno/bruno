@@ -7,6 +7,24 @@ const prepareRequest = require('../../src/runner/prepare-request');
 
 describe('prepare-request: prepareRequest', () => {
   describe('Decomments request body', () => {
+    it('Strips a block comment', async () => {
+      const body = { mode: 'json', json: '{ /* note */ "a": 1 }' };
+      const result = await prepareRequest({ request: { body } });
+      expect(result.data).toEqual('{  "a": 1 }');
+    });
+
+    it('Strips a comment that contains an interpolation placeholder', async () => {
+      const body = { mode: 'json', json: '{\n"a": 1 // was {{oldValue}}\n}' };
+      const result = await prepareRequest({ request: { body } });
+      expect(result.data).toEqual('{\n"a": 1 \n}');
+    });
+
+    it('Strips comments from GraphQL variables', async () => {
+      const body = { mode: 'graphql', graphql: { query: 'query { x }', variables: '{\n  // pet to fetch\n  "id": 9091 /* numeric */\n}' } };
+      const result = await prepareRequest({ request: { body } });
+      expect(result.data.variables).toEqual('{\n  \n  "id": 9091 \n}');
+    });
+
     it('Strips a comment from a CRLF body without touching the line endings', async () => {
       const body = { mode: 'json', json: '{\r\n"a": 1 // comment\r\n}' };
       const result = await prepareRequest({ request: { body } });
