@@ -389,6 +389,22 @@ export const collectionsSlice = createSlice({
         collection.settingsSelectedTab = tab;
       }
     },
+    updateCollectionHttpVersion: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root),
+            brunoConfig: cloneDeep(collection.brunoConfig)
+          };
+        }
+        if (!collection.draft.brunoConfig) {
+          collection.draft.brunoConfig = cloneDeep(collection.brunoConfig);
+        }
+        set(collection, 'draft.brunoConfig.http.version', action.payload.httpVersion);
+      }
+    },
     updatedFolderSettingsSelectedTab: (state, action) => {
       const { collectionUid, folderUid, tab } = action.payload;
 
@@ -4309,6 +4325,7 @@ export const {
   sortCollections,
   updateLastAction,
   updateSettingsSelectedTab,
+  updateCollectionHttpVersion,
   updatedFolderSettingsSelectedTab,
   collectionUnlinkEnvFileEvent,
   saveEnvironment,

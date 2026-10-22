@@ -18,3 +18,6 @@ export type { Http2TransportConfig, ApplyHttp2TransportParams } from './apply-ht
 
 export { getHttp2RequestDetails } from './http2-request-details';
 export type { Http2RequestDetails } from './http2-request-details';
+
+export { resolveHttpVersion, HTTP_VERSION_VALUES } from './resolve-http-version';
+export type { HttpVersionValue } from './resolve-http-version';

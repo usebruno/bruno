@@ -120,7 +120,8 @@ function makeAxiosInstance({
   httpsAgentRequestFields = {},
   interpolationOptions = {},
   followRedirects = true,
-  forwardAuthorizationHeader = true
+  forwardAuthorizationHeader = true,
+  httpVersionMode = undefined
 } = {}) {
   /** @type {axios.AxiosInstance} */
   const instance = axios.create({
@@ -242,10 +243,10 @@ function makeAxiosInstance({
       });
     }
 
-    const httpVersionMode = preferencesUtil.getHttpVersion();
-    if (canUseHttp2(httpVersionMode)) {
+    const resolvedHttpVersionMode = httpVersionMode ?? preferencesUtil.getHttpVersion();
+    if (canUseHttp2(resolvedHttpVersionMode)) {
       try {
-        await applyHttp2Transport({ config, mode: httpVersionMode, agentOptions, timeline });
+        await applyHttp2Transport({ config, mode: resolvedHttpVersionMode, agentOptions, timeline });
       } catch (err) {
         timeline.push({ timestamp: new Date(), type: 'error', message: `HTTP/2 setup failed: ${err?.message}` });
         throw err;

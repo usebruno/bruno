@@ -19,7 +19,8 @@ const {
   addDigestInterceptor,
   addEdgeGridInterceptor,
   applySentHeadersToRequest,
-  measureResponseTime
+  measureResponseTime,
+  resolveHttpVersion
 } = require('@usebruno/requests');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { prepareRequest } = require('./prepare-request');
@@ -165,6 +166,11 @@ const configureRequest = async (
 
   const { promptVariables = {} } = collection;
   let { proxyMode, proxyModeReason, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
+
+  // Resolve the HTTP version. collection setting (bruno.json http.version) overrides the app preference.
+  const brunoConfig = getBrunoConfig(collectionUid, collection);
+  const httpVersionMode = resolveHttpVersion(get(brunoConfig, 'http.version'), preferencesUtil.getHttpVersion());
+
   const axiosInstance = makeAxiosInstance({
     proxyMode,
     proxyModeReason,
@@ -173,7 +179,8 @@ const configureRequest = async (
     httpsAgentRequestFields,
     interpolationOptions,
     followRedirects,
-    forwardAuthorizationHeader
+    forwardAuthorizationHeader,
+    httpVersionMode
   });
 
   if (request.ntlmConfig) {
