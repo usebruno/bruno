@@ -1,6 +1,7 @@
 const { get } = require('lodash');
 const {
   collectLocalScriptRefs,
+  collectRequestLocalScriptRefs,
   resolveLocalScriptVariables,
   loadGlobalLocalScriptsConfig,
   normalizeLocalScripts,
@@ -16,19 +17,27 @@ const collectionConsentMessage = (names) => 'This request references local scrip
   + '"Also allow commands defined inside collections" in Preferences, or pass '
   + '--allow-local-script-collections on the CLI.';
 
+// Twin of the CLI's runner/local-scripts-hook.js: keep both in sync (feature-parity).
+const noopScope = {
+  restore: () => {},
+  sanitize: (vars) => vars
+};
+
 /**
  * Shared hook for the single-request path and the collection/folder runner:
  * collect `{{$script:name}}` references across the environment variables and
- * the request, enforce the opt-in gates, run the referenced commands, and
- * merge their outputs into envVars (both env-nested substitutions and the
- * `$script:name` interpolation variables).
+ * the interpolated request fields, enforce the opt-in gates, run the
+ * referenced commands, and merge their outputs into envVars (both env-nested
+ * substitutions and the `$script:name` interpolation variables).
  *
  * Commands from the collection's brunoConfig.localScripts block are a separate
  * trust domain from the user's global registry and require their own opt-in.
  *
- * The returned rollback removes the request-scoped script outputs again;
- * runners sharing one envVars object across sequential requests must call it
- * when the request finishes. It is a no-op when nothing was referenced.
+ * Returns a scope: `restore` removes the request-scoped outputs again when the
+ * request finishes (envVars can be shared across sequential requests), and
+ * `sanitize` scrubs them from an envVariables snapshot headed to the renderer
+ * or disk so command output never gets persisted. Returns a no-op scope when
+ * nothing was referenced.
  */
 const resolveRequestLocalScripts = async ({
   envVars,
@@ -40,10 +49,10 @@ const resolveRequestLocalScripts = async ({
 }) => {
   const refs = [...new Set([
     ...collectLocalScriptRefs(envVars),
-    ...collectLocalScriptRefs(request)
+    ...collectRequestLocalScriptRefs(request)
   ])];
   if (refs.length === 0) {
-    return () => {};
+    return noopScope;
   }
   if (!preferencesUtil.isLocalScriptsEnabled()) {
     throw new Error(disabledMessage);

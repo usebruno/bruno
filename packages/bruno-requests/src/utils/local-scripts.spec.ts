@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   collectLocalScriptRefs,
+  collectRequestLocalScriptRefs,
   executeLocalScript,
   mergeLocalScriptOutputs,
   normalizeLocalScripts,
@@ -56,6 +57,15 @@ describe('executeLocalScript', () => {
     expect(result.stdout).toBe(process.env.PATH || '');
   });
 
+  it('ignores collection-supplied shell-startup env keys (BASH_ENV/ENV/ZDOTDIR)', async () => {
+    const result = await executeLocalScript(
+      { name: 'protected-startup', command: `${node} -e "process.stdout.write(process.env.BASH_ENV || 'absent')"` },
+      { cwd, env: { BASH_ENV: '/tmp/evil-startup.sh', ENV: '/tmp/evil-env', zdotdir: '/tmp/evil-zsh' } }
+    );
+    expect(result.stdout).toBe(process.env.BASH_ENV || 'absent');
+    expect(result.stdout).not.toBe('/tmp/evil-startup.sh');
+  });
+
   it('rejects immediately when the abort signal is already aborted', async () => {
     const controller = new AbortController();
     controller.abort();
@@ -100,6 +110,35 @@ describe('collectLocalScriptRefs', () => {
       e: '{{not-a-script}}'
     });
     expect(refs.sort()).toEqual(['get-token', 'nested', 'other']);
+  });
+});
+
+describe('collectRequestLocalScriptRefs', () => {
+  it('finds refs in interpolated request fields', () => {
+    const refs = collectRequestLocalScriptRefs({
+      url: 'https://example.com/?t={{$script:querytoken}}',
+      headers: { Authorization: 'Bearer {{$script:headertoken}}' },
+      data: { refresh: '{{$script:bodytoken}}' }
+    });
+    expect(refs.sort()).toEqual(['bodytoken', 'headertoken', 'querytoken']);
+  });
+
+  it('ignores refs inside pre/post-request and test script code', () => {
+    const refs = collectRequestLocalScriptRefs({
+      url: 'https://example.com/',
+      headers: { Authorization: 'Bearer {{$script:realtoken}}' },
+      script: {
+        req: '// {{$script:codecomment}}\nbru.setEnvVar("x", "{{$script:codestring}}")',
+        res: 'test("uses {{$script:codetest}}", () => {})'
+      },
+      tests: 'test("also code {{$script:testcode}}", () => {})'
+    });
+    expect(refs).toEqual(['realtoken']);
+  });
+
+  it('returns nothing for non-object input', () => {
+    expect(collectRequestLocalScriptRefs(null)).toEqual([]);
+    expect(collectRequestLocalScriptRefs(undefined)).toEqual([]);
   });
 });
 
@@ -215,15 +254,15 @@ describe('resolveLocalScriptVariables', () => {
 });
 
 describe('mergeLocalScriptOutputs', () => {
-  it('adds injected keys and substituted env values, then rolls them back', () => {
+  it('adds injected keys and substituted env values, then restores them', () => {
     const envVars = { jwt: '{{$script:token}}', plain: 'untouched' };
     const resolved = { jwt: 'jwt-abc', plain: 'untouched' };
     const scriptVariables = { '$script:token': 'jwt-abc' };
 
-    const rollback = mergeLocalScriptOutputs(envVars, resolved, scriptVariables);
+    const scope = mergeLocalScriptOutputs(envVars, resolved, scriptVariables);
     expect(envVars).toEqual({ 'jwt': 'jwt-abc', 'plain': 'untouched', '$script:token': 'jwt-abc' });
 
-    rollback();
+    scope.restore();
     expect(envVars).toEqual({ jwt: '{{$script:token}}', plain: 'untouched' });
   });
 
@@ -231,9 +270,37 @@ describe('mergeLocalScriptOutputs', () => {
     const envVars = { jwt: '{{$script:token}}' };
     const resolved = { jwt: 'jwt-abc' };
 
-    const rollback = mergeLocalScriptOutputs(envVars, resolved, {});
+    const scope = mergeLocalScriptOutputs(envVars, resolved, {});
     envVars.jwt = 'script-override';
-    rollback();
+    scope.restore();
     expect(envVars.jwt).toBe('script-override');
+  });
+
+  it('keeps an explicit override of a newly injected key', () => {
+    const envVars = { plain: 'untouched' };
+    const scope = mergeLocalScriptOutputs(envVars, {}, { '$script:token': 'jwt-abc' });
+    envVars['$script:token'] = 'manual-override';
+    scope.restore();
+    expect(envVars['$script:token']).toBe('manual-override');
+  });
+
+  it('sanitize drops injected keys and restores templates without touching the live object', () => {
+    const envVars = { jwt: '{{$script:token}}', plain: 'untouched' };
+    const scope = mergeLocalScriptOutputs(envVars, { jwt: 'jwt-abc', plain: 'untouched' }, { '$script:token': 'jwt-abc' });
+
+    // A cleanJson-style snapshot produced by the script runtime after the merge.
+    const snapshot = { 'jwt': 'jwt-abc', 'plain': 'untouched', '$script:token': 'jwt-abc' };
+    expect(scope.sanitize(snapshot)).toEqual({ jwt: '{{$script:token}}', plain: 'untouched' });
+    // The snapshot and the live env are left intact.
+    expect(snapshot).toEqual({ 'jwt': 'jwt-abc', 'plain': 'untouched', '$script:token': 'jwt-abc' });
+    expect(envVars['$script:token']).toBe('jwt-abc');
+  });
+
+  it('sanitize preserves an explicit bru.setEnvVar override of a template-backed value', () => {
+    const envVars = { jwt: '{{$script:token}}' };
+    const scope = mergeLocalScriptOutputs(envVars, { jwt: 'jwt-abc' }, { '$script:token': 'jwt-abc' });
+
+    const snapshot = { 'jwt': 'rotated-by-script', '$script:token': 'jwt-abc' };
+    expect(scope.sanitize(snapshot)).toEqual({ jwt: 'rotated-by-script' });
   });
 });

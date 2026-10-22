@@ -41,14 +41,18 @@ const ERROR_STDERR_LIMIT = 2000;
  * or the dynamic loader. They can arrive through collection-provided sources
  * (selected bruno environment / dotenv), and a shared collection must not be
  * able to hijack a command the user registered — e.g.
- * `NODE_OPTIONS=--require ./evil.js`, a rewritten `PATH`, or
- * `DYLD_INSERT_LIBRARIES`. Values for these keys from the collection context
- * are dropped; the real values inherited from process.env remain.
+ * `NODE_OPTIONS=--require ./evil.js`, a rewritten `PATH`, `BASH_ENV` pointing
+ * at a startup file the shell sources, or `DYLD_INSERT_LIBRARIES`. Values for
+ * these keys from the collection context are dropped; the real values
+ * inherited from process.env remain.
  */
 const isProtectedEnvKey = (key: string): boolean => {
   const upper = key.toUpperCase();
   return upper === 'NODE_OPTIONS'
     || upper === 'PATH'
+    || upper === 'BASH_ENV'
+    || upper === 'ENV'
+    || upper === 'ZDOTDIR'
     || upper.startsWith('LD_')
     || upper.startsWith('DYLD_');
 };
@@ -266,6 +270,24 @@ export const collectLocalScriptRefs = (value: unknown): string[] => {
   return [...names];
 };
 
+/**
+ * Collect `{{$script:name}}` references from the request fields that undergo
+ * string interpolation (url, headers, params, body, auth, …). `script`
+ * (pre/post-request code) and `tests` (test-script code) execute in the
+ * sandbox instead of being interpolated, so a literal reference inside them
+ * — including in a comment or a string — must not run a command or raise the
+ * disabled-gate error.
+ */
+export const collectRequestLocalScriptRefs = (request: unknown): string[] => {
+  if (!isPlainRecord(request)) {
+    return [];
+  }
+  const interpolatedFields: Record<string, unknown> = { ...request };
+  delete interpolatedFields.script;
+  delete interpolatedFields.tests;
+  return collectLocalScriptRefs(interpolatedFields);
+};
+
 const replaceScriptRefs = (value: unknown, outputs: Map<string, string>): unknown => {
   if (typeof value === 'string') {
     return value.replace(new RegExp(LOCAL_SCRIPT_VAR_PATTERN.source, 'g'), (match, name) => {
@@ -367,20 +389,41 @@ export const resolveLocalScriptVariables = async (
 };
 
 /**
+ * Request-scoped handle over a local-scripts merge into a shared env-var
+ * object.
+ */
+export type LocalScriptOutputsScope = {
+  /**
+   * Undo the merge on the shared object. A key the request scripts explicitly
+   * changed (via bru.setEnvVar) is left as-is.
+   */
+  restore: () => void;
+  /**
+   * Return a copy of an env-var snapshot (e.g. the envVariables reported by a
+   * script run) with request-scoped script outputs removed: synthetic
+   * `$script:name` keys are dropped and template-backed values are restored to
+   * their original templates. The result is safe to send to the renderer or
+   * persist to disk; explicit bru.setEnvVar overrides are preserved.
+   */
+  sanitize: (vars: Record<string, unknown> | null | undefined) => Record<string, unknown>;
+};
+
+/**
  * Merge resolved script outputs into the shared runtime env-var object and
- * return a rollback that undoes the merge. Runners (folder runner, `bru run`)
- * share one env-var object across sequential requests, while script outputs
- * are request-scoped: without rollback, request A's token would leak into
- * request B, and a template pre-substituted with it would suppress a fresh
- * command run. A key the request scripts explicitly overwrote via
- * bru.setEnvVar is left as-is.
+ * return a scope that undoes the merge and scrubs outputs from outbound
+ * snapshots. Runners (folder runner, `bru run`) share one env-var object
+ * across sequential requests, while script outputs are request-scoped:
+ * without rollback, request A's token would leak into request B, and a
+ * template pre-substituted with it would suppress a fresh command run. The
+ * same outputs must not be sent to the renderer or persisted to the active
+ * environment when a script dirties variables.
  */
 export const mergeLocalScriptOutputs = (
   envVars: Record<string, unknown>,
   resolvedEnvVars: Record<string, unknown>,
   scriptVariables: Record<string, string>
-): (() => void) => {
-  const added: string[] = [];
+): LocalScriptOutputsScope => {
+  const added: Array<{ key: string; injected: unknown }> = [];
   const replaced: Array<{ key: string; original: unknown; resolved: unknown }> = [];
   for (const [key, value] of Object.entries({ ...resolvedEnvVars, ...scriptVariables })) {
     if (Object.prototype.hasOwnProperty.call(envVars, key)) {
@@ -388,18 +431,37 @@ export const mergeLocalScriptOutputs = (
         replaced.push({ key, original: envVars[key], resolved: value });
       }
     } else {
-      added.push(key);
+      added.push({ key, injected: value });
     }
     envVars[key] = value;
   }
-  return () => {
-    for (const key of added) {
-      delete envVars[key];
-    }
-    for (const { key, original, resolved } of replaced) {
-      if (envVars[key] === resolved) {
-        envVars[key] = original;
+  return {
+    restore: () => {
+      for (const { key, injected } of added) {
+        if (envVars[key] === injected) {
+          delete envVars[key];
+        }
       }
+      for (const { key, original, resolved } of replaced) {
+        if (envVars[key] === resolved) {
+          envVars[key] = original;
+        }
+      }
+    },
+    sanitize: (vars) => {
+      const source = vars && typeof vars === 'object' ? vars : {};
+      const copy: Record<string, unknown> = { ...source };
+      // Synthetic interpolation variables must never become environment rows,
+      // regardless of what request code did to the key.
+      for (const { key } of added) {
+        delete copy[key];
+      }
+      for (const { key, original, resolved } of replaced) {
+        if (copy[key] === resolved) {
+          copy[key] = original;
+        }
+      }
+      return copy;
     }
   };
 };

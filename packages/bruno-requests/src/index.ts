@@ -27,6 +27,7 @@ export {
   mergeLocalScriptsConfigs,
   executeLocalScript,
   collectLocalScriptRefs,
+  collectRequestLocalScriptRefs,
   resolveLocalScriptVariables,
   mergeLocalScriptOutputs
 } from './utils/local-scripts';
@@ -39,6 +40,7 @@ export {
 export type {
   LocalScriptResult,
   LocalScriptExecutionContext,
+  LocalScriptOutputsScope,
   ResolveLocalScriptVariablesOptions,
   ResolveLocalScriptVariablesResult
 } from './utils/local-scripts';

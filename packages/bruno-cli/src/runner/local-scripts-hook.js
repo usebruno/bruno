@@ -1,6 +1,7 @@
 const { get } = require('lodash');
 const {
   collectLocalScriptRefs,
+  collectRequestLocalScriptRefs,
   resolveLocalScriptVariables,
   loadGlobalLocalScriptsConfig,
   normalizeLocalScripts,
@@ -14,13 +15,21 @@ const collectionConsentMessage = (names) => 'This request references local scrip
   + `${names.join(', ')}). Running collection-defined commands is a separate opt-in: re-run with `
   + '--allow-local-script-collections (in addition to --allow-local-scripts).';
 
+// Twin of the Electron `ipc/network/local-scripts-hook.js`: keep both in sync.
+const noopScope = {
+  restore: () => {},
+  sanitize: (vars) => vars
+};
+
 /**
  * CLI twin of the Electron `ipc/network/local-scripts-hook.js`: collect
  * `{{$script:name}}` references across the environment variables and the
- * request, enforce the opt-in flags, run the referenced commands, and merge
- * their outputs into envVariables. Returns a rollback that removes the
- * request-scoped outputs (envVariables is shared across sequential requests),
- * or a no-op when nothing was referenced.
+ * interpolated request fields, enforce the opt-in flags, run the referenced
+ * commands, and merge their outputs into envVariables. Returns a scope whose
+ * `restore` removes the request-scoped outputs when the request finishes
+ * (envVariables is shared across sequential requests) and whose `sanitize`
+ * scrubs them from envVariables snapshots before they are persisted to disk;
+ * it is a no-op when nothing was referenced.
  *
  * Commands from the collection's brunoConfig.localScripts block are a separate
  * trust domain from the user's global registry and require
@@ -37,10 +46,10 @@ const resolveRequestLocalScripts = async ({
 }) => {
   const refs = [...new Set([
     ...collectLocalScriptRefs(envVariables),
-    ...collectLocalScriptRefs(request)
+    ...collectRequestLocalScriptRefs(request)
   ])];
   if (refs.length === 0) {
-    return () => {};
+    return noopScope;
   }
   if (get(options, 'allowLocalScripts', false) !== true) {
     throw new Error(disabledMessage);
