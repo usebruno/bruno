@@ -212,3 +212,36 @@ export const appendTextToCodeEditor = async (page: Page, editorId: string, text:
     }
   }, text);
 };
+
+export const getCodeEditorState = async (page: Page, editorId: string) => {
+  const cm = page.getByTestId(editorId).locator('.CodeMirror').first();
+  return cm.evaluate((el: any) => {
+    const { line, ch } = el.CodeMirror.getCursor();
+    return { value: el.CodeMirror.getValue(), cursor: { line, ch }, hasSelection: el.CodeMirror.somethingSelected() };
+  });
+};
+
+export const replaceAndTypeInCodeEditorImmediately = async (
+  page: Page,
+  editorId: string,
+  pos: { line: number; ch: number },
+  text: string
+) => {
+  await page.getByTestId(editorId).evaluate(
+    (root: any, { pos, text }: { pos: { line: number; ch: number }; text: string }) => {
+      root.querySelector('[data-testid="codemirror-search-replace-btn"]').click();
+      const cm = root.querySelector('.CodeMirror').CodeMirror;
+      cm.setCursor(pos);
+      cm.replaceSelection(text);
+    },
+    { pos, text }
+  );
+};
+
+export const replaceAndCloseCodeEditorSearchBarImmediately = async (page: Page, editorId: string) => {
+  await page.getByTestId(editorId).evaluate((root: any) => {
+    root.querySelector('[data-testid="codemirror-search-replace-btn"]').click();
+    root.querySelector('[data-testid="codemirror-search-close-btn"]').click();
+  });
+  await buildCodeEditorSearchLocators(page, editorId).searchBar().waitFor({ state: 'hidden' });
+};

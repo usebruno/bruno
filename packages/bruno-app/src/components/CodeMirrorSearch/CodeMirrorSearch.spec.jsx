@@ -305,7 +305,7 @@ describe('CodeMirrorSearch', () => {
       typeSearch('console');
       expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('1 / 2');
 
-      // Simulate undo — document reverts, now no matches
+      // Simulate undo - document reverts, now no matches
       editor.getSearchCursor.mockImplementation(() => {
         const i = -1;
         return { findNext: () => false, from: () => undefined, to: () => undefined };
@@ -317,6 +317,97 @@ describe('CodeMirrorSearch', () => {
       });
 
       expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('0 results');
+    });
+
+    const nameMatches = [
+      { from: { line: 0, ch: 6 }, to: { line: 0, ch: 10 } },
+      { from: { line: 2, ch: 6 }, to: { line: 2, ch: 10 } }
+    ];
+
+    function setupEditor(matches) {
+      let changeHandler;
+      const editor = makeMockEditor(matches);
+      editor.on = jest.fn((event, handler) => { if (event === 'change') changeHandler = handler; });
+      editor.off = jest.fn();
+      editor.replaceRange.mockImplementation(() => changeHandler());
+      const editAt = (cursor) => {
+        editor.getCursor.mockReturnValue(cursor);
+        act(() => {
+          changeHandler();
+          jest.advanceTimersByTime(100);
+        });
+      };
+      return { editor, editAt };
+    }
+
+    function replaceCurrentMatch(ref) {
+      act(() => {
+        ref.current.openReplace();
+        jest.runAllTimers();
+      });
+      fireEvent.change(screen.getByTestId('codemirror-search-replace-input'), { target: { value: 'id' } });
+      fireEvent.click(screen.getByTestId('codemirror-search-replace-btn'));
+    }
+
+    it('keeps the selection in place when the user edits the document', () => {
+      const { editor, editAt } = setupEditor(nameMatches);
+      renderSearch({ editor });
+      typeSearch('name');
+      editor.setSelection.mockClear();
+
+      editAt({ line: 1, ch: 16 });
+
+      expect(editor.setSelection).not.toHaveBeenCalled();
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('2 / 2');
+    });
+
+    it('anchors the current match to the first one at or after the cursor after an edit', () => {
+      const { editor, editAt } = setupEditor([
+        ...nameMatches,
+        { from: { line: 2, ch: 20 }, to: { line: 2, ch: 24 } },
+        { from: { line: 4, ch: 0 }, to: { line: 4, ch: 4 } }
+      ]);
+      renderSearch({ editor });
+      typeSearch('name');
+
+      editAt({ line: 2, ch: 12 });
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('3 / 4');
+
+      editAt({ line: 2, ch: 27 });
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('4 / 4');
+    });
+
+    it('keeps the selection in place when the user edits right after Replace', () => {
+      const { editor, editAt } = setupEditor(nameMatches);
+      const ref = createRef();
+      renderSearch({ editor }, ref);
+      typeSearch('name');
+      replaceCurrentMatch(ref);
+      editor.setSelection.mockClear();
+
+      editAt({ line: 1, ch: 16 });
+
+      expect(editor.setSelection).not.toHaveBeenCalled();
+    });
+
+    it('keeps the selection in place when the bar is closed right after Replace and reopened', () => {
+      const { editor, editAt } = setupEditor(nameMatches);
+      const ref = createRef();
+      const searchBar = (visible) => (
+        <ThemeProvider theme={theme}>
+          <CodeMirrorSearch visible={visible} editor={editor} onClose={jest.fn()} ref={ref} />
+        </ThemeProvider>
+      );
+      const { rerender } = render(searchBar(true));
+      typeSearch('name');
+      replaceCurrentMatch(ref);
+      rerender(searchBar(false));
+      rerender(searchBar(true));
+      editor.setSelection.mockClear();
+
+      editAt({ line: 1, ch: 16 });
+
+      expect(editor.setSelection).not.toHaveBeenCalled();
     });
   });
 
