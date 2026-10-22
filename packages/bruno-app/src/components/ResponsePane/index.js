@@ -174,26 +174,21 @@ const ResponsePane = ({ item, collection }) => {
           return <WSMessagesList order={-1} messages={item.response.data} item={item} collection={collection} />;
         }
         return (
-          <div className="flex h-full">
-            <div className="flex-1 min-w-0 h-full">
-              <QueryResult
-                item={item}
-                collection={collection}
-                data={response.data}
-                dataBuffer={response.dataBuffer}
-                headers={response.headers}
-                error={response.error}
-                key={item.filename}
-                selectedFormat={selectedFormat}
-                selectedTab={selectedViewTab}
-                filter={focusedTab?.responseFilter}
-                filterExpanded={focusedTab?.responseFilterExpanded}
-                onFilterChange={(value) => dispatch(updateResponseFilter({ uid: activeTabUid, responseFilter: value }))}
-                onFilterExpandChange={(expanded) => dispatch(updateResponseFilterExpanded({ uid: activeTabUid, responseFilterExpanded: expanded }))}
-              />
-            </div>
-            {showLabelPane ? <LabelPane labels={labels} /> : null}
-          </div>
+          <QueryResult
+            item={item}
+            collection={collection}
+            data={response.data}
+            dataBuffer={response.dataBuffer}
+            headers={response.headers}
+            error={response.error}
+            key={item.filename}
+            selectedFormat={selectedFormat}
+            selectedTab={selectedViewTab}
+            filter={focusedTab?.responseFilter}
+            filterExpanded={focusedTab?.responseFilterExpanded}
+            onFilterChange={(value) => dispatch(updateResponseFilter({ uid: activeTabUid, responseFilter: value }))}
+            onFilterExpandChange={(expanded) => dispatch(updateResponseFilterExpanded({ uid: activeTabUid, responseFilterExpanded: expanded }))}
+          />
         );
       }
       case 'headers': {
@@ -347,7 +342,14 @@ const ResponsePane = ({ item, collection }) => {
               />
             ) : null
           ) : (
-            <>{getTabPanel(focusedTab.responsePaneTab)}</>
+            showLabelPane && focusedTab.responsePaneTab === 'response' ? (
+              <div className="flex h-full">
+                <div className="flex-1 min-w-0 h-full">{getTabPanel('response')}</div>
+                <LabelPane labels={labels} />
+              </div>
+            ) : (
+              <>{getTabPanel(focusedTab.responsePaneTab)}</>
+            )
           )}
         </div>
       </section>

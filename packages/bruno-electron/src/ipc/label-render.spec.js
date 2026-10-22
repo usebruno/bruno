@@ -6,11 +6,14 @@ jest.mock('../store/preferences', () => ({ getPreferences: () => mockGetPreferen
 jest.mock('./network/cert-utils', () => ({ getCertsAndProxyConfig: jest.fn().mockResolvedValue({}) }));
 jest.mock('./network/axios-instance', () => ({ makeAxiosInstance: () => ({ request: mockRequest }) }));
 
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
 const mockChooseFileToSave = jest.fn();
-const mockWriteFile = jest.fn();
 jest.mock('../utils/filesystem', () => ({
-  chooseFileToSave: (...args) => mockChooseFileToSave(...args),
-  writeFile: (...args) => mockWriteFile(...args)
+  ...jest.requireActual('../utils/filesystem'),
+  chooseFileToSave: (...args) => mockChooseFileToSave(...args)
 }));
 
 const { renderZplLabel, saveLabelFile } = require('./label-render');
@@ -20,11 +23,14 @@ const validRequest = { zpl: '^XA^FDHi^FS^XZ', dpmm: 8, widthInches: 4, heightInc
 describe('renderZplLabel', () => {
   beforeEach(() => {
     mockRequest.mockReset();
-    mockGetPreferences.mockReturnValue({ labelary: { endpoint: 'https://api.labelary.com/', consent: true } });
+    mockGetPreferences.mockReturnValue({ labelary: { endpoint: 'https://api.labelary.com/', consentedEndpoint: 'https://api.labelary.com/' } });
   });
 
-  it('refuses to render without consent', async () => {
-    mockGetPreferences.mockReturnValue({ labelary: { endpoint: 'https://api.labelary.com', consent: false } });
+  it.each([
+    ['no consent recorded', { endpoint: 'https://api.labelary.com', consentedEndpoint: '' }],
+    ['consent given for a different endpoint', { endpoint: 'https://labels.example.com', consentedEndpoint: 'https://api.labelary.com' }]
+  ])('refuses to render with %s', async (name, labelary) => {
+    mockGetPreferences.mockReturnValue({ labelary });
     const result = await renderZplLabel(validRequest);
     expect(result).toMatchObject({ error: true, code: 'CONSENT_REQUIRED' });
     expect(mockRequest).not.toHaveBeenCalled();
@@ -40,7 +46,7 @@ describe('renderZplLabel', () => {
   });
 
   it('rejects a non-http endpoint', async () => {
-    mockGetPreferences.mockReturnValue({ labelary: { endpoint: 'file:///etc/passwd', consent: true } });
+    mockGetPreferences.mockReturnValue({ labelary: { endpoint: 'file:///etc/passwd', consentedEndpoint: 'file:///etc/passwd' } });
     expect(await renderZplLabel(validRequest)).toMatchObject({ error: true, code: 'INVALID_ENDPOINT' });
   });
 
@@ -69,31 +75,42 @@ describe('renderZplLabel', () => {
 
 describe('saveLabelFile', () => {
   const mainWindow = {};
+  let tmpDir;
 
   beforeEach(() => {
     mockChooseFileToSave.mockReset();
-    mockWriteFile.mockReset();
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'label-save-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('writes base64 content as bytes to the chosen path', async () => {
-    mockChooseFileToSave.mockResolvedValue('/tmp/label.pdf');
+    const target = path.join(tmpDir, 'label.pdf');
+    mockChooseFileToSave.mockResolvedValue(target);
+
     const result = await saveLabelFile(mainWindow, { fileName: 'label.pdf', content: Buffer.from('%PDF-1.4').toString('base64'), encoding: 'base64' });
 
     expect(mockChooseFileToSave).toHaveBeenCalledWith(mainWindow, 'label.pdf');
-    expect(mockWriteFile).toHaveBeenCalledWith('/tmp/label.pdf', Buffer.from('%PDF-1.4'), true);
-    expect(result).toEqual({ success: true, filePath: '/tmp/label.pdf' });
+    expect(result).toEqual({ success: true, filePath: target });
+    expect(fs.readFileSync(target)).toEqual(Buffer.from('%PDF-1.4'));
   });
 
   it('writes ZPL source as utf8 text', async () => {
-    mockChooseFileToSave.mockResolvedValue('/tmp/label.zpl');
+    const target = path.join(tmpDir, 'label.zpl');
+    mockChooseFileToSave.mockResolvedValue(target);
+
     await saveLabelFile(mainWindow, { fileName: 'label.zpl', content: '^XA^FDé^FS^XZ', encoding: 'utf8' });
-    expect(mockWriteFile).toHaveBeenCalledWith('/tmp/label.zpl', Buffer.from('^XA^FDé^FS^XZ', 'utf8'), true);
+
+    expect(fs.readFileSync(target, 'utf8')).toBe('^XA^FDé^FS^XZ');
   });
 
   it('reports cancellation without writing', async () => {
     mockChooseFileToSave.mockResolvedValue(undefined);
+
     expect(await saveLabelFile(mainWindow, { fileName: 'label.png', content: 'AAAA', encoding: 'base64' })).toEqual({ success: false, cancelled: true });
-    expect(mockWriteFile).not.toHaveBeenCalled();
+    expect(fs.readdirSync(tmpDir)).toEqual([]);
   });
 
   it.each([

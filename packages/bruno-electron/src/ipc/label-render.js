@@ -16,13 +16,13 @@ const isValidDimension = (value) => typeof value === 'number' && value > 0 && va
 
 /**
  * Renders a single ZPL label to a PNG through a Labelary-compatible endpoint.
- * The label leaves the machine, so rendering requires the user's recorded consent.
+ * The label leaves the machine, so rendering requires the user's recorded consent for this exact endpoint.
  */
 const renderZplLabel = async (req = {}) => {
   const { zpl, dpmm, widthInches, heightInches } = req || {};
   const labelary = get(getPreferences(), 'labelary', {});
 
-  if (!labelary.consent) {
+  if (!labelary.endpoint || labelary.consentedEndpoint !== labelary.endpoint) {
     return fail('CONSENT_REQUIRED', 'Rendering ZPL sends the label to the configured Labelary endpoint. Consent is required.');
   }
   if (typeof zpl !== 'string' || !zpl.trim()) {
