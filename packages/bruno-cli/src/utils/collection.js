@@ -3,7 +3,7 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 const { sanitizeName } = require('./filesystem');
-const { getEffectiveTags, getFolderTags, getOwnTags } = require('@usebruno/common');
+const { getEffectiveTags, getFolderTags, getOwnTags, interpolate } = require('@usebruno/common');
 const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const { sortByNameThenSequence } = require('@usebruno/common');
 const constants = require('../constants');
@@ -140,6 +140,24 @@ const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
   ];
 };
 
+/**
+ * Resolves dynamic variable placeholders (`{{$...}}`, e.g. `{{$randomWords}}`)
+ * in a pre-request variable value exactly once, at materialization time.
+ *
+ * Pre-request vars are otherwise stored verbatim, so every later interpolation
+ * (request body, assertions, `bru.getVar()`) re-runs the faker expression and
+ * each reference sees a different random value (#7227). Interpolating with an
+ * empty variable map resolves only the `$`-prefixed mock placeholders;
+ * ordinary `{{var}}` references are left untouched so they keep their
+ * late-bound runtime semantics (#6823).
+ */
+const resolveDynamicVarsOnce = (value) => {
+  if (typeof value !== 'string' || !value.includes('{{$')) {
+    return value;
+  }
+  return interpolate(value, {});
+};
+
 const mergeVars = (collection, request, requestTreePath) => {
   let reqVars = new Map();
   const collectionRoot = collection?.draft?.root || collection?.root || {};
@@ -147,8 +165,9 @@ const mergeVars = (collection, request, requestTreePath) => {
   let collectionVariables = {};
   collectionRequestVars.forEach((_var) => {
     if (_var.enabled) {
-      reqVars.set(_var.name, _var.value);
-      collectionVariables[_var.name] = _var.value;
+      const resolvedValue = resolveDynamicVarsOnce(_var.value);
+      reqVars.set(_var.name, resolvedValue);
+      collectionVariables[_var.name] = resolvedValue;
     }
   });
   let folderVariables = {};
@@ -159,16 +178,18 @@ const mergeVars = (collection, request, requestTreePath) => {
       let vars = get(folderRoot, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          reqVars.set(_var.name, _var.value);
-          folderVariables[_var.name] = _var.value;
+          const resolvedValue = resolveDynamicVarsOnce(_var.value);
+          reqVars.set(_var.name, resolvedValue);
+          folderVariables[_var.name] = resolvedValue;
         }
       });
     } else {
       const vars = i?.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          reqVars.set(_var.name, _var.value);
-          requestVariables[_var.name] = _var.value;
+          const resolvedValue = resolveDynamicVarsOnce(_var.value);
+          reqVars.set(_var.name, resolvedValue);
+          requestVariables[_var.name] = resolvedValue;
         }
       });
     }
