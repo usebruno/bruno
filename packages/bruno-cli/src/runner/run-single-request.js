@@ -229,26 +229,33 @@ const runSingleRequest = async function (
     scriptingConfig.cacheModules = get(options, 'cacheModules', false) === true;
     const systemProxyConfig = options['cachedSystemProxy'];
 
-    // Resolve `{{$script:name}}` references in environment variables using
-    // host-executed commands registered in brunoConfig.localScripts. Requires
-    // the explicit --allow-local-scripts opt-in.
-    if (collectLocalScriptRefs(envVariables).length > 0) {
+    // Resolve `{{$script:name}}` references in environment variables and
+    // directly inside the request (url, headers, body, auth, …) using
+    // host-executed commands registered in brunoConfig.localScripts. Outputs
+    // are also injected under their `$script:name` keys so direct references
+    // resolve during interpolation. Requires the explicit
+    // --allow-local-scripts opt-in.
+    const localScriptRefs = [
+      ...new Set([...collectLocalScriptRefs(envVariables), ...collectLocalScriptRefs(request)])
+    ];
+    if (localScriptRefs.length > 0) {
       if (get(options, 'allowLocalScripts', false) !== true) {
         throw new Error(
-          'Environment variables reference local scripts ({{$script:name}}), but local script execution is disabled. '
-            + 'Re-run with --allow-local-scripts.'
+          'This request references local scripts ({{$script:name}}), but local script execution is disabled. '
+          + 'Re-run with --allow-local-scripts.'
         );
       }
-      const { envVars: resolvedEnvVariables } = await resolveLocalScriptEnvVars(
+      const { envVars: resolvedEnvVariables, scriptVariables } = await resolveLocalScriptEnvVars(
         envVariables,
         get(brunoConfig, 'localScripts', null),
         {
           cwd: collectionPath,
           env: processEnvVars,
           signal: runAbortSignal
-        }
+        },
+        request
       );
-      Object.assign(envVariables, resolvedEnvVariables);
+      Object.assign(envVariables, resolvedEnvVariables, scriptVariables);
     }
 
     const sendRequestInterpolationOptions = {

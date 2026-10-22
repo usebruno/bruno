@@ -934,27 +934,32 @@ const registerNetworkIpc = (mainWindow) => {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
 
-      // Resolve `{{$script:name}}` references in environment variables by
-      // running the commands registered in brunoConfig.localScripts. Mutating
-      // envVars in place (like bru.setEnvVar does) also shares the resolved
-      // values with nested bru.runRequest() calls.
-      if (collectLocalScriptRefs(envVars).length > 0) {
+      // Resolve `{{$script:name}}` references in environment variables and
+      // directly inside the request (url, headers, body, auth, …) by running
+      // the commands registered in brunoConfig.localScripts. The outputs are
+      // also injected under their `$script:name` keys so the regular
+      // interpolation pass resolves direct references. Mutating envVars in
+      // place (like bru.setEnvVar does) shares the resolved values with nested
+      // bru.runRequest() calls.
+      const localScriptRefs = [...new Set([...collectLocalScriptRefs(envVars), ...collectLocalScriptRefs(request)])];
+      if (localScriptRefs.length > 0) {
         if (!preferencesUtil.isLocalScriptsEnabled()) {
           throw new Error(
-            'Environment variables reference local scripts ({{$script:name}}), but local script execution is disabled. '
-              + 'Enable "Allow Local Scripts" in Preferences, or run the CLI with --allow-local-scripts.'
+            'This request references local scripts ({{$script:name}}), but local script execution is disabled. '
+            + 'Enable "Allow Local Scripts" in Preferences, or run the CLI with --allow-local-scripts.'
           );
         }
-        const { envVars: resolvedEnvVars } = await resolveLocalScriptEnvVars(
+        const { envVars: resolvedEnvVars, scriptVariables } = await resolveLocalScriptEnvVars(
           envVars,
           get(brunoConfig, 'localScripts', null),
           {
             cwd: collectionPath,
             env: processEnvVars,
             signal: abortController.signal
-          }
+          },
+          request
         );
-        Object.assign(envVars, resolvedEnvVars);
+        Object.assign(envVars, resolvedEnvVars, scriptVariables);
       }
 
       // Build certsAndProxyConfig for bru.sendRequest

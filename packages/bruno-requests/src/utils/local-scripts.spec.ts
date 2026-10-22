@@ -162,4 +162,56 @@ describe('resolveLocalScriptEnvVars', () => {
     expect(envVars.jwt).toBe('jwt-abc');
     expect(input.jwt).toBe('{{$script:token}}');
   });
+
+  it('runs scripts referenced directly in the request and returns interpolation variables', async () => {
+    const request = {
+      url: 'https://api.example.com/login?next={{$script:token}}',
+      headers: { Authorization: 'Bearer {{$script:token}}' },
+      data: { refresh: '{{$script:token}}' }
+    };
+    const { envVars, scriptVariables, results } = await resolveLocalScriptEnvVars(
+      { unrelated: 'v' },
+      config,
+      { cwd },
+      request
+    );
+    expect(results).toHaveLength(1);
+    expect(scriptVariables).toEqual({ '$script:token': 'jwt-abc' });
+    expect(envVars).toEqual({ unrelated: 'v' });
+  });
+
+  it('runs a script once when referenced from both env vars and the request', async () => {
+    const { scriptVariables, results } = await resolveLocalScriptEnvVars(
+      { jwt: '{{$script:token}}' },
+      config,
+      { cwd },
+      { headers: { Authorization: 'Bearer {{$script:token}}' } }
+    );
+    expect(results).toHaveLength(1);
+    expect(scriptVariables).toEqual({ '$script:token': 'jwt-abc' });
+  });
+
+  it('rejects when the request references an unregistered script', async () => {
+    await expect(
+      resolveLocalScriptEnvVars({}, config, { cwd }, { headers: { x: '{{$script:nope}}' } })
+    ).rejects.toThrow('not registered');
+  });
+
+  it('does not leak injected script variables into the child process environment', async () => {
+    const childConfig = {
+      commands: [{ name: 'whoami', command: `${node} -e "process.stdout.write(process.env['\\$script:token'] || 'absent')"` }]
+    };
+    const envVars = { '$script:token': 'jwt-abc', 'dynamic': '{{$script:whoami}}' };
+    const { envVars: resolved } = await resolveLocalScriptEnvVars(envVars, childConfig, { cwd });
+    expect(resolved.dynamic).toBe('absent');
+  });
+
+  it('ignores non-plain values like binary buffers in the request', async () => {
+    const request = {
+      headers: { Authorization: 'Bearer {{$script:token}}' },
+      data: Buffer.from([0x00, 0x01, 0x02, 0x80, 0xff])
+    };
+    const { scriptVariables } = await resolveLocalScriptEnvVars({}, config, { cwd }, request);
+    expect(scriptVariables).toEqual({ '$script:token': 'jwt-abc' });
+  });
 });

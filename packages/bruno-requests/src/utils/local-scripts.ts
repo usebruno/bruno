@@ -10,6 +10,7 @@ import process from 'node:process';
  */
 
 export const LOCAL_SCRIPT_VAR_PATTERN = /\{\{\$script:([A-Za-z0-9_][A-Za-z0-9._-]*)\}\}/g;
+export const LOCAL_SCRIPT_VAR_PREFIX = '$script:';
 const LOCAL_SCRIPT_NAME_PATTERN = /^[A-Za-z0-9_][A-Za-z0-9._-]*$/;
 const DEFAULT_TIMEOUT_MS = 30000;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
@@ -26,7 +27,7 @@ export type LocalScriptResult = {
   stdout: string;
   stderr: string;
   exitCode: number | null;
-  signal: NodeJS.Signals | null;
+  signal: string | null;
   duration: number;
 };
 
@@ -54,8 +55,15 @@ export class LocalScriptError extends Error {
   }
 }
 
-const isPlainRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
+const isPlainRecord = (value: unknown): value is Record<string, unknown> => {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false;
+  }
+  // Class instances (Buffer, stream, typed arrays, …) carry no string fields
+  // worth scanning and can be expensive to walk byte by byte.
+  const proto = Object.getPrototypeOf(value);
+  return proto === null || proto === Object.prototype;
+};
 
 /**
  * Validate and de-duplicate the `localScripts.commands` list from bruno.json.
@@ -88,7 +96,7 @@ export const normalizeLocalScripts = (config: unknown): LocalScript[] => {
   }
 
   return [...byName.values()];
-}
+};
 
 const killProcessTree = (child: ChildProcessWithoutNullStreams, onWindows: boolean) => {
   const pid = child.pid;
@@ -118,7 +126,7 @@ const killProcessTree = (child: ChildProcessWithoutNullStreams, onWindows: boole
 export const executeLocalScript = (script: LocalScript, context: LocalScriptExecutionContext): Promise<LocalScriptResult> => {
   const timeout = typeof script.timeout === 'number' && script.timeout > 0 ? script.timeout : DEFAULT_TIMEOUT_MS;
   const onWindows = process.platform === 'win32';
-  const childEnv: NodeJS.ProcessEnv = { ...process.env };
+  const childEnv: Record<string, string | undefined> = { ...process.env };
   if (context.env) {
     for (const [key, value] of Object.entries(context.env)) {
       if (value === undefined || value === null) continue;
@@ -294,6 +302,9 @@ const toScalarEnv = (envVars: Record<string, unknown>): Record<string, string> =
   const result: Record<string, string> = {};
   for (const [key, value] of Object.entries(envVars)) {
     if (key === '__name__') continue;
+    // Injected script outputs are interpolation variables, not shell exports
+    // (their names contain ':' and would be invalid on Windows anyway).
+    if (key.startsWith(LOCAL_SCRIPT_VAR_PREFIX)) continue;
     if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
       result[key] = String(value);
     }
@@ -303,35 +314,40 @@ const toScalarEnv = (envVars: Record<string, unknown>): Record<string, string> =
 
 export type ResolveLocalScriptEnvVarsResult = {
   envVars: Record<string, unknown>;
+  /** Outputs keyed by interpolation name (`$script:name`), to merge into the request's interpolation variables. */
+  scriptVariables: Record<string, string>;
   results: LocalScriptResult[];
 };
 
 /**
  * Run every `{{$script:name}}` reference found among the environment variable
- * values once and substitute the outputs. Variables without a reference are
- * returned untouched; each referenced command runs at most once even when the
- * reference appears in several variables (or multiple times in one value).
+ * values or directly inside the request (url, headers, body, auth, …) once and
+ * substitute the outputs. Variables without a reference are returned
+ * untouched; each referenced command runs at most once even when the reference
+ * appears in several places (or multiple times in one value).
  */
 export const resolveLocalScriptEnvVars = async (
   envVars: Record<string, unknown> | null | undefined,
   scriptsConfig: unknown,
-  context: LocalScriptExecutionContext
+  context: LocalScriptExecutionContext,
+  /** Additional value (typically the prepared request) scanned for direct references. */
+  scanTarget?: unknown
 ): Promise<ResolveLocalScriptEnvVarsResult> => {
   if (!envVars || typeof envVars !== 'object') {
-    return { envVars: { ...(envVars || {}) }, results: [] };
+    return { envVars: { ...(envVars || {}) }, scriptVariables: {}, results: [] };
   }
 
   const scripts = normalizeLocalScripts(scriptsConfig);
-  const referencedNames = collectLocalScriptRefs(envVars);
+  const referencedNames = [...new Set([...collectLocalScriptRefs(envVars), ...collectLocalScriptRefs(scanTarget)])];
   if (referencedNames.length === 0) {
-    return { envVars: { ...envVars }, results: [] };
+    return { envVars: { ...envVars }, scriptVariables: {}, results: [] };
   }
 
   const byName = new Map(scripts.map((script) => [script.name, script]));
   const unknown = referencedNames.filter((name) => !byName.has(name));
   if (unknown.length > 0) {
     throw new LocalScriptError(
-      `Environment variables reference local scripts that are not registered in bruno.json: ${unknown.join(', ')}`,
+      `Variables reference local scripts that are not registered in bruno.json: ${unknown.join(', ')}`,
       { name: unknown[0] }
     );
   }
@@ -352,8 +368,14 @@ export const resolveLocalScriptEnvVars = async (
     )
   );
 
+  const scriptVariables: Record<string, string> = {};
+  for (const [name, stdout] of outputs) {
+    scriptVariables[`${LOCAL_SCRIPT_VAR_PREFIX}${name}`] = stdout;
+  }
+
   return {
     envVars: replaceScriptRefs(envVars, outputs) as Record<string, unknown>,
+    scriptVariables,
     results
   };
 };
