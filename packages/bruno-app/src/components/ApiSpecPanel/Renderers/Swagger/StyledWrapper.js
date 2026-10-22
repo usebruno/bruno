@@ -8,7 +8,6 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.bg};
     padding-bottom: 20px;
 
-    /* ── Global reset ── */
     .swagger-ui {
       font-family: inherit;
       font-size: ${(props) => props.theme.font.size.base};
@@ -31,7 +30,6 @@ const StyledWrapper = styled.div`
         max-width: none;
       }
 
-      /* ── Info section ── */
       .info {
         margin: 16px 0 12px;
 
@@ -83,7 +81,6 @@ const StyledWrapper = styled.div`
         }
       }
 
-      /* Version / OAS badges */
       .version-stamp span.version {
         background: ${(props) => props.theme.border.border1} !important;
         border: 1px solid ${(props) => props.theme.colors.text.muted} !important;
@@ -98,7 +95,6 @@ const StyledWrapper = styled.div`
         color: ${(props) => props.theme.colors.text.muted};
       }
 
-      /* ── Tag section headings ── */
       .opblock-tag-section {
         .opblock-tag {
           font-size: ${(props) => props.theme.font.size.md};
@@ -122,7 +118,6 @@ const StyledWrapper = styled.div`
         }
       }
 
-      /* ── Operation blocks (GET, POST, PUT, DELETE, PATCH) ── */
       .opblock {
         margin: 0 0 8px;
         border-radius: 4px;
@@ -212,14 +207,12 @@ const StyledWrapper = styled.div`
         }
       }
 
-      /* Method badge colors — keep them but tone down */
       .opblock.opblock-get .opblock-summary-method { background: #61affe; color: #fff; }
       .opblock.opblock-post .opblock-summary-method { background: #49cc90; color: #fff; }
       .opblock.opblock-put .opblock-summary-method { background: #fca130; color: #fff; }
       .opblock.opblock-delete .opblock-summary-method { background: #f93e3e; color: #fff; }
       .opblock.opblock-patch .opblock-summary-method { background: #50e3c2; color: #000; }
 
-      /* Lock / authorization icons */
       .authorization__btn {
         color: inherit;
         background: none;

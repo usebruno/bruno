@@ -194,7 +194,7 @@ test.describe('Generate Documentation', () => {
     await expect(modal).toBeHidden();
   });
 
-  test('lists every environment under "Environments to include", none selected by default', async ({
+  test('lists every environment under "Environments To Include", none selected by default', async ({
     pageWithUserData: page
   }) => {
     const locators = buildCommonLocators(page);
@@ -362,11 +362,11 @@ test.describe('Generate Documentation', () => {
 
     await locators.generateDocs.advancedToggle().click();
 
-    await expect(locators.generateDocs.allRequestsButton()).toBeChecked();
-    await expect(locators.generateDocs.filterByTagsButton()).not.toBeChecked();
+    await expect(locators.generateDocs.allRequestsRadio()).toBeChecked();
+    await expect(locators.generateDocs.filterByTagsRadio()).not.toBeChecked();
 
-    await locators.generateDocs.filterByTagsButton().check();
-    await expect(locators.generateDocs.filterByTagsButton()).toBeChecked();
+    await locators.generateDocs.filterByTagsRadio().check();
+    await expect(locators.generateDocs.filterByTagsRadio()).toBeChecked();
     await expect(locators.generateDocs.includeTagsInput()).toBeVisible();
     await expect(locators.generateDocs.excludeTagsInput()).toBeVisible();
 
@@ -383,7 +383,7 @@ test.describe('Generate Documentation', () => {
 
     const { content } = await generateCollectionDocs(page, COLLECTION_NAME, async () => {
       await locators.generateDocs.advancedToggle().click();
-      await locators.generateDocs.filterByTagsButton().check();
+      await locators.generateDocs.filterByTagsRadio().check();
       const include = locators.generateDocs.includeTagsInput();
       await include.fill('smoke');
       await include.press('Enter');
@@ -400,7 +400,7 @@ test.describe('Generate Documentation', () => {
 
     const { content } = await generateCollectionDocs(page, COLLECTION_NAME, async () => {
       await locators.generateDocs.advancedToggle().click();
-      await locators.generateDocs.filterByTagsButton().check();
+      await locators.generateDocs.filterByTagsRadio().check();
       const exclude = locators.generateDocs.excludeTagsInput();
       await exclude.fill('wip');
       await exclude.press('Enter');

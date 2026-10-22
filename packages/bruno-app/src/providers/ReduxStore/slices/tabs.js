@@ -4,6 +4,7 @@ import find from 'lodash/find';
 import last from 'lodash/last';
 import { uuid } from 'utils/common';
 import { isActiveTab as checkIsActiveTab, deserializeTab } from 'utils/snapshot';
+import { API_SPEC_TAB_TYPE, isApiSpecTabForPathname } from 'utils/api-specs';
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
@@ -21,7 +22,8 @@ const ensureTabUid = (tab) => {
 const initialState = {
   tabs: [],
   activeTabUid: null,
-  recentlyClosedTabs: [] // LIFO stack of closed tabs, grouped by collection
+  recentlyClosedTabs: [], // LIFO stack of closed tabs, grouped by collection
+  sidebarRevealRequest: null
 };
 
 const normalizeMockTabType = (type) => (
@@ -30,6 +32,10 @@ const normalizeMockTabType = (type) => (
 
 const findMockServerTab = (tabs, mockServerUid) => find(tabs, (tab) => (
   normalizeMockTabType(tab.type) === 'mock-server' && tab.mockServerUid === mockServerUid
+));
+
+const findApiSpecTab = (tabs, collectionUid, apiSpecPathname) => find(tabs, (tab) => (
+  tab.collectionUid === collectionUid && isApiSpecTabForPathname(tab, apiSpecPathname)
 ));
 
 const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
@@ -80,6 +86,7 @@ export const tabsSlice = createSlice({
         exampleIndex,
         isTransient,
         mockServerUid,
+        apiSpecPathname,
         tabName,
         responseName,
         openInEditMode
@@ -96,7 +103,8 @@ export const tabsSlice = createSlice({
         'openapi-sync',
         'openapi-spec',
         'changelog',
-        'mock-server'
+        'mock-server',
+        API_SPEC_TAB_TYPE
       ];
 
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
@@ -119,6 +127,8 @@ export const tabsSlice = createSlice({
           if (existingTab && existingTab.type !== 'mock-server') {
             existingTab.type = 'mock-server';
           }
+        } else if (type === API_SPEC_TAB_TYPE && apiSpecPathname) {
+          existingTab = findApiSpecTab(state.tabs, collectionUid, apiSpecPathname);
         } else {
           existingTab = tabTypeAlreadyExists(state.tabs, collectionUid, type);
         }
@@ -165,6 +175,7 @@ export const tabsSlice = createSlice({
           ...(typeof exampleIndex === 'number' ? { exampleIndex } : {}),
           ...(isTransient ? { isTransient: true } : {}),
           ...(mockServerUid ? { mockServerUid } : {}),
+          ...(apiSpecPathname ? { apiSpecPathname } : {}),
           ...(tabName ? { tabName } : {}),
           ...(responseName ? { responseName } : {}),
           ...(openInEditMode ? { openInEditMode: true } : {})
@@ -205,6 +216,7 @@ export const tabsSlice = createSlice({
         ...(typeof exampleIndex === 'number' ? { exampleIndex } : {}),
         ...(isTransient ? { isTransient: true } : {}),
         ...(mockServerUid ? { mockServerUid } : {}),
+        ...(apiSpecPathname ? { apiSpecPathname } : {}),
         ...(tabName ? { tabName } : {}),
         ...(responseName ? { responseName } : {}),
         ...(openInEditMode ? { openInEditMode: true } : {})
@@ -378,6 +390,9 @@ export const tabsSlice = createSlice({
         };
       }
     },
+    setSidebarRevealRequest: (state, action) => {
+      state.sidebarRevealRequest = action.payload;
+    },
     clearFocusTableRow: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
 
@@ -419,7 +434,8 @@ export const tabsSlice = createSlice({
 
       // Push closed tabs onto the recently closed stack (LIFO)
       // Exclude transient requests — they have no persisted file and can't be reopened
-      const closedTabs = state.tabs.filter((t) =>
+      // reopenable: false marks tabs closed because what they showed is gone
+      const closedTabs = action.payload.reopenable === false ? [] : state.tabs.filter((t) =>
         tabUids.includes(t.uid) && !NON_CLOSABLE_TAB_TYPES.includes(t.type) && !t.isTransient
       );
       if (closedTabs.length > 0) {
@@ -589,6 +605,7 @@ export const tabsSlice = createSlice({
         }
 
         const tab = deserializeTab(snapshotTab, collection);
+
         ensureTabUid(tab);
 
         if (normalizeMockTabType(tab.type) === 'mock-server' && tab.mockServerUid) {
@@ -670,6 +687,7 @@ export const {
   clearFocusErrorLine,
   setFocusTableRow,
   clearFocusTableRow,
+  setSidebarRevealRequest,
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,

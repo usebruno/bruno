@@ -8,7 +8,7 @@ const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
 const { DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const { parseValueByDataType } = require('@usebruno/common/utils');
-const { GRPC_SCRIPT_KEYS } = require('@usebruno/common');
+const { GRPC_SCRIPT_KEYS, getEffectiveTags, getFolderTags, getOwnTags } = require('@usebruno/common');
 
 /**
  * Returns the variable's runtime value with datatype-driven coercion applied.
@@ -852,6 +852,31 @@ const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => 
   return credentialsVariables;
 };
 
+/**
+ * Effective tags (own + inherited) for every item in the collection, keyed by uid.
+ * Resolves the whole tree in a single walk - resolving each item on its own instead would
+ * re-flatten the collection once per ancestor level.
+ */
+const getEffectiveTagsByUid = (collection) => {
+  const tagsByUid = new Map();
+
+  const walk = (items, inheritedTags) => {
+    each(items, (item) => {
+      if (item.type === 'folder') {
+        const folderTags = getEffectiveTags(getFolderTags(item), inheritedTags);
+        tagsByUid.set(item.uid, folderTags);
+        walk(item.items, folderTags);
+        return;
+      }
+      tagsByUid.set(item.uid, getEffectiveTags(getOwnTags(item), inheritedTags));
+    });
+  };
+
+  walk(collection.items, []);
+
+  return tagsByUid;
+};
+
 const mergeAuth = (collection, request, requestTreePath) => {
   // Start with collection level auth (always consider collection auth as base)
   const collectionRoot = collection?.draft?.root || collection?.root || {};
@@ -986,6 +1011,7 @@ module.exports = {
   mergeAuth,
   wrapAndJoinScripts,
   getTreePathFromCollectionToItem,
+  getEffectiveTagsByUid,
   flattenItems,
   findItem,
   findItemInCollection,

@@ -15,7 +15,6 @@ import ExampleIcon from 'components/Icons/ExampleIcon';
 import range from 'lodash/range';
 import classnames from 'classnames';
 import MenuDropdown from 'ui/MenuDropdown';
-import ActionIcon from 'ui/ActionIcon';
 import Modal from 'components/Modal';
 import DeleteResponseExampleModal from './DeleteResponseExampleModal';
 import GenerateCodeItem from '../GenerateCodeItem';
@@ -25,7 +24,7 @@ import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext'
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
 
-const ExampleItem = ({ example, item, collection, searchText, openBulkMenu, isParentDragDisabled, parentMultiDragItems }) => {
+const ExampleItem = ({ example, item, collection, depth, searchText, openBulkMenu, isItemMultiDragDisabled, multiDragCollections, multiDragItems }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
   const dispatch = useDispatch();
   const activeTabUid = useSelector((state) => state.tabs?.activeTabUid);
@@ -41,6 +40,15 @@ const ExampleItem = ({ example, item, collection, searchText, openBulkMenu, isPa
   const isSelected = selectedSidebarUids.includes(example.uid);
   const isMultiSelected = isSelected && selectedSidebarUids.length > 1;
   const handleSelectionClick = useSidebarSelectionClick({ uid: example.uid, searchText });
+
+  // In the flat/virtualized sidebar an example row is a sibling of its parent request,
+  // not a child, so we derive the parent request's multi-drag state here rather than
+  // receiving it as props from the parent (as the nested tree did on main).
+  const parentIsSelected = selectedSidebarUids.includes(item.uid);
+  const parentIsMultiSelected = parentIsSelected && selectedSidebarUids.length > 1;
+  const parentMultiDragItems = parentIsMultiSelected ? multiDragItems : null;
+  const isParentRedirectedToCollectionDrag = parentIsMultiSelected && multiDragCollections?.length > 0;
+  const isParentDragDisabled = parentIsMultiSelected && isItemMultiDragDisabled && !isParentRedirectedToCollectionDrag;
 
   const isRedirectedToRequestDrag = isMultiSelected && selectedSidebarUids.includes(item.uid) && !isParentDragDisabled;
 
@@ -60,8 +68,9 @@ const ExampleItem = ({ example, item, collection, searchText, openBulkMenu, isPa
   drag(exampleRef);
   dragPreview(getEmptyImage(), { captureDraggingState: true });
 
-  // Calculate indentation: item depth + 1 for examples
-  const indents = range((item.depth || 0) + 1);
+  // Indentation comes from the flattener, which already emits example rows one level
+  // deeper than their parent request.
+  const indents = range(depth);
 
   const handleExampleClick = () => {
     const exampleIndex = item?.examples?.findIndex((ex) => ex.uid === example.uid);
@@ -96,16 +105,6 @@ const ExampleItem = ({ example, item, collection, searchText, openBulkMenu, isPa
   useEffect(() => {
     setEditName(example.name);
   }, [example.name]);
-
-  useEffect(() => {
-    if (isExampleActive && exampleRef.current) {
-      try {
-        exampleRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      } catch (err) {
-        // ignore scroll errors
-      }
-    }
-  }, [isExampleActive]);
 
   const handleClone = async () => {
     // Calculate the index where the cloned example will be saved

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const chalk = require('chalk');
 const { parseEnvironment } = require('@usebruno/filestore');
 const { getEnvVars } = require('../utils/bru');
 const { resolveEnvironmentInheritance: resolveEnvironmentInheritanceCommon } = require('@usebruno/common').utils;
@@ -81,10 +82,21 @@ const environmentsIn = (directory, fileExt) =>
     })
     .filter(Boolean);
 
+const warnOnUnresolvedInheritance = ({ missingInheritedEnvironmentName, cyclicInheritancePath }) => {
+  if (missingInheritedEnvironmentName) {
+    console.warn(chalk.yellow(`Referenced parent environment not found: ${missingInheritedEnvironmentName}`));
+  }
+
+  if (cyclicInheritancePath) {
+    console.warn(chalk.yellow(`Circular environment inheritance: ${cyclicInheritancePath.join(' → ')}`));
+  }
+};
+
 /**
  * Resolve the `extends` chain of the environment at `filePath` against its sibling environment files.
  * With `merge`, the inherited variables are folded into `variables`; otherwise they are returned
- * separately as `inheritedVariables`.
+ * separately as `inheritedVariables`. A chain that ends on a name no sibling file carries, or that
+ * closes a loop, resolves to the ancestors reached so far and warns about the reference that ended it.
  */
 const resolveEnvironmentInheritance = ({ filePath, merge }) => {
   const targetEnvironment = parseEnvFile(filePath);
@@ -94,13 +106,18 @@ const resolveEnvironmentInheritance = ({ filePath, merge }) => {
     ? environmentsIn(path.dirname(filePath), path.extname(filePath).toLowerCase())
     : [];
 
-  const resolved = resolveEnvironmentInheritanceCommon({
+  const {
+    missingInheritedEnvironmentName,
+    cyclicInheritancePath,
+    ...resolvedEnvironment
+  } = resolveEnvironmentInheritanceCommon({
     environments,
     targetEnvironment: environment,
     merge
   });
+  warnOnUnresolvedInheritance({ missingInheritedEnvironmentName, cyclicInheritancePath });
 
-  return { ...resolved, name: environment.name };
+  return resolvedEnvironment;
 };
 
 // Helper to load environment variables from a file. Returns the inherited variables too, so

@@ -115,6 +115,9 @@ export const fromOpenCollectionHttpItem = (ocRequest: HttpRequest): BrunoItem =>
       maxRedirects: toMaxRedirects(ocRequest.settings.maxRedirects),
       forwardAuthorizationHeader: toBool(ocRequest.settings.forwardAuthorizationHeader, true)
     };
+    if (Array.isArray(ocRequest.settings.omitHeaders) && ocRequest.settings.omitHeaders.length) {
+      settings.omitHeaders = ocRequest.settings.omitHeaders;
+    }
     brunoItem.settings = settings;
   }
 
@@ -232,6 +235,9 @@ export const toOpenCollectionHttpItem = (item: BrunoItem): HttpRequest => {
     maxRedirects: toMaxRedirects(brunoSettings?.maxRedirects),
     forwardAuthorizationHeader: toBool(brunoSettings?.forwardAuthorizationHeader, true)
   };
+  if (Array.isArray(brunoSettings?.omitHeaders) && brunoSettings.omitHeaders.length) {
+    settings.omitHeaders = brunoSettings.omitHeaders;
+  }
   ocRequest.settings = settings;
 
   if (brunoRequest?.docs) {

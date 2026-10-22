@@ -1,0 +1,22 @@
+meta {
+  name: dedupes-tag-shared-with-folder
+  type: http
+  seq: 2
+  tags: [
+    nested
+    own-tag
+  ]
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("own tags come first and a tag repeated from a folder above appears once", function () {
+    expect(req.getTags()).to.eql(['nested', 'own-tag', 'req-api', 'deep']);
+    expect(req.tags).to.eql(['nested', 'own-tag', 'req-api', 'deep']);
+  });
+}

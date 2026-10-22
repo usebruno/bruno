@@ -45,7 +45,7 @@ const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): Collectio
   if (brunoConfig.clientCertificates?.certs?.length) {
     config.clientCertificates = brunoConfig.clientCertificates.certs
       .map((cert): ClientCertificate | null => {
-        if (cert.type === 'pem') {
+        if (cert.type === 'cert') {
           const pemCert: PemCertificate = {
             domain: cert.domain || '',
             type: 'pem',
@@ -59,7 +59,7 @@ const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): Collectio
             pemCert.disabled = true;
           }
           return pemCert;
-        } else if (cert.type === 'pkcs12') {
+        } else if (cert.type === 'pfx') {
           const pkcs12Cert: Pkcs12Certificate = {
             domain: cert.domain || '',
             type: 'pkcs12',

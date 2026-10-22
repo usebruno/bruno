@@ -19,7 +19,6 @@ import toast from 'react-hot-toast';
 import WsBody from '../WsBody/index';
 import StyledWrapper from './StyledWrapper';
 import WSAuth from './WSAuth';
-import WSAuthMode from './WSAuth/WSAuthMode';
 import WSSettingsPane from '../WSSettingsPane/index';
 import TabBarAiAssist from '../TabBarAiAssist';
 import { hasEffectiveAuth } from 'utils/auth';
@@ -179,13 +178,6 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
 
   let rightContent = null;
   switch (requestPaneTab) {
-    case 'auth':
-      rightContent = (
-        <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
-          <WSAuthMode item={item} collection={collection} />
-        </div>
-      );
-      break;
     case 'docs':
       rightContent = (
         <div ref={rightContentRef} className="flex items-center gap-2">

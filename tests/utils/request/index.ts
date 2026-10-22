@@ -43,6 +43,7 @@ export const buildRequestLocators = (page: Page) => ({
     inheritedSectionRow: () => page.getByTestId('inherited-headers-section-row'),
     requestSectionRow: () => page.getByTestId('request-headers-section-row'),
     defaultRow: (name: string) => page.getByTestId(`default-header-row-${name.toLowerCase()}`),
+    defaultValueScroller: (name: string) => page.getByTestId(`default-header-row-${name.toLowerCase()}`).getByTestId('column-value').locator('.CodeMirror-scroll'),
     requestRow: (name: string) => page.getByTestId(`request-header-row-${name.toLowerCase()}`),
     inheritedRow: (name: string) => page.getByTestId(`inherited-header-row-${name.toLowerCase()}`),
     inheritedSource: (name: string) => page.getByTestId(`inherited-header-source-${name.toLowerCase()}`),
@@ -151,7 +152,7 @@ export const fillRequestHeaderValue = async (page: Page, row: Locator, value: st
 export const showInheritedHeaders = async (page: Page) => {
   const { headers } = buildRequestLocators(page);
   await headers.toggleInherited().click();
-  await expect(headers.toggleInherited()).toHaveText('Hide Inherited Headers');
+  await expect(headers.toggleInherited()).toHaveText('Hide Additional Headers');
   return headers;
 };
 
@@ -207,4 +208,23 @@ export const seedFolderHeaders = async (
   await openFolderSettings(page, collectionName, folderName);
   await selectfolderPaneTab(page, 'headers');
   await setSettingsHeadersBulk(page, headersText, 'folder');
+};
+
+/** Types a name and value into the last row of a Vars table. */
+export const addVarsRow = async (page: Page, tableId: string, name: string, value: string) => {
+  await test.step(`Add "${name}" to ${tableId}`, async () => {
+    const { table } = buildCommonLocators(page);
+    const varsTable = table(tableId);
+    const nameInput = varsTable.rowNameInput(varsTable.row().last());
+    await nameInput.click();
+    await page.keyboard.type(name);
+
+    const row = varsTable.rowByName(name);
+    await expect(row).toBeVisible();
+
+    const valueEditor = varsTable.rowValueEditor(row);
+    await valueEditor.click({ force: true });
+    await expect(valueEditor).toHaveClass(/CodeMirror-focused/);
+    await page.keyboard.insertText(value);
+  });
 };

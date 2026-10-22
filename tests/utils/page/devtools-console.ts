@@ -36,7 +36,8 @@ export const buildDevToolsLocators = (page: Page) => {
       value: (name: string) => reqHeaderRow(name).getByTestId('request-details-header-value')
     },
     lastHopRequestHeaderLines: () => readLastHopRequestHeaderLines(page.getByTestId('details-panel')),
-    requestHops: () => readRequestHops(page.getByTestId('details-panel'))
+    requestHops: () => readRequestHops(page.getByTestId('details-panel')),
+    terminalSession: (index: number) => page.getByTestId(`session-list-${index}`)
   };
 };
 

@@ -91,7 +91,9 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
   );
 
   const { folderCount, requestCount } = useMemo(
-    () => getCollectionItemCounts(filterRequestItemsByTags(collection?.items || [], activeTags.include, activeTags.exclude)),
+    () => getCollectionItemCounts(
+      filterRequestItemsByTags(sortItemsBySidebarOrder(collection?.items || []), activeTags.include, activeTags.exclude)
+    ),
     [collection?.items, activeTags]
   );
 
@@ -180,7 +182,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
                     <div className="card-divider" />
                     <div className="env-section">
                       <EnvironmentSelectionList
-                        title="Environments to include"
+                        title="Environments To Include"
                         environments={environments}
                         selectedUids={selectedEnvUids}
                         onToggle={toggleEnv}

@@ -11,16 +11,16 @@ import isEqual from 'lodash/isEqual';
 import MD from 'markdown-it';
 import { format } from 'prettier/standalone';
 import prettierPluginGraphql from 'prettier/parser-graphql';
-import { getAllVariables, getRequestTypeFromCollectionPresets } from 'utils/collections';
+import { getAllVariables } from 'utils/collections';
 import { PLACEHOLDER } from 'utils/graphql/queryBuilder';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import onHasCompletion from './onHasCompletion';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
-import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
 import CodeMirrorSearch from 'components/CodeMirrorSearch';
 import { buildSearchKeyBindings } from 'components/CodeMirrorSearch/searchKeyBindings';
+import { SetAsVariableContext } from 'providers/SetAsVariable/context';
 
 const CodeMirror = require('codemirror');
 
@@ -47,6 +47,17 @@ const createSafeGraphQLLinter = () => {
 };
 
 export default class QueryEditor extends React.Component {
+  static contextType = SetAsVariableContext;
+
+  _onContextMenu = (editor, event) => {
+    if (this.props.enableBrunoVarInfo === false) return;
+
+    this.context.openFromCodeMirror(event, editor, {
+      collection: this.props.collection,
+      item: this.props.item
+    });
+  };
+
   constructor(props) {
     super(props);
 
@@ -80,7 +91,9 @@ export default class QueryEditor extends React.Component {
       mode: 'graphql',
       // mode: 'brunovariables',
       brunoVarInfo: {
-        variables: getAllVariables(this.props.collection)
+        variables: getAllVariables(this.props.collection),
+        collection: this.props.collection,
+        item: this.props.item
       },
       theme: this.props.editorTheme || 'graphiql',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
@@ -156,18 +169,14 @@ export default class QueryEditor extends React.Component {
     }));
     if (editor) {
       editor.on('change', this._onEdit);
+      editor.on('contextmenu', this._onContextMenu);
       editor.on('keyup', this._onKeyUp);
       editor.on('hasCompletion', this._onHasCompletion);
       editor.on('beforeChange', this._onBeforeChange);
     }
     this.addOverlay();
 
-    setupLinkAware(editor, {
-      onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
-    });
-    this._linkAwareItemType = this.props.item?.type;
-    this._linkAwareCollectionUid = this.props.collection?.uid;
-    this._linkAwarePresetType = getRequestTypeFromCollectionPresets(this.props.collection);
+    setupLinkAware(editor, { onLinkClick: undefined });
     this.cleanupResizeRefresh = setupCodeMirrorResizeRefresh(editor, this._node);
 
     // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
@@ -199,25 +208,10 @@ export default class QueryEditor extends React.Component {
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
-    let variables = getAllVariables(this.props.collection);
+    const variables = getAllVariables(this.props.collection);
     if (!isEqual(variables, this.variables)) {
       this.editor.options.brunoVarInfo.variables = variables;
       this.addOverlay();
-    }
-
-    // Re-wire link handler when item/collection context changes.
-    const itemType = this.props.item?.type;
-    const collectionUid = this.props.collection?.uid;
-    const presetType = getRequestTypeFromCollectionPresets(this.props.collection);
-    if (itemType !== this._linkAwareItemType || collectionUid !== this._linkAwareCollectionUid || presetType !== this._linkAwarePresetType) {
-      this._linkAwareItemType = itemType;
-      this._linkAwareCollectionUid = collectionUid;
-      this._linkAwarePresetType = presetType;
-      this.editor._destroyLinkAware?.();
-      setupLinkAware(this.editor, {
-        onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
-      });
-      this.editor.refresh();
     }
     this.ignoreChangeEvent = false;
   }
@@ -232,6 +226,7 @@ export default class QueryEditor extends React.Component {
       this.editor.off('keyup', this._onKeyUp);
       this.editor.off('hasCompletion', this._onHasCompletion);
       this.editor.off('beforeChange', this._onBeforeChange);
+      this.editor.off('contextmenu', this._onContextMenu);
       // Remove the CodeMirror DOM element so React 18 Strict Mode's
       // unmount-remount cycle doesn't leave an orphaned instance behind.
       const wrapper = this.editor.getWrapperElement();

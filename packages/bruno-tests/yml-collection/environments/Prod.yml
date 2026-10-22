@@ -3,6 +3,8 @@ name: Prod
 variables:
   - name: host
     value: https://testbench-sanity.usebruno.com
+  - name: localhost
+    value: http://localhost:8081
   - name: echo-host
     value: https://echo.usebruno.com
   - name: typed_env_num

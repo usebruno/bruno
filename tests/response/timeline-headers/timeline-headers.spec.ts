@@ -26,8 +26,7 @@ const DEFAULT_HEADERS: Array<{ name: string; value?: string; pattern?: RegExp }>
   { name: 'user-agent', pattern: /^bruno-runtime\// },
   { name: 'accept-encoding', value: 'gzip, compress, deflate, br' },
   { name: 'host', value: 'localhost:8081' },
-  { name: 'connection', value: 'keep-alive' },
-  { name: 'request-start-time', pattern: /^\d+$/ }
+  { name: 'connection', value: 'keep-alive' }
 ];
 
 const SHARED_HEADER: [string, string] = ['shared-header-1', 'request-shared-value-1'];
