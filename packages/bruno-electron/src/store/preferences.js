@@ -21,6 +21,7 @@ const defaultPreferences = {
     storeCookies: true,
     sendCookies: true,
     localScriptsEnabled: false,
+    localScriptsCollectionCommandsEnabled: false,
     timeout: 0,
     oauth2: {
       useSystemBrowser: false
@@ -120,6 +121,7 @@ const preferencesSchema = Yup.object().shape({
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
     localScriptsEnabled: Yup.boolean(),
+    localScriptsCollectionCommandsEnabled: Yup.boolean(),
     timeout: Yup.number(),
     oauth2: Yup.object({
       useSystemBrowser: Yup.boolean()
@@ -432,6 +434,9 @@ const preferencesUtil = {
   },
   isLocalScriptsEnabled: () => {
     return get(getPreferences(), 'request.localScriptsEnabled', false);
+  },
+  isLocalScriptsCollectionCommandsEnabled: () => {
+    return get(getPreferences(), 'request.localScriptsCollectionCommandsEnabled', false);
   },
   shouldUseSystemBrowser: () => {
     return get(getPreferences(), 'request.oauth2.useSystemBrowser', false);

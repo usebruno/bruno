@@ -42,8 +42,11 @@ describe('global local scripts registry file', () => {
     const nested = path.join(dir, 'nested', 'local-scripts.json');
     saveGlobalLocalScriptsConfig({ commands: [] }, { filePath: nested });
     expect(fs.existsSync(nested)).toBe(true);
-    const mode = fs.statSync(nested).mode & 0o777;
-    expect(mode).toBe(0o600);
+    // POSIX permission bits are not enforced/meaningful on Windows.
+    if (process.platform !== 'win32') {
+      const mode = fs.statSync(nested).mode & 0o777;
+      expect(mode).toBe(0o600);
+    }
   });
 
   it('honors the BRUNO_LOCAL_SCRIPTS_FILE environment override', () => {

@@ -27,7 +27,8 @@ export {
   mergeLocalScriptsConfigs,
   executeLocalScript,
   collectLocalScriptRefs,
-  resolveLocalScriptVariables
+  resolveLocalScriptVariables,
+  mergeLocalScriptOutputs
 } from './utils/local-scripts';
 export {
   getGlobalLocalScriptsFilePath,

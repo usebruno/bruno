@@ -11,6 +11,11 @@
 export const LOCAL_SCRIPT_VAR_PREFIX = '$script:';
 export const LOCAL_SCRIPT_NAME_PATTERN = /^[A-Za-z0-9_][A-Za-z0-9._-]*$/;
 
+// Policy limit enforced by the editor UI and the manual test-run IPC.
+export const LOCAL_SCRIPT_TIMEOUT_LIMIT_MS = 600_000;
+// Hard ceiling: setTimeout treats delays above the 32-bit signed int max as 1 ms.
+export const LOCAL_SCRIPT_MAX_TIMEOUT_MS = 2_147_483_647;
+
 export type LocalScript = {
   name: string;
   command: string;
@@ -65,8 +70,16 @@ export const normalizeLocalScripts = (config: unknown): LocalScript[] => {
     if (typeof command !== 'string' || command.trim() === '') {
       throw new LocalScriptError(`Local script "${name}" is missing a command`, { name });
     }
-    if (timeout !== undefined && (typeof timeout !== 'number' || timeout <= 0)) {
-      throw new LocalScriptError(`Local script "${name}" has an invalid timeout (must be a positive number of ms)`, { name });
+    if (timeout !== undefined && (
+      typeof timeout !== 'number'
+      || !Number.isFinite(timeout)
+      || timeout <= 0
+      || timeout > LOCAL_SCRIPT_MAX_TIMEOUT_MS
+    )) {
+      throw new LocalScriptError(
+        `Local script "${name}" has an invalid timeout (must be a finite positive number of ms up to ${LOCAL_SCRIPT_MAX_TIMEOUT_MS})`,
+        { name }
+      );
     }
     byName.set(name, { name, command, timeout });
   }

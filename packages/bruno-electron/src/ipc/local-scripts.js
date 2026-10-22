@@ -5,10 +5,11 @@ const {
   loadGlobalLocalScriptsConfig,
   saveGlobalLocalScriptsConfig
 } = require('@usebruno/requests');
-const { LOCAL_SCRIPT_NAME_PATTERN } = require('@usebruno/common/utils');
+const {
+  LOCAL_SCRIPT_NAME_PATTERN,
+  LOCAL_SCRIPT_TIMEOUT_LIMIT_MS
+} = require('@usebruno/common/utils');
 const { preferencesUtil } = require('../store/preferences');
-
-const MAX_TIMEOUT_MS = 600000;
 
 /**
  * Returns the global local script registry shared by the app and the CLI
@@ -53,8 +54,10 @@ const runLocalScript = async (_event, { script } = {}) => {
   if (typeof command !== 'string' || command.trim() === '') {
     throw new Error('A non-empty command is required.');
   }
-  if (timeout !== undefined && (typeof timeout !== 'number' || timeout <= 0 || timeout > MAX_TIMEOUT_MS)) {
-    throw new Error(`Timeout must be a positive number of ms (max ${MAX_TIMEOUT_MS}).`);
+  if (timeout !== undefined && (
+    typeof timeout !== 'number' || timeout <= 0 || timeout > LOCAL_SCRIPT_TIMEOUT_LIMIT_MS
+  )) {
+    throw new Error(`Timeout must be a positive number of ms (max ${LOCAL_SCRIPT_TIMEOUT_LIMIT_MS}).`);
   }
 
   try {

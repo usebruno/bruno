@@ -4,6 +4,7 @@ import path from 'node:path';
 import {
   collectLocalScriptRefs,
   executeLocalScript,
+  mergeLocalScriptOutputs,
   normalizeLocalScripts,
   resolveLocalScriptVariables
 } from './local-scripts';
@@ -45,6 +46,25 @@ describe('executeLocalScript', () => {
       { cwd, env: { BRUNO_TEST_SECRET: 's3cr3t' } }
     );
     expect(result.stdout).toBe('s3cr3t');
+  });
+
+  it('ignores collection-supplied values for interpreter-controlling env keys', async () => {
+    const result = await executeLocalScript(
+      { name: 'protected', command: `${node} -e "process.stdout.write(process.env.PATH || '')"` },
+      { cwd, env: { PATH: '/nonexistent-collection-path', node_options: '--no-warnings' } }
+    );
+    expect(result.stdout).toBe(process.env.PATH || '');
+  });
+
+  it('rejects immediately when the abort signal is already aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      executeLocalScript(
+        { name: 'cancelled', command: `${node} -e "setInterval(function(){},1000)"` },
+        { cwd, signal: controller.signal }
+      )
+    ).rejects.toMatchObject({ name: 'LocalScriptError', scriptName: 'cancelled' });
   });
 
   it('captures stderr and rejects on non-zero exit', async () => {
@@ -191,5 +211,29 @@ describe('resolveLocalScriptVariables', () => {
       context: { cwd }
     });
     expect(scriptVariables['$script:token']).toBe('collection-wins');
+  });
+});
+
+describe('mergeLocalScriptOutputs', () => {
+  it('adds injected keys and substituted env values, then rolls them back', () => {
+    const envVars = { jwt: '{{$script:token}}', plain: 'untouched' };
+    const resolved = { jwt: 'jwt-abc', plain: 'untouched' };
+    const scriptVariables = { '$script:token': 'jwt-abc' };
+
+    const rollback = mergeLocalScriptOutputs(envVars, resolved, scriptVariables);
+    expect(envVars).toEqual({ 'jwt': 'jwt-abc', 'plain': 'untouched', '$script:token': 'jwt-abc' });
+
+    rollback();
+    expect(envVars).toEqual({ jwt: '{{$script:token}}', plain: 'untouched' });
+  });
+
+  it('keeps an explicit in-request override of a substituted env value', () => {
+    const envVars = { jwt: '{{$script:token}}' };
+    const resolved = { jwt: 'jwt-abc' };
+
+    const rollback = mergeLocalScriptOutputs(envVars, resolved, {});
+    envVars.jwt = 'script-override';
+    rollback();
+    expect(envVars.jwt).toBe('script-override');
   });
 });

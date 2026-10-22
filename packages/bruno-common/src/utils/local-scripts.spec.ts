@@ -24,6 +24,9 @@ describe('normalizeLocalScripts', () => {
     expect(() => normalizeLocalScripts({ commands: [{ name: 'bad name', command: 'echo x' }] })).toThrow(LocalScriptError);
     expect(() => normalizeLocalScripts({ commands: [{ name: 'ok', command: '' }] })).toThrow(LocalScriptError);
     expect(() => normalizeLocalScripts({ commands: [{ name: 'ok', command: 'echo x', timeout: -1 }] })).toThrow(LocalScriptError);
+    expect(() => normalizeLocalScripts({ commands: [{ name: 'ok', command: 'echo x', timeout: NaN }] })).toThrow(LocalScriptError);
+    expect(() => normalizeLocalScripts({ commands: [{ name: 'ok', command: 'echo x', timeout: Infinity }] })).toThrow(LocalScriptError);
+    expect(() => normalizeLocalScripts({ commands: [{ name: 'ok', command: 'echo x', timeout: 2147483648 }] })).toThrow(LocalScriptError);
   });
 
   it('exposes the accepted name character set through the pattern', () => {

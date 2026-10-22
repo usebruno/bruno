@@ -595,7 +595,7 @@ describe('renderVarInfo', () => {
 
       expect(within(scopeBadge).getByTestId('var-info-scope-badge-label').textContent).toBe('Local Script');
       expect(readOnlyNote).not.toBeNull();
-      expect(readOnlyNote.textContent).toBe('Runs the registered local command on this machine before each request');
+      expect(readOnlyNote.textContent).toBe('Runs the registered command on this machine at request time when local scripts are enabled');
       // Value comes from command output at request time, so no value display or editor
       expect(valueContainer).toBeNull();
     });
@@ -613,7 +613,7 @@ describe('renderVarInfo', () => {
       const { warningNote } = setupLocalScriptRender('$script:bad name');
 
       expect(warningNote).not.toBeNull();
-      expect(warningNote.textContent).toContain('Unknown local script');
+      expect(warningNote.textContent).toContain('Invalid local script name "bad name"');
     });
   });
 

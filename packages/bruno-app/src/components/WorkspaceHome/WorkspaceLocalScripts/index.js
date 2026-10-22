@@ -1,24 +1,28 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { IconTrash, IconPlayerPlay, IconPlus } from '@tabler/icons';
-import { LOCAL_SCRIPT_NAME_PATTERN } from '@usebruno/common/utils';
+import { LOCAL_SCRIPT_NAME_PATTERN, LOCAL_SCRIPT_TIMEOUT_LIMIT_MS } from '@usebruno/common/utils';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 import { saveLocalScripts } from 'providers/ReduxStore/slices/local-scripts';
 
 const DEFAULT_TIMEOUT_MS = 30000;
 
-const toRows = (commands) =>
-  (Array.isArray(commands) ? commands : []).map((row) => ({
-    name: row.name || '',
-    command: row.command || '',
-    timeout: row.timeout ? String(row.timeout) : ''
-  }));
-
 const WorkspaceLocalScripts = () => {
   const dispatch = useDispatch();
   const commands = useSelector((state) => state.localScripts?.commands || []);
+  // Test output is keyed by a stable row id so a result survives adding or
+  // removing rows (array indices shift as the list is edited).
+  const rowIdRef = useRef(0);
+  const makeRow = (row = {}) => ({
+    id: `local-script-row-${++rowIdRef.current}`,
+    name: row.name || '',
+    command: row.command || '',
+    timeout: row.timeout ? String(row.timeout) : ''
+  });
+  const toRows = (list) => (Array.isArray(list) ? list : []).map((row) => makeRow(row));
+
   const [rows, setRows] = useState(() => toRows(commands));
   const [syncedCommands, setSyncedCommands] = useState(commands);
   const [testStates, setTestStates] = useState({});
@@ -31,19 +35,19 @@ const WorkspaceLocalScripts = () => {
     setRows(toRows(commands));
   }
 
-  const patchRow = (index, patch) => {
-    setRows((current) => current.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row)));
+  const patchRow = (id, patch) => {
+    setRows((current) => current.map((row) => (row.id === id ? { ...row, ...patch } : row)));
   };
 
   const addRow = () => {
-    setRows((current) => [...current, { name: '', command: '', timeout: '' }]);
+    setRows((current) => [...current, makeRow()]);
   };
 
-  const removeRow = (index) => {
-    setRows((current) => current.filter((_, rowIndex) => rowIndex !== index));
+  const removeRow = (id) => {
+    setRows((current) => current.filter((row) => row.id !== id));
     setTestStates((current) => {
       const next = { ...current };
-      delete next[index];
+      delete next[id];
       return next;
     });
   };
@@ -64,8 +68,8 @@ const WorkspaceLocalScripts = () => {
       }
       if (row.timeout.trim() !== '') {
         const timeout = Number(row.timeout);
-        if (!Number.isFinite(timeout) || timeout <= 0) {
-          return `Timeout for "${name}" must be a positive number of milliseconds.`;
+        if (!Number.isFinite(timeout) || timeout <= 0 || timeout > LOCAL_SCRIPT_TIMEOUT_LIMIT_MS) {
+          return `Timeout for "${name}" must be a positive number of milliseconds up to ${LOCAL_SCRIPT_TIMEOUT_LIMIT_MS}.`;
         }
       }
     }
@@ -99,8 +103,11 @@ const WorkspaceLocalScripts = () => {
     }
   };
 
-  const handleTest = async (index) => {
-    const row = rows[index];
+  const handleTest = async (id) => {
+    const row = rows.find((candidate) => candidate.id === id);
+    if (!row) {
+      return;
+    }
     const error = validateRows([row]);
     if (error) {
       toast.error(error);
@@ -112,12 +119,12 @@ const WorkspaceLocalScripts = () => {
       script.timeout = Number(row.timeout);
     }
 
-    setTestStates((current) => ({ ...current, [index]: { running: true } }));
+    setTestStates((current) => ({ ...current, [id]: { running: true } }));
     try {
       const result = await window.ipcRenderer.invoke('renderer:run-local-script', { script });
       setTestStates((current) => ({
         ...current,
-        [index]: {
+        [id]: {
           running: false,
           ok: true,
           stdout: result.stdout,
@@ -128,7 +135,7 @@ const WorkspaceLocalScripts = () => {
     } catch (err) {
       setTestStates((current) => ({
         ...current,
-        [index]: { running: false, ok: false, error: err.message, stderr: err.stderr }
+        [id]: { running: false, ok: false, error: err.message, stderr: err.stderr }
       }));
     }
   };
@@ -182,9 +189,9 @@ const WorkspaceLocalScripts = () => {
             <div className="px-2 py-4 text-sm text-muted italic">No local scripts registered.</div>
           )}
           {rows.map((row, index) => {
-            const output = renderTestOutput(testStates[index]);
+            const output = renderTestOutput(testStates[row.id]);
             return (
-              <div key={index} className="script-row py-2">
+              <div key={row.id} className="script-row py-2">
                 <div className="flex items-center gap-3 px-2">
                   <input
                     type="text"
@@ -196,7 +203,7 @@ const WorkspaceLocalScripts = () => {
                     spellCheck={false}
                     data-testid={`local-script-name-${index}`}
                     value={row.name}
-                    onChange={(e) => patchRow(index, { name: e.target.value })}
+                    onChange={(e) => patchRow(row.id, { name: e.target.value })}
                   />
                   <input
                     type="text"
@@ -208,7 +215,7 @@ const WorkspaceLocalScripts = () => {
                     spellCheck={false}
                     data-testid={`local-script-command-${index}`}
                     value={row.command}
-                    onChange={(e) => patchRow(index, { command: e.target.value })}
+                    onChange={(e) => patchRow(row.id, { command: e.target.value })}
                   />
                   <input
                     type="text"
@@ -220,13 +227,13 @@ const WorkspaceLocalScripts = () => {
                     spellCheck={false}
                     data-testid={`local-script-timeout-${index}`}
                     value={row.timeout}
-                    onChange={(e) => patchRow(index, { timeout: e.target.value })}
+                    onChange={(e) => patchRow(row.id, { timeout: e.target.value })}
                   />
                   <div className="w-20 flex items-center gap-1">
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleTest(index)}
+                      onClick={() => handleTest(row.id)}
                       data-testid={`local-script-test-${index}`}
                     >
                       <IconPlayerPlay size={14} strokeWidth={1.5} />
@@ -236,7 +243,7 @@ const WorkspaceLocalScripts = () => {
                       className="btn-close text-muted hover:text-red-500 p-1"
                       aria-label="Remove local script"
                       data-testid={`local-script-remove-${index}`}
-                      onClick={() => removeRow(index)}
+                      onClick={() => removeRow(row.id)}
                     >
                       <IconTrash size={16} strokeWidth={1.5} />
                     </button>

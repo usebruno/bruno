@@ -2,10 +2,7 @@ const https = require('https');
 const axios = require('axios');
 const path = require('path');
 const {
-  applyOAuth1ToRequest,
-  collectLocalScriptRefs,
-  resolveLocalScriptVariables,
-  loadGlobalLocalScriptsConfig
+  applyOAuth1ToRequest
 } = require('@usebruno/requests');
 const { buildScriptedEntry } = require('@usebruno/requests').scripting;
 const qs = require('qs');
@@ -19,6 +16,7 @@ const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, formatErrorWithC
 const { encodeUrl, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
+const { resolveRequestLocalScripts } = require('./local-scripts-hook');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
 const {
   addDigestInterceptor,
@@ -930,6 +928,7 @@ const registerNetworkIpc = (mainWindow) => {
     // is it just a data stream from axios
     let isResponseStream = false;
     let requestSent;
+    let restoreLocalScripts = () => {};
     const brunoConfig = getBrunoConfig(collectionUid, collection);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
@@ -942,31 +941,18 @@ const registerNetworkIpc = (mainWindow) => {
       // Resolve `{{$script:name}}` references in environment variables and
       // directly inside the request (url, headers, body, auth, …) by running
       // the globally registered local commands (plus, for backward
-      // compatibility, commands registered in brunoConfig.localScripts). The
-      // outputs are also injected under their `$script:name` keys so the
-      // regular interpolation pass resolves direct references. Mutating
-      // envVars in place (like bru.setEnvVar does) shares the resolved values
-      // with nested bru.runRequest() calls.
-      const localScriptRefs = [...new Set([...collectLocalScriptRefs(envVars), ...collectLocalScriptRefs(request)])];
-      if (localScriptRefs.length > 0) {
-        if (!preferencesUtil.isLocalScriptsEnabled()) {
-          throw new Error(
-            'This request references local scripts ({{$script:name}}), but local script execution is disabled. '
-            + 'Enable "Allow Local Scripts" in Preferences, or run the CLI with --allow-local-scripts.'
-          );
-        }
-        const { envVars: resolvedEnvVars, scriptVariables } = await resolveLocalScriptVariables({
-          envVars,
-          referencedNames: localScriptRefs,
-          scriptsConfigs: [loadGlobalLocalScriptsConfig(), get(brunoConfig, 'localScripts', null)],
-          context: {
-            cwd: collectionPath,
-            env: processEnvVars,
-            signal: abortController.signal
-          }
-        });
-        Object.assign(envVars, resolvedEnvVars, scriptVariables);
-      }
+      // compatibility, commands registered in brunoConfig.localScripts behind
+      // a separate opt-in). Outputs are merged into envVars for the duration
+      // of this request and rolled back afterwards (envVars can be shared
+      // across the folder runner's sequential requests).
+      restoreLocalScripts = await resolveRequestLocalScripts({
+        envVars,
+        request,
+        brunoConfig,
+        collectionPath,
+        processEnvVars,
+        signal: abortController.signal
+      });
 
       // Build certsAndProxyConfig for bru.sendRequest
       const certsAndProxyConfig = await buildCertsAndProxyConfig({
@@ -1369,6 +1355,7 @@ const registerNetworkIpc = (mainWindow) => {
         requestSent
       };
     } finally {
+      restoreLocalScripts();
       reportUnresolvedVariables();
     }
   };
@@ -1759,7 +1746,20 @@ const registerNetworkIpc = (mainWindow) => {
             continue;
           }
 
+          let restoreLocalScripts = () => {};
           try {
+            // Resolve `{{$script:name}}` references before interpolation;
+            // outputs are request-scoped and rolled back in finally so one
+            // request's token doesn't leak into the next.
+            restoreLocalScripts = await resolveRequestLocalScripts({
+              envVars,
+              request,
+              brunoConfig,
+              collectionPath,
+              processEnvVars,
+              signal: abortController.signal
+            });
+
             // Build certsAndProxyConfig for bru.sendRequest
             const certsAndProxyConfig = await buildCertsAndProxyConfig({
               collectionUid,
@@ -2187,6 +2187,8 @@ const registerNetworkIpc = (mainWindow) => {
               responseReceived: {},
               ...eventData
             });
+          } finally {
+            restoreLocalScripts();
           }
 
           if (stopRunnerExecution) {

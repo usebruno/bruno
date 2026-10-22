@@ -25,11 +25,9 @@ const {
   getCACertificates,
   transformProxyConfig,
   applySentHeadersToRequest,
-  measureResponseTime,
-  collectLocalScriptRefs,
-  resolveLocalScriptVariables,
-  loadGlobalLocalScriptsConfig
+  measureResponseTime
 } = require('@usebruno/requests');
+const { resolveRequestLocalScripts } = require('./local-scripts-hook');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, getMediaType, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
@@ -180,6 +178,10 @@ const runSingleRequest = async function (
     }
   };
 
+  // Script outputs are request-scoped: envVariables is shared across the
+  // run's sequential requests, so the merge is rolled back in finally.
+  let restoreLocalScripts = () => {};
+
   try {
     let request;
     let nextRequestName;
@@ -241,35 +243,18 @@ const runSingleRequest = async function (
     // directly inside the request (url, headers, body, auth, …) using
     // host-executed commands from the global local scripts registry
     // (~/.bruno/local-scripts.json, overridable with --local-scripts) plus,
-    // for backward compatibility, brunoConfig.localScripts. Outputs are also
-    // injected under their `$script:name` keys so direct references resolve
-    // during interpolation. Requires the explicit --allow-local-scripts
-    // opt-in.
-    const localScriptRefs = [
-      ...new Set([...collectLocalScriptRefs(envVariables), ...collectLocalScriptRefs(request)])
-    ];
-    if (localScriptRefs.length > 0) {
-      if (get(options, 'allowLocalScripts', false) !== true) {
-        throw new Error(
-          'This request references local scripts ({{$script:name}}), but local script execution is disabled. '
-          + 'Re-run with --allow-local-scripts.'
-        );
-      }
-      const { envVars: resolvedEnvVariables, scriptVariables } = await resolveLocalScriptVariables({
-        envVars: envVariables,
-        referencedNames: localScriptRefs,
-        scriptsConfigs: [
-          loadGlobalLocalScriptsConfig(get(options, 'localScriptsPath') ? { filePath: options.localScriptsPath } : {}),
-          get(brunoConfig, 'localScripts', null)
-        ],
-        context: {
-          cwd: collectionPath,
-          env: processEnvVars,
-          signal: runAbortSignal
-        }
-      });
-      Object.assign(envVariables, resolvedEnvVariables, scriptVariables);
-    }
+    // behind a separate opt-in, brunoConfig.localScripts. Outputs are merged
+    // into envVariables for this request only and rolled back in finally so
+    // one request's token doesn't leak into the next.
+    restoreLocalScripts = await resolveRequestLocalScripts({
+      envVariables,
+      request,
+      brunoConfig,
+      collectionPath,
+      processEnvVars,
+      signal: runAbortSignal,
+      options
+    });
 
     const sendRequestInterpolationOptions = {
       envVars: envVariables,
@@ -1084,6 +1069,8 @@ const runSingleRequest = async function (
       preRequestTestResults: [],
       postResponseTestResults: []
     };
+  } finally {
+    restoreLocalScripts();
   }
 };
 

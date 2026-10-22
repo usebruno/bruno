@@ -267,6 +267,7 @@ export const renderVarInfo = (token, options) => {
       value: '',
       data: null,
       scriptName: scriptName || variableName.substring('$script:'.length),
+      isWellFormedLocalScript: !!scriptName,
       isValidLocalScript: !!scriptName && registeredNames.has(scriptName)
     };
   } else if (variableName.startsWith('$')) {
@@ -448,7 +449,9 @@ export const renderVarInfo = (token, options) => {
     const warningNote = document.createElement('div');
     warningNote.className = 'var-warning-note';
     warningNote.setAttribute('data-testid', 'var-info-warning-note');
-    warningNote.textContent = `Unknown local script "${scopeInfo.scriptName}". Register it on the Local Scripts tab.`;
+    warningNote.textContent = scopeInfo.isWellFormedLocalScript
+      ? `Unknown local script "${scopeInfo.scriptName}". Register it on the Local Scripts tab.`
+      : `Invalid local script name "${scopeInfo.scriptName}". Use letters, digits, "_", ".", "-" and start with a letter, digit or "_".`;
     into.appendChild(warningNote);
     return into;
   }
@@ -458,7 +461,7 @@ export const renderVarInfo = (token, options) => {
     const readOnlyNote = document.createElement('div');
     readOnlyNote.className = 'var-readonly-note';
     readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
-    readOnlyNote.textContent = 'Runs the registered local command on this machine before each request';
+    readOnlyNote.textContent = 'Runs the registered command on this machine at request time when local scripts are enabled';
     into.appendChild(readOnlyNote);
     return into;
   }

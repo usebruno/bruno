@@ -116,6 +116,8 @@ export const toMaxRedirects = (value: unknown): number => parseMaxRedirects(valu
 export {
   LOCAL_SCRIPT_VAR_PREFIX,
   LOCAL_SCRIPT_NAME_PATTERN,
+  LOCAL_SCRIPT_TIMEOUT_LIMIT_MS,
+  LOCAL_SCRIPT_MAX_TIMEOUT_MS,
   LocalScriptError,
   normalizeLocalScripts,
   mergeLocalScriptsConfigs

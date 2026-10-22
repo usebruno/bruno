@@ -1,8 +1,20 @@
 import { spawn, ChildProcessWithoutNullStreams } from 'node:child_process';
 import process from 'node:process';
-import { LocalScript, LocalScriptError, mergeLocalScriptsConfigs } from '@usebruno/common/utils';
+import {
+  LocalScript,
+  LocalScriptError,
+  LOCAL_SCRIPT_NAME_PATTERN,
+  LOCAL_SCRIPT_VAR_PREFIX,
+  mergeLocalScriptsConfigs
+} from '@usebruno/common/utils';
 
-export { LocalScriptError, normalizeLocalScripts, mergeLocalScriptsConfigs } from '@usebruno/common/utils';
+export {
+  LocalScriptError,
+  LOCAL_SCRIPT_NAME_PATTERN,
+  LOCAL_SCRIPT_VAR_PREFIX,
+  normalizeLocalScripts,
+  mergeLocalScriptsConfigs
+} from '@usebruno/common/utils';
 export type { LocalScript } from '@usebruno/common/utils';
 
 /**
@@ -15,10 +27,31 @@ export type { LocalScript } from '@usebruno/common/utils';
  * host is responsible for gating execution behind an explicit opt-in.
  */
 
-export const LOCAL_SCRIPT_VAR_PATTERN = /\{\{\$script:([A-Za-z0-9_][A-Za-z0-9._-]*)\}\}/g;
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+export const LOCAL_SCRIPT_VAR_PATTERN = new RegExp(
+  `\\{\\{${escapeRegExp(LOCAL_SCRIPT_VAR_PREFIX)}(${LOCAL_SCRIPT_NAME_PATTERN.source.replace(/^\^|\$$/g, '')})\\}\\}`,
+  'g'
+);
 const DEFAULT_TIMEOUT_MS = 30000;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
 const ERROR_STDERR_LIMIT = 2000;
+
+/**
+ * Environment variables that control command resolution, interpreter startup
+ * or the dynamic loader. They can arrive through collection-provided sources
+ * (selected bruno environment / dotenv), and a shared collection must not be
+ * able to hijack a command the user registered — e.g.
+ * `NODE_OPTIONS=--require ./evil.js`, a rewritten `PATH`, or
+ * `DYLD_INSERT_LIBRARIES`. Values for these keys from the collection context
+ * are dropped; the real values inherited from process.env remain.
+ */
+const isProtectedEnvKey = (key: string): boolean => {
+  const upper = key.toUpperCase();
+  return upper === 'NODE_OPTIONS'
+    || upper === 'PATH'
+    || upper.startsWith('LD_')
+    || upper.startsWith('DYLD_');
+};
 
 export type LocalScriptResult = {
   name: string;
@@ -80,6 +113,7 @@ export const executeLocalScript = (script: LocalScript, context: LocalScriptExec
   if (context.env) {
     for (const [key, value] of Object.entries(context.env)) {
       if (value === undefined || value === null) continue;
+      if (isProtectedEnvKey(key)) continue;
       childEnv[key] = typeof value === 'string' ? value : String(value);
     }
   }
@@ -164,6 +198,10 @@ export const executeLocalScript = (script: LocalScript, context: LocalScriptExec
       fail(`Local script "${script.name}" was cancelled`);
     };
     context.signal?.addEventListener('abort', onAbort, { once: true });
+    // The abort may have fired in the gap before the listener was attached.
+    if (context.signal?.aborted) {
+      onAbort();
+    }
 
     function cleanup() {
       clearTimeout(timer);
@@ -254,7 +292,7 @@ const toScalarEnv = (envVars: Record<string, unknown>): Record<string, string> =
     if (key === '__name__') continue;
     // Injected script outputs are interpolation variables, not shell exports
     // (their names contain ':' and would be invalid on Windows anyway).
-    if (key.startsWith('$script:')) continue;
+    if (key.startsWith(LOCAL_SCRIPT_VAR_PREFIX)) continue;
     if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
       result[key] = String(value);
     }
@@ -319,11 +357,49 @@ export const resolveLocalScriptVariables = async (
 
   const scriptVariables: Record<string, string> = {};
   for (const [name, stdout] of outputs) {
-    scriptVariables[`$script:${name}`] = stdout;
+    scriptVariables[`${LOCAL_SCRIPT_VAR_PREFIX}${name}`] = stdout;
   }
 
   return {
     envVars: replaceScriptRefs(envVars, outputs) as Record<string, unknown>,
     scriptVariables
+  };
+};
+
+/**
+ * Merge resolved script outputs into the shared runtime env-var object and
+ * return a rollback that undoes the merge. Runners (folder runner, `bru run`)
+ * share one env-var object across sequential requests, while script outputs
+ * are request-scoped: without rollback, request A's token would leak into
+ * request B, and a template pre-substituted with it would suppress a fresh
+ * command run. A key the request scripts explicitly overwrote via
+ * bru.setEnvVar is left as-is.
+ */
+export const mergeLocalScriptOutputs = (
+  envVars: Record<string, unknown>,
+  resolvedEnvVars: Record<string, unknown>,
+  scriptVariables: Record<string, string>
+): (() => void) => {
+  const added: string[] = [];
+  const replaced: Array<{ key: string; original: unknown; resolved: unknown }> = [];
+  for (const [key, value] of Object.entries({ ...resolvedEnvVars, ...scriptVariables })) {
+    if (Object.prototype.hasOwnProperty.call(envVars, key)) {
+      if (envVars[key] !== value) {
+        replaced.push({ key, original: envVars[key], resolved: value });
+      }
+    } else {
+      added.push(key);
+    }
+    envVars[key] = value;
+  }
+  return () => {
+    for (const key of added) {
+      delete envVars[key];
+    }
+    for (const { key, original, resolved } of replaced) {
+      if (envVars[key] === resolved) {
+        envVars[key] = original;
+      }
+    }
   };
 };
