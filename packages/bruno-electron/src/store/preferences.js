@@ -49,6 +49,10 @@ const defaultPreferences = {
   layout: {
     responsePaneOrientation: 'horizontal'
   },
+  labelary: {
+    endpoint: 'https://api.labelary.com',
+    consent: false
+  },
   mockServer: {
     mode: 'isolated',
     instances: []
@@ -160,6 +164,10 @@ const preferencesSchema = Yup.object().shape({
   }),
   layout: Yup.object({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
+  }),
+  labelary: Yup.object({
+    endpoint: Yup.string().max(2048),
+    consent: Yup.boolean()
   }),
   mockServer: Yup.object({
     instances: Yup.array().of(Yup.object({
