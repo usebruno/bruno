@@ -106,6 +106,16 @@ describe('detectLabels', () => {
     expect(detectLabels({ data: '^XA'.repeat(50000) })).toEqual([]);
   });
 
+  it('detects a label in a string up to the 10 MiB response limit and ignores a longer one', () => {
+    const labelOfLength = (length) => `^XA${'A'.repeat(length - 6)}^XZ`;
+    const fiveMiB = labelOfLength(5 * 1024 * 1024);
+    const tenMiB = labelOfLength(10 * 1024 * 1024);
+
+    expect(detectLabels({ data: { label: fiveMiB } })).toEqual([{ kind: 'zpl', content: fiveMiB }]);
+    expect(detectLabels({ data: { label: tenMiB } })).toEqual([{ kind: 'zpl', content: tenMiB }]);
+    expect(detectLabels({ data: { label: labelOfLength(10 * 1024 * 1024 + 1) } })).toEqual([]);
+  });
+
   it('ignores ordinary XML', () => {
     expect(detectLabels({ data: '<a><b>hello world, nothing to see here</b><c>12345</c></a>' })).toEqual([]);
   });

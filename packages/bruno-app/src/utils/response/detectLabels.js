@@ -2,7 +2,8 @@ import { detectContentTypeFromBase64 } from './index';
 
 const MAX_SCAN_NODES = 2000;
 const MAX_SCAN_DEPTH = 6;
-const MAX_STRING_LENGTH = 4 * 1024 * 1024;
+// Matches the response size above which ResponsePane skips detection, so no label in a response it scans is missed
+const MAX_STRING_LENGTH = 10 * 1024 * 1024;
 const MIN_BASE64_LENGTH = 16;
 
 const ZPL_START_REGEX = /\^XA/gi;
