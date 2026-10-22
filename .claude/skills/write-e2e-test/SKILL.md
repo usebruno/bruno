@@ -90,4 +90,4 @@ and projects are `default`, `system-pac`, `auth`, and `ssl`
 - [ ] Any mutated committed fixture is restored in `afterAll`
 - [ ] Any codegen-generated draft refactored to fixtures/helpers + stable selectors
 - [ ] Steps wrapped in `test.step`; no `test.only`, no `page.pause()`
-- [ ] If the user gave a test case id, that test's title starts with that single id (`TC-2606: `) and its tag matches the BrowserStack Type of Test Case (`Smoke & Sanity` → `@sanity`, `Regression` → `@regression`)
+- [ ] If the user gave a test case id, that test's title starts with that single id (`TC-2606:` followed by a space) and its tag matches the BrowserStack Type of Test Case (`Smoke & Sanity` → `@sanity`, `Regression` → `@regression`)
