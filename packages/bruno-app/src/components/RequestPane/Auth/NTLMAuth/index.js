@@ -15,7 +15,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth, disabled }) => 
 
   const ntlmAuth = get(request, 'auth.ntlm', {});
   const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage } = isSensitive(ntlmAuth?.password, item);
+  const { showWarning, warningMessage, scope, variableName } = isSensitive(ntlmAuth?.password, item);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
@@ -99,7 +99,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth, disabled }) => 
           readOnly={disabled}
           isCompact
         />
-        {showWarning && <SensitiveFieldWarning fieldName="ntlm-password" warningMessage={warningMessage} />}
+        {showWarning && <SensitiveFieldWarning fieldName="ntlm-password" secretName="password" warningMessage={warningMessage} scope={scope} variableName={variableName} value={ntlmAuth?.password} collection={collection} item={item} disabled={disabled} onReplaceValue={handlePasswordChange} />}
       </div>
 
       <label className="block mb-1">Domain</label>

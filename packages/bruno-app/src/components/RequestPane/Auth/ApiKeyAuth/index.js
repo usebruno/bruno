@@ -100,7 +100,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
           readOnly={disabled}
         />
         {apiKeyValueSensitive.showWarning && (
-          <SensitiveFieldWarning fieldName="apikey-value" warningMessage={apiKeyValueSensitive.warningMessage} />
+          <SensitiveFieldWarning fieldName="apikey-value" secretName="value" warningMessage={apiKeyValueSensitive.warningMessage} scope={apiKeyValueSensitive.scope} variableName={apiKeyValueSensitive.variableName} value={apikeyAuth.value} collection={collection} item={item} disabled={disabled} onReplaceValue={(val) => handleAuthChange('value', val)} />
         )}
       </div>
 

@@ -119,7 +119,7 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0, isDra
               )
             : null}
           leadingContent={!isLastEmptyRow && usedVariableUids.has(row.uid) ? (
-            <SensitiveFieldWarning fieldName={row.name} warningMessage={plainVariableUsageWarning(row.name)} />
+            <SensitiveFieldWarning fieldName={row.name} warningMessage={plainVariableUsageWarning(row.name)} scope="folder" variableName={row.name} value={row.value} collection={collection} variableUid={row.uid} item={folder} />
           ) : null}
         />
       )

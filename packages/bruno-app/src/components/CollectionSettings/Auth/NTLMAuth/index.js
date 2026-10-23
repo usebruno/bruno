@@ -15,7 +15,7 @@ const NTLMAuth = ({ collection }) => {
 
   const ntlmAuth = collection.draft?.root ? get(collection, 'draft.root.request.auth.ntlm', {}) : get(collection, 'root.request.auth.ntlm', {});
   const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage } = isSensitive(ntlmAuth?.password);
+  const { showWarning, warningMessage, scope, variableName } = isSensitive(ntlmAuth?.password);
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
@@ -87,7 +87,7 @@ const NTLMAuth = ({ collection }) => {
           isSecret={true}
           isCompact
         />
-        {showWarning && <SensitiveFieldWarning fieldName="ntlm-password" warningMessage={warningMessage} />}
+        {showWarning && <SensitiveFieldWarning fieldName="ntlm-password" secretName="password" warningMessage={warningMessage} scope={scope} variableName={variableName} value={ntlmAuth?.password} collection={collection} onReplaceValue={handlePasswordChange} />}
       </div>
 
       <label className="block mb-1">Domain</label>

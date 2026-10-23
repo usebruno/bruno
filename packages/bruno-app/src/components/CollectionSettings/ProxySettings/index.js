@@ -36,7 +36,7 @@ const ProxySettings = ({ collection }) => {
 
   const { isSensitive } = useDetectSensitiveField(collection);
   const proxyPassword = currentProxyConfig.config?.auth?.password || '';
-  const { showWarning, warningMessage } = isSensitive(proxyPassword);
+  const { showWarning, warningMessage, scope, variableName } = isSensitive(proxyPassword);
 
   const validateHostnameOnChange = (hostname) => {
     if (hostname && hostname.length > 1024) {
@@ -381,7 +381,7 @@ const ProxySettings = ({ collection }) => {
                     isCompact
                     data-testid="collection-proxy-password"
                   />
-                  {showWarning && <SensitiveFieldWarning fieldName="proxy-password" warningMessage={warningMessage} />}
+                  {showWarning && <SensitiveFieldWarning fieldName="proxy-password" secretName="password" warningMessage={warningMessage} scope={scope} variableName={variableName} value={proxyPassword} collection={collection} onReplaceValue={handleAuthPasswordChange} />}
                 </div>
               </div>
             </div>
