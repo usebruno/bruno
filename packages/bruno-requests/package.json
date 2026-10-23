@@ -22,11 +22,11 @@
   "dependencies": {
     "@faker-js/faker": "^9.7.0",
     "@usebruno/common": "0.1.0",
-    "@grpc/grpc-js": "^1.14.4",
+    "@grpc/grpc-js": "1.14.6",
     "@grpc/proto-loader": "^0.7.15",
     "@types/qs": "^6.9.18",
     "axios": "1.18.0",
-    "qs": "^6.14.1",
+    "qs": "6.16.0",
     "pac-resolver": "^7.0.1",
     "quickjs-emscripten": "^0.32.0",
     "debug": "^4.4.3",
