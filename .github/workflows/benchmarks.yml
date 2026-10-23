@@ -29,7 +29,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install System Dependencies (Ubuntu)
         if: matrix.os-name == 'ubuntu'
