@@ -1,20 +1,27 @@
 import { test, expect } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections, openCollection, openRequest, readField, selectRequestPaneTab, typeIntoField } from '../../utils/page';
+import { buildCommonLocators, closeAllCollections, closeAllOpenTabs, openCollection, openRequest, readField, selectRequestPaneTab, typeIntoField } from '../../utils/page';
 import { AUTH_MODE_LABELS } from '../../utils/constants';
 
 const COLLECTION_NAME = 'inherited-auth-collection';
 
 test.describe('Inherited OAuth2 auth view actions', () => {
+  test.beforeAll(async ({ pageWithUserData: page }) => {
+    await openCollection(page, COLLECTION_NAME);
+  });
+
   test.beforeEach(async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
 
-    await openCollection(page, COLLECTION_NAME);
     await openRequest(page, COLLECTION_NAME, 'inherited-request');
     await selectRequestPaneTab(page, 'Auth');
     await expect(locators.auth.inheritedMode()).toHaveText(AUTH_MODE_LABELS.OAUTH2);
   });
 
   test.afterEach(async ({ pageWithUserData: page }) => {
+    await closeAllOpenTabs(page);
+  });
+
+  test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 
