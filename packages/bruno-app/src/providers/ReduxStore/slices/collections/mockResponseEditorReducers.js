@@ -2,14 +2,15 @@ import { cloneDeep } from 'lodash';
 import { buildMockResponseEditorItem } from 'utils/mock-server/mock-responses/editor';
 
 export const initMockResponseEditor = (state, action) => {
-  const { mockResponse, mockServerUid } = action.payload;
+  const { mockResponse, mockServerUid, collectionUid } = action.payload;
   const responseUid = mockResponse.uid;
 
   state.mockResponseEditors[responseUid] = {
     item: buildMockResponseEditorItem(mockResponse),
     savedMockResponse: cloneDeep(mockResponse),
     rules: cloneDeep(mockResponse.rules || { operator: 'AND', conditions: [] }),
-    mockServerUid: mockServerUid || null
+    mockServerUid: mockServerUid || null,
+    collectionUid: collectionUid || null
   };
 };
 
