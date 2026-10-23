@@ -48,8 +48,7 @@ and projects are `default`, `system-pac`, `auth`, and `ssl`
    `test()` title, then a colon and a space — `TC-2606: <description>`. One id per
    test. If several ids are mentioned, write a separate `test()` for each. Do not
    invent an id, and do not put it in a comment or annotation.
-   Add a Playwright tag only when a type is mentioned in the request. Do not look
-   the case up in BrowserStack.
+   Add a Playwright tag only when a type is mentioned in the request.
 
    | Mentioned type | Playwright tag |
    | --- | --- |
