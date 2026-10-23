@@ -137,7 +137,19 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
     }
 
     if (httpSnippetPath !== desiredPath && httpSnippetPath?.length > 1) {
-      result = result.replaceAll(httpSnippetPath, desiredPath);
+      if (desiredPath.startsWith('?')) {
+        // The URL has a query but no path (`http://host?x=1`), so `stripOrigin` leaves a bare `?x=1`.
+        // Where the snippet prints the full URL that is what we want (`http://host?x=1`). Where it
+        // prints only the request target (`GET /?x=1`, `path: '/?x=1'`), the target must keep its
+        // leading `/`, so the raw query is swapped in behind a `/` there, as for any URL with a path.
+        result = result.replaceAll(httpSnippetPath, (match, offset, text) => {
+          const prev = text[offset - 1];
+          const followsAuthority = prev !== undefined && !/[\s"'`(=,]/.test(prev);
+          return followsAuthority ? desiredPath : `/${desiredPath}`;
+        });
+      } else {
+        result = result.replaceAll(httpSnippetPath, desiredPath);
+      }
     }
 
     // Restore `{{var}}` placeholders that buildHar hashed during processing.
