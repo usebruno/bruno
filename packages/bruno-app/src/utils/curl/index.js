@@ -2,6 +2,29 @@ import { forOwn } from 'lodash';
 import curlToJson from './curl-to-json';
 import { prettifyJsonString } from 'utils/common/index';
 import { isJsonLikeContentType, isPlainTextContentType, isXmlLikeContentType } from './content-type';
+import { uuid } from 'utils/common';
+
+/**
+ * Normalize the multipart entries a cURL import produces into the shape the
+ * store and the Body tab expect.
+ *
+ * `addMultipartFormParam` gives every entry a `uid`, and `multipartFormSchema`
+ * declares a file entry's `value` as an array of paths. The cURL parser
+ * produces neither: it returns `{ name, value, type, enabled }` with `value` a
+ * plain string even for `-F 'doc=@/tmp/a.pdf'`.
+ */
+export const normalizeCurlMultipartForm = (multipartForm) =>
+  (multipartForm || []).map((param) => ({
+    ...param,
+    uid: uuid(),
+    value: param.type === 'file' && !Array.isArray(param.value) ? [param.value] : param.value
+  }));
+
+/**
+ * Same for url-encoded entries, which need only the `uid`.
+ */
+export const normalizeCurlFormUrlEncoded = (formUrlEncoded) =>
+  (formUrlEncoded || []).map((param) => ({ ...param, uid: uuid() }));
 
 export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-request') => {
   const parseFormData = (parsedBody) => {
