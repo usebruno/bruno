@@ -26,6 +26,29 @@ const parseApiSpecContent = (content, extension) => {
   return null;
 };
 
+const isPlainObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const parseAndValidateApiSpec = (content) => {
+  let spec;
+  try {
+    spec = yaml.load(content);
+  } catch (err) {
+    const detail = err.mark ? `${err.reason} (line ${err.mark.line + 1}, column ${err.mark.column + 1}).` : err.message;
+    throw new Error(`API spec is not valid YAML or JSON: ${detail}`);
+  }
+
+  const version = isPlainObject(spec) ? spec.openapi || spec.swagger : null;
+  if (typeof version !== 'string' || !version.trim() || !isPlainObject(spec.info)) {
+    throw new Error('API spec must have an openapi or swagger version and an info object.');
+  }
+
+  if (!isPlainObject(spec.paths) || !Object.keys(spec.paths).length) {
+    throw new Error('API spec does not define any paths.');
+  }
+
+  return spec;
+};
+
 const externalRefTarget = (ref, specDir) => {
   if (typeof ref !== 'string') return null;
 
@@ -68,4 +91,4 @@ const resolveExternalApiSpecRefs = async (json, apiSpecPath) => {
   }
 };
 
-module.exports = { parseApiSpecContent, resolveExternalApiSpecRefs };
+module.exports = { parseApiSpecContent, parseAndValidateApiSpec, resolveExternalApiSpecRefs };

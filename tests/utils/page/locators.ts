@@ -105,6 +105,8 @@ export const buildCommonLocators = (page: Page) => ({
     folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
     tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`),
     collectionSettingsContent: () => page.locator('.collection-settings-content'),
+    requestsNotLoadedTable: () => page.getByTestId('requests-not-loaded'),
+    overviewInvalidFilesCount: () => page.getByTestId('info-invalid-files-count'),
     folderSettingsContent: () => page.locator('.folder-settings-content')
   },
   docs: buildDocsLocators(page),
@@ -131,6 +133,8 @@ export const buildCommonLocators = (page: Page) => ({
     footer: () => page.locator('.bruno-modal-footer'),
     submitButton: () => page.locator('.bruno-modal-footer .submit'),
     newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`),
+    newRequestVariableToken: (name: string) =>
+      page.getByTestId('new-request-url').locator('.cm-variable-valid').filter({ hasText: name }).first(),
     backdrop: () => page.locator('.bruno-modal-backdrop')
   },
   openCollectionPicker: {
@@ -150,6 +154,7 @@ export const buildCommonLocators = (page: Page) => ({
     searchInput: () => page.getByTestId('selection-search-input')
   },
   codeMirror: {
+    hint: (name: string) => page.locator('.CodeMirror-hints:visible').getByRole('option', { name, exact: true }),
     byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first(),
     within: (scope: Locator) => scope.locator('.CodeMirror').first(),
     /** Nth row's value-column editor in an EditableTable (Headers / Params / Vars / Assertions). */

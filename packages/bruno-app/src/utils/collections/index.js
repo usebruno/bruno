@@ -945,6 +945,17 @@ export const getCollectionItemCounts = (items = []) => {
 };
 
 /**
+ * Counts the files that failed to parse in a collection's or folder's item tree,
+ * recursively at every depth. Transient items are skipped since the sidebar doesn't show them.
+ *
+ * @param {Array} items - The collection's or folder's `items` tree.
+ * @returns {number}
+ */
+export const countInvalidItems = (items = []) => {
+  return flattenItems(items).filter((item) => item.error && !item.isTransient).length;
+};
+
+/**
  * Orders a list of collection items exactly the way the Sidebar tree renders them:
  * folders first (via `sortByNameThenSequence`), then standalone apps by `seq`, then
  * requests by `seq`. The same ordering is applied recursively to every nested folder
@@ -1471,16 +1482,21 @@ export const maskInputValue = (value) => {
     .join('');
 };
 
+const collectTreePath = (items, targetUid, path) => {
+  for (const item of items) {
+    path.push(item);
+    if (item.uid === targetUid) return true;
+    if (item.items && collectTreePath(item.items, targetUid, path)) return true;
+    path.pop();
+  }
+  return false;
+};
+
 export const getTreePathFromCollectionToItem = (collection, _item) => {
   if (!_item?.uid) return [];
 
-  let path = [];
-  let item = findItemInCollection(collection, _item?.uid);
-  while (item) {
-    path.unshift(item);
-    item = findParentItemInCollection(collection, item?.uid);
-  }
-  return path;
+  const path = [];
+  return collectTreePath(collection?.items || [], _item.uid, path) ? path : [];
 };
 
 const mergeVars = (collection, requestTreePath = []) => {
