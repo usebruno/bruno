@@ -43,6 +43,21 @@ const CodeMirror = require('codemirror');
 window.jsonlint = jsonlint;
 window.JSHINT = JSHINT;
 
+const toggleDocumentFold = (cm) => {
+  let isAnyFolded = false;
+  for (let i = cm.firstLine(), e = cm.lastLine(); i <= e; i++) {
+    if (cm.isFolded(CodeMirror.Pos(i, 0))) {
+      isAnyFolded = true;
+      break;
+    }
+  }
+  if (isAnyFolded) {
+    cm.execCommand('unfoldAll');
+  } else {
+    cm.execCommand('foldAll');
+  }
+};
+
 const NORMAL_GUTTERS = ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'];
 const TAB_SIZE = 2;
 
@@ -216,10 +231,8 @@ class CodeEditor extends React.Component {
         'Cmd-Space': (cm) => {
           showRootHints(cm, this.props.showHintsFor);
         },
-        'Ctrl-Y': 'foldAll',
-        'Cmd-Y': 'foldAll',
-        'Ctrl-I': 'unfoldAll',
-        'Cmd-I': 'unfoldAll',
+        'Ctrl-I': toggleDocumentFold,
+        'Cmd-I': toggleDocumentFold,
         'Ctrl-/': () => {
           if (['application/ld+json', 'application/json'].includes(this.props.mode)) {
             this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
