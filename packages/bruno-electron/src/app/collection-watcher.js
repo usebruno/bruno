@@ -29,6 +29,7 @@ const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const dotEnvWatcher = require('./dotenv-watcher');
 const { checkpoint } = require('../utils/benchmark');
+const { createAddFileScheduler } = require('./add-file-scheduler');
 
 const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
 
@@ -92,6 +93,19 @@ const isCollectionRootFile = (pathname, collectionPath) => {
   }
 
   return basename === 'collection.bru' || basename === 'opencollection.yml';
+};
+
+const isPendingRequestFile = (pathname, collectionPath) => {
+  if (isEnvironmentsFolder(pathname, collectionPath)) {
+    return false;
+  }
+  if (isCollectionRootFile(pathname, collectionPath)) {
+    return false;
+  }
+  if (isFolderRootFile(pathname, collectionPath)) {
+    return false;
+  }
+  return hasRequestExtension(pathname, getCollectionFormat(collectionPath));
 };
 
 const envHasSecrets = (environment = {}) => {
@@ -734,6 +748,7 @@ class CollectionWatcher {
     this.watchers = {};
     this.loadingStates = {};
     this.tempDirectoryMap = {};
+    this.addSchedulers = {};
   }
 
   // Initialize loading state tracking for a collection
@@ -875,10 +890,25 @@ class CollectionWatcher {
       disableGlobbing: true
     });
 
+    const existingScheduler = this.addSchedulers[watchPath];
+    if (existingScheduler) {
+      existingScheduler.clear();
+      delete this.addSchedulers[watchPath];
+    }
+
+    const addScheduler = createAddFileScheduler((pathname) =>
+      add(win, pathname, collectionUid, watchPath, useWorkerThread, this));
+    this.addSchedulers[watchPath] = addScheduler;
+
     let startedNewWatcher = false;
     watcher
       .on('ready', () => onWatcherSetupComplete(win, watchPath, collectionUid, this, workspacePathname))
-      .on('add', (pathname) => add(win, pathname, collectionUid, watchPath, useWorkerThread, this))
+      .on('add', (pathname) => {
+        if (isPendingRequestFile(pathname, watchPath)) {
+          this.addFileToProcessing(collectionUid, pathname);
+        }
+        addScheduler.enqueue(pathname);
+      })
       .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
       .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))
       .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath))
@@ -920,6 +950,12 @@ class CollectionWatcher {
       existingWatcher.close();
     }
     this.watchers[watchPath] = null;
+
+    const scheduler = this.addSchedulers[watchPath];
+    if (scheduler) {
+      scheduler.clear();
+      delete this.addSchedulers[watchPath];
+    }
 
     fileIndexByCollection.delete(watchPath);
 
