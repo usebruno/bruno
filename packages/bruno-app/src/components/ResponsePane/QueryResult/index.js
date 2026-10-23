@@ -103,6 +103,7 @@ const QueryResult = ({
   filterExpanded,
   onFilterChange,
   onFilterExpandChange,
+  showFilter = true,
   docKey
 }) => {
   const contentType = getContentType(headers);
@@ -177,10 +178,7 @@ const QueryResult = ({
   const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;
 
   return (
-    <StyledWrapper
-      className="w-full h-full relative flex"
-      queryFilterEnabled={queryFilterEnabled}
-    >
+    <StyledWrapper className="w-full h-full relative flex">
       {error ? (
         <div>
           {hasScriptError ? null : (
@@ -219,7 +217,7 @@ const QueryResult = ({
                 docKey={docKey}
               />
             </div>
-            {queryFilterEnabled && (
+            {showFilter && queryFilterEnabled && (
               <QueryResultFilter
                 filter={filter}
                 filterExpanded={filterExpanded}
