@@ -82,12 +82,17 @@ const RequestTabs = () => {
   };
 
   const handleClick = (tab) => {
+    const isAlreadyActive = tab.uid === activeTabUid;
+
     dispatch(
       focusTab({
         uid: tab.uid
       })
     );
-    dispatch(revealTabInSidebar(tab.uid));
+
+    if (isAlreadyActive) {
+      dispatch(revealTabInSidebar(tab.uid));
+    }
   };
 
   if (!activeTabUid) {

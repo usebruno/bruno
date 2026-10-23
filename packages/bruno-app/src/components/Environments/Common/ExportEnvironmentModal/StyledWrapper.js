@@ -1,6 +1,10 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  .environment-list {
+    max-height: 40vh;
+  }
+
   /* Environment item styling */
   .environment-item {
     display: flex;
@@ -10,6 +14,10 @@ const StyledWrapper = styled.div`
     padding: 0.375rem 0.5rem;
     border-radius: 0.25rem;
     transition: background-color 0.15s ease;
+
+    &:hover {
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+    }
 
     .environment-name {
       color: ${(props) => props.theme.text};
