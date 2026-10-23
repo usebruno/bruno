@@ -3439,6 +3439,19 @@ export const collectionsSlice = createSlice({
       item.afterMessageReceiveTestResults = [];
       item.unresolvedVariables = null;
     },
+    setPostResponseScriptRunning: (state, action) => {
+      const { itemUid, collectionUid, running } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      const item = collection && findItemInCollection(collection, itemUid);
+      if (!item) return;
+
+      item.postResponseScriptRunning = running;
+      if (running) {
+        item.postResponseTestResults = [];
+        item.postResponseScriptErrorMessage = null;
+        item.postResponseScriptErrorContext = null;
+      }
+    },
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -4442,6 +4455,7 @@ export const {
   collectionRenamedEvent,
   resetRunResults,
   initRunRequestEvent,
+  setPostResponseScriptRunning,
   runRequestEvent,
   runFolderEvent,
   resetCollectionRunner,

@@ -4,7 +4,7 @@ import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import { updateRequestScript, updateResponseScript } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest, rerunPostResponseScript } from 'providers/ReduxStore/slices/collections/actions';
 import { updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
@@ -12,6 +12,9 @@ import StatusDot from 'components/StatusDot';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useFocusErrorLine } from 'hooks/useFocusErrorLine';
 import { getActiveScriptTab } from 'utils/tabs';
+import Button from 'ui/Button';
+import { IconPlayerPlay } from '@tabler/icons';
+import { canRerunPostResponseScript } from './canRerunPostResponseScript';
 
 const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -89,6 +92,7 @@ const Script = ({ item, collection }) => {
 
   const onRun = () => dispatch(sendRequest(item, collection.uid));
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  const onRerunPostResponse = () => dispatch(rerunPostResponseScript(item, collection.uid));
 
   const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
   const hasPostResponseScript = responseScript && responseScript.trim().length > 0;
@@ -100,20 +104,37 @@ const Script = ({ item, collection }) => {
   return (
     <div className="w-full h-full flex flex-col">
       <Tabs value={activeTab} onValueChange={onScriptTabChange}>
-        <TabsList>
-          <TabsTrigger value="pre-request">
-            Pre Request
-            {hasPreRequestScript && (
-              <StatusDot type={item.preRequestScriptErrorMessage ? 'error' : 'default'} />
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="post-response">
-            Post Response
-            {hasPostResponseScript && (
-              <StatusDot type={item.postResponseScriptErrorMessage ? 'error' : 'default'} />
-            )}
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between">
+          <TabsList>
+            <TabsTrigger value="pre-request">
+              Pre Request
+              {hasPreRequestScript && (
+                <StatusDot type={item.preRequestScriptErrorMessage ? 'error' : 'default'} />
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="post-response">
+              Post Response
+              {hasPostResponseScript && (
+                <StatusDot type={item.postResponseScriptErrorMessage ? 'error' : 'default'} />
+              )}
+            </TabsTrigger>
+          </TabsList>
+          {activeTab === 'post-response' && (
+            <Button
+              size="xs"
+              variant="ghost"
+              color="secondary"
+              icon={<IconPlayerPlay size={12} strokeWidth={1.5} />}
+              loading={Boolean(item.postResponseScriptRunning)}
+              disabled={!canRerunPostResponseScript(item, responseScript)}
+              onClick={onRerunPostResponse}
+              title="Run only this script against the last response, without sending the request again. Post-response vars, assertions and tests are not re-run."
+              data-testid="rerun-post-response-script"
+            >
+              Run on last response
+            </Button>
+          )}
+        </div>
 
         <TabsContent value="pre-request" className="mt-2" dataTestId="pre-request-script-editor">
           <div className="relative h-full">

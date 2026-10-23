@@ -31,7 +31,7 @@ import {
   isPutObjectPresignedUrl
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
-import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
+import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest, runPostResponseScript } from 'utils/network/index';
 import { callIpc } from 'utils/common/ipc';
 import brunoClipboard from 'utils/bruno-clipboard';
 
@@ -56,6 +56,7 @@ import {
   collectionAddOauth2CredentialsByUrl,
   collectionClearOauth2CredentialsByUrlAndCredentialsId,
   initRunRequestEvent,
+  setPostResponseScriptRunning,
   updateRunnerConfiguration as _updateRunnerConfiguration,
   updateActiveConnections,
   saveRequest as _saveRequest,
@@ -591,6 +592,13 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
+    // Variable updates from a running re-run are not tied to a request and would overwrite the new send's
+    const currentItem = findItemInCollection(collection, itemUid);
+    if (currentItem && currentItem.postResponseScriptRunning) {
+      toast.error('Wait for the post-response script to finish before sending the request');
+      return resolve();
+    }
+
     if (item.response?.stream?.running && item.cancelTokenUid) {
       await dispatch(cancelRequest(item.cancelTokenUid, item, collection));
     }
@@ -707,6 +715,38 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
         });
     }
   });
+};
+
+export const rerunPostResponseScript = (item, collectionUid) => async (dispatch, getState) => {
+  const state = getState();
+  const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const running = (value) => setPostResponseScriptRunning({ itemUid: item.uid, collectionUid, running: value });
+
+  if (!collection) {
+    return toast.error('Collection not found');
+  }
+
+  const collectionWithGlobals = {
+    ...collection,
+    globalEnvironmentVariables: getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid })
+  };
+  const environment = resolveEnvironmentInheritance({
+    environments: collection.environments,
+    targetEnvironment: findEnvironmentInCollection(collection, collection.activeEnvironmentUid)
+  });
+
+  dispatch(running(true));
+  try {
+    const { error } = await runPostResponseScript(item, collectionWithGlobals, environment, collection.runtimeVariables);
+    if (error) {
+      toast.error(error);
+    }
+  } catch (err) {
+    toast.error(err.message || 'Failed to run the post-response script');
+  } finally {
+    dispatch(running(false));
+  }
 };
 
 export const cancelRequest = (cancelTokenUid, item, collection) => (dispatch) => {
