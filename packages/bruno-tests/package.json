@@ -29,7 +29,7 @@
     "@grpc/grpc-js": "^1.14.4",
     "@grpc/proto-loader": "^0.7.15",
     "@grpc/reflection": "^1.0.4",
-    "axios": "1.18.0",
+    "axios": "1.20.0",
     "body-parser": "2.2.1",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
