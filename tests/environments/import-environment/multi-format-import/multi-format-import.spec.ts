@@ -257,6 +257,30 @@ test.describe('Import environment - mixed format and invalid file handling', () 
       await modal.closeButton().click();
     });
 
+    test('the filter matches valid environments by name and unreadable files by file name', async ({ page, createTmpDir }) => {
+      const { environment, modal } = buildCommonLocators(page);
+      await createCollection(page, 'multi-format-filter-name-only', await createTmpDir('multi-format-filter-name-only'));
+
+      await openImportReviewFromEmpty(page, 'collection', fixture('postman-env.json'), fixture('bruno-env.json'), fixture('malformed.json'));
+
+      await test.step('Valid environment is matched by its name only', async () => {
+        await environment.searchInput().fill('postman');
+        await expect(environment.importReviewItem('Postman Env')).toBeVisible();
+        await expect(environment.importReviewItem('Bruno Env')).toHaveCount(0);
+      });
+
+      await test.step('Valid environment is not matched by its file name', async () => {
+        await environment.searchInput().fill('json');
+        await expect(environment.importNewGroup()).toHaveCount(0);
+      });
+
+      await test.step('Unreadable file is matched by its file name', async () => {
+        await expect(environment.importInvalidItem('malformed.json')).toBeVisible();
+      });
+
+      await modal.closeButton().click();
+    });
+
     test('a name that is not text never costs the batch the files imported alongside it', async ({ page, createTmpDir }) => {
       const { environment } = buildCommonLocators(page);
       await createCollection(page, 'multi-format-bad-names', await createTmpDir('multi-format-bad-names'));

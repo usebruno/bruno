@@ -39,10 +39,12 @@ const ReviewStep = ({
   const totalParsedCount = totalEnvironments + invalidEnvs.length;
   const isConfirmDisabled = selected.size === 0 || isImporting;
 
-  const normalizedSearchText = searchText.toLowerCase();
-  const matchesSearch = useCallback((env) =>
-    env.name?.toLowerCase().includes(normalizedSearchText) || env.fileName?.toLowerCase().includes(normalizedSearchText),
-  [normalizedSearchText]);
+  const normalizedSearchText = searchText.trim().toLowerCase();
+  // Match only what the row displays: the name for importable envs, the file name for unreadable files.
+  const matchesSearch = useCallback((env) => {
+    const label = env.status === ENV_STATUS.INVALID ? env.fileName : env.name;
+    return String(label ?? '').toLowerCase().includes(normalizedSearchText);
+  }, [normalizedSearchText]);
 
   const filteredNew = useMemo(() => newEnvs.filter(matchesSearch), [newEnvs, matchesSearch]);
   const filteredDuplicates = useMemo(() => duplicateEnvs.filter(matchesSearch), [duplicateEnvs, matchesSearch]);
