@@ -28,7 +28,7 @@ const getNextIndex = (currentIndex, total, key, noFocus) => {
  *   - leftSection: React component or React element (rendered on the left side, for items only)
  *   - rightSection: React component or React element (rendered on the right side, for items only)
  *   - label: string (display text for items, or label text for labels; also used for aria-label and title if not provided)
- *   - shortcut: string (optional, display-only shortcut hint after the label, for items only;
+ *   - shortcut: ReactNode (optional, display-only shortcut hint after the label, for items only;
  *     the owner binds it and must keep the binding active while the menu is open)
  *   - ariaLabel: string (accessibility label, falls back to label or title if not provided)
  *   - onClick: function (handler when item is clicked, for items only)

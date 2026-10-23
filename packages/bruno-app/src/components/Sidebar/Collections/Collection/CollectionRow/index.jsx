@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import { useDrop, useDrag } from 'react-dnd';
@@ -38,12 +38,13 @@ import RemoveCollections from '../RemoveCollections';
 import MoveToWorkspace from '../MoveToWorkspace';
 import { isPathExternalToBasePath } from 'utils/common/path';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { getSortedDraggedItems } from 'utils/collections';
+import { getSortedDraggedItems, countInvalidItems } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
 
 import RenameCollection from '../RenameCollection';
 import StyledWrapper from './StyledWrapper';
 import CloneCollection from '../CloneCollection';
+import InvalidFilesBadge from '../InvalidFilesBadge';
 import ShareCollection from 'components/ShareCollection/index';
 import GenerateDocumentation from '../GenerateDocumentation';
 import { getRevealInFolderLabel } from 'utils/common/platform';
@@ -76,6 +77,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const dispatch = useDispatch();
   const isLoading = collection.isLoading;
+  const invalidItemCount = useMemo(() => countInvalidItems(collection.items), [collection.items]);
   const collectionRef = useRef(null);
 
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
@@ -596,10 +598,11 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
               onDoubleClick={handleCollectionDoubleClick}
             />
           </ActionIcon>
-          <div className="ml-1 w-full" id="sidebar-collection-name" title={collection.name}>
+          <div className="ml-1 min-w-0" id="sidebar-collection-name" title={collection.name}>
             {collection.name}
           </div>
-          {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
+          <InvalidFilesBadge count={invalidItemCount} collectionUid={collection.uid} rowUid={collection.uid} />
+          {isLoading ? <IconLoader2 className="animate-spin flex-shrink-0 mx-1 ml-auto" size={18} strokeWidth={1.5} /> : null}
         </div>
         {!isDragging && !isMultiSelected && (
           <div>

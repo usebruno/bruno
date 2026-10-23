@@ -43,8 +43,7 @@ describe('buildSpecVariables', () => {
     const variables = buildSpecVariables({
       collectionVariables: { baseUrl: 'https://collection.test', other: 'kept' },
       envVariables,
-      environment: 'Prod',
-      processEnvVariables: {}
+      environment: 'Prod'
     });
     expect(variables.baseUrl).toBe('https://prod.test');
     expect(variables.other).toBe('kept');
@@ -54,55 +53,18 @@ describe('buildSpecVariables', () => {
     const variables = buildSpecVariables({
       collectionVariables: { baseUrl: 'https://collection.test' },
       envVariables,
-      environment: '',
-      processEnvVariables: {}
+      environment: ''
     });
     expect(variables.baseUrl).toBe('https://collection.test');
   });
 
-  it('puts dotenv values where {{process.env.NAME}} can find them', () => {
-    const variables = buildSpecVariables({
-      collectionVariables: {},
-      envVariables,
-      environment: 'Local',
-      processEnvVariables: { API_TOKEN: 'from-dotenv' }
-    });
-    expect(variables.process.env.API_TOKEN).toBe('from-dotenv');
-    expect(variables.API_TOKEN).toBeUndefined();
-  });
-
-  it('finds a value that only the workspace .env defines', () => {
-    const variables = buildSpecVariables({
-      collectionVariables: {},
-      envVariables,
-      environment: 'Local',
-      processEnvVariables: { API_TOKEN: 'from-collection-dotenv' },
-      workspaceProcessEnvVariables: { API_HOST: 'from-workspace-dotenv' }
-    });
-
-    expect(variables.process.env.API_HOST).toBe('from-workspace-dotenv');
-    expect(variables.process.env.API_TOKEN).toBe('from-collection-dotenv');
-  });
-
-  it('lets the collection .env win over the workspace .env, the order the app resolves them in', () => {
-    const variables = buildSpecVariables({
-      collectionVariables: {},
-      envVariables,
-      environment: 'Local',
-      processEnvVariables: { API_HOST: 'from-collection-dotenv' },
-      workspaceProcessEnvVariables: { API_HOST: 'from-workspace-dotenv' }
-    });
-
-    expect(variables.process.env.API_HOST).toBe('from-collection-dotenv');
-  });
-
   it('copes with a collection that has nothing in it', () => {
-    expect(buildSpecVariables({})).toEqual({ process: { env: {} } });
+    expect(buildSpecVariables({})).toEqual({});
   });
 
   it('copes with an environment name that does not exist', () => {
     const variables = buildSpecVariables({ collectionVariables: { a: '1' }, envVariables, environment: 'Missing' });
-    expect(variables).toEqual({ a: '1', process: { env: {} } });
+    expect(variables).toEqual({ a: '1' });
   });
 });
 

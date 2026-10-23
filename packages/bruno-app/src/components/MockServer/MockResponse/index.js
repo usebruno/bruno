@@ -5,13 +5,13 @@ import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
 import {
   initMockResponseEditor,
   removeMockResponseEditor,
-  syncMockResponseEditorSaved,
   updateMockResponseRules,
   cancelMockResponseEditorEdit
 } from 'providers/ReduxStore/slices/collections';
-import { saveMockResponse, deleteMockResponse, loadMockResponses, startMockServer, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
-import { closeTabs, updateTabMeta, updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
-import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection, tryMockResponseRequest, buildDemoRequestFromRules, buildMockServerTryUrl, getMockResponseNameError, getMockResponseDescriptionError } from 'utils/mock-server/mock-responses';
+import { deleteMockResponse, loadMockResponses, startMockServer, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
+import { saveMockResponseEditor } from 'providers/ReduxStore/slices/mock-server/actions';
+import { closeTabs, updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
+import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection, tryMockResponseRequest, buildDemoRequestFromRules, buildMockServerTryUrl } from 'utils/mock-server/mock-responses';
 import { newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
 import { flattenItems, isItemTransientRequest } from 'utils/collections';
@@ -20,7 +20,6 @@ import {
   resolveMockServerStartPayload,
   resolveMockServerWorkspacePath
 } from 'utils/mock-server/mock-server-instances';
-import { mockResponseFromEditorItem } from 'utils/mock-server/mock-responses/editor';
 import ResponseExampleResponsePane from 'components/ResponseExample/ResponseExampleResponsePane';
 import MockResponseTopBar from './MockResponseTopBar';
 import MockResponseRequestPane from './MockResponseRequestPane';
@@ -220,36 +219,9 @@ const MockResponse = ({ instance, collection, responseUid }) => {
       return;
     }
 
+    setIsSaving(true);
     try {
-      const mockResponse = mockResponseFromEditorItem(
-        item,
-        responseUid,
-        editor.rules,
-        editor.savedMockResponse
-      );
-
-      const validationError = getMockResponseNameError(mockResponse.name)
-        || getMockResponseDescriptionError(mockResponse.description);
-      if (validationError) {
-        toast.error(validationError);
-        return;
-      }
-
-      setIsSaving(true);
-      const result = await dispatch(saveMockResponse({
-        ...location,
-        response: mockResponse
-      })).unwrap();
-
-      dispatch(syncMockResponseEditorSaved({
-        responseUid,
-        mockResponse: result.response
-      }));
-      dispatch(updateTabMeta({
-        uid: responseUid,
-        tabName: result.response.name,
-        responseName: result.response.name
-      }));
+      await dispatch(saveMockResponseEditor(responseUid));
       setEditMode(false);
       toast.success('Mock response saved');
     } catch (err) {
