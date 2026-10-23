@@ -57,7 +57,8 @@ const initialState = {
       codeFont: 'default'
     },
     general: {
-      defaultLocation: ''
+      defaultLocation: '',
+      unifiedTabs: false
     },
     onboarding: {
       hasLaunchedBefore: false,
