@@ -2,7 +2,6 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const {
-  appendMockResponses,
   cloneMockServerResponses,
   createEmptyMockResponse,
   deleteMockResponse,
@@ -277,26 +276,6 @@ describe('mock-server-store', () => {
       expect(listMockResponses(location).map((item) => item.uid)).toEqual([kept.uid]);
 
       expect(() => deleteMockResponse(location, 'missing-uid')).toThrow('Mock response not found.');
-    });
-
-    it('appends responses while deduping by route key', () => {
-      saveMockResponse(location, buildResponse('Get dogs', {
-        request: { url: '/dogs', method: 'GET', headers: [], params: [], body: { mode: 'none' } }
-      }));
-
-      const created = appendMockResponses(location, [
-        buildResponse('Get dogs again', {
-          request: { url: '/dogs', method: 'GET', headers: [], params: [], body: { mode: 'none' } }
-        }),
-        buildResponse('Get cats', {
-          request: { url: '/cats', method: 'GET', headers: [], params: [], body: { mode: 'none' } }
-        })
-      ]);
-
-      expect(created).toHaveLength(1);
-      expect(created[0].name).toBe('Get cats');
-      expect(created[0].uid).toBeTruthy();
-      expect(listMockResponses(location)).toHaveLength(2);
     });
 
     it('clones responses into another server with fresh uids', () => {

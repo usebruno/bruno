@@ -219,25 +219,6 @@ export const deleteMockResponse = createAsyncThunk(
   }
 );
 
-export const generateMockResponsesFromSpec = createAsyncThunk(
-  'mockServer/generateFromSpec',
-  async (payload) => {
-    const result = await window.ipcRenderer.invoke('renderer:mock-server-build-spec-responses', {
-      ...payload,
-      persist: true
-    });
-    if (!result.success) {
-      throw new Error(result.error);
-    }
-
-    return {
-      mockServerUid: payload.mockServerUid,
-      createdCount: result.createdCount || 0,
-      responses: result.responses || []
-    };
-  }
-);
-
 export const syncMockResponsesFromExamples = createAsyncThunk(
   'mockServer/syncFromExamples',
   async (payload) => {
@@ -258,8 +239,7 @@ export const loadMockResponsesFromSpec = createAsyncThunk(
   async (payload) => {
     const result = await window.ipcRenderer.invoke('renderer:mock-server-build-spec-responses', {
       ...payload,
-      persist: false,
-      generateFromSchema: payload.generateFromSchema ?? true
+      generateFromSchema: true
     });
     if (!result.success) {
       throw new Error(result.error);
@@ -401,10 +381,6 @@ export const mockServerSlice = createSlice({
         const { mockServerUid, responseUid } = action.payload;
         state.mockResponses[mockServerUid] = (state.mockResponses[mockServerUid] || [])
           .filter((response) => response.uid !== responseUid);
-      })
-      .addCase(generateMockResponsesFromSpec.fulfilled, (state, action) => {
-        const { mockServerUid, responses } = action.payload;
-        state.mockResponses[mockServerUid] = responses || [];
       })
       .addCase(syncMockResponsesFromExamples.fulfilled, (state, action) => {
         const { mockServerUid, responses } = action.payload;
