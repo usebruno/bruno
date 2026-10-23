@@ -31,7 +31,7 @@ test.describe('Add folder under collection', () => {
       const folderFilePath = path.join(collectionLocation, collectionName, folderName, 'folder.yml');
       await expect
         .poll(() => (fs.existsSync(folderFilePath) ? fs.readFileSync(folderFilePath, 'utf8') : ''))
-        .toContain(`name: ${folderName}`);
+        .toMatch(new RegExp(`name: ${folderName}$`, 'm'));
     });
   });
 });

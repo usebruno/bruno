@@ -79,7 +79,7 @@ test.describe('Create HTTP Requests', () => {
     await test.step('Request file is written inside the folder', async () => {
       const folderRequestPath = path.join(collectionDir, folderName, `${requestName}.yml`);
       const requestAtRoot = path.join(collectionDir, `${requestName}.yml`);
-      await expect.poll(() => fs.existsSync(folderRequestPath), { timeout: 10000 }).toBe(true);
+      await expect.poll(() => fs.existsSync(folderRequestPath)).toBe(true);
       const contents = fs.readFileSync(folderRequestPath, 'utf8');
       expect(contents).toContain(`name: ${requestName}`);
       expect(contents).toContain('type: http');
