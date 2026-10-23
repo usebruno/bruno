@@ -1,0 +1,70 @@
+import { isMethodCall, reportUntranslated } from '../ast-utils';
+import { collectMemberTargets } from './type-environment';
+
+/**
+ * Rebuilds the access under a new member name, keeping it optional when it already was.
+ * `jar?.get(...)` short-circuits on a missing jar, and a plain member expression in its
+ * place would throw where the original returned undefined.
+ *
+ * The parser spells an optional access as a MemberExpression carrying `optional`, not as a
+ * node type of its own, so the flag is copied rather than the builder being swapped.
+ */
+const buildMember = (j, node, memberName) => {
+  const member = j.memberExpression(node.object, j.identifier(memberName));
+  member.optional = Boolean(node.optional);
+
+  return member;
+};
+
+/**
+ * Rewrites member access on a typed binding to the equivalent the registry declares.
+ *
+ * A member the registry marks unsupported is left as it stands, so it reads in the output
+ * exactly like a member something else was renamed onto — which is why reaching one is
+ * reported.
+ *
+ * @param {Object} j - jscodeshift API
+ * @param {Object} root - jscodeshift Collection to search within
+ * @param {Array} bindings - Typed bindings in scope
+ * @param {Object} registry - The API registry
+ */
+const rewriteMembers = (j, root, bindings, registry) => {
+  collectMemberTargets(j, root, bindings, registry).forEach(({ path, propertyName, spec }) => {
+    // a member with no counterpart is left exactly as it stands, and reported
+    if (spec.unsupported) {
+      reportUntranslated(path.value, propertyName, spec.unsupported);
+      return;
+    }
+
+    const replacement = buildMember(j, path.value, spec.to);
+
+    const parent = path.parent;
+
+    // A member that is a method on one side and a plain property on the other changes arity
+    // along with its name: `res.json()` -> `res.data` drops the call, `res.data` -> `res.json()`
+    // adds one back.
+    if (spec.call === 'drop' && isMethodCall(path)) {
+      /**
+       * The counterpart is a plain property, so there is nowhere for arguments to go. Leaving
+       * the call as it stands keeps them visible; dropping them would quietly change what it
+       * does.
+       */
+      if (parent.value.arguments.length) {
+        reportUntranslated(
+          parent.value,
+          propertyName,
+          `${spec.to} is a property on the other side and cannot take arguments`
+        );
+        return;
+      }
+
+      j(parent).replaceWith(replacement);
+    } else if (spec.call === 'add' && !isMethodCall(path)) {
+      j(path).replaceWith(j.callExpression(replacement, []));
+    } else {
+      j(path).replaceWith(replacement);
+    }
+  });
+};
+
+export default rewriteMembers;
