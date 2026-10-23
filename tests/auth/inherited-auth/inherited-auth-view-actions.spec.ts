@@ -74,6 +74,7 @@ test.describe('Inherited OAuth2 auth view actions', () => {
     const { auth } = buildCommonLocators(page);
 
     await auth.oauth2.grantTypeDropdown().click();
+    await expect(auth.oauth2.grantTypeDropdown()).toHaveAttribute('aria-expanded', 'false');
     await expect(auth.oauth2.grantTypeMenu()).toBeHidden();
   });
 });

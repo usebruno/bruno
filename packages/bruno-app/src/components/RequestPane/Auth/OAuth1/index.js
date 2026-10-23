@@ -214,7 +214,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
 
       <div className="flex items-center gap-4 w-full">
         <label className="block min-w-[140px]">Signature Method</label>
-        <div className={`inline-flex items-center ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} oauth1-dropdown-selector`}>
+        <div className="inline-flex items-center cursor-pointer oauth1-dropdown-selector">
           <MenuDropdown
             disabled={disabled}
             items={Object.entries(signatureMethodLabels).map(([value, label]) => ({
@@ -286,7 +286,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
 
       <div className="flex items-center gap-4 w-full">
         <label className="block min-w-[140px]">Add Params To</label>
-        <div className={`inline-flex items-center ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} oauth1-dropdown-selector`}>
+        <div className="inline-flex items-center cursor-pointer oauth1-dropdown-selector">
           <MenuDropdown
             disabled={disabled}
             items={Object.entries(placementLabels).map(([value, label]) => ({

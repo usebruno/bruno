@@ -54,6 +54,7 @@ const getNextIndex = (currentIndex, total, key, noFocus) => {
  * @param {string} props.groupStyle - Style for grouped items: 'action' (default, normal case) or 'select' (uppercase labels, indented items)
  * @param {boolean} props.autoFocusFirstOption - Optional flag to auto-focus first option when dropdown opens (default: false)
  * @param {string} props.submenuPlacement - Placement of submenus: 'right' (default) or 'left'. Controls both position and arrow direction.
+ * @param {boolean} props.disabled - Optional flag to keep the dropdown from opening and show the trigger as disabled (default: false)
  * @param {Object} props.dropdownProps - Other props passed to underlying Dropdown component
  * @param {React.Ref} ref - Optional ref to expose open/close methods
  */
@@ -73,6 +74,7 @@ const MenuDropdown = forwardRef(({
   groupStyle = 'action',
   autoFocusFirstOption = false,
   submenuPlacement = 'right',
+  disabled = false,
   'data-testid': testId = 'menu-dropdown',
   menuClassName,
   ...dropdownProps
@@ -283,8 +285,9 @@ const MenuDropdown = forwardRef(({
 
   // Toggle dropdown visibility
   const handleTriggerClick = useCallback(() => {
+    if (disabled) return;
     updateOpenState(!isOpen);
-  }, [isOpen, updateOpenState]);
+  }, [disabled, isOpen, updateOpenState]);
 
   // Close dropdown when clicking outside
   const handleClickOutside = useCallback((instance, event) => {
@@ -489,6 +492,8 @@ const MenuDropdown = forwardRef(({
     });
   };
 
+  const disabledTriggerClassName = disabled ? 'cursor-not-allowed opacity-50' : undefined;
+
   // Clone children to attach click handler and aria-expanded
   const triggerElement = React.isValidElement(children)
     ? React.cloneElement(children, {
@@ -497,11 +502,23 @@ const MenuDropdown = forwardRef(({
           handleTriggerClick();
         },
         'aria-expanded': isOpen,
+        'aria-disabled': disabled || undefined,
+        'className': classnames(children.props.className, disabledTriggerClassName),
         // Preserve a trigger's own `data-testid` (e.g. a semantically named
         // toolbar button) instead of clobbering it with the dropdown's testId.
         'data-testid': children.props['data-testid'] || testId
       })
-    : <div onClick={handleTriggerClick} aria-expanded={isOpen} data-testid={testId}>{children}</div>;
+    : (
+        <div
+          onClick={handleTriggerClick}
+          aria-expanded={isOpen}
+          aria-disabled={disabled || undefined}
+          className={disabledTriggerClassName}
+          data-testid={testId}
+        >
+          {children}
+        </div>
+      );
 
   return (
     <Dropdown

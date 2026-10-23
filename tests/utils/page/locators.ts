@@ -224,7 +224,7 @@ export const buildCommonLocators = (page: Page) => ({
       grantTypeMenu: () => page.getByTestId('grant-type-dropdown-dropdown'),
       additionalParams: () => page.getByTestId('oauth2-additional-params'),
       additionalParamsTab: (tab: 'authorization' | 'token' | 'refresh') => page.getByTestId(`oauth2-additional-params-tab-${tab}`),
-      addParameterButton: () => page.getByRole('button', { name: 'Add Parameter' }),
+      addParameterButton: () => page.getByTestId('oauth2-additional-params-add'),
       getAccessTokenButton: () => page.getByRole('button', { name: 'Get Access Token' }),
       clearCacheButton: () => page.getByRole('button', { name: 'Clear Cache' })
     },

@@ -233,7 +233,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
       })}
       <div className="flex items-center gap-4 w-full" key="input-credentials-placement">
         <label className="block min-w-[140px]">Add Credentials to</label>
-        <div className={`inline-flex items-center ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} token-placement-selector`}>
+        <div className="inline-flex items-center cursor-pointer token-placement-selector">
           <MenuDropdown
             disabled={disabled}
             items={[
@@ -270,7 +270,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
       </div>
       <div className="flex items-center gap-4 w-full" key="input-token-type">
         <label className="block min-w-[140px]">Token Source</label>
-        <div className={`inline-flex items-center ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} token-placement-selector`}>
+        <div className="inline-flex items-center cursor-pointer token-placement-selector">
           <MenuDropdown
             disabled={disabled}
             items={[
@@ -305,7 +305,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
       </div>
       <div className="flex items-center gap-4 w-full" key="input-token-placement">
         <label className="block min-w-[140px]">Add token to</label>
-        <div className={`inline-flex items-center ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} token-placement-selector`}>
+        <div className="inline-flex items-center cursor-pointer token-placement-selector">
           <MenuDropdown
             disabled={disabled}
             items={[

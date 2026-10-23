@@ -73,7 +73,7 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection, disable
           Grant Type
         </span>
       </div>
-      <div className={`inline-flex items-center ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} grant-type-mode-selector w-fit`}>
+      <div className="inline-flex items-center cursor-pointer grant-type-mode-selector w-fit">
         <MenuDropdown
           disabled={disabled}
           items={[
