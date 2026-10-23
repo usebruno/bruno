@@ -64,7 +64,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await page.getByTestId('request-name').fill('nr-folder');
         await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-        await page.keyboard.type('https://echo.usebruno.com');
+        await page.keyboard.insertText('https://echo.usebruno.com');
         await page.getByTestId('create-new-request-button').click();
 
         await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-folder', { exact: true }) })).toBeVisible();
@@ -91,7 +91,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await page.getByTestId('request-name').fill('nr-collection');
         await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-        await page.keyboard.type('https://echo.usebruno.com');
+        await page.keyboard.insertText('https://echo.usebruno.com');
         await page.getByTestId('create-new-request-button').click();
 
         await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-collection', { exact: true }) })).toBeVisible();

@@ -27,7 +27,7 @@ test.describe('EditableTable - Focus and Placeholder', () => {
     // Get the Name input (regular input)
     const nameInput = firstRow.locator('input[type="text"]').first();
     await nameInput.click();
-    await page.keyboard.type('testParam');
+    await page.keyboard.insertText('testParam');
 
     // Verify input has focus before save
     await expect(nameInput).toBeFocused();

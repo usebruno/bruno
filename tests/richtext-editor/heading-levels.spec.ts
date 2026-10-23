@@ -13,7 +13,7 @@ test.describe('Rich Text Editor Edge Cases - Heading Levels', () => {
     await expect(prosemirror).toBeVisible();
 
     await prosemirror.click();
-    await page.keyboard.type('Heading text');
+    await page.keyboard.insertText('Heading text');
 
     for (let level = 1; level <= 6; level++) {
       await locators.docs.headingDropdown().click();

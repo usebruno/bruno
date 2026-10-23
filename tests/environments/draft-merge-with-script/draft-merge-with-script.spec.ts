@@ -22,7 +22,7 @@ test.describe('Draft environment merge with script-set variables', () => {
       await expect(locators.environment.variableRowByName('existingVar')).toBeVisible();
       await locators.environment.variableValue('existingVar').click();
       await page.keyboard.press(selectAllShortcut);
-      await page.keyboard.type('draft-edited-value');
+      await page.keyboard.insertText('draft-edited-value');
 
       await expect(locators.environment.collectionEnvTab().locator('.close-gradient'))
         .toHaveClass(/has-changes/);

@@ -13,7 +13,7 @@ test.describe('Rich Text Editor Edge Cases - Toolbar Overflow', () => {
     await expect(prosemirror).toBeVisible();
 
     await prosemirror.click();
-    await page.keyboard.type('Hello');
+    await page.keyboard.insertText('Hello');
     await page.keyboard.press('Home');
     await page.keyboard.down('Shift');
     await page.keyboard.press('End');

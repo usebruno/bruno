@@ -24,7 +24,7 @@ test.describe('Collection variables draft merge with script-set variables', () =
       await expect(locators.environment.variableRowByName('existingCollVar')).toBeVisible();
       await locators.environment.variableValue('existingCollVar').click();
       await page.keyboard.press(selectAllShortcut);
-      await page.keyboard.type('draft-edited-coll-value');
+      await page.keyboard.insertText('draft-edited-coll-value');
 
       // Wait for draft debounce
       await page.waitForTimeout(500);

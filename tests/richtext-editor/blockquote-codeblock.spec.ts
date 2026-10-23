@@ -13,7 +13,7 @@ test.describe('Rich Text Editor Edge Cases - Blockquote and Code Block', () => {
     await expect(prosemirror).toBeVisible();
 
     await prosemirror.click();
-    await page.keyboard.type('A quoted line');
+    await page.keyboard.insertText('A quoted line');
 
     await clickDocsToolbarBtn(locators, 'Quote');
     await expect(prosemirror.locator('blockquote')).toContainText('A quoted line');
@@ -29,7 +29,7 @@ test.describe('Rich Text Editor Edge Cases - Blockquote and Code Block', () => {
     await expect(prosemirror).toBeVisible();
 
     await prosemirror.click();
-    await page.keyboard.type('const x = 1;');
+    await page.keyboard.insertText('const x = 1;');
 
     await clickDocsToolbarBtn(locators, 'Code block');
 

@@ -94,7 +94,7 @@ export const typeIntoApiSpecEditor = async (page: Page, text: string): Promise<v
       node.CodeMirror.setCursor({ line: 0, ch: 0 });
       node.CodeMirror.focus();
     });
-    await page.keyboard.type(text);
+    await page.keyboard.insertText(text);
   });
 };
 

@@ -26,7 +26,7 @@ test.describe('Create GraphQL Requests', () => {
       await page.getByTestId('graphql-request').click();
       await page.getByTestId('request-name').fill('Root GraphQL Request');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-      await page.keyboard.type('https://api.example.com/graphql');
+      await page.keyboard.insertText('https://api.example.com/graphql');
       await locators.modal.button('Create').click();
     });
 
@@ -54,7 +54,7 @@ test.describe('Create GraphQL Requests', () => {
       await page.getByTestId('graphql-request').click();
       await page.getByTestId('request-name').fill('Folder GraphQL Request');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-      await page.keyboard.type('https://api.example.com/graphql/v2');
+      await page.keyboard.insertText('https://api.example.com/graphql/v2');
       await locators.modal.button('Create').click();
     });
 

@@ -26,7 +26,7 @@ test.describe('Create WebSocket Requests', () => {
       await page.getByTestId('ws-request').click();
       await page.getByTestId('request-name').fill('Root WebSocket Request');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-      await page.keyboard.type('ws://localhost:8080');
+      await page.keyboard.insertText('ws://localhost:8080');
       await locators.modal.button('Create').click();
     });
 
@@ -54,7 +54,7 @@ test.describe('Create WebSocket Requests', () => {
       await page.getByTestId('ws-request').click();
       await page.getByTestId('request-name').fill('Folder WebSocket Request');
       await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-      await page.keyboard.type('ws://localhost:8081');
+      await page.keyboard.insertText('ws://localhost:8081');
       await locators.modal.button('Create').click();
     });
 

@@ -12,7 +12,7 @@ const editorIn = (row) => row.locator('.single-line-editor-wrapper .CodeMirror')
 
 const typeInField = async (page, fieldName: string, value: string) => {
   await editorIn(fieldRow(page, fieldName)).click();
-  await page.keyboard.type(value);
+  await page.keyboard.insertText(value);
 };
 
 const selectAuthMode = async (page) => {
@@ -85,7 +85,7 @@ test.describe.serial('OAuth 1.0 Authentication', () => {
       const pkEditor = page.locator('.private-key-editor-wrapper .CodeMirror');
       await expect(pkEditor).toBeVisible();
       await pkEditor.click();
-      await page.keyboard.type('test-private-key');
+      await page.keyboard.insertText('test-private-key');
 
       // Switch back to HMAC-SHA1
       await sigDropdown.click();

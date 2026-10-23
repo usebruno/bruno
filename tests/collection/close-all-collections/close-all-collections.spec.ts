@@ -107,7 +107,7 @@ test.describe.skip('Close All Collections', () => {
 
       const codeMirrorEditor = urlContainer.locator('.CodeMirror');
       await codeMirrorEditor.click();
-      await page.keyboard.type('modified');
+      await page.keyboard.insertText('modified');
     });
 
     await test.step('Trigger close all and discard changes', async () => {
@@ -156,7 +156,7 @@ test.describe.skip('Close All Collections', () => {
 
       const codeMirrorEditor = urlContainer.locator('.CodeMirror');
       await codeMirrorEditor.click();
-      await page.keyboard.type('modified');
+      await page.keyboard.insertText('modified');
     });
 
     await test.step('Trigger close all and save changes', async () => {
