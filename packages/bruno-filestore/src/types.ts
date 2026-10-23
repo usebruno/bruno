@@ -8,6 +8,10 @@ export interface StringifyOptions {
   format?: CollectionFormat;
 }
 
+export interface WriteCollectionOptions {
+  format?: CollectionFormat;
+}
+
 export interface WorkerTask {
   data: any;
   priority: number;
