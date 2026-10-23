@@ -65,7 +65,11 @@ const RemoveCollections = ({ onClose, collectionUid, collectionUids }) => {
 
   // If there are drafts, show the draft confirmation modal
   if (drafts.length > 0) {
-    return <ConfirmCollectionCloseDrafts onClose={onClose} collectionUids={targetUids} />;
+    return (
+      <Portal>
+        <ConfirmCollectionCloseDrafts onClose={onClose} collectionUids={targetUids} />
+      </Portal>
+    );
   }
 
   const isMultiple = collections.length > 1;

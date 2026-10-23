@@ -38,7 +38,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     markViewportMatches(editor, searchMatches.current, currentMatchIndex.current, searchMarks.current);
   }, [editor]);
 
-  const doSearch = useCallback((text, newIndex = 0, preferLine = null, shouldScroll = false) => {
+  const doSearch = useCallback((text, newIndex = 0, preferPos = null, shouldScroll = false, moveSelection = true) => {
     if (!editor || !visible) {
       return;
     }
@@ -69,8 +69,10 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
         searchCacheKey.current = newCacheKey;
         setMatchCount(matches.length);
 
-        if (preferLine !== null && newIndex === 0) {
-          const nearestIdx = matches.findIndex((m) => m.from.line >= preferLine);
+        if (preferPos && newIndex === 0) {
+          const nearestIdx = matches.findIndex(
+            (m) => m.from.line > preferPos.line || (m.from.line === preferPos.line && m.from.ch >= preferPos.ch)
+          );
           newIndex = nearestIdx >= 0 ? nearestIdx : 0;
         }
       }
@@ -95,7 +97,9 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
       if (shouldScroll) {
         editor.scrollIntoView(matches[resolvedIndex].from, 100);
       }
-      editor.setSelection(matches[resolvedIndex].from, matches[resolvedIndex].to, { scroll: false });
+      if (moveSelection) {
+        editor.setSelection(matches[resolvedIndex].from, matches[resolvedIndex].to, { scroll: false });
+      }
     } catch (e) {
       console.error('Search error:', e);
       setMatchCount(0);
@@ -157,16 +161,16 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     }
 
     if (initialIndexRef.current && initialIndexRef.current.forText === debouncedSearchText) {
-      // Pre-populated index still matches — honour it and consume it.
+      // Pre-populated index still matches - honour it and consume it.
       const idx = initialIndexRef.current.idx;
       initialIndexRef.current = null;
       doSearch(debouncedSearchText, idx);
     } else {
-      // Stale or absent initial index — discard and run a normal cursor-anchored search.
+      // Stale or absent initial index - discard and run a normal cursor-anchored search.
       initialIndexRef.current = null;
       const cursor = editor?.getCursor('from');
-      const cursorLine = cursor ? cursor.line : null;
-      doSearch(debouncedSearchText, 0, cursorLine);
+      const cursorLineStart = cursor ? { line: cursor.line, ch: 0 } : null;
+      doSearch(debouncedSearchText, 0, cursorLineStart);
     }
   }, [debouncedSearchText, doSearch, editor]);
 
@@ -224,12 +228,17 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     let timeoutId;
     const handleChange = () => {
       docVersion.current += 1;
+      pendingSearchIndexRef.current = null;
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         searchCacheKey.current = '';
-        const idx = pendingSearchIndexRef.current ?? 0;
+        const idx = pendingSearchIndexRef.current;
         pendingSearchIndexRef.current = null;
-        doSearch(debouncedSearchText, idx);
+        if (idx !== null) {
+          doSearch(debouncedSearchText, idx);
+        } else {
+          doSearch(debouncedSearchText, 0, editor.getCursor('from'), false, false);
+        }
       }, 100);
     };
 
