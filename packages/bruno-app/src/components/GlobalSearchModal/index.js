@@ -10,7 +10,7 @@ import {
   IconFileText,
   IconBook
 } from '@tabler/icons';
-import { flattenItems, isItemARequest, isItemAFolder, findParentItemInCollection, getDefaultRequestPaneTab } from 'utils/collections';
+import { flattenItems, isItemARequest, isItemAFolder, findParentItemInCollection } from 'utils/collections';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { expandCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, revealItemInSidebar, revealTabInSidebar } from 'providers/ReduxStore/slices/collections/actions';
