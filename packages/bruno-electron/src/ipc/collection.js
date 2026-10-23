@@ -2395,6 +2395,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     } catch (error) {
       throw error;
     }
+
+    watcher.startCollectionDiscovery(mainWindow, collectionUid);
+
     const {
       size,
       filesCount,
