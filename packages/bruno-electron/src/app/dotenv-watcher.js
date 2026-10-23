@@ -96,11 +96,13 @@ class DotEnvWatcher {
   }
 
   addCollectionWatcher(win, collectionPath, collectionUid) {
-    if (this.collectionWatchers.has(collectionPath)) {
-      this.collectionWatchers.get(collectionPath).close();
+    const normalizedPath = path.normalize(collectionPath);
+
+    if (this.collectionWatchers.has(normalizedPath)) {
+      this.collectionWatchers.get(normalizedPath).close();
     }
 
-    const watcher = chokidar.watch(collectionPath, {
+    const watcher = chokidar.watch(normalizedPath, {
       ...DEFAULT_WATCHER_OPTIONS,
       disableGlobbing: true,
       awaitWriteFinish: {
@@ -125,16 +127,18 @@ class DotEnvWatcher {
     watcher.on('change', handleFile);
     watcher.on('unlink', handleUnlink);
     watcher.on('error', (err) => {
-      console.error(`Collection watcher error for ${collectionPath}:`, err);
+      console.error(`Collection watcher error for ${normalizedPath}:`, err);
     });
 
-    this.collectionWatchers.set(collectionPath, watcher);
+    this.collectionWatchers.set(normalizedPath, watcher);
   }
 
   removeCollectionWatcher(collectionPath, collectionUid) {
-    if (this.collectionWatchers.has(collectionPath)) {
-      this.collectionWatchers.get(collectionPath).close();
-      this.collectionWatchers.delete(collectionPath);
+    const normalizedPath = path.normalize(collectionPath);
+
+    if (this.collectionWatchers.has(normalizedPath)) {
+      this.collectionWatchers.get(normalizedPath).close();
+      this.collectionWatchers.delete(normalizedPath);
     }
     if (collectionUid) {
       clearDotEnvVars(collectionUid);
@@ -142,15 +146,17 @@ class DotEnvWatcher {
   }
 
   hasCollectionWatcher(collectionPath) {
-    return this.collectionWatchers.has(collectionPath);
+    return this.collectionWatchers.has(path.normalize(collectionPath));
   }
 
   addWorkspaceWatcher(win, workspacePath, workspaceUid) {
-    if (this.workspaceWatchers.has(workspacePath)) {
-      this.workspaceWatchers.get(workspacePath).close();
+    const normalizedPath = path.normalize(workspacePath);
+
+    if (this.workspaceWatchers.has(normalizedPath)) {
+      this.workspaceWatchers.get(normalizedPath).close();
     }
 
-    const watcher = chokidar.watch(workspacePath, {
+    const watcher = chokidar.watch(normalizedPath, {
       ...DEFAULT_WATCHER_OPTIONS,
       disableGlobbing: true,
       awaitWriteFinish: {
@@ -176,22 +182,24 @@ class DotEnvWatcher {
     watcher.on('change', handleFile);
     watcher.on('unlink', handleUnlink);
     watcher.on('error', (err) => {
-      console.error(`Workspace watcher error for ${workspacePath}:`, err);
+      console.error(`Workspace watcher error for ${normalizedPath}:`, err);
     });
 
-    this.workspaceWatchers.set(workspacePath, watcher);
+    this.workspaceWatchers.set(normalizedPath, watcher);
   }
 
   removeWorkspaceWatcher(workspacePath) {
-    if (this.workspaceWatchers.has(workspacePath)) {
-      this.workspaceWatchers.get(workspacePath).close();
-      this.workspaceWatchers.delete(workspacePath);
+    const normalizedPath = path.normalize(workspacePath);
+
+    if (this.workspaceWatchers.has(normalizedPath)) {
+      this.workspaceWatchers.get(normalizedPath).close();
+      this.workspaceWatchers.delete(normalizedPath);
     }
     clearWorkspaceDotEnvVars(workspacePath);
   }
 
   hasWorkspaceWatcher(workspacePath) {
-    return this.workspaceWatchers.has(workspacePath);
+    return this.workspaceWatchers.has(path.normalize(workspacePath));
   }
 
   closeAll() {
