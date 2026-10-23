@@ -148,6 +148,7 @@ const buildGrpcRequest = async (item, collection, environment, runtimeVariables)
     mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
     request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
+    request.globalEnvironmentName = collection?.globalEnvironmentName;
     request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
     request.promptVariables = promptVariables;
   }
@@ -184,6 +185,7 @@ const buildGrpcRequest = async (item, collection, environment, runtimeVariables)
     folderVariables: request.folderVariables,
     requestVariables: request.requestVariables,
     globalEnvironmentVariables: request.globalEnvironmentVariables,
+    globalEnvironmentName: request.globalEnvironmentName,
     oauth2CredentialVariables: request.oauth2CredentialVariables
   };
 
