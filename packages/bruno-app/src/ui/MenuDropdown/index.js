@@ -526,7 +526,7 @@ const MenuDropdown = forwardRef(({
       icon={triggerElement}
       placement={placement}
       className={className}
-      visible={isOpen}
+      visible={isOpen && !disabled}
       onClickOutside={handleClickOutside}
       {...dropdownProps}
     >
