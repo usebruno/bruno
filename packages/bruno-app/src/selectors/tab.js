@@ -11,8 +11,26 @@ export const selectTabByUid = (state, tabUid) =>
 export const selectActiveTab = (state) =>
   selectTabByUid(state, state.tabs.activeTabUid);
 
-export const selectFirstTabForCollection = (state, collectionUid) =>
-  collectionUid ? state.tabs.tabs.find((t) => t.collectionUid === collectionUid) : undefined;
+// Number of open tabs per collection uid. Memoized on the tabs array, so it
+// keeps the same reference until a tab is opened, closed or moved.
+export const selectTabCountsByCollection = createSelector([selectTabs], (tabs) => {
+  const counts = {};
+  for (const t of tabs) {
+    counts[t.collectionUid] = (counts[t.collectionUid] || 0) + 1;
+  }
+  return counts;
+});
+
+// Uid of the first open tab (in tab-strip order) per collection uid.
+export const selectFirstTabUidByCollection = createSelector([selectTabs], (tabs) => {
+  const firstTabs = {};
+  for (const t of tabs) {
+    if (!(t.collectionUid in firstTabs)) {
+      firstTabs[t.collectionUid] = t.uid;
+    }
+  }
+  return firstTabs;
+});
 
 /**
  * Creates a memoized selector for tabs belonging to a collection.

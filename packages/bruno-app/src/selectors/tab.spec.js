@@ -6,8 +6,9 @@ import {
   selectActiveTabUid,
   selectTabByUid,
   selectActiveTab,
-  makeSelectTabsForCollection,
-  selectFirstTabForCollection
+  selectTabCountsByCollection,
+  selectFirstTabUidByCollection,
+  makeSelectTabsForCollection
 } from './tab';
 
 describe('tab selectors', () => {
@@ -150,12 +151,35 @@ describe('tab field selectors', () => {
     expect(selectActiveTab(buildTestState())).toBeUndefined();
   });
 
-  it('selectFirstTabForCollection returns the first tab of that collection in strip order', () => {
-    const state = buildState();
-    expect(selectFirstTabForCollection(state, 'col-a')).toBe(state.tabs.tabs[0]);
-    expect(selectFirstTabForCollection(state, 'col-b')).toBe(state.tabs.tabs[1]);
-    expect(selectFirstTabForCollection(state, 'col-none')).toBeUndefined();
-    expect(selectFirstTabForCollection(state, undefined)).toBeUndefined();
+  describe('selectTabCountsByCollection', () => {
+    it('counts open tabs per collection', () => {
+      expect(selectTabCountsByCollection(buildState())).toEqual({ 'col-a': 2, 'col-b': 1 });
+      expect(selectTabCountsByCollection(buildTestState())).toEqual({});
+    });
+
+    it('returns the same object until the tabs array changes', () => {
+      const state = buildState();
+      const first = selectTabCountsByCollection(state);
+      const unrelated = { ...state, app: { ...state.app, isDragging: true } };
+      expect(selectTabCountsByCollection(unrelated)).toBe(first);
+
+      const changed = { ...state, tabs: { ...state.tabs, tabs: [...state.tabs.tabs, tab('t4', 'col-b')] } };
+      expect(selectTabCountsByCollection(changed)).toEqual({ 'col-a': 2, 'col-b': 2 });
+    });
+  });
+
+  describe('selectFirstTabUidByCollection', () => {
+    it('maps each collection to its first tab in strip order', () => {
+      expect(selectFirstTabUidByCollection(buildState())).toEqual({ 'col-a': 't1', 'col-b': 't2' });
+      expect(selectFirstTabUidByCollection(buildTestState())).toEqual({});
+    });
+
+    it('returns the same object until the tabs array changes', () => {
+      const state = buildState();
+      const first = selectFirstTabUidByCollection(state);
+      const unrelated = { ...state, app: { ...state.app, isDragging: true } };
+      expect(selectFirstTabUidByCollection(unrelated)).toBe(first);
+    });
   });
 
   describe('makeSelectTabsForCollection', () => {

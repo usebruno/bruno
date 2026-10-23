@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useDispatch, useSelector, useStore, shallowEqual } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   IconCategory,
   IconBox,
@@ -32,7 +32,7 @@ import { findItemInCollection, findItemInCollectionByPathname, getWorkspaceColle
 import get from 'lodash/get';
 import isEqual from 'lodash/isEqual';
 import { selectCollections, selectActiveWorkspace } from 'src/selectors/collections';
-import { selectActiveTab, selectActiveTabUid, selectTabs, selectFirstTabForCollection } from 'src/selectors/tab';
+import { selectActiveTab, selectActiveTabUid, selectTabCountsByCollection, selectFirstTabUidByCollection } from 'src/selectors/tab';
 import { addTab, focusTab, setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
 import { uuid } from 'utils/common';
 import toast from 'react-hot-toast';
@@ -65,7 +65,6 @@ const readDismissedCollections = () => {
 
 const CollectionHeader = ({ collection, isScratchCollection }) => {
   const dispatch = useDispatch();
-  const store = useStore();
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const activeTabUid = useSelector(selectActiveTabUid);
   const focusedTab = useSelector(selectActiveTab);
@@ -85,14 +84,11 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
       .filter((c) => c.mountStatus === 'mounted')
       .map((c) => ({ uid: c.uid, name: c.name })), isEqual);
 
-  // Open-tab counts per collection, for the badges in the switcher.
-  const tabCountsByCollection = useSelector((state) => {
-    const counts = {};
-    for (const t of selectTabs(state)) {
-      counts[t.collectionUid] = (counts[t.collectionUid] || 0) + 1;
-    }
-    return counts;
-  }, shallowEqual);
+  // Per-collection tab counts (switcher badges) and first open tab (focused
+  // when switching to that collection).
+  const tabCountsByCollection = useSelector(selectTabCountsByCollection);
+  const firstTabUidByCollection = useSelector(selectFirstTabUidByCollection);
+
   const gitRootPath = collection?.git?.gitRootPath;
   const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
   const mockServerInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
@@ -253,9 +249,9 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     switcherRef.current?.hide();
     if (!targetCollection?.uid) return;
 
-    const existingTab = selectFirstTabForCollection(store.getState(), targetCollection.uid);
-    if (existingTab) {
-      dispatch(focusTab({ uid: existingTab.uid }));
+    const existingTabUid = firstTabUidByCollection[targetCollection.uid];
+    if (existingTabUid) {
+      dispatch(focusTab({ uid: existingTabUid }));
     } else {
       dispatch(
         addTab({
