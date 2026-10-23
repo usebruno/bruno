@@ -238,9 +238,24 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   // Switcher handlers
   const handleSwitchToWorkspace = (workspaceUid) => {
     switcherRef.current?.hide();
-    if (workspaceUid) {
-      dispatch(switchWorkspace(workspaceUid));
+    if (!workspaceUid) return;
+
+    // The workspaces section lists the current workspace too: clicking it
+    // means "go to the workspace overview", not re-run the workspace switch
+    // (which would restore the snapshot and jump back to the last collection).
+    if (workspaceUid === currentWorkspace?.uid) {
+      const scratchCollectionUid = currentWorkspace.scratchCollectionUid;
+      if (scratchCollectionUid) {
+        dispatch(addTab({
+          uid: `${scratchCollectionUid}-overview`,
+          collectionUid: scratchCollectionUid,
+          type: 'workspaceOverview'
+        }));
+      }
+      return;
     }
+
+    dispatch(switchWorkspace(workspaceUid));
   };
 
   const handleSwitchToCollection = (targetCollection) => {

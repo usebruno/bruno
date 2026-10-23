@@ -1,7 +1,9 @@
 const https = require('https');
 const axios = require('axios');
 const path = require('path');
-const { applyOAuth1ToRequest } = require('@usebruno/requests');
+const {
+  applyOAuth1ToRequest
+} = require('@usebruno/requests');
 const { buildScriptedEntry } = require('@usebruno/requests').scripting;
 const qs = require('qs');
 const decomment = require('decomment');
@@ -14,6 +16,7 @@ const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, formatErrorWithC
 const { encodeUrl, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
+const { resolveRequestLocalScripts } = require('./local-scripts-hook');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
 const {
   addDigestInterceptor,
@@ -534,7 +537,7 @@ const registerNetworkIpc = (mainWindow) => {
     };
   };
 
-  const sendVariableUpdates = (result, { collectionUid, requestUid, collection }) => {
+  const sendVariableUpdates = (result, { collectionUid, requestUid, collection, sanitizeEnvVars }) => {
     if (result.runtimeVariables) {
       mainWindow.webContents.send('main:runtime-variables-update', {
         runtimeVariables: result.runtimeVariables,
@@ -544,8 +547,12 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     if (result.envVariables) {
+      // Strip request-scoped local-script outputs (synthetic `$script:name`
+      // keys and templates pre-substituted with command output) so they are
+      // never applied to the active environment or persisted to disk.
+      const envVariables = sanitizeEnvVars ? sanitizeEnvVars(result.envVariables) : result.envVariables;
       mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: result.envVariables,
+        envVariables,
         requestUid,
         collectionUid
       });
@@ -599,7 +606,8 @@ const registerNetworkIpc = (mainWindow) => {
     runtimeVariables,
     processEnvVars,
     scriptingConfig,
-    runRequestByItemPathname
+    runRequestByItemPathname,
+    sanitizeEnvVars = null
   ) => {
     // run pre-request script
     let scriptResult;
@@ -621,7 +629,7 @@ const registerNetworkIpc = (mainWindow) => {
         collectionName
       );
 
-      sendVariableUpdates(scriptResult, { collectionUid, requestUid, collection });
+      sendVariableUpdates(scriptResult, { collectionUid, requestUid, collection, sanitizeEnvVars });
       resetOauth2Credentials({ oauth2CredentialsToReset: scriptResult.oauth2CredentialsToReset, request, collectionUid });
 
       const domainsWithCookies = await getDomainsWithCookies();
@@ -705,7 +713,8 @@ const registerNetworkIpc = (mainWindow) => {
     runtimeVariables,
     processEnvVars,
     scriptingConfig,
-    runRequestByItemPathname
+    runRequestByItemPathname,
+    sanitizeEnvVars = null
   ) => {
     applySentHeadersToRequest(request, response);
     // run post-response vars
@@ -723,7 +732,7 @@ const registerNetworkIpc = (mainWindow) => {
       );
 
       if (result) {
-        sendVariableUpdates(result, { collectionUid, requestUid, collection });
+        sendVariableUpdates(result, { collectionUid, requestUid, collection, sanitizeEnvVars });
       }
 
       if (result?.error) {
@@ -751,7 +760,7 @@ const registerNetworkIpc = (mainWindow) => {
         collectionName
       );
 
-      sendVariableUpdates(scriptResult, { collectionUid, requestUid, collection });
+      sendVariableUpdates(scriptResult, { collectionUid, requestUid, collection, sanitizeEnvVars });
       resetOauth2Credentials({ oauth2CredentialsToReset: scriptResult.oauth2CredentialsToReset, request, collectionUid });
 
       const domainsWithCookiesPost = await getDomainsWithCookies();
@@ -760,7 +769,7 @@ const registerNetworkIpc = (mainWindow) => {
     return scriptResult;
   };
 
-  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, callerBru = null, parentExecutionMode = null, parentRunnerEventData = null, parentRequestUid = null, parentUnresolvedVariables = null }) => {
+  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, callerBru = null, parentExecutionMode = null, parentRunnerEventData = null, parentRequestUid = null, parentUnresolvedVariables = null, parentLocalScriptScope = null }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
@@ -768,6 +777,9 @@ const registerNetworkIpc = (mainWindow) => {
     // so script-driven variable updates aren't dropped by the renderer's requestUid gate.
     const requestUid = item.requestUid || parentRequestUid || uuid();
     let unresolvedVariables = null;
+    // Declared here because the nested bru.runRequest closure below composes
+    // its sanitizer with this request's; assigned before scripts execute.
+    let localScriptScope = null;
 
     const runRequestByItemPathname = async (relativeItemPathname, callerBru) => {
       return new Promise(async (resolve, reject) => {
@@ -818,7 +830,7 @@ const registerNetworkIpc = (mainWindow) => {
           const startedAt = Date.now();
           let res, err;
           try {
-            res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true, callerBru, parentExecutionMode, parentRunnerEventData, parentRequestUid: requestUid, parentUnresolvedVariables: unresolvedVariables });
+            res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true, callerBru, parentExecutionMode, parentRunnerEventData, parentRequestUid: requestUid, parentUnresolvedVariables: unresolvedVariables, parentLocalScriptScope: localScriptScope });
           } catch (e) {
             err = e;
           }
@@ -934,6 +946,33 @@ const registerNetworkIpc = (mainWindow) => {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
 
+      // Resolve `{{$script:name}}` references in environment variables and
+      // directly inside the request (url, headers, body, auth, …) by running
+      // the globally registered local commands (plus, for backward
+      // compatibility, commands registered in brunoConfig.localScripts behind
+      // a separate opt-in). Outputs are merged into envVars for the duration
+      // of this request and rolled back afterwards (envVars can be shared
+      // across the folder runner's sequential requests); script outputs are
+      // scrubbed from env snapshots sent to the renderer via `sanitize`.
+      localScriptScope = await resolveRequestLocalScripts({
+        envVars,
+        request,
+        brunoConfig,
+        collectionPath,
+        processEnvVars,
+        signal: abortController.signal
+      });
+      if (parentLocalScriptScope) {
+        // A nested bru.runRequest shares the parent request's already-merged
+        // envVars. Its own scope only tracks this request's outputs, so chain
+        // the parent's sanitizer to keep the parent's outputs out of updates.
+        const childScope = localScriptScope;
+        localScriptScope = {
+          restore: () => childScope.restore(),
+          sanitize: (vars) => childScope.sanitize(parentLocalScriptScope.sanitize(vars))
+        };
+      }
+
       // Build certsAndProxyConfig for bru.sendRequest
       const certsAndProxyConfig = await buildCertsAndProxyConfig({
         collectionUid,
@@ -960,7 +999,8 @@ const registerNetworkIpc = (mainWindow) => {
           runtimeVariables,
           processEnvVars,
           scriptingConfig,
-          runRequestByItemPathname
+          runRequestByItemPathname,
+          localScriptScope?.sanitize
         );
       } catch (error) {
         preRequestError = error;
@@ -970,7 +1010,7 @@ const registerNetworkIpc = (mainWindow) => {
         preRequestScriptResult = preRequestError.partialResults;
         // Forward any variable mutations the script made before throwing so the UI
         // and disk stay in sync with the partial test results we're about to render.
-        sendVariableUpdates(preRequestScriptResult, { collectionUid, requestUid, collection });
+        sendVariableUpdates(preRequestScriptResult, { collectionUid, requestUid, collection, sanitizeEnvVars: localScriptScope?.sanitize });
       }
 
       emitScriptedRequestEvents('pre-request', preRequestScriptResult);
@@ -1106,7 +1146,7 @@ const registerNetworkIpc = (mainWindow) => {
           responseTime = measureResponseTime(response.config.metadata);
         } else {
           await executeRequestOnFailHandler(request, error, (onFailScriptResult) => {
-            sendVariableUpdates(onFailScriptResult, { collectionUid, requestUid, collection });
+            sendVariableUpdates(onFailScriptResult, { collectionUid, requestUid, collection, sanitizeEnvVars: localScriptScope?.sanitize });
           });
 
           // if it's not a network error, don't continue
@@ -1158,7 +1198,8 @@ const registerNetworkIpc = (mainWindow) => {
             runtimeVariables,
             processEnvVars,
             scriptingConfig,
-            runRequestByItemPathname);
+            runRequestByItemPathname,
+            localScriptScope?.sanitize);
         } catch (error) {
           console.error('Post-response script error:', error);
           postResponseError = error;
@@ -1170,7 +1211,7 @@ const registerNetworkIpc = (mainWindow) => {
         if (postResponseError?.partialResults) {
           postResponseScriptResult = postResponseError.partialResults;
           // Forward any variable mutations the script made before throwing.
-          sendVariableUpdates(postResponseScriptResult, { collectionUid, requestUid, collection });
+          sendVariableUpdates(postResponseScriptResult, { collectionUid, requestUid, collection, sanitizeEnvVars: localScriptScope?.sanitize });
         }
 
         emitScriptedRequestEvents('post-response', postResponseScriptResult);
@@ -1265,7 +1306,7 @@ const registerNetworkIpc = (mainWindow) => {
             collectionUid
           });
 
-          sendVariableUpdates(testResults, { collectionUid, requestUid, collection });
+          sendVariableUpdates(testResults, { collectionUid, requestUid, collection, sanitizeEnvVars: localScriptScope?.sanitize });
           resetOauth2Credentials({ oauth2CredentialsToReset: testResults.oauth2CredentialsToReset, request, collectionUid });
 
           !runInBackground && notifyScriptExecution({
@@ -1335,6 +1376,7 @@ const registerNetworkIpc = (mainWindow) => {
         requestSent
       };
     } finally {
+      localScriptScope?.restore();
       reportUnresolvedVariables();
     }
   };
@@ -1471,6 +1513,10 @@ const registerNetworkIpc = (mainWindow) => {
       // Tracks the outer runner item currently executing so a nested bru.runRequest
       // can route its oauth2 timeline entry back to this item.
       let currentRunnerEventData = null;
+      // Local-scripts scope of the currently executing item; a nested
+      // bru.runRequest shares the item's merged envVars and inherits this
+      // sanitizer so the parent's outputs never reach the renderer.
+      let activeLocalScriptScope = null;
 
       const abortController = new AbortController();
       saveCancelToken(cancelTokenUid, abortController);
@@ -1538,7 +1584,8 @@ const registerNetworkIpc = (mainWindow) => {
                 runtimeVariables,
                 runInBackground: true,
                 parentExecutionMode: 'runner',
-                parentRunnerEventData: currentRunnerEventData
+                parentRunnerEventData: currentRunnerEventData,
+                parentLocalScriptScope: activeLocalScriptScope
               });
             } catch (e) {
               err = e;
@@ -1725,7 +1772,22 @@ const registerNetworkIpc = (mainWindow) => {
             continue;
           }
 
+          let localScriptScope = null;
           try {
+            // Resolve `{{$script:name}}` references before interpolation;
+            // outputs are request-scoped and rolled back in finally so one
+            // request's token doesn't leak into the next. Outbound env
+            // snapshots are scrubbed through the scope's `sanitize`.
+            localScriptScope = await resolveRequestLocalScripts({
+              envVars,
+              request,
+              brunoConfig,
+              collectionPath,
+              processEnvVars,
+              signal: abortController.signal
+            });
+            activeLocalScriptScope = localScriptScope;
+
             // Build certsAndProxyConfig for bru.sendRequest
             const certsAndProxyConfig = await buildCertsAndProxyConfig({
               collectionUid,
@@ -1753,7 +1815,8 @@ const registerNetworkIpc = (mainWindow) => {
                 runtimeVariables,
                 processEnvVars,
                 scriptingConfig,
-                runRequestByItemPathname
+                runRequestByItemPathname,
+                localScriptScope?.sanitize
               );
             } catch (error) {
               console.error('Pre-request script error:', error);
@@ -1762,7 +1825,7 @@ const registerNetworkIpc = (mainWindow) => {
 
             if (preRequestError?.partialResults) {
               preRequestScriptResult = preRequestError.partialResults;
-              sendVariableUpdates(preRequestScriptResult, { collectionUid, requestUid, collection });
+              sendVariableUpdates(preRequestScriptResult, { collectionUid, requestUid, collection, sanitizeEnvVars: localScriptScope?.sanitize });
             }
 
             preRequestScriptResult = appendScriptErrorResult('pre-request', preRequestScriptResult, preRequestError);
@@ -1985,7 +2048,7 @@ const registerNetworkIpc = (mainWindow) => {
                 });
               } else {
                 await executeRequestOnFailHandler(request, error, (onFailScriptResult) => {
-                  sendVariableUpdates(onFailScriptResult, { collectionUid, requestUid, collection });
+                  sendVariableUpdates(onFailScriptResult, { collectionUid, requestUid, collection, sanitizeEnvVars: localScriptScope?.sanitize });
                 });
 
                 // if it's not a network error, don't continue
@@ -2007,7 +2070,8 @@ const registerNetworkIpc = (mainWindow) => {
                 runtimeVariables,
                 processEnvVars,
                 scriptingConfig,
-                runRequestByItemPathname
+                runRequestByItemPathname,
+                localScriptScope?.sanitize
               );
             } catch (error) {
               console.error('Post-response script error:', error);
@@ -2018,7 +2082,7 @@ const registerNetworkIpc = (mainWindow) => {
             // (e.g., if 2 tests pass then script throws, we still want to show those 2 passing tests)
             if (postResponseError?.partialResults) {
               postResponseScriptResult = postResponseError.partialResults;
-              sendVariableUpdates(postResponseScriptResult, { collectionUid, requestUid, collection });
+              sendVariableUpdates(postResponseScriptResult, { collectionUid, requestUid, collection, sanitizeEnvVars: localScriptScope?.sanitize });
             }
 
             postResponseScriptResult = appendScriptErrorResult('post-response', postResponseScriptResult, postResponseError);
@@ -2130,7 +2194,7 @@ const registerNetworkIpc = (mainWindow) => {
                 ...eventData
               });
 
-              sendVariableUpdates(testResults, { collectionUid, requestUid, collection });
+              sendVariableUpdates(testResults, { collectionUid, requestUid, collection, sanitizeEnvVars: localScriptScope?.sanitize });
               resetOauth2Credentials({ oauth2CredentialsToReset: testResults.oauth2CredentialsToReset, request, collectionUid });
 
               notifyScriptExecution({
@@ -2153,6 +2217,9 @@ const registerNetworkIpc = (mainWindow) => {
               responseReceived: {},
               ...eventData
             });
+          } finally {
+            localScriptScope?.restore();
+            activeLocalScriptScope = null;
           }
 
           if (stopRunnerExecution) {

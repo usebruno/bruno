@@ -23,6 +23,7 @@ const SINGLETON_TAB_TYPES = new Set([
   'preferences',
   'workspaceOverview',
   'workspaceEnvironments',
+  'workspaceLocalScripts',
   'openapi-sync',
   'openapi-spec',
   'mock-server'
@@ -43,7 +44,8 @@ const IGNORED_TAB_TYPES = new Set([
 
 export const WORKSPACE_TAB_UID_SUFFIX_BY_TYPE = {
   workspaceOverview: 'overview',
-  workspaceEnvironments: 'environments'
+  workspaceEnvironments: 'environments',
+  workspaceLocalScripts: 'local-scripts'
 };
 
 export const WORKSPACE_TAB_TYPES = new Set(Object.keys(WORKSPACE_TAB_UID_SUFFIX_BY_TYPE));

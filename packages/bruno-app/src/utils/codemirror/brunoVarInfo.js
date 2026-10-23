@@ -14,7 +14,8 @@ import {
   isVariableSecret,
   getAllVariables,
   findCollectionByUid,
-  findItemInCollectionByItemUid
+  findItemInCollectionByItemUid,
+  getLocalScriptCommands
 } from 'utils/collections';
 import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
 import {
@@ -26,7 +27,7 @@ import store from 'providers/ReduxStore';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
-import { variableNameRegex } from 'utils/common/regex';
+import { variableNameRegex, getLocalScriptName } from 'utils/common/regex';
 import { SCOPE_LABEL, COPY_SUCCESS_TIMEOUT } from 'utils/common/constants';
 import { SCOPE_ICON } from 'utils/codemirror/scopeIcons';
 import { createAddToScopeSwitcher } from 'utils/codemirror/addToScopeSwitcher';
@@ -252,6 +253,23 @@ export const renderVarInfo = (token, options) => {
       data: null,
       isValidOAuth2Variable: oauth2Value !== undefined
     };
+  } else if (variableName.startsWith('$script:')) {
+    // Local script reference (`{{$script:name}}`) — a host command registered
+    // globally in Local Scripts whose stdout becomes the variable value.
+    const scriptName = getLocalScriptName(variableName);
+    const registeredNames = new Set(
+      getLocalScriptCommands(collection)
+        .map((command) => command?.name)
+        .filter((name) => typeof name === 'string')
+    );
+    scopeInfo = {
+      type: 'localScript',
+      value: '',
+      data: null,
+      scriptName: scriptName || variableName.substring('$script:'.length),
+      isWellFormedLocalScript: !!scriptName,
+      isValidLocalScript: !!scriptName && registeredNames.has(scriptName)
+    };
   } else if (variableName.startsWith('$')) {
     const fakerKeyword = variableName.substring(1); // Remove the $ prefix
     const fakerFunction = mockDataFunctions[fakerKeyword];
@@ -331,7 +349,7 @@ export const renderVarInfo = (token, options) => {
   const hasRuntimeVariable = collection && collection.runtimeVariables && collection.runtimeVariables[variableName];
   // Check if variable is read-only (process.env, runtime, dynamic/faker, oauth2, and undefined variables cannot be
   // edited; an inherited variable is owned by the environment it comes from, so it is edited there)
-  const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'oauth2' || scopeInfo.type === 'undefined' || hasRuntimeVariable || !!scopeInfo.inheritedFrom;
+  const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'localScript' || scopeInfo.type === 'oauth2' || scopeInfo.type === 'undefined' || hasRuntimeVariable || !!scopeInfo.inheritedFrom;
 
   // `??` preserves typed falsy values (false / 0); `||` would clobber them to ''.
   const rawValue = scopeInfo.value ?? '';
@@ -390,7 +408,7 @@ export const renderVarInfo = (token, options) => {
   into.appendChild(header);
 
   // Check if variable name is valid
-  const isValidVariableName = scopeInfo.type === 'process.env' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'oauth2' || variableNameRegex.test(variableName);
+  const isValidVariableName = scopeInfo.type === 'process.env' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'localScript' || scopeInfo.type === 'oauth2' || variableNameRegex.test(variableName);
 
   // Show warning if variable name is invalid
   if (!isValidVariableName) {
@@ -422,6 +440,28 @@ export const renderVarInfo = (token, options) => {
     readOnlyNote.textContent = scopeInfo.isTimeBased
       ? 'Generates current timestamp on each request'
       : 'Generates random value on each request';
+    into.appendChild(readOnlyNote);
+    return into;
+  }
+
+  // Show warning for a local script reference that is malformed or not registered
+  if (scopeInfo.type === 'localScript' && !scopeInfo.isValidLocalScript) {
+    const warningNote = document.createElement('div');
+    warningNote.className = 'var-warning-note';
+    warningNote.setAttribute('data-testid', 'var-info-warning-note');
+    warningNote.textContent = scopeInfo.isWellFormedLocalScript
+      ? `Unknown local script "${scopeInfo.scriptName}". Register it on the Local Scripts tab.`
+      : `Invalid local script name "${scopeInfo.scriptName}". Use letters, digits, "_", ".", "-" and start with a letter, digit or "_".`;
+    into.appendChild(warningNote);
+    return into;
+  }
+
+  // Registered local script: the command output resolves the variable at request time
+  if (scopeInfo.type === 'localScript' && scopeInfo.isValidLocalScript) {
+    const readOnlyNote = document.createElement('div');
+    readOnlyNote.className = 'var-readonly-note';
+    readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
+    readOnlyNote.textContent = 'Runs the registered command on this machine at request time when local scripts are enabled';
     into.appendChild(readOnlyNote);
     return into;
   }

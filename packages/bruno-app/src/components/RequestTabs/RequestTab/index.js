@@ -207,6 +207,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     'preferences',
     'workspaceOverview',
     'workspaceEnvironments',
+    'workspaceLocalScripts',
     'openapi-sync',
     'openapi-spec',
     'mock-server',
@@ -571,6 +572,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           <SpecialTab handleCloseClick={null} type={tab.type} />
         ) : tab.type === 'workspaceEnvironments' ? (
           <SpecialTab handleCloseClick={null} type={tab.type} hasDraft={hasGlobalEnvironmentDraft} />
+        ) : tab.type === 'workspaceLocalScripts' ? (
+          <SpecialTab handleCloseClick={null} type={tab.type} />
         ) : tab.type === 'mock-server' ? (
           <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={tab.tabName} />
         ) : tab.type === 'api-spec' ? (

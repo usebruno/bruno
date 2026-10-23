@@ -77,6 +77,24 @@ const parseCollection = (ymlString: string): ParsedCollection => {
       brunoConfig.openapi = openApiEntries;
     }
 
+    // localScripts registers host-executed shell commands referenced via
+    // `{{$script:name}}`. Global commands live outside the collection; this
+    // collection-level block is retained for backward compatibility.
+    const localScriptCommands = Array.isArray(brunoExtensions?.localScripts?.commands)
+      ? brunoExtensions.localScripts.commands
+          .filter((entry: any) => entry && typeof entry.name === 'string' && typeof entry.command === 'string')
+          .map((entry: any) => {
+            const command: any = { name: entry.name, command: entry.command };
+            if (typeof entry.timeout === 'number' && entry.timeout > 0) {
+              command.timeout = entry.timeout;
+            }
+            return command;
+          })
+      : [];
+    if (localScriptCommands.length > 0) {
+      brunoConfig.localScripts = { commands: localScriptCommands };
+    }
+
     // protobuf
     if (oc.config?.protobuf) {
       brunoConfig.protobuf = {
