@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "name": "crlf-line-comment",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"]
+}

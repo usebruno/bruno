@@ -7,6 +7,48 @@ const prepareRequest = require('../../src/runner/prepare-request');
 
 describe('prepare-request: prepareRequest', () => {
   describe('Decomments request body', () => {
+    it('Strips a block comment', async () => {
+      const body = { mode: 'json', json: '{ /* note */ "a": 1 }' };
+      const result = await prepareRequest({ request: { body } });
+      expect(result.data).toEqual('{  "a": 1 }');
+    });
+
+    it('Strips a comment that contains an interpolation placeholder', async () => {
+      const body = { mode: 'json', json: '{\n"a": 1 // was {{oldValue}}\n}' };
+      const result = await prepareRequest({ request: { body } });
+      expect(result.data).toEqual('{\n"a": 1 \n}');
+    });
+
+    it('Strips comments from GraphQL variables', async () => {
+      const body = { mode: 'graphql', graphql: { query: 'query { x }', variables: '{\n  // pet to fetch\n  "id": 9091 /* numeric */\n}' } };
+      const result = await prepareRequest({ request: { body } });
+      expect(result.data.variables).toEqual('{\n  \n  "id": 9091 \n}');
+    });
+
+    it('Strips a comment from a CRLF body without touching the line endings', async () => {
+      const body = { mode: 'json', json: '{\r\n"a": 1 // comment\r\n}' };
+      const result = await prepareRequest({ request: { body } });
+      expect(result.data).toEqual('{\r\n"a": 1 \r\n}');
+    });
+
+    it('Strips a trailing comment from a single-line body', async () => {
+      const body = { mode: 'json', json: '{ "a": 1 } // trailing' };
+      const result = await prepareRequest({ request: { body } });
+      expect(result.data).toEqual('{ "a": 1 } ');
+    });
+
+    it('Keeps // inside a string value', async () => {
+      const body = { mode: 'json', json: '{ "url": "http://example.com" }' };
+      const result = await prepareRequest({ request: { body } });
+      expect(result.data).toEqual('{ "url": "http://example.com" }');
+    });
+
+    it('Passes through a body with a numeric separator', async () => {
+      const body = { mode: 'json', json: '{ "n": 1_000 }' };
+      const result = await prepareRequest({ request: { body } });
+      expect(result.data).toEqual('{ "n": 1_000 }');
+    });
+
     it('If request body is valid JSON', async () => {
       const body = { mode: 'json', json: '{\n"test": "{{someVar}}" // comment\n}' };
       const expected = `{

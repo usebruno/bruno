@@ -2,7 +2,7 @@ const get = require('lodash/get');
 const each = require('lodash/each');
 const filter = require('lodash/filter');
 const find = require('lodash/find');
-const decomment = require('decomment');
+const { stripComments } = require('jsonc-parser');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const { mergeHeaders, mergeScripts, mergeVars, mergeAuth, getTreePathFromCollectionToItem } = require('../utils/collection');
@@ -367,7 +367,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
         axiosRequest.headers['content-type'] = 'application/json';
       }
       try {
-        axiosRequest.data = decomment(jsonBody);
+        axiosRequest.data = stripComments(jsonBody);
       } catch (error) {
         axiosRequest.data = jsonBody;
       }
@@ -447,7 +447,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
     const graphqlQuery = {
       query: get(request, 'body.graphql.query'),
       // Parse variables only after interpolation (github.com/usebruno/bruno/issues/884)
-      variables: decomment(get(request, 'body.graphql.variables') || '{}')
+      variables: stripComments(get(request, 'body.graphql.variables') || '{}')
     };
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';

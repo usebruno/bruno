@@ -651,3 +651,72 @@ describe('runtime', () => {
     });
   });
 });
+
+describe('script-runtime: the collection + request scripts from the CRLF comment bug report', () => {
+  // Collection-level script exactly as it was stored in opencollection.yml, with CRLF line endings
+  const collectionScript = [
+    'function extractDataPaths(scRaw) {',
+    '    const placeholderRegExp = /{{([^}]+)}}/g;',
+    '    const dataPaths = [];',
+    '    let match;',
+    '    while ((match = placeholderRegExp.exec(scRaw)) != null) {',
+    '        dataPaths.push(match[1]);',
+    '    }',
+    '    return dataPaths;',
+    '}'
+  ].join('\r\n');
+
+  const wrap = (script, file) => `await (async (__dirname, __filename) => {\n${script}\n})("/c", "/c/${file}");`;
+  const merge = (requestScript) => [wrap(collectionScript, 'opencollection.yml'), wrap(requestScript, 'FindPetById.yml')].join('\n\n');
+  const onConsoleLog = () => {};
+
+  it('runs the request script with a // comment before bru.setVar', async () => {
+    const script = merge('// Set the pet ID before sending the request\nbru.setEnvVar("petId", 9091)');
+    const runtime = new ScriptRuntime({ runtime: 'quickjs' });
+
+    const result = await runtime.runRequestScript(script, {}, {}, {}, '.', onConsoleLog, process.env);
+
+    expect(result.envVariables.petId).toBe(9091);
+  });
+
+  it('runs a request script that is only a // comment', async () => {
+    const runtime = new ScriptRuntime({ runtime: 'quickjs' });
+
+    await expect(runtime.runRequestScript(merge('// Set the pet ID before sending the request'), {}, {}, {}, '.', onConsoleLog, process.env)).resolves.toBeDefined();
+  });
+
+  it('runs the same scripts in the Node VM', async () => {
+    const script = merge('// Set the pet ID before sending the request\nbru.setEnvVar("petId", 9091)');
+    const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+
+    const result = await runtime.runRequestScript(script, {}, {}, {}, '.', onConsoleLog, process.env);
+
+    expect(result.envVariables.petId).toBe(9091);
+  });
+});
+
+describe('script-runtime: comments in post-response scripts and tests', () => {
+  const baseRequest = { method: 'GET', url: 'http://localhost:3000/', headers: {}, data: undefined };
+  const baseResponse = { status: 200, statusText: 'OK', data: { id: 1 } };
+  const onConsoleLog = () => {};
+
+  it.each(['nodevm', 'quickjs'])('post-response script with // comments before and after the code (%s)', async (runtimeName) => {
+    if (runtimeName === 'quickjs') await quickJsLoader();
+    const script = '// read the id\r\nbru.setVar("id", res.getBody().id);\n// done';
+    const runtime = new ScriptRuntime({ runtime: runtimeName });
+
+    const result = await runtime.runResponseScript(script, { ...baseRequest }, { ...baseResponse }, {}, {}, '.', onConsoleLog, process.env);
+
+    expect(result.runtimeVariables.id).toBe(1);
+  });
+
+  it.each(['nodevm', 'quickjs'])('tests file with // comments before and after the code (%s)', async (runtimeName) => {
+    if (runtimeName === 'quickjs') await quickJsLoader();
+    const testFile = '// status check\r\ntest("status is 200", () => { expect(res.getStatus()).to.equal(200); });\n// done';
+    const runtime = new TestRuntime({ runtime: runtimeName });
+
+    const result = await runtime.runTests(testFile, { ...baseRequest }, { ...baseResponse }, {}, {}, '.', onConsoleLog, process.env);
+
+    expect(result.results).toEqual([expect.objectContaining({ description: 'status is 200', status: 'pass' })]);
+  });
+});
