@@ -1,6 +1,6 @@
 # Bruno Coding Standards
 
-- No diffs unless an actual change is made, the code changes need to be as minimal as possible, avoid making un-necessary whitespace diffs. This is already handled by eslint but make sure you check your code changes before commiting and raising a PR.
+- No diffs unless an actual change is made, the code changes need to be as minimal as possible, avoid making un-necessary whitespace diffs. This is already handled by eslint but make sure you check your code changes before committing and raising a PR.
 
 ## General Style Rules
 
