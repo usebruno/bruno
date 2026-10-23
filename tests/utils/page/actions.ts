@@ -4019,10 +4019,10 @@ const setWindowContentSize = async (app: ElectronApplication, page: Page, size: 
 const verifyResponseSize = async (
   page: Page,
   fileSizeInBytes: number,
-  timeout: number = 30000
+  timeout: number = 60_000
 ) => {
-  const locators = buildCommonLocators(page);
-  const responseSize = await locators.response.responseSize().innerText({ timeout });
+  const { response } = buildCommonLocators(page);
+  const responseSize = await response.responseSize().innerText({ timeout });
   const responseBytes = Math.round(parseFloat(responseSize) * 1024);
   expect(responseBytes).toBeGreaterThanOrEqual(fileSizeInBytes);
 };

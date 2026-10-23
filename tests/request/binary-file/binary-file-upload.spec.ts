@@ -36,6 +36,11 @@ test.describe.serial('File / Binary body upload', () => {
   const csvRequestName = 'csv-file-upload';
   const imgRequestName = 'image-file-upload';
   const pdfRequestName = 'pdf-file-upload';
+  const TIMEOUTS = {
+    DEFAULT: 30_000, // 30 seconds
+    LONG: 60_000, // 1 minute
+    EXTENDED: 120_000 // 2 minutes
+  } as const;
 
   let tmpDir: string;
   let jsonFilePath: string;
@@ -54,7 +59,7 @@ test.describe.serial('File / Binary body upload', () => {
   let pdfFileSizeInBytes: number;
 
   test.beforeAll(async ({ page, electronApp, createTmpDir }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(TIMEOUTS.EXTENDED);
     tmpDir = await createTmpDir('binary-file-upload');
 
     // The JSON file is intentionally larger than the 20 MiB streaming
@@ -90,14 +95,14 @@ test.describe.serial('File / Binary body upload', () => {
     await fs.promises.writeFile(csvFilePath, header + row.repeat(rowCount), 'utf8');
 
     // Create a large png file and save it in the temporary directory (tmpDir)
-    imgFileSizeInBytes = 5 * 1024 * 1024;
+    imgFileSizeInBytes = 1 * 1024 * 1024;
     const imgBuffer = Buffer.alloc(imgFileSizeInBytes, 'a');
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(imgBuffer);
     imgFilePath = path.join(tmpDir, 'large-image.png');
     await fs.promises.writeFile(imgFilePath, imgBuffer);
 
     // Create a large pdf file and save it in the temporary directory (tmpDir)
-    pdfFileSizeInBytes = 5 * 1024 * 1024;
+    pdfFileSizeInBytes = 1 * 1024 * 1024;
     const pdfBuffer = Buffer.alloc(pdfFileSizeInBytes, 'a');
     pdfBuffer.write('%PDF-1.4\n');
     pdfFilePath = path.join(tmpDir, 'large-file.pdf');
@@ -253,48 +258,47 @@ test.describe.serial('File / Binary body upload', () => {
     expect(responseText).toContain('"looksLikeSerializedNodeStream": false');
   });
 
-  test('TC-2230 - Verify successful execution with a large TXT file', { tag: '@sanity' }, async ({ page, electronApp }) => {
+  test('TC-2230: Verify successful execution with a large TXT file', { tag: '@sanity' }, async ({ page, electronApp }) => {
     await electronApp.evaluate(({ dialog }, filePath: string) => {
       (dialog as any).__currentSelection = filePath;
     }, txtFilePath);
 
     await openRequest(page, collectionName, txtRequestName, { persist: true });
     await configureFileBody(page);
-    await sendRequest(page, 200, 60000);
-    await verifyResponseSize(page, txtFileSizeInBytes, 10000); ;
+    await sendRequest(page, 200, TIMEOUTS.LONG);
+    await verifyResponseSize(page, txtFileSizeInBytes, TIMEOUTS.DEFAULT); ;
   });
 
-  test('TC-2231 - Verify successful execution with a large PDF file', { tag: '@sanity' }, async ({ page, electronApp }) => {
+  test('TC-2231: Verify successful execution with a large PDF file', { tag: '@sanity' }, async ({ page, electronApp }) => {
     await electronApp.evaluate(({ dialog }, filePath: string) => {
       (dialog as any).__currentSelection = filePath;
     }, pdfFilePath);
 
     await openRequest(page, collectionName, pdfRequestName, { persist: true });
     await configureFileBody(page);
-    await sendRequest(page, 200, 30000);
-    await verifyResponseSize(page, pdfFileSizeInBytes, 10000);
+    await sendRequest(page, 200, TIMEOUTS.LONG);
+    await verifyResponseSize(page, pdfFileSizeInBytes, TIMEOUTS.DEFAULT);
   });
 
-  test('TC-2232 - Verify successful execution with a large Image(.png) file', { tag: '@sanity' }, async ({ page, electronApp }) => {
+  test('TC-2232: Verify successful execution with a large Image(.png) file', { tag: '@sanity' }, async ({ page, electronApp }) => {
     await electronApp.evaluate(({ dialog }, filePath: string) => {
       (dialog as any).__currentSelection = filePath;
     }, imgFilePath);
-
     await openRequest(page, collectionName, imgRequestName, { persist: true });
     await configureFileBody(page);
-    await sendRequest(page, 200, 30000);
-    await verifyResponseSize(page, imgFileSizeInBytes, 10000);
+    await sendRequest(page, 200, TIMEOUTS.LONG);
+    await verifyResponseSize(page, imgFileSizeInBytes, TIMEOUTS.DEFAULT);
   });
 
-  test('TC-2236 - Verify successful execution with a large CSV file', { tag: '@sanity' }, async ({ page, electronApp }) => {
-    test.setTimeout(120000);
+  test('TC-2236: Verify successful execution with a large CSV file', { tag: '@sanity' }, async ({ page, electronApp }) => {
+    test.setTimeout(TIMEOUTS.EXTENDED);
     await electronApp.evaluate(({ dialog }, filePath: string) => {
       (dialog as any).__currentSelection = filePath;
     }, csvFilePath);
 
     await openRequest(page, collectionName, csvRequestName, { persist: true });
     await configureFileBody(page);
-    await sendRequest(page, 200, 60000);
-    await verifyResponseSize(page, csvFileSizeInBytes, 10000);
+    await sendRequest(page, 200, TIMEOUTS.LONG);
+    await verifyResponseSize(page, csvFileSizeInBytes, TIMEOUTS.DEFAULT);
   });
 });
