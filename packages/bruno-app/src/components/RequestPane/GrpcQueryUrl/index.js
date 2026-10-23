@@ -88,11 +88,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
 
-  const handleReflection = async (url, isManualRefresh = false) => {
-    const requestId = ++latestReflectionRequestIdRef.current;
-    const { methods, error, fromCache } = await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh);
-    if (requestId !== latestReflectionRequestIdRef.current) return;
-
+  const applyReflectionResult = ({ methods, error, fromCache }) => {
     if (error) {
       toast.error(`Failed to load gRPC methods: ${error.message || 'Unknown error'}`);
       return;
@@ -133,6 +129,14 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     }
   };
 
+  const handleReflection = async (url, isManualRefresh = false) => {
+    const requestId = ++latestReflectionRequestIdRef.current;
+    const result = await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh);
+    if (requestId !== latestReflectionRequestIdRef.current) return;
+
+    applyReflectionResult(result);
+  };
+
   const onUrlChange = (value) => {
     if (!editorRef.current?.editor) return;
     const editor = editorRef.current.editor;
@@ -158,7 +162,13 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
     if (!protoFilePath && value) {
       setIsReflectionMode(true);
-      reflectionManagement.scheduleReflection(finalUrl, handleReflection);
+      // scheduleReflection loads the methods itself and hands back the result, so the
+      // staleness check belongs here rather than around a second load.
+      const requestId = ++latestReflectionRequestIdRef.current;
+      reflectionManagement.scheduleReflection(finalUrl, (result) => {
+        if (requestId !== latestReflectionRequestIdRef.current) return;
+        applyReflectionResult(result);
+      });
     }
   };
 
