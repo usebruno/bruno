@@ -85,7 +85,7 @@ test.describe.serial('CodeEditor search: editing while the search bar is open', 
     await closeAllCollections(page);
   });
 
-  test('editing a line without a match keeps the cursor in place', async ({ page }) => {
+  test('Edit a line with no match, keep typing', async ({ page }) => {
     await test.step('Search for "name"', async () => {
       await searchForName(page);
     });
@@ -101,7 +101,7 @@ test.describe.serial('CodeEditor search: editing while the search bar is open', 
     await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
-  test('editing past the matches on a line points the current match at the next one after the cursor', async ({ page }) => {
+  test('Edit past two matches on a line', async ({ page }) => {
     await test.step('Search for "name"', async () => {
       await searchForName(page);
     });
@@ -109,18 +109,18 @@ test.describe.serial('CodeEditor search: editing while the search bar is open', 
       await setCodeEditorCursor(page, EDITOR_ID, { line: TWO_MATCH_LINE, ch: DOC_LINES[TWO_MATCH_LINE].length }, true);
       await page.keyboard.type(' // name x');
     });
-    await test.step('Current match is the next one after the cursor, not one behind it', async () => {
+    await test.step('Current match is the first one at or after the cursor', async () => {
       await expectMatchCount(page, '5 / 5');
     });
     await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
-  test('editing right after Replace keeps the cursor in place', async ({ page }) => {
+  test('Edit within 100ms of Replace', async ({ page }) => {
     await test.step('Search for "name" with "id" as the replacement', async () => {
       await searchForName(page, openCodeEditorReplaceBar);
       await buildCommonLocators(page).codeEditorSearch(EDITOR_ID).replaceInput().fill('id');
     });
-    await test.step('Replace and type a new match on a line without one before the search refreshes', async () => {
+    await test.step('Replace and, within 100ms, type a new match on a line without one', async () => {
       await replaceAndTypeInCodeEditorImmediately(page, EDITOR_ID, NO_MATCH_LINE_END, ' // name');
       await expectMatchCount(page, '4 / 4');
     });
@@ -132,15 +132,15 @@ test.describe.serial('CodeEditor search: editing while the search bar is open', 
     await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
-  test('editing after closing the bar right after Replace and reopening keeps the cursor in place', async ({ page }) => {
+  test('Replace, close the search bar within 100ms, reopen, edit', async ({ page }) => {
     await test.step('Search for "name" with "id" as the replacement', async () => {
       await searchForName(page, openCodeEditorReplaceBar);
       await buildCommonLocators(page).codeEditorSearch(EDITOR_ID).replaceInput().fill('id');
     });
-    await test.step('Replace and close the bar before the search refreshes', async () => {
+    await test.step('Replace and close the search bar within 100ms', async () => {
       await replaceAndCloseCodeEditorSearchBarImmediately(page, EDITOR_ID);
     });
-    await test.step('Reopen the bar and type a new match on a line without one', async () => {
+    await test.step('Reopen the search bar and type a new match on a line without one', async () => {
       await openCodeEditorSearchBar(page, EDITOR_ID);
       await expectMatchCount(page, '1 / 3');
       await setCodeEditorCursor(page, EDITOR_ID, NO_MATCH_LINE_END, true);

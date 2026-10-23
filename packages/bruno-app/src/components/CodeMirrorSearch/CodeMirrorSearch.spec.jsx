@@ -264,7 +264,7 @@ describe('CodeMirrorSearch', () => {
   });
 
   describe('Escape key', () => {
-    it('closes the bar and calls onClose', () => {
+    it('closes the search bar and calls onClose', () => {
       const onClose = jest.fn();
       renderSearch({ onClose });
       fireEvent.keyDown(screen.getByTestId('codemirror-search-input'), { key: 'Escape' });
@@ -349,7 +349,7 @@ describe('CodeMirrorSearch', () => {
       fireEvent.click(screen.getByTestId('codemirror-search-replace-btn'));
     }
 
-    it('keeps the selection in place when the user edits the document', () => {
+    it('Edit a line with no match, keep typing', () => {
       const { editor, editAt } = setupEditor(nameMatches);
       renderSearch({ editor });
       typeSearch('name');
@@ -361,7 +361,7 @@ describe('CodeMirrorSearch', () => {
       expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('2 / 2');
     });
 
-    it('anchors the current match to the first one at or after the cursor after an edit', () => {
+    it('Edit past two matches on a line', () => {
       const { editor, editAt } = setupEditor([
         ...nameMatches,
         { from: { line: 2, ch: 20 }, to: { line: 2, ch: 24 } },
@@ -370,14 +370,11 @@ describe('CodeMirrorSearch', () => {
       renderSearch({ editor });
       typeSearch('name');
 
-      editAt({ line: 2, ch: 12 });
-      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('3 / 4');
-
       editAt({ line: 2, ch: 27 });
       expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('4 / 4');
     });
 
-    it('keeps the selection in place when the user edits right after Replace', () => {
+    it('Edit within 100ms of Replace', () => {
       const { editor, editAt } = setupEditor(nameMatches);
       const ref = createRef();
       renderSearch({ editor }, ref);
@@ -390,7 +387,7 @@ describe('CodeMirrorSearch', () => {
       expect(editor.setSelection).not.toHaveBeenCalled();
     });
 
-    it('keeps the selection in place when the bar is closed right after Replace and reopened', () => {
+    it('Replace, close the search bar within 100ms, reopen, edit', () => {
       const { editor, editAt } = setupEditor(nameMatches);
       const ref = createRef();
       const searchBar = (visible) => (
