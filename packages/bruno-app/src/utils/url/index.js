@@ -70,6 +70,18 @@ export const parsePathParams = (url) => {
       return;
     }
 
+    // Versioned APIs commonly put a literal prefix before a path parameter,
+    // e.g. `/api/v:version`. Treat that as one parameterized segment while
+    // still leaving multi-colon literals such as URNs alone.
+    const prefixedPathParam = segment.match(/^[A-Za-z][A-Za-z0-9_.-]*:([a-zA-Z_]\w*)$/);
+    if (prefixedPathParam?.[1]) {
+      const name = prefixedPathParam[1];
+      if (!foundParams.has(name)) {
+        foundParams.add(name);
+      }
+      return;
+    }
+
     // for OData-style parameters (parameters inside parentheses)
     // Check if segment matches valid OData syntax:
     // 1. EntitySet('key') or EntitySet(key)
@@ -181,6 +193,16 @@ export const interpolateUrlPathParams = (url, params, variables = {}, options = 
           const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
           return hasResolvablePathParamValue(pathParam) ? substituteValue(pathParam.value) : segment;
           // return pathParam ? substituteValue(pathParam.value) : segment;
+        }
+
+        // Keep any literal prefix (`v` in `v:version`) while substituting the
+        // parameter value. The parser uses the same narrow shape so ordinary
+        // colon-containing segments such as URNs remain untouched.
+        const prefixedPathParam = segment.match(/^([A-Za-z][A-Za-z0-9_.-]*):([a-zA-Z_]\w*)$/);
+        if (prefixedPathParam) {
+          const [, prefix, name] = prefixedPathParam;
+          const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
+          return hasResolvablePathParamValue(pathParam) ? `${prefix}${substituteValue(pathParam.value)}` : segment;
         }
 
         // for OData-style parameters (parameters inside parentheses)
