@@ -107,7 +107,7 @@ const Script = ({ collection }) => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList testId="script-sub-tabs">
           <TabsTrigger value="pre-request">
             Pre Request
             {requestScript && requestScript.trim().length > 0 && (
