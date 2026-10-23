@@ -64,4 +64,17 @@ test.describe.serial('subprotocol tests', () => {
     await page.keyboard.insertText(originalProtocol);
     await locators.saveButton().click();
   });
+
+  test('connects when a lowercase header lists several subprotocols', async ({ pageWithUserData: page }) => {
+    const locators = buildCommonLocators(page);
+
+    await page.locator('#sidebar-collection-name').click();
+    await page.getByTitle(/^ws-test-request-with-lowercase-subproto$/).click();
+    await locators.runner().click();
+
+    await expect(locators.websocket.messages().first().locator('.text-ellipsis')).toHaveText(/^(Connected to)/);
+    await expect(page.getByText('An invalid or duplicated subprotocol was specified')).toHaveCount(0);
+
+    await locators.websocket.connectionControls.disconnect().click();
+  });
 });

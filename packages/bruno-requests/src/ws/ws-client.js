@@ -2,6 +2,26 @@ import ws from 'ws';
 import { hexy as hexdump } from 'hexy';
 import { getParsedWsUrlObject } from './ws-url';
 
+/**
+ * Collect the subprotocols requested through `Sec-WebSocket-Protocol` headers.
+ *
+ * Header names are matched case-insensitively and values may hold a comma separated list.
+ * Unlike the browser WebSocket constructor, `ws` needs the protocols as an array and throws
+ * on duplicated or empty entries, so the list is trimmed and de-duplicated here.
+ *
+ * @param {Object} headers - Request headers keyed by name
+ * @returns {string[]} Unique subprotocols in the order they were given
+ */
+export const getSubprotocolsFromHeaders = (headers = {}) => {
+  const protocols = Object.entries(headers)
+    .filter(([name, value]) => name.toLowerCase() === 'sec-websocket-protocol' && typeof value === 'string')
+    .flatMap(([, value]) => value.split(','))
+    .map((protocol) => protocol.trim())
+    .filter(Boolean);
+
+  return [...new Set(protocols)];
+};
+
 const normalizeMessageByFormat = (message, format) => {
   if (!message) {
     return '';
@@ -95,15 +115,7 @@ class WsClient {
     }
 
     try {
-      // Create WebSocket connection
-      // Note: unlike the standard Websocket constructor the `ws` library doesn't support adding Protocols as a single string
-      // and instead needs it broken down manually, make sure this tested with multiple protocols again.
-      const protocols = []
-        .concat([headers['Sec-WebSocket-Protocol'], headers['sec-websocket-protocol']])
-        .filter(Boolean)
-        .map((d) => d.split(','))
-        .flat()
-        .map((d) => d.trim());
+      const protocols = getSubprotocolsFromHeaders(headers);
 
       const protocolVersion = headers['Sec-WebSocket-Version'] || headers['sec-websocket-version'];
 
