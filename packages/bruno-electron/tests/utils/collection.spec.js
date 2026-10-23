@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { runScriptInNodeVm } = require('@usebruno/js');
+const { executeQuickJsVmAsync } = require('@usebruno/js/src/sandbox/quickjs');
 const { parseBruFileMeta, wrapAndJoinScripts, mergeScripts, getEffectiveTagsByUid } = require('../../src/utils/collection');
 
 describe('parseBruFileMeta', () => {
@@ -889,5 +890,30 @@ describe('getEffectiveTagsByUid', () => {
 
     expect(tagsByUid.size).toBe(1);
     expect(tagsByUid.get('folder-empty')).toEqual(['empty']);
+  });
+});
+
+describe('wrapAndJoinScripts with CR-only line endings', () => {
+  test('counts lines of a CR-only collection script so the request segment maps to the right lines', () => {
+    const result = wrapAndJoinScripts(['let a = 1;\rlet b = 2;', '', 'let c = 3;'], 2);
+    expect(result.metadata.requestStartLine).toBe(6);
+    expect(result.metadata.requestEndLine).toBe(8);
+  });
+
+  const sandboxes = [
+    ['nodevm', (script, bru) => runScriptInNodeVm({ script, context: { bru, console, __bruSetScope: jest.fn() }, collectionPath: '/test/collection', scriptingConfig: {} })],
+    ['quickjs', (script, bru) => executeQuickJsVmAsync({ script, context: { bru }, collectionPath: '/test/collection' })]
+  ];
+
+  test.each(sandboxes)('a // comment at the end of a CR-only collection script does not swallow the closer in %s', async (_, runScript) => {
+    const collection = makeCollection({ preReq: 'bru.setVar("a", 1);\r// trailing comment' });
+    const request = makeRequest({ preReq: 'bru.setVar("b", 2);' });
+    mergeScripts(collection, request, [request], 'sandwich');
+
+    const bru = { setVar: jest.fn() };
+    await runScript(request.script.req, bru);
+
+    expect(bru.setVar).toHaveBeenCalledWith('a', 1);
+    expect(bru.setVar).toHaveBeenCalledWith('b', 2);
   });
 });
