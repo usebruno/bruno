@@ -37,22 +37,30 @@ const MAX_OUTPUT_BYTES = 1024 * 1024;
 const ERROR_STDERR_LIMIT = 2000;
 
 /**
- * Environment variables that control command resolution, interpreter startup
- * or the dynamic loader. They can arrive through collection-provided sources
- * (selected bruno environment / dotenv), and a shared collection must not be
- * able to hijack a command the user registered — e.g.
- * `NODE_OPTIONS=--require ./evil.js`, a rewritten `PATH`, `BASH_ENV` pointing
- * at a startup file the shell sources, or `DYLD_INSERT_LIBRARIES`. Values for
- * these keys from the collection context are dropped; the real values
- * inherited from process.env remain.
+ * Environment variables that control command resolution, interpreter startup,
+ * module/source loading or the dynamic loader. They can arrive through
+ * collection-provided sources (selected bruno environment / dotenv), and a
+ * shared collection must not be able to hijack a command the user registered —
+ * e.g. `NODE_OPTIONS=--require ./evil.js`, a rewritten `PATH`, `BASH_ENV`
+ * pointing at a startup file the shell sources, `PYTHONPATH`/`NODE_PATH`
+ * pulling a module from the collection directory, `JAVA_TOOL_OPTIONS`
+ * injecting a JVM agent, or `DYLD_INSERT_LIBRARIES`. Values for these keys
+ * from the collection context are dropped; the real values inherited from
+ * process.env remain. A denylist can never cover every runtime, so whole
+ * prefixes are blocked where a family shares the same loading mechanism.
  */
 const isProtectedEnvKey = (key: string): boolean => {
   const upper = key.toUpperCase();
-  return upper === 'NODE_OPTIONS'
-    || upper === 'PATH'
-    || upper === 'BASH_ENV'
+  return upper === 'PATH'
+    || upper === 'NODE_OPTIONS'
+    || upper === 'NODE_PATH'
     || upper === 'ENV'
+    || upper === 'BASH_ENV'
     || upper === 'ZDOTDIR'
+    || upper === 'JAVA_TOOL_OPTIONS'
+    || upper.startsWith('PYTHON')
+    || upper.startsWith('PERL5')
+    || upper.startsWith('RUBY')
     || upper.startsWith('LD_')
     || upper.startsWith('DYLD_');
 };

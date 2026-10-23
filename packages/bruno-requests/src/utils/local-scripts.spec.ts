@@ -66,6 +66,33 @@ describe('executeLocalScript', () => {
     expect(result.stdout).not.toBe('/tmp/evil-startup.sh');
   });
 
+  it('ignores collection-supplied interpreter module/agent env keys', async () => {
+    const keys = ['PYTHONPATH', 'PYTHONHOME', 'NODE_PATH', 'PERL5OPT', 'PERL5LIB', 'RUBYOPT', 'RUBYLIB', 'JAVA_TOOL_OPTIONS'];
+    // pythonpath is checked separately to prove the filter is case-insensitive
+    const checkedKeys = [...keys, 'pythonpath'];
+    const listLiteral = `'${checkedKeys.join('\',\'')}'`;
+    const result = await executeLocalScript(
+      {
+        name: 'protected-interpreter',
+        command: `${node} -e "process.stdout.write([${listLiteral}].map(k => process.env[k] || 'absent').join(','))"`
+      },
+      {
+        cwd,
+        env: {
+          ...Object.fromEntries(keys.map((key) => [key, '/tmp/evil-collection'])),
+          pythonpath: '/tmp/evil-collection-lowercase'
+        }
+      }
+    );
+    expect(result.exitCode).toBe(0);
+    const seen = result.stdout.split(',');
+    expect(seen).toHaveLength(checkedKeys.length);
+    for (const [index, key] of checkedKeys.entries()) {
+      expect(seen[index]).toBe(process.env[key] || 'absent');
+      expect(seen[index]).not.toContain('/tmp/evil-collection');
+    }
+  });
+
   it('rejects immediately when the abort signal is already aborted', async () => {
     const controller = new AbortController();
     controller.abort();
