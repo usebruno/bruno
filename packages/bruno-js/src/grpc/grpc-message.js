@@ -1,8 +1,14 @@
 const { cloneDeep } = require('lodash');
 
-/**
+/*
  * `bru.grpc.request.message` / `bru.grpc.response.message` in the message hooks — the single message
  * being sent or received, as opposed to the `GrpcMessageList` of all of them.
+ */
+
+/**
+ * A gRPC message and when it was sent or received.
+ *
+ * @category Types
  */
 class GrpcMessage {
   /**
@@ -12,7 +18,21 @@ class GrpcMessage {
    */
   constructor({ data, timestamp } = {}) {
     // Cloned for immutability during script execution
+    /**
+     * The message's content, as an object.
+     *
+     * It is a copy: changing it does not change the message the call sends or received.
+     * @type {any}
+     * @readonly
+     * @category Message
+     */
     this.data = cloneDeep(data);
+    /**
+     * When the message was sent or received, in milliseconds since the epoch.
+     * @type {number | undefined}
+     * @readonly
+     * @category Message
+     */
     this.timestamp = timestamp;
   }
 }

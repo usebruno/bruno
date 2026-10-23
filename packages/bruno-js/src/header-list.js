@@ -1,6 +1,6 @@
 const ReadOnlyPropertyList = require('./readonly-property-list');
 
-/**
+/*
  * HeaderList — the `req.headerList` / `res.headerList` API in scripts.
  *
  * Extends PropertyList in dynamic mode: the header list is freshly read from the
@@ -76,6 +76,28 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  * | `populate(items\|string)`         | Adds items, skipping keys that already exist              |
  * | `repopulate(items)`               | Clears all, then populates with new items                 |
  * | `assimilate(source, prune?)`      | Merges headers; prune removes items not in source         |
+ */
+
+/**
+ * An HTTP header.
+ * @category Types
+ * @typedef {object} Header
+ * @property {string} key - The header's name.
+ * @property {any} value - The header's value: usually a string, and an array for a repeated
+ *   response header such as `set-cookie`.
+ * @property {boolean} [disabled] - `true` for a request header that is disabled, so not sent.
+ */
+
+/**
+ * The response's headers: a header list without the methods that change it.
+ * @typedef {Omit<HeaderList, 'add' | 'upsert' | 'remove' | 'clear' | 'populate' | 'repopulate' | 'assimilate'>} ReadOnlyHeaderList
+ */
+
+/**
+ * HTTP headers, as a list of `{ key, value }` entries. Header names match case-insensitively.
+ *
+ * On `req.headerList` the request's disabled headers are listed too, with `disabled: true`.
+ * @extends {ReadOnlyPropertyList<Header>}
  */
 class HeaderList extends ReadOnlyPropertyList {
   #req;
@@ -153,14 +175,21 @@ class HeaderList extends ReadOnlyPropertyList {
   // ── Blocked inherited methods ─────────────────────────────────────────
   // idx is inherited from ReadOnlyPropertyList but not part of the
   // HeaderList API. Set to undefined so it is not callable.
+  /** @internal */
   idx = undefined;
 
   // ── Read method overrides (case-insensitive) ──────────────────────────
 
   /**
-   * Get the value of a header by key (case-insensitive).
-   * @param {string} name
-   * @returns {*}
+   * Get the value of a header.
+   *
+   * Header names match case-insensitively. On `req.headerList` a disabled header counts too, but
+   * an enabled header of the same name wins over it.
+   * @param {string} name - The header's name.
+   * @returns {any} The value, or `undefined` when there is no such header.
+   * @example
+   * const type = res.headerList.get('content-type');
+   * @category Read
    */
   get(name) {
     const item = this.all().findLast((i) => HeaderList.#ciEquals(i.key, name));
@@ -168,20 +197,31 @@ class HeaderList extends ReadOnlyPropertyList {
   }
 
   /**
-   * Get the full header object by key (case-insensitive).
-   * @param {string} name
-   * @returns {object|undefined}
+   * Get a header by name.
+   *
+   * Header names match case-insensitively. On `req.headerList` a disabled header counts too, but
+   * an enabled header of the same name wins over it.
+   * @param {string} name - The header's name.
+   * @returns {Header | undefined} The header, or `undefined` when there is no such header.
+   * @category Read
    */
   one(name) {
     return this.all().findLast((i) => HeaderList.#ciEquals(i.key, name));
   }
 
   /**
-   * Check if a header exists (case-insensitive).
-   * Accepts a string key, a string key + value, or an object with `key`.
-   * @param {string|object} name - Header key string or object with `key` property
-   * @param {*} [value]
-   * @returns {boolean}
+   * Check whether a header exists.
+   *
+   * Header names match case-insensitively.
+   * @param {string | Header} name - A header name, or a header whose name to look for (its value is
+   *   not compared).
+   * @param {any} [value] - With a name, the header's value must also be equal (`===`) to it.
+   * @returns {boolean} Whether a matching header exists.
+   * @example
+   * if (!req.headerList.has('authorization')) {
+   *   req.headerList.add('Authorization', `Bearer ${bru.getEnvVar('token')}`);
+   * }
+   * @category Search
    */
   has(name, value) {
     if (name && typeof name === 'object' && name.key) {
@@ -195,10 +235,12 @@ class HeaderList extends ReadOnlyPropertyList {
   }
 
   /**
-   * Get the index of an item (case-insensitive key matching).
-   * Accepts a string key or an object with { key, value }.
-   * @param {string|object} item
-   * @returns {number} -1 if not found
+   * Get the position of a header.
+   *
+   * Header names match case-insensitively.
+   * @param {string | Header} item - A header name, or a header to match by name and value.
+   * @returns {number} The zero-based position of the first match, or `-1` when none matches.
+   * @category Search
    */
   indexOf(item) {
     const items = this.all();
@@ -213,27 +255,61 @@ class HeaderList extends ReadOnlyPropertyList {
 
   // ── Iteration overrides (optional context binding) ─────────────────
 
-  /** @param {Function} fn @param {*} [context] */
+  /**
+   * Call `fn` once for each header, in order.
+   * @param {(item: Header, index: number) => void} fn - Called with each header and its position.
+   * @param {any} [context] - The `this` of `fn`.
+   * @category Iteration
+   */
   each(fn, context) {
     super.each(context !== undefined ? fn.bind(context) : fn);
   }
 
-  /** @param {Function} fn @param {*} [context] @returns {Array} */
+  /**
+   * Get every header `fn` accepts.
+   * @param {(item: Header, index: number) => boolean} fn - Called with each header and its position.
+   * @param {any} [context] - The `this` of `fn`.
+   * @returns {Header[]} The matching headers, in order.
+   * @category Search
+   */
   filter(fn, context) {
     return super.filter(context !== undefined ? fn.bind(context) : fn);
   }
 
-  /** @param {Function} fn @param {*} [context] @returns {object|undefined} */
+  /**
+   * Get the first header `fn` accepts.
+   * @param {(item: Header, index: number) => boolean} fn - Called with each header and its position.
+   * @param {any} [context] - The `this` of `fn`.
+   * @returns {Header | undefined} The header, or `undefined` when none matches.
+   * @category Search
+   */
   find(fn, context) {
     return super.find(context !== undefined ? fn.bind(context) : fn);
   }
 
-  /** @param {Function} fn @param {*} [context] @returns {Array} */
+  /**
+   * Build an array from the result of `fn` for each header.
+   * @param {(item: Header, index: number) => any} fn - Called with each header and its position.
+   * @param {any} [context] - The `this` of `fn`.
+   * @returns {any[]} The results, in the order of the headers.
+   * @example
+   * const names = res.headerList.map((header) => header.key);
+   * @category Iteration
+   */
   map(fn, context) {
     return super.map(context !== undefined ? fn.bind(context) : fn);
   }
 
-  /** @param {Function} fn @param {*} [accumulator] @param {*} [context] @returns {*} */
+  /**
+   * Combine the headers into a single value, as `Array.prototype.reduce` does.
+   *
+   * Without `initialValue`, the first header is the starting value, and an empty list throws.
+   * @type {(fn: (accumulator: any, item: Header, index: number) => any, initialValue?: any, context?: any) => any}
+   * @param fn - Called with the value so far, each header and its position; returns the next value.
+   * @param initialValue - The starting value.
+   * @param context - The `this` of `fn`.
+   * @category Iteration
+   */
   reduce(fn, ...args) {
     const hasAccumulator = args.length > 0;
     const hasContext = args.length > 1;
@@ -244,11 +320,15 @@ class HeaderList extends ReadOnlyPropertyList {
   // ── Write methods (direct request config manipulation) ────────────────
 
   /**
-   * Add a header. Accepts a { key, value } object, a "Key: Value" string,
-   * or two arguments (name, value). Delegates to upsert().
+   * Set a header on the request, the same as `upsert`.
    *
-   * @param {object|string} itemOrName - Header object, "Key: Value" string, or header name
-   * @param {string} [value] - Header value (when using two-arg form)
+   * A `disabled` flag on the given header is ignored: the header is always sent.
+   * @param {Header | string} itemOrName - A header, a `Name: value` string, or a header name.
+   * @param {string} [value] - The value, with a header name.
+   * @example
+   * req.headerList.add('X-Request-Id', String(Date.now()));
+   * req.headerList.add({ key: 'Accept', value: 'application/json' });
+   * @category Write
    */
   add(itemOrName, value) {
     if (typeof itemOrName === 'string' && value !== undefined) {
@@ -262,11 +342,18 @@ class HeaderList extends ReadOnlyPropertyList {
   }
 
   /**
-   * Set (or replace) a header on the request (case-insensitive key match).
-   * Accepts a { key, value } object or two arguments (name, value).
-   * @param {object|string} itemOrName - Header object with `key` and `value`, or header name
-   * @param {string} [value] - Header value (when using two-arg form)
-   * @returns {boolean|null} `true` if added, `false` if updated, `null` if input was nil
+   * Set a header on the request, replacing the enabled header of the same name.
+   *
+   * Header names match case-insensitively; the replaced header takes the new name's case. A
+   * disabled header of that name stays in the list. A `disabled` flag on the given header is
+   * ignored: the header is always sent.
+   * @param {Header | string} itemOrName - A header, or a header name.
+   * @param {string} [value] - The value, with a header name.
+   * @returns {boolean | null | undefined} `true` when the header is new, `false` when it replaced
+   *   one, and `null` when no name was given. Safe Mode always returns `undefined`.
+   * @example
+   * req.headerList.upsert('Content-Type', 'application/json');
+   * @category Write
    */
   upsert(itemOrName, value) {
     this.#assertWritable();
@@ -295,10 +382,17 @@ class HeaderList extends ReadOnlyPropertyList {
   }
 
   /**
-   * Remove header(s) matching a predicate, key string, or item reference.
-   * String and object removal are case-insensitive.
-   * @param {Function|string|object} predicate
-   * @param {*} [context] - Bind `this` for function predicates
+   * Remove headers from the request, enabled and disabled.
+   *
+   * With a name, or a header (matched by name only), it removes every header of that name; names
+   * match case-insensitively. With a function, it removes every header the function accepts.
+   * @param {string | Header | ((header: Header) => boolean)} predicate - A header name, a header,
+   *   or a function that returns `true` for the headers to remove.
+   * @param {any} [context] - The `this` of a function `predicate`. Safe Mode ignores it.
+   * @example
+   * req.headerList.remove('x-debug');
+   * req.headerList.remove((header) => header.key.startsWith('x-internal-'));
+   * @category Write
    */
   remove(predicate, context) {
     this.#assertWritable();
@@ -365,7 +459,8 @@ class HeaderList extends ReadOnlyPropertyList {
   }
 
   /**
-   * Remove all headers (enabled and disabled) from the request.
+   * Remove every header from the request, enabled and disabled.
+   * @category Write
    */
   clear() {
     this.#assertWritable();
@@ -381,15 +476,14 @@ class HeaderList extends ReadOnlyPropertyList {
   }
 
   /**
-   * Load one or more headers into the list (without clearing existing ones).
-   * Accepts an array of { key, value } objects or a multi-line "Key: Value" string.
+   * Add headers whose names are not in the list yet.
    *
-   * Headers whose key already exists are skipped (case-insensitive).
-   * Note: Postman's populate adds duplicate keys because Postman supports
-   * multiple headers with the same name. Bruno does not, so we skip
-   * existing keys to preserve the current value.
-   *
-   * @param {Array|string} items
+   * A header whose name is already listed, enabled or disabled, is skipped, so the current value
+   * stays. Header names match case-insensitively.
+   * @param {Header[] | string} items - Headers, or `Name: value` lines.
+   * @example
+   * req.headerList.populate('Accept: application/json\nX-Client: bruno');
+   * @category Write
    */
   populate(items) {
     this.#assertWritable();
@@ -412,8 +506,9 @@ class HeaderList extends ReadOnlyPropertyList {
   }
 
   /**
-   * Clear all headers and repopulate with new items.
-   * @param {Array|string} items
+   * Replace every header with the given ones, as `clear()` and then `populate(items)`.
+   * @param {Header[] | string} items - Headers, or `Name: value` lines.
+   * @category Write
    */
   repopulate(items) {
     this.clear();
@@ -423,12 +518,18 @@ class HeaderList extends ReadOnlyPropertyList {
   // ── Transform overrides ───────────────────────────────────────────────
 
   /**
-   * Convert to a plain object. Matches Postman's PropertyList.toObject() signature.
-   * @param {boolean} [excludeDisabled=false] - If true, skip disabled headers
-   * @param {boolean} [caseSensitive=true] - If false, lowercase all keys
-   * @param {boolean} [multiValue=false] - If true, only the first value of a duplicate key is kept
-   * @param {boolean} [sanitizeKeys=false] - If true, skip headers with falsy keys
-   * @returns {object}
+   * Convert the headers to a `{ name: value }` object.
+   *
+   * By default a later header of a name wins, so an enabled header wins over a disabled one.
+   * @param {boolean} [excludeDisabled] - `true` leaves out disabled headers.
+   * @param {boolean} [caseSensitive] - `false` lowercases the names.
+   * @param {boolean} [multiValue] - `true` keeps the first value of a repeated name instead of the
+   *   last.
+   * @param {boolean} [sanitizeKeys] - `true` leaves out headers with an empty name.
+   * @returns {Record<string, any>} The object.
+   * @example
+   * const headers = req.headerList.toObject(true);
+   * @category Transform
    */
   toObject(excludeDisabled, caseSensitive, multiValue, sanitizeKeys) {
     const result = {};
@@ -448,9 +549,9 @@ class HeaderList extends ReadOnlyPropertyList {
   }
 
   /**
-   * Convert to HTTP wire-format string, skipping disabled headers.
-   * Matches Postman's Header.unparse() behavior: `Key: Value\n...`
-   * @returns {string}
+   * Convert the headers to HTTP `Name: value` lines, leaving out disabled headers.
+   * @returns {string} One line per header, each ending in a newline, or `''` when there are none.
+   * @category Transform
    */
   toString() {
     const headers = this.all().filter((h) => !h.disabled);
@@ -459,9 +560,12 @@ class HeaderList extends ReadOnlyPropertyList {
   }
 
   /**
-   * Merge items from another PropertyList or array.
-   * @param {PropertyList|Array} source - Source of items to merge
-   * @param {boolean} [prune=false] - If true, remove items not present in source after merging
+   * Set every header of `source` on the request, replacing same-name headers.
+   * @param {ReadOnlyHeaderList | Header[]} source - A header list, such as `res.headerList`, or an
+   *   array of headers.
+   * @param {boolean} [prune] - `true` also removes the headers whose names are not in `source`. An
+   *   empty `source` removes nothing.
+   * @category Write
    */
   assimilate(source, prune) {
     this.#assertWritable();

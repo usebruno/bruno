@@ -1,4 +1,4 @@
-/**
+/*
  * ReadOnlyPropertyList - A read-only collection data structure.
  *
  * Two modes:
@@ -14,6 +14,11 @@
  * Convention:
  *   #field / #method  – truly private, inaccessible to subclasses
  *   _field / _method  – protected, intended for subclass access only
+ */
+
+/**
+ * A list of `{ key, value }` entries, with lookups by key, search, iteration and conversion.
+ * @template T
  */
 class ReadOnlyPropertyList {
   // ── Private fields (not accessible by subclasses) ────────────────────
@@ -31,12 +36,15 @@ class ReadOnlyPropertyList {
   // ordered insertion (insert, insertAfter, prepend in PropertyList), and duplicate keys.
   // At typical list sizes (cookies, headers) the O(n) key lookup is negligible.
   constructor({ keyProperty = 'key', valueProperty = 'value', dataSource, items } = {}) {
+    /** @protected */
     this._keyProperty = keyProperty;
     this.#valueProperty = valueProperty;
+    /** @protected */
     this._dynamic = typeof dataSource === 'function';
     if (this._dynamic) {
       this.#dataSource = dataSource;
     } else {
+      /** @protected */
       this._items = Array.isArray(items) ? [...items] : [];
     }
   }
@@ -53,9 +61,14 @@ class ReadOnlyPropertyList {
   // ── Retrieval ──────────────────────────────────────────────────────────
 
   /**
-   * Get the value of an item by its key.
-   * @param {string} name
-   * @returns {*} The value property of the matching item, or undefined
+   * Get the value of the entry with the given key.
+   *
+   * Keys are case-sensitive. With several entries of that key, the last one wins.
+   * @param {string} name - The key.
+   * @returns {any} The value, or `undefined` when no entry has that key.
+   * @example
+   * const sessionId = bru.cookies.get('sid');
+   * @category Read
    */
   get(name) {
     const items = this.#getItems();
@@ -66,9 +79,12 @@ class ReadOnlyPropertyList {
   }
 
   /**
-   * Get the full item object by its key.
-   * @param {string} name
-   * @returns {object|undefined}
+   * Get the entry with the given key.
+   *
+   * Keys are case-sensitive. With several entries of that key, the last one wins.
+   * @param {string} name - The key.
+   * @returns {T | undefined} The entry, or `undefined` when no entry has that key.
+   * @category Read
    */
   one(name) {
     const items = this.#getItems();
@@ -78,36 +94,40 @@ class ReadOnlyPropertyList {
   }
 
   /**
-   * Get a cloned array of all items.
-   * @returns {Array}
+   * Get every entry, in order.
+   * @returns {T[]} A new array of the entries.
+   * @category Read
    */
   all() {
     return [...this.#getItems()];
   }
 
   /**
-   * Get an item by its positional index.
-   * @param {number} index
-   * @returns {object|undefined}
+   * Get the entry at a position in the list.
+   * @param {number} index - The zero-based position.
+   * @returns {T | undefined} The entry, or `undefined` when the list is shorter.
+   * @category Read
    */
   idx(index) {
     return this.#getItems()[index];
   }
 
   /**
-   * Get the number of items.
-   * @returns {number}
+   * Get the number of entries.
+   * @returns {number} The number of entries.
+   * @category Read
    */
   count() {
     return this.#getItems().length;
   }
 
   /**
-   * Get the index of an item.
-   * Uses structural equality (matching by key and value) so it works
-   * even when the item is a copy rather than the same reference.
-   * @param {object} item
-   * @returns {number} -1 if not found
+   * Get the position of an entry.
+   *
+   * Matches an entry with the same key and value, so a copy of an entry finds it too.
+   * @param {T} item - An entry.
+   * @returns {number} The zero-based position, or `-1` when no entry matches.
+   * @category Search
    */
   indexOf(item) {
     if (!item || typeof item !== 'object') return -1;
@@ -121,11 +141,17 @@ class ReadOnlyPropertyList {
   // ── Search ─────────────────────────────────────────────────────────────
 
   /**
-   * Check if an item with the given key exists.
-   * If value is provided, also checks that the item's value matches.
-   * @param {string} name
-   * @param {*} [value]
-   * @returns {boolean}
+   * Check whether an entry with the given key exists.
+   *
+   * Keys are case-sensitive.
+   * @param {string} name - The key.
+   * @param {any} [value] - When given, the entry's value must also be equal (`===`) to it.
+   * @returns {boolean} Whether a matching entry exists.
+   * @example
+   * if (!bru.cookies.has('sid')) {
+   *   bru.setVar('loggedIn', false);
+   * }
+   * @category Search
    */
   has(name, value) {
     const items = this.#getItems();
@@ -136,18 +162,20 @@ class ReadOnlyPropertyList {
   }
 
   /**
-   * Find the first item matching a predicate.
-   * @param {Function} predicate
-   * @returns {object|undefined}
+   * Get the first entry `predicate` accepts.
+   * @param {(item: T, index: number) => boolean} predicate - Called with each entry and its position.
+   * @returns {T | undefined} The entry, or `undefined` when none matches.
+   * @category Search
    */
   find(predicate) {
     return this.#getItems().find(predicate);
   }
 
   /**
-   * Filter items by a predicate.
-   * @param {Function} predicate
-   * @returns {Array}
+   * Get every entry `predicate` accepts.
+   * @param {(item: T, index: number) => boolean} predicate - Called with each entry and its position.
+   * @returns {T[]} The matching entries, in order.
+   * @category Search
    */
   filter(predicate) {
     return this.#getItems().filter(predicate);
@@ -156,27 +184,34 @@ class ReadOnlyPropertyList {
   // ── Iteration ──────────────────────────────────────────────────────────
 
   /**
-   * Iterate over each item.
-   * @param {Function} fn - Called with (item, index)
+   * Call `fn` once for each entry, in order.
+   * @param {(item: T, index: number) => void} fn - Called with each entry and its position.
+   * @category Iteration
    */
   each(fn) {
     this.#getItems().forEach(fn);
   }
 
   /**
-   * Map over items.
-   * @param {Function} fn
-   * @returns {Array}
+   * Build an array from the result of `fn` for each entry.
+   * @param {(item: T, index: number) => any} fn - Called with each entry and its position.
+   * @returns {any[]} The results, in the order of the entries.
+   * @example
+   * const names = bru.cookies.map((cookie) => cookie.key);
+   * @category Iteration
    */
   map(fn) {
     return this.#getItems().map(fn);
   }
 
   /**
-   * Reduce items.
-   * @param {Function} fn
-   * @param {*} [initialValue] - Optional initial accumulator value
-   * @returns {*}
+   * Combine the entries into a single value, as `Array.prototype.reduce` does.
+   *
+   * Without `initialValue`, the first entry is the starting value, and an empty list throws.
+   * @type {(fn: (accumulator: any, item: T, index: number) => any, initialValue?: any) => any}
+   * @param fn - Called with the value so far, each entry and its position; returns the next value.
+   * @param initialValue - The starting value.
+   * @category Iteration
    */
   reduce(fn, ...rest) {
     return rest.length ? this.#getItems().reduce(fn, rest[0]) : this.#getItems().reduce(fn);
@@ -185,8 +220,11 @@ class ReadOnlyPropertyList {
   // ── Transformation ─────────────────────────────────────────────────────
 
   /**
-   * Convert to a plain object { key: value }.
-   * @returns {object}
+   * Convert the entries to a `{ key: value }` object.
+   *
+   * With several entries of one key, the last one wins.
+   * @returns {Record<string, any>} The object.
+   * @category Transform
    */
   toObject() {
     const result = {};
@@ -197,8 +235,9 @@ class ReadOnlyPropertyList {
   }
 
   /**
-   * Convert to a string "key=value; key2=value2".
-   * @returns {string}
+   * Convert the entries to a `key=value; key2=value2` string.
+   * @returns {string} The string, or `''` for an empty list.
+   * @category Transform
    */
   toString() {
     return this.#getItems()
@@ -207,8 +246,9 @@ class ReadOnlyPropertyList {
   }
 
   /**
-   * Convert to JSON (returns the same as all()).
-   * @returns {Array}
+   * Get the entries for `JSON.stringify`, the same as `all()`.
+   * @returns {T[]} A new array of the entries.
+   * @category Transform
    */
   toJSON() {
     return this.all();
