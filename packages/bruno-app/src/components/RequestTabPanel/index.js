@@ -44,6 +44,7 @@ import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
 import OpenAPISyncTab from 'components/OpenAPISyncTab';
 import OpenAPISpecTab from 'components/OpenAPISpecTab';
+import ApiSpecTab from 'components/ApiSpecTab';
 import MockServerDashboard from 'components/MockServer/MockServerDashboard';
 import MockResponse from 'components/MockServer/MockResponse';
 import ChangelogTab from 'components/ChangelogTab';
@@ -532,7 +533,11 @@ const RequestTabPanel = () => {
   const isWsRequest = item?.type === 'ws-request';
 
   if (focusedTab.type === 'collection-runner') {
-    return <RunnerResults collection={collection} />;
+    return (
+      <ScopedPersistenceProvider scope={focusedTab.uid}>
+        <RunnerResults collection={collection} />
+      </ScopedPersistenceProvider>
+    );
   }
 
   if (focusedTab.type === 'variables') {
@@ -585,6 +590,10 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'openapi-spec') {
     return <OpenAPISpecTab collection={collection} tabUid={focusedTab.uid} />;
+  }
+
+  if (focusedTab.type === 'api-spec') {
+    return <ApiSpecTab tabUid={focusedTab.uid} />;
   }
 
   if (!item || !item.uid) {

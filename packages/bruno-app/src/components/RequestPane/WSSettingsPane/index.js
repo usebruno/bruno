@@ -10,6 +10,7 @@ import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import * as Yup from 'yup';
 import StyledWrapper from './StyledWrapper';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
 /**
  * @param {string} propertyKey
@@ -85,6 +86,7 @@ const WSSettingsPane = ({ item, collection }) => {
                 theme={storedTheme}
                 onChange={(newValue) => updateSetting('timeout', newValue)}
                 collection={collection}
+                variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
               />
             </ToolHint>
           </div>
@@ -123,6 +125,7 @@ const WSSettingsPane = ({ item, collection }) => {
                 theme={storedTheme}
                 onChange={(newValue) => updateSetting('keepAliveInterval', newValue)}
                 collection={collection}
+                variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
               />
             </ToolHint>
           </div>

@@ -1,12 +1,12 @@
 import { Locator, Page } from '../../../playwright';
 import { buildApiSpecPanelLocators } from './openapi/render-spec';
-import { buildMockServerLocators } from './mock-server';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
 import { buildCodeEditorSearchLocators } from './code-editor-search';
 import { buildCodeEditorHintLocators } from './code-editor-hints';
 import { buildRequestSettingsLocators } from './request-settings';
+import { buildUnresolvedVariablesInfoLocators } from './unresolved-variables-info';
 import { buildSidebarLocators } from './sidebar';
 import { buildDocsLocators } from './docs';
 import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
@@ -16,10 +16,12 @@ import { buildRequestLocators } from '../request';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
 import { buildEnvironmentLocators } from './environments';
 import { buildTimelineHeaderLocators } from './timeline-headers';
+import { buildSetAsVariableLocators } from './set-as-variable';
 import { buildDevToolsLocators } from './devtools-console';
 import { buildVariablesTabLocators } from './variables-tab';
 import { buildWorkspaceOverviewLocators } from './workspace/workspace-overview';
 import { buildManageWorkspaceLocators } from './workspace/manage-workspace';
+import { buildCreateWorkspaceModalLocators } from './workspace/create-workspace-modal';
 import { buildTitleBarLocators } from './title-bar';
 import { buildCloneGitRepositoryLocators } from './git/clone-git-repository';
 import { buildResponseExampleLocators } from './response-example';
@@ -45,9 +47,11 @@ export const buildCommonLocators = (page: Page) => ({
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
   requestSettings: buildRequestSettingsLocators(page),
+  unresolvedVariablesInfo: buildUnresolvedVariablesInfoLocators(page),
   websocket: buildWebsocketCommonLocators(page),
   toast: buildToastLocators(page),
   request: buildRequestLocators(page),
+  setAsVariable: buildSetAsVariableLocators(page),
   responseExample: buildResponseExampleLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
@@ -55,6 +59,7 @@ export const buildCommonLocators = (page: Page) => ({
   sidebar: buildSidebarLocators(page),
   workspaceOverview: buildWorkspaceOverviewLocators(page),
   manageWorkspace: buildManageWorkspaceLocators(page),
+  createWorkspaceModal: buildCreateWorkspaceModalLocators(page),
   cloneGitRepository: buildCloneGitRepositoryLocators(page),
   migrateToYml: buildMigrateToYmlLocators(page),
   environment: buildEnvironmentLocators(page),
@@ -80,6 +85,8 @@ export const buildCommonLocators = (page: Page) => ({
     collectionSettingsTab: () =>
       page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) }),
     activeRequestTab: () => page.locator('.request-tab.active'),
+    leftChevron: () => page.getByLabel('Left Chevron'),
+    scrollContainer: () => page.locator('.tabs-scroll-container'),
     activeRequestTabMethod: () => page.locator('.request-tab.active .tab-method'),
     closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-tab-close-icon'),
     closableTabs: () => page.locator('.request-tab').filter({ has: page.getByTestId('request-tab-close-icon') }),
@@ -98,6 +105,8 @@ export const buildCommonLocators = (page: Page) => ({
     folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
     tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`),
     collectionSettingsContent: () => page.locator('.collection-settings-content'),
+    requestsNotLoadedTable: () => page.getByTestId('requests-not-loaded'),
+    overviewInvalidFilesCount: () => page.getByTestId('info-invalid-files-count'),
     folderSettingsContent: () => page.locator('.folder-settings-content')
   },
   docs: buildDocsLocators(page),
@@ -124,6 +133,8 @@ export const buildCommonLocators = (page: Page) => ({
     footer: () => page.locator('.bruno-modal-footer'),
     submitButton: () => page.locator('.bruno-modal-footer .submit'),
     newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`),
+    newRequestVariableToken: (name: string) =>
+      page.getByTestId('new-request-url').locator('.cm-variable-valid').filter({ hasText: name }).first(),
     backdrop: () => page.locator('.bruno-modal-backdrop')
   },
   openCollectionPicker: {
@@ -143,11 +154,16 @@ export const buildCommonLocators = (page: Page) => ({
     searchInput: () => page.getByTestId('selection-search-input')
   },
   codeMirror: {
+    hint: (name: string) => page.locator('.CodeMirror-hints:visible').getByRole('option', { name, exact: true }),
     byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first(),
     within: (scope: Locator) => scope.locator('.CodeMirror').first(),
     /** Nth row's value-column editor in an EditableTable (Headers / Params / Vars / Assertions). */
     valueCellAt: (scope: Locator, rowIndex: number = 0) =>
-      scope.locator('table tbody tr').nth(rowIndex).getByTestId('column-value').locator('.CodeMirror')
+      scope.locator('table tbody tr').nth(rowIndex).getByTestId('column-value').locator('.CodeMirror'),
+    /** Warning icon beside a sensitive input. `fieldName` is the field or variable name. */
+    sensitiveWarning: (fieldName: string) => page.getByTestId(`sensitive-field-warning-${fieldName}`),
+    sensitiveWarningIn: (root: Locator, fieldName: string) => root.getByTestId(`sensitive-field-warning-${fieldName}`),
+    sensitiveTooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text })
   },
   // The DataTypeSelector exposes a stable trigger per row (request/folder/collection
   // vars + env vars). Compact mode shows an icon; full mode shows `.type-label`.
@@ -189,7 +205,9 @@ export const buildCommonLocators = (page: Page) => ({
     addToSecretCheckbox: (popup: Locator) => popup.getByTestId('var-info-add-to-secret-checkbox'),
     addToNoEnvNote: (popup: Locator, scopeType: 'environment' | 'global') => addToNoEnvNoteLocator(popup, scopeType),
     addToCreateEnvButton: (popup: Locator, scopeType: 'environment' | 'global') =>
-      addToNoEnvNoteLocator(popup, scopeType).getByTestId('var-info-add-to-create-env-button'),
+      addToNoEnvNoteLocator(popup, scopeType)
+        .locator('xpath=..')
+        .getByTestId('var-info-add-to-create-env-button'),
     addToCreateEnvNameInput: (popup: Locator) => popup.getByTestId('var-info-add-to-create-env-name-input'),
     addToCreateEnvSubmit: (popup: Locator) => popup.getByTestId('var-info-add-to-create-env-submit'),
     addToError: (popup: Locator) => popup.getByTestId('var-info-add-to-error')
@@ -274,13 +292,16 @@ export const buildCommonLocators = (page: Page) => ({
     statusCode: () => page.getByTestId('response-status-code'),
     status: () => page.getByTestId('response-pane-status'),
     elapsedTime: () => page.getByTestId('response-elapsed-time'),
+    time: () => page.getByTestId('response-pane-status').getByTestId('response-time'),
     // Rendered by every response pane (http, grpc, ws) only while a response exists, so its
     // absence doubles as the "response is cleared" signal.
     clearButton: () => page.getByTestId('response-clear-btn'),
+    cancelRequestButton: () => page.getByRole('button', { name: 'Cancel Request' }),
     pane: () => page.locator('.response-pane'),
     errorMessage: () => page.getByTestId('response-pane').locator('.error'),
     copyButton: () => page.locator('button[title="Copy response to clipboard"]'),
     body: () => page.locator('.response-pane'),
+    tabContent: () => page.getByTestId('response-tab-content'),
     editorContainer: () => page.locator('.response-pane .editor-container'),
     formatTab: () => page.getByTestId('format-response-tab'),
     formatTabDropdown: () => page.getByTestId('format-response-tab-dropdown'),
@@ -493,41 +514,49 @@ export const buildGrpcCommonLocators = (page: Page) => ({
 });
 
 /**
- * Builds locators for script error display elements
+ * Builds locators for the response errors card
  * @param page - The Playwright page object
- * @returns Object with locators for script error elements
+ * @returns Object with locators for the response errors card elements
  */
-export const buildScriptErrorLocators = (page: Page) => ({
-  /** All error cards on the page */
-  cards: () => page.getByTestId('script-error-card'),
-  /** Nth error card (0-indexed) */
-  card: (index?: number) => {
-    const cards = page.getByTestId('script-error-card');
-    return index !== undefined ? cards.nth(index) : cards.first();
-  },
-  /** Error title within a card */
-  title: (card?: Locator) => (card ?? page).getByTestId('script-error-title'),
-  /** Close button within a card */
-  closeButton: (card?: Locator) => (card ?? page).getByTestId('script-error-close'),
-  expandToggle: (card?: Locator) => (card ?? page).getByTestId('script-error-expand-toggle'),
-  copyButton: (card?: Locator) => (card ?? page).getByTestId('script-error-copy'),
-  body: (card?: Locator) => (card ?? page).getByTestId('script-error-body'),
-  /** Source label within a card */
-  sourceLabel: (card?: Locator) => (card ?? page).getByTestId('script-error-source-label'),
-  /** File path link within a card */
-  filePath: (card?: Locator) => (card ?? page).getByTestId('script-error-file-path'),
-  /** Error message within a card */
-  message: (card?: Locator) => (card ?? page).getByTestId('script-error-message'),
-  /** Code snippet within a card */
-  codeSnippet: (card?: Locator) => (card ?? page).getByTestId('code-snippet'),
-  /** Error-highlighted code line within a card */
-  errorLine: (card?: Locator) => (card ?? page).getByTestId('code-line-error'),
-  /** Stack trace toggle within a card */
-  stackToggle: (card?: Locator) => (card ?? page).getByTestId('script-error-stack-toggle'),
-  /** Stack trace content within a card */
-  stack: (card?: Locator) => (card ?? page).getByTestId('script-error-stack'),
-  /** ScriptErrorIcon (the red alert button shown when card is dismissed) */
-  errorIcon: () => page.getByTestId('script-error-icon')
+export const buildResponseErrorsLocators = (page: Page) => ({
+  /** The response errors card */
+  card: () => page.getByTestId('response-errors-card'),
+  /** Card title: the error title for one error, "N errors" for several */
+  title: (scope?: Locator) => (scope ?? page).getByTestId('response-errors-title'),
+  closeButton: (scope?: Locator) => (scope ?? page).getByTestId('response-errors-close'),
+  fullPaneToggle: (scope?: Locator) => (scope ?? page).getByTestId('response-errors-full-pane-toggle'),
+  /** Expand all / collapse all, shown for several errors */
+  toggleAll: (scope?: Locator) => (scope ?? page).getByTestId('response-errors-toggle-all'),
+  /** Copy button in the header for one error, or within a row */
+  copyButton: (scope?: Locator) => (scope ?? page).getByTestId('response-errors-copy'),
+  /** Scrollable body holding the detail or the rows */
+  body: (scope?: Locator) => (scope ?? page).getByTestId('response-errors-body'),
+  /** All error rows, shown for several errors */
+  rows: () => page.getByTestId('response-errors-row'),
+  /** Nth error row (0-indexed) */
+  row: (index: number) => page.getByTestId('response-errors-row').nth(index),
+  /** Button that opens and closes a row */
+  rowToggle: (row: Locator) => row.getByTestId('response-errors-row-toggle'),
+  /** One-line message preview of a collapsed row */
+  rowPreview: (row: Locator) => row.getByTestId('response-errors-row-preview'),
+  /** Source label within an error detail */
+  sourceLabel: (scope?: Locator) => (scope ?? page).getByTestId('response-errors-source-label'),
+  /** File path link within an error detail */
+  filePath: (scope?: Locator) => (scope ?? page).getByTestId('response-errors-file-path'),
+  /** Error message within an error detail */
+  message: (scope?: Locator) => (scope ?? page).getByTestId('response-errors-message'),
+  /** Code snippet within an error detail */
+  codeSnippet: (scope?: Locator) => (scope ?? page).getByTestId('code-snippet'),
+  /** Error-highlighted code line within an error detail */
+  errorLine: (scope?: Locator) => (scope ?? page).getByTestId('code-line-error'),
+  /** Stack trace toggle within an error detail */
+  stackTraceToggle: (scope?: Locator) => (scope ?? page).getByTestId('response-errors-stack-trace-toggle'),
+  /** Stack trace content within an error detail */
+  stackTrace: (scope?: Locator) => (scope ?? page).getByTestId('response-errors-stack-trace'),
+  /** Tab-bar icon shown while the card is closed */
+  errorIcon: () => page.getByTestId('response-errors-icon'),
+  /** Error count badge on the tab-bar icon */
+  iconCount: () => page.getByTestId('response-errors-icon-count')
 });
 
 /**
