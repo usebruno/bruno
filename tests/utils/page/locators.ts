@@ -100,6 +100,7 @@ export const buildCommonLocators = (page: Page) => ({
     overflowTrigger: (root?: Locator) => (root ?? page).locator('.tabs .more-tabs'),
     // menu is rendered via portal, hence it rooted to page.
     overflowItem: (key: string) => page.getByTestId(`menu-dropdown-${key}`),
+    scriptSubTabsOverflowTrigger: () => page.getByTestId('script-sub-tabs').getByTestId('tabs-overflow-trigger'),
     collectionSettingsTab: (key: string) => page.getByTestId(`collection-settings-tab-${key}`),
     folderSettingsTab: (key: string) => page.getByTestId(`folder-settings-tab-${key}`),
     folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
