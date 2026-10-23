@@ -115,7 +115,7 @@ const InheritedAuth = ({ collection, item, inheritedSource, supportedModes, unsu
 
   return (
     <StyledWrapper>
-      <div className="inherited-auth-fields" data-testid="inherited-auth-fields" aria-disabled="true">
+      <div className="inherited-auth-fields" data-testid="inherited-auth-fields">
         <AuthFields
           authMode={inheritedMode}
           collection={collection}

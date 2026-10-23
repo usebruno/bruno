@@ -220,12 +220,19 @@ export const buildCommonLocators = (page: Page) => ({
     oauth2: {
       grantTypeDropdown: () => page.getByTestId('grant-type-dropdown'),
       tokenHeaderPrefixField: () => page.getByTestId('token-header-prefix'),
-      tokenQueryParamKeyField: () => page.getByTestId('token-query-param-key')
+      tokenQueryParamKeyField: () => page.getByTestId('token-query-param-key'),
+      grantTypeMenu: () => page.getByTestId('grant-type-dropdown-dropdown'),
+      additionalParams: () => page.getByTestId('oauth2-additional-params'),
+      additionalParamsTab: (tab: 'authorization' | 'token' | 'refresh') => page.getByTestId(`oauth2-additional-params-tab-${tab}`),
+      addParameterButton: () => page.getByTestId('oauth2-additional-params-add'),
+      getAccessTokenButton: () => page.getByRole('button', { name: 'Get Access Token' }),
+      clearCacheButton: () => page.getByRole('button', { name: 'Clear Cache' })
     },
     modeSelector: () => page.getByTestId('auth-mode-selector'),
     modeLabel: () => page.getByTestId('auth-mode-label'),
     inheritedMode: () => page.getByTestId('inherited-auth-mode'),
     inheritedFields: () => page.getByTestId('inherited-auth-fields'),
+    inheritedSecretToggle: () => page.getByTestId('inherited-auth-fields').getByTestId('secret-reveal-toggle'),
     dropdownItem: (id: string) => page.getByTestId(`auth-mode-dropdown-${id}`)
   },
   presets: {

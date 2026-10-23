@@ -75,11 +75,12 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection, disable
       </div>
       <div className="inline-flex items-center cursor-pointer grant-type-mode-selector w-fit">
         <MenuDropdown
+          disabled={disabled}
           items={[
-            { id: 'password', label: 'Password Credentials', onClick: () => onGrantTypeChange('password'), disabled },
-            { id: 'authorization_code', label: 'Authorization Code', onClick: () => onGrantTypeChange('authorization_code'), disabled },
-            { id: 'implicit', label: 'Implicit', onClick: () => onGrantTypeChange('implicit'), disabled },
-            { id: 'client_credentials', label: 'Client Credentials', onClick: () => onGrantTypeChange('client_credentials'), disabled }
+            { id: 'password', label: 'Password Credentials', onClick: () => onGrantTypeChange('password') },
+            { id: 'authorization_code', label: 'Authorization Code', onClick: () => onGrantTypeChange('authorization_code') },
+            { id: 'implicit', label: 'Implicit', onClick: () => onGrantTypeChange('implicit') },
+            { id: 'client_credentials', label: 'Client Credentials', onClick: () => onGrantTypeChange('client_credentials') }
           ]}
           data-testid="grant-type-dropdown"
           selectedItemId={oAuth?.grantType}

@@ -143,7 +143,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
             disabled={disabled}
           />
           <label
-            className="block cursor-pointer"
+            className={`block ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
             onClick={(e) => {
               e.preventDefault();
               handleUseSystemBrowserToggle({ target: { checked: !useSystemBrowser } });
@@ -189,6 +189,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         <label className="block min-w-[140px]">Token Source</label>
         <div className="inline-flex items-center cursor-pointer token-placement-selector">
           <MenuDropdown
+            disabled={disabled}
             items={[
               { id: 'access_token', label: 'Access Token', onClick: () => handleChange('tokenSource', 'access_token') },
               { id: 'id_token', label: 'ID Token', onClick: () => handleChange('tokenSource', 'id_token') }
@@ -225,6 +226,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         <label className="block min-w-[140px]">Add Token to</label>
         <div className="inline-flex items-center cursor-pointer token-placement-selector">
           <MenuDropdown
+            disabled={disabled}
             items={[
               { id: 'header', label: 'Headers', onClick: () => handleChange('tokenPlacement', 'header') },
               { id: 'url', label: 'URL', onClick: () => handleChange('tokenPlacement', 'url') }
@@ -312,7 +314,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         handleSave={handleSave}
         disabled={disabled}
       />
-      <Oauth2ActionButtons item={item} request={request} collection={collection} url={interpolatedAuthUrl} credentialsId={credentialsId} disabled={disabled} />
+      {!disabled && <Oauth2ActionButtons item={item} request={request} collection={collection} url={interpolatedAuthUrl} credentialsId={credentialsId} />}
     </Wrapper>
   );
 };

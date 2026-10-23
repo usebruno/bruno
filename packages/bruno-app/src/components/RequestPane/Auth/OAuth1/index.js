@@ -216,6 +216,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
         <label className="block min-w-[140px]">Signature Method</label>
         <div className="inline-flex items-center cursor-pointer oauth1-dropdown-selector">
           <MenuDropdown
+            disabled={disabled}
             items={Object.entries(signatureMethodLabels).map(([value, label]) => ({
               id: value,
               label,
@@ -240,7 +241,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
               <IconFile size={16} className="oauth1-icon flex-shrink-0" />
               <span className="truncate flex-1" title={privateKeyValue}>{fileName}</span>
               <button
-                className="flex-shrink-0 oauth1-icon cursor-pointer"
+                className="flex-shrink-0 oauth1-icon cursor-pointer disabled:cursor-not-allowed"
                 onClick={handleClearFile}
                 title="Clear file"
                 type="button"
@@ -268,7 +269,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
               </div>
               <div className="flex flex-row gap-2">
                 <button
-                  className="flex items-center gap-1 oauth1-icon cursor-pointer text-link"
+                  className="flex items-center gap-1 oauth1-icon cursor-pointer disabled:cursor-not-allowed text-link"
                   onClick={handleBrowse}
                   title="Select File"
                   type="button"
@@ -287,6 +288,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
         <label className="block min-w-[140px]">Add Params To</label>
         <div className="inline-flex items-center cursor-pointer oauth1-dropdown-selector">
           <MenuDropdown
+            disabled={disabled}
             items={Object.entries(placementLabels).map(([value, label]) => ({
               id: value,
               label,
@@ -322,7 +324,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
             onChange={(e) => handleChange('includeBodyHash', e.target.checked)}
           />
           <label
-            className={`block ${disabled ? '' : 'cursor-pointer'}`}
+            className={`block ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
             onClick={(e) => {
               if (disabled) {
                 return;
@@ -339,7 +341,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
       {/* Advanced Section (collapsible) */}
       <button
         type="button"
-        className="flex items-center gap-2.5 mt-2 cursor-pointer select-none auth-section-toggle"
+        className="flex items-center gap-2.5 mt-2 cursor-pointer select-none"
         onClick={() => setAdvancedOpen(!advancedOpen)}
         aria-expanded={advancedOpen}
       >

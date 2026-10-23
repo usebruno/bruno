@@ -105,8 +105,8 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
       </div>
 
       <label className="block mb-1">Add To</label>
-      <div data-testid="auth-placement-selector" className="inline-flex items-center cursor-pointer auth-placement-selector w-fit">
-        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
+      <div data-testid="auth-placement-selector" className={`inline-flex items-center ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} auth-placement-selector w-fit`}>
+        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end" disabled={disabled}>
           <div
             className="dropdown-item"
             onClick={() => {
