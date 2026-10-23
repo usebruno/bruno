@@ -16,7 +16,7 @@ import {
   isItemAFolder,
   isItemARequest
 } from 'utils/collections';
-import { parsePathParams, splitOnFirst } from 'utils/url';
+import { findMatchingQueryParam, parsePathParams, preserveQueryParamMetadata, splitOnFirst } from 'utils/url';
 import { applyScriptEnvVars, getScriptModifiedKeys, preserveVariableUids } from 'utils/environments';
 import { getSubdirectoriesFromRoot } from 'utils/common/platform';
 import toast from 'react-hot-toast';
@@ -1193,16 +1193,14 @@ export const collectionsSlice = createSlice({
 
           // try and connect as much as old params uid's as possible
           each(urlQueryParams, (urlQueryParam) => {
-            const existingQueryParam = find(
-              enabledQueryParams,
-              (p) => p?.name === urlQueryParam?.name || p?.value === urlQueryParam?.value
-            );
+            const existingQueryParam = findMatchingQueryParam(enabledQueryParams, urlQueryParam);
             urlQueryParam.uid = existingQueryParam?.uid || uuid();
             urlQueryParam.enabled = true;
             urlQueryParam.type = 'query';
 
-            // once found, remove it - trying our best here to accommodate duplicate query params
+            // once found, carry over the fields the url does not hold, then remove it - trying our best here to accommodate duplicate query params
             if (existingQueryParam) {
+              preserveQueryParamMetadata(urlQueryParam, existingQueryParam);
               enabledQueryParams = filter(enabledQueryParams, (p) => p?.uid !== existingQueryParam?.uid);
             }
           });

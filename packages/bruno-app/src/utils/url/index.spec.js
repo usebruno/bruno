@@ -1,4 +1,6 @@
 import {
+  findMatchingQueryParam,
+  preserveQueryParamMetadata,
   splitOnFirst,
   parsePathParams,
   interpolateUrl,
@@ -692,5 +694,55 @@ describe('Url Utils - prependDefaultScheme', () => {
 
   it.each([[''], [undefined], [null]])('passes an empty url through untouched — %s', (url) => {
     expect(prependDefaultScheme(url)).toEqual(url);
+  });
+});
+
+describe('Url Utils - preserveQueryParamMetadata', () => {
+  it('copies description and annotations from the existing param', () => {
+    const urlQueryParam = { name: 'page', value: '2' };
+    preserveQueryParamMetadata(urlQueryParam, { name: 'page', value: '1', description: 'page number', annotations: [{ name: 'a' }] });
+
+    expect(urlQueryParam).toEqual({ name: 'page', value: '2', description: 'page number', annotations: [{ name: 'a' }] });
+  });
+
+  it('keeps an empty description and null annotations', () => {
+    const urlQueryParam = { name: 'page', value: '2' };
+    preserveQueryParamMetadata(urlQueryParam, { description: '', annotations: null });
+
+    expect(urlQueryParam).toEqual({ name: 'page', value: '2', description: '', annotations: null });
+  });
+
+  it('does not add keys the existing param does not have', () => {
+    const urlQueryParam = { name: 'page', value: '2' };
+    preserveQueryParamMetadata(urlQueryParam, { name: 'page', value: '1' });
+
+    expect(urlQueryParam).toEqual({ name: 'page', value: '2' });
+  });
+
+  it('leaves the param unchanged when there is no existing param', () => {
+    const urlQueryParam = { name: 'page', value: '2' };
+    preserveQueryParamMetadata(urlQueryParam, undefined);
+
+    expect(urlQueryParam).toEqual({ name: 'page', value: '2' });
+  });
+});
+
+describe('Url Utils - findMatchingQueryParam', () => {
+  const params = [
+    { uid: 'p1', name: 'a', value: 'true' },
+    { uid: 'p2', name: 'b', value: 'true' }
+  ];
+
+  it('prefers a param with the same name over an earlier one with the same value', () => {
+    expect(findMatchingQueryParam(params, { name: 'b', value: 'true' }).uid).toBe('p2');
+  });
+
+  it('falls back to a param with the same value when no name matches', () => {
+    expect(findMatchingQueryParam(params, { name: 'c', value: 'true' }).uid).toBe('p1');
+  });
+
+  it('returns undefined when nothing matches', () => {
+    expect(findMatchingQueryParam(params, { name: 'c', value: 'false' })).toBeUndefined();
+    expect(findMatchingQueryParam(undefined, { name: 'a', value: 'true' })).toBeUndefined();
   });
 });

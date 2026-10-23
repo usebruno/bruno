@@ -6,7 +6,7 @@ import { findItemForExampleEditor,
   isMockResponseEditorItemUid,
   buildMockResponseEditorItem
 } from 'utils/mock-server/mock-responses/editor';
-import { parsePathParams, splitOnFirst } from 'utils/url';
+import { findMatchingQueryParam, parsePathParams, preserveQueryParamMetadata, splitOnFirst } from 'utils/url';
 import statusCodePhraseMap from 'components/ResponsePane/StatusCode/get-status-code-phrase';
 
 export const addResponseExample = (state, action) => {
@@ -609,12 +609,13 @@ export const updateResponseExampleRequestUrl = (state, action) => {
   let newPathParams = [];
 
   each(urlQueryParams, (urlQueryParam) => {
-    const existingQueryParam = find(enabledQueryParams, (p) => p?.name === urlQueryParam?.name || p?.value === urlQueryParam?.value);
+    const existingQueryParam = findMatchingQueryParam(enabledQueryParams, urlQueryParam);
     urlQueryParam.uid = existingQueryParam?.uid || uuid();
     urlQueryParam.enabled = true;
     urlQueryParam.type = 'query';
 
     if (existingQueryParam) {
+      preserveQueryParamMetadata(urlQueryParam, existingQueryParam);
       enabledQueryParams = filter(enabledQueryParams, (p) => p?.uid !== existingQueryParam?.uid);
     }
   });

@@ -110,6 +110,32 @@ export const splitOnFirst = (str, char) => {
   return [str.slice(0, index), str.slice(index + 1)];
 };
 
+/**
+ * Find the existing query param that a param parsed from an edited url replaces.
+ * A param with the same name wins; a param with the same value is only used when no name matches,
+ * so a renamed param keeps its identity without stealing a sibling that merely shares its value.
+ */
+export const findMatchingQueryParam = (existingQueryParams = [], urlQueryParam) => {
+  return (
+    existingQueryParams.find((p) => p?.name === urlQueryParam?.name)
+    || existingQueryParams.find((p) => p?.value === urlQueryParam?.value)
+  );
+};
+
+/**
+ * Copy the fields a query param keeps outside the url (description, annotations)
+ * from the param it replaces when the params are rebuilt from an edited url.
+ */
+export const preserveQueryParamMetadata = (urlQueryParam, existingQueryParam) => {
+  if (existingQueryParam?.description !== undefined) {
+    urlQueryParam.description = existingQueryParam.description;
+  }
+  if (existingQueryParam?.annotations !== undefined) {
+    urlQueryParam.annotations = existingQueryParam.annotations;
+  }
+  return urlQueryParam;
+};
+
 export const isValidUrl = (url) => {
   try {
     new URL(url);
