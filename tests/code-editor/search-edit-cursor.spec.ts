@@ -1,4 +1,4 @@
-import { test, expect, Page } from '../../playwright';
+import { test, expect } from '../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -11,16 +11,16 @@ import {
   closeCodeEditorSearchBar,
   setCodeEditorCursor,
   focusCodeEditor,
-  getCodeEditorState,
-  replaceAndTypeInCodeEditorImmediately,
-  replaceAndCloseCodeEditorSearchBarImmediately
+  getCodeEditorValueAndCursor,
+  replaceMatchThenTypeBeforeSearchRefresh,
+  replaceMatchThenCloseSearchBarBeforeRefresh
 } from '../utils/page';
 
-const EDITOR_ID = 'pre-request-script-editor';
-const COLLECTION = 'search-edit-cursor-test';
-const REQUEST = 'SearchEditCursorRequest';
+const SCRIPT_EDITOR_ID = 'pre-request-script-editor';
+const COLLECTION_NAME = 'search-edit-cursor-test';
+const REQUEST_NAME = 'SearchEditCursorRequest';
 
-const DOC_LINES = [
+const SCRIPT_LINES = [
   'const user = {',
   '  name: \'Ada Lovelace\',',
   '  email: \'ada@example.com\',',
@@ -44,41 +44,36 @@ const DOC_LINES = [
   'req.setHeader(\'X-User\', user.name);',
   'req.setBody(payload);'
 ];
-const FIRST_MATCH_LINE = 1;
-const TWO_MATCH_LINE = 11;
-const NO_MATCH_LINE = 14;
-const NO_MATCH_LINE_END = { line: NO_MATCH_LINE, ch: DOC_LINES[NO_MATCH_LINE].length };
-const EDITED_LINE = `${DOC_LINES[NO_MATCH_LINE]} // named`;
-const EDITED_CURSOR = { line: NO_MATCH_LINE, ch: EDITED_LINE.length };
-const REPLACED_LINE = DOC_LINES[FIRST_MATCH_LINE].replace('name', 'id');
+const SCRIPT = SCRIPT_LINES.join('\n');
 
-const docWith = (edits: Record<number, string>) => DOC_LINES.map((line, i) => edits[i] ?? line).join('\n');
+const SEARCH_TERM = 'name';
+const REPLACEMENT = 'id';
+const TEXT_WITH_NEW_MATCH = ` // ${SEARCH_TERM}`;
+const NEXT_KEYSTROKE = 'd';
 
-async function expectMatchCount(page: Page, expected: string) {
-  const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
-  await expect(loc.matchCount()).toHaveText(expected, { timeout: 1500 });
-}
+const LINE_WITH_FIRST_MATCH = 1;
+const LINE_WITH_TWO_MATCHES = 11;
+const LINE_WITHOUT_MATCH = 14;
+const END_OF_LINE_WITH_TWO_MATCHES = { line: LINE_WITH_TWO_MATCHES, ch: SCRIPT_LINES[LINE_WITH_TWO_MATCHES].length };
+const END_OF_LINE_WITHOUT_MATCH = { line: LINE_WITHOUT_MATCH, ch: SCRIPT_LINES[LINE_WITHOUT_MATCH].length };
 
-async function searchForName(page: Page, openBar = openCodeEditorSearchBar) {
-  await setCodeEditorContent(page, EDITOR_ID, DOC_LINES.join('\n'));
-  await openBar(page, EDITOR_ID);
-  await buildCommonLocators(page).codeEditorSearch(EDITOR_ID).searchInput().fill('name');
-  await expectMatchCount(page, '1 / 4');
-}
+const LINE_WITH_FIRST_MATCH_AFTER_REPLACE = SCRIPT_LINES[LINE_WITH_FIRST_MATCH].replace(SEARCH_TERM, REPLACEMENT);
+const LINE_WITHOUT_MATCH_AFTER_TYPING = `${SCRIPT_LINES[LINE_WITHOUT_MATCH]}${TEXT_WITH_NEW_MATCH}${NEXT_KEYSTROKE}`;
+const CURSOR_AFTER_TYPING = { line: LINE_WITHOUT_MATCH, ch: LINE_WITHOUT_MATCH_AFTER_TYPING.length };
 
-async function expectTypedTextAtCursor(page: Page, value: string) {
-  const state = await getCodeEditorState(page, EDITOR_ID);
-  expect(state.value).toBe(value);
-  expect(state.cursor).toEqual(EDITED_CURSOR);
-  expect(state.hasSelection).toBe(false);
-}
+const scriptWithChangedLines = (changedLines: Record<number, string>) =>
+  SCRIPT_LINES.map((line, index) => changedLines[index] ?? line).join('\n');
 
 test.describe.serial('CodeEditor search: editing while the search bar is open', () => {
   test.beforeAll(async ({ page, createTmpDir }) => {
-    const tmpDir = await createTmpDir('search-edit-cursor');
-    await createCollection(page, COLLECTION, tmpDir);
-    await createRequest(page, REQUEST, COLLECTION);
-    await openPreRequestScriptEditor(page, EDITOR_ID);
+    const collectionLocation = await createTmpDir('search-edit-cursor');
+    await createCollection(page, COLLECTION_NAME, collectionLocation);
+    await createRequest(page, REQUEST_NAME, COLLECTION_NAME);
+    await openPreRequestScriptEditor(page, SCRIPT_EDITOR_ID);
+  });
+
+  test.afterEach(async ({ page }) => {
+    await closeCodeEditorSearchBar(page, SCRIPT_EDITOR_ID);
   });
 
   test.afterAll(async ({ page }) => {
@@ -86,71 +81,101 @@ test.describe.serial('CodeEditor search: editing while the search bar is open', 
   });
 
   test('Edit a line with no match, keep typing', async ({ page }) => {
-    await test.step('Search for "name"', async () => {
-      await searchForName(page);
+    const searchBar = buildCommonLocators(page).codeEditorSearch(SCRIPT_EDITOR_ID);
+    await test.step('Load the script and search for "name"', async () => {
+      await setCodeEditorContent(page, SCRIPT_EDITOR_ID, SCRIPT);
+      await openCodeEditorSearchBar(page, SCRIPT_EDITOR_ID);
+      await searchBar.searchInput().fill(SEARCH_TERM);
+      await expect(searchBar.matchCount()).toHaveText('1 / 4');
     });
-    await test.step('Type a new match on a line without one and wait for the search to refresh', async () => {
-      await setCodeEditorCursor(page, EDITOR_ID, NO_MATCH_LINE_END, true);
-      await page.keyboard.type(' // name');
-      await expectMatchCount(page, '5 / 5');
+    await test.step('Type a new match at the end of a line without one and wait for the search to refresh', async () => {
+      await setCodeEditorCursor(page, SCRIPT_EDITOR_ID, END_OF_LINE_WITHOUT_MATCH, true);
+      await page.keyboard.type(TEXT_WITH_NEW_MATCH);
+      await expect(searchBar.matchCount()).toHaveText('5 / 5');
     });
     await test.step('Keep typing: text lands at the cursor and no match is overwritten', async () => {
-      await page.keyboard.type('d');
-      await expectTypedTextAtCursor(page, docWith({ [NO_MATCH_LINE]: EDITED_LINE }));
+      await page.keyboard.type(NEXT_KEYSTROKE);
+      expect(await getCodeEditorValueAndCursor(page, SCRIPT_EDITOR_ID)).toEqual({
+        value: scriptWithChangedLines({ [LINE_WITHOUT_MATCH]: LINE_WITHOUT_MATCH_AFTER_TYPING }),
+        cursor: CURSOR_AFTER_TYPING,
+        hasSelection: false
+      });
     });
-    await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('Edit past two matches on a line', async ({ page }) => {
-    await test.step('Search for "name"', async () => {
-      await searchForName(page);
+    const searchBar = buildCommonLocators(page).codeEditorSearch(SCRIPT_EDITOR_ID);
+    await test.step('Load the script and search for "name"', async () => {
+      await setCodeEditorContent(page, SCRIPT_EDITOR_ID, SCRIPT);
+      await openCodeEditorSearchBar(page, SCRIPT_EDITOR_ID);
+      await searchBar.searchInput().fill(SEARCH_TERM);
+      await expect(searchBar.matchCount()).toHaveText('1 / 4');
     });
     await test.step('Type a new match and more text after it at the end of the line with two matches', async () => {
-      await setCodeEditorCursor(page, EDITOR_ID, { line: TWO_MATCH_LINE, ch: DOC_LINES[TWO_MATCH_LINE].length }, true);
-      await page.keyboard.type(' // name x');
+      await setCodeEditorCursor(page, SCRIPT_EDITOR_ID, END_OF_LINE_WITH_TWO_MATCHES, true);
+      await page.keyboard.type(`${TEXT_WITH_NEW_MATCH} x`);
     });
     await test.step('Current match is the first one at or after the cursor', async () => {
-      await expectMatchCount(page, '5 / 5');
+      await expect(searchBar.matchCount()).toHaveText('5 / 5');
     });
-    await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('Edit within 100ms of Replace', async ({ page }) => {
-    await test.step('Search for "name" with "id" as the replacement', async () => {
-      await searchForName(page, openCodeEditorReplaceBar);
-      await buildCommonLocators(page).codeEditorSearch(EDITOR_ID).replaceInput().fill('id');
+    const searchBar = buildCommonLocators(page).codeEditorSearch(SCRIPT_EDITOR_ID);
+    await test.step('Load the script and search for "name" with "id" as the replacement', async () => {
+      await setCodeEditorContent(page, SCRIPT_EDITOR_ID, SCRIPT);
+      await openCodeEditorReplaceBar(page, SCRIPT_EDITOR_ID);
+      await searchBar.searchInput().fill(SEARCH_TERM);
+      await expect(searchBar.matchCount()).toHaveText('1 / 4');
+      await searchBar.replaceInput().fill(REPLACEMENT);
     });
-    await test.step('Replace and, within 100ms, type a new match on a line without one', async () => {
-      await replaceAndTypeInCodeEditorImmediately(page, EDITOR_ID, NO_MATCH_LINE_END, ' // name');
-      await expectMatchCount(page, '4 / 4');
+    await test.step('Replace and, within 100ms, type a new match at the end of a line without one', async () => {
+      await replaceMatchThenTypeBeforeSearchRefresh(page, SCRIPT_EDITOR_ID, END_OF_LINE_WITHOUT_MATCH, TEXT_WITH_NEW_MATCH);
+      await expect(searchBar.matchCount()).toHaveText('4 / 4');
     });
     await test.step('Keep typing: text lands at the cursor and no match is overwritten', async () => {
-      await focusCodeEditor(page, EDITOR_ID);
-      await page.keyboard.type('d');
-      await expectTypedTextAtCursor(page, docWith({ [FIRST_MATCH_LINE]: REPLACED_LINE, [NO_MATCH_LINE]: EDITED_LINE }));
+      await focusCodeEditor(page, SCRIPT_EDITOR_ID);
+      await page.keyboard.type(NEXT_KEYSTROKE);
+      expect(await getCodeEditorValueAndCursor(page, SCRIPT_EDITOR_ID)).toEqual({
+        value: scriptWithChangedLines({
+          [LINE_WITH_FIRST_MATCH]: LINE_WITH_FIRST_MATCH_AFTER_REPLACE,
+          [LINE_WITHOUT_MATCH]: LINE_WITHOUT_MATCH_AFTER_TYPING
+        }),
+        cursor: CURSOR_AFTER_TYPING,
+        hasSelection: false
+      });
     });
-    await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('Replace, close the search bar within 100ms, reopen, edit', async ({ page }) => {
-    await test.step('Search for "name" with "id" as the replacement', async () => {
-      await searchForName(page, openCodeEditorReplaceBar);
-      await buildCommonLocators(page).codeEditorSearch(EDITOR_ID).replaceInput().fill('id');
+    const searchBar = buildCommonLocators(page).codeEditorSearch(SCRIPT_EDITOR_ID);
+    await test.step('Load the script and search for "name" with "id" as the replacement', async () => {
+      await setCodeEditorContent(page, SCRIPT_EDITOR_ID, SCRIPT);
+      await openCodeEditorReplaceBar(page, SCRIPT_EDITOR_ID);
+      await searchBar.searchInput().fill(SEARCH_TERM);
+      await expect(searchBar.matchCount()).toHaveText('1 / 4');
+      await searchBar.replaceInput().fill(REPLACEMENT);
     });
     await test.step('Replace and close the search bar within 100ms', async () => {
-      await replaceAndCloseCodeEditorSearchBarImmediately(page, EDITOR_ID);
+      await replaceMatchThenCloseSearchBarBeforeRefresh(page, SCRIPT_EDITOR_ID);
     });
-    await test.step('Reopen the search bar and type a new match on a line without one', async () => {
-      await openCodeEditorSearchBar(page, EDITOR_ID);
-      await expectMatchCount(page, '1 / 3');
-      await setCodeEditorCursor(page, EDITOR_ID, NO_MATCH_LINE_END, true);
-      await page.keyboard.type(' // name');
-      await expectMatchCount(page, '4 / 4');
+    await test.step('Reopen the search bar and type a new match at the end of a line without one', async () => {
+      await openCodeEditorSearchBar(page, SCRIPT_EDITOR_ID);
+      await expect(searchBar.matchCount()).toHaveText('1 / 3');
+      await setCodeEditorCursor(page, SCRIPT_EDITOR_ID, END_OF_LINE_WITHOUT_MATCH, true);
+      await page.keyboard.type(TEXT_WITH_NEW_MATCH);
+      await expect(searchBar.matchCount()).toHaveText('4 / 4');
     });
     await test.step('Keep typing: text lands at the cursor and no match is overwritten', async () => {
-      await page.keyboard.type('d');
-      await expectTypedTextAtCursor(page, docWith({ [FIRST_MATCH_LINE]: REPLACED_LINE, [NO_MATCH_LINE]: EDITED_LINE }));
+      await page.keyboard.type(NEXT_KEYSTROKE);
+      expect(await getCodeEditorValueAndCursor(page, SCRIPT_EDITOR_ID)).toEqual({
+        value: scriptWithChangedLines({
+          [LINE_WITH_FIRST_MATCH]: LINE_WITH_FIRST_MATCH_AFTER_REPLACE,
+          [LINE_WITHOUT_MATCH]: LINE_WITHOUT_MATCH_AFTER_TYPING
+        }),
+        cursor: CURSOR_AFTER_TYPING,
+        hasSelection: false
+      });
     });
-    await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 });
