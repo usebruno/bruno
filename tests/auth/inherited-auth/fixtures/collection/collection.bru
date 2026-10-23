@@ -1,0 +1,35 @@
+auth {
+  mode: oauth2
+}
+
+auth:oauth2 {
+  grant_type: authorization_code
+  callback_url: http://localhost:8081/callback
+  authorization_url: http://localhost:8081/authorize
+  access_token_url: http://localhost:8081/token
+  refresh_token_url: 
+  client_id: inherited-client-id
+  client_secret: inherited-client-secret
+  scope: 
+  state: 
+  pkce: false
+  credentials_placement: body
+  credentials_id: credentials
+  token_source: access_token
+  token_placement: header
+  token_header_prefix: Bearer
+  auto_fetch_token: true
+  auto_refresh_token: false
+}
+
+auth:oauth2:additional_params:auth_req:headers {
+  auth-header-key: auth-header-value
+}
+
+auth:oauth2:additional_params:access_token_req:body {
+  token-body-key: token-body-value
+}
+
+auth:oauth2:additional_params:refresh_token_req:queryparams {
+  refresh-query-key: refresh-query-value
+}

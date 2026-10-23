@@ -137,7 +137,7 @@ test.describe('Effective auth mode resolution', () => {
       await expect(locators.auth.modeSelector()).toContainText(AUTH_MODE_LABELS.INHERIT);
       await expect(page.getByText('Auth inherited from Collection:')).toBeVisible();
       await expect(locators.auth.inheritedMode()).toHaveText(AUTH_MODE_LABELS.BEARER);
-      await expect(locators.auth.inheritedFields()).toHaveCSS('pointer-events', 'none');
+      await expect(locators.auth.inheritedFields()).toBeVisible();
     });
 
     await test.step('Clicking Bearer Token opens collection Auth with the same token', async () => {

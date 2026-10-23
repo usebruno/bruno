@@ -138,7 +138,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
   };
 
   // Add a class to the Add Parameter button if it's disabled
-  const addButtonDisabled = disabled || hasEmptyRow();
+  const addButtonDisabled = hasEmptyRow();
 
   // Define available tabs for each grant type
   const getAvailableTabs = (grantType) => {
@@ -157,6 +157,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
     <div
       key={tabKey}
       className={`tab ${activeTab === tabKey ? 'active' : ''}`}
+      data-testid={`oauth2-additional-params-tab-${tabKey}`}
       onClick={() => setActiveTab(tabKey)}
     >
       {tabLabel}
@@ -164,7 +165,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
   );
 
   return (
-    <StyledWrapper className="mt-4 oauth2-additional-params-wrapper">
+    <StyledWrapper className="mt-4 oauth2-additional-params-wrapper" data-testid="oauth2-additional-params">
       <div className="flex items-center gap-2.5 mb-3">
         <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
           <IconAdjustmentsHorizontal size={14} className="oauth2-icon" />
@@ -235,7 +236,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
                         value: e.target.value
                       });
                     }}
-                    className="mousetrap bg-transparent"
+                    className="mousetrap bg-transparent disabled:cursor-not-allowed"
                     disabled={disabled}
                   >
                     {sendInOptionsMap[grantType || 'authorization_code'][activeTab].map((optionValue) => (
@@ -265,6 +266,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
                   />
                   <button
                     tabIndex="-1"
+                    className="disabled:cursor-not-allowed"
                     disabled={disabled}
                     onClick={() => {
                       handleDeleteAdditionalParam({
@@ -282,13 +284,17 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
           )}
         </tbody>
       </Table>
-      <div
-        className={`add-additional-param-actions w-fit flex items-center mt-2 ${addButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-        onClick={addButtonDisabled ? null : handleAddNewAdditionalParam}
-      >
-        <IconPlus size={16} strokeWidth={1.5} style={{ marginLeft: '2px' }} />
-        <span className="ml-1 text-gray-500">Add Parameter</span>
-      </div>
+      {!disabled && (
+        <button
+          type="button"
+          className={`add-additional-param-actions w-fit flex items-center mt-2 ${addButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          disabled={addButtonDisabled}
+          onClick={handleAddNewAdditionalParam}
+        >
+          <IconPlus size={16} strokeWidth={1.5} style={{ marginLeft: '2px' }} />
+          <span className="ml-1 text-gray-500">Add Parameter</span>
+        </button>
+      )}
     </StyledWrapper>
   );
 };

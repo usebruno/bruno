@@ -185,7 +185,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
             disabled={disabled}
           />
           <label
-            className="block cursor-pointer"
+            className={`block ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
             onClick={(e) => {
               e.preventDefault();
               handleUseSystemBrowserToggle({ target: { checked: !useSystemBrowser } });
@@ -233,8 +233,9 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
       })}
       <div className="flex items-center gap-4 w-full" key="input-credentials-placement">
         <label className="block min-w-[140px]">Add Credentials to</label>
-        <div className="inline-flex items-center cursor-pointer token-placement-selector">
+        <div className={`inline-flex items-center ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} token-placement-selector`}>
           <MenuDropdown
+            disabled={disabled}
             items={[
               { id: 'body', label: 'Request Body', onClick: () => handleChange('credentialsPlacement', 'body') },
               { id: 'basic_auth_header', label: 'Basic Auth Header', onClick: () => handleChange('credentialsPlacement', 'basic_auth_header') }
@@ -269,8 +270,9 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
       </div>
       <div className="flex items-center gap-4 w-full" key="input-token-type">
         <label className="block min-w-[140px]">Token Source</label>
-        <div className="inline-flex items-center cursor-pointer token-placement-selector">
+        <div className={`inline-flex items-center ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} token-placement-selector`}>
           <MenuDropdown
+            disabled={disabled}
             items={[
               { id: 'access_token', label: 'Access Token', onClick: () => handleChange('tokenSource', 'access_token') },
               { id: 'id_token', label: 'ID Token', onClick: () => handleChange('tokenSource', 'id_token') }
@@ -303,8 +305,9 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
       </div>
       <div className="flex items-center gap-4 w-full" key="input-token-placement">
         <label className="block min-w-[140px]">Add token to</label>
-        <div className="inline-flex items-center cursor-pointer token-placement-selector">
+        <div className={`inline-flex items-center ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} token-placement-selector`}>
           <MenuDropdown
+            disabled={disabled}
             items={[
               { id: 'header', label: 'Header', onClick: () => handleChange('tokenPlacement', 'header') },
               { id: 'url', label: 'URL', onClick: () => handleChange('tokenPlacement', 'url') }
@@ -437,7 +440,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         handleSave={handleSave}
         disabled={disabled}
       />
-      <Oauth2ActionButtons item={item} request={request} collection={collection} url={accessTokenUrl} credentialsId={credentialsId} disabled={disabled} />
+      {!disabled && <Oauth2ActionButtons item={item} request={request} collection={collection} url={accessTokenUrl} credentialsId={credentialsId} />}
     </StyledWrapper>
   );
 };

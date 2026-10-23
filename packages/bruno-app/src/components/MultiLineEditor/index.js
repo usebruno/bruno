@@ -372,9 +372,6 @@ class MultiLineEditor extends Component {
    * @brief Toggle the visibility of the secret value
    */
   toggleVisibleSecret = () => {
-    if (this.props.readOnly) {
-      return;
-    }
     const maskInput = !this.state.maskInput;
     this.setState({ maskInput }, () => {
       this._enableMaskedEditor(maskInput);
@@ -392,8 +389,6 @@ class MultiLineEditor extends Component {
         type="button"
         className="mx-2"
         data-testid="secret-reveal-toggle"
-        disabled={this.props.readOnly}
-        tabIndex={this.props.readOnly ? -1 : 0}
         onClick={() => this.toggleVisibleSecret()}
       >
         {this.state.maskInput === true ? (
