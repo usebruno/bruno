@@ -13,12 +13,15 @@ const collectionTabs: CollectionTab[] = [
   { key: 'headers', label: 'Headers', contentTestId: 'bulk-edit-toggle' },
   { key: 'vars', label: 'Vars', contentTestId: 'collection-vars-panel' },
   { key: 'auth', label: 'Auth', contentTestId: 'auth-mode-selector' },
-  { key: 'script', label: 'Script', contentTestId: 'collection-pre-request-script-editor' },
+  {
+    key: 'script',
+    label: 'Script',
+    contentText: 'Write pre and post-request scripts that will run before and after any request in this collection is sent.'
+  },
   { key: 'tests', label: 'Tests', contentText: 'These tests will run any time a request in this collection is sent.' },
   { key: 'presets', label: 'Presets', contentTestId: 'presets-save-btn' },
-  { key: 'proxy', label: 'Proxy', contentTestId: 'collection-proxy-hostname' },
+  { key: 'proxy', label: 'Proxy', contentText: 'Configure proxy settings for this collection.' },
   { key: 'clientCert', label: 'Client Certificates', contentTestId: 'client-cert-save-btn' },
-  { key: 'secrets', label: 'Secrets', contentText: 'Secret manager configuration has been migrated to Environments' },
   { key: 'protobuf', label: 'Protobuf', contentTestId: 'protobuf-proto-files-section' }
 ];
 
