@@ -21,6 +21,14 @@ const ReviewStep = ({
   setResolutions
 }) => {
   const [searchText, setSearchText] = useState('');
+
+  const handleSearchKeyDown = useCallback((e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, []);
+
   const [expandedGroups, setExpandedGroups] = useState({ [ENV_STATUS.INVALID]: true, [ENV_STATUS.DUPLICATE]: true, [ENV_STATUS.NEW]: true });
 
   const newEnvs = useMemo(() => items.filter((env) => env.status === ENV_STATUS.NEW), [items]);
@@ -31,10 +39,12 @@ const ReviewStep = ({
   const totalParsedCount = totalEnvironments + invalidEnvs.length;
   const isConfirmDisabled = selected.size === 0 || isImporting;
 
-  const normalizedSearchText = searchText.toLowerCase();
-  const matchesSearch = useCallback((env) =>
-    env.name?.toLowerCase().includes(normalizedSearchText) || env.fileName?.toLowerCase().includes(normalizedSearchText),
-  [normalizedSearchText]);
+  const normalizedSearchText = searchText.trim().toLowerCase();
+  // Match only what the row displays: the name for importable envs, the file name for unreadable files.
+  const matchesSearch = useCallback((env) => {
+    const label = env.status === ENV_STATUS.INVALID ? env.fileName : env.name;
+    return String(label ?? '').toLowerCase().includes(normalizedSearchText);
+  }, [normalizedSearchText]);
 
   const filteredNew = useMemo(() => newEnvs.filter(matchesSearch), [newEnvs, matchesSearch]);
   const filteredDuplicates = useMemo(() => duplicateEnvs.filter(matchesSearch), [duplicateEnvs, matchesSearch]);
@@ -131,6 +141,7 @@ const ReviewStep = ({
                       leftIconClassName="!pl-2"
                       data-testid="env-search-input"
                       autoFocus={false}
+                      onKeyDown={handleSearchKeyDown}
                       inputClassName="text-[13px]"
                       iconSize={14}
                     />
