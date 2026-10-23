@@ -1,12 +1,17 @@
 import each from 'lodash/each';
 import get from 'lodash/get';
+import isPlainObject from 'lodash/isPlainObject';
+import omit from 'lodash/omit';
 import jsyaml from 'js-yaml';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid, sanitizeTag, sanitizeTags } from '../common';
 import { swagger2ToBruno } from './swagger2-to-bruno';
+import { resolveSchemaComposition, registerComponentNames, registerReferencePlaceholder } from './schema-composition';
 import {
   ensureUrl,
   BODY_TYPE_HANDLERS,
   getExampleFromSchema,
+  getExpandableObjectSchema,
+  resetExampleGenerationState,
   createBrunoExample,
   groupRequestsByTags,
   groupRequestsByPath,
@@ -29,6 +34,18 @@ const getSchemaPropertyExampleValue = (prop, propName, parentExample = {}) => {
   if (prop.default !== undefined) return String(prop.default);
   if (prop.enum && prop.enum.length > 0) return String(prop.enum[0]);
   return '';
+};
+
+const withoutObjectValues = (schema) => {
+  if (!schema || typeof schema !== 'object') return schema;
+  const objectValued = ['example', 'default'].filter((keyword) => isPlainObject(schema[keyword]));
+  return objectValued.length > 0 ? omit(schema, objectValued) : schema;
+};
+
+const resolveParameterSchema = (rawSchema) => {
+  const schema = resolveSchemaComposition(rawSchema || {}) || {};
+  const items = resolveSchemaComposition(schema.items);
+  return items === schema.items ? schema : { ...schema, items: withoutObjectValues(items) };
 };
 
 const serializeParamValue = (value) => {
@@ -101,8 +118,7 @@ const namedExampleValue = (example) => {
   return example.dataValue !== undefined ? example.dataValue : example.value;
 };
 
-const declaredParamValues = (param) => {
-  const schema = param.schema || {};
+const declaredParamValues = (param, schema) => {
   const namedExampleValues = Object.values(param.examples || {}).map(namedExampleValue);
 
   return [
@@ -114,8 +130,8 @@ const declaredParamValues = (param) => {
   ];
 };
 
-const entriesFromDeclaredValues = (param) => {
-  for (const value of declaredParamValues(param)) {
+const entriesFromDeclaredValues = (param, schema) => {
+  for (const value of declaredParamValues(param, schema)) {
     if (value === undefined) {
       continue;
     }
@@ -135,7 +151,7 @@ const entriesFromDeclaredValues = (param) => {
  * @returns {Array} - Entries of `{ value, enabled }`, plus `name` where a member overrides it
  */
 const getParameterEntries = (param, fallbackValue) => {
-  const schema = param.schema || {};
+  const schema = resolveParameterSchema(param.schema);
   const entries = [];
 
   // Handle enum parameters - create entry for each enum value
@@ -161,7 +177,7 @@ const getParameterEntries = (param, fallbackValue) => {
   if (schema.type === 'array' && schema.items && schema.items.enum && Array.isArray(schema.items.enum) && schema.items.enum.length > 0) {
     const defaultValue = schema.items.default !== undefined ? String(schema.items.default) : null;
 
-    const declaredEntries = entriesFromDeclaredValues(param);
+    const declaredEntries = entriesFromDeclaredValues(param, schema);
     if (declaredEntries) {
       return declaredEntries;
     }
@@ -181,12 +197,12 @@ const getParameterEntries = (param, fallbackValue) => {
     return entries;
   }
 
-  const declaredEntries = entriesFromDeclaredValues(param);
+  const declaredEntries = entriesFromDeclaredValues(param, schema);
   if (declaredEntries) {
     return declaredEntries;
   }
 
-  let enabled = param.required || declaredParamValues(param).some((value) => value !== undefined);
+  let enabled = param.required || declaredParamValues(param, schema).some((value) => value !== undefined);
 
   if (fallbackValue !== undefined) {
     const fallbackEntries = paramEntriesFromValue(fallbackValue, param);
@@ -228,15 +244,16 @@ const declaresValue = (schema) =>
   || (Array.isArray(schema.examples) && schema.examples.length > 0)
   || (Array.isArray(schema.enum) && schema.enum.length > 0);
 
-const objectValueFromSchema = (param) => {
-  const schemaExample = param.schema.example || {};
+const objectValueFromSchema = (param, schema) => {
+  const schemaExample = schema.example || {};
   const value = {};
 
-  each(param.schema.properties, (prop, propName) => {
+  each(schema.properties, (rawProp, propName) => {
+    const prop = resolveSchemaComposition(rawProp) || {};
     const propSchema = (prop.example === undefined && schemaExample[propName] !== undefined)
       ? { ...prop, example: schemaExample[propName] }
       : prop;
-    const isRequired = Array.isArray(param.schema.required) && param.schema.required.includes(propName);
+    const isRequired = Array.isArray(schema.required) && schema.required.includes(propName);
     const entries = getParameterEntries({
       ...param, example: undefined, examples: undefined, name: propName, schema: propSchema, required: isRequired
     });
@@ -332,15 +349,16 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
   }
 
   each(_operationObject.parameters || [], (param) => {
-    const isObjectSchema = param.schema && param.schema.properties;
-    const expandsIntoOwnParams = isObjectSchema && (param.in === 'query' || param.in === 'querystring');
+    const paramSchema = getExpandableObjectSchema(param);
+    const expandsIntoOwnParams = paramSchema && (param.in === 'query' || param.in === 'querystring');
 
     if (expandsIntoOwnParams) {
       // Expand object schema properties into individual parameters
-      const schemaExample = param.schema.example || {};
+      const schemaExample = paramSchema.example || {};
 
-      each(param.schema.properties, (prop, propName) => {
-        const isRequired = Array.isArray(param.schema.required) && param.schema.required.includes(propName);
+      each(paramSchema.properties, (rawProp, propName) => {
+        const prop = resolveSchemaComposition(rawProp) || {};
+        const isRequired = Array.isArray(paramSchema.required) && paramSchema.required.includes(propName);
 
         // Create a temporary parameter object for getParameterEntries
         // Enrich property with parent example context if property lacks its own example
@@ -383,8 +401,8 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
         });
       });
     } else {
-      const entries = isObjectSchema
-        ? getParameterEntries(param, objectValueFromSchema(param))
+      const entries = paramSchema
+        ? getParameterEntries(param, objectValueFromSchema(param, paramSchema))
         : getParameterEntries(param);
 
       entries.forEach((entry) => {
@@ -526,7 +544,6 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
     }
   }
 
-  // TODO: handle allOf/anyOf/oneOf
   if (_operationObject.requestBody) {
     const content = get(_operationObject, 'requestBody.content', {});
     const mimeType = Object.keys(content)[0];
@@ -805,9 +822,11 @@ const resolveRefs = (spec, components = spec?.components, cache = new Map()) => 
         }
       }
 
-      cache.set(refPath, {});
+      const placeholder = {};
+      cache.set(refPath, placeholder);
       const resolved = resolveRefs(ref, components, cache);
       cache.set(refPath, resolved);
+      registerReferencePlaceholder(placeholder, resolved);
       return resolved;
     }
     return spec;
@@ -894,11 +913,13 @@ export const parseOpenApiCollection = (data, options = {}) => {
     environments: []
   };
   try {
+    resetExampleGenerationState();
     const collectionData = resolveRefs(data);
     if (!collectionData) {
       throw new Error('Invalid OpenAPI collection. Failed to resolve refs.');
       return;
     }
+    registerComponentNames(collectionData.components?.schemas);
 
     // Currently parsing of openapi spec is "do your best", that is
     // allows "invalid" openapi spec
