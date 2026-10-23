@@ -18,9 +18,11 @@ jest.mock('ws', () => {
     static CLOSING = CLOSING;
     static CLOSED = CLOSED;
 
-    constructor(url) {
+    constructor(url, protocols, options) {
       super();
       this.url = url;
+      this.protocols = protocols;
+      this.options = options;
       this.readyState = CONNECTING;
       this.sent = [];
       mockSockets.push(this);
@@ -63,7 +65,7 @@ jest.mock('hexy', () => ({
   hexy: (data) => String(data)
 }));
 
-const { WsClient } = require('./ws-client');
+const { WsClient, getSubprotocolsFromHeaders } = require('./ws-client');
 
 describe('WsClient', () => {
   let client;
@@ -500,5 +502,58 @@ describe('WsClient', () => {
       expect(events.filter((e) => e.eventName === 'main:ws:close')).toHaveLength(0);
       expect(client.connectionStatus('req-1')).toBe('connecting');
     });
+  });
+
+  describe('subprotocols', () => {
+    const startWithHeaders = (headers) =>
+      client.startConnection({
+        request: { uid: 'req-proto', url: 'ws://localhost:9', headers },
+        collection: { uid: 'col-1' },
+        options: {}
+      });
+
+    it('passes each comma separated subprotocol once when the header name is lowercase', async () => {
+      // ws-event-handlers adds a canonical Sec-WebSocket-Protocol key next to the one the user typed
+      await startWithHeaders({
+        'sec-websocket-protocol': 'actioncable-v1-json, actioncable-unsupported',
+        'Sec-WebSocket-Protocol': 'actioncable-v1-json, actioncable-unsupported'
+      });
+
+      expect(mockSockets[0].protocols).toEqual(['actioncable-v1-json', 'actioncable-unsupported']);
+    });
+
+    it('passes no subprotocols when none are requested', async () => {
+      await startWithHeaders({ 'X-Other': 'value' });
+
+      expect(mockSockets[0].protocols).toEqual([]);
+    });
+  });
+});
+
+describe('getSubprotocolsFromHeaders', () => {
+  it('matches the header name case-insensitively', () => {
+    expect(getSubprotocolsFromHeaders({ 'SEC-WEBSOCKET-PROTOCOL': 'mqtt' })).toEqual(['mqtt']);
+  });
+
+  it('splits and trims comma separated values', () => {
+    expect(getSubprotocolsFromHeaders({ 'Sec-WebSocket-Protocol': ' mqtt ,wamp' })).toEqual(['mqtt', 'wamp']);
+  });
+
+  it('drops duplicates across header keys and within a value', () => {
+    expect(
+      getSubprotocolsFromHeaders({
+        'sec-websocket-protocol': 'mqtt, wamp',
+        'Sec-WebSocket-Protocol': 'mqtt,wamp,mqtt'
+      })
+    ).toEqual(['mqtt', 'wamp']);
+  });
+
+  it('drops empty entries left by stray commas', () => {
+    expect(getSubprotocolsFromHeaders({ 'Sec-WebSocket-Protocol': 'mqtt,, wamp,' })).toEqual(['mqtt', 'wamp']);
+  });
+
+  it('returns an empty list when there are no headers', () => {
+    expect(getSubprotocolsFromHeaders()).toEqual([]);
+    expect(getSubprotocolsFromHeaders({ 'Content-Type': 'text/plain' })).toEqual([]);
   });
 });
