@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('path');
 const { get } = require('lodash');
-const { getCACertificates } = require('@usebruno/requests');
+const { getCACertificates, matchesClientCertDomain } = require('@usebruno/requests');
 const { preferencesUtil } = require('../../store/preferences');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { getCachedSystemProxy } = require('../../store/system-proxy');
@@ -77,10 +77,8 @@ const getCertsAndProxyConfig = async ({
     const domain = interpolateString(clientCert?.domain, interpolationOptions);
     const type = clientCert?.type || 'cert';
     if (domain) {
-      const hostRegex = '^(https:\\/\\/|grpc:\\/\\/|grpcs:\\/\\/|ws:\\/\\/|wss:\\/\\/)?'
-        + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
       const requestUrl = interpolateString(request.url, interpolationOptions);
-      if (requestUrl && requestUrl.match(hostRegex)) {
+      if (requestUrl && matchesClientCertDomain(domain, requestUrl)) {
         if (type === 'cert') {
           try {
             let certFilePath = interpolateString(clientCert?.certFilePath, interpolationOptions);
