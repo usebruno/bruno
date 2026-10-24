@@ -136,6 +136,20 @@ export const setCodeEditorCursor = async (
 };
 
 /**
+ * Open response search without clearing its persisted query or options.
+ * Clear the editor selection so Cmd/Ctrl+F does not replace a saved regex with
+ * the previously selected match.
+ */
+export const openResponseBodySearchBar = async (page: Page) => {
+  const editorId = 'response-preview-container';
+  const loc = buildCodeEditorSearchLocators(page, editorId);
+  await loc.codeMirror().waitFor({ state: 'visible' });
+  await setCodeEditorCursor(page, editorId, { line: 0, ch: 0 }, true);
+  await page.keyboard.press(`${cmdKey}+f`);
+  await loc.searchBar().waitFor({ state: 'visible' });
+};
+
+/**
  * Set a text selection in the editor and focus it so that Cmd+F pre-fills with the selected text.
  */
 export const setCodeEditorSelection = async (

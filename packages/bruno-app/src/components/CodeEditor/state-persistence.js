@@ -19,10 +19,19 @@
 export const STORAGE_PREFIX = 'persisted::';
 export const DEFAULT_PERSISTENCE_SCOPE = 'global';
 export const STORAGE_SEGMENT = 'codeeditor';
+export const SEARCH_STORAGE_SEGMENT = 'codeeditor-search';
+
+// Search terms can contain response credentials and must not outlive the renderer session.
+const searchStates = new Map();
 
 export const getScopedStorageKey = (scope, key) => {
   const resolvedScope = scope || DEFAULT_PERSISTENCE_SCOPE;
   return `${STORAGE_PREFIX}${resolvedScope}::${STORAGE_SEGMENT}::${key}`;
+};
+
+export const getScopedSearchStorageKey = (scope, key) => {
+  const resolvedScope = scope || DEFAULT_PERSISTENCE_SCOPE;
+  return `${STORAGE_PREFIX}${resolvedScope}::${SEARCH_STORAGE_SEGMENT}::${key}`;
 };
 
 // Identifies which Doc state belongs to a given CodeEditor instance.
@@ -43,18 +52,17 @@ export const getDocKey = (props) => {
   return `${id}:${mode}:${readOnly}`;
 };
 
-export const readPersistedEditorState = ({ scope, key }) => {
+const readPersistedState = (storageKey) => {
   try {
-    const raw = localStorage.getItem(getScopedStorageKey(scope, key));
+    const raw = localStorage.getItem(storageKey);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 };
 
-export const writePersistedEditorState = ({ scope, key, state }) => {
+const writePersistedState = (storageKey, state) => {
   try {
-    const storageKey = getScopedStorageKey(scope, key);
     if (state == null) {
       localStorage.removeItem(storageKey);
     } else {
@@ -63,6 +71,35 @@ export const writePersistedEditorState = ({ scope, key, state }) => {
   } catch {
     // localStorage may be unavailable or full (Chromium ~10 MB cap). Editor
     // state is non-critical — content lives in Redux — so silently ignore.
+  }
+};
+
+export const readPersistedEditorState = ({ scope, key }) =>
+  readPersistedState(getScopedStorageKey(scope, key));
+
+export const writePersistedEditorState = ({ scope, key, state }) =>
+  writePersistedState(getScopedStorageKey(scope, key), state);
+
+export const readPersistedSearchState = ({ scope, key }) => {
+  const state = searchStates.get(getScopedSearchStorageKey(scope, key));
+  return state ? { ...state } : null;
+};
+
+export const writePersistedSearchState = ({ scope, key, state }) => {
+  const storageKey = getScopedSearchStorageKey(scope, key);
+  if (state === null || state === undefined) {
+    searchStates.delete(storageKey);
+  } else {
+    searchStates.set(storageKey, { ...state });
+  }
+};
+
+export const clearPersistedSearchScope = (scope) => {
+  const prefix = scope ? `${STORAGE_PREFIX}${scope}::` : STORAGE_PREFIX;
+  for (const key of searchStates.keys()) {
+    if (key.startsWith(prefix)) {
+      searchStates.delete(key);
+    }
   }
 };
 
