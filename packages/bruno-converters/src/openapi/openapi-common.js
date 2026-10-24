@@ -123,6 +123,62 @@ export const getBodyTypeFromContentType = (contentType) => {
 };
 
 /**
+ * Resolves OpenAPI schema composition keywords (allOf / oneOf / anyOf) into a
+ * plain schema that the example/body generators understand.
+ * - allOf: merges the properties of all parts (later parts win on key conflicts),
+ *   recursively resolving nested composition and already-resolved $refs. The
+ *   node's own properties are kept as the merge base.
+ * - oneOf / anyOf: uses the first alternative, recursively resolved.
+ * - Schemas with an explicit example are returned as-is so explicit examples
+ *   always take precedence over generated ones.
+ * - `not` is intentionally not interpreted: a negation cannot be turned into a
+ *   meaningful example, so it falls through to the plain-schema handling.
+ * @param {Object} schema - The OpenAPI schema object
+ * @param {Map} visited - Map to track circular references during resolution
+ * @returns {Object} - The resolved schema (may be the input schema itself)
+ */
+export const resolveComposedSchema = (schema, visited = new Map()) => {
+  if (!schema || typeof schema !== 'object') {
+    return schema;
+  }
+
+  // Explicit examples always win; leave the schema untouched
+  if (schema.example !== undefined) {
+    return schema;
+  }
+
+  if (visited.has(schema)) {
+    return schema;
+  }
+  visited.set(schema, true);
+
+  let resolved = schema;
+
+  if (Array.isArray(schema.allOf) && schema.allOf.length > 0) {
+    const merged = { ...schema };
+    delete merged.allOf;
+    // The node's own properties apply conjunctively with allOf, so they are
+    // the merge base; parts are applied in order (later wins on conflicts)
+    const mergedProperties = { ...(schema.properties || {}) };
+    for (const part of schema.allOf) {
+      const resolvedPart = resolveComposedSchema(part, visited);
+      if (resolvedPart && typeof resolvedPart === 'object' && resolvedPart.properties) {
+        Object.assign(mergedProperties, resolvedPart.properties);
+      }
+    }
+    merged.properties = mergedProperties;
+    resolved = merged;
+  } else if (Array.isArray(schema.oneOf) && schema.oneOf.length > 0) {
+    resolved = resolveComposedSchema(schema.oneOf[0], visited);
+  } else if (Array.isArray(schema.anyOf) && schema.anyOf.length > 0) {
+    resolved = resolveComposedSchema(schema.anyOf[0], visited);
+  }
+
+  visited.delete(schema);
+  return resolved;
+};
+
+/**
  * Gets a default value for a schema based on its type, format, and constraints
  * Prioritizes: explicit example > enum first value > format-specific example > type default
  * @param {Object} schema - The OpenAPI schema object
@@ -130,6 +186,9 @@ export const getBodyTypeFromContentType = (contentType) => {
  * @returns {*} - The default value for the schema
  */
 export const getDefaultValueForSchema = (schema, visited = new Map()) => {
+  // Resolve composition keywords first (explicit examples are preserved as-is)
+  schema = resolveComposedSchema(schema);
+
   // Check for explicit example first
   if (schema.example !== undefined) {
     return schema.example;
@@ -187,6 +246,9 @@ export const getDefaultValueForSchema = (schema, visited = new Map()) => {
  */
 export const buildXmlBody = (bodySchema) => {
   if (!bodySchema) return '';
+
+  // Resolve composition keywords so composed schemas produce real XML bodies
+  bodySchema = resolveComposedSchema(bodySchema);
 
   // String example = raw XML, return as-is
   if (typeof bodySchema.example === 'string') {
@@ -247,6 +309,9 @@ export const buildXmlBody = (bodySchema) => {
 };
 
 export const buildEmptyJsonBody = (bodySchema, visited = new Map()) => {
+  // Resolve composition keywords first (explicit examples are preserved as-is)
+  bodySchema = resolveComposedSchema(bodySchema);
+
   // Check for circular references
   if (visited.has(bodySchema)) {
     return {};
@@ -291,6 +356,7 @@ export const BODY_TYPE_HANDLERS = [
     mode: 'formUrlEncoded',
     handle: (body, bodySchema) => {
       if (!bodySchema) return;
+      bodySchema = resolveComposedSchema(bodySchema);
       const fields = bodySchema.example || bodySchema.properties || {};
       const isExample = !!bodySchema.example;
 
@@ -311,6 +377,7 @@ export const BODY_TYPE_HANDLERS = [
     mode: 'multipartForm',
     handle: (body, bodySchema) => {
       if (!bodySchema) return;
+      bodySchema = resolveComposedSchema(bodySchema);
       const fields = bodySchema.example || bodySchema.properties || {};
       const isExample = !!bodySchema.example;
 
@@ -360,6 +427,9 @@ export const BODY_TYPE_HANDLERS = [
  * @returns {*} - The example value (object, array, or primitive)
  */
 export const getExampleFromSchema = (schema) => {
+  // Resolve composition keywords first (explicit examples are preserved as-is)
+  schema = resolveComposedSchema(schema);
+
   // Check for explicit example first
   if (schema.example !== undefined) {
     return schema.example;
