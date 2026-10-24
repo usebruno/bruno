@@ -104,10 +104,9 @@ const flattenDataForDotNotation = (data) => {
 };
 
 const parseDataFromResponse = (response, disableParsingResponseJson = false) => {
-  // Parse the charset from content type: https://stackoverflow.com/a/33192813
-  const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['content-type'] || '');
-  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/exec#using_exec_with_regexp_literals
-  const charsetValue = charsetMatch?.[1];
+  // Keep charset parsing in sync with the CLI/Electron counterpart.
+  const charsetMatch = /charset=(?:"([^"]*)"|([^()<>@,;:"/[\]?.=\s]*))/i.exec(response.headers['content-type'] || '');
+  const charsetValue = charsetMatch?.[1] ?? charsetMatch?.[2];
   const dataBuffer = Buffer.from(response.data);
   // Overwrite the original data for backwards compatibility
   let data;

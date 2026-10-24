@@ -1,4 +1,4 @@
-const { flattenDataForDotNotation, parseDataFromRequest } = require('../../src/utils/common');
+const { flattenDataForDotNotation, parseDataFromRequest, parseDataFromResponse } = require('../../src/utils/common');
 const FormData = require('form-data');
 
 describe('utils: flattenDataForDotNotation', () => {
@@ -102,5 +102,45 @@ describe('utils: parseDataFromRequest', () => {
     expect(result.data).toContain('name: description');
     expect(result.data).toContain('value: dfv');
     expect(result.data).toContain('value: [File: Dumy.xml]');
+  });
+});
+
+describe('parseDataFromResponse', () => {
+  test.each([
+    'text/plain; charset=iso-8859-1',
+    'text/plain; charset="iso-8859-1"',
+    'text/plain; Charset="ISO-8859-1"; format=flowed'
+  ])('decodes Latin-1 with %s and preserves the raw bytes', (contentType) => {
+    const bytes = Buffer.from([0x63, 0x61, 0x66, 0xe9]);
+    const result = parseDataFromResponse({ headers: { 'content-type': contentType }, data: bytes });
+
+    expect(result.data).toBe('café');
+    expect(result.dataBuffer).toEqual(bytes);
+  });
+
+  test.each([
+    undefined,
+    'text/plain',
+    'text/plain; charset=unknown-encoding',
+    'text/plain; charset="unknown-encoding"',
+    'text/plain; charset=""',
+    'text/plain; charset="utf-8"'
+  ])('preserves UTF-8 decoding with %s', (contentType) => {
+    const result = parseDataFromResponse({
+      headers: { 'content-type': contentType },
+      data: Buffer.from('café')
+    });
+
+    expect(result.data).toBe('café');
+  });
+
+  test.each([false, true])('preserves JSON parsing behavior when disabled=%s', (disableParsingResponseJson) => {
+    const body = '{"name":"café"}';
+    const result = parseDataFromResponse({
+      headers: { 'content-type': 'text/plain; charset="iso-8859-1"' },
+      data: Buffer.from(body, 'latin1')
+    }, disableParsingResponseJson);
+
+    expect(result.data).toEqual(disableParsingResponseJson ? body : { name: 'café' });
   });
 });
