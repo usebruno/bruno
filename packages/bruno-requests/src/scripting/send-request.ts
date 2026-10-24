@@ -16,8 +16,6 @@ type T_SendRequestCallback = (error: any, response: any) => void;
 type SendRequestConfig = Omit<GetHttpHttpsAgentsParams, 'requestUrl'> & {
   /** HTTP version mode (auto | http1 | http2); when http2-capable, the custom transport is attached. */
   httpVersion?: HttpVersionMode;
-  /** Optional host hook run on the axios config right before the request (kept for back-compat). */
-  prepareRequest?: (config: AxiosRequestConfig) => Promise<void> | void;
 };
 
 type SendRequestEntry = {
@@ -219,11 +217,6 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
 
     if (config?.httpVersion && canUseHttp2(config.httpVersion)) {
       await applyHttp2Transport({ config: normalizedConfig as any, mode: config.httpVersion });
-    }
-
-    // Optional host hook (kept for back-compat) may further adjust the config.
-    if (config && typeof config.prepareRequest === 'function') {
-      await config.prepareRequest(normalizedConfig);
     }
 
     const axiosInstance = makeAxiosInstance();

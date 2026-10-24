@@ -252,7 +252,7 @@ const runSingleRequest = async function (
       clientCertificates: rawClientCertificates ? interpolateObject(rawClientCertificates, sendRequestInterpolationOptions) : undefined,
       collectionLevelProxy: transformProxyConfig(interpolateObject(rawProxyConfig, sendRequestInterpolationOptions)),
       systemProxyConfig,
-      httpVersion: resolveHttpVersion(get(brunoConfig, 'http.version'), get(options, 'httpVersion', 'http1'))
+      httpVersion: get(options, 'httpVersion') || resolveHttpVersion(get(brunoConfig, 'http.version'), 'http1')
     };
 
     // Add certsAndProxyConfig to request object for bru.sendRequest
@@ -697,7 +697,7 @@ const runSingleRequest = async function (
         httpsAgentRequestFields,
         interpolationOptions,
         disableCache,
-        httpVersion: resolveHttpVersion(get(brunoConfig, 'http.version'), get(options, 'httpVersion', 'http1'))
+        httpVersion: get(options, 'httpVersion') || resolveHttpVersion(get(brunoConfig, 'http.version'), 'http1')
       });
 
       if (request.ntlmConfig) {
@@ -998,6 +998,7 @@ const runSingleRequest = async function (
       response: {
         status: response.status,
         statusText: response.statusText,
+        httpVersion: response.httpVersion || response?.request?.res?.httpVersion || '1.1',
         headers: response.headers,
         data: response.data,
         url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,

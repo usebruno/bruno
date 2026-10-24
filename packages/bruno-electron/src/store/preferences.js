@@ -406,7 +406,6 @@ const savePreferences = async (newPreferences) => {
 };
 
 const preferencesUtil = {
-  /** POC: app-level protocol choice ('auto' | 'http1' | 'http2'); becomes a collection setting later. */
   getHttpVersion: () => {
     return get(getPreferences(), 'request.httpVersion', 'http1');
   },

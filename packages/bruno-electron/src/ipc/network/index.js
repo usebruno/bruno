@@ -1318,6 +1318,7 @@ const registerNetworkIpc = (mainWindow) => {
       return {
         status: response.status,
         statusText: response.statusText,
+        httpVersion: response.httpVersion || response?.request?.res?.httpVersion || '1.1',
         headers: response.headers,
         data: response.data,
         stream: isResponseStream ? axiosDataStream : null,
@@ -1939,6 +1940,7 @@ const registerNetworkIpc = (mainWindow) => {
                 responseReceived: {
                   status: response.status,
                   statusText: response.statusText,
+                  httpVersion: response.httpVersion || response?.request?.res?.httpVersion || '1.1',
                   headers: response.headers,
                   duration: response.responseTime,
                   dataBuffer: dataBuffer.toString('base64'),

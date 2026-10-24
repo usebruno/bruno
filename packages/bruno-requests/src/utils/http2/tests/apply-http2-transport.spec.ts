@@ -127,13 +127,27 @@ describe('applyHttp2Transport (shared)', () => {
   });
 
   describe('cleartext (http://) through a proxy', () => {
-    it('skips h2 and leaves HTTP/1.1 when a proxy agent is present (no direct dial / no leak)', async () => {
-      mockProxyKey.mockReturnValue('http://proxy:8080');
-      const config = makeConfig({ url: 'http://example.com/x', httpAgent: { proxy: { href: 'http://proxy:8080' } } });
+    const cleartextProxied = () =>
+      makeConfig({ url: 'http://example.com/x', httpAgent: { proxy: { href: 'http://proxy:8080' } } });
 
-      await applyHttp2Transport({ config, mode: 'http2' });
+    it('auto: falls back to HTTP/1.1 over the proxy (no direct dial / no leak)', async () => {
+      mockProxyKey.mockReturnValue('http://proxy:8080');
+      const config = cleartextProxied();
+
+      await applyHttp2Transport({ config, mode: 'auto' });
 
       expect(mockNegotiate).not.toHaveBeenCalled();
+      expect(mockCreate).not.toHaveBeenCalled();
+      expect(config.transport).toBeUndefined();
+    });
+
+    it('forced http2: fails instead of silently downgrading', async () => {
+      mockProxyKey.mockReturnValue('http://proxy:8080');
+      const config = cleartextProxied();
+
+      await expect(applyHttp2Transport({ config, mode: 'http2' })).rejects.toMatchObject({
+        code: 'ERR_H2_CLEARTEXT_PROXY_UNSUPPORTED'
+      });
       expect(mockCreate).not.toHaveBeenCalled();
       expect(config.transport).toBeUndefined();
     });

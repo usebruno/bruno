@@ -1,6 +1,7 @@
 import type { TLSSocket } from 'node:tls';
 
 export type Http2RequestDetails = {
+  streamId: number | null;
   alpn: string | null;
   protocol: string | null;
   cipher: string | null;
@@ -46,6 +47,8 @@ export const getHttp2RequestDetails = (stream: any): Http2RequestDetails | null 
     .map((name) => `${name} ${pseudoHeaders[name]}`)
     .join(' · ');
 
+  const streamId = (safe(() => stream?.id) as number | null) ?? null;
+
   // alpnProtocol/remoteAddress are plain properties; the getters can throw on a closed session.
   const alpn = (safe(() => socket.alpnProtocol) as string | false | null) || null;
   const protocol = safe(() => socket.getProtocol?.()) || null;
@@ -78,6 +81,7 @@ export const getHttp2RequestDetails = (stream: any): Http2RequestDetails | null 
   }
 
   return {
+    streamId,
     alpn,
     protocol,
     cipher,

@@ -179,7 +179,7 @@ function makeAxiosInstance({
 
     // Add request data if available
     if (config.data) {
-      let requestData = typeof config.data === 'string' ? config.data : JSON.stringify(config.data, null, 2);
+      const requestData = typeof config.data === 'string' ? config.data : JSON.stringify(config.data, null, 2);
       timeline.push({
         timestamp: new Date(),
         type: 'requestData',
@@ -244,7 +244,11 @@ function makeAxiosInstance({
       });
     }
 
-    const resolvedHttpVersionMode = httpVersionMode ?? preferencesUtil.getHttpVersion();
+    if (omitConnection) {
+      applyOmitConnectionToAxiosConfig(config);
+    }
+
+    const resolvedHttpVersionMode = httpVersionMode ?? 'http1';
     if (canUseHttp2(resolvedHttpVersionMode)) {
       try {
         await applyHttp2Transport({ config, mode: resolvedHttpVersionMode, agentOptions, timeline });
@@ -252,11 +256,6 @@ function makeAxiosInstance({
         timeline.push({ timestamp: new Date(), type: 'error', message: `HTTP/2 setup failed: ${err?.message}` });
         throw err;
       }
-    }
-
-    // Node keep-alive agents add Connection; strip it on the ClientRequest.
-    if (omitConnection) {
-      applyOmitConnectionToAxiosConfig(config);
     }
 
     config.metadata.timeline = timeline;
@@ -286,7 +285,7 @@ function makeAxiosInstance({
       const sentHeaders = getSentHeaders(response.request);
 
       if (http2RequestDetails) {
-        const { alpn, protocol, cipher, remote, certificateLines, requestLine } = http2RequestDetails;
+        const { streamId, alpn, protocol, cipher, remote, certificateLines, requestLine } = http2RequestDetails;
 
         response.httpVersion = '2.0';
         response.statusText ||= STATUS_CODES[response.status] || '';
@@ -306,6 +305,14 @@ function makeAxiosInstance({
             timestamp: new Date(),
             type: 'info',
             message: `HTTP/2 request: ${requestLine}`
+          });
+        }
+
+        if (streamId != null) {
+          timeline.push({
+            timestamp: new Date(),
+            type: 'info',
+            message: `HTTP/2 stream ID: ${streamId}`
           });
         }
       }

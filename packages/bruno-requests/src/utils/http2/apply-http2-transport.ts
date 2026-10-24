@@ -227,10 +227,22 @@ export const applyHttp2Transport = async ({
     url = null;
   }
 
-  // h2c through a proxy tunnel isn't supported: the tunnel path does a TLS handshake, which a
-  // cleartext origin has no counterpart for.
+  // h2c is not supported through a proxy. Forced HTTP/2 fails;
+  // auto mode falls back to HTTP/1.1.
   const isCleartext = url?.protocol === 'http:';
   if (isCleartext && (proxyKeyFor(config.httpsAgent) || proxyKeyFor(config.httpAgent))) {
+    // Don't silently downgrade when HTTP/2 is explicitly requested.
+    if (mode === 'http2') {
+      const error = Object.assign(
+        new Error(
+          'HTTP/2 was forced but cannot be used for a cleartext (http://) request through a proxy '
+          + '(h2c is not supported over a forward proxy). Use "auto" to allow HTTP/1.1, or use an https:// URL.'
+        ),
+        { code: 'ERR_H2_CLEARTEXT_PROXY_UNSUPPORTED' }
+      );
+      timeline?.push({ timestamp: new Date(), type: 'error', message: error.message });
+      throw error;
+    }
     timeline?.push({
       timestamp: new Date(),
       type: 'info',

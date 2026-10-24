@@ -1,6 +1,7 @@
 import { getHttp2RequestDetails } from '../http2-request-details';
 
-const makeStream = (socket: any, sentHeaders: Record<string, unknown> = {}) => ({
+const makeStream = (socket: any, sentHeaders: Record<string, unknown> = {}, id = 3) => ({
+  id,
   session: { socket },
   sentHeaders
 });
@@ -41,6 +42,16 @@ describe('getHttp2RequestDetails', () => {
       ':authority': 'api.test'
     });
     expect(details.requestLine).toBe(':method POST · :path /x · :authority api.test · :scheme https');
+  });
+
+  it('reports the HTTP/2 stream id', () => {
+    const stream = makeStream({ alpnProtocol: 'h2' }, { ':method': 'GET' }, 7);
+    expect(getHttp2RequestDetails(stream)!.streamId).toBe(7);
+  });
+
+  it('returns null streamId when the stream has no id', () => {
+    const stream: any = { session: { socket: { alpnProtocol: 'h2' } }, sentHeaders: {} };
+    expect(getHttp2RequestDetails(stream)!.streamId).toBeNull();
   });
 
   it('reads alpn/protocol/cipher/remote from the socket', () => {

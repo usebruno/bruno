@@ -164,9 +164,13 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     [collection, isHttpRequest, item, requestHeaderNames]
   );
 
-  // POC: app-level preference; once it is a collection setting, pass that here instead. 'auto' is per-origin, so the panel shows h1 defaults.
-  const httpVersionPreference = useSelector((state) => get(state, 'app.preferences.request.httpVersion', 'http1'));
-  const httpVersion = httpVersionPreference === 'http2' ? '2' : '1.1';
+  const appHttpVersion = useSelector((state) => get(state, 'app.preferences.request.httpVersion', 'http1'));
+  const collectionHttpVersion = get(collection, 'brunoConfig.http.version');
+  const effectiveHttpVersion
+    = collectionHttpVersion && collectionHttpVersion !== 'inherit' ? collectionHttpVersion : appHttpVersion;
+
+  const httpVersion = effectiveHttpVersion === 'http2' ? '2' : '1.1';
+
   const defaultHeaders = useMemo(() => filterUnclaimedHeaders(getBrunoDefaultHeaders({ httpVersion }), [
     ...requestHeaderNames,
     ...inheritedHeaders.map((header) => header.name)

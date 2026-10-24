@@ -139,9 +139,9 @@ const parseCollection = (ymlString: string): ParsedCollection => {
       // If not in newer format, use default (inherit: true)
     }
 
-    // http version (collection-level override of the app default)
-    if ((oc.config as any)?.http?.version) {
-      brunoConfig.http = { version: (oc.config as any).http.version };
+    const httpVersion = brunoExtension?.http?.version ?? (oc.config as any)?.http?.version;
+    if (httpVersion) {
+      brunoConfig.http = { version: httpVersion };
     }
 
     // client certificates

@@ -172,7 +172,6 @@ const builder = async (yargs) => {
     .option('http-version', {
       type: 'string',
       choices: ['http1', 'http2', 'auto'],
-      default: 'http1',
       description: 'HTTP version for requests: http1 (default), http2 (forced), or auto (negotiate via ALPN, fall back to http1)'
     })
     .option('http2', {
@@ -967,7 +966,6 @@ const handler = async function (argv) {
     const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
     console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
 
-    // POC: close any pooled HTTP/2 sessions so the process can exit promptly.
     try { closeAllSessions(); } catch (_) {}
 
     // Extract environment name from envVars if available
