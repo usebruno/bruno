@@ -28,7 +28,7 @@ const GitRemoteCollectionRow = ({ entry }) => {
 
   const handleRightClick = (event) => {
     event.preventDefault();
-    menuDropdownRef.current?.show();
+    menuDropdownRef.current?.show({ x: event.clientX, y: event.clientY });
   };
 
   const menuItems = [
