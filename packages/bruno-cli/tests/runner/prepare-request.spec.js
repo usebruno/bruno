@@ -110,6 +110,24 @@ describe('prepare-request: prepareRequest', () => {
         expect(result.url).toEqual(expected);
         expect(result.apiKeyHeaderName).toBeUndefined();
       });
+
+      it('If collection auth is apikey in query parameters, inherited query params are preserved', async () => {
+        collection.root.request.auth = {
+          mode: 'apikey',
+          apikey: {
+            key: 'x-api-key',
+            value: '{{apiKey}}',
+            placement: 'queryparams'
+          }
+        };
+        collection.root.request.params = [{ name: 'pageSize', value: '20', type: 'query', enabled: true }];
+
+        const urlObj = new URL('https://usebruno.com?pageSize=20');
+        urlObj.searchParams.set('x-api-key', '{{apiKey}}');
+
+        const result = await prepareRequest(item, collection);
+        expect(result.url).toEqual(urlObj.toString());
+      });
     });
 
     describe('Basic Authentication', () => {
@@ -395,6 +413,30 @@ describe('prepare-request: prepareRequest', () => {
         const result = await prepareRequest(item);
         expect(result.url).toEqual(expected);
         expect(result.apiKeyHeaderName).toBeUndefined();
+      });
+
+      it('If request auth is apikey in query parameters, inherited query params are preserved', async () => {
+        item.request.auth = {
+          mode: 'apikey',
+          apikey: {
+            key: 'x-api-key',
+            value: '{{apiKey}}',
+            placement: 'queryparams'
+          }
+        };
+        const collection = {
+          root: {
+            request: {
+              params: [{ name: 'pageSize', value: '20', type: 'query', enabled: true }]
+            }
+          }
+        };
+
+        const urlObj = new URL('https://usebruno.com?pageSize=20');
+        urlObj.searchParams.set('x-api-key', '{{apiKey}}');
+
+        const result = await prepareRequest(item, collection);
+        expect(result.url).toEqual(urlObj.toString());
       });
     });
 
