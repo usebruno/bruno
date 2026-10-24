@@ -39,7 +39,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
 
   return (
     <Portal>
-      <Modal size="md" title="Import Collection" hideFooter={true} handleCancel={onClose} dataTestId="import-collection-modal">
+      <Modal size="md" title="Import Collection" titleTestId="import-collection-header-title" hideFooter={true} handleCancel={onClose} dataTestId="import-collection-modal">
         <StyledWrapper className="flex flex-col h-full">
           <div className="flex w-full mb-6">
             <div className="flex justify-start w-full tabs">
