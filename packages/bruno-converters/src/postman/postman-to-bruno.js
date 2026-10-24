@@ -34,16 +34,28 @@ const parseGraphQLRequest = (graphqlSource) => {
       variables: ''
     };
 
+    if (!graphqlSource) {
+      return queryResultObject;
+    }
+
     if (typeof graphqlSource === 'string') {
       graphqlSource = JSON.parse(graphqlSource);
     }
 
-    if (graphqlSource.hasOwnProperty('variables') && graphqlSource.variables !== '') {
-      queryResultObject.variables = graphqlSource.variables;
-    }
+    if (graphqlSource && typeof graphqlSource === 'object') {
+      if (Object.prototype.hasOwnProperty.call(graphqlSource, 'variables') && graphqlSource.variables != null && graphqlSource.variables !== '') {
+        if (typeof graphqlSource.variables === 'object') {
+          queryResultObject.variables = JSON.stringify(graphqlSource.variables, null, 2);
+        } else {
+          queryResultObject.variables = String(graphqlSource.variables);
+        }
+      }
 
-    if (graphqlSource.hasOwnProperty('query') && graphqlSource.query !== '') {
-      queryResultObject.query = graphqlSource.query;
+      if (Object.prototype.hasOwnProperty.call(graphqlSource, 'query') && graphqlSource.query != null && graphqlSource.query !== '') {
+        queryResultObject.query = typeof graphqlSource.query === 'string'
+          ? graphqlSource.query
+          : String(graphqlSource.query);
+      }
     }
 
     return queryResultObject;
