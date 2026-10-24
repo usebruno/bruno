@@ -13,6 +13,7 @@ import { getCACertificates } from './ca-cert';
 import { transformProxyConfig } from './proxy-util';
 import { getOrCreateHttpsAgent, getOrCreateHttpAgent } from './agent-cache';
 import { getPacResolver } from './pac-resolver';
+import { proxyUrlToProxyInfo, type ProxyInfo } from '../http2';
 import type { TimelineEntry } from './timeline-agent';
 
 const DEFAULT_PORTS: Record<string, number> = {
@@ -94,6 +95,8 @@ type TlsOptions = HttpsAgentRequestFields & CertsConfig & {
 type AgentResult = {
   httpAgent?: HttpAgent;
   httpsAgent?: HttpsAgent | HttpsProxyAgent<any> | SocksProxyAgent;
+  tlsOptions?: TlsOptions;
+  proxyInfo?: ProxyInfo | null;
 };
 
 type ConfigOptions = {
@@ -402,6 +405,7 @@ type ResolveAgentsFromPacResult = {
   directives: string[] | null;
   httpAgent?: HttpAgent;
   httpsAgent?: HttpsAgent | HttpsProxyAgent<any> | SocksProxyAgent;
+  proxyUrl?: string | null;
 };
 
 /**
@@ -442,7 +446,7 @@ export async function resolveAgentsFromPac({
     const hostPort = parts[1];
     const scheme = keyword === 'HTTPS' ? 'https' : 'http';
     const proxyUri = `${scheme}://${hostPort}`;
-    const result: ResolveAgentsFromPacResult = { directives };
+    const result: ResolveAgentsFromPacResult = { directives, proxyUrl: proxyUri };
     if (wantHttp) result.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null, disableCache, hostname });
     if (wantHttps) result.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
     return result;
@@ -451,7 +455,7 @@ export async function resolveAgentsFromPac({
     const hostPort = first.split(/\s+/)[1];
     const proto = /^SOCKS4\s/i.test(first) ? 'socks4' : 'socks5';
     const proxyUri = `${proto}://${hostPort}`;
-    const result: ResolveAgentsFromPacResult = { directives };
+    const result: ResolveAgentsFromPacResult = { directives, proxyUrl: proxyUri };
     if (wantHttp) result.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null, disableCache, hostname });
     if (wantHttps) result.httpsAgent = getOrCreateHttpsAgent({ AgentClass: SocksProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
     return result;
@@ -483,6 +487,9 @@ async function createAgents({
 
   let httpAgent: HttpAgent | undefined;
   let httpsAgent: HttpsAgent | HttpsProxyAgent<any> | SocksProxyAgent | undefined;
+  // Proxy URL + TLS the request will tunnel through, used to build HTTP/2 proxy settings.
+  let proxyUrl: string | null = null;
+  let proxyTls: TlsOptions | undefined;
 
   // Determine if this is an HTTPS request
   const isHttpsRequest = requestUrl ? requestUrl.startsWith('https:') : true;
@@ -517,6 +524,8 @@ async function createAgents({
       // (e.g., ca certs) even for plain HTTP requests
       const isHttpsProxy = proxyProtocol === 'https';
       const httpProxyAgentOptions = isHttpsProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true };
+      proxyUrl = proxyUri;
+      proxyTls = isHttpsProxy ? tlsOptions : undefined;
 
       // Only set the agent needed for the request protocol
       if (socksEnabled) {
@@ -540,6 +549,9 @@ async function createAgents({
         const result = await resolveAgentsFromPac({ pacSource, requestUrl, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, timeline, disableCache, hostname });
         if (result.httpAgent) httpAgent = result.httpAgent;
         if (result.httpsAgent) httpsAgent = result.httpsAgent;
+        if (result.proxyUrl) {
+          proxyUrl = result.proxyUrl; proxyTls = tlsOptions;
+        }
       } catch {
         // PAC resolution failed — fall through to direct connection
       }
@@ -556,6 +568,9 @@ async function createAgents({
         const result = await resolveAgentsFromPac({ pacSource: pac_url, requestUrl, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, timeline, disableCache, hostname });
         if (result.httpAgent) httpAgent = result.httpAgent;
         if (result.httpsAgent) httpsAgent = result.httpsAgent;
+        if (result.proxyUrl) {
+          proxyUrl = result.proxyUrl; proxyTls = tlsOptions;
+        }
       } catch {
       }
     } else {
@@ -567,6 +582,7 @@ async function createAgents({
             const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
             const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true };
             httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions as any, proxyUri: http_proxy, timeline: timeline || null, disableCache, hostname });
+            proxyUrl = http_proxy; proxyTls = isHttpsSystemProxy ? tlsOptions : undefined;
           }
         } catch (error) {
           throw new Error('Invalid system http_proxy');
@@ -575,6 +591,8 @@ async function createAgents({
           if (https_proxy?.length && isHttpsRequest) {
             new URL(https_proxy);
             httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri: https_proxy, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
+            proxyUrl = https_proxy;
+            proxyTls = tlsOptions;
           }
         } catch (error) {
           throw new Error('Invalid system https_proxy');
@@ -591,7 +609,7 @@ async function createAgents({
     }
   }
 
-  return { httpAgent, httpsAgent };
+  return { httpAgent, httpsAgent, tlsOptions, proxyInfo: proxyUrlToProxyInfo(proxyUrl, proxyTls) };
 }
 
 const getHttpHttpsAgents = async ({
@@ -623,7 +641,7 @@ const getHttpHttpsAgents = async ({
     httpsAgentRequestFields.rejectUnauthorized = false;
   }
 
-  const { httpAgent, httpsAgent } = await createAgents({
+  const { httpAgent, httpsAgent, tlsOptions, proxyInfo } = await createAgents({
     requestUrl,
     proxyMode,
     proxyConfig,
@@ -634,7 +652,7 @@ const getHttpHttpsAgents = async ({
     disableCache: !options.cacheSslSession
   });
 
-  return { httpAgent, httpsAgent };
+  return { httpAgent, httpsAgent, tlsOptions, proxyInfo };
 };
 
 export { getHttpHttpsAgents };

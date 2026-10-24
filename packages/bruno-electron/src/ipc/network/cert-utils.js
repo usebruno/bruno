@@ -243,7 +243,8 @@ const buildCertsAndProxyConfig = async ({
     clientCertificates,
     collectionLevelProxy,
     appLevelProxyConfig,
-    systemProxyConfig
+    systemProxyConfig,
+    httpVersion: preferencesUtil.getHttpVersion()
   };
 };
 

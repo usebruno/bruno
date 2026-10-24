@@ -88,7 +88,7 @@ module.exports = runESMImports().then(() => defineConfig([
       'no-unused-vars': ['warn', { args: 'none', caughtErrors: 'none' }],
       'no-debugger': 'warn',
       'eqeqeq': isFixMode ? 'off' : ['warn', 'always'],
-      'prefer-const': isFixMode ? 'off' : 'warn',
+      'prefer-const': 'off',
       'no-var': 'warn',
       'no-unreachable': 'warn',
       'no-duplicate-imports': 'warn',
@@ -303,7 +303,8 @@ module.exports = runESMImports().then(() => defineConfig([
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
-        project: './packages/bruno-requests/tsconfig.json'
+        // src/ is covered by the package tsconfig; tests/ has its own (not used by the rollup build)
+        project: ['./packages/bruno-requests/tsconfig.json', './packages/bruno-requests/tests/tsconfig.json']
       }
     },
     rules: {

@@ -16,7 +16,7 @@ const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, ge
 const { hasExecutableTestInScript } = require('../utils/request');
 const { createSkippedFileResults } = require('../utils/run');
 const { sanitizeResultsForReporter } = require('../utils/sanitize-results');
-const { getSystemProxy } = require('@usebruno/requests');
+const { getSystemProxy, http2 } = require('@usebruno/requests');
 const { loadEnvironmentFromFile } = require('../utils/environment');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
@@ -215,6 +215,12 @@ const builder = async (yargs) => {
       description: 'Enable SSL session caching — reuses TLS sessions across requests for faster handshakes',
       default: false
     })
+    .option('http-version', {
+      type: 'string',
+      description: 'HTTP version to use for sending requests',
+      choices: ['auto', 'http1.1', 'http2'],
+      default: 'http1.1'
+    })
     .option('delay', {
       type: 'number',
       description: 'Delay between each requests (in miliseconds)'
@@ -327,6 +333,7 @@ const handler = async function (argv) {
       clientCertConfig,
       noproxy,
       cacheSslSession,
+      httpVersion,
       delay,
       tags: includeTags,
       excludeTags,
@@ -630,6 +637,7 @@ const handler = async function (argv) {
       }
     }
     options['ignoreTruststore'] = ignoreTruststore;
+    options['httpVersion'] = httpVersion;
 
     includeTags = includeTags ? includeTags.split(',') : [];
     excludeTags = excludeTags ? excludeTags.split(',') : [];
@@ -941,6 +949,8 @@ const handler = async function (argv) {
 
     const skippedFileResults = createSkippedFileResults(global.brunoSkippedFiles || [], collectionPath);
     results.push(...skippedFileResults);
+
+    http2.closeAllSessions();
 
     const summary = printRunSummary(results);
     const runCompletionTime = new Date().toISOString();

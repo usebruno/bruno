@@ -74,6 +74,21 @@ const StyledWrapper = styled.div`
     max-width: 14rem;
   }
 
+  .http-version-trigger {
+    width: 100%;
+    max-width: 14rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .http-version-field {
+    margin-bottom: 0.75rem;
+  }
+
   .default-location-field {
     .settings-field-control {
       flex-direction: column;

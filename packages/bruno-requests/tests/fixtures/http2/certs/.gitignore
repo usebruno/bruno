@@ -1,0 +1,3 @@
+# The package-level .gitignore excludes *.pem so real keys are never committed. These are
+# TEST-ONLY self-signed fixtures (see README.md) and must be tracked, so re-include them here.
+!*.pem

@@ -8,7 +8,8 @@ const {
   getOrCreateHttpsAgent,
   getOrCreateHttpAgent,
   resolveAgentsFromPac,
-  PatchedHttpsProxyAgent
+  PatchedHttpsProxyAgent,
+  http2
 } = require('@usebruno/requests');
 const { interpolateString } = require('../runner/interpolate-string');
 
@@ -86,6 +87,13 @@ async function setupProxyAgents({
   delete requestConfig.httpAgent;
   delete requestConfig.httpsAgent;
 
+  // HTTP/2 proxy settings are derived from the proxy URL, not the built agent. Reset per
+  // call so a redirect hop that bypasses the proxy does not inherit a stale value
+  requestConfig.__http2ProxyInfo = null;
+  const setHttp2ProxyInfo = (proxyUrl, proxyTls) => {
+    if (proxyUrl) requestConfig.__http2ProxyInfo = http2.proxyUrlToProxyInfo(proxyUrl, proxyTls);
+  };
+
   // keepAlive defaults to true; pass false to omit Connection.
   const keepAlive = httpsAgentRequestFields?.keepAlive !== false;
   const tlsOptions = { ...httpsAgentRequestFields, keepAlive };
@@ -117,6 +125,7 @@ async function setupProxyAgents({
       // (e.g., ca certs) even for plain HTTP requests
       const isHttpsProxy = proxyProtocol === 'https';
       const httpProxyAgentOptions = isHttpsProxy ? { ...httpAgentOptions, ...tlsOptions } : httpAgentOptions;
+      setHttp2ProxyInfo(proxyUri, isHttpsProxy ? tlsOptions : undefined);
 
       // Only set the agent needed for the request protocol
       if (socksEnabled) {
@@ -140,9 +149,10 @@ async function setupProxyAgents({
       // If the OS is configured with a PAC URL, resolve it using the existing PAC infrastructure
       if (pac_url) {
         try {
-          const { httpAgent, httpsAgent } = await resolveAgentsFromPac({ pacSource: pac_url, requestUrl: requestConfig.url, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, httpsAgentRequestFields, disableCache, hostname });
+          const { httpAgent, httpsAgent, proxyUrl } = await resolveAgentsFromPac({ pacSource: pac_url, requestUrl: requestConfig.url, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, httpsAgentRequestFields, disableCache, hostname });
           if (httpAgent) requestConfig.httpAgent = httpAgent;
           if (httpsAgent) requestConfig.httpsAgent = httpsAgent;
+          setHttp2ProxyInfo(proxyUrl, tlsOptions);
         } catch (error) {}
       } else {
         const shouldUseSystemProxy = shouldUseProxy(requestConfig.url, no_proxy || '');
@@ -153,6 +163,7 @@ async function setupProxyAgents({
               const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
               const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { ...httpAgentOptions, ...tlsOptions } : httpAgentOptions;
               requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, disableCache, hostname });
+              setHttp2ProxyInfo(http_proxy, isHttpsSystemProxy ? tlsOptions : undefined);
             }
           } catch (error) {
             throw new Error('Invalid system http_proxy');
@@ -161,6 +172,7 @@ async function setupProxyAgents({
             if (https_proxy?.length && isHttpsRequest) {
               new URL(https_proxy);
               requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy, disableCache, hostname });
+              setHttp2ProxyInfo(https_proxy, tlsOptions);
             }
           } catch (error) {
             throw new Error('Invalid system https_proxy');
