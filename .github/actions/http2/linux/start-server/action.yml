@@ -1,0 +1,33 @@
+name: 'Start HTTP/2 Testbed Server - Linux'
+description: 'Start the HTTP/2 + HTTP/1.1 + proxy testbed server in the background and wait until it is ready (Linux)'
+runs:
+  using: 'composite'
+  steps:
+    - name: Start testbed server
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        cd tests/http2/server
+
+        echo "starting HTTP/2 testbed server in background"
+        node server.js > "${GITHUB_WORKSPACE}/http2-testbed-server.log" 2>&1 &
+        echo "server started with PID: $!"
+
+    - name: Wait for server readiness
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        echo "waiting for the testbed to accept TLS connections on :8443"
+        for i in $(seq 1 60); do
+          if node -e "const t=require('tls');const s=t.connect({host:'localhost',port:8443,rejectUnauthorized:false},()=>{s.end();process.exit(0)});s.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),1000)"; then
+            echo "testbed ready after ${i} attempt(s)"
+            exit 0
+          fi
+          sleep 1
+        done
+
+        echo "testbed did not become ready in time; server log:" >&2
+        cat "${GITHUB_WORKSPACE}/http2-testbed-server.log" >&2 || true
+        exit 1

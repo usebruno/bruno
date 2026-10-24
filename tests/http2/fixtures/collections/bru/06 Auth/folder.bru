@@ -1,0 +1,19 @@
+meta {
+  name: 06 Auth
+  seq: 7
+}
+
+auth {
+  mode: basic
+}
+
+auth:basic {
+  username: folder
+  password: inherit
+}
+
+docs {
+  # Auth
+  
+  Every auth mode must work over h2. **Watch Basic auth closely.** axios hands credentials to Node's `http.ClientRequest` (the `auth` option), and the h2 transport never sees that, so Bruno builds the `Authorization` header itself. Timeline line: `HTTP/2: Authorization header built from auth option / URL credentials`.
+}

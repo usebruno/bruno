@@ -1,0 +1,67 @@
+meta {
+  name: Parallel requests multiplex on one session
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{dual}}/echo
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  var started = Date.now();
+  var urls = [];
+  for (var i = 0; i < 10; i++) urls.push(bru.interpolate("{{dual}}/delay/400?i=" + i));
+  var results = await Promise.all(urls.map(function (u) { return bru.sendRequest({ method: "GET", url: u }); }));
+  bru.setVar("parallelElapsed", Date.now() - started);
+  bru.setVar("parallelConnIds", JSON.stringify(results.map(function (r) { return r.headers["x-connection-id"]; })));
+  bru.setVar("parallelProtocols", JSON.stringify(results.map(function (r) { return r.data.protocol; })));
+}
+
+tests {
+  // ---- testbed helpers ----
+  var MODE = bru.getEnvVar("mode");
+  var CLIENT = bru.getEnvVar("client") || "app";
+  function expectedProtocol(kind, opts) {
+    var proxied = !!(opts && opts.proxied);
+    var cliProxyGap = false; // CLI tunnels HTTP/2 through proxies too (parity with the app)
+    if (kind === "cleartext") return MODE === "http2" ? "fail" : "1.1"; // http2 sends h2c preface to an h1 server -> fails
+    if (kind === "h2c") return MODE === "http2" ? "2.0" : "fail";       // h2c server: http2 -> prior knowledge; else an h1 client is rejected
+    if (kind === "h2only") return MODE === "http1" || cliProxyGap ? "fail" : "2.0";
+    if (kind === "h1only") return MODE === "http2" ? "fail" : "1.1";
+    if (MODE === "http1" || cliProxyGap) return "1.1";
+    return "2.0";
+  }
+  function json() {
+    var b = res.getBody();
+    if (typeof b === "string") { try { return JSON.parse(b); } catch (e) { return {}; } }
+    return b || {};
+  }
+  function isH2() { return json().protocol === "2.0"; }
+  // ---- end helpers ----
+  var ids = JSON.parse(bru.getVar("parallelConnIds") || "[]");
+  var protos = JSON.parse(bru.getVar("parallelProtocols") || "[]");
+  test("10 responses", function () { expect(ids.length).to.equal(10); });
+  test("ran concurrently (< 2500 ms total)", function () { expect(Number(bru.getVar("parallelElapsed"))).to.be.below(2500); });
+  test("scripted requests use HTTP/" + expectedProtocol("dual") + " (mode=" + MODE + ")", function () {
+    protos.forEach(function (p) { expect(p).to.equal(expectedProtocol("dual")); });
+  });
+  test("h2: one session for all 10", function () {
+    if (protos[0] !== "2.0") return;
+    var unique = ids.filter(function (v, i, a) { return a.indexOf(v) === i; });
+    expect(unique.length, "connection ids: " + JSON.stringify(ids)).to.equal(1);
+  });
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  Ten parallel `bru.sendRequest` calls to a 400 ms endpoint. Scripted requests get the same HTTP-version treatment as the request pane (app). **Known gap:** `bru run` (CLI) does not apply HTTP/2 to `bru.sendRequest` yet, so the protocol test fails there by design.
+  
+  - All responses come back in well under 10 × 400 ms (they run concurrently).
+  - On h2: **one** connection id for all ten.
+}

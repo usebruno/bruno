@@ -1,0 +1,70 @@
+meta {
+  name: Multipart form with files
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{dual}}/echo
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  title: h2 upload
+  meta: {"k":"v"} @contentType(application/json)
+  textfile: @file(fixtures/sample.txt)
+  image: @file(fixtures/bruno.png)
+}
+
+tests {
+  // ---- testbed helpers ----
+  var MODE = bru.getEnvVar("mode");
+  var CLIENT = bru.getEnvVar("client") || "app";
+  function expectedProtocol(kind, opts) {
+    var proxied = !!(opts && opts.proxied);
+    var cliProxyGap = false; // CLI tunnels HTTP/2 through proxies too (parity with the app)
+    if (kind === "cleartext") return MODE === "http2" ? "fail" : "1.1"; // http2 sends h2c preface to an h1 server -> fails
+    if (kind === "h2c") return MODE === "http2" ? "2.0" : "fail";       // h2c server: http2 -> prior knowledge; else an h1 client is rejected
+    if (kind === "h2only") return MODE === "http1" || cliProxyGap ? "fail" : "2.0";
+    if (kind === "h1only") return MODE === "http2" ? "fail" : "1.1";
+    if (MODE === "http1" || cliProxyGap) return "1.1";
+    return "2.0";
+  }
+  function json() {
+    var b = res.getBody();
+    if (typeof b === "string") { try { return JSON.parse(b); } catch (e) { return {}; } }
+    return b || {};
+  }
+  function isH2() { return json().protocol === "2.0"; }
+  // ---- end helpers ----
+  test("status 200", function () { expect(res.getStatus()).to.equal(200); });
+  var exp = expectedProtocol("dual");
+  test("served over HTTP/" + exp + " (mode=" + MODE + ", client=" + CLIENT + ")", function () {
+    expect(exp, "this request should have FAILED under mode=" + MODE + " but got a response").to.not.equal("fail");
+    expect(json().protocol).to.equal(exp);
+    expect(res.getHeader("x-protocol")).to.equal(exp);
+  });
+  test("4 parts received", function () { expect(json().body.multipart.length).to.equal(4); });
+  test("text parts intact", function () {
+    var parts = json().body.multipart;
+    var by = {}; parts.forEach(function (p) { by[p.name] = p; });
+    expect(by.title.value).to.equal("h2 upload");
+    expect(by.meta.contentType).to.equal("application/json");
+  });
+  test("files byte-exact", function () {
+    var by = {}; json().body.multipart.forEach(function (p) { by[p.name] = p; });
+    expect(by.textfile.sha256).to.equal("f431983c2152b6ba402bc3a7b5adea343a83ec986f38ccf18cc943c0b5da3914");
+    expect(by.textfile.filename).to.equal("sample.txt");
+    expect(by.image.sha256).to.equal("e49fedc3abc6e1e672270b53f14119b3809449e59f82002481bbad0ecac4d418");
+    expect(by.image.size).to.equal(795);
+  });
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  Text fields, a part with its own content-type, and two files. The server checks each file's sha256.
+}

@@ -1,0 +1,41 @@
+{
+  "name": "HTTP2 QA",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git",
+    "fixtures"
+  ],
+  "scripts": {
+    "moduleWhitelist": []
+  },
+  "proxy": {
+    "inherit": false,
+    "config": {
+      "protocol": "{{proxyProtocol}}",
+      "hostname": "localhost",
+      "port": "{{proxyPort}}",
+      "auth": {
+        "username": "{{proxyUser}}",
+        "password": "{{proxyPass}}"
+      },
+      "bypassProxy": "localhost,127.0.0.1,h2.localhost,[::1],.invalid"
+    }
+  },
+  "clientCertificates": {
+    "enabled": true,
+    "certs": [
+      {
+        "domain": "localhost:8446",
+        "type": "cert",
+        "certFilePath": "../../../server/certs/client.crt",
+        "keyFilePath": "../../../server/certs/client.key",
+        "passphrase": ""
+      }
+    ]
+  },
+  "http": {
+    "version": "inherit"
+  },
+  "version": "1"
+}

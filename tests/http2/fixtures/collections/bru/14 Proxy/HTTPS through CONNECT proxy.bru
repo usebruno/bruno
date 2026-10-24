@@ -1,0 +1,59 @@
+meta {
+  name: HTTPS through CONNECT proxy
+  type: http
+  seq: 2
+  tags: [
+    ci-skip
+  ]
+}
+
+get {
+  url: {{proxied}}/echo
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  var s = await bru.sendRequest({ method: "GET", url: bru.interpolate("{{dual}}/stats") });
+  bru.setVar("tunnelsAfter1", s.data.proxyTunnels);
+}
+
+tests {
+  // ---- testbed helpers ----
+  var MODE = bru.getEnvVar("mode");
+  var CLIENT = bru.getEnvVar("client") || "app";
+  function expectedProtocol(kind, opts) {
+    var proxied = !!(opts && opts.proxied);
+    var cliProxyGap = false; // CLI tunnels HTTP/2 through proxies too (parity with the app)
+    if (kind === "cleartext") return MODE === "http2" ? "fail" : "1.1"; // http2 sends h2c preface to an h1 server -> fails
+    if (kind === "h2c") return MODE === "http2" ? "2.0" : "fail";       // h2c server: http2 -> prior knowledge; else an h1 client is rejected
+    if (kind === "h2only") return MODE === "http1" || cliProxyGap ? "fail" : "2.0";
+    if (kind === "h1only") return MODE === "http2" ? "fail" : "1.1";
+    if (MODE === "http1" || cliProxyGap) return "1.1";
+    return "2.0";
+  }
+  function json() {
+    var b = res.getBody();
+    if (typeof b === "string") { try { return JSON.parse(b); } catch (e) { return {}; } }
+    return b || {};
+  }
+  function isH2() { return json().protocol === "2.0"; }
+  // ---- end helpers ----
+  test("status 200", function () { expect(res.getStatus()).to.equal(200); });
+  var exp = expectedProtocol("dual", {"proxied":true});
+  test("served over HTTP/" + exp + " (mode=" + MODE + ", client=" + CLIENT + ")", function () {
+    expect(exp, "this request should have FAILED under mode=" + MODE + " but got a response").to.not.equal("fail");
+    expect(json().protocol).to.equal(exp);
+    expect(res.getHeader("x-protocol")).to.equal(exp);
+  });
+  test("went through the proxy (tunnel count increased)", function () { expect(Number(bru.getVar("tunnelsAfter1"))).to.be.greaterThan(Number(bru.getVar("tunnelsBefore"))); });
+  test("authority is proxied.localhost:8443", function () { expect(json().authority).to.equal("proxied.localhost:8443"); });
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  Timeline (h2): `HTTP/2 selected (proxy tunnel via http://…:3128: server chose h2 (TLSv1.3))`. The proxy log shows `CONNECT proxied.localhost:8443`.
+}

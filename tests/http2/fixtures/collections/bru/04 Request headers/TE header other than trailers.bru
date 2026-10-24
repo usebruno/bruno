@@ -1,0 +1,54 @@
+meta {
+  name: TE header other than trailers
+  type: http
+  seq: 3
+  tags: [
+    ci-skip
+  ]
+}
+
+get {
+  url: {{dual}}/echo
+  body: none
+  auth: inherit
+}
+
+headers {
+  TE: gzip, chunked
+}
+
+script:pre-request {
+  bru.setVar("outcome", JSON.stringify({ request: "TE header other than trailers", ok: false, error: "no response (request failed before post-response ran)" }));
+  if (typeof req.onFail === "function") {
+    req.onFail(function (err) {
+      var msg = err ? ((err.code ? err.code + ": " : "") + (err.message || String(err))) : "unknown error";
+      bru.setVar("outcome", JSON.stringify({ request: "TE header other than trailers", ok: false, error: msg }));
+    });
+  }
+}
+
+script:post-response {
+  var __b = res.getBody();
+  var __j = {};
+  if (typeof __b === "string") { try { __j = JSON.parse(__b); } catch (e) { __j = {}; } } else { __j = __b || {}; }
+  bru.setVar("outcome", JSON.stringify({
+    request: "TE header other than trailers",
+    ok: true,
+    status: res.getStatus(),
+    protocol: res.getHeader("x-protocol") || __j.protocol || null,
+    server: res.getHeader("x-server") || __j.server || null,
+    connectionId: res.getHeader("x-connection-id") || null,
+    echoHeaders: __j.headers || null,
+    bodyPreview: (typeof __b === "string" ? __b : JSON.stringify(__b) || "").slice(0, 300)
+  }));
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  HTTP/2 allows `TE` only with the value `trailers`, and Node throws on anything else. Bruno's strip-list doesn't include `te`, so this request may fail on h2. A client should drop or normalise the header rather than fail the request. **Bug candidate**: if it fails only in http2/auto mode, file it.
+  
+  > **Outcome case.** This request may fail *by design*. Its result is recorded in the runtime var `outcome` and asserted by the next request, **↳ verify: TE header other than trailers**. Run both together (the folder runner does this).
+}

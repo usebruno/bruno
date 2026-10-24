@@ -1,0 +1,64 @@
+meta {
+  name: Mode matches app setting
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{dual}}/echo
+  body: none
+  auth: inherit
+}
+
+tests {
+  // ---- testbed helpers ----
+  var MODE = bru.getEnvVar("mode");
+  var CLIENT = bru.getEnvVar("client") || "app";
+  function expectedProtocol(kind, opts) {
+    var proxied = !!(opts && opts.proxied);
+    var cliProxyGap = false; // CLI tunnels HTTP/2 through proxies too (parity with the app)
+    if (kind === "cleartext") return MODE === "http2" ? "fail" : "1.1"; // http2 sends h2c preface to an h1 server -> fails
+    if (kind === "h2c") return MODE === "http2" ? "2.0" : "fail";       // h2c server: http2 -> prior knowledge; else an h1 client is rejected
+    if (kind === "h2only") return MODE === "http1" || cliProxyGap ? "fail" : "2.0";
+    if (kind === "h1only") return MODE === "http2" ? "fail" : "1.1";
+    if (MODE === "http1" || cliProxyGap) return "1.1";
+    return "2.0";
+  }
+  function json() {
+    var b = res.getBody();
+    if (typeof b === "string") { try { return JSON.parse(b); } catch (e) { return {}; } }
+    return b || {};
+  }
+  function isH2() { return json().protocol === "2.0"; }
+  // ---- end helpers ----
+  test("environment 'mode' is one of http1/http2/auto", function () {
+    expect(["http1", "http2", "auto"]).to.include(MODE);
+  });
+  var exp = expectedProtocol("dual");
+  test("app/CLI HTTP version matches environment (mode=" + MODE + " → HTTP/" + exp + ")", function () {
+    expect(json().protocol, "Preferences → General → HTTP version (or --http-version) does not match the selected environment").to.equal(exp);
+  });
+  bru.setVar("lastConnId", res.getHeader("x-connection-id"));
+  bru.setVar("lastProtocol", res.getHeader("x-protocol"));
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+docs {
+  The dual-stack server speaks h2 and HTTP/1.1, so the protocol it reports shows which mode Bruno is really in.
+  
+  | Preference | Expected here |
+  |---|---|
+  | HTTP/1.1 (`http1`, default) | 1.1 |
+  | HTTP/2 (`http2`) | 2.0 |
+  | Auto (`auto`) | 2.0 |
+  
+  **Manual checks (Timeline tab):**
+  - http2/auto: `HTTP/2 selected (…)`, `Opening HTTP/2 session to localhost:8443` (first time) or `Reusing HTTP/2 session…`, `ALPN: h2 · TLSv1.3 · …`, `HTTP/2 request: :method GET · :path /echo · :authority localhost:8443 · :scheme https`, plus the server certificate block.
+  - auto only: `ALPN: offered h2, http/1.1 · server accepted h2`.
+  - http1: no "HTTP/2" lines, and no "ALPN: server accepted" line (HTTP/1.1 requests don't offer ALPN).
+  - The response pane shows the status text "OK", even though HTTP/2 has no reason phrase on the wire.
+}

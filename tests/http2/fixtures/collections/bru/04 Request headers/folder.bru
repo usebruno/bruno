@@ -1,0 +1,18 @@
+meta {
+  name: 04 Request headers
+  seq: 5
+}
+
+headers {
+  x-folder-header: from-folder-04
+}
+
+docs {
+  # Request headers
+  
+  HTTP/2 rules (RFC 9113 §8.2) that Bruno's h2 transport has to handle:
+  - Header names are **lowercase** on the wire.
+  - **Connection-specific headers are forbidden**: `connection`, `keep-alive`, `proxy-connection`, `transfer-encoding`, `upgrade`, `http2-settings`. Bruno strips them, so a request copied from curl/Postman still works.
+  - `Host` becomes the `:authority` pseudo-header.
+  - Callers must never be able to inject pseudo-headers.
+}

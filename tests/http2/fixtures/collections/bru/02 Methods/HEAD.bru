@@ -1,0 +1,49 @@
+meta {
+  name: HEAD
+  type: http
+  seq: 7
+}
+
+head {
+  url: {{dual}}/bytes/2048
+  body: none
+  auth: inherit
+}
+
+tests {
+  // ---- testbed helpers ----
+  var MODE = bru.getEnvVar("mode");
+  var CLIENT = bru.getEnvVar("client") || "app";
+  function expectedProtocol(kind, opts) {
+    var proxied = !!(opts && opts.proxied);
+    var cliProxyGap = false; // CLI tunnels HTTP/2 through proxies too (parity with the app)
+    if (kind === "cleartext") return MODE === "http2" ? "fail" : "1.1"; // http2 sends h2c preface to an h1 server -> fails
+    if (kind === "h2c") return MODE === "http2" ? "2.0" : "fail";       // h2c server: http2 -> prior knowledge; else an h1 client is rejected
+    if (kind === "h2only") return MODE === "http1" || cliProxyGap ? "fail" : "2.0";
+    if (kind === "h1only") return MODE === "http2" ? "fail" : "1.1";
+    if (MODE === "http1" || cliProxyGap) return "1.1";
+    return "2.0";
+  }
+  function json() {
+    var b = res.getBody();
+    if (typeof b === "string") { try { return JSON.parse(b); } catch (e) { return {}; } }
+    return b || {};
+  }
+  function isH2() { return json().protocol === "2.0"; }
+  // ---- end helpers ----
+  test("status 200", function () { expect(res.getStatus()).to.equal(200); });
+  test("headers present, body empty", function () {
+    expect(res.getHeader("content-length")).to.equal("2048");
+    var b = res.getBody();
+    expect(!b || b === "" || (typeof b === "object" && Object.keys(b).length === 0)).to.equal(true);
+  });
+  test("x-protocol matches mode", function () { expect(res.getHeader("x-protocol")).to.equal(expectedProtocol("dual")); });
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  HEAD returns headers only. Bruno must not wait for a body that never comes (on h2 the stream ends with END_STREAM on the HEADERS frame).
+}

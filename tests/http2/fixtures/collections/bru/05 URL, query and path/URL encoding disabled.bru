@@ -1,0 +1,43 @@
+meta {
+  name: URL encoding disabled
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{dual}}/echo?raw=a b|c
+  body: none
+  auth: inherit
+}
+
+tests {
+  // ---- testbed helpers ----
+  var MODE = bru.getEnvVar("mode");
+  var CLIENT = bru.getEnvVar("client") || "app";
+  function expectedProtocol(kind, opts) {
+    var proxied = !!(opts && opts.proxied);
+    var cliProxyGap = false; // CLI tunnels HTTP/2 through proxies too (parity with the app)
+    if (kind === "cleartext") return MODE === "http2" ? "fail" : "1.1"; // http2 sends h2c preface to an h1 server -> fails
+    if (kind === "h2c") return MODE === "http2" ? "2.0" : "fail";       // h2c server: http2 -> prior knowledge; else an h1 client is rejected
+    if (kind === "h2only") return MODE === "http1" || cliProxyGap ? "fail" : "2.0";
+    if (kind === "h1only") return MODE === "http2" ? "fail" : "1.1";
+    if (MODE === "http1" || cliProxyGap) return "1.1";
+    return "2.0";
+  }
+  function json() {
+    var b = res.getBody();
+    if (typeof b === "string") { try { return JSON.parse(b); } catch (e) { return {}; } }
+    return b || {};
+  }
+  function isH2() { return json().protocol === "2.0"; }
+  // ---- end helpers ----
+  test("record raw query (h1 vs h2 parity)", function () { console.log("HTTP/" + json().protocol + " rawQuery=" + json().rawQuery + " status=" + res.getStatus()); });
+}
+
+settings {
+  encodeUrl: false
+}
+
+docs {
+  With **encodeUrl: false**, Bruno sends the URL as typed (where possible). Compare what reaches the server on h1 vs h2. Divergence is a finding.
+}

@@ -1,0 +1,48 @@
+meta {
+  name: Cookies sent to same host over HTTP1.1 (h1only)
+  type: http
+  seq: 5
+  tags: [
+    ci-skip
+  ]
+}
+
+get {
+  url: {{h1only}}/cookies
+  body: none
+  auth: inherit
+}
+
+tests {
+  // ---- testbed helpers ----
+  var MODE = bru.getEnvVar("mode");
+  var CLIENT = bru.getEnvVar("client") || "app";
+  function expectedProtocol(kind, opts) {
+    var proxied = !!(opts && opts.proxied);
+    var cliProxyGap = false; // CLI tunnels HTTP/2 through proxies too (parity with the app)
+    if (kind === "cleartext") return MODE === "http2" ? "fail" : "1.1"; // http2 sends h2c preface to an h1 server -> fails
+    if (kind === "h2c") return MODE === "http2" ? "2.0" : "fail";       // h2c server: http2 -> prior knowledge; else an h1 client is rejected
+    if (kind === "h2only") return MODE === "http1" || cliProxyGap ? "fail" : "2.0";
+    if (kind === "h1only") return MODE === "http2" ? "fail" : "1.1";
+    if (MODE === "http1" || cliProxyGap) return "1.1";
+    return "2.0";
+  }
+  function json() {
+    var b = res.getBody();
+    if (typeof b === "string") { try { return JSON.parse(b); } catch (e) { return {}; } }
+    return b || {};
+  }
+  function isH2() { return json().protocol === "2.0"; }
+  // ---- end helpers ----
+  if (MODE !== "http2") {
+    test("h2-set cookie sent over HTTP/1.1", function () { expect(json().cookies.h2a).to.equal("alpha"); });
+  }
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  Same host, different port, HTTP/1.1-only server. Cookies are port-agnostic, so they should be sent. In http2 mode this server is unreachable, which is expected.
+}
