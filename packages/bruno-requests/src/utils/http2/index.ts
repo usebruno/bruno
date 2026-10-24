@@ -1,0 +1,16 @@
+export { buildTlsConnectOptions, pickTlsFields, wrapLookup, ALPN_BY_MODE } from './tls-connect-options';
+export type { HttpVersionMode, BuildTlsConnectOptionsParams } from './tls-connect-options';
+export { negotiateHttpVersion, resolveHttpVersionViaAlpn, invalidateAlpn, clearAlpnCache } from './alpn';
+export type { NegotiationResult, Resolved, ResolveHttpVersionViaAlpnParams } from './alpn';
+export { buildHttp2RequestHeaders, parseHttp2ResponseHeaders } from './headers';
+export type { Http1Headers, Http2RequestHeaders } from './headers';
+export { sendHttp2Request } from './send-request';
+export type { Http2RequestOptions, Http2Response } from './send-request';
+export { acquireSession, closeAllSessions } from './session-pool';
+export type { AcquiredSession, AcquireSessionParams } from './session-pool';
+export { createHttp2Adapter } from './http2-adapter';
+export { canUseHttp2, attachHttp2Adapter } from './attach-http2-adapter';
+export type { AttachHttp2AdapterParams } from './attach-http2-adapter';
+export { connectThroughProxy } from './http2-proxy';
+export type { ConnectThroughProxyParams } from './http2-proxy';
+export { resolveHttpVersion, HTTP_VERSION_VALUES } from './resolve-http-version';

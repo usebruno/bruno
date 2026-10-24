@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import get from 'lodash/get';
 import { IconTag } from '@tabler/icons';
 import { utils } from '@usebruno/common';
@@ -190,6 +190,7 @@ const Settings = ({ item, collection }) => {
             onValueChange={(e) => !isTimeoutInherited && onTimeoutChange(e)}
             onCustomValueReset={() => updateSetting({ timeout: 'inherit' })}
           />
+
         </div>
       </div>
     </div>

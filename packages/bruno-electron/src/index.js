@@ -588,6 +588,9 @@ app.on('before-quit', (event) => {
 
     try { await clearAllRunnerResponses(); } catch {}
 
+    // Close pooled HTTP/2 sessions so no connection is left dangling on exit.
+    try { require('@usebruno/requests').closeAllSessions(); } catch {}
+
     try { await sqliteService.reclaimDiskSpace(); } catch {}
 
     try { sqliteService.shutdown(); } catch {}

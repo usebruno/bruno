@@ -3,6 +3,8 @@ import { makeAxiosInstance } from '../network';
 import { getSentHeaders } from '../network/sent-headers';
 import { getHttpHttpsAgents } from '../utils/http-https-agents';
 import type { GetHttpHttpsAgentsParams } from '../utils/http-https-agents';
+import { attachHttp2Adapter, canUseHttp2 } from '../utils/http2';
+import type { HttpVersionMode } from '../utils/http2';
 
 type T_SendRequestCallback = (error: any, response: any) => void;
 
@@ -11,7 +13,7 @@ type T_SendRequestCallback = (error: any, response: any) => void;
  * This is the same config used by getHttpHttpsAgents, minus requestUrl which is
  * extracted from the actual request.
  */
-type SendRequestConfig = Omit<GetHttpHttpsAgentsParams, 'requestUrl'>;
+type SendRequestConfig = Omit<GetHttpHttpsAgentsParams, 'requestUrl'> & { httpVersion?: HttpVersionMode };
 
 type SendRequestEntry = {
   request: { method: string; url: string | undefined; headers: Record<string, any>; data: any };
@@ -150,7 +152,7 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
     }
 
     if (response) {
-      const httpVersion = (response as any)?.request?.res?.httpVersion || '1.1';
+      const httpVersion = (response as any)?.request?.res?.httpVersion || (response as any)?.httpVersion || '1.1';
       add('response', `HTTP/${httpVersion} ${response.status} ${response.statusText}`);
       for (const [name, value] of Object.entries(toPlainHeaders(response.headers))) {
         add('responseHeader', `${name}: ${value}`);
@@ -193,13 +195,15 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
       : { ...requestConfig };
 
     // If config is provided, create agents with the request URL for proper proxy bypass
+    let proxyUri: string | undefined;
     if (config) {
       const requestUrl = normalizedConfig.url;
 
-      const { httpAgent, httpsAgent } = await getHttpHttpsAgents({
+      const { httpAgent, httpsAgent, proxyUri: resolvedProxyUri } = await getHttpHttpsAgents({
         ...config,
         requestUrl
       });
+      proxyUri = resolvedProxyUri;
 
       // Apply agents if not explicitly set in normalizedConfig
       if (httpAgent && !normalizedConfig.httpAgent) {
@@ -207,6 +211,19 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
       }
       if (httpsAgent && !normalizedConfig.httpsAgent) {
         normalizedConfig.httpsAgent = httpsAgent;
+      }
+    }
+
+    // Attach the HTTP/2 transport when enabled. When a proxy applies, the transport
+    // tunnels through it (CONNECT/SOCKS).
+    const requestedHttpVersion = config?.httpVersion;
+    if (requestedHttpVersion && canUseHttp2(requestedHttpVersion)) {
+      const httpsAgent: any = normalizedConfig.httpsAgent;
+      const tlsOptions = httpsAgent?.options || {};
+      try {
+        await attachHttp2Adapter({ config: normalizedConfig, requestedHttpVersion, tlsOptions, proxyUri });
+      } catch (_) {
+        // On any ALPN/resolution error, fall through to the default HTTP/1.1 adapter.
       }
     }
 

@@ -168,6 +168,16 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Allow insecure server connections'
     })
+    .option('http-version', {
+      describe:
+        'HTTP version to use when the request and collection do not specify one; available: "auto", "http1.1" (default) or "http2"',
+      type: 'string',
+      choices: ['auto', 'http1.1', 'http2']
+    })
+    .option('http2', {
+      type: 'boolean',
+      describe: 'Shorthand for --http-version http2'
+    })
     .option('tests-only', {
       type: 'boolean',
       description: 'Only run requests that have a test or active assertion'
@@ -309,6 +319,8 @@ const handler = async function (argv) {
       envVar,
       globalEnvVar,
       insecure,
+      httpVersion,
+      http2,
       r: recursive,
       output: outputPath,
       format,
@@ -600,6 +612,11 @@ const handler = async function (argv) {
     }
     if (insecure) {
       options['insecure'] = true;
+    }
+    if (http2) {
+      options['httpVersion'] = 'http2';
+    } else if (httpVersion) {
+      options['httpVersion'] = httpVersion;
     }
     if (disableCookies) {
       options['disableCookies'] = true;

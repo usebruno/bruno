@@ -4,6 +4,8 @@ const axios = require('axios');
 const connectionCache = new Map(); // Cache to store checkConnection() results
 const electronApp = require('electron');
 const { setupProxyAgents } = require('../../utils/proxy-util');
+const { canUseHttp2, attachHttp2Adapter, resolveHttpVersion } = require('@usebruno/requests');
+const { explainRequestError } = require('./explain-request-error');
 const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies');
 const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
@@ -33,7 +35,7 @@ const saveCookies = (url, headers) => {
       setCookieHeaders = Array.isArray(headers['set-cookie'])
         ? headers['set-cookie']
         : [headers['set-cookie']];
-      for (let setCookieHeader of setCookieHeaders) {
+      for (const setCookieHeader of setCookieHeaders) {
         if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
           addCookieToJar(setCookieHeader, url);
         }
@@ -173,7 +175,7 @@ function makeAxiosInstance({
 
     // Add request data if available
     if (config.data) {
-      let requestData = typeof config.data === 'string' ? config.data : JSON.stringify(config.data, null, 2);
+      const requestData = typeof config.data === 'string' ? config.data : JSON.stringify(config.data, null, 2);
       timeline.push({
         timestamp: new Date(),
         type: 'requestData',
@@ -219,9 +221,9 @@ function makeAxiosInstance({
       keepAlive: !omitConnection
     };
 
+    let resolvedProxyUri;
     try {
-      // Now call setupProxyAgents and pass the timeline (async - may perform PAC resolution)
-      await setupProxyAgents({
+      resolvedProxyUri = await setupProxyAgents({
         requestConfig: config,
         proxyMode,
         proxyModeReason,
@@ -236,6 +238,11 @@ function makeAxiosInstance({
         type: 'error',
         message: `Error setting up proxy agents: ${err?.message}`
       });
+    }
+
+    const requestedHttpVersion = resolveHttpVersion(config.__collectionHttpVersion, preferencesUtil.getHttpVersion());
+    if (canUseHttp2(requestedHttpVersion)) {
+      await attachHttp2Adapter({ config, requestedHttpVersion, tlsOptions: agentOptions, proxyUri: resolvedProxyUri, timeline });
     }
 
     // Node keep-alive agents add Connection; strip it on the ClientRequest.
@@ -330,11 +337,22 @@ function makeAxiosInstance({
         });
       });
 
-      timeline?.push({
-        timestamp: new Date(),
-        type: 'error',
-        message: 'there was an error executing the request!'
-      });
+      const { message, originalMessage, code } = explainRequestError(error);
+      const codeSuffix = code ? ` (${code})` : '';
+      if (message) {
+        timeline?.push({ timestamp: new Date(), type: 'error', message: `Error executing the request: ${message}` });
+        if (originalMessage) {
+          timeline?.push({ timestamp: new Date(), type: 'error', message: `Details: ${originalMessage}${codeSuffix}` });
+        }
+      } else {
+        timeline?.push({
+          timestamp: new Date(),
+          type: 'error',
+          message: originalMessage
+            ? `Error executing the request: ${originalMessage}${codeSuffix}`
+            : 'there was an error executing the request!'
+        });
+      }
       if (error.response) {
         const isStreamedBody = config.responseType === 'stream';
         if (isStreamedBody) {

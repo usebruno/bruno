@@ -10,6 +10,7 @@ import Auth from './Auth';
 import Script from './Script';
 import Test from './Tests';
 import Presets from './Presets';
+import Requests from './Requests';
 import Protobuf from './Protobuf';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
@@ -92,6 +93,9 @@ const CollectionSettings = ({ collection }) => {
       case 'presets': {
         return <Presets collection={collection} />;
       }
+      case 'requests': {
+        return <Requests collection={collection} />;
+      }
       case 'proxy': {
         return <ProxySettings collection={collection} />;
       }
@@ -140,6 +144,9 @@ const CollectionSettings = ({ collection }) => {
           <div className={getTabClassname('presets')} role="tab" data-testid="collection-settings-tab-presets" onClick={() => setTab('presets')}>
             Presets
             {hasPresets && <StatusDot />}
+          </div>
+          <div className={getTabClassname('requests')} role="tab" data-testid="collection-settings-tab-requests" onClick={() => setTab('requests')}>
+            Requests
           </div>
           <div className={getTabClassname('proxy')} role="tab" data-testid="collection-settings-tab-proxy" onClick={() => setTab('proxy')}>
             Proxy

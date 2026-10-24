@@ -588,7 +588,6 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         }
       }
     }
-
     const _settings = {
       encodeUrl: toBool(settings.encodeUrl),
       timeout: parsedSettings.timeout !== undefined ? parsedSettings.timeout : 0

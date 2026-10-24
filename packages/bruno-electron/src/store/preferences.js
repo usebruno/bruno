@@ -21,6 +21,7 @@ const defaultPreferences = {
     storeCookies: true,
     sendCookies: true,
     timeout: 0,
+    httpVersion: 'http1.1',
     oauth2: {
       useSystemBrowser: false
     },
@@ -119,6 +120,7 @@ const preferencesSchema = Yup.object().shape({
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
     timeout: Yup.number(),
+    httpVersion: Yup.string().oneOf(['auto', 'http1.1', 'http2']),
     oauth2: Yup.object({
       useSystemBrowser: Yup.boolean()
     }),
@@ -394,7 +396,17 @@ const savePreferences = async (newPreferences) => {
     preferencesSchema
       .validate(newPreferences, { abortEarly: true })
       .then((validatedPreferences) => {
+        const previousHttpVersion = get(getPreferences(), 'request.httpVersion', 'http1.1');
         preferencesStore.savePreferences(validatedPreferences);
+        const nextHttpVersion = get(validatedPreferences, 'request.httpVersion', 'http1.1');
+        if (previousHttpVersion !== nextHttpVersion) {
+          // Changing the HTTP version must not reuse sessions opened under the old setting.
+          try {
+            require('@usebruno/requests').closeAllSessions();
+          } catch (err) {
+            console.error('Failed to close HTTP/2 sessions on preference change:', err);
+          }
+        }
         resolve();
       })
       .catch((error) => {
@@ -418,6 +430,9 @@ const preferencesUtil = {
   },
   getRequestTimeout: () => {
     return get(getPreferences(), 'request.timeout', 0);
+  },
+  getHttpVersion: () => {
+    return get(getPreferences(), 'request.httpVersion', 'http1.1');
   },
   getGlobalProxyConfig: () => {
     return get(getPreferences(), 'proxy', defaultPreferences.proxy);

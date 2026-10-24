@@ -2540,6 +2540,22 @@ export const collectionsSlice = createSlice({
         set(collection, 'draft.brunoConfig.proxy', action.payload.proxy);
       }
     },
+    updateCollectionHttpVersion: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root),
+            brunoConfig: cloneDeep(collection.brunoConfig)
+          };
+        }
+        if (!collection.draft.brunoConfig) {
+          collection.draft.brunoConfig = cloneDeep(collection.brunoConfig);
+        }
+        set(collection, 'draft.brunoConfig.http.version', action.payload.httpVersion);
+      }
+    },
     updateCollectionClientCertificates: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -4430,6 +4446,7 @@ export const {
   updateCollectionTests,
   updateCollectionDocs,
   updateCollectionProxy,
+  updateCollectionHttpVersion,
   updateCollectionClientCertificates,
   updateCollectionPresets,
   updateCollectionProtobuf,

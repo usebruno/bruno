@@ -35,3 +35,23 @@ export {
   completeHop,
   measureResponseTime
 } from './network';
+
+export {
+  buildTlsConnectOptions,
+  pickTlsFields,
+  resolveHttpVersionViaAlpn,
+  negotiateHttpVersion,
+  invalidateAlpn,
+  clearAlpnCache,
+  buildHttp2RequestHeaders,
+  parseHttp2ResponseHeaders,
+  sendHttp2Request,
+  acquireSession,
+  closeAllSessions,
+  createHttp2Adapter,
+  canUseHttp2,
+  attachHttp2Adapter,
+  resolveHttpVersion,
+  HTTP_VERSION_VALUES
+} from './utils/http2';
+export type { HttpVersionMode, Resolved } from './utils/http2';
