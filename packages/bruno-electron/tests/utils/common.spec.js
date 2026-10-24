@@ -1,4 +1,4 @@
-const { flattenDataForDotNotation, parseDataFromRequest } = require('../../src/utils/common');
+const { flattenDataForDotNotation, parseDataFromRequest, parseDataFromResponse } = require('../../src/utils/common');
 const FormData = require('form-data');
 
 describe('utils: flattenDataForDotNotation', () => {
@@ -86,6 +86,22 @@ describe('utils: flattenDataForDotNotation', () => {
 });
 
 describe('utils: parseDataFromRequest', () => {
+  test.each(['iso-8859-1', '"iso-8859-1"'])('preserves request text with charset=%s', (charset) => {
+    const request = { headers: { 'content-type': `text/plain; charset=${charset}` }, data: 'café' };
+    expect(parseDataFromRequest(request)).toEqual({ data: 'café', dataBuffer: Buffer.from('café') });
+    expect(request.data).toBe('café');
+  });
+
+  test('removes the BOM and parses request JSON while preserving bytes', () => {
+    const data = '\uFEFF{"message":"café"}';
+    const request = { headers: { 'content-type': 'application/json; charset="iso-8859-1"' }, data };
+    expect(parseDataFromRequest(request)).toEqual({ data: { message: 'café' }, dataBuffer: Buffer.from(data) });
+  });
+
+  test.each([undefined, null, '', false, 0])('preserves empty request handling for %s', (data) => {
+    expect(parseDataFromRequest({ headers: {}, data })).toEqual({ data: null, dataBuffer: null });
+  });
+
   test('should format multipart FormData', () => {
     const formData = new FormData();
     formData._boundary = 'boundary123';
@@ -102,5 +118,78 @@ describe('utils: parseDataFromRequest', () => {
     expect(result.data).toContain('name: description');
     expect(result.data).toContain('value: dfv');
     expect(result.data).toContain('value: [File: Dumy.xml]');
+  });
+});
+
+describe('parseDataFromResponse', () => {
+  test.each([
+    'text/plain; charset=iso-8859-1',
+    'text/plain; charset="iso-8859-1"',
+    'text/plain; Charset="ISO-8859-1"; format=flowed'
+  ])('decodes Latin-1 with %s and preserves the raw bytes', (contentType) => {
+    const bytes = Buffer.from([0x63, 0x61, 0x66, 0xe9]);
+    const result = parseDataFromResponse({ headers: { 'content-type': contentType }, data: bytes });
+
+    expect(result.data).toBe('café');
+    expect(result.dataBuffer).toEqual(bytes);
+  });
+
+  test.each([
+    undefined,
+    'text/plain',
+    'text/plain; charset=unknown-encoding',
+    'text/plain; charset="unknown-encoding"',
+    'text/plain; charset=""',
+    'text/plain; charset="utf-8"'
+  ])('preserves UTF-8 decoding with %s', (contentType) => {
+    const result = parseDataFromResponse({
+      headers: { 'content-type': contentType },
+      data: Buffer.from('café')
+    });
+
+    expect(result.data).toBe('café');
+  });
+
+  test.each([false, true])('preserves JSON parsing behavior when disabled=%s', (disableParsingResponseJson) => {
+    const body = '{"name":"café"}';
+    const result = parseDataFromResponse({
+      headers: { 'content-type': 'text/plain; charset="iso-8859-1"' },
+      data: Buffer.from(body, 'latin1')
+    }, disableParsingResponseJson);
+
+    expect(result.data).toEqual(disableParsingResponseJson ? body : { name: 'café' });
+  });
+});
+
+describe('utils: parseDataFromResponse', () => {
+  test.each([
+    'text/plain; charset=iso-8859-1',
+    'text/plain; charset="iso-8859-1"',
+    'text/plain; CHARSET="ISO-8859-1"; version=1',
+    'text/plain; x-charset=utf-8; charset="iso-8859-1"'
+  ])('decodes Latin-1 and preserves bytes for %s', (contentType) => {
+    const bytes = Buffer.from([0x63, 0x61, 0x66, 0xe9]);
+    const result = parseDataFromResponse({ headers: { 'content-type': contentType }, data: bytes });
+    expect(result.data).toBe('café');
+    expect(result.dataBuffer).toEqual(bytes);
+  });
+
+  test.each([
+    'text/plain; x-charset=iso-8859-1',
+    'text/plain; x-charset="iso-8859-1"',
+    'text/plain; charset=unknown-charset',
+    'text/plain; charset=""',
+    'text/plain'
+  ])('falls back to UTF-8 for %s', (contentType) => {
+    const bytes = Buffer.from('café');
+    const result = parseDataFromResponse({ headers: { 'content-type': contentType }, data: bytes });
+    expect(result.data).toBe('café');
+    expect(result.dataBuffer).toEqual(bytes);
+  });
+
+  test('preserves BOM removal and optional JSON parsing', () => {
+    const response = { headers: {}, data: Buffer.from('\uFEFF{"message":"café"}') };
+    expect(parseDataFromResponse(response).data).toEqual({ message: 'café' });
+    expect(parseDataFromResponse(response, true).data).toBe('{"message":"café"}');
   });
 });

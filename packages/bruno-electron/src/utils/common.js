@@ -1,6 +1,5 @@
 const { customAlphabet } = require('nanoid');
 const iconv = require('iconv-lite');
-const { cloneDeep } = require('lodash');
 const { formatMultipartData } = require('./form-data');
 const { isFormData } = require('@usebruno/common').utils;
 
@@ -104,10 +103,9 @@ const flattenDataForDotNotation = (data) => {
 };
 
 const parseDataFromResponse = (response, disableParsingResponseJson = false) => {
-  // Parse the charset from content type: https://stackoverflow.com/a/33192813
-  const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['content-type'] || '');
-  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/exec#using_exec_with_regexp_literals
-  const charsetValue = charsetMatch?.[1];
+  // Keep charset parsing in sync with the CLI/Electron counterpart.
+  const charsetMatch = /(?:^|;)\s*charset\s*=\s*(?:"([^"]*)"|([^()<>@,;:"/[\]?.=\s]*))/i.exec(response.headers['content-type'] || '');
+  const charsetValue = charsetMatch?.[1] ?? charsetMatch?.[2];
   const dataBuffer = Buffer.from(response.data);
   // Overwrite the original data for backwards compatibility
   let data;
@@ -142,12 +140,13 @@ const parseDataFromRequest = (request) => {
     requestDataString = typeof request?.data === 'string' ? request?.data : safeStringifyJSON(request?.data);
   }
 
-  const requestCopy = cloneDeep(request);
-  if (!requestCopy.data) {
+  if (!request.data) {
     return { data: null, dataBuffer: null };
   }
-  requestCopy.data = requestDataString;
-  return parseDataFromResponse(requestCopy);
+  // Request text is already decoded; response charset decoding would corrupt it.
+  const dataBuffer = Buffer.from(requestDataString);
+  const data = safeParseJSON(requestDataString.replace(/^\uFEFF/, ''));
+  return { data, dataBuffer };
 };
 
 // Read a param from the query string, falling back to the URL hash fragment
