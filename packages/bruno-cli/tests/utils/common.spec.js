@@ -421,3 +421,36 @@ describe('parseDataFromResponse', () => {
     expect(result.data).toEqual(disableParsingResponseJson ? body : { name: 'café' });
   });
 });
+
+describe('utils: parseDataFromResponse', () => {
+  test.each([
+    'text/plain; charset=iso-8859-1',
+    'text/plain; charset="iso-8859-1"',
+    'text/plain; CHARSET="ISO-8859-1"; version=1',
+    'text/plain; x-charset=utf-8; charset="iso-8859-1"'
+  ])('decodes Latin-1 and preserves bytes for %s', (contentType) => {
+    const bytes = Buffer.from([0x63, 0x61, 0x66, 0xe9]);
+    const result = parseDataFromResponse({ headers: { 'content-type': contentType }, data: bytes });
+    expect(result.data).toBe('café');
+    expect(result.dataBuffer).toEqual(bytes);
+  });
+
+  test.each([
+    'text/plain; x-charset=iso-8859-1',
+    'text/plain; x-charset="iso-8859-1"',
+    'text/plain; charset=unknown-charset',
+    'text/plain; charset=""',
+    'text/plain'
+  ])('falls back to UTF-8 for %s', (contentType) => {
+    const bytes = Buffer.from('café');
+    const result = parseDataFromResponse({ headers: { 'content-type': contentType }, data: bytes });
+    expect(result.data).toBe('café');
+    expect(result.dataBuffer).toEqual(bytes);
+  });
+
+  test('preserves BOM removal and optional JSON parsing', () => {
+    const response = { headers: {}, data: Buffer.from('\uFEFF{"message":"café"}') };
+    expect(parseDataFromResponse(response).data).toEqual({ message: 'café' });
+    expect(parseDataFromResponse(response, true).data).toBe('{"message":"café"}');
+  });
+});

@@ -18,7 +18,7 @@ const rpad = (str, width) => {
 
 const parseDataFromResponse = (response, disableParsingResponseJson = false) => {
   // Keep charset parsing in sync with the CLI/Electron counterpart.
-  const charsetMatch = /charset=(?:"([^"]*)"|([^()<>@,;:"/[\]?.=\s]*))/i.exec(response.headers['content-type'] || '');
+  const charsetMatch = /(?:^|;)\s*charset\s*=\s*(?:"([^"]*)"|([^()<>@,;:"/[\]?.=\s]*))/i.exec(response.headers['content-type'] || '');
   const charsetValue = charsetMatch?.[1] ?? charsetMatch?.[2];
   const dataBuffer = Buffer.from(response.data);
   // Overwrite the original data for backwards compatibility
