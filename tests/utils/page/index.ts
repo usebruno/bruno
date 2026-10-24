@@ -9,6 +9,7 @@ export * from './tab-strip';
 export * from './websocket';
 export * from './sidebar';
 export * from './git/clone-git-repository';
+export * from './collection/collection-actions';
 export * from './mounting';
 export * from './collection/migrate-to-yml';
 export * from './preferences';
