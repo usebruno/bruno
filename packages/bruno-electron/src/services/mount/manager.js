@@ -4,6 +4,7 @@ const { JobType, getPool, destroyPool } = require('../pool');
 const { FileIndex } = require('./file-index');
 const { buildTree } = require('./tree-builder');
 const { defaultClassify, uidForSeed } = require('../../utils/mount');
+const { getWsClient } = require('../../ipc/network/ws-event-handlers');
 
 // cold start only — collection-watcher handles live changes and writes through to the cache
 
@@ -78,7 +79,7 @@ class MountManager {
       existing.win = win;
       existing.emit = emit;
       existing.brunoConfig = brunoConfig || existing.brunoConfig;
-      existing.state = this.#getIndex().entries(existing.collectionPath);
+      existing.state = this.#getIndex().entries(existing.collectionPath, { denylist: existing.brunoConfig?.ignore });
       await this.#emitTree(collectionUid, existing);
       return existing.tempDirectoryPath;
     }
@@ -96,45 +97,33 @@ class MountManager {
     };
     this.#mounts.set(collectionUid, entry);
 
-    await this.#coldLoad(collectionUid, entry);
-    return tempDirectoryPath;
-  }
-
-  async remount({ collectionUid, brunoConfig }) {
-    const entry = this.#mounts.get(collectionUid);
-    if (!entry) return false;
-
-    if (brunoConfig) entry.brunoConfig = brunoConfig;
-
-    // the caller tore the watcher down (e.g. yml migration rewrote every file);
-    // clear it before re-reconciling the cache against disk and re-attaching
-    const collectionWatcher = require('../../app/collection-watcher');
-    collectionWatcher.removeWatcher(entry.collectionPath, entry.win, collectionUid);
-
-    await this.#coldLoad(collectionUid, entry);
-    return true;
-  }
-
-  async #coldLoad(collectionUid, entry) {
     entry.emit.loading(true);
     try {
-      entry.state = this.#getIndex().entries(entry.collectionPath);
+      entry.state = this.#getIndex().entries(collectionPath, { denylist: brunoConfig?.ignore });
       await this.#reconcile(entry);
       await this.#emitTree(collectionUid, entry);
 
       // skip the startup walk (already done) and stage live edits into the cache
       const collectionWatcher = require('../../app/collection-watcher');
-      collectionWatcher.addWatcher(entry.win, entry.collectionPath, collectionUid, entry.brunoConfig, false, false, {
+      collectionWatcher.addWatcher(entry.win, collectionPath, collectionUid, brunoConfig, false, false, {
         ignoreInitial: true,
         fileIndex: this.#getIndex()
       });
-      collectionWatcher.addTempDirectoryWatcher(entry.win, entry.tempDirectoryPath, collectionUid, entry.collectionPath);
+      collectionWatcher.addTempDirectoryWatcher(entry.win, tempDirectoryPath, collectionUid, collectionPath);
+    } catch (err) {
+      this.#mounts.delete(collectionUid);
+      throw err;
     } finally {
       entry.emit.loading(false);
     }
+    return tempDirectoryPath;
   }
 
   async unmount(collectionUid) {
+    try {
+      getWsClient()?.closeForCollection(collectionUid);
+    } catch (_) {}
+
     const entry = this.#mounts.get(collectionUid);
     if (!entry) return;
     this.#mounts.delete(collectionUid);
@@ -144,11 +133,11 @@ class MountManager {
     } catch (_) {}
   }
 
-  async shutdown() {
+  async shutdown({ force = false } = {}) {
     await Promise.all(
       Array.from(this.#mounts.keys()).map((uid) => this.unmount(uid).catch(() => {}))
     );
-    await destroyPool().catch(() => {});
+    await destroyPool({ force }).catch(() => {});
     if (this.#index) {
       this.#index.close();
       this.#index = null;
@@ -166,6 +155,10 @@ class MountManager {
 
   clearCache() {
     this.#getIndex().clear();
+  }
+
+  clearCollectionIndex(collectionPath) {
+    this.#getIndex().clearCollection(path.resolve(collectionPath));
   }
 
   async #reconcile(entry) {
@@ -234,7 +227,7 @@ class MountManager {
   }
 
   #getIndex() {
-    if (!this.#index) this.#index = new FileIndex({});
+    if (!this.#index) this.#index = new FileIndex();
     return this.#index;
   }
 }

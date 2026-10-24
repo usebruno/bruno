@@ -1,3 +1,4 @@
+import { validatedEnvironmentName } from '@usebruno/common/utils';
 import { uuid } from '../common/index.js';
 import {
   isTypedValue,
@@ -43,6 +44,13 @@ export const fromOpenCollectionEnvironments = (environments: Environment[] | und
 
       if (isSecret) {
         // Secret values are not present in the source; never carry a dataType.
+        if (variable.description) {
+          result.description = 
+          	typeof variable.description === 'string'
+            	? variable.description
+	            : (variable.description as { content?: string })?.content || '';
+	      
+        }
         return result;
       }
 
@@ -64,7 +72,8 @@ export const fromOpenCollectionEnvironments = (environments: Environment[] | und
 
       return result;
     }),
-    color: env.color || null
+    color: env.color || null,
+    extends: validatedEnvironmentName(env.extends) || null
   }));
 };
 
@@ -92,9 +101,18 @@ export const toOpenCollectionEnvironments = (environments: BrunoEnvironment[] | 
           ocVar.disabled = true;
         }
 
+        if (v.description && typeof v.description === 'string' && v.description.trim().length) {
+          ocVar.description = v.description;
+        }
+
         return ocVar;
       }) as Variable[]
     };
+
+    const environmentExtendsFrom = validatedEnvironmentName(env.extends);
+    if (environmentExtendsFrom) {
+      ocEnv.extends = environmentExtendsFrom;
+    }
 
     return ocEnv;
   });

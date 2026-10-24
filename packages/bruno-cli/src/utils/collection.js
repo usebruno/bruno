@@ -2,8 +2,9 @@ const { get, each, find } = require('lodash');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
-const { sanitizeName } = require('./filesystem');
-const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
+const { getEffectiveTags, getFolderTags, getOwnTags } = require('@usebruno/common');
+const { parseRequest, parseCollection, parseFolder } = require('@usebruno/filestore');
+const { sortByNameThenSequence } = require('@usebruno/common');
 const constants = require('../constants');
 const chalk = require('chalk');
 
@@ -11,7 +12,6 @@ const FORMAT_CONFIG = {
   yml: { ext: '.yml', collectionFile: 'opencollection.yml', folderFile: 'folder.yml' },
   bru: { ext: '.bru', collectionFile: 'collection.bru', folderFile: 'folder.bru' }
 };
-const REQUEST_ITEM_TYPES = ['http-request', 'graphql-request'];
 
 const getCollectionFormat = (collectionPath) => {
   if (fs.existsSync(path.join(collectionPath, 'opencollection.yml'))) return 'yml';
@@ -224,18 +224,21 @@ const mergeVars = (collection, request, requestTreePath) => {
 /**
  * Wraps a script in an IIFE closure to isolate its scope
  * @param {string} script - The script code to wrap
+ * @param {{ dirname: string, filename: string | null } | null} sourcePaths - Absolute paths bound to __dirname / __filename
  * @returns {string} The wrapped script
  */
-const wrapScriptInClosure = (script) => {
+const wrapScriptInClosure = (script, sourcePaths = null) => {
   if (!script || script.trim() === '') {
     return '';
   }
   // Wrap script in async IIFE to create isolated scope
   // This prevents variable re-declaration errors and allows early returns
   // to only affect the current script segment
-  return `await (async () => {
+  const dirnameParam = sourcePaths?.dirname != null ? JSON.stringify(sourcePaths.dirname) : 'undefined';
+  const filenameParam = sourcePaths?.filename != null ? JSON.stringify(sourcePaths.filename) : 'undefined';
+  return `await (async (__dirname, __filename) => {
 ${script}
-})();`;
+})(${dirnameParam}, ${filenameParam});`;
 };
 
 /**
@@ -248,10 +251,24 @@ ${script}
  *
  * @param {string[]} scripts - Script segments in order (e.g. collection, folders, request).
  * @param {number} requestIndex - Index in scripts of the request-level segment.
+ * @param {object} [opts]
+ * @param {Array|null} [opts.segmentSources] - Source file info per non-request segment.
+ * @param {object|null} [opts.requestSegmentSource] - Source file info for the request segment.
+ * @param {string|null} [opts.collectionPath] - Collection dir; used as the __dirname fallback.
  * @returns {{ code: string, metadata: { requestStartLine: number, requestEndLine: number } | null }}
  */
-const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null) => {
-  const wrapped = scripts.map((s) => wrapScriptInClosure(s));
+const wrapAndJoinScripts = (scripts, requestIndex, { segmentSources = null, requestSegmentSource = null, collectionPath = null } = {}) => {
+  const buildSourcePaths = (i) => {
+    const filePath = i === requestIndex
+      ? requestSegmentSource?.filePath
+      : segmentSources?.[i]?.filePath;
+    if (filePath) return { dirname: path.dirname(filePath), filename: filePath };
+    // No source file - anchor __dirname to the collection dir; no honest __filename to name.
+    if (collectionPath) return { dirname: collectionPath, filename: null };
+    return null;
+  };
+
+  const wrapped = scripts.map((s, i) => wrapScriptInClosure(s, buildSourcePaths(i)));
   const code = wrapped.filter(Boolean).join('\n\n');
 
   let offset = 0;
@@ -302,6 +319,10 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     displayPath: config.collectionFile
   };
 
+  const requestItem = requestTreePath?.[requestTreePath.length - 1];
+  const requestPathname = request?.pathname || requestItem?.pathname;
+  const requestSegmentSource = requestPathname ? { filePath: requestPathname } : null;
+
   let combinedPreReqScript = [];
   let combinedPreReqSources = [];
   let combinedPostResScript = [];
@@ -347,7 +368,11 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     request?.script?.req || ''
   ];
   const preReqSources = [collectionSource, ...combinedPreReqSources, null];
-  const preReq = wrapAndJoinScripts(preReqScripts, preReqScripts.length - 1, preReqSources);
+  const preReq = wrapAndJoinScripts(preReqScripts, preReqScripts.length - 1, {
+    segmentSources: preReqSources,
+    requestSegmentSource,
+    collectionPath: collection.pathname
+  });
   request.script.req = preReq.code;
   request.script.reqMetadata = preReq.metadata;
 
@@ -359,7 +384,11 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       request?.script?.res || ''
     ];
     const postResSources = [collectionSource, ...combinedPostResSources, null];
-    const postRes = wrapAndJoinScripts(postResScripts, postResScripts.length - 1, postResSources);
+    const postRes = wrapAndJoinScripts(postResScripts, postResScripts.length - 1, {
+      segmentSources: postResSources,
+      requestSegmentSource,
+      collectionPath: collection.pathname
+    });
     request.script.res = postRes.code;
     request.script.resMetadata = postRes.metadata;
   } else {
@@ -370,7 +399,11 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       collectionPostResScript
     ];
     const postResSources = [null, ...[...combinedPostResSources].reverse(), collectionSource];
-    const postRes = wrapAndJoinScripts(postResScripts, 0, postResSources);
+    const postRes = wrapAndJoinScripts(postResScripts, 0, {
+      segmentSources: postResSources,
+      requestSegmentSource,
+      collectionPath: collection.pathname
+    });
     request.script.res = postRes.code;
     request.script.resMetadata = postRes.metadata;
   }
@@ -383,7 +416,11 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       request?.tests || ''
     ];
     const testSources = [collectionSource, ...combinedTestsSources, null];
-    const tests = wrapAndJoinScripts(testScripts, testScripts.length - 1, testSources);
+    const tests = wrapAndJoinScripts(testScripts, testScripts.length - 1, {
+      segmentSources: testSources,
+      requestSegmentSource,
+      collectionPath: collection.pathname
+    });
     request.tests = tests.code;
     request.testsMetadata = tests.metadata;
   } else {
@@ -394,7 +431,11 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       collectionTests
     ];
     const testSources = [null, ...[...combinedTestsSources].reverse(), collectionSource];
-    const tests = wrapAndJoinScripts(testScripts, 0, testSources);
+    const tests = wrapAndJoinScripts(testScripts, 0, {
+      segmentSources: testSources,
+      requestSegmentSource,
+      collectionPath: collection.pathname
+    });
     request.tests = tests.code;
     request.testsMetadata = tests.metadata;
   }
@@ -444,6 +485,27 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
     item = findParentItemInCollection(collection, item.pathname);
   }
   return path;
+};
+
+/** Effective tags (own + inherited) for every item in the collection, keyed by pathname. */
+const getEffectiveTagsByPathname = (collection) => {
+  const tagsByPathname = new Map();
+
+  const walk = (items, inheritedTags) => {
+    each(items, (item) => {
+      if (item.type === 'folder') {
+        const folderTags = getEffectiveTags(getFolderTags(item), inheritedTags);
+        tagsByPathname.set(item.pathname, folderTags);
+        walk(item.items, folderTags);
+        return;
+      }
+      tagsByPathname.set(item.pathname, getEffectiveTags(getOwnTags(item), inheritedTags));
+    });
+  };
+
+  walk(collection.items, []);
+
+  return tagsByPathname;
 };
 
 const mergeAuth = (collection, request, requestTreePath) => {
@@ -519,193 +581,6 @@ const getCallStack = (resolvedPaths = [], collection, { recursive }) => {
   return requestItems;
 };
 
-/**
- * Safe write file implementation to handle errors
- * @param {string} filePath - Path to write file
- * @param {string} content - Content to write
- */
-const safeWriteFileSync = (filePath, content) => {
-  try {
-    fs.writeFileSync(filePath, content, { encoding: 'utf8' });
-  } catch (error) {
-    console.error(`Error writing file ${filePath}:`, error);
-  }
-};
-
-/**
- * Creates a Bruno collection directory structure from a Bruno collection object
- *
- * @param {Object} collection - The Bruno collection object
- * @param {string} dirPath - The output directory path
- */
-const createCollectionFromBrunoObject = async (collection, dirPath, options = {}) => {
-  const { format = DEFAULT_COLLECTION_FORMAT } = options;
-  // Create brunoConfig for yml format
-  const brunoConfig = {
-    version: '1',
-    name: collection.name,
-    type: 'collection',
-    ignore: ['node_modules', '.git']
-  };
-
-  if (format === 'yml') {
-    brunoConfig.opencollection = '1.0.0';
-  }
-
-  const collectionContent = await stringifyCollection(collection.root || {}, brunoConfig, {
-    format
-  });
-  const collectionRootFilePath = format == 'bru' ? path.join(dirPath, 'collection.bru') : path.join(dirPath, 'opencollection.yml');
-
-  if (format === 'bru') {
-    fs.writeFileSync(
-      path.join(dirPath, 'bruno.json'),
-      JSON.stringify(brunoConfig, null, 2)
-    );
-  }
-
-  if (collection.root) {
-    fs.writeFileSync(collectionRootFilePath, collectionContent);
-  }
-
-  // Process environments
-  if (collection.environments && collection.environments.length) {
-    const envDirPath = path.join(dirPath, 'environments');
-    fs.mkdirSync(envDirPath, { recursive: true });
-
-    for (const env of collection.environments) {
-      const content = stringifyEnvironment(env, { format });
-      const filename = format === 'bru' ? sanitizeName(`${env.name}.bru`) : sanitizeName(`${env.name}.yml`);
-      fs.writeFileSync(path.join(envDirPath, filename), content);
-    }
-  }
-
-  // Process collection items
-  await processCollectionItems(collection.items, dirPath, { format });
-
-  return dirPath;
-};
-
-/**
- * Recursively processes collection items to create files and folders
- *
- * @param {Array} items - Collection items
- * @param {string} currentPath - Current directory path
- * @param {object} [options] - Current directory path
- * @param {"bru"|"yml"} options.format - Current directory path
- */
-const processCollectionItems = async (items = [], currentPath, options = {}) => {
-  const { format = DEFAULT_COLLECTION_FORMAT } = options;
-  for (const item of items) {
-    if (item.type === 'folder') {
-      // Create folder
-      let sanitizedFolderName = sanitizeName(item?.filename || item?.name);
-      const folderPath = path.join(currentPath, sanitizedFolderName);
-      fs.mkdirSync(folderPath, { recursive: true });
-
-      // Create folder.yml file if root exists
-      if (item?.root?.meta?.name) {
-        const folderFileName = format === 'bru' ? 'folder.bru' : 'folder.yml';
-        const folderFilePath = path.join(folderPath, folderFileName);
-        if (item.seq) {
-          item.root.meta.seq = item.seq;
-        }
-        const folderContent = stringifyFolder(item.root, { format });
-        safeWriteFileSync(folderFilePath, folderContent);
-      }
-
-      // Process folder items recursively
-      if (item.items && item.items.length) {
-        await processCollectionItems(item.items, folderPath, options);
-      }
-    } else if (REQUEST_ITEM_TYPES.includes(item.type)) {
-      // Create request file
-      let sanitizedFilename;
-      if (format == 'yml') {
-        sanitizedFilename = sanitizeName(item?.filename || `${item.name}.yml`);
-        if (!sanitizedFilename.endsWith('.yml')) {
-          sanitizedFilename += '.yml';
-        }
-      } else {
-        sanitizedFilename = sanitizeName(item?.filename || `${item.name}.bru`);
-        if (!sanitizedFilename.endsWith('.bru')) {
-          sanitizedFilename += '.bru';
-        }
-      }
-
-      // Convert to YML format
-      const itemJson = {
-        type: item.type,
-        name: item.name,
-        seq: typeof item.seq === 'number' ? item.seq : 1,
-        tags: item.tags || [],
-        settings: {},
-        request: {
-          method: item.request?.method || 'GET',
-          url: item.request?.url || '',
-          headers: item.request?.headers || [],
-          params: item.request?.params || [],
-          auth: item.request?.auth || {},
-          body: item.request?.body || {},
-          script: item.request?.script || {},
-          vars: item.request?.vars || { req: [], res: [] },
-          assertions: item.request?.assertions || [],
-          tests: item.request?.tests || '',
-          docs: item.request?.docs || ''
-        },
-        examples: item.examples || []
-      };
-
-      // Convert to YML format and write to file
-      const content = stringifyRequest(itemJson, { format });
-      safeWriteFileSync(path.join(currentPath, sanitizedFilename), content);
-    } else {
-      throw new Error(`Unsupported item type: ${item.type}`);
-    }
-  }
-};
-
-const sortByNameThenSequence = (items) => {
-  const isSeqValid = (seq) => Number.isFinite(seq) && Number.isInteger(seq) && seq > 0;
-
-  // Sort folders alphabetically by name
-  const alphabeticallySorted = [...items].sort((a, b) => a.name && b.name && a.name.localeCompare(b.name));
-
-  // Extract folders without 'seq'
-  const withoutSeq = alphabeticallySorted.filter((f) => !isSeqValid(f['seq']));
-
-  // Extract folders with 'seq' and sort them by 'seq'
-  const withSeq = alphabeticallySorted.filter((f) => isSeqValid(f['seq'])).sort((a, b) => a.seq - b.seq);
-
-  const sortedItems = withoutSeq;
-
-  // Insert folders with 'seq' at their specified positions
-  withSeq.forEach((item) => {
-    const position = item.seq - 1;
-    const existingItem = withoutSeq[position];
-
-    // Check if there's already an item with the same sequence number
-    const hasItemWithSameSeq = Array.isArray(existingItem)
-      ? existingItem?.[0]?.seq === item.seq
-      : existingItem?.seq === item.seq;
-
-    if (hasItemWithSameSeq) {
-      // If there's a conflict, group items with same sequence together
-      const newGroup = Array.isArray(existingItem)
-        ? [...existingItem, item]
-        : [existingItem, item];
-
-      withoutSeq.splice(position, 1, newGroup);
-    } else {
-      // Insert item at the specified position
-      withoutSeq.splice(position, 0, item);
-    }
-  });
-
-  // return flattened sortedItems
-  return sortedItems.flat();
-};
-
 module.exports = {
   FORMAT_CONFIG,
   getCollectionFormat,
@@ -713,9 +588,10 @@ module.exports = {
   mergeHeaders,
   mergeVars,
   mergeScripts,
+  wrapAndJoinScripts,
   findItemInCollection,
   getTreePathFromCollectionToItem,
-  createCollectionFromBrunoObject,
+  getEffectiveTagsByPathname,
   mergeAuth,
   getAllRequestsInFolder,
   getAllRequestsAtFolderRoot,

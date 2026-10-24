@@ -4,6 +4,7 @@ import filter from 'lodash/filter';
 import { createListenerMiddleware } from '@reduxjs/toolkit';
 import { removeTaskFromQueue } from 'providers/ReduxStore/slices/app';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionAddFileEvent, collectionChangeFileEvent, collectionLoadedFromTree } from 'providers/ReduxStore/slices/collections';
 import { findCollectionByUid, findItemInCollectionByPathname, getDefaultRequestPaneTab, findItemInCollectionByItemUid } from 'utils/collections/index';
 import { taskTypes } from './utils';
@@ -36,11 +37,14 @@ taskMiddleware.startListening({
           collectionUid: collection.uid,
           type: item.type,
           pathname: item.pathname,
-          requestPaneTab: getDefaultRequestPaneTab(item),
+          requestPaneTab: task?.requestPaneTab || getDefaultRequestPaneTab(item),
           preview: task?.preview ?? true,
           ...(item.isTransient ? { isTransient: true } : {})
         })
       );
+      if (task.autoSend) {
+        listenerApi.dispatch(sendRequest(item, collection.uid)).catch(() => {});
+      }
       listenerApi.dispatch(removeTaskFromQueue({ taskUid: task.uid }));
     });
   }
@@ -66,11 +70,14 @@ taskMiddleware.startListening({
           collectionUid: collection.uid,
           type: item.type,
           pathname: item.pathname,
-          requestPaneTab: getDefaultRequestPaneTab(item),
+          requestPaneTab: task?.requestPaneTab || getDefaultRequestPaneTab(item),
           preview: task?.preview ?? true,
           ...(item.isTransient ? { isTransient: true } : {})
         })
       );
+      if (task.autoSend) {
+        listenerApi.dispatch(sendRequest(item, collection.uid)).catch(() => {});
+      }
       listenerApi.dispatch(removeTaskFromQueue({ taskUid: task.uid }));
     });
   }
@@ -105,7 +112,8 @@ taskMiddleware.startListening({
                 itemUid: item.uid,
                 pathname: item.pathname,
                 exampleName: example.name,
-                exampleIndex: task.exampleIndex
+                exampleIndex: task.exampleIndex,
+                openInEditMode: !!task.openInEditMode
               }));
             }
           }

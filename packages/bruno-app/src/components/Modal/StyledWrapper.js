@@ -66,6 +66,11 @@ const Wrapper = styled.div`
     animation: fade-and-slide-in-from-top 0.5s forwards cubic-bezier(0.19, 1, 0.22, 1);
   }
 
+  .bruno-modal-header.bruno-modal-header--plain {
+    background-color: transparent;
+    padding: 1rem 1.25rem;
+  }
+
   .bruno-modal-header {
     display: flex;
     justify-content: space-between;
@@ -163,6 +168,7 @@ const Wrapper = styled.div`
 
     animation: fade-in 0.1s forwards cubic-bezier(0.19, 1, 0.22, 1);
   }
+
 
   .bruno-modal-footer {
     background-color: ${(props) => props.theme.modal.body.bg};

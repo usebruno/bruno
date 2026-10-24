@@ -1,8 +1,16 @@
 require('dotenv').config({ path: process.env.DOTENV_PATH });
 
+const isBenchmark = process.env.BRUNO_BENCHMARK === 'true';
+
 const config = {
   appId: 'com.usebruno.app',
-  productName: 'Bruno',
+  productName: isBenchmark ? 'Bruno Benchmark' : 'Bruno',
+  extraMetadata: {
+    brunoBuild: {
+      benchmark: isBenchmark,
+      builtAt: new Date().toISOString()
+    }
+  },
   electronVersion: '37.6.1',
   directories: {
     buildResources: 'resources',
@@ -91,6 +99,15 @@ const config = {
       'libsecret-1-0',
       'libasound2' // #1036
     ]
+  },
+  // Bundle git so Snap/sandbox installs can find it (#5667)
+  snap: {
+    stagePackages: ['default', 'git'],
+    // electron-builder's app part strips usr/bin, so expose git from git-core
+    environment: {
+      PATH: '$SNAP/usr/lib/git-core:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH',
+      GIT_EXEC_PATH: '$SNAP/usr/lib/git-core'
+    }
   },
   win: {
     artifactName: '${name}_${version}_${arch}_win.${ext}',

@@ -1,7 +1,7 @@
 const { describe, it, expect, jest, beforeEach } = require('@jest/globals');
 import { render, act } from '@testing-library/react';
 import React from 'react';
-import { useResizableColumns } from './index';
+import { useResizableColumns, COLUMN_RESIZE_CURSOR_CLASS } from './index';
 
 const CONTAINER_WIDTH = 1000;
 const DEFAULT_WIDTHS = [100, 200, 400, 200, 100]; // sums to CONTAINER_WIDTH
@@ -10,8 +10,8 @@ const MIN_COL_WIDTH = 60;
 // Captures the latest hook return value on each render
 let hookValue;
 
-function Fixture({ defaultWidths = DEFAULT_WIDTHS, minColWidth = MIN_COL_WIDTH }) {
-  const hook = useResizableColumns({ defaultWidths, minColWidth });
+function Fixture({ defaultWidths = DEFAULT_WIDTHS, minColWidth = MIN_COL_WIDTH, reservedWidth, onResizeEnd }) {
+  const hook = useResizableColumns({ defaultWidths, minColWidth, reservedWidth, onResizeEnd });
   hookValue = hook;
   return <div ref={hook.containerRef} />;
 }
@@ -99,6 +99,24 @@ describe('useResizableColumns', () => {
 
       setup();
 
+      expect(hookValue.colWidths).toBeNull();
+    });
+
+    it('subtracts reservedWidth from the measured width', () => {
+      setup({ reservedWidth: 100 });
+      const total = hookValue.colWidths.reduce((s, w) => s + w, 0);
+      expect(total).toBe(CONTAINER_WIDTH - 100);
+    });
+
+    it('keeps subtracting reservedWidth on container resize', () => {
+      setup({ reservedWidth: 100 });
+      act(() => triggerResize(1400));
+      const total = hookValue.colWidths.reduce((s, w) => s + w, 0);
+      expect(total).toBe(1300);
+    });
+
+    it('ignores a measurement that is fully consumed by reservedWidth', () => {
+      setup({ reservedWidth: CONTAINER_WIDTH });
       expect(hookValue.colWidths).toBeNull();
     });
 
@@ -275,6 +293,95 @@ describe('useResizableColumns', () => {
       fireMouse('mousemove', 700);
 
       expect(hookValue.colWidths[1]).toBe(widthAfterDrag);
+    });
+
+    it('ignores resize start before the container is measured', () => {
+      global.ResizeObserver = class {
+        constructor() {}
+        observe() {}
+        disconnect() {}
+      };
+      setup();
+
+      expect(() => startDrag(0, 100)).not.toThrow();
+      expect(hookValue.resizingIdx).toBeNull();
+    });
+
+    it('sets the resize cursor class on body only while dragging', () => {
+      expect(document.body.classList.contains(COLUMN_RESIZE_CURSOR_CLASS)).toBe(false);
+
+      startDrag(1, 500);
+      expect(document.body.classList.contains(COLUMN_RESIZE_CURSOR_CLASS)).toBe(true);
+
+      fireMouse('mousemove', 550);
+      fireMouse('mouseup', 550);
+      expect(document.body.classList.contains(COLUMN_RESIZE_CURSOR_CLASS)).toBe(false);
+    });
+
+    it('removes the resize cursor class when unmounted mid-drag', () => {
+      const { unmount } = setup();
+
+      startDrag(1, 500);
+      unmount();
+
+      expect(document.body.classList.contains(COLUMN_RESIZE_CURSOR_CLASS)).toBe(false);
+    });
+
+    it('swallows the click that follows a drag, then lets later clicks through', async () => {
+      const onClick = jest.fn();
+      document.body.addEventListener('click', onClick);
+
+      startDrag(1, 500);
+      fireMouse('mousemove', 550);
+      fireMouse('mouseup', 550);
+
+      act(() => { document.body.click(); });
+      expect(onClick).not.toHaveBeenCalled();
+
+      // The suppression is dropped on the next tick
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      act(() => { document.body.click(); });
+      expect(onClick).toHaveBeenCalledTimes(1);
+
+      document.body.removeEventListener('click', onClick);
+    });
+
+    it('swallows the click after a press on the divider without movement', () => {
+      const onClick = jest.fn();
+      document.body.addEventListener('click', onClick);
+
+      startDrag(1, 500);
+      fireMouse('mouseup', 500);
+      act(() => { document.body.click(); });
+
+      expect(onClick).not.toHaveBeenCalled();
+      document.body.removeEventListener('click', onClick);
+    });
+
+    it('ends the resize when the window loses focus mid-drag', () => {
+      startDrag(1, 500);
+      fireMouse('mousemove', 550);
+      const widthsAtBlur = [...hookValue.colWidths];
+
+      act(() => { window.dispatchEvent(new Event('blur')); });
+
+      expect(hookValue.resizingIdx).toBeNull();
+      expect(document.body.classList.contains(COLUMN_RESIZE_CURSOR_CLASS)).toBe(false);
+
+      // Listeners are gone: later pointer events no longer resize
+      fireMouse('mousemove', 700);
+      expect(hookValue.colWidths).toEqual(widthsAtBlur);
+    });
+
+    it('persists the widths reached before the window lost focus', () => {
+      const onResizeEnd = jest.fn();
+      setup({ onResizeEnd });
+
+      startDrag(1, 500);
+      fireMouse('mousemove', 550);
+      act(() => { window.dispatchEvent(new Event('blur')); });
+
+      expect(onResizeEnd).toHaveBeenCalledWith(hookValue.colWidths);
     });
 
     it('unmounting during an active drag does not throw', () => {

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
@@ -7,15 +7,19 @@ import MultiLineEditor from 'components/MultiLineEditor';
 import InfoTip from 'components/InfoTip';
 import DataTypeSelector from 'components/DataTypeSelector';
 import VarValueCell from 'components/VarValueCell';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { valueToString } from '@usebruno/common/utils';
 import EditableTable from 'components/EditableTable';
 import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
-import { setFolderVars } from 'providers/ReduxStore/slices/collections/index';
+import { getAllVariables } from 'utils/collections';
+import { findUsedVarsRowUids, plainVariableUsageWarning } from 'utils/sensitive-fields';
+import { setFolderVars, moveFolderVar } from 'providers/ReduxStore/slices/collections/index';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
-const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => {
+const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0, isDraft }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -31,6 +35,12 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => 
 
   const onSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
 
+  const resolvableVariables = useMemo(() => getAllVariables(collection, folder), [collection, folder]);
+  const usedVariableUids = useMemo(
+    () => (varType === 'request' ? findUsedVarsRowUids(collection, 'folder') : new Set()),
+    [collection, varType]
+  );
+
   const handleVarsChange = useCallback((updatedVars) => {
     dispatch(setFolderVars({
       collectionUid: collection.uid,
@@ -39,6 +49,10 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => 
       type: varType
     }));
   }, [dispatch, collection.uid, folder.uid, varType]);
+
+  const handleReorder = useCallback(({ updateReorderedItem }) => {
+    dispatch(moveFolderVar({ type: varType, collectionUid: collection.uid, folderUid: folder.uid, updateReorderedItem }));
+  }, [dispatch, varType, collection.uid, folder.uid]);
 
   const getRowError = useCallback((row, index, key) => {
     if (key !== 'name') return null;
@@ -62,6 +76,7 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => 
       key: 'name',
       name: 'Name',
       isKeyField: true,
+      sortable: true,
       placeholder: 'Name',
       width: '25%'
     },
@@ -86,6 +101,7 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => 
               collection={collection}
               item={folder}
               placeholder={value == null || (typeof value === 'string' && value.trim() === '') ? (varType === 'request' ? 'Value' : 'Expr') : ''}
+              variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
             />
           )}
           renderTypeSelector={!isLastEmptyRow && varType === 'request'
@@ -94,7 +110,7 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => 
                   compact={compact}
                   variable={row}
                   theme={storedTheme}
-                  collection={collection}
+                  resolvableVariables={resolvableVariables}
                   onChange={(fields) => {
                     const updated = (vars || []).map((v) => v.uid === row.uid ? { ...v, ...fields } : v);
                     handleVarsChange(updated);
@@ -102,6 +118,9 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => 
                 />
               )
             : null}
+          leadingContent={!isLastEmptyRow && usedVariableUids.has(row.uid) ? (
+            <SensitiveFieldWarning fieldName={row.name} warningMessage={plainVariableUsageWarning(row.name)} />
+          ) : null}
         />
       )
     },
@@ -121,8 +140,12 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => 
         tableId="folder-vars"
         testId={`folder-vars-${varType === 'response' ? 'res' : 'req'}`}
         columns={columns}
-        rows={vars}
+        rows={vars || []}
         onChange={handleVarsChange}
+        reorderable
+        onReorder={handleReorder}
+        sortStorageKey={`folder-vars-sort::${folder.uid}::${varType}`}
+        isDraft={isDraft}
         defaultRow={defaultRow}
         getRowError={getRowError}
         columnWidths={folderVarsWidths}

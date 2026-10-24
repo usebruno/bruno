@@ -1,0 +1,5 @@
+name: qa
+extends: staging
+variables:
+  - name: api_url
+    value: https://qa.example.com

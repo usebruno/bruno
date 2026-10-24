@@ -1,0 +1,8 @@
+{
+  "version": "1",
+  "name": "default-env-unresolved",
+  "type": "collection",
+  "presets": {
+    "defaultEnvironment": "staging"
+  }
+}

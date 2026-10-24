@@ -1,0 +1,17 @@
+info:
+  name: xml-unclosed-root
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:8081/api/echo/custom
+  body:
+    type: json
+    data: |-
+      {
+        "headers": {
+          "content-type": "application/xml"
+        },
+        "content": "<catalog><book id='b1'><title>Bruno</title></book>"
+      }

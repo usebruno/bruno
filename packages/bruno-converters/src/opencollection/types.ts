@@ -171,6 +171,7 @@ export type {
 export interface BrunoPresets {
   requestType?: string;
   requestUrl?: string;
+  defaultEnvironment?: string;
 }
 
 export interface BrunoConfig {
@@ -203,11 +204,12 @@ export interface BrunoConfig {
   clientCertificates?: {
     certs?: Array<{
       domain?: string;
-      type?: 'pem' | 'pkcs12';
+      type?: 'cert' | 'pfx';
       certFilePath?: string;
       keyFilePath?: string;
       pfxFilePath?: string;
       passphrase?: string;
+      disabled?: boolean;
     }>;
   };
   scripts?: {

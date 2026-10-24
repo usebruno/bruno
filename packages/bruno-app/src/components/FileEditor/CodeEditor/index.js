@@ -13,6 +13,7 @@ import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import CodeMirrorSearch from 'components/CodeMirrorSearch';
+import { buildSearchKeyBindings } from 'components/CodeMirrorSearch/searchKeyBindings';
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 
@@ -72,18 +73,12 @@ export default class CodeEditor extends React.Component {
             this.props.toggleFileMode();
           }
         },
-        'Cmd-F': () => {
-          this.setState({ searchBarVisible: true }, () => {
-            this.searchBarRef.current?.focus();
-          });
-        },
-        'Ctrl-F': () => {
-          this.setState({ searchBarVisible: true }, () => {
-            this.searchBarRef.current?.focus();
-          });
-        },
-        'Cmd-H': 'replace',
-        'Ctrl-H': 'replace',
+        ...buildSearchKeyBindings({
+          setState: (update, cb) => this.setState(update, cb),
+          searchBarRef: this.searchBarRef,
+          isSearchBarVisible: () => this.state.searchBarVisible,
+          isReadOnly: () => this.props.readOnly
+        }),
         'Tab': function (cm) {
           cm.getSelection().includes('\n') || editor.getLine(cm.getCursor().line) == cm.getSelection()
             ? cm.execCommand('indentMore')
@@ -95,12 +90,7 @@ export default class CodeEditor extends React.Component {
         'Ctrl-Y': 'foldAll',
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
-        'Cmd-I': 'unfoldAll',
-        'Esc': () => {
-          if (this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: false });
-          }
-        }
+        'Cmd-I': 'unfoldAll'
       }
     }));
     if (editor) {
@@ -184,6 +174,7 @@ export default class CodeEditor extends React.Component {
           ref={this.searchBarRef}
           visible={this.state.searchBarVisible}
           editor={this.editor}
+          readOnly={this.props.readOnly}
           onClose={() => this.setState({ searchBarVisible: false })}
         />
         <div

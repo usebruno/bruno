@@ -1,0 +1,16 @@
+info:
+  name: http-resolved
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: http://localhost:8081/ping
+  headers:
+    - name: x-tenant
+      value: "{{tenant}}"
+
+runtime:
+  variables:
+    - name: tenant
+      value: acme

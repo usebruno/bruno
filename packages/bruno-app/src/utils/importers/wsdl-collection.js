@@ -1,3 +1,6 @@
+import { BrunoError } from 'utils/common/error';
+import { wsdlToBruno } from '@usebruno/converters';
+
 const isWSDLCollection = (data) => {
   // Check if data is a string (WSDL content)
   if (typeof data !== 'string') {
@@ -23,6 +26,25 @@ const isWSDLCollection = (data) => {
   const hasWSDLElements = wsdlIndicators.some((indicator) => data.includes(indicator));
 
   return hasWSDLNamespace || hasWSDLElements;
+};
+
+const getWsdlImportOptions = (filePath) => {
+  if (!filePath) {
+    return {};
+  }
+  return {
+    uri: filePath,
+    resolve: (baseUri, ref) => window.ipcRenderer.invoke('renderer:resolve-wsdl-schema-ref', baseUri, ref)
+  };
+};
+
+export const convertWsdlToBruno = async (data, filePath) => {
+  try {
+    return await wsdlToBruno(data, getWsdlImportOptions(filePath));
+  } catch (err) {
+    console.error('Error converting WSDL to Bruno:', err);
+    throw new BrunoError(err.message);
+  }
 };
 
 export { isWSDLCollection };

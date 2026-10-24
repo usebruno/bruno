@@ -298,6 +298,54 @@ example {
     });
   });
 
+  describe('Examples with binary bodies', () => {
+    it('should round-trip a binary (base64) example body byte-for-byte', () => {
+      // Real binary bytes (not valid UTF-8) covering the full 0-255 range,
+      // so the base64 string exercises '+', '/' and '=' padding.
+      const originalBytes = Buffer.from(Array.from({ length: 256 }, (_, i) => i)); // [0, 1, 2, 3, 4, 5, 6, 7, ..., 253, 254, 255] -> 00 01 02 03 04 05 06 07 ... FD FE FF
+      const base64Content = originalBytes.toString('base64');
+
+      const jsonInput = {
+        meta: {
+          name: 'Binary Example API',
+          type: 'http',
+          seq: 1
+        },
+        http: {
+          method: 'get',
+          url: 'https://api.example.com/image'
+        },
+        examples: [
+          {
+            name: 'PNG Response',
+            request: {
+              url: 'https://api.example.com/image',
+              method: 'get'
+            },
+            response: {
+              status: '200',
+              statusText: 'OK',
+              headers: [{ name: 'content-type', value: 'image/png', enabled: true }],
+              body: {
+                type: 'binary',
+                content: base64Content
+              }
+            }
+          }
+        ]
+      };
+
+      const bru = jsonToBru(jsonInput);
+      const parsed = bruToJson(bru);
+
+      const parsedBody = parsed.examples[0].response.body;
+      expect(parsedBody.type).toBe('binary');
+      expect(parsedBody.content).toBe(base64Content);
+      expect(Buffer.from(parsedBody.content, 'base64').equals(originalBytes)).toBe(true);
+      expect(jsonToBru(parsed)).toEqual(bru);
+    });
+  });
+
   describe('Complex examples with auth', () => {
     it('should parse complex-with-auth.bru correctly', () => {
       const input = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'complex-with-auth.bru'), 'utf8');

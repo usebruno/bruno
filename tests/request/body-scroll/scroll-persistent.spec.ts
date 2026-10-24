@@ -829,6 +829,11 @@ test.describe('Scroll Position Persistence', () => {
     test('Folder Docs - scroll persists in edit mode across tab switches', async ({ pageWithUserData: page }) => {
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
+      // Docs opens edit mode in WYSIWYG (Rich Text) by default; CodeMirror only
+      // mounts once Markdown mode is explicitly selected. The Docs pane also
+      // remounts on every folder-settings tab switch, resetting back to Rich
+      // Text, so the toggle has to be re-clicked after each switch back.
+      const markdownToggle = () => page.locator('.docs-mode-switch button').filter({ hasText: 'Markdown' });
 
       await test.step('Open folder and navigate to Docs tab', async () => {
         await openCollection(page, 'scroll-fixtures');
@@ -836,9 +841,10 @@ test.describe('Scroll Position Persistence', () => {
         await locators.paneTabs.folderSettingsTab('docs').click({ timeout: 2000 });
       });
 
-      await test.step('Click Edit', async () => {
-        const editToggle = page.locator('.editing-mode');
+      await test.step('Click Edit and switch to Markdown mode', async () => {
+        const editToggle = page.getByTestId('settings-tab-bar').getByTestId('docs-edit-toggle');
         await editToggle.click({ timeout: 2000 });
+        await markdownToggle().click({ timeout: 2000 });
       });
 
       await test.step('Verify initial scroll is 0', async () => {
@@ -851,6 +857,7 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Initialize hook via tab switch, then scroll', async () => {
         await locators.paneTabs.folderSettingsTab('headers').click({ timeout: 2000 });
         await locators.paneTabs.folderSettingsTab('docs').click({ timeout: 2000 });
+        await markdownToggle().click({ timeout: 2000 });
         await setEditorScroll(page, '.CodeMirror', 1500);
       });
 
@@ -862,10 +869,81 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Switch to headers and back to docs edit mode', async () => {
         await locators.paneTabs.folderSettingsTab('headers').click({ timeout: 2000 });
         await locators.paneTabs.folderSettingsTab('docs').click({ timeout: 2000 });
+        await markdownToggle().click({ timeout: 2000 });
       });
 
       await test.step('Verify scroll restored', async () => {
         const restored = await getEditorScroll(page, '.CodeMirror');
+        expectScrollRestored(restored, saved);
+      });
+    });
+
+    test('Folder Docs - scroll persists in rich text (WYSIWYG) edit mode across tab switches', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const locators = buildCommonLocators(page);
+      const richTextContent = () => page.locator('.rich-text-editor-content').first();
+      const markdownToggle = () => page.locator('.docs-mode-switch button').filter({ hasText: 'Markdown' });
+      const richTextToggle = () => page.locator('.docs-mode-switch button').filter({ hasText: 'Rich Text' });
+
+      const getScroll = async () => richTextContent().evaluate((el) => el.scrollTop);
+      const setScroll = async (value: number) => {
+        await richTextContent().evaluate((el, v) => { el.scrollTop = v; }, value);
+        // Wait for the debounced save (200ms) to complete.
+        await page.waitForTimeout(400);
+      };
+
+      await test.step('Open folder, navigate to Docs, and enter edit mode', async () => {
+        await openCollection(page, 'scroll-fixtures');
+        await locators.sidebar.folder('test-folder').click({ timeout: 2000 });
+        await locators.paneTabs.folderSettingsTab('docs').click({ timeout: 2000 });
+        await page.getByTestId('settings-tab-bar').getByTestId('docs-edit-toggle').click({ timeout: 2000 });
+      });
+
+      await test.step('Reset to a known scroll baseline', async () => {
+        // test-folder's docs fixture already has ~80 sections of content, so
+        // the rich-text view is tall enough to scroll from the moment it
+        // mounts. Whether it lands at exactly 0 on mount depends on leftover
+        // persisted state / mount timing when run alongside other specs, so
+        // force a known baseline here instead of asserting on the natural
+        // mount position.
+        await richTextContent().evaluate((el) => { el.scrollTop = 0; });
+        const initial = await getScroll();
+        expect(initial).toBe(0);
+      });
+
+      await test.step('Add enough long content to make the rich text view scrollable', async () => {
+        await markdownToggle().click({ timeout: 2000 });
+        const longContent = Array.from(
+          { length: 80 },
+          (_, i) => `## Heading ${i + 1}\n\nSome paragraph content for line ${i + 1}.`
+        ).join('\n\n');
+        await setEditorContent(page, '.CodeMirror', longContent);
+        // Switching back also drops us into Rich Text mode, matching the
+        // WYSIWYG-by-default behavior a fresh entry into edit mode gets.
+        await richTextToggle().click({ timeout: 2000 });
+        await page.waitForTimeout(200);
+      });
+
+      let saved: number;
+
+      await test.step('Scroll the rich text (WYSIWYG) editor and capture position', async () => {
+        // The content swap above (markdown -> rich text) can leave the
+        // container's scrollTop at a nonzero offset on its own (ProseMirror
+        // reflow / browser scroll-anchoring) — reset to a known baseline
+        // before scrolling so we're testing our own persistence, not that.
+        await richTextContent().evaluate((el) => { el.scrollTop = 0; });
+        await setScroll(600);
+        saved = await getScroll();
+        expect(saved).toBeGreaterThan(0);
+      });
+
+      await test.step('Switch to Headers then back to Docs (still in rich text edit mode)', async () => {
+        await locators.paneTabs.folderSettingsTab('headers').click({ timeout: 2000 });
+        await locators.paneTabs.folderSettingsTab('docs').click({ timeout: 2000 });
+      });
+
+      await test.step('Verify scroll restored', async () => {
+        const restored = await getScroll();
         expectScrollRestored(restored, saved);
       });
     });
@@ -1128,6 +1206,11 @@ test.describe('Scroll Position Persistence', () => {
     test('Collection Docs - scroll persists in edit mode across tab switches', async ({ pageWithUserData: page }) => {
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
+      // Docs opens edit mode in WYSIWYG (Rich Text) by default; CodeMirror only
+      // mounts once Markdown mode is explicitly selected. The Docs pane also
+      // remounts on every collection-settings tab switch, resetting back to
+      // Rich Text, so the toggle has to be re-clicked after each switch back.
+      const markdownToggle = () => page.locator('.docs-mode-switch button').filter({ hasText: 'Markdown' });
 
       await test.step('Open collection settings and navigate to Docs tab', async () => {
         await openCollection(page, 'scroll-fixtures');
@@ -1135,10 +1218,11 @@ test.describe('Scroll Position Persistence', () => {
         await locators.paneTabs.collectionSettingsTab('overview').click({ timeout: 2000 });
       });
 
-      await test.step('Click Edit', async () => {
+      await test.step('Click Edit and switch to Markdown mode', async () => {
         // Collection docs has an edit icon button
-        const editBtn = page.locator('.editing-mode');
+        const editBtn = page.getByTestId('settings-tab-bar').getByTestId('docs-edit-toggle');
         await editBtn.click({ timeout: 2000 });
+        await markdownToggle().click({ timeout: 2000 });
       });
 
       await test.step('Verify initial scroll is 0', async () => {
@@ -1151,6 +1235,7 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Init hook via tab switch, then scroll', async () => {
         await locators.paneTabs.collectionSettingsTab('headers').click({ timeout: 2000 });
         await locators.paneTabs.collectionSettingsTab('overview').click({ timeout: 2000 });
+        await markdownToggle().click({ timeout: 2000 });
         await setEditorScroll(page, '.CodeMirror', 1500);
       });
 
@@ -1162,6 +1247,7 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Switch to headers and back to docs edit mode', async () => {
         await locators.paneTabs.collectionSettingsTab('headers').click({ timeout: 2000 });
         await locators.paneTabs.collectionSettingsTab('overview').click({ timeout: 2000 });
+        await markdownToggle().click({ timeout: 2000 });
       });
 
       await test.step('Verify scroll restored', async () => {

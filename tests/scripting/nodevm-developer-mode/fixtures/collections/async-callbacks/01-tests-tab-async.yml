@@ -1,0 +1,39 @@
+info:
+  name: 01-tests-tab-async
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: http://localhost:8081/ping
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("sync pass (control)", function () {
+          expect(1).to.equal(1);
+        });
+
+        test("sync fail (control)", function () {
+          expect(1).to.equal(2);
+        });
+
+        test("async fail after await (bug check)", async function () {
+          const val = await new Promise((resolve) => {
+            setTimeout(() => resolve("actual"), 500);
+          });
+          expect(val).to.equal("this-will-never-match");
+        });
+
+        test("async assertion never runs (bug check)", async function () {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          expect("ran").to.equal("ran");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

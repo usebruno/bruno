@@ -10,6 +10,29 @@ const runESMImports = async () => {
   stylistic = await import('@stylistic/eslint-plugin').then((d) => d.default);
 };
 
+const isFixMode = process.argv.some((arg) => arg === '--fix' || arg === '--fix-dry-run');
+
+const mainLintFiles = [
+  './eslint.config.js',
+  'tests/**/*.{ts,js}',
+  'playwright/**/*.{js,ts}',
+  'packages/bruno-app/**/*.{js,jsx,ts}',
+  'packages/bruno-app/plugins/**/*.{js,cjs,mjs}',
+  'packages/bruno-app/src/test-utils/mocks/codemirror.js',
+  'packages/bruno-cli/**/*.js',
+  'packages/bruno-common/**/*.ts',
+  'packages/bruno-converters/**/*.js',
+  'packages/bruno-electron/**/*.js',
+  'packages/bruno-filestore/**/*.ts',
+  'packages/bruno-schema-types/**/*.ts',
+  'packages/bruno-js/**/*.js',
+  'packages/bruno-lang/**/*.js',
+  'packages/bruno-requests/**/*.ts',
+  'packages/bruno-requests/**/*.js',
+  'packages/bruno-tests/**/*.{js,ts}',
+  'packages/bruno-sqlite/**/*.{js,ts}'
+];
+
 module.exports = runESMImports().then(() => defineConfig([
   // Global ignores - must be a standalone object with ONLY ignores
   {
@@ -35,25 +58,7 @@ module.exports = runESMImports().then(() => defineConfig([
         sourceType: 'module'
       }
     },
-    files: [
-      './eslint.config.js',
-      'tests/**/*.{ts,js}',
-      'playwright/**/*.{js,ts}',
-      'packages/bruno-app/**/*.{js,jsx,ts}',
-      'packages/bruno-app/plugins/**/*.{js,cjs,mjs}',
-      'packages/bruno-app/src/test-utils/mocks/codemirror.js',
-      'packages/bruno-cli/**/*.js',
-      'packages/bruno-common/**/*.ts',
-      'packages/bruno-converters/**/*.js',
-      'packages/bruno-electron/**/*.js',
-      'packages/bruno-filestore/**/*.ts',
-      'packages/bruno-schema-types/**/*.ts',
-      'packages/bruno-js/**/*.js',
-      'packages/bruno-lang/**/*.js',
-      'packages/bruno-requests/**/*.ts',
-      'packages/bruno-requests/**/*.js',
-      'packages/bruno-tests/**/*.{js,ts}'
-    ],
+    files: mainLintFiles,
     rules: {
       ...stylistic.configs.customize({
         indent: 2,
@@ -82,8 +87,8 @@ module.exports = runESMImports().then(() => defineConfig([
       '@stylistic/no-mixed-operators': ['off'],
       'no-unused-vars': ['warn', { args: 'none', caughtErrors: 'none' }],
       'no-debugger': 'warn',
-      'eqeqeq': ['warn', 'always'],
-      'prefer-const': 'warn',
+      'eqeqeq': isFixMode ? 'off' : ['warn', 'always'],
+      'prefer-const': isFixMode ? 'off' : 'warn',
       'no-var': 'warn',
       'no-unreachable': 'warn',
       'no-duplicate-imports': 'warn',
@@ -103,7 +108,8 @@ module.exports = runESMImports().then(() => defineConfig([
         require: false,
         Buffer: false,
         process: false,
-        ipcRenderer: false
+        ipcRenderer: false,
+        __BRUNO_BENCHMARK__: false
       },
       parserOptions: {
         ecmaFeatures: {
@@ -126,6 +132,15 @@ module.exports = runESMImports().then(() => defineConfig([
     },
     rules: {
       'no-undef': 'error'
+    }
+  },
+  {
+    files: ['packages/bruno-app/**/*.{js,jsx,ts}'],
+    ignores: ['**/*.config.js', '**/public/**/*', '**/plugins/**/*'],
+    plugins: { 'react-hooks': require('eslint-plugin-react-hooks') },
+    rules: {
+      'react-hooks/rules-of-hooks': 'warn',
+      'react-hooks/exhaustive-deps': 'warn'
     }
   },
   {

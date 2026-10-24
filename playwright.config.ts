@@ -27,7 +27,8 @@ export default defineConfig({
         'ssl/**', // custom CA certificate tests require separate server setup and certificate generation
         'auth/**', // auth tests have their own project
         'benchmarks/**',
-        'proxy/system-pac/**' // shares ports with proxy/pac — runs in its own project after default
+        'proxy/system-pac/**', // shares ports with proxy/pac — runs in its own project after default
+        'mock-server/**' // own project; workerIndex ports + per-worker Electron state
       ]
     },
     {
@@ -42,13 +43,18 @@ export default defineConfig({
       // system-pac and pac specs share the same PAC/proxy/target ports.
       name: 'system-pac',
       testDir: './tests/proxy/system-pac',
+    },
+    {
+      name: 'mock-server',
+      testDir: './tests/mock-server'
     }
   ],
 
   webServer: [
     {
       command: 'npm run dev:web',
-      url: 'http://localhost:3000',
+      stdout: 'pipe', 
+      wait: { stdout: /ready\s+built in/i },
       reuseExistingServer: !process.env.CI,
       timeout: 10 * 60 * 1000
     },

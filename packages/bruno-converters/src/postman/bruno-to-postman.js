@@ -148,7 +148,7 @@ export const sanitizeUrl = (url) => {
   return sanitizedUrl;
 };
 
-export const brunoToPostman = (collection) => {
+export const brunoToPostman = (collection, { preserveScripts = false } = {}) => {
   delete collection.uid;
   delete collection.processEnvVariables;
   deleteUidsInItems(collection.items);
@@ -191,16 +191,18 @@ export const brunoToPostman = (collection) => {
     findOccurrences(collection, collectionVars);
 
     // Add request and response vars
-    let reqVars = (collection.root?.request?.vars?.req || []).map((v) => ({
+    const reqVars = (collection.root?.request?.vars?.req || []).map((v) => ({
       key: v.name,
       value: v.value,
-      type: 'default'
+      type: 'default',
+      ...(v.enabled === false ? { disabled: true } : {})
     }));
 
-    let resVars = (collection.root?.request?.vars?.res || []).map((v) => ({
+    const resVars = (collection.root?.request?.vars?.res || []).map((v) => ({
       key: v.name,
       value: v.value,
-      type: 'default'
+      type: 'default',
+      ...(v.enabled === false ? { disabled: true } : {})
     }));
 
     // Merge and deduplicate final result
@@ -215,6 +217,11 @@ export const brunoToPostman = (collection) => {
     return Array.from(finalVarsMap.values());
   };
   const translateScriptSafely = (script = '') => {
+    // When preserving scripts option is enabled, return the
+    // script as-is without any bru.* -> pm.* translation
+    if (preserveScripts) {
+      return script;
+    }
     try {
       return translateBruToPostman(script);
     } catch (err) {
@@ -878,6 +885,28 @@ export const brunoToPostman = (collection) => {
     return contentTypeHeader ? contentTypeHeader.value : null;
   };
 
+  const getDisabledSystemHeaders = (omitHeaders) => {
+    if (!omitHeaders || !Array.isArray(omitHeaders) || omitHeaders.length === 0) {
+      return null;
+    }
+
+    const disabledHeaders = {};
+    omitHeaders.forEach((headerName) => {
+      if (typeof headerName !== 'string') {
+        return;
+      }
+
+      const name = headerName.trim();
+      if (!name) {
+        return;
+      }
+
+      disabledHeaders[name.toLowerCase()] = true;
+    });
+
+    return Object.keys(disabledHeaders).length > 0 ? disabledHeaders : null;
+  };
+
   const generateItemSection = (itemsArray) => {
     if (!itemsArray || !Array.isArray(itemsArray)) {
       return [];
@@ -910,10 +939,19 @@ export const brunoToPostman = (collection) => {
 
         const methodsWithoutBody = ['GET', 'HEAD', 'OPTIONS'];
         const needsBodyPruningDisabled = hasBody && methodsWithoutBody.includes(method);
+        const disabledSystemHeaders = getDisabledSystemHeaders(item.settings?.omitHeaders);
+
+        const protocolProfileBehavior = {};
+        if (needsBodyPruningDisabled) {
+          protocolProfileBehavior.disableBodyPruning = true;
+        }
+        if (disabledSystemHeaders) {
+          protocolProfileBehavior.disabledSystemHeaders = disabledSystemHeaders;
+        }
 
         const postmanItem = {
           name: item.name || 'Untitled Request',
-          ...(needsBodyPruningDisabled ? { protocolProfileBehavior: { disableBodyPruning: true } } : {}),
+          ...(Object.keys(protocolProfileBehavior).length > 0 ? { protocolProfileBehavior } : {}),
           request: generateRequestSection(item.request),
           ...(requestEvents.length ? { event: requestEvents } : {})
         };

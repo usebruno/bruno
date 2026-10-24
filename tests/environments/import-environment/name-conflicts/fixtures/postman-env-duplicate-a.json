@@ -1,0 +1,7 @@
+{
+  "id": "11111111-1111-1111-1111-111111111111",
+  "name": "Test",
+  "values": [
+    { "key": "api_url", "value": "http://localhost:3000", "enabled": true, "type": "default" }
+  ]
+}

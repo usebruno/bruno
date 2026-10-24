@@ -1,0 +1,17 @@
+meta {
+  name: isSafeMode post-response
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  test("bru.isSafeMode() returns true in a post-response script", function() {
+    expect(bru.isSafeMode()).to.equal(true);
+  });
+}

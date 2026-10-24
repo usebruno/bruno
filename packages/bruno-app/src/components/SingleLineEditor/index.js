@@ -1,16 +1,29 @@
-import React, { Component } from 'react';
-import isEqual from 'lodash/isEqual';
-import { getAllVariables } from 'utils/collections';
-import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
-import { MaskedEditor } from 'utils/common/masked-editor';
-import { setupAutoComplete } from 'utils/codemirror/autocomplete';
-import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
+import isEqual from 'lodash/isEqual';
+import React, { Component } from 'react';
+import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { getAllVariables, getVariableNamesWithScope } from 'utils/collections';
+import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
+import { MaskedEditor } from 'utils/common/masked-editor';
+import { SetAsVariableContext } from 'providers/SetAsVariable/context';
+import StyledWrapper from './StyledWrapper';
 
 const CodeMirror = require('codemirror');
 
 class SingleLineEditor extends Component {
+  static contextType = SetAsVariableContext;
+
+  _onContextMenu = (editor, event) => {
+    if (this.props.enableBrunoVarInfo === false || this.state.maskInput) return;
+
+    this.context.openFromCodeMirror(event, editor, {
+      collection: this.props.collection,
+      item: this.props.item
+    });
+  };
+
   constructor(props) {
     super(props);
     // Keep a cached version of the value, this cache will be updated when the
@@ -75,7 +88,7 @@ class SingleLineEditor extends Component {
       }
     });
 
-    const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
+    const getAllVariablesHandler = () => getVariableNamesWithScope(this.props.collection, this.props.item);
     const getAnywordAutocompleteHints = () => this.props.autocomplete || [];
 
     // Setup AutoComplete Helper
@@ -83,7 +96,8 @@ class SingleLineEditor extends Component {
       getAllVariables: getAllVariablesHandler,
       getAnywordAutocompleteHints,
       showHintsFor: this.props.showHintsFor || ['variables'],
-      showHintsOnClick: this.props.showHintsOnClick
+      showHintsOnClick: this.props.showHintsOnClick,
+      variableAutocomplete: this.props.variableAutocomplete ?? AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
     };
 
     this.brunoAutoCompleteCleanup = setupAutoComplete(
@@ -91,10 +105,18 @@ class SingleLineEditor extends Component {
       autoCompleteOptions
     );
 
+    /*
+     * Must run before setValue() below, or it misses the 'change' event setValue() fires
+     * and never marks the link. Editable fields only mark URLs and let Cmd/Ctrl+Click open
+     * them externally - click-to-open-as-new-request is reserved for response previews.
+     */
+    setupLinkAware(this.editor, { onLinkClick: undefined });
+
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
     this.editor.on('paste', this._onPaste);
     this.editor.on('blur', this._onBlur);
+    this.editor.on('contextmenu', this._onContextMenu);
     this.addOverlay(variables);
     this._enableMaskedEditor(this.props.isSecret);
     this.setState({ maskInput: this.props.isSecret });
@@ -103,7 +125,6 @@ class SingleLineEditor extends Component {
     if (this.props.showNewlineArrow) {
       this._updateNewlineMarkers();
     }
-    setupLinkAware(this.editor);
 
     // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
     const cmInput = this.editor.getInputField();
@@ -173,6 +194,7 @@ class SingleLineEditor extends Component {
         this.editor.options.brunoVarInfo.item = this.props.item;
       }
     }
+
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
@@ -200,6 +222,9 @@ class SingleLineEditor extends Component {
     if (this.props.readOnly !== prevProps.readOnly && this.editor) {
       this.editor.setOption('readOnly', this.props.readOnly);
     }
+    if (this.props.mode !== prevProps.mode && this.editor) {
+      this.addOverlay(variables);
+    }
     if (this.props.placeholder !== prevProps.placeholder && this.editor) {
       this.editor.setOption('placeholder', this.props.placeholder);
     }
@@ -214,6 +239,7 @@ class SingleLineEditor extends Component {
       this.editor.off('change', this._onEdit);
       this.editor.off('paste', this._onPaste);
       this.editor.off('blur', this._onBlur);
+      this.editor.off('contextmenu', this._onContextMenu);
       this._clearNewlineMarkers();
       this.editor.getWrapperElement().remove();
       this.editor = null;
@@ -229,7 +255,8 @@ class SingleLineEditor extends Component {
 
   addOverlay = (variables) => {
     this.variables = variables;
-    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain', this.props.highlightPathParams, true);
+    const mode = this.props.mode || 'text/plain';
+    defineCodeMirrorBrunoVariablesMode(variables, mode, this.props.highlightPathParams, true);
     this.editor.setOption('mode', 'brunovariables');
   };
 
@@ -291,6 +318,9 @@ class SingleLineEditor extends Component {
   };
 
   toggleVisibleSecret = () => {
+    if (this.props.readOnly) {
+      return;
+    }
     const isVisible = !this.state.maskInput;
     this.setState({ maskInput: isVisible });
     this._enableMaskedEditor(isVisible);
@@ -302,7 +332,14 @@ class SingleLineEditor extends Component {
    */
   secretEye = (isSecret) => {
     return isSecret === true ? (
-      <button type="button" className="mx-2" data-testid="secret-reveal-toggle" onClick={() => this.toggleVisibleSecret()}>
+      <button
+        type="button"
+        className="mx-2"
+        data-testid="secret-reveal-toggle"
+        disabled={this.props.readOnly}
+        tabIndex={this.props.readOnly ? -1 : 0}
+        onClick={() => this.toggleVisibleSecret()}
+      >
         {this.state.maskInput === true ? (
           <IconEyeOff size={18} strokeWidth={2} />
         ) : (

@@ -25,7 +25,7 @@ import { uuid } from 'utils/common';
 import { formatIpcError } from 'utils/common/error';
 import get from 'lodash/get';
 
-const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOpen = false, onClose }) => {
+const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOpen = false, onClose, closeAfterSave = false }) => {
   const dispatch = useDispatch();
 
   const latestCollection = useSelector((state) =>
@@ -234,7 +234,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
       const targetFilename = resolveRequestFilename(sanitizedFilename, targetFormat);
       const targetPathname = path.join(targetDirname, targetFilename);
 
-      await ipcRenderer.invoke('renderer:save-transient-request', {
+      const saveResult = await ipcRenderer.invoke('renderer:save-transient-request', {
         sourcePathname: item.pathname,
         targetDirname,
         targetFilename,
@@ -243,15 +243,20 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
         sourceFormat
       });
 
-      dispatch(
-        insertTaskIntoQueue({
-          uid: uuid(),
-          type: 'OPEN_REQUEST',
-          collectionUid: targetCollection.uid,
-          itemPathname: targetPathname,
-          preview: false
-        })
-      );
+      // use the path resolved by the handler.
+      const savedPathname = saveResult?.newPathname || targetPathname;
+
+      if (!closeAfterSave) {
+        dispatch(
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid: targetCollection.uid,
+            itemPathname: savedPathname,
+            preview: false
+          })
+        );
+      }
 
       dispatch(closeTabs({ tabUids: [item.uid] }));
 

@@ -16,7 +16,7 @@ describe('uuid shim tests', () => {
     vm = module.newContext();
     evalAndDump = createEvalHelper(vm);
     await addUuidShimToContext(vm);
-    addRequireShimToContext(vm, { enableLocalModules: false });
+    addRequireShimToContext(vm);
   });
 
   afterEach(() => {

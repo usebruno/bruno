@@ -1,0 +1,20 @@
+info:
+  name: 02-post-trap-health
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/first"
+
+runtime:
+  scripts:
+    - type: after-response
+      code: bru.setVar('afterTrap', 'healthy');
+    - type: tests
+      code: |-
+        test('runs cleanly on the replacement engine', function() {
+          expect(res.getStatus()).to.equal(200);
+          expect(bru.getVar('afterTrap')).to.equal('healthy');
+          expect(bru.getVar('joinedLength')).to.be.above(8000000);
+        });

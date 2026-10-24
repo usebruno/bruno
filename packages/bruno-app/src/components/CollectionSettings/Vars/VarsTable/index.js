@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
@@ -7,15 +7,18 @@ import MultiLineEditor from 'components/MultiLineEditor';
 import InfoTip from 'components/InfoTip';
 import DataTypeSelector from 'components/DataTypeSelector';
 import VarValueCell from 'components/VarValueCell';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { valueToString } from '@usebruno/common/utils';
 import EditableTable from 'components/EditableTable';
 import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
-import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
-import { setCollectionVars } from 'providers/ReduxStore/slices/collections/index';
+import { getAllVariables } from 'utils/collections';
+import { findUsedVarsRowUids, plainVariableUsageWarning } from 'utils/sensitive-fields';
+import { setCollectionVars, moveCollectionVar } from 'providers/ReduxStore/slices/collections/index';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
-const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
+const VarsTable = ({ collection, vars, varType, initialScroll = 0, isDraft }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -31,9 +34,19 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
 
   const onSave = () => dispatch(saveCollectionSettings(collection.uid));
 
+  const resolvableVariables = useMemo(() => getAllVariables(collection), [collection]);
+  const usedVariableUids = useMemo(
+    () => (varType === 'request' ? findUsedVarsRowUids(collection, 'collection') : new Set()),
+    [collection, varType]
+  );
+
   const handleVarsChange = useCallback((updatedVars) => {
     dispatch(setCollectionVars({ collectionUid: collection.uid, vars: updatedVars, type: varType }));
   }, [dispatch, collection.uid, varType]);
+
+  const handleReorder = useCallback(({ updateReorderedItem }) => {
+    dispatch(moveCollectionVar({ type: varType, collectionUid: collection.uid, updateReorderedItem }));
+  }, [dispatch, varType, collection.uid]);
 
   const getRowError = useCallback((row, index, key) => {
     if (key !== 'name') return null;
@@ -56,6 +69,7 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
       key: 'name',
       name: 'Name',
       isKeyField: true,
+      sortable: true,
       placeholder: 'Name',
       width: '25%'
     },
@@ -79,6 +93,7 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
               onChange={onChange}
               collection={collection}
               placeholder={value == null || (typeof value === 'string' && value.trim() === '') ? (varType === 'request' ? 'Value' : 'Expr') : ''}
+              variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
             />
           )}
           renderTypeSelector={!isLastEmptyRow && varType === 'request'
@@ -87,7 +102,7 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
                   compact={compact}
                   variable={row}
                   theme={storedTheme}
-                  collection={collection}
+                  resolvableVariables={resolvableVariables}
                   onChange={(fields) => {
                     const updated = (vars || []).map((v) => v.uid === row.uid ? { ...v, ...fields } : v);
                     handleVarsChange(updated);
@@ -95,6 +110,9 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
                 />
               )
             : null}
+          leadingContent={!isLastEmptyRow && usedVariableUids.has(row.uid) ? (
+            <SensitiveFieldWarning fieldName={row.name} warningMessage={plainVariableUsageWarning(row.name)} />
+          ) : null}
         />
       )
     },
@@ -114,8 +132,12 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
         tableId="collection-vars"
         testId={`collection-vars-${varType === 'response' ? 'res' : 'req'}`}
         columns={columns}
-        rows={vars}
+        rows={vars || []}
         onChange={handleVarsChange}
+        reorderable
+        onReorder={handleReorder}
+        sortStorageKey={`collection-vars-sort::${collection.uid}::${varType}`}
+        isDraft={isDraft}
         defaultRow={defaultRow}
         getRowError={getRowError}
         columnWidths={collectionVarsWidths}

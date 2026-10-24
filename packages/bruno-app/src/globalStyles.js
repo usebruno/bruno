@@ -186,6 +186,16 @@ const GlobalStyle = createGlobalStyle`
     }
   }
 
+  body.dnd-blocked-cursor,
+  body.dnd-blocked-cursor * {
+    cursor: not-allowed !important;
+  }
+
+  /* Set by useResizableColumns while a column divider is being dragged */
+  body.column-resize-cursor,
+  body.column-resize-cursor * {
+    cursor: col-resize !important;
+  }
 
   .collection-header-dropdown-label {
     max-width: 124px;
@@ -264,6 +274,15 @@ const GlobalStyle = createGlobalStyle`
     .cm-variable-prompt {
       color: ${(props) => props.theme.codemirror.variable.prompt};
     }
+    .cm-search-line-highlight {
+      background: ${(props) => props.theme.codemirror.searchLineHighlightCurrent};
+    }
+    .cm-search-match {
+      background: ${(props) => rgba(props.theme.codemirror.searchMatch, 0.25)};
+    }
+    .cm-search-current {
+      background: ${(props) => rgba(props.theme.codemirror.searchMatchActive, 0.4)};
+    }
   }
   .CodeMirror-brunoVarInfo {
     color: ${(props) => props.theme.text};
@@ -281,14 +300,16 @@ const GlobalStyle = createGlobalStyle`
     font-size: ${(props) => props.theme.font.size.base};
     line-height: 1.25rem;
     margin: 0;
+    width: max-content;
     min-width: 18.1875rem;
-    max-width: 18.1875rem;
+    max-width: min(40rem, calc(100vw - 1.875rem));
     opacity: 0;
     overflow: visible;
     padding: 0.5rem;
     position: fixed;
     transition: opacity 0.15s;
-    z-index: 10;
+    // Body-mounted variable popups must sit above modals (20), below autocomplete (50).
+    z-index: 30;
   }
 
   // Autocomplete hints dropdown container
@@ -309,6 +330,10 @@ const GlobalStyle = createGlobalStyle`
     font-family: inherit;
   }
 
+  .CodeMirror-hints:has(.CodeMirror-hint-variable) {
+    width: 300px;
+  }
+
   // Individual hint items
   .CodeMirror-hint {
     color: ${(props) => props.theme.dropdown.color};
@@ -316,6 +341,89 @@ const GlobalStyle = createGlobalStyle`
     line-height: 1.5rem;
     font-size: ${(props) => props.theme.font.size.sm};
     cursor: pointer;
+  }
+
+  .CodeMirror-hint:not(.CodeMirror-hint-active):hover {
+    background: ${(props) => props.theme.dropdown.hoverBg};
+  }
+
+  .CodeMirror-hint-variable {
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .CodeMirror-hint-variable-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-right: 10px;
+    padding: 2px;
+    border-radius: 2px;
+    color: ${(props) => props.theme.dropdown.mutedText};
+    background: ${(props) => rgba(props.theme.dropdown.mutedText, 0.14)};
+  }
+
+  .CodeMirror-hint-variable-icon svg {
+    width: 0.75rem;
+    height: 0.75rem;
+    display: block;
+  }
+
+  .CodeMirror-hint-variable-icon[data-scope='request'] {
+    color: ${(props) => props.theme.colors.text.purple};
+    background: ${(props) => rgba(props.theme.colors.text.purple, 0.14)};
+  }
+
+  .CodeMirror-hint-variable-icon[data-scope='folder'] {
+    color: ${(props) => props.theme.colors.text.yellow};
+    background: ${(props) => rgba(props.theme.colors.text.yellow, 0.14)};
+  }
+
+  .CodeMirror-hint-variable-icon[data-scope='collection'] {
+    color: ${(props) => props.theme.colors.text.subtext1};
+    background: ${(props) => rgba(props.theme.colors.text.subtext1, 0.14)};
+  }
+
+  .CodeMirror-hint-variable-icon[data-scope='environment'] {
+    color: ${(props) => props.theme.colors.text.green};
+    background: ${(props) => rgba(props.theme.colors.text.green, 0.14)};
+  }
+
+  .CodeMirror-hint-variable-icon[data-scope='global'] {
+    color: ${(props) => props.theme.textLink};
+    background: ${(props) => rgba(props.theme.textLink, 0.14)};
+  }
+
+
+  .CodeMirror-hint-variable-icon[data-scope='dynamic'] {
+    color: ${(props) => props.theme.request.gql};
+    background: ${(props) => rgba(props.theme.request.gql, 0.14)};
+  }
+
+  .CodeMirror-hint-variable-icon[data-scope='runtime'] {
+    color: ${(props) => props.theme.request.methods.options};
+    background: ${(props) => rgba(props.theme.request.methods.options, 0.14)};
+  }
+
+  .CodeMirror-hint-variable-icon[data-scope='process.env'] {
+    color: ${(props) => props.theme.request.grpc};
+    background: ${(props) => rgba(props.theme.request.grpc, 0.14)};
+  }
+
+  .CodeMirror-hint-variable-icon[data-scope='oauth2'] {
+    color: ${(props) => props.theme.request.ws};
+    background: ${(props) => rgba(props.theme.request.ws, 0.14)};
+  }
+
+  .CodeMirror-hint-variable-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .CodeMirror-brunoVarInfo :first-child {
@@ -343,6 +451,35 @@ const GlobalStyle = createGlobalStyle`
     color: ${(props) => props.theme.text};
   }
 
+  .CodeMirror-info {
+    padding: 4px 8px !important;
+    background-color: ${(props) => props.theme.infoTip.bg} !important;
+    border: 1px solid ${(props) => props.theme.infoTip.border} !important;
+    box-shadow: ${(props) => props.theme.infoTip.boxShadow} !important;
+    border-radius: ${(props) => props.theme.border.radius.sm} !important;
+    color: ${(props) => props.theme.text} !important;
+    overflow-y: auto !important;
+  }
+
+  .CodeMirror-info a {
+    color: ${(props) => props.theme.text} !important;
+  }
+
+  .CodeMirror-info .type-name-pill,
+  .CodeMirror-info .info-description {
+    color: ${(props) => props.theme.colors.text.muted} !important;
+  }
+
+  .CodeMirror-info .type-name-pill {
+    padding: 2px 6px;
+    border-radius: 4px;
+    border-color: ${(props) => props.theme.border.border2};
+  }
+
+  .CodeMirror-info .info-description a {
+    color: ${(props) => props.theme.textLink} !important;
+  }
+
   .CodeMirror-lint-message-warning {
     color: ${(props) => props.theme.status.warning.text};
   }
@@ -352,9 +489,16 @@ const GlobalStyle = createGlobalStyle`
   }
 
   /* Header */
+  .CodeMirror-brunoVarInfo .bruno-var-info-container {
+    min-width: 17.1875rem;
+    max-width: min(39rem, calc(100vw - 2.875rem));
+    box-sizing: border-box;
+  }
+
   .CodeMirror-brunoVarInfo .var-info-header {
     display: flex;
     align-items: center;
+    width: 100%;
     margin-bottom: 0.375rem;
     gap: 0.375rem;
   }
@@ -370,9 +514,22 @@ const GlobalStyle = createGlobalStyle`
     white-space: nowrap;
   }
 
+  .CodeMirror-brunoVarInfo .var-name-link {
+    cursor: pointer;
+    color: ${(props) => props.theme.textLink};
+    text-decoration: none;
+  }
+
+  .CodeMirror-brunoVarInfo .var-name-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.125rem;
+  }
+
   /* Scope Badge */
-  .CodeMirror-brunoVarInfo .var-scope-badge {
-    display: inline-block;
+  .var-scope-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
     padding: 0.125rem 0.375rem;
     background: ${(props) => rgba(props.theme.brand, 0.07)};
     border: 1px solid ${(props) => rgba(props.theme.brand, 0.08)};
@@ -381,6 +538,24 @@ const GlobalStyle = createGlobalStyle`
     color: ${(props) => props.theme.brand};
     letter-spacing: 0.03125rem;
     flex-shrink: 0;
+  }
+
+  .var-scope-badge-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: currentColor;
+  }
+
+  .var-scope-badge-icon svg {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+
+  .bruno-var-definition-target {
+    outline: 2px solid ${(props) => rgba(props.theme.brand, 0.35)};
+    outline-offset: -2px;
   }
 
   /* Value Container */
@@ -393,6 +568,12 @@ const GlobalStyle = createGlobalStyle`
     overflow-x: hidden;
     min-width: 17.3125rem;
     max-height: 13.1875rem;
+    transition: border-color 0.15s, background-color 0.15s;
+  }
+
+  .CodeMirror-brunoVarInfo .var-value-container:has(.CodeMirror-focused) {
+    border-color: ${(props) => props.theme.input.focusBorder};
+    background: ${(props) => props.theme.input.bg};
   }
 
   /* Value Display (Read-only) */
@@ -406,31 +587,32 @@ const GlobalStyle = createGlobalStyle`
     line-height: 1.25rem;
     color: ${(props) => props.theme.dropdown.color};
     min-height: 1.75rem;
-    max-width: 17.1875rem;
+    max-width: none;
   }
 
   /* Value Editor (CodeMirror) */
   .CodeMirror-brunoVarInfo .var-value-editor {
     width: 100%;
-    min-width: 17.1875rem;
-    max-width: 17.1875rem;
+    min-width: 0;
+    max-width: none;
     max-height: 11.125rem;
     position: relative;
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror {
+    width: 100%;
     height: 100%;
     min-height: 1.75rem;
     max-height: 11.125rem;
+    box-sizing: border-box;
     font-size: ${(props) => props.theme.font.size.base};
     font-family: Inter, sans-serif;
     font-weight: 400;
     line-height: 1.25rem;
-    border: 1px solid ${(props) => props.theme.input.focusBorder};
-    border-radius: ${(props) => props.theme.border.radius.base};
-    background: ${(props) => props.theme.dropdown.hoverBg};
+    border: none;
+    border-radius: 0;
+    background: transparent;
     color: ${(props) => props.theme.dropdown.color};
-    transition: border-color 0.15s;
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-scroll {
@@ -441,13 +623,14 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-focused {
-    background: ${(props) => props.theme.input.bg};
-    border-color: ${(props) => props.theme.input.focusBorder};
+    background: transparent;
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-lines {
-    padding: 0.375rem 1.5rem 0.375rem 0.5rem;
-    max-width: 13.1875rem;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.375rem 3rem 0.375rem 0.5rem;
+    max-width: none;
     font-family: Inter, sans-serif;
     font-weight: 400;
     line-height: 1.25rem;
@@ -470,7 +653,7 @@ const GlobalStyle = createGlobalStyle`
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-line {
     padding: 0;
-    max-width: 13.1875rem;
+    max-width: none;
     line-height: 1.25rem;
     font-size: ${(props) => props.theme.font.size.base};
     font-family: Inter, sans-serif;
@@ -484,14 +667,15 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-sizer {
     margin-left: 0 !important;
     margin-bottom: 0 !important;
-    max-width: 13.1875rem !important;
+    max-width: none !important;
   }
 
   /* Editable value display (shows interpolated value, click to edit) */
   .CodeMirror-brunoVarInfo .var-value-editable-display {
-    width: 17.1875rem;
-    max-width: 13.1875rem;
-    padding: 0.375rem 1.5rem 0.375rem 0.5rem;
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+    padding: 0.375rem 3rem 0.375rem 0.5rem;
     font-size: ${(props) => props.theme.font.size.base};
     font-family: Inter, sans-serif;
     font-weight: 400;
@@ -555,6 +739,247 @@ const GlobalStyle = createGlobalStyle`
     line-height: 1.25rem;
   }
 
+   /* "Add to" scope switcher (shown below the value editor for brand new variables) */
+  .var-add-to-switcher {
+    margin-top: 0.5rem;
+    width: 19rem;
+  }
+
+  /* Toggle and Secret checkbox sit in one row. */
+  .var-add-to-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .var-add-to-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    width: auto;
+    max-width: max-content;
+    background: transparent;
+    border: none;
+    border-radius: ${(props) => props.theme.border.radius.base};
+    padding: 0.25rem 0.375rem;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.dropdown.color};
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .var-add-to-toggle:hover {
+    background: ${(props) => props.theme.dropdown.hoverBg};
+  }
+
+  .var-add-to-secret-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-left: auto;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.dropdown.color};
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .var-add-to-secret-checkbox {
+    margin: 0;
+    cursor: pointer;
+    accent-color: ${(props) => props.theme.primary.solid};
+  }
+
+  .var-add-to-toggle-chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: ${(props) => props.theme.dropdown.mutedText};
+    line-height: 0;
+    transition: transform 0.15s;
+  }
+
+  .var-add-to-toggle-chevron-open {
+    transform: rotate(180deg);
+  }
+
+  .var-add-to-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .var-add-to-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.0625rem 0.25rem 0.0625rem 0.5rem;
+    box-sizing: border-box;
+    border-radius: ${(props) => props.theme.border.radius.base};
+    margin-top: 0.125rem;
+  }
+
+  .var-add-to-option-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    width: 100%;
+    height: 1.5rem;
+    min-width: 0;
+    box-sizing: border-box;
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.dropdown.color};
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .var-add-to-option:has(.var-add-to-option-trigger:hover) {
+    background: ${(props) => props.theme.dropdown.hoverBg};
+  }
+
+  .var-add-to-option-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.125rem;
+    height: 1.125rem;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    font-size: 0.5rem;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .var-add-to-option-icon svg {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+
+  .var-add-to-option-icon-request {
+    color: ${(props) => props.theme.colors.text.purple};
+    background: ${(props) => rgba(props.theme.colors.text.purple, 0.14)};
+  }
+
+  .var-add-to-option-icon-folder {
+    color: ${(props) => props.theme.colors.text.yellow};
+    background: ${(props) => rgba(props.theme.colors.text.yellow, 0.14)};
+  }
+
+  .var-add-to-option-icon-collection {
+    color: ${(props) => props.theme.colors.text.subtext1};
+    background: ${(props) => rgba(props.theme.colors.text.subtext1, 0.14)};
+  }
+
+  .var-add-to-option-icon-environment {
+    color: ${(props) => props.theme.colors.text.green};
+    background: ${(props) => rgba(props.theme.colors.text.green, 0.14)};
+  }
+
+  .var-add-to-option-icon-global {
+    color: ${(props) => props.theme.textLink};
+    background: ${(props) => rgba(props.theme.textLink, 0.14)};
+  }
+
+  /* Disabled row badge */
+  .var-add-to-option-icon-muted {
+    color: ${(props) => props.theme.dropdown.mutedText};
+    background: ${(props) => rgba(props.theme.dropdown.mutedText, 0.14)};
+  }
+
+  /* Currently selected scope in the "Add to" list — matches the selected-item treatment used by
+     the app's other dropdowns (see components/Dropdown, StatusBar/ThemeDropdown). */
+  .var-add-to-option-active {
+    background: ${(props) => rgba(props.theme.dropdown.selectedColor, 0.07)};
+  }
+
+  .var-add-to-option-active .var-add-to-option-trigger,
+  .var-add-to-option-active .var-add-to-option-label {
+    color: ${(props) => props.theme.dropdown.selectedColor};
+  }
+
+  .var-add-to-option-active:has(.var-add-to-option-trigger:hover) {
+    background: ${(props) => rgba(props.theme.dropdown.selectedColor, 0.12)};
+  }
+
+  .var-add-to-option-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .var-add-to-option-note {
+    flex: 1;
+    font-size: ${(props) => props.theme.font.size.xs};
+    color: ${(props) => props.theme.dropdown.mutedText};
+    line-height: 1.25rem;
+    white-space: nowrap;
+  }
+
+  .var-add-to-link-button {
+    flex-shrink: 0;
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: ${(props) => props.theme.font.size.xs};
+    color: ${(props) => props.theme.dropdown.color};
+    text-decoration: underline;
+    text-underline-offset: 0.125rem;
+    cursor: pointer;
+  }
+
+  .var-add-to-link-button:hover {
+    color: ${(props) => props.theme.textLink};
+  }
+
+  .var-add-to-inline-env-name-input {
+    flex: 1;
+    min-width: 0;
+    height: 1.5rem;
+    box-sizing: border-box;
+    padding: 0 0.375rem;
+    font-size: ${(props) => props.theme.font.size.xs};
+    border: 1px solid ${(props) => props.theme.input.focusBorder};
+    border-radius: ${(props) => props.theme.border.radius.base};
+    background: ${(props) => props.theme.input.bg};
+    color: ${(props) => props.theme.dropdown.color};
+  }
+
+  .var-add-to-inline-env-name-input:focus {
+    outline: none;
+  }
+
+  .var-add-to-inline-create-button {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 1.5rem;
+    box-sizing: border-box;
+    background: transparent;
+    border: 1px solid ${(props) => props.theme.border.border2};
+    border-radius: ${(props) => props.theme.border.radius.base};
+    padding: 0 0.5rem;
+    font-size: ${(props) => props.theme.font.size.xs};
+    color: ${(props) => props.theme.dropdown.color};
+    cursor: pointer;
+  }
+
+  .var-add-to-inline-create-button:hover {
+    background: ${(props) => props.theme.dropdown.hoverBg};
+  }
+
+  .var-add-to-inline-create-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
   // Active/selected hint - using theme colors instead of hardcoded blue
   .CodeMirror-hint-active {
     background: ${(props) => props.theme.dropdown.hoverBg} !important;
@@ -565,6 +990,10 @@ const GlobalStyle = createGlobalStyle`
     text-decoration: underline !important;
   }
   .cmd-ctrl-pressed .hovered-link.CodeMirror-link[data-url] {
+    cursor: pointer;
+    color: ${(props) => props.theme.textLink} !important;
+  }
+  .link-click-enabled .hovered-link.CodeMirror-link[data-url] {
     cursor: pointer;
     color: ${(props) => props.theme.textLink} !important;
   }

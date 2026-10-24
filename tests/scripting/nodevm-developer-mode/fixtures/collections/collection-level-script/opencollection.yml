@@ -1,0 +1,16 @@
+opencollection: "1.0.0"
+info:
+  name: nodevm-collection-script-target
+
+request:
+  scripts:
+    - type: tests
+      code: |-
+        test("collection-level sync test (control)", function () {
+          expect(1).to.equal(1);
+        });
+
+        test("collection-level async test (bug check)", async function () {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          expect("ran").to.equal("ran");
+        });

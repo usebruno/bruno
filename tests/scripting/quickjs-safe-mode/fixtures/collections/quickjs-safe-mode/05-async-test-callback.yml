@@ -1,0 +1,29 @@
+info:
+  name: 05-async-test-callback
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: http://localhost:8081/ping
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test('async test with awaited host work passes', async () => {
+          const val = await new Promise((resolve) => {
+            setTimeout(() => {
+              resolve('expected');
+            }, 120);
+          });
+          expect(val).to.equal('expected');
+          bru.setVar('asyncTestRan', 'yes');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

@@ -1,0 +1,18 @@
+info:
+  name: grpc-request
+  type: grpc
+  seq: 2
+
+grpc:
+  url: grpcs://localhost:9444
+  method: /hello.HelloService/SayHello
+  methodType: unary
+  protoFilePath: ../../../../server/hello.proto
+  auth:
+    type: none
+  message:
+    - title: message 1
+      message: |-
+        {
+          "greeting": "bruno"
+        }

@@ -57,3 +57,16 @@ export const isTabForItemPresent = ({ itemUid, itemPathname, collectionUid }) =>
 
   return tab.uid === itemUid || (itemPathname && tab.type !== 'response-example' && tab.pathname === itemPathname);
 }));
+
+export const selectActiveTabCollectionUid = createSelector([
+  (state) => state.tabs.tabs,
+  (state) => state.tabs.activeTabUid
+], (tabs, activeTabUid) => tabs.find((tab) => tab.uid === activeTabUid)?.collectionUid ?? null);
+
+export const selectIsActiveTabCollectionLoaded = createSelector([
+  (state) => state.collections.collections,
+  selectActiveTabCollectionUid
+], (collections, collectionUid) => {
+  const collection = collections.find((c) => c.uid === collectionUid);
+  return Boolean(collection) && collection.mountStatus === 'mounted' && !collection.isLoading;
+});

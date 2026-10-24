@@ -19,6 +19,8 @@ import { updateRequestBody } from 'providers/ReduxStore/slices/collections/index
 import { toastError } from 'utils/common/error';
 import { prettifyJsonString } from 'utils/common/index';
 import xmlFormat from 'xml-formatter';
+import useKeybinding from 'hooks/useKeybinding';
+import { REQUEST_BODY_EDITOR_CLASS } from 'utils/common/constants';
 
 const DEFAULT_MODES = [
   {
@@ -91,6 +93,12 @@ const RequestBodyMode = ({ item, collection }) => {
     }
   };
 
+  useKeybinding('prettify', (e) => {
+    if (!e.target.closest(`.${REQUEST_BODY_EDITOR_CLASS}`)) return;
+    onPrettify();
+    return false;
+  });
+
   const menuItems = useMemo(() => {
     return DEFAULT_MODES.map((group) => ({
       ...group,
@@ -110,6 +118,7 @@ const RequestBodyMode = ({ item, collection }) => {
           selectedItemId={bodyMode}
           showGroupDividers={false}
           groupStyle="select"
+          data-testid="request-body-mode-label"
         >
           <div className="flex items-center justify-center pl-3 py-1 select-none selected-body-mode">
             {humanizeRequestBodyMode(bodyMode)} <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />

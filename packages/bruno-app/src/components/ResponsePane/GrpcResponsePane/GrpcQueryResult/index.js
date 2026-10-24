@@ -54,6 +54,7 @@ const GrpcQueryResult = ({ item, collection }) => {
             <div className="h-full" data-testid="grpc-single-response">
               <CodeEditor
                 collection={collection}
+                item={item}
                 font={get(preferences, 'font.codeFont', 'default')}
                 fontSize={get(preferences, 'font.codeFontSize')}
                 theme={displayedTheme}
@@ -94,6 +95,7 @@ const GrpcQueryResult = ({ item, collection }) => {
                       <div className="message-content">
                         <CodeEditor
                           collection={collection}
+                          item={item}
                           font={get(preferences, 'font.codeFont', 'default')}
                           fontSize={get(preferences, 'font.codeFontSize')}
                           theme={displayedTheme}

@@ -1,5 +1,6 @@
 import type { OpenCollection } from '@opencollection/types';
 import type { FolderRoot } from '@usebruno/schema-types/collection/folder';
+import { normalizeOpenApiSyncConfigs } from '@usebruno/common';
 import { parseYml } from './utils';
 import { toBrunoAuth } from './common/auth';
 import { toBrunoHttpHeaders } from './common/headers';
@@ -38,11 +39,14 @@ const parseCollection = (ymlString: string): ParsedCollection => {
     // presets
     if (brunoExtension?.presets) {
       const presets = brunoExtension.presets as BrunoPresetsExtension;
-      if (presets.request) {
+      if (presets.request || presets.defaultEnvironment) {
         brunoConfig.presets = {
-          requestType: presets.request.type || '',
-          requestUrl: presets.request.url || ''
+          requestType: presets.request?.type || '',
+          requestUrl: presets.request?.url || ''
         };
+        if (presets.defaultEnvironment) {
+          brunoConfig.presets.defaultEnvironment = presets.defaultEnvironment;
+        }
       }
     }
 
@@ -67,15 +71,10 @@ const parseCollection = (ymlString: string): ParsedCollection => {
         flow: brunoExtensions.scripts.flow
       };
     }
-    if (Array.isArray(brunoExtensions?.openapi) && brunoExtensions.openapi.length > 0) {
-      brunoConfig.openapi = brunoExtensions.openapi.map((entry: any) => ({
-        sourceUrl: entry.sourceUrl,
-        groupBy: entry.groupBy,
-        ...(entry.lastSyncDate && { lastSyncDate: entry.lastSyncDate }),
-        ...(entry.specHash && { specHash: entry.specHash }),
-        autoCheck: entry.autoCheck !== false,
-        autoCheckInterval: entry.autoCheckInterval || 5
-      }));
+
+    const openApiEntries = normalizeOpenApiSyncConfigs(brunoExtensions?.openapi);
+    if (openApiEntries.length > 0) {
+      brunoConfig.openapi = openApiEntries;
     }
 
     // protobuf
@@ -150,14 +149,16 @@ const parseCollection = (ymlString: string): ParsedCollection => {
               type: 'cert',
               certFilePath: cert.certificateFilePath,
               keyFilePath: cert.privateKeyFilePath,
-              passphrase: cert.passphrase || ''
+              passphrase: cert.passphrase || '',
+              ...(cert.disabled === true && { disabled: true })
             };
           } else if (cert.type === 'pkcs12') {
             return {
               domain: cert.domain,
               type: 'pfx',
               pfxFilePath: cert.pkcs12FilePath,
-              passphrase: cert.passphrase || ''
+              passphrase: cert.passphrase || '',
+              ...(cert.disabled === true && { disabled: true })
             };
           }
           return null;

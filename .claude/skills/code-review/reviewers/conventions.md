@@ -13,5 +13,10 @@ Review the diff against **`.claude/rules/conventions.md`** (read it; it points t
   abstraction (indirection that earns no readability or reuse), single-line indirection, `?.` where
   the null case isn't handled right there, needless whitespace/diff churn, or missing comments on
   genuinely complex flow.
+- **suggestion** — any breach of the rule's **Reuse before you write** or **Replacing code leaves
+  nothing behind** sections; confirm what the new code actually renders or reads before calling a
+  leftover dead. From **Before you call it done**, report only what the diff itself shows: a new
+  branch or acceptance criterion with no test, or a changed return/payload shape whose assertions
+  elsewhere weren't updated. Whether the author ran the suite isn't visible here — don't guess at it.
 - **nit** — pure style/formatting/naming deviations (indent, quotes, semicolons, trailing commas,
   arrow parens, casing) — most are auto-fixed by ESLint, so keep these brief.
