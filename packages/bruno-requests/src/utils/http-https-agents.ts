@@ -241,6 +241,13 @@ export class PatchedHttpsProxyAgent extends HttpsProxyAgent<any> {
   }
 }
 
+const matchesClientCertDomain = (domain: string, requestUrl: string): boolean => {
+  if (!domain || !requestUrl) return false;
+  const escapedDomain = domain.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+  const hostRegex = new RegExp(`^(https?:\\/\\/|grpc:\\/\\/|grpcs:\\/\\/|wss?:\\/\\/)?${escapedDomain}(?::\\d+)?([/?#]|$)`, 'i');
+  return hostRegex.test(requestUrl);
+};
+
 const getCertsAndProxyConfig = ({
   requestUrl,
   collectionPath,
@@ -275,8 +282,7 @@ const getCertsAndProxyConfig = ({
     const domain = clientCert?.domain;
     const type = clientCert?.type || 'cert';
     if (domain) {
-      const hostRegex = '^(https:\\/\\/|grpc:\\/\\/|grpcs:\\/\\/)?' + domain.replace(/\./g, '\\.').replace(/\*/g, '.*');
-      if (requestUrl && requestUrl.match(hostRegex)) {
+      if (requestUrl && matchesClientCertDomain(domain, requestUrl)) {
         if (type === 'cert') {
           try {
             let certFilePath = clientCert?.certFilePath;
@@ -637,6 +643,6 @@ const getHttpHttpsAgents = async ({
   return { httpAgent, httpsAgent };
 };
 
-export { getHttpHttpsAgents };
+export { getHttpHttpsAgents, matchesClientCertDomain };
 
 export type { GetHttpHttpsAgentsParams, ResolveAgentsFromPacParams, ResolveAgentsFromPacResult };
