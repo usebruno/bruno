@@ -374,6 +374,16 @@ describe('HeaderList (req.headerList)', () => {
       expect(rawReq.headers['X-Foo']).toBeUndefined();
       expect(list.count()).toBe(1);
     });
+
+    test('initializes req.headers when rawReq.headers is undefined', () => {
+      const rawReq = { url: 'https://example.com', method: 'GET' };
+      const brunoReq = new BrunoRequest(rawReq);
+      brunoReq.headerList.upsert('Authorization', 'Bearer new-token');
+      expect(rawReq.headers).toBeDefined();
+      expect(rawReq.headers['Authorization']).toBe('Bearer new-token');
+      expect(brunoReq.headerList.get('Authorization')).toBe('Bearer new-token');
+      expect(brunoReq.headerList.count()).toBe(1);
+    });
   });
 
   describe('remove()', () => {
