@@ -20,6 +20,7 @@ const externalDeps = [
   'lodash',
   'yaml',
   'ajv',
+  'nanoid',
   // Node built-ins
   'worker_threads',
   'path',
