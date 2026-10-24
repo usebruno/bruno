@@ -10,7 +10,8 @@ jest.mock('../../src/store/preferences', () => ({
   preferencesUtil: {
     shouldStoreCookies: () => false,
     shouldSendCookies: () => false,
-    isSslSessionCachingEnabled: () => true
+    isSslSessionCachingEnabled: () => true,
+    getHttpVersion: () => 'http1'
   }
 }));
 

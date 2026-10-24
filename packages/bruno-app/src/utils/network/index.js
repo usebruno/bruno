@@ -17,6 +17,7 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
             size: response.size,
             status: response.status,
             statusText: response.statusText,
+            httpVersion: response.httpVersion,
             duration: response.duration,
             timeline: response.timeline,
             stream: response.stream,
