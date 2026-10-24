@@ -1,0 +1,52 @@
+meta {
+  name: Pseudo-header injection is ignored
+  type: http
+  seq: 13
+  tags: [
+    ci-skip
+  ]
+}
+
+get {
+  url: {{dual}}/echo
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  bru.setVar("outcome", JSON.stringify({ request: "Pseudo-header injection is ignored", ok: false, error: "no response (request failed before post-response ran)" }));
+  if (typeof req.onFail === "function") {
+    req.onFail(function (err) {
+      var msg = err ? ((err.code ? err.code + ": " : "") + (err.message || String(err))) : "unknown error";
+      bru.setVar("outcome", JSON.stringify({ request: "Pseudo-header injection is ignored", ok: false, error: msg }));
+    });
+  }
+  
+  req.setHeader(":path", "/evil"); req.setHeader(":method", "DELETE"); req.setHeader(":authority", "evil.example");
+}
+
+script:post-response {
+  var __b = res.getBody();
+  var __j = {};
+  if (typeof __b === "string") { try { __j = JSON.parse(__b); } catch (e) { __j = {}; } } else { __j = __b || {}; }
+  bru.setVar("outcome", JSON.stringify({
+    request: "Pseudo-header injection is ignored",
+    ok: true,
+    status: res.getStatus(),
+    protocol: res.getHeader("x-protocol") || __j.protocol || null,
+    server: res.getHeader("x-server") || __j.server || null,
+    connectionId: res.getHeader("x-connection-id") || null,
+    echoHeaders: __j.headers || null,
+    bodyPreview: (typeof __b === "string" ? __b : JSON.stringify(__b) || "").slice(0, 300)
+  }));
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  Callers must not be able to override pseudo-headers. On h2 the request still goes to **GET /echo @ localhost:8443**. On h1, Node rejects `:`-prefixed names as invalid header tokens, which is also acceptable.
+  
+  > **Outcome case.** This request may fail *by design*. Its result is recorded in the runtime var `outcome` and asserted by the next request, **↳ verify: Pseudo-header injection is ignored**. Run both together (the folder runner does this).
+}

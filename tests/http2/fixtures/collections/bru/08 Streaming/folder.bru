@@ -1,0 +1,10 @@
+meta {
+  name: 08 Streaming
+  seq: 9
+}
+
+docs {
+  # Streaming
+  
+  Long-lived and incremental responses over one h2 stream. The session pool treats "idle" as *zero active streams*, so a quiet SSE stream must not be killed by the 30 s idle timer.
+}

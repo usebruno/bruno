@@ -1,0 +1,27 @@
+name: 'Run HTTP/2 CLI Tests - Linux'
+description: 'Run the HTTP/2 QA collection through the Bruno CLI in all three HTTP-version modes (Linux)'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run HTTP/2 CLI tests (all modes)
+      shell: bash
+      run: |
+        set -uo pipefail
+
+        BRU_CLI="../../../../../packages/bruno-cli/bin/bru.js"
+        cd tests/http2/fixtures/collections/bru
+
+        overall=0
+        run_mode() {
+          local env="$1" flag="$2" out="$3"
+          echo "=== ${env} (--http-version ${flag}) ==="
+          # The --http-version flag drives the client; the matching environment drives the
+          # protocol assertions via the collection `mode` variable.
+          node "$BRU_CLI" run --env "${env}" --http-version "${flag}" --exclude-tags ci-skip --reporter-junit "${out}" || overall=1
+        }
+
+        run_mode "HTTP1.1"      http1 junit-http1.xml
+        run_mode "HTTP2 forced" http2 junit-http2.xml
+        run_mode "Auto"         auto  junit-auto.xml
+
+        exit "${overall}"

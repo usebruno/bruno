@@ -1,0 +1,13 @@
+meta {
+  name: 00 Preflight
+  seq: 1
+}
+
+docs {
+  # Preflight
+  
+  Run this folder first, every time you change **Preferences → General → HTTP version**.
+  
+  - Confirms the testbed server is up and trusted (custom CA configured).
+  - Confirms the selected **environment** (`mode` var) matches the app preference. Every protocol assertion in the collection depends on this. If **Mode matches app setting** fails, fix the environment or preference before you go further.
+}

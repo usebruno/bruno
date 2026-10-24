@@ -1,0 +1,10 @@
+meta {
+  name: 03 Request bodies
+  seq: 4
+}
+
+docs {
+  # Request bodies
+  
+  Each body type must arrive **byte-exact**: the server reports size + sha256, and the tests compare. h2 carries bodies in DATA frames with flow control, so large bodies exercise windowing.
+}

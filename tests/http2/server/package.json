@@ -1,0 +1,12 @@
+{
+  "name": "bruno-http2-testbed-server",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Local HTTP/2 + HTTP/1.1 + proxy testbed for Bruno QA",
+  "scripts": {
+    "certs": "./gen-certs.sh",
+    "start": "node server.js",
+    "start:quiet": "QUIET=1 node server.js"
+  },
+  "engines": { "node": ">=18" }
+}

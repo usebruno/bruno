@@ -1,0 +1,31 @@
+meta {
+  name: Cancel in-flight request - manual
+  type: http
+  seq: 29
+  tags: [
+    manual
+  ]
+}
+
+get {
+  url: {{dual}}/hang
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  bru.runner.skipRequest()
+}
+
+tests {
+  test("manual test — see docs", function () {});
+}
+
+settings {
+  encodeUrl: true
+  timeout: 60000
+}
+
+docs {
+  **Manual.** Send it, wait 2 s, click **Cancel**. Then send **Prime connection**. Expect success, and on h2 the same connection id as before (cancel sends RST_STREAM CANCEL, not a session close). Check the server log for `h2 sN/#M … /hang` and **no** `◇ session closed`.
+}

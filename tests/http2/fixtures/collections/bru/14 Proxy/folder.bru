@@ -1,0 +1,15 @@
+meta {
+  name: 14 Proxy
+  seq: 15
+}
+
+docs {
+  # Proxy
+  
+  `bruno.json` configures a **collection proxy**: `http://localhost:{{proxyPort}}` with auth `{{proxyUser}}` / `{{proxyPass}}`, bypassing `localhost`, `127.0.0.1`, `h2.localhost`, `[::1]` and `*.invalid`. So **only `proxied.localhost` goes through the proxy**; everything else in the collection is direct.
+  
+  - Port 3128: CONNECT + forward proxy that accepts any (or no) credentials.
+  - Port 3129: requires `bruno` / `proxypass`.
+  
+  For h2 over a proxy, Bruno opens the CONNECT tunnel itself. The tunnel's TLS handshake doubles as the ALPN probe, and the tunnel socket seeds the pooled session. **CLI:** proxied requests stay on HTTP/1.1 (POC scope), and the tests account for that via `client=cli`.
+}

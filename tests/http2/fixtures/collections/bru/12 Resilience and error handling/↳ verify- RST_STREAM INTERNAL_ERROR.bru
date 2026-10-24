@@ -1,0 +1,73 @@
+meta {
+  name: ↳ verify: RST_STREAM INTERNAL_ERROR
+  type: http
+  seq: 10
+  tags: [
+    ci-skip
+  ]
+}
+
+get {
+  url: {{dual}}/echo?verify=1
+  body: none
+  auth: inherit
+}
+
+tests {
+  // ---- testbed helpers ----
+  var MODE = bru.getEnvVar("mode");
+  var CLIENT = bru.getEnvVar("client") || "app";
+  function expectedProtocol(kind, opts) {
+    var proxied = !!(opts && opts.proxied);
+    var cliProxyGap = false; // CLI tunnels HTTP/2 through proxies too (parity with the app)
+    if (kind === "cleartext") return MODE === "http2" ? "fail" : "1.1"; // http2 sends h2c preface to an h1 server -> fails
+    if (kind === "h2c") return MODE === "http2" ? "2.0" : "fail";       // h2c server: http2 -> prior knowledge; else an h1 client is rejected
+    if (kind === "h2only") return MODE === "http1" || cliProxyGap ? "fail" : "2.0";
+    if (kind === "h1only") return MODE === "http2" ? "fail" : "1.1";
+    if (MODE === "http1" || cliProxyGap) return "1.1";
+    return "2.0";
+  }
+  function json() {
+    var b = res.getBody();
+    if (typeof b === "string") { try { return JSON.parse(b); } catch (e) { return {}; } }
+    return b || {};
+  }
+  function isH2() { return json().protocol === "2.0"; }
+  // ---- end helpers ----
+  
+  var o = null;
+  try { o = JSON.parse(bru.getVar("outcome") || "null"); } catch (e) { o = null; }
+  test("an outcome was recorded for \"RST_STREAM INTERNAL_ERROR\" (run it first)", function () {
+    expect(o, "run the previous request first").to.not.equal(null);
+    expect(o.request).to.equal("RST_STREAM INTERNAL_ERROR");
+  });
+  // Safe Mode has no req.onFail, so a failed request only records a generic message; error-text checks need Developer Mode.
+  var DETAILED = !!o && !/^no response \(request failed/.test(String(o.error));
+  function matchError(re) {
+    if (o.ok) return;
+    if (!DETAILED) { console.log("error text unavailable (Safe Mode has no req.onFail) — check the error in the response pane, or use Developer Mode / --sandbox developer"); return; }
+    expect(String(o.error)).to.match(re);
+  }
+  if (o) {
+    console.log("outcome of " + o.request + ": " + JSON.stringify(o));
+    test("failed", function () { expect(o.ok).to.equal(false); });
+    if (expectedProtocol("dual") === "2.0") {
+      test("error names the reset (INTERNAL_ERROR)", function () { matchError(/INTERNAL_ERROR|RST|stream|reset/i); });
+      test("session survived the stream reset (same connection id)", function () {
+        expect(res.getHeader("x-connection-id")).to.equal(bru.getVar("lastConnId"));
+      });
+    }
+  }
+  bru.setVar("lastConnId", res.getHeader("x-connection-id"));
+  bru.setVar("lastProtocol", res.getHeader("x-protocol"));
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  Asserts the recorded outcome of **RST_STREAM INTERNAL_ERROR** (runtime var `outcome`). This request itself goes to the dual-stack server, so it always succeeds; its own tests are about the previous request.
+  
+  Expected: the request fails with an error mentioning INTERNAL_ERROR / stream reset. On h2 the session survives: this verifier runs on the **same** connection id.
+}

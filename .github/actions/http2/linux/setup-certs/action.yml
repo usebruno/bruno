@@ -1,0 +1,27 @@
+name: 'Setup HTTP/2 Testbed Certificates - Linux'
+description: 'Generate the testbed CA/server/client certificates, trust the CA, and add testbed vhosts to /etc/hosts (Linux)'
+runs:
+  using: 'composite'
+  steps:
+    - name: Generate testbed certificates
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        cd tests/http2/server
+
+        echo "generating testbed certificates"
+        ./gen-certs.sh
+
+        # Trust the testbed CA for every Node process in later steps (no --insecure).
+        echo "NODE_EXTRA_CA_CERTS=${GITHUB_WORKSPACE}/tests/http2/server/certs/ca.crt" >> "$GITHUB_ENV"
+
+    - name: Register testbed virtual hosts
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        # The testbed server certificate covers these names; the collection uses them for
+        # SNI/vhost and proxied-origin tests. Map them to loopback so the client can resolve them.
+        echo "127.0.0.1 h2.localhost proxied.localhost virtual.example" | sudo tee -a /etc/hosts
+        echo "::1 h2.localhost proxied.localhost virtual.example" | sudo tee -a /etc/hosts

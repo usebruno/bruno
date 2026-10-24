@@ -1,0 +1,27 @@
+meta {
+  name: Server is up and trusted
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{dual}}/
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("status 200", function () { expect(res.getStatus()).to.equal(200); });
+  test("route list present", function () { expect(res.getBody().routes.length).to.be.greaterThan(20); });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+docs {
+  Lists every testbed route.
+  
+  If this fails with a certificate error, add `server/certs/ca.crt` under **Preferences → General → Custom CA certificate** (keep default CAs on). In the CLI, pass `--cacert ../server/certs/ca.crt`.
+}

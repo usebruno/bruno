@@ -1,0 +1,58 @@
+headers {
+  x-collection-header: from-collection
+}
+
+auth {
+  mode: none
+}
+
+script:pre-request {
+  if (!bru.getEnvVar("mode")) {
+    throw new Error("Select an environment (HTTP2 forced / Auto / HTTP1.1) that matches Preferences → General → HTTP version");
+  }
+}
+
+docs {
+  # HTTP/2 QA collection
+  
+  Exercises Bruno's HTTP/2 support (custom h2 transport + session pool) against a local testbed covering many server behaviours.
+  
+  ## Setup (once)
+  
+  1. Start the testbed: `cd server && ./gen-certs.sh && node server.js`. Optionally run `node selftest.js` to confirm the testbed works.
+  2. **Trust the test CA:** Preferences → General → *Custom CA certificate* → `server/certs/ca.crt` (keep *default CA certificates* on).
+  3. Open this collection. Client certificate and proxy settings already live in `bruno.json`.
+  
+  ## Each run
+  
+  1. Pick the **HTTP version** in Preferences → General.
+  2. Select the **matching environment**: `HTTP2 forced`, `Auto` or `HTTP1.1`. The `mode` variable drives every protocol assertion.
+  3. Run **00 Preflight**. "Mode matches app setting" must pass.
+  4. Run folders 01–15 with the Collection Runner. Run **90 Slow** separately.
+  5. Then go through every request whose name ends in **- manual**, and the *Manual checks* in each request's Docs tab.
+  
+  A full pass means the runner is green in **all three** modes.
+  
+  ## Protocol matrix
+  
+  | Server | http1 | http2 (forced) | auto |
+  |---|---|---|---|
+  | dual :8443 (h2 + http/1.1) | 1.1 | 2.0 | 2.0 |
+  | h2only :8444 | ✖ | 2.0 | 2.0 |
+  | h1only :8445 | 1.1 | ✖ | 1.1 |
+  | plain http :8091 | 1.1 | 1.1 | 1.1 |
+  | h2c http :8090 | ✖ | ✖ | ✖ |
+  
+  ## CLI
+  
+  ```
+  bru run --env "HTTP2 forced" --env-var client=cli --http-version http2 --cacert ../server/certs/ca.crt
+  bru run --env Auto           --env-var client=cli --http-version auto  --cacert ../server/certs/ca.crt
+  bru run --env HTTP1.1        --env-var client=cli --http-version http1 --cacert ../server/certs/ca.crt
+  ```
+  Pass `client=cli` so the tests expect the CLI's POC limits (proxied requests stay on HTTP/1.1). Add `--exclude-tags manual,slow` for a quick run. Manual cases are tagged `manual`, folder 90 is tagged `slow`, and the app runner can filter by the same tags.
+  
+  ## Outcome cases
+  
+  Some requests are *meant* to fail in some modes (an h1-only server with forced h2, for example). A failed request can't run its own tests, so it records its result in the runtime var `outcome`, and the next request, **↳ verify: …**, asserts it. Run them as a pair.
+}

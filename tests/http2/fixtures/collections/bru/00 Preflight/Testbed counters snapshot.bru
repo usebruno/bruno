@@ -1,0 +1,25 @@
+meta {
+  name: Testbed counters snapshot
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{dual}}/stats
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("status 200", function () { expect(res.getStatus()).to.equal(200); });
+  bru.setVar("statsAtStart", JSON.stringify(res.getBody()));
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+docs {
+  Process-wide counters (sessions, proxy tunnels, GOAWAYs sent). Handy when you investigate manually; some proxy tests read it.
+}

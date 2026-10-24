@@ -1,0 +1,58 @@
+meta {
+  name: Binary file body to flow-control-limited server
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{limited}}/upload
+  body: file
+  auth: inherit
+}
+
+body:file {
+  file: @file(fixtures/random-1mb.bin) @contentType(application/octet-stream)
+}
+
+tests {
+  // ---- testbed helpers ----
+  var MODE = bru.getEnvVar("mode");
+  var CLIENT = bru.getEnvVar("client") || "app";
+  function expectedProtocol(kind, opts) {
+    var proxied = !!(opts && opts.proxied);
+    var cliProxyGap = false; // CLI tunnels HTTP/2 through proxies too (parity with the app)
+    if (kind === "cleartext") return MODE === "http2" ? "fail" : "1.1"; // http2 sends h2c preface to an h1 server -> fails
+    if (kind === "h2c") return MODE === "http2" ? "2.0" : "fail";       // h2c server: http2 -> prior knowledge; else an h1 client is rejected
+    if (kind === "h2only") return MODE === "http1" || cliProxyGap ? "fail" : "2.0";
+    if (kind === "h1only") return MODE === "http2" ? "fail" : "1.1";
+    if (MODE === "http1" || cliProxyGap) return "1.1";
+    return "2.0";
+  }
+  function json() {
+    var b = res.getBody();
+    if (typeof b === "string") { try { return JSON.parse(b); } catch (e) { return {}; } }
+    return b || {};
+  }
+  function isH2() { return json().protocol === "2.0"; }
+  // ---- end helpers ----
+  if (MODE !== "http1") {
+    test("1 MiB received byte-exact through a 16 KiB window", function () {
+      expect(json().body.sha256).to.equal("06b7bbfb7824aa03382051691630eb26de85102d1b08a81e907ec0744cd8a286");
+    });
+    var exp = expectedProtocol("h2only");
+    test("served over HTTP/" + exp + " (mode=" + MODE + ", client=" + CLIENT + ")", function () {
+      expect(exp, "this request should have FAILED under mode=" + MODE + " but got a response").to.not.equal("fail");
+      expect(json().protocol).to.equal(exp);
+      expect(res.getHeader("x-protocol")).to.equal(exp);
+    });
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 30000
+}
+
+docs {
+  Same 1 MiB upload to a server advertising a 16 KiB window and 16 KiB max frame. That means many WINDOW_UPDATE round trips. Must not stall. The server is h2-only, so in http1 mode this fails, as expected.
+}

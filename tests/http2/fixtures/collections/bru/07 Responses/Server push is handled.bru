@@ -1,0 +1,45 @@
+meta {
+  name: Server push is handled
+  type: http
+  seq: 35
+}
+
+get {
+  url: {{dual}}/push
+  body: none
+  auth: inherit
+}
+
+tests {
+  // ---- testbed helpers ----
+  var MODE = bru.getEnvVar("mode");
+  var CLIENT = bru.getEnvVar("client") || "app";
+  function expectedProtocol(kind, opts) {
+    var proxied = !!(opts && opts.proxied);
+    var cliProxyGap = false; // CLI tunnels HTTP/2 through proxies too (parity with the app)
+    if (kind === "cleartext") return MODE === "http2" ? "fail" : "1.1"; // http2 sends h2c preface to an h1 server -> fails
+    if (kind === "h2c") return MODE === "http2" ? "2.0" : "fail";       // h2c server: http2 -> prior knowledge; else an h1 client is rejected
+    if (kind === "h2only") return MODE === "http1" || cliProxyGap ? "fail" : "2.0";
+    if (kind === "h1only") return MODE === "http2" ? "fail" : "1.1";
+    if (MODE === "http1" || cliProxyGap) return "1.1";
+    return "2.0";
+  }
+  function json() {
+    var b = res.getBody();
+    if (typeof b === "string") { try { return JSON.parse(b); } catch (e) { return {}; } }
+    return b || {};
+  }
+  function isH2() { return json().protocol === "2.0"; }
+  // ---- end helpers ----
+  test("status 200", function () { expect(res.getStatus()).to.equal(200); });
+  test("main response OK", function () { expect(res.getBody().protocol).to.equal(expectedProtocol("dual")); });
+  test("record push setting", function () { console.log("client allowed push: " + res.getBody().pushAllowedByClient + ", pushed: " + JSON.stringify(res.getBody().pushed)); });
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  On h2 the server pushes `/pushed.css` and `/pushed.js`. The main response must be unaffected. Pushed streams should be refused or ignored without errors or leaks. `pushAllowedByClient` shows whether Bruno advertises push. Ideally it should be **false** (an API client has no use for push).
+}

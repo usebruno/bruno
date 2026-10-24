@@ -1,0 +1,55 @@
+meta {
+  name: Second proxied request reuses tunnel session
+  type: http
+  seq: 3
+  tags: [
+    ci-skip
+  ]
+}
+
+get {
+  url: {{proxied}}/echo?again=1
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  var s = await bru.sendRequest({ method: "GET", url: bru.interpolate("{{dual}}/stats") });
+  bru.setVar("tunnelsAfter2", s.data.proxyTunnels);
+}
+
+tests {
+  // ---- testbed helpers ----
+  var MODE = bru.getEnvVar("mode");
+  var CLIENT = bru.getEnvVar("client") || "app";
+  function expectedProtocol(kind, opts) {
+    var proxied = !!(opts && opts.proxied);
+    var cliProxyGap = false; // CLI tunnels HTTP/2 through proxies too (parity with the app)
+    if (kind === "cleartext") return MODE === "http2" ? "fail" : "1.1"; // http2 sends h2c preface to an h1 server -> fails
+    if (kind === "h2c") return MODE === "http2" ? "2.0" : "fail";       // h2c server: http2 -> prior knowledge; else an h1 client is rejected
+    if (kind === "h2only") return MODE === "http1" || cliProxyGap ? "fail" : "2.0";
+    if (kind === "h1only") return MODE === "http2" ? "fail" : "1.1";
+    if (MODE === "http1" || cliProxyGap) return "1.1";
+    return "2.0";
+  }
+  function json() {
+    var b = res.getBody();
+    if (typeof b === "string") { try { return JSON.parse(b); } catch (e) { return {}; } }
+    return b || {};
+  }
+  function isH2() { return json().protocol === "2.0"; }
+  // ---- end helpers ----
+  test("status 200", function () { expect(res.getStatus()).to.equal(200); });
+  test("h2: no new tunnel opened", function () {
+    if (!isH2()) return;
+    expect(Number(bru.getVar("tunnelsAfter2"))).to.equal(Number(bru.getVar("tunnelsAfter1")));
+  });
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  On h2 the pooled session (keyed by proxy too) is reused, so **no new CONNECT**. On HTTP/1.1 the keep-alive agent usually reuses the socket as well. For **auto** this matters even more: each new tunnel would also mean a new ALPN probe.
+}

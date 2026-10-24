@@ -1,0 +1,4 @@
+# Generated at run/CI time — the testbed CA/certs are produced by server/gen-certs.sh,
+# and junit reports are written by the CLI run.
+server/certs/
+fixtures/collections/bru/junit-*.xml

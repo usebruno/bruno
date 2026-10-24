@@ -1,0 +1,16 @@
+meta {
+  name: 12 Resilience and error handling
+  seq: 13
+}
+
+docs {
+  # Resilience & error handling
+  
+  How Bruno handles connection-level and stream-level failures on h2:
+  - **GOAWAY**: the session moves to DRAINING and is never handed out again; the next request opens a new session.
+  - **RST_STREAM**: kills one stream only; the **session survives**, so the next request reuses it.
+  - Session destroyed: every in-flight stream fails, and the next request opens a new session.
+  - Errors must be clear and specific, never hangs, never uncaught exceptions, never "undefined".
+  
+  Run in order; several verifiers compare connection ids with the request before them.
+}

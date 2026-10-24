@@ -1,0 +1,47 @@
+meta {
+  name: res API shape on h2
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{dual}}/json
+  body: none
+  auth: inherit
+}
+
+tests {
+  // ---- testbed helpers ----
+  var MODE = bru.getEnvVar("mode");
+  var CLIENT = bru.getEnvVar("client") || "app";
+  function expectedProtocol(kind, opts) {
+    var proxied = !!(opts && opts.proxied);
+    var cliProxyGap = false; // CLI tunnels HTTP/2 through proxies too (parity with the app)
+    if (kind === "cleartext") return MODE === "http2" ? "fail" : "1.1"; // http2 sends h2c preface to an h1 server -> fails
+    if (kind === "h2c") return MODE === "http2" ? "2.0" : "fail";       // h2c server: http2 -> prior knowledge; else an h1 client is rejected
+    if (kind === "h2only") return MODE === "http1" || cliProxyGap ? "fail" : "2.0";
+    if (kind === "h1only") return MODE === "http2" ? "fail" : "1.1";
+    if (MODE === "http1" || cliProxyGap) return "1.1";
+    return "2.0";
+  }
+  function json() {
+    var b = res.getBody();
+    if (typeof b === "string") { try { return JSON.parse(b); } catch (e) { return {}; } }
+    return b || {};
+  }
+  function isH2() { return json().protocol === "2.0"; }
+  // ---- end helpers ----
+  test("status 200", function () { expect(res.getStatus()).to.equal(200); });
+  test("getStatusText non-empty", function () { expect(res.getStatusText()).to.equal("OK"); });
+  test("getHeaders keys lowercase, no pseudo-headers", function () {
+    Object.keys(res.getHeaders()).forEach(function (k) { expect(k).to.equal(k.toLowerCase()); expect(k.charAt(0)).to.not.equal(":"); });
+  });
+  test("getHeader case-insensitive", function () { expect(res.getHeader("Content-Type")).to.contain("application/json"); });
+  test("getSize sensible", function () { var s = res.getSize(); expect(s.body).to.be.greaterThan(0); });
+  test("getUrl", function () { expect(res.getUrl()).to.contain("/json"); });
+  test("getResponseTime number", function () { expect(res.getResponseTime()).to.be.a("number"); });
+}
+
+settings {
+  encodeUrl: true
+}
