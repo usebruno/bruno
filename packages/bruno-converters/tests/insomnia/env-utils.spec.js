@@ -1,11 +1,41 @@
 import { describe, it, expect } from '@jest/globals';
-import { buildV5Environments, buildV4Environments } from '../../src/insomnia/env-utils';
+import { buildV5Environments, buildV4Environments, normalizeVariables } from '../../src/insomnia/env-utils';
 
 const getVar = (env, name) => {
   return env.variables.find((v) => v.name === name);
 };
 
 describe('env-utils', () => {
+  describe('normalizeVariables', () => {
+    it('removes the leading `_.` from Insomnia variable references', () => {
+      expect(normalizeVariables('{{_.baseUrl}}')).toBe('{{baseUrl}}');
+    });
+
+    it('removes spaces inside the variable name', () => {
+      expect(normalizeVariables('{{_.user name}}')).toBe('{{username}}');
+    });
+
+    it('normalizes references embedded in a larger string', () => {
+      expect(normalizeVariables('https://api.example.com/{{_.host}}/v1')).toBe(
+        'https://api.example.com/{{host}}/v1'
+      );
+    });
+
+    it('normalizes multiple references in the same value', () => {
+      expect(normalizeVariables('{{_.a}}/{{_. b}}')).toBe('{{a}}/{{b}}');
+    });
+
+    it('returns strings without variable references unchanged', () => {
+      expect(normalizeVariables('plain string')).toBe('plain string');
+    });
+
+    it('coerces non-string values and handles empty values', () => {
+      expect(normalizeVariables(123)).toBe('123');
+      expect(normalizeVariables(null)).toBe('');
+      expect(normalizeVariables(undefined)).toBe('');
+    });
+  });
+
   describe('buildV5Environments', () => {
     it('creates base and sub environments with flattened keys and shallow overrides', () => {
       const environmentsNode = {
