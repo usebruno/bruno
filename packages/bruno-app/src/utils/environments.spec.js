@@ -3,7 +3,7 @@ jest.mock('nanoid', () => ({
   customAlphabet: () => () => 'aaaaaaaaaaaaaaaaaaaa1'
 }));
 
-import { applyScriptEnvVars, buildEnvVariable, stripEnvVarUid, getDuplicateSecretNames, writesCollidingSecrets, resolveSecretNameCollision, dedupeImportedSecrets, orderEnvironmentsByInheritance, isEnvironmentValidationError, DUPLICATE_SECRET_NAMES_ERROR, generateCopyName } from './environments';
+import { applyScriptEnvVars, buildEnvVariable, stripEnvVarUid, writesCollidingSecrets, resolveSecretNameCollision, orderEnvironmentsByInheritance, isEnvironmentValidationError, DUPLICATE_SECRET_NAMES_ERROR, generateCopyName } from './environments';
 import { invalidVariableNamesError } from './common/variables';
 
 describe('buildEnvVariable — dataType preservation for env export/import', () => {
@@ -541,71 +541,6 @@ describe('Env export → import round-trip via JSON', () => {
   });
 });
 
-describe('getDuplicateSecretNames', () => {
-  it('returns an empty set when there are no variables', () => {
-    expect(getDuplicateSecretNames([]).size).toBe(0);
-    expect(getDuplicateSecretNames(undefined).size).toBe(0);
-  });
-
-  it('returns an empty set when secret names are unique', () => {
-    const vars = [
-      { name: 'token', secret: true },
-      { name: 'apiKey', secret: true }
-    ];
-    expect(getDuplicateSecretNames(vars).size).toBe(0);
-  });
-
-  it('flags a name carried by more than one secret', () => {
-    const vars = [
-      { name: 'token', secret: true },
-      { name: 'token', secret: true }
-    ];
-    expect([...getDuplicateSecretNames(vars)]).toEqual(['token']);
-  });
-
-  it('flags a collision even when one of the two secrets is disabled', () => {
-    const vars = [
-      { name: 'token', secret: true, enabled: true },
-      { name: 'token', secret: true, enabled: false }
-    ];
-    expect([...getDuplicateSecretNames(vars)]).toEqual(['token']);
-  });
-
-  it('ignores duplicate names on non-secret variables', () => {
-    const vars = [
-      { name: 'host', secret: false },
-      { name: 'host', secret: false }
-    ];
-    expect(getDuplicateSecretNames(vars).size).toBe(0);
-  });
-
-  it('does not flag a plain variable and a secret that share a name', () => {
-    const vars = [
-      { name: 'token', secret: false },
-      { name: 'token', secret: true }
-    ];
-    expect(getDuplicateSecretNames(vars).size).toBe(0);
-  });
-
-  it('compares trimmed names and ignores blank ones', () => {
-    const vars = [
-      { name: 'token', secret: true },
-      { name: '  token  ', secret: true },
-      { name: '   ', secret: true },
-      { name: '', secret: true }
-    ];
-    expect([...getDuplicateSecretNames(vars)]).toEqual(['token']);
-  });
-
-  it('is case-sensitive', () => {
-    const vars = [
-      { name: 'token', secret: true },
-      { name: 'TOKEN', secret: true }
-    ];
-    expect(getDuplicateSecretNames(vars).size).toBe(0);
-  });
-});
-
 describe('isEnvironmentValidationError', () => {
   it('recognises the duplicate-secret-names rejection', () => {
     expect(isEnvironmentValidationError(new Error(DUPLICATE_SECRET_NAMES_ERROR))).toBe(true);
@@ -690,100 +625,6 @@ describe('writesCollidingSecrets', () => {
   it('blocks a collision when there are no saved variables to compare against', () => {
     expect(writesCollidingSecrets(collidingPair, undefined)).toBe(true);
     expect(writesCollidingSecrets(collidingPair, [])).toBe(true);
-  });
-});
-
-describe('dedupeImportedSecrets', () => {
-  const makeVar = (uid, name, value, overrides = {}) => ({
-    uid,
-    name,
-    value,
-    type: 'text',
-    enabled: true,
-    secret: true,
-    ...overrides
-  });
-
-  it('returns the list untouched when secret names are unique', () => {
-    const variables = [makeVar('uid-1', 'token', ''), makeVar('uid-2', 'apiKey', '')];
-
-    expect(dedupeImportedSecrets(variables)).toBe(variables);
-  });
-
-  it('collapses two blank-valued secrets sharing a name down to the first', () => {
-    const variables = [makeVar('uid-1', 'token', ''), makeVar('uid-2', 'token', '')];
-
-    expect(dedupeImportedSecrets(variables)).toEqual([variables[0]]);
-  });
-
-  it('collapses every namesake when more than two collide', () => {
-    const variables = [makeVar('uid-1', 'token', ''), makeVar('uid-2', 'token', ''), makeVar('uid-3', 'token', '')];
-
-    expect(dedupeImportedSecrets(variables)).toEqual([variables[0]]);
-  });
-
-  it('collapses each colliding name independently and keeps the rest in order', () => {
-    const variables = [
-      makeVar('uid-1', 'apiKey', 'plain', { secret: false }),
-      makeVar('uid-2', 'name', ''),
-      makeVar('uid-3', 'name', ''),
-      makeVar('uid-4', 'abc', ''),
-      makeVar('uid-5', 'abc', '')
-    ];
-
-    expect(dedupeImportedSecrets(variables)).toEqual([variables[0], variables[1], variables[3]]);
-  });
-
-  // A Postman export ships secret values inline, so the twin holding one carries the only value
-  // that survives the collision.
-  it('keeps the twin holding a value over an earlier blank one', () => {
-    const variables = [makeVar('uid-1', 'token', ''), makeVar('uid-2', 'token', 'from-postman')];
-
-    expect(dedupeImportedSecrets(variables)).toEqual([variables[1]]);
-  });
-
-  it('keeps the first of several twins holding values', () => {
-    const variables = [makeVar('uid-1', 'token', 'first'), makeVar('uid-2', 'token', 'second')];
-
-    expect(dedupeImportedSecrets(variables)).toEqual([variables[0]]);
-  });
-
-  it('leaves duplicate non-secret names alone', () => {
-    const variables = [makeVar('uid-1', 'host', 'a', { secret: false }), makeVar('uid-2', 'host', 'b', { secret: false })];
-
-    expect(dedupeImportedSecrets(variables)).toBe(variables);
-  });
-
-  it('leaves a plain variable sharing a secret name alone', () => {
-    const variables = [makeVar('uid-1', 'token', 'plain', { secret: false }), makeVar('uid-2', 'token', '')];
-
-    expect(dedupeImportedSecrets(variables)).toBe(variables);
-  });
-
-  // Unlike resolveSecretNameCollision, nothing is stored yet, so there is no live value hiding
-  // under the untrimmed key and the padded namesake is safe to collapse.
-  it('collapses a whitespace-padded namesake, keeping the survivor name verbatim', () => {
-    const variables = [makeVar('uid-1', 'token', ''), makeVar('uid-2', '  token  ', '')];
-
-    expect(dedupeImportedSecrets(variables)).toEqual([variables[0]]);
-  });
-
-  it('ignores blank secret names', () => {
-    const variables = [makeVar('uid-1', '', ''), makeVar('uid-2', '   ', '')];
-
-    expect(dedupeImportedSecrets(variables)).toBe(variables);
-  });
-
-  it('treats names differing only in case as distinct', () => {
-    const variables = [makeVar('uid-1', 'token', ''), makeVar('uid-2', 'TOKEN', '')];
-
-    expect(dedupeImportedSecrets(variables)).toBe(variables);
-  });
-
-  it('keeps a disabled twin when it is the one holding a value', () => {
-    const variables = [makeVar('uid-1', 'token', ''), makeVar('uid-2', 'token', 'kept', { enabled: false })];
-
-    expect(dedupeImportedSecrets(variables)).toEqual([variables[1]]);
   });
 });
 

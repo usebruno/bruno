@@ -66,8 +66,14 @@ export {
 } from './environment-inheritance';
 
 export {
-  toVariablesMap
+  toVariablesMap,
+  getDuplicateSecretNames,
+  dedupeImportedSecrets
 } from './environment-variables';
+
+export {
+  coerceEnvName
+} from './environments';
 
 export {
   toBool,
