@@ -202,12 +202,14 @@ export function createHttp2Transport(params: CreateHttp2TransportParams) {
         headers: options.headers
       });
 
+      const seededConnection = pendingSocket ? createConnection : undefined;
+
       const { pooled, reused } = acquireSession({
         origin,
         tlsOptions: tlsOptions as BrunoTlsOptions,
         lookup,
         proxyUri,
-        createConnection,
+        createConnection: seededConnection,
         idleMs,
         timeline
       });

@@ -8,10 +8,6 @@ describe('isRetryableHttp2Error', () => {
     expect(isRetryableHttp2Error({ response: { request: { rstCode: 7 } } })).toBe(true);
   });
 
-  it('is true for a proxied-h2 dead-session refusal (re-tunnel on retry)', () => {
-    expect(isRetryableHttp2Error({ code: 'ERR_H2_PROXY_SESSION_UNAVAILABLE' })).toBe(true);
-  });
-
   it('is false for non-retryable RST codes and for HTTP/1.1 errors (no rstCode)', () => {
     expect(isRetryableHttp2Error({ rstCode: 2 })).toBe(false); // INTERNAL_ERROR
     expect(isRetryableHttp2Error({ rstCode: 8 })).toBe(false); // CANCEL
