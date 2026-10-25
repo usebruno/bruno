@@ -108,7 +108,7 @@ const OpenAPISyncHeader = ({
           >
             View spec
           </Button>
-          <MenuDropdown items={menuItems} placement="bottom-end">
+          <MenuDropdown items={menuItems} placement="bottom-end" data-testid="openapi-sync-header-menu">
             <ActionIcon label="More options">
               <IconDotsVertical size={16} strokeWidth={2} />
             </ActionIcon>
