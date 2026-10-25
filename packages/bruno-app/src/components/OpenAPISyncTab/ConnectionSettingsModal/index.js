@@ -1,28 +1,40 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 import Button from 'ui/Button';
 import Modal from 'components/Modal';
 import { isHttpUrl } from 'utils/url/index';
-import { isOpenApiSpec } from 'utils/importers/openapi-collection';
-import { parseFileAsJsonOrYaml } from 'utils/importers/file-reader';
+import { getAbsoluteFilePath } from 'utils/common/path';
+import { findApiSpecByPathname } from 'utils/api-specs';
+import useWorkspaceApiSpecs from 'hooks/useWorkspaceApiSpecs';
+import SpecSourcePicker from 'components/OpenAPISyncTab/SpecSourcePicker';
+
+const resolveInitialSource = (sourceUrl, collectionPath, workspaceSpecs) => {
+  const source = (sourceUrl || '').trim();
+  if (isHttpUrl(source)) {
+    return { mode: 'url', sources: { workspace: '', url: source, file: '' } };
+  }
+
+  const filePath = source && collectionPath ? getAbsoluteFilePath(collectionPath, source) : source;
+  if (findApiSpecByPathname(workspaceSpecs, filePath)) {
+    return { mode: 'workspace', sources: { workspace: filePath, url: '', file: '' } };
+  }
+  return { mode: 'file', sources: { workspace: '', url: '', file: filePath } };
+};
 
 const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, onClose }) => {
   const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
-  const normalizedSourceUrl = (sourceUrl || '').trim();
-  const isUrl = isHttpUrl(normalizedSourceUrl);
-  const initialMode = isUrl ? 'url' : 'file';
-  const [mode, setMode] = useState(initialMode);
-  const [url, setUrl] = useState(isUrl ? normalizedSourceUrl : '');
-  const [filePath, setFilePath] = useState(isUrl ? '' : normalizedSourceUrl);
+  const workspaceSpecs = useWorkspaceApiSpecs();
+  const [initialSource] = useState(() => resolveInitialSource(sourceUrl, collection?.pathname, workspaceSpecs));
+  const [mode, setMode] = useState(initialSource.mode);
+  const [sources, setSources] = useState(initialSource.sources);
   const [autoCheck, setAutoCheck] = useState(openApiSyncConfig?.autoCheck !== false);
   const [checkInterval, setCheckInterval] = useState(openApiSyncConfig?.autoCheckInterval || 5);
   const [isSaving, setIsSaving] = useState(false);
-  const fileInputRef = useRef(null);
 
   const intervals = [5, 15, 30, 60];
 
-  const effectiveSource = mode === 'file' ? filePath : url.trim();
-  const canSave = mode === 'file' ? !!effectiveSource : isHttpUrl(effectiveSource.trim());
+  const effectiveSource = sources[mode].trim();
+  const canSave = mode === 'url' ? isHttpUrl(effectiveSource) : !!effectiveSource;
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -47,64 +59,13 @@ const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, 
         <div className="settings-body">
           <div className="settings-field">
             <label className="settings-label">Spec Source</label>
-            <div className="setup-mode-toggle" style={{ marginBottom: '8px' }}>
-              <button
-                type="button"
-                className={`setup-mode-btn ${mode === 'url' ? 'active' : ''}`}
-                onClick={() => setMode('url')}
-              >
-                URL
-              </button>
-              <button
-                type="button"
-                className={`setup-mode-btn ${mode === 'file' ? 'active' : ''}`}
-                onClick={() => setMode('file')}
-              >
-                File
-              </button>
-            </div>
-
-            {mode === 'url' ? (
-              <input
-                className="settings-input"
-                type="text"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://api.example.com/openapi.json"
-              />
-            ) : (
-              <>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".json,.yaml,.yml"
-                  style={{ display: 'none' }}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      try {
-                        const data = await parseFileAsJsonOrYaml(file);
-                        if (!isOpenApiSpec(data)) {
-                          toast.error('The selected file is not a valid OpenAPI 3.x specification');
-                          return;
-                        }
-                        const path = window.ipcRenderer.getFilePath(file);
-                        if (path) setFilePath(path);
-                      } catch (err) {
-                        toast.error(err.message || 'Failed to read the selected file');
-                      }
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  className="settings-input file-pick-btn"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {filePath ? filePath.split(/[\\/]/).pop() : 'Select File'}
-                </button>
-              </>
-            )}
+            <SpecSourcePicker
+              mode={mode}
+              onModeChange={setMode}
+              value={sources[mode]}
+              onChange={(value) => setSources((current) => ({ ...current, [mode]: value }))}
+              onError={(message) => message && toast.error(message)}
+            />
           </div>
 
           <div className="settings-field">
