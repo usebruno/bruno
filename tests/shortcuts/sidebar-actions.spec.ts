@@ -243,6 +243,117 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
+    test.describe('SHORTCUT: Delete Item', () => {
+      test.describe('SHORTCUT: Delete Item for request (Backspace/Delete)', () => {
+        test('default Backspace/Delete open delete item modal for request', async ({ pageWithUserData: page }) => {
+          await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).dblclick();
+
+          await openRequest(page, 'kb-collection', 'req-1', { persist: true });
+
+          const requestItem = page.locator('.collection-item-name').filter({ has: page.getByText('req-1', { exact: true }) });
+
+          await requestItem.click();
+          await requestItem.focus();
+
+          await pressShortcut(page, process.platform === 'darwin' ? 'Backspace' : 'Delete');
+
+          const deleteModal = page.locator('.bruno-modal-card').filter({ hasText: /delete request/i });
+
+          await expect(deleteModal).toBeVisible();
+          await deleteModal.getByRole('button', { name: 'Cancel' }).click();
+          await expect(deleteModal).not.toBeVisible();
+        });
+      });
+
+      test.describe('SHORTCUT: Delete Item for request (customized Alt+S)', () => {
+        test('customized Alt+S opens and cancels delete request modal', async ({ pageWithUserData: page }) => {
+          await remapKeybinding(page, 'deleteItem', 'Alt', 'KeyS');
+          await openRequest(page, 'kb-collection', 'req-1', { persist: true });
+
+          const requestItem = page.locator('.collection-item-name').filter({ has: page.getByText('req-1', { exact: true }) });
+          await requestItem.click();
+          await requestItem.focus();
+          await pressShortcut(page, 'Alt', 'KeyS');
+
+          const deleteModal = page.locator('.bruno-modal-card').filter({ hasText: /delete request/i });
+          await expect(deleteModal).toBeVisible();
+          await deleteModal.getByRole('button', { name: 'Cancel' }).click();
+          await expect(deleteModal).not.toBeVisible();
+        });
+      });
+
+      test.describe('SHORTCUT: Delete Item for folder (Backspace/Delete)', () => {
+        test('default Backspace/Delete open delete item modal for folder', async ({ pageWithUserData: page }) => {
+          const folderItem = page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder', { exact: true }) });
+
+          await folderItem.dblclick();
+
+          // Focus the folder in the sidebar
+          await folderItem.focus();
+
+          // Press Backspace/Delete
+          await pressShortcut(page, process.platform === 'darwin' ? 'Backspace' : 'Delete');
+
+          // Verify delete modal opens
+          const deleteModal = page.locator('.bruno-modal-card').filter({ hasText: /delete folder/i });
+
+          await expect(deleteModal).toBeVisible();
+          await deleteModal.getByRole('button', { name: 'Cancel' }).click();
+          await expect(deleteModal).not.toBeVisible();
+        });
+      });
+
+      test.describe('SHORTCUT: Delete Item for folder (customized Alt+S)', () => {
+        test('customized Alt+S opens and cancels delete folder modal', async ({ pageWithUserData: page }) => {
+          await remapKeybinding(page, 'deleteItem', 'Alt', 'KeyS');
+          const folderItem = page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder', { exact: true }) });
+          await folderItem.click();
+          await folderItem.focus();
+          await pressShortcut(page, 'Alt', 'KeyS');
+
+          const deleteModal = page.locator('.bruno-modal-card').filter({ hasText: /delete folder/i });
+          await expect(deleteModal).toBeVisible();
+          await deleteModal.getByRole('button', { name: 'Cancel' }).click();
+          await expect(deleteModal).not.toBeVisible();
+        });
+      });
+
+      test.describe('SHORTCUT: Delete Item for collection (Backspace/Delete)', () => {
+        test('default Backspace/Delete open remove collection modal', async ({ pageWithUserData: page }) => {
+          const collectionRow = page.getByTestId('sidebar-collection-row').filter({
+            has: page.getByText('kb-collection', { exact: true })
+          });
+
+          await collectionRow.click();
+          await collectionRow.focus();
+          await pressShortcut(page, process.platform === 'darwin' ? 'Backspace' : 'Delete');
+
+          const removeModal = page.locator('.bruno-modal-card').filter({ hasText: /remove collection/i });
+
+          await expect(removeModal).toBeVisible();
+          await removeModal.getByRole('button', { name: 'Cancel' }).click();
+          await expect(removeModal).not.toBeVisible();
+        });
+      });
+
+      test.describe('SHORTCUT: Delete Item for collection (customized Alt+S)', () => {
+        test('customized Alt+S opens and cancels remove collection modal', async ({ pageWithUserData: page }) => {
+          await remapKeybinding(page, 'deleteItem', 'Alt', 'KeyS');
+          const collectionRow = page.getByTestId('sidebar-collection-row').filter({
+            has: page.getByText('kb-collection', { exact: true })
+          });
+          await collectionRow.click();
+          await collectionRow.focus();
+          await pressShortcut(page, 'Alt', 'KeyS');
+
+          const removeModal = page.locator('.bruno-modal-card').filter({ hasText: /remove collection/i });
+          await expect(removeModal).toBeVisible();
+          await removeModal.getByRole('button', { name: 'Cancel' }).click();
+          await expect(removeModal).not.toBeVisible();
+        });
+      });
+    });
+
     test.describe('SHORTCUT: Clone Item', () => {
       test.describe('SHORTCUT: Clone Item for request (Cmd/Ctrl+D)', () => {
         test('default Cmd/Ctrl+D clones the request in place (one-click)', async ({ pageWithUserData: page }) => {

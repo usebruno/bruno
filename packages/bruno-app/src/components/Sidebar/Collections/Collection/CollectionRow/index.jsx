@@ -252,6 +252,11 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
     return false;
   }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
+  useKeybinding('deleteItem', () => {
+    setShowRemoveCollectionModal(true);
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
+
   useKeybinding('pasteItem', () => {
     handlePasteItem();
     return false;
@@ -530,6 +535,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
       id: 'remove',
       leftSection: IconX,
       label: 'Remove',
+      shortcut: getKeybindingDisplayText('deleteItem'),
       onClick: () => {
         setShowRemoveCollectionModal(true);
       }

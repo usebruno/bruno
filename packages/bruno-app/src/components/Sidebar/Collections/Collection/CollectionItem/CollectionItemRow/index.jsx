@@ -175,6 +175,12 @@ const CollectionItemRow = ({
     return false;
   }, { enabled: isKeyboardFocused && isFolder, deps: [isKeyboardFocused, isFolder] });
 
+  useKeybinding('deleteItem', () => {
+    setDeleteItemModalOpen(true);
+    return false;
+  },
+  { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
+
   const [dropType, setDropType] = useState(null); // 'above', 'inside' or 'below'
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
@@ -567,6 +573,7 @@ const CollectionItemRow = ({
       id: 'delete',
       leftSection: IconTrash,
       label: 'Delete',
+      shortcut: getKeybindingDisplayText('deleteItem'),
       className: 'delete-item',
       onClick: () => setDeleteItemModalOpen(true)
     });
