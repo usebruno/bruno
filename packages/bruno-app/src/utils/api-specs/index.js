@@ -38,3 +38,36 @@ export const isApiSpecTabForPathname = (tab, pathname) => {
 
 export const hasUnsavedApiSpecChanges = (apiSpec) =>
   Boolean(apiSpec) && typeof apiSpec.draft === 'string' && apiSpec.draft !== apiSpec.raw;
+
+const toSpecOption = (spec) => ({
+  uid: spec.uid,
+  name: spec.name || spec.filename || spec.pathname,
+  pathname: spec.pathname
+});
+
+export const buildSpecSelectOptions = (specs, selectedSpecPath = null) => {
+  const optionsByUid = new Map(specs.map((spec) => [spec.uid, toSpecOption(spec)]));
+
+  if (selectedSpecPath && !findApiSpecByPathname(specs, selectedSpecPath)) {
+    optionsByUid.set(selectedSpecPath, {
+      uid: selectedSpecPath,
+      name: selectedSpecPath.split(/[\\/]/).pop(),
+      pathname: selectedSpecPath
+    });
+  }
+
+  return Array.from(optionsByUid.values()).sort((a, b) => a.name.localeCompare(b.name));
+};
+
+export const resolveSpecPath = (specUid, specs, fallbackSpecPath = null) => {
+  const loadedSpec = specs.find((spec) => spec.uid === specUid);
+  if (loadedSpec) {
+    return loadedSpec.pathname;
+  }
+
+  if (fallbackSpecPath && getApiSpecPathKey(fallbackSpecPath) === getApiSpecPathKey(specUid)) {
+    return fallbackSpecPath;
+  }
+
+  return null;
+};

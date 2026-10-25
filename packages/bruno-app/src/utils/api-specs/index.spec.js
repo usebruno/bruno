@@ -1,9 +1,11 @@
 import {
+  buildSpecSelectOptions,
   findApiSpecByPathname,
   getApiSpecTabUid,
   hasUnsavedApiSpecChanges,
   isApiSpecTab,
-  isApiSpecTabForPathname
+  isApiSpecTabForPathname,
+  resolveSpecPath
 } from './index';
 
 const SCRATCH_A = 'scratch-a';
@@ -104,5 +106,63 @@ describe('API spec tab identity', () => {
       expect(hasUnsavedApiSpecChanges(null)).toBe(false);
       expect(hasUnsavedApiSpecChanges(undefined)).toBe(false);
     });
+  });
+});
+
+const spec = (pathname, extra = {}) => ({ uid: `uid:${pathname}`, pathname, ...extra });
+
+describe('buildSpecSelectOptions', () => {
+  it('lists the specs sorted by name', () => {
+    const specs = [
+      spec('/ws/specs/zoo.yaml', { name: 'Zoo' }),
+      spec('/ws/specs/pets.yaml', { name: 'Pets' })
+    ];
+
+    expect(buildSpecSelectOptions(specs).map((option) => option.name)).toEqual(['Pets', 'Zoo']);
+  });
+
+  it('labels a spec by filename, then pathname, when it has no name', () => {
+    const specs = [
+      spec('/ws/specs/b.yaml', { filename: 'b.yaml' }),
+      spec('/ws/specs/a.yaml')
+    ];
+
+    expect(buildSpecSelectOptions(specs).map((option) => option.name)).toEqual(['/ws/specs/a.yaml', 'b.yaml']);
+  });
+
+  it('does not add an extra option when the selected path is a listed spec', () => {
+    const specs = [spec('/ws/specs/a.yaml', { name: 'A' })];
+    expect(buildSpecSelectOptions(specs, '/ws/specs/a.yaml')).toEqual([
+      { uid: 'uid:/ws/specs/a.yaml', name: 'A', pathname: '/ws/specs/a.yaml' }
+    ]);
+  });
+
+  it('keeps a selected path that is no longer in the workspace as an option named by its file', () => {
+    const specs = [spec('/ws/specs/a.yaml', { name: 'A' })];
+
+    expect(buildSpecSelectOptions(specs, '/ws/removed/old-spec.yaml')).toContainEqual({
+      uid: '/ws/removed/old-spec.yaml',
+      name: 'old-spec.yaml',
+      pathname: '/ws/removed/old-spec.yaml'
+    });
+  });
+});
+
+describe('resolveSpecPath', () => {
+  it('returns the pathname of the spec with the given uid', () => {
+    const specs = [spec('/ws/specs/a.yaml')];
+    expect(resolveSpecPath('uid:/ws/specs/a.yaml', specs)).toBe('/ws/specs/a.yaml');
+  });
+
+  it('returns the fallback path when the uid is that path', () => {
+    expect(resolveSpecPath('/ws/removed/old.yaml', [], '/ws/removed/old.yaml')).toBe('/ws/removed/old.yaml');
+  });
+
+  it('returns the fallback path when the uid matches it after normalizing separators', () => {
+    expect(resolveSpecPath('C:/ws/old.yaml', [], 'C:\\ws\\old.yaml')).toBe('C:\\ws\\old.yaml');
+  });
+
+  it('returns null when nothing matches the uid', () => {
+    expect(resolveSpecPath('missing', [spec('/ws/specs/a.yaml')], '/ws/other.yaml')).toBeNull();
   });
 });

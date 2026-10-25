@@ -7,9 +7,9 @@ import { IconCaretDown, IconTrash } from '@tabler/icons';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import Button from 'ui/Button';
-import { normalizePath } from 'utils/common/path';
 import { areItemsLoading, getWorkspaceCollections } from 'utils/collections';
-import { matchLoadedApiSpecs } from 'components/Sidebar/ApiSpecs/matchLoadedApiSpecs';
+import { buildSpecSelectOptions, findApiSpecByPathname, resolveSpecPath } from 'utils/api-specs';
+import useWorkspaceApiSpecs from 'hooks/useWorkspaceApiSpecs';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import {
   generateMockResponsesFromSpec,
@@ -38,56 +38,6 @@ import {
   toMockServerDelayInputValue,
   blockMockServerDelayKeys
 } from 'utils/mock-server/mock-server-instances';
-
-const resolveSelectedSpecUid = (editingInstance, apiSpecs) => {
-  if (!editingInstance?.specPath) {
-    return '';
-  }
-
-  const matchingSpec = apiSpecs.find(
-    (spec) => normalizePath(spec.pathname) === normalizePath(editingInstance.specPath)
-  );
-  return matchingSpec?.uid || '';
-};
-
-const toSpecOption = (spec, fallbackName = null) => ({
-  uid: spec.uid,
-  name: spec.name || spec.filename || fallbackName || spec.pathname,
-  pathname: spec.pathname
-});
-
-const buildSpecSelectOptions = (workspaceSpecs, editingInstance = null) => {
-  const optionsByUid = new Map(
-    workspaceSpecs.map((spec) => [spec.uid, toSpecOption(spec)])
-  );
-
-  const selectedSpecUid = resolveSelectedSpecUid(editingInstance, workspaceSpecs);
-  if (!selectedSpecUid && editingInstance?.specPath) {
-    optionsByUid.set(editingInstance.specPath, {
-      uid: editingInstance.specPath,
-      name: editingInstance.specPath.split(/[\\/]/).pop(),
-      pathname: editingInstance.specPath
-    });
-  }
-
-  return Array.from(optionsByUid.values()).sort((a, b) => a.name.localeCompare(b.name));
-};
-
-const resolveSpecPath = (specUid, apiSpecs, editingInstance = null) => {
-  const loadedSpec = apiSpecs.find((spec) => spec.uid === specUid);
-  if (loadedSpec) {
-    return loadedSpec.pathname;
-  }
-
-  if (editingInstance?.specPath && (
-    editingInstance.specPath === specUid
-    || normalizePath(editingInstance.specPath) === normalizePath(specUid)
-  )) {
-    return editingInstance.specPath;
-  }
-
-  return null;
-};
 
 const buildCollectionSelectOptions = (workspaceCollections, collections, editingInstance = null) => {
   const optionsByUid = new Map(
@@ -187,17 +137,11 @@ const CreateMockServerModal = ({
     getWorkspaceCollections({ collections, workspaces, activeWorkspace })
   ), [activeWorkspace, collections, workspaces]);
 
-  const workspaceApiSpecs = useMemo(() => {
-    if (!activeWorkspace) {
-      return [];
-    }
-
-    return matchLoadedApiSpecs(activeWorkspace.apiSpecs, apiSpecs);
-  }, [activeWorkspace, apiSpecs]);
+  const workspaceApiSpecs = useWorkspaceApiSpecs();
 
   const specSelectOptions = useMemo(() => (
-    buildSpecSelectOptions(workspaceApiSpecs, editingInstance)
-  ), [workspaceApiSpecs, editingInstance]);
+    buildSpecSelectOptions(workspaceApiSpecs, editingInstance?.specPath)
+  ), [workspaceApiSpecs, editingInstance?.specPath]);
 
   const collectionSelectOptions = useMemo(() => (
     buildCollectionSelectOptions(workspaceCollections, collections, editingInstance)
@@ -214,7 +158,7 @@ const CreateMockServerModal = ({
   const hasSpecOptions = specSelectOptions.length > 0;
   const initialCollectionUid = editingInstance?.collectionUid || defaultCollection?.uid || '';
   const initialSpecUid = editingInstance
-    ? (resolveSelectedSpecUid(editingInstance, workspaceApiSpecs) || editingInstance.specPath || '')
+    ? (findApiSpecByPathname(workspaceApiSpecs, editingInstance.specPath)?.uid || editingInstance.specPath || '')
     : '';
 
   const initialSourceType = (() => {
@@ -338,7 +282,7 @@ const CreateMockServerModal = ({
       }
 
       const specPath = resolvedSourceType === 'spec'
-        ? resolveSpecPath(values.specUid, apiSpecs, editingInstance)
+        ? resolveSpecPath(values.specUid, apiSpecs, editingInstance?.specPath)
         : null;
       const collectionPathname = selectedCollection?.pathname || null;
 
