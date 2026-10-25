@@ -1,3 +1,5 @@
+import { isOpenApiSpec } from 'utils/importers/openapi-collection';
+
 const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'options', 'head', 'trace'];
 
 /**
@@ -13,4 +15,14 @@ export const countEndpoints = (spec) => {
     }
   }
   return count;
+};
+
+export const getOpenApiSpecError = (spec) => {
+  if (!isOpenApiSpec(spec)) {
+    return 'The selected file is not a valid OpenAPI 3.x specification';
+  }
+  if (spec.swagger && String(spec.swagger).startsWith('2')) {
+    return 'Swagger 2.0 is not supported. Please convert your spec to OpenAPI 3.x.';
+  }
+  return null;
 };
