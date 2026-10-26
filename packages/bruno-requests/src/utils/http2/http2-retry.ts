@@ -23,7 +23,6 @@ export const isReplayableBody = (data: unknown): boolean => {
 
 /**
  * Retry HTTP/2 requests when the server refuses a stream.
- * Retries are limited to REFUSED_STREAM errors with replayable bodies.
  */
 export const addHttp2RetryInterceptor = (instance: AxiosInstance, maxRetries = 1): void => {
   instance.interceptors.response.use(undefined, (error: any) => {

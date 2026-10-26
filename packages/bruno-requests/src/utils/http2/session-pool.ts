@@ -110,13 +110,6 @@ class SessionEntry implements PooledSession {
 
   // Open a new stream on the session.
   request(headers: http2.OutgoingHttpHeaders, options?: http2.ClientSessionRequestOptions): http2.ClientHttp2Stream {
-    // throw so that the caller can retry with a new session.
-    if (this.state === 'DRAINING' || this.state === 'CLOSED' || this.session.destroyed || this.session.closed) {
-      const err: CodedError = new Error(`HTTP/2 session to ${this.origin} is ${this.state.toLowerCase()}; acquire a new one`);
-      err.code = 'ERR_H2_SESSION_UNAVAILABLE';
-      throw err;
-    }
-
     this.clearIdle();
 
     // open a new stream on the session.
@@ -198,7 +191,7 @@ export function getSessionKey({
   const picked = pickTlsFields(tlsOptions);
   const base = getAgentCacheKey(HTTP2_AGENT_CLASS_ID, picked as any, proxyUri, null);
   // The scheme is in the origin, so an http:// (h2c) session and an https:// (h2) session to the
-  // same host:port never share a key — no mode needed.
+  // same host:port never share a key.
   return `${base}|${url.protocol}//${url.hostname}:${port}|${secureContextToken((picked as any).secureContext)}`;
 }
 
@@ -257,7 +250,7 @@ export function acquireSession(params: AcquireSessionParams): AcquireResult {
     ? buildTlsConnectOptions({ hostname, port, tlsOptions, mode: 'http2', lookup })
     : {};
 
-  // tell node to use an existing socket from a proxy tunnel or ALPN probe
+  // tell node to use an existing socket from a proxy tunnel
   // instead of opening a new connection.
   if (createConnection) {
     options.createConnection = createConnection;

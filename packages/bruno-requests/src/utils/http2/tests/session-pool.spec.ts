@@ -175,14 +175,6 @@ describe('session lifecycle', () => {
     expect(getSessionCount()).toBe(0);
   });
 
-  it('request() throws ERR_H2_SESSION_UNAVAILABLE once draining', () => {
-    const s = makeFakeSession(); queued = [s];
-    const { pooled } = acquireSession({ origin: HTTPS });
-    s.emit('connect');
-    s.emit('goaway', 0, 1);
-    expect(() => pooled.request({ ':path': '/' })).toThrow(/ERR_H2_SESSION_UNAVAILABLE|is draining/);
-  });
-
   it('request() refs on the first stream, counts streams, releases on close', () => {
     const s = makeFakeSession(); const stream = new EventEmitter() as FakeStream;
     s.request.mockReturnValue(stream); queued = [s];

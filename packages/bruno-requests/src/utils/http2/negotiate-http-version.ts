@@ -78,7 +78,7 @@ export async function negotiateHttpVersion(
     return {
       httpVersion: 1,
       reason: mode === 'auto'
-        ? 'cleartext, no ALPN; using HTTP/1.1'
+        ? 'cleartext, no ALPN, using HTTP/1.1'
         : 'mode http1'
     };
   }

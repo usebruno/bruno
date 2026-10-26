@@ -7,7 +7,7 @@ export type HttpVersionValue = (typeof HTTP_VERSION_VALUES)[number];
  * Resolve the HTTP version from the collection setting or fallback.
  * Defaults to 'http1' when neither is valid.
  *
- * Precedence: Desktop uses collection > app; CLI uses flag > collection.
+ * Precedence: Desktop uses collection > app, CLI uses flag > collection.
  */
 const isHttpVersionValue = (value: unknown): value is HttpVersionValue =>
   HTTP_VERSION_VALUES.includes(value as HttpVersionValue);

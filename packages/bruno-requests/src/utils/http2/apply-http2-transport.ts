@@ -227,7 +227,7 @@ export const applyHttp2Transport = async ({
     url = null;
   }
 
-  // h2c is not supported through a proxy. Forced HTTP/2 fails;
+  // h2c is not supported through a proxy. Forced HTTP/2 fails.
   // auto mode falls back to HTTP/1.1.
   const isCleartext = url?.protocol === 'http:';
   if (isCleartext && (proxyKeyFor(config.httpsAgent) || proxyKeyFor(config.httpAgent))) {
