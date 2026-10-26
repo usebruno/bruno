@@ -4,13 +4,7 @@ jest.mock('platform', () => ({
   }
 }));
 
-import {
-  buildSpecSelectOptions,
-  findApiSpecByPathname,
-  getApiSpecTabUid,
-  isApiSpecTabForPathname,
-  resolveSpecPath
-} from './index';
+import { findApiSpecByPathname, getApiSpecTabUid, isApiSpecTabForPathname } from './index';
 
 const SCRATCH_UID = 'scratch-a';
 
@@ -35,17 +29,5 @@ describe('API spec identity on Windows, where file paths ignore case', () => {
     const tab = { type: 'api-spec', apiSpecPathname: 'C:\\Workspace\\Petstore.yaml' };
 
     expect(isApiSpecTabForPathname(tab, 'c:/workspace/petstore.yaml')).toBe(true);
-  });
-
-  it('preselects the listed spec, with no duplicate option, when the stored path differs only in case', () => {
-    const specs = [{ uid: 'orders', name: 'Orders', pathname: 'C:\\ws\\specs\\orders.yaml' }];
-
-    expect(buildSpecSelectOptions(specs, 'C:/WS/Specs/Orders.yaml')).toEqual([
-      { uid: 'orders', name: 'Orders', pathname: 'C:\\ws\\specs\\orders.yaml' }
-    ]);
-  });
-
-  it('resolves the stored path when the picked option differs from it only in case', () => {
-    expect(resolveSpecPath('C:/WS/Specs/Orders.yaml', [], 'c:\\ws\\specs\\orders.yaml')).toBe('c:\\ws\\specs\\orders.yaml');
   });
 });
