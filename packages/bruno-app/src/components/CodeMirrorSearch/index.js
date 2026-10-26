@@ -4,7 +4,7 @@ import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
 import useDebounce from 'hooks/useDebounce';
 import { replaceSingle, replaceAll } from './replaceUtils';
-import { findSearchMatches, createCacheKey } from './searchUtils';
+import { findSearchMatches, createCacheKey, findMatchIndexAtOrAfter } from './searchUtils';
 import { markViewportMatches, clearMarks } from './markingUtils';
 import { useSearchBarHandle } from './useSearchBarHandle';
 
@@ -70,10 +70,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
         setMatchCount(matches.length);
 
         if (preferPos && newIndex === 0) {
-          const nearestIdx = matches.findIndex(
-            (m) => m.from.line > preferPos.line || (m.from.line === preferPos.line && m.from.ch >= preferPos.ch)
-          );
-          newIndex = nearestIdx >= 0 ? nearestIdx : 0;
+          newIndex = findMatchIndexAtOrAfter(matches, preferPos);
         }
       }
 
@@ -293,10 +290,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     searchCacheKey.current = createCacheKey(docVersion.current, debouncedSearchText, regex, caseSensitive, wholeWord);
     setMatchCount(newMatches.length);
 
-    const nextIdx = newMatches.findIndex(
-      (m) => m.from.line > endLine || (m.from.line === endLine && m.from.ch >= endCh)
-    );
-    const resolvedNextIdx = nextIdx >= 0 ? nextIdx : 0;
+    const resolvedNextIdx = findMatchIndexAtOrAfter(newMatches, { line: endLine, ch: endCh });
     pendingSearchIndexRef.current = resolvedNextIdx;
     doSearch(debouncedSearchText, resolvedNextIdx, null, true);
   }, [isReplaceDisabled, editor, matchIndex, replaceText, debouncedSearchText, regex, caseSensitive, wholeWord, doSearch]);

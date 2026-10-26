@@ -214,7 +214,7 @@ export const appendTextToCodeEditor = async (page: Page, editorId: string, text:
 };
 
 export const getCodeEditorValueAndCursor = async (page: Page, editorId: string) => {
-  const cm = page.getByTestId(editorId).locator('.CodeMirror').first();
+  const cm = buildCodeEditorSearchLocators(page, editorId).codeMirror();
   return cm.evaluate((el: any) => {
     const { line, ch } = el.CodeMirror.getCursor();
     return { value: el.CodeMirror.getValue(), cursor: { line, ch }, hasSelection: el.CodeMirror.somethingSelected() };
