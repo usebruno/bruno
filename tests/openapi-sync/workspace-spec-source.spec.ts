@@ -139,6 +139,7 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
         await test.step('The dropdown lists the workspace specs in workspace order', async () => {
           await sync.workspaceSelect().click();
           await expect(sync.workspaceOptions()).toHaveText(['Pets API', 'Zoo API', 'Legacy API']);
+          await expect(sync.workspaceMenu()).toBeFocused();
           await page.keyboard.press('Escape');
           await expect(sync.workspaceMenu()).toBeHidden();
         });
@@ -182,7 +183,7 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
       await test.step('The dropdown also works from the keyboard', async () => {
         await sync.workspaceSelect().focus();
         await page.keyboard.press('Enter');
-        await expect(sync.workspaceMenu()).toBeVisible();
+        await expect(sync.workspaceMenu()).toBeFocused();
         await page.keyboard.press('ArrowDown');
         await page.keyboard.press('Enter');
         await expect(sync.workspaceSelect()).toHaveText('Pets API');
