@@ -122,21 +122,6 @@ export const buildSidebarLocators = (page: Page) => {
 };
 
 /**
- * Open the sidebar search (if it is closed) and filter by request name.
- */
-export const searchSidebarRequests = async (page: Page, query: string) => {
-  const sidebar = buildSidebarLocators(page);
-
-  await test.step(`Search sidebar requests for "${query}"`, async () => {
-    if (!(await sidebar.searchInput().isVisible())) {
-      await sidebar.searchToggle().click();
-    }
-    await sidebar.searchInput().waitFor({ state: 'visible' });
-    await sidebar.searchInput().fill(query);
-  });
-};
-
-/**
  * Walks the sidebar to a folder and returns its row, expanding the collection and every parent
  * folder on the way — a collapsed node keeps its children out of the DOM entirely, so a nested
  * folder is unreachable until its ancestors are open. The target folder itself is left as it is.

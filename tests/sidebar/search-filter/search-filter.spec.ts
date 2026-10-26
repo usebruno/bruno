@@ -9,8 +9,7 @@ import {
   createCollection,
   createFolder,
   createRequest,
-  expandCollection,
-  searchSidebarRequests
+  expandCollection
 } from '../../utils/page';
 import { initBruCollection, writeBruRequest, writeBruFolder } from '../../utils/fixtures/bru-collection';
 
@@ -160,7 +159,7 @@ test.describe('Sidebar search filtering', () => {
     });
 
     await test.step('Filter to requests whose name matches the keyword', async () => {
-      await searchSidebarRequests(page, 'user');
+      await sidebar.searchInput().fill('user');
 
       // Requests, folders, and collections matching the search term are visible.
       await expect(sidebar.itemByName(matchingRootRequest)).toBeVisible();
