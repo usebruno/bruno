@@ -36,6 +36,7 @@ const {
   writeFile,
   writeEnvironmentFile,
   writeEnvironmentFileSync,
+  restrictEnvironmentFilePermissions,
   writeFileUnique,
   mkdirUnique,
   getUniqueRenamePath,
@@ -816,7 +817,11 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         const content = await stringifyEnvironment(environment, { format });
         const existing = fs.readFileSync(envFilePath, 'utf8');
-        if (content === existing) return; // skip write if content unchanged
+        if (content === existing) {
+          // Nothing to write, but still tighten files created before #2016
+          restrictEnvironmentFilePermissions(envFilePath);
+          return;
+        }
         await writeEnvironmentFile(envFilePath, content);
       });
     } catch (error) {

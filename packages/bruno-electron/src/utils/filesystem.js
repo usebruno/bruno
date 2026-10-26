@@ -606,7 +606,8 @@ function safeWriteFileSync(filePath, data, options) {
 }
 
 // Environment files can hold credentials, so keep them readable by the owner only.
-// `mode` only applies when the file is created, so existing files are chmod-ed too.
+// `mode` only applies when the file is created, so existing files are chmod-ed
+// before new content is written to them.
 const ENVIRONMENT_FILE_MODE = 0o600;
 
 const restrictEnvironmentFilePermissions = (pathname) => {
@@ -614,8 +615,13 @@ const restrictEnvironmentFilePermissions = (pathname) => {
     return;
   }
 
+  const safePath = getSafePathToWrite(pathname);
+  if (!fs.existsSync(safePath)) {
+    return;
+  }
+
   try {
-    fs.chmodSync(getSafePathToWrite(pathname), ENVIRONMENT_FILE_MODE);
+    fs.chmodSync(safePath, ENVIRONMENT_FILE_MODE);
   } catch (err) {
     // Some filesystems (e.g. FAT or network mounts) don't support POSIX permissions
     console.warn(`Could not restrict permissions of environment file at ${pathname}:`, err);
@@ -623,6 +629,8 @@ const restrictEnvironmentFilePermissions = (pathname) => {
 };
 
 const writeEnvironmentFile = async (pathname, content) => {
+  restrictEnvironmentFilePermissions(pathname);
+
   try {
     await safeWriteFile(pathname, content, {
       encoding: 'utf-8',
@@ -632,13 +640,11 @@ const writeEnvironmentFile = async (pathname, content) => {
     console.error(`Error writing file at ${pathname}:`, err);
     return Promise.reject(err);
   }
-
-  restrictEnvironmentFilePermissions(pathname);
 };
 
 const writeEnvironmentFileSync = (pathname, content) => {
-  safeWriteFileSync(pathname, content, { mode: ENVIRONMENT_FILE_MODE });
   restrictEnvironmentFilePermissions(pathname);
+  safeWriteFileSync(pathname, content, { mode: ENVIRONMENT_FILE_MODE });
 };
 
 // Recursively removes a source <file/directory>.
@@ -819,6 +825,7 @@ module.exports = {
   writeFile,
   writeEnvironmentFile,
   writeEnvironmentFileSync,
+  restrictEnvironmentFilePermissions,
   withFileLock,
   nextSuffixedName,
   writeFileUnique,

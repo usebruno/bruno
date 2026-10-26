@@ -7,7 +7,8 @@ const {
   isLargeFile,
   moveCollectionDirectory,
   writeEnvironmentFile,
-  writeEnvironmentFileSync
+  writeEnvironmentFileSync,
+  restrictEnvironmentFilePermissions
 } = require('./filesystem.js');
 const fs = require('fs-extra');
 const os = require('os');
@@ -244,5 +245,25 @@ describeOnPosix('environment file permissions', () => {
     writeEnvironmentFileSync(envFile, 'vars { token: abc }');
 
     expect(getMode(envFile)).toBe(0o600);
+  });
+
+  it('tightens an existing environment file without rewriting it', () => {
+    const envFile = path.join(workDir, 'Unchanged.bru');
+    fs.writeFileSync(envFile, 'vars {}');
+    fs.chmodSync(envFile, 0o644);
+
+    restrictEnvironmentFilePermissions(envFile);
+
+    expect(fs.readFileSync(envFile, 'utf8')).toBe('vars {}');
+    expect(getMode(envFile)).toBe(0o600);
+  });
+
+  it('does nothing when the environment file does not exist yet', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    expect(() => restrictEnvironmentFilePermissions(path.join(workDir, 'Missing.bru'))).not.toThrow();
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
   });
 });
