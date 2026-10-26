@@ -23,7 +23,7 @@ const {
 } = require('@usebruno/requests');
 const { STATUS_CODES } = require('http');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
-const { applyOmitHeaders } = require('@usebruno/common');
+const { applyOmitHeaders, HttpVersionMode } = require('@usebruno/common');
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
@@ -248,7 +248,7 @@ function makeAxiosInstance({
       applyOmitConnectionToAxiosConfig(config);
     }
 
-    const resolvedHttpVersionMode = httpVersionMode ?? 'http1';
+    const resolvedHttpVersionMode = httpVersionMode ?? HttpVersionMode.Http1;
     if (canUseHttp2(resolvedHttpVersionMode)) {
       try {
         await applyHttp2Transport({ config, mode: resolvedHttpVersionMode, agentOptions, timeline });

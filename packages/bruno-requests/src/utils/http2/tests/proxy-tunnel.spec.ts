@@ -48,6 +48,11 @@ describe('buildProxyTlsOptions', () => {
     expect(options.lookup).toBeUndefined();
   });
 
+  it('omits servername for IPv4 and IPv6 hosts (SNI cannot be an IP)', () => {
+    expect(buildProxyTlsOptions({ hostname: '10.0.0.5', port: 443, tlsOptions: {} as any })).not.toHaveProperty('servername');
+    expect(buildProxyTlsOptions({ hostname: '[::1]', port: 443, tlsOptions: {} as any })).not.toHaveProperty('servername');
+  });
+
   it('honours rejectUnauthorized:false', () => {
     const options = buildProxyTlsOptions({ hostname: 'h', port: 443, tlsOptions: { rejectUnauthorized: false } as any });
     expect(options.rejectUnauthorized).toBe(false);
@@ -98,5 +103,20 @@ describe('connectThroughProxy', () => {
     await expect(
       connectThroughProxy({ agent: agent as any, hostname: 'api.test', port: 443, timeoutMs: 20 })
     ).rejects.toMatchObject({ code: 'ETIMEDOUT' });
+  });
+
+  it('destroys a socket that arrives after the tunnel timed out', async () => {
+    const socket = makeSocket();
+    let deliver: (s: unknown) => void = () => {};
+    const agent = { connect: jest.fn(() => new Promise((resolve) => { deliver = resolve; })) };
+    await expect(
+      connectThroughProxy({ agent: agent as any, hostname: 'api.test', port: 443, timeoutMs: 20 })
+    ).rejects.toMatchObject({ code: 'ETIMEDOUT' });
+
+    deliver(socket); // the proxy finally answers
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(socket.destroy).toHaveBeenCalled();
+    expect(socket.listenerCount('error')).toBe(0);
   });
 });

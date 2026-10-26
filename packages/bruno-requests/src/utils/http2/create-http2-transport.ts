@@ -45,6 +45,7 @@ type Http2ResponseStream = http2.ClientHttp2Stream & {
   protocol: string;
   host?: string;
   path?: string;
+  res?: Http2ResponseStream;
 };
 
 type ResponseCallback = (response: Http2ResponseStream) => void;
@@ -90,6 +91,7 @@ const prepareHttp2Response = (
   response.protocol = options.protocol;
   response.host = options.hostname;
   response.path = options.path;
+  response.res = response;
 
   return response;
 };
@@ -108,9 +110,11 @@ const handleStreamEvents = (
   let settled = false; // a response or an error has been seen (close-before-headers guard)
   let responseReceived = false; // response headers arrived. axios is now reading the body
   let endedCleanly = false; // the readable ended (END_STREAM received), the body is complete
+  let errored = false; // an error was already emitted, so close must not emit another
 
   stream.once('error', (err: any) => {
     settled = true;
+    errored = true;
     if (err && err.rstCode == null && stream.rstCode != null) {
       err.rstCode = stream.rstCode;
     }
@@ -147,6 +151,8 @@ const handleStreamEvents = (
 
     // Headers were received, but the stream closed before the response completed.
     // Emit an error so Axios rejects the truncated response instead of treating it as successful.
+    if (errored) return;
+
     if (responseReceived && !endedCleanly) {
       const resetCode = stream.rstCode ?? 0;
       const suffix = resetCode ? `, RST_STREAM ${RST_CODE_NAMES[resetCode] ?? String(resetCode)}` : '';

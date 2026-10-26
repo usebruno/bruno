@@ -1,7 +1,8 @@
 import { EventEmitter } from 'node:events';
+import net from 'node:net';
 import type { TLSSocket } from 'node:tls';
 import { applySecureContext } from '../agent-cache';
-import { pickTlsFields } from './tls-connect-options';
+import { pickTlsFields, stripIpv6Brackets } from './tls-connect-options';
 import type { BrunoTlsOptions } from './tls-connect-options';
 
 const TUNNEL_TIMEOUT_MS = 10_000;
@@ -59,7 +60,8 @@ export const buildProxyTlsOptions = ({
     ...applySecureContext(tlsOnly as any),
     host: hostname,
     port,
-    servername: hostname,
+    // SNI must be a hostname. Node rejects IP literals.
+    ...(net.isIP(stripIpv6Brackets(hostname)) ? {} : { servername: hostname }),
     secureEndpoint: true,
     rejectUnauthorized: tlsOnly.rejectUnauthorized !== undefined ? tlsOnly.rejectUnauthorized : true
   };
@@ -148,6 +150,12 @@ export const connectThroughProxy = ({
     };
 
     const handleSocket = (connectedSocket: TLSSocket) => {
+      // The tunnel already timed out or failed. close a socket that arrives late so it doesn't leak.
+      if (settled) {
+        connectedSocket?.destroy();
+        return;
+      }
+
       socket = connectedSocket;
 
       // A refused CONNECT may return a fake socket instead of throwing.

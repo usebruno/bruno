@@ -1,13 +1,15 @@
 import tls from 'node:tls';
-import type { LookupFunction } from 'node:net';
+import net, { type LookupFunction } from 'node:net';
+import { HttpVersionMode } from '@usebruno/common';
 import { applySecureContext } from '../agent-cache';
 
-export type HttpVersionMode = 'auto' | 'http1' | 'http2';
+// Re-exported so existing imports from this module keep working.
+export { HttpVersionMode };
 
 export const ALPN_BY_MODE: Record<HttpVersionMode, string[]> = {
-  auto: ['h2', 'http/1.1'],
-  http1: ['http/1.1'],
-  http2: ['h2']
+  [HttpVersionMode.Auto]: ['h2', 'http/1.1'],
+  [HttpVersionMode.Http1]: ['http/1.1'],
+  [HttpVersionMode.Http2]: ['h2']
 };
 
 export const TLS_FIELDS = [
@@ -68,7 +70,7 @@ export function buildTlsConnectOptions({
   hostname,
   port = 443,
   tlsOptions = {},
-  mode = 'auto',
+  mode = HttpVersionMode.Auto,
   lookup
 }: BuildTlsConnectOptionsParams): tls.ConnectionOptions {
   if (!(mode in ALPN_BY_MODE)) {
@@ -83,7 +85,8 @@ export function buildTlsConnectOptions({
     ...(applySecureContext(tlsOnly as any) as tls.ConnectionOptions),
     host,
     port,
-    servername: host,
+    // SNI must be a hostname; Node rejects IP literals (DEP0123).
+    ...(net.isIP(host) ? {} : { servername: host }),
     rejectUnauthorized: tlsOnly.rejectUnauthorized !== undefined ? tlsOnly.rejectUnauthorized : true
   };
 
@@ -114,7 +117,7 @@ export type ConnectTlsResult = {
 
 // open a TLS connection to the origin.
 export function establishTlsConnection(params: ConnectTlsParams): Promise<ConnectTlsResult> {
-  const { timeoutMs = 10_000, mode = 'auto' } = params;
+  const { timeoutMs = 10_000, mode = HttpVersionMode.Auto } = params;
   const opts = buildTlsConnectOptions(params);
 
   return new Promise((resolve, reject) => {

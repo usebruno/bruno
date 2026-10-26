@@ -4,7 +4,7 @@ const { addCookieToJar, getCookieStringForUrl } = require('./cookies');
 const { createFormData } = require('./form-data');
 const { setupProxyAgents } = require('./proxy-util');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
-const { applyOmitHeaders, shouldOmitConnection } = require('@usebruno/common');
+const { applyOmitHeaders, shouldOmitConnection, HttpVersionMode } = require('@usebruno/common');
 const {
   getSentHeaders,
   applyOmitConnectionToAxiosConfig,
@@ -97,7 +97,7 @@ function makeAxiosInstance({
   httpsAgentRequestFields,
   interpolationOptions,
   disableCache,
-  httpVersion = 'http1'
+  httpVersion = HttpVersionMode.Http1
 } = {}) {
   let redirectCount = 0;
 

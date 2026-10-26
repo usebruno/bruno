@@ -11,7 +11,7 @@ const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 const { applyVariableUpdates, persistVariableUpdates } = require('../utils/persist-variables');
 const { makeAxiosInstance } = require('../utils/axios-instance');
-const { refreshExplicitHeaderNames, shouldOmitConnection } = require('@usebruno/common');
+const { refreshExplicitHeaderNames, shouldOmitConnection, HttpVersionMode } = require('@usebruno/common');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { setupProxyAgents } = require('../utils/proxy-util');
 const path = require('path');
@@ -252,7 +252,7 @@ const runSingleRequest = async function (
       clientCertificates: rawClientCertificates ? interpolateObject(rawClientCertificates, sendRequestInterpolationOptions) : undefined,
       collectionLevelProxy: transformProxyConfig(interpolateObject(rawProxyConfig, sendRequestInterpolationOptions)),
       systemProxyConfig,
-      httpVersion: get(options, 'httpVersion') || resolveHttpVersion(get(brunoConfig, 'http.version'), 'http1')
+      httpVersion: get(options, 'httpVersion') || resolveHttpVersion(get(brunoConfig, 'http.version'), HttpVersionMode.Http1)
     };
 
     // Add certsAndProxyConfig to request object for bru.sendRequest
@@ -697,7 +697,7 @@ const runSingleRequest = async function (
         httpsAgentRequestFields,
         interpolationOptions,
         disableCache,
-        httpVersion: get(options, 'httpVersion') || resolveHttpVersion(get(brunoConfig, 'http.version'), 'http1')
+        httpVersion: get(options, 'httpVersion') || resolveHttpVersion(get(brunoConfig, 'http.version'), HttpVersionMode.Http1)
       });
 
       if (request.ntlmConfig) {

@@ -1,6 +1,7 @@
 const Yup = require('yup');
 const Store = require('electron-store');
 const { get, merge } = require('lodash');
+const { HttpVersionMode, HTTP_VERSION_MODES } = require('@usebruno/common');
 
 /**
  * The preferences are stored in the electron store 'preferences.json'.
@@ -11,7 +12,7 @@ const { get, merge } = require('lodash');
 const defaultPreferences = {
   request: {
     sslVerification: true,
-    httpVersion: 'http1',
+    httpVersion: HttpVersionMode.Http1,
     customCaCertificate: {
       enabled: false,
       filePath: null
@@ -110,7 +111,7 @@ const defaultPreferences = {
 const preferencesSchema = Yup.object().shape({
   request: Yup.object().shape({
     sslVerification: Yup.boolean(),
-    httpVersion: Yup.string().oneOf(['auto', 'http1', 'http2']),
+    httpVersion: Yup.string().oneOf(HTTP_VERSION_MODES),
     customCaCertificate: Yup.object({
       enabled: Yup.boolean(),
       filePath: Yup.string().nullable()
@@ -407,7 +408,7 @@ const savePreferences = async (newPreferences) => {
 
 const preferencesUtil = {
   getHttpVersion: () => {
-    return get(getPreferences(), 'request.httpVersion', 'http1');
+    return get(getPreferences(), 'request.httpVersion', HttpVersionMode.Http1);
   },
   shouldVerifyTls: () => {
     return get(getPreferences(), 'request.sslVerification', true);

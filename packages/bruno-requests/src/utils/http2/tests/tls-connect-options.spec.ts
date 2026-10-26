@@ -42,10 +42,16 @@ describe('buildTlsConnectOptions', () => {
     expect(opts.rejectUnauthorized).toBe(true);
   });
 
-  it('uses the bare address for an IPv6 host on both host and servername', () => {
+  it('uses the bare address for an IPv6 host and omits servername (SNI cannot be an IP)', () => {
     const opts = buildTlsConnectOptions({ hostname: '[::1]', port: 8443, mode: 'http2' });
     expect(opts.host).toBe('::1');
-    expect(opts.servername).toBe('::1');
+    expect(opts).not.toHaveProperty('servername');
+  });
+
+  it('omits servername for an IPv4 host', () => {
+    const opts = buildTlsConnectOptions({ hostname: '127.0.0.1', port: 8443, mode: 'http2' });
+    expect(opts.host).toBe('127.0.0.1');
+    expect(opts).not.toHaveProperty('servername');
   });
 
   it('offers ALPN per mode', () => {

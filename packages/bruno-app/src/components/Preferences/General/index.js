@@ -354,7 +354,7 @@ const General = () => {
               popperOptions={{ strategy: 'fixed' }}
               sameWidth
             >
-              <button type="button" className="http-version-trigger textbox" data-testid="general-http-version">
+              <button type="button" className="http-version-trigger textbox" data-testid="general-http-version" id="httpVersion">
                 <span>{HTTP_VERSION_OPTIONS.find((option) => option.id === formik.values.httpVersion)?.label || 'HTTP/1.1'}</span>
                 <IconChevronDown className="caret" size={16} strokeWidth={1.5} />
               </button>

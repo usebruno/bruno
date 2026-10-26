@@ -6,7 +6,7 @@ import { negotiateHttpVersion, canUseHttp2 } from './negotiate-http-version';
 import { hasLiveSession, type TimelineEntry } from './session-pool';
 import { proxyKeyFor, redactProxyUri, connectThroughProxy } from './proxy-tunnel';
 import { bracketIpv6 } from './tls-connect-options';
-import type { HttpVersionMode } from './tls-connect-options';
+import { HttpVersionMode } from '@usebruno/common';
 
 export type Http2TransportConfig = {
   url?: string;
@@ -106,7 +106,7 @@ const negotiateHttp2ThroughProxy = async ({
   const port = Number(url.port) || 443;
   const origin = `${url.protocol}//${bracketIpv6(url.hostname)}:${port}`;
   const safeProxy = redactProxyUri(proxyKey);
-  const offered = mode === 'auto' ? ['h2', 'http/1.1'] : ['h2'];
+  const offered = mode === HttpVersionMode.Auto ? ['h2', 'http/1.1'] : ['h2'];
 
   // A pooled session already proved the proxy speaks h2; skip a wasteful tunnel.
   if (hasLiveSession({ origin, tlsOptions, proxyUri: proxyKey } as any)) {
@@ -134,8 +134,16 @@ const negotiateHttp2ThroughProxy = async ({
       };
     }
 
-    // Server declined h2 over the tunnel, drop the socket and use HTTP/1.1.
+    // Server declined h2 over the tunnel, drop the socket.
     tunnel.socket.destroy();
+
+    if (mode === HttpVersionMode.Http2) {
+      throw Object.assign(
+        new Error(`HTTP/2 was forced but the server did not negotiate h2 through ${safeProxy} (ALPN: ${alpn || 'none'})`),
+        { code: 'ERR_H2_NOT_NEGOTIATED' }
+      );
+    }
+
     return {
       httpVersion: 1,
       socket: null,
@@ -145,7 +153,7 @@ const negotiateHttp2ThroughProxy = async ({
     };
   } catch (error) {
     // In forced http2 mode a tunnel failure is fatal; in auto it falls back.
-    if (mode === 'http2') throw error;
+    if (mode === HttpVersionMode.Http2) throw error;
     return {
       httpVersion: 1,
       socket: null,
@@ -232,7 +240,7 @@ export const applyHttp2Transport = async ({
   const isCleartext = url?.protocol === 'http:';
   if (isCleartext && (proxyKeyFor(config.httpsAgent) || proxyKeyFor(config.httpAgent))) {
     // Don't silently downgrade when HTTP/2 is explicitly requested.
-    if (mode === 'http2') {
+    if (mode === HttpVersionMode.Http2) {
       const error = Object.assign(
         new Error(
           'HTTP/2 was forced but cannot be used for a cleartext (http://) request through a proxy '

@@ -58,7 +58,6 @@ export {
   applyBasicAuthHeader,
   getHttp2RequestDetails,
   resolveHttpVersion,
-  HTTP_VERSION_VALUES,
   isRetryableHttp2Error,
   isReplayableBody,
   addHttp2RetryInterceptor

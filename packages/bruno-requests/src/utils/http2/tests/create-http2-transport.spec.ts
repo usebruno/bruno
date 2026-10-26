@@ -48,6 +48,8 @@ describe('createHttp2Transport', () => {
     expect(res.httpVersion).toBe('2.0');
     expect(res.httpVersionMajor).toBe(2);
     expect(res.httpVersionMinor).toBe(0);
+    // axios exposes this stream as response.request; readers use request.res.httpVersion
+    expect(res.res).toBe(stream);
     expect(res.headers).toEqual({ 'content-type': 'text/plain' }); // :status stripped
     expect(res.protocol).toBe('https:');
     expect(res.host).toBe('api.test');
@@ -97,6 +99,18 @@ describe('createHttp2Transport', () => {
     const t = createHttp2Transport({});
     t.request(OPTS, () => {});
     stream.emit('error', new Error('boom')); // transport's once-listener marks settled
+    const onError = jest.fn();
+    stream.on('error', onError);
+    stream.emit('close');
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('does not emit a truncation error after a stream error mid-body', () => {
+    // RST mid-body: headers arrived, then 'error', then 'close' without 'end'.
+    const t = createHttp2Transport({});
+    t.request(OPTS, () => {});
+    stream.emit('response', { ':status': 200 });
+    stream.emit('error', new Error('RST mid-body')); // consumed by the transport's once-listener
     const onError = jest.fn();
     stream.on('error', onError);
     stream.emit('close');

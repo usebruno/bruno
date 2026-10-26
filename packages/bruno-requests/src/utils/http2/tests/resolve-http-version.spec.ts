@@ -1,4 +1,4 @@
-import { resolveHttpVersion, HTTP_VERSION_VALUES } from '../resolve-http-version';
+import { resolveHttpVersion } from '../resolve-http-version';
 
 describe('resolveHttpVersion (collection > app precedence)', () => {
   it('uses the collection value when it is a concrete mode', () => {
@@ -24,7 +24,8 @@ describe('resolveHttpVersion (collection > app precedence)', () => {
     expect(resolveHttpVersion(null, null)).toBe('http1');
   });
 
-  it('exposes the selectable modes', () => {
-    expect(HTTP_VERSION_VALUES).toEqual(['auto', 'http1', 'http2']);
+  it('ignores unknown values', () => {
+    expect(resolveHttpVersion('http3', 'auto')).toBe('auto');
+    expect(resolveHttpVersion('http3', 'h2')).toBe('http1');
   });
 });

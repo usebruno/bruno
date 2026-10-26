@@ -6,7 +6,7 @@ const { forOwn, cloneDeep } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists, stripExtension, isSafeFileName } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
-const { isRequestTagsIncluded } = require('@usebruno/common');
+const { isRequestTagsIncluded, HttpVersionMode, HTTP_VERSION_MODES } = require('@usebruno/common');
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { getOptions } = require('../utils/bru');
@@ -171,7 +171,7 @@ const builder = async (yargs) => {
     })
     .option('http-version', {
       type: 'string',
-      choices: ['http1', 'http2', 'auto'],
+      choices: HTTP_VERSION_MODES,
       description: 'HTTP version for requests: http1 (default), http2 (forced), or auto (negotiate via ALPN, fall back to http1)'
     })
     .option('http2', {
@@ -616,7 +616,7 @@ const handler = async function (argv) {
       options['insecure'] = true;
     }
     if (http2) {
-      options['httpVersion'] = 'http2';
+      options['httpVersion'] = HttpVersionMode.Http2;
     } else if (httpVersion) {
       options['httpVersion'] = httpVersion;
     }

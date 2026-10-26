@@ -1,5 +1,6 @@
 import type { LookupFunction } from 'node:net';
-import { establishTlsConnection, type HttpVersionMode, bracketIpv6 } from './tls-connect-options';
+import { HttpVersionMode } from '@usebruno/common';
+import { establishTlsConnection, bracketIpv6 } from './tls-connect-options';
 import { getSessionKey } from './session-pool';
 
 const DEFAULT_ALPN_TTL_MS = 10 * 60 * 1000;
@@ -71,23 +72,23 @@ export async function negotiateHttpVersion(
 
   // Cleartext connections don't support ALPN. Only explicit HTTP/2 uses h2c.
   if (parsedUrl.protocol !== 'https:') {
-    if (mode === 'http2') {
+    if (mode === HttpVersionMode.Http2) {
       return { httpVersion: 2, reason: 'h2c prior knowledge (cleartext)' };
     }
 
     return {
       httpVersion: 1,
-      reason: mode === 'auto'
+      reason: mode === HttpVersionMode.Auto
         ? 'cleartext, no ALPN, using HTTP/1.1'
         : 'mode http1'
     };
   }
 
-  if (mode === 'http1') {
+  if (mode === HttpVersionMode.Http1) {
     return { httpVersion: 1, reason: 'mode http1' };
   }
 
-  if (mode === 'http2') {
+  if (mode === HttpVersionMode.Http2) {
     return { httpVersion: 2, reason: 'mode http2 (forced)' };
   }
 
@@ -114,7 +115,7 @@ export async function negotiateHttpVersion(
       hostname: parsedUrl.hostname,
       port,
       tlsOptions,
-      mode: 'auto',
+      mode: HttpVersionMode.Auto,
       lookup,
       timeoutMs: PROBE_TIMEOUT_MS
     });
@@ -143,4 +144,4 @@ export async function negotiateHttpVersion(
 export const clearAlpnCache = (): void => alpnCache.clear();
 
 export const canUseHttp2 = (mode: string | null | undefined): boolean =>
-  mode === 'http2' || mode === 'auto';
+  mode === HttpVersionMode.Http2 || mode === HttpVersionMode.Auto;

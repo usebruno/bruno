@@ -6,6 +6,7 @@
  */
 
 import http2 from 'node:http2';
+import { HttpVersionMode } from '@usebruno/common';
 import type { LookupFunction } from 'node:net';
 import type { Duplex } from 'node:stream';
 import { getAgentCacheKey } from '../agent-cache';
@@ -247,7 +248,7 @@ export function acquireSession(params: AcquireSessionParams): AcquireResult {
   }
 
   const options: http2.SecureClientSessionOptions = url.protocol === 'https:'
-    ? buildTlsConnectOptions({ hostname, port, tlsOptions, mode: 'http2', lookup })
+    ? buildTlsConnectOptions({ hostname, port, tlsOptions, mode: HttpVersionMode.Http2, lookup })
     : {};
 
   // tell node to use an existing socket from a proxy tunnel

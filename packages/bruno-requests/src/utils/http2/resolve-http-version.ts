@@ -1,7 +1,4 @@
-/** The HTTP version modes a user can choose (the 'inherit' collection value defers to these). */
-export const HTTP_VERSION_VALUES = ['auto', 'http1', 'http2'] as const;
-
-export type HttpVersionValue = (typeof HTTP_VERSION_VALUES)[number];
+import { HttpVersionMode, HttpVersionSetting, isHttpVersionMode } from '@usebruno/common';
 
 /**
  * Resolve the HTTP version from the collection setting or fallback.
@@ -9,18 +6,15 @@ export type HttpVersionValue = (typeof HTTP_VERSION_VALUES)[number];
  *
  * Precedence: Desktop uses collection > app, CLI uses flag > collection.
  */
-const isHttpVersionValue = (value: unknown): value is HttpVersionValue =>
-  HTTP_VERSION_VALUES.includes(value as HttpVersionValue);
-
 export const resolveHttpVersion = (
   collectionHttpVersion?: string | null,
   fallback?: string | null
-): HttpVersionValue => {
-  if (collectionHttpVersion && collectionHttpVersion !== 'inherit' && isHttpVersionValue(collectionHttpVersion)) {
+): HttpVersionMode => {
+  if (collectionHttpVersion !== HttpVersionSetting.Inherit && isHttpVersionMode(collectionHttpVersion)) {
     return collectionHttpVersion;
   }
-  if (isHttpVersionValue(fallback)) {
+  if (isHttpVersionMode(fallback)) {
     return fallback;
   }
-  return 'http1';
+  return HttpVersionMode.Http1;
 };
