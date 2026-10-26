@@ -16,6 +16,9 @@ const createState = () => ({
   lazyMergeMembers: new WeakMap(),
   constrained: new WeakMap(),
   forbidden: new WeakMap(),
+  forbiddenByNot: new WeakMap(),
+  readingNots: new Set(),
+  notCuts: 0,
   stripped: new WeakMap(),
   origins: new WeakMap(),
   componentNames: new WeakMap(),
@@ -91,8 +94,10 @@ const intersectTypes = (aType, bType) => {
   return shared.size === 1 ? [...shared][0] : [...shared];
 };
 
+export const followPlaceholder = (schema) => (isSchemaObject(schema) && state.placeholders.get(schema)) || schema;
+
 const branchesOf = (schema, keyword) =>
-  (Array.isArray(schema[keyword]) ? schema[keyword].filter(isSchemaObject).map((branch) => state.placeholders.get(branch) || branch) : []);
+  (Array.isArray(schema[keyword]) ? schema[keyword].filter(isSchemaObject).map(followPlaceholder) : []);
 
 const hasBranches = (schema) =>
   isSchemaObject(schema) && (schema.allOf !== undefined || schema.oneOf !== undefined || schema.anyOf !== undefined);
@@ -172,7 +177,9 @@ const lazyMerge = (a, b) => {
   return node.merge;
 };
 
-const mergeSubschemas = (a, b) => {
+const mergeSubschemas = (givenA, givenB) => {
+  const a = followPlaceholder(givenA);
+  const b = followPlaceholder(givenB);
   if (a === false || b === false) return false;
   if (!isSchemaObject(a) || !isSchemaObject(b) || a === b) return b === undefined ? a : b;
   return lazyMerge(a, b);
@@ -482,9 +489,25 @@ function flatten(schema, context) {
 
 function readForbidden(schema, seen = new Set()) {
   const forbidden = { values: [], types: [], required: [] };
-  if (!isSchemaObject(schema) || seen.has(schema)) return forbidden;
+  if (!isSchemaObject(schema)) return forbidden;
+  if (state.forbiddenByNot.has(schema)) return state.forbiddenByNot.get(schema);
+  if (seen.has(schema) || state.readingNots.has(schema)) {
+    state.notCuts += 1;
+    return forbidden;
+  }
   seen.add(schema);
+  state.readingNots.add(schema);
+  const cuts = state.notCuts;
+  try {
+    collectForbidden(schema, seen, forbidden);
+  } finally {
+    state.readingNots.delete(schema);
+  }
+  if (state.notCuts === cuts) state.forbiddenByNot.set(schema, forbidden);
+  return forbidden;
+}
 
+function collectForbidden(schema, seen, forbidden) {
   const own = branchesOf(schema, 'allOf').length > 0 ? flatten(omit(schema, ['oneOf', 'anyOf']), newContext()) : schema;
   const values = allowedValues(own);
   const types = typeSet(own.type);
@@ -500,7 +523,6 @@ function readForbidden(schema, seen = new Set()) {
       Object.keys(forbidden).forEach((key) => forbidden[key].push(...nested[key]));
     });
   }
-  return forbidden;
 }
 
 const isForbiddenType = (type, forbiddenTypes) =>

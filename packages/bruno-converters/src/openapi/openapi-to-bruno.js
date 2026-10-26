@@ -981,9 +981,7 @@ export const parseOpenApiCollection = (data, options = {}) => {
   };
   try {
     resetExampleGenerationState();
-    const refCache = new Map();
-    resolveRefs(data?.components, data?.components, refCache);
-    const collectionData = resolveRefs(data, data?.components, refCache);
+    const collectionData = resolveRefs(data);
     if (!collectionData) {
       throw new Error('Invalid OpenAPI collection. Failed to resolve refs.');
       return;

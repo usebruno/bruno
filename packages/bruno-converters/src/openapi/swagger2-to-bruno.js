@@ -578,9 +578,7 @@ export const parseSwagger2Collection = (data, options = {}) => {
 
   try {
     resetExampleGenerationState();
-    const refCache = new Map();
-    ['definitions', 'parameters', 'responses'].forEach((section) => resolveRefs(data?.[section], data, refCache));
-    const collectionData = resolveRefs(data, data, refCache);
+    const collectionData = resolveRefs(data, data);
     if (!collectionData) {
       throw new Error('Invalid Swagger 2.0 specification. Failed to resolve refs.');
     }

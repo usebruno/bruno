@@ -9,7 +9,8 @@ import {
   withoutComposition,
   allowedDefault,
   isExampleCopy,
-  resetSchemaCompositionState
+  resetSchemaCompositionState,
+  followPlaceholder
 } from './schema-composition';
 import { uuid, sanitizeTag } from '../common';
 
@@ -191,7 +192,8 @@ const deeperInComposition = (visited, generate, fallback) => {
   }
 };
 
-const withResolvedSchema = (rawSchema, visited, generate) => {
+const withResolvedSchema = (givenSchema, visited, generate) => {
+  const rawSchema = exampleBudgets.get(visited).compositionDepth > 0 ? followPlaceholder(givenSchema) : givenSchema;
   if (!hasSchemaComposition(rawSchema)) {
     return generate(rawSchema);
   }

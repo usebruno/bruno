@@ -61,6 +61,12 @@ describe('swagger 2.0 schema composition', () => {
     expect(folder(['Folder'])).toEqual({ name: '', children: [{ name: '', parent: {}, size: 0 }] });
   });
 
+  it('imports an example that points to a recursive definition', () => {
+    const recursive = { Category: { type: 'object', properties: { id: { type: 'integer' }, parent: ref('Category') } } };
+    const paths = { '/categories': { get: { summary: 'List', produces: ['application/json'], responses: { 200: { description: 'ok', schema: ref('Category'), examples: { 'application/json': ref('Category') } } } } } };
+    expect(() => swagger2ToBruno(buildSpec({ definitions: recursive, paths, definitionsFirst: false }))).not.toThrow();
+  });
+
   it('labels each subtype with its definition name when the parent declares the discriminator', () => {
     const pets = {
       Pet: { type: 'object', discriminator: 'petType', required: ['petType'], properties: { petType: { type: 'string' }, name: { type: 'string' } } },

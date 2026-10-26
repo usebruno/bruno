@@ -306,6 +306,19 @@ describe('openapi schema composition', () => {
       expect(requestBody(buildSpec({ schemas, paths: postBody(ref('Animal')) }))).toEqual({ petType: 'Cat', kind: 'Cat', meow: false });
     });
 
+    it.each([true, false])('labels a body that references an alias with the name of the schema the alias points to (alias declared first: %s)', (aliasFirst) => {
+      const pet = { type: 'object', properties: { petType: { type: 'string' }, name: { type: 'string' } }, discriminator: { propertyName: 'petType' } };
+      const cat = { allOf: [ref('Pet'), { type: 'object', properties: { meow: { type: 'boolean' } } }] };
+      const schemas = aliasFirst ? { Pet: pet, Kitty: ref('Cat'), Cat: cat } : { Pet: pet, Cat: cat, Kitty: ref('Cat') };
+      expect(requestBody(buildSpec({ schemas, paths: postBody(ref('Kitty')) }))).toEqual({ petType: 'Cat', name: '', meow: false });
+    });
+
+    it.each([true, false])('labels a oneOf branch that references an alias with the name of the schema the alias points to (alias declared first: %s)', (aliasFirst) => {
+      const schemas = aliasFirst ? { Kitty: ref('Cat'), ...plainPets } : { ...plainPets, Kitty: ref('Cat') };
+      const schema = { oneOf: [ref('Kitty'), ref('Dog')], discriminator: { propertyName: 'petType' } };
+      expect(requestBody(buildSpec({ schemas, paths: postBody(schema) }))).toEqual({ petType: 'Cat', meow: '' });
+    });
+
     it('writes integer and boolean discriminator values with the type of the property', () => {
       const schemas = {
         Shape: { oneOf: [ref('One')], discriminator: { propertyName: 'kind', mapping: { 1: '#/components/schemas/One' } } },
@@ -663,6 +676,15 @@ describe('openapi schema composition', () => {
       expect(queryParams(buildSpec({ paths: getWithParameters(parameters) })).map(([name]) => name)).toEqual(['created']);
     });
 
+    it('keeps a query parameter whole when it is one of two object shapes', () => {
+      const parameters = [{
+        name: 'paging',
+        in: 'query',
+        schema: { oneOf: [{ type: 'object', properties: { page: { type: 'integer' }, size: { type: 'integer' } } }, { type: 'object', properties: { cursor: { type: 'string' } } }] }
+      }];
+      expect(queryParams(buildSpec({ paths: getWithParameters(parameters) }))).toEqual([['paging', '']]);
+    });
+
     it('keeps an allOf parameter whole when a part it wraps offers alternatives', () => {
       const schemas = { Lookup: { oneOf: [{ type: 'object', properties: { name: { type: 'string' } } }, { type: 'object', properties: { id: { type: 'integer' } } }] } };
       const parameters = [{ name: 'lookup', in: 'query', schema: { allOf: [ref('Lookup')], nullable: true } }];
@@ -760,10 +782,31 @@ describe('openapi schema composition', () => {
       expect(fields.map((f) => [f.name, f.value, f.description])).toEqual([['mode', 'fast', 'Speed']]);
     });
 
+    it('writes one form field per merged property of an allOf body', () => {
+      const schema = {
+        allOf: [
+          { type: 'object', properties: { name: { type: 'string' }, tag: { type: 'string' } } },
+          { type: 'object', properties: { tag: { type: 'string', example: 'pet' }, age: { type: 'integer' } } }
+        ]
+      };
+      const fields = firstRequest(buildSpec({ paths: postBody(schema, 'application/x-www-form-urlencoded') })).request.body.formUrlEncoded;
+      expect(fields.map((f) => [f.name, f.value])).toEqual([['name', ''], ['tag', 'pet'], ['age', '']]);
+    });
+
     it('detects a multipart file field declared through allOf', () => {
       const schema = { type: 'object', properties: { upload: { allOf: [{ type: 'string', format: 'binary' }] } } };
       const fields = firstRequest(buildSpec({ paths: postBody(schema, 'multipart/form-data') })).request.body.multipartForm;
       expect(fields.map((f) => [f.name, f.type])).toEqual([['upload', 'file']]);
+    });
+
+    it.each([
+      ['a referenced part', ref('Upload')],
+      ['an inline part', { type: 'object', properties: { file: { type: 'string', format: 'binary' } } }]
+    ])('detects a multipart file field declared in %s of a root allOf', (_, part) => {
+      const schemas = { Upload: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } } };
+      const schema = { allOf: [{ type: 'object', properties: { title: { type: 'string' } } }, part] };
+      const fields = firstRequest(buildSpec({ schemas, paths: postBody(schema, 'multipart/form-data') })).request.body.multipartForm;
+      expect(fields.map((f) => [f.name, f.type])).toEqual([['title', 'text'], ['file', 'file']]);
     });
 
     it('renders composed nested properties and attributes in an XML body', () => {
@@ -781,6 +824,19 @@ describe('openapi schema composition', () => {
       expect(xml).toContain('<Doc xml-lang="en">');
       expect(xml).toContain('<city></city>');
       expect(xml).toContain('<zip></zip>');
+    });
+
+    it('writes every part of a root allOf into an XML body named after the composed schema', () => {
+      const schemas = { Pet: { type: 'object', xml: { name: 'Pet' }, properties: { name: { type: 'string' }, age: { type: 'integer' } } } };
+      const schema = { allOf: [ref('Pet'), { type: 'object', properties: { meow: { type: 'boolean' } } }], xml: { name: 'Cat' } };
+      const xml = firstRequest(buildSpec({ schemas, paths: postBody(schema, 'application/xml') })).request.body.xml;
+      expect(xml).toBe('<?xml version="1.0" encoding="UTF-8"?>\n<Cat>\n  <name></name>\n  <age></age>\n  <meow></meow>\n</Cat>');
+    });
+
+    it('names the XML root element root when no part of a root allOf names it', () => {
+      const schema = { allOf: [{ type: 'object', properties: { name: { type: 'string' } } }, { type: 'object', properties: { meow: { type: 'boolean' } } }] };
+      const xml = firstRequest(buildSpec({ paths: postBody(schema, 'application/xml') })).request.body.xml;
+      expect(xml).toBe('<?xml version="1.0" encoding="UTF-8"?>\n<root>\n  <name></name>\n  <meow></meow>\n</root>');
     });
 
     it('generates a response example for an array of composed items', () => {
@@ -991,6 +1047,34 @@ describe('openapi schema composition', () => {
       expect(folder(['Folder'])).toEqual({ type: '', name: '', children: [{ type: 'File', name: '', size: 0 }] });
     });
 
+    it.each([true, false])('labels the children of a recursive model by their mapping key whatever operation reaches it first (components first: %s)', (componentsFirst) => {
+      const schemas = {
+        Base: { type: 'object', required: ['type'], properties: { type: { type: 'string' }, name: { type: 'string' } } },
+        Item: { oneOf: [ref('File'), ref('Folder')], discriminator: { propertyName: 'type', mapping: { file: '#/components/schemas/File', folder: '#/components/schemas/Folder' } } },
+        File: { allOf: [ref('Base'), { type: 'object', properties: { size: { type: 'integer' } } }] },
+        Folder: { allOf: [ref('Base'), { type: 'object', properties: { children: { type: 'array', items: ref('Item') } } }] }
+      };
+      const op = (name) => ({ post: { summary: name, requestBody: { content: { 'application/json': { schema: ref(name) } } }, responses: { 200: { description: 'ok' } } } });
+      const folder = (names) => {
+        const items = openApiToBruno(buildSpec({ schemas, paths: Object.fromEntries(names.map((name) => [`/${name}`, op(name)])), componentsFirst })).items;
+        return JSON.parse(items.find((item) => item.name === 'Folder').request.body.json);
+      };
+      expect(folder(['Item', 'Folder'])).toEqual(folder(['Folder']));
+      expect(folder(['Folder'])).toEqual({ type: '', name: '', children: [{ type: 'file', name: '', size: 0 }] });
+    });
+
+    it('keeps a plain recursive model whole when another component reaches it first', () => {
+      const schemas = {
+        Author: { type: 'object', properties: { id: { type: 'integer' }, name: { type: 'string' }, posts: { type: 'array', items: ref('Post') } } },
+        Comment: { type: 'object', properties: { id: { type: 'integer' }, text: { type: 'string' }, post: ref('Post'), author: ref('Author') } },
+        Post: { type: 'object', properties: { id: { type: 'integer' }, title: { type: 'string' }, author: ref('Author'), comments: { type: 'array', items: ref('Comment') } } }
+      };
+      const op = (name) => ({ post: { summary: name, requestBody: { content: { 'application/json': { schema: ref(name) } } }, responses: { 201: { description: 'created' } } } });
+      const items = openApiToBruno(buildSpec({ schemas, paths: { '/comments': op('Comment'), '/posts': op('Post') }, componentsFirst: false })).items;
+      const comment = JSON.parse(items.find((item) => item.name === 'Comment').request.body.json);
+      expect(comment.post).toEqual({ id: 0, title: '', author: { id: 0, name: '', posts: [] }, comments: [] });
+    });
+
     it('reflects an edit to an object that is converted again', () => {
       const schema = { $ref: '#/components/schemas/Missing', allOf: [{ type: 'object', properties: { a: { type: 'string' } } }] };
       const spec = buildSpec({ paths: postBody(schema) });
@@ -1190,10 +1274,38 @@ describe('openapi schema composition', () => {
       expect(requestBody(buildSpec({ schemas, paths: postBody(schema) }))).toEqual({ list: [[{ list: [[{}]] }]] });
     });
 
-    it.each([true, false])('stops an array whose items are the array itself (components first: %s)', (componentsFirst) => {
+    it('stops an array whose items are the array itself', () => {
       const schemas = { Nested: { type: 'array', items: ref('Nested') } };
       const schema = { type: 'object', properties: { list: ref('Nested') } };
-      expect(requestBody(buildSpec({ schemas, paths: postBody(schema), componentsFirst }))).toEqual({ list: [[]] });
+      expect(requestBody(buildSpec({ schemas, paths: postBody(schema) }))).toEqual({ list: [[]] });
+    });
+
+    it.each([true, false])('imports alternatives that rule each other out through not (components first: %s)', (componentsFirst) => {
+      const schemas = {
+        BankAccount: { allOf: [ref('PaymentBase'), { type: 'object', properties: { iban: { type: 'string' } } }], not: ref('Card') },
+        Card: { allOf: [ref('PaymentBase'), { type: 'object', properties: { cardNumber: { type: 'string' } } }], not: ref('BankAccount') },
+        PaymentBase: { type: 'object', properties: { id: { type: 'string' } } },
+        PaymentMethod: { oneOf: [ref('Card'), ref('BankAccount')] }
+      };
+      expect(requestBody(buildSpec({ schemas, paths: postBody(ref('PaymentMethod')), componentsFirst }))).toEqual({ id: '', cardNumber: '' });
+    });
+
+    it('stays fast when each not lists the next two levels', () => {
+      const levels = 30;
+      const schemas = { Base: { type: 'object', properties: { id: { type: 'string' } } } };
+      for (let i = 0; i < levels; i += 1) {
+        const not = i + 1 < levels ? { anyOf: [ref(`A${i + 1}`), ref(`B${i + 1}`)] } : { required: ['x'] };
+        schemas[`A${i}`] = { allOf: [ref('Base'), { type: 'object', properties: { [`a${i}`]: { type: 'string' } } }], not };
+        schemas[`B${i}`] = { allOf: [ref('Base'), { type: 'object', properties: { [`b${i}`]: { type: 'string' } } }], not };
+      }
+      expect(requestBody(buildSpec({ schemas, paths: postBody(ref('A0')) }))).toEqual({ id: '', a0: '' });
+    });
+
+    it('imports an example that points to a recursive schema', () => {
+      const schemas = { Category: { type: 'object', properties: { id: { type: 'integer' }, name: { type: 'string' }, parent: ref('Category') } } };
+      const content = { 'application/json': { schema: ref('Category'), example: ref('Category') } };
+      const paths = { '/categories': { post: { summary: 'Create', requestBody: { content }, responses: { 200: { description: 'ok', content } } } } };
+      expect(() => openApiToBruno(buildSpec({ schemas, paths, componentsFirst: false }))).not.toThrow();
     });
   });
 });
