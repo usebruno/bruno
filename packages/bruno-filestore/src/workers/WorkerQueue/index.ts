@@ -53,7 +53,7 @@ class WorkerQueue {
       const { scriptPath, data, taskType, resolve, reject } = this.queue.shift() as QueuedTask;
       this.inFlight += 1;
       this.runWorker({ scriptPath, data, taskType })
-        .then(resolve, reject)
+        .then((value) => resolve?.(value), (reason) => reject?.(reason))
         .finally(() => {
           this.inFlight -= 1;
           this.processQueue();
