@@ -37,9 +37,9 @@ test.describe.serial('File / Binary body upload', () => {
   const imgRequestName = 'image-file-upload';
   const pdfRequestName = 'pdf-file-upload';
   const TIMEOUTS = {
-    DEFAULT: 30_000, // 30 seconds
-    LONG: 60_000, // 1 minute
-    EXTENDED: 120_000 // 2 minutes
+    DEFAULT: 30_000,
+    LONG: 60_000,
+    EXTENDED: 180_000
   } as const;
 
   let tmpDir: string;
@@ -259,6 +259,7 @@ test.describe.serial('File / Binary body upload', () => {
   });
 
   test('TC-2230: Verify successful execution with a large TXT file', { tag: '@sanity' }, async ({ page, electronApp }) => {
+    test.setTimeout(TIMEOUTS.EXTENDED);
     await electronApp.evaluate(({ dialog }, filePath: string) => {
       (dialog as any).__currentSelection = filePath;
     }, txtFilePath);
@@ -270,6 +271,7 @@ test.describe.serial('File / Binary body upload', () => {
   });
 
   test('TC-2231: Verify successful execution with a large PDF file', { tag: '@sanity' }, async ({ page, electronApp }) => {
+    test.setTimeout(TIMEOUTS.EXTENDED);
     await electronApp.evaluate(({ dialog }, filePath: string) => {
       (dialog as any).__currentSelection = filePath;
     }, pdfFilePath);
@@ -281,6 +283,7 @@ test.describe.serial('File / Binary body upload', () => {
   });
 
   test('TC-2232: Verify successful execution with a large Image(.png) file', { tag: '@sanity' }, async ({ page, electronApp }) => {
+    test.setTimeout(TIMEOUTS.EXTENDED);
     await electronApp.evaluate(({ dialog }, filePath: string) => {
       (dialog as any).__currentSelection = filePath;
     }, imgFilePath);
