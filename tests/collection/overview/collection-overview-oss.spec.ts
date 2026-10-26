@@ -19,7 +19,7 @@ const openOverview = async (page: Parameters<typeof openCollectionSettings>[0], 
 
 test.describe('Collection settings overview', () => {
   test.setTimeout(90 * 1000);
-  test('TC-2619: Verify Location of the collection is displayed below the Overview', async ({ page, createTmpDir }) => {
+  test('TC-2619: Verify Location of the collection is displayed below the Overview', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const collectionName = 'OverviewLocation';
     const location = await createTmpDir('TC-2619');
     const expectedPath = path.join(location, collectionName);
@@ -39,7 +39,7 @@ test.describe('Collection settings overview', () => {
     });
   });
 
-  test('TC-2620: Verify the accuracy of Collection Environment and Global Environment counts displayed in the Environments section.', async ({
+  test('TC-2620: Verify the accuracy of Collection Environment and Global Environment counts displayed in the Environments section.', { tag: '@sanity' }, async ({
     page,
     createTmpDir
   }, testInfo) => {
@@ -74,7 +74,7 @@ test.describe('Collection settings overview', () => {
     });
   });
 
-  test('TC-2622: Verify Number of Requests available in the collection is displayed under Requests section', async ({
+  test('TC-2622: Verify Number of Requests available in the collection is displayed under Requests section', { tag: '@sanity' }, async ({
     page,
     createTmpDir
   }) => {
@@ -94,7 +94,7 @@ test.describe('Collection settings overview', () => {
     });
   });
 
-  test('TC-2623: Verify Share Collection option is available', async ({ page, createTmpDir }) => {
+  test('TC-2623: Verify Share Collection option is available', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const collectionName = 'OverviewShare';
 
     await test.step('Open collection Overview', async () => {
@@ -121,7 +121,7 @@ test.describe('Collection settings overview', () => {
     });
   });
 
-  test('TC-2624: Verify Generate docs option is available in the Documentation section', async ({ page, createTmpDir }) => {
+  test('TC-2624: Verify Generate docs option is available in the Documentation section', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const collectionName = 'OverviewDocs';
     const locators = buildCommonLocators(page);
 
