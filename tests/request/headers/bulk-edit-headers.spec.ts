@@ -1,6 +1,6 @@
-import { expect, Locator, Page, test } from '../../../playwright';
+import { expect, test } from '../../../playwright';
 import { closeAllCollections, createCollection, createRequest, selectRequestPaneTab } from '../../utils/page';
-import { buildRequestLocators, fillRequestHeaderName, fillRequestHeaderValue } from '../../utils/request';
+import { appendRequestHeaderBulkLines, buildRequestLocators, fillRequestHeaderName, fillRequestHeaderValue } from '../../utils/request';
 
 const CHECKED = { name: 'X-Checked', value: 'checked-value' };
 const UNCHECKED = { name: 'X-Unchecked', value: 'unchecked-value' };
@@ -20,28 +20,6 @@ const ALL_LINES = [
   bulkLine(DISABLED.name, DISABLED.value, true)
 ];
 
-const headerBulk = (page: Page) => ({
-  bulkEdit: () => page.getByRole('button', { name: 'Bulk Edit' }),
-  keyValueEdit: () => page.getByRole('button', { name: 'Key/Value Edit' }),
-  editor: () => page.getByRole('button', { name: 'Key/Value Edit' }).locator('xpath=../preceding-sibling::div').locator('.CodeMirror')
-});
-
-const readBulkEditor = (editor: Locator) => editor.evaluate((el: HTMLElement & { CodeMirror?: { getValue: () => string } }) => {
-  if (!el.CodeMirror) {
-    throw new Error('No CodeMirror in request headers bulk editor');
-  }
-  return el.CodeMirror.getValue();
-});
-
-const writeBulkEditor = (editor: Locator, value: string) => editor.evaluate((el: HTMLElement & { CodeMirror?: { setValue: (next: string) => void } }, next: string) => {
-  if (!el.CodeMirror) {
-    throw new Error('No CodeMirror in request headers bulk editor');
-  }
-  el.CodeMirror.setValue(next);
-}, value);
-
-const cellText = (row: Locator, column: 'name' | 'value') => row.getByTestId(`column-${column}`).locator('.CodeMirror-line');
-
 // The test-details object only accepts tag and annotation. Timeout has to be set on the suite,
 // or Electron setup is still cut off at the 30s project default.
 test.describe.configure({ timeout: 120_000 });
@@ -53,7 +31,6 @@ test.afterEach(async ({ page }) => {
 
 test('TC-592: Verify the Link from Key/Value to Bulk Edit View for Request Headers.', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
   const headers = buildRequestLocators(page).headers;
-  const bulk = headerBulk(page);
 
   await test.step('Open an HTTP request on the Headers tab', async () => {
     await createCollection(page, 'bulk-edit-headers', await createTmpDir('bulk-edit-headers'));
@@ -61,73 +38,75 @@ test('TC-592: Verify the Link from Key/Value to Bulk Edit View for Request Heade
     await selectRequestPaneTab(page, 'Headers');
 
     await expect(headers.table()).toBeVisible();
-    await expect(headers.addRow().getByTestId('column-name')).toBeVisible();
-    await expect(headers.addRow().getByTestId('column-value')).toBeVisible();
-    await expect(bulk.bulkEdit()).toBeVisible();
-    await expect(bulk.bulkEdit()).toBeEnabled();
+    await expect(headers.nameCell(headers.addRow())).toBeVisible();
+    await expect(headers.valueCell(headers.addRow())).toBeVisible();
+    await expect(headers.bulkEdit()).toBeVisible();
+    await expect(headers.bulkEdit()).toBeEnabled();
   });
 
   await test.step('Add one checked header and one unchecked header', async () => {
     await fillRequestHeaderName(page, headers.addRow(), CHECKED.name);
     await fillRequestHeaderValue(page, headers.requestRow(CHECKED.name), CHECKED.value);
-    await expect(headers.requestRow(CHECKED.name).getByTestId('column-checkbox')).toBeChecked();
-    await expect(headers.requestRow(CHECKED.name).getByTestId('column-checkbox')).toBeEnabled();
+    await expect(headers.checkbox(headers.requestRow(CHECKED.name))).toBeChecked();
+    await expect(headers.checkbox(headers.requestRow(CHECKED.name))).toBeEnabled();
 
     await fillRequestHeaderName(page, headers.addRow(), UNCHECKED.name);
     await fillRequestHeaderValue(page, headers.requestRow(UNCHECKED.name), UNCHECKED.value);
-    const uncheckedBox = headers.requestRow(UNCHECKED.name).getByTestId('column-checkbox');
+    const uncheckedBox = headers.checkbox(headers.requestRow(UNCHECKED.name));
     await uncheckedBox.uncheck();
 
-    await expect(cellText(headers.requestRow(CHECKED.name), 'name')).toHaveText(CHECKED.name);
-    await expect(cellText(headers.requestRow(CHECKED.name), 'value')).toHaveText(CHECKED.value);
-    await expect(headers.requestRow(CHECKED.name).getByTestId('column-checkbox')).toBeChecked();
+    await expect(headers.cellLine(headers.requestRow(CHECKED.name), 'name')).toHaveText(CHECKED.name);
+    await expect(headers.cellLine(headers.requestRow(CHECKED.name), 'value')).toHaveText(CHECKED.value);
+    await expect(headers.checkbox(headers.requestRow(CHECKED.name))).toBeChecked();
 
-    await expect(cellText(headers.requestRow(UNCHECKED.name), 'name')).toHaveText(UNCHECKED.name);
-    await expect(cellText(headers.requestRow(UNCHECKED.name), 'value')).toHaveText(UNCHECKED.value);
+    await expect(headers.cellLine(headers.requestRow(UNCHECKED.name), 'name')).toHaveText(UNCHECKED.name);
+    await expect(headers.cellLine(headers.requestRow(UNCHECKED.name), 'value')).toHaveText(UNCHECKED.value);
     await expect(uncheckedBox).not.toBeChecked();
     await expect(uncheckedBox).toBeEnabled();
   });
 
   await test.step('Switch to Bulk Edit and confirm the unchecked header is commented', async () => {
-    await bulk.bulkEdit().click();
+    await headers.bulkEdit().click();
 
     await expect(headers.table()).toBeHidden();
-    await expect(bulk.keyValueEdit()).toBeVisible();
-    await expect(bulk.keyValueEdit()).toBeEnabled();
-    await expect(bulk.editor().locator('.CodeMirror-line')).toHaveText(FROM_TABLE);
+    await expect(headers.keyValueEdit()).toBeVisible();
+    await expect(headers.keyValueEdit()).toBeEnabled();
+    await expect(headers.bulkEditorLines()).toHaveText(FROM_TABLE);
   });
 
   await test.step('Add one enabled line and one commented line in Bulk Edit', async () => {
-    const current = await readBulkEditor(bulk.editor());
-    expect(current).toBe(FROM_TABLE.join('\n'));
+    await appendRequestHeaderBulkLines(page, [
+      bulkLine(ENABLED.name, ENABLED.value),
+      bulkLine(DISABLED.name, DISABLED.value, true)
+    ]);
 
-    await writeBulkEditor(bulk.editor(), ALL_LINES.join('\n'));
-
-    await expect(bulk.editor().locator('.CodeMirror-line')).toHaveText(ALL_LINES);
+    await expect(headers.bulkEditorLines()).toHaveText(ALL_LINES);
   });
 
   await test.step('Switch back to Key/Value view', async () => {
-    await bulk.keyValueEdit().click();
+    await headers.keyValueEdit().click();
 
-    await expect(bulk.keyValueEdit()).toBeHidden();
+    await expect(headers.keyValueEdit()).toBeHidden();
     await expect(headers.table()).toBeVisible();
-    await expect(bulk.bulkEdit()).toBeVisible();
+    await expect(headers.bulkEdit()).toBeVisible();
 
     for (const header of [CHECKED, UNCHECKED, ENABLED, DISABLED]) {
-      await expect(cellText(headers.requestRow(header.name), 'name')).toHaveText(header.name);
-      await expect(cellText(headers.requestRow(header.name), 'value')).toHaveText(header.value);
+      await expect(headers.cellLine(headers.requestRow(header.name), 'name')).toHaveText(header.name);
+      await expect(headers.cellLine(headers.requestRow(header.name), 'value')).toHaveText(header.value);
     }
   });
 
   await test.step('Commented rows come back unchecked and still clickable', async () => {
     for (const header of [UNCHECKED, DISABLED]) {
-      const checkbox = headers.requestRow(header.name).getByTestId('column-checkbox');
+      const checkbox = headers.checkbox(headers.requestRow(header.name));
       await expect(checkbox).not.toBeChecked();
       await expect(checkbox).toBeEnabled();
+      await checkbox.click();
+      await expect(checkbox).toBeChecked();
     }
 
     for (const header of [CHECKED, ENABLED]) {
-      const checkbox = headers.requestRow(header.name).getByTestId('column-checkbox');
+      const checkbox = headers.checkbox(headers.requestRow(header.name));
       await expect(checkbox).toBeChecked();
       await expect(checkbox).toBeEnabled();
     }

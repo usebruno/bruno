@@ -48,6 +48,14 @@ export const buildRequestLocators = (page: Page) => ({
     inheritedRow: (name: string) => page.getByTestId(`inherited-header-row-${name.toLowerCase()}`),
     inheritedSource: (name: string) => page.getByTestId(`inherited-header-source-${name.toLowerCase()}`),
     addRow: () => page.getByTestId('request-header-add-row'),
+    nameCell: (row: Locator) => row.getByTestId('column-name'),
+    valueCell: (row: Locator) => row.getByTestId('column-value'),
+    checkbox: (row: Locator) => row.getByTestId('column-checkbox'),
+    cellLine: (row: Locator, column: 'name' | 'value') => row.getByTestId(`column-${column}`).locator('.CodeMirror-line'),
+    bulkEdit: () => page.getByTestId('request-pane').getByRole('button', { name: 'Bulk Edit' }),
+    keyValueEdit: () => page.getByTestId('request-pane').getByRole('button', { name: 'Key/Value Edit' }),
+    bulkEditor: () => page.getByTestId('request-pane').getByRole('button', { name: 'Key/Value Edit' }).locator('xpath=../preceding-sibling::div').locator('.CodeMirror'),
+    bulkEditorLines: () => page.getByTestId('request-pane').getByRole('button', { name: 'Key/Value Edit' }).locator('xpath=../preceding-sibling::div').locator('.CodeMirror-line'),
     toggleInherited: () => page.getByTestId('toggle-inherited-headers'),
     paneScroller: () => page.getByTestId('request-pane').getByTestId('flex-boundary'),
     defaultInfo: (name: string) => page.getByTestId(`default-header-info-${name.toLowerCase()}`),
@@ -144,6 +152,17 @@ export const fillRequestHeaderValue = async (page: Page, row: Locator, value: st
   const valueEditor = row.getByTestId('column-value').locator('.CodeMirror');
   await valueEditor.click();
   await page.keyboard.type(value);
+};
+
+/**
+ * Append lines to the request Headers bulk editor by typing, leaving the existing text in place.
+ */
+export const appendRequestHeaderBulkLines = async (page: Page, lines: string[]) => {
+  const { headers } = buildRequestLocators(page);
+  const editorLines = headers.bulkEditorLines();
+  await editorLines.last().click();
+  await page.keyboard.press('End');
+  await page.keyboard.type(`\n${lines.join('\n')}`, { delay: 5 });
 };
 
 /**
