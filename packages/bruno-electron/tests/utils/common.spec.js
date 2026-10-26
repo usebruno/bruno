@@ -163,6 +163,19 @@ describe('parseDataFromResponse', () => {
 
 describe('utils: parseDataFromResponse', () => {
   test.each([
+    ['text/plain; note="example; charset = iso-8859-1"; charset=utf-8', 'utf8'],
+    ['text/plain; note="example; charset = iso-8859-1"', 'utf8'],
+    ['text/plain; note="example; charset=utf-8"; charset="iso-8859-1"', 'latin1'],
+    ['text/plain; note="example\\"; charset=iso-8859-1"; charset=utf-8', 'utf8'],
+    ['text/plain; note="example\\\\"; charset=iso-8859-1', 'latin1']
+  ])('ignores charset text inside quoted parameters for %s', (contentType, encoding) => {
+    const bytes = Buffer.from('café', encoding);
+    const result = parseDataFromResponse({ headers: { 'content-type': contentType }, data: bytes });
+    expect(result.data).toBe('café');
+    expect(result.dataBuffer).toEqual(bytes);
+  });
+
+  test.each([
     'text/plain; charset=iso-8859-1',
     'text/plain; charset="iso-8859-1"',
     'text/plain; CHARSET="ISO-8859-1"; version=1',
