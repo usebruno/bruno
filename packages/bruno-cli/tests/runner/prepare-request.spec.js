@@ -14,9 +14,9 @@ describe('prepare-request: prepareRequest', () => {
     });
 
     it('Keeps // in a single-quoted value that follows a double-quoted one', async () => {
-      const body = { mode: 'json', json: '{"a": "keep // this", \'b\': \'drop // this\'}' };
+      const body = { mode: 'json', json: '{"a": "keep // this", \'b\': \'keep // this too\'}' };
       const result = await prepareRequest({ request: { body } });
-      expect(result.data).toEqual('{"a": "keep // this", \'b\': \'drop // this\'}');
+      expect(result.data).toEqual('{"a": "keep // this", \'b\': \'keep // this too\'}');
     });
 
     it('Sends a body with an unterminated comment untouched', async () => {
@@ -28,7 +28,7 @@ describe('prepare-request: prepareRequest', () => {
     it('Strips comments from GraphQL variables and keeps a single-quoted URL', async () => {
       const body = { mode: 'graphql', graphql: { query: 'query { x }', variables: '{\n  // callback\n  \'url\': \'https://example.com/hook\'\n}' } };
       const result = await prepareRequest({ request: { body } });
-      expect(result.data.variables).toEqual('{\n  \n  \'url\': \'https://example.com/hook\'\n}');
+      expect(result.data.variables).toEqual('{\n  \'url\': \'https://example.com/hook\'\n}');
     });
 
     it('Strips a block comment', async () => {
@@ -46,7 +46,7 @@ describe('prepare-request: prepareRequest', () => {
     it('Strips comments from GraphQL variables', async () => {
       const body = { mode: 'graphql', graphql: { query: 'query { x }', variables: '{\n  // pet to fetch\n  "id": 9091 /* numeric */\n}' } };
       const result = await prepareRequest({ request: { body } });
-      expect(result.data.variables).toEqual('{\n  \n  "id": 9091 \n}');
+      expect(result.data.variables).toEqual('{\n  "id": 9091 \n}');
     });
 
     it('Strips a comment from a CRLF body without touching the line endings', async () => {
