@@ -25,29 +25,21 @@ function getMachineId() {
     cachedMachineId = machineIdSync();
     return cachedMachineId;
   } catch (err) {
-    // Fallback 1: Try reading /etc/machine-id
-    try {
-      const rawId = fs.readFileSync('/etc/machine-id', 'utf8').trim();
-      if (rawId) {
-        cachedMachineId = normalizeAndHashMachineId(rawId);
-        return cachedMachineId;
+    // Same order as node-machine-id on Linux: dbus first, then /etc/machine-id.
+    // cat /var/lib/dbus/machine-id /etc/machine-id | head -n 1
+    for (const filePath of ['/var/lib/dbus/machine-id', '/etc/machine-id']) {
+      try {
+        const rawId = fs.readFileSync(filePath, 'utf8').trim();
+        if (rawId) {
+          cachedMachineId = normalizeAndHashMachineId(rawId);
+          return cachedMachineId;
+        }
+      } catch (e) {
+        // Continue to next fallback
       }
-    } catch (e) {
-      // Continue to next fallback
     }
 
-    // Fallback 2: Try reading /var/lib/dbus/machine-id
-    try {
-      const rawId = fs.readFileSync('/var/lib/dbus/machine-id', 'utf8').trim();
-      if (rawId) {
-        cachedMachineId = normalizeAndHashMachineId(rawId);
-        return cachedMachineId;
-      }
-    } catch (e) {
-      // Continue to next fallback
-    }
-
-    // Fallback 3: Generate a stable ID persisted in app data
+    // Fallback: Generate a stable ID persisted in app data
     try {
       const userDataPath = app.getPath('userData');
       const machineIdPath = path.join(userDataPath, 'machine-id');
@@ -61,10 +53,36 @@ function getMachineId() {
         }
       }
 
-      // Generate new ID if none exists
+      // Publish without replacing an ID another process already created.
       const rawId = crypto.randomBytes(32).toString('hex');
-      fs.writeFileSync(machineIdPath, rawId, 'utf8');
-      cachedMachineId = normalizeAndHashMachineId(rawId);
+      const tmpPath = `${machineIdPath}.${process.pid}.${crypto.randomBytes(16).toString('hex')}.tmp`;
+      let tempCreated = false;
+      try {
+        fs.writeFileSync(tmpPath, rawId, { encoding: 'utf8', flag: 'wx' });
+        tempCreated = true;
+
+        try {
+          fs.linkSync(tmpPath, machineIdPath);
+        } catch (error) {
+          if (error.code !== 'EEXIST') {
+            throw error;
+          }
+        }
+
+        const storedId = fs.readFileSync(machineIdPath, 'utf8').trim();
+        if (!storedId) {
+          throw new Error('Generated machine ID is empty');
+        }
+        cachedMachineId = normalizeAndHashMachineId(storedId);
+      } finally {
+        if (tempCreated) {
+          try {
+            fs.unlinkSync(tmpPath);
+          } catch (unlinkError) {
+            // A leftover temp file must not fail encryption after the ID is published.
+          }
+        }
+      }
       return cachedMachineId;
     } catch (e) {
       throw new Error('Failed to get machine ID: ' + e.message);
