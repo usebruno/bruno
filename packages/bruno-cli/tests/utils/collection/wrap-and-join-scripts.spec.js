@@ -1,6 +1,8 @@
 const path = require('node:path');
 const { describe, test, expect } = require('@jest/globals');
-const { wrapAndJoinScripts } = require('../../../src/utils/collection');
+const { runScriptInNodeVm } = require('@usebruno/js');
+const { executeQuickJsVmAsync } = require('@usebruno/js/src/sandbox/quickjs');
+const { wrapAndJoinScripts, mergeScripts } = require('../../../src/utils/collection');
 
 describe('CLI wrapAndJoinScripts: hierarchical __dirname/__filename', () => {
   const colDir = path.resolve('/col');
@@ -73,5 +75,78 @@ describe('CLI wrapAndJoinScripts: line endings', () => {
     const result = wrapAndJoinScripts(['col();\r\n', 'folder();\n', '// note\r\nreq();'], 2);
     expect(result.code).not.toContain('\r');
     expect(result.code).toContain('// note\nreq();');
+  });
+});
+
+describe('CLI mergeScripts: merged scripts execute in both sandboxes', () => {
+  const makeCollection = (scripts = {}, pathname = '/test/collection') => ({
+    pathname,
+    format: 'bru',
+    root: {
+      request: {
+        script: {
+          req: scripts.preReq || '',
+          res: scripts.postRes || ''
+        },
+        tests: scripts.tests || ''
+      }
+    }
+  });
+
+  const makeRequest = (scripts = {}) => ({
+    script: {
+      req: scripts.preReq || '',
+      res: scripts.postRes || ''
+    },
+    tests: scripts.tests || ''
+  });
+
+  const sandboxes = [
+    ['nodevm', (script, bru) => runScriptInNodeVm({ script, context: { bru, console, __bruSetScope: jest.fn() }, collectionPath: '/test/collection', scriptingConfig: {} })],
+    ['quickjs', (script, bru) => executeQuickJsVmAsync({ script, context: { bru }, collectionPath: '/test/collection' })]
+  ];
+
+  const crlfCollectionScript = [
+    'function extractDataPaths(scRaw) {',
+    '    const placeholderRegExp = /{{([^}]+)}}/g;',
+    '    const dataPaths = [];',
+    '    let match;',
+    '    while ((match = placeholderRegExp.exec(scRaw)) != null) {',
+    '        dataPaths.push(match[1]);',
+    '    }',
+    '    return dataPaths;',
+    '}'
+  ].join('\r\n');
+
+  test.each(sandboxes)('CRLF collection script + request script with a // comment still runs in %s', async (_, runScript) => {
+    const collection = makeCollection({ preReq: crlfCollectionScript });
+    const request = makeRequest({ preReq: '// Set the pet ID before sending the request\nbru.setVar("petId", 9091)' });
+    mergeScripts(collection, request, [request], 'sandwich');
+
+    expect(request.script.req).not.toContain('\r');
+    const bru = { setVar: jest.fn() };
+    await runScript(request.script.req, bru);
+    expect(bru.setVar).toHaveBeenCalledWith('petId', 9091);
+  });
+
+  test.each(sandboxes)('CRLF collection script + request script that is only a // comment does not break the combined script in %s', async (_, runScript) => {
+    const collection = makeCollection({ preReq: crlfCollectionScript });
+    const request = makeRequest({ preReq: '// just a comment' });
+    mergeScripts(collection, request, [request], 'sandwich');
+
+    const bru = { setVar: jest.fn() };
+    await expect(runScript(request.script.req, bru)).resolves.not.toThrow();
+  });
+
+  test.each(sandboxes)('a // comment at the end of a CR-only collection script does not swallow the closer in %s', async (_, runScript) => {
+    const collection = makeCollection({ preReq: 'bru.setVar("a", 1);\r// trailing comment' });
+    const request = makeRequest({ preReq: 'bru.setVar("b", 2);' });
+    mergeScripts(collection, request, [request], 'sandwich');
+
+    const bru = { setVar: jest.fn() };
+    await runScript(request.script.req, bru);
+
+    expect(bru.setVar).toHaveBeenCalledWith('a', 1);
+    expect(bru.setVar).toHaveBeenCalledWith('b', 2);
   });
 });

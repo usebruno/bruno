@@ -910,8 +910,13 @@ describe('wrapAndJoinScripts line endings', () => {
   });
 });
 
-describe('mergeScripts with CRLF collection script', () => {
-  const collectionScript = [
+describe('mergeScripts: merged scripts execute in both sandboxes', () => {
+  const sandboxes = [
+    ['nodevm', (script, bru) => runScriptInNodeVm({ script, context: { bru, console, __bruSetScope: jest.fn() }, collectionPath: '/test/collection', scriptingConfig: {} })],
+    ['quickjs', (script, bru) => executeQuickJsVmAsync({ script, context: { bru }, collectionPath: '/test/collection' })]
+  ];
+
+  const crlfCollectionScript = [
     'function extractDataPaths(scRaw) {',
     '    const placeholderRegExp = /{{([^}]+)}}/g;',
     '    const dataPaths = [];',
@@ -923,37 +928,25 @@ describe('mergeScripts with CRLF collection script', () => {
     '}'
   ].join('\r\n');
 
-  const run = async (mergedScript) => {
-    const bru = { setVar: jest.fn() };
-    const context = { bru, console, __bruSetScope: jest.fn() };
-    await runScriptInNodeVm({ script: mergedScript, context, collectionPath: '/test/collection', scriptingConfig: {} });
-    return bru;
-  };
-
-  test('request script with a // comment still runs', async () => {
-    const collection = makeCollection({ preReq: collectionScript });
+  test.each(sandboxes)('CRLF collection script + request script with a // comment still runs in %s', async (_, runScript) => {
+    const collection = makeCollection({ preReq: crlfCollectionScript });
     const request = makeRequest({ preReq: '// Set the pet ID before sending the request\nbru.setVar("petId", 9091)' });
     mergeScripts(collection, request, [request], 'sandwich');
 
     expect(request.script.req).not.toContain('\r');
-    const bru = await run(request.script.req);
+    const bru = { setVar: jest.fn() };
+    await runScript(request.script.req, bru);
     expect(bru.setVar).toHaveBeenCalledWith('petId', 9091);
   });
 
-  test('request script that is only a // comment does not break the combined script', async () => {
-    const collection = makeCollection({ preReq: collectionScript });
+  test.each(sandboxes)('CRLF collection script + request script that is only a // comment does not break the combined script in %s', async (_, runScript) => {
+    const collection = makeCollection({ preReq: crlfCollectionScript });
     const request = makeRequest({ preReq: '// just a comment' });
     mergeScripts(collection, request, [request], 'sandwich');
 
-    await expect(run(request.script.req)).resolves.toBeDefined();
+    const bru = { setVar: jest.fn() };
+    await expect(runScript(request.script.req, bru)).resolves.not.toThrow();
   });
-});
-
-describe('wrapAndJoinScripts with CR-only line endings', () => {
-  const sandboxes = [
-    ['nodevm', (script, bru) => runScriptInNodeVm({ script, context: { bru, console, __bruSetScope: jest.fn() }, collectionPath: '/test/collection', scriptingConfig: {} })],
-    ['quickjs', (script, bru) => executeQuickJsVmAsync({ script, context: { bru }, collectionPath: '/test/collection' })]
-  ];
 
   test.each(sandboxes)('a // comment at the end of a CR-only collection script does not swallow the closer in %s', async (_, runScript) => {
     const collection = makeCollection({ preReq: 'bru.setVar("a", 1);\r// trailing comment' });
