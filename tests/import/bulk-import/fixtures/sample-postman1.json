@@ -1,0 +1,90 @@
+{
+  "info": {
+    "_postman_id": "bc6ca8cb-17ca-41e3-8f23-747e5079b78a",
+    "name": "New Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "32319314"
+  },
+  "item": [
+    {
+      "name": "ReqPa",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://echo.usebruno.com?param=a",
+          "protocol": "https",
+          "host": [
+            "echo",
+            "usebruno",
+            "com"
+          ],
+          "query": [
+            {
+              "key": "param",
+              "value": "a",
+              "type": "text"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "ReqPb",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://echo.usebruno.com?param=b",
+          "protocol": "https",
+          "host": [
+            "echo",
+            "usebruno",
+            "com"
+          ],
+          "query": [
+            {
+              "key": "param",
+              "value": "b"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {
+          "npm:zod@4.4.3": {
+            "id": "npm:zod@4.4.3"
+          },
+          "npm:dayjs@1.11.21": {
+            "id": "npm:dayjs@1.11.21"
+          }
+        },
+        "requests": {},
+        "exec": [
+          "const zod = pm.require('npm:zod@4.4.3');",
+          "const dayjs = pm.require('npm:dayjs@1.11.21');",
+          ""
+        ]
+      }
+    }
+  ]
+}

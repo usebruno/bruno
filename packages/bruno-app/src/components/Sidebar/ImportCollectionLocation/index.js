@@ -306,6 +306,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
                 </label>
                 <input
                   id="collection-location"
+                  data-testid="import-collection-location-input"
                   type="text"
                   name="collectionLocation"
                   className="block textbox mt-2 w-full cursor-pointer"
@@ -350,6 +351,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
                   </label>
                   <select
                     id="format"
+                    data-testid="import-collection-format-select"
                     name="format"
                     className="block textbox mt-2 w-full"
                     value={collectionFormat}

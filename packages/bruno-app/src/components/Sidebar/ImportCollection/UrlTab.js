@@ -47,6 +47,7 @@ const UrlTab = ({
         <Button
           type="submit"
           id="import-url-button"
+          data-testid="import-url-button"
           disabled={!urlInput.trim()}
           variant="filled"
           color="primary"

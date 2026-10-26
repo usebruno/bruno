@@ -283,6 +283,8 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
       <Modal
         size="md"
         title="Clone Git Repository"
+        titleTestId="clone-git-repository-header-title"
+        dataTestId="clone-git-repository-modal"
         confirmText={getConfirmText()}
         handleConfirm={handleConfirm}
         handleCancel={onClose}
@@ -337,6 +339,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
                 </label>
                 <input
                   id="collection-location"
+                  data-testid="clone-git-collection-location-input"
                   type="text"
                   name="collectionLocation"
                   readOnly
@@ -416,6 +419,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
                   {collectionPaths.length > 0 && (
                     <SelectionList
                       title="Collections"
+                      dataTestId="clone-git-selection-list"
                       searchPlaceholder="Search Collections"
                       items={collectionPaths}
                       selectedItems={selectedCollectionPaths}

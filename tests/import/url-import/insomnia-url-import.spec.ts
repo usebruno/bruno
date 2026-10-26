@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, openCollection } from '../../utils/page';
+import { buildCommonLocators, closeAllCollections, openCollection } from '../../utils/page';
 
 test.describe('Insomnia URL Import', () => {
   test.afterEach(async ({ page }) => {
@@ -7,39 +7,54 @@ test.describe('Insomnia URL Import', () => {
     await closeAllCollections(page);
   });
 
-  test('Insomnia URL import', async ({ page, createTmpDir }) => {
-    const insomniaUrl = 'https://raw.githubusercontent.com/usebruno/bruno/refs/heads/main/tests/import/insomnia/fixtures/insomnia-v5.yaml';
+  test('TC813: Verify Import collection from Valid Insomnia Export from Direct URL',
+    { tag: '@sanity' },
+    async ({ page, createTmpDir }) => {
+      const insomniaUrl
+        = 'https://raw.githubusercontent.com/usebruno/bruno/refs/heads/main/tests/import/insomnia/fixtures/insomnia-v5.yaml';
+      const collectionName = 'Test API Collection v5';
+      const collectionLocation = await createTmpDir('test-api-collection-v5');
+      const locators = buildCommonLocators(page);
+      const importLocators = locators.import;
 
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
+      await test.step('Navigate to the Import functionality in Bruno', async () => {
+        await locators.plusMenu.button().click();
+        await expect(locators.plusMenu.importCollection()).toBeVisible();
+        await locators.plusMenu.importCollection().click();
 
-    // Wait for import collection modal to be ready
-    const importModal = page.getByTestId('import-collection-modal');
-    await importModal.waitFor({ state: 'visible' });
+        await importLocators.modal().waitFor({ state: 'visible' });
+        await expect(importLocators.importModal.modalTitle()).toContainText('Import Collection');
+        await expect(importLocators.importModal.fileTab()).toBeVisible();
+        await expect(importLocators.importModal.gitRepositoryTab()).toBeVisible();
+        await expect(importLocators.importModal.urlTab()).toBeVisible();
+      });
 
-    await page.getByTestId('url-tab').click();
-    await page.getByTestId('url-input').waitFor({ state: 'visible' });
-    await page.getByTestId('url-input').fill(insomniaUrl);
-    await page.locator('#import-url-button').click();
+      await test.step('Select \'Import from URL\' option', async () => {
+        await importLocators.importModal.urlTab().click();
+        await expect(importLocators.importModal.urlInput()).toBeVisible();
+        await expect(importLocators.importModal.importUrlButton()).toBeVisible();
+      });
 
-    // Wait for the loader to disappear
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
+      await test.step('Enter a valid Insomnia export URL', async () => {
+        await importLocators.importModal.urlInput().fill(insomniaUrl);
+        await expect(importLocators.importModal.urlInput()).toHaveValue(insomniaUrl);
+      });
 
-    // Verify that the collection location modal appears
-    const locationModal = page.getByTestId('import-collection-location-modal');
-    await expect(locationModal.getByText('Test API Collection v5')).toBeVisible();
+      await test.step('Initiate the import process', async () => {
+        await importLocators.importModal.importUrlButton().click();
+        await importLocators.importModal.loader().waitFor({ state: 'hidden' });
+        await expect(importLocators.locationModal()).toBeVisible();
+        await expect(importLocators.locationModal().getByText(collectionName)).toBeVisible();
+      });
 
-    // Select a location and import
-    await page.locator('#collection-location').fill(await createTmpDir('test-api-collection-v5'));
-    await locationModal.getByRole('button', { name: 'Import' }).click();
-    await locationModal.waitFor({ state: 'hidden' });
-
-    // Verify the collection was imported successfully and configure it
-    await expect(page.locator('#sidebar-collection-name').getByText('Test API Collection v5')).toBeVisible();
-    await openCollection(page, 'Test API Collection v5');
-
-    // Verify these folder names are present
-    await expect(page.locator('.collection-item-name').getByText('API Tests')).toBeVisible();
-    await expect(page.locator('.collection-item-name').getByText('Data Management')).toBeVisible();
-  });
+      await test.step('Verify successful import of the Insomnia export', async () => {
+        await importLocators.locationInput().fill(collectionLocation);
+        await importLocators.importButton(importLocators.locationModal()).click();
+        await importLocators.locationModal().waitFor({ state: 'hidden' });
+        await expect(locators.sidebar.collection(collectionName)).toBeVisible();
+        await openCollection(page, collectionName);
+        await expect(locators.sidebar.folder('API Tests')).toBeVisible();
+        await expect(locators.sidebar.folder('Data Management')).toBeVisible();
+      });
+    });
 });
