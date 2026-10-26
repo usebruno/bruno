@@ -3,7 +3,7 @@ import * as path from 'path';
 import { closeAllCollections } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
-test.describe('Import Collection File Format Options toggle', () => {
+test.describe('TC-3097: Single collection import, Import Collection File Format Options toggle', { tag: '@sanity' }, () => {
   test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });
