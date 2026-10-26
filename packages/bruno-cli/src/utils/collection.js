@@ -2,8 +2,9 @@ const { get, each, find } = require('lodash');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
-const { getEffectiveTags, getFolderTags, getOwnTags } = require('@usebruno/common');
-const { parseRequest, parseCollection, parseFolder } = require('@usebruno/filestore');
+const { sanitizeName } = require('./filesystem');
+const { getEffectiveTags, getFolderTags, getOwnTags, normalizeLineEndings } = require('@usebruno/common');
+const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const { sortByNameThenSequence } = require('@usebruno/common');
 const constants = require('../constants');
 const chalk = require('chalk');
@@ -232,9 +233,7 @@ const wrapScriptInClosure = (script, sourcePaths = null) => {
     return '';
   }
 
-  // Scripts can carry CRLF (a yml quoted scalar with \r\n escapes, a Windows-authored
-  // import). Line counting below and the stack-trace mapping assume LF, so normalise.
-  const normalizedScript = script.replace(/\r\n?/g, '\n');
+  const normalizedScript = normalizeLineEndings(script);
 
   // Wrap script in async IIFE to create isolated scope
   // This prevents variable re-declaration errors and allows early returns

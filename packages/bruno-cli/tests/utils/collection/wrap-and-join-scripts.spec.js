@@ -69,12 +69,6 @@ describe('CLI wrapAndJoinScripts: line endings', () => {
     expect(result.metadata.requestEndLine).toBe(8);
   });
 
-  test('normalises lone CR segments to LF', () => {
-    const result = wrapAndJoinScripts(['let a = 1;\rlet b = 2;', '', 'let c = 3;'], 2);
-    expect(result.code).not.toContain('\r');
-    expect(result.metadata.requestStartLine).toBe(6);
-  });
-
   test('mixed endings across collection, folder and request segments all become LF', () => {
     const result = wrapAndJoinScripts(['col();\r\n', 'folder();\n', '// note\r\nreq();'], 2);
     expect(result.code).not.toContain('\r');

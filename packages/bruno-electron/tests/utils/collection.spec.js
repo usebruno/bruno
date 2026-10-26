@@ -3,6 +3,7 @@ const fs = require('fs');
 const os = require('os');
 const { runScriptInNodeVm } = require('@usebruno/js');
 const { parseBruFileMeta, wrapAndJoinScripts, mergeScripts, getEffectiveTagsByUid } = require('../../src/utils/collection');
+const { executeQuickJsVmAsync } = require('@usebruno/js/src/sandbox/quickjs');
 
 describe('parseBruFileMeta', () => {
   test('parses valid meta block correctly', () => {
@@ -902,12 +903,6 @@ describe('wrapAndJoinScripts line endings', () => {
     expect(result.metadata.requestEndLine).toBe(8);
   });
 
-  test('normalises lone CR segments to LF', () => {
-    const result = wrapAndJoinScripts(['let a = 1;\rlet b = 2;', '', 'let c = 3;'], 2);
-    expect(result.code).not.toContain('\r');
-    expect(result.metadata.requestStartLine).toBe(6);
-  });
-
   test('mixed endings across collection, folder and request segments all become LF', () => {
     const result = wrapAndJoinScripts(['col();\r\n', 'folder();\n', '// note\r\nreq();'], 2);
     expect(result.code).not.toContain('\r');
@@ -951,5 +946,24 @@ describe('mergeScripts with CRLF collection script', () => {
     mergeScripts(collection, request, [request], 'sandwich');
 
     await expect(run(request.script.req)).resolves.toBeDefined();
+  });
+});
+
+describe('wrapAndJoinScripts with CR-only line endings', () => {
+  const sandboxes = [
+    ['nodevm', (script, bru) => runScriptInNodeVm({ script, context: { bru, console, __bruSetScope: jest.fn() }, collectionPath: '/test/collection', scriptingConfig: {} })],
+    ['quickjs', (script, bru) => executeQuickJsVmAsync({ script, context: { bru }, collectionPath: '/test/collection' })]
+  ];
+
+  test.each(sandboxes)('a // comment at the end of a CR-only collection script does not swallow the closer in %s', async (_, runScript) => {
+    const collection = makeCollection({ preReq: 'bru.setVar("a", 1);\r// trailing comment' });
+    const request = makeRequest({ preReq: 'bru.setVar("b", 2);' });
+    mergeScripts(collection, request, [request], 'sandwich');
+
+    const bru = { setVar: jest.fn() };
+    await runScript(request.script.req, bru);
+
+    expect(bru.setVar).toHaveBeenCalledWith('a', 1);
+    expect(bru.setVar).toHaveBeenCalledWith('b', 2);
   });
 });

@@ -8,7 +8,7 @@ const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
 const { DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const { parseValueByDataType } = require('@usebruno/common/utils');
-const { GRPC_SCRIPT_KEYS, getEffectiveTags, getFolderTags, getOwnTags } = require('@usebruno/common');
+const { GRPC_SCRIPT_KEYS, getEffectiveTags, getFolderTags, getOwnTags, normalizeLineEndings } = require('@usebruno/common');
 
 /**
  * Returns the variable's runtime value with datatype-driven coercion applied.
@@ -171,9 +171,7 @@ const wrapScriptInClosure = (script, scopeInfo = null, sourcePaths = null) => {
     return '';
   }
 
-  // Scripts can carry CRLF (a yml quoted scalar with \r\n escapes, a Windows-authored
-  // import). Line counting below and the stack-trace mapping assume LF, so normalise.
-  const normalizedScript = script.replace(/\r\n?/g, '\n');
+  const normalizedScript = normalizeLineEndings(script);
 
   // Wrap script in async IIFE to create isolated scope
   // This prevents variable re-declaration errors and allows early returns
