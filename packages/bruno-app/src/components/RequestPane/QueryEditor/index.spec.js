@@ -5,6 +5,7 @@ import '@testing-library/jest-dom';
 import React from 'react';
 import { render } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
+import CodeMirror from 'codemirror';
 import QueryEditor from './index';
 
 const mockDestroyLinkAware = jest.fn();
@@ -102,5 +103,18 @@ describe('QueryEditor link-aware setup', () => {
 
     expect(mockDestroyLinkAware).not.toHaveBeenCalled();
     expect(mockSetupLinkAware).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('QueryEditor schema description links', () => {
+  it('opens info-tooltip links in a new window and drops javascript: hrefs', () => {
+    renderEditor({ item: itemA, collection: collectionA });
+
+    const { renderDescription } = CodeMirror.mock.calls[0][1].info;
+    const html = renderDescription('[docs](https://example.com/)');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noopener noreferrer"');
+    expect(html).toContain('https://example.com/');
+    expect(renderDescription('[x](javascript:alert(1))')).not.toContain('<a');
   });
 });
