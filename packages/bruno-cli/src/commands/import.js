@@ -6,7 +6,7 @@ const jsyaml = require('js-yaml');
 const axios = require('axios');
 const { openApiToBruno, wsdlToBruno } = require('@usebruno/converters');
 const { exists, isDirectory, sanitizeName, canonicalPath } = require('../utils/filesystem');
-const { createCollectionFromBrunoObject } = require('../utils/collection');
+const { writeCollectionToDisk } = require('@usebruno/filestore');
 
 const command = 'import <type>';
 const desc = 'Import a collection from other formats';
@@ -347,7 +347,7 @@ const handler = async (argv) => {
         fs.mkdirSync(outputDir, { recursive: true });
       }
 
-      await createCollectionFromBrunoObject(brunoCollection, outputDir, {
+      await writeCollectionToDisk(brunoCollection, outputDir, {
         format: collectionFormat === 'opencollection' ? 'yml' : 'bru'
       });
       console.log(chalk.green(`Bruno collection created at ${outputDir}`));

@@ -18,6 +18,7 @@ import Button from 'ui/Button';
 import ActionIcon from 'ui/ActionIcon';
 import ListGroup from 'ui/ListGroup';
 import ToggleSwitch from 'components/ToggleSwitch';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
 const CertField = ({ label, value, title, action }) => (
   <div className="cert-field">
@@ -440,6 +441,7 @@ const ClientCertSettings = ({ collection }) => {
                     onChange={(val) => formik.setFieldValue('passphrase', val)}
                     collection={collection}
                     isSecret={true}
+                    variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
                   />
                   {showWarning && <SensitiveFieldWarning fieldName="basic-password" warningMessage={warningMessage} />}
                 </div>
