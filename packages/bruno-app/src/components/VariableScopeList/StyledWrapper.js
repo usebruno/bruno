@@ -8,6 +8,12 @@ const StyledWrapper = styled.div`
     font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.dropdown.color};
   }
+
+  .scope-row .var-add-to-option-trigger:disabled,
+  .scope-row .var-add-to-link-button:disabled {
+    pointer-events: none;
+    opacity: 0.6;
+  }
 `;
 
 export default StyledWrapper;

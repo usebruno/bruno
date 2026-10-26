@@ -137,4 +137,48 @@ describe('VariableScopeList', () => {
     fireEvent.change(input, { target: { value: 'S' } });
     expect(screen.queryByTestId('test-create-env-error-environment')).not.toBeInTheDocument();
   });
+
+  describe('while an environment is being created', () => {
+    const scopesWithGlobal = [...scopes, { type: 'global', label: 'Global Environment', enabled: false }];
+
+    const startPendingCreation = () => {
+      let settle;
+      const pending = new Promise((resolve, reject) => {
+        settle = { resolve, reject };
+      });
+      renderList({ scopes: scopesWithGlobal, onCreateEnvironment: jest.fn(() => pending) });
+
+      const input = openCreator();
+      fireEvent.change(input, { target: { value: 'Staging' } });
+      fireEvent.click(screen.getByTestId('test-create-env-submit-environment'));
+      return settle;
+    };
+
+    const expectListLocked = (locked) => {
+      const assertion = locked ? 'toBeDisabled' : 'toBeEnabled';
+      expect(screen.getByTestId('test-scope-request'))[assertion]();
+      expect(screen.getByTestId('test-scope-collection'))[assertion]();
+      expect(screen.getByTestId('test-create-env-link-global'))[assertion]();
+    };
+
+    it('disables the other rows until the creation succeeds', async () => {
+      const settle = startPendingCreation();
+
+      expect(screen.getByTestId('test-create-env-submit-environment')).toHaveTextContent('Creating…');
+      expectListLocked(true);
+
+      settle.resolve();
+      await waitFor(() => expectListLocked(false));
+    });
+
+    it('enables the other rows again when the creation fails', async () => {
+      const settle = startPendingCreation();
+      expectListLocked(true);
+
+      settle.reject(new Error('Environment already exists'));
+
+      expect(await screen.findByTestId('test-create-env-error-environment')).toHaveTextContent('Environment already exists');
+      expectListLocked(false);
+    });
+  });
 });

@@ -3,12 +3,20 @@ import VariableScopeIcon from 'components/VariableScopeIcon';
 import StyledWrapper from './StyledWrapper';
 
 /**
- * Row for a scope with no active environment. `isEditing` is owned by VariableScopeList so only one
- * row shows the name input at a time.
+ * Row for a scope with no active environment. `isEditing` and `isSubmitting` are owned by
+ * VariableScopeList so only one row shows the name input, and the list can lock while it creates.
  */
-const InlineEnvironmentCreator = ({ scope, isEditing, onStartEdit, onCloseEdit, onCreate, testIdPrefix }) => {
+const InlineEnvironmentCreator = ({
+  scope,
+  isEditing,
+  isSubmitting,
+  disabled,
+  onStartEdit,
+  onCloseEdit,
+  onCreate,
+  testIdPrefix
+}) => {
   const [environmentName, setEnvironmentName] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
   const testId = (part) => `${testIdPrefix}-${part}-${scope.type}`;
@@ -26,12 +34,10 @@ const InlineEnvironmentCreator = ({ scope, isEditing, onStartEdit, onCloseEdit, 
       return;
     }
 
-    setIsSubmitting(true);
     setError(null);
     onCreate(scope, environmentName)
       .then(onCloseEdit)
-      .catch((createError) => setError(createError.message || 'Failed to create environment'))
-      .finally(() => setIsSubmitting(false));
+      .catch((createError) => setError(createError.message || 'Failed to create environment'));
   };
 
   const handleKeyDown = (event) => {
@@ -81,6 +87,7 @@ const InlineEnvironmentCreator = ({ scope, isEditing, onStartEdit, onCloseEdit, 
           <button
             type="button"
             className="var-add-to-link-button"
+            disabled={disabled}
             onClick={startEditing}
             data-testid={testId('create-env-link')}
           >
