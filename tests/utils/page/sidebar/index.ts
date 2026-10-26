@@ -137,21 +137,6 @@ export const searchSidebarRequests = async (page: Page, query: string) => {
 };
 
 /**
- * Clear the sidebar search so every request is listed again.
- */
-export const clearSidebarSearch = async (page: Page) => {
-  const sidebar = buildSidebarLocators(page);
-
-  await test.step('Clear sidebar request search', async () => {
-    if (await sidebar.searchClear().isVisible()) {
-      await sidebar.searchClear().click();
-    } else if (await sidebar.searchInput().isVisible()) {
-      await sidebar.searchInput().fill('');
-    }
-  });
-};
-
-/**
  * Walks the sidebar to a folder and returns its row, expanding the collection and every parent
  * folder on the way — a collapsed node keeps its children out of the DOM entirely, so a nested
  * folder is unreachable until its ancestors are open. The target folder itself is left as it is.
