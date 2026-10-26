@@ -77,6 +77,10 @@ jest.mock('@usebruno/common', () => {
   return {
     shouldOmitConnection: ogCommon.shouldOmitConnection,
     refreshExplicitHeaderNames: ogCommon.refreshExplicitHeaderNames,
+    HttpVersionMode: ogCommon.HttpVersionMode,
+    HttpVersionSetting: ogCommon.HttpVersionSetting,
+    HTTP_VERSION_MODES: ogCommon.HTTP_VERSION_MODES,
+    isHttpVersionMode: ogCommon.isHttpVersionMode,
     utils: {
       encodeUrl: jest.fn((u) => u),
       buildFormUrlEncodedPayload: jest.fn(),
