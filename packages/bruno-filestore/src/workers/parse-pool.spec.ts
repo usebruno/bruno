@@ -8,7 +8,7 @@ import {
   stringifyEnvironment,
   disposeFilestoreWorkers
 } from '../index';
-import { runParsePoolTask } from './parse-pool';
+import WorkerQueue from './WorkerQueue';
 
 const bruRequest = `meta {
   name: Get Users
@@ -128,7 +128,13 @@ describe('parse worker pool', () => {
   });
 
   it('rejects when the worker throws for an unknown task type', async () => {
-    await expect(runParsePoolTask('not-a-task' as any, bruRequest, 'bru')).rejects.toThrow(/Unknown task type/);
+    const queue = new WorkerQueue();
+    await expect(queue.enqueue({
+      data: { data: bruRequest, format: 'bru' },
+      priority: 0,
+      scriptPath: '',
+      taskType: 'not-a-task' as any
+    })).rejects.toThrow(/Unknown task type/);
   });
 
   it('can parse again after the pool is disposed during in-flight work', async () => {

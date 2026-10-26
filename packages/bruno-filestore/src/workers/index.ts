@@ -1,8 +1,10 @@
+import WorkerQueue from './WorkerQueue';
 import { CollectionFormat } from '../types';
 import { DEFAULT_COLLECTION_FORMAT } from '../constants';
-import { disposeParseWorkerPool, runParsePoolTask } from './parse-pool';
 
 class BruParserWorker {
+  private workerQueue = new WorkerQueue();
+
   private async enqueueTask({
     data,
     taskType,
@@ -12,7 +14,12 @@ class BruParserWorker {
     taskType: 'parse' | 'stringify' | 'parseFolder' | 'stringifyFolder' | 'parseEnvironment' | 'stringifyEnvironment';
     format?: CollectionFormat;
   }): Promise<any> {
-    return runParsePoolTask(taskType, data, format);
+    return this.workerQueue.enqueue({
+      data: { data, format },
+      priority: 0,
+      scriptPath: '',
+      taskType
+    });
   }
 
   async parseRequest(data: any, format: CollectionFormat = DEFAULT_COLLECTION_FORMAT): Promise<any> {
@@ -40,7 +47,7 @@ class BruParserWorker {
   }
 
   async cleanup(): Promise<void> {
-    await disposeParseWorkerPool();
+    await this.workerQueue.cleanup();
   }
 }
 

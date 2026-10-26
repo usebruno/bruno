@@ -2,8 +2,6 @@ import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import workerpool from 'workerpool';
-import { CollectionFormat } from '../types';
-import { DEFAULT_COLLECTION_FORMAT } from '../constants';
 
 type WorkerTaskType
   = | 'parse'
@@ -12,6 +10,15 @@ type WorkerTaskType
     | 'stringifyFolder'
     | 'parseEnvironment'
     | 'stringifyEnvironment';
+
+interface QueuedTask {
+  priority: number;
+  scriptPath: string;
+  data: any;
+  taskType: WorkerTaskType;
+  resolve?: (value: any) => void;
+  reject?: (reason?: any) => void;
+}
 
 const MAX_WORKERS = 16;
 const require = createRequire(__filename);
@@ -34,18 +41,20 @@ const getPool = (): workerpool.Pool => {
   return pool;
 };
 
-export const runParsePoolTask = async (
-  taskType: WorkerTaskType,
-  data: any,
-  format: CollectionFormat = DEFAULT_COLLECTION_FORMAT
-): Promise<any> => {
-  return getPool().exec('runParseTask', [taskType, data, format]);
-};
-
-export const disposeParseWorkerPool = async (): Promise<void> => {
-  if (!pool) {
-    return;
+class WorkerQueue {
+  async enqueue(task: QueuedTask) {
+    const { data, taskType } = task;
+    const { data: payload, format } = data;
+    return getPool().exec('runParseTask', [taskType, payload, format]);
   }
-  await pool.terminate(true);
-  pool = null;
-};
+
+  async cleanup() {
+    if (!pool) {
+      return;
+    }
+    await pool.terminate(true);
+    pool = null;
+  }
+}
+
+export default WorkerQueue;
