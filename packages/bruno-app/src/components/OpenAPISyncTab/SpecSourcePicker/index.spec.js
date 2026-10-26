@@ -220,6 +220,28 @@ describe('SpecSourcePicker', () => {
     expect(onError).not.toHaveBeenCalled();
   });
 
+  it('keeps the latest file when an earlier pick finishes reading later', async () => {
+    window.ipcRenderer = { getFilePath: jest.fn((file) => `/specs/${file.name}`) };
+    const { getByTestId, onChange } = renderPicker({ mode: 'file' });
+
+    let finishFirstPick;
+    const firstFile = new File(['{}'], 'first.json', { type: 'application/json' });
+    firstFile.text = () => new Promise((resolve) => {
+      finishFirstPick = resolve;
+    });
+    const secondFile = new File(['{}'], 'second.json', { type: 'application/json' });
+    secondFile.text = () => Promise.resolve(JSON.stringify(validOpenApiSpec));
+
+    fireEvent.change(getByTestId('spec-source-file-input'), { target: { files: [firstFile] } });
+    fireEvent.change(getByTestId('spec-source-file-input'), { target: { files: [secondFile] } });
+    await waitFor(() => expect(onChange).toHaveBeenLastCalledWith('/specs/second.json'));
+
+    await act(async () => finishFirstPick(JSON.stringify(validOpenApiSpec)));
+
+    expect(onChange).not.toHaveBeenCalledWith('/specs/first.json');
+    expect(onChange).toHaveBeenLastCalledWith('/specs/second.json');
+  });
+
   it('uses the compact settings look when asked for the settings variant', () => {
     const { container } = renderPicker({ variant: 'settings' });
 

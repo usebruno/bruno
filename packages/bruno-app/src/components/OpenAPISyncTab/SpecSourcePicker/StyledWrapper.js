@@ -60,42 +60,13 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .select-wrapper {
-    position: relative;
-    display: flex;
-    flex: 1;
-    min-width: 0;
-  }
-
-  .workspace-select {
-    appearance: none;
+  .source-input.text-centered {
     padding-top: 0;
     padding-bottom: 0;
+  }
+
+  .source-input.with-caret {
     padding-right: 1.75rem;
-  }
-
-  .select-caret {
-    position: absolute;
-    top: 50%;
-    right: calc(0.5rem + 1px);
-    transform: translateY(-50%);
-    pointer-events: none;
-    color: ${(props) => props.theme.colors.text.muted};
-  }
-
-  .file-pick-btn {
-    padding-top: 0;
-    padding-bottom: 0;
-    text-align: left;
-    cursor: pointer;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: ${(props) => props.theme.colors.text.muted};
-  }
-
-  .file-input {
-    display: none;
   }
 
   &.settings .source-input {
@@ -107,6 +78,10 @@ const StyledWrapper = styled.div`
     font-family: monospace;
     border-color: ${(props) => props.theme.border.border1};
     border-radius: 5px;
+
+    &:focus {
+      border-color: ${(props) => props.theme.input.focusBorder};
+    }
   }
 `;
 
