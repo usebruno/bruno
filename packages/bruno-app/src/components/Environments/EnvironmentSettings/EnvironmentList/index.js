@@ -768,7 +768,7 @@ const EnvironmentList = ({
                     onClick={() => handleSearchChange('')}
                     onMouseDown={(e) => e.preventDefault()}
                   >
-                    <IconX size={12} strokeWidth={1.5} />
+                    <IconX size={13} strokeWidth={1.5} />
                   </button>
                 )}
               </div>
