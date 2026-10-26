@@ -16,6 +16,7 @@ import { buildRequestLocators } from '../request';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
 import { buildEnvironmentLocators } from './environments';
 import { buildTimelineHeaderLocators } from './timeline-headers';
+import { buildSetAsVariableLocators } from './set-as-variable';
 import { buildDevToolsLocators } from './devtools-console';
 import { buildVariablesTabLocators } from './variables-tab';
 import { buildWorkspaceOverviewLocators } from './workspace/workspace-overview';
@@ -50,6 +51,7 @@ export const buildCommonLocators = (page: Page) => ({
   websocket: buildWebsocketCommonLocators(page),
   toast: buildToastLocators(page),
   request: buildRequestLocators(page),
+  setAsVariable: buildSetAsVariableLocators(page),
   responseExample: buildResponseExampleLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
@@ -103,6 +105,8 @@ export const buildCommonLocators = (page: Page) => ({
     folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
     tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`),
     collectionSettingsContent: () => page.locator('.collection-settings-content'),
+    requestsNotLoadedTable: () => page.getByTestId('requests-not-loaded'),
+    overviewInvalidFilesCount: () => page.getByTestId('info-invalid-files-count'),
     folderSettingsContent: () => page.locator('.folder-settings-content')
   },
   docs: buildDocsLocators(page),
@@ -129,6 +133,8 @@ export const buildCommonLocators = (page: Page) => ({
     footer: () => page.locator('.bruno-modal-footer'),
     submitButton: () => page.locator('.bruno-modal-footer .submit'),
     newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`),
+    newRequestVariableToken: (name: string) =>
+      page.getByTestId('new-request-url').locator('.cm-variable-valid').filter({ hasText: name }).first(),
     backdrop: () => page.locator('.bruno-modal-backdrop')
   },
   openCollectionPicker: {
@@ -148,6 +154,7 @@ export const buildCommonLocators = (page: Page) => ({
     searchInput: () => page.getByTestId('selection-search-input')
   },
   codeMirror: {
+    hint: (name: string) => page.locator('.CodeMirror-hints:visible').getByRole('option', { name, exact: true }),
     byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first(),
     within: (scope: Locator) => scope.locator('.CodeMirror').first(),
     /** Nth row's value-column editor in an EditableTable (Headers / Params / Vars / Assertions). */
@@ -198,7 +205,9 @@ export const buildCommonLocators = (page: Page) => ({
     addToSecretCheckbox: (popup: Locator) => popup.getByTestId('var-info-add-to-secret-checkbox'),
     addToNoEnvNote: (popup: Locator, scopeType: 'environment' | 'global') => addToNoEnvNoteLocator(popup, scopeType),
     addToCreateEnvButton: (popup: Locator, scopeType: 'environment' | 'global') =>
-      addToNoEnvNoteLocator(popup, scopeType).getByTestId('var-info-add-to-create-env-button'),
+      addToNoEnvNoteLocator(popup, scopeType)
+        .locator('xpath=..')
+        .getByTestId('var-info-add-to-create-env-button'),
     addToCreateEnvNameInput: (popup: Locator) => popup.getByTestId('var-info-add-to-create-env-name-input'),
     addToCreateEnvSubmit: (popup: Locator) => popup.getByTestId('var-info-add-to-create-env-submit'),
     addToError: (popup: Locator) => popup.getByTestId('var-info-add-to-error')

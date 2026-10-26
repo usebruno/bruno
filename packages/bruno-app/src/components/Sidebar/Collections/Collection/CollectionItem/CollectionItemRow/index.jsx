@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import range from 'lodash/range';
 import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
@@ -45,20 +45,21 @@ import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
 import CollectionItemInfo from '../CollectionItemInfo/index';
 import CollectionItemIcon from '../CollectionItemIcon';
+import InvalidFilesBadge from '../../InvalidFilesBadge';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import {
   getTabUidForItem as getTabUidForItemSelector,
-  isTabForItemActive as isTabForItemActiveSelector,
-  isTabForItemPresent as isTabForItemPresentSelector
+  isTabForItemActive as isTabForItemActiveSelector
 } from 'src/selectors/tab';
-import { isEqual } from 'lodash';
+import { selectCollectionByUid } from 'src/selectors/collections';
 import {
   canCollectionItemBeDropped,
   determineCollectionItemDrop,
   getInitialExampleName,
   findParentItemInCollection,
   getSortedDraggedItems,
-  isCollectionItemCollapsed
+  isCollectionItemCollapsed,
+  countInvalidItems
 } from 'utils/collections/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
@@ -85,23 +86,17 @@ const CollectionItemRow = ({
   multiDragItems: multiDragItemsForSelection
 }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
-  const selectorInput = {
-    itemUid: item.uid,
-    itemPathname: item.pathname,
-    collectionUid
-  };
-
-  const _isTabForItemActiveSelector = isTabForItemActiveSelector(selectorInput);
-  const isTabForItemActive = useSelector(_isTabForItemActiveSelector, isEqual);
-
-  const _isTabForItemPresentSelector = isTabForItemPresentSelector(selectorInput);
-  const isTabForItemPresent = useSelector(_isTabForItemPresentSelector, isEqual);
-
-  const _tabUidForItemSelector = getTabUidForItemSelector(selectorInput);
-  const tabUidForItem = useSelector(_tabUidForItemSelector, isEqual);
+  const tabSelectorInput = useMemo(
+    () => ({ itemUid: item.uid, itemPathname: item.pathname, collectionUid }),
+    [item.uid, item.pathname, collectionUid]
+  );
+  const tabUidForItem = useSelector(useMemo(() => getTabUidForItemSelector(tabSelectorInput), [tabSelectorInput]));
+  const isTabForItemActive = useSelector(
+    useMemo(() => isTabForItemActiveSelector(tabSelectorInput), [tabSelectorInput])
+  );
+  const isTabForItemPresent = tabUidForItem !== null;
 
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
-  const collection = useSelector((state) => state.collections.collections.find((c) => c.uid === collectionUid));
   const store = useStore();
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
@@ -137,6 +132,7 @@ const CollectionItemRow = ({
   const hasSearchText = searchText && searchText?.trim()?.length;
   const itemIsCollapsed = hasSearchText ? false : isCollectionItemCollapsed(item);
   const isFolder = isItemAFolder(item);
+  const invalidItemCount = useMemo(() => (isFolder ? countInvalidItems(item.items) : 0), [isFolder, item.items]);
 
   const isCloneable = isFolder || isItemARequest(item) || item.type === 'app';
 
@@ -176,14 +172,14 @@ const CollectionItemRow = ({
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
     type: isRedirectedToCollectionDrag ? 'collection' : 'collection-item',
-    item: isRedirectedToCollectionDrag
-      ? { ...collection, wasSelected: true, multiSelectedItems: multiDragCollections }
+    item: () => (isRedirectedToCollectionDrag
+      ? { ...selectCollectionByUid(store.getState(), collectionUid), wasSelected: true, multiSelectedItems: multiDragCollections }
       : {
           ...item,
           sourceCollectionUid: collectionUid,
           wasSelected: isSelected,
           ...(multiDragItems ? { multiSelectedItems: multiDragItems } : {})
-        },
+        }),
     canDrag: !isDragDisabled,
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
@@ -677,6 +673,7 @@ const CollectionItemRow = ({
     // Determine target folder: if item is a folder, paste into it; otherwise paste into parent folder
     let targetFolderUid = item.uid;
     if (!isFolder) {
+      const collection = selectCollectionByUid(store.getState(), collectionUid);
       const parentFolder = findParentItemInCollection(collection, item.uid);
       targetFolderUid = parentFolder ? parentFolder.uid : null;
     }
@@ -815,6 +812,7 @@ const CollectionItemRow = ({
               <span className="item-name" title={item.name}>
                 {item.name}
               </span>
+              <InvalidFilesBadge count={invalidItemCount} collectionUid={collectionUid} rowUid={item.uid} />
             </div>
           </div>
           {!isDragging && !isMultiSelected && (
