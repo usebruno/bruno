@@ -205,7 +205,7 @@ if (useSingleInstance && !gotTheLock) {
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
   initializeShellEnv();
-  transientManager.clear();
+  await transientManager.clearStale();
 
   startBenchmark();
 

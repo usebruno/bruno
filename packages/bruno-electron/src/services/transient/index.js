@@ -1,18 +1,50 @@
-const fs = require('node:fs');
+const fs = require('node:fs/promises');
 const path = require('node:path');
 const { app } = require('electron');
 
+const isProcessRunning = (pid) => {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error.code === 'EPERM';
+  }
+};
+
+const isDirectoryInUse = (name) => {
+  if (!/^\d+$/.test(name)) return false;
+  const pid = Number(name);
+  return pid !== process.pid && isProcessRunning(pid);
+};
+
 class TransientManager {
-  getDirectoryBase() {
+  getRootDirectory() {
     return path.join(app.getPath('userData'), 'tmp', 'transient');
   }
 
-  clear() {
+  getDirectoryBase() {
+    return path.join(this.getRootDirectory(), String(process.pid));
+  }
+
+  async clearStale() {
+    const root = this.getRootDirectory();
+    let entries;
     try {
-      fs.rmSync(this.getDirectoryBase(), { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+      entries = await fs.readdir(root);
     } catch (error) {
-      console.warn('[transient] failed to clear the transient directory', error);
+      if (error.code !== 'ENOENT') {
+        console.warn('[transient] failed to read the transient directory', error);
+      }
+      return;
     }
+
+    await Promise.all(entries.filter((name) => !isDirectoryInUse(name)).map(async (name) => {
+      try {
+        await fs.rm(path.join(root, name), { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+      } catch (error) {
+        console.warn(`[transient] failed to remove stale transient directory ${name}`, error);
+      }
+    }));
   }
 }
 
