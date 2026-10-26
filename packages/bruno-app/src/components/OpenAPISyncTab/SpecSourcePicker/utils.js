@@ -10,7 +10,8 @@ export const getOpenApiSpecError = (spec) => {
   const isOpenApi3 = isPlainObject(spec)
     && typeof spec.openapi === 'string'
     && spec.openapi.startsWith('3.')
-    && isPlainObject(spec.paths);
+    && isPlainObject(spec.paths)
+    && isPlainObject(spec.info);
   return isOpenApi3 ? null : 'The selected spec is not a valid OpenAPI 3.x specification';
 };
 

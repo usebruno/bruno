@@ -31,6 +31,12 @@ describe('getOpenApiSpecError', () => {
     );
   });
 
+  it('rejects an OpenAPI 3.x document without an info object', () => {
+    expect(getOpenApiSpecError({ openapi: '3.0.0', paths: {} })).toBe(
+      'The selected spec is not a valid OpenAPI 3.x specification'
+    );
+  });
+
   it('rejects any Swagger version', () => {
     expect(getOpenApiSpecError({ swagger: '1.2', info: { title: 'Pets' }, paths: {} })).toBe(
       'Swagger 2.0 is not supported. Please convert your spec to OpenAPI 3.x.'
