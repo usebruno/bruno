@@ -1,3 +1,5 @@
+import { createRequire } from 'node:module';
+import path from 'node:path';
 import {
   parseRequestViaWorker,
   parseFolderViaWorker,
@@ -7,8 +9,14 @@ import {
   stringifyFolder,
   stringifyEnvironment,
   disposeFilestoreWorkers
-} from '../index';
-import WorkerQueue from './WorkerQueue';
+} from '../../index';
+import WorkerQueue from './index';
+
+const require = createRequire(__filename);
+const workerScriptPath = path.join(
+  path.dirname(require.resolve('@usebruno/filestore/package.json')),
+  'dist/cjs/workers/worker-script.js'
+);
 
 const bruRequest = `meta {
   name: Get Users
@@ -43,7 +51,7 @@ const ymlItem = {
   }
 };
 
-describe('parse worker pool', () => {
+describe('WorkerQueue', () => {
   afterEach(async () => {
     await disposeFilestoreWorkers();
   });
@@ -129,12 +137,16 @@ describe('parse worker pool', () => {
 
   it('rejects when the worker throws for an unknown task type', async () => {
     const queue = new WorkerQueue();
-    await expect(queue.enqueue({
-      data: { data: bruRequest, format: 'bru' },
-      priority: 0,
-      scriptPath: '',
-      taskType: 'not-a-task' as any
-    })).rejects.toThrow(/Unknown task type/);
+    try {
+      await expect(queue.enqueue({
+        data: { data: bruRequest, format: 'bru' },
+        priority: 0,
+        scriptPath: workerScriptPath,
+        taskType: 'not-a-task' as any
+      })).rejects.toThrow(/Unknown task type/);
+    } finally {
+      await queue.cleanup();
+    }
   });
 
   it('can parse again after the pool is disposed during in-flight work', async () => {

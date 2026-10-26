@@ -1,6 +1,22 @@
+import { createRequire } from 'node:module';
+import path from 'node:path';
 import WorkerQueue from './WorkerQueue';
 import { CollectionFormat } from '../types';
 import { DEFAULT_COLLECTION_FORMAT } from '../constants';
+
+const require = createRequire(__filename);
+const workerScriptPath = path.join(
+  path.dirname(require.resolve('@usebruno/filestore/package.json')),
+  'dist/cjs/workers/worker-script.js'
+);
+
+const sizeInMB = (size: number): number => {
+  return size / (1024 * 1024);
+};
+
+const getSize = (data: any): number => {
+  return sizeInMB(typeof data === 'string' ? Buffer.byteLength(data, 'utf8') : Buffer.byteLength(JSON.stringify(data), 'utf8'));
+};
 
 class BruParserWorker {
   private workerQueue = new WorkerQueue();
@@ -14,10 +30,12 @@ class BruParserWorker {
     taskType: 'parse' | 'stringify' | 'parseFolder' | 'stringifyFolder' | 'parseEnvironment' | 'stringifyEnvironment';
     format?: CollectionFormat;
   }): Promise<any> {
+    const size = getSize(data);
+
     return this.workerQueue.enqueue({
       data: { data, format },
-      priority: 0,
-      scriptPath: '',
+      priority: size,
+      scriptPath: workerScriptPath,
       taskType
     });
   }
