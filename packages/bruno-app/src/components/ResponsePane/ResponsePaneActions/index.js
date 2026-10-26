@@ -1,8 +1,9 @@
 import React, { forwardRef, useRef } from 'react';
 import styled from 'styled-components';
-import { IconDots, IconDownload, IconEraser, IconBookmark, IconCopy, IconLayoutColumns, IconLayoutRows } from '@tabler/icons';
+import { IconDots, IconDownload, IconEraser, IconBookmark, IconCopy, IconFileExport, IconLayoutColumns, IconLayoutRows } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
 import ResponseDownload from '../ResponseDownload';
+import ResponseHarExport from '../ResponseHarExport';
 import ResponseBookmark from '../ResponseBookmark';
 import ResponseClear from '../ResponseClear';
 import ResponseLayoutToggle, { useResponseLayoutToggle } from '../ResponseLayoutToggle';
@@ -45,6 +46,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
   // Refs to access child component imperative handles (click, isDisabled)
   const bookmarkButtonRef = useRef(null);
   const downloadButtonRef = useRef(null);
+  const harExportButtonRef = useRef(null);
   const clearButtonRef = useRef(null);
   const copyButtonRef = useRef(null);
   const layoutToggleButtonRef = useRef(null);
@@ -71,6 +73,15 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
         return downloadButtonRef.current?.isDisabled ?? false;
       },
       onClick: () => downloadButtonRef.current?.click()
+    },
+    {
+      id: 'export-har',
+      label: 'Export as HAR',
+      leftSection: IconFileExport,
+      get disabled() {
+        return harExportButtonRef.current?.isDisabled ?? false;
+      },
+      onClick: () => harExportButtonRef.current?.click()
     },
     {
       id: 'clear-response',
@@ -122,6 +133,15 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
       onClick: () => downloadButtonRef.current?.click()
     },
     {
+      id: 'export-har',
+      label: 'Export as HAR',
+      leftSection: IconFileExport,
+      get disabled() {
+        return harExportButtonRef.current?.isDisabled ?? false;
+      },
+      onClick: () => harExportButtonRef.current?.click()
+    },
+    {
       id: 'clear-response',
       label: 'Clear response',
       leftSection: IconEraser,
@@ -168,6 +188,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
         />
         {item.type !== 'graphql-request' && <ResponseBookmark ref={bookmarkButtonRef} item={item} collection={collection} responseSize={responseSize} />}
         <ResponseDownload ref={downloadButtonRef} item={item} />
+        <ResponseHarExport ref={harExportButtonRef} item={item} />
         <ResponseClear ref={clearButtonRef} item={item} collection={collection} />
         <ResponseLayoutToggle ref={layoutToggleButtonRef} />
       </div>
