@@ -83,4 +83,58 @@ describe('VariableScopeList', () => {
     expect(await screen.findByTestId('test-create-env-error-environment')).toHaveTextContent('Environment already exists');
     expect(screen.getByTestId('test-create-env-input-environment')).toHaveValue('Dev');
   });
+
+  it('opens only one create form at a time', () => {
+    renderList({ scopes: [...scopes, { type: 'global', label: 'Global Environment', enabled: false }] });
+
+    openCreator();
+    fireEvent.click(screen.getByTestId('test-create-env-link-global'));
+
+    expect(screen.getByTestId('test-create-env-input-global')).toBeInTheDocument();
+    expect(screen.queryByTestId('test-create-env-input-environment')).not.toBeInTheDocument();
+    expect(screen.getByTestId('test-create-env-link-environment')).toBeInTheDocument();
+  });
+
+  it('starts with an empty name and no error when the form is reopened', () => {
+    renderList();
+
+    const input = openCreator();
+    fireEvent.change(input, { target: { value: 'stag' } });
+    fireEvent.keyDown(input, { key: 'Escape' });
+
+    expect(openCreator()).toHaveValue('');
+  });
+
+  it('closes the form on Escape without letting the key reach the popover', () => {
+    const onPopoverKeyDown = jest.fn();
+    render(
+      <ThemeProvider theme={themes.light}>
+        <div onKeyDown={onPopoverKeyDown}>
+          <VariableScopeList
+            scopes={scopes}
+            selectedScopeType="request"
+            onSelect={jest.fn()}
+            onCreateEnvironment={jest.fn(() => Promise.resolve())}
+            testIdPrefix="test"
+          />
+        </div>
+      </ThemeProvider>
+    );
+
+    fireEvent.keyDown(openCreator(), { key: 'Escape' });
+
+    expect(screen.getByTestId('test-create-env-link-environment')).toBeInTheDocument();
+    expect(onPopoverKeyDown).not.toHaveBeenCalled();
+  });
+
+  it('clears the error once the name changes', () => {
+    renderList();
+
+    const input = openCreator();
+    fireEvent.click(screen.getByTestId('test-create-env-submit-environment'));
+    expect(screen.getByTestId('test-create-env-error-environment')).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: 'S' } });
+    expect(screen.queryByTestId('test-create-env-error-environment')).not.toBeInTheDocument();
+  });
 });

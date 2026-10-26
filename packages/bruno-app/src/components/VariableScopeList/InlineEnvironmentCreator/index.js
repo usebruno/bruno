@@ -2,13 +2,22 @@ import React, { useState } from 'react';
 import VariableScopeIcon from 'components/VariableScopeIcon';
 import StyledWrapper from './StyledWrapper';
 
-const InlineEnvironmentCreator = ({ scope, onCreate, testIdPrefix }) => {
-  const [isEditing, setIsEditing] = useState(false);
+/**
+ * Row for a scope with no active environment. `isEditing` is owned by VariableScopeList so only one
+ * row shows the name input at a time.
+ */
+const InlineEnvironmentCreator = ({ scope, isEditing, onStartEdit, onCloseEdit, onCreate, testIdPrefix }) => {
   const [environmentName, setEnvironmentName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
   const testId = (part) => `${testIdPrefix}-${part}-${scope.type}`;
+
+  const startEditing = () => {
+    setEnvironmentName('');
+    setError(null);
+    onStartEdit();
+  };
 
   const createEnvironment = () => {
     if (isSubmitting) return;
@@ -20,10 +29,7 @@ const InlineEnvironmentCreator = ({ scope, onCreate, testIdPrefix }) => {
     setIsSubmitting(true);
     setError(null);
     onCreate(scope, environmentName)
-      .then(() => {
-        setIsEditing(false);
-        setEnvironmentName('');
-      })
+      .then(onCloseEdit)
       .catch((createError) => setError(createError.message || 'Failed to create environment'))
       .finally(() => setIsSubmitting(false));
   };
@@ -32,6 +38,10 @@ const InlineEnvironmentCreator = ({ scope, onCreate, testIdPrefix }) => {
     if (event.key === 'Enter') {
       event.preventDefault();
       createEnvironment();
+    } else if (event.key === 'Escape') {
+      // Only leave the name input; the popover around the list should stay open.
+      event.stopPropagation();
+      onCloseEdit();
     }
   };
 
@@ -47,7 +57,10 @@ const InlineEnvironmentCreator = ({ scope, onCreate, testIdPrefix }) => {
             aria-label={`${scope.label} name`}
             className="create-env-input"
             value={environmentName}
-            onChange={(event) => setEnvironmentName(event.target.value)}
+            onChange={(event) => {
+              setEnvironmentName(event.target.value);
+              setError(null);
+            }}
             onKeyDown={handleKeyDown}
             data-testid={testId('create-env-input')}
           />
@@ -68,14 +81,14 @@ const InlineEnvironmentCreator = ({ scope, onCreate, testIdPrefix }) => {
           <button
             type="button"
             className="var-add-to-link-button"
-            onClick={() => setIsEditing(true)}
+            onClick={startEditing}
             data-testid={testId('create-env-link')}
           >
             Create One
           </button>
         </div>
       )}
-      {error ? (
+      {isEditing && error ? (
         <div className="create-env-error" data-testid={testId('create-env-error')}>
           {error}
         </div>
