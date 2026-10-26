@@ -1,4 +1,14 @@
-const { sanitizeName, nextSuffixedName, isWSLPath, normalizeWSLPath, normalizeAndResolvePath, isLargeFile, moveCollectionDirectory } = require('./filesystem.js');
+const {
+  sanitizeName,
+  nextSuffixedName,
+  isWSLPath,
+  normalizeWSLPath,
+  normalizeAndResolvePath,
+  isLargeFile,
+  moveCollectionDirectory,
+  writeEnvironmentFile,
+  writeEnvironmentFileSync
+} = require('./filesystem.js');
 const fs = require('fs-extra');
 const os = require('os');
 const path = require('path');
@@ -189,5 +199,50 @@ describe('moveCollectionDirectory', () => {
 
     // source must remain untouched so the caller can safely retry / roll back
     expect(fs.existsSync(path.join(source, 'bruno.json'))).toBe(true);
+  });
+});
+
+const describeOnPosix = process.platform === 'win32' ? describe.skip : describe;
+
+describeOnPosix('environment file permissions', () => {
+  let workDir;
+  const getMode = (filePath) => fs.statSync(filePath).mode & 0o777;
+
+  beforeEach(async () => {
+    workDir = await fs.mkdtemp(path.join(os.tmpdir(), 'bruno-env-perms-test-'));
+  });
+
+  afterEach(async () => {
+    await fs.remove(workDir);
+  });
+
+  it('creates new environment files readable by the owner only', async () => {
+    const envFile = path.join(workDir, 'environments', 'Local.yml');
+
+    await writeEnvironmentFile(envFile, 'name: Local');
+
+    expect(fs.readFileSync(envFile, 'utf8')).toBe('name: Local');
+    expect(getMode(envFile)).toBe(0o600);
+  });
+
+  it('restricts permissions of an existing world-readable environment file on save', async () => {
+    const envFile = path.join(workDir, 'Local.bru');
+    fs.writeFileSync(envFile, 'vars {}');
+    fs.chmodSync(envFile, 0o644);
+
+    await writeEnvironmentFile(envFile, 'vars { host: localhost }');
+
+    expect(fs.readFileSync(envFile, 'utf8')).toBe('vars { host: localhost }');
+    expect(getMode(envFile)).toBe(0o600);
+  });
+
+  it('applies the same permissions when writing synchronously', () => {
+    const envFile = path.join(workDir, 'Imported.bru');
+    fs.writeFileSync(envFile, 'vars {}');
+    fs.chmodSync(envFile, 0o644);
+
+    writeEnvironmentFileSync(envFile, 'vars { token: abc }');
+
+    expect(getMode(envFile)).toBe(0o600);
   });
 });

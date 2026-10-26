@@ -600,10 +600,46 @@ async function safeWriteFile(filePath, data, options) {
   }
 }
 
-function safeWriteFileSync(filePath, data) {
+function safeWriteFileSync(filePath, data, options) {
   const safePath = getSafePathToWrite(filePath);
-  fs.writeFileSync(safePath, data);
+  fs.writeFileSync(safePath, data, options);
 }
+
+// Environment files can hold credentials, so keep them readable by the owner only.
+// `mode` only applies when the file is created, so existing files are chmod-ed too.
+const ENVIRONMENT_FILE_MODE = 0o600;
+
+const restrictEnvironmentFilePermissions = (pathname) => {
+  if (process.platform === 'win32') {
+    return;
+  }
+
+  try {
+    fs.chmodSync(getSafePathToWrite(pathname), ENVIRONMENT_FILE_MODE);
+  } catch (err) {
+    // Some filesystems (e.g. FAT or network mounts) don't support POSIX permissions
+    console.warn(`Could not restrict permissions of environment file at ${pathname}:`, err);
+  }
+};
+
+const writeEnvironmentFile = async (pathname, content) => {
+  try {
+    await safeWriteFile(pathname, content, {
+      encoding: 'utf-8',
+      mode: ENVIRONMENT_FILE_MODE
+    });
+  } catch (err) {
+    console.error(`Error writing file at ${pathname}:`, err);
+    return Promise.reject(err);
+  }
+
+  restrictEnvironmentFilePermissions(pathname);
+};
+
+const writeEnvironmentFileSync = (pathname, content) => {
+  safeWriteFileSync(pathname, content, { mode: ENVIRONMENT_FILE_MODE });
+  restrictEnvironmentFilePermissions(pathname);
+};
 
 // Recursively removes a source <file/directory>.
 const removePath = async (source) => {
@@ -781,6 +817,8 @@ module.exports = {
   isWSLPath,
   normalizeWSLPath,
   writeFile,
+  writeEnvironmentFile,
+  writeEnvironmentFileSync,
   withFileLock,
   nextSuffixedName,
   writeFileUnique,
