@@ -480,7 +480,12 @@ app.on('ready', async () => {
           autoHideMenuBar: true,
           // No OS title bar, the chat header is the drag region and carries
           // its own close/dock controls.
-          frame: false
+          frame: false,
+          webPreferences: {
+            preload: '',
+            nodeIntegration: false,
+            contextIsolation: true
+          }
         }
       };
     }
