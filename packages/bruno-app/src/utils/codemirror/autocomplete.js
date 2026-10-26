@@ -1034,11 +1034,12 @@ export const getAutoCompleteHints = (cm, allVariables = {}, anywordAutocompleteH
 };
 
 /**
- * Handle click events for autocomplete
+ * Show every available hint at the cursor, regardless of what has been typed.
+ * Used by the click trigger and by emptying the field (e.g. Backspace) while focused.
  * @param {Object} cm - CodeMirror instance
  * @param {Object} options - Configuration options
  */
-const handleClickForAutocomplete = (cm, options) => {
+const showAllHintsAtCursor = (cm, options) => {
   const allVariables = options.getAllVariables?.() || {};
   const anywordAutocompleteHints = options.getAnywordAutocompleteHints?.() || [];
   const showHintsFor = options.showHintsFor || [];
@@ -1070,17 +1071,19 @@ const handleClickForAutocomplete = (cm, options) => {
     return;
   }
 
-  const cursor = cm.getCursor();
-
-  if (cursor.ch > 0) return;
-
-  // Defer showHint to ensure editor is focused
+  // Deferred so the editor is focused and the cursor sits where the click landed
+  // (mousedown fires before CodeMirror moves the cursor).
   setTimeout(() => {
+    const cursor = cm.getCursor();
+    const wordInfo = extractWordFromLine(cm.getLine(cursor.line), cursor.ch);
+    const from = wordInfo ? { line: cursor.line, ch: wordInfo.start } : cursor;
+    const to = wordInfo ? { line: cursor.line, ch: wordInfo.end } : cursor;
+
     cm.showHint({
       hint: () => ({
         list: allHints,
-        from: cursor,
-        to: cursor
+        from,
+        to
       }),
       completeSingle: false
     });
@@ -1115,6 +1118,9 @@ const handleKeyupForAutocomplete = (cm, event, options) => {
     const wordInfo = getCurrentWordWithContext(cm, options);
     if (cm.state.completionActive && wordInfo) {
       cm.state.completionActive.close();
+    }
+    if (options.showHintsOnClick && cm.getValue() === '') {
+      showAllHintsAtCursor(cm, options);
     }
     return;
   }
@@ -1209,10 +1215,7 @@ export const setupAutoComplete = (editor, options = {}) => {
   editor.on('keyup', keyupHandler);
 
   const clickHandler = (cm) => {
-    // Only show hints on click if the option is enabled and there's no active completion
-    if (options.showHintsOnClick) {
-      handleClickForAutocomplete(cm, options);
-    }
+    showAllHintsAtCursor(cm, options);
   };
 
   // Add click handler if showHintsOnClick is enabled

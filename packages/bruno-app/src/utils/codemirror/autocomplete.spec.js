@@ -7,6 +7,7 @@ const _mockedCodemirror = {
   getCursor: jest.fn(),
   getLine: jest.fn(),
   getRange: jest.fn(),
+  getValue: jest.fn(() => ''),
   showHint: jest.fn(),
   on: jest.fn(),
   off: jest.fn(),
@@ -1608,6 +1609,7 @@ describe('Bruno Autocomplete', () => {
         const clickHandler = mockedCodemirror.on.mock.calls.find((call) => call[0] === 'mousedown')[1];
 
         mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 0 });
+        mockedCodemirror.getLine.mockReturnValue('');
 
         clickHandler(mockedCodemirror);
 
@@ -1619,6 +1621,112 @@ describe('Bruno Autocomplete', () => {
         expect(mockedCodemirror.showHint).toHaveBeenCalled();
 
         jest.useRealTimers();
+      });
+
+      it('should show every hint on click and replace the word under the cursor', () => {
+        jest.useFakeTimers();
+
+        const options = {
+          getAllVariables: jest.fn(() => ({})),
+          getAnywordAutocompleteHints: jest.fn(() => ['smoke', 'regression']),
+          showHintsOnClick: true,
+          showHintsFor: []
+        };
+        cleanupFn = setupAutoComplete(mockedCodemirror, options);
+        const clickHandler = mockedCodemirror.on.mock.calls.find((call) => call[0] === 'mousedown')[1];
+
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 1 });
+        mockedCodemirror.getLine.mockReturnValue('re');
+
+        clickHandler(mockedCodemirror);
+        jest.runAllTimers();
+
+        expect(mockedCodemirror.showHint).toHaveBeenCalled();
+        const hintResult = mockedCodemirror.showHint.mock.calls[0][0].hint();
+        expect(hintResult).toEqual({
+          list: ['regression', 'smoke'],
+          from: { line: 0, ch: 0 },
+          to: { line: 0, ch: 2 }
+        });
+
+        jest.useRealTimers();
+      });
+
+      it('should insert at the cursor on click when the field is empty', () => {
+        jest.useFakeTimers();
+
+        const options = {
+          getAllVariables: jest.fn(() => ({})),
+          getAnywordAutocompleteHints: jest.fn(() => ['smoke']),
+          showHintsOnClick: true,
+          showHintsFor: []
+        };
+        cleanupFn = setupAutoComplete(mockedCodemirror, options);
+        const clickHandler = mockedCodemirror.on.mock.calls.find((call) => call[0] === 'mousedown')[1];
+
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 0 });
+        mockedCodemirror.getLine.mockReturnValue('');
+
+        clickHandler(mockedCodemirror);
+        jest.runAllTimers();
+
+        const hintResult = mockedCodemirror.showHint.mock.calls[0][0].hint();
+        expect(hintResult).toEqual({
+          list: ['smoke'],
+          from: { line: 0, ch: 0 },
+          to: { line: 0, ch: 0 }
+        });
+
+        jest.useRealTimers();
+      });
+
+      it('should reopen every hint when the field is emptied with Backspace while focused', () => {
+        jest.useFakeTimers();
+
+        const options = {
+          getAllVariables: jest.fn(() => ({})),
+          getAnywordAutocompleteHints: jest.fn(() => ['smoke', 'regression']),
+          showHintsOnClick: true,
+          showHintsFor: []
+        };
+        cleanupFn = setupAutoComplete(mockedCodemirror, options);
+        const keyupHandler = mockedCodemirror.on.mock.calls.find((call) => call[0] === 'keyup')[1];
+
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 0 });
+        mockedCodemirror.getLine.mockReturnValue('');
+        mockedCodemirror.getRange.mockReturnValue('');
+        mockedCodemirror.getValue.mockReturnValue('');
+
+        keyupHandler(mockedCodemirror, { key: 'Backspace' });
+        jest.runAllTimers();
+
+        const hintResult = mockedCodemirror.showHint.mock.calls[0][0].hint();
+        expect(hintResult).toEqual({
+          list: ['regression', 'smoke'],
+          from: { line: 0, ch: 0 },
+          to: { line: 0, ch: 0 }
+        });
+
+        jest.useRealTimers();
+      });
+
+      it('should not reopen hints on Backspace when showHintsOnClick is disabled', () => {
+        const options = {
+          getAllVariables: jest.fn(() => ({})),
+          getAnywordAutocompleteHints: jest.fn(() => ['smoke']),
+          showHintsOnClick: false,
+          showHintsFor: []
+        };
+        cleanupFn = setupAutoComplete(mockedCodemirror, options);
+        const keyupHandler = mockedCodemirror.on.mock.calls.find((call) => call[0] === 'keyup')[1];
+
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 0 });
+        mockedCodemirror.getLine.mockReturnValue('');
+        mockedCodemirror.getRange.mockReturnValue('');
+
+        keyupHandler(mockedCodemirror, { key: 'Backspace' });
+
+        expect(mockedCodemirror.showHint).not.toHaveBeenCalled();
       });
 
       it('should not show hints on click when showHintsOnClick is disabled', () => {
