@@ -36,16 +36,19 @@ const StyledWrapper = styled.div`
   .source-input {
     flex: 1;
     min-width: 0;
-    height: 1.75rem;
-    padding: 0.375rem 0.5rem;
+    height: 2.1rem;
+    box-sizing: border-box;
+    padding: 0.3rem 0.6rem;
     font-size: ${(props) => props.theme.font.size.base};
     color: ${(props) => props.theme.text};
     background: ${(props) => props.theme.input.bg};
     border: 1px solid ${(props) => props.theme.input.border};
-    border-radius: ${(props) => props.theme.border.radius.base};
+    border-radius: 0.1875rem;
     outline: none;
+    transition: border-color ease-in-out 0.1s;
 
-    &:focus {
+    &:focus,
+    &[aria-expanded='true'] {
       border-color: ${(props) => props.theme.input.focusBorder};
     }
 
@@ -60,15 +63,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .source-input.text-centered {
-    padding-top: 0;
-    padding-bottom: 0;
-  }
-
-  .source-input.with-caret {
-    padding-right: 1.75rem;
-  }
-
   &.settings .source-input {
     height: auto;
     padding-top: 7px;
@@ -79,7 +73,8 @@ const StyledWrapper = styled.div`
     border-color: ${(props) => props.theme.border.border1};
     border-radius: 5px;
 
-    &:focus {
+    &:focus,
+    &[aria-expanded='true'] {
       border-color: ${(props) => props.theme.input.focusBorder};
     }
   }

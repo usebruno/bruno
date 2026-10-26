@@ -1,21 +1,30 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  position: relative;
   display: flex;
   flex: 1;
   min-width: 0;
 
-  select {
-    appearance: none;
+  .spec-select-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    text-align: left;
+    cursor: pointer;
+
+    &:disabled {
+      cursor: not-allowed;
+    }
   }
 
-  .select-caret {
-    position: absolute;
-    top: 50%;
-    right: calc(0.5rem + 1px);
-    transform: translateY(-50%);
-    pointer-events: none;
+  .placeholder {
+    color: ${(props) => props.theme.input.placeholder.color};
+    opacity: ${(props) => props.theme.input.placeholder.opacity};
+  }
+
+  .caret {
+    flex-shrink: 0;
     color: ${(props) => props.theme.colors.text.muted};
   }
 `;

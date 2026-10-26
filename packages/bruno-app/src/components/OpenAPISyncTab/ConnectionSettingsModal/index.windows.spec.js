@@ -7,7 +7,7 @@ jest.mock('platform', () => ({
 import '@testing-library/jest-dom';
 import React from 'react';
 import { fireEvent, waitFor } from '@testing-library/react';
-import { renderWithWorkspaceSpecs, workspaceSpec } from 'components/OpenAPISyncTab/testUtils';
+import { renderWithWorkspaceSpecs, workspaceSpec, pickWorkspaceSpec } from 'components/OpenAPISyncTab/testUtils';
 import ConnectionSettingsModal from './index';
 
 const petsSpec = workspaceSpec('pets', 'Pets', 'C:\\WS\\Specs\\Pets.yaml');
@@ -36,13 +36,13 @@ describe('ConnectionSettingsModal on Windows, where file paths ignore case', () 
     const { getByTestId } = renderModal('../../specs/pets.yaml');
 
     expect(getByTestId('tab-workspace')).toHaveAttribute('aria-selected', 'true');
-    expect(getByTestId('spec-source-workspace-select')).toHaveValue('pets');
+    expect(getByTestId('spec-source-workspace-select')).toHaveTextContent('Pets');
   });
 
   it('saves the loaded spec path when switching to another workspace spec', async () => {
     const { getByRole, getByTestId, onSave } = renderModal('../../specs/pets.yaml');
 
-    fireEvent.change(getByTestId('spec-source-workspace-select'), { target: { value: 'zoo' } });
+    pickWorkspaceSpec(getByTestId, 'zoo');
     fireEvent.click(getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledWith(

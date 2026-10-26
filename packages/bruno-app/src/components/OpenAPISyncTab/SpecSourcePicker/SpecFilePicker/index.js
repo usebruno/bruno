@@ -45,7 +45,7 @@ const SpecFilePicker = ({ value, onChange, onError }) => {
       />
       <button
         type="button"
-        className="source-input text-centered file-pick-btn"
+        className="source-input file-pick-btn"
         onClick={() => fileInputRef.current?.click()}
         data-testid="spec-source-file-button"
       >

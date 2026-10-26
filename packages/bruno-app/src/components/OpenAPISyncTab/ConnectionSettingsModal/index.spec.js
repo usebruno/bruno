@@ -2,7 +2,7 @@ import '@testing-library/jest-dom';
 import React from 'react';
 import toast from 'react-hot-toast';
 import { fireEvent, waitFor } from '@testing-library/react';
-import { renderWithWorkspaceSpecs, workspaceSpec } from 'components/OpenAPISyncTab/testUtils';
+import { renderWithWorkspaceSpecs, workspaceSpec, pickWorkspaceSpec } from 'components/OpenAPISyncTab/testUtils';
 import ConnectionSettingsModal from './index';
 
 jest.mock('react-hot-toast', () => ({ __esModule: true, default: { error: jest.fn(), success: jest.fn() } }));
@@ -44,14 +44,14 @@ describe('ConnectionSettingsModal', () => {
     const { findByTestId, getByTestId } = renderModal('../../specs/pets.yaml');
 
     expect(await findByTestId('tab-workspace')).toHaveAttribute('aria-selected', 'true');
-    expect(getByTestId('spec-source-workspace-select')).toHaveValue('pets');
+    expect(getByTestId('spec-source-workspace-select')).toHaveTextContent('Pets');
   });
 
   it('opens on the Workspace tab for an older connection stored as an absolute path', () => {
     const { getByTestId } = renderModal('/ws/specs/zoo.yaml');
 
     expect(getByTestId('tab-workspace')).toHaveAttribute('aria-selected', 'true');
-    expect(getByTestId('spec-source-workspace-select')).toHaveValue('zoo');
+    expect(getByTestId('spec-source-workspace-select')).toHaveTextContent('Zoo');
   });
 
   it('moves to the Workspace tab when the connected spec loads after the modal opens', () => {
@@ -61,7 +61,7 @@ describe('ConnectionSettingsModal', () => {
     setWorkspaceSpecs([petsSpec, zooSpec]);
 
     expect(getByTestId('tab-workspace')).toHaveAttribute('aria-selected', 'true');
-    expect(getByTestId('spec-source-workspace-select')).toHaveValue('pets');
+    expect(getByTestId('spec-source-workspace-select')).toHaveTextContent('Pets');
   });
 
   it('keeps the tab the user chose when workspace specs load later', () => {
@@ -97,7 +97,7 @@ describe('ConnectionSettingsModal', () => {
   it('saves the path of a newly picked workspace spec with the auto-check settings', async () => {
     const { getByRole, getByTestId, onSave } = renderModal('../../specs/pets.yaml');
 
-    fireEvent.change(getByTestId('spec-source-workspace-select'), { target: { value: 'zoo' } });
+    pickWorkspaceSpec(getByTestId, 'zoo');
     fireEvent.click(getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledWith({
@@ -120,7 +120,7 @@ describe('ConnectionSettingsModal', () => {
   it('reports a picked spec that is not OpenAPI 3.x and blocks saving', () => {
     const { getByRole, getByTestId } = renderModal('../../specs/pets.yaml');
 
-    fireEvent.change(getByTestId('spec-source-workspace-select'), { target: { value: 'legacy' } });
+    pickWorkspaceSpec(getByTestId, 'legacy');
 
     expect(toast.error).toHaveBeenCalledWith('Swagger 2.0 is not supported. Please convert your spec to OpenAPI 3.x.');
     expect(getByRole('button', { name: 'Save' })).toBeDisabled();
@@ -128,7 +128,7 @@ describe('ConnectionSettingsModal', () => {
 
   it('blocks saving when a picked workspace spec leaves the workspace', () => {
     const { getByRole, getByTestId, setWorkspaceSpecs } = renderModal('../../specs/pets.yaml');
-    fireEvent.change(getByTestId('spec-source-workspace-select'), { target: { value: 'zoo' } });
+    pickWorkspaceSpec(getByTestId, 'zoo');
     expect(getByRole('button', { name: 'Save' })).toBeEnabled();
 
     setWorkspaceSpecs([petsSpec]);
@@ -162,7 +162,7 @@ describe('ConnectionSettingsModal', () => {
     fireEvent.change(getByTestId('spec-source-url-input'), { target: { value: 'https://api.example.com/openapi.json' } });
     fireEvent.click(await findByTestId('tab-workspace'));
 
-    expect(getByTestId('spec-source-workspace-select')).toHaveValue('pets');
+    expect(getByTestId('spec-source-workspace-select')).toHaveTextContent('Pets');
 
     fireEvent.click(await findByTestId('tab-url'));
     expect(getByTestId('spec-source-url-input')).toHaveValue('https://api.example.com/openapi.json');

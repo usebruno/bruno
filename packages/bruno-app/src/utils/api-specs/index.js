@@ -39,9 +39,11 @@ export const isApiSpecTabForPathname = (tab, pathname) => {
 export const hasUnsavedApiSpecChanges = (apiSpec) =>
   Boolean(apiSpec) && typeof apiSpec.draft === 'string' && apiSpec.draft !== apiSpec.raw;
 
+export const getSpecLabel = (spec) => spec.name || spec.filename || spec.pathname;
+
 const toSpecOption = (spec) => ({
   uid: spec.uid,
-  name: spec.name || spec.filename || spec.pathname,
+  name: getSpecLabel(spec),
   pathname: spec.pathname
 });
 

@@ -10,8 +10,8 @@ export const buildOpenApiSyncLocators = (page: Page) => {
 
     sourceTab: (key: 'workspace' | 'url' | 'file') => page.getByTestId(`tab-${key}`),
     workspaceSelect: () => page.getByTestId('spec-source-workspace-select'),
-    workspaceSelectedOption: () => page.getByTestId('spec-source-workspace-select').locator('option:checked'),
-    workspaceOptions: () => page.getByTestId('spec-source-workspace-select').locator('option'),
+    workspaceMenu: () => page.getByRole('menu'),
+    workspaceOptions: () => page.getByRole('menu').getByRole('menuitem'),
     urlInput: () => page.getByTestId('spec-source-url-input'),
     fileInput: () => page.getByTestId('spec-source-file-input'),
     fileButton: () => page.getByTestId('spec-source-file-button'),
@@ -50,5 +50,13 @@ export const openConnectionSettings = async (page: Page) => {
     const sync = buildOpenApiSyncLocators(page);
     await sync.headerMenu().click();
     await sync.editSettingsItem().click();
+  });
+};
+
+export const pickWorkspaceSpec = async (page: Page, specName: string) => {
+  await test.step(`Pick the workspace spec "${specName}"`, async () => {
+    const sync = buildOpenApiSyncLocators(page);
+    await sync.workspaceSelect().click();
+    await sync.workspaceOptions().filter({ hasText: new RegExp(`^${specName}$`) }).click();
   });
 };

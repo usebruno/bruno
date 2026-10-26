@@ -2,7 +2,7 @@ import React from 'react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'styled-components';
-import { act, render } from '@testing-library/react';
+import { act, fireEvent, render } from '@testing-library/react';
 import themes from 'themes/index';
 
 export const validOpenApiSpec = { openapi: '3.0.0', info: { title: 'Pets' }, paths: {} };
@@ -39,4 +39,9 @@ export const renderWithWorkspaceSpecs = (ui, specs = []) => {
   });
 
   return { ...utils, setWorkspaceSpecs };
+};
+
+export const pickWorkspaceSpec = (getByTestId, uid) => {
+  fireEvent.click(getByTestId('spec-source-workspace-select'));
+  fireEvent.click(getByTestId(`spec-source-workspace-menu-${uid}`));
 };

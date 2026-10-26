@@ -48,7 +48,7 @@ const StyledWrapper = styled.div`
   }
 
   .connect-button button {
-    height: 1.75rem;
+    height: 2.1rem;
   }
 
   .setup-hint {

@@ -4,7 +4,12 @@ import jsyaml from 'js-yaml';
 import { test, expect, closeElectronApp, ElectronApplication } from '../../playwright';
 import { waitForReadyPage, openWorkspaceFromDialog } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
-import { openConnectedOpenApiSyncTab, openConnectionSettings, openOpenApiSyncTab } from '../utils/page/openapi/sync';
+import {
+  openConnectedOpenApiSyncTab,
+  openConnectionSettings,
+  openOpenApiSyncTab,
+  pickWorkspaceSpec
+} from '../utils/page/openapi/sync';
 
 const WORKSPACE_NAME = 'Spec Source Workspace';
 const COLLECTION_NAME = 'Pets Collection';
@@ -125,15 +130,22 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
       try {
         await openOpenApiSyncTab(page, COLLECTION_NAME);
 
-        await test.step('The Workspace tab is open, listing the workspace specs with nothing selected', async () => {
+        await test.step('The Workspace tab is open with nothing selected', async () => {
           await expect(sync.sourceTab('workspace')).toHaveAttribute('aria-selected', 'true');
-          await expect(sync.workspaceOptions()).toHaveText(['Select an API spec', 'Legacy API', 'Pets API', 'Zoo API']);
-          await expect(sync.workspaceSelect()).toHaveValue('');
+          await expect(sync.workspaceSelect()).toHaveText('Select an API spec');
           await expect(sync.connectButton()).toBeDisabled();
         });
 
+        await test.step('The dropdown lists the workspace specs in workspace order', async () => {
+          await sync.workspaceSelect().click();
+          await expect(sync.workspaceOptions()).toHaveText(['Pets API', 'Zoo API', 'Legacy API']);
+          await page.keyboard.press('Escape');
+          await expect(sync.workspaceMenu()).toBeHidden();
+        });
+
         await test.step('Pick a workspace spec and connect', async () => {
-          await sync.workspaceSelect().selectOption({ label: 'Pets API' });
+          await pickWorkspaceSpec(page, 'Pets API');
+          await expect(sync.workspaceSelect()).toHaveText('Pets API');
           await expect(sync.connectButton()).toBeEnabled();
           await sync.connectButton().click();
           await expect(sync.connectedHeader()).toBeVisible({ timeout: 10000 });
@@ -159,14 +171,22 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
     try {
       await openOpenApiSyncTab(page, COLLECTION_NAME);
 
-      await test.step('Pick the Swagger 2.0 spec', async () => {
-        await sync.workspaceSelect().selectOption({ label: 'Legacy API' });
-      });
+      await pickWorkspaceSpec(page, 'Legacy API');
 
       await test.step('The Swagger error shows and Connect stays disabled', async () => {
         await expect(sync.connectError()).toHaveText('Swagger 2.0 is not supported. Please convert your spec to OpenAPI 3.x.');
-        await expect(sync.workspaceSelect()).toHaveValue('');
+        await expect(sync.workspaceSelect()).toHaveText('Select an API spec');
         await expect(sync.connectButton()).toBeDisabled();
+      });
+
+      await test.step('The dropdown also works from the keyboard', async () => {
+        await sync.workspaceSelect().focus();
+        await page.keyboard.press('Enter');
+        await expect(sync.workspaceMenu()).toBeVisible();
+        await page.keyboard.press('ArrowDown');
+        await page.keyboard.press('Enter');
+        await expect(sync.workspaceSelect()).toHaveText('Pets API');
+        await expect(sync.connectButton()).toBeEnabled();
       });
     } finally {
       await closeElectronApp(app);
@@ -186,7 +206,7 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
 
       await test.step('The workspace list is disabled and says there are no specs', async () => {
         await expect(sync.workspaceSelect()).toBeDisabled();
-        await expect(sync.workspaceSelectedOption()).toHaveText('No API specs in this workspace');
+        await expect(sync.workspaceSelect()).toHaveText('No API specs in this workspace');
       });
 
       await test.step('The source tabs switch from the keyboard', async () => {
@@ -239,11 +259,11 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
       await test.step('The Workspace tab is open with the connected spec selected', async () => {
         await expect(sync.settingsModal()).toBeVisible();
         await expect(sync.sourceTab('workspace')).toHaveAttribute('aria-selected', 'true');
-        await expect(sync.workspaceSelectedOption()).toHaveText('Zoo API');
+        await expect(sync.workspaceSelect()).toHaveText('Zoo API');
       });
 
       await test.step('Switch to another workspace spec and save', async () => {
-        await sync.workspaceSelect().selectOption({ label: 'Pets API' });
+        await pickWorkspaceSpec(page, 'Pets API');
         await sync.settingsSave().click();
         await expect(sync.settingsModal()).toBeHidden();
       });
@@ -256,7 +276,7 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
 
       await test.step('Reopening Connection Settings shows the new spec selected', async () => {
         await expect(sync.sourceTab('workspace')).toHaveAttribute('aria-selected', 'true');
-        await expect(sync.workspaceSelectedOption()).toHaveText('Pets API');
+        await expect(sync.workspaceSelect()).toHaveText('Pets API');
       });
     } finally {
       await closeElectronApp(app);
@@ -302,7 +322,7 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
 
       await test.step('The Workspace tab is open with the spec at that absolute path selected', async () => {
         await expect(sync.sourceTab('workspace')).toHaveAttribute('aria-selected', 'true');
-        await expect(sync.workspaceSelectedOption()).toHaveText('Zoo API');
+        await expect(sync.workspaceSelect()).toHaveText('Zoo API');
       });
     } finally {
       await closeElectronApp(app);

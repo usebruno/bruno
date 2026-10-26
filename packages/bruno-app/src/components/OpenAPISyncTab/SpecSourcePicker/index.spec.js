@@ -4,7 +4,8 @@ import { act, fireEvent, waitFor } from '@testing-library/react';
 import {
   renderWithWorkspaceSpecs,
   validOpenApiSpec,
-  workspaceSpec
+  workspaceSpec,
+  pickWorkspaceSpec
 } from 'components/OpenAPISyncTab/testUtils';
 import SpecSourcePicker from './index';
 
@@ -80,40 +81,42 @@ describe('SpecSourcePicker', () => {
   });
 
   describe('workspace mode', () => {
-    it('lists the workspace specs by name after a placeholder, with nothing selected', () => {
+    it('shows a placeholder with nothing selected', () => {
       const { getByTestId } = renderPicker();
-      const select = getByTestId('spec-source-workspace-select');
 
-      expect(Array.from(select.options).map((option) => option.textContent)).toEqual([
-        'Select an API spec',
-        'Pets',
-        'Zoo'
-      ]);
-      expect(select).toHaveValue('');
+      expect(getByTestId('spec-source-workspace-select')).toHaveTextContent('Select an API spec');
+    });
+
+    it('lists the workspace specs in the order the workspace keeps them', () => {
+      const { getByTestId, getAllByRole } = renderPicker();
+
+      fireEvent.click(getByTestId('spec-source-workspace-select'));
+
+      expect(getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Zoo', 'Pets']);
     });
 
     it('gives the dropdown an accessible name', () => {
       const { getByRole } = renderPicker();
 
-      expect(getByRole('combobox', { name: 'API spec' })).toBeInTheDocument();
+      expect(getByRole('button', { name: 'API spec' })).toBeInTheDocument();
     });
 
-    it('draws its own chevron inside the dropdown', () => {
+    it('draws a chevron inside the dropdown', () => {
       const { getByTestId } = renderPicker();
 
-      expect(getByTestId('spec-source-workspace-select').parentElement.querySelector('.select-caret')).toBeInTheDocument();
+      expect(getByTestId('spec-source-workspace-select').querySelector('.caret')).toBeInTheDocument();
     });
 
     it('shows the spec at the current path as selected', () => {
       const { getByTestId } = renderPicker({ value: '/ws/specs/zoo.yaml' });
 
-      expect(getByTestId('spec-source-workspace-select')).toHaveValue('zoo');
+      expect(getByTestId('spec-source-workspace-select')).toHaveTextContent('Zoo');
     });
 
     it('reports the path of the picked spec', () => {
       const { getByTestId, onChange, onError } = renderPicker();
 
-      fireEvent.change(getByTestId('spec-source-workspace-select'), { target: { value: 'pets' } });
+      pickWorkspaceSpec(getByTestId, 'pets');
 
       expect(onError).toHaveBeenCalledWith(null);
       expect(onChange).toHaveBeenCalledWith('/ws/specs/pets.yaml');
@@ -122,18 +125,18 @@ describe('SpecSourcePicker', () => {
     it('rejects a picked spec that is not OpenAPI 3.x and clears the value', () => {
       const { getByTestId, onChange, onError } = renderPicker({ specs: [petsSpec, swaggerSpec] });
 
-      fireEvent.change(getByTestId('spec-source-workspace-select'), { target: { value: 'legacy' } });
+      pickWorkspaceSpec(getByTestId, 'legacy');
 
       expect(onError).toHaveBeenCalledWith('Swagger 2.0 is not supported. Please convert your spec to OpenAPI 3.x.');
       expect(onChange).toHaveBeenCalledWith('');
     });
 
-    it('says the workspace has no specs and disables the list when there are none', () => {
+    it('says the workspace has no specs and disables the dropdown when there are none', () => {
       const { getByTestId } = renderPicker({ specs: [] });
-      const select = getByTestId('spec-source-workspace-select');
+      const trigger = getByTestId('spec-source-workspace-select');
 
-      expect(select).toBeDisabled();
-      expect(select).toHaveDisplayValue('No API specs in this workspace');
+      expect(trigger).toBeDisabled();
+      expect(trigger).toHaveTextContent('No API specs in this workspace');
     });
   });
 
