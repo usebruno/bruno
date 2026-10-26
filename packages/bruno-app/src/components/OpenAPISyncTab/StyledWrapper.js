@@ -43,7 +43,7 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.background.mantle};
     border: 1px solid ${(props) => props.theme.border.border1};
     border-radius: ${(props) => props.theme.border.radius.md};
-    padding: 1rem;
+    padding: 0.375rem 0.75rem 0.75rem;
     margin-bottom: 1.25rem;
   }
 
