@@ -19,8 +19,10 @@ import {
   setActiveTab,
   clearDebugErrors,
   updateNetworkFilter,
-  toggleAllNetworkFilters
+  toggleAllNetworkFilters,
+  clearSelectedRequest
 } from 'providers/ReduxStore/slices/logs';
+import { clearAllNetworkTimeline } from 'providers/ReduxStore/slices/collections';
 
 import { DevToolsFilterDropdown } from './FilterDropdown';
 import LogIcon from './LogIcon';
@@ -329,6 +331,11 @@ const Console = () => {
     dispatch(toggleAllNetworkFilters(enabled));
   };
 
+  const handleClearNetworkLogs = () => {
+    dispatch(clearAllNetworkTimeline());
+    dispatch(clearSelectedRequest());
+  };
+
   const handleTabChange = (tab) => {
     dispatch(setActiveTab(tab));
   };
@@ -407,6 +414,17 @@ const Console = () => {
                 headerLabel="Filter by Method"
                 title="Filter requests by method"
               />
+            </div>
+            <div className="action-controls">
+              <button
+                className="control-button"
+                onClick={handleClearNetworkLogs}
+                title="Clear all network requests"
+                data-testid="clear-network-logs"
+                disabled={allRequests.length === 0}
+              >
+                <IconTrash size={16} strokeWidth={1.5} />
+              </button>
             </div>
           </div>
         );

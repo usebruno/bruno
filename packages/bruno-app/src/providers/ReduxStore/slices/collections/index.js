@@ -956,6 +956,13 @@ export const collectionsSlice = createSlice({
         collection.timeline = [];
       }
     },
+    clearAllNetworkTimeline: (state) => {
+      state.collections.forEach((collection) => {
+        if (collection.timeline && Array.isArray(collection.timeline)) {
+          collection.timeline = collection.timeline.filter((t) => t?.type !== 'request');
+        }
+      });
+    },
     clearRequestTimeline: (state, action) => {
       const { collectionUid, itemUid } = action.payload || {};
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -4334,6 +4341,7 @@ export const {
   dismissUnresolvedVariables,
   responseCleared,
   clearTimeline,
+  clearAllNetworkTimeline,
   clearRequestTimeline,
   saveRequest,
   deleteRequestDraft,

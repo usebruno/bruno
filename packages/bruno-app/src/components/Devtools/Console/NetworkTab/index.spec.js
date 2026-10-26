@@ -3,6 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'providers/Theme';
+import { collectionsSlice } from 'providers/ReduxStore/slices/collections';
+import logsReducer from 'providers/ReduxStore/slices/logs';
 import NetworkTab from './index';
 
 const makeRequest = (overrides = {}) => ({
@@ -33,30 +35,36 @@ beforeEach(() => {
   localStorage.clear();
 });
 
-const renderNetworkTab = (requests = []) => {
+const renderNetworkTab = (requests = [], { networkFilters = ALL_FILTERS } = {}) => {
   const store = configureStore({
     reducer: {
-      collections: (state = {
+      collections: collectionsSlice.reducer,
+      logs: logsReducer
+    },
+    preloadedState: {
+      collections: {
         collections: [{
           uid: 'col-1',
           name: 'Test Collection',
           timeline: requests
         }]
-      }) => state,
-      logs: (state = {
-        networkFilters: ALL_FILTERS,
-        selectedRequest: null
-      }) => state
+      },
+      logs: {
+        ...logsReducer(undefined, { type: '@@INIT' }),
+        networkFilters
+      }
     }
   });
 
-  return render(
+  const result = render(
     <Provider store={store}>
       <ThemeProvider>
         <NetworkTab />
       </ThemeProvider>
     </Provider>
   );
+
+  return { ...result, store };
 };
 
 beforeEach(() => {
@@ -203,5 +211,52 @@ describe('sort results', () => {
     fireEvent.click(screen.getByTestId('network-header-method'));
     fireEvent.click(screen.getByTestId('network-header-method'));
     expect(getRowMethods()).toEqual(['POST', 'GET', 'DELETE']);
+  });
+});
+
+describe('clear network logs', () => {
+  const HIDDEN_FILTERS = { ...ALL_FILTERS, POST: false };
+
+  it('does not show the empty-state clear button when there are no requests at all', () => {
+    renderNetworkTab([]);
+    expect(screen.getByText('No network requests')).toBeInTheDocument();
+    expect(screen.queryByTestId('clear-network-logs-empty')).not.toBeInTheDocument();
+  });
+
+  it('shows the empty-state clear button when requests are hidden by filters', () => {
+    renderNetworkTab([makeRequest({ itemUid: '1', method: 'POST' })], {
+      networkFilters: HIDDEN_FILTERS
+    });
+
+    expect(screen.getByText('No network requests')).toBeInTheDocument();
+    expect(screen.getByTestId('clear-network-logs-empty')).toBeInTheDocument();
+  });
+
+  it('clears request entries from every collection and drops the selected request', () => {
+    const requests = [
+      makeRequest({ itemUid: '1', method: 'POST' }),
+      makeRequest({ itemUid: '2', method: 'POST', timestamp: 2000 })
+    ];
+
+    const { store } = renderNetworkTab(requests, { networkFilters: HIDDEN_FILTERS });
+    store.dispatch({ type: 'logs/setSelectedRequest', payload: requests[0] });
+
+    fireEvent.click(screen.getByTestId('clear-network-logs-empty'));
+
+    expect(store.getState().collections.collections[0].timeline).toEqual([]);
+    expect(store.getState().logs.selectedRequest).toBeNull();
+    expect(screen.queryByTestId('clear-network-logs-empty')).not.toBeInTheDocument();
+  });
+
+  it('keeps non-request timeline entries when clearing network logs', () => {
+    const infoEntry = { type: 'info', timestamp: 3000, message: 'Kept' };
+    const { store } = renderNetworkTab([
+      makeRequest({ itemUid: '1', method: 'POST' }),
+      infoEntry
+    ], { networkFilters: HIDDEN_FILTERS });
+
+    fireEvent.click(screen.getByTestId('clear-network-logs-empty'));
+
+    expect(store.getState().collections.collections[0].timeline).toEqual([infoEntry]);
   });
 });

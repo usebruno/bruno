@@ -12,7 +12,8 @@ const {
   clearSidebarSelection,
   setLastClickedSidebarUid,
   collapseItem,
-  expandItem
+  expandItem,
+  clearAllNetworkTimeline
 } = collectionsSlice.actions;
 const reducer = collectionsSlice.reducer;
 
@@ -292,5 +293,54 @@ describe('updateVar — dataType is only changed when the caller says so', () =>
     const vars = reqVarsAfter({ uid: 'v1', name: 'count', value: 'true', enabled: true, dataType: 'boolean' });
 
     expect(vars[0]).toMatchObject({ value: 'true', dataType: 'boolean' });
+  });
+});
+
+describe('clearAllNetworkTimeline', () => {
+  const requestEntry = (uid) => ({
+    type: 'request',
+    collectionUid: 'col1',
+    itemUid: uid,
+    timestamp: 1,
+    data: {
+      request: { method: 'GET', url: 'https://example.com' },
+      response: { statusCode: 200 }
+    }
+  });
+
+  it('removes request entries from every collection', () => {
+    const state = {
+      collections: [
+        { uid: 'col1', name: 'One', timeline: [requestEntry('r1'), requestEntry('r2')] },
+        { uid: 'col2', name: 'Two', timeline: [requestEntry('r3')] }
+      ]
+    };
+
+    const next = reducer(state, clearAllNetworkTimeline());
+
+    expect(next.collections[0].timeline).toEqual([]);
+    expect(next.collections[1].timeline).toEqual([]);
+  });
+
+  it('keeps non-request timeline entries and collections that have no timeline', () => {
+    const infoEntry = { type: 'info', timestamp: 2, message: 'kept' };
+    const oauthEntry = { type: 'oauth2', timestamp: 3, data: {} };
+    const state = {
+      collections: [
+        { uid: 'col1', timeline: [requestEntry('r1'), infoEntry, oauthEntry] },
+        { uid: 'col2' }
+      ]
+    };
+
+    const next = reducer(state, clearAllNetworkTimeline());
+
+    expect(next.collections[0].timeline).toEqual([infoEntry, oauthEntry]);
+    expect(next.collections[1].timeline).toBeUndefined();
+  });
+
+  it('is a no-op when there are no collections', () => {
+    const next = reducer({ collections: [] }, clearAllNetworkTimeline());
+
+    expect(next.collections).toEqual([]);
   });
 });

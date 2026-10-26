@@ -4,11 +4,14 @@ import { useSelector, useDispatch } from 'react-redux';
 import {
   IconNetwork,
   IconArrowUp,
-  IconArrowDown
+  IconArrowDown,
+  IconTrash
 } from '@tabler/icons';
 import {
-  setSelectedRequest
+  setSelectedRequest,
+  clearSelectedRequest
 } from 'providers/ReduxStore/slices/logs';
+import { clearAllNetworkTimeline } from 'providers/ReduxStore/slices/collections';
 import { useResizableColumns } from 'hooks/useResizableColumns';
 import { formatDuration } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
@@ -183,6 +186,11 @@ const NetworkTab = () => {
     });
   };
 
+  const handleClearNetworkLogs = () => {
+    dispatch(clearAllNetworkTimeline());
+    dispatch(clearSelectedRequest());
+  };
+
   const sortedRequests = useMemo(
     () => sortRequests(filteredRequests, sortConfig.key, sortConfig.direction),
     [filteredRequests, sortConfig]
@@ -196,6 +204,17 @@ const NetworkTab = () => {
             <IconNetwork size={48} strokeWidth={1} />
             <p>No network requests</p>
             <span>Requests will appear here as you make API calls</span>
+            {allRequests.length > 0 ? (
+              <button
+                className="network-clear-button"
+                onClick={handleClearNetworkLogs}
+                title="Clear all network requests"
+                data-testid="clear-network-logs-empty"
+              >
+                <IconTrash size={16} strokeWidth={1.5} />
+                <span>Clear</span>
+              </button>
+            ) : null}
           </div>
         ) : (
           <div className={`requests-container${resizingIdx !== null ? ' is-resizing' : ''}`}>
