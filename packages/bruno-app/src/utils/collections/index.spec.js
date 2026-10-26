@@ -19,6 +19,7 @@ import {
   isCollectionItemCollapsed,
   getVariableNamesWithScope,
   getWorkspaceCollections,
+  getItemsLoadStats,
   getTreePathFromCollectionToItem
 } from './index';
 import * as platformUtils from 'utils/common/platform';
@@ -191,6 +192,35 @@ describe('getCollectionItemCounts', () => {
   it('returns zero counts for empty or missing items', () => {
     expect(getCollectionItemCounts([])).toEqual({ folderCount: 0, requestCount: 0 });
     expect(getCollectionItemCounts(undefined)).toEqual({ folderCount: 0, requestCount: 0 });
+  });
+});
+
+describe('getItemsLoadStats', () => {
+  it('uses the upfront request total so progress is not discovered/discovered', () => {
+    expect(getItemsLoadStats({
+      expectedRequestCount: 8000,
+      items: [
+        { type: 'http-request', loading: false },
+        { type: 'http-request', loading: false }
+      ]
+    })).toEqual({ loading: 7998, total: 8000 });
+  });
+
+  it('counts only request nodes, including parse-error rows without a request property', () => {
+    expect(getItemsLoadStats({
+      expectedRequestCount: 4,
+      items: [
+        {
+          type: 'folder',
+          items: [
+            { type: 'http-request', request: {}, loading: false },
+            { type: 'http-request', partial: true, error: { message: 'bad' } }
+          ]
+        },
+        { type: 'folder', partial: true, items: [] },
+        { type: 'http-request', loading: true }
+      ]
+    })).toEqual({ loading: 3, total: 4 });
   });
 });
 

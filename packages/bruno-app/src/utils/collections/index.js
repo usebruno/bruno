@@ -12,7 +12,7 @@ import {
   getInheritedTagSourcesFromTreePath,
   mockDataFunctions
 } from '@usebruno/common';
-import { VARIABLE_ADD_SCOPES, AUTOCOMPLETE_SCOPES } from 'utils/common/constants';
+import { VARIABLE_ADD_SCOPES, AUTOCOMPLETE_SCOPES, REQUEST_TYPES } from 'utils/common/constants';
 import {
   doesRequestMatchSearchText,
   doesFolderHaveItemsMatchSearchText,
@@ -161,15 +161,20 @@ export const areItemsLoading = (folder) => {
 
 export const getItemsLoadStats = (folder) => {
   let loadingCount = 0;
-  let flattenedItems = flattenItems(folder.items);
-  flattenedItems?.forEach((i) => {
-    if (i?.loading) {
+  const flattenedItems = flattenItems(folder.items).filter(
+    (item) => REQUEST_TYPES.includes(item?.type) && !item.items
+  );
+  flattenedItems.forEach((i) => {
+    if (i?.loading || i?.partial) {
       loadingCount += 1;
     }
   });
+  const discovered = flattenedItems.length;
+  const expected = folder?.expectedRequestCount;
+  const total = expected != null ? Math.max(expected, discovered) : discovered;
   return {
-    loading: loadingCount,
-    total: flattenedItems?.length
+    loading: loadingCount + Math.max(0, total - discovered),
+    total
   };
 };
 

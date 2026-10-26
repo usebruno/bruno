@@ -532,44 +532,39 @@ const withDirLock = async (dirname, fn) => {
   }
 };
 
-const getCollectionStats = async (directoryPath) => {
+const getCollectionStats = async (directoryPath, ignore) => {
+  // Lazy require: mount.js imports posixifyPath from this file.
+  const { walk, defaultClassify, resolveDenylist } = require('./mount');
+  const files = walk(directoryPath, resolveDenylist(ignore));
+
   let size = 0;
   let filesCount = 0;
   let maxFileSize = 0;
+  let requestCount = 0;
+  const bruFiles = [];
 
-  async function calculateStats(directory) {
-    const entries = await fsPromises.readdir(directory, { withFileTypes: true });
-
-    const tasks = entries.map(async (entry) => {
-      const fullPath = path.join(directory, entry.name);
-
-      if (entry.isDirectory()) {
-        if (['node_modules', '.git'].includes(entry.name)) {
-          return;
-        }
-
-        await calculateStats(fullPath);
-      }
-
-      if (path.extname(fullPath) === '.bru') {
-        const stats = await fsPromises.stat(fullPath);
-        size += stats?.size;
-        if (maxFileSize < stats?.size) {
-          maxFileSize = stats?.size;
-        }
-        filesCount += 1;
-      }
-    });
-
-    await Promise.all(tasks);
+  for (const file of files) {
+    if (defaultClassify(file.relativePath)?.type === 'request') {
+      requestCount += 1;
+    }
+    if (path.extname(file.absolutePath) === '.bru') {
+      bruFiles.push(file.absolutePath);
+    }
   }
 
-  await calculateStats(directoryPath);
+  await Promise.all(bruFiles.map(async (fullPath) => {
+    const stats = await fsPromises.stat(fullPath);
+    size += stats?.size;
+    if (maxFileSize < stats?.size) {
+      maxFileSize = stats?.size;
+    }
+    filesCount += 1;
+  }));
 
   size = sizeInMB(size);
   maxFileSize = sizeInMB(maxFileSize);
 
-  return { size, filesCount, maxFileSize };
+  return { size, filesCount, maxFileSize, requestCount };
 };
 
 const sizeInMB = (size) => {
