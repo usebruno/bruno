@@ -10,7 +10,8 @@ export const initMockResponseEditor = (state, action) => {
     savedMockResponse: cloneDeep(mockResponse),
     rules: cloneDeep(mockResponse.rules || { operator: 'AND', conditions: [] }),
     mockServerUid: mockServerUid || null,
-    collectionUid: collectionUid || null
+    collectionUid: collectionUid || null,
+    editMode: state.mockResponseEditors[responseUid]?.editMode || false
   };
 };
 
@@ -48,6 +49,18 @@ export const cancelMockResponseEditorEdit = (state, action) => {
 
   editor.item = buildMockResponseEditorItem(editor.savedMockResponse);
   editor.rules = cloneDeep(editor.savedMockResponse.rules || { operator: 'AND', conditions: [] });
+  editor.editMode = false;
+};
+
+export const setMockResponseEditMode = (state, action) => {
+  const { responseUid, editMode } = action.payload;
+  const editor = state.mockResponseEditors[responseUid];
+
+  if (!editor) {
+    return;
+  }
+
+  editor.editMode = editMode;
 };
 
 export const removeMockResponseEditor = (state, action) => {

@@ -1,6 +1,7 @@
 import reducer, {
   initMockResponseEditor,
   cancelMockResponseEditorEdit,
+  setMockResponseEditMode,
   updateResponseExampleName
 } from 'providers/ReduxStore/slices/collections';
 import { closeTabs, closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
@@ -55,6 +56,33 @@ describe('mock response editor reducers', () => {
     const cancelled = reducer(edited, cancelMockResponseEditorEdit({ responseUid: 'response-1' }));
 
     expect(hasUnsavedMockResponseChanges(cancelled.mockResponseEditors['response-1'], 'response-1')).toBe(false);
+  });
+
+  it('starts in view mode and keeps edit mode without any unsaved changes', () => {
+    const opened = initEditors('response-1');
+
+    expect(opened.mockResponseEditors['response-1'].editMode).toBe(false);
+
+    const editing = reducer(opened, setMockResponseEditMode({ responseUid: 'response-1', editMode: true }));
+
+    expect(editing.mockResponseEditors['response-1'].editMode).toBe(true);
+    expect(hasUnsavedMockResponseChanges(editing.mockResponseEditors['response-1'], 'response-1')).toBe(false);
+  });
+
+  it('keeps edit mode when the editor is rebuilt from the stored response', () => {
+    const editing = reducer(initEditors('response-1'), setMockResponseEditMode({ responseUid: 'response-1', editMode: true }));
+
+    const rebuilt = reducer(editing, initMockResponseEditor({ mockResponse: makeMockResponse('response-1'), mockServerUid: 'server-1' }));
+
+    expect(rebuilt.mockResponseEditors['response-1'].editMode).toBe(true);
+  });
+
+  it('leaves edit mode on cancel', () => {
+    const editing = reducer(initEditors('response-1'), setMockResponseEditMode({ responseUid: 'response-1', editMode: true }));
+
+    const cancelled = reducer(editing, cancelMockResponseEditorEdit({ responseUid: 'response-1' }));
+
+    expect(cancelled.mockResponseEditors['response-1'].editMode).toBe(false);
   });
 
   it('removes only the editors whose tabs are closed', () => {

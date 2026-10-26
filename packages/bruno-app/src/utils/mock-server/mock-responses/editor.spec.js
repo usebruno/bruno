@@ -84,13 +84,13 @@ describe('mock response editor utils', () => {
     ]);
   });
 
-  describe('hasUnsavedMockResponseChanges', () => {
-    const buildEditor = (savedMockResponse) => ({
-      item: buildMockResponseEditorItem(savedMockResponse),
-      savedMockResponse,
-      rules: cloneDeep(savedMockResponse.rules || { operator: 'AND', conditions: [] })
-    });
+  const buildEditor = (savedMockResponse) => ({
+    item: buildMockResponseEditorItem(savedMockResponse),
+    savedMockResponse: cloneDeep(savedMockResponse),
+    rules: cloneDeep(savedMockResponse.rules || { operator: 'AND', conditions: [] })
+  });
 
+  describe('hasUnsavedMockResponseChanges', () => {
     it.each([
       ['a full URL', { url: 'https://api.example.com/users' }],
       ['a lowercase method', { method: 'get' }],
@@ -112,11 +112,6 @@ describe('mock response editor utils', () => {
   });
 
   describe('shouldRebuildMockResponseEditor', () => {
-    const buildEditor = (savedMockResponse) => ({
-      item: buildMockResponseEditorItem(savedMockResponse),
-      savedMockResponse: cloneDeep(savedMockResponse),
-      rules: cloneDeep(savedMockResponse.rules)
-    });
     const updatedOnDisk = { ...sampleMockResponse, response: { ...sampleMockResponse.response, status: 500 } };
 
     it('rebuilds when there is no editor or it belongs to another response', () => {

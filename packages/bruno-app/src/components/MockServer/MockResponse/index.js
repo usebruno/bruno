@@ -5,13 +5,14 @@ import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
 import {
   initMockResponseEditor,
   updateMockResponseRules,
-  cancelMockResponseEditorEdit
+  cancelMockResponseEditorEdit,
+  setMockResponseEditMode
 } from 'providers/ReduxStore/slices/collections';
 import { deleteMockResponse, loadMockResponses, startMockServer, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
 import { saveMockResponseEditor } from 'providers/ReduxStore/slices/mock-server/actions';
 import { closeTabs, updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection, tryMockResponseRequest, buildDemoRequestFromRules, buildMockServerTryUrl } from 'utils/mock-server/mock-responses';
-import { hasUnsavedMockResponseChanges, shouldRebuildMockResponseEditor } from 'utils/mock-server/mock-responses/editor';
+import { shouldRebuildMockResponseEditor } from 'utils/mock-server/mock-responses/editor';
 import { newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
 import { flattenItems, isItemTransientRequest } from 'utils/collections';
@@ -38,6 +39,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
   const apiSpecs = useSelector((state) => state.apiSpec.apiSpecs);
   const editor = useSelector((state) => state.collections.mockResponseEditors[responseUid]);
+  const tabCollectionUid = useSelector((state) => state.tabs.tabs.find((tab) => tab.uid === responseUid)?.collectionUid);
   const responses = useSelector((state) => state.mockServer.mockResponses[instance.uid] || []);
   const serverState = useSelector((state) => state.mockServer.servers[instance.uid]);
   const storedInstance = useSelector((state) => findMockServerInstance(state, instance.uid) || instance);
@@ -91,7 +93,6 @@ const MockResponse = ({ instance, collection, responseUid }) => {
   const [leftPaneWidth, setLeftPaneWidth] = useState((screenWidth - leftSidebarWidth) / 2.2);
   const [topPaneHeight, setTopPaneHeight] = useState(MIN_TOP_PANE_HEIGHT);
   const [dragging, setDragging] = useState(false);
-  const [editMode, setEditMode] = useState(false);
   const [tryState, setTryState] = useState(null);
   const [isTrying, setIsTrying] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
@@ -133,15 +134,14 @@ const MockResponse = ({ instance, collection, responseUid }) => {
       dispatch(initMockResponseEditor({
         mockResponse: storedResponse,
         mockServerUid: instance.uid,
-        collectionUid: collection?.uid || instance.collectionUid || null
+        collectionUid: tabCollectionUid
       }));
     }
-  }, [dispatch, storedResponse, editor, resolvedCollection, instance.uid]);
+  }, [dispatch, storedResponse, editor, resolvedCollection, instance.uid, tabCollectionUid]);
 
   const item = editor?.item || null;
   const exampleUid = responseUid;
-  const hasUnsavedChanges = useMemo(() => hasUnsavedMockResponseChanges(editor, responseUid), [editor, responseUid]);
-  const isEditing = editMode || hasUnsavedChanges;
+  const editMode = Boolean(editor?.editMode);
 
   const handleMouseMove = (event) => {
     if (dragging && mainSectionRef.current) {
@@ -219,7 +219,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     setIsSaving(true);
     try {
       await dispatch(saveMockResponseEditor(responseUid));
-      setEditMode(false);
+      dispatch(setMockResponseEditMode({ responseUid, editMode: false }));
       toast.success('Mock response saved');
     } catch (err) {
       toast.error(err.message || 'Failed to save mock response');
@@ -228,9 +228,12 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     }
   };
 
+  const handleEditToggle = () => {
+    dispatch(setMockResponseEditMode({ responseUid, editMode: true }));
+  };
+
   const handleCancel = () => {
     dispatch(cancelMockResponseEditorEdit({ responseUid }));
-    setEditMode(false);
   };
 
   const handleDelete = async () => {
@@ -250,7 +253,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     const handleKeyDown = (event) => {
       if ((event.ctrlKey || event.metaKey) && event.key === 's') {
         event.preventDefault();
-        if (isEditing && item) {
+        if (editMode && item) {
           handleSave();
         }
       }
@@ -260,7 +263,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isEditing, item, editor]);
+  }, [editMode, item, editor]);
 
   const handleStartServer = async () => {
     try {
@@ -393,8 +396,8 @@ const MockResponse = ({ instance, collection, responseUid }) => {
         item={item}
         collection={editorCollection}
         exampleUid={exampleUid}
-        editMode={isEditing}
-        onEditToggle={() => setEditMode(true)}
+        editMode={editMode}
+        onEditToggle={handleEditToggle}
         onSave={handleSave}
         onCancel={handleCancel}
         onDelete={handleDelete}
@@ -417,7 +420,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
               item={item}
               collection={editorCollection}
               exampleUid={exampleUid}
-              editMode={isEditing}
+              editMode={editMode}
               onSave={handleSave}
               rules={editor.rules}
               onRulesChange={(rules) => dispatch(updateMockResponseRules({ responseUid, rules }))}
@@ -428,7 +431,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
               isStartingServer={isStartingServer}
               mockServerPort={mockServerPort}
               onOpenAsRequest={handleOpenAsRequest}
-              onEditToggle={() => setEditMode(true)}
+              onEditToggle={handleEditToggle}
             />
           </div>
         </section>
@@ -442,7 +445,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
             item={item}
             collection={editorCollection}
             example={item.draft?.examples?.find((entry) => entry.uid === exampleUid)}
-            editMode={isEditing}
+            editMode={editMode}
             exampleUid={exampleUid}
             onSave={handleSave}
             expectedResponseLabel="Expected"

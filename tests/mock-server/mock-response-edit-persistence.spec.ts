@@ -22,7 +22,7 @@ test.describe('Mock response edit persistence', () => {
       await syncResponsesFromExamples(page, COLLECTION_NAME);
     });
 
-    await test.step('Open a mock response and start editing', async () => {
+    await test.step('Open a mock response and enter edit mode', async () => {
       await openMockServerTab(page, COLLECTION_NAME);
       await ms.tabResponses().click();
       await ms.responseOpenBtn('created-201').click();
@@ -30,11 +30,22 @@ test.describe('Mock response edit persistence', () => {
       savedName = (await ms.responseTitle().innerText()).trim();
 
       await ms.responseEditBtn().click();
-      await ms.responseNameInput().fill(editedName);
       await expect(ms.responseCancelBtn()).toBeVisible();
     });
 
-    await test.step('Switch to the mock server tab and back', async () => {
+    await test.step('Edit mode survives a tab switch without any changes', async () => {
+      await openMockServerTab(page, COLLECTION_NAME);
+      await expect(ms.responseNameInput()).not.toBeVisible();
+      await switchToOpenTab(page, savedName);
+
+      await expect(ms.responseCancelBtn()).toBeVisible();
+      await expect(ms.responseSaveBtn()).toBeVisible();
+      await expect(ms.responseEditBtn()).not.toBeVisible();
+      await expect(ms.responseNameInput()).toHaveValue(savedName);
+    });
+
+    await test.step('Edit the name, then switch to the mock server tab and back', async () => {
+      await ms.responseNameInput().fill(editedName);
       await openMockServerTab(page, COLLECTION_NAME);
       await expect(ms.responseNameInput()).not.toBeVisible();
       await switchToOpenTab(page, savedName);

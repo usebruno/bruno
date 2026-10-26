@@ -4292,6 +4292,7 @@ export const collectionsSlice = createSlice({
     syncMockResponseEditorSaved: mockResponseEditorReducers.syncMockResponseEditorSaved,
     updateMockResponseRules: mockResponseEditorReducers.updateMockResponseRules,
     cancelMockResponseEditorEdit: mockResponseEditorReducers.cancelMockResponseEditorEdit,
+    setMockResponseEditMode: mockResponseEditorReducers.setMockResponseEditMode,
     removeMockResponseEditor: mockResponseEditorReducers.removeMockResponseEditor
     /* End Response Example Actions */
   },
@@ -4537,6 +4538,7 @@ export const {
   syncMockResponseEditorSaved,
   updateMockResponseRules,
   cancelMockResponseEditorEdit,
+  setMockResponseEditMode,
   removeMockResponseEditor,
   addTransientDirectory,
   addSaveTransientRequestModal,
