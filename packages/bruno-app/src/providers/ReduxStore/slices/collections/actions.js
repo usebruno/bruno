@@ -83,7 +83,8 @@ import {
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, restoreTabs, reopenLastClosedTab, setSidebarRevealRequest } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, reopenLastClosedTab, setSidebarRevealRequest } from 'providers/ReduxStore/slices/tabs';
+import { restoreCollectionTabs } from 'providers/ReduxStore/slices/mock-server/actions';
 import { clearOpenApiSyncTabState } from 'providers/ReduxStore/slices/openapi-sync';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
@@ -3012,7 +3013,7 @@ export const openCollectionEvent = (uid, pathname, brunoConfig, options = {}) =>
         .then((snapshotLookups) => hydrateCollectionTabs(
           existingCollection,
           dispatch,
-          restoreTabs,
+          restoreCollectionTabs,
           snapshotLookups,
           workspacePathname,
           true
@@ -3450,7 +3451,7 @@ export const mountCollection
             const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
             if (collection?.pathname) {
               if (!skipTabRestore) {
-                await hydrateCollectionTabs(collection, dispatch, restoreTabs, null, workspacePathname);
+                await hydrateCollectionTabs(collection, dispatch, restoreCollectionTabs, null, workspacePathname);
               }
 
               const collectionSnapshotState = await window.ipcRenderer

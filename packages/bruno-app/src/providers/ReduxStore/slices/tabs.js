@@ -661,6 +661,10 @@ export const tabsSlice = createSlice({
 
       state.tabs.push(tab);
       state.activeTabUid = tab.uid;
+    },
+    removeRecentlyClosedTabs: (state, action) => {
+      const { tabUids } = action.payload;
+      state.recentlyClosedTabs = state.recentlyClosedTabs.filter((tab) => !tabUids.includes(tab.uid));
     }
   }
 });
@@ -702,6 +706,7 @@ export const {
   updateTabState,
   setTabAppPreview,
   reopenLastClosedTab,
+  removeRecentlyClosedTabs,
   updateQueryBuilderOpen,
   updateQueryBuilderWidth,
   updateVariablesPaneOpen,

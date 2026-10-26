@@ -1,4 +1,5 @@
-import { test, Page } from '../../../playwright';
+import { test, expect, Page } from '../../../playwright';
+import { openPreferences, selectPreferencesTab, closePreferences } from './preferences';
 
 // Locators for the Mock Server dashboard, routes table, request log, and related modals.
 export const buildMockServerLocators = (page: Page) => ({
@@ -66,6 +67,10 @@ export const buildMockServerLocators = (page: Page) => ({
   logStatusCodes: () => page.getByTestId('mock-server-log-table').locator('.status-code'),
   logDelayValue: () => page.getByTestId('mock-server-log-table').locator('[data-testid="column-delay"] span').first(),
   logDurationCell: () => page.getByTestId('mock-server-log-table').locator('[data-testid="column-duration"]').first(),
+
+  betaToggle: () => page.getByTestId('mock-server-beta-toggle'),
+  responseListOpenBtns: () => page.locator('.response-item-open'),
+  responseListNames: () => page.locator('.response-item-open .response-item-name'),
 
   filterOption: (label: string) => page.getByRole('option', { name: label, exact: true }),
   refreshToast: () => page.getByText(/Routes refreshed.*routes/).first()
@@ -160,5 +165,19 @@ export const openMockServerSettings = async (page: Page, serverName: string) => 
     await ms.dashboard().waitFor({ state: 'visible', timeout: 10000 });
     await ms.settingsBtn().click();
     await ms.nameInput().waitFor({ state: 'visible', timeout: 10000 });
+  });
+};
+
+export const setMockServerBetaFeature = async (page: Page, enabled: boolean) => {
+  await test.step(`${enabled ? 'Enable' : 'Disable'} the Mock Server beta feature`, async () => {
+    const ms = buildMockServerLocators(page);
+    await openPreferences(page);
+    await selectPreferencesTab(page, 'Beta');
+    const checkbox = ms.betaToggle().locator('input[type="checkbox"]');
+    if ((await checkbox.isChecked()) !== enabled) {
+      await ms.betaToggle().locator('label').click();
+    }
+    await expect(checkbox).toBeChecked({ checked: enabled });
+    await closePreferences(page);
   });
 };
