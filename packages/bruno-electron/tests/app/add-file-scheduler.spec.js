@@ -94,4 +94,68 @@ describe('createAddFileScheduler', () => {
 
     expect(maxInFlight).toBeGreaterThan(1);
   });
+
+  it('starts files in the order they were enqueued', async () => {
+    const order = [];
+    const scheduler = createAddFileScheduler((pathname, releaseSlot) => {
+      order.push(pathname);
+      releaseSlot();
+    });
+
+    scheduler.enqueue('/tmp/a.bru');
+    scheduler.enqueue('/tmp/b.bru');
+    scheduler.enqueue('/tmp/c.bru');
+
+    while (order.length < 3) {
+      await flushSetImmediate();
+    }
+
+    expect(order).toEqual(['/tmp/a.bru', '/tmp/b.bru', '/tmp/c.bru']);
+  });
+
+  it('keeps draining when runAdd throws', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    const order = [];
+    const scheduler = createAddFileScheduler((pathname, releaseSlot) => {
+      order.push(pathname);
+      if (pathname.endsWith('b.bru')) {
+        throw new Error('add failed');
+      }
+      releaseSlot();
+    });
+
+    scheduler.enqueue('/tmp/a.bru');
+    scheduler.enqueue('/tmp/b.bru');
+    scheduler.enqueue('/tmp/c.bru');
+
+    while (order.length < 3) {
+      await flushSetImmediate();
+    }
+
+    expect(order).toEqual(['/tmp/a.bru', '/tmp/b.bru', '/tmp/c.bru']);
+    console.error.mockRestore();
+  });
+
+  it('keeps draining when runAdd rejects', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    const order = [];
+    const scheduler = createAddFileScheduler((pathname, releaseSlot) => {
+      order.push(pathname);
+      if (pathname.endsWith('b.bru')) {
+        return Promise.reject(new Error('add failed'));
+      }
+      releaseSlot();
+    });
+
+    scheduler.enqueue('/tmp/a.bru');
+    scheduler.enqueue('/tmp/b.bru');
+    scheduler.enqueue('/tmp/c.bru');
+
+    while (order.length < 3) {
+      await flushSetImmediate();
+    }
+
+    expect(order).toEqual(['/tmp/a.bru', '/tmp/b.bru', '/tmp/c.bru']);
+    console.error.mockRestore();
+  });
 });

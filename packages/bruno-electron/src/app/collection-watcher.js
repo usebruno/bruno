@@ -445,10 +445,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
           win.webContents.send('main:collection-tree-updated', 'addFile', file);
 
           // This is to update the file info in the UI
-          file.data = await parseRequestViaWorker(content, {
-            format,
-            filename: pathname
-          });
+          file.data = await parseRequestViaWorker(content, { format });
           stageToCache(collectionPath, pathname, file.data);
           file.partial = false;
           file.loading = false;

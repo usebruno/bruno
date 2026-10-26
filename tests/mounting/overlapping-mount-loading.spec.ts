@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect, ElectronApplication, Page } from '../../playwright';
 import { generateCollection, setupTestFixture, GeneratedCollection, TestFixture } from '../utils/fixtures';
-import { buildCollectionTreeLocators, openCollectionFromDialog, waitForCollectionMount } from '../utils/page';
+import { buildCollectionTreeLocators, clickCollectionName, openCollectionFromDialog, waitForCollectionMount } from '../utils/page';
 import { buildSidebarLocators } from '../utils/page/sidebar';
 
 const LARGE_REQUEST_COUNT = 7000;
@@ -21,14 +21,6 @@ const disableFileCache = async (userDataPath: string) => {
     cache: { file: { enabled: false } }
   };
   await fs.promises.writeFile(preferencesPath, JSON.stringify(preferences, null, 2));
-};
-
-const clickCollectionName = async (page: Page, name: string) => {
-  await page.evaluate((collectionName) => {
-    const label = [...document.querySelectorAll('#sidebar-collection-name')]
-      .find((node) => node.textContent?.trim() === collectionName);
-    label?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
-  }, name);
 };
 
 test.describe('Overlapping mount loading (v1)', () => {

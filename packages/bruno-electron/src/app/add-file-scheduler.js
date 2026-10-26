@@ -44,13 +44,18 @@ const createAddFileScheduler = (runAdd) => {
       scheduleNext();
     };
 
-    Promise.resolve(runAdd(pathname, releaseSlot))
-      .catch((err) => {
-        console.error('[collection-watcher] add failed for', pathname, err);
-      })
-      .finally(() => {
-        releaseSlot();
-      });
+    try {
+      Promise.resolve(runAdd(pathname, releaseSlot))
+        .catch((err) => {
+          console.error('[collection-watcher] add failed for', pathname, err);
+        })
+        .finally(() => {
+          releaseSlot();
+        });
+    } catch (err) {
+      console.error('[collection-watcher] add failed for', pathname, err);
+      releaseSlot();
+    }
   };
 
   return {
