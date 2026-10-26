@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  .var-add-to-option.is-editing {
+  .scope-row.is-editing {
     gap: 0.25rem;
     padding: 0.125rem 0.25rem;
   }

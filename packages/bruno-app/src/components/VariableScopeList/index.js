@@ -12,7 +12,8 @@ import StyledWrapper from './StyledWrapper';
  * @param {Array} props.scopes - Available scopes from `getAvailableAddToScopes`
  * @param {string} props.selectedScopeType - Currently selected scope type
  * @param {function} props.onSelect - Called when a scope is selected
- * @param {function} props.onCreateEnvironment - Creates an environment; errors are shown inline
+ * @param {function} props.onCreateEnvironment - `(scope, name) => Promise`. Must return a promise. a
+ *   rejection's message is shown on the row
  * @param {string} props.testIdPrefix - Prefix for test IDs
  */
 const VariableScopeList = ({ scopes, selectedScopeType, onSelect, onCreateEnvironment, testIdPrefix }) => (
@@ -31,7 +32,7 @@ const VariableScopeList = ({ scopes, selectedScopeType, onSelect, onCreateEnviro
 
       const isSelected = scope.type === selectedScopeType;
       return (
-        <div key={scope.type} className={`var-add-to-option ${isSelected ? 'var-add-to-option-active' : ''}`}>
+        <div key={scope.type} className={`var-add-to-option scope-row ${isSelected ? 'var-add-to-option-active' : ''}`}>
           <button
             type="button"
             className="var-add-to-option-trigger"

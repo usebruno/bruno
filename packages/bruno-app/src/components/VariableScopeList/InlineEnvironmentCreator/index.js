@@ -38,7 +38,7 @@ const InlineEnvironmentCreator = ({ scope, onCreate, testIdPrefix }) => {
   return (
     <StyledWrapper>
       {isEditing ? (
-        <div className="var-add-to-option is-editing">
+        <div className="var-add-to-option scope-row is-editing">
           <input
             type="text"
             autoFocus
@@ -62,7 +62,7 @@ const InlineEnvironmentCreator = ({ scope, onCreate, testIdPrefix }) => {
           </button>
         </div>
       ) : (
-        <div className="var-add-to-option">
+        <div className="var-add-to-option scope-row">
           <VariableScopeIcon scopeType={scope.type} muted />
           <span className="create-env-note" data-testid={testId('no-env')}>{`No ${scope.label} selected`}</span>
           <button

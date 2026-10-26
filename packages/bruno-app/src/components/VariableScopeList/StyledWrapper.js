@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  .var-add-to-option {
+  .scope-row {
     gap: 0.375rem;
     min-height: 1.5rem;
     margin-top: 0;
