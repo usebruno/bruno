@@ -8,7 +8,8 @@ import {
   openConnectedOpenApiSyncTab,
   openConnectionSettings,
   openOpenApiSyncTab,
-  pickWorkspaceSpec
+  pickWorkspaceSpec,
+  waitForWorkspaceMenuFocus
 } from '../utils/page/openapi/sync';
 
 const WORKSPACE_NAME = 'Spec Source Workspace';
@@ -139,7 +140,7 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
         await test.step('The dropdown lists the workspace specs in workspace order', async () => {
           await sync.workspaceSelect().click();
           await expect(sync.workspaceOptions()).toHaveText(['Pets API', 'Zoo API', 'Legacy API']);
-          await expect(sync.workspaceMenu()).toBeFocused();
+          await waitForWorkspaceMenuFocus(page);
           await page.keyboard.press('Escape');
           await expect(sync.workspaceMenu()).toBeHidden();
         });
@@ -167,6 +168,7 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
   }) => {
     test.setTimeout(60000);
     const { userDataPath, workspacePath } = await seedWorkspace(createTmpDir);
+    const swaggerMessage = 'Swagger 2.0 is not supported. Please convert your spec to OpenAPI 3.x.';
     const { app, page, sync } = await launchInWorkspace(launchElectronApp, userDataPath, workspacePath);
 
     try {
@@ -175,7 +177,7 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
       await pickWorkspaceSpec(page, 'Legacy API');
 
       await test.step('The Swagger error shows and Connect stays disabled', async () => {
-        await expect(sync.connectError()).toHaveText('Swagger 2.0 is not supported. Please convert your spec to OpenAPI 3.x.');
+        await expect(sync.connectError()).toHaveText(swaggerMessage);
         await expect(sync.workspaceSelect()).toHaveText('Select an API spec');
         await expect(sync.connectButton()).toBeDisabled();
       });
@@ -183,11 +185,18 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
       await test.step('The dropdown also works from the keyboard', async () => {
         await sync.workspaceSelect().focus();
         await page.keyboard.press('Enter');
-        await expect(sync.workspaceMenu()).toBeFocused();
+        await waitForWorkspaceMenuFocus(page);
         await page.keyboard.press('ArrowDown');
         await page.keyboard.press('Enter');
         await expect(sync.workspaceSelect()).toHaveText('Pets API');
         await expect(sync.connectButton()).toBeEnabled();
+      });
+
+      await test.step('Browsing to the same Swagger file shows the same error', async () => {
+        await sync.sourceTab('file').click();
+        await sync.fileInput().setInputFiles(path.join(workspacePath, 'specs', 'legacy.yaml'));
+        await expect(sync.connectError()).toHaveText(swaggerMessage);
+        await expect(sync.connectButton()).toBeDisabled();
       });
     } finally {
       await closeElectronApp(app);
@@ -243,6 +252,39 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
     }
   });
 
+  test('picking and browsing are exclusive, and browsing a workspace spec stores the same path as picking it', async ({
+    launchElectronApp,
+    createTmpDir
+  }) => {
+    test.setTimeout(60000);
+    const { userDataPath, workspacePath, collectionPath } = await seedWorkspace(createTmpDir);
+    const { app, page, sync } = await launchInWorkspace(launchElectronApp, userDataPath, workspacePath);
+
+    try {
+      await openOpenApiSyncTab(page, COLLECTION_NAME);
+      await pickWorkspaceSpec(page, 'Pets API');
+
+      await test.step('Switching to File after a pick clears it', async () => {
+        await sync.sourceTab('file').click();
+        await expect(sync.fileButton()).toHaveText('Select File');
+        await expect(sync.connectButton()).toBeDisabled();
+      });
+
+      await test.step('Browse to the same spec file inside the workspace and connect', async () => {
+        await sync.fileInput().setInputFiles(path.join(workspacePath, 'specs', 'pets.yaml'));
+        await expect(sync.fileButton()).toHaveText('pets.yaml');
+        await sync.connectButton().click();
+        await expect(sync.connectedHeader()).toBeVisible({ timeout: 10000 });
+      });
+
+      await test.step('The stored path is the same one a workspace pick stores', async () => {
+        await expect.poll(() => readSourceUrl(collectionPath)).toBe('../../specs/pets.yaml');
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+
   test('Connection Settings shows the connected workspace spec and saves a switch to another', async ({
     launchElectronApp,
     createTmpDir
@@ -263,6 +305,14 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
         await expect(sync.workspaceSelect()).toHaveText('Zoo API');
       });
 
+      await test.step('The dropdown lists every workspace spec in workspace order', async () => {
+        await sync.workspaceSelect().click();
+        await expect(sync.workspaceOptions()).toHaveText([/^Pets API/, /^Zoo API/, /^Legacy API/]);
+        await waitForWorkspaceMenuFocus(page);
+        await page.keyboard.press('Escape');
+        await expect(sync.workspaceMenu()).toBeHidden();
+      });
+
       await test.step('Switch to another workspace spec and save', async () => {
         await pickWorkspaceSpec(page, 'Pets API');
         await sync.settingsSave().click();
@@ -278,6 +328,36 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
       await test.step('Reopening Connection Settings shows the new spec selected', async () => {
         await expect(sync.sourceTab('workspace')).toHaveAttribute('aria-selected', 'true');
         await expect(sync.workspaceSelect()).toHaveText('Pets API');
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+
+  test('Connection Settings saves a file browsed from outside the workspace', async ({
+    launchElectronApp,
+    createTmpDir
+  }) => {
+    test.setTimeout(60000);
+    const { userDataPath, workspacePath, collectionPath, outsideSpecPath } = await seedWorkspace(createTmpDir, {
+      connectedSource: () => '../../specs/zoo.yaml'
+    });
+    const { app, page, sync } = await launchInWorkspace(launchElectronApp, userDataPath, workspacePath);
+
+    try {
+      await openConnectedOpenApiSyncTab(page, COLLECTION_NAME);
+      await openConnectionSettings(page);
+
+      await test.step('Browse to a spec outside the workspace and save', async () => {
+        await sync.sourceTab('file').click();
+        await sync.fileInput().setInputFiles(outsideSpecPath);
+        await expect(sync.fileButton()).toHaveText('outside-spec.yaml');
+        await sync.settingsSave().click();
+        await expect(sync.settingsModal()).toBeHidden();
+      });
+
+      await test.step('The collection config points at the browsed file through a relative path', async () => {
+        await expect.poll(() => readSourceUrl(collectionPath)).toBe(toPosixRelative(collectionPath, outsideSpecPath));
       });
     } finally {
       await closeElectronApp(app);
@@ -319,6 +399,11 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
 
     try {
       await openConnectedOpenApiSyncTab(page, COLLECTION_NAME);
+
+      await test.step('The spec still loads from the absolute path', async () => {
+        await expect(sync.overviewBanner()).toContainText('Initial sync required', { timeout: 15000 });
+      });
+
       await openConnectionSettings(page);
 
       await test.step('The Workspace tab is open with the spec at that absolute path selected', async () => {

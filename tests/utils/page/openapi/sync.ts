@@ -1,4 +1,4 @@
-import { test, Page } from '../../../../playwright';
+import { test, expect, Page } from '../../../../playwright';
 import { buildSidebarLocators } from '../sidebar';
 import { buildCollectionHeaderLocators } from '../collection/collection-header';
 
@@ -63,4 +63,9 @@ export const pickWorkspaceSpec = async (page: Page, specName: string) => {
     await sync.workspaceSelect().click();
     await sync.workspaceOption(specName).click();
   });
+};
+
+export const waitForWorkspaceMenuFocus = async (page: Page) => {
+  const menu = buildOpenApiSyncLocators(page).workspaceMenu();
+  await expect.poll(() => menu.evaluate((element) => element.contains(document.activeElement))).toBe(true);
 };
