@@ -84,7 +84,7 @@ describe('SpecSourcePicker', () => {
     it('shows a placeholder with nothing selected', () => {
       const { getByTestId } = renderPicker();
 
-      expect(getByTestId('spec-source-workspace-select')).toHaveTextContent('Select an API spec');
+      expect(getByTestId('spec-source-workspace-select')).toHaveTextContent(/^Select an API spec$/);
     });
 
     it('lists the workspace specs in the order the workspace keeps them', () => {
@@ -95,10 +95,22 @@ describe('SpecSourcePicker', () => {
       expect(getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Zoo', 'Pets']);
     });
 
-    it('gives the dropdown an accessible name', () => {
+    it('announces the dropdown with its label and the placeholder when nothing is picked', () => {
       const { getByRole } = renderPicker();
 
-      expect(getByRole('button', { name: 'API spec' })).toBeInTheDocument();
+      expect(getByRole('button', { name: 'API spec Select an API spec' })).toBeInTheDocument();
+    });
+
+    it('announces the picked spec in the dropdown name', () => {
+      const { getByRole } = renderPicker({ value: '/ws/specs/zoo.yaml' });
+
+      expect(getByRole('button', { name: 'API spec Zoo' })).toBeInTheDocument();
+    });
+
+    it('announces the empty workspace message in the dropdown name', () => {
+      const { getByRole } = renderPicker({ specs: [] });
+
+      expect(getByRole('button', { name: 'API spec No API specs in this workspace' })).toBeInTheDocument();
     });
 
     it('draws a chevron inside the dropdown', () => {
