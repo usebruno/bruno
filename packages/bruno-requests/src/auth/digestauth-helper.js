@@ -117,7 +117,7 @@ export function addDigestInterceptor(axiosInstance, request) {
         ];
 
         if (authDetails.qop && authDetails.qop.split(',').map((q) => q.trim().toLowerCase()).includes('auth')) {
-          headerFields.push(`qop="auth"`, `algorithm="${authDetails.algorithm}"`, `nc="${nonceCount}"`, `cnonce="${cnonce}"`);
+          headerFields.push(`qop=auth`, `algorithm="${authDetails.algorithm}"`, `nc=${nonceCount}`, `cnonce="${cnonce}"`);
         }
 
         if (authDetails.opaque) {
