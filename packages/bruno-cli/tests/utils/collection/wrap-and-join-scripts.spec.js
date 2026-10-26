@@ -58,3 +58,12 @@ describe('CLI wrapAndJoinScripts: hierarchical __dirname/__filename', () => {
     expect(result.code).toContain(')(undefined, undefined);');
   });
 });
+
+describe('CLI wrapAndJoinScripts: CR-only line endings', () => {
+  test('counts lines of a CR-only collection script so the request segment maps to the right lines', () => {
+    const result = wrapAndJoinScripts(['let a = 1;\rlet b = 2;', '', 'let c = 3;'], 2);
+    expect(result.code).not.toContain('\r');
+    expect(result.metadata.requestStartLine).toBe(6);
+    expect(result.metadata.requestEndLine).toBe(8);
+  });
+});

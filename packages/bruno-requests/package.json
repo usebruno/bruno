@@ -25,6 +25,7 @@
     "@grpc/grpc-js": "^1.14.4",
     "@grpc/proto-loader": "^0.7.15",
     "@types/qs": "^6.9.18",
+    "acorn": "^8.15.0",
     "axios": "1.18.0",
     "qs": "^6.14.1",
     "pac-resolver": "^7.0.1",

@@ -1,0 +1,23 @@
+opencollection: "1.0.0"
+info:
+  name: crlf-line-comment
+request:
+  scripts:
+    - type: before-request
+      code: "function extractDataPaths(scRaw) {\r
+
+        \    const placeholderRegExp = /{{([^}]+)}}/g;\r
+
+        \    const dataPaths = [];\r
+
+        \    let match;\r
+
+        \    while ((match = placeholderRegExp.exec(scRaw)) != null) {\r
+
+        \        dataPaths.push(match[1]);\r
+
+        \    }\r
+
+        \    return dataPaths;\r
+
+        }"

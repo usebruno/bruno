@@ -3,7 +3,7 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 const { sanitizeName } = require('./filesystem');
-const { getEffectiveTags, getFolderTags, getOwnTags } = require('@usebruno/common');
+const { getEffectiveTags, getFolderTags, getOwnTags, normalizeLineEndings } = require('@usebruno/common');
 const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const { sortByNameThenSequence } = require('@usebruno/common');
 const constants = require('../constants');
@@ -233,13 +233,17 @@ const wrapScriptInClosure = (script, sourcePaths = null) => {
   if (!script || script.trim() === '') {
     return '';
   }
+
+  // wrapAndJoinScripts counts lines by splitting on \n, so every segment must be LF.
+  const normalizedScript = normalizeLineEndings(script);
+
   // Wrap script in async IIFE to create isolated scope
   // This prevents variable re-declaration errors and allows early returns
   // to only affect the current script segment
   const dirnameParam = sourcePaths?.dirname != null ? JSON.stringify(sourcePaths.dirname) : 'undefined';
   const filenameParam = sourcePaths?.filename != null ? JSON.stringify(sourcePaths.filename) : 'undefined';
   return `await (async (__dirname, __filename) => {
-${script}
+${normalizedScript}
 })(${dirnameParam}, ${filenameParam});`;
 };
 
