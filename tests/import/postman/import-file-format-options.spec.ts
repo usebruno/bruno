@@ -4,12 +4,12 @@ import * as path from 'path';
 import { closeAllCollections } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
-test.describe('Import Collection File Format Options toggle', { tag: '@sanity' }, () => {
+test.describe('Import Collection File Format Options toggle', () => {
   test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });
 
-  test('TC-3097: imports with the default OpenCollection (YAML) format', async ({ page, electronApp, createTmpDir }) => {
+  test('TC-3097: imports with the default OpenCollection (YAML) format', { tag: '@sanity' }, async ({ page, electronApp, createTmpDir }) => {
     const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-import-apikey-header-collection.json');
     const locators = buildCommonLocators(page);
     const importDir = await createTmpDir('import-default-yml');
@@ -56,7 +56,7 @@ test.describe('Import Collection File Format Options toggle', { tag: '@sanity' }
     });
   });
 
-  test('TC-3292: File Format dropdown is hidden by default for import collection', async ({ page }) => {
+  test('TC-3292: File Format dropdown is hidden by default for import collection', { tag: '@sanity' }, async ({ page }) => {
     const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-import-apikey-header-collection.json');
     const locators = buildCommonLocators(page);
 
@@ -79,7 +79,7 @@ test.describe('Import Collection File Format Options toggle', { tag: '@sanity' }
     });
   });
 
-  test('TC-3296: BRU format can be selected while importing collection', async ({ page, electronApp, createTmpDir }) => {
+  test('TC-3296: BRU format can be selected while importing collection', { tag: '@sanity' }, async ({ page, electronApp, createTmpDir }) => {
     const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-import-apikey-header-collection.json');
     const locators = buildCommonLocators(page);
 
