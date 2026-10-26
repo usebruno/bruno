@@ -20,6 +20,7 @@ const externalDeps = [
   'lodash',
   'yaml',
   'ajv',
+  'workerpool',
   // Node built-ins
   'worker_threads',
   'path',
@@ -78,6 +79,6 @@ module.exports = [
       }
     ],
     plugins: commonPlugins,
-    external: externalDeps
+    external: externalDeps.filter((dep) => dep !== 'workerpool')
   }
 ];

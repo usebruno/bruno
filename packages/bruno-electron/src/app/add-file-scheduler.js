@@ -1,6 +1,6 @@
 /**
- * FIFO drain for chokidar `add` events: start at most one add per macrotick so
- * ipcMain can run between starts. Does not await runAdd.
+ * FIFO drain for chokidar `add` events: start at most one add per macrotick.
+ * The next file starts when runAdd calls releaseSlot (or when the promise settles).
  */
 const createAddFileScheduler = (runAdd) => {
   const queue = [];
@@ -16,18 +16,41 @@ const createAddFileScheduler = (runAdd) => {
     }
   };
 
+  const scheduleNext = () => {
+    if (!draining || queue.length === 0) {
+      if (queue.length === 0) {
+        draining = false;
+      }
+      return;
+    }
+
+    timer = setImmediate(processTick);
+  };
+
   const processTick = () => {
     timer = null;
-    if (queue.length === 0) {
+    if (!draining || queue.length === 0) {
       draining = false;
       return;
     }
 
     const pathname = queue.shift();
-    timer = setImmediate(processTick);
-    Promise.resolve(runAdd(pathname)).catch((err) => {
-      console.error('[collection-watcher] add failed for', pathname, err);
-    });
+    let released = false;
+    const releaseSlot = () => {
+      if (released) {
+        return;
+      }
+      released = true;
+      scheduleNext();
+    };
+
+    Promise.resolve(runAdd(pathname, releaseSlot))
+      .catch((err) => {
+        console.error('[collection-watcher] add failed for', pathname, err);
+      })
+      .finally(() => {
+        releaseSlot();
+      });
   };
 
   return {

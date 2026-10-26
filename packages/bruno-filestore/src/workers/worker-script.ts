@@ -1,4 +1,4 @@
-import { parentPort } from 'node:worker_threads';
+import workerpool from 'workerpool';
 import {
   parseBruRequest,
   parseBruCollection,
@@ -26,14 +26,6 @@ type TaskType
     | 'parseEnvironment'
     | 'stringifyEnvironment';
 
-interface WorkerMessage {
-  taskType: TaskType;
-  data: {
-    data: any;
-    format?: CollectionFormat;
-  };
-}
-
 const runTask = (taskType: TaskType, data: any, format: CollectionFormat): any => {
   switch (taskType) {
     case 'parse':
@@ -53,14 +45,10 @@ const runTask = (taskType: TaskType, data: any, format: CollectionFormat): any =
   }
 };
 
-parentPort?.on('message', async (message: WorkerMessage) => {
-  try {
-    const { taskType, data: messageData } = message;
-    const { data, format = DEFAULT_COLLECTION_FORMAT } = messageData;
-    const result = runTask(taskType, data, format);
-    parentPort?.postMessage(result);
-  } catch (error: any) {
-    console.error('Worker error:', error);
-    parentPort?.postMessage({ error: error?.message });
-  }
-});
+export const runParseTask = (
+  taskType: TaskType,
+  data: any,
+  format: CollectionFormat = DEFAULT_COLLECTION_FORMAT
+) => runTask(taskType, data, format);
+
+workerpool.worker({ runParseTask });

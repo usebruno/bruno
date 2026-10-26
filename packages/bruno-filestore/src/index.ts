@@ -93,6 +93,13 @@ export const stringifyEnvironmentViaWorker = async (envObj: any, options: { form
   return await getWorkerInstance().stringifyEnvironment(envObj, options.format);
 };
 
+export const disposeFilestoreWorkers = async () => {
+  if (globalWorkerInstance) {
+    await globalWorkerInstance.cleanup();
+    globalWorkerInstance = null;
+  }
+};
+
 // collection
 export const parseCollection = (content: string, options: ParseOptions = { format: DEFAULT_COLLECTION_FORMAT }): any => {
   if (options.format === 'bru') {

@@ -8,11 +8,12 @@ describe('createAddFileScheduler', () => {
     let syncBurst = 0;
     let maxSyncBurst = 0;
 
-    const scheduler = createAddFileScheduler(() => {
+    const scheduler = createAddFileScheduler((_pathname, releaseSlot) => {
       syncBurst += 1;
       runTurns.push({ syncBurst });
       maxSyncBurst = Math.max(maxSyncBurst, syncBurst);
       syncBurst -= 1;
+      releaseSlot();
     });
 
     for (let i = 0; i < 50; i++) {
@@ -40,6 +41,7 @@ describe('createAddFileScheduler', () => {
 
     expect(runCount).toBe(1);
 
+    await flushSetImmediate();
     await flushSetImmediate();
     expect(runCount).toBe(2);
 
@@ -73,7 +75,8 @@ describe('createAddFileScheduler', () => {
     let inFlight = 0;
     let maxInFlight = 0;
 
-    const scheduler = createAddFileScheduler(async () => {
+    const scheduler = createAddFileScheduler(async (_pathname, releaseSlot) => {
+      releaseSlot();
       inFlight += 1;
       maxInFlight = Math.max(maxInFlight, inFlight);
       await new Promise((resolve) => setTimeout(resolve, 5));

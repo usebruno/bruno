@@ -23,14 +23,12 @@ const disableFileCache = async (userDataPath: string) => {
   await fs.promises.writeFile(preferencesPath, JSON.stringify(preferences, null, 2));
 };
 
-const clickCollectionNames = async (page: Page, names: string[]) => {
-  await page.evaluate((collectionNames) => {
-    for (const name of collectionNames) {
-      const label = [...document.querySelectorAll('#sidebar-collection-name')]
-        .find((node) => node.textContent?.trim() === name);
-      label?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
-    }
-  }, names);
+const clickCollectionName = async (page: Page, name: string) => {
+  await page.evaluate((collectionName) => {
+    const label = [...document.querySelectorAll('#sidebar-collection-name')]
+      .find((node) => node.textContent?.trim() === collectionName);
+    label?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+  }, name);
 };
 
 test.describe('Overlapping mount loading (v1)', () => {
@@ -87,7 +85,9 @@ test.describe('Overlapping mount loading (v1)', () => {
     await openCollectionFromDialog(page, app, collectionB.path);
     await expect(sidebar.collectionRow(NAME_B)).toBeVisible({ timeout: 120000 });
 
-    await clickCollectionNames(page, [NAME_A, NAME_B]);
+    await clickCollectionName(page, NAME_A);
+    await expect(tree.collection.loadingSpinner(NAME_A)).toBeVisible({ timeout: 120000 });
+    await clickCollectionName(page, NAME_B);
 
     await expect(tree.collection.loadingSpinner(NAME_B)).toBeVisible({ timeout: 120000 });
     await expect(tree.collection.loadingSpinner(NAME_A)).toBeVisible();
@@ -150,7 +150,8 @@ test.describe('Overlapping mount loading (v1) — small collections', () => {
     });
 
     await test.step('Mount both collections', async () => {
-      await clickCollectionNames(page, [SMALL_NAME_A, SMALL_NAME_B]);
+      await clickCollectionName(page, SMALL_NAME_A);
+      await clickCollectionName(page, SMALL_NAME_B);
     });
 
     await waitForCollectionMount(page, SMALL_NAME_A);
