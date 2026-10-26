@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import find from 'lodash/find';
 import Mousetrap from 'mousetrap';
-import { useSelector, useDispatch, useStore } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import NewRequest from 'components/Sidebar/NewRequest';
 import GlobalSearchModal from 'components/GlobalSearchModal';
 import SaveRequestsModal from 'providers/App/ConfirmAppClose/SaveRequestsModal';
@@ -16,18 +16,14 @@ import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import { isEnvironmentValidationError } from 'utils/environments';
 import toast from 'react-hot-toast';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
-import { selectCollections } from 'src/selectors/collections';
-import { selectTabs, selectActiveTabUid } from 'src/selectors/tab';
 
 export const HotkeysContext = React.createContext();
 
 export const HotkeysProvider = (props) => {
   const dispatch = useDispatch();
-  const store = useStore();
-  const activeTabUid = useSelector(selectActiveTabUid);
-
-  const getTabs = () => selectTabs(store.getState());
-  const getCollections = () => selectCollections(store.getState());
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const collections = useSelector((state) => state.collections.collections);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const userKeyBindings = useSelector((state) => state.app.preferences?.keyBindings);
   const keybindingsEnabled = useSelector((state) => state.app.preferences?.keybindingsEnabled !== false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
@@ -38,9 +34,9 @@ export const HotkeysProvider = (props) => {
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
 
   const getCurrentCollection = () => {
-    const activeTab = find(getTabs(), (t) => t.uid === activeTabUid);
+    const activeTab = find(tabs, (t) => t.uid === activeTabUid);
     if (activeTab) {
-      const collection = findCollectionByUid(getCollections(), activeTab.collectionUid);
+      const collection = findCollectionByUid(collections, activeTab.collectionUid);
 
       return collection;
     }
@@ -48,9 +44,9 @@ export const HotkeysProvider = (props) => {
 
   // Get tabs scoped to the active tab's collection
   const getCollectionTabs = () => {
-    const activeTab = find(getTabs(), (t) => t.uid === activeTabUid);
+    const activeTab = find(tabs, (t) => t.uid === activeTabUid);
     if (!activeTab) return [];
-    return getTabs().filter((t) => t.collectionUid === activeTab.collectionUid);
+    return tabs.filter((t) => t.collectionUid === activeTab.collectionUid);
   };
 
   // Helper: get Mousetrap combos for an action, merged with user overrides
@@ -73,9 +69,9 @@ export const HotkeysProvider = (props) => {
   // edit environments
   useEffect(() => {
     bindAction('editEnvironment', (e) => {
-      const activeTab = find(getTabs(), (t) => t.uid === activeTabUid);
+      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
       if (activeTab) {
-        const collection = findCollectionByUid(getCollections(), activeTab.collectionUid);
+        const collection = findCollectionByUid(collections, activeTab.collectionUid);
 
         if (collection) {
           dispatch(
@@ -94,7 +90,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('editEnvironment');
     };
-  }, [activeTabUid, dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, tabs, collections, dispatch, userKeyBindings, keybindingsEnabled]);
 
   // global search
   useEffect(() => {
@@ -123,7 +119,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('switchToPreviousTab');
     };
-  }, [activeTabUid, dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
 
   // Switch to the next tab (active-collection-tabs-only)
   useEffect(() => {
@@ -139,7 +135,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('switchToNextTab');
     };
-  }, [activeTabUid, dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
 
   // Switch to tab at position (Cmd+1 through Cmd+8) and last tab (Cmd+9) — collection-scoped
   useEffect(() => {
@@ -169,17 +165,17 @@ export const HotkeysProvider = (props) => {
       }
       unbindAction('switchToLastTab');
     };
-  }, [activeTabUid, dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
 
   // Close all tabs
   useEffect(() => {
     bindAction('closeAllTabs', (e) => {
-      const activeTab = find(getTabs(), (t) => t.uid === activeTabUid);
+      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
       if (activeTab) {
-        const collection = findCollectionByUid(getCollections(), activeTab.collectionUid);
+        const collection = findCollectionByUid(collections, activeTab.collectionUid);
 
         if (collection) {
-          const tabUids = getTabs().filter((tab) => tab.collectionUid === collection.uid).map((tab) => tab.uid);
+          const tabUids = tabs.filter((tab) => tab.collectionUid === collection.uid).map((tab) => tab.uid);
           setTabUidsToClose(tabUids);
           setShowSaveRequestsModal(true);
         }
@@ -191,12 +187,12 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('closeAllTabs');
     };
-  }, [activeTabUid, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, tabs, collections, userKeyBindings, keybindingsEnabled]);
 
   // Reopen last closed tab (active-collection-tabs-only)
   useEffect(() => {
     bindAction('reopenLastClosedTab', (e) => {
-      const activeTab = find(getTabs(), (t) => t.uid === activeTabUid);
+      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
       if (activeTab?.collectionUid) {
         dispatch(reopenClosedTab({ collectionUid: activeTab.collectionUid }));
       } else {
@@ -208,7 +204,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('reopenLastClosedTab');
     };
-  }, [activeTabUid, dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
 
   // Save all tabs (active-collection-tabs-only)
   useEffect(() => {
@@ -266,7 +262,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('saveAllTabs');
     };
-  }, [activeTabUid, dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, tabs, collections, dispatch, userKeyBindings, keybindingsEnabled]);
 
   // Collapse sidebar
   useEffect(() => {
@@ -302,16 +298,16 @@ export const HotkeysProvider = (props) => {
       }
 
       // 2. No sidebar focus → check active tab type
-      const activeTab = find(getTabs(), (t) => t.uid === activeTabUid);
+      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
       if (activeTab) {
         if (activeTab.type === 'collection-settings' && activeTab.collectionUid) {
-          const collection = findCollectionByUid(getCollections(), activeTab.collectionUid);
+          const collection = findCollectionByUid(collections, activeTab.collectionUid);
           if (collection?.pathname) {
             openDevtoolsAndSwitchToTerminal(dispatch, collection.pathname);
             return false;
           }
         } else if (activeTab.type === 'folder-settings' && activeTab.collectionUid && activeTab.uid) {
-          const collection = findCollectionByUid(getCollections(), activeTab.collectionUid);
+          const collection = findCollectionByUid(collections, activeTab.collectionUid);
           if (collection) {
             const item = findItemInCollection(collection, activeTab.uid);
             if (item?.pathname) {
@@ -332,7 +328,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('openTerminal');
     };
-  }, [focusedSidebarPath, activeTabUid, activeWorkspace, dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [focusedSidebarPath, activeTabUid, tabs, collections, activeWorkspace, dispatch, userKeyBindings, keybindingsEnabled]);
 
   // Move tab left (active-collection-tabs-only)
   useEffect(() => {
@@ -347,7 +343,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('moveTabLeft');
     };
-  }, [activeTabUid, dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
 
   // Move tab right (active-collection-tabs-only)
   useEffect(() => {
@@ -362,12 +358,12 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('moveTabRight');
     };
-  }, [activeTabUid, dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
 
   // Open preferences
   useEffect(() => {
     bindAction('openPreferences', (e) => {
-      const activeTab = find(getTabs(), (t) => t.uid === activeTabUid);
+      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
       const collectionUid = activeTab?.collectionUid || activeWorkspace?.scratchCollectionUid;
 
       dispatch(
@@ -383,7 +379,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('openPreferences');
     };
-  }, [activeTabUid, activeWorkspace, dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, tabs, activeWorkspace, dispatch, userKeyBindings, keybindingsEnabled]);
 
   // Change layout orientation
   useEffect(() => {
