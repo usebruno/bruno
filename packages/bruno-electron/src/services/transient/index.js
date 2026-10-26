@@ -11,10 +11,10 @@ const isProcessRunning = (pid) => {
   }
 };
 
-const isDirectoryInUse = (name) => {
-  if (!/^\d+$/.test(name)) return false;
+const shouldDeleteDirectory = (name) => {
+  if (!/^\d+$/.test(name)) return true;
   const pid = Number(name);
-  return pid !== process.pid && isProcessRunning(pid);
+  return pid === process.pid || !isProcessRunning(pid);
 };
 
 class TransientManager {
@@ -38,7 +38,7 @@ class TransientManager {
       return;
     }
 
-    await Promise.all(entries.filter((name) => !isDirectoryInUse(name)).map(async (name) => {
+    await Promise.all(entries.filter(shouldDeleteDirectory).map(async (name) => {
       try {
         await fs.rm(path.join(root, name), { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
       } catch (error) {
