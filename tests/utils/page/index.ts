@@ -20,3 +20,4 @@ export * from './set-as-variable';
 export * from './unresolved-variables-info';
 export * from './variables-tab';
 export * from './autocomplete';
+export * from './devtools-console';

@@ -1,4 +1,4 @@
-import { Page, test } from '../../../playwright';
+import { Page, test, expect } from '../../../playwright';
 import { escapeRegExp } from '../helpers';
 import { readLastHopRequestHeaderLines, readRequestHops } from './network-log';
 
@@ -24,6 +24,8 @@ export const buildDevToolsLocators = (page: Page) => {
     header: () => page.getByTestId('console-header'),
     networkTab: () => page.getByTestId('network-tab'),
     networkRows: () => page.getByTestId('network-request-row'),
+    networkEmpty: () => page.getByTestId('network-empty'),
+    clearNetworkLogs: () => page.getByTestId('clear-network-logs'),
     closeButton: () => page.getByTitle('Close console'),
     detailsPanel: () => page.getByTestId('details-panel'),
     requestDetailsTab: () => page.getByTestId('request-details-tab'),
@@ -39,6 +41,17 @@ export const buildDevToolsLocators = (page: Page) => {
     requestHops: () => readRequestHops(page.getByTestId('details-panel')),
     terminalSession: (index: number) => page.getByTestId(`session-list-${index}`)
   };
+};
+
+export const openNetworkTab = async (page: Page) => {
+  await test.step('Open DevTools → Network', async () => {
+    const devtools = buildDevToolsLocators(page);
+    await devtools.trigger().click();
+    await devtools.header().waitFor({ state: 'visible' });
+
+    await devtools.networkTab().click();
+    await expect(devtools.networkTab()).toHaveClass(/active/);
+  });
 };
 
 export const openNetworkRequestDetails = async (page: Page) => {

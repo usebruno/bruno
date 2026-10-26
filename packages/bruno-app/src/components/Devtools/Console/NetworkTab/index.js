@@ -200,7 +200,7 @@ const NetworkTab = () => {
     <StyledWrapper>
       <div className="network-content">
         {filteredRequests.length === 0 ? (
-          <div className="network-empty">
+          <div className="network-empty" data-testid="network-empty">
             <IconNetwork size={48} strokeWidth={1} />
             <p>No network requests</p>
             <span>Requests will appear here as you make API calls</span>
