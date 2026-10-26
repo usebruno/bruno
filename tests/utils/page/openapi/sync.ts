@@ -4,14 +4,18 @@ import { buildCollectionHeaderLocators } from '../collection/collection-header';
 
 export const buildOpenApiSyncLocators = (page: Page) => {
   const settingsModal = () => page.locator('.bruno-modal-card').filter({ hasText: 'Connection Settings' });
+  const workspaceMenu = () => page.getByRole('menu').filter({
+    has: page.locator('[data-testid^="spec-source-workspace-menu-"]')
+  });
 
   return {
     collectionHeaderOpenApiIcon: () => page.getByRole('button', { name: 'OpenAPI' }),
 
     sourceTab: (key: 'workspace' | 'url' | 'file') => page.getByTestId(`tab-${key}`),
     workspaceSelect: () => page.getByTestId('spec-source-workspace-select'),
-    workspaceMenu: () => page.getByRole('menu'),
-    workspaceOptions: () => page.getByRole('menu').getByRole('menuitem'),
+    workspaceMenu,
+    workspaceOptions: () => workspaceMenu().getByRole('menuitem'),
+    workspaceOption: (specName: string) => workspaceMenu().getByRole('menuitem', { name: specName, exact: true }),
     urlInput: () => page.getByTestId('spec-source-url-input'),
     fileInput: () => page.getByTestId('spec-source-file-input'),
     fileButton: () => page.getByTestId('spec-source-file-button'),
@@ -57,6 +61,6 @@ export const pickWorkspaceSpec = async (page: Page, specName: string) => {
   await test.step(`Pick the workspace spec "${specName}"`, async () => {
     const sync = buildOpenApiSyncLocators(page);
     await sync.workspaceSelect().click();
-    await sync.workspaceOptions().filter({ hasText: new RegExp(`^${specName}$`) }).click();
+    await sync.workspaceOption(specName).click();
   });
 };
