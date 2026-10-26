@@ -787,7 +787,77 @@ const isValidRef = (ref) => {
   return ref.startsWith('#/components/');
 };
 
-const resolveRefs = (spec, components = spec?.components, cache = new Map()) => {
+const NAMED_MAPS = new Set([
+  'properties', 'patternProperties', 'definitions', '$defs', 'dependentSchemas', 'schemas', 'responses', 'parameters',
+  'requestBodies', 'headers', 'securitySchemes', 'links', 'callbacks', 'pathItems', 'paths', 'webhooks', 'content',
+  'encoding', 'variables'
+]);
+
+const isReferenceOnly = (value) => isPlainObject(value) && typeof value.$ref === 'string' && Object.keys(value).length === 1;
+
+const isExampleRef = (ref) => isValidRef(ref) && ref.startsWith('#/components/examples/');
+
+const EXAMPLE_DATA_KEYS = ['value', 'dataValue'];
+
+const componentAt = (components, refPath) => refPath
+  .replace('#/components/', '')
+  .split('/')
+  .reduce((node, key) => (node && node[key] ? node[key] : undefined), components);
+
+const resolveExampleData = (data, components, inlining = [], copies = new Map()) => {
+  if (!data || typeof data !== 'object') {
+    return data;
+  }
+  if (copies.has(data)) {
+    return copies.get(data);
+  }
+  if (isReferenceOnly(data) && isExampleRef(data.$ref) && !inlining.includes(data.$ref)) {
+    const example = componentAt(components, data.$ref);
+    const inlined = EXAMPLE_DATA_KEYS.map((key) => example?.[key]).find((value) => value !== undefined);
+    if (inlined !== undefined) {
+      return resolveExampleData(inlined, components, [...inlining, data.$ref], copies);
+    }
+  }
+  const copy = Array.isArray(data) ? [] : {};
+  copies.set(data, copy);
+  Object.entries(data).forEach(([key, value]) => {
+    copy[key] = resolveExampleData(value, components, inlining, copies);
+  });
+  return copy;
+};
+
+const resolveExamples = (examples, components, cache) => {
+  if (Array.isArray(examples)) {
+    const values = examples.map((value) => resolveExampleData(value, components)).filter((value) => !isReferenceOnly(value));
+    return values.length > 0 ? values : undefined;
+  }
+  if (!isPlainObject(examples)) {
+    return examples;
+  }
+  const entries = Object.entries(examples)
+    .map(([name, example]) => [name, isValidRef(example?.$ref) && !isExampleRef(example.$ref) ? undefined : resolveRefs(example, components, cache, 'example')])
+    .filter(([, example]) => example !== undefined && !isReferenceOnly(example) && !EXAMPLE_DATA_KEYS.some((key) => isReferenceOnly(example?.[key])));
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+};
+
+const resolveChild = (key, value, components, cache, role) => {
+  if (role === 'map') {
+    return resolveRefs(value, components, cache);
+  }
+  if (role === 'example') {
+    return EXAMPLE_DATA_KEYS.includes(key) ? resolveExampleData(value, components) : resolveRefs(value, components, cache);
+  }
+  if (key === 'example') {
+    const data = resolveExampleData(value, components);
+    return isReferenceOnly(data) ? undefined : data;
+  }
+  if (key === 'examples') {
+    return resolveExamples(value, components, cache);
+  }
+  return resolveRefs(value, components, cache, NAMED_MAPS.has(key) && isPlainObject(value) ? 'map' : 'object');
+};
+
+function resolveRefs(spec, components = spec?.components, cache = new Map(), role = 'object') {
   if (!spec || typeof spec !== 'object') {
     return spec;
   }
@@ -797,7 +867,7 @@ const resolveRefs = (spec, components = spec?.components, cache = new Map()) => 
   }
 
   if (Array.isArray(spec)) {
-    return spec.map((item) => resolveRefs(item, components, cache));
+    return spec.map((item) => resolveRefs(item, components, cache, role));
   }
 
   // Only treat as a JSON reference if it passes all validation checks
@@ -811,20 +881,14 @@ const resolveRefs = (spec, components = spec?.components, cache = new Map()) => 
     }
 
     if (refPath.startsWith('#/components/')) {
-      const refKeys = refPath.replace('#/components/', '').split('/');
-      let ref = components;
-
-      for (const key of refKeys) {
-        if (ref && ref[key]) {
-          ref = ref[key];
-        } else {
-          return spec;
-        }
+      const ref = componentAt(components, refPath);
+      if (ref === undefined) {
+        return spec;
       }
 
       const placeholder = {};
       cache.set(refPath, placeholder);
-      const resolved = resolveRefs(ref, components, cache);
+      const resolved = resolveRefs(ref, components, cache, isExampleRef(refPath) ? 'example' : 'object');
       cache.set(refPath, resolved);
       registerReferencePlaceholder(placeholder, resolved);
       return resolved;
@@ -836,11 +900,14 @@ const resolveRefs = (spec, components = spec?.components, cache = new Map()) => 
   cache.set(spec, resolved);
 
   for (const [key, value] of Object.entries(spec)) {
-    resolved[key] = resolveRefs(value, components, cache);
+    const child = resolveChild(key, value, components, cache, role);
+    if (child !== undefined) {
+      resolved[key] = child;
+    }
   }
 
   return resolved;
-};
+}
 
 const getDefaultUrl = (serverObject) => {
   let url = serverObject.url;

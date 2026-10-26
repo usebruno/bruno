@@ -145,4 +145,43 @@ describe('swagger2-to-bruno circular references', () => {
     const collection = swagger2ToBruno(spec);
     expect(collection).toBeDefined();
   });
+
+  describe('an example that refers to a recursive definition', () => {
+    const folderRef = { $ref: '#/definitions/Folder' };
+    const folder = { type: 'object', properties: { name: { type: 'string' }, children: { type: 'array', items: folderRef } } };
+    const buildSpec = ({ bodySchema = folderRef, responseExamples, definitionsFirst = true } = {}) => {
+      const head = { swagger: '2.0', info: { title: 'Demo', version: '1.0.0' } };
+      const definitions = { Folder: folder };
+      const paths = {
+        '/folders': {
+          post: {
+            summary: 'Create folder',
+            consumes: ['application/json'],
+            produces: ['application/json'],
+            parameters: [{ in: 'body', name: 'body', schema: bodySchema }],
+            responses: { 200: { description: 'OK', schema: folderRef, ...(responseExamples ? { examples: responseExamples } : {}) } }
+          }
+        }
+      };
+      return definitionsFirst ? { ...head, definitions, paths } : { ...head, paths, definitions };
+    };
+    const firstRequest = (spec) => swagger2ToBruno(spec).items[0];
+    const requestBody = (spec) => JSON.parse(firstRequest(spec).request.body.json);
+    const responseBody = (spec) => JSON.parse(firstRequest(spec).examples[0].response.body.content);
+
+    it.each([true, false])('builds the body from the schema when the body example points at the definition (definitions first: %s)', (definitionsFirst) => {
+      const withExample = buildSpec({ bodySchema: { ...folder, example: folderRef }, definitionsFirst });
+      expect(requestBody(withExample)).toEqual(requestBody(buildSpec({ bodySchema: { ...folder }, definitionsFirst })));
+    });
+
+    it.each([true, false])('builds the response example from the schema when it points at the definition (definitions first: %s)', (definitionsFirst) => {
+      const withExample = buildSpec({ responseExamples: { 'application/json': folderRef }, definitionsFirst });
+      expect(responseBody(withExample)).toEqual(responseBody(buildSpec({ definitionsFirst })));
+    });
+
+    it('keeps a definition reference inside a larger example as a plain value', () => {
+      const spec = buildSpec({ bodySchema: { ...folder, example: { name: 'docs', children: [folderRef] } } });
+      expect(requestBody(spec)).toEqual({ name: 'docs', children: [folderRef] });
+    });
+  });
 });
