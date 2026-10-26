@@ -38,7 +38,7 @@ test.describe('Collection settings tabs', () => {
 
     await test.step('Open Bruno and create a collection', async () => {
       await page.locator('[data-app-state="loaded"]').waitFor();
-      await createCollection(page, 'Collection Tabs', await createTmpDir('tc-2618'));
+      await createCollection(page, 'Collection Tabs', await createTmpDir('TC-2618'));
       await expect(sidebar.collection('Collection Tabs')).toBeVisible();
       await expect(paneTabs.collectionSettingsTab('overview')).toBeVisible();
     });
