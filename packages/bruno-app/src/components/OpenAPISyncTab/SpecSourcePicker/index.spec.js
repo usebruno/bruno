@@ -44,6 +44,16 @@ describe('SpecSourcePicker', () => {
       expect(getByTestId('tab-workspace')).toHaveAttribute('aria-selected', 'false');
     });
 
+    it('names the tab list and links the active tab to its panel', () => {
+      const { getByRole } = renderPicker({ mode: 'url' });
+      const panel = getByRole('tabpanel');
+      const activeTab = getByRole('tab', { name: 'URL' });
+
+      expect(getByRole('tablist', { name: 'Spec source' })).toBeInTheDocument();
+      expect(activeTab).toHaveAttribute('aria-controls', panel.id);
+      expect(panel).toHaveAttribute('aria-labelledby', activeTab.id);
+    });
+
     it('lets keyboard users focus every tab', () => {
       const { getAllByRole } = renderPicker();
 
@@ -181,6 +191,17 @@ describe('SpecSourcePicker', () => {
         'Swagger 2.0 is not supported. Please convert your spec to OpenAPI 3.x.'
       ));
       expect(onChange).not.toHaveBeenCalledWith('/specs/legacy.json');
+    });
+
+    it('clears the file input so the same file can be picked again', () => {
+      window.ipcRenderer = { getFilePath: jest.fn().mockReturnValue('/specs/pets.json') };
+      const setValue = jest.spyOn(HTMLInputElement.prototype, 'value', 'set');
+      const { getByTestId } = renderPicker({ mode: 'file' });
+
+      chooseFile(getByTestId, JSON.stringify(validOpenApiSpec));
+
+      expect(setValue).toHaveBeenCalledWith('');
+      setValue.mockRestore();
     });
 
     it('reports a file that cannot be parsed', async () => {

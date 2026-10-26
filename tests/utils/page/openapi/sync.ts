@@ -17,9 +17,10 @@ export const buildOpenApiSyncLocators = (page: Page) => {
     fileButton: () => page.getByTestId('spec-source-file-button'),
     connectButton: () => page.getByRole('button', { name: 'Connect', exact: true }),
     connectError: () => page.getByTestId('openapi-connect-error'),
-    connectedHeader: () => page.getByRole('button', { name: 'Check for updates' }),
+    connectedHeader: () => page.getByTestId('openapi-sync-check-updates'),
     specUpdatesTab: () => page.getByTestId('responsive-tab-spec-updates'),
-    sourceFileNotFound: () => page.getByText(/Source file not found/),
+    overviewBanner: () => page.getByTestId('openapi-sync-overview-banner'),
+    specStatusBanner: () => page.getByTestId('openapi-sync-spec-status'),
 
     headerMenu: () => page.getByTestId('openapi-sync-header-menu'),
     editSettingsItem: () => page.getByTestId('openapi-sync-header-menu-settings'),

@@ -50,10 +50,16 @@ describe('ConnectionSettingsModal on Windows, where file paths ignore case', () 
     ));
   });
 
-  it('opens on the File tab for a source outside the workspace', () => {
-    const { getByTestId } = renderModal('..\\..\\..\\downloads\\other.yaml');
+  it('opens on the File tab for a source outside the workspace and keeps its Windows path on save', async () => {
+    const { getByRole, getByTestId, onSave } = renderModal('..\\..\\outside\\other.yaml');
 
     expect(getByTestId('tab-file')).toHaveAttribute('aria-selected', 'true');
     expect(getByTestId('spec-source-file-button')).toHaveTextContent('other.yaml');
+
+    fireEvent.click(getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceUrl: 'C:\\ws\\outside\\other.yaml' })
+    ));
   });
 });

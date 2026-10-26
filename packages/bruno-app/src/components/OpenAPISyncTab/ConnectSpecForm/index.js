@@ -24,6 +24,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
   const workspaceSpecs = useWorkspaceApiSpecs();
 
   const handleModeChange = (nextMode) => {
+    if (nextMode === mode) return;
     setMode(nextMode);
     setSourceUrl('');
     setError(null);
@@ -65,7 +66,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
         />
         <p className="setup-hint">{SOURCE_HINTS[mode]}</p>
         {error && (
-          <p className="setup-error" data-testid="openapi-connect-error">{error}</p>
+          <p className="setup-error" role="alert" data-testid="openapi-connect-error">{error}</p>
         )}
       </form>
 

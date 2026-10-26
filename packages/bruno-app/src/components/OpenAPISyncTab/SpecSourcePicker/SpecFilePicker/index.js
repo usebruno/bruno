@@ -10,6 +10,7 @@ const SpecFilePicker = ({ value, onChange, onError }) => {
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = '';
     const pick = latestPickRef.current + 1;
     latestPickRef.current = pick;
     // fileInputRef is cleared when the picker unmounts, so a stale read after a tab switch is dropped too.

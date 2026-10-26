@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import Tab from 'components/Tab';
 import WorkspaceSpecSelect from './WorkspaceSpecSelect';
 import SpecFilePicker from './SpecFilePicker';
@@ -10,14 +11,26 @@ const SOURCE_TABS = [
 ];
 
 const SpecSourcePicker = ({ variant, mode, onModeChange, value, onChange, onError, action }) => {
+  const idPrefix = useId();
+  const panelId = `${idPrefix}-panel`;
+  const tabId = (key) => `${idPrefix}-tab-${key}`;
+
   return (
     <StyledWrapper className={variant}>
-      <div className="tabs" role="tablist">
+      <div className="tabs" role="tablist" aria-label="Spec source">
         {SOURCE_TABS.map((tab) => (
-          <Tab key={tab.key} name={tab.key} label={tab.label} isActive={mode === tab.key} onClick={onModeChange} />
+          <Tab
+            key={tab.key}
+            id={tabId(tab.key)}
+            aria-controls={panelId}
+            name={tab.key}
+            label={tab.label}
+            isActive={mode === tab.key}
+            onClick={onModeChange}
+          />
         ))}
       </div>
-      <div className="source-row">
+      <div className="source-row" role="tabpanel" id={panelId} aria-labelledby={tabId(mode)}>
         {mode === 'workspace' && (
           <WorkspaceSpecSelect value={value} onChange={onChange} onError={onError} />
         )}

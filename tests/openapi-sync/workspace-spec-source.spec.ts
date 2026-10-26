@@ -323,10 +323,11 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
     try {
       await openConnectedOpenApiSyncTab(page, COLLECTION_NAME);
 
-      await test.step('The spec file is still found for sync', async () => {
-        await expect(sync.connectedHeader()).toBeVisible({ timeout: 10000 });
+      await test.step('The spec file is still read for sync', async () => {
+        await expect(sync.overviewBanner()).toContainText('Initial sync required', { timeout: 15000 });
         await sync.specUpdatesTab().click();
-        await expect(sync.sourceFileNotFound()).toHaveCount(0);
+        await expect(sync.specStatusBanner()).toBeVisible();
+        await expect(sync.specStatusBanner()).not.toContainText('Source file not found');
       });
 
       await openConnectionSettings(page);

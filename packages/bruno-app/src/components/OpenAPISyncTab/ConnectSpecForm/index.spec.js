@@ -81,6 +81,24 @@ describe('ConnectSpecForm', () => {
     expect(getByRole('button', { name: 'Connect' })).toBeDisabled();
   });
 
+  it('keeps the picked spec when the active tab is clicked again', () => {
+    const { getByRole, getByTestId } = renderForm();
+    fireEvent.change(getByTestId('spec-source-workspace-select'), { target: { value: 'pets' } });
+
+    fireEvent.click(getByTestId('tab-workspace'));
+
+    expect(getByTestId('spec-source-workspace-select')).toHaveValue('pets');
+    expect(getByRole('button', { name: 'Connect' })).toBeEnabled();
+  });
+
+  it('announces a validation error to screen readers', () => {
+    const { getByRole, getByTestId } = renderForm();
+
+    fireEvent.change(getByTestId('spec-source-workspace-select'), { target: { value: 'legacy' } });
+
+    expect(getByRole('alert')).toHaveTextContent('Swagger 2.0 is not supported. Please convert your spec to OpenAPI 3.x.');
+  });
+
   it('clears the picked source and its error when switching tabs', async () => {
     const { findByTestId, getByTestId, queryByText } = renderForm();
     fireEvent.change(getByTestId('spec-source-workspace-select'), { target: { value: 'legacy' } });

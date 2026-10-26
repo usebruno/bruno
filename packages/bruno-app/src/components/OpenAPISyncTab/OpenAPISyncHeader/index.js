@@ -96,6 +96,7 @@ const OpenAPISyncHeader = ({
             size="sm"
             onClick={onCheck}
             disabled={!canCheck}
+            data-testid="openapi-sync-check-updates"
             loading={isLoading}
             icon={<IconRefresh size={14} />}
           >

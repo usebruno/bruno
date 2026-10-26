@@ -25,7 +25,10 @@ const resolveInitialSource = (sourceUrl, collectionPath, workspaceSpecs) => {
 const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, onClose }) => {
   const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
   const workspaceSpecs = useWorkspaceApiSpecs();
-  const [{ mode, sources }, setSourceState] = useState(() => resolveInitialSource(sourceUrl, collection?.pathname, workspaceSpecs));
+  const [editedSource, setEditedSource] = useState(null);
+  const initialSource = resolveInitialSource(sourceUrl, collection?.pathname, workspaceSpecs);
+  const { mode, sources } = editedSource || initialSource;
+  const editSource = (update) => setEditedSource((current) => update(current || initialSource));
   const [autoCheck, setAutoCheck] = useState(openApiSyncConfig?.autoCheck !== false);
   const [checkInterval, setCheckInterval] = useState(openApiSyncConfig?.autoCheckInterval || 5);
   const [isSaving, setIsSaving] = useState(false);
@@ -57,13 +60,13 @@ const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, 
       <div className="settings-modal">
         <div className="settings-body">
           <div className="settings-field">
-            <label className="settings-label">Spec Source</label>
+            <div className="settings-label">Spec Source</div>
             <SpecSourcePicker
               variant="settings"
               mode={mode}
-              onModeChange={(nextMode) => setSourceState((current) => ({ ...current, mode: nextMode }))}
+              onModeChange={(nextMode) => editSource((current) => ({ ...current, mode: nextMode }))}
               value={sources[mode]}
-              onChange={(value) => setSourceState((current) => ({
+              onChange={(value) => editSource((current) => ({
                 ...current,
                 sources: { ...current.sources, [current.mode]: value }
               }))}

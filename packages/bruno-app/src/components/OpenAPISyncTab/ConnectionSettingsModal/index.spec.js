@@ -54,6 +54,32 @@ describe('ConnectionSettingsModal', () => {
     expect(getByTestId('spec-source-workspace-select')).toHaveValue('zoo');
   });
 
+  it('moves to the Workspace tab when the connected spec loads after the modal opens', () => {
+    const { getByTestId, setWorkspaceSpecs } = renderModal('../../specs/pets.yaml', []);
+    expect(getByTestId('tab-file')).toHaveAttribute('aria-selected', 'true');
+
+    setWorkspaceSpecs([petsSpec, zooSpec]);
+
+    expect(getByTestId('tab-workspace')).toHaveAttribute('aria-selected', 'true');
+    expect(getByTestId('spec-source-workspace-select')).toHaveValue('pets');
+  });
+
+  it('keeps the tab the user chose when workspace specs load later', () => {
+    const { getByTestId, setWorkspaceSpecs } = renderModal('../../specs/pets.yaml', []);
+    fireEvent.click(getByTestId('tab-url'));
+
+    setWorkspaceSpecs([petsSpec, zooSpec]);
+
+    expect(getByTestId('tab-url')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('names the source tabs without an orphan label element', () => {
+    const { getByRole, getByText } = renderModal('../../specs/pets.yaml');
+
+    expect(getByRole('tablist', { name: 'Spec source' })).toBeInTheDocument();
+    expect(getByText('Spec Source').tagName).not.toBe('LABEL');
+  });
+
   it('opens on the File tab for a file outside the workspace', async () => {
     const { findByTestId, getByTestId } = renderModal('../../../downloads/other.yaml');
 
@@ -100,13 +126,23 @@ describe('ConnectionSettingsModal', () => {
     expect(getByRole('button', { name: 'Save' })).toBeDisabled();
   });
 
-  it('blocks saving when the selected workspace spec leaves the workspace', () => {
-    const { getByRole, setWorkspaceSpecs } = renderModal('../../specs/pets.yaml');
+  it('blocks saving when a picked workspace spec leaves the workspace', () => {
+    const { getByRole, getByTestId, setWorkspaceSpecs } = renderModal('../../specs/pets.yaml');
+    fireEvent.change(getByTestId('spec-source-workspace-select'), { target: { value: 'zoo' } });
     expect(getByRole('button', { name: 'Save' })).toBeEnabled();
+
+    setWorkspaceSpecs([petsSpec]);
+
+    expect(getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
+  it('shows the connected spec on the File tab when it leaves the workspace before any edit', () => {
+    const { getByTestId, setWorkspaceSpecs } = renderModal('../../specs/pets.yaml');
 
     setWorkspaceSpecs([zooSpec]);
 
-    expect(getByRole('button', { name: 'Save' })).toBeDisabled();
+    expect(getByTestId('tab-file')).toHaveAttribute('aria-selected', 'true');
+    expect(getByTestId('spec-source-file-button')).toHaveTextContent('pets.yaml');
   });
 
   it('blocks saving on a tab that has no source yet', async () => {
