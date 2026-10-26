@@ -2,7 +2,7 @@ import '@testing-library/jest-dom';
 import React from 'react';
 import toast from 'react-hot-toast';
 import { fireEvent, waitFor } from '@testing-library/react';
-import { renderWithWorkspaceSpecs, stubTabWidths, workspaceSpec } from 'components/OpenAPISyncTab/testUtils';
+import { renderWithWorkspaceSpecs, workspaceSpec } from 'components/OpenAPISyncTab/testUtils';
 import ConnectionSettingsModal from './index';
 
 jest.mock('react-hot-toast', () => ({ __esModule: true, default: { error: jest.fn(), success: jest.fn() } }));
@@ -36,8 +36,6 @@ const renderModal = (sourceUrl, specs = [petsSpec, zooSpec, swaggerSpec]) => {
 };
 
 describe('ConnectionSettingsModal', () => {
-  stubTabWidths();
-
   afterEach(() => {
     toast.error.mockClear();
   });
@@ -45,21 +43,28 @@ describe('ConnectionSettingsModal', () => {
   it('opens on the Workspace tab with the connected workspace spec selected', async () => {
     const { findByTestId, getByTestId } = renderModal('../../specs/pets.yaml');
 
-    expect(await findByTestId('responsive-tab-workspace')).toHaveAttribute('aria-selected', 'true');
+    expect(await findByTestId('tab-workspace')).toHaveAttribute('aria-selected', 'true');
     expect(getByTestId('spec-source-workspace-select')).toHaveValue('pets');
+  });
+
+  it('opens on the Workspace tab for an older connection stored as an absolute path', () => {
+    const { getByTestId } = renderModal('/ws/specs/zoo.yaml');
+
+    expect(getByTestId('tab-workspace')).toHaveAttribute('aria-selected', 'true');
+    expect(getByTestId('spec-source-workspace-select')).toHaveValue('zoo');
   });
 
   it('opens on the File tab for a file outside the workspace', async () => {
     const { findByTestId, getByTestId } = renderModal('../../../downloads/other.yaml');
 
-    expect(await findByTestId('responsive-tab-file')).toHaveAttribute('aria-selected', 'true');
+    expect(await findByTestId('tab-file')).toHaveAttribute('aria-selected', 'true');
     expect(getByTestId('spec-source-file-button')).toHaveTextContent('other.yaml');
   });
 
   it('opens on the URL tab for a URL source', async () => {
     const { findByTestId, getByTestId } = renderModal('https://api.example.com/openapi.json');
 
-    expect(await findByTestId('responsive-tab-url')).toHaveAttribute('aria-selected', 'true');
+    expect(await findByTestId('tab-url')).toHaveAttribute('aria-selected', 'true');
     expect(getByTestId('spec-source-url-input')).toHaveValue('https://api.example.com/openapi.json');
   });
 
@@ -95,26 +100,35 @@ describe('ConnectionSettingsModal', () => {
     expect(getByRole('button', { name: 'Save' })).toBeDisabled();
   });
 
+  it('blocks saving when the selected workspace spec leaves the workspace', () => {
+    const { getByRole, setWorkspaceSpecs } = renderModal('../../specs/pets.yaml');
+    expect(getByRole('button', { name: 'Save' })).toBeEnabled();
+
+    setWorkspaceSpecs([zooSpec]);
+
+    expect(getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
   it('blocks saving on a tab that has no source yet', async () => {
     const { findByTestId, getByRole } = renderModal('../../specs/pets.yaml');
 
-    fireEvent.click(await findByTestId('responsive-tab-file'));
+    fireEvent.click(await findByTestId('tab-file'));
     expect(getByRole('button', { name: 'Save' })).toBeDisabled();
 
-    fireEvent.click(await findByTestId('responsive-tab-url'));
+    fireEvent.click(await findByTestId('tab-url'));
     expect(getByRole('button', { name: 'Save' })).toBeDisabled();
   });
 
   it('keeps what was entered on each tab when switching between them', async () => {
     const { findByTestId, getByTestId } = renderModal('../../specs/pets.yaml');
 
-    fireEvent.click(await findByTestId('responsive-tab-url'));
+    fireEvent.click(await findByTestId('tab-url'));
     fireEvent.change(getByTestId('spec-source-url-input'), { target: { value: 'https://api.example.com/openapi.json' } });
-    fireEvent.click(await findByTestId('responsive-tab-workspace'));
+    fireEvent.click(await findByTestId('tab-workspace'));
 
     expect(getByTestId('spec-source-workspace-select')).toHaveValue('pets');
 
-    fireEvent.click(await findByTestId('responsive-tab-url'));
+    fireEvent.click(await findByTestId('tab-url'));
     expect(getByTestId('spec-source-url-input')).toHaveValue('https://api.example.com/openapi.json');
   });
 });

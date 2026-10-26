@@ -619,20 +619,6 @@ const StyledWrapper = styled.div`
       margin-bottom: 5px;
     }
 
-    .source-input {
-      height: auto;
-      padding: 7px 10px;
-      font-size: ${(props) => props.theme.font.size.sm};
-      font-family: monospace;
-      background: ${(props) => props.theme.input.bg};
-      border-color: ${(props) => props.theme.border.border1};
-      border-radius: 5px;
-
-      &.workspace-select {
-        padding-right: 1.75rem;
-      }
-    }
-
     .settings-toggle-row {
       display: flex;
       align-items: center;

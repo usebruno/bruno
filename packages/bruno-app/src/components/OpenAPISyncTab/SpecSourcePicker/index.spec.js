@@ -1,9 +1,8 @@
 import '@testing-library/jest-dom';
-import React from 'react';
-import { fireEvent, waitFor } from '@testing-library/react';
+import React, { useState } from 'react';
+import { act, fireEvent, waitFor } from '@testing-library/react';
 import {
   renderWithWorkspaceSpecs,
-  stubTabWidths,
   validOpenApiSpec,
   workspaceSpec
 } from 'components/OpenAPISyncTab/testUtils';
@@ -27,24 +26,44 @@ const renderPicker = ({ specs = [zooSpec, petsSpec], ...props } = {}) => {
 describe('SpecSourcePicker', () => {
   const originalIpcRenderer = window.ipcRenderer;
 
-  stubTabWidths();
-
   afterEach(() => {
     window.ipcRenderer = originalIpcRenderer;
   });
 
   describe('tabs', () => {
-    it('shows Workspace, URL and File tabs in that order', async () => {
-      const { findAllByRole } = renderPicker();
+    it('shows Workspace, URL and File tabs in that order on the first render', () => {
+      const { getAllByRole } = renderPicker();
 
-      const tabs = await findAllByRole('tab');
-      expect(tabs.map((tab) => tab.textContent)).toEqual(['Workspace', 'URL', 'File']);
+      expect(getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Workspace', 'URL', 'File']);
     });
 
-    it('reports the tab the user picks', async () => {
-      const { findByTestId, onModeChange } = renderPicker();
+    it('marks the active tab as selected', () => {
+      const { getByTestId } = renderPicker({ mode: 'url' });
 
-      fireEvent.click(await findByTestId('responsive-tab-url'));
+      expect(getByTestId('tab-url')).toHaveAttribute('aria-selected', 'true');
+      expect(getByTestId('tab-workspace')).toHaveAttribute('aria-selected', 'false');
+    });
+
+    it('lets keyboard users focus every tab', () => {
+      const { getAllByRole } = renderPicker();
+
+      getAllByRole('tab').forEach((tab) => expect(tab).toHaveAttribute('tabindex', '0'));
+    });
+
+    it('switches tab with Enter and with Space', () => {
+      const { getByTestId, onModeChange } = renderPicker();
+
+      fireEvent.keyDown(getByTestId('tab-url'), { key: 'Enter' });
+      fireEvent.keyDown(getByTestId('tab-file'), { key: ' ' });
+
+      expect(onModeChange).toHaveBeenNthCalledWith(1, 'url');
+      expect(onModeChange).toHaveBeenNthCalledWith(2, 'file');
+    });
+
+    it('reports the tab the user picks', () => {
+      const { getByTestId, onModeChange } = renderPicker();
+
+      fireEvent.click(getByTestId('tab-url'));
 
       expect(onModeChange).toHaveBeenCalledWith('url');
     });
@@ -61,6 +80,12 @@ describe('SpecSourcePicker', () => {
         'Zoo'
       ]);
       expect(select).toHaveValue('');
+    });
+
+    it('gives the dropdown an accessible name', () => {
+      const { getByRole } = renderPicker();
+
+      expect(getByRole('combobox', { name: 'API spec' })).toBeInTheDocument();
     });
 
     it('draws its own chevron inside the dropdown', () => {
@@ -103,6 +128,12 @@ describe('SpecSourcePicker', () => {
   });
 
   describe('url mode', () => {
+    it('gives the URL input an accessible name', () => {
+      const { getByRole } = renderPicker({ mode: 'url' });
+
+      expect(getByRole('textbox', { name: 'OpenAPI spec URL' })).toBeInTheDocument();
+    });
+
     it('reports what the user types', () => {
       const { getByTestId, onChange } = renderPicker({ mode: 'url' });
 
@@ -161,6 +192,38 @@ describe('SpecSourcePicker', () => {
         'Failed to parse the file – ensure it is valid JSON or YAML'
       ));
     });
+  });
+
+  it('ignores a file that finishes reading after the user left the File tab', async () => {
+    window.ipcRenderer = { getFilePath: jest.fn().mockReturnValue('/specs/pets.json') };
+    const onChange = jest.fn();
+    const onError = jest.fn();
+    const PickerHost = () => {
+      const [mode, setMode] = useState('file');
+      return <SpecSourcePicker mode={mode} onModeChange={setMode} value="" onChange={onChange} onError={onError} />;
+    };
+    const { getByTestId } = renderWithWorkspaceSpecs(<PickerHost />, [petsSpec]);
+
+    let finishReading;
+    const file = new File(['{}'], 'pets.json', { type: 'application/json' });
+    file.text = () => new Promise((resolve) => {
+      finishReading = resolve;
+    });
+    fireEvent.change(getByTestId('spec-source-file-input'), { target: { files: [file] } });
+    onChange.mockClear();
+    onError.mockClear();
+
+    fireEvent.click(getByTestId('tab-url'));
+    await act(async () => finishReading(JSON.stringify(validOpenApiSpec)));
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('uses the compact settings look when asked for the settings variant', () => {
+    const { container } = renderPicker({ variant: 'settings' });
+
+    expect(container.firstChild).toHaveClass('settings');
   });
 
   it('renders the action next to the source input', () => {

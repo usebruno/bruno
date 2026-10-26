@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { matchLoadedApiSpecs } from 'components/Sidebar/ApiSpecs/matchLoadedApiSpecs';
+import { matchLoadedApiSpecs } from 'utils/api-specs/matchLoadedApiSpecs';
 
 const useWorkspaceApiSpecs = () => {
   const apiSpecs = useSelector((state) => state.apiSpec.apiSpecs);

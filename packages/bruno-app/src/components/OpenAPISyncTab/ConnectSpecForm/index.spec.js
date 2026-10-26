@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 import React, { useState } from 'react';
 import { fireEvent } from '@testing-library/react';
-import { renderWithWorkspaceSpecs, stubTabWidths, workspaceSpec } from 'components/OpenAPISyncTab/testUtils';
+import { renderWithWorkspaceSpecs, workspaceSpec } from 'components/OpenAPISyncTab/testUtils';
 import ConnectSpecForm from './index';
 
 const petsSpec = workspaceSpec('pets', 'Pets', '/ws/specs/pets.yaml');
@@ -34,8 +34,6 @@ const renderForm = (specs = [petsSpec, swaggerSpec]) => {
 };
 
 describe('ConnectSpecForm', () => {
-  stubTabWidths();
-
   it('shows the OpenAPI sync icon above the title', () => {
     const { getByTestId, getByRole } = renderForm();
     const icon = getByTestId('openapi-connect-icon');
@@ -47,7 +45,7 @@ describe('ConnectSpecForm', () => {
   it('opens on the Workspace tab with its hint', async () => {
     const { findByTestId, getByText } = renderForm();
 
-    expect(await findByTestId('responsive-tab-workspace')).toHaveAttribute('aria-selected', 'true');
+    expect(await findByTestId('tab-workspace')).toHaveAttribute('aria-selected', 'true');
     expect(getByText('Select the spec from the active workspace')).toBeInTheDocument();
   });
 
@@ -63,6 +61,17 @@ describe('ConnectSpecForm', () => {
     expect(onConnect).toHaveBeenCalled();
   });
 
+  it('disables Connect again when the picked spec leaves the workspace', () => {
+    const { getByRole, getByTestId, setWorkspaceSpecs } = renderForm();
+    fireEvent.change(getByTestId('spec-source-workspace-select'), { target: { value: 'pets' } });
+    expect(getByRole('button', { name: 'Connect' })).toBeEnabled();
+
+    setWorkspaceSpecs([swaggerSpec]);
+
+    expect(getByTestId('spec-source-workspace-select')).toHaveValue('');
+    expect(getByRole('button', { name: 'Connect' })).toBeDisabled();
+  });
+
   it('shows the validation error for a workspace spec that is not OpenAPI 3.x', () => {
     const { getByRole, getByTestId, getByText } = renderForm();
 
@@ -76,8 +85,8 @@ describe('ConnectSpecForm', () => {
     const { findByTestId, getByTestId, queryByText } = renderForm();
     fireEvent.change(getByTestId('spec-source-workspace-select'), { target: { value: 'legacy' } });
 
-    fireEvent.click(await findByTestId('responsive-tab-url'));
-    fireEvent.click(await findByTestId('responsive-tab-workspace'));
+    fireEvent.click(await findByTestId('tab-url'));
+    fireEvent.click(await findByTestId('tab-workspace'));
 
     expect(queryByText('Swagger 2.0 is not supported. Please convert your spec to OpenAPI 3.x.')).not.toBeInTheDocument();
     expect(getByTestId('spec-source-workspace-select')).toHaveValue('');
@@ -85,7 +94,7 @@ describe('ConnectSpecForm', () => {
 
   it('enables Connect on the URL tab only for an http URL', async () => {
     const { findByTestId, getByRole, getByTestId, getByText } = renderForm();
-    fireEvent.click(await findByTestId('responsive-tab-url'));
+    fireEvent.click(await findByTestId('tab-url'));
     const urlInput = getByTestId('spec-source-url-input');
 
     expect(getByText('Supports OpenAPI 3.x specifications in JSON or YAML format')).toBeInTheDocument();
@@ -100,7 +109,7 @@ describe('ConnectSpecForm', () => {
   it('shows the file hint on the File tab', async () => {
     const { findByTestId, getByText } = renderForm();
 
-    fireEvent.click(await findByTestId('responsive-tab-file'));
+    fireEvent.click(await findByTestId('tab-file'));
 
     expect(getByText('Select a local OpenAPI/Swagger JSON or YAML file')).toBeInTheDocument();
   });

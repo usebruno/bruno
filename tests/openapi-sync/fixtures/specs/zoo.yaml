@@ -1,0 +1,10 @@
+openapi: 3.0.0
+info:
+  title: Zoo API
+  version: 1.0.0
+paths:
+  /animals:
+    get:
+      responses:
+        '200':
+          description: OK

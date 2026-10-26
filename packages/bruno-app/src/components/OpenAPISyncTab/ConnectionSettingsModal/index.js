@@ -7,6 +7,7 @@ import { getAbsoluteFilePath } from 'utils/common/path';
 import { findApiSpecByPathname } from 'utils/api-specs';
 import useWorkspaceApiSpecs from 'hooks/useWorkspaceApiSpecs';
 import SpecSourcePicker from 'components/OpenAPISyncTab/SpecSourcePicker';
+import { isSpecSourceReady } from 'components/OpenAPISyncTab/SpecSourcePicker/utils';
 
 const resolveInitialSource = (sourceUrl, collectionPath, workspaceSpecs) => {
   const source = (sourceUrl || '').trim();
@@ -24,9 +25,7 @@ const resolveInitialSource = (sourceUrl, collectionPath, workspaceSpecs) => {
 const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, onClose }) => {
   const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
   const workspaceSpecs = useWorkspaceApiSpecs();
-  const [initialSource] = useState(() => resolveInitialSource(sourceUrl, collection?.pathname, workspaceSpecs));
-  const [mode, setMode] = useState(initialSource.mode);
-  const [sources, setSources] = useState(initialSource.sources);
+  const [{ mode, sources }, setSourceState] = useState(() => resolveInitialSource(sourceUrl, collection?.pathname, workspaceSpecs));
   const [autoCheck, setAutoCheck] = useState(openApiSyncConfig?.autoCheck !== false);
   const [checkInterval, setCheckInterval] = useState(openApiSyncConfig?.autoCheckInterval || 5);
   const [isSaving, setIsSaving] = useState(false);
@@ -34,7 +33,7 @@ const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, 
   const intervals = [5, 15, 30, 60];
 
   const effectiveSource = sources[mode].trim();
-  const canSave = mode === 'url' ? isHttpUrl(effectiveSource) : !!effectiveSource;
+  const canSave = isSpecSourceReady(mode, effectiveSource, workspaceSpecs);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -60,10 +59,14 @@ const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, 
           <div className="settings-field">
             <label className="settings-label">Spec Source</label>
             <SpecSourcePicker
+              variant="settings"
               mode={mode}
-              onModeChange={setMode}
+              onModeChange={(nextMode) => setSourceState((current) => ({ ...current, mode: nextMode }))}
               value={sources[mode]}
-              onChange={(value) => setSources((current) => ({ ...current, [mode]: value }))}
+              onChange={(value) => setSourceState((current) => ({
+                ...current,
+                sources: { ...current.sources, [current.mode]: value }
+              }))}
               onError={(message) => message && toast.error(message)}
             />
           </div>

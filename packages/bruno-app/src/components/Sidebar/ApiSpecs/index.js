@@ -1,11 +1,11 @@
 import React from 'react';
 import styled from 'styled-components';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { openApiSpec } from 'providers/ReduxStore/slices/apiSpec';
 import ApiSpecItem from './ApiSpecItem';
 import StyledWrapper from './StyledWrapper';
-import { matchLoadedApiSpecs } from './matchLoadedApiSpecs';
+import useWorkspaceApiSpecs from 'hooks/useWorkspaceApiSpecs';
 import toast from 'react-hot-toast';
 
 const LinkStyle = styled.span`
@@ -15,20 +15,7 @@ const LinkStyle = styled.span`
 const ApiSpecs = () => {
   const dispatch = useDispatch();
   const { theme } = useTheme();
-  const allApiSpecs = useSelector((state) => state.apiSpec.apiSpecs);
-  const workspaces = useSelector((state) => state.workspaces.workspaces);
-  const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
-
-  const apiSpecs = React.useMemo(() => {
-    if (!activeWorkspace) return [];
-
-    const workspaceApiSpecs = Array.isArray(activeWorkspace.apiSpecs) ? activeWorkspace.apiSpecs : [];
-
-    // Pair workspace API specs to loaded specs in redux, matching by normalized
-    // path so Windows (backslash) and stored (forward-slash) paths line up.
-    return matchLoadedApiSpecs(workspaceApiSpecs, allApiSpecs);
-  }, [allApiSpecs, activeWorkspace, activeWorkspace?.apiSpecs]);
+  const apiSpecs = useWorkspaceApiSpecs();
 
   const handleOpenApiSpec = () => {
     dispatch(openApiSpec()).catch(

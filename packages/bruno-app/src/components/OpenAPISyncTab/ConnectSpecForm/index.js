@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { IconCheck } from '@tabler/icons';
 import Button from 'ui/Button';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
-import { isHttpUrl } from 'utils/url/index';
+import useWorkspaceApiSpecs from 'hooks/useWorkspaceApiSpecs';
 import SpecSourcePicker from 'components/OpenAPISyncTab/SpecSourcePicker';
+import { isSpecSourceReady } from 'components/OpenAPISyncTab/SpecSourcePicker/utils';
 
 const FEATURES = [
   'Detect new, modified, and removed endpoints',
@@ -20,6 +21,7 @@ const SOURCE_HINTS = {
 
 const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, onConnect }) => {
   const [mode, setMode] = useState('workspace');
+  const workspaceSpecs = useWorkspaceApiSpecs();
 
   const handleModeChange = (nextMode) => {
     setMode(nextMode);
@@ -54,7 +56,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
               type="submit"
               size="sm"
               className="connect-button"
-              disabled={mode === 'url' ? !isHttpUrl(sourceUrl.trim()) : !sourceUrl.trim()}
+              disabled={!isSpecSourceReady(mode, sourceUrl, workspaceSpecs)}
               loading={isLoading}
             >
               Connect
@@ -63,7 +65,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
         />
         <p className="setup-hint">{SOURCE_HINTS[mode]}</p>
         {error && (
-          <p className="setup-error">{error}</p>
+          <p className="setup-error" data-testid="openapi-connect-error">{error}</p>
         )}
       </form>
 
