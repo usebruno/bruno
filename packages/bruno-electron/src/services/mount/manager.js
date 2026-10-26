@@ -169,8 +169,10 @@ class MountManager {
     for (const e of [...added, ...updated]) {
       const cls = defaultClassify(e.relativePath);
       if (!cls) continue;
-      toParse.push({ relativePath: e.relativePath, format: cls.format, type: cls.type });
+      toParse.push({ relativePath: e.relativePath, format: cls.format, type: cls.type, size: e.size ?? 0 });
     }
+    // Submit smallest first so the initial worker burst is not large files still being queued.
+    toParse.sort((a, b) => a.size - b.size);
 
     const parsed = new Map();
     if (toParse.length > 0) {
@@ -183,7 +185,7 @@ class MountManager {
               relativePath: e.relativePath,
               format: e.format,
               type: e.type
-            });
+            }, { size: e.size });
             parsed.set(e.relativePath, result);
           } catch (err) {
             parsed.set(e.relativePath, {

@@ -95,4 +95,11 @@ describe('FileIndex denylist', () => {
       'visible.bru'
     ].sort());
   });
+
+  test('includes byte size on added files', async () => {
+    fs.writeFileSync(path.join(collectionPath, 'new.bru'), 'abcd');
+    const { added } = await index.status(collectionPath);
+
+    expect(added.find((e) => e.relativePath === 'new.bru').size).toBe(4);
+  });
 });
