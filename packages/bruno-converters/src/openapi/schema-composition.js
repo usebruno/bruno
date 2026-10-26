@@ -447,6 +447,7 @@ export const hasSchemaAlternatives = (schema) => {
 const isBaseOfSubtypeInProgress = (schema, context) =>
   context.inProgress.size > 0 && alternativesInAncestry(schema).some((alternative) => context.inProgress.has(alternative));
 
+// Counts the same schema built again within one resolve. Real specs never do this, so 2000 is a safety net that ends runaway loops within milliseconds.
 const FLATTEN_REBUILD_LIMIT = 2000;
 
 const newContext = () => ({ inProgress: new Map(), cutDepth: Infinity, built: new Set(), rebuilds: 0, forbidden: [] });

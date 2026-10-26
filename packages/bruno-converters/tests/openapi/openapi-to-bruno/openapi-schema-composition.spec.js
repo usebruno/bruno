@@ -318,6 +318,16 @@ describe('openapi schema composition', () => {
       const body = (name) => requestBody(buildSpec({ schemas, paths: postBody(ref(name)) }));
       expect([body('Shape'), body('Flag'), body('Named')]).toEqual([{ kind: 1 }, { enabled: true }, { kind: 0 }]);
     });
+
+    it('labels a discriminator property that loops back to its own model without overflowing the stack', () => {
+      const schemas = {
+        Pet: { properties: { petType: ref('PetType') } },
+        PetType: { anyOf: [ref('PetTypeDetails')], discriminator: { propertyName: 'petType' } },
+        PetTypeDetails: { allOf: [ref('PetUnion')], properties: { petType: {} } },
+        PetUnion: { oneOf: [ref('Pet')], discriminator: { propertyName: 'petType' } }
+      };
+      expect(requestBody(buildSpec({ schemas, paths: postBody(ref('Pet')) }))).toEqual({ petType: { petType: 'PetTypeDetails' } });
+    });
   });
 
   describe('allOf', () => {
