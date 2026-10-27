@@ -76,7 +76,7 @@ const extractPromptVariablesForRequest = ({ request, collection, envVariables, r
   prompts.push(...extractPromptVariables(allVariables));
 
   const interpolationOptions = {
-    globalEnvVars: globalEnvironmentVariables,
+    globalEnvironmentVariables,
     envVars: envVariables,
     runtimeVariables,
     processEnvVars
@@ -232,7 +232,7 @@ const runSingleRequest = async function (
       envVars: envVariables,
       runtimeVariables,
       processEnvVars,
-      globalEnvVars,
+      globalEnvironmentVariables: globalEnvVars,
       collectionVariables: request.collectionVariables || {},
       folderVariables: request.folderVariables || {},
       requestVariables: request.requestVariables || {}
@@ -414,7 +414,7 @@ const runSingleRequest = async function (
     }
 
     const interpolationOptions = {
-      globalEnvVars: request.globalEnvironmentVariables || {},
+      globalEnvironmentVariables: request.globalEnvironmentVariables || {},
       envVars: envVariables,
       runtimeVariables,
       processEnvVars
@@ -603,7 +603,7 @@ const runSingleRequest = async function (
       try {
         // Prepare interpolation options with all available variables
         const oauth2InterpolationOptions = {
-          globalEnvVars: request.globalEnvironmentVariables || {},
+          globalEnvironmentVariables: request.globalEnvironmentVariables || {},
           envVars: envVariables,
           runtimeVariables,
           processEnvVars,

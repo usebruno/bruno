@@ -39,12 +39,11 @@ bugs to the shared logic, not the reporting surface.
 | Request execution — pre/post scripts, vars, asserts, tests, runner flow (`setNextRequest`, `skipRequest`) | `ipc/network/index.js` | `runner/run-single-request.js`, `commands/run.js` |
 | Request assembly | `ipc/network/prepare-request.js` | `runner/prepare-request.js` |
 | HTTP client, TLS, certs | `ipc/network/axios-instance.js` | `utils/axios-instance.js` |
-| Interpolation | `ipc/network/interpolate-{vars,string}.js` | `runner/interpolate-{vars,string}.js` |
+| Interpolation (`interpolate-string` is shared via `@usebruno/requests`) | `ipc/network/interpolate-vars.js` | `runner/interpolate-vars.js` |
 | Collection tree, `merge{Headers,Scripts,Vars,Auth}` | `utils/collection.js` | `utils/collection.js` |
 | Collection loading, `bruno.json` / `opencollection.yml` config | `utils/collection-reader.js`, `app/collection-watcher.js` | `utils/collection.js` (`getCollectionConfig`) |
 | Environments & persisted vars | `utils/environments.js` | `utils/environment.js`, `utils/persist-variables.js` |
 | Proxy · OAuth 2.0 · form-data · filesystem | `utils/{proxy-util,oauth2,form-data,filesystem}.js` | `utils/{proxy-util,oauth2,form-data,filesystem}.js` |
-| AWS SigV4 | `ipc/network/awsv4auth-helper.js` | `runner/awsv4auth-helper.js` |
 
 - A new app runner option (tags, delay, bail) needs a `bru run` flag, or a stated reason.
 - Import: the app imports Postman, Insomnia, OpenAPI, WSDL and OpenCollection; `bru import`
