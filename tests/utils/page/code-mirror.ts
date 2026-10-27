@@ -1,6 +1,7 @@
 import { Locator, Page } from '../../../playwright';
 
 export const buildCodeMirrorLocators = (page: Page) => ({
+  hint: (name: string) => page.locator('.CodeMirror-hints:visible').getByRole('option', { name, exact: true }),
   byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first(),
   within: (scope: Locator) => scope.locator('.CodeMirror').first(),
   /** Nth row's value-column editor in an EditableTable (Headers / Params / Vars / Assertions). */
