@@ -5,7 +5,6 @@ import { useDispatch } from 'react-redux';
 
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
@@ -79,7 +78,6 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ item, collection, upd
 
   const edgeGridAuth: AkamaiEdgeGridAuthValues = get(request, 'auth.akamaiEdgegrid') || {};
   const requestUrl = get(request, 'url', '');
-  const { isSensitive } = useDetectSensitiveField(collection);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
@@ -118,7 +116,6 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ item, collection, upd
   const renderField = ({ key, label, tooltip, isSecret }: EdgeGridFieldConfig) => {
     const rawValue = key === 'baseURL' ? edgeGridAuth.baseURL || requestUrl : edgeGridAuth[key];
     const fieldValue = rawValue === null || rawValue === undefined ? '' : String(rawValue);
-    const { showWarning, warningMessage, scope, variableName } = isSecret ? isSensitive(rawValue, item) : { showWarning: false, warningMessage: '' };
     return (
       <div key={key}>
         <label>
@@ -143,9 +140,7 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ item, collection, upd
             readOnly={disabled}
             isCompact
           />
-          {showWarning && (
-            <SensitiveFieldWarning fieldName={`edgegrid-${key}`} secretName={key} warningMessage={warningMessage} scope={scope} variableName={variableName} value={rawValue} collection={collection} item={item} disabled={disabled} onReplaceValue={(val: string) => handleFieldChange(key, val)} />
-          )}
+          {isSecret && <SensitiveFieldWarning fieldName={`edgegrid-${key}`} secretName={key} value={rawValue} collection={collection} item={item} disabled={disabled} onReplaceValue={(val: string) => handleFieldChange(key, val)} />}
         </div>
       </div>
     );

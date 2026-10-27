@@ -1,6 +1,5 @@
 import React from 'react';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
-import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -14,8 +13,6 @@ const NTLMAuth = ({ collection }) => {
   const { storedTheme } = useTheme();
 
   const ntlmAuth = collection.draft?.root ? get(collection, 'draft.root.request.auth.ntlm', {}) : get(collection, 'root.request.auth.ntlm', {});
-  const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage, scope, variableName } = isSensitive(ntlmAuth?.password);
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
@@ -87,7 +84,7 @@ const NTLMAuth = ({ collection }) => {
           isSecret={true}
           isCompact
         />
-        {showWarning && <SensitiveFieldWarning fieldName="ntlm-password" secretName="password" warningMessage={warningMessage} scope={scope} variableName={variableName} value={ntlmAuth?.password} collection={collection} onReplaceValue={handlePasswordChange} />}
+        <SensitiveFieldWarning fieldName="ntlm-password" secretName="password" value={ntlmAuth?.password} collection={collection} onReplaceValue={handlePasswordChange} />
       </div>
 
       <label className="block mb-1">Domain</label>

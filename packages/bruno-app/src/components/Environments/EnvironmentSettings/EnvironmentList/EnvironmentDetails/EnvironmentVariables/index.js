@@ -3,7 +3,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import { useDispatch } from 'react-redux';
 import { markEnvironmentVariableAsSecret, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { setEnvironmentsDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
-import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import SensitiveWarningPopover from 'components/SensitiveFieldWarning/SensitiveWarningPopover';
 import EnvironmentVariablesTable from 'components/EnvironmentVariablesTable';
 import { SENSITIVE_FIELD_WARNING, findUsedEnvironmentVariableUids } from 'utils/sensitive-fields';
 import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
@@ -61,7 +61,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, inherite
           variableUid: variable.uid
         })));
         return (
-          <SensitiveFieldWarning
+          <SensitiveWarningPopover
             fieldName={variable.name}
             warningMessage={SENSITIVE_FIELD_WARNING.USED_IN_SENSITIVE_FIELD}
             scope={VARIABLE_ADD_SCOPES.ENVIRONMENT}

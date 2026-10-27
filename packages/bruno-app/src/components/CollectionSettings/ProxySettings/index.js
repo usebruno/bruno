@@ -2,7 +2,6 @@ import React from 'react';
 import InfoTip from 'components/InfoTip';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import StyledWrapper from './StyledWrapper';
 import { useDispatch } from 'react-redux';
 import { updateCollectionProxy } from 'providers/ReduxStore/slices/collections';
@@ -34,9 +33,7 @@ const ProxySettings = ({ collection }) => {
     ? get(collection, 'draft.brunoConfig.proxy', initialProxyConfig)
     : get(collection, 'brunoConfig.proxy', initialProxyConfig);
 
-  const { isSensitive } = useDetectSensitiveField(collection);
   const proxyPassword = currentProxyConfig.config?.auth?.password || '';
-  const { showWarning, warningMessage, scope, variableName } = isSensitive(proxyPassword);
 
   const validateHostnameOnChange = (hostname) => {
     if (hostname && hostname.length > 1024) {
@@ -381,7 +378,7 @@ const ProxySettings = ({ collection }) => {
                     isCompact
                     data-testid="collection-proxy-password"
                   />
-                  {showWarning && <SensitiveFieldWarning fieldName="proxy-password" secretName="password" warningMessage={warningMessage} scope={scope} variableName={variableName} value={proxyPassword} collection={collection} onReplaceValue={handleAuthPasswordChange} />}
+                  <SensitiveFieldWarning fieldName="proxy-password" secretName="password" value={proxyPassword} collection={collection} onReplaceValue={handleAuthPasswordChange} />
                 </div>
               </div>
             </div>

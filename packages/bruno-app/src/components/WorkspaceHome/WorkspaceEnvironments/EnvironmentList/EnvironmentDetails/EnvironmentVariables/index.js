@@ -8,7 +8,7 @@ import {
 } from 'providers/ReduxStore/slices/global-environments';
 import { markEnvironmentVariableAsSecret } from 'providers/ReduxStore/slices/collections/actions';
 import EnvironmentVariablesTable from 'components/EnvironmentVariablesTable';
-import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import SensitiveWarningPopover from 'components/SensitiveFieldWarning/SensitiveWarningPopover';
 import { SENSITIVE_FIELD_WARNING, findUsedGlobalEnvironmentVariableUids } from 'utils/sensitive-fields';
 import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 
@@ -37,7 +37,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, inherite
         variableUid: variable.uid
       })));
       return (
-        <SensitiveFieldWarning
+        <SensitiveWarningPopover
           fieldName={variable.name}
           warningMessage={SENSITIVE_FIELD_WARNING.USED_IN_SENSITIVE_FIELD}
           scope={VARIABLE_ADD_SCOPES.GLOBAL}

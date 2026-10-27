@@ -8,7 +8,6 @@ import Modal from 'components/Modal';
 import path from 'utils/common/path';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning/index';
 import SingleLineEditor from 'components/SingleLineEditor/index';
-import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField/index';
 import { useTheme } from 'styled-components';
 import { useDispatch } from 'react-redux';
 import { updateCollectionClientCertificates } from 'providers/ReduxStore/slices/collections';
@@ -155,9 +154,6 @@ const ClientCertSettings = ({ collection }) => {
       setShowAddCertModal(false);
     }
   });
-
-  const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage, scope, variableName } = isSensitive(formik.values.passphrase);
 
   const getFile = (e) => {
     const filePath = window?.ipcRenderer?.getFilePath(e?.files?.[0]);
@@ -443,7 +439,7 @@ const ClientCertSettings = ({ collection }) => {
                     isSecret={true}
                     variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
                   />
-                  {showWarning && <SensitiveFieldWarning fieldName="basic-password" secretName="passphrase" warningMessage={warningMessage} scope={scope} variableName={variableName} value={formik.values.passphrase} collection={collection} onReplaceValue={(val) => formik.setFieldValue('passphrase', val)} />}
+                  <SensitiveFieldWarning fieldName="basic-password" secretName="passphrase" value={formik.values.passphrase} collection={collection} onReplaceValue={(val) => formik.setFieldValue('passphrase', val)} />
                 </div>
                 {formik.touched.passphrase && formik.errors.passphrase ? (
                   <div className="text-red-500 text-xs">{formik.errors.passphrase}</div>

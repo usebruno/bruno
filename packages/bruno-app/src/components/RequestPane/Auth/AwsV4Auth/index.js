@@ -7,16 +7,12 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
-import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 
 const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
   const awsv4Auth = get(request, 'auth.awsv4', {});
-  const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage, scope, variableName } = isSensitive(awsv4Auth?.secretAccessKey, item);
-  const sessionTokenSensitive = isSensitive(awsv4Auth?.sessionToken, item);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
@@ -164,7 +160,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           isCompact
         />
 
-        {showWarning && <SensitiveFieldWarning fieldName="awsv4-secret-access-key" secretName="secretAccessKey" warningMessage={warningMessage} scope={scope} variableName={variableName} value={awsv4Auth?.secretAccessKey} collection={collection} item={item} disabled={disabled} onReplaceValue={handleSecretAccessKeyChange} />}
+        <SensitiveFieldWarning fieldName="awsv4-secret-access-key" secretName="secretAccessKey" value={awsv4Auth?.secretAccessKey} collection={collection} item={item} disabled={disabled} onReplaceValue={handleSecretAccessKeyChange} />
       </div>
 
       <label className="block mb-1">Session Token</label>
@@ -181,9 +177,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           readOnly={disabled}
           isCompact
         />
-        {sessionTokenSensitive.showWarning && (
-          <SensitiveFieldWarning fieldName="awsv4-session-token" secretName="sessionToken" warningMessage={sessionTokenSensitive.warningMessage} scope={sessionTokenSensitive.scope} variableName={sessionTokenSensitive.variableName} value={awsv4Auth?.sessionToken} collection={collection} item={item} disabled={disabled} onReplaceValue={handleSessionTokenChange} />
-        )}
+        <SensitiveFieldWarning fieldName="awsv4-session-token" secretName="sessionToken" value={awsv4Auth?.sessionToken} collection={collection} item={item} disabled={disabled} onReplaceValue={handleSessionTokenChange} />
       </div>
 
       <label className="block mb-1">Service</label>
