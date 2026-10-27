@@ -98,6 +98,15 @@ describe('ResponseSize', () => {
       expect(element).toHaveAttribute('title', `${size.toLocaleString()}B`);
     });
 
+    it('should correctly pad single-digit decimal remainder for kilobytes', () => {
+      const size = 1115;
+      renderWithTheme(<ResponseSize size={size} />);
+      const element = screen.getByText(/1\.09KB/);
+      expect(element).toBeInTheDocument();
+      expect(element.textContent).toMatch(/^1\.09KB$/);
+      expect(element).toHaveAttribute('title', `${size.toLocaleString()}B`);
+    });
+
     it('should handle large size numbers', () => {
       const size = 10240;
       renderWithTheme(<ResponseSize size={size} />);
