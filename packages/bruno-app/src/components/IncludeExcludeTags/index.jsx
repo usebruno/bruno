@@ -65,7 +65,7 @@ const IncludeExcludeTags = ({
             handleRemoveTag={(tag) => handleRemoveTag(tag, 'exclude')}
             handleValidation={handleValidation}
             ariaLabel="Exclude Tags"
-            placeholder="e.g, Work in progress"
+            placeholder="e.g. Work in progress"
           />
         </div>
       </div>
