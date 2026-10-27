@@ -14,6 +14,7 @@ packages/
   bruno-app/          React renderer (rsbuild, Redux Toolkit, styled-components)   [name @usebruno/app]
   bruno-electron/     Electron main process (electron-builder)                     [name "bruno" — NOT scoped]
   bruno-js/           JS sandbox for user scripts (QuickJS + node:vm)
+  bruno-mock/         Mock server runtime + workspace mock storage (Electron-free, app + CLI)
   bruno-common/       Shared utilities — the base leaf (rollup → dist/cjs+esm)
   bruno-converters/   Import/export (Postman, Insomnia, OpenAPI, …) (rollup)
   bruno-requests/     Shared HTTP/gRPC/WS request building blocks (rollup)
@@ -39,12 +40,12 @@ Build tool per package (matters for the "rebuild shared packages" step in `.clau
   `migrations/*.ts` + `statements/*.sql` into the gitignored `src/generated/`.
 - **tsc only**: bruno-schema-types.
 - **rsbuild**: bruno-app.
-- **no build step (consumed straight from `src/`)**: bruno-js, bruno-lang, bruno-schema,
+- **no build step (consumed straight from `src/`)**: bruno-js, bruno-lang, bruno-mock, bruno-schema,
   bruno-toml, bruno-cli, bruno-electron, bruno-tests, bruno-docs.
 
 The 8 packages that must be rebuilt after editing (they emit `dist/`): bruno-common,
 bruno-requests, bruno-filestore, bruno-sqlite, bruno-converters, bruno-query, bruno-graphql-docs,
-bruno-schema-types. Editing bruno-js / bruno-lang / bruno-schema / bruno-toml needs no rebuild.
+bruno-schema-types. Editing bruno-js / bruno-lang / bruno-mock / bruno-schema / bruno-toml needs no rebuild.
 
 ## Dependency direction & ownership boundaries
 

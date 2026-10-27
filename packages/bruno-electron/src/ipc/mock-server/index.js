@@ -1,11 +1,12 @@
-const { ipcMain } = require('electron');
+const { ipcMain, BrowserWindow } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { getWorkspaceApiSpecs, validateWorkspacePath } = require('../../utils/workspace-config');
 const { parseAndValidateApiSpec } = require('../../utils/apiSpecs');
-const mockServer = require('../../app/mock-server/mock-server');
-const { buildMockResponsesFromSpec } = require('../../app/mock-server/mock-spec-routes');
+const { preferencesUtil } = require('../../store/preferences');
 const {
+  mockServer,
+  buildMockResponsesFromSpec,
   appendMockResponses,
   cloneMockServerResponses,
   createEmptyMockResponse,
@@ -16,7 +17,7 @@ const {
   saveMockResponse,
   saveMockServer,
   setMockServerResponses
-} = require('../../app/mock-server/mock-server-store');
+} = require('@usebruno/mock');
 
 const getResponses = (location) => listMockResponses(location);
 
@@ -43,7 +44,14 @@ const readWorkspaceSpec = (workspacePath, specPath) => {
 };
 
 const registerMockServerIpc = (mainWindow) => {
-  mockServer.setMainWindow(mainWindow);
+  mockServer.setEmitter((channel, data) => {
+    const windows = BrowserWindow.getAllWindows().filter((win) => !win.isDestroyed());
+    const targetWindow = windows.find((win) => win === mainWindow) || windows[0];
+
+    if (targetWindow && !targetWindow.isDestroyed()) {
+      targetWindow.webContents.send(channel, data);
+    }
+  });
 
   ipcMain.handle('renderer:mock-server-suggest-port', async (_event, payload = {}) => {
     try {
@@ -80,6 +88,10 @@ const registerMockServerIpc = (mainWindow) => {
 
   ipcMain.handle('renderer:mock-server-start', async (_event, payload) => {
     try {
+      if (!preferencesUtil.isBetaFeatureEnabled('mock-server')) {
+        throw new Error('Mock server is a beta feature. Enable it in Preferences > Beta.');
+      }
+
       const result = await mockServer.start(payload);
       return { success: true, ...result };
     } catch (err) {

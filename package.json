@@ -12,6 +12,7 @@
     "packages/bruno-query",
     "packages/bruno-js",
     "packages/bruno-lang",
+    "packages/bruno-mock",
     "packages/bruno-tests",
     "packages/bruno-toml",
     "packages/bruno-graphql-docs",

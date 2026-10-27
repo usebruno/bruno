@@ -3,9 +3,7 @@ const cors = require('cors');
 const http = require('http');
 const https = require('https');
 const net = require('net');
-const { BrowserWindow } = require('electron');
 const { v4: uuidv4 } = require('uuid');
-const { preferencesUtil } = require('../../store/preferences');
 const { buildRouteMapFromMockResponses, countRouteResponses } = require('./mock-response-routes');
 const { buildRequestContext, evaluateResponseCandidates } = require('./mock-rule-matcher');
 const DEFAULT_GATEWAY_PORT = 4000;
@@ -19,10 +17,10 @@ const collections = new Map();
 const pendingLogBroadcasts = new Map();
 let logFlushTimer = null;
 const isolatedServers = new Map();
-let _mainWindow = null;
+let _emitter = null;
 
-const setMainWindow = (mainWindow) => {
-  _mainWindow = mainWindow;
+const setEmitter = (emitter) => {
+  _emitter = emitter;
 };
 
 const resolveMockServerLocation = (mockServerUid, location = {}) => {
@@ -185,11 +183,8 @@ const suggestPort = async (startPort = DEFAULT_GATEWAY_PORT, { additionalUsedPor
 };
 
 const emit = (channel, data) => {
-  const windows = BrowserWindow.getAllWindows().filter((win) => !win.isDestroyed());
-  const targetWindow = windows.find((win) => win === _mainWindow) || windows[0];
-
-  if (targetWindow && !targetWindow.isDestroyed()) {
-    targetWindow.webContents.send(channel, data);
+  if (_emitter) {
+    _emitter(channel, data);
   }
 };
 
@@ -539,10 +534,6 @@ const start = async ({
   port = DEFAULT_GATEWAY_PORT,
   globalDelay = 0
 }) => {
-  if (!preferencesUtil.isBetaFeatureEnabled('mock-server')) {
-    throw new Error('Mock server is a beta feature. Enable it in Preferences > Beta.');
-  }
-
   if (!mockServerUid) {
     throw new Error('Mock server id is required.');
   }
@@ -708,7 +699,7 @@ const reloadRoutesFromStore = async (mockServerUid, location = {}) => {
 };
 
 module.exports = {
-  setMainWindow,
+  setEmitter,
   start,
   stop,
   stopAll,

@@ -27,6 +27,7 @@ const mainLintFiles = [
   'packages/bruno-schema-types/**/*.ts',
   'packages/bruno-js/**/*.js',
   'packages/bruno-lang/**/*.js',
+  'packages/bruno-mock/**/*.js',
   'packages/bruno-requests/**/*.ts',
   'packages/bruno-requests/**/*.js',
   'packages/bruno-tests/**/*.{js,ts}',

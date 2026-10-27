@@ -5,7 +5,7 @@ const {
   getJsonPathValue,
   matchesRules,
   selectMatchingResponse
-} = require('../src/app/mock-server/mock-rule-matcher');
+} = require('../src/mock-rule-matcher');
 
 describe('mock-rule-matcher', () => {
   const context = {

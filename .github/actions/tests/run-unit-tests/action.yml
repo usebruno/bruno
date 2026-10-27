@@ -44,6 +44,10 @@ runs:
       shell: ${{ inputs.shell }}
       run: npm run test:ci --workspace=packages/bruno-electron
 
+    - name: Test Package bruno-mock
+      shell: ${{ inputs.shell }}
+      run: npm run test:ci --workspace=packages/bruno-mock
+
     - name: Test Package bruno-requests
       shell: ${{ inputs.shell }}
       run: npm run test --workspace=packages/bruno-requests

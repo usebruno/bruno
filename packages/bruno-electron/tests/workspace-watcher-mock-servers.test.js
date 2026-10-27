@@ -36,7 +36,7 @@ const os = require('os');
 const path = require('path');
 const chokidar = require('chokidar');
 const WorkspaceWatcher = require('../src/app/workspace-watcher');
-const { saveMockServer, getMockServerUid } = require('../src/app/mock-server/mock-server-store');
+const { saveMockServer, getMockServerUid } = require('@usebruno/mock');
 
 describe('WorkspaceWatcher mock servers', () => {
   let workspacePath;

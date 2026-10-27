@@ -14,7 +14,7 @@ const {
   listMockServers,
   saveMockResponse,
   saveMockServer
-} = require('../src/app/mock-server/mock-server-store');
+} = require('../src/mock-server-store');
 
 describe('mock-server-store', () => {
   let workspacePath;
