@@ -204,7 +204,7 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collectionUids }) => {
 
           <div className="flex justify-between mt-6">
             <div>
-              <Button color="danger" onClick={handleDiscardAll}>
+              <Button color="danger" autoFocus onClick={handleDiscardAll}>
                 Discard All and Remove
               </Button>
             </div>

@@ -38,7 +38,8 @@ const ModalFooter = ({
   footerLeft,
   confirmButtonColor = 'primary',
   dataTestId = 'modal',
-  className = ''
+  className = '',
+  confirmAutoFocus = false
 }) => {
   confirmText = confirmText || 'Save';
   cancelText = cancelText || 'Cancel';
@@ -70,6 +71,7 @@ const ModalFooter = ({
             onClick={handleSubmit}
             className="submit"
             data-testid={`${dataTestId}-submit-btn`}
+            autoFocus={confirmAutoFocus}
           >
             {confirmText}
           </Button>
@@ -101,7 +103,8 @@ const Modal = ({
   confirmButtonColor = 'primary',
   noPadding,
   headerClassName,
-  footerClassName
+  footerClassName,
+  confirmAutoFocus = false
 }) => {
   const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -179,6 +182,7 @@ const Modal = ({
           confirmButtonColor={confirmButtonColor}
           dataTestId={dataTestId}
           className={footerClassName}
+          confirmAutoFocus={confirmAutoFocus}
         />
       </div>
 

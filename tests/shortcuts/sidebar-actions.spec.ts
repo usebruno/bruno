@@ -260,7 +260,40 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           const deleteModal = page.locator('.bruno-modal-card').filter({ hasText: /delete request/i });
 
           await expect(deleteModal).toBeVisible();
+
+          // Verify that the Delete button has focus
+          const deleteButton = deleteModal.getByRole('button', { name: 'Delete' });
+          await expect(deleteButton).toBeFocused();
+
           await deleteModal.getByRole('button', { name: 'Cancel' }).click();
+          await expect(deleteModal).not.toBeVisible();
+        });
+
+        test('default Backspace/Delete with Enter confirms deletion for request', async ({ pageWithUserData: page }) => {
+          await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).dblclick();
+
+          await openRequest(page, 'kb-collection', 'req-2', { persist: true });
+
+          const requestItem = page.locator('.collection-item-name').filter({ has: page.getByText('req-2', { exact: true }) });
+
+          await requestItem.click();
+          await requestItem.focus();
+
+          await pressShortcut(page, process.platform === 'darwin' ? 'Backspace' : 'Delete');
+
+          const deleteModal = page.locator('.bruno-modal-card').filter({ hasText: /delete request/i });
+
+          await expect(deleteModal).toBeVisible();
+
+          // Verify that the Delete button has focus
+          const deleteButton = deleteModal.getByRole('button', { name: 'Delete' });
+          await expect(deleteButton).toBeFocused();
+
+          // Press Enter to confirm deletion
+          await deleteButton.press('Enter');
+
+          // Verify the request is deleted
+          await expect(requestItem).not.toBeVisible();
           await expect(deleteModal).not.toBeVisible();
         });
       });
@@ -277,7 +310,36 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
           const deleteModal = page.locator('.bruno-modal-card').filter({ hasText: /delete request/i });
           await expect(deleteModal).toBeVisible();
+
+          // Verify that the Delete button has focus
+          const deleteButton = deleteModal.getByRole('button', { name: 'Delete' });
+          await expect(deleteButton).toBeFocused();
+
           await deleteModal.getByRole('button', { name: 'Cancel' }).click();
+          await expect(deleteModal).not.toBeVisible();
+        });
+
+        test('customized Alt+S with Enter confirms deletion for request', async ({ pageWithUserData: page }) => {
+          await remapKeybinding(page, 'deleteItem', 'Alt', 'KeyS');
+          await openRequest(page, 'kb-collection', 'req-3', { persist: true });
+
+          const requestItem = page.locator('.collection-item-name').filter({ has: page.getByText('req-3', { exact: true }) });
+          await requestItem.click();
+          await requestItem.focus();
+          await pressShortcut(page, 'Alt', 'KeyS');
+
+          const deleteModal = page.locator('.bruno-modal-card').filter({ hasText: /delete request/i });
+          await expect(deleteModal).toBeVisible();
+
+          // Verify that the Delete button has focus
+          const deleteButton = deleteModal.getByRole('button', { name: 'Delete' });
+          await expect(deleteButton).toBeFocused();
+
+          // Press Enter to confirm deletion
+          await deleteButton.press('Enter');
+
+          // Verify the request is deleted
+          await expect(requestItem).not.toBeVisible();
           await expect(deleteModal).not.toBeVisible();
         });
       });
@@ -298,7 +360,40 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           const deleteModal = page.locator('.bruno-modal-card').filter({ hasText: /delete folder/i });
 
           await expect(deleteModal).toBeVisible();
+
+          // Verify that the Delete button has focus
+          const deleteButton = deleteModal.getByRole('button', { name: 'Delete' });
+          await expect(deleteButton).toBeFocused();
+
           await deleteModal.getByRole('button', { name: 'Cancel' }).click();
+          await expect(deleteModal).not.toBeVisible();
+        });
+
+        test('default Backspace/Delete with Enter confirms deletion for folder', async ({ pageWithUserData: page }) => {
+          const folderItem = page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder', { exact: true }) });
+
+          await folderItem.dblclick();
+
+          // Focus the folder in the sidebar
+          await folderItem.focus();
+
+          // Press Backspace/Delete
+          await pressShortcut(page, process.platform === 'darwin' ? 'Backspace' : 'Delete');
+
+          // Verify delete modal opens
+          const deleteModal = page.locator('.bruno-modal-card').filter({ hasText: /delete folder/i });
+
+          await expect(deleteModal).toBeVisible();
+
+          // Verify that the Delete button has focus
+          const deleteButton = deleteModal.getByRole('button', { name: 'Delete' });
+          await expect(deleteButton).toBeFocused();
+
+          // Press Enter to confirm deletion
+          await deleteButton.press('Enter');
+
+          // Verify the folder is deleted
+          await expect(folderItem).not.toBeVisible();
           await expect(deleteModal).not.toBeVisible();
         });
       });
@@ -313,7 +408,35 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
           const deleteModal = page.locator('.bruno-modal-card').filter({ hasText: /delete folder/i });
           await expect(deleteModal).toBeVisible();
+
+          // Verify that the Delete button has focus
+          const deleteButton = deleteModal.getByRole('button', { name: 'Delete' });
+          await expect(deleteButton).toBeFocused();
+
           await deleteModal.getByRole('button', { name: 'Cancel' }).click();
+          await expect(deleteModal).not.toBeVisible();
+        });
+
+        test('customized Alt+S with Enter confirms deletion for folder', async ({ pageWithUserData: page }) => {
+          await remapKeybinding(page, 'deleteItem', 'Alt', 'KeyS');
+          await createFolder(page, 'kb-folder-delete-test', collectionName, true);
+          const folderItem = page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder-delete-test', { exact: true }) });
+          await folderItem.click();
+          await folderItem.focus();
+          await pressShortcut(page, 'Alt', 'KeyS');
+
+          const deleteModal = page.locator('.bruno-modal-card').filter({ hasText: /delete folder/i });
+          await expect(deleteModal).toBeVisible();
+
+          // Verify that the Delete button has focus
+          const deleteButton = deleteModal.getByRole('button', { name: 'Delete' });
+          await expect(deleteButton).toBeFocused();
+
+          // Press Enter to confirm deletion
+          await deleteButton.press('Enter');
+
+          // Verify the folder is deleted
+          await expect(folderItem).not.toBeVisible();
           await expect(deleteModal).not.toBeVisible();
         });
       });
@@ -331,7 +454,37 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           const removeModal = page.locator('.bruno-modal-card').filter({ hasText: /remove collection/i });
 
           await expect(removeModal).toBeVisible();
+
+          // Verify that the Remove button has focus
+          const removeButton = removeModal.getByRole('button', { name: /^Remove$/ });
+          await expect(removeButton).toBeFocused();
+
           await removeModal.getByRole('button', { name: 'Cancel' }).click();
+          await expect(removeModal).not.toBeVisible();
+        });
+
+        test('default Backspace/Delete with Enter confirms removal for collection', async ({ pageWithUserData: page }) => {
+          const collectionRow = page.getByTestId('sidebar-collection-row').filter({
+            has: page.getByText('kb-collection', { exact: true })
+          });
+
+          await collectionRow.click();
+          await collectionRow.focus();
+          await pressShortcut(page, process.platform === 'darwin' ? 'Backspace' : 'Delete');
+
+          const removeModal = page.locator('.bruno-modal-card').filter({ hasText: /remove collection/i });
+
+          await expect(removeModal).toBeVisible();
+
+          // Verify that the Remove button has focus
+          const removeButton = removeModal.getByRole('button', { name: /^Remove$/ });
+          await expect(removeButton).toBeFocused();
+
+          // Press Enter to confirm removal
+          await removeButton.press('Enter');
+
+          // Verify the collection is removed
+          await expect(collectionRow).not.toBeVisible();
           await expect(removeModal).not.toBeVisible();
         });
       });
@@ -348,7 +501,37 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
           const removeModal = page.locator('.bruno-modal-card').filter({ hasText: /remove collection/i });
           await expect(removeModal).toBeVisible();
+
+          // Verify that the Remove button has focus
+          const removeButton = removeModal.getByRole('button', { name: /^Remove$/ });
+          await expect(removeButton).toBeFocused();
+
           await removeModal.getByRole('button', { name: 'Cancel' }).click();
+          await expect(removeModal).not.toBeVisible();
+        });
+
+        test('customized Alt+S with Enter confirms removal for collection', async ({ pageWithUserData: page }) => {
+          await remapKeybinding(page, 'deleteItem', 'Alt', 'KeyS');
+          await createFolder(page, 'kb-folder-collection-delete-test', collectionName, true);
+          const collectionRow = page.getByTestId('sidebar-collection-row').filter({
+            has: page.getByText(collectionName, { exact: true })
+          });
+          await collectionRow.click();
+          await collectionRow.focus();
+          await pressShortcut(page, 'Alt', 'KeyS');
+
+          const removeModal = page.locator('.bruno-modal-card').filter({ hasText: /remove collection/i });
+          await expect(removeModal).toBeVisible();
+
+          // Verify that the Remove button has focus
+          const removeButton = removeModal.getByRole('button', { name: /^Remove$/ });
+          await expect(removeButton).toBeFocused();
+
+          // Press Enter to confirm removal
+          await removeButton.press('Enter');
+
+          // Verify the collection is removed
+          await expect(collectionRow).not.toBeVisible();
           await expect(removeModal).not.toBeVisible();
         });
       });
