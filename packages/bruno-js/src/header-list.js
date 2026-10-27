@@ -275,7 +275,10 @@ class HeaderList extends ReadOnlyPropertyList {
       item = { key: itemOrName, value };
     }
     if (!item || typeof item !== 'object' || !item.key) return null;
-    const headers = this.#req.headers || {};
+    if (!this.#req.headers) {
+      this.#req.headers = {};
+    }
+    const headers = this.#req.headers;
     const existingKey = Object.keys(headers).find(
       (k) => HeaderList.#ciEquals(k, item.key)
     );
@@ -329,7 +332,9 @@ class HeaderList extends ReadOnlyPropertyList {
    * @param {string} name
    */
   #deleteHeader(name) {
-    delete this.#req.headers[name];
+    if (this.#req.headers) {
+      delete this.#req.headers[name];
+    }
     if (!this.#req.__headersToDelete) {
       this.#req.__headersToDelete = [];
     }
