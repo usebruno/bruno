@@ -23,13 +23,17 @@ const StyledWrapper = styled.div`
     }
   }
 
+  .http-version-field {
+    margin-top: 0.3rem;
+  }
+
   .http-version-trigger {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
     width: 100%;
-    max-width: 16rem;
+    max-width: 14rem;
     cursor: pointer;
     user-select: none;
     font: inherit;

@@ -339,7 +339,7 @@ const General = () => {
           <SettingsField
             label="HTTP Version"
             htmlFor="httpVersion"
-            hint="Select the HTTP version to use for sending the request."
+            hint="Select the HTTP version to use for sending the request"
             className="http-version-field"
           >
             <MenuDropdown
