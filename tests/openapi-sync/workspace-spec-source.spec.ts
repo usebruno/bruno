@@ -11,19 +11,15 @@ import {
   pickWorkspaceSpec,
   waitForWorkspaceMenuFocus
 } from '../utils/page/openapi/sync';
+import {
+  buildApiSpecPanelLocators,
+  expandApiSpecsSection,
+  removeApiSpecFromWorkspace
+} from '../utils/page/openapi/render-spec';
 
 const WORKSPACE_NAME = 'Spec Source Workspace';
 const COLLECTION_NAME = 'Pets Collection';
 const SPEC_FIXTURES = path.join(__dirname, 'fixtures', 'specs');
-
-const PREFERENCES = JSON.stringify({
-  preferences: {
-    onboarding: {
-      hasLaunchedBefore: true,
-      hasSeenWelcomeModal: true
-    }
-  }
-}, null, 2);
 
 const WORKSPACE_SPECS = [
   { name: 'Pets API', file: 'pets.yaml' },
@@ -57,7 +53,6 @@ const seedWorkspace = async (createTmpDir: (tag?: string) => Promise<string>, op
   } = options;
 
   const userDataPath = await createTmpDir('openapi-sync-user-data');
-  fs.writeFileSync(path.join(userDataPath, 'preferences.json'), PREFERENCES);
 
   const workspacePath = await createTmpDir('openapi-sync-workspace');
   fs.mkdirSync(path.join(workspacePath, 'specs'), { recursive: true });
@@ -137,7 +132,9 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
           await expect(sync.connectButton()).toBeDisabled();
         });
 
-        await test.step('The dropdown lists the workspace specs in workspace order', async () => {
+        await test.step('The dropdown lists the workspace specs in the same order as the sidebar', async () => {
+          await expandApiSpecsSection(page);
+          await expect(buildApiSpecPanelLocators(page).sidebarRows()).toHaveText([/Pets API/, /Zoo API/, /Legacy API/]);
           await sync.workspaceSelect().click();
           await expect(sync.workspaceOptions()).toHaveText(['Pets API', 'Zoo API', 'Legacy API']);
           await waitForWorkspaceMenuFocus(page);
@@ -150,7 +147,7 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
           await expect(sync.workspaceSelect()).toHaveText('Pets API');
           await expect(sync.connectButton()).toBeEnabled();
           await sync.connectButton().click();
-          await expect(sync.connectedHeader()).toBeVisible({ timeout: 10000 });
+          await expect(sync.checkUpdatesButton()).toBeVisible({ timeout: 10000 });
         });
 
         await test.step('The collection config points at the spec through a relative path', async () => {
@@ -241,7 +238,7 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
         await sync.fileInput().setInputFiles(outsideSpecPath);
         await expect(sync.fileButton()).toHaveText('outside-spec.yaml');
         await sync.connectButton().click();
-        await expect(sync.connectedHeader()).toBeVisible({ timeout: 10000 });
+        await expect(sync.checkUpdatesButton()).toBeVisible({ timeout: 10000 });
       });
 
       await test.step('The browsed file is stored relative to the collection', async () => {
@@ -262,7 +259,7 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
 
     try {
       await openOpenApiSyncTab(page, COLLECTION_NAME);
-      await pickWorkspaceSpec(page, 'Pets API');
+      await pickWorkspaceSpec(page, 'Zoo API');
 
       await test.step('Switching to File after a pick clears it', async () => {
         await sync.sourceTab('file').click();
@@ -270,14 +267,23 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
         await expect(sync.connectButton()).toBeDisabled();
       });
 
-      await test.step('Browse to the same spec file inside the workspace and connect', async () => {
+      await test.step('Switching to Workspace after a browse clears it', async () => {
+        await sync.fileInput().setInputFiles(path.join(workspacePath, 'specs', 'pets.yaml'));
+        await expect(sync.fileButton()).toHaveText('pets.yaml');
+        await sync.sourceTab('workspace').click();
+        await expect(sync.workspaceSelect()).toHaveText('Select an API spec');
+        await expect(sync.connectButton()).toBeDisabled();
+      });
+
+      await test.step('Browse to a spec file inside the workspace and connect', async () => {
+        await sync.sourceTab('file').click();
         await sync.fileInput().setInputFiles(path.join(workspacePath, 'specs', 'pets.yaml'));
         await expect(sync.fileButton()).toHaveText('pets.yaml');
         await sync.connectButton().click();
-        await expect(sync.connectedHeader()).toBeVisible({ timeout: 10000 });
+        await expect(sync.checkUpdatesButton()).toBeVisible({ timeout: 10000 });
       });
 
-      await test.step('The stored path is the same one a workspace pick stores', async () => {
+      await test.step('The browsed file replaced the pick and is stored as a workspace pick would be', async () => {
         await expect.poll(() => readSourceUrl(collectionPath)).toBe('../../specs/pets.yaml');
       });
     } finally {
@@ -421,19 +427,26 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
   }) => {
     test.setTimeout(60000);
     const { userDataPath, workspacePath } = await seedWorkspace(createTmpDir, {
-      listedSpecFiles: ['pets.yaml', 'legacy.yaml'],
       connectedSource: () => '../../specs/zoo.yaml'
     });
     const { app, page, sync } = await launchInWorkspace(launchElectronApp, userDataPath, workspacePath);
+    const apiSpecs = buildApiSpecPanelLocators(page);
 
     try {
       await openConnectedOpenApiSyncTab(page, COLLECTION_NAME);
+      await expect(sync.overviewBanner()).toContainText('Initial sync required', { timeout: 15000 });
 
-      await test.step('The spec file is still read for sync', async () => {
-        await expect(sync.overviewBanner()).toContainText('Initial sync required', { timeout: 15000 });
+      await expandApiSpecsSection(page);
+      await removeApiSpecFromWorkspace(page, 'Zoo API');
+
+      await test.step('The spec is gone from the workspace', async () => {
+        await expect(apiSpecs.sidebarRow('Zoo API')).toHaveCount(0);
+      });
+
+      await test.step('Checking for updates still reads the spec file', async () => {
+        await sync.checkUpdatesButton().click();
         await sync.specUpdatesTab().click();
-        await expect(sync.specStatusBanner()).toBeVisible();
-        await expect(sync.specStatusBanner()).not.toContainText('Source file not found');
+        await expect(sync.specStatusBanner()).toContainText('OpenAPI spec has been updated', { timeout: 15000 });
       });
 
       await openConnectionSettings(page);

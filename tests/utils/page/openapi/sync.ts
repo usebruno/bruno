@@ -1,4 +1,5 @@
-import { test, expect, Page } from '../../../../playwright';
+import { test, Page } from '../../../../playwright';
+import { waitForPredicate } from '../../wait';
 import { buildSidebarLocators } from '../sidebar';
 import { buildCollectionHeaderLocators } from '../collection/collection-header';
 
@@ -9,8 +10,6 @@ export const buildOpenApiSyncLocators = (page: Page) => {
   });
 
   return {
-    collectionHeaderOpenApiIcon: () => page.getByRole('button', { name: 'OpenAPI' }),
-
     sourceTab: (key: 'workspace' | 'url' | 'file') => page.getByTestId(`tab-${key}`),
     workspaceSelect: () => page.getByTestId('spec-source-workspace-select'),
     workspaceMenu,
@@ -19,9 +18,9 @@ export const buildOpenApiSyncLocators = (page: Page) => {
     urlInput: () => page.getByTestId('spec-source-url-input'),
     fileInput: () => page.getByTestId('spec-source-file-input'),
     fileButton: () => page.getByTestId('spec-source-file-button'),
-    connectButton: () => page.getByRole('button', { name: 'Connect', exact: true }),
+    connectButton: () => page.getByTestId('openapi-connect-button'),
     connectError: () => page.getByTestId('openapi-connect-error'),
-    connectedHeader: () => page.getByTestId('openapi-sync-check-updates'),
+    checkUpdatesButton: () => page.getByTestId('openapi-sync-check-updates'),
     specUpdatesTab: () => page.getByTestId('responsive-tab-spec-updates'),
     overviewBanner: () => page.getByTestId('openapi-sync-overview-banner'),
     specStatusBanner: () => page.getByTestId('openapi-sync-spec-status'),
@@ -45,7 +44,7 @@ export const openOpenApiSyncTab = async (page: Page, collectionName: string) => 
 export const openConnectedOpenApiSyncTab = async (page: Page, collectionName: string) => {
   await test.step(`Open the OpenAPI tab of connected "${collectionName}"`, async () => {
     await buildSidebarLocators(page).collectionRow(collectionName).click();
-    await buildOpenApiSyncLocators(page).collectionHeaderOpenApiIcon().click();
+    await buildCollectionHeaderLocators(page).openApiSync().click();
   });
 };
 
@@ -67,5 +66,11 @@ export const pickWorkspaceSpec = async (page: Page, specName: string) => {
 
 export const waitForWorkspaceMenuFocus = async (page: Page) => {
   const menu = buildOpenApiSyncLocators(page).workspaceMenu();
-  await expect.poll(() => menu.evaluate((element) => element.contains(document.activeElement))).toBe(true);
+  const hasFocus = await waitForPredicate(
+    () => menu.evaluate((element) => element.contains(document.activeElement)),
+    { tries: 50 }
+  );
+  if (!hasFocus) {
+    throw new Error('The workspace spec menu did not take focus');
+  }
 };
