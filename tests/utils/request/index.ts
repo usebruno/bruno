@@ -17,7 +17,7 @@ export const buildRequestLocators = (page: Page) => ({
   urlLine: () => page.getByTestId('request-url').locator('.CodeMirror-line'),
   sendButton: () => page.getByTestId('send-arrow-icon'),
   methodDropdown: () => page.getByTestId('method-selector'),
-  newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
+  newRequestUrl: () => page.getByTestId('new-request-url').locator('.CodeMirror'),
   requestNameInput: () => page.getByPlaceholder('Request Name'),
   requestTestId: () => page.getByTestId('request-name'),
   generateCodeButton: () => page.getByTestId('generate-code-button'),
