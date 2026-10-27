@@ -1562,17 +1562,39 @@ describe('Bruno Autocomplete', () => {
 
     describe('Escape handling while hints are open', () => {
       const getKeydownHandler = () => mockedCodemirror.on.mock.calls.find((call) => call[0] === 'keydown')[1];
-      const makeKeyEvent = (key) => ({ key, stopPropagation: jest.fn(), preventDefault: jest.fn() });
+      const makeKeyEvent = (key, modifiers = {}) => ({
+        key,
+        ...modifiers,
+        stopPropagation: jest.fn(),
+        preventDefault: jest.fn()
+      });
 
-      it('should stop propagation of Escape when the hints popup is open', () => {
+      it('should close the hints popup and stop propagation of Escape when the popup is open', () => {
         cleanupFn = setupAutoComplete(mockedCodemirror, { getAllVariables: mockGetAllVariables });
         const event = makeKeyEvent('Escape');
+        const completionActive = { close: jest.fn() };
 
-        getKeydownHandler()({ state: { completionActive: { close: jest.fn() } } }, event);
+        getKeydownHandler()({ state: { completionActive } }, event);
 
+        expect(completionActive.close).toHaveBeenCalledTimes(1);
         expect(event.stopPropagation).toHaveBeenCalledTimes(1);
-        // must not preventDefault: CodeMirror skips keymaps for prevented events, so show-hint would not close
         expect(event.preventDefault).not.toHaveBeenCalled();
+      });
+
+      it.each([
+        ['Shift', { shiftKey: true }],
+        ['Ctrl', { ctrlKey: true }],
+        ['Alt', { altKey: true }],
+        ['Meta', { metaKey: true }]
+      ])('should close the hints popup on %s+Escape (show-hint only binds plain Esc)', (_, modifiers) => {
+        cleanupFn = setupAutoComplete(mockedCodemirror, { getAllVariables: mockGetAllVariables });
+        const event = makeKeyEvent('Escape', modifiers);
+        const completionActive = { close: jest.fn() };
+
+        getKeydownHandler()({ state: { completionActive } }, event);
+
+        expect(completionActive.close).toHaveBeenCalledTimes(1);
+        expect(event.stopPropagation).toHaveBeenCalledTimes(1);
       });
 
       it('should let Escape propagate when the hints popup is closed', () => {
@@ -1588,9 +1610,11 @@ describe('Bruno Autocomplete', () => {
       it('should not stop propagation of other keys when the hints popup is open', () => {
         cleanupFn = setupAutoComplete(mockedCodemirror, { getAllVariables: mockGetAllVariables });
         const event = makeKeyEvent('Enter');
+        const completionActive = { close: jest.fn() };
 
-        getKeydownHandler()({ state: { completionActive: { close: jest.fn() } } }, event);
+        getKeydownHandler()({ state: { completionActive } }, event);
 
+        expect(completionActive.close).not.toHaveBeenCalled();
         expect(event.stopPropagation).not.toHaveBeenCalled();
       });
     });

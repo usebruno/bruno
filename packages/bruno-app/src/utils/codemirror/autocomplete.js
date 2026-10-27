@@ -1211,6 +1211,7 @@ export const setupAutoComplete = (editor, options = {}) => {
   const keydownHandler = (cm, event) => {
     if (event.key === 'Escape' && cm.state.completionActive) {
       event.stopPropagation();
+      cm.state.completionActive.close();
     }
   };
 
