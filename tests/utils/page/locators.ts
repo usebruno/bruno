@@ -14,6 +14,8 @@ import { buildWebsocketCommonLocators } from './websocket';
 import { buildToastLocators } from './toast';
 import { buildRequestLocators } from '../request';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
+import { buildCollectionOverviewLocators } from './collection/overview';
+import { buildShareCollectionLocators } from './collection/share-collection';
 import { buildEnvironmentLocators } from './environments';
 import { buildTimelineHeaderLocators } from './timeline-headers';
 import { buildSetAsVariableLocators } from './set-as-variable';
@@ -35,6 +37,8 @@ const addToNoEnvNoteLocator = (popup: Locator, scopeType: 'environment' | 'globa
 export const buildCommonLocators = (page: Page) => ({
   titleBar: buildTitleBarLocators(page),
   collectionHeader: buildCollectionHeaderLocators(page),
+  collectionOverview: buildCollectionOverviewLocators(page),
+  shareCollection: buildShareCollectionLocators(page),
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),
   timelineHeaders: buildTimelineHeaderLocators(page),

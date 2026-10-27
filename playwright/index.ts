@@ -170,6 +170,11 @@ export type FakeClipboard = {
   copiedText: () => Promise<string>;
 };
 
+export type GeneratedDocsCapture = {
+  /** The HTML FileSaver was about to write, and the suggested download name. */
+  read: () => Promise<{ content: string; fileName: string }>;
+};
+
 export const test = baseTest.extend<
   {
     context: BrowserContext;
@@ -179,6 +184,7 @@ export const test = baseTest.extend<
     collectionFixturePath: string | null;
     workspaceFixturePath: string | null;
     installFakeClipboard: (page: Page) => Promise<FakeClipboard>;
+    captureGeneratedDocs: (page: Page) => Promise<GeneratedDocsCapture>;
     restartApp: (options?: { initUserDataPath?: string }) => Promise<ElectronApplication>;
   },
   {
@@ -369,6 +375,67 @@ export const test = baseTest.extend<
     // every page independently and one failure can't leave the rest patched.
     await Promise.allSettled(
       patchedPages.map((page) => page.evaluate(() => Reflect.deleteProperty(navigator, 'clipboard')))
+    );
+  },
+
+  // FileSaver writes docs through URL.createObjectURL and a synthetic <a download> click.
+  // The window is worker scoped and outlives the test, so both prototypes are put back at teardown
+  // even when an assertion fails.
+  captureGeneratedDocs: async ({ }, use) => {
+    const patchedPages: Page[] = [];
+
+    await use(async (page: Page) => {
+      await page.evaluate(() => {
+        const w = window as any;
+        w.__originalCreateObjectURL = URL.createObjectURL;
+        w.__originalAnchorDispatch = HTMLAnchorElement.prototype.dispatchEvent;
+
+        w.__docsContent = new Promise<string>((resolve) => {
+          URL.createObjectURL = function (obj: Blob | MediaSource) {
+            if (obj instanceof Blob) {
+              obj.text().then(resolve);
+            }
+            return w.__originalCreateObjectURL.call(URL, obj);
+          };
+        });
+
+        w.__docsFileName = new Promise<string>((resolve) => {
+          HTMLAnchorElement.prototype.dispatchEvent = function (this: HTMLAnchorElement, event: Event) {
+            if (this.download && event && event.type === 'click') {
+              resolve(this.download);
+              return true;
+            }
+            return w.__originalAnchorDispatch.call(this, event);
+          };
+        });
+      });
+      patchedPages.push(page);
+
+      return {
+        read: async () => {
+          const [content, fileName] = await page.evaluate(() => Promise.all([
+            (window as any).__docsContent as Promise<string>,
+            (window as any).__docsFileName as Promise<string>
+          ]));
+          return { content, fileName };
+        }
+      };
+    });
+
+    await Promise.allSettled(
+      patchedPages.map((page) => page.evaluate(() => {
+        const w = window as any;
+        if (typeof w.__originalCreateObjectURL === 'function') {
+          URL.createObjectURL = w.__originalCreateObjectURL;
+        }
+        if (typeof w.__originalAnchorDispatch === 'function') {
+          HTMLAnchorElement.prototype.dispatchEvent = w.__originalAnchorDispatch;
+        }
+        delete w.__docsContent;
+        delete w.__docsFileName;
+        delete w.__originalCreateObjectURL;
+        delete w.__originalAnchorDispatch;
+      }))
     );
   },
 
