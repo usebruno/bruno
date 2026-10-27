@@ -293,6 +293,23 @@ module.exports = runESMImports().then(() => defineConfig([
     }
   },
   {
+    files: ['packages/bruno-mock/**/*.js'],
+    ignores: ['**/*.config.js', '**/dist/**/*'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest
+      },
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module'
+      }
+    },
+    rules: {
+      'no-undef': 'error'
+    }
+  },
+  {
     files: ['packages/bruno-requests/**/*.ts'],
     ignores: ['**/*.config.js', '**/dist/**/*'],
     languageOptions: {

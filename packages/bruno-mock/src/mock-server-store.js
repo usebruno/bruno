@@ -1,8 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const { parseMockServer, stringifyMockServer } = require('@usebruno/filestore');
-const { getMockResponseRouteKey, sanitizeName, validateName } = require('@usebruno/common').utils;
-const { generateUidBasedOnHash } = require('./utils');
+const { generateUidBasedOnHash, getMockResponseRouteKey, sanitizeName, validateName } = require('@usebruno/common').utils;
 
 const DEFAULT_MOCK_SERVER_PORT = 4000;
 const DEFAULT_MOCK_SERVER_NAME = 'Mock Server';
