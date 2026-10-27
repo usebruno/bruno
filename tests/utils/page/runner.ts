@@ -88,16 +88,16 @@ export const buildRunnerTagLocators = (page: Page, root?: Locator) => {
 
   return {
     column,
-    input: (kind: RunnerTagKind) => column(kind).getByTestId('tag-input').getByRole('textbox'),
-    chip: (kind: RunnerTagKind, tagName: string) => column(kind).locator('.tag-item', { hasText: tagName })
+    input: (kind: RunnerTagKind) => column(kind).getByTestId('tag-picker-input'),
+    chip: (kind: RunnerTagKind, tagName: string) => column(kind).locator('.tag-picker-item', { hasText: tagName })
   };
 };
 
 export type RunnerTagKind = 'Include' | 'Exclude';
 
 const RUNNER_TAG_COLUMN_TEST_IDS: Record<RunnerTagKind, string> = {
-  Include: 'runner-include-tags',
-  Exclude: 'runner-exclude-tags'
+  Include: 'include-tags',
+  Exclude: 'exclude-tags'
 };
 
 /**
@@ -130,7 +130,7 @@ export const clearRunnerTags = async (page: Page, root?: Locator) => {
   await test.step('Clear the runner tag filters', async () => {
     const locators = buildRunnerTagLocators(page, root);
     for (const kind of ['Include', 'Exclude'] as RunnerTagKind[]) {
-      const removers = locators.column(kind).locator('.tag-item .tag-remove');
+      const removers = locators.column(kind).locator('.tag-picker-item .tag-picker-remove');
       // Removing a chip re-renders the list, so re-read it rather than iterating a stale handle.
       for (let remaining = await removers.count(); remaining > 0; remaining--) {
         await removers.first().click();
@@ -203,11 +203,9 @@ export const openRunnerTab = async (page: Page, collectionName: string) => {
 /**
  * Expands a collection in the sidebar so its items are mounted, then opens its runner tab.
  *
- * RunnerTags builds the tag vocabulary it validates against (`collection.allTags`) in a mount
- * effect keyed only on the collection uid. A collection whose items are still loading therefore
- * yields an empty vocabulary that never refreshes, and every tag typed into the include/exclude
- * filters is rejected as "tag does not exist!". Expanding first — what a user does anyway —
- * guarantees the items are there before the effect runs.
+ * RunnerTags validates typed tags against the tags found on the collection's mounted items, so a
+ * collection whose items are still loading rejects every tag as "Tag does not exist". Expanding
+ * first — what a user does anyway — guarantees the items are there.
  * @param page - The Playwright page object
  * @param collectionName - The collection to open the runner for
  * @param anyItemName - Any item in the collection, awaited as proof that mounting finished

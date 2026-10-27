@@ -1,5 +1,5 @@
 import React from 'react';
-import DocsTagList from '../DocsTagList';
+import TagPicker from 'components/TagPicker';
 import StyledWrapper from './StyledWrapper';
 
 const IncludeExcludeTags = ({
@@ -43,9 +43,9 @@ const IncludeExcludeTags = ({
   return (
     <StyledWrapper className={className}>
       <div className="tags-columns">
-        <div className="tags-column">
+        <div className="tags-column" data-testid="include-tags">
           <span className="tags-label">Include Tags</span>
-          <DocsTagList
+          <TagPicker
             tags={include}
             tagsHintList={tagsHintList}
             handleAddTag={(tag) => handleAddTag(tag, 'include')}
@@ -55,9 +55,9 @@ const IncludeExcludeTags = ({
             placeholder="e.g. Production ready"
           />
         </div>
-        <div className="tags-column">
+        <div className="tags-column" data-testid="exclude-tags">
           <span className="tags-label">Exclude Tags</span>
-          <DocsTagList
+          <TagPicker
             tags={exclude}
             tagsHintList={tagsHintList}
             handleAddTag={(tag) => handleAddTag(tag, 'exclude')}

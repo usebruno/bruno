@@ -5,7 +5,7 @@ import { StyledWrapper, Menu } from './StyledWrapper';
 
 const TAG_NAME_REGEX = /^[\p{L}\p{N}_-](?:[\p{L}\p{N}_\s-]*[\p{L}\p{N}_-])?$/u;
 
-const DocsTagList = ({
+const TagPicker = ({
   tags = [],
   tagsHintList = [],
   handleAddTag,
@@ -115,11 +115,11 @@ const DocsTagList = ({
 
   return (
     <StyledWrapper>
-      <div className="docs-tag-field" ref={fieldRef}>
+      <div className="tag-picker-field" ref={fieldRef}>
         <input
           ref={inputRef}
           type="text"
-          className="docs-tag-input"
+          className="tag-picker-input"
           value={text}
           placeholder={placeholder}
           onChange={handleInputChange}
@@ -135,7 +135,7 @@ const DocsTagList = ({
           aria-controls={showMenu ? menuId : undefined}
           aria-activedescendant={showMenu && highlighted >= 0 ? optionId(highlighted) : undefined}
           aria-autocomplete="list"
-          data-testid="docs-tag-input"
+          data-testid="tag-picker-input"
         />
       </div>
 
@@ -154,7 +154,7 @@ const DocsTagList = ({
                 id={optionId(index)}
                 role="option"
                 aria-selected={index === highlighted}
-                className={`docs-tag-menu-item ${index === highlighted ? 'highlighted' : ''}`}
+                className={`tag-picker-menu-item ${index === highlighted ? 'highlighted' : ''}`}
                 onMouseDown={(e) => {
                   e.preventDefault();
                   addTag(suggestion);
@@ -169,22 +169,22 @@ const DocsTagList = ({
         )}
 
       {error && (
-        <span className="docs-tag-error" role="alert">
+        <span className="tag-picker-error" role="alert">
           {error}
         </span>
       )}
 
       {tags.length > 0 && (
-        <ul className="docs-tag-list">
+        <ul className="tag-picker-list">
           {tags.map((tag) => (
-            <li key={tag} className="docs-tag-item">
-              <IconTag size={16} className="docs-tag-icon" aria-hidden="true" strokeWidth={1.33} />
-              <span className="docs-tag-text">
+            <li key={tag} className="tag-picker-item">
+              <IconTag size={16} className="tag-picker-icon" aria-hidden="true" strokeWidth={1.33} />
+              <span className="tag-picker-text">
                 {tag}
               </span>
               <button
                 type="button"
-                className="docs-tag-remove"
+                className="tag-picker-remove"
                 aria-label={`Remove ${tag}`}
                 onClick={() => handleRemoveTag(tag)}
               >
@@ -198,4 +198,4 @@ const DocsTagList = ({
   );
 };
 
-export default DocsTagList;
+export default TagPicker;
