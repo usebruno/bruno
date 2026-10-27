@@ -8,7 +8,6 @@ import MenuDropdown from 'ui/MenuDropdown';
 import SingleLineEditor from 'components/SingleLineEditor';
 import MultiLineEditor from 'components/MultiLineEditor';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
-import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import toast from 'react-hot-toast';
 import { sendRequest, browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
@@ -34,11 +33,6 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, readOnly }) 
   const { storedTheme } = useTheme();
   const oauth1 = get(request, 'auth.oauth1', {});
   const [advancedOpen, setAdvancedOpen] = useState(false);
-
-  const { isSensitive } = useDetectSensitiveField(collection);
-  const consumerSecretSensitive = isSensitive(oauth1.consumerSecret, item);
-  const tokenSecretSensitive = isSensitive(oauth1.accessTokenSecret, item);
-  const privateKeySensitive = isSensitive(oauth1.privateKey, item);
 
   const handleRun = item?.uid ? () => dispatch(sendRequest(item, collection.uid)) : undefined;
   const handleSave = () => {
@@ -161,7 +155,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, readOnly }) 
               readOnly={readOnly}
               isCompact
             />
-            {consumerSecretSensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-consumer-secret" warningMessage={consumerSecretSensitive.warningMessage} />}
+            <SensitiveFieldWarning fieldName="oauth1-consumer-secret" secretName="consumerSecret" value={oauth1.consumerSecret} collection={collection} item={item} disabled={disabled} onReplaceValue={(val) => handleChange('consumerSecret', val)} />
           </div>
         </div>
       )}
@@ -198,7 +192,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, readOnly }) 
             readOnly={readOnly}
             isCompact
           />
-          {tokenSecretSensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-token-secret" warningMessage={tokenSecretSensitive.warningMessage} />}
+          <SensitiveFieldWarning fieldName="oauth1-token-secret" secretName="tokenSecret" value={oauth1.accessTokenSecret} collection={collection} item={item} disabled={disabled} onReplaceValue={(val) => handleChange('accessTokenSecret', val)} />
         </div>
       </div>
 
@@ -266,7 +260,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, readOnly }) 
                   readOnly={readOnly}
                   allowNewlines={true}
                 />
-                {privateKeySensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-private-key" warningMessage={privateKeySensitive.warningMessage} />}
+                <SensitiveFieldWarning fieldName="oauth1-private-key" secretName="privateKey" value={oauth1.privateKey} collection={collection} item={item} disabled={disabled} onReplaceValue={handlePrivateKeyChange} />
               </div>
               <div className="flex flex-row gap-2">
                 <button

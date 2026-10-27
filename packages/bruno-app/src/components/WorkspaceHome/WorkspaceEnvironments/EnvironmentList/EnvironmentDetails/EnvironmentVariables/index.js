@@ -6,9 +6,11 @@ import {
   setGlobalEnvironmentDraft,
   clearGlobalEnvironmentDraft
 } from 'providers/ReduxStore/slices/global-environments';
+import { markEnvironmentVariableAsSecret } from 'providers/ReduxStore/slices/collections/actions';
 import EnvironmentVariablesTable from 'components/EnvironmentVariablesTable';
-import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
-import { ENVIRONMENT_USAGE_WARNING, findUsedGlobalEnvironmentVariableUids } from 'utils/sensitive-fields';
+import SensitiveWarningPopover from 'components/SensitiveFieldWarning/SensitiveWarningPopover';
+import { SENSITIVE_FIELD_WARNING, findUsedGlobalEnvironmentVariableUids } from 'utils/sensitive-fields';
+import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 
 const EnvironmentVariables = ({ environment, setIsModified, collection, inheritedEnvironmentVariables, searchQuery = '', variableType = 'variables' }) => {
   const dispatch = useDispatch();
@@ -27,17 +29,25 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, inherite
   const hasSensitiveUsage = useCallback((variable) => (
     !!variable?.uid && usedVariableUids.has(variable.uid)
   ), [usedVariableUids]);
-  const renderSensitiveWarning = useCallback((variable) => {
+  const renderSensitiveWarning = useCallback((variable, markOwnVariableAsSecret) => {
     if (!variable.secret && hasSensitiveUsage(variable)) {
+      const markAsSecret = markOwnVariableAsSecret ?? (() => dispatch(markEnvironmentVariableAsSecret({
+        environmentScope: VARIABLE_ADD_SCOPES.GLOBAL,
+        environmentUid: variable.inheritedFrom.uid,
+        variableUid: variable.uid
+      })));
       return (
-        <SensitiveFieldWarning
+        <SensitiveWarningPopover
           fieldName={variable.name}
-          warningMessage={ENVIRONMENT_USAGE_WARNING}
+          warningMessage={SENSITIVE_FIELD_WARNING.USED_IN_SENSITIVE_FIELD}
+          scope={VARIABLE_ADD_SCOPES.GLOBAL}
+          variableName={variable.name}
+          onMarkAsSecret={markAsSecret}
         />
       );
     }
     return null;
-  }, [hasSensitiveUsage]);
+  }, [hasSensitiveUsage, dispatch]);
 
   const handleSave = useCallback(
     (variables) => {
