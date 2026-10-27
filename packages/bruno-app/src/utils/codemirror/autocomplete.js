@@ -1208,6 +1208,14 @@ export const setupAutoComplete = (editor, options = {}) => {
 
   editor.on('keyup', keyupHandler);
 
+  const keydownHandler = (cm, event) => {
+    if (event.key === 'Escape' && cm.state.completionActive) {
+      event.stopPropagation();
+    }
+  };
+
+  editor.on('keydown', keydownHandler);
+
   const clickHandler = (cm) => {
     // Only show hints on click if the option is enabled and there's no active completion
     if (options.showHintsOnClick) {
@@ -1225,6 +1233,7 @@ export const setupAutoComplete = (editor, options = {}) => {
 
   return () => {
     editor.off('keyup', keyupHandler);
+    editor.off('keydown', keydownHandler);
     if (options.showHintsOnClick) {
       editor.off('mousedown', clickHandler);
     }
