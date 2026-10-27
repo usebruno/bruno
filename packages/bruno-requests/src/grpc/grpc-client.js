@@ -137,7 +137,7 @@ const getParsedGrpcUrlObject = (url) => {
   const urlObj = new URL(addProtocolIfMissing(url));
 
   return {
-    host: urlObj.host,
+    host: urlObj.host.toLowerCase(),
     protocol: urlObj.protocol.replace(':', '').toLowerCase(),
     path: removeTrailingSlash(urlObj.pathname),
     isLocalTransport: false

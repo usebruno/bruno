@@ -782,6 +782,24 @@ describe('GrpcClient', () => {
       expect(capturedRequestPath).toBe('/MySubPath/test.Service/TestMethod');
     });
 
+    test('should lowercase the host while preserving the subpath case', async () => {
+      const request = {
+        url: 'grpcs://MyServer:443/MySubPath',
+        uid: 'test-request-uid',
+        method: '/test.Service/TestMethod',
+        headers: {},
+        body: { grpc: [{ content: '{}' }] }
+      };
+
+      await grpcClient.startConnection({
+        request,
+        collection: baseCollection
+      });
+
+      expect(capturedHost).toBe('myserver:443');
+      expect(capturedRequestPath).toBe('/MySubPath/test.Service/TestMethod');
+    });
+
     test('should work without subpath (standard URL)', async () => {
       const request = {
         url: 'grpc://myserver:50051',
