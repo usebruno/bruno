@@ -1,4 +1,5 @@
-import { Worker } from 'node:worker_threads';
+import os from 'node:os';
+import workerpool from 'workerpool';
 
 type WorkerTaskType
   = | 'parse'
@@ -17,24 +18,24 @@ interface QueuedTask {
   reject?: (reason?: any) => void;
 }
 
+// Cap the pool so a high-core machine cannot take every CPU and starve Electron/UI/OS.
+const MAX_WORKERS = 16;
+
 class WorkerQueue {
-  private queue: QueuedTask[];
-  private isProcessing: boolean;
-  private workers: Record<string, Worker>;
+  private queue: QueuedTask[] = [];
+  private pools: Record<string, workerpool.Pool> = {};
+  private inFlight = 0;
+  private readonly maxWorkers = Math.min(MAX_WORKERS, Math.max(1, os.availableParallelism() - 1));
 
-  constructor() {
-    this.queue = [];
-    this.isProcessing = false;
-    this.workers = {};
-  }
-
-  async getWorkerForScriptPath(scriptPath: string) {
-    if (!this.workers) this.workers = {};
-    let worker = this.workers[scriptPath];
-    if (!worker || worker.threadId === -1) {
-      this.workers[scriptPath] = worker = new Worker(scriptPath);
+  private getWorkerForScriptPath(scriptPath: string): workerpool.Pool {
+    let pool = this.pools[scriptPath];
+    if (!pool) {
+      pool = this.pools[scriptPath] = workerpool.pool(scriptPath, {
+        maxWorkers: this.maxWorkers,
+        workerType: 'thread'
+      });
     }
-    return worker;
+    return pool;
   }
 
   async enqueue(task: QueuedTask) {
@@ -42,80 +43,39 @@ class WorkerQueue {
 
     return new Promise((resolve, reject) => {
       this.queue.push({ priority, scriptPath, data, taskType, resolve, reject });
-      this.queue?.sort((taskX, taskY) => taskX?.priority - taskY?.priority);
+      this.queue.sort((taskX, taskY) => taskX.priority - taskY.priority);
       this.processQueue();
     });
   }
 
-  async processQueue() {
-    if (this.isProcessing || this.queue.length === 0) {
-      return;
-    }
-
-    this.isProcessing = true;
-    const { scriptPath, data, taskType, resolve, reject } = this.queue.shift() as QueuedTask;
-
-    try {
-      const result = await this.runWorker({ scriptPath, data, taskType });
-      resolve?.(result);
-    } catch (error) {
-      reject?.(error);
-    } finally {
-      this.isProcessing = false;
-      this.processQueue();
+  private processQueue() {
+    while (this.queue.length > 0 && this.inFlight < this.maxWorkers) {
+      const { scriptPath, data, taskType, resolve, reject } = this.queue.shift() as QueuedTask;
+      this.inFlight += 1;
+      this.runWorker({ scriptPath, data, taskType })
+        .then((value) => resolve?.(value), (reason) => reject?.(reason))
+        .finally(() => {
+          this.inFlight -= 1;
+          this.processQueue();
+        });
     }
   }
 
-  async runWorker({ scriptPath, data, taskType }: { scriptPath: string; data: any; taskType: WorkerTaskType }) {
-    return new Promise(async (resolve, reject) => {
-      let worker = await this.getWorkerForScriptPath(scriptPath);
-
-      const messageHandler = (data: any) => {
-        worker.off('message', messageHandler);
-        worker.off('error', errorHandler);
-        worker.off('exit', exitHandler);
-
-        if (data?.error) {
-          reject(new Error(data?.error));
-        } else {
-          resolve(data);
-        }
-      };
-
-      const errorHandler = (error: Error) => {
-        worker.off('message', messageHandler);
-        worker.off('error', errorHandler);
-        worker.off('exit', exitHandler);
-        reject(error);
-      };
-
-      const exitHandler = (code: number) => {
-        worker.off('message', messageHandler);
-        worker.off('error', errorHandler);
-        worker.off('exit', exitHandler);
-        // Remove dead worker from cache
-        delete this.workers[scriptPath];
-        reject(new Error(`Worker stopped with exit code ${code}`));
-      };
-
-      worker.on('message', messageHandler);
-      worker.on('error', errorHandler);
-      worker.on('exit', exitHandler);
-
-      worker.postMessage({ taskType, data });
-    });
+  private runWorker({ scriptPath, data, taskType }: { scriptPath: string; data: any; taskType: WorkerTaskType }) {
+    const { data: payload, format } = data;
+    return this.getWorkerForScriptPath(scriptPath).exec('runParseTask', [taskType, payload, format]);
   }
 
   async cleanup() {
-    const promises = Object.values(this.workers).map((worker) => {
-      if (worker.threadId !== -1) {
-        return worker.terminate();
-      }
-      return Promise.resolve();
+    const queued = this.queue;
+    this.queue = [];
+    queued.forEach((task) => {
+      task.reject?.(new Error('Worker queue disposed'));
     });
 
-    await Promise.allSettled(promises);
-    this.workers = {};
+    const pending = Object.values(this.pools).map((pool) => pool.terminate(true));
+    this.pools = {};
+    await Promise.all(pending);
   }
 }
 

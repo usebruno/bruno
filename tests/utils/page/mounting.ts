@@ -134,6 +134,15 @@ export const openCollectionFromPath = async (
 };
 
 /**
+ * Click a sidebar collection name, bypassing actionability so the click
+ * still lands while a mount spinner covers the row.
+ */
+export const clickCollectionName = async (page: Page, name: string): Promise<void> => {
+  const locators = buildCollectionTreeLocators(page);
+  await locators.collection.name(name).dispatchEvent('click');
+};
+
+/**
  * Wait for a collection to finish mounting (loading spinner disappears and items are stable)
  * @param page - The Playwright page object
  * @param collectionName - The name of the collection to wait for

@@ -43,6 +43,7 @@ import {
   applyDefaultEnvironment as _applyDefaultEnvironment,
   sortCollections as _sortCollections,
   updateCollectionMountStatus,
+  updateCollectionLoadingState,
   moveCollection,
   deleteItem as _deleteItemFromState,
   brunoConfigUpdateEvent as _brunoConfigUpdateEvent,
@@ -3438,6 +3439,7 @@ export const mountCollection
   = ({ collectionUid, collectionPathname, brunoConfig, skipTabRestore = false, workspacePathname = null }) =>
     (dispatch, getState) => {
       dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounting' }));
+      dispatch(updateCollectionLoadingState({ collectionUid, isLoading: true }));
       const fileCacheEnabled = getState().app?.preferences?.cache?.file?.enabled;
       const channel = fileCacheEnabled ? 'renderer:mount-collection-v2' : 'renderer:mount-collection';
       return new Promise(async (resolve, reject) => {
@@ -3464,6 +3466,7 @@ export const mountCollection
           })
           .then(resolve)
           .catch(() => {
+            dispatch(updateCollectionLoadingState({ collectionUid, isLoading: false }));
             dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'unmounted' }));
             reject();
           });

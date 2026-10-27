@@ -37,14 +37,15 @@ class FileIndex {
       const mtime = stat.mtimeNs;
       const prior = metadata.get(relativePath);
 
+      const size = Number(stat.size);
       if (!prior) {
         const hash = await hashFileAsync(absolutePath);
-        return { kind: 'added', entry: { relativePath, absolutePath, mtime, hash } };
+        return { kind: 'added', entry: { relativePath, absolutePath, mtime, hash, size } };
       }
       if (prior.mtime === mtime) return { kind: 'unchanged', relativePath };
       const hash = await hashFileAsync(absolutePath);
       if (hash === prior.hash) return { kind: 'unchanged', relativePath };
-      return { kind: 'updated', entry: { relativePath, absolutePath, mtime, hash, prevHash: prior.hash } };
+      return { kind: 'updated', entry: { relativePath, absolutePath, mtime, hash, prevHash: prior.hash, size } };
     }));
 
     for (const r of results) {

@@ -588,6 +588,8 @@ app.on('before-quit', (event) => {
 
     try { await require('./ipc/mount').shutdown({ force: true }); } catch { }
 
+    try { await require('@usebruno/filestore').disposeFilestoreWorkers(); } catch { }
+
     try { await clearAllRunnerResponses(); } catch {}
 
     try { await sqliteService.reclaimDiskSpace(); } catch {}

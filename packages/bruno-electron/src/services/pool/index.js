@@ -1,6 +1,7 @@
 const workerpool = require('workerpool');
 const os = require('node:os');
 const path = require('node:path');
+const { SizeOrderTaskQueue } = require('./size-order-queue');
 
 const JobType = Object.freeze({
   ParseFile: 'parse-file'
@@ -16,12 +17,13 @@ class Pool {
     this.#pool = workerpool.pool(WORKER_FILE, {
       maxWorkers: workers,
       workerType: 'thread',
+      queueStrategy: new SizeOrderTaskQueue({ maxWorkers: workers }),
       workerThreadOpts: { resourceLimits: { maxOldGenerationSizeMb: 512 } }
     });
   }
 
-  run(type, args) {
-    return this.#pool.exec(type, [args]);
+  run(type, args, { size = 0 } = {}) {
+    return this.#pool.exec(type, [args], { metadata: { size } });
   }
 
   async destroy({ force = false } = {}) {

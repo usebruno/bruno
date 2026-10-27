@@ -29,6 +29,7 @@ const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const dotEnvWatcher = require('./dotenv-watcher');
 const { checkpoint } = require('../utils/benchmark');
+const { createAddFileScheduler } = require('./add-file-scheduler');
 
 const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
 
@@ -92,6 +93,19 @@ const isCollectionRootFile = (pathname, collectionPath) => {
   }
 
   return basename === 'collection.bru' || basename === 'opencollection.yml';
+};
+
+const isPendingRequestFile = (pathname, collectionPath) => {
+  if (isEnvironmentsFolder(pathname, collectionPath)) {
+    return false;
+  }
+  if (isCollectionRootFile(pathname, collectionPath)) {
+    return false;
+  }
+  if (isFolderRootFile(pathname, collectionPath)) {
+    return false;
+  }
+  return hasRequestExtension(pathname, getCollectionFormat(collectionPath));
 };
 
 const envHasSecrets = (environment = {}) => {
@@ -220,7 +234,7 @@ const unlinkEnvironmentFile = async (win, pathname, collectionUid) => {
   }
 };
 
-const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread, watcher) => {
+const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread, watcher, collectionFormat, releaseSlot = () => {}) => {
   console.log(`watcher add: ${pathname}`);
 
   if (isBrunoConfigFile(pathname, collectionPath)) {
@@ -326,9 +340,18 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     }
   }
 
-  const format = getCollectionFormat(collectionPath);
+  const format = collectionFormat || getCollectionFormat(collectionPath);
   if (hasRequestExtension(pathname, format)) {
     watcher.addFileToProcessing(collectionUid, pathname);
+
+    let releasedSchedulerSlot = false;
+    const releaseSchedulerSlot = () => {
+      if (releasedSchedulerSlot) {
+        return;
+      }
+      releasedSchedulerSlot = true;
+      releaseSlot();
+    };
 
     const file = {
       meta: {
@@ -338,20 +361,98 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       }
     };
 
-    const fileStats = fs.statSync(pathname);
-    const content = fs.readFileSync(pathname, 'utf8');
+    let fileStats;
+    let content;
+    try {
+      [fileStats, content] = await Promise.all([
+        fs.promises.stat(pathname),
+        fs.promises.readFile(pathname, 'utf8')
+      ]);
+    } catch (readError) {
+      file.data = {
+        name: path.basename(pathname),
+        type: 'http-request'
+      };
+      file.error = {
+        message: readError?.message
+      };
+      file.partial = true;
+      file.loading = false;
+      hydrateRequestWithUuid(file.data, pathname);
+      win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      watcher.markFileAsProcessed(win, collectionUid, pathname);
+      releaseSchedulerSlot();
+      return;
+    }
 
+    await new Promise((resolve) => setImmediate(resolve));
+    releaseSchedulerSlot();
+
+    try {
     // If worker thread is not used, we can directly parse the file
-    if (!useWorkerThread) {
+      if (!useWorkerThread) {
+        try {
+          file.data = await parseRequest(content, { format });
+          stageToCache(collectionPath, pathname, file.data);
+          file.partial = false;
+          file.loading = false;
+          file.size = sizeInMB(fileStats?.size);
+          file.data.raw = content;
+          hydrateRequestWithUuid(file.data, pathname);
+          win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        } catch (error) {
+          file.data = {
+            name: path.basename(pathname),
+            type: 'http-request'
+          };
+          file.error = {
+            message: error?.message
+          };
+          file.partial = true;
+          file.loading = false;
+          file.size = sizeInMB(fileStats?.size);
+          file.data.raw = content;
+          hydrateRequestWithUuid(file.data, pathname);
+          win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        } finally {
+          watcher.markFileAsProcessed(win, collectionUid, pathname);
+        }
+        return;
+      }
+
       try {
-        file.data = await parseRequest(content, { format });
-        stageToCache(collectionPath, pathname, file.data);
-        file.partial = false;
+      // we need to send a partial file info to the UI
+      // so that the UI can display the file in the collection tree
+        file.data = {
+          name: path.basename(pathname),
+          type: 'http-request'
+        };
+
+        const metaJson = parseFileMeta(content, format);
+        file.data = metaJson;
+        file.partial = true;
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
-        file.data.raw = content;
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
+
+        if (fileStats.size < MAX_FILE_SIZE) {
+        // This is to update the loading indicator in the UI
+          file.data = metaJson;
+          file.partial = false;
+          file.loading = true;
+          hydrateRequestWithUuid(file.data, pathname);
+          win.webContents.send('main:collection-tree-updated', 'addFile', file);
+
+          // This is to update the file info in the UI
+          file.data = await parseRequestViaWorker(content, { format });
+          stageToCache(collectionPath, pathname, file.data);
+          file.partial = false;
+          file.loading = false;
+          file.data.raw = content;
+          hydrateRequestWithUuid(file.data, pathname);
+          win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        }
       } catch (error) {
         file.data = {
           name: path.basename(pathname),
@@ -369,61 +470,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       } finally {
         watcher.markFileAsProcessed(win, collectionUid, pathname);
       }
-      return;
-    }
-
-    try {
-      // we need to send a partial file info to the UI
-      // so that the UI can display the file in the collection tree
-      file.data = {
-        name: path.basename(pathname),
-        type: 'http-request'
-      };
-
-      const metaJson = parseFileMeta(content, format);
-      file.data = metaJson;
-      file.partial = true;
-      file.loading = false;
-      file.size = sizeInMB(fileStats?.size);
-      hydrateRequestWithUuid(file.data, pathname);
-      win.webContents.send('main:collection-tree-updated', 'addFile', file);
-
-      if (fileStats.size < MAX_FILE_SIZE) {
-        // This is to update the loading indicator in the UI
-        file.data = metaJson;
-        file.partial = false;
-        file.loading = true;
-        hydrateRequestWithUuid(file.data, pathname);
-        win.webContents.send('main:collection-tree-updated', 'addFile', file);
-
-        // This is to update the file info in the UI
-        file.data = await parseRequestViaWorker(content, {
-          format,
-          filename: pathname
-        });
-        stageToCache(collectionPath, pathname, file.data);
-        file.partial = false;
-        file.loading = false;
-        file.data.raw = content;
-        hydrateRequestWithUuid(file.data, pathname);
-        win.webContents.send('main:collection-tree-updated', 'addFile', file);
-      }
-    } catch (error) {
-      file.data = {
-        name: path.basename(pathname),
-        type: 'http-request'
-      };
-      file.error = {
-        message: error?.message
-      };
-      file.partial = true;
-      file.loading = false;
-      file.size = sizeInMB(fileStats?.size);
-      file.data.raw = content;
-      hydrateRequestWithUuid(file.data, pathname);
-      win.webContents.send('main:collection-tree-updated', 'addFile', file);
     } finally {
-      watcher.markFileAsProcessed(win, collectionUid, pathname);
+      releaseSchedulerSlot();
     }
   }
 };
@@ -734,6 +782,7 @@ class CollectionWatcher {
     this.watchers = {};
     this.loadingStates = {};
     this.tempDirectoryMap = {};
+    this.addSchedulers = {};
   }
 
   // Initialize loading state tracking for a collection
@@ -875,10 +924,26 @@ class CollectionWatcher {
       disableGlobbing: true
     });
 
+    const existingScheduler = this.addSchedulers[watchPath];
+    if (existingScheduler) {
+      existingScheduler.clear();
+      delete this.addSchedulers[watchPath];
+    }
+
+    const collectionFormat = getCollectionFormat(watchPath);
+    const addScheduler = createAddFileScheduler((pathname, releaseSlot) =>
+      add(win, pathname, collectionUid, watchPath, useWorkerThread, this, collectionFormat, releaseSlot));
+    this.addSchedulers[watchPath] = addScheduler;
+
     let startedNewWatcher = false;
     watcher
       .on('ready', () => onWatcherSetupComplete(win, watchPath, collectionUid, this, workspacePathname))
-      .on('add', (pathname) => add(win, pathname, collectionUid, watchPath, useWorkerThread, this))
+      .on('add', (pathname) => {
+        if (isPendingRequestFile(pathname, watchPath)) {
+          this.addFileToProcessing(collectionUid, pathname);
+        }
+        addScheduler.enqueue(pathname);
+      })
       .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
       .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))
       .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath))
@@ -920,6 +985,12 @@ class CollectionWatcher {
       existingWatcher.close();
     }
     this.watchers[watchPath] = null;
+
+    const scheduler = this.addSchedulers[watchPath];
+    if (scheduler) {
+      scheduler.clear();
+      delete this.addSchedulers[watchPath];
+    }
 
     fileIndexByCollection.delete(watchPath);
 
