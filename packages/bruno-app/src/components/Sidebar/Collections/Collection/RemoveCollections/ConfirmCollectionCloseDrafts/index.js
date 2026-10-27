@@ -106,6 +106,7 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collectionUids }) => {
   }
 
   const otherDraftsCount = currentFolderDrafts.length + currentCollectionDrafts.length;
+  const hasTransientDrafts = currentTransientDrafts.length > 0;
 
   return (
     <Portal>
@@ -204,18 +205,19 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collectionUids }) => {
 
           <div className="flex justify-between mt-6">
             <div>
-              <Button color="danger" autoFocus onClick={handleDiscardAll}>
+              <Button color="danger" onClick={handleDiscardAll}>
                 Discard All and Remove
               </Button>
             </div>
             <div>
-              <Button className="mr-2" color="secondary" variant="ghost" onClick={onClose}>
+              <Button className="mr-2" color="secondary" variant="ghost" autoFocus={hasTransientDrafts} onClick={onClose}>
                 Cancel
               </Button>
               <Button
                 onClick={handleSaveAll}
-                disabled={currentTransientDrafts.length > 0}
-                title={currentTransientDrafts.length > 0 ? 'Please save or discard transient requests first' : ''}
+                disabled={hasTransientDrafts}
+                autoFocus={!hasTransientDrafts}
+                title={hasTransientDrafts ? 'Please save or discard transient requests first' : ''}
               >
                 {allDraftsCount > 1 ? 'Save All and Remove' : 'Save and Remove'}
               </Button>

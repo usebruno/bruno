@@ -1,5 +1,6 @@
 import { expect, test } from '../../playwright';
 import { closeAllCollections, createFolder, openCollection } from '../utils/page';
+import { buildCommonLocators } from '../utils/page/locators';
 import {
   altShortcutDisplayText,
   closePreferencesTab,
@@ -266,7 +267,9 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await expect(deleteButton).toBeFocused();
 
           await deleteModal.getByRole('button', { name: 'Cancel' }).click();
+          await page.keyboard.press('Enter');
           await expect(deleteModal).not.toBeVisible();
+          await expect(requestItem).toBeVisible();
         });
 
         test('default Backspace/Delete with Enter confirms deletion for request', async ({ pageWithUserData: page }) => {
@@ -442,6 +445,31 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test.describe('SHORTCUT: Delete Item for collection (Backspace/Delete)', () => {
+        test('default Backspace/Delete focuses Save and Remove for a collection with drafts', async ({ pageWithUserData: page }) => {
+          await openRequest(page, collectionName, 'req-1', { persist: true });
+
+          const locators = buildCommonLocators(page);
+          await locators.request.urlInput().click();
+          await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A');
+          await page.keyboard.insertText('https://echo.usebruno.com/unsaved');
+          await expect(locators.tabs.draftIndicator()).toBeVisible();
+
+          const collectionRow = page.getByTestId('sidebar-collection-row').filter({
+            has: page.getByText(collectionName, { exact: true })
+          });
+          await collectionRow.click();
+          await collectionRow.focus();
+          await pressShortcut(page, process.platform === 'darwin' ? 'Backspace' : 'Delete');
+
+          const draftsModal = locators.modal.byTitle('Remove Collection');
+          await expect(draftsModal).toBeVisible();
+          await expect(draftsModal.getByRole('button', { name: 'Save and Remove' })).toBeFocused();
+          await expect(draftsModal.getByRole('button', { name: 'Discard All and Remove' })).not.toBeFocused();
+
+          await draftsModal.getByRole('button', { name: 'Cancel' }).click();
+          await expect(draftsModal).not.toBeVisible();
+        });
+
         test('default Backspace/Delete open remove collection modal', async ({ pageWithUserData: page }) => {
           const collectionRow = page.getByTestId('sidebar-collection-row').filter({
             has: page.getByText('kb-collection', { exact: true })

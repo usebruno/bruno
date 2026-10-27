@@ -175,7 +175,7 @@ const Modal = ({
           cancelText={cancelText}
           handleCancel={() => closeModal({ type: 'button' })}
           handleSubmit={handleConfirm}
-          confirmDisabled={confirmDisabled}
+          confirmDisabled={confirmDisabled || isClosing}
           hideCancel={hideCancel}
           hideFooter={hideFooter}
           footerLeft={footerLeft}
