@@ -13,11 +13,6 @@ const FIXTURES_DIR = path.join(__dirname, 'fixtures');
 const COLLECTION_FIXTURE = path.join(FIXTURES_DIR, 'runnable.postman_collection.json');
 const ENVIRONMENT_FIXTURE = path.join(FIXTURES_DIR, 'staging.postman_environment.json');
 
-const FORMATS = [
-  { collectionFormat: 'opencollection', ext: 'yml', collectionFiles: ['opencollection.yml'] },
-  { collectionFormat: 'bru', ext: 'bru', collectionFiles: ['bruno.json', 'collection.bru'] }
-];
-
 describe('CLI import postman — imported collections run with bru run', () => {
   let server;
   let baseUrl;
@@ -67,35 +62,32 @@ describe('CLI import postman — imported collections run with bru run', () => {
     expect(profileRequest.headers['x-token']).toBe('from-pre-request');
   };
 
-  describe.each(FORMATS)('$collectionFormat format', ({ collectionFormat, ext, collectionFiles }) => {
-    it('writes the collection and its --environment, and the run passes', async () => {
-      const collectionDir = path.join(workDir, 'collection');
+  it('writes the collection and its --environment, and the run passes', async () => {
+    const collectionDir = path.join(workDir, 'collection');
 
-      const importResult = await runCli([
-        'import', 'postman',
-        '--source', COLLECTION_FIXTURE,
-        '--output', collectionDir,
-        '--collection-format', collectionFormat,
-        '--environment', stageEnvironment()
-      ], workDir);
+    const importResult = await runCli([
+      'import', 'postman',
+      '--source', COLLECTION_FIXTURE,
+      '--output', collectionDir,
+      '--environment', stageEnvironment()
+    ], workDir);
 
-      expect(importResult.code).toBe(0);
-      [
-        ...collectionFiles,
-        `Health.${ext}`,
-        path.join('Users', `folder.${ext}`),
-        path.join('Users', `Get Profile.${ext}`),
-        path.join('environments', `staging.${ext}`)
-      ].forEach((file) => {
-        expect(fs.existsSync(path.join(collectionDir, file))).toBe(true);
-      });
+    expect(importResult.code).toBe(0);
+    [
+      'opencollection.yml',
+      'Health.yml',
+      path.join('Users', 'folder.yml'),
+      path.join('Users', 'Get Profile.yml'),
+      path.join('environments', 'staging.yml')
+    ].forEach((file) => {
+      expect(fs.existsSync(path.join(collectionDir, file))).toBe(true);
+    });
 
-      const runResult = await runCollection(collectionDir);
+    const runResult = await runCollection(collectionDir);
 
-      expect(runResult.code).toBe(0);
-      expectEveryRequestServed();
-    }, RUN_TIMEOUT);
-  });
+    expect(runResult.code).toBe(0);
+    expectEveryRequestServed();
+  }, RUN_TIMEOUT);
 
   it('adds a postman-env environment to an imported collection, and the run passes', async () => {
     const collectionDir = path.join(workDir, 'collection');
@@ -105,12 +97,66 @@ describe('CLI import postman — imported collections run with bru run', () => {
     const environmentImport = await runCli(['import', 'postman-env', '--source', stageEnvironment(), '--output', collectionDir], workDir);
 
     expect(environmentImport.code).toBe(0);
-    expect(fs.existsSync(path.join(collectionDir, 'environments', 'staging.yml'))).toBe(true);
+    expect(fs.readdirSync(path.join(collectionDir, 'environments'))).toEqual(['staging.yml']);
 
     const runResult = await runCollection(collectionDir);
 
     expect(runResult.code).toBe(0);
     expectEveryRequestServed();
+  }, RUN_TIMEOUT);
+
+  it.each(['bru', 'opencollection'])('rejects postman with --collection-format %s, writing nothing', async (collectionFormat) => {
+    const collectionDir = path.join(workDir, 'collection');
+
+    const { code, stderr } = await runCli([
+      'import', 'postman',
+      '--source', COLLECTION_FIXTURE,
+      '--output', collectionDir,
+      '--collection-format', collectionFormat
+    ], workDir);
+
+    expect(code).not.toBe(0);
+    expect(stderr).toContain('--collection-format is not supported for postman');
+    expect(fs.existsSync(collectionDir)).toBe(false);
+  }, RUN_TIMEOUT);
+
+  it('rejects postman-env with --collection-format', async () => {
+    const collectionDir = path.join(workDir, 'collection');
+    const collectionImport = await runCli(['import', 'postman', '--source', COLLECTION_FIXTURE, '--output', collectionDir], workDir);
+    expect(collectionImport.code).toBe(0);
+
+    const { code, stderr } = await runCli([
+      'import', 'postman-env',
+      '--source', stageEnvironment(),
+      '--output', collectionDir,
+      '--collection-format', 'opencollection'
+    ], workDir);
+
+    expect(code).not.toBe(0);
+    expect(stderr).toContain('--collection-format is not supported for postman-env');
+    expect(fs.existsSync(path.join(collectionDir, 'environments'))).toBe(false);
+  }, RUN_TIMEOUT);
+
+  it('rejects postman-env when --output is a bru collection', async () => {
+    const bruCollectionDir = path.join(workDir, 'bru-collection');
+    fs.mkdirSync(bruCollectionDir);
+    fs.writeFileSync(path.join(bruCollectionDir, 'bruno.json'), JSON.stringify({ version: '1', name: 'bru', type: 'collection' }));
+
+    const { code, stderr } = await runCli(['import', 'postman-env', '--source', stageEnvironment(), '--output', bruCollectionDir], workDir);
+
+    expect(code).not.toBe(0);
+    expect(stderr).toContain('postman-env supports only OpenCollection (yml) collections');
+    expect(fs.existsSync(path.join(bruCollectionDir, 'environments'))).toBe(false);
+  }, RUN_TIMEOUT);
+
+  it('rejects postman-env when --output is not a Bruno collection', async () => {
+    const notACollectionDir = path.join(workDir, 'not-a-collection');
+    fs.mkdirSync(notACollectionDir);
+
+    const { code } = await runCli(['import', 'postman-env', '--source', stageEnvironment(), '--output', notACollectionDir], workDir);
+
+    expect(code).not.toBe(0);
+    expect(fs.existsSync(path.join(notACollectionDir, 'environments'))).toBe(false);
   }, RUN_TIMEOUT);
 
   it('still writes the collection when an item is skipped, and exits 1', async () => {
