@@ -1,5 +1,5 @@
 /**
- * Input size definitions - shared across TextInput, MaskedInput, Select
+ * Input size definitions - shared across Select and MaskedTextfield
  *
  * sm: compact inputs for inline/auth contexts
  * md: default form inputs (matches .textbox)

@@ -1,0 +1,125 @@
+import styled, { css } from 'styled-components';
+import { INPUT_SIZE_TOKENS } from './sizes';
+
+const getSize = (props) => INPUT_SIZE_TOKENS[props.$size] || INPUT_SIZE_TOKENS.md;
+
+const disabledBg = (theme) => (theme.mode === 'dark' ? theme.background.surface0 : theme.background.mantle);
+
+const StyledWrapper = styled.div`
+  display: ${(props) => (props.$fullWidth ? 'flex' : 'inline-flex')};
+  width: ${(props) => (props.$fullWidth ? '100%' : 'auto')};
+  align-items: center;
+  gap: 0.375rem;
+  box-sizing: border-box;
+  height: ${(props) => getSize(props).height};
+  padding: ${(props) => getSize(props).padding};
+  border: 1px solid ${(props) => props.theme.input.border};
+  border-radius: ${(props) => props.theme.border.radius[getSize(props).borderRadius]};
+  background-color: ${(props) => props.theme.input.bg};
+  color: ${(props) => props.theme.text};
+  font-size: ${(props) => props.theme.font.size[getSize(props).fontSize]};
+  line-height: normal;
+  transition: border-color 0.15s ease;
+
+  &:focus-within {
+    border-color: ${(props) => props.theme.input.focusBorder};
+  }
+
+  /* Ghost comes before error so an errored cell still shows the danger border. */
+  ${(props) =>
+    props.$ghost
+    && css`
+      height: auto;
+      padding: 0;
+      line-height: 1;
+      border-color: transparent;
+      background-color: transparent;
+      border-radius: 0;
+
+      &:focus-within {
+        border-color: transparent;
+      }
+    `}
+
+  ${(props) =>
+    props.$error
+    && css`
+      border-color: ${props.theme.status.danger.border};
+
+      &:focus-within {
+        border-color: ${props.theme.status.danger.border};
+      }
+    `}
+
+  ${(props) =>
+    props.$disabled
+    && css`
+      background-color: ${disabledBg(props.theme)};
+      cursor: not-allowed;
+      opacity: 0.5;
+    `}
+
+  .input-control {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+
+    &::placeholder {
+      color: ${(props) => props.theme.input.placeholder.color};
+      opacity: ${(props) => props.theme.input.placeholder.opacity};
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+    }
+
+    &[type='number'] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+
+      &::-webkit-outer-spin-button,
+      &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+    }
+  }
+
+  ${(props) =>
+    props.$ghost
+    && css`
+      .input-control::placeholder {
+        color: ${props.theme.codemirror.placeholder.color};
+        opacity: ${props.theme.codemirror.placeholder.opacity};
+      }
+    `}
+
+  .input-section {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: ${(props) => props.theme.colors.text.muted};
+
+    svg {
+      width: 0.875rem;
+      height: 0.875rem;
+    }
+  }
+
+  .input-section-left {
+    pointer-events: ${(props) => props.$leftSectionPointerEvents};
+  }
+
+  .input-section-right {
+    gap: 0.25rem;
+    pointer-events: ${(props) => props.$rightSectionPointerEvents};
+  }
+`;
+
+export default StyledWrapper;

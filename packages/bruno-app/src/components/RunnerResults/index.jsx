@@ -14,6 +14,7 @@ import RunnerTags from './RunnerTags/index';
 import RunnerFilter from './RunnerFilter';
 import RunConfigurationPanel from './RunConfigurationPanel';
 import Button from 'ui/Button/index';
+import Input from 'ui/Input';
 
 const TOOLBAR_LEVELS = ['compact', 'tiny'];
 
@@ -268,16 +269,18 @@ export default function RunnerResults({ collection }) {
             <div className="runner-section-title mt-6">Timings</div>
             <div className="runner-section mt-2">
               <label>Delay between requests (ms)</label>
-              <input
+              <Input
                 type="number"
-                className="block textbox w-full mt-2"
+                size="md"
+                fullWidth
+                className="mt-2"
                 placeholder="e.g. 5"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
                 data-testid="runner-delay-input"
-                value={delay}
+                value={delay ?? ''}
                 onChange={(e) => setDelay(e.target.value)}
               />
             </div>
