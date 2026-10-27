@@ -30,6 +30,11 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
     setError(null);
   };
 
+  const handleSourceError = (message) => {
+    setError(message);
+    if (message) setSourceUrl('');
+  };
+
   return (
     <div className="setup-section">
       <div className="setup-header">
@@ -51,7 +56,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
           onModeChange={handleModeChange}
           value={sourceUrl}
           onChange={setSourceUrl}
-          onError={setError}
+          onError={handleSourceError}
           action={(
             <Button
               type="submit"

@@ -134,13 +134,26 @@ describe('SpecSourcePicker', () => {
       expect(onChange).toHaveBeenCalledWith('/ws/specs/pets.yaml');
     });
 
-    it('rejects a picked spec that is not OpenAPI 3.x and clears the value', () => {
+    it('rejects a picked spec that is not OpenAPI 3.x and leaves the value as it is', () => {
       const { getByTestId, onChange, onError } = renderPicker({ specs: [petsSpec, swaggerSpec] });
 
       pickWorkspaceSpec(getByTestId, 'legacy');
 
       expect(onError).toHaveBeenCalledWith('Swagger 2.0 is not supported. Please convert your spec to OpenAPI 3.x.');
-      expect(onChange).toHaveBeenCalledWith('');
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['failed to parse', null],
+      ['parsed to plain text', 'just some text']
+    ])('reports a workspace spec that %s with the same error as browsing it', (_, json) => {
+      const brokenSpec = workspaceSpec('broken', 'Broken', '/ws/specs/broken.yaml', json);
+      const { getByTestId, onChange, onError } = renderPicker({ specs: [petsSpec, brokenSpec] });
+
+      pickWorkspaceSpec(getByTestId, 'broken');
+
+      expect(onError).toHaveBeenCalledWith('Failed to parse the file – ensure it is valid JSON or YAML');
+      expect(onChange).not.toHaveBeenCalled();
     });
 
     it('says the workspace has no specs and disables the dropdown when there are none', () => {
@@ -205,7 +218,7 @@ describe('SpecSourcePicker', () => {
       await waitFor(() => expect(onError).toHaveBeenLastCalledWith(
         'Swagger 2.0 is not supported. Please convert your spec to OpenAPI 3.x.'
       ));
-      expect(onChange).not.toHaveBeenCalledWith('/specs/legacy.json');
+      expect(onChange).not.toHaveBeenCalled();
     });
 
     it('clears the file input so the same file can be picked again', () => {
@@ -219,14 +232,15 @@ describe('SpecSourcePicker', () => {
       setValue.mockRestore();
     });
 
-    it('reports a file that cannot be parsed', async () => {
-      const { getByTestId, onError } = renderPicker({ mode: 'file' });
+    it('reports a file that cannot be parsed and leaves the value as it is', async () => {
+      const { getByTestId, onChange, onError } = renderPicker({ mode: 'file', value: '/specs/pets.json' });
 
       chooseFile(getByTestId, '{ not json');
 
       await waitFor(() => expect(onError).toHaveBeenLastCalledWith(
         'Failed to parse the file – ensure it is valid JSON or YAML'
       ));
+      expect(onChange).not.toHaveBeenCalled();
     });
   });
 

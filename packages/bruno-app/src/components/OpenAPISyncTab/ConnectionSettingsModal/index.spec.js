@@ -117,13 +117,28 @@ describe('ConnectionSettingsModal', () => {
     ));
   });
 
-  it('reports a picked spec that is not OpenAPI 3.x and blocks saving', () => {
+  it('reports a picked spec that is not OpenAPI 3.x and keeps the connected spec', () => {
     const { getByRole, getByTestId } = renderModal('../../specs/pets.yaml');
 
     pickWorkspaceSpec(getByTestId, 'legacy');
 
     expect(toast.error).toHaveBeenCalledWith('Swagger 2.0 is not supported. Please convert your spec to OpenAPI 3.x.');
-    expect(getByRole('button', { name: 'Save' })).toBeDisabled();
+    expect(getByTestId('spec-source-workspace-select')).toHaveTextContent('Pets');
+    expect(getByRole('button', { name: 'Save' })).toBeEnabled();
+  });
+
+  it('keeps the connected file when a browse fails', async () => {
+    const { getByRole, getByTestId } = renderModal('../../../downloads/other.yaml');
+    const file = new File(['{ not json'], 'broken.json', { type: 'application/json' });
+    file.text = () => Promise.resolve('{ not json');
+
+    fireEvent.change(getByTestId('spec-source-file-input'), { target: { files: [file] } });
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(
+      'Failed to parse the file – ensure it is valid JSON or YAML'
+    ));
+    expect(getByTestId('spec-source-file-button')).toHaveTextContent('other.yaml');
+    expect(getByRole('button', { name: 'Save' })).toBeEnabled();
   });
 
   it('blocks saving when a picked workspace spec leaves the workspace', () => {

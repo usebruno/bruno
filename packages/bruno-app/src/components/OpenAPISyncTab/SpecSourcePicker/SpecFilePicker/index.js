@@ -17,7 +17,6 @@ const SpecFilePicker = ({ value, onChange, onError }) => {
     const isLatestPick = () => latestPickRef.current === pick && fileInputRef.current !== null;
 
     onError(null);
-    onChange('');
     try {
       const data = await parseFileAsJsonOrYaml(file);
       if (!isLatestPick()) return;

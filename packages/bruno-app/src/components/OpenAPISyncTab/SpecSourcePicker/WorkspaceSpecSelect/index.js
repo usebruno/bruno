@@ -1,8 +1,10 @@
 import { useId } from 'react';
+import { isPlainObject } from 'lodash';
 import { IconChevronDown } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
 import useWorkspaceApiSpecs from 'hooks/useWorkspaceApiSpecs';
 import { findApiSpecByPathname, getSpecLabel } from 'utils/api-specs';
+import { FILE_PARSE_ERROR } from 'utils/importers/file-reader';
 import { getOpenApiSpecError } from 'components/OpenAPISyncTab/SpecSourcePicker/utils';
 import StyledWrapper from './StyledWrapper';
 
@@ -14,9 +16,9 @@ const WorkspaceSpecSelect = ({ value, onChange, onError }) => {
   const valueId = `${idPrefix}-value`;
 
   const handleSelect = (spec) => {
-    const error = getOpenApiSpecError(spec.json);
+    const error = isPlainObject(spec.json) ? getOpenApiSpecError(spec.json) : FILE_PARSE_ERROR;
     onError(error);
-    onChange(error ? '' : spec.pathname);
+    if (!error) onChange(spec.pathname);
   };
 
   const renderTrigger = (text, { disabled = false, isPlaceholder = false } = {}) => (

@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import React, { useState } from 'react';
-import { fireEvent } from '@testing-library/react';
+import { fireEvent, waitFor } from '@testing-library/react';
 import { renderWithWorkspaceSpecs, workspaceSpec, pickWorkspaceSpec } from 'components/OpenAPISyncTab/testUtils';
 import ConnectSpecForm from './index';
 
@@ -79,6 +79,38 @@ describe('ConnectSpecForm', () => {
 
     expect(getByText('Swagger 2.0 is not supported. Please convert your spec to OpenAPI 3.x.')).toBeInTheDocument();
     expect(getByRole('button', { name: 'Connect' })).toBeDisabled();
+  });
+
+  it('clears a valid pick when the next pick is not OpenAPI 3.x', () => {
+    const { getByRole, getByTestId } = renderForm();
+    pickWorkspaceSpec(getByTestId, 'pets');
+
+    pickWorkspaceSpec(getByTestId, 'legacy');
+
+    expect(getByTestId('spec-source-workspace-select')).toHaveTextContent('Select an API spec');
+    expect(getByRole('button', { name: 'Connect' })).toBeDisabled();
+  });
+
+  it('clears a browsed file when the next browse fails', async () => {
+    const originalIpcRenderer = window.ipcRenderer;
+    window.ipcRenderer = { getFilePath: jest.fn().mockReturnValue('/specs/pets.json') };
+    const { getByRole, getByTestId, findByText } = renderForm();
+    const chooseFile = (contents) => {
+      const file = new File([contents], 'pets.json', { type: 'application/json' });
+      file.text = () => Promise.resolve(contents);
+      fireEvent.change(getByTestId('spec-source-file-input'), { target: { files: [file] } });
+    };
+    fireEvent.click(getByTestId('tab-file'));
+
+    chooseFile(JSON.stringify({ openapi: '3.0.0', info: { title: 'Pets' }, paths: {} }));
+    await waitFor(() => expect(getByRole('button', { name: 'Connect' })).toBeEnabled());
+
+    chooseFile('{ not json');
+
+    expect(await findByText('Failed to parse the file – ensure it is valid JSON or YAML')).toBeInTheDocument();
+    expect(getByTestId('spec-source-file-button')).toHaveTextContent('Select File');
+    expect(getByRole('button', { name: 'Connect' })).toBeDisabled();
+    window.ipcRenderer = originalIpcRenderer;
   });
 
   it('keeps the picked spec when the active tab is clicked again', () => {
