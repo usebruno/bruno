@@ -503,7 +503,7 @@ const MenuDropdown = forwardRef(({
         },
         'aria-expanded': isOpen,
         'aria-disabled': disabled || undefined,
-        'className': classnames(children.props.className, disabledTriggerClassName),
+        ...(disabled && { className: classnames(children.props.className, disabledTriggerClassName) }),
         // Preserve a trigger's own `data-testid` (e.g. a semantically named
         // toolbar button) instead of clobbering it with the dropdown's testId.
         'data-testid': children.props['data-testid'] || testId
