@@ -12,7 +12,7 @@ test.describe('Add folder under collection', () => {
     const collectionName = 'add-folder-collection';
     const folderName = 'orders';
     const collectionLocation = await createTmpDir('add-folder');
-    const { sidebar } = buildCommonLocators(page);
+    const { sidebar, toast } = buildCommonLocators(page);
 
     await test.step('Create a collection', async () => {
       await createCollection(page, collectionName, collectionLocation, 'yml');
@@ -23,15 +23,17 @@ test.describe('Add folder under collection', () => {
       await createFolder(page, folderName, collectionName);
     });
 
+    await test.step('New folder created toast is shown', async () => {
+      await expect(toast.byMessage('New folder created!').first()).toBeVisible();
+    });
+
     await test.step('Folder is listed under the collection', async () => {
       await expect(sidebar.scopedItem(collectionName, folderName)).toBeVisible();
     });
 
     await test.step('Folder is written to the collection on disk', async () => {
       const folderFilePath = path.join(collectionLocation, collectionName, folderName, 'folder.yml');
-      await expect
-        .poll(() => (fs.existsSync(folderFilePath) ? fs.readFileSync(folderFilePath, 'utf8') : ''))
-        .toMatch(new RegExp(`name: ${folderName}$`, 'm'));
+      expect(fs.readFileSync(folderFilePath, 'utf8')).toMatch(new RegExp(`name: ${folderName}$`, 'm'));
     });
   });
 });

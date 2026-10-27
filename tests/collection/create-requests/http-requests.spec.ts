@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import YAML from 'yaml';
 import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
@@ -22,7 +23,7 @@ test.describe('Create HTTP Requests', () => {
     const requestName = 'root-http';
     const collectionLocation = await createTmpDir('http-requests-collection');
     const collectionDir = path.join(collectionLocation, collectionName);
-    const { sidebar, tabs } = buildCommonLocators(page);
+    const { sidebar, tabs, toast } = buildCommonLocators(page);
 
     await test.step('Create a collection', async () => {
       await createCollection(page, collectionName, collectionLocation, 'yml');
@@ -31,6 +32,10 @@ test.describe('Create HTTP Requests', () => {
 
     await test.step('Create an HTTP request from the collection menu', async () => {
       await createRequest(page, requestName, collectionName, { url: requestUrl });
+    });
+
+    await test.step('New request created toast is shown', async () => {
+      await expect(toast.byMessage('New request created!').first()).toBeVisible();
     });
 
     await test.step('Request is listed at the collection root and opened as the active tab', async () => {
@@ -42,11 +47,11 @@ test.describe('Create HTTP Requests', () => {
 
     await test.step('Request file is written at the collection root', async () => {
       const rootRequestPath = path.join(collectionDir, `${requestName}.yml`);
-      await expect.poll(() => fs.existsSync(rootRequestPath)).toBe(true);
-      const contents = fs.readFileSync(rootRequestPath, 'utf8');
-      expect(contents).toContain(`name: ${requestName}`);
-      expect(contents).toContain('type: http');
-      expect(contents).toContain(`url: ${requestUrl}`);
+      const doc = YAML.parse(fs.readFileSync(rootRequestPath, 'utf8'));
+      expect(doc).toMatchObject({
+        info: { name: requestName, type: 'http' },
+        http: { url: requestUrl }
+      });
     });
   });
 
@@ -56,7 +61,7 @@ test.describe('Create HTTP Requests', () => {
     const requestName = 'folder-http';
     const collectionLocation = await createTmpDir('http-requests-folder');
     const collectionDir = path.join(collectionLocation, collectionName);
-    const { sidebar, tabs } = buildCommonLocators(page);
+    const { sidebar, tabs, toast } = buildCommonLocators(page);
 
     await test.step('Create a collection with a folder', async () => {
       await createCollection(page, collectionName, collectionLocation, 'yml');
@@ -69,6 +74,10 @@ test.describe('Create HTTP Requests', () => {
       await createRequest(page, requestName, folderName, { url: requestUrl, inFolder: true });
     });
 
+    await test.step('New request created toast is shown', async () => {
+      await expect(toast.byMessage('New request created!').first()).toBeVisible();
+    });
+
     await test.step('Request is listed inside the folder and opened as the active tab', async () => {
       const folderRequest = sidebar.folderRequest(folderName, requestName);
       await expect(folderRequest).toBeVisible();
@@ -79,11 +88,11 @@ test.describe('Create HTTP Requests', () => {
     await test.step('Request file is written inside the folder', async () => {
       const folderRequestPath = path.join(collectionDir, folderName, `${requestName}.yml`);
       const requestAtRoot = path.join(collectionDir, `${requestName}.yml`);
-      await expect.poll(() => fs.existsSync(folderRequestPath)).toBe(true);
-      const contents = fs.readFileSync(folderRequestPath, 'utf8');
-      expect(contents).toContain(`name: ${requestName}`);
-      expect(contents).toContain('type: http');
-      expect(contents).toContain(`url: ${requestUrl}`);
+      const doc = YAML.parse(fs.readFileSync(folderRequestPath, 'utf8'));
+      expect(doc).toMatchObject({
+        info: { name: requestName, type: 'http' },
+        http: { url: requestUrl }
+      });
       expect(fs.existsSync(requestAtRoot)).toBe(false);
     });
   });

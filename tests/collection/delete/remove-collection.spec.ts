@@ -22,21 +22,24 @@ test.describe('Remove collection', () => {
 
     await test.step('Remove the collection from the sidebar menu', async () => {
       const collectionMenu = sidebar.rowMenu(collectionName, 'collection');
+      const removeModal = modal.byTitle('Remove Collection');
+      const removeButton = removeModal.getByRole('button', { name: 'Remove', exact: true });
+      const cancelButton = removeModal.getByRole('button', { name: 'Cancel', exact: true });
+
       await sidebar.collectionRow(collectionName).hover();
       await collectionMenu.trigger().click();
       await dropdown.item('Remove').click();
 
-      const removeModal = modal.byTitle('Remove Collection');
       await expect(removeModal).toBeVisible();
       await expect(removeModal).toContainText('Are you sure you want to close the following collection in Bruno?');
       await expect(removeModal).toContainText(collectionName);
       await expect(removeModal).toContainText(
         'It will still be available in the filesystem at the above location and can be re-opened later.'
       );
-      await expect(removeModal.getByRole('button', { name: 'Remove', exact: true })).toBeVisible();
-      await expect(removeModal.getByRole('button', { name: 'Cancel', exact: true })).toBeVisible();
+      await expect(removeButton).toBeVisible();
+      await expect(cancelButton).toBeVisible();
 
-      await removeModal.getByRole('button', { name: 'Remove' }).click();
+      await removeButton.click();
       await expect(removeModal).toHaveCount(0);
       await expect(toast.byMessage('Collection removed from workspace').first()).toBeVisible();
     });

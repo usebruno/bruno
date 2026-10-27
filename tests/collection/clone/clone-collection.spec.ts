@@ -41,6 +41,9 @@ test.describe('Clone collection', () => {
       await expect(sidebar.cloneCollectionModal.locationInput()).toHaveValue(cloneLocation);
       await cloneModal.getByRole('button', { name: 'Create', exact: true }).click();
       await expect(cloneModal).toHaveCount(0);
+    });
+
+    await test.step('Collection created toast is shown', async () => {
       await expect(toast.byMessage('Collection created!').first()).toBeVisible();
     });
 
@@ -54,7 +57,6 @@ test.describe('Clone collection', () => {
       const configPath = path.join(cloneDir, 'opencollection.yml');
       const folderFilePath = path.join(cloneDir, folderName, 'folder.yml');
 
-      await expect.poll(() => fs.existsSync(configPath)).toBe(true);
       expect(fs.readFileSync(configPath, 'utf8')).toContain(`name: ${cloneName}`);
       expect(fs.existsSync(folderFilePath)).toBe(true);
     });
