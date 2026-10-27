@@ -31,6 +31,15 @@ describe('script translation issues', () => {
     expect(warnSpy).toHaveBeenCalled();
   });
 
+  it('still reports failures without logging them when logTranslationFailures is false', async () => {
+    const request = { ...makeRequest('Login'), event: [preRequestEvent(UNPARSABLE_SCRIPT)] };
+
+    const { translationIssues } = await postmanToBruno(makeCollection([request]), { logTranslationFailures: false });
+
+    expect(translationIssues).toHaveLength(1);
+    expect(warnSpy).not.toHaveBeenCalledWith('Error in postman translation:', expect.anything());
+  });
+
   it('reports folder and collection scripts with their own paths', async () => {
     const folder = {
       name: 'Auth',

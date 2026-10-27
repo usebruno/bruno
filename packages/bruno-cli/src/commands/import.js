@@ -317,24 +317,12 @@ const convertPostmanEnvironment = async (source, { insecure }) => {
   return { name, variables: dedupeImportedSecrets(environment.variables) };
 };
 
-/**
- * The converter `console.warn`s every script it cannot translate with the full Babel stack, which
- * the app keeps for its devtools log. The CLI reports the same failures as one-line warnings from
- * `translationIssues` instead, so the converter's own warnings are muted while it runs.
- */
-const convertPostmanCollection = async (postmanCollection, { preserveScripts }) => {
-  const { warn } = console;
-  console.warn = () => {};
-  try {
-    return await postmanToBruno(postmanCollection, { preserveScripts });
-  } finally {
-    console.warn = warn;
-  }
-};
-
 const importPostmanCollection = async (source, { insecure, preserveScripts, environmentSources = [] }) => {
   const postmanCollection = await readPostmanFile(source, { insecure });
-  const { collection, issues, translationIssues } = await convertPostmanCollection(postmanCollection, { preserveScripts });
+  const { collection, issues, translationIssues } = await postmanToBruno(postmanCollection, {
+    preserveScripts,
+    logTranslationFailures: false
+  });
 
   for (const environmentSource of environmentSources) {
     const environment = await convertPostmanEnvironment(environmentSource, { insecure });
