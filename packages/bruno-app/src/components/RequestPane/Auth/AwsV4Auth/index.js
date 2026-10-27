@@ -9,7 +9,7 @@ import StyledWrapper from './StyledWrapper';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 
-const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) => {
+const AwsV4Auth = ({ item, collection, updateAuth, request, save, readOnly }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -144,7 +144,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           onRun={handleRun}
           collection={collection}
           item={item}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
       </div>
@@ -160,7 +160,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           collection={collection}
           item={item}
           isSecret={true}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
 
@@ -178,7 +178,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           collection={collection}
           item={item}
           isSecret={true}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
         {sessionTokenSensitive.showWarning && (
@@ -196,7 +196,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           onRun={handleRun}
           collection={collection}
           item={item}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
       </div>
@@ -211,7 +211,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           onRun={handleRun}
           collection={collection}
           item={item}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
       </div>
@@ -226,7 +226,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           onRun={handleRun}
           collection={collection}
           item={item}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
       </div>

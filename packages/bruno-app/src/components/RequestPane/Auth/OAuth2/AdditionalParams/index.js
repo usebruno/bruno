@@ -9,7 +9,7 @@ import MultiLineEditor from 'components/MultiLineEditor/index';
 import StyledWrapper from './StyledWrapper';
 import Table from 'components/Table/index';
 
-const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSave, disabled }) => {
+const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSave, readOnly }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -204,7 +204,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
                   collection={collection}
                   item={item}
                   onSave={handleSave}
-                  readOnly={disabled}
+                  readOnly={readOnly}
                   isCompact
                 />
               </td>
@@ -221,7 +221,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
                   collection={collection}
                   item={item}
                   onSave={handleSave}
-                  readOnly={disabled}
+                  readOnly={readOnly}
                 />
               </td>
               <td>
@@ -237,7 +237,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
                       });
                     }}
                     className="mousetrap bg-transparent disabled:cursor-not-allowed"
-                    disabled={disabled}
+                    disabled={readOnly}
                   >
                     {sendInOptionsMap[grantType || 'authorization_code'][activeTab].map((optionValue) => (
                       <option key={optionValue} value={optionValue}>
@@ -254,7 +254,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
                     checked={param?.enabled ?? true}
                     tabIndex="-1"
                     className="mr-3 mousetrap"
-                    disabled={disabled}
+                    disabled={readOnly}
                     onChange={(e) => {
                       handleUpdateAdditionalParam({
                         paramType: activeTab,
@@ -266,8 +266,9 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
                   />
                   <button
                     tabIndex="-1"
-                    className="disabled:cursor-not-allowed"
-                    disabled={disabled}
+                    className="disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={readOnly}
+                    data-testid="oauth2-additional-params-delete"
                     onClick={() => {
                       handleDeleteAdditionalParam({
                         paramType: activeTab,
@@ -284,7 +285,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
           )}
         </tbody>
       </Table>
-      {!disabled && (
+      {!readOnly && (
         <button
           type="button"
           className={`add-additional-param-actions w-fit flex items-center mt-2 ${addButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}

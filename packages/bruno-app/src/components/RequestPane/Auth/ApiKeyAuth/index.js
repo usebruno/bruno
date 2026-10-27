@@ -11,7 +11,7 @@ import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAPIKeyPlacement } from 'utils/collections';
 
-const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) => {
+const ApiKeyAuth = ({ item, collection, updateAuth, request, save, readOnly }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const dropdownTippyRef = useRef();
@@ -37,7 +37,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
   });
 
   const handleAuthChange = (property, value) => {
-    if (disabled) {
+    if (readOnly) {
       return;
     }
     dispatch(
@@ -54,7 +54,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
   };
 
   useEffect(() => {
-    !disabled
+    !readOnly
     && !apikeyAuth?.placement
     && dispatch(
       updateAuth({
@@ -66,7 +66,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
         }
       })
     );
-  }, [apikeyAuth, disabled]);
+  }, [apikeyAuth, readOnly]);
 
   return (
     <StyledWrapper className="w-full">
@@ -80,7 +80,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
           onRun={handleRun}
           collection={collection}
           item={item}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
       </div>
@@ -97,7 +97,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
           item={item}
           isSecret={true}
           isCompact
-          readOnly={disabled}
+          readOnly={readOnly}
         />
         {apiKeyValueSensitive.showWarning && (
           <SensitiveFieldWarning fieldName="apikey-value" warningMessage={apiKeyValueSensitive.warningMessage} />
@@ -105,8 +105,8 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
       </div>
 
       <label className="block mb-1">Add To</label>
-      <div data-testid="auth-placement-selector" className={`inline-flex items-center ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} auth-placement-selector w-fit`}>
-        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end" disabled={disabled}>
+      <div data-testid="auth-placement-selector" className={`inline-flex items-center ${readOnly ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} auth-placement-selector w-fit`}>
+        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end" disabled={readOnly}>
           <div
             className="dropdown-item"
             onClick={() => {

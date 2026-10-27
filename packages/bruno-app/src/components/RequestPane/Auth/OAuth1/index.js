@@ -29,7 +29,7 @@ const placementLabels = {
   body: 'Body'
 };
 
-const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) => {
+const OAuth1 = ({ item = {}, collection, request, save, updateAuth, readOnly }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const oauth1 = get(request, 'auth.oauth1', {});
@@ -49,7 +49,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
   };
 
   const handleChange = (field, value) => {
-    if (disabled) {
+    if (readOnly) {
       return;
     }
     dispatch(
@@ -139,7 +139,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
             onRun={handleRun}
             collection={collection}
             item={item}
-            readOnly={disabled}
+            readOnly={readOnly}
             isCompact
           />
         </div>
@@ -158,7 +158,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
               collection={collection}
               item={item}
               isSecret={true}
-              readOnly={disabled}
+              readOnly={readOnly}
               isCompact
             />
             {consumerSecretSensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-consumer-secret" warningMessage={consumerSecretSensitive.warningMessage} />}
@@ -177,7 +177,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
             onRun={handleRun}
             collection={collection}
             item={item}
-            readOnly={disabled}
+            readOnly={readOnly}
             isCompact
           />
         </div>
@@ -195,7 +195,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
             collection={collection}
             item={item}
             isSecret={true}
-            readOnly={disabled}
+            readOnly={readOnly}
             isCompact
           />
           {tokenSecretSensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-token-secret" warningMessage={tokenSecretSensitive.warningMessage} />}
@@ -214,14 +214,15 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
 
       <div className="flex items-center gap-4 w-full">
         <label className="block min-w-[140px]">Signature Method</label>
-        <div className="inline-flex items-center cursor-pointer oauth1-dropdown-selector">
+        <div className={`inline-flex items-center ${readOnly ? 'cursor-not-allowed' : 'cursor-pointer'} oauth1-dropdown-selector`}>
           <MenuDropdown
-            disabled={disabled}
+            disabled={readOnly}
             items={Object.entries(signatureMethodLabels).map(([value, label]) => ({
               id: value,
               label,
               onClick: () => handleChange('signatureMethod', value)
             }))}
+            data-testid="oauth1-signature-method-dropdown"
             selectedItemId={oauth1.signatureMethod}
             placement="bottom-end"
           >
@@ -245,7 +246,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 onClick={handleClearFile}
                 title="Clear file"
                 type="button"
-                disabled={disabled}
+                disabled={readOnly}
               >
                 <IconX size={14} />
               </button>
@@ -262,7 +263,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                   collection={collection}
                   item={item}
                   isSecret={true}
-                  readOnly={disabled}
+                  readOnly={readOnly}
                   allowNewlines={true}
                 />
                 {privateKeySensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-private-key" warningMessage={privateKeySensitive.warningMessage} />}
@@ -273,7 +274,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                   onClick={handleBrowse}
                   title="Select File"
                   type="button"
-                  disabled={disabled}
+                  disabled={readOnly}
                 >
                   <IconUpload size={14} />
                   <span className="text-xs">Upload File</span>
@@ -286,14 +287,15 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
 
       <div className="flex items-center gap-4 w-full">
         <label className="block min-w-[140px]">Add Params To</label>
-        <div className="inline-flex items-center cursor-pointer oauth1-dropdown-selector">
+        <div className={`inline-flex items-center ${readOnly ? 'cursor-not-allowed' : 'cursor-pointer'} oauth1-dropdown-selector`}>
           <MenuDropdown
-            disabled={disabled}
+            disabled={readOnly}
             items={Object.entries(placementLabels).map(([value, label]) => ({
               id: value,
               label,
               onClick: () => handleChange('placement', value)
             }))}
+            data-testid="oauth1-placement-dropdown"
             selectedItemId={oauth1.placement}
             placement="bottom-end"
           >
@@ -320,13 +322,13 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
           <input
             type="checkbox"
             checked={oauth1.includeBodyHash || false}
-            disabled={disabled}
+            disabled={readOnly}
             onChange={(e) => handleChange('includeBodyHash', e.target.checked)}
           />
           <label
-            className={`block ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+            className={`block ${readOnly ? 'cursor-not-allowed' : 'cursor-pointer'}`}
             onClick={(e) => {
-              if (disabled) {
+              if (readOnly) {
                 return;
               }
               e.preventDefault();
@@ -370,7 +372,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 onRun={handleRun}
                 collection={collection}
                 item={item}
-                readOnly={disabled}
+                readOnly={readOnly}
                 isCompact
               />
             </div>
@@ -387,7 +389,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 onRun={handleRun}
                 collection={collection}
                 item={item}
-                readOnly={disabled}
+                readOnly={readOnly}
                 isCompact
               />
             </div>
@@ -404,7 +406,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 onRun={handleRun}
                 collection={collection}
                 item={item}
-                readOnly={disabled}
+                readOnly={readOnly}
                 isCompact
               />
             </div>
@@ -421,7 +423,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 onRun={handleRun}
                 collection={collection}
                 item={item}
-                readOnly={disabled}
+                readOnly={readOnly}
                 isCompact
               />
             </div>
@@ -438,7 +440,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 onRun={handleRun}
                 collection={collection}
                 item={item}
-                readOnly={disabled}
+                readOnly={readOnly}
                 isCompact
               />
             </div>
@@ -455,7 +457,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 onRun={handleRun}
                 collection={collection}
                 item={item}
-                readOnly={disabled}
+                readOnly={readOnly}
                 isCompact
               />
             </div>

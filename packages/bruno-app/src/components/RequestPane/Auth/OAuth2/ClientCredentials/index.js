@@ -13,7 +13,7 @@ import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
 import AdditionalParams from '../AdditionalParams/index';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 
-const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAuth, collection, disabled }) => {
+const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAuth, collection, readOnly }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const { isSensitive } = useDetectSensitiveField(collection);
@@ -44,7 +44,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
   };
 
   const handleChange = (key, value) => {
-    if (disabled) {
+    if (readOnly) {
       return;
     }
     dispatch(
@@ -103,7 +103,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
                 collection={collection}
                 item={item}
                 isSecret={isSecret}
-                readOnly={disabled}
+                readOnly={readOnly}
                 isCompact
               />
               {isSecret && showWarning && <SensitiveFieldWarning fieldName={key} warningMessage={warningMessage} />}
@@ -113,9 +113,9 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
       })}
       <div className="flex items-center gap-4 w-full" key="input-credentials-placement">
         <label className="block min-w-[140px]">Add Credentials to</label>
-        <div className="inline-flex items-center cursor-pointer token-placement-selector">
+        <div className={`inline-flex items-center ${readOnly ? 'cursor-not-allowed' : 'cursor-pointer'} token-placement-selector`}>
           <MenuDropdown
-            disabled={disabled}
+            disabled={readOnly}
             items={[
               { id: 'body', label: 'Request Body', onClick: () => handleChange('credentialsPlacement', 'body') },
               { id: 'basic_auth_header', label: 'Basic Auth Header', onClick: () => handleChange('credentialsPlacement', 'basic_auth_header') }
@@ -140,9 +140,9 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
       </div>
       <div className="flex items-center gap-4 w-full" key="input-token-type">
         <label className="block min-w-[140px]">Token Source</label>
-        <div className="inline-flex items-center cursor-pointer token-placement-selector">
+        <div className={`inline-flex items-center ${readOnly ? 'cursor-not-allowed' : 'cursor-pointer'} token-placement-selector`}>
           <MenuDropdown
-            disabled={disabled}
+            disabled={readOnly}
             items={[
               { id: 'access_token', label: 'Access Token', onClick: () => handleChange('tokenSource', 'access_token') },
               { id: 'id_token', label: 'ID Token', onClick: () => handleChange('tokenSource', 'id_token') }
@@ -168,16 +168,16 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
             onRun={handleRun}
             collection={collection}
             item={item}
-            readOnly={disabled}
+            readOnly={readOnly}
             isCompact
           />
         </div>
       </div>
       <div className="flex items-center gap-4 w-full" key="input-token-placement">
         <label className="block min-w-[140px]">Add token to</label>
-        <div className="inline-flex items-center cursor-pointer token-placement-selector w-fit">
+        <div className={`inline-flex items-center ${readOnly ? 'cursor-not-allowed' : 'cursor-pointer'} token-placement-selector w-fit`}>
           <MenuDropdown
-            disabled={disabled}
+            disabled={readOnly}
             items={[
               { id: 'header', label: 'Header', onClick: () => handleChange('tokenPlacement', 'header') },
               { id: 'url', label: 'URL', onClick: () => handleChange('tokenPlacement', 'url') }
@@ -206,7 +206,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
                     onRun={handleRun}
                     collection={collection}
                     item={item}
-                    readOnly={disabled}
+                    readOnly={readOnly}
                     isCompact
                   />
                 </div>
@@ -224,7 +224,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
                     onRun={handleRun}
                     collection={collection}
                     item={item}
-                    readOnly={disabled}
+                    readOnly={readOnly}
                     isCompact
                   />
                 </div>
@@ -250,7 +250,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
             onChange={(val) => handleChange('refreshTokenUrl', val)}
             collection={collection}
             item={item}
-            readOnly={disabled}
+            readOnly={readOnly}
             isCompact
           />
         </div>
@@ -270,7 +270,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
           checked={Boolean(autoFetchToken)}
           onChange={(e) => handleChange('autoFetchToken', e.target.checked)}
           className="cursor-pointer ml-1"
-          disabled={disabled}
+          disabled={readOnly}
         />
         <label className="block min-w-[140px]">Automatically fetch token if not found</label>
         <div className="flex items-center gap-2">
@@ -290,7 +290,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
           checked={Boolean(autoRefreshToken)}
           onChange={(e) => handleChange('autoRefreshToken', e.target.checked)}
           className={`cursor-pointer ml-1 ${isAutoRefreshDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-          disabled={isAutoRefreshDisabled || disabled}
+          disabled={isAutoRefreshDisabled || readOnly}
         />
         <label className={`block min-w-[140px] ${isAutoRefreshDisabled ? 'text-gray-500' : ''}`}>Auto refresh token (with refresh URL)</label>
         <div className="flex items-center gap-2">
@@ -308,9 +308,9 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
         collection={collection}
         updateAuth={updateAuth}
         handleSave={handleSave}
-        disabled={disabled}
+        readOnly={readOnly}
       />
-      {!disabled && <Oauth2ActionButtons item={item} request={request} collection={collection} url={accessTokenUrl} credentialsId={credentialsId} />}
+      {!readOnly && <Oauth2ActionButtons item={item} request={request} collection={collection} url={accessTokenUrl} credentialsId={credentialsId} />}
 
     </StyledWrapper>
   );
