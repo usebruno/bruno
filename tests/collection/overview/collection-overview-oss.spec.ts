@@ -1,5 +1,6 @@
 import path from 'node:path';
-import { test, expect } from '../../../playwright';
+import { expect } from '../../../playwright';
+import { test } from '../../utils/page/collection/generated-docs';
 import {
   buildCommonLocators,
   createCollection,
