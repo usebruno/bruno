@@ -6,7 +6,6 @@ import Dropdown from 'components/Dropdown';
 import { useTheme } from 'providers/Theme';
 import SingleLineEditor from 'components/SingleLineEditor';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
-import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
@@ -19,8 +18,6 @@ const ApiKeyAuth = ({ collection }) => {
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
   const apikeyAuth = collection.draft?.root ? get(collection, 'draft.root.request.auth.apikey', {}) : get(collection, 'root.request.auth.apikey', {});
-  const { isSensitive } = useDetectSensitiveField(collection);
-  const apiKeyValueSensitive = isSensitive(apikeyAuth.value);
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
@@ -84,9 +81,7 @@ const ApiKeyAuth = ({ collection }) => {
           isSecret={true}
           isCompact
         />
-        {apiKeyValueSensitive.showWarning && (
-          <SensitiveFieldWarning fieldName="apikey-value" warningMessage={apiKeyValueSensitive.warningMessage} />
-        )}
+        <SensitiveFieldWarning fieldName="apikey-value" secretName="value" value={apikeyAuth.value} collection={collection} onReplaceValue={(val) => handleAuthChange('value', val)} />
       </div>
 
       <label className="block mb-1">Add To</label>
