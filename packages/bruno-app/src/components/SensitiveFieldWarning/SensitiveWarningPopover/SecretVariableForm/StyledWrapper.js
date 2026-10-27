@@ -42,9 +42,6 @@ const StyledWrapper = styled.div`
   }
 
   .save-to-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.125rem;
     margin-top: -0.5rem;
   }
 `;
