@@ -9,9 +9,10 @@ import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 import { buildAddToScopes, createEnvironmentForScope } from 'utils/variables';
 import EnvironmentTargetOption from './EnvironmentTargetOption';
 import StyledWrapper from './StyledWrapper';
+import { findCollectionByUid } from 'utils/collections';
 
 /** Returns an error per field; empty object means valid. */
-const validate = ({ name, value }) => {
+const validateSecretForm = ({ name, value }) => {
   const errors = {};
   if (!name) {
     errors.name = 'Name cannot be empty';
@@ -38,11 +39,15 @@ const SecretVariableForm = ({ collection, sourceLabel, defaultName, defaultValue
   const formRef = useRef(null);
   const store = useStore();
 
-  const collections = useSelector((state) => state.collections.collections);
-  const globalEnvironments = useSelector((state) => state.globalEnvironments);
+  const freshCollection = useSelector((state) => findCollectionByUid(state.collections.collections, collection.uid));
+  const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
+  const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
 
   const targets = buildAddToScopes({
-    state: { collections: { collections }, globalEnvironments },
+    state: {
+      collections: { collections: [freshCollection] },
+      globalEnvironments: { globalEnvironments, activeGlobalEnvironmentUid }
+    },
     collection
   }).filter(isEnvironmentTarget);
 
@@ -55,7 +60,7 @@ const SecretVariableForm = ({ collection, sourceLabel, defaultName, defaultValue
     }
 
     const trimmedName = name.trim();
-    const validationErrors = validate({ name: trimmedName, value });
+    const validationErrors = validateSecretForm({ name: trimmedName, value });
     setErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) return;
 

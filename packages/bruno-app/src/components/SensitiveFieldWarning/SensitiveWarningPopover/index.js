@@ -22,7 +22,7 @@ import WarningMessage from './WarningMessage';
 import StyledWrapper from './StyledWrapper';
 
 const HOVER_CLOSE_DELAY_MS = 150;
-const Z_INDEX = 15;
+const POPOVER_Z_INDEX = 15;
 
 const ACTION_LABELS = {
   [PLAINTEXT_SCOPE]: 'Save as secret variable',
@@ -33,7 +33,7 @@ const ACTION_LABELS = {
   [VARIABLE_ADD_SCOPES.COLLECTION]: 'Move to environment'
 };
 
-const SCOPE_LABELS = {
+const SCOPE_DISPLAY_NAME = {
   [VARIABLE_ADD_SCOPES.REQUEST]: `${SCOPE_LABEL[VARIABLE_ADD_SCOPES.REQUEST]} Vars`,
   [VARIABLE_ADD_SCOPES.FOLDER]: `${SCOPE_LABEL[VARIABLE_ADD_SCOPES.FOLDER]} Vars`,
   [VARIABLE_ADD_SCOPES.COLLECTION]: `${SCOPE_LABEL[VARIABLE_ADD_SCOPES.COLLECTION]} Vars`,
@@ -51,7 +51,7 @@ const getActiveEnvironmentUid = (collection, environmentScope) => (
 );
 
 /** The request/folder/collection var that "Move to environment" deletes. Vars tables pass its uid; auth fields look it up by name. */
-const findMovedVariable = ({ collection, item, variableName, variableUid, value }) => {
+const findVariableToMove = ({ collection, item, variableName, variableUid, value }) => {
   if (variableUid) {
     return { uid: variableUid, value, ownerUid: item?.uid };
   }
@@ -99,21 +99,21 @@ const SensitiveWarningPopover = ({
   const closeTimerRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
-  const [form, setForm] = useState(null);
+  const [secretFormState, setSecretFormState] = useState(null);
 
   const collectionUid = collection?.uid;
-  const movedVariable = form?.movedVariable;
-  const isOpen = isHovered || isPinned || !!form;
+  const movedVariable = secretFormState?.movedVariable;
+  const isOpen = isHovered || isPinned || !!secretFormState;
 
   const close = () => {
     clearTimeout(closeTimerRef.current);
     setIsHovered(false);
     setIsPinned(false);
-    setForm(null);
+    setSecretFormState(null);
   };
 
   const handleKeyDown = (event) => {
-    if (event.key === 'Escape' && (isPinned || form)) {
+    if (event.key === 'Escape' && (isPinned || secretFormState)) {
       event.stopPropagation();
       close();
     }
@@ -143,17 +143,17 @@ const SensitiveWarningPopover = ({
   const handleAction = (event) => {
     event.stopPropagation();
     if (scope === PLAINTEXT_SCOPE) {
-      setForm({ name: secretName, value: replaceWithVariableValues(value, { collection, item }) });
+      setSecretFormState({ name: secretName, value: replaceWithVariableValues(value, { collection, item }) });
       return;
     }
     if (MOVE_SCOPES.includes(scope)) {
-      const moved = findMovedVariable({ collection, item, variableName, variableUid, value });
+      const moved = findVariableToMove({ collection, item, variableName, variableUid, value });
       if (!moved) {
         close();
         toast.error(`"${variableName}" was not found`);
         return;
       }
-      setForm({ name: variableName, value: replaceWithVariableValues(moved.value, { collection, item }), movedVariable: moved });
+      setSecretFormState({ name: variableName, value: replaceWithVariableValues(moved.value, { collection, item }), movedVariable: moved });
       return;
     }
     close();
@@ -175,7 +175,7 @@ const SensitiveWarningPopover = ({
       ignoreVariableUid: movedVariable?.uid
     });
     if (overridingScope) {
-      return Promise.reject(new Error(`"${name}" already exists in ${SCOPE_LABELS[overridingScope]}. Use a different name.`));
+      return Promise.reject(new Error(`"${name}" already exists in ${SCOPE_DISPLAY_NAME[overridingScope]}. Use a different name.`));
     }
 
     return dispatch(addSecretToEnvironment({ collectionUid, environmentScope: targetType, name, value: secretValue }))
@@ -197,12 +197,12 @@ const SensitiveWarningPopover = ({
       .then(() => toast.success(`Secret "${name}" created`));
   };
 
-  const popoverContent = form ? (
+  const popoverContent = secretFormState ? (
     <SecretVariableForm
       collection={collection}
-      sourceLabel={movedVariable ? SCOPE_LABELS[scope] : null}
-      defaultName={form.name}
-      defaultValue={form.value}
+      sourceLabel={movedVariable ? SCOPE_DISPLAY_NAME[scope] : null}
+      defaultName={secretFormState.name}
+      defaultValue={secretFormState.value}
       onSave={saveSecret}
       onClose={close}
     />
@@ -229,10 +229,10 @@ const SensitiveWarningPopover = ({
         arrow={false}
         animation={false}
         maxWidth="none"
-        zIndex={Z_INDEX}
+        zIndex={POPOVER_Z_INDEX}
         appendTo={() => document.body}
         onClickOutside={() => {
-          if (!form) close();
+          if (!secretFormState) close();
         }}
         render={(attrs) => <div {...attrs}>{popoverContent}</div>}
       >
