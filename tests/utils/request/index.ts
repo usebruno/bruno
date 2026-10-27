@@ -41,13 +41,6 @@ export const buildRequestLocators = (page: Page) => ({
     return row.locator('.CodeMirror').nth(1).locator(selector).filter({ hasText: name }).first();
   },
   pane: () => page.getByTestId('request-pane'),
-  queryParams: {
-    table: () => page.getByTestId('query-params-table'),
-    row: (index: number) => page.getByTestId('query-params-table').locator('tbody tr').nth(index),
-    value: (index: number) => page.getByTestId('query-params-table').locator('tbody tr').nth(index).getByTestId('column-value'),
-    descriptionFirstLine: (index: number) =>
-      page.getByTestId('query-params-table').locator('tbody tr').nth(index).getByTestId('column-description').locator('.CodeMirror-line').first()
-  },
   headers: {
     table: () => page.getByTestId('request-headers-table'),
     inheritedSectionToggle: () => page.getByTestId('inherited-headers-section-toggle'),
