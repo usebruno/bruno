@@ -81,6 +81,11 @@ export {
 } from './type-helpers';
 
 export {
+  NPM_NAME_REGEX,
+  isValidNpmPackageName
+} from './npm';
+
+export {
   MAX_BODY_SIZE_DEFAULT,
   isStrPresent,
   makeEdgeGridTimestamp,

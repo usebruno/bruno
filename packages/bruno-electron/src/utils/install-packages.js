@@ -1,8 +1,7 @@
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
-
-const NPM_NAME_REGEX = /^(?:@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*$/i;
+const { NPM_NAME_REGEX, isValidNpmPackageName } = require('@usebruno/common').utils;
 
 const shouldUseShellForNpmSpawn = (npmCommand, platform = process.platform) => {
   return platform === 'win32' && /\.(cmd|bat)$/i.test(npmCommand);
@@ -14,8 +13,6 @@ const NODE_SHIM_ENV_KEYS = ['NVM_BIN', 'FNM_MULTISHELL_PATH'];
 const NPM_NOT_FOUND_MESSAGE = 'npm was not found on your PATH. Install Node.js/npm, then try again or run the command manually.';
 
 let cachedNpmInvocation = null;
-
-const isValidNpmPackageName = (name) => typeof name === 'string' && NPM_NAME_REGEX.test(name);
 
 // Keep only the trailing `cap` bytes - npm surfaces the actionable error at the
 // end of its output, so the tail is what we want to show the user.
