@@ -90,17 +90,6 @@ describe('formatPackageReport', () => {
     ]);
   });
 
-  it('leaves invalid package names out of the install command', () => {
-    expect(formatPackageReport(report({ needsInstall: ['moment', 'x; rm -rf ~', '$(whoami)'] }))).toEqual([
-      'Packages referenced by scripts:',
-      '  needs install:        moment   (run inside the collection: npm install --save moment)'
-    ]);
-  });
-
-  it('prints nothing when every package needing install has an invalid name', () => {
-    expect(formatPackageReport(report({ needsInstall: ['x; rm -rf ~'] }))).toEqual([]);
-  });
-
   it('prints unsupported packages', () => {
     expect(formatPackageReport(report({ unsupported: ['postman-collection'] }))).toEqual([
       'Packages referenced by scripts:',

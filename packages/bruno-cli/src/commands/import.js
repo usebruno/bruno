@@ -5,8 +5,8 @@ const chalk = require('chalk');
 const jsyaml = require('js-yaml');
 const axios = require('axios');
 const { openApiToBruno, wsdlToBruno, postmanToBruno, postmanToBrunoEnvironment } = require('@usebruno/converters');
-const { coerceEnvName, dedupeImportedSecrets, generateUniqueName } = require('@usebruno/common').utils;
-const { exists, isDirectory, sanitizeName, canonicalPath } = require('../utils/filesystem');
+const { coerceEnvName, dedupeImportedSecrets, generateUniqueName, sanitizeName, validateName, validateNameError } = require('@usebruno/common').utils;
+const { exists, isDirectory, canonicalPath } = require('../utils/filesystem');
 const { writeEnvironmentFile } = require('../utils/environment');
 const { getCollectionFormat } = require('../utils/collection');
 const { formatImportSummary, formatImportIssues, formatPackageReport, hasImportErrors } = require('../utils/import-report');
@@ -280,7 +280,11 @@ const resolveCollectionOutputDir = async (output, collectionName) => {
   const isOutputDirectory = await exists(resolvedOutput) && isDirectory(resolvedOutput);
 
   if (isOutputDirectory) {
-    const outputDir = path.join(resolvedOutput, sanitizeName(collectionName));
+    const folderName = sanitizeName(collectionName || '');
+    if (!validateName(folderName)) {
+      throw new Error(`Invalid collection name "${collectionName}": ${validateNameError(folderName)}`);
+    }
+    const outputDir = path.join(resolvedOutput, folderName);
 
     if (await exists(outputDir)) {
       if (fs.readdirSync(outputDir).length > 0) {
@@ -326,8 +330,12 @@ const importPostmanCollection = async (source, { insecure, preserveScripts, envi
 
   for (const environmentSource of environmentSources) {
     const environment = await convertPostmanEnvironment(environmentSource, { insecure });
-    const takenNames = collection.environments.map((env) => env.name);
-    const name = generateUniqueName(sanitizeName(environment.name), (candidate) => takenNames.includes(candidate));
+    const takenNames = collection.environments.map((env) => env.name.toLowerCase());
+    const baseName = sanitizeName(environment.name || '');
+    if (!validateName(baseName)) {
+      throw new Error(`Invalid environment name "${environment.name}": ${validateNameError(baseName)}`);
+    }
+    const name = generateUniqueName(baseName, (candidate) => takenNames.includes(candidate.toLowerCase()));
     collection.environments.push({ ...environment, name });
   }
 
@@ -339,7 +347,6 @@ const writeBrunoCollection = async (collection, { output, outputFile, collection
     // The Postman package report is console output, not part of the collection.
     const collectionToSave = { ...collection };
     delete collectionToSave.packageReport;
-    // removing secret values from json output
     if (collection.environments) {
       collectionToSave.environments = collection.environments.map((env) => ({
         ...env,

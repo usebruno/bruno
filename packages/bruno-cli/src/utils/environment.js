@@ -3,7 +3,7 @@ const path = require('path');
 const chalk = require('chalk');
 const { parseEnvironment, stringifyEnvironment } = require('@usebruno/filestore');
 const { getEnvVars } = require('../utils/bru');
-const { resolveEnvironmentInheritance: resolveEnvironmentInheritanceCommon, sanitizeName, generateUniqueName } = require('@usebruno/common').utils;
+const { resolveEnvironmentInheritance: resolveEnvironmentInheritanceCommon, sanitizeName, validateName, validateNameError, generateUniqueName } = require('@usebruno/common').utils;
 
 /**
  * Parse a Bruno JSON environment object and normalize variables
@@ -149,16 +149,24 @@ const loadEnvironmentFromFile = ({ filePath, name, resolveInheritance = true }) 
 /**
  * Writes one environment into a collection's `environments/` directory, creating it when missing.
  * A name already taken there gets a "copy" suffix. Returns the name and path written.
+ *
+ * Twin: the `renderer:create-environment` handler in bruno-electron/src/ipc/collection.js —
+ * keep the naming and file layout in sync.
  */
 const writeEnvironmentFile = (env, envDirPath, { format }) => {
+  const baseName = sanitizeName(env.name || '');
+  if (!validateName(baseName)) {
+    throw new Error(`Invalid environment name "${env.name}": ${validateNameError(baseName)}`);
+  }
   fs.mkdirSync(envDirPath, { recursive: true });
   const existingNames = fs.readdirSync(envDirPath)
+    .map((file) => file.toLowerCase())
     .filter((file) => file.endsWith(`.${format}`))
     .map((file) => path.basename(file, `.${format}`));
-  const name = generateUniqueName(sanitizeName(env.name), (candidate) => existingNames.includes(candidate));
+  const name = generateUniqueName(baseName, (candidate) => existingNames.includes(candidate.toLowerCase()));
 
   const filePath = path.join(envDirPath, `${name}.${format}`);
-  fs.writeFileSync(filePath, stringifyEnvironment({ ...env, name }, { format }));
+  fs.writeFileSync(filePath, stringifyEnvironment({ ...env, name }, { format }), { flag: 'wx' });
   return { name, filePath };
 };
 

@@ -24,7 +24,7 @@ const collectionWith = (fields: Record<string, any>): any => ({
   ...fields
 });
 
-describe('writeCollectionToDisk', () => {
+describe('writeCollectionToDisk methods', () => {
   let tempDir: string;
   let outputDir: string;
 

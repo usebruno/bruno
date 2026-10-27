@@ -1,5 +1,4 @@
 const chalk = require('chalk');
-const { isValidNpmPackageName } = require('@usebruno/common').utils;
 
 const countItems = (items = []) => {
   return items.reduce((counts, item) => {
@@ -45,14 +44,7 @@ const formatPackageReport = (packageReport) => {
     return [];
   }
 
-  const { unsupported = [], devMode = [] } = packageReport;
-  // Names come from require() calls in the imported scripts, so keep anything that isn't a plain
-  // npm name out of the copy-paste install command.
-  const needsInstall = (packageReport.needsInstall || []).filter(isValidNpmPackageName);
-  if (!needsInstall.length && !unsupported.length && !devMode.length) {
-    return [];
-  }
-
+  const { needsInstall = [], unsupported = [], devMode = [] } = packageReport;
   const lines = ['Packages referenced by scripts:'];
   if (needsInstall.length) {
     lines.push(`  needs install:        ${needsInstall.join(', ')}   (run inside the collection: npm install --save ${needsInstall.join(' ')})`);

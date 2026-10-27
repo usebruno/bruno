@@ -82,7 +82,6 @@ export {
 } from './type-helpers';
 
 export {
-  NPM_NAME_REGEX,
   isValidNpmPackageName
 } from './npm';
 

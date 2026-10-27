@@ -1,7 +1,7 @@
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
-const { NPM_NAME_REGEX, isValidNpmPackageName } = require('@usebruno/common').utils;
+const { isValidNpmPackageName } = require('@usebruno/common').utils;
 
 const shouldUseShellForNpmSpawn = (npmCommand, platform = process.platform) => {
   return platform === 'win32' && /\.(cmd|bat)$/i.test(npmCommand);
@@ -196,7 +196,6 @@ module.exports = {
   buildSafeEnv,
   buildSpawnOptions,
   isWindowsBatchFile,
-  NPM_NAME_REGEX,
   DEFAULT_TIMEOUT_MS,
   DEFAULT_MAX_OUTPUT_BYTES,
   NPM_NOT_FOUND_MESSAGE

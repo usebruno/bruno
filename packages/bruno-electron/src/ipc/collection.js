@@ -738,6 +738,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   // create environment
+  // Twin: writeEnvironmentFile in bruno-cli/src/utils/environment.js — keep the naming and file layout in sync.
   ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name, variables, color, inheritedEnvironmentName) => {
     try {
       validatePathIsInsideCollection(collectionPathname);

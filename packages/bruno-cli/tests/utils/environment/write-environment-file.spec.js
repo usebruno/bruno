@@ -62,6 +62,16 @@ describe('writeEnvironmentFile', () => {
       expect(third).toEqual({ name: 'staging copy 2', filePath: path.join(envDirPath, `staging copy 2.${format}`) });
       expect(fs.readFileSync(firstPath, 'utf8')).toBe('hand-edited');
     });
+
+    it('treats a name differing only in case as taken', () => {
+      fs.mkdirSync(envDirPath);
+      fs.writeFileSync(path.join(envDirPath, `Staging.${format}`), 'hand-edited');
+
+      const written = writeEnvironmentFile(environment, envDirPath, { format });
+
+      expect(written).toEqual({ name: 'staging copy', filePath: path.join(envDirPath, `staging copy.${format}`) });
+      expect(fs.readFileSync(path.join(envDirPath, `Staging.${format}`), 'utf8')).toBe('hand-edited');
+    });
   });
 
   it('sanitizes the environment name into a filename', () => {
@@ -69,5 +79,11 @@ describe('writeEnvironmentFile', () => {
 
     expect(name).toBe('qa-eu- west');
     expect(path.basename(filePath)).toBe('qa-eu- west.yml');
+  });
+
+  it('throws on a name that is not a valid filename, before creating anything', () => {
+    expect(() => writeEnvironmentFile({ ...environment, name: '...' }, envDirPath, { format: 'yml' }))
+      .toThrow('Invalid environment name "...": Name cannot be empty.');
+    expect(fs.existsSync(envDirPath)).toBe(false);
   });
 });

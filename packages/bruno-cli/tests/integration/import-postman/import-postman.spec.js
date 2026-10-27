@@ -123,6 +123,23 @@ describe('CLI import postman — imported collections run with bru run', () => {
     expect(fs.readdirSync(path.join(collectionDir, 'environments')).sort()).toEqual(['staging copy 2.yml', 'staging copy.yml', 'staging.yml']);
   }, RUN_TIMEOUT);
 
+  it('gives an environment name differing only in case a copy suffix', async () => {
+    const collectionDir = path.join(workDir, 'collection');
+    const environmentPath = stageEnvironment();
+    const upperCasePath = path.join(workDir, 'upper.postman_environment.json');
+    fs.writeFileSync(upperCasePath, JSON.stringify({ ...JSON.parse(fs.readFileSync(environmentPath, 'utf8')), name: 'Staging' }));
+
+    const collectionImport = await runCli([
+      'import', 'postman',
+      '--source', COLLECTION_FIXTURE,
+      '--output', collectionDir,
+      '--environment', environmentPath, upperCasePath
+    ], workDir);
+
+    expect(collectionImport.code).toBe(0);
+    expect(fs.readdirSync(path.join(collectionDir, 'environments')).sort()).toEqual(['Staging copy.yml', 'staging.yml']);
+  }, RUN_TIMEOUT);
+
   it('leaves secret values out of the --output-file JSON', async () => {
     const environment = JSON.parse(fs.readFileSync(stageEnvironment(), 'utf8'));
     environment.values.push({ key: 'apiKey', value: 'PMAK-not-for-export', type: 'secret', enabled: true });
