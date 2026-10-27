@@ -57,6 +57,50 @@ describe('openapi-circular-references', () => {
       expect(requestBody(buildSpec(content))).toEqual({ name: 'root', children: [{ name: 'docs', children: [] }] });
     });
   });
+
+  describe('an example that refers back to itself', () => {
+    const exampleRef = (name) => ({ $ref: `#/components/examples/${name}` });
+    const buildSpec = (content, componentsFirst = true) => {
+      const head = { openapi: '3.0.0', info: { title: 'Demo', version: '1.0.0' } };
+      const components = {
+        examples: {
+          Tree: { value: { name: 'root', children: [exampleRef('Tree')] } },
+          Root: { value: { name: 'root', child: exampleRef('Child') } },
+          Child: { value: { name: 'child', parent: exampleRef('Root') } }
+        }
+      };
+      const paths = {
+        '/folders': { post: { summary: 'Create folder', requestBody: { content: { 'application/json': { schema: { type: 'object' }, ...content } } }, responses: { 200: { description: 'OK' } } } }
+      };
+      return componentsFirst ? { ...head, components, paths } : { ...head, paths, components };
+    };
+    const requestBody = (spec) => JSON.parse(openApiToBruno(spec).items[0].request.body.json);
+
+    it.each([
+      ['example', true],
+      ['example', false],
+      ['examples', true],
+      ['examples', false]
+    ])('stops at the self reference when %s points at the example (components first: %s)', (variant, componentsFirst) => {
+      const content = variant === 'example' ? { example: exampleRef('Tree') } : { examples: { e: exampleRef('Tree') } };
+      expect(requestBody(buildSpec(content, componentsFirst))).toEqual({ name: 'root', children: [{}] });
+    });
+
+    it.each([
+      ['Root', true, { name: 'root', child: { name: 'child', parent: {} } }],
+      ['Root', false, { name: 'root', child: { name: 'child', parent: {} } }],
+      ['Child', true, { name: 'child', parent: {} }],
+      ['Child', false, { name: 'child', parent: {} }]
+    ])('stops where a ring of examples loops back, starting from %s (components first: %s)', (name, componentsFirst, expected) => {
+      expect(requestBody(buildSpec({ examples: { e: exampleRef(name) } }, componentsFirst))).toEqual(expected);
+    });
+
+    it('stops at example data that contains itself', () => {
+      const tree = { name: 'root' };
+      tree.children = [tree];
+      expect(requestBody(buildSpec({ example: tree }))).toEqual({ name: 'root', children: [{}] });
+    });
+  });
 });
 
 const circularRefsData = {

@@ -804,31 +804,48 @@ const componentAt = (components, refPath) => refPath
   .split('/')
   .reduce((node, key) => (node && node[key] ? node[key] : undefined), components);
 
-const resolveExampleData = (data, components, inlining = [], copies = new Map()) => {
+const EXAMPLE_COPIES = Symbol('exampleCopies');
+
+const exampleDataOf = (example) => EXAMPLE_DATA_KEYS.map((key) => example?.[key]).find((value) => value !== undefined);
+
+const resolveExampleData = (data, components, copies, inlining = []) => {
   if (!data || typeof data !== 'object') {
     return data;
   }
-  if (copies.has(data)) {
-    return copies.get(data);
+  if (copies.done.has(data)) {
+    return copies.done.get(data);
+  }
+  if (copies.building.has(data)) {
+    return Array.isArray(data) ? [] : {};
   }
   if (isReferenceOnly(data) && isExampleRef(data.$ref) && !inlining.includes(data.$ref)) {
-    const example = componentAt(components, data.$ref);
-    const inlined = EXAMPLE_DATA_KEYS.map((key) => example?.[key]).find((value) => value !== undefined);
+    const inlined = exampleDataOf(componentAt(components, data.$ref));
     if (inlined !== undefined) {
-      return resolveExampleData(inlined, components, [...inlining, data.$ref], copies);
+      return resolveExampleData(inlined, components, copies, [...inlining, data.$ref]);
     }
   }
   const copy = Array.isArray(data) ? [] : {};
-  copies.set(data, copy);
+  copies.building.add(data);
   Object.entries(data).forEach(([key, value]) => {
-    copy[key] = resolveExampleData(value, components, inlining, copies);
+    copy[key] = resolveExampleData(value, components, copies, inlining);
   });
+  copies.building.delete(data);
+  copies.done.set(data, copy);
   return copy;
+};
+
+const exampleCopiesOf = (cache, components) => {
+  if (!cache.has(EXAMPLE_COPIES)) {
+    const copies = { done: new Map(), building: new Set() };
+    cache.set(EXAMPLE_COPIES, copies);
+    Object.values(components?.examples || {}).forEach((example) => resolveExampleData(exampleDataOf(example), components, copies));
+  }
+  return cache.get(EXAMPLE_COPIES);
 };
 
 const resolveExamples = (examples, components, cache) => {
   if (Array.isArray(examples)) {
-    const values = examples.map((value) => resolveExampleData(value, components)).filter((value) => !isReferenceOnly(value));
+    const values = examples.map((value) => resolveExampleData(value, components, exampleCopiesOf(cache, components))).filter((value) => !isReferenceOnly(value));
     return values.length > 0 ? values : undefined;
   }
   if (!isPlainObject(examples)) {
@@ -845,10 +862,10 @@ const resolveChild = (key, value, components, cache, role) => {
     return resolveRefs(value, components, cache);
   }
   if (role === 'example') {
-    return EXAMPLE_DATA_KEYS.includes(key) ? resolveExampleData(value, components) : resolveRefs(value, components, cache);
+    return EXAMPLE_DATA_KEYS.includes(key) ? resolveExampleData(value, components, exampleCopiesOf(cache, components)) : resolveRefs(value, components, cache);
   }
   if (key === 'example') {
-    const data = resolveExampleData(value, components);
+    const data = resolveExampleData(value, components, exampleCopiesOf(cache, components));
     return isReferenceOnly(data) ? undefined : data;
   }
   if (key === 'examples') {

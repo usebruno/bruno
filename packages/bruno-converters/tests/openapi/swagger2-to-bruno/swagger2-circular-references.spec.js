@@ -183,5 +183,13 @@ describe('swagger2-to-bruno circular references', () => {
       const spec = buildSpec({ bodySchema: { ...folder, example: { name: 'docs', children: [folderRef] } } });
       expect(requestBody(spec)).toEqual({ name: 'docs', children: [folderRef] });
     });
+
+    it('stops at example data that contains itself', () => {
+      const tree = { name: 'root' };
+      tree.children = [tree];
+      const spec = buildSpec({ bodySchema: { ...folder, example: tree }, responseExamples: { 'application/json': tree } });
+      expect(requestBody(spec)).toEqual({ name: 'root', children: [{}] });
+      expect(responseBody(spec)).toEqual({ name: 'root', children: [{}] });
+    });
   });
 });

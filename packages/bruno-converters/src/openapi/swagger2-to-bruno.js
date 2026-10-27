@@ -378,16 +378,45 @@ const NAMED_MAPS = new Set(['definitions', 'parameters', 'responses', 'securityD
 
 const isReferenceOnly = (value) => isPlainObject(value) && typeof value.$ref === 'string' && Object.keys(value).length === 1;
 
+const EXAMPLE_COPIES = Symbol('exampleCopies');
+
+const exampleCopiesOf = (cache) => {
+  if (!cache.has(EXAMPLE_COPIES)) {
+    cache.set(EXAMPLE_COPIES, { done: new Map(), building: new Set() });
+  }
+  return cache.get(EXAMPLE_COPIES);
+};
+
+const copyExampleData = (data, copies) => {
+  if (!Array.isArray(data) && !isPlainObject(data)) {
+    return data;
+  }
+  if (copies.done.has(data)) {
+    return copies.done.get(data);
+  }
+  if (copies.building.has(data)) {
+    return Array.isArray(data) ? [] : {};
+  }
+  const copy = Array.isArray(data) ? [] : {};
+  copies.building.add(data);
+  Object.entries(data).forEach(([key, value]) => {
+    copy[key] = copyExampleData(value, copies);
+  });
+  copies.building.delete(data);
+  copies.done.set(data, copy);
+  return copy;
+};
+
 const resolveChild = (key, value, rootSpec, cache, role) => {
   if (role === 'map') {
     return resolveRefs(value, rootSpec, cache);
   }
   if (key === 'example') {
-    return isReferenceOnly(value) ? undefined : value;
+    return isReferenceOnly(value) ? undefined : copyExampleData(value, exampleCopiesOf(cache));
   }
   if (key === 'examples' && isPlainObject(value)) {
     const entries = Object.entries(value).filter(([, example]) => !isReferenceOnly(example));
-    return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+    return entries.length > 0 ? copyExampleData(Object.fromEntries(entries), exampleCopiesOf(cache)) : undefined;
   }
   return resolveRefs(value, rootSpec, cache, NAMED_MAPS.has(key) && isPlainObject(value) ? 'map' : 'object');
 };
