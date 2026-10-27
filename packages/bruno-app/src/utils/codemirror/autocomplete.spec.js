@@ -1360,15 +1360,17 @@ describe('Bruno Autocomplete', () => {
     });
 
     describe('Setup and cleanup', () => {
-      it('should setup keyup event listener and return cleanup function', () => {
+      it('should setup keyup and keydown event listeners and return cleanup function', () => {
         const options = { getAllVariables: mockGetAllVariables };
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
 
         expect(mockedCodemirror.on).toHaveBeenCalledWith('keyup', expect.any(Function));
+        expect(mockedCodemirror.on).toHaveBeenCalledWith('keydown', expect.any(Function));
         expect(cleanupFn).toBeInstanceOf(Function);
 
         cleanupFn();
         expect(mockedCodemirror.off).toHaveBeenCalledWith('keyup', expect.any(Function));
+        expect(mockedCodemirror.off).toHaveBeenCalledWith('keydown', expect.any(Function));
       });
 
       it('should not setup if editor is null', () => {
@@ -1558,6 +1560,65 @@ describe('Bruno Autocomplete', () => {
       });
     });
 
+    describe('Escape handling while hints are open', () => {
+      const getKeydownHandler = () => mockedCodemirror.on.mock.calls.find((call) => call[0] === 'keydown')[1];
+      const makeKeyEvent = (key, modifiers = {}) => ({
+        key,
+        ...modifiers,
+        stopPropagation: jest.fn(),
+        preventDefault: jest.fn()
+      });
+
+      it('should close the hints popup and stop propagation of Escape when the popup is open', () => {
+        cleanupFn = setupAutoComplete(mockedCodemirror, { getAllVariables: mockGetAllVariables });
+        const event = makeKeyEvent('Escape');
+        const completionActive = { close: jest.fn() };
+
+        getKeydownHandler()({ state: { completionActive } }, event);
+
+        expect(completionActive.close).toHaveBeenCalledTimes(1);
+        expect(event.stopPropagation).toHaveBeenCalledTimes(1);
+        expect(event.preventDefault).not.toHaveBeenCalled();
+      });
+
+      it.each([
+        ['Shift', { shiftKey: true }],
+        ['Ctrl', { ctrlKey: true }],
+        ['Alt', { altKey: true }],
+        ['Meta', { metaKey: true }]
+      ])('should close the hints popup on %s+Escape (show-hint only binds plain Esc)', (_, modifiers) => {
+        cleanupFn = setupAutoComplete(mockedCodemirror, { getAllVariables: mockGetAllVariables });
+        const event = makeKeyEvent('Escape', modifiers);
+        const completionActive = { close: jest.fn() };
+
+        getKeydownHandler()({ state: { completionActive } }, event);
+
+        expect(completionActive.close).toHaveBeenCalledTimes(1);
+        expect(event.stopPropagation).toHaveBeenCalledTimes(1);
+      });
+
+      it('should let Escape propagate when the hints popup is closed', () => {
+        cleanupFn = setupAutoComplete(mockedCodemirror, { getAllVariables: mockGetAllVariables });
+        const event = makeKeyEvent('Escape');
+
+        getKeydownHandler()({ state: { completionActive: null } }, event);
+
+        expect(event.stopPropagation).not.toHaveBeenCalled();
+        expect(event.preventDefault).not.toHaveBeenCalled();
+      });
+
+      it('should not stop propagation of other keys when the hints popup is open', () => {
+        cleanupFn = setupAutoComplete(mockedCodemirror, { getAllVariables: mockGetAllVariables });
+        const event = makeKeyEvent('Enter');
+        const completionActive = { close: jest.fn() };
+
+        getKeydownHandler()({ state: { completionActive } }, event);
+
+        expect(completionActive.close).not.toHaveBeenCalled();
+        expect(event.stopPropagation).not.toHaveBeenCalled();
+      });
+    });
+
     describe('Click event handling (showHintsOnClick)', () => {
       it('should setup mousedown event listener when showHintsOnClick is enabled', () => {
         const options = {
@@ -1567,8 +1628,9 @@ describe('Bruno Autocomplete', () => {
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
 
         expect(mockedCodemirror.on).toHaveBeenCalledWith('keyup', expect.any(Function));
+        expect(mockedCodemirror.on).toHaveBeenCalledWith('keydown', expect.any(Function));
         expect(mockedCodemirror.on).toHaveBeenCalledWith('mousedown', expect.any(Function));
-        expect(mockedCodemirror.on).toHaveBeenCalledTimes(2);
+        expect(mockedCodemirror.on).toHaveBeenCalledTimes(3);
       });
 
       it('should not setup mousedown event listener when showHintsOnClick is disabled', () => {
@@ -1579,7 +1641,8 @@ describe('Bruno Autocomplete', () => {
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
 
         expect(mockedCodemirror.on).toHaveBeenCalledWith('keyup', expect.any(Function));
-        expect(mockedCodemirror.on).toHaveBeenCalledTimes(1);
+        expect(mockedCodemirror.on).toHaveBeenCalledWith('keydown', expect.any(Function));
+        expect(mockedCodemirror.on).toHaveBeenCalledTimes(2);
       });
 
       it('should not setup mousedown event listener when showHintsOnClick is undefined', () => {
@@ -1589,7 +1652,8 @@ describe('Bruno Autocomplete', () => {
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
 
         expect(mockedCodemirror.on).toHaveBeenCalledWith('keyup', expect.any(Function));
-        expect(mockedCodemirror.on).toHaveBeenCalledTimes(1);
+        expect(mockedCodemirror.on).toHaveBeenCalledWith('keydown', expect.any(Function));
+        expect(mockedCodemirror.on).toHaveBeenCalledTimes(2);
       });
 
       it('should show hints on click when showHintsOnClick is enabled', () => {
@@ -1643,11 +1707,12 @@ describe('Bruno Autocomplete', () => {
         cleanupFn();
 
         expect(mockedCodemirror.off).toHaveBeenCalledWith('keyup', expect.any(Function));
+        expect(mockedCodemirror.off).toHaveBeenCalledWith('keydown', expect.any(Function));
         expect(mockedCodemirror.off).toHaveBeenCalledWith('mousedown', expect.any(Function));
-        expect(mockedCodemirror.off).toHaveBeenCalledTimes(2);
+        expect(mockedCodemirror.off).toHaveBeenCalledTimes(3);
       });
 
-      it('should only cleanup keyup event listener when showHintsOnClick was disabled', () => {
+      it('should only cleanup keyup and keydown event listeners when showHintsOnClick was disabled', () => {
         const options = {
           getAllVariables: mockGetAllVariables,
           showHintsOnClick: false
@@ -1657,7 +1722,8 @@ describe('Bruno Autocomplete', () => {
         cleanupFn();
 
         expect(mockedCodemirror.off).toHaveBeenCalledWith('keyup', expect.any(Function));
-        expect(mockedCodemirror.off).toHaveBeenCalledTimes(1);
+        expect(mockedCodemirror.off).toHaveBeenCalledWith('keydown', expect.any(Function));
+        expect(mockedCodemirror.off).toHaveBeenCalledTimes(2);
       });
 
       it('should show all available hints on click based on showHintsFor configuration', () => {
