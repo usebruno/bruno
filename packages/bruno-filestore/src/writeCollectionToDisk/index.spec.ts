@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { parseRequest, parseFolder, parseEnvironment } from '../index';
-import { writeCollectionToDisk } from './index';
+import { writeCollectionToDisk, writeCollectionToDiskLegacy } from './index';
 import type { CollectionFormat } from '../types';
 
 const FORMATS: CollectionFormat[] = ['bru', 'yml'];
@@ -40,7 +40,7 @@ describe('writeCollectionToDisk', () => {
   const read = (...segments: string[]) => fs.readFileSync(path.join(outputDir, ...segments), 'utf8');
 
   describe.each(FORMATS)('%s format', (format) => {
-    const write = (collection: any) => writeCollectionToDisk(collection, outputDir, { format });
+    const write = (collection: any) => writeCollectionToDiskLegacy(collection, outputDir, { format });
     const readRequest = (...segments: string[]) => parseRequest(read(...segments), { format });
 
     it('writes http and graphql requests', async () => {
@@ -265,7 +265,7 @@ describe('writeCollectionToDisk', () => {
   });
 
   it('writes bruno.json alongside collection.bru in bru format', async () => {
-    await writeCollectionToDisk(collectionWith({}), outputDir, { format: 'bru' });
+    await writeCollectionToDiskLegacy(collectionWith({}), outputDir, { format: 'bru' });
 
     expect(JSON.parse(read('bruno.json'))).toEqual({
       version: '1',
@@ -276,7 +276,7 @@ describe('writeCollectionToDisk', () => {
   });
 
   it('embeds the opencollection version in opencollection.yml', async () => {
-    await writeCollectionToDisk(collectionWith({}), outputDir, { format: 'yml' });
+    await writeCollectionToDiskLegacy(collectionWith({}), outputDir, { format: 'yml' });
 
     expect(read('opencollection.yml')).toContain('opencollection: 1.0.0');
     expect(fs.existsSync(path.join(outputDir, 'bruno.json'))).toBe(false);
