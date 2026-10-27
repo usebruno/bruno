@@ -19,23 +19,19 @@ const LEVEL_PATHS = LEVELS.reduce((paths, level) => [...paths, `${paths[paths.le
 const LEVEL14_PATH = LEVEL_PATHS[LEVEL_PATHS.length - 1];
 const DEEP_QUERY = `query DeepTree { deepTree { id depth name ${LEVELS.map((level) => `${level} { id depth name`).join(' ')} ${'} '.repeat(LEVELS.length)}} }`;
 
-test.describe.serial('GraphQL Query Builder - deep nesting', () => {
+test.describe('GraphQL Query Builder - deep nesting', () => {
+  test.beforeAll(async ({ pageWithUserData: page, reuseOrLaunchElectronApp }, testInfo) => {
+    const electronApp = await reuseOrLaunchElectronApp({ testFile: testInfo.file });
+    await openRequest(page, 'graphql-query-builder', 'deep-nesting-echo');
+    await openGraphqlQueryBuilder(page);
+    await loadGraphqlSchemaFromFile(page, electronApp, DEEP_SCHEMA_PATH, 'Query.deepTree');
+  });
+
   test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 
-  test('Ticking a field 14 levels deep generates and sends the full query', async ({
-    pageWithUserData: page,
-    reuseOrLaunchElectronApp
-  }, testInfo) => {
-    const electronApp = await reuseOrLaunchElectronApp({ testFile: testInfo.file });
-
-    await test.step('Open the echo request and load the deep schema', async () => {
-      await openRequest(page, 'graphql-query-builder', 'deep-nesting-echo');
-      await openGraphqlQueryBuilder(page);
-      await loadGraphqlSchemaFromFile(page, electronApp, DEEP_SCHEMA_PATH, 'Query.deepTree');
-    });
-
+  test('Ticking a field 14 levels deep generates and sends the full query', async ({ pageWithUserData: page }) => {
     await test.step('Tick deepTree and every level down to level14, then its "id"', async () => {
       for (const levelPath of LEVEL_PATHS) {
         await tickQueryBuilderField(page, levelPath);
