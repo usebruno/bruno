@@ -1,30 +1,28 @@
 import React from 'react';
-import { IconAlertTriangle } from '@tabler/icons';
-import { Tooltip } from 'react-tooltip';
-import StyledWrapper from './StyledWrapper';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
+import SensitiveWarningPopover from './SensitiveWarningPopover';
 
-const SensitiveFieldWarning = ({ fieldName, warningMessage }) => {
-  const tooltipId = `sensitive-field-warning-${fieldName}`;
+const SensitiveFieldWarning = ({ fieldName, secretName, value, collection, item, disabled, onReplaceValue }) => {
+  const { isSensitive } = useDetectSensitiveField(collection);
+  const { showWarning, warningMessage, scope, variableName } = isSensitive(value, item);
+
+  if (!showWarning) {
+    return null;
+  }
 
   return (
-    <StyledWrapper>
-      <span className="mr-[4px] flex items-center" data-testid={`sensitive-field-warning-${fieldName}`}>
-        <IconAlertTriangle id={tooltipId} className="tooltip-icon cursor-pointer" size={16} />
-        <Tooltip
-          anchorId={tooltipId}
-          className="tooltip-mod sensitive-field-tooltip"
-          positionStrategy="fixed"
-          place="bottom"
-          content={(
-            <div>
-              <p>
-                <span>{warningMessage}</span>
-              </p>
-            </div>
-          )}
-        />
-      </span>
-    </StyledWrapper>
+    <SensitiveWarningPopover
+      fieldName={fieldName}
+      secretName={secretName}
+      warningMessage={warningMessage}
+      scope={scope}
+      variableName={variableName}
+      value={value}
+      collection={collection}
+      item={item}
+      disabled={disabled}
+      onReplaceValue={onReplaceValue}
+    />
   );
 };
 

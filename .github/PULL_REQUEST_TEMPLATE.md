@@ -23,6 +23,7 @@
 - [ ] **I've used AI significantly to create this pull request**
 - [ ] **The pull request only addresses one issue or adds one feature.**
 - [ ] **The pull request does not introduce any breaking changes**
+- [ ] **I have tested these changes locally and confirmed they work as expected.**
 - [ ] **I have added screenshots or gifs to help explain the change if applicable.**
 - [ ] **I have read the [contribution guidelines](https://github.com/usebruno/bruno/blob/main/contributing.md).**
 - [ ] **Create an issue and link to the pull request.**
