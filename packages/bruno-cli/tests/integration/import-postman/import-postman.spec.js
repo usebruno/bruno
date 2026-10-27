@@ -123,6 +123,29 @@ describe('CLI import postman — imported collections run with bru run', () => {
     expect(fs.readdirSync(path.join(collectionDir, 'environments')).sort()).toEqual(['staging copy 2.yml', 'staging copy.yml', 'staging.yml']);
   }, RUN_TIMEOUT);
 
+  it('leaves secret values out of the --output-file JSON', async () => {
+    const environment = JSON.parse(fs.readFileSync(stageEnvironment(), 'utf8'));
+    environment.values.push({ key: 'apiKey', value: 'PMAK-not-for-export', type: 'secret', enabled: true });
+    const environmentPath = path.join(workDir, 'with-secret.postman_environment.json');
+    fs.writeFileSync(environmentPath, JSON.stringify(environment, null, 2));
+    const outputFile = path.join(workDir, 'collection.json');
+
+    const { code } = await runCli([
+      'import', 'postman',
+      '--source', COLLECTION_FIXTURE,
+      '--output-file', outputFile,
+      '--environment', environmentPath
+    ], workDir);
+
+    expect(code).toBe(0);
+    expect(fs.readFileSync(outputFile, 'utf8')).not.toContain('PMAK-not-for-export');
+    const { variables } = JSON.parse(fs.readFileSync(outputFile, 'utf8')).environments[0];
+    expect(variables).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: 'baseUrl', value: baseUrl, secret: false }),
+      expect.objectContaining({ name: 'apiKey', value: '', secret: true })
+    ]));
+  }, RUN_TIMEOUT);
+
   it.each(['bru', 'opencollection'])('rejects postman with --collection-format %s, writing nothing', async (collectionFormat) => {
     const collectionDir = path.join(workDir, 'collection');
 

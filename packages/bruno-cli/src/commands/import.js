@@ -232,7 +232,7 @@ const readPostmanFile = async (source, options = {}) => {
   try {
     return JSON.parse(content);
   } catch (error) {
-    throw new Error(`Failed to parse Postman JSON from ${source}`);
+    throw new Error('Failed to parse Postman JSON', { cause: error });
   }
 };
 
@@ -339,6 +339,13 @@ const writeBrunoCollection = async (collection, { output, outputFile, collection
     // The Postman package report is console output, not part of the collection.
     const collectionToSave = { ...collection };
     delete collectionToSave.packageReport;
+    // removing secret values from json output
+    if (collection.environments) {
+      collectionToSave.environments = collection.environments.map((env) => ({
+        ...env,
+        variables: (env.variables || []).map((variable) => (variable.secret ? { ...variable, value: '' } : variable))
+      }));
+    }
     const outputPath = path.resolve(outputFile);
     fs.writeFileSync(outputPath, JSON.stringify(collectionToSave, null, 2));
     console.log(chalk.green(`Bruno collection saved as JSON to ${outputPath}`));
