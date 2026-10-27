@@ -3193,6 +3193,24 @@ const generateCollectionDocs = async (
       await beforeGenerate();
     }
 
+    return await generateDocsFromModal(page);
+  });
+};
+
+/**
+ * Click "Generate" in an already open Generate Documentation modal and capture
+ * the HTML that FileSaver would save, along with its suggested file name.
+ *
+ * @param page - The page object
+ * @returns The generated HTML content and the download's suggested file name
+ */
+const generateDocsFromModal = async (page: Page): Promise<{ content: string; fileName: string }> => {
+  return await test.step('Generate docs from the Generate Documentation modal', async () => {
+    const locators = buildCommonLocators(page);
+    const modal = locators.generateDocs.modal();
+    const generateButton = locators.generateDocs.generateButton();
+    await expect(generateButton).toBeEnabled({ timeout: 10000 });
+
     // Arm the renderer-side interception before the save fires. `file-saver`
     // (v2) reads the Blob through `URL.createObjectURL` and then triggers the
     // save by dispatching a synthetic click on a detached `<a download>` (via
@@ -4145,6 +4163,7 @@ export {
   LINK_CLICK_MODIFIER,
   openRequestInFolder,
   generateCollectionDocs,
+  generateDocsFromModal,
   openShareCollectionModal,
   openExportToPostmanModal,
   closeExportToPostmanModal,

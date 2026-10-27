@@ -1,11 +1,13 @@
+import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
-import { expect } from '../../../playwright';
-import { test } from '../../utils/page/collection/generated-docs';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   createCollection,
   createEnvironment,
   createRequest,
+  generateDocsFromModal,
   openCollectionSettings,
   selectCollectionPaneTab
 } from '../../utils/page';
@@ -129,39 +131,46 @@ test.describe('Collection settings overview', () => {
     });
   });
 
-  test('TC-2624: Verify Generate docs option is available in the Documentation section', { tag: '@sanity' }, async ({ page, createTmpDir, captureGeneratedDocs }) => {
+  test('TC-2624: Verify Generate docs option is available in the Documentation section', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const collectionName = 'OverviewDocs';
-    const locators = buildCommonLocators(page);
+    const docsDirectory = await createTmpDir('TC-2624');
+    const { collectionOverview, generateDocs } = buildCommonLocators(page);
 
     await test.step('Open collection Overview', async () => {
       await page.locator('[data-app-state="loaded"]').waitFor();
-      await createCollection(page, collectionName, await createTmpDir('TC-2624'));
+      await createCollection(page, collectionName, docsDirectory);
       await openOverview(page, collectionName);
     });
 
-    await test.step('Generate Docs opens a modal with Generate and Cancel', async () => {
-      await expect(locators.collectionOverview.documentationLabel()).toBeVisible();
-      await expect(locators.collectionOverview.generateDocs()).toBeVisible();
-      await locators.collectionOverview.generateDocs().click();
-
-      const modal = locators.generateDocs.modal();
-      await expect(modal).toBeVisible();
-      await expect(locators.generateDocs.generateButton()).toBeVisible();
-      await expect(locators.generateDocs.cancelButton()).toBeVisible();
-      await expect(locators.generateDocs.generateButton()).toBeEnabled({ timeout: 10000 });
+    await test.step('Documentation section is visible', async () => {
+      await expect(collectionOverview.documentationLabel()).toBeVisible();
     });
 
-    await test.step('Generate saves an HTML documentation file', async () => {
-      const modal = locators.generateDocs.modal();
-      const capture = await captureGeneratedDocs(page);
+    await test.step('Generate Docs is available in the Documentation section', async () => {
+      await expect(collectionOverview.generateDocs()).toBeVisible();
+    });
 
-      await locators.generateDocs.generateButton().click();
+    await test.step('Generate Docs opens a modal with Generate and Cancel', async () => {
+      await collectionOverview.generateDocs().click();
+      await expect(generateDocs.modal()).toBeVisible();
+      await expect(generateDocs.generateButton()).toBeVisible();
+      await expect(generateDocs.cancelButton()).toBeVisible();
+      await expect(generateDocs.generateButton()).toBeEnabled({ timeout: 10000 });
+    });
 
-      const { content, fileName } = await capture.read();
+    await test.step('Generate creates an HTML file that can be saved locally', async () => {
+      const { content, fileName } = await generateDocsFromModal(page);
       expect(fileName).toBe(`${collectionName}-documentation.html`);
-      expect(content).toContain(`<title>${collectionName} - API Documentation</title>`);
-      expect(content).toContain('id="opencollection-container"');
-      await expect(modal).toBeHidden();
+
+      const downloadsDirectory = path.join(os.homedir(), 'Downloads');
+      await fs.mkdir(downloadsDirectory, { recursive: true });
+      const savedDocsPath = path.join(downloadsDirectory, fileName);
+      await fs.writeFile(savedDocsPath, content);
+      console.log(`Generated docs saved to ${savedDocsPath}`);
+      const savedHtml = await fs.readFile(savedDocsPath, 'utf8');
+
+      expect(savedHtml).toContain(`<title>${collectionName} - API Documentation</title>`);
+      expect(savedHtml).toContain('id="opencollection-container"');
     });
   });
 });
