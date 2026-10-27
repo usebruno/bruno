@@ -230,6 +230,7 @@ const readPostmanFile = async (source, options = {}) => {
   }
 
   try {
+    content = content.replace(/^\uFEFF/, '');
     return JSON.parse(content);
   } catch (error) {
     throw new Error('Failed to parse Postman JSON', { cause: error });
