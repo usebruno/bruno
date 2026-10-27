@@ -36,6 +36,13 @@ export const buildRequestLocators = (page: Page) => ({
     return row.locator('.CodeMirror').nth(1).locator(selector).filter({ hasText: name }).first();
   },
   pane: () => page.getByTestId('request-pane'),
+  queryParams: {
+    table: () => page.getByTestId('query-params-table'),
+    row: (index: number) => page.getByTestId('query-params-table').locator('tbody tr').nth(index),
+    value: (index: number) => page.getByTestId('query-params-table').locator('tbody tr').nth(index).getByTestId('column-value'),
+    descriptionFirstLine: (index: number) =>
+      page.getByTestId('query-params-table').locator('tbody tr').nth(index).getByTestId('column-description').locator('.CodeMirror-line').first()
+  },
   headers: {
     table: () => page.getByTestId('request-headers-table'),
     inheritedSectionToggle: () => page.getByTestId('inherited-headers-section-toggle'),
@@ -58,6 +65,35 @@ export const buildRequestLocators = (page: Page) => ({
 // Request-type radios in the New Request dialog. `from-curl` is the odd one out —
 // the rest follow the `<type>-request` testid convention.
 type NewRequestType = 'http-request' | 'graphql-request' | 'grpc-request' | 'ws-request' | 'from-curl';
+
+/**
+ * Replace the whole request URL in one edit, the way a paste does.
+ * The URL editor rebuilds the query params on every change, so typing a full URL would
+ * pass through intermediate URLs; this inserts the new URL as a single change.
+ * @param page - The page object
+ * @param url - The URL that replaces the current one
+ */
+export const replaceRequestUrl = async (page: Page, url: string) => {
+  await test.step(`Replace request URL with: ${url}`, async () => {
+    const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
+    await buildRequestLocators(page).urlInput().click();
+    await page.keyboard.press(selectAllShortcut);
+    await page.keyboard.insertText(url);
+  });
+};
+
+/**
+ * Type text at the end of the request URL, one keystroke at a time.
+ * @param page - The page object
+ * @param text - The text to type after the current URL
+ */
+export const typeAtEndOfRequestUrl = async (page: Page, text: string) => {
+  await test.step(`Type at the end of the request URL: ${text}`, async () => {
+    await buildRequestLocators(page).urlInput().click();
+    await page.keyboard.press('End');
+    await page.keyboard.type(text);
+  });
+};
 
 /**
  * Locators for the New Request dialog — the request-type radios and the

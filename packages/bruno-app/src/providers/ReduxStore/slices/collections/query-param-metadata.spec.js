@@ -102,6 +102,38 @@ describe('url edits keep query param metadata the url cannot hold', () => {
     expect(params[0]).toMatchObject({ uid: 'p1', name: 'pages', description: 'page number' });
   });
 
+  it('does not move a description to a param inserted before a sibling with the same value', () => {
+    const params = changeUrl(
+      makeRequestItem([
+        queryParam({ uid: 'p1', name: 'a', value: '1', description: 'desc A', annotations: null }),
+        queryParam({ uid: 'p2', name: 'b', value: '2', description: 'desc B', annotations: [{ name: 'b-note' }] })
+      ]),
+      'https://example.com/items?c=2&a=1&b=2'
+    );
+
+    expect(params.map((p) => [p.name, p.uid, p.description, p.annotations])).toEqual([
+      ['c', expect.any(String), undefined, undefined],
+      ['a', 'p1', 'desc A', null],
+      ['b', 'p2', 'desc B', [{ name: 'b-note' }]]
+    ]);
+    expect(params[0].uid).not.toBe('p2');
+  });
+
+  it('keeps descriptions with their values when repeated names are reordered', () => {
+    const params = changeUrl(
+      makeRequestItem([
+        queryParam({ uid: 'p1', name: 'tag', value: 'red', description: 'first tag' }),
+        queryParam({ uid: 'p2', name: 'tag', value: 'blue', description: 'second tag' })
+      ]),
+      'https://example.com/items?tag=blue&tag=red'
+    );
+
+    expect(params.map((p) => [p.value, p.uid, p.description])).toEqual([
+      ['blue', 'p2', 'second tag'],
+      ['red', 'p1', 'first tag']
+    ]);
+  });
+
   it('keeps the description when a response example url is edited', () => {
     const item = {
       ...makeRequestItem([]),
@@ -125,5 +157,49 @@ describe('url edits keep query param metadata the url cannot hold', () => {
     const params = next.collections[0].items[0].draft.examples[0].request.params;
 
     expect(params[0]).toMatchObject({ uid: 'p1', value: '2', description: 'page number' });
+  });
+
+  const changeExampleUrl = (exampleParams, url) => {
+    const item = {
+      ...makeRequestItem([]),
+      examples: [{ uid: 'ex1', request: { url: 'https://example.com/items', params: exampleParams } }]
+    };
+    const next = reducer(
+      makeStateWith(item),
+      updateResponseExampleRequestUrl({ collectionUid: 'col1', itemUid: 'item1', exampleUid: 'ex1', request: { url } })
+    );
+    return next.collections[0].items[0].draft.examples[0].request.params;
+  };
+
+  it('does not move an example param description to a param inserted before a sibling with the same value', () => {
+    const params = changeExampleUrl(
+      [
+        queryParam({ uid: 'p1', name: 'a', value: '1', description: 'desc A' }),
+        queryParam({ uid: 'p2', name: 'b', value: '2', description: 'desc B' })
+      ],
+      'https://example.com/items?c=2&a=1&b=2'
+    );
+
+    expect(params.map((p) => [p.name, p.description])).toEqual([
+      ['c', undefined],
+      ['a', 'desc A'],
+      ['b', 'desc B']
+    ]);
+    expect(params[2].uid).toBe('p2');
+  });
+
+  it('keeps example param descriptions with their values when repeated names are reordered', () => {
+    const params = changeExampleUrl(
+      [
+        queryParam({ uid: 'p1', name: 'tag', value: 'red', description: 'first tag' }),
+        queryParam({ uid: 'p2', name: 'tag', value: 'blue', description: 'second tag' })
+      ],
+      'https://example.com/items?tag=blue&tag=red'
+    );
+
+    expect(params.map((p) => [p.value, p.uid, p.description])).toEqual([
+      ['blue', 'p2', 'second tag'],
+      ['red', 'p1', 'first tag']
+    ]);
   });
 });

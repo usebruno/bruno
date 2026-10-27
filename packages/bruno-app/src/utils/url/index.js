@@ -110,16 +110,39 @@ export const splitOnFirst = (str, char) => {
   return [str.slice(0, index), str.slice(index + 1)];
 };
 
+const QUERY_PARAM_MATCH_PASSES = [
+  (urlQueryParam, existing) => existing?.name === urlQueryParam?.name && existing?.value === urlQueryParam?.value,
+  (urlQueryParam, existing) => existing?.name === urlQueryParam?.name,
+  (urlQueryParam, existing) => existing?.value === urlQueryParam?.value
+];
+
 /**
- * Find the existing query param that a param parsed from an edited url replaces.
- * A param with the same name wins; a param with the same value is only used when no name matches,
- * so a renamed param keeps its identity without stealing a sibling that merely shares its value.
+ * Pair each query param parsed from an edited url with the existing param it replaces.
+ *
+ * Params are paired in passes: same name and value first, then same name, then same value
+ * (a param renamed in the url). Each existing param is used at most once, so an inserted or
+ * reordered param cannot take the identity of one that a later param matches more closely.
+ *
+ * @returns {Array} The matched existing param for each url param, or undefined when there is none
  */
-export const findMatchingQueryParam = (existingQueryParams = [], urlQueryParam) => {
-  return (
-    existingQueryParams.find((p) => p?.name === urlQueryParam?.name)
-    || existingQueryParams.find((p) => p?.value === urlQueryParam?.value)
-  );
+export const matchQueryParams = (urlQueryParams = [], existingQueryParams = []) => {
+  const matches = new Array(urlQueryParams.length).fill(undefined);
+  const available = [...existingQueryParams];
+
+  QUERY_PARAM_MATCH_PASSES.forEach((isMatch) => {
+    urlQueryParams.forEach((urlQueryParam, index) => {
+      if (matches[index]) {
+        return;
+      }
+      const candidateIndex = available.findIndex((existing) => isMatch(urlQueryParam, existing));
+      if (candidateIndex !== -1) {
+        matches[index] = available[candidateIndex];
+        available.splice(candidateIndex, 1);
+      }
+    });
+  });
+
+  return matches;
 };
 
 /**

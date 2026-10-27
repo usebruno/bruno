@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from '../../../playwright';
 import { openRequest, selectRequestPaneTab } from '../../utils/page';
+import { buildRequestLocators, replaceRequestUrl, typeAtEndOfRequestUrl } from '../../utils/request';
 
 const COLLECTION = 'req-description';
 const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
@@ -41,27 +42,20 @@ test.describe('Request Description - Write (Query Params)', () => {
   });
 
   test('keeps query param descriptions when the request url is edited', async ({ pageWithUserData: page }) => {
+    const { queryParams } = buildRequestLocators(page);
+
     await openRequest(page, COLLECTION, 'request-with-descriptions');
     await selectRequestPaneTab(page, 'Params');
+    await expect(queryParams.descriptionFirstLine(0)).toHaveText('Single-line query desc');
 
-    const queryTable = page.getByTestId('query-params-table');
-    const firstRowDescription = queryTable.locator('tbody tr').nth(0).getByTestId('column-description');
-    await expect(firstRowDescription.locator('.CodeMirror-line').nth(0)).toHaveText('Single-line query desc');
-
-    const urlEditor = page.locator('#request-url .CodeMirror');
-    await urlEditor.evaluate((el) => {
-      (el as any).CodeMirror.setValue('https://example.com/api?q=search&page=2&plain-query=value');
-    });
-    await expect(queryTable.locator('tbody tr').nth(1).getByTestId('column-value')).toContainText('2');
-    await expect(firstRowDescription.locator('.CodeMirror-line').nth(0)).toHaveText('Single-line query desc');
+    await replaceRequestUrl(page, 'https://example.com/api?q=search&page=2&plain-query=value');
+    await expect(queryParams.value(1)).toContainText('2');
+    await expect(queryParams.descriptionFirstLine(0)).toHaveText('Single-line query desc');
 
     // typing in the url bar rebuilds the params on every keystroke
-    await urlEditor.click();
-    await page.keyboard.press('End');
-    await page.keyboard.type('-edited');
-    await expect(queryTable.locator('tbody tr').nth(2).getByTestId('column-value')).toContainText('value-edited');
-    await expect(firstRowDescription.locator('.CodeMirror-line').nth(0)).toHaveText('Single-line query desc');
-    await expect(queryTable.locator('tbody tr').nth(1).getByTestId('column-description').locator('.CodeMirror-line').nth(0))
-      .toHaveText('Multi-line query desc line one');
+    await typeAtEndOfRequestUrl(page, '-edited');
+    await expect(queryParams.value(2)).toContainText('value-edited');
+    await expect(queryParams.descriptionFirstLine(0)).toHaveText('Single-line query desc');
+    await expect(queryParams.descriptionFirstLine(1)).toHaveText('Multi-line query desc line one');
   });
 });

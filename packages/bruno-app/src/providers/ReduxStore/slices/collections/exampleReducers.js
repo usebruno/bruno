@@ -6,7 +6,7 @@ import { findItemForExampleEditor,
   isMockResponseEditorItemUid,
   buildMockResponseEditorItem
 } from 'utils/mock-server/mock-responses/editor';
-import { findMatchingQueryParam, parsePathParams, preserveQueryParamMetadata, splitOnFirst } from 'utils/url';
+import { matchQueryParams, parsePathParams, preserveQueryParamMetadata, splitOnFirst } from 'utils/url';
 import statusCodePhraseMap from 'components/ResponsePane/StatusCode/get-status-code-phrase';
 
 export const addResponseExample = (state, action) => {
@@ -604,19 +604,19 @@ export const updateResponseExampleRequestUrl = (state, action) => {
 
   const existingParams = example.request.params || [];
   const disabledQueryParams = filter(existingParams, (p) => !p.enabled && p.type === 'query');
-  let enabledQueryParams = filter(existingParams, (p) => p.enabled && p.type === 'query');
+  const enabledQueryParams = filter(existingParams, (p) => p.enabled && p.type === 'query');
   let oldPathParams = filter(existingParams, (p) => p.enabled && p.type === 'path');
   let newPathParams = [];
 
-  each(urlQueryParams, (urlQueryParam) => {
-    const existingQueryParam = findMatchingQueryParam(enabledQueryParams, urlQueryParam);
+  const matchedQueryParams = matchQueryParams(urlQueryParams, enabledQueryParams);
+  each(urlQueryParams, (urlQueryParam, index) => {
+    const existingQueryParam = matchedQueryParams[index];
     urlQueryParam.uid = existingQueryParam?.uid || uuid();
     urlQueryParam.enabled = true;
     urlQueryParam.type = 'query';
 
     if (existingQueryParam) {
       preserveQueryParamMetadata(urlQueryParam, existingQueryParam);
-      enabledQueryParams = filter(enabledQueryParams, (p) => p?.uid !== existingQueryParam?.uid);
     }
   });
 
