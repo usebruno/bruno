@@ -69,6 +69,11 @@ test.describe('New Request modal - Escape key', () => {
       await expect(newRequestModal).toBeVisible();
       await expect(newRequestModal).not.toHaveClass(/modal--animate-out/);
     });
+
+    await test.step('Escape then closes the modal', async () => {
+      await page.keyboard.press('Escape');
+      await expect(newRequestModal).toBeHidden();
+    });
   });
 
   test('Escape closes the modal when the URL autocomplete is not open', async ({ page, createTmpDir }) => {
