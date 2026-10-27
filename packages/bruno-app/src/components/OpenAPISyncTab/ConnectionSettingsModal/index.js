@@ -26,6 +26,7 @@ const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, 
   const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
   const workspaceSpecs = useWorkspaceApiSpecs();
   const [editedSource, setEditedSource] = useState(null);
+  // Recomputed every render until the first edit, so specs that load after the modal opens still select the Workspace tab.
   const initialSource = resolveInitialSource(sourceUrl, collection?.pathname, workspaceSpecs);
   const { mode, sources } = editedSource || initialSource;
   const editSource = (update) => setEditedSource((current) => update(current || initialSource));

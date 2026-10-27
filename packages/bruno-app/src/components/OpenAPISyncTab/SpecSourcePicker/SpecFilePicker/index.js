@@ -45,7 +45,7 @@ const SpecFilePicker = ({ value, onChange, onError }) => {
       <button
         type="button"
         className="source-input file-pick-btn"
-        onClick={() => fileInputRef.current?.click()}
+        onClick={() => fileInputRef.current.click()}
         data-testid="spec-source-file-button"
       >
         {value ? value.split(/[\\/]/).pop() : 'Select File'}

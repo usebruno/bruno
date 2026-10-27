@@ -61,6 +61,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
           action={(
             <Button
               type="submit"
+              data-testid="openapi-connect-button"
               size="sm"
               className="connect-button"
               disabled={!isSpecSourceReady(mode, sourceUrl, workspaceSpecs)}
