@@ -78,7 +78,7 @@ const BasicAuth = ({ item, collection, updateAuth, request, save, readOnly }) =>
           readOnly={readOnly}
           isCompact
         />
-        <SensitiveFieldWarning fieldName="basic-password" secretName="password" value={basicAuth?.password} collection={collection} item={item} disabled={disabled} onReplaceValue={handlePasswordChange} />
+        <SensitiveFieldWarning fieldName="basic-password" secretName="password" value={basicAuth?.password} collection={collection} item={item} readOnly={readOnly} onReplaceValue={handlePasswordChange} />
       </div>
     </StyledWrapper>
   );

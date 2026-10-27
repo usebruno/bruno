@@ -155,7 +155,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, readOnly }) 
               readOnly={readOnly}
               isCompact
             />
-            <SensitiveFieldWarning fieldName="oauth1-consumer-secret" secretName="consumerSecret" value={oauth1.consumerSecret} collection={collection} item={item} disabled={disabled} onReplaceValue={(val) => handleChange('consumerSecret', val)} />
+            <SensitiveFieldWarning fieldName="oauth1-consumer-secret" secretName="consumerSecret" value={oauth1.consumerSecret} collection={collection} item={item} readOnly={readOnly} onReplaceValue={(val) => handleChange('consumerSecret', val)} />
           </div>
         </div>
       )}
@@ -192,7 +192,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, readOnly }) 
             readOnly={readOnly}
             isCompact
           />
-          <SensitiveFieldWarning fieldName="oauth1-token-secret" secretName="tokenSecret" value={oauth1.accessTokenSecret} collection={collection} item={item} disabled={disabled} onReplaceValue={(val) => handleChange('accessTokenSecret', val)} />
+          <SensitiveFieldWarning fieldName="oauth1-token-secret" secretName="tokenSecret" value={oauth1.accessTokenSecret} collection={collection} item={item} readOnly={readOnly} onReplaceValue={(val) => handleChange('accessTokenSecret', val)} />
         </div>
       </div>
 
@@ -260,7 +260,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, readOnly }) 
                   readOnly={readOnly}
                   allowNewlines={true}
                 />
-                <SensitiveFieldWarning fieldName="oauth1-private-key" secretName="privateKey" value={oauth1.privateKey} collection={collection} item={item} disabled={disabled} onReplaceValue={handlePrivateKeyChange} />
+                <SensitiveFieldWarning fieldName="oauth1-private-key" secretName="privateKey" value={oauth1.privateKey} collection={collection} item={item} readOnly={readOnly} onReplaceValue={handlePrivateKeyChange} />
               </div>
               <div className="flex flex-row gap-2">
                 <button

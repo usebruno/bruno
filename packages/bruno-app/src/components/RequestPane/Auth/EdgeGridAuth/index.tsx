@@ -140,7 +140,7 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ item, collection, upd
             readOnly={readOnly}
             isCompact
           />
-          {isSecret && <SensitiveFieldWarning fieldName={`edgegrid-${key}`} secretName={key} value={rawValue} collection={collection} item={item} disabled={disabled} onReplaceValue={(val: string) => handleFieldChange(key, val)} />}
+          {isSecret && <SensitiveFieldWarning fieldName={`edgegrid-${key}`} secretName={key} value={rawValue} collection={collection} item={item} readOnly={readOnly} onReplaceValue={(val: string) => handleFieldChange(key, val)} />}
         </div>
       </div>
     );

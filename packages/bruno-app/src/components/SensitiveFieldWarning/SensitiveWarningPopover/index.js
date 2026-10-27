@@ -91,7 +91,7 @@ const SensitiveWarningPopover = ({
   variableUid,
   collection,
   item,
-  disabled,
+  readOnly,
   onReplaceValue,
   onMarkAsSecret
 }) => {
@@ -210,7 +210,7 @@ const SensitiveWarningPopover = ({
     <WarningMessage
       fieldName={fieldName}
       message={warningMessage}
-      actionLabel={disabled ? null : ACTION_LABELS[scope]}
+      actionLabel={readOnly ? null : ACTION_LABELS[scope]}
       onAction={handleAction}
     />
   );
