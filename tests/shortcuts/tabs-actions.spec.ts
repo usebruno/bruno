@@ -86,7 +86,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(requestTab).toBeVisible({ timeout: 2000 });
 
         await page.locator('#request-url .CodeMirror').click();
-        await page.keyboard.type('/users');
+        await page.keyboard.insertText('/users');
         await expect(requestTab.locator('.has-changes-icon')).toBeVisible();
 
         await pressShortcut(page, 'Shift', 'KeyX');
@@ -123,9 +123,9 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         const headerRow = page.locator('table').first().locator('tbody tr').first();
         await headerRow.locator('.CodeMirror').first().click();
-        await page.keyboard.type('X-Folder-Header');
+        await page.keyboard.insertText('X-Folder-Header');
         await headerRow.locator('.CodeMirror').nth(1).click();
-        await page.keyboard.type('folder-value');
+        await page.keyboard.insertText('folder-value');
         await expect(folderTab.locator('.has-changes-icon')).toBeVisible();
 
         await pressShortcut(page, 'Shift', 'KeyX');
@@ -163,9 +163,9 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.locator('.tab.headers').click();
         const headerRow = page.locator('table').first().locator('tbody tr').first();
         await headerRow.locator('.CodeMirror').first().click();
-        await page.keyboard.type('X-Custom-Header');
+        await page.keyboard.insertText('X-Custom-Header');
         await headerRow.locator('.CodeMirror').nth(1).click();
-        await page.keyboard.type('custom-value');
+        await page.keyboard.insertText('custom-value');
         await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
 
         await pressShortcut(page, 'Shift', 'KeyX');
@@ -296,11 +296,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         const nameEditor = headerRow.locator('.CodeMirror').first();
         await nameEditor.click();
-        await page.keyboard.type('X-Custom-Header');
+        await page.keyboard.insertText('X-Custom-Header');
 
         const valueEditor = headerRow.locator('.CodeMirror').nth(1);
         await valueEditor.click();
-        await page.keyboard.type('custom-value');
+        await page.keyboard.insertText('custom-value');
 
         // Verify draft indicator appears in the tab
         await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
@@ -343,11 +343,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         const nameEditor = headerRow.locator('.CodeMirror').first();
         await nameEditor.click();
-        await page.keyboard.type('X-Custom-Header');
+        await page.keyboard.insertText('X-Custom-Header');
 
         const valueEditor = headerRow.locator('.CodeMirror').nth(1);
         await valueEditor.click();
-        await page.keyboard.type('custom-value');
+        await page.keyboard.insertText('custom-value');
 
         // Verify draft indicator appears in the tab
         await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
@@ -381,11 +381,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         const nameEditor = headerRow.locator('.CodeMirror').first();
         await nameEditor.click();
-        await page.keyboard.type('X-Custom-Header');
+        await page.keyboard.insertText('X-Custom-Header');
 
         const valueEditor = headerRow.locator('.CodeMirror').nth(1);
         await valueEditor.click();
-        await page.keyboard.type('custom-value');
+        await page.keyboard.insertText('custom-value');
 
         // Verify draft indicator appears in the tab
         await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
@@ -406,11 +406,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         const folderNameEditor = folderHeaderRow.locator('.CodeMirror').first();
         await folderNameEditor.click();
-        await page.keyboard.type('X-Folder-Header');
+        await page.keyboard.insertText('X-Folder-Header');
 
         const folderValueEditor = folderHeaderRow.locator('.CodeMirror').nth(1);
         await folderValueEditor.click();
-        await page.keyboard.type('folder-value');
+        await page.keyboard.insertText('folder-value');
 
         // Verify draft indicator appears in the folder tab
         await expect(folderTab.locator('.has-changes-icon')).toBeVisible();
@@ -457,11 +457,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         const nameEditor = headerRow.locator('.CodeMirror').first();
         await nameEditor.click();
-        await page.keyboard.type('X-Custom-Header');
+        await page.keyboard.insertText('X-Custom-Header');
 
         const valueEditor = headerRow.locator('.CodeMirror').nth(1);
         await valueEditor.click();
-        await page.keyboard.type('custom-value');
+        await page.keyboard.insertText('custom-value');
 
         // Verify draft indicator appears in the tab
         await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
@@ -482,11 +482,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         const folderNameEditor = folderHeaderRow.locator('.CodeMirror').first();
         await folderNameEditor.click();
-        await page.keyboard.type('X-Folder-Header');
+        await page.keyboard.insertText('X-Folder-Header');
 
         const folderValueEditor = folderHeaderRow.locator('.CodeMirror').nth(1);
         await folderValueEditor.click();
-        await page.keyboard.type('folder-value');
+        await page.keyboard.insertText('folder-value');
 
         // Verify draft indicator appears in the folder tab
         await expect(folderTab.locator('.has-changes-icon')).toBeVisible();

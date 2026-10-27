@@ -38,7 +38,7 @@ const expectFieldValue = async (page, fieldName: string, expected: string) => {
 const setField = async (page, fieldName: string, value: string) => {
   await editorIn(fieldRow(page, fieldName)).click();
   await page.keyboard.press('ControlOrMeta+a');
-  await page.keyboard.type(value);
+  await page.keyboard.insertText(value);
 };
 
 const selectEdgeGridMode = async (page) => {

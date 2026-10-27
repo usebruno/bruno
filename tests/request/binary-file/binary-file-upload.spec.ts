@@ -129,7 +129,7 @@ test.describe.serial('File / Binary body upload', () => {
         await contentTypeCell.locator('.CodeMirror').click();
         await page.keyboard.press(selectAllShortcut);
         await page.keyboard.press('Backspace');
-        await page.keyboard.type(overrideContentType);
+        await page.keyboard.insertText(overrideContentType);
         // Commit the value and blur the editor so the new content-type is persisted
         await page.keyboard.press('Tab');
       });

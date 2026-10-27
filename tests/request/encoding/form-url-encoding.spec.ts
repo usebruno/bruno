@@ -21,7 +21,7 @@ const fillFormUrlEncodedParam = async (page: Page, rowIndex: number, name: strin
   const row = formTable.row(rowIndex);
   await formTable.rowNameInput(row).fill(name);
   await formTable.rowValueEditor(row).click();
-  await page.keyboard.type(value);
+  await page.keyboard.insertText(value);
 };
 
 const addContentTypeHeader = async (page: Page, value: string) => {
