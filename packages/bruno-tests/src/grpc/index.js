@@ -14,8 +14,9 @@
  * method discovery works without a client-side proto file.
  *
  * The service and its reflection are mounted again under each subpath in SUBPATH_MOUNTS,
- * which differ only in case; each mount names itself in its reply so a client that
- * lowercases the URL lands on the wrong one (see tests/grpc/subpath).
+ * whose paths differ only in case. Each mount names itself in its reply — by label as well as
+ * by path, so the mounts stay distinguishable under a case-insensitive assertion — and a client
+ * that lowercases the URL lands on the wrong one (see tests/grpc/subpath).
  *
  * Usage:
  *   node ./src/grpc/index.js                 # standalone
@@ -30,7 +31,10 @@ const { ReflectionService } = require('@grpc/reflection');
 
 const PROTO_PATH = path.join(__dirname, 'hello.proto');
 const STREAM_REPLY_COUNT = 10;
-const SUBPATH_MOUNTS = ['/Hello.Api', '/hello.api'];
+const SUBPATH_MOUNTS = [
+  { prefix: '/Hello.Api', label: 'mixedcase mount' },
+  { prefix: '/hello.api', label: 'lowercase mount' }
+];
 
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   keepCase: true,
@@ -116,8 +120,8 @@ const start = async () => {
   const reflection = new ReflectionService(packageDefinition);
   reflection.addToServer(server);
 
-  SUBPATH_MOUNTS.forEach((prefix) => {
-    server.addService(prefixMethodPaths(helloService, prefix), createHandlers(` from ${prefix}`));
+  SUBPATH_MOUNTS.forEach(({ prefix, label }) => {
+    server.addService(prefixMethodPaths(helloService, prefix), createHandlers(` from ${label} ${prefix}`));
     reflection.addToServer(mountedAt(server, prefix));
   });
 

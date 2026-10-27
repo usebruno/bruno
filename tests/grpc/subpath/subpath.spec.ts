@@ -6,7 +6,7 @@ const COLLECTION_NAME = 'GrpcSubpath';
 const METHOD = 'HelloService/SayHello';
 
 // The testbench mounts hello.HelloService at the root and under /Hello.Api and /hello.api,
-// which differ only in case; each reply names its mount, so the text says which one answered.
+// which differ only in case; each reply names its mount by label and path.
 test.describe('grpc requests under a URL subpath', () => {
   test('reaches the service mounted under the subpath', async ({ pageWithUserData: page }) => {
     const locators = buildGrpcCommonLocators(page);
@@ -15,7 +15,7 @@ test.describe('grpc requests under a URL subpath', () => {
     await sendGrpcRequest(page, 'ReflectionUnderSubpath', METHOD);
 
     await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
-    await expect(locators.response.content()).toContainText('hello amoveo from /Hello.Api');
+    await expect(locators.response.content()).toContainText('hello amoveo from mixedcase mount /Hello.Api');
   });
 
   test('reaches the service mounted under the subpath when methods come from a proto file', async ({
@@ -27,7 +27,7 @@ test.describe('grpc requests under a URL subpath', () => {
     await sendGrpcRequest(page, 'ProtoFileUnderSubpath', METHOD);
 
     await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
-    await expect(locators.response.content()).toContainText('hello amoveo from /Hello.Api');
+    await expect(locators.response.content()).toContainText('hello amoveo from mixedcase mount /Hello.Api');
   });
 
   test('sends the subpath with its case preserved', async ({ pageWithUserData: page }) => {
@@ -37,7 +37,7 @@ test.describe('grpc requests under a URL subpath', () => {
     await sendGrpcRequest(page, 'LowercaseSubpath', METHOD);
 
     await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
-    await expect(locators.response.content()).toContainText('hello amoveo from /hello.api');
+    await expect(locators.response.content()).toContainText('hello amoveo from lowercase mount /hello.api');
   });
 
   test('reports UNIMPLEMENTED for a subpath the server does not serve', async ({ pageWithUserData: page }) => {
