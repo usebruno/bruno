@@ -53,6 +53,7 @@ const registerGitIpc = require('./ipc/git');
 const registerOpenAPISyncIpc = require('./ipc/openapi-sync');
 const registerMockServerIpc = require('./ipc/mock-server');
 const registerAiIpc = require('./ipc/ai');
+const { registerLabelRenderIpc } = require('./ipc/label-render');
 const registerAiAutocompleteIpc = require('./ipc/ai/autocomplete');
 const { registerMountIpc } = require('./ipc/mount');
 const { registerSqliteIpc } = require('./ipc/sqlite');
@@ -544,6 +545,7 @@ app.on('ready', async () => {
   registerOpenAPISyncIpc(mainWindow);
   registerMockServerIpc(mainWindow);
   registerAiIpc(mainWindow);
+  registerLabelRenderIpc(mainWindow);
   registerAiAutocompleteIpc(mainWindow);
   registerMountIpc();
   sqliteService.openDatabase();

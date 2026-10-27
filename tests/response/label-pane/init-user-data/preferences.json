@@ -1,0 +1,9 @@
+{
+  "preferences": {
+    "labelary": {
+      "endpoint": "{{labelaryEndpoint}}",
+      "consentedEndpoint": "{{consentedEndpoint}}"
+    }
+  },
+  "lastOpenedCollections": ["{{collectionPath}}"]
+}
