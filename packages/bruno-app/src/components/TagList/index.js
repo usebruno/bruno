@@ -19,7 +19,7 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
     setText(value);
   };
 
-  const handleKeyDown = (e) => {
+  const addTag = (text) => {
     if (!text.trim()) {
       return;
     }
@@ -50,6 +50,8 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
     setText('');
   };
 
+  const handleKeyDown = () => addTag(text);
+
   return (
     <StyledWrapper className="flex flex-wrap flex-col gap-2">
       <SingleLineEditor
@@ -62,6 +64,7 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
         theme={displayedTheme}
         onChange={handleInputChange}
         onRun={handleKeyDown}
+        onHintPick={addTag}
         onSave={onSave}
         data-testid="tag-input"
         variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}

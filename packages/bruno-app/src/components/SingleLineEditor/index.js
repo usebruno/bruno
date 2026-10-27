@@ -97,6 +97,7 @@ class SingleLineEditor extends Component {
       getAnywordAutocompleteHints,
       showHintsFor: this.props.showHintsFor || ['variables'],
       showHintsOnClick: this.props.showHintsOnClick,
+      onHintPick: this.props.onHintPick && this._onHintPick,
       variableAutocomplete: this.props.variableAutocomplete ?? AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
     };
 
@@ -153,6 +154,13 @@ class SingleLineEditor extends Component {
     if (this.editor) {
       this.editor.setCursor(this.editor.getCursor());
     }
+  };
+
+  // A picked hint is handed to the parent instead of staying in the field, so the editor
+  // clears itself; the resulting change event keeps the controlled value in sync.
+  _onHintPick = (text) => {
+    this.props.onHintPick(text);
+    this.editor.setValue('');
   };
 
   _onEdit = () => {

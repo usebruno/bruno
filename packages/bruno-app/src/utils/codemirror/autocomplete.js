@@ -1034,6 +1034,19 @@ export const getAutoCompleteHints = (cm, allVariables = {}, anywordAutocompleteH
 };
 
 /**
+ * Notify `options.onHintPick` with the text of the hint the user chose from `data.list`.
+ * show-hint signals "pick" on the hint data object itself, so the listener is attached per list.
+ */
+const notifyOnHintPick = (data, options) => {
+  if (options.onHintPick) {
+    CodeMirror.on(data, 'pick', (picked) => {
+      options.onHintPick(typeof picked === 'string' ? picked : picked.text);
+    });
+  }
+  return data;
+};
+
+/**
  * Show every available hint at the cursor, regardless of what has been typed.
  * Used by the click trigger and by emptying the field (e.g. Backspace) while focused.
  * @param {Object} cm - CodeMirror instance
@@ -1080,11 +1093,7 @@ const showAllHintsAtCursor = (cm, options) => {
     const to = wordInfo ? { line: cursor.line, ch: wordInfo.end } : cursor;
 
     cm.showHint({
-      hint: () => ({
-        list: allHints,
-        from,
-        to
-      }),
+      hint: () => notifyOnHintPick({ list: allHints, from, to }, options),
       completeSingle: false
     });
   }, 0);
@@ -1126,7 +1135,7 @@ const handleKeyupForAutocomplete = (cm, event, options) => {
   }
 
   cm.showHint({
-    hint: () => hints,
+    hint: () => notifyOnHintPick(hints, options),
     completeSingle: false
   });
 };

@@ -1729,6 +1729,36 @@ describe('Bruno Autocomplete', () => {
         expect(mockedCodemirror.showHint).not.toHaveBeenCalled();
       });
 
+      it('should call onHintPick with the chosen hint text', () => {
+        jest.useFakeTimers();
+
+        const onHintPick = jest.fn();
+        const options = {
+          getAllVariables: jest.fn(() => ({})),
+          getAnywordAutocompleteHints: jest.fn(() => ['smoke']),
+          showHintsOnClick: true,
+          showHintsFor: [],
+          onHintPick
+        };
+        cleanupFn = setupAutoComplete(mockedCodemirror, options);
+        const clickHandler = mockedCodemirror.on.mock.calls.find((call) => call[0] === 'mousedown')[1];
+
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 0 });
+        mockedCodemirror.getLine.mockReturnValue('');
+
+        clickHandler(mockedCodemirror);
+        jest.runAllTimers();
+
+        // show-hint signals "pick" on the hint data object through CodeMirror's event system,
+        // and the module under test registers its listener with the real CodeMirror.
+        const hintData = mockedCodemirror.showHint.mock.calls[0][0].hint();
+        jest.requireActual('codemirror').signal(hintData, 'pick', 'smoke');
+
+        expect(onHintPick).toHaveBeenCalledWith('smoke');
+
+        jest.useRealTimers();
+      });
+
       it('should not show hints on click when showHintsOnClick is disabled', () => {
         const options = {
           getAllVariables: mockGetAllVariables,
