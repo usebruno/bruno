@@ -227,7 +227,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
       delete itemToSave.raw;
 
       const transformedItem = transformRequestToSaveToFilesystem(itemToSave);
-      await itemSchema.validate(transformedItem);
+      const validatedItem = await itemSchema.validate(transformedItem);
 
       const targetFormat = targetCollection.format || DEFAULT_COLLECTION_FORMAT;
       const sourceFormat = collection.format || DEFAULT_COLLECTION_FORMAT;
@@ -238,7 +238,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
         sourcePathname: item.pathname,
         targetDirname,
         targetFilename,
-        request: transformedItem,
+        request: validatedItem,
         format: targetFormat,
         sourceFormat
       });

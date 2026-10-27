@@ -363,6 +363,7 @@ export const buildCommonLocators = (page: Page) => ({
     parsingError: () => page.getByTestId('import-error-message'),
     browseLink: (root?: Locator) => (root ?? page).getByTestId('import-collection-browse-link'),
     importButton: (root?: Locator) => (root ?? page).getByTestId('import-collection-location-modal-submit-btn'),
+    formatSelect: (root?: Locator) => (root ?? page).locator('#format'),
     ...(() => {
       const issuesToast = () => page.getByTestId('import-issues-toast').last();
       return {
