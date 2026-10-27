@@ -1,17 +1,14 @@
 import React, { useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { find } from 'lodash';
 import { updateRunnerTagsDetails } from 'providers/ReduxStore/slices/collections';
 import { getUniqueTagsFromItems } from 'utils/collections';
 import IncludeExcludeTags from 'components/IncludeExcludeTags';
-
-const EMPTY_TAGS = { include: [], exclude: [] };
+import { selectCollectionByUid } from 'src/selectors/collections';
 
 const RunnerTags = ({ collectionUid, className = '' }) => {
   const dispatch = useDispatch();
-  const collection = useSelector((state) => find(state.collections.collections, (c) => c.uid === collectionUid));
+  const collection = useSelector((state) => selectCollectionByUid(state, collectionUid));
   const items = collection?.items;
-  const tags = collection?.runnerTags || EMPTY_TAGS;
 
   const availableTags = useMemo(() => getUniqueTagsFromItems(items || []), [items]);
 
@@ -23,7 +20,7 @@ const RunnerTags = ({ collectionUid, className = '' }) => {
     <IncludeExcludeTags
       testIdPrefix="runner"
       className={className}
-      tags={tags}
+      tags={collection?.runnerTags}
       availableTags={availableTags}
       onChange={handleChange}
     />
