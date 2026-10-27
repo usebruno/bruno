@@ -23,7 +23,7 @@ export const Tabs = ({ value, onValueChange, children, className = '' }) => {
   );
 };
 
-export const TabsList = ({ children, className = '', testId }) => {
+export const TabsList = ({ children, className = '', dataTestId = 'tabs-list' }) => {
   const { value, onValueChange } = useContext(TabsContext);
   const menuDropdownRef = useRef(null);
 
@@ -50,7 +50,7 @@ export const TabsList = ({ children, className = '', testId }) => {
   }));
 
   return (
-    <div ref={listRef} className={`tabs-list ${className}`} data-testid={testId}>
+    <div ref={listRef} className={`tabs-list ${className}`} data-testid={dataTestId}>
       {/* Measured clones are plain buttons, not TabsTrigger, so `tab-trigger-${value}` ids stay unique. */}
       <div ref={measureRowRef} className="tabs-list-measure" aria-hidden="true">
         {triggers.map((trigger) => (

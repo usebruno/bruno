@@ -2502,15 +2502,15 @@ const selectScriptSubTab = async (page: Page, subTab: ScriptSubTab) => {
   await test.step(`Select Script sub-tab "${subTab}"`, async () => {
     await selectRequestPaneTab(page, 'Script');
     const locators = buildCommonLocators(page);
-    const trigger = locators.paneTabs.tabTrigger(subTab);
+    const tabTrigger = locators.paneTabs.tabTrigger(subTab);
     const overflowTrigger = locators.paneTabs.scriptSubTabsOverflowTrigger();
 
     // The sub-tab row re-measures via ResizeObserver/rAF, so a trigger can detach mid-click.
     // Retry the whole sequence so a mid-action re-layout doesn't fail the test.
     await expect(async () => {
-      if (await trigger.isVisible()) {
-        await trigger.click({ timeout: 2000 });
-        await expect(trigger).toContainClass('active', { timeout: 2000 });
+      if (await tabTrigger.isVisible()) {
+        await tabTrigger.click({ timeout: 2000 });
+        await expect(tabTrigger).toContainClass('active', { timeout: 2000 });
         return;
       }
 
@@ -2523,7 +2523,7 @@ const selectScriptSubTab = async (page: Page, subTab: ScriptSubTab) => {
         await item.waitFor({ state: 'visible', timeout: 2000 });
         await item.click({ timeout: 2000 });
         // Selecting pulls the tab into the visible row, so its trigger exists again.
-        await expect(trigger).toContainClass('active', { timeout: 2000 });
+        await expect(tabTrigger).toContainClass('active', { timeout: 2000 });
         return;
       }
 

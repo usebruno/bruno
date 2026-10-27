@@ -100,7 +100,7 @@ const Script = ({ item, collection }) => {
   return (
     <div className="w-full h-full flex flex-col">
       <Tabs value={activeTab} onValueChange={onScriptTabChange}>
-        <TabsList testId="script-sub-tabs">
+        <TabsList dataTestId="script-sub-tabs">
           <TabsTrigger value="pre-request">
             Pre Request
             {hasPreRequestScript && (

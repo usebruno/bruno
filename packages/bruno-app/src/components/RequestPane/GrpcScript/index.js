@@ -61,7 +61,7 @@ const GrpcScript = ({ item, collection, handleRun }) => {
   return (
     <div className="w-full h-full flex flex-col">
       <Tabs value={activeTab} onValueChange={(tab) => dispatch(updateScriptPaneTab({ uid: item.uid, scriptPaneTab: tab }))}>
-        <TabsList testId="script-sub-tabs">
+        <TabsList dataTestId="script-sub-tabs">
           {panes.map(({ hook, label, scriptType, code, errorMessageKey }) => (
             <TabsTrigger key={hook} value={scriptType}>
               {label}

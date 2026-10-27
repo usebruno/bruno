@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-// This hook and `calculateTabVisibility` in `ui/ResponsiveTabs` take the same measure-and-overflow
-// approach, but their width rules differ, so check whether a fix to one also applies to the other.
-
 const areKeysEqual = (prevKeys, newKeys) => {
   if (prevKeys.length !== newKeys.length) return false;
   return prevKeys.every((key, i) => key === newKeys[i]);
@@ -29,6 +26,8 @@ const useTabsOverflow = ({ keys, activeKey }) => {
   const measureRefs = useRef({});
   const overflowTriggerMeasureRef = useRef(null);
 
+  // This and `calculateTabVisibility` in `ui/ResponsiveTabs` take the same measure-and-overflow
+  // approach, but their width rules differ, so check whether a fix to one also applies to the other.
   const calculate = () => {
     const list = listRef.current;
     if (!list || !keys.length) return;
