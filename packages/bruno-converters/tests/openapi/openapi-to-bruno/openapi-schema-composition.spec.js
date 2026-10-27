@@ -627,12 +627,22 @@ describe('openapi schema composition', () => {
       expect(requestBody(buildSpec({ schemas, paths: postBody(schema), openapi: '3.1.0' }))).toEqual({ status: 'active', value: 0 });
     });
 
+    it('picks the alternative for each use when only one use of the schema has a not', () => {
+      const schemas = { Value: { oneOf: [{ type: 'string' }, { type: 'integer' }] } };
+      const plain = ref('Value');
+      const picky = { allOf: [ref('Value')], not: { type: 'string' } };
+      const body = (properties) => requestBody(buildSpec({ schemas, paths: postBody({ type: 'object', properties }) }));
+      expect(body({ plain, picky })).toEqual({ plain: '', picky: 0 });
+      expect(body({ picky, plain })).toEqual({ picky: 0, plain: '' });
+    });
+
     it('keeps a forbidden value out of required parameters', () => {
       const parameters = [
         { name: 'count', in: 'query', required: true, schema: { type: 'integer', minimum: 0, not: { enum: [0] } } },
-        { name: 'q', in: 'query', required: true, schema: { type: 'string', examples: ['foo'], not: { const: 'foo' } } }
+        { name: 'q', in: 'query', required: true, schema: { type: 'string', examples: ['foo'], not: { const: 'foo' } } },
+        { name: 'code', in: 'query', required: true, schema: { type: 'string', not: { enum: [''] } } }
       ];
-      expect(queryParams(buildSpec({ paths: getWithParameters(parameters), openapi: '3.1.0' }))).toEqual([['count', '1'], ['q', '']]);
+      expect(queryParams(buildSpec({ paths: getWithParameters(parameters), openapi: '3.1.0' }))).toEqual([['count', '1'], ['q', ''], ['code', 'string']]);
     });
 
     it('keeps a forbidden value out of form fields and XML elements', () => {
@@ -960,6 +970,19 @@ describe('openapi schema composition', () => {
         expect(body(wrap, true)).toBe(plain);
         expect(body(wrap, componentsFirst)).toBe(plain);
       });
+    });
+
+    it('expands a model behind a not no further than without it', () => {
+      const node = (child) => ({ Node: { type: 'object', properties: { name: { type: 'string' }, child } } });
+      const behindNot = importBody(node({ allOf: [ref('Node')], not: { type: 'string' } }), ref('Node'));
+      expect(behindNot).toEqual(importBody(node({ allOf: [ref('Node')] }), ref('Node')));
+      expect(behindNot).toEqual({ name: '', child: {} });
+    });
+
+    it('merges a recursive map that two allOf parts both declare', () => {
+      const children = () => ({ type: 'object', additionalProperties: ref('Node') });
+      const schemas = { Node: { allOf: [{ type: 'object', properties: { children: children() } }, { type: 'object', properties: { children: children() } }] } };
+      expect(importBody(schemas, ref('Node'))).toEqual({ children: { additionalProp1: {} } });
     });
   });
 
