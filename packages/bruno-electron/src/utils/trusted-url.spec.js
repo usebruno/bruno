@@ -1,8 +1,11 @@
+const path = require('path');
+const { pathToFileURL } = require('url');
 const { isAppUrl, isTrustedSender, restrictIpcToAppFrames } = require('./trusted-url');
 
 jest.mock('electron-is-dev', () => false);
 
-const FILE_APP = 'file:///opt/bruno/web/index.html';
+const FILE_APP = pathToFileURL(path.resolve('/bruno/web/index.html')).href;
+const FILE_OTHER = pathToFileURL(path.resolve('/bruno/web/other.html')).href;
 const DEV_APP = 'http://localhost:3000';
 
 describe('isAppUrl', () => {
@@ -14,7 +17,7 @@ describe('isAppUrl', () => {
   it.each([
     'https://attacker.example/',
     'file:///etc/passwd',
-    'file:///opt/bruno/web/other.html',
+    FILE_OTHER,
     'javascript:alert(1)',
     'data:text/html,hi',
     'http://localhost.evil.com',
