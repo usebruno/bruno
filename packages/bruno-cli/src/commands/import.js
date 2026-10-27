@@ -5,7 +5,7 @@ const chalk = require('chalk');
 const jsyaml = require('js-yaml');
 const axios = require('axios');
 const { openApiToBruno, wsdlToBruno, postmanToBruno, postmanToBrunoEnvironment } = require('@usebruno/converters');
-const { coerceEnvName, dedupeImportedSecrets } = require('@usebruno/common').utils;
+const { coerceEnvName, dedupeImportedSecrets, generateUniqueName } = require('@usebruno/common').utils;
 const { exists, isDirectory, sanitizeName, canonicalPath } = require('../utils/filesystem');
 const { writeEnvironmentFile } = require('../utils/environment');
 const { getCollectionFormat } = require('../utils/collection');
@@ -337,7 +337,10 @@ const importPostmanCollection = async (source, { insecure, preserveScripts, envi
   const { collection, issues, translationIssues } = await convertPostmanCollection(postmanCollection, { preserveScripts });
 
   for (const environmentSource of environmentSources) {
-    collection.environments.push(await convertPostmanEnvironment(environmentSource, { insecure }));
+    const environment = await convertPostmanEnvironment(environmentSource, { insecure });
+    const takenNames = collection.environments.map((env) => env.name);
+    const name = generateUniqueName(sanitizeName(environment.name), (candidate) => takenNames.includes(candidate));
+    collection.environments.push({ ...environment, name });
   }
 
   return { collection, issues: [...issues, ...translationIssues] };
@@ -379,9 +382,7 @@ const importPostmanEnvironment = async ({ source, output, outputFile, insecure }
     throw new Error('--output is required for postman-env');
   }
 
-  const resolvedOutput = path.resolve(output);
-  const envDirPath = path.basename(resolvedOutput) === 'environments' ? resolvedOutput : path.join(resolvedOutput, 'environments');
-  const collectionDir = path.dirname(envDirPath);
+  const collectionDir = path.resolve(output);
   const format = getCollectionFormat(collectionDir);
   if (!format) {
     throw new Error(`Not a Bruno collection (no opencollection.yml or bruno.json): ${collectionDir}`);
@@ -392,8 +393,8 @@ const importPostmanEnvironment = async ({ source, output, outputFile, insecure }
 
   console.log(chalk.yellow(`Reading Postman environment from ${source}...`));
   const environment = await convertPostmanEnvironment(source, { insecure });
-  const envFilePath = writeEnvironmentFile(environment, envDirPath, { format });
-  console.log(chalk.green(`Environment "${environment.name}" written to ${envFilePath}`));
+  const { name, filePath } = writeEnvironmentFile(environment, path.join(collectionDir, 'environments'), { format });
+  console.log(chalk.green(`Environment "${name}" written to ${filePath}`));
 };
 
 const handler = async (argv) => {

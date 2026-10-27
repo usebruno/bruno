@@ -54,7 +54,8 @@ export {
 export {
   sanitizeName,
   validateName,
-  validateNameError
+  validateNameError,
+  generateUniqueName
 } from './naming';
 
 export {

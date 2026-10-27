@@ -29,10 +29,11 @@ describe('writeEnvironmentFile', () => {
 
   describe.each(['yml', 'bru'])('%s format', (format) => {
     it('writes a file that parses back with its secret and disabled variables', () => {
-      const envFilePath = writeEnvironmentFile(environment, envDirPath, { format });
+      const { name, filePath } = writeEnvironmentFile(environment, envDirPath, { format });
 
-      expect(envFilePath).toBe(path.join(envDirPath, `staging.${format}`));
-      const parsed = parseEnvironment(fs.readFileSync(envFilePath, 'utf8'), { format });
+      expect(name).toBe('staging');
+      expect(filePath).toBe(path.join(envDirPath, `staging.${format}`));
+      const parsed = parseEnvironment(fs.readFileSync(filePath, 'utf8'), { format });
       // .bru keeps secrets in a block of their own, so only the set of variables is compared.
       expect(parsed.variables).toHaveLength(3);
       expect(parsed.variables).toEqual(expect.arrayContaining([
@@ -50,18 +51,23 @@ describe('writeEnvironmentFile', () => {
       expect(fs.existsSync(envDirPath)).toBe(true);
     });
 
-    it('refuses to replace an existing file', () => {
-      const envFilePath = writeEnvironmentFile(environment, envDirPath, { format });
-      fs.writeFileSync(envFilePath, 'hand-edited');
+    it('gives a taken name a copy suffix instead of replacing the existing file', () => {
+      const { filePath: firstPath } = writeEnvironmentFile(environment, envDirPath, { format });
+      fs.writeFileSync(firstPath, 'hand-edited');
 
-      expect(() => writeEnvironmentFile(environment, envDirPath, { format })).toThrow(`Environment file already exists: ${envFilePath}`);
-      expect(fs.readFileSync(envFilePath, 'utf8')).toBe('hand-edited');
+      const second = writeEnvironmentFile(environment, envDirPath, { format });
+      const third = writeEnvironmentFile(environment, envDirPath, { format });
+
+      expect(second).toEqual({ name: 'staging copy', filePath: path.join(envDirPath, `staging copy.${format}`) });
+      expect(third).toEqual({ name: 'staging copy 2', filePath: path.join(envDirPath, `staging copy 2.${format}`) });
+      expect(fs.readFileSync(firstPath, 'utf8')).toBe('hand-edited');
     });
   });
 
   it('sanitizes the environment name into a filename', () => {
-    const envFilePath = writeEnvironmentFile({ ...environment, name: 'qa/eu: west' }, envDirPath, { format: 'yml' });
+    const { name, filePath } = writeEnvironmentFile({ ...environment, name: 'qa/eu: west' }, envDirPath, { format: 'yml' });
 
-    expect(path.basename(envFilePath)).toBe('qa-eu- west.yml');
+    expect(name).toBe('qa-eu- west');
+    expect(path.basename(filePath)).toBe('qa-eu- west.yml');
   });
 });

@@ -105,6 +105,24 @@ describe('CLI import postman — imported collections run with bru run', () => {
     expectEveryRequestServed();
   }, RUN_TIMEOUT);
 
+  it('gives a repeated environment name a copy suffix instead of overwriting', async () => {
+    const collectionDir = path.join(workDir, 'collection');
+    const environmentPath = stageEnvironment();
+
+    const collectionImport = await runCli([
+      'import', 'postman',
+      '--source', COLLECTION_FIXTURE,
+      '--output', collectionDir,
+      '--environment', environmentPath, environmentPath
+    ], workDir);
+    expect(collectionImport.code).toBe(0);
+
+    const environmentImport = await runCli(['import', 'postman-env', '--source', environmentPath, '--output', collectionDir], workDir);
+
+    expect(environmentImport.code).toBe(0);
+    expect(fs.readdirSync(path.join(collectionDir, 'environments')).sort()).toEqual(['staging copy 2.yml', 'staging copy.yml', 'staging.yml']);
+  }, RUN_TIMEOUT);
+
   it.each(['bru', 'opencollection'])('rejects postman with --collection-format %s, writing nothing', async (collectionFormat) => {
     const collectionDir = path.join(workDir, 'collection');
 

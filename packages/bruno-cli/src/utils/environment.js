@@ -3,7 +3,7 @@ const path = require('path');
 const chalk = require('chalk');
 const { parseEnvironment, stringifyEnvironment } = require('@usebruno/filestore');
 const { getEnvVars } = require('../utils/bru');
-const { resolveEnvironmentInheritance: resolveEnvironmentInheritanceCommon, sanitizeName } = require('@usebruno/common').utils;
+const { resolveEnvironmentInheritance: resolveEnvironmentInheritanceCommon, sanitizeName, generateUniqueName } = require('@usebruno/common').utils;
 
 /**
  * Parse a Bruno JSON environment object and normalize variables
@@ -148,17 +148,18 @@ const loadEnvironmentFromFile = ({ filePath, name, resolveInheritance = true }) 
 
 /**
  * Writes one environment into a collection's `environments/` directory, creating it when missing.
- * Refuses to replace an existing file. Returns the path written.
+ * A name already taken there gets a "copy" suffix. Returns the name and path written.
  */
 const writeEnvironmentFile = (env, envDirPath, { format }) => {
-  const envFilePath = path.join(envDirPath, sanitizeName(`${env.name}.${format}`));
-  if (fs.existsSync(envFilePath)) {
-    throw new Error(`Environment file already exists: ${envFilePath}`);
-  }
-
   fs.mkdirSync(envDirPath, { recursive: true });
-  fs.writeFileSync(envFilePath, stringifyEnvironment(env, { format }));
-  return envFilePath;
+  const existingNames = fs.readdirSync(envDirPath)
+    .filter((file) => file.endsWith(`.${format}`))
+    .map((file) => path.basename(file, `.${format}`));
+  const name = generateUniqueName(sanitizeName(env.name), (candidate) => existingNames.includes(candidate));
+
+  const filePath = path.join(envDirPath, `${name}.${format}`);
+  fs.writeFileSync(filePath, stringifyEnvironment({ ...env, name }, { format }));
+  return { name, filePath };
 };
 
 module.exports = {
