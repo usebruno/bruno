@@ -253,6 +253,20 @@ describe('mergeJsonBody', () => {
     const merged = helpers.mergeJsonBody(userBody, specBody, false);
     expect(merged).toBe(specBody);
   });
+
+  it('keeps the user json when the spec body has no json template', () => {
+    const userBody = { mode: 'json', json: '{"amount": 5}' };
+    for (const json of [null, undefined, '']) {
+      expect(helpers.mergeJsonBody(userBody, { mode: 'json', json }, true).json).toBe('{"amount": 5}');
+    }
+  });
+
+  it('takes the spec body when the user has no json', () => {
+    const specBody = { mode: 'json', json: '{"id":0}' };
+    for (const json of [null, undefined, '']) {
+      expect(helpers.mergeJsonBody({ mode: 'json', json }, specBody, true)).toBe(specBody);
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -454,9 +468,32 @@ describe('mergeFieldListPreserving', () => {
         expect(enabledOf(out)).toEqual(['z']);
       });
 
-      it.each(['active', 'inactive'])('keeps the chosen value %s when the spec turns the enum into a plain value', (chosen) => {
-        const out = helpers.mergeFieldListPreserving(status(['']), status(['active', 'inactive'], chosen), true, status(['active', 'inactive']));
+      it.each([
+        ['active', ''],
+        ['inactive', ''],
+        ['active', 'inactive'],
+        ['inactive', 'active'],
+        ['active', 'active']
+      ])('keeps the chosen value %s when the spec turns the enum into a plain value with the example "%s"', (chosen, example) => {
+        const out = helpers.mergeFieldListPreserving(status([example]), status(['active', 'inactive'], chosen), true, status(['active', 'inactive']));
         expect(out).toEqual([{ name: 'status', value: chosen, type: 'query', enabled: true }]);
+      });
+
+      it('keeps the entry with the spec value when a key with several enabled entries now has one', () => {
+        const ids = (values) => values.map((value) => ({ name: 'ids', value, type: 'query', enabled: true }));
+        const out = helpers.mergeFieldListPreserving(ids(['2']), ids(['1', '2']), true, ids(['1', '2']));
+        expect(out).toEqual([{ name: 'ids', value: '2', type: 'query', enabled: true }]);
+      });
+
+      it('pairs the enabled copy when the user has the spec value twice and the disabled copy comes first', () => {
+        const limit = (value, enabled) => ({ name: 'limit', value, type: 'query', enabled });
+        const out = helpers.mergeFieldListPreserving([limit('50', true)], [limit('50', false), limit('10', true), limit('50', true)], true, [limit('10', false), limit('50', false)]);
+        expect(out).toEqual([limit('50', true)]);
+      });
+
+      it('keeps the param off when the user had no value enabled and the spec turns the enum into a plain value', () => {
+        const out = helpers.mergeFieldListPreserving(status(['inactive']), status(['active', 'inactive']), true, status(['active', 'inactive']));
+        expect(out).toEqual([{ name: 'status', value: 'inactive', type: 'query', enabled: false }]);
       });
     });
 

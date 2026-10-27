@@ -250,6 +250,18 @@ describe.each(['bru', 'yml'])('openapi sync with preserve values in a %s collect
     });
   });
 
+  it.each([
+    ['has none either', createPetSpec({ requestBody: { content: { 'application/json': {} } } })],
+    ['had one', jsonSpec({ name: string })]
+  ])('keeps the user json body as written when the spec gives the body no schema and the stored spec %s', async (_, stored) => {
+    writeStoredSpec(stored);
+    writeUserRequestFrom(stored, withJsonBody({ amount: 5 }));
+
+    for (const request of await previewAndApply(createPetSpec({ requestBody: { content: { 'application/json': {} } } }))) {
+      expect(request.body.json).toBe('{"amount":5}');
+    }
+  });
+
   it('keeps what the user wrote in an object the spec turns into a free-form map', async () => {
     const previous = jsonSpec({ name: string, metadata: objectSchema({ env: string }) });
     writeStoredSpec(previous);
@@ -276,6 +288,95 @@ describe.each(['bru', 'yml'])('openapi sync with preserve values in a %s collect
 
       for (const request of await previewAndApply(petBody('Bird', 'Dog', 'Cat'))) {
         expect(JSON.parse(request.body.json)).toMatchObject({ petType: 'dog', bark: true });
+      }
+    });
+
+    describe('a nested oneOf whose example shows another alternative than the user sends', () => {
+      const paymentSpec = (alternatives, properties) => createPetSpec({
+        requestBody: jsonBody(objectSchema({
+          amount: { type: 'number' },
+          payment: { oneOf: alternatives.map((name) => ({ $ref: `#/components/schemas/${name}` })), example: { cardNumber: '' } },
+          ...properties
+        }))
+      }, { schemas: { Card: objectSchema({ cardNumber: string }), Iban: objectSchema({ iban: string }) } });
+
+      it('keeps the user\'s iban, drops what the spec removed and adds what it added', async () => {
+        const previous = paymentSpec(['Card', 'Iban'], { legacy: string });
+        writeStoredSpec(previous);
+        writeUserRequestFrom(previous, withJsonBody({ amount: 5, payment: { iban: 'DE89' }, debug: true, legacy: 'x' }));
+
+        for (const request of await previewAndApply(paymentSpec(['Card', 'Iban'], { currency: string }))) {
+          expect(JSON.parse(request.body.json)).toEqual({ amount: 5, payment: { cardNumber: '', iban: 'DE89' }, currency: '', debug: true });
+        }
+      });
+
+      it('drops the user\'s iban when the spec removes the iban alternative', async () => {
+        const previous = paymentSpec(['Card', 'Iban'], {});
+        writeStoredSpec(previous);
+        writeUserRequestFrom(previous, withJsonBody({ amount: 5, payment: { iban: 'DE89' } }));
+
+        for (const request of await previewAndApply(paymentSpec(['Card'], {}))) {
+          expect(JSON.parse(request.body.json)).toEqual({ amount: 5, payment: { cardNumber: '' } });
+        }
+      });
+    });
+
+    it.each([
+      ['without a type', {}],
+      ['typed as an object', { type: 'object' }]
+    ])('drops a field the spec removed from the oneOf alternative the user sends, with payment %s', async (_, paymentType) => {
+      const paymentSpec = (ibanProperties) => createPetSpec({
+        requestBody: jsonBody(objectSchema({
+          amount: { type: 'number' },
+          payment: { ...paymentType, oneOf: [{ $ref: '#/components/schemas/Card' }, { $ref: '#/components/schemas/Iban' }] }
+        }))
+      }, { schemas: { Card: objectSchema({ cardNumber: string }), Iban: objectSchema(ibanProperties) } });
+      const previous = paymentSpec({ iban: string, bic: string });
+      writeStoredSpec(previous);
+      writeUserRequestFrom(previous, withJsonBody({ amount: 5, payment: { iban: 'DE', bic: 'B', note: 'mine' } }));
+
+      for (const request of await previewAndApply(paymentSpec({ iban: string }))) {
+        expect(JSON.parse(request.body.json)).toEqual({ amount: 5, payment: { iban: 'DE', note: 'mine' } });
+      }
+    });
+
+    it('drops a field the spec removed from a top-level allOf body that imports as {}', async () => {
+      const baseSpec = (properties) => createPetSpec({ requestBody: jsonBody({ allOf: [{ $ref: '#/components/schemas/Base' }] }) }, { schemas: { Base: objectSchema(properties) } });
+      const previous = baseSpec({ name: string, legacy: string });
+      writeStoredSpec(previous);
+      writeUserRequestFrom(previous, withJsonBody({ name: 'Rex', legacy: 'x', debug: true }));
+
+      for (const request of await previewAndApply(baseSpec({ name: string }))) {
+        expect(JSON.parse(request.body.json)).toEqual({ name: 'Rex', debug: true });
+      }
+    });
+
+    it('drops a field the spec removed from the items of an array whose template is empty', async () => {
+      const paymentsSpec = (ibanProperties) => createPetSpec({
+        requestBody: jsonBody(objectSchema({
+          amount: { type: 'number' },
+          payments: { type: 'array', items: { oneOf: [{ $ref: '#/components/schemas/Card' }, { $ref: '#/components/schemas/Iban' }] } }
+        }))
+      }, { schemas: { Card: objectSchema({ cardNumber: string }), Iban: objectSchema(ibanProperties) } });
+      const previous = paymentsSpec({ iban: string, bic: string });
+      writeStoredSpec(previous);
+      writeUserRequestFrom(previous, withJsonBody({ amount: 5, payments: [{ iban: 'DE', bic: 'B' }] }));
+
+      for (const request of await previewAndApply(paymentsSpec({ iban: string }))) {
+        expect(JSON.parse(request.body.json)).toEqual({ amount: 5, payments: [{ iban: 'DE' }] });
+      }
+    });
+
+    it('drops a field the spec removed beneath a key the spec example leaves out', async () => {
+      const ownerSpec = (ownerProperties) => createPetSpec({
+        requestBody: jsonBody({ ...objectSchema({ amount: { type: 'number' }, owner: { $ref: '#/components/schemas/Owner' } }), example: { amount: 0 } })
+      }, { schemas: { Owner: objectSchema(ownerProperties) } });
+      const previous = ownerSpec({ name: string, legacy: string });
+      writeStoredSpec(previous);
+      writeUserRequestFrom(previous, withJsonBody({ amount: 5, owner: { name: 'Rex', legacy: 'x' } }));
+
+      for (const request of await previewAndApply(ownerSpec({ name: string }))) {
+        expect(JSON.parse(request.body.json)).toEqual({ amount: 5, owner: { name: 'Rex' } });
       }
     });
 
@@ -317,6 +418,19 @@ describe.each(['bru', 'yml'])('openapi sync with preserve values in a %s collect
       expect(request.params.map((p) => p.value).sort()).toEqual(['archived', 'available', 'pending', 'sold']);
       expect(request.params.filter((p) => p.enabled).map((p) => p.value)).toEqual(['pending']);
     }
+  });
+
+  it('keeps the enum value the user picked when the spec turns the param into a plain one with another old value as example', async () => {
+    const limitSpec = (schema) => createPetSpec({ parameters: [{ name: 'limit', in: 'query', schema: { type: 'integer', ...schema } }] });
+    const previous = limitSpec({ enum: [10, 50] });
+    writeStoredSpec(previous);
+    writeUserRequestFrom(previous, (request) => ({ ...request, params: request.params.map((p) => ({ ...p, enabled: p.value === '50' })) }));
+
+    const [previewed, applied] = await previewAndApply(limitSpec({ example: 10 }));
+    for (const request of [previewed, applied]) {
+      expect(request.params.map(({ value, enabled }) => [value, enabled])).toEqual([['50', true]]);
+    }
+    expect(applied.url).toBe('{{baseUrl}}/pets?limit=50');
   });
 
   it('replaces an xml body the user did not edit and keeps one the user did', async () => {

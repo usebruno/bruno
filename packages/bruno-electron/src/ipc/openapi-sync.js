@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const isPlainObject = require('lodash/isPlainObject');
 const fs = require('fs');
 const fsExtra = require('fs-extra');
 const path = require('path');
@@ -518,9 +519,7 @@ const unmaskJsonInterpolations = (str, vars, prefix = 'BRUNO_VAR') => {
 // JSON value merge helpers
 // ---------------------------------------------------------------------------
 
-/** Returns true if v is a plain (non-null, non-array) object. */
-const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
-
+/** {} still counts as a stored spec, so user keys under it are kept; undefined (no stored spec) drops them. */
 const previousSpecValueAt = (previousSpecVal, key) => {
   if (previousSpecVal === undefined) return undefined;
   return (isPlainObject(previousSpecVal) || Array.isArray(previousSpecVal)) && Object.hasOwn(previousSpecVal, key) ? previousSpecVal[key] : {};
@@ -565,6 +564,17 @@ const declaredFieldsFor = (declaredBodies, previousHasSameMode) => ({
   previous: previousHasSameMode ? declaredBodyFieldsOf(declaredBodies.previous) : undefined
 });
 
+const withoutRemovedFields = (userVal, declared) => {
+  if (Array.isArray(userVal)) return userVal.map((item) => withoutRemovedFields(item, declaredForItems(declared)));
+  if (!isPlainObject(userVal) || declaredKeysOf(declared.current).length === 0) return userVal;
+  const out = {};
+  for (const key of Object.keys(userVal)) {
+    if (declaresKey(declared.previous, key) && !declaresKey(declared.current, key)) continue;
+    setOwn(out, key, withoutRemovedFields(userVal[key], declaredForKey(declared, key)));
+  }
+  return out;
+};
+
 /**
  * Recursively merge a user JSON value with a spec JSON value.
  *
@@ -575,8 +585,8 @@ const declaredFieldsFor = (declaredBodies, previousHasSameMode) => ({
  *             previous spec had it (in its example or, via declared, its schema) and the new
  *             schema no longer declares it in any oneOf/anyOf/allOf alternative, so user additions
  *             and the fields of another alternative are kept.
- *             An empty spec object (a free-form map, or one the spec example cut short) keeps the
- *             user object as it is.
+ *             An empty spec object (a free-form map, or one the spec example cut short) or a scalar
+ *             template keeps the user object, dropping only keys the schema removed.
  *   - Array:  if user array is empty, return spec template.
  *             Otherwise re-shape each user element against the first spec element as template.
  *   - Scalar: keep user value unless it is undefined.
@@ -586,7 +596,7 @@ const declaredFieldsFor = (declaredBodies, previousHasSameMode) => ({
 const mergeJsonValues = (userVal, specVal, preserveValues = true, previousSpecVal, declared = {}) => {
   if (!preserveValues) return specVal;
   if (isPlainObject(specVal) && isPlainObject(userVal)) {
-    if (Object.keys(specVal).length === 0) return userVal;
+    if (Object.keys(specVal).length === 0) return withoutRemovedFields(userVal, declared);
     const out = {};
     for (const key of Object.keys(specVal)) {
       setOwn(out, key, Object.hasOwn(userVal, key)
@@ -597,7 +607,7 @@ const mergeJsonValues = (userVal, specVal, preserveValues = true, previousSpecVa
       for (const key of Object.keys(userVal)) {
         if (Object.hasOwn(specVal, key)) continue;
         const previouslyHad = (isPlainObject(previousSpecVal) && Object.hasOwn(previousSpecVal, key)) || declaresKey(declared.previous, key);
-        if (!previouslyHad || declaresKey(declared.current, key)) setOwn(out, key, userVal[key]);
+        if (!previouslyHad || declaresKey(declared.current, key)) setOwn(out, key, withoutRemovedFields(userVal[key], declaredForKey(declared, key)));
       }
     }
     return out;
@@ -605,11 +615,12 @@ const mergeJsonValues = (userVal, specVal, preserveValues = true, previousSpecVa
   if (Array.isArray(specVal) && Array.isArray(userVal)) {
     if (userVal.length === 0) return specVal;
     const template = specVal.length > 0 ? specVal[0] : undefined;
-    if (template === undefined) return userVal;
+    if (template === undefined) return withoutRemovedFields(userVal, declared);
     const previousTemplate = previousSpecValueAt(previousSpecVal, 0);
     const declaredItem = declaredForItems(declared);
     return userVal.map((el) => mergeJsonValues(el, template, preserveValues, previousTemplate, declaredItem));
   }
+  if (isPlainObject(userVal) && !Array.isArray(specVal)) return withoutRemovedFields(userVal, declared);
   return userVal === undefined ? specVal : userVal;
 };
 
@@ -627,11 +638,12 @@ const parseSpecJsonTemplate = (body) => {
  *
  * Uses disjoint mask prefixes (BRU_U / BRU_S) so user and spec {{var}}
  * tokens never collide.  Falls back to the verbatim user body when the user
- * JSON is unparseable (e.g. contains a work-in-progress template).
+ * JSON is unparseable (e.g. contains a work-in-progress template), and keeps
+ * the user JSON as it is when the spec body has no JSON template (no schema).
  */
 const mergeJsonBody = (userBody, specBody, preserveValues = true, previousSpecBody, declared = {}) => {
-  if (!preserveValues) return specBody;
-  if (!userBody?.json || !specBody?.json) return specBody;
+  if (!preserveValues || !userBody?.json) return specBody;
+  if (!specBody?.json) return { ...specBody, mode: 'json', json: userBody.json };
   try {
     const u = maskJsonInterpolations(userBody.json, 'BRU_U');
     const s = maskJsonInterpolations(specBody.json, 'BRU_S');
@@ -672,7 +684,9 @@ const mergeFieldEntry = (specEntry, userEntry, previousEntry) => {
  * entries. Each spec entry pairs with a user entry of the same key (`keyOf`, the
  * name by default) and value first (an enum choice keeps its `enabled`), then with
  * another one of the same key, an enabled one first (while the key is still an
- * enum, not with a value the spec dropped); a pair keeps the user's value,
+ * enum, not with a value the spec dropped). When a key that had several values
+ * now has one, a disabled same-value entry yields to the user's enabled one and
+ * the other old values are dropped. A pair keeps the user's value,
  * `enabled`, `contentType` and annotations, and the user's description when the
  * spec has none. An enum value the user does not have yet comes in disabled while
  * the user still has that param. A multipart field takes the spec entry only when
@@ -689,8 +703,11 @@ const mergeFieldListPreserving = (specItems, existingItems, preserveValues = tru
   const previous = previousItems && previousItems.filter(isPlainObject);
   const sameEntry = (a, b) => keyOf(a) === keyOf(b) && _.isEqual(a.value, b.value);
   const countOf = (list, key) => list.filter((entry) => keyOf(entry) === key).length;
-  const isEnumLike = (key) => countOf(spec, key) > 1 || (previous !== undefined && countOf(previous, key) > 1);
-  const removedBySpec = (entry) => previous !== undefined && previous.some((p) => sameEntry(p, entry)) && !spec.some((s) => sameEntry(s, entry));
+  const isEnumInSpec = (key) => countOf(spec, key) > 1;
+  const isEnumLike = (key) => isEnumInSpec(key) || (previous !== undefined && countOf(previous, key) > 1);
+  const noLongerEnum = (key) => isEnumLike(key) && !isEnumInSpec(key);
+  const hasEnabledEntry = (key) => existing.some((entry) => keyOf(entry) === key && entry.enabled);
+  const droppedEnumValue = (entry) => previous !== undefined && previous.some((p) => sameEntry(p, entry)) && !(isEnumInSpec(keyOf(entry)) && spec.some((s) => sameEntry(s, entry)));
   const pairs = new Map();
   const used = new Set();
   const pair = (index, entry) => {
@@ -698,20 +715,21 @@ const mergeFieldListPreserving = (specItems, existingItems, preserveValues = tru
     used.add(entry);
   };
   spec.forEach((specEntry, index) => {
-    const sameValue = existing.find((entry) => !used.has(entry) && sameEntry(entry, specEntry));
+    const key = keyOf(specEntry);
+    const sameValue = existing.find((entry) => !used.has(entry) && sameEntry(entry, specEntry) && (entry.enabled || !(noLongerEnum(key) && hasEnabledEntry(key))));
     if (sameValue) pair(index, sameValue);
   });
   spec.forEach((specEntry, index) => {
     if (pairs.has(index)) return;
     const key = keyOf(specEntry);
-    const candidates = existing.filter((entry) => !used.has(entry) && keyOf(entry) === key && !(countOf(spec, key) > 1 && removedBySpec(entry)));
+    const candidates = existing.filter((entry) => !used.has(entry) && keyOf(entry) === key && !(isEnumInSpec(key) && droppedEnumValue(entry)));
     const next = candidates.find((entry) => entry.enabled) || candidates[0];
     if (next) pair(index, next);
   });
   const specKeys = new Set(spec.map(keyOf));
   const previousKeys = [...(previous || []).map(keyOf), ...declaredKeysOf(declared.previous)];
   const droppedKeys = new Set(previousKeys.filter((key) => !specKeys.has(key) && !declaresKey(declared.current, key)));
-  const kept = previous === undefined ? [] : existing.filter((entry) => !used.has(entry) && entry.type !== 'path' && !droppedKeys.has(keyOf(entry)) && !(isEnumLike(keyOf(entry)) && removedBySpec(entry)));
+  const kept = previous === undefined ? [] : existing.filter((entry) => !used.has(entry) && entry.type !== 'path' && !droppedKeys.has(keyOf(entry)) && !(isEnumLike(keyOf(entry)) && droppedEnumValue(entry)));
   const userKeys = new Set([...used, ...kept].map(keyOf));
   const merged = spec.map((specEntry, index) => {
     const userEntry = pairs.get(index);
@@ -1072,6 +1090,16 @@ const EMPTY_SPEC_ITEM = { request: { body: {} } };
 
 const previousSpecItemFor = (storedCollection, method, endpointPath) =>
   findItemInCollection(storedCollection?.items || [], method, endpointPath)?.item || EMPTY_SPEC_ITEM;
+
+const storedSpecForMerge = (collectionPath, brunoConfig, newSpec, { preserveValues, groupBy }) => {
+  const storedSpec = preserveValues && newSpec ? loadStoredSpecIfAny(collectionPath, brunoConfig) : null;
+  const storedCollection = _.once(() => storedSpecCollectionOf(storedSpec, groupBy));
+  const previousSpecOf = (method, endpointPath) => ({
+    previousSpecItem: previousSpecItemFor(storedCollection(), method, endpointPath),
+    declaredBodies: storedSpec ? declaredBodiesFor(newSpec, storedSpec, method, endpointPath) : undefined
+  });
+  return { storedSpec, previousSpecOf };
+};
 
 const registerOpenAPISyncIpc = (mainWindow) => {
   ipcMain.handle('renderer:check-openapi-updates', async (event, {
@@ -1537,11 +1565,9 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       // matching the shape that mergeSpecIntoRequest expects as its first argument.
       let specItemForDisplay = specItem;
       if (specItem && actualRequest) {
-        const storedSpec = newSpec && preserveValues ? loadStoredSpecIfAny(collectionPath, brunoConfig) : null;
+        const { storedSpec, previousSpecOf } = storedSpecForMerge(collectionPath, brunoConfig, newSpec, { preserveValues, groupBy });
         const previewsStoredSpec = !newSpec || (storedSpec !== null && generateSpecHash(storedSpec) === generateSpecHash(newSpec));
-        const previousSpecItem = previewsStoredSpec ? undefined : previousSpecItemFor(storedSpecCollectionOf(storedSpec, groupBy), method, endpointPath);
-        const declaredBodies = previousSpecItem && storedSpec ? declaredBodiesFor(newSpec, storedSpec, method, endpointPath) : undefined;
-        const merged = mergeSpecIntoRequest(actualRequest, specItem, { preserveValues, previousSpecItem, declaredBodies });
+        const merged = mergeSpecIntoRequest(actualRequest, specItem, { preserveValues, ...(previewsStoredSpec ? {} : previousSpecOf(method, endpointPath)) });
         specItemForDisplay = { ...specItem, request: merged.request };
       }
 
@@ -1674,12 +1700,9 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           console.error('[OpenAPI Sync] Error converting spec:', err);
         }
       }
-      const storedSpec = preserveValues && newCollection ? loadStoredSpecIfAny(collectionPath, brunoConfig) : null;
-      const storedCollection = storedSpecCollectionOf(storedSpec, groupBy);
+      const { previousSpecOf } = storedSpecForMerge(collectionPath, brunoConfig, diff.newSpec, { preserveValues, groupBy });
       const syncExistingFile = async (existingFile, newItem, endpoint) => {
-        const previousSpecItem = previousSpecItemFor(storedCollection, endpoint.method, endpoint.path);
-        const declaredBodies = storedSpec ? declaredBodiesFor(diff.newSpec, storedSpec, endpoint.method, endpoint.path) : undefined;
-        const mergedRequest = mergeSpecIntoRequest(existingFile.request, newItem, { preserveValues, previousSpecItem, declaredBodies });
+        const mergedRequest = mergeSpecIntoRequest(existingFile.request, newItem, { preserveValues, ...previousSpecOf(endpoint.method, endpoint.path) });
         const content = await stringifyRequestViaWorker(mergedRequest, { format: existingFile.fileFormat });
         await writeFile(existingFile.filePath, content);
       };
