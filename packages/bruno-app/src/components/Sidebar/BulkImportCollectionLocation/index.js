@@ -214,6 +214,12 @@ export const BulkImportCollectionLocation = ({
     .map((col) => col._fileData);
   const hasSelectedOpenApiSpec = selectedFiles.some((fileData) => fileData.type === 'openapi');
   const hasSyncableSpec = selectedFiles.some(canSyncSpec);
+  if (enableCheckForSpecUpdates && !hasSyncableSpec) {
+    setEnableCheckForSpecUpdates(false);
+  }
+  const showCheckForSpecUpdatesOption = selectedFiles.length === 0 || hasSelectedOpenApiSpec;
+  const filesForSyncReason = selectedFiles.length === 0 ? filesData : selectedFiles;
+  const showSwagger2SyncReason = filesForSyncReason.some((fileData) => fileData.type === 'openapi') && !filesForSyncReason.some(canSyncSpec);
   const selectedSwagger2FileNames = selectedFiles
     .filter((fileData) => fileData.type === 'openapi' && isSwagger2Spec(fileData.data))
     .map((fileData) => fileData.file.name);
@@ -945,7 +951,7 @@ export const BulkImportCollectionLocation = ({
                         </Dropdown>
                       </div>
                     </div>
-                    {hasSelectedOpenApiSpec && (
+                    {showCheckForSpecUpdatesOption && (
                       <label className={`mt-4 flex items-start gap-2 ${hasSyncableSpec ? 'cursor-pointer' : 'opacity-50 pointer-events-none'}`}>
                         <input
                           type="checkbox"
@@ -958,9 +964,9 @@ export const BulkImportCollectionLocation = ({
                         <div>
                           <span className="checkbox-option-label">Check for Spec Updates</span>
                           <p className="checkbox-option-description" data-testid="bulk-import-check-for-spec-updates-description">
-                            {hasSyncableSpec
-                              ? 'Stay notified of spec changes and sync your collection with the spec.'
-                              : 'OpenAPI Sync is not supported for Swagger 2.0 specs.'}
+                            {showSwagger2SyncReason
+                              ? 'OpenAPI Sync is not supported for Swagger 2.0 specs.'
+                              : 'Stay notified of spec changes and sync your collection with the spec.'}
                           </p>
                         </div>
                       </label>

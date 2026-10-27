@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'styled-components';
@@ -115,6 +115,7 @@ const specUpdatesCheckbox = () => screen.getByTestId('bulk-import-check-for-spec
 const specUpdatesDescription = () => screen.getByTestId('bulk-import-check-for-spec-updates-description');
 const swagger2Note = () => screen.queryByTestId('bulk-import-swagger2-sync-note');
 const toggleFileSelection = (rowName) => fireEvent.click(screen.getByRole('checkbox', { name: rowName }));
+const toggleAllFiles = () => fireEvent.click(within(screen.getByTestId('selection-section-collections')).getByRole('checkbox', { name: 'Select all' }));
 
 const submitImport = async () => {
   fireEvent.click(screen.getByText('Import'));
@@ -161,6 +162,60 @@ describe('BulkImportCollectionLocation check for spec updates', () => {
     toggleFileSelection('Orders API orders.yaml');
 
     expect(screen.queryByTestId('bulk-import-check-for-spec-updates')).not.toBeInTheDocument();
+  });
+
+  it('stays on screen, disabled and unticked, while no file is selected', () => {
+    renderBulkImport([ordersSpec, postmanFile]);
+    fireEvent.click(specUpdatesCheckbox());
+
+    toggleFileSelection('Orders API orders.yaml');
+    expect(screen.queryByTestId('bulk-import-check-for-spec-updates')).not.toBeInTheDocument();
+
+    toggleFileSelection('Postman Collection postman.json');
+    expect(specUpdatesCheckbox()).toBeDisabled();
+    expect(specUpdatesCheckbox()).not.toBeChecked();
+    expect(specUpdatesDescription()).toHaveTextContent('Stay notified of spec changes and sync your collection with the spec.');
+  });
+
+  it('keeps the Swagger 2.0 reason while no file is selected in a batch where no spec can sync', () => {
+    renderBulkImport([swagger2Spec, postmanFile]);
+
+    toggleAllFiles();
+
+    expect(specUpdatesCheckbox()).toBeDisabled();
+    expect(specUpdatesDescription()).toHaveTextContent('OpenAPI Sync is not supported for Swagger 2.0 specs.');
+  });
+
+  it('unticks when every file is deselected and stays unticked when a spec is selected again', async () => {
+    renderBulkImport([ordersSpec, swagger2Spec, postmanFile]);
+    fireEvent.click(specUpdatesCheckbox());
+    expect(specUpdatesCheckbox()).toBeChecked();
+
+    toggleAllFiles();
+    expect(specUpdatesCheckbox()).toBeDisabled();
+    expect(specUpdatesCheckbox()).not.toBeChecked();
+    expect(swagger2Note()).not.toBeInTheDocument();
+
+    toggleFileSelection('Orders API orders.yaml');
+    expect(specUpdatesCheckbox()).toBeEnabled();
+    expect(specUpdatesCheckbox()).not.toBeChecked();
+
+    const [collections, , options] = await submitImport();
+    expect(collections[0].brunoConfig).toBeUndefined();
+    expect(options.rawOpenAPISpecs).toEqual({});
+  });
+
+  it('unticks when only Swagger 2.0 specs stay selected', () => {
+    renderBulkImport([ordersSpec, swagger2Spec]);
+    fireEvent.click(specUpdatesCheckbox());
+    expect(swagger2Note()).toBeInTheDocument();
+
+    toggleFileSelection('Orders API orders.yaml');
+
+    expect(specUpdatesCheckbox()).toBeDisabled();
+    expect(specUpdatesCheckbox()).not.toBeChecked();
+    expect(specUpdatesDescription()).toHaveTextContent('OpenAPI Sync is not supported for Swagger 2.0 specs.');
+    expect(swagger2Note()).not.toBeInTheDocument();
   });
 
   it('names the selected Swagger 2.0 specs that will be imported without sync', () => {

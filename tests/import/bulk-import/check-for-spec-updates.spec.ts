@@ -107,4 +107,46 @@ test.describe('Bulk Import check for spec updates', () => {
       await expect(locators.import.bulkModal()).toBeHidden();
     });
   });
+
+  test('Disables and unticks Check for Spec Updates while no selected spec can sync', async ({ page }) => {
+    const locators = buildCommonLocators(page);
+
+    await test.step('Open the bulk import modal and turn on Check for Spec Updates', async () => {
+      await openBulkImportModal(page, [sampleSpecFile, swagger2SpecFile, postmanFile]);
+      await locators.import.bulkSpecUpdatesCheckbox().check();
+    });
+
+    await test.step('Deselecting every file disables and unticks it', async () => {
+      await locators.import.bulkSelectAllCollectionsToggle().click();
+
+      await expect(locators.import.bulkSpecUpdatesCheckbox()).toBeDisabled();
+      await expect(locators.import.bulkSpecUpdatesCheckbox()).not.toBeChecked();
+      await expect(locators.import.bulkSpecUpdatesDescription()).toHaveText('Stay notified of spec changes and sync your collection with the spec.');
+    });
+
+    await test.step('Selecting only the Postman collection hides it', async () => {
+      await locators.import.bulkCollectionCheckbox('sample-postman.json').check();
+
+      await expect(locators.import.bulkSpecUpdatesCheckbox()).toBeHidden();
+    });
+
+    await test.step('Selecting the Swagger 2.0 spec shows it disabled with the reason', async () => {
+      await locators.import.bulkCollectionCheckbox('sample-swagger2.json').check();
+
+      await expect(locators.import.bulkSpecUpdatesCheckbox()).toBeDisabled();
+      await expect(locators.import.bulkSpecUpdatesDescription()).toHaveText('OpenAPI Sync is not supported for Swagger 2.0 specs.');
+    });
+
+    await test.step('Selecting the OpenAPI 3.x spec enables it, still unticked', async () => {
+      await locators.import.bulkCollectionCheckbox('sample-openapi.yaml').check();
+
+      await expect(locators.import.bulkSpecUpdatesCheckbox()).toBeEnabled();
+      await expect(locators.import.bulkSpecUpdatesCheckbox()).not.toBeChecked();
+    });
+
+    await test.step('Close the modal', async () => {
+      await locators.modal.closeButton().click();
+      await expect(locators.import.bulkModal()).toBeHidden();
+    });
+  });
 });
