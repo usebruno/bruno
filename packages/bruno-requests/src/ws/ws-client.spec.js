@@ -552,6 +552,26 @@ describe('getSubprotocolsFromHeaders', () => {
     expect(getSubprotocolsFromHeaders({ 'Sec-WebSocket-Protocol': 'mqtt,, wamp,' })).toEqual(['mqtt', 'wamp']);
   });
 
+  it('keeps the canonical header order when a lowercase key holds only the last row', () => {
+    // Two lowercase rows, `mqtt` then `soap`: the lowercase key keeps the last one and the
+    // canonical key carries the aggregate, so the user's first choice must still come first.
+    expect(
+      getSubprotocolsFromHeaders({
+        'sec-websocket-protocol': 'soap',
+        'Sec-WebSocket-Protocol': 'mqtt,soap'
+      })
+    ).toEqual(['mqtt', 'soap']);
+  });
+
+  it('appends values that only appear under a non-canonical key after the canonical ones', () => {
+    expect(
+      getSubprotocolsFromHeaders({
+        'sec-websocket-protocol': 'wamp',
+        'Sec-WebSocket-Protocol': 'mqtt,soap'
+      })
+    ).toEqual(['mqtt', 'soap', 'wamp']);
+  });
+
   it('returns an empty list when there are no headers', () => {
     expect(getSubprotocolsFromHeaders()).toEqual([]);
     expect(getSubprotocolsFromHeaders({ 'Content-Type': 'text/plain' })).toEqual([]);

@@ -2,6 +2,10 @@ import ws from 'ws';
 import { hexy as hexdump } from 'hexy';
 import { getParsedWsUrlObject } from './ws-url';
 
+const SUBPROTOCOL_HEADER = 'Sec-WebSocket-Protocol';
+
+const isCanonicalSubprotocolHeader = ([name]) => name === SUBPROTOCOL_HEADER;
+
 /**
  * Collect the subprotocols requested through `Sec-WebSocket-Protocol` headers.
  *
@@ -9,12 +13,23 @@ import { getParsedWsUrlObject } from './ws-url';
  * Unlike the browser WebSocket constructor, `ws` needs the protocols as an array and throws
  * on duplicated or empty entries, so the list is trimmed and de-duplicated here.
  *
+ * The canonical header is read first. Bruno aggregates every enabled row under that name in
+ * the order the user gave them, while a row typed in another case keeps only its last value,
+ * so reading the aggregate first keeps the user's first choice first. A server that picks by
+ * default negotiates the first subprotocol it recognises.
+ *
  * @param {Object} headers - Request headers keyed by name
- * @returns {string[]} Unique subprotocols in the order they were given
+ * @returns {string[]} Unique subprotocols, canonical header first, then in the order given
  */
 export const getSubprotocolsFromHeaders = (headers = {}) => {
-  const protocols = Object.entries(headers)
-    .filter(([name, value]) => name.toLowerCase() === 'sec-websocket-protocol' && typeof value === 'string')
+  const entries = Object.entries(headers).filter(
+    ([name, value]) => name.toLowerCase() === SUBPROTOCOL_HEADER.toLowerCase() && typeof value === 'string'
+  );
+
+  const protocols = [
+    ...entries.filter(isCanonicalSubprotocolHeader),
+    ...entries.filter((entry) => !isCanonicalSubprotocolHeader(entry))
+  ]
     .flatMap(([, value]) => value.split(','))
     .map((protocol) => protocol.trim())
     .filter(Boolean);
