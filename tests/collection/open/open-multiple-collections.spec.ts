@@ -24,7 +24,7 @@ test.describe('Open Multiple Collections', () => {
     });
   });
 
-  test('TC777: Verify opening of multiple collections from parent folder with successful launch', { tag: '@sanity' }, async ({
+  test('TC777: Verify opening of multiple collections with successful launch', { tag: '@sanity' }, async ({
     page,
     electronApp,
     createTmpDir
@@ -38,7 +38,7 @@ test.describe('Open Multiple Collections', () => {
     const collection1 = locators.sidebar.collection(collection1Name);
     const collection2 = locators.sidebar.collection(collection2Name);
 
-    await test.step('Navigate to the parent folder containing multiple collections', async () => {
+    await test.step('Navigate to the path containing multiple collections', async () => {
       // Create bruno.json for first collection
       const collection1Config = {
         version: '1',
@@ -61,7 +61,7 @@ test.describe('Open Multiple Collections', () => {
       expect(fs.existsSync(path.join(collection2Dir, 'bruno.json'))).toBe(true);
     });
 
-    await test.step('Select two different collections within the parent folder simultaneously', async () => {
+    await test.step('Select two different collections simultaneously', async () => {
       const selectedPaths = [collection1Dir, collection2Dir];
 
       expect(selectedPaths).toHaveLength(2);
