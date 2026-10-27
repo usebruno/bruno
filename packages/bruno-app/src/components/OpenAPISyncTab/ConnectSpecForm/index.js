@@ -5,6 +5,7 @@ import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import useWorkspaceApiSpecs from 'hooks/useWorkspaceApiSpecs';
 import SpecSourcePicker from 'components/OpenAPISyncTab/SpecSourcePicker';
 import { isSpecSourceReady } from 'components/OpenAPISyncTab/SpecSourcePicker/utils';
+import StyledWrapper from './StyledWrapper';
 
 const FEATURES = [
   'Detect new, modified, and removed endpoints',
@@ -36,7 +37,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
   };
 
   return (
-    <div className="setup-section">
+    <StyledWrapper>
       <div className="setup-header">
         <OpenAPISyncIcon size={56} className="setup-icon" data-testid="openapi-connect-icon" />
         <h2 className="setup-title">Connect to OpenAPI Spec</h2>
@@ -83,7 +84,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
           </div>
         ))}
       </div>
-    </div>
+    </StyledWrapper>
   );
 };
 
