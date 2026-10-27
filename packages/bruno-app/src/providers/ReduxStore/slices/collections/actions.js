@@ -165,7 +165,7 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
 
     itemSchema
       .validate(itemToSave)
-      .then(() => ipcRenderer.invoke('renderer:save-request', item.pathname, itemToSave, collection.format))
+      .then((validatedItem) => ipcRenderer.invoke('renderer:save-request', item.pathname, validatedItem, collection.format))
       .then(() => {
         if (!silent) {
           toast.success('Request saved successfully');
@@ -248,10 +248,10 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
       const collection = findCollectionByUid(collections, item.collectionUid);
       if (collection) {
         const itemToSave = transformRequestToSaveToFilesystem(item);
-        const itemIsValid = itemSchema.validateSync(itemToSave);
-        if (itemIsValid) {
+        const validatedItem = itemSchema.validateSync(itemToSave);
+        if (validatedItem) {
           itemsToSave.push({
-            item: itemToSave,
+            item: validatedItem,
             pathname: item.pathname,
             format: collection.format
           });
@@ -939,7 +939,7 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
 
       itemSchema
         .validate(itemToSave)
-        .then(() => ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave))
+        .then((validatedItem) => ipcRenderer.invoke('renderer:new-request', fullPathname, validatedItem))
         .then((result) => {
           dispatch(
             insertTaskIntoQueue({
@@ -961,7 +961,7 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
 
       itemSchema
         .validate(itemToSave)
-        .then(() => ipcRenderer.invoke('renderer:new-request', fullName, itemToSave))
+        .then((validatedItem) => ipcRenderer.invoke('renderer:new-request', fullName, validatedItem))
         .then((result) => {
           dispatch(
             insertTaskIntoQueue({
@@ -1048,8 +1048,8 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
           const requestItems = filter(existingItems, (i) => i.type !== 'folder');
           itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
 
-          await itemSchema.validate(itemToSave);
-          const result = await ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave, targetCollection.format);
+          const validatedItem = await itemSchema.validate(itemToSave);
+          const result = await ipcRenderer.invoke('renderer:new-request', fullPathname, validatedItem, targetCollection.format);
 
           dispatch(insertTaskIntoQueue({
             uid: uuid(),
@@ -2197,11 +2197,10 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
     environment.variables = variables;
 
     const { ipcRenderer } = window;
-    const envForValidation = cloneDeep(environment);
 
     environmentSchema
       .validate(environment)
-      .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, envForValidation))
+      .then((validatedEnvironment) => ipcRenderer.invoke('renderer:save-environment', collection.pathname, validatedEnvironment))
       .then(() => {
         dispatch(_saveEnvironment({ variables, environmentUid, collectionUid }));
       })
@@ -2568,7 +2567,7 @@ export const persistActiveEnvironment = (collectionUid) => (dispatch, getState) 
     const { ipcRenderer } = window;
     environmentSchema
       .validate(envCopy)
-      .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, envCopy))
+      .then((validatedEnvironment) => ipcRenderer.invoke('renderer:save-environment', collection.pathname, validatedEnvironment))
       .catch((err) => console.error('Failed to persist environment during script execution:', err));
     return;
   }
