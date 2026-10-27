@@ -96,8 +96,8 @@ export const buildRunnerTagLocators = (page: Page, root?: Locator) => {
 export type RunnerTagKind = 'Include' | 'Exclude';
 
 const RUNNER_TAG_COLUMN_TEST_IDS: Record<RunnerTagKind, string> = {
-  Include: 'include-tags',
-  Exclude: 'exclude-tags'
+  Include: 'runner-include-tags',
+  Exclude: 'runner-exclude-tags'
 };
 
 /**
