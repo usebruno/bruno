@@ -14,6 +14,7 @@ import { IconAlertTriangle, IconDeviceFloppy } from '@tabler/icons';
 import Modal from 'components/Modal';
 import toast from 'react-hot-toast';
 import Button from 'ui/Button';
+import Portal from 'ui/Portal';
 import StyledWrapper from './StyledWrapper';
 
 const MAX_UNSAVED_REQUESTS_TO_SHOW = 5;
@@ -107,120 +108,122 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collectionUids }) => {
   const otherDraftsCount = currentFolderDrafts.length + currentCollectionDrafts.length;
 
   return (
-    <StyledWrapper>
-      <Modal
-        size="md"
-        title={`Remove ${pluralizeWord('Collection', activeCollections.length)}`}
-        confirmText="Save and Remove"
-        cancelText="Remove without saving"
-        handleCancel={onClose}
-        disableEscapeKey={true}
-        disableCloseOnOutsideClick={true}
-        closeModalFadeTimeout={150}
-        hideFooter={true}
-      >
-        <div className="flex items-center">
-          <IconAlertTriangle size={32} strokeWidth={1.5} className="warning-text" />
-          <h1 className="ml-2 text-lg font-medium">Hold on..</h1>
-        </div>
-        <p className="mt-4">
-          You have unsaved changes in <span className="font-medium">{allDraftsCount}</span>{' '}
-          {pluralizeWord('item', allDraftsCount)}.
-        </p>
+    <Portal>
+      <StyledWrapper>
+        <Modal
+          size="md"
+          title={`Remove ${pluralizeWord('Collection', activeCollections.length)}`}
+          confirmText="Save and Remove"
+          cancelText="Remove without saving"
+          handleCancel={onClose}
+          disableEscapeKey={true}
+          disableCloseOnOutsideClick={true}
+          closeModalFadeTimeout={150}
+          hideFooter={true}
+        >
+          <div className="flex items-center">
+            <IconAlertTriangle size={32} strokeWidth={1.5} className="warning-text" />
+            <h1 className="ml-2 text-lg font-medium">Hold on..</h1>
+          </div>
+          <p className="mt-4">
+            You have unsaved changes in <span className="font-medium">{allDraftsCount}</span>{' '}
+            {pluralizeWord('item', allDraftsCount)}.
+          </p>
 
-        {/* Regular (saved) requests with changes */}
-        {currentRequestDrafts.length > 0 && (
-          <div className="mt-4">
-            <p className="text-sm font-medium mb-2">
-              Saved {pluralizeWord('Request', currentRequestDrafts.length)} ({currentRequestDrafts.length})
-            </p>
-            <ul className="ml-2">
-              {currentRequestDrafts.slice(0, MAX_UNSAVED_REQUESTS_TO_SHOW).map((item) => {
-                return (
-                  <li key={item.uid} className="mt-1 text-xs draft-list-item">
-                    • {item.filename || item.name}
-                  </li>
-                );
-              })}
-            </ul>
-            {currentRequestDrafts.length > MAX_UNSAVED_REQUESTS_TO_SHOW && (
-              <p className="ml-2 mt-1 text-xs draft-list-item">
-                ...{currentRequestDrafts.length - MAX_UNSAVED_REQUESTS_TO_SHOW} additional{' '}
-                {pluralizeWord('request', currentRequestDrafts.length - MAX_UNSAVED_REQUESTS_TO_SHOW)} not shown
+          {/* Regular (saved) requests with changes */}
+          {currentRequestDrafts.length > 0 && (
+            <div className="mt-4">
+              <p className="text-sm font-medium mb-2">
+                Saved {pluralizeWord('Request', currentRequestDrafts.length)} ({currentRequestDrafts.length})
               </p>
-            )}
-          </div>
-        )}
+              <ul className="ml-2">
+                {currentRequestDrafts.slice(0, MAX_UNSAVED_REQUESTS_TO_SHOW).map((item) => {
+                  return (
+                    <li key={item.uid} className="mt-1 text-xs draft-list-item">
+                      • {item.filename || item.name}
+                    </li>
+                  );
+                })}
+              </ul>
+              {currentRequestDrafts.length > MAX_UNSAVED_REQUESTS_TO_SHOW && (
+                <p className="ml-2 mt-1 text-xs draft-list-item">
+                  ...{currentRequestDrafts.length - MAX_UNSAVED_REQUESTS_TO_SHOW} additional{' '}
+                  {pluralizeWord('request', currentRequestDrafts.length - MAX_UNSAVED_REQUESTS_TO_SHOW)} not shown
+                </p>
+              )}
+            </div>
+          )}
 
-        {/* Other Drafts (Folders / Collections) */}
-        {otherDraftsCount > 0 && (
-          <div className="mt-4">
-            <p className="text-sm font-medium mb-2">
-              Other Changes ({otherDraftsCount})
-            </p>
-            <p className="ml-2 text-xs text-muted">
-              {currentFolderDrafts.length > 0 && `${currentFolderDrafts.length} ${pluralizeWord('folder', currentFolderDrafts.length)}`}
-              {currentFolderDrafts.length > 0 && currentCollectionDrafts.length > 0 && ' and '}
-              {currentCollectionDrafts.length > 0 && `${currentCollectionDrafts.length} ${pluralizeWord('collection', currentCollectionDrafts.length)}`}
-              {' '}with unsaved changes will also be saved.
-            </p>
-          </div>
-        )}
+          {/* Other Drafts (Folders / Collections) */}
+          {otherDraftsCount > 0 && (
+            <div className="mt-4">
+              <p className="text-sm font-medium mb-2">
+                Other Changes ({otherDraftsCount})
+              </p>
+              <p className="ml-2 text-xs text-muted">
+                {currentFolderDrafts.length > 0 && `${currentFolderDrafts.length} ${pluralizeWord('folder', currentFolderDrafts.length)}`}
+                {currentFolderDrafts.length > 0 && currentCollectionDrafts.length > 0 && ' and '}
+                {currentCollectionDrafts.length > 0 && `${currentCollectionDrafts.length} ${pluralizeWord('collection', currentCollectionDrafts.length)}`}
+                {' '}with unsaved changes will also be saved.
+              </p>
+            </div>
+          )}
 
-        {/* Transient (unsaved) requests */}
-        {currentTransientDrafts.length > 0 && (
-          <div className="mt-4">
-            <p className="text-sm font-medium mb-2">
-              Transient {pluralizeWord('Request', currentTransientDrafts.length)} ({currentTransientDrafts.length})
-            </p>
-            <p className="text-xs transient-hint mb-3">
-              These requests need to be saved individually before closing the collection.
-            </p>
-            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-              {currentTransientDrafts.map((item) => {
-                return (
-                  <div
-                    key={item.uid}
-                    className="flex items-center justify-between py-2 px-3 transient-item"
-                  >
-                    <span className="text-sm transient-item-name truncate mr-3">{item.name}</span>
-                    <Button
-                      color="primary"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleSaveTransient(item)}
-                      icon={<IconDeviceFloppy size={14} strokeWidth={1.5} />}
+          {/* Transient (unsaved) requests */}
+          {currentTransientDrafts.length > 0 && (
+            <div className="mt-4">
+              <p className="text-sm font-medium mb-2">
+                Transient {pluralizeWord('Request', currentTransientDrafts.length)} ({currentTransientDrafts.length})
+              </p>
+              <p className="text-xs transient-hint mb-3">
+                These requests need to be saved individually before closing the collection.
+              </p>
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                {currentTransientDrafts.map((item) => {
+                  return (
+                    <div
+                      key={item.uid}
+                      className="flex items-center justify-between py-2 px-3 transient-item"
                     >
-                      Save
-                    </Button>
-                  </div>
-                );
-              })}
+                      <span className="text-sm transient-item-name truncate mr-3">{item.name}</span>
+                      <Button
+                        color="primary"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleSaveTransient(item)}
+                        icon={<IconDeviceFloppy size={14} strokeWidth={1.5} />}
+                      >
+                        Save
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-between mt-6">
+            <div>
+              <Button color="danger" onClick={handleDiscardAll}>
+                Discard All and Remove
+              </Button>
+            </div>
+            <div>
+              <Button className="mr-2" color="secondary" variant="ghost" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveAll}
+                disabled={currentTransientDrafts.length > 0}
+                title={currentTransientDrafts.length > 0 ? 'Please save or discard transient requests first' : ''}
+              >
+                {allDraftsCount > 1 ? 'Save All and Remove' : 'Save and Remove'}
+              </Button>
             </div>
           </div>
-        )}
-
-        <div className="flex justify-between mt-6">
-          <div>
-            <Button color="danger" onClick={handleDiscardAll}>
-              Discard All and Remove
-            </Button>
-          </div>
-          <div>
-            <Button className="mr-2" color="secondary" variant="ghost" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSaveAll}
-              disabled={currentTransientDrafts.length > 0}
-              title={currentTransientDrafts.length > 0 ? 'Please save or discard transient requests first' : ''}
-            >
-              {allDraftsCount > 1 ? 'Save All and Remove' : 'Save and Remove'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-    </StyledWrapper>
+        </Modal>
+      </StyledWrapper>
+    </Portal>
   );
 };
 

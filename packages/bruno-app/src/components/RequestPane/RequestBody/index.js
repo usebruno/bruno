@@ -10,6 +10,7 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import FileBody from '../FileBody/index';
 import { usePersistedState } from 'hooks/usePersistedState';
+import { REQUEST_BODY_EDITOR_CLASS } from 'utils/common/constants';
 
 const RequestBody = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -49,7 +50,7 @@ const RequestBody = ({ item, collection }) => {
     };
 
     return (
-      <StyledWrapper className="w-full" data-testid="request-body-editor">
+      <StyledWrapper className={`w-full ${REQUEST_BODY_EDITOR_CLASS}`} data-testid="request-body-editor">
         <CodeEditor
           ref={editorRef}
           collection={collection}
