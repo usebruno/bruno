@@ -7,7 +7,7 @@ import { variableNameRegex } from 'utils/common/regex';
 import { INVALID_VARIABLE_NAME_ERROR } from 'utils/common/variables';
 import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 import { buildAddToScopes, createEnvironmentForScope } from 'utils/variables';
-import EnvironmentTargetOption from './EnvironmentTargetOption';
+import VariableScopeList from 'components/VariableScopeList';
 import StyledWrapper from './StyledWrapper';
 import { findCollectionByUid } from 'utils/collections';
 
@@ -83,9 +83,9 @@ const SecretVariableForm = ({ collection, sourceLabel, defaultName, defaultValue
   };
 
   /** Creates the environment from "Create One" and selects it as the target. */
-  const createEnvironment = (targetType, environmentName) => (
-    createEnvironmentForScope({ scope: { type: targetType }, name: environmentName, collectionUid: collection.uid, store })
-      .then(() => setSelectedTargetType(targetType))
+  const createEnvironment = (scope, environmentName) => (
+    createEnvironmentForScope({ scope, name: environmentName, collectionUid: collection.uid, store })
+      .then(() => setSelectedTargetType(scope.type))
   );
 
   return (
@@ -128,15 +128,13 @@ const SecretVariableForm = ({ collection, sourceLabel, defaultName, defaultValue
 
       <div className="save-to-title">Save to</div>
       <div className="save-to-list">
-        {targets.map((target) => (
-          <EnvironmentTargetOption
-            key={target.type}
-            target={target}
-            isSelected={selectedTargetType === target.type}
-            onSelect={setSelectedTargetType}
-            onCreate={(environmentName) => createEnvironment(target.type, environmentName)}
-          />
-        ))}
+        <VariableScopeList
+          scopes={targets}
+          selectedScopeType={selectedTargetType}
+          onSelect={setSelectedTargetType}
+          onCreateEnvironment={createEnvironment}
+          testIdPrefix="secret-variable"
+        />
       </div>
       {errors.form && <div className="form-error" data-testid="secret-variable-error">{errors.form}</div>}
     </StyledWrapper>
