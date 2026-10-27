@@ -10,12 +10,13 @@ import {
 } from '../page/actions';
 import { AUTH_MODE_LABELS } from '../constants';
 import { buildCommonLocators } from '../page/locators';
+import { buildQueryParamsLocators } from './params/query';
 
 export const buildRequestLocators = (page: Page) => ({
   urlInput: () => page.getByTestId('request-url').locator('.CodeMirror'),
   urlLine: () => page.getByTestId('request-url').locator('.CodeMirror-line'),
   sendButton: () => page.getByTestId('send-arrow-icon'),
-  methodDropdown: () => page.getByTestId('request-method-selector'),
+  methodDropdown: () => page.getByTestId('method-selector'),
   newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
   requestNameInput: () => page.getByPlaceholder('Request Name'),
   requestTestId: () => page.getByTestId('request-name'),
@@ -56,7 +57,8 @@ export const buildRequestLocators = (page: Page) => ({
     paneScroller: () => page.getByTestId('request-pane').getByTestId('flex-boundary'),
     defaultInfo: (name: string) => page.getByTestId(`default-header-info-${name.toLowerCase()}`),
     defaultInfoTooltip: (name: string) => page.getByTestId(`default-header-info-tooltip-${name.toLowerCase()}`)
-  }
+  },
+  queryParams: buildQueryParamsLocators(page)
 });
 
 // Request-type radios in the New Request dialog. `from-curl` is the odd one out —

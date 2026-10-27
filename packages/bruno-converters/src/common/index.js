@@ -113,8 +113,7 @@ export const sanitizeTags = (tags, options = {}) => {
 
 export const validateSchema = (collection = {}) => {
   try {
-    collectionSchema.validateSync(collection);
-    return collection;
+    return collectionSchema.validateSync(collection);
   } catch (err) {
     console.log('Error validating schema', err);
     throw new Error(`The Collection has an invalid schema: ${err.message}`);
