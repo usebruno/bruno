@@ -1,5 +1,4 @@
 import React from 'react';
-import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
@@ -24,7 +23,6 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
     color: theme?.text
   };
   const useSystemBrowser = get(preferences, 'request.oauth2.useSystemBrowser', false);
-  const { isSensitive } = useDetectSensitiveField(collection);
   const oAuth = get(request, 'auth.oauth2', {});
   const {
     callbackUrl,
@@ -198,7 +196,6 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
       {inputsConfig.map((input) => {
         const { key, label, isSecret, tooltip } = input;
         const value = oAuth[key] || '';
-        const { showWarning, warningMessage } = isSensitive(value, item);
 
         return (
           <div className="flex items-center gap-4 w-full" key={`input-${key}`}>
@@ -226,7 +223,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
                 readOnly={disabled}
                 isCompact
               />
-              {isSecret && showWarning && <SensitiveFieldWarning fieldName={key} warningMessage={warningMessage} />}
+              {isSecret && <SensitiveFieldWarning fieldName={key} secretName={key} value={value} collection={collection} item={item} disabled={disabled} onReplaceValue={(val) => handleChange(key, val)} />}
             </div>
           </div>
         );
