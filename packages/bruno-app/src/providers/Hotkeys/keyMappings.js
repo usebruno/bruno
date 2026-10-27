@@ -33,6 +33,7 @@ export const KEY_BINDING_SECTIONS = [
       pasteItem: { mac: 'command+bind+v', windows: 'ctrl+bind+v', name: 'Paste Item' }, // D
       cloneItem: { mac: 'command+bind+d', windows: 'ctrl+bind+d', name: 'Clone Item' }, // D
       renameItem: { mac: 'command+bind+r', windows: 'ctrl+bind+r', name: 'Rename Item' }, // D
+      focusActiveSidebarItem: { mac: 'command+bind+shift+bind+e', windows: 'ctrl+bind+shift+bind+e', name: 'Focus Active Sidebar Item' },
       collapseSidebar: { mac: 'command+bind+\\', windows: 'ctrl+bind+\\', name: 'Collapse Sidebar' } // D
     }
   },
