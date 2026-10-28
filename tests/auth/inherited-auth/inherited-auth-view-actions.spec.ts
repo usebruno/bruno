@@ -89,7 +89,7 @@ test.describe('Inherited auth view actions', () => {
     });
 
     await test.step('Expand the token section in the inherited view', async () => {
-      await openInheritedAuth(page, COLLECTION_NAME, 'oauth2-request', AUTH_MODE_LABELS.OAUTH2);
+      await openInheritedAuth(page, COLLECTION_NAME, 'oauth2-request', AUTH_MODE_LABELS.OAUTH2, 'oauth2-folder');
       await expect(auth.oauth2.copyTokenButton()).toHaveCount(0);
       await auth.oauth2.tokenSection('Access Token').click();
       await auth.oauth2.tokenSection('Access Token').click();
