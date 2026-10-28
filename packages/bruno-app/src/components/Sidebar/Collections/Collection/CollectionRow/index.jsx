@@ -29,7 +29,7 @@ import { toggleCollection, collapseFullCollection, clearSidebarSelection } from 
 import { mountCollection, moveCollectionAndPersist, handleMultipleCollectionItemsDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector, useStore } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
+import useSidebarRowFocus from 'hooks/useSidebarRowFocus';
 import toast from 'react-hot-toast';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
@@ -74,7 +74,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   const [showMoveToWorkspaceModal, setShowMoveToWorkspaceModal] = useState(false);
   const [showCreateMockServerModal, setShowCreateMockServerModal] = useState(false);
   const [dropType, setDropType] = useState(null);
-  const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
+  const { isKeyboardFocused, handleFocus, handleBlur } = useSidebarRowFocus(collection.pathname);
   const dispatch = useDispatch();
   const isLoading = collection.isLoading;
   const invalidItemCount = useMemo(() => countInvalidItems(collection.items), [collection.items]);
@@ -263,16 +263,6 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
     setShowNewRequestModal(true);
     return false;
   }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
-
-  const handleFocus = () => {
-    setIsKeyboardFocused(true);
-    dispatch(setFocusedSidebarPath(collection.pathname));
-  };
-
-  const handleBlur = () => {
-    setIsKeyboardFocused(false);
-    dispatch(setFocusedSidebarPath(null));
-  };
 
   const isCollectionItem = (itemType) => {
     return itemType === 'collection-item';
@@ -579,6 +569,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
         onFocus={handleFocus}
         onBlur={handleBlur}
         onMouseDown={isDragDisabled ? startBlockedDragTracking : undefined}
+        data-sidebar-row-focus-target
         data-testid="sidebar-collection-row"
         data-selected={isSelected ? 'true' : undefined}
       >
@@ -587,6 +578,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
           onClick={handleClick}
           onDoubleClick={handleDoubleClick}
           onContextMenu={handleRightClick}
+          data-sidebar-row-activate
         >
           <ActionIcon style={{ width: 16, minWidth: 16 }}>
             <IconChevronRight

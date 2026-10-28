@@ -98,6 +98,7 @@ const SidebarRow = (props) => {
   return (
     <div
       data-sidebar-row
+      data-row-id={row.id}
       data-row-uid={row.exampleUid || row.itemUid || row.collectionUid || undefined}
       data-collection-id={row.collectionId || undefined}
       data-collection-uid={row.collectionUid || undefined}

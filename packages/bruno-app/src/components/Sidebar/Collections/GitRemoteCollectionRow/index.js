@@ -74,6 +74,9 @@ const GitRemoteCollectionRow = ({ entry }) => {
         onClick={openCloneModal}
         onContextMenu={handleRightClick}
         title={`${entry.name} — click to clone from ${entry.remote}`}
+        tabIndex={0}
+        data-sidebar-row-focus-target
+        data-sidebar-row-activate
         data-testid="sidebar-git-collection-row"
       >
         <div className="flex flex-grow items-center overflow-hidden">
