@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { test, expect, Locator } from '../../playwright';
 import {
   closeAllCollections,
@@ -11,6 +13,7 @@ import {
 import {
   authFieldEditor,
   buildAutocompleteLocators,
+  expectAutocompleteStaysClosed,
   maskedCharacters,
   pasteIntoEditor,
   pressAutocompleteShortcut,
@@ -125,6 +128,63 @@ test.describe('Variable autocomplete — insertion correctness', () => {
 
       await pickHint(page, '$guid');
       await expect.poll(() => readEditorValue(valueEditor)).toBe('{{$guid}}');
+    });
+  });
+
+  test('accepting `process` and `env` adds the dot and reopens the list, until the final name closes it', async ({
+    page,
+    createTmpDir
+  }) => {
+    const collectionName = 'autocomplete-path-segments';
+    const requestName = 'segments-request';
+    const variableName = 'PATH_SEGMENT_TOKEN';
+
+    const collectionsDir = await createTmpDir();
+    await createCollection(page, collectionName, collectionsDir);
+    // process.env.* names come from the collection's .env file
+    fs.writeFileSync(path.join(collectionsDir, collectionName, '.env'), `${variableName}=value\n`);
+
+    await createRequest(page, requestName, collectionName, { url: 'https://example.com/api?x=' });
+    await openRequest(page, collectionName, requestName);
+
+    const urlEditor = buildCommonLocators(page).request.urlInput();
+    const { itemByName } = buildAutocompleteLocators(page);
+    const urlValue = () => readEditorValue(urlEditor);
+    const baseUrl = 'https://example.com/api?x=';
+
+    const processHint = () => itemByName('process', { exact: true }).first();
+    const envHint = () => itemByName('env', { exact: true }).first();
+    const variableHint = () => itemByName(variableName, { exact: true }).first();
+
+    await test.step('typing `{{pro` offers the first segment, `process`', async () => {
+      // The .env is loaded by a file watcher, and hints are only computed on a keystroke.
+      // Retype until its names are available, rather than relying on a single early attempt.
+      await expect(async () => {
+        await setEditorState(urlEditor, baseUrl, baseUrl.length);
+        await page.keyboard.type('{{pro');
+        await expect(processHint()).toBeVisible({ timeout: 1000 });
+      }).toPass();
+    });
+
+    await test.step('accepting `process` with Enter adds the dot and reopens the list with `env`', async () => {
+      await page.keyboard.press('Enter');
+
+      await expect.poll(urlValue).toBe(`${baseUrl}{{process.`);
+      await expect(envHint()).toBeVisible();
+    });
+
+    await test.step('accepting `env` with a click adds the dot and reopens the list with the variable', async () => {
+      await pickHint(page, 'env', { exact: true });
+
+      await expect.poll(urlValue).toBe(`${baseUrl}{{process.env.`);
+      await expect(variableHint()).toBeVisible();
+    });
+
+    await test.step('accepting the final name closes the braces and the list stays closed', async () => {
+      await pickHint(page, variableName, { exact: true });
+
+      await expect.poll(urlValue).toBe(`${baseUrl}{{process.env.${variableName}}}`);
+      await expectAutocompleteStaysClosed(page);
     });
   });
 });
