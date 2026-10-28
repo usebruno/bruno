@@ -73,7 +73,7 @@ test.describe('Naming collisions - create folder', () => {
     });
   });
 
-  test('creating a root folder named "environments" in any case is blocked', async ({ page, createTmpDir }) => {
+  test('creating a root folder named "Environments" is blocked', async ({ page, createTmpDir }) => {
     const { sidebar, modal } = buildCommonLocators(page);
     const testDir = await createTmpDir('folder-create-env-reserved');
 
@@ -88,10 +88,13 @@ test.describe('Naming collisions - create folder', () => {
 
     await test.step('Reserved-name error is shown and nothing is created', async () => {
       await expect(modal.formError('The folder name "environments" at the root of the collection is reserved in bruno')).toBeVisible();
+      await expect(modal.any()).toBeVisible();
       await expect(sidebar.itemByName('Environments')).toHaveCount(0);
+      // readdirSync keeps on-disk casing; existsSync would match a lowercase `environments` dir on case-insensitive filesystems.
+      expect(fs.readdirSync(findCollectionDir(testDir))).not.toContain('Environments');
     });
 
-    await modal.any().getByRole('button', { name: 'Cancel' }).click();
+    await modal.button('Cancel').click();
     await expect(modal.any()).toHaveCount(0, { timeout: 5000 });
   });
 });
