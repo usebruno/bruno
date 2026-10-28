@@ -34,19 +34,27 @@ const getCertsAndProxyConfig = async ({
 
   // Only load CA certificates if SSL validation is enabled (otherwise they're unused)
   if (preferencesUtil.shouldVerifyTls()) {
-    let caCertFilePath = preferencesUtil.shouldUseCustomCaCertificate() && preferencesUtil.getCustomCaCertificateFilePath();
-    let caCertificatesData = getCACertificates({
+    const caCertFilePath = preferencesUtil.shouldUseCustomCaCertificate() && preferencesUtil.getCustomCaCertificateFilePath();
+    const shouldKeepDefaultCerts = preferencesUtil.shouldKeepDefaultCaCertificates();
+    const caCertificatesData = getCACertificates({
       caCertFilePath,
-      shouldKeepDefaultCerts: preferencesUtil.shouldKeepDefaultCaCertificates()
+      shouldKeepDefaultCerts
     });
 
-    caCertificates = caCertificatesData.caCertificates;
     caCertificatesCount = caCertificatesData.caCertificatesCount;
+
+    // Custom CA (or defaults disabled) needs an explicit bundle. Default-trust-only requests
+    // should omit `ca` so Node uses its native store — rebundling system+root into secureContext
+    // can break verification on newer Node (e.g. Electron 45 / Node 24).
+    if (caCertFilePath || !shouldKeepDefaultCerts) {
+      caCertificates = caCertificatesData.caCertificates;
+    }
   }
 
-  // configure HTTPS agent with aggregated CA certificates
   httpsAgentRequestFields['caCertificatesCount'] = caCertificatesCount;
-  httpsAgentRequestFields['ca'] = caCertificates || [];
+  if (caCertificates) {
+    httpsAgentRequestFields['ca'] = caCertificates;
+  }
 
   const { promptVariables } = collection;
   const collectionVariables = request.collectionVariables || {};
