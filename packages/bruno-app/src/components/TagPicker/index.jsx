@@ -177,7 +177,7 @@ const TagPicker = ({
       {tags.length > 0 && (
         <ul className="tag-picker-list">
           {tags.map((tag) => (
-            <li key={tag} className="tag-picker-item">
+            <li key={tag} className="tag-picker-item" data-testid="tag-picker-item">
               <IconTag size={16} className="tag-picker-icon" aria-hidden="true" strokeWidth={1.33} />
               <span className="tag-picker-text">
                 {tag}
@@ -185,6 +185,7 @@ const TagPicker = ({
               <button
                 type="button"
                 className="tag-picker-remove"
+                data-testid="tag-picker-remove"
                 aria-label={`Remove ${tag}`}
                 onClick={() => handleRemoveTag(tag)}
               >

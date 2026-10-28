@@ -89,7 +89,7 @@ export const buildRunnerTagLocators = (page: Page, root?: Locator) => {
   return {
     column,
     input: (kind: RunnerTagKind) => column(kind).getByTestId('tag-picker-input'),
-    chip: (kind: RunnerTagKind, tagName: string) => column(kind).locator('.tag-picker-item', { hasText: tagName })
+    chip: (kind: RunnerTagKind, tagName: string) => column(kind).getByTestId('tag-picker-item').filter({ hasText: tagName })
   };
 };
 
@@ -130,7 +130,7 @@ export const clearRunnerTags = async (page: Page, root?: Locator) => {
   await test.step('Clear the runner tag filters', async () => {
     const locators = buildRunnerTagLocators(page, root);
     for (const kind of ['Include', 'Exclude'] as RunnerTagKind[]) {
-      const removers = locators.column(kind).locator('.tag-picker-item .tag-picker-remove');
+      const removers = locators.column(kind).getByTestId('tag-picker-remove');
       // Removing a chip re-renders the list, so re-read it rather than iterating a stale handle.
       for (let remaining = await removers.count(); remaining > 0; remaining--) {
         await removers.first().click();
