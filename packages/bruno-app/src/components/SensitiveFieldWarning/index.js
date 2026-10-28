@@ -1,8 +1,11 @@
 import React from 'react';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import SensitiveWarningPopover from './SensitiveWarningPopover';
+import { useSensitiveFieldOwner } from './context';
 
-const SensitiveFieldWarning = ({ fieldName, secretName, value, collection, item, disabled, onReplaceValue }) => {
+const SensitiveFieldWarning = ({ fieldName, fieldKey, secretName, value, collection, item, onReplaceValue }) => {
+  const owner = useSensitiveFieldOwner();
+  const replaceValue = owner ? (newValue) => owner.updateField(fieldKey, newValue) : onReplaceValue;
   const { isSensitive } = useDetectSensitiveField(collection);
   const { showWarning, warningMessage, scope, variableName } = isSensitive(value, item);
 
@@ -20,8 +23,7 @@ const SensitiveFieldWarning = ({ fieldName, secretName, value, collection, item,
       value={value}
       collection={collection}
       item={item}
-      disabled={disabled}
-      onReplaceValue={onReplaceValue}
+      onReplaceValue={replaceValue}
     />
   );
 };

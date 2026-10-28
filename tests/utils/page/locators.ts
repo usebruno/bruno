@@ -28,6 +28,7 @@ import { buildCreateWorkspaceModalLocators } from './workspace/create-workspace-
 import { buildTitleBarLocators } from './title-bar';
 import { buildCloneGitRepositoryLocators } from './git/clone-git-repository';
 import { buildResponseExampleLocators } from './response-example';
+import { buildAuthLocators } from './auth';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
@@ -206,22 +207,7 @@ export const buildCommonLocators = (page: Page) => ({
     addToCreateEnvSubmit: (popup: Locator) => popup.getByTestId('var-info-add-to-create-env-submit'),
     addToError: (popup: Locator) => popup.getByTestId('var-info-add-to-error')
   },
-  auth: {
-    apiKey: {
-      placementSelector: () => page.getByTestId('auth-placement-selector'),
-      placementLabel: () => page.getByTestId('auth-placement-label')
-    },
-    oauth2: {
-      grantTypeDropdown: () => page.getByTestId('grant-type-dropdown'),
-      tokenHeaderPrefixField: () => page.getByTestId('token-header-prefix'),
-      tokenQueryParamKeyField: () => page.getByTestId('token-query-param-key')
-    },
-    modeSelector: () => page.getByTestId('auth-mode-selector'),
-    modeLabel: () => page.getByTestId('auth-mode-label'),
-    inheritedMode: () => page.getByTestId('inherited-auth-mode'),
-    inheritedFields: () => page.getByTestId('inherited-auth-fields'),
-    dropdownItem: (id: string) => page.getByTestId(`auth-mode-dropdown-${id}`)
-  },
+  auth: buildAuthLocators(page),
   presets: {
     requestType: (type: PresetRequestType) =>
       page.getByTestId(`presets-request-type-${type}`),
