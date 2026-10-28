@@ -378,6 +378,8 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
         }
 
         const workspaceConfig = yaml.load(fs.readFileSync(workspaceYmlPath, 'utf8'));
+        // Reject invalid archives while their files are still in the temporary directory.
+        validateWorkspaceConfig(workspaceConfig);
         const workspaceName = workspaceConfig.info.name || 'Imported Workspace';
         const sanitizedName = sanitizeName(workspaceName);
 
