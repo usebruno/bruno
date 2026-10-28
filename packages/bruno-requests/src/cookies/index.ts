@@ -28,8 +28,7 @@ const getCookieStringForUrl = (url: string): string => {
   const cookies = getCookiesForUrl(url);
   if (!Array.isArray(cookies) || !cookies.length) return '';
 
-  const validCookies = cookies.filter((cookie: any) => !cookie.expires || (cookie.expires as any) > Date.now());
-  return validCookies.map((cookie) => cookie.cookieString()).join('; ');
+  return cookies.map((cookie) => cookie.cookieString()).join('; ');
 };
 
 const getDomainsWithCookies = (): Promise<Array<{ domain: string; cookies: Cookie[]; cookieString: string }>> => {
@@ -55,7 +54,7 @@ const getDomainsWithCookies = (): Promise<Array<{ domain: string; cookies: Cooki
 
       each(domains, (domain) => {
         const cookiesForDomain = domainCookieMap[domain];
-        const validCookies = cookiesForDomain.filter((cookie: any) => !cookie.expires || (cookie.expires as any) > Date.now());
+        const validCookies = cookiesForDomain.filter((cookie) => (cookie.expiryTime() ?? Infinity) > Date.now());
 
         if (validCookies.length) {
           domainsWithCookies.push({
