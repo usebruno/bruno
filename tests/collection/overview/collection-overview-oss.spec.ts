@@ -1,23 +1,25 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { test, expect } from '../../../playwright';
+import { test, expect, Page } from '../../../playwright';
 import {
   buildCommonLocators,
   createCollection,
   createEnvironment,
   createRequest,
-  generateDocsFromModal,
-  openCollectionSettings,
   selectCollectionPaneTab
 } from '../../utils/page';
 
 const environmentCountLabel = (count: number, scope: 'collection' | 'global') =>
   `${count} ${scope} environment${count === 1 ? '' : 's'}`;
 
-const openOverview = async (page: Parameters<typeof openCollectionSettings>[0], collectionName: string) => {
-  await openCollectionSettings(page, collectionName);
-  await selectCollectionPaneTab(page, 'overview');
+const openOverview = async (page: Page, collectionName: string) => {
+  await test.step(`Open Overview for "${collectionName}"`, async () => {
+    const { collectionHeader } = buildCommonLocators(page);
+    await collectionHeader.overflowMenu().click();
+    await collectionHeader.overflowMenuItem('collection-settings').click();
+    await selectCollectionPaneTab(page, 'overview');
+  });
 };
 
 test.describe('Collection settings overview', () => {
@@ -29,7 +31,6 @@ test.describe('Collection settings overview', () => {
     const { collectionOverview } = buildCommonLocators(page);
 
     await test.step('Open a collection on the Overview tab', async () => {
-      await page.locator('[data-app-state="loaded"]').waitFor();
       await createCollection(page, collectionName, location);
       await openOverview(page, collectionName);
     });
@@ -53,7 +54,6 @@ test.describe('Collection settings overview', () => {
     let globalCountBefore = 0;
 
     await test.step('Open a new collection and read the current global environment count', async () => {
-      await page.locator('[data-app-state="loaded"]').waitFor();
       await createCollection(page, collectionName, await createTmpDir('TC-2620'));
       await openOverview(page, collectionName);
 
@@ -90,7 +90,6 @@ test.describe('Collection settings overview', () => {
     const { collectionOverview } = buildCommonLocators(page);
 
     await test.step('Create a collection with two requests', async () => {
-      await page.locator('[data-app-state="loaded"]').waitFor();
       await createCollection(page, collectionName, await createTmpDir('TC-2622'));
       await createRequest(page, 'List users', collectionName);
       await createRequest(page, 'Create user', collectionName);
@@ -107,7 +106,6 @@ test.describe('Collection settings overview', () => {
     const collectionName = 'OverviewShare';
 
     await test.step('Open collection Overview', async () => {
-      await page.locator('[data-app-state="loaded"]').waitFor();
       await createCollection(page, collectionName, await createTmpDir('TC-2623'));
       await openOverview(page, collectionName);
     });
@@ -137,7 +135,6 @@ test.describe('Collection settings overview', () => {
     const { collectionOverview, generateDocs } = buildCommonLocators(page);
 
     await test.step('Open collection Overview', async () => {
-      await page.locator('[data-app-state="loaded"]').waitFor();
       await createCollection(page, collectionName, docsDirectory);
       await openOverview(page, collectionName);
     });
@@ -159,7 +156,49 @@ test.describe('Collection settings overview', () => {
     });
 
     await test.step('Generate creates an HTML file that can be saved locally', async () => {
-      const { content, fileName } = await generateDocsFromModal(page);
+      // Generate saves through FileSaver, which Electron does not report as a download, so the
+      // HTML and file name are captured in the renderer. The renderer outlives the test, so the
+      // original functions are restored afterwards.
+      await page.evaluate(() => {
+        const w = window as any;
+        w.__docsOriginalCreateObjectURL = URL.createObjectURL;
+        w.__docsOriginalAnchorDispatch = HTMLAnchorElement.prototype.dispatchEvent;
+
+        w.__docsContent = new Promise<string>((resolve) => {
+          URL.createObjectURL = function (file: Blob | MediaSource) {
+            if (file instanceof Blob) {
+              file.text().then(resolve);
+            }
+            return w.__docsOriginalCreateObjectURL.call(URL, file);
+          };
+        });
+
+        w.__docsFileName = new Promise<string>((resolve) => {
+          HTMLAnchorElement.prototype.dispatchEvent = function (event: Event) {
+            if (this.download && event.type === 'click') {
+              resolve(this.download);
+              return true;
+            }
+            return w.__docsOriginalAnchorDispatch.call(this, event);
+          };
+        });
+      });
+
+      let content = '';
+      let fileName = '';
+      try {
+        await generateDocs.generateButton().click();
+        content = await page.evaluate(() => (window as any).__docsContent as Promise<string>);
+        fileName = await page.evaluate(() => (window as any).__docsFileName as Promise<string>);
+        await expect(generateDocs.modal()).toBeHidden();
+      } finally {
+        await page.evaluate(() => {
+          const w = window as any;
+          URL.createObjectURL = w.__docsOriginalCreateObjectURL;
+          HTMLAnchorElement.prototype.dispatchEvent = w.__docsOriginalAnchorDispatch;
+        });
+      }
+
       expect(fileName).toBe(`${collectionName}-documentation.html`);
 
       const downloadsDirectory = path.join(os.homedir(), 'Downloads');
