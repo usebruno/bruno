@@ -1,12 +1,7 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  .tooltip-mod.sensitive-field-tooltip {
-    width: 260px !important;
-    max-width: 260px !important;
-  }
-
-  .tooltip-icon { 
+  .tooltip-icon {
     color: ${(props) => props.theme.colors.text.danger};
   }
 `;

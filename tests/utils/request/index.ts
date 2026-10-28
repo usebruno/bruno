@@ -2,9 +2,13 @@ import { test, expect, Page, Locator } from '../../../playwright';
 import {
   openCollectionSettings,
   openFolderSettings,
+  selectAuthMode,
   selectCollectionPaneTab,
-  selectfolderPaneTab
+  selectfolderPaneTab,
+  selectRequestPaneTab,
+  writeFieldValue
 } from '../page/actions';
+import { AUTH_MODE_LABELS } from '../constants';
 import { buildCommonLocators } from '../page/locators';
 import { buildQueryParamsLocators } from './params/query';
 
@@ -13,7 +17,7 @@ export const buildRequestLocators = (page: Page) => ({
   urlLine: () => page.getByTestId('request-url').locator('.CodeMirror-line'),
   sendButton: () => page.getByTestId('send-arrow-icon'),
   methodDropdown: () => page.getByTestId('method-selector'),
-  newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
+  newRequestUrl: () => page.getByTestId('new-request-url').locator('.CodeMirror'),
   requestNameInput: () => page.getByPlaceholder('Request Name'),
   requestTestId: () => page.getByTestId('request-name'),
   generateCodeButton: () => page.getByTestId('generate-code-button'),
@@ -212,21 +216,11 @@ export const seedFolderHeaders = async (
   await setSettingsHeadersBulk(page, headersText, 'folder');
 };
 
-/** Types a name and value into the last row of a Vars table. */
-export const addVarsRow = async (page: Page, tableId: string, name: string, value: string) => {
-  await test.step(`Add "${name}" to ${tableId}`, async () => {
-    const { table } = buildCommonLocators(page);
-    const varsTable = table(tableId);
-    const nameInput = varsTable.rowNameInput(varsTable.row().last());
-    await nameInput.click();
-    await page.keyboard.type(name);
-
-    const row = varsTable.rowByName(name);
-    await expect(row).toBeVisible();
-
-    const valueEditor = varsTable.rowValueEditor(row);
-    await valueEditor.click({ force: true });
-    await expect(valueEditor).toHaveClass(/CodeMirror-focused/);
-    await page.keyboard.insertText(value);
+/** Opens the request's Auth tab, picks API Key and sets its Value field. */
+export const setApiKeyValue = async (page: Page, value: string) => {
+  await test.step(`Set the API key value to "${value}"`, async () => {
+    await selectRequestPaneTab(page, 'Auth');
+    await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
+    await writeFieldValue(page, 'Value', value);
   });
 };
