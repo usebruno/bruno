@@ -1,5 +1,4 @@
 import fs from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
 import { test, expect, Page } from '../../../playwright';
 import {
@@ -40,7 +39,6 @@ test.describe('Collection settings overview', () => {
 
       const displayedCollectionLocation = (await collectionOverview.collectionLocation().innerText()).trim();
       expect(displayedCollectionLocation.replace(/\\/g, '/')).toBe(expectedPath.replace(/\\/g, '/'));
-      expect(path.basename(displayedCollectionLocation)).toBe(collectionName);
     });
   });
 
@@ -50,13 +48,16 @@ test.describe('Collection settings overview', () => {
   }, testInfo) => {
     const collectionName = 'OverviewEnvironments';
     const suffix = `${testInfo.workerIndex}-${testInfo.retry}`;
-    const { collectionOverview } = buildCommonLocators(page);
+    const { collectionOverview, paneTabs } = buildCommonLocators(page);
     let globalCountBefore = 0;
 
-    await test.step('Open a new collection and read the current global environment count', async () => {
+    await test.step('Clicking the collection name opens Overview by default', async () => {
+      // createCollection ends by clicking the new collection's name in the sidebar.
       await createCollection(page, collectionName, await createTmpDir('TC-2620'));
-      await openOverview(page, collectionName);
+      await expect(paneTabs.collectionSettingsTab('overview')).toContainClass('active');
+    });
 
+    await test.step('Read the current environment counts', async () => {
       const globalLabel = (await collectionOverview.globalEnvironmentCount().innerText()).trim();
       globalCountBefore = Number(globalLabel.match(/^(\d+)/)?.[1]);
       expect(globalCountBefore).not.toBeNaN();
@@ -104,6 +105,7 @@ test.describe('Collection settings overview', () => {
 
   test('TC-2623: Verify Share Collection option is available', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const collectionName = 'OverviewShare';
+    const { collectionOverview, modal, shareCollection } = buildCommonLocators(page);
 
     await test.step('Open collection Overview', async () => {
       await createCollection(page, collectionName, await createTmpDir('TC-2623'));
@@ -111,7 +113,6 @@ test.describe('Collection settings overview', () => {
     });
 
     await test.step('Share Collection is visible and opens the share modal', async () => {
-      const { collectionOverview, modal, shareCollection } = buildCommonLocators(page);
       const share = collectionOverview.shareCollection();
       await expect(collectionOverview.shareLabel()).toBeVisible();
       await expect(share).toBeVisible();
@@ -129,7 +130,7 @@ test.describe('Collection settings overview', () => {
     });
   });
 
-  test('TC-2624: Verify Generate docs option is available in the Documentation section', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+  test('TC-2624: Verify Generate docs option is available in the Documentation section', { tag: '@sanity' }, async ({ page, electronApp, createTmpDir }) => {
     const collectionName = 'OverviewDocs';
     const docsDirectory = await createTmpDir('TC-2624');
     const { collectionOverview, generateDocs } = buildCommonLocators(page);
@@ -155,59 +156,22 @@ test.describe('Collection settings overview', () => {
       await expect(generateDocs.generateButton()).toBeEnabled({ timeout: 10000 });
     });
 
-    await test.step('Generate creates an HTML file that can be saved locally', async () => {
-      // Generate saves through FileSaver, which Electron does not report as a download, so the
-      // HTML and file name are captured in the renderer. The renderer outlives the test, so the
-      // original functions are restored afterwards.
-      await page.evaluate(() => {
-        const w = window as any;
-        w.__docsOriginalCreateObjectURL = URL.createObjectURL;
-        w.__docsOriginalAnchorDispatch = HTMLAnchorElement.prototype.dispatchEvent;
-
-        w.__docsContent = new Promise<string>((resolve) => {
-          URL.createObjectURL = function (file: Blob | MediaSource) {
-            if (file instanceof Blob) {
-              file.text().then(resolve);
-            }
-            return w.__docsOriginalCreateObjectURL.call(URL, file);
-          };
+    await test.step('Generate saves the HTML documentation locally', async () => {
+      // Electron shows its save dialog for this download, so the test answers it with a temp path.
+      await electronApp.evaluate(({ session }, { directory, separator }) => {
+        session.defaultSession.once('will-download', (_event, item) => {
+          item.setSavePath(`${directory}${separator}${item.getFilename()}`);
         });
+      }, { directory: docsDirectory, separator: path.sep });
 
-        w.__docsFileName = new Promise<string>((resolve) => {
-          HTMLAnchorElement.prototype.dispatchEvent = function (event: Event) {
-            if (this.download && event.type === 'click') {
-              resolve(this.download);
-              return true;
-            }
-            return w.__docsOriginalAnchorDispatch.call(this, event);
-          };
-        });
-      });
+      const savedDocsPath = path.join(docsDirectory, `${collectionName}-documentation.html`);
 
-      let content = '';
-      let fileName = '';
-      try {
-        await generateDocs.generateButton().click();
-        content = await page.evaluate(() => (window as any).__docsContent as Promise<string>);
-        fileName = await page.evaluate(() => (window as any).__docsFileName as Promise<string>);
-        await expect(generateDocs.modal()).toBeHidden();
-      } finally {
-        await page.evaluate(() => {
-          const w = window as any;
-          URL.createObjectURL = w.__docsOriginalCreateObjectURL;
-          HTMLAnchorElement.prototype.dispatchEvent = w.__docsOriginalAnchorDispatch;
-        });
-      }
+      await generateDocs.generateButton().click();
+      await expect(generateDocs.modal()).toBeHidden();
 
-      expect(fileName).toBe(`${collectionName}-documentation.html`);
+      await expect.poll(() => fs.readFile(savedDocsPath, 'utf8').catch(() => '')).toContain('</html>');
 
-      const downloadsDirectory = path.join(os.homedir(), 'Downloads');
-      await fs.mkdir(downloadsDirectory, { recursive: true });
-      const savedDocsPath = path.join(downloadsDirectory, fileName);
-      await fs.writeFile(savedDocsPath, content);
-      console.log(`Generated docs saved to ${savedDocsPath}`);
       const savedHtml = await fs.readFile(savedDocsPath, 'utf8');
-
       expect(savedHtml).toContain(`<title>${collectionName} - API Documentation</title>`);
       expect(savedHtml).toContain('id="opencollection-container"');
     });
