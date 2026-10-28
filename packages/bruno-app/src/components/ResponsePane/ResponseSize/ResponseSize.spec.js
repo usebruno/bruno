@@ -107,6 +107,15 @@ describe('ResponseSize', () => {
       expect(element).toHaveAttribute('title', `${size.toLocaleString()}B`);
     });
 
+    it('should carry rounded decimal remainder into the kilobyte value', () => {
+      const size = 2047;
+      renderWithTheme(<ResponseSize size={size} />);
+      const element = screen.getByText(/2\.0KB/);
+      expect(element).toBeInTheDocument();
+      expect(element.textContent).toMatch(/^2\.0KB$/);
+      expect(element).toHaveAttribute('title', `${size.toLocaleString()}B`);
+    });
+
     it('should handle large size numbers', () => {
       const size = 10240;
       renderWithTheme(<ResponseSize size={size} />);
