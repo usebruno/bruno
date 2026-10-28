@@ -10,14 +10,12 @@ import {
   updateRequestGraphqlQuery,
   updateRequestGraphqlVariables,
   updateRequestAuthMode,
-  updateAuth
+  updateAuth,
+  setFormUrlEncodedParams,
+  setMultipartFormParams
 } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, cancelRequest } from 'providers/ReduxStore/slices/collections/actions';
-import {
-  getRequestFromCurlCommand,
-  normalizeCurlFormUrlEncoded,
-  normalizeCurlMultipartForm
-} from 'utils/curl';
+import { getRequestFromCurlCommand } from 'utils/curl';
 import HttpMethodSelector from './HttpMethodSelector';
 import { useTheme } from 'providers/Theme';
 import { IconDeviceFloppy, IconCode } from '@tabler/icons';
@@ -300,21 +298,19 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             );
           }
         } else if (bodyMode === 'formUrlEncoded' && request.body.formUrlEncoded) {
-          // `updateRequestBody` assigns the whole array for this mode, so the
-          // params do not have to be set one at a time.
           dispatch(
-            updateRequestBody({
+            setFormUrlEncodedParams({
               itemUid: item.uid,
               collectionUid: collection.uid,
-              content: normalizeCurlFormUrlEncoded(request.body.formUrlEncoded)
+              params: request.body.formUrlEncoded
             })
           );
         } else if (bodyMode === 'multipartForm' && request.body.multipartForm) {
           dispatch(
-            updateRequestBody({
+            setMultipartFormParams({
               itemUid: item.uid,
               collectionUid: collection.uid,
-              content: normalizeCurlMultipartForm(request.body.multipartForm)
+              params: request.body.multipartForm
             })
           );
         }
