@@ -22,7 +22,9 @@ export const buildAuthLocators = (page: Page) => ({
     addParameterButton: () => page.getByTestId('oauth2-additional-params-add'),
     deleteParameterButtons: () => page.getByTestId('oauth2-additional-params-delete'),
     getAccessTokenButton: () => page.getByRole('button', { name: 'Get Access Token' }),
-    clearCacheButton: () => page.getByRole('button', { name: 'Clear Cache' })
+    clearCacheButton: () => page.getByRole('button', { name: 'Clear Cache' }),
+    tokenSection: (title: string) => page.getByRole('heading', { name: title, exact: true }),
+    copyTokenButton: () => page.getByRole('button', { name: 'Copy token' })
   },
   modeSelector: () => page.getByTestId('auth-mode-selector'),
   modeLabel: () => page.getByTestId('auth-mode-label'),

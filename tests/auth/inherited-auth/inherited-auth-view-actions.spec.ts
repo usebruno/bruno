@@ -77,6 +77,32 @@ test.describe('Inherited auth view actions', () => {
     await expect.poll(() => readField(page, 'Client Secret')).toBe('inherited-client-secret');
   });
 
+  test('Token viewer section expands and copies the token', async ({ pageWithUserData: page, installFakeClipboard }) => {
+    const { auth } = buildCommonLocators(page);
+    const clipboard = await installFakeClipboard(page);
+    await openInheritedAuth(page, COLLECTION_NAME, 'oauth2-request', AUTH_MODE_LABELS.OAUTH2, 'oauth2-folder');
+
+    await test.step('Fetch a token from the source folder', async () => {
+      await auth.inheritedMode().click();
+      await auth.oauth2.getAccessTokenButton().click();
+      await expect(auth.oauth2.tokenSection('Access Token')).toBeVisible();
+    });
+
+    await test.step('Expand the token section in the inherited view', async () => {
+      await openInheritedAuth(page, COLLECTION_NAME, 'oauth2-request', AUTH_MODE_LABELS.OAUTH2);
+      await expect(auth.oauth2.copyTokenButton()).toHaveCount(0);
+      await auth.oauth2.tokenSection('Access Token').click();
+      await expect(auth.oauth2.copyTokenButton()).toBeVisible();
+    });
+
+    await test.step('Copy the token', async () => {
+      await auth.oauth2.copyTokenButton().hover();
+      await auth.oauth2.copyTokenButton().click();
+      const copiedToken = await clipboard.copiedText();
+      await expect(auth.inheritedFields().getByText(copiedToken)).toBeVisible();
+    });
+  });
+
   test('Grant type dropdown does not open', async ({ pageWithUserData: page }) => {
     const { auth } = buildCommonLocators(page);
     await openInheritedAuth(page, COLLECTION_NAME, 'inherited-request', AUTH_MODE_LABELS.OAUTH2);
