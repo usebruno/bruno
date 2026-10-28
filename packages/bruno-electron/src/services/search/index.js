@@ -13,19 +13,18 @@ const RIPGREP_PROCESS_FILE = path.join(__dirname, 'ripgrep-process.js');
 const STATUS_INTERVAL_MS = 150;
 
 const toTreeEntry = (relativePath, data = {}, error) => {
+  let treeData;
   if (defaultClassify(relativePath)?.type === 'folder') {
     const meta = data.meta || data.info || {};
-    return error
-      ? { data: { meta: { name: meta.name, seq: meta.seq } }, error: { message: error.message } }
-      : { data: { meta: { name: meta.name, seq: meta.seq } } };
+    treeData = { meta: { name: meta.name, seq: meta.seq } };
+  } else {
+    treeData = {
+      name: data.name,
+      type: data.type,
+      seq: data.seq,
+      request: { method: data.request?.method, url: data.request?.url }
+    };
   }
-
-  const treeData = {
-    name: data.name,
-    type: data.type,
-    seq: data.seq,
-    request: { method: data.request?.method, url: data.request?.url }
-  };
   return error ? { data: treeData, error: { message: error.message } } : { data: treeData };
 };
 
@@ -147,7 +146,7 @@ class SearchService {
     const id = ++this.#nextId;
     this.#window = null;
     this.#onMessage = onMessage;
-    this.#active = { id, roots, query, searching: true, pending: 0, jobs: new Map(), seen: new Map(), versions: new Map() };
+    this.#active = { id, roots, query, searching: true, pending: 0, jobs: new Map(), versions: new Map() };
     this.#emitStatus();
     this.#getHost().postMessage({ type: 'search', id, roots, query });
     return id;
@@ -169,19 +168,11 @@ class SearchService {
   }
 
   async #backfill(active, root, relativePaths) {
-    if (!preferencesUtil.isSearchIndexEnabled()) return;
-    let seen = active.seen.get(root);
-    if (!seen) {
-      seen = new Set();
-      active.seen.set(root, seen);
-    }
-    const fresh = relativePaths.filter((relativePath) => !seen.has(relativePath));
-    if (!fresh.length) return;
-    for (const relativePath of fresh) seen.add(relativePath);
+    if (!relativePaths.length) return;
 
     active.pending += 1;
     try {
-      const unindexed = await this.#unindexed(active, root, fresh);
+      const unindexed = await this.#unindexed(active, root, relativePaths);
       if (this.#active !== active) return;
       for (const relativePath of unindexed) this.#schedule(active, root, relativePath, JobPriority.index);
     } catch (err) {
@@ -283,38 +274,30 @@ class SearchService {
     const windowEntries = new Map();
     const toParse = [];
 
-    if (preferencesUtil.isSearchIndexEnabled()) {
-      const searchIndex = getSearchIndex();
-      const rowsByPath = new Map(
-        searchIndex.rowsForCollection(collectionPath).map((row) => [row.requestPath, row])
-      );
-      const foldersByPath = new Map(
-        searchIndex.foldersFor(collectionPath).map((row) => [row.folderPath, row])
-      );
+    const searchIndex = getSearchIndex();
+    const rowsByPath = new Map(
+      searchIndex.rowsForCollection(collectionPath).map((row) => [row.requestPath, row])
+    );
+    const foldersByPath = new Map(
+      searchIndex.foldersFor(collectionPath).map((row) => [row.folderPath, row])
+    );
 
-      for (const relativePath of wanted) {
-        const kind = defaultClassify(relativePath)?.type;
-        if (kind === 'request') {
-          const row = rowsByPath.get(relativePath);
-          if (row) {
-            windowEntries.set(relativePath, toTreeEntry(relativePath, dataFromIndexRow(row)));
-          } else {
-            toParse.push(relativePath);
-          }
-          continue;
-        }
-        if (kind === 'folder') {
-          const folderPath = path.dirname(relativePath);
-          const folder = foldersByPath.get(folderPath);
-          if (folder) {
-            windowEntries.set(relativePath, toTreeEntry(relativePath, { meta: { name: folder.name, seq: folder.seq } }));
-          } else {
-            toParse.push(relativePath);
-          }
-        }
+    const fromIndex = (relativePath) => {
+      if (defaultClassify(relativePath)?.type === 'folder') {
+        const folder = foldersByPath.get(path.dirname(relativePath));
+        return folder && { meta: { name: folder.name, seq: folder.seq } };
       }
-    } else {
-      toParse.push(...wanted);
+      const row = rowsByPath.get(relativePath);
+      return row && dataFromIndexRow(row);
+    };
+
+    for (const relativePath of wanted) {
+      const data = fromIndex(relativePath);
+      if (data) {
+        windowEntries.set(relativePath, toTreeEntry(relativePath, data));
+      } else {
+        toParse.push(relativePath);
+      }
     }
 
     const parsed = await Promise.all(toParse.map((relativePath) => this.#schedule(active, collectionPath, relativePath, JobPriority.search)));
