@@ -92,6 +92,8 @@ test.describe('Inherited auth view actions', () => {
       await openInheritedAuth(page, COLLECTION_NAME, 'oauth2-request', AUTH_MODE_LABELS.OAUTH2);
       await expect(auth.oauth2.copyTokenButton()).toHaveCount(0);
       await auth.oauth2.tokenSection('Access Token').click();
+      await auth.oauth2.tokenSection('Access Token').click();
+      await auth.inheritedFields().locator('.group').hover();
       await expect(auth.oauth2.copyTokenButton()).toBeVisible();
     });
 
