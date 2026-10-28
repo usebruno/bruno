@@ -3,7 +3,7 @@ import { closeAllCollections } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 import {
   openRequest,
-  replaceRequestUrl,
+  fillRequestUrl,
   sendRequestAndWaitForResponse,
   switchResponseFormat,
   switchToPreviewTab,
@@ -170,7 +170,7 @@ test.describe.serial('Response Format Select and Preview', () => {
     });
 
     await test.step('Re-sending to an endpoint returning application/json switches to JSON', async () => {
-      await replaceRequestUrl(page, 'http://localhost:8081/api/echo/json');
+      await fillRequestUrl(page, 'http://localhost:8081/api/echo/json', { replace: true });
       await sendRequestAndWaitForResponse(page);
       await expect(responseFormatTab).toHaveText('JSON');
     });

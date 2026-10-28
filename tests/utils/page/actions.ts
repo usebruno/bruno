@@ -457,9 +457,10 @@ const createRequestFromEmptyStateCta = async (
  * Works with HTTP, GraphQL, gRPC, and WebSocket requests
  * @param page - The page object
  * @param url - The URL to fill
+ * @param options - `replace: true` overwrites the existing URL; by default the text is inserted at the cursor
  * @returns void
  */
-const fillRequestUrl = async (page: Page, url: string) => {
+const fillRequestUrl = async (page: Page, url: string, { replace = false } = {}) => {
   await test.step(`Fill request URL: ${url}`, async () => {
     // HTTP/GraphQL requests use #request-url
     // gRPC/WebSocket don't have a specific ID, so we need to find the CodeMirror in the active request pane
@@ -468,31 +469,20 @@ const fillRequestUrl = async (page: Page, url: string) => {
 
     // Try HTTP/GraphQL selector first
     const isHttpOrGraphql = await httpGraphqlUrl.isVisible().catch(() => false);
+    const selectAll = () => page.keyboard.press(process.platform === 'darwin' ? 'Meta+a' : 'Control+a');
 
     if (isHttpOrGraphql) {
       await httpGraphqlUrl.click();
+      if (replace) await selectAll();
       await page.locator('#request-url textarea').fill(url);
     } else {
       // Fall back to generic selector for gRPC/WebSocket
       await grpcWsUrl.click();
+      if (replace) await selectAll();
       await page.locator('.input-container textarea').first().fill(url);
     }
 
     await page.waitForTimeout(200);
-  });
-};
-
-/**
- * Replace the whole URL of the open HTTP/GraphQL request.
- * fillRequestUrl inserts at the CodeMirror cursor, so it can't overwrite an existing URL.
- */
-const replaceRequestUrl = async (page: Page, url: string) => {
-  await test.step(`Replace request URL with: ${url}`, async () => {
-    const urlEditor = page.locator('#request-url .CodeMirror');
-    await urlEditor.click();
-    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+a' : 'Control+a');
-    await page.keyboard.type(url);
-    await expect(urlEditor).toContainText(url);
   });
 };
 
@@ -4001,7 +3991,6 @@ export {
   setRequestUrlPreset,
   createRequestFromEmptyStateCta,
   fillRequestUrl,
-  replaceRequestUrl,
   deleteRequest,
   renameCollectionItem,
   deleteCollectionFromOverview,
