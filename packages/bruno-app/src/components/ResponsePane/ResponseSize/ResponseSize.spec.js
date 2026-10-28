@@ -83,9 +83,9 @@ describe('ResponseSize', () => {
     it('should handle exactly 1024 bytes as size', () => {
       const size = 1024;
       renderWithTheme(<ResponseSize size={size} />);
-      const element = screen.getByText(/1024B/);
+      const element = screen.getByText(/1\.00KB/);
       expect(element).toBeInTheDocument();
-      expect(element.textContent).toMatch(/^1024B$/);
+      expect(element.textContent).toMatch(/^1\.00KB$/);
       expect(element).toHaveAttribute('title', `${size.toLocaleString()}B`);
     });
 
