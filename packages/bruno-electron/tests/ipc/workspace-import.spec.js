@@ -43,7 +43,7 @@ describe('workspace archive validation before moving files', () => {
     handler = ipcMain.handle.mock.calls.find(([name]) => name === 'renderer:import-workspace')[1];
   });
 
-  afterEach(() => fs.rmSync(root, { recursive: true, force: true }));
+  afterEach(() => fs.rmSync(root, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }));
 
   const extractedConfig = (config, wrapped) => {
     extractZip.mockImplementation(async (_archive, { dir }) => {
@@ -63,6 +63,12 @@ describe('workspace archive validation before moving files', () => {
 
   test('missing name leaves no imported files', async () => {
     extractedConfig('info:\n  type: workspace\n', false);
+    await expect(handler({}, archive, destination)).rejects.toThrow('valid name');
+    expect(fs.readdirSync(destination)).toEqual([]);
+  });
+
+  test('top-level name cannot bypass validation before the move', async () => {
+    extractedConfig('name: Example\ninfo:\n  type: workspace\n', false);
     await expect(handler({}, archive, destination)).rejects.toThrow('valid name');
     expect(fs.readdirSync(destination)).toEqual([]);
   });

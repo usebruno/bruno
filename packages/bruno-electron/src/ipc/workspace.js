@@ -377,7 +377,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
           throw new Error('Invalid workspace: workspace.yml not found in the zip file');
         }
 
-        const workspaceConfig = yaml.load(fs.readFileSync(workspaceYmlPath, 'utf8'));
+        const workspaceConfig = readWorkspaceConfig(workspaceDir);
         // Reject invalid archives while their files are still in the temporary directory.
         validateWorkspaceConfig(workspaceConfig);
         const workspaceName = workspaceConfig.info.name || 'Imported Workspace';
