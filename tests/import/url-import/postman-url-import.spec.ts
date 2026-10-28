@@ -2,12 +2,12 @@ import { test, expect } from '../../../playwright';
 import { closeAllCollections, expandFolder, openCollection, selectCollectionPaneTab } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
-test.describe('TC-811: imports a valid Postman collection from a direct URL', { tag: '@sanity' }, () => {
+test.describe('Postman URL import', () => {
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
 
-  test('Postman URL import', async ({ page, createTmpDir }) => {
+  test('TC-811: imports a valid Postman collection from a direct URL', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     // Fetches the collection over the network; the main-process axios timeout is 30s,
     // so a slow fetch is killed before it can fail or succeed. The collection is large,
     // so give the import more room than that fetch.
