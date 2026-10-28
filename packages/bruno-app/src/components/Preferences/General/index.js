@@ -29,6 +29,8 @@ const General = () => {
     }),
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
+    localScriptsEnabled: Yup.boolean(),
+    localScriptsCollectionCommandsEnabled: Yup.boolean(),
     timeout: Yup.mixed()
       .transform((value, originalValue) => {
         return originalValue === '' ? undefined : value;
@@ -75,6 +77,12 @@ const General = () => {
       timeout: preferences.request.timeout,
       storeCookies: get(preferences, 'request.storeCookies', true),
       sendCookies: get(preferences, 'request.sendCookies', true),
+      localScriptsEnabled: get(preferences, 'request.localScriptsEnabled', false),
+      localScriptsCollectionCommandsEnabled: get(
+        preferences,
+        'request.localScriptsCollectionCommandsEnabled',
+        false
+      ),
       autoSave: {
         enabled: get(preferences, 'autoSave.enabled', false),
         interval: get(preferences, 'autoSave.interval', 1000)
@@ -112,6 +120,8 @@ const General = () => {
           timeout: newPreferences.timeout,
           storeCookies: newPreferences.storeCookies,
           sendCookies: newPreferences.sendCookies,
+          localScriptsEnabled: newPreferences.localScriptsEnabled,
+          localScriptsCollectionCommandsEnabled: newPreferences.localScriptsCollectionCommandsEnabled,
           oauth2: {
             useSystemBrowser: newPreferences.oauth2.useSystemBrowser
           }
@@ -277,6 +287,29 @@ const General = () => {
             checked={formik.values.oauth2.useSystemBrowser}
             onChange={formik.handleChange}
           />
+        </SettingsGroup>
+
+        <SettingsGroup
+          title="Local Scripts"
+          description="Allow {{$script:name}} variables to run commands registered on the Local Scripts tab. Commands execute on your machine with your shell — enable only for commands you trust."
+        >
+          <CheckboxSetting
+            id="localScriptsEnabled"
+            name="localScriptsEnabled"
+            label="Allow Local Scripts"
+            checked={formik.values.localScriptsEnabled}
+            onChange={formik.handleChange}
+          >
+            <CheckboxSetting
+              id="localScriptsCollectionCommandsEnabled"
+              name="localScriptsCollectionCommandsEnabled"
+              label="Also allow commands defined inside collections (bruno.json)"
+              description="A shared collection can ship its own commands. Keep this off unless you trust every collection you open; your globally registered commands stay available either way."
+              checked={formik.values.localScriptsCollectionCommandsEnabled}
+              onChange={formik.handleChange}
+              disabled={!formik.values.localScriptsEnabled}
+            />
+          </CheckboxSetting>
         </SettingsGroup>
 
         <SettingsGroup title="Auto Save">

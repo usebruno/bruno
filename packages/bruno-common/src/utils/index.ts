@@ -112,3 +112,14 @@ export const parseMaxRedirects = (value: unknown): number | undefined => {
 };
 
 export const toMaxRedirects = (value: unknown): number => parseMaxRedirects(value) ?? DEFAULT_MAX_REDIRECTS;
+
+export {
+  LOCAL_SCRIPT_VAR_PREFIX,
+  LOCAL_SCRIPT_NAME_PATTERN,
+  LOCAL_SCRIPT_TIMEOUT_LIMIT_MS,
+  LOCAL_SCRIPT_MAX_TIMEOUT_MS,
+  LocalScriptError,
+  normalizeLocalScripts,
+  mergeLocalScriptsConfigs
+} from './local-scripts';
+export type { LocalScript } from './local-scripts';

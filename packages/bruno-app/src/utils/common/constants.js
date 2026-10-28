@@ -32,7 +32,8 @@ export const AUTOCOMPLETE_SCOPES = {
   RUNTIME: 'runtime',
   PROCESS_ENV: 'process.env',
   DYNAMIC: 'dynamic',
-  OAUTH2: 'oauth2'
+  OAUTH2: 'oauth2',
+  LOCAL_SCRIPT: 'localScript'
 };
 
 /**
@@ -54,7 +55,8 @@ export const SCOPE_LABEL = {
   [AUTOCOMPLETE_SCOPES.RUNTIME]: 'Runtime',
   [AUTOCOMPLETE_SCOPES.PROCESS_ENV]: 'Process Env',
   [AUTOCOMPLETE_SCOPES.DYNAMIC]: 'Dynamic',
-  [AUTOCOMPLETE_SCOPES.OAUTH2]: 'OAuth2'
+  [AUTOCOMPLETE_SCOPES.OAUTH2]: 'OAuth2',
+  [AUTOCOMPLETE_SCOPES.LOCAL_SCRIPT]: 'Local Script'
 };
 
 export const COPY_SUCCESS_TIMEOUT = 1000;

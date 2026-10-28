@@ -21,7 +21,13 @@ const { createFormData } = require('../utils/form-data');
 const axios = require('axios');
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
-const { getCACertificates, transformProxyConfig, applySentHeadersToRequest, measureResponseTime } = require('@usebruno/requests');
+const {
+  getCACertificates,
+  transformProxyConfig,
+  applySentHeadersToRequest,
+  measureResponseTime
+} = require('@usebruno/requests');
+const { resolveRequestLocalScripts } = require('./local-scripts-hook');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, getMediaType, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
@@ -29,6 +35,12 @@ const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormDat
 const onConsoleLog = (type, args) => {
   console[type](...args);
 };
+
+// Local-scripts scopes of requests currently mid-flight, keyed by their shared
+// envVariables map. A nested bru.runRequest reuses the parent's envVariables,
+// so the child composes its sanitizer with the parent's; the entry is removed
+// once the outermost request finishes.
+const activeLocalScriptScopes = new WeakMap();
 
 const getCACertHostRegex = (domain) => {
   return '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
@@ -116,18 +128,30 @@ const runSingleRequest = async function (
   persistPaths = {},
   runAbortSignal = null
 ) {
+  // Set when the request references local scripts; its sanitizer keeps
+  // request-scoped command output out of persisted environment updates.
+  let localScriptScope = null;
+  // A nested bru.runRequest shares the parent request's envVariables, whose
+  // scope this is (null for top-level requests).
+  let parentLocalScriptScope = null;
   const syncVariableUpdates = (result, currentRequest) => {
     if (!result) return;
+    // The live map keeps resolved script outputs for the remainder of this
+    // request (the scope's restore in finally reverts them afterwards); the
+    // disk copy gets the scrubbed snapshot so command output never persists.
     applyVariableUpdates(result, {
       envVariables,
       runtimeVariables,
       globalEnvVars,
       request: currentRequest
     });
+    const persistedResult = result.envVariables && localScriptScope
+      ? { ...result, envVariables: localScriptScope.sanitize(result.envVariables) }
+      : result;
     // Persistence is a side effect — never tank the run for it. In CI, env files may sit on
     // read-only mounts or the user's shell may lack write permissions; log and continue.
     try {
-      persistVariableUpdates(result, {
+      persistVariableUpdates(persistedResult, {
         envFile: persistPaths.envFile,
         globalEnvFile: persistPaths.globalEnvFile,
         collection,
@@ -171,6 +195,9 @@ const runSingleRequest = async function (
       });
     }
   };
+
+  // Script outputs are request-scoped: envVariables is shared across the
+  // run's sequential requests, so the merge is rolled back in finally.
 
   try {
     let request;
@@ -228,6 +255,34 @@ const runSingleRequest = async function (
     const options = getOptions();
     scriptingConfig.cacheModules = get(options, 'cacheModules', false) === true;
     const systemProxyConfig = options['cachedSystemProxy'];
+
+    // Resolve `{{$script:name}}` references in environment variables and
+    // directly inside the request (url, headers, body, auth, …) using
+    // host-executed commands from the global local scripts registry
+    // (~/.bruno/local-scripts.json, overridable with --local-scripts) plus,
+    // behind a separate opt-in, brunoConfig.localScripts. Outputs are merged
+    // into envVariables for this request only and rolled back in finally so
+    // one request's token doesn't leak into the next; the scope's sanitizer
+    // keeps them out of synced/persisted environment updates.
+    parentLocalScriptScope = activeLocalScriptScopes.get(envVariables) || null;
+    localScriptScope = await resolveRequestLocalScripts({
+      envVariables,
+      request,
+      brunoConfig,
+      collectionPath,
+      processEnvVars,
+      signal: runAbortSignal,
+      options
+    });
+    if (parentLocalScriptScope) {
+      const childScope = localScriptScope;
+      localScriptScope = {
+        restore: () => childScope.restore(),
+        sanitize: (vars) => childScope.sanitize(parentLocalScriptScope.sanitize(vars))
+      };
+    }
+    activeLocalScriptScopes.set(envVariables, localScriptScope);
+
     const sendRequestInterpolationOptions = {
       envVars: envVariables,
       runtimeVariables,
@@ -1041,6 +1096,13 @@ const runSingleRequest = async function (
       preRequestTestResults: [],
       postResponseTestResults: []
     };
+  } finally {
+    localScriptScope?.restore();
+    if (parentLocalScriptScope) {
+      activeLocalScriptScopes.set(envVariables, parentLocalScriptScope);
+    } else {
+      activeLocalScriptScopes.delete(envVariables);
+    }
   }
 };
 

@@ -88,6 +88,43 @@ describe('stringifyCollection — script execution flow', () => {
   });
 });
 
+describe('stringifyCollection — localScripts', () => {
+  const baseRoot = {
+    meta: null,
+    request: { headers: [], auth: { mode: 'none' }, script: { req: null, res: null }, tests: null, vars: { req: [], res: [] } },
+    docs: null
+  } as any;
+
+  it('round-trips registered commands through the bruno extension', () => {
+    const yml = stringifyCollection(baseRoot, {
+      name: 'c',
+      localScripts: {
+        commands: [{ name: 'get-token', command: 'node ./scripts/get-token.js', timeout: 5000 }]
+      }
+    });
+    expect(yml).toMatch(/localScripts:/);
+    expect(parseCollection(yml).brunoConfig.localScripts).toEqual({
+      commands: [{ name: 'get-token', command: 'node ./scripts/get-token.js', timeout: 5000 }]
+    });
+  });
+
+  it('omits the extension when no commands are configured', () => {
+    const yml = stringifyCollection(baseRoot, { name: 'c' });
+    expect(yml).not.toMatch(/localScripts:/);
+    expect(parseCollection(yml).brunoConfig.localScripts).toBeUndefined();
+  });
+
+  it('round-trips a command without a timeout', () => {
+    const yml = stringifyCollection(baseRoot, {
+      name: 'c',
+      localScripts: { commands: [{ name: 'whoami', command: 'whoami' }] }
+    });
+    expect(parseCollection(yml).brunoConfig.localScripts).toEqual({
+      commands: [{ name: 'whoami', command: 'whoami' }]
+    });
+  });
+});
+
 describe('stringifyCollection — client certificates', () => {
   const baseRoot = {
     meta: null,

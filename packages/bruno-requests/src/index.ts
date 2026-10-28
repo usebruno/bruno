@@ -20,6 +20,32 @@ export { initializeShellEnv, fetchShellEnv } from './utils/shell-env';
 export { getOrCreateHttpsAgent, getOrCreateHttpAgent, clearAgentCache, getAgentCacheSize } from './utils/agent-cache';
 export { getPacResolver, clearPacCache } from './utils/pac-resolver';
 export type { PacWrapper, GetPacResolverParams } from './utils/pac-resolver';
+export {
+  LOCAL_SCRIPT_VAR_PATTERN,
+  LocalScriptError,
+  normalizeLocalScripts,
+  mergeLocalScriptsConfigs,
+  executeLocalScript,
+  collectLocalScriptRefs,
+  collectRequestLocalScriptRefs,
+  resolveLocalScriptVariables,
+  mergeLocalScriptOutputs
+} from './utils/local-scripts';
+export {
+  getGlobalLocalScriptsFilePath,
+  loadGlobalLocalScriptsConfig,
+  saveGlobalLocalScriptsConfig,
+  GLOBAL_LOCAL_SCRIPTS_FILE_ENV
+} from './utils/local-scripts-store';
+export type {
+  LocalScriptResult,
+  LocalScriptExecutionContext,
+  LocalScriptOutputsScope,
+  ResolveLocalScriptVariablesOptions,
+  ResolveLocalScriptVariablesResult
+} from './utils/local-scripts';
+export type { LocalScript } from '@usebruno/common/utils';
+export type { GlobalLocalScriptsConfig, GlobalLocalScriptsFileOptions } from './utils/local-scripts-store';
 
 export * as scripting from './scripting';
 

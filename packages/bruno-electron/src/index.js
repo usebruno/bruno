@@ -60,6 +60,7 @@ const sqliteService = require('./services/sqlite');
 const { clearAllRunnerResponses } = require('./services/runner-exchange');
 const { transientManager } = require('./services/transient');
 const { registerWsdlIpc } = require('./ipc/wsdl');
+const { registerLocalScriptsIpc } = require('./ipc/local-scripts');
 const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
 const ApiSpecWatcher = require('./app/apiSpecsWatcher');
@@ -552,6 +553,7 @@ app.on('ready', async () => {
   appDocuments.handleProtocol();
   registerAppDocumentIpc(appDocuments, mainWindow);
   registerWsdlIpc();
+  registerLocalScriptsIpc();
 
   // Internal delegator
   ipcMain.handle('main:cache-clear', async () => {

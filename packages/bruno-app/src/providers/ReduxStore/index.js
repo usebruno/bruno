@@ -6,6 +6,7 @@ import collectionsReducer from './slices/collections';
 import tabsReducer from './slices/tabs';
 import notificationsReducer from './slices/notifications';
 import globalEnvironmentsReducer from './slices/global-environments';
+import localScriptsReducer from './slices/local-scripts';
 import logsReducer from './slices/logs';
 import performanceReducer from './slices/performance';
 import workspacesReducer from './slices/workspaces';
@@ -35,6 +36,7 @@ export const store = configureStore({
     tabs: tabsReducer,
     notifications: notificationsReducer,
     globalEnvironments: globalEnvironmentsReducer,
+    localScripts: localScriptsReducer,
     logs: logsReducer,
     performance: performanceReducer,
     workspaces: workspacesReducer,

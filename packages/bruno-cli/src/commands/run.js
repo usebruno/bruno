@@ -1,4 +1,5 @@
 const fs = require('fs');
+const os = require('os');
 const chalk = require('chalk');
 const path = require('path');
 const { forOwn, cloneDeep } = require('lodash');
@@ -106,6 +107,20 @@ const builder = async (yargs) => {
       type: 'boolean',
       default: false,
       description: 'Automatically save and sent cookies with requests'
+    })
+    .option('allow-local-scripts', {
+      type: 'boolean',
+      default: false,
+      description: 'Allow {{$script:name}} variables to execute registered commands on the host machine'
+    })
+    .option('allow-local-script-collections', {
+      type: 'boolean',
+      default: false,
+      description: 'Also execute commands a collection defines in its bruno.json. Requires --allow-local-scripts'
+    })
+    .option('local-scripts', {
+      describe: 'Path to the local scripts registry JSON file (defaults to ~/.bruno/local-scripts.json)',
+      type: 'string'
     })
     .option('env', {
       describe: 'Environment variables',
@@ -327,6 +342,9 @@ const handler = async function (argv) {
       clientCertConfig,
       noproxy,
       cacheSslSession,
+      allowLocalScripts,
+      allowLocalScriptCollections,
+      localScripts: localScriptsPath,
       delay,
       tags: includeTags,
       excludeTags,
@@ -609,6 +627,32 @@ const handler = async function (argv) {
     }
     if (cacheSslSession) {
       options['cacheSslSession'] = true;
+    }
+    if (allowLocalScripts) {
+      options['allowLocalScripts'] = true;
+    }
+    if (allowLocalScriptCollections) {
+      if (!allowLocalScripts) {
+        console.warn(chalk.yellow('--allow-local-script-collections has no effect without --allow-local-scripts; ignoring it'));
+      } else {
+        options['allowLocalScriptCollections'] = true;
+      }
+    }
+    if (localScriptsPath) {
+      // Expand a leading "~" against the home directory; shell expansion does
+      // not happen when the path is quoted.
+      const expandedPath = localScriptsPath === '~'
+        ? os.homedir()
+        : localScriptsPath.startsWith('~/') || localScriptsPath.startsWith('~\\')
+          ? path.join(os.homedir(), localScriptsPath.slice(2))
+          : localScriptsPath;
+      const resolvedScriptsPath = path.resolve(expandedPath);
+      if (await exists(resolvedScriptsPath)) {
+        options['localScriptsPath'] = resolvedScriptsPath;
+      } else {
+        console.error(chalk.red('Local scripts file not found: ') + chalk.dim(resolvedScriptsPath));
+        process.exit(1);
+      }
     }
     if (verbose) {
       options['verbose'] = true;
