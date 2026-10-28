@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect, Locator } from '../../playwright';
+import { test, expect, Locator, Page } from '../../playwright';
 import {
   closeAllCollections,
   createCollection,
@@ -131,36 +131,44 @@ test.describe('Variable autocomplete — insertion correctness', () => {
     });
   });
 
+  const PATH_SEGMENTS_COLLECTION = 'autocomplete-path-segments';
+  const PATH_SEGMENTS_BASE_URL = 'https://example.com/api?x=';
+  const PATH_SEGMENTS_VARIABLE = 'PATH_SEGMENT_TOKEN';
+
+  /** Opens a request whose collection has a `.env` file, so `process.env.*` names are offered. */
+  const openRequestWithDotEnv = async (page: Page, collectionsDir: string) => {
+    await createCollection(page, PATH_SEGMENTS_COLLECTION, collectionsDir);
+    // process.env.* names come from the collection's .env file
+    fs.writeFileSync(path.join(collectionsDir, PATH_SEGMENTS_COLLECTION, '.env'), `${PATH_SEGMENTS_VARIABLE}=value\n`);
+
+    await createRequest(page, 'segments-request', PATH_SEGMENTS_COLLECTION, { url: PATH_SEGMENTS_BASE_URL });
+    await openRequest(page, PATH_SEGMENTS_COLLECTION, 'segments-request');
+
+    const { itemByName } = buildAutocompleteLocators(page);
+    const urlEditor = buildCommonLocators(page).request.urlInput();
+    return {
+      urlEditor,
+      urlValue: () => readEditorValue(urlEditor),
+      processHint: () => itemByName('process', { exact: true }).first(),
+      envHint: () => itemByName('env', { exact: true }).first(),
+      variableHint: () => itemByName(PATH_SEGMENTS_VARIABLE, { exact: true }).first()
+    };
+  };
+
   test('accepting `process` and `env` adds the dot and reopens the list, until the final name closes it', async ({
     page,
     createTmpDir
   }) => {
-    const collectionName = 'autocomplete-path-segments';
-    const requestName = 'segments-request';
-    const variableName = 'PATH_SEGMENT_TOKEN';
-
-    const collectionsDir = await createTmpDir();
-    await createCollection(page, collectionName, collectionsDir);
-    // process.env.* names come from the collection's .env file
-    fs.writeFileSync(path.join(collectionsDir, collectionName, '.env'), `${variableName}=value\n`);
-
-    await createRequest(page, requestName, collectionName, { url: 'https://example.com/api?x=' });
-    await openRequest(page, collectionName, requestName);
-
-    const urlEditor = buildCommonLocators(page).request.urlInput();
-    const { itemByName } = buildAutocompleteLocators(page);
-    const urlValue = () => readEditorValue(urlEditor);
-    const baseUrl = 'https://example.com/api?x=';
-
-    const processHint = () => itemByName('process', { exact: true }).first();
-    const envHint = () => itemByName('env', { exact: true }).first();
-    const variableHint = () => itemByName(variableName, { exact: true }).first();
+    const { urlEditor, urlValue, processHint, envHint, variableHint } = await openRequestWithDotEnv(
+      page,
+      await createTmpDir()
+    );
 
     await test.step('typing `{{pro` offers the first segment, `process`', async () => {
       // The .env is loaded by a file watcher, and hints are only computed on a keystroke.
       // Retype until its names are available, rather than relying on a single early attempt.
       await expect(async () => {
-        await setEditorState(urlEditor, baseUrl, baseUrl.length);
+        await setEditorState(urlEditor, PATH_SEGMENTS_BASE_URL, PATH_SEGMENTS_BASE_URL.length);
         await page.keyboard.type('{{pro');
         await expect(processHint()).toBeVisible({ timeout: 1000 });
       }).toPass();
@@ -169,21 +177,53 @@ test.describe('Variable autocomplete — insertion correctness', () => {
     await test.step('accepting `process` with Enter adds the dot and reopens the list with `env`', async () => {
       await page.keyboard.press('Enter');
 
-      await expect.poll(urlValue).toBe(`${baseUrl}{{process.`);
+      await expect.poll(urlValue).toBe(`${PATH_SEGMENTS_BASE_URL}{{process.`);
       await expect(envHint()).toBeVisible();
     });
 
     await test.step('accepting `env` with a click adds the dot and reopens the list with the variable', async () => {
       await pickHint(page, 'env', { exact: true });
 
-      await expect.poll(urlValue).toBe(`${baseUrl}{{process.env.`);
+      await expect.poll(urlValue).toBe(`${PATH_SEGMENTS_BASE_URL}{{process.env.`);
       await expect(variableHint()).toBeVisible();
     });
 
     await test.step('accepting the final name closes the braces and the list stays closed', async () => {
-      await pickHint(page, variableName, { exact: true });
+      await pickHint(page, PATH_SEGMENTS_VARIABLE, { exact: true });
 
-      await expect.poll(urlValue).toBe(`${baseUrl}{{process.env.${variableName}}}`);
+      await expect.poll(urlValue).toBe(`${PATH_SEGMENTS_BASE_URL}{{process.env.${PATH_SEGMENTS_VARIABLE}}}`);
+      await expectAutocompleteStaysClosed(page);
+    });
+  });
+
+  test('the same drill-down works from a list opened by a single `{`', async ({ page, createTmpDir }) => {
+    const { urlEditor, urlValue, processHint, envHint, variableHint } = await openRequestWithDotEnv(
+      page,
+      await createTmpDir()
+    );
+
+    await test.step('typing a single `{` lists `process`', async () => {
+      await expect(async () => {
+        await setEditorState(urlEditor, PATH_SEGMENTS_BASE_URL, PATH_SEGMENTS_BASE_URL.length);
+        await page.keyboard.type('{');
+        await expect(processHint()).toBeVisible({ timeout: 1000 });
+      }).toPass();
+    });
+
+    await test.step('accepting `process` turns the `{` into `{{process.` and reopens the list with `env`', async () => {
+      await pickHint(page, 'process', { exact: true });
+
+      await expect.poll(urlValue).toBe(`${PATH_SEGMENTS_BASE_URL}{{process.`);
+      await expect(envHint()).toBeVisible();
+    });
+
+    await test.step('accepting `env` and then the variable closes the braces', async () => {
+      await pickHint(page, 'env', { exact: true });
+      await expect.poll(urlValue).toBe(`${PATH_SEGMENTS_BASE_URL}{{process.env.`);
+      await expect(variableHint()).toBeVisible();
+
+      await pickHint(page, PATH_SEGMENTS_VARIABLE, { exact: true });
+      await expect.poll(urlValue).toBe(`${PATH_SEGMENTS_BASE_URL}{{process.env.${PATH_SEGMENTS_VARIABLE}}}`);
       await expectAutocompleteStaysClosed(page);
     });
   });

@@ -499,6 +499,35 @@ describe('Bruno Autocomplete', () => {
           });
         });
 
+        it('after a single brace is typed selecting process will insert another brace to complete {{ and then keep popover open to select the env', () => {
+          const options = { showHintsFor: ['variables'], variableAutocomplete: AUTOCOMPLETE_TRIGGER.SINGLE_BRACE };
+          const variables = [{ name: 'process.env.FOO', scope: 'process.env' }];
+          const setDocument = (line, cursorCh) => {
+            mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: cursorCh });
+            mockedCodemirror.getLine.mockReturnValue(line);
+            mockedCodemirror.getRange.mockReturnValue(line.slice(0, cursorCh));
+          };
+
+          setDocument('{', 1);
+          const result = getAutoCompleteHints(mockedCodemirror, variables, [], options);
+          const segment = result.list.find((hint) => hint.displayText === 'process');
+          expect(segment.hasMoreSegments).toBe(true);
+
+          // The picked text goes in after the `{` that triggered the list, which stays.
+          const line = '{';
+          const documentAfterPick = line.slice(0, result.from.ch) + segment.text + line.slice(result.to.ch);
+          expect(documentAfterPick).toBe('{{process.');
+
+          setDocument(documentAfterPick, documentAfterPick.length);
+          pickHandlerFor(result)(segment);
+          jest.runAllTimers();
+
+          expect(mockedCodemirror.showHint).toHaveBeenCalledTimes(1);
+          const nextList = mockedCodemirror.showHint.mock.calls[0][0].hint().list;
+          expect(nextList.map((hint) => hint.displayText)).toEqual(['env']);
+          expect(nextList[0].text).toBe('env.');
+        });
+
         it('reopens with the close characters of the list that was picked from', () => {
           const closeCharacters = /[ ]/;
           mockedCodemirror.state.completionActive = { options: { closeCharacters } };
