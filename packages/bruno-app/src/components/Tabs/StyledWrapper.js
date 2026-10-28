@@ -8,7 +8,6 @@ const StyledWrapper = styled.div`
     width: 100%;
     min-width: 0;
     overflow: hidden;
-    height: 2rem;
     gap: 0.25rem;
   }
 
