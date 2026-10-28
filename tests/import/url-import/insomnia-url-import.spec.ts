@@ -2,12 +2,12 @@ import { test, expect } from '../../../playwright';
 import { closeAllCollections, expandFolder, openCollection } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
-test.describe('TC-813: imports a valid Insomnia collection from a direct URL', { tag: '@sanity' }, () => {
+test.describe('Insomnia URL import', () => {
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
 
-  test('Insomnia URL import', async ({ page, createTmpDir }) => {
+  test('TC-813: imports a valid Insomnia collection from a direct URL', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     // Fetches the collection over the network; the main-process axios timeout is 30s,
     // equal to the default test budget, so a slow fetch is killed before it can
     // fail or succeed. Give the test more room than the fetch it waits on.
