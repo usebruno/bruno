@@ -113,6 +113,7 @@ export const buildCommonLocators = (page: Page) => ({
     collectionSettingsContent: () => page.locator('.collection-settings-content'),
     requestsNotLoadedTable: () => page.getByTestId('requests-not-loaded'),
     overviewInvalidFilesCount: () => page.getByTestId('info-invalid-files-count'),
+    overviewRequestCount: () => page.getByTestId('info-request-count'),
     folderSettingsContent: () => page.locator('.folder-settings-content')
   },
   docs: buildDocsLocators(page),
@@ -229,6 +230,7 @@ export const buildCommonLocators = (page: Page) => ({
   },
   generateDocs: {
     menuItem: () => page.locator('.dropdown-item').filter({ hasText: 'Generate Docs' }),
+    overviewLink: () => page.getByTestId('info-generate-docs'),
     modal: () => page.locator('.bruno-modal').filter({
       has: page.locator('.bruno-modal-header-title').filter({ hasText: 'Generate Documentation' })
     }),

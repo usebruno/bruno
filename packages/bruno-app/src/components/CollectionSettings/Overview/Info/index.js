@@ -142,7 +142,7 @@ const Info = ({ collection }) => {
             </div>
             <div className="ml-4">
               <div className="font-medium">Requests</div>
-              <div className="mt-1 text-muted">
+              <div className="mt-1 text-muted" data-testid="info-request-count">
                 {
                   isCollectionLoading ? `${totalItems - itemsLoadingCount} out of ${totalItems} requests in the collection loaded` : `${totalRequestsInCollection} request${totalRequestsInCollection !== 1 ? 's' : ''} in collection`
                 }
@@ -168,7 +168,7 @@ const Info = ({ collection }) => {
           </div>
           {showShareCollectionModal && <ShareCollection collectionUid={collection.uid} onClose={handleToggleShowShareCollectionModal(false)} />}
 
-          <div className="flex items-start group cursor-pointer" onClick={() => setShowGenerateDocumentationModal(true)}>
+          <div className="flex items-start group cursor-pointer" onClick={() => setShowGenerateDocumentationModal(true)} data-testid="info-generate-docs">
             <div className="icon-box generate-docs flex-shrink-0 p-3 rounded-lg">
               <IconBook className="w-5 h-5" stroke={1.5} />
             </div>
