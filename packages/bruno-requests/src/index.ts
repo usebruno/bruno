@@ -5,8 +5,13 @@ export {
   computeBodyHash,
   applyOAuth1ToRequest,
   addEdgeGridInterceptor,
-  handleNtlmRedirect
+  handleNtlmRedirect,
+  addAwsV4Interceptor,
+  resolveAwsV4Credentials
 } from './auth';
+export type { AwsV4Config } from './auth';
+export { interpolateString, interpolateObject } from './interpolation';
+export type { InterpolationOptions } from './interpolation';
 export { GrpcClient, generateGrpcSampleMessage } from './grpc';
 export { WsClient } from './ws/ws-client';
 export { default as cookies } from './cookies';
