@@ -9,6 +9,10 @@ let collectionPathToGitRootPathMap = new Map();
 
 const simpleGitInstances = new Map();
 
+// Enable core.longpaths on Windows, where git rejects paths over 260 chars by default
+const createSimpleGit = (baseDir) =>
+  simpleGit({ baseDir, config: process.platform === 'win32' ? ['core.longpaths=true'] : [] });
+
 const REMOTE_BRANCH_LISTING_TIMEOUT_MS = 10000;
 
 const getGitVersion = () => {
@@ -26,7 +30,7 @@ const getGitVersion = () => {
 const getSimpleGitInstanceForPath = (gitRootPath) => {
   let git = simpleGitInstances.get(gitRootPath);
   if (!git) {
-    git = simpleGit(gitRootPath);
+    git = createSimpleGit(gitRootPath);
     simpleGitInstances.set(gitRootPath, git);
   }
   return git;
@@ -274,7 +278,7 @@ const getStagedFileDiff = async (gitRootPath, filePath) => {
 
 const getRenamedFileDiff = async (gitRootPath, file) => {
   return new Promise((resolve, reject) => {
-    const git = simpleGit(gitRootPath);
+    const git = createSimpleGit(gitRootPath);
     git.diff(['--staged', '--', file.from, file.to], (err, stagedChanges) => {
       if (err) {
         reject(err);
@@ -1065,13 +1069,9 @@ const continueMerge = async (gitRootPath, conflictedFiles, commitMessage) => {
       await fsPromises.writeFile(mergeMsgPath, commitMessage, 'utf8');
 
       // Step 4: Call git merge --continue
-      exec('git -c core.editor=: merge --continue', { cwd: gitRootPath }, (err, stdout) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve(stdout);
-      });
+      const git = getSimpleGitInstanceForPath(gitRootPath);
+      const stdout = await git.raw(['-c', 'core.editor=:', 'merge', '--continue']);
+      resolve(stdout);
     } catch (error) {
       reject(error);
     }
