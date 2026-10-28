@@ -1,15 +1,3 @@
-jest.mock('electron', () => ({
-  BrowserWindow: {
-    getAllWindows: jest.fn(() => [])
-  }
-}));
-
-jest.mock('../src/store/preferences', () => ({
-  preferencesUtil: {
-    isBetaFeatureEnabled: (featureName) => featureName === 'mock-server'
-  }
-}));
-
 const net = require('net');
 const path = require('path');
 const os = require('os');
@@ -19,7 +7,7 @@ const {
   suggestPort,
   start,
   stop
-} = require('../src/app/mock-server/mock-server');
+} = require('../src/mock-server');
 
 const listen = (host) => new Promise((resolve, reject) => {
   const server = net.createServer();

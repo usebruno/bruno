@@ -16,7 +16,7 @@ const {
   getMockServerUid,
   invalidateMockServerFile,
   removeMockServerFileFromCache
-} = require('./mock-server/mock-server-store');
+} = require('@usebruno/mock');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 

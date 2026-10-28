@@ -52,6 +52,11 @@ export {
 } from './string';
 
 export {
+  simpleHash,
+  generateUidBasedOnHash
+} from './hash';
+
+export {
   sanitizeName,
   validateName,
   validateNameError

@@ -27,6 +27,7 @@ const mainLintFiles = [
   'packages/bruno-schema-types/**/*.ts',
   'packages/bruno-js/**/*.js',
   'packages/bruno-lang/**/*.js',
+  'packages/bruno-mock/**/*.js',
   'packages/bruno-requests/**/*.ts',
   'packages/bruno-requests/**/*.js',
   'packages/bruno-tests/**/*.{js,ts}',
@@ -276,6 +277,23 @@ module.exports = runESMImports().then(() => defineConfig([
   },
   {
     files: ['packages/bruno-lang/**/*.js'],
+    ignores: ['**/*.config.js', '**/dist/**/*'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest
+      },
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module'
+      }
+    },
+    rules: {
+      'no-undef': 'error'
+    }
+  },
+  {
+    files: ['packages/bruno-mock/**/*.js'],
     ignores: ['**/*.config.js', '**/dist/**/*'],
     languageOptions: {
       globals: {

@@ -1,5 +1,5 @@
-const { buildMockResponsesFromSpec, convertOpenApiPath } = require('../src/app/mock-server/mock-spec-routes');
-const { schemaToExample } = require('../src/app/mock-server/mock-example-generator');
+const { buildMockResponsesFromSpec, convertOpenApiPath } = require('../src/mock-spec-routes');
+const { schemaToExample } = require('../src/mock-example-generator');
 
 const beeceptorProductSchema = {
   type: 'object',

@@ -1,0 +1,22 @@
+{
+  "name": "@usebruno/mock",
+  "version": "0.1.0",
+  "license": "MIT",
+  "main": "src/index.js",
+  "files": [
+    "src",
+    "package.json"
+  ],
+  "scripts": {
+    "test": "jest",
+    "test:ci": "node ../../node_modules/jest/bin/jest.js"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^9.7.0",
+    "@usebruno/common": "0.1.0",
+    "@usebruno/filestore": "^0.1.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "uuid": "^10.0.0"
+  }
+}

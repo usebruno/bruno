@@ -28,6 +28,7 @@ const CONFIG = {
     'packages/bruno-lang/src/',
     'packages/bruno-lang/v2/src/',
     'packages/bruno-js/src/',
+    'packages/bruno-mock/src/',
     'packages/bruno-schema/src/'
   ],
   ELECTRON_START_DELAY: 10, // seconds

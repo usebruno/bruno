@@ -1,13 +1,13 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { saveMockResponse, saveMockServer } = require('../src/app/mock-server/mock-server-store');
+const { saveMockResponse, saveMockServer } = require('../src/mock-server-store');
 const {
   buildRouteMapFromMockResponses,
   countRouteResponses,
   extractRoutePath,
   routeMapToRouteTable
-} = require('../src/app/mock-server/mock-response-routes');
+} = require('../src/mock-response-routes');
 
 describe('mock-response-routes', () => {
   let workspacePath;
@@ -35,7 +35,7 @@ describe('mock-response-routes', () => {
     const pathname = path.join(mocksDir, 'broken.yml');
     fs.writeFileSync(pathname, '- not\n- a mock server\n', 'utf8');
 
-    const { getMockServerUid } = require('../src/app/mock-server/mock-server-store');
+    const { getMockServerUid } = require('../src/mock-server-store');
 
     expect(() => buildRouteMapFromMockResponses({
       mockServerUid: getMockServerUid(pathname),
