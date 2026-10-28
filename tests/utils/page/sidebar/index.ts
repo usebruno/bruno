@@ -1,5 +1,6 @@
 import { Locator, Page, expect, test } from '../../../../playwright';
 import { collectionSlug } from '../../../../packages/bruno-app/src/utils/collections/collectionSlug';
+import { buildToastLocators } from '../toast';
 
 export type EmptyStateRequestType = 'http' | 'graphql' | 'grpc' | 'websocket';
 
@@ -101,6 +102,11 @@ export const buildSidebarLocators = (page: Page) => {
       nameInput: (): Locator => page.getByTestId('new-folder-input')
     },
 
+    ignoreFolderModal: {
+      root: (): Locator => page.getByTestId('ignore-folder-modal'),
+      confirmButton: (): Locator => page.getByTestId('ignore-folder-modal-submit-btn')
+    },
+
     cloneCollectionModal: {
       nameInput: (): Locator => page.locator('#collection-name'),
       locationInput: (): Locator => page.locator('#collection-location'),
@@ -168,6 +174,28 @@ export const revealFolderRow = async (
       .first();
     await expect(targetRow).toBeVisible();
     return targetRow;
+  });
+};
+
+/**
+ * Ignores a folder by right-clicking its sidebar row, choosing "Ignore" and confirming the
+ * "Ignore Folder" modal. Waits for the "Folder ignored" toast.
+ * @param page - The Playwright page object
+ * @param collectionName - The collection holding the folder
+ * @param folderName - The folder to ignore
+ * @returns void
+ */
+export const ignoreFolder = async (page: Page, collectionName: string, folderName: string) => {
+  await test.step(`Ignore folder "${folderName}" from its sidebar menu`, async () => {
+    const locators = buildSidebarLocators(page);
+    const toast = buildToastLocators(page);
+
+    await locators.itemRowIn(collectionName, folderName).click({ button: 'right' });
+    await locators.rowMenu(folderName).item('ignore').click();
+    await locators.ignoreFolderModal.root().waitFor({ state: 'visible' });
+    await locators.ignoreFolderModal.confirmButton().click();
+    await locators.ignoreFolderModal.root().waitFor({ state: 'hidden' });
+    await toast.byMessage('Folder ignored').first().waitFor({ state: 'visible' });
   });
 };
 
