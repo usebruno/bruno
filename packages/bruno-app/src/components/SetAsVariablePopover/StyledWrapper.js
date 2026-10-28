@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   width: 20rem;
@@ -118,91 +117,6 @@ const StyledWrapper = styled.div`
 
   .var-set-add-to-chevron.is-open {
     transform: rotate(180deg);
-  }
-
-  .var-set-scope-option {
-    gap: 0.375rem;
-    min-height: 1.5rem;
-    margin-top: 0;
-    font-size: ${(props) => props.theme.font.size.sm};
-    color: ${(props) => props.theme.dropdown.color};
-  }
-
-  .var-set-scope-option:has(.var-set-scope-trigger:hover) {
-    background: ${(props) => props.theme.dropdown.hoverBg};
-  }
-
-  .var-set-scope-trigger {
-    color: inherit;
-  }
-
-  .var-set-scope-option.is-active {
-    background: ${(props) => rgba(props.theme.dropdown.selectedColor, 0.07)};
-    color: ${(props) => props.theme.dropdown.selectedColor};
-
-    &:has(.var-set-scope-trigger:hover) {
-      background: ${(props) => rgba(props.theme.dropdown.selectedColor, 0.12)};
-    }
-  }
-
-  .var-set-scope-option.is-disabled .var-set-note {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .var-set-scope-option.is-creating {
-    gap: 0.25rem;
-    padding: 0.125rem 0.25rem;
-  }
-
-  .var-set-create-env-input {
-    flex: 1;
-    min-width: 0;
-    box-sizing: border-box;
-    background: ${(props) => props.theme.input.bg};
-    border: 1px solid ${(props) => props.theme.border.border2};
-    border-radius: ${(props) => props.theme.border.radius.base};
-    padding: 0.125rem 0.375rem;
-    font-size: ${(props) => props.theme.font.size.sm};
-    color: ${(props) => props.theme.dropdown.color};
-    outline: none;
-
-    &:focus {
-      border-color: ${(props) => props.theme.input.focusBorder};
-    }
-
-    &::placeholder {
-      color: ${(props) => props.theme.dropdown.mutedText};
-    }
-  }
-
-  .var-set-create-env-submit {
-    flex-shrink: 0;
-    background: transparent;
-    border: 1px solid ${(props) => props.theme.border.border2};
-    border-radius: ${(props) => props.theme.border.radius.base};
-    padding: 0.125rem 0.5rem;
-    font-size: ${(props) => props.theme.font.size.sm};
-    color: ${(props) => props.theme.dropdown.color};
-    cursor: pointer;
-
-    &:hover:not(:disabled) {
-      background: ${(props) => props.theme.dropdown.hoverBg};
-    }
-
-    &:disabled {
-      cursor: default;
-      color: ${(props) => props.theme.dropdown.mutedText};
-    }
-  }
-
-  .var-set-note {
-    font-size: ${(props) => props.theme.font.size.xs};
-    color: ${(props) => props.theme.dropdown.mutedText};
-    flex-shrink: 0;
   }
 
   .var-set-error {
