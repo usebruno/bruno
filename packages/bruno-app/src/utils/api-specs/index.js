@@ -1,7 +1,7 @@
 import { getAbsoluteFilePath, normalizePath } from 'utils/common/path';
 import { isWindowsOS } from 'utils/common/platform';
 import { isHttpUrl } from 'utils/url';
-import { isCollectionInWorkspace } from 'utils/workspaces';
+import { getWorkspaceCollections } from 'utils/collections';
 
 export const API_SPEC_TAB_TYPE = 'api-spec';
 
@@ -53,7 +53,6 @@ export const countCollectionsSyncingFromSpec = (collections, workspace, specPath
   const specPathKey = getApiSpecPathKey(specPathname);
   if (!specPathKey || !Array.isArray(collections)) return 0;
 
-  return collections.filter(
-    (collection) => isCollectionInWorkspace(workspace, collection) && syncsFromSpec(collection, specPathKey)
-  ).length;
+  return getWorkspaceCollections({ collections, activeWorkspace: workspace })
+    .filter((collection) => syncsFromSpec(collection, specPathKey)).length;
 };

@@ -39,4 +39,11 @@ describe('countCollectionsSyncingFromSpec on Windows', () => {
 
     expect(countCollectionsSyncingFromSpec(collections, workspace, 'c:/work/specs/orders.yaml')).toBe(1);
   });
+
+  it('counts a collection whose workspace entry spells its folder with different capitals', () => {
+    const workspace = { collections: [{ path: 'c:/work/Orders' }] };
+    const collections = [{ pathname: 'C:\\Work\\orders', brunoConfig: { openapi: [{ sourceUrl: '../specs/orders.yaml' }] } }];
+
+    expect(countCollectionsSyncingFromSpec(collections, workspace, 'C:/work/specs/orders.yaml')).toBe(1);
+  });
 });
