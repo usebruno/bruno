@@ -61,4 +61,37 @@ test.describe('Naming collisions - create folder', () => {
     await modal.any().getByRole('button', { name: 'Cancel' }).click();
     await expect(modal.any()).toHaveCount(0, { timeout: 5000 });
   });
+
+  test('creating a root folder whose name only contains "environments" is allowed', async ({ page, createTmpDir }) => {
+    const testDir = await createTmpDir('folder-create-env-substring');
+
+    await createCollection(page, 'Create Folder Env Substring', testDir, 'bru');
+    await createFolder(page, 'Project Environments', 'Create Folder Env Substring');
+
+    await test.step('On disk: the folder is created', async () => {
+      expect(fs.existsSync(path.join(findCollectionDir(testDir), 'Project Environments'))).toBe(true);
+    });
+  });
+
+  test('creating a root folder named "environments" in any case is blocked', async ({ page, createTmpDir }) => {
+    const { sidebar, modal } = buildCommonLocators(page);
+    const testDir = await createTmpDir('folder-create-env-reserved');
+
+    await createCollection(page, 'Create Folder Env Reserved', testDir, 'bru');
+
+    await test.step('Enter "Environments", reveal filesystem name, submit', async () => {
+      await openNewFolderModal(page, 'Create Folder Env Reserved');
+      await sidebar.newFolderModal.nameInput().fill('Environments');
+      await revealFilesystemName(page);
+      await modal.button('Create').click();
+    });
+
+    await test.step('Reserved-name error is shown and nothing is created', async () => {
+      await expect(modal.formError('The folder name "environments" at the root of the collection is reserved in bruno')).toBeVisible();
+      await expect(sidebar.itemByName('Environments')).toHaveCount(0);
+    });
+
+    await modal.any().getByRole('button', { name: 'Cancel' }).click();
+    await expect(modal.any()).toHaveCount(0, { timeout: 5000 });
+  });
 });
