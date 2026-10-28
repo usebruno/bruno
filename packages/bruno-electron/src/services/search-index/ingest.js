@@ -43,21 +43,6 @@ const ingestParsedFile = ({
   return changed;
 };
 
-const ingestCachedFile = (ctx, relativePath, entry) => {
-  if (!entry || entry.mtime === undefined) return false;
-  return ingestParsedFile({
-    ...ctx,
-    result: {
-      relativePath,
-      mtime: entry.mtime,
-      hash: entry.hash,
-      data: entry.data,
-      error: entry.error,
-      raw: entry.raw
-    }
-  });
-};
-
 const removeFromSearchIndex = ({ searchIndex, collectionPath, relativePath }) => {
   if (!searchIndex || !relativePath) return false;
   return searchIndex.remove(collectionPath, relativePath) || searchIndex.removeMeta(collectionPath, relativePath);
@@ -65,7 +50,5 @@ const removeFromSearchIndex = ({ searchIndex, collectionPath, relativePath }) =>
 
 module.exports = {
   ingestParsedFile,
-  ingestCachedFile,
-  removeFromSearchIndex,
-  stageFileIndex
+  removeFromSearchIndex
 };

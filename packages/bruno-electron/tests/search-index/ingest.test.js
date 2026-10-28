@@ -1,4 +1,4 @@
-const { ingestParsedFile, ingestCachedFile, removeFromSearchIndex } = require('../../src/services/search-index/ingest');
+const { ingestParsedFile, removeFromSearchIndex } = require('../../src/services/search-index/ingest');
 
 const makeSearchIndex = () => {
   const rows = new Map();
@@ -63,7 +63,7 @@ describe('search-index ingest', () => {
     expect(searchIndex.get('req.bru').name).toBe('New');
   });
 
-  it('does not rewrite unchanged cached entries', () => {
+  it('does not rewrite unchanged entries', () => {
     const searchIndex = makeSearchIndex();
     const ctx = {
       searchIndex,
@@ -72,17 +72,15 @@ describe('search-index ingest', () => {
       collectionName: 'Collection',
       workspacePath: null
     };
-    ingestParsedFile({
-      ...ctx,
-      result: {
-        relativePath: 'req.bru',
-        mtime: 10n,
-        hash: 'h1',
-        data: { name: 'One', type: 'http-request', request: { method: 'GET', url: '/' } }
-      }
-    });
+    const result = {
+      relativePath: 'req.bru',
+      mtime: 10n,
+      hash: 'h1',
+      data: { name: 'One', type: 'http-request', request: { method: 'GET', url: '/' } }
+    };
+    ingestParsedFile({ ...ctx, result });
     const revision = searchIndex.revision;
-    const changed = ingestCachedFile(ctx, 'req.bru', { mtime: 10n, hash: 'h1', data: { name: 'One', type: 'http-request', request: { method: 'GET', url: '/' } } });
+    const changed = ingestParsedFile({ ...ctx, result: { ...result } });
     expect(changed).toBe(false);
     expect(searchIndex.revision).toBe(revision);
   });
