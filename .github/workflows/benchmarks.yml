@@ -45,7 +45,7 @@ jobs:
       - name: Configure Chrome Sandbox
         if: matrix.os-name == 'ubuntu'
         run: |
-          CHROME_SANDBOX="${GITHUB_WORKSPACE}/node_modules/electron/dist/chrome-sandbox"
+          CHROME_SANDBOX="${GITHUB_WORKSPACE}/packages/bruno-electron/node_modules/electron/dist/chrome-sandbox"
           if [[ -f "$CHROME_SANDBOX" ]]; then
             sudo chown root "$CHROME_SANDBOX"
             sudo chmod 4755 "$CHROME_SANDBOX"
