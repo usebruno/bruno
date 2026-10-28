@@ -6,7 +6,6 @@ import * as fs from 'fs';
 import { version } from '../packages/bruno-app/package.json';
 
 const electronAppPath = path.join(__dirname, '../packages/bruno-electron');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const electronExecutablePath = require('./electron-executable-path.js') as string;
 
 const PREFERENCES_FILE = 'preferences.json';
