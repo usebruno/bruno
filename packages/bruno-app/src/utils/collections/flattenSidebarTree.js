@@ -211,9 +211,7 @@ const flattenCollection = ({
 
   addCollectionToIndex(collection.uid, collection);
 
-  const isExpanded = hasSearch
-    ? !searchCollapsedCollectionUids.has(collection.uid)
-    : !collection.collapsed;
+  const isExpanded = hasSearch ? !searchCollapsedCollectionUids.has(collection.uid) : !collection.collapsed;
 
   if (!isExpanded) return;
 

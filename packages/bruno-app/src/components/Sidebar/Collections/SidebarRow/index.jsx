@@ -25,18 +25,7 @@ const resolveRowObject = ({ row, itemsByUid, collectionsByUid, ghostsByPath }) =
 };
 
 const renderRow = (props) => {
-  const {
-    row,
-    searchText,
-    searchCollapsedCollectionUids,
-    toggleSearchCollection,
-    openBulkMenu,
-    collectionsByUid,
-    isCollectionMultiDragDisabled,
-    isItemMultiDragDisabled,
-    multiDragCollections,
-    multiDragItems
-  } = props;
+  const { row, searchText, searchCollapsedCollectionUids, toggleSearchCollection, openBulkMenu, collectionsByUid, isCollectionMultiDragDisabled, isItemMultiDragDisabled, multiDragCollections, multiDragItems } = props;
   const resolved = resolveRowObject(props);
 
   switch (row.kind) {

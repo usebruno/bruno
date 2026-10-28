@@ -566,18 +566,22 @@ const parseBruFileMeta = (data) => {
   }
 };
 
-// Parse YML file meta information for partial loading (OpenCollection uses `info`, not `meta`)
+// Parse YML file meta information (OpenCollection uses `info`, not `meta`)
 const parseYmlFileMeta = (data) => {
   try {
     const yaml = require('js-yaml');
     const parsed = yaml.load(data);
 
-    const info = parsed?.info;
-    if (!info) {
+    if (!parsed || !parsed.info) {
       console.log('No "info" section found in YAML file.');
       return null;
     }
 
+    const metaJson = parsed.info;
+    const requestJson = parsed.http || parsed.graphql || parsed.grpc || parsed.websocket || {};
+
+    // Transform to the format expected by bruno-app
+    let requestType = metaJson.type;
     const typeMap = {
       http: 'http-request',
       graphql: 'graphql-request',
@@ -585,29 +589,18 @@ const parseYmlFileMeta = (data) => {
       ws: 'ws-request',
       websocket: 'ws-request'
     };
-    const requestType = typeMap[info.type] || 'http-request';
+    requestType = typeMap[requestType] || 'http-request';
 
-    const sequence = info.seq;
-    const method = parsed.http?.method
-      || parsed.graphql?.method
-      || parsed.grpc?.method
-      || parsed.websocket?.method
-      || '';
-    const url = parsed.http?.url
-      || parsed.graphql?.url
-      || parsed.grpc?.url
-      || parsed.websocket?.url
-      || '';
-
-    return {
+    const sequence = metaJson.seq;
+    const transformedJson = {
       type: requestType,
-      name: info.name,
+      name: metaJson.name,
       seq: !isNaN(sequence) ? Number(sequence) : 1,
       settings: {},
-      tags: info.tags || [],
+      tags: metaJson.tags || [],
       request: {
-        method: method || '',
-        url: url || '',
+        method: requestJson.method || '',
+        url: requestJson.url || '',
         params: [],
         headers: [],
         auth: { mode: 'none' },
@@ -619,6 +612,8 @@ const parseYmlFileMeta = (data) => {
         docs: ''
       }
     };
+
+    return transformedJson;
   } catch (err) {
     console.error('Error parsing YAML file meta:', err);
     return null;
