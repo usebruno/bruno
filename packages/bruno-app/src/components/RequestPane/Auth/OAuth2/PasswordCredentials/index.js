@@ -107,7 +107,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
                 readOnly={readOnly}
                 isCompact
               />
-              {isSecret && <SensitiveFieldWarning fieldName={key} secretName={key} value={value} collection={collection} item={item} readOnly={readOnly} onReplaceValue={(val) => handleChange(key, val)} />}
+              {isSecret && <SensitiveFieldWarning fieldName={key} secretName={key} value={value} collection={collection} item={item} fieldKey={key} onReplaceValue={(val) => handleChange(key, val)} />}
             </div>
           </div>
         );

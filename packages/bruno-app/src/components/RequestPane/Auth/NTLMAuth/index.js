@@ -96,7 +96,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth, readOnly }) => 
           readOnly={readOnly}
           isCompact
         />
-        <SensitiveFieldWarning fieldName="ntlm-password" secretName="password" value={ntlmAuth?.password} collection={collection} item={item} readOnly={readOnly} onReplaceValue={handlePasswordChange} />
+        <SensitiveFieldWarning fieldName="ntlm-password" secretName="password" value={ntlmAuth?.password} collection={collection} item={item} fieldKey="password" onReplaceValue={handlePasswordChange} />
       </div>
 
       <label className="block mb-1">Domain</label>

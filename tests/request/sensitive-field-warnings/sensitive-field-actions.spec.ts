@@ -10,18 +10,25 @@ import {
   createEnvironment,
   createFolder,
   createRequest,
+  openCollectionSettings,
   openEnvironmentConfigTab,
   openFolderRequest,
   openFolderSettings,
+  openInheritedAuth,
   openRequest,
   readField,
   saveEnvironment,
+  saveFolderSettings,
   saveRequest,
   saveSecretTo,
+  selectAuthMode,
+  selectCollectionPaneTab,
   selectfolderPaneTab,
   selectRequestPaneTab,
-  setEnvironmentVariableValue
+  setEnvironmentVariableValue,
+  writeFieldValue
 } from '../../utils/page';
+import { AUTH_MODE_LABELS } from '../../utils/constants';
 import { setApiKeyValue } from '../../utils/request';
 import { addVarsRow } from '../../utils/request/vars';
 import { readFileIfExists } from '../../utils/helpers';
@@ -318,6 +325,135 @@ test.describe('Sensitive field actions', () => {
       await saveRequest(page);
       await expect.poll(() => readFileIfExists(path.join(collectionDir, 'login.yml'))).not.toContain('from-request');
       await expect.poll(() => readFileIfExists(path.join(collectionDir, 'environments', 'dev.yml'))).toContain('token');
+    });
+  });
+
+  test('Save as secret from inherited auth updates the folder auth', async ({ page, createTmpDir }) => {
+    const collectionName = 'secret-action-inherited-folder';
+    const collectionDir = path.join(await createTmpDir(collectionName), collectionName);
+    const { codeMirror, secretVariableForm: form, toast } = buildCommonLocators(page);
+
+    await test.step('Save a plaintext API key on a folder whose request inherits it', async () => {
+      await createCollection(page, collectionName, path.dirname(collectionDir));
+      await createDevEnvironment(page);
+      await createFolder(page, 'auth', collectionName);
+      await createRequest(page, 'login', 'auth', { inFolder: true });
+
+      await openFolderSettings(page, collectionName, 'auth');
+      await selectfolderPaneTab(page, 'auth');
+      await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
+      await writeFieldValue(page, 'Value', 'raw-secret');
+      await saveFolderSettings(page);
+    });
+
+    await test.step('Save the inherited value as a secret from the request', async () => {
+      await openInheritedAuth(page, collectionName, 'login', AUTH_MODE_LABELS.APIKEY, 'auth');
+      await clickSensitiveFieldAction(page, codeMirror.sensitiveWarning(API_KEY_FIELD), API_KEY_FIELD);
+      await expect(form.valueInput()).toHaveValue('raw-secret');
+      await form.nameInput().fill('apiKeyValue');
+      await saveSecretTo(page, 'environment');
+      await expect(toast.byMessage('Secret "apiKeyValue" created')).toBeVisible();
+      await expect.poll(() => readField(page, 'Value')).toBe('{{apiKeyValue}}');
+      await expect(codeMirror.sensitiveWarning(API_KEY_FIELD)).toHaveCount(0);
+    });
+
+    await test.step('The folder auth holds the secret and the request is unchanged after saving the folder', async () => {
+      await openFolderSettings(page, collectionName, 'auth');
+      await selectfolderPaneTab(page, 'auth');
+      await expect.poll(() => readField(page, 'Value')).toBe('{{apiKeyValue}}');
+      await saveFolderSettings(page);
+      await expect.poll(() => readFileIfExists(path.join(collectionDir, 'auth', 'folder.yml'))).toContain('{{apiKeyValue}}');
+      expect(readFileIfExists(path.join(collectionDir, 'auth', 'folder.yml'))).not.toContain('raw-secret');
+      expect(readFileIfExists(path.join(collectionDir, 'auth', 'login.yml'))).not.toContain('apiKeyValue');
+      await expect.poll(() => readFileIfExists(path.join(collectionDir, 'environments', 'dev.yml'))).toContain('apiKeyValue');
+    });
+  });
+
+  test('Move to environment from inherited auth moves the collection variable', async ({ page, createTmpDir }) => {
+    const collectionName = 'secret-action-inherited-collection';
+    const collectionDir = path.join(await createTmpDir(collectionName), collectionName);
+    const { codeMirror, secretVariableForm: form, table, toast, varsPanel } = buildCommonLocators(page);
+
+    await test.step('Use a collection variable in the collection API key', async () => {
+      await createCollection(page, collectionName, path.dirname(collectionDir));
+      await createDevEnvironment(page);
+      await createRequest(page, 'login', collectionName);
+
+      await openCollectionSettings(page, collectionName);
+      await selectCollectionPaneTab(page, 'vars');
+      await addVarsRow(page, 'collection-vars-req', 'token', 'from-collection');
+      await varsPanel('collection').saveButton().click();
+
+      await selectCollectionPaneTab(page, 'auth');
+      await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
+      await writeFieldValue(page, 'Value', '{{token}}');
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+s' : 'Control+s');
+      await expect.poll(() => readFileIfExists(path.join(collectionDir, 'opencollection.yml'))).toContain('{{token}}');
+    });
+
+    await test.step('Move the variable from the inherited auth of the request', async () => {
+      await openInheritedAuth(page, collectionName, 'login', AUTH_MODE_LABELS.APIKEY);
+      await clickSensitiveFieldAction(page, codeMirror.sensitiveWarning(API_KEY_FIELD), API_KEY_FIELD);
+      await expect(form.nameInput()).toHaveValue('token');
+      await expect(form.valueInput()).toHaveValue('from-collection');
+      await expect(form.source()).toHaveText('from Collection Vars');
+      await saveSecretTo(page, 'environment');
+      await expect(toast.byMessage('Secret "token" created')).toBeVisible();
+      await expect(codeMirror.sensitiveWarning(API_KEY_FIELD)).toHaveCount(0);
+    });
+
+    await test.step('The collection variable is gone and the environment holds the secret', async () => {
+      await openCollectionSettings(page, collectionName);
+      await selectCollectionPaneTab(page, 'vars');
+      await expect(table('collection-vars-req').rowByName('token')).toHaveCount(0);
+      await varsPanel('collection').saveButton().click();
+      await expect.poll(() => readFileIfExists(path.join(collectionDir, 'opencollection.yml'))).not.toContain('from-collection');
+      await expect.poll(() => readFileIfExists(path.join(collectionDir, 'environments', 'dev.yml'))).toContain('token');
+    });
+  });
+
+  test('Move to environment from inherited auth moves the request variable that overrides the collection one', async ({ page, createTmpDir }) => {
+    const collectionName = 'secret-action-inherited-override';
+    const collectionDir = path.join(await createTmpDir(collectionName), collectionName);
+    const { codeMirror, secretVariableForm: form, table, toast, varsPanel } = buildCommonLocators(page);
+
+    await test.step('Use a collection variable in the collection API key and give the request a variable with the same name', async () => {
+      await createCollection(page, collectionName, path.dirname(collectionDir));
+      await createDevEnvironment(page);
+      await createRequest(page, 'login', collectionName);
+
+      await openCollectionSettings(page, collectionName);
+      await selectCollectionPaneTab(page, 'vars');
+      await addVarsRow(page, 'collection-vars-req', 'token', 'from-collection');
+      await varsPanel('collection').saveButton().click();
+
+      await selectCollectionPaneTab(page, 'auth');
+      await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
+      await writeFieldValue(page, 'Value', '{{token}}');
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+s' : 'Control+s');
+      await expect.poll(() => readFileIfExists(path.join(collectionDir, 'opencollection.yml'))).toContain('{{token}}');
+
+      await openRequest(page, collectionName, 'login');
+      await selectRequestPaneTab(page, 'Vars');
+      await addVarsRow(page, 'request-vars-req', 'token', 'from-request');
+      await saveRequest(page);
+    });
+
+    await test.step('The form shows the request variable the request uses', async () => {
+      await openInheritedAuth(page, collectionName, 'login', AUTH_MODE_LABELS.APIKEY);
+      await clickSensitiveFieldAction(page, codeMirror.sensitiveWarning(API_KEY_FIELD), API_KEY_FIELD);
+      await expect(form.valueInput()).toHaveValue('from-request');
+      await expect(form.source()).toHaveText('from Request Vars');
+      await saveSecretTo(page, 'environment');
+      await expect(toast.byMessage('Secret "token" created')).toBeVisible();
+    });
+
+    await test.step('Only the request variable is removed', async () => {
+      await selectRequestPaneTab(page, 'Vars');
+      await expect(table('request-vars-req').rowByName('token')).toHaveCount(0);
+      await saveRequest(page);
+      await expect.poll(() => readFileIfExists(path.join(collectionDir, 'login.yml'))).not.toContain('from-request');
+      expect(readFileIfExists(path.join(collectionDir, 'opencollection.yml'))).toContain('from-collection');
     });
   });
 });

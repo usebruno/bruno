@@ -96,7 +96,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, readOnly }) =
           isCompact
           readOnly={readOnly}
         />
-        <SensitiveFieldWarning fieldName="apikey-value" secretName="value" value={apikeyAuth.value} collection={collection} item={item} readOnly={readOnly} onReplaceValue={(val) => handleAuthChange('value', val)} />
+        <SensitiveFieldWarning fieldName="apikey-value" secretName="value" value={apikeyAuth.value} collection={collection} item={item} fieldKey="value" onReplaceValue={(val) => handleAuthChange('value', val)} />
       </div>
 
       <label className="block mb-1">Add To</label>

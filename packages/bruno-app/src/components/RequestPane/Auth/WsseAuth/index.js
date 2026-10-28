@@ -79,7 +79,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save, readOnly }) => 
           readOnly={readOnly}
           isCompact
         />
-        <SensitiveFieldWarning fieldName="wsse-password" secretName="password" value={wsseAuth?.password} collection={collection} item={item} readOnly={readOnly} onReplaceValue={handlePasswordChange} />
+        <SensitiveFieldWarning fieldName="wsse-password" secretName="password" value={wsseAuth?.password} collection={collection} item={item} fieldKey="password" onReplaceValue={handlePasswordChange} />
       </div>
     </StyledWrapper>
   );

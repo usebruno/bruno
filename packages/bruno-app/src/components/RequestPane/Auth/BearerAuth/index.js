@@ -50,7 +50,7 @@ const BearerAuth = ({ item, collection, updateAuth, request, save, readOnly }) =
           readOnly={readOnly}
           isCompact
         />
-        <SensitiveFieldWarning fieldName="bearer-token" secretName="token" value={bearerToken} collection={collection} item={item} readOnly={readOnly} onReplaceValue={handleTokenChange} />
+        <SensitiveFieldWarning fieldName="bearer-token" secretName="token" value={bearerToken} collection={collection} item={item} fieldKey="token" onReplaceValue={handleTokenChange} />
       </div>
     </StyledWrapper>
   );

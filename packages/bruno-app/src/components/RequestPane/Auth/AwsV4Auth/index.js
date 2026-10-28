@@ -160,7 +160,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, readOnly }) =>
           isCompact
         />
 
-        <SensitiveFieldWarning fieldName="awsv4-secret-access-key" secretName="secretAccessKey" value={awsv4Auth?.secretAccessKey} collection={collection} item={item} readOnly={readOnly} onReplaceValue={handleSecretAccessKeyChange} />
+        <SensitiveFieldWarning fieldName="awsv4-secret-access-key" secretName="secretAccessKey" value={awsv4Auth?.secretAccessKey} collection={collection} item={item} fieldKey="secretAccessKey" onReplaceValue={handleSecretAccessKeyChange} />
       </div>
 
       <label className="block mb-1">Session Token</label>
@@ -177,7 +177,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, readOnly }) =>
           readOnly={readOnly}
           isCompact
         />
-        <SensitiveFieldWarning fieldName="awsv4-session-token" secretName="sessionToken" value={awsv4Auth?.sessionToken} collection={collection} item={item} readOnly={readOnly} onReplaceValue={handleSessionTokenChange} />
+        <SensitiveFieldWarning fieldName="awsv4-session-token" secretName="sessionToken" value={awsv4Auth?.sessionToken} collection={collection} item={item} fieldKey="sessionToken" onReplaceValue={handleSessionTokenChange} />
       </div>
 
       <label className="block mb-1">Service</label>

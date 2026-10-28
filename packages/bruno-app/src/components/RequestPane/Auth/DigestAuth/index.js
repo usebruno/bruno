@@ -78,7 +78,7 @@ const DigestAuth = ({ item, collection, updateAuth, request, save, readOnly }) =
           readOnly={readOnly}
           isCompact
         />
-        <SensitiveFieldWarning fieldName="digest-password" secretName="password" value={digestAuth?.password} collection={collection} item={item} readOnly={readOnly} onReplaceValue={handlePasswordChange} />
+        <SensitiveFieldWarning fieldName="digest-password" secretName="password" value={digestAuth?.password} collection={collection} item={item} fieldKey="password" onReplaceValue={handlePasswordChange} />
       </div>
     </StyledWrapper>
   );
