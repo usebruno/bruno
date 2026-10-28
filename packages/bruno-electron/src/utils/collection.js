@@ -566,39 +566,48 @@ const parseBruFileMeta = (data) => {
   }
 };
 
-// Parse YML file meta information
+// Parse YML file meta information for partial loading (OpenCollection uses `info`, not `meta`)
 const parseYmlFileMeta = (data) => {
   try {
     const yaml = require('js-yaml');
     const parsed = yaml.load(data);
 
-    if (!parsed || !parsed.meta) {
-      console.log('No "meta" section found in YAML file.');
+    const info = parsed?.info;
+    if (!info) {
+      console.log('No "info" section found in YAML file.');
       return null;
     }
 
-    const metaJson = parsed.meta;
-
-    // Transform to the format expected by bruno-app
-    let requestType = metaJson.type;
     const typeMap = {
       http: 'http-request',
       graphql: 'graphql-request',
       grpc: 'grpc-request',
-      ws: 'ws-request'
+      ws: 'ws-request',
+      websocket: 'ws-request'
     };
-    requestType = typeMap[requestType] || 'http-request';
+    const requestType = typeMap[info.type] || 'http-request';
 
-    const sequence = metaJson.seq;
-    const transformedJson = {
+    const sequence = info.seq;
+    const method = parsed.http?.method
+      || parsed.graphql?.method
+      || parsed.grpc?.method
+      || parsed.websocket?.method
+      || '';
+    const url = parsed.http?.url
+      || parsed.graphql?.url
+      || parsed.grpc?.url
+      || parsed.websocket?.url
+      || '';
+
+    return {
       type: requestType,
-      name: metaJson.name,
+      name: info.name,
       seq: !isNaN(sequence) ? Number(sequence) : 1,
       settings: {},
-      tags: metaJson.tags || [],
+      tags: info.tags || [],
       request: {
-        method: '',
-        url: '',
+        method: method || '',
+        url: url || '',
         params: [],
         headers: [],
         auth: { mode: 'none' },
@@ -610,8 +619,6 @@ const parseYmlFileMeta = (data) => {
         docs: ''
       }
     };
-
-    return transformedJson;
   } catch (err) {
     console.error('Error parsing YAML file meta:', err);
     return null;

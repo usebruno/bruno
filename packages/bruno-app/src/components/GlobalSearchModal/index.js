@@ -1,59 +1,35 @@
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import {
-  IconAlertCircle,
-  IconBook,
+  IconSearch,
+  IconX,
+  IconFolder,
   IconBox,
   IconFileText,
-  IconFolder,
-  IconLoader2,
-  IconSearch,
-  IconX
+  IconBook
 } from '@tabler/icons';
-import path from 'path';
-import useLeadingThrottle from 'hooks/useLeadingThrottle';
-import { expandCollection, expandItem, toggleCollection } from 'providers/ReduxStore/slices/collections';
-import { indexActiveWorkspaceCollections, mountCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { flattenItems, isItemARequest, isItemAFolder, findParentItemInCollection } from 'utils/collections';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useDispatch, useSelector, useStore } from 'react-redux';
-import { Virtuoso } from 'react-virtuoso';
-import { findAncestorFolderUidsByPathname, findItemInCollectionByPathname, getDefaultRequestPaneTab } from 'utils/collections';
+import { toggleCollectionItem, toggleCollection } from 'providers/ReduxStore/slices/collections';
+import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { getDefaultRequestPaneTab } from 'utils/collections';
 import { normalizePath } from 'utils/common/path';
-import { DOCUMENTATION_RESULT, MATCH_TYPES, SEARCH_CONFIG, SEARCH_TYPES } from './constants';
+import { normalizeQuery, isValidQuery, highlightText, sortResults, getTypeLabel, getItemPath } from './utils/searchUtils';
+import { SEARCH_TYPES, MATCH_TYPES, SEARCH_CONFIG, DOCUMENTATION_RESULT } from './constants';
 import StyledWrapper from './StyledWrapper';
-import { getTypeLabel, highlightText, isValidQuery, normalizeQuery, sortResults } from './utils/searchUtils';
-
-// Fixed row height (px). Must stay in sync with `.result-item` in StyledWrapper.js, since it's
-// passed to Virtuoso as `fixedItemHeight`.
-const RESULT_ROW_HEIGHT = 52;
-// The list scrolls beyond this; it caps how tall the modal grows, not how many results exist.
-const MAX_VISIBLE_RESULTS = 8;
 
 const GlobalSearchModal = ({ isOpen, onClose }) => {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [localResults, setLocalResults] = useState([]);
-  const [externalResults, setExternalResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [indexMatchTotal, setIndexMatchTotal] = useState(null);
+  const [results, setResults] = useState([]);
   const inputRef = useRef(null);
-  const virtuosoRef = useRef(null);
-  const searchRequestIdRef = useRef(0);
-  const hasMountedForSearchRef = useRef(false);
-  const queryRef = useRef('');
-  const searchIndexBuildingRef = useRef(false);
-  const wasSearchIndexBuildingRef = useRef(false);
-  const lastQueriedRef = useRef('');
-  const pollIntervalRef = useRef(null);
-  const lastIndexPrepareKeyRef = useRef('');
+  const resultsRef = useRef(null);
+  const debounceTimeoutRef = useRef(null);
   const dispatch = useDispatch();
-  const store = useStore();
-  const { ipcRenderer } = window;
 
   const allCollections = useSelector((state) => state.collections.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
-  const searchIndexBuilding = useSelector((state) => state.app.searchIndexBuilding);
-  const searchIndexStatus = useSelector((state) => state.app.searchIndexStatus);
-  const searchIndexEnabled = useSelector((state) => state.app.preferences?.cache?.searchIndex?.enabled);
+  const tabs = useSelector((state) => state.tabs.tabs);
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
 
@@ -66,21 +42,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     return allCollections.filter((c) => workspacePaths.has(normalizePath(c.pathname)));
   }, [activeWorkspace, allCollections, workspaces]);
 
-  const unmountedCollectionPathsKey = useMemo(
-    () => collections
-      .filter((collection) => collection.mountStatus !== 'mounted')
-      .map((collection) => normalizePath(collection.pathname))
-      .sort()
-      .join('\n'),
-    [collections]
-  );
-
-  const findCollectionByPath = useCallback(
-    (collectionPath) => allCollections.find((c) => normalizePath(c.pathname) === normalizePath(collectionPath)),
-    [allCollections]
-  );
-
-  const createCollectionResults = useCallback(() => {
+  const createCollectionResults = () => {
     const collectionResults = collections.map((collection) => ({
       type: SEARCH_TYPES.COLLECTION,
       item: collection,
@@ -92,142 +54,145 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
 
     collectionResults.sort((a, b) => a.name.localeCompare(b.name));
     return [DOCUMENTATION_RESULT, ...collectionResults];
-  }, [collections]);
+  };
 
-  // Collections are always cheap and always fresh in Redux (mounted or not), so this never needs
-  // the search index - only Folder/Request reach into collections that aren't mounted.
-  const performLocalSearch = useCallback((searchQuery) => {
-    const normalizedQuery = normalizeQuery(searchQuery);
-    if (!normalizedQuery) {
-      setLocalResults(createCollectionResults());
-      return;
-    }
-    if (!isValidQuery(normalizedQuery)) {
-      setLocalResults([]);
-      return;
-    }
-
-    const searchTerms = normalizedQuery.toLowerCase().split(/[\s\/]+/).filter(Boolean);
-    if (!searchTerms.length) {
-      setLocalResults([]);
-      return;
-    }
-
+  const searchInCollections = (searchTerms, enablePathMatch) => {
     const results = [];
+
+    // Check for documentation match
     const queryLower = searchTerms.join(' ');
     if (['documentation', 'docs', 'bruno docs'].some((term) => term.includes(queryLower))) {
       results.push(DOCUMENTATION_RESULT);
     }
 
     collections.forEach((collection) => {
-      const nameMatch = searchTerms.every((term) => collection.name.toLowerCase().includes(term));
-      const pathMatch = searchTerms.every((term) => collection.pathname.toLowerCase().includes(term));
-
-      if (nameMatch || pathMatch) {
+      // Search collection name
+      if (searchTerms.every((term) => collection.name.toLowerCase().includes(term))) {
         results.push({
           type: SEARCH_TYPES.COLLECTION,
           item: collection,
           name: collection.name,
           path: collection.name,
-          matchType: nameMatch ? MATCH_TYPES.COLLECTION : MATCH_TYPES.PATH,
+          matchType: MATCH_TYPES.COLLECTION,
           collectionUid: collection.uid
         });
       }
-    });
 
-    setLocalResults(results);
-  }, [collections, createCollectionResults]);
+      // Search collection items
+      const flattenedItems = flattenItems(collection.items);
+      flattenedItems.forEach((item) => {
+        const itemPath = getItemPath(item, collection, findParentItemInCollection);
+        const itemPathLower = itemPath.toLowerCase();
 
-  // Folder/Request results always come from the search index - it's kept fresh for mounted
-  // collections too (via the live watcher), so there's no need for a separate Redux-tree pass.
-  // Both scopes are always queried together: the search box has no filters, so one query term
-  // matches collection/folder/request name, path, type, and URL all at once.
-  const fetchIndexResults = useCallback((searchQuery) => {
-    const requestId = ++searchRequestIdRef.current;
+        if (isItemARequest(item)) {
+          // add an optional check for the item name to prevent a crash if it doesn’t exist.
+          const nameMatch = searchTerms.every((term) => (item.name || '').toLowerCase().includes(term));
+          const urlMatch = searchTerms.every((term) => (item.request?.url || '').toLowerCase().includes(term));
+          const pathMatch = enablePathMatch && searchTerms.every((term) => itemPathLower.includes(term));
 
-    if (!ipcRenderer) {
-      setExternalResults([]);
-      setIsSearching(false);
-      return;
-    }
+          if (nameMatch || urlMatch || pathMatch) {
+            // Check if this is a gRPC request and get the method type
+            const isGrpcRequest = item.request?.type === 'grpc';
 
-    const normalizedQuery = normalizeQuery(searchQuery);
-    if (!normalizedQuery || !isValidQuery(normalizedQuery)) {
-      setExternalResults([]);
-      setIsSearching(false);
-      return;
-    }
+            let method = item.request?.method || '';
 
-    const term = normalizedQuery.toLowerCase();
+            if (isGrpcRequest) {
+              // For gRPC requests, use the methodType
+              const methodType = item.request?.methodType || 'UNARY';
+              method = methodType.toLowerCase().replace(/[_]/g, '-');
+            }
 
-    const collectionPaths = collections.map((collection) => normalizePath(collection.pathname));
+            results.push({
+              type: SEARCH_TYPES.REQUEST,
+              item,
+              name: item.name,
+              path: itemPath,
+              matchType: nameMatch ? MATCH_TYPES.REQUEST : urlMatch ? MATCH_TYPES.URL : MATCH_TYPES.PATH,
+              method,
+              collectionUid: collection.uid
+            });
+          }
+        } else if (isItemAFolder(item)) {
+          const nameMatch = searchTerms.every((term) => item.name.toLowerCase().includes(term));
+          const pathMatch = enablePathMatch && searchTerms.every((term) => itemPathLower.includes(term));
 
-    Promise.all([
-      ...[SEARCH_TYPES.FOLDER, SEARCH_TYPES.REQUEST].map((scope) => ipcRenderer
-        .invoke('renderer:search-index', term, { scope, workspacePath: activeWorkspace?.pathname })
-        .then((rows) => (rows || []).map((row) => ({ ...row, __scope: scope })))
-        .catch(() => [])),
-      ipcRenderer
-        .invoke('renderer:search-index-trees', term, activeWorkspace?.pathname, undefined, { limit: 1, collectionPaths })
-        .then((result) => result?.total)
-        .catch(() => null)
-    ]).then((results) => {
-      if (searchRequestIdRef.current !== requestId) return;
-      const total = results[results.length - 1];
-      const batches = results.slice(0, -1);
-      setIndexMatchTotal(typeof total === 'number' ? total : null);
-      setExternalResults(batches.flat());
-      setIsSearching(false);
-    });
-  }, [ipcRenderer, activeWorkspace, collections]);
-
-  const mappedExternalResults = useMemo(() => {
-    return externalResults
-      .map((row) => {
-        const collection = findCollectionByPath(row.collectionPath);
-        if (!collection) return null;
-
-        if (row.__scope === SEARCH_TYPES.FOLDER) {
-          if (!row.folderName) return null;
-          return {
-            type: SEARCH_TYPES.FOLDER,
-            external: true,
-            row,
-            name: row.folderName,
-            path: `${row.collectionName}/${row.folderPath}`,
-            matchType: MATCH_TYPES.FOLDER,
-            collectionUid: collection.uid
-          };
+          if (nameMatch || pathMatch) {
+            results.push({
+              type: SEARCH_TYPES.FOLDER,
+              item,
+              name: item.name,
+              path: itemPath,
+              matchType: nameMatch ? MATCH_TYPES.FOLDER : MATCH_TYPES.PATH,
+              collectionUid: collection.uid
+            });
+          }
         }
+      });
+    });
 
-        if (!row.requestName) return null;
-        return {
-          type: SEARCH_TYPES.REQUEST,
-          external: true,
-          row,
-          name: row.requestName,
-          path: `${row.collectionName}/${row.requestPath}`,
-          matchType: MATCH_TYPES.REQUEST,
-          method: row.requestType,
-          // set when the request file could not be parsed
-          error: row.requestError,
-          collectionUid: collection.uid
-        };
-      })
-      .filter(Boolean);
-  }, [externalResults, findCollectionByPath]);
+    return results;
+  };
 
-  const results = useMemo(
-    () => sortResults([...localResults, ...mappedExternalResults]),
-    [localResults, mappedExternalResults]
-  );
+  const performSearch = (searchQuery) => {
+    const normalizedQuery = normalizeQuery(searchQuery);
 
-  const showSearchSpinner = Boolean(
-    query.trim()
-    && searchIndexEnabled
-    && (searchIndexBuilding || searchIndexStatus?.isDiscovering || isSearching)
-  );
-  const showMatchCount = Boolean(query.trim() && searchIndexEnabled && typeof indexMatchTotal === 'number');
+    if (!normalizedQuery) {
+      setResults(createCollectionResults());
+      return;
+    }
+
+    if (!isValidQuery(normalizedQuery)) {
+      setResults([]);
+      return;
+    }
+
+    const searchTerms = normalizedQuery.toLowerCase().split(/[\s\/]+/).filter(Boolean);
+    if (!searchTerms.length) {
+      setResults([]);
+      return;
+    }
+
+    const enablePathMatch = normalizedQuery.includes('/');
+    const searchResults = searchInCollections(searchTerms, enablePathMatch);
+    const sortedResults = sortResults(searchResults);
+
+    setResults(sortedResults);
+    setSelectedIndex(0);
+  };
+
+  const debouncedSearch = useCallback((searchQuery) => {
+    // Clear existing timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    // Set new timeout
+    debounceTimeoutRef.current = setTimeout(() => {
+      performSearch(searchQuery);
+    }, SEARCH_CONFIG.DEBOUNCE_DELAY);
+  }, [collections]); // Depend on collections to recreate when they change
+
+  const expandItemPath = (result) => {
+    const collection = collections.find((c) => c.uid === result.collectionUid);
+    if (!collection) return;
+
+    ensureCollectionIsMounted(collection);
+
+    if (collection.collapsed) {
+      dispatch(toggleCollection(collection.uid));
+    }
+
+    let currentItem = result.type === SEARCH_TYPES.FOLDER
+      ? result.item
+      : findParentItemInCollection(collection, result.item.uid);
+
+    while (currentItem?.type === 'folder') {
+      if (currentItem.collapsed) {
+        dispatch(toggleCollectionItem({ collectionUid: collection.uid, itemUid: currentItem.uid }));
+      }
+      currentItem = findParentItemInCollection(collection, currentItem.uid);
+    }
+  };
 
   const ensureCollectionIsMounted = (collection) => {
     if (!collection || collection.mountStatus === 'mounted') return;
@@ -280,183 +245,108 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     if (handler) handler();
   };
 
-  const openExternalResult = async (result) => {
-    let collection = findCollectionByPath(result.row.collectionPath);
-    if (!collection) return;
-
-    if (collection.mountStatus !== 'mounted') {
-      await dispatch(mountCollection({
-        collectionUid: collection.uid,
-        collectionPathname: collection.pathname,
-        brunoConfig: collection.brunoConfig
-      })).catch(() => null);
-      collection = store.getState().collections.collections.find((c) => c.uid === collection.uid);
-    }
-    if (!collection) return;
-
-    const relativePath = result.type === SEARCH_TYPES.FOLDER ? result.row.folderPath : result.row.requestPath;
-    const targetPathname = path.join(result.row.collectionPath, relativePath);
-    const item = findItemInCollectionByPathname(collection, targetPathname);
-    if (!item) return;
-
-    dispatch(expandCollection(collection.uid));
-    findAncestorFolderUidsByPathname(collection, targetPathname).forEach((itemUid) => {
-      dispatch(expandItem({ itemUid, collectionUid: collection.uid }));
-    });
-
-    if (result.type === SEARCH_TYPES.REQUEST) {
-      const existingTab = store.getState().tabs.tabs.find((tab) => tab.uid === item.uid);
-      if (existingTab) {
-        dispatch(focusTab({ uid: item.uid }));
-      } else {
-        dispatch(addTab({
-          uid: item.uid,
-          collectionUid: collection.uid,
-          requestPaneTab: getDefaultRequestPaneTab(item),
-          type: item.type,
-          pathname: item.pathname
-        }));
-      }
-    } else {
-      dispatch(addTab({ uid: item.uid, collectionUid: collection.uid, type: 'folder-settings', pathname: item.pathname }));
-    }
-  };
-
   const handleResultSelection = (result) => {
+    const targetCollection = collections.find((c) => c.uid === result.collectionUid);
+    ensureCollectionIsMounted(targetCollection);
+
     if (result.type === SEARCH_TYPES.DOCUMENTATION) {
       window.open('https://docs.usebruno.com/', '_blank');
       onClose();
       return;
     }
 
-    if (result.external) {
-      onClose();
-      openExternalResult(result);
-      return;
-    }
+    expandItemPath(result);
 
-    const targetCollection = collections.find((c) => c.uid === result.collectionUid);
-    ensureCollectionIsMounted(targetCollection);
-    if (targetCollection?.collapsed) {
-      dispatch(toggleCollection(targetCollection.uid));
+    if (result.type === SEARCH_TYPES.REQUEST) {
+      const existingTab = tabs.find((tab) => tab.uid === result.item.uid);
+
+      if (existingTab) {
+        dispatch(focusTab({ uid: result.item.uid }));
+      } else {
+        dispatch(addTab({
+          uid: result.item.uid,
+          collectionUid: result.collectionUid,
+          requestPaneTab: getDefaultRequestPaneTab(result.item),
+          type: result.item.type,
+          pathname: result.item.pathname
+        }));
+      }
+    } else if (result.type === SEARCH_TYPES.FOLDER) {
+      dispatch(addTab({
+        uid: result.item.uid,
+        collectionUid: result.collectionUid,
+        type: 'folder-settings',
+        pathname: result.item.pathname
+      }));
+    } else if (result.type === SEARCH_TYPES.COLLECTION) {
+      dispatch(addTab({
+        uid: result.item.uid,
+        collectionUid: result.collectionUid,
+        type: 'collection-settings'
+      }));
     }
-    dispatch(addTab({
-      uid: result.item.uid,
-      collectionUid: result.collectionUid,
-      type: 'collection-settings'
-    }));
 
     onClose();
   };
 
-  queryRef.current = query;
-  searchIndexBuildingRef.current = searchIndexBuilding;
-
-  // The first call queries the index immediately and calls made within the next 3 s are ignored; the refresh
-  // interval in the effect below picks up whatever was typed meanwhile. It searches the input as it is at call time.
-  const throttledFetchIndexResults = useLeadingThrottle(() => {
-    const currentQuery = queryRef.current.trim();
-    if (!currentQuery) return;
-    // Once the index is complete, repeating the same text would return the same rows
-    if (!searchIndexBuildingRef.current && currentQuery === lastQueriedRef.current) return;
-    lastQueriedRef.current = currentQuery;
-    setIsSearching(true);
-    fetchIndexResults(currentQuery);
-  }, SEARCH_CONFIG.INDEX_THROTTLE_DELAY);
-
   const handleQueryChange = (e) => {
-    setQuery(e.target.value);
-    setSelectedIndex(0);
+    const newQuery = e.target.value;
+    setQuery(newQuery);
+
+    if (newQuery.trim()) {
+      debouncedSearch(newQuery);
+    } else {
+      // For empty queries, search immediately to show collections
+      performSearch(newQuery);
+    }
   };
 
   const clearSearch = () => {
+    // Clear any pending debounced search
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
     setQuery('');
-    setIndexMatchTotal(null);
+    setResults([]);
   };
 
+  // Initialize modal when opened
   useEffect(() => {
     if (isOpen) {
       const timeoutId = setTimeout(() => inputRef.current?.focus(), SEARCH_CONFIG.FOCUS_DELAY);
       setQuery('');
-      setExternalResults([]);
-      setLocalResults(createCollectionResults());
+      performSearch('');
       setSelectedIndex(0);
-      hasMountedForSearchRef.current = false;
 
       return () => clearTimeout(timeoutId);
-    }
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
-    }
-    throttledFetchIndexResults.cancel();
-    lastQueriedRef.current = '';
-    wasSearchIndexBuildingRef.current = false;
-  }, [isOpen, throttledFetchIndexResults]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      lastIndexPrepareKeyRef.current = '';
-      return;
-    }
-    const term = query.trim();
-    const workspacePath = activeWorkspace?.pathname;
-    if (!term || !searchIndexEnabled || !workspacePath) {
-      lastIndexPrepareKeyRef.current = '';
-      return;
-    }
-    const prepareKey = `${workspacePath}\n${term}\n${unmountedCollectionPathsKey}`;
-    if (prepareKey === lastIndexPrepareKeyRef.current) return;
-    lastIndexPrepareKeyRef.current = prepareKey;
-    dispatch(indexActiveWorkspaceCollections(term));
-  }, [isOpen, query, searchIndexEnabled, activeWorkspace?.pathname, unmountedCollectionPathsKey, dispatch]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const stopIndexRefresh = () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-        pollIntervalRef.current = null;
+    } else {
+      // Clear any pending debounced search when modal closes
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
       }
-      throttledFetchIndexResults.cancel();
-      lastQueriedRef.current = '';
-      wasSearchIndexBuildingRef.current = false;
-    };
-
-    performLocalSearch(query);
-
-    if (!query.trim()) {
-      stopIndexRefresh();
-      fetchIndexResults(query);
-      return;
     }
+  }, [isOpen]);
 
-    // Without a search index there is nothing to query
-    if (!searchIndexEnabled) {
-      stopIndexRefresh();
-      setExternalResults([]);
-      return;
-    }
-
-    // The index just finished building: the final search must not be swallowed by the throttle window
-    if (wasSearchIndexBuildingRef.current && !searchIndexBuilding) {
-      throttledFetchIndexResults.cancel();
-      lastQueriedRef.current = '';
-    }
-    wasSearchIndexBuildingRef.current = searchIndexBuilding;
-
-    throttledFetchIndexResults();
-    if (!pollIntervalRef.current) {
-      pollIntervalRef.current = setInterval(throttledFetchIndexResults, SEARCH_CONFIG.INDEX_REFRESH_INTERVAL);
-    }
-  }, [isOpen, query, performLocalSearch, fetchIndexResults, throttledFetchIndexResults, searchIndexEnabled, searchIndexBuilding]);
-
+  // Auto-scroll selected item into view
   useEffect(() => {
-    if (results.length > 0) {
-      virtuosoRef.current?.scrollIntoView({ index: selectedIndex, behavior: SEARCH_CONFIG.SCROLL_BEHAVIOR });
+    if (resultsRef.current && results.length > 0) {
+      const selectedElement = resultsRef.current.children[selectedIndex];
+      selectedElement?.scrollIntoView({
+        behavior: SEARCH_CONFIG.SCROLL_BEHAVIOR,
+        block: SEARCH_CONFIG.SCROLL_BLOCK
+      });
     }
   }, [selectedIndex, results]);
+
+  // Cleanup debounce timeout on unmount or modal close
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const getResultIcon = (type) => {
     const iconMap = {
@@ -467,67 +357,6 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     };
     const IconComponent = iconMap[type] || IconFileText;
     return <IconComponent size={18} stroke={1.5} />;
-  };
-
-  const resultKey = (result, index) => result.external
-    ? `ext-${result.row.collectionPath}:${result.row.requestPath || result.row.folderPath}`
-    : `${result.type}-${result.item.id || result.item.uid}-${index}`;
-
-  const renderResultRow = (index, result) => {
-    const isSelected = index === selectedIndex;
-    const typeLabel = getTypeLabel(result.type);
-    const urlText = result.type === SEARCH_TYPES.REQUEST
-      ? (result.external ? (result.row.requestUrl || '') : (result.item.request?.url || ''))
-      : null;
-
-    return (
-      <div
-        id={`search-result-${index}`}
-        className={`result-item ${isSelected ? 'selected' : ''}`}
-        onClick={() => handleResultSelection(result)}
-        data-selected={isSelected}
-        data-type={result.type}
-        role="option"
-        aria-selected={isSelected}
-        aria-label={`${result.name}, ${typeLabel || result.type}${result.method ? `, ${result.method}` : ''}`}
-        tabIndex={-1}
-      >
-        <div className={`result-icon ${result.error ? 'error' : ''}`} title={result.error || undefined}>
-          {result.error
-            ? <IconAlertCircle size={18} stroke={1.5} data-testid="search-result-error-icon" />
-            : getResultIcon(result.type)}
-        </div>
-        <div className="result-content">
-          <div className="result-info">
-            <div className="result-name">
-              {highlightText(result.name, query)}
-            </div>
-            <div className="result-path">
-              {result.type === SEARCH_TYPES.DOCUMENTATION
-                ? result.description
-                : result.type === SEARCH_TYPES.REQUEST
-                  ? highlightText(urlText || '', query)
-                  : highlightText(result.path, query)}
-            </div>
-          </div>
-          <div className="result-badges">
-            {result.type === SEARCH_TYPES.REQUEST && result.method && (
-              <span
-                className={`method-badge ${result.method.toLowerCase()}`}
-                aria-label={`HTTP method ${result.method.toUpperCase().replace(/-/g, ' ')}`}
-              >
-                {result.method.toUpperCase().replace(/-/g, ' ')}
-              </span>
-            )}
-            {typeLabel && (
-              <div className="result-type" aria-label={`Item type ${typeLabel}`}>
-                {typeLabel}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
   };
 
   if (!isOpen) return null;
@@ -577,11 +406,6 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
                 aria-autocomplete="list"
                 data-testid="global-search-input"
               />
-              {showSearchSpinner && (
-                <div className="search-spinner" data-testid="global-search-spinner" aria-hidden="true">
-                  <IconLoader2 size={18} strokeWidth={1.5} className="animate-spin" />
-                </div>
-              )}
               {query && (
                 <button
                   onClick={clearSearch}
@@ -595,14 +419,9 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
             </div>
           </div>
 
-          {showMatchCount && (
-            <div className="search-match-count" data-testid="global-search-match-count">
-              {indexMatchTotal === 1 ? '1 match' : `${indexMatchTotal} matches`}
-            </div>
-          )}
-
           <div
             className="command-k-results"
+            ref={resultsRef}
             id="search-results"
             role="listbox"
             aria-label="Search results"
@@ -628,15 +447,58 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
                 </p>
               </div>
             ) : (
-              <Virtuoso
-                ref={virtuosoRef}
-                data={results}
-                style={{ height: Math.min(results.length, MAX_VISIBLE_RESULTS) * RESULT_ROW_HEIGHT }}
-                fixedItemHeight={RESULT_ROW_HEIGHT}
-                increaseViewportBy={RESULT_ROW_HEIGHT * 4}
-                computeItemKey={(index, result) => resultKey(result, index)}
-                itemContent={renderResultRow}
-              />
+              results.map((result, index) => {
+                const isSelected = index === selectedIndex;
+                const typeLabel = getTypeLabel(result.type);
+
+                return (
+                  <div
+                    key={`${result.type}-${result.item.id || result.item.uid}-${index}`}
+                    id={`search-result-${index}`}
+                    className={`result-item ${isSelected ? 'selected' : ''}`}
+                    onClick={() => handleResultSelection(result)}
+                    data-selected={isSelected}
+                    data-type={result.type}
+                    role="option"
+                    aria-selected={isSelected}
+                    aria-label={`${result.name}, ${typeLabel || result.type}${result.method ? `, ${result.method}` : ''}`}
+                    tabIndex={-1}
+                  >
+                    <div className="result-icon">
+                      {getResultIcon(result.type)}
+                    </div>
+                    <div className="result-content">
+                      <div className="result-info">
+                        <div className="result-name">
+                          {highlightText(result.name, query)}
+                        </div>
+                        <div className="result-path">
+                          {result.type === SEARCH_TYPES.DOCUMENTATION
+                            ? result.description
+                            : result.type === SEARCH_TYPES.REQUEST
+                              ? highlightText(result.item.request?.url || '', query)
+                              : highlightText(result.path, query)}
+                        </div>
+                      </div>
+                      <div className="result-badges">
+                        {result.type === SEARCH_TYPES.REQUEST && result.method && (
+                          <span
+                            className={`method-badge ${result.method.toLowerCase()}`}
+                            aria-label={`HTTP method ${result.method.toUpperCase().replace(/-/g, ' ')}`}
+                          >
+                            {result.method.toUpperCase().replace(/-/g, ' ')}
+                          </span>
+                        )}
+                        {typeLabel && (
+                          <div className="result-type" aria-label={`Item type ${typeLabel}`}>
+                            {typeLabel}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
 

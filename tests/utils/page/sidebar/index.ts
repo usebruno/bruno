@@ -180,3 +180,16 @@ export const dragSidebarToWidth = async (page: Page, width: number) => {
   await expect.poll(() => locators.sidebarContainer().evaluate((node: HTMLElement) => node.offsetWidth)).toBe(width);
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 };
+
+/**
+ * Clears the sidebar search index and waits until it is empty, so a search test starts from a
+ * known state.
+ * @param page - The Playwright page object
+ * @returns void
+ */
+export const clearSearchIndex = async (page: Page) => {
+  await test.step('Clear the search index', async () => {
+    await page.evaluate(() => window.ipcRenderer.invoke('renderer:clear-search-index'));
+    await expect.poll(() => page.evaluate(() => window.ipcRenderer.invoke('renderer:get-search-index-size'))).toBe(0);
+  });
+};

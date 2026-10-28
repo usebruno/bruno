@@ -50,7 +50,7 @@ describe('mountCollection skipTabRestore behavior', () => {
 
     window.ipcRenderer = {
       invoke: jest.fn((channel) => {
-        if (channel === 'renderer:mount-collection-v2') {
+        if (channel === 'renderer:mount-collection') {
           return Promise.resolve(TRANSIENT_DIR);
         }
 
@@ -116,7 +116,7 @@ describe('mountCollection skipTabRestore behavior', () => {
 
     window.ipcRenderer = {
       invoke: jest.fn((channel) => {
-        if (channel === 'renderer:mount-collection-v2') {
+        if (channel === 'renderer:mount-collection') {
           return Promise.resolve(TRANSIENT_DIR);
         }
 

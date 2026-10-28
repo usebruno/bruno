@@ -70,11 +70,6 @@ class SearchIndex {
     return row?.collectionName ?? null;
   }
 
-  metaEntriesFor(collectionPath) {
-    const rows = this.#execute('search_index_meta_entries', { collection_path: collectionPath });
-    return new Map(rows.map((row) => [row.relativePath, row]));
-  }
-
   upsertMeta({ collectionPath, relativePath, entity, folderPath, name, seq, mtime, hash }) {
     if (entity === 'folder') {
       return this.#nameFolder({ collectionPath, folderPath, name, seq, sourcePath: relativePath, mtime, hash });
@@ -140,82 +135,15 @@ class SearchIndex {
   }
 
   // Adds the folders (and keeps their names/workspace current); never removes any
-  addFolders({ collectionPath, collectionName, workspacePath, folderPaths }) {
-    const before = this.collectionNameFor(collectionPath);
-    this.#mutate('search_index_upsert_collection', {
-      collection_path: collectionPath,
-      collection_name: collectionName,
-      workspace_path: workspacePath ?? null
-    });
-    const resolvedName = this.collectionNameFor(collectionPath);
-    if (before !== null && resolvedName !== before) {
-      this.#mutate('search_index_apply_collection_name', { collection_path: collectionPath, collection_name: resolvedName });
-    }
-
-    for (const folderPath of folderPaths) {
-      this.#mutate('search_index_upsert_folder', {
-        collection_path: collectionPath,
-        collection_name: resolvedName,
-        folder_path: folderPath,
-        folder_name: path.basename(folderPath),
-        workspace_path: workspacePath ?? null
-      });
-    }
-  }
-
   // Makes the stored folders exactly the given ones
-  syncFolders({ collectionPath, collectionName, workspacePath, folderPaths }) {
-    const wanted = new Set(folderPaths);
-    transaction(() => {
-      this.addFolders({ collectionPath, collectionName, workspacePath, folderPaths });
-      const stored = this.#execute('search_index_folder_paths', { collection_path: collectionPath });
-      for (const { folderPath } of stored) {
-        if (!wanted.has(folderPath)) {
-          this.#mutate('search_index_delete_folder', { collection_path: collectionPath, folder_path: folderPath });
-        }
-      }
-    });
-  }
-
   // Removes a folder and everything under it
-  removeFolderTree(collectionPath, folderPath) {
-    const prefix = `${folderPath}${path.sep}`;
-    this.#mutate('search_index_delete_folder_tree', {
-      collection_path: collectionPath,
-      folder_path: folderPath,
-      prefix_length: prefix.length,
-      prefix
-    });
-  }
-
   entriesFor(collectionPath) {
     const rows = this.#execute('search_index_entries_metadata', { collection_path: collectionPath });
     return new Map(rows.map((row) => [row.requestPath, row]));
   }
 
-  collectionPaths() {
-    return this.#execute('search_index_collection_paths').map((row) => row.collectionPath);
-  }
-
   rowsForCollection(collectionPath) {
     return this.#execute('search_index_rows_for_collection', { collection_path: collectionPath });
-  }
-
-  search(term, { scope = 'request', workspacePath } = {}) {
-    const params = { like: likePattern(term), workspace_path: workspacePath ?? null };
-
-    if (scope === 'collection') return this.#execute('search_index_search_collections', params);
-    if (scope === 'folder') return this.#execute('search_index_search_folders', params);
-    return this.#execute('search_index_search_requests', params);
-  }
-
-  searchRequestsInCollection(term, collectionPath, { workspacePath, limit }) {
-    return this.#execute('search_index_search_requests_in_collection', {
-      like: likePattern(term),
-      collection_path: collectionPath,
-      workspace_path: workspacePath ?? null,
-      limit
-    });
   }
 
   countRequestsInCollection(term, collectionPath, { workspacePath } = {}) {
@@ -245,4 +173,10 @@ class SearchIndex {
   }
 }
 
-module.exports = { SearchIndex };
+let instance = null;
+const getSearchIndex = () => {
+  if (!instance) instance = new SearchIndex();
+  return instance;
+};
+
+module.exports = { SearchIndex, getSearchIndex };

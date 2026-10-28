@@ -108,23 +108,10 @@ const StyledWrapper = styled.div`
       opacity: 0.7;
     }
   }
-  .search-spinner {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${(props) => props.theme.colors.text.muted};
-    margin-left: 4px;
-    flex-shrink: 0;
-  }
-  .search-match-count {
-    font-size: ${(props) => props.theme.font.size.sm};
-    color: ${(props) => props.theme.colors.text.muted};
-    padding: 4px 12px 0;
-  }
   .command-k-results {
-    /* Virtuoso owns the scrolling and sizes itself from the result count, so this must not
-       introduce a second scroll container or an independent height cap. */
-    overflow: hidden;
+    flex: 1;
+    overflow-y: auto;
+    max-height: 400px;
     scrollbar-width: thin;
     padding: 6px 0;
     scroll-behavior: smooth;
@@ -147,12 +134,8 @@ const StyledWrapper = styled.div`
   .result-item {
     display: flex;
     align-items: center;
-    /* Fixed height, no vertical margin for it to collapse against: the list is virtualized and
-       this must match RESULT_ROW_HEIGHT, passed to Virtuoso as fixedItemHeight. */
-    height: 52px;
-    box-sizing: border-box;
-    padding: 0 12px;
-    margin: 0 8px;
+    padding: 10px 12px;
+    margin: 2px 8px;
     gap: 10px;
     cursor: pointer;
     border-radius: ${(props) => props.theme.border.radius.base};
@@ -173,11 +156,6 @@ const StyledWrapper = styled.div`
     flex-shrink: 0;
     color: ${(props) => props.theme.colors.text.muted};
     opacity: 0.8;
-
-    &.error {
-      color: ${(props) => props.theme.colors.text.danger};
-      opacity: 1;
-    }
   }
   .result-content {
     flex: 1;

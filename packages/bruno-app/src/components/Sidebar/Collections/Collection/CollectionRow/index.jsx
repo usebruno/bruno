@@ -38,7 +38,6 @@ import RemoveCollections from '../RemoveCollections';
 import MoveToWorkspace from '../MoveToWorkspace';
 import { isPathExternalToBasePath } from 'utils/common/path';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { highlightText } from 'components/GlobalSearchModal/utils/searchUtils';
 import { getSortedDraggedItems } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
 
@@ -60,7 +59,16 @@ import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
 
-const CollectionRow = ({ collection, searchText, isSearchCollapsed, onToggleSearchCollapse, openBulkMenu, children, isCollectionMultiDragDisabled, multiDragCollections }) => {
+const CollectionRow = ({
+  collection,
+  searchText,
+  isSearchCollapsed,
+  toggleSearchCollection,
+  openBulkMenu,
+  children,
+  isCollectionMultiDragDisabled,
+  multiDragCollections
+}) => {
   const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -138,7 +146,7 @@ const CollectionRow = ({ collection, searchText, isSearchCollapsed, onToggleSear
   };
 
   const hasSearchText = searchText && searchText?.trim()?.length;
-  const collectionIsCollapsed = hasSearchText ? Boolean(isSearchCollapsed) : collection.collapsed;
+  const collectionIsCollapsed = hasSearchText ? isSearchCollapsed : collection.collapsed;
 
   const iconClassName = classnames({
     'rotate-90': !collectionIsCollapsed
@@ -152,10 +160,6 @@ const CollectionRow = ({ collection, searchText, isSearchCollapsed, onToggleSear
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
 
     ensureCollectionIsMounted();
-
-    if (hasSearchText && isSearchCollapsed && !isChevronClick) {
-      onToggleSearchCollapse(collection.uid);
-    }
 
     if (collection.collapsed) {
       dispatch(toggleCollection(collection.uid));
@@ -186,7 +190,7 @@ const CollectionRow = ({ collection, searchText, isSearchCollapsed, onToggleSear
     e.stopPropagation();
     e.preventDefault();
     if (hasSearchText) {
-      onToggleSearchCollapse(collection.uid);
+      toggleSearchCollection(collection.uid);
       return;
     }
     ensureCollectionIsMounted();
@@ -606,7 +610,7 @@ const CollectionRow = ({ collection, searchText, isSearchCollapsed, onToggleSear
             />
           </ActionIcon>
           <div className="ml-1 w-full" id="sidebar-collection-name" title={collection.name}>
-            {hasSearchText ? highlightText(collection.name, searchText) : collection.name}
+            {collection.name}
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>

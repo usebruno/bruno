@@ -10,7 +10,8 @@ const isSeqValid = (seq) => Number.isInteger(seq) && seq > 0;
 
 const metaFrom = (type, data) => {
   if (type === 'folder') {
-    return { name: data?.meta?.name || null, seq: isSeqValid(data?.meta?.seq) ? data.meta.seq : null };
+    const meta = data?.meta || data?.info || {};
+    return { name: meta.name || null, seq: isSeqValid(meta.seq) ? meta.seq : null };
   }
   const config = type === 'collection' ? data?.brunoConfig : data;
   return { name: typeof config?.name === 'string' && config.name ? config.name : null, seq: null };

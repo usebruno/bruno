@@ -20,8 +20,9 @@ const Cache = () => {
   const fileCacheEnabled = get(preferences, 'cache.file.enabled', false);
   const sslSessionEnabled = get(preferences, 'cache.sslSession.enabled', false);
   const searchIndexEnabled = get(preferences, 'cache.searchIndex.enabled', false);
+
   const { size: fileCacheSize, clear: clearFileCache } = useFileCache();
-  const { size: searchIndexSize, building: searchIndexBuilding, clear: clearSearchIndex } = useSearchIndex();
+  const { size: searchIndexSize, clear: clearSearchIndex } = useSearchIndex();
 
   const persist = (next) => {
     dispatch(savePreferences({ ...preferences, cache: next })).catch(() => {
@@ -117,7 +118,7 @@ const Cache = () => {
         </div>
       </div>
 
-      <div className="cache-item">
+      <div className="cache-item" data-testid="cache-item-search-index">
         <div className="cache-item-header">
           <div className="cache-item-title-group">
             <span className="cache-item-title">Search index</span>
@@ -137,13 +138,12 @@ const Cache = () => {
               search results from unopened collections may be unavailable until it's rebuilt.
             </p>
             <p className="cache-item-size">
-              Index size <strong>{searchIndexSize == null ? '—' : formatSize(searchIndexSize)}</strong>
+              Index size <strong data-testid="search-index-size">{searchIndexSize == null ? '—' : formatSize(searchIndexSize)}</strong>
             </p>
           </div>
           <ActionIcon
             label="Clear search index"
             onClick={handleClearSearchIndex}
-            disabled={searchIndexBuilding}
             colorOnHover={theme.colors.text.danger}
           >
             <IconEraser size={16} strokeWidth={1.5} />

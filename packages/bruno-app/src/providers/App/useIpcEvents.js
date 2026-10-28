@@ -3,8 +3,7 @@ import {
   updateCookies,
   updatePreferences,
   setGitVersion,
-  setIsOpeningCollection,
-  setSearchIndexStatus
+  setIsOpeningCollection
 } from 'providers/ReduxStore/slices/app';
 import {
   updateServerStatus,
@@ -18,6 +17,7 @@ import {
 } from 'providers/ReduxStore/slices/tabs';
 import {
   brunoConfigUpdateEvent,
+  collectionAddBatchEvent,
   collectionAddDirectoryEvent,
   collectionAddFileEvent,
   collectionChangeFileEvent,
@@ -69,6 +69,9 @@ const useIpcEvents = () => {
       if (window.__IS_DEV__) {
         console.log(type);
         console.log(val);
+      }
+      if (type === 'addBatch') {
+        dispatch(collectionAddBatchEvent({ events: val }));
       }
       if (type === 'addDir') {
         dispatch(
@@ -128,14 +131,6 @@ const useIpcEvents = () => {
       }
     };
     ipcRenderer.invoke('renderer:ready');
-
-    ipcRenderer.invoke('renderer:get-search-index-status').then((status) => {
-      dispatch(setSearchIndexStatus(status));
-    });
-
-    const removeSearchIndexStatusListener = ipcRenderer.on('main:search-index-status', (status) => {
-      dispatch(setSearchIndexStatus(status));
-    });
 
     const removeCollectionTreeUpdateListener = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
 
@@ -434,7 +429,6 @@ const useIpcEvents = () => {
     });
 
     return () => {
-      removeSearchIndexStatusListener();
       removeCollectionTreeLoadedListener();
       removeCollectionLoadingStateV2Listener();
       removeBrunoConfigUpdateV2Listener();

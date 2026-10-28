@@ -39,9 +39,7 @@ const isDenied = (relativePathPosix, patterns) => {
   return false;
 };
 
-// Lists the files under root. When `folders` is an array, every folder that is walked into is added to it too
-// (relative paths), so empty folders are known as well.
-const walk = (root, denylist, folders = null) => {
+const walk = (root, denylist) => {
   const out = [];
   const visited = new Set();
   const visit = (absDir, relDir) => {
@@ -75,7 +73,6 @@ const walk = (root, denylist, folders = null) => {
       if (isDir) {
         if (DENY_DIRS.has(entry.name)) continue;
         if (matchesPlainPrefix(posixifyPath(childRel), denylist)) continue;
-        if (folders) folders.push(childRel);
         visit(childAbs, childRel);
       } else if (isFile) {
         if (isDenied(posixifyPath(childRel), denylist)) continue;
@@ -87,8 +84,8 @@ const walk = (root, denylist, folders = null) => {
   return out;
 };
 
-const COLLECTION_ROOT_BASENAMES = new Set(['collection.bru', 'collection.yml', 'opencollection.yml']);
-const FOLDER_ROOT_BASENAMES = new Set(['folder.bru', 'folder.yml']);
+const COLLECTION_ROOT_BASENAMES = new Set(['collection.bru', 'collection.yml', 'collection.yaml', 'opencollection.yml']);
+const FOLDER_ROOT_BASENAMES = new Set(['folder.bru', 'folder.yml', 'folder.yaml']);
 const BRUNO_CONFIG_BASENAME = 'bruno.json';
 const ENVIRONMENTS_DIR = 'environments';
 

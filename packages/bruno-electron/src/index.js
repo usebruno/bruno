@@ -55,6 +55,7 @@ const registerMockServerIpc = require('./ipc/mock-server');
 const registerAiIpc = require('./ipc/ai');
 const registerAiAutocompleteIpc = require('./ipc/ai/autocomplete');
 const { registerMountIpc } = require('./ipc/mount');
+const { registerSearchIpc } = require('./ipc/search');
 const { registerSqliteIpc } = require('./ipc/sqlite');
 const sqliteService = require('./services/sqlite');
 const { clearAllRunnerResponses } = require('./services/runner-exchange');
@@ -544,6 +545,7 @@ app.on('ready', async () => {
   registerAiIpc(mainWindow);
   registerAiAutocompleteIpc(mainWindow);
   registerMountIpc();
+  registerSearchIpc();
   sqliteService.openDatabase();
   clearAllRunnerResponses().catch((err) => console.warn('[runner] failed to clear stored responses', err));
   registerSqliteIpc();
@@ -585,6 +587,8 @@ app.on('before-quit', (event) => {
     } catch {}
 
     try { await require('./ipc/mount').shutdown({ force: true }); } catch { }
+
+    try { require('./ipc/search').shutdown(); } catch { }
 
     try { await clearAllRunnerResponses(); } catch {}
 

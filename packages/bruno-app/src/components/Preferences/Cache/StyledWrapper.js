@@ -82,40 +82,6 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.text};
     margin-left: 0.25rem;
   }
-
-  .cache-item-option {
-    padding: 0.875rem 1rem;
-    border-top: 1px solid ${(props) => props.theme.border.border1};
-  }
-
-  .cache-item-option-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .cache-item-option-title {
-    font-size: ${(props) => props.theme.font.size.base};
-    font-weight: 600;
-  }
-
-  .cache-item-option.disabled .cache-item-option-header,
-  .cache-item-option.disabled .cache-item-description {
-    opacity: 0.5;
-  }
-
-  .cache-item-option.disabled .cache-item-option-header {
-    pointer-events: none;
-  }
-
-  .cache-item-note {
-    font-size: ${(props) => props.theme.font.size.base};
-    color: ${(props) => props.theme.colors.text.subtext2};
-    margin: 0.5rem 0 0 0;
-  }
-
 `;
 
 export default StyledWrapper;

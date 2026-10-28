@@ -25,11 +25,11 @@ const { setBrunoConfig, getBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const snapshotManager = require('../services/snapshot');
 const { parseFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
-const { defaultClassify, hashFile } = require('../utils/mount');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const dotEnvWatcher = require('./dotenv-watcher');
 const { checkpoint } = require('../utils/benchmark');
+const { stageParsedToSearchIndex, removeFromSearchIndexPath } = require('../services/search-index/watcher-stage');
 
 const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
 
@@ -37,108 +37,75 @@ const environmentSecretsStore = new EnvironmentSecretsStore();
 
 // registered collections stage parsed data into the git-lite snapshot (no-op otherwise)
 const fileIndexByCollection = new Map();
-// registered collections keep the search index in sync with live edits, same idea as the cache above
-const searchIndexByCollection = new Map();
-// Writes the search row from the data the watcher just parsed, so a request is never parsed twice
-const upsertSearchIndexEntry = (collectionPath, pathname, data, stamp) => {
-  const registered = searchIndexByCollection.get(collectionPath);
-  if (!registered) return;
-  const requestPath = path.relative(collectionPath, pathname);
-  const { searchIndex, workspacePath, collectionName } = registered;
-  const { ingestParsedFile } = require('../services/search-index/ingest');
-  const fileIndex = fileIndexByCollection.get(collectionPath) ?? null;
-  try {
-    const readStamp = () => stamp ?? {
-      mtime: fs.statSync(pathname, { bigint: true }).mtimeNs,
-      hash: hashFile(pathname)
-    };
-    const { mtime, hash } = readStamp();
-    const changed = ingestParsedFile({
-      searchIndex,
-      fileIndex,
-      collectionPath,
-      collectionName: searchIndex.collectionNameFor(collectionPath) || collectionName,
-      workspacePath,
-      result: { relativePath: requestPath, mtime, hash, data }
-    });
-    if (changed) {
-      const { BrowserWindow } = require('electron');
-      for (const win of BrowserWindow.getAllWindows()) {
-        if (!win.isDestroyed()) win.webContents.send('main:search-index-written');
-      }
-    }
-  } catch (err) {
-    console.error('[collection-watcher] search index update failed for', pathname, err);
-  }
-};
-
-// A folder was created: it is searchable straight away, even before it holds a request
-const upsertSearchIndexFolder = (collectionPath, pathname) => {
-  const registered = searchIndexByCollection.get(collectionPath);
-  if (!registered) return;
-  const { isIndexedFolder, withParentFolders } = require('../services/search-index/indexer');
-  const folderPath = path.relative(collectionPath, pathname);
-  if (!isIndexedFolder(folderPath)) return;
-  try {
-    registered.searchIndex.addFolders({
-      collectionPath,
-      collectionName: registered.searchIndex.collectionNameFor(collectionPath) || registered.collectionName,
-      workspacePath: registered.workspacePath,
-      folderPaths: withParentFolders([folderPath])
-    });
-  } catch (err) {
-    console.error('[collection-watcher] search index folder update failed for', pathname, err);
-  }
-};
-
-// A folder was removed: it and the folders inside it are no longer searchable
-const removeSearchIndexFolder = (collectionPath, pathname) => {
-  const registered = searchIndexByCollection.get(collectionPath);
-  if (!registered) return;
-  const folderPath = path.relative(collectionPath, pathname);
-  if (!folderPath) return;
-  try {
-    registered.searchIndex.removeFolderTree(collectionPath, folderPath);
-  } catch (err) {
-    console.error('[collection-watcher] search index folder removal failed for', pathname, err);
-  }
-};
-
-const removeFromSearchIndexPath = (collectionPath, pathname) => {
-  const registered = searchIndexByCollection.get(collectionPath);
-  if (!registered) return;
-  const relativePath = path.relative(collectionPath, pathname);
-  const { removeFromSearchIndex } = require('../services/search-index/ingest');
-  if (removeFromSearchIndex({ searchIndex: registered.searchIndex, collectionPath, relativePath })) {
-    const { BrowserWindow } = require('electron');
-    for (const win of BrowserWindow.getAllWindows()) {
-      if (!win.isDestroyed()) win.webContents.send('main:search-index-written');
-    }
-  }
-};
-
 const stageToCache = (collectionPath, pathname, data) => {
+  stageParsedToSearchIndex(collectionPath, pathname, data);
   const index = fileIndexByCollection.get(collectionPath);
-  let stamp = null;
-  if (index) {
-    try {
-      stamp = index.stageParsed(collectionPath, pathname, data);
-    } catch (err) {
-      console.error('[collection-watcher] cache stage failed for', pathname, err);
-    }
+  if (!index) return;
+  try {
+    index.stageParsed(collectionPath, pathname, data);
+  } catch (err) {
+    console.error('[collection-watcher] cache stage failed for', pathname, err);
   }
-  upsertSearchIndexEntry(collectionPath, pathname, data, stamp);
 };
 const unstageFromCache = (collectionPath, pathname) => {
-  const index = fileIndexByCollection.get(collectionPath);
-  if (index) {
-    try {
-      index.unstagePath(collectionPath, pathname);
-    } catch (err) {
-      console.error('[collection-watcher] cache unstage failed for', pathname, err);
-    }
-  }
   removeFromSearchIndexPath(collectionPath, pathname);
+  const index = fileIndexByCollection.get(collectionPath);
+  if (!index) return;
+  try {
+    index.unstagePath(collectionPath, pathname);
+  } catch (err) {
+    console.error('[collection-watcher] cache unstage failed for', pathname, err);
+  }
+};
+
+// while a collection loads, adds are coalesced into 'addBatch' messages: one renderer dispatch per file is O(n^2)
+const TREE_UPDATE_BATCH_SIZE = 500;
+const TREE_UPDATE_FLUSH_MS = 50;
+const BATCHED_TREE_UPDATE_TYPES = new Set(['addFile', 'addDir']);
+const treeUpdateBatches = new Map();
+
+const flushTreeUpdates = (collectionUid) => {
+  const batch = treeUpdateBatches.get(collectionUid);
+  if (!batch) return;
+  clearTimeout(batch.timer);
+  batch.timer = null;
+  if (!batch.events.length) return;
+  const events = batch.events;
+  batch.events = [];
+  if (batch.win.isDestroyed?.()) return;
+  batch.win.webContents.send('main:collection-tree-updated', 'addBatch', events);
+};
+
+const startTreeUpdateBatch = (win, collectionUid) => {
+  flushTreeUpdates(collectionUid);
+  treeUpdateBatches.set(collectionUid, { win, events: [], timer: null });
+};
+
+const endTreeUpdateBatch = (collectionUid) => {
+  flushTreeUpdates(collectionUid);
+  treeUpdateBatches.delete(collectionUid);
+};
+
+const discardTreeUpdateBatch = (collectionUid) => {
+  clearTimeout(treeUpdateBatches.get(collectionUid)?.timer);
+  treeUpdateBatches.delete(collectionUid);
+};
+
+const sendTreeUpdate = (win, type, payload) => {
+  const collectionUid = payload.meta.collectionUid;
+  const batch = treeUpdateBatches.get(collectionUid);
+  if (batch && batch.win === win && BATCHED_TREE_UPDATE_TYPES.has(type)) {
+    // callers mutate and re-send the same payload object, so snapshot it like an immediate send would
+    batch.events.push({ type, payload: structuredClone(payload) });
+    if (batch.events.length >= TREE_UPDATE_BATCH_SIZE) {
+      flushTreeUpdates(collectionUid);
+    } else if (!batch.timer) {
+      batch.timer = setTimeout(() => flushTreeUpdates(collectionUid), TREE_UPDATE_FLUSH_MS);
+    }
+    return;
+  }
+  flushTreeUpdates(collectionUid);
+  win.webContents.send('main:collection-tree-updated', type, payload);
 };
 
 const isBrunoConfigFile = (pathname, collectionPath) => {
@@ -236,7 +203,7 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
       });
     }
 
-    win.webContents.send('main:collection-tree-updated', 'addEnvironmentFile', file);
+    sendTreeUpdate(win, 'addEnvironmentFile', file);
   } catch (err) {
     console.error('Error processing environment file: ', err);
   }
@@ -280,7 +247,7 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
     // we are reusing the addEnvironmentFile event itself
     // this is because the uid of the pathname remains the same
     // and the collection tree will be able to update the existing environment
-    win.webContents.send('main:collection-tree-updated', 'addEnvironmentFile', file);
+    sendTreeUpdate(win, 'addEnvironmentFile', file);
   } catch (err) {
     console.error(err);
   }
@@ -300,7 +267,7 @@ const unlinkEnvironmentFile = async (win, pathname, collectionUid) => {
       }
     };
 
-    win.webContents.send('main:collection-tree-updated', 'unlinkEnvironmentFile', file);
+    sendTreeUpdate(win, 'unlinkEnvironmentFile', file);
   } catch (err) {
     console.error(err);
   }
@@ -364,7 +331,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       stageToCache(collectionPath, pathname, parsed);
 
       hydrateCollectionRootWithUuid(file.data);
-      win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      sendTreeUpdate(win, 'addFile', file);
 
       // in yml format, opencollection.yml also contains the bruno config
       if (format === 'yml') {
@@ -404,7 +371,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       stageToCache(collectionPath, pathname, file.data);
 
       hydrateCollectionRootWithUuid(file.data);
-      win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      sendTreeUpdate(win, 'addFile', file);
       return;
     } catch (err) {
       console.error(err);
@@ -437,7 +404,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         file.size = sizeInMB(fileStats?.size);
         file.data.raw = content;
         hydrateRequestWithUuid(file.data, pathname);
-        win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        sendTreeUpdate(win, 'addFile', file);
       } catch (error) {
         file.data = {
           name: path.basename(pathname),
@@ -451,7 +418,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         file.size = sizeInMB(fileStats?.size);
         file.data.raw = content;
         hydrateRequestWithUuid(file.data, pathname);
-        win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        sendTreeUpdate(win, 'addFile', file);
       } finally {
         watcher.markFileAsProcessed(win, collectionUid, pathname);
       }
@@ -472,7 +439,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       file.loading = false;
       file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
-      win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      sendTreeUpdate(win, 'addFile', file);
 
       if (fileStats.size < MAX_FILE_SIZE) {
         // This is to update the loading indicator in the UI
@@ -480,7 +447,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         file.partial = false;
         file.loading = true;
         hydrateRequestWithUuid(file.data, pathname);
-        win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        sendTreeUpdate(win, 'addFile', file);
 
         // This is to update the file info in the UI
         file.data = await parseRequestViaWorker(content, {
@@ -492,7 +459,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         file.loading = false;
         file.data.raw = content;
         hydrateRequestWithUuid(file.data, pathname);
-        win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        sendTreeUpdate(win, 'addFile', file);
       }
     } catch (error) {
       file.data = {
@@ -507,7 +474,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       file.size = sizeInMB(fileStats?.size);
       file.data.raw = content;
       hydrateRequestWithUuid(file.data, pathname);
-      win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      sendTreeUpdate(win, 'addFile', file);
     } finally {
       watcher.markFileAsProcessed(win, collectionUid, pathname);
     }
@@ -520,8 +487,6 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
   if (path.normalize(pathname) === path.normalize(envDirectory)) {
     return;
   }
-
-  upsertSearchIndexFolder(collectionPath, pathname);
 
   let name = path.basename(pathname);
   let seq;
@@ -551,7 +516,7 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
     }
   };
 
-  win.webContents.send('main:collection-tree-updated', 'addDir', directory);
+  sendTreeUpdate(win, 'addDir', directory);
 };
 
 const change = async (win, pathname, collectionUid, collectionPath) => {
@@ -612,7 +577,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       stageToCache(collectionPath, pathname, parsed);
 
       hydrateCollectionRootWithUuid(file.data);
-      win.webContents.send('main:collection-tree-updated', 'change', file);
+      sendTreeUpdate(win, 'change', file);
 
       // in yml format, opencollection.yml also contains the bruno config
       if (format === 'yml') {
@@ -652,7 +617,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       stageToCache(collectionPath, pathname, file.data);
 
       hydrateCollectionRootWithUuid(file.data);
-      win.webContents.send('main:collection-tree-updated', 'change', file);
+      sendTreeUpdate(win, 'change', file);
       return;
     } catch (err) {
       console.error(err);
@@ -687,7 +652,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       file.data.raw = content;
       file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
-      win.webContents.send('main:collection-tree-updated', 'change', file);
+      sendTreeUpdate(win, 'change', file);
     } catch (err) {
       file.data = {
         name: path.basename(pathname),
@@ -701,7 +666,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       file.size = sizeInMB(fileStats?.size ?? 0);
       file.data.raw = content ?? '';
       hydrateRequestWithUuid(file.data, pathname);
-      win.webContents.send('main:collection-tree-updated', 'change', file);
+      sendTreeUpdate(win, 'change', file);
     }
   }
 };
@@ -741,7 +706,7 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
           name: basename
         }
       };
-      win.webContents.send('main:collection-tree-updated', 'unlink', file);
+      sendTreeUpdate(win, 'unlink', file);
     }
   } catch (err) {
     console.error(`Error processing unlink event for: ${pathname}`, err);
@@ -758,8 +723,6 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
     if (path.normalize(pathname) === path.normalize(envDirectory)) {
       return;
     }
-
-    removeSearchIndexFolder(collectionPath, pathname);
 
     let format;
     try {
@@ -785,7 +748,7 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
         name
       }
     };
-    win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
+    sendTreeUpdate(win, 'unlinkDir', directory);
   } catch (err) {
     console.error(`Error processing unlinkDir event for: ${pathname}`, err);
   }
@@ -816,6 +779,7 @@ const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher, workspac
         hasSnapshotEntry: false
       };
 
+  flushTreeUpdates(collectionUid);
   win.webContents.send('main:hydrate-app-with-ui-state-snapshot', hydratePayload);
 };
 
@@ -843,6 +807,7 @@ class CollectionWatcher {
 
     state.isDiscovering = true;
     state.pendingFiles.clear();
+    startTreeUpdateBatch(win, collectionUid);
 
     win.webContents.send('main:collection-loading-state-updated', {
       collectionUid,
@@ -865,6 +830,7 @@ class CollectionWatcher {
     // If discovery is complete and no pending files, mark as not loading
     if (!state.isDiscovering && state.pendingFiles.size === 0 && state.isProcessing) {
       state.isProcessing = false;
+      endTreeUpdateBatch(collectionUid);
       win.webContents.send('main:collection-loading-state-updated', {
         collectionUid,
         isLoading: false
@@ -883,6 +849,7 @@ class CollectionWatcher {
       state.isProcessing = true;
     } else {
       // No pending files, collection is fully loaded
+      endTreeUpdateBatch(collectionUid);
       win.webContents.send('main:collection-loading-state-updated', {
         collectionUid,
         isLoading: false
@@ -891,6 +858,7 @@ class CollectionWatcher {
   }
 
   cleanupLoadingState(collectionUid) {
+    discardTreeUpdateBatch(collectionUid);
     delete this.loadingStates[collectionUid];
   }
 
@@ -901,16 +869,9 @@ class CollectionWatcher {
     }
 
     // v2 already loaded the tree from cache; skip startup scan and stage live edits
-    const { ignoreInitial = false, fileIndex = null, searchIndex = null, workspacePathname = null } = options;
+    const { ignoreInitial = false, fileIndex = null, workspacePathname = null } = options;
     if (fileIndex) {
       fileIndexByCollection.set(watchPath, fileIndex);
-    }
-    if (searchIndex) {
-      searchIndexByCollection.set(watchPath, {
-        searchIndex,
-        workspacePath: workspacePathname,
-        collectionName: brunoConfig?.name || path.basename(watchPath)
-      });
     }
 
     this.initializeLoadingState(collectionUid);
@@ -1019,7 +980,6 @@ class CollectionWatcher {
     this.watchers[watchPath] = null;
 
     fileIndexByCollection.delete(watchPath);
-    searchIndexByCollection.delete(watchPath);
 
     dotEnvWatcher.removeCollectionWatcher(watchPath);
 

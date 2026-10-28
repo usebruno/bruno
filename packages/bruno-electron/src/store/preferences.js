@@ -206,8 +206,7 @@ const preferencesSchema = Yup.object().shape({
       enabled: Yup.boolean()
     }),
     searchIndex: Yup.object({
-      enabled: Yup.boolean(),
-      buildTrigger: Yup.string().oneOf(['on-search'])
+      enabled: Yup.boolean()
     })
   }).optional(),
   ai: Yup.object({

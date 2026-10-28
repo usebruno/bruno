@@ -4,8 +4,7 @@ import { sortByNameThenSequence } from 'utils/common/index';
 import {
   doesRequestMatchSearchText,
   doesFolderHaveItemsMatchSearchText,
-  doesCollectionHaveItemsMatchingSearchText,
-  doesCollectionNameMatchSearchText
+  doesCollectionHaveItemsMatchingSearchText
 } from './search';
 
 const groupCollectionItems = (collectionItems) => {
@@ -49,8 +48,6 @@ const walkChildren = (
     collectionId,
     hasSearch,
     searchText,
-    searchWholeCollection,
-    collapsedUids,
     appendRow,
     addItemToIndex
   } = collectionContext;
@@ -65,7 +62,7 @@ const walkChildren = (
   const { folders, apps, requests } = groupCollectionItems(collectionItems);
 
   for (const folder of folders) {
-    if (hasSearch && !searchWholeCollection && !doesFolderHaveItemsMatchSearchText(folder, searchText)) {
+    if (hasSearch && !doesFolderHaveItemsMatchSearchText(folder, searchText)) {
       continue;
     }
 
@@ -86,7 +83,7 @@ const walkChildren = (
     addItemToIndex(folder.uid, folder);
 
     // Search reveals matching descendants regardless of the collapsed state.
-    const isExpanded = hasSearch ? !collapsedUids.has(folder.uid) : !folder.collapsed;
+    const isExpanded = hasSearch || !folder.collapsed;
 
     if (!isExpanded) continue;
 
@@ -133,7 +130,7 @@ const walkChildren = (
   }
 
   for (const request of requests) {
-    if (hasSearch && !searchWholeCollection && !doesRequestMatchSearchText(request, searchText)) {
+    if (hasSearch && !doesRequestMatchSearchText(request, searchText)) {
       continue;
     }
 
@@ -185,7 +182,7 @@ const flattenCollection = ({
   collection,
   hasSearch,
   searchText,
-  collapsedUids,
+  searchCollapsedCollectionUids,
   appendRow,
   addItemToIndex,
   addCollectionToIndex
@@ -214,12 +211,11 @@ const flattenCollection = ({
 
   addCollectionToIndex(collection.uid, collection);
 
-  // Search reveals matching descendants regardless of the collapsed state.
-  const isExpanded = hasSearch ? !collapsedUids.has(collection.uid) : !collection.collapsed;
+  const isExpanded = hasSearch
+    ? !searchCollapsedCollectionUids.has(collection.uid)
+    : !collection.collapsed;
 
   if (!isExpanded) return;
-
-  const searchWholeCollection = hasSearch && doesCollectionNameMatchSearchText(collection, searchText);
 
   const collectionContext = {
     collectionUid: collection.uid,
@@ -227,8 +223,6 @@ const flattenCollection = ({
     collectionId,
     hasSearch,
     searchText,
-    searchWholeCollection,
-    collapsedUids,
     appendRow,
     addItemToIndex
   };
@@ -265,7 +259,7 @@ const flattenCollection = ({
  * each row carry only structural data.
  *
  * @param {Array} sidebarEntries
- * @param {{ searchText?: string }} options
+ * @param {{ searchText?: string, searchCollapsedCollectionUids?: Set<string> }} options
  * @returns {{
  *   rows: Array<Object>,
  *   itemsByUid: Map,
@@ -273,7 +267,7 @@ const flattenCollection = ({
  * }}
  */
 export const flattenSidebarTree = (sidebarEntries = [], options = {}) => {
-  const { searchText = '', collapsedUids = new Set() } = options;
+  const { searchText = '', searchCollapsedCollectionUids = new Set() } = options;
   const hasSearch = Boolean(searchText.trim());
 
   const rows = [];
@@ -311,7 +305,7 @@ export const flattenSidebarTree = (sidebarEntries = [], options = {}) => {
       collection: entry.collection,
       hasSearch,
       searchText,
-      collapsedUids,
+      searchCollapsedCollectionUids,
       appendRow,
       addItemToIndex,
       addCollectionToIndex

@@ -136,9 +136,9 @@ const buildRequestNode = (absolutePath, basename, entry, uidOverrides, uidFor) =
     filename: basename,
     pathname: absolutePath,
     draft: null,
-    partial: Boolean(entry.partial || entry.error),
-    loading: Boolean(entry.partial && !entry.error),
-    ...(entry.error ? { error: entry.error, partial: true, loading: false } : {})
+    partial: false,
+    loading: false,
+    ...(entry.error ? { error: entry.error, partial: true } : {})
   };
 };
 
@@ -244,4 +244,4 @@ const buildTree = (collectionPath, parserResults, options = {}) => {
   return tree;
 };
 
-module.exports = { buildTree, REQUEST_UID_PATHS, EXAMPLE_UID_PATHS };
+module.exports = { buildTree, REQUEST_UID_PATHS };

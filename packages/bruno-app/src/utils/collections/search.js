@@ -2,20 +2,12 @@ import { flattenItems, isItemARequest } from './index';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 
-const normalizedSearch = (searchText = '') => searchText.trim().toLowerCase();
-
-export const doesNameMatchSearchText = (name, searchText = '') => {
-  const needle = normalizedSearch(searchText);
-  if (!needle) return true;
-  return (name ?? '').toLowerCase().includes(needle);
-};
+const includesSearchText = (value, searchText = '') =>
+  Boolean(value?.toLowerCase().includes(searchText.trim().toLowerCase()));
 
 export const doesRequestMatchSearchText = (request, searchText = '') => {
-  return doesNameMatchSearchText(request?.name, searchText);
-};
-
-export const doesCollectionNameMatchSearchText = (collection, searchText = '') => {
-  return doesNameMatchSearchText(collection?.name, searchText);
+  return includesSearchText(request?.name, searchText)
+    || includesSearchText(request?.request?.url, searchText);
 };
 
 export const doesFolderHaveItemsMatchSearchText = (item, searchText = '') => {
@@ -26,7 +18,7 @@ export const doesFolderHaveItemsMatchSearchText = (item, searchText = '') => {
 };
 
 export const doesCollectionHaveItemsMatchingSearchText = (collection, searchText = '') => {
-  if (doesCollectionNameMatchSearchText(collection, searchText)) return true;
+  if (includesSearchText(collection?.name, searchText)) return true;
 
   let flattenedItems = flattenItems(collection.items);
   let requestItems = filter(flattenedItems, (item) => isItemARequest(item) && !item.isTransient);

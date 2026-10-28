@@ -1,8 +1,11 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  margin: 4px 10px 4px 10px;
-  position: relative;
+  margin: 4px 10px 8px 10px;
+
+  .search-input-wrap {
+    position: relative;
+  }
 
   .search-icon {
     position: absolute;
@@ -11,6 +14,20 @@ const StyledWrapper = styled.div`
     transform: translateY(-50%);
     color: ${(props) => props.theme.sidebar.muted};
     pointer-events: none;
+  }
+
+  .indexing-icon {
+    position: absolute;
+    right: 8px;
+    top: 0;
+    bottom: 0;
+    margin: auto 0;
+    color: ${(props) => props.theme.sidebar.muted};
+    pointer-events: none;
+
+    &.with-clear {
+      right: 28px;
+    }
   }
 
   input {
@@ -25,18 +42,6 @@ const StyledWrapper = styled.div`
     outline: none;
     transition: all 0.15s ease;
 
-    &.has-spinner {
-      padding-right: 52px;
-    }
-
-    &.has-clear.has-spinner {
-      padding-right: 72px;
-    }
-
-    &.has-clear:not(.has-spinner) {
-      padding-right: 32px;
-    }
-
     &::placeholder {
       color: ${(props) => props.theme.sidebar.muted};
     }
@@ -49,23 +54,6 @@ const StyledWrapper = styled.div`
       background: ${(props) => props.theme.input.bg};
       border-color: ${(props) => props.theme.input.border};
     }
-  }
-
-  .search-spinner {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${(props) => props.theme.sidebar.muted};
-    pointer-events: none;
-  }
-
-  input.has-clear .search-spinner,
-  .search-spinner.with-clear {
-    right: 28px;
   }
 
   .clear-icon {
@@ -87,6 +75,13 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.sidebar.color};
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
     }
+  }
+
+  .match-count {
+    margin-top: 4px;
+    padding-left: 2px;
+    font-size: 11px;
+    color: ${(props) => props.theme.sidebar.muted};
   }
 `;
 

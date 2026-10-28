@@ -8,10 +8,8 @@ const {
   idForAbsolutePath,
   resolveDenylist,
   isDenied,
-  walk,
-  defaultClassify
+  walk
 } = require('../../utils/mount');
-const { toCacheData, fromCacheData } = require('./cache-format');
 
 // TODO: Check for trigger (ON UPDATE) and then see if we can use that to update updated_at
 
@@ -21,7 +19,7 @@ class FileIndex {
 
   constructor() {
     this.#statements = getStatements();
-    this.#applicationVersion = process.env.BRUNO_APP_VERSION ?? require('electron').app.getVersion();
+    this.#applicationVersion = require('electron').app.getVersion();
   }
 
   async status(collectionPath, options = {}) {
@@ -81,42 +79,9 @@ class FileIndex {
     const map = new Map();
     for (const row of rows) {
       if (isDenied(posixifyPath(row.relativePath), denylist)) continue;
-      map.set(row.relativePath, { data: fromCacheData(JSON.parse(row.data)), raw: row.raw });
+      map.set(row.relativePath, { data: JSON.parse(row.data), raw: row.raw });
     }
     return map;
-  }
-
-  // The same entries with the `mtime` and `hash` each one was saved with, so a caller can tell whether a saved copy
-  // still matches the file on disk
-  entriesWithMetadata(collectionPath, options = {}) {
-    const metadata = this.#loadMetadata(collectionPath);
-    const entries = this.entries(collectionPath, options);
-    for (const [relativePath, entry] of entries) {
-      const saved = metadata.get(relativePath);
-      if (saved) Object.assign(entry, { mtime: saved.mtime, hash: saved.hash });
-    }
-    return entries;
-  }
-
-  mtimeFor(collectionPath, relativePath) {
-    const row = this.#statements.execute('file_index_mtime_for_path', {
-      collection_path: collectionPath,
-      relative_path: relativePath
-    });
-    return row ? row.mtime : null;
-  }
-
-  entryFor(collectionPath, relativePath) {
-    const row = this.#statements.execute('file_index_entry_for_path', {
-      collection_path: collectionPath,
-      relative_path: relativePath
-    });
-    if (!row) return null;
-    try {
-      return { data: fromCacheData(JSON.parse(row.data)), mtime: row.mtime, hash: row.hash };
-    } catch (_) {
-      return null;
-    }
   }
 
   stage(collectionPath, entry) {
@@ -130,14 +95,13 @@ class FileIndex {
     }
 
     const { mtime, hash, data, raw } = entry;
-    const isRequest = defaultClassify(relativePath)?.type === 'request';
     this.#statements.execute('file_index_upsert', {
       collection_path: root,
       relative_path: relativePath,
       id: idForAbsolutePath(path.join(root, relativePath)),
       mtime,
       hash,
-      data: JSON.stringify(isRequest ? toCacheData(data) : data),
+      data: JSON.stringify(data),
       raw: raw ?? null,
       application_version: this.#applicationVersion
     });
@@ -147,18 +111,14 @@ class FileIndex {
     const target = this.#resolveTarget(collectionPath, absolutePath);
     if (!target) return;
     const stat = fs.statSync(absolutePath, { bigint: true });
-    const mtime = stat.mtimeNs;
-    const hash = hashFile(absolutePath);
     this.stage(target.root, {
       op: 'add',
       relativePath: target.relativePath,
-      mtime,
-      hash,
+      mtime: stat.mtimeNs,
+      hash: hashFile(absolutePath),
       raw: fs.readFileSync(absolutePath, 'utf8'),
       data
     });
-    // the same mtime/hash that were saved, so a caller (the search index) can use them without reading the file again
-    return { mtime, hash };
   }
 
   unstagePath(collectionPath, absolutePath) {

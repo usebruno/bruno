@@ -3196,6 +3196,15 @@ export const collectionsSlice = createSlice({
         });
       }
     },
+    collectionAddBatchEvent: (state, action) => {
+      for (const { type, payload } of action.payload.events) {
+        if (type === 'addDir') {
+          collectionsSlice.caseReducers.collectionAddDirectoryEvent(state, { payload: { dir: payload } });
+        } else if (type === 'addFile') {
+          collectionsSlice.caseReducers.collectionAddFileEvent(state, { payload: { file: payload } });
+        }
+      }
+    },
     collectionChangeFileEvent: (state, action) => {
       const { file } = action.payload;
       const isCollectionRoot = file.meta.collectionRoot ? true : false;
@@ -4400,6 +4409,7 @@ export const {
   updateCollectionProtobuf,
   collectionAddFileEvent,
   collectionAddDirectoryEvent,
+  collectionAddBatchEvent,
   collectionChangeFileEvent,
   collectionUnlinkFileEvent,
   collectionUnlinkDirectoryEvent,

@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
 
-// The size of the search index and a way to clear it. The size is read again whenever indexing starts or finishes,
-// since that is when it changes.
+// The size of the search index and a way to clear it. The size is read when the panel using this hook mounts and
+// again after clearing.
 const useSearchIndex = () => {
   const [size, setSize] = useState(null);
-  const building = useSelector((state) => state.app.searchIndexBuilding);
 
   const refreshSize = useCallback(() => {
     return window.ipcRenderer
@@ -19,14 +17,14 @@ const useSearchIndex = () => {
 
   useEffect(() => {
     refreshSize();
-  }, [refreshSize, building]);
+  }, [refreshSize]);
 
   const clear = useCallback(async () => {
-    const { searchIndexSize } = await window.ipcRenderer.invoke('renderer:clear-search-index');
-    setSize(searchIndexSize);
-  }, []);
+    await window.ipcRenderer.invoke('renderer:clear-search-index');
+    await refreshSize();
+  }, [refreshSize]);
 
-  return { size, building, clear };
+  return { size, clear };
 };
 
 export default useSearchIndex;
