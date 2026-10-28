@@ -18,7 +18,7 @@ const RunnerTags = ({ collectionUid, className = '' }) => {
 
   return (
     <IncludeExcludeTags
-      testIdPrefix="runner"
+      testId="runner-tags"
       className={className}
       tags={collection?.runnerTags}
       availableTags={availableTags}

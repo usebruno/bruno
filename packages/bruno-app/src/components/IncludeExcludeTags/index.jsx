@@ -6,7 +6,7 @@ const IncludeExcludeTags = ({
   tags = { include: [], exclude: [] },
   availableTags = [],
   onChange,
-  testIdPrefix,
+  testId,
   className = ''
 }) => {
   const include = tags.include || [];
@@ -42,9 +42,9 @@ const IncludeExcludeTags = ({
   };
 
   return (
-    <StyledWrapper className={className}>
+    <StyledWrapper className={className} data-testid={testId}>
       <div className="tags-columns">
-        <div className="tags-column" data-testid={`${testIdPrefix}-include-tags`}>
+        <div className="tags-column" data-testid="include-tags">
           <span className="tags-label">Include Tags</span>
           <TagPicker
             tags={include}
@@ -56,7 +56,7 @@ const IncludeExcludeTags = ({
             placeholder="e.g. Production ready"
           />
         </div>
-        <div className="tags-column" data-testid={`${testIdPrefix}-exclude-tags`}>
+        <div className="tags-column" data-testid="exclude-tags">
           <span className="tags-label">Exclude Tags</span>
           <TagPicker
             tags={exclude}

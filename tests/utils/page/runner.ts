@@ -84,7 +84,7 @@ export const findToolbarCollapseSidebarWidth = async (page: Page, level: RunnerT
  */
 export const buildRunnerTagLocators = (page: Page, root?: Locator) => {
   const scope = root ?? page.locator('body');
-  const column = (kind: RunnerTagKind) => scope.getByTestId(RUNNER_TAG_COLUMN_TEST_IDS[kind]);
+  const column = (kind: RunnerTagKind) => scope.getByTestId('runner-tags').getByTestId(RUNNER_TAG_COLUMN_TEST_IDS[kind]);
 
   return {
     column,
@@ -96,8 +96,8 @@ export const buildRunnerTagLocators = (page: Page, root?: Locator) => {
 export type RunnerTagKind = 'Include' | 'Exclude';
 
 const RUNNER_TAG_COLUMN_TEST_IDS: Record<RunnerTagKind, string> = {
-  Include: 'runner-include-tags',
-  Exclude: 'runner-exclude-tags'
+  Include: 'include-tags',
+  Exclude: 'exclude-tags'
 };
 
 /**
