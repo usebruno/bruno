@@ -27,6 +27,13 @@ export const buildMockServerLocators = (page: Page) => ({
   tabRoutesCount: () => page.getByTestId('tab-routes-count'),
   tabLog: () => page.getByTestId('mock-server-tab-log'),
 
+  responseOpenBtn: (name: string) => page.locator('[data-testid^="mock-response-open-"]').filter({ hasText: name }),
+  responseTitle: () => page.getByTestId('mock-response-title'),
+  responseNameInput: () => page.getByTestId('mock-response-name-input'),
+  responseEditBtn: () => page.getByTestId('mock-response-edit-btn'),
+  responseSaveBtn: () => page.getByTestId('mock-response-save-btn'),
+  responseCancelBtn: () => page.getByTestId('mock-response-cancel-btn'),
+
   syncExamplesBtn: () => page.getByTestId('mock-response-sync-examples-btn'),
   syncExamplesModal: () => page.getByTestId('sync-mock-examples-modal'),
   syncExamplesSubmit: () => page.getByTestId('sync-mock-examples-modal-submit-btn'),
