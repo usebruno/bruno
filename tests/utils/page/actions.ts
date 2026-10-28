@@ -483,6 +483,20 @@ const fillRequestUrl = async (page: Page, url: string) => {
 };
 
 /**
+ * Replace the whole URL of the open HTTP/GraphQL request.
+ * fillRequestUrl inserts at the CodeMirror cursor, so it can't overwrite an existing URL.
+ */
+const replaceRequestUrl = async (page: Page, url: string) => {
+  await test.step(`Replace request URL with: ${url}`, async () => {
+    const urlEditor = page.locator('#request-url .CodeMirror');
+    await urlEditor.click();
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+a' : 'Control+a');
+    await page.keyboard.type(url);
+    await expect(urlEditor).toContainText(url);
+  });
+};
+
+/**
  * Create a request in a collection or folder
  * @param page - The page object
  * @param requestName - The name of the request to create
@@ -3987,6 +4001,7 @@ export {
   setRequestUrlPreset,
   createRequestFromEmptyStateCta,
   fillRequestUrl,
+  replaceRequestUrl,
   deleteRequest,
   renameCollectionItem,
   deleteCollectionFromOverview,

@@ -3,6 +3,7 @@ import { closeAllCollections } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 import {
   openRequest,
+  replaceRequestUrl,
   sendRequestAndWaitForResponse,
   switchResponseFormat,
   switchToPreviewTab,
@@ -156,6 +157,22 @@ test.describe.serial('Response Format Select and Preview', () => {
       await expect(editorContainer).toContainText('PGgxPmhlbGxvPC9oMT4=');
       await switchToPreviewTab(page);
       await expect(previewContainer).toContainText('<h1>hello</h1>');
+    });
+  });
+
+  test('Response format follows the content type when a re-sent request returns a different one', async ({ pageWithUserData: page }) => {
+    await openRequest(page, 'collection', 'request-content-type-switch');
+    const responseFormatTab = buildCommonLocators(page).response.formatTab();
+
+    await test.step('text/plain response is shown as Raw', async () => {
+      await sendRequestAndWaitForResponse(page);
+      await expect(responseFormatTab).toHaveText('Raw');
+    });
+
+    await test.step('Re-sending to an endpoint returning application/json switches to JSON', async () => {
+      await replaceRequestUrl(page, 'http://localhost:8081/api/echo/json');
+      await sendRequestAndWaitForResponse(page);
+      await expect(responseFormatTab).toHaveText('JSON');
     });
   });
 });
