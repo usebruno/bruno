@@ -132,7 +132,7 @@ Several are pinned to majors below the latest — do **not** assume the newest A
 - Frontend (`bruno-app`): **react 19**, **@reduxjs/toolkit ^1.8 (v1, NOT v2)**,
   **react-redux ^7 (v7)**, **styled-components ^5 (NOT v6)**, **tailwindcss ^3**,
   **@rsbuild/core ^1.1**, **codemirror 5.65.2 (CodeMirror 5, NOT the scoped `@codemirror/*`)**.
-- Desktop (`bruno-electron`): **electron ~45.0**, **electron-builder ^26.18**, **chokidar ^3.5**,
+- Desktop (`bruno-electron`): **electron ~45.1**, **electron-builder ^26.18**, **chokidar ^3.5**,
   **@grpc/grpc-js ^1.13**, **js-yaml ^4.1**, **electron-store ^8.1**. (`ws` is a dep of
   bruno-requests/bruno-tests, **not** bruno-electron.)
 - Storage (`bruno-sqlite`): no runtime dependencies — the driver is Node's built-in **`node:sqlite`**

@@ -11,7 +11,7 @@ const config = {
       builtAt: new Date().toISOString()
     }
   },
-  electronVersion: '45.0.0',
+  electronVersion: '45.1.0',
   directories: {
     buildResources: 'resources',
     output: 'out'
