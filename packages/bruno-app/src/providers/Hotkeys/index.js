@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import find from 'lodash/find';
 import Mousetrap from 'mousetrap';
 import { useSelector, useDispatch } from 'react-redux';
@@ -471,8 +471,13 @@ export const HotkeysProvider = (props) => {
 
   const currentCollection = getCurrentCollection();
 
+  // Memoized so consumers don't re-render each time tabs or collections change here.
+  const hotkeysContextValue = useMemo(() => ({
+    openGlobalSearch: () => setShowGlobalSearchModal(true)
+  }), []);
+
   return (
-    <HotkeysContext.Provider {...props} value="hotkey">
+    <HotkeysContext.Provider {...props} value={hotkeysContextValue}>
       {showNewRequestModal && (
         <NewRequest collectionUid={currentCollection?.uid} onClose={() => setShowNewRequestModal(false)} />
       )}

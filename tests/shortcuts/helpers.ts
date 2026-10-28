@@ -79,6 +79,24 @@ export const resetKeybindings = async (page: Page) => {
   await closePreferencesTab(page);
 };
 
+export const setKeybindingsEnabled = async (page: Page, enabled: boolean) => {
+  const { keybindings } = buildCommonLocators(page).preferences;
+  await openKeybindingsTab(page);
+  const checkbox = keybindings.enabledToggle().getByRole('checkbox');
+  if ((await checkbox.isChecked()) !== enabled) {
+    await keybindings.enabledToggle().locator('label').click();
+  }
+  await expect(checkbox).toBeChecked({ checked: enabled });
+  await closePreferencesTab(page);
+};
+
+export const closeGlobalSearch = async (page: Page) => {
+  const { globalSearch } = buildCommonLocators(page);
+  await globalSearch.input().click();
+  await pressShortcut(page, 'Escape');
+  await expect(globalSearch.input()).toBeHidden();
+};
+
 export const closeTabByName = async (page: any, name: string | RegExp) => {
   const tab = page.locator('.request-tab').filter({ has: page.getByText(name, { exact: true }) });
   await tab.dblclick();

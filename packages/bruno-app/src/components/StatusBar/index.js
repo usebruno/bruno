@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectActiveTab } from 'src/selectors/tab';
 import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette, IconBrandGithub } from '@tabler/icons';
-import Mousetrap from 'mousetrap';
-import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
+import { useHotkeys } from 'providers/Hotkeys';
 import ToolHint from 'components/ToolHint';
 import Cookies from 'components/Cookies';
 import Notifications from 'components/Notifications';
@@ -22,6 +21,7 @@ const StatusBar = () => {
   const logs = useSelector((state) => state.logs.logs);
   const [cookiesOpen, setCookiesOpen] = useState(false);
   const { version } = useApp();
+  const { openGlobalSearch } = useHotkeys();
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
 
@@ -41,13 +41,6 @@ const StatusBar = () => {
         collectionUid: collectionUid
       })
     );
-  };
-
-  const openGlobalSearch = () => {
-    const bindings = getKeyBindingsForActionAllOS('globalSearch') || [];
-    bindings.forEach((binding) => {
-      Mousetrap.trigger(binding);
-    });
   };
 
   return (
