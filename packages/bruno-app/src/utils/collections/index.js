@@ -1954,7 +1954,7 @@ export const getVariableScope = (variableName, collection, item, options = {}) =
   };
 
   // 1. Check Request Variables (highest priority)
-  if (item && !skipRequestScope) {
+  if (item && item.type !== 'folder' && !skipRequestScope) {
     const requestVar = findVariable(readItemRequestVars(item));
     if (requestVar) {
       return storeScopeResult({
