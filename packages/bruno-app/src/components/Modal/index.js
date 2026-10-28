@@ -123,8 +123,8 @@ const Modal = ({
         return closeModal({ type: 'esc' });
       }
       case ENTER_KEY_CODE: {
-        const isSubmitButton = event.target?.type === 'submit';
-        if (!shiftKey && !ctrlKey && !altKey && !metaKey && handleConfirm && !isSubmitButton && !confirmDisabled) {
+        const isButton = event.target?.tagName === 'BUTTON';
+        if (!isButton && !shiftKey && !ctrlKey && !altKey && !metaKey && handleConfirm && !confirmDisabled) {
           return handleConfirm();
         }
       }
