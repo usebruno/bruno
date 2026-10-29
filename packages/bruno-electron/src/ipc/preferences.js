@@ -57,7 +57,7 @@ const registerPreferencesIpc = (mainWindow) => {
       const wasMockServerEnabled = mockServer.isMockServerEnabled();
       await savePreferences(preferences);
       if (wasMockServerEnabled && !mockServer.isMockServerEnabled()) {
-        await mockServer.stopAll();
+        await mockServer.stopAll().catch((error) => console.error('Failed to stop mock servers', error));
       }
     } catch (error) {
       return Promise.reject(error);

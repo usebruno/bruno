@@ -140,7 +140,10 @@ const Beta = ({ close }) => {
           dispatch(closeMockServerTabs());
         }
       })
-      .catch((err) => console.log(err) && toast.error('Failed to update beta preferences'));
+      .catch((err) => {
+        console.log(err);
+        toast.error('Failed to update beta preferences');
+      });
   }, [dispatch, preferences]);
 
   const handleSaveRef = useRef(handleSave);

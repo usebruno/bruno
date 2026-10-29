@@ -5,6 +5,7 @@ import last from 'lodash/last';
 import { uuid } from 'utils/common';
 import { isActiveTab as checkIsActiveTab, deserializeTab } from 'utils/snapshot';
 import { API_SPEC_TAB_TYPE, isApiSpecTabForPathname } from 'utils/api-specs';
+import { normalizeMockTabType } from 'utils/mock-server/mock-tab-type';
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
@@ -25,10 +26,6 @@ const initialState = {
   recentlyClosedTabs: [], // LIFO stack of closed tabs, grouped by collection
   sidebarRevealRequest: null
 };
-
-const normalizeMockTabType = (type) => (
-  type === 'mock-server-dashboard' || type === 'mocker' ? 'mock-server' : type
-);
 
 const findMockServerTab = (tabs, mockServerUid) => find(tabs, (tab) => (
   normalizeMockTabType(tab.type) === 'mock-server' && tab.mockServerUid === mockServerUid
