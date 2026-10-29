@@ -5,6 +5,7 @@ import {
   openCollection,
   openNetworkTab,
   openRequest,
+  openResponseTimeline,
   sendRequest,
   waitForAppLoaded
 } from '../../utils/page';
@@ -13,8 +14,8 @@ const COLLECTION_NAME = 'network-log-scroll';
 const REQUEST_NAME = 'network-log-scroll';
 
 test.describe('DevTools Network Tab Clear', () => {
-  test('clears every network request row from the Network tab', async ({ pageWithUserData: page }) => {
-    const { devtools, response } = buildCommonLocators(page);
+  test('clears every network request row from the Network tab', async ({ pageWithUserData: page }, testInfo) => {
+    const { devtools, timeline } = buildCommonLocators(page);
 
     await waitForAppLoaded(page);
 
@@ -35,18 +36,18 @@ test.describe('DevTools Network Tab Clear', () => {
 
       await expect(devtools.networkRows()).toHaveCount(0);
       await expect(devtools.networkEmpty()).toBeVisible();
+      const screenshotPath = testInfo.outputPath('network-after-clear.png');
+      await page.screenshot({ path: screenshotPath });
+      await testInfo.attach('Network tab after Clear', { path: screenshotPath, contentType: 'image/png' });
     });
 
     await test.step('Confirm the request remains in its Response Timeline', async () => {
       await closeDevToolsConsole(page);
-      const timelineTab = response.pane().getByRole('tab', { name: 'Timeline' });
-      if (await timelineTab.isVisible()) {
-        await timelineTab.click();
-      } else {
-        await response.tabsOverflowButton().click();
-        await response.tabsOverflowItem('Timeline').click();
-      }
-      await expect(page.getByTestId('timeline-container').getByTestId('timeline-entry')).toHaveCount(1);
+      await openResponseTimeline(page);
+      await expect(timeline.entries()).toHaveCount(1);
+      const screenshotPath = testInfo.outputPath('response-timeline-preserved.png');
+      await page.screenshot({ path: screenshotPath });
+      await testInfo.attach('Response Timeline preserved', { path: screenshotPath, contentType: 'image/png' });
     });
   });
 });
