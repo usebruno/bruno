@@ -8,6 +8,11 @@ const useJumpToErrorSource = (error, item, collection) => {
   const dispatch = useDispatch();
   const { scriptType, source, line } = error;
   const tabUid = getErrorSourceTabUid(source, item, collection);
+
+  if (!tabUid) {
+    return { canJumpToSource: false, jumpToSource: null };
+  }
+
   const isTestScript = scriptType === SCRIPT_TYPES.TEST;
 
   const showScriptAtErrorLine = () => {
@@ -38,7 +43,7 @@ const useJumpToErrorSource = (error, item, collection) => {
     }
   };
 
-  return { canJumpToSource: Boolean(tabUid), jumpToSource: () => openSourceBySourceType[source.sourceType]() };
+  return { canJumpToSource: true, jumpToSource: openSourceBySourceType[source.sourceType] };
 };
 
 export default useJumpToErrorSource;
