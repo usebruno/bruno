@@ -4,23 +4,19 @@ import * as fs from 'fs';
 import { closeAllCollections } from '../../utils/page';
 
 test.describe('Open Multiple Collections', () => {
-  let originalShowOpenDialog;
-
   test.beforeAll(async ({ electronApp }) => {
-    // save the original showOpenDialog function
     await electronApp.evaluate(({ dialog }) => {
-      originalShowOpenDialog = dialog.showOpenDialog;
+      (global as any).__origShowOpenDialog = dialog.showOpenDialog;
     });
   });
 
   test.afterAll(async ({ electronApp }) => {
-    // restore the original showOpenDialog function
     await electronApp.evaluate(({ dialog }) => {
-      dialog.showOpenDialog = originalShowOpenDialog;
+      dialog.showOpenDialog = (global as any).__origShowOpenDialog;
     });
   });
 
-  test('Should open multiple collections using Open Collection feature', async ({
+  test('TC-777 Should open multiple collections using Open Collection feature', {tag: '@sanity'}, async ({
     page,
     electronApp,
     createTmpDir
