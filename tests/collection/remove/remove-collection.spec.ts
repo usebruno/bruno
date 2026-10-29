@@ -3,8 +3,8 @@ import path from 'path';
 import { test, expect } from '../../../playwright';
 import { buildCommonLocators, createCollection } from '../../utils/page';
 
-test.describe('Remove collection',  () => {
-  test('TC-2614 should remove a collection from the sidebar without deleting its files',{tag: '@sanity'}, async ({ newPage: page, createTmpDir }) => {
+test.describe('Remove collection', () => {
+  test('TC-2614 should remove a collection from the sidebar without deleting its files', { tag: '@sanity' }, async ({ newPage: page, createTmpDir }) => {
     const collectionName = 'remove-test-collection';
     const tmpDir = await createTmpDir(collectionName);
     const collectionFile = path.join(tmpDir, collectionName, 'opencollection.yml');
