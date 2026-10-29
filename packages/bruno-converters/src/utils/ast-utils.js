@@ -83,6 +83,17 @@ export function isIdentifierNamed(node, name) {
 }
 
 /**
+ * Checks if a node is a function literal, so its body is in reach of the pass.
+ * A handler passed by reference — `.then(handleIt)` — is neither.
+ *
+ * @param {Object} node - The AST node to check
+ * @returns {boolean} - True if node is a function or arrow function expression
+ */
+export function isFunctionExpression(node) {
+  return Boolean(node) && (node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression');
+}
+
+/**
  * Checks if a node is the null literal.
  *
  * @param {Object} node - The AST node to check
@@ -90,4 +101,48 @@ export function isIdentifierNamed(node, name) {
  */
 export function isNullLiteral(node) {
   return node && node.type === 'Literal' && node.value === null;
+}
+
+/**
+ * Gets the statically-known property name of a member expression. A computed access
+ * with a non-literal key (`p[someVar]`) has no static name — even an Identifier key
+ * named `then` is a variable there, not the method.
+ *
+ * @param {Object} memberExpr - MemberExpression node
+ * @returns {string|null} - The property name, or null if it isn't statically known
+ */
+export function getStaticPropertyName(memberExpr) {
+  const property = memberExpr.property;
+
+  if (memberExpr.computed) {
+    return property.type === 'Literal' && typeof property.value === 'string' ? property.value : null;
+  }
+  return property.type === 'Identifier' ? property.name : null;
+}
+
+/**
+ * Whether a member expression is the callee of a call — `res.json()` rather than `res.json`.
+ *
+ * @param {Object} memberPath - Path of the MemberExpression
+ * @returns {boolean}
+ */
+export function isMethodCall(memberPath) {
+  const parent = memberPath.parent;
+
+  return parent.value.type === 'CallExpression' && parent.value.callee === memberPath.value;
+}
+
+/**
+ * Reports a member the translation could not carry across. The script is left exactly as
+ * written, so this is the only record that the case was reached — it names the member and,
+ * where the parser recorded one, the line it sat on.
+ *
+ * @param {Object} node - The node being reported
+ * @param {string} member - Member name as the source script spelled it
+ * @param {string} reason - Why it could not be translated
+ */
+export function reportUntranslated(node, member, reason) {
+  const line = node.loc ? ` (line ${node.loc.start.line})` : '';
+
+  console.warn(`bruno-converter: ${member}${line} — ${reason}`);
 }
