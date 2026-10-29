@@ -2527,15 +2527,11 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // Implement the Postman to Bruno conversion handler
   ipcMain.handle('renderer:convert-postman-to-bruno', async (event, postmanCollection, options = {}) => {
     try {
-      // Convert Postman collection to Bruno format
-      // Returns { collection, issues } where issues tracks items that were skipped or degraded
-      const result = await postmanToBruno(postmanCollection, {
+      return await postmanToBruno(postmanCollection, {
         useWorkers: true,
         // preserve scripts without any pm.* -> bru.* translation
         preserveScripts: !!options.preserveScripts
       });
-
-      return result;
     } catch (error) {
       console.error('Error converting Postman to Bruno:', error);
       return Promise.reject(error);
