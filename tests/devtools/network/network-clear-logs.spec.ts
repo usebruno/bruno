@@ -1,6 +1,7 @@
 import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
+  closeDevToolsConsole,
   openCollection,
   openNetworkTab,
   openRequest,
@@ -13,7 +14,7 @@ const REQUEST_NAME = 'network-log-scroll';
 
 test.describe('DevTools Network Tab Clear', () => {
   test('clears every network request row from the Network tab', async ({ pageWithUserData: page }) => {
-    const { devtools } = buildCommonLocators(page);
+    const { devtools, response } = buildCommonLocators(page);
 
     await waitForAppLoaded(page);
 
@@ -34,6 +35,18 @@ test.describe('DevTools Network Tab Clear', () => {
 
       await expect(devtools.networkRows()).toHaveCount(0);
       await expect(devtools.networkEmpty()).toBeVisible();
+    });
+
+    await test.step('Confirm the request remains in its Response Timeline', async () => {
+      await closeDevToolsConsole(page);
+      const timelineTab = response.pane().getByRole('tab', { name: 'Timeline' });
+      if (await timelineTab.isVisible()) {
+        await timelineTab.click();
+      } else {
+        await response.tabsOverflowButton().click();
+        await response.tabsOverflowItem('Timeline').click();
+      }
+      await expect(page.getByTestId('timeline-container').getByTestId('timeline-entry')).toHaveCount(1);
     });
   });
 });

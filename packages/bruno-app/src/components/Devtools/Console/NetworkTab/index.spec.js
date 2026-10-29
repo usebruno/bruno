@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'providers/Theme';
@@ -36,6 +36,23 @@ beforeEach(() => {
 });
 
 const renderNetworkTab = (requests = [], { networkFilters = ALL_FILTERS } = {}) => {
+  const requestEntries = requests.filter((entry) => entry.type === 'request');
+  const networkRequestIds = requestEntries.map((_, index) => `network-request-${index}`);
+  const requestTimelineEvents = Object.fromEntries(
+    networkRequestIds.map((requestEventId, index) => [requestEventId, requestEntries[index]])
+  );
+  let requestIndex = 0;
+  const collectionTimeline = requests.map((entry) => {
+    if (entry.type !== 'request') return entry;
+    const requestEventId = networkRequestIds[requestIndex++];
+    return {
+      type: 'request',
+      requestEventId,
+      collectionUid: entry.collectionUid,
+      itemUid: entry.itemUid,
+      timestamp: entry.timestamp
+    };
+  });
   const store = configureStore({
     reducer: {
       collections: collectionsSlice.reducer,
@@ -46,8 +63,10 @@ const renderNetworkTab = (requests = [], { networkFilters = ALL_FILTERS } = {}) 
         collections: [{
           uid: 'col-1',
           name: 'Test Collection',
-          timeline: requests
-        }]
+          timeline: collectionTimeline
+        }],
+        networkRequestIds,
+        requestTimelineEvents
       },
       logs: {
         ...logsReducer(undefined, { type: '@@INIT' }),
@@ -232,23 +251,25 @@ describe('clear network logs', () => {
     expect(screen.getByTestId('clear-network-logs-empty')).toBeInTheDocument();
   });
 
-  it('clears request entries from every collection and drops the selected request', () => {
+  it('clears Network history and drops the selected request without clearing response history', () => {
     const requests = [
       makeRequest({ itemUid: '1', method: 'POST' }),
       makeRequest({ itemUid: '2', method: 'POST', timestamp: 2000 })
     ];
 
     const { store } = renderNetworkTab(requests, { networkFilters: HIDDEN_FILTERS });
-    store.dispatch({ type: 'logs/setSelectedRequest', payload: requests[0] });
+    const responseTimeline = store.getState().collections.collections[0].timeline;
+    act(() => store.dispatch({ type: 'logs/setSelectedRequest', payload: requests[0] }));
 
     fireEvent.click(screen.getByTestId('clear-network-logs-empty'));
 
-    expect(store.getState().collections.collections[0].timeline).toEqual([]);
+    expect(store.getState().collections.networkRequestIds).toEqual([]);
+    expect(store.getState().collections.collections[0].timeline).toEqual(responseTimeline);
     expect(store.getState().logs.selectedRequest).toBeNull();
     expect(screen.queryByTestId('clear-network-logs-empty')).not.toBeInTheDocument();
   });
 
-  it('keeps non-request timeline entries when clearing network logs', () => {
+  it('keeps all response timeline entries when clearing network logs', () => {
     const infoEntry = { type: 'info', timestamp: 3000, message: 'Kept' };
     const { store } = renderNetworkTab([
       makeRequest({ itemUid: '1', method: 'POST' }),
@@ -257,6 +278,10 @@ describe('clear network logs', () => {
 
     fireEvent.click(screen.getByTestId('clear-network-logs-empty'));
 
-    expect(store.getState().collections.collections[0].timeline).toEqual([infoEntry]);
+    expect(store.getState().collections.networkRequestIds).toEqual([]);
+    expect(store.getState().collections.collections[0].timeline).toEqual([
+      expect.objectContaining({ type: 'request', requestEventId: 'network-request-0' }),
+      infoEntry
+    ]);
   });
 });

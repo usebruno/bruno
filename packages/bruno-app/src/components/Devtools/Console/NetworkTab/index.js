@@ -11,7 +11,7 @@ import {
   setSelectedRequest,
   clearSelectedRequest
 } from 'providers/ReduxStore/slices/logs';
-import { clearAllNetworkTimeline } from 'providers/ReduxStore/slices/collections';
+import { clearAllNetworkRequests } from 'providers/ReduxStore/slices/collections';
 import { useResizableColumns } from 'hooks/useResizableColumns';
 import { formatDuration } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
@@ -150,24 +150,17 @@ const NetworkTab = () => {
 
   const { networkFilters, selectedRequest } = useSelector((state) => state.logs);
   const collections = useSelector((state) => state.collections.collections);
+  const networkRequestIds = useSelector((state) => state.collections.networkRequestIds || []);
+  const requestTimelineEvents = useSelector((state) => state.collections.requestTimelineEvents || {});
 
   const allRequests = useMemo(() => {
-    const requests = [];
-    collections.forEach((collection) => {
-      if (collection.timeline) {
-        collection.timeline
-          .filter((entry) => entry.type === 'request')
-          .forEach((entry) => {
-            requests.push({
-              ...entry,
-              collectionName: collection.name,
-              collectionUid: collection.uid
-            });
-          });
-      }
-    });
-    return requests.sort((a, b) => a.timestamp - b.timestamp);
-  }, [collections]);
+    const collectionNames = new Map(collections.map((collection) => [collection.uid, collection.name]));
+    return networkRequestIds
+      .map((requestEventId) => requestTimelineEvents[requestEventId])
+      .filter(Boolean)
+      .map((entry) => ({ ...entry, collectionName: collectionNames.get(entry.collectionUid) }))
+      .sort((a, b) => a.timestamp - b.timestamp);
+  }, [collections, networkRequestIds, requestTimelineEvents]);
 
   const filteredRequests = useMemo(() => {
     return allRequests.filter((request) => {
@@ -187,7 +180,7 @@ const NetworkTab = () => {
   };
 
   const handleClearNetworkLogs = () => {
-    dispatch(clearAllNetworkTimeline());
+    dispatch(clearAllNetworkRequests());
     dispatch(clearSelectedRequest());
   };
 

@@ -196,6 +196,10 @@ const mergeRootWithPreservedUids = (existingRoot, newRoot) =>
 
 const initialState = {
   collections: [],
+  requestTimelineEvents: {},
+  requestTimelineEventCounter: 0,
+  networkRequestIds: [],
+  networkRequestsGeneration: 0,
   collectionSortOrder: 'default',
   activeConnections: [],
   selectedSidebarUids: [],
@@ -203,6 +207,49 @@ const initialState = {
   tempDirectories: {},
   saveTransientRequestModals: [],
   mockResponseEditors: {}
+};
+
+const appendRequestTimelineEntry = (state, collection, item, entry) => {
+  state.requestTimelineEvents ||= {};
+  state.networkRequestIds ||= [];
+  collection.timeline ||= [];
+
+  state.requestTimelineEventCounter = (state.requestTimelineEventCounter || 0) + 1;
+  const requestEventId = String(state.requestTimelineEventCounter);
+  state.requestTimelineEvents[requestEventId] = entry;
+  collection.timeline.push({
+    type: 'request',
+    requestEventId,
+    collectionUid: entry.collectionUid,
+    folderUid: entry.folderUid,
+    itemUid: entry.itemUid,
+    requestUid: entry.requestUid,
+    eventType: entry.eventType,
+    timestamp: entry.timestamp
+  });
+
+  // Keep the Network tab's session history independent from each request's
+  // Response-pane timeline. A request started before Clear stays cleared even
+  // if a later lifecycle event arrives afterward.
+  item._networkRequestsGeneration ??= state.networkRequestsGeneration || 0;
+  if (item._networkRequestsGeneration === (state.networkRequestsGeneration || 0)) {
+    state.networkRequestIds.push(requestEventId);
+  }
+};
+
+const pruneUnreferencedRequestTimelineEvents = (state) => {
+  const referencedIds = new Set(state.networkRequestIds || []);
+  state.collections.forEach((collection) => {
+    collection.timeline?.forEach((entry) => {
+      if (entry.requestEventId) referencedIds.add(entry.requestEventId);
+    });
+  });
+
+  Object.keys(state.requestTimelineEvents || {}).forEach((requestEventId) => {
+    if (!referencedIds.has(requestEventId)) {
+      delete state.requestTimelineEvents[requestEventId];
+    }
+  });
 };
 
 const initiatedGrpcResponse = {
@@ -350,6 +397,10 @@ export const collectionsSlice = createSlice({
     },
     removeCollection: (state, action) => {
       state.collections = filter(state.collections, (c) => c.uid !== action.payload.collectionUid);
+      state.networkRequestIds = (state.networkRequestIds || []).filter(
+        (requestEventId) => state.requestTimelineEvents?.[requestEventId]?.collectionUid !== action.payload.collectionUid
+      );
+      pruneUnreferencedRequestTimelineEvents(state);
     },
     sortCollections: (state, action) => {
       state.collectionSortOrder = action.payload.order;
@@ -674,19 +725,19 @@ export const collectionsSlice = createSlice({
       }
     },
     responseReceived: (state, action) => {
-      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const { collectionUid, itemUid, requestUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
-        const item = findItemInCollection(collection, action.payload.itemUid);
+        const item = findItemInCollection(collection, itemUid);
         if (item) {
+          // Ignore a late response from an earlier send of the same request item.
+          if (requestUid && item.requestUid !== requestUid) return;
+
           item.requestState = 'received';
           item.response = action.payload.response;
           item.cancelTokenUid = item.response.stream?.running ? item.cancelTokenUid : null;
           item.requestStartTime = null;
-
-          if (!collection.timeline) {
-            collection.timeline = [];
-          }
 
           const timelineRequest = action.payload.requestSent || item.requestSent || item.request;
 
@@ -695,8 +746,9 @@ export const collectionsSlice = createSlice({
             ? timelineRequest.timestamp.getTime()
             : timelineRequest?.timestamp || Date.now();
 
-          // Append the new timeline entry with numeric timestamp
-          collection.timeline.push({
+          // Append to both histories. Clear Network only resets the DevTools
+          // history; the per-request timeline remains available in the response pane.
+          appendRequestTimelineEntry(state, collection, item, {
             type: 'request',
             collectionUid: collection.uid,
             folderUid: null,
@@ -725,17 +777,14 @@ export const collectionsSlice = createSlice({
       if (eventType === 'request') {
         item.requestSent = eventData;
         item.requestSent.timestamp = Date.now();
+        item._networkRequestsGeneration = state.networkRequestsGeneration || 0;
         item.response = {
           initiatedGrpcResponse,
           statusText: isUnary ? 'PENDING' : 'STREAMING'
         };
       }
 
-      if (!collection.timeline) {
-        collection.timeline = [];
-      }
-
-      collection.timeline.push({
+      appendRequestTimelineEntry(state, collection, item, {
         type: 'request',
         eventType: eventType, // Add the specific gRPC event type
         collectionUid: collection.uid,
@@ -850,13 +899,8 @@ export const collectionsSlice = createSlice({
       item.requestState = 'received';
       item.response = updatedResponse;
 
-      // Update the timeline
-      if (!collection?.timeline) {
-        collection.timeline = [];
-      }
-
-      // Append the new timeline entry with specific gRPC event type
-      collection.timeline.push({
+      // Append the event to both independent histories.
+      appendRequestTimelineEntry(state, collection, item, {
         type: 'request',
         eventType: eventType, // Add the specific gRPC event type
         collectionUid: collection.uid,
@@ -954,14 +998,13 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.timeline = [];
+        pruneUnreferencedRequestTimelineEvents(state);
       }
     },
-    clearAllNetworkTimeline: (state) => {
-      state.collections.forEach((collection) => {
-        if (collection.timeline && Array.isArray(collection.timeline)) {
-          collection.timeline = collection.timeline.filter((t) => t?.type !== 'request');
-        }
-      });
+    clearAllNetworkRequests: (state) => {
+      state.networkRequestIds = [];
+      state.networkRequestsGeneration = (state.networkRequestsGeneration || 0) + 1;
+      pruneUnreferencedRequestTimelineEvents(state);
     },
     clearRequestTimeline: (state, action) => {
       const { collectionUid, itemUid } = action.payload || {};
@@ -970,6 +1013,7 @@ export const collectionsSlice = createSlice({
       if (collection) {
         if (itemUid) {
           collection.timeline = collection?.timeline?.filter((t) => t?.itemUid !== itemUid);
+          pruneUnreferencedRequestTimelineEvents(state);
         }
       }
     },
@@ -3422,6 +3466,7 @@ export const collectionsSlice = createSlice({
       item.requestState = null;
       item.requestUid = requestUid;
       item.requestStartTime = Date.now();
+      item._networkRequestsGeneration = state.networkRequestsGeneration || 0;
       item.testResults = [];
       item.preRequestTestResults = [];
       item.postResponseTestResults = [];
@@ -3492,16 +3537,15 @@ export const collectionsSlice = createSlice({
             // If response was already received (race condition: responseReceived fired before
             // request-sent arrived), retroactively update the timeline entry that was created
             // with the raw item.request fallback so it has the actual sent request data.
-            if (item.requestState === 'received' && Array.isArray(collection.timeline)) {
-              for (let i = collection.timeline.length - 1; i >= 0; i--) {
-                const entry = collection.timeline[i];
-                if (entry.itemUid === item.uid && entry.requestUid === requestUid && entry.type === 'request') {
-                  entry.data.request = requestSent;
-                  if (requestSent.timestamp) {
-                    entry.timestamp = requestSent.timestamp;
-                    entry.data.timestamp = requestSent.timestamp;
-                  }
-                  break;
+            if (item.requestState === 'received') {
+              const entry = Object.values(state.requestTimelineEvents || {}).findLast(
+                (event) => event.itemUid === item.uid && event.requestUid === requestUid
+              );
+              if (entry) {
+                entry.data.request = requestSent;
+                if (requestSent.timestamp) {
+                  entry.timestamp = requestSent.timestamp;
+                  entry.data.timestamp = requestSent.timestamp;
                 }
               }
             }
@@ -4074,6 +4118,7 @@ export const collectionsSlice = createSlice({
       if (eventType === 'request') {
         item.requestSent = eventData;
         item.requestSent.timestamp = Date.now();
+        item._networkRequestsGeneration = state.networkRequestsGeneration || 0;
         item.response = {
           ...initiatedWsResponse,
           initiatedWsResponse,
@@ -4081,11 +4126,7 @@ export const collectionsSlice = createSlice({
         };
       }
 
-      if (!collection.timeline) {
-        collection.timeline = [];
-      }
-
-      collection.timeline.push({
+      appendRequestTimelineEntry(state, collection, item, {
         type: 'request',
         eventType: eventType,
         collectionUid: collection.uid,
@@ -4341,7 +4382,7 @@ export const {
   dismissUnresolvedVariables,
   responseCleared,
   clearTimeline,
-  clearAllNetworkTimeline,
+  clearAllNetworkRequests,
   clearRequestTimeline,
   saveRequest,
   deleteRequestDraft,
