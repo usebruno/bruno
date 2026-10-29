@@ -640,7 +640,6 @@ const getWorkspaceApiSpecs = (workspacePath) => {
 
 // Windows ignores letter case in file paths: C:\Specs\API.yaml and c:\specs\api.yaml are
 // the same file, so they must match the same workspace entry.
-// getApiSpecPathKey in bruno-app (utils/api-specs) follows the same rule, so change both together.
 const specPathKey = (p) => (process.platform === 'win32' ? p.toLowerCase() : p);
 
 const hasWorkspaceFile = (workspacePath) =>
@@ -664,8 +663,6 @@ const findApiSpecEntry = (workspacePath, apiSpecPath) => {
 
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f-\u009f]/;
 
-// The writer escapes these so the file stays readable either way, but a name the user
-// typed is rejected outright rather than stored as an escape the sidebar renders oddly.
 const assertWritableApiSpecName = (name) => {
   const trimmedName = typeof name === 'string' ? name.trim() : '';
   if (!trimmedName) {

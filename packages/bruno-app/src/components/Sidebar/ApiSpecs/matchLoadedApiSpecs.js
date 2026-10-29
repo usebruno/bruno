@@ -13,9 +13,6 @@ import { getApiSpecPathKey } from 'utils/api-specs';
  *
  * @param {Array} workspaceApiSpecs - spec entries from the active workspace (each has `path`)
  * @param {Array} allApiSpecs - loaded specs in redux (each has `pathname`)
- * The returned spec carries the workspace entry's name, which the user can rename, and
- * falls back to the watcher's name only when the entry has none.
- *
  * @returns {Array} loaded specs that correspond to the workspace entries
  */
 export const matchLoadedApiSpecs = (workspaceApiSpecs, allApiSpecs) => {

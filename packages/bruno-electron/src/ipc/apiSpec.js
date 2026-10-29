@@ -32,9 +32,6 @@ const isOpenedWorkspace = (lastOpenedWorkspaces, workspacePath) => {
     .some((openedPath) => path.normalize(openedPath) === target);
 };
 
-// Rename, clone and delete get the file path from the app window, so they only act on a spec
-// that an open workspace lists in its workspace.yml. It does not check that the file is inside
-// the workspace folder: a listed spec can be anywhere on disk.
 const assertKnownApiSpec = ({ lastOpenedWorkspaces }, pathname, workspacePath) => {
   if (typeof pathname !== 'string' || !pathname) {
     throw new Error('API spec path is required');
@@ -80,13 +77,9 @@ const cloneApiSpec = async (deps, sourcePathname, newName, targetLocation, works
 
   await fs.promises.copyFile(sourcePathname, targetPathname, fs.constants.COPYFILE_EXCL);
 
-  // The entry is written before openApiSpec runs, so the copy keeps the typed name instead of
-  // the info.title it shares with the source.
   try {
     await addApiSpecToWorkspace(workspacePath, { name: trimmedName, path: targetPathname });
   } catch (error) {
-    // Report why the clone failed, not why the cleanup failed: on Windows this rm can throw
-    // EBUSY or EPERM, which would otherwise replace the real error.
     await fs.promises.rm(targetPathname, { force: true }).catch((cleanupError) => {
       console.error('Failed to remove the cloned API spec after a failed workspace write:', cleanupError);
     });
@@ -108,9 +101,6 @@ const toDeleteError = (error) => {
   return error;
 };
 
-// The file decides whether the spec was deleted. If it cannot be deleted, nothing changes. Once it
-// is gone, a failed workspace.yml update is reported instead of thrown, so the app still closes
-// the spec's tab and row. The watcher and uid cache are keyed by the path as it was opened.
 const deleteApiSpec = async (deps, pathname, workspacePath) => {
   assertKnownApiSpec(deps, pathname, workspacePath);
   const { mainWindow, watcher } = deps;
