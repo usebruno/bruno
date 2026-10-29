@@ -170,7 +170,7 @@ test.describe('API spec row context menu', () => {
 
       await test.step('Generate Collection on a non-OpenAPI file reports instead of opening the import step', async () => {
         await chooseApiSpecRowAction(page, 'notes', 'generate-collection');
-        await expect(toast.byMessage(/not a valid OpenAPI/)).toBeVisible();
+        await expect(toast.byMessage('This file is not a valid OpenAPI document')).toBeVisible();
         await expect(importStep.locationModal()).toHaveCount(0);
       });
     } finally {
