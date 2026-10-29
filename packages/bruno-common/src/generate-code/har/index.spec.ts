@@ -536,6 +536,18 @@ describe('buildHar — body / postData', () => {
     expect(har.postData.text).toBe(JSON.stringify({ query: graphql.query, variables: { foo: 'bar' } }));
   });
 
+  it('graphql → bruno variables in query and variables are interpolated before JSON parsing', async () => {
+    const graphql = { query: 'query Q($id: Int, $name: String) { {{field}} { id } }', variables: '{\n  "id": {{id}},\n  "name": "{{name}}"\n}' };
+    const { har } = await buildHar({
+      request: baseRequest({ body: { mode: 'graphql', graphql } }),
+      variables: { id: 42, name: 'bob', field: 'me' },
+      shouldInterpolate: true
+    });
+    expect(har.postData.text).toBe(
+      JSON.stringify({ query: 'query Q($id: Int, $name: String) { me { id } }', variables: { id: 42, name: 'bob' } })
+    );
+  });
+
   it('graphql → invalid JSON variables falls back to the raw string instead of throwing', async () => {
     const graphql = { query: 'query Q { me { id } }', variables: 'not valid json' };
     const { har } = await buildHar({
