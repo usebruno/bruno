@@ -25,7 +25,7 @@ test.describe('Open nested collections', () => {
     await closeAllCollections(page);
   });
 
-  test('TC-4448 lists the parent and nested sibling collections in the modal and opens all selected collections in the sidebar', {tag: '@sanity'}, async ({
+  test('TC-4448 lists the parent and nested sibling collections in the modal and opens all selected collections in the sidebar', { tag: '@sanity' }, async ({
     page,
     electronApp,
     createTmpDir
