@@ -545,23 +545,16 @@ describe('buildHar — body / postData', () => {
     expect(har.postData.text).toBe(JSON.stringify(graphql));
   });
 
-  it('graphql → query whitespace/newlines collapse to single spaces, but string literals are left untouched', async () => {
+  it('graphql → query is preserved verbatim, including newlines and # comments', async () => {
     const graphql = {
-      query:
-        'query Query($var: Boolean!, $var2: String!) {\n  field(var: $var, var2: $var2, input: "a  b", block: """multi  line\n  text""")\n}',
-      variables: '{\n  "var": true,\n  "var2": "1234"\n}'
+      query: 'query Q {\n  # comment\n  me {  id  }\n}',
+      variables: '{\n  "var": true\n}'
     };
     const { har } = await buildHar({
       request: baseRequest({ body: { mode: 'graphql', graphql } }),
       shouldInterpolate: false
     });
-    expect(har.postData.text).toBe(
-      JSON.stringify({
-        query:
-          'query Query($var: Boolean!, $var2: String!) { field(var: $var, var2: $var2, input: "a  b", block: """multi  line\n  text""") }',
-        variables: { var: true, var2: '1234' }
-      })
-    );
+    expect(har.postData.text).toBe(JSON.stringify({ query: graphql.query, variables: { var: true } }));
   });
 
   it('file → mimeType from selected file, text=filePath, params has fileName + contentType', async () => {
