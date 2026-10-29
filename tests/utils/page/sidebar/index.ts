@@ -11,15 +11,27 @@ export const buildSidebarLocators = (page: Page) => {
     page.locator('.item-name').and(page.getByTitle(name, { exact: true }));
 
   const collectionRow = (name: string) => page.getByTestId('sidebar-collection-row').filter({ hasText: name });
-  const itemRow = (name: string) => page.getByTestId('sidebar-collection-item-row').filter({ has: itemByName(name) });
+  const itemRow = (name: string) => page.getByTestId('sidebar-collection-item-row').filter({ hasText: name });
+  const item = (name: string) => page.locator('.collection-item-name').filter({ hasText: name });
 
   const collectionScope = (name: string) => page.locator(`[data-collection-id="${collectionSlug(name)}"]`);
+  const inlineCollectionCreatorRoot = () => page.getByTestId('inline-collection-creator');
 
   return {
+    inlineCollectionCreator: {
+      root: inlineCollectionCreatorRoot,
+      nameInput: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-input'),
+      advancedButton: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-advanced-btn'),
+      createButton: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-save-btn'),
+      cancelButton: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-cancel-btn')
+    },
     collectionsContainer: () => page.getByTestId('collections'),
+    collectionsScroller: () => page.getByTestId('sidebar-collections-scroller'),
     collection: (name?: string) => name ? page.locator('#sidebar-collection-name').filter({ hasText: name }) : page.locator('#sidebar-collection-name'),
-    folder: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
-    request: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
+    collectionExact: (name: string) => page.locator('#sidebar-collection-name').and(page.getByTitle(name, { exact: true })),
+    item,
+    folder: item,
+    request: item,
     collectionChevron: (name: string) => collectionRow(name).getByTestId('collection-chevron'),
     folderRequest: (folderName: string, requestName: string) => {
       return page.locator(`[data-parent-name="${folderName}"]`).locator('.collection-item-name').filter({ hasText: requestName });
@@ -27,6 +39,11 @@ export const buildSidebarLocators = (page: Page) => {
     closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
     collectionRow,
     collectionRows: () => page.getByTestId('sidebar-collection-row'),
+    invalidFilesBadge: (name: string) => collectionRow(name).getByTestId('invalid-files-badge'),
+    invalidFilesTooltip: () => page.getByTestId('invalid-files-tooltip'),
+    invalidFilesSeeHere: () => page.getByTestId('invalid-files-see-here'),
+    folderInvalidFilesBadge: (collectionName: string, folderName: string) =>
+      collectionScope(collectionName).getByTestId('sidebar-collection-item-row').filter({ has: itemByName(folderName) }).getByTestId('invalid-files-badge'),
     itemRow,
     itemByName,
     itemsIn: (collectionName: string, name: string): Locator =>
@@ -64,6 +81,9 @@ export const buildSidebarLocators = (page: Page) => {
     dragHandle: () => page.getByTestId('sidebar-drag-handle'),
     toggleSidebarButton: () => page.getByTestId('toggle-sidebar-button'),
     sidebarContainer: () => page.getByTestId('sidebar'),
+    searchToggle: () => page.getByTestId('sidebar-search-toggle'),
+    searchInput: () => page.getByTestId('sidebar-search-input'),
+    searchClear: () => page.getByTestId('sidebar-search-clear-icon'),
 
     // Modals opened from a sidebar row's "..." menu.
     renameItemModal: {
@@ -149,4 +169,32 @@ export const revealFolderRow = async (
     await expect(targetRow).toBeVisible();
     return targetRow;
   });
+};
+
+export const MIN_SIDEBAR_WIDTH = 220;
+export const MAX_SIDEBAR_WIDTH = 600;
+
+/**
+ * Drags the sidebar's edge until the sidebar is `width` wide, and waits until the layout has
+ * settled at that width. The sidebar ignores drags of under 3px, so `width` must be at least that
+ * far from the current width, or equal to it.
+ * @param page - The Playwright page object
+ * @param width - The sidebar width to drag to, between MIN_SIDEBAR_WIDTH and MAX_SIDEBAR_WIDTH
+ * @returns void
+ */
+export const dragSidebarToWidth = async (page: Page, width: number) => {
+  const locators = buildSidebarLocators(page);
+  const handleBox = await locators.dragHandle().boundingBox();
+  expect(handleBox).not.toBeNull();
+
+  // The main pane overlaps the handle's right side, so grab it at its left edge.
+  const y = handleBox!.y + handleBox!.height / 2;
+  await page.mouse.move(handleBox!.x + 1, y);
+  await page.mouse.down();
+  // The sidebar sets its width to the pointer's x plus 2px.
+  await page.mouse.move(width - 2, y, { steps: 5 });
+  await page.mouse.up();
+
+  await expect.poll(() => locators.sidebarContainer().evaluate((node: HTMLElement) => node.offsetWidth)).toBe(width);
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 };

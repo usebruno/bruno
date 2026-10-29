@@ -9,7 +9,7 @@ import MultiLineEditor from 'components/MultiLineEditor/index';
 import StyledWrapper from './StyledWrapper';
 import Table from 'components/Table/index';
 
-const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSave, disabled }) => {
+const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSave, readOnly }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -138,7 +138,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
   };
 
   // Add a class to the Add Parameter button if it's disabled
-  const addButtonDisabled = disabled || hasEmptyRow();
+  const addButtonDisabled = hasEmptyRow();
 
   // Define available tabs for each grant type
   const getAvailableTabs = (grantType) => {
@@ -157,6 +157,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
     <div
       key={tabKey}
       className={`tab ${activeTab === tabKey ? 'active' : ''}`}
+      data-testid={`oauth2-additional-params-tab-${tabKey}`}
       onClick={() => setActiveTab(tabKey)}
     >
       {tabLabel}
@@ -164,7 +165,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
   );
 
   return (
-    <StyledWrapper className="mt-4 oauth2-additional-params-wrapper">
+    <StyledWrapper className="mt-4 oauth2-additional-params-wrapper" data-testid="oauth2-additional-params">
       <div className="flex items-center gap-2.5 mb-3">
         <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
           <IconAdjustmentsHorizontal size={14} className="oauth2-icon" />
@@ -201,8 +202,9 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
                     value
                   })}
                   collection={collection}
+                  item={item}
                   onSave={handleSave}
-                  readOnly={disabled}
+                  readOnly={readOnly}
                   isCompact
                 />
               </td>
@@ -217,8 +219,9 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
                     value
                   })}
                   collection={collection}
+                  item={item}
                   onSave={handleSave}
-                  readOnly={disabled}
+                  readOnly={readOnly}
                 />
               </td>
               <td>
@@ -233,8 +236,8 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
                         value: e.target.value
                       });
                     }}
-                    className="mousetrap bg-transparent"
-                    disabled={disabled}
+                    className="mousetrap bg-transparent disabled:cursor-not-allowed"
+                    disabled={readOnly}
                   >
                     {sendInOptionsMap[grantType || 'authorization_code'][activeTab].map((optionValue) => (
                       <option key={optionValue} value={optionValue}>
@@ -251,7 +254,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
                     checked={param?.enabled ?? true}
                     tabIndex="-1"
                     className="mr-3 mousetrap"
-                    disabled={disabled}
+                    disabled={readOnly}
                     onChange={(e) => {
                       handleUpdateAdditionalParam({
                         paramType: activeTab,
@@ -263,7 +266,9 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
                   />
                   <button
                     tabIndex="-1"
-                    disabled={disabled}
+                    className="disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={readOnly}
+                    data-testid="oauth2-additional-params-delete"
                     onClick={() => {
                       handleDeleteAdditionalParam({
                         paramType: activeTab,
@@ -280,13 +285,18 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
           )}
         </tbody>
       </Table>
-      <div
-        className={`add-additional-param-actions w-fit flex items-center mt-2 ${addButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-        onClick={addButtonDisabled ? null : handleAddNewAdditionalParam}
-      >
-        <IconPlus size={16} strokeWidth={1.5} style={{ marginLeft: '2px' }} />
-        <span className="ml-1 text-gray-500">Add Parameter</span>
-      </div>
+      {!readOnly && (
+        <button
+          type="button"
+          className={`add-additional-param-actions w-fit flex items-center mt-2 ${addButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          disabled={addButtonDisabled}
+          data-testid="oauth2-additional-params-add"
+          onClick={handleAddNewAdditionalParam}
+        >
+          <IconPlus size={16} strokeWidth={1.5} style={{ marginLeft: '2px' }} />
+          <span className="ml-1 text-gray-500">Add Parameter</span>
+        </button>
+      )}
     </StyledWrapper>
   );
 };

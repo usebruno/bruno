@@ -72,11 +72,11 @@ const StyledWrapper = styled.div`
     border-style: dashed;
     background-color: transparent;
     box-shadow: none;
-    color: ${(props) => props.theme.textSecondary || props.theme.text};
+    color: ${(props) => props.theme.colors.text.subtext2};
   }
 
   .tag-icon {
-    color: ${(props) => props.theme.textSecondary || props.theme.text};
+    color: ${(props) => props.theme.colors.text.subtext2};
     opacity: 0.7;
     flex-shrink: 0;
   }
@@ -98,7 +98,7 @@ const StyledWrapper = styled.div`
     cursor: pointer;
     padding: 2px;
     border-radius: 3px;
-    color: ${(props) => props.theme.textSecondary || props.theme.text};
+    color: ${(props) => props.theme.colors.text.muted};
     transition: all 0.2s ease;
     flex-shrink: 0;
     opacity: 0.7;
@@ -122,7 +122,7 @@ const StyledWrapper = styled.div`
     background-color: ${(props) => props.theme.sidebar.bg};
     border: 2px dashed ${(props) => props.theme.requestTabs.bottomBorder};
     border-radius: 3px;
-    color: ${(props) => props.theme.textSecondary || props.theme.text};
+    color: ${(props) => props.theme.colors.text.muted};
     text-align: left;
   }
 
@@ -148,7 +148,7 @@ const StyledWrapper = styled.div`
     font-size: ${(props) => props.theme.font.size.sm};
     opacity: 0.8;
     line-height: 1.5;
-    color: ${(props) => props.theme.textSecondary || props.theme.text};
+    color: ${(props) => props.theme.colors.text.muted};
   }
 
   /* Responsive design */

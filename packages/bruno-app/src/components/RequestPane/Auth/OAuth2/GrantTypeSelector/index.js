@@ -8,7 +8,7 @@ import { humanizeGrantType } from 'utils/collections';
 import { useEffect } from 'react';
 import { useState } from 'react';
 
-const GrantTypeSelector = ({ item = {}, request, updateAuth, collection, disabled }) => {
+const GrantTypeSelector = ({ item = {}, request, updateAuth, collection, readOnly }) => {
   const dispatch = useDispatch();
   const oAuth = get(request, 'auth.oauth2', {});
   const [valuesCache, setValuesCache] = useState({
@@ -37,7 +37,7 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection, disable
   useEffect(() => {
     // initialize redux state with a default oauth2 grant type
     // authorization_code - default option
-    !disabled
+    !readOnly
     && !oAuth?.grantType
     && dispatch(
       updateAuth({
@@ -61,7 +61,7 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection, disable
         }
       })
     );
-  }, [oAuth, disabled]);
+  }, [oAuth, readOnly]);
 
   return (
     <StyledWrapper>
@@ -73,13 +73,14 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection, disable
           Grant Type
         </span>
       </div>
-      <div className="inline-flex items-center cursor-pointer grant-type-mode-selector w-fit">
+      <div className={`inline-flex items-center ${readOnly ? 'cursor-not-allowed' : 'cursor-pointer'} grant-type-mode-selector w-fit`}>
         <MenuDropdown
+          disabled={readOnly}
           items={[
-            { id: 'password', label: 'Password Credentials', onClick: () => onGrantTypeChange('password'), disabled },
-            { id: 'authorization_code', label: 'Authorization Code', onClick: () => onGrantTypeChange('authorization_code'), disabled },
-            { id: 'implicit', label: 'Implicit', onClick: () => onGrantTypeChange('implicit'), disabled },
-            { id: 'client_credentials', label: 'Client Credentials', onClick: () => onGrantTypeChange('client_credentials'), disabled }
+            { id: 'password', label: 'Password Credentials', onClick: () => onGrantTypeChange('password') },
+            { id: 'authorization_code', label: 'Authorization Code', onClick: () => onGrantTypeChange('authorization_code') },
+            { id: 'implicit', label: 'Implicit', onClick: () => onGrantTypeChange('implicit') },
+            { id: 'client_credentials', label: 'Client Credentials', onClick: () => onGrantTypeChange('client_credentials') }
           ]}
           data-testid="grant-type-dropdown"
           selectedItemId={oAuth?.grantType}

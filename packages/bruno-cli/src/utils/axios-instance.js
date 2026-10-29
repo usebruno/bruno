@@ -5,7 +5,13 @@ const { createFormData } = require('./form-data');
 const { setupProxyAgents } = require('./proxy-util');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { applyOmitHeaders, shouldOmitConnection } = require('@usebruno/common');
-const { getSentHeaders, applyOmitConnectionToAxiosConfig, handleNtlmRedirect } = require('@usebruno/requests');
+const {
+  getSentHeaders,
+  applyOmitConnectionToAxiosConfig,
+  handleNtlmRedirect,
+  startHop,
+  completeHop
+} = require('@usebruno/requests');
 
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 const METHOD_CHANGING_REDIRECTS = [301, 302, 303];
@@ -50,7 +56,9 @@ const createRedirectConfig = (error, redirectUrl) => {
       const formData = requestConfig.data;
       if (formData._released || (formData._streams && formData._streams.length === 0)) {
         if (error.config._originalMultipartData && error.config.collectionPath) {
-          const recreatedForm = createFormData(error.config._originalMultipartData, error.config.collectionPath);
+          const recreatedForm = createFormData(error.config._originalMultipartData, error.config.collectionPath, formData.getBoundary());
+          // axios sends getHeaders() as the Content-Type; the consumed form's may carry the request's own multipart media type
+          recreatedForm.getHeaders = formData.getHeaders;
           requestConfig.data = recreatedForm;
           const formHeaders = recreatedForm.getHeaders();
           Object.assign(requestConfig.headers, formHeaders);
@@ -104,7 +112,6 @@ function makeAxiosInstance({
 
   instance.interceptors.request.use((config) => {
     config.metadata = config.metadata || {};
-    config.metadata.startTime = Date.now();
 
     // Omit listed defaults and script-deleted headers. set(null) so Axios
     // does not put User-Agent / Accept-Encoding back.
@@ -128,14 +135,14 @@ function makeAxiosInstance({
       }
     }
 
+    startHop(config.metadata);
     return config;
   });
 
   instance.interceptors.response.use(
+    // Requests are sent with an `arraybuffer` response type, so a hop is complete once its response arrives.
     (response) => {
-      const end = Date.now();
-      const start = response.config.metadata.startTime;
-      response.headers['request-duration'] = end - start;
+      completeHop(response.config.metadata);
       redirectCount = 0;
       response.sentHeaders = getSentHeaders(response.request);
 
@@ -144,9 +151,7 @@ function makeAxiosInstance({
     async (error) => {
       error.sentHeaders = getSentHeaders(error.response?.request || error.request);
       if (error.response) {
-        const end = Date.now();
-        const start = error.config.metadata.startTime;
-        error.response.headers['request-duration'] = end - start;
+        completeHop(error.config.metadata);
         error.response.sentHeaders = error.sentHeaders;
 
         if (redirectResponseCodes.includes(error.response.status)) {

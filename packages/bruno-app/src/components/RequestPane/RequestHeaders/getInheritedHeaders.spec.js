@@ -53,14 +53,18 @@ const collection = {
 };
 
 describe('getInheritedHeaders', () => {
-  it('keeps the nearest enabled header for each name', () => {
+  it('shows collection headers before parent folders, with the nearest value winning', () => {
     const inherited = getInheritedHeaders(collection, request);
 
-    expect(inherited.map((header) => ({ name: header.name, value: header.value }))).toEqual([
-      { name: 'X-Shared', value: 'from-inner' },
-      { name: 'X-Dup', value: 'last' },
-      { name: 'X-Outer', value: 'outer' },
-      { name: 'X-Token', value: 'collection-token' }
+    expect(inherited.map((header) => ({
+      name: header.name,
+      value: header.value,
+      source: header.source.name
+    }))).toEqual([
+      { name: 'X-Token', value: 'collection-token', source: 'Demo' },
+      { name: 'X-Outer', value: 'outer', source: 'Outer' },
+      { name: 'X-Shared', value: 'from-inner', source: 'Inner' },
+      { name: 'X-Dup', value: 'last', source: 'Inner' }
     ]);
   });
 
@@ -107,10 +111,10 @@ describe('getInheritedHeaders', () => {
     const inherited = getInheritedHeaders(collection, request, new Set(['x-tok', 'authorization']));
 
     expect(inherited.map((header) => header.name)).toEqual([
-      'X-Shared',
-      'X-Dup',
+      'X-Token',
       'X-Outer',
-      'X-Token'
+      'X-Shared',
+      'X-Dup'
     ]);
   });
 
@@ -118,10 +122,10 @@ describe('getInheritedHeaders', () => {
     const inherited = getInheritedHeaders(collection, request, new Set(['']));
 
     expect(inherited.map((header) => header.name)).toEqual([
-      'X-Shared',
-      'X-Dup',
+      'X-Token',
       'X-Outer',
-      'X-Token'
+      'X-Shared',
+      'X-Dup'
     ]);
   });
 

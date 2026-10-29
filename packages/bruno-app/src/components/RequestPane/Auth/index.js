@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import get from 'lodash/get';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import AuthMode from './AuthMode';
-import StyledWrapper from './StyledWrapper';
 import { getEffectiveAuthSource } from 'utils/auth';
 import AuthFields from './AuthFields';
 import InheritedAuth, { InheritedAuthSourceLabel } from './InheritedAuth';
@@ -36,15 +35,15 @@ const Auth = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full overflow-auto">
-      <div className="flex items-center justify-between gap-2 mb-4 min-w-0">
+    <div className="w-full overflow-auto">
+      <div className="flex flex-col items-start gap-2 mb-4 min-w-0">
         <AuthMode item={item} collection={collection} />
         {authMode === 'inherit' && inheritedSource ? (
           <InheritedAuthSourceLabel collection={collection} inheritedSource={inheritedSource} />
         ) : null}
       </div>
       {getAuthView()}
-    </StyledWrapper>
+    </div>
   );
 };
 

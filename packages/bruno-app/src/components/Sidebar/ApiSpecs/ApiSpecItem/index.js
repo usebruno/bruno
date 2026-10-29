@@ -1,5 +1,4 @@
-import { setActiveApiSpecUid } from 'providers/ReduxStore/slices/apiSpec';
-import { showApiSpecPage as _showApiSpecPage } from 'providers/ReduxStore/slices/app';
+import { openApiSpecTab } from 'providers/ReduxStore/slices/apiSpec';
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
@@ -7,20 +6,22 @@ import { IconDots, IconX } from '@tabler/icons';
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import CloseApiSpec from '../CloseApiSpec/index';
+import { isApiSpecTabForPathname } from 'utils/api-specs';
 
 const ApiSpecItem = ({ apiSpec }) => {
   const dispatch = useDispatch();
   const { dropdownContainerRef } = useSidebarAccordion();
 
-  const activeApiSpecUid = useSelector((state) => state.apiSpec.activeApiSpecUid);
-  const showApiSpecPage = useSelector((state) => state.app.showApiSpecPage);
+  const isActive = useSelector((state) => {
+    const activeTab = state.tabs.tabs.find((tab) => tab.uid === state.tabs.activeTabUid);
+    return isApiSpecTabForPathname(activeTab, apiSpec?.pathname);
+  });
 
   const [closeApiSpecModal, setCloseApiSpecModal] = useState(false);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
 
   const openApiSpec = () => {
-    dispatch(_showApiSpecPage());
-    dispatch(setActiveApiSpecUid({ uid: apiSpec.uid }));
+    dispatch(openApiSpecTab(apiSpec));
   };
 
   const handleRowKeyDown = (e) => {
@@ -38,8 +39,6 @@ const ApiSpecItem = ({ apiSpec }) => {
       onClick: () => setCloseApiSpecModal(true)
     }
   ];
-
-  const isActive = showApiSpecPage && apiSpec?.uid === activeApiSpecUid;
 
   return (
     <>

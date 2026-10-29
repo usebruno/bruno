@@ -203,7 +203,7 @@ const Auth = ({ collection, folder }) => {
         Configures authentication for the entire folder. This applies to all requests using the{' '}
         <span className="font-medium">Inherit</span> option in the <span className="font-medium">Auth</span> tab.
       </div>
-      <div className="flex items-center justify-between gap-2 mb-4 min-w-0">
+      <div className="flex flex-col items-start gap-2 mb-4 min-w-0">
         <AuthMode collection={collection} folder={folder} />
         {authMode === 'inherit' && inheritedSource ? (
           <InheritedAuthSourceLabel collection={collection} inheritedSource={inheritedSource} />

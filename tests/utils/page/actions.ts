@@ -3,7 +3,8 @@ import { collectionSlug } from '../../../packages/bruno-app/src/utils/collection
 import process from 'node:process';
 import * as path from 'path';
 import * as fs from 'fs';
-import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, PresetRequestType } from './locators';
+import AdmZip from 'adm-zip';
+import { buildCommonLocators, buildResponseErrorsLocators, buildGrpcCommonLocators, PresetRequestType } from './locators';
 import { waitForCollectionMount } from './mounting';
 import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
 import { EmptyStateRequestType, revealFolderRow } from './sidebar';
@@ -582,6 +583,36 @@ const deleteRequest = async (page, requestName: string, collectionName: string) 
 };
 
 /**
+ * Rename a request or folder from the sidebar, via its row's "..." menu -> Rename.
+ * Waits for the rename modal to close and the renamed row to appear.
+ * @param page - The page object
+ * @param currentName - The item's current name in the sidebar
+ * @param newName - The name to rename it to
+ * @param options - `type` selects the row and modal variant; defaults to 'request'
+ * @returns void
+ */
+const renameCollectionItem = async (
+  page: Page,
+  currentName: string,
+  newName: string,
+  { type = 'request' }: { type?: 'request' | 'folder' } = {}
+) => {
+  await test.step(`Rename ${type} "${currentName}" to "${newName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    await locators.sidebar.item(currentName).hover();
+    await locators.actions.collectionItemActions(currentName).click();
+    await locators.dropdown.item('Rename').click();
+    const modal = locators.modal.byTitle(type === 'folder' ? 'Rename Folder' : 'Rename Request');
+    await modal.waitFor({ state: 'visible' });
+    await locators.modal.itemNameInput(modal).fill(newName);
+    await modal.getByTestId('rename-item-button').click();
+    await modal.waitFor({ state: 'hidden' });
+
+    await locators.sidebar.item(newName).waitFor({ state: 'visible', timeout: 10000 });
+  });
+};
+
+/**
  * Delete a collection permanently from disk via the workspace overview page
  * @param page - The page object
  * @param collectionName - The name of the collection to delete
@@ -817,6 +848,20 @@ const expandFolder = async (page: Page, folderName: string) => {
     await chevron.waitFor({ state: 'visible', timeout: 5000 });
     const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
     if (!isExpanded) await chevron.click();
+  });
+};
+
+/**
+ * Collapse a folder in the sidebar so its child requests/subfolders unmount.
+ * No-op if the folder is already collapsed.
+ */
+const collapseFolder = async (page: Page, folderName: string) => {
+  await test.step(`Collapse folder "${folderName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const chevron = locators.folder.chevron(folderName);
+    await chevron.waitFor({ state: 'visible', timeout: 5000 });
+    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+    if (isExpanded) await chevron.click();
   });
 };
 
@@ -1384,6 +1429,49 @@ const deleteAllGlobalEnvironments = async (page: Page) => {
 };
 
 /**
+ * Read the rendered widths of the resizable columns in the environment variables table.
+ * Waits until the table reports its column widths as measured.
+ * @param page - The page object
+ * @returns Width in px of the Name, Value and Description columns
+ */
+const getEnvironmentColumnWidths = async (page: Page) => {
+  const { environment } = buildCommonLocators(page);
+  const columns = ['name', 'value', 'description'] as const;
+
+  await expect(environment.variablesTable()).toHaveAttribute('data-columns-measured', 'true');
+
+  const [name, value, description] = await Promise.all(
+    columns.map(async (column) => (await environment.columnHeader(column).boundingBox())?.width ?? 0)
+  );
+  return { name, value, description };
+};
+
+/**
+ * Drag a column divider in the environment variables table horizontally.
+ * @param page - The page object
+ * @param column - The column whose right-edge divider is dragged ('name' or 'value')
+ * @param deltaX - Horizontal distance in px; positive widens the column
+ * @returns void
+ */
+const dragEnvironmentColumnDivider = async (page: Page, column: 'name' | 'value', deltaX: number) => {
+  await test.step(`Drag the ${column} column divider by ${deltaX}px`, async () => {
+    const handle = buildCommonLocators(page).environment.columnResizeHandle(column);
+    await handle.hover();
+
+    const box = await handle.boundingBox();
+    if (!box) throw new Error(`Resize handle for the ${column} column is not rendered`);
+
+    // Grab near the top so the pointer stays within the header row
+    const startX = box.x + box.width / 2;
+    const startY = box.y + 10;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX + deltaX, startY, { steps: 10 });
+    await page.mouse.up();
+  });
+};
+
+/**
  * Save the current environment settings
  * @param page - The page object
  * @returns void
@@ -1497,6 +1585,9 @@ const openRequest = async (page: Page, collectionName: string, requestName: stri
       .locator(`[data-collection-id="${collectionSlug(collectionName)}"]`)
       .getByTestId('sidebar-collection-item-row')
       .filter({ hasText: requestName });
+    // The list is virtualized. a row outside the rendered window is absent from the DOM,
+    // scroll it into view before interacting.
+    await scrollSidebarListTo(page, request);
     if (!persist) {
       await request.click();
     } else {
@@ -2391,7 +2482,10 @@ const createWorkspace = async (page: Page, workspaceName: string) => {
 const switchWorkspace = async (page: Page, workspaceName: string) => {
   await test.step(`Switch to workspace "${workspaceName}"`, async () => {
     await page.locator('.workspace-name-container').click();
-    await page.locator('.workspace-item, .dropdown-item').filter({ hasText: workspaceName }).click();
+    await page
+      .locator('.workspace-item, .dropdown-item')
+      .filter({ has: page.getByText(workspaceName, { exact: true }) })
+      .click();
     await expect(page.getByTestId('workspace-name')).toHaveText(workspaceName, { timeout: 5000 });
   });
 };
@@ -2510,6 +2604,22 @@ const readScriptContent = async (page: Page, subTab: ScriptSubTab): Promise<stri
 };
 
 /**
+ * Read the content of the request's Body editor
+ * @param page - The page object
+ */
+const readRequestBody = async (page: Page): Promise<string> => {
+  await selectRequestPaneTab(page, 'Body');
+  const editorTestId = 'request-body-editor';
+  return buildCommonLocators(page)
+    .codeMirror.byTestId(editorTestId)
+    .evaluate((el: any, testId: string) => {
+      const cm = el.CodeMirror;
+      if (!cm) throw new Error(`CodeMirror instance not found for "${testId}"`);
+      return cm.getValue();
+    }, editorTestId);
+};
+
+/**
  * Add a test script (navigates to Tests tab and replaces editor content)
  * @param page - The page object
  * @param content - The test script content to add
@@ -2580,9 +2690,9 @@ const addCollectionScript = async (
 const sendAndWaitForErrorCard = async (page: Page) => {
   await test.step('Send request and wait for error card', async () => {
     const { request } = buildCommonLocators(page);
-    const scriptErrorLocators = buildScriptErrorLocators(page);
+    const responseErrorsLocators = buildResponseErrorsLocators(page);
     await request.sendButton().click();
-    await scriptErrorLocators.card().waitFor({ state: 'visible', timeout: 15000 });
+    await responseErrorsLocators.card().waitFor({ state: 'visible', timeout: 15000 });
   });
 };
 
@@ -2629,8 +2739,8 @@ const fieldEditor = (page: Page, labelText: string) =>
   page
     .locator('label')
     .filter({ hasText: new RegExp(`^${escapeRegExp(labelText)}$`) })
-    .locator('..')
-    .locator('.single-line-editor-wrapper .CodeMirror');
+    .locator('xpath=following-sibling::*[contains(@class,"single-line-editor-wrapper")][1]')
+    .locator('.CodeMirror');
 
 /**
  * Open the auth mode dropdown and pick a mode by its visible label.
@@ -2651,6 +2761,16 @@ const selectAuthMode = async (page: Page, modeLabel: string) => {
 const typeIntoField = async (page: Page, labelText: string, value: string) => {
   await fieldEditor(page, labelText).click();
   await page.keyboard.type(value);
+};
+
+/** Sets the field next to a label to this text. */
+const writeFieldValue = async (page: Page, labelText: string, value: string) => {
+  const editor = fieldEditor(page, labelText).first();
+  await editor.waitFor({ state: 'visible' });
+  await editor.evaluate((el: any, nextValue: string) => {
+    el.CodeMirror?.setValue(nextValue);
+  }, value);
+  await expect.poll(() => readField(page, labelText)).toBe(value);
 };
 
 /**
@@ -2791,6 +2911,19 @@ const createExampleFromSidebar = async (page: Page, requestName: string, example
   if (description) {
     await expect(page.getByTestId('response-example-description-input')).toHaveValue(description);
   }
+};
+
+/**
+ * Expand or collapse a request's examples in the sidebar. No-op if already in the requested state.
+ */
+const toggleRequestExamples = async (page: Page, requestName: string, expand: boolean) => {
+  await test.step(`${expand ? 'Expand' : 'Collapse'} examples of request "${requestName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const chevron = locators.sidebar.requestExamplesToggle(requestName);
+    await chevron.waitFor({ state: 'visible', timeout: 5000 });
+    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+    if (isExpanded !== expand) await chevron.click();
+  });
 };
 
 const openExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, index: number = 0) => {
@@ -3058,8 +3191,8 @@ const generateCollectionDocs = async (
   });
 };
 
-const openExportToPostmanModal = async (page: Page, collectionName: string) => {
-  await test.step(`Open Export to Postman for "${collectionName}"`, async () => {
+const openShareCollectionModal = async (page: Page, collectionName: string) => {
+  await test.step(`Open Share Collection for "${collectionName}"`, async () => {
     const locators = buildCommonLocators(page);
 
     await openCollection(page, collectionName);
@@ -3070,6 +3203,14 @@ const openExportToPostmanModal = async (page: Page, collectionName: string) => {
     await collectionAction.click();
     await locators.dropdown.item('Share').click();
     await expect(locators.modal.title('Share Collection')).toBeVisible();
+  });
+};
+
+const openExportToPostmanModal = async (page: Page, collectionName: string) => {
+  await test.step(`Open Export to Postman for "${collectionName}"`, async () => {
+    const locators = buildCommonLocators(page);
+
+    await openShareCollectionModal(page, collectionName);
 
     await locators.export.postmanFormatCard().click();
     await locators.modal.button('Proceed').click();
@@ -3127,6 +3268,37 @@ const exportCollectionToPostman = async (
     await expect.poll(() => fs.existsSync(filePath), { timeout: 5000 }).toBe(true);
     return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
   });
+};
+
+const exportCollectionAsZip = async (
+  page: Page,
+  electronApp: ElectronApplication,
+  collectionName: string,
+  outputDir: string
+) => {
+  const zipPath = path.join(outputDir, `${collectionName}.zip`);
+
+  await electronApp.evaluate(({ dialog }, filePath) => {
+    (dialog as any).__savedShowSaveDialog = dialog.showSaveDialog;
+    dialog.showSaveDialog = async () => ({ filePath, canceled: false });
+  }, zipPath);
+
+  try {
+    await openShareCollectionModal(page, collectionName);
+
+    return await test.step('Export as ZIP and read the written entries', async () => {
+      const locators = buildCommonLocators(page);
+      await locators.modal.button('Proceed').click();
+      await expect(locators.modal.title('Share Collection')).toBeHidden();
+      await expect.poll(() => fs.existsSync(zipPath), { timeout: 10000 }).toBe(true);
+      return new AdmZip(zipPath).getEntries().map((entry) => entry.entryName);
+    });
+  } finally {
+    await electronApp.evaluate(({ dialog }) => {
+      dialog.showSaveDialog = (dialog as any).__savedShowSaveDialog;
+      delete (dialog as any).__savedShowSaveDialog;
+    });
+  }
 };
 
 /**
@@ -3267,18 +3439,62 @@ const selectViewMode = async (page: Page, mode: 'request' | 'app' | 'file') => {
 };
 
 /**
- * Read the decoded HTML the app webview is loading (its data: URL src).
- * Useful for asserting the injected ctx bootstrap and user code.
- * @param page - The page object
- * @returns The decoded HTML document string
+ * The document URL of the active app's <webview>. Guest URLs are unique per
+ * app, so this identifies one guest exactly — preferable to picking the newest
+ * WebContents, which silently binds to a leftover guest from an earlier test in
+ * the same worker. Throws if no webview attaches within the timeout; callers
+ * polling for a guest should catch and retry.
  */
-const getAppWebviewHtml = async (page: Page): Promise<string> => {
+const getAppWebviewSrc = async (page: Page): Promise<string> => {
   const webview = activeAppView(page).locator('webview');
   await webview.waitFor({ state: 'attached', timeout: 5000 });
-  const src = await webview.getAttribute('src');
-  if (!src) return '';
-  const comma = src.indexOf(',');
-  return decodeURIComponent(src.slice(comma + 1));
+  return (await webview.getAttribute('src')) || '';
+};
+
+/**
+ * Evaluate `code` inside the active app's <webview> guest. The guest runs
+ * out-of-process, so it is unreachable from the renderer page: the guest
+ * WebContents is located in the Electron main process by the exact document
+ * URL the active webview is showing, which identifies one guest even when
+ * guests from earlier tests are still alive in the same worker.
+ *
+ * Returns undefined while the webview has not attached yet (it mounts only
+ * after the document-registration IPC round-trip resolves), so expect.poll
+ * callers can keep retrying instead of failing on a slow mount.
+ */
+const evalInActiveAppGuest = async (page: Page, electronApp: ElectronApplication, code: string): Promise<unknown> => {
+  let src: string;
+  try {
+    src = await getAppWebviewSrc(page);
+  } catch {
+    return undefined;
+  }
+  return electronApp.evaluate(
+    async ({ webContents }, { src: wanted, code: c }) => {
+      const guest = webContents.getAllWebContents().find((wc) => {
+        try {
+          return wc.getType() === 'webview' && wc.getURL() === wanted;
+        } catch {
+          return false;
+        }
+      });
+      if (!guest) return undefined;
+      return await guest.executeJavaScript(c, true);
+    },
+    { src, code }
+  );
+};
+
+/**
+ * Wait until the active app's guest has booted far enough that `window.bru.ctx`
+ * exists — the injected bootstrap has run and the ctx bridge is usable.
+ */
+const waitForAppGuestReady = async (page: Page, electronApp: ElectronApplication, options: { timeout?: number } = {}) => {
+  await expect
+    .poll(async () => evalInActiveAppGuest(page, electronApp, 'window.bru && typeof window.bru.ctx'), {
+      timeout: options.timeout ?? 15000
+    })
+    .toBe('object');
 };
 
 /**
@@ -3729,6 +3945,26 @@ const clickOutsideModal = async (page: Page) => {
   });
 };
 
+const getAppWebviewHtml = async (page: Page, electronApp: ElectronApplication): Promise<string> => {
+  await waitForAppGuestReady(page, electronApp);
+  return (await evalInActiveAppGuest(page, electronApp, 'document.documentElement.outerHTML')) as string;
+};
+
+/**
+ * Resizes the main window's content area and waits until the renderer reports the new width.
+ * @param app - The Electron app owning the window
+ * @param page - The Playwright page object
+ * @param size - The content width and height to resize to
+ * @returns void
+ */
+const setWindowContentSize = async (app: ElectronApplication, page: Page, size: { width: number; height: number }) => {
+  await app.evaluate(({ BrowserWindow }, { width, height }) => {
+    BrowserWindow.getAllWindows()[0].setContentSize(width, height);
+  }, size);
+
+  await expect.poll(() => page.evaluate(() => window.innerWidth)).toBe(size.width);
+};
+
 export {
   waitForReadyPage,
   readClipboard,
@@ -3752,6 +3988,7 @@ export {
   createRequestFromEmptyStateCta,
   fillRequestUrl,
   deleteRequest,
+  renameCollectionItem,
   deleteCollectionFromOverview,
   importCollection,
   openBulkImportModal,
@@ -3765,6 +4002,8 @@ export {
   createEnvironment,
   renameEnvironment,
   openEnvironmentInSettings,
+  getEnvironmentColumnWidths,
+  dragEnvironmentColumnDivider,
   setEnvironmentInheritance,
   copyEnvironment,
   deleteEnvironment,
@@ -3796,6 +4035,7 @@ export {
   getResponseBody,
   expectResponseContains,
   selectRequestPaneTab,
+  readRequestBody,
   expectRequestMaxRedirects,
   selectRequestBodyMode,
   selectResponsePaneTab,
@@ -3834,6 +4074,7 @@ export {
   addFolderScript,
   addCollectionScript,
   expandFolder,
+  collapseFolder,
   expandCollection,
   sendAndWaitForErrorCard,
   sendAndWaitForResponse,
@@ -3841,9 +4082,11 @@ export {
   selectAuthMode,
   fieldEditor,
   typeIntoField,
+  writeFieldValue,
   readField,
   createExampleFromSidebar,
   openExampleFromSidebar,
+  toggleRequestExamples,
   openWorkspaceFromDialog,
   setCodeMirrorValue,
   expectTransientRequestOpened,
@@ -3855,10 +4098,12 @@ export {
   LINK_CLICK_MODIFIER,
   openRequestInFolder,
   generateCollectionDocs,
+  openShareCollectionModal,
   openExportToPostmanModal,
   closeExportToPostmanModal,
   dismissModalIfOpen,
   exportCollectionToPostman,
+  exportCollectionAsZip,
   addTag,
   removeTag,
   saveFolderSettings,
@@ -3878,7 +4123,10 @@ export {
   previewApp,
   exitApp,
   selectViewMode,
+  getAppWebviewSrc,
   getAppWebviewHtml,
+  evalInActiveAppGuest,
+  waitForAppGuestReady,
   createApp,
   selectAppView,
   renameWsMessage,
@@ -3903,7 +4151,8 @@ export {
   setTextBody,
   saveTransientRequestAs,
   openImportReview,
-  clickOutsideModal
+  clickOutsideModal,
+  setWindowContentSize
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput, LinkAwareRequestType, ScriptSubTab };

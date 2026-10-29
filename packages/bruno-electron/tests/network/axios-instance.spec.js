@@ -31,7 +31,10 @@ jest.mock('../../src/utils/form-data', () => ({
 }));
 
 const http = require('http');
-const { makeAxiosInstance } = require('../../src/ipc/network/axios-instance');
+const { AxiosHeaders } = require('axios');
+const { measureResponseTime, addDigestInterceptor } = require('@usebruno/requests');
+const { setupProxyAgents } = require('../../src/utils/proxy-util');
+const { makeAxiosInstance, completeOpenHop } = require('../../src/ipc/network/axios-instance');
 
 function createStubAdapter() {
   let capturedConfig = null;
@@ -92,7 +95,7 @@ describe('axios-instance: default headers', () => {
     expect(headers['Accept']).toBeNull();
   });
 
-  test('measures duration from metadata.startTime without sending request-start-time', async () => {
+  test('records the hop time without adding timing headers to the request or response', async () => {
     const stubAdapter = createStubAdapter();
     const instance = makeAxiosInstance();
 
@@ -100,8 +103,8 @@ describe('axios-instance: default headers', () => {
     const config = stubAdapter.getConfig();
 
     expect(config.headers['request-start-time']).toBeUndefined();
-    expect(config.metadata.startTime).toEqual(expect.any(Number));
-    expect(Number(response.headers['request-duration'])).toBeGreaterThanOrEqual(0);
+    expect(config.metadata.completedHopsTime).toEqual(expect.any(Number));
+    expect(response.headers['request-duration']).toBeUndefined();
   });
 
   test('keeps an explicit User-Agent when omitHeaders also lists User-Agent', async () => {
@@ -475,6 +478,236 @@ describe('axios-instance: cross-origin redirects authorization stripping', () =>
   });
 });
 
+const TIME_TO_FIRST_BYTE_MS = 40;
+const BODY_DOWNLOAD_MS = 260;
+const HOP_MS = 100;
+const START_URL = 'https://api.example.com/start';
+const TARGET_URL = 'https://api.example.com/target';
+
+const timingMessages = (timeline, label) => timeline
+  .map((entry) => entry.message)
+  .filter((message) => message?.startsWith(label));
+
+/** Each hop takes `HOP_MS`; `START_URL` redirects to `TARGET_URL`. */
+const timedAdapter = (config) => {
+  jest.advanceTimersByTime(HOP_MS);
+  if (config.url === START_URL) {
+    const response = { status: 302, statusText: 'Found', headers: { location: TARGET_URL }, data: {} };
+    return Promise.reject(Object.assign(new Error('Redirect 302'), { config, response }));
+  }
+  return Promise.resolve({ data: {}, status: 200, statusText: 'OK', headers: {}, config });
+};
+
+/**
+ * Sends a streamed request, as Bruno does, so the body is still unread when the response
+ * interceptor fires after the stub adapter's `TIME_TO_FIRST_BYTE_MS`.
+ */
+const sendThroughAxiosInstance = async (status) => {
+  const adapter = (config) => {
+    jest.advanceTimersByTime(TIME_TO_FIRST_BYTE_MS);
+    const response = { data: {}, status, statusText: '', headers: new AxiosHeaders(), config };
+
+    if (status >= 400) {
+      return Promise.reject(Object.assign(new Error('Request failed'), { isAxiosError: true, config, response }));
+    }
+    return Promise.resolve(response);
+  };
+
+  const instance = makeAxiosInstance();
+  const request = { url: 'https://api.example.com/test', method: 'get', responseType: 'stream', adapter, validateStatus: null };
+
+  try {
+    return await instance(request);
+  } catch (error) {
+    return error.response;
+  }
+};
+
+describe('axios-instance: streamed response time', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test('measures the full download once the body is consumed, not time to first byte', async () => {
+    const response = await sendThroughAxiosInstance(200);
+    jest.advanceTimersByTime(BODY_DOWNLOAD_MS);
+
+    const responseTime = measureResponseTime(response.config.metadata);
+
+    expect(responseTime).toBe(TIME_TO_FIRST_BYTE_MS + BODY_DOWNLOAD_MS);
+  });
+
+  test('measures the full download for an error response too', async () => {
+    const response = await sendThroughAxiosInstance(500);
+    jest.advanceTimersByTime(BODY_DOWNLOAD_MS);
+
+    const responseTime = measureResponseTime(response.config.metadata);
+
+    expect(responseTime).toBe(TIME_TO_FIRST_BYTE_MS + BODY_DOWNLOAD_MS);
+  });
+
+  test('matches time to first byte when measured before the body is consumed, as streams are', async () => {
+    const response = await sendThroughAxiosInstance(200);
+
+    const responseTime = measureResponseTime(response.config.metadata);
+
+    expect(responseTime).toBe(TIME_TO_FIRST_BYTE_MS);
+  });
+
+  test('logs when the response headers arrive, before the body is consumed', async () => {
+    const response = await sendThroughAxiosInstance(200);
+
+    expect(timingMessages(response.timeline, 'Response headers received')).toEqual([
+      `Response headers received in ${TIME_TO_FIRST_BYTE_MS} ms`
+    ]);
+  });
+
+  test('returns 0 when no hop timing was recorded', () => {
+    expect(measureResponseTime(undefined)).toBe(0);
+  });
+});
+
+describe('axios-instance: timing across redirects', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test('sums both hops so the total covers the whole redirect chain', async () => {
+    const instance = makeAxiosInstance({ followRedirects: true });
+
+    const response = await instance({ url: START_URL, method: 'get', adapter: timedAdapter });
+
+    expect(measureResponseTime(response.config.metadata)).toBe(2 * HOP_MS);
+  });
+
+  test('records only the followed hop while a streamed final hop\'s body is still unread', async () => {
+    const instance = makeAxiosInstance({ followRedirects: true });
+
+    const response = await instance({ url: START_URL, method: 'get', responseType: 'stream', adapter: timedAdapter });
+
+    expect(timingMessages(response.timeline, 'Request completed')).toEqual([`Request completed in ${HOP_MS} ms`]);
+  });
+
+  test('records the streamed final hop\'s own duration once its body is consumed', async () => {
+    const instance = makeAxiosInstance({ followRedirects: true });
+    const response = await instance({ url: START_URL, method: 'get', responseType: 'stream', adapter: timedAdapter });
+    jest.advanceTimersByTime(BODY_DOWNLOAD_MS);
+
+    completeOpenHop(response.config);
+
+    expect(timingMessages(response.timeline, 'Request completed')).toEqual([
+      `Request completed in ${HOP_MS} ms`,
+      `Request completed in ${HOP_MS + BODY_DOWNLOAD_MS} ms`
+    ]);
+  });
+});
+
+describe('axios-instance: request preparation', () => {
+  const PROXY_SETUP_MS = 30;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    setupProxyAgents.mockImplementation(async () => {
+      jest.advanceTimersByTime(PROXY_SETUP_MS);
+    });
+  });
+
+  afterEach(() => {
+    setupProxyAgents.mockReset();
+    jest.useRealTimers();
+  });
+
+  test('logs the proxy setup as the request\'s preparation', async () => {
+    const instance = makeAxiosInstance();
+
+    const response = await instance({ url: TARGET_URL, method: 'get', adapter: timedAdapter });
+
+    expect(timingMessages(response.timeline, 'Request prepared')).toEqual([`Request prepared in ${PROXY_SETUP_MS} ms`]);
+  });
+
+  test('skips the preparation entry when preparation takes no time', async () => {
+    setupProxyAgents.mockImplementation(async () => {});
+    const instance = makeAxiosInstance();
+
+    const response = await instance({ url: TARGET_URL, method: 'get', adapter: timedAdapter });
+
+    expect(timingMessages(response.timeline, 'Request prepared')).toEqual([]);
+  });
+
+  test('measures a followed redirect\'s preparation within its own request interceptor', async () => {
+    const instance = makeAxiosInstance({ followRedirects: true });
+
+    const response = await instance({ url: START_URL, method: 'get', adapter: timedAdapter });
+
+    expect(timingMessages(response.timeline, 'Request prepared')).toEqual([
+      `Request prepared in ${PROXY_SETUP_MS} ms`,
+      `Request prepared in ${PROXY_SETUP_MS} ms`
+    ]);
+  });
+
+  test('leaves every hop\'s preparation out of the response time', async () => {
+    const instance = makeAxiosInstance({ followRedirects: true });
+
+    const response = await instance({ url: START_URL, method: 'get', adapter: timedAdapter });
+
+    expect(measureResponseTime(response.config.metadata)).toBe(2 * HOP_MS);
+  });
+});
+
+describe('axios-instance: timing across a digest auth retry', () => {
+  const DIGEST_CHALLENGE = 'Digest realm="bruno", nonce="dcd98b7102dd2f0e"';
+
+  /** Challenges the first hop, which the digest interceptor answers by re-sending the request. */
+  const digestChallengeAdapter = (config) => {
+    jest.advanceTimersByTime(HOP_MS);
+    if (!config.headers.has('Authorization')) {
+      const response = { status: 401, statusText: 'Unauthorized', headers: { 'www-authenticate': DIGEST_CHALLENGE }, data: {} };
+      return Promise.reject(Object.assign(new Error('Unauthorized'), { config, response }));
+    }
+    return Promise.resolve({ data: {}, status: 200, statusText: 'OK', headers: {}, config });
+  };
+
+  // Streamed, as Bruno sends it, so nothing closes the challenged hop except the re-send.
+  const sendWithDigestAuth = () => {
+    const instance = makeAxiosInstance();
+    addDigestInterceptor(instance, { digestConfig: { username: 'user', password: 'secret' } });
+    return instance({ url: TARGET_URL, method: 'get', responseType: 'stream', adapter: digestChallengeAdapter });
+  };
+
+  let consoleDebugSpy;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    // The digest interceptor logs each challenge it answers.
+    consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleDebugSpy.mockRestore();
+    jest.useRealTimers();
+  });
+
+  test('counts the challenged hop toward the response time', async () => {
+    const response = await sendWithDigestAuth();
+
+    expect(measureResponseTime(response.config.metadata)).toBe(2 * HOP_MS);
+  });
+
+  test('logs the challenged hop as completed when the request is re-sent', async () => {
+    const response = await sendWithDigestAuth();
+
+    expect(timingMessages(response.timeline, 'Request completed')).toEqual([`Request completed in ${HOP_MS} ms`]);
+  });
+});
+
 describe('axios-instance: sent headers', () => {
   let server;
   let baseUrl;
@@ -576,5 +809,20 @@ describe('axios-instance: sent headers', () => {
     const masked = error.response.sentHeaders['Proxy-Authorization'];
     expect(masked).toBe('*'.repeat(credential.length));
     expect(masked).not.toContain('dXNlcj');
+  });
+});
+
+describe('axios-instance: string request bodies', () => {
+  // axios JSON-quotes a non-JSON string body whenever application/json appears anywhere in the Content-Type
+  test.each([
+    ['multipart/related; type="application/json"; boundary=b1', '--b1\r\nContent-Type: application/json\r\n\r\n{"a":1}\r\n--b1--'],
+    ['text/plain; profile=application/json', 'hello world']
+  ])('sends the string body unchanged when application/json is only a parameter of %s', async (contentType, body) => {
+    const stubAdapter = createStubAdapter();
+    const instance = makeAxiosInstance();
+
+    await instance({ url: 'https://api.example.com/test', method: 'post', headers: { 'Content-Type': contentType }, data: body, adapter: stubAdapter });
+
+    expect(stubAdapter.getConfig().data).toBe(body);
   });
 });
