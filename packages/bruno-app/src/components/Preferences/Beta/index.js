@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences, updateActivePreferencesTab } from 'providers/ReduxStore/slices/app';
@@ -11,7 +11,10 @@ import get from 'lodash/get';
 // adding a beta feature its keys are then referenced as BETA_FEATURE_IDS.MY_FEATURE in the BETA_FEATURES array.
 import { IconArrowRight, IconExternalLink } from '@tabler/icons';
 import ToggleSwitch from 'components/ToggleSwitch';
-import { closeMockServerTabs } from 'providers/ReduxStore/slices/mock-server/actions';
+import ConfirmRequestClose from 'components/RequestTabs/RequestTab/ConfirmRequestClose';
+import { closeMockServerTabs, saveMockResponseEditor } from 'providers/ReduxStore/slices/mock-server/actions';
+import { getUnsavedMockResponses } from 'utils/mock-server/mock-responses/editor';
+import { pluralizeWord } from 'utils/common';
 
 import { BETA_FEATURES as BETA_FEATURE_IDS } from 'utils/beta-features';
 import { getDocsUrlWithVersion } from 'utils/url';
@@ -82,7 +85,10 @@ const BETA_FEATURES = [
 
 const Beta = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
+  const mockResponseEditors = useSelector((state) => state.collections.mockResponseEditors);
   const dispatch = useDispatch();
+  const [confirmMockServerDisable, setConfirmMockServerDisable] = useState(false);
+  const unsavedMockResponses = useMemo(() => getUnsavedMockResponses(mockResponseEditors), [mockResponseEditors]);
 
   // Generate validation schema dynamically from beta features
   const generateValidationSchema = () => {
@@ -159,12 +165,34 @@ const Beta = ({ close }) => {
 
   const hasAnyBetaFeatures = BETA_FEATURES.length > 0;
 
+  const disableMockServer = () => {
+    setConfirmMockServerDisable(false);
+    dispatch(closeMockServerTabs());
+    formik.setFieldValue(BETA_FEATURE_IDS.MOCK_SERVER, false);
+  };
+
+  const saveAndDisableMockServer = async () => {
+    try {
+      await Promise.all(unsavedMockResponses.map((response) => dispatch(saveMockResponseEditor(response.uid))));
+      disableMockServer();
+    } catch (err) {
+      toast.error(err.message || 'Failed to save mock response');
+    }
+  };
+
   const handleToggle = (featureId) => {
     const enabled = !formik.values[featureId];
-    if (featureId === BETA_FEATURE_IDS.MOCK_SERVER && !enabled) {
-      dispatch(closeMockServerTabs());
+    if (featureId !== BETA_FEATURE_IDS.MOCK_SERVER || enabled) {
+      formik.setFieldValue(featureId, enabled);
+      return;
     }
-    formik.setFieldValue(featureId, enabled);
+
+    if (unsavedMockResponses.length) {
+      setConfirmMockServerDisable(true);
+      return;
+    }
+
+    disableMockServer();
   };
 
   const goToTab = useCallback((tab) => {
@@ -173,6 +201,15 @@ const Beta = ({ close }) => {
 
   return (
     <StyledWrapper>
+      {confirmMockServerDisable ? (
+        <ConfirmRequestClose
+          name={unsavedMockResponses.map((response) => response.name).join(', ')}
+          type={pluralizeWord('mock response', unsavedMockResponses.length)}
+          onCancel={() => setConfirmMockServerDisable(false)}
+          onCloseWithoutSave={disableMockServer}
+          onSaveAndClose={saveAndDisableMockServer}
+        />
+      ) : null}
       <div className="section-header">Beta Features</div>
       <form onSubmit={formik.handleSubmit}>
         <div className="mb-6">

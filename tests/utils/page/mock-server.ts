@@ -81,6 +81,7 @@ export const buildMockServerLocators = (page: Page) => ({
   logDurationCell: () => page.getByTestId('mock-server-log-table').locator('[data-testid="column-duration"]').first(),
 
   betaToggle: () => page.getByTestId('mock-server-beta-toggle'),
+  unsavedChangesDialog: () => page.locator('.bruno-modal').filter({ hasText: 'Unsaved changes' }),
   responseListOpenBtns: () => page.locator('.response-item-open'),
   responseListNames: () => page.locator('.response-item-open .response-item-name'),
 
@@ -192,7 +193,11 @@ export const openMockServerSettings = async (page: Page, serverName: string) => 
   });
 };
 
-export const setMockServerBetaFeature = async (page: Page, enabled: boolean) => {
+export const setMockServerBetaFeature = async (
+  page: Page,
+  enabled: boolean,
+  { resolveUnsavedChanges }: { resolveUnsavedChanges?: 'save' | 'discard' } = {}
+) => {
   await test.step(`${enabled ? 'Enable' : 'Disable'} the Mock Server beta feature`, async () => {
     const ms = buildMockServerLocators(page);
     await openPreferences(page);
@@ -200,6 +205,10 @@ export const setMockServerBetaFeature = async (page: Page, enabled: boolean) => 
     const checkbox = ms.betaToggle().locator('input[type="checkbox"]');
     if ((await checkbox.isChecked()) !== enabled) {
       await ms.betaToggle().locator('label').click();
+    }
+    if (resolveUnsavedChanges) {
+      const buttonName = resolveUnsavedChanges === 'save' ? 'Save' : 'Don\'t Save';
+      await ms.unsavedChangesDialog().getByRole('button', { name: buttonName, exact: true }).click();
     }
     await expect(checkbox).toBeChecked({ checked: enabled });
     await closePreferences(page);

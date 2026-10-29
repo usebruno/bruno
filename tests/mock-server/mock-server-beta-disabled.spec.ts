@@ -195,4 +195,63 @@ test.describe('Turning off the Mock Server beta feature', () => {
       await closeElectronApp(app);
     }
   });
+
+  test('asks whether to save unsaved mock response edits before turning the feature off', async ({
+    launchElectronApp,
+    collectionFixturePath
+  }) => {
+    const discardedName = 'discarded-mock-response-name';
+    const savedName = 'saved-mock-response-name';
+    const app = await launchApp(launchElectronApp, collectionFixturePath);
+
+    try {
+      const page = await waitForReadyPage(app);
+      const ms = buildMockServerLocators(page);
+      const { tabs } = buildCommonLocators(page);
+      let originalName = '';
+
+      const editOpenResponseName = async (name: string) => {
+        await ms.responseEditBtn().click();
+        await ms.responseNameInput().fill(name);
+      };
+
+      const reopenResponses = async () => {
+        await setMockServerBetaFeature(page, true);
+        await openMockServerTab(page, COLLECTION_NAME);
+        await ms.tabResponses().click();
+      };
+
+      await test.step('Open a mock response and edit its name without saving', async () => {
+        await createMockServerFromCollection(page, COLLECTION_NAME, SERVER_NAME);
+        originalName = await openFirstMockResponse(page);
+        await editOpenResponseName(discardedName);
+      });
+
+      await setMockServerBetaFeature(page, false, { resolveUnsavedChanges: 'discard' });
+
+      await test.step('Don\'t Save closes the tabs and keeps the saved name', async () => {
+        await expect(tabs.requestTab(originalName)).toHaveCount(0);
+        await reopenResponses();
+        await expect(ms.responseOpenBtn(originalName)).toBeVisible();
+        await expect(ms.responseOpenBtn(discardedName)).toHaveCount(0);
+      });
+
+      await test.step('Edit the name again without saving', async () => {
+        await ms.responseOpenBtn(originalName).dblclick();
+        await expect(tabs.requestTab(originalName)).toBeVisible();
+        await editOpenResponseName(savedName);
+      });
+
+      await setMockServerBetaFeature(page, false, { resolveUnsavedChanges: 'save' });
+
+      await test.step('Save writes the edit before the tabs close', async () => {
+        await expect(tabs.requestTab(originalName)).toHaveCount(0);
+        await reopenResponses();
+        await expect(ms.responseOpenBtn(savedName)).toBeVisible();
+        await expect(ms.responseOpenBtn(originalName)).toHaveCount(0);
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
 });

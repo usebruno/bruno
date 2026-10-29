@@ -111,6 +111,12 @@ export const hasUnsavedMockResponseChanges = (editor, responseUid) => {
   }
 };
 
+export const getUnsavedMockResponses = (editors) => (
+  Object.entries(editors)
+    .filter(([responseUid, editor]) => hasUnsavedMockResponseChanges(editor, responseUid))
+    .map(([responseUid, editor]) => ({ uid: responseUid, name: editor.savedMockResponse.name }))
+);
+
 export const shouldRebuildMockResponseEditor = (editor, storedResponse) => {
   if (!editor || editor.savedMockResponse?.uid !== storedResponse.uid) {
     return true;
