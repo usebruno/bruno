@@ -287,11 +287,10 @@ export const test = baseTest.extend<
           }
         }
 
-        const { ELECTRON_RUN_AS_NODE: _electronRunAsNode, ...launchEnv } = process.env;
         const app = await playwright._electron.launch({
           args: [electronAppPath, '--disable-gpu'],
           env: {
-            ...launchEnv,
+            ...process.env,
             ELECTRON_USER_DATA_PATH: userDataPath,
             DISABLE_SAMPLE_COLLECTION_IMPORT: 'true',
             PLAYWRIGHT: 'true',

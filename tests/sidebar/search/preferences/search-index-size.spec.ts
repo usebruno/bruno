@@ -1,9 +1,8 @@
 import { test, expect, closeElectronApp } from '../../../../playwright';
 import path from 'path';
-import fs from 'fs';
 import { clearSearchIndex, openPreferences, selectPreferencesTab, waitForReadyPage } from '../../../utils/page';
 import { initBruCollection, writeBruRequest } from '../../../utils/fixtures/bru-collection';
-import { version } from '../../../../packages/bruno-app/package.json';
+import { writePreferences } from '../helpers';
 
 test.describe('Preferences > Cache > Search index', () => {
   test('shows the index size and resets it to 0B when cleared', async ({ launchElectronApp, createTmpDir }) => {
@@ -14,14 +13,7 @@ test.describe('Preferences > Cache > Search index', () => {
     writeBruRequest(collection, 'size-probe', { seq: 1, url: 'https://size.example/probe' });
 
     const userDataPath = await createTmpDir('search-index-size-userdata');
-    fs.mkdirSync(userDataPath, { recursive: true });
-    fs.writeFileSync(path.join(userDataPath, 'preferences.json'), JSON.stringify({
-      lastOpenedCollections: [collection],
-      preferences: {
-        onboarding: { hasLaunchedBefore: true, hasSeenWelcomeModal: true, lastSeenVersion: version },
-        cache: { file: { enabled: false }, searchIndex: { enabled: true } }
-      }
-    }));
+    writePreferences(userDataPath, [collection], false);
 
     const app = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(app);
@@ -65,14 +57,7 @@ test.describe('Preferences > Cache > Search index', () => {
     writeBruRequest(collection, 'toggle-probe', { seq: 1, url: 'https://toggle.example/probe' });
 
     const userDataPath = await createTmpDir('search-index-size-toggle-userdata');
-    fs.mkdirSync(userDataPath, { recursive: true });
-    fs.writeFileSync(path.join(userDataPath, 'preferences.json'), JSON.stringify({
-      lastOpenedCollections: [collection],
-      preferences: {
-        onboarding: { hasLaunchedBefore: true, hasSeenWelcomeModal: true, lastSeenVersion: version },
-        cache: { file: { enabled: false }, searchIndex: { enabled: true } }
-      }
-    }));
+    writePreferences(userDataPath, [collection], false);
 
     const app = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(app);

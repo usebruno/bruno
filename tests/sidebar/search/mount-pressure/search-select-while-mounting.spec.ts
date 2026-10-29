@@ -1,34 +1,17 @@
 import { test, expect, closeElectronApp } from '../../../../playwright';
-import path from 'path';
 import { clearSearchIndex, waitForReadyPage, waitForCollectionMount } from '../../../utils/page';
 import { buildSidebarLocators } from '../../../utils/page/sidebar';
-import {
-  buildPressureCollection,
-  PRESSURE_REQUEST_COUNT,
-  V1_PRESSURE_REQUEST_COUNT,
-  writePreferences
-} from './helpers';
+import { buildPressureCollections, PRESSURE_CACHE_MODES, writePreferences } from '../helpers';
 
 const SEARCH_RESULT_TIMEOUT_MS = 30_000;
 const MOUNT_TIMEOUT_MS = 180_000;
-const cacheModes = [
-  { label: 'file cache off', enabled: false, requestCount: V1_PRESSURE_REQUEST_COUNT },
-  { label: 'file cache on', enabled: true, requestCount: PRESSURE_REQUEST_COUNT }
-];
 
-for (const cacheMode of cacheModes) {
+for (const cacheMode of PRESSURE_CACHE_MODES) {
   test(`[${cacheMode.label}] selecting a search result in another collection while the first one mounts opens both`, async ({ launchElectronApp, createTmpDir }) => {
     test.setTimeout(420_000);
     const tag = cacheMode.enabled ? 'on' : 'off';
     const root = await createTmpDir(`search-select-while-mounting-${tag}`);
-    const collectionA = buildPressureCollection(path.join(root, 'PressureA'), 'PressureA', {
-      name: 'needle-alpha-unique',
-      url: 'https://needle-alpha.unique.example/resource'
-    }, cacheMode.requestCount);
-    const collectionB = buildPressureCollection(path.join(root, 'PressureB'), 'PressureB', {
-      name: 'needle-bravo-unique',
-      url: 'https://needle-bravo.unique.example/resource'
-    }, cacheMode.requestCount);
+    const [collectionA, collectionB] = buildPressureCollections(root, cacheMode.requestCount);
 
     const userDataPath = await createTmpDir(`search-select-while-mounting-user-${tag}`);
     writePreferences(userDataPath, [collectionA, collectionB], cacheMode.enabled);

@@ -1,28 +1,11 @@
 import { test, expect, closeElectronApp } from '../../../../playwright';
 import path from 'path';
-import fs from 'fs';
 import { clearSearchIndex, waitForReadyPage } from '../../../utils/page';
 import { buildSidebarLocators } from '../../../utils/page/sidebar';
 import { initBruCollection, writeBruRequest } from '../../../utils/fixtures/bru-collection';
-import { version } from '../../../../packages/bruno-app/package.json';
+import { CACHE_MODES, writePreferences } from '../helpers';
 
-const cacheModes = [
-  { label: 'file cache off', enabled: false },
-  { label: 'file cache on', enabled: true }
-];
-
-const writePreferences = (userDataPath: string, collections: string[], fileCacheEnabled: boolean) => {
-  fs.mkdirSync(userDataPath, { recursive: true });
-  fs.writeFileSync(path.join(userDataPath, 'preferences.json'), JSON.stringify({
-    lastOpenedCollections: collections,
-    preferences: {
-      onboarding: { hasLaunchedBefore: true, hasSeenWelcomeModal: true, lastSeenVersion: version },
-      cache: { file: { enabled: fileCacheEnabled }, searchIndex: { enabled: true } }
-    }
-  }));
-};
-
-for (const cacheMode of cacheModes) {
+for (const cacheMode of CACHE_MODES) {
   test(`[${cacheMode.label}] searches unmounted collections after multiple mounts`, async ({ launchElectronApp, createTmpDir }) => {
     test.setTimeout(120_000);
     const root = await createTmpDir(`search-unmounted-${cacheMode.enabled ? 'on' : 'off'}`);
@@ -103,14 +86,7 @@ test('[search index off] does not search unmounted collections', async ({ launch
   writeBruRequest(collectionA, 'hidden-unmounted', { seq: 1, url: 'https://hidden.example/one' });
 
   const userDataPath = await createTmpDir('search-index-off-userdata');
-  fs.mkdirSync(userDataPath, { recursive: true });
-  fs.writeFileSync(path.join(userDataPath, 'preferences.json'), JSON.stringify({
-    lastOpenedCollections: [collectionA],
-    preferences: {
-      onboarding: { hasLaunchedBefore: true, hasSeenWelcomeModal: true, lastSeenVersion: version },
-      cache: { file: { enabled: false }, searchIndex: { enabled: false } }
-    }
-  }));
+  writePreferences(userDataPath, [collectionA], false, false);
 
   const app = await launchElectronApp({ userDataPath });
   const page = await waitForReadyPage(app);

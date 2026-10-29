@@ -1,19 +1,44 @@
 import { test, expect, closeElectronApp } from '../../../../playwright';
 import path from 'path';
+import fs from 'fs';
 import { clearSearchIndex, waitForReadyPage, waitForCollectionMount } from '../../../utils/page';
 import { buildSidebarLocators } from '../../../utils/page/sidebar';
-import { buildLargeYmlCollection, writePreferences } from './helpers';
+import { CACHE_MODES, writePreferences } from '../helpers';
 
 const LARGE_REQUEST_COUNT = 8000;
 const OTHER_REQUEST_COUNT = 2000;
 const SEARCH_RESULT_TIMEOUT_MS = 20_000;
 const MOUNT_TIMEOUT_MS = 300_000;
-const cacheModes = [
-  { label: 'file cache off', enabled: false },
-  { label: 'file cache on', enabled: true }
-];
+const HEADER_COUNT = 60;
+const REQUESTS_PER_FOLDER = 200;
 
-for (const cacheMode of cacheModes) {
+const writeYmlRequest = (dir: string, name: string, seq: number, url: string) => {
+  const headers = Array.from({ length: HEADER_COUNT }, (_, i) => `    - name: X-Header-${i}\n      value: value-${seq}-${i}-padding-padding-padding`).join('\n');
+  fs.writeFileSync(
+    path.join(dir, `${name}.yml`),
+    `info:\n  name: ${name}\n  type: http\n  seq: ${seq}\n\nhttp:\n  method: GET\n  url: ${url}\n  headers:\n${headers}\n`
+  );
+};
+
+/** Writes a YAML collection whose requests carry ~5KB of headers each, plus one named needle request. */
+const buildLargeYmlCollection = (dir: string, name: string, requestCount: number, needle: string) => {
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'opencollection.yml'), `opencollection: 1.0.0\n\ninfo:\n  name: ${name}\n`);
+  for (let f = 0; f * REQUESTS_PER_FOLDER < requestCount; f += 1) {
+    const folderDir = path.join(dir, `folder-${f}`);
+    fs.mkdirSync(folderDir, { recursive: true });
+    fs.writeFileSync(path.join(folderDir, 'folder.yml'), `info:\n  name: folder-${f}\n  type: folder\n  seq: ${f + 1}\n`);
+    const count = Math.min(REQUESTS_PER_FOLDER, requestCount - f * REQUESTS_PER_FOLDER);
+    for (let r = 0; r < count; r += 1) {
+      const seq = f * REQUESTS_PER_FOLDER + r + 1;
+      writeYmlRequest(folderDir, `request-${seq}`, seq, `https://api.example.com/v1/resource/${seq}`);
+    }
+  }
+  writeYmlRequest(dir, needle, 1, `https://${needle}.example/resource`);
+  return dir;
+};
+
+for (const cacheMode of CACHE_MODES) {
   test(`[${cacheMode.label}] sidebar search works while a large collection mounts from the restored snapshot`, async ({ launchElectronApp, createTmpDir }) => {
     test.setTimeout(900_000);
     const tag = cacheMode.enabled ? 'on' : 'off';
