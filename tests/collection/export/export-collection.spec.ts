@@ -66,7 +66,7 @@ test.describe('Export Bruno collection', () => {
     });
 
     await test.step('Collection exported toast is shown', async () => {
-      expect(toast.byMessage('Collection exported successfully').first()).toBeVisible();
+      await expect(toast.byMessage('Collection exported successfully').first()).toBeVisible();
     });
 
     await test.step('Exported collection file is written', async () => {
