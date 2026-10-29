@@ -84,7 +84,7 @@ const Advanced = ({
 
               {filterByTags && (
                 <IncludeExcludeTags
-                  testId="docs-tags"
+                  dataTestId="docs-tags"
                   className="adv-tags"
                   tags={tags}
                   availableTags={availableTags}
