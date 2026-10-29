@@ -23,6 +23,7 @@ const {
 } = require('@usebruno/requests');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { prepareRequest } = require('./prepare-request');
+const { buildScriptResponse, applyRequestSent } = require('./stored-response');
 const interpolateVars = require('./interpolate-vars');
 const { applyCollectionVarsToCollectionRoot } = require('./apply-collection-vars');
 const { makeAxiosInstance, completeOpenHop } = require('./axios-instance');
@@ -731,7 +732,34 @@ const registerNetworkIpc = (mainWindow) => {
       }
     }
 
-    // run post-response script
+    return runPostResponseScript(
+      request,
+      response,
+      requestUid,
+      envVars,
+      collectionPath,
+      collection,
+      collectionUid,
+      runtimeVariables,
+      processEnvVars,
+      scriptingConfig,
+      runRequestByItemPathname
+    );
+  };
+
+  const runPostResponseScript = async (
+    request,
+    response,
+    requestUid,
+    envVars,
+    collectionPath,
+    collection,
+    collectionUid,
+    runtimeVariables,
+    processEnvVars,
+    scriptingConfig,
+    runRequestByItemPathname
+  ) => {
     const responseScript = get(request, 'script.res');
     let scriptResult;
     const collectionName = collection?.name;
@@ -760,7 +788,7 @@ const registerNetworkIpc = (mainWindow) => {
     return scriptResult;
   };
 
-  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, callerBru = null, parentExecutionMode = null, parentRunnerEventData = null, parentRequestUid = null, parentUnresolvedVariables = null }) => {
+  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, callerBru = null, parentExecutionMode = null, parentRunnerEventData = null, parentRequestUid = null, parentUnresolvedVariables = null, reusedResponse = null }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
@@ -886,7 +914,7 @@ const registerNetworkIpc = (mainWindow) => {
       });
     };
 
-    !runInBackground && mainWindow.webContents.send('main:run-request-event', {
+    !runInBackground && !reusedResponse && mainWindow.webContents.send('main:run-request-event', {
       type: 'request-queued',
       requestUid,
       collectionUid,
@@ -930,6 +958,63 @@ const registerNetworkIpc = (mainWindow) => {
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
     scriptingConfig.cacheModules = false;
 
+    // Reports the post-response outcome (variables, tests, script errors) to the renderer.
+    // `scriptOnly` skips post-response vars so a re-run only executes the script.
+    const runPostResponseAndReport = async (response, { scriptOnly = false } = {}) => {
+      const runPostResponseFn = scriptOnly ? runPostResponseScript : runPostResponse;
+      let postResponseScriptResult = null;
+      let postResponseError = null;
+      try {
+        postResponseScriptResult = await runPostResponseFn(request,
+          response,
+          requestUid,
+          envVars,
+          collectionPath,
+          collection,
+          collectionUid,
+          runtimeVariables,
+          processEnvVars,
+          scriptingConfig,
+          runRequestByItemPathname);
+      } catch (error) {
+        console.error('Post-response script error:', error);
+        postResponseError = error;
+      }
+
+      // Extract partial results from error if available
+      // This preserves any test() calls that passed before the script errored
+      // (e.g., if 2 tests pass then script throws, we still want to show those 2 passing tests)
+      if (postResponseError?.partialResults) {
+        postResponseScriptResult = postResponseError.partialResults;
+        // Forward any variable mutations the script made before throwing.
+        sendVariableUpdates(postResponseScriptResult, { collectionUid, requestUid, collection });
+      }
+
+      emitScriptedRequestEvents('post-response', postResponseScriptResult);
+
+      postResponseScriptResult = appendScriptErrorResult('post-response', postResponseScriptResult, postResponseError);
+
+      if (postResponseScriptResult?.results) {
+        mainWindow.webContents.send('main:run-request-event', {
+          type: 'test-results-post-response',
+          results: postResponseScriptResult.results,
+          itemUid: item.uid,
+          requestUid,
+          collectionUid
+        });
+      }
+
+      !runInBackground && notifyScriptExecution({
+        channel: 'main:run-request-event',
+        basePayload: { requestUid, collectionUid, itemUid: item.uid },
+        scriptType: 'post-response',
+        error: postResponseError,
+        itemPathname: item.pathname,
+        collectionPath,
+        scriptMetadata: request.script?.resMetadata
+      });
+    };
+
     try {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
@@ -947,6 +1032,19 @@ const registerNetworkIpc = (mainWindow) => {
 
       // Add certsAndProxyConfig to request object for bru.sendRequest
       request.certsAndProxyConfig = certsAndProxyConfig;
+
+      if (reusedResponse) {
+        // Only the post-response script runs, against the response of an earlier run: the request is
+        // not sent again and the pre-request pipeline is skipped.
+        applyRequestSent(request, item.requestSent);
+        await runPostResponseAndReport(
+          buildScriptResponse(reusedResponse, request.__brunoDisableParsingResponseJson),
+          { scriptOnly: true }
+        );
+        deleteCancelToken(cancelTokenUid);
+        return {};
+      }
+
       let preRequestScriptResult = null;
       let preRequestError = null;
       try {
@@ -1130,6 +1228,10 @@ const registerNetworkIpc = (mainWindow) => {
         : parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
       response.dataBuffer = dataBuffer;
+      // A post-response script can replace response.dataBuffer (res.setBody()) or edit it in place
+      // (res.getDataBuffer()); keep a copy of the bytes that were received so a later re-run starts
+      // from the real response
+      const receivedDataBuffer = Buffer.from(response.dataBuffer);
 
       response.responseTime = responseTime;
 
@@ -1145,57 +1247,7 @@ const registerNetworkIpc = (mainWindow) => {
       cookiesStore.saveCookieJar();
 
       const runPostScripts = async () => {
-        let postResponseScriptResult = null;
-        let postResponseError = null;
-        try {
-          postResponseScriptResult = await runPostResponse(request,
-            response,
-            requestUid,
-            envVars,
-            collectionPath,
-            collection,
-            collectionUid,
-            runtimeVariables,
-            processEnvVars,
-            scriptingConfig,
-            runRequestByItemPathname);
-        } catch (error) {
-          console.error('Post-response script error:', error);
-          postResponseError = error;
-        }
-
-        // Extract partial results from error if available
-        // This preserves any test() calls that passed before the script errored
-        // (e.g., if 2 tests pass then script throws, we still want to show those 2 passing tests)
-        if (postResponseError?.partialResults) {
-          postResponseScriptResult = postResponseError.partialResults;
-          // Forward any variable mutations the script made before throwing.
-          sendVariableUpdates(postResponseScriptResult, { collectionUid, requestUid, collection });
-        }
-
-        emitScriptedRequestEvents('post-response', postResponseScriptResult);
-
-        postResponseScriptResult = appendScriptErrorResult('post-response', postResponseScriptResult, postResponseError);
-
-        if (postResponseScriptResult?.results) {
-          mainWindow.webContents.send('main:run-request-event', {
-            type: 'test-results-post-response',
-            results: postResponseScriptResult.results,
-            itemUid: item.uid,
-            requestUid,
-            collectionUid
-          });
-        }
-
-        !runInBackground && notifyScriptExecution({
-          channel: 'main:run-request-event',
-          basePayload: { requestUid, collectionUid, itemUid: item.uid },
-          scriptType: 'post-response',
-          error: postResponseError,
-          itemPathname: item.pathname,
-          collectionPath,
-          scriptMetadata: request.script?.resMetadata
-        });
+        await runPostResponseAndReport(response);
 
         // run assertions
         const assertions = get(request, 'assertions');
@@ -1317,6 +1369,7 @@ const registerNetworkIpc = (mainWindow) => {
         sseChunks: isResponseStream ? sseChunks : null,
         cancelTokenUid: cancelTokenUid,
         dataBuffer: response.dataBuffer.toString('base64'),
+        receivedDataBuffer: response.dataBuffer.equals(receivedDataBuffer) ? undefined : receivedDataBuffer.toString('base64'),
         size: Buffer.byteLength(response.dataBuffer),
         duration: responseTime ?? 0,
         url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,
@@ -1424,6 +1477,23 @@ const registerNetworkIpc = (mainWindow) => {
       });
     }
     return response;
+  });
+
+  // Re-runs the post-response script against the response the renderer already holds, without
+  // sending the request again. Failures of the script itself are reported through the usual
+  // run-request events; the returned `error` only covers a request that cannot be re-run.
+  ipcMain.handle('renderer:run-post-response-script', async (event, item, collection, environment, runtimeVariables) => {
+    const collectionUid = collection.uid;
+    const envVars = getEnvVars(environment);
+    const processEnvVars = getProcessEnvVars(collectionUid);
+    const response = item.response;
+
+    if (!['http-request', 'graphql-request'].includes(item.type) || !response || response.error || response.stream) {
+      return { error: 'There is no completed response to run the post-response script against' };
+    }
+
+    const result = await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false, reusedResponse: response });
+    return { error: result.error };
   });
 
   ipcMain.handle('clear-oauth2-cache', async (event, uid, url, credentialsId) => {
