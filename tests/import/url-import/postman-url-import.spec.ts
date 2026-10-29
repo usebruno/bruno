@@ -13,7 +13,7 @@ test.describe('Postman URL import', () => {
     // so give the import more room than that fetch.
     test.setTimeout(60_000);
 
-    const postmanUrl = 'https://raw.githubusercontent.com/usebruno/bruno/refs/heads/test/postman-url-import-tc-811/tests/import/postman/fixtures/postman-url-import-collection.json';
+    const postmanUrl = 'https://raw.githubusercontent.com/aparna-bruno/bruno/refs/heads/test/postman-url-import-tc-811/tests/import/postman/fixtures/postman-url-import-collection.json';
     const { plusMenu, import: importLocators, request, sidebar, table, auth } = buildCommonLocators(page);
     const collectionName = 'Sunshine Conversations API';
 
