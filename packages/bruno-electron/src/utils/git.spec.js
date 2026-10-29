@@ -52,29 +52,11 @@ describe('parseRemoteBranches', () => {
 });
 
 describe('cloneGitRepository', () => {
-  const originalPlatform = process.platform;
   const win = { webContents: { send: jest.fn() } };
 
-  const setPlatform = (platform) => Object.defineProperty(process, 'platform', { value: platform });
+  it('enables core.longpaths so deeply nested files can be checked out on Windows', async () => {
+    await cloneGitRepository(win, { url: 'https://example.com/repo.git', path: '/collections/repo', processUid: 'p1' });
 
-  afterEach(() => {
-    setPlatform(originalPlatform);
-    simpleGit.mockClear();
-  });
-
-  it('enables core.longpaths on Windows so deeply nested files can be checked out', async () => {
-    setPlatform('win32');
-
-    await cloneGitRepository(win, { url: 'https://example.com/repo.git', path: 'C:\\collections\\repo', processUid: 'p1' });
-
-    expect(simpleGit).toHaveBeenCalledWith({ baseDir: 'C:\\collections\\repo', config: ['core.longpaths=true'] });
-  });
-
-  it('passes no extra git config on other platforms', async () => {
-    setPlatform('darwin');
-
-    await cloneGitRepository(win, { url: 'https://example.com/repo.git', path: '/collections/repo', processUid: 'p2' });
-
-    expect(simpleGit).toHaveBeenCalledWith({ baseDir: '/collections/repo', config: [] });
+    expect(simpleGit).toHaveBeenCalledWith({ baseDir: '/collections/repo', config: ['core.longpaths=true'] });
   });
 });

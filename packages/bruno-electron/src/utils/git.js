@@ -9,9 +9,8 @@ let collectionPathToGitRootPathMap = new Map();
 
 const simpleGitInstances = new Map();
 
-// Enable core.longpaths on Windows, where git rejects paths over 260 chars by default
-const createSimpleGit = (baseDir) =>
-  simpleGit({ baseDir, config: process.platform === 'win32' ? ['core.longpaths=true'] : [] });
+// core.longpaths lifts the 260-char path limit on Windows
+const createSimpleGit = (baseDir) => simpleGit({ baseDir, config: ['core.longpaths=true'] });
 
 const REMOTE_BRANCH_LISTING_TIMEOUT_MS = 10000;
 
