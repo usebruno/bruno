@@ -1,10 +1,8 @@
 const { get, each, find } = require('lodash');
-const os = require('os');
 const fs = require('fs');
 const path = require('path');
-const { sanitizeName } = require('./filesystem');
 const { getEffectiveTags, getFolderTags, getOwnTags, normalizeLineEndings } = require('@usebruno/common');
-const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
+const { parseRequest, parseCollection, parseFolder } = require('@usebruno/filestore');
 const { sortByNameThenSequence } = require('@usebruno/common');
 const constants = require('../constants');
 const chalk = require('chalk');
