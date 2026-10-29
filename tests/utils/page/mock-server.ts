@@ -1,4 +1,4 @@
-import { test, Page } from '../../../playwright';
+import { test, Page, Locator } from '../../../playwright';
 
 // Locators for the Mock Server dashboard, routes table, request log, and related modals.
 export const buildMockServerLocators = (page: Page) => ({
@@ -41,6 +41,8 @@ export const buildMockServerLocators = (page: Page) => ({
 
   createModal: () => page.locator('.bruno-modal-card'),
   nameInput: () => page.getByTestId('mock-server-name-input'),
+  advancedSettingsToggle: () => page.getByTestId('mock-server-advanced-settings-toggle'),
+  portInput: () => page.getByTestId('mock-server-port-input'),
   nameRequiredError: () => page.getByText('Name is required'),
   collectionRequiredError: () => page.getByText('Collection is required'),
   collectionSelect: () => page.getByTestId('mock-server-collection-select'),
@@ -67,6 +69,9 @@ export const buildMockServerLocators = (page: Page) => ({
   logCount: () => page.getByTestId('mock-server-log-count'),
   logClear: () => page.getByTestId('mock-server-log-clear'),
   logEmptyState: () => page.getByText('No requests logged yet'),
+  logRows: () => page.getByTestId('mock-server-log-table').locator('tr[data-testid^="mock-server-log-row-"]'),
+  logRowStatusCode: (row: Locator) => row.locator('.status-code'),
+  logRowNoMatchLabel: (row: Locator) => row.locator('.no-match-label'),
   logMethodBadges: () => page.getByTestId('mock-server-log-table').locator('.method-badge'),
   logPaths: () => page.getByTestId('mock-server-log-table').locator('.log-path'),
   logNoMatchLabels: () => page.getByTestId('mock-server-log-table').locator('.no-match-label'),
@@ -139,7 +144,7 @@ export const openCreateMockServerModal = async (page: Page) => {
 };
 
 // Open the create-mock-server flow from a collection's actions menu and submit a name.
-export const createMockServerFromCollection = async (page: Page, collectionName: string, serverName: string) => {
+export const createMockServerFromCollection = async (page: Page, collectionName: string, serverName: string, port?: string) => {
   await test.step(`Create mock server "${serverName}" for "${collectionName}"`, async () => {
     const ms = buildMockServerLocators(page);
     const collection = ms.collectionRow(collectionName);
@@ -149,14 +154,19 @@ export const createMockServerFromCollection = async (page: Page, collectionName:
     await ms.createMockServerMenuItem().click();
     await ms.createModal().waitFor({ state: 'visible', timeout: 10000 });
     await ms.nameInput().fill(serverName);
+    if (port) {
+      await ms.advancedSettingsToggle().click();
+      await ms.portInput().fill(port);
+      await ms.portInput().blur();
+    }
     await ms.modalSubmit().click();
     await ms.dashboard().waitFor({ state: 'visible', timeout: 10000 });
   });
 };
 
 // Open an existing mock server's Settings modal via its sidebar row and the dashboard.
-export const openMockServerSettings = async (page: Page, serverName: string) => {
-  await test.step(`Open settings for mock server "${serverName}"`, async () => {
+export const openMockServerFromSidebar = async (page: Page, serverName: string) => {
+  await test.step(`Open mock server "${serverName}" from the sidebar`, async () => {
     const ms = buildMockServerLocators(page);
     const section = ms.sidebarSection();
     if (!(await section.evaluate((el) => el.classList.contains('expanded')))) {
@@ -165,6 +175,13 @@ export const openMockServerSettings = async (page: Page, serverName: string) => 
     await section.locator('.section-content').waitFor({ state: 'visible', timeout: 10000 });
     await ms.sidebarItem(serverName).click();
     await ms.dashboard().waitFor({ state: 'visible', timeout: 10000 });
+  });
+};
+
+export const openMockServerSettings = async (page: Page, serverName: string) => {
+  await test.step(`Open settings for mock server "${serverName}"`, async () => {
+    const ms = buildMockServerLocators(page);
+    await openMockServerFromSidebar(page, serverName);
     await ms.settingsBtn().click();
     await ms.nameInput().waitFor({ state: 'visible', timeout: 10000 });
   });
