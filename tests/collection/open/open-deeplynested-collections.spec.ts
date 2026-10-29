@@ -18,7 +18,7 @@ test.describe('Open deeply nested collections', () => {
   test.afterAll(async ({ electronApp }) => {
     await electronApp.evaluate(({ dialog }) => {
       dialog.showOpenDialog = (global as any).__origShowOpenDialog;
-    }); 
+    });
   });
 
   test.afterEach(async ({ page }) => {
