@@ -10,6 +10,7 @@
  */
 
 import j from 'jscodeshift';
+import { extractPackagesFromScript } from './postman-package-detector';
 
 // Both roots are counted, each kept distinct: `postman.setEnvironmentVariable`
 // has no `pm.*` equivalent, so folding them together would invent an API name
@@ -106,7 +107,8 @@ export const buildScriptUsage = ({ source, translated, fellBackToRegex }) => {
 
   try {
     const sourceApis = countApiCalls(source);
-    const untranslated = countApiCalls(translated);
+    const { translatedSource } = extractPackagesFromScript(translated);
+    const untranslated = countApiCalls(translatedSource);
     const untranslatedApis = {};
 
     for (const [api, count] of Object.entries(untranslated.byApi)) {

@@ -169,4 +169,34 @@ describe('postman script report (against the real converter)', () => {
       scriptsFellBackToRegex: 0
     });
   });
+
+  it('counts a pm.require the import rewrites to require() as translated', async () => {
+    const { collection, scriptTranslationReport } = await postmanToBruno(
+      buildCollection([requestItem('library', ['const _ = pm.require("lodash");', 'pm.environment.set("k", "v");'])])
+    );
+
+    expect(collection.items[0].request.script.res).toContain('require("lodash")');
+    expect(collection.items[0].request.script.res).not.toContain('pm.require');
+
+    expect(scriptTranslationReport).toEqual({
+      preserveScripts: false,
+      fullyTranslated: true,
+      apiCallsTotal: 2,
+      apiCallsUntranslated: 0,
+      untranslatedApis: {},
+      scriptsFellBackToRegex: 0
+    });
+  });
+
+  it('still reports a pm.require the rewrite cannot resolve', async () => {
+    // A non-literal specifier is left alone by the rewrite, so it really does
+    // reach the user as `pm.require`.
+    const { collection, scriptTranslationReport } = await postmanToBruno(
+      buildCollection([requestItem('dynamic', ['const lib = pm.require(packageName);'])])
+    );
+
+    expect(collection.items[0].request.script.res).toContain('pm.require');
+    expect(scriptTranslationReport.fullyTranslated).toBe(false);
+    expect(scriptTranslationReport.untranslatedApis).toEqual({ 'pm.require': 1 });
+  });
 });
