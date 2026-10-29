@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect, closeElectronApp, ElectronApplication, Page } from '../../playwright';
+import { test as base, expect, closeElectronApp, ElectronApplication, Page } from '../../playwright';
 import {
   findSnapshotCollectionEntry,
   openWorkspaceFromDialog,
@@ -38,6 +38,21 @@ const OTHER_WORKSPACE_YML = [
   ''
 ].join('\n');
 
+type MockServerApp = { app: ElectronApplication; page: Page; userDataPath: string };
+
+const test = base.extend<{ mockServerApp: MockServerApp }>({
+  mockServerApp: async ({ launchElectronApp, collectionFixturePath, createTmpDir }, use) => {
+    const userDataPath = await createTmpDir('mock-server-beta-disabled');
+    const app = await launchElectronApp({
+      initUserDataPath: path.join(__dirname, 'init-user-data'),
+      userDataPath,
+      templateVars: { collectionPath: collectionFixturePath! }
+    });
+    await use({ app, page: await waitForReadyPage(app), userDataPath });
+    await closeElectronApp(app);
+  }
+});
+
 const isPortServing = async (port: string) => {
   try {
     await fetch(`http://127.0.0.1:${port}/health`);
@@ -46,18 +61,6 @@ const isPortServing = async (port: string) => {
     return false;
   }
 };
-
-type LaunchElectronApp = (options: {
-  initUserDataPath?: string;
-  userDataPath?: string;
-  templateVars?: Record<string, string>;
-}) => Promise<ElectronApplication>;
-
-const launchApp = (launchElectronApp: LaunchElectronApp, collectionFixturePath: string | null, userDataPath?: string) => launchElectronApp({
-  initUserDataPath: path.join(__dirname, 'init-user-data'),
-  userDataPath,
-  templateVars: { collectionPath: collectionFixturePath! }
-});
 
 const turnOffMockServerInPreferencesFile = (userDataPath: string) => {
   const preferencesPath = path.join(userDataPath, 'preferences.json');
@@ -75,241 +78,191 @@ const openMockResponse = async (page: Page) => {
   await expect(tabs.requestTab(RESPONSE_NAME)).toBeVisible();
 };
 
+const openRunner = async (page: Page) => {
+  const { tabs, collectionHeader } = buildCommonLocators(page);
+  await buildMockServerLocators(page).collectionRow(COLLECTION_NAME).dblclick();
+  await expect(tabs.collectionSettingsTab()).toBeVisible();
+  await collectionHeader.runner().click();
+  await expect(tabs.requestTab(RUNNER_TAB)).toBeVisible();
+};
+
+const expectNoMockTabs = async (page: Page) => {
+  const { tabs } = buildCommonLocators(page);
+  await expect(tabs.requestTab(SERVER_NAME)).toHaveCount(0);
+  await expect(tabs.requestTab(RESPONSE_NAME)).toHaveCount(0);
+};
+
+const expectRunnerRestoredWithoutMockTabs = async (page: Page) => {
+  const { tabs } = buildCommonLocators(page);
+  await buildMockServerLocators(page).collectionName(COLLECTION_NAME).click();
+  await expect(tabs.requestTab(RUNNER_TAB)).toBeVisible({ timeout: 10000 });
+  await expectNoMockTabs(page);
+};
+
 test.describe('Turning off the Mock Server beta feature', () => {
   test.describe.configure({ timeout: 90_000 });
 
-  test('closes open mock tabs and stops running servers, and the feature works again once re-enabled', async ({
-    launchElectronApp,
-    collectionFixturePath
-  }) => {
-    const app = await launchApp(launchElectronApp, collectionFixturePath);
+  test('closes open mock tabs and stops running servers, and the feature works again once re-enabled', async ({ mockServerApp: { page } }) => {
+    const ms = buildMockServerLocators(page);
+    let port = '';
 
-    try {
-      const page = await waitForReadyPage(app);
-      const ms = buildMockServerLocators(page);
-      const { tabs } = buildCommonLocators(page);
-      let port = '';
+    await test.step('Create and start a mock server, then open one of its responses', async () => {
+      await createMockServerFromCollection(page, COLLECTION_NAME, SERVER_NAME);
+      port = await startMockServer(page);
+      expect(await isPortServing(port)).toBe(true);
+      await openMockResponse(page);
+    });
 
-      await test.step('Create and start a mock server, then open one of its responses', async () => {
-        await createMockServerFromCollection(page, COLLECTION_NAME, SERVER_NAME);
-        port = await startMockServer(page);
-        expect(await isPortServing(port)).toBe(true);
-        await openMockResponse(page);
-      });
+    await setMockServerBetaFeature(page, false);
 
-      await setMockServerBetaFeature(page, false);
+    await test.step('The mock tabs are closed and the running mock server is stopped', async () => {
+      await expectNoMockTabs(page);
+      await expect(ms.sidebarSection()).toHaveCount(0);
+      await expect.poll(() => isPortServing(port), { timeout: 15000 }).toBe(false);
+    });
 
-      await test.step('The mock server and mock response tabs are closed', async () => {
-        await expect(tabs.requestTab(SERVER_NAME)).toHaveCount(0);
-        await expect(tabs.requestTab(RESPONSE_NAME)).toHaveCount(0);
-        await expect(ms.sidebarSection()).toHaveCount(0);
-      });
+    await setMockServerBetaFeature(page, true);
 
-      await test.step('The running mock server was stopped', async () => {
-        await expect.poll(() => isPortServing(port), { timeout: 15000 }).toBe(false);
-      });
-
-      await setMockServerBetaFeature(page, true);
-
-      await test.step('The mock server can be opened again and shows as stopped', async () => {
-        await expect(ms.sidebarSection()).toBeVisible();
-        await openMockServerTab(page, COLLECTION_NAME);
-        await expect(ms.statusText()).toHaveText('Stopped');
-      });
-    } finally {
-      await closeElectronApp(app);
-    }
+    await test.step('The mock server can be opened again and shows as stopped', async () => {
+      await expect(ms.sidebarSection()).toBeVisible();
+      await openMockServerTab(page, COLLECTION_NAME);
+      await expect(ms.statusText()).toHaveText('Stopped');
+    });
   });
 
-  test('Reopen Last Closed Tab does not bring back any mock tab once the feature is off', async ({
-    launchElectronApp,
-    collectionFixturePath
-  }) => {
-    const app = await launchApp(launchElectronApp, collectionFixturePath);
+  test('Reopen Last Closed Tab does not bring back any mock tab once the feature is off', async ({ mockServerApp: { page } }) => {
+    const { tabs } = buildCommonLocators(page);
+    const reopenLastClosedTab = async () => {
+      await focusTabWithoutSidebarFocus(page, COLLECTION_SETTINGS_TAB);
+      await pressShortcut(page, modifier, 'Shift', 'KeyT');
+    };
 
-    try {
-      const page = await waitForReadyPage(app);
-      const ms = buildMockServerLocators(page);
-      const { tabs, collectionHeader } = buildCommonLocators(page);
+    await test.step('Close the runner tab, then a mock response, while the feature is on', async () => {
+      await createMockServerFromCollection(page, COLLECTION_NAME, SERVER_NAME);
+      await openRunner(page);
+      await closeTabByName(page, RUNNER_TAB);
+      await openMockResponse(page);
+      await closeTabByName(page, RESPONSE_NAME);
+    });
 
-      await test.step('Open and close the collection runner tab before any mock tab', async () => {
-        await createMockServerFromCollection(page, COLLECTION_NAME, SERVER_NAME);
-        await ms.collectionRow(COLLECTION_NAME).dblclick();
-        await expect(tabs.collectionSettingsTab()).toBeVisible();
-        await collectionHeader.runner().click();
-        await expect(tabs.requestTab(RUNNER_TAB)).toBeVisible();
-        await closeTabByName(page, RUNNER_TAB);
-      });
+    await setMockServerBetaFeature(page, false);
 
-      await test.step('Open a mock response and close it by hand while the feature is still on', async () => {
-        await openMockResponse(page);
-        await closeTabByName(page, RESPONSE_NAME);
-      });
-
-      await setMockServerBetaFeature(page, false);
-
-      await test.step('Reopen Last Closed Tab skips every mock tab closed after the runner', async () => {
-        await expect(tabs.requestTab(SERVER_NAME)).toHaveCount(0);
-        await focusTabWithoutSidebarFocus(page, COLLECTION_SETTINGS_TAB);
-        await pressShortcut(page, modifier, 'Shift', 'KeyT');
-        await expect(tabs.requestTab(PREFERENCES_TAB)).toBeVisible();
-        await focusTabWithoutSidebarFocus(page, COLLECTION_SETTINGS_TAB);
-        await pressShortcut(page, modifier, 'Shift', 'KeyT');
-        await expect(tabs.requestTab(RUNNER_TAB)).toBeVisible();
-        await expect(tabs.requestTab(SERVER_NAME)).toHaveCount(0);
-        await expect(tabs.requestTab(RESPONSE_NAME)).toHaveCount(0);
-      });
-    } finally {
-      await closeElectronApp(app);
-    }
+    await test.step('Reopening skips every mock tab closed after the runner', async () => {
+      await expectNoMockTabs(page);
+      await reopenLastClosedTab();
+      await expect(tabs.requestTab(PREFERENCES_TAB)).toBeVisible();
+      await reopenLastClosedTab();
+      await expect(tabs.requestTab(RUNNER_TAB)).toBeVisible();
+      await expectNoMockTabs(page);
+    });
   });
 
   test('mock tabs saved in another workspace are not restored after the feature is turned off', async ({
-    launchElectronApp,
-    collectionFixturePath,
+    mockServerApp: { app, page },
     createTmpDir
   }) => {
     const otherWorkspacePath = await createTmpDir('other-workspace');
     fs.writeFileSync(path.join(otherWorkspacePath, 'workspace.yml'), OTHER_WORKSPACE_YML);
-    const app = await launchApp(launchElectronApp, collectionFixturePath);
+    const titleBar = buildTitleBarLocators(page);
+    const startingWorkspaceName = await titleBar.activeWorkspaceName().innerText();
 
-    try {
-      const page = await waitForReadyPage(app);
-      const ms = buildMockServerLocators(page);
-      const { tabs, collectionHeader } = buildCommonLocators(page);
-      const titleBar = buildTitleBarLocators(page);
-      const startingWorkspaceName = await titleBar.activeWorkspaceName().innerText();
-
-      await test.step('Open the collection runner, a mock server dashboard and one of its responses', async () => {
-        await createMockServerFromCollection(page, COLLECTION_NAME, SERVER_NAME);
-        await ms.collectionRow(COLLECTION_NAME).dblclick();
-        await collectionHeader.runner().click();
-        await expect(tabs.requestTab(RUNNER_TAB)).toBeVisible();
-        await openMockResponse(page);
-      });
-
-      await test.step('Switch to another workspace and turn the feature off there', async () => {
-        await openWorkspaceFromDialog(app, page, otherWorkspacePath);
-        await expect(titleBar.activeWorkspaceName()).toHaveText(OTHER_WORKSPACE_NAME, { timeout: 10000 });
-        await setMockServerBetaFeature(page, false);
-      });
-
-      await test.step('Switching back restores the saved tabs without the mock tabs', async () => {
-        await switchWorkspace(page, startingWorkspaceName);
-        await ms.collectionName(COLLECTION_NAME).click();
-        await expect(tabs.requestTab(RUNNER_TAB)).toBeVisible({ timeout: 10000 });
-        await expect(tabs.requestTab(SERVER_NAME)).toHaveCount(0);
-        await expect(tabs.requestTab(RESPONSE_NAME)).toHaveCount(0);
-      });
-    } finally {
-      await closeElectronApp(app);
-    }
-  });
-
-  test('a mock response saved as the active tab is not restored on launch once the feature is off', async ({
-    launchElectronApp,
-    collectionFixturePath,
-    createTmpDir
-  }) => {
-    const userDataPath = await createTmpDir('mock-server-beta-disabled-restart');
-    const collectionPath = path.join(collectionFixturePath!, COLLECTION_NAME);
-    const app = await launchApp(launchElectronApp, collectionFixturePath, userDataPath);
-
-    await test.step('Open the collection runner, then a mock response as the active tab', async () => {
-      const page = await waitForReadyPage(app);
-      const ms = buildMockServerLocators(page);
-      const { tabs, collectionHeader } = buildCommonLocators(page);
+    await test.step('Open the collection runner and a mock response', async () => {
       await createMockServerFromCollection(page, COLLECTION_NAME, SERVER_NAME);
-      await ms.collectionRow(COLLECTION_NAME).dblclick();
-      await collectionHeader.runner().click();
-      await expect(tabs.requestTab(RUNNER_TAB)).toBeVisible();
+      await openRunner(page);
       await openMockResponse(page);
     });
 
-    await test.step('The snapshot saves the mock response as the active tab', async () => {
+    await test.step('Switch to another workspace and turn the feature off there', async () => {
+      await openWorkspaceFromDialog(app, page, otherWorkspacePath);
+      await expect(titleBar.activeWorkspaceName()).toHaveText(OTHER_WORKSPACE_NAME, { timeout: 10000 });
+      await setMockServerBetaFeature(page, false);
+    });
+
+    await test.step('Switching back restores the saved tabs without the mock tabs', async () => {
+      await switchWorkspace(page, startingWorkspaceName);
+      await expectRunnerRestoredWithoutMockTabs(page);
+    });
+  });
+
+  test('a mock response saved as the active tab is not restored on launch once the feature is off', async ({
+    mockServerApp: { app, page, userDataPath },
+    launchElectronApp,
+    collectionFixturePath
+  }) => {
+    const collectionPath = path.join(collectionFixturePath!, COLLECTION_NAME);
+
+    await test.step('Open the collection runner, then a mock response as the active tab', async () => {
+      await createMockServerFromCollection(page, COLLECTION_NAME, SERVER_NAME);
+      await openRunner(page);
+      await openMockResponse(page);
+    });
+
+    await test.step('Quit once the snapshot saves the mock response as the active tab', async () => {
       await expect.poll(() => (
         findSnapshotCollectionEntry(readSnapshot(userDataPath), collectionPath)?.activeTab?.accessor
       ), { timeout: 15000 }).toBe('type::mockResponseUid');
       await closeElectronApp(app);
     });
 
-    await test.step('Turn the feature off while the app is closed', async () => {
-      turnOffMockServerInPreferencesFile(userDataPath);
-    });
-
+    turnOffMockServerInPreferencesFile(userDataPath);
     const relaunchedApp = await launchElectronApp({ userDataPath });
 
     try {
       await test.step('Relaunching restores the runner tab without any mock tab', async () => {
-        const page = await waitForReadyPage(relaunchedApp);
-        const ms = buildMockServerLocators(page);
-        const { tabs } = buildCommonLocators(page);
-        await ms.collectionName(COLLECTION_NAME).click();
-        await expect(tabs.requestTab(RUNNER_TAB)).toBeVisible({ timeout: 10000 });
-        await expect(tabs.requestTab(SERVER_NAME)).toHaveCount(0);
-        await expect(tabs.requestTab(RESPONSE_NAME)).toHaveCount(0);
-        await expect(ms.sidebarSection()).toHaveCount(0);
+        const relaunchedPage = await waitForReadyPage(relaunchedApp);
+        await expectRunnerRestoredWithoutMockTabs(relaunchedPage);
+        await expect(buildMockServerLocators(relaunchedPage).sidebarSection()).toHaveCount(0);
       });
     } finally {
       await closeElectronApp(relaunchedApp);
     }
   });
 
-  test('asks whether to save unsaved mock response edits before turning the feature off', async ({
-    launchElectronApp,
-    collectionFixturePath
-  }) => {
+  test('asks whether to save unsaved mock response edits before turning the feature off', async ({ mockServerApp: { page } }) => {
     const discardedName = 'discarded-mock-response-name';
     const savedName = 'saved-mock-response-name';
-    const app = await launchApp(launchElectronApp, collectionFixturePath);
+    const ms = buildMockServerLocators(page);
+    const { tabs } = buildCommonLocators(page);
 
-    try {
-      const page = await waitForReadyPage(app);
-      const ms = buildMockServerLocators(page);
-      const { tabs } = buildCommonLocators(page);
+    const editOpenResponseName = async (name: string) => {
+      await ms.responseEditBtn().click();
+      await ms.responseNameInput().fill(name);
+    };
 
-      const editOpenResponseName = async (name: string) => {
-        await ms.responseEditBtn().click();
-        await ms.responseNameInput().fill(name);
-      };
+    const reopenResponses = async () => {
+      await setMockServerBetaFeature(page, true);
+      await openMockServerTab(page, COLLECTION_NAME);
+      await ms.tabResponses().click();
+    };
 
-      const reopenResponses = async () => {
-        await setMockServerBetaFeature(page, true);
-        await openMockServerTab(page, COLLECTION_NAME);
-        await ms.tabResponses().click();
-      };
+    await test.step('Open a mock response and edit its name without saving', async () => {
+      await createMockServerFromCollection(page, COLLECTION_NAME, SERVER_NAME);
+      await openMockResponse(page);
+      await editOpenResponseName(discardedName);
+    });
 
-      await test.step('Open a mock response and edit its name without saving', async () => {
-        await createMockServerFromCollection(page, COLLECTION_NAME, SERVER_NAME);
-        await openMockResponse(page);
-        await editOpenResponseName(discardedName);
-      });
+    await setMockServerBetaFeature(page, false, { resolveUnsavedChanges: 'discard' });
 
-      await setMockServerBetaFeature(page, false, { resolveUnsavedChanges: 'discard' });
+    await test.step('Don\'t Save closes the tabs and keeps the saved name', async () => {
+      await expect(tabs.requestTab(RESPONSE_NAME)).toHaveCount(0);
+      await reopenResponses();
+      await expect(ms.responseOpenBtn(RESPONSE_NAME)).toBeVisible();
+      await expect(ms.responseOpenBtn(discardedName)).toHaveCount(0);
+    });
 
-      await test.step('Don\'t Save closes the tabs and keeps the saved name', async () => {
-        await expect(tabs.requestTab(RESPONSE_NAME)).toHaveCount(0);
-        await reopenResponses();
-        await expect(ms.responseOpenBtn(RESPONSE_NAME)).toBeVisible();
-        await expect(ms.responseOpenBtn(discardedName)).toHaveCount(0);
-      });
+    await test.step('Edit the name again without saving', async () => {
+      await ms.responseOpenBtn(RESPONSE_NAME).dblclick();
+      await expect(tabs.requestTab(RESPONSE_NAME)).toBeVisible();
+      await editOpenResponseName(savedName);
+    });
 
-      await test.step('Edit the name again without saving', async () => {
-        await ms.responseOpenBtn(RESPONSE_NAME).dblclick();
-        await expect(tabs.requestTab(RESPONSE_NAME)).toBeVisible();
-        await editOpenResponseName(savedName);
-      });
+    await setMockServerBetaFeature(page, false, { resolveUnsavedChanges: 'save' });
 
-      await setMockServerBetaFeature(page, false, { resolveUnsavedChanges: 'save' });
-
-      await test.step('Save writes the edit before the tabs close', async () => {
-        await expect(tabs.requestTab(RESPONSE_NAME)).toHaveCount(0);
-        await reopenResponses();
-        await expect(ms.responseOpenBtn(savedName)).toBeVisible();
-        await expect(ms.responseOpenBtn(RESPONSE_NAME)).toHaveCount(0);
-      });
-    } finally {
-      await closeElectronApp(app);
-    }
+    await test.step('Save writes the edit before the tabs close', async () => {
+      await expect(tabs.requestTab(RESPONSE_NAME)).toHaveCount(0);
+      await reopenResponses();
+      await expect(ms.responseOpenBtn(savedName)).toBeVisible();
+      await expect(ms.responseOpenBtn(RESPONSE_NAME)).toHaveCount(0);
+    });
   });
 });

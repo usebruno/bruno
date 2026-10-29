@@ -45,21 +45,17 @@ export const saveMockResponseEditor = (responseUid) => async (dispatch, getState
   return result.response;
 };
 
+const getMockServerTabUids = (tabs) => tabs.filter(isMockServerTab).map((tab) => tab.uid);
+
 export const closeMockServerTabs = () => (dispatch, getState) => {
-  const openTabUids = getState().tabs.tabs
-    .filter(isMockServerTab)
-    .map((tab) => tab.uid);
+  const openTabUids = getMockServerTabUids(getState().tabs.tabs);
+  const closedTabUids = getMockServerTabUids(getState().tabs.recentlyClosedTabs);
 
   if (openTabUids.length) {
     dispatch(closeTabs({ tabUids: openTabUids, reopenable: false }));
   }
-
-  const recentlyClosedTabUids = getState().tabs.recentlyClosedTabs
-    .filter(isMockServerTab)
-    .map((tab) => tab.uid);
-
-  if (recentlyClosedTabUids.length) {
-    dispatch(removeRecentlyClosedTabs({ tabUids: recentlyClosedTabUids }));
+  if (closedTabUids.length) {
+    dispatch(removeRecentlyClosedTabs({ tabUids: closedTabUids }));
   }
 };
 

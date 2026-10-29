@@ -83,10 +83,6 @@ const BETA_FEATURES = [
   }
 ];
 
-const isBetaFeatureEnabled = (preferences, feature) => get(preferences, `beta.${feature.id}`, feature.defaultEnabled ?? false);
-
-const MOCK_SERVER_FEATURE = BETA_FEATURES.find((feature) => feature.id === BETA_FEATURE_IDS.MOCK_SERVER);
-
 const Beta = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const mockResponseEditors = useSelector((state) => state.collections.mockResponseEditors);
@@ -107,7 +103,7 @@ const Beta = ({ close }) => {
   const generateInitialValues = () => {
     const initialValues = {};
     BETA_FEATURES.forEach((feature) => {
-      initialValues[feature.id] = isBetaFeatureEnabled(preferences, feature);
+      initialValues[feature.id] = get(preferences, `beta.${feature.id}`, feature.defaultEnabled ?? false);
     });
     return initialValues;
   };
@@ -130,8 +126,6 @@ const Beta = ({ close }) => {
   });
 
   const handleSave = useCallback((newBetaPreferences) => {
-    const disablesMockServer = isBetaFeatureEnabled(preferences, MOCK_SERVER_FEATURE)
-      && !newBetaPreferences[BETA_FEATURE_IDS.MOCK_SERVER];
     dispatch(
       savePreferences({
         ...preferences,
@@ -142,7 +136,7 @@ const Beta = ({ close }) => {
       })
     )
       .then(() => {
-        if (disablesMockServer) {
+        if (!newBetaPreferences[BETA_FEATURE_IDS.MOCK_SERVER]) {
           dispatch(closeMockServerTabs());
         }
       })
@@ -192,17 +186,11 @@ const Beta = ({ close }) => {
 
   const handleToggle = (featureId) => {
     const enabled = !formik.values[featureId];
-    if (featureId !== BETA_FEATURE_IDS.MOCK_SERVER || enabled) {
-      formik.setFieldValue(featureId, enabled);
-      return;
-    }
-
-    if (unsavedMockResponses.length) {
+    if (featureId === BETA_FEATURE_IDS.MOCK_SERVER && !enabled && unsavedMockResponses.length) {
       setConfirmMockServerDisable(true);
       return;
     }
-
-    disableMockServer();
+    formik.setFieldValue(featureId, enabled);
   };
 
   const goToTab = useCallback((tab) => {
