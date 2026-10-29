@@ -355,11 +355,8 @@ describe('Machine ID Fallback Tests', () => {
     const plaintext = 'test-secret-value';
     const encrypted = encryption.encryptString(plaintext);
 
-    expect(mockFs.writeFileSync).not.toHaveBeenCalledWith(
-      machineIdPath,
-      expect.anything(),
-      'utf8'
-    );
+    expect(mockFs.writeFileSync.mock.calls.some(([filePath]) => filePath === machineIdPath)).toBe(false);
+    expect(mockFs.unlinkSync).toHaveBeenCalledWith(expect.stringMatching(/\.tmp$/));
 
     const expectedHash = crypto.createHash('sha256').update(winnerId).digest('hex');
     jest.resetModules();
