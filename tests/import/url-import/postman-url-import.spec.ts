@@ -11,54 +11,54 @@ test.describe('Postman URL import', () => {
     // Fetches the collection over the network; the main-process axios timeout is 30s,
     // so a slow fetch is killed before it can fail or succeed. The collection is large,
     // so give the import more room than that fetch.
-    test.setTimeout(120_000);
+    test.setTimeout(60_000);
 
-    const postmanUrl = 'https://docs.smooch.io/sunco-openapi/postman_collection.json';
-    const locators = buildCommonLocators(page);
+    const postmanUrl = 'https://raw.githubusercontent.com/usebruno/bruno/refs/heads/test/postman-url-import-tc-811/tests/import/postman/fixtures/postman-url-import-collection.json';
+    const { plusMenu, import: importLocators, request, sidebar, table, auth } = buildCommonLocators(page);
     const collectionName = 'Sunshine Conversations API';
 
     await test.step('Open import and enter the Postman collection URL', async () => {
-      await locators.plusMenu.button().click();
-      await locators.plusMenu.importCollection().click();
-      await locators.import.modal().waitFor({ state: 'visible' });
-      await locators.import.urlTab().click();
-      await expect(locators.import.urlInput()).toBeVisible();
-      await locators.import.urlInput().fill(postmanUrl);
+      await plusMenu.button().click();
+      await plusMenu.importCollection().click();
+      await importLocators.modal().waitFor({ state: 'visible' });
+      await importLocators.urlTab().click();
+      await expect(importLocators.urlInput()).toBeVisible();
+      await importLocators.urlInput().fill(postmanUrl);
     });
 
     await test.step('Import the collection from the URL', async () => {
-      await locators.import.urlImportButton().click();
-      await locators.import.loader().waitFor({ state: 'hidden' });
+      await importLocators.urlImportButton().click();
+      await importLocators.loader().waitFor({ state: 'hidden' });
 
-      const locationModal = locators.import.locationModal();
+      const locationModal = importLocators.locationModal();
       await expect(locationModal.getByText(collectionName)).toBeVisible();
-      await locators.import.locationInput().fill(await createTmpDir('sunshine-conversations'));
-      await locators.import.importButton().click();
+      await importLocators.locationInput().fill(await createTmpDir('sunshine-conversations'));
+      await importLocators.importButton().click();
       await expect(locationModal).toBeHidden();
     });
 
     await test.step('Imported collection keeps its folder and request', async () => {
-      await expect(locators.sidebar.collection(collectionName)).toBeVisible();
+      await expect(sidebar.collection(collectionName)).toBeVisible();
       await openCollection(page, collectionName);
-      await expect(locators.sidebar.itemsIn(collectionName, 'Apps')).toBeVisible();
-      await expect(locators.sidebar.itemsIn(collectionName, 'App Keys')).toBeVisible();
+      await expect(sidebar.itemsIn(collectionName, 'Apps')).toBeVisible();
+      await expect(sidebar.itemsIn(collectionName, 'App Keys')).toBeVisible();
 
       await expandFolder(page, 'Apps');
-      const createApp = locators.sidebar.itemsIn(collectionName, 'Create App');
+      const createApp = sidebar.itemsIn(collectionName, 'Create App');
       await expect(createApp).toBeVisible();
       await createApp.click();
 
-      await expect(locators.request.methodDropdown()).toContainText('POST');
-      await expect(locators.request.urlLine()).toContainText('{{url}}/v2/apps');
+      await expect(request.methodDropdown()).toContainText('POST');
+      await expect(request.urlLine()).toContainText('{{url}}/v2/apps');
     });
 
     await test.step('Imported collection keeps its auth and variable', async () => {
       await openCollection(page, collectionName);
       await selectCollectionPaneTab(page, 'auth');
-      await expect(locators.auth.modeSelector()).toContainText('Bearer Token');
+      await expect(auth.modeSelector()).toContainText('Bearer Token');
 
       await selectCollectionPaneTab(page, 'vars');
-      await expect(locators.table('collection-vars-req').rowByName('url')).toContainText('https://{{subdomain}}.zendesk.com/sc');
+      await expect(table('collection-vars-req').rowByName('url')).toContainText('https://{{subdomain}}.zendesk.com/sc');
     });
   });
 });
