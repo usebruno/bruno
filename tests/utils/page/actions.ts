@@ -3212,6 +3212,12 @@ const openExportToPostmanModal = async (page: Page, collectionName: string) => {
 
     await openShareCollectionModal(page, collectionName);
 
+    // In enterprise version, the export tab is visible, so need to click it to proceed.
+    const shareExportTab = locators.export.shareExportTab();
+    if (await shareExportTab.isVisible()) {
+      await shareExportTab.click();
+    }
+
     await locators.export.postmanFormatCard().click();
     await locators.modal.button('Proceed').click();
     await expect(locators.modal.title('Export to Postman')).toBeVisible();
@@ -3270,6 +3276,37 @@ const exportCollectionToPostman = async (
   });
 };
 
+const exportCollectionAsSingleYaml = async (
+  page: Page,
+  electronApp: ElectronApplication,
+  collectionName: string,
+  outputDir: string
+) => {
+  const filePath = path.join(outputDir, `${collectionName}.yml`);
+  const locators = buildCommonLocators(page);
+
+  // FileSaver.saveAs triggers Electron's will-download event;
+  // set the save path to the temp directory to avoid the system save dialog.
+  await electronApp.evaluate(({ session }, savePath) => {
+    session.defaultSession.once('will-download', (_event, item) => {
+      item.setSavePath(savePath);
+    });
+  }, filePath);
+
+  await openShareCollectionModal(page, collectionName);
+
+  // In enterprise version, the export tab is visible, so need to click it to proceed.
+  const shareExportTab = locators.export.shareExportTab();
+  if (await shareExportTab.isVisible()) {
+    await shareExportTab.click();
+  }
+
+  await locators.export.yamlFormatCard().click();
+  await locators.modal.button('Proceed').click();
+  await expect.poll(() => fs.existsSync(filePath)).toBe(true);
+  return fs.readFileSync(filePath, 'utf8');
+};
+
 const exportCollectionAsZip = async (
   page: Page,
   electronApp: ElectronApplication,
@@ -3288,6 +3325,12 @@ const exportCollectionAsZip = async (
 
     return await test.step('Export as ZIP and read the written entries', async () => {
       const locators = buildCommonLocators(page);
+      // In enterprise version, the export tab is visible, so need to click it to proceed.
+      const shareExportTab = locators.export.shareExportTab();
+      if (await shareExportTab.isVisible()) {
+        await shareExportTab.click();
+        await page.waitForTimeout(3000);
+      }
       await locators.modal.button('Proceed').click();
       await expect(locators.modal.title('Share Collection')).toBeHidden();
       await expect.poll(() => fs.existsSync(zipPath), { timeout: 10000 }).toBe(true);
@@ -4103,6 +4146,7 @@ export {
   closeExportToPostmanModal,
   dismissModalIfOpen,
   exportCollectionToPostman,
+  exportCollectionAsSingleYaml,
   exportCollectionAsZip,
   addTag,
   removeTag,
