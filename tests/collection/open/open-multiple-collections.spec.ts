@@ -8,19 +8,15 @@ import {
 } from '../../utils/page';
 
 test.describe('Open Multiple Collections', () => {
-  let originalShowOpenDialog;
-
   test.beforeAll(async ({ electronApp }) => {
-    // save the original showOpenDialog function
     await electronApp.evaluate(({ dialog }) => {
-      originalShowOpenDialog = dialog.showOpenDialog;
+      (global as any).__origShowOpenDialog = dialog.showOpenDialog;
     });
   });
 
   test.afterAll(async ({ electronApp }) => {
-    // restore the original showOpenDialog function
     await electronApp.evaluate(({ dialog }) => {
-      dialog.showOpenDialog = originalShowOpenDialog;
+      dialog.showOpenDialog = (global as any).__origShowOpenDialog;
     });
   });
 
