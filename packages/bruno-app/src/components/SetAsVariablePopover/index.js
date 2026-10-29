@@ -5,6 +5,8 @@ import { IconCheck, IconChevronDown, IconCopy } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import Button from 'ui/Button';
 import useCopyToClipboard from 'hooks/useCopyToClipboard';
+import VariableScopeIcon from 'components/VariableScopeIcon';
+import VariableScopeList from 'components/VariableScopeList';
 import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
 import {
   buildAddToScopes,
@@ -17,7 +19,6 @@ import { replaceSelectionWithVariable, resolveSelectionValue } from 'utils/codem
 import { variableNameRegex } from 'utils/common/regex';
 import { cursorAnchorStyle } from 'utils/common/cursorAnchor';
 import { SCOPE_LABEL, COPY_SUCCESS_TIMEOUT, VARIABLE_ADD_SCOPES } from 'utils/common/constants';
-import { SCOPE_ICON } from 'utils/codemirror/scopeIcons';
 import { INVALID_VARIABLE_NAME_ERROR } from 'utils/common/variables';
 import StyledWrapper from './StyledWrapper';
 
@@ -31,13 +32,6 @@ const pickDefaultScope = (scopes) => {
   if (request) return request.type;
   return scopes.find((scope) => scope.enabled)?.type || null;
 };
-
-const ScopeIcon = ({ scopeType, muted }) => (
-  <span
-    className={`var-add-to-option-icon var-add-to-option-icon-${muted ? 'muted' : scopeType}`}
-    dangerouslySetInnerHTML={{ __html: SCOPE_ICON[scopeType] }}
-  />
-);
 
 const SetAsVariablePopover = ({ selection, onClose }) => {
   const dispatch = useDispatch();
@@ -57,49 +51,12 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
   const [scopeListOpen, setScopeListOpen] = useState(false);
   const [secret, setSecret] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [creatingScopeType, setCreatingScopeType] = useState(null);
-  const [environmentName, setEnvironmentName] = useState('');
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState(null);
   const nameInputRef = useRef(null);
 
-  const openCreateForm = (scope) => {
-    setCreatingScopeType(scope.type);
-    setEnvironmentName('');
-    setCreateError(null);
-  };
-
-  const closeCreateForm = () => {
-    setCreatingScopeType(null);
-    setEnvironmentName('');
-    setCreateError(null);
-  };
-
-  const handleCreateEnvironment = (scope) => {
-    if (!environmentName.trim()) {
-      setCreateError('Environment name is required');
-      return;
-    }
-
-    setCreating(true);
-    setCreateError(null);
-
-    createEnvironmentForScope({
-      scope,
-      name: environmentName,
-      collectionUid: selection.collection?.uid,
-      store
-    })
-      .then(() => {
-        setCreating(false);
-        closeCreateForm();
-        setScopeType(scope.type);
-      })
-      .catch((error) => {
-        setCreating(false);
-        setCreateError(error.message || 'Failed to create environment');
-      });
-  };
+  const createEnvironment = (scope, environmentName) => (
+    createEnvironmentForScope({ scope, name: environmentName, collectionUid: selection.collection?.uid, store })
+      .then(() => setScopeType(scope.type))
+  );
 
   const selectedScope = scopes.find((scope) => scope.type === scopeType) || null;
   const existingVariableNames = getScopeVariableNames({
@@ -177,7 +134,7 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
           </div>
           {selectedScope ? (
             <span className="var-scope-badge" data-testid="set-as-variable-scope-badge">
-              <ScopeIcon scopeType={selectedScope.type} />
+              <VariableScopeIcon scopeType={selectedScope.type} />
               {SCOPE_LABEL[selectedScope.type]}
             </span>
           ) : null}
@@ -251,86 +208,18 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
           ) : null}
         </div>
 
-        {scopeListOpen ? (
-          <div className="var-add-to-list" data-testid="set-as-variable-scopes">
-            {scopes.map((scope) => {
-              if (creatingScopeType === scope.type) {
-                return (
-                  <div key={scope.type} className="var-add-to-option var-set-scope-option is-creating">
-                    <input
-                      type="text"
-                      autoFocus
-                      disabled={creating}
-                      placeholder="Enter environment name"
-                      aria-label={`${scope.label} name`}
-                      className="var-set-create-env-input"
-                      value={environmentName}
-                      onChange={(event) => setEnvironmentName(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') {
-                          event.preventDefault();
-                          handleCreateEnvironment(scope);
-                        }
-                      }}
-                      data-testid="set-as-variable-create-env-name"
-                    />
-                    <button
-                      type="button"
-                      disabled={creating}
-                      className="var-set-create-env-submit"
-                      onClick={() => handleCreateEnvironment(scope)}
-                      data-testid="set-as-variable-create-env-submit"
-                    >
-                      {creating ? 'Creating…' : 'Create'}
-                    </button>
-                  </div>
-                );
-              }
-
-              if (!scope.enabled) {
-                return (
-                  <div key={scope.type} className="var-add-to-option var-set-scope-option is-disabled">
-                    <ScopeIcon scopeType={scope.type} muted />
-                    <span className="var-set-note">{`No ${scope.label} selected`}</span>
-                    <button
-                      type="button"
-                      className="var-add-to-link-button"
-                      onClick={() => openCreateForm(scope)}
-                      data-testid={`set-as-variable-create-env-${scope.type}`}
-                    >
-                      Create One
-                    </button>
-                  </div>
-                );
-              }
-
-              return (
-                <div
-                  key={scope.type}
-                  className={`var-add-to-option var-set-scope-option ${scope.type === scopeType ? 'is-active' : ''}`}
-                >
-                  <button
-                    type="button"
-                    className="var-add-to-option-trigger var-set-scope-trigger"
-                    onClick={() => {
-                      setScopeType(scope.type);
-                      setScopeListOpen(false);
-                    }}
-                    data-testid={`set-as-variable-scope-${scope.type}`}
-                  >
-                    <ScopeIcon scopeType={scope.type} />
-                    <span className="var-add-to-option-label">{scope.label}</span>
-                  </button>
-                </div>
-              );
-            })}
-            {createError ? (
-              <div className="var-set-error" data-testid="set-as-variable-create-env-error">
-                {createError}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+        <div hidden={!scopeListOpen}>
+          <VariableScopeList
+            scopes={scopes}
+            selectedScopeType={scopeType}
+            onSelect={(selectedType) => {
+              setScopeType(selectedType);
+              setScopeListOpen(false);
+            }}
+            onCreateEnvironment={createEnvironment}
+            testIdPrefix="set-as-variable"
+          />
+        </div>
 
         <div className="var-set-footer">
           <Button size="sm" variant="ghost" color="secondary" onClick={onClose} data-testid="set-as-variable-cancel">

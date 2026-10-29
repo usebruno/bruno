@@ -21,6 +21,8 @@ import StyledWrapper from './StyledWrapper';
  * @param {ReactNode} props.leftSection - Element rendered on the left side of the input
  * @param {ReactNode} props.rightSection - Element rendered after the visibility toggle
  * @param {string} props.className - Additional CSS class for the wrapper
+ * @param {boolean} props.autoFocus - Auto-focus on mount
+ * @param {function} props.onKeyDown - Called with the input keydown event
  */
 const MaskedInput = ({
   value,
@@ -39,6 +41,8 @@ const MaskedInput = ({
   rightSection,
   size = 'md',
   className,
+  autoFocus,
+  onKeyDown,
   'data-testid': testId
 }) => {
   const [internalVisible, setInternalVisible] = useState(false);
@@ -82,6 +86,8 @@ const MaskedInput = ({
             data-testid={testId}
             placeholder={placeholder}
             disabled={disabled}
+            autoFocus={autoFocus}
+            onKeyDown={onKeyDown}
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"

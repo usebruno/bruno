@@ -28,8 +28,7 @@ import {
   showRootHints,
   extractNextSegmentSuggestions,
   WORD_PATTERN,
-  buildSingleBraceInsertText,
-  truncateHintLabel
+  buildSingleBraceInsertText
 } from './autocomplete';
 import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
@@ -439,7 +438,9 @@ describe('Bruno Autocomplete', () => {
         expect(result).toBeTruthy();
         const processHint = result.list.find((hint) => hint.displayText === 'process');
         expect(processHint).toBeTruthy();
-        expect(processHint.text).toBe('process');
+        // The dot is added and the list reopens, so the user doesn't have to type it
+        expect(processHint.text).toBe('process.');
+        expect(processHint.hasMoreSegments).toBe(true);
         expect(processHint.scope).toBe('process.env');
         expect(processHint.render).toBeTruthy();
       });
@@ -457,7 +458,132 @@ describe('Bruno Autocomplete', () => {
         expect(result).toBeTruthy();
         const processHint = result.list.find((hint) => hint.displayText === 'process');
         expect(processHint).toBeTruthy();
-        expect(processHint.text).toBe('process');
+        expect(processHint.text).toBe('process.');
+      });
+
+      describe('reopening the list after accepting a path segment', () => {
+        const hintsFor = (line) => {
+          mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: line.length });
+          mockedCodemirror.getLine.mockReturnValue(line);
+          mockedCodemirror.getRange.mockReturnValue(line);
+
+          return getAutoCompleteHints(mockedCodemirror, [{ name: 'process.env.FOO', scope: 'process.env' }], [], {
+            showHintsFor: ['variables']
+          });
+        };
+
+        // CodeMirror.on keeps the listeners on the emitter, here the hint list returned to show-hint.
+        const pickHandlerFor = (result) => result._handlers.pick[0];
+
+        beforeEach(() => {
+          jest.useFakeTimers();
+        });
+
+        afterEach(() => {
+          jest.useRealTimers();
+        });
+
+        it('reopens the list when an in-between segment (`process`, `process.env`) is accepted', () => {
+          ['{{proc', '{{process.e'].forEach((line) => {
+            mockedCodemirror.showHint.mockClear();
+            const result = hintsFor(line);
+            const segment = result.list.find((hint) => hint.hasMoreSegments);
+
+            pickHandlerFor(result)(segment);
+            jest.runAllTimers();
+
+            expect(mockedCodemirror.showHint).toHaveBeenCalledTimes(1);
+            const { hint, completeSingle } = mockedCodemirror.showHint.mock.calls[0][0];
+            expect(completeSingle).toBe(false);
+            expect(hint().list.length).toBeGreaterThan(0);
+          });
+        });
+
+        it('after a single brace is typed selecting process will insert another brace to complete {{ and then keep popover open to select the env', () => {
+          const options = { showHintsFor: ['variables'], variableAutocomplete: AUTOCOMPLETE_TRIGGER.SINGLE_BRACE };
+          const variables = [{ name: 'process.env.FOO', scope: 'process.env' }];
+          const setDocument = (line, cursorCh) => {
+            mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: cursorCh });
+            mockedCodemirror.getLine.mockReturnValue(line);
+            mockedCodemirror.getRange.mockReturnValue(line.slice(0, cursorCh));
+          };
+
+          setDocument('{', 1);
+          const result = getAutoCompleteHints(mockedCodemirror, variables, [], options);
+          const segment = result.list.find((hint) => hint.displayText === 'process');
+          expect(segment.hasMoreSegments).toBe(true);
+
+          // The picked text goes in after the `{` that triggered the list, which stays.
+          const line = '{';
+          const documentAfterPick = line.slice(0, result.from.ch) + segment.text + line.slice(result.to.ch);
+          expect(documentAfterPick).toBe('{{process.');
+
+          setDocument(documentAfterPick, documentAfterPick.length);
+          pickHandlerFor(result)(segment);
+          jest.runAllTimers();
+
+          expect(mockedCodemirror.showHint).toHaveBeenCalledTimes(1);
+          const nextList = mockedCodemirror.showHint.mock.calls[0][0].hint().list;
+          expect(nextList.map((hint) => hint.displayText)).toEqual(['env']);
+          expect(nextList[0].text).toBe('env.');
+        });
+
+        it('reopens with the close characters of the list that was picked from', () => {
+          const closeCharacters = /[ ]/;
+          mockedCodemirror.state.completionActive = { options: { closeCharacters } };
+          const result = hintsFor('{{proc');
+          const segment = result.list.find((hint) => hint.hasMoreSegments);
+
+          pickHandlerFor(result)(segment);
+          jest.runAllTimers();
+
+          expect(mockedCodemirror.showHint.mock.calls[0][0].closeCharacters).toBe(closeCharacters);
+          delete mockedCodemirror.state.completionActive;
+        });
+
+        it('only shows hints when reopening: nothing is shown or inserted if there are none at the new caret', () => {
+          const result = hintsFor('{{proc');
+          const segment = result.list.find((hint) => hint.hasMoreSegments);
+
+          // The caret ends up somewhere that offers no variable hints.
+          mockedCodemirror.getLine.mockReturnValue('plain');
+          mockedCodemirror.getRange.mockReturnValue('plain');
+          mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 0 });
+          mockedCodemirror.replaceRange = jest.fn();
+
+          pickHandlerFor(result)(segment);
+          jest.runAllTimers();
+
+          expect(mockedCodemirror.showHint).not.toHaveBeenCalled();
+          expect(mockedCodemirror.replaceRange).not.toHaveBeenCalled();
+          delete mockedCodemirror.replaceRange;
+        });
+
+        it('adds the dot to `env` too, and closes braces on the final name instead of reopening', () => {
+          const envResult = hintsFor('{{process.e');
+          expect(envResult.list.find((hint) => hint.displayText === 'env').text).toBe('env.');
+
+          const leafResult = hintsFor('{{process.env.F');
+          const leaf = leafResult.list.find((hint) => hint.displayText === 'FOO');
+          expect(leaf.text).toBe('FOO}}');
+          expect(leaf.hasMoreSegments).toBeUndefined();
+
+          pickHandlerFor(leafResult)(leaf);
+          jest.runAllTimers();
+          expect(mockedCodemirror.showHint).not.toHaveBeenCalled();
+        });
+
+        it('does not add a dot to a plain variable that is picked', () => {
+          mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 6 });
+          mockedCodemirror.getLine.mockReturnValue('{{host');
+          mockedCodemirror.getRange.mockReturnValue('{{host');
+
+          const result = getAutoCompleteHints(mockedCodemirror, [{ name: 'host', scope: 'collection' }], [], {
+            showHintsFor: ['variables']
+          });
+
+          expect(result.list.find((hint) => hint.displayText === 'host').hasMoreSegments).toBeUndefined();
+        });
       });
 
       it('completes a drilled-down process.env leaf with its scope icon and closing braces', () => {
@@ -506,7 +632,8 @@ describe('Bruno Autocomplete', () => {
         expect(result).toBeTruthy();
         const processHint = result.list.find((hint) => hint.displayText === 'process');
         expect(processHint).toBeTruthy();
-        expect(processHint.text).toBe('{process');
+        expect(processHint.text).toBe('{process.');
+        expect(processHint.hasMoreSegments).toBe(true);
         expect(processHint.scope).toBe('process.env');
         expect(processHint.render).toBeTruthy();
       });
@@ -608,8 +735,50 @@ describe('Bruno Autocomplete', () => {
           expect(pickMyApiHost('{{my.api.host}}', 7)).toBe('{{my.api.host}}');
         });
 
-        it('still adds the closing braces when none follow the name (`{{my.ap|i.host`)', () => {
-          expect(pickMyApiHost('{{my.api.host', 7)).toBe('{{my.api.host}}');
+        it('leaves text after the cursor alone when no closing braces follow it (`{{my.ap|i.host`)', () => {
+          // The rest of the line isn't a closed variable, so it isn't part of what is being completed.
+          expect(pickMyApiHost('{{my.api.host', 7)).toBe('{{my.api.host}}i.host');
+        });
+
+        describe('final `process.env` name', () => {
+          const pickFoo = (line, cursorCh) => {
+            mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: cursorCh });
+            mockedCodemirror.getLine.mockReturnValue(line);
+            mockedCodemirror.getRange.mockReturnValue(line.slice(0, cursorCh));
+
+            const result = getAutoCompleteHints(mockedCodemirror, [{ name: 'process.env.FOO', scope: 'process.env' }], [], {
+              showHintsFor: ['variables']
+            });
+            const hint = result.list.find((h) => h.displayText === 'FOO');
+            const from = hint.from || result.from;
+            const to = hint.to || result.to;
+            return line.slice(0, from.ch) + hint.text + line.slice(to.ch);
+          };
+
+          const pickSegment = (line, cursorCh, name) => {
+            mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: cursorCh });
+            mockedCodemirror.getLine.mockReturnValue(line);
+            mockedCodemirror.getRange.mockReturnValue(line.slice(0, cursorCh));
+
+            const result = getAutoCompleteHints(mockedCodemirror, [{ name: 'process.env.FOO', scope: 'process.env' }], [], {
+              showHintsFor: ['variables']
+            });
+            const hint = result.list.find((h) => h.displayText === name);
+            return line.slice(0, hint.from.ch) + hint.text + line.slice(hint.to.ch);
+          };
+
+          it('replaces the rest of the name when an in-between segment is picked (`{{pro|cess.env.FOO}}`)', () => {
+            expect(pickSegment('{{process.env.FOO}}', 5, 'process')).toBe('{{process.}}');
+            expect(pickSegment('{{process.env.FOO}}', 10, 'env')).toBe('{{process.env.}}');
+          });
+
+          it('replaces the rest of the name after the cursor (`{{process.env.F|OO}}`)', () => {
+            expect(pickFoo('{{process.env.FOO}}', 15)).toBe('{{process.env.FOO}}');
+          });
+
+          it('adds the closing braces and keeps unclosed text after the cursor (`{{process.env.F|OO`)', () => {
+            expect(pickFoo('{{process.env.FOO', 15)).toBe('{{process.env.FOO}}OO');
+          });
         });
 
         it('keeps text that follows the name (`{{my.ap|i.host}}/path`)', () => {
@@ -635,9 +804,31 @@ describe('Bruno Autocomplete', () => {
           [AUTOCOMPLETE_TRIGGER.SINGLE_BRACE, AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE].forEach((mode) => {
             expect(pick('{{api.host}}', 2, mode)).toBe('{{userId}}');
             expect(pick('{{api.host}}/path', 2, mode)).toBe('{{userId}}/path');
-            expect(pick('{{api.host', 2, mode)).toBe('{{userId}}');
             // nothing after the caret: unchanged behaviour
             expect(pick('{{', 2, mode)).toBe('{{userId}}');
+          });
+        });
+
+        it('does not replace text after the cursor that is not a closed variable (`{{|mayName`)', () => {
+          const pick = (line, cursorCh, mode) => {
+            mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: cursorCh });
+            mockedCodemirror.getLine.mockReturnValue(line);
+            mockedCodemirror.getRange.mockReturnValue(line.slice(0, cursorCh));
+
+            const result = getAutoCompleteHints(mockedCodemirror, [{ name: 'userId', scope: 'collection' }], [], {
+              showHintsFor: ['variables'],
+              variableAutocomplete: mode
+            });
+            const hint = result.list.find((h) => h.displayText === 'userId');
+            const from = hint.from || result.from;
+            const to = hint.to || result.to;
+            return line.slice(0, from.ch) + hint.text + line.slice(to.ch);
+          };
+
+          [AUTOCOMPLETE_TRIGGER.SINGLE_BRACE, AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE].forEach((mode) => {
+            expect(pick('{{mayName', 2, mode)).toBe('{{userId}}mayName');
+            expect(pick('{{api.host', 2, mode)).toBe('{{userId}}api.host');
+            expect(pick('https://host/?{{a=1&b=2', 16, mode)).toBe('https://host/?{{userId}}a=1&b=2');
           });
         });
       });
@@ -1360,15 +1551,17 @@ describe('Bruno Autocomplete', () => {
     });
 
     describe('Setup and cleanup', () => {
-      it('should setup keyup event listener and return cleanup function', () => {
+      it('should setup keyup and keydown event listeners and return cleanup function', () => {
         const options = { getAllVariables: mockGetAllVariables };
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
 
         expect(mockedCodemirror.on).toHaveBeenCalledWith('keyup', expect.any(Function));
+        expect(mockedCodemirror.on).toHaveBeenCalledWith('keydown', expect.any(Function));
         expect(cleanupFn).toBeInstanceOf(Function);
 
         cleanupFn();
         expect(mockedCodemirror.off).toHaveBeenCalledWith('keyup', expect.any(Function));
+        expect(mockedCodemirror.off).toHaveBeenCalledWith('keydown', expect.any(Function));
       });
 
       it('should not setup if editor is null', () => {
@@ -1558,6 +1751,65 @@ describe('Bruno Autocomplete', () => {
       });
     });
 
+    describe('Escape handling while hints are open', () => {
+      const getKeydownHandler = () => mockedCodemirror.on.mock.calls.find((call) => call[0] === 'keydown')[1];
+      const makeKeyEvent = (key, modifiers = {}) => ({
+        key,
+        ...modifiers,
+        stopPropagation: jest.fn(),
+        preventDefault: jest.fn()
+      });
+
+      it('should close the hints popup and stop propagation of Escape when the popup is open', () => {
+        cleanupFn = setupAutoComplete(mockedCodemirror, { getAllVariables: mockGetAllVariables });
+        const event = makeKeyEvent('Escape');
+        const completionActive = { close: jest.fn() };
+
+        getKeydownHandler()({ state: { completionActive } }, event);
+
+        expect(completionActive.close).toHaveBeenCalledTimes(1);
+        expect(event.stopPropagation).toHaveBeenCalledTimes(1);
+        expect(event.preventDefault).not.toHaveBeenCalled();
+      });
+
+      it.each([
+        ['Shift', { shiftKey: true }],
+        ['Ctrl', { ctrlKey: true }],
+        ['Alt', { altKey: true }],
+        ['Meta', { metaKey: true }]
+      ])('should close the hints popup on %s+Escape (show-hint only binds plain Esc)', (_, modifiers) => {
+        cleanupFn = setupAutoComplete(mockedCodemirror, { getAllVariables: mockGetAllVariables });
+        const event = makeKeyEvent('Escape', modifiers);
+        const completionActive = { close: jest.fn() };
+
+        getKeydownHandler()({ state: { completionActive } }, event);
+
+        expect(completionActive.close).toHaveBeenCalledTimes(1);
+        expect(event.stopPropagation).toHaveBeenCalledTimes(1);
+      });
+
+      it('should let Escape propagate when the hints popup is closed', () => {
+        cleanupFn = setupAutoComplete(mockedCodemirror, { getAllVariables: mockGetAllVariables });
+        const event = makeKeyEvent('Escape');
+
+        getKeydownHandler()({ state: { completionActive: null } }, event);
+
+        expect(event.stopPropagation).not.toHaveBeenCalled();
+        expect(event.preventDefault).not.toHaveBeenCalled();
+      });
+
+      it('should not stop propagation of other keys when the hints popup is open', () => {
+        cleanupFn = setupAutoComplete(mockedCodemirror, { getAllVariables: mockGetAllVariables });
+        const event = makeKeyEvent('Enter');
+        const completionActive = { close: jest.fn() };
+
+        getKeydownHandler()({ state: { completionActive } }, event);
+
+        expect(completionActive.close).not.toHaveBeenCalled();
+        expect(event.stopPropagation).not.toHaveBeenCalled();
+      });
+    });
+
     describe('Click event handling (showHintsOnClick)', () => {
       it('should setup mousedown event listener when showHintsOnClick is enabled', () => {
         const options = {
@@ -1567,8 +1819,9 @@ describe('Bruno Autocomplete', () => {
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
 
         expect(mockedCodemirror.on).toHaveBeenCalledWith('keyup', expect.any(Function));
+        expect(mockedCodemirror.on).toHaveBeenCalledWith('keydown', expect.any(Function));
         expect(mockedCodemirror.on).toHaveBeenCalledWith('mousedown', expect.any(Function));
-        expect(mockedCodemirror.on).toHaveBeenCalledTimes(2);
+        expect(mockedCodemirror.on).toHaveBeenCalledTimes(3);
       });
 
       it('should not setup mousedown event listener when showHintsOnClick is disabled', () => {
@@ -1579,7 +1832,8 @@ describe('Bruno Autocomplete', () => {
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
 
         expect(mockedCodemirror.on).toHaveBeenCalledWith('keyup', expect.any(Function));
-        expect(mockedCodemirror.on).toHaveBeenCalledTimes(1);
+        expect(mockedCodemirror.on).toHaveBeenCalledWith('keydown', expect.any(Function));
+        expect(mockedCodemirror.on).toHaveBeenCalledTimes(2);
       });
 
       it('should not setup mousedown event listener when showHintsOnClick is undefined', () => {
@@ -1589,7 +1843,8 @@ describe('Bruno Autocomplete', () => {
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
 
         expect(mockedCodemirror.on).toHaveBeenCalledWith('keyup', expect.any(Function));
-        expect(mockedCodemirror.on).toHaveBeenCalledTimes(1);
+        expect(mockedCodemirror.on).toHaveBeenCalledWith('keydown', expect.any(Function));
+        expect(mockedCodemirror.on).toHaveBeenCalledTimes(2);
       });
 
       it('should show hints on click when showHintsOnClick is enabled', () => {
@@ -1643,11 +1898,12 @@ describe('Bruno Autocomplete', () => {
         cleanupFn();
 
         expect(mockedCodemirror.off).toHaveBeenCalledWith('keyup', expect.any(Function));
+        expect(mockedCodemirror.off).toHaveBeenCalledWith('keydown', expect.any(Function));
         expect(mockedCodemirror.off).toHaveBeenCalledWith('mousedown', expect.any(Function));
-        expect(mockedCodemirror.off).toHaveBeenCalledTimes(2);
+        expect(mockedCodemirror.off).toHaveBeenCalledTimes(3);
       });
 
-      it('should only cleanup keyup event listener when showHintsOnClick was disabled', () => {
+      it('should only cleanup keyup and keydown event listeners when showHintsOnClick was disabled', () => {
         const options = {
           getAllVariables: mockGetAllVariables,
           showHintsOnClick: false
@@ -1657,7 +1913,8 @@ describe('Bruno Autocomplete', () => {
         cleanupFn();
 
         expect(mockedCodemirror.off).toHaveBeenCalledWith('keyup', expect.any(Function));
-        expect(mockedCodemirror.off).toHaveBeenCalledTimes(1);
+        expect(mockedCodemirror.off).toHaveBeenCalledWith('keydown', expect.any(Function));
+        expect(mockedCodemirror.off).toHaveBeenCalledTimes(2);
       });
 
       it('should show all available hints on click based on showHintsFor configuration', () => {
@@ -1750,28 +2007,46 @@ describe('Bruno Autocomplete', () => {
     });
   });
 
-  describe('truncateHintLabel', () => {
-    it('leaves short names untouched', () => {
-      expect(truncateHintLabel('envVar')).toBe('envVar');
+  describe('variable hint label', () => {
+    const renderHint = (displayText) => {
+      const hint = getAutoCompleteHints(
+        _mockedCodemirror,
+        [{ name: displayText, scope: 'environment' }],
+        [],
+        { showHintsFor: ['variables'] }
+      ).list[0];
+      const li = document.createElement('li');
+      hint.render(li, {}, hint);
+      return li;
+    };
+
+    beforeEach(() => {
+      _mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 2 });
+      _mockedCodemirror.getLine.mockReturnValue('{{');
+      _mockedCodemirror.getRange.mockReturnValue('{{');
     });
 
-    it('leaves a name exactly at the limit untouched', () => {
-      const exact = 'a'.repeat(46);
-      expect(truncateHintLabel(exact)).toBe(exact);
-    });
-
-    it('cuts a name past the limit down to 46 chars ending in a literal "..."', () => {
+    it('renders the full name and leaves the cutting off to the stylesheet', () => {
       const long = 'thisIsAVeryLongEnvironmentVariableNameThatShouldOverflowTheDropdown';
-      const result = truncateHintLabel(long);
+      const label = renderHint(long).querySelector('[data-testid="autocomplete-variable-name"]');
 
-      expect(result).toHaveLength(46);
-      expect(result.endsWith('...')).toBe(true);
-      expect(result.slice(0, -3)).toBe(long.slice(0, 43));
+      expect(label.textContent).toBe(long);
     });
 
-    it('passes through falsy input unchanged', () => {
-      expect(truncateHintLabel('')).toBe('');
-      expect(truncateHintLabel(undefined)).toBe(undefined);
+    it('shows the full name on hover only when the label is cut off', () => {
+      const name = 'someVariableName';
+      const label = renderHint(name).querySelector('[data-testid="autocomplete-variable-name"]');
+      const scrollWidth = jest.spyOn(label, 'scrollWidth', 'get');
+      const clientWidth = jest.spyOn(label, 'clientWidth', 'get');
+
+      scrollWidth.mockReturnValue(300);
+      clientWidth.mockReturnValue(200);
+      label.dispatchEvent(new MouseEvent('mouseenter'));
+      expect(label.title).toBe(name);
+
+      scrollWidth.mockReturnValue(200);
+      label.dispatchEvent(new MouseEvent('mouseenter'));
+      expect(label.title).toBe('');
     });
   });
 });

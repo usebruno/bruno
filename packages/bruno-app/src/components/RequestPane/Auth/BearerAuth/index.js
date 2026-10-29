@@ -1,6 +1,5 @@
 import React from 'react';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
-import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -9,14 +8,12 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
-const BearerAuth = ({ item, collection, updateAuth, request, save, disabled }) => {
+const BearerAuth = ({ item, collection, updateAuth, request, save, readOnly }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
   // Use the request prop directly like OAuth2ClientCredentials does
   const bearerToken = get(request, 'auth.bearer.token', '');
-  const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage } = isSensitive(bearerToken, item);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
@@ -50,10 +47,10 @@ const BearerAuth = ({ item, collection, updateAuth, request, save, disabled }) =
           collection={collection}
           item={item}
           isSecret={true}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
-        {showWarning && <SensitiveFieldWarning fieldName="bearer-token" warningMessage={warningMessage} />}
+        <SensitiveFieldWarning fieldName="bearer-token" secretName="token" value={bearerToken} collection={collection} item={item} fieldKey="token" onReplaceValue={handleTokenChange} />
       </div>
     </StyledWrapper>
   );

@@ -12,10 +12,18 @@ export const buildAutocompleteLocators = (page: Page) => {
     items: () => widget().locator('.CodeMirror-hint'),
     variableItems: () => widget().getByTestId('autocomplete-variable-item'),
     activeItem: () => widget().locator('.CodeMirror-hint-active'),
-    itemByName: (name: string) =>
+    /**
+     * @param name - Text in the hint's displayed name
+     * @param options.exact - Match the whole name, not just a substring (so `env` doesn't also match `environment`)
+     */
+    itemByName: (name: string, { exact = false }: { exact?: boolean } = {}) =>
       widget()
         .getByTestId('autocomplete-variable-item')
-        .filter({ has: page.getByTestId('autocomplete-variable-name').filter({ hasText: name }) })
+        .filter({
+          has: page
+            .getByTestId('autocomplete-variable-name')
+            .filter({ hasText: exact ? new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) : name })
+        })
   };
 };
 
@@ -113,11 +121,12 @@ export const setEditorState = async (editor: Locator, value: string, cursorCh: n
  * Click a variable hint in the open autocomplete dropdown by its (unique-enough) name, picking it
  * the same way a real user's mouse click would.
  * @param page - The page object
- * @param name - Text uniquely identifying the hint's displayed name (substring match)
+ * @param name - Text uniquely identifying the hint's displayed name (substring match unless `exact`)
+ * @param options.exact - Match the whole name, not just a substring
  */
-export const pickHint = async (page: Page, name: string) => {
+export const pickHint = async (page: Page, name: string, options: { exact?: boolean } = {}) => {
   const { itemByName } = buildAutocompleteLocators(page);
-  await itemByName(name).first().click();
+  await itemByName(name, options).first().click();
 };
 
 /**
