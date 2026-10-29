@@ -1,8 +1,9 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { ThemeProvider } from 'providers/Theme';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
 import { closeMockServerTabs, saveMockResponseEditor } from 'providers/ReduxStore/slices/mock-server/actions';
 import { buildMockResponseEditorItem, mockResponseFromEditorItem } from 'utils/mock-server/mock-responses/editor';
 import Beta from './index';
@@ -15,6 +16,11 @@ jest.mock('react-redux', () => ({
 jest.mock('react-hot-toast', () => ({
   __esModule: true,
   default: { success: jest.fn(), error: jest.fn() }
+}));
+
+jest.mock('providers/ReduxStore/slices/app', () => ({
+  savePreferences: jest.fn((preferences) => ({ type: 'test/savePreferences', preferences })),
+  updateActivePreferencesTab: jest.fn((payload) => ({ type: 'test/updateActivePreferencesTab', payload }))
 }));
 
 jest.mock('providers/ReduxStore/slices/mock-server/actions', () => ({
@@ -47,26 +53,45 @@ const renderBeta = ({ mockServerEnabled, editors = {} }) => {
 
 const mockServerToggle = () => screen.getByTestId('mock-server-beta-toggle').querySelector('input[type="checkbox"]');
 const UNSAVED_PROMPT = /You have unsaved changes in mock response/;
+const savedMockServerFlags = () => savePreferences.mock.calls.map(([preferences]) => preferences.beta['mock-server']);
 
 describe('Beta preferences: Mock Server toggle', () => {
   let mockDispatch;
   let saveResult;
+  let savePreferencesOutcome;
 
   beforeEach(() => {
     jest.clearAllMocks();
     saveResult = Promise.resolve();
-    mockDispatch = jest.fn((action) => (action.type === 'test/saveMockResponseEditor' ? saveResult : undefined));
+    savePreferencesOutcome = () => Promise.resolve();
+    mockDispatch = jest.fn((action) => {
+      if (action.type === 'test/saveMockResponseEditor') return saveResult;
+      if (action.type === 'test/savePreferences') return savePreferencesOutcome();
+    });
     useDispatch.mockReturnValue(mockDispatch);
   });
 
-  it('closes the mock server tabs when Mock Server is turned off with nothing unsaved', async () => {
+  it('closes the mock server tabs once turning Mock Server off is saved', async () => {
     renderBeta({ mockServerEnabled: true });
 
     fireEvent.click(mockServerToggle());
 
     expect(screen.queryByText(UNSAVED_PROMPT)).not.toBeInTheDocument();
-    expect(mockDispatch).toHaveBeenCalledWith(closeMockServerTabs());
     await waitFor(() => expect(mockServerToggle()).not.toBeChecked());
+    expect(closeMockServerTabs).not.toHaveBeenCalled();
+    await waitFor(() => expect(mockDispatch).toHaveBeenCalledWith(closeMockServerTabs()));
+    expect(savedMockServerFlags()).toEqual([false]);
+  });
+
+  it('keeps the mock server tabs open when saving the preference fails', async () => {
+    savePreferencesOutcome = () => Promise.reject(new Error('Failed to save preferences'));
+    renderBeta({ mockServerEnabled: true });
+
+    fireEvent.click(mockServerToggle());
+
+    await waitFor(() => expect(savedMockServerFlags()).toEqual([false]));
+    await act(() => Promise.resolve());
+    expect(closeMockServerTabs).not.toHaveBeenCalled();
   });
 
   it('leaves tabs alone when Mock Server is turned on', async () => {
@@ -74,7 +99,8 @@ describe('Beta preferences: Mock Server toggle', () => {
 
     fireEvent.click(mockServerToggle());
 
-    await waitFor(() => expect(mockServerToggle()).toBeChecked());
+    await waitFor(() => expect(savedMockServerFlags()).toEqual([true]));
+    await act(() => Promise.resolve());
     expect(closeMockServerTabs).not.toHaveBeenCalled();
   });
 
@@ -108,8 +134,8 @@ describe('Beta preferences: Mock Server toggle', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Don\'t Save' }));
 
     expect(saveMockResponseEditor).not.toHaveBeenCalled();
-    expect(mockDispatch).toHaveBeenCalledWith(closeMockServerTabs());
-    await waitFor(() => expect(mockServerToggle()).not.toBeChecked());
+    await waitFor(() => expect(mockDispatch).toHaveBeenCalledWith(closeMockServerTabs()));
+    expect(savedMockServerFlags()).toEqual([false]);
   });
 
   it('saves the unsaved mock responses before turning Mock Server off', async () => {
@@ -121,7 +147,7 @@ describe('Beta preferences: Mock Server toggle', () => {
     await waitFor(() => expect(mockDispatch).toHaveBeenCalledWith(closeMockServerTabs()));
     expect(saveMockResponseEditor).toHaveBeenCalledTimes(1);
     expect(saveMockResponseEditor).toHaveBeenCalledWith('response-1');
-    await waitFor(() => expect(mockServerToggle()).not.toBeChecked());
+    expect(savedMockServerFlags()).toEqual([false]);
   });
 
   it('keeps Mock Server on and reports the error when saving fails', async () => {
@@ -133,6 +159,7 @@ describe('Beta preferences: Mock Server toggle', () => {
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Name is required'));
     expect(closeMockServerTabs).not.toHaveBeenCalled();
+    expect(savePreferences).not.toHaveBeenCalled();
     expect(mockServerToggle()).toBeChecked();
   });
 });

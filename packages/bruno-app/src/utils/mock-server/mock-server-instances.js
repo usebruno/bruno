@@ -47,10 +47,12 @@ export const normalizeMockTabType = (type) => {
   return type;
 };
 
-export const isMockServerRelatedTab = (tab, mockServerUid) => {
+export const isMockServerTab = (tab) => {
   const type = normalizeMockTabType(tab?.type);
-  return (type === 'mock-server' || type === 'mock-response') && tab?.mockServerUid === mockServerUid;
+  return type === 'mock-server' || type === 'mock-response';
 };
+
+export const isMockServerRelatedTab = (tab, mockServerUid) => isMockServerTab(tab) && tab?.mockServerUid === mockServerUid;
 
 export const suggestNextMockServerPort = (instances, { excludeUid } = {}) => {
   const usedPorts = new Set(

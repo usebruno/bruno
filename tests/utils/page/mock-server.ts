@@ -1,5 +1,6 @@
 import { test, expect, Page, Locator } from '../../../playwright';
 import { openPreferences, selectPreferencesTab, closePreferences } from './preferences';
+import { buildCommonLocators } from './locators';
 
 // Locators for the Mock Server dashboard, routes table, request log, and related modals.
 export const buildMockServerLocators = (page: Page) => ({
@@ -81,9 +82,6 @@ export const buildMockServerLocators = (page: Page) => ({
   logDurationCell: () => page.getByTestId('mock-server-log-table').locator('[data-testid="column-duration"]').first(),
 
   betaToggle: () => page.getByTestId('mock-server-beta-toggle'),
-  unsavedChangesDialog: () => page.locator('.bruno-modal').filter({ hasText: 'Unsaved changes' }),
-  responseListOpenBtns: () => page.locator('.response-item-open'),
-  responseListNames: () => page.locator('.response-item-open .response-item-name'),
 
   filterOption: (label: string) => page.getByRole('option', { name: label, exact: true }),
   refreshToast: () => page.getByText(/Routes refreshed.*routes/).first()
@@ -208,7 +206,8 @@ export const setMockServerBetaFeature = async (
     }
     if (resolveUnsavedChanges) {
       const buttonName = resolveUnsavedChanges === 'save' ? 'Save' : 'Don\'t Save';
-      await ms.unsavedChangesDialog().getByRole('button', { name: buttonName, exact: true }).click();
+      const { modal } = buildCommonLocators(page);
+      await modal.byTitle('Unsaved changes').getByRole('button', { name: buttonName, exact: true }).click();
     }
     await expect(checkbox).toBeChecked({ checked: enabled });
     await closePreferences(page);

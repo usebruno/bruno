@@ -9,13 +9,11 @@ jest.mock('../../src/store/preferences', () => ({
   getPreferences: jest.fn(() => mockPreferencesState),
   savePreferences: jest.fn(async (preferences) => {
     mockPreferencesState.beta = { ...preferences.beta };
-  }),
-  preferencesUtil: {
-    isBetaFeatureEnabled: (featureName) => Boolean(mockPreferencesState.beta[featureName])
-  }
+  })
 }));
 
 jest.mock('../../src/app/mock-server/mock-server', () => ({
+  isMockServerEnabled: () => Boolean(mockPreferencesState.beta['mock-server']),
   stopAll: jest.fn(() => Promise.resolve())
 }));
 

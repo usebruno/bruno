@@ -1,6 +1,6 @@
 const fs = require('fs');
 const { ipcMain, nativeTheme } = require('electron');
-const { getPreferences, savePreferences, preferencesUtil } = require('../store/preferences');
+const { getPreferences, savePreferences } = require('../store/preferences');
 const { getGitVersion } = require('../utils/git');
 const { globalEnvironmentsStore } = require('../store/global-environments');
 const { getCachedSystemProxy, fetchSystemProxy } = require('../store/system-proxy');
@@ -10,8 +10,6 @@ const LastOpenedCollections = require('../store/last-opened-collections');
 const WindowStateStore = require('../store/window-state');
 const { clearAgentCache, clearPacCache } = require('@usebruno/requests');
 const mockServer = require('../app/mock-server/mock-server');
-
-const MOCK_SERVER_BETA_FEATURE = 'mock-server';
 
 const registerPreferencesIpc = (mainWindow) => {
   const lastOpenedCollections = new LastOpenedCollections();
@@ -56,9 +54,9 @@ const registerPreferencesIpc = (mainWindow) => {
 
   ipcMain.handle('renderer:save-preferences', async (event, preferences) => {
     try {
-      const wasMockServerEnabled = preferencesUtil.isBetaFeatureEnabled(MOCK_SERVER_BETA_FEATURE);
+      const wasMockServerEnabled = mockServer.isMockServerEnabled();
       await savePreferences(preferences);
-      if (wasMockServerEnabled && !preferencesUtil.isBetaFeatureEnabled(MOCK_SERVER_BETA_FEATURE)) {
+      if (wasMockServerEnabled && !mockServer.isMockServerEnabled()) {
         await mockServer.stopAll();
       }
     } catch (error) {

@@ -83,6 +83,10 @@ const BETA_FEATURES = [
   }
 ];
 
+const isBetaFeatureEnabled = (preferences, feature) => get(preferences, `beta.${feature.id}`, feature.defaultEnabled ?? false);
+
+const MOCK_SERVER_FEATURE = BETA_FEATURES.find((feature) => feature.id === BETA_FEATURE_IDS.MOCK_SERVER);
+
 const Beta = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const mockResponseEditors = useSelector((state) => state.collections.mockResponseEditors);
@@ -103,7 +107,7 @@ const Beta = ({ close }) => {
   const generateInitialValues = () => {
     const initialValues = {};
     BETA_FEATURES.forEach((feature) => {
-      initialValues[feature.id] = get(preferences, `beta.${feature.id}`, feature.defaultEnabled ?? false);
+      initialValues[feature.id] = isBetaFeatureEnabled(preferences, feature);
     });
     return initialValues;
   };
@@ -126,6 +130,8 @@ const Beta = ({ close }) => {
   });
 
   const handleSave = useCallback((newBetaPreferences) => {
+    const disablesMockServer = isBetaFeatureEnabled(preferences, MOCK_SERVER_FEATURE)
+      && !newBetaPreferences[BETA_FEATURE_IDS.MOCK_SERVER];
     dispatch(
       savePreferences({
         ...preferences,
@@ -135,6 +141,11 @@ const Beta = ({ close }) => {
         }
       })
     )
+      .then(() => {
+        if (disablesMockServer) {
+          dispatch(closeMockServerTabs());
+        }
+      })
       .catch((err) => console.log(err) && toast.error('Failed to update beta preferences'));
   }, [dispatch, preferences]);
 
@@ -167,7 +178,6 @@ const Beta = ({ close }) => {
 
   const disableMockServer = () => {
     setConfirmMockServerDisable(false);
-    dispatch(closeMockServerTabs());
     formik.setFieldValue(BETA_FEATURE_IDS.MOCK_SERVER, false);
   };
 

@@ -2,7 +2,7 @@ import { saveMockResponse } from 'providers/ReduxStore/slices/mock-server/index'
 import { syncMockResponseEditorSaved } from 'providers/ReduxStore/slices/collections';
 import { closeTabs, removeRecentlyClosedTabs, restoreTabs, updateTabMeta } from 'providers/ReduxStore/slices/tabs';
 import { resolveMockResponseLocation, getMockResponseNameError, getMockResponseDescriptionError } from 'utils/mock-server/mock-responses';
-import { findMockServerInstance, normalizeMockTabType } from 'utils/mock-server/mock-server-instances';
+import { findMockServerInstance, isMockServerTab } from 'utils/mock-server/mock-server-instances';
 import { mockResponseFromEditorItem } from 'utils/mock-server/mock-responses/editor';
 import { BETA_FEATURES } from 'utils/beta-features';
 
@@ -45,17 +45,13 @@ export const saveMockResponseEditor = (responseUid) => async (dispatch, getState
   return result.response;
 };
 
-const MOCK_SERVER_TAB_TYPES = ['mock-server', 'mock-response'];
-
-const isMockServerTab = (tab) => MOCK_SERVER_TAB_TYPES.includes(normalizeMockTabType(tab.type));
-
 export const closeMockServerTabs = () => (dispatch, getState) => {
   const openTabUids = getState().tabs.tabs
     .filter(isMockServerTab)
     .map((tab) => tab.uid);
 
   if (openTabUids.length) {
-    dispatch(closeTabs({ tabUids: openTabUids }));
+    dispatch(closeTabs({ tabUids: openTabUids, reopenable: false }));
   }
 
   const recentlyClosedTabUids = getState().tabs.recentlyClosedTabs
