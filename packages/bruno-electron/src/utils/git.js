@@ -1069,9 +1069,13 @@ const continueMerge = async (gitRootPath, conflictedFiles, commitMessage) => {
       await fsPromises.writeFile(mergeMsgPath, commitMessage, 'utf8');
 
       // Step 4: Call git merge --continue
-      const git = getSimpleGitInstanceForPath(gitRootPath);
-      const stdout = await git.raw(['-c', 'core.editor=:', 'merge', '--continue']);
-      resolve(stdout);
+      exec('git -c core.editor=: merge --continue', { cwd: gitRootPath }, (err, stdout) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(stdout);
+      });
     } catch (error) {
       reject(error);
     }
