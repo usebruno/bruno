@@ -84,7 +84,6 @@ const useTabsOverflow = ({ keys, activeKey }) => {
   const calculateRef = useRef(calculate);
   calculateRef.current = calculate;
 
-  // calculate when keys change
   const keysSignature = keys.join('\u0000');
   useEffect(() => {
     const frameId = requestAnimationFrame(() => calculateRef.current());

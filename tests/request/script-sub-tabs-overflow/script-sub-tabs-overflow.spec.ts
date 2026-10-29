@@ -12,7 +12,8 @@ test.describe('Script sub-tabs overflow', () => {
     const locators = buildCommonLocators(page);
     const overflowTrigger = locators.paneTabs.scriptSubTabsOverflowTrigger();
 
-    await setWindowContentSize(await reuseOrLaunchElectronApp({ testFile: testInfo.file }), page, windowSize);
+    const app = await reuseOrLaunchElectronApp({ testFile: testInfo.file });
+    await setWindowContentSize(app, page, windowSize);
     await openRequest(page, COLLECTION_NAME, REQUEST_NAME);
 
     await test.step('Side by side, the selected hook stays in the row while others collapse', async () => {
