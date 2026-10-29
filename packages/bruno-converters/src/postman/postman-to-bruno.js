@@ -2,7 +2,12 @@ import mime from 'mime-types';
 import { transformExampleStatusInCollection, utils } from '@usebruno/common';
 import each from 'lodash/each';
 import get from 'lodash/get';
-import { hydrateSeqInCollection, transformItemsInCollection, uuid, validateSchema } from '../common';
+import {
+  hydrateSeqInCollection,
+  transformItemsInCollection,
+  uuid,
+  validateSchema
+} from '../common';
 import { invalidVariableCharacterRegex } from '../constants/index';
 import {
   buildPackageReport,
@@ -29,7 +34,7 @@ const AUTH_TYPES = Object.freeze({
 
 const parseGraphQLRequest = (graphqlSource) => {
   try {
-    let queryResultObject = {
+    const queryResultObject = {
       query: '',
       variables: ''
     };
@@ -38,7 +43,10 @@ const parseGraphQLRequest = (graphqlSource) => {
       graphqlSource = JSON.parse(graphqlSource);
     }
 
-    if (graphqlSource.hasOwnProperty('variables') && graphqlSource.variables !== '') {
+    if (
+      graphqlSource.hasOwnProperty('variables')
+      && graphqlSource.variables !== ''
+    ) {
       queryResultObject.variables = graphqlSource.variables;
     }
 
@@ -73,7 +81,10 @@ const transformDescription = (description) => {
     return description;
   }
 
-  if (typeof description === 'object' && description.hasOwnProperty('content')) {
+  if (
+    typeof description === 'object'
+    && description.hasOwnProperty('content')
+  ) {
     return description.content;
   }
 
@@ -157,22 +168,48 @@ const convertV21Auth = (array) => {
   }, {});
 };
 
+const encodeKeepingVars = (str) =>
+  String(str)
+    .split(/(\{\{[^{}]*\}\})/)
+    .map((part, i) => {
+      if (i % 2 === 1) return part;
+      const safePart = part.replace(/%(?![0-9A-Fa-f]{2})/g, '%25');
+      try {
+        return encodeURIComponent(decodeURIComponent(safePart));
+      } catch (e) {
+        return encodeURIComponent(safePart);
+      }
+    })
+    .join('');
+
 const constructUrlFromParts = (url) => {
   if (!url) return '';
 
-  const { protocol = 'http', host, path, port, query, hash } = url || {};
-  const hostStr = Array.isArray(host) ? host.filter(Boolean).join('.') : host || '';
+  const { protocol = 'http', host, path, port, query } = url;
+  const hostStr = Array.isArray(host)
+    ? host.filter(Boolean).join('.')
+    : host || '';
+
   const pathStr = Array.isArray(path) ? path.join('/') : path || '';
+
   const portStr = port ? `:${port}` : '';
-  const queryStr
-    = query && Array.isArray(query) && query.length > 0
-      ? `?${query
-        .filter((q) => q && q.key)
-        .map((q) => `${q.key}=${q.value || ''}`)
-        .join('&')}`
-      : '';
-  const urlStr = `${protocol}://${hostStr}${portStr}${pathStr ? `/${pathStr}` : ''}${queryStr}`;
-  return urlStr;
+
+  const validQuery = Array.isArray(query)
+    ? query.filter((q) => q && q.key != null && q.key !== '' && !q.disabled)
+    : [];
+
+  const queryStr = validQuery.length
+    ? `?${validQuery
+      .map(
+        (q) =>
+          `${encodeKeepingVars(q.key)}=${encodeKeepingVars(q.value ?? '')}`
+      )
+      .join('&')}`
+    : '';
+
+  return `${protocol}://${hostStr}${portStr}${
+    pathStr ? `/${pathStr}` : ''
+  }${queryStr}`;
 };
 
 const constructUrl = (url) => {
@@ -201,9 +238,17 @@ const constructUrl = (url) => {
 };
 
 const translateOrPreserve = (exec, preserveScripts) =>
-  preserveScripts ? (Array.isArray(exec) ? exec.join('\n') : exec) : postmanTranslation(exec);
+  preserveScripts
+    ? Array.isArray(exec)
+      ? exec.join('\n')
+      : exec
+    : postmanTranslation(exec);
 
-const importScriptsFromEvents = (events, requestObject, preserveScripts = false) => {
+const importScriptsFromEvents = (
+  events,
+  requestObject,
+  preserveScripts = false
+) => {
   events.forEach((event) => {
     if (event.script && event.script.exec) {
       if (event.listen === 'prerequest') {
@@ -212,10 +257,16 @@ const importScriptsFromEvents = (events, requestObject, preserveScripts = false)
         }
 
         if (event.script.exec && event.script.exec.length > 0) {
-          requestObject.script.req = translateOrPreserve(event.script.exec, preserveScripts);
+          requestObject.script.req = translateOrPreserve(
+            event.script.exec,
+            preserveScripts
+          );
         } else {
           requestObject.script.req = '';
-          console.warn('Unexpected event.script.exec type', typeof event.script.exec);
+          console.warn(
+            'Unexpected event.script.exec type',
+            typeof event.script.exec
+          );
         }
       }
 
@@ -225,10 +276,16 @@ const importScriptsFromEvents = (events, requestObject, preserveScripts = false)
         }
 
         if (event.script.exec && event.script.exec.length > 0) {
-          requestObject.script.res = translateOrPreserve(event.script.exec, preserveScripts);
+          requestObject.script.res = translateOrPreserve(
+            event.script.exec,
+            preserveScripts
+          );
         } else {
           requestObject.script.res = '';
-          console.warn('Unexpected event.script.exec type', typeof event.script.exec);
+          console.warn(
+            'Unexpected event.script.exec type',
+            typeof event.script.exec
+          );
         }
       }
     }
@@ -236,12 +293,19 @@ const importScriptsFromEvents = (events, requestObject, preserveScripts = false)
 };
 
 const importCollectionLevelVariables = (variables, requestObject) => {
-  const vars = variables.filter((v) => !(v.key == null && v.value == null)).map((v) => ({
-    uid: uuid(),
-    name: (v.key ?? '').replace(invalidVariableCharacterRegex, '_'),
-    value: v.value == null ? '' : typeof v.value === 'string' ? v.value : JSON.stringify(v.value),
-    enabled: !v.disabled
-  }));
+  const vars = variables
+    .filter((v) => !(v.key == null && v.value == null))
+    .map((v) => ({
+      uid: uuid(),
+      name: (v.key ?? '').replace(invalidVariableCharacterRegex, '_'),
+      value:
+        v.value == null
+          ? ''
+          : typeof v.value === 'string'
+            ? v.value
+            : JSON.stringify(v.value),
+      enabled: !v.disabled
+    }));
 
   requestObject.vars.req = vars;
 };
@@ -360,35 +424,53 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
       };
 
       const postmanGrantType = findValueUsingKey('grant_type');
-      const targetGrantType = oauth2GrantTypeMaps[postmanGrantType] || 'client_credentials'; // Default
+      const targetGrantType
+        = oauth2GrantTypeMaps[postmanGrantType] || 'client_credentials'; // Default
 
       // Maps Postman's request-params arrays to Bruno's `additionalParameters`, converting `send_as`
       // ('request_header'/'request_url'/'request_body') to Bruno's `sendIn` ('headers'/'queryparams'/'body').
-      const sendAsToSendIn = { request_header: 'headers', request_url: 'queryparams', request_body: 'body' };
-      const mapRequestParams = (params) => (Array.isArray(params) ? params : []).map((param) => ({
-        name: ensureString(param.key),
-        value: ensureString(param.value),
-        sendIn: sendAsToSendIn[param.send_as] || 'headers',
-        enabled: param.enabled !== false
-      }));
+      const sendAsToSendIn = {
+        request_header: 'headers',
+        request_url: 'queryparams',
+        request_body: 'body'
+      };
+      const mapRequestParams = (params) =>
+        (Array.isArray(params) ? params : []).map((param) => ({
+          name: ensureString(param.key),
+          value: ensureString(param.value),
+          sendIn: sendAsToSendIn[param.send_as] || 'headers',
+          enabled: param.enabled !== false
+        }));
       const additionalParameters = {};
       if (Array.isArray(authValues.authRequestParams)) {
-        additionalParameters.authorization = mapRequestParams(authValues.authRequestParams);
+        additionalParameters.authorization = mapRequestParams(
+          authValues.authRequestParams
+        );
       }
       if (Array.isArray(authValues.tokenRequestParams)) {
-        additionalParameters.token = mapRequestParams(authValues.tokenRequestParams);
+        additionalParameters.token = mapRequestParams(
+          authValues.tokenRequestParams
+        );
       }
       if (Array.isArray(authValues.refreshRequestParams)) {
-        additionalParameters.refresh = mapRequestParams(authValues.refreshRequestParams);
+        additionalParameters.refresh = mapRequestParams(
+          authValues.refreshRequestParams
+        );
       }
-      const hasAdditionalParameters = Object.keys(additionalParameters).length > 0;
+      const hasAdditionalParameters
+        = Object.keys(additionalParameters).length > 0;
       // The schema requires an `authorization` array for the authorization_code grant, so ensure it
       // exists when any additional params are attached to this grant type.
-      if (hasAdditionalParameters && targetGrantType === 'authorization_code' && !additionalParameters.authorization) {
+      if (
+        hasAdditionalParameters
+        && targetGrantType === 'authorization_code'
+        && !additionalParameters.authorization
+      ) {
         additionalParameters.authorization = [];
       }
 
-      const tokenPlacement = findValueUsingKey('addTokenTo') === 'queryParams' ? 'url' : 'header'; // Postman defaults an unspecified placement to the header
+      const tokenPlacement
+        = findValueUsingKey('addTokenTo') === 'queryParams' ? 'url' : 'header'; // Postman defaults an unspecified placement to the header
       const tokenHeaderPrefix
         = tokenPlacement === 'header' && authValues.headerPrefix == null
           ? 'Bearer'
@@ -407,7 +489,10 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         tokenPlacement,
         tokenHeaderPrefix,
         tokenQueryKey: 'access_token',
-        credentialsPlacement: findValueUsingKey('client_authentication') === 'body' ? 'body' : 'basic_auth_header',
+        credentialsPlacement:
+          findValueUsingKey('client_authentication') === 'body'
+            ? 'body'
+            : 'basic_auth_header',
         credentialsId: findValueUsingKey('tokenName')
       };
 
@@ -446,7 +531,10 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
           };
           break;
         default:
-          console.warn('Unexpected OAuth2 grant type after mapping:', targetGrantType);
+          console.warn(
+            'Unexpected OAuth2 grant type after mapping:',
+            targetGrantType
+          );
           requestObject.auth.oauth2 = baseOAuth2Config; // Fallback to default which is Client Credentials
           break;
       }
@@ -454,19 +542,36 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
     }
     default:
       requestObject.auth.mode = AUTH_TYPES.NONE;
-      console.warn('Unexpected auth.type:', auth.type, '- Mode set, but no specific config generated.');
+      console.warn(
+        'Unexpected auth.type:',
+        auth.type,
+        '- Mode set, but no specific config generated.'
+      );
       break;
   }
 };
 
-const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = false } = {}, scriptMap, issues = [], parentPath = '') => {
+const importPostmanV2CollectionItem = (
+  brunoParent,
+  item,
+  { preserveScripts = false } = {},
+  scriptMap,
+  issues = [],
+  parentPath = ''
+) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
 
   item.forEach((i, index) => {
     if (typeof i !== 'object' || i === null) {
-      issues.push({ path: parentPath ? `${parentPath} / Item ${index + 1}` : `Item ${index + 1}`, severity: 'error', message: 'Malformed collection item (not an object)' });
+      issues.push({
+        path: parentPath
+          ? `${parentPath} / Item ${index + 1}`
+          : `Item ${index + 1}`,
+        severity: 'error',
+        message: 'Malformed collection item (not an object)'
+      });
       return;
     }
 
@@ -520,7 +625,14 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
       processAuth(i.auth, brunoFolderItem.root.request);
 
       if (i.item && i.item.length) {
-        importPostmanV2CollectionItem(brunoFolderItem, i.item, { preserveScripts }, scriptMap, issues, itemPath);
+        importPostmanV2CollectionItem(
+          brunoFolderItem,
+          i.item,
+          { preserveScripts },
+          scriptMap,
+          issues,
+          itemPath
+        );
       }
 
       if (i.event) {
@@ -530,7 +642,11 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
             request: brunoFolderItem.root.request
           });
         } else {
-          importScriptsFromEvents(i.event, brunoFolderItem.root.request, preserveScripts);
+          importScriptsFromEvents(
+            i.event,
+            brunoFolderItem.root.request,
+            preserveScripts
+          );
         }
       }
 
@@ -538,7 +654,12 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
     } else if (i.request) {
       const rawMethod = i?.request?.method;
       if (!rawMethod || typeof rawMethod !== 'string' || !rawMethod.trim()) {
-        issues.push({ path: itemPath, severity: 'error', message: 'Missing or invalid request method', sourceItem: i });
+        issues.push({
+          path: itemPath,
+          severity: 'error',
+          message: 'Missing or invalid request method',
+          sourceItem: i
+        });
         return;
       }
       const method = rawMethod.toUpperCase();
@@ -591,7 +712,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
 
         const settings = {
           encodeUrl: i.protocolProfileBehavior?.disableUrlEncoding !== true,
-          forwardAuthorizationHeader: i.protocolProfileBehavior?.followAuthorizationHeader ?? false
+          forwardAuthorizationHeader:
+            i.protocolProfileBehavior?.followAuthorizationHeader ?? false
         };
 
         // Handle followRedirects setting
@@ -601,20 +723,27 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
 
         // Postman's schema types maxRedirects as a number but its exports are not guaranteed to
         // honour that, and an unusable value must not cost us the request.
-        const maxRedirects = parseMaxRedirects(i.protocolProfileBehavior?.maxRedirects);
+        const maxRedirects = parseMaxRedirects(
+          i.protocolProfileBehavior?.maxRedirects
+        );
         if (maxRedirects !== undefined) {
           settings.maxRedirects = maxRedirects;
         } else if (i.protocolProfileBehavior?.maxRedirects !== undefined) {
           issues.push({
             path: itemPath,
             severity: 'warning',
-            message: 'Invalid maxRedirects, ignored (must be a number of 0 or more)'
+            message:
+              'Invalid maxRedirects, ignored (must be a number of 0 or more)'
           });
         }
 
         // Handle disabled system headers from Postman's protocolProfileBehavior
-        const disabledSystemHeaders = i.protocolProfileBehavior?.disabledSystemHeaders;
-        if (disabledSystemHeaders && typeof disabledSystemHeaders === 'object') {
+        const disabledSystemHeaders
+          = i.protocolProfileBehavior?.disabledSystemHeaders;
+        if (
+          disabledSystemHeaders
+          && typeof disabledSystemHeaders === 'object'
+        ) {
           const omitHeaders = Object.keys(disabledSystemHeaders)
             .filter((headerName) => disabledSystemHeaders[headerName] === true)
             .map((headerName) => headerName.trim())
@@ -634,26 +763,46 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
             });
           } else {
             i.event.forEach((event) => {
-              if (event.listen === 'prerequest' && event.script && event.script.exec) {
+              if (
+                event.listen === 'prerequest'
+                && event.script
+                && event.script.exec
+              ) {
                 if (!brunoRequestItem.request?.script) {
                   brunoRequestItem.request.script = {};
                 }
                 if (event.script.exec && event.script.exec.length > 0) {
-                  brunoRequestItem.request.script.req = translateOrPreserve(event.script.exec, preserveScripts);
+                  brunoRequestItem.request.script.req = translateOrPreserve(
+                    event.script.exec,
+                    preserveScripts
+                  );
                 } else {
                   brunoRequestItem.request.script.req = '';
-                  console.warn('Unexpected event.script.exec type', typeof event.script.exec);
+                  console.warn(
+                    'Unexpected event.script.exec type',
+                    typeof event.script.exec
+                  );
                 }
               }
-              if (event.listen === 'test' && event.script && event.script.exec) {
+              if (
+                event.listen === 'test'
+                && event.script
+                && event.script.exec
+              ) {
                 if (!brunoRequestItem.request?.script) {
                   brunoRequestItem.request.script = {};
                 }
                 if (event.script.exec && event.script.exec.length > 0) {
-                  brunoRequestItem.request.script.res = translateOrPreserve(event.script.exec, preserveScripts);
+                  brunoRequestItem.request.script.res = translateOrPreserve(
+                    event.script.exec,
+                    preserveScripts
+                  );
                 } else {
                   brunoRequestItem.request.script.res = '';
-                  console.warn('Unexpected event.script.exec type', typeof event.script.exec);
+                  console.warn(
+                    'Unexpected event.script.exec type',
+                    typeof event.script.exec
+                  );
                 }
               }
             });
@@ -667,10 +816,18 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
 
             each(i.request.body.formdata, (param) => {
               if (param.key == null && param.value == null) return;
-              const isFile = param.type === 'file' || (param.type === 'default' && param.src);
+              const isFile
+                = param.type === 'file'
+                  || (param.type === 'default' && param.src);
               const value = isFile
-                ? (Array.isArray(param.src) ? param.src : param.src ? [param.src] : [])
-                : (Array.isArray(param.value) ? param.value.join('') : ensureString(param.value));
+                ? Array.isArray(param.src)
+                  ? param.src
+                  : param.src
+                    ? [param.src]
+                    : []
+                : Array.isArray(param.value)
+                  ? param.value.join('')
+                  : ensureString(param.value);
 
               brunoRequestItem.request.body.multipartForm.push({
                 uid: uuid(),
@@ -730,7 +887,9 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
         if (bodyMode === 'graphql') {
           brunoRequestItem.type = 'graphql-request';
           brunoRequestItem.request.body.mode = 'graphql';
-          brunoRequestItem.request.body.graphql = parseGraphQLRequest(i.request.body.graphql);
+          brunoRequestItem.request.body.graphql = parseGraphQLRequest(
+            i.request.body.graphql
+          );
         }
 
         each(normalizeHeaders(i.request.header), (header) => {
@@ -748,9 +907,10 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
         processAuth(i.request.auth, brunoRequestItem.request);
 
         each(get(i, 'request.url.query'), (param) => {
-          if (param.key == null && param.value == null) {
+          if (!param || (param.key == null && param.value == null)) {
             return;
           }
+
           brunoRequestItem.request.params.push({
             uid: uuid(),
             name: ensureString(param.key),
@@ -763,7 +923,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
 
         each(get(i, 'request.url.variable', []), (param) => {
           if (!param.key) {
-          // If no key, skip this iteration and discard the param
+            // If no key, skip this iteration and discard the param
             return;
           }
 
@@ -782,13 +942,16 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
           brunoRequestItem.examples = [];
 
           i.response.forEach((response, responseIndex) => {
-            const sanitized = String(response.name ?? '').replace(/\r?\n/g, ' ').trim();
+            const sanitized = String(response.name ?? '')
+              .replace(/\r?\n/g, ' ')
+              .trim();
             const exampleName = sanitized || `Example ${responseIndex + 1}`;
 
             // Convert originalRequest to Bruno request format
             const originalRequest = response.originalRequest || {};
             const exampleUrl = constructUrl(originalRequest.url);
-            const exampleMethod = originalRequest.method?.toUpperCase() || method;
+            const exampleMethod
+              = originalRequest.method?.toUpperCase() || method;
 
             const example = {
               uid: uuid(),
@@ -837,7 +1000,11 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
             }
 
             // Convert original request query parameters
-            if (originalRequest.url && originalRequest.url.query && Array.isArray(originalRequest.url.query)) {
+            if (
+              originalRequest.url
+              && originalRequest.url.query
+              && Array.isArray(originalRequest.url.query)
+            ) {
               originalRequest.url.query.forEach((param) => {
                 if (param.key == null && param.value == null) {
                   return;
@@ -853,7 +1020,11 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
               });
             }
 
-            if (originalRequest.url && originalRequest.url.variable && Array.isArray(originalRequest.url.variable)) {
+            if (
+              originalRequest.url
+              && originalRequest.url.variable
+              && Array.isArray(originalRequest.url.variable)
+            ) {
               originalRequest.url.variable.forEach((param) => {
                 if (!param.key) return;
                 example.request.params.push({
@@ -872,13 +1043,24 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
               const bodyMode = originalRequest.body.mode;
               if (bodyMode === 'formdata') {
                 example.request.body.mode = 'multipartForm';
-                if (originalRequest.body.formdata && Array.isArray(originalRequest.body.formdata)) {
+                if (
+                  originalRequest.body.formdata
+                  && Array.isArray(originalRequest.body.formdata)
+                ) {
                   originalRequest.body.formdata.forEach((param) => {
                     if (param.key == null && param.value == null) return;
-                    const isFile = param.type === 'file' || (param.type === 'default' && param.src);
+                    const isFile
+                      = param.type === 'file'
+                        || (param.type === 'default' && param.src);
                     const value = isFile
-                      ? (Array.isArray(param.src) ? param.src : param.src ? [param.src] : [])
-                      : (Array.isArray(param.value) ? param.value.join('') : ensureString(param.value));
+                      ? Array.isArray(param.src)
+                        ? param.src
+                        : param.src
+                          ? [param.src]
+                          : []
+                      : Array.isArray(param.value)
+                        ? param.value.join('')
+                        : ensureString(param.value);
 
                     example.request.body.multipartForm.push({
                       uid: uuid(),
@@ -887,13 +1069,18 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
                       value,
                       description: transformDescription(param.description),
                       enabled: !param.disabled,
-                      ...(param.contentType && { contentType: param.contentType })
+                      ...(param.contentType && {
+                        contentType: param.contentType
+                      })
                     });
                   });
                 }
               } else if (bodyMode === 'urlencoded') {
                 example.request.body.mode = 'formUrlEncoded';
-                if (originalRequest.body.urlencoded && Array.isArray(originalRequest.body.urlencoded)) {
+                if (
+                  originalRequest.body.urlencoded
+                  && Array.isArray(originalRequest.body.urlencoded)
+                ) {
                   originalRequest.body.urlencoded.forEach((param) => {
                     if (param.key == null && param.value == null) return;
                     example.request.body.formUrlEncoded.push({
@@ -906,9 +1093,14 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
                   });
                 }
               } else if (bodyMode === 'raw') {
-                let language = get(originalRequest, 'body.options.raw.language');
+                let language = get(
+                  originalRequest,
+                  'body.options.raw.language'
+                );
                 if (!language) {
-                  language = searchLanguageByHeader(originalRequest.header || []);
+                  language = searchLanguageByHeader(
+                    originalRequest.header || []
+                  );
                 }
                 if (language === 'json') {
                   example.request.body.mode = 'json';
@@ -953,7 +1145,12 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
         brunoParent.items.push(brunoRequestItem);
         requestMap[requestName] = brunoRequestItem;
       } catch (err) {
-        issues.push({ path: itemPath, severity: 'error', message: err.message, sourceItem: i });
+        issues.push({
+          path: itemPath,
+          severity: 'error',
+          message: err.message,
+          sourceItem: i
+        });
       }
     }
   });
@@ -963,9 +1160,15 @@ const searchLanguageByHeader = (headers) => {
   let contentType;
   each(normalizeHeaders(headers), (header) => {
     if (header.key?.toLowerCase() === 'content-type' && !header.disabled) {
-      if (typeof header.value == 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(header.value)) {
+      if (
+        typeof header.value === 'string'
+        && /^[\w\-]+\/([\w\-]+\+)?json/.test(header.value)
+      ) {
         contentType = 'json';
-      } else if (typeof header.value == 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(header.value)) {
+      } else if (
+        typeof header.value === 'string'
+        && /^[\w\-]+\/([\w\-]+\+)?xml/.test(header.value)
+      ) {
         contentType = 'xml';
       }
       return false;
@@ -980,12 +1183,17 @@ const getBodyTypeFromContentTypeHeader = (headers) => {
     return 'text';
   }
 
-  const contentTypeHeader = normalizedHeaders.find((header) => header.key?.toLowerCase() === 'content-type');
+  const contentTypeHeader = normalizedHeaders.find(
+    (header) => header.key?.toLowerCase() === 'content-type'
+  );
   if (contentTypeHeader && typeof contentTypeHeader.value === 'string') {
     const contentType = contentTypeHeader.value.toLowerCase();
     if (contentType?.includes('application/json')) {
       return 'json';
-    } else if (contentType?.includes('application/xml') || contentType?.includes('text/xml')) {
+    } else if (
+      contentType?.includes('application/xml')
+      || contentType?.includes('text/xml')
+    ) {
       return 'xml';
     } else if (contentType?.includes('text/html')) {
       return 'html';
@@ -1035,7 +1243,8 @@ const rewriteRequiresInBrunoCollection = (brunoCollection) => {
   };
 
   const processScriptField = (scriptObj, key) => {
-    if (!scriptObj || typeof scriptObj[key] !== 'string' || !scriptObj[key]) return;
+    if (!scriptObj || typeof scriptObj[key] !== 'string' || !scriptObj[key])
+      return;
     const next = processScriptString(scriptObj[key]);
     if (next !== scriptObj[key]) scriptObj[key] = next;
   };
@@ -1071,7 +1280,10 @@ const rewriteRequiresInBrunoCollection = (brunoCollection) => {
   return Array.from(injected);
 };
 
-const importPostmanV2Collection = async (collection, { useWorkers = false, preserveScripts = false }) => {
+const importPostmanV2Collection = async (
+  collection,
+  { useWorkers = false, preserveScripts = false }
+) => {
   const brunoCollection = {
     name: collection.info.name || 'Untitled Collection',
     uid: uuid(),
@@ -1104,16 +1316,27 @@ const importPostmanV2Collection = async (collection, { useWorkers = false, prese
   };
 
   if (collection.event) {
-    importScriptsFromEvents(collection.event, brunoCollection.root.request, preserveScripts);
+    importScriptsFromEvents(
+      collection.event,
+      brunoCollection.root.request,
+      preserveScripts
+    );
   }
 
   const issues = [];
 
   if (collection?.variable) {
     try {
-      importCollectionLevelVariables(collection.variable, brunoCollection.root.request);
+      importCollectionLevelVariables(
+        collection.variable,
+        brunoCollection.root.request
+      );
     } catch (err) {
-      issues.push({ path: 'Collection Variables', severity: 'warning', message: err.message });
+      issues.push({
+        path: 'Collection Variables',
+        severity: 'warning',
+        message: err.message
+      });
     }
   }
 
@@ -1123,12 +1346,20 @@ const importPostmanV2Collection = async (collection, { useWorkers = false, prese
   // Create a single scriptMap for all items
   const scriptMap = useWorkers && !preserveScripts ? new Map() : null;
 
-  importPostmanV2CollectionItem(brunoCollection, collection.item, { preserveScripts }, scriptMap, issues);
+  importPostmanV2CollectionItem(
+    brunoCollection,
+    collection.item,
+    { preserveScripts },
+    scriptMap,
+    issues
+  );
 
   // Process all scripts in a single call at the top level
   if (useWorkers && scriptMap && scriptMap.size > 0) {
     try {
-      const { default: scriptTranslationWorker } = await import('../workers/postman-translator-worker');
+      const { default: scriptTranslationWorker } = await import(
+        '../workers/postman-translator-worker'
+      );
       const translatedScripts = await scriptTranslationWorker(scriptMap);
 
       // Apply translated scripts to all items in the collection
@@ -1144,11 +1375,15 @@ const importPostmanV2Collection = async (collection, { useWorkers = false, prese
                 item.root.request.tests = '';
               }
 
-              const script = translatedScripts.get(item.uid).request?.script?.req;
-              const tests = translatedScripts.get(item.uid).request?.script?.res;
+              const script = translatedScripts.get(item.uid).request?.script
+                ?.req;
+              const tests = translatedScripts.get(item.uid).request?.script
+                ?.res;
 
-              item.root.request.script.req = script && script.length > 0 ? script : '';
-              item.root.request.script.res = tests && tests.length > 0 ? tests : '';
+              item.root.request.script.req
+                = script && script.length > 0 ? script : '';
+              item.root.request.script.res
+                = tests && tests.length > 0 ? tests : '';
             }
 
             // Recursively apply to nested items
@@ -1164,10 +1399,13 @@ const importPostmanV2Collection = async (collection, { useWorkers = false, prese
                 item.request.tests = '';
               }
 
-              const script = translatedScripts.get(item.uid).request?.script?.req;
-              const tests = translatedScripts.get(item.uid).request?.script?.res;
+              const script = translatedScripts.get(item.uid).request?.script
+                ?.req;
+              const tests = translatedScripts.get(item.uid).request?.script
+                ?.res;
 
-              item.request.script.req = script && script.length > 0 ? script : '';
+              item.request.script.req
+                = script && script.length > 0 ? script : '';
               item.request.script.res = tests && tests.length > 0 ? tests : '';
             }
           }
@@ -1185,14 +1423,19 @@ const importPostmanV2Collection = async (collection, { useWorkers = false, prese
   return { collection: brunoCollection, issues };
 };
 
-const parsePostmanCollection = async (collection, { useWorkers = false, preserveScripts = false }) => {
+const parsePostmanCollection = async (
+  collection,
+  { useWorkers = false, preserveScripts = false }
+) => {
   try {
     // Newer Postman exports wrap the collection in a { collection: { ... } } envelope
-    const parsedCollection = collection.collection?.info ? collection.collection : collection;
+    const parsedCollection = collection.collection?.info
+      ? collection.collection
+      : collection;
 
-    let schema = get(parsedCollection, 'info.schema');
+    const schema = get(parsedCollection, 'info.schema');
 
-    let v2Schemas = [
+    const v2Schemas = [
       'https://schema.getpostman.com/json/collection/v2.0.0/collection.json',
       'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
       'https://schema.postman.com/json/collection/v2.0.0/collection.json',
@@ -1200,34 +1443,50 @@ const parsePostmanCollection = async (collection, { useWorkers = false, preserve
     ];
 
     if (v2Schemas.includes(schema)) {
-      return await importPostmanV2Collection(parsedCollection, { useWorkers, preserveScripts });
+      return await importPostmanV2Collection(parsedCollection, {
+        useWorkers,
+        preserveScripts
+      });
     }
 
-    throw new Error('Unsupported Postman schema version. Only Postman Collection v2.0 and v2.1 are supported.');
+    throw new Error(
+      'Unsupported Postman schema version. Only Postman Collection v2.0 and v2.1 are supported.'
+    );
   } catch (err) {
     console.log(err);
     if (err instanceof Error) {
       throw err;
     }
 
-    throw new Error('Invalid Postman collection format. Please check your JSON file.');
+    throw new Error(
+      'Invalid Postman collection format. Please check your JSON file.'
+    );
   }
 };
 
-const postmanToBruno = async (postmanCollection, { useWorkers = false, preserveScripts = false } = {}) => {
+const postmanToBruno = async (
+  postmanCollection,
+  { useWorkers = false, preserveScripts = false } = {}
+) => {
   try {
     // Resolve the actual collection envelope (Postman wraps newer exports
     // in a `{ collection: {...} }` shell) so the raw scan sees real events.
     const rawCollectionForScan = postmanCollection?.collection?.info
       ? postmanCollection.collection
       : postmanCollection;
-    const rawPackages = collectPackagesFromPostmanCollection(rawCollectionForScan);
+    const rawPackages
+      = collectPackagesFromPostmanCollection(rawCollectionForScan);
 
-    const { collection: parsedCollection, issues } = await parsePostmanCollection(postmanCollection, { useWorkers, preserveScripts });
+    const { collection: parsedCollection, issues }
+      = await parsePostmanCollection(postmanCollection, {
+        useWorkers,
+        preserveScripts
+      });
     const transformedCollection = transformItemsInCollection(parsedCollection);
     const hydratedCollection = hydrateSeqInCollection(transformedCollection);
     // Apply backward compatibility transformation for string status to number
-    const statusTransformedCollection = transformExampleStatusInCollection(hydratedCollection);
+    const statusTransformedCollection
+      = transformExampleStatusInCollection(hydratedCollection);
     const validatedCollection = validateSchema(statusTransformedCollection);
 
     // When preserving script option is enabled, skip any rewrite.
@@ -1237,8 +1496,13 @@ const postmanToBruno = async (postmanCollection, { useWorkers = false, preserveS
     // exposed as sandbox globals that the raw pre-scan can't see. The
     // schema is strict + noUnknown so we attach the report by mutating
     // the already-validated collection.
-    const injectedPackages = preserveScripts ? [] : rewriteRequiresInBrunoCollection(validatedCollection);
-    validatedCollection.packageReport = buildPackageReport([...rawPackages, ...injectedPackages]);
+    const injectedPackages = preserveScripts
+      ? []
+      : rewriteRequiresInBrunoCollection(validatedCollection);
+    validatedCollection.packageReport = buildPackageReport([
+      ...rawPackages,
+      ...injectedPackages
+    ]);
 
     return { collection: validatedCollection, issues };
   } catch (err) {
