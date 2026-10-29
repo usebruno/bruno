@@ -270,16 +270,14 @@ class GrpcClient {
       return;
     }
 
-    const prefixedDef = {};
-    for (const [name, def] of Object.entries(serviceDef)) {
-      prefixedDef[name] = { ...def, path: prefix + def.path };
-    }
+    const prefixedDef = Object.fromEntries(
+      Object.entries(serviceDef).map(([name, def]) => [name, { ...def, path: prefix + def.path }])
+    );
 
     const PrefixedClient = makeGenericClientConstructor(prefixedDef, originalClient.constructor.serviceName);
     const prefixedClient = new PrefixedClient(host, credentials, options);
-    if (typeof originalClient.close === 'function') {
-      originalClient.close();
-    }
+    // Closes the discarded pre-prefix client, while the instance still points at it
+    this.#closeReflectionClient(reflectionInstance);
     reflectionInstance.client = prefixedClient;
   }
 

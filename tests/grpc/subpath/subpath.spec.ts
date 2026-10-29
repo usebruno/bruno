@@ -44,7 +44,7 @@ test.describe('grpc requests under a URL subpath', () => {
     const locators = buildGrpcCommonLocators(page);
 
     await openCollection(page, COLLECTION_NAME);
-    await sendGrpcRequest(page, 'UnservedSubpath', METHOD);
+    await sendGrpcRequest(page, 'ProtoFileOnUnservedSubpath', METHOD);
 
     await expect(locators.response.statusCode()).toHaveText(/^12$/, { timeout: 30000 });
     await expect(locators.response.statusText()).toHaveText(/UNIMPLEMENTED/);
@@ -54,7 +54,7 @@ test.describe('grpc requests under a URL subpath', () => {
     const locators = buildGrpcCommonLocators(page);
 
     await openCollection(page, COLLECTION_NAME);
-    await locators.sidebar.request('ReflectionOnMissingSubpath').click();
+    await locators.sidebar.request('ReflectionOnUnservedSubpath').click();
 
     await expect(locators.toast.byMessage(/Failed to load gRPC methods/)).toBeVisible({ timeout: 30000 });
   });

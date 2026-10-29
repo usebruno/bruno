@@ -7,7 +7,7 @@ grpc:
   url: grpc://localhost:50051/Hello.Api
   method: /hello.HelloService/SayHello
   methodType: unary
-  protoFilePath: hello.proto
+  protoFilePath: ../../../../../packages/bruno-tests/src/grpc/hello.proto
   message:
     - title: message 1
       message: |-

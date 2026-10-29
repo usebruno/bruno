@@ -1,13 +1,12 @@
 info:
-  name: UnservedSubpath
+  name: ReflectionOnUnservedSubpath
   type: grpc
-  seq: 4
+  seq: 5
 
 grpc:
   url: grpc://localhost:50051/Missing.Api
   method: /hello.HelloService/SayHello
   methodType: unary
-  protoFilePath: hello.proto
   message:
     - title: message 1
       message: |-

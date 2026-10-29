@@ -1,12 +1,13 @@
 info:
-  name: ReflectionOnMissingSubpath
+  name: ProtoFileOnUnservedSubpath
   type: grpc
-  seq: 5
+  seq: 4
 
 grpc:
   url: grpc://localhost:50051/Missing.Api
   method: /hello.HelloService/SayHello
   methodType: unary
+  protoFilePath: ../../../../../packages/bruno-tests/src/grpc/hello.proto
   message:
     - title: message 1
       message: |-

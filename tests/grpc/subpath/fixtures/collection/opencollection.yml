@@ -1,3 +1,9 @@
 opencollection: "1.0.0"
 info:
   name: GrpcSubpath
+
+config:
+  protobuf:
+    protoFiles:
+      - path: ../../../../../packages/bruno-tests/src/grpc/hello.proto
+        type: file
