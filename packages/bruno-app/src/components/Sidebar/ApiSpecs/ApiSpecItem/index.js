@@ -17,7 +17,7 @@ import CloneApiSpec from 'components/Sidebar/ApiSpecs/CloneApiSpec';
 import RemoveApiSpec from 'components/Sidebar/ApiSpecs/RemoveApiSpec';
 import DeleteApiSpec from 'components/Sidebar/ApiSpecs/DeleteApiSpec';
 import GenerateCollectionFromSpec from 'components/Sidebar/ApiSpecs/GenerateCollectionFromSpec';
-import { buildMenuItems } from './buildMenuItems';
+import { getApiSpecMenuItems } from './getApiSpecMenuItems';
 
 const ApiSpecItem = ({ apiSpec }) => {
   const dispatch = useDispatch();
@@ -64,21 +64,23 @@ const ApiSpecItem = ({ apiSpec }) => {
 
   const handleGenerateCollection = () => {
     if (!isOpenApiSpec(apiSpec.resolvedJson || apiSpec.json)) {
-      toast.error('This file is not a valid OpenAPI 3.x or Swagger 2.0 document');
+      toast.error('This file is not a valid OpenAPI document');
       return;
     }
     setGenerateCollectionModal(true);
   };
 
-  const menuItems = buildMenuItems({
+  const menuItems = getApiSpecMenuItems({
     isMockServerEnabled,
-    onGenerateCollection: handleGenerateCollection,
-    onGenerateMockServer: () => setMockServerModal(true),
-    onClone: () => setCloneApiSpecModal(true),
-    onRename: () => setRenameApiSpecModal(true),
-    onReveal: handleReveal,
-    onRemove: () => setRemoveApiSpecModal(true),
-    onDelete: () => setDeleteApiSpecModal(true)
+    handlers: {
+      'generate-collection': handleGenerateCollection,
+      'generate-mock-server': () => setMockServerModal(true),
+      'clone': () => setCloneApiSpecModal(true),
+      'rename': () => setRenameApiSpecModal(true),
+      'reveal': handleReveal,
+      'remove': () => setRemoveApiSpecModal(true),
+      'delete': () => setDeleteApiSpecModal(true)
+    }
   });
 
   return (

@@ -128,7 +128,7 @@ describe('ApiSpecItem', () => {
 
     fireEvent.click(screen.getByText('generate-collection'));
 
-    expect(toast.error).toHaveBeenCalledWith('This file is not a valid OpenAPI 3.x or Swagger 2.0 document');
+    expect(toast.error).toHaveBeenCalledWith('This file is not a valid OpenAPI document');
     expect(screen.queryByTestId('generate-collection-step')).not.toBeInTheDocument();
   });
 
