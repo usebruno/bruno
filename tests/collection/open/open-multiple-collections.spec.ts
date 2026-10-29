@@ -16,7 +16,7 @@ test.describe('Open Multiple Collections', () => {
     });
   });
 
-  test('TC-777 Should open multiple collections using Open Collection feature', {tag: '@sanity'}, async ({
+  test('TC-777 Should open multiple collections using Open Collection feature', { tag: '@sanity' }, async ({
     page,
     electronApp,
     createTmpDir
