@@ -65,6 +65,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
       toast.success('Collection exported successfully');
     } catch (error) {
       toast.error('Failed to export collection: ' + error.message);
+      throw error;
     }
   };
 

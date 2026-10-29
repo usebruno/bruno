@@ -3213,9 +3213,9 @@ const openExportToPostmanModal = async (page: Page, collectionName: string) => {
     await openShareCollectionModal(page, collectionName);
 
     // In enterprise version, the export tab is visible, so need to click it to proceed.
-    const shareExportTab = locators.export.shareExportTab();
-    if (await shareExportTab.isVisible()) {
-      await shareExportTab.click();
+    const exportTab = locators.export.exportTab();
+    if (await exportTab.isVisible()) {
+      await exportTab.click();
     }
 
     await locators.export.postmanFormatCard().click();
@@ -3296,9 +3296,9 @@ const exportCollectionAsSingleYaml = async (
   await openShareCollectionModal(page, collectionName);
 
   // In enterprise version, the export tab is visible, so need to click it to proceed.
-  const shareExportTab = locators.export.shareExportTab();
-  if (await shareExportTab.isVisible()) {
-    await shareExportTab.click();
+  const exportTab = locators.export.exportTab();
+  if (await exportTab.isVisible()) {
+    await exportTab.click();
   }
 
   await locators.export.yamlFormatCard().click();
@@ -3326,10 +3326,9 @@ const exportCollectionAsZip = async (
     return await test.step('Export as ZIP and read the written entries', async () => {
       const locators = buildCommonLocators(page);
       // In enterprise version, the export tab is visible, so need to click it to proceed.
-      const shareExportTab = locators.export.shareExportTab();
-      if (await shareExportTab.isVisible()) {
-        await shareExportTab.click();
-        await page.waitForTimeout(3000);
+      const exportTab = locators.export.exportTab();
+      if (await exportTab.isVisible()) {
+        await exportTab.click();
       }
       await locators.modal.button('Proceed').click();
       await expect(locators.modal.title('Share Collection')).toBeHidden();

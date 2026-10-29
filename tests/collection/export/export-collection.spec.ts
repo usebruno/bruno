@@ -35,11 +35,11 @@ test.describe('Export Bruno collection', () => {
       return exportCollectionToPostman(page, postmanCollectionName, exportLocation);
     });
 
-    await test.step('Collection exported toast is shown', async () => {
+    await test.step('Verify that the collection exported success toast is displayed', async () => {
       await expect(toast.byMessage('Collection exported successfully').first()).toBeVisible(); ;
     });
 
-    await test.step('Exported Postman collection file is written', async () => {
+    await test.step('Verify that the exported Postman collection file is written', async () => {
       const filePath = path.join(exportLocation, `${postmanCollectionName}.json`);
       expect(fs.existsSync(filePath)).toBe(true);
       expect(exported).toMatchObject({
@@ -65,11 +65,11 @@ test.describe('Export Bruno collection', () => {
       return exportCollectionAsZip(page, electronApp, collectionName, exportLocation);
     });
 
-    await test.step('Collection exported toast is shown', async () => {
+    await test.step('Verify that the collection exported success toast is displayed', async () => {
       await expect(toast.byMessage('Collection exported successfully').first()).toBeVisible();
     });
 
-    await test.step('Exported collection file is written', async () => {
+    await test.step('Verify that the exported collection file is written', async () => {
       const zipPath = path.join(exportLocation, `${collectionName}.zip`);
       expect(fs.existsSync(zipPath)).toBe(true);
       expect(zippedFiles).toContain('opencollection.yml');
@@ -95,11 +95,11 @@ test.describe('Export Bruno collection', () => {
       return exportCollectionAsSingleYaml(page, electronApp, singleYamlCollectionName, exportLocation);
     });
 
-    await test.step('Collection exported toast is shown', async () => {
+    await test.step('Verify that the collection exported success toast is displayed', async () => {
       await expect(toast.byMessage('Collection exported successfully').first()).toBeVisible(); ;
     });
 
-    await test.step('Exported YAML file contains the collection', async () => {
+    await test.step('Verify that the exported file contains the collection', async () => {
       const filePath = path.join(exportLocation, `${singleYamlCollectionName}.yml`);
       expect(fs.existsSync(filePath)).toBe(true);
       expect(YAML.parse(content)).toMatchObject({

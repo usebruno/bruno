@@ -372,7 +372,7 @@ export const buildCommonLocators = (page: Page) => ({
   },
   export: {
     postmanModal: () => page.getByTestId('export-to-postman-modal'),
-    shareExportTab: () => page.getByTestId('share-collection-tab-export'),
+    exportTab: () => page.getByTestId('share-collection-tab-export'),
     postmanFormatCard: () => page.getByTestId('export-format-postman'),
     yamlFormatCard: () => page.getByTestId('export-format-yaml'),
     nameInput: () => page.getByLabel('Name', { exact: true }),
