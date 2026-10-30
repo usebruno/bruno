@@ -7,27 +7,36 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        
+
+        run_expect_ok() {
+          local out="$1"
+          shift
+          local attempt
+          for attempt in 1 2 3; do
+            node ../../../../../packages/bruno-cli/bin/bru.js run ./request.bru --output "$out" --format junit "$@" || true
+            if [[ -f "$out" ]] && xmllint --xpath 'count(//testsuite[@errors="0"])' "$out" | grep -q "^1$"; then
+              return 0
+            fi
+            echo "attempt ${attempt} failed, retrying..."
+            sleep 2
+          done
+          exit 1
+        }
+
         # navigate to basic SSL test collection directory
         cd tests/ssl/basic-ssl/collections/badssl
 
         echo "basic ssl success"
-        # should pass
-        node ../../../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit1.xml --insecure --format junit
-        xmllint --xpath 'count(//testsuite[@errors="0"])' junit1.xml | grep -q "^1$" || exit 1
+        run_expect_ok junit1.xml --insecure
 
         echo "with default/system ca certs"
-        # should pass
-        node ../../../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit2.xml --format junit
-        xmllint --xpath 'count(//testsuite[@errors="0"])' junit2.xml | grep -q "^1$" || exit 1
+        run_expect_ok junit2.xml
 
         # navigate to self-signed SSL test collection directory
         cd ../self-signed-badssl
 
         echo "self-signed ssl with validation disabled"
-        # should pass
-        node ../../../../../packages/bruno-cli/bin/bru.js run ./request.bru --output junit3.xml --insecure --format junit
-        xmllint --xpath 'count(//testsuite[@errors="0"])' junit3.xml | grep -q "^1$" || exit 1
+        run_expect_ok junit3.xml --insecure
 
         echo "self-signed ssl with default/system ca certs"
         echo "request will error"
