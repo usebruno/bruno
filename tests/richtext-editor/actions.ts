@@ -1,4 +1,4 @@
-import { expect, Page } from '../../playwright';
+import { expect, Locator, Page } from '../../playwright';
 import { createCollection, createFolder, openCollectionSettings, openFolderSettings, selectCollectionPaneTab, selectfolderPaneTab, selectRequestPaneTab } from '../utils/page/actions';
 import { buildCommonLocators } from '../utils/page/locators';
 
@@ -141,4 +141,20 @@ export const expectDocsToolbarBtnDisabled = async (locators: DocsLocators, label
 
     throw new Error(`Toolbar button "${label}" not found in visible toolbar or overflow dropdown`);
   }).toPass({ timeout: 15000 });
+};
+
+/**
+ * Wait for ProseMirror to sync its selection after a keyboard action,
+ * so commands like Bold and Link apply to the selected text.
+*/
+export const expectEditorSelection = async (prosemirror: Locator, text: string) => {
+  await expect
+    .poll(() =>
+      prosemirror.evaluate((el) => {
+        const { state } = (el as any).editor;
+        const { from, to } = state.selection;
+        return state.doc.textBetween(from, to);
+      })
+    )
+    .toBe(text);
 };
