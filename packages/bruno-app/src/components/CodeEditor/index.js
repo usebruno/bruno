@@ -572,6 +572,12 @@ class CodeEditor extends React.Component {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
 
+    if (this.editor && (this.props.font !== prevProps.font || this.props.fontSize !== prevProps.fontSize)) {
+      // Font changes need fresh measurements after React commits the styles.
+      // Ordinary scroll updates must retain measured wrapped-line heights.
+      this.editor.refresh();
+    }
+
     if (this.props.initialScroll !== prevProps.initialScroll) {
       this.editor.scrollTo(null, this.props.initialScroll);
     }
@@ -653,9 +659,6 @@ class CodeEditor extends React.Component {
   };
 
   render() {
-    if (this.editor) {
-      this.editor.refresh();
-    }
     return (
       <StyledWrapper
         className={`h-full w-full flex flex-col ${this.props.readOnly ? 'read-only' : ''} ${this.state.searchBarVisible ? 'search-bar-visible' : ''}`}
