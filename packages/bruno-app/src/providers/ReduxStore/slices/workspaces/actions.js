@@ -13,7 +13,8 @@ import { removeCollection, addTransientDirectory, updateCollectionMountStatus, e
 import { sanitizeName } from 'utils/common/regex';
 import { clearCollectionState } from '../openapi-sync';
 import { updateGlobalEnvironments } from '../global-environments';
-import { addTab, closeTabs, focusTab, restoreTabs } from '../tabs';
+import { addTab, closeTabs, focusTab } from '../tabs';
+import { isDisabledMockServerTab, restoreCollectionTabs } from '../mock-server/actions';
 import {
   API_SPEC_TAB_TYPE,
   findApiSpecByPathname,
@@ -522,7 +523,7 @@ export const hydrateSnapshotForOpenedCollection = (collectionPathname) => {
     const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === snapshotHydration.workspaceUid);
     const activeWorkspacePathname = activeWorkspace?.pathname || null;
 
-    await hydrateTabs([collection], dispatch, restoreTabs, null, activeWorkspacePathname);
+    await hydrateTabs([collection], dispatch, restoreCollectionTabs, null, activeWorkspacePathname);
 
     if (
       snapshotHydration.activeCollectionPathname
@@ -547,7 +548,7 @@ export const hydrateSnapshotForOpenedCollection = (collectionPathname) => {
         null,
         activeWorkspacePathname
       );
-      if (activeTab) {
+      if (activeTab && !isDisabledMockServerTab(getState(), activeTab)) {
         dispatch(addTab(activeTab));
       }
     }
@@ -679,7 +680,7 @@ export const switchWorkspace = (workspaceUid) => {
           && c.uid !== scratchCollection?.uid
           && workspaceCollectionPathSet.has(normalizePath(c.pathname))
       );
-      await hydrateTabs(collections, dispatch, restoreTabs, snapshotLookups, workspace.pathname || null);
+      await hydrateTabs(collections, dispatch, restoreCollectionTabs, snapshotLookups, workspace.pathname || null);
 
       // Restore each collection's workspace-scoped selected environment, so the same
       // collection open under two workspaces restores its own environment per workspace.
@@ -771,7 +772,7 @@ export const switchWorkspace = (workspaceUid) => {
           workspace.pathname || null
         );
 
-        if (activeTab) {
+        if (activeTab && !isDisabledMockServerTab(getState(), activeTab)) {
           dispatch(addTab(activeTab));
         } else if (scratchCollection?.uid && !requestedWorkspaceTabType && !requestedApiSpecTabUid) {
           dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));

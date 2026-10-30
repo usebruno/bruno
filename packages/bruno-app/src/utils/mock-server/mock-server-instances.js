@@ -1,5 +1,6 @@
 import get from 'lodash/get';
 import { normalizePath } from 'utils/common/path';
+import { normalizeMockTabType } from 'utils/mock-server/mock-tab-type';
 import { addTab, closeTabs, updateTabMeta } from 'providers/ReduxStore/slices/tabs';
 import {
   loadMockServerInstances,
@@ -39,18 +40,12 @@ export const getMockServerPortRangeError = (port) => {
   return null;
 };
 
-export const normalizeMockTabType = (type) => {
-  if (type === 'mock-server-dashboard' || type === 'mocker') {
-    return 'mock-server';
-  }
-
-  return type;
-};
-
-export const isMockServerRelatedTab = (tab, mockServerUid) => {
+export const isMockServerTab = (tab) => {
   const type = normalizeMockTabType(tab?.type);
-  return (type === 'mock-server' || type === 'mock-response') && tab?.mockServerUid === mockServerUid;
+  return type === 'mock-server' || type === 'mock-response';
 };
+
+export const isMockServerRelatedTab = (tab, mockServerUid) => isMockServerTab(tab) && tab?.mockServerUid === mockServerUid;
 
 export const suggestNextMockServerPort = (instances, { excludeUid } = {}) => {
   const usedPorts = new Set(
