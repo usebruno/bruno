@@ -5,6 +5,7 @@ import jsyaml from 'js-yaml';
 import { isPostmanCollection } from 'utils/importers/postman-collection';
 import { isInsomniaCollection } from 'utils/importers/insomnia-collection';
 import { isOpenApiSpec } from 'utils/importers/openapi-collection';
+import { isAsyncApiSpec } from 'utils/importers/asyncapi-collection';
 import { isWSDLCollection } from 'utils/importers/wsdl-collection';
 import { isBrunoCollection } from 'utils/importers/bruno-collection';
 import { isOpenCollection } from 'utils/importers/opencollection';
@@ -106,6 +107,8 @@ const FileTab = ({
           let type = null;
           if (isOpenApiSpec(data)) {
             type = 'openapi';
+          } else if (isAsyncApiSpec(data)) {
+            type = 'asyncapi';
           } else if (isWSDLCollection(data)) {
             type = 'wsdl';
           } else if (isPostmanCollection(data)) {
@@ -152,6 +155,8 @@ const FileTab = ({
 
       if (isOpenApiSpec(data)) {
         type = 'openapi';
+      } else if (isAsyncApiSpec(data)) {
+        type = 'asyncapi';
       } else if (isWSDLCollection(data)) {
         type = 'wsdl';
       } else if (isPostmanCollection(data)) {
@@ -170,6 +175,8 @@ const FileTab = ({
         const filePath = window.ipcRenderer.getFilePath(file);
         const rawContent = await file.text();
         await handleSubmit({ rawData: data, type, filePath, rawContent });
+      } else if (type === 'asyncapi') {
+        await handleSubmit({ rawData: data, type });
       } else if (type === 'wsdl') {
         const filePath = window.ipcRenderer.getFilePath(file);
         await handleSubmit({ rawData: data, type, filePath });
@@ -274,7 +281,7 @@ const FileTab = ({
             </button>
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-            Supports Bruno, OpenCollection, Postman, Insomnia, OpenAPI 3.x / Swagger 2.0, WSDL, and ZIP formats
+            Supports Bruno, OpenCollection, Postman, Insomnia, OpenAPI 3.x / Swagger 2.0, AsyncAPI, WSDL, and ZIP formats
           </p>
         </div>
       </div>
