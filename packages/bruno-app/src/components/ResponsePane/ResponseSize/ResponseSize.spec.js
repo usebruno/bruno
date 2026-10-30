@@ -83,9 +83,9 @@ describe('ResponseSize', () => {
     it('should handle exactly 1024 bytes as size', () => {
       const size = 1024;
       renderWithTheme(<ResponseSize size={size} />);
-      const element = screen.getByText(/1024B/);
+      const element = screen.getByText(/1\.00KB/);
       expect(element).toBeInTheDocument();
-      expect(element.textContent).toMatch(/^1024B$/);
+      expect(element.textContent).toMatch(/^1\.00KB$/);
       expect(element).toHaveAttribute('title', `${size.toLocaleString()}B`);
     });
 
@@ -98,10 +98,28 @@ describe('ResponseSize', () => {
       expect(element).toHaveAttribute('title', `${size.toLocaleString()}B`);
     });
 
+    it('should correctly pad single-digit decimal remainder for kilobytes', () => {
+      const size = 1115;
+      renderWithTheme(<ResponseSize size={size} />);
+      const element = screen.getByText(/1\.09KB/);
+      expect(element).toBeInTheDocument();
+      expect(element.textContent).toMatch(/^1\.09KB$/);
+      expect(element).toHaveAttribute('title', `${size.toLocaleString()}B`);
+    });
+
+    it('should carry rounded decimal remainder into the kilobyte value', () => {
+      const size = 2047;
+      renderWithTheme(<ResponseSize size={size} />);
+      const element = screen.getByText(/2\.00KB/);
+      expect(element).toBeInTheDocument();
+      expect(element.textContent).toMatch(/^2\.00KB$/);
+      expect(element).toHaveAttribute('title', `${size.toLocaleString()}B`);
+    });
+
     it('should handle large size numbers', () => {
       const size = 10240;
       renderWithTheme(<ResponseSize size={size} />);
-      const element = screen.getByText(/10\.0KB/);
+      const element = screen.getByText(/10\.00KB/);
       expect(element).toBeInTheDocument();
       expect(element.textContent).toMatch(/^\d+\.\d+KB$/);
       expect(element).toHaveAttribute('title', `${size.toLocaleString()}B`);
