@@ -18,11 +18,15 @@ export const buildSetAsVariableLocators = (page: Page) => ({
   createEnvSubmit: (scopeType: string) => page.getByTestId(`set-as-variable-create-env-submit-${scopeType}`),
   createEnvError: (scopeType: string) => page.getByTestId(`set-as-variable-create-env-error-${scopeType}`),
   saveButton: () => page.getByTestId('set-as-variable-save'),
-  cancelButton: () => page.getByTestId('set-as-variable-cancel')
+  cancelButton: () => page.getByTestId('set-as-variable-cancel'),
+  selectionHighlight: (scope?: Locator) => (scope ?? page).locator('.CodeMirror-selected')
 });
 
 // Without a pause Chromium counts the right-click as a third click, so CodeMirror selects the line.
 const DOUBLE_CLICK_RESET_MS = 600;
+
+// Longer than CodeMirror's 100ms delayBlurEvent, so a mouse-up `contextmenu` lands after the blur.
+const CONTEXT_MENU_HOLD_MS = 200;
 
 /** Double-clicks the word under the pointer, then right-clicks that same point. */
 const selectWordAndRightClick = async (page: Page, target: Locator, offsetX = 12) => {
@@ -40,7 +44,7 @@ const selectWordAndRightClick = async (page: Page, target: Locator, offsetX = 12
   await expect(page.locator('.CodeMirror-selected').first()).toBeVisible();
 
   await page.waitForTimeout(DOUBLE_CLICK_RESET_MS);
-  await page.mouse.click(x, y, { button: 'right' });
+  await page.mouse.click(x, y, { button: 'right', delay: CONTEXT_MENU_HOLD_MS });
 };
 
 /** Right-clicks a selected word and returns the "Set as variable" menu. */
@@ -88,7 +92,7 @@ const openSetAsVariablePopoverAtChar = async (
   await page.mouse.dblclick(point.x, point.y);
   await expect(page.locator('.CodeMirror-selected').first()).toBeVisible();
   await page.waitForTimeout(DOUBLE_CLICK_RESET_MS);
-  await page.mouse.click(point.x, point.y, { button: 'right' });
+  await page.mouse.click(point.x, point.y, { button: 'right', delay: CONTEXT_MENU_HOLD_MS });
 
   await expect(setAsVariable.menu()).toBeVisible();
   await setAsVariable.menuAction().click();

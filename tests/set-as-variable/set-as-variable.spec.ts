@@ -17,7 +17,8 @@ import {
   openSetAsVariablePopover,
   openSetAsVariablePopoverAtChar,
   openEnvironmentConfigTab,
-  selectVariableScope
+  selectVariableScope,
+  selectRequestPaneTab
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
@@ -592,6 +593,89 @@ test.describe('Set as variable', () => {
       await setAsVariable.nameInput().fill('scheme');
       await setAsVariable.copyButton().click();
       expect(await clipboard.copiedText()).toBe('scheme');
+    });
+  });
+
+  test('keeps the selection highlighted until the popover closes', async ({ page, createTmpDir }) => {
+    const { sidebar, request, setAsVariable } = buildCommonLocators(page);
+
+    await test.step('Create a collection with a request', async () => {
+      await createCollection(page, 'keep-selection', await createTmpDir('keep-selection'));
+      await createRequest(page, 'Fetch Posts', 'keep-selection');
+      await sidebar.request('Fetch Posts').click();
+      await setRequestUrlAndSave(page, 'https://example.com/posts');
+    });
+
+    await test.step('The highlight survives the right-click menu', async () => {
+      await openSetAsVariableMenu(page, request.urlLine(), 10);
+      await expect(setAsVariable.selectionHighlight(request.urlInput()).first()).toBeVisible();
+    });
+
+    await test.step('The highlight survives opening the popover', async () => {
+      await setAsVariable.menuAction().click();
+      await expect(setAsVariable.popover()).toBeVisible();
+      await expect(setAsVariable.value()).toHaveText('https');
+      await expect(setAsVariable.selectionHighlight(request.urlInput()).first()).toBeVisible();
+    });
+
+    await test.step('Closing the popover clears the highlight', async () => {
+      await setAsVariable.cancelButton().click();
+      await expect(setAsVariable.popover()).toBeHidden();
+      await expect(setAsVariable.selectionHighlight(request.urlInput())).toHaveCount(0);
+    });
+  });
+
+  test('keeps the highlight when the same selection is right-clicked again', async ({ page, createTmpDir }) => {
+    const { sidebar, request, setAsVariable } = buildCommonLocators(page);
+
+    await test.step('Create a collection with a request', async () => {
+      await createCollection(page, 'repin-selection', await createTmpDir('repin-selection'));
+      await createRequest(page, 'Fetch Posts', 'repin-selection');
+      await sidebar.request('Fetch Posts').click();
+      await setRequestUrlAndSave(page, 'https://example.com/posts');
+    });
+
+    await test.step('Right-click the selection once', async () => {
+      await openSetAsVariableMenu(page, request.urlLine(), 10);
+      await expect(setAsVariable.selectionHighlight(request.urlInput()).first()).toBeVisible();
+    });
+
+    await test.step('Right-clicking the same selection again keeps it highlighted', async () => {
+      await openSetAsVariableMenu(page, request.urlLine(), 10);
+      await expect(setAsVariable.selectionHighlight(request.urlInput()).first()).toBeVisible();
+    });
+  });
+
+  test('keeps a multi-line editor selection highlighted until the popover closes', async ({ page, createTmpDir }) => {
+    const { sidebar, request, table, setAsVariable } = buildCommonLocators(page);
+    const valueCell = request.queryParams.valueByName('token');
+    const valueEditor = () => table('query-params-table').rowValueEditor(table('query-params-table').rowByName('token'));
+
+    await test.step('Create a request with a query param value', async () => {
+      await createCollection(page, 'keep-selection-mle', await createTmpDir('keep-selection-mle'));
+      await createRequest(page, 'Fetch Posts', 'keep-selection-mle');
+      await sidebar.request('Fetch Posts').click();
+      await setRequestUrlAndSave(page, 'https://example.com/posts?token=greeting');
+      await selectRequestPaneTab(page, 'Params');
+      await expect(valueEditor()).toBeVisible();
+    });
+
+    await test.step('The highlight survives the right-click menu', async () => {
+      await openSetAsVariableMenu(page, valueCell.locator('.CodeMirror-line'), 8);
+      await expect(setAsVariable.selectionHighlight(valueCell).first()).toBeVisible();
+    });
+
+    await test.step('The highlight survives opening the popover', async () => {
+      await setAsVariable.menuAction().click();
+      await expect(setAsVariable.popover()).toBeVisible();
+      await expect(setAsVariable.value()).toHaveText('greeting');
+      await expect(setAsVariable.selectionHighlight(valueCell).first()).toBeVisible();
+    });
+
+    await test.step('Closing the popover clears the highlight', async () => {
+      await setAsVariable.cancelButton().click();
+      await expect(setAsVariable.popover()).toBeHidden();
+      await expect(setAsVariable.selectionHighlight(valueCell)).toHaveCount(0);
     });
   });
 });

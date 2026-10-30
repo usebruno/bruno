@@ -2,7 +2,10 @@ import { createContext, useContext } from 'react';
 
 const NO_PROVIDER = {
   openFromCodeMirror: () => {},
-  openFromDomSelection: () => {}
+  openFromDomSelection: () => {},
+  pinSelection: () => {},
+  isSelectionPinned: () => false,
+  releasePinnedSelection: () => {}
 };
 
 export const SetAsVariableContext = createContext(NO_PROVIDER);

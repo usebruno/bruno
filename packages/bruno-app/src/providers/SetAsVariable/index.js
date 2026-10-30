@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import SetAsVariableMenu from 'components/SetAsVariableMenu';
 import SetAsVariablePopover from 'components/SetAsVariablePopover';
 import { getCodeMirrorSelectionPayload } from 'utils/codemirror/selection';
+import { getPinnedSelection, isSelectionPinned, pinSelection, releasePinnedSelection } from './selectionPin';
 import { setVarInfoSuppressed } from 'utils/codemirror/brunoVarInfo';
 import { SetAsVariableContext } from './context';
 
@@ -30,8 +31,13 @@ export function SetAsVariableProvider({ children }) {
   const activeTabUidRef = useRef(activeTabUid);
   activeTabUidRef.current = activeTabUid;
 
-  // The open callbacks suppress on the same tick; this keeps the flag in step afterwards.
-  useEffect(() => setVarInfoSuppressed(state.view !== 'closed'), [state.view]);
+  // Reading the settled view, because picking a menu item opens the popover and dismisses the
+  // menu in the same tick — releasing from either handler would unpin a selection still in use.
+  useEffect(() => {
+    const open = state.view !== 'closed';
+    setVarInfoSuppressed(open);
+    if (!open) releasePinnedSelection();
+  }, [state.view]);
 
   useEffect(() => {
     setState((current) => (current.selection && current.selection.tabUid !== activeTabUid ? CLOSED : current));
@@ -42,9 +48,12 @@ export function SetAsVariableProvider({ children }) {
   const dismissMenu = useCallback(() => setState((current) => (current.view === 'menu' ? CLOSED : current)), []);
 
   const openFromCodeMirror = useCallback((event, editor, { collection, item, mode } = {}) => {
-    if (isInsideFloatingUi(event.target)) return;
+    if (isInsideFloatingUi(event.target)) {
+      releasePinnedSelection();
+      return;
+    }
 
-    const payload = getCodeMirrorSelectionPayload(editor, event);
+    const payload = getPinnedSelection(editor) || getCodeMirrorSelectionPayload(editor, event);
     if (!payload) return;
 
     event.preventDefault();
@@ -105,7 +114,7 @@ export function SetAsVariableProvider({ children }) {
   const showPopover = useCallback(() => setState((current) => ({ ...current, view: 'popover' })), []);
 
   const value = useMemo(
-    () => ({ openFromCodeMirror, openFromDomSelection }),
+    () => ({ openFromCodeMirror, openFromDomSelection, pinSelection, isSelectionPinned, releasePinnedSelection }),
     [openFromCodeMirror, openFromDomSelection]
   );
 
