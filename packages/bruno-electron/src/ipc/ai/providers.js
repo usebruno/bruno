@@ -149,7 +149,8 @@ const listModels = (aiPreferences) => {
         id: model.id,
         label: model.label || model.modelId,
         provider: providerIdFromEndpointId(endpoint.id),
-        isCustom: true
+        isCustom: true,
+        apiFormat: model.apiFormat || 'chat-completions'
       });
     }
   }
@@ -180,7 +181,8 @@ const resolveModelDefinition = (modelId, aiPreferences) => {
         providerId: providerIdFromEndpointId(endpoint.id),
         sdkModelId: match.modelId,
         label: match.label || match.modelId,
-        baseURL: endpoint.baseURL || ''
+        baseURL: endpoint.baseURL || '',
+        apiFormat: match.apiFormat || 'chat-completions'
       };
     }
   }
@@ -203,7 +205,7 @@ const providerLabel = (providerId, aiPreferences) => {
  * Resolve a Bruno model id to a vercel-ai SDK model instance.
  * Throws if the provider isn't configured (no key) or the model is unknown.
  */
-const getModel = (modelId, { aiPreferences, getApiKey }) => {
+const getModel = (modelId, { aiPreferences, getApiKey, apiFormatOverride }) => {
   const def = resolveModelDefinition(modelId, aiPreferences);
   if (!def) throw new Error(`Unknown model: ${modelId}`);
 
@@ -223,8 +225,14 @@ const getModel = (modelId, { aiPreferences, getApiKey }) => {
   }
 
   const sdk = getSdk({ providerId: def.providerId, apiKey, baseURL: def.baseURL });
-  if (isOpenAiCompatibleProviderId(def.providerId)) return sdk.chat(def.sdkModelId);
-  return sdk(def.sdkModelId);
+
+  // Built-in providers keep the SDK default; only custom (OpenAI-compatible)
+  // endpoints let the user pick between Chat Completions and the Responses API.
+  if (!isCompat) return sdk(def.sdkModelId);
+
+  const format = apiFormatOverride || def.apiFormat;
+  if (format === 'responses') return sdk.responses(def.sdkModelId);
+  return sdk.chat(def.sdkModelId);
 };
 
 /**
@@ -247,7 +255,12 @@ const getAvailableModels = ({ aiPreferences, hasApiKey }) => {
       if (!endpoint?.baseURL) continue;
     }
 
-    out.push({ id: model.id, label: model.label, provider: model.provider });
+    out.push({
+      id: model.id,
+      label: model.label,
+      provider: model.provider,
+      apiFormat: model.apiFormat
+    });
   }
   return out;
 };
