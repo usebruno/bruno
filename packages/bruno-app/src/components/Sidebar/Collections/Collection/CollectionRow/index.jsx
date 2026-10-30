@@ -76,7 +76,7 @@ const CollectionRow = ({ collection, searchText, isSearchCollapsed, toggleSearch
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const dispatch = useDispatch();
-  const isLoading = collection.isLoading;
+  const isLoading = collection.isLoading || collection.mountStatus === 'mounting';
   const invalidItemCount = useMemo(() => countInvalidItems(collection.items), [collection.items]);
   const collectionRef = useRef(null);
 
