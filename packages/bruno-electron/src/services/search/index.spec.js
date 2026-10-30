@@ -71,8 +71,17 @@ jest.mock('../../cache/requestUids', () => ({
 
 const { SearchService } = require('./index');
 
-const flush = async () => {
-  for (let i = 0; i < 10; i += 1) await new Promise((resolve) => setImmediate(resolve));
+// backfill does real fs I/O before queueing jobs, so wait on effects instead of a fixed number of ticks
+const waitFor = async (assertion, { timeout = 2000 } = {}) => {
+  const start = Date.now();
+  for (;;) {
+    try {
+      return assertion();
+    } catch (err) {
+      if (Date.now() - start > timeout) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+  }
 };
 
 const hostMessage = (message) => {
@@ -140,30 +149,25 @@ describe('SearchService', () => {
     hostMessage({ type: 'batch', id, root: collectionPath, paths: ['hit.bru', 'other.bru'] });
     hostMessage({ type: 'done', id });
     expect(onMessage).toHaveBeenCalledWith({ type: 'batch', id, root: collectionPath, paths: ['hit.bru', 'other.bru'] });
-    await flush();
-
-    expect(mockPool.run).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mockPool.run).toHaveBeenCalledTimes(1));
     expect(mockJobs[0].args).toEqual(expect.objectContaining({ collectionPath, relativePath: 'other.bru', type: 'request' }));
     expect(mockJobs[0].options).toEqual({ priority: 3 });
     expect(lastStatus(onMessage)).toEqual(expect.objectContaining({ id, indexing: true }));
 
     mockSearchIndex.countRequestsInCollection.mockReturnValue(2);
     mockJobs[0].resolve({ relativePath: 'other.bru', mtime: 1n, hash: 'x', data: { name: 'Other hit' } });
-    await flush();
-
-    expect(mockIngest).toHaveBeenCalledWith(expect.objectContaining({
+    await waitFor(() => expect(mockIngest).toHaveBeenCalledWith(expect.objectContaining({
       collectionPath,
       result: expect.objectContaining({ relativePath: 'other.bru' })
-    }));
-    expect(lastStatus(onMessage)).toEqual({ type: 'status', id, indexing: false, matchCount: 2 });
+    })));
+    await waitFor(() => expect(lastStatus(onMessage)).toEqual({ type: 'status', id, indexing: false, matchCount: 2 }));
   });
 
   it('cancels only the previous search queued jobs when the query changes', async () => {
     const service = new SearchService();
     const id = service.search({ roots: [collectionPath], query: 'a' }, jest.fn());
     hostMessage({ type: 'batch', id, root: collectionPath, paths: ['hit.bru'] });
-    await flush();
-    expect(mockJobs).toHaveLength(1);
+    await waitFor(() => expect(mockJobs).toHaveLength(1));
 
     service.search({ roots: [collectionPath], query: 'ab' }, jest.fn());
     expect(mockPool.cancelQueued).toHaveBeenCalledWith([mockJobs[0].promise]);
@@ -177,12 +181,11 @@ describe('SearchService', () => {
     const service = new SearchService();
     const id = service.search({ roots: [collectionPath], query: 'hit' }, jest.fn());
     hostMessage({ type: 'batch', id, root: collectionPath, paths: ['hit.bru'] });
-    await flush();
+    await waitFor(() => expect(mockJobs).toHaveLength(1));
 
     const windowPromise = service.resolveWindow({ id, collectionPath, relativePaths: ['hit.bru'] });
-    await flush();
+    await waitFor(() => expect(mockPool.prioritize).toHaveBeenCalledWith([mockJobs[0].promise], 1));
     expect(mockPool.run).toHaveBeenCalledTimes(1);
-    expect(mockPool.prioritize).toHaveBeenCalledWith([mockJobs[0].promise], 1);
 
     mockJobs[0].resolve({ relativePath: 'hit.bru', mtime: 1n, hash: 'x', data: { name: 'Hit', type: 'http-request' } });
     const result = await windowPromise;
@@ -193,7 +196,7 @@ describe('SearchService', () => {
     const service = new SearchService();
     const id = service.search({ roots: [collectionPath], query: 'a' }, jest.fn());
     const windowPromise = service.resolveWindow({ id, collectionPath, relativePaths: ['hit.bru'] });
-    await flush();
+    await waitFor(() => expect(mockJobs).toHaveLength(1));
     service.search({ roots: [collectionPath], query: 'b' }, jest.fn());
     mockJobs[0].reject(new Error('cancelled'));
 
@@ -205,7 +208,7 @@ describe('SearchService', () => {
     const service = new SearchService();
     service.search({ roots: [collectionPath], query: 'a' }, jest.fn());
     service.resolveWindow({ id: 1, collectionPath, relativePaths: ['hit.bru'] });
-    await flush();
+    await waitFor(() => expect(mockJobs).toHaveLength(1));
     service.cancel();
 
     expect(mockPool.cancelQueued).toHaveBeenCalledWith([mockJobs[0].promise]);
