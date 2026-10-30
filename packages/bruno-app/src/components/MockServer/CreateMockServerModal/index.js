@@ -9,7 +9,8 @@ import Modal from 'components/Modal';
 import Button from 'ui/Button';
 import { normalizePath } from 'utils/common/path';
 import { areItemsLoading, getWorkspaceCollections } from 'utils/collections';
-import { matchLoadedApiSpecs } from 'components/Sidebar/ApiSpecs/matchLoadedApiSpecs';
+import useWorkspaceApiSpecs from 'hooks/useWorkspaceApiSpecs';
+import { getSpecLabel } from 'utils/api-specs';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import {
   generateMockResponsesFromSpec,
@@ -50,9 +51,9 @@ const resolveSelectedSpecUid = (editingInstance, apiSpecs) => {
   return matchingSpec?.uid || '';
 };
 
-const toSpecOption = (spec, fallbackName = null) => ({
+const toSpecOption = (spec) => ({
   uid: spec.uid,
-  name: spec.name || spec.filename || fallbackName || spec.pathname,
+  name: getSpecLabel(spec),
   pathname: spec.pathname
 });
 
@@ -187,13 +188,7 @@ const CreateMockServerModal = ({
     getWorkspaceCollections({ collections, workspaces, activeWorkspace })
   ), [activeWorkspace, collections, workspaces]);
 
-  const workspaceApiSpecs = useMemo(() => {
-    if (!activeWorkspace) {
-      return [];
-    }
-
-    return matchLoadedApiSpecs(activeWorkspace.apiSpecs, apiSpecs);
-  }, [activeWorkspace, apiSpecs]);
+  const workspaceApiSpecs = useWorkspaceApiSpecs();
 
   const specSelectOptions = useMemo(() => (
     buildSpecSelectOptions(workspaceApiSpecs, editingInstance)

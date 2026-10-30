@@ -70,7 +70,7 @@ const SpecStatusSection = ({
       {bannerState && (
         <div className="spec-status-section">
 
-          <div className={`spec-update-banner ${bannerState.variant}`}>
+          <div className={`spec-update-banner ${bannerState.variant}`} data-testid="openapi-sync-spec-status">
             <div className="banner-left">
               {bannerState.variant === 'success'
                 ? <IconCheck size={16} className="status-check-icon" />

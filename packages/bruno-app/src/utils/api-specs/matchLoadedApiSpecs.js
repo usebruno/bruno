@@ -1,4 +1,4 @@
-import { getApiSpecPathKey } from 'utils/api-specs';
+import { getApiSpecPathKey } from './index';
 
 /**
  * Pairs each workspace API spec entry (from workspace.yml) with its loaded

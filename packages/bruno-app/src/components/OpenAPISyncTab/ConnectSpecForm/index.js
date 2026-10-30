@@ -1,9 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { IconCheck } from '@tabler/icons';
 import Button from 'ui/Button';
-import { isHttpUrl } from 'utils/url/index';
-import { isOpenApiSpec } from 'utils/importers/openapi-collection';
-import { parseFileAsJsonOrYaml } from 'utils/importers/file-reader';
+import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
+import useWorkspaceApiSpecs from 'hooks/useWorkspaceApiSpecs';
+import SpecSourcePicker from 'components/OpenAPISyncTab/SpecSourcePicker';
+import { isSpecSourceReady } from 'components/OpenAPISyncTab/SpecSourcePicker/utils';
+import StyledWrapper from './StyledWrapper';
 
 const FEATURES = [
   'Detect new, modified, and removed endpoints',
@@ -12,13 +14,32 @@ const FEATURES = [
   'Your tests, assertions, and scripts are preserved during sync'
 ];
 
+const SOURCE_HINTS = {
+  workspace: 'Select the spec from the active workspace',
+  url: 'Supports OpenAPI 3.x specifications in JSON or YAML format',
+  file: 'Select a local OpenAPI/Swagger JSON or YAML file'
+};
+
 const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, onConnect }) => {
-  const [mode, setMode] = useState('url');
-  const fileInputRef = useRef(null);
+  const [mode, setMode] = useState('workspace');
+  const workspaceSpecs = useWorkspaceApiSpecs();
+
+  const handleModeChange = (nextMode) => {
+    if (nextMode === mode) return;
+    setMode(nextMode);
+    setSourceUrl('');
+    setError(null);
+  };
+
+  const handleSourceError = (message) => {
+    setError(message);
+    if (message) setSourceUrl('');
+  };
 
   return (
-    <div className="setup-section">
+    <StyledWrapper>
       <div className="setup-header">
+        <OpenAPISyncIcon size={56} className="setup-icon" data-testid="openapi-connect-icon" />
         <h2 className="setup-title">Connect to OpenAPI Spec</h2>
         <p className="setup-description">
           Keep your collection synchronized with an OpenAPI specification. Changes in the spec will be detected automatically.
@@ -31,92 +52,28 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
           e.preventDefault(); onConnect();
         }}
       >
-        <label className="url-label">OpenAPI Specification</label>
-        <div className="url-row">
-          <div className="setup-mode-toggle">
-            <button
-              type="button"
-              className={`setup-mode-btn ${mode === 'url' ? 'active' : ''}`}
-              onClick={() => {
-                setMode('url'); setSourceUrl('');
-              }}
+        <SpecSourcePicker
+          mode={mode}
+          onModeChange={handleModeChange}
+          value={sourceUrl}
+          onChange={setSourceUrl}
+          onError={handleSourceError}
+          action={(
+            <Button
+              type="submit"
+              data-testid="openapi-connect-button"
+              size="sm"
+              className="connect-button"
+              disabled={!isSpecSourceReady(mode, sourceUrl, workspaceSpecs)}
+              loading={isLoading}
             >
-              URL
-            </button>
-            <button
-              type="button"
-              className={`setup-mode-btn ${mode === 'file' ? 'active' : ''}`}
-              onClick={() => {
-                setMode('file'); setSourceUrl('');
-              }}
-            >
-              File
-            </button>
-          </div>
-
-          {mode === 'url' ? (
-            <input
-              type="text"
-              className="url-input"
-              value={sourceUrl}
-              onChange={(e) => setSourceUrl(e.target.value)}
-              placeholder="https://api.example.com/openapi.json"
-            />
-          ) : (
-            <>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json,.yaml,.yml"
-                style={{ display: 'none' }}
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  setError(null);
-                  setSourceUrl('');
-                  try {
-                    const data = await parseFileAsJsonOrYaml(file);
-                    if (!isOpenApiSpec(data)) {
-                      setError('The selected file is not a valid OpenAPI 3.x specification');
-                      return;
-                    }
-                    if (data.swagger && String(data.swagger).startsWith('2')) {
-                      setError('Swagger 2.0 is not supported. Please convert your spec to OpenAPI 3.x.');
-                      return;
-                    }
-                    const filePath = window.ipcRenderer.getFilePath(file);
-                    if (filePath) setSourceUrl(filePath);
-                  } catch (err) {
-                    setError(err.message || 'Failed to read the selected file');
-                  }
-                }}
-              />
-              <button
-                type="button"
-                className="url-input file-pick-btn"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {sourceUrl ? sourceUrl.split(/[\\/]/).pop() : 'Select File'}
-              </button>
-            </>
+              Connect
+            </Button>
           )}
-
-          <Button
-            type="submit"
-            size="sm"
-            disabled={mode === 'url' ? !isHttpUrl(sourceUrl.trim()) : !sourceUrl.trim()}
-            loading={isLoading}
-          >
-            Connect
-          </Button>
-        </div>
-        <p className="setup-hint">
-          {mode === 'url'
-            ? 'Supports OpenAPI 3.x specifications in JSON or YAML format'
-            : 'Select a local OpenAPI/Swagger JSON or YAML file'}
-        </p>
+        />
+        <p className="setup-hint">{SOURCE_HINTS[mode]}</p>
         {error && (
-          <p className="setup-error">{error}</p>
+          <p className="setup-error" role="alert" data-testid="openapi-connect-error">{error}</p>
         )}
       </form>
 
@@ -128,7 +85,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
           </div>
         ))}
       </div>
-    </div>
+    </StyledWrapper>
   );
 };
 
