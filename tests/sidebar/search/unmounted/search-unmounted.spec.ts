@@ -71,6 +71,11 @@ for (const cacheMode of CACHE_MODES) {
         await page.getByTestId('sidebar-search-input').fill('');
         await expect(sidebar.collectionRows()).toHaveCount(3);
         await expect(page.locator('#sidebar-collection-name')).toHaveText(['CollectionA', 'CollectionB', 'CollectionC']);
+
+        // Opened from search while unmounted; they get expanded in the sidebar once mounted.
+        await expect(sidebar.itemRowIn('CollectionA', 'alpha-hit')).toBeVisible();
+        await expect(sidebar.itemRowIn('CollectionC', 'charlie-hit')).toBeVisible();
+        await expect(sidebar.itemRowIn('CollectionB', 'plain-name')).toBeVisible();
       });
     } finally {
       await closeElectronApp(app);

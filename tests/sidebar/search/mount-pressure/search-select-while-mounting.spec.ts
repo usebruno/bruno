@@ -1,5 +1,6 @@
 import { test, expect, closeElectronApp } from '../../../../playwright';
-import { clearSearchIndex, waitForReadyPage, waitForCollectionMount } from '../../../utils/page';
+import { clearSearchIndex, waitForReadyPage } from '../../../utils/page';
+import { buildRequestLocators } from '../../../utils/request';
 import { buildSidebarLocators } from '../../../utils/page/sidebar';
 import { buildPressureCollections, PRESSURE_CACHE_MODES, writePreferences } from '../helpers';
 
@@ -21,7 +22,7 @@ for (const cacheMode of PRESSURE_CACHE_MODES) {
     await clearSearchIndex(page);
     const sidebar = buildSidebarLocators(page);
     const searchInput = page.getByTestId('sidebar-search-input');
-    const requestTab = (name: string) => page.locator('.request-tab').filter({ hasText: name });
+    const urlLine = buildRequestLocators(page).urlLine();
     const activeTab = (name: string) => page.locator('.request-tab.active').filter({ hasText: name });
 
     try {
@@ -44,18 +45,15 @@ for (const cacheMode of PRESSURE_CACHE_MODES) {
 
       await test.step('both collections mount and both selected requests open, the last one active', async () => {
         await searchInput.fill('');
-        await waitForCollectionMount(page, 'PressureA', { timeout: MOUNT_TIMEOUT_MS });
-        // Opening a request expands its collection once mounted. Collapse PressureA again so its rows don't
-        // push PressureB out of the virtualized list.
-        await expect(sidebar.itemRowIn('PressureA', 'folder-0')).toBeVisible();
-        await sidebar.collectionChevron('PressureA').click();
-        await waitForCollectionMount(page, 'PressureB', { timeout: MOUNT_TIMEOUT_MS });
-        await expect(sidebar.itemRowIn('PressureB', 'folder-0')).toBeVisible();
         await expect(activeTab('needle-bravo-unique')).toBeVisible();
+        // The loading panel has no URL; the real request pane does, so this proves PressureB mounted and the tab resolved.
+        await expect(urlLine).toContainText('https://needle-bravo.unique.example/resource', { timeout: MOUNT_TIMEOUT_MS });
 
-        // The tab strip only lists tabs of the active tab's collection.
-        await sidebar.collectionRow('PressureA').click();
-        await expect(requestTab('needle-alpha-unique')).toBeVisible();
+        // Search results always render, so select PressureA's earlier-opened request from there.
+        await searchInput.fill('needle-alpha');
+        await sidebar.itemRowIn('PressureA', 'needle-alpha-unique').click();
+        await expect(activeTab('needle-alpha-unique')).toBeVisible({ timeout: MOUNT_TIMEOUT_MS });
+        await expect(urlLine).toContainText('https://needle-alpha.unique.example/resource', { timeout: MOUNT_TIMEOUT_MS });
       });
 
       await test.step('the search still filters across both mounted collections', async () => {
