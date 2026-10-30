@@ -41,6 +41,7 @@ import SidebarSection from 'components/Sidebar/SidebarSection';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import useKeybinding from 'hooks/useKeybinding';
 import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
+import useFocusActiveSidebarItem from 'hooks/useFocusActiveSidebarItem';
 
 const CollectionsSection = () => {
   const dispatch = useDispatch();
@@ -69,6 +70,9 @@ const CollectionsSection = () => {
     return false;
   });
   const getKeybindingDisplayText = useKeybindingDisplayText();
+
+  // Focus the collections tree and reveal the active tab from anywhere.
+  useFocusActiveSidebarItem();
 
   // Default to true (don't show modal) so that:
   // 1. Existing users who upgrade (no hasSeenWelcomeModal in their prefs) don't see it

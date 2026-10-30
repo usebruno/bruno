@@ -22,6 +22,8 @@ import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
+import useSidebarRowFocus from 'hooks/useSidebarRowFocus';
+import useKeybinding from 'hooks/useKeybinding';
 import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
 
 const ExampleItem = ({ example, item, collection, depth, searchText, openBulkMenu, isItemMultiDragDisabled, multiDragCollections, multiDragItems }) => {
@@ -33,6 +35,7 @@ const ExampleItem = ({ example, item, collection, depth, searchText, openBulkMen
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
+  const { isKeyboardFocused, handleFocus, handleBlur } = useSidebarRowFocus('');
   const exampleRef = useRef(null);
   const menuDropdownRef = useRef(null);
 
@@ -133,6 +136,16 @@ const ExampleItem = ({ example, item, collection, depth, searchText, openBulkMen
     }));
   };
 
+  useKeybinding('cloneItem', () => {
+    handleClone();
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
+
+  useKeybinding('renameItem', () => {
+    handleRename();
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
+
   const handleDelete = () => {
     setShowDeleteModal(true);
   };
@@ -218,6 +231,7 @@ const ExampleItem = ({ example, item, collection, depth, searchText, openBulkMen
 
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
     'item-focused-in-tab': isExampleActive,
+    'item-keyboard-focused': isKeyboardFocused,
     'collection-item-selected': isSelected,
     'drag-disabled': !isRedirectedToRequestDrag
   });
@@ -227,6 +241,11 @@ const ExampleItem = ({ example, item, collection, depth, searchText, openBulkMen
       ref={exampleRef}
       data-testid="sidebar-response-example-item"
       data-selected={isSelected ? 'true' : undefined}
+      data-sidebar-row-focus-target
+      data-sidebar-row-activate
+      tabIndex={0}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
       className={itemRowClassName}
       onMouseDown={isMultiSelected && !isRedirectedToRequestDrag ? startBlockedDragTracking : undefined}
       onClick={handleClick}

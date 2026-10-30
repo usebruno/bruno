@@ -84,6 +84,8 @@ export const buildSidebarLocators = (page: Page) => {
     searchToggle: () => page.getByTestId('sidebar-search-toggle'),
     searchInput: () => page.getByTestId('sidebar-search-input'),
     searchClear: () => page.getByTestId('sidebar-search-clear-icon'),
+    sectionHeader: (title: string): Locator =>
+      page.locator('.sidebar-section').filter({ hasText: title }).locator('.section-header-left').first(),
 
     // Modals opened from a sidebar row's "..." menu.
     renameItemModal: {
