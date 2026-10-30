@@ -110,6 +110,55 @@ export const splitOnFirst = (str, char) => {
   return [str.slice(0, index), str.slice(index + 1)];
 };
 
+const QUERY_PARAM_MATCH_PASSES = [
+  (urlQueryParam, existing) => existing?.name === urlQueryParam?.name && existing?.value === urlQueryParam?.value,
+  (urlQueryParam, existing) => existing?.name === urlQueryParam?.name,
+  (urlQueryParam, existing) => existing?.value === urlQueryParam?.value
+];
+
+/**
+ * Pair each query param parsed from an edited url with the existing param it replaces.
+ *
+ * Params are paired in passes: same name and value first, then same name, then same value
+ * (a param renamed in the url). Each existing param is used at most once, so an inserted or
+ * reordered param cannot take the identity of one that a later param matches more closely.
+ *
+ * @returns {Array} The matched existing param for each url param, or undefined when there is none
+ */
+export const matchQueryParams = (urlQueryParams = [], existingQueryParams = []) => {
+  const matches = new Array(urlQueryParams.length).fill(undefined);
+  const available = [...existingQueryParams];
+
+  QUERY_PARAM_MATCH_PASSES.forEach((isMatch) => {
+    urlQueryParams.forEach((urlQueryParam, index) => {
+      if (matches[index]) {
+        return;
+      }
+      const candidateIndex = available.findIndex((existing) => isMatch(urlQueryParam, existing));
+      if (candidateIndex !== -1) {
+        matches[index] = available[candidateIndex];
+        available.splice(candidateIndex, 1);
+      }
+    });
+  });
+
+  return matches;
+};
+
+/**
+ * Copy the fields a query param keeps outside the url (description, annotations)
+ * from the param it replaces when the params are rebuilt from an edited url.
+ */
+export const preserveQueryParamMetadata = (urlQueryParam, existingQueryParam) => {
+  if (existingQueryParam?.description !== undefined) {
+    urlQueryParam.description = existingQueryParam.description;
+  }
+  if (existingQueryParam?.annotations !== undefined) {
+    urlQueryParam.annotations = existingQueryParam.annotations;
+  }
+  return urlQueryParam;
+};
+
 export const isValidUrl = (url) => {
   try {
     new URL(url);

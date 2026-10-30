@@ -16,7 +16,7 @@ import {
   isItemAFolder,
   isItemARequest
 } from 'utils/collections';
-import { parsePathParams, splitOnFirst } from 'utils/url';
+import { matchQueryParams, parsePathParams, preserveQueryParamMetadata, splitOnFirst } from 'utils/url';
 import { applyScriptEnvVars, getScriptModifiedKeys, preserveVariableUids } from 'utils/environments';
 import { getSubdirectoriesFromRoot } from 'utils/common/platform';
 import toast from 'react-hot-toast';
@@ -1188,23 +1188,20 @@ export const collectionsSlice = createSlice({
           }
 
           const disabledQueryParams = filter(item?.draft?.request?.params, (p) => !p.enabled && p.type === 'query');
-          let enabledQueryParams = filter(item?.draft?.request?.params, (p) => p.enabled && p.type === 'query');
+          const enabledQueryParams = filter(item?.draft?.request?.params, (p) => p.enabled && p.type === 'query');
           let oldPathParams = filter(item?.draft?.request?.params, (p) => p.enabled && p.type === 'path');
           let newPathParams = [];
 
-          // try and connect as much as old params uid's as possible
-          each(urlQueryParams, (urlQueryParam) => {
-            const existingQueryParam = find(
-              enabledQueryParams,
-              (p) => p?.name === urlQueryParam?.name || p?.value === urlQueryParam?.value
-            );
+          // try and connect as much as old params uid's as possible, carrying over the fields the url does not hold
+          const matchedQueryParams = matchQueryParams(urlQueryParams, enabledQueryParams);
+          each(urlQueryParams, (urlQueryParam, index) => {
+            const existingQueryParam = matchedQueryParams[index];
             urlQueryParam.uid = existingQueryParam?.uid || uuid();
             urlQueryParam.enabled = true;
             urlQueryParam.type = 'query';
 
-            // once found, remove it - trying our best here to accommodate duplicate query params
             if (existingQueryParam) {
-              enabledQueryParams = filter(enabledQueryParams, (p) => p?.uid !== existingQueryParam?.uid);
+              preserveQueryParamMetadata(urlQueryParam, existingQueryParam);
             }
           });
 

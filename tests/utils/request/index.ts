@@ -66,6 +66,35 @@ export const buildRequestLocators = (page: Page) => ({
 type NewRequestType = 'http-request' | 'graphql-request' | 'grpc-request' | 'ws-request' | 'from-curl';
 
 /**
+ * Replace the whole request URL in one edit, the way a paste does.
+ * The URL editor rebuilds the query params on every change, so typing a full URL would
+ * pass through intermediate URLs; this inserts the new URL as a single change.
+ * @param page - The page object
+ * @param url - The URL that replaces the current one
+ */
+export const replaceRequestUrl = async (page: Page, url: string) => {
+  await test.step(`Replace request URL with: ${url}`, async () => {
+    const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
+    await buildRequestLocators(page).urlInput().click();
+    await page.keyboard.press(selectAllShortcut);
+    await page.keyboard.insertText(url);
+  });
+};
+
+/**
+ * Type text at the end of the request URL, one keystroke at a time.
+ * @param page - The page object
+ * @param text - The text to type after the current URL
+ */
+export const typeAtEndOfRequestUrl = async (page: Page, text: string) => {
+  await test.step(`Type at the end of the request URL: ${text}`, async () => {
+    await buildRequestLocators(page).urlInput().click();
+    await page.keyboard.press('End');
+    await page.keyboard.type(text);
+  });
+};
+
+/**
  * Locators for the New Request dialog — the request-type radios and the
  * type-specific fields (e.g. the cURL command box for `from-curl`).
  */

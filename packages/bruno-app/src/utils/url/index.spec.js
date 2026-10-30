@@ -1,4 +1,6 @@
 import {
+  matchQueryParams,
+  preserveQueryParamMetadata,
   splitOnFirst,
   parsePathParams,
   interpolateUrl,
@@ -692,5 +694,93 @@ describe('Url Utils - prependDefaultScheme', () => {
 
   it.each([[''], [undefined], [null]])('passes an empty url through untouched — %s', (url) => {
     expect(prependDefaultScheme(url)).toEqual(url);
+  });
+});
+
+describe('Url Utils - preserveQueryParamMetadata', () => {
+  it('copies description and annotations from the existing param', () => {
+    const urlQueryParam = { name: 'page', value: '2' };
+    preserveQueryParamMetadata(urlQueryParam, { name: 'page', value: '1', description: 'page number', annotations: [{ name: 'a' }] });
+
+    expect(urlQueryParam).toEqual({ name: 'page', value: '2', description: 'page number', annotations: [{ name: 'a' }] });
+  });
+
+  it('keeps an empty description and null annotations', () => {
+    const urlQueryParam = { name: 'page', value: '2' };
+    preserveQueryParamMetadata(urlQueryParam, { description: '', annotations: null });
+
+    expect(urlQueryParam).toEqual({ name: 'page', value: '2', description: '', annotations: null });
+  });
+
+  it('does not add keys the existing param does not have', () => {
+    const urlQueryParam = { name: 'page', value: '2' };
+    preserveQueryParamMetadata(urlQueryParam, { name: 'page', value: '1' });
+
+    expect(urlQueryParam).toEqual({ name: 'page', value: '2' });
+  });
+
+  it('leaves the param unchanged when there is no existing param', () => {
+    const urlQueryParam = { name: 'page', value: '2' };
+    preserveQueryParamMetadata(urlQueryParam, undefined);
+
+    expect(urlQueryParam).toEqual({ name: 'page', value: '2' });
+  });
+});
+
+describe('Url Utils - matchQueryParams', () => {
+  const uidsOf = (matches) => matches.map((match) => match?.uid);
+
+  it('pairs each url param with the existing param of the same name', () => {
+    const existing = [
+      { uid: 'p1', name: 'a', value: '1' },
+      { uid: 'p2', name: 'b', value: '2' }
+    ];
+
+    expect(uidsOf(matchQueryParams([{ name: 'a', value: '9' }, { name: 'b', value: '2' }], existing))).toEqual(['p1', 'p2']);
+  });
+
+  it('does not let an inserted param take a sibling that only shares its value', () => {
+    const existing = [
+      { uid: 'p1', name: 'a', value: '1' },
+      { uid: 'p2', name: 'b', value: '2' }
+    ];
+    const url = [{ name: 'c', value: '2' }, { name: 'a', value: '1' }, { name: 'b', value: '2' }];
+
+    expect(uidsOf(matchQueryParams(url, existing))).toEqual([undefined, 'p1', 'p2']);
+  });
+
+  it('keeps repeated names paired by value when they are reordered', () => {
+    const existing = [
+      { uid: 'p1', name: 'a', value: '1' },
+      { uid: 'p2', name: 'a', value: '2' }
+    ];
+
+    expect(uidsOf(matchQueryParams([{ name: 'a', value: '2' }, { name: 'a', value: '1' }], existing))).toEqual(['p2', 'p1']);
+  });
+
+  it('prefers a name match over an earlier param with the same value', () => {
+    const existing = [
+      { uid: 'p1', name: 'a', value: 'true' },
+      { uid: 'p2', name: 'b', value: 'true' }
+    ];
+
+    expect(uidsOf(matchQueryParams([{ name: 'b', value: 'true' }], existing))).toEqual(['p2']);
+  });
+
+  it('falls back to a param with the same value when the name changed', () => {
+    const existing = [{ uid: 'p1', name: 'page', value: '1' }];
+
+    expect(uidsOf(matchQueryParams([{ name: 'pages', value: '1' }], existing))).toEqual(['p1']);
+  });
+
+  it('uses each existing param at most once', () => {
+    const existing = [{ uid: 'p1', name: 'a', value: '1' }];
+
+    expect(uidsOf(matchQueryParams([{ name: 'a', value: '1' }, { name: 'a', value: '1' }], existing))).toEqual(['p1', undefined]);
+  });
+
+  it('returns no matches when there is nothing to match against', () => {
+    expect(uidsOf(matchQueryParams([{ name: 'a', value: '1' }], undefined))).toEqual([undefined]);
+    expect(matchQueryParams(undefined, [{ uid: 'p1', name: 'a', value: '1' }])).toEqual([]);
   });
 });
