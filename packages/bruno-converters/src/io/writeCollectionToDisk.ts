@@ -1,49 +1,27 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { BrunoCollection, BrunoItem, BrunoEnvironment } from '@usebruno/schema-types';
-import type { FolderRoot } from '@usebruno/schema-types/collection/folder';
 import { sanitizeName } from '@usebruno/common/utils';
 import {
-  stringifyBruRequest,
-  stringifyBruCollection,
-  stringifyBruEnvironment
-} from '../formats/bru';
-import {
-  stringifyYmlItem,
-  stringifyYmlFolder,
-  stringifyYmlCollection,
-  stringifyYmlEnvironment
-} from '../formats/yml';
-import { DEFAULT_COLLECTION_FORMAT } from '../constants';
-import type { CollectionFormat, WriteCollectionOptions } from '../types';
+  stringifyRequest,
+  stringifyCollection,
+  stringifyFolder,
+  stringifyEnvironment,
+  DEFAULT_COLLECTION_FORMAT
+} from '@usebruno/filestore';
+import type { CollectionFormat } from '@usebruno/filestore';
+
+export interface WriteCollectionOptions {
+  format?: CollectionFormat;
+}
 
 const SUPPORTED_WRITE_ITEM_TYPES = ['http-request', 'graphql-request', 'grpc-request', 'ws-request'];
 
 const HTTP_ITEM_TYPES = ['http-request', 'graphql-request'];
 
-interface FormatWriter {
-  collectionFile: string;
-  stringifyCollection: (collectionRoot: FolderRoot, brunoConfig: Record<string, unknown>) => string;
-  stringifyFolder: (folderRoot: FolderRoot) => string;
-  stringifyRequest: (item: BrunoItem) => string;
-  stringifyEnvironment: (environment: BrunoEnvironment) => string;
-}
-
-const FORMAT_WRITERS: Record<CollectionFormat, FormatWriter> = {
-  bru: {
-    collectionFile: 'collection.bru',
-    stringifyCollection: (collectionRoot) => stringifyBruCollection(collectionRoot, false),
-    stringifyFolder: (folderRoot) => stringifyBruCollection(folderRoot, true),
-    stringifyRequest: stringifyBruRequest,
-    stringifyEnvironment: stringifyBruEnvironment
-  },
-  yml: {
-    collectionFile: 'opencollection.yml',
-    stringifyCollection: stringifyYmlCollection,
-    stringifyFolder: stringifyYmlFolder,
-    stringifyRequest: stringifyYmlItem,
-    stringifyEnvironment: stringifyYmlEnvironment
-  }
+const COLLECTION_FILE_NAMES: Record<CollectionFormat, string> = {
+  bru: 'collection.bru',
+  yml: 'opencollection.yml'
 };
 
 const withExtension = (filename: string, ext: string): string => {
@@ -79,8 +57,6 @@ const normalizeRequestItem = (item: BrunoItem): BrunoItem => {
 };
 
 const writeItems = (items: BrunoItem[], dirPath: string, format: CollectionFormat): void => {
-  const writer = FORMAT_WRITERS[format];
-
   for (const item of items) {
     if (item.type === 'folder') {
       const folderPath = path.join(dirPath, sanitizeName(item.filename || item.name));
@@ -90,13 +66,13 @@ const writeItems = (items: BrunoItem[], dirPath: string, format: CollectionForma
         const folderRoot = typeof item.seq === 'number'
           ? { ...item.root, meta: { ...item.root.meta, seq: item.seq } }
           : item.root;
-        fs.writeFileSync(path.join(folderPath, `folder.${format}`), writer.stringifyFolder(folderRoot));
+        fs.writeFileSync(path.join(folderPath, `folder.${format}`), stringifyFolder(folderRoot, { format }));
       }
 
       writeItems(item.items || [], folderPath, format);
     } else if (SUPPORTED_WRITE_ITEM_TYPES.includes(item.type)) {
       const filename = withExtension(sanitizeName(item.filename || `${item.name}.${format}`), format);
-      fs.writeFileSync(path.join(dirPath, filename), writer.stringifyRequest(normalizeRequestItem(item)));
+      fs.writeFileSync(path.join(dirPath, filename), stringifyRequest(normalizeRequestItem(item), { format }));
     } else {
       throw new Error(`Unsupported item type: ${item.type}`);
     }
@@ -108,8 +84,7 @@ const writeCollection = async (
   outputDir: string,
   format: CollectionFormat
 ): Promise<string> => {
-  const writer = FORMAT_WRITERS[format];
-  if (!writer) {
+  if (!COLLECTION_FILE_NAMES[format]) {
     throw new Error(`Unsupported format: ${format}`);
   }
 
@@ -131,9 +106,13 @@ const writeCollection = async (
   if (format === 'bru') {
     fs.writeFileSync(path.join(outputDir, 'bruno.json'), JSON.stringify(brunoConfig, null, 2));
   }
+
+  // TODO: remove the manual cast once the stringifyCollection accepts the proper interface.
+  // filestore types this parameter as a whole collection, but its stringifiers read the root.
+  const collectionRoot = (collection.root || {}) as unknown as BrunoCollection;
   fs.writeFileSync(
-    path.join(outputDir, writer.collectionFile),
-    writer.stringifyCollection(collection.root || {}, brunoConfig)
+    path.join(outputDir, COLLECTION_FILE_NAMES[format]),
+    stringifyCollection(collectionRoot, brunoConfig, { format })
   );
 
   const environments = collection.environments || [];
@@ -141,7 +120,7 @@ const writeCollection = async (
     const envDirPath = path.join(outputDir, 'environments');
     fs.mkdirSync(envDirPath, { recursive: true });
     for (const env of environments) {
-      fs.writeFileSync(path.join(envDirPath, sanitizeName(`${env.name}.${format}`)), writer.stringifyEnvironment(env));
+      fs.writeFileSync(path.join(envDirPath, sanitizeName(`${env.name}.${format}`)), stringifyEnvironment(env, { format }));
     }
   }
 

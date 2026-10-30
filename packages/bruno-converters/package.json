@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@usebruno/common": "^0.1.0",
+    "@usebruno/filestore": "^0.1.0",
     "@usebruno/schema": "^0.7.0",
     "js-yaml": "4.3.2",
     "jscodeshift": "^17.3.0",

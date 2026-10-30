@@ -58,10 +58,10 @@ jobs:
           npm run build:bruno-query
           npm run build:bruno-common
           npm run sandbox:bundle-libraries --workspace=packages/bruno-js
-          npm run build:bruno-converters
-          npm run build:bruno-requests
           npm run build:schema-types
           npm run build:bruno-filestore
+          npm run build:bruno-converters
+          npm run build:bruno-requests
 
       - name: Run Playwright tests
         run: xvfb-run npm run test:e2e
