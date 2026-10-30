@@ -95,6 +95,8 @@ Import Options:
 | --output-file, -f         | Path to the output JSON file                       |
 | --collection-name, -n     | Name for the imported collection                   |
 | --insecure                | Skip SSL certificate validation when fetching from URLs |
+| --auth-placement          | Where to set the spec's auth: request (default) on each request, collection on the collection for requests to inherit |
+| --request-name-source     | Field used to name requests: summary (default), operationId, description or path. Missing fields fall back in that order |
 
 ## Command Line Options
 
