@@ -4,6 +4,18 @@
   "license": "MIT",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
+  "exports": {
+    ".": {
+      "module": "./dist/esm/index.js",
+      "default": "./dist/cjs/index.js"
+    },
+    "./io": {
+      "types": "./dist/cjs/io/index.d.ts",
+      "module": "./dist/esm/io.js",
+      "default": "./dist/cjs/io.js"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "dist",
     "src",
@@ -20,6 +32,7 @@
   },
   "dependencies": {
     "@usebruno/common": "^0.1.0",
+    "@usebruno/filestore": "^0.1.0",
     "@usebruno/schema": "^0.7.0",
     "js-yaml": "4.3.2",
     "jscodeshift": "^17.3.0",

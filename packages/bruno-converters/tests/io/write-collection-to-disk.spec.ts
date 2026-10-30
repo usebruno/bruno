@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { parseRequest, parseFolder, parseEnvironment } from '../index';
-import { writeCollectionToDisk, writeCollectionToDiskLegacy } from './index';
-import type { CollectionFormat } from '../types';
+import { parseRequest, parseFolder, parseEnvironment } from '@usebruno/filestore';
+import type { CollectionFormat } from '@usebruno/filestore';
+import { writeCollectionToDisk, writeCollectionToDiskLegacy } from '../../src/io';
 
 const FORMATS: CollectionFormat[] = ['bru', 'yml'];
 
@@ -29,7 +29,7 @@ describe('writeCollectionToDisk methods', () => {
   let outputDir: string;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-filestore-write-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-converters-write-'));
     outputDir = path.join(tempDir, 'collection');
   });
 

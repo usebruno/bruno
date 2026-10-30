@@ -23,6 +23,7 @@
       "@usebruno/schema-types": ["packages/bruno-schema-types/dist/index.d.ts"],
       "@usebruno/schema-types/*": ["packages/bruno-schema-types/dist/*"],
       "@usebruno/common/utils": ["packages/bruno-common/dist/utils/index.d.ts"],
+      "@usebruno/filestore/stringify": ["packages/bruno-filestore/dist/stringify.d.ts"],
       "@opencollection/types": ["node_modules/@opencollection/types/dist/opencollection.d.ts"],
       "@opencollection/types/*": ["node_modules/@opencollection/types/dist/*"]
     }
