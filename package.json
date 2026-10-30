@@ -33,7 +33,7 @@
     "@types/lodash-es": "^4.17.12",
     "@types/node": "^24.19.2",
     "@typescript-eslint/parser": "^8.39.0",
-    "adm-zip": "^0.6.0",
+    "adm-zip": "0.6.1",
     "concurrently": "^8.2.2",
     "cross-env": "10.1.0",
     "eslint": "^9.39.4",
@@ -102,12 +102,29 @@
     "app-builder-lib": {
       "tar": "7.5.22"
     },
-    "brace-expansion@5": "5.0.9",
+    "@mapbox/node-pre-gyp": {
+      "tar": "7.5.22"
+    },
+    "brace-expansion@5": "5.0.12",
     "minimatch@10": {
-      "brace-expansion": "5.0.9"
+      "brace-expansion": "5.0.12"
     },
     "rollup": "3.30.0",
-    "pbkdf2": "3.1.5",
+    "pbkdf2": "3.1.7",
+    "@prantlf/jsonlint": {
+      "ajv": "8.18.0",
+      "diff": "5.2.2"
+    },
+    "swagger-ui-react": {
+      "js-yaml": "4.3.2"
+    },
+    "httpsnippet": {
+      "form-data": "4.0.6"
+    },
+    "jshint": {
+      "lodash": "4.18.1",
+      "minimatch": "3.1.5"
+    },
     "electron-store": {
       "conf": {
         "json-schema-typed": "8.0.1"

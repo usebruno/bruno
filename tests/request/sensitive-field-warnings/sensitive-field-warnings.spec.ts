@@ -6,19 +6,26 @@ import {
   closeEnvironmentPanel,
   createCollection,
   createEnvironment,
+  createFolder,
   createRequest,
   openCollectionSettings,
   openEnvironmentConfigTab,
+  openEnvironmentInSettings,
+  openFolderSettings,
   openRequest,
   saveEnvironment,
+  saveFolderSettings,
   saveRequest,
   selectAuthMode,
   selectCollectionPaneTab,
+  selectEnvironment,
+  selectfolderPaneTab,
   selectRequestPaneTab,
   writeFieldValue
 } from '../../utils/page';
 import { AUTH_MODE_LABELS } from '../../utils/constants';
-import { addVarsRow } from '../../utils/request';
+import { setApiKeyValue } from '../../utils/request';
+import { addVarsRow } from '../../utils/request/vars';
 
 const PLAINTEXT_WARNING = 'Store sensitive info as a secret variable or in a .env file';
 const ENVIRONMENT_FIELD_WARNING = 'Mark the environment variable as secret for better security';
@@ -55,9 +62,7 @@ test.describe('Sensitive field warnings', () => {
 
     await test.step('Type a plaintext API key value', async () => {
       await openRequest(page, collectionName, 'login');
-      await selectRequestPaneTab(page, 'Auth');
-      await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
-      await writeFieldValue(page, 'Value', 'raw-secret');
+      await setApiKeyValue(page, 'raw-secret');
     });
 
     await test.step('The value warns and the key name does not', async () => {
@@ -77,9 +82,7 @@ test.describe('Sensitive field warnings', () => {
 
     await test.step('Set the API key value to a name that is not saved', async () => {
       await openRequest(page, collectionName, 'login');
-      await selectRequestPaneTab(page, 'Auth');
-      await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
-      await writeFieldValue(page, 'Value', '{{process.env.TOKEN}}');
+      await setApiKeyValue(page, '{{process.env.TOKEN}}');
     });
 
     await test.step('No warning is shown', async () => {
@@ -104,9 +107,7 @@ test.describe('Sensitive field warnings', () => {
 
     await test.step('A value that is only the secret variable does not warn', async () => {
       await openRequest(page, collectionName, 'login');
-      await selectRequestPaneTab(page, 'Auth');
-      await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
-      await writeFieldValue(page, 'Value', '{{token}}');
+      await setApiKeyValue(page, '{{token}}');
       await expect(codeMirror.sensitiveWarning('apikey-value')).toHaveCount(0);
     });
 
@@ -131,9 +132,7 @@ test.describe('Sensitive field warnings', () => {
 
     await test.step('Use that variable as the API key value', async () => {
       await openRequest(page, collectionName, 'login');
-      await selectRequestPaneTab(page, 'Auth');
-      await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
-      await writeFieldValue(page, 'Value', '{{token}}');
+      await setApiKeyValue(page, '{{token}}');
       await expectSensitiveWarning(page, 'apikey-value', requestVariableWarning('token'));
     });
 
@@ -166,9 +165,7 @@ test.describe('Sensitive field warnings', () => {
 
     await test.step('The API key field warns about the environment variable', async () => {
       await openRequest(page, collectionName, 'login');
-      await selectRequestPaneTab(page, 'Auth');
-      await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
-      await writeFieldValue(page, 'Value', '{{token}}');
+      await setApiKeyValue(page, '{{token}}');
       await expectSensitiveWarning(page, 'apikey-value', ENVIRONMENT_FIELD_WARNING);
     });
 
@@ -182,6 +179,101 @@ test.describe('Sensitive field warnings', () => {
       await openCollectionSettings(page, collectionName);
       await selectCollectionPaneTab(page, 'vars');
       await expect(codeMirror.sensitiveWarningIn(table('collection-vars-req').container(), 'token')).toHaveCount(0);
+    });
+  });
+
+  test('a collection variable used in collection auth warns on its Vars row when no request inherits the auth', async ({ page, createTmpDir }) => {
+    const collectionName = 'sensitive-collection-auth-variable';
+    const { codeMirror, table, varsPanel } = buildCommonLocators(page);
+
+    await test.step('Use a collection variable in the collection API key', async () => {
+      await createCollection(page, collectionName, await createTmpDir(collectionName));
+      await openCollectionSettings(page, collectionName);
+      await selectCollectionPaneTab(page, 'vars');
+      await addVarsRow(page, 'collection-vars-req', 'token', 'from-collection');
+      await varsPanel('collection').saveButton().click();
+
+      await selectCollectionPaneTab(page, 'auth');
+      await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
+      await writeFieldValue(page, 'Value', '{{token}}');
+    });
+
+    await test.step('The collection Vars row warns', async () => {
+      await selectCollectionPaneTab(page, 'vars');
+      const rowWarning = codeMirror.sensitiveWarningIn(table('collection-vars-req').rowByName('token'), 'token');
+      await expect(rowWarning).toBeVisible();
+      await rowWarning.hover();
+      await expect(codeMirror.sensitiveTooltip(plainVariableRowWarning('token'))).toBeVisible();
+    });
+  });
+
+  test('a folder variable used in folder auth warns on its Vars row when no request inherits the auth', async ({ page, createTmpDir }) => {
+    const collectionName = 'sensitive-folder-auth-variable';
+    const { codeMirror, table, varsPanel } = buildCommonLocators(page);
+
+    await test.step('Use a folder variable in the folder API key', async () => {
+      await createCollection(page, collectionName, await createTmpDir(collectionName));
+      await createFolder(page, 'api', collectionName);
+      await openFolderSettings(page, collectionName, 'api');
+      await selectfolderPaneTab(page, 'vars');
+      await addVarsRow(page, 'folder-vars-req', 'token', 'from-folder');
+      await varsPanel('folder').saveButton().click();
+
+      await selectfolderPaneTab(page, 'auth');
+      await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
+      await writeFieldValue(page, 'Value', '{{token}}');
+      await saveFolderSettings(page);
+    });
+
+    await test.step('The folder Vars row warns', async () => {
+      await selectfolderPaneTab(page, 'vars');
+      const rowWarning = codeMirror.sensitiveWarningIn(table('folder-vars-req').rowByName('token'), 'token');
+      await expect(rowWarning).toBeVisible();
+      await rowWarning.hover();
+      await expect(codeMirror.sensitiveTooltip(plainVariableRowWarning('token'))).toBeVisible();
+    });
+  });
+
+  test('an environment row warns only while that environment is selected', async ({ page, createTmpDir }) => {
+    const collectionName = 'sensitive-environment-not-selected';
+    const { codeMirror, environment, table, varsPanel } = buildCommonLocators(page);
+
+    await test.step('Save a plaintext environment token and a collection token used by the API key', async () => {
+      await createCollection(page, collectionName, await createTmpDir(collectionName));
+      await createRequest(page, 'login', collectionName);
+      await createEnvironment(page, 'dev', 'collection');
+      await addEnvironmentVariable(page, { name: 'token', value: 'from-env', isSecret: false });
+      await saveEnvironment(page);
+      await closeEnvironmentPanel(page);
+
+      await openCollectionSettings(page, collectionName);
+      await selectCollectionPaneTab(page, 'vars');
+      await addVarsRow(page, 'collection-vars-req', 'token', 'from-collection');
+      await varsPanel('collection').saveButton().click();
+
+      await openRequest(page, collectionName, 'login');
+      await setApiKeyValue(page, '{{token}}');
+    });
+
+    await test.step('With dev selected, the environment row warns', async () => {
+      await openEnvironmentConfigTab(page);
+      await expect(codeMirror.sensitiveWarningIn(environment.varRow('token'), 'token')).toBeVisible();
+      await closeEnvironmentPanel(page);
+    });
+
+    await test.step('With no environment selected, the environment row does not warn', async () => {
+      await openRequest(page, collectionName, 'login');
+      await selectEnvironment(page, 'No Environment');
+      await openEnvironmentConfigTab(page);
+      await openEnvironmentInSettings(page, 'dev');
+      await expect(environment.varRow('token')).toBeVisible();
+      await expect(codeMirror.sensitiveWarningIn(environment.varRow('token'), 'token')).toHaveCount(0);
+    });
+
+    await test.step('With no environment selected, the collection Vars row warns', async () => {
+      await openCollectionSettings(page, collectionName);
+      await selectCollectionPaneTab(page, 'vars');
+      await expect(codeMirror.sensitiveWarningIn(table('collection-vars-req').rowByName('token'), 'token')).toBeVisible();
     });
   });
 });
