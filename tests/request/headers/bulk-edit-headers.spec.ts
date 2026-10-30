@@ -9,12 +9,6 @@ const disabled = { name: 'X-Disabled', value: 'disabled-value' };
 
 const bulkLine = (name: string, value: string, commented = false) => `${commented ? '//' : ''}${name}:${value}`;
 
-// CodeMirror's width measure is part of the editor text, so match the lines in order
-// rather than the whole editor string.
-const linesInOrder = (lines: string[]) => new RegExp(
-  lines.map((line) => line.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[\\s\\S]*')
-);
-
 const fromTable = [
   bulkLine(checked.name, checked.value),
   bulkLine(unchecked.name, unchecked.value, true)
@@ -61,12 +55,12 @@ test('TC-592: Verify the Link from Key/Value to Bulk Edit View for Request Heade
     const uncheckedBox = headers.checkbox(headers.requestRow(unchecked.name));
     await uncheckedBox.uncheck();
 
-    await expect(headers.cellLine(headers.requestRow(checked.name), 'name')).toContainText(checked.name);
-    await expect(headers.cellLine(headers.requestRow(checked.name), 'value')).toContainText(checked.value);
+    await expect(headers.cellLine(headers.requestRow(checked.name), 'name')).toHaveText(checked.name);
+    await expect(headers.cellLine(headers.requestRow(checked.name), 'value')).toHaveText(checked.value);
     await expect(headers.checkbox(headers.requestRow(checked.name))).toBeChecked();
 
-    await expect(headers.cellLine(headers.requestRow(unchecked.name), 'name')).toContainText(unchecked.name);
-    await expect(headers.cellLine(headers.requestRow(unchecked.name), 'value')).toContainText(unchecked.value);
+    await expect(headers.cellLine(headers.requestRow(unchecked.name), 'name')).toHaveText(unchecked.name);
+    await expect(headers.cellLine(headers.requestRow(unchecked.name), 'value')).toHaveText(unchecked.value);
     await expect(uncheckedBox).not.toBeChecked();
     await expect(uncheckedBox).toBeEnabled();
   });
@@ -77,7 +71,7 @@ test('TC-592: Verify the Link from Key/Value to Bulk Edit View for Request Heade
     await expect(headers.table()).toBeHidden();
     await expect(headers.keyValueEdit()).toBeVisible();
     await expect(headers.keyValueEdit()).toBeEnabled();
-    await expect(headers.bulkEditor()).toHaveText(linesInOrder(fromTable));
+    await expect(headers.bulkEditorLines()).toHaveText(fromTable);
   });
 
   await test.step('Add one enabled line and one commented line in Bulk Edit', async () => {
@@ -86,7 +80,7 @@ test('TC-592: Verify the Link from Key/Value to Bulk Edit View for Request Heade
       bulkLine(disabled.name, disabled.value, true)
     ]);
 
-    await expect(headers.bulkEditor()).toHaveText(linesInOrder(allLines));
+    await expect(headers.bulkEditorLines()).toHaveText(allLines);
   });
 
   await test.step('Switch back to Key/Value view', async () => {
@@ -97,8 +91,8 @@ test('TC-592: Verify the Link from Key/Value to Bulk Edit View for Request Heade
     await expect(headers.bulkEdit()).toBeVisible();
 
     for (const header of [checked, unchecked, enabled, disabled]) {
-      await expect(headers.cellLine(headers.requestRow(header.name), 'name')).toContainText(header.name);
-      await expect(headers.cellLine(headers.requestRow(header.name), 'value')).toContainText(header.value);
+      await expect(headers.cellLine(headers.requestRow(header.name), 'name')).toHaveText(header.name);
+      await expect(headers.cellLine(headers.requestRow(header.name), 'value')).toHaveText(header.value);
     }
   });
 
