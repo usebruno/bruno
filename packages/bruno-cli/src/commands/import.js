@@ -321,7 +321,7 @@ const convertPostmanEnvironment = async (source, { insecure }) => {
 
 const importPostmanCollection = async (source, { insecure, preserveScripts, environmentSources = [] }) => {
   const postmanCollection = await readPostmanFile(source, { insecure });
-  const { collection, issues, translationIssues } = await postmanToBruno(postmanCollection, {
+  const { collection, issues } = await postmanToBruno(postmanCollection, {
     preserveScripts,
     logTranslationFailures: false
   });
@@ -337,7 +337,7 @@ const importPostmanCollection = async (source, { insecure, preserveScripts, envi
     collection.environments.push({ ...environment, name });
   }
 
-  return { collection, issues: [...issues, ...translationIssues] };
+  return { collection, issues };
 };
 
 const writeBrunoCollection = async (collection, { output, outputFile, collectionFormat = 'opencollection' }) => {

@@ -89,7 +89,7 @@ describe('postman script report (against the real converter)', () => {
       buildCollection([requestItem('secretive', ['pm.someUnknownApi.doThing("sk-live-xyz");'])])
     );
 
-    expect(Object.keys(result).sort()).toEqual(['collection', 'issues', 'scriptTranslationReport', 'translationIssues']);
+    expect(Object.keys(result).sort()).toEqual(['collection', 'issues', 'scriptTranslationReport']);
     expect(JSON.stringify(result.scriptTranslationReport)).not.toContain('sk-live-xyz');
   });
 
