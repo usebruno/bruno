@@ -22,7 +22,7 @@
     "@types/react": "^18.0.25",
     "graphql": "^16.6.0",
     "jest": "^29.2.0",
-    "markdown-it": "^14.2.0",
+    "markdown-it": "14.3.3",
     "ts-jest": "^29.2.6",
     "postcss": "8.5.23",
     "react": "19.0.0",
@@ -36,6 +36,6 @@
   },
   "peerDependencies": {
     "graphql": "^16.6.0",
-    "markdown-it": "^13.0.1"
+    "markdown-it": "^14.3.3"
   }
 }

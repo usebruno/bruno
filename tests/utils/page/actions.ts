@@ -2501,9 +2501,34 @@ type ScriptSubTab = 'pre-request' | 'post-response' | 'before-call-start' | 'bef
 const selectScriptSubTab = async (page: Page, subTab: ScriptSubTab) => {
   await test.step(`Select Script sub-tab "${subTab}"`, async () => {
     await selectRequestPaneTab(page, 'Script');
-    const trigger = buildCommonLocators(page).paneTabs.tabTrigger(subTab);
-    await trigger.click();
-    await expect(trigger).toContainClass('active');
+    const locators = buildCommonLocators(page);
+    const tabTrigger = locators.paneTabs.tabTrigger(subTab);
+    const overflowTrigger = locators.paneTabs.scriptSubTabsOverflowTrigger();
+
+    // The sub-tab row re-measures via ResizeObserver/rAF, so a trigger can detach mid-click.
+    // Retry the whole sequence so a mid-action re-layout doesn't fail the test.
+    await expect(async () => {
+      if (await tabTrigger.isVisible()) {
+        await tabTrigger.click({ timeout: 2000 });
+        await expect(tabTrigger).toContainClass('active', { timeout: 2000 });
+        return;
+      }
+
+      if (await overflowTrigger.isVisible()) {
+        const item = locators.paneTabs.overflowItem(subTab);
+        // The chevron toggles the menu, so clicking it again after a failed attempt would close it.
+        if (!(await item.isVisible())) {
+          await overflowTrigger.click({ timeout: 2000 });
+        }
+        await item.waitFor({ state: 'visible', timeout: 2000 });
+        await item.click({ timeout: 2000 });
+        // Selecting pulls the tab into the visible row, so its trigger exists again.
+        await expect(tabTrigger).toContainClass('active', { timeout: 2000 });
+        return;
+      }
+
+      throw new Error(`Script sub-tab "${subTab}" not found in visible tabs or overflow dropdown`);
+    }).toPass({ timeout: 15000 });
   });
 };
 
@@ -2782,51 +2807,6 @@ const readField = async (page: Page, labelText: string): Promise<string> => {
   const editor = fieldEditor(page, labelText).first();
   await editor.waitFor({ state: 'visible' });
   return editor.evaluate((el: any) => (el as any).CodeMirror?.getValue() ?? '');
-};
-
-export type CollectionProxyField = 'hostname' | 'port' | 'username' | 'password';
-
-const COLLECTION_PROXY_FIELD_TEST_IDS: Record<CollectionProxyField, string> = {
-  hostname: 'collection-proxy-hostname',
-  port: 'collection-proxy-port',
-  username: 'collection-proxy-username',
-  password: 'collection-proxy-password'
-};
-
-const collectionProxyFieldRoot = (page: Page, field: CollectionProxyField) =>
-  page.getByTestId(COLLECTION_PROXY_FIELD_TEST_IDS[field]);
-
-/** Read a collection proxy hostname, port, username, or password field. */
-const readCollectionProxyField = async (page: Page, field: CollectionProxyField): Promise<string> => {
-  const root = collectionProxyFieldRoot(page, field);
-  await root.waitFor({ state: 'visible' });
-
-  if (field === 'port') {
-    return root.inputValue();
-  }
-
-  const editor = root.locator('.CodeMirror').first();
-  await editor.waitFor({ state: 'visible' });
-  return editor.evaluate((el: any) => (el as any).CodeMirror?.getValue() ?? '');
-};
-
-/** Set a collection proxy hostname, port, username, or password field. */
-const writeCollectionProxyField = async (page: Page, field: CollectionProxyField, value: string) => {
-  const root = collectionProxyFieldRoot(page, field);
-  await root.waitFor({ state: 'visible' });
-
-  if (field === 'port') {
-    await root.fill(value);
-    await expect.poll(() => root.inputValue()).toBe(value);
-    return;
-  }
-
-  const editor = root.locator('.CodeMirror').first();
-  await editor.waitFor({ state: 'visible' });
-  await editor.evaluate((el: any, nextValue: string) => {
-    el.CodeMirror?.setValue(nextValue);
-  }, value);
-  await expect.poll(() => readCollectionProxyField(page, field)).toBe(value);
 };
 
 const openFolderSettings = async (page: Page, collectionName: string, folderName = 'api') => {
@@ -4129,8 +4109,6 @@ export {
   typeIntoField,
   writeFieldValue,
   readField,
-  writeCollectionProxyField,
-  readCollectionProxyField,
   createExampleFromSidebar,
   openExampleFromSidebar,
   toggleRequestExamples,
