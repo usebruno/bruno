@@ -48,6 +48,8 @@ export const buildRequestLocators = (page: Page) => ({
     inheritedRow: (name: string) => page.getByTestId(`inherited-header-row-${name.toLowerCase()}`),
     inheritedSource: (name: string) => page.getByTestId(`inherited-header-source-${name.toLowerCase()}`),
     addRow: () => page.getByTestId('request-header-add-row'),
+    badge: () => page.getByTestId('request-pane').getByTestId('responsive-tab-headers').locator('sup'),
+    nameEditor: (row: Locator) => row.getByTestId('column-name'),
     toggleInherited: () => page.getByTestId('toggle-inherited-headers'),
     paneScroller: () => page.getByTestId('request-pane').getByTestId('flex-boundary'),
     defaultInfo: (name: string) => page.getByTestId(`default-header-info-${name.toLowerCase()}`),

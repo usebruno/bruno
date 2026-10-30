@@ -83,25 +83,23 @@ test('TC-2650: Verify header deletion via backspace clears state', { tag: '@sani
   const { request } = buildCommonLocators(page);
   const headers = request.headers;
   const headerName = 'X-Test';
-  const headersBadge = request.pane().getByTestId('responsive-tab-headers').locator('sup');
 
   await test.step('Open an API request on the Headers tab', async () => {
     await createCollection(page, 'header-backspace-clears-state', await createTmpDir('header-backspace-clears-state'));
     await createRequest(page, 'request-1', 'header-backspace-clears-state', { url: 'https://example.com/api' });
     await selectRequestPaneTab(page, 'Headers');
     await expect(headers.addRow()).toBeVisible();
-    await expect(headersBadge).toHaveCount(0);
+    await expect(headers.badge()).toHaveCount(0);
   });
 
   await test.step('Type X-Test in the Name field', async () => {
     await fillRequestHeaderName(page, headers.addRow(), headerName);
     await expect(headers.requestRow(headerName)).toBeVisible();
-    await expect(headersBadge).toHaveText('1');
+    await expect(headers.badge()).toHaveText('1');
   });
 
   await test.step('Backspace until the Name field is empty', async () => {
-    const nameEditor = headers.requestRow(headerName).getByTestId('column-name');
-    await nameEditor.click();
+    await headers.nameEditor(headers.requestRow(headerName)).click();
     await page.keyboard.press('End');
     for (let i = 0; i < headerName.length; i++) {
       await page.keyboard.press('Backspace');
@@ -113,7 +111,7 @@ test('TC-2650: Verify header deletion via backspace clears state', { tag: '@sani
   });
 
   await test.step('The Headers badge drops and the header is removed', async () => {
-    await expect(headersBadge).toHaveCount(0);
+    await expect(headers.badge()).toHaveCount(0);
     await expect(headers.requestRow(headerName)).toHaveCount(0);
     await expect(headers.addRow()).toBeVisible();
     await expect(headers.addRow()).not.toContainText(headerName);
