@@ -566,7 +566,7 @@ const parseBruFileMeta = (data) => {
   }
 };
 
-// Parse YML file meta information (OpenCollection uses `info`, not `meta`)
+// Parse YML file meta information
 const parseYmlFileMeta = (data) => {
   try {
     const yaml = require('js-yaml');
