@@ -8,8 +8,8 @@ import {
   stringifyFolder,
   stringifyEnvironment,
   DEFAULT_COLLECTION_FORMAT
-} from '@usebruno/filestore';
-import type { CollectionFormat } from '@usebruno/filestore';
+} from '@usebruno/filestore/stringify';
+import type { CollectionFormat } from '@usebruno/filestore/stringify';
 
 export interface WriteCollectionOptions {
   format?: CollectionFormat;

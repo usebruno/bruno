@@ -12,7 +12,7 @@ const packageJson = require('./package.json');
 const externalDeps = [
   '@usebruno/common',
   '@usebruno/common/utils',
-  '@usebruno/filestore',
+  '@usebruno/filestore/stringify',
   '@usebruno/schema',
   '@usebruno/schema-types',
   /@usebruno\/schema-types\/.*/,

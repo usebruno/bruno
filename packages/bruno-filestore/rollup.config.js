@@ -64,6 +64,25 @@ module.exports = [
     external: externalDeps
   },
   {
+    input: 'src/stringify.ts',
+    output: [
+      {
+        file: 'dist/cjs/stringify.js',
+        format: 'cjs',
+        sourcemap: true,
+        exports: 'named'
+      },
+      {
+        file: 'dist/esm/stringify.js',
+        format: 'esm',
+        sourcemap: true,
+        exports: 'named'
+      }
+    ],
+    plugins: commonPlugins,
+    external: externalDeps
+  },
+  {
     input: 'src/workers/worker-script.ts',
     output: [
       {

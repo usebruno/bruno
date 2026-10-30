@@ -5,6 +5,19 @@
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "module": "./dist/esm/index.js",
+      "default": "./dist/cjs/index.js"
+    },
+    "./stringify": {
+      "types": "./dist/stringify.d.ts",
+      "module": "./dist/esm/stringify.js",
+      "default": "./dist/cjs/stringify.js"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "dist",
     "src",

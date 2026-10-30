@@ -1,12 +1,7 @@
-import type { BrunoCollection, BrunoItem, BrunoEnvironment } from '@usebruno/schema-types';
-
 import {
   parseBruRequest,
   parseBruCollection,
-  parseBruEnvironment,
-  stringifyBruRequest,
-  stringifyBruCollection,
-  stringifyBruEnvironment
+  parseBruEnvironment
 } from './formats/bru';
 import {
   parseYmlItem,
@@ -14,10 +9,6 @@ import {
   parseYmlFolder,
   parseYmlEnvironment,
   parseYmlMockServer,
-  stringifyYmlItem,
-  stringifyYmlFolder,
-  stringifyYmlCollection,
-  stringifyYmlEnvironment,
   stringifyYmlMockServer
 } from './formats/yml';
 import { dotenvToJson } from '@usebruno/lang';
@@ -44,15 +35,6 @@ export const parseRequest = (content: string, options: ParseOptions = { format: 
 export const parseRequestAndRedactBody = (content: string, options: ParseOptions = { format: 'bru' }): any => {
   if (options.format === 'bru') {
     return bruRequestParseAndRedactBodyData(content);
-  }
-  throw new Error(`Unsupported format: ${options.format}`);
-};
-
-export const stringifyRequest = (requestObj: BrunoItem, options: StringifyOptions = { format: DEFAULT_COLLECTION_FORMAT }): string => {
-  if (options.format === 'bru') {
-    return stringifyBruRequest(requestObj);
-  } else if (options.format === 'yml') {
-    return stringifyYmlItem(requestObj);
   }
   throw new Error(`Unsupported format: ${options.format}`);
 };
@@ -103,15 +85,6 @@ export const parseCollection = (content: string, options: ParseOptions = { forma
   throw new Error(`Unsupported format: ${options.format}`);
 };
 
-export const stringifyCollection = (collectionObj: BrunoCollection, brunoConfig: any, options: StringifyOptions = { format: DEFAULT_COLLECTION_FORMAT }): string => {
-  if (options.format === 'bru') {
-    return stringifyBruCollection(collectionObj, false);
-  } else if (options.format === 'yml') {
-    return stringifyYmlCollection(collectionObj, brunoConfig);
-  }
-  throw new Error(`Unsupported format: ${options.format}`);
-};
-
 // folder
 export const parseFolder = (content: string, options: ParseOptions = { format: DEFAULT_COLLECTION_FORMAT }): any => {
   if (options.format === 'bru') {
@@ -122,30 +95,12 @@ export const parseFolder = (content: string, options: ParseOptions = { format: D
   throw new Error(`Unsupported format: ${options.format}`);
 };
 
-export const stringifyFolder = (folderObj: any, options: StringifyOptions = { format: DEFAULT_COLLECTION_FORMAT }): string => {
-  if (options.format === 'bru') {
-    return stringifyBruCollection(folderObj, true);
-  } else if (options.format === 'yml') {
-    return stringifyYmlFolder(folderObj);
-  }
-  throw new Error(`Unsupported format: ${options.format}`);
-};
-
 // environment
 export const parseEnvironment = (content: string, options: ParseOptions = { format: DEFAULT_COLLECTION_FORMAT }): any => {
   if (options.format === 'bru') {
     return parseBruEnvironment(content);
   } else if (options.format === 'yml') {
     return parseYmlEnvironment(content);
-  }
-  throw new Error(`Unsupported format: ${options.format}`);
-};
-
-export const stringifyEnvironment = (envObj: BrunoEnvironment, options: StringifyOptions = { format: DEFAULT_COLLECTION_FORMAT }): string => {
-  if (options.format === 'bru') {
-    return stringifyBruEnvironment(envObj);
-  } else if (options.format === 'yml') {
-    return stringifyYmlEnvironment(envObj);
   }
   throw new Error(`Unsupported format: ${options.format}`);
 };
@@ -169,6 +124,7 @@ export const parseDotEnv = (content: string): Record<string, string> => {
   return dotenvToJson(content);
 };
 
+export { stringifyRequest, stringifyCollection, stringifyFolder, stringifyEnvironment } from './stringify';
 export { redactLargeBruTextBlocks, restoreRedactedBlocks };
 export type { RedactedBlock, RedactionResult } from './formats/bru/utils/redact-large-text-blocks';
 export { BruParserWorker };
