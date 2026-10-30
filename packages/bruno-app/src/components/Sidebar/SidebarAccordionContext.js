@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useRef } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { setSidebarSectionExpanded } from 'providers/ReduxStore/slices/app';
 
 const SidebarAccordionContext = createContext();
 
@@ -10,50 +12,27 @@ export const useSidebarAccordion = () => {
   return context;
 };
 
-export const SidebarAccordionProvider = ({ children, defaultExpanded = ['collections'] }) => {
-  const [expandedSections, setExpandedSections] = useState(new Set(defaultExpanded));
+// Expansion state lives in the redux `app` slice so it persists across restarts
+// through the snapshot (alongside sidebarSectionSizes). This provider is a thin
+// wrapper exposing the same imperative API the sidebar already consumed, plus a
+// ref used to anchor sidebar dropdowns.
+export const SidebarAccordionProvider = ({ children }) => {
+  const dispatch = useDispatch();
+  const expandedSections = useSelector((state) => state.app.sidebarExpandedSections);
   const dropdownContainerRef = useRef(null);
 
-  const toggleSection = useCallback((sectionId) => {
-    setExpandedSections((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(sectionId)) {
-        newSet.delete(sectionId);
-      } else {
-        newSet.add(sectionId);
-      }
-      return newSet;
-    });
-  }, []);
+  const setSectionExpanded = (sectionId, expanded) => {
+    dispatch(setSidebarSectionExpanded({ id: sectionId, expanded }));
+  };
 
-  const setSectionExpanded = useCallback((sectionId, expanded) => {
-    setExpandedSections((prev) => {
-      const newSet = new Set(prev);
-      if (expanded) {
-        newSet.add(sectionId);
-      } else {
-        newSet.delete(sectionId);
-      }
-      return newSet;
-    });
-  }, []);
-
-  const isExpanded = useCallback((sectionId) => {
-    return expandedSections.has(sectionId);
-  }, [expandedSections]);
-
-  const getExpandedCount = useCallback(() => {
-    return expandedSections.size;
-  }, [expandedSections]);
+  const isExpanded = (sectionId) => expandedSections.includes(sectionId);
 
   return (
     <SidebarAccordionContext.Provider
       value={{
         expandedSections,
-        toggleSection,
         setSectionExpanded,
         isExpanded,
-        getExpandedCount,
         dropdownContainerRef
       }}
     >
