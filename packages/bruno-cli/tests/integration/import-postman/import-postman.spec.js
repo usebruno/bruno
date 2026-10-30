@@ -89,22 +89,6 @@ describe('CLI import postman — imported collections run with bru run', () => {
     expectEveryRequestServed();
   }, RUN_TIMEOUT);
 
-  it('adds a postman-env environment to an imported collection, and the run passes', async () => {
-    const collectionDir = path.join(workDir, 'collection');
-    const collectionImport = await runCli(['import', 'postman', '--source', COLLECTION_FIXTURE, '--output', collectionDir], workDir);
-    expect(collectionImport.code).toBe(0);
-
-    const environmentImport = await runCli(['import', 'postman-env', '--source', stageEnvironment(), '--output', collectionDir], workDir);
-
-    expect(environmentImport.code).toBe(0);
-    expect(fs.readdirSync(path.join(collectionDir, 'environments'))).toEqual(['staging.yml']);
-
-    const runResult = await runCollection(collectionDir);
-
-    expect(runResult.code).toBe(0);
-    expectEveryRequestServed();
-  }, RUN_TIMEOUT);
-
   it('gives a repeated environment name a copy suffix instead of overwriting', async () => {
     const collectionDir = path.join(workDir, 'collection');
     const environmentPath = stageEnvironment();
@@ -115,12 +99,9 @@ describe('CLI import postman — imported collections run with bru run', () => {
       '--output', collectionDir,
       '--environment', environmentPath, environmentPath
     ], workDir);
+
     expect(collectionImport.code).toBe(0);
-
-    const environmentImport = await runCli(['import', 'postman-env', '--source', environmentPath, '--output', collectionDir], workDir);
-
-    expect(environmentImport.code).toBe(0);
-    expect(fs.readdirSync(path.join(collectionDir, 'environments')).sort()).toEqual(['staging copy 2.yml', 'staging copy.yml', 'staging.yml']);
+    expect(fs.readdirSync(path.join(collectionDir, 'environments')).sort()).toEqual(['staging copy.yml', 'staging.yml']);
   }, RUN_TIMEOUT);
 
   it('gives an environment name differing only in case a copy suffix', async () => {
@@ -176,45 +157,6 @@ describe('CLI import postman — imported collections run with bru run', () => {
     expect(code).not.toBe(0);
     expect(stderr).toContain('--collection-format is not supported for postman');
     expect(fs.existsSync(collectionDir)).toBe(false);
-  }, RUN_TIMEOUT);
-
-  it('rejects postman-env with --collection-format', async () => {
-    const collectionDir = path.join(workDir, 'collection');
-    const collectionImport = await runCli(['import', 'postman', '--source', COLLECTION_FIXTURE, '--output', collectionDir], workDir);
-    expect(collectionImport.code).toBe(0);
-
-    const { code, stderr } = await runCli([
-      'import', 'postman-env',
-      '--source', stageEnvironment(),
-      '--output', collectionDir,
-      '--collection-format', 'opencollection'
-    ], workDir);
-
-    expect(code).not.toBe(0);
-    expect(stderr).toContain('--collection-format is not supported for postman-env');
-    expect(fs.existsSync(path.join(collectionDir, 'environments'))).toBe(false);
-  }, RUN_TIMEOUT);
-
-  it('rejects postman-env when --output is a bru collection', async () => {
-    const bruCollectionDir = path.join(workDir, 'bru-collection');
-    fs.mkdirSync(bruCollectionDir);
-    fs.writeFileSync(path.join(bruCollectionDir, 'bruno.json'), JSON.stringify({ version: '1', name: 'bru', type: 'collection' }));
-
-    const { code, stderr } = await runCli(['import', 'postman-env', '--source', stageEnvironment(), '--output', bruCollectionDir], workDir);
-
-    expect(code).not.toBe(0);
-    expect(stderr).toContain('postman-env supports only OpenCollection (yml) collections');
-    expect(fs.existsSync(path.join(bruCollectionDir, 'environments'))).toBe(false);
-  }, RUN_TIMEOUT);
-
-  it('rejects postman-env when --output is not a Bruno collection', async () => {
-    const notACollectionDir = path.join(workDir, 'not-a-collection');
-    fs.mkdirSync(notACollectionDir);
-
-    const { code } = await runCli(['import', 'postman-env', '--source', stageEnvironment(), '--output', notACollectionDir], workDir);
-
-    expect(code).not.toBe(0);
-    expect(fs.existsSync(path.join(notACollectionDir, 'environments'))).toBe(false);
   }, RUN_TIMEOUT);
 
   it('still writes the collection when an item is skipped, and exits 1', async () => {

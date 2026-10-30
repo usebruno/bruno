@@ -7,15 +7,13 @@ const axios = require('axios');
 const { openApiToBruno, wsdlToBruno, postmanToBruno, postmanToBrunoEnvironment } = require('@usebruno/converters');
 const { coerceEnvName, dedupeImportedSecrets, generateUniqueName, sanitizeName, validateName, validateNameError } = require('@usebruno/common').utils;
 const { exists, isDirectory, canonicalPath } = require('../utils/filesystem');
-const { writeEnvironmentFile } = require('../utils/environment');
-const { getCollectionFormat } = require('../utils/collection');
 const { formatImportSummary, formatImportIssues, formatPackageReport, hasImportErrors } = require('../utils/import-report');
 const { writeCollectionToDiskLegacy } = require('@usebruno/filestore');
 
 const command = 'import <type>';
-const desc = 'Import a collection (OpenAPI, WSDL, Postman) or a Postman environment from other formats';
+const desc = 'Import a collection (OpenAPI, WSDL, Postman) from other formats';
 
-const IMPORT_TYPES = ['openapi', 'wsdl', 'postman', 'postman-env'];
+const IMPORT_TYPES = ['openapi', 'wsdl', 'postman'];
 const COLLECTION_FORMATS = ['bru', 'opencollection'];
 
 const WSDL_MAX_SCHEMA_FILE_SIZE = 10 * 1024 * 1024;
@@ -24,7 +22,7 @@ const WSDL_SCHEMA_EXTENSIONS = ['.xsd', '.wsdl'];
 const builder = (yargs) => {
   yargs
     .positional('type', {
-      describe: 'Type of collection or environment to import',
+      describe: 'Type of collection to import',
       type: 'string',
       choices: IMPORT_TYPES
     })
@@ -52,7 +50,7 @@ const builder = (yargs) => {
       type: 'string'
     })
     .option('collection-format', {
-      describe: 'Format of the imported collection (bru or opencollection). If not specified, the default is `opencollection`. Not supported for postman and postman-env, which always write opencollection',
+      describe: 'Format of the imported collection (bru or opencollection). If not specified, the default is `opencollection`. Not supported for postman, which always writes opencollection',
       type: 'string',
       choices: COLLECTION_FORMATS
     })
@@ -91,8 +89,7 @@ const builder = (yargs) => {
     .example('$0 import postman --source my-api.postman_collection.json --output ~/Desktop/my-api')
     .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop/my-api -n "My API"')
     .example('$0 import postman -s https://example.com/my-api.postman_collection.json -o ~/Desktop/my-api --preserve-scripts')
-    .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop/my-api -e staging.postman_environment.json -e prod.postman_environment.json')
-    .example('$0 import postman-env --source staging.postman_environment.json --output ~/Desktop/my-api');
+    .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop/my-api -e staging.postman_environment.json -e prod.postman_environment.json');
 };
 
 const isUrl = (str) => {
@@ -377,29 +374,6 @@ const reportImport = (collection, issues) => {
   return hasImportErrors(issues);
 };
 
-const importPostmanEnvironment = async ({ source, output, outputFile, insecure }) => {
-  if (outputFile) {
-    throw new Error('--output-file is not supported for postman-env');
-  }
-  if (!output) {
-    throw new Error('--output is required for postman-env');
-  }
-
-  const collectionDir = path.resolve(output);
-  const format = getCollectionFormat(collectionDir);
-  if (!format) {
-    throw new Error(`Not a Bruno collection (no opencollection.yml or bruno.json): ${collectionDir}`);
-  }
-  if (format !== 'yml') {
-    throw new Error(`postman-env supports only OpenCollection (yml) collections: ${collectionDir}`);
-  }
-
-  console.log(chalk.yellow(`Reading Postman environment from ${source}...`));
-  const environment = await convertPostmanEnvironment(source, { insecure });
-  const { name, filePath } = writeEnvironmentFile(environment, path.join(collectionDir, 'environments'), { format });
-  console.log(chalk.green(`Environment "${name}" written to ${filePath}`));
-};
-
 const handler = async (argv) => {
   try {
     const { type, source, output, collectionFormat, outputFile, collectionName, insecure, groupBy, preserveScripts, environment } = argv;
@@ -414,13 +388,8 @@ const handler = async (argv) => {
       process.exit(1);
     }
 
-    if ((type === 'postman' || type === 'postman-env') && collectionFormat) {
-      throw new Error(`--collection-format is not supported for ${type}; Postman imports are always written as OpenCollection (yml)`);
-    }
-
-    if (type === 'postman-env') {
-      await importPostmanEnvironment({ source, output, outputFile, insecure });
-      return;
+    if (type === 'postman' && collectionFormat) {
+      throw new Error('--collection-format is not supported for postman; Postman imports are always written as OpenCollection (yml)');
     }
 
     if (!output && !outputFile) {
