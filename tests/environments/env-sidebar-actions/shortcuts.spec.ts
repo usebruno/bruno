@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections } from '../../utils/page';
+import { addRowToActiveTab, closeAllCollections, saveEnvironment } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { ENV_NAMES, openEnvironmentsList } from './helpers';
 import { DELETE_KEY, IS_MAC, SELECT_ALL_KEY, clickEmptyListSpace, ctrlClickRows, openRowContextMenu } from '../../utils/page/environments';
@@ -128,6 +128,34 @@ test.describe('Collection environments list shortcuts', () => {
       await clickEmptyListSpace(page);
       await page.keyboard.press(DELETE_KEY);
       await expect(deleteModal.root()).toContainText(ENV_2);
+
+      await page.keyboard.press('Escape');
+      await expect(deleteModal.root()).toBeHidden();
+    });
+  });
+
+  test('the delete key does nothing while the unsaved changes warning is open', async ({ page }) => {
+    const { environment, modal } = buildCommonLocators(page);
+    const { deleteModal } = environment.sidebarActions;
+    const unsavedWarning = modal.byTitle('Unsaved changes');
+
+    await test.step('Edit the open environment, then click another one', async () => {
+      await environment.sidebarListItemExact('collection', ENV_2).click();
+      await addRowToActiveTab(page, 'unsavedVar', 'unsaved value');
+      await environment.sidebarListItemExact('collection', ENV_3).click();
+      await expect(unsavedWarning).toBeVisible();
+    });
+
+    await test.step('The delete key opens no delete modal behind the warning', async () => {
+      await page.keyboard.press(DELETE_KEY);
+      await expect(deleteModal.root()).toBeHidden();
+      await expect(unsavedWarning).toBeVisible();
+    });
+
+    await test.step('Closing the warning and saving leaves the list clean', async () => {
+      await unsavedWarning.getByRole('button', { name: 'Close', exact: true }).last().click();
+      await expect(unsavedWarning).toBeHidden();
+      await saveEnvironment(page);
     });
   });
 

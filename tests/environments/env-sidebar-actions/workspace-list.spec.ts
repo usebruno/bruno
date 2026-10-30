@@ -1,4 +1,5 @@
 import { test, expect } from '../../../playwright';
+import { addRowToActiveTab, saveEnvironment } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { ENV_NAMES, openWorkspaceEnvironments } from './helpers';
 import {
@@ -321,6 +322,34 @@ test.describe('Workspace environments list', () => {
         await clickEmptyListSpace(page, 'global');
         await page.keyboard.press(DELETE_KEY);
         await expect(deleteModal.root()).toContainText(ENV_2);
+
+        await page.keyboard.press('Escape');
+        await expect(deleteModal.root()).toBeHidden();
+      });
+    });
+
+    test('the delete key does nothing while the unsaved changes warning is open', async ({ page }) => {
+      const { environment, modal } = buildCommonLocators(page);
+      const { deleteModal } = environment.workspaceSidebarActions;
+      const unsavedWarning = modal.byTitle('Unsaved changes');
+
+      await test.step('Edit the open environment, then click another one', async () => {
+        await environment.sidebarListItemExact('global', ENV_2).click();
+        await addRowToActiveTab(page, 'unsavedVar', 'unsaved value');
+        await environment.sidebarListItemExact('global', ENV_3).click();
+        await expect(unsavedWarning).toBeVisible();
+      });
+
+      await test.step('The delete key opens no delete modal behind the warning', async () => {
+        await page.keyboard.press(DELETE_KEY);
+        await expect(deleteModal.root()).toBeHidden();
+        await expect(unsavedWarning).toBeVisible();
+      });
+
+      await test.step('Closing the warning and saving leaves the list clean', async () => {
+        await unsavedWarning.getByRole('button', { name: 'Close', exact: true }).last().click();
+        await expect(unsavedWarning).toBeHidden();
+        await saveEnvironment(page);
       });
     });
 
