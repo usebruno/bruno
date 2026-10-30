@@ -75,7 +75,6 @@ describe('search_index statements', () => {
     upsertRequest({ collection_path: matchPath, collection_name: 'Metrics', request_path: 'score.bru', request_url: '/api/100%_done' });
     upsertRequest({ collection_path: '/collections/other', collection_name: 'Other', request_path: 'wildcard.bru', request_url: '/api/100X_done' });
 
-    // likePattern('100%_done') from bruno-electron's search-term.js
     const hits = statements.execute('search_index_search_requests', { like: '%100\\%\\_done%', workspace_path: null }) as Array<{ collectionPath: string; requestUrl: string }>;
     expect(hits).toHaveLength(1);
     expect(hits[0].collectionPath).toBe(matchPath);

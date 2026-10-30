@@ -1,12 +1,11 @@
 const path = require('node:path');
 const { getStatements, transaction } = require('../sqlite');
 const { defaultClassify } = require('../../utils/mount');
-const { likePattern } = require('./search-term');
 
 const NAMING_TYPES = new Set(['config', 'collection', 'folder']);
 
-// The search index lives in the shared database (bruno.db). Its tables, views and statements are defined in
-// @usebruno/sqlite (migrations/0000005_search_index.ts, statements/search-index.sql).
+const likePattern = (term) => `%${String(term ?? '').replace(/[\\%_]/g, '\\$&')}%`;
+
 class SearchIndex {
   #revision = 0;
 
