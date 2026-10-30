@@ -15,6 +15,8 @@ import { buildToastLocators } from './toast';
 import { buildSecretVariableFormLocators } from './secret-variable-form';
 import { buildRequestLocators } from '../request';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
+import { buildCollectionOverviewLocators } from './collection/overview';
+import { buildShareCollectionLocators } from './collection/share-collection';
 import { buildCollectionProxyLocators } from './collection/proxy';
 import { buildCodeMirrorLocators } from './code-mirror';
 import { buildEnvironmentLocators } from './environments';
@@ -40,6 +42,8 @@ const addToNoEnvNoteLocator = (popup: Locator, scopeType: 'environment' | 'globa
 export const buildCommonLocators = (page: Page) => ({
   titleBar: buildTitleBarLocators(page),
   collectionHeader: buildCollectionHeaderLocators(page),
+  collectionOverview: buildCollectionOverviewLocators(page),
+  shareCollection: buildShareCollectionLocators(page),
   collectionProxy: buildCollectionProxyLocators(page),
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),
