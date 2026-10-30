@@ -12,6 +12,7 @@ const packageJson = require('./package.json');
 const externalDeps = [
   '@usebruno/common',
   '@usebruno/common/utils',
+  '@usebruno/filestore',
   '@usebruno/schema',
   '@usebruno/schema-types',
   /@usebruno\/schema-types\/.*/,
@@ -35,13 +36,16 @@ const externalDeps = [
 
 module.exports = [
   {
-    input: 'src/index.js',
+    input: {
+      index: 'src/index.js',
+      io: 'src/io/index.ts'
+    },
     output: {
       dir: path.dirname(packageJson.main),
       format: 'cjs',
       sourcemap: true,
       exports: 'named',
-      entryFileNames: 'index.js'
+      entryFileNames: '[name].js'
     },
     plugins: [
       peerDepsExternal(),
@@ -65,13 +69,16 @@ module.exports = [
     external: externalDeps
   },
   {
-    input: 'src/index.js',
+    input: {
+      index: 'src/index.js',
+      io: 'src/io/index.ts'
+    },
     output: {
       dir: path.dirname(packageJson.module),
       format: 'esm',
       sourcemap: true,
       exports: 'named',
-      entryFileNames: 'index.js'
+      entryFileNames: '[name].js'
     },
     plugins: [
       peerDepsExternal(),

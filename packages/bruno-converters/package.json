@@ -4,6 +4,19 @@
   "license": "MIT",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/cjs/index.d.ts",
+      "module": "./dist/esm/index.js",
+      "default": "./dist/cjs/index.js"
+    },
+    "./io": {
+      "types": "./dist/cjs/io/index.d.ts",
+      "module": "./dist/esm/io.js",
+      "default": "./dist/cjs/io.js"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "dist",
     "src",
