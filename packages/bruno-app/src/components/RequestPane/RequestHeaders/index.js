@@ -66,7 +66,6 @@ const HeaderHint = ({ id, text, className, place = 'top', testId, tooltipTestId,
         content={text}
         place={place}
         positionStrategy="fixed"
-        delayShow={500}
         opacity={1}
         style={HEADER_HINT_STYLE}
         render={tooltipTestId ? ({ content }) => <span data-testid={tooltipTestId}>{content}</span> : undefined}

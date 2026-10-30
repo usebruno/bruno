@@ -23,6 +23,7 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { BRUNO_VARIABLE_DATATYPES, valueToString } from '@usebruno/common/utils';
 import { variableNameRegex } from 'utils/common/regex';
+import { INVALID_VARIABLE_NAME_ERROR } from 'utils/common/variables';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { getAllVariables, getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections';
@@ -41,6 +42,7 @@ import { useResizableColumns } from 'hooks/useResizableColumns';
 import ColumnSortHeader from 'components/EditableTable/ColumnSortHeader';
 import { useReconcileSavedEnvironment } from './useReconcileSavedEnvironment';
 import InheritedVariableRow from './InheritedVariableRow';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
 const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
@@ -146,7 +148,7 @@ const EnvVarValueCell = ({
   formik,
   handleRowFocus,
   handleSave,
-  renderExtraValueContent
+  renderSensitiveWarning
 }) => {
   const editorRef = useRef(null);
   const [compact, setCompact] = useState(true);
@@ -173,7 +175,7 @@ const EnvVarValueCell = ({
           className="flex items-center"
           onFocus={() => handleRowFocus(variable.uid)}
         >
-          {renderExtraValueContent && renderExtraValueContent(variable)}
+          {renderSensitiveWarning && renderSensitiveWarning(variable)}
           <MultiLineEditor
             ref={editorRef}
             theme={storedTheme}
@@ -205,6 +207,7 @@ const EnvVarValueCell = ({
               }
             }}
             onSave={handleSave}
+            variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
           />
         </div>
       )}
@@ -239,6 +242,8 @@ const ErrorMessage = React.memo(({ id, error }) => {
   );
 });
 
+const hasVariableName = (variable) => variable.name && variable.name.trim() !== '';
+
 const EnvironmentVariablesTable = ({
   environment,
   inheritedEnvironmentVariables = [],
@@ -248,7 +253,7 @@ const EnvironmentVariablesTable = ({
   onDraftChange,
   onDraftClear,
   setIsModified,
-  renderExtraValueContent,
+  renderSensitiveWarning,
   searchQuery = '',
   variableType = 'variables'
 }) => {
@@ -429,7 +434,7 @@ const EnvironmentVariablesTable = ({
               .required('Name cannot be empty')
               .matches(
                 variableNameRegex,
-                'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.'
+                INVALID_VARIABLE_NAME_ERROR
               )
               .trim()
         }),
@@ -459,7 +464,7 @@ const EnvironmentVariablesTable = ({
         } else if (!variableNameRegex.test(variable.name)) {
           if (!errors[index]) errors[index] = {};
           errors[index].name
-            = 'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.';
+            = INVALID_VARIABLE_NAME_ERROR;
         } else if (variable.secret && duplicateSecrets.has(variable.name.trim())) {
           if (!errors[index]) errors[index] = {};
           errors[index].name = DUPLICATE_SECRET_NAME_FIELD_ERROR;
@@ -471,7 +476,7 @@ const EnvironmentVariablesTable = ({
   });
   const buildSortOrder = useCallback((variables, mode) => {
     if (mode === 'default') return null;
-    const activeTabVars = variables.filter((v) => !!v.secret === isSecretTab && v.name && v.name.trim() !== '');
+    const activeTabVars = variables.filter((v) => !!v.secret === isSecretTab && hasVariableName(v));
     return sortRowsByName(activeTabVars, mode, (v) => v.name).map((v) => v.uid);
   }, [isSecretTab]);
 
@@ -559,7 +564,7 @@ const EnvironmentVariablesTable = ({
 
   // Sync modified state
   useEffect(() => {
-    const currentValues = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
+    const currentValues = formik.values.filter(hasVariableName);
     const currentValuesJson = JSON.stringify(currentValues.map(stripEnvVarUid));
     const hasActualChanges = currentValuesJson !== savedValuesJson;
     setIsModified(hasActualChanges);
@@ -568,7 +573,7 @@ const EnvironmentVariablesTable = ({
   // Sync draft state
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      const currentValues = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
+      const currentValues = formik.values.filter(hasVariableName);
       const currentValuesJson = JSON.stringify(currentValues.map(stripEnvVarUid));
       const hasActualChanges = currentValuesJson !== savedValuesJson;
 
@@ -671,7 +676,7 @@ const EnvironmentVariablesTable = ({
   const handleSave = useCallback(() => {
     const belongsToActiveTab = (variable) => (isSecretTab ? !!variable.secret : !variable.secret);
 
-    const namedValues = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
+    const namedValues = formik.values.filter(hasVariableName);
     const savedValues = environment.variables || [];
 
     // Save is scoped to the active tab. Only the active tab's rows are persisted; the
@@ -758,7 +763,7 @@ const EnvironmentVariablesTable = ({
     const activeSaved = savedValues.filter(belongsToActiveTab);
     const otherSaved = savedValues.filter((variable) => !belongsToActiveTab(variable));
     const otherCurrent = formik.values
-      .filter((variable) => variable.name && variable.name.trim() !== '')
+      .filter(hasVariableName)
       .filter((variable) => !belongsToActiveTab(variable));
 
     // Reset is scoped to the active tab: revert its rows to the saved baseline while
@@ -792,18 +797,9 @@ const EnvironmentVariablesTable = ({
     setIsModified(otherDirty);
   }, [environment.variables, formik.values, isSecretTab, onDraftChange, onDraftClear, setIsModified, buildSortOrder, sortMode]);
 
-  const handleSaveAll = useCallback(() => {
-    const namedValues = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
-    const savedValues = environment.variables || [];
-
+  /** Validates and saves the rows, then resets the form. Rejects with the message to show. */
+  const validateAndSaveVariables = useCallback((namedValues) => {
     const persistedVariables = orderVarsBySecret(namedValues);
-
-    const hasChanges
-      = JSON.stringify(persistedVariables.map(stripEnvVarUid)) !== JSON.stringify(savedValues.map(stripEnvVarUid));
-    if (!hasChanges) {
-      toast.error('No changes to save');
-      return;
-    }
 
     const hasValidationErrors = namedValues.some((variable) => {
       if (!variable.name || variable.name.trim() === '') {
@@ -816,18 +812,19 @@ const EnvironmentVariablesTable = ({
     });
 
     if (hasValidationErrors) {
-      toast.error('Please fix validation errors before saving');
-      return;
+      return Promise.reject(new Error('Please fix validation errors before saving'));
     }
 
     if (getDuplicateSecretNames(namedValues).size > 0) {
-      toast.error(DUPLICATE_SECRET_NAMES_ERROR);
-      return;
+      return Promise.reject(new Error(DUPLICATE_SECRET_NAMES_ERROR));
     }
 
-    onSave(cloneDeep(persistedVariables))
+    return onSave(cloneDeep(persistedVariables))
+      .catch((error) => {
+        console.error(error);
+        throw new Error('An error occurred while saving the changes');
+      })
       .then(() => {
-        toast.success('Changes saved successfully');
         onDraftClear();
 
         sortOrderRef.current = buildSortOrder(persistedVariables, sortMode);
@@ -846,12 +843,38 @@ const EnvironmentVariablesTable = ({
           ]
         });
         setIsModified(false);
-      })
-      .catch((error) => {
-        console.error(error);
-        toast.error('An error occurred while saving the changes');
       });
-  }, [formik.values, environment.variables, onSave, onDraftClear, setIsModified, isSecretTab, buildSortOrder, sortMode]);
+  }, [formik, onSave, onDraftClear, setIsModified, isSecretTab, buildSortOrder, sortMode]);
+
+  const handleSaveAll = useCallback(() => {
+    const namedValues = formik.values.filter(hasVariableName);
+    const savedValues = environment.variables || [];
+
+    const persistedVariables = orderVarsBySecret(namedValues);
+
+    const hasChanges
+      = JSON.stringify(persistedVariables.map(stripEnvVarUid)) !== JSON.stringify(savedValues.map(stripEnvVarUid));
+    if (!hasChanges) {
+      toast.error('No changes to save');
+      return;
+    }
+
+    validateAndSaveVariables(namedValues)
+      .then(() => toast.success('Changes saved successfully'))
+      .catch((error) => toast.error(error.message));
+  }, [formik.values, environment.variables, validateAndSaveVariables]);
+
+  /** Marks one row as secret through the form, so unsaved edits in the table are saved with it. */
+  const markVariableAsSecret = useCallback((variableUid) => {
+    const namedValues = formik.values
+      .filter(hasVariableName)
+      .map((variable) => (variable.uid === variableUid ? { ...variable, secret: true } : variable));
+    return validateAndSaveVariables(namedValues);
+  }, [formik.values, validateAndSaveVariables]);
+
+  const renderOwnSensitiveWarning = renderSensitiveWarning
+    ? (variable) => renderSensitiveWarning(variable, () => markVariableAsSecret(variable.uid))
+    : null;
 
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
@@ -941,7 +964,7 @@ const EnvironmentVariablesTable = ({
           type: ROW_SECTION_HEADER,
           section: 'own',
           label: tabLabel,
-          count: displayedVariables.filter(({ variable }) => variable.name && variable.name.trim() !== '').length
+          count: displayedVariables.filter(({ variable }) => hasVariableName(variable)).length
         },
         ...(collapsedSections.own ? [] : displayedVariables)
       ]
@@ -1025,7 +1048,11 @@ const EnvironmentVariablesTable = ({
 
             if (item.type === ROW_INHERITED_VARIABLE) {
               return (
-                <InheritedVariableRow variable={item.variable} columnWidths={columnWidths} />
+                <InheritedVariableRow
+                  variable={item.variable}
+                  columnWidths={columnWidths}
+                  sensitiveWarning={renderSensitiveWarning ? renderSensitiveWarning(item.variable) : null}
+                />
               );
             }
 
@@ -1106,7 +1133,7 @@ const EnvironmentVariablesTable = ({
                     formik={formik}
                     handleRowFocus={handleRowFocus}
                     handleSave={handleSave}
-                    renderExtraValueContent={renderExtraValueContent}
+                    renderSensitiveWarning={renderOwnSensitiveWarning}
                   />
                 </td>
                 <td style={{ width: columnWidths.description }}>
@@ -1132,6 +1159,7 @@ const EnvironmentVariablesTable = ({
                       }
                     }}
                     onSave={handleSave}
+                    variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
                   />
                 </td>
                 <td>

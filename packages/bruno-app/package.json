@@ -43,9 +43,9 @@
     "codemirror": "5.65.2",
     "codemirror-graphql": "2.1.1",
     "cookie": "0.7.1",
-    "diff": "^5.2.0",
+    "diff": "5.2.2",
     "diff2html": "^3.4.47",
-    "dompurify": "^3.4.13",
+    "dompurify": "3.4.17",
     "escape-html": "^1.0.3",
     "fast-fuzzy": "^1.12.0",
     "fast-json-format": "~0.4.0",
@@ -63,7 +63,7 @@
     "i18next": "24.1.2",
     "idb": "^7.0.0",
     "immer": "^9.0.15",
-    "js-yaml": "4.3.1",
+    "js-yaml": "4.3.2",
     "jsesc": "^3.0.2",
     "jshint": "^2.13.6",
     "json5": "^2.2.3",
@@ -74,7 +74,7 @@
     "linkify-it": "^5.0.2",
     "lodash": "4.18.1",
     "lowlight": "^2.9.0",
-    "markdown-it": "^14.2.0",
+    "markdown-it": "14.3.3",
     "markdown-it-replace-link": "^1.2.0",
     "markdown-it-task-lists": "^2.1.1",
     "mime-types": "^3.0.2",
@@ -88,7 +88,7 @@
     "polished": "^4.3.1",
     "posthog-node": "4.2.1",
     "prettier": "^2.7.1",
-    "qs": "^6.15.2",
+    "qs": "6.16.1",
     "query-string": "^7.0.1",
     "react": "19.0.0",
     "react-copy-to-clipboard": "^5.1.0",
@@ -106,7 +106,7 @@
     "react-virtuoso": "^4.18.1",
     "sass": "^1.46.0",
     "semver": "^7.7.1",
-    "shell-quote": "^1.9.0",
+    "shell-quote": "1.11.0",
     "strip-json-comments": "^5.0.1",
     "styled-components": "^5.3.3",
     "swagger-ui-react": "5.32.14",
@@ -118,7 +118,7 @@
     "yup": "^0.32.11"
   },
   "devDependencies": {
-    "@babel/core": "^7.27.1",
+    "@babel/core": "7.29.7",
     "@babel/preset-env": "^7.27.2",
     "@babel/preset-react": "^7.27.1",
     "@babel/preset-typescript": "^7.22.0",
@@ -128,8 +128,8 @@
     "@rsbuild/plugin-react": "^1.0.7",
     "@rsbuild/plugin-sass": "^1.1.0",
     "@rsbuild/plugin-styled-components": "^1.6.3",
-    "@storybook/addon-docs": "^10.5.9",
-    "@storybook/react": "^10.5.9",
+    "@storybook/addon-docs": "10.6.2",
+    "@storybook/react": "10.6.2",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
@@ -140,13 +140,8 @@
     "cross-env": "^7.0.3",
     "jest-environment-jsdom": "^29.7.0",
     "postcss": "8.5.23",
-    "storybook": "^10.5.9",
-    "storybook-react-rsbuild": "3.4.2",
+    "storybook": "10.6.2",
+    "storybook-react-rsbuild": "3.6.1",
     "tailwindcss": "^3.4.1"
-  },
-  "overrides": {
-    "httpsnippet": {
-      "form-data": "4.0.4"
-    }
   }
 }

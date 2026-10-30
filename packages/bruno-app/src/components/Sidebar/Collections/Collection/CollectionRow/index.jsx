@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import { useDrop, useDrag } from 'react-dnd';
@@ -27,7 +27,7 @@ import {
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleMultipleCollectionItemsDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, useStore } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
@@ -38,12 +38,13 @@ import RemoveCollections from '../RemoveCollections';
 import MoveToWorkspace from '../MoveToWorkspace';
 import { isPathExternalToBasePath } from 'utils/common/path';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { getSortedDraggedItems } from 'utils/collections';
+import { getSortedDraggedItems, countInvalidItems } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
 
 import RenameCollection from '../RenameCollection';
 import StyledWrapper from './StyledWrapper';
 import CloneCollection from '../CloneCollection';
+import InvalidFilesBadge from '../InvalidFilesBadge';
 import ShareCollection from 'components/ShareCollection/index';
 import GenerateDocumentation from '../GenerateDocumentation';
 import { getRevealInFolderLabel } from 'utils/common/platform';
@@ -76,9 +77,11 @@ const CollectionRow = ({ collection, searchText, isSearchCollapsed, toggleSearch
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const dispatch = useDispatch();
   const isLoading = collection.isLoading;
+  const invalidItemCount = useMemo(() => countInvalidItems(collection.items), [collection.items]);
   const collectionRef = useRef(null);
 
-  const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
+  const selectIsCollectionFocused = useMemo(() => isTabForItemActive({ itemUid: collection.uid }), [collection.uid]);
+  const isCollectionFocused = useSelector(selectIsCollectionFocused);
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
   const isSelected = selectedSidebarUids.includes(collection.uid);
@@ -92,7 +95,7 @@ const CollectionRow = ({ collection, searchText, isSearchCollapsed, toggleSearch
   );
   const workspaces = useSelector((state) => state.workspaces.workspaces);
   const collectionSortOrder = useSelector((state) => state.collections.collectionSortOrder);
-  const allCollections = useSelector((state) => state.collections.collections);
+  const store = useStore();
   const isMoveToWorkspaceVisible = isPathExternalToBasePath(activeWorkspace?.pathname, collection.pathname);
 
   const isDragDisabled = isMultiSelected && isCollectionMultiDragDisabled;
@@ -322,7 +325,7 @@ const CollectionRow = ({ collection, searchText, isSearchCollapsed, toggleSearch
 
         const draggedItems = getSortedDraggedItems({
           draggedItem,
-          allCollections,
+          allCollections: store.getState().collections.collections,
           workspaces,
           activeWorkspace,
           collectionSortOrder,
@@ -341,7 +344,7 @@ const CollectionRow = ({ collection, searchText, isSearchCollapsed, toggleSearch
       } else {
         const draggedItems = getSortedDraggedItems({
           draggedItem,
-          allCollections,
+          allCollections: store.getState().collections.collections,
           workspaces,
           activeWorkspace,
           collectionSortOrder,
@@ -600,10 +603,11 @@ const CollectionRow = ({ collection, searchText, isSearchCollapsed, toggleSearch
               onDoubleClick={handleCollectionDoubleClick}
             />
           </ActionIcon>
-          <div className="ml-1 w-full" id="sidebar-collection-name" title={collection.name}>
+          <div className="ml-1 min-w-0" id="sidebar-collection-name" title={collection.name}>
             {collection.name}
           </div>
-          {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
+          <InvalidFilesBadge count={invalidItemCount} collectionUid={collection.uid} rowUid={collection.uid} />
+          {isLoading ? <IconLoader2 className="animate-spin flex-shrink-0 mx-1 ml-auto" size={18} strokeWidth={1.5} /> : null}
         </div>
         {!isDragging && !isMultiSelected && (
           <div>

@@ -1,8 +1,9 @@
 import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { debounce } from 'lodash';
-import { getAllVariables } from 'utils/collections';
+import { getAllVariables, getVariableNamesWithScope } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import {
@@ -13,6 +14,7 @@ import {
 } from 'components/CodeEditor/state-persistence';
 import StyledWrapper from './StyledWrapper';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { SetAsVariableContext } from 'providers/SetAsVariable/context';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
 const CodeMirror = require('codemirror');
@@ -38,6 +40,17 @@ const restoreAncestorScrolls = (snapshots) => {
 };
 
 class MultiLineEditor extends Component {
+  static contextType = SetAsVariableContext;
+
+  _onContextMenu = (editor, event) => {
+    if (this.props.enableBrunoVarInfo === false || this.state.maskInput) return;
+
+    this.context.openFromCodeMirror(event, editor, {
+      collection: this.props.collection,
+      item: this.props.item
+    });
+  };
+
   constructor(props) {
     super(props);
     // Keep a cached version of the value, this cache will be updated when the
@@ -183,14 +196,15 @@ class MultiLineEditor extends Component {
       }
     });
 
-    const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
+    const getAllVariablesHandler = () => getVariableNamesWithScope(this.props.collection, this.props.item);
     const getAnywordAutocompleteHints = () => this.props.autocomplete || [];
 
     // Setup AutoComplete Helper
     const autoCompleteOptions = {
       showHintsFor: ['variables'],
       getAllVariables: getAllVariablesHandler,
-      getAnywordAutocompleteHints
+      getAnywordAutocompleteHints,
+      variableAutocomplete: this.props.variableAutocomplete ?? AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
     };
 
     this.brunoAutoCompleteCleanup = setupAutoComplete(
@@ -212,6 +226,7 @@ class MultiLineEditor extends Component {
     this.cachedValue = String(this.props.value) || '';
     this.editor.on('change', this._onEdit);
     this.editor.on('blur', this._onBlur);
+    this.editor.on('contextmenu', this._onContextMenu);
     this.addOverlay(variables);
     this._setupViewPersistence();
 
@@ -341,6 +356,7 @@ class MultiLineEditor extends Component {
       this._teardownViewPersistence();
       this.editor.off('change', this._onEdit);
       this.editor.off('blur', this._onBlur);
+      this.editor.off('contextmenu', this._onContextMenu);
       this.editor.getWrapperElement().remove();
     }
   }
@@ -356,9 +372,6 @@ class MultiLineEditor extends Component {
    * @brief Toggle the visibility of the secret value
    */
   toggleVisibleSecret = () => {
-    if (this.props.readOnly) {
-      return;
-    }
     const maskInput = !this.state.maskInput;
     this.setState({ maskInput }, () => {
       this._enableMaskedEditor(maskInput);
@@ -376,8 +389,6 @@ class MultiLineEditor extends Component {
         type="button"
         className="mx-2"
         data-testid="secret-reveal-toggle"
-        disabled={this.props.readOnly}
-        tabIndex={this.props.readOnly ? -1 : 0}
         onClick={() => this.toggleVisibleSecret()}
       >
         {this.state.maskInput === true ? (

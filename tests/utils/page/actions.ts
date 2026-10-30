@@ -3,7 +3,8 @@ import { collectionSlug } from '../../../packages/bruno-app/src/utils/collection
 import process from 'node:process';
 import * as path from 'path';
 import * as fs from 'fs';
-import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, PresetRequestType } from './locators';
+import AdmZip from 'adm-zip';
+import { buildCommonLocators, buildResponseErrorsLocators, buildGrpcCommonLocators, PresetRequestType } from './locators';
 import { waitForCollectionMount } from './mounting';
 import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
 import { EmptyStateRequestType, revealFolderRow } from './sidebar';
@@ -2500,9 +2501,34 @@ type ScriptSubTab = 'pre-request' | 'post-response' | 'before-call-start' | 'bef
 const selectScriptSubTab = async (page: Page, subTab: ScriptSubTab) => {
   await test.step(`Select Script sub-tab "${subTab}"`, async () => {
     await selectRequestPaneTab(page, 'Script');
-    const trigger = buildCommonLocators(page).paneTabs.tabTrigger(subTab);
-    await trigger.click();
-    await expect(trigger).toContainClass('active');
+    const locators = buildCommonLocators(page);
+    const tabTrigger = locators.paneTabs.tabTrigger(subTab);
+    const overflowTrigger = locators.paneTabs.scriptSubTabsOverflowTrigger();
+
+    // The sub-tab row re-measures via ResizeObserver/rAF, so a trigger can detach mid-click.
+    // Retry the whole sequence so a mid-action re-layout doesn't fail the test.
+    await expect(async () => {
+      if (await tabTrigger.isVisible()) {
+        await tabTrigger.click({ timeout: 2000 });
+        await expect(tabTrigger).toContainClass('active', { timeout: 2000 });
+        return;
+      }
+
+      if (await overflowTrigger.isVisible()) {
+        const item = locators.paneTabs.overflowItem(subTab);
+        // The chevron toggles the menu, so clicking it again after a failed attempt would close it.
+        if (!(await item.isVisible())) {
+          await overflowTrigger.click({ timeout: 2000 });
+        }
+        await item.waitFor({ state: 'visible', timeout: 2000 });
+        await item.click({ timeout: 2000 });
+        // Selecting pulls the tab into the visible row, so its trigger exists again.
+        await expect(tabTrigger).toContainClass('active', { timeout: 2000 });
+        return;
+      }
+
+      throw new Error(`Script sub-tab "${subTab}" not found in visible tabs or overflow dropdown`);
+    }).toPass({ timeout: 15000 });
   });
 };
 
@@ -2689,9 +2715,9 @@ const addCollectionScript = async (
 const sendAndWaitForErrorCard = async (page: Page) => {
   await test.step('Send request and wait for error card', async () => {
     const { request } = buildCommonLocators(page);
-    const scriptErrorLocators = buildScriptErrorLocators(page);
+    const responseErrorsLocators = buildResponseErrorsLocators(page);
     await request.sendButton().click();
-    await scriptErrorLocators.card().waitFor({ state: 'visible', timeout: 15000 });
+    await responseErrorsLocators.card().waitFor({ state: 'visible', timeout: 15000 });
   });
 };
 
@@ -2738,8 +2764,8 @@ const fieldEditor = (page: Page, labelText: string) =>
   page
     .locator('label')
     .filter({ hasText: new RegExp(`^${escapeRegExp(labelText)}$`) })
-    .locator('..')
-    .locator('.single-line-editor-wrapper .CodeMirror');
+    .locator('xpath=following-sibling::*[contains(@class,"single-line-editor-wrapper")][1]')
+    .locator('.CodeMirror');
 
 /**
  * Open the auth mode dropdown and pick a mode by its visible label.
@@ -2760,6 +2786,16 @@ const selectAuthMode = async (page: Page, modeLabel: string) => {
 const typeIntoField = async (page: Page, labelText: string, value: string) => {
   await fieldEditor(page, labelText).click();
   await page.keyboard.type(value);
+};
+
+/** Sets the field next to a label to this text. */
+const writeFieldValue = async (page: Page, labelText: string, value: string) => {
+  const editor = fieldEditor(page, labelText).first();
+  await editor.waitFor({ state: 'visible' });
+  await editor.evaluate((el: any, nextValue: string) => {
+    el.CodeMirror?.setValue(nextValue);
+  }, value);
+  await expect.poll(() => readField(page, labelText)).toBe(value);
 };
 
 /**
@@ -2900,6 +2936,19 @@ const createExampleFromSidebar = async (page: Page, requestName: string, example
   if (description) {
     await expect(page.getByTestId('response-example-description-input')).toHaveValue(description);
   }
+};
+
+/**
+ * Expand or collapse a request's examples in the sidebar. No-op if already in the requested state.
+ */
+const toggleRequestExamples = async (page: Page, requestName: string, expand: boolean) => {
+  await test.step(`${expand ? 'Expand' : 'Collapse'} examples of request "${requestName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const chevron = locators.sidebar.requestExamplesToggle(requestName);
+    await chevron.waitFor({ state: 'visible', timeout: 5000 });
+    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+    if (isExpanded !== expand) await chevron.click();
+  });
 };
 
 const openExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, index: number = 0) => {
@@ -3167,8 +3216,8 @@ const generateCollectionDocs = async (
   });
 };
 
-const openExportToPostmanModal = async (page: Page, collectionName: string) => {
-  await test.step(`Open Export to Postman for "${collectionName}"`, async () => {
+const openShareCollectionModal = async (page: Page, collectionName: string) => {
+  await test.step(`Open Share Collection for "${collectionName}"`, async () => {
     const locators = buildCommonLocators(page);
 
     await openCollection(page, collectionName);
@@ -3179,6 +3228,14 @@ const openExportToPostmanModal = async (page: Page, collectionName: string) => {
     await collectionAction.click();
     await locators.dropdown.item('Share').click();
     await expect(locators.modal.title('Share Collection')).toBeVisible();
+  });
+};
+
+const openExportToPostmanModal = async (page: Page, collectionName: string) => {
+  await test.step(`Open Export to Postman for "${collectionName}"`, async () => {
+    const locators = buildCommonLocators(page);
+
+    await openShareCollectionModal(page, collectionName);
 
     await locators.export.postmanFormatCard().click();
     await locators.modal.button('Proceed').click();
@@ -3236,6 +3293,37 @@ const exportCollectionToPostman = async (
     await expect.poll(() => fs.existsSync(filePath), { timeout: 5000 }).toBe(true);
     return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
   });
+};
+
+const exportCollectionAsZip = async (
+  page: Page,
+  electronApp: ElectronApplication,
+  collectionName: string,
+  outputDir: string
+) => {
+  const zipPath = path.join(outputDir, `${collectionName}.zip`);
+
+  await electronApp.evaluate(({ dialog }, filePath) => {
+    (dialog as any).__savedShowSaveDialog = dialog.showSaveDialog;
+    dialog.showSaveDialog = async () => ({ filePath, canceled: false });
+  }, zipPath);
+
+  try {
+    await openShareCollectionModal(page, collectionName);
+
+    return await test.step('Export as ZIP and read the written entries', async () => {
+      const locators = buildCommonLocators(page);
+      await locators.modal.button('Proceed').click();
+      await expect(locators.modal.title('Share Collection')).toBeHidden();
+      await expect.poll(() => fs.existsSync(zipPath), { timeout: 10000 }).toBe(true);
+      return new AdmZip(zipPath).getEntries().map((entry) => entry.entryName);
+    });
+  } finally {
+    await electronApp.evaluate(({ dialog }) => {
+      dialog.showSaveDialog = (dialog as any).__savedShowSaveDialog;
+      delete (dialog as any).__savedShowSaveDialog;
+    });
+  }
 };
 
 /**
@@ -4019,9 +4107,11 @@ export {
   selectAuthMode,
   fieldEditor,
   typeIntoField,
+  writeFieldValue,
   readField,
   createExampleFromSidebar,
   openExampleFromSidebar,
+  toggleRequestExamples,
   openWorkspaceFromDialog,
   setCodeMirrorValue,
   expectTransientRequestOpened,
@@ -4033,10 +4123,12 @@ export {
   LINK_CLICK_MODIFIER,
   openRequestInFolder,
   generateCollectionDocs,
+  openShareCollectionModal,
   openExportToPostmanModal,
   closeExportToPostmanModal,
   dismissModalIfOpen,
   exportCollectionToPostman,
+  exportCollectionAsZip,
   addTag,
   removeTag,
   saveFolderSettings,

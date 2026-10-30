@@ -1,4 +1,4 @@
-import reducer, { addTab, restoreTabs, closeTabs } from 'providers/ReduxStore/slices/tabs';
+import reducer, { addTab, restoreTabs, closeTabs, setSidebarRevealRequest } from 'providers/ReduxStore/slices/tabs';
 import { getApiSpecTabUid } from 'utils/api-specs';
 
 const COLLECTION_UID = 'col-1';
@@ -156,6 +156,14 @@ describe('API spec tabs', () => {
 
     expect(state.tabs).toHaveLength(1);
     expect(state.tabs[0].apiSpecPathname).toBe(ORDERS_PATH);
+  });
+
+  it('records a sidebar reveal request so a repeat request is distinguishable', () => {
+    let state = reducer(undefined, setSidebarRevealRequest({ uid: 'req-1', requestedAt: 100 }));
+    expect(state.sidebarRevealRequest).toEqual({ uid: 'req-1', requestedAt: 100 });
+
+    state = reducer(state, setSidebarRevealRequest({ uid: 'req-1', requestedAt: 200 }));
+    expect(state.sidebarRevealRequest).toEqual({ uid: 'req-1', requestedAt: 200 });
   });
 });
 

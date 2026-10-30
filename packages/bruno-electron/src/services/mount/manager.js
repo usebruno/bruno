@@ -8,6 +8,7 @@ const { getWsClient } = require('../../ipc/network/ws-event-handlers');
 const { preferencesUtil } = require('../../store/preferences');
 const { getSearchIndex } = require('../search-index');
 const { ingestParsedFile, removeFromSearchIndex } = require('../search-index/ingest');
+const { transientManager } = require('../transient');
 
 // cold start only — collection-watcher handles live changes and writes through to the cache
 
@@ -64,7 +65,7 @@ const sendTree = async (collectionUid, collectionPath, tree, emit) => {
 };
 
 const ensureTransientDirectory = () => {
-  const base = path.join(require('electron').app.getPath('userData'), 'tmp', 'transient');
+  const base = transientManager.getDirectoryBase();
   if (!fs.existsSync(base)) fs.mkdirSync(base, { recursive: true });
   return fs.mkdtempSync(path.join(base, 'bruno-'));
 };

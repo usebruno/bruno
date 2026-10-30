@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
 import { makeTabPermanent, syncTabUid } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs, saveFile } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs, saveFile } from 'providers/ReduxStore/slices/collections/actions';
 import useKeybinding from 'hooks/useKeybinding';
 import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
 import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft, addSaveTransientRequestModal } from 'providers/ReduxStore/slices/collections';
@@ -400,7 +400,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
               setShowConfirmCollectionClose(false);
             }}
             onSaveAndClose={() => {
-              dispatch(saveCollectionRoot(collection.uid))
+              dispatch(saveCollectionSettings(collection.uid))
                 .then(() => {
                   dispatch(closeTabs({
                     tabUids: [tab.uid]
@@ -629,7 +629,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     <StyledWrapper className="flex items-center justify-between tab-container px-2">
       {showConfirmClose && (
         <ConfirmRequestClose
-          item={item}
+          name={item.name}
+          type="request"
           onCancel={() => setShowConfirmClose(false)}
           onCloseWithoutSave={() => {
             isWS && closeWsConnection(item.uid);

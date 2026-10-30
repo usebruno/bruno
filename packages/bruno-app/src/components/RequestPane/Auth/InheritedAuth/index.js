@@ -2,13 +2,23 @@ import React from 'react';
 import { IconExternalLink } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
-import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
+import {
+  updateCollectionAuth,
+  updateFolderAuth,
+  updateSettingsSelectedTab,
+  updatedFolderSettingsSelectedTab
+} from 'providers/ReduxStore/slices/collections';
 import { humanizeRequestAuthMode } from 'utils/collections';
+import { SensitiveFieldOwnerContext } from 'components/SensitiveFieldWarning/context';
 import AuthFields from '../AuthFields';
 import StyledWrapper from './StyledWrapper';
 
 const noop = () => {};
 const noopUpdateAuth = () => ({ type: 'noop' });
+
+const AUTH_CONTENT_KEYS = {
+  'akamai-edgegrid': 'akamaiEdgegrid'
+};
 
 export const isInheritedAuthSupported = (inheritedSource, supportedModes) => {
   if (!supportedModes) {
@@ -106,6 +116,7 @@ export const InheritedAuthSourceLabel = ({ collection, inheritedSource, supporte
 };
 
 const InheritedAuth = ({ collection, item, inheritedSource, supportedModes, unsupportedMessage }) => {
+  const dispatch = useDispatch();
   const inheritedMode = inheritedSource?.auth?.mode;
   const inheritedRequest = { auth: inheritedSource?.auth || { mode: 'none' } };
 
@@ -113,20 +124,36 @@ const InheritedAuth = ({ collection, item, inheritedSource, supportedModes, unsu
     return null;
   }
 
+  const isFolderSource = inheritedSource.type === 'folder';
+  const contentKey = AUTH_CONTENT_KEYS[inheritedMode] ?? inheritedMode;
+
+  const updateSourceAuthField = (fieldKey, value) => {
+    const payload = {
+      mode: inheritedMode,
+      collectionUid: collection.uid,
+      content: { ...inheritedSource.auth[contentKey], [fieldKey]: value }
+    };
+    dispatch(isFolderSource ? updateFolderAuth({ ...payload, folderUid: inheritedSource.uid }) : updateCollectionAuth(payload));
+  };
+
+  const sensitiveFieldOwner = { updateField: updateSourceAuthField };
+
   return (
-    <StyledWrapper>
-      <div className="inherited-auth-fields" data-testid="inherited-auth-fields" aria-disabled="true">
-        <AuthFields
-          authMode={inheritedMode}
-          collection={collection}
-          item={item}
-          request={inheritedRequest}
-          save={noop}
-          updateAuth={noopUpdateAuth}
-          disabled
-        />
-      </div>
-    </StyledWrapper>
+    <SensitiveFieldOwnerContext.Provider value={sensitiveFieldOwner}>
+      <StyledWrapper>
+        <div className="inherited-auth-fields pb-4" data-testid="inherited-auth-fields">
+          <AuthFields
+            authMode={inheritedMode}
+            collection={collection}
+            item={item}
+            request={inheritedRequest}
+            save={noop}
+            updateAuth={noopUpdateAuth}
+            readOnly
+          />
+        </div>
+      </StyledWrapper>
+    </SensitiveFieldOwnerContext.Provider>
   );
 };
 

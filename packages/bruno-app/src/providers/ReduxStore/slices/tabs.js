@@ -22,7 +22,8 @@ const ensureTabUid = (tab) => {
 const initialState = {
   tabs: [],
   activeTabUid: null,
-  recentlyClosedTabs: [] // LIFO stack of closed tabs, grouped by collection
+  recentlyClosedTabs: [], // LIFO stack of closed tabs, grouped by collection
+  sidebarRevealRequest: null
 };
 
 const normalizeMockTabType = (type) => (
@@ -392,6 +393,9 @@ export const tabsSlice = createSlice({
         };
       }
     },
+    setSidebarRevealRequest: (state, action) => {
+      state.sidebarRevealRequest = action.payload;
+    },
     clearFocusTableRow: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
 
@@ -686,6 +690,7 @@ export const {
   clearFocusErrorLine,
   setFocusTableRow,
   clearFocusTableRow,
+  setSidebarRevealRequest,
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,

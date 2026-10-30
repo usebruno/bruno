@@ -142,8 +142,8 @@ test.describe('Import WSDL Collection', () => {
 
     await test.step('Verify the body was built from the imported schema documents', async () => {
       await expect.poll(() => readRequestBody(page)).toBe(
-        '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body>'
-        + '<SubmitRequest><party><status>ACTIVE</status></party></SubmitRequest>'
+        '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:msgd="http://example.com/messagedefinition/v4"><soap:Body>'
+        + '<msgd:SubmitRequest><party><status>ACTIVE</status></party></msgd:SubmitRequest>'
         + '</soap:Body></soap:Envelope>'
       );
     });

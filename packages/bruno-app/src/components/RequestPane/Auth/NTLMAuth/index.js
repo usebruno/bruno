@@ -1,6 +1,5 @@
 import React from 'react';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
-import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -9,13 +8,11 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
-const NTLMAuth = ({ item, collection, request, save, updateAuth, disabled }) => {
+const NTLMAuth = ({ item, collection, request, save, updateAuth, readOnly }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
   const ntlmAuth = get(request, 'auth.ntlm', {});
-  const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage } = isSensitive(ntlmAuth?.password);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
@@ -80,7 +77,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth, disabled }) => 
           onRun={handleRun}
           collection={collection}
           item={item}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
       </div>
@@ -96,10 +93,10 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth, disabled }) => 
           collection={collection}
           item={item}
           isSecret={true}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
-        {showWarning && <SensitiveFieldWarning fieldName="ntlm-password" warningMessage={warningMessage} />}
+        <SensitiveFieldWarning fieldName="ntlm-password" secretName="password" value={ntlmAuth?.password} collection={collection} item={item} fieldKey="password" onReplaceValue={handlePasswordChange} />
       </div>
 
       <label className="block mb-1">Domain</label>
@@ -112,7 +109,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth, disabled }) => 
           onRun={handleRun}
           collection={collection}
           item={item}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
       </div>

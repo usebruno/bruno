@@ -4,7 +4,6 @@ const path = require('path');
 const { applyOAuth1ToRequest } = require('@usebruno/requests');
 const { buildScriptedEntry } = require('@usebruno/requests').scripting;
 const qs = require('qs');
-const decomment = require('decomment');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
@@ -609,7 +608,7 @@ const registerNetworkIpc = (mainWindow) => {
     if (requestScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runRequestScript(
-        decomment(requestScript, { space: true }),
+        requestScript,
         request,
         envVars,
         runtimeVariables,
@@ -738,7 +737,7 @@ const registerNetworkIpc = (mainWindow) => {
     if (responseScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runResponseScript(
-        decomment(responseScript, { space: true }),
+        responseScript,
         request,
         response,
         envVars,
@@ -1225,7 +1224,7 @@ const registerNetworkIpc = (mainWindow) => {
           let testError = null;
 
           try {
-            testResults = await testRuntime.runTests(decomment(testFile, { space: true }),
+            testResults = await testRuntime.runTests(testFile,
               request,
               response,
               envVars,
@@ -1954,7 +1953,7 @@ const registerNetworkIpc = (mainWindow) => {
                 error.response.data = await promisifyStream(error.response.data, currentAbortController, false);
                 completeOpenHop(error.response.config);
                 error.response.responseTime = measureResponseTime(error.response.config.metadata);
-                const { data, dataBuffer } = parseDataFromResponse(error.response);
+                const { data, dataBuffer } = parseDataFromResponse(error.response, request.__brunoDisableParsingResponseJson);
                 error.response.data = data;
                 error.response.dataBuffer = dataBuffer;
 
@@ -1980,7 +1979,8 @@ const registerNetworkIpc = (mainWindow) => {
                   requestUid,
                   error: error ? error.message : 'An error occurred while running the request',
                   responseReceived: response,
-                  eventData
+                  eventData,
+                  disableParsingResponseJson: Boolean(request.__brunoDisableParsingResponseJson)
                 });
               } else {
                 await executeRequestOnFailHandler(request, error, (onFailScriptResult) => {
@@ -2083,7 +2083,7 @@ const registerNetworkIpc = (mainWindow) => {
               try {
                 const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
                 testResults = await testRuntime.runTests(
-                  decomment(testFile, { space: true }),
+                  testFile,
                   request,
                   response,
                   envVars,

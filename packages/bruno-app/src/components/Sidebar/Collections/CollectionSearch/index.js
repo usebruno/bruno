@@ -32,7 +32,7 @@ const CollectionSearch = ({ searchText, setSearchText, indexing = false, matchCo
           />
         )}
         {searchText !== '' && (
-          <div className="clear-icon" onClick={() => setSearchText('')}>
+          <div className="clear-icon" data-testid="sidebar-search-clear-icon" onClick={() => setSearchText('')}>
             <IconX size={14} strokeWidth={1.5} />
           </div>
         )}

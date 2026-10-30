@@ -5,6 +5,7 @@ import { IconCaretDown } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { useTheme } from 'providers/Theme';
 import SingleLineEditor from 'components/SingleLineEditor';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
@@ -70,15 +71,17 @@ const ApiKeyAuth = ({ collection }) => {
       </div>
 
       <label className="block mb-1">Value</label>
-      <div className="single-line-editor-wrapper mb-3">
+      <div className="single-line-editor-wrapper mb-3 flex items-center">
         <SingleLineEditor
           value={apikeyAuth.value || ''}
           theme={storedTheme}
           onSave={handleSave}
           onChange={(val) => handleAuthChange('value', val)}
           collection={collection}
+          isSecret={true}
           isCompact
         />
+        <SensitiveFieldWarning fieldName="apikey-value" secretName="value" value={apikeyAuth.value} collection={collection} onReplaceValue={(val) => handleAuthChange('value', val)} />
       </div>
 
       <label className="block mb-1">Add To</label>
