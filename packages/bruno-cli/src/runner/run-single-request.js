@@ -407,9 +407,14 @@ const runSingleRequest = async function (
       httpsAgentRequestFields['rejectUnauthorized'] = false;
     } else {
       const caCertFilePath = options['cacert'];
-      let caCertificatesData = getCACertificates({ caCertFilePath, shouldKeepDefaultCerts: !options['ignoreTruststore'] });
-      let caCertificates = caCertificatesData.caCertificates;
-      httpsAgentRequestFields['ca'] = caCertificates || [];
+      const shouldKeepDefaultCerts = !options['ignoreTruststore'];
+      // Match electron cert-utils: omit `ca` for default trust so Node uses its native store.
+      if (caCertFilePath || !shouldKeepDefaultCerts) {
+        const caCertificatesData = getCACertificates({ caCertFilePath, shouldKeepDefaultCerts });
+        if (caCertificatesData.caCertificates) {
+          httpsAgentRequestFields['ca'] = caCertificatesData.caCertificates;
+        }
+      }
     }
 
     const interpolationOptions = {

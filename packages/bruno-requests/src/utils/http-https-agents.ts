@@ -260,9 +260,13 @@ const getCertsAndProxyConfig = ({
       shouldKeepDefaultCerts: options.shouldKeepDefaultCaCertificates
     });
 
-    // configure HTTPS agent with aggregated CA certificates
     certsConfig.caCertificatesCount = caCertificatesData.caCertificatesCount;
-    certsConfig.ca = caCertificatesData.caCertificates || [];
+    // Custom CA (or defaults disabled) needs an explicit bundle. Default-trust-only requests
+    // should omit `ca` so Node uses its native store — rebundling system+root into secureContext
+    // can break verification on newer Node (e.g. Electron 45 / Node 24).
+    if (caCertFilePath || !options.shouldKeepDefaultCaCertificates) {
+      certsConfig.ca = caCertificatesData.caCertificates || [];
+    }
   }
 
   // client certificate config

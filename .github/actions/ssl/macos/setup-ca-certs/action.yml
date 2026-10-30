@@ -24,3 +24,18 @@ runs:
         node index.js &
         
         echo "server started with PID: $!"
+
+    - name: Setup self-signed test server
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        cd tests/ssl/basic-ssl/server
+
+        echo "generating self-signed certs"
+        node scripts/generate-certs.js
+
+        echo "starting self-signed server in background"
+        node index.js &
+
+        echo "self-signed server started with PID: $!"
