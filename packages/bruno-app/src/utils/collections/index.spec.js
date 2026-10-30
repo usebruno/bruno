@@ -270,6 +270,23 @@ describe('getVariableScope — ignoreVariableUid', () => {
   });
 });
 
+describe('getVariableScope — folder item', () => {
+  const folder = {
+    uid: 'folder-1',
+    type: 'folder',
+    root: { request: { vars: { req: [{ uid: 'folder-var', name: 'folderVar', value: 'folder', enabled: true }], res: [] } } },
+    items: []
+  };
+  const collection = { items: [folder], root: {} };
+
+  it('returns folder scope for a variable defined on the same folder', () => {
+    const scopeInfo = getVariableScope('folderVar', collection, folder);
+
+    expect(scopeInfo.type).toBe('folder');
+    expect(scopeInfo.data.folder).toBe(folder);
+  });
+});
+
 describe('getVariableScope — global environment inheritance', () => {
   const buildCollection = () => ({
     activeGlobalEnvironmentUid: 'genv-dev',

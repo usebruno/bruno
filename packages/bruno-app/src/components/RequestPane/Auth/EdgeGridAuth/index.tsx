@@ -35,7 +35,7 @@ interface AkamaiEdgeGridAuthProps {
   request: any;
   updateAuth: (payload: any) => any;
   save: () => void;
-  disabled?: boolean;
+  readOnly?: boolean;
 }
 
 const FIELDS: Array<{ key: EdgeGridField; label: string; tooltip?: string; isSecret?: boolean }> = [
@@ -72,7 +72,7 @@ type EdgeGridFieldConfig = (typeof FIELDS)[number];
 const BASIC_FIELDS = FIELDS.slice(0, 3);
 const ADVANCED_FIELDS = FIELDS.slice(3);
 
-const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ item, collection, updateAuth, request, save, disabled }) => {
+const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ item, collection, updateAuth, request, save, readOnly }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -137,10 +137,10 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ item, collection, upd
             collection={collection}
             item={item}
             isSecret={isSecret}
-            readOnly={disabled}
+            readOnly={readOnly}
             isCompact
           />
-          {isSecret && <SensitiveFieldWarning fieldName={`edgegrid-${key}`} secretName={key} value={rawValue} collection={collection} item={item} disabled={disabled} onReplaceValue={(val: string) => handleFieldChange(key, val)} />}
+          {isSecret && <SensitiveFieldWarning fieldName={`edgegrid-${key}`} secretName={key} value={rawValue} collection={collection} item={item} fieldKey={key} onReplaceValue={(val: string) => handleFieldChange(key, val)} />}
         </div>
       </div>
     );

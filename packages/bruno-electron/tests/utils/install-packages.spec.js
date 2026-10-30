@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const { EventEmitter } = require('events');
 const {
-  isValidNpmPackageName,
   runNpmInstall,
   resolveNodeExecutable,
   resolveNpmCli,
@@ -44,33 +43,6 @@ const makeFakeChild = () => {
   child.kill = jest.fn();
   return child;
 };
-
-describe('isValidNpmPackageName', () => {
-  test.each([
-    'lodash',
-    'dayjs',
-    'uuid',
-    '@scope/pkg',
-    'csv-parse',
-    'package.name',
-    '@team/secret-sauce'
-  ])('accepts valid package name: %s', (name) => {
-    expect(isValidNpmPackageName(name)).toBe(true);
-  });
-
-  test.each([
-    ['empty string', ''],
-    ['whitespace', 'foo bar'],
-    ['shell injection', 'foo; rm -rf /'],
-    ['command substitution', '$(whoami)'],
-    ['leading dot', '.hidden'],
-    ['non-string', 123],
-    ['null', null],
-    ['undefined', undefined]
-  ])('rejects %s', (_label, name) => {
-    expect(isValidNpmPackageName(name)).toBe(false);
-  });
-});
 
 describe('resolveNodeExecutable', () => {
   let existsSyncSpy;

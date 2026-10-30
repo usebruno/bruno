@@ -3,6 +3,8 @@
  * calls inside Postman scripts being imported into Bruno.
  */
 
+import { isValidNpmPackageName } from '@usebruno/common/utils';
+
 // String literals inside pm.require / require - single, double, or backtick
 // quoted. We deliberately keep this simple and do not attempt to handle
 // template strings with interpolation; those are not a Postman pattern.
@@ -148,7 +150,7 @@ const classifyPackages = (packages) => {
       report.safeMode.push(name);
     } else if (NODE_BUILTINS.has(name) || BUNDLED_LIBRARIES.has(name)) {
       report.devMode.push(name);
-    } else {
+    } else if (isValidNpmPackageName(name)) {
       report.needsInstall.push(name);
     }
   }

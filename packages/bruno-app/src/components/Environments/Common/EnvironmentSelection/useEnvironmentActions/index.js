@@ -4,6 +4,7 @@ const useEnvironmentActions = ({
   scopeRef,
   environments,
   selectedEnvUids,
+  fallbackEnvUid,
   onRenameEnvironment,
   onClearSelection
 }) => {
@@ -59,15 +60,17 @@ const useEnvironmentActions = ({
     setIsDeleteModalOpen(true);
   }, []);
 
-  // Delete shortcut entry point, with a menu open it acts on that menu's targets, otherwise on the selection.
+  // Delete targets the open menu's environments, the current selection,
+  // or fallbackEnvUid if neither is available.
   const deleteFromShortcut = useCallback(() => {
     if (isMenuOpen) {
       setIsContextMenuOpen(false);
     } else {
-      setTargetEnvUids(selectedEnvUids);
+      const uids = selectedEnvUids.length > 0 ? selectedEnvUids : [fallbackEnvUid];
+      setTargetEnvUids(uids.filter(Boolean));
     }
     setIsDeleteModalOpen(true);
-  }, [isMenuOpen, selectedEnvUids]);
+  }, [isMenuOpen, selectedEnvUids, fallbackEnvUid]);
 
   const closeExportModal = useCallback(() => {
     setIsExportModalOpen(false);
