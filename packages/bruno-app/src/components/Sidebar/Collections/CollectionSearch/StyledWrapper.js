@@ -2,7 +2,10 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   margin: 4px 10px 8px 10px;
-  position: relative;
+
+  .search-input-wrap {
+    position: relative;
+  }
 
   .search-icon {
     position: absolute;
@@ -11,6 +14,20 @@ const StyledWrapper = styled.div`
     transform: translateY(-50%);
     color: ${(props) => props.theme.sidebar.muted};
     pointer-events: none;
+  }
+
+  .indexing-icon {
+    position: absolute;
+    right: 8px;
+    top: 0;
+    bottom: 0;
+    margin: auto 0;
+    color: ${(props) => props.theme.sidebar.muted};
+    pointer-events: none;
+
+    &.with-clear {
+      right: 28px;
+    }
   }
 
   input {
@@ -58,6 +75,13 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.sidebar.color};
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
     }
+  }
+
+  .match-count {
+    margin-top: 4px;
+    padding-left: 2px;
+    font-size: 11px;
+    color: ${(props) => props.theme.sidebar.muted};
   }
 `;
 

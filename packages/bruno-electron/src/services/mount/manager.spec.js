@@ -2,10 +2,27 @@ jest.mock('electron', () => ({
   app: { getPath: jest.fn(() => require('node:os').tmpdir()) }
 }));
 
+const mockPrefs = { searchIndexEnabled: false };
+jest.mock('../../store/preferences', () => ({
+  preferencesUtil: { isSearchIndexEnabled: () => mockPrefs.searchIndexEnabled }
+}));
+
+const mockSearchIndex = { transaction: (fn) => fn() };
+jest.mock('../search-index', () => ({
+  getSearchIndex: () => mockSearchIndex
+}));
+
+const mockIngest = jest.fn();
+jest.mock('../search-index/ingest', () => ({
+  ingestParsedFile: (...args) => mockIngest(...args),
+  removeFromSearchIndex: jest.fn()
+}));
+
+const mockStatus = { added: [], updated: [], removed: [] };
 jest.mock('./file-index', () => ({
   FileIndex: jest.fn().mockImplementation(() => ({
     entries: () => new Map(),
-    status: async () => ({ added: [], updated: [], removed: [] }),
+    status: async () => mockStatus,
     stage: jest.fn(),
     transaction: (fn) => fn(),
     clear: jest.fn(),
@@ -13,9 +30,11 @@ jest.mock('./file-index', () => ({
     close: jest.fn()
   }))
 }));
+const mockRun = jest.fn();
 jest.mock('../pool', () => ({
-  JobType: {},
-  getPool: jest.fn(),
+  JobType: { ParseFile: 'parse-file' },
+  JobPriority: { search: 1, index: 3, mount: 5 },
+  getPool: () => ({ run: mockRun }),
   destroyPool: jest.fn(async () => {})
 }));
 
@@ -88,5 +107,30 @@ describe('MountManager.unmount', () => {
 
     await expect(manager.unmount('col-1')).resolves.toBeUndefined();
     expect(mockRemoveWatcher).toHaveBeenCalledWith(collectionPath, win, 'col-1');
+  });
+});
+
+describe('MountManager reconcile', () => {
+  afterEach(() => {
+    mockPrefs.searchIndexEnabled = false;
+    mockStatus.added = [];
+    mockRun.mockReset();
+    mockIngest.mockReset();
+  });
+
+  it('parses changed files at mount priority and writes them to the search index', async () => {
+    mockPrefs.searchIndexEnabled = true;
+    mockStatus.added = [{ relativePath: 'req.bru' }];
+    mockRun.mockResolvedValue({ relativePath: 'req.bru', mtime: 1n, hash: 'h', data: { name: 'Req' } });
+
+    const manager = new MountManager();
+    const { collectionPath } = await mountCollection(manager);
+
+    expect(mockRun).toHaveBeenCalledWith('parse-file', expect.objectContaining({ relativePath: 'req.bru' }), { priority: 5 });
+    expect(mockIngest).toHaveBeenCalledWith(expect.objectContaining({
+      searchIndex: mockSearchIndex,
+      collectionPath,
+      result: expect.objectContaining({ relativePath: 'req.bru' })
+    }));
   });
 });

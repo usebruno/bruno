@@ -84,8 +84,8 @@ const walk = (root, denylist) => {
   return out;
 };
 
-const COLLECTION_ROOT_BASENAMES = new Set(['collection.bru', 'collection.yml', 'opencollection.yml']);
-const FOLDER_ROOT_BASENAMES = new Set(['folder.bru', 'folder.yml']);
+const COLLECTION_ROOT_BASENAMES = new Set(['collection.bru', 'collection.yml', 'collection.yaml', 'opencollection.yml']);
+const FOLDER_ROOT_BASENAMES = new Set(['folder.bru', 'folder.yml', 'folder.yaml']);
 const BRUNO_CONFIG_BASENAME = 'bruno.json';
 const ENVIRONMENTS_DIR = 'environments';
 

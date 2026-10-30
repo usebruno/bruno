@@ -24,6 +24,15 @@ describe('whether a request matches the search text', () => {
     expect(doesRequestMatchSearchText(createRequest('GetUser'), 'user')).toBe(true);
     expect(doesRequestMatchSearchText(createRequest('GetUser'), 'xyz')).toBe(false);
   });
+
+  it('matches request URLs case-insensitively', () => {
+    const request = createRequest('health', {
+      request: { url: 'https://payments.example.com/charge' }
+    });
+
+    expect(doesRequestMatchSearchText(request, 'PAYMENTS.EXAMPLE')).toBe(true);
+    expect(doesRequestMatchSearchText(request, 'missing')).toBe(false);
+  });
 });
 
 describe('whether a folder contains a matching request', () => {
@@ -47,6 +56,10 @@ describe('whether a folder contains a matching request', () => {
 });
 
 describe('whether a collection contains a matching request', () => {
+  it('matches the collection name', () => {
+    expect(doesCollectionHaveItemsMatchingSearchText({ name: 'Payments', items: [] }, 'payments')).toBeTruthy();
+  });
+
   it('matches requests anywhere in the collection tree', () => {
     const collection = {
       items: [

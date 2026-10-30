@@ -166,3 +166,15 @@ describe('API spec tabs', () => {
     expect(state.sidebarRevealRequest).toEqual({ uid: 'req-1', requestedAt: 200 });
   });
 });
+
+describe('addTab name', () => {
+  it('keeps the name so a tab opened before its collection mounts can show as loading', () => {
+    let state = reducer(undefined, addTab({ uid: 'r1', collectionUid: COLLECTION_UID, type: 'http-request', pathname: '/c/a.bru', name: 'a' }));
+    expect(state.tabs[0].name).toBe('a');
+
+    // The first tab is still a preview, so the next one replaces it
+    state = reducer(state, addTab({ uid: 'r2', collectionUid: COLLECTION_UID, type: 'http-request', pathname: '/c/b.bru', name: 'b' }));
+    expect(state.tabs).toHaveLength(1);
+    expect(state.tabs[0].name).toBe('b');
+  });
+});
