@@ -45,11 +45,15 @@ export const saveMockResponseEditor = (responseUid) => async (dispatch, getState
   return result.response;
 };
 
-const getMockServerTabUids = (tabs) => tabs.filter(isMockServerTab).map((tab) => tab.uid);
+export const isDisabledMockServerTab = (state, tab) => (
+  state.app.preferences?.beta?.[BETA_FEATURES.MOCK_SERVER] === false && isMockServerTab(tab)
+);
 
-export const closeMockServerTabs = () => (dispatch, getState) => {
-  const openTabUids = getMockServerTabUids(getState().tabs.tabs);
-  const closedTabUids = getMockServerTabUids(getState().tabs.recentlyClosedTabs);
+export const closeDisabledMockServerTabs = () => (dispatch, getState) => {
+  const state = getState();
+  const getDisabledTabUids = (tabs) => tabs.filter((tab) => isDisabledMockServerTab(state, tab)).map((tab) => tab.uid);
+  const openTabUids = getDisabledTabUids(state.tabs.tabs);
+  const closedTabUids = getDisabledTabUids(state.tabs.recentlyClosedTabs);
 
   if (openTabUids.length) {
     dispatch(closeTabs({ tabUids: openTabUids, reopenable: false }));
@@ -58,10 +62,6 @@ export const closeMockServerTabs = () => (dispatch, getState) => {
     dispatch(removeRecentlyClosedTabs({ tabUids: closedTabUids }));
   }
 };
-
-export const isDisabledMockServerTab = (state, tab) => (
-  state.app.preferences?.beta?.[BETA_FEATURES.MOCK_SERVER] === false && isMockServerTab(tab)
-);
 
 export const restoreCollectionTabs = (payload) => (dispatch, getState) => {
   const tabs = payload.tabs.filter((tab) => !isDisabledMockServerTab(getState(), tab));

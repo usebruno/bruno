@@ -10,6 +10,7 @@ import {
 } from '../utils/page';
 import { buildTitleBarLocators } from '../utils/page/title-bar';
 import { buildCommonLocators } from '../utils/page/locators';
+import { openPreferences, selectPreferencesTab, closePreferences } from '../utils/page/preferences';
 import {
   buildMockServerLocators,
   createMockServerFromCollection,
@@ -107,7 +108,7 @@ test.describe('Turning off the Mock Server beta feature', () => {
     let port = '';
 
     await test.step('Create and start a mock server, then open one of its responses', async () => {
-      await createMockServerFromCollection(page, COLLECTION_NAME, SERVER_NAME);
+      await createMockServerFromCollection(page, COLLECTION_NAME, SERVER_NAME, String(4800 + test.info().parallelIndex));
       port = await startMockServer(page);
       expect(await isPortServing(port)).toBe(true);
       await openMockResponse(page);
@@ -259,10 +260,52 @@ test.describe('Turning off the Mock Server beta feature', () => {
     await setMockServerBetaFeature(page, false, { resolveUnsavedChanges: 'save' });
 
     await test.step('Save writes the edit before the tabs close', async () => {
-      await expect(tabs.requestTab(RESPONSE_NAME)).toHaveCount(0);
+      await expectNoMockTabs(page);
+      await expect(tabs.requestTab(savedName)).toHaveCount(0);
       await reopenResponses();
       await expect(ms.responseOpenBtn(savedName)).toBeVisible();
       await expect(ms.responseOpenBtn(RESPONSE_NAME)).toHaveCount(0);
+    });
+  });
+
+  test('keeps the feature on when saving the unsaved edits fails or the prompt is cancelled', async ({ mockServerApp: { page } }) => {
+    const ms = buildMockServerLocators(page);
+    const { tabs, toast } = buildCommonLocators(page);
+
+    await test.step('Open a mock response and clear its name without saving', async () => {
+      await createMockServerFromCollection(page, COLLECTION_NAME, SERVER_NAME);
+      await openMockResponse(page);
+      await ms.responseEditBtn().click();
+      await ms.responseNameInput().fill('');
+    });
+
+    await test.step('Try to turn the feature off', async () => {
+      await openPreferences(page);
+      await selectPreferencesTab(page, 'Beta');
+      await ms.betaToggleSwitch().click();
+      await expect(ms.unsavedChangesDialog()).toBeVisible();
+    });
+
+    await test.step('Save fails on the invalid name and the feature stays on', async () => {
+      await ms.unsavedChangesButton('Save').click();
+      await expect(toast.byMessage('Name cannot be empty.')).toBeVisible();
+      await expect(ms.unsavedChangesDialog()).toBeVisible();
+      await expect(ms.betaToggleCheckbox()).toBeChecked();
+    });
+
+    await test.step('Cancel closes the prompt and leaves the feature on', async () => {
+      await ms.unsavedChangesButton('Cancel').click();
+      await expect(ms.unsavedChangesDialog()).toHaveCount(0);
+      await expect(ms.betaToggleCheckbox()).toBeChecked();
+      await closePreferences(page);
+    });
+
+    await test.step('The mock tabs stay open with the edit still in place', async () => {
+      await expect(tabs.requestTab(SERVER_NAME)).toBeVisible();
+      await expect(tabs.requestTab(RESPONSE_NAME)).toBeVisible();
+      await tabs.requestTab(RESPONSE_NAME).click();
+      await expect(ms.responseNameInput()).toHaveValue('');
+      await expect(ms.sidebarSection()).toBeVisible();
     });
   });
 });

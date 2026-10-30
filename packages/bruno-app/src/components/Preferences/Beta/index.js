@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useCallback, useMemo, useRef } from 'react';
 import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences, updateActivePreferencesTab } from 'providers/ReduxStore/slices/app';
@@ -12,9 +12,7 @@ import get from 'lodash/get';
 import { IconArrowRight, IconExternalLink } from '@tabler/icons';
 import ToggleSwitch from 'components/ToggleSwitch';
 import ConfirmRequestClose from 'components/RequestTabs/RequestTab/ConfirmRequestClose';
-import { closeMockServerTabs, saveMockResponseEditor } from 'providers/ReduxStore/slices/mock-server/actions';
-import { getUnsavedMockResponses } from 'utils/mock-server/mock-responses/editor';
-import { pluralizeWord } from 'utils/common';
+import useMockServerBetaToggle from './useMockServerBetaToggle';
 
 import { BETA_FEATURES as BETA_FEATURE_IDS } from 'utils/beta-features';
 import { getDocsUrlWithVersion } from 'utils/url';
@@ -85,10 +83,7 @@ const BETA_FEATURES = [
 
 const Beta = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
-  const mockResponseEditors = useSelector((state) => state.collections.mockResponseEditors);
   const dispatch = useDispatch();
-  const [confirmMockServerDisable, setConfirmMockServerDisable] = useState(false);
-  const unsavedMockResponses = useMemo(() => getUnsavedMockResponses(mockResponseEditors), [mockResponseEditors]);
 
   // Generate validation schema dynamically from beta features
   const generateValidationSchema = () => {
@@ -125,7 +120,14 @@ const Beta = ({ close }) => {
     }
   });
 
+  const {
+    toggle: toggleMockServer,
+    handleSaved: handleMockServerSaved,
+    confirmDisableProps
+  } = useMockServerBetaToggle((enabled) => formik.setFieldValue(BETA_FEATURE_IDS.MOCK_SERVER, enabled));
+
   const handleSave = useCallback((newBetaPreferences) => {
+    const wasMockServerEnabled = preferences?.beta?.[BETA_FEATURE_IDS.MOCK_SERVER];
     dispatch(
       savePreferences({
         ...preferences,
@@ -135,16 +137,12 @@ const Beta = ({ close }) => {
         }
       })
     )
-      .then(() => {
-        if (!newBetaPreferences[BETA_FEATURE_IDS.MOCK_SERVER]) {
-          dispatch(closeMockServerTabs());
-        }
-      })
+      .then(() => handleMockServerSaved(wasMockServerEnabled, newBetaPreferences[BETA_FEATURE_IDS.MOCK_SERVER]))
       .catch((err) => {
         console.log(err);
         toast.error('Failed to update beta preferences');
       });
-  }, [dispatch, preferences]);
+  }, [dispatch, preferences, handleMockServerSaved]);
 
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
@@ -173,24 +171,10 @@ const Beta = ({ close }) => {
 
   const hasAnyBetaFeatures = BETA_FEATURES.length > 0;
 
-  const disableMockServer = () => {
-    setConfirmMockServerDisable(false);
-    formik.setFieldValue(BETA_FEATURE_IDS.MOCK_SERVER, false);
-  };
-
-  const saveAndDisableMockServer = async () => {
-    try {
-      await Promise.all(unsavedMockResponses.map((response) => dispatch(saveMockResponseEditor(response.uid))));
-      disableMockServer();
-    } catch (err) {
-      toast.error(err.message || 'Failed to save mock response');
-    }
-  };
-
   const handleToggle = (featureId) => {
     const enabled = !formik.values[featureId];
-    if (featureId === BETA_FEATURE_IDS.MOCK_SERVER && !enabled && unsavedMockResponses.length) {
-      setConfirmMockServerDisable(true);
+    if (featureId === BETA_FEATURE_IDS.MOCK_SERVER) {
+      toggleMockServer(enabled);
       return;
     }
     formik.setFieldValue(featureId, enabled);
@@ -202,15 +186,7 @@ const Beta = ({ close }) => {
 
   return (
     <StyledWrapper>
-      {confirmMockServerDisable ? (
-        <ConfirmRequestClose
-          name={unsavedMockResponses.map((response) => response.name).join(', ')}
-          type={pluralizeWord('mock response', unsavedMockResponses.length)}
-          onCancel={() => setConfirmMockServerDisable(false)}
-          onCloseWithoutSave={disableMockServer}
-          onSaveAndClose={saveAndDisableMockServer}
-        />
-      ) : null}
+      {confirmDisableProps ? <ConfirmRequestClose {...confirmDisableProps} /> : null}
       <div className="section-header">Beta Features</div>
       <form onSubmit={formik.handleSubmit}>
         <div className="mb-6">

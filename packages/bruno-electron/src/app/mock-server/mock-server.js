@@ -560,6 +560,8 @@ const closeHttpServer = (httpServer) => new Promise((resolve) => {
   httpServer.on('close', () => clearTimeout(forceCloseTimeout));
 });
 
+const MOCK_SERVER_DISABLED_ERROR = 'Mock server is a beta feature. Enable it in Preferences > Beta.';
+
 const isMockServerEnabled = () => preferencesUtil.isBetaFeatureEnabled('mock-server');
 
 const start = async ({
@@ -575,7 +577,7 @@ const start = async ({
   globalDelay = 0
 }) => {
   if (!isMockServerEnabled()) {
-    throw new Error('Mock server is a beta feature. Enable it in Preferences > Beta.');
+    throw new Error(MOCK_SERVER_DISABLED_ERROR);
   }
 
   if (!mockServerUid) {
@@ -601,6 +603,10 @@ const start = async ({
   app.all('*', (req, res) => handleRequest(mockServerUid, req, res));
 
   const httpServer = await listenOnPort(app, resolvedPort);
+  if (!isMockServerEnabled()) {
+    await closeHttpServer(httpServer);
+    throw new Error(MOCK_SERVER_DISABLED_ERROR);
+  }
   isolatedServers.set(mockServerUid, { httpServer, port: resolvedPort });
 
   const baseUrl = `http://localhost:${resolvedPort}`;

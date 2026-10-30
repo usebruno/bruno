@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { ThemeProvider } from 'providers/Theme';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
-import { closeMockServerTabs, saveMockResponseEditor } from 'providers/ReduxStore/slices/mock-server/actions';
+import { closeDisabledMockServerTabs, saveMockResponseEditor } from 'providers/ReduxStore/slices/mock-server/actions';
 import { buildMockResponseEditorItem, mockResponseFromEditorItem } from 'utils/mock-server/mock-responses/editor';
 import Beta from './index';
 
@@ -24,7 +24,7 @@ jest.mock('providers/ReduxStore/slices/app', () => ({
 }));
 
 jest.mock('providers/ReduxStore/slices/mock-server/actions', () => ({
-  closeMockServerTabs: jest.fn(() => ({ type: 'test/closeMockServerTabs' })),
+  closeDisabledMockServerTabs: jest.fn(() => ({ type: 'test/closeDisabledMockServerTabs' })),
   saveMockResponseEditor: jest.fn((responseUid) => ({ type: 'test/saveMockResponseEditor', responseUid }))
 }));
 
@@ -78,8 +78,8 @@ describe('Beta preferences: Mock Server toggle', () => {
 
     expect(screen.queryByText(UNSAVED_PROMPT)).not.toBeInTheDocument();
     await waitFor(() => expect(mockServerToggle()).not.toBeChecked());
-    expect(closeMockServerTabs).not.toHaveBeenCalled();
-    await waitFor(() => expect(mockDispatch).toHaveBeenCalledWith(closeMockServerTabs()));
+    expect(closeDisabledMockServerTabs).not.toHaveBeenCalled();
+    await waitFor(() => expect(mockDispatch).toHaveBeenCalledWith(closeDisabledMockServerTabs()));
     expect(savedMockServerFlags()).toEqual([false]);
   });
 
@@ -91,7 +91,7 @@ describe('Beta preferences: Mock Server toggle', () => {
 
     await waitFor(() => expect(savedMockServerFlags()).toEqual([false]));
     await act(() => Promise.resolve());
-    expect(closeMockServerTabs).not.toHaveBeenCalled();
+    expect(closeDisabledMockServerTabs).not.toHaveBeenCalled();
   });
 
   it('leaves tabs alone when Mock Server is turned on', async () => {
@@ -101,7 +101,7 @@ describe('Beta preferences: Mock Server toggle', () => {
 
     await waitFor(() => expect(savedMockServerFlags()).toEqual([true]));
     await act(() => Promise.resolve());
-    expect(closeMockServerTabs).not.toHaveBeenCalled();
+    expect(closeDisabledMockServerTabs).not.toHaveBeenCalled();
   });
 
   it('asks before turning Mock Server off when mock responses have unsaved changes', () => {
@@ -112,7 +112,7 @@ describe('Beta preferences: Mock Server toggle', () => {
     expect(screen.getByText(UNSAVED_PROMPT)).toBeVisible();
     expect(screen.getByText('Get user (saved)')).toBeVisible();
     expect(screen.queryByText('List users')).not.toBeInTheDocument();
-    expect(closeMockServerTabs).not.toHaveBeenCalled();
+    expect(closeDisabledMockServerTabs).not.toHaveBeenCalled();
   });
 
   it('keeps Mock Server on when the prompt is cancelled', async () => {
@@ -122,7 +122,7 @@ describe('Beta preferences: Mock Server toggle', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
     await waitFor(() => expect(screen.queryByText(UNSAVED_PROMPT)).not.toBeInTheDocument());
-    expect(closeMockServerTabs).not.toHaveBeenCalled();
+    expect(closeDisabledMockServerTabs).not.toHaveBeenCalled();
     expect(saveMockResponseEditor).not.toHaveBeenCalled();
     expect(mockServerToggle()).toBeChecked();
   });
@@ -134,7 +134,7 @@ describe('Beta preferences: Mock Server toggle', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Don\'t Save' }));
 
     expect(saveMockResponseEditor).not.toHaveBeenCalled();
-    await waitFor(() => expect(mockDispatch).toHaveBeenCalledWith(closeMockServerTabs()));
+    await waitFor(() => expect(mockDispatch).toHaveBeenCalledWith(closeDisabledMockServerTabs()));
     expect(savedMockServerFlags()).toEqual([false]);
   });
 
@@ -144,10 +144,33 @@ describe('Beta preferences: Mock Server toggle', () => {
     fireEvent.click(mockServerToggle());
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
-    await waitFor(() => expect(mockDispatch).toHaveBeenCalledWith(closeMockServerTabs()));
+    await waitFor(() => expect(mockDispatch).toHaveBeenCalledWith(closeDisabledMockServerTabs()));
     expect(saveMockResponseEditor).toHaveBeenCalledTimes(1);
     expect(saveMockResponseEditor).toHaveBeenCalledWith('response-1');
     expect(savedMockServerFlags()).toEqual([false]);
+  });
+
+  it('keeps Mock Server on when the prompt is cancelled while the mock responses are saving', async () => {
+    let finishSaving;
+    saveResult = new Promise((resolve) => {
+      finishSaving = resolve;
+    });
+    renderBeta({ mockServerEnabled: true, editors: UNSAVED_EDITORS });
+
+    fireEvent.click(mockServerToggle());
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await act(async () => {
+      finishSaving();
+      await saveResult;
+    });
+
+    expect(saveMockResponseEditor).toHaveBeenCalledWith('response-1');
+    expect(screen.queryByText(UNSAVED_PROMPT)).not.toBeInTheDocument();
+    expect(mockServerToggle()).toBeChecked();
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(savePreferences).not.toHaveBeenCalled();
+    expect(closeDisabledMockServerTabs).not.toHaveBeenCalled();
   });
 
   it('keeps Mock Server on and reports the error when saving fails', async () => {
@@ -158,7 +181,7 @@ describe('Beta preferences: Mock Server toggle', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Name is required'));
-    expect(closeMockServerTabs).not.toHaveBeenCalled();
+    expect(closeDisabledMockServerTabs).not.toHaveBeenCalled();
     expect(savePreferences).not.toHaveBeenCalled();
     expect(mockServerToggle()).toBeChecked();
   });
