@@ -625,6 +625,27 @@ test.describe('Set as variable', () => {
     });
   });
 
+  test('keeps the highlight when the same selection is right-clicked again', async ({ page, createTmpDir }) => {
+    const { sidebar, request, setAsVariable } = buildCommonLocators(page);
+
+    await test.step('Create a collection with a request', async () => {
+      await createCollection(page, 'repin-selection', await createTmpDir('repin-selection'));
+      await createRequest(page, 'Fetch Posts', 'repin-selection');
+      await sidebar.request('Fetch Posts').click();
+      await setRequestUrlAndSave(page, 'https://example.com/posts');
+    });
+
+    await test.step('Right-click the selection once', async () => {
+      await openSetAsVariableMenu(page, request.urlLine(), 10);
+      await expect(setAsVariable.selectionHighlight(request.urlInput()).first()).toBeVisible();
+    });
+
+    await test.step('Right-clicking the same selection again keeps it highlighted', async () => {
+      await openSetAsVariableMenu(page, request.urlLine(), 10);
+      await expect(setAsVariable.selectionHighlight(request.urlInput()).first()).toBeVisible();
+    });
+  });
+
   test('keeps a multi-line editor selection highlighted until the popover closes', async ({ page, createTmpDir }) => {
     const { sidebar, request, table, setAsVariable } = buildCommonLocators(page);
     const valueCell = request.queryParams.valueByName('token');
