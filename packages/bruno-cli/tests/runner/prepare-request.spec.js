@@ -102,12 +102,9 @@ describe('prepare-request: prepareRequest', () => {
           }
         };
 
-        const urlObj = new URL(item.request.url);
-        urlObj.searchParams.set(collection.root.request.auth.apikey.key, collection.root.request.auth.apikey.value);
-
-        const expected = urlObj.toString();
         const result = await prepareRequest(item, collection);
-        expect(result.url).toEqual(expected);
+        expect(result.url).toEqual(item.request.url);
+        expect(result.apiKeyAuthValueForQueryParams).toEqual(collection.root.request.auth.apikey);
         expect(result.apiKeyHeaderName).toBeUndefined();
       });
     });
@@ -388,12 +385,9 @@ describe('prepare-request: prepareRequest', () => {
           }
         };
 
-        const urlObj = new URL(item.request.url);
-        urlObj.searchParams.set(item.request.auth.apikey.key, item.request.auth.apikey.value);
-
-        const expected = urlObj.toString();
         const result = await prepareRequest(item);
-        expect(result.url).toEqual(expected);
+        expect(result.url).toEqual(item.request.url);
+        expect(result.apiKeyAuthValueForQueryParams).toEqual(item.request.auth.apikey);
         expect(result.apiKeyHeaderName).toBeUndefined();
       });
     });
