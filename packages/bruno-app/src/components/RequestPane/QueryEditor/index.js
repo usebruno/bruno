@@ -281,6 +281,7 @@ export default class QueryEditor extends React.Component {
           'search-bar-visible': this.state.searchBarVisible
         })}
         aria-label="Query Editor"
+        data-testid="graphql-query-editor"
         font={this.props.font}
         fontSize={this.props.fontSize}
       >
