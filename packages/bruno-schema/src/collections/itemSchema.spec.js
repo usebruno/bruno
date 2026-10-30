@@ -136,8 +136,13 @@ describe('Item Schema Validation', () => {
       });
     });
 
-    it.each(['100', 'abc'])('item schema must throw an error if maxRedirects is the string %p', async (maxRedirects) => {
-      await expect(itemSchema.validate(itemWithMaxRedirects(maxRedirects))).rejects.toMatchObject({
+    it('item schema casts a numeric string maxRedirects', async () => {
+      const validated = await itemSchema.validate(itemWithMaxRedirects('100'));
+      expect(validated.settings.maxRedirects).toBe(100);
+    });
+
+    it('item schema must throw an error if maxRedirects is a non-numeric string', async () => {
+      await expect(itemSchema.validate(itemWithMaxRedirects('abc'))).rejects.toMatchObject({
         path: 'settings.maxRedirects',
         type: 'typeError'
       });

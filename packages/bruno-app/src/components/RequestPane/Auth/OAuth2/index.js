@@ -10,7 +10,7 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 
-const GrantTypeComponentMap = ({ item, collection, request, updateAuth: updateAuthFn, save: saveFn, disabled }) => {
+const GrantTypeComponentMap = ({ item, collection, request, updateAuth: updateAuthFn, save: saveFn, readOnly }) => {
   const dispatch = useDispatch();
 
   const save = () => {
@@ -28,32 +28,32 @@ const GrantTypeComponentMap = ({ item, collection, request, updateAuth: updateAu
 
   switch (grantType) {
     case 'password':
-      return <OAuth2PasswordCredentials item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuthFn} collection={collection} disabled={disabled} />;
+      return <OAuth2PasswordCredentials item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuthFn} collection={collection} readOnly={readOnly} />;
     case 'authorization_code':
-      return <OAuth2AuthorizationCode item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuthFn} collection={collection} disabled={disabled} />;
+      return <OAuth2AuthorizationCode item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuthFn} collection={collection} readOnly={readOnly} />;
     case 'implicit':
-      return <OAuth2Implicit item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuthFn} collection={collection} disabled={disabled} />;
+      return <OAuth2Implicit item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuthFn} collection={collection} readOnly={readOnly} />;
     case 'client_credentials':
-      return <OAuth2ClientCredentials item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuthFn} collection={collection} disabled={disabled} />;
+      return <OAuth2ClientCredentials item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuthFn} collection={collection} readOnly={readOnly} />;
     default:
       return <div>TBD</div>;
   }
 };
 
-const OAuth2 = ({ item, collection, request: requestProp, updateAuth: updateAuthProp, save, disabled }) => {
+const OAuth2 = ({ item, collection, request: requestProp, updateAuth: updateAuthProp, save, readOnly }) => {
   const request = requestProp || (item.draft ? get(item, 'draft.request', {}) : get(item, 'request', {}));
   const updateAuthFn = updateAuthProp || updateAuth;
 
   return (
     <StyledWrapper className="w-full">
-      <GrantTypeSelector item={item} request={request} updateAuth={updateAuthFn} collection={collection} disabled={disabled} />
+      <GrantTypeSelector item={item} request={request} updateAuth={updateAuthFn} collection={collection} readOnly={readOnly} />
       <GrantTypeComponentMap
         item={item}
         collection={collection}
         request={request}
         updateAuth={updateAuthFn}
         save={save}
-        disabled={disabled}
+        readOnly={readOnly}
       />
     </StyledWrapper>
   );
