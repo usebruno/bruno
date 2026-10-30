@@ -4,9 +4,12 @@
  */
 
 import each from 'lodash/each';
+import isPlainObject from 'lodash/isPlainObject';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid, sanitizeTags } from '../common';
+import { registerComponentNames, registerReferencePlaceholder } from './schema-composition';
 import {
   ensureUrl,
+  resetExampleGenerationState,
   BODY_TYPE_HANDLERS,
   getExampleFromSchema,
   createBrunoExample,
@@ -371,12 +374,59 @@ const resolveSwaggerRef = (refPath, spec) => {
   return current;
 };
 
-const resolveRefs = (obj, rootSpec, cache = new Map()) => {
+const NAMED_MAPS = new Set(['definitions', 'parameters', 'responses', 'securityDefinitions', 'paths', 'properties', 'headers']);
+
+const isReferenceOnly = (value) => isPlainObject(value) && typeof value.$ref === 'string' && Object.keys(value).length === 1;
+
+const EXAMPLE_COPIES = Symbol('exampleCopies');
+
+const exampleCopiesOf = (cache) => {
+  if (!cache.has(EXAMPLE_COPIES)) {
+    cache.set(EXAMPLE_COPIES, { done: new Map(), building: new Set() });
+  }
+  return cache.get(EXAMPLE_COPIES);
+};
+
+const copyExampleData = (data, copies) => {
+  if (!Array.isArray(data) && !isPlainObject(data)) {
+    return data;
+  }
+  if (copies.done.has(data)) {
+    return copies.done.get(data);
+  }
+  if (copies.building.has(data)) {
+    return Array.isArray(data) ? [] : {};
+  }
+  const copy = Array.isArray(data) ? [] : {};
+  copies.building.add(data);
+  Object.entries(data).forEach(([key, value]) => {
+    copy[key] = copyExampleData(value, copies);
+  });
+  copies.building.delete(data);
+  copies.done.set(data, copy);
+  return copy;
+};
+
+const resolveChild = (key, value, rootSpec, cache, role) => {
+  if (role === 'map') {
+    return resolveRefs(value, rootSpec, cache);
+  }
+  if (key === 'example') {
+    return isReferenceOnly(value) ? undefined : copyExampleData(value, exampleCopiesOf(cache));
+  }
+  if (key === 'examples' && isPlainObject(value)) {
+    const entries = Object.entries(value).filter(([, example]) => !isReferenceOnly(example));
+    return entries.length > 0 ? copyExampleData(Object.fromEntries(entries), exampleCopiesOf(cache)) : undefined;
+  }
+  return resolveRefs(value, rootSpec, cache, NAMED_MAPS.has(key) && isPlainObject(value) ? 'map' : 'object');
+};
+
+function resolveRefs(obj, rootSpec, cache = new Map(), role = 'object') {
   if (!obj || typeof obj !== 'object') return obj;
   if (cache.has(obj)) return cache.get(obj);
 
   if (Array.isArray(obj)) {
-    return obj.map((item) => resolveRefs(item, rootSpec, cache));
+    return obj.map((item) => resolveRefs(item, rootSpec, cache, role));
   }
 
   if (obj.$ref && typeof obj.$ref === 'string') {
@@ -384,19 +434,24 @@ const resolveRefs = (obj, rootSpec, cache = new Map()) => {
     const resolved = resolveSwaggerRef(obj.$ref, rootSpec);
     if (!resolved) return obj;
     // Prevent circular refs
-    cache.set(obj.$ref, {});
+    const placeholder = {};
+    cache.set(obj.$ref, placeholder);
     const deep = resolveRefs(resolved, rootSpec, cache);
     cache.set(obj.$ref, deep);
+    registerReferencePlaceholder(placeholder, deep);
     return deep;
   }
 
   const result = {};
   cache.set(obj, result);
   for (const [key, value] of Object.entries(obj)) {
-    result[key] = resolveRefs(value, rootSpec, cache);
+    const child = resolveChild(key, value, rootSpec, cache, role);
+    if (child !== undefined) {
+      result[key] = child;
+    }
   }
   return result;
-};
+}
 
 /**
  * Builds the server URL from Swagger 2.0 host / basePath / schemes
@@ -551,10 +606,12 @@ export const parseSwagger2Collection = (data, options = {}) => {
   };
 
   try {
+    resetExampleGenerationState();
     const collectionData = resolveRefs(data, data);
     if (!collectionData) {
       throw new Error('Invalid Swagger 2.0 specification. Failed to resolve refs.');
     }
+    registerComponentNames(collectionData.definitions, data.definitions);
 
     brunoCollection.name = collectionData.info?.title?.trim() || 'Untitled Collection';
 
