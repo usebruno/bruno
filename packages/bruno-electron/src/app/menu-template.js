@@ -102,7 +102,7 @@ const template = [
             width: 350,
             height: 250,
             webPreferences: {
-              nodeIntegration: true
+              nodeIntegration: false
             }
           });
           aboutWindow.removeMenu();

@@ -6,10 +6,11 @@
  */
 import escapeHTML from 'escape-html';
 import MD from 'markdown-it';
+import { openLinksExternally } from 'utils/markdown/openLinksExternally';
 
 import { GraphQLNonNull, GraphQLList } from 'graphql';
 
-const md = new MD();
+const md = new MD().use(openLinksExternally);
 
 /**
  * Render a custom UI for CodeMirror's hint which includes additional info
