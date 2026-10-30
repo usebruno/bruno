@@ -457,9 +457,10 @@ const createRequestFromEmptyStateCta = async (
  * Works with HTTP, GraphQL, gRPC, and WebSocket requests
  * @param page - The page object
  * @param url - The URL to fill
+ * @param options - `replace: true` overwrites the existing URL; by default the text is inserted at the cursor
  * @returns void
  */
-const fillRequestUrl = async (page: Page, url: string) => {
+const fillRequestUrl = async (page: Page, url: string, { replace = false } = {}) => {
   await test.step(`Fill request URL: ${url}`, async () => {
     // HTTP/GraphQL requests use #request-url
     // gRPC/WebSocket don't have a specific ID, so we need to find the CodeMirror in the active request pane
@@ -468,13 +469,16 @@ const fillRequestUrl = async (page: Page, url: string) => {
 
     // Try HTTP/GraphQL selector first
     const isHttpOrGraphql = await httpGraphqlUrl.isVisible().catch(() => false);
+    const selectAll = () => page.keyboard.press(process.platform === 'darwin' ? 'Meta+a' : 'Control+a');
 
     if (isHttpOrGraphql) {
       await httpGraphqlUrl.click();
+      if (replace) await selectAll();
       await page.locator('#request-url textarea').fill(url);
     } else {
       // Fall back to generic selector for gRPC/WebSocket
       await grpcWsUrl.click();
+      if (replace) await selectAll();
       await page.locator('.input-container textarea').first().fill(url);
     }
 
