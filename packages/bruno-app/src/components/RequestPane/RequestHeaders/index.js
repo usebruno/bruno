@@ -9,7 +9,7 @@ import {
   IconEyeOff,
   IconInfoCircle
 } from '@tabler/icons';
-import { BRUNO_DEFAULT_HEADERS, getBrunoRuntimeUserAgent } from '@usebruno/common';
+import { getBrunoDefaultHeaders, getBrunoRuntimeUserAgent } from '@usebruno/common';
 import { useTheme } from 'providers/Theme';
 import {
   moveRequestHeader,
@@ -164,7 +164,14 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     [collection, isHttpRequest, item, requestHeaderNames]
   );
 
-  const defaultHeaders = useMemo(() => filterUnclaimedHeaders(BRUNO_DEFAULT_HEADERS, [
+  const appHttpVersion = useSelector((state) => get(state, 'app.preferences.request.httpVersion', 'http1'));
+  const collectionHttpVersion = get(collection, 'brunoConfig.http.version');
+  const effectiveHttpVersion
+    = collectionHttpVersion && collectionHttpVersion !== 'inherit' ? collectionHttpVersion : appHttpVersion;
+
+  const httpVersion = effectiveHttpVersion === 'http2' ? '2' : '1.1';
+
+  const defaultHeaders = useMemo(() => filterUnclaimedHeaders(getBrunoDefaultHeaders({ httpVersion }), [
     ...requestHeaderNames,
     ...inheritedHeaders.map((header) => header.name)
   ]).map((header) => {
@@ -178,7 +185,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       enabled: !omittedHeaderNames.has(normalizedName),
       omittable: header.omittable
     };
-  }), [inheritedHeaders, omittedHeaderNames, request?.url, requestHeaderNames]);
+  }), [httpVersion, inheritedHeaders, omittedHeaderNames, request?.url, requestHeaderNames]);
 
   const allInheritedHeaders = useMemo(
     () => [...inheritedHeaders, ...defaultHeaders],

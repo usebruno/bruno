@@ -10,7 +10,7 @@ const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 const { applyVariableUpdates, persistVariableUpdates } = require('../utils/persist-variables');
 const { makeAxiosInstance } = require('../utils/axios-instance');
-const { refreshExplicitHeaderNames, shouldOmitConnection } = require('@usebruno/common');
+const { refreshExplicitHeaderNames, shouldOmitConnection, HttpVersionMode } = require('@usebruno/common');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { setupProxyAgents } = require('../utils/proxy-util');
 const path = require('path');
@@ -20,7 +20,7 @@ const { createFormData } = require('../utils/form-data');
 const axios = require('axios');
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
-const { getCACertificates, transformProxyConfig, applySentHeadersToRequest, measureResponseTime } = require('@usebruno/requests');
+const { getCACertificates, transformProxyConfig, applySentHeadersToRequest, measureResponseTime, resolveHttpVersion, getHttp2RequestDetails } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, getMediaType, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
@@ -83,7 +83,7 @@ const extractPromptVariablesForRequest = ({ request, collection, envVariables, r
 
   // client certificate config
   const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
-  for (let clientCert of clientCertConfig) {
+  for (const clientCert of clientCertConfig) {
     if (clientCert?.disabled) {
       continue;
     }
@@ -250,7 +250,8 @@ const runSingleRequest = async function (
       },
       clientCertificates: rawClientCertificates ? interpolateObject(rawClientCertificates, sendRequestInterpolationOptions) : undefined,
       collectionLevelProxy: transformProxyConfig(interpolateObject(rawProxyConfig, sendRequestInterpolationOptions)),
-      systemProxyConfig
+      systemProxyConfig,
+      httpVersion: get(options, 'httpVersion') || resolveHttpVersion(get(brunoConfig, 'http.version'), HttpVersionMode.Http1)
     };
 
     // Add certsAndProxyConfig to request object for bru.sendRequest
@@ -407,8 +408,8 @@ const runSingleRequest = async function (
       httpsAgentRequestFields['rejectUnauthorized'] = false;
     } else {
       const caCertFilePath = options['cacert'];
-      let caCertificatesData = getCACertificates({ caCertFilePath, shouldKeepDefaultCerts: !options['ignoreTruststore'] });
-      let caCertificates = caCertificatesData.caCertificates;
+      const caCertificatesData = getCACertificates({ caCertFilePath, shouldKeepDefaultCerts: !options['ignoreTruststore'] });
+      const caCertificates = caCertificatesData.caCertificates;
       httpsAgentRequestFields['ca'] = caCertificates || [];
     }
 
@@ -421,7 +422,7 @@ const runSingleRequest = async function (
 
     // client certificate config
     const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
-    for (let clientCert of clientCertConfig) {
+    for (const clientCert of clientCertConfig) {
       if (clientCert?.disabled) {
         continue;
       }
@@ -556,7 +557,7 @@ const runSingleRequest = async function (
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
         const existingBoundary = extractBoundaryFromContentType(contentType);
-        let form = createFormData(request.data, collectionPath, existingBoundary);
+        const form = createFormData(request.data, collectionPath, existingBoundary);
         request.data = form;
 
         if (contentType !== 'multipart/form-data') {
@@ -694,7 +695,8 @@ const runSingleRequest = async function (
         systemProxyConfig: cachedSystemProxy,
         httpsAgentRequestFields,
         interpolationOptions,
-        disableCache
+        disableCache,
+        httpVersion: get(options, 'httpVersion') || resolveHttpVersion(get(brunoConfig, 'http.version'), HttpVersionMode.Http1)
       });
 
       if (request.ntlmConfig) {
@@ -745,6 +747,11 @@ const runSingleRequest = async function (
 
       /** @type {import('axios').AxiosResponse} */
       response = await axiosInstance(refreshExplicitHeaderNames(request));
+      try {
+        if (response && getHttp2RequestDetails(response.request)) {
+          response.httpVersion = '2.0';
+        }
+      } catch (_) {}
       responseTime = measureResponseTime(response.config.metadata);
 
       const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
@@ -995,6 +1002,7 @@ const runSingleRequest = async function (
       response: {
         status: response.status,
         statusText: response.statusText,
+        httpVersion: response.httpVersion || response?.request?.res?.httpVersion || '1.1',
         headers: response.headers,
         data: response.data,
         url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,

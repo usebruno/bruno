@@ -1,3 +1,4 @@
+const { closeAllSessions } = require('@usebruno/requests');
 const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
@@ -5,7 +6,7 @@ const { forOwn, cloneDeep } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists, stripExtension, isSafeFileName } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
-const { isRequestTagsIncluded } = require('@usebruno/common');
+const { isRequestTagsIncluded, HttpVersionMode, HTTP_VERSION_MODES } = require('@usebruno/common');
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { getOptions } = require('../utils/bru');
@@ -168,6 +169,15 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Allow insecure server connections'
     })
+    .option('http-version', {
+      type: 'string',
+      choices: HTTP_VERSION_MODES,
+      description: 'HTTP version for requests: http1 (default), http2 (forced), or auto (negotiate via ALPN, fall back to http1)'
+    })
+    .option('http2', {
+      type: 'boolean',
+      description: 'Shorthand for --http-version http2'
+    })
     .option('tests-only', {
       type: 'boolean',
       description: 'Only run requests that have a test or active assertion'
@@ -236,6 +246,8 @@ const builder = async (yargs) => {
     .example('$0 run request.bru --env-file env.bru', 'Run a request with the environment from env.bru file')
     .example('$0 run folder', 'Run all requests in a folder')
     .example('$0 run folder -r', 'Run all requests in a folder recursively')
+    .example('$0 run request.bru --http2', 'Run a request over HTTP/2 (forced)')
+    .example('$0 run folder --http-version auto', 'Run a folder, negotiating HTTP/2 via ALPN with HTTP/1.1 fallback')
     .example('$0 run request.bru folder', 'Run a request and all requests in a folder')
     .example('$0 run --reporter-skip-all-headers', 'Run all requests in a folder recursively with omitted headers from the reporter output')
     .example('$0 run --reporter-skip-request-body', 'Run all requests with request bodies omitted from the reporter output')
@@ -309,6 +321,8 @@ const handler = async function (argv) {
       envVar,
       globalEnvVar,
       insecure,
+      httpVersion,
+      http2,
       r: recursive,
       output: outputPath,
       format,
@@ -600,6 +614,11 @@ const handler = async function (argv) {
     }
     if (insecure) {
       options['insecure'] = true;
+    }
+    if (http2) {
+      options['httpVersion'] = HttpVersionMode.Http2;
+    } else if (httpVersion) {
+      options['httpVersion'] = httpVersion;
     }
     if (disableCookies) {
       options['disableCookies'] = true;
@@ -946,6 +965,8 @@ const handler = async function (argv) {
     const runCompletionTime = new Date().toISOString();
     const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
     console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
+
+    try { closeAllSessions(); } catch (_) {}
 
     // Extract environment name from envVars if available
     const environmentName = envVars?.__name__ || null;

@@ -15,10 +15,15 @@ const {
   readCurrentTime,
   measureTimeSince,
   startHop,
-  completeHop
+  completeHop,
+  canUseHttp2,
+  applyHttp2Transport,
+  getHttp2RequestDetails,
+  addHttp2RetryInterceptor
 } = require('@usebruno/requests');
+const { STATUS_CODES } = require('http');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
-const { applyOmitHeaders } = require('@usebruno/common');
+const { applyOmitHeaders, HttpVersionMode } = require('@usebruno/common');
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
@@ -33,7 +38,7 @@ const saveCookies = (url, headers) => {
       setCookieHeaders = Array.isArray(headers['set-cookie'])
         ? headers['set-cookie']
         : [headers['set-cookie']];
-      for (let setCookieHeader of setCookieHeaders) {
+      for (const setCookieHeader of setCookieHeaders) {
         if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
           addCookieToJar(setCookieHeader, url);
         }
@@ -116,7 +121,8 @@ function makeAxiosInstance({
   httpsAgentRequestFields = {},
   interpolationOptions = {},
   followRedirects = true,
-  forwardAuthorizationHeader = true
+  forwardAuthorizationHeader = true,
+  httpVersionMode = undefined
 } = {}) {
   /** @type {axios.AxiosInstance} */
   const instance = axios.create({
@@ -173,7 +179,7 @@ function makeAxiosInstance({
 
     // Add request data if available
     if (config.data) {
-      let requestData = typeof config.data === 'string' ? config.data : JSON.stringify(config.data, null, 2);
+      const requestData = typeof config.data === 'string' ? config.data : JSON.stringify(config.data, null, 2);
       timeline.push({
         timestamp: new Date(),
         type: 'requestData',
@@ -238,9 +244,18 @@ function makeAxiosInstance({
       });
     }
 
-    // Node keep-alive agents add Connection; strip it on the ClientRequest.
     if (omitConnection) {
       applyOmitConnectionToAxiosConfig(config);
+    }
+
+    const resolvedHttpVersionMode = httpVersionMode ?? HttpVersionMode.Http1;
+    if (canUseHttp2(resolvedHttpVersionMode)) {
+      try {
+        await applyHttp2Transport({ config, mode: resolvedHttpVersionMode, agentOptions, timeline });
+      } catch (err) {
+        timeline.push({ timestamp: new Date(), type: 'error', message: `HTTP/2 setup failed: ${err?.message}` });
+        throw err;
+      }
     }
 
     config.metadata.timeline = timeline;
@@ -266,7 +281,41 @@ function makeAxiosInstance({
       const config = response.config;
       timeline = config?.metadata?.timeline || [];
 
+      const http2RequestDetails = getHttp2RequestDetails(response.request);
       const sentHeaders = getSentHeaders(response.request);
+
+      if (http2RequestDetails) {
+        const { streamId, alpn, protocol, cipher, remote, certificateLines, requestLine } = http2RequestDetails;
+
+        response.httpVersion = '2.0';
+        response.statusText ||= STATUS_CODES[response.status] || '';
+
+        timeline.push({
+          timestamp: new Date(),
+          type: 'info',
+          message: `ALPN: ${alpn} · ${protocol} · ${cipher} · ${remote}`
+        });
+
+        for (const message of certificateLines) {
+          timeline.push({ timestamp: new Date(), type: 'tls', message });
+        }
+
+        if (requestLine) {
+          timeline.push({
+            timestamp: new Date(),
+            type: 'info',
+            message: `HTTP/2 request: ${requestLine}`
+          });
+        }
+
+        if (streamId != null) {
+          timeline.push({
+            timestamp: new Date(),
+            type: 'info',
+            message: `HTTP/2 stream ID: ${streamId}`
+          });
+        }
+      }
 
       /** Post-response vars and scripts read request.headers, which never held the transport set. */
       response.sentHeaders = sentHeaders;
@@ -279,7 +328,7 @@ function makeAxiosInstance({
         });
       });
 
-      const httpVersion = response?.request?.res?.httpVersion || response?.httpVersion;
+      const httpVersion = response?.httpVersion || response?.request?.res?.httpVersion;
       if (httpVersion?.startsWith('2')) {
         timeline.push({
           timestamp: new Date(),
@@ -317,7 +366,15 @@ function makeAxiosInstance({
 
       // A failed request carries the ClientRequest on the error itself when no response came back.
       const errorRequest = error.response?.request || error.request;
+      const http2RequestDetails = getHttp2RequestDetails(errorRequest);
       const errorHeaders = getSentHeaders(errorRequest);
+
+      if (http2RequestDetails && error.response) {
+        error.response.httpVersion = '2.0';
+        if (!error.response.statusText) {
+          error.response.statusText = STATUS_CODES[error.response.status] || '';
+        }
+      }
 
       /** A non-2xx still runs post-response scripts, and they read request.headers. */
       if (error.response) error.response.sentHeaders = errorHeaders;
@@ -444,6 +501,23 @@ function makeAxiosInstance({
                 timestamp: new Date(),
                 type: 'info',
                 message: `Cross-origin redirect: stripping Authorization and Proxy-Authorization headers`
+              });
+            }
+
+            // URL-derived credentials (from https://user:pass@host) are host-bound: never forward
+            // them across a cross-origin redirect, regardless of forwardAuthorizationHeader. This
+            // matches HTTP/1.1, where the redirect URL carries no userinfo so they never follow.
+            if (requestConfig.__urlDerivedAuth) {
+              Object.keys(requestConfig.headers).forEach((key) => {
+                if (key.toLowerCase() === 'authorization') {
+                  delete requestConfig.headers[key];
+                }
+              });
+              delete requestConfig.__urlDerivedAuth;
+              timeline.push({
+                timestamp: new Date(),
+                type: 'info',
+                message: `Cross-origin redirect: stripping URL-derived Authorization (host-bound credentials)`
               });
             }
           }
@@ -593,6 +667,9 @@ function makeAxiosInstance({
       return Promise.reject(error);
     }
   );
+
+  // Transparently retry a REFUSED_STREAM
+  addHttp2RetryInterceptor(instance);
 
   return instance;
 }

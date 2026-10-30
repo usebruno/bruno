@@ -56,7 +56,8 @@ jest.mock('@usebruno/requests', () => ({
   transformProxyConfig: jest.fn(() => ({})),
   getOrCreateHttpsAgent: jest.fn(() => ({})),
   getOrCreateHttpAgent: jest.fn(() => ({})),
-  measureResponseTime: jest.requireActual('@usebruno/requests').measureResponseTime
+  measureResponseTime: jest.requireActual('@usebruno/requests').measureResponseTime,
+  resolveHttpVersion: jest.requireActual('@usebruno/requests').resolveHttpVersion
 }));
 jest.mock('../../src/utils/oauth2', () => ({
   getOAuth2Token: jest.fn(),
@@ -76,6 +77,10 @@ jest.mock('@usebruno/common', () => {
   return {
     shouldOmitConnection: ogCommon.shouldOmitConnection,
     refreshExplicitHeaderNames: ogCommon.refreshExplicitHeaderNames,
+    HttpVersionMode: ogCommon.HttpVersionMode,
+    HttpVersionSetting: ogCommon.HttpVersionSetting,
+    HTTP_VERSION_MODES: ogCommon.HTTP_VERSION_MODES,
+    isHttpVersionMode: ogCommon.isHttpVersionMode,
     utils: {
       encodeUrl: jest.fn((u) => u),
       buildFormUrlEncodedPayload: jest.fn(),

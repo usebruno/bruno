@@ -139,6 +139,11 @@ const parseCollection = (ymlString: string): ParsedCollection => {
       // If not in newer format, use default (inherit: true)
     }
 
+    const httpVersion = brunoExtension?.http?.version ?? (oc.config as any)?.http?.version;
+    if (httpVersion) {
+      brunoConfig.http = { version: httpVersion };
+    }
+
     // client certificates
     if (oc.config?.clientCertificates?.length) {
       brunoConfig.clientCertificates = {
