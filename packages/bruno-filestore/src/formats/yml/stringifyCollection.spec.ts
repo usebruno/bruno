@@ -88,6 +88,49 @@ describe('stringifyCollection — script execution flow', () => {
   });
 });
 
+describe('stringifyCollection — OpenAPI sync config', () => {
+  const baseRoot = {
+    meta: null,
+    request: { headers: [], auth: { mode: 'none' }, script: { req: null, res: null }, tests: null, vars: { req: [], res: [] } },
+    docs: null
+  } as any;
+  const syncConfig = { sourceUrl: '../specs/openapi.yaml', groupBy: 'tags', autoCheck: true, autoCheckInterval: 5 };
+
+  it.each(['request', 'collection'])('round-trips authPlacement: %s', (authPlacement) => {
+    const yml = stringifyCollection(baseRoot, { name: 'c', openapi: [{ ...syncConfig, authPlacement }] });
+    expect(yml).toMatch(new RegExp(`authPlacement:\\s*${authPlacement}`));
+    expect(parseCollection(yml).brunoConfig.openapi).toEqual([{ ...syncConfig, authPlacement }]);
+  });
+
+  it('writes no authPlacement for a sync config that has none', () => {
+    const yml = stringifyCollection(baseRoot, { name: 'c', openapi: [syncConfig] });
+    expect(yml).not.toMatch(/authPlacement/);
+    expect(parseCollection(yml).brunoConfig.openapi).toEqual([syncConfig]);
+  });
+
+  it('drops an unsupported authPlacement on write and on read', () => {
+    expect(stringifyCollection(baseRoot, { name: 'c', openapi: [{ ...syncConfig, authPlacement: true }] })).not.toMatch(/authPlacement/);
+
+    const handEdited = stringifyCollection(baseRoot, { name: 'c', openapi: [{ ...syncConfig, authPlacement: 'collection' }] })
+      .replace(/authPlacement:\s*collection/, 'authPlacement: Collection');
+    expect(parseCollection(handEdited).brunoConfig.openapi).toEqual([syncConfig]);
+  });
+
+  it.each(['summary', 'operationId', 'description', 'path'])('round-trips requestNameSource: %s', (requestNameSource) => {
+    const yml = stringifyCollection(baseRoot, { name: 'c', openapi: [{ ...syncConfig, requestNameSource }] });
+    expect(yml).toMatch(new RegExp(`requestNameSource:\\s*${requestNameSource}`));
+    expect(parseCollection(yml).brunoConfig.openapi).toEqual([{ ...syncConfig, requestNameSource }]);
+  });
+
+  it('drops an unsupported requestNameSource on write and on read', () => {
+    expect(stringifyCollection(baseRoot, { name: 'c', openapi: [{ ...syncConfig, requestNameSource: 'title' }] })).not.toMatch(/requestNameSource/);
+
+    const handEdited = stringifyCollection(baseRoot, { name: 'c', openapi: [{ ...syncConfig, requestNameSource: 'path' }] })
+      .replace(/requestNameSource:\s*path/, 'requestNameSource: title');
+    expect(parseCollection(handEdited).brunoConfig.openapi).toEqual([syncConfig]);
+  });
+});
+
 describe('stringifyCollection — client certificates', () => {
   const baseRoot = {
     meta: null,

@@ -23,6 +23,10 @@ test.describe('Bulk Import default file format', () => {
       await openBulkImportModal(page, filesToImport);
 
       const formatSelect = locators.import.bulkFormatSelect();
+      await expect(formatSelect).toHaveCount(0);
+
+      await locators.import.bulkModal().getByRole('button', { name: 'Options' }).click();
+      await locators.import.advancedOptionsToggle().click();
       await expect(formatSelect).toBeVisible();
       await expect(formatSelect).toHaveValue('yml');
       await expect(formatSelect.locator('option')).toHaveText(['OpenCollection (YAML)', 'BRU Format (.bru)']);

@@ -31,7 +31,9 @@ test.describe('Import Collection File Format Options toggle', () => {
 
     await test.step('Options toggle reveals the File Format selector defaulting to OpenCollection (YAML)', async () => {
       await locationModal.getByRole('button', { name: 'Options' }).click();
-      await page.getByTestId('show-advanced-options-toggle').click();
+      const toggle = locators.import.advancedOptionsToggle();
+      await expect(toggle).toHaveText('Show file format');
+      await toggle.click();
 
       const formatSelect = locationModal.locator('#format');
       await expect(formatSelect).toBeVisible();
@@ -49,8 +51,8 @@ test.describe('Import Collection File Format Options toggle', () => {
       await expect(formatSelect).toHaveValue('bru');
 
       await locationModal.getByRole('button', { name: 'Options' }).click();
-      const toggle = page.getByTestId('show-advanced-options-toggle');
-      await expect(toggle).toHaveText('Hide Advanced Options');
+      const toggle = locators.import.advancedOptionsToggle();
+      await expect(toggle).toHaveText('Hide file format');
       await toggle.click();
 
       await expect(locationModal.locator('#format')).toHaveCount(0);

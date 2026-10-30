@@ -125,7 +125,7 @@ describe('OpenAPI Import - Docs (collection & folder descriptions)', () => {
     };
     const result = openApiToBruno(spec);
 
-    const request = findRequestByName(result.items, 'get /pets');
+    const request = findRequestByName(result.items, 'GET /pets');
     expect(request).toBeDefined();
     expect(request.request.docs).toBe('');
   });

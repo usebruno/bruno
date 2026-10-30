@@ -9,6 +9,7 @@ jest.mock('nanoid', () => ({
 
 // Mock @usebruno/common to provide a working interpolate function
 jest.mock('@usebruno/common', () => ({
+  ...jest.requireActual('@usebruno/common'),
   interpolate: (str, vars) => {
     if (!str || typeof str !== 'string') return str;
     let result = str;

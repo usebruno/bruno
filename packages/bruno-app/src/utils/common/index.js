@@ -546,3 +546,9 @@ export const formatProxyTimestamp = (timestamp) => {
     .replace(/[\u00A0\u202F]/g, ' ')
     .replace(/\b(a|p)m\b/gi, (match) => match.toUpperCase());
 };
+
+export const stopEnterFromConfirmingModal = (event) => {
+  if (event.key === 'Enter') {
+    event.stopPropagation();
+  }
+};

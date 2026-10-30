@@ -11,8 +11,13 @@ import {
   groupRequestsByTags,
   groupRequestsByPath,
   normalizeItemName,
+  getRequestName,
   getTagDescriptions,
-  toSpecString
+  toSpecString,
+  operationSchemeName,
+  optsOutOfAuth,
+  inheritsCollectionAuth,
+  resolveCollectionAuthScheme
 } from './openapi-common';
 
 const getContentLevelExample = (bodyContent) => {
@@ -254,11 +259,7 @@ const objectValueFromSchema = (param) => {
 const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {}) => {
   let _operationObject = request.operationObject;
 
-  let operationName = _operationObject.summary || _operationObject.operationId || toSpecString(_operationObject.description);
-  operationName = operationName ? normalizeItemName(operationName) : '';
-  if (!operationName) {
-    operationName = `${request.method} ${request.path}`;
-  }
+  let operationName = getRequestName(request, options.requestNameSource);
 
   if (usedNames.has(operationName)) {
     // Make name unique to prevent filename collisions
@@ -419,16 +420,14 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
     }
   });
 
-  // Handle explicit no-auth case where security: [] on the operation
-  if (Array.isArray(_operationObject.security) && _operationObject.security.length === 0) {
-    brunoRequestItem.request.auth.mode = 'inherit';
+  const { collectionAuthScheme } = options;
+  const schemeName = operationSchemeName(_operationObject.security);
+
+  if (optsOutOfAuth(_operationObject.security, collectionAuthScheme)) {
+    brunoRequestItem.request.auth.mode = 'none';
   }
 
-  let auth = null;
-  if (_operationObject.security && _operationObject.security.length > 0) {
-    const schemeName = Object.keys(_operationObject.security[0])[0];
-    auth = request.global.security.getScheme(schemeName);
-  }
+  const auth = inheritsCollectionAuth(_operationObject.security, collectionAuthScheme) ? null : request.global.security.getScheme(schemeName);
 
   if (auth) {
     if (auth.type === 'http' && auth.scheme === 'basic') {
@@ -868,7 +867,7 @@ const getSecurity = (apiSpec) => {
           .filter(Boolean)
       : [],
     schemes: securitySchemes,
-    getScheme: (schemeName) => securitySchemes[schemeName]
+    getScheme: (schemeName) => (typeof schemeName === 'string' && Object.hasOwn(securitySchemes, schemeName) ? securitySchemes[schemeName] : undefined)
   };
 };
 
@@ -995,9 +994,11 @@ export const parseOpenApiCollection = (data, options = {}) => {
 
     // Support both tag-based and path-based grouping
     const groupingType = options.groupBy || 'tags';
+    const collectionAuthScheme = options.authPlacement === 'collection' ? resolveCollectionAuthScheme(collectionData.security, allRequests, securityConfig.getScheme) : null;
+    const requestOptions = { ...options, collectionAuthScheme };
 
     if (groupingType === 'path') {
-      brunoCollection.items = groupRequestsByPath(allRequests, transformOpenapiRequestItem, options);
+      brunoCollection.items = groupRequestsByPath(allRequests, transformOpenapiRequestItem, requestOptions);
     } else {
       // Default tag-based grouping
       let [groups, ungroupedRequests] = groupRequestsByTags(allRequests, options);
@@ -1022,7 +1023,7 @@ export const parseOpenApiCollection = (data, options = {}) => {
               name: group.name
             }
           },
-          items: group.requests.map((req) => transformOpenapiRequestItem(req, usedNames, options))
+          items: group.requests.map((req) => transformOpenapiRequestItem(req, usedNames, requestOptions))
         };
         const docs = tagDescriptions[group.name];
         if (docs) {
@@ -1031,7 +1032,7 @@ export const parseOpenApiCollection = (data, options = {}) => {
         return folder;
       });
 
-      let ungroupedItems = ungroupedRequests.map((req) => transformOpenapiRequestItem(req, usedNames, options));
+      const ungroupedItems = ungroupedRequests.map((req) => transformOpenapiRequestItem(req, usedNames, requestOptions));
       let brunoCollectionItems = brunoFolders.concat(ungroupedItems);
       brunoCollection.items = brunoCollectionItems;
     }
@@ -1121,7 +1122,7 @@ export const parseOpenApiCollection = (data, options = {}) => {
       return authTemplate;
     };
 
-    let collectionAuth = buildCollectionAuth(securityConfig.supported[0]);
+    const collectionAuth = buildCollectionAuth(collectionAuthScheme ? collectionAuthScheme.scheme : securityConfig.supported[0]);
 
     brunoCollection.root = {
       request: {
