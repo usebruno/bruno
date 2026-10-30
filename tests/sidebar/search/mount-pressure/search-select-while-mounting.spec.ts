@@ -30,6 +30,9 @@ for (const cacheMode of PRESSURE_CACHE_MODES) {
         await page.getByTitle('Search requests').click();
         await searchInput.fill('needle-alpha');
         await expect(sidebar.itemRowIn('PressureA', 'needle-alpha-unique')).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
+        // The search above indexed PressureA; clear it so the mount re-indexes every file and stays
+        // in the mounting state long enough to observe.
+        await clearSearchIndex(page);
         await sidebar.itemRowIn('PressureA', 'needle-alpha-unique').click();
         await expect(sidebar.collectionRow('PressureA').locator('.animate-spin')).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
         // The tab opens straight away and shows as loading while the collection is still mounting
