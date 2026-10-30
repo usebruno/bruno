@@ -4,6 +4,16 @@ import { prettifyJsonString } from 'utils/common/index';
 import { isJsonLikeContentType, isPlainTextContentType, isXmlLikeContentType } from './content-type';
 
 export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-request') => {
+  const parseMultipartForm = (parsedBody) => {
+    if (!Array.isArray(parsedBody)) {
+      return [];
+    }
+
+    // multipartFormSchema declares a file entry's `value` as an array of paths;
+    // the parser gives a plain string even for `-F 'doc=@/tmp/a.pdf'`.
+    return parsedBody.map((field) => (field.type === 'file' ? { ...field, value: [field.value] } : field));
+  };
+
   const parseFormData = (parsedBody) => {
     const formData = [];
     forOwn(parsedBody, (value, key) => {
@@ -82,7 +92,7 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
         body.formUrlEncoded = parseFormData(parsedBody);
       } else if (normalizedContentType.includes('multipart/form-data')) {
         body.mode = 'multipartForm';
-        body.multipartForm = parsedBody;
+        body.multipartForm = parseMultipartForm(parsedBody);
       } else if (isPlainTextContentType(contentType)) {
         body.mode = 'text';
         body.text = parsedBody;
