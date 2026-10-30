@@ -31,7 +31,10 @@ for (const cacheMode of PRESSURE_CACHE_MODES) {
         await searchInput.fill('needle-alpha');
         await expect(sidebar.itemRowIn('PressureA', 'needle-alpha-unique')).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
         await sidebar.itemRowIn('PressureA', 'needle-alpha-unique').click();
-        await expect(sidebar.collectionRow('PressureA').locator('.animate-spin')).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
+        // The v1 mount (cache off) dispatches per file and freezes dev builds until it ends, so the spinner can't be polled there
+        if (cacheMode.enabled) {
+          await expect(sidebar.collectionRow('PressureA').locator('.animate-spin')).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
+        }
         // The tab opens straight away and shows as loading while the collection is still mounting
         await expect(activeTab('needle-alpha-unique')).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
       });
