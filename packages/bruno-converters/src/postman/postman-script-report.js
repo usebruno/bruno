@@ -30,20 +30,13 @@ const buildApiIdentifier = (rootPath) => {
   const segments = [rootPath.value.name];
   let current = rootPath;
 
-  for (;;) {
-    const parent = current.parent;
-    if (!parent) break;
-    const node = parent.value;
+  while (current.parent) {
+    const node = current.parent.value;
+    if (node.type !== 'MemberExpression' || node.object !== current.value) break;
+    if (node.computed || node.property.type !== 'Identifier') return null;
 
-    if (node.type === 'MemberExpression' && node.object === current.value) {
-      if (node.computed || node.property.type !== 'Identifier') return null;
-
-      segments.push(node.property.name);
-      current = parent;
-      continue;
-    }
-
-    break;
+    segments.push(node.property.name);
+    current = current.parent;
   }
 
   return segments.join('.');
@@ -52,7 +45,7 @@ const buildApiIdentifier = (rootPath) => {
 // One entry per root reference, whatever the chain depth: a looped call and
 // `pm.response.to.have.status(200)` are each a single call site. Property-style
 // APIs (`pm.info.requestName`) count too — the translator must map them alike.
-export const countApiCalls = (script) => {
+export const countPmApiUsages = (script) => {
   const byApi = {};
   let total = 0;
 
@@ -106,9 +99,9 @@ export const buildScriptUsage = ({ source, translated, fellBackToRegex }) => {
   }
 
   try {
-    const sourceApis = countApiCalls(source);
+    const sourceApis = countPmApiUsages(source);
     const { translatedSource } = extractPackagesFromScript(translated);
-    const untranslated = countApiCalls(translatedSource);
+    const untranslated = countPmApiUsages(translatedSource);
     const untranslatedApis = {};
 
     for (const [api, count] of Object.entries(untranslated.byApi)) {

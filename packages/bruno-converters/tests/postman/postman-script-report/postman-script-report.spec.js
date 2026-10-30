@@ -2,17 +2,17 @@ import {
   aggregateScriptUsage,
   buildPreservedScriptsReport,
   buildScriptUsage,
-  countApiCalls,
+  countPmApiUsages,
   mergeScriptTranslationReports
 } from '../../../src/postman/postman-script-report';
 
-const scan = (script) => countApiCalls(script);
+const scan = (script) => countPmApiUsages(script);
 
 // One measured block, as the translator emits it.
 const translated = (source, output) => buildScriptUsage({ source, translated: output ?? source, fellBackToRegex: false });
 const fellBack = (source) => buildScriptUsage({ source, translated: source, fellBackToRegex: true });
 
-describe('countApiCalls', () => {
+describe('countPmApiUsages', () => {
   describe('call-site counting', () => {
     it('counts one call site per pm root, not per member expression', () => {
       // Parses into four nested MemberExpressions; it is one call site.
