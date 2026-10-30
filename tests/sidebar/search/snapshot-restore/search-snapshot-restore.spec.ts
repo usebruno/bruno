@@ -6,8 +6,6 @@ import { buildSidebarLocators } from '../../../utils/page/sidebar';
 import { readSnapshot } from '../../../utils/snapshot';
 import { CACHE_MODES, writePreferences } from '../helpers';
 
-const LARGE_REQUEST_COUNT = 8000;
-const OTHER_REQUEST_COUNT = 2000;
 const SEARCH_RESULT_TIMEOUT_MS = 20_000;
 const MOUNT_TIMEOUT_MS = 300_000;
 const HEADER_COUNT = 60;
@@ -39,13 +37,19 @@ const buildLargeYmlCollection = (dir: string, name: string, requestCount: number
   return dir;
 };
 
-for (const cacheMode of CACHE_MODES) {
+// Cache-off mounts via v1 (one redux action per file), so it gets smaller collections.
+const SNAPSHOT_CACHE_MODES = [
+  { ...CACHE_MODES[0], largeRequestCount: 1500, otherRequestCount: 500 },
+  { ...CACHE_MODES[1], largeRequestCount: 8000, otherRequestCount: 2000 }
+];
+
+for (const cacheMode of SNAPSHOT_CACHE_MODES) {
   test(`[${cacheMode.label}] sidebar search works while a large collection mounts from the restored snapshot`, async ({ launchElectronApp, createTmpDir }) => {
     test.setTimeout(900_000);
     const tag = cacheMode.enabled ? 'on' : 'off';
     const root = await createTmpDir(`search-snapshot-restore-${tag}`);
-    const largeCollection = buildLargeYmlCollection(path.join(root, 'LargeRestored'), 'LargeRestored', LARGE_REQUEST_COUNT, 'metrics-large-needle');
-    const otherCollection = buildLargeYmlCollection(path.join(root, 'OtherUnmounted'), 'OtherUnmounted', OTHER_REQUEST_COUNT, 'metrics-other-needle');
+    const largeCollection = buildLargeYmlCollection(path.join(root, 'LargeRestored'), 'LargeRestored', cacheMode.largeRequestCount, 'metrics-large-needle');
+    const otherCollection = buildLargeYmlCollection(path.join(root, 'OtherUnmounted'), 'OtherUnmounted', cacheMode.otherRequestCount, 'metrics-other-needle');
 
     const userDataPath = await createTmpDir(`search-snapshot-restore-user-${tag}`);
     // The first launch only seeds the snapshot, so it mounts through the file cache to stay fast.

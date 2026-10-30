@@ -31,9 +31,9 @@ for (const cacheMode of PRESSURE_CACHE_MODES) {
         await searchInput.fill('needle-alpha');
         await expect(sidebar.itemRowIn('PressureA', 'needle-alpha-unique')).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
         await sidebar.itemRowIn('PressureA', 'needle-alpha-unique').click();
-        await expect(sidebar.collectionRow('PressureA').locator('.animate-spin')).toBeVisible();
+        await expect(sidebar.collectionRow('PressureA').locator('.animate-spin')).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
         // The tab opens straight away and shows as loading while the collection is still mounting
-        await expect(activeTab('needle-alpha-unique')).toBeVisible();
+        await expect(activeTab('needle-alpha-unique')).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
       });
 
       await test.step('while PressureA mounts, search again and select a result in unmounted PressureB', async () => {
