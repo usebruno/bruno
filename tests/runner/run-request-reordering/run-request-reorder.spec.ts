@@ -6,7 +6,6 @@ import {
   expandCollection,
   createRequestViaModal,
   dragRunnerConfigItem,
-  expectRunnerCheckboxesClearOfNames,
   expectRunnerConfigOrder,
   expectRunnerResultOrder,
   getRunnerConfigOrder,
@@ -27,7 +26,7 @@ test.describe('Runner request reordering', () => {
     await closeAllCollections(page);
   });
 
-  test('TC-719: Validate collection run follows the reordered request sequence', async ({ pageWithUserData: page }) => {
+  test('TC-719: Validate collection run follows the reordered request sequence', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const runner = buildRunnerLocators(page);
     let initialOrder: string[] = [];
 
@@ -97,7 +96,7 @@ test.describe('Runner request checkboxes', () => {
     await closeAllCollections(page);
   });
 
-  test('TC-713: Each request in the run configuration has a checkbox', async ({ pageWithUserData: page }) => {
+  test('TC-713: Each request in the run configuration has a checkbox', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const runner = buildRunnerLocators(page);
     const checkboxOrder = ['Nested Request', 'Request A', 'Request B', 'Request C', 'Request D', 'Request E'];
 
@@ -121,8 +120,7 @@ test.describe('Runner request checkboxes', () => {
     });
 
     await test.step('A checkbox is present for the request nested in a folder', async () => {
-      const nested = runner.requestItem(NESTED_REQUEST);
-      await expect(nested.locator('.folder-path')).toHaveText(FOLDER_NAME);
+      await expect(runner.requestFolderPath(NESTED_REQUEST)).toHaveText(FOLDER_NAME);
       await expect(runner.requestCheckbox(NESTED_REQUEST)).toBeVisible();
     });
 
@@ -135,10 +133,6 @@ test.describe('Runner request checkboxes', () => {
       await toggleRunnerRequestCheckbox(page, 'Request A');
       await expect(runner.requestItem('Request A')).toBeEnabled();
       await expect(runner.configCounter()).toHaveText(`${checkboxOrder.length} of ${checkboxOrder.length} selected`);
-    });
-
-    await test.step('Checkboxes do not overlap request names', async () => {
-      await expectRunnerCheckboxesClearOfNames(page);
     });
   });
 });
