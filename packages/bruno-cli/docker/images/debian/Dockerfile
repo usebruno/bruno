@@ -1,4 +1,4 @@
-FROM node:22-slim
+FROM node:24-slim
 
 LABEL maintainer="Bruno <support@usebruno.com>"
 

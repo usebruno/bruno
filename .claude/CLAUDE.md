@@ -14,7 +14,7 @@ npm run lint:fix         # ESLint fix
 npm test --workspaces    # Unit tests (Jest) across all packages
 ```
 
-Full script list: root `package.json`. Setup: `nvm use && npm i --legacy-peer-deps && npm run setup` (Node **v22.12.0**, see `.nvmrc`).
+Full script list: root `package.json`. Setup: `nvm use && npm i --legacy-peer-deps && npm run setup` (Node **v24.22.1**, see `.nvmrc`).
 
 ### Running a single test
 

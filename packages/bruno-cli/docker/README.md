@@ -15,8 +15,8 @@ docker pull ghcr.io/usebruno/cli:latest
 
 | Variant | Base image | Details |
 |---------|-----------|---------|
-| **Alpine** (default) | `node:22-alpine` | [→ Alpine README](https://github.com/usebruno/bruno/blob/main/packages/bruno-cli/docker/images/alpine/README.md) |
-| **Debian** | `node:22-slim` | [→ Debian README](https://github.com/usebruno/bruno/blob/main/packages/bruno-cli/docker/images/debian/README.md) |
+| **Alpine** (default) | `node:24-alpine` | [→ Alpine README](https://github.com/usebruno/bruno/blob/main/packages/bruno-cli/docker/images/alpine/README.md) |
+| **Debian** | `node:24-slim` | [→ Debian README](https://github.com/usebruno/bruno/blob/main/packages/bruno-cli/docker/images/debian/README.md) |
 
 ### Quick choice
 
