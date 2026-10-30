@@ -567,7 +567,7 @@ const EnvironmentList = ({
     scopeRef,
     hasSelection: selection.hasSelection,
     canDelete: selection.hasSelection || Boolean(openEnvUid),
-    isModalOpen: actions.isModalOpen,
+    isModalOpen: actions.isModalOpen || switchEnvConfirmClose,
     isMenuOpen: actions.isMenuOpen,
     onClearSelection: selection.clearSelection,
     onSelectAll: handleSelectAllShortcut,

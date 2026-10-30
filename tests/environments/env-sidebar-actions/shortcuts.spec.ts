@@ -2,7 +2,7 @@ import { test, expect } from '../../../playwright';
 import { closeAllCollections } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { ENV_NAMES, openEnvironmentsList } from './helpers';
-import { DELETE_KEY, IS_MAC, SELECT_ALL_KEY, ctrlClickRows, openRowContextMenu } from '../../utils/page/environments';
+import { DELETE_KEY, IS_MAC, SELECT_ALL_KEY, clickEmptyListSpace, ctrlClickRows, openRowContextMenu } from '../../utils/page/environments';
 
 const [ENV_1, ENV_2, ENV_3, ENV_4] = ENV_NAMES;
 
@@ -102,6 +102,32 @@ test.describe('Collection environments list shortcuts', () => {
 
       await expect(deleteModal.root()).toBeHidden();
       await expect(rowNames()).toHaveText([ENV_1, ENV_4]);
+    });
+  });
+
+  test('the delete key does nothing when the search hides the open environment', async ({ page }) => {
+    const { environment } = buildCommonLocators(page);
+    const { deleteModal, rowNames, searchInput } = environment.sidebarActions;
+
+    await environment.sidebarListItemExact('collection', ENV_2).click();
+
+    await test.step('Search for another environment, so the open one is hidden', async () => {
+      await searchInput().fill('3');
+      await expect(rowNames()).toHaveText([ENV_3]);
+    });
+
+    await test.step('The delete key with the list focused opens no modal', async () => {
+      await clickEmptyListSpace(page);
+      await page.keyboard.press(DELETE_KEY);
+      await expect(deleteModal.root()).toBeHidden();
+    });
+
+    await test.step('Clearing the search shows the open environment again, so the delete key targets it', async () => {
+      await searchInput().fill('');
+      await expect(rowNames()).toHaveText(ENV_NAMES);
+      await clickEmptyListSpace(page);
+      await page.keyboard.press(DELETE_KEY);
+      await expect(deleteModal.root()).toContainText(ENV_2);
     });
   });
 

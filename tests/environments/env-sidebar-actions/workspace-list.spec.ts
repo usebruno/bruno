@@ -298,6 +298,32 @@ test.describe('Workspace environments list', () => {
       });
     });
 
+    test('the delete key does nothing when the search hides the open environment', async ({ page }) => {
+      const { environment } = buildCommonLocators(page);
+      const { deleteModal, rowNames, searchInput } = environment.workspaceSidebarActions;
+
+      await environment.sidebarListItemExact('global', ENV_2).click();
+
+      await test.step('Search for another environment, so the open one is hidden', async () => {
+        await searchInput().fill('3');
+        await expect(rowNames()).toHaveText([ENV_3]);
+      });
+
+      await test.step('The delete key with the list focused opens no modal', async () => {
+        await clickEmptyListSpace(page, 'global');
+        await page.keyboard.press(DELETE_KEY);
+        await expect(deleteModal.root()).toBeHidden();
+      });
+
+      await test.step('Clearing the search shows the open environment again, so the delete key targets it', async () => {
+        await searchInput().fill('');
+        await expect(rowNames()).toHaveText(ENV_NAMES);
+        await clickEmptyListSpace(page, 'global');
+        await page.keyboard.press(DELETE_KEY);
+        await expect(deleteModal.root()).toContainText(ENV_2);
+      });
+    });
+
     test('the delete key with the context menu open deletes the right-clicked environment, not the selection', async ({ page }) => {
       const { selectedRowNames, deleteModal, rowNames } = buildCommonLocators(page).environment.workspaceSidebarActions;
 

@@ -17,9 +17,9 @@ const commandKey = <IconCommand size={13} strokeWidth={2} />;
 const backspaceKey = <IconBackspace size={13} strokeWidth={2} />;
 
 export const SelectAllShortcutHint = () => (
-  <ShortcutHint keys={isMacOS() ? [commandKey, 'A'] : ['Ctrl', '+', 'A']} />
+  <ShortcutHint keys={isMacOS() ? [commandKey, 'A'] : ['Ctrl+A']} />
 );
 
 export const DeleteShortcutHint = () => (
-  <ShortcutHint keys={isMacOS() ? [commandKey, backspaceKey] : ['Delete']} />
+  <ShortcutHint keys={isMacOS() ? [commandKey, backspaceKey] : ['Del']} />
 );
