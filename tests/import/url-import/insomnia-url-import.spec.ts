@@ -1,45 +1,68 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, openCollection } from '../../utils/page';
+import { closeAllCollections, expandFolder, openCollection } from '../../utils/page';
+import { buildCommonLocators } from '../../utils/page/locators';
 
-test.describe('Insomnia URL Import', () => {
+test.describe('Insomnia URL import', () => {
   test.afterEach(async ({ page }) => {
-    // cleanup: close all collections
     await closeAllCollections(page);
   });
 
-  test('Insomnia URL import', async ({ page, createTmpDir }) => {
+  test('TC-813: imports a valid Insomnia collection from a direct URL', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+    // Fetches the collection over the network; the main-process axios timeout is 30s,
+    // equal to the default test budget, so a slow fetch is killed before it can
+    // fail or succeed. Give the test more room than the fetch it waits on.
+    test.setTimeout(60_000);
+
     const insomniaUrl = 'https://raw.githubusercontent.com/usebruno/bruno/refs/heads/main/tests/import/insomnia/fixtures/insomnia-v5.yaml';
+    const locators = buildCommonLocators(page);
+    const collectionName = 'Test API Collection v5';
 
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
+    await test.step('Open import and enter the Insomnia collection URL', async () => {
+      await locators.plusMenu.button().click();
+      await locators.plusMenu.importCollection().click();
+      await locators.import.modal().waitFor({ state: 'visible' });
+      await locators.import.urlTab().click();
+      await expect(locators.import.urlInput()).toBeVisible();
+      await locators.import.urlInput().fill(insomniaUrl);
+    });
 
-    // Wait for import collection modal to be ready
-    const importModal = page.getByTestId('import-collection-modal');
-    await importModal.waitFor({ state: 'visible' });
+    await test.step('Import the collection from the URL', async () => {
+      await locators.import.urlImportButton().click();
+      await locators.import.loader().waitFor({ state: 'hidden' });
 
-    await page.getByTestId('url-tab').click();
-    await page.getByTestId('url-input').waitFor({ state: 'visible' });
-    await page.getByTestId('url-input').fill(insomniaUrl);
-    await page.locator('#import-url-button').click();
+      const locationModal = locators.import.locationModal();
+      await expect(locationModal.getByText(collectionName)).toBeVisible();
+      await locators.import.locationInput().fill(await createTmpDir('test-api-collection-v5'));
+      await locators.import.importButton().click();
+      await expect(locationModal).toBeHidden();
+    });
 
-    // Wait for the loader to disappear
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
+    await test.step('Imported collection keeps its folders and request', async () => {
+      await expect(locators.sidebar.collection(collectionName)).toBeVisible();
+      await openCollection(page, collectionName);
+      await expect(locators.sidebar.itemsIn(collectionName, 'API Tests')).toBeVisible();
+      await expect(locators.sidebar.itemsIn(collectionName, 'Data Management')).toBeVisible();
 
-    // Verify that the collection location modal appears
-    const locationModal = page.getByTestId('import-collection-location-modal');
-    await expect(locationModal.getByText('Test API Collection v5')).toBeVisible();
+      await expandFolder(page, 'API Tests');
+      await expect(locators.sidebar.itemsIn(collectionName, 'Get Users')).toBeVisible();
+      await expect(locators.sidebar.itemsIn(collectionName, 'Authentication')).toBeVisible();
+      await expandFolder(page, 'Authentication');
 
-    // Select a location and import
-    await page.locator('#collection-location').fill(await createTmpDir('test-api-collection-v5'));
-    await locationModal.getByRole('button', { name: 'Import' }).click();
-    await locationModal.waitFor({ state: 'hidden' });
+      const loginUser = locators.sidebar.itemsIn(collectionName, 'Login User');
+      await expect(loginUser).toBeVisible();
+      await loginUser.click();
 
-    // Verify the collection was imported successfully and configure it
-    await expect(page.locator('#sidebar-collection-name').getByText('Test API Collection v5')).toBeVisible();
-    await openCollection(page, 'Test API Collection v5');
+      await expect(locators.request.methodDropdown()).toContainText('POST');
+      await expect(locators.request.urlLine()).toContainText('{{base_url}}/api/auth/login');
+    });
 
-    // Verify these folder names are present
-    await expect(page.locator('.collection-item-name').getByText('API Tests')).toBeVisible();
-    await expect(page.locator('.collection-item-name').getByText('Data Management')).toBeVisible();
+    await test.step('Imported collection keeps its environment', async () => {
+      await locators.environment.selector().click();
+      await locators.environment.collectionTab().click();
+      await locators.environment.configureButton().click();
+      await locators.environment.sidebarActions.row('Base Environment').click();
+      await expect(locators.environment.varRowValueLine('base_url')).toHaveText('https://api.example.com');
+      await expect(locators.environment.varRowValueLine('auth_token')).toHaveText('your_auth_token_here');
+    });
   });
 });
