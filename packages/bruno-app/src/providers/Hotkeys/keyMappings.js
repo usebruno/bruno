@@ -33,7 +33,8 @@ export const KEY_BINDING_SECTIONS = [
       pasteItem: { mac: 'command+bind+v', windows: 'ctrl+bind+v', name: 'Paste Item' }, // D
       cloneItem: { mac: 'command+bind+d', windows: 'ctrl+bind+d', name: 'Clone Item' }, // D
       renameItem: { mac: 'command+bind+r', windows: 'ctrl+bind+r', name: 'Rename Item' }, // D
-      collapseSidebar: { mac: 'command+bind+\\', windows: 'ctrl+bind+\\', name: 'Collapse Sidebar' } // D
+      collapseSidebar: { mac: 'command+bind+\\', windows: 'ctrl+bind+\\', name: 'Collapse Sidebar' }, // D
+      deleteItem: { mac: 'backspace', windows: 'del', name: 'Delete Item' }
     }
   },
   {
@@ -145,6 +146,7 @@ export const formatSingleKeyForDisplay = (key, os) => {
     backspace: os === 'mac' ? '⌫' : 'Backspace',
     tab: os === 'mac' ? '⇥' : 'Tab',
     delete: os === 'mac' ? '⌦' : 'Delete',
+    del: os === 'mac' ? '⌦' : 'Delete',
     esc: os === 'mac' ? '⎋' : 'Esc',
     space: os === 'mac' ? '␣' : 'Space',
     arrowup: '↑',

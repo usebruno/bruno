@@ -96,6 +96,7 @@ const DeleteCollectionItems = ({ entries, onClose }) => {
       title={title}
       confirmText="Delete"
       confirmButtonColor="danger"
+      confirmAutoFocus
       handleConfirm={onConfirm}
       handleCancel={onClose}
       dataTestId="delete-collection-item-modal"

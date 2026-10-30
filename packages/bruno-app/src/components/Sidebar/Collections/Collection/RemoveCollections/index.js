@@ -79,6 +79,7 @@ const RemoveCollections = ({ onClose, collectionUid, collectionUids }) => {
           title={`Remove ${pluralizeWord('Collection', collections.length)}`}
           confirmText={isMultiple ? 'Remove All' : 'Remove'}
           confirmButtonColor="danger"
+          confirmAutoFocus
           handleConfirm={onConfirm}
           handleCancel={onClose}
         >
