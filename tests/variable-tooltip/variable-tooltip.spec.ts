@@ -22,6 +22,7 @@ import {
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 import { SECRET_DATATYPE_CASES } from '../utils/constants';
+import { buildAutocompleteLocators } from '../utils/page/autocomplete';
 
 const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
 
@@ -843,6 +844,86 @@ test.describe('Variable Tooltip', () => {
 
       await expect(editor.locator('.CodeMirror-line')).toContainText('pin-value-still-editable-after-mouse-left');
       await expect(tooltip).toBeVisible();
+    });
+  });
+
+  test('should close on Escape and discard an unsaved edit', async ({ page, createTmpDir }) => {
+    const collectionName = 'tooltip-escape-test';
+    const { sidebar, varInfoPopup } = buildCommonLocators(page);
+
+    await test.step('Setup collection, environment variable, and request', async () => {
+      await createCollection(page, collectionName, await createTmpDir('tooltip-escape-collection'));
+
+      await createEnvironment(page, 'Escape Env', 'collection');
+      await addEnvironmentVariables(page, [{ name: 'escVar', value: 'esc-value' }]);
+      await saveEnvironment(page);
+      await closeEnvironmentPanel(page);
+
+      await createRequest(page, 'Escape Test Request', collectionName);
+      await sidebar.request('Escape Test Request').click();
+      await setRequestUrlAndSave(page, 'https://api.example.com?key={{escVar}}');
+    });
+
+    await test.step('Type a change in the tooltip value, then press Escape', async () => {
+      const tooltip = await openUrlVarTooltip(page, 'escVar');
+      await varInfoPopup.editableValue(tooltip).click();
+      const editor = varInfoPopup.editor(tooltip);
+      await expect(editor).toBeVisible();
+
+      await page.keyboard.press('End');
+      await page.keyboard.type('-unsaved');
+      await expect(editor.locator('.CodeMirror-line')).toContainText('esc-value-unsaved');
+
+      await page.keyboard.press('Escape');
+      await expect(varInfoPopup.all()).toHaveCount(0);
+    });
+
+    await test.step('The edit was not saved', async () => {
+      const tooltip = await openUrlVarTooltip(page, 'escVar');
+      await expect(varInfoPopup.editableValue(tooltip)).toHaveText('esc-value');
+    });
+  });
+
+  test('should close an open autocomplete list on the first Escape and the tooltip on the second', async ({ page, createTmpDir }) => {
+    const collectionName = 'tooltip-escape-hints-test';
+    const { sidebar, varInfoPopup } = buildCommonLocators(page);
+    const { widget } = buildAutocompleteLocators(page);
+
+    await test.step('Setup collection, environment variable, and request', async () => {
+      await createCollection(page, collectionName, await createTmpDir('tooltip-escape-hints-collection'));
+
+      await createEnvironment(page, 'Escape Hints Env', 'collection');
+      await addEnvironmentVariables(page, [{ name: 'escHintsVar', value: 'esc-hints-value' }]);
+      await saveEnvironment(page);
+      await closeEnvironmentPanel(page);
+
+      await createRequest(page, 'Escape Hints Request', collectionName);
+      await sidebar.request('Escape Hints Request').click();
+      await setRequestUrlAndSave(page, 'https://api.example.com?key={{escHintsVar}}');
+    });
+
+    const tooltip = await openUrlVarTooltip(page, 'escHintsVar');
+
+    await test.step('Open an autocomplete list in the tooltip value', async () => {
+      await varInfoPopup.editableValue(tooltip).click();
+      await expect(varInfoPopup.editor(tooltip)).toBeVisible();
+
+      await page.keyboard.press('End');
+      await page.keyboard.type('{{');
+      await expect(widget()).toBeVisible();
+    });
+
+    await test.step('The first Escape closes only the list', async () => {
+      await page.keyboard.press('Escape');
+
+      await expect(widget()).toHaveCount(0);
+      await expect(tooltip).toBeVisible();
+    });
+
+    await test.step('The second Escape closes the tooltip', async () => {
+      await page.keyboard.press('Escape');
+
+      await expect(varInfoPopup.all()).toHaveCount(0);
     });
   });
 
