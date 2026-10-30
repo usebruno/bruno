@@ -201,6 +201,15 @@ const StyledWrapper = styled.div`
       background: ${(props) => props.theme.background.surface0};
     }
 
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
+
+      &:hover {
+        background: transparent;
+      }
+    }
+
     &.close-button:hover {
       background: ${(props) => props.theme.background.surface0};
     }

@@ -668,6 +668,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 
           return dispatch(
             responseReceived({
+              requestUid,
               itemUid,
               collectionUid,
               response: serializedResponse,
@@ -683,6 +684,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
           if (err && err.message === 'Error invoking remote method \'send-http-request\': Error: Request cancelled') {
             dispatch(
               responseReceived({
+                requestUid,
                 itemUid,
                 collectionUid,
                 response: null,
@@ -702,6 +704,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 
           dispatch(
             responseReceived({
+              requestUid,
               itemUid,
               collectionUid,
               response: errorResponse,

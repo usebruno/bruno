@@ -12,7 +12,11 @@ const {
   clearSidebarSelection,
   setLastClickedSidebarUid,
   collapseItem,
-  expandItem
+  expandItem,
+  clearAllNetworkRequests,
+  clearRequestTimeline,
+  initRunRequestEvent,
+  responseReceived
 } = collectionsSlice.actions;
 const reducer = collectionsSlice.reducer;
 
@@ -292,5 +296,186 @@ describe('updateVar — dataType is only changed when the caller says so', () =>
     const vars = reqVarsAfter({ uid: 'v1', name: 'count', value: 'true', enabled: true, dataType: 'boolean' });
 
     expect(vars[0]).toMatchObject({ value: 'true', dataType: 'boolean' });
+  });
+});
+
+describe('independent Network and response histories', () => {
+  const requestEntry = (uid) => ({
+    type: 'request',
+    collectionUid: 'col1',
+    itemUid: uid,
+    timestamp: 1,
+    data: {
+      request: { method: 'GET', url: 'https://example.com' },
+      response: { statusCode: 200 }
+    }
+  });
+  const requestReference = (requestEventId, itemUid) => ({
+    type: 'request',
+    requestEventId,
+    collectionUid: 'col1',
+    itemUid,
+    timestamp: 1
+  });
+
+  it('clears Network history without changing request timelines', () => {
+    const events = {
+      r1: requestEntry('r1'),
+      r2: requestEntry('r2'),
+      r3: { ...requestEntry('r3'), collectionUid: 'col2' }
+    };
+    const state = {
+      requestTimelineEvents: events,
+      networkRequestIds: ['r1', 'r2', 'r3'],
+      networkRequestsGeneration: 4,
+      collections: [
+        { uid: 'col1', name: 'One', timeline: [requestReference('r1', 'r1'), requestReference('r2', 'r2')] },
+        { uid: 'col2', name: 'Two', timeline: [requestReference('r3', 'r3')] }
+      ]
+    };
+
+    const next = reducer(state, clearAllNetworkRequests());
+
+    expect(next.networkRequestIds).toEqual([]);
+    expect(next.requestTimelineEvents).toEqual(events);
+    expect(next.networkRequestsGeneration).toBe(5);
+    expect(next.collections[0].timeline).toEqual(state.collections[0].timeline);
+    expect(next.collections[1].timeline).toEqual(state.collections[1].timeline);
+  });
+
+  it('adds a completed request to both histories', () => {
+    const state = makeStateWith({
+      uid: 'item1',
+      request: { method: 'GET', url: 'https://example.com' }
+    });
+
+    const started = reducer(state, initRunRequestEvent({
+      requestUid: 'run1',
+      itemUid: 'item1',
+      collectionUid: 'col1'
+    }));
+    const completed = reducer(started, responseReceived({
+      requestUid: 'run1',
+      collectionUid: 'col1',
+      itemUid: 'item1',
+      requestSent: { method: 'GET', url: 'https://example.com', timestamp: 10 },
+      response: { statusCode: 200, duration: 5 }
+    }));
+
+    expect(completed.collections[0].timeline).toHaveLength(1);
+    expect(completed.networkRequestIds).toHaveLength(1);
+    const requestEventId = completed.networkRequestIds[0];
+    expect(completed.requestTimelineEvents[requestEventId]).toMatchObject({
+      type: 'request',
+      itemUid: 'item1',
+      data: { request: { method: 'GET' }, response: { statusCode: 200 } }
+    });
+    expect(completed.collections[0].timeline[0]).toMatchObject({ type: 'request', requestEventId });
+  });
+
+  it('keeps an in-flight request out of Network after clear but completes its response timeline', () => {
+    const state = makeStateWith({
+      uid: 'item1',
+      request: { method: 'GET', url: 'https://example.com' }
+    });
+    const started = reducer(state, initRunRequestEvent({
+      requestUid: 'run1',
+      itemUid: 'item1',
+      collectionUid: 'col1'
+    }));
+    const cleared = reducer(started, clearAllNetworkRequests());
+    const completed = reducer(cleared, responseReceived({
+      requestUid: 'run1',
+      collectionUid: 'col1',
+      itemUid: 'item1',
+      requestSent: { method: 'GET', url: 'https://example.com', timestamp: 10 },
+      response: { statusCode: 200, duration: 5 }
+    }));
+
+    expect(completed.networkRequestIds).toEqual([]);
+    expect(completed.collections[0].timeline).toHaveLength(1);
+    expect(Object.keys(completed.requestTimelineEvents)).toHaveLength(1);
+  });
+
+  it('does not let a late response from a pre-clear run enter the new Network history', () => {
+    const state = makeStateWith({
+      uid: 'item1',
+      request: { method: 'GET', url: 'https://example.com' }
+    });
+    const firstRun = reducer(state, initRunRequestEvent({
+      requestUid: 'run1',
+      itemUid: 'item1',
+      collectionUid: 'col1'
+    }));
+    const cleared = reducer(firstRun, clearAllNetworkRequests());
+    const secondRun = reducer(cleared, initRunRequestEvent({
+      requestUid: 'run2',
+      itemUid: 'item1',
+      collectionUid: 'col1'
+    }));
+    const afterStaleResponse = reducer(secondRun, responseReceived({
+      requestUid: 'run1',
+      collectionUid: 'col1',
+      itemUid: 'item1',
+      response: { statusCode: 200 }
+    }));
+
+    expect(afterStaleResponse.networkRequestIds).toEqual([]);
+    expect(afterStaleResponse.collections[0].timeline).toBeUndefined();
+
+    const completed = reducer(afterStaleResponse, responseReceived({
+      requestUid: 'run2',
+      collectionUid: 'col1',
+      itemUid: 'item1',
+      response: { statusCode: 201 }
+    }));
+    expect(completed.networkRequestIds).toHaveLength(1);
+    expect(completed.requestTimelineEvents[completed.networkRequestIds[0]].data.response.statusCode).toBe(201);
+  });
+
+  it('keeps Network history when the request Timeline is cleared', () => {
+    const request = requestEntry('r1');
+    const reference = requestReference('event-r1', 'r1');
+    const state = {
+      networkRequestIds: ['event-r1'],
+      requestTimelineEvents: { 'event-r1': request },
+      collections: [{ uid: 'col1', items: [{ uid: 'r1' }], timeline: [reference] }]
+    };
+
+    const next = reducer(state, clearRequestTimeline({ collectionUid: 'col1', itemUid: 'r1' }));
+
+    expect(next.collections[0].timeline).toEqual([]);
+    expect(next.networkRequestIds).toEqual(['event-r1']);
+    expect(next.requestTimelineEvents['event-r1']).toEqual(request);
+  });
+
+  it('keeps non-request timeline entries and collections that have no timeline when Network is cleared', () => {
+    const infoEntry = { type: 'info', timestamp: 2, message: 'kept' };
+    const oauthEntry = { type: 'oauth2', timestamp: 3, data: {} };
+    const request = requestEntry('r1');
+    const reference = requestReference('event-r1', 'r1');
+    const state = {
+      networkRequestIds: ['event-r1'],
+      requestTimelineEvents: { 'event-r1': request },
+      collections: [
+        { uid: 'col1', timeline: [reference, infoEntry, oauthEntry] },
+        { uid: 'col2' }
+      ]
+    };
+
+    const next = reducer(state, clearAllNetworkRequests());
+
+    expect(next.networkRequestIds).toEqual([]);
+    expect(next.collections[0].timeline).toEqual([reference, infoEntry, oauthEntry]);
+    expect(next.requestTimelineEvents['event-r1']).toEqual(request);
+    expect(next.collections[1].timeline).toBeUndefined();
+  });
+
+  it('clears Network history when there are no collections', () => {
+    const next = reducer({ collections: [], networkRequestIds: ['r1'], requestTimelineEvents: { r1: requestEntry('r1') } }, clearAllNetworkRequests());
+
+    expect(next.collections).toEqual([]);
+    expect(next.networkRequestIds).toEqual([]);
+    expect(next.requestTimelineEvents).toEqual({});
   });
 });

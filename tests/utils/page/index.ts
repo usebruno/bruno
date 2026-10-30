@@ -23,3 +23,5 @@ export * from './unresolved-variables-info';
 export * from './secret-variable-form';
 export * from './variables-tab';
 export * from './autocomplete';
+export * from './devtools-console';
+export * from './response-pane';
