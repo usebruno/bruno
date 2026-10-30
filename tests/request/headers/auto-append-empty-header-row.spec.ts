@@ -100,7 +100,7 @@ test('TC-2650: Verify header deletion via backspace clears state', { tag: '@sani
   });
 
   await test.step('Backspace until the Name field is empty', async () => {
-    const nameEditor = headers.requestRow(headerName).getByTestId('column-name').locator('.CodeMirror');
+    const nameEditor = headers.requestRow(headerName).getByTestId('column-name');
     await nameEditor.click();
     await page.keyboard.press('End');
     for (let i = 0; i < headerName.length; i++) {
