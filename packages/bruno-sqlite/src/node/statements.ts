@@ -1,4 +1,4 @@
-import type { DatabaseSync, StatementSync, SupportedValueType } from 'node:sqlite';
+import type { DatabaseSync, StatementSync, SQLInputValue } from 'node:sqlite';
 import type { SQLiteParams, StatementDef } from '../shared/types';
 import { statements as statementDefs } from '../generated/node/statements';
 
@@ -28,7 +28,7 @@ export class Statements {
     if (stmt === undefined) {
       throw new Error(`Statement "${name}" could not be prepared against this database`);
     }
-    const args = params as Record<string, SupportedValueType>;
+    const args = params as Record<string, SQLInputValue>;
     switch (def.type) {
       case 'exec':
         return stmt.run(args);
