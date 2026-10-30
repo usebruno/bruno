@@ -117,7 +117,6 @@ import { migrationStarted, migrationCancelRequested, migrationEnded } from 'prov
 import { flushSnapshotNow } from 'providers/ReduxStore/middlewares/snapshot/middleware';
 import { saveGlobalEnvironment, clearGlobalEnvironmentDraft, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
 import { getTabToFocusForCurrentWorkspace } from 'providers/ReduxStore/slices/workspaces/getTabToFocusForCurrentWorkspace';
-import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 import {
   getCollectionEnvironmentPath,
   findCollectionEnvironmentFromSnapshot,
@@ -2801,7 +2800,7 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
         // Check if the collection still exists in other workspaces
         return ipcRenderer.invoke('renderer:get-collection-workspaces', collection.pathname);
       })
-      .then((remainingWorkspaces) => {
+      .then(async (remainingWorkspaces) => {
         // Close tabs for this collection
         dispatch(closeAllCollectionTabs({ collectionUid }));
 
@@ -3814,12 +3813,7 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
     .filter((t) => tabUids.includes(t.uid) && t.type === 'openapi-sync' && t.collectionUid)
     .map((t) => t.collectionUid);
 
-  // Close the tabs first
-  await dispatch(_closeTabs({ tabUids }));
-
-  // Clear persisted scope AFTER unmount — otherwise useTrackScroll's cleanup flush
-  // would rewrite scroll position to localStorage right after we cleared it.
-  each(tabUids, (tabUid) => clearPersistedScope(tabUid));
+  dispatch(_closeTabs({ tabUids }));
 
   // After close, the reducer may have set active tab to one from another workspace. Ensure it belongs to this workspace: prefer any open in-workspace tab, then workspace overview if none.
   // Dispatch is synchronous; state is already updated by _closeTabs above.
