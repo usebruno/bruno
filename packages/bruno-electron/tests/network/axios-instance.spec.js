@@ -471,10 +471,12 @@ describe('axios-instance: cross-origin redirects authorization stripping', () =>
     // Third call (cross origin redirect) - headers stripped
     expect(calls[2].url).toBe('https://other-domain.com/target');
     expect(calls[2].headers['Authorization']).toBeUndefined();
+    expect(calls[2].headers['Proxy-Authorization']).toBe('Bearer proxy-token');
 
     // Fourth call (relative redirect on cross origin) - headers still stripped
     expect(calls[3].url).toBe('https://other-domain.com/final-target');
     expect(calls[3].headers['Authorization']).toBeUndefined();
+    expect(calls[3].headers['Proxy-Authorization']).toBe('Bearer proxy-token');
   });
 });
 
