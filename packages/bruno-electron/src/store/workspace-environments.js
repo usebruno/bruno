@@ -3,7 +3,7 @@ const path = require('path');
 const _ = require('lodash');
 const { parseEnvironment, stringifyEnvironment } = require('@usebruno/filestore');
 const { parseValueByDataType } = require('@usebruno/common/utils');
-const { writeFile, createDirectory, withFileLock } = require('../utils/filesystem');
+const { writeEnvironmentFile, createDirectory, withFileLock } = require('../utils/filesystem');
 const { renameEnvironmentExtendsReferences } = require('../utils/environments');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
 const { decryptStringSafe } = require('../utils/encryption');
@@ -154,7 +154,7 @@ class GlobalEnvironmentsManager {
       }
 
       const content = await stringifyEnvironment(environment, { format: 'yml' });
-      await writeFile(environmentFilePath, content);
+      await writeEnvironmentFile(environmentFilePath, content);
 
       return {
         uid: generateUidBasedOnHash(environmentFilePath),
@@ -207,7 +207,7 @@ class GlobalEnvironmentsManager {
         }
 
         const content = await stringifyEnvironment(environment, { format: 'yml' });
-        await writeFile(envFile.filePath, content);
+        await writeEnvironmentFile(envFile.filePath, content);
       });
 
       return true;
@@ -239,7 +239,7 @@ class GlobalEnvironmentsManager {
       environment.name = newName;
 
       const content = await stringifyEnvironment(environment, { format: 'yml' });
-      await writeFile(newFilePath, content);
+      await writeEnvironmentFile(newFilePath, content);
 
       if (this.envHasSecrets(environment)) {
         const oldEnv = { name: oldName };
@@ -306,7 +306,7 @@ class GlobalEnvironmentsManager {
         environment.color = color;
 
         const content = stringifyEnvironment(environment, { format: 'yml' });
-        await writeFile(envFile.filePath, content);
+        await writeEnvironmentFile(envFile.filePath, content);
       });
 
       return true;
@@ -337,7 +337,7 @@ class GlobalEnvironmentsManager {
         }
 
         const content = stringifyEnvironment(environment, { format: 'yml' });
-        await writeFile(envFile.filePath, content);
+        await writeEnvironmentFile(envFile.filePath, content);
       });
 
       return true;

@@ -34,6 +34,9 @@ const { transformProxyConfig } = require('@usebruno/requests');
 const {
   DEFAULT_GITIGNORE,
   writeFile,
+  writeEnvironmentFile,
+  writeEnvironmentFileSync,
+  restrictEnvironmentFilePermissions,
   writeFileUnique,
   mkdirUnique,
   getUniqueRenamePath,
@@ -777,7 +780,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const content = await stringifyEnvironment(environment, { format });
 
-      await writeFile(envFilePath, content);
+      await writeEnvironmentFile(envFilePath, content);
     } catch (error) {
       return Promise.reject(error);
     }
@@ -810,8 +813,12 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         const content = await stringifyEnvironment(environment, { format });
         const existing = fs.readFileSync(envFilePath, 'utf8');
-        if (content === existing) return; // skip write if content unchanged
-        await writeFile(envFilePath, content);
+        if (content === existing) {
+          // Nothing to write, but still tighten files created before #2016
+          restrictEnvironmentFilePermissions(envFilePath);
+          return;
+        }
+        await writeEnvironmentFile(envFilePath, content);
       });
     } catch (error) {
       return Promise.reject(error);
@@ -843,7 +850,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           if (environment.name === newName) return;
 
           environment.name = newName;
-          await writeFile(newEnvFilePath, stringifyEnvironment(environment, { format }));
+          await writeEnvironmentFile(newEnvFilePath, stringifyEnvironment(environment, { format }));
         });
       }
 
@@ -984,7 +991,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         }
 
         const updatedContent = stringifyEnvironment(environment, { format });
-        await writeFile(envFilePath, updatedContent);
+        await writeEnvironmentFile(envFilePath, updatedContent);
       });
     } catch (error) {
       return Promise.reject(error);
@@ -1006,7 +1013,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const environment = parseEnvironment(fileContent, { format });
         environment.color = color;
         const updatedContent = stringifyEnvironment(environment, { format });
-        await writeFile(envFilePath, updatedContent);
+        await writeEnvironmentFile(envFilePath, updatedContent);
       });
     } catch (error) {
       return Promise.reject(error);
@@ -1484,7 +1491,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             const content = await stringifyEnvironment(env, { format });
             const sanitizedEnvFilename = sanitizeName(`${env.name}.${format}`);
             const filePath = path.join(envDirPath, sanitizedEnvFilename);
-            safeWriteFileSync(filePath, content);
+            writeEnvironmentFileSync(filePath, content);
           }));
         };
 
