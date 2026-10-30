@@ -106,6 +106,7 @@ export const buildCommonLocators = (page: Page) => ({
     overflowTrigger: (root?: Locator) => (root ?? page).locator('.tabs .more-tabs'),
     // menu is rendered via portal, hence it rooted to page.
     overflowItem: (key: string) => page.getByTestId(`menu-dropdown-${key}`),
+    scriptSubTabsOverflowTrigger: () => page.getByTestId('script-sub-tabs').getByTestId('tabs-overflow-trigger'),
     collectionSettingsTab: (key: string) => page.getByTestId(`collection-settings-tab-${key}`),
     folderSettingsTab: (key: string) => page.getByTestId(`folder-settings-tab-${key}`),
     folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
@@ -130,6 +131,7 @@ export const buildCommonLocators = (page: Page) => ({
     any: () => page.locator('.bruno-modal'),
     formError: (text: string | RegExp) =>
       page.locator('.bruno-modal [data-testid="form-error"]').getByText(text),
+    tabOptions: () => page.locator('.bruno-modal-header-tabs').locator('.bruno-modal-header-tab'),
     title: (title: string) => page.locator('.bruno-modal-header-title').filter({ hasText: title }),
     byTitle: (title: string) => page.locator('.bruno-modal').filter({ has: page.locator('.bruno-modal-header-title').filter({ hasText: title }) }),
     itemNameInput: (root?: Locator) => (root ?? page.locator('.bruno-modal')).locator('#collection-item-name'),
@@ -357,7 +359,9 @@ export const buildCommonLocators = (page: Page) => ({
   },
   export: {
     postmanModal: () => page.getByTestId('export-to-postman-modal'),
+    exportTab: () => page.getByTestId('share-collection-tab-export'),
     postmanFormatCard: () => page.getByTestId('export-format-postman'),
+    yamlFormatCard: () => page.getByTestId('export-format-yaml'),
     nameInput: () => page.getByLabel('Name', { exact: true }),
     locationInput: () => page.getByLabel('Location', { exact: true }),
     optionsButton: () => page.getByRole('button', { name: 'Options' }),
