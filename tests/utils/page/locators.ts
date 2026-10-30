@@ -64,6 +64,10 @@ export const buildCommonLocators = (page: Page) => ({
   saveButton: () => page.getByTestId('save-request-button'),
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
+  statusBarGlobalSearch: () => page.getByRole('button', { name: 'Global Search', exact: true }),
+  globalSearch: {
+    input: () => page.getByTestId('global-search-input')
+  },
   sidebar: buildSidebarLocators(page),
   workspaceOverview: buildWorkspaceOverviewLocators(page),
   manageWorkspace: buildManageWorkspaceLocators(page),
