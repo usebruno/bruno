@@ -434,8 +434,7 @@ function makeAxiosInstance({
 
             if (!forwardAuthorizationHeader) {
               Object.keys(requestConfig.headers).forEach((key) => {
-                const lowerKey = key.toLowerCase();
-                if (lowerKey === 'authorization' || lowerKey === 'proxy-authorization') {
+                if (key.toLowerCase() === 'authorization') {
                   delete requestConfig.headers[key];
                 }
               });
@@ -443,7 +442,7 @@ function makeAxiosInstance({
               timeline.push({
                 timestamp: new Date(),
                 type: 'info',
-                message: `Cross-origin redirect: stripping Authorization and Proxy-Authorization headers`
+                message: `Cross-origin redirect: stripping Authorization header`
               });
             }
           }
