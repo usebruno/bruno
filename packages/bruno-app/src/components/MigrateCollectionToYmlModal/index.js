@@ -300,16 +300,16 @@ const MigrateCollectionToYmlModal = () => {
         >
           <div className="flex items-center">
             <IconAlertTriangle size={32} strokeWidth={1.5} className="warning-text" />
-            <h1 className="ml-2 text-lg font-medium">Hold on..</h1>
+            <h1 className="ml-2 text-lg font-medium" data-testid="migration-drafts-title">Hold on..</h1>
           </div>
-          <p className="mt-4">
+          <p className="mt-4" data-testid="migration-drafts-summary">
             You have unsaved changes in <span className="font-medium">{totalDraftsCount}</span>{' '}
             {pluralizeWord('item', totalDraftsCount)}. Save or discard them before migrating.
           </p>
 
           <ul className="mt-4 ml-2">
             {collectionDrafts.slice(0, MAX_UNSAVED_ITEMS_TO_SHOW).map((draft, index) => (
-              <li key={`${draft.type || 'request'}-${draft.uid || draft.folderUid || draft.environmentUid || draft.collectionUid}-${index}`} className="mt-1 text-xs">
+              <li key={`${draft.type || 'request'}-${draft.uid || draft.folderUid || draft.environmentUid || draft.collectionUid}-${index}`} className="mt-1 text-xs" data-testid="migration-drafts-item">
                 • {renderDraftLabel(draft)}
               </li>
             ))}
@@ -399,6 +399,7 @@ const MigrateCollectionToYmlModal = () => {
       <Modal
         size="md"
         title="Migrate to YML format"
+        dataTestId="migrate-to-yml-modal"
         confirmText={isMigrating ? (isCancelling ? 'Cancelling…' : 'Cancel') : 'Migrate'}
         confirmButtonColor={isMigrating ? 'danger' : 'primary'}
         confirmDisabled={confirmDisabled}
@@ -411,7 +412,7 @@ const MigrateCollectionToYmlModal = () => {
       >
         <div>
           <p>
-            This will convert all files in <strong>{migration.collectionName}</strong> from <code>.bru</code> format to <code>.yml</code> format.
+            This will convert all files in <strong data-testid="migrate-to-yml-collection-name">{migration.collectionName}</strong> from <code>.bru</code> format to <code>.yml</code> format.
           </p>
           {isMigrating ? (
             <div

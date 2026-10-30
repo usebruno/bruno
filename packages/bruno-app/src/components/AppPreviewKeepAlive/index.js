@@ -100,6 +100,7 @@ const AppPreviewKeepAlive = () => {
           <div
             key={tabUid}
             className={`app-preview-slot ${isActive ? 'active' : ''}`}
+            data-testid={isActive ? 'app-preview-slot-active' : 'app-preview-slot'}
             aria-hidden={!isActive}
           >
             <TabPanelErrorBoundary tabUid={tabUid}>

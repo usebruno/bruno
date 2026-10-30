@@ -5,7 +5,6 @@ import {
   createApp,
   createCollection,
   saveRequest
-
 } from '../../utils/page';
 import {
   addCollectionAppCodeFromEmptyState,
@@ -49,8 +48,8 @@ test.describe('Migrate to YML — unsaved collection app', () => {
     });
 
     await test.step('Migrate modal shows the collection, Export Collection, Cancel and Migrate', async () => {
-      await expect(collectionApp.modalTitle()).toBeVisible();
-      await expect(collectionApp.modalCollectionName(collectionName)).toBeVisible();
+      await expect(collectionApp.modalTitle()).toHaveText('Migrate to YML format');
+      await expect(collectionApp.modalCollectionName()).toHaveText(collectionName);
       await expect(migrate.exportBackupButton()).toBeVisible();
       await expect(migrate.exportBackupButton()).toHaveText('Export Collection');
       await expect(migrate.cancelMigrationButton()).toBeVisible();
@@ -64,9 +63,9 @@ test.describe('Migrate to YML — unsaved collection app', () => {
 
     await test.step('Unsaved changes step lists the app and offers Discard All, Back and Save', async () => {
       await expect(collectionApp.draftsStep()).toBeVisible();
-      await expect(collectionApp.draftsTitle()).toBeVisible();
+      await expect(collectionApp.draftsTitle()).toHaveText('Hold on..');
       await expect(collectionApp.draftsSummary()).toHaveText('You have unsaved changes in 1 item. Save or discard them before migrating.');
-      await expect(collectionApp.draftsItem(`App: ${APP_NAME}`)).toBeVisible();
+      await expect(collectionApp.draftsItems()).toHaveText([`• App: ${APP_NAME}`]);
 
       await expect(migrate.draftsDiscardAll()).toBeVisible();
       await expect(migrate.draftsDiscardAll()).toBeEnabled();

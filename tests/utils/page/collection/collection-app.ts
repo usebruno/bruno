@@ -1,34 +1,31 @@
 import { Page } from '../../../../playwright';
 
 /**
- * Collection app UI: the "Add app code" empty state and Code view, plus the
- * "Migrate to YML" pill, the migrate modal's title and collection name, and the
- * "Unsaved changes" drafts step shown when an unsaved app edit blocks the migration.
+ * Collection app editor, plus the "Migrate to YML" pill and modal it blocks with unsaved edits.
  */
 export const buildCollectionAppLocators = (page: Page) => {
-  const migrateModal = () => page.getByRole('dialog').filter({ hasText: 'Migrate to YML format' });
+  const migrateModal = () => page.getByTestId('migrate-to-yml-modal');
   const draftsStep = () => page.getByTestId('migration-drafts-step');
-  const activeAppSlot = () => page.locator('.app-preview-slot.active');
+  const activeAppSlot = () => page.getByTestId('app-preview-slot-active');
 
   return {
     modal: migrateModal,
-    modalTitle: () => migrateModal().getByText('Migrate to YML format', { exact: true }),
-    modalCollectionName: (collectionName: string) => migrateModal().getByText(collectionName, { exact: true }),
+    modalTitle: () => migrateModal().getByTestId('migrate-to-yml-modal-title'),
+    modalCollectionName: () => migrateModal().getByTestId('migrate-to-yml-collection-name'),
     pill: () => page.getByTestId('migrate-yml-pill'),
     emptyStateAddCodeButton: () => activeAppSlot().getByTestId('empty-app-state').getByTestId('empty-app-add-code'),
     codeView: () => activeAppSlot().getByTestId('collection-app-code'),
-    codeEditor: () => activeAppSlot().getByTestId('collection-app-code').locator('.CodeMirror').first(),
+    codeEditor: () => activeAppSlot().getByTestId('collection-app-code-editor').locator('.CodeMirror'),
     viewToggle: (view: 'code' | 'preview') => activeAppSlot().getByTestId(`collection-app-view-${view}`),
     draftsStep,
-    draftsTitle: () => draftsStep().getByText('Hold on..'),
-    draftsSummary: () => draftsStep().getByText(/^You have unsaved changes in/),
-    draftsItem: (label: string) => draftsStep().getByText(`• ${label}`, { exact: true })
+    draftsTitle: () => draftsStep().getByTestId('migration-drafts-title'),
+    draftsSummary: () => draftsStep().getByTestId('migration-drafts-summary'),
+    draftsItems: () => draftsStep().getByTestId('migration-drafts-item')
   };
 };
 
 /**
  * Click "Add app code" on an empty collection app and wait for its Code view.
- * @param page - The page object
  */
 export const addCollectionAppCodeFromEmptyState = async (page: Page) => {
   const collectionApp = buildCollectionAppLocators(page);
@@ -38,7 +35,6 @@ export const addCollectionAppCodeFromEmptyState = async (page: Page) => {
 
 /**
  * Opens the migration modal from the "Migrate to YML" pill in the collection header.
- * @param page - The page object
  */
 export const openMigrateToYmlModalFromPill = async (page: Page) => {
   const collectionApp = buildCollectionAppLocators(page);
@@ -47,10 +43,7 @@ export const openMigrateToYmlModalFromPill = async (page: Page) => {
 };
 
 /**
- * Sets the code of the active collection app. Uses the CodeMirror API instead of
- * typing, since typing HTML/JS triggers auto-close-brackets. Does not save.
- * @param page - The page object
- * @param code - The app code to set
+ * Sets the active app's code without saving.
  */
 export const setCollectionAppCode = async (page: Page, code: string) => {
   const collectionApp = buildCollectionAppLocators(page);
