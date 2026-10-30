@@ -53,6 +53,18 @@ export const buildRequestLocators = (page: Page) => ({
     inheritedRow: (name: string) => page.getByTestId(`inherited-header-row-${name.toLowerCase()}`),
     inheritedSource: (name: string) => page.getByTestId(`inherited-header-source-${name.toLowerCase()}`),
     addRow: () => page.getByTestId('request-header-add-row'),
+    nameCell: (row: Locator) => row.getByTestId('column-name'),
+    valueCell: (row: Locator) => row.getByTestId('column-value'),
+    checkbox: (row: Locator) => row.getByTestId('column-checkbox'),
+    cellLine: (row: Locator, column: 'name' | 'value') => row.getByTestId(`column-${column}`)
+      .getByRole('presentation')
+      .filter({ hasNot: page.getByRole('presentation') }),
+    bulkEdit: () => page.getByTestId('request-pane').getByTestId('bulk-edit-toggle'),
+    keyValueEdit: () => page.getByTestId('request-pane').getByTestId('key-value-edit-toggle'),
+    bulkEditor: () => page.getByTestId('request-pane').getByLabel('Code Editor'),
+    bulkEditorLines: () => page.getByTestId('request-pane').getByLabel('Code Editor')
+      .getByRole('presentation')
+      .filter({ hasNot: page.getByRole('presentation') }),
     toggleInherited: () => page.getByTestId('toggle-inherited-headers'),
     paneScroller: () => page.getByTestId('request-pane').getByTestId('flex-boundary'),
     defaultInfo: (name: string) => page.getByTestId(`default-header-info-${name.toLowerCase()}`),
@@ -150,6 +162,18 @@ export const fillRequestHeaderValue = async (page: Page, row: Locator, value: st
   const valueEditor = row.getByTestId('column-value').locator('.CodeMirror');
   await valueEditor.click();
   await page.keyboard.type(value);
+};
+
+/**
+ * Append lines to the request Headers bulk editor by typing, leaving the existing text in place.
+ */
+export const appendRequestHeaderBulkLines = async (page: Page, lines: string[]) => {
+  const { headers } = buildRequestLocators(page);
+  const editor = headers.bulkEditor();
+  await editor.click();
+  const endOfDocument = process.platform === 'darwin' ? 'Meta+End' : 'Control+End';
+  await page.keyboard.press(endOfDocument);
+  await page.keyboard.type(`\n${lines.join('\n')}`, { delay: 5 });
 };
 
 /**
