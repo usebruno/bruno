@@ -6,7 +6,6 @@ import * as fs from 'fs';
 import { version } from '../packages/bruno-app/package.json';
 
 const electronAppPath = path.join(__dirname, '../packages/bruno-electron');
-const electronExecutablePath = require('./electron-executable-path.js') as string;
 
 const PREFERENCES_FILE = 'preferences.json';
 
@@ -289,7 +288,6 @@ export const test = baseTest.extend<
         }
 
         const app = await playwright._electron.launch({
-          executablePath: electronExecutablePath,
           args: [electronAppPath, '--disable-gpu'],
           env: {
             ...process.env,

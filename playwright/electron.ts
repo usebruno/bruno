@@ -2,11 +2,9 @@ const path = require('path');
 const { _electron: electron } = require('playwright');
 
 const electronAppPath = path.join(__dirname, '../packages/bruno-electron');
-const electronExecutablePath = require('./electron-executable-path.js');
 
 exports.startApp = async () => {
   const app = await electron.launch({
-    executablePath: electronExecutablePath,
     args: [electronAppPath]
   });
   const context = await app.context();
