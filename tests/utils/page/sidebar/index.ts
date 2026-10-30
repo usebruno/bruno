@@ -211,3 +211,19 @@ export const clearSearchIndex = async (page: Page) => {
     await expect.poll(() => page.evaluate(() => window.ipcRenderer.invoke('renderer:get-search-index-size'))).toBe(0);
   });
 };
+
+/**
+ * Resolves once the named collection's row shows its loading spinner. Start it before the action
+ * that triggers the mount: a large mount can block the main process, and with it every Playwright
+ * command, until the mount is done — so the spinner is watched for inside the page instead.
+ * @param page - The Playwright page object
+ * @param name - The collection name
+ * @param timeout - How long to wait for the spinner
+ */
+export const waitForCollectionSpinner = (page: Page, name: string, timeout?: number) =>
+  page.waitForFunction(
+    (collectionName) => [...document.querySelectorAll('[data-testid="sidebar-collection-row"]')]
+      .some((row) => row.textContent?.includes(collectionName) && row.querySelector('.animate-spin')),
+    name,
+    { timeout }
+  );
