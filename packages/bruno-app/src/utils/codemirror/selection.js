@@ -1,3 +1,18 @@
+import { isMacOS } from 'utils/common/platform';
+
+const RIGHT_MOUSE_BUTTON = 2;
+const LEFT_MOUSE_BUTTON = 0;
+
+// Chromium reports a macOS ctrl+click as the left button, but it opens the context menu all the
+// same — CodeMirror normalises it the same way in `e_button`.
+const isContextMenuGesture = (event) => {
+  if (event?.button === RIGHT_MOUSE_BUTTON) {
+    return true;
+  }
+
+  return isMacOS() && event?.button === LEFT_MOUSE_BUTTON && event?.ctrlKey === true;
+};
+
 const comparePositions = (a, b) => (a.line - b.line) || (a.ch - b.ch);
 
 const isPositionWithinRange = (position, from, to) =>
@@ -31,6 +46,21 @@ export const getCodeMirrorSelectionPayload = (editor, event) => {
     to,
     editable: !editor.getOption('readOnly')
   };
+};
+
+const collapseWhenUnfocused = (editor) => {
+  if (editor && !editor.hasFocus()) {
+    editor.setCursor(editor.getCursor());
+  }
+};
+
+export const pinSelectionOnContextMenu = ({ editor, event, context, enabled }) => {
+  if (!isContextMenuGesture(event) || !enabled) {
+    context.releasePinnedSelection();
+    return;
+  }
+
+  context.pinSelection(editor, getCodeMirrorSelectionPayload(editor, event), () => collapseWhenUnfocused(editor));
 };
 
 const BRACE_LENGTH = 2;
