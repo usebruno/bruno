@@ -51,11 +51,15 @@ export const buildRequestLocators = (page: Page) => ({
     nameCell: (row: Locator) => row.getByTestId('column-name'),
     valueCell: (row: Locator) => row.getByTestId('column-value'),
     checkbox: (row: Locator) => row.getByTestId('column-checkbox'),
-    cellLine: (row: Locator, column: 'name' | 'value') => row.getByTestId(`column-${column}`).locator('.CodeMirror-line'),
+    cellLine: (row: Locator, column: 'name' | 'value') => row.getByTestId(`column-${column}`)
+      .getByRole('presentation')
+      .filter({ hasNot: page.getByRole('presentation') }),
     bulkEdit: () => page.getByTestId('request-pane').getByTestId('bulk-edit-toggle'),
     keyValueEdit: () => page.getByTestId('request-pane').getByTestId('key-value-edit-toggle'),
     bulkEditor: () => page.getByTestId('request-pane').getByLabel('Code Editor'),
-    bulkEditorLines: () => page.getByTestId('request-pane').getByLabel('Code Editor').locator('.CodeMirror-line'),
+    bulkEditorLines: () => page.getByTestId('request-pane').getByLabel('Code Editor')
+      .getByRole('presentation')
+      .filter({ hasNot: page.getByRole('presentation') }),
     toggleInherited: () => page.getByTestId('toggle-inherited-headers'),
     paneScroller: () => page.getByTestId('request-pane').getByTestId('flex-boundary'),
     defaultInfo: (name: string) => page.getByTestId(`default-header-info-${name.toLowerCase()}`),
