@@ -443,7 +443,7 @@ function makeAxiosInstance({
               timeline.push({
                 timestamp: new Date(),
                 type: 'info',
-                message: `Cross-origin redirect: stripping Authorization and Proxy-Authorization headers`
+                message: `Cross-origin redirect: stripping Authorization header`
               });
             }
           }
