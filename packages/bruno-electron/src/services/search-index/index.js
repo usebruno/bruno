@@ -2,8 +2,6 @@ const path = require('node:path');
 const { getStatements, transaction } = require('../sqlite');
 const { defaultClassify } = require('../../utils/mount');
 
-const NAMING_TYPES = new Set(['config', 'collection', 'folder']);
-
 const likePattern = (term) => `%${String(term ?? '').replace(/[\\%_]/g, '\\$&')}%`;
 
 class SearchIndex {
@@ -37,7 +35,6 @@ class SearchIndex {
       requestProtocol,
       requestSeq,
       requestError,
-      workspacePath,
       mtime,
       hash
     } = entry;
@@ -54,7 +51,6 @@ class SearchIndex {
       request_protocol: requestProtocol ?? null,
       request_seq: requestSeq ?? null,
       request_error: requestError ?? null,
-      workspace_path: workspacePath ?? null,
       mtime,
       hash
     });
@@ -77,7 +73,6 @@ class SearchIndex {
   }
 
   removeMeta(collectionPath, relativePath) {
-    if (!NAMING_TYPES.has(defaultClassify(relativePath)?.type)) return false;
     const owner = this.#execute('search_index_naming_owner', { collection_path: collectionPath, source_path: relativePath });
     if (!owner) return false;
     if (owner.entity === 'folder') {
@@ -133,9 +128,6 @@ class SearchIndex {
     return this.#execute('search_index_folders_for_collection', { collection_path: collectionPath });
   }
 
-  // Adds the folders (and keeps their names/workspace current); never removes any
-  // Makes the stored folders exactly the given ones
-  // Removes a folder and everything under it
   entriesFor(collectionPath) {
     const rows = this.#execute('search_index_entries_metadata', { collection_path: collectionPath });
     return new Map(rows.map((row) => [row.requestPath, row]));
@@ -145,11 +137,10 @@ class SearchIndex {
     return this.#execute('search_index_rows_for_collection', { collection_path: collectionPath });
   }
 
-  countRequestsInCollection(term, collectionPath, { workspacePath } = {}) {
+  countRequestsInCollection(term, collectionPath) {
     const row = this.#execute('search_index_count_requests_in_collection', {
       like: likePattern(term),
-      collection_path: collectionPath,
-      workspace_path: workspacePath ?? null
+      collection_path: collectionPath
     });
     return Number(row?.total ?? 0);
   }

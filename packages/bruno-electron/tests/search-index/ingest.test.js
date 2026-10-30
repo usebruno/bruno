@@ -7,7 +7,6 @@ const makeSearchIndex = () => {
     get revision() {
       return revision;
     },
-    collectionNameFor: () => 'Collection',
     upsert: (entry) => {
       const prior = rows.get(entry.requestPath);
       if (prior && prior.mtime > entry.mtime) return false;
@@ -35,8 +34,7 @@ describe('search-index ingest', () => {
       searchIndex,
       fileIndex: null,
       collectionPath: '/tmp/collection',
-      collectionName: 'Collection',
-      workspacePath: '/tmp/workspace'
+      collectionName: 'Collection'
     };
 
     ingestParsedFile({
@@ -69,8 +67,7 @@ describe('search-index ingest', () => {
       searchIndex,
       fileIndex: null,
       collectionPath: '/tmp/collection',
-      collectionName: 'Collection',
-      workspacePath: null
+      collectionName: 'Collection'
     };
     const result = {
       relativePath: 'req.bru',
@@ -92,7 +89,6 @@ describe('search-index ingest', () => {
       fileIndex: null,
       collectionPath: '/tmp/collection',
       collectionName: 'Collection',
-      workspacePath: null,
       result: {
         relativePath: 'req.bru',
         mtime: 1n,

@@ -28,13 +28,6 @@ const toTreeEntry = (relativePath, data = {}, error) => {
   return error ? { data: treeData, error: { message: error.message } } : { data: treeData };
 };
 
-const dataFromIndexRow = (row) => ({
-  name: row.requestName,
-  type: row.requestProtocol || 'http-request',
-  seq: row.requestSeq,
-  request: { method: row.requestType, url: row.requestUrl }
-});
-
 const withFolderFiles = (probedDirs, relativePaths) => {
   const files = new Set(relativePaths);
   for (const relativePath of relativePaths) {
@@ -133,12 +126,12 @@ class SearchService {
   }
 
   #settle(active) {
-    if (this.#active !== active) {
+    if (this.#active === active && !active.searching && active.pending === 0) {
+      active.versions.clear();
+      this.#emitStatus();
+    } else {
       this.#scheduleStatus();
-      return;
     }
-    if (!active.searching && active.pending === 0) this.#emitStatus();
-    else this.#scheduleStatus();
   }
 
   search({ roots, query }, onMessage) {
@@ -285,16 +278,23 @@ class SearchService {
     const fromIndex = (relativePath) => {
       if (defaultClassify(relativePath)?.type === 'folder') {
         const folder = foldersByPath.get(path.dirname(relativePath));
-        return folder && { meta: { name: folder.name, seq: folder.seq } };
+        return folder && { data: { meta: { name: folder.name, seq: folder.seq } } };
       }
       const row = rowsByPath.get(relativePath);
-      return row && dataFromIndexRow(row);
+      return row && {
+        data: {
+          name: row.requestName,
+          type: row.requestProtocol || 'http-request',
+          seq: row.requestSeq,
+          request: { method: row.requestType, url: row.requestUrl }
+        }
+      };
     };
 
     for (const relativePath of wanted) {
-      const data = fromIndex(relativePath);
-      if (data) {
-        windowEntries.set(relativePath, toTreeEntry(relativePath, data));
+      const entry = fromIndex(relativePath);
+      if (entry) {
+        windowEntries.set(relativePath, entry);
       } else {
         toParse.push(relativePath);
       }

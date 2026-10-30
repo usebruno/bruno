@@ -15,26 +15,17 @@ const stageFileIndex = (fileIndex, collectionPath, result) => {
   } catch (_) {}
 };
 
-const ingestParsedFile = ({
-  searchIndex,
-  fileIndex,
-  collectionPath,
-  collectionName,
-  workspacePath,
-  result
-}) => {
-  if (!searchIndex || !result?.relativePath) return false;
+const ingestParsedFile = ({ searchIndex, fileIndex, collectionPath, collectionName, result }) => {
+  if (!result?.relativePath) return false;
 
-  const resolvedName = searchIndex.collectionNameFor(collectionPath) || collectionName;
   const type = defaultClassify(result.relativePath)?.type;
   if (type === 'request') {
     if (result.mtime === undefined) return false;
-    const changed = searchIndex.upsert(toRow(collectionPath, resolvedName, result, workspacePath));
+    const changed = searchIndex.upsert(toRow(collectionPath, collectionName, result));
     stageFileIndex(fileIndex, collectionPath, result);
     return changed;
   }
 
-  if (type !== 'config' && type !== 'collection' && type !== 'folder') return false;
   if (result.error) return false;
   const metaRow = toMetaRow(collectionPath, result);
   if (!metaRow) return false;
@@ -44,7 +35,7 @@ const ingestParsedFile = ({
 };
 
 const removeFromSearchIndex = ({ searchIndex, collectionPath, relativePath }) => {
-  if (!searchIndex || !relativePath) return false;
+  if (!relativePath) return false;
   return searchIndex.remove(collectionPath, relativePath) || searchIndex.removeMeta(collectionPath, relativePath);
 };
 

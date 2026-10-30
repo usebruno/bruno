@@ -30,13 +30,6 @@ const post = (message) => process.parentPort.postMessage(message);
 
 const escapeRegex = (text) => text.replace(/[\\^$.|?*+()[\]{}]/g, '\\$&');
 
-const searchPatterns = (query) => {
-  const term = escapeRegex(query);
-  return [
-    `(?m)^[ \\t]*(?:name|url)[ \\t]*:[^\\r\\n]*?${term}`
-  ];
-};
-
 const isCurrent = (id) => current?.id === id;
 
 const stop = () => {
@@ -72,8 +65,8 @@ const remember = (root, query, paths) => {
 };
 
 const searchRoot = (id, root, query, targets, narrowed) => new Promise((resolve) => {
-  const patterns = searchPatterns(query).flatMap((pattern) => ['--regexp', pattern]);
-  const child = spawn(RG_PATH, [...RG_ARGS, ...patterns, '--', ...targets], {
+  const pattern = `(?m)^[ \\t]*(?:name|url)[ \\t]*:[^\\r\\n]*?${escapeRegex(query)}`;
+  const child = spawn(RG_PATH, [...RG_ARGS, '--regexp', pattern, '--', ...targets], {
     cwd: narrowed ? root : undefined,
     stdio: ['ignore', 'pipe', 'ignore']
   });
@@ -93,7 +86,7 @@ const searchRoot = (id, root, query, targets, narrowed) => new Promise((resolve)
     const relativePath = path.relative(root, path.resolve(root, line));
     if (defaultClassify(relativePath)?.type !== 'request') return;
     paths.push(relativePath);
-    matched.push(relativePath);
+    if (matched.length <= NARROW_LIMIT) matched.push(relativePath);
     if (paths.length >= BATCH_SIZE) flush();
   };
 
@@ -127,7 +120,7 @@ const search = async ({ id, roots, query }) => {
     for (const targets of prior ? chunkPaths(prior.paths) : [[root]]) {
       const result = await searchRoot(id, root, query, targets, Boolean(prior));
       if (!isCurrent(id)) return;
-      rootMatches.push(...result.matched);
+      if (rootMatches.length <= NARROW_LIMIT) rootMatches.push(...result.matched);
       failed = failed || result.failed;
     }
     if (failed) history.delete(root);

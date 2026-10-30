@@ -17,7 +17,7 @@ const metaFrom = (type, data) => {
   return { name: typeof config?.name === 'string' && config.name ? config.name : null, seq: null };
 };
 
-const toRow = (collectionPath, collectionName, { relativePath, mtime, hash, data, error }, workspacePath) => ({
+const toRow = (collectionPath, collectionName, { relativePath, mtime, hash, data, error }) => ({
   collectionPath,
   collectionName,
   ...folderInfo(relativePath),
@@ -28,7 +28,6 @@ const toRow = (collectionPath, collectionName, { relativePath, mtime, hash, data
   requestProtocol: data?.type || 'http-request',
   requestSeq: Number.isFinite(data?.seq) ? data.seq : null,
   requestError: error ? String(error.message ?? error) : null,
-  workspacePath,
   mtime,
   hash
 });
