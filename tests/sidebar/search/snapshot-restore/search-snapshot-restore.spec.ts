@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { clearSearchIndex, waitForReadyPage, waitForCollectionMount } from '../../../utils/page';
 import { buildSidebarLocators } from '../../../utils/page/sidebar';
+import { readSnapshot } from '../../../utils/snapshot';
 import { CACHE_MODES, writePreferences } from '../helpers';
 
 const LARGE_REQUEST_COUNT = 8000;
@@ -63,8 +64,11 @@ for (const cacheMode of CACHE_MODES) {
         await page.getByTestId('sidebar-search-input').fill('');
         await waitForCollectionMount(page, 'LargeRestored', { timeout: MOUNT_TIMEOUT_MS });
         await expect(page.locator('.request-tab.active').filter({ hasText: 'metrics-large-needle' })).toBeVisible();
-        // The snapshot is flushed in the background.
-        await page.waitForTimeout(3000);
+        // The snapshot is flushed in the background; wait until it contains the open request tab.
+        await expect.poll(() => readSnapshot(userDataPath)?.collections?.some((collection: any) =>
+          collection.pathname?.endsWith('LargeRestored')
+          && collection.tabs?.some((tab: any) => tab.pathname?.includes('metrics-large-needle'))
+        ) ?? false, { timeout: SEARCH_RESULT_TIMEOUT_MS }).toBe(true);
       } finally {
         await closeElectronApp(app);
       }
@@ -76,7 +80,7 @@ for (const cacheMode of CACHE_MODES) {
       const page = await waitForReadyPage(app);
       const sidebar = buildSidebarLocators(page);
       try {
-        await expect(page.locator('.request-tab').filter({ hasText: 'metrics-large-needle' })).toBeVisible();
+        await expect(page.locator('.request-tab').filter({ hasText: 'metrics-large-needle' })).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
 
         await page.getByTitle('Search requests').click();
         await page.getByTestId('sidebar-search-input').fill('metrics-');
