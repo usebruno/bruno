@@ -29,6 +29,7 @@ describe('local module loader keeps the collection boundary whatever a script pa
 
     fs.writeFileSync(path.join(collection, 'helper.js'), 'module.exports = "helper inside collection";');
     fs.writeFileSync(path.join(collection, 'nested', 'deep.js'), 'module.exports = "file nested inside collection";');
+    fs.writeFileSync(path.join(collection, '..private.js'), 'module.exports = "file whose name begins with dots";');
     fs.writeFileSync(path.join(lockedDirectory, 'unreadable.js'), 'module.exports = "file behind a locked directory";');
     fs.writeFileSync(path.join(siblingSharingPrefix, 'helper.js'), 'module.exports = "file in the sibling directory";');
     fs.writeFileSync(outsideModule, 'module.exports = "file outside the collection";');
@@ -79,6 +80,10 @@ describe('local module loader keeps the collection boundary whatever a script pa
   describe('when a script passes a path that stays inside the collection', () => {
     it('loads a file nested below the collection root', async () => {
       expect(await runScript(`require('./nested/deep')`)).toBe('file nested inside collection');
+    });
+
+    it('loads a file whose name begins with .. but is inside the collection', async () => {
+      expect(await runScript(`require('./..private.js')`)).toBe('file whose name begins with dots');
     });
 
     it('loads an absolute path that resolves inside the collection', async () => {
