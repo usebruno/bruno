@@ -1966,3 +1966,77 @@ describe('generateSnippet – URL templates survive real httpsnippet targets', (
     });
   });
 });
+
+describe('generateSnippet – Python requests string escaping', () => {
+  const pythonRequests = { target: 'python', client: 'requests' };
+  const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
+  let originalHTTPSnippet;
+
+  beforeEach(() => {
+    originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+  });
+
+  afterEach(() => {
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+  });
+
+  const makeItem = (body) => ({
+    uid: 'r1',
+    request: {
+      method: 'POST',
+      url: 'https://example.com/',
+      headers: [],
+      auth: { mode: 'none' },
+      body
+    }
+  });
+
+  const generate = (language, body) =>
+    generateSnippet({ language, item: makeItem(body), collection: baseCollection, shouldInterpolate: false });
+
+  const payloadLine = (snippet) => snippet.split('\n').find((line) => line.startsWith('payload = '));
+
+  it('escapes a newline inside a JSON value instead of breaking the string literal', async () => {
+    const result = await generate(pythonRequests, { mode: 'json', json: JSON.stringify({ q: 'line1\nline2' }) });
+
+    expect(payloadLine(result)).toBe('payload = { "q": "line1\\nline2" }');
+  });
+
+  it('escapes backslashes, control characters and quotes in JSON keys and values', async () => {
+    const json = JSON.stringify({ 'say "hi"': 'C:\\temp\t"x"\r\n\u0007', 'nested': [{ k: 'a\nb' }] });
+    const result = await generate(pythonRequests, { mode: 'json', json });
+
+    expect(result).toContain('"say \\"hi\\"": "C:\\\\temp\\t\\"x\\"\\r\\n\\x07"');
+    expect(result).toContain('"k": "a\\nb"');
+  });
+
+  it('escapes a newline inside a url-encoded form value', async () => {
+    const result = await generate(pythonRequests, {
+      mode: 'formUrlEncoded',
+      formUrlEncoded: [{ name: 'note', value: 'line1\nline2', enabled: true }]
+    });
+
+    expect(payloadLine(result)).toBe('payload = { "note": "line1\\nline2" }');
+  });
+
+  it('leaves a body that is not valid JSON to HTTPSnippet', async () => {
+    const result = await generate(pythonRequests, { mode: 'json', json: '{"q": "a\nb"' });
+
+    expect(payloadLine(result)).toBe('payload = "{\\"q\\": \\"a\\nb\\""');
+  });
+
+  it('does not change the Python http.client snippet', async () => {
+    const json = JSON.stringify({ q: 'line1\nline2' });
+    const result = await generate({ target: 'python', client: 'python3' }, { mode: 'json', json });
+
+    expect(payloadLine(result)).toBe(`payload = ${JSON.stringify(json)}`);
+  });
+
+  it('does not change snippets for other languages', async () => {
+    const result = await generate({ target: 'shell', client: 'curl' }, { mode: 'json', json: JSON.stringify({ q: 'C:\\temp\nx' }) });
+
+    expect(result).toContain('"q":"C:\\\\temp\\nx"');
+    expect(result).not.toContain('C:\\\\\\\\temp');
+  });
+});
