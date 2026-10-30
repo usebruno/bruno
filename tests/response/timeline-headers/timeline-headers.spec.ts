@@ -187,7 +187,7 @@ test.describe('Timeline - response headers by source', () => {
   };
 
   const runResponseTimelineFor = (format: 'bru' | 'yml') => {
-    test(`[${format}] response Timeline lists every sent header once, with exact values in source order`, async ({ page, electronApp, createTmpDir }) => {
+    test(`[${format}] TC-6496 response Timeline lists every sent header once, with exact values in source order`, { tag: '@sanity' }, async ({ page, electronApp, createTmpDir }) => {
       const { timelineHeaders, timeline } = buildCommonLocators(page);
 
       await openFixtureCollection(page, electronApp, createTmpDir, format);
@@ -215,7 +215,7 @@ test.describe('Timeline - response headers by source', () => {
   };
 
   const runDevToolsFor = (format: 'bru' | 'yml') => {
-    test(`[${format}] DevTools request details lists every sent header once, with exact values in source order`, async ({ page, electronApp, createTmpDir }) => {
+    test(`[${format}] TC-6498 DevTools request details lists every sent header once, with exact values in source order`, { tag: '@sanity' }, async ({ page, electronApp, createTmpDir }) => {
       const { devtools } = buildCommonLocators(page);
 
       await openFixtureCollection(page, electronApp, createTmpDir, format);
@@ -240,7 +240,7 @@ test.describe('Timeline - response headers by source', () => {
   };
 
   const runRunnerFor = (format: 'bru' | 'yml') => {
-    test(`[${format}] runner timeline lists every sent header once, with exact values in source order`, async ({ page, electronApp, createTmpDir }) => {
+    test(`[${format}] TC-6499 runner timeline lists every sent header once, with exact values in source order`, { tag: '@sanity' }, async ({ page, electronApp, createTmpDir }) => {
       const { timelineHeaders } = buildCommonLocators(page);
       const runner = buildRunnerLocators(page);
 
