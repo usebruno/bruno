@@ -23,7 +23,9 @@ export const matchLoadedApiSpecs = (workspaceApiSpecs, allApiSpecs) => {
     .map((ws) => {
       const wsPathKey = getApiSpecPathKey(ws?.path);
       if (!wsPathKey) return undefined;
-      return loadedApiSpecs.find((apiSpec) => getApiSpecPathKey(apiSpec?.pathname) === wsPathKey);
+      const loadedSpec = loadedApiSpecs.find((apiSpec) => getApiSpecPathKey(apiSpec?.pathname) === wsPathKey);
+      if (!loadedSpec) return undefined;
+      return { ...loadedSpec, name: ws.name || loadedSpec.name };
     })
     .filter(Boolean);
 };

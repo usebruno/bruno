@@ -91,6 +91,7 @@ const resolveLastOpenedWorkspacePaths = (lastOpenedWorkspaces, {
       && isValidWorkspacePathOnDisk(activeWorkspacePath, { validateConfig })
     ) {
       prioritizedWorkspaces.unshift(activeWorkspacePath);
+      lastOpenedWorkspaces.add(activeWorkspacePath);
     }
   }
 

@@ -19,8 +19,7 @@ import {
 import { importCollection, importCollectionFromZip, newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
 import { savePreferences, setIsCreatingCollection, setIsOpeningCollection, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
-import { normalizePath } from 'utils/common/path';
-import { isScratchCollection, flattenItems, isItemTransientRequest } from 'utils/collections';
+import { flattenItems, isItemTransientRequest, getWorkspaceCollections } from 'utils/collections';
 import { selectCollections, selectCollectionSortOrder, selectActiveWorkspace } from 'src/selectors/collections';
 import { sanitizeName } from 'utils/common/regex';
 import filter from 'lodash/filter';
@@ -90,16 +89,12 @@ const CollectionsSection = () => {
     });
   };
 
-  const getWorkspaceCollections = () => {
-    if (!activeWorkspace) return [];
+  const getActiveWorkspaceCollections = () => {
     const state = store.getState();
-    const { workspaces } = state.workspaces;
-
-    return selectCollections(state).filter((c) => {
-      if (isScratchCollection(c, workspaces)) {
-        return false;
-      }
-      return activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname));
+    return getWorkspaceCollections({
+      collections: selectCollections(state),
+      workspaces: state.workspaces.workspaces,
+      activeWorkspace
     });
   };
 
@@ -180,7 +175,7 @@ const CollectionsSection = () => {
   };
 
   const selectAllCollectionsToClose = () => {
-    setCollectionsToClose(getWorkspaceCollections().map((c) => c.uid));
+    setCollectionsToClose(getActiveWorkspaceCollections().map((c) => c.uid));
   };
 
   const clearCollectionsToClose = () => {
