@@ -1,0 +1,20 @@
+meta {
+  name: Proxy stats before
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{dual}}/stats
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("status 200", function () { expect(res.getStatus()).to.equal(200); });
+  bru.setVar("tunnelsBefore", res.getBody().proxyTunnels);
+}
+
+settings {
+  encodeUrl: true
+}

@@ -43,6 +43,7 @@ export type {
 
 export {
   BRUNO_DEFAULT_HEADERS,
+  getBrunoDefaultHeaders,
   getBrunoDefaultHeaderNames,
   applyOmitHeaders,
   shouldOmitConnection,
@@ -52,6 +53,7 @@ export {
 export type {
   BrunoDefaultHeader,
   BrunoDefaultHeaderSource,
+  BrunoHttpVersion,
   ApplyOmitHeadersResult,
   OmitHeadersOptions
 } from './headers/default-headers';

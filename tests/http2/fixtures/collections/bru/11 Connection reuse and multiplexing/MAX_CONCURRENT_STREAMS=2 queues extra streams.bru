@@ -1,0 +1,57 @@
+meta {
+  name: MAX_CONCURRENT_STREAMS=2 queues extra streams
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{dual}}/echo
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  var started = Date.now();
+  var reqs = [];
+  for (var i = 0; i < 6; i++) reqs.push(bru.sendRequest({ method: "GET", url: bru.interpolate("{{limited}}/delay/500?i=" + i), timeout: 20000 }).then(function (r) { return { ok: true, status: r.status, conn: r.headers["x-connection-id"], protocol: r.data.protocol }; }, function (e) { return { ok: false, error: String(e && e.message) }; }));
+  var out = await Promise.all(reqs);
+  bru.setVar("limitedElapsed", Date.now() - started);
+  bru.setVar("limitedResults", JSON.stringify(out));
+}
+
+tests {
+  // ---- testbed helpers ----
+  var MODE = bru.getEnvVar("mode");
+  var CLIENT = bru.getEnvVar("client") || "app";
+  function expectedProtocol(kind, opts) {
+    var proxied = !!(opts && opts.proxied);
+    var cliProxyGap = false; // CLI tunnels HTTP/2 through proxies too (parity with the app)
+    if (kind === "cleartext") return MODE === "http2" ? "fail" : "1.1"; // http2 sends h2c preface to an h1 server -> fails
+    if (kind === "h2c") return MODE === "http2" ? "2.0" : "fail";       // h2c server: http2 -> prior knowledge; else an h1 client is rejected
+    if (kind === "h2only") return MODE === "http1" || cliProxyGap ? "fail" : "2.0";
+    if (kind === "h1only") return MODE === "http2" ? "fail" : "1.1";
+    if (MODE === "http1" || cliProxyGap) return "1.1";
+    return "2.0";
+  }
+  function json() {
+    var b = res.getBody();
+    if (typeof b === "string") { try { return JSON.parse(b); } catch (e) { return {}; } }
+    return b || {};
+  }
+  function isH2() { return json().protocol === "2.0"; }
+  // ---- end helpers ----
+  var out = JSON.parse(bru.getVar("limitedResults") || "[]");
+  console.log("limited results: " + JSON.stringify(out) + " elapsed " + bru.getVar("limitedElapsed") + "ms");
+  if (MODE !== "http1" && CLIENT === "app") {
+    test("all 6 succeeded (no REFUSED_STREAM)", function () { out.forEach(function (r) { expect(r.ok, r.error).to.equal(true); }); });
+    test("record waves: elapsed ms", function () { expect(Number(bru.getVar("limitedElapsed"))).to.be.at.least(500); });
+  }
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  The limited server allows 2 concurrent streams. Six parallel 500 ms requests on one session should be **queued**, not refused: all succeed, and on a single session they take ≥ 1.5 s (3 waves). If Bruno opens extra sessions or fails with REFUSED_STREAM, record it. App + http2/auto mode only (h2-only server; CLI scripted requests stay on h1).
+}

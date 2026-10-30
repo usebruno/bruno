@@ -3,6 +3,8 @@ import { makeAxiosInstance } from '../network';
 import { getSentHeaders } from '../network/sent-headers';
 import { getHttpHttpsAgents } from '../utils/http-https-agents';
 import type { GetHttpHttpsAgentsParams } from '../utils/http-https-agents';
+import { applyHttp2Transport, canUseHttp2 } from '../utils/http2';
+import type { HttpVersionMode } from '../utils/http2';
 
 type T_SendRequestCallback = (error: any, response: any) => void;
 
@@ -11,7 +13,10 @@ type T_SendRequestCallback = (error: any, response: any) => void;
  * This is the same config used by getHttpHttpsAgents, minus requestUrl which is
  * extracted from the actual request.
  */
-type SendRequestConfig = Omit<GetHttpHttpsAgentsParams, 'requestUrl'>;
+type SendRequestConfig = Omit<GetHttpHttpsAgentsParams, 'requestUrl'> & {
+  /** HTTP version mode (auto | http1 | http2); when http2-capable, the custom transport is attached. */
+  httpVersion?: HttpVersionMode;
+};
 
 type SendRequestEntry = {
   request: { method: string; url: string | undefined; headers: Record<string, any>; data: any };
@@ -208,6 +213,10 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
       if (httpsAgent && !normalizedConfig.httpsAgent) {
         normalizedConfig.httpsAgent = httpsAgent;
       }
+    }
+
+    if (config?.httpVersion && canUseHttp2(config.httpVersion)) {
+      await applyHttp2Transport({ config: normalizedConfig as any, mode: config.httpVersion });
     }
 
     const axiosInstance = makeAxiosInstance();

@@ -1,0 +1,51 @@
+meta {
+  name: RST_STREAM INTERNAL_ERROR
+  type: http
+  seq: 9
+  tags: [
+    ci-skip
+  ]
+}
+
+get {
+  url: {{dual}}/rst?code=INTERNAL_ERROR
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  bru.setVar("outcome", JSON.stringify({ request: "RST_STREAM INTERNAL_ERROR", ok: false, error: "no response (request failed before post-response ran)" }));
+  if (typeof req.onFail === "function") {
+    req.onFail(function (err) {
+      var msg = err ? ((err.code ? err.code + ": " : "") + (err.message || String(err))) : "unknown error";
+      bru.setVar("outcome", JSON.stringify({ request: "RST_STREAM INTERNAL_ERROR", ok: false, error: msg }));
+    });
+  }
+}
+
+script:post-response {
+  var __b = res.getBody();
+  var __j = {};
+  if (typeof __b === "string") { try { __j = JSON.parse(__b); } catch (e) { __j = {}; } } else { __j = __b || {}; }
+  bru.setVar("outcome", JSON.stringify({
+    request: "RST_STREAM INTERNAL_ERROR",
+    ok: true,
+    status: res.getStatus(),
+    protocol: res.getHeader("x-protocol") || __j.protocol || null,
+    server: res.getHeader("x-server") || __j.server || null,
+    connectionId: res.getHeader("x-connection-id") || null,
+    echoHeaders: __j.headers || null,
+    bodyPreview: (typeof __b === "string" ? __b : JSON.stringify(__b) || "").slice(0, 300)
+  }));
+}
+
+settings {
+  encodeUrl: true
+  timeout: 10000
+}
+
+docs {
+  The server resets just this stream with INTERNAL_ERROR. The error should name the code (or at least say "stream reset"). On HTTP/1.1 the server closes the socket instead.
+  
+  > **Outcome case.** This request may fail *by design*. Its result is recorded in the runtime var `outcome` and asserted by the next request, **↳ verify: RST_STREAM INTERNAL_ERROR**. Run both together (the folder runner does this).
+}

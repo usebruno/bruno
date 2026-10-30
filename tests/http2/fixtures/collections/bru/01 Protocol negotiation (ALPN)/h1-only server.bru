@@ -1,0 +1,54 @@
+meta {
+  name: h1-only server
+  type: http
+  seq: 4
+  tags: [
+    ci-skip
+  ]
+}
+
+get {
+  url: {{h1only}}/echo
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  bru.setVar("outcome", JSON.stringify({ request: "h1-only server", ok: false, error: "no response (request failed before post-response ran)" }));
+  if (typeof req.onFail === "function") {
+    req.onFail(function (err) {
+      var msg = err ? ((err.code ? err.code + ": " : "") + (err.message || String(err))) : "unknown error";
+      bru.setVar("outcome", JSON.stringify({ request: "h1-only server", ok: false, error: msg }));
+    });
+  }
+}
+
+script:post-response {
+  var __b = res.getBody();
+  var __j = {};
+  if (typeof __b === "string") { try { __j = JSON.parse(__b); } catch (e) { __j = {}; } } else { __j = __b || {}; }
+  bru.setVar("outcome", JSON.stringify({
+    request: "h1-only server",
+    ok: true,
+    status: res.getStatus(),
+    protocol: res.getHeader("x-protocol") || __j.protocol || null,
+    server: res.getHeader("x-server") || __j.server || null,
+    connectionId: res.getHeader("x-connection-id") || null,
+    echoHeaders: __j.headers || null,
+    bodyPreview: (typeof __b === "string" ? __b : JSON.stringify(__b) || "").slice(0, 300)
+  }));
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+docs {
+  A server that only speaks HTTP/1.1.
+  - http1: HTTP/1.1.
+  - **auto: must fall back to HTTP/1.1.** Timeline: `ALPN: offered h2, http/1.1 · server accepted http/1.1` and `HTTP/1.1 selected (auto (…))`.
+  - **http2 (forced): must fail** with a clear ALPN or protocol error. Forced means no fallback.
+  
+  > **Outcome case.** This request may fail *by design*. Its result is recorded in the runtime var `outcome` and asserted by the next request, **↳ verify: h1-only server**. Run both together (the folder runner does this).
+}

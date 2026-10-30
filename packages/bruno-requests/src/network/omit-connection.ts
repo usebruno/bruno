@@ -29,7 +29,10 @@ export const applyOmitConnectionToAxiosConfig = (config: AxiosConfigLike): void 
 
   const isHttps = /^https:/i.test(config.url || '');
   const nativeTransport: Transport = isHttps ? https : http;
-  const upstream = config.transport || nativeTransport;
+  // Ignore an HTTP/2 transport from a previous request or redirect.
+  // Each request selects its own transport.
+  const existing = config.transport as (Transport & { __bruno_http2?: boolean }) | undefined;
+  const upstream = existing && !existing.__bruno_http2 ? existing : nativeTransport;
 
   config.transport = {
     request(options, callback) {

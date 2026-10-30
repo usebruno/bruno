@@ -118,6 +118,9 @@ const ResponsePane = ({ item, collection }) => {
     }
   }, [response.size, response.dataBuffer]);
   const responseHeadersCount = typeof response.headers === 'object' ? Object.entries(response.headers).length : 0;
+  const responseHttpVersion = response.httpVersion
+    ? `HTTP/${String(response.httpVersion) === '2.0' ? '2' : response.httpVersion}`
+    : null;
 
   const allTabs = useMemo(() => {
     return [
@@ -269,6 +272,15 @@ const ResponsePane = ({ item, collection }) => {
           ? <ResponseStopWatch startTimestamp={item.requestSent?.timestamp} />
           : <ResponseTime duration={response.duration} />}
         <ResponseSize size={responseSize} />
+        {responseHttpVersion ? (
+          <div
+            className="response-http-version ml-2"
+            title={`Response received over ${responseHttpVersion}`}
+            data-testid="response-http-version"
+          >
+            {responseHttpVersion}
+          </div>
+        ) : null}
       </div>
 
       <div className="flex items-center response-pane-actions">

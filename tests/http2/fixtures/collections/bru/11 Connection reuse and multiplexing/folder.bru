@@ -1,0 +1,18 @@
+meta {
+  name: 11 Connection reuse and multiplexing
+  seq: 12
+}
+
+docs {
+  # Connection reuse & multiplexing
+  
+  The h2 session pool keeps **one session per (origin + TLS identity + proxy + mode)** and multiplexes every request onto it. Each response carries `x-connection-id` (server-side session/socket id) and `x-stream-id`.
+  
+  On h2:
+  - Same origin → same connection id, and the stream id increases by 2 (client streams are odd).
+  - Different origin (another hostname, even on the same IP:port) → a different session.
+  - Parallel requests → one session, many streams.
+  - After 30 s with no active streams, the session closes and the next request opens a new one (see **90 Slow**).
+  
+  On HTTP/1.1 the keep-alive agent also reuses sockets, but parallel requests open several sockets. The tests only assert the h2 behaviour.
+}

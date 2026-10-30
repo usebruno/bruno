@@ -1,0 +1,12 @@
+meta {
+  name: 13 TLS and client certificates
+  seq: 14
+}
+
+docs {
+  # TLS & client certificates
+  
+  The h2 path has its own TLS setup (`buildTlsConnectOptions`), so check that it honours everything the h1 path does: custom CA, client certs (PEM and PFX), the verification toggle, SNI.
+  
+  `bruno.json` ships a PEM client certificate for **localhost:8446** only (`server/certs/client.crt` + `.key`). Port **8449** requires a certificate too, and none is configured for it on purpose.
+}

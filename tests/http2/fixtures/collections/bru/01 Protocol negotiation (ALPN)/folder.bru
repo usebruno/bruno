@@ -1,0 +1,23 @@
+meta {
+  name: 01 Protocol negotiation (ALPN)
+  seq: 2
+}
+
+docs {
+  # Protocol negotiation
+  
+  Checks the protocol Bruno ends up on against servers with different ALPN capabilities, across all three modes.
+  
+  | Server | http1 | http2 (forced) | auto |
+  |---|---|---|---|
+  | dual (h2 + http/1.1) | 1.1 | **2.0** | **2.0** |
+  | h2only | ✖ fails | **2.0** | **2.0** |
+  | h1only | 1.1 | ✖ fails | 1.1 (falls back) |
+  | plain http:// | 1.1 | ✖ fails | 1.1 |
+  | h2c http:// (prior knowledge only) | ✖ fails | **2.0** | ✖ fails |
+  
+  On a cleartext `http://` URL, **http2 speaks HTTP/2 via prior knowledge** (the h2 preface, no ALPN):
+  it reaches an h2c server (**2.0**) but fails against a plain HTTP/1.1 server, just as forced http2
+  fails against an h1-only TLS server. `auto`/`http1` stay on HTTP/1.1 over cleartext (no negotiation
+  without TLS). Failures must be **clear errors** (preface / protocol), never hangs.
+}

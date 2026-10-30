@@ -17,7 +17,7 @@ export { default as createVaultClient, VaultError } from './utils/node-vault';
 export type { VaultClient, VaultConfig, VaultRequestOptions } from './utils/node-vault';
 export { getHttpHttpsAgents, resolveAgentsFromPac, PatchedHttpsProxyAgent } from './utils/http-https-agents';
 export { initializeShellEnv, fetchShellEnv } from './utils/shell-env';
-export { getOrCreateHttpsAgent, getOrCreateHttpAgent, clearAgentCache, getAgentCacheSize } from './utils/agent-cache';
+export { getOrCreateHttpsAgent, getOrCreateHttpAgent, clearAgentCache, getAgentCacheSize, applySecureContext } from './utils/agent-cache';
 export { getPacResolver, clearPacCache } from './utils/pac-resolver';
 export type { PacWrapper, GetPacResolverParams } from './utils/pac-resolver';
 
@@ -35,3 +35,32 @@ export {
   completeHop,
   measureResponseTime
 } from './network';
+
+export {
+  createHttp2Transport,
+  acquireSession,
+  closeAllSessions,
+  getSessionCount,
+  getSessionEntries,
+  establishTlsConnection,
+  buildHttp2RequestHeaders,
+  getSessionKey,
+  hasLiveSession,
+  negotiateHttpVersion,
+  clearAlpnCache,
+  canUseHttp2,
+  isProxyAgent,
+  proxyKeyFor,
+  redactProxyUri,
+  buildProxyTlsOptions,
+  connectThroughProxy,
+  applyHttp2Transport,
+  applyBasicAuthHeader,
+  getHttp2RequestDetails,
+  resolveHttpVersion,
+  HTTP_VERSION_VALUES,
+  isRetryableHttp2Error,
+  isReplayableBody,
+  addHttp2RetryInterceptor
+} from './utils/http2';
+export type { CreateHttp2TransportParams, HttpVersionMode, ConnectTlsResult, PooledSession, HttpVersionDecision } from './utils/http2';

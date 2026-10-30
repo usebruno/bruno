@@ -1,0 +1,17 @@
+meta {
+  name: 10 Redirects
+  seq: 11
+}
+
+docs {
+  # Redirects
+  
+  Bruno follows redirects itself, re-running the request interceptor **per hop**, so the protocol is decided again for each hop. A redirect can cross between h2 and h1-only servers:
+  
+  | Chain | http1 | http2 | auto |
+  |---|---|---|---|
+  | dual → h1only | 1.1 | ✖ (forced h2 can't reach h1only) | 2.0 → **1.1** |
+  | h1only → dual | 1.1 | ✖ (first hop fails) | 1.1 → **2.0** |
+  
+  The interceptor must clear the previous hop's h2 transport when the next hop is HTTP/1.1.
+}

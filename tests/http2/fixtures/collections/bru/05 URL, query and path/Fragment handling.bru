@@ -1,0 +1,50 @@
+meta {
+  name: Fragment handling
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{dual}}/echo?x=1#section-2
+  body: none
+  auth: inherit
+}
+
+tests {
+  // ---- testbed helpers ----
+  var MODE = bru.getEnvVar("mode");
+  var CLIENT = bru.getEnvVar("client") || "app";
+  function expectedProtocol(kind, opts) {
+    var proxied = !!(opts && opts.proxied);
+    var cliProxyGap = false; // CLI tunnels HTTP/2 through proxies too (parity with the app)
+    if (kind === "cleartext") return MODE === "http2" ? "fail" : "1.1"; // http2 sends h2c preface to an h1 server -> fails
+    if (kind === "h2c") return MODE === "http2" ? "2.0" : "fail";       // h2c server: http2 -> prior knowledge; else an h1 client is rejected
+    if (kind === "h2only") return MODE === "http1" || cliProxyGap ? "fail" : "2.0";
+    if (kind === "h1only") return MODE === "http2" ? "fail" : "1.1";
+    if (MODE === "http1" || cliProxyGap) return "1.1";
+    return "2.0";
+  }
+  function json() {
+    var b = res.getBody();
+    if (typeof b === "string") { try { return JSON.parse(b); } catch (e) { return {}; } }
+    return b || {};
+  }
+  function isH2() { return json().protocol === "2.0"; }
+  // ---- end helpers ----
+  test("status 200", function () { expect(res.getStatus()).to.equal(200); });
+  var exp = expectedProtocol("dual");
+  test("served over HTTP/" + exp + " (mode=" + MODE + ", client=" + CLIENT + ")", function () {
+    expect(exp, "this request should have FAILED under mode=" + MODE + " but got a response").to.not.equal("fail");
+    expect(json().protocol).to.equal(exp);
+    expect(res.getHeader("x-protocol")).to.equal(exp);
+  });
+  test("record what was sent for the fragment (compare h1 vs h2)", function () { console.log("HTTP/" + json().protocol + " request target: " + json().url); expect(json().path).to.equal("/echo"); });
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  Browsers never send `#fragment`. With encodeUrl on, Bruno currently encodes it into the query as `%23section-2`, on HTTP/1.1 too (existing behaviour). For h2 the only requirement is **parity**: h1 and h2 must send the same request target.
+}

@@ -1,6 +1,6 @@
 import { parseQueryParams, buildQueryString as stringifyQueryParams, getDataTypeFromValue, parseValueByDataType, resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { uuid } from 'utils/common';
-import { find, map, concat, filter, each, cloneDeep, get, set, pick, isEqual } from 'lodash';
+import { find, map, concat, filter, each, cloneDeep, get, set, unset, pick, isEqual } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
 import { hexy as hexdump } from 'hexy';
 import {
@@ -388,6 +388,27 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.settingsSelectedTab = tab;
+      }
+    },
+    updateCollectionHttpVersion: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root),
+            brunoConfig: cloneDeep(collection.brunoConfig)
+          };
+        }
+        if (!collection.draft.brunoConfig) {
+          collection.draft.brunoConfig = cloneDeep(collection.brunoConfig);
+        }
+        // 'inherit' means no collection override, drop the key so it isn't persisted as a value.
+        if (action.payload.httpVersion === 'inherit') {
+          unset(collection, 'draft.brunoConfig.http');
+        } else {
+          set(collection, 'draft.brunoConfig.http.version', action.payload.httpVersion);
+        }
       }
     },
     updatedFolderSettingsSelectedTab: (state, action) => {
@@ -4326,6 +4347,7 @@ export const {
   sortCollections,
   updateLastAction,
   updateSettingsSelectedTab,
+  updateCollectionHttpVersion,
   updatedFolderSettingsSelectedTab,
   collectionUnlinkEnvFileEvent,
   saveEnvironment,

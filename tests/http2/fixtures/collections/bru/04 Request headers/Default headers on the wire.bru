@@ -1,0 +1,58 @@
+meta {
+  name: Default headers on the wire
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{dual}}/echo
+  body: none
+  auth: inherit
+}
+
+tests {
+  // ---- testbed helpers ----
+  var MODE = bru.getEnvVar("mode");
+  var CLIENT = bru.getEnvVar("client") || "app";
+  function expectedProtocol(kind, opts) {
+    var proxied = !!(opts && opts.proxied);
+    var cliProxyGap = false; // CLI tunnels HTTP/2 through proxies too (parity with the app)
+    if (kind === "cleartext") return MODE === "http2" ? "fail" : "1.1"; // http2 sends h2c preface to an h1 server -> fails
+    if (kind === "h2c") return MODE === "http2" ? "2.0" : "fail";       // h2c server: http2 -> prior knowledge; else an h1 client is rejected
+    if (kind === "h2only") return MODE === "http1" || cliProxyGap ? "fail" : "2.0";
+    if (kind === "h1only") return MODE === "http2" ? "fail" : "1.1";
+    if (MODE === "http1" || cliProxyGap) return "1.1";
+    return "2.0";
+  }
+  function json() {
+    var b = res.getBody();
+    if (typeof b === "string") { try { return JSON.parse(b); } catch (e) { return {}; } }
+    return b || {};
+  }
+  function isH2() { return json().protocol === "2.0"; }
+  // ---- end helpers ----
+  test("status 200", function () { expect(res.getStatus()).to.equal(200); });
+  var exp = expectedProtocol("dual");
+  test("served over HTTP/" + exp + " (mode=" + MODE + ", client=" + CLIENT + ")", function () {
+    expect(exp, "this request should have FAILED under mode=" + MODE + " but got a response").to.not.equal("fail");
+    expect(json().protocol).to.equal(exp);
+    expect(res.getHeader("x-protocol")).to.equal(exp);
+  });
+  test("user-agent is bruno-runtime", function () { expect(json().headers["user-agent"]).to.match(/bruno-runtime/); });
+  test("h2: no connection/host headers", function () {
+    if (!isH2()) return;
+    expect(json().headers).to.not.have.property("connection");
+    expect(json().headers).to.not.have.property("host");
+  });
+  test("h1: host present", function () { if (!isH2()) expect(json().headers.host).to.equal("localhost:8443"); });
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  Bruno's defaults (User-Agent etc.) should be sent. On h2 there is no `connection` header and no `host` header; the Headers tab default list shows `:authority` instead of `Host` when the preference is HTTP/2.
+  
+  **Manual:** with the preference set to HTTP/2, open the request's Headers tab and check that the inherited defaults show `:authority` and no `Connection`. With **Auto** the panel shows the h1 defaults (known POC limitation).
+}

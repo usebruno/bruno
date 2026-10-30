@@ -20,7 +20,7 @@ const { createFormData } = require('../utils/form-data');
 const axios = require('axios');
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
-const { getCACertificates, transformProxyConfig, applySentHeadersToRequest, measureResponseTime } = require('@usebruno/requests');
+const { getCACertificates, transformProxyConfig, applySentHeadersToRequest, measureResponseTime, resolveHttpVersion } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, getMediaType, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
@@ -250,7 +250,8 @@ const runSingleRequest = async function (
       },
       clientCertificates: rawClientCertificates ? interpolateObject(rawClientCertificates, sendRequestInterpolationOptions) : undefined,
       collectionLevelProxy: transformProxyConfig(interpolateObject(rawProxyConfig, sendRequestInterpolationOptions)),
-      systemProxyConfig
+      systemProxyConfig,
+      httpVersion: get(options, 'httpVersion') || resolveHttpVersion(get(brunoConfig, 'http.version'), 'http1')
     };
 
     // Add certsAndProxyConfig to request object for bru.sendRequest
@@ -694,7 +695,8 @@ const runSingleRequest = async function (
         systemProxyConfig: cachedSystemProxy,
         httpsAgentRequestFields,
         interpolationOptions,
-        disableCache
+        disableCache,
+        httpVersion: get(options, 'httpVersion') || resolveHttpVersion(get(brunoConfig, 'http.version'), 'http1')
       });
 
       if (request.ntlmConfig) {
@@ -995,6 +997,7 @@ const runSingleRequest = async function (
       response: {
         status: response.status,
         statusText: response.statusText,
+        httpVersion: response.httpVersion || response?.request?.res?.httpVersion || '1.1',
         headers: response.headers,
         data: response.data,
         url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,

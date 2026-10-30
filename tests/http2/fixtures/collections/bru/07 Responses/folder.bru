@@ -1,0 +1,10 @@
+meta {
+  name: 07 Responses
+  seq: 8
+}
+
+docs {
+  # Responses
+  
+  HTTP/2 has **no reason phrase**: only `:status` goes on the wire. Bruno fills `statusText` from Node's `STATUS_CODES`, so the UI and `res.getStatusText()` should look exactly as they do on HTTP/1.1. Response headers must never include the `:status` pseudo-header.
+}

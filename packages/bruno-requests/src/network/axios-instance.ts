@@ -1,6 +1,7 @@
 import { default as axios, AxiosRequestConfig, AxiosRequestHeaders, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import http from 'node:http';
 import https from 'node:https';
+import { addHttp2RetryInterceptor } from '../utils/http2';
 
 /**
  *
@@ -91,6 +92,9 @@ const makeAxiosInstance = (customRequestConfig?: AxiosRequestConfig) => {
     };
     return modifiedResponse;
   });
+
+  // retry a REFUSED_STREAM once.
+  addHttp2RetryInterceptor(axiosInstance);
 
   return axiosInstance;
 };

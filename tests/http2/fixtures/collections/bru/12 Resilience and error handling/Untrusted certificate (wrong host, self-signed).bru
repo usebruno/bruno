@@ -1,0 +1,53 @@
+meta {
+  name: Untrusted certificate (wrong host, self-signed)
+  type: http
+  seq: 26
+  tags: [
+    ci-skip
+  ]
+}
+
+get {
+  url: {{badcert}}/echo
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  bru.setVar("outcome", JSON.stringify({ request: "Untrusted certificate (wrong host, self-signed)", ok: false, error: "no response (request failed before post-response ran)" }));
+  if (typeof req.onFail === "function") {
+    req.onFail(function (err) {
+      var msg = err ? ((err.code ? err.code + ": " : "") + (err.message || String(err))) : "unknown error";
+      bru.setVar("outcome", JSON.stringify({ request: "Untrusted certificate (wrong host, self-signed)", ok: false, error: msg }));
+    });
+  }
+}
+
+script:post-response {
+  var __b = res.getBody();
+  var __j = {};
+  if (typeof __b === "string") { try { __j = JSON.parse(__b); } catch (e) { __j = {}; } } else { __j = __b || {}; }
+  bru.setVar("outcome", JSON.stringify({
+    request: "Untrusted certificate (wrong host, self-signed)",
+    ok: true,
+    status: res.getStatus(),
+    protocol: res.getHeader("x-protocol") || __j.protocol || null,
+    server: res.getHeader("x-server") || __j.server || null,
+    connectionId: res.getHeader("x-connection-id") || null,
+    echoHeaders: __j.headers || null,
+    bodyPreview: (typeof __b === "string" ? __b : JSON.stringify(__b) || "").slice(0, 300)
+  }));
+}
+
+settings {
+  encodeUrl: true
+  timeout: 5000
+}
+
+docs {
+  With **SSL verification on** (the default), every mode must reject this server. The h2 path builds its own TLS options, so this checks it doesn't silently skip verification.
+  
+  **Manual:** turn off *Preferences → SSL/TLS Certificate Verification*, run again, and expect success over h2 in http2/auto mode. Then turn it back on.
+  
+  > **Outcome case.** This request may fail *by design*. Its result is recorded in the runtime var `outcome` and asserted by the next request, **↳ verify: Untrusted certificate (wrong host, self-signed)**. Run both together (the folder runner does this).
+}

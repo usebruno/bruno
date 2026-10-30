@@ -1,0 +1,51 @@
+meta {
+  name: XML body
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{dual}}/echo
+  body: xml
+  auth: inherit
+}
+
+body:xml {
+  <?xml version="1.0"?>
+  <order id="42"><item qty="2">Bruno</item></order>
+}
+
+tests {
+  // ---- testbed helpers ----
+  var MODE = bru.getEnvVar("mode");
+  var CLIENT = bru.getEnvVar("client") || "app";
+  function expectedProtocol(kind, opts) {
+    var proxied = !!(opts && opts.proxied);
+    var cliProxyGap = false; // CLI tunnels HTTP/2 through proxies too (parity with the app)
+    if (kind === "cleartext") return MODE === "http2" ? "fail" : "1.1"; // http2 sends h2c preface to an h1 server -> fails
+    if (kind === "h2c") return MODE === "http2" ? "2.0" : "fail";       // h2c server: http2 -> prior knowledge; else an h1 client is rejected
+    if (kind === "h2only") return MODE === "http1" || cliProxyGap ? "fail" : "2.0";
+    if (kind === "h1only") return MODE === "http2" ? "fail" : "1.1";
+    if (MODE === "http1" || cliProxyGap) return "1.1";
+    return "2.0";
+  }
+  function json() {
+    var b = res.getBody();
+    if (typeof b === "string") { try { return JSON.parse(b); } catch (e) { return {}; } }
+    return b || {};
+  }
+  function isH2() { return json().protocol === "2.0"; }
+  // ---- end helpers ----
+  test("status 200", function () { expect(res.getStatus()).to.equal(200); });
+  var exp = expectedProtocol("dual");
+  test("served over HTTP/" + exp + " (mode=" + MODE + ", client=" + CLIENT + ")", function () {
+    expect(exp, "this request should have FAILED under mode=" + MODE + " but got a response").to.not.equal("fail");
+    expect(json().protocol).to.equal(exp);
+    expect(res.getHeader("x-protocol")).to.equal(exp);
+  });
+  test("xml arrived", function () { expect(json().body.text).to.contain("<order id=\"42\">"); expect(json().body.contentType).to.contain("xml"); });
+}
+
+settings {
+  encodeUrl: true
+}

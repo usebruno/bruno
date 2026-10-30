@@ -1,0 +1,53 @@
+meta {
+  name: Oversized request headers (80 KB)
+  type: http
+  seq: 10
+  tags: [
+    ci-skip
+  ]
+}
+
+get {
+  url: {{dual}}/echo
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  bru.setVar("outcome", JSON.stringify({ request: "Oversized request headers (80 KB)", ok: false, error: "no response (request failed before post-response ran)" }));
+  if (typeof req.onFail === "function") {
+    req.onFail(function (err) {
+      var msg = err ? ((err.code ? err.code + ": " : "") + (err.message || String(err))) : "unknown error";
+      bru.setVar("outcome", JSON.stringify({ request: "Oversized request headers (80 KB)", ok: false, error: msg }));
+    });
+  }
+  
+  var v = ""; for (var i = 0; i < 81920; i++) v += "b"; req.setHeader("x-huge", v);
+}
+
+script:post-response {
+  var __b = res.getBody();
+  var __j = {};
+  if (typeof __b === "string") { try { __j = JSON.parse(__b); } catch (e) { __j = {}; } } else { __j = __b || {}; }
+  bru.setVar("outcome", JSON.stringify({
+    request: "Oversized request headers (80 KB)",
+    ok: true,
+    status: res.getStatus(),
+    protocol: res.getHeader("x-protocol") || __j.protocol || null,
+    server: res.getHeader("x-server") || __j.server || null,
+    connectionId: res.getHeader("x-connection-id") || null,
+    echoHeaders: __j.headers || null,
+    bodyPreview: (typeof __b === "string" ? __b : JSON.stringify(__b) || "").slice(0, 300)
+  }));
+}
+
+settings {
+  encodeUrl: true
+  timeout: 10000
+}
+
+docs {
+  Exceeds the server's default header limit (h2 SETTINGS_MAX_HEADER_LIST_SIZE ≈ 64 KiB; h1 16 KiB). Expect a **clear** rejection: HTTP 431, or an error naming the frame/header limit or a stream reset. A hang or a vague "socket hang up" is a finding.
+  
+  > **Outcome case.** This request may fail *by design*. Its result is recorded in the runtime var `outcome` and asserted by the next request, **↳ verify: Oversized request headers (80 KB)**. Run both together (the folder runner does this).
+}

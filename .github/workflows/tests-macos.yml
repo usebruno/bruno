@@ -163,3 +163,39 @@ jobs:
 
       - name: Run OAuth1 CLI Tests
         uses: ./.github/actions/auth/oauth1/macos/run-oauth1-cli-tests
+
+  http2-test:
+    name: HTTP/2 Tests (macOS)
+    timeout-minutes: 60
+    runs-on: macos-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+
+      - name: Setup HTTP/2 Testbed Certificates
+        uses: ./.github/actions/http2/macos/setup-certs
+
+      - name: Start HTTP/2 Testbed Server
+        uses: ./.github/actions/http2/macos/start-server
+
+      - name: Run HTTP/2 CLI Tests
+        uses: ./.github/actions/http2/macos/run-cli-tests
+
+      - name: Publish Test Report
+        uses: EnricoMi/publish-unit-test-result-action/macos@v2
+        if: always()
+        with:
+          check_name: HTTP/2 Test Results (macOS)
+          files: |
+            tests/http2/fixtures/collections/bru/junit-http1.xml
+            tests/http2/fixtures/collections/bru/junit-http2.xml
+            tests/http2/fixtures/collections/bru/junit-auto.xml
+          comment_mode: always
+          check_run: false
+

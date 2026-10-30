@@ -1,0 +1,16 @@
+meta {
+  name: 16 Stream reset before response (CANCEL, NO_ERROR)
+  seq: 17
+}
+
+docs {
+  # Stream reset before any response
+  
+  The server resets the stream **before sending headers**, with codes Node does not treat as errors (`CANCEL`, `NO_ERROR`). The client must still settle the request with a clear error, within the timeout at the latest.
+  
+  **Known failure on the POC branch:** the h2 transport only listens for `response`. A stream that closes without an `error` event leaves the axios promise pending forever, and the request timeout doesn't fire either.
+  - **App:** the request spins until you cancel it.
+  - **CLI:** the event loop drains and `bru run` **exits with code 0 mid-run**, skipping everything after this point (false green in CI).
+  
+  This folder is last (before 90) so that bug doesn't cut short the rest of a run.
+}
