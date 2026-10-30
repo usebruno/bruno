@@ -8,43 +8,36 @@ runs:
       run: |
         Set-StrictMode -Version Latest
         $ErrorActionPreference = "Stop"
-
-        function Invoke-BruExpectOk {
-          param(
-            [string]$Out,
-            [string[]]$ExtraArgs = @()
-          )
-          $bru = "..\..\..\..\..\packages\bruno-cli\bin\bru.js"
-          for ($attempt = 1; $attempt -le 3; $attempt++) {
-            $argString = "$bru run .\request.bru --output $Out --format junit"
-            if ($ExtraArgs.Count -gt 0) { $argString = "$argString $($ExtraArgs -join ' ')" }
-            Start-Process -FilePath "node" -ArgumentList $argString -NoNewWindow -Wait -PassThru -RedirectStandardError "nul" | Out-Null
-            if (Test-Path $Out) {
-              [xml]$xml = Get-Content $Out
-              $testsuites = if ($xml.testsuites) { $xml.testsuites.testsuite } else { $xml.testsuite }
-              $errorCount = ($testsuites | Where-Object { $_.errors -eq "0" } | Measure-Object).Count
-              if ($errorCount -eq 1) { return }
-            }
-            Write-Host "attempt $attempt failed, retrying..."
-            Start-Sleep -Seconds 2
-          }
-          exit 1
-        }
-
+        
         # navigate to basic SSL test collection directory
         Set-Location tests\ssl\basic-ssl\collections\badssl
 
         Write-Host "basic ssl success"
-        Invoke-BruExpectOk -Out junit1.xml -ExtraArgs @("--insecure")
+        # should pass
+        $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\..\packages\bruno-cli\bin\bru.js run .\request.bru --output junit1.xml --insecure --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+        [xml]$xml1 = Get-Content junit1.xml
+        $testsuites1 = if ($xml1.testsuites) { $xml1.testsuites.testsuite } else { $xml1.testsuite }
+        $errorCount1 = ($testsuites1 | Where-Object { $_.errors -eq "0" } | Measure-Object).Count
+        if ($errorCount1 -ne 1) { exit 1 }
 
         Write-Host "with default/system ca certs"
-        Invoke-BruExpectOk -Out junit2.xml
+        # should pass
+        $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\..\packages\bruno-cli\bin\bru.js run .\request.bru --output junit2.xml --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+        [xml]$xml2 = Get-Content junit2.xml
+        $testsuites2 = if ($xml2.testsuites) { $xml2.testsuites.testsuite } else { $xml2.testsuite }
+        $errorCount2 = ($testsuites2 | Where-Object { $_.errors -eq "0" } | Measure-Object).Count
+        if ($errorCount2 -ne 1) { exit 1 }
 
         # navigate to self-signed SSL test collection directory
         Set-Location ..\self-signed-badssl
 
         Write-Host "self-signed ssl with validation disabled"
-        Invoke-BruExpectOk -Out junit3.xml -ExtraArgs @("--insecure")
+        # should pass
+        $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\..\packages\bruno-cli\bin\bru.js run .\request.bru --output junit3.xml --insecure --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+        [xml]$xml3 = Get-Content junit3.xml
+        $testsuites3 = if ($xml3.testsuites) { $xml3.testsuites.testsuite } else { $xml3.testsuite }
+        $errorCount3 = ($testsuites3 | Where-Object { $_.errors -eq "0" } | Measure-Object).Count
+        if ($errorCount3 -ne 1) { exit 1 }
 
         Write-Host "self-signed ssl with default/system ca certs"
         Write-Host "request will error"
