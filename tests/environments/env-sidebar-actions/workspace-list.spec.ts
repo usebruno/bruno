@@ -330,7 +330,7 @@ test.describe('Workspace environments list', () => {
 
     test('the delete key does nothing while the unsaved changes warning is open', async ({ page }) => {
       const { environment, modal } = buildCommonLocators(page);
-      const { deleteModal } = environment.workspaceSidebarActions;
+      const { deleteModal, sectionBody } = environment.workspaceSidebarActions;
       const unsavedWarning = modal.byTitle('Unsaved changes');
 
       await test.step('Edit the open environment, then click another one', async () => {
@@ -341,6 +341,9 @@ test.describe('Workspace environments list', () => {
       });
 
       await test.step('The delete key opens no delete modal behind the warning', async () => {
+        await sectionBody().focus();
+        await expect(sectionBody()).toBeFocused();
+
         await page.keyboard.press(DELETE_KEY);
         await expect(deleteModal.root()).toBeHidden();
         await expect(unsavedWarning).toBeVisible();

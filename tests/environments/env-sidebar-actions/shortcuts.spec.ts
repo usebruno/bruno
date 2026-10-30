@@ -136,7 +136,7 @@ test.describe('Collection environments list shortcuts', () => {
 
   test('the delete key does nothing while the unsaved changes warning is open', async ({ page }) => {
     const { environment, modal } = buildCommonLocators(page);
-    const { deleteModal } = environment.sidebarActions;
+    const { deleteModal, sectionBody } = environment.sidebarActions;
     const unsavedWarning = modal.byTitle('Unsaved changes');
 
     await test.step('Edit the open environment, then click another one', async () => {
@@ -147,6 +147,9 @@ test.describe('Collection environments list shortcuts', () => {
     });
 
     await test.step('The delete key opens no delete modal behind the warning', async () => {
+      await sectionBody().focus();
+      await expect(sectionBody()).toBeFocused();
+
       await page.keyboard.press(DELETE_KEY);
       await expect(deleteModal.root()).toBeHidden();
       await expect(unsavedWarning).toBeVisible();
