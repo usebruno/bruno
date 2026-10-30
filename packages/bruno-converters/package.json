@@ -6,7 +6,6 @@
   "module": "dist/esm/index.js",
   "exports": {
     ".": {
-      "types": "./dist/cjs/index.d.ts",
       "module": "./dist/esm/index.js",
       "default": "./dist/cjs/index.js"
     },

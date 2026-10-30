@@ -1,6 +1,6 @@
 import type { BrunoCollection } from '@usebruno/schema-types';
 import postmanToBruno from '../postman/postman-to-bruno';
-import { writeCollectionToDisk } from './writeCollectionToDisk';
+import { assertFileSystemAvailable, writeCollectionToDisk } from './writeCollectionToDisk';
 
 export interface ImportPostmanToBrunoOptions {
   preserveScripts?: boolean;
@@ -14,6 +14,7 @@ export const importPostmanToBruno = async (
   outputDir: string,
   { preserveScripts = false }: ImportPostmanToBrunoOptions = {}
 ): Promise<void> => {
+  assertFileSystemAvailable('importPostmanToBruno');
   const { collection } = await postmanToBruno(postmanCollection, { preserveScripts });
   await writeCollectionToDisk(collection as BrunoCollection, outputDir);
 };

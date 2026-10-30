@@ -24,6 +24,14 @@ const COLLECTION_FILE_NAMES: Record<CollectionFormat, string> = {
   yml: 'opencollection.yml'
 };
 
+// Browser bundlers that polyfill Node built-ins (e.g. bruno-app's rsbuild) resolve `node:fs` to an
+// empty module, so its functions are missing rather than the import failing.
+export const assertFileSystemAvailable = (methodName: string): void => {
+  if (typeof fs?.mkdirSync !== 'function') {
+    throw new Error(`${methodName} is not supported in browser environment`);
+  }
+};
+
 const withExtension = (filename: string, ext: string): string => {
   return filename.endsWith(`.${ext}`) ? filename : `${filename}.${ext}`;
 };
@@ -134,17 +142,19 @@ const writeCollection = async (
  * collection directory in the default (`yml`) format. `outputDir` is created if missing and must
  * otherwise be empty.
  */
-export const writeCollectionToDisk = (collection: BrunoCollection, outputDir: string): Promise<string> => {
+export const writeCollectionToDisk = async (collection: BrunoCollection, outputDir: string): Promise<string> => {
+  assertFileSystemAvailable('writeCollectionToDisk');
   return writeCollection(collection, outputDir, DEFAULT_COLLECTION_FORMAT);
 };
 
 /**
  * Same as `writeCollectionToDisk`, but lets the caller pick the on-disk format.
  */
-export const writeCollectionToDiskLegacy = (
+export const writeCollectionToDiskLegacy = async (
   collection: BrunoCollection,
   outputDir: string,
   options: WriteCollectionOptions = {}
 ): Promise<string> => {
+  assertFileSystemAvailable('writeCollectionToDiskLegacy');
   return writeCollection(collection, outputDir, options.format || DEFAULT_COLLECTION_FORMAT);
 };
