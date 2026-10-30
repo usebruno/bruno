@@ -39,12 +39,12 @@ const parseKeyShareGroups = (record) => {
 };
 
 // Some older TLS servers reset the connection when the ClientHello carries a post-quantum
-// key share; the CLI then retries that host with classical groups only. This server behaves
-// like one of them and records each handshake, so no certificate or network is involved.
+// key share, so bin/bru.js pins tls.DEFAULT_ECDH_CURVE. This captures the handshake the CLI
+// actually sends and closes the socket, so no certificate or network is involved.
 describe('CLI run — TLS ClientHello', () => {
   let server;
   let host;
-  const clientHellos = [];
+  let clientHello;
   let tmpDir;
 
   beforeAll(async () => {
@@ -53,12 +53,8 @@ describe('CLI run — TLS ClientHello', () => {
       socket.on('data', (chunk) => {
         received = Buffer.concat([received, chunk]);
         if (received.length >= 5 && received.length >= 5 + received.readUInt16BE(3)) {
-          clientHellos.push(received);
-          if (parseKeyShareGroups(received).includes(GROUP_X25519_MLKEM768)) {
-            socket.resetAndDestroy();
-          } else {
-            socket.destroy();
-          }
+          clientHello ??= received;
+          socket.destroy();
         }
       });
       socket.on('error', () => {});
@@ -73,13 +69,12 @@ describe('CLI run — TLS ClientHello', () => {
     await new Promise((resolve) => server.close(resolve));
   });
 
-  it('retries once with classical key shares after a handshake reset', async () => {
+  it('offers only classical key shares', async () => {
     await runCli(['run', 'handshake.bru', '--env-var', `host=${host}`], tmpDir);
 
-    const [first, retry, ...rest] = clientHellos.map(parseKeyShareGroups);
-    expect(first).toContain(GROUP_X25519_MLKEM768);
-    expect(retry).toContain(GROUP_X25519);
-    expect(retry).not.toContain(GROUP_X25519_MLKEM768);
-    expect(rest).toHaveLength(0);
+    expect(clientHello).toBeDefined();
+    const groups = parseKeyShareGroups(clientHello);
+    expect(groups).toContain(GROUP_X25519);
+    expect(groups).not.toContain(GROUP_X25519_MLKEM768);
   }, RUN_TIMEOUT);
 });

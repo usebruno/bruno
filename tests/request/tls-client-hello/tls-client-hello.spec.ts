@@ -36,8 +36,9 @@ const parseKeyShareGroups = (record: Buffer): number[] => {
 };
 
 // Some older TLS servers reset the connection when the ClientHello carries a post-quantum
-// key share, so the electron main process pins tls.DEFAULT_ECDH_CURVE. This captures the
-// handshake the app actually sends and closes the socket, so no certificate is involved.
+// key share. Electron's BoringSSL sends none by default (unlike Node's OpenSSL, which
+// bruno-cli/bin/bru.js pins); this guards that default. It captures the handshake the app
+// actually sends and closes the socket, so no certificate is involved.
 test.describe('TLS ClientHello', () => {
   let server: net.Server;
   let port: number;
