@@ -48,7 +48,7 @@ const NewFolder = ({ collectionUid, item, onClose }) => {
           message: 'The folder name "environments" at the root of the collection is reserved in bruno',
           test: (value) => {
             if (item?.uid) return true;
-            return value && !value.trim().toLowerCase().includes('environments');
+            return value && value.trim().toLowerCase() !== 'environments';
           }
         })
     }),
