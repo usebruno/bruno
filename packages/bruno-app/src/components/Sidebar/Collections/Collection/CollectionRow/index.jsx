@@ -214,6 +214,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   };
 
   const viewCollectionSettings = () => {
+    ensureCollectionIsMounted();
     dispatch(
       addTab({
         uid: collection.uid,
