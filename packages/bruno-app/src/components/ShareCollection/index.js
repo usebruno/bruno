@@ -59,8 +59,14 @@ const ShareCollection = ({ onClose, collectionUid }) => {
   };
 
   const handleExportYaml = () => {
-    const collectionCopy = cloneDeep(collection);
-    exportOpenCollection(transformCollectionToSaveToExportAsFile(collectionCopy));
+    try {
+      const collectionCopy = cloneDeep(collection);
+      exportOpenCollection(transformCollectionToSaveToExportAsFile(collectionCopy));
+      toast.success('Collection exported successfully');
+    } catch (error) {
+      toast.error('Failed to export collection: ' + error.message);
+      throw error;
+    }
   };
 
   const handlePostmanModalClose = () => {
@@ -157,6 +163,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
             <div
               className={`format-card ${selectedFormat === EXPORT_FORMATS.YAML ? 'selected' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={() => !isDisabled && setSelectedFormat(EXPORT_FORMATS.YAML)}
+              data-testid="export-format-yaml"
             >
               <div className="card-header">
                 <span className="card-title">Single File (YAML)</span>

@@ -1,0 +1,15 @@
+info:
+  name: ReflectionOnUnservedSubpath
+  type: grpc
+  seq: 5
+
+grpc:
+  url: grpc://localhost:50051/Missing.Api
+  method: /hello.HelloService/SayHello
+  methodType: unary
+  message:
+    - title: message 1
+      message: |-
+        {
+          "greeting": "amoveo"
+        }

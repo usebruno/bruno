@@ -13,6 +13,11 @@
  * Reflection is registered via `@grpc/reflection` so Bruno's reflection-based
  * method discovery works without a client-side proto file.
  *
+ * The service and its reflection are mounted again under each subpath in SUBPATH_MOUNTS,
+ * whose paths differ only in case. Each mount names itself in its reply — by label as well as
+ * by path, so the mounts stay distinguishable under a case-insensitive assertion — and a client
+ * that lowercases the URL lands on the wrong one (see tests/grpc/subpath).
+ *
  * Usage:
  *   node ./src/grpc/index.js                 # standalone
  *   const grpc = require('./grpc');          # imported (see ../index.js)
@@ -26,6 +31,10 @@ const { ReflectionService } = require('@grpc/reflection');
 
 const PROTO_PATH = path.join(__dirname, 'hello.proto');
 const STREAM_REPLY_COUNT = 10;
+const SUBPATH_MOUNTS = [
+  { prefix: '/Hello.Api', label: 'mixedcase mount' },
+  { prefix: '/hello.api', label: 'lowercase mount' }
+];
 
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   keepCase: true,
@@ -41,17 +50,17 @@ const helloService = proto.hello.HelloService.service;
 const buildReply = (greeting, suffix = '') =>
   ({ reply: `hello ${greeting || 'world'}${suffix}` });
 
-const handlers = {
+const createHandlers = (replySuffix = '') => ({
   SayHello(call, callback) {
     const greeting = call.request && call.request.greeting;
-    callback(null, buildReply(greeting));
+    callback(null, buildReply(greeting, replySuffix));
   },
 
   LotsOfReplies(call) {
     const greeting = call.request && call.request.greeting;
     for (let i = 0; i < STREAM_REPLY_COUNT; i++) {
       if (call.cancelled) return;
-      call.write(buildReply(greeting, ` #${i + 1}`));
+      call.write(buildReply(greeting, `${replySuffix} #${i + 1}`));
     }
     call.end();
   },
@@ -62,7 +71,7 @@ const handlers = {
       if (msg && typeof msg.greeting === 'string') greetings.push(msg.greeting);
     });
     call.on('end', () => {
-      callback(null, buildReply(greetings.join(', ')));
+      callback(null, buildReply(greetings.join(', '), replySuffix));
     });
     call.on('error', (err) => {
       console.error('LotsOfGreetings stream error', err);
@@ -72,14 +81,24 @@ const handlers = {
   BidiHello(call) {
     call.on('data', (msg) => {
       const greeting = msg && typeof msg.greeting === 'string' ? msg.greeting : '';
-      call.write(buildReply(greeting));
+      call.write(buildReply(greeting, replySuffix));
     });
     call.on('end', () => call.end());
     call.on('error', (err) => {
       console.error('BidiHello stream error', err);
     });
   }
-};
+});
+
+const prefixMethodPaths = (serviceDefinition, prefix) =>
+  Object.fromEntries(
+    Object.entries(serviceDefinition).map(([name, definition]) => [name, { ...definition, path: prefix + definition.path }])
+  );
+
+// Stands in for a server to ReflectionService.addToServer, so reflection lands under the prefix.
+const mountedAt = (server, prefix) => ({
+  addService: (definition, implementation) => server.addService(prefixMethodPaths(definition, prefix), implementation)
+});
 
 const bind = (server, address, credentials) =>
   new Promise((resolve, reject) => {
@@ -94,12 +113,17 @@ const start = async () => {
   const port = process.env.GRPC_PORT || 50051;
 
   const server = new grpc.Server();
-  server.addService(helloService, handlers);
+  server.addService(helloService, createHandlers());
 
   // Register reflection so Bruno's reflection-based method discovery works
   // against this server without needing the proto file client-side.
   const reflection = new ReflectionService(packageDefinition);
   reflection.addToServer(server);
+
+  SUBPATH_MOUNTS.forEach(({ prefix, label }) => {
+    server.addService(prefixMethodPaths(helloService, prefix), createHandlers(` from ${label} ${prefix}`));
+    reflection.addToServer(mountedAt(server, prefix));
+  });
 
   try {
     await bind(server, `0.0.0.0:${port}`, grpc.ServerCredentials.createInsecure());
