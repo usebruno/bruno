@@ -51,11 +51,10 @@ export const buildRequestLocators = (page: Page) => ({
     nameCell: (row: Locator) => row.getByTestId('column-name'),
     valueCell: (row: Locator) => row.getByTestId('column-value'),
     checkbox: (row: Locator) => row.getByTestId('column-checkbox'),
-    cellLine: (row: Locator, column: 'name' | 'value') => row.getByTestId(`column-${column}`).locator('.CodeMirror-line'),
-    bulkEdit: () => page.getByTestId('request-pane').getByRole('button', { name: 'Bulk Edit' }),
-    keyValueEdit: () => page.getByTestId('request-pane').getByRole('button', { name: 'Key/Value Edit' }),
-    bulkEditor: () => page.getByTestId('request-pane').getByRole('button', { name: 'Key/Value Edit' }).locator('xpath=../preceding-sibling::div').locator('.CodeMirror'),
-    bulkEditorLines: () => page.getByTestId('request-pane').getByRole('button', { name: 'Key/Value Edit' }).locator('xpath=../preceding-sibling::div').locator('.CodeMirror-line'),
+    cellLine: (row: Locator, column: 'name' | 'value') => row.getByTestId(`column-${column}`),
+    bulkEdit: () => page.getByTestId('request-pane').getByTestId('bulk-edit-toggle'),
+    keyValueEdit: () => page.getByTestId('request-pane').getByTestId('key-value-edit-toggle'),
+    bulkEditor: () => page.getByTestId('request-pane').getByLabel('Code Editor'),
     toggleInherited: () => page.getByTestId('toggle-inherited-headers'),
     paneScroller: () => page.getByTestId('request-pane').getByTestId('flex-boundary'),
     defaultInfo: (name: string) => page.getByTestId(`default-header-info-${name.toLowerCase()}`),
@@ -159,9 +158,10 @@ export const fillRequestHeaderValue = async (page: Page, row: Locator, value: st
  */
 export const appendRequestHeaderBulkLines = async (page: Page, lines: string[]) => {
   const { headers } = buildRequestLocators(page);
-  const editorLines = headers.bulkEditorLines();
-  await editorLines.last().click();
-  await page.keyboard.press('End');
+  const editor = headers.bulkEditor();
+  await editor.click();
+  const endOfDocument = process.platform === 'darwin' ? 'Meta+End' : 'Control+End';
+  await page.keyboard.press(endOfDocument);
   await page.keyboard.type(`\n${lines.join('\n')}`, { delay: 5 });
 };
 
