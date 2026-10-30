@@ -4,7 +4,6 @@ const StyledWrapper = styled.div`
   .swagger2-sync-note {
     font-size: 0.75rem;
     color: ${(props) => props.theme.status.warning.text};
-    contain: inline-size;
   }
 
   .bruno-modal-footer {

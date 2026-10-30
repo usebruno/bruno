@@ -33,7 +33,7 @@ test.describe('Bulk Import check for spec updates', () => {
     await test.step('Turn on Check for Spec Updates and verify the Swagger 2.0 note', async () => {
       await locators.import.bulkSpecUpdatesToggle().check();
 
-      await expect(locators.import.bulkSwagger2SyncNote()).toHaveText('Swagger 2.0 specs are imported without sync: sample-swagger2.json');
+      await expect(locators.import.bulkSwagger2SyncNote()).toHaveText('Swagger 2.0 specs are not supported in OpenAPI sync.');
     });
 
     await test.step('Import the collections and close the modal', async () => {
@@ -113,7 +113,7 @@ test.describe('Bulk Import check for spec updates', () => {
     });
   });
 
-  test('Disables and resets the OpenAPI configuration while no OpenAPI spec is selected', async ({ page }) => {
+  test('Disables and resets the OpenAPI Import configuration while no OpenAPI spec is selected', async ({ page }) => {
     const locators = buildCommonLocators(page);
 
     await test.step('Open the bulk import modal, choose Paths and turn on Check for Spec Updates', async () => {

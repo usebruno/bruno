@@ -228,9 +228,7 @@ export const BulkImportCollectionLocation = ({
   const showOpenApiOptions = isMultipleImport && hasOpenApiSpec;
   const filesForSyncReason = hasSelectedOpenApiSpec ? selectedFiles : filesData;
   const showSwagger2SyncReason = filesForSyncReason.some((fileData) => fileData.type === 'openapi' && isSwagger2Spec(fileData.data)) && !filesForSyncReason.some(canSyncSpec);
-  const selectedSwagger2FileNames = selectedFiles
-    .filter((fileData) => fileData.type === 'openapi' && isSwagger2Spec(fileData.data))
-    .map((fileData) => fileData.file.name);
+  const hasSelectedSwagger2Spec = selectedFiles.some((fileData) => fileData.type === 'openapi' && isSwagger2Spec(fileData.data));
 
   // Sort collections to show selected items first, then unselected items
   // This helps users see their selections at the top of the list
@@ -923,7 +921,7 @@ export const BulkImportCollectionLocation = ({
                   )}
 
                   {showOpenApiOptions && (
-                    <ImportAdvancedSection title="OpenAPI configuration">
+                    <ImportAdvancedSection title="OpenAPI Import configuration">
                       <FolderArrangementOption
                         value={groupingType}
                         onChange={changeOpenApiSetting('groupingType')}
@@ -939,9 +937,9 @@ export const BulkImportCollectionLocation = ({
                           descriptionTestId="bulk-import-check-for-spec-updates-description"
                         />
                         <div role="status">
-                          {enableCheckForSpecUpdates && selectedSwagger2FileNames.length > 0 && (
+                          {enableCheckForSpecUpdates && hasSelectedSwagger2Spec && (
                             <p className="swagger2-sync-note mt-2" data-testid="bulk-import-swagger2-sync-note">
-                              Swagger 2.0 specs are imported without sync: {selectedSwagger2FileNames.join(', ')}
+                              Swagger 2.0 specs are not supported in OpenAPI sync.
                             </p>
                           )}
                         </div>

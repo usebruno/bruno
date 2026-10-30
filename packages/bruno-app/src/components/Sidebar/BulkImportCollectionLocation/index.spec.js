@@ -114,7 +114,7 @@ const renderBulkImport = (filesData, { collections = [] } = {}) => {
 };
 
 const specUpdatesCheckbox = () => screen.getByRole('checkbox', { name: /Check for Spec Updates/ });
-const configurationToggle = () => screen.queryByRole('button', { name: 'OpenAPI configuration' });
+const configurationToggle = () => screen.queryByRole('button', { name: 'OpenAPI Import configuration' });
 const openConfiguration = () => fireEvent.click(configurationToggle());
 const authPlacementCheckbox = () => screen.getByRole('checkbox', { name: /Set authentication at collection level/ });
 const groupingDropdown = () => screen.getByTestId('grouping-dropdown');
@@ -234,13 +234,13 @@ describe('BulkImportCollectionLocation check for spec updates', () => {
     expect(swagger2Note()).not.toBeInTheDocument();
   });
 
-  it('names the selected Swagger 2.0 specs that will be imported without sync', () => {
+  it('notes that Swagger 2.0 specs are not synced while one is selected', () => {
     renderBulkImport([ordersSpec, swagger2Spec]);
     openConfiguration();
     expect(swagger2Note()).not.toBeInTheDocument();
 
     fireEvent.click(specUpdatesCheckbox());
-    expect(swagger2Note()).toHaveTextContent('Swagger 2.0 specs are imported without sync: legacy.json');
+    expect(swagger2Note()).toHaveTextContent('Swagger 2.0 specs are not supported in OpenAPI sync.');
     expect(screen.getByRole('status')).toContainElement(swagger2Note());
 
     toggleFileSelection('Legacy API legacy.json');
@@ -354,7 +354,7 @@ describe('BulkImportCollectionLocation collection auth placement', () => {
   it.each([
     ['an OpenAPI 3.x spec', ordersSpec],
     ['a Swagger 2.0 spec', swagger2Spec]
-  ])('is offered off by default under the collapsed OpenAPI configuration when the selection includes %s', (_, spec) => {
+  ])('is offered off by default under the collapsed OpenAPI Import configuration when the selection includes %s', (_, spec) => {
     renderBulkImport([spec, postmanFile]);
     expect(screen.getByText('Set authentication at collection level')).not.toBeVisible();
 
@@ -475,7 +475,7 @@ describe('BulkImportCollectionLocation settings layout', () => {
   });
 });
 
-describe('BulkImportCollectionLocation OpenAPI configuration', () => {
+describe('BulkImportCollectionLocation OpenAPI Import configuration', () => {
   const changeEverySetting = async () => {
     await chooseGrouping('path');
     fireEvent.click(specUpdatesCheckbox());
