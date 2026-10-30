@@ -1,10 +1,11 @@
 import { forwardRef, useRef } from 'react';
 import { IconCaretDown } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
+import { stopEnterFromConfirmingModal } from 'utils/common';
 
 const OptionsButton = forwardRef((props, ref) => (
   <div ref={ref} className="flex items-center text-link cursor-pointer">
-    <button className="btn-advanced" type="button">
+    <button className="btn-advanced" type="button" onKeyDown={stopEnterFromConfirmingModal}>
       Options
     </button>
     <IconCaretDown className="ml-1" size={14} strokeWidth={2} fill="currentColor" />
