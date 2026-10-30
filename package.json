@@ -31,7 +31,7 @@
     "@types/jest": "^29.5.11",
     "@types/js-yaml": "^4.0.9",
     "@types/lodash-es": "^4.17.12",
-    "@types/node": "^22.14.1",
+    "@types/node": "^24.19.2",
     "@typescript-eslint/parser": "^8.39.0",
     "adm-zip": "^0.6.0",
     "concurrently": "^8.2.2",
