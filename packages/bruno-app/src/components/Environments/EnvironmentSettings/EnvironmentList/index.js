@@ -542,10 +542,14 @@ const EnvironmentList = ({
 
   const scopeRef = useRef(null);
 
+  // With nothing selected, the Delete shortcut acts on the open environment, as long as the search isn't hiding it.
+  const openEnvUid = filteredEnvironments.some((env) => env.uid === activeEnvUid) ? activeEnvUid : undefined;
+
   const actions = useEnvironmentActions({
     scopeRef,
     environments,
     selectedEnvUids: selection.selectedEnvUids,
+    fallbackEnvUid: openEnvUid,
     onRenameEnvironment: handleEnvironmentDoubleClick,
     onClearSelection: selection.clearSelection
   });
@@ -562,6 +566,7 @@ const EnvironmentList = ({
   useEnvironmentShortcuts({
     scopeRef,
     hasSelection: selection.hasSelection,
+    canDelete: selection.hasSelection || Boolean(openEnvUid),
     isModalOpen: actions.isModalOpen,
     isMenuOpen: actions.isMenuOpen,
     onClearSelection: selection.clearSelection,

@@ -75,21 +75,19 @@ test.describe('Collection environments list shortcuts', () => {
     await expect(selectedRows()).toHaveCount(0);
   });
 
-  test('the delete key needs a selection and then deletes every selected environment', async ({ page }) => {
+  test('the delete key deletes the open environment, or every selected environment', async ({ page }) => {
     const { environment } = buildCommonLocators(page);
-    const { deleteModal, rowNames, selectedRows, selectedRowNames } = environment.sidebarActions;
+    const { deleteModal, rowNames } = environment.sidebarActions;
 
-    await test.step('Nothing is selected, so nothing happens', async () => {
+    await test.step('With nothing selected, the delete key targets the open environment', async () => {
       await environment.sidebarListItemExact('collection', ENV_2).click();
       await page.keyboard.press(DELETE_KEY);
 
-      // Keys are handled in order, so once select all has applied, a modal from the Delete key would be open.
-      await page.keyboard.press(SELECT_ALL_KEY);
-      await expect(selectedRowNames()).toHaveText(ENV_NAMES);
-      await expect(deleteModal.root()).toHaveCount(0);
+      await expect(deleteModal.root()).toContainText(ENV_2);
+      await expect(deleteModal.confirm()).toHaveText('Delete');
 
-      await page.keyboard.press(SELECT_ALL_KEY);
-      await expect(selectedRows()).toHaveCount(0);
+      await page.keyboard.press('Escape');
+      await expect(deleteModal.root()).toBeHidden();
     });
 
     await test.step('With Env 2 and Env 3 selected, the delete modal opens', async () => {
