@@ -287,7 +287,7 @@ export const getFetchErrorMessage = (error, url) => {
   return `Could not fetch a specification from ${host}.`;
 };
 
-export const parseImportFileText = (text, file) => {
+export const parseFileText = (text, file) => {
   // Handle WSDL files - return as plain text
   if (file.name.endsWith('.wsdl') || file.type === 'text/xml' || file.type === 'application/xml') {
     return text;

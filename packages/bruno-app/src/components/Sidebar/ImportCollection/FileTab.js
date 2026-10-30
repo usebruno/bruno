@@ -7,10 +7,10 @@ import { isOpenApiSpec, isSwagger2Spec } from 'utils/importers/openapi-collectio
 import { isWSDLCollection } from 'utils/importers/wsdl-collection';
 import { isBrunoCollection } from 'utils/importers/bruno-collection';
 import { isOpenCollection } from 'utils/importers/opencollection';
-import { parseImportFileText } from 'utils/importers/common';
+import { parseFileText } from 'utils/importers/common';
 import { useTheme } from 'providers/Theme';
 
-const convertFileToObject = async (file) => parseImportFileText(await file.text(), file);
+const convertFileToObject = async (file) => parseFileText(await file.text(), file);
 
 const FileTab = ({
   setIsLoading,
@@ -80,7 +80,7 @@ const FileTab = ({
       for (const file of fileArray) {
         try {
           const text = await file.text();
-          const data = parseImportFileText(text, file);
+          const data = parseFileText(text, file);
 
           // Determine type for each file
           let type = null;
