@@ -1,5 +1,5 @@
-import { ElectronApplication, Page, expect, test } from '../../../playwright';
-import { buildCommonLocators } from './locators';
+import { ElectronApplication, Page, expect, test } from '../../../../playwright';
+import { buildCommonLocators } from '../locators';
 
 /**
  * GraphQL Query Builder locators. Field rows are keyed by their schema path, e.g. `Query.user.name`.
@@ -17,9 +17,8 @@ export const buildGraphqlQueryBuilderLocators = (page: Page) => ({
 export const openGraphqlQueryBuilder = async (page: Page) => {
   await test.step('Open the GraphQL Query Builder', async () => {
     const queryBuilder = buildGraphqlQueryBuilderLocators(page);
-    if (!(await queryBuilder.container().isVisible())) {
-      await queryBuilder.toggleButton().click();
-    }
+    await expect(queryBuilder.container()).toBeHidden();
+    await queryBuilder.toggleButton().click();
     await expect(queryBuilder.container()).toBeVisible();
   });
 };

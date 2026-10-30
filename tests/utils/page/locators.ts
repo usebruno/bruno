@@ -28,7 +28,7 @@ import { buildCreateWorkspaceModalLocators } from './workspace/create-workspace-
 import { buildTitleBarLocators } from './title-bar';
 import { buildCloneGitRepositoryLocators } from './git/clone-git-repository';
 import { buildResponseExampleLocators } from './response-example';
-import { buildGraphqlQueryBuilderLocators } from './graphql-query-builder';
+import { buildGraphqlQueryBuilderLocators } from './graphql/query-builder';
 import { buildAuthLocators } from './auth';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
