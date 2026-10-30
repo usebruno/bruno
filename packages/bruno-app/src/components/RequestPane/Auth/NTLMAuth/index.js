@@ -8,7 +8,7 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
-const NTLMAuth = ({ item, collection, request, save, updateAuth, disabled }) => {
+const NTLMAuth = ({ item, collection, request, save, updateAuth, readOnly }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -77,7 +77,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth, disabled }) => 
           onRun={handleRun}
           collection={collection}
           item={item}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
       </div>
@@ -93,10 +93,10 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth, disabled }) => 
           collection={collection}
           item={item}
           isSecret={true}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
-        <SensitiveFieldWarning fieldName="ntlm-password" secretName="password" value={ntlmAuth?.password} collection={collection} item={item} disabled={disabled} onReplaceValue={handlePasswordChange} />
+        <SensitiveFieldWarning fieldName="ntlm-password" secretName="password" value={ntlmAuth?.password} collection={collection} item={item} fieldKey="password" onReplaceValue={handlePasswordChange} />
       </div>
 
       <label className="block mb-1">Domain</label>
@@ -109,7 +109,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth, disabled }) => 
           onRun={handleRun}
           collection={collection}
           item={item}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
       </div>

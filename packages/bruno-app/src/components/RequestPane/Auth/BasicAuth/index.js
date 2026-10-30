@@ -7,7 +7,7 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
-const BasicAuth = ({ item, collection, updateAuth, request, save, disabled }) => {
+const BasicAuth = ({ item, collection, updateAuth, request, save, readOnly }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -59,7 +59,7 @@ const BasicAuth = ({ item, collection, updateAuth, request, save, disabled }) =>
           onRun={handleRun}
           collection={collection}
           item={item}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
       </div>
@@ -75,10 +75,10 @@ const BasicAuth = ({ item, collection, updateAuth, request, save, disabled }) =>
           collection={collection}
           item={item}
           isSecret={true}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
-        <SensitiveFieldWarning fieldName="basic-password" secretName="password" value={basicAuth?.password} collection={collection} item={item} disabled={disabled} onReplaceValue={handlePasswordChange} />
+        <SensitiveFieldWarning fieldName="basic-password" secretName="password" value={basicAuth?.password} collection={collection} item={item} fieldKey="password" onReplaceValue={handlePasswordChange} />
       </div>
     </StyledWrapper>
   );

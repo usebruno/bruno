@@ -3,6 +3,7 @@ const fs = require('fs');
 const os = require('os');
 const { runScriptInNodeVm } = require('@usebruno/js');
 const { parseBruFileMeta, wrapAndJoinScripts, mergeScripts, getEffectiveTagsByUid } = require('../../src/utils/collection');
+const { executeQuickJsVmAsync } = require('@usebruno/js/src/sandbox/quickjs');
 
 describe('parseBruFileMeta', () => {
   test('parses valid meta block correctly', () => {
@@ -889,5 +890,73 @@ describe('getEffectiveTagsByUid', () => {
 
     expect(tagsByUid.size).toBe(1);
     expect(tagsByUid.get('folder-empty')).toEqual(['empty']);
+  });
+});
+
+describe('wrapAndJoinScripts line endings', () => {
+  test('normalises CRLF segments to LF so line counts stay correct', () => {
+    const result = wrapAndJoinScripts(['let a = 1;\r\nlet b = 2;', '', 'let c = 3;'], 2);
+    expect(result.code).not.toContain('\r');
+    expect(result.code).toContain('let a = 1;\nlet b = 2;');
+    // Collection segment: opener + 2 body lines + closer = 4 lines, blank separator at 5
+    expect(result.metadata.requestStartLine).toBe(6);
+    expect(result.metadata.requestEndLine).toBe(8);
+  });
+
+  test('mixed endings across collection, folder and request segments all become LF', () => {
+    const result = wrapAndJoinScripts(['col();\r\n', 'folder();\n', '// note\r\nreq();'], 2);
+    expect(result.code).not.toContain('\r');
+    expect(result.code).toContain('// note\nreq();');
+  });
+});
+
+describe('mergeScripts: merged scripts execute in both sandboxes', () => {
+  const sandboxes = [
+    ['nodevm', (script, bru) => runScriptInNodeVm({ script, context: { bru, console, __bruSetScope: jest.fn() }, collectionPath: '/test/collection', scriptingConfig: {} })],
+    ['quickjs', (script, bru) => executeQuickJsVmAsync({ script, context: { bru }, collectionPath: '/test/collection' })]
+  ];
+
+  const crlfCollectionScript = [
+    'function extractDataPaths(scRaw) {',
+    '    const placeholderRegExp = /{{([^}]+)}}/g;',
+    '    const dataPaths = [];',
+    '    let match;',
+    '    while ((match = placeholderRegExp.exec(scRaw)) != null) {',
+    '        dataPaths.push(match[1]);',
+    '    }',
+    '    return dataPaths;',
+    '}'
+  ].join('\r\n');
+
+  test.each(sandboxes)('CRLF collection script + request script with a // comment still runs in %s', async (_, runScript) => {
+    const collection = makeCollection({ preReq: crlfCollectionScript });
+    const request = makeRequest({ preReq: '// Set the pet ID before sending the request\nbru.setVar("petId", 9091)' });
+    mergeScripts(collection, request, [request], 'sandwich');
+
+    expect(request.script.req).not.toContain('\r');
+    const bru = { setVar: jest.fn() };
+    await runScript(request.script.req, bru);
+    expect(bru.setVar).toHaveBeenCalledWith('petId', 9091);
+  });
+
+  test.each(sandboxes)('CRLF collection script + request script that is only a // comment does not break the combined script in %s', async (_, runScript) => {
+    const collection = makeCollection({ preReq: crlfCollectionScript });
+    const request = makeRequest({ preReq: '// just a comment' });
+    mergeScripts(collection, request, [request], 'sandwich');
+
+    const bru = { setVar: jest.fn() };
+    await expect(runScript(request.script.req, bru)).resolves.not.toThrow();
+  });
+
+  test.each(sandboxes)('a // comment at the end of a CR-only collection script does not swallow the closer in %s', async (_, runScript) => {
+    const collection = makeCollection({ preReq: 'bru.setVar("a", 1);\r// trailing comment' });
+    const request = makeRequest({ preReq: 'bru.setVar("b", 2);' });
+    mergeScripts(collection, request, [request], 'sandwich');
+
+    const bru = { setVar: jest.fn() };
+    await runScript(request.script.req, bru);
+
+    expect(bru.setVar).toHaveBeenCalledWith('a', 1);
+    expect(bru.setVar).toHaveBeenCalledWith('b', 2);
   });
 });
