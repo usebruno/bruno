@@ -53,7 +53,7 @@ describe('sentHeadersFromTimeline', () => {
       ...hop('http://localhost:6000/redirect-other-host', 'localhost:6000'),
       { type: 'response', message: 'HTTP/1.1 302 Found' },
       responseHeader('location: http://127.0.0.1:6000/echo-request-redirect/hello'),
-      info('Cross-origin redirect: stripping Authorization and Proxy-Authorization headers'),
+      info('Cross-origin redirect: stripping Authorization header'),
       ...hop('http://127.0.0.1:6000/echo-request-redirect/hello', '127.0.0.1:6000'),
       { type: 'response', message: 'HTTP/1.1 200 OK' },
       info('Request completed in 4 ms')
