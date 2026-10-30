@@ -131,7 +131,8 @@ export default function useProtoFileManagement(collection) {
     try {
       const protoFileObj = {
         path: relativePath,
-        type: 'file'
+        type: 'file',
+        exists: true
       };
 
       await writeProtobufToDisk({ protoFiles: [...collectionProtoFiles, protoFileObj] });
@@ -179,7 +180,8 @@ export default function useProtoFileManagement(collection) {
     const relativePath = getRelativePath(collection.pathname, directoryPath, true);
     const importPathObj = {
       path: relativePath,
-      enabled: true
+      enabled: true,
+      exists: true
     };
 
     const exists = collectionImportPaths.some((ip) => ip.path === importPathObj.path);
