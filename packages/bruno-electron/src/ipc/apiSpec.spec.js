@@ -62,6 +62,9 @@ const writeWorkspaceYml = (workspacePath, specsYaml) => {
   fs.writeFileSync(path.join(workspacePath, 'workspace.yml'), content);
 };
 
+const configBroadcasts = (mainWindow) =>
+  mainWindow.webContents.send.mock.calls.filter(([channel]) => channel === 'main:workspace-config-updated');
+
 const readSpecs = (workspacePath) => yaml.load(fs.readFileSync(path.join(workspacePath, 'workspace.yml'), 'utf8')).specs ?? [];
 
 describe('api spec ipc handlers', () => {
@@ -93,18 +96,13 @@ describe('api spec ipc handlers', () => {
   describe('renderer:rename-api-spec', () => {
     const invoke = (...args) => ipcMain._getHandler('renderer:rename-api-spec')({}, ...args);
 
-    test('updates the workspace entry name and broadcasts the new config', async () => {
+    test('updates the workspace entry name and leaves the reload to the workspace watcher', async () => {
       const specPath = path.join(workspacePath, 'a', 'openapi.yaml');
 
       await invoke(specPath, 'Renamed API', workspacePath);
 
       expect(readSpecs(workspacePath)).toEqual([{ name: 'Renamed API', path: 'a/openapi.yaml' }]);
-      expect(mainWindow.webContents.send).toHaveBeenCalledWith(
-        'main:workspace-config-updated',
-        workspacePath,
-        expect.any(String),
-        expect.objectContaining({ specs: [{ name: 'Renamed API', path: 'a/openapi.yaml' }] })
-      );
+      expect(configBroadcasts(mainWindow)).toEqual([]);
     });
 
     test('leaves the spec file untouched', async () => {
@@ -117,7 +115,7 @@ describe('api spec ipc handlers', () => {
       expect(fs.readFileSync(specPath, 'utf8')).toBe(before);
     });
 
-    test('rejects an empty name and does not broadcast', async () => {
+    test('rejects an empty name and keeps the old one', async () => {
       const specPath = path.join(workspacePath, 'a', 'openapi.yaml');
 
       await expect(invoke(specPath, '', workspacePath)).rejects.toThrow('API spec name is required');
@@ -151,12 +149,7 @@ describe('api spec ipc handlers', () => {
         { name: 'Orders API', path: 'a/openapi.yaml' },
         { name: 'Orders API copy', path: 'apispec/Orders API copy.yaml' }
       ]);
-      expect(mainWindow.webContents.send).toHaveBeenCalledWith(
-        'main:workspace-config-updated',
-        workspacePath,
-        expect.any(String),
-        expect.objectContaining({ specs: expect.arrayContaining([expect.objectContaining({ name: 'Orders API copy' })]) })
-      );
+      expect(configBroadcasts(mainWindow)).toEqual([]);
       expect(ipcMain.emit).toHaveBeenCalledWith('main:apispec-opened', mainWindow, targetPath, expect.any(String), workspacePath);
     });
 
@@ -216,6 +209,23 @@ describe('api spec ipc handlers', () => {
       expect(readSpecs(workspacePath)).toHaveLength(1);
     });
 
+    test('retries the cleanup, so a copy Windows briefly locks is still removed', async () => {
+      addApiSpecToWorkspace.mockRejectedValueOnce(new Error('workspace is locked'));
+      const rm = jest.spyOn(fs.promises, 'rm');
+
+      await expect(invoke(sourcePath, 'Orders copy', targetDir, workspacePath)).rejects.toThrow('workspace is locked');
+
+      expect(rm).toHaveBeenCalledWith(path.join(targetDir, 'Orders copy.yaml'), expect.objectContaining({ maxRetries: 5, retryDelay: 100 }));
+      rm.mockRestore();
+    });
+
+    test('rejects a name whose file name would pass 255 characters once the extension is added', async () => {
+      await expect(invoke(sourcePath, 'a'.repeat(251), targetDir, workspacePath)).rejects.toThrow('API spec name must be at most 250 characters');
+
+      expect(fs.readdirSync(targetDir)).toEqual([]);
+      expect(readSpecs(workspacePath)).toHaveLength(1);
+    });
+
     test('reports the original error even when the cleanup cannot remove the copy', async () => {
       addApiSpecToWorkspace.mockRejectedValueOnce(new Error('workspace is locked'));
       const rm = jest.spyOn(fs.promises, 'rm').mockRejectedValueOnce(new Error('EBUSY: resource busy'));
@@ -237,18 +247,13 @@ describe('api spec ipc handlers', () => {
       specPath = path.join(workspacePath, 'a', 'openapi.yaml');
     });
 
-    test('stops the watcher, deletes the file, removes the workspace entry and broadcasts', async () => {
+    test('stops the watcher, deletes the file and removes the workspace entry, leaving the reload to the workspace watcher', async () => {
       await invoke(specPath, workspacePath);
 
       expect(watcher.removeWatcher).toHaveBeenCalledWith(specPath, mainWindow);
       expect(fs.existsSync(specPath)).toBe(false);
       expect(readSpecs(workspacePath)).toEqual([]);
-      expect(mainWindow.webContents.send).toHaveBeenCalledWith(
-        'main:workspace-config-updated',
-        workspacePath,
-        expect.any(String),
-        expect.objectContaining({ specs: [] })
-      );
+      expect(configBroadcasts(mainWindow)).toEqual([]);
     });
 
     test('still removes the workspace entry when the file is already gone', async () => {

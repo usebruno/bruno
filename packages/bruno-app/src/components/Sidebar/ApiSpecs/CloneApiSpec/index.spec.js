@@ -2,7 +2,9 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
+import { ThemeProvider } from 'styled-components';
 import toast from 'react-hot-toast';
+import themes from 'themes/index';
 import { cloneApiSpec } from 'providers/ReduxStore/slices/apiSpec';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import useDefaultApiSpecLocation from 'hooks/useDefaultApiSpecLocation';
@@ -33,15 +35,19 @@ jest.mock('components/Modal', () => ({ children, title, handleConfirm, confirmDi
 ));
 
 const DEFAULT_LOCATION = '/workspace/apispec';
-const apiSpec = { uid: 'runtime-uid', name: 'Petstore', pathname: '/workspace/petstore.yaml' };
+const SOURCE_FOLDER = '/elsewhere/specs';
+const apiSpec = { uid: 'runtime-uid', name: 'Petstore', pathname: `${SOURCE_FOLDER}/petstore.yaml`, raw: 'openapi: 3.0.0' };
+const multiFileSpec = { ...apiSpec, resolvedJson: { openapi: '3.0.0', paths: { '/pets': {} } } };
 
-const renderModal = ({ defaultLocation = DEFAULT_LOCATION } = {}) => {
+const renderModal = ({ defaultLocation = DEFAULT_LOCATION, spec = apiSpec } = {}) => {
   useDefaultApiSpecLocation.mockReturnValue(defaultLocation);
   const onClose = jest.fn();
   const store = configureStore({ reducer: { app: (state = {}) => state } });
   const ui = () => (
     <Provider store={store}>
-      <CloneApiSpec apiSpec={apiSpec} onClose={onClose} />
+      <ThemeProvider theme={themes.light}>
+        <CloneApiSpec apiSpec={spec} onClose={onClose} />
+      </ThemeProvider>
     </Provider>
   );
 
@@ -83,14 +89,14 @@ describe('the dialog for cloning an API spec', () => {
     expect(toast.success).toHaveBeenCalledWith('API Spec cloned');
   });
 
-  it('keeps a typed name when the suggested folder arrives after the dialog opened', () => {
+  it('keeps a typed name when the suggested folder arrives after the dialog opened', async () => {
     const { nameInput, locationInput, defaultLocationArrives } = renderModal({ defaultLocation: '' });
 
     fireEvent.change(nameInput(), { target: { value: 'Orders' } });
     defaultLocationArrives(DEFAULT_LOCATION);
 
+    await waitFor(() => expect(locationInput()).toHaveValue(DEFAULT_LOCATION));
     expect(nameInput()).toHaveValue('Orders');
-    expect(locationInput()).toHaveValue(DEFAULT_LOCATION);
   });
 
   it('clones into a folder the user picked instead of the suggested one', async () => {
@@ -122,6 +128,55 @@ describe('the dialog for cloning an API spec', () => {
 
     expect(await screen.findByText(validateNameError('a/b'))).toBeInTheDocument();
     expect(cloneApiSpec).not.toHaveBeenCalled();
+  });
+
+  it('refuses a name that would make the file name longer than 255 characters with its extension', async () => {
+    const { nameInput } = renderModal();
+
+    fireEvent.change(nameInput(), { target: { value: 'a'.repeat(251) } });
+    fireEvent.click(screen.getByText('confirm'));
+
+    expect(await screen.findByText('must be 250 characters or less')).toBeInTheDocument();
+    expect(cloneApiSpec).not.toHaveBeenCalled();
+  });
+
+  it('warns that unsaved changes are not part of the clone', () => {
+    renderModal({ spec: { ...apiSpec, draft: 'openapi: 3.1.0' } });
+
+    expect(screen.getByTestId('api-spec-unsaved-warning')).toHaveTextContent(
+      'You have unsaved changes in this spec. The clone is made from the saved file, so those changes will not be included.'
+    );
+  });
+
+  it('shows no unsaved warning when the spec has no unsaved changes', () => {
+    renderModal({ spec: { ...apiSpec, draft: apiSpec.raw } });
+
+    expect(screen.queryByTestId('api-spec-unsaved-warning')).not.toBeInTheDocument();
+  });
+
+  it('suggests the source folder for a spec that uses other files, with no warning', () => {
+    const { locationInput } = renderModal({ spec: multiFileSpec });
+
+    expect(locationInput()).toHaveValue(SOURCE_FOLDER);
+    expect(screen.queryByTestId('api-spec-relative-refs-warning')).not.toBeInTheDocument();
+  });
+
+  it('warns when a spec that uses other files is cloned into a different folder', async () => {
+    browseDirectory.mockReturnValue(() => Promise.resolve('/somewhere/else'));
+    const { locationInput } = renderModal({ spec: multiFileSpec });
+
+    fireEvent.click(screen.getByText('Browse'));
+    await waitFor(() => expect(locationInput()).toHaveValue('/somewhere/else'));
+
+    expect(screen.getByTestId('api-spec-relative-refs-warning')).toHaveTextContent(
+      'This spec uses other files through relative references, and only this file is copied. Clone it into the same folder to keep those references working.'
+    );
+  });
+
+  it('shows no relative references warning for a single-file spec cloned elsewhere', () => {
+    renderModal();
+
+    expect(screen.queryByTestId('api-spec-relative-refs-warning')).not.toBeInTheDocument();
   });
 
   it('shows why the clone failed and stays open', async () => {

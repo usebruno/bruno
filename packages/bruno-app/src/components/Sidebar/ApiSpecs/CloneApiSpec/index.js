@@ -5,15 +5,24 @@ import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import Modal from 'components/Modal';
 import SpecLocationField from 'components/Sidebar/ApiSpecs/SpecLocationField';
+import ApiSpecWarnings from 'components/Sidebar/ApiSpecs/ApiSpecWarnings';
 import { cloneApiSpec } from 'providers/ReduxStore/slices/apiSpec';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import useDefaultApiSpecLocation from 'hooks/useDefaultApiSpecLocation';
 import { formatIpcError } from 'utils/common/error';
+import path from 'utils/common/path';
+import { getApiSpecPathKey, hasUnsavedApiSpecChanges } from 'utils/api-specs';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
+
+const MAX_FILENAME_LENGTH = 255;
 
 const CloneApiSpec = ({ apiSpec, onClose }) => {
   const dispatch = useDispatch();
-  const defaultLocation = useDefaultApiSpecLocation();
+  const workspaceLocation = useDefaultApiSpecLocation();
+  const sourceFolder = path.dirname(apiSpec.pathname);
+  const usesOtherFiles = Boolean(apiSpec.resolvedJson);
+  const defaultLocation = usesOtherFiles ? sourceFolder : workspaceLocation;
+  const maxNameLength = MAX_FILENAME_LENGTH - path.extname(apiSpec.pathname).length;
 
   const formik = useFormik({
     initialValues: {
@@ -23,7 +32,7 @@ const CloneApiSpec = ({ apiSpec, onClose }) => {
     validationSchema: Yup.object({
       name: Yup.string()
         .trim()
-        .max(255, 'must be 255 characters or less')
+        .max(maxNameLength, `must be ${maxNameLength} characters or less`)
         .test('is-valid-filename', function (value) {
           return validateName(value) ? true : this.createError({ message: validateNameError(value) });
         })
@@ -48,6 +57,22 @@ const CloneApiSpec = ({ apiSpec, onClose }) => {
       })
       .catch((error) => console.error(error));
   };
+
+  const location = formik.values.location || defaultLocation;
+  const warnings = [
+    ...(usesOtherFiles && getApiSpecPathKey(location) !== getApiSpecPathKey(sourceFolder)
+      ? [{
+          testId: 'api-spec-relative-refs-warning',
+          message: 'This spec uses other files through relative references, and only this file is copied. Clone it into the same folder to keep those references working.'
+        }]
+      : []),
+    ...(hasUnsavedApiSpecChanges(apiSpec)
+      ? [{
+          testId: 'api-spec-unsaved-warning',
+          message: 'You have unsaved changes in this spec. The clone is made from the saved file, so those changes will not be included.'
+        }]
+      : [])
+  ];
 
   return (
     <Modal
@@ -77,13 +102,16 @@ const CloneApiSpec = ({ apiSpec, onClose }) => {
           onChange={formik.handleChange}
           value={formik.values.name}
         />
-        {formik.touched.name && formik.errors.name ? <div className="text-red-500">{formik.errors.name}</div> : null}
+        {formik.touched.name && formik.errors.name ? (
+          <div className="text-red-500" data-testid="clone-api-spec-name-error">{formik.errors.name}</div>
+        ) : null}
 
         <SpecLocationField
-          location={formik.values.location || defaultLocation}
+          location={location}
           error={formik.touched.location ? formik.errors.location : ''}
           onBrowse={browse}
         />
+        <ApiSpecWarnings warnings={warnings} />
       </form>
     </Modal>
   );

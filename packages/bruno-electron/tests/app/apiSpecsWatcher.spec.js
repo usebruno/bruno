@@ -33,6 +33,44 @@ describe('ApiSpecWatcher', () => {
 
   const lastUpdate = () => specUpdates()[specUpdates().length - 1];
 
+  it('counts a spec as watched while its watcher is still starting', () => {
+    const specPath = path.join(specDir, 'openapi.yaml');
+    fs.writeFileSync(specPath, 'openapi: 3.0.3\ninfo:\n  title: Orders API\npaths: {}\n');
+
+    apiSpecWatcher.addWatcher(win, specPath, 'api-spec-uid', {});
+
+    expect(apiSpecWatcher.hasWatcher(specPath)).toBe(true);
+  });
+
+  it('keeps a single watcher when the same spec is added twice before the first one starts', async () => {
+    const specPath = path.join(specDir, 'openapi.yaml');
+    fs.writeFileSync(specPath, 'openapi: 3.0.3\ninfo:\n  title: Orders API\npaths: {}\n');
+
+    apiSpecWatcher.addWatcher(win, specPath, 'api-spec-uid', {});
+    apiSpecWatcher.addWatcher(win, specPath, 'api-spec-uid', {});
+    await waitForUpdates(() => specUpdates().length >= 1, 'the spec to be picked up');
+    await sleep(300);
+
+    fs.writeFileSync(specPath, 'openapi: 3.0.3\ninfo:\n  title: Orders API v2\npaths: {}\n');
+    await waitForUpdates(() => lastUpdate()[2].name === 'Orders API v2', 'the edit to be picked up');
+    await sleep(300);
+
+    expect(specUpdates().filter(([, type]) => type === 'addFile')).toHaveLength(1);
+    expect(specUpdates().filter(([, type]) => type === 'changeFile')).toHaveLength(1);
+  }, 20000);
+
+  it('starts nothing when a spec is removed before its watcher starts', async () => {
+    const specPath = path.join(specDir, 'openapi.yaml');
+    fs.writeFileSync(specPath, 'openapi: 3.0.3\ninfo:\n  title: Orders API\npaths: {}\n');
+
+    apiSpecWatcher.addWatcher(win, specPath, 'api-spec-uid', {});
+    apiSpecWatcher.removeWatcher(specPath, win);
+    await sleep(300);
+
+    expect(apiSpecWatcher.hasWatcher(specPath)).toBe(false);
+    expect(specUpdates()).toEqual([]);
+  });
+
   it('names a spec after its info.title when it is picked up', async () => {
     const specPath = path.join(specDir, 'orders.v2.yaml');
     fs.writeFileSync(specPath, 'openapi: 3.0.3\ninfo:\n  title: Orders API\n  version: 1.0.0\npaths: {}\n');

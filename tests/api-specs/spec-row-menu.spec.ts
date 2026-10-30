@@ -7,12 +7,14 @@ import { buildCommonLocators } from '../utils/page/locators';
 import { buildTitleBarLocators } from '../utils/page/title-bar';
 import { buildMockServerLocators } from '../utils/page/mock-server';
 import { expandApiSpecsSection, openApiSpecRowMenu, chooseApiSpecRowAction } from '../utils/page/openapi/render-spec';
+import { stubOpenDirectoryDialog } from '../utils/stubs';
 
 const OPENAPI_FIXTURES = path.resolve(__dirname, '..', 'import', 'openapi', 'fixtures');
 const COMPREHENSIVE_TITLE = 'Comprehensive API Test Collection';
 const EXAMPLES_TITLE = 'API with Examples';
 const WORKSPACE_NAME = 'SpecMenuWorkspace';
 const SYNCED_COLLECTION = 'Examples Sync';
+const SPLIT_TITLE = 'Split Petstore';
 
 const REVEAL_LABELS: Record<string, string> = {
   darwin: 'Reveal in Finder',
@@ -28,7 +30,7 @@ const buildPreferences = ({ mockServer }: { mockServer: boolean }) => JSON.strin
   }
 }, null, 2);
 
-const buildWorkspaceYml = ({ withSyncedCollection }: { withSyncedCollection: boolean }) => [
+const buildWorkspaceYml = ({ withSyncedCollection, withSplitSpec }: { withSyncedCollection: boolean; withSplitSpec: boolean }) => [
   'opencollection: 1.0.0',
   'info:',
   `  name: ${WORKSPACE_NAME}`,
@@ -43,6 +45,7 @@ const buildWorkspaceYml = ({ withSyncedCollection }: { withSyncedCollection: boo
   '    path: specs/examples.yaml',
   '  - name: notes',
   '    path: specs/notes.yaml',
+  ...(withSplitSpec ? [`  - name: ${SPLIT_TITLE}`, '    path: specs/split.yaml'] : []),
   'docs: \'\'',
   ''
 ].join('\n');
@@ -69,9 +72,9 @@ const findFileNamed = (dir: string, prefix: string): string | null => {
 
 type CreateTmpDir = (tag?: string) => Promise<string>;
 type LaunchElectronApp = (options: { userDataPath: string }) => Promise<ElectronApplication>;
-type SeedOptions = { mockServer?: boolean; withSyncedCollection?: boolean };
+type SeedOptions = { mockServer?: boolean; withSyncedCollection?: boolean; withSplitSpec?: boolean };
 
-const seedWorkspace = async (createTmpDir: CreateTmpDir, { mockServer = true, withSyncedCollection = false }: SeedOptions) => {
+const seedWorkspace = async (createTmpDir: CreateTmpDir, { mockServer = true, withSyncedCollection = false, withSplitSpec = false }: SeedOptions) => {
   const userDataPath = await createTmpDir('spec-row-menu-userdata');
   fs.writeFileSync(path.join(userDataPath, 'preferences.json'), buildPreferences({ mockServer }));
 
@@ -81,7 +84,29 @@ const seedWorkspace = async (createTmpDir: CreateTmpDir, { mockServer = true, wi
   fs.copyFileSync(path.join(OPENAPI_FIXTURES, 'openapi-comprehensive.yaml'), path.join(workspacePath, 'specs', 'comprehensive.yaml'));
   fs.copyFileSync(path.join(OPENAPI_FIXTURES, 'openapi-with-examples.yaml'), path.join(workspacePath, 'specs', 'examples.yaml'));
   fs.writeFileSync(path.join(workspacePath, 'specs', 'notes.yaml'), 'title: Not an API\nitems:\n  - one\n');
-  fs.writeFileSync(path.join(workspacePath, 'workspace.yml'), buildWorkspaceYml({ withSyncedCollection }));
+  fs.writeFileSync(path.join(workspacePath, 'workspace.yml'), buildWorkspaceYml({ withSyncedCollection, withSplitSpec }));
+
+  if (withSplitSpec) {
+    fs.mkdirSync(path.join(workspacePath, 'specs', 'paths'));
+    fs.writeFileSync(path.join(workspacePath, 'specs', 'split.yaml'), [
+      'openapi: 3.0.3',
+      'info:',
+      `  title: ${SPLIT_TITLE}`,
+      '  version: 1.0.0',
+      'paths:',
+      '  /pets:',
+      '    $ref: \'./paths/pets.yaml\'',
+      ''
+    ].join('\n'));
+    fs.writeFileSync(path.join(workspacePath, 'specs', 'paths', 'pets.yaml'), [
+      'get:',
+      '  summary: List pets',
+      '  responses:',
+      '    \'200\':',
+      '      description: ok',
+      ''
+    ].join('\n'));
+  }
 
   if (withSyncedCollection) {
     const collectionPath = path.join(workspacePath, 'collections', 'examples-sync');
@@ -239,6 +264,16 @@ test.describe('API spec row context menu', () => {
         await expect(menu.cloneModal()).toBeVisible();
         await expect(menu.cloneNameInput()).toHaveValue(`${COMPREHENSIVE_TITLE} copy`);
         await expect(menu.cloneLocationInput()).toHaveValue(path.join(workspacePath, 'apispec'));
+      });
+
+      await test.step('A name too long for a file name with its extension is refused before cloning', async () => {
+        await menu.cloneNameInput().fill('a'.repeat(251));
+        await menu.cloneSubmit().click();
+        await expect(menu.cloneNameError()).toHaveText('must be 250 characters or less');
+        await expect(menu.cloneModal()).toBeVisible();
+      });
+
+      await test.step('Clone under a valid name', async () => {
         await menu.cloneNameInput().fill('Comprehensive Clone');
         await menu.cloneSubmit().click();
       });
@@ -260,6 +295,43 @@ test.describe('API spec row context menu', () => {
         await expect(toast.byMessage(/already exists/)).toBeVisible();
         await expect(menu.cloneModal()).toBeVisible();
         expect(readWorkspaceSpecPaths(workspacePath).filter((specPath) => specPath === 'apispec/Comprehensive Clone.yaml')).toHaveLength(1);
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+
+  test('cloning a spec that uses other files defaults to its own folder, and warns before copying it elsewhere', async ({ launchElectronApp, createTmpDir }) => {
+    test.setTimeout(60000);
+    const { app, page, workspacePath, render, menu } = await launchOnWorkspace(launchElectronApp, createTmpDir, { withSplitSpec: true });
+    const specsFolder = path.join(workspacePath, 'specs');
+
+    try {
+      await test.step('Clone suggests the folder the spec is in, with no warning', async () => {
+        await expect(render.sidebarRow(SPLIT_TITLE)).toBeVisible();
+        await chooseApiSpecRowAction(page, SPLIT_TITLE, 'clone');
+        await expect(menu.cloneLocationInput()).toHaveValue(specsFolder);
+        await expect(menu.cloneRelativeRefsWarning()).toHaveCount(0);
+      });
+
+      await test.step('Picking another folder shows the relative references warning', async () => {
+        await stubOpenDirectoryDialog(app, [path.join(workspacePath, 'collections')]);
+        await menu.cloneBrowse().click();
+        await expect(menu.cloneLocationInput()).toHaveValue(path.join(workspacePath, 'collections'));
+        await expect(menu.cloneRelativeRefsWarning()).toHaveText(
+          'This spec uses other files through relative references, and only this file is copied. Clone it into the same folder to keep those references working.'
+        );
+      });
+
+      await test.step('Going back to the spec folder clears the warning and the copy lands next to the source', async () => {
+        await stubOpenDirectoryDialog(app, [specsFolder]);
+        await menu.cloneBrowse().click();
+        await expect(menu.cloneLocationInput()).toHaveValue(specsFolder);
+        await expect(menu.cloneRelativeRefsWarning()).toHaveCount(0);
+        await menu.cloneNameInput().fill('Split Clone');
+        await menu.cloneSubmit().click();
+        await expect(render.sidebarRow('Split Clone')).toBeVisible({ timeout: 10000 });
+        expect(fs.existsSync(path.join(specsFolder, 'Split Clone.yaml'))).toBe(true);
       });
     } finally {
       await closeElectronApp(app);

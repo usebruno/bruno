@@ -2,6 +2,9 @@ import styled from 'styled-components';
 import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
+  width: 0;
+  min-width: 100%;
+
   .warning-banner {
     color: ${(props) => props.theme.colors.text.muted};
     background-color: ${(props) => rgba(props.theme.colors.text.yellow, 0.1)};

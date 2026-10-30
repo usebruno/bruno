@@ -114,6 +114,5 @@ module.exports = {
   openApiSpec,
   openApiSpecDialog,
   validateApiSpec,
-  broadcastWorkspaceConfig,
   INVALID_EXTENSION_MESSAGE
 };

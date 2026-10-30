@@ -1,6 +1,6 @@
 const { ipcMain } = require('electron');
 const { utils } = require('@usebruno/common');
-const { openApiSpecDialog, openApiSpec, validateApiSpec, broadcastWorkspaceConfig } = require('../app/apiSpecs');
+const { openApiSpecDialog, openApiSpec, validateApiSpec } = require('../app/apiSpecs');
 const { writeFile, isDirectory, sanitizeName, validateName } = require('../utils/filesystem');
 const { removeApiSpecUid } = require('../cache/apiSpecUids');
 const {
@@ -9,8 +9,7 @@ const {
   renameApiSpecInWorkspace,
   assertWritableApiSpecName,
   findApiSpecEntry,
-  hasWorkspaceFile,
-  readWorkspaceConfig
+  hasWorkspaceFile
 } = require('../utils/workspace-config');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const { makeAxiosInstance } = require('./network/axios-instance');
@@ -19,6 +18,8 @@ const LastOpenedWorkspaces = require('../store/last-opened-workspaces');
 const { defaultWorkspaceManager } = require('../store/default-workspace');
 const path = require('path');
 const fs = require('fs');
+
+const MAX_FILENAME_LENGTH = 255;
 
 const isOpenedWorkspace = (lastOpenedWorkspaces, workspacePath) => {
   if (typeof workspacePath !== 'string' || !workspacePath) {
@@ -49,8 +50,7 @@ const assertKnownApiSpec = ({ lastOpenedWorkspaces }, pathname, workspacePath) =
 
 const renameApiSpec = async (deps, pathname, newName, workspacePath) => {
   assertKnownApiSpec(deps, pathname, workspacePath);
-  const updatedConfig = await renameApiSpecInWorkspace(workspacePath, pathname, newName);
-  broadcastWorkspaceConfig(deps.mainWindow, workspacePath, updatedConfig);
+  await renameApiSpecInWorkspace(workspacePath, pathname, newName);
 };
 
 const cloneApiSpec = async (deps, sourcePathname, newName, targetLocation, workspacePath) => {
@@ -60,6 +60,11 @@ const cloneApiSpec = async (deps, sourcePathname, newName, targetLocation, works
   if (!filename || !validateName(filename)) {
     throw new Error(utils.validateNameError(filename));
   }
+  const extension = path.extname(sourcePathname);
+  if (filename.length + extension.length > MAX_FILENAME_LENGTH) {
+    throw new Error(`API spec name must be at most ${MAX_FILENAME_LENGTH - extension.length} characters`);
+  }
+  const targetFilename = `${filename}${extension}`;
 
   assertKnownApiSpec(deps, sourcePathname, workspacePath);
   if (!fs.statSync(sourcePathname, { throwIfNoEntry: false })?.isFile()) {
@@ -70,7 +75,7 @@ const cloneApiSpec = async (deps, sourcePathname, newName, targetLocation, works
     throw new Error(`path: ${targetLocation} is not an existing directory`);
   }
 
-  const targetPathname = path.join(targetLocation, `${filename}${path.extname(sourcePathname)}`);
+  const targetPathname = path.join(targetLocation, targetFilename);
   if (fs.existsSync(targetPathname)) {
     throw new Error(`path: ${targetPathname} already exists`);
   }
@@ -80,12 +85,11 @@ const cloneApiSpec = async (deps, sourcePathname, newName, targetLocation, works
   try {
     await addApiSpecToWorkspace(workspacePath, { name: trimmedName, path: targetPathname });
   } catch (error) {
-    await fs.promises.rm(targetPathname, { force: true }).catch((cleanupError) => {
+    await fs.promises.rm(targetPathname, { force: true, maxRetries: 5, retryDelay: 100 }).catch((cleanupError) => {
       console.error('Failed to remove the cloned API spec after a failed workspace write:', cleanupError);
     });
     throw error;
   }
-  broadcastWorkspaceConfig(mainWindow, workspacePath, readWorkspaceConfig(workspacePath));
 
   await openApiSpec(mainWindow, watcher, targetPathname, { workspacePath });
   return targetPathname;
@@ -116,8 +120,7 @@ const deleteApiSpec = async (deps, pathname, workspacePath) => {
   removeApiSpecUid(pathname);
 
   try {
-    const { updatedConfig } = await removeApiSpecFromWorkspace(workspacePath, target);
-    broadcastWorkspaceConfig(mainWindow, workspacePath, updatedConfig);
+    await removeApiSpecFromWorkspace(workspacePath, target);
     return { workspaceUpdated: true };
   } catch (error) {
     console.error('Deleted the API spec file but could not update workspace.yml:', error);

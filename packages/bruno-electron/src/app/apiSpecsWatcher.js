@@ -77,7 +77,13 @@ const change = async (win, pathname, refWatchState) => {
 class ApiSpecWatcher {
   constructor() {
     this.watchers = {};
+    this.pendingWatchers = {};
     this.watcherWorkspaces = {};
+  }
+
+  cancelPendingWatcher(watchPath) {
+    clearTimeout(this.pendingWatchers[watchPath]);
+    delete this.pendingWatchers[watchPath];
   }
 
   addWatcher(win, watchPath, apiSpecUid, brunoConfig, workspacePath = null) {
@@ -87,6 +93,7 @@ class ApiSpecWatcher {
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
     }
+    this.cancelPendingWatcher(watchPath);
 
     if (workspacePath) {
       this.watcherWorkspaces[watchPath] = workspacePath;
@@ -99,7 +106,8 @@ class ApiSpecWatcher {
     const ignores = [...new Set([...defaultIgnores, ...userIgnores])];
 
     const self = this;
-    setTimeout(() => {
+    this.pendingWatchers[watchPath] = setTimeout(() => {
+      delete self.pendingWatchers[watchPath];
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
         usePolling: watchPath.startsWith('\\\\') ? true : false,
@@ -148,10 +156,11 @@ class ApiSpecWatcher {
   }
 
   hasWatcher(watchPath) {
-    return this.watchers[watchPath];
+    return Boolean(this.watchers[watchPath] || this.pendingWatchers[watchPath]);
   }
 
   removeWatcher(watchPath, win) {
+    this.cancelPendingWatcher(watchPath);
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
       this.watchers[watchPath] = null;
@@ -162,6 +171,8 @@ class ApiSpecWatcher {
   }
 
   closeAllWatchers() {
+    Object.values(this.pendingWatchers).forEach(clearTimeout);
+    this.pendingWatchers = {};
     const pending = [];
     for (const [watchPath, watcher] of Object.entries(this.watchers)) {
       try {

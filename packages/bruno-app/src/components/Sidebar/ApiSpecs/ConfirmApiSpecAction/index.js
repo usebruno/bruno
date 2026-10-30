@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import Modal from 'components/Modal';
-import { IconAlertTriangle } from '@tabler/icons';
 import { hasUnsavedApiSpecChanges } from 'utils/api-specs';
 import ApiSpecInfoCard from 'components/Sidebar/ApiSpecs/ApiSpecInfoCard';
-import StyledWrapper from './StyledWrapper';
+import ApiSpecWarnings from 'components/Sidebar/ApiSpecs/ApiSpecWarnings';
 
 const ConfirmApiSpecAction = ({
   apiSpec,
@@ -39,21 +38,12 @@ const ConfirmApiSpecAction = ({
       handleCancel={onClose}
       dataTestId={dataTestId}
     >
-      <StyledWrapper>
-        <p className="mb-4">{question}</p>
+      <p className="mb-4">{question}</p>
 
-        <ApiSpecInfoCard apiSpec={apiSpec} />
+      <ApiSpecInfoCard apiSpec={apiSpec} />
 
-        <p className="mt-4 text-muted text-sm">{note}</p>
-        {shownWarnings.map(({ testId, message }) => (
-          <div key={testId} className="warning-banner flex items-start gap-2 mt-4 px-3 py-2" data-testid={testId}>
-            <span className="warning-icon flex items-center flex-shrink-0">
-              <IconAlertTriangle size={18} strokeWidth={1.5} />
-            </span>
-            <span>{message}</span>
-          </div>
-        ))}
-      </StyledWrapper>
+      <p className="mt-4 text-muted text-sm">{note}</p>
+      <ApiSpecWarnings warnings={shownWarnings} />
     </Modal>
   );
 };

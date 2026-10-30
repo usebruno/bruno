@@ -42,7 +42,10 @@ export const buildApiSpecRowMenuLocators = (page: Page) => {
     renameSubmit: () => page.getByTestId('rename-api-spec-modal-submit-btn'),
     cloneModal: () => page.getByTestId('clone-api-spec-modal'),
     cloneNameInput: () => page.getByTestId('clone-api-spec-name'),
+    cloneNameError: () => page.getByTestId('clone-api-spec-name-error'),
     cloneLocationInput: () => page.getByTestId('clone-api-spec-modal').getByTestId('api-spec-location'),
+    cloneBrowse: () => page.getByTestId('clone-api-spec-modal').getByText('Browse', { exact: true }),
+    cloneRelativeRefsWarning: () => page.getByTestId('clone-api-spec-modal').getByTestId('api-spec-relative-refs-warning'),
     cloneSubmit: () => page.getByTestId('clone-api-spec-modal-submit-btn')
   };
 };
