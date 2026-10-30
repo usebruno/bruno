@@ -100,3 +100,23 @@ describe('openapi sync config: export then import keeps it the same', () => {
     expect(brunoConfig.openapi).toEqual([syncConfig]);
   });
 });
+
+describe('openapi sync config settings', () => {
+  it('carries authPlacement and requestNameSource through export and import', () => {
+    const configWithSettings = { ...syncConfig, authPlacement: 'collection', requestNameSource: 'operationId' };
+    const oc = brunoToOpenCollection({ name: 'Petstore', brunoConfig: { openapi: [configWithSettings] }, items: [] });
+
+    expect(oc.extensions.bruno.openapi).toEqual([configWithSettings]);
+    expect(openCollectionToBruno(oc).brunoConfig.openapi).toEqual([configWithSettings]);
+  });
+
+  it('drops unsupported authPlacement and requestNameSource values on import', () => {
+    const { brunoConfig } = openCollectionToBruno({
+      opencollection: '1.0.0',
+      info: { name: 'Petstore' },
+      extensions: { bruno: { openapi: [{ ...syncConfig, authPlacement: 'folder', requestNameSource: 'title' }] } }
+    });
+
+    expect(brunoConfig.openapi).toEqual([syncConfig]);
+  });
+});

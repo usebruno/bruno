@@ -219,6 +219,8 @@ export interface BrunoConfig {
   openapi?: Array<{
     sourceUrl: string;
     groupBy?: 'tags' | 'path';
+    authPlacement?: 'request' | 'collection';
+    requestNameSource?: 'summary' | 'operationId' | 'description' | 'path';
     lastSyncDate?: string;
     specHash?: string;
     autoCheck?: boolean;

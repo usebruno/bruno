@@ -42,7 +42,8 @@ test.describe('All Collection Types Bulk Import', () => {
     await expect(bulkImportModal.getByText('Sample Bruno Collection')).toBeVisible();
     await expect(bulkImportModal.getByText('Sample API')).toBeVisible();
 
-    // Verify that OpenAPI settings are visible (since one file is OpenAPI)
+    // Open the OpenAPI Import configuration (one file is OpenAPI) and verify Folder arrangement is there
+    await bulkImportModal.getByRole('button', { name: 'OpenAPI Import configuration' }).click();
     await expect(bulkImportModal.getByText('Folder arrangement')).toBeVisible();
     await expect(bulkImportModal.getByTestId('grouping-dropdown')).toBeVisible();
 

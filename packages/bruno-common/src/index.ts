@@ -14,7 +14,7 @@ export type { TaggedTreeNode, InheritedTagSource } from './tags';
 export { transformExampleStatusInCollection } from './example-status';
 export { sortByNameThenSequence, resolveCollectionVersion } from './collection';
 export { normalizeLineEndings } from './utils/string';
-export { normalizeOpenApiSyncConfigs } from './openapi-sync';
+export { normalizeOpenApiSyncConfigs, AUTH_PLACEMENTS, REQUEST_NAME_SOURCES } from './openapi-sync';
 
 export { generateApiDocsHtml, getApiDocsFileName, filterRequestItemsByTags } from './api-docs';
 export type {

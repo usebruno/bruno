@@ -1,4 +1,7 @@
 import each from 'lodash/each';
+import isPlainObject from 'lodash/isPlainObject';
+import MarkdownIt from 'markdown-it';
+import { REQUEST_NAME_SOURCES } from '@usebruno/common';
 import { uuid, sanitizeTag } from '../common';
 
 // Content type patterns for matching MIME type variants
@@ -552,6 +555,179 @@ export const groupRequestsByTags = (requests, options = {}) => {
  */
 export const toSpecString = (value) => (typeof value === 'string' ? value : '');
 
+const REQUEST_NAME_MAX_LENGTH = 100;
+const REQUEST_NAME_MAX_BYTES = 200;
+const NAME_SOURCE_MAX_LENGTH = 10000;
+
+const markdown = new MarkdownIt({ html: true }).disable(['code', 'reference']);
+markdown.validateLink = () => true;
+const graphemeSegmenter = typeof Intl.Segmenter === 'function' ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
+const utf8Encoder = new TextEncoder();
+
+const HTML_TAG = /<(?:[A-Za-z][A-Za-z0-9-]*(?:\s+[A-Za-z_:][\w.:-]*(?:\s*=\s*(?:[^\s"'=<>`]+|'[^']*'|"[^"]*"))?)*\s*\/?|\/[A-Za-z][A-Za-z0-9-]*\s*)>/g;
+const HTML_ELEMENT = /^<\/?(?:a|abbr|acronym|address|article|aside|b|bdi|bdo|big|blockquote|body|br|caption|center|cite|code|col|colgroup|dd|del|details|dfn|dialog|dir|div|dl|dt|em|fieldset|figcaption|figure|font|footer|form|h[1-6]|head|header|hr|html|i|iframe|img|ins|kbd|legend|li|main|mark|menu|nav|ol|p|pre|q|s|samp|script|section|small|span|strike|strong|style|sub|summary|sup|table|tbody|td|textarea|tfoot|th|thead|title|tr|tt|u|ul|var|wbr)(?=[\s/>])/i;
+const LINE_BREAKING_ELEMENT = /^<\/?(?:address|article|aside|blockquote|body|br|caption|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|h[1-6]|header|hr|html|legend|li|main|menu|nav|ol|p|pre|section|summary|table|tbody|td|tfoot|th|thead|tr|ul)(?=[\s/>])/i;
+const SKIPPED_HTML_ELEMENT = /<(head|pre|script|style|table|textarea|title)\b[\s\S]*?<\/\1\s*>/gi;
+const DATA_URI_DESTINATION = /((?:\]\(|=)\s*["'<]?)data:[^\s"'()<>]{64,}/g;
+const SENTENCE_END = /(?<![.!?])[.!?]+["'\u2019\u201D)\]]*(?=\s)|[\u3002\uFF01\uFF1F]+[\u300D\u300F\uFF09\u201D\u2019]*/g;
+const ABBREVIATION_BEFORE_DOT = /(?:^|[^\p{L}\p{N}])(?:e\.g|i\.e|etc|vs|cf|approx|incl)$/iu;
+
+const htmlTagText = (tag) => {
+  if (!/^<\/?[A-Za-z]/.test(tag)) {
+    return '';
+  }
+  if (!HTML_ELEMENT.test(tag)) {
+    return tag;
+  }
+  return LINE_BREAKING_ELEMENT.test(tag) ? '\n' : '';
+};
+
+const htmlBlockText = (html) => markdown.utils.unescapeAll(
+  html.replace(/<!--[\s\S]*?-->/g, '').replace(SKIPPED_HTML_ELEMENT, '\n').replace(HTML_TAG, htmlTagText)
+);
+
+const isIntraword = (tokens, index) => {
+  const before = tokens[index - 1];
+  const after = tokens[index + 1];
+  return before?.type === 'text' && after?.type === 'text' && /[\p{L}\p{N}]$/u.test(before.content) && /^[\p{L}\p{N}]/u.test(after.content);
+};
+
+const literalEmphasisIndexes = (tokens) => {
+  const literal = new Set();
+  const openers = [];
+  tokens.forEach((token, index) => {
+    if (token.type === 'em_open' || token.type === 'strong_open') {
+      openers.push({ index, hasWordCharacter: false });
+    } else if (token.type === 'em_close' || token.type === 'strong_close') {
+      const opener = openers.pop();
+      const parent = openers[openers.length - 1];
+      if (parent && opener.hasWordCharacter) {
+        parent.hasWordCharacter = true;
+      }
+      const isLiteral = !opener.hasWordCharacter || (token.markup.startsWith('*') && (isIntraword(tokens, opener.index) || isIntraword(tokens, index)));
+      if (isLiteral) {
+        literal.add(opener.index).add(index);
+      }
+    } else if (openers.length > 0 && /[\p{L}\p{N}]/u.test(token.content)) {
+      openers[openers.length - 1].hasWordCharacter = true;
+    }
+  });
+  return literal;
+};
+
+const inlineText = (tokens) => {
+  const literal = literalEmphasisIndexes(tokens);
+  return tokens.map((token, index) => {
+    switch (token.type) {
+      case 'text':
+      case 'code_inline':
+        return token.content;
+      case 'softbreak':
+      case 'hardbreak':
+        return '\n';
+      case 'image':
+        return inlineText(token.children);
+      case 'html_inline':
+        return htmlTagText(token.content);
+      default:
+        return literal.has(index) ? token.markup : '';
+    }
+  }).join('');
+};
+
+const markdownTextLines = (text) => {
+  const tokens = markdown.parse(text.replace(DATA_URI_DESTINATION, '$1data:').slice(0, NAME_SOURCE_MAX_LENGTH), {});
+  const lines = [];
+  let tableDepth = 0;
+  let listNumber = '';
+  tokens.forEach((token) => {
+    if (token.type === 'table_open' || token.type === 'table_close') {
+      tableDepth += token.nesting;
+    } else if (tableDepth === 0 && token.type === 'list_item_open') {
+      listNumber = token.info ? `${token.info}${token.markup} ` : '';
+    } else if (token.type === 'list_item_close') {
+      listNumber = '';
+    } else if (tableDepth === 0 && token.type === 'inline') {
+      lines.push(...`${listNumber}${inlineText(token.children)}`.split('\n'));
+      listNumber = '';
+    } else if (tableDepth === 0 && token.type === 'html_block') {
+      lines.push(...htmlBlockText(token.content).split('\n'));
+    }
+  });
+
+  return lines.map((line) => line.replace(/\s+/g, ' ').trim()).filter(Boolean);
+};
+
+const firstSentence = (text) => {
+  const listNumber = text.match(/^\d+[.)]\s+/)?.[0] ?? '';
+  const body = text.slice(listNumber.length);
+  for (const match of body.matchAll(SENTENCE_END)) {
+    const isAbbreviation = match[0].startsWith('.') && ABBREVIATION_BEFORE_DOT.test(body.slice(Math.max(0, match.index - 8), match.index));
+    if (!isAbbreviation) {
+      return listNumber + body.slice(0, match.index + match[0].length).replace(/\u3002+$/, '');
+    }
+  }
+  return text;
+};
+
+const utf8ByteLength = (text) => utf8Encoder.encode(text).length;
+
+const fitsRequestNameCap = (name) => Array.from(name).length <= REQUEST_NAME_MAX_LENGTH && utf8ByteLength(name) <= REQUEST_NAME_MAX_BYTES;
+
+const graphemesOf = (text) => (graphemeSegmenter ? Array.from(graphemeSegmenter.segment(text), ({ segment }) => segment) : Array.from(text));
+
+const capRequestName = (text) => {
+  const name = normalizeItemName(text);
+  if (fitsRequestNameCap(name)) {
+    return name;
+  }
+
+  const graphemes = graphemesOf(name);
+  let end = 0;
+  let length = 0;
+  let bytes = 0;
+  while (end < graphemes.length) {
+    length += Array.from(graphemes[end]).length;
+    bytes += utf8ByteLength(graphemes[end]);
+    if (length > REQUEST_NAME_MAX_LENGTH || bytes > REQUEST_NAME_MAX_BYTES) {
+      break;
+    }
+    end += 1;
+  }
+
+  const cut = graphemes.slice(0, end).join('');
+  const wordCut = /\s/.test(graphemes[end]) ? cut : cut.replace(/\s+\S*$/, '');
+  const shortened = wordCut.length >= cut.length / 2 ? wordCut : cut;
+  return normalizeItemName(shortened.replace(/[\s,;:([{\u2013\u2014-]+$/, ''));
+};
+
+const specText = (value) => (typeof value === 'number' && Number.isFinite(value) ? String(value) : toSpecString(value));
+
+const summaryName = (summary) => {
+  const name = normalizeItemName(markdownTextLines(summary).join(' '));
+  return fitsRequestNameCap(name) ? name : capRequestName(firstSentence(name));
+};
+
+const descriptionName = (description) => {
+  const [firstLine = ''] = markdownTextLines(description);
+  return capRequestName(firstSentence(firstLine));
+};
+
+const identifierName = (text) => capRequestName(text.slice(0, NAME_SOURCE_MAX_LENGTH));
+
+const requestNameBySource = {
+  summary: ({ operationObject }) => summaryName(specText(operationObject.summary)),
+  operationId: ({ operationObject }) => identifierName(specText(operationObject.operationId)),
+  description: ({ operationObject }) => descriptionName(specText(operationObject.description)),
+  path: ({ method, path, originalPath }) => identifierName(`${method.toUpperCase()} ${originalPath || path}`)
+};
+
+export const getRequestName = (request, requestNameSource) => {
+  const preferred = REQUEST_NAME_SOURCES.includes(requestNameSource) ? requestNameSource : 'summary';
+  return [preferred, ...REQUEST_NAME_SOURCES.filter((source) => source !== preferred)]
+    .reduce((name, source) => name || requestNameBySource[source](request), '');
+};
+
 /**
  * Builds a lookup of tag description keyed by sanitized tag name.
  * Folders are named from the sanitized first tag (see groupRequestsByTags), so the
@@ -680,4 +856,30 @@ export const groupRequestsByPath = (requests, transformFn, options = {}) => {
   }));
 
   return folders;
+};
+
+const requirementSchemeName = (requirement) =>
+  (requirement !== null && typeof requirement === 'object' && !Array.isArray(requirement) ? Object.keys(requirement)[0] : undefined);
+
+export const operationSchemeName = (security) => (Array.isArray(security) ? requirementSchemeName(security[0]) : undefined);
+
+const isEmptyRequirement = (requirement) => isPlainObject(requirement) && Object.keys(requirement).length === 0;
+
+export const optsOutOfAuth = (security, collectionAuthScheme) =>
+  (Array.isArray(security) ? security.every(isEmptyRequirement) : Boolean(collectionAuthScheme?.promoted));
+
+export const inheritsCollectionAuth = (security, collectionAuthScheme) =>
+  Boolean(collectionAuthScheme) && operationSchemeName(security) === collectionAuthScheme.schemeName;
+
+export const resolveCollectionAuthScheme = (globalSecurity, requests, getScheme) => {
+  const globalRequirements = Array.isArray(globalSecurity) ? globalSecurity : [];
+  const globalSchemeName = globalRequirements.map(requirementSchemeName).find((name) => getScheme(name));
+  if (globalSchemeName) {
+    return { schemeName: globalSchemeName, scheme: getScheme(globalSchemeName), promoted: false };
+  }
+
+  const securedSchemeNames = new Set(requests.map((request) => operationSchemeName(request.operationObject.security)).filter(Boolean));
+  const [sharedSchemeName] = securedSchemeNames;
+  const sharedScheme = securedSchemeNames.size === 1 ? getScheme(sharedSchemeName) : undefined;
+  return sharedScheme ? { schemeName: sharedSchemeName, scheme: sharedScheme, promoted: true } : null;
 };

@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { IconCheck } from '@tabler/icons';
 import Button from 'ui/Button';
 import { isHttpUrl } from 'utils/url/index';
-import { isOpenApiSpec } from 'utils/importers/openapi-collection';
+import { isOpenApiSpec, isSwagger2Spec } from 'utils/importers/openapi-collection';
 import { parseFileAsJsonOrYaml } from 'utils/importers/file-reader';
 
 const FEATURES = [
@@ -80,7 +80,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
                       setError('The selected file is not a valid OpenAPI 3.x specification');
                       return;
                     }
-                    if (data.swagger && String(data.swagger).startsWith('2')) {
+                    if (isSwagger2Spec(data)) {
                       setError('Swagger 2.0 is not supported. Please convert your spec to OpenAPI 3.x.');
                       return;
                     }

@@ -1,14 +1,13 @@
-import React, { useRef, useEffect, useState, forwardRef } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import get from 'lodash/get';
 import path from 'utils/common/path';
-import { IconCaretDown } from '@tabler/icons';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import { postmanToBruno } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
-import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
+import { convertOpenapiToBruno, isSwagger2Spec, buildOpenApiSyncBrunoConfig } from 'utils/importers/openapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
 import { processOpenCollection } from 'utils/importers/opencollection';
 import { convertWsdlToBruno } from 'utils/importers/wsdl-collection';
@@ -17,8 +16,14 @@ import { addLog } from 'providers/ReduxStore/slices/logs';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import Help from 'components/Help';
-import Dropdown from 'components/Dropdown';
-import StyledWrapper from './StyledWrapper';
+import ToggleSwitch from 'components/ToggleSwitch';
+import ImportSettingRow from 'components/Sidebar/ImportSettingRow';
+import FolderArrangementOption from 'components/Sidebar/FolderArrangementOption';
+import CheckForSpecUpdatesOption from 'components/Sidebar/CheckForSpecUpdatesOption';
+import ImportAdvancedSection from 'components/Sidebar/ImportAdvancedSection';
+import AuthPlacementOption from 'components/Sidebar/AuthPlacementOption';
+import RequestNameSourceOption from 'components/Sidebar/RequestNameSourceOption';
+import ImportOptionsMenu from 'components/Sidebar/ImportOptionsMenu';
 import { showImportIssuesToast } from 'components/Toast/ImportIssuesToast';
 import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 
@@ -56,14 +61,14 @@ const getCollectionName = (format, rawData) => {
 
 // Convert raw data to Bruno collection format
 // Returns { collection, issues } where issues tracks items that were skipped or degraded
-const convertCollection = async (format, rawData, { groupingType, collectionFormat, preserveScripts, filePath } = {}) => {
+const convertCollection = async (format, rawData, { groupingType, collectionFormat, authPlacement, requestNameSource, preserveScripts, filePath } = {}) => {
   try {
     let collection;
     let issues = [];
 
     switch (format) {
       case 'openapi':
-        collection = convertOpenapiToBruno(rawData, { groupBy: groupingType, collectionFormat });
+        collection = convertOpenapiToBruno(rawData, { groupBy: groupingType, collectionFormat, authPlacement, requestNameSource });
         break;
       case 'wsdl':
         collection = await convertWsdlToBruno(rawData, filePath);
@@ -99,27 +104,22 @@ const convertCollection = async (format, rawData, { groupingType, collectionForm
   }
 };
 
-const groupingOptions = [
-  { value: 'tags', label: 'Tags', description: 'Group requests by OpenAPI/Swagger tags', testId: 'grouping-option-tags' },
-  { value: 'path', label: 'Paths', description: 'Group requests by URL path structure', testId: 'grouping-option-path' }
-];
-
 const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sourceUrl, filePath, rawContent }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
   const [groupingType, setGroupingType] = useState('tags');
   const [collectionFormat, setCollectionFormat] = useState(DEFAULT_COLLECTION_FORMAT);
-  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [showFileFormat, setShowFileFormat] = useState(false);
   const [enableCheckForSpecUpdates, setEnableCheckForSpecUpdates] = useState(false);
+  const [authPlacement, setAuthPlacement] = useState('request');
+  const [requestNameSource, setRequestNameSource] = useState('summary');
   const [preserveScripts, setPreserveScripts] = useState(false);
-  const dropdownTippyRef = useRef();
-  const optionsDropdownTippyRef = useRef();
   const isOpenApi = format === 'openapi';
   const isPostman = format === 'postman';
   const isZipImport = format === 'bruno-zip';
   const isOpenApiFromUrl = isOpenApi && !!sourceUrl && !filePath;
   const isOpenApiFromFile = isOpenApi && !!filePath && !sourceUrl;
-  const isSwagger2 = isOpenApi && rawData?.swagger && String(rawData.swagger).startsWith('2');
+  const isSwagger2 = isOpenApi && isSwagger2Spec(rawData);
   const showCheckForSpecUpdatesOption = isOpenApiFromUrl || isOpenApiFromFile;
 
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
@@ -145,32 +145,13 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
         .required('Location is required')
     }),
     onSubmit: async (values) => {
-      const { collection: convertedCollection, issues } = await convertCollection(format, rawData, { groupingType, collectionFormat, preserveScripts, filePath });
+      const { collection: convertedCollection, issues } = await convertCollection(format, rawData, { groupingType, collectionFormat, authPlacement, requestNameSource, preserveScripts, filePath });
       const options = { format: collectionFormat };
 
       if (showCheckForSpecUpdatesOption && enableCheckForSpecUpdates) {
         const syncSourceUrl = sourceUrl || filePath; // URL or absolute path (backend converts to relative)
-        const baseBrunoConfig = {
-          version: convertedCollection.version || '1',
-          name: convertedCollection.name || 'Untitled Collection',
-          type: 'collection',
-          ignore: ['node_modules', '.git']
-        };
-
-        convertedCollection.brunoConfig = {
-          ...baseBrunoConfig,
-          ...convertedCollection.brunoConfig,
-          openapi: [
-            {
-              sourceUrl: syncSourceUrl,
-              groupBy: groupingType,
-              autoCheck: true,
-              autoCheckInterval: 5
-            }
-          ]
-        };
-
-        options.rawOpenAPISpec = rawContent || rawData;
+        convertedCollection.brunoConfig = buildOpenApiSyncBrunoConfig(convertedCollection, { sourceUrl: syncSourceUrl, groupBy: groupingType, authPlacement, requestNameSource });
+        options.rawOpenAPISpecs = { [convertedCollection.uid]: rawContent || rawData };
       }
 
       handleSubmit(convertedCollection, values.collectionLocation, options);
@@ -197,36 +178,6 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
     }
   });
 
-  const onDropdownCreate = (ref) => {
-    dropdownTippyRef.current = ref;
-  };
-
-  const onOptionsDropdownCreate = (ref) => {
-    optionsDropdownTippyRef.current = ref;
-  };
-
-  const ImportOptions = forwardRef((props, ref) => {
-    return (
-      <div ref={ref} className="flex items-center text-link cursor-pointer">
-        <button className="btn-advanced" type="button">
-          Options
-        </button>
-        <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
-      </div>
-    );
-  });
-
-  const GroupingDropdownIcon = forwardRef((props, ref) => {
-    const selectedOption = groupingOptions.find((option) => option.value === groupingType);
-    return (
-      <div ref={ref} className="flex items-center justify-between w-full current-group" data-testid="grouping-dropdown">
-        <div>
-          <div className="font-medium text-gray-900 dark:text-gray-100">{selectedOption.label}</div>
-        </div>
-        <IconCaretDown size={16} className="text-gray-400 ml-[0.25rem]" fill="currentColor" />
-      </div>
-    );
-  });
   const browse = () => {
     dispatch(browseDirectory())
       .then((dirPath) => {
@@ -262,175 +213,123 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
 
   return (
     <Portal>
-      <StyledWrapper>
-        <Modal
-          size="md"
-          title="Import Collection"
-          confirmText="Import"
-          handleConfirm={onSubmit}
-          handleCancel={onClose}
-          dataTestId="import-collection-location-modal"
-          footerLeft={
-            !isZipImport ? (
-              <div className="advanced-options flex">
-                <Dropdown onCreate={onOptionsDropdownCreate} icon={<ImportOptions />} placement="bottom-start">
-                  <div
-                    className="dropdown-item"
-                    data-testid="show-advanced-options-toggle"
-                    onClick={() => {
-                      optionsDropdownTippyRef?.current?.hide();
-                      setShowAdvancedOptions(!showAdvancedOptions);
-                    }}
-                  >
-                    {showAdvancedOptions ? 'Hide Advanced Options' : 'Show Advanced Options'}
-                  </div>
-                </Dropdown>
-              </div>
-            ) : null
-          }
-        >
-          <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
-            <div>
-              <label htmlFor="collectionName" className="block font-medium">
-                Name
+      <Modal
+        size="md"
+        title="Import Collection"
+        confirmText="Import"
+        handleConfirm={onSubmit}
+        handleCancel={onClose}
+        dataTestId="import-collection-location-modal"
+        footerLeft={
+          !isZipImport ? (
+            <ImportOptionsMenu showFileFormat={showFileFormat} onToggleFileFormat={() => setShowFileFormat(!showFileFormat)} />
+          ) : null
+        }
+      >
+        <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
+          <div>
+            <label htmlFor="collectionName" className="block font-medium">
+              Name
+            </label>
+            <div className="mt-2">{collectionName}</div>
+
+            <>
+              <label htmlFor="collectionLocation" className="font-medium mt-4 flex items-center">
+                Location
+                <Help>
+                  <p>Bruno stores your collections on your computer's filesystem.</p>
+                  <p className="mt-2">Choose the location where you want to store this collection.</p>
+                </Help>
               </label>
-              <div className="mt-2">{collectionName}</div>
+              <input
+                id="collection-location"
+                type="text"
+                name="collectionLocation"
+                className="block textbox mt-2 w-full cursor-pointer"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                value={formik.values.collectionLocation || ''}
+                onClick={browse}
+                onChange={(e) => {
+                  formik.setFieldValue('collectionLocation', e.target.value);
+                }}
+              />
+            </>
+            {formik.touched.collectionLocation && formik.errors.collectionLocation ? (
+              <div className="text-red-500">{formik.errors.collectionLocation}</div>
+            ) : null}
 
-              <>
-                <label htmlFor="collectionLocation" className="font-medium mt-4 flex items-center">
-                  Location
-                  <Help>
-                    <p>Bruno stores your collections on your computer's filesystem.</p>
-                    <p className="mt-2">Choose the location where you want to store this collection.</p>
-                  </Help>
-                </label>
-                <input
-                  id="collection-location"
-                  type="text"
-                  name="collectionLocation"
-                  className="block textbox mt-2 w-full cursor-pointer"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
-                  value={formik.values.collectionLocation || ''}
-                  onClick={browse}
-                  onChange={(e) => {
-                    formik.setFieldValue('collectionLocation', e.target.value);
-                  }}
-                />
-              </>
-              {formik.touched.collectionLocation && formik.errors.collectionLocation ? (
-                <div className="text-red-500">{formik.errors.collectionLocation}</div>
-              ) : null}
-
-              <div className="mt-1">
-                <span
-                  data-testid="import-collection-browse-link"
-                  className="text-link cursor-pointer hover:underline"
-                  onClick={browse}
-                >
-                  Browse
-                </span>
-              </div>
-
-              {showAdvancedOptions && !isZipImport && (
-                <div className="mt-4">
-                  <label htmlFor="format" className="flex items-center font-medium">
-                    File Format
-                    <Help width="300">
-                      <p>Choose the file format for storing requests in this collection.</p>
-                      <p className="mt-2">
-                        <strong>OpenCollection (YAML):</strong> Industry-standard YAML format (.yml files)
-                      </p>
-                      <p className="mt-1">
-                        <strong>BRU:</strong> Bruno's native file format (.bru files)
-                      </p>
-                    </Help>
-                  </label>
-                  <select
-                    id="format"
-                    name="format"
-                    className="block textbox mt-2 w-full"
-                    value={collectionFormat}
-                    onChange={(e) => setCollectionFormat(e.target.value)}
-                  >
-                    <option value="yml">OpenCollection (YAML)</option>
-                    <option value="bru">BRU Format (.bru)</option>
-                  </select>
-                </div>
-              )}
-
-              {showAdvancedOptions && isPostman && (
-                <label className="mt-4 flex items-start gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={preserveScripts}
-                    onChange={(e) => setPreserveScripts(e.target.checked)}
-                    className="checkbox cursor-pointer mt-0.5"
-                    data-testid="preserve-scripts-toggle"
-                  />
-                  <div>
-                    <span className="checkbox-option-label">Preserve scripts</span>
-                    <p className="checkbox-option-description">
-                      Import Postman scripts without translating them.
-                    </p>
-                  </div>
-                </label>
-              )}
+            <div className="mt-1">
+              <span
+                data-testid="import-collection-browse-link"
+                className="text-link cursor-pointer hover:underline"
+                onClick={browse}
+              >
+                Browse
+              </span>
             </div>
 
-            {isOpenApi && (
-              <div className="mt-4 flex gap-4 items-center justify-between">
-                <div>
-                  <label htmlFor="groupingType" className="block font-medium">
-                    Folder arrangement
-                  </label>
-                  <p className="text-muted text-xs mt-1 mb-2">
-                    Select whether to create folders according to the spec's paths or tags.
-                  </p>
-                </div>
-                <div className="relative">
-                  <Dropdown onCreate={onDropdownCreate} icon={<GroupingDropdownIcon />} placement="bottom-start">
-                    {groupingOptions.map((option) => (
-                      <div
-                        key={option.value}
-                        className="dropdown-item"
-                        data-testid={option.testId}
-                        onClick={() => {
-                          dropdownTippyRef?.current?.hide();
-                          setGroupingType(option.value);
-                        }}
-                      >
-                        {option.label}
-                      </div>
-                    ))}
-                  </Dropdown>
-                </div>
+            {showFileFormat && !isZipImport && (
+              <div className="mt-4">
+                <label htmlFor="format" className="flex items-center font-medium">
+                  File Format
+                  <Help width="300">
+                    <p>Choose the file format for storing requests in this collection.</p>
+                    <p className="mt-2">
+                      <strong>OpenCollection (YAML):</strong> Industry-standard YAML format (.yml files)
+                    </p>
+                    <p className="mt-1">
+                      <strong>BRU:</strong> Bruno's native file format (.bru files)
+                    </p>
+                  </Help>
+                </label>
+                <select
+                  id="format"
+                  name="format"
+                  className="block textbox mt-2 w-full"
+                  value={collectionFormat}
+                  onChange={(e) => setCollectionFormat(e.target.value)}
+                >
+                  <option value="yml">OpenCollection (YAML)</option>
+                  <option value="bru">BRU Format (.bru)</option>
+                </select>
               </div>
             )}
-            {showCheckForSpecUpdatesOption && (
-              <label className={`mt-4 flex items-start gap-2 ${isSwagger2 ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}`}>
-                <input
-                  type="checkbox"
-                  checked={isSwagger2 ? false : enableCheckForSpecUpdates}
-                  onChange={(e) => setEnableCheckForSpecUpdates(e.target.checked)}
-                  disabled={isSwagger2}
-                  className={`checkbox mt-0.5 ${isSwagger2 ? '' : 'cursor-pointer'}`}
+          </div>
+
+          {isOpenApi && <FolderArrangementOption className="mt-4" value={groupingType} onChange={setGroupingType} />}
+          {showCheckForSpecUpdatesOption && (
+            <CheckForSpecUpdatesOption
+              className="mt-4"
+              checked={!isSwagger2 && enableCheckForSpecUpdates}
+              onChange={setEnableCheckForSpecUpdates}
+              disabled={isSwagger2}
+              showSwagger2Note={isSwagger2}
+              testId="check-for-spec-updates-toggle"
+            />
+          )}
+          {isOpenApi && (
+            <ImportAdvancedSection>
+              <RequestNameSourceOption value={requestNameSource} onChange={setRequestNameSource} />
+              <AuthPlacementOption value={authPlacement} onChange={setAuthPlacement} />
+            </ImportAdvancedSection>
+          )}
+          {isPostman && (
+            <ImportAdvancedSection>
+              <ImportSettingRow label="Preserve scripts" description="Import Postman scripts without translating them." isSwitch>
+                <ToggleSwitch
+                  isOn={preserveScripts}
+                  handleToggle={() => setPreserveScripts(!preserveScripts)}
+                  size="2xs"
+                  data-testid="preserve-scripts-toggle"
                 />
-                <div>
-                  <span className="checkbox-option-label">Check for Spec Updates</span>
-                  <p className="checkbox-option-description">
-                    {isSwagger2
-                      ? 'OpenAPI Sync is not supported for Swagger 2.0 specs.'
-                      : 'Stay notified of spec changes and sync your collection with the spec.'}
-                  </p>
-                </div>
-              </label>
-            )}
-          </form>
-        </Modal>
-      </StyledWrapper>
+              </ImportSettingRow>
+            </ImportAdvancedSection>
+          )}
+        </form>
+      </Modal>
     </Portal>
   );
 };

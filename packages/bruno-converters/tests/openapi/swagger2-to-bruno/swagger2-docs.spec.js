@@ -93,7 +93,7 @@ describe('Swagger 2.0 Import - Docs (collection & folder descriptions)', () => {
     };
     const result = swagger2ToBruno(spec);
 
-    const request = findRequestByName(result.items, 'get /pets');
+    const request = findRequestByName(result.items, 'GET /pets');
     expect(request).toBeDefined();
     expect(request.request.docs).toBe('');
   });

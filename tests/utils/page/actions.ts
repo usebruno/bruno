@@ -665,6 +665,9 @@ type ImportCollectionOptions = {
   expectIssues?: boolean;
   sidebarTimeout?: number;
   preserveScripts?: boolean;
+  checkForSpecUpdates?: boolean;
+  authPlacement?: 'request' | 'collection';
+  requestNameSource?: 'summary' | 'operationId' | 'description' | 'path';
 };
 
 const importCollection = async (
@@ -697,13 +700,29 @@ const importCollection = async (
       await expect(locationModal.getByText(options.expectedCollectionName)).toBeVisible();
     }
 
-    // Enable 'Preserve scripts' option via the Advanced Options toggle
+    if (options.checkForSpecUpdates) {
+      const checkForSpecUpdatesToggle = locators.import.checkForSpecUpdatesToggle();
+      await checkForSpecUpdatesToggle.check();
+      await expect(checkForSpecUpdatesToggle).toBeChecked();
+    }
+
+    if (options.preserveScripts || options.authPlacement || options.requestNameSource) {
+      await locators.import.advancedSectionToggle().click();
+    }
+
     if (options.preserveScripts) {
-      await locationModal.getByRole('button', { name: 'Options' }).click();
-      await locators.import.advancedOptionsToggle().click();
-      const preserveScriptsCheckbox = locators.import.preserveScriptsToggle();
-      await preserveScriptsCheckbox.check();
-      await expect(preserveScriptsCheckbox).toBeChecked();
+      const preserveScriptsToggle = locators.import.preserveScriptsToggle();
+      await preserveScriptsToggle.check();
+      await expect(preserveScriptsToggle).toBeChecked();
+    }
+
+    if (options.authPlacement === 'collection') {
+      await locators.import.authPlacementToggle().check();
+    }
+
+    if (options.requestNameSource) {
+      await locators.import.requestNameSourceDropdown().click();
+      await locators.import.requestNameSourceOption(options.requestNameSource).click();
     }
 
     // Set location and import

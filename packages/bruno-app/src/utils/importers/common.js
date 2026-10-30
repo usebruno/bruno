@@ -281,3 +281,24 @@ export const getFetchErrorMessage = (error, url) => {
 
   return `Could not fetch a specification from ${host}.`;
 };
+
+export const parseImportFileText = (text, file) => {
+  // Handle WSDL files - return as plain text
+  if (file.name.endsWith('.wsdl') || file.type === 'text/xml' || file.type === 'application/xml') {
+    return text;
+  }
+
+  try {
+    if (file.type === 'application/json' || file.name.endsWith('.json')) {
+      return JSON.parse(text);
+    }
+
+    const parsed = jsyaml.load(text, { schema: jsyaml.JSON_SCHEMA });
+    if (typeof parsed !== 'object' || parsed === null) {
+      throw new Error();
+    }
+    return parsed;
+  } catch {
+    throw new Error('Failed to parse the file – ensure it is valid JSON or YAML');
+  }
+};
