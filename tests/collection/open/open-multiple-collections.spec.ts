@@ -111,26 +111,36 @@ test.describe('Open Multiple Collections', () => {
     // Count collections before attempting to open invalid ones
     const collectionCountBefore = await page.locator('#sidebar-collection-name').count();
 
-    // Mock the electron dialog to return multiple folder selections
-    await electronApp.evaluate(({ dialog }, { collection1Dir, collection2Dir }) => {
-      dialog.showOpenDialog = async () => ({
-        canceled: false,
-        filePaths: [collection1Dir, collection2Dir]
-      });
-    },
-    { collection1Dir, collection2Dir });
+    await test.step('Mock the electron dialog to return multiple folder selections', async () => {
+      // Mock the electron dialog to return multiple folder selections
+      await electronApp.evaluate(({ dialog }, { collection1Dir, collection2Dir }) => {
+        dialog.showOpenDialog = async () => ({
+          canceled: false,
+          filePaths: [collection1Dir, collection2Dir]
+        });
+      },
+      { collection1Dir, collection2Dir });
+    });
 
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click();
+    await test.step('Click on plus icon button and then "Open collection" in the dropdown', async () => {
+      await page.getByTestId('collections-header-add-menu').click();
+      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click();
+    });
 
-    // Wait for error toasts to appear
-    await page.waitForTimeout(1000);
+    await test.step('Wait for error toasts to appear', async () => {
+      // Wait for error toasts to appear
+      await page.waitForTimeout(1000);
+    });
 
-    // Verify no collections were opened
-    await expect(page.locator('#sidebar-collection-name')).toHaveCount(collectionCountBefore);
+    await test.step('Verify no collections were opened', async () => {
+      // Verify no collections were opened
+      await expect(page.locator('#sidebar-collection-name')).toHaveCount(collectionCountBefore);
+    });
 
-    // Verify invalid collection error
-    const invalidCollectionError = page.getByText('No Bruno collections found').first();
-    await expect(invalidCollectionError).toBeVisible();
+    await test.step('Verify invalid collection error', async () => {
+      // Verify invalid collection error
+      const invalidCollectionError = page.getByText('No Bruno collections found').first();
+      await expect(invalidCollectionError).toBeVisible();
+    });
   });
 });
