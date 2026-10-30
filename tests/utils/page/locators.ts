@@ -6,6 +6,7 @@ import { buildAiPreferencesLocators } from './ai';
 import { buildCodeEditorSearchLocators } from './code-editor-search';
 import { buildCodeEditorHintLocators } from './code-editor-hints';
 import { buildRequestSettingsLocators } from './request-settings';
+import { buildGraphqlAuthIntrospectionLocators } from './graphql-auth-introspection';
 import { buildUnresolvedVariablesInfoLocators } from './unresolved-variables-info';
 import { buildSidebarLocators } from './sidebar';
 import { buildDocsLocators } from './docs';
@@ -47,6 +48,7 @@ export const buildCommonLocators = (page: Page) => ({
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
   requestSettings: buildRequestSettingsLocators(page),
+  graphqlAuthIntrospection: buildGraphqlAuthIntrospectionLocators(page),
   unresolvedVariablesInfo: buildUnresolvedVariablesInfoLocators(page),
   websocket: buildWebsocketCommonLocators(page),
   toast: buildToastLocators(page),

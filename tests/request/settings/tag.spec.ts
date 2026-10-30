@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import { expect, test } from '../../../playwright';
 import {
   addRequestTag,
@@ -21,7 +21,7 @@ test.describe('Request tags', () => {
     await closeAllCollections(page);
   });
 
-  test('TC-685: adds a single tag to a request and saves it', async ({ page, createTmpDir }) => {
+  test('TC-685: adds a single tag to a request and saves it', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const { sidebar, tabs } = buildCommonLocators(page);
     const settings = buildRequestSettingsLocators(page);
     const collectionPath = await createTmpDir('tag-collection');
@@ -56,7 +56,7 @@ test.describe('Request tags', () => {
 
     await test.step('Reopen the request and confirm the tag is still shown', async () => {
       await tabs.requestTab(REQUEST_NAME).hover();
-      await tabs.closeTab(REQUEST_NAME).click({ force: true });
+      await tabs.closeTab(REQUEST_NAME).click();
       await sidebar.request(REQUEST_NAME).click();
       await selectRequestPaneTab(page, 'Settings');
       await expect(settings.tagChip(TAG_NAME)).toBeVisible();

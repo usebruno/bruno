@@ -3,6 +3,15 @@ import { buildCommonLocators, buildSandboxLocators } from './locators';
 import { MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH, dragSidebarToWidth, revealFolderRow } from './sidebar';
 
 /**
+ * Locates a row in the runner's "Configure requests to run" list by its exact request name.
+ * @param page - The Playwright page object
+ * @param name - The request's name as shown in the row
+ * @returns The row locator
+ */
+export const getRequestItemByName = (page: Page, name: string): Locator =>
+  page.getByTestId('runner-request-item').filter({ has: page.getByText(name, { exact: true }) });
+
+/**
  * Builds locators for the runner results view
  * @param page - The Playwright page object
  * @returns Object with locators for runner elements
@@ -22,10 +31,8 @@ export const buildRunnerLocators = (page: Page) => ({
   configResetButton: () => page.getByTestId('runner-config-reset'),
   requestItems: () => page.getByTestId('runner-request-item'),
   requestItemNames: () => page.getByTestId('runner-request-item').locator('.request-name > span:first-child'),
-  requestItem: (name: string) =>
-    page.getByTestId('runner-request-item').filter({ has: page.getByText(name, { exact: true }) }),
-  requestDragHandle: (name: string) =>
-    page.getByTestId('runner-request-item').filter({ has: page.getByText(name, { exact: true }) }).locator('.drag-handle'),
+  requestItem: (name: string) => getRequestItemByName(page, name),
+  requestDragHandle: (name: string) => getRequestItemByName(page, name).locator('.drag-handle'),
   delayInput: () => page.getByTestId('runner-delay-input'),
   resultItems: () => page.getByTestId('runner-result-item'),
   resultsResetButton: () => page.getByTestId('runner-reset-button'),
@@ -38,11 +45,10 @@ export const buildRunnerLocators = (page: Page) => ({
   filterButton: (key: RunnerFilterKey) => page.getByTestId(`runner-filter-${key}`),
   filterSelect: () => page.getByTestId('runner-filter-select'),
   filterOption: (label: string) => page.getByRole('menuitem', { name: label, exact: true }),
-  requestCheckbox: (name: string) =>
-    page.getByTestId('runner-request-item').filter({ has: page.getByText(name, { exact: true }) }).locator('.checkbox'),
+  requestCheckbox: (name: string) => getRequestItemByName(page, name).locator('.checkbox'),
   requestCheckboxes: () => page.getByTestId('runner-request-item').locator('.checkbox'),
-  requestNameLabel: (name: string) =>
-    page.getByTestId('runner-request-item').filter({ has: page.getByText(name, { exact: true }) }).locator('.request-name')
+  requestNameLabel: (name: string) => getRequestItemByName(page, name).locator('.request-name'),
+  requestFolderPath: (name: string) => getRequestItemByName(page, name).locator('.folder-path')
 });
 
 export type RunnerFilterKey = 'all' | 'passed' | 'failed' | 'skipped';
@@ -158,7 +164,7 @@ export const clearRunnerTags = async (page: Page, root?: Locator) => {
  * @returns The row locator
  */
 export const runnerConfigItem = (page: Page, requestName: string): Locator =>
-  page.getByTestId('runner-request-item').filter({ has: page.getByText(requestName, { exact: true }) });
+  getRequestItemByName(page, requestName);
 
 /**
  * Reads the request names in the runner's "Configure requests to run" list, top to bottom.
@@ -172,15 +178,22 @@ export const getRunnerConfigOrder = async (page: Page): Promise<string[]> => {
 };
 
 /**
- * Drags a request in the runner config list onto another one. The drop lands on the upper or
- * lower half of the target row, which the panel uses to decide whether to insert above or below it.
+ * Drags a request in the runner config list onto another one.
+ * The panel inserts above the target when the pointer is in the top half of the row and below it
+ * in the bottom half. `position` chooses that half. Dropping below the last row is what moves an
+ * item to the end of the list, since there is no following row to drop above.
  * @param page - The Playwright page object
  * @param fromName - The request to move
  * @param toName - The request to drop it on
- * @param position - Whether to insert above or below `toName`
+ * @param position - Which half of `toName` receives the drop
  * @returns void
  */
-export const dragRunnerConfigItem = async (page: Page, fromName: string, toName: string, position: string) => {
+export const dragRunnerConfigItem = async (
+  page: Page,
+  fromName: string,
+  toName: string,
+  position: 'above' | 'below'
+) => {
   await test.step(`Drag "${fromName}" ${position} "${toName}" in the runner config list`, async () => {
     const locators = buildRunnerLocators(page);
     const target = locators.requestItem(toName);
@@ -188,10 +201,8 @@ export const dragRunnerConfigItem = async (page: Page, fromName: string, toName:
     if (targetBox === null) {
       throw new Error(`Runner config item "${toName}" has no bounding box`);
     }
-    let y = 4;
-    if (position === 'below') {
-      y = targetBox.height - 4;
-    }
+    const rowHalf = targetBox.height / 2;
+    const y = position === 'above' ? rowHalf / 2 : rowHalf + rowHalf / 2;
     await locators.requestDragHandle(fromName).dragTo(target, { targetPosition: { x: targetBox.width / 2, y } });
   });
 };
@@ -556,24 +567,4 @@ export const toggleRunnerRequestCheckbox = async (page: Page, requestName: strin
   await test.step(`Toggle the checkbox for "${requestName}"`, async () => {
     await buildRunnerLocators(page).requestCheckbox(requestName).click();
   });
-};
-
-/**
- * Asserts each request checkbox ends before that request's name starts.
- * @param page - The Playwright page object
- * @returns void
- */
-export const expectRunnerCheckboxesClearOfNames = async (page: Page) => {
-  const locators = buildRunnerLocators(page);
-  const items = locators.requestItems();
-  const count = await items.count();
-
-  for (let index = 0; index < count; index++) {
-    const item = items.nth(index);
-    const checkboxBox = await item.locator('.checkbox').boundingBox();
-    const nameBox = await item.locator('.request-name').boundingBox();
-    const checkboxRightEdge = checkboxBox.x + checkboxBox.width;
-    const requestNameLeftEdge = nameBox.x;
-    expect(checkboxRightEdge).toBeLessThanOrEqual(requestNameLeftEdge);
-  }
 };

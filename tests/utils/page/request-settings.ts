@@ -17,7 +17,7 @@ export const buildRequestSettingsLocators = (page: Page) => ({
   maxRedirectsInput: () => page.locator('#maxRedirects'),
   tagsHeading: () => page.getByRole('heading', { name: 'Tags' }),
   tagsInput: () => page.getByTestId('tag-input').getByRole('textbox'),
-  tagChip: (tagName: string) => page.locator('.tag-item', { hasText: tagName })
+  tagChip: (tagName: string) => page.getByRole('button', { name: tagName, exact: true })
 });
 
 /**
