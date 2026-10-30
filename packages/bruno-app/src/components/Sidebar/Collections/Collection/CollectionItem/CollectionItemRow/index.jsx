@@ -26,7 +26,7 @@ import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/
 import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem, mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
 import { formatIpcError } from 'utils/common/error';
-import { toggleCollectionItem, expandItem, collapseItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
+import { toggleCollectionItem, expandItem, collapseItem, addResponseExample, expandCollection } from 'providers/ReduxStore/slices/collections';
 import { uuid } from 'utils/common';
 import { copyRequest, setFocusedSidebarPath, insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -39,7 +39,13 @@ import RunCollectionItem from '../RunCollectionItem';
 import GenerateCodeItem from '../GenerateCodeItem';
 import { isItemARequest, isItemAFolder } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
-import { getDefaultRequestPaneTab, getItemTypeLabel } from 'utils/collections';
+import {
+  getDefaultRequestPaneTab,
+  getItemTypeLabel,
+  findCollectionByUid,
+  findItemInCollectionByPathname,
+  findParentItemInCollectionByPathname
+} from 'utils/collections';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
@@ -362,7 +368,8 @@ const CollectionItemRow = ({
           collectionUid: collectionUid,
           ...(isRequest ? { requestPaneTab: getDefaultRequestPaneTab(item) } : {}),
           type: item.type,
-          pathname: item.pathname
+          pathname: item.pathname,
+          name: item.name
         })
       );
     } else {
@@ -371,7 +378,8 @@ const CollectionItemRow = ({
           uid: item.uid,
           collectionUid: collectionUid,
           type: 'folder-settings',
-          pathname: item.pathname
+          pathname: item.pathname,
+          name: item.name
         })
       );
       if (item.collapsed) {
@@ -385,9 +393,23 @@ const CollectionItemRow = ({
     }
   };
 
+  const revealMountedItem = () => {
+    const mounted = findCollectionByUid(store.getState().collections.collections, collectionUid);
+    if (!mounted) return;
+    dispatch(expandCollection(collectionUid));
+    let folder = isItemAFolder(item)
+      ? findItemInCollectionByPathname(mounted, item.pathname)
+      : findParentItemInCollectionByPathname(mounted, item.pathname);
+    while (folder) {
+      dispatch(expandItem({ itemUid: folder.uid, collectionUid }));
+      folder = findParentItemInCollectionByPathname(mounted, folder.pathname);
+    }
+  };
+
   const handleClick = (event) => {
     if (handleSelectionClick(event)) return;
     if (event && event.detail != 1) return;
+    openItem();
     if (collection && collection.mountStatus !== 'mounted' && collection.mountStatus !== 'mounting') {
       dispatch(mountCollection({
         collectionUid,
@@ -395,11 +417,9 @@ const CollectionItemRow = ({
         brunoConfig: collection.brunoConfig,
         skipTabRestore: true
       }))
-        .then(openItem)
+        .then(revealMountedItem)
         .catch(() => {});
-      return;
     }
-    openItem();
   };
 
   const handleFolderCollapse = (e) => {

@@ -31,18 +31,26 @@ for (const cacheMode of PRESSURE_CACHE_MODES) {
         await expect(sidebar.itemRowIn('PressureA', 'needle-alpha-unique')).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
         await sidebar.itemRowIn('PressureA', 'needle-alpha-unique').click();
         await expect(sidebar.collectionRow('PressureA').locator('.animate-spin')).toBeVisible();
+        // The tab opens straight away and shows as loading while the collection is still mounting
+        await expect(activeTab('needle-alpha-unique')).toBeVisible();
       });
 
       await test.step('while PressureA mounts, search again and select a result in unmounted PressureB', async () => {
         await searchInput.fill('needle-bravo');
         await expect(sidebar.itemRowIn('PressureB', 'needle-bravo-unique')).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
         await sidebar.itemRowIn('PressureB', 'needle-bravo-unique').click();
+        await expect(activeTab('needle-bravo-unique')).toBeVisible();
       });
 
       await test.step('both collections mount and both selected requests open, the last one active', async () => {
         await searchInput.fill('');
         await waitForCollectionMount(page, 'PressureA', { timeout: MOUNT_TIMEOUT_MS });
+        // Opening a request expands its collection once mounted. Collapse PressureA again so its rows don't
+        // push PressureB out of the virtualized list.
+        await expect(sidebar.itemRowIn('PressureA', 'folder-0')).toBeVisible();
+        await sidebar.collectionChevron('PressureA').click();
         await waitForCollectionMount(page, 'PressureB', { timeout: MOUNT_TIMEOUT_MS });
+        await expect(sidebar.itemRowIn('PressureB', 'folder-0')).toBeVisible();
         await expect(activeTab('needle-bravo-unique')).toBeVisible();
 
         // The tab strip only lists tabs of the active tab's collection.

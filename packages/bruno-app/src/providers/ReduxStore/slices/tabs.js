@@ -88,7 +88,8 @@ export const tabsSlice = createSlice({
         apiSpecPathname,
         tabName,
         responseName,
-        openInEditMode
+        openInEditMode,
+        name
       } = action.payload;
 
       const nonReplaceableTabTypes = [
@@ -177,7 +178,8 @@ export const tabsSlice = createSlice({
           ...(apiSpecPathname ? { apiSpecPathname } : {}),
           ...(tabName ? { tabName } : {}),
           ...(responseName ? { responseName } : {}),
-          ...(openInEditMode ? { openInEditMode: true } : {})
+          ...(openInEditMode ? { openInEditMode: true } : {}),
+          ...(name ? { name } : {})
         };
 
         state.activeTabUid = uid;
@@ -218,7 +220,8 @@ export const tabsSlice = createSlice({
         ...(apiSpecPathname ? { apiSpecPathname } : {}),
         ...(tabName ? { tabName } : {}),
         ...(responseName ? { responseName } : {}),
-        ...(openInEditMode ? { openInEditMode: true } : {})
+        ...(openInEditMode ? { openInEditMode: true } : {}),
+        ...(name ? { name } : {})
       });
       state.activeTabUid = uid;
     },
