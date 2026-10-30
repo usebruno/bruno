@@ -5,6 +5,7 @@ const chalk = require('chalk');
 const jsyaml = require('js-yaml');
 const axios = require('axios');
 const { openApiToBruno, wsdlToBruno } = require('@usebruno/converters');
+const { AUTH_PLACEMENTS, REQUEST_NAME_SOURCES } = require('@usebruno/common');
 const { exists, isDirectory, sanitizeName, canonicalPath } = require('../utils/filesystem');
 const { writeCollectionToDisk } = require('@usebruno/filestore');
 
@@ -64,6 +65,18 @@ const builder = (yargs) => {
       choices: ['tags', 'path'],
       default: 'tags'
     })
+    .option('auth-placement', {
+      describe: 'Where to set the spec\'s auth: "request" on each request, "collection" on the collection for requests to inherit. Other schemes stay on their requests',
+      type: 'string',
+      choices: AUTH_PLACEMENTS,
+      default: 'request'
+    })
+    .option('request-name-source', {
+      describe: 'Field used to name the imported requests: "summary", "operationId", "description" or "path" (method and path). Missing fields fall back in that order',
+      type: 'string',
+      choices: REQUEST_NAME_SOURCES,
+      default: 'summary'
+    })
     .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --collection-name "My API"')
     .example('$0 import openapi -s api.yml -o ~/Desktop/my-collection -n "My API"')
     .example('$0 import openapi --source https://example.com/api-spec.json --output ~/Desktop --collection-name "Remote API"')
@@ -72,6 +85,8 @@ const builder = (yargs) => {
     .example('$0 import openapi -s api.yml -f ~/Desktop/my-collection.json -n "My API"')
     .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --group-by path')
     .example('$0 import openapi -s api.yml -o ~/Desktop/my-collection -g tags')
+    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --request-name-source operationId')
+    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --auth-placement collection')
     .example('$0 import wsdl --source service.wsdl --output ~/Desktop/soap-collection --collection-name "SOAP Service"')
     .example('$0 import wsdl -s https://example.com/service.wsdl -o ~/Desktop -n "Remote SOAP Service"');
 };
@@ -247,7 +262,7 @@ const resolveLocalWsdlSchemaRef = async (baseUri, ref) => {
 
 const handler = async (argv) => {
   try {
-    const { type, source, output, collectionFormat, outputFile, collectionName, insecure, groupBy } = argv;
+    const { type, source, output, collectionFormat, outputFile, collectionName, insecure, groupBy, authPlacement, requestNameSource } = argv;
 
     if (!type || !['openapi', 'wsdl'].includes(type)) {
       console.error(chalk.red('Only OpenAPI and WSDL imports are supported currently'));
@@ -279,7 +294,7 @@ const handler = async (argv) => {
       console.log(chalk.yellow('Converting OpenAPI specification to Bruno format...'));
 
       // Convert OpenAPI to Bruno format
-      brunoCollection = openApiToBruno(openApiSpec, { groupBy });
+      brunoCollection = openApiToBruno(openApiSpec, { groupBy, authPlacement, requestNameSource });
     } else if (type === 'wsdl') {
       console.log(chalk.yellow(`Reading WSDL from ${source}...`));
 
