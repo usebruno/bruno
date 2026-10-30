@@ -23,17 +23,3 @@ runs:
         
         Write-Host "starting server in background"
         Start-Process -FilePath "node" -ArgumentList "index.js" -PassThru -WindowStyle Hidden
-
-    - name: Setup self-signed test server
-      shell: pwsh
-      run: |
-        Set-StrictMode -Version Latest
-        $ErrorActionPreference = "Stop"
-
-        Set-Location tests\ssl\basic-ssl\server
-
-        Write-Host "generating self-signed certs"
-        node scripts/generate-certs.js
-
-        Write-Host "starting self-signed server in background"
-        Start-Process -FilePath "node" -ArgumentList "index.js" -PassThru -WindowStyle Hidden
