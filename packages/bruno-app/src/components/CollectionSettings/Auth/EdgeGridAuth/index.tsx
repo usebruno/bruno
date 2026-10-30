@@ -5,7 +5,6 @@ import { useDispatch } from 'react-redux';
 
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
@@ -76,7 +75,6 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ collection }) => {
     (collection.draft?.root
       ? get(collection, 'draft.root.request.auth.akamaiEdgegrid')
       : get(collection, 'root.request.auth.akamaiEdgegrid')) || {};
-  const { isSensitive } = useDetectSensitiveField(collection);
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
@@ -110,7 +108,6 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ collection }) => {
   const renderField = ({ key, label, tooltip, isSecret }: EdgeGridFieldConfig) => {
     const rawValue = edgeGridAuth[key];
     const fieldValue = rawValue === null || rawValue === undefined ? '' : String(rawValue);
-    const { showWarning, warningMessage } = isSecret ? isSensitive(rawValue) : { showWarning: false, warningMessage: '' };
     return (
       <div key={key}>
         <label>
@@ -132,9 +129,7 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ collection }) => {
             isSecret={isSecret}
             isCompact
           />
-          {showWarning && (
-            <SensitiveFieldWarning fieldName={`edgegrid-${key}`} warningMessage={warningMessage} />
-          )}
+          {isSecret && <SensitiveFieldWarning fieldName={`edgegrid-${key}`} secretName={key} value={rawValue} collection={collection} onReplaceValue={(val: string) => handleFieldChange(key, val)} />}
         </div>
       </div>
     );

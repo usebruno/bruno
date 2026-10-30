@@ -122,16 +122,18 @@ describe('selectEnvironmentsByName', () => {
 });
 
 describe('buildApiDocsHtml', () => {
-  it('omits gitCollectionUrl when not provided and embeds the collection data', () => {
+  it('omits repositoryUrl when not provided and embeds the collection data', () => {
     const html = buildApiDocsHtml('My API', '"data"');
-    expect(html).not.toContain('gitCollectionUrl');
+    expect(html).not.toContain('repositoryUrl');
     expect(html).toContain('const collectionData = "data";');
+    expect(html).toContain('Bruno.apiDocs(document.getElementById(\'opencollection-container\'), {');
+    expect(html).not.toContain('window.OpenCollection');
     expect(html).toContain('https://cdn.usebruno.com/api-docs/api-docs.js');
   });
 
-  it('embeds gitCollectionUrl when provided', () => {
+  it('embeds repositoryUrl when provided', () => {
     const html = buildApiDocsHtml('My API', '"data"', { gitCollectionUrl: 'https://git/x.git' });
-    expect(html).toContain('gitCollectionUrl: "https://git/x.git"');
+    expect(html).toContain('repositoryUrl: "https://git/x.git"');
   });
 
   it('escapes the collection name in the document title', () => {
@@ -245,10 +247,10 @@ describe('generateApiDocsHtml', () => {
 
   it('embeds the git link only when provided', () => {
     const deps = makeDeps();
-    expect(generateApiDocsHtml({ name: 'C', items: [] }, {}, deps as any)).not.toContain('gitCollectionUrl');
+    expect(generateApiDocsHtml({ name: 'C', items: [] }, {}, deps as any)).not.toContain('repositoryUrl');
     expect(
       generateApiDocsHtml({ name: 'C', items: [] }, { gitCollectionUrl: 'https://g/x.git' }, deps as any)
-    ).toContain('gitCollectionUrl: "https://g/x.git"');
+    ).toContain('repositoryUrl: "https://g/x.git"');
   });
 
   it('strips credentials from the embedded git link so a token cannot leak into the docs', () => {
@@ -256,7 +258,7 @@ describe('generateApiDocsHtml', () => {
     const tokenized = 'https://ghp_0123456789abcdefghijklmnopqrstuvwxyz@github.com/org/repo.git';
     const html = generateApiDocsHtml({ name: 'C', items: [] }, { gitCollectionUrl: tokenized }, deps as any);
     expect(html).not.toContain('ghp_0123456789abcdefghijklmnopqrstuvwxyz');
-    expect(html).toContain('gitCollectionUrl: "https://github.com/org/repo.git"');
+    expect(html).toContain('repositoryUrl: "https://github.com/org/repo.git"');
   });
 
   it('hardens a closing script tag in the embedded git link', () => {

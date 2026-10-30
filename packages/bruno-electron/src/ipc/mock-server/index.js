@@ -2,6 +2,7 @@ const { ipcMain } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { getWorkspaceApiSpecs, validateWorkspacePath } = require('../../utils/workspace-config');
+const { parseAndValidateApiSpec } = require('../../utils/apiSpecs');
 const mockServer = require('../../app/mock-server/mock-server');
 const { buildMockResponsesFromSpec } = require('../../app/mock-server/mock-spec-routes');
 const {
@@ -18,15 +19,6 @@ const {
 } = require('../../app/mock-server/mock-server-store');
 
 const getResponses = (location) => listMockResponses(location);
-
-const parseSpecContent = (content) => {
-  try {
-    return JSON.parse(content);
-  } catch {
-    const yaml = require('js-yaml');
-    return yaml.load(content);
-  }
-};
 
 const readWorkspaceSpec = (workspacePath, specPath) => {
   if (!specPath) {
@@ -47,7 +39,7 @@ const readWorkspaceSpec = (workspacePath, specPath) => {
     throw new Error('API spec file not found.');
   }
 
-  return parseSpecContent(fs.readFileSync(resolvedPath, 'utf8'));
+  return parseAndValidateApiSpec(fs.readFileSync(resolvedPath, 'utf8'));
 };
 
 const registerMockServerIpc = (mainWindow) => {
