@@ -1,4 +1,4 @@
-import { useMemo, useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react';
 import { useSelector } from 'react-redux';
 import get from 'lodash/get';
 
@@ -190,26 +190,14 @@ const store = createSearchStore();
 
 const useCollectionsSearch = ({ sidebarEntries }) => {
   const searchIndexEnabled = useSelector((state) => get(state, 'app.preferences.cache.searchIndex.enabled', false));
-  const roots = useMemo(
-    () => searchIndexEnabled
-      ? sidebarEntries
-          .filter((entry) => entry.kind === 'loaded' && entry.collection.mountStatus !== 'mounted')
-          .map((entry) => entry.collection.pathname)
-      : [],
-    [sidebarEntries, searchIndexEnabled]
-  );
-  const indexRoots = useMemo(
-    () => searchIndexEnabled
-      ? sidebarEntries
-          .filter((entry) => entry.kind === 'loaded' && entry.collection.pathname)
-          .map((entry) => entry.collection.pathname)
-      : [],
-    [sidebarEntries, searchIndexEnabled]
-  );
-  const order = useMemo(() => sidebarEntries.map(getEntryPath), [sidebarEntries]);
-  store.context.roots = roots;
-  store.context.indexRoots = indexRoots;
-  store.context.order = order;
+  const loadedEntries = searchIndexEnabled ? sidebarEntries.filter((entry) => entry.kind === 'loaded') : [];
+  store.context.roots = loadedEntries
+    .filter((entry) => entry.collection.mountStatus !== 'mounted')
+    .map((entry) => entry.collection.pathname);
+  store.context.indexRoots = loadedEntries
+    .filter((entry) => entry.collection.pathname)
+    .map((entry) => entry.collection.pathname);
+  store.context.order = sidebarEntries.map(getEntryPath);
   const { query, itemsByRoot, indexing, matchCount } = useSyncExternalStore(store.subscribe, store.getSnapshot);
 
   return {

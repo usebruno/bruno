@@ -195,161 +195,6 @@ const mergeRequestWithPreservedUids = (existingRequest, newRequest) =>
 const mergeRootWithPreservedUids = (existingRoot, newRoot) =>
   preserveUidsAtPaths(existingRoot, newRoot, ROOT_UID_PATHS);
 
-const addFileToCollection = (state, file) => {
-  const isCollectionRoot = file.meta.collectionRoot ? true : false;
-  const isFolderRoot = file.meta.folderRoot ? true : false;
-  const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
-  if (isCollectionRoot) {
-    if (collection) {
-      collection.root = mergeRootWithPreservedUids(collection.root, file.data);
-    }
-    return;
-  }
-
-  if (isFolderRoot) {
-    const folderPath = path.dirname(file.meta.pathname);
-    const folderItem = findItemInCollectionByPathname(collection, folderPath);
-    if (folderItem) {
-      if (file?.data?.meta?.name) {
-        folderItem.name = file?.data?.meta?.name;
-      }
-      folderItem.root = mergeRootWithPreservedUids(folderItem.root, file.data);
-      if (file?.data?.meta?.seq) {
-        folderItem.seq = file.data?.meta?.seq;
-      }
-    }
-    return;
-  }
-
-  if (collection) {
-    const dirname = path.dirname(file.meta.pathname);
-
-    const tempDirectory = state.tempDirectories?.[file.meta.collectionUid];
-    const isTransientFile = tempDirectory && file.meta.pathname.startsWith(tempDirectory);
-
-    const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dirname);
-    let currentPath = collection.pathname;
-    let currentSubItems = collection.items;
-    for (const directoryName of subDirectories) {
-      let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
-      currentPath = path.join(currentPath, directoryName);
-      if (!childItem) {
-        childItem = {
-          uid: uuid(),
-          pathname: currentPath,
-          name: directoryName,
-          collapsed: true,
-          type: 'folder',
-          isTransient: isTransientFile,
-          items: []
-        };
-        currentSubItems.push(childItem);
-      } else if (isTransientFile && !childItem.isTransient) {
-        // Update existing folder to be transient if the file is transient
-        childItem.isTransient = true;
-      }
-      currentSubItems = childItem.items;
-    }
-
-    if (file.meta.name != 'folder.bru' && !currentSubItems.find((f) => f.name === file.meta.name)) {
-      // this happens when you rename a file
-      // the add event might get triggered first, before the unlink event
-      // this results in duplicate uids causing react renderer to go mad
-      const currentItem = find(currentSubItems, (i) => i.uid === file.data.uid);
-      if (currentItem) {
-        currentItem.name = file.data.name;
-        currentItem.type = file.data.type;
-        currentItem.seq = file.data.seq;
-        currentItem.tags = file.data.tags;
-        currentItem.request = mergeRequestWithPreservedUids(currentItem.request, file.data.request);
-        currentItem.filename = file.meta.name;
-        currentItem.pathname = file.meta.pathname;
-        currentItem.raw = file.data.raw;
-        currentItem.settings = file.data.settings;
-        currentItem.examples = file.data.examples;
-        currentItem.draft = null;
-        currentItem.partial = file.partial;
-        currentItem.loading = file.loading;
-        currentItem.size = file.size;
-        currentItem.error = file.error;
-        currentItem.isTransient = isTransientFile;
-      } else {
-        currentSubItems.push({
-          uid: file.data.uid,
-          name: file.data.name,
-          type: file.data.type,
-          seq: file.data.seq,
-          tags: file.data.tags,
-          request: file.data.request,
-          settings: file.data.settings,
-          examples: file.data.examples,
-          app: file.data.app,
-          filename: file.meta.name,
-          pathname: file.meta.pathname,
-          raw: file.data.raw,
-          draft: null,
-          partial: file.partial,
-          loading: file.loading,
-          size: file.size,
-          error: file.error,
-          isTransient: isTransientFile
-        });
-      }
-    }
-  }
-};
-
-const addDirectoryToCollection = (state, dir) => {
-  const collection = findCollectionByUid(state.collections, dir.meta.collectionUid);
-
-  if (collection) {
-    // Check if this directory is in a temp directory (transient request)
-    const tempDirectory = state.tempDirectories?.[dir.meta.collectionUid];
-    const isTransientDir = tempDirectory && dir.meta.pathname.startsWith(tempDirectory);
-
-    const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dir.meta.pathname);
-    let currentPath = collection.pathname;
-    let currentSubItems = collection.items;
-    subDirectories.forEach((directoryName, idx) => {
-      const isLeaf = idx === subDirectories.length - 1;
-      let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
-      currentPath = path.join(currentPath, directoryName);
-
-      // On a rename (e.g. a case-only rename on a case-insensitive filesystem),
-      // the addDir event can arrive with a new-cased path while the existing
-      // node still carries the old filename. Reconcile the leaf folder by uid so
-      // the existing node is updated in place instead of creating a duplicate.
-      if (!childItem && isLeaf && dir?.meta?.uid) {
-        childItem = currentSubItems.find((f) => f.type === 'folder' && f.uid === dir.meta.uid);
-        if (childItem) {
-          childItem.name = dir?.meta?.name || directoryName;
-          childItem.filename = directoryName;
-          childItem.pathname = currentPath;
-        }
-      }
-
-      if (!childItem) {
-        childItem = {
-          uid: dir?.meta?.uid || uuid(),
-          pathname: currentPath,
-          name: dir?.meta?.name || directoryName,
-          seq: dir?.meta?.seq,
-          filename: directoryName,
-          collapsed: true,
-          type: 'folder',
-          isTransient: isTransientDir,
-          items: []
-        };
-        currentSubItems.push(childItem);
-      } else if (isTransientDir && !childItem.isTransient) {
-        // Update existing folder to be transient if the directory is transient
-        childItem.isTransient = true;
-      }
-      currentSubItems = childItem.items;
-    });
-  }
-};
-
 const initialState = {
   collections: [],
   collectionSortOrder: 'default',
@@ -3232,15 +3077,164 @@ export const collectionsSlice = createSlice({
       delete collection._scriptCollVarBaseline;
     },
     collectionAddFileEvent: (state, action) => {
-      addFileToCollection(state, action.payload.file);
+      const file = action.payload.file;
+      const isCollectionRoot = file.meta.collectionRoot ? true : false;
+      const isFolderRoot = file.meta.folderRoot ? true : false;
+      const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
+      if (isCollectionRoot) {
+        if (collection) {
+          collection.root = mergeRootWithPreservedUids(collection.root, file.data);
+        }
+        return;
+      }
+
+      if (isFolderRoot) {
+        const folderPath = path.dirname(file.meta.pathname);
+        const folderItem = findItemInCollectionByPathname(collection, folderPath);
+        if (folderItem) {
+          if (file?.data?.meta?.name) {
+            folderItem.name = file?.data?.meta?.name;
+          }
+          folderItem.root = mergeRootWithPreservedUids(folderItem.root, file.data);
+          if (file?.data?.meta?.seq) {
+            folderItem.seq = file.data?.meta?.seq;
+          }
+        }
+        return;
+      }
+
+      if (collection) {
+        const dirname = path.dirname(file.meta.pathname);
+
+        const tempDirectory = state.tempDirectories?.[file.meta.collectionUid];
+        const isTransientFile = tempDirectory && file.meta.pathname.startsWith(tempDirectory);
+
+        const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dirname);
+        let currentPath = collection.pathname;
+        let currentSubItems = collection.items;
+        for (const directoryName of subDirectories) {
+          let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
+          currentPath = path.join(currentPath, directoryName);
+          if (!childItem) {
+            childItem = {
+              uid: uuid(),
+              pathname: currentPath,
+              name: directoryName,
+              collapsed: true,
+              type: 'folder',
+              isTransient: isTransientFile,
+              items: []
+            };
+            currentSubItems.push(childItem);
+          } else if (isTransientFile && !childItem.isTransient) {
+            // Update existing folder to be transient if the file is transient
+            childItem.isTransient = true;
+          }
+          currentSubItems = childItem.items;
+        }
+
+        if (file.meta.name != 'folder.bru' && !currentSubItems.find((f) => f.name === file.meta.name)) {
+          // this happens when you rename a file
+          // the add event might get triggered first, before the unlink event
+          // this results in duplicate uids causing react renderer to go mad
+          const currentItem = find(currentSubItems, (i) => i.uid === file.data.uid);
+          if (currentItem) {
+            currentItem.name = file.data.name;
+            currentItem.type = file.data.type;
+            currentItem.seq = file.data.seq;
+            currentItem.tags = file.data.tags;
+            currentItem.request = mergeRequestWithPreservedUids(currentItem.request, file.data.request);
+            currentItem.filename = file.meta.name;
+            currentItem.pathname = file.meta.pathname;
+            currentItem.raw = file.data.raw;
+            currentItem.settings = file.data.settings;
+            currentItem.examples = file.data.examples;
+            currentItem.draft = null;
+            currentItem.partial = file.partial;
+            currentItem.loading = file.loading;
+            currentItem.size = file.size;
+            currentItem.error = file.error;
+            currentItem.isTransient = isTransientFile;
+          } else {
+            currentSubItems.push({
+              uid: file.data.uid,
+              name: file.data.name,
+              type: file.data.type,
+              seq: file.data.seq,
+              tags: file.data.tags,
+              request: file.data.request,
+              settings: file.data.settings,
+              examples: file.data.examples,
+              app: file.data.app,
+              filename: file.meta.name,
+              pathname: file.meta.pathname,
+              raw: file.data.raw,
+              draft: null,
+              partial: file.partial,
+              loading: file.loading,
+              size: file.size,
+              error: file.error,
+              isTransient: isTransientFile
+            });
+          }
+        }
+      }
     },
     collectionAddDirectoryEvent: (state, action) => {
-      addDirectoryToCollection(state, action.payload.dir);
+      const { dir } = action.payload;
+      const collection = findCollectionByUid(state.collections, dir.meta.collectionUid);
+
+      if (collection) {
+        // Check if this directory is in a temp directory (transient request)
+        const tempDirectory = state.tempDirectories?.[dir.meta.collectionUid];
+        const isTransientDir = tempDirectory && dir.meta.pathname.startsWith(tempDirectory);
+
+        const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dir.meta.pathname);
+        let currentPath = collection.pathname;
+        let currentSubItems = collection.items;
+        subDirectories.forEach((directoryName, idx) => {
+          const isLeaf = idx === subDirectories.length - 1;
+          let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
+          currentPath = path.join(currentPath, directoryName);
+
+          // On a rename (e.g. a case-only rename on a case-insensitive filesystem),
+          // the addDir event can arrive with a new-cased path while the existing
+          // node still carries the old filename. Reconcile the leaf folder by uid so
+          // the existing node is updated in place instead of creating a duplicate.
+          if (!childItem && isLeaf && dir?.meta?.uid) {
+            childItem = currentSubItems.find((f) => f.type === 'folder' && f.uid === dir.meta.uid);
+            if (childItem) {
+              childItem.name = dir?.meta?.name || directoryName;
+              childItem.filename = directoryName;
+              childItem.pathname = currentPath;
+            }
+          }
+
+          if (!childItem) {
+            childItem = {
+              uid: dir?.meta?.uid || uuid(),
+              pathname: currentPath,
+              name: dir?.meta?.name || directoryName,
+              seq: dir?.meta?.seq,
+              filename: directoryName,
+              collapsed: true,
+              type: 'folder',
+              isTransient: isTransientDir,
+              items: []
+            };
+            currentSubItems.push(childItem);
+          } else if (isTransientDir && !childItem.isTransient) {
+            // Update existing folder to be transient if the directory is transient
+            childItem.isTransient = true;
+          }
+          currentSubItems = childItem.items;
+        });
+      }
     },
     collectionAddBatchEvent: (state, action) => {
       for (const { type, payload } of action.payload.events) {
-        if (type === 'addDir') addDirectoryToCollection(state, payload);
-        else if (type === 'addFile') addFileToCollection(state, payload);
+        if (type === 'addDir') collectionsSlice.caseReducers.collectionAddDirectoryEvent(state, { payload: { dir: payload } });
+        else if (type === 'addFile') collectionsSlice.caseReducers.collectionAddFileEvent(state, { payload: { file: payload } });
       }
     },
     collectionChangeFileEvent: (state, action) => {

@@ -42,7 +42,6 @@ import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from '
 import {
   getDefaultRequestPaneTab,
   getItemTypeLabel,
-  findCollectionByUid,
   findItemInCollectionByPathname,
   findParentItemInCollectionByPathname
 } from 'utils/collections';
@@ -390,7 +389,7 @@ const CollectionItemRow = ({
   };
 
   const revealMountedItem = () => {
-    const mounted = findCollectionByUid(store.getState().collections.collections, collectionUid);
+    const mounted = selectCollectionByUid(store.getState(), collectionUid);
     if (!mounted) return;
     dispatch(expandCollection(collectionUid));
     let folder = isItemAFolder(item)

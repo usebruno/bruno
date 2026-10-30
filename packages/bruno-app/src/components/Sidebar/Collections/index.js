@@ -18,7 +18,7 @@ import { selectCollections, selectCollectionSortOrder, selectSelectedSidebarUids
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
-  const [searchCollapsedCollectionUids, setSearchCollapsedCollectionUids] = useState(new Set());
+  const [searchCollapsedCollectionUids, setSearchCollapsedCollectionUids] = useState(() => new Set());
   const collections = useSelector(selectCollections);
   const collectionSortOrder = useSelector(selectCollectionSortOrder);
   const selectedSidebarUids = useSelector(selectSelectedSidebarUids);
@@ -53,7 +53,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   } = useCollectionsSearch({ sidebarEntries });
 
   const handleSearchTextChange = (text) => {
-    setSearchCollapsedCollectionUids(new Set());
+    setSearchCollapsedCollectionUids((collapsed) => (collapsed.size ? new Set() : collapsed));
     setSearchText(text);
     setQuery(text);
   };

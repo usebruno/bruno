@@ -1,10 +1,7 @@
 import { IconSearch, IconX, IconLoader2 } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
-const CollectionSearch = ({ searchText, setSearchText, indexing = false, matchCount = null }) => {
-  const showMatchCount = searchText !== '' && matchCount != null;
-  const showIndexing = searchText !== '' && indexing;
-
+const CollectionSearch = ({ searchText, setSearchText, indexing, matchCount }) => {
   return (
     <StyledWrapper>
       <div className="search-input-wrap">
@@ -23,7 +20,7 @@ const CollectionSearch = ({ searchText, setSearchText, indexing = false, matchCo
           value={searchText}
           onChange={(e) => setSearchText(e.target.value.toLowerCase())}
         />
-        {showIndexing && (
+        {searchText !== '' && indexing && (
           <IconLoader2
             className="animate-spin indexing-icon with-clear"
             size={18}
@@ -37,7 +34,7 @@ const CollectionSearch = ({ searchText, setSearchText, indexing = false, matchCo
           </div>
         )}
       </div>
-      {showMatchCount && (
+      {searchText !== '' && matchCount != null && (
         <div className="match-count" data-testid="sidebar-search-match-count">
           {matchCount === 1 ? '1 match' : `${matchCount} matches`}
         </div>

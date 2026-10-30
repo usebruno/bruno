@@ -40,7 +40,7 @@ const Cache = () => {
   const handleToggleSearchIndex = () => {
     persist({
       ...preferences.cache,
-      searchIndex: { ...preferences.cache?.searchIndex, enabled: !searchIndexEnabled }
+      searchIndex: { enabled: !searchIndexEnabled }
     });
   };
 
