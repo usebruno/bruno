@@ -6,11 +6,11 @@ import { Page } from '../../../../playwright';
 export const buildCollectionAppLocators = (page: Page) => {
   const migrateModal = () => page.getByTestId('migrate-to-yml-modal');
   const draftsStep = () => page.getByTestId('migration-drafts-step');
-  const activeAppSlot = () => page.getByTestId('app-preview-slot-active');
+  const activeAppSlot = () => page.getByTestId('app-preview-slot').filter({ visible: true });
 
   return {
     modal: migrateModal,
-    modalTitle: () => migrateModal().getByTestId('migrate-to-yml-modal-title'),
+    modalTitle: () => migrateModal().getByTestId('modal-title'),
     modalCollectionName: () => migrateModal().getByTestId('migrate-to-yml-collection-name'),
     pill: () => page.getByTestId('migrate-yml-pill'),
     emptyStateAddCodeButton: () => activeAppSlot().getByTestId('empty-app-state').getByTestId('empty-app-add-code'),

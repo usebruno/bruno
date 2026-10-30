@@ -7,9 +7,9 @@ import Button from 'ui/Button';
 const ESC_KEY_CODE = 27;
 const ENTER_KEY_CODE = 13;
 
-const ModalHeader = ({ title, handleCancel, customHeader, hideClose, className = '', dataTestId }) => (
+const ModalHeader = ({ title, handleCancel, customHeader, hideClose, className = '' }) => (
   <div className={`bruno-modal-header ${className}`}>
-    {customHeader ? customHeader : <>{title ? <div className="bruno-modal-header-title" data-testid={dataTestId ? `${dataTestId}-title` : undefined}>{title}</div> : null}</>}
+    {customHeader ? customHeader : <>{title ? <div className="bruno-modal-header-title" data-testid="modal-title">{title}</div> : null}</>}
     {handleCancel && !hideClose ? (
       <div
         className="close cursor-pointer"
@@ -165,7 +165,6 @@ const Modal = ({
           handleCancel={() => closeModal({ type: 'icon' })}
           customHeader={customHeader}
           className={headerClassName}
-          dataTestId={dataTestId}
         />
         <ModalContent noPadding={noPadding}>{children}</ModalContent>
         <ModalFooter
