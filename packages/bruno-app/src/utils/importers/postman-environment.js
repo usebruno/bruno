@@ -1,6 +1,6 @@
 import { BrunoError } from 'utils/common/error';
 import { postmanToBrunoEnvironment } from '@usebruno/converters';
-import { coerceEnvName, dedupeImportedSecrets } from 'utils/environments';
+import { coerceEnvName, dedupeImportedSecrets } from '@usebruno/common/utils';
 
 const importEnvironment = async (parsedFiles) => {
   try {
