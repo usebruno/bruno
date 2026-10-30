@@ -91,7 +91,7 @@
   },
   "devDependencies": {
     "@electron/notarize": "^3.1.2",
-    "electron": "~45.1.0",
+    "electron": "~43.8.4",
     "electron-builder": "^26.18.0",
     "electron-devtools-installer": "^4.0.0"
   }
