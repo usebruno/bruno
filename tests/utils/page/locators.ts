@@ -106,6 +106,7 @@ export const buildCommonLocators = (page: Page) => ({
     overflowTrigger: (root?: Locator) => (root ?? page).locator('.tabs .more-tabs'),
     // menu is rendered via portal, hence it rooted to page.
     overflowItem: (key: string) => page.getByTestId(`menu-dropdown-${key}`),
+    scriptSubTabsOverflowTrigger: () => page.getByTestId('script-sub-tabs').getByTestId('tabs-overflow-trigger'),
     collectionSettingsTab: (key: string) => page.getByTestId(`collection-settings-tab-${key}`),
     folderSettingsTab: (key: string) => page.getByTestId(`folder-settings-tab-${key}`),
     folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
@@ -262,7 +263,7 @@ export const buildCommonLocators = (page: Page) => ({
     tooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text }),
     includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include Tags'),
     excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude Tags'),
-    tagChip: (name: string) => page.locator('.bruno-modal .docs-tag-item').filter({ hasText: name }),
+    tagChip: (name: string) => page.locator('.bruno-modal').getByTestId('tag-picker-item').filter({ hasText: name }),
     gitLinkLabel: () => page.locator('.bruno-modal').getByTestId('docs-git-link')
   },
   runnerResults: {
