@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import { closeAllCollections, openBulkImportModal } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
-test.describe('Bulk Import default file format', () => {
+test.describe('TC-3098: Bulk Import default file format', { tag: '@sanity' }, () => {
   const testDataDir = path.join(__dirname, '../test-data');
   const filesToImport = [
     path.join(testDataDir, 'sample-postman.json'),

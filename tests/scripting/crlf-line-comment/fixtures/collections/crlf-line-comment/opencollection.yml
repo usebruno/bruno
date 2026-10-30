@@ -1,0 +1,25 @@
+opencollection: "1.0.0"
+info:
+  name: crlf-line-comment
+request:
+  scripts:
+    - type: before-request
+      # Intentional: the \r escapes below produce CRLF line endings, which this test depends on.
+      # Keep this as a double-quoted scalar; a block scalar (| or >) would silently drop them.
+      code: "function extractDataPaths(scRaw) {\r
+
+        \    const placeholderRegExp = /{{([^}]+)}}/g;\r
+
+        \    const dataPaths = [];\r
+
+        \    let match;\r
+
+        \    while ((match = placeholderRegExp.exec(scRaw)) != null) {\r
+
+        \        dataPaths.push(match[1]);\r
+
+        \    }\r
+
+        \    return dataPaths;\r
+
+        }"

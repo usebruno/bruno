@@ -17,12 +17,7 @@ export const validateSchema = async (collections = []) => {
   collections = Array.isArray(collections) ? collections : [collections];
 
   try {
-    await Promise.all(
-      collections.map(async (collection) => {
-        await collectionSchema.validate(collection);
-      })
-    );
-    return collections;
+    return await Promise.all(collections.map((collection) => collectionSchema.validate(collection)));
   } catch (err) {
     console.log(err);
     throw new BrunoError('The Collection file is corrupted');

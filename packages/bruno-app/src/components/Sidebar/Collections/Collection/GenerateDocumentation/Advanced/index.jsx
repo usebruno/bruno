@@ -3,7 +3,7 @@ import { IconChevronRight, IconListCheck, IconGitBranch, IconInfoCircle } from '
 import { Tooltip } from 'react-tooltip';
 import ToggleSwitch from 'components/ToggleSwitch';
 import RadioButton from 'components/RadioButton';
-import IncludeExcludeTags from './IncludeExcludeTags';
+import IncludeExcludeTags from 'components/IncludeExcludeTags';
 import StyledWrapper from './StyledWrapper';
 
 const TAGS_HINT = 'Tags are labels on requests and folders (e.g. smoke, WIP), and a request also matches its folders\' tags. Manage them in Request › Settings and Folder › Settings';
@@ -84,6 +84,7 @@ const Advanced = ({
 
               {filterByTags && (
                 <IncludeExcludeTags
+                  dataTestId="docs-tags"
                   className="adv-tags"
                   tags={tags}
                   availableTags={availableTags}
