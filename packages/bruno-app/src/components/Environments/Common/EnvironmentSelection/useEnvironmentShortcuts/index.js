@@ -10,6 +10,7 @@ const isTextField = (el) => el?.tagName === 'INPUT' || el?.tagName === 'TEXTAREA
 const useEnvironmentShortcuts = ({
   scopeRef,
   hasSelection,
+  canDelete,
   isModalOpen,
   isMenuOpen,
   onClearSelection,
@@ -41,7 +42,7 @@ const useEnvironmentShortcuts = ({
       if (isSelectAllShortcut) {
         e.preventDefault();
         onSelectAll();
-      } else if (isDeleteShortcut && (hasSelection || isMenuOpen)) {
+      } else if (isDeleteShortcut && (canDelete || isMenuOpen)) {
         e.preventDefault();
         onDelete();
       }
@@ -49,7 +50,7 @@ const useEnvironmentShortcuts = ({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [scopeRef, isModalOpen, isMenuOpen, hasSelection, onClearSelection, onSelectAll, onDelete]);
+  }, [scopeRef, isModalOpen, isMenuOpen, hasSelection, canDelete, onClearSelection, onSelectAll, onDelete]);
 };
 
 export default useEnvironmentShortcuts;
