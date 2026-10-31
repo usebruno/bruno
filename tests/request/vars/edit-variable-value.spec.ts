@@ -30,7 +30,7 @@ test.describe('Edit variable - first edit with Enter', () => {
     await closeAllCollections(page);
   });
 
-  test('TC-2461 saves and persists the variable value edit when Enter is pressed', { tag: '@sanity' }, async ({
+  test('TC-2491 saves and persists the variable value edit when Enter is pressed', { tag: '@sanity' }, async ({
     page,
     electronApp,
     createTmpDir
