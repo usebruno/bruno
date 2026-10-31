@@ -4,9 +4,6 @@
  * Temporarily re-exports the legacy page layer from tests/utils/page,
  * along with page objects missing from its barrel. Once migration is
  * complete, only local page objects will be exported.
- *
- * TODO: Export environment/environment.ts after resolving its
- * openEnvironmentSelector conflict with actions.ts.
  */
 
 export * from '../../tests/utils/page';
@@ -21,10 +18,15 @@ export * from './app-shell/toast';
 export * from './collection/header';
 export * from './collection/docs';
 export * from './collection/proxy';
-export * from './components/code-editor';
-export * from './components/modal';
-export * from './components/dropdown';
-export * from './components/pane-tabs';
+export * from './environment/environment';
+export * from './environment/selector';
+export * from './environment/settings';
+export * from './environment/variables';
+export * from './shared-ui/code-editor';
+export * from './shared-ui/data-type-selector';
+export * from './shared-ui/modal';
+export * from './shared-ui/dropdown';
+export * from './shared-ui/pane-tabs';
 export * from './variable/secret-form';
 export * from './workspace/create-workspace-modal';
 export * from './workspace/import-workspace';

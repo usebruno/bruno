@@ -1,7 +1,7 @@
 import { test, expect, Page } from '../..';
 import { selectRequestPaneTab } from './pane';
-import { buildPaneTabsLocators } from '../components/pane-tabs';
-import { buildCodeMirrorLocators, editCodeMirrorEditor } from '../components/code-editor';
+import { buildPaneTabsLocators } from '../shared-ui/pane-tabs';
+import { buildCodeMirrorLocators, editCodeMirrorEditor } from '../shared-ui/code-editor';
 
 const buildLocators = (page: Page) => ({
   paneTabs: buildPaneTabsLocators(page),

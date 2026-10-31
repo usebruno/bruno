@@ -1,5 +1,5 @@
 import { test, expect, Page, Locator } from '..';
-import { selectPaneTab } from './components/pane-tabs';
+import { selectPaneTab } from './shared-ui/pane-tabs';
 
 /**
  * Locators for the response pane (status, body, format and preview, tests, actions).

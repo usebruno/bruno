@@ -30,17 +30,18 @@ import { buildCloneGitRepositoryLocators } from './git/clone-git-repository';
 import { buildResponseExampleLocators } from '../../../playwright/pages/response-example';
 import { buildGraphqlQueryBuilderLocators } from './graphql/query-builder';
 import { buildAuthLocators } from './auth';
-import { buildModalLocators } from '../../../playwright/pages/components/modal';
-import { buildDropdownLocators } from '../../../playwright/pages/components/dropdown';
+import { buildModalLocators } from '../../../playwright/pages/shared-ui/modal';
+import { buildDropdownLocators } from '../../../playwright/pages/shared-ui/dropdown';
 import { buildFolderLocators } from '../../../playwright/pages/sidebar/collection-tree';
 import { buildItemActionLocators } from '../../../playwright/pages/sidebar/item-actions';
 import { buildResponseLocators } from '../../../playwright/pages/response';
 import { buildRequestTabsLocators } from '../../../playwright/pages/request-tabs';
-import { buildPaneTabsLocators } from '../../../playwright/pages/components/pane-tabs';
-import { buildTableLocator } from '../../../playwright/pages/components/table';
+import { buildPaneTabsLocators } from '../../../playwright/pages/shared-ui/pane-tabs';
+import { buildTableLocator } from '../../../playwright/pages/shared-ui/table';
 import { buildAssertionsTableLocator } from '../../../playwright/pages/request/assertions';
 import { buildGrpcLocators } from '../../../playwright/pages/request/grpc';
 import { buildOpenCollectionPickerLocators } from '../../../playwright/pages/collection/open-collection-picker';
+import { buildDataTypeSelectorLocators } from '../../../playwright/pages/shared-ui/data-type-selector';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
@@ -99,15 +100,7 @@ export const buildCommonLocators = (page: Page) => ({
   modal: buildModalLocators(page),
   openCollectionPicker: buildOpenCollectionPickerLocators(page),
   codeMirror: buildCodeMirrorLocators(page),
-  // The DataTypeSelector exposes a stable trigger per row (request/folder/collection
-  // vars + env vars). Compact mode shows an icon; full mode shows `.type-label`.
-  dataTypeSelector: {
-    trigger: (row: Locator) => row.getByTestId('datatype-selector-trigger'),
-    typeLabel: (row: Locator) => row.getByTestId('datatype-selector-trigger'),
-    // Yellow warning icon shown when a value can't be coerced to its dataType.
-    mismatchIcon: (row: Locator) => row.locator('svg.text-yellow-600'),
-    menuItem: (type: string) => page.locator('[role="menu"]').last().getByText(type, { exact: true })
-  },
+  dataTypeSelector: buildDataTypeSelectorLocators(page),
   filePicker: {
     warningTooltip: () => page.getByTestId('file-picker-warning-tooltip')
   },

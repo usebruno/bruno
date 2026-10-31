@@ -1,5 +1,5 @@
 import { test, expect, Page } from '../..';
-import { buildTableLocator } from '../components/table';
+import { buildTableLocator } from '../shared-ui/table';
 
 /** Types a name and value into the last row of a Vars table. */
 export const addVarsRow = async (page: Page, tableId: string, name: string, value: string) => {

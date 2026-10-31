@@ -1,8 +1,8 @@
 import { test, expect, Page, ElectronApplication } from '../..';
 import { collectionSlug } from '../../../packages/bruno-app/src/utils/collections/collectionSlug';
 import { EmptyStateRequestType, buildSidebarLocators } from './collection-tree';
-import { buildModalLocators } from '../components/modal';
-import { buildDropdownLocators } from '../components/dropdown';
+import { buildModalLocators } from '../shared-ui/modal';
+import { buildDropdownLocators } from '../shared-ui/dropdown';
 import { buildToastLocators } from '../app-shell/toast';
 
 /**

@@ -1,7 +1,7 @@
 import { test, Page } from '../..';
 import { AUTH_MODE_LABELS } from '../../constants';
 import { selectRequestPaneTab } from './pane';
-import { writeFieldValue } from '../components/single-line-editor';
+import { writeFieldValue } from '../shared-ui/single-line-editor';
 
 /**
  * Open the auth mode dropdown and pick a mode by its visible label.

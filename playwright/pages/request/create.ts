@@ -2,8 +2,8 @@ import { test, expect, Page } from '../..';
 import { buildRequestLocators, selectRequestPaneTab } from './pane';
 import { buildSidebarLocators } from '../sidebar/collection-tree';
 import { buildItemActionLocators } from '../sidebar/item-actions';
-import { buildDropdownLocators } from '../components/dropdown';
-import { buildModalLocators } from '../components/modal';
+import { buildDropdownLocators } from '../shared-ui/dropdown';
+import { buildModalLocators } from '../shared-ui/modal';
 import { buildRequestTabsLocators } from '../request-tabs';
 
 const buildLocators = (page: Page) => ({

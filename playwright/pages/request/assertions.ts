@@ -1,5 +1,5 @@
 import { test, expect, Page } from '../..';
-import { buildTableLocator } from '../components/table';
+import { buildTableLocator } from '../shared-ui/table';
 
 /**
  * Locators for the request Assertions table.

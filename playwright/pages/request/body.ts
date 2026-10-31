@@ -1,9 +1,9 @@
 import { test, expect, Page, ElectronApplication } from '../..';
 import * as path from 'path';
 import { buildRequestLocators, selectRequestPaneTab } from './pane';
-import { buildDropdownLocators } from '../components/dropdown';
-import { buildCodeMirrorLocators } from '../components/code-editor';
-import { buildTableLocator } from '../components/table';
+import { buildDropdownLocators } from '../shared-ui/dropdown';
+import { buildCodeMirrorLocators } from '../shared-ui/code-editor';
+import { buildTableLocator } from '../shared-ui/table';
 
 const buildLocators = (page: Page) => ({
   request: buildRequestLocators(page),

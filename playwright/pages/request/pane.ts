@@ -1,5 +1,5 @@
 import { test, expect, Page, Locator } from '../..';
-import { selectPaneTab } from '../components/pane-tabs';
+import { selectPaneTab } from '../shared-ui/pane-tabs';
 import { buildQueryParamsLocators } from './params';
 import { buildRequestSendLocators } from './send';
 import { buildNewRequestModalLocators } from '../sidebar/item-actions';

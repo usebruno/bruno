@@ -307,7 +307,7 @@ export const buildEnvironmentLocators = (page: Page) => ({
  * @param page - The page object
  * @returns void
  */
-export const openEnvironmentSelector = async (page: Page) => {
+export const openEnvironmentDropdown = async (page: Page) => {
   const trigger = buildCollectionHeaderLocators(page).envSelectorTrigger();
   const searchInput = buildEnvironmentLocators(page).searchInput();
 
