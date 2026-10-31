@@ -1,4 +1,4 @@
-import { Locator, Page } from '../..';
+import { Page, Locator } from '../..';
 
 /**
  * Locators for an EditableTable (headers, params, vars, assertions…), by its data-testid.
@@ -27,4 +27,15 @@ export const buildTableLocator = (page: Page) => (testId: string) => {
     rowNameInput: (row: Locator) => row.locator('input[type="text"]').first(),
     rowValueEditor: (row: Locator) => row.getByTestId('column-value').locator('.CodeMirror').first()
   };
+};
+
+export const setTableRowDescriptionValue = async (rowLocator: Locator, value: string) => {
+  const descCell = rowLocator.getByTestId('column-description');
+  await descCell.evaluate((el: any, val: string) => {
+    const cmEl = el.querySelector('.CodeMirror');
+    if (!cmEl) throw new Error('No CodeMirror in description cell');
+    const cm = (cmEl as any).CodeMirror;
+    if (!cm) throw new Error('CodeMirror instance not found');
+    cm.setValue(val);
+  }, value);
 };

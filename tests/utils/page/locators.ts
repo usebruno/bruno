@@ -42,8 +42,14 @@ import { buildAssertionsTableLocator } from '../../../playwright/pages/request/a
 import { buildGrpcLocators } from '../../../playwright/pages/request/grpc';
 import { buildOpenCollectionPickerLocators } from '../../../playwright/pages/collection/open-collection-picker';
 import { buildDataTypeSelectorLocators } from '../../../playwright/pages/shared-ui/data-type-selector';
+import { buildCollectionsPlusMenuLocators } from '../../../playwright/pages/collection/manage';
+import { buildImportCollectionLocators } from '../../../playwright/pages/collection/import';
+import { buildExportCollectionLocators } from '../../../playwright/pages/collection/export';
+import { buildCollectionPresetsLocators } from '../../../playwright/pages/collection/settings';
+import { buildGenerateDocsLocators } from '../../../playwright/pages/collection/docs';
+import { buildTagsLocators } from '../../../playwright/pages/shared-ui/tags';
 
-export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
+export type { PresetRequestType } from '../../../playwright/pages/collection/settings';
 
 const addToNoEnvNoteLocator = (popup: Locator, scopeType: 'environment' | 'global') =>
   popup.getByTestId('var-info-add-to-no-env-note')
@@ -140,63 +146,9 @@ export const buildCommonLocators = (page: Page) => ({
     addToError: (popup: Locator) => popup.getByTestId('var-info-add-to-error')
   },
   auth: buildAuthLocators(page),
-  presets: {
-    requestType: (type: PresetRequestType) =>
-      page.getByTestId(`presets-request-type-${type}`),
-    requestUrl: () => page.getByTestId('presets-request-url'),
-    saveBtn: () => page.getByTestId('presets-save-btn'),
-    defaultEnvironment: () => page.getByTestId('presets-default-environment'),
-    defaultEnvironmentOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
-  },
-  tags: {
-    input: () => page.getByTestId('tag-input').getByRole('textbox'),
-    item: (tagName: string) => page.locator('.tag-item', { hasText: tagName }),
-    ownItem: (tagName: string) => page.locator('.tag-item:not(.inherited)', { hasText: tagName }),
-    ownItems: () => page.locator('.tag-item:not(.inherited)'),
-    error: () => page.getByTestId('tag-error'),
-    inheritedToggle: () => page.getByTestId('inherited-tags-toggle'),
-    inheritedList: () => page.getByTestId('inherited-tag-list'),
-    inheritedItems: () => page.getByTestId('inherited-tag'),
-    inheritedItem: (tagName: string) => page.getByTestId('inherited-tag').filter({ hasText: tagName })
-  },
-  generateDocs: {
-    menuItem: () => page.locator('.dropdown-item').filter({ hasText: 'Generate Docs' }),
-    modal: () => page.locator('.bruno-modal').filter({
-      has: page.locator('.bruno-modal-header-title').filter({ hasText: 'Generate Documentation' })
-    }),
-    heading: () => page.locator('.bruno-modal').getByText('Interactive API Documentation'),
-    generateButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Generate', exact: true }),
-    cancelButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Cancel', exact: true }),
-    // Collection name + version (read-only) display
-    versionInfo: () => page.locator('.bruno-modal').getByTestId('version-info'),
-    collectionName: () => page.locator('.bruno-modal').getByTestId('collection-name'),
-    versionValue: () => page.locator('.bruno-modal').getByTestId('version-value'),
-    versionCounts: () => page.locator('.bruno-modal').getByTestId('version-summary'),
-    // Environment selection list
-    environmentsTitle: () => page.locator('.bruno-modal').getByTestId('env-section-title'),
-    // Header controls: tri-state "select all" checkbox + "X/Y selected" count
-    selectAllCheckbox: () => page.locator('.bruno-modal').getByTestId('env-select-all'),
-    selectAllLabel: () => page.locator('.bruno-modal').getByTestId('env-select-all-label'),
-    selectedCount: () => page.locator('.bruno-modal').getByTestId('env-selected-count'),
-    environmentRows: () => page.locator('.bruno-modal').getByTestId('env-row'),
-    environmentRow: (name: string) =>
-      page.locator('.bruno-modal').getByTestId('env-row').filter({ has: page.getByText(name, { exact: true }) }),
-    // A row has exactly one checkbox; its data-testid is uid-keyed, so select it by role within the named row.
-    environmentCheckbox: (name: string) =>
-      page
-        .locator('.bruno-modal')
-        .getByTestId('env-row')
-        .filter({ has: page.getByText(name, { exact: true }) })
-        .getByRole('checkbox'),
-    advancedToggle: () => page.locator('.bruno-modal').getByTestId('docs-advanced-toggle'),
-    allRequestsRadio: () => page.locator('.bruno-modal').getByTestId('docs-requests-all'),
-    filterByTagsRadio: () => page.locator('.bruno-modal').getByTestId('docs-requests-filter'),
-    tooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text }),
-    includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include Tags'),
-    excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude Tags'),
-    tagChip: (name: string) => page.locator('.bruno-modal').getByTestId('tag-picker-item').filter({ hasText: name }),
-    gitLinkLabel: () => page.locator('.bruno-modal').getByTestId('docs-git-link')
-  },
+  presets: buildCollectionPresetsLocators(page),
+  tags: buildTagsLocators(page),
+  generateDocs: buildGenerateDocsLocators(page),
   runnerResults: {
     itemPath: (name: string) => page.getByTestId('runner-result-item').filter({ hasText: name })
   },
@@ -214,52 +166,9 @@ export const buildCommonLocators = (page: Page) => ({
     headerValue: (item: Locator, name: string) =>
       buildTimelineHeaderRow(page, item, name).getByTestId('tl-header-value-request')
   },
-  plusMenu: {
-    button: () => page.getByTestId('collections-header-add-menu'),
-    openCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }),
-    createCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }),
-    importCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' })
-  },
-  import: {
-    modal: () => page.locator('[data-testid="import-collection-modal"]'),
-    locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
-    locationInput: () => page.locator('#collection-location'),
-    fileInput: () => page.locator('input[type="file"]'),
-    advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
-    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
-    bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
-    bulkFormatSelect: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
-    bulkLocationInput: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),
-    bulkSubmitButton: () => page.getByTestId('bulk-import-collection-location-modal-submit-btn'),
-    envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
-    parsingError: () => page.getByTestId('import-error-message'),
-    browseLink: (root?: Locator) => (root ?? page).getByTestId('import-collection-browse-link'),
-    importButton: (root?: Locator) => (root ?? page).getByTestId('import-collection-location-modal-submit-btn'),
-    formatSelect: (root?: Locator) => (root ?? page).locator('#format'),
-    ...(() => {
-      const issuesToast = () => page.getByTestId('import-issues-toast').last();
-      return {
-        issuesToast,
-        issuesToastTitle: () => issuesToast().getByTestId('import-issues-toast-title'),
-        issuesToastCopyBtn: () => issuesToast().getByTestId('import-issues-copy-btn'),
-        issuesToastReportBtn: () => issuesToast().getByTestId('import-issues-report-btn'),
-        issuesToastIncludeItemsCheckbox: () => issuesToast().getByTestId('import-issues-include-items-checkbox'),
-        issuesToastCloseBtn: () => issuesToast().getByTestId('import-issues-toast-close'),
-        issuesToastUrlTooLongWarning: () => issuesToast().getByTestId('import-issues-url-too-long-warning')
-      };
-    })()
-  },
-  export: {
-    postmanModal: () => page.getByTestId('export-to-postman-modal'),
-    exportTab: () => page.getByTestId('share-collection-tab-export'),
-    postmanFormatCard: () => page.getByTestId('export-format-postman'),
-    yamlFormatCard: () => page.getByTestId('export-format-yaml'),
-    nameInput: () => page.getByLabel('Name', { exact: true }),
-    locationInput: () => page.getByLabel('Location', { exact: true }),
-    optionsButton: () => page.getByRole('button', { name: 'Options' }),
-    advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
-    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle')
-  },
+  plusMenu: buildCollectionsPlusMenuLocators(page),
+  import: buildImportCollectionLocators(page),
+  export: buildExportCollectionLocators(page),
   /**
    * Build generic table locators for any table with a testId
    * @param testId - The testId of the table

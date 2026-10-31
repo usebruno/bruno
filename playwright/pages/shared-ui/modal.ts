@@ -1,4 +1,4 @@
-import { Locator, Page } from '../..';
+import { expect, Page, Locator } from '../..';
 
 /**
  * Locators for the shared Bruno modal (header, body, footer, buttons).
@@ -21,3 +21,12 @@ export const buildModalLocators = (page: Page) => ({
     page.getByTestId('new-request-url').locator('.cm-variable-valid').filter({ hasText: name }).first(),
   backdrop: () => page.locator('.bruno-modal-backdrop')
 });
+
+// Dismiss an open modal if one is present
+export const dismissModalIfOpen = async (page: Page) => {
+  const modal = buildModalLocators(page);
+  if (await modal.closeButton().isVisible()) {
+    await modal.closeButton().click({ force: true });
+    await expect(modal.card()).toBeHidden();
+  }
+};

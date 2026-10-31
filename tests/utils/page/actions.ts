@@ -1,12 +1,7 @@
 import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import process from 'node:process';
-import * as path from 'path';
-import * as fs from 'fs';
-import AdmZip from 'adm-zip';
-import { buildCommonLocators, buildGrpcCommonLocators, PresetRequestType } from './locators';
-import { waitForCollectionMount } from './mounting';
+import { buildCommonLocators, buildGrpcCommonLocators } from './locators';
 import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
-import { revealCollectionsTop, revealFolderRow } from './sidebar';
 import { switchResponseFormat, switchToPreviewTab, switchToEditorTab, expandAllXmlNodes, getResponseBody, selectResponsePaneTab, selectResponsePaneTabViaOverflow, expectResponseContains, clickResponseAction, resetResponse } from '../../../playwright/pages/response';
 import { sendRequest, sendRequestAndWaitForResponse, sendAndWaitForErrorCard, sendAndWaitForResponse } from '../../../playwright/pages/request/send';
 import { createExampleFromSidebar } from '../../../playwright/pages/response-example';
@@ -52,10 +47,62 @@ import {
   getEnvironmentColumnWidths,
   dragEnvironmentColumnDivider
 } from '../../../playwright/pages/environment/variables';
+import {
+  closeAllCollections,
+  openCollection,
+  openCollectionFromDialog,
+  createCollection,
+  deleteCollectionFromOverview,
+  closeOpenCollectionModal,
+  removeCollection
+} from '../../../playwright/pages/collection/manage';
+import {
+  dismissImportIssuesToasts,
+  importCollection,
+  openBulkImportModal
+} from '../../../playwright/pages/collection/import';
+import {
+  openShareCollectionModal,
+  openExportToPostmanModal,
+  closeExportToPostmanModal,
+  exportCollectionToPostman,
+  exportCollectionAsSingleYaml,
+  exportCollectionAsZip
+} from '../../../playwright/pages/collection/export';
+import {
+  setRequestTypePreset,
+  setRequestUrlPreset,
+  openCollectionSettings,
+  selectCollectionPaneTab,
+  selectCollectionScriptPaneTab,
+  focusCollectionSettingsTab,
+  addCollectionScript
+} from '../../../playwright/pages/collection/settings';
+import {
+  generateCollectionDocs
+} from '../../../playwright/pages/collection/docs';
+import {
+  selectfolderPaneTab,
+  selectFolderScriptPaneTab,
+  focusFolderSettingsTab,
+  addFolderScript,
+  openFolderSettings,
+  saveFolderSettings,
+  openFolderSettingsByPath,
+  selectFolderSettingsTab
+} from '../../../playwright/pages/folder/settings';
+import {
+  addTag,
+  removeTag
+} from '../../../playwright/pages/shared-ui/tags';
+import {
+  dismissModalIfOpen
+} from '../../../playwright/pages/shared-ui/modal';
+import {
+  setTableRowDescriptionValue
+} from '../../../playwright/pages/shared-ui/table';
 
 type SandboxMode = 'safe' | 'developer';
-
-type CollectionFormat = 'bru' | 'yml';
 
 type WaitForAppReadyOptions = {
   timeout?: number;
@@ -89,421 +136,6 @@ const readClipboard = async (page: Page): Promise<string> => {
 };
 
 /**
- * Dismiss all import issues toasts (they use infinite duration and persist across tests).
- * @param page - The page object
- * @returns void
- */
-const dismissImportIssuesToasts = async (page: Page) => {
-  await test.step('Dismiss import issues toasts', async () => {
-    const toasts = page.getByTestId('import-issues-toast');
-    while (await toasts.count() > 0) {
-      const toast = toasts.first();
-      await toast.getByTestId('import-issues-toast-close').click();
-      await expect(toast).not.toBeVisible({ timeout: 5000 });
-    }
-  });
-};
-
-/**
- * Close all collections
- * @param page - The page object
- * @returns void
- */
-const closeAllCollections = async (page) => {
-  await test.step('Close all collections', async () => {
-    const numberOfCollections = await page.locator('[data-testid="collections"] .collection-name').count();
-
-    for (let i = 0; i < numberOfCollections; i++) {
-      const firstCollection = page.locator('[data-testid="collections"] .collection-name').first();
-      await firstCollection.scrollIntoViewIfNeeded();
-
-      const removeMenuItem = page.locator('.dropdown-item').getByText('Remove', { exact: true });
-      await expect(async () => {
-        await firstCollection.hover();
-        await firstCollection.locator('.collection-actions .icon').click({ force: true });
-        await expect(removeMenuItem).toBeVisible({ timeout: 2000 });
-      }).toPass({ timeout: 15000 });
-      await removeMenuItem.click();
-
-      // Wait for modal to appear - could be either regular remove or drafts confirmation
-      const removeModal = page.locator('.bruno-modal').filter({ hasText: /Remove Collections?/ });
-      await removeModal.waitFor({ state: 'visible', timeout: 5000 });
-
-      // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
-      const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
-
-      if (hasDiscardButton) {
-        // Drafts modal - the modal animates in and the footer can shift mid-frame,
-        // causing Playwright's "element is stable" actionability check to fail
-        // intermittently on slower machines. Use force to skip the stability check;
-        // visibility is already verified above via waitFor.
-        await page.getByRole('button', { name: 'Discard All and Remove' }).click({ force: true });
-      } else {
-        // Regular modal - click the submit button
-        await page.locator('.bruno-modal-footer .submit').click();
-      }
-
-      // Wait for modal to close
-      await removeModal.waitFor({ state: 'hidden', timeout: 5000 });
-    }
-
-    // Wait until no collections are left open (check sidebar only)
-    await expect(page.getByTestId('collections').locator('.collection-name')).toHaveCount(0);
-  });
-};
-
-/**
- * Open a collection from the sidebar and accept the JavaScript Sandbox modal
- * @param page - The page object
- * @param collectionName - The name of the collection to open
- * @returns void
- */
-const openCollection = async (page: Page, collectionName: string) => {
-  await test.step(`Open collection "${collectionName}"`, async () => {
-    await revealCollectionsTop(page);
-    await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
-  });
-};
-
-/**
- * Open a collection living at an arbitrary filesystem path via the native "Open Collection"
- * flow — mocks `dialog.showOpenDialog` to return `collectionPath` directly (no real file
- * picker), then drives the "+" menu's "Open collection" item. Useful for loading a committed
- * fixture collection copied to a tmp dir (e.g. via the `collectionFixturePath` fixture).
- * @param page - The page object
- * @param electronApp - The Electron application object
- * @param collectionPath - Absolute path to the collection folder to open
- * @returns void
- */
-const openCollectionFromDialog = async (page: Page, electronApp: ElectronApplication, collectionPath: string) => {
-  await test.step(`Open collection from dialog at "${collectionPath}"`, async () => {
-    await electronApp.evaluate(({ dialog }, dir) => {
-      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
-    }, collectionPath);
-
-    const locators = buildCommonLocators(page);
-    await locators.plusMenu.button().click();
-    await locators.plusMenu.openCollection().click();
-  });
-};
-
-/**
- * Create a collection
- * @param page - The page object
- * @param collectionName - The name of the collection to create
- * @param collectionLocation - The location of the collection to create (eg)
- * @param options - The options for creating the collection
- *
- * @returns void
- */
-const createCollection = async (
-  page,
-  collectionName: string,
-  collectionLocation: string,
-  format: CollectionFormat = 'yml'
-) => {
-  await test.step(`Create ${format} collection "${collectionName}"`, async () => {
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
-
-    // Wait for inline creator to appear, then click the cog button to open advanced modal
-    const inlineCreator = page.locator('.inline-collection-creator');
-    await inlineCreator.waitFor({ state: 'visible', timeout: 5000 });
-    await inlineCreator.locator('.cog-btn').click();
-
-    const createCollectionModal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Collection' });
-    await createCollectionModal.waitFor({ state: 'visible', timeout: 5000 });
-
-    // Fill location FIRST — some modals auto-derive the name from the path,
-    // so filling name after location ensures it isn't overwritten.
-    //
-    // The location input is `readOnly={true}` as a React prop and is a
-    // controlled input via formik. Two implications:
-    //   1. Removing `readonly` via DOM attribute is racy — the next React
-    //      render restores the prop. The modal's mount-effect focuses the
-    //      name field at +50ms, which can trigger that re-render between
-    //      our DOM tweak and the `fill()`, leaving the input read-only and
-    //      the fill silently no-ops.
-    //   2. Even if writable, controlled inputs require firing an `input`
-    //      event so the onChange handler runs and updates formik state.
-    // Use the native value setter (the React-controlled-input pattern) to
-    // bypass both. Then verify the value stuck so we fail loudly here
-    // instead of opaquely at the modal-hidden wait when Yup validation
-    // silently rejects an empty location.
-    const locationInput = createCollectionModal.getByLabel('Location');
-    if (await locationInput.isVisible()) {
-      await locationInput.evaluate((el, value) => {
-        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
-        setter?.call(el, value);
-        el.dispatchEvent(new Event('input', { bubbles: true }));
-      }, collectionLocation);
-      await expect(locationInput).toHaveValue(collectionLocation);
-    }
-    const nameInput = createCollectionModal.getByLabel('Name');
-    await nameInput.clear();
-    await nameInput.fill(collectionName);
-    // Verify the name is correct before creating
-    await expect(nameInput).toHaveValue(collectionName, { timeout: 2000 });
-
-    if (format) {
-      const advancedBtn = createCollectionModal.locator('.advanced-options .btn-advanced');
-      const showAdvancedOptionsToggle = page.getByTestId('show-advanced-options-toggle');
-      const formatSelect = createCollectionModal.locator('#format');
-
-      await expect(async () => {
-        if (!(await formatSelect.isVisible())) {
-          await advancedBtn.click();
-          await showAdvancedOptionsToggle.click({ timeout: 2000 });
-        }
-        await expect(formatSelect).toBeVisible({ timeout: 2000 });
-      }).toPass({ timeout: 15000 });
-
-      await formatSelect.selectOption(format);
-    }
-
-    await createCollectionModal.getByRole('button', { name: 'Create', exact: true }).click();
-
-    // The modal closes via `onClose()` in the form's `onSubmit` success path,
-    // which only runs after Yup validation passes — so this waitFor is the
-    // signal that the form actually submitted
-    await createCollectionModal.waitFor({ state: 'hidden', timeout: 5000 });
-    await expect(page.locator('.bruno-modal-backdrop')).toHaveCount(0);
-    // Wait for the collection name to appear in the sidebar before proceeding
-    await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).waitFor({ state: 'visible', timeout: 5000 });
-    await openCollection(page, collectionName);
-  });
-};
-
-/**
- * Set the collection's default request type preset and save it
- * @param page - The page object
- * @param collectionName - The name of the collection
- * @param requestType - The preset request type to select
- * @returns void
- */
-const setRequestTypePreset = async (page: Page, collectionName: string, requestType: PresetRequestType) => {
-  await test.step(`Set the default request type preset to "${requestType}"`, async () => {
-    const locators = buildCommonLocators(page);
-
-    await openCollectionSettings(page, collectionName);
-    await selectCollectionPaneTab(page, 'presets');
-    await locators.presets.requestType(requestType).check();
-    await expect(locators.presets.requestType(requestType)).toBeChecked();
-
-    await locators.presets.saveBtn().click();
-
-    // the settings tab keeps a draft indicator until the presets are persisted
-    await expect(locators.tabs.tabDraftIndicator(locators.tabs.collectionSettingsTab())).toBeHidden();
-  });
-};
-
-/**
- * Set the Base URL preset for a collection.
- * New requests created in the collection inherit this as their starting URL.
- * @param page - The page object
- * @param collectionName - The name of the collection
- * @param requestUrl - The Base URL to save as the preset
- * @returns void
- */
-const setRequestUrlPreset = async (page: Page, collectionName: string, requestUrl: string) => {
-  await test.step(`Set the Base URL preset to "${requestUrl}"`, async () => {
-    const locators = buildCommonLocators(page);
-
-    await openCollectionSettings(page, collectionName);
-    await selectCollectionPaneTab(page, 'presets');
-
-    const urlInput = locators.presets.requestUrl();
-    await urlInput.waitFor({ state: 'visible' });
-    await urlInput.fill(requestUrl);
-    await locators.presets.saveBtn().click();
-
-    await locators.tabs.tabDraftIndicator(locators.tabs.collectionSettingsTab()).waitFor({ state: 'hidden' });
-  });
-};
-
-/**
- * Delete a collection permanently from disk via the workspace overview page
- * @param page - The page object
- * @param collectionName - The name of the collection to delete
- * @returns void
- */
-const deleteCollectionFromOverview = async (page: Page, collectionName: string) => {
-  await test.step(`Delete collection "${collectionName}" from workspace overview`, async () => {
-    // Navigate to workspace overview
-    await page.locator('.home-button').click();
-    const overviewTab = page.locator('.request-tab').filter({ hasText: 'Overview' });
-    await overviewTab.click();
-
-    // Find the collection card and open its menu
-    const collectionCard = page.locator('.collection-card').filter({ hasText: collectionName });
-    await collectionCard.waitFor({ state: 'visible', timeout: 5000 });
-    await collectionCard.locator('.collection-menu').click();
-
-    // Click Delete from the dropdown
-    await page.locator('.dropdown-item').filter({ hasText: 'Delete' }).click();
-
-    // Wait for delete confirmation modal
-    const deleteModal = page.locator('.bruno-modal').filter({ hasText: 'Delete Collection' });
-    await deleteModal.waitFor({ state: 'visible', timeout: 5000 });
-
-    // Type 'delete' to confirm
-    await deleteModal.locator('#delete-confirm-input').fill('delete');
-
-    // Click the Delete button
-    await deleteModal.getByRole('button', { name: 'Delete', exact: true }).click();
-
-    // Wait for modal to close
-    await deleteModal.waitFor({ state: 'hidden', timeout: 10000 });
-  });
-};
-
-/**
- * Import a collection from a file
- * @param page - The page object
- * @param filePath - The path to the collection file to import
- * @param collectionLocation - The directory where the collection will be saved
- * @param options - Optional settings for import
- * @returns void
- */
-type ImportCollectionOptions = {
-  expectedCollectionName?: string;
-  expectIssues?: boolean;
-  sidebarTimeout?: number;
-  preserveScripts?: boolean;
-};
-
-const importCollection = async (
-  page: Page,
-  filePath: string,
-  collectionLocation: string,
-  options: ImportCollectionOptions = {}
-) => {
-  await test.step(`Import collection from "${filePath}"`, async () => {
-    const locators = buildCommonLocators(page);
-
-    await locators.plusMenu.button().click();
-    await locators.plusMenu.importCollection().click();
-
-    // Wait for import modal
-    const importModal = page.getByRole('dialog');
-    await importModal.waitFor({ state: 'visible' });
-    await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
-
-    // Set the file
-    await page.setInputFiles('input[type="file"]', filePath);
-
-    // Wait for location modal to appear
-    const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
-    await locationModal.waitFor({ state: 'visible', timeout: 10000 });
-    await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
-
-    // Verify expected collection name if provided
-    if (options.expectedCollectionName) {
-      await expect(locationModal.getByText(options.expectedCollectionName)).toBeVisible();
-    }
-
-    // Enable 'Preserve scripts' option via the Advanced Options toggle
-    if (options.preserveScripts) {
-      await locationModal.getByRole('button', { name: 'Options' }).click();
-      await locators.import.advancedOptionsToggle().click();
-      const preserveScriptsCheckbox = locators.import.preserveScriptsToggle();
-      await preserveScriptsCheckbox.check();
-      await expect(preserveScriptsCheckbox).toBeChecked();
-    }
-
-    // Set location and import
-    await page.locator('#collection-location').fill(collectionLocation);
-    await locationModal.getByRole('button', { name: 'Import' }).click();
-
-    // Wait for collection to appear in sidebar
-    if (options.expectedCollectionName) {
-      await expect(
-        page.locator('#sidebar-collection-name').filter({ hasText: options.expectedCollectionName })
-      ).toBeVisible({ timeout: options.sidebarTimeout ?? 5000 });
-    }
-
-    // Wait for import issues toast if expected
-    if (options.expectIssues) {
-      await expect(locators.import.issuesToast()).toBeVisible({ timeout: 10000 });
-    }
-
-    if (options.expectedCollectionName) {
-      await openCollection(page, options.expectedCollectionName);
-    }
-  });
-};
-
-/**
- * Open the Bulk Import modal by importing multiple files at once.
- * Selecting more than one file routes the import flow to the Bulk Import modal
- * (instead of the single-collection location modal).
- * @param page - The page object
- * @param filePaths - Absolute paths of the files to import (must be 2 or more)
- */
-const openBulkImportModal = async (page: Page, filePaths: string[]) => {
-  await test.step('Open the Bulk Import modal', async () => {
-    const locators = buildCommonLocators(page);
-
-    await locators.plusMenu.button().click();
-    await locators.plusMenu.importCollection().click();
-    await expect(locators.import.modal()).toBeVisible();
-
-    await locators.import.fileInput().setInputFiles(filePaths);
-    await expect(locators.import.bulkModal()).toBeVisible();
-  });
-};
-
-const closeOpenCollectionModal = async (page: Page) => {
-  await test.step('Close the Open Collection modal', async () => {
-    const locators = buildCommonLocators(page);
-    await locators.modal.closeButton().click();
-    await locators.modal.byTitle('Open Collection').waitFor({ state: 'hidden' });
-  });
-};
-
-/**
- * Remove a specific collection from the sidebar
- * @param page - The page object
- * @param collectionName - The name of the collection to remove
- * @returns void
- */
-const removeCollection = async (page: Page, collectionName: string) => {
-  await test.step(`Remove collection "${collectionName}"`, async () => {
-    const locators = buildCommonLocators(page);
-    const collectionRow = page.locator('.collection-name').filter({
-      has: page.locator('#sidebar-collection-name', { hasText: collectionName })
-    });
-
-    await collectionRow.hover();
-    await collectionRow.locator('.collection-actions .icon').click();
-    await locators.dropdown.item('Remove').click();
-
-    // Wait for modal to appear - could be either regular remove or drafts confirmation
-    const removeModal = page.locator('.bruno-modal').filter({ hasText: /Remove Collections?/ });
-    await removeModal.waitFor({ state: 'visible', timeout: 5000 });
-
-    // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
-    const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
-
-    if (hasDiscardButton) {
-      // Drafts modal - click "Discard All and Remove"
-      await page.getByRole('button', { name: 'Discard All and Remove' }).click();
-    } else {
-      // Regular modal - click Remove button
-      await locators.modal.button('Remove').click();
-    }
-
-    // Wait for modal to close
-    await removeModal.waitFor({ state: 'hidden', timeout: 5000 });
-
-    // Verify collection is removed
-    await expect(
-      page.locator('#sidebar-collection-name').filter({ hasText: collectionName })
-    ).not.toBeVisible();
-  });
-};
-
-/**
  * Open a request by clicking on it in the sidebar
  * @param page - The page object
  * @param requestName - The name of the request to open
@@ -516,117 +148,6 @@ const removeCollection = async (page: Page, collectionName: string) => {
 //     await expect(locators.tabs.activeRequestTab()).toContainText(requestName);
 //   });
 // };
-
-/**
- * Select a tab in the folder settings pane
- * @param page - The page object
- * @param tabName - The tab name key (e.g. 'auth', 'headers', 'docs', 'script', 'vars', 'test')
- * @returns void
- */
-const selectfolderPaneTab = async (page: Page, tabName: string) => {
-  await test.step(`Select folder pane tab "${tabName}"`, async () => {
-    const locators = buildCommonLocators(page);
-    const tab = locators.paneTabs.folderSettingsTab(tabName.toLowerCase());
-    await tab.click();
-    await expect(tab).toContainClass('active');
-  });
-};
-
-/**
- * Select a sub-tab in the folder script pane (Pre Request or Post Response)
- * @param page - The page object
- * @param tabName - 'pre-request' or 'post-response'
- * @returns void
- */
-const selectFolderScriptPaneTab = async (page: Page, tabName: 'pre-request' | 'post-response') => {
-  await test.step(`Select folder script pane tab "${tabName}"`, async () => {
-    const locators = buildCommonLocators(page);
-    const tab = locators.paneTabs.folderScriptTab(tabName);
-    await tab.click();
-    await expect(tab).toContainClass('active');
-  });
-};
-
-/**
- * Open a collection's settings tab by clicking on it in the sidebar
- * @param page - The page object
- * @param collectionName - The name of the collection
- * @param options - Optional settings (persist: double-click to make tab permanent)
- * @returns void
- */
-const openCollectionSettings = async (page: Page, collectionName: string, { persist = false } = {}) => {
-  await test.step(`Open collection settings for "${collectionName}"`, async () => {
-    await revealCollectionsTop(page);
-    const locators = buildCommonLocators(page);
-    const collection = locators.sidebar.collection(collectionName);
-    if (!persist) {
-      await collection.click();
-    } else {
-      await collection.dblclick();
-    }
-  });
-};
-
-/**
- * Select a tab in the collection settings pane
- * @param page - The page object
- * @param tabName - The tab name key (e.g. 'auth', 'headers', 'overview', 'script', 'vars')
- * @returns void
- */
-const selectCollectionPaneTab = async (page: Page, tabName: string) => {
-  await test.step(`Select collection pane tab "${tabName}"`, async () => {
-    const locators = buildCommonLocators(page);
-    const tab = locators.paneTabs.collectionSettingsTab(tabName.toLowerCase());
-    await tab.click();
-    await expect(tab).toContainClass('active');
-  });
-};
-
-/**
- * Select a sub-tab in the collection script pane (Pre Request or Post Response)
- * @param page - The page object
- * @param tabName - 'pre-request' or 'post-response'
- * @returns void
- */
-const selectCollectionScriptPaneTab = async (page: Page, tabName: 'pre-request' | 'post-response') => {
-  await test.step(`Select collection script pane tab "${tabName}"`, async () => {
-    const locators = buildCommonLocators(page);
-    const tab = locators.paneTabs.tabTrigger(tabName);
-    await tab.click();
-    await expect(tab).toContainClass('active');
-  });
-};
-
-/**
- * Focus the folder settings tab in the tab bar after restore
- * @param page - The page object
- * @param folderName - The name of the folder
- * @param options - Optional timeout in milliseconds
- * @returns void
- */
-const focusFolderSettingsTab = async (page: Page, folderName: string, { timeout = 10000 } = {}) => {
-  await test.step(`Focus folder settings tab "${folderName}"`, async () => {
-    const locators = buildCommonLocators(page);
-    const tab = locators.tabs.folderTab(folderName);
-    await expect(tab).toBeVisible({ timeout });
-    await tab.click({ force: true });
-  });
-};
-
-/**
- * Focus the collection settings tab in the tab bar after restore
- * @param page - The page object
- * @param options - Optional timeout in milliseconds
- * @returns void
- */
-const focusCollectionSettingsTab = async (page: Page, { timeout = 10000 } = {}) => {
-  await test.step('Focus collection settings tab', async () => {
-    const locators = buildCommonLocators(page);
-    const tab = locators.tabs.collectionSettingsTab();
-    await expect(tab).toBeVisible({ timeout });
-    await tab.click({ force: true });
-  });
-};
 
 /**
  * Open the gRPC method dropdown and select a method by name
@@ -759,163 +280,6 @@ const switchWorkspace = async (page: Page, workspaceName: string) => {
   });
 };
 
-/**
- * Add a script to a folder's Settings → Script tab.
- * @param page - The page object
- * @param folderName - The folder to target (must be visible in the sidebar)
- * @param phase - Which phase to write: 'pre-request' or 'post-response'
- * @param content - The script content to add
- */
-const addFolderScript = async (
-  page: Page,
-  folderName: string,
-  phase: 'pre-request' | 'post-response',
-  content: string
-) => {
-  await test.step(`Add ${phase} script on folder "${folderName}"`, async () => {
-    const locators = buildCommonLocators(page);
-    await locators.sidebar.folder(folderName).first().dblclick();
-    await locators.paneTabs.folderSettingsTab('script').click();
-    await locators.paneTabs.tabTrigger(phase).click();
-    await editCodeMirrorEditor(page, `folder-${phase}-script-editor`, content);
-    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
-    await page.keyboard.press(saveShortcut);
-    await page.waitForTimeout(400);
-  });
-};
-
-/**
- * Add a script to a collection's Settings → Script tab.
- * @param page - The page object
- * @param collectionName - The collection to target
- * @param phase - Which phase to write: 'pre-request' or 'post-response'
- * @param content - The script content to add
- */
-const addCollectionScript = async (
-  page: Page,
-  collectionName: string,
-  phase: 'pre-request' | 'post-response',
-  content: string
-) => {
-  await test.step(`Add ${phase} script on collection "${collectionName}"`, async () => {
-    const locators = buildCommonLocators(page);
-    await locators.sidebar.collection(collectionName).hover();
-    await locators.actions.collectionActions(collectionName).click();
-    await locators.dropdown.item('Settings').click();
-    await locators.paneTabs.collectionSettingsTab('script').click();
-    await locators.paneTabs.tabTrigger(phase).click();
-    await editCodeMirrorEditor(page, `collection-${phase}-script-editor`, content);
-    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
-    await page.keyboard.press(saveShortcut);
-    await page.waitForTimeout(400);
-  });
-};
-
-const openFolderSettings = async (page: Page, collectionName: string, folderName = 'api') => {
-  await test.step(`Open folder settings for "${folderName}" in collection "${collectionName}"`, async () => {
-    const collectionRow = page.locator('#sidebar-collection-name').filter({ hasText: collectionName });
-    await expect(collectionRow).toBeVisible();
-
-    const folderRow = page
-      .getByTestId('collections')
-      .locator('.collection-item-name')
-      .filter({ hasText: folderName });
-    if (!(await folderRow.isVisible().catch(() => false))) {
-      await collectionRow.click();
-      await expect(folderRow).toBeVisible();
-    }
-
-    await folderRow.dblclick();
-    await expect(page.locator('.request-tab .tab-label').filter({ hasText: folderName })).toBeVisible();
-  });
-};
-
-/**
- * Types a tag into the tag editor and commits it with Enter. Shared by the request Settings tab
- * and the folder Settings tab, which render the same TagList.
- * @param page - The Playwright page object
- * @param tagName - The tag to add
- * @returns void
- */
-const addTag = async (page: Page, tagName: string) => {
-  await test.step(`Add tag "${tagName}"`, async () => {
-    const input = buildCommonLocators(page).tags.input();
-    await expect(input).toBeVisible();
-    await input.fill(tagName);
-    await input.press('Enter');
-  });
-};
-
-/**
- * Removes a tag the item owns. Inherited tags have no remove control, so this only ever
- * targets the removable chips.
- * @param page - The Playwright page object
- * @param tagName - The tag to remove
- * @returns void
- */
-const removeTag = async (page: Page, tagName: string) => {
-  await test.step(`Remove tag "${tagName}"`, async () => {
-    const chip = buildCommonLocators(page).tags.ownItem(tagName);
-    await expect(chip).toBeVisible();
-    await chip.locator('.tag-remove').click();
-  });
-};
-
-/**
- * Saves the active folder settings tab and waits for the confirmation toast.
- * @param page - The Playwright page object
- * @returns void
- */
-const saveFolderSettings = async (page: Page) => {
-  await test.step('Save folder settings', async () => {
-    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
-    await page.keyboard.press(saveShortcut);
-    await expect(page.getByText('Folder Settings saved successfully').last()).toBeVisible({ timeout: 5000 });
-  });
-};
-
-/**
- * Opens folder settings for a folder nested at any depth, expanding each level on the way down.
- * `openFolderSettings` only finds folders already visible in the sidebar; this walks a path such
- * as ['api', 'v2'] so a child folder can be reached without its parent being expanded first.
- * @param page - The Playwright page object
- * @param collectionName - The collection holding the folder
- * @param folderPath - Folder names from the collection root down to the target folder
- * @returns void
- */
-const openFolderSettingsByPath = async (page: Page, collectionName: string, folderPath: string[]) => {
-  await test.step(`Open folder settings for "${folderPath.join('/')}" in "${collectionName}"`, async () => {
-    const targetRow = await revealFolderRow(page, collectionName, folderPath);
-    await targetRow.dblclick();
-
-    const targetName = folderPath[folderPath.length - 1];
-    await expect(page.locator('.request-tab .tab-label').filter({ hasText: targetName })).toBeVisible();
-  });
-};
-
-/**
- * Opens one tab of the folder settings pane (headers, script, test, vars, auth, docs, settings).
- * @param page - The Playwright page object
- * @param tabName - The settings tab to activate
- * @returns void
- */
-const selectFolderSettingsTab = async (page: Page, tabName: string) => {
-  await test.step(`Select folder settings tab "${tabName}"`, async () => {
-    await page.getByTestId(`folder-settings-tab-${tabName}`).click();
-  });
-};
-
-const setTableRowDescriptionValue = async (rowLocator: Locator, value: string) => {
-  const descCell = rowLocator.getByTestId('column-description');
-  await descCell.evaluate((el: any, val: string) => {
-    const cmEl = el.querySelector('.CodeMirror');
-    if (!cmEl) throw new Error('No CodeMirror in description cell');
-    const cm = (cmEl as any).CodeMirror;
-    if (!cm) throw new Error('CodeMirror instance not found');
-    cm.setValue(val);
-  }, value);
-};
-
 // --- CodeMirror link-aware assertions (open-as-transient-request feature) -------------------
 
 type LinkAwareRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
@@ -1019,250 +383,6 @@ const openWorkspaceFromDialog = async (app: any, page: any, targetPath: string) 
 
   await page.getByTestId('workspace-menu').click();
   await page.locator('.dropdown-item').filter({ hasText: 'Open workspace' }).click();
-};
-
-/**
- * Trigger "Generate Docs" from a collection's sidebar context menu and capture
- * the generated HTML documentation.
- *
- * The GenerateDocumentation modal hands the file to `FileSaver.saveAs`, which
- * builds an in-memory Blob and saves it via an `<a download>` click rather than
- * an Electron IPC write. Electron doesn't surface that as a Playwright
- * `download` event, so instead we intercept it in the renderer: `URL.createObjectURL`
- * gives us the Blob's content, and overriding the anchor click captures the
- * suggested file name while suppressing the real save (no file leaks to disk).
- *
- * @param page - The page object
- * @param collectionName - The name of the collection to generate docs for
- * @returns The generated HTML content and the download's suggested file name
- */
-const generateCollectionDocs = async (
-  page: Page,
-  collectionName: string,
-  beforeGenerate?: () => Promise<void>
-): Promise<{ content: string; fileName: string }> => {
-  return await test.step(`Generate docs for collection "${collectionName}"`, async () => {
-    const locators = buildCommonLocators(page);
-
-    // Make sure the collection has finished mounting before interacting — on a
-    // cold start the row (and its hover-revealed actions icon) isn't ready yet,
-    // so this keeps the helper self-sufficient for any caller.
-    await waitForCollectionMount(page, collectionName);
-
-    // Open the collection's context menu and click "Generate Docs"
-    await locators.sidebar.collection(collectionName).hover();
-    const collectionAction = locators.actions.collectionActions(collectionName);
-    await expect(collectionAction).toBeVisible({ timeout: 2000 });
-    await collectionAction.click();
-    await locators.generateDocs.menuItem().click();
-
-    // Wait for the Generate Documentation modal to reach its ready (non-loading)
-    // state — the confirm button reads "Loading..." while the collection's items
-    // are still mounting and only becomes "Generate" once they are ready.
-    const modal = locators.generateDocs.modal();
-    await expect(modal).toBeVisible({ timeout: 5000 });
-    const generateButton = locators.generateDocs.generateButton();
-    await expect(generateButton).toBeEnabled({ timeout: 10000 });
-
-    // Let the caller interact with the modal (e.g. toggle environment selection)
-    // after it is ready and before the docs are generated.
-    if (beforeGenerate) {
-      await beforeGenerate();
-    }
-
-    // Arm the renderer-side interception before the save fires. `file-saver`
-    // (v2) reads the Blob through `URL.createObjectURL` and then triggers the
-    // save by dispatching a synthetic click on a detached `<a download>` (via
-    // `setTimeout(…, 0)`), so both points are intercepted. Each is exposed as a
-    // promise to absorb that deferred dispatch without a race.
-    await page.evaluate(() => {
-      const w = window as any;
-      const originalCreate = URL.createObjectURL.bind(URL);
-      const originalDispatch = HTMLAnchorElement.prototype.dispatchEvent;
-
-      w.__docsContent = new Promise<string>((resolve) => {
-        URL.createObjectURL = function (obj: Blob | MediaSource) {
-          if (obj instanceof Blob) {
-            obj.text().then(resolve);
-          }
-          return originalCreate(obj as Blob);
-        };
-      });
-
-      w.__docsFileName = new Promise<string>((resolve) => {
-        HTMLAnchorElement.prototype.dispatchEvent = function (this: HTMLAnchorElement, event: Event) {
-          if (this.download && event && event.type === 'click') {
-            resolve(this.download);
-            // Suppress the actual save — the Blob content is already captured.
-            return true;
-          }
-          return originalDispatch.call(this, event);
-        };
-      });
-    });
-
-    await generateButton.click();
-
-    const content = await page.evaluate(() => (window as any).__docsContent as Promise<string>);
-    const fileName = await page.evaluate(() => (window as any).__docsFileName as Promise<string>);
-
-    // The modal closes itself on the success path.
-    await expect(modal).toBeHidden({ timeout: 5000 });
-
-    return { content, fileName };
-  });
-};
-
-const openShareCollectionModal = async (page: Page, collectionName: string) => {
-  await test.step(`Open Share Collection for "${collectionName}"`, async () => {
-    const locators = buildCommonLocators(page);
-
-    await openCollection(page, collectionName);
-
-    const collectionAction = locators.actions.collectionActions(collectionName);
-    await locators.sidebar.collection(collectionName).hover();
-    await expect(collectionAction).toBeVisible({ timeout: 2000 });
-    await collectionAction.click();
-    await locators.dropdown.item('Share').click();
-    await expect(locators.modal.title('Share Collection')).toBeVisible();
-  });
-};
-
-const openExportToPostmanModal = async (page: Page, collectionName: string) => {
-  await test.step(`Open Export to Postman for "${collectionName}"`, async () => {
-    const locators = buildCommonLocators(page);
-
-    await openShareCollectionModal(page, collectionName);
-
-    // In enterprise version, the export tab is visible, so need to click it to proceed.
-    const exportTab = locators.export.exportTab();
-    if (await exportTab.isVisible()) {
-      await exportTab.click();
-    }
-
-    await locators.export.postmanFormatCard().click();
-    await locators.modal.button('Proceed').click();
-    await expect(locators.modal.title('Export to Postman')).toBeVisible();
-  });
-};
-
-const closeExportToPostmanModal = async (page: Page) => {
-  await test.step('Close the export modal', async () => {
-    const locators = buildCommonLocators(page);
-
-    await locators.export.postmanModal().getByTestId('modal-close-button').click();
-    await expect(locators.modal.title('Export to Postman')).toBeHidden();
-    await expect(locators.modal.title('Share Collection')).toBeHidden();
-  });
-};
-
-// Dismiss an open modal if one is present
-const dismissModalIfOpen = async (page: Page) => {
-  const { modal } = buildCommonLocators(page);
-  if (await modal.closeButton().isVisible()) {
-    await modal.closeButton().click({ force: true });
-    await expect(modal.card()).toBeHidden();
-  }
-};
-
-const exportCollectionToPostman = async (
-  page: Page,
-  collectionName: string,
-  outputDir: string,
-  { preserveScripts = false }: { preserveScripts?: boolean } = {}
-) => {
-  const locators = buildCommonLocators(page);
-
-  await openExportToPostmanModal(page, collectionName);
-
-  await test.step('Set the export location', async () => {
-    await locators.export.locationInput().fill(outputDir);
-  });
-
-  await test.step('Configure preserve scripts', async () => {
-    if (preserveScripts) {
-      await locators.export.optionsButton().click();
-      await locators.export.advancedOptionsToggle().click();
-      const checkbox = locators.export.preserveScriptsToggle();
-      await expect(checkbox).toBeVisible();
-      await checkbox.check();
-      await expect(checkbox).toBeChecked();
-    }
-  });
-
-  return await test.step('Export and read the written file', async () => {
-    await locators.modal.button('Export').click();
-    const filePath = path.join(outputDir, `${collectionName}.json`);
-    await expect.poll(() => fs.existsSync(filePath), { timeout: 5000 }).toBe(true);
-    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-  });
-};
-
-const exportCollectionAsSingleYaml = async (
-  page: Page,
-  electronApp: ElectronApplication,
-  collectionName: string,
-  outputDir: string
-) => {
-  const filePath = path.join(outputDir, `${collectionName}.yml`);
-  const locators = buildCommonLocators(page);
-
-  // FileSaver.saveAs triggers Electron's will-download event;
-  // set the save path to the temp directory to avoid the system save dialog.
-  await electronApp.evaluate(({ session }, savePath) => {
-    session.defaultSession.once('will-download', (_event, item) => {
-      item.setSavePath(savePath);
-    });
-  }, filePath);
-
-  await openShareCollectionModal(page, collectionName);
-
-  // In enterprise version, the export tab is visible, so need to click it to proceed.
-  const exportTab = locators.export.exportTab();
-  if (await exportTab.isVisible()) {
-    await exportTab.click();
-  }
-
-  await locators.export.yamlFormatCard().click();
-  await locators.modal.button('Proceed').click();
-  await expect.poll(() => fs.existsSync(filePath)).toBe(true);
-  return fs.readFileSync(filePath, 'utf8');
-};
-
-const exportCollectionAsZip = async (
-  page: Page,
-  electronApp: ElectronApplication,
-  collectionName: string,
-  outputDir: string
-) => {
-  const zipPath = path.join(outputDir, `${collectionName}.zip`);
-
-  await electronApp.evaluate(({ dialog }, filePath) => {
-    (dialog as any).__savedShowSaveDialog = dialog.showSaveDialog;
-    dialog.showSaveDialog = async () => ({ filePath, canceled: false });
-  }, zipPath);
-
-  try {
-    await openShareCollectionModal(page, collectionName);
-
-    return await test.step('Export as ZIP and read the written entries', async () => {
-      const locators = buildCommonLocators(page);
-      // In enterprise version, the export tab is visible, so need to click it to proceed.
-      const exportTab = locators.export.exportTab();
-      if (await exportTab.isVisible()) {
-        await exportTab.click();
-      }
-      await locators.modal.button('Proceed').click();
-      await expect(locators.modal.title('Share Collection')).toBeHidden();
-      await expect.poll(() => fs.existsSync(zipPath), { timeout: 10000 }).toBe(true);
-      return new AdmZip(zipPath).getEntries().map((entry) => entry.entryName);
-    });
-  } finally {
-    await electronApp.evaluate(({ dialog }) => {
-      dialog.showSaveDialog = (dialog as any).__savedShowSaveDialog;
-      delete (dialog as any).__savedShowSaveDialog;
-    });
-  }
 };
 
 /**
@@ -1836,7 +956,8 @@ export {
   setWindowContentSize
 };
 
-export type { SandboxMode, ImportCollectionOptions, LinkAwareRequestType };
+export type { SandboxMode, LinkAwareRequestType };
+export type { ImportCollectionOptions } from '../../../playwright/pages/collection/import';
 export type { EnvironmentType } from '../../../playwright/pages/environment/selector';
 export type { EnvironmentVariable } from '../../../playwright/pages/environment/variables';
 export type { AssertionInput } from '../../../playwright/pages/request/assertions';
