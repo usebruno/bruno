@@ -1,8 +1,8 @@
 const { ipcMain } = require('electron');
 const os = require('os');
 const { BrowserWindow } = require('electron');
-const { version } = require('../../package.json');
 const aboutBruno = require('./about-bruno');
+const { getAppVersion } = require('./app-version');
 
 const template = [
   {
@@ -106,7 +106,7 @@ const template = [
             }
           });
           aboutWindow.removeMenu();
-          aboutWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(aboutBruno({ version }))}`);
+          aboutWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(aboutBruno({ version: getAppVersion() }))}`);
         }
       },
       { label: 'Documentation', click: () => ipcMain.emit('main:open-docs') }

@@ -77,6 +77,7 @@ const { cookiesStore } = require('./store/cookies');
 const SystemMonitor = require('./app/system-monitor');
 const { getIsRunningInRosetta } = require('./utils/arch');
 const { handleAppProtocolUrl, getAppProtocolUrlFromArgv } = require('./utils/deeplink');
+const { getAppVersion } = require('./app/app-version');
 
 const systemMonitor = new SystemMonitor();
 const terminalManager = new TerminalManager();
@@ -350,7 +351,6 @@ app.on('ready', async () => {
   });
 
   ipcMain.handle('renderer:open-about', () => {
-    const { version } = require('../package.json');
     const aboutBruno = require('./app/about-bruno');
     const aboutWindow = new BrowserWindow({
       width: 350,
@@ -360,7 +360,7 @@ app.on('ready', async () => {
       }
     });
     aboutWindow.removeMenu();
-    aboutWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(aboutBruno({ version }))}`);
+    aboutWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(aboutBruno({ version: getAppVersion() }))}`);
   });
 
   mainWindow.once('ready-to-show', () => {
