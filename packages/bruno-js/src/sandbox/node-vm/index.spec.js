@@ -1921,6 +1921,38 @@ describe('node-vm sandbox', () => {
 
         expect(context.bru.setVar).toHaveBeenCalledWith('result', true);
       });
+
+      it('should have access to File and DOMException when the module loads', async () => {
+        // Mirrors undici@7 (a dependency of cheerio@1.1+), which references both at require time
+        const nodeModulesDir = path.join(collectionPath, 'node_modules', 'web-globals-module');
+        fs.mkdirSync(nodeModulesDir, { recursive: true });
+        fs.writeFileSync(
+          path.join(nodeModulesDir, 'index.js'),
+          `const FileCtor = File;
+          class WebSocketError extends DOMException {}
+          module.exports = {
+            describe: function() {
+              const file = new FileCtor(['hello'], 'hello.txt');
+              const error = new WebSocketError('closed', 'AbortError');
+              return file.name + ':' + file.size + ':' + error.name;
+            }
+          };`
+        );
+
+        const script = `
+          const webMod = require('web-globals-module');
+          bru.setVar('result', webMod.describe());
+        `;
+
+        const context = {
+          bru: { setVar: jest.fn() },
+          console: console
+        };
+
+        await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+        expect(context.bru.setVar).toHaveBeenCalledWith('result', 'hello.txt:5:AbortError');
+      });
     });
 
     describe('Error handling', () => {
