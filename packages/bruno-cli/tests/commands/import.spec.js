@@ -74,6 +74,33 @@ describe('resolveLocalWsdlSchemaRef', () => {
     await expect(resolveLocalWsdlSchemaRef(wsdlPath, 'https://example.com/%5C..%5COutside.xsd')).rejects.toThrow(
       /no local copy was found/
     );
+
+    const encodedBackslash = await resolveLocalWsdlSchemaRef(wsdlPath, 'https://example.com/%5C..%5CPublished.xsd');
+
+    expect(encodedBackslash.uri).toBe(pathToFileURL(path.join(dir, 'wsdl', 'Published.xsd')).href);
+  });
+
+  it('refuses a remote ref to a non-schema file without revealing whether it exists', async () => {
+    const rootDocumentPath = path.join(dir, 'Root.wsdl');
+
+    await expect(resolveLocalWsdlSchemaRef(rootDocumentPath, 'https://example.com/secret.txt')).rejects.toThrow(
+      /must point at a .xsd\/.wsdl file/
+    );
+    await expect(resolveLocalWsdlSchemaRef(rootDocumentPath, 'https://example.com/missing.txt')).rejects.toThrow(
+      /must point at a .xsd\/.wsdl file/
+    );
+  });
+
+  it('refuses remote refs that are not http(s)', async () => {
+    await expect(resolveLocalWsdlSchemaRef(wsdlPath, 'ftp://example.com/Published.xsd')).rejects.toThrow(
+      /Remote schema references are not supported \(/
+    );
+  });
+
+  it('refuses a file ref on another host', async () => {
+    await expect(resolveLocalWsdlSchemaRef(wsdlPath, 'file://other-host/schemas/Common.xsd')).rejects.toThrow(
+      /must stay on the importing document's host/
+    );
   });
 
   it('rejects a non-string base uri', async () => {

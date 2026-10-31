@@ -18,6 +18,7 @@ const COLLECTION_FORMATS = ['bru', 'opencollection'];
 
 const WSDL_MAX_SCHEMA_FILE_SIZE = 10 * 1024 * 1024;
 const WSDL_SCHEMA_EXTENSIONS = ['.xsd', '.wsdl'];
+const WSDL_LOCAL_COPY_PROTOCOLS = ['http:', 'https:'];
 
 const builder = (yargs) => {
   yargs
@@ -235,9 +236,11 @@ const readPostmanFile = async (source, options = {}) => {
 };
 
 // WSDL bundles often reference schemas by their published http(s) URL and ship local copies
-// alongside. Only the last path segment is used, so the copy always sits next to the base document.
+// alongside. Only the last path segment is used, so the copy always sits next to the base document
+// and remote schemas sharing a file name resolve to the same copy. win32.basename strips both
+// separator styles, so an encoded backslash resolves the same way on every platform.
 const getLocalWsdlSchemaCopyPath = (base, target) => {
-  const fileName = path.basename(decodeURIComponent(path.posix.basename(target.pathname)));
+  const fileName = path.win32.basename(decodeURIComponent(path.posix.basename(target.pathname)));
   return path.join(path.dirname(fileURLToPath(base)), fileName);
 };
 
@@ -253,21 +256,26 @@ const resolveLocalWsdlSchemaRef = async (baseUri, ref) => {
   const base = path.isAbsolute(baseUri) ? pathToFileURL(baseUri) : new URL(baseUri);
   const target = new URL(ref, base);
 
+  const isLocalCopy = WSDL_LOCAL_COPY_PROTOCOLS.includes(target.protocol);
   let targetPath;
-  if (target.protocol === 'file:') {
+  if (isLocalCopy) {
+    targetPath = getLocalWsdlSchemaCopyPath(base, target);
+  } else if (target.protocol === 'file:') {
     if (target.host !== base.host) {
       throw new Error(`Schema references must stay on the importing document's host (${ref})`);
     }
     targetPath = fileURLToPath(target);
   } else {
-    targetPath = getLocalWsdlSchemaCopyPath(base, target);
-    if (!fs.existsSync(targetPath)) {
-      throw new Error(`Remote schema references are not supported and no local copy was found at ${targetPath} (${ref})`);
-    }
+    throw new Error(`Remote schema references are not supported (${ref})`);
   }
 
+  // Checked before touching the filesystem, so only schema files can be probed for existence
   if (!WSDL_SCHEMA_EXTENSIONS.includes(path.extname(targetPath).toLowerCase())) {
     throw new Error(`Schema references must point at a ${WSDL_SCHEMA_EXTENSIONS.join('/')} file (${ref})`);
+  }
+
+  if (isLocalCopy && !(await exists(targetPath))) {
+    throw new Error(`Remote schema references are not supported and no local copy was found at ${targetPath} (${ref})`);
   }
 
   const stats = fs.statSync(targetPath);
