@@ -7,6 +7,14 @@ const { canonicalPath } = require('../utils/filesystem');
 const WSDL_MAX_SCHEMA_FILE_SIZE = 10 * 1024 * 1024;
 const WSDL_SCHEMA_EXTENSIONS = ['.xsd', '.wsdl'];
 
+// WSDL bundles often reference schemas by their published http(s) URL and ship local copies
+// alongside. Only the last path segment is used, so the copy always sits next to the base document.
+const getLocalSchemaCopyPath = (base, target) => {
+  const fileName = path.basename(decodeURIComponent(path.posix.basename(target.pathname)));
+  return path.join(path.dirname(fileURLToPath(base)), fileName);
+};
+
+// Mirrored by resolveLocalWsdlSchemaRef in bruno-cli/src/commands/import.js
 const resolveWsdlSchemaRef = async (baseUri, ref) => {
   if (typeof baseUri !== 'string' || !baseUri.length) {
     throw new Error('Invalid base URI for schema resolution');
@@ -18,15 +26,18 @@ const resolveWsdlSchemaRef = async (baseUri, ref) => {
   const base = path.isAbsolute(baseUri) ? pathToFileURL(baseUri) : new URL(baseUri);
   const target = new URL(ref, base);
 
-  if (target.protocol !== 'file:') {
-    throw new Error(`remote schema references are not supported (${ref})`);
+  let targetPath;
+  if (target.protocol === 'file:') {
+    if (target.host !== base.host) {
+      throw new Error(`schema references must stay on the importing document's host (${ref})`);
+    }
+    targetPath = fileURLToPath(target);
+  } else {
+    targetPath = getLocalSchemaCopyPath(base, target);
+    if (!fs.existsSync(targetPath)) {
+      throw new Error(`remote schema references are not supported and no local copy was found at ${targetPath} (${ref})`);
+    }
   }
-
-  if (target.host !== base.host) {
-    throw new Error(`schema references must stay on the importing document's host (${ref})`);
-  }
-
-  const targetPath = fileURLToPath(target);
 
   if (!WSDL_SCHEMA_EXTENSIONS.includes(path.extname(targetPath).toLowerCase())) {
     throw new Error(`schema references must point at a ${WSDL_SCHEMA_EXTENSIONS.join('/')} file (${ref})`);
@@ -41,7 +52,7 @@ const resolveWsdlSchemaRef = async (baseUri, ref) => {
   }
 
   const text = await fs.promises.readFile(targetPath, 'utf8');
-  return { text, uri: target.href, key: pathToFileURL(canonicalPath(targetPath)).href };
+  return { text, uri: pathToFileURL(targetPath).href, key: pathToFileURL(canonicalPath(targetPath)).href };
 };
 
 const registerWsdlIpc = () => {

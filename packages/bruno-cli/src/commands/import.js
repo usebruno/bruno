@@ -234,6 +234,14 @@ const readPostmanFile = async (source, options = {}) => {
   }
 };
 
+// WSDL bundles often reference schemas by their published http(s) URL and ship local copies
+// alongside. Only the last path segment is used, so the copy always sits next to the base document.
+const getLocalWsdlSchemaCopyPath = (base, target) => {
+  const fileName = path.basename(decodeURIComponent(path.posix.basename(target.pathname)));
+  return path.join(path.dirname(fileURLToPath(base)), fileName);
+};
+
+// Mirrors resolveWsdlSchemaRef in bruno-electron/src/ipc/wsdl.js
 const resolveLocalWsdlSchemaRef = async (baseUri, ref) => {
   if (typeof baseUri !== 'string' || !baseUri.length) {
     throw new Error('Invalid base URI for schema resolution');
@@ -245,11 +253,19 @@ const resolveLocalWsdlSchemaRef = async (baseUri, ref) => {
   const base = path.isAbsolute(baseUri) ? pathToFileURL(baseUri) : new URL(baseUri);
   const target = new URL(ref, base);
 
-  if (target.protocol !== 'file:' || target.host !== base.host) {
-    throw new Error(`Remote schema references are not supported (${ref})`);
+  let targetPath;
+  if (target.protocol === 'file:') {
+    if (target.host !== base.host) {
+      throw new Error(`Schema references must stay on the importing document's host (${ref})`);
+    }
+    targetPath = fileURLToPath(target);
+  } else {
+    targetPath = getLocalWsdlSchemaCopyPath(base, target);
+    if (!fs.existsSync(targetPath)) {
+      throw new Error(`Remote schema references are not supported and no local copy was found at ${targetPath} (${ref})`);
+    }
   }
 
-  const targetPath = fileURLToPath(target);
   if (!WSDL_SCHEMA_EXTENSIONS.includes(path.extname(targetPath).toLowerCase())) {
     throw new Error(`Schema references must point at a ${WSDL_SCHEMA_EXTENSIONS.join('/')} file (${ref})`);
   }
@@ -264,7 +280,7 @@ const resolveLocalWsdlSchemaRef = async (baseUri, ref) => {
 
   return {
     text: fs.readFileSync(targetPath, 'utf8'),
-    uri: target.href,
+    uri: pathToFileURL(targetPath).href,
     key: pathToFileURL(canonicalPath(targetPath)).href
   };
 };
