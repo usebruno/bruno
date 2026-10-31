@@ -48,12 +48,9 @@ import { buildExportCollectionLocators } from '../../../playwright/pages/collect
 import { buildCollectionPresetsLocators } from '../../../playwright/pages/collection/settings';
 import { buildGenerateDocsLocators } from '../../../playwright/pages/collection/docs';
 import { buildTagsLocators } from '../../../playwright/pages/shared-ui/tags';
+import { buildVarInfoPopupLocators } from '../../../playwright/pages/variable/tooltip';
 
 export type { PresetRequestType } from '../../../playwright/pages/collection/settings';
-
-const addToNoEnvNoteLocator = (popup: Locator, scopeType: 'environment' | 'global') =>
-  popup.getByTestId('var-info-add-to-no-env-note')
-    .filter({ hasText: scopeType === 'global' ? 'Global Environment' : 'Collection Environment' });
 
 export const buildCommonLocators = (page: Page) => ({
   titleBar: buildTitleBarLocators(page),
@@ -111,40 +108,7 @@ export const buildCommonLocators = (page: Page) => ({
     warningTooltip: () => page.getByTestId('file-picker-warning-tooltip')
   },
   // The variable-info popup shown when hovering a `{{var}}` token in an editor.
-  varInfoPopup: {
-    all: () => page.getByTestId('var-info-popup'),
-    byName: (name: string) =>
-      page.getByTestId('var-info-popup').filter({ has: page.getByTestId('var-info-name').filter({ hasText: new RegExp(`^${name}$`) }) }),
-    name: (popup: Locator) => popup.getByTestId('var-info-name'),
-    scopeBadge: (popup: Locator) => popup.getByTestId('var-info-scope-badge'),
-    valueDisplay: (popup: Locator) => popup.getByTestId(/^var-info-value-(editable|display)$/).first(),
-    editableValue: (popup: Locator) => popup.getByTestId('var-info-value-editable').first(),
-    secretToggle: (popup: Locator) => popup.getByTestId('var-info-secret-toggle'),
-    copyButton: (popup: Locator) => popup.getByTestId('var-info-copy-button'),
-    readonlyNote: (popup: Locator) => popup.getByTestId('var-info-readonly-note'),
-    warningNote: (popup: Locator) => popup.getByTestId('var-info-warning-note'),
-    // The editor container itself (hidden until the value display is clicked).
-    editorContainer: (popup: Locator) => popup.getByTestId('var-info-value-editor'),
-    editor: (popup: Locator) => popup.getByTestId('var-info-value-editor').locator('.CodeMirror'),
-    // The "Add to" switcher, shown in place of an editable value for undefined variables.
-    addToSwitcher: (popup: Locator) => popup.getByTestId('var-info-add-to'),
-    addToToggle: (popup: Locator) => popup.getByTestId('var-info-add-to-toggle'),
-    addToList: (popup: Locator) => popup.getByTestId('var-info-add-to-list'),
-    addToOption: (popup: Locator, scopeType: string) => popup.getByTestId(`var-info-add-to-option-${scopeType}`),
-    addToActiveOption: (popup: Locator, scopeType?: string) => {
-      const activeRow = popup.locator('.var-add-to-option-active');
-      return scopeType ? activeRow.getByTestId(`var-info-add-to-option-${scopeType}`) : activeRow;
-    },
-    addToSecretCheckbox: (popup: Locator) => popup.getByTestId('var-info-add-to-secret-checkbox'),
-    addToNoEnvNote: (popup: Locator, scopeType: 'environment' | 'global') => addToNoEnvNoteLocator(popup, scopeType),
-    addToCreateEnvButton: (popup: Locator, scopeType: 'environment' | 'global') =>
-      addToNoEnvNoteLocator(popup, scopeType)
-        .locator('xpath=..')
-        .getByTestId('var-info-add-to-create-env-button'),
-    addToCreateEnvNameInput: (popup: Locator) => popup.getByTestId('var-info-add-to-create-env-name-input'),
-    addToCreateEnvSubmit: (popup: Locator) => popup.getByTestId('var-info-add-to-create-env-submit'),
-    addToError: (popup: Locator) => popup.getByTestId('var-info-add-to-error')
-  },
+  varInfoPopup: buildVarInfoPopupLocators(page),
   auth: buildAuthLocators(page),
   presets: buildCollectionPresetsLocators(page),
   tags: buildTagsLocators(page),

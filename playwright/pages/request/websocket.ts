@@ -1,4 +1,4 @@
-import { Page, test, expect } from '../..';
+import { test, expect, Page } from '../..';
 
 export const buildWebsocketCommonLocators = (page: Page) => ({
   connectionControls: {
@@ -72,5 +72,27 @@ export const disconnectWs = async (page: Page) => {
       await disconnect.click();
       await connect.waitFor();
     }
+  });
+};
+
+const buildLocators = (page: Page) => ({
+  websocket: buildWebsocketCommonLocators(page)
+});
+
+/**
+ * Rename a websocket message by double-clicking its label and typing a new name.
+ * @param page - The page object
+ * @param index - The zero-based index of the message in the list
+ * @param name - The new message name
+ */
+export const renameWsMessage = async (page: Page, index: number, name: string) => {
+  await test.step(`Rename websocket message ${index} to "${name}"`, async () => {
+    const { websocket } = buildLocators(page);
+    await websocket.message.label(index).dblclick();
+    const nameInput = websocket.message.nameInput(index);
+    await expect(nameInput).toBeVisible();
+    await nameInput.selectText();
+    await page.keyboard.type(name);
+    await nameInput.press('Enter');
   });
 };

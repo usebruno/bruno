@@ -167,3 +167,5 @@ export const addCollectionScript = async (
     await page.waitForTimeout(400);
   });
 };
+
+export type SandboxMode = 'safe' | 'developer';

@@ -30,3 +30,15 @@ export const dismissModalIfOpen = async (page: Page) => {
     await expect(modal.card()).toBeHidden();
   }
 };
+
+/**
+ * Clicks outside the modal backdrop to test click-outside behavior.
+ * @param page - The Playwright Page object
+ */
+export const clickOutsideModal = async (page: Page) => {
+  const modal = buildModalLocators(page);
+
+  await modal.backdrop().click({
+    position: { x: 10, y: 10 }
+  });
+};
