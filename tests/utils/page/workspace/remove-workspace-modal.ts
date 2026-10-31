@@ -1,10 +1,2 @@
-import { Page } from '../../../../playwright';
-
-export const buildRemoveWorkspaceModalLocators = (page: Page) => {
-  const modal = () => page.getByTestId('remove-workspace-modal');
-
-  return {
-    modal,
-    submitButton: () => page.getByTestId('remove-workspace-modal-submit-btn')
-  };
-};
+// Moved to playwright/pages/workspace/remove-workspace-modal.ts. Temporary re-export.
+export * from '../../../../playwright/pages/workspace/remove-workspace-modal';
