@@ -1,4 +1,6 @@
 import { Locator, Page, expect, test } from '../..';
+import { buildRequestTabsLocators } from '../request-tabs';
+import { buildOpenCollectionPickerLocators } from '../collection/open-collection-picker';
 import { collectionSlug } from '../../../packages/bruno-app/src/utils/collections/collectionSlug';
 
 export type EmptyStateRequestType = 'http' | 'graphql' | 'grpc' | 'websocket';
@@ -197,4 +199,236 @@ export const dragSidebarToWidth = async (page: Page, width: number) => {
 
   await expect.poll(() => locators.sidebarContainer().evaluate((node: HTMLElement) => node.offsetWidth)).toBe(width);
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+};
+
+/**
+ * Locators for folder rows in the sidebar tree.
+ */
+export const buildFolderLocators = (page: Page) => ({
+  chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
+});
+
+const buildLocators = (page: Page) => ({
+  sidebar: buildSidebarLocators(page),
+  folder: buildFolderLocators(page),
+  tabs: buildRequestTabsLocators(page),
+  openCollectionPicker: buildOpenCollectionPickerLocators(page)
+});
+
+/**
+ * Clicks empty space in the sidebar, clearing any multi-selection and its click anchor.
+ * @param page - The page object
+ * @returns void
+ */
+export const clickEmptySidebarSpace = async (page) => {
+  const locators = buildLocators(page);
+  if (!(await locators.sidebar.collectionsContainer().isVisible())) return;
+  const listBox = await locators.sidebar.collectionsContainer().boundingBox();
+  if (!listBox) {
+    throw new Error('collectionsContainer boundingBox is null');
+  }
+  await page.mouse.click(listBox.x + 10, listBox.y + listBox.height - 10);
+};
+
+// sidebar is virtualized, opening a request lower in the list scrolls the collection header
+// out of the viewport, and Virtuoso unmounts it once it passes the overscan.
+// Reset the list to the top so the header row is rendered before we locate it.
+export const revealCollectionsTop = async (page: Page) => {
+  const scroller = page.getByTestId('sidebar-collections-scroller');
+  if (!(await scroller.count())) return;
+  await scroller.evaluate((el) => el.scrollTo({ top: 0 }));
+};
+
+export const toggleOpenCollectionItem = async (page: Page, name: string) => {
+  await test.step(`Toggle open collection checkbox for "${name}"`, async () => {
+    await buildLocators(page).openCollectionPicker.itemCheckbox(name).click();
+  });
+};
+
+/**
+ * Expand a folder in the sidebar so its child requests/subfolders become visible.
+ * No-op if the folder is already expanded.
+ */
+export const expandFolder = async (page: Page, folderName: string) => {
+  await test.step(`Expand folder "${folderName}"`, async () => {
+    const locators = buildLocators(page);
+    const chevron = locators.folder.chevron(folderName);
+    await chevron.waitFor({ state: 'visible', timeout: 5000 });
+    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+    if (!isExpanded) await chevron.click();
+  });
+};
+
+/**
+ * Collapse a folder in the sidebar so its child requests/subfolders unmount.
+ * No-op if the folder is already collapsed.
+ */
+export const collapseFolder = async (page: Page, folderName: string) => {
+  await test.step(`Collapse folder "${folderName}"`, async () => {
+    const locators = buildLocators(page);
+    const chevron = locators.folder.chevron(folderName);
+    await chevron.waitFor({ state: 'visible', timeout: 5000 });
+    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+    if (isExpanded) await chevron.click();
+  });
+};
+
+export const expandCollection = async (page: Page, collectionName: string) => {
+  await test.step(`Expand collection "${collectionName}"`, async () => {
+    const locators = buildLocators(page);
+    const chevron = locators.sidebar.collectionChevron(collectionName);
+    await chevron.waitFor({ state: 'visible', timeout: 5000 });
+    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+    if (!isExpanded) await chevron.click();
+  });
+};
+
+/**
+* Navigate to a collection and open a request
+* @param page - The page object
+* @param collectionName - The name of the collection
+* @param requestName - The name of the request
+*/
+export const openRequest = async (page: Page, collectionName: string, requestName: string, { persist = false } = {}) => {
+  await test.step(`Navigate to collection "${collectionName}" and open request "${requestName}"`, async () => {
+    const collectionContainer = page.getByTestId('sidebar-collection-row').filter({ hasText: collectionName });
+    await collectionContainer.click();
+    const request = page
+      .locator(`[data-collection-id="${collectionSlug(collectionName)}"]`)
+      .getByTestId('sidebar-collection-item-row')
+      .filter({ hasText: requestName });
+    // The list is virtualized. a row outside the rendered window is absent from the DOM,
+    // scroll it into view before interacting.
+    await scrollSidebarListTo(page, request);
+    if (!persist) {
+      await request.click();
+    } else {
+      await request.dblclick();
+    }
+  });
+};
+
+/**
+ * Open a folder's settings tab by clicking on it in the sidebar
+ * @param page - The page object
+ * @param collectionName - The name of the collection
+ * @param folderName - The name of the folder
+ * @param options - Optional settings (persist: double-click to make tab permanent)
+ * @returns void
+ */
+export const openfolder = async (page: Page, collectionName: string, folderName: string, { persist = false } = {}) => {
+  await test.step(`Open folder "${folderName}" in collection "${collectionName}"`, async () => {
+    const collectionContainer = page.getByTestId('sidebar-collection-row').filter({ hasText: collectionName });
+    await collectionContainer.click();
+    const folder = page
+      .locator(`[data-collection-id="${collectionSlug(collectionName)}"]`)
+      .getByTestId('sidebar-collection-item-row')
+      .filter({ hasText: folderName });
+    if (!persist) {
+      await folder.click();
+    } else {
+      await folder.dblclick();
+    }
+  });
+};
+
+/**
+ * Open a request within a folder
+ * Expand a folder in the sidebar and open a nested request.
+ * Clicks collection → folder → request explicitly to ensure the tree is expanded.
+ * @param page - The page object
+ * @param collectionName - The name of the collection
+ * @param folderName - The name of the folder
+ * @param requestName - The name of the request
+ */
+export const openFolderRequest = async (page: Page, collectionName: string, folderName: string, requestName: string) => {
+  await test.step(`Open folder request "${requestName}" in "${folderName}"`, async () => {
+    const { sidebar, tabs } = buildLocators(page);
+    const collectionRow = sidebar.collectionRow(collectionName);
+    await collectionRow.click();
+    const folder = sidebar.collectionScope(collectionName).locator('.collection-item-name').filter({ has: page.getByText(folderName, { exact: true }) });
+    await folder.waitFor({ state: 'visible' });
+    await folder.click();
+    const request = sidebar.folderScope(folderName).locator('.collection-item-name').filter({ has: page.getByText(requestName, { exact: true }) });
+    await request.waitFor({ state: 'visible' });
+    await request.click();
+    await expect(tabs.activeRequestTab()).toContainText(requestName);
+  });
+};
+
+/**
+ * Expand or collapse a request's examples in the sidebar. No-op if already in the requested state.
+ */
+export const toggleRequestExamples = async (page: Page, requestName: string, expand: boolean) => {
+  await test.step(`${expand ? 'Expand' : 'Collapse'} examples of request "${requestName}"`, async () => {
+    const locators = buildLocators(page);
+    const chevron = locators.sidebar.requestExamplesToggle(requestName);
+    await chevron.waitFor({ state: 'visible', timeout: 5000 });
+    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+    if (isExpanded !== expand) await chevron.click();
+  });
+};
+
+export const openExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, index: number = 0) => {
+  const requestRow = page.locator('.collection-item-name').filter({ hasText: requestName }).first();
+  const requestBranch = page.locator(`[data-parent-name="${requestName}"]`);
+  const exampleRow = requestBranch
+    .locator('.collection-item-name')
+    .filter({ has: page.locator('.example-icon') })
+    .getByText(exampleName, { exact: true })
+    .nth(index);
+
+  if (!(await exampleRow.isVisible())) {
+    await requestRow.getByTestId('request-item-chevron').click();
+  }
+
+  await expect(exampleRow).toBeVisible();
+  await exampleRow.click();
+};
+
+/**
+ * The collections list is virtualized, so a row outside the viewport is not in
+ * DOM. Scroll the request to view.
+
+ * @param page - The page object
+ * @param target - The row, or a control within a row, to scroll to
+ * @returns void
+ */
+const scrollSidebarListTo = async (page: Page, target: Locator) => {
+  const isRendered = () => target.isVisible().catch(() => false);
+  if (await isRendered()) return;
+
+  const scroller = page.getByTestId('sidebar-collections-scroller');
+  if (!(await scroller.count())) return;
+  await scroller.waitFor({ state: 'visible' });
+
+  const viewports = await scroller.evaluate((el) => Math.ceil(el.scrollHeight / el.clientHeight));
+  for (let viewport = 0; viewport <= viewports; viewport++) {
+    await scroller.evaluate((el, offset) => el.scrollTo({ top: offset * el.clientHeight }), viewport);
+    // react-virtuoso mounts rows asynchronously after a scroll, so let it settle before checking.
+    await page.waitForTimeout(60);
+    if (await isRendered()) return;
+  }
+};
+
+/**
+ * Open a request inside a folder by exact request name.
+ * @param page - The page object
+ * @param folderName - The name of the folder containing the request
+ * @param requestName - The exact name of the request to open
+ * @returns void
+ */
+export const openRequestInFolder = async (page: Page, folderName: string, requestName: string) => {
+  await test.step(`Open request "${requestName}" in folder "${folderName}"`, async () => {
+    const { sidebar } = buildLocators(page);
+    await sidebar.folder(folderName).click();
+
+    const folderWrapper = page.locator(`[data-parent-name="${folderName}"]`);
+    const escapedName = requestName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const requestRow = folderWrapper.locator('.collection-item-name').filter({
+      has: page.locator('.item-name').filter({ hasText: new RegExp(`^${escapedName}$`) })
+    });
+    await scrollSidebarListTo(page, requestRow);
+    await requestRow.click();
+  });
 };

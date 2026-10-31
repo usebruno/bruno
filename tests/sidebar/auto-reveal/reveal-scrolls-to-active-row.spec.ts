@@ -1,7 +1,7 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
 import path from 'path';
-import { buildCommonLocators, expandFolder, openRequest, waitForReadyPage } from '../../utils/page';
-import { initBruCollection, writeBruFolder, writeBruRequest } from '../../utils/fixtures/bru-collection';
+import { buildCommonLocators, expandFolder, openRequest, waitForReadyPage } from '../../../playwright/pages';
+import { initBruCollection, writeBruFolder, writeBruRequest } from '../../../playwright/data';
 
 const COLLECTION_NAME = 'RevealScrollCol';
 const FILLER_COUNT = 60;
@@ -27,7 +27,7 @@ const launchWithCollection = async (launchElectronApp, createTmpDir, tag: string
   buildCollectionOnDisk(collectionDir);
 
   const app = await launchElectronApp({
-    initUserDataPath: path.join(__dirname, 'init-user-data'),
+    initUserDataPath: path.join(__dirname, 'test-data', 'user-data'),
     templateVars: { collectionPath: collectionDir.split(path.sep).join('/') }
   });
   const page = await waitForReadyPage(app);

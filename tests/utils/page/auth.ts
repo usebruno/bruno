@@ -1,5 +1,6 @@
 import { expect, Page } from '../../../playwright';
-import { expandFolder, openRequest, selectRequestPaneTab } from './actions';
+import { selectRequestPaneTab } from './actions';
+import { expandFolder, openRequest } from './sidebar';
 
 export const buildAuthLocators = (page: Page) => ({
   apiKey: {

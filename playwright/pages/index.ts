@@ -11,6 +11,8 @@
 
 export * from '../../tests/utils/page';
 export * from './api-spec';
+export * from './response-example';
+export * from './request-tabs';
 export * from './response-timeline';
 export * from './app-shell/title-bar';
 export * from './app-shell/devtools';
@@ -20,6 +22,9 @@ export * from './collection/header';
 export * from './collection/docs';
 export * from './collection/proxy';
 export * from './components/code-editor';
+export * from './components/modal';
+export * from './components/dropdown';
+export * from './components/pane-tabs';
 export * from './variable/secret-form';
 export * from './workspace/create-workspace-modal';
 export * from './workspace/import-workspace';

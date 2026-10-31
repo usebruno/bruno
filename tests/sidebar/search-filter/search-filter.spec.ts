@@ -10,8 +10,8 @@ import {
   createFolder,
   createRequest,
   expandCollection
-} from '../../utils/page';
-import { initBruCollection, writeBruRequest, writeBruFolder } from '../../utils/fixtures/bru-collection';
+} from '../../../playwright/pages';
+import { initBruCollection, writeBruRequest, writeBruFolder } from '../../../playwright/data';
 
 const COLLECTION_NAME = 'SearchCol';
 
@@ -31,7 +31,7 @@ test.describe('Sidebar search filtering', () => {
     buildCollectionOnDisk(collectionDir);
 
     const app = await launchElectronApp({
-      initUserDataPath: path.join(__dirname, 'init-user-data'),
+      initUserDataPath: path.join(__dirname, 'test-data', 'user-data'),
       templateVars: { collectionPath: collectionDir.split(path.sep).join('/') }
     });
     const page = await waitForReadyPage(app);

@@ -1,7 +1,7 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
 import path from 'path';
-import { buildCommonLocators, openRequest, waitForReadyPage } from '../../utils/page';
-import { initBruCollection, writeBruRequest } from '../../utils/fixtures/bru-collection';
+import { buildCommonLocators, openRequest, waitForReadyPage } from '../../../playwright/pages';
+import { initBruCollection, writeBruRequest } from '../../../playwright/data';
 
 // A collection large enough that its bottom rows start well below the sidebar viewport.
 const COLLECTION_NAME = 'ScrollCol';
@@ -22,7 +22,7 @@ test.describe('Sidebar scroll-to-active-tab', () => {
 
     // Open the app with the fully-built collection already registered as last-opened.
     const app = await launchElectronApp({
-      initUserDataPath: path.join(__dirname, 'init-user-data'),
+      initUserDataPath: path.join(__dirname, 'test-data', 'user-data'),
       templateVars: { collectionPath: collectionDir.split(path.sep).join('/') }
     });
     const page = await waitForReadyPage(app);
@@ -76,7 +76,7 @@ test.describe('Sidebar scroll-to-active-tab', () => {
     buildCollectionOnDisk(collectionDir, REQUEST_COUNT);
 
     const app = await launchElectronApp({
-      initUserDataPath: path.join(__dirname, 'init-user-data'),
+      initUserDataPath: path.join(__dirname, 'test-data', 'user-data'),
       templateVars: { collectionPath: collectionDir.split(path.sep).join('/') }
     });
     const page = await waitForReadyPage(app);

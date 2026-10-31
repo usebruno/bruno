@@ -1,4 +1,6 @@
-import { Page, test } from '../..';
+import { test, expect, Page } from '../..';
+import { selectRequestPaneTab } from './pane';
+import { buildSidebarLocators } from '../sidebar/collection-tree';
 
 /**
  * Locators for the request "Settings" tab — specifically the inheritable
@@ -26,5 +28,23 @@ export const resetRequestTimeoutToInherit = async (page: Page) => {
     const settings = buildRequestSettingsLocators(page);
     await settings.timeoutResetButton().click();
     await settings.timeoutInheritButton().waitFor({ state: 'visible' });
+  });
+};
+
+const buildLocators = (page: Page) => ({
+  requestSettings: buildRequestSettingsLocators(page),
+  sidebar: buildSidebarLocators(page)
+});
+
+/**
+ * Open a sidebar request's Settings tab and assert its Max Redirects value, as rendered.
+ * `expected` is the on-screen text, so a large ceiling is its serialized form (e.g. '1e+31').
+ */
+export const expectRequestMaxRedirects = async (page: Page, requestName: string, expected: string) => {
+  await test.step(`Expect ${requestName} to show a max redirects of ${expected}`, async () => {
+    const locators = buildLocators(page);
+    await locators.sidebar.request(requestName).click();
+    await selectRequestPaneTab(page, 'Settings');
+    await expect(locators.requestSettings.maxRedirectsInput()).toHaveValue(expected);
   });
 };

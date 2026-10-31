@@ -6,8 +6,8 @@ import {
   expandFolder,
   openRequest,
   waitForReadyPage
-} from '../../utils/page';
-import { initBruCollection, writeBruFolder, writeBruRequest } from '../../utils/fixtures/bru-collection';
+} from '../../../playwright/pages';
+import { initBruCollection, writeBruFolder, writeBruRequest } from '../../../playwright/data';
 
 const COLLECTION_NAME = 'RevealCol';
 const EXAMPLE_NAME = 'saved-ok';
@@ -31,7 +31,7 @@ test.describe('Sidebar auto-reveal', () => {
     buildCollectionOnDisk(collectionDir);
 
     const app = await launchElectronApp({
-      initUserDataPath: path.join(__dirname, 'init-user-data'),
+      initUserDataPath: path.join(__dirname, 'test-data', 'user-data'),
       templateVars: { collectionPath: collectionDir.split(path.sep).join('/') }
     });
     const page = await waitForReadyPage(app);
@@ -134,7 +134,7 @@ test.describe('Sidebar auto-reveal', () => {
     buildCollectionOnDisk(collectionDir);
 
     const app = await launchElectronApp({
-      initUserDataPath: path.join(__dirname, 'init-user-data'),
+      initUserDataPath: path.join(__dirname, 'test-data', 'user-data'),
       templateVars: { collectionPath: collectionDir.split(path.sep).join('/') }
     });
     const page = await waitForReadyPage(app);

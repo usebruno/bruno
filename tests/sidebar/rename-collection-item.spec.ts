@@ -1,5 +1,5 @@
 import { test, expect } from '../../playwright';
-import { buildCommonLocators, createCollection, createRequest, closeAllCollections } from '../utils/page';
+import { buildCommonLocators, createCollection, createRequest, closeAllCollections } from '../../playwright/pages';
 
 test.describe('Rename Collection Item - File Extension', () => {
   test.afterEach(async ({ page }) => {

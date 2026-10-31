@@ -1,10 +1,15 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import jsyaml from 'js-yaml';
-import { closeElectronApp, ElectronApplication, expect, test, waitForReadyPage } from '../../../playwright';
-import { buildCommonLocators } from '../../utils/page/locators';
-import { editCodeMirrorEditor, expandCollection, openRequest, openRequestInFolder } from '../../utils/page/actions';
-import { sendRequestAndSaveResponseExample } from '../../utils/page/response-example';
+import { closeElectronApp, ElectronApplication, expect, test, waitForReadyPage } from '../../../../playwright';
+import {
+  buildCommonLocators,
+  editCodeMirrorEditor,
+  expandCollection,
+  openRequest,
+  openRequestInFolder,
+  sendRequestAndSaveResponseExample
+} from '../../../../playwright/pages';
 
 const binaryPreviewCases = [
   {
@@ -77,8 +82,8 @@ const binaryPreviewCases = [
   }
 ];
 
-const initUserDataPath = path.join(__dirname, 'init-user-data');
-const fixtureCollectionPath = path.join(__dirname, 'fixtures', 'collection');
+const initUserDataPath = path.join(__dirname, 'test-data', 'user-data');
+const fixtureCollectionPath = path.join(__dirname, 'test-data', 'collection');
 
 type LaunchFixtures = {
   launchElectronApp: (options?: { initUserDataPath?: string; templateVars?: Record<string, string> }) => Promise<ElectronApplication>;

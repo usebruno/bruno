@@ -1,7 +1,7 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
 import path from 'path';
-import { buildCommonLocators, collapseFolder, expandFolder, waitForReadyPage } from '../../utils/page';
-import { initBruCollection, writeBruRequest, writeBruFolder } from '../../utils/fixtures/bru-collection';
+import { buildCommonLocators, collapseFolder, expandFolder, waitForReadyPage } from '../../../playwright/pages';
+import { initBruCollection, writeBruRequest, writeBruFolder } from '../../../playwright/data';
 
 const COLLECTION_NAME = 'ExampleCol';
 
@@ -19,7 +19,7 @@ test.describe('Sidebar response-example expansion', () => {
     buildCollectionOnDisk(collectionDir);
 
     const app = await launchElectronApp({
-      initUserDataPath: path.join(__dirname, 'init-user-data'),
+      initUserDataPath: path.join(__dirname, 'test-data', 'user-data'),
       templateVars: { collectionPath: collectionDir.split(path.sep).join('/') }
     });
     const page = await waitForReadyPage(app);

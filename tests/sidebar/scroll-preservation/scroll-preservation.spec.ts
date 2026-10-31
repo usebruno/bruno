@@ -1,7 +1,7 @@
 import { test, expect, closeElectronApp, type Locator } from '../../../playwright';
 import path from 'path';
-import { buildCommonLocators, renameCollectionItem, waitForReadyPage } from '../../utils/page';
-import { initBruCollection, writeBruRequest } from '../../utils/fixtures/bru-collection';
+import { buildCommonLocators, renameCollectionItem, waitForReadyPage } from '../../../playwright/pages';
+import { initBruCollection, writeBruRequest } from '../../../playwright/data';
 
 const COLLECTION_NAME = 'ScrollKeepCol';
 const REQUEST_COUNT = 50;
@@ -33,7 +33,7 @@ test.describe('Sidebar scroll-position preservation', () => {
     buildCollectionOnDisk(collectionDir);
 
     const app = await launchElectronApp({
-      initUserDataPath: path.join(__dirname, 'init-user-data'),
+      initUserDataPath: path.join(__dirname, 'test-data', 'user-data'),
       templateVars: { collectionPath: collectionDir.split(path.sep).join('/') }
     });
     const page = await waitForReadyPage(app);

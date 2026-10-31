@@ -1,6 +1,6 @@
-import { test, expect } from '../../../playwright';
-import { buildCommonLocators } from '../../utils/page/locators';
+import { test, expect } from '../../../../playwright';
 import {
+  buildCommonLocators,
   closeEnvironmentPanel,
   expectResponseContains,
   openCollection,
@@ -8,9 +8,9 @@ import {
   openExampleFromSidebar,
   openRequest,
   selectEnvironment,
-  setEnvironmentSecrets
-} from '../../utils/page/actions';
-import { sendRequestAndSaveResponseExample } from '../../utils/page/response-example';
+  setEnvironmentSecrets,
+  sendRequestAndSaveResponseExample
+} from '../../../../playwright/pages';
 
 const COLLECTION = 'try-example-yml';
 const REQUEST = 'try-example';

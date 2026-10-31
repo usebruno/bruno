@@ -1,7 +1,14 @@
 import { test, expect } from '../../playwright';
 import * as path from 'path';
-import { buildCommonLocators, createCollection, closeAllCollections, createRequest, openRequest } from '../utils/page';
-import { buildApiSpecPanelLocators, openApiSpecFromDialog } from '../utils/page/openapi/render-spec';
+import {
+  buildCommonLocators,
+  createCollection,
+  closeAllCollections,
+  createRequest,
+  openRequest,
+  buildApiSpecPanelLocators,
+  openApiSpecFromDialog
+} from '../../playwright/pages';
 
 const COLLECTION = 'Spec Highlight Test';
 const SPEC = {
