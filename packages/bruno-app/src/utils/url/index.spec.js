@@ -758,6 +758,15 @@ describe('Url Utils - matchQueryParams', () => {
     expect(uidsOf(matchQueryParams([{ name: 'a', value: '2' }, { name: 'a', value: '1' }], existing))).toEqual(['p2', 'p1']);
   });
 
+  it('keeps each repeated param in place when one is edited to the value of another', () => {
+    const existing = [
+      { uid: 'p1', name: 'a', value: '1' },
+      { uid: 'p2', name: 'a', value: '2' }
+    ];
+
+    expect(uidsOf(matchQueryParams([{ name: 'a', value: '2' }, { name: 'a', value: '2' }], existing))).toEqual(['p1', 'p2']);
+  });
+
   it('prefers a name match over an earlier param with the same value', () => {
     const existing = [
       { uid: 'p1', name: 'a', value: 'true' },
