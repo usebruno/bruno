@@ -4,13 +4,16 @@ const { pathToFileURL, fileURLToPath } = require('url');
 const chalk = require('chalk');
 const jsyaml = require('js-yaml');
 const axios = require('axios');
-const { openApiToBruno, wsdlToBruno } = require('@usebruno/converters');
-const { exists, isDirectory, sanitizeName, canonicalPath } = require('../utils/filesystem');
-const { writeCollectionToDisk } = require('@usebruno/filestore');
+const { openApiToBruno, wsdlToBruno, postmanToBruno, postmanToBrunoEnvironment } = require('@usebruno/converters');
+const { coerceEnvName, dedupeImportedSecrets, generateUniqueName, sanitizeName, validateName, validateNameError } = require('@usebruno/common').utils;
+const { exists, isDirectory, canonicalPath } = require('../utils/filesystem');
+const { formatImportSummary, formatImportIssues, formatPackageReport, hasImportErrors } = require('../utils/import-report');
+const { writeCollectionToDiskLegacy } = require('@usebruno/filestore');
 
 const command = 'import <type>';
-const desc = 'Import a collection from other formats';
+const desc = 'Import a collection (OpenAPI, WSDL, Postman) from other formats';
 
+const IMPORT_TYPES = ['openapi', 'wsdl', 'postman'];
 const COLLECTION_FORMATS = ['bru', 'opencollection'];
 
 const WSDL_MAX_SCHEMA_FILE_SIZE = 10 * 1024 * 1024;
@@ -21,7 +24,7 @@ const builder = (yargs) => {
     .positional('type', {
       describe: 'Type of collection to import',
       type: 'string',
-      choices: ['openapi', 'wsdl']
+      choices: IMPORT_TYPES
     })
     .option('source', {
       alias: 's',
@@ -47,10 +50,9 @@ const builder = (yargs) => {
       type: 'string'
     })
     .option('collection-format', {
-      describe: 'Format of the imported collection (bru or opencollection). If not specified, the default is `opencollection`',
+      describe: 'Format of the imported collection (bru or opencollection). If not specified, the default is `opencollection`. Not supported for postman, which always writes opencollection',
       type: 'string',
-      choices: COLLECTION_FORMATS,
-      default: 'opencollection'
+      choices: COLLECTION_FORMATS
     })
     .option('insecure', {
       type: 'boolean',
@@ -59,10 +61,20 @@ const builder = (yargs) => {
     })
     .option('group-by', {
       alias: 'g',
-      describe: 'How to group the imported requests: "tags" groups by OpenAPI tags, "path" groups by URL path structure',
+      describe: 'How to group the imported requests: "tags" groups by OpenAPI tags, "path" groups by URL path structure (openapi only)',
       type: 'string',
       choices: ['tags', 'path'],
       default: 'tags'
+    })
+    .option('preserve-scripts', {
+      describe: 'Preserve scripts (keep Postman scripts verbatim, no pm.* → bru.* translation) (postman only)',
+      type: 'boolean',
+      default: false
+    })
+    .option('environment', {
+      alias: 'e',
+      describe: 'Postman environment export(s) to convert alongside the collection (postman only)',
+      type: 'array'
     })
     .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --collection-name "My API"')
     .example('$0 import openapi -s api.yml -o ~/Desktop/my-collection -n "My API"')
@@ -73,7 +85,11 @@ const builder = (yargs) => {
     .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --group-by path')
     .example('$0 import openapi -s api.yml -o ~/Desktop/my-collection -g tags')
     .example('$0 import wsdl --source service.wsdl --output ~/Desktop/soap-collection --collection-name "SOAP Service"')
-    .example('$0 import wsdl -s https://example.com/service.wsdl -o ~/Desktop -n "Remote SOAP Service"');
+    .example('$0 import wsdl -s https://example.com/service.wsdl -o ~/Desktop -n "Remote SOAP Service"')
+    .example('$0 import postman --source my-api.postman_collection.json --output ~/Desktop/my-api')
+    .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop/my-api -n "My API"')
+    .example('$0 import postman -s https://example.com/my-api.postman_collection.json -o ~/Desktop/my-api --preserve-scripts')
+    .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop/my-api -e staging.postman_environment.json -e prod.postman_environment.json');
 };
 
 const isUrl = (str) => {
@@ -85,6 +101,42 @@ const isUrl = (str) => {
   }
 };
 
+/**
+ * Fetches an import source over http(s) and returns the response body as axios parsed it (an object
+ * for a JSON response, otherwise a string).
+ */
+const fetchSourceFromUrl = async (source, options = {}) => {
+  try {
+    const axiosOptions = {
+      timeout: 30000, // 30 second timeout
+      maxContentLength: 10 * 1024 * 1024,
+      validateStatus: (status) => status >= 200 && status < 300
+    };
+
+    // Skip SSL certificate validation if insecure flag is set
+    if (options.insecure) {
+      console.log(chalk.yellow('Warning: SSL certificate verification is disabled. Use with caution.'));
+      axiosOptions.httpsAgent = new (require('https')).Agent({ rejectUnauthorized: false });
+    }
+
+    const response = await axios.get(source, axiosOptions);
+    return response.data;
+  } catch (error) {
+    if (error.code === 'ECONNABORTED') {
+      throw new Error('Request timed out. The server took too long to respond.');
+    } else if (error.code === 'CERT_HAS_EXPIRED' || error.code === 'DEPTH_ZERO_SELF_SIGNED_CERT'
+      || error.code === 'ERR_TLS_CERT_ALTNAME_INVALID') {
+      throw new Error(`SSL Certificate error: ${error.code}. Try using --insecure if you trust this source.`);
+    } else if (error.response) {
+      throw new Error(`Failed to fetch from URL: ${error.response.status} ${error.response.statusText}`);
+    } else if (error.request) {
+      throw new Error(`No response received from server. Check the URL and your network connection.`);
+    } else {
+      throw new Error(`Error fetching URL: ${error.message}`);
+    }
+  }
+};
+
 const readOpenApiFile = async (source, options = {}) => {
   try {
     let content;
@@ -92,35 +144,7 @@ const readOpenApiFile = async (source, options = {}) => {
     if (isUrl(source)) {
       // Handle URL input
       console.log(chalk.yellow(`Fetching specification from URL: ${source}`));
-      try {
-        const axiosOptions = {
-          timeout: 30000, // 30 second timeout
-          maxContentLength: 10 * 1024 * 1024,
-          validateStatus: (status) => status >= 200 && status < 300
-        };
-
-        // Skip SSL certificate validation if insecure flag is set
-        if (options.insecure) {
-          console.log(chalk.yellow('Warning: SSL certificate verification is disabled. Use with caution.'));
-          axiosOptions.httpsAgent = new (require('https')).Agent({ rejectUnauthorized: false });
-        }
-
-        const response = await axios.get(source, axiosOptions);
-        content = response.data;
-      } catch (error) {
-        if (error.code === 'ECONNABORTED') {
-          throw new Error('Request timed out. The server took too long to respond.');
-        } else if (error.code === 'CERT_HAS_EXPIRED' || error.code === 'DEPTH_ZERO_SELF_SIGNED_CERT'
-          || error.code === 'ERR_TLS_CERT_ALTNAME_INVALID') {
-          throw new Error(`SSL Certificate error: ${error.code}. Try using --insecure if you trust this source.`);
-        } else if (error.response) {
-          throw new Error(`Failed to fetch from URL: ${error.response.status} ${error.response.statusText}`);
-        } else if (error.request) {
-          throw new Error(`No response received from server. Check the URL and your network connection.`);
-        } else {
-          throw new Error(`Error fetching URL: ${error.message}`);
-        }
-      }
+      content = await fetchSourceFromUrl(source, options);
 
       // If response is already an object, return it directly
       if (typeof content === 'object' && content !== null) {
@@ -161,35 +185,7 @@ const readWSDLFile = async (source, options = {}) => {
     if (isUrl(source)) {
       // Handle URL input
       console.log(chalk.yellow(`Fetching WSDL from URL: ${source}`));
-      try {
-        const axiosOptions = {
-          timeout: 30000, // 30 second timeout
-          maxContentLength: 10 * 1024 * 1024,
-          validateStatus: (status) => status >= 200 && status < 300
-        };
-
-        // Skip SSL certificate validation if insecure flag is set
-        if (options.insecure) {
-          console.log(chalk.yellow('Warning: SSL certificate verification is disabled. Use with caution.'));
-          axiosOptions.httpsAgent = new (require('https')).Agent({ rejectUnauthorized: false });
-        }
-
-        const response = await axios.get(source, axiosOptions);
-        content = response.data;
-      } catch (error) {
-        if (error.code === 'ECONNABORTED') {
-          throw new Error('Request timed out. The server took too long to respond.');
-        } else if (error.code === 'CERT_HAS_EXPIRED' || error.code === 'DEPTH_ZERO_SELF_SIGNED_CERT'
-          || error.code === 'ERR_TLS_CERT_ALTNAME_INVALID') {
-          throw new Error(`SSL Certificate error: ${error.code}. Try using --insecure if you trust this source.`);
-        } else if (error.response) {
-          throw new Error(`Failed to fetch from URL: ${error.response.status} ${error.response.statusText}`);
-        } else if (error.request) {
-          throw new Error(`No response received from server. Check the URL and your network connection.`);
-        } else {
-          throw new Error(`Error fetching URL: ${error.message}`);
-        }
-      }
+      content = await fetchSourceFromUrl(source, options);
     } else {
       // Handle file input
       if (!await exists(source)) {
@@ -207,6 +203,34 @@ const readWSDLFile = async (source, options = {}) => {
   } catch (error) {
     // Let the specific error handling from above propagate
     throw error;
+  }
+};
+
+/**
+ * Reads a Postman collection or environment export from a file or http(s) URL.
+ */
+const readPostmanFile = async (source, options = {}) => {
+  let content;
+
+  if (isUrl(source)) {
+    console.log(chalk.yellow(`Fetching Postman export from URL: ${source}`));
+    content = await fetchSourceFromUrl(source, options);
+
+    if (typeof content === 'object' && content !== null) {
+      return content;
+    }
+  } else {
+    if (!await exists(source)) {
+      throw new Error(`File does not exist: ${source}`);
+    }
+    content = fs.readFileSync(source, 'utf8');
+  }
+
+  try {
+    content = content.replace(/^\uFEFF/, '');
+    return JSON.parse(content);
+  } catch (error) {
+    throw new Error('Failed to parse Postman JSON', { cause: error });
   }
 };
 
@@ -245,12 +269,117 @@ const resolveLocalWsdlSchemaRef = async (baseUri, ref) => {
   };
 };
 
+/**
+ * Picks the directory a collection is written to. An existing directory gets a new, empty
+ * subdirectory named after the collection; any other path is used as is and its parent must exist.
+ */
+const resolveCollectionOutputDir = async (output, collectionName) => {
+  const resolvedOutput = path.resolve(output);
+  const isOutputDirectory = await exists(resolvedOutput) && isDirectory(resolvedOutput);
+
+  if (isOutputDirectory) {
+    const folderName = sanitizeName(collectionName || '');
+    if (!validateName(folderName)) {
+      throw new Error(`Invalid collection name "${collectionName}": ${validateNameError(folderName)}`);
+    }
+    const outputDir = path.join(resolvedOutput, folderName);
+
+    if (await exists(outputDir)) {
+      if (fs.readdirSync(outputDir).length > 0) {
+        throw new Error(`Output directory is not empty: ${outputDir}`);
+      }
+    } else {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    return outputDir;
+  }
+
+  const parentDir = path.dirname(resolvedOutput);
+  if (!await exists(parentDir)) {
+    throw new Error(`Parent directory does not exist: ${parentDir}`);
+  }
+
+  fs.mkdirSync(resolvedOutput, { recursive: true });
+  return resolvedOutput;
+};
+
+/**
+ * Converts a Postman environment export with the same name check and secret de-duplication as the
+ * app's environment importer.
+ */
+const convertPostmanEnvironment = async (source, { insecure }) => {
+  const postmanEnvironment = await readPostmanFile(source, { insecure });
+  const environment = postmanToBrunoEnvironment(postmanEnvironment);
+  const name = coerceEnvName(environment.name);
+  if (name === null) {
+    throw new Error('Invalid environment: missing or invalid name');
+  }
+
+  return { name, variables: dedupeImportedSecrets(environment.variables) };
+};
+
+const importPostmanCollection = async (source, { insecure, preserveScripts, environmentSources = [] }) => {
+  const postmanCollection = await readPostmanFile(source, { insecure });
+  const { collection, issues, translationIssues } = await postmanToBruno(postmanCollection, {
+    preserveScripts,
+    logTranslationFailures: false
+  });
+
+  for (const environmentSource of environmentSources) {
+    const environment = await convertPostmanEnvironment(environmentSource, { insecure });
+    const takenNames = collection.environments.map((env) => env.name.toLowerCase());
+    const baseName = sanitizeName(environment.name || '');
+    if (!validateName(baseName)) {
+      throw new Error(`Invalid environment name "${environment.name}": ${validateNameError(baseName)}`);
+    }
+    const name = generateUniqueName(baseName, (candidate) => takenNames.includes(candidate.toLowerCase()));
+    collection.environments.push({ ...environment, name });
+  }
+
+  return { collection, issues: [...issues, ...translationIssues] };
+};
+
+const writeBrunoCollection = async (collection, { output, outputFile, collectionFormat = 'opencollection' }) => {
+  if (outputFile) {
+    // The Postman package report is console output, not part of the collection.
+    const collectionToSave = { ...collection };
+    delete collectionToSave.packageReport;
+    if (collection.environments) {
+      collectionToSave.environments = collection.environments.map((env) => ({
+        ...env,
+        variables: (env.variables || []).map((variable) => (variable.secret ? { ...variable, value: '' } : variable))
+      }));
+    }
+    const outputPath = path.resolve(outputFile);
+    fs.writeFileSync(outputPath, JSON.stringify(collectionToSave, null, 2));
+    console.log(chalk.green(`Bruno collection saved as JSON to ${outputPath}`));
+    return;
+  }
+
+  const outputDir = await resolveCollectionOutputDir(output, collection.name);
+  await writeCollectionToDiskLegacy(collection, outputDir, {
+    format: collectionFormat === 'opencollection' ? 'yml' : 'bru'
+  });
+  console.log(chalk.green(`Bruno collection created at ${outputDir}`));
+};
+
+/**
+ * Prints what the import produced and returns whether any item was skipped. The package report is
+ * informational and never counts as an error.
+ */
+const reportImport = (collection, issues) => {
+  const lines = [formatImportSummary(collection), ...formatImportIssues(issues), ...formatPackageReport(collection.packageReport)];
+  lines.forEach((line) => console.log(line));
+  return hasImportErrors(issues);
+};
+
 const handler = async (argv) => {
   try {
-    const { type, source, output, collectionFormat, outputFile, collectionName, insecure, groupBy } = argv;
+    const { type, source, output, collectionFormat, outputFile, collectionName, insecure, groupBy, preserveScripts, environment } = argv;
 
-    if (!type || !['openapi', 'wsdl'].includes(type)) {
-      console.error(chalk.red('Only OpenAPI and WSDL imports are supported currently'));
+    if (!type || !IMPORT_TYPES.includes(type)) {
+      console.error(chalk.red(`Import type must be one of: ${IMPORT_TYPES.join(', ')}`));
       process.exit(1);
     }
 
@@ -259,9 +388,33 @@ const handler = async (argv) => {
       process.exit(1);
     }
 
+    if (type === 'postman' && collectionFormat) {
+      throw new Error('--collection-format is not supported for postman; Postman imports are always written as OpenCollection (yml)');
+    }
+
     if (!output && !outputFile) {
       console.error(chalk.red('Either --output or --output-file is required'));
       process.exit(1);
+    }
+
+    if (type === 'postman') {
+      console.log(chalk.yellow(`Reading Postman collection from ${source}...`));
+      const { collection, issues } = await importPostmanCollection(source, {
+        insecure,
+        preserveScripts,
+        environmentSources: environment
+      });
+
+      if (collectionName) {
+        collection.name = collectionName;
+      }
+
+      await writeBrunoCollection(collection, { output, outputFile });
+      const hasErrors = reportImport(collection, issues);
+      if (hasErrors) {
+        process.exit(1);
+      }
+      return;
     }
 
     let brunoCollection;
@@ -304,54 +457,7 @@ const handler = async (argv) => {
       brunoCollection.name = collectionName;
     }
 
-    if (outputFile) {
-      // Save as JSON file
-      const outputPath = path.resolve(outputFile);
-      fs.writeFileSync(outputPath, JSON.stringify(brunoCollection, null, 2));
-      console.log(chalk.green(`Bruno collection saved as JSON to ${outputPath}`));
-    } else if (output) {
-      const resolvedOutput = path.resolve(output);
-
-      // Check if output is an existing directory
-      const isOutputDirectory = await exists(resolvedOutput) && isDirectory(resolvedOutput);
-
-      // Determine the final output directory
-      let outputDir;
-      if (isOutputDirectory) {
-        // If output is an existing directory, use collection name to create a subdirectory
-        const dirName = sanitizeName(brunoCollection.name);
-        outputDir = path.join(resolvedOutput, dirName);
-
-        // Check if this subfolder already exists
-        if (await exists(outputDir)) {
-          const dirContents = fs.readdirSync(outputDir);
-          if (dirContents.length > 0) {
-            console.error(chalk.red(`Output directory is not empty: ${outputDir}`));
-            process.exit(1);
-          }
-        } else {
-          // Create the subfolder
-          fs.mkdirSync(outputDir, { recursive: true });
-        }
-      } else {
-        // If output doesn't exist or is not a directory, use it directly
-        outputDir = resolvedOutput;
-
-        // Check if parent directory exists
-        const parentDir = path.dirname(outputDir);
-        if (!await exists(parentDir)) {
-          console.error(chalk.red(`Parent directory does not exist: ${parentDir}`));
-          process.exit(1);
-        }
-
-        fs.mkdirSync(outputDir, { recursive: true });
-      }
-
-      await writeCollectionToDisk(brunoCollection, outputDir, {
-        format: collectionFormat === 'opencollection' ? 'yml' : 'bru'
-      });
-      console.log(chalk.green(`Bruno collection created at ${outputDir}`));
-    }
+    await writeBrunoCollection(brunoCollection, { output, outputFile, collectionFormat });
   } catch (error) {
     console.error(chalk.red(`Error: ${error.message}`));
     process.exit(1);

@@ -1,0 +1,648 @@
+"""
+Deep-nesting test schema.
+Built to reproduce issues with GraphQL requests whose VARIABLES (and selections)
+are nested more than 7 levels deep. Every chain below goes 20 levels.
+"""
+
+scalar DateTime
+scalar JSON
+
+enum Priority { LOW MEDIUM HIGH CRITICAL }
+enum Operator { EQ NEQ GT GTE LT LTE IN CONTAINS STARTS_WITH }
+enum SortDirection { ASC DESC }
+
+# ───────────── Shared leaf inputs (appear at every level) ─────────────
+input MetaInput {
+  key: String!
+  value: String
+  labels: [String!]
+}
+
+input RangeInput {
+  min: Float
+  max: Float
+}
+
+# ───────────── 20-level input chain: Level01Input → … → Level20Input ─────────────
+"Input at depth 1"
+input Level01Input {
+  name: String!
+  priority: Priority = MEDIUM
+  tags: [String!]
+  score: Float
+  meta: MetaInput
+  range: RangeInput
+  "Nested level 2"
+  level02: Level02Input
+  "List of nested level 2 objects"
+  items02: [Level02Input!]
+}
+
+"Input at depth 2"
+input Level02Input {
+  name: String!
+  priority: Priority = MEDIUM
+  tags: [String!]
+  score: Float
+  meta: MetaInput
+  range: RangeInput
+  "Nested level 3"
+  level03: Level03Input
+  "List of nested level 3 objects"
+  items03: [Level03Input!]
+}
+
+"Input at depth 3"
+input Level03Input {
+  name: String!
+  priority: Priority = MEDIUM
+  tags: [String!]
+  score: Float
+  meta: MetaInput
+  range: RangeInput
+  "Nes11ted level 4"
+  level04: Level04Input
+  "List of nested level 4 objects"
+  items04: [Level04Input!]
+}
+
+"Input at depth 4"
+input Level04Input {
+  name: String!
+  priority: Priority = MEDIUM
+  tags: [String!]
+  score: Float
+  meta: MetaInput
+  range: RangeInput
+  "Nested level 5"
+  level05: Level05Input
+  "List of nested level 5 objects"
+  items05: [Level05Input!]
+}
+
+"Input at depth 5"
+input Level05Input {
+  name: String!
+  priority: Priority = MEDIUM
+  tags: [String!]
+  score: Float
+  meta: MetaInput
+  range: RangeInput
+  "Nested level 6"
+  level06: Level06Input
+  "List of nested level 6 objects"
+  items06: [Level06Input!]
+}
+
+"Input at depth 6"
+input Level06Input {
+  name: String!
+  priority: Priority = MEDIUM
+  tags: [String!]
+  score: Float
+  meta: MetaInput
+  range: RangeInput
+  "Nested level 7"
+  level07: Level07Input
+  "List of nested level 7 objects"
+  items07: [Level07Input!]
+}
+
+"Input at depth 7"
+input Level07Input {
+  name: String!
+  priority: Priority = MEDIUM
+  tags: [String!]
+  score: Float
+  meta: MetaInput
+  range: RangeInput
+  "Nested level 8"
+  level08: Level08Input
+  "List of nested level 8 objects"
+  items08: [Level08Input!]
+}
+
+"Input at depth 8"
+input Level08Input {
+  name: String!
+  priority: Priority = MEDIUM
+  tags: [String!]
+  score: Float
+  meta: MetaInput
+  range: RangeInput
+  "Nested level 9"
+  level09: Level09Input
+  "List of nested level 9 objects"
+  items09: [Level09Input!]
+}
+
+"Input at depth 9"
+input Level09Input {
+  name: String!
+  priority: Priority = MEDIUM
+  tags: [String!]
+  score: Float
+  meta: MetaInput
+  range: RangeInput
+  "Nested level 10"
+  level10: Level10Input
+  "List of nested level 10 objects"
+  items10: [Level10Input!]
+}
+
+"Input at depth 10"
+input Level10Input {
+  name: String!
+  priority: Priority = MEDIUM
+  tags: [String!]
+  score: Float
+  meta: MetaInput
+  range: RangeInput
+  "Nested level 11"
+  level11: Level11Input
+  "List of nested level 11 objects"
+  items11: [Level11Input!]
+}
+
+"Input at depth 11"
+input Level11Input {
+  name: String!
+  priority: Priority = MEDIUM
+  tags: [String!]
+  score: Float
+  meta: MetaInput
+  range: RangeInput
+  "Nested level 12"
+  level12: Level12Input
+  "List of nested level 12 objects"
+  items12: [Level12Input!]
+}
+
+"Input at depth 12"
+input Level12Input {
+  name: String!
+  priority: Priority = MEDIUM
+  tags: [String!]
+  score: Float
+  meta: MetaInput
+  range: RangeInput
+  "Nested level 13"
+  level13: Level13Input
+  "List of nested level 13 objects"
+  items13: [Level13Input!]
+}
+
+"Input at depth 13"
+input Level13Input {
+  name: String!
+  priority: Priority = MEDIUM
+  tags: [String!]
+  score: Float
+  meta: MetaInput
+  range: RangeInput
+  "Nested level 14"
+  level14: Level14Input
+  "List of nested level 14 objects"
+  items14: [Level14Input!]
+}
+
+"Input at depth 14"
+input Level14Input {
+  name: String!
+  priority: Priority = MEDIUM
+  tags: [String!]
+  score: Float
+  meta: MetaInput
+  range: RangeInput
+  "Nested level 15"
+  level15: Level15Input
+  "List of nested level 15 objects"
+  items15: [Level15Input!]
+}
+
+"Input at depth 15"
+input Level15Input {
+  name: String!
+  priority: Priority = MEDIUM
+  tags: [String!]
+  score: Float
+  meta: MetaInput
+  range: RangeInput
+  "Nested level 16"
+  level16: Level16Input
+  "List of nested level 16 objects"
+  items16: [Level16Input!]
+}
+
+"Input at depth 16"
+input Level16Input {
+  name: String!
+  priority: Priority = MEDIUM
+  tags: [String!]
+  score: Float
+  meta: MetaInput
+  range: RangeInput
+  "Nested level 17"
+  level17: Level17Input
+  "List of nested level 17 objects"
+  items17: [Level17Input!]
+}
+
+"Input at depth 17"
+input Level17Input {
+  name: String!
+  priority: Priority = MEDIUM
+  tags: [String!]
+  score: Float
+  meta: MetaInput
+  range: RangeInput
+  "Nested level 18"
+  level18: Level18Input
+  "List of nested level 18 objects"
+  items18: [Level18Input!]
+}
+
+"Input at depth 18"
+input Level18Input {
+  name: String!
+  priority: Priority = MEDIUM
+  tags: [String!]
+  score: Float
+  meta: MetaInput
+  range: RangeInput
+  "Nested level 19"
+  level19: Level19Input
+  "List of nested level 19 objects"
+  items19: [Level19Input!]
+}
+
+"Input at depth 19"
+input Level19Input {
+  name: String!
+  priority: Priority = MEDIUM
+  tags: [String!]
+  score: Float
+  meta: MetaInput
+  range: RangeInput
+  "Nested level 20"
+  level20: Level20Input
+  "List of nested level 20 objects"
+  items20: [Level20Input!]
+}
+
+"Input at depth 20"
+input Level20Input {
+  name: String!
+  priority: Priority = MEDIUM
+  tags: [String!]
+  score: Float
+  meta: MetaInput
+  range: RangeInput
+  "Deepest level: free-form payload"
+  payload: JSON
+  finalValue: String!
+}
+
+# ───────────── Recursive filter input (unbounded depth) ─────────────
+input FilterInput {
+  field: String
+  operator: Operator
+  value: String
+  values: [String!]
+  and: [FilterInput!]
+  or: [FilterInput!]
+  not: FilterInput
+  "Arbitrary-depth child filter"
+  child: FilterInput
+}
+
+input SortInput {
+  field: String!
+  direction: SortDirection = ASC
+  then: SortInput
+}
+
+# ───────────── 20-level output chain ─────────────
+"Object at depth 1"
+type Level01 {
+  id: ID!
+  depth: Int!
+  name: String!
+  priority: Priority!
+  tags: [String!]!
+  score: Float
+  meta: Meta
+  createdAt: DateTime!
+  level02(filter: FilterInput, name: String): Level02
+  items02(first: Int = 10, filter: FilterInput): [Level02!]!
+}
+
+"Object at depth 2"
+type Level02 {
+  id: ID!
+  depth: Int!
+  name: String!
+  priority: Priority!
+  tags: [String!]!
+  score: Float
+  meta: Meta
+  createdAt: DateTime!
+  level03(filter: FilterInput, name: String): Level03
+  items03(first: Int = 10, filter: FilterInput): [Level03!]!
+}
+
+"Object at depth 3"
+type Level03 {
+  id: ID!
+  depth: Int!
+  name: String!
+  priority: Priority!
+  tags: [String!]!
+  score: Float
+  meta: Meta
+  createdAt: DateTime!
+  level04(filter: FilterInput, name: String): Level04
+  items04(first: Int = 10, filter: FilterInput): [Level04!]!
+}
+
+"Object at depth 4"
+type Level04 {
+  id: ID!
+  depth: Int!
+  name: String!
+  priority: Priority!
+  tags: [String!]!
+  score: Float
+  meta: Meta
+  createdAt: DateTime!
+  level05(filter: FilterInput, name: String): Level05
+  items05(first: Int = 10, filter: FilterInput): [Level05!]!
+}
+
+"Object at depth 5"
+type Level05 {
+  id: ID!
+  depth: Int!
+  name: String!
+  priority: Priority!
+  tags: [String!]!
+  score: Float
+  meta: Meta
+  createdAt: DateTime!
+  level06(filter: FilterInput, name: String): Level06
+  items06(first: Int = 10, filter: FilterInput): [Level06!]!
+}
+
+"Object at depth 6"
+type Level06 {
+  id: ID!
+  depth: Int!
+  name: String!
+  priority: Priority!
+  tags: [String!]!
+  score: Float
+  meta: Meta
+  createdAt: DateTime!
+  level07(filter: FilterInput, name: String): Level07
+  items07(first: Int = 10, filter: FilterInput): [Level07!]!
+}
+
+"Object at depth 7"
+type Level07 {
+  id: ID!
+  depth: Int!
+  name: String!
+  priority: Priority!
+  tags: [String!]!
+  score: Float
+  meta: Meta
+  createdAt: DateTime!
+  level08(filter: FilterInput, name: String): Level08
+  items08(first: Int = 10, filter: FilterInput): [Level08!]!
+}
+
+"Object at depth 8"
+type Level08 {
+  id: ID!
+  depth: Int!
+  name: String!
+  priority: Priority!
+  tags: [String!]!
+  score: Float
+  meta: Meta
+  createdAt: DateTime!
+  level09(filter: FilterInput, name: String): Level09
+  items09(first: Int = 10, filter: FilterInput): [Level09!]!
+}
+
+"Object at depth 9"
+type Level09 {
+  id: ID!
+  depth: Int!
+  name: String!
+  priority: Priority!
+  tags: [String!]!
+  score: Float
+  meta: Meta
+  createdAt: DateTime!
+  level10(filter: FilterInput, name: String): Level10
+  items10(first: Int = 10, filter: FilterInput): [Level10!]!
+}
+
+"Object at depth 10"
+type Level10 {
+  id: ID!
+  depth: Int!
+  name: String!
+  priority: Priority!
+  tags: [String!]!
+  score: Float
+  meta: Meta
+  createdAt: DateTime!
+  level11(filter: FilterInput, name: String): Level11
+  items11(first: Int = 10, filter: FilterInput): [Level11!]!
+}
+
+"Object at depth 11"
+type Level11 {
+  id: ID!
+  depth: Int!
+  name: String!
+  priority: Priority!
+  tags: [String!]!
+  score: Float
+  meta: Meta
+  createdAt: DateTime!
+  level12(filter: FilterInput, name: String): Level12
+  items12(first: Int = 10, filter: FilterInput): [Level12!]!
+}
+
+"Object at depth 12"
+type Level12 {
+  id: ID!
+  depth: Int!
+  name: String!
+  priority: Priority!
+  tags: [String!]!
+  score: Float
+  meta: Meta
+  createdAt: DateTime!
+  level13(filter: FilterInput, name: String): Level13
+  items13(first: Int = 10, filter: FilterInput): [Level13!]!
+}
+
+"Object at depth 13"
+type Level13 {
+  id: ID!
+  depth: Int!
+  name: String!
+  priority: Priority!
+  tags: [String!]!
+  score: Float
+  meta: Meta
+  createdAt: DateTime!
+  level14(filter: FilterInput, name: String): Level14
+  items14(first: Int = 10, filter: FilterInput): [Level14!]!
+}
+
+"Object at depth 14"
+type Level14 {
+  id: ID!
+  depth: Int!
+  name: String!
+  priority: Priority!
+  tags: [String!]!
+  score: Float
+  meta: Meta
+  createdAt: DateTime!
+  level15(filter: FilterInput, name: String): Level15
+  items15(first: Int = 10, filter: FilterInput): [Level15!]!
+}
+
+"Object at depth 15"
+type Level15 {
+  id: ID!
+  depth: Int!
+  name: String!
+  priority: Priority!
+  tags: [String!]!
+  score: Float
+  meta: Meta
+  createdAt: DateTime!
+  level16(filter: FilterInput, name: String): Level16
+  items16(first: Int = 10, filter: FilterInput): [Level16!]!
+}
+
+"Object at depth 16"
+type Level16 {
+  id: ID!
+  depth: Int!
+  name: String!
+  priority: Priority!
+  tags: [String!]!
+  score: Float
+  meta: Meta
+  createdAt: DateTime!
+  level17(filter: FilterInput, name: String): Level17
+  items17(first: Int = 10, filter: FilterInput): [Level17!]!
+}
+
+"Object at depth 17"
+type Level17 {
+  id: ID!
+  depth: Int!
+  name: String!
+  priority: Priority!
+  tags: [String!]!
+  score: Float
+  meta: Meta
+  createdAt: DateTime!
+  level18(filter: FilterInput, name: String): Level18
+  items18(first: Int = 10, filter: FilterInput): [Level18!]!
+}
+
+"Object at depth 18"
+type Level18 {
+  id: ID!
+  depth: Int!
+  name: String!
+  priority: Priority!
+  tags: [String!]!
+  score: Float
+  meta: Meta
+  createdAt: DateTime!
+  level19(filter: FilterInput, name: String): Level19
+  items19(first: Int = 10, filter: FilterInput): [Level19!]!
+}
+
+"Object at depth 19"
+type Level19 {
+  id: ID!
+  depth: Int!
+  name: String!
+  priority: Priority!
+  tags: [String!]!
+  score: Float
+  meta: Meta
+  createdAt: DateTime!
+  level20(filter: FilterInput, name: String): Level20
+  items20(first: Int = 10, filter: FilterInput): [Level20!]!
+}
+
+"Object at depth 20"
+type Level20 {
+  id: ID!
+  depth: Int!
+  name: String!
+  priority: Priority!
+  tags: [String!]!
+  score: Float
+  meta: Meta
+  createdAt: DateTime!
+  payload: JSON
+  finalValue: String!
+}
+
+type Meta {
+  key: String!
+  value: String
+  labels: [String!]!
+}
+
+# ───────────── Recursive output (unbounded depth) ─────────────
+type TreeNode {
+  id: ID!
+  depth: Int!
+  label: String!
+  parent: TreeNode
+  children(filter: FilterInput, sort: SortInput, first: Int = 10): [TreeNode!]!
+  child(filter: FilterInput): TreeNode
+}
+
+type DeepResult {
+  success: Boolean!
+  message: String
+  root: Level01
+  echo: JSON
+}
+
+type Query {
+  "Query the fixed 20-level tree; filter can nest arbitrarily deep"
+  deepTree(rootName: String!, filter: FilterInput): Level01
+  "Query using the full 20-level input object as an argument"
+  deepSearch(input: Level01Input!): Level01
+  "Recursive tree with recursive filter + sort"
+  tree(rootId: ID!, filter: FilterInput, sort: SortInput): TreeNode
+}
+
+type Mutation {
+  "Create a 20-level nested structure from one deeply nested variable"
+  createDeep(input: Level01Input!): DeepResult!
+  "Accepts several deeply nested variables at once"
+  createDeepBatch(inputs: [Level01Input!]!, filter: FilterInput, sort: SortInput): [DeepResult!]!
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+}

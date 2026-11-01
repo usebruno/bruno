@@ -3,20 +3,20 @@ import React from 'react';
 import { render, fireEvent } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
 import themes from 'themes/index';
-import DocsTagList from './index';
+import TagPicker from './index';
 
 const renderWithTheme = (ui) => render(<ThemeProvider theme={themes.light}>{ui}</ThemeProvider>);
 
-describe('DocsTagList', () => {
+describe('TagPicker', () => {
   it('adds a tag on Enter and stops it from bubbling to a parent that submits on Enter', () => {
     const onParentKeyDown = jest.fn();
     const handleAddTag = jest.fn();
     const { getByTestId } = renderWithTheme(
       <div onKeyDown={onParentKeyDown}>
-        <DocsTagList tags={[]} tagsHintList={['smoke']} handleAddTag={handleAddTag} handleRemoveTag={() => {}} />
+        <TagPicker tags={[]} tagsHintList={['smoke']} handleAddTag={handleAddTag} handleRemoveTag={() => {}} />
       </div>
     );
-    const input = getByTestId('docs-tag-input');
+    const input = getByTestId('tag-picker-input');
     fireEvent.change(input, { target: { value: 'smoke' } });
     fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
 
@@ -28,10 +28,10 @@ describe('DocsTagList', () => {
     const onParentKeyDown = jest.fn();
     const { getByTestId } = renderWithTheme(
       <div onKeyDown={onParentKeyDown}>
-        <DocsTagList tags={[]} tagsHintList={[]} handleAddTag={() => {}} handleRemoveTag={() => {}} />
+        <TagPicker tags={[]} tagsHintList={[]} handleAddTag={() => {}} handleRemoveTag={() => {}} />
       </div>
     );
-    fireEvent.keyDown(getByTestId('docs-tag-input'), { key: 'a', code: 'KeyA' });
+    fireEvent.keyDown(getByTestId('tag-picker-input'), { key: 'a', code: 'KeyA' });
 
     expect(onParentKeyDown).toHaveBeenCalledTimes(1);
   });
@@ -39,7 +39,7 @@ describe('DocsTagList', () => {
   it('renders each tag as a chip and removes it on click', () => {
     const handleRemoveTag = jest.fn();
     const { getByLabelText, getByText } = renderWithTheme(
-      <DocsTagList tags={['prod']} tagsHintList={[]} handleAddTag={() => {}} handleRemoveTag={handleRemoveTag} />
+      <TagPicker tags={['prod']} tagsHintList={[]} handleAddTag={() => {}} handleRemoveTag={handleRemoveTag} />
     );
     expect(getByText('prod')).toBeInTheDocument();
     fireEvent.click(getByLabelText('Remove prod'));
@@ -49,7 +49,7 @@ describe('DocsTagList', () => {
 
   it('exposes combobox and listbox semantics for assistive tech', () => {
     const { getByTestId, getByRole, getAllByRole, queryByRole } = renderWithTheme(
-      <DocsTagList
+      <TagPicker
         tags={[]}
         tagsHintList={['smoke', 'regression']}
         handleAddTag={() => {}}
@@ -57,7 +57,7 @@ describe('DocsTagList', () => {
         ariaLabel="Include tags"
       />
     );
-    const input = getByTestId('docs-tag-input');
+    const input = getByTestId('tag-picker-input');
     expect(input).toHaveAttribute('role', 'combobox');
     expect(input).toHaveAttribute('aria-label', 'Include tags');
     expect(input).toHaveAttribute('aria-expanded', 'false');
@@ -73,10 +73,10 @@ describe('DocsTagList', () => {
     const onParentKeyDown = jest.fn();
     const { getByTestId } = renderWithTheme(
       <div onKeyDown={onParentKeyDown}>
-        <DocsTagList tags={[]} tagsHintList={[]} handleAddTag={() => {}} handleRemoveTag={() => {}} />
+        <TagPicker tags={[]} tagsHintList={[]} handleAddTag={() => {}} handleRemoveTag={() => {}} />
       </div>
     );
-    const input = getByTestId('docs-tag-input');
+    const input = getByTestId('tag-picker-input');
     fireEvent.focus(input);
     fireEvent.keyDown(input, { key: 'Escape', code: 'Escape' });
 

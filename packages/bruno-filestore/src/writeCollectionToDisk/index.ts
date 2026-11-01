@@ -103,16 +103,11 @@ const writeItems = (items: BrunoItem[], dirPath: string, format: CollectionForma
   }
 };
 
-/**
- * Writes a collection (as returned by `@usebruno/converters`) to `outputDir` as a Bruno
- * collection directory. `outputDir` is created if missing and must otherwise be empty.
- */
-export const writeCollectionToDisk = async (
+const writeCollection = async (
   collection: BrunoCollection,
   outputDir: string,
-  options: WriteCollectionOptions = {}
+  format: CollectionFormat
 ): Promise<string> => {
-  const { format = DEFAULT_COLLECTION_FORMAT } = options;
   const writer = FORMAT_WRITERS[format];
   if (!writer) {
     throw new Error(`Unsupported format: ${format}`);
@@ -153,4 +148,24 @@ export const writeCollectionToDisk = async (
   writeItems(collection.items || [], outputDir, format);
 
   return outputDir;
+};
+
+/**
+ * Writes a collection (as returned by `@usebruno/converters`) to `outputDir` as a Bruno
+ * collection directory in the default (`yml`) format. `outputDir` is created if missing and must
+ * otherwise be empty.
+ */
+export const writeCollectionToDisk = (collection: BrunoCollection, outputDir: string): Promise<string> => {
+  return writeCollection(collection, outputDir, DEFAULT_COLLECTION_FORMAT);
+};
+
+/**
+ * Same as `writeCollectionToDisk`, but lets the caller pick the on-disk format.
+ */
+export const writeCollectionToDiskLegacy = (
+  collection: BrunoCollection,
+  outputDir: string,
+  options: WriteCollectionOptions = {}
+): Promise<string> => {
+  return writeCollection(collection, outputDir, options.format || DEFAULT_COLLECTION_FORMAT);
 };
