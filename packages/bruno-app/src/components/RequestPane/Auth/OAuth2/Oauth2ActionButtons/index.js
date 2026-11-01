@@ -8,7 +8,7 @@ import { fetchOauth2Credentials, clearOauth2Cache, refreshOauth2Credentials, can
 import { responseReceived } from 'providers/ReduxStore/slices/collections';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import { getAllVariables } from 'utils/collections/index';
-import { formatIpcError } from 'utils/common/error';
+import { formatIpcError, formatOauth2Error } from 'utils/common/error';
 import Button from 'ui/Button';
 
 const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, credentialsId }) => {
@@ -76,7 +76,7 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
 
       // Check if the result contains error or if access_token is missing
       if (!result || !result.access_token) {
-        const errorMessage = result?.error || 'No access token received from authorization server';
+        const errorMessage = formatOauth2Error(result);
         console.error(errorMessage);
         toast.error(errorMessage);
         showOauth2Error(errorMessage);
@@ -117,7 +117,7 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
 
       // Check if the result contains error or if access_token is missing
       if (!result || !result.access_token) {
-        const errorMessage = result?.error || 'No access token received from authorization server';
+        const errorMessage = formatOauth2Error(result);
         console.error(errorMessage);
         toast.error(errorMessage);
         return;
