@@ -4,6 +4,7 @@ import get from 'lodash/get';
 import { updateSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import { useDispatch } from 'react-redux';
 import ProxySettings from './ProxySettings';
+import Requests from './Requests';
 import ClientCertSettings from './ClientCertSettings';
 import Headers from './Headers';
 import Auth from './Auth';
@@ -92,6 +93,9 @@ const CollectionSettings = ({ collection }) => {
       case 'presets': {
         return <Presets collection={collection} />;
       }
+      case 'requests': {
+        return <Requests collection={collection} />;
+      }
       case 'proxy': {
         return <ProxySettings collection={collection} />;
       }
@@ -140,6 +144,9 @@ const CollectionSettings = ({ collection }) => {
           <div className={getTabClassname('presets')} role="tab" data-testid="collection-settings-tab-presets" onClick={() => setTab('presets')}>
             Presets
             {hasPresets && <StatusDot />}
+          </div>
+          <div className={getTabClassname('requests')} role="tab" data-testid="collection-settings-tab-requests" onClick={() => setTab('requests')}>
+            Requests
           </div>
           <div className={getTabClassname('proxy')} role="tab" data-testid="collection-settings-tab-proxy" onClick={() => setTab('proxy')}>
             Proxy

@@ -8,6 +8,31 @@ const MASK_CHAR = '*';
  * clientRequest.getHeaders().
 */
 export const getSentHeaders = (clientRequest?: ClientRequest | null): Record<string, string> => {
+// HTTP/2 exposes sent headers directly instead of a serialized _header string.
+// Skip pseudo-headers, which contain the request details, and mask proxy credentials.
+  const http2SentHeaders = (clientRequest as { sentHeaders?: Record<string, unknown> })?.sentHeaders;
+
+  // Check for HTTP/2 pseudo-headers so we don't mistake regular headers for HTTP/2.
+  const isHttp2
+    = http2SentHeaders != null
+      && typeof http2SentHeaders === 'object'
+      && Object.keys(http2SentHeaders).some((name) => name.startsWith(':'));
+  if (isHttp2) {
+    const sentHeaders: Record<string, string> = {};
+
+    for (const [name, rawValue] of Object.entries(http2SentHeaders!)) {
+      if (name.startsWith(':')) continue;
+
+      const headerName = name.toLowerCase();
+      const value = Array.isArray(rawValue) ? rawValue.join(', ') : String(rawValue);
+
+      sentHeaders[headerName]
+        = headerName === 'proxy-authorization' ? MASK_CHAR.repeat(value.length) : value;
+    }
+
+    return sentHeaders;
+  }
+
   const headerBlock = (clientRequest as unknown as { _header?: unknown })?._header;
   if (typeof headerBlock !== 'string' || !headerBlock) return {};
 

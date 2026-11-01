@@ -1,6 +1,12 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  .response-http-version {
+    font-size: ${(props) => props.theme.font.size.sm};
+    font-weight: 500;
+    color: ${(props) => props.theme.requestTabPanel.responseStatus};
+  }
+
   overflow: hidden;
   min-width: 0;
 

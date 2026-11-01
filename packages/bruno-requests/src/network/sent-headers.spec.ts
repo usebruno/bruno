@@ -67,6 +67,32 @@ describe('getSentHeaders', () => {
     expect(getSentHeaders(asClientRequest(''))).toEqual({});
     expect(getSentHeaders(asClientRequest(42))).toEqual({});
   });
+
+  const asHttp2Stream = (sentHeaders: unknown) => ({ sentHeaders }) as any;
+
+  it('reads HTTP/2 sentHeaders, dropping the pseudo-headers that carry the request line', () => {
+    const stream = asHttp2Stream({
+      ':method': 'GET',
+      ':path': '/x',
+      ':scheme': 'https',
+      ':authority': 'api.test',
+      'user-agent': 'bruno',
+      'accept-encoding': 'gzip'
+    });
+    expect(getSentHeaders(stream)).toEqual({ 'user-agent': 'bruno', 'accept-encoding': 'gzip' });
+  });
+
+  it('masks proxy-authorization on the HTTP/2 path too', () => {
+    const credential = 'Basic c2VjcmV0';
+    const headers = getSentHeaders(asHttp2Stream({ ':method': 'GET', ':path': '/', 'proxy-authorization': credential }));
+    expect(headers['proxy-authorization']).toBe('*'.repeat(credential.length));
+  });
+
+  it('ignores a sentHeaders object with no pseudo-header (not provably HTTP/2) and falls back to _header', () => {
+    // A look-alike object named sentHeaders but without any `:`-pseudo-header must not be treated as h2.
+    const lookalike = { sentHeaders: { 'x-made-up': '1' }, _header: 'GET / HTTP/1.1\r\nHost: x\r\n\r\n' } as any;
+    expect(getSentHeaders(lookalike)).toEqual({ Host: 'x' });
+  });
 });
 
 describe('applySentHeadersToRequest', () => {

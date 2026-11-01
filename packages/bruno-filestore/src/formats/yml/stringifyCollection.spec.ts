@@ -1,5 +1,6 @@
 import stringifyCollection from './stringifyCollection';
 import parseCollection from './parseCollection';
+import yaml from 'js-yaml';
 
 // Typed collection-root vars serialize to OC's `{ type, data }` struct.
 // `dataType: 'string'` is the implicit default and stays a raw string.
@@ -219,5 +220,36 @@ describe('stringifyCollection — writing the collection version', () => {
       const yml = stringifyCollection(baseRoot, { name: 'c', version });
       expect(parseCollection(yml).brunoConfig.version).toBe(version);
     });
+  });
+});
+
+describe('stringifyCollection — HTTP version (collection-level)', () => {
+  const baseRoot = {};
+
+  it('round-trips http.version through the opencollection config', () => {
+    const yml = stringifyCollection(baseRoot, { name: 'c', http: { version: 'http2' } });
+    expect(parseCollection(yml).brunoConfig.http?.version).toBe('http2');
+  });
+
+  it('stores http.version under extensions.bruno, not the spec config namespace', () => {
+    const doc: any = yaml.load(stringifyCollection(baseRoot, { name: 'c', http: { version: 'http2' } }));
+    expect(doc?.extensions?.bruno?.http?.version).toBe('http2');
+    expect(doc?.config?.http).toBeUndefined();
+  });
+
+  it('still reads http.version from the legacy spec config location', () => {
+    // A collection written before the move keeps config.http; parse must still honour it.
+    const legacy = yaml.dump({ name: 'c', config: { http: { version: 'auto' } } });
+    expect(parseCollection(legacy).brunoConfig.http?.version).toBe('auto');
+  });
+
+  it('writes no http config when the collection has none (defaults to inherit/app)', () => {
+    const yml = stringifyCollection(baseRoot, { name: 'c' });
+    expect(parseCollection(yml).brunoConfig.http).toBeUndefined();
+  });
+
+  it('preserves auto and http1 values', () => {
+    expect(parseCollection(stringifyCollection(baseRoot, { name: 'c', http: { version: 'auto' } })).brunoConfig.http?.version).toBe('auto');
+    expect(parseCollection(stringifyCollection(baseRoot, { name: 'c', http: { version: 'http1' } })).brunoConfig.http?.version).toBe('http1');
   });
 });
