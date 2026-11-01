@@ -18,7 +18,7 @@ packages/
   bruno-converters/   Import/export (Postman, Insomnia, OpenAPI, …) (rollup)
   bruno-requests/     Shared HTTP/gRPC/WS request building blocks (rollup)
   bruno-filestore/    .bru/.yml serialization (rollup + tsc --emitDeclarationOnly)
-  bruno-sqlite/       Local SQLite SDK — node (main) + web (renderer) entries (codegen + rollup)
+  bruno-sqlite/       Local SQLite SDK — main-process only (codegen + rollup)
   bruno-query/        JSONPath-style query engine (rollup)
   bruno-lang/         Bru DSL grammars — v1 (arcsecond, legacy) + v2 (ohm-js, current)
   bruno-schema/       Yup runtime validation of collections/requests
@@ -95,18 +95,15 @@ Any on-disk shape change → follow `.claude/rules/dsl-changes.md`.
 
 ## Local persistence (not collection files)
 
-Three distinct mechanisms — pick by what the data is:
+Two distinct mechanisms — pick by what the data is:
 
 - **`@usebruno/sqlite`** (`bruno.db` under `userData`) — the SDK for derived/bulky secondary state.
   Migrations (`migrations/*.ts`) and statements (`statements/*.sql`) are authored and compiled into
-  a typed layer: `@usebruno/sqlite` in the main process owns the DB (`ipc/sqlite.js`), and
-  `@usebruno/sqlite/web` gives the renderer React Query hooks that call statements by name over IPC
-  and self-invalidate per table on writes. Full guide: `.claude/rules/sqlite.md`.
+  a typed layer for the main process. `services/sqlite` owns the DB, and `ipc/sqlite.js` exposes
+  selected statements to the renderer, one hand-written handler per statement on
+  `datastore:<statement_file>:<statement_name>`. Full guide: `.claude/rules/sqlite.md`.
 - **electron-store JSON** (`bruno-electron/src/store/`) — preferences and small keyed app state;
   see `.claude/rules/electron-ipc.md`.
-- **`bruno-electron/src/services/storage/`** — a separate, older `node:sqlite` `Database` class
-  with `PRAGMA user_version` migrations, used only by the mount file-index cache
-  (`services/mount/`). Not the SDK; don't extend it for new features.
 
 ## Redux store (app side)
 
@@ -132,16 +129,14 @@ params / assertions, `common/key-value.ts`), `Environment`, `Script`.
 
 Several are pinned to majors below the latest — do **not** assume the newest API:
 
-- Frontend (`bruno-app`): **react 19**, **@tanstack/react-query 5.101.1** (SQLite hooks only — not
-  a general data layer), **@reduxjs/toolkit ^1.8 (v1, NOT v2)**,
+- Frontend (`bruno-app`): **react 19**, **@reduxjs/toolkit ^1.8 (v1, NOT v2)**,
   **react-redux ^7 (v7)**, **styled-components ^5 (NOT v6)**, **tailwindcss ^3**,
   **@rsbuild/core ^1.1**, **codemirror 5.65.2 (CodeMirror 5, NOT the scoped `@codemirror/*`)**.
 - Desktop (`bruno-electron`): **electron ~37.6**, **electron-builder 24.13.3**, **chokidar ^3.5**,
   **@grpc/grpc-js ^1.13**, **js-yaml ^4.1**, **electron-store ^8.1**. (`ws` is a dep of
   bruno-requests/bruno-tests, **not** bruno-electron.)
 - Storage (`bruno-sqlite`): no runtime dependencies — the driver is Node's built-in **`node:sqlite`**
-  (synchronous `DatabaseSync`); `@tanstack/react-query` 5.101.1 + react 19 are *peer* deps of the
-  `/web` entry only; **node-sql-parser 5.4** and **tsx** are build-time (codegen) only.
+  (synchronous `DatabaseSync`); **tsx** is build-time (codegen) only.
 - Parsing (`bruno-lang`): **arcsecond ^5** (v1, legacy), **ohm-js ^16.6** (v2, current).
   `bruno-toml` wraps **@iarna/toml** but is currently unused.
 - **Hard pins in root `package.json` `overrides`: axios `1.16.0`, rollup `3.30.0`.** Bumping these

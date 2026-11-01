@@ -88,7 +88,7 @@ const collectWsdlSchemas = async ({ definitions, uri, resolve }) => {
     uri
   }));
 
-  const resolvedUris = new Set();
+  const resolvedKeys = new Set();
   let externalCount = 0;
   const queue = schemas.map((schema) => ({ node: schema.node, uri: schema.uri }));
 
@@ -127,10 +127,11 @@ const collectWsdlSchemas = async ({ definitions, uri, resolve }) => {
       }
 
       const resolvedUri = resolved.uri || schemaLocation;
-      if (resolvedUris.has(resolvedUri)) {
+      const resolvedKey = resolved.key || resolvedUri;
+      if (resolvedKeys.has(resolvedKey)) {
         continue;
       }
-      resolvedUris.add(resolvedUri);
+      resolvedKeys.add(resolvedKey);
       externalCount++;
 
       let schemaNode;

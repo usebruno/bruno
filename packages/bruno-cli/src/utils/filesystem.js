@@ -119,46 +119,6 @@ const getSubDirectories = (dir) => {
 };
 
 /**
- * Sanitizes a filename to make it safe for filesystem operations
- *
- * @param {string} name - The name to sanitize
- * @returns {string} - The sanitized name
- */
-const sanitizeName = (name) => {
-  if (!name) return '';
-
-  const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g;
-  return name
-    .replace(invalidCharacters, '-') // replace invalid characters with hyphens
-    .replace(/^[.\s-]+/, '') // remove leading dots, hyphens and spaces
-    .replace(/[.\s]+$/, ''); // remove trailing dots and spaces (keep trailing hyphens)
-};
-
-/**
- * Validates if a name is valid for the filesystem
- *
- * @param {string} name - The name to validate
- * @returns {boolean} - True if the name is valid, false otherwise
- */
-const validateName = (name) => {
-  if (!name) return false;
-
-  const reservedDeviceNames = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$/i;
-  const firstCharacter = /^[^.\s\-\<>:"/\\|?*\x00-\x1F]/; // no dot, space, or hyphen at start
-  const middleCharacters = /^[^<>:"/\\|?*\x00-\x1F]*$/; // no invalid characters
-  const lastCharacter = /[^.\s]$/; // no dot or space at end, hyphen allowed
-
-  if (name.length > 255) return false; // max name length
-  if (reservedDeviceNames.test(name)) return false; // windows reserved names
-
-  return (
-    firstCharacter.test(name)
-    && middleCharacters.test(name)
-    && lastCharacter.test(name)
-  );
-};
-
-/**
  * Checks if a file is larger than a given threshold.
  * @param {string} filePath - The path to the file.
  * @param {number} threshold - The threshold in bytes. Default is 10MB.
@@ -172,6 +132,20 @@ const isLargeFile = (filePath, threshold = 10 * 1024 * 1024) => {
   const size = fs.statSync(filePath).size;
 
   return size > threshold;
+};
+
+/**
+ * Resolves a path to the exact casing and path stored on disk
+ *
+ * @param {string} filePath - The path to resolve
+ * @returns {string} - The resolved path
+ */
+const canonicalPath = (filePath) => {
+  try {
+    return fs.realpathSync.native(filePath);
+  } catch (_) {
+    return path.resolve(filePath);
+  }
 };
 
 // A "safe" file name is a bare basename: no path separators and no traversal.
@@ -203,8 +177,7 @@ module.exports = {
   searchForBruFiles,
   stripExtension,
   getSubDirectories,
-  sanitizeName,
-  validateName,
   isLargeFile,
-  isSafeFileName
+  isSafeFileName,
+  canonicalPath
 };

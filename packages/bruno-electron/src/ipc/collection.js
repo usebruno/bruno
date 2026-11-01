@@ -61,7 +61,8 @@ const {
   generateUniqueName,
   isValidDotEnvFilename,
   scanForBrunoFiles,
-  withFileLock
+  withFileLock,
+  removeGitMetadata
 } = require('../utils/filesystem');
 const { getCollectionConfigFile, openCollection, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
@@ -72,6 +73,7 @@ const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modif
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const snapshotManager = require('../services/snapshot');
+const { transientManager } = require('../services/transient');
 const interpolateVars = require('./network/interpolate-vars');
 const { interpolateString } = require('./network/interpolate-string');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
@@ -101,25 +103,20 @@ const MAX_COLLECTION_SIZE_IN_MB = 20;
 const MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB = 5;
 const MAX_COLLECTION_FILES_COUNT = 2000;
 
-// Get the base directory for transient request files (stored in app data directory)
-const getTransientDirectoryBase = () => {
-  return path.join(app.getPath('userData'), 'tmp', 'transient');
-};
-
 // Get the prefix used for transient collection directories
 const getTransientCollectionPrefix = () => {
-  return path.join(getTransientDirectoryBase(), 'bruno-');
+  return path.join(transientManager.getDirectoryBase(), 'bruno-');
 };
 
 // Get the prefix used for scratch collection directories
 const getTransientScratchPrefix = () => {
-  return path.join(getTransientDirectoryBase(), 'bruno-scratch-');
+  return path.join(transientManager.getDirectoryBase(), 'bruno-scratch-');
 };
 
 // Check if a path is within the transient directory
 const isTransientPath = (filePath) => {
   const normalizedFilePath = path.normalize(filePath);
-  const transientBase = getTransientDirectoryBase();
+  const transientBase = transientManager.getDirectoryBase();
   return normalizedFilePath.startsWith(transientBase + path.sep) || normalizedFilePath === transientBase;
 };
 
@@ -133,7 +130,7 @@ const findCollectionPathByItemPath = (filePath) => {
   const normalizedFilePath = path.normalize(filePath);
 
   if (isTransientPath(normalizedFilePath)) {
-    const transientBase = getTransientDirectoryBase();
+    const transientBase = transientManager.getDirectoryBase();
     const transientDirName = path.relative(transientBase, normalizedFilePath).split(path.sep)[0];
     if (!transientDirName) return null;
 
@@ -2382,7 +2379,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     let tempDirectoryPath = null;
     try {
       // Ensure the transient base directory exists
-      const transientBase = getTransientDirectoryBase();
+      const transientBase = transientManager.getDirectoryBase();
       if (!fs.existsSync(transientBase)) {
         fs.mkdirSync(transientBase, { recursive: true });
       }
@@ -2416,7 +2413,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:mount-workspace-scratch', async (event, { workspaceUid, workspacePath }) => {
     try {
       // Ensure the transient base directory exists
-      const transientBase = getTransientDirectoryBase();
+      const transientBase = transientManager.getDirectoryBase();
       if (!fs.existsSync(transientBase)) {
         fs.mkdirSync(transientBase, { recursive: true });
       }
@@ -2617,7 +2614,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             const entryArchivePath = archivePath ? path.join(archivePath, entry.name) : entry.name;
 
             if (entry.isDirectory()) {
-              if (!ignoredDirectories.includes(entry.name)) {
+              if (!ignoredDirectories.includes(entry.name.toLowerCase())) {
                 addDirectoryToArchive(fullPath, entryArchivePath);
               }
             } else {
@@ -2716,6 +2713,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         await extractZip(zipFilePath, { dir: tempDir });
 
         validateNoExternalSymlinks(tempDir, tempDir);
+        await removeGitMetadata(tempDir);
 
         const extractedItems = fs.readdirSync(tempDir);
         let collectionDir = tempDir;

@@ -37,7 +37,7 @@ const General = () => {
       .test('isNumber', 'Request Timeout must be a number', (value) => {
         return value === undefined || !isNaN(value);
       })
-      .test('isValidTimeout', 'Request Timeout must be equal or greater than 0', (value) => {
+      .test('isValidTimeout', 'Request Timeout must be greater than or equal to 0', (value) => {
         return value === undefined || Number(value) >= 0;
       }),
     autoSave: Yup.object({
@@ -52,12 +52,9 @@ const General = () => {
         .test('isValidInterval', 'Save Delay must be at least 500ms', (value) => {
           return value === undefined || Number(value) >= 500;
         })
-    }).test('intervalRequired', 'Save Delay is required when Auto Save is enabled', (value) => {
-      // If autosave is enabled, interval must be provided
-      if (value.enabled && (value.interval === undefined || value.interval === '')) {
-        return false;
-      }
-      return true;
+        .test('intervalRequired', 'Save Delay is required when Auto Save is enabled', function (value) {
+          return !(this.parent.enabled && (value === undefined || value === ''));
+        })
     }),
     oauth2: Yup.object({
       useSystemBrowser: Yup.boolean()

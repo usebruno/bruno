@@ -2,6 +2,7 @@ import React from 'react';
 import { render, act } from '@testing-library/react';
 import CodeEditor from './index';
 import { ThemeProvider } from 'styled-components';
+import { formatSize } from 'utils/common';
 import { LONG_LINE_LIMIT } from 'utils/common/long-lines';
 import darkTheme from 'themes/dark/dark';
 
@@ -137,6 +138,22 @@ describe('CodeEditor', () => {
       })
     );
     expect(view.getByTestId('editor-status-bar')).toHaveTextContent('editor features turned off for performance');
+  });
+
+  it('updates status bar byte size when editing while long-line mode stays active', () => {
+    const initial = 'x'.repeat(LONG_LINE_LIMIT + 1);
+    const next = `${initial}${'y'.repeat(1024)}`;
+    const view = setupEditorWithRef({ value: initial, mode: 'application/json' });
+    const editor = CodeMirror.mock.results[0].value;
+    const changeHandler = editor.on.mock.calls.find(([event]) => event === 'change')[1];
+
+    expect(view.getByTestId('editor-status-bar')).toHaveTextContent(formatSize(initial.length));
+
+    editor._currentValue = next;
+    act(() => changeHandler());
+    view.rerender({ value: next, mode: 'application/json' });
+
+    expect(view.getByTestId('editor-status-bar')).toHaveTextContent(formatSize(next.length));
   });
 
   it('enters degraded mode before loading a pathological external value', () => {

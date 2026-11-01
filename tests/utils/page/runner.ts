@@ -1,6 +1,6 @@
 import { Locator, Page, expect, test } from '../../../playwright';
 import { buildCommonLocators, buildSandboxLocators } from './locators';
-import { revealFolderRow } from './sidebar';
+import { MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH, dragSidebarToWidth, revealFolderRow } from './sidebar';
 
 /**
  * Builds locators for the runner results view
@@ -27,8 +27,52 @@ export const buildRunnerLocators = (page: Page) => ({
   failedTestRows: () => page.getByTestId('runner-test-row-failed'),
   requestLoader: () => page.getByTestId('runner-result-item').locator('.animate-spin'),
   requestStatusLabel: () => page.getByTestId('runner-iteration-status-label'),
-  resultTimelineEntries: () => page.getByTestId('timeline-entry')
+  resultTimelineEntries: () => page.getByTestId('timeline-entry'),
+  toolbar: () => page.getByTestId('runner-toolbar'),
+  filterButton: (key: RunnerFilterKey) => page.getByTestId(`runner-filter-${key}`),
+  filterSelect: () => page.getByTestId('runner-filter-select'),
+  filterOption: (label: string) => page.getByRole('menuitem', { name: label, exact: true })
 });
+
+export type RunnerFilterKey = 'all' | 'passed' | 'failed' | 'skipped';
+
+export type RunnerToolbarLevel = 'compact' | 'tiny';
+
+const toolbarHasLevel = (page: Page, level: RunnerToolbarLevel) =>
+  buildRunnerLocators(page).toolbar().evaluate((node, level) => node.classList.contains(level), level);
+
+/**
+ * Binary-searches the sidebar's drag range for the narrowest sidebar at which the runner toolbar
+ * collapses to `level`, and leaves the sidebar at that width. The search stops within 6px, so each
+ * probe lands at least 3px from the current width and the sidebar never ignores it.
+ * @param page - The Playwright page object
+ * @param level - The collapse level to search for
+ * @returns The sidebar width at which the toolbar first collapses to `level`
+ */
+export const findToolbarCollapseSidebarWidth = async (page: Page, level: RunnerToolbarLevel) => {
+  return await test.step(`Find the narrowest sidebar at which the runner toolbar is "${level}"`, async () => {
+    let fits = MIN_SIDEBAR_WIDTH;
+    let collapses = MAX_SIDEBAR_WIDTH;
+
+    await dragSidebarToWidth(page, fits);
+    expect(await toolbarHasLevel(page, level), `toolbar is not "${level}" beside a ${fits}px sidebar`).toBe(false);
+    await dragSidebarToWidth(page, collapses);
+    expect(await toolbarHasLevel(page, level), `toolbar is "${level}" beside a ${collapses}px sidebar`).toBe(true);
+
+    while (collapses - fits > 6) {
+      const middle = Math.floor((fits + collapses) / 2);
+      await dragSidebarToWidth(page, middle);
+      if (await toolbarHasLevel(page, level)) {
+        collapses = middle;
+      } else {
+        fits = middle;
+      }
+    }
+
+    await dragSidebarToWidth(page, collapses);
+    return collapses;
+  });
+};
 
 /**
  * Builds locators for the include/exclude tag filters shared by the runner tab and the sidebar
@@ -40,20 +84,20 @@ export const buildRunnerLocators = (page: Page) => ({
  */
 export const buildRunnerTagLocators = (page: Page, root?: Locator) => {
   const scope = root ?? page.locator('body');
-  const column = (kind: RunnerTagKind) => scope.getByTestId(RUNNER_TAG_COLUMN_TEST_IDS[kind]);
+  const column = (kind: RunnerTagKind) => scope.getByTestId('runner-tags').getByTestId(RUNNER_TAG_COLUMN_TEST_IDS[kind]);
 
   return {
     column,
-    input: (kind: RunnerTagKind) => column(kind).getByTestId('tag-input').getByRole('textbox'),
-    chip: (kind: RunnerTagKind, tagName: string) => column(kind).locator('.tag-item', { hasText: tagName })
+    input: (kind: RunnerTagKind) => column(kind).getByTestId('tag-picker-input'),
+    chip: (kind: RunnerTagKind, tagName: string) => column(kind).getByTestId('tag-picker-item').filter({ hasText: tagName })
   };
 };
 
 export type RunnerTagKind = 'Include' | 'Exclude';
 
 const RUNNER_TAG_COLUMN_TEST_IDS: Record<RunnerTagKind, string> = {
-  Include: 'runner-include-tags',
-  Exclude: 'runner-exclude-tags'
+  Include: 'include-tags',
+  Exclude: 'exclude-tags'
 };
 
 /**
@@ -86,7 +130,7 @@ export const clearRunnerTags = async (page: Page, root?: Locator) => {
   await test.step('Clear the runner tag filters', async () => {
     const locators = buildRunnerTagLocators(page, root);
     for (const kind of ['Include', 'Exclude'] as RunnerTagKind[]) {
-      const removers = locators.column(kind).locator('.tag-item .tag-remove');
+      const removers = locators.column(kind).getByTestId('tag-picker-remove');
       // Removing a chip re-renders the list, so re-read it rather than iterating a stale handle.
       for (let remaining = await removers.count(); remaining > 0; remaining--) {
         await removers.first().click();
@@ -113,10 +157,12 @@ export const runnerConfigItem = (page: Page, requestName: string): Locator =>
 export const getRunnerResultCounts = async (page: Page) => {
   const locators = buildRunnerLocators(page);
 
-  const totalRequests = parseInt(await locators.allCount().innerText());
-  const passed = parseInt(await locators.passedCount().innerText());
-  const failed = parseInt(await locators.failedCount().innerText());
-  const skipped = parseInt(await locators.skippedCount().innerText());
+  const readCount = async (locator: Locator) => parseInt((await locator.textContent()) ?? '');
+
+  const totalRequests = await readCount(locators.allCount());
+  const passed = await readCount(locators.passedCount());
+  const failed = await readCount(locators.failedCount());
+  const skipped = await readCount(locators.skippedCount());
 
   return { totalRequests, passed, failed, skipped };
 };
@@ -157,11 +203,9 @@ export const openRunnerTab = async (page: Page, collectionName: string) => {
 /**
  * Expands a collection in the sidebar so its items are mounted, then opens its runner tab.
  *
- * RunnerTags builds the tag vocabulary it validates against (`collection.allTags`) in a mount
- * effect keyed only on the collection uid. A collection whose items are still loading therefore
- * yields an empty vocabulary that never refreshes, and every tag typed into the include/exclude
- * filters is rejected as "tag does not exist!". Expanding first — what a user does anyway —
- * guarantees the items are there before the effect runs.
+ * RunnerTags validates typed tags against the tags found on the collection's mounted items, so a
+ * collection whose items are still loading rejects every tag as "Tag does not exist". Expanding
+ * first — what a user does anyway — guarantees the items are there.
  * @param page - The Playwright page object
  * @param collectionName - The collection to open the runner for
  * @param anyItemName - Any item in the collection, awaited as proof that mounting finished
@@ -227,12 +271,18 @@ export const runCollection = async (page: Page, collectionName: string) => {
   });
 };
 
+export const openRunnerResult = async (page: Page, requestName: string) => {
+  await test.step(`Open the "${requestName}" runner result`, async () => {
+    const result = buildRunnerLocators(page).resultItems().filter({ hasText: requestName });
+    await result.first().waitFor({ state: 'visible', timeout: 10000 });
+    await result.locator('.link').first().click();
+  });
+};
+
 export const openRunnerResultTimeline = async (page: Page, requestName: string) => {
   await test.step(`Open the "${requestName}" runner result on its Timeline tab`, async () => {
     const locators = buildRunnerLocators(page);
-    const result = locators.resultItems().filter({ hasText: requestName });
-    await result.first().waitFor({ state: 'visible', timeout: 10000 });
-    await result.locator('.link').first().click();
+    await openRunnerResult(page, requestName);
 
     const timelineTab = page.locator('[role="tab"]').filter({ hasText: 'Timeline' }).last();
     await timelineTab.click();

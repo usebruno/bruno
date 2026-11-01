@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } from './form-data';
+import { buildFormUrlEncodedPayload, isFormData, getMediaType, extractBoundaryFromContentType } from './form-data';
 import FormData from 'form-data';
 
 describe('buildFormUrlEncodedPayload', () => {
@@ -159,6 +159,33 @@ describe('isFormData', () => {
     const formData = new FormData();
     formData.append('key', 'value');
     expect(isFormData(formData)).toBe(true);
+  });
+});
+
+describe('getMediaType', () => {
+  it('should drop parameters from the Content-Type', () => {
+    expect(getMediaType('application/json; charset=utf-8')).toBe('application/json');
+    expect(getMediaType('multipart/mixed; boundary=my-boundary; charset=utf-8')).toBe('multipart/mixed');
+  });
+
+  it('should lowercase the media type', () => {
+    expect(getMediaType('Application/JSON')).toBe('application/json');
+  });
+
+  it('should trim whitespace around the media type', () => {
+    expect(getMediaType('  application/x-www-form-urlencoded ; charset=utf-8')).toBe('application/x-www-form-urlencoded');
+  });
+
+  it('should return an empty string for non-string input', () => {
+    expect(getMediaType(null)).toBe('');
+    expect(getMediaType(undefined)).toBe('');
+    expect(getMediaType(false)).toBe('');
+    expect(getMediaType(123)).toBe('');
+    expect(getMediaType({})).toBe('');
+  });
+
+  it('should return an empty string for an empty Content-Type', () => {
+    expect(getMediaType('')).toBe('');
   });
 });
 

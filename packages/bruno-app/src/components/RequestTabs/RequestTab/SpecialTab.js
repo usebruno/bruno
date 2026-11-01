@@ -103,6 +103,14 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
           </>
         );
       }
+      case 'api-spec': {
+        return (
+          <>
+            <IconFileCode size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
+            <span className="ml-1 tab-name">{tabName || 'API Spec'}</span>
+          </>
+        );
+      }
       case 'mock-server': {
         return (
           <>

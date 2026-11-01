@@ -2,11 +2,14 @@ import React from 'react';
 import toast from 'react-hot-toast';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
-import { IconFileCode } from '@tabler/icons';
+import { IconAlertTriangle, IconFileCode } from '@tabler/icons';
 import { closeApiSpecFile } from 'providers/ReduxStore/slices/apiSpec';
+import { hasUnsavedApiSpecChanges } from 'utils/api-specs';
 
 const CloseApiSpec = ({ onClose, apiSpec }) => {
   const dispatch = useDispatch();
+
+  const hasUnsavedChanges = hasUnsavedApiSpecChanges(apiSpec);
 
   const onConfirm = () => {
     dispatch(closeApiSpecFile({ uid: apiSpec.uid }))
@@ -30,6 +33,14 @@ const CloseApiSpec = ({ onClose, apiSpec }) => {
       <div className="mt-4">
         It will still be available in the file system at the above location and can be re-opened later.
       </div>
+      {hasUnsavedChanges && (
+        <div className="flex items-start mt-4" data-testid="api-spec-unsaved-warning">
+          <IconAlertTriangle size={18} strokeWidth={1.5} className="text-yellow-600 flex-shrink-0" />
+          <span className="ml-2">
+            You have unsaved changes in this spec. Closing it here will discard them.
+          </span>
+        </div>
+      )}
     </Modal>
   );
 };

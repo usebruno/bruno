@@ -215,7 +215,8 @@ const createGruvboxDarkTheme = (variant) => {
       border3: palette.border.BORDER3,
       border2: palette.border.BORDER2,
       border1: palette.border.BORDER1,
-      border0: palette.border.BORDER0
+      border0: palette.border.BORDER0,
+      subtle: palette.border.BORDER1
     },
 
     colors: {

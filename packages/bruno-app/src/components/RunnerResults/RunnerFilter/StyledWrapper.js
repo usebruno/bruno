@@ -21,7 +21,7 @@ const StyledWrapper = styled.div`
         font-family: Inter, sans-serif;
         font-weight: 400;
         font-size: ${(props) => props.theme.font.size.sm};
-        color: ${(props) => props.theme.colors.text.text};
+        color: ${(props) => props.theme.text};
         white-space: nowrap;
       }
     }
@@ -42,10 +42,7 @@ const StyledWrapper = styled.div`
     }
   }
 
-  /* Below the breakpoint the row cannot fit, so it swaps for the dropdown. The
-     toolbar carries the class, the same way ResponsePaneActions keys off the
-     expandable class set by ResponsiveTabs. */
-  .compact &.filter-bar {
+  .runner-toolbar.compact &.filter-bar {
     .filter-buttons {
       display: none;
     }
@@ -122,6 +119,14 @@ const StyledWrapper = styled.div`
       outline: 2px solid ${(props) => props.theme.tabs.active.border};
       outline-offset: -2px;
     }
+
+    .filter-count {
+      color: ${(props) => props.theme.tabs.active.color};
+    }
+  }
+
+  [aria-current='true'] .filter-count {
+    color: ${(props) => props.theme.tabs.active.color};
   }
 
   /* Menu row contents: check on the left, label, count pushed to the right. */

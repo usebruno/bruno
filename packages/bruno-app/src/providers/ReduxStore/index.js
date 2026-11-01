@@ -18,6 +18,7 @@ import streamMessagesReducer from './slices/streamMessages';
 import { draftDetectMiddleware } from './middlewares/draft/middleware';
 import { autosaveMiddleware } from './middlewares/autosave/middleware';
 import { snapshotMiddleware } from './middlewares/snapshot/middleware';
+import { benchmarkMiddleware } from './middlewares/benchmark/middleware';
 
 const isDevEnv = () => {
   return import.meta.env.MODE === 'development';
@@ -45,7 +46,10 @@ export const store = configureStore({
     collectionMigration: collectionMigrationReducer,
     streamMessages: streamMessagesReducer
   },
-  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(middleware)
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware()
+      .prepend(...(__BRUNO_BENCHMARK__ ? [benchmarkMiddleware] : []))
+      .concat(middleware)
 });
 
 export default store;

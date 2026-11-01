@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { getStatements, getDatabase } = require('../../ipc/sqlite');
+const { getStatements, transaction } = require('../sqlite');
 const {
   hashFile,
   hashFileAsync,
@@ -15,15 +15,10 @@ const {
 
 class FileIndex {
   #statements;
-  #db;
   #applicationVersion;
 
   constructor() {
     this.#statements = getStatements();
-    this.#db = getDatabase();
-    if (!this.#statements || !this.#db) {
-      throw new Error('the file cache is unavailable: the sqlite database is not open');
-    }
     this.#applicationVersion = require('electron').app.getVersion();
   }
 
@@ -66,7 +61,6 @@ class FileIndex {
 
     for (const [relativePath, row] of metadata) {
       if (seen.has(relativePath)) continue;
-      if (isDenied(posixifyPath(relativePath), denylist)) continue;
       removed.push({ relativePath, id: row.id, hash: row.hash });
     }
 
@@ -77,12 +71,14 @@ class FileIndex {
     this.#statements.execute('file_index_clear_collection', { collection_path: collectionPath });
   }
 
-  entries(collectionPath) {
+  entries(collectionPath, options = {}) {
+    const denylist = resolveDenylist(options.denylist);
     const rows = this.#statements.execute('file_index_content_for_collection', {
       collection_path: collectionPath
     });
     const map = new Map();
     for (const row of rows) {
+      if (isDenied(posixifyPath(row.relativePath), denylist)) continue;
       map.set(row.relativePath, { data: JSON.parse(row.data), raw: row.raw });
     }
     return map;
@@ -140,7 +136,7 @@ class FileIndex {
   }
 
   transaction(callback) {
-    return this.#db._transaction(callback);
+    return transaction(callback);
   }
 
   #loadMetadata(collectionPath) {

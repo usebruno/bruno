@@ -13,7 +13,14 @@ import { removeCollection, addTransientDirectory, updateCollectionMountStatus, e
 import { sanitizeName } from 'utils/common/regex';
 import { clearCollectionState } from '../openapi-sync';
 import { updateGlobalEnvironments } from '../global-environments';
-import { addTab, restoreTabs } from '../tabs';
+import { addTab, closeTabs, focusTab, restoreTabs } from '../tabs';
+import {
+  API_SPEC_TAB_TYPE,
+  findApiSpecByPathname,
+  getApiSpecPathKey,
+  getApiSpecTabUid,
+  hasUnsavedApiSpecChanges
+} from 'utils/api-specs';
 import {
   setSnapshotReady,
   startSnapshotHydrationSession,
@@ -550,6 +557,33 @@ export const hydrateSnapshotForOpenedCollection = (collectionPathname) => {
   };
 };
 
+export const dropApiSpecTabsMissingFrom = (workspaceUid, pathnames) => (dispatch, getState) => {
+  const state = getState();
+  const scratchCollectionUid = state.workspaces.workspaces
+    .find((workspace) => workspace.uid === workspaceUid)?.scratchCollectionUid;
+
+  if (!scratchCollectionUid) {
+    return;
+  }
+
+  const workspacePathKeys = new Set(
+    (pathnames || []).map((pathname) => getApiSpecPathKey(pathname)).filter(Boolean)
+  );
+
+  const tabUids = state.tabs.tabs
+    .filter((tab) => (
+      tab.type === API_SPEC_TAB_TYPE
+      && tab.collectionUid === scratchCollectionUid
+      && !workspacePathKeys.has(getApiSpecPathKey(tab.apiSpecPathname))
+      && !hasUnsavedApiSpecChanges(findApiSpecByPathname(state.apiSpec.apiSpecs, tab.apiSpecPathname))
+    ))
+    .map((tab) => tab.uid);
+
+  if (tabUids.length) {
+    dispatch(closeTabs({ tabUids, reopenable: false }));
+  }
+};
+
 export const loadWorkspaceApiSpecs = (workspaceUid) => {
   return async (dispatch, getState) => {
     try {
@@ -564,6 +598,8 @@ export const loadWorkspaceApiSpecs = (workspaceUid) => {
         uid: workspaceUid,
         apiSpecs: apiSpecs
       }));
+
+      dispatch(dropApiSpecTabsMissingFrom(workspaceUid, apiSpecs.map((apiSpec) => apiSpec?.path)));
 
       const allApiSpecs = getState().apiSpec.apiSpecs;
       // Compare by normalized path so a spec already loaded under a native (Windows)
@@ -661,12 +697,40 @@ export const switchWorkspace = (workspaceUid) => {
       }));
 
       let requestedWorkspaceTabType = null;
+      let requestedApiSpecTabUid = null;
 
       // Add workspace tabs
       if (scratchCollection?.uid) {
         dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
         dispatch(addTab({ uid: `${scratchCollection.uid}-environments`, collectionUid: scratchCollection.uid, type: 'workspaceEnvironments' }));
 
+        const workspaceApiSpecPathsByKey = new Map(
+          (getState().workspaces.workspaces.find((w) => w.uid === workspaceUid)?.apiSpecs || [])
+            .map((apiSpec) => normalizePath(apiSpec?.path))
+            .filter(Boolean)
+            .map((apiSpecPath) => [getApiSpecPathKey(apiSpecPath), apiSpecPath])
+        );
+        const reopenedApiSpecTabUids = new Set();
+
+        (workspaceSnapshot?.apiSpecTabs || []).forEach((apiSpecPathname) => {
+          const workspaceApiSpecPath = workspaceApiSpecPathsByKey.get(getApiSpecPathKey(apiSpecPathname));
+          if (!workspaceApiSpecPath) return;
+
+          const uid = getApiSpecTabUid(scratchCollection.uid, workspaceApiSpecPath);
+          if (!uid) return;
+
+          reopenedApiSpecTabUids.add(uid);
+          dispatch(addTab({
+            uid,
+            collectionUid: scratchCollection.uid,
+            type: API_SPEC_TAB_TYPE,
+            apiSpecPathname: workspaceApiSpecPath,
+            tabName: path.basename(workspaceApiSpecPath)
+          }));
+        });
+
+        const activeApiSpecTabUid = getApiSpecTabUid(scratchCollection.uid, workspaceSnapshot?.activeApiSpecTabPathname);
+        requestedApiSpecTabUid = reopenedApiSpecTabUids.has(activeApiSpecTabUid) ? activeApiSpecTabUid : null;
         requestedWorkspaceTabType = workspaceSnapshot?.activeWorkspaceTabType;
         const requestedWorkspaceTabSuffix = WORKSPACE_TAB_UID_SUFFIX_BY_TYPE[requestedWorkspaceTabType];
         if (requestedWorkspaceTabSuffix) {
@@ -709,12 +773,16 @@ export const switchWorkspace = (workspaceUid) => {
 
         if (activeTab) {
           dispatch(addTab(activeTab));
-        } else if (scratchCollection?.uid && !requestedWorkspaceTabType) {
+        } else if (scratchCollection?.uid && !requestedWorkspaceTabType && !requestedApiSpecTabUid) {
           dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
         }
-      } else if (scratchCollection?.uid && !requestedWorkspaceTabType) {
+      } else if (scratchCollection?.uid && !requestedWorkspaceTabType && !requestedApiSpecTabUid) {
         // No active collection, focus the workspace overview tab
         dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
+      }
+
+      if (requestedApiSpecTabUid) {
+        dispatch(focusTab({ uid: requestedApiSpecTabUid }));
       }
 
       const openWorkspaceCollectionPaths = new Set(

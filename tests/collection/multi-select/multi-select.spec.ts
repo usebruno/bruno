@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import { buildCommonLocators } from '../../utils/page/locators';
-import { createCollection, createFolder, createRequest, expandFolder, closeAllCollections, clickEmptySidebarSpace, createApp, createExampleFromSidebar } from '../../utils/page/actions';
+import { createCollection, createFolder, createRequest, expandFolder, closeAllCollections, clickEmptySidebarSpace, createApp, createExampleFromSidebar, toggleRequestExamples } from '../../utils/page/actions';
 
 // Ctrl on Windows/Linux, Cmd on macOS (matches app's navigator.userAgent check).
 const SELECT_MODIFIER: 'Meta' | 'Control' = process.platform === 'darwin' ? 'Meta' : 'Control';
@@ -135,7 +135,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await createRequest(page, 'Req A1', 'Folder A', { inFolder: true });
     await createRequest(page, 'Req Root', collectionName, {});
     await createExampleFromSidebar(page, 'Req Root', 'Example 1');
-    await locators.sidebar.requestExamplesToggle('Req Root').click();
+    await toggleRequestExamples(page, 'Req Root', true);
     await clickEmptySidebarSpace(page);
 
     const folderARow = locators.sidebar.itemRow('Folder A');
@@ -397,6 +397,8 @@ test.describe('Sidebar multi-select and bulk actions', () => {
       await locators.sidebar.folder('Folder A').click({ modifiers: [SELECT_MODIFIER] });
       await locators.sidebar.itemRow('Folder A').dragTo(locators.sidebar.collection(collectionBName));
       await expect(locators.sidebar.scopedItem(collectionBName, 'Folder A')).toBeVisible();
+      // Wait for the source row to go away (file-watcher unlink), or name-only lookups below match two rows.
+      await expect(locators.sidebar.scopedItem(collectionAName, 'Folder A')).toHaveCount(0);
     });
 
     await test.step('Immediately select the moved folder and its child, and drag it back to Collection A', async () => {
@@ -406,6 +408,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
 
       await locators.sidebar.itemRow('Folder A').dragTo(locators.sidebar.collection(collectionAName));
       await expect(locators.sidebar.scopedItem(collectionAName, 'Folder A')).toBeVisible();
+      await expect(locators.sidebar.scopedItem(collectionBName, 'Folder A')).toHaveCount(0);
     });
 
     await test.step('The folder and its child remain fully interactive after both moves', async () => {
@@ -1004,7 +1007,8 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     const folderOneRow = locators.sidebar.itemRow('Folder One');
     const exampleRow = locators.sidebar.example('Example 1');
 
-    await test.step('Examples are collapsed by default; expand via the request\'s own chevron', async () => {
+    await test.step('Collapse examples, then expand via the request\'s own chevron', async () => {
+      await toggleRequestExamples(page, 'Req Root', false);
       await expect(exampleRow).not.toBeVisible();
       await locators.sidebar.requestExamplesToggle('Req Root').click();
       await expect(exampleRow).toBeVisible();
@@ -1137,7 +1141,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await createRequest(page, 'Req Other', collectionAName, {});
     await createExampleFromSidebar(page, 'Req Root', 'Example 1');
     await clickEmptySidebarSpace(page);
-    await locators.sidebar.requestExamplesToggle('Req Root').click();
+    await toggleRequestExamples(page, 'Req Root', true);
 
     const reqRootRow = locators.sidebar.itemRow('Req Root');
     const reqOtherRow = locators.sidebar.itemRow('Req Other');
@@ -1195,7 +1199,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await createRequest(page, 'Req Root', collectionAName, {});
     await createExampleFromSidebar(page, 'Req Root', 'Example 1');
     await clickEmptySidebarSpace(page);
-    await locators.sidebar.requestExamplesToggle('Req Root').click();
+    await toggleRequestExamples(page, 'Req Root', true);
 
     const reqRootRow = locators.sidebar.itemRow('Req Root');
     const exampleRow = locators.sidebar.example('Example 1');
@@ -1229,7 +1233,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await createRequest(page, 'Req Root', collectionAName, {});
     await createExampleFromSidebar(page, 'Req Root', 'Example 1');
     await clickEmptySidebarSpace(page);
-    await locators.sidebar.requestExamplesToggle('Req Root').click();
+    await toggleRequestExamples(page, 'Req Root', true);
 
     const reqRootRow = locators.sidebar.itemRow('Req Root');
     const exampleRow = locators.sidebar.example('Example 1');
@@ -1263,7 +1267,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await createRequest(page, 'Req Sibling', collectionAName, {});
     await createExampleFromSidebar(page, 'Req Root', 'Example 1');
     await clickEmptySidebarSpace(page);
-    await locators.sidebar.requestExamplesToggle('Req Root').click();
+    await toggleRequestExamples(page, 'Req Root', true);
 
     const reqRootRow = locators.sidebar.itemRow('Req Root');
     const reqSiblingRow = locators.sidebar.itemRow('Req Sibling');
