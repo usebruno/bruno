@@ -33,11 +33,12 @@ Prefer the smallest scope — one workspace, one spec — over `--workspaces` or
 ### Building shared packages
 
 `npm run dev` does **not** rebuild the shared packages (bruno-common, bruno-requests,
-bruno-filestore, bruno-sqlite, bruno-converters, bruno-query, bruno-schema-types, bruno-graphql-docs).
+bruno-filestore, bruno-io, bruno-sqlite, bruno-converters, bruno-query, bruno-schema-types,
+bruno-graphql-docs).
 After editing one, rebuild it or run its watcher, or the app won't pick up changes:
 
 ```bash
-npm run build:bruno-common      # also :bruno-requests, :bruno-filestore, :bruno-sqlite, etc.
+npm run build:bruno-common      # also :bruno-requests, :bruno-filestore, :bruno-io, :bruno-sqlite, etc.
 npm run watch:common            # also watch:requests, watch:converters
 ```
 

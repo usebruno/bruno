@@ -17,6 +17,7 @@
     "packages/bruno-graphql-docs",
     "packages/bruno-requests",
     "packages/bruno-filestore",
+    "packages/bruno-io",
     "packages/bruno-sqlite"
   ],
   "homepage": "https://usebruno.com",
@@ -65,6 +66,7 @@
     "build:bruno-common": "npm run build --workspace=packages/bruno-common",
     "build:bruno-requests": "npm run build --workspace=packages/bruno-requests",
     "build:bruno-filestore": "npm run build --workspace=packages/bruno-filestore",
+    "build:bruno-io": "npm run build --workspace=packages/bruno-io",
     "build:bruno-sqlite": "npm run build --workspace=packages/bruno-sqlite",
     "build:bruno-converters": "npm run build --workspace=packages/bruno-converters",
     "build:bruno-query": "npm run build --workspace=packages/bruno-query",
