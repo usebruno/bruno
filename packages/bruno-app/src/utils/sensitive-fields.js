@@ -214,7 +214,14 @@ const collectSensitiveFieldValues = (collection, scanContext = null) => {
     }
   });
 
+  const collectionRoot = collection?.draft?.root || collection?.root;
+  fields.push(...readSensitiveValues(collectionRoot, null, 'collection'));
+
   flattenItems(collection?.items || []).forEach((item) => {
+    if (item.type === 'folder') {
+      fields.push(...readSensitiveValues(item.draft || item.root, item, 'folder'));
+      return;
+    }
     if (!isItemARequest(item) || item.partial) {
       return;
     }
@@ -284,7 +291,6 @@ export const findUsedEnvironmentVariableUids = (collection, environment) => {
   const preparedCollection = {
     ...collection,
     environments: replaceEnvironment(collection.environments, environment),
-    activeEnvironmentUid: environment.uid,
     realActiveEnvironmentUid: undefined
   };
   return collectSentVariableUids(preparedCollection, 'environment');

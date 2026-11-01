@@ -6,11 +6,11 @@ export const StyledWrapper = styled.div`
   gap: 0.5rem;
   min-width: 0;
 
-  .docs-tag-field {
+  .tag-picker-field {
     min-width: 0;
   }
 
-  .docs-tag-input {
+  .tag-picker-input {
     width: 100%;
     min-width: 0;
     padding: 0.375rem 0.5rem;
@@ -30,12 +30,12 @@ export const StyledWrapper = styled.div`
     }
   }
 
-  .docs-tag-error {
+  .tag-picker-error {
     font-size: ${(props) => props.theme.font.size.xs};
     color: ${(props) => props.theme.colors.text.danger};
   }
 
-  .docs-tag-list {
+  .tag-picker-list {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
@@ -44,7 +44,7 @@ export const StyledWrapper = styled.div`
     list-style: none;
   }
 
-  .docs-tag-item {
+  .tag-picker-item {
     display: inline-flex;
     align-items: center;
     box-sizing: border-box;
@@ -57,12 +57,12 @@ export const StyledWrapper = styled.div`
     border-radius: ${(props) => props.theme.border.radius.base};
   }
 
-  .docs-tag-icon {
+  .tag-picker-icon {
     color: ${(props) => props.theme.colors.text.subtext0};
     flex-shrink: 0;
   }
 
-  .docs-tag-text {
+  .tag-picker-text {
     font-size: ${(props) => props.theme.font.size.base};
     line-height: 1.25rem;
     color: ${(props) => props.theme.text};
@@ -72,7 +72,7 @@ export const StyledWrapper = styled.div`
     white-space: nowrap;
   }
 
-  .docs-tag-remove {
+  .tag-picker-remove {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -106,7 +106,7 @@ export const Menu = styled.ul`
   border-radius: ${(props) => props.theme.border.radius.base};
   box-shadow: ${(props) => props.theme.dropdown.shadow};
 
-  .docs-tag-menu-item {
+  .tag-picker-menu-item {
     box-sizing: border-box;
     min-width: 100%;
     width: max-content;

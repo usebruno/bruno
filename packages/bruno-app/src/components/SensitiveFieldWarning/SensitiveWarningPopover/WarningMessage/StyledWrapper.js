@@ -5,6 +5,7 @@ const StyledWrapper = styled.div`
   padding: 8px 10px;
   font-size: ${(props) => props.theme.font.size.xs};
   line-height: 1.25rem;
+  overflow-wrap: anywhere;
   color: ${(props) => props.theme.text};
   background-color: ${(props) => props.theme.infoTip.bg};
   border: 1px solid ${(props) => props.theme.infoTip.border};
