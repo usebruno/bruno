@@ -12,8 +12,12 @@ Writes a converted collection to disk.
 const { openApiToBruno } = require('@usebruno/converters');
 const { writeCollectionToDisk } = require('@usebruno/io');
 
-const collection = openApiToBruno(openApiSpecification);
-await writeCollectionToDisk(collection, './my-collection');
+const main = async () => {
+  const collection = openApiToBruno(openApiSpecification);
+  await writeCollectionToDisk(collection, './my-collection');
+};
+
+main();
 ```
 
 `outputDir` is created if it does not exist. If it already exists it must be empty, otherwise the call rejects with an error whose `code` is `'ENOTEMPTY'` and nothing is written.
