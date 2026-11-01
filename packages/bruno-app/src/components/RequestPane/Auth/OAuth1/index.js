@@ -28,7 +28,7 @@ const placementLabels = {
   body: 'Body'
 };
 
-const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) => {
+const OAuth1 = ({ item = {}, collection, request, save, updateAuth, readOnly }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const oauth1 = get(request, 'auth.oauth1', {});
@@ -43,7 +43,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
   };
 
   const handleChange = (field, value) => {
-    if (disabled) {
+    if (readOnly) {
       return;
     }
     dispatch(
@@ -133,7 +133,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
             onRun={handleRun}
             collection={collection}
             item={item}
-            readOnly={disabled}
+            readOnly={readOnly}
             isCompact
           />
         </div>
@@ -152,10 +152,10 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
               collection={collection}
               item={item}
               isSecret={true}
-              readOnly={disabled}
+              readOnly={readOnly}
               isCompact
             />
-            <SensitiveFieldWarning fieldName="oauth1-consumer-secret" secretName="consumerSecret" value={oauth1.consumerSecret} collection={collection} item={item} disabled={disabled} onReplaceValue={(val) => handleChange('consumerSecret', val)} />
+            <SensitiveFieldWarning fieldName="oauth1-consumer-secret" secretName="consumerSecret" value={oauth1.consumerSecret} collection={collection} item={item} fieldKey="consumerSecret" onReplaceValue={(val) => handleChange('consumerSecret', val)} />
           </div>
         </div>
       )}
@@ -171,7 +171,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
             onRun={handleRun}
             collection={collection}
             item={item}
-            readOnly={disabled}
+            readOnly={readOnly}
             isCompact
           />
         </div>
@@ -189,10 +189,10 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
             collection={collection}
             item={item}
             isSecret={true}
-            readOnly={disabled}
+            readOnly={readOnly}
             isCompact
           />
-          <SensitiveFieldWarning fieldName="oauth1-token-secret" secretName="tokenSecret" value={oauth1.accessTokenSecret} collection={collection} item={item} disabled={disabled} onReplaceValue={(val) => handleChange('accessTokenSecret', val)} />
+          <SensitiveFieldWarning fieldName="oauth1-token-secret" secretName="tokenSecret" value={oauth1.accessTokenSecret} collection={collection} item={item} fieldKey="accessTokenSecret" onReplaceValue={(val) => handleChange('accessTokenSecret', val)} />
         </div>
       </div>
 
@@ -208,13 +208,15 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
 
       <div className="flex items-center gap-4 w-full">
         <label className="block min-w-[140px]">Signature Method</label>
-        <div className="inline-flex items-center cursor-pointer oauth1-dropdown-selector">
+        <div className={`inline-flex items-center ${readOnly ? 'cursor-not-allowed' : 'cursor-pointer'} oauth1-dropdown-selector`}>
           <MenuDropdown
+            disabled={readOnly}
             items={Object.entries(signatureMethodLabels).map(([value, label]) => ({
               id: value,
               label,
               onClick: () => handleChange('signatureMethod', value)
             }))}
+            data-testid="oauth1-signature-method-dropdown"
             selectedItemId={oauth1.signatureMethod}
             placement="bottom-end"
           >
@@ -234,11 +236,11 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
               <IconFile size={16} className="oauth1-icon flex-shrink-0" />
               <span className="truncate flex-1" title={privateKeyValue}>{fileName}</span>
               <button
-                className="flex-shrink-0 oauth1-icon cursor-pointer"
+                className="flex-shrink-0 oauth1-icon cursor-pointer disabled:cursor-not-allowed"
                 onClick={handleClearFile}
                 title="Clear file"
                 type="button"
-                disabled={disabled}
+                disabled={readOnly}
               >
                 <IconX size={14} />
               </button>
@@ -255,18 +257,18 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                   collection={collection}
                   item={item}
                   isSecret={true}
-                  readOnly={disabled}
+                  readOnly={readOnly}
                   allowNewlines={true}
                 />
-                <SensitiveFieldWarning fieldName="oauth1-private-key" secretName="privateKey" value={oauth1.privateKey} collection={collection} item={item} disabled={disabled} onReplaceValue={handlePrivateKeyChange} />
+                <SensitiveFieldWarning fieldName="oauth1-private-key" secretName="privateKey" value={oauth1.privateKey} collection={collection} item={item} fieldKey="privateKey" onReplaceValue={handlePrivateKeyChange} />
               </div>
               <div className="flex flex-row gap-2">
                 <button
-                  className="flex items-center gap-1 oauth1-icon cursor-pointer text-link"
+                  className="flex items-center gap-1 oauth1-icon cursor-pointer disabled:cursor-not-allowed text-link"
                   onClick={handleBrowse}
                   title="Select File"
                   type="button"
-                  disabled={disabled}
+                  disabled={readOnly}
                 >
                   <IconUpload size={14} />
                   <span className="text-xs">Upload File</span>
@@ -279,13 +281,15 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
 
       <div className="flex items-center gap-4 w-full">
         <label className="block min-w-[140px]">Add Params To</label>
-        <div className="inline-flex items-center cursor-pointer oauth1-dropdown-selector">
+        <div className={`inline-flex items-center ${readOnly ? 'cursor-not-allowed' : 'cursor-pointer'} oauth1-dropdown-selector`}>
           <MenuDropdown
+            disabled={readOnly}
             items={Object.entries(placementLabels).map(([value, label]) => ({
               id: value,
               label,
               onClick: () => handleChange('placement', value)
             }))}
+            data-testid="oauth1-placement-dropdown"
             selectedItemId={oauth1.placement}
             placement="bottom-end"
           >
@@ -312,13 +316,13 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
           <input
             type="checkbox"
             checked={oauth1.includeBodyHash || false}
-            disabled={disabled}
+            disabled={readOnly}
             onChange={(e) => handleChange('includeBodyHash', e.target.checked)}
           />
           <label
-            className={`block ${disabled ? '' : 'cursor-pointer'}`}
+            className={`block ${readOnly ? 'cursor-not-allowed' : 'cursor-pointer'}`}
             onClick={(e) => {
-              if (disabled) {
+              if (readOnly) {
                 return;
               }
               e.preventDefault();
@@ -333,7 +337,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
       {/* Advanced Section (collapsible) */}
       <button
         type="button"
-        className="flex items-center gap-2.5 mt-2 cursor-pointer select-none auth-section-toggle"
+        className="flex items-center gap-2.5 mt-2 cursor-pointer select-none"
         onClick={() => setAdvancedOpen(!advancedOpen)}
         aria-expanded={advancedOpen}
       >
@@ -362,7 +366,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 onRun={handleRun}
                 collection={collection}
                 item={item}
-                readOnly={disabled}
+                readOnly={readOnly}
                 isCompact
               />
             </div>
@@ -379,7 +383,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 onRun={handleRun}
                 collection={collection}
                 item={item}
-                readOnly={disabled}
+                readOnly={readOnly}
                 isCompact
               />
             </div>
@@ -396,7 +400,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 onRun={handleRun}
                 collection={collection}
                 item={item}
-                readOnly={disabled}
+                readOnly={readOnly}
                 isCompact
               />
             </div>
@@ -413,7 +417,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 onRun={handleRun}
                 collection={collection}
                 item={item}
-                readOnly={disabled}
+                readOnly={readOnly}
                 isCompact
               />
             </div>
@@ -430,7 +434,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 onRun={handleRun}
                 collection={collection}
                 item={item}
-                readOnly={disabled}
+                readOnly={readOnly}
                 isCompact
               />
             </div>
@@ -447,7 +451,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 onRun={handleRun}
                 collection={collection}
                 item={item}
-                readOnly={disabled}
+                readOnly={readOnly}
                 isCompact
               />
             </div>

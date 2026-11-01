@@ -1,11 +1,12 @@
 import React from 'react';
-import DocsTagList from '../DocsTagList';
+import TagPicker from 'components/TagPicker';
 import StyledWrapper from './StyledWrapper';
 
 const IncludeExcludeTags = ({
   tags = { include: [], exclude: [] },
   availableTags = [],
   onChange,
+  dataTestId,
   className = ''
 }) => {
   const include = tags.include || [];
@@ -41,11 +42,11 @@ const IncludeExcludeTags = ({
   };
 
   return (
-    <StyledWrapper className={className}>
+    <StyledWrapper className={className} data-testid={dataTestId}>
       <div className="tags-columns">
-        <div className="tags-column">
+        <div className="tags-column" data-testid="include-tags">
           <span className="tags-label">Include Tags</span>
-          <DocsTagList
+          <TagPicker
             tags={include}
             tagsHintList={tagsHintList}
             handleAddTag={(tag) => handleAddTag(tag, 'include')}
@@ -55,16 +56,16 @@ const IncludeExcludeTags = ({
             placeholder="e.g. Production ready"
           />
         </div>
-        <div className="tags-column">
+        <div className="tags-column" data-testid="exclude-tags">
           <span className="tags-label">Exclude Tags</span>
-          <DocsTagList
+          <TagPicker
             tags={exclude}
             tagsHintList={tagsHintList}
             handleAddTag={(tag) => handleAddTag(tag, 'exclude')}
             handleRemoveTag={(tag) => handleRemoveTag(tag, 'exclude')}
             handleValidation={handleValidation}
             ariaLabel="Exclude Tags"
-            placeholder="e.g, Work in progress"
+            placeholder="e.g. Work in progress"
           />
         </div>
       </div>
