@@ -145,4 +145,4 @@ Several are pinned to majors below the latest — do **not** assume the newest A
 - **Hard pins in root `package.json` `overrides`: axios `1.16.0`, rollup `3.30.0`.** Bumping these
   in a leaf package has no effect — change the root override.
 - **TypeScript is not uniform**: bruno-common `^5.8`, bruno-schema-types `^5.0`, but
-  bruno-converters/filestore/graphql-docs/query/requests are `^4.8`. There is no root TS dep.
+  bruno-converters/filestore/io/graphql-docs/query/requests are `^4.8`. There is no root TS dep.
