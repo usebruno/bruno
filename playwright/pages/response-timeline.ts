@@ -1,4 +1,4 @@
-import { Page } from '..';
+import { Locator, Page } from '..';
 import { escapeRegExp } from '../support/helpers';
 import { readLastHopRequestHeaderLines, readRequestHops } from './app-shell/network-log';
 
@@ -28,3 +28,25 @@ export const buildTimelineHeaderLocators = (page: Page) => {
 
   return { table, rows, headerLines, row, value, networkTab, lastHopRequestHeaderLines, requestHops };
 };
+
+const buildTimelineHeaderRow = (page: Page, item: Locator, name: string) =>
+  item.getByTestId('tl-header-row-request').filter({
+    has: page.getByTestId('tl-header-name-request').and(page.getByText(name, { exact: true }))
+  });
+
+/**
+ * Locators for the request timeline (items, network logs, header rows).
+ */
+export const buildTimelineLocators = (page: Page) => ({
+  items: () => page.getByTestId('timeline-item'),
+  lastItem: () => page.getByTestId('timeline-item').last(),
+  itemHeader: (item: Locator) => item.getByTestId('timeline-item-header'),
+  clearButton: () => page.getByRole('button', { name: 'Clear Timeline' }),
+  container: () => page.getByTestId('timeline-container'),
+  entries: () => page.getByTestId('timeline-container').getByTestId('timeline-entry'),
+  networkButton: (item: Locator) => item.getByRole('button', { name: 'Network' }),
+  networkLogs: (item: Locator) => item.locator('.network-logs-container'),
+  headerRow: (item: Locator, name: string) => buildTimelineHeaderRow(page, item, name),
+  headerValue: (item: Locator, name: string) =>
+    buildTimelineHeaderRow(page, item, name).getByTestId('tl-header-value-request')
+});

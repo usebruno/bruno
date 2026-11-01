@@ -115,3 +115,14 @@ export const addTestScript = async (page: Page, content: string) => {
     await editCodeMirrorEditor(page, 'test-script-editor', content);
   });
 };
+
+/**
+ * Locators for the AI Assist triggers in the request pane and settings tab bars.
+ */
+export const buildAiAssistLocators = (page: Page) => ({
+  trigger: (scriptType: string) => page.getByTestId(`ai-assist-trigger-${scriptType}`),
+  requestPaneTabBarTrigger: (scriptType: string) =>
+    page.locator('[data-testid="request-pane"] [role="tablist"]').getByTestId(`ai-assist-trigger-${scriptType}`),
+  settingsTabBarTrigger: (scriptType: string) =>
+    page.getByTestId('settings-tab-bar').getByTestId(`ai-assist-trigger-${scriptType}`)
+});

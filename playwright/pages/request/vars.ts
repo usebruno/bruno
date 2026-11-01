@@ -19,3 +19,15 @@ export const addVarsRow = async (page: Page, tableId: string, name: string, valu
     await page.keyboard.insertText(value);
   });
 };
+
+/**
+ * Locators for the folder or collection Vars panel.
+ * @returns A function of the panel scope ('folder' | 'collection') that returns its locators
+ */
+export const buildVarsPanelLocators = (page: Page) => (scope: 'folder' | 'collection') => {
+  const container = () => page.getByTestId(`${scope}-vars-panel`);
+  return {
+    container,
+    saveButton: () => container().getByRole('button', { name: 'Save', exact: true })
+  };
+};

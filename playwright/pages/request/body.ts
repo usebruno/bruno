@@ -105,3 +105,10 @@ export const setTextBody = async (page: Page, value: string) => {
   await request.bodyEditor().locator('.CodeMirror').first().click();
   await page.keyboard.type(value);
 };
+
+/**
+ * Locators for the file picker used by file and multipart body fields.
+ */
+export const buildFilePickerLocators = (page: Page) => ({
+  warningTooltip: () => page.getByTestId('file-picker-warning-tooltip')
+});

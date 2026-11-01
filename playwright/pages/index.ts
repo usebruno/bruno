@@ -1,12 +1,12 @@
 /**
  * Single entry point for page objects used by specs.
- *
- * Temporarily re-exports the legacy page layer from tests/utils/page,
- * along with page objects missing from its barrel. Once migration is
- * complete, only local page objects will be exported.
  */
 
+// Temporarily re-exports the legacy page layer from tests/utils/page
 export * from '../../tests/utils/page';
+
+/* Local page objects */
+
 export * from './api-spec';
 export * from './response-example';
 export * from './request-tabs';
@@ -45,3 +45,12 @@ export * from './request/app';
 export * from './shared-ui/code-editor-links';
 export * from './variable/tooltip';
 export * from './shared-ui/virtual-list';
+export * from './runner';
+export * from './shared-ui/code-editor-search';
+export * from './variable/variables-tab';
+export * from './shared-ui/autocomplete';
+export * from './request/generate-code';
+export * from './request/graphql-query-builder';
+export * from './shared-ui/code-editor-hints';
+export * from './collection/git-clone';
+export * from './locators';

@@ -169,3 +169,16 @@ export const addCollectionScript = async (
 };
 
 export type SandboxMode = 'safe' | 'developer';
+
+/**
+ * Builds locators for sandbox mode settings
+ * @param page - The Playwright page object
+ * @returns Object with locators for sandbox elements
+ */
+export const buildSandboxLocators = (page: Page) => ({
+  sandboxModeSelector: () => page.getByTestId('sandbox-mode-selector'),
+  safeModeRadio: () => page.getByTestId('sandbox-mode-safe'),
+  developerModeRadio: () => page.getByTestId('sandbox-mode-developer'),
+  jsSandboxHeading: () => page.getByText('JavaScript Sandbox'),
+  saveButton: () => page.getByRole('button', { name: 'Save' })
+});
