@@ -2,7 +2,7 @@ import { execSync } from 'child_process';
 import { test, expect } from '../../../playwright';
 import { Page, ElectronApplication } from '@playwright/test';
 import path from 'path';
-import { waitForReadyPage } from '../../utils/page';
+import { createCollection, waitForReadyPage } from '../../utils/page';
 import { openCollection } from '../../utils/page/actions';
 import { buildCommonLocators } from '../../utils/page/locators';
 
@@ -15,6 +15,50 @@ const restartAppAndGetLocators = async (restartApp: (options?: { initUserDataPat
   const locators = buildCommonLocators(page);
   return { app, page, locators };
 };
+
+test.describe('Close all collections', () => {
+  test('TC-2621: Verify user is able to close all collections', async ({ page, createTmpDir }) => {
+    const firstCollectionName = 'CloseAllFirst';
+    const secondCollectionName = 'CloseAllSecond';
+    const { sidebar, modal, toast } = buildCommonLocators(page);
+    const removeCollectionsModal = modal.byTitle('Remove Collections');
+
+    await test.step('Create two collections in the sidebar', async () => {
+      const collectionsDirectory = await createTmpDir('TC-2621');
+      await createCollection(page, firstCollectionName, collectionsDirectory);
+      await createCollection(page, secondCollectionName, collectionsDirectory);
+      await expect(sidebar.collection(firstCollectionName)).toBeVisible();
+      await expect(sidebar.collection(secondCollectionName)).toBeVisible();
+    });
+
+    await test.step('Collections "..." menu shows Close all', async () => {
+      await sidebar.collectionsActionsMenu().click();
+      await expect(sidebar.closeAllCollectionsButton()).toBeVisible();
+      await expect(sidebar.closeAllCollectionsButton()).toHaveText('Close all');
+    });
+
+    await test.step('Close all opens the remove collections dialog', async () => {
+      await sidebar.closeAllCollectionsButton().click();
+      await expect(removeCollectionsModal).toBeVisible();
+      await expect(removeCollectionsModal).toContainText(/Are you sure you want to close all \d+ collections/);
+      await expect(removeCollectionsModal.getByText(firstCollectionName, { exact: true })).toBeVisible();
+      await expect(removeCollectionsModal.getByText(secondCollectionName, { exact: true })).toBeVisible();
+    });
+
+    await test.step('Remove All closes every collection', async () => {
+      await modal.button('Remove All').click();
+      await expect(removeCollectionsModal).toBeHidden();
+      await expect(toast.byMessage('Collections removed from workspace')).toBeVisible();
+      await expect(sidebar.collection()).toHaveCount(0);
+    });
+
+    await test.step('Sidebar shows the empty state with Create and Open', async () => {
+      await expect(sidebar.noCollectionsMessage()).toBeVisible();
+      await expect(sidebar.noCollectionsCreateLink()).toBeVisible();
+      await expect(sidebar.noCollectionsOpenLink()).toBeVisible();
+    });
+  });
+});
 
 // TODO: These tests need to be updated for the new workspace UI
 // The CollectionsHeader component (with collections-header-actions-menu-close-all) is not rendered in workspace mode
