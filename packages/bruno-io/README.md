@@ -4,7 +4,7 @@ Writes a converted collection to disk.
 
 ## Purpose
 
-`@usebruno/filestore` parses and stringifies Bruno files without touching the filesystem. This package takes a collection as returned by `@usebruno/converters` and writes it out as a collection directory that Bruno can open, using filestore's serializers for the file contents.
+Writes an in-memory collection (for example, one returned by `@usebruno/converters`) to disk as a collection directory that Bruno can open: the collection file, environments, folders and requests. File contents are serialized with `@usebruno/filestore`.
 
 ## Usage
 

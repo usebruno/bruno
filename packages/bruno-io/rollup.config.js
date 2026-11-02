@@ -3,22 +3,9 @@ const commonjs = require('@rollup/plugin-commonjs');
 const typescript = require('@rollup/plugin-typescript');
 const terser = require('@rollup/plugin-terser').default;
 const peerDepsExternal = require('rollup-plugin-peer-deps-external');
+const { isBuiltin } = require('module');
 const os = require('os');
-
 const packageJson = require('./package.json');
-
-const externalDeps = [
-  '@usebruno/filestore',
-  '@usebruno/schema-types',
-  /@usebruno\/schema-types\/.*/,
-  '@usebruno/common',
-  /@usebruno\/common\/.*/,
-  // Node built-ins
-  'fs',
-  'path',
-  'node:fs',
-  'node:path'
-];
 
 module.exports = [
   {
@@ -52,6 +39,6 @@ module.exports = [
         maxWorkers: Math.max(1, os.availableParallelism())
       })
     ],
-    external: externalDeps
+    external: (id) => isBuiltin(id) || id.startsWith('@usebruno/')
   }
 ];
