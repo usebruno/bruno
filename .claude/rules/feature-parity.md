@@ -48,11 +48,11 @@ bugs to the shared logic, not the reporting surface.
 
 - A new app runner option (tags, delay, bail) needs a `bru run` flag, or a stated reason.
 - Import: the app imports Postman, Insomnia, OpenAPI, WSDL and OpenCollection; `bru import`
-  (`commands/import.js`) only OpenAPI and WSDL. Changes to a shared converter affect both.
+  (`commands/import.js`) only OpenAPI, WSDL and Postman. Changes to a shared converter affect both.
 - **Known-divergent by design.** The CLI has no preferences store (so no `resolveInheritedSettings`),
   no Electron window, no system-browser OAuth, and no `@usebruno/schema` validation. Its runner
-  handles only `REQUEST_ITEM_TYPES = ['http-request', 'graphql-request']`
-  (`bruno-cli/src/utils/collection.js`).
+  supports only `http-request` and `graphql-request`: it has no gRPC or WebSocket transport, and
+  every request item goes through the HTTP pipeline in `runner/run-single-request.js`.
 
 ## 2. Persisted fields — every layer that carries a field list
 
@@ -81,6 +81,11 @@ default "safe" mode — bridges each method explicitly** in `bruno-js/src/sandbo
 (`bru.js`, `bruno-request.js`, `bruno-response.js`, `bruno-grpc.js`, …). Implementation only →
 works in developer mode, `undefined` for most users.
 
+The JSDoc on these classes is the source of the published script API reference. A new or changed
+member needs its JSDoc per `packages/bruno-js/readme.md` § "Script API JSDoc" — summary, typed
+tags, `@category`; `@internal` for host-only state; `@runtime nodevm` if the shim deliberately
+doesn't bridge it. Then run `npm run generate:script-api` and commit `types/script-api.d.ts`.
+
 ## 4. Scope levels — collection ↔ folder ↔ request
 
 Auth, headers, vars, scripts and tests exist at three levels plus `inherit`. Each level has its own
@@ -108,6 +113,7 @@ A new auth mode or a setting that changes the wire request should change the gen
 - [ ] Shared logic moved to a leaf package where the DAG allows, instead of patched twice
 - [ ] Persisted field carried through every layer in §2 — including migration and converters (both directions)
 - [ ] New/changed `bru.*`, `req.*`, `res.*` API bridged in the QuickJS shim
+- [ ] Its JSDoc written and `types/script-api.d.ts` regenerated, with no generator warnings
 - [ ] Collection / folder / request levels and `inherit` each decided
 - [ ] gRPC and WebSocket considered; any "HTTP only" scope stated
 - [ ] Code generation updated if the wire request changed

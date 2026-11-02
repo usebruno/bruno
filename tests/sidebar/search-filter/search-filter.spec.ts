@@ -1,6 +1,16 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
 import path from 'path';
-import { buildCommonLocators, collapseFolder, createApp, expandFolder, waitForReadyPage } from '../../utils/page';
+import {
+  buildCommonLocators,
+  collapseFolder,
+  createApp,
+  expandFolder,
+  waitForReadyPage,
+  createCollection,
+  createFolder,
+  createRequest,
+  expandCollection
+} from '../../utils/page';
 import { initBruCollection, writeBruRequest, writeBruFolder } from '../../utils/fixtures/bru-collection';
 
 const COLLECTION_NAME = 'SearchCol';
@@ -108,5 +118,77 @@ test.describe('Sidebar search filtering', () => {
     } finally {
       await closeElectronApp(app);
     }
+  });
+
+  test('TC-365: filters requests by the name typed in the search above the collection list', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+    const { sidebar } = buildCommonLocators(page);
+    const peopleCollection = 'people';
+    const healthCollection = 'health';
+    const accountsFolder = 'accounts';
+    const matchingRootRequest = 'list-users';
+    const otherRootRequest = 'list-orders';
+    const matchingFolderRequest = 'create-user';
+    const otherFolderRequest = 'delete-order';
+    const unrelatedRequest = 'ping';
+
+    await test.step('Create collections, a folder, and requests', async () => {
+      await createCollection(page, peopleCollection, await createTmpDir(peopleCollection));
+      await createRequest(page, matchingRootRequest, peopleCollection);
+      await createRequest(page, otherRootRequest, peopleCollection);
+      await createFolder(page, accountsFolder, peopleCollection);
+      await expandFolder(page, accountsFolder);
+      await createRequest(page, matchingFolderRequest, accountsFolder, { inFolder: true });
+      await createRequest(page, otherFolderRequest, accountsFolder, { inFolder: true });
+
+      await createCollection(page, healthCollection, await createTmpDir(healthCollection));
+      await createRequest(page, unrelatedRequest, healthCollection);
+
+      await expandCollection(page, peopleCollection);
+      await expandFolder(page, accountsFolder);
+    });
+
+    await test.step('Open the search above the collection list', async () => {
+      await sidebar.searchToggle().click();
+      await expect(sidebar.searchInput()).toBeVisible();
+
+      const searchBox = await sidebar.searchInput().boundingBox();
+      const collectionBox = await sidebar.collectionExact(peopleCollection).boundingBox();
+      expect(searchBox).not.toBeNull();
+      expect(collectionBox).not.toBeNull();
+      expect(searchBox!.y + searchBox!.height).toBeLessThanOrEqual(collectionBox!.y);
+    });
+
+    await test.step('Filter to requests whose name matches the keyword', async () => {
+      await sidebar.searchInput().fill('user');
+
+      // Requests, folders, and collections matching the search term are visible.
+      await expect(sidebar.itemByName(matchingRootRequest)).toBeVisible();
+      await expect(sidebar.itemByName(matchingFolderRequest)).toBeVisible();
+      await expect(sidebar.itemByName(accountsFolder)).toBeVisible();
+      await expect(sidebar.collectionExact(peopleCollection)).toBeVisible();
+
+      // Requests, folders, and collections not matching the search term are hidden.
+      await expect(sidebar.itemByName(otherRootRequest)).toBeHidden();
+      await expect(sidebar.itemByName(otherFolderRequest)).toBeHidden();
+      await expect(sidebar.itemByName(unrelatedRequest)).toBeHidden();
+      await expect(sidebar.collectionExact(healthCollection)).toBeHidden();
+    });
+
+    await test.step('Clearing the search shows every request again', async () => {
+      await sidebar.searchClear().click();
+      await expandCollection(page, peopleCollection);
+      await expandFolder(page, accountsFolder);
+      await expandCollection(page, healthCollection);
+
+      // All requests, folders, and collections are visible again after clearing the search.
+      await expect(sidebar.itemByName(matchingRootRequest)).toBeVisible();
+      await expect(sidebar.itemByName(matchingFolderRequest)).toBeVisible();
+      await expect(sidebar.itemByName(accountsFolder)).toBeVisible();
+      await expect(sidebar.collectionExact(peopleCollection)).toBeVisible();
+      await expect(sidebar.itemByName(otherRootRequest)).toBeVisible();
+      await expect(sidebar.itemByName(otherFolderRequest)).toBeVisible();
+      await expect(sidebar.itemByName(unrelatedRequest)).toBeVisible();
+      await expect(sidebar.collectionExact(healthCollection)).toBeVisible();
+    });
   });
 });

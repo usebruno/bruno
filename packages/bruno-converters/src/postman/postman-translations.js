@@ -186,20 +186,32 @@ const processRegexReplacement = (code) => {
   return code;
 };
 
-const postmanTranslation = (script) => {
+const firstLine = (message) => String(message ?? '').split('\n')[0];
+
+const postmanTranslation = (script, { onTranslationFailure, logFailures = true } = {}) => {
   let modifiedScript = Array.isArray(script) ? script.join('\n') : script;
   let translatedScript;
 
   try {
     translatedScript = translateCode(modifiedScript);
   } catch (e) {
-    console.warn('Error in postman translation:', e);
+    if (logFailures) {
+      console.warn('Error in postman translation:', e);
+    }
+    let fallback = 'regex';
 
     try {
       translatedScript = processRegexReplacement(modifiedScript);
     } catch (e) {
-      console.warn('Error in postman translation:', e);
+      if (logFailures) {
+        console.warn('Error in postman translation:', e);
+      }
       translatedScript = modifiedScript;
+      fallback = 'verbatim';
+    }
+
+    if (onTranslationFailure) {
+      onTranslationFailure({ message: firstLine(e?.message), fallback });
     }
   }
 

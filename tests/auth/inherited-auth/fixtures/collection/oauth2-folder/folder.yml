@@ -1,0 +1,23 @@
+info:
+  name: oauth2-folder
+  type: folder
+  seq: 3
+
+request:
+  auth:
+    type: oauth2
+    flow: client_credentials
+    accessTokenUrl: http://localhost:8081/api/auth/oauth2/client_credentials/token
+    credentials:
+      clientId: client_id_1
+      clientSecret: client_secret_1
+      placement: body
+    scope: admin
+    tokenConfig:
+      id: credentials
+      placement:
+        header: Bearer
+      source: access_token
+    settings:
+      autoFetchToken: false
+      autoRefreshToken: false

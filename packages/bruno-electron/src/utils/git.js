@@ -9,6 +9,9 @@ let collectionPathToGitRootPathMap = new Map();
 
 const simpleGitInstances = new Map();
 
+// core.longpaths lifts the 260-char path limit on Windows
+const createSimpleGit = (baseDir) => simpleGit({ baseDir, config: ['core.longpaths=true'] });
+
 const REMOTE_BRANCH_LISTING_TIMEOUT_MS = 10000;
 
 const getGitVersion = () => {
@@ -26,7 +29,7 @@ const getGitVersion = () => {
 const getSimpleGitInstanceForPath = (gitRootPath) => {
   let git = simpleGitInstances.get(gitRootPath);
   if (!git) {
-    git = simpleGit(gitRootPath);
+    git = createSimpleGit(gitRootPath);
     simpleGitInstances.set(gitRootPath, git);
   }
   return git;
@@ -274,7 +277,7 @@ const getStagedFileDiff = async (gitRootPath, filePath) => {
 
 const getRenamedFileDiff = async (gitRootPath, file) => {
   return new Promise((resolve, reject) => {
-    const git = simpleGit(gitRootPath);
+    const git = createSimpleGit(gitRootPath);
     git.diff(['--staged', '--', file.from, file.to], (err, stagedChanges) => {
       if (err) {
         reject(err);
