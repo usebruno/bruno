@@ -7,8 +7,11 @@ describe('GrpcMetadataList', () => {
     'content-type': 'application/grpc'
   };
 
-  function createList({ metadata = { ...defaultMetadata }, writable = true } = {}) {
-    return { list: new GrpcMetadataList(() => metadata, { writable }), metadata };
+  // A writable list edits the request it is given: `headers` is the map the client sends,
+  // `headerEntries` the ordered store. Both are created on demand.
+  function createList({ metadata = { ...defaultMetadata } } = {}) {
+    const request = { headers: metadata };
+    return { list: new GrpcMetadataList(request, { writable: true }), metadata, request };
   }
 
   describe('read methods', () => {
@@ -64,19 +67,33 @@ describe('GrpcMetadataList', () => {
       expect(labelled).toEqual(['#X-Token', '#content-type']);
       expect(list.reduce((acc, entry) => acc.concat(entry.key), [])).toEqual(['X-Token', 'content-type']);
     });
+
+    test('items returned by reads are copies of the store', () => {
+      const { list, request } = createList();
+      list.one('x-token').value = 'edited';
+      expect(request.headerEntries).toEqual([
+        { key: 'X-Token', value: 'abc123' },
+        { key: 'content-type', value: 'application/grpc' }
+      ]);
+    });
   });
 
   describe('write methods', () => {
-    test('upsert() adds a new key to the backing map', () => {
-      const { list, metadata } = createList();
+    test('upsert() adds a new key to the store and the backing map', () => {
+      const { list, metadata, request } = createList();
       list.upsert('x-request-id', 'req-1');
       expect(metadata['x-request-id']).toBe('req-1');
+      expect(request.headerEntries.at(-1)).toEqual({ key: 'x-request-id', value: 'req-1' });
     });
 
     test('upsert() with different casing replaces the existing entry instead of duplicating it', () => {
       const { list, metadata } = createList();
       list.upsert('x-token', 'updated');
       expect(metadata).toEqual({ 'x-token': 'updated', 'content-type': 'application/grpc' });
+      expect(list.all()).toEqual([
+        { key: 'content-type', value: 'application/grpc' },
+        { key: 'x-token', value: 'updated' }
+      ]);
     });
 
     test('upsert() ignores an empty or non-string key', () => {
@@ -100,22 +117,108 @@ describe('GrpcMetadataList', () => {
       expect(metadata).toEqual({ 'content-type': 'application/grpc' });
     });
 
-    test('clear() empties the backing map in place', () => {
-      const { list, metadata } = createList();
+    test('clear() empties the store and the backing map in place', () => {
+      const { list, metadata, request } = createList();
+      list.count();
+      const entries = request.headerEntries;
       list.clear();
       expect(metadata).toEqual({});
+      expect(request.headerEntries).toBe(entries);
+      expect(entries).toEqual([]);
+    });
+
+    test('a key named __proto__ becomes a real entry instead of touching the prototype', () => {
+      const { list, metadata } = createList({ metadata: {} });
+      list.upsert('__proto__', 'polluted');
+      expect(Object.keys(metadata)).toEqual(['__proto__']);
+      expect(Object.getPrototypeOf(metadata)).toBe(Object.prototype);
+      expect(list.get('__proto__')).toBe('polluted');
     });
   });
 
-  test('every write method throws on a read-only list', () => {
-    const { list, metadata } = createList({ writable: false });
+  describe('one key under several casings', () => {
+    // Collection-level `X-A` and request-level `x-a` both reach the request; the client sends both.
+    const createWithCasings = () => {
+      const request = {
+        headers: { 'X-A': '1', 'x-a': '2', 'b': '3' },
+        headerEntries: [
+          { key: 'X-A', value: '1' },
+          { key: 'x-a', value: '2' },
+          { key: 'b', value: '3' }
+        ]
+      };
+      return { list: new GrpcMetadataList(request, { writable: true }), request };
+    };
 
-    for (const method of ['upsert', 'add', 'remove', 'clear']) {
-      expect(() => list[method]('x-token', 'value')).toThrow(
-        `metadata.${method}() is not available once the call has been sent`
-      );
-    }
+    test('upsert() under another casing replaces the first casing and updates the exact key', () => {
+      const { list, request } = createWithCasings();
+      list.upsert('x-a', 'new');
+      expect(request.headers).toEqual({ 'x-a': 'new', 'b': '3' });
+      expect(list.get('X-A')).toBe('new');
+    });
 
-    expect(metadata).toEqual(defaultMetadata);
+    test('upsert() under the first casing updates it and leaves the other casing alone', () => {
+      const { list, request } = createWithCasings();
+      list.upsert('X-A', 'new');
+      expect(request.headers).toEqual({ 'X-A': 'new', 'x-a': '2', 'b': '3' });
+    });
+
+    test('upsert() under a third casing replaces the first casing and appends the new one', () => {
+      const { list, request } = createWithCasings();
+      list.upsert('X-a', 'new');
+      expect(request.headers).toEqual({ 'x-a': '2', 'b': '3', 'X-a': 'new' });
+      expect(list.map((entry) => entry.key)).toEqual(['x-a', 'b', 'X-a']);
+    });
+
+    test('remove() drops only the first casing', () => {
+      const { list, request } = createWithCasings();
+      list.remove('x-a');
+      expect(request.headers).toEqual({ 'x-a': '2', 'b': '3' });
+    });
+  });
+
+  describe('read-only snapshot', () => {
+    test('is built from the [{ name, value }] display rows', () => {
+      const rows = [{ name: 'content-type', value: 'application/grpc' }];
+      const list = new GrpcMetadataList(rows);
+      rows.push({ name: 'late', value: 'ignored' });
+      expect(list.all()).toEqual([{ key: 'content-type', value: 'application/grpc' }]);
+    });
+
+    test('no rows at all is an empty list', () => {
+      expect(new GrpcMetadataList(undefined).count()).toBe(0);
+    });
+
+    test('a snapshot is never writable', () => {
+      const list = new GrpcMetadataList([{ name: 'a', value: '1' }], { writable: true });
+      expect(() => list.upsert('a', '2')).toThrow(/beforeCallStart/);
+    });
+  });
+
+  describe('read-only request list (call already open)', () => {
+    test('reads the live store but every write method throws and leaves it alone', () => {
+      const metadata = { ...defaultMetadata };
+      const list = new GrpcMetadataList({ headers: metadata });
+      expect(list.get('x-token')).toBe('abc123');
+
+      for (const method of ['upsert', 'add', 'remove', 'clear']) {
+        expect(() => list[method]('x-token', 'value')).toThrow(
+          `metadata.${method}() is not available once the call has been sent`
+        );
+      }
+
+      expect(metadata).toEqual(defaultMetadata);
+    });
+  });
+
+  test('extends ReadOnlyPropertyList', () => {
+    const { list } = createList();
+    expect(list).toBeInstanceOf(ReadOnlyPropertyList);
+    expect(ReadOnlyPropertyList.isPropertyList(list)).toBe(true);
+  });
+
+  test('exposes no public own keys', () => {
+    const { list } = createList();
+    expect(Object.keys(list).filter((key) => !key.startsWith('_'))).toEqual([]);
   });
 });

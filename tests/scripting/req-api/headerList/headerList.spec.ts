@@ -11,8 +11,8 @@ test.describe.serial('req.headerList PropertyList API', () => {
     await selectEnvironment(page, 'Prod');
     await runFolder(page, 'bruno-testbench', ['scripting', 'api', 'req', 'headerList']);
     await validateRunnerResults(page, {
-      totalRequests: 13,
-      passed: 13,
+      totalRequests: 14,
+      passed: 14,
       failed: 0
     });
   });
@@ -22,8 +22,8 @@ test.describe.serial('req.headerList PropertyList API', () => {
     await selectEnvironment(page, 'Prod');
     await runFolder(page, 'bruno-testbench', ['scripting', 'api', 'req', 'headerList']);
     await validateRunnerResults(page, {
-      totalRequests: 13,
-      passed: 13,
+      totalRequests: 14,
+      passed: 14,
       failed: 0
     });
   });

@@ -75,6 +75,11 @@ describe('prepare-grpc-request: prepareGrpcRequest', () => {
       expect(result.headers['content-type']).toBe('application/grpc');
       expect(result.headers['authorization']).toBe('Bearer token123');
       expect(result.headers['user-agent']).toBe('bruno-client');
+      expect(result.headerEntries).toEqual([
+        { key: 'content-type', value: 'application/grpc' },
+        { key: 'authorization', value: 'Bearer token123' },
+        { key: 'user-agent', value: 'bruno-client' }
+      ]);
       expect(typeof result.headers['content-type']).toBe('string');
       expect(typeof result.headers['authorization']).toBe('string');
       expect(typeof result.headers['user-agent']).toBe('string');
@@ -89,6 +94,21 @@ describe('prepare-grpc-request: prepareGrpcRequest', () => {
       const result = await prepareGrpcRequest(mockItem, mockCollection, mockEnvironment, mockRuntimeVariables);
 
       expect(result.headers).toEqual({});
+      expect(result.headerEntries).toEqual([]);
+    });
+
+    it('should keep one entry per enabled name', async () => {
+      mockItem.request.headers = [
+        { name: 'x-on', value: 'on', enabled: true },
+        { name: 'x-off', value: 'off', enabled: false },
+        { name: '', value: 'nameless', enabled: true },
+        { name: 'x-on', value: 'last-wins', enabled: true }
+      ];
+
+      const result = await prepareGrpcRequest(mockItem, mockCollection, mockEnvironment, mockRuntimeVariables);
+
+      expect(result.headers).toEqual({ 'x-on': 'last-wins' });
+      expect(result.headerEntries).toEqual([{ key: 'x-on', value: 'last-wins' }]);
     });
   });
 });

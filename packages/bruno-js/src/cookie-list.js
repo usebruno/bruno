@@ -1,9 +1,9 @@
-const PropertyList = require('./property-list');
+const ReadOnlyPropertyList = require('./readonly-property-list');
 
 /*
  * CookieList — the `bru.cookies` API for reading and writing cookies in scripts.
  *
- * Extends PropertyList in dynamic mode: the cookie list is freshly read from the
+ * Extends ReadOnlyPropertyList in dynamic mode: the cookie list is freshly read from the
  * cookie jar on every access, and write operations delegate to the jar rather
  * than mutating an in-memory array.
  *
@@ -35,17 +35,17 @@ const PropertyList = require('./property-list');
  * |--------------------|--------------------------------------------------|----------------------|
  * | `has(name)`        | `true` if a cookie with that key exists          | `true`               |
  * | `has(name, value)` | `true` if key exists **and** value matches        | `false`              |
- * | `find(predicate)`  | First cookie matching the predicate function     | `{ key: 'sid', … }` |
- * | `filter(predicate)`| Array of cookies matching the predicate          | `[{ key: … }, …]`   |
- * | `indexOf(item)`    | Index of a structurally-equal cookie, or `-1`    | `0`                  |
+ * | `find(predicate, context?)`   | First cookie matching the predicate function     | `{ key: 'sid', … }` |
+ * | `filter(predicate, context?)` | Array of cookies matching the predicate          | `[{ key: … }, …]`   |
+ * | `indexOf(item)`    | Index of a cookie by string key or structurally-equal object, or `-1` | `0` |
  *
- * ## Iteration methods (inherited)
+ * ## Iteration methods (inherited; optional `context` binds `this` in callbacks)
  *
- * | Method                  | Description                                  |
- * |-------------------------|----------------------------------------------|
- * | `each(fn)`              | Calls `fn(cookie, index)` for every cookie   |
- * | `map(fn)`               | Returns a new array of mapped values         |
- * | `reduce(fn, initial?)`  | Reduces cookies to a single value            |
+ * | Method                           | Description                                  |
+ * |----------------------------------|----------------------------------------------|
+ * | `each(fn, context?)`             | Calls `fn(cookie, index)` for every cookie   |
+ * | `map(fn, context?)`              | Returns a new array of mapped values         |
+ * | `reduce(fn, initial?, context?)` | Reduces cookies to a single value            |
  *
  * ## Transform methods (inherited)
  *
@@ -60,6 +60,7 @@ const PropertyList = require('./property-list');
  * | Method                   | Description                                          |
  * |--------------------------|------------------------------------------------------|
  * | `add(cookieObj, cb?)`    | Alias for `upsert()` — sets a cookie in the jar      |
+ * | `append(cookieObj, cb?)` | Alias for `add()`                                    |
  * | `upsert(cookieObj, cb?)` | Sets (or replaces) a cookie in the jar                |
  * | `remove(name, cb?)`      | Deletes a single cookie by name (no-op if missing)    |
  * | `delete(name, cb?)`      | Alias for `remove()`                                  |
@@ -139,7 +140,7 @@ const PropertyList = require('./property-list');
  * The list is read from the cookie jar each time, so it reflects every change at once.
  * @extends {PropertyList<Cookie>}
  */
-class CookieList extends PropertyList {
+class CookieList extends ReadOnlyPropertyList {
   /**
    * @param {object} options
    * @param {Function} options.getUrl - Returns the interpolated request URL (or falsy if unavailable)
@@ -186,7 +187,20 @@ class CookieList extends PropertyList {
   }
 
   /**
-   * Store a cookie for the request's URL.
+   * Add a cookie to the jar (alias for {@link CookieList#add}).
+   *
+   * @param {object} cookieObj - Cookie object with at least `key` and `value`.
+   * @param {Function} [callback] - Optional `(error) => void` callback. If omitted, returns a Promise.
+   * @returns {Promise<void>|void} A Promise when no callback is given.
+   * @example
+   * await bru.cookies.append({ key: 'lang', value: 'en' });
+   */
+  append(cookieObj, callback) {
+    return this.add(cookieObj, callback);
+  }
+
+  /**
+   * Set (or replace) a cookie in the jar for the current request URL.
    *
    * It replaces a cookie with the same name, domain and path. Fails when `cookieObj` is not an
    * object or has no `key`.
