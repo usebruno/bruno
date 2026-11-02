@@ -203,8 +203,8 @@ npx playwright test --ui
 # Run in headed mode (see browser)
 npx playwright test --headed
 
-# Run with specific browser
-npx playwright test --project="Bruno Electron App"
+# Run a single project (default, auth, ssl, system-pac, mock-server)
+npx playwright test --project=ssl
 
 # Run with debugging
 npx playwright test --debug
@@ -600,36 +600,23 @@ npx playwright show-trace test-results/trace-*.zip
 
 ## Configuration
 
-The Playwright configuration is in `playwright.config.ts`:
+The Playwright configs stay at the repo root:
 
-```typescript
-export default defineConfig({
-  testDir: './tests',
-  fullyParallel: tue,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: undefined,
+- `playwright.config.ts` defines five projects, routed by folder under `e2e/tests/`:
 
-  projects: [
-    {
-      name: 'Bruno Electron App'
-    }
-  ],
+  | Project | Runs |
+  |---|---|
+  | `default` | everything except the folders below |
+  | `auth` | `e2e/tests/auth/` |
+  | `ssl` | `e2e/tests/ssl/` |
+  | `system-pac` | `e2e/tests/proxy/system-pac/` |
+  | `mock-server` | `e2e/tests/mock-server/` |
 
-  webServer: [
-    {
-      command: 'npm run dev:web',
-      url: 'http://localhost:3000',
-      reuseExistingServer: !process.env.CI
-    },
-    {
-      command: 'npm start --workspace=packages/bruno-tests',
-      url: 'http://localhost:8081/ping',
-      reuseExistingServer: !process.env.CI
-    }
-  ]
-});
-```
+  It also starts the web dev server and the test API server (`packages/bruno-tests`, port 8081) before the run.
+- `playwright.benchmark.config.ts` runs the `*.bench.ts` files in `e2e/tests/benchmarks/`.
+- `playwright.merge.config.ts` merges sharded CI reports.
+
+Both run configs set `tsconfig: './e2e/tsconfig.json'`, which provides the `@e2e/*` import aliases.
 
 ## Additional Resources
 
