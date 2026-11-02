@@ -1,4 +1,6 @@
 import jsyaml from 'js-yaml';
+import SwaggerParser from '@apidevtools/swagger-parser';
+import { test as isValidPathTemplate } from 'openapi-path-templating';
 import { exportApiSpec } from './openapi-spec';
 import path from 'path';
 import openApiToBruno from '../../../../bruno-converters/src/openapi/openapi-to-bruno';
@@ -1061,7 +1063,7 @@ describe('exportApiSpec - a variable that could not be resolved', () => {
       name: 'Test API'
     });
 
-    expect(pathsIn(content)).toEqual(['/api/v1/{{secret-var}}/github']);
+    expect(pathsIn(content)).toEqual(['/api/v1/{secret-var}/github']);
     expect(content).not.toContain('%7B');
   });
 
@@ -1088,5 +1090,202 @@ describe('exportApiSpec - a variable that could not be resolved', () => {
     });
 
     expect(pathsIn(content)).toEqual(['/api/v1/a%20b']);
+  });
+});
+
+describe('exportApiSpec - secrets and other placeholders left unfilled', () => {
+  const itemWithUrl = (url, request = {}) => ({
+    name: 'Request',
+    type: 'http-request',
+    pathname: path.join('collection', 'Request.bru'),
+    depth: 1,
+    request: { url, method: 'GET', params: [], headers: [], body: {}, auth: {}, ...request }
+  });
+
+  const exportUrl = (url, { variables = {}, environments, request } = {}) => {
+    const { content } = exportApiSpec({ variables, items: [itemWithUrl(url, request)], name: 'Test API', environments });
+    const spec = jsyaml.load(content);
+    const [specPath] = Object.keys(spec.paths);
+    return { content, spec, specPath, operation: spec.paths[specPath].get };
+  };
+
+  const pathParam = (name) => ({ name, in: 'path', required: true, example: `{{${name}}}`, schema: { type: 'string' } });
+
+  const expectValidSpec = async (content) => {
+    await expect(SwaggerParser.validate(jsyaml.load(content))).resolves.toBeDefined();
+
+    Object.entries(jsyaml.load(content).paths).forEach(([specPath, pathItem]) => {
+      expect(isValidPathTemplate(specPath)).toBe(true);
+      const templateNames = [...specPath.matchAll(/\{([^{}]+)\}/g)].map((m) => m[1]);
+      Object.values(pathItem).forEach((operation) => {
+        const declared = (operation.parameters || []).filter((p) => p.in === 'path').map((p) => p.name);
+        templateNames.forEach((name) => expect(declared).toContain(name));
+      });
+    });
+  };
+
+  it('turns a secret left in a request path into a path parameter with its placeholder as the example', async () => {
+    const { content, specPath, operation } = exportUrl('https://test.com/{{secvar}}/{{var}}', { variables: { var: 'env-var-value' } });
+
+    expect(specPath).toBe('/{secvar}/env-var-value');
+    expect(operation.servers).toEqual([{ url: 'https://test.com' }]);
+    expect(operation.parameters).toEqual([pathParam('secvar')]);
+    await expectValidSpec(content);
+  });
+
+  it('gives every secret in the path its own path parameter and still fills in normal variables', async () => {
+    const { content, specPath, operation } = exportUrl('https://hooks.test/{{$secrets.vault.token}}/x/{{secret1}}/y/{{variable}}', {
+      variables: { variable: 'abc' }
+    });
+
+    expect(specPath).toBe('/{$secrets.vault.token}/x/{secret1}/y/abc');
+    expect(operation.parameters).toEqual([pathParam('$secrets.vault.token'), pathParam('secret1')]);
+    await expectValidSpec(content);
+  });
+
+  it('turns placeholders in a base url request path into path parameters', async () => {
+    const { content, specPath, operation } = exportUrl('{{baseUrl}}/users/{{id}}/orders', { variables: { baseUrl: 'https://api.test' } });
+
+    expect(specPath).toBe('/users/{id}/orders');
+    expect(operation.parameters).toEqual([pathParam('id')]);
+    await expectValidSpec(content);
+  });
+
+  it('fills request variables into a request level base url override path and leaves secrets as path parameters', async () => {
+    const { content, specPath, operation } = exportUrl('{{baseUrl}}/files/{{folder}}/{{secret}}', {
+      variables: { baseUrl: 'https://api.test' },
+      request: {
+        vars: {
+          req: [
+            { name: 'baseUrl', value: 'https://files.test', enabled: true },
+            { name: 'folder', value: 'request-value', enabled: true }
+          ]
+        }
+      }
+    });
+
+    expect(specPath).toBe('/files/request-value/{secret}');
+    expect(operation.servers).toEqual([{ url: 'https://files.test' }]);
+    expect(operation.parameters).toEqual([pathParam('secret')]);
+    await expectValidSpec(content);
+  });
+
+  it('declares a repeated placeholder once and does not repeat a path param from the params list', () => {
+    const { operation } = exportUrl('https://api.test/{{id}}/{{id}}/{{userId}}', {
+      request: { params: [{ name: 'userId', value: '7', type: 'path', enabled: true }] }
+    });
+
+    expect(operation.parameters.filter((p) => p.in === 'path').map((p) => p.name)).toEqual(['userId', 'id']);
+  });
+
+  it('writes a secret used in an environment base url as its placeholder text', async () => {
+    const environments = [{
+      name: 'Prod',
+      variables: [
+        { name: 'baseUrl', value: 'https://{{region}}.api.test/{{apiKey}}', enabled: true },
+        { name: 'region', value: 'eu', enabled: true },
+        { name: 'apiKey', value: 'decrypted-secret', enabled: true, secret: true }
+      ]
+    }];
+
+    const { content, spec } = exportUrl('{{baseUrl}}/users', { environments });
+
+    expect(spec.servers).toEqual([{
+      url: 'https://{region}.api.test/{apiKey}',
+      variables: { region: { default: 'eu' }, apiKey: { default: '{{apiKey}}' } },
+      description: 'Prod'
+    }]);
+    expect(content).not.toContain('decrypted-secret');
+    await expectValidSpec(content);
+  });
+
+  it('exports an environment whose base url is itself a secret as a placeholder server', async () => {
+    const environments = [
+      { name: 'Prod', variables: [{ name: 'baseUrl', value: 'https://secret-host.test', enabled: true, secret: true }] },
+      { name: 'Staging', variables: [{ name: 'baseUrl', value: 'https://staging.test', enabled: true }] }
+    ];
+
+    const { content, spec } = exportUrl('{{baseUrl}}/users', { environments });
+
+    expect(spec.servers).toEqual([
+      { url: '{baseUrl}', variables: { baseUrl: { default: '{{baseUrl}}' } }, description: 'Prod' },
+      { url: 'https://staging.test', description: 'Staging' }
+    ]);
+    expect(content).not.toContain('secret-host');
+    await expectValidSpec(content);
+  });
+
+  it('keeps the spelling of a secret left in a request host and writes its placeholder text as the default', async () => {
+    const { content, operation } = exportUrl('https://{{tenantToken}}.api.test:{{port}}/data', { variables: { port: '8443' } });
+
+    expect(operation.servers).toEqual([{
+      url: 'https://{tenantToken}.api.test:8443',
+      variables: { tenantToken: { default: '{{tenantToken}}' } }
+    }]);
+    await expectValidSpec(content);
+  });
+
+  it('uses a secret at the start of the url as the server', async () => {
+    const { content, specPath, operation } = exportUrl('{{apiHost}}/users/{{id}}');
+
+    expect(specPath).toBe('/users/{id}');
+    expect(operation.servers).toEqual([{ url: '{apiHost}', variables: { apiHost: { default: '{{apiHost}}' } } }]);
+    expect(operation.parameters).toEqual([pathParam('id')]);
+    await expectValidSpec(content);
+  });
+
+  it('keeps a port after a secret at the start of the url in the server', async () => {
+    const { content, specPath, operation } = exportUrl('{{apiHost}}:8080/users?limit=10');
+
+    expect(specPath).toBe('/users');
+    expect(operation.servers[0].url).toBe('{apiHost}:8080');
+    await expectValidSpec(content);
+  });
+
+  it('does not turn placeholders in a base url query string into path parameters', () => {
+    const { specPath, operation } = exportUrl('{{baseUrl}}/users?key={{apiKey}}', { variables: { baseUrl: 'https://api.test' } });
+
+    expect(specPath).toBe('/users?key={{apiKey}}');
+    expect(operation.parameters).toBeUndefined();
+  });
+
+  it('keeps OAuth2 and process env placeholders out of the path and host as valid placeholders', async () => {
+    const { content, specPath, operation } = exportUrl('https://{{process.env.HOST}}/x/{{$oauth2.cred.access_token}}');
+
+    expect(specPath).toBe('/x/{$oauth2.cred.access_token}');
+    expect(operation.servers).toEqual([{
+      url: 'https://{process.env.HOST}',
+      variables: { 'process.env.HOST': { default: '{{process.env.HOST}}' } }
+    }]);
+    expect(operation.parameters).toEqual([pathParam('$oauth2.cred.access_token')]);
+    await expectValidSpec(content);
+  });
+
+  it('re-imports into Bruno with secrets still pointing at the variables they came from', () => {
+    const environments = [{
+      name: 'Prod',
+      variables: [
+        { name: 'baseUrl', value: 'https://{{region}}.api.test/{{apiKey}}', enabled: true },
+        { name: 'region', value: 'eu', enabled: true },
+        { name: 'apiKey', value: 'decrypted-secret', enabled: true, secret: true }
+      ]
+    }];
+    const { content } = exportApiSpec({
+      variables: { var: 'env-var-value' },
+      items: [
+        itemWithUrl('https://test.com/{{secvar}}/{{var}}'),
+        { ...itemWithUrl('https://{{tenantToken}}.api.test/data'), name: 'Tenant', pathname: path.join('collection', 'Tenant.bru') }
+      ],
+      name: 'Test API',
+      environments
+    });
+
+    const collection = openApiToBruno(jsyaml.load(content));
+    const [request, tenant] = collection.items;
+
+    expect(request.request.url).toBe('{{baseUrl}}/:secvar/env-var-value');
+    expect(request.request.params.filter((p) => p.type === 'path').map((p) => [p.name, p.value])).toEqual([['secvar', '{{secvar}}']]);
+    expect(tenant.request.vars.req.map((v) => [v.name, v.value])).toEqual([['baseUrl', 'https://{{tenantToken}}.api.test']]);
+    expect(collection.environments[0].variables.find((v) => v.name === 'apiKey')).toMatchObject({ value: '', secret: true });
   });
 });

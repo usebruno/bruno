@@ -224,6 +224,67 @@ servers:
   });
 });
 
+describe('server variables whose default is their own placeholder', () => {
+  const spec = `
+openapi: '3.0.0'
+info:
+  title: 'Placeholder Defaults API'
+  version: '1.0.0'
+servers:
+  - url: 'https://{region}.api.test/{apiKey}'
+    description: 'Prod'
+    variables:
+      region:
+        default: 'eu'
+      apiKey:
+        default: '{{apiKey}}'
+paths:
+  /data:
+    get:
+      summary: 'Tenant data'
+      servers:
+        - url: 'https://{tenantToken}.api.test'
+          variables:
+            tenantToken:
+              default: '{{tenantToken}}'
+      responses:
+        '200':
+          description: 'OK'
+`;
+
+  it('imports the variable as an empty secret in the environment', () => {
+    const env = openApiToBruno(spec).environments[0];
+
+    expect(env.variables.find((v) => v.name === 'apiKey')).toMatchObject({ value: '', secret: true });
+    expect(env.variables.find((v) => v.name === 'region')).toMatchObject({ value: 'eu', secret: false });
+  });
+
+  it('imports a server that is only a secret base url as a single empty secret base url', () => {
+    const secretBaseUrlSpec = `
+openapi: '3.0.0'
+info:
+  title: 'Secret Base Url API'
+  version: '1.0.0'
+servers:
+  - url: '{baseUrl}'
+    description: 'Prod'
+    variables:
+      baseUrl:
+        default: '{{baseUrl}}'
+paths: {}
+`;
+    const env = openApiToBruno(secretBaseUrlSpec).environments[0];
+
+    expect(env.variables.map((v) => [v.name, v.value, v.secret])).toEqual([['baseUrl', '', true]]);
+  });
+
+  it('does not add a request variable that would hide the environment value', () => {
+    const request = openApiToBruno(spec).items[0];
+
+    expect(request.request.vars.req.map((v) => [v.name, v.value])).toEqual([['baseUrl', 'https://{{tenantToken}}.api.test']]);
+  });
+});
+
 describe('operation-level servers to request vars', () => {
   it('should set request vars.req with baseUrl when operation has its own servers', () => {
     const spec = {

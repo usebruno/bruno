@@ -38,7 +38,9 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
       // each match m is an array where m[0] is the full match (e.g. {{protocol}}) and m[1] is the capture group (e.g. protocol).
       matches.forEach((m) => {
         const varName = m[1];
-        serverVariables[varName] = { default: vars[varName] !== undefined ? String(vars[varName]) : '' };
+        // Secrets and variables without a value keep their placeholder text as a hint
+        const hasValue = Object.hasOwn(vars, varName) && vars[varName] !== undefined;
+        serverVariables[varName] = { default: hasValue ? String(vars[varName]) : `{{${varName}}}` };
       });
       if (Object.keys(serverVariables).length > 0) {
         entry.variables = serverVariables;
@@ -66,8 +68,10 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
   if (environments && environments.length > 0) {
     for (const env of environments) {
       const envVars = getEnabledVarsAsObject(env.variables);
-      if (envVars.baseUrl) {
-        baseUrlSources.push({ baseUrl: envVars.baseUrl, description: env.name, vars: envVars });
+      const isBaseUrlSecret = env.variables?.some((v) => v.name === 'baseUrl' && v.enabled && v.secret);
+      const baseUrl = isBaseUrlSecret ? '{{baseUrl}}' : envVars.baseUrl;
+      if (baseUrl) {
+        baseUrlSources.push({ baseUrl, description: env.name, vars: envVars });
       }
     }
   }
@@ -111,6 +115,12 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
 
   const restoreUnresolvedPlaceholders = (value) => value.replace(/%7B%7B(.*?)%7D%7D/gi, '{{$1}}');
 
+  // URL parsing lowercases the host, so restore each placeholder's spelling from the raw url
+  const restorePlaceholderCase = (value, rawUrl) => {
+    const originalNames = new Map([...rawUrl.matchAll(templateVarRegex)].map((m) => [m[1].toLowerCase(), m[1]]));
+    return value.replace(templateVarRegex, (match, name) => `{{${originalNames.get(name.toLowerCase()) ?? name}}}`);
+  };
+
   // Resolve a raw request URL to a path and optional operation-level server override.
   // Checks for request-level baseUrl overrides (vars.req), then {{baseUrl}} placeholder,
   // then known baseUrl sources. Falls back to full resolution for unknown URLs.
@@ -147,7 +157,16 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
       const urlDetails = new URL(resolvedUrl);
       return {
         url: restoreUnresolvedPlaceholders(urlDetails.pathname),
-        operationLevelServer: buildServerEntry(urlDetails.origin, variables)
+        operationLevelServer: buildServerEntry(restorePlaceholderCase(urlDetails.origin, rawUrl), variables)
+      };
+    }
+
+    if (resolvedUrl.startsWith('{{')) {
+      const urlWithoutQuery = resolvedUrl.split(/[?#]/)[0];
+      const slashIndex = urlWithoutQuery.indexOf('/');
+      return {
+        url: slashIndex === -1 ? '/' : urlWithoutQuery.slice(slashIndex),
+        operationLevelServer: buildServerEntry(slashIndex === -1 ? urlWithoutQuery : urlWithoutQuery.slice(0, slashIndex), variables)
       };
     }
 
@@ -156,7 +175,11 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
 
   const generatePaths = () => {
     const _items = items.map((item) => {
-      const { url, operationLevelServer } = resolveRequestUrl(item?.request?.url || '', item?.request?.vars?.req);
+      const { url: rawPath, operationLevelServer } = resolveRequestUrl(item?.request?.url || '', item?.request?.vars?.req);
+      const queryStart = rawPath.search(/[?#]/);
+      const pathOnly = queryStart === -1 ? rawPath : rawPath.slice(0, queryStart);
+      const placeholderNames = [...new Set([...pathOnly.matchAll(templateVarRegex)].map((m) => m[1]))];
+      const url = pathOnly.replace(templateVarRegex, '{$1}') + rawPath.slice(pathOnly.length);
       const { request } = item;
       const { method, params = [], headers = [], body, auth } = request || {};
 
@@ -164,7 +187,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
 
       const pathParamsRegex = /(?<!{){([^{}]+)}(?!})/g;
 
-      const pathMatches = url.match(pathParamsRegex) || [];
+      const pathMatches = rawPath.match(pathParamsRegex) || [];
 
       // Build known path param names from the params array
       const knownPathParamNames = new Set(
@@ -202,6 +225,15 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
             name,
             in: 'path',
             required: true
+          })),
+        ...placeholderNames
+          .filter((name) => !knownPathParamNames.has(name))
+          .map((name) => ({
+            name,
+            in: 'path',
+            required: true,
+            example: `{{${name}}}`,
+            schema: { type: 'string' }
           }))
       ];
 
@@ -554,11 +586,11 @@ const generateInfoSection = (name) => {
   };
 };
 
-// Convert env variable array to { name: value } object (only enabled vars)
+// Convert env variable array to { name: value } object (only enabled, non-secret vars)
 const getEnabledVarsAsObject = (variables = []) => {
   const result = {};
   variables.forEach((v) => {
-    if (v.name && v.enabled) {
+    if (v.name && v.enabled && !v.secret) {
       result[v.name] = v.value;
     }
   });

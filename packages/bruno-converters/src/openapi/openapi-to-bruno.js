@@ -337,7 +337,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
   if (request.servers && request.servers.length > 0) {
     const serverVarPairs = extractServerVars(request.servers[0]);
     brunoRequestItem.request.vars = {
-      req: serverVarPairs.map((sv) => ({
+      req: serverVarPairs.filter((sv) => !sv.secret).map((sv) => ({
         uid: uuid(),
         name: sv.name,
         value: sv.value,
@@ -947,10 +947,15 @@ const extractServerVars = (server) => {
       baseUrlTemplate = baseUrlTemplate.replaceAll(`{${variableName}}`, `{{${variableName}}}`);
     });
     baseUrlTemplate = baseUrlTemplate.endsWith('/') ? baseUrlTemplate.slice(0, -1) : baseUrlTemplate;
-    vars.push({ name: 'baseUrl', value: baseUrlTemplate });
+    if (baseUrlTemplate !== '{{baseUrl}}') {
+      vars.push({ name: 'baseUrl', value: baseUrlTemplate });
+    }
     each(server.variables, (variable, variableName) => {
       let value = variable.default !== undefined ? variable.default : (variable.enum ? variable.enum[0] : '');
-      vars.push({ name: variableName, value: String(value) });
+      // Bruno exports secrets and variables without a value with their own placeholder as the default,
+      // so import them as empty secrets
+      const isPlaceholder = value === `{{${variableName}}}`;
+      vars.push({ name: variableName, value: isPlaceholder ? '' : String(value), secret: isPlaceholder });
     });
   } else {
     vars.push({ name: 'baseUrl', value: getDefaultUrl(server) });
@@ -1040,7 +1045,7 @@ export const parseOpenApiCollection = (data, options = {}) => {
         value: sv.value,
         type: 'text',
         enabled: true,
-        secret: false
+        secret: Boolean(sv.secret)
       }));
 
       brunoCollection.environments.push({
