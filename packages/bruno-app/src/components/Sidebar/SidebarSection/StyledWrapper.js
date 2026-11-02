@@ -17,11 +17,6 @@ const StyledWrapper = styled.div`
     &:not(.expanded) {
       flex: 0 0 auto;
     }
-
-    &.multi-expanded {
-      flex: 1 1 0%;
-      margin-bottom: 0;
-    }
   }
 
   .section-header {

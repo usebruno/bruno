@@ -26,6 +26,8 @@ const initialState = {
     startedAt: null
   },
   leftSidebarWidth: null,
+  sidebarSectionSizes: {},
+  sidebarExpandedSections: ['collections'],
   sidebarCollapsed: null,
   showSidebarSearch: false,
   focusedSidebarPath: null,
@@ -187,6 +189,27 @@ export const appSlice = createSlice({
     updateLeftSidebarWidth: (state, action) => {
       state.leftSidebarWidth = action.payload.leftSidebarWidth;
     },
+    updateSidebarSectionSizes: (state, action) => {
+      Object.entries(action.payload || {}).forEach(([sectionId, weight]) => {
+        if (typeof weight === 'number' && Number.isFinite(weight) && weight > 0) {
+          state.sidebarSectionSizes[sectionId] = weight;
+        }
+      });
+    },
+    setSidebarSectionExpanded: (state, action) => {
+      const { id, expanded } = action.payload;
+      const has = state.sidebarExpandedSections.includes(id);
+      if (expanded && !has) {
+        state.sidebarExpandedSections.push(id);
+      } else if (!expanded && has) {
+        state.sidebarExpandedSections = state.sidebarExpandedSections.filter((sectionId) => sectionId !== id);
+      }
+    },
+    setSidebarExpandedSections: (state, action) => {
+      if (Array.isArray(action.payload)) {
+        state.sidebarExpandedSections = action.payload.filter((id) => typeof id === 'string');
+      }
+    },
     updateIsDragging: (state, action) => {
       state.isDragging = action.payload.isDragging;
     },
@@ -298,6 +321,9 @@ export const {
   clearSnapshotHydrationSession,
   refreshScreenWidth,
   updateLeftSidebarWidth,
+  updateSidebarSectionSizes,
+  setSidebarSectionExpanded,
+  setSidebarExpandedSections,
   updateIsDragging,
   showHomePage,
   hideHomePage,
