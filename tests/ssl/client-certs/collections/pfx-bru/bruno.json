@@ -1,0 +1,17 @@
+{
+  "version": "1",
+  "name": "client-certs-pfx",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"],
+  "clientCertificates": {
+    "enabled": true,
+    "certs": [
+      {
+        "domain": "localhost",
+        "type": "pfx",
+        "pfxFilePath": "../../server/certs/client.pfx",
+        "passphrase": "bruno"
+      }
+    ]
+  }
+}

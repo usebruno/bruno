@@ -1,0 +1,49 @@
+info:
+  name: MessageHooksBidi
+  type: grpc
+  seq: 15
+
+grpc:
+  url: "{{host}}"
+  method: /hello.HelloService/BidiHello
+  methodType: bidi-streaming
+  message:
+    - title: message 1
+      message: |-
+        {
+          "greeting": "bidi-hook-1"
+        }
+    - title: message 2
+      message: |-
+        {
+          "greeting": "bidi-hook-2"
+        }
+
+runtime:
+  scripts:
+    - type: grpc:before-message-send
+      code: |-
+        // `messages` holds what has already gone out, so it lags this message by one.
+        const alreadySent = bru.grpc.request.messages.count();
+
+        test('outgoing message ' + (alreadySent + 1) + ' reaches the hook before it is streamed', () => {
+          expect(bru.grpc.request.message.data.greeting).to.equal('bidi-hook-' + (alreadySent + 1));
+        });
+    - type: grpc:after-message-receive
+      code: |-
+        test('a reply is handed to the hook as it arrives', () => {
+          expect(bru.grpc.response.message.data.reply).to.match(/^hello bidi-hook-[12]$/);
+        });
+
+        // The call only ends when the user ends it, so the terminal fields cannot be known here.
+        test('the response is partial while the stream is still open', () => {
+          expect(bru.grpc.response.statusCode).to.be.undefined;
+          expect(bru.grpc.response.duration).to.be.undefined;
+          expect(bru.grpc.response.trailers.count()).to.equal(0);
+        });
+    - type: grpc:after-call-end
+      code: |-
+        test('both messages were streamed and both replies came back', () => {
+          expect(bru.grpc.request.messages.count()).to.equal(2);
+          expect(bru.grpc.response.messages.count()).to.equal(2);
+        });

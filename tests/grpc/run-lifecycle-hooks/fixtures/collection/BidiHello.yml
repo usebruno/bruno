@@ -1,0 +1,42 @@
+info:
+  name: BidiHello
+  type: grpc
+  seq: 7
+
+grpc:
+  url: "{{host}}"
+  method: /hello.HelloService/BidiHello
+  methodType: bidi-streaming
+  message:
+    - title: message 1
+      message: |-
+        {
+          "greeting": "bidi-1"
+        }
+    - title: message 2
+      message: |-
+        {
+          "greeting": "bidi-2"
+        }
+    - title: message 3
+      message: |-
+        {
+          "greeting": "bidi-3"
+        }
+
+runtime:
+  scripts:
+    - type: grpc:after-call-end
+      code: |-
+        test('both streamed messages reach the hook, in order', () => {
+          expect(bru.grpc.request.messages.count()).to.equal(2);
+          expect(bru.grpc.request.messages.map((message) => message.data.greeting)).to.eql(['bidi-1', 'bidi-2']);
+        });
+
+        test('server replied to each message', () => {
+          expect(bru.grpc.response.messages.count()).to.equal(2);
+        });
+
+        test('call finished with OK', () => {
+          expect(bru.grpc.response.statusCode).to.equal(0);
+        });

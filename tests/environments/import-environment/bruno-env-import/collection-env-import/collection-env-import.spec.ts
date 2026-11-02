@@ -38,6 +38,7 @@ test.describe.serial('Collection Environment Import Tests', () => {
       await page.getByTestId('import-environment').click();
       const fileChooser = await fileChooserPromise;
       await fileChooser.setFiles(singleEnvFile);
+      await page.getByTestId('import-environment-modal-submit-btn').click();
     });
 
     await test.step('Verify imported environment and variables', async () => {
@@ -104,6 +105,7 @@ test.describe.serial('Collection Environment Import Tests', () => {
       await page.getByTestId('import-environment').click();
       const fileChooser = await fileChooserPromise;
       await fileChooser.setFiles(multiEnvFile);
+      await page.getByTestId('import-environment-modal-submit-btn').click();
 
       const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
       await expect(envTab).toBeVisible();
@@ -135,6 +137,8 @@ test.describe.serial('Collection Environment Import Tests', () => {
 
       // Verify prod environment variables
       const locators = buildCommonLocators(page);
+      await locators.environment.settingsListItem('prod').click();
+
       await expect(locators.environment.varRowValueCell('host')).toBeVisible();
 
       // secretToken was imported as a secret, so it lives on the Secrets tab, not Variables.

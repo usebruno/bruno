@@ -1,4 +1,10 @@
-import { splitOnFirst, parsePathParams, interpolateUrl, interpolateUrlPathParams } from './index';
+import {
+  splitOnFirst,
+  parsePathParams,
+  interpolateUrl,
+  interpolateUrlPathParams,
+  prependDefaultScheme
+} from './index';
 
 describe('Url Utils - parsePathParams', () => {
   it('should parse path - case 1', () => {
@@ -655,5 +661,36 @@ describe('Url Utils - interpolateUrlPathParams backward compatibility (encodeUrl
   it('#7: a%20b (pre-encoded) passes through raw (no double-encoding)', () => {
     expect(interpolateUrlPathParams(ACCEPTANCE_URL, accept('a%20b')))
       .toEqual('https://api.example.com/users/a%20b');
+  });
+});
+
+describe('Url Utils - prependDefaultScheme', () => {
+  it.each([
+    ['localhost:6000/echo-request', 'http://localhost:6000/echo-request'],
+    ['api.example.com/ping', 'http://api.example.com/ping'],
+    ['192.168.0.1:8080', 'http://192.168.0.1:8080']
+  ])('supplies http:// for the schemeless %s', (url, expected) => {
+    expect(prependDefaultScheme(url)).toEqual(expected);
+  });
+
+  it.each([
+    ['https://api.example.com/ping'],
+    ['http://localhost:6000/ping'],
+    ['ftp://files.example.com/pub']
+  ])('leaves %s alone — it already carries a scheme', (url) => {
+    expect(prependDefaultScheme(url)).toEqual(url);
+  });
+
+  // The variable may resolve to the scheme itself, so guessing here would produce
+  // `http://https://...`. Callers downstream stand a scheme in once they know.
+  it.each([['{{host}}/ping'], ['{{proto}}://api.example.com/ping']])(
+    'leaves a leading variable alone — %s',
+    (url) => {
+      expect(prependDefaultScheme(url)).toEqual(url);
+    }
+  );
+
+  it.each([[''], [undefined], [null]])('passes an empty url through untouched — %s', (url) => {
+    expect(prependDefaultScheme(url)).toEqual(url);
   });
 });

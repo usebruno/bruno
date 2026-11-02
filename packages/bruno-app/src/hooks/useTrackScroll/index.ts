@@ -10,10 +10,12 @@ export type UseTrackScrollOptions = {
   initialValue?: number;
   /** Ref to an element inside (or equal to) the scroll container. */
   ref?: RefObject<HTMLElement | null>;
-  /** CSS selector used with `closest()` to find the scrollable ancestor. Null/undefined = use `ref` directly. */
+  /** CSS selector for the actual scroll container, tried as a descendant of `ref` first (`querySelector`) then as an ancestor (`closest`). Null/undefined = use `ref` directly. */
   selector?: string | null;
   /** Set false to pause tracking (e.g. edit mode in Docs where CodeEditor handles its own scroll). */
   enabled?: boolean;
+  /** When false, skip restoring scroll on mount so a row-focus scroll can win. */
+  restoreOnMount?: boolean;
 };
 
 /**
@@ -28,10 +30,11 @@ export type UseTrackScrollOptions = {
  *   <CodeEditor initialScroll={scroll} onScroll={setScroll} />
  */
 export function useTrackScroll(options: UseTrackScrollOptions): void {
-  const { onChange, initialValue, ref, selector, enabled = true } = options;
+  const { onChange, initialValue, ref, selector, enabled = true, restoreOnMount = true } = options;
 
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollPosRef = useRef<number>(initialValue ?? 0);
+  const restoreOnMountRef = useRef(restoreOnMount);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
@@ -39,11 +42,15 @@ export function useTrackScroll(options: UseTrackScrollOptions): void {
     if (!enabled || !ref) return;
 
     const el: HTMLElement | null = selector
-      ? (ref.current?.closest(selector) as HTMLElement | null) ?? null
+      ? ((ref.current?.querySelector(selector) as HTMLElement | null)
+        ?? (ref.current?.closest(selector) as HTMLElement | null)
+        ?? null)
       : ref.current;
     if (!el) return;
 
-    el.scrollTop = scrollPosRef.current;
+    if (restoreOnMountRef.current) {
+      el.scrollTop = scrollPosRef.current;
+    }
 
     const handleScroll = () => {
       scrollPosRef.current = el.scrollTop;

@@ -772,4 +772,254 @@ vars {
       expect(output.variables[0].value).toBe(3000);
     });
   });
+
+  describe('extends', () => {
+    it('should parse the parent environment declared before the vars block', () => {
+      const input = `
+extends: base
+vars {
+  url: http://localhost:3000
+}
+`;
+
+      const output = parser(input);
+
+      expect(output).toEqual({
+        extends: 'base',
+        variables: [{ name: 'url', value: 'http://localhost:3000', enabled: true, secret: false }]
+      });
+    });
+
+    it('should parse the parent environment declared after the vars block', () => {
+      const input = `
+vars {
+  url: http://localhost:3000
+}
+extends: base
+`;
+
+      const output = parser(input);
+
+      expect(output.extends).toBe('base');
+    });
+
+    it('should parse the parent environment declared after the color', () => {
+      const input = `
+vars {
+  url: http://localhost:3000
+}
+color: blue
+extends: base
+`;
+
+      const output = parser(input);
+
+      expect(output.color).toBe('blue');
+      expect(output.extends).toBe('base');
+    });
+
+    it('should parse the blocks declared after the color', () => {
+      const input = `
+color: blue
+extends: base
+vars {
+  url: http://localhost:3000
+}
+`;
+
+      const output = parser(input);
+
+      expect(output).toEqual({
+        color: 'blue',
+        extends: 'base',
+        variables: [
+          {
+            name: 'url',
+            value: 'http://localhost:3000',
+            enabled: true,
+            secret: false
+          }
+        ]
+      });
+    });
+
+    it('should parse a parent name containing spaces', () => {
+      const input = `
+extends: Base Environment
+vars {
+}
+`;
+
+      const output = parser(input);
+
+      expect(output.extends).toBe('Base Environment');
+    });
+
+    it('should omit extends when no parent is named', () => {
+      const input = `
+extends:
+vars {
+}
+`;
+
+      const output = parser(input);
+
+      expect(output).toEqual({ variables: [] });
+    });
+
+    it('should leave extends absent for a file that does not declare it', () => {
+      const input = `
+vars {
+  url: http://localhost:3000
+}
+color: blue
+`;
+
+      const output = parser(input);
+
+      expect(output).not.toHaveProperty('extends');
+    });
+
+    it('should keep the last parent when extends is declared more than once', () => {
+      const input = `
+extends: base
+extends: staging
+vars {
+}
+`;
+
+      const output = parser(input);
+
+      expect(output.extends).toBe('staging');
+    });
+
+    it('should read a list of parents unresolved so that a save does not delete it', () => {
+      const input = `
+extends [
+  base,
+  staging
+]
+vars {
+  url: http://localhost:3000
+}
+`;
+
+      const output = parser(input);
+
+      expect(output.extends).toEqual(['base', 'staging']);
+    });
+
+    it('should read a list of parents whose names contain spaces', () => {
+      const input = `
+extends [
+  Base Environment,
+  staging server
+]
+vars {
+  url: http://localhost:3000
+}
+`;
+
+      const output = parser(input);
+
+      expect(output.extends).toEqual(['Base Environment', 'staging server']);
+    });
+
+    it('should read a quoted list entry whose name contains a comma as a single parent', () => {
+      const input = `
+extends [
+  "acme, inc",
+  staging
+]
+vars {
+}
+`;
+
+      const output = parser(input);
+
+      expect(output.extends).toEqual(['acme, inc', 'staging']);
+    });
+
+    it('should read a quoted list entry whose name contains brackets', () => {
+      const input = `
+extends [
+  "env[1]",
+  "[bracketed]",
+  "list]end"
+]
+vars {
+}
+`;
+
+      const output = parser(input);
+
+      expect(output.extends).toEqual(['env[1]', '[bracketed]', 'list]end']);
+    });
+
+    it('should omit a quoted list entry whose escaped quote no environment name could carry', () => {
+      const input = `
+extends [
+  "say \\"hi\\", ok"
+]
+vars {
+}
+`;
+
+      const output = parser(input);
+
+      expect(output).not.toHaveProperty('extends');
+    });
+
+    it('should omit the whole list when a bare entry carries a quote no environment name could carry', () => {
+      const input = `
+extends [
+  a"b,
+  staging
+]
+vars {
+}
+`;
+
+      const output = parser(input);
+
+      expect(output).not.toHaveProperty('extends');
+    });
+
+    it('should omit a parent named something no environment could be called', () => {
+      const input = `
+extends: reports/weekly
+vars {
+}
+`;
+
+      const output = parser(input);
+
+      expect(output).not.toHaveProperty('extends');
+    });
+
+    it('should omit an empty list of parents', () => {
+      const input = `
+extends [
+]
+vars {
+}
+`;
+
+      const output = parser(input);
+
+      expect(output).not.toHaveProperty('extends');
+    });
+
+    it('should read a bracketed value after the colon as a parent name, the list form taking no colon', () => {
+      const input = `
+extends: [base, staging]
+vars {
+}
+`;
+
+      const output = parser(input);
+
+      expect(output.extends).toBe('[base, staging]');
+    });
+  });
 });

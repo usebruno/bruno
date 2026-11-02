@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection } from '../../utils/page';
+import { closeAllCollections, createCollection, createFolder, createRequest } from '../../utils/page';
 
 test.describe.serial('Copy and Paste with Keyboard Shortcuts', () => {
   test.afterAll(async ({ page }) => {
@@ -8,17 +8,9 @@ test.describe.serial('Copy and Paste with Keyboard Shortcuts', () => {
 
   test('should copy and paste request using keyboard shortcuts', async ({ page, createTmpDir }) => {
     await createCollection(page, 'keyboard-test', await createTmpDir('keyboard-test'));
+    await createRequest(page, 'test-request', 'keyboard-test', { url: 'https://echo.usebruno.com' });
+
     const collection = page.locator('.collection-name').filter({ hasText: 'keyboard-test' });
-
-    // Create a request
-    await collection.hover();
-    await collection.locator('.collection-actions .icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
-    await page.getByPlaceholder('Request Name').fill('test-request');
-    await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://echo.usebruno.com');
-    await page.getByRole('button', { name: 'Create' }).click();
-
     const requestItem = page.locator('.collection-item-name').filter({ hasText: 'test-request' });
     await expect(requestItem).toBeVisible();
 
@@ -53,12 +45,7 @@ test.describe.serial('Copy and Paste with Keyboard Shortcuts', () => {
   test('should copy and paste folder using keyboard shortcuts', async ({ page }) => {
     const collection = page.locator('.collection-name').filter({ hasText: 'keyboard-test' });
 
-    // Create a folder
-    await collection.hover();
-    await collection.locator('.collection-actions .icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
-    await page.locator('#folder-name').fill('test-folder');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await createFolder(page, 'test-folder', 'keyboard-test');
 
     const folder = page.locator('.collection-item-name').filter({ hasText: 'test-folder' });
     await expect(folder).toBeVisible();

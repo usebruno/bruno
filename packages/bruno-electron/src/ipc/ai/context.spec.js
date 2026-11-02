@@ -6,7 +6,10 @@ const {
   formatRequestContext,
   formatVariablesList,
   searchVariables,
-  formatSearchVariablesResult
+  formatSearchVariablesResult,
+  formatRequestsList,
+  searchRequests,
+  formatSearchRequestsResult
 } = require('./context');
 
 describe('ipc/ai/context', () => {
@@ -350,6 +353,61 @@ describe('ipc/ai/context', () => {
       const out = formatSearchVariablesResult(searchVariables(many, 'token', 50), 'token');
       expect(out).toContain('Found 50 of 60');
       expect(out).toContain('(10 more match');
+    });
+  });
+
+  describe('searchRequests / formatRequestsList / formatSearchRequestsResult', () => {
+    const requests = [
+      { name: 'Login', method: 'POST', url: 'https://api/login', pathname: '/coll/Auth/Login.bru', folderPath: 'Auth', type: 'http-request' },
+      { name: 'Logout', method: 'POST', url: 'https://api/logout', pathname: '/coll/Auth/Logout.bru', folderPath: 'Auth', type: 'http-request' },
+      { name: 'GetUser', method: 'GET', url: 'https://api/users/{id}', pathname: '/coll/Users/GetUser.bru', folderPath: 'Users', type: 'http-request' },
+      { name: 'GraphQL Query', method: 'POST', url: 'https://api/gql', pathname: '/coll/gql.bru', folderPath: '', type: 'graphql-request' }
+    ];
+
+    it('formats the inline preview with method + folder-qualified name', () => {
+      const out = formatRequestsList(requests);
+      expect(out).toContain('POST Auth/Login');
+      expect(out).toContain('GET Users/GetUser');
+      expect(out).toContain('POST GraphQL Query');
+    });
+
+    it('adds a trailer when the collection exceeds the preview limit', () => {
+      const many = Array.from({ length: 40 }, (_, i) => ({
+        name: 'Req' + i, method: 'GET', url: '/r/' + i, pathname: '/p/' + i, folderPath: '', type: 'http-request'
+      }));
+      const out = formatRequestsList(many);
+      expect(out).toContain('(+15 more');
+    });
+
+    it('returns case-insensitive substring matches across name, url, pathname, folder', () => {
+      expect(searchRequests(requests, 'login').totalMatched).toBe(1);
+      expect(searchRequests(requests, 'auth').totalMatched).toBe(2);
+      expect(searchRequests(requests, 'users').totalMatched).toBe(1);
+      expect(searchRequests(requests, 'GQL').totalMatched).toBe(1);
+    });
+
+    it('exact-matches HTTP methods without letting "get" match every URL', () => {
+      const result = searchRequests(requests, 'get');
+      expect(result.totalMatched).toBe(1);
+      expect(result.items[0].name).toBe('GetUser');
+    });
+
+    it('returns every request for an empty query, capped at the limit', () => {
+      const result = searchRequests(requests, '', 50);
+      expect(result.items).toHaveLength(4);
+      expect(result.totalMatched).toBe(4);
+    });
+
+    it('formats matches with pathname so the model can pass it to bru.ctx.runRequest', () => {
+      const out = formatSearchRequestsResult(searchRequests(requests, 'login'), 'login');
+      expect(out).toContain('Found 1');
+      expect(out).toContain('POST Auth/Login');
+      expect(out).toContain('pathname: /coll/Auth/Login.bru');
+    });
+
+    it('says "no matches" when nothing matched the query', () => {
+      expect(formatSearchRequestsResult(searchRequests(requests, 'zzz'), 'zzz'))
+        .toBe('No requests match "zzz".');
     });
   });
 });

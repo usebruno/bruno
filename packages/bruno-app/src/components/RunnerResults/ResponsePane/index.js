@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import get from 'lodash/get';
 import classnames from 'classnames';
 import QueryResponse from 'components/ResponsePane/QueryResponse/index';
@@ -11,27 +11,29 @@ import TestResultsLabel from 'components/ResponsePane/TestResultsLabel';
 import StyledWrapper from './StyledWrapper';
 import SkippedRequest from 'components/ResponsePane/SkippedRequest';
 import RunnerTimeline from 'components/ResponsePane/RunnerTimeline';
-import ScriptError from 'components/ResponsePane/ScriptError';
-import ScriptErrorIcon from 'components/ResponsePane/ScriptErrorIcon';
+import ResponseAlertsSection from 'components/ResponsePane/ResponseAlertsSection';
+import ResponseErrorsIcon from 'components/ResponsePane/ResponseErrorsIcon';
+import useStoredRunnerExchange from 'hooks/useStoredRunnerExchange';
+import useResponsePaneErrors from 'hooks/useResponsePaneErrors';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const [selectedTab, setSelectedTab] = useState('response');
-  const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
 
-  const { requestSent, responseReceived, testResults, assertionResults, preRequestTestResults, postResponseTestResults, error } = item;
+  const { testResults, assertionResults, preRequestTestResults, postResponseTestResults, error } = item;
 
-  useEffect(() => {
-    if (item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage) {
-      setShowScriptErrorCard(true);
-    }
-  }, [item?.preRequestScriptErrorMessage, item?.postResponseScriptErrorMessage, item?.testScriptErrorMessage]);
+  const { requestSent, responseReceived: exchangeResponse } = useStoredRunnerExchange(item);
+  const responseReceived = exchangeResponse ?? {};
 
-  const headers = get(item, 'responseReceived.headers', []);
-  const status = get(item, 'responseReceived.status', 0);
-  const size = get(item, 'responseReceived.size', 0);
-  const duration = get(item, 'responseReceived.duration', 0);
+  const isResponseTabActive = selectedTab === 'response';
+  const responsePaneErrors = useResponsePaneErrors(item, collection, {
+    isResponseTabActive,
+    showResponseTab: () => setSelectedTab('response')
+  });
 
-  const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage;
+  const headers = get(responseReceived, 'headers', []);
+  const status = get(responseReceived, 'status', 0);
+  const size = get(responseReceived, 'size', 0);
+  const duration = get(responseReceived, 'duration', 0);
 
   const selectTab = (tab) => setSelectedTab(tab);
 
@@ -40,7 +42,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
       case 'response': {
         return (
           <QueryResponse
-            item={item}
+            item={{ ...item, requestSent, response: responseReceived }}
             collection={collection}
             width={rightPaneWidth}
             disableRunEventListener={true}
@@ -96,6 +98,16 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
     );
   }
 
+  const alertsSection = isResponseTabActive ? (
+    <ResponseAlertsSection item={item} collection={collection} responsePaneErrors={responsePaneErrors} />
+  ) : null;
+
+  const errorsIcon = responsePaneErrors.isCardClosed ? (
+    <div className="mr-2">
+      <ResponseErrorsIcon count={responsePaneErrors.errors.length} onClick={responsePaneErrors.reopenCard} />
+    </div>
+  ) : null;
+
   return (
     <StyledWrapper className="flex flex-col h-full relative overflow-auto">
       <div className="flex items-center tabs overflow-visible" role="tablist">
@@ -118,27 +130,15 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           />
         </div>
         <div className="flex flex-grow justify-end items-center">
-          {hasScriptError && !showScriptErrorCard && (
-            <ScriptErrorIcon
-              className="mr-2"
-              itemUid={item.uid}
-              onClick={() => setShowScriptErrorCard(true)}
-            />
-          )}
+          {errorsIcon}
           <StatusCode status={status} />
           <ResponseTime duration={duration} />
           <ResponseSize size={size} />
         </div>
       </div>
       <section className="flex flex-col pt-3 flex-grow overflow-auto">
-        {hasScriptError && showScriptErrorCard && (
-          <ScriptError
-            item={item}
-            onClose={() => setShowScriptErrorCard(false)}
-            collection={collection}
-          />
-        )}
-        <div className="flex-1">
+        {alertsSection}
+        <div className={classnames('flex-1', { hidden: responsePaneErrors.isCardFullPane })}>
           {getTabPanel(selectedTab)}
         </div>
       </section>

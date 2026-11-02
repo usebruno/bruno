@@ -13,7 +13,7 @@ import ImportEnvironmentModal from 'components/Environments/Common/ImportEnviron
 import CreateGlobalEnvironment from 'components/WorkspaceHome/WorkspaceEnvironments/CreateEnvironment';
 import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
-import { transparentize, toColorString, parseToRgb } from 'polished';
+import { transparentize } from 'polished';
 
 const TABS = [
   { id: 'collection', label: 'Collection', icon: <IconDatabase size={16} strokeWidth={1.5} /> },
@@ -26,9 +26,16 @@ const EMPTY_STATE_DESCRIPTIONS = {
 };
 
 /**
- * Generates background color with transparency for environment badges
+ * Generates background color with transparency for environment badges.
  */
-const getEnvBackgroundColor = (color) => (color ? transparentize(1 - 0.12, color) : 'transparent');
+const getEnvBackgroundColor = (color) => {
+  if (!color) return 'transparent';
+  try {
+    return transparentize(1 - 0.12, color);
+  } catch {
+    return 'transparent';
+  }
+};
 
 /**
  * Calculates the style for an environment badge section
@@ -182,6 +189,7 @@ const EnvironmentSelector = ({ collection }) => {
   const [showImportGlobalModal, setShowImportGlobalModal] = useState(false);
   const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);
   const [showImportCollectionModal, setShowImportCollectionModal] = useState(false);
+  const [searchText, setSearchText] = useState('');
 
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
@@ -265,8 +273,10 @@ const EnvironmentSelector = ({ collection }) => {
       <div className="environment-selector flex align-center cursor-pointer">
         <Dropdown
           onCreate={(ref) => (dropdownTippyRef.current = ref)}
+          onHidden={() => setSearchText('')}
           icon={<DropdownTrigger collectionEnv={activeCollectionEnvironment} globalEnv={activeGlobalEnvironment} />}
           placement="bottom-end"
+          popperOptions={{ strategy: 'fixed' }}
         >
           {/* Tab Headers */}
           <div className="tab-header flex pt-3 pb-2 px-3">
@@ -276,7 +286,10 @@ const EnvironmentSelector = ({ collection }) => {
                 className={`tab-button whitespace-nowrap pb-[0.375rem] border-b-[0.125rem] bg-transparent flex align-center cursor-pointer transition-all duration-200 mr-[1.25rem] ${
                   activeTab === tab.id ? 'active' : 'inactive'
                 }`}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setSearchText('');
+                }}
                 data-testid={`env-tab-${tab.id}`}
               >
                 <span className="tab-content-wrapper">
@@ -290,6 +303,9 @@ const EnvironmentSelector = ({ collection }) => {
           {/* Tab Content */}
           <div className="tab-content">
             <EnvironmentListContent
+              key={activeTab}
+              searchText={searchText}
+              setSearchText={setSearchText}
               environments={activeTab === 'collection' ? environments : globalEnvironments}
               activeEnvironmentUid={activeTab === 'collection' ? activeEnvironmentUid : activeGlobalEnvironmentUid}
               description={description}

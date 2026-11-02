@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "name": "nodevm-collection-script-target",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"]
+}

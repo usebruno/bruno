@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { savePreferences, showManageWorkspacePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { setLocalStorageValue, SIDEBAR_COLLAPSED_KEY } from 'utils/common/localStorage';
 import { closeConsole, openConsole } from 'providers/ReduxStore/slices/logs';
 import { createWorkspaceWithUniqueName, openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { sortWorkspaces, toggleWorkspacePin } from 'utils/workspaces';
@@ -194,6 +195,7 @@ const AppTitleBar = () => {
 
   const handleToggleSidebar = () => {
     dispatch(toggleSidebarCollapse());
+    setLocalStorageValue(SIDEBAR_COLLAPSED_KEY, !sidebarCollapsed);
   };
 
   const handleToggleDevtools = () => {
@@ -266,7 +268,7 @@ const AppTitleBar = () => {
   }, [sortedWorkspaces, activeWorkspaceUid, preferences, handlePinWorkspace, handleCreateWorkspace]);
 
   return (
-    <StyledWrapper className={`app-titlebar ${osClass} ${isFullScreen ? 'fullscreen' : ''}`}>
+    <StyledWrapper data-testid="app-titlebar" className={`app-titlebar ${osClass} ${isFullScreen ? 'fullscreen' : ''}`}>
       {createWorkspaceModalOpen && (
         <CreateWorkspace onClose={() => setCreateWorkspaceModalOpen(false)} />
       )}

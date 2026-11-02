@@ -24,6 +24,7 @@ import type {
   BrunoKeyValue,
   BrunoWebSocketRequestBody
 } from '../types';
+import { HTTP_SCRIPT_KEYS } from '@usebruno/common';
 
 export const fromOpenCollectionWebsocketItem = (item: WebSocketRequest): BrunoItem => {
   const info = item.info || {};
@@ -52,7 +53,8 @@ export const fromOpenCollectionWebsocketItem = (item: WebSocketRequest): BrunoIt
     }
   }
 
-  const scripts = fromOpenCollectionScripts(runtime.scripts);
+  // TODO: Modify to WS scripts when WS Scripts are implemented.
+  const scripts = fromOpenCollectionScripts(runtime.scripts, HTTP_SCRIPT_KEYS);
 
   // variables (pre-request from variables, post-response from actions)
   const variables = fromOpenCollectionVariables(runtime.variables);
@@ -146,7 +148,8 @@ export const toOpenCollectionWebsocketItem = (item: BrunoItem): WebSocketRequest
     websocket
   };
 
-  const scripts = toOpenCollectionScripts(request as Parameters<typeof toOpenCollectionScripts>[0]);
+  // TODO: Modify to WS scripts when WS Scripts are implemented.
+  const scripts = toOpenCollectionScripts(request as Parameters<typeof toOpenCollectionScripts>[0], HTTP_SCRIPT_KEYS);
   const variables = toOpenCollectionVariables(request.vars as Parameters<typeof toOpenCollectionVariables>[0]);
 
   // actions (from post-response variables)

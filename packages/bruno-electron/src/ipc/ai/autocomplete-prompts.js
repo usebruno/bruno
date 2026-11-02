@@ -34,7 +34,7 @@ ${blocks.map((block) => API_BLOCKS[block]).join('\n\n')}`;
 
 const SCRIPT_CONTEXTS = {
   'tests': `Tests run AFTER the response. Globals: bru, req, res, test, expect. Assertions go inside test("name", () => { ... }) blocks. Don't call bru.setEnvVar / setVar — keep tests pure.`,
-  'pre-request': `Pre-request scripts run BEFORE the HTTP request is sent. Globals: bru, req. res is NOT available. Don't use test() / expect() — those belong in the Tests tab.`,
+  'pre-request': `Pre-request scripts run BEFORE the HTTP request is sent — the response does not exist yet. Globals: bru, req only. Do NOT emit res.status / res.headers / res.body / res(...) or any other res.* member — the res global is not defined here and referencing it throws. Don't use test() / expect() either — those belong in the Tests tab.`,
   'post-response': `Post-response scripts run AFTER the response is received, before tests. Globals: bru, req, res. Don't use test() / expect() — those belong in the Tests tab.`
 };
 
@@ -62,6 +62,7 @@ ${context}
 - If the cursor is at the end of a \`//\` comment line and you are generating CODE (not finishing the comment's text), begin your output with a newline — anything emitted on the comment line itself would be commented out. A comment like \`// test that status is 200\` is an instruction: put the implementing code on the following line(s).
 - Stop at a natural break (end of statement, end of block) — do not rewrite code that already exists after the cursor.
 - Prefer real variable names from the provided lists over placeholders.
+- This is Bruno, not Postman. Never emit \`pm.*\` calls such as \`pm.environment.get\`, \`pm.variables.get\`, \`pm.response.json\`, \`pm.test\`, or \`pm.sendRequest\` — \`pm\` is not a global in Bruno. Use only the Bruno globals listed above.
 - Return an empty string if you have nothing useful to add.`;
 };
 
@@ -199,8 +200,23 @@ const ensureNewlineAfterComment = (prefix, suggestion) => {
   return '\n' + suggestion;
 };
 
-const RES_API_USAGE_RE = /(?<![\w$.?])res\s*\??\s*[.([]/;
-const RES_BINDING_RE = /\b(?:const|let|var)\s+res\b|[(,]\s*res\s*[,)=]|\bres\s*=>/;
+// Match a bare `<name>` used as an API — followed by `.`, `[`, or `(`, and
+// NOT preceded by another identifier char or a `.` (so `myres`, `foo.res`
+// don't false-match). Optional chaining (`res?.`, `res?.[`, `res?.(`) counts.
+const buildApiUsageRe = (name) => new RegExp(`(?<![\\w$.?])${name}\\s*\\??\\s*[.([]`);
+// Match a user-declared binding of `<name>` (const/let/var, function param,
+// or arrow param) — in which case a suggestion referencing it is legitimate.
+const buildApiBindingRe = (name) =>
+  new RegExp(`\\b(?:const|let|var)\\s+${name}\\b|[(,]\\s*${name}\\s*[,)=]|\\b${name}\\s*=>`);
+// Cursor inside a declarator's own initializer (`const res = res.`), where `<name>` is
+// still the global. Brackets excluded so `const y = foo(a, res` reads as using `res`,
+// not declaring it.
+const buildPendingDeclRe = (name) =>
+  new RegExp(`\\b(?:const|let|var)\\s+(?:[^;{}()\\[\\]\\n]*,\\s*)?${name}\\b\\s*(?:=[^;{}\\n]*)?$`);
+
+const RES = { usage: buildApiUsageRe('res'), binding: buildApiBindingRe('res'), pendingDecl: buildPendingDeclRe('res') };
+const PM = { usage: buildApiUsageRe('pm'), binding: buildApiBindingRe('pm'), pendingDecl: buildPendingDeclRe('pm') };
+
 const TRAILING_MEMBER_EXPR_RE = /[\w$.?[\]()]*$/;
 const TRAILING_WORD_RE = /[\w$]+$/;
 const PRECEDING_WORD_RE = /([\w$]+)\s+$/;
@@ -209,11 +225,17 @@ const LEADING_WORD_RE = /^[\w$]+/;
 const PREFIX_TAIL_LIMIT = 512;
 const prefixTail = (prefix) => prefix.slice(-PREFIX_TAIL_LIMIT);
 
-const stripDisallowedApis = (suggestion, scriptType, prefix = '') => {
-  if (!suggestion || scriptType !== 'pre-request') return suggestion;
-  if (RES_BINDING_RE.test(prefix)) return suggestion;
+const suggestionUsesBareName = (suggestion, prefix, { usage, binding, pendingDecl }) => {
+  if (binding.test(prefix) && !pendingDecl.test(prefixTail(prefix))) return false;
   const trailingExpr = (prefixTail(prefix).match(TRAILING_MEMBER_EXPR_RE) || [''])[0];
-  if (RES_API_USAGE_RE.test(suggestion) || RES_API_USAGE_RE.test(trailingExpr + suggestion)) return '';
+  return usage.test(suggestion) || usage.test(trailingExpr + suggestion);
+};
+
+const stripDisallowedApis = (suggestion, scriptType, prefix = '') => {
+  if (!suggestion) return suggestion;
+  if (suggestionUsesBareName(suggestion, prefix, PM)) return '';
+  // `res.*` is only unavailable in pre-request scripts (response not yet received).
+  if (scriptType === 'pre-request' && suggestionUsesBareName(suggestion, prefix, RES)) return '';
   return suggestion;
 };
 
@@ -239,10 +261,20 @@ const duplicatesPrecedingWord = (prefix, suggestion) => {
   return (pendingWord + head).endsWith(preceding[1]);
 };
 
+// A member accessor applied to a name still being declared, before any `=`:
+// `const req` + `.setUrl(…)` gives `const req.setUrl(…)`, which is not valid JavaScript.
+// Matched against prefix and suggestion joined, because the suggestion may carry part of
+// the name itself (`const re` + `req.setUrl(…)`) and only the join reveals the splice.
+const DECLARATOR_SPLICE_RE = /\b(?:const|let|var)\s+(?:[^;{}()[\]\n]*,\s*)?[\w$]+\s*\??\s*[.([]/;
+
+const splicesIntoDeclarator = (suggestion, prefix) =>
+  DECLARATOR_SPLICE_RE.test(prefixTail(String(prefix || '')) + suggestion);
+
 const sanitizeSuggestion = ({ text, prefix, scriptType }) => {
   const cleaned = cleanSuggestion(text || '');
   const allowed = stripDisallowedApis(cleaned, scriptType, prefix);
   const deduped = stripTypedPrefixOverlap(prefix, allowed);
+  if (splicesIntoDeclarator(deduped, prefix)) return '';
   if (duplicatesPrecedingWord(prefix, deduped)) return '';
   return ensureNewlineAfterComment(prefix, deduped);
 };
@@ -256,5 +288,6 @@ module.exports = {
   stripDisallowedApis,
   stripTypedPrefixOverlap,
   duplicatesPrecedingWord,
+  splicesIntoDeclarator,
   sanitizeSuggestion
 };

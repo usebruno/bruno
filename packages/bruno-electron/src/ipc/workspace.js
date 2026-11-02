@@ -5,7 +5,7 @@ const archiver = require('archiver');
 const extractZip = require('extract-zip');
 const { ipcMain, dialog } = require('electron');
 const isDev = require('electron-is-dev');
-const { createDirectory, sanitizeName, writeFile, DEFAULT_GITIGNORE } = require('../utils/filesystem');
+const { createDirectory, isDirectory, mkdirUnique, sanitizeName, writeFile, DEFAULT_GITIGNORE, removeGitMetadata } = require('../utils/filesystem');
 const yaml = require('js-yaml');
 const LastOpenedWorkspaces = require('../store/last-opened-workspaces');
 const { defaultWorkspaceManager } = require('../store/default-workspace');
@@ -26,6 +26,7 @@ const {
   clearCollectionGitRemote,
   reorderWorkspaceCollections,
   getWorkspaceCollections,
+  getUnopenableWorkspaceCollections,
   resolveAndFilterWorkspaceCollections,
   normalizeCollectionEntry,
   validateWorkspacePath,
@@ -58,19 +59,19 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     async (event, workspaceName, workspaceFolderName, workspaceLocation) => {
       try {
         workspaceFolderName = sanitizeName(workspaceFolderName);
-        const dirPath = path.join(workspaceLocation, workspaceFolderName);
 
-        if (fs.existsSync(dirPath)) {
-          const files = fs.readdirSync(dirPath);
-          if (files.length > 0) {
-            throw new Error(`workspace: ${dirPath} already exists and is not empty`);
-          }
-        }
+        validateWorkspaceDirectory(workspaceFolderName);
 
-        validateWorkspaceDirectory(dirPath);
+        const desiredPath = path.join(workspaceLocation, workspaceFolderName);
 
-        if (!fs.existsSync(dirPath)) {
+        let dirPath;
+        if (!fs.existsSync(desiredPath)) {
+          dirPath = desiredPath;
           await createDirectory(dirPath);
+        } else if (isDirectory(desiredPath) && fs.readdirSync(desiredPath).length === 0) {
+          dirPath = desiredPath;
+        } else {
+          ({ pathname: dirPath } = await mkdirUnique(workspaceLocation, workspaceFolderName));
         }
 
         await createDirectory(path.join(dirPath, 'collections'));
@@ -179,6 +180,19 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
       validateWorkspacePath(workspacePath);
       return getWorkspaceCollections(workspacePath);
+    } catch (error) {
+      throw error;
+    }
+  });
+
+  ipcMain.handle('renderer:load-unopenable-workspace-collections', async (event, workspacePath) => {
+    try {
+      if (!workspacePath) {
+        throw new Error('Workspace path is undefined');
+      }
+
+      validateWorkspacePath(workspacePath);
+      return getUnopenableWorkspaceCollections(workspacePath);
     } catch (error) {
       throw error;
     }
@@ -312,7 +326,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
             const entryArchivePath = archivePath ? path.join(archivePath, entry.name) : entry.name;
 
             if (entry.isDirectory()) {
-              if (!ignoredDirectories.includes(entry.name)) {
+              if (!ignoredDirectories.includes(entry.name.toLowerCase())) {
                 addDirectoryToArchive(fullPath, entryArchivePath);
               }
             } else {
@@ -346,6 +360,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
       try {
         await extractZip(zipFilePath, { dir: tempDir });
+        await removeGitMetadata(tempDir);
 
         const extractedItems = fs.readdirSync(tempDir);
         let workspaceDir = tempDir;
@@ -544,6 +559,20 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     try {
       const { deleteFiles = false } = options;
       const result = await removeCollectionFromWorkspace(workspacePath, collectionPath);
+
+      if (result.removedCollection) {
+        // Detach and clear every cache keyed by this collection's (deterministic, path-derived)
+        // uid — otherwise re-adding the same folder later resurfaces a stale mount/config/uid
+        // cache instead of loading it fresh.
+        const { generateUidBasedOnHash } = require('../utils/common');
+        const collectionUid = generateUidBasedOnHash(collectionPath);
+        const collectionWatcher = require('../app/collection-watcher');
+        collectionWatcher.removeWatcher(collectionPath, mainWindow, collectionUid);
+        await require('./mount').unmount(collectionUid).catch(() => {});
+        require('./mount').clearCollectionIndex(collectionPath);
+        require('../store/bruno-config').clearBrunoConfig(collectionUid);
+        require('../cache/requestUids').clearRequestUidsForCollection(collectionPath);
+      }
 
       if (deleteFiles && result.removedCollection && fs.existsSync(collectionPath)) {
         await fsExtra.remove(collectionPath);

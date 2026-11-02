@@ -30,7 +30,7 @@ test.describe('Change Collection Version (yml collection)', () => {
     await test.step('open the Change Collection Version modal', async () => {
       await page.getByTestId('info-version-change').click();
       await expect(page.getByTestId('change-version-current')).toHaveText('1.0.0');
-      await expect(page.getByTestId('change-version-input')).toHaveValue('1.0.0');
+      await expect(page.getByTestId('change-version-input')).toHaveValue('');
     });
 
     await test.step('the Update button stays off until the version is changed', async () => {

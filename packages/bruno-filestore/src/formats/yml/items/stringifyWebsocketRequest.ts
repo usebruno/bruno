@@ -11,6 +11,7 @@ import { toOpenCollectionAuth } from '../common/auth';
 import { toOpenCollectionHttpHeaders } from '../common/headers';
 import { toOpenCollectionVariables } from '../common/variables';
 import { toOpenCollectionScripts } from '../common/scripts';
+import { HTTP_SCRIPT_KEYS } from '@usebruno/common';
 
 const stringifyWebsocketRequest = (item: BrunoItem): string => {
   try {
@@ -92,7 +93,8 @@ const stringifyWebsocketRequest = (item: BrunoItem): string => {
     }
 
     // scripts
-    const scripts: Scripts | undefined = toOpenCollectionScripts(brunoRequest);
+    // TODO: Modify to WS scripts once WS scripts are implemented.
+    const scripts: Scripts | undefined = toOpenCollectionScripts(brunoRequest, HTTP_SCRIPT_KEYS);
     if (scripts) {
       runtime.scripts = scripts;
       hasRuntime = true;

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import find from 'lodash/find';
 import get from 'lodash/get';
 import toast from 'react-hot-toast';
 import { useSelector, useDispatch } from 'react-redux';
@@ -23,8 +22,8 @@ import { DocExplorer } from '@usebruno/graphql-docs';
 import FileEditor from 'components/FileEditor';
 import StyledWrapper from './StyledWrapper';
 import FolderSettings from 'components/FolderSettings';
-import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
-import { produce } from 'immer';
+import { makeSelectCollectionWithGlobals, selectCollectionByUid, selectActiveWorkspace } from 'src/selectors/collections';
+import { selectActiveTab, selectActiveTabUid } from 'src/selectors/tab';
 import CollectionOverview from 'components/CollectionSettings/Overview';
 import RequestNotLoaded from './RequestNotLoaded';
 import RequestIsLoading from './RequestIsLoading';
@@ -44,12 +43,16 @@ import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
 import OpenAPISyncTab from 'components/OpenAPISyncTab';
 import OpenAPISpecTab from 'components/OpenAPISpecTab';
+import ApiSpecTab from 'components/ApiSpecTab';
+import MockServerDashboard from 'components/MockServer/MockServerDashboard';
+import MockResponse from 'components/MockServer/MockResponse';
 import ChangelogTab from 'components/ChangelogTab';
+import { resolveMockServerInstance } from 'utils/mock-server/mock-server-instances';
 import CollapsedPanelIndicator from './CollapsedPanelIndicator';
 import { clampRequestHeightForResponse } from './paneSize';
 import { IconLoader2 } from '@tabler/icons';
 
-const MIN_LEFT_PANE_WIDTH = 300;
+const MIN_LEFT_PANE_WIDTH = 350;
 const MIN_RIGHT_PANE_WIDTH = 490;
 const MIN_TOP_PANE_HEIGHT = 150;
 const MIN_BOTTOM_PANE_HEIGHT = 150;
@@ -66,14 +69,17 @@ const aiAutoCollapsedTabs = new Set();
 
 const RequestTabPanel = () => {
   const dispatch = useDispatch();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-  const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
-  const _collections = useSelector((state) => state.collections.collections);
+  const activeTabUid = useSelector(selectActiveTabUid);
+  const focusedTab = useSelector(selectActiveTab);
   const preferences = useSelector((state) => state.app.preferences);
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  const activeWorkspace = useSelector(selectActiveWorkspace);
+  const resolvedMockServerInstance = useSelector((state) => {
+    if (!focusedTab || (focusedTab.type !== 'mock-server' && focusedTab.type !== 'mock-response')) {
+      return null;
+    }
+
+    return resolveMockServerInstance(state, focusedTab);
+  });
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
   const isAiSidebarDocked = useSelector((state) => state.chat.isOpen && !state.chat.isPoppedOut);
@@ -92,23 +98,19 @@ const RequestTabPanel = () => {
     isVerticalLayoutRef.current = isVerticalLayout;
   }, [isVerticalLayout]);
 
-  // merge `globalEnvironmentVariables` into the active collection and rebuild `collections` immer proxy object
-  const collections = produce(_collections, (draft) => {
-    const collection = find(draft, (c) => c.uid === focusedTab?.collectionUid);
+  const selectCollectionWithGlobals = useMemo(makeSelectCollectionWithGlobals, []);
+  const collection = useSelector((state) => selectCollectionWithGlobals(state, focusedTab?.collectionUid));
 
-    if (collection) {
-      // add selected global env variables to the collection object
-      const globalEnvironmentVariables = getGlobalEnvironmentVariables({
-        globalEnvironments,
-        activeGlobalEnvironmentUid
-      });
-      const globalEnvSecrets = getGlobalEnvironmentVariablesMasked({ globalEnvironments, activeGlobalEnvironmentUid });
-      collection.globalEnvironmentVariables = globalEnvironmentVariables;
-      collection.globalEnvSecrets = globalEnvSecrets;
-    }
-  });
-
-  const collection = find(collections, (c) => c.uid === focusedTab?.collectionUid);
+  // Mock-server tabs may point at a collection other than the focused one.
+  const mockInstanceCollectionUid = resolvedMockServerInstance
+    ? (resolvedMockServerInstance.sourceType === 'collection'
+        ? resolvedMockServerInstance.collectionUid
+        : focusedTab?.collectionUid)
+    : undefined;
+  const mockInstanceCollectionRaw = useSelector((state) => selectCollectionByUid(state, mockInstanceCollectionUid));
+  const mockInstanceCollection = mockInstanceCollectionUid && mockInstanceCollectionUid === focusedTab?.collectionUid
+    ? collection
+    : mockInstanceCollectionRaw ?? null;
 
   const isItemsLoading = useMemo(() => {
     return collection?.mountStatus === 'mounting' || areItemsLoading(collection);
@@ -400,7 +402,7 @@ const RequestTabPanel = () => {
     }
   }, [isConsoleOpen, isVerticalLayout, responsePaneCollapsed]);
 
-  if (typeof window == 'undefined') {
+  if (typeof window === 'undefined') {
     return <div></div>;
   }
 
@@ -422,7 +424,7 @@ const RequestTabPanel = () => {
   }
 
   if (focusedTab.type === 'changelog') {
-    return <ChangelogTab />;
+    return <ChangelogTab collectionUid={focusedTab.collectionUid} />;
   }
 
   if (focusedTab.type === 'workspaceOverview') {
@@ -431,6 +433,41 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'workspaceEnvironments') {
     return <GlobalEnvironmentSettings />;
+  }
+
+  if (focusedTab.type === 'mock-server') {
+    const instance = resolvedMockServerInstance;
+    if (!instance) {
+      return (
+        <div className="pb-4 px-4">
+          <div className="font-medium">Mock server not found</div>
+          <div className="text-sm mt-2 opacity-70">
+            This mock server may have been removed. Create a new one from the Mock Servers sidebar.
+          </div>
+        </div>
+      );
+    }
+
+    return <MockServerDashboard instance={instance} collection={mockInstanceCollection} />;
+  }
+
+  if (focusedTab.type === 'mock-response') {
+    const instance = resolvedMockServerInstance;
+    if (!instance) {
+      return (
+        <div className="pb-4 px-4">
+          <div className="font-medium">Mock server not found</div>
+        </div>
+      );
+    }
+
+    return (
+      <MockResponse
+        instance={instance}
+        collection={mockInstanceCollection}
+        responseUid={focusedTab.uid}
+      />
+    );
   }
 
   if (!focusedTab.uid || !focusedTab.collectionUid) {
@@ -459,7 +496,7 @@ const RequestTabPanel = () => {
     }
 
     if (example) {
-      return <ResponseExample item={item} collection={collection} example={example} />;
+      return <ResponseExample item={item} collection={collection} example={example} openInEditMode={focusedTab.openInEditMode} />;
     }
 
     const displayName = focusedTab.exampleName || focusedTab.name;
@@ -477,11 +514,19 @@ const RequestTabPanel = () => {
   const isWsRequest = item?.type === 'ws-request';
 
   if (focusedTab.type === 'collection-runner') {
-    return <RunnerResults collection={collection} />;
+    return (
+      <ScopedPersistenceProvider scope={focusedTab.uid}>
+        <RunnerResults collection={collection} />
+      </ScopedPersistenceProvider>
+    );
   }
 
   if (focusedTab.type === 'variables') {
-    return <VariablesEditor collection={collection} />;
+    return (
+      <ScopedPersistenceProvider scope={focusedTab.uid}>
+        <VariablesEditor collection={collection} />
+      </ScopedPersistenceProvider>
+    );
   }
 
   if (focusedTab.type === 'collection-settings') {
@@ -526,6 +571,10 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'openapi-spec') {
     return <OpenAPISpecTab collection={collection} tabUid={focusedTab.uid} />;
+  }
+
+  if (focusedTab.type === 'api-spec') {
+    return <ApiSpecTab tabUid={focusedTab.uid} />;
   }
 
   if (!item || !item.uid) {

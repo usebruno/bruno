@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector, useDispatch, useStore } from 'react-redux';
+import { selectCollections, selectActiveWorkspace } from 'src/selectors/collections';
+import { selectTabByUid } from 'src/selectors/tab';
 import {
   IconSearch,
   IconX,
@@ -10,8 +12,8 @@ import {
 } from '@tabler/icons';
 import { flattenItems, isItemARequest, isItemAFolder, findParentItemInCollection } from 'utils/collections';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { toggleCollectionItem, toggleCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { expandCollection } from 'providers/ReduxStore/slices/collections';
+import { mountCollection, revealItemInSidebar, revealTabInSidebar } from 'providers/ReduxStore/slices/collections/actions';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import { normalizePath } from 'utils/common/path';
 import { normalizeQuery, isValidQuery, highlightText, sortResults, getTypeLabel, getItemPath } from './utils/searchUtils';
@@ -27,11 +29,13 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   const debounceTimeoutRef = useRef(null);
   const dispatch = useDispatch();
 
-  const allCollections = useSelector((state) => state.collections.collections);
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
-  const tabs = useSelector((state) => state.tabs.tabs);
+  const store = useStore();
+  const activeWorkspace = useSelector(selectActiveWorkspace);
 
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  // Intentional whole-array subscription: the search renders results derived
+  // from every collection, and the modal is only mounted while open, so it is
+  // never on the keystroke path.
+  const allCollections = useSelector(selectCollections);
 
   const collections = useMemo(() => {
     if (!activeWorkspace) return allCollections;
@@ -40,7 +44,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
       activeWorkspace.collections?.map((wc) => normalizePath(wc.path)) || []
     );
     return allCollections.filter((c) => workspacePaths.has(normalizePath(c.pathname)));
-  }, [activeWorkspace, allCollections, workspaces]);
+  }, [activeWorkspace, allCollections]);
 
   const createCollectionResults = () => {
     const collectionResults = collections.map((collection) => ({
@@ -179,19 +183,16 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     ensureCollectionIsMounted(collection);
 
     if (collection.collapsed) {
-      dispatch(toggleCollection(collection.uid));
+      dispatch(expandCollection(collection.uid));
     }
 
-    let currentItem = result.type === SEARCH_TYPES.FOLDER
-      ? result.item
-      : findParentItemInCollection(collection, result.item.uid);
+    if (result.type === SEARCH_TYPES.COLLECTION) return;
 
-    while (currentItem?.type === 'folder') {
-      if (currentItem.collapsed) {
-        dispatch(toggleCollectionItem({ collectionUid: collection.uid, itemUid: currentItem.uid }));
-      }
-      currentItem = findParentItemInCollection(collection, currentItem.uid);
-    }
+    dispatch(revealItemInSidebar({
+      collectionUid: collection.uid,
+      itemUid: result.item.uid,
+      expandTarget: result.type === SEARCH_TYPES.FOLDER
+    }));
   };
 
   const ensureCollectionIsMounted = (collection) => {
@@ -258,7 +259,8 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     expandItemPath(result);
 
     if (result.type === SEARCH_TYPES.REQUEST) {
-      const existingTab = tabs.find((tab) => tab.uid === result.item.uid);
+      // Only needed at click time; no reason to subscribe the modal to tabs.
+      const existingTab = selectTabByUid(store.getState(), result.item.uid);
 
       if (existingTab) {
         dispatch(focusTab({ uid: result.item.uid }));
@@ -271,6 +273,8 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
           pathname: result.item.pathname
         }));
       }
+
+      dispatch(revealTabInSidebar(result.item.uid));
     } else if (result.type === SEARCH_TYPES.FOLDER) {
       dispatch(addTab({
         uid: result.item.uid,

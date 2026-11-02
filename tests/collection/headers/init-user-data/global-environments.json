@@ -1,0 +1,47 @@
+{
+  "environments": [
+    {
+      "uid": "gEnvDev00000000000000",
+      "name": "Global Development",
+      "variables": [
+        {
+          "uid": "gVarDev00000000000000",
+          "name": "host",
+          "value": "global-dev.local",
+          "type": "text",
+          "secret": false,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "uid": "gEnvStg00000000000000",
+      "name": "Global Staging",
+      "variables": [
+        {
+          "uid": "gVarStg00000000000000",
+          "name": "host",
+          "value": "global-stage.local",
+          "type": "text",
+          "secret": false,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "uid": "gEnvProd0000000000000",
+      "name": "Global Production",
+      "variables": [
+        {
+          "uid": "gVarProd0000000000000",
+          "name": "host",
+          "value": "global-prod.local",
+          "type": "text",
+          "secret": false,
+          "enabled": true
+        }
+      ]
+    }
+  ],
+  "activeGlobalEnvironmentUid": null
+}

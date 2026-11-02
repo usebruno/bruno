@@ -1,17 +1,17 @@
 import { find, map, filter, cloneDeep, each, concat } from 'lodash';
 import { parseQueryParams, buildQueryString as stringifyQueryParams } from '@usebruno/common/utils';
 import { uuid } from 'utils/common';
-import { findCollectionByUid, findItemInCollection } from 'utils/collections';
+import { findItemForExampleEditor,
+  getMockResponseUidFromItemUid,
+  isMockResponseEditorItemUid,
+  buildMockResponseEditorItem
+} from 'utils/mock-server/mock-responses/editor';
 import { parsePathParams, splitOnFirst } from 'utils/url';
 import statusCodePhraseMap from 'components/ResponsePane/StatusCode/get-status-code-phrase';
 
 export const addResponseExample = (state, action) => {
   const { itemUid, collectionUid, example } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -59,11 +59,7 @@ export const addResponseExample = (state, action) => {
 
 export const cloneResponseExample = (state, action) => {
   const { itemUid, collectionUid, exampleUid, clonedUid } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -137,11 +133,7 @@ export const cloneResponseExample = (state, action) => {
 
 export const updateResponseExample = (state, action) => {
   const { itemUid, collectionUid, exampleUid, example: details } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -159,11 +151,7 @@ export const updateResponseExample = (state, action) => {
 
 export const deleteResponseExample = (state, action) => {
   const { itemUid, collectionUid, exampleUid } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -177,11 +165,21 @@ export const deleteResponseExample = (state, action) => {
 
 export const cancelResponseExampleEdit = (state, action) => {
   const { itemUid, collectionUid, exampleUid } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
 
-  if (!collection) return;
+  if (isMockResponseEditorItemUid(itemUid)) {
+    const responseUid = getMockResponseUidFromItemUid(itemUid);
+    const editor = state.mockResponseEditors?.[responseUid];
 
-  const item = findItemInCollection(collection, itemUid);
+    if (!editor?.savedMockResponse) {
+      return;
+    }
+
+    editor.item = buildMockResponseEditorItem(editor.savedMockResponse);
+    editor.rules = cloneDeep(editor.savedMockResponse.rules || { operator: 'AND', conditions: [] });
+    return;
+  }
+
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
   if (!item.draft) return;
   if (!item.draft.examples) return;
@@ -200,11 +198,7 @@ export const cancelResponseExampleEdit = (state, action) => {
 // Response Example Headers
 export const addResponseExampleHeader = (state, action) => {
   const { itemUid, collectionUid, exampleUid } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -230,11 +224,7 @@ export const addResponseExampleHeader = (state, action) => {
 
 export const updateResponseExampleHeader = (state, action) => {
   const { itemUid, collectionUid, exampleUid, header } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -260,11 +250,7 @@ export const updateResponseExampleHeader = (state, action) => {
 
 export const deleteResponseExampleHeader = (state, action) => {
   const { itemUid, collectionUid, exampleUid, headerUid } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -284,11 +270,7 @@ export const deleteResponseExampleHeader = (state, action) => {
 
 export const moveResponseExampleHeader = (state, action) => {
   const { itemUid, collectionUid, exampleUid, updateReorderedItem } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -311,11 +293,7 @@ export const moveResponseExampleHeader = (state, action) => {
 
 export const setResponseExampleHeaders = (state, action) => {
   const { itemUid, collectionUid, exampleUid, headers } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -341,11 +319,7 @@ export const setResponseExampleHeaders = (state, action) => {
 // Response Example Params
 export const addResponseExampleParam = (state, action) => {
   const { itemUid, collectionUid, exampleUid } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -372,11 +346,7 @@ export const addResponseExampleParam = (state, action) => {
 
 export const updateResponseExampleParam = (state, action) => {
   const { itemUid, collectionUid, exampleUid, param } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -419,11 +389,7 @@ export const updateResponseExampleParam = (state, action) => {
 
 export const deleteResponseExampleParam = (state, action) => {
   const { itemUid, collectionUid, exampleUid, paramUid } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -461,11 +427,7 @@ export const deleteResponseExampleParam = (state, action) => {
 
 export const moveResponseExampleParam = (state, action) => {
   const { itemUid, collectionUid, exampleUid, updateReorderedItem } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -488,11 +450,7 @@ export const moveResponseExampleParam = (state, action) => {
 // Response Example Request/Response Updates
 export const updateResponseExampleMultipartFormParams = (state, action) => {
   const { itemUid, collectionUid, exampleUid, params } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -524,11 +482,7 @@ export const updateResponseExampleMultipartFormParams = (state, action) => {
 
 export const updateResponseExampleFileBodyParams = (state, action) => {
   const { itemUid, collectionUid, exampleUid, params } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -560,11 +514,7 @@ export const updateResponseExampleFileBodyParams = (state, action) => {
 
 export const updateResponseExampleFormUrlEncodedParams = (state, action) => {
   const { itemUid, collectionUid, exampleUid, params } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -596,11 +546,7 @@ export const updateResponseExampleFormUrlEncodedParams = (state, action) => {
 
 export const updateResponseExampleRequest = (state, action) => {
   const { itemUid, collectionUid, exampleUid, request } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -626,11 +572,7 @@ export const updateResponseExampleRequest = (state, action) => {
 
 export const updateResponseExampleRequestUrl = (state, action) => {
   const { itemUid, collectionUid, exampleUid, request } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -699,11 +641,7 @@ export const updateResponseExampleRequestUrl = (state, action) => {
 
 export const updateResponseExampleResponse = (state, action) => {
   const { itemUid, collectionUid, exampleUid, response } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -728,11 +666,7 @@ export const updateResponseExampleResponse = (state, action) => {
 
 export const updateResponseExampleDetails = (state, action) => {
   const { itemUid, collectionUid, exampleUid, details } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -752,11 +686,7 @@ export const updateResponseExampleDetails = (state, action) => {
 
 export const updateResponseExampleName = (state, action) => {
   const { itemUid, collectionUid, exampleUid, name } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -775,11 +705,7 @@ export const updateResponseExampleName = (state, action) => {
 
 export const updateResponseExampleDescription = (state, action) => {
   const { itemUid, collectionUid, exampleUid, description } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -799,11 +725,7 @@ export const updateResponseExampleDescription = (state, action) => {
 // Response Example Request Headers
 export const addResponseExampleRequestHeader = (state, action) => {
   const { itemUid, collectionUid, exampleUid } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -829,11 +751,7 @@ export const addResponseExampleRequestHeader = (state, action) => {
 
 export const updateResponseExampleRequestHeader = (state, action) => {
   const { itemUid, collectionUid, exampleUid, header } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -859,11 +777,7 @@ export const updateResponseExampleRequestHeader = (state, action) => {
 
 export const deleteResponseExampleRequestHeader = (state, action) => {
   const { itemUid, collectionUid, exampleUid, headerUid } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -883,11 +797,7 @@ export const deleteResponseExampleRequestHeader = (state, action) => {
 
 export const moveResponseExampleRequestHeader = (state, action) => {
   const { itemUid, collectionUid, exampleUid, updateReorderedItem } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -909,11 +819,7 @@ export const moveResponseExampleRequestHeader = (state, action) => {
 
 export const setResponseExampleRequestHeaders = (state, action) => {
   const { itemUid, collectionUid, exampleUid, headers } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -938,11 +844,7 @@ export const setResponseExampleRequestHeaders = (state, action) => {
 
 export const setResponseExampleParams = (state, action) => {
   const { itemUid, collectionUid, exampleUid, params } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -991,11 +893,7 @@ export const setResponseExampleParams = (state, action) => {
 // Response Example Body Types
 export const updateResponseExampleBody = (state, action) => {
   const { itemUid, collectionUid, exampleUid, body } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -1020,11 +918,7 @@ export const updateResponseExampleBody = (state, action) => {
 // Response Example File Body
 export const addResponseExampleFileParam = (state, action) => {
   const { itemUid, collectionUid, exampleUid } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -1056,11 +950,7 @@ export const addResponseExampleFileParam = (state, action) => {
 
 export const updateResponseExampleFileParam = (state, action) => {
   const { itemUid, collectionUid, exampleUid, param } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -1087,11 +977,7 @@ export const updateResponseExampleFileParam = (state, action) => {
 
 export const deleteResponseExampleFileParam = (state, action) => {
   const { itemUid, collectionUid, exampleUid, paramUid } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -1113,11 +999,7 @@ export const deleteResponseExampleFileParam = (state, action) => {
 // Response Example Form URL Encoded Body
 export const addResponseExampleFormUrlEncodedParam = (state, action) => {
   const { itemUid, collectionUid, exampleUid } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -1149,11 +1031,7 @@ export const addResponseExampleFormUrlEncodedParam = (state, action) => {
 
 export const updateResponseExampleFormUrlEncodedParam = (state, action) => {
   const { itemUid, collectionUid, exampleUid, param } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -1180,11 +1058,7 @@ export const updateResponseExampleFormUrlEncodedParam = (state, action) => {
 
 export const deleteResponseExampleFormUrlEncodedParam = (state, action) => {
   const { itemUid, collectionUid, exampleUid, paramUid } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -1206,11 +1080,7 @@ export const deleteResponseExampleFormUrlEncodedParam = (state, action) => {
 // Response Example Multipart Form Body
 export const addResponseExampleMultipartFormParam = (state, action) => {
   const { itemUid, collectionUid, exampleUid } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -1244,11 +1114,7 @@ export const addResponseExampleMultipartFormParam = (state, action) => {
 
 export const updateResponseExampleMultipartFormParam = (state, action) => {
   const { itemUid, collectionUid, exampleUid, param } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -1277,11 +1143,7 @@ export const updateResponseExampleMultipartFormParam = (state, action) => {
 
 export const deleteResponseExampleMultipartFormParam = (state, action) => {
   const { itemUid, collectionUid, exampleUid, paramUid } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -1303,11 +1165,7 @@ export const deleteResponseExampleMultipartFormParam = (state, action) => {
 // Response Status Code and Status Text Reducers
 export const updateResponseExampleStatusCode = (state, action) => {
   const { itemUid, collectionUid, exampleUid, statusCode } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {
@@ -1330,11 +1188,7 @@ export const updateResponseExampleStatusCode = (state, action) => {
 
 export const updateResponseExampleStatusText = (state, action) => {
   const { itemUid, collectionUid, exampleUid, statusText } = action.payload;
-  const collection = findCollectionByUid(state.collections, collectionUid);
-
-  if (!collection) return;
-
-  const item = findItemInCollection(collection, itemUid);
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
   if (!item) return;
 
   if (!item.draft) {

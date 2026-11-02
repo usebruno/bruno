@@ -1,5 +1,13 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection, createRequest } from '../../utils/page';
+import { buildCommonLocators,
+  expandFolder,
+  createCollection,
+  createFolder,
+  createRequest,
+  expandCollection,
+  selectRequestPaneTab,
+  closeAllCollections
+} from '../../utils/page';
 
 test.describe('Cross-Collection Drag and Drop', () => {
   test.afterEach(async ({ page }) => {
@@ -23,10 +31,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' })).toBeVisible();
 
     // Locate the request in source collection
-    const sourceCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'source-collection' })
-      .locator('..');
+    const sourceCollectionContainer = page.locator('[data-collection-id="source-collection"]');
     const sourceRequest = sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first();
     await expect(sourceRequest).toBeVisible();
 
@@ -39,10 +44,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
 
     // Verify the request has been moved to the target collection
     // Check that the request now appears under target collection
-    const targetCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'target-collection' })
-      .locator('..');
+    const targetCollectionContainer = page.locator('[data-collection-id="target-collection"]');
     await expect(targetCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName })).toBeVisible();
 
     // Verify the request is no longer in the source collection
@@ -50,7 +52,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await expect(sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName })).toHaveCount(0);
   });
 
-  test('Expected to show error toast message, when duplicate request found in drop location', async ({
+  test('Silently suffixes the filename when a duplicate request name exists in the drop location', async ({
     page,
     createTmpDir
   }) => {
@@ -71,14 +73,8 @@ test.describe('Cross-Collection Drag and Drop', () => {
     // Go back to source collection to drag the request
     await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
 
-    const sourceCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'source-collection' })
-      .locator('..');
-    const targetCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'target-collection' })
-      .locator('..');
+    const sourceCollectionContainer = page.locator('[data-collection-id="source-collection"]');
+    const targetCollectionContainer = page.locator('[data-collection-id="target-collection"]');
 
     const sourceRequest = sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first();
     await expect(sourceRequest).toBeVisible();
@@ -90,13 +86,14 @@ test.describe('Cross-Collection Drag and Drop', () => {
     // Perform drag and drop operation to target-collection
     await sourceRequest.dragTo(targetCollection);
 
-    // check for error toast notification
-    await expect(page.getByText(/Error: Cannot copy.*already exists/i)).toBeVisible();
+    await expect(sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName })).toHaveCount(0);
 
-    // source and target collection request should remain unchanged
-    await expect(sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first()).toBeVisible();
+    // The target collection now shows two entries with the same display name
+    // (the original and the moved one; the filesystem name was silently suffixed).
     await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
-    await expect(targetCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first()).toBeVisible();
+    await expect(targetCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName })).toHaveCount(2);
+
+    await expect(page.getByText(/already exists/i)).toHaveCount(0);
   });
 
   test('Tab should be closed after cross-collection drag and drop', async ({ page, createTmpDir }) => {
@@ -109,10 +106,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await createCollection(page, 'target-collection', await createTmpDir('target-collection'));
 
     // Open the request to create a tab
-    const sourceCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'source-collection' })
-      .locator('..');
+    const sourceCollectionContainer = page.locator('[data-collection-id="source-collection"]');
     const sourceRequest = sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first();
     await sourceRequest.click();
 
@@ -128,10 +122,71 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await expect(requestTab).not.toBeVisible();
 
     // Verify the request appears in the target collection
-    const targetCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'target-collection' })
-      .locator('..');
+    const targetCollectionContainer = page.locator('[data-collection-id="target-collection"]');
     await expect(targetCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName })).toBeVisible();
+  });
+
+  test('TC-766: Verify cross-collection drag and drop of a request into a specific folder in the destination collection', { tag: '@sanity' }, async ({
+    page,
+    createTmpDir
+  }) => {
+    const { sidebar, tabs, request } = buildCommonLocators(page);
+    const sourceCollection = 'source-collection';
+    const destinationCollection = 'destination-collection';
+    const destinationFolder = 'orders';
+    const requestName = 'move-me-request';
+    const requestMethod = 'POST';
+    const requestUrl = 'https://echo.usebruno.com/get?user=bruno';
+
+    await test.step('Create Source Collection, Destination Collection, Source Request, and Destination Folder', async () => {
+      await createCollection(page, sourceCollection, await createTmpDir('source-collection'));
+      await createRequest(page, requestName, sourceCollection, {
+        url: requestUrl,
+        method: requestMethod
+      });
+
+      await createCollection(page, destinationCollection, await createTmpDir('destination-collection'));
+      await createFolder(page, destinationFolder, destinationCollection);
+    });
+
+    await test.step('The request is visible in the source collection', async () => {
+      await expandCollection(page, sourceCollection);
+      await expect(sidebar.itemRowIn(sourceCollection, requestName)).toBeVisible();
+    });
+
+    await test.step('The target folder is visible in the destination collection', async () => {
+      await expandCollection(page, destinationCollection);
+      await expect(sidebar.itemRowIn(destinationCollection, destinationFolder)).toBeVisible();
+    });
+
+    await test.step('Drag the request onto the destination folder', async () => {
+      // Center of a folder row is an "inside" drop, so the request lands in the folder.
+      await sidebar
+        .itemRowIn(sourceCollection, requestName)
+        .dragTo(sidebar.itemRowIn(destinationCollection, destinationFolder));
+    });
+
+    await test.step('The moved request is inside the destination folder', async () => {
+      await expandFolder(page, destinationFolder);
+      await expect(sidebar.folderRequest(destinationFolder, requestName)).toBeVisible();
+    });
+
+    await test.step('The request is no longer in the source collection', async () => {
+      await expandCollection(page, sourceCollection);
+      await expect(
+        sidebar.collectionScope(sourceCollection).getByTitle(requestName, { exact: true })
+      ).toHaveCount(0);
+    });
+
+    await test.step('Opening the moved request preserves its method, URL, and query param', async () => {
+      await sidebar.folderRequest(destinationFolder, requestName).click();
+      await expect(tabs.requestTab(requestName)).toBeVisible();
+      await expect(request.methodDropdown()).toContainText(requestMethod);
+      await expect(request.urlInput()).toContainText('https://echo.usebruno.com/get');
+
+      await selectRequestPaneTab(page, 'Params');
+      await expect(request.queryParams.rowByName('user')).toBeVisible();
+      await expect(request.queryParams.valueByName('user')).toContainText('bruno');
+    });
   });
 });

@@ -24,6 +24,12 @@ can't mechanically repair still warrant attention.
 
 - **Descriptive names.** Functions and variables carry concise, descriptive names; an unclear or
   misleading name is worth raising even when the code is otherwise correct.
+- **Reuse before you write.** Before adding a component, hook, or helper, search for the one that
+  already exists — by concept, not by the name you'd have picked — and read the nearest sibling
+  solving the same shape of problem, since its call site shows the intended composition. Reuse is
+  usually a *net deletion* — the bespoke markup and its CSS go. Where the existing primitive is
+  *almost* right, widen it rather than standing up a near-duplicate beside it; two near-identical
+  implementations diverge silently.
 - **Extraction & abstraction.** Extract a helper or shared abstraction whenever it genuinely
   improves readability or serves a clear, anticipated reuse — this is encouraged and not gated on a
   minimum number of call sites; suggest it where it would help. Avoid only *unnecessary* abstraction:
@@ -57,9 +63,38 @@ can't mechanically repair still warrant attention.
 
 ## Beyond comments
 
-- Don't add speculative options, parameters, or configuration "for later" that nothing in the change
-  uses — build for the actual need. Extracting a helper for readability or clear, foreseeable reuse is
-  fine (see **Readability → Extraction & abstraction** above).
+- **Anything added needs a live consumer in the same change.** No options, parameters, or
+  configuration "for later"; no payload field no reader destructures, branch for a state the producer
+  can't emit, or ignored parameter. Each is dead on arrival and reads as a contract honored somewhere
+  else — if the consumer is a follow-up, leave it out. Extracting a helper for readability or clear,
+  foreseeable reuse is fine (see **Readability → Extraction & abstraction** above).
 - Match the surrounding code's style and naming so a change is indistinguishable from the existing
   codebase, not visibly bolted on.
-- Keep diffs minimal — no unrelated reformatting or whitespace churn.
+- Keep diffs minimal — no unrelated reformatting or whitespace churn. A drive-by cleanup worth doing
+  belongs in its own commit, and never in a *different package* than the change is about; interleaved,
+  reviewers can't separate scope creep from load-bearing edits.
+
+## Replacing code leaves nothing behind
+
+Half a migration reads as a complete one — the leftovers survive review and mislead whoever edits the
+file next. Closing the loop is part of the change.
+
+- **Follow what you replaced to every reference and remove it there** — the CSS whose selectors the
+  new markup no longer emits, the import whose last use just went, the prop nothing passes. Styles are
+  the easiest to leave behind and the most misleading when left: CSS for a class that renders nothing
+  fails silently and looks intentional.
+- **Don't copy a block to its new home and leave the original.** Where both copies must genuinely
+  exist — separate call sites, or one rule enforced on both sides of a process boundary — name the
+  invariant in a comment at both, because nothing else keeps them in sync.
+- **Reconcile the whole flow, not the entry point.** Reshaping something that crosses a boundary — a
+  payload, a serialized field, a lookup key — means walking to every consumer on the far side.
+  Deleting a control (a sanitizer, a validation or escaping step) is a decision to state, not a side
+  effect of a rewrite.
+
+## Before you call it done
+
+- **Run the affected workspace's tests**, not just the specs you wrote.
+- **Changed a return value or payload shape?** Other specs assert it too — exact-equality assertions
+  elsewhere break on an added key.
+- **Walk the acceptance criteria against the diff one at a time.** Compound criteria are what slip:
+  the half of the sentence you didn't have open never got exercised.

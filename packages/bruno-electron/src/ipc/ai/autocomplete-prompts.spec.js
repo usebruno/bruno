@@ -1,4 +1,4 @@
-const { ensureNewlineAfterComment, cleanSuggestion, buildSystemPrompt, stripDisallowedApis, stripTypedPrefixOverlap, duplicatesPrecedingWord, sanitizeSuggestion } = require('./autocomplete-prompts');
+const { ensureNewlineAfterComment, cleanSuggestion, buildSystemPrompt, stripDisallowedApis, stripTypedPrefixOverlap, duplicatesPrecedingWord, splicesIntoDeclarator, sanitizeSuggestion } = require('./autocomplete-prompts');
 
 describe('ensureNewlineAfterComment', () => {
   it('prepends a newline when code is suggested at the end of a comment line', () => {
@@ -63,10 +63,24 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('req:');
   });
 
-  it('includes res and test/expect for tests', () => {
+  it('includes res, req and test/expect for tests', () => {
     const prompt = buildSystemPrompt('tests');
     expect(prompt).toContain('res:');
+    expect(prompt).toContain('req:');
     expect(prompt).toContain('test/expect:');
+  });
+
+  it('forbids Postman pm.* usage in every script type', () => {
+    for (const type of ['pre-request', 'post-response', 'tests']) {
+      const prompt = buildSystemPrompt(type);
+      expect(prompt).toMatch(/pm\.\*/);
+      expect(prompt.toLowerCase()).toContain('postman');
+    }
+  });
+
+  it('tells the model res is off-limits in pre-request', () => {
+    const prompt = buildSystemPrompt('pre-request');
+    expect(prompt).toContain('Do NOT emit res.status');
   });
 });
 
@@ -113,6 +127,49 @@ describe('stripDisallowedApis', () => {
 
   it('handles empty suggestions', () => {
     expect(stripDisallowedApis('', 'pre-request')).toBe('');
+  });
+
+  it('drops pm.* suggestions in pre-request', () => {
+    expect(stripDisallowedApis('pm.environment.get("token");', 'pre-request')).toBe('');
+    expect(stripDisallowedApis('pm.variables.set("k", "v");', 'pre-request')).toBe('');
+  });
+
+  it('drops pm.* suggestions in post-response', () => {
+    expect(stripDisallowedApis('pm.response.json();', 'post-response')).toBe('');
+  });
+
+  it('drops pm.* suggestions in tests', () => {
+    expect(stripDisallowedApis('pm.test("status", () => {});', 'tests')).toBe('');
+    expect(stripDisallowedApis('pm.expect(res.getStatus()).to.equal(200);', 'tests')).toBe('');
+  });
+
+  it('drops optional-chained and bracket-access pm', () => {
+    expect(stripDisallowedApis('pm?.environment?.get("t");', 'tests')).toBe('');
+    expect(stripDisallowedApis('pm["environment"].get("t");', 'tests')).toBe('');
+  });
+
+  it('does not flag identifiers that merely contain pm', () => {
+    expect(stripDisallowedApis('const impl = 1;', 'pre-request')).toBe('const impl = 1;');
+    expect(stripDisallowedApis('foo.pm.get();', 'pre-request')).toBe('foo.pm.get();');
+  });
+
+  it('keeps pm when the user has declared it themselves', () => {
+    expect(stripDisallowedApis('.doThing();', 'tests', 'const pm = require("./pm");\npm')).toBe('.doThing();');
+  });
+
+  it('drops res while the cursor is still inside the declaration initialising res', () => {
+    expect(stripDisallowedApis('getBody();', 'pre-request', 'const res = res.')).toBe('');
+    expect(stripDisallowedApis('getStatus();', 'pre-request', 'let res = res.')).toBe('');
+  });
+
+  it('drops pm while the cursor is still inside the declaration initialising pm', () => {
+    expect(stripDisallowedApis('environment.get("x");', 'pre-request', 'const pm = pm.')).toBe('');
+  });
+
+  it('keeps req suggestions in every script type', () => {
+    expect(stripDisallowedApis('req.getUrl();', 'pre-request')).toBe('req.getUrl();');
+    expect(stripDisallowedApis('req.getUrl();', 'post-response')).toBe('req.getUrl();');
+    expect(stripDisallowedApis('req.getUrl();', 'tests')).toBe('req.getUrl();');
   });
 });
 
@@ -199,6 +256,46 @@ describe('sanitizeSuggestion', () => {
       .toBe('.getStatus();');
   });
 
+  it('drops pm.* suggestions in pre-request', () => {
+    expect(sanitizeSuggestion({ text: 'pm.environment.get("token");', prefix: 'const t = ', scriptType: 'pre-request' }))
+      .toBe('');
+  });
+
+  it('drops pm.* suggestions in post-response', () => {
+    expect(sanitizeSuggestion({ text: 'pm.response.json();', prefix: 'const body = ', scriptType: 'post-response' }))
+      .toBe('');
+  });
+
+  it('drops pm.* suggestions in tests', () => {
+    expect(sanitizeSuggestion({ text: 'pm.test("status", () => {});', prefix: '', scriptType: 'tests' }))
+      .toBe('');
+  });
+
+  it('drops pm.* even when the user already typed pm', () => {
+    expect(sanitizeSuggestion({ text: '.environment.get("t");', prefix: 'const t = pm', scriptType: 'tests' }))
+      .toBe('');
+  });
+
+  it('drops pm.* split across a partially typed prefix', () => {
+    expect(sanitizeSuggestion({ text: 'm.environment.get("t");', prefix: 'const t = p', scriptType: 'tests' }))
+      .toBe('');
+  });
+
+  it('drops pm.* when the accessor dot is already typed', () => {
+    expect(sanitizeSuggestion({ text: 'environment.get("t");', prefix: 'const t = pm.', scriptType: 'tests' }))
+      .toBe('');
+  });
+
+  it('does not drop when pm is a property of another object', () => {
+    expect(sanitizeSuggestion({ text: 'get("t");', prefix: 'const x = wrapper.pm.', scriptType: 'tests' }))
+      .toBe('get("t");');
+  });
+
+  it('does not drop when the trailing identifier merely ends in pm', () => {
+    expect(sanitizeSuggestion({ text: '.doThing();', prefix: 'const x = mypm', scriptType: 'tests' }))
+      .toBe('.doThing();');
+  });
+
   it('allows res member access when the user declared res in a pre-request script', () => {
     const prefix = 'const res = await bru.sendRequest(cfg);\nres';
     expect(sanitizeSuggestion({ text: '.data', prefix, scriptType: 'pre-request' })).toBe('.data');
@@ -207,6 +304,53 @@ describe('sanitizeSuggestion', () => {
   it('allows res member access when res is a callback parameter in a pre-request script', () => {
     const prefix = 'bru.sendRequest(cfg).then((res) => {\n  res';
     expect(sanitizeSuggestion({ text: '.data', prefix, scriptType: 'pre-request' })).toBe('.data');
+  });
+
+  it('drops res suggested inside the declaration that is still initialising res', () => {
+    expect(sanitizeSuggestion({ text: 'getBody();', prefix: 'const res = res.', scriptType: 'pre-request' }))
+      .toBe('');
+  });
+
+  it('drops res inside its own declaration before the accessor dot is typed', () => {
+    expect(sanitizeSuggestion({ text: '.getBody();', prefix: 'const res = res', scriptType: 'pre-request' }))
+      .toBe('');
+  });
+
+  it('drops res declared later in a multi-declarator statement', () => {
+    expect(sanitizeSuggestion({ text: 'getBody();', prefix: 'const a = 1, res = res.', scriptType: 'pre-request' }))
+      .toBe('');
+  });
+
+  it('drops res inside its own declaration however the keyword is spaced', () => {
+    expect(sanitizeSuggestion({ text: 'getBody();', prefix: 'const  res = res.', scriptType: 'pre-request' }))
+      .toBe('');
+    expect(sanitizeSuggestion({ text: 'getStatus();', prefix: 'let   res = res.', scriptType: 'pre-request' }))
+      .toBe('');
+  });
+
+  it('allows a declared res passed as a call argument or array element', () => {
+    const call = 'const res = await bru.sendRequest(cfg);\nconst y = foo(a, res';
+    expect(sanitizeSuggestion({ text: '.data;', prefix: call, scriptType: 'pre-request' })).toBe('.data;');
+
+    const array = 'const res = await bru.sendRequest(cfg);\nconst arr = [1, res';
+    expect(sanitizeSuggestion({ text: '.data;', prefix: array, scriptType: 'pre-request' })).toBe('.data;');
+  });
+
+  it('allows res once its declaration statement has ended', () => {
+    expect(sanitizeSuggestion({ text: 'toString();', prefix: 'var res = 1;\nres.', scriptType: 'pre-request' }))
+      .toBe('toString();');
+  });
+
+  it('allows a later statement that only reads the declared res', () => {
+    const prefix = 'const res = await bru.sendRequest(cfg);\nconst body = res';
+    expect(sanitizeSuggestion({ text: '.data;', prefix, scriptType: 'pre-request' })).toBe('.data;');
+  });
+
+  it('keeps req member access in every script type', () => {
+    for (const scriptType of ['pre-request', 'post-response', 'tests']) {
+      expect(sanitizeSuggestion({ text: 'getUrl();', prefix: 'const u = req.', scriptType }))
+        .toBe('getUrl();');
+    }
   });
 
   it('keeps res in post-response while still trimming the typed overlap', () => {
@@ -297,5 +441,70 @@ describe('duplicatesPrecedingWord', () => {
   it('handles empty prefix or suggestion', () => {
     expect(duplicatesPrecedingWord('', 'const')).toBe(false);
     expect(duplicatesPrecedingWord('const c', '')).toBe(false);
+  });
+});
+
+describe('splicesIntoDeclarator', () => {
+  it('flags a member access offered on a declarator name', () => {
+    expect(splicesIntoDeclarator('.setUrl("https://x.com");', 'const req')).toBe(true);
+    expect(splicesIntoDeclarator('.getBody();', 'let res')).toBe(true);
+    expect(splicesIntoDeclarator('.bar();', 'var foo')).toBe(true);
+  });
+
+  it('flags a call or index opened on a declarator name', () => {
+    expect(splicesIntoDeclarator('(1);', 'const req')).toBe(true);
+    expect(splicesIntoDeclarator('[0];', 'const req')).toBe(true);
+  });
+
+  it('flags the last name of a multi-declarator statement', () => {
+    expect(splicesIntoDeclarator('.getUrl();', 'const a = 1, req')).toBe(true);
+  });
+
+  it('does not flag a member access once the initializer has started', () => {
+    expect(splicesIntoDeclarator('.getUrl();', 'const foo = req')).toBe(false);
+    expect(splicesIntoDeclarator('.getEnvVar("u");', 'const url = bru')).toBe(false);
+  });
+
+  it('does not flag a member access outside a declaration', () => {
+    expect(splicesIntoDeclarator('.setUrl("https://x.com");', 'req')).toBe(false);
+    expect(splicesIntoDeclarator('.getUrl());', 'bru.setVar("x", req')).toBe(false);
+  });
+
+  it('does not flag a suggestion that continues the name or assigns to it', () => {
+    expect(splicesIntoDeclarator('q = 1;', 'const re')).toBe(false);
+    expect(splicesIntoDeclarator(' = bru.getEnvVar("u");', 'const req')).toBe(false);
+  });
+});
+
+describe('sanitizeSuggestion — declarator splices', () => {
+  it('drops a member access that would break the declaration it completes', () => {
+    expect(sanitizeSuggestion({ text: '.setUrl("https://x.com");', prefix: 'const req', scriptType: 'pre-request' }))
+      .toBe('');
+    expect(sanitizeSuggestion({ text: '.getBody();', prefix: 'const res', scriptType: 'post-response' }))
+      .toBe('');
+  });
+
+  it('drops a member access the model re-typed the declarator name into', () => {
+    expect(sanitizeSuggestion({ text: 'req.setUrl("https://x.com");', prefix: 'const req', scriptType: 'pre-request' }))
+      .toBe('');
+    expect(sanitizeSuggestion({ text: 'req.setUrl("https://x.com");', prefix: 'const re', scriptType: 'pre-request' }))
+      .toBe('');
+    expect(sanitizeSuggestion({ text: 'res.getBody();', prefix: 'const r', scriptType: 'post-response' }))
+      .toBe('');
+  });
+
+  it('drops a call or index the model re-typed the declarator name into', () => {
+    expect(sanitizeSuggestion({ text: 'req(1);', prefix: 'const re', scriptType: 'pre-request' })).toBe('');
+    expect(sanitizeSuggestion({ text: 'req[0];', prefix: 'const re', scriptType: 'pre-request' })).toBe('');
+  });
+
+  it('keeps a member access on a variable that is already initialized', () => {
+    expect(sanitizeSuggestion({ text: '.getUrl();', prefix: 'const foo = req', scriptType: 'pre-request' }))
+      .toBe('.getUrl();');
+  });
+
+  it('keeps an assignment completing the declaration', () => {
+    expect(sanitizeSuggestion({ text: ' = bru.getEnvVar("url");', prefix: 'const req', scriptType: 'pre-request' }))
+      .toBe(' = bru.getEnvVar("url");');
   });
 });

@@ -1,0 +1,10 @@
+info:
+  name: ping-request
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: http://localhost:8081/ping
+  body:
+    type: none

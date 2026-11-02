@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { grpcResponseReceived, runGrpcRequestEvent } from 'providers/ReduxStore/slices/collections/index';
+import { grpcResponseReceived, grpcScriptError, grpcTestResults, runGrpcRequestEvent } from 'providers/ReduxStore/slices/collections/index';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import { updateActiveConnectionsInStore } from 'providers/ReduxStore/slices/collections/actions';
@@ -98,6 +98,24 @@ const useGrpcEventListeners = () => {
       dispatch(updateActiveConnectionsInStore(data));
     });
 
+    // Lifecycle hook failures — a beforeCallStart failure produces no response and no timeline
+    // entry, so this event is the only trace of it.
+    const removeGrpcScriptErrorListener = ipcRenderer.on(`grpc:script-error`, (requestId, collectionUid, data) => {
+      dispatch(grpcScriptError({
+        itemUid: requestId,
+        collectionUid: collectionUid,
+        ...data
+      }));
+    });
+
+    const removeGrpcTestResultsListener = ipcRenderer.on(`grpc:test-results`, (requestId, collectionUid, data) => {
+      dispatch(grpcTestResults({
+        itemUid: requestId,
+        collectionUid: collectionUid,
+        ...data
+      }));
+    });
+
     return () => {
       removeGrpcRequestSentListener();
       removeGrpcMessageSentListener();
@@ -108,6 +126,8 @@ const useGrpcEventListeners = () => {
       removeGrpcEndListener();
       removeGrpcCancelListener();
       removeGrpcConnectionsChangedListener();
+      removeGrpcScriptErrorListener();
+      removeGrpcTestResultsListener();
     };
   }, [isElectron]);
 };

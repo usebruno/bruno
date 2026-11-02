@@ -4,6 +4,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import nodePath from 'node:path';
+import { getMediaType } from '@usebruno/common/utils';
 
 // Private key file cache: avoids re-reading the same file on every request.
 // Keyed by absolute path; invalidated when the file's mtime changes.
@@ -398,7 +399,7 @@ export function applyOAuth1ToRequest(request: {
   // Determine if body is form-encoded
   const ctKey = Object.keys(request.headers).find((name) => name.toLowerCase() === 'content-type');
   const ctValue = (ctKey ? request.headers[ctKey] : '') || '';
-  const isFormUrlEncoded = ctValue.startsWith('application/x-www-form-urlencoded');
+  const isFormUrlEncoded = getMediaType(ctValue) === 'application/x-www-form-urlencoded';
   const method = request.method.toUpperCase();
   const hasBody = method !== 'GET' && method !== 'HEAD';
 

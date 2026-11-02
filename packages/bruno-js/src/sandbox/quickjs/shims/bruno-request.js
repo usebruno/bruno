@@ -148,11 +148,22 @@ const addBrunoRequestShimToContext = (vm, req) => {
   vm.setProp(reqObject, 'getBody', getBody);
   getBody.dispose();
 
-  let setBody = vm.newFunction('setBody', function (data, options = {}) {
+  // Wrapped by req.setBody below, which sends Buffers to _setBinaryBody instead: vm.dump turns a Buffer into { type: 'Buffer', data: [...] }
+  let setBody = vm.newFunction('_setBody', function (data, options) {
     req.setBody(vm.dump(data), vm.dump(options));
   });
-  vm.setProp(reqObject, 'setBody', setBody);
+  vm.setProp(reqObject, '_setBody', setBody);
   setBody.dispose();
+
+  // Slicing the view here rather than in the VM keeps one more copy of the body off the VM's heap
+  let setBinaryBody = vm.newFunction('_setBinaryBody', function (arrayBuffer, byteOffset, byteLength, options) {
+    const start = vm.getNumber(byteOffset);
+    const end = start + vm.getNumber(byteLength);
+    const data = vm.getArrayBuffer(arrayBuffer).consume((bytes) => Buffer.from(bytes.value.subarray(start, end)));
+    req.setBody(data, vm.dump(options));
+  });
+  vm.setProp(reqObject, '_setBinaryBody', setBinaryBody);
+  setBinaryBody.dispose();
 
   let setMaxRedirects = vm.newFunction('setMaxRedirects', function (maxRedirects) {
     req.setMaxRedirects(vm.dump(maxRedirects));
@@ -198,6 +209,17 @@ const addBrunoRequestShimToContext = (vm, req) => {
   if (headersEvalCode) {
     vm.evalCode(`{ ${headersEvalCode} }`);
   }
+
+  // Buffer is only defined once the bundled libraries load, which expression evaluation skips
+  vm.evalCode(`
+    globalThis.req.setBody = (data, options) => {
+      if (globalThis.Buffer?.isBuffer(data)) {
+        globalThis.req._setBinaryBody(data.buffer, data.byteOffset, data.byteLength, options);
+        return;
+      }
+      globalThis.req._setBody(data, options);
+    };
+  `);
 };
 
 module.exports = addBrunoRequestShimToContext;

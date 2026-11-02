@@ -1,0 +1,15 @@
+meta {
+  name: cookie-header-multi
+  type: http
+  seq: 54
+}
+
+get {
+  url: http://localhost:8081/api/echo/anything/api
+  body: none
+  auth: none
+}
+
+headers {
+  cookie: a=1; b=2
+}

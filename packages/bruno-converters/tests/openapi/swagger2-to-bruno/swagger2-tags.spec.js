@@ -1,38 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
 import { swagger2ToBruno } from '../../../src/openapi/swagger2-to-bruno';
-
-/**
- * Helper function to find a request by name in the collection.
- * Searches recursively through folders.
- */
-const findRequestByName = (items, name) => {
-  for (const item of items) {
-    if (item.type === 'http-request' && item.name === name) {
-      return item;
-    }
-    if (item.type === 'folder' && item.items) {
-      const found = findRequestByName(item.items, name);
-      if (found) return found;
-    }
-  }
-  return undefined;
-};
-
-/**
- * Helper function to find a folder by name in the collection.
- */
-const findFolderByName = (items, name) => {
-  for (const item of items) {
-    if (item.type === 'folder' && item.name === name) {
-      return item;
-    }
-    if (item.type === 'folder' && item.items) {
-      const found = findFolderByName(item.items, name);
-      if (found) return found;
-    }
-  }
-  return undefined;
-};
+import { findRequestByName, findFolderByName } from '../../common/find-items';
 
 describe('Swagger 2.0 Import - Tag Sanitization', () => {
   it('should replace spaces with underscores in tags', () => {

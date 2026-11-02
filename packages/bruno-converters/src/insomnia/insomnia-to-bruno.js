@@ -160,7 +160,8 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
   }
 
   const settings = {
-    encodeUrl: request.settings?.encodeUrl !== false && request.settingEncodeUrl !== false // handles v4 and v5 import
+    encodeUrl: request.settings?.encodeUrl !== false && request.settingEncodeUrl !== false, // handles v4 and v5 import
+    forwardAuthorizationHeader: false
   };
 
   brunoRequestItem.settings = settings;

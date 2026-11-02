@@ -7,39 +7,12 @@ import {
   previewApp,
   saveRequest,
   selectRequestBodyMode,
-  getAppWebviewHtml
+  evalInActiveAppGuest as guestEval,
+  waitForAppGuestReady as waitForGuestReady
 } from '../utils/page';
 
-/*
- * The app runs inside an out-of-process <webview> guest, so we can't reach it
- * through the renderer page. Instead we evaluate in the Electron main process,
- * locate the guest WebContents, and run JS inside it.
- */
-const guestEval = (electronApp: ElectronApplication, code: string) =>
-  electronApp.evaluate(async ({ webContents }, c) => {
-    // The app view loads from a data:text/html URL. Filtering on that and
-    // selecting the newest keeps us bound to the app guest even if other
-    // webviews (e.g. HTML response preview) are present.
-    const guests = webContents.getAllWebContents().filter((wc) => {
-      try {
-        return wc.getType() === 'webview' && (wc.getURL() || '').startsWith('data:text/html');
-      } catch {
-        return false;
-      }
-    });
-    if (!guests.length) return undefined;
-    const guest = guests.reduce((newest, wc) => (wc.id > newest.id ? wc : newest));
-    return await guest.executeJavaScript(c, true);
-  }, code);
-
-const waitForGuestReady = async (electronApp: ElectronApplication) => {
-  await expect
-    .poll(async () => guestEval(electronApp, 'window.bru && typeof window.bru.ctx'), { timeout: 15000 })
-    .toBe('object');
-};
-
-const guestResult = (electronApp: ElectronApplication) =>
-  guestEval(electronApp, `document.getElementById('out') && document.getElementById('out').getAttribute('data-result')`);
+const guestResult = (page, electronApp: ElectronApplication) =>
+  guestEval(page, electronApp, `document.getElementById('out') && document.getElementById('out').getAttribute('data-result')`);
 
 // A fragment app exposing helpers the host-side test can invoke in the guest.
 // It echoes the resolved `q` field from the response body into `#out[data-result]`.
@@ -89,9 +62,10 @@ test.describe('Apps - ctx API', () => {
 
     await setAppCode(page, CTX_APP);
     await previewApp(page);
-    await waitForGuestReady(electronApp);
+    await waitForGuestReady(page, electronApp);
 
     const raw = await guestEval(
+      page,
       electronApp,
       `JSON.stringify({
         ctx: typeof window.bru.ctx,
@@ -122,9 +96,10 @@ test.describe('Apps - ctx API', () => {
 
     await setAppCode(page, CTX_APP);
     await previewApp(page);
-    await waitForGuestReady(electronApp);
+    await waitForGuestReady(page, electronApp);
 
     const raw = await guestEval(
+      page,
       electronApp,
       `JSON.stringify({
         name: window.bru.ctx.theme.name,
@@ -148,9 +123,9 @@ test.describe('Apps - ctx API', () => {
 
     await setAppCode(page, CTX_APP);
     await previewApp(page);
-    await waitForGuestReady(electronApp);
+    await waitForGuestReady(page, electronApp);
 
-    const result = await guestEval(electronApp, 'window.__log()');
+    const result = await guestEval(page, electronApp, 'window.__log()');
     expect(result).toBe('logged');
   });
 
@@ -164,16 +139,16 @@ test.describe('Apps - ctx API', () => {
     await setAppCode(page, CTX_APP);
     await saveRequest(page);
     await previewApp(page);
-    await waitForGuestReady(electronApp);
+    await waitForGuestReady(page, electronApp);
 
     await test.step('runtimeVariables override the request body', async () => {
-      await guestEval(electronApp, `void window.__send({ runtimeVariables: { q: 'reflectme' } })`);
-      await expect.poll(() => guestResult(electronApp), { timeout: 15000 }).toBe('reflectme');
+      await guestEval(page, electronApp, `void window.__send({ runtimeVariables: { q: 'reflectme' } })`);
+      await expect.poll(() => guestResult(page, electronApp), { timeout: 15000 }).toBe('reflectme');
     });
 
     await test.step('a subsequent runtimeVariables override is honoured', async () => {
-      await guestEval(electronApp, `void window.__send({ runtimeVariables: { q: 'viaExplicit' } })`);
-      await expect.poll(() => guestResult(electronApp), { timeout: 15000 }).toBe('viaExplicit');
+      await guestEval(page, electronApp, `void window.__send({ runtimeVariables: { q: 'viaExplicit' } })`);
+      await expect.poll(() => guestResult(page, electronApp), { timeout: 15000 }).toBe('viaExplicit');
     });
   });
 
@@ -187,20 +162,20 @@ test.describe('Apps - ctx API', () => {
     await setAppCode(page, CTX_APP);
     await saveRequest(page);
     await previewApp(page);
-    await waitForGuestReady(electronApp);
+    await waitForGuestReady(page, electronApp);
 
-    await guestEval(electronApp, `window.__setVar('q', 'viaSet')`);
+    await guestEval(page, electronApp, `window.__setVar('q', 'viaSet')`);
     // Wait for the variable to round-trip back into the guest's bru.ctx.variables.resolved
     // (host dispatch → store update → AppView re-render → variables push) rather
     // than guessing with a fixed timeout, then send with no override.
     await expect
-      .poll(() => guestEval(electronApp, `window.bru && window.bru.ctx.variables.resolved && window.bru.ctx.variables.resolved.q`), { timeout: 15000 })
+      .poll(() => guestEval(page, electronApp, `window.bru && window.bru.ctx.variables.resolved && window.bru.ctx.variables.resolved.q`), { timeout: 15000 })
       .toBe('viaSet');
-    await guestEval(electronApp, 'void window.__send()');
-    await expect.poll(() => guestResult(electronApp), { timeout: 15000 }).toBe('viaSet');
+    await guestEval(page, electronApp, 'void window.__send()');
+    await expect.poll(() => guestResult(page, electronApp), { timeout: 15000 }).toBe('viaSet');
   });
 
-  test('the ctx bootstrap and user code are injected into the webview source', async ({ page, createTmpDir }) => {
+  test('the ctx bootstrap and user code are injected into the webview source', async ({ page, electronApp, createTmpDir }) => {
     const collectionPath = await createTmpDir('apps-ctx-bootstrap');
     await createCollection(page, 'apps-boot', collectionPath);
     await createRequest(page, 'boot-req', 'apps-boot', { url: 'http://localhost:8081/api/echo/anything/x' });
@@ -208,8 +183,11 @@ test.describe('Apps - ctx API', () => {
 
     await setAppCode(page, CTX_APP);
     await previewApp(page);
+    await waitForGuestReady(page, electronApp);
 
-    const html = await getAppWebviewHtml(page);
+    // Read the document from the guest itself: the `bruno-app://` scheme is
+    // internal to Electron, so the test runner cannot fetch the URL.
+    const html = await guestEval(page, electronApp, 'document.documentElement.outerHTML');
     // ctx API surface is present in the injected bootstrap
     expect(html).toContain('window.bru');
     expect(html).toContain('submitRequest');

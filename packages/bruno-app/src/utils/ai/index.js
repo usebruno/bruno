@@ -1,4 +1,5 @@
 import get from 'lodash/get';
+import { resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { callIpc } from 'utils/common/ipc';
 import {
   findEnvironmentInCollection,
@@ -134,13 +135,23 @@ const isSensitiveName = (name) => {
  * Scope + secret metadata is attached by walking each named source. A name
  * marked secret by ANY source stays secret in the output.
  *
- * - `secret: true` => value is replaced by `<redacted>` here, not sent in the
- *   clear over IPC.
- * - The backend re-applies redaction in `formatVariableLine`, so even if a
- *   secret slipped through here it wouldn't reach the provider.
+ * Redaction mirrors the backend's `isSecretVariable`:
+ * - Variables EXPLICITLY marked secret (env `secret` flag, globalEnvSecrets,
+ *   OAuth2 creds) are ALWAYS redacted, regardless of the toggle.
+ * - Names that only LOOK secret by pattern are redacted only when
+ *   `redactVariables` (the "Redact secret variable values" setting) is on.
+ *
+ * `redactVariables` is read live from the store so call sites don't have to
+ * thread it; `redactVariablesOverride` lets tests drive both states.
  */
-export const buildAiVariablesPayload = (collection, item) => {
+export const buildAiVariablesPayload = (collection, item, redactVariablesOverride) => {
   if (!collection) return [];
+
+  // Lazy-require the store so merely importing this module (widely done via
+  // aiGhostText / CodeEditor / AIAssist) doesn't pull in providers/ReduxStore.
+  const redactVariables = redactVariablesOverride === undefined
+    ? get(require('providers/ReduxStore').default.getState(), 'app.preferences.ai.security.redactVariables', true)
+    : redactVariablesOverride;
 
   const REDACTED = '<redacted>';
 
@@ -163,8 +174,13 @@ export const buildAiVariablesPayload = (collection, item) => {
     claim(name, 'global', globalSecrets.has(name));
   }
 
-  // Active environment - explicit `secret` flag per variable.
-  const env = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  // Active environment - explicit `secret` flag per variable. Inherited variables are
+  // merged in so a secret defined on a parent environment is redacted too.
+  const env = resolveEnvironmentInheritance({
+    environments: collection.environments,
+    targetEnvironment: findEnvironmentInCollection(collection, collection.activeEnvironmentUid),
+    merge: true
+  });
   if (env && Array.isArray(env.variables)) {
     for (const v of env.variables) {
       if (v?.name && v.enabled) claim(v.name, 'env', Boolean(v.secret));
@@ -193,9 +209,9 @@ export const buildAiVariablesPayload = (collection, item) => {
     // Default scope for names not claimed by any explicit source — these come
     // from collection/folder/request-level vars that don't carry a secret
     // flag of their own, so we rely on `isSensitiveName` to catch token-like
-    // names by pattern.
+    // names by pattern (only when the redact toggle is on).
     const scope = m?.scope || 'collection';
-    const isSecret = Boolean(m?.secret) || isSensitiveName(name);
+    const isSecret = Boolean(m?.secret) || (redactVariables && isSensitiveName(name));
     const value = resolved[name];
     out.push({
       name,
@@ -207,13 +223,42 @@ export const buildAiVariablesPayload = (collection, item) => {
   return out;
 };
 
+export const buildAiRequestsPayload = (collection) => {
+  if (!collection) return [];
+  const out = [];
+  const walk = (items, folderPath) => {
+    const ordered = sortItemsBySidebarOrder(items || []);
+    for (const item of ordered) {
+      if (item.isTransient) continue;
+      if (isItemAFolder(item)) {
+        const nested = folderPath ? `${folderPath}/${item.name || ''}` : (item.name || '');
+        walk(item.items || [], nested);
+        continue;
+      }
+      if (!isItemARequest(item)) continue;
+      const req = item.draft?.request || item.request || {};
+      out.push({
+        name: item.name || '',
+        pathname: item.pathname || '',
+        folderPath: folderPath || '',
+        type: item.type,
+        method: req.method || 'GET',
+        url: req.url || ''
+      });
+    }
+  };
+  walk(collection.items || [], '');
+  return out;
+};
+
 /**
  * Single entry point for chat + generation. Returns the same payload shape
  * for both so the backend formatters / tools behave identically.
  */
-export const buildAiContextPayload = (item, collection) => ({
+export const buildAiContextPayload = (item, collection, redactVariablesOverride) => ({
   requestContext: buildAiRequestContext(item),
-  variables: collection ? buildAiVariablesPayload(collection, item) : []
+  variables: collection ? buildAiVariablesPayload(collection, item, redactVariablesOverride) : [],
+  requests: buildAiRequestsPayload(collection)
 });
 
 const summarizeDocsItems = (items = []) => {

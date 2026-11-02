@@ -14,7 +14,7 @@ const importPostmanEnvironmentVariables = (brunoEnvironment, values = []) => {
       uid: uuid(),
       name: (i.key ?? '').replace(invalidVariableCharacterRegex, '_'),
       value: i.value ?? '',
-      enabled: i.enabled,
+      enabled: i.enabled ?? true,
       type: 'text',
       secret: isSecret(i.type)
     };
@@ -37,8 +37,7 @@ export const postmanToBrunoEnvironment = (postmanEnvironment) => {
   try {
     return importPostmanEnvironment(postmanEnvironment);
   } catch (err) {
-    console.log(err);
-    throw new Error('Unable to parse the postman environment json file');
+    throw new Error('Unable to parse the postman environment json file', { cause: err });
   }
 };
 

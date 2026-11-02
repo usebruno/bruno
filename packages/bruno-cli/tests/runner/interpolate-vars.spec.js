@@ -1,5 +1,17 @@
 const { describe, it, expect } = require('@jest/globals');
 const interpolateVars = require('../../src/runner/interpolate-vars');
+const prepareRequest = require('../../src/runner/prepare-request');
+
+const FORM_URL_ENCODED_CONTENT_TYPES = [
+  'application/x-www-form-urlencoded',
+  'application/x-www-form-urlencoded; charset=UTF-8',
+  'Application/X-WWW-Form-Urlencoded; charset=UTF-8'
+];
+const JSON_CONTENT_TYPES = [
+  'application/json',
+  'application/json; charset=utf-8',
+  'Application/JSON'
+];
 
 describe('interpolate-vars: interpolateVars', () => {
   it('keeps stream-backed JSON request bodies intact', () => {
@@ -70,6 +82,82 @@ describe('interpolate-vars: interpolateVars', () => {
     expect(result.data).toContain(`--${boundary}`);
     expect(result.data).toContain(`--${boundary}--`);
   });
+
+  it.each(FORM_URL_ENCODED_CONTENT_TYPES)('interpolates form-urlencoded field values when Content-Type is "%s"', (contentType) => {
+    const request = {
+      method: 'POST',
+      mode: 'formUrlEncoded',
+      url: 'https://api.example/submit',
+      headers: { 'content-type': contentType },
+      data: [
+        { name: 'token', value: '{{token}}', enabled: true },
+        { name: 'static', value: 'value', enabled: true }
+      ]
+    };
+
+    const result = interpolateVars(request, { token: 'abc123' }, null, null);
+
+    expect(result.data).toEqual([
+      { name: 'token', value: 'abc123', enabled: true },
+      { name: 'static', value: 'value', enabled: true }
+    ]);
+  });
+
+  it.each(FORM_URL_ENCODED_CONTENT_TYPES)('interpolates a form-urlencoded string body when Content-Type is "%s"', (contentType) => {
+    const request = {
+      method: 'POST',
+      mode: 'text',
+      url: 'https://api.example/submit',
+      headers: { 'content-type': contentType },
+      data: 'token={{token}}&static=value'
+    };
+
+    const result = interpolateVars(request, { token: 'abc123' }, null, null);
+
+    expect(result.data).toBe('token=abc123&static=value');
+  });
+
+  it.each(JSON_CONTENT_TYPES)('interpolates a JSON object body when Content-Type is "%s"', (contentType) => {
+    const request = {
+      method: 'POST',
+      mode: 'json',
+      url: 'https://api.example/submit',
+      headers: { 'content-type': contentType },
+      data: { token: '{{token}}' }
+    };
+
+    const result = interpolateVars(request, { token: 'abc123' }, null, null);
+
+    expect(result.data).toEqual({ token: 'abc123' });
+  });
+
+  it('JSON-escapes mock values in a string body when Content-Type is mixed case', () => {
+    const request = {
+      method: 'POST',
+      mode: 'json',
+      url: 'https://api.example/submit',
+      headers: { 'content-type': 'Application/JSON' },
+      data: '{"note": "{{$randomLoremParagraphs}}"}'
+    };
+
+    const result = interpolateVars(request, {}, null, null);
+
+    expect(() => JSON.parse(result.data)).not.toThrow();
+  });
+
+  it('interpolates a multi-line multipart field value when the boundary contains "json"', () => {
+    const request = {
+      method: 'POST',
+      mode: 'multipartForm',
+      url: 'https://api.example/upload',
+      headers: { 'content-type': 'multipart/form-data; boundary=json-boundary' },
+      data: [{ name: 'note', value: '{{note}}', type: 'text', enabled: true }]
+    };
+
+    const result = interpolateVars(request, { note: 'first line\nsecond line' }, null, null);
+
+    expect(result.data).toEqual([{ name: 'note', value: 'first line\nsecond line', type: 'text', enabled: true }]);
+  });
 });
 
 describe('interpolate-vars: api key header name sidecar', () => {
@@ -98,5 +186,38 @@ describe('interpolate-vars: api key header name sidecar', () => {
       'X-API-Key': 'secret-key-value'
     });
     expect(request.apiKeyHeaderName).toEqual('X-API-Key');
+  });
+});
+
+describe('interpolate-vars: digest auth', () => {
+  it('interpolates digest credentials from environment variables', () => {
+    const request = { digestConfig: { username: 'user', password: '{{digestPw}}' } };
+    const envVariables = { digestPw: 'passwd' };
+
+    interpolateVars(request, envVariables, {}, {});
+
+    expect(request.digestConfig).toEqual({ username: 'user', password: 'passwd' });
+  });
+
+  it('interpolates digest credentials from runtime variables', () => {
+    const request = { digestConfig: { username: 'user', password: '{{digestPw}}' } };
+    const runtimeVariables = { digestPw: 'passwd' };
+
+    interpolateVars(request, {}, runtimeVariables, {});
+
+    expect(request.digestConfig).toEqual({ username: 'user', password: 'passwd' });
+  });
+
+  it('interpolates digest credentials inherited from the collection', async () => {
+    const collection = {
+      root: { request: { auth: { mode: 'digest', digest: { username: 'user', password: '{{digestPw}}' } } } }
+    };
+    const item = { request: { method: 'GET', headers: [], params: [], url: 'https://example.com', auth: { mode: 'inherit' } } };
+    const envVariables = { digestPw: 'passwd' };
+
+    const request = await prepareRequest(item, collection);
+    interpolateVars(request, envVariables, {}, {});
+
+    expect(request.digestConfig).toEqual({ username: 'user', password: 'passwd' });
   });
 });

@@ -62,6 +62,8 @@ const sendAllRequests = async (page, collectionName: string) => {
 };
 
 const runAndValidate = async (page, collectionName: string) => {
+  await openCollection(page, collectionName);
+  await selectEnvironment(page, 'Local', 'collection');
   await runCollection(page, collectionName);
   await validateRunnerResults(page, {
     totalRequests: requests.length,

@@ -4,35 +4,26 @@ import { useTheme } from 'providers/Theme';
 
 import StyledWrapper from './StyledWrapper';
 import { IconReload, IconPencil, IconLock, IconCircleCheck, IconAlertCircle } from '@tabler/icons';
-import { isMacOS } from 'utils/common/platform';
 
 import { savePreferences } from 'providers/ReduxStore/slices/app';
-import { KEY_BINDING_SECTIONS } from 'providers/Hotkeys/keyMappings.js';
+import {
+  KEY_BINDING_SECTIONS,
+  KEY_BINDING_SEPARATOR,
+  MODIFIER_SYMBOLS,
+  formatKeysForDisplay,
+  formatSingleKeyForDisplay,
+  fromKeysString,
+  getKeyBindingDisplayOS,
+  getKeyBindingOS,
+  orderKeysForDisplay
+} from 'providers/Hotkeys/keyMappings.js';
 import { Tooltip } from 'react-tooltip';
 import ToggleSwitch from 'components/ToggleSwitch/index';
 import toast from 'react-hot-toast';
 
-const SEP = '+bind+';
-const getOS = () => (isMacOS() ? 'mac' : 'windows');
-
 // Modifier tokens used in stored preferences.
 // These are lowercase on purpose so they match persisted values.
 const MODIFIERS = new Set(['ctrl', 'command', 'alt', 'shift']);
-
-const MODIFIER_SYMBOLS = {
-  mac: {
-    command: '⌘',
-    ctrl: '⌃',
-    alt: '⌥',
-    shift: '⇧'
-  },
-  windows: {
-    ctrl: 'Ctrl',
-    alt: 'Alt',
-    shift: 'Shift',
-    command: 'Win'
-  }
-};
 
 // Helper to parse displayValue string into arrays of key arrays for rendering as keycaps
 // Takes a raw string like "command+bind+1 - command+bind+8" and returns [["command", "1"], ["command", "8"]]
@@ -52,9 +43,7 @@ const parseDisplayValue = (displayValue, os) => {
   const rangeParts = displayValue.split(/\s*-\s*/);
 
   const result = rangeParts.map((part) => {
-    // Split by "+bind+" to get individual keys (consistent with storage format)
-    // Filter out empty strings that may result from the split
-    const keys = part.split(SEP).filter(Boolean).map((key) => {
+    const keys = fromKeysString(part).map((key) => {
       const lowerKey = key.toLowerCase().trim();
       // Check if it's a symbol and convert back to key name
       if (symbolToKey[lowerKey]) {
@@ -109,7 +98,7 @@ const hasRequiredModifier = (os, arr) => {
 };
 const isOnlyModifiers = (arr) => arr.length > 0 && arr.every((k) => MODIFIERS.has(k));
 
-// Keep a stable modifier order for display, storage, and duplicate detection.
+// Keep a stable modifier order for storage and duplicate detection; display reorders per OS.
 // Non-modifier keys keep their original order.
 const MODIFIER_ORDER = ['ctrl', 'command', 'alt', 'shift'];
 
@@ -145,37 +134,12 @@ const uniqSorted = (arr) => {
   return sortCombo(unique);
 };
 
-const fromKeysString = (keysStr) => (keysStr ? keysStr.split(SEP).filter(Boolean) : []);
-const toKeysString = (keysArr) => uniqSorted(keysArr).join(SEP);
-
-const formatSingleKeyForDisplay = (key, os) => {
-  if (MODIFIER_SYMBOLS[os]?.[key]) return MODIFIER_SYMBOLS[os][key];
-  if (key.length === 1) return key.toUpperCase();
-
-  const SPECIAL_LABELS = {
-    enter: os === 'mac' ? '↩' : 'Enter',
-    backspace: os === 'mac' ? '⌫' : 'Backspace',
-    tab: os === 'mac' ? '⇥' : 'Tab',
-    delete: os === 'mac' ? '⌦' : 'Delete',
-    esc: os === 'mac' ? '⎋' : 'Esc',
-    space: os === 'mac' ? '␣' : 'Space',
-    arrowup: '↑',
-    arrowdown: '↓',
-    arrowleft: '←',
-    arrowright: '→',
-    pageup: 'PageUp',
-    pagedown: 'PageDown',
-    home: 'Home',
-    end: 'End'
-  };
-
-  return SPECIAL_LABELS[key] || key.charAt(0).toUpperCase() + key.slice(1);
-};
+const toKeysString = (keysArr) => uniqSorted(keysArr).join(KEY_BINDING_SEPARATOR);
 
 const renderKeycaps = (keysArr, os) => {
   if (!keysArr?.length) return null;
 
-  return keysArr.map((key, index) => (
+  return orderKeysForDisplay(keysArr, os).map((key, index) => (
     <span key={`${key}-${index}`} className="keycap">
       {formatSingleKeyForDisplay(key, os)}
     </span>
@@ -302,7 +266,8 @@ const Keybindings = () => {
   const preferences = useSelector((state) => state.app.preferences);
   const { theme } = useTheme();
 
-  const os = getOS();
+  const os = getKeyBindingOS();
+  const displayOS = getKeyBindingDisplayOS();
   const keybindingsEnabled = preferences?.keybindingsEnabled !== false;
 
   const handleToggleKeybindings = () => {
@@ -771,12 +736,12 @@ const Keybindings = () => {
     if (binding?.displayValue) {
       // Use the same pills style rendering as regular keybindings
       if (typeof binding.displayValue === 'string') {
-        return <span className="shortcut-text">{renderDisplayValue(binding.displayValue, os)}</span>;
+        return <span className="shortcut-text">{renderDisplayValue(binding.displayValue, displayOS)}</span>;
       }
 
       // displayValue can be an object with OS-specific values
       const rawDisplayText = binding.displayValue[os] || binding.displayValue.mac || binding.displayValue.windows;
-      return <span className="shortcut-text">{renderDisplayValue(rawDisplayText, os)}</span>;
+      return <span className="shortcut-text">{renderDisplayValue(rawDisplayText, displayOS)}</span>;
     }
 
     const isRecording = recordingAction === action;
@@ -785,16 +750,15 @@ const Keybindings = () => {
       : fromKeysString(getCurrentRowKeysString(action));
 
     if (isRecording) {
-      const textParts = (arr || []).map((key) => formatSingleKeyForDisplay(key, os));
       return (
         <span className="shortcut-text">
-          {textParts.join(' ')}
+          {formatKeysForDisplay(arr, displayOS, ' ')}
           <span className="editing-caret" />
         </span>
       );
     }
 
-    return renderKeycaps(arr || [], os);
+    return renderKeycaps(arr || [], displayOS);
   };
 
   return (
