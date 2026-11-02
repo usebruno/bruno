@@ -17,7 +17,7 @@ const restartAppAndGetLocators = async (restartApp: (options?: { initUserDataPat
 };
 
 test.describe('Close all collections', () => {
-  test('TC-2621: Verify user is able to close all collections', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+  test('TC-2621: Verify user is able to close all collections', { tag: '@sanity' }, async ({ newPage: page, createTmpDir }) => {
     const firstCollectionName = 'CloseAllFirst';
     const secondCollectionName = 'CloseAllSecond';
     const { sidebar, modal, toast } = buildCommonLocators(page);
@@ -40,7 +40,7 @@ test.describe('Close all collections', () => {
     await test.step('Close all opens the remove collections dialog', async () => {
       await sidebar.closeAllCollectionsButton().click();
       await expect(removeCollectionsModal).toBeVisible();
-      await expect(removeCollectionsModal).toContainText(/Are you sure you want to close all \d+ collections/);
+      await expect(removeCollectionsModal.getByText('Are you sure you want to close all 2 collections from this workspace?', { exact: true })).toBeVisible();
       await expect(removeCollectionsModal.getByText(firstCollectionName, { exact: true })).toBeVisible();
       await expect(removeCollectionsModal.getByText(secondCollectionName, { exact: true })).toBeVisible();
     });
