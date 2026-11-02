@@ -1,4 +1,6 @@
+const mockEnv = jest.fn();
 jest.mock('simple-git', () => jest.fn(() => ({
+  env: mockEnv,
   outputHandler: jest.fn(),
   clone: jest.fn((_url, _path, _options, callback) => callback(null, 'cloned'))
 })));
@@ -58,5 +60,6 @@ describe('cloneGitRepository', () => {
     await cloneGitRepository(win, { url: 'https://example.com/repo.git', path: '/collections/repo', processUid: 'p1' });
 
     expect(simpleGit).toHaveBeenCalledWith({ baseDir: '/collections/repo', config: ['core.longpaths=true'] });
+    expect(mockEnv).toHaveBeenCalledWith({ ...process.env, GIT_OPTIONAL_LOCKS: '0' });
   });
 });
