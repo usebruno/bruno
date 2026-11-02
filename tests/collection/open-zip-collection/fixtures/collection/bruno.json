@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "name": "Open Zip Collection",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"]
+}
