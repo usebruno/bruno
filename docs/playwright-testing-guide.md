@@ -98,7 +98,9 @@ test('Test with temporary data', async ({ page, createTmpDir }) => {
 
 All E2E code lives under `e2e/`. The Playwright configs (`playwright.config.ts`, `playwright.benchmark.config.ts`, `playwright.merge.config.ts`) stay at the repo root.
 
-Specs import shared code through path aliases defined in `e2e/tsconfig.json`: `@e2e/test` (the custom `test` and `expect`), `@e2e/pages`, `@e2e/support`, `@e2e/data`, `@e2e/constants` and `@e2e/servers`. Always import from the alias itself, never from a file inside it (`@e2e/pages`, not `@e2e/pages/request/body`); lint enforces both rules in `e2e/tests/`. Page objects inside `e2e/pages/` import each other by relative path.
+Specs import shared code through path aliases defined in `e2e/tsconfig.json`: `@e2e/test` (the custom `test` and `expect`), `@e2e/pages`, `@e2e/support`, `@e2e/data`, `@e2e/constants` and `@e2e/servers`. Always import from the alias itself, never from a file inside it (`@e2e/pages`, not `@e2e/pages/request/body`).
+
+**Where aliases are used:** specs (`e2e/tests/`) use aliases; shared code (everything else in `e2e/`: page objects, support, data, constants, servers, fixtures) uses relative paths. Lint enforces both sides: relative or deep imports into `e2e/` fail in specs, and any `@e2e/*` import fails in shared code (it could pull in the `@e2e/pages` barrel and create a circular import).
 
 ```
 e2e/

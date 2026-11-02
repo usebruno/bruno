@@ -98,8 +98,7 @@ module.exports = runESMImports().then(() => defineConfig([
     }
   },
   {
-    // E2E specs import shared code through the aliases in e2e/tsconfig.json, never by relative path
-    files: ['e2e/tests/**/*.{ts,js}'],
+    // E2E specs use aliases from e2e/tsconfig.json instead of relative imports.    files: ['e2e/tests/**/*.{ts,js}'],
     ignores: ['**/test-data/**', '**/init-user-data/**'],
     rules: {
       'no-restricted-imports': ['error', {
@@ -111,6 +110,22 @@ module.exports = runESMImports().then(() => defineConfig([
           {
             regex: '^@e2e/(pages|support|data|constants|servers)/.+',
             message: 'Import from the barrel (for example @e2e/pages), not from a file inside it.'
+          }
+        ]
+      }]
+    }
+  },
+  {
+    // Use relative imports in shared E2E code. Aliases are for specs only
+    // to avoid circular dependencies through the @e2e/pages barrel.
+    files: ['e2e/**/*.{ts,js}'],
+    ignores: ['e2e/tests/**'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          {
+            regex: '^@e2e/',
+            message: 'Shared E2E code imports by relative path. @e2e/* aliases are for specs in e2e/tests/ only.'
           }
         ]
       }]
