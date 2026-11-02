@@ -2,10 +2,6 @@
 
 Writes a converted collection to disk.
 
-## Purpose
-
-Writes an in-memory collection (for example, one returned by `@usebruno/converters`) to disk as a collection directory that Bruno can open: the collection file, environments, folders and requests. File contents are serialized with `@usebruno/filestore`.
-
 ## Usage
 
 ```javascript
