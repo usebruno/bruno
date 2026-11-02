@@ -1,0 +1,120 @@
+import path from 'path';
+import { test, expect } from '../../../playwright';
+import { buildCommonLocators, closeAllCollections, createCollection, createRequest, openCollectionSettings, selectCollectionPaneTab } from '../../../pages';
+import { waitForReadyPage } from '../../../support';
+
+const initUserDataPath = path.join(__dirname, 'init-user-data');
+test.describe('Create collection', () => {
+  test.afterEach(async ({ page }) => {
+    // cleanup: close all collections
+    await closeAllCollections(page);
+  });
+
+  test('should show validation error for empty name in modal and keep modal open', async ({ page }) => {
+    await page.getByTestId('collections-header-add-menu').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
+
+    const inlineCreator = page.locator('.inline-collection-creator');
+    await inlineCreator.waitFor({ state: 'visible', timeout: 5000 });
+    await inlineCreator.locator('.cog-btn').click();
+
+    const createCollectionModal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Collection' });
+    await createCollectionModal.waitFor({ state: 'visible', timeout: 5000 });
+
+    const submitButton = createCollectionModal.getByRole('button', { name: 'Create', exact: true });
+    await createCollectionModal.getByLabel('Name').fill('');
+    await expect(submitButton).toBeEnabled();
+    await submitButton.click();
+
+    await expect(createCollectionModal).toBeVisible();
+    await expect(submitButton).toBeEnabled();
+    await expect(createCollectionModal.getByText('Collection name is required')).toBeVisible({ timeout: 2000 });
+
+    await createCollectionModal.getByRole('button', { name: 'Cancel' }).click();
+  });
+
+  test('should show validation error for whitespace-only name in modal and keep modal open', async ({ page }) => {
+    await page.getByTestId('collections-header-add-menu').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
+
+    const inlineCreator = page.locator('.inline-collection-creator');
+    await inlineCreator.waitFor({ state: 'visible', timeout: 5000 });
+    await inlineCreator.locator('.cog-btn').click();
+
+    const createCollectionModal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Collection' });
+    await createCollectionModal.waitFor({ state: 'visible', timeout: 5000 });
+
+    const submitButton = createCollectionModal.getByRole('button', { name: 'Create', exact: true });
+    await createCollectionModal.getByLabel('Name').fill('   ');
+    await expect(submitButton).toBeEnabled();
+    await submitButton.click();
+
+    await expect(createCollectionModal).toBeVisible();
+    await expect(submitButton).toBeEnabled();
+    await expect(createCollectionModal.getByText('Collection name can\'t be empty')).toBeVisible({ timeout: 2000 });
+
+    await createCollectionModal.getByRole('button', { name: 'Cancel' }).click();
+  });
+
+  test('Create collection and add a simple HTTP request', async ({ page, createTmpDir }) => {
+    const collectionName = 'test-collection';
+    const requestName = 'ping';
+
+    await createCollection(page, collectionName, await createTmpDir(collectionName));
+
+    // Create a new request using the dialog/modal flow
+    await createRequest(page, requestName, collectionName);
+
+    // Set the URL
+    await page.locator('#request-url .CodeMirror').click();
+    await page.locator('#request-url').locator('textarea').fill('http://localhost:8081');
+    await page.locator('#request-actions').getByTestId('save-request-button').click();
+
+    // Send a request
+    await page.locator('#request-url .CodeMirror').click();
+    await page.locator('#request-url').locator('textarea').fill('/ping');
+    await page.locator('#request-actions').getByTestId('save-request-button').click();
+    await page.getByTestId('send-arrow-icon').click();
+
+    // Verify the response
+    await expect(page.getByRole('main')).toContainText('200 OK');
+  });
+
+  test('a newly created collection has no version set (shows "Not Set")', async ({ page, createTmpDir }) => {
+    const collectionName = 'versioned-collection';
+    await createCollection(page, collectionName, await createTmpDir(collectionName));
+
+    await openCollectionSettings(page, collectionName);
+    await selectCollectionPaneTab(page, 'overview');
+    await expect(page.getByTestId('info-version-value')).toHaveText('Not Set');
+  });
+});
+
+test.describe('Create Collection through sidebar', () => {
+  test('TC-1054: Verify the Collection created in default with Untitled Collection (n) with gear icon', { tag: '@sanity' }, async ({ launchElectronApp, createTmpDir }) => {
+    const wsLocation = await createTmpDir('verify-default-collection');
+    const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
+    const page = await waitForReadyPage(app);
+    const { plusMenu, toast, sidebar } = buildCommonLocators(page);
+    const { inlineCollectionCreator } = sidebar;
+
+    for (const defaultName of ['Untitled Collection', 'Untitled Collection - 1', 'Untitled Collection - 2']) {
+      await test.step(`Create collection opens an inline name prefilled with "${defaultName}"`, async () => {
+        await plusMenu.button().click();
+        await plusMenu.createCollection().click();
+        await expect(inlineCollectionCreator.root()).toBeVisible();
+        await expect(inlineCollectionCreator.nameInput()).toHaveValue(defaultName);
+        await expect(inlineCollectionCreator.advancedButton()).toBeVisible();
+        await expect(inlineCollectionCreator.createButton()).toBeVisible();
+        await expect(inlineCollectionCreator.cancelButton()).toBeVisible();
+      });
+
+      await test.step(`The check icon creates "${defaultName}" and shows it in the sidebar`, async () => {
+        await inlineCollectionCreator.createButton().click();
+        await expect(toast.byMessage('Collection created!').first()).toBeVisible();
+        await expect(sidebar.collectionExact(defaultName)).toBeVisible();
+        await expect(inlineCollectionCreator.root()).toBeHidden();
+      });
+    }
+  });
+});

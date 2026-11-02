@@ -14,8 +14,7 @@ const isFixMode = process.argv.some((arg) => arg === '--fix' || arg === '--fix-d
 
 const mainLintFiles = [
   './eslint.config.js',
-  'tests/**/*.{ts,js}',
-  'playwright/**/*.{js,ts}',
+  'e2e/**/*.{ts,js}',
   'packages/bruno-app/**/*.{js,jsx,ts}',
   'packages/bruno-app/plugins/**/*.{js,cjs,mjs}',
   'packages/bruno-app/src/test-utils/mocks/codemirror.js',

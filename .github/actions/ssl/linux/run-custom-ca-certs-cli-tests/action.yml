@@ -9,7 +9,7 @@ runs:
         set -euo pipefail
         
         # navigate to CA certificates test collection directory
-        cd tests/ssl/custom-ca-certs/collection
+        cd e2e/tests/ssl/custom-ca-certs/collection
 
         echo "custom valid ca cert"
         # should pass

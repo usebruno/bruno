@@ -63,7 +63,7 @@ jobs:
         with:
           name: benchmark-results-${{ matrix.os-name }}
           path: |
-            tests/benchmarks/results/
+            e2e/tests/benchmarks/results/
             benchmark-report/
           retention-days: 30
 
@@ -72,7 +72,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add tests/benchmarks/mounting/baseline.${{ matrix.os-name }}.json
+          git add e2e/tests/benchmarks/mounting/baseline.${{ matrix.os-name }}.json
           git diff --staged --quiet || git commit -m "chore: update ${{ matrix.os-name }} benchmark baseline" && git push
 
       - name: Comment Benchmark Results on PR
@@ -81,11 +81,11 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const run = require('./tests/benchmarks/utils/pr-comment.js');
+            const run = require('./e2e/tests/benchmarks/utils/pr-comment.js');
             await run({
               github,
               context,
-              resultsPath: 'tests/benchmarks/results/mounting.json',
-              baselinePath: 'tests/benchmarks/mounting/baseline.${{ matrix.os-name }}.json',
+              resultsPath: 'e2e/tests/benchmarks/results/mounting.json',
+              baselinePath: 'e2e/tests/benchmarks/mounting/baseline.${{ matrix.os-name }}.json',
               title: 'Benchmark Results — Collection Mount (${{ matrix.os-name }})'
             });

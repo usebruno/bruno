@@ -22,7 +22,7 @@ export default defineConfig({
   projects: [
     {
       name: 'default',
-      testDir: './tests',
+      testDir: './e2e/tests',
       testIgnore: [
         'ssl/**', // custom CA certificate tests require separate server setup and certificate generation
         'auth/**', // auth tests have their own project
@@ -33,20 +33,20 @@ export default defineConfig({
     },
     {
       name: 'auth',
-      testDir: './tests/auth'
+      testDir: './e2e/tests/auth'
     },
     {
       name: 'ssl',
-      testDir: './tests/ssl'
+      testDir: './e2e/tests/ssl'
     },
     {
       // system-pac and pac specs share the same PAC/proxy/target ports.
       name: 'system-pac',
-      testDir: './tests/proxy/system-pac',
+      testDir: './e2e/tests/proxy/system-pac',
     },
     {
       name: 'mock-server',
-      testDir: './tests/mock-server'
+      testDir: './e2e/tests/mock-server'
     }
   ],
 

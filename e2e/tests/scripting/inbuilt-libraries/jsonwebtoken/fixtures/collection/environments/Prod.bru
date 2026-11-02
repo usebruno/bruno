@@ -1,0 +1,10 @@
+vars {
+  host: http://httpfaker.org
+  secret: my-secret-key
+  jwt_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEyMywidXNlcm5hbWUiOiJ0ZXN0dXNlciIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc5MzYzODI4NiwiZXhwIjoxNzkzNjQxODg2fQ.kOYSQuFpOQieCa0Ok-ejgMzYaEGFHChpg3g8C_I1lRU
+  original_payload: {"userId":123,"username":"testuser","role":"admin","iat":1793638286}
+  valid_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc4OSwidXNlcm5hbWUiOiJ2ZXJpZnl1c2VyIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzkzNjM4MjkxLCJleHAiOjE3OTM2NDE4OTF9.u5lXogG1EDciWDj2LPIbVwPD810bZCctqmiL3nSkQXE
+  invalid_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc4OSwidXNlcm5hbWUiOiJ2ZXJpZnl1c2VyIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzkzNjM4MjkxLCJleHAiOjE3OTM2NDE4OTF9.iFhPNJVq0pHThoLjxA-k6PxUO6kE7-JklTjglJhW_Vo
+  verified_payload: {"userId":789,"username":"verifyuser","role":"admin","iat":1793638291,"exp":1793641891}
+  decoded_payload: {"userId":456,"username":"decodeuser","role":"user","iat":1793638297,"exp":1793641897}
+}

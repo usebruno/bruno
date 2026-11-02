@@ -1,0 +1,187 @@
+meta {
+  name: menu-operations
+  type: http
+  seq: 1
+}
+
+post {
+  url: https://testbench-sanity.usebruno.com/api/echo/json
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "message": "Hello World",
+    "timestamp": "{{$timestamp}}"
+  }
+}
+
+example {
+  name: Example to Clone
+  
+  request: {
+    url: https://testbench-sanity.usebruno.com/api/echo/json
+    method: POST
+    mode: json
+    headers: {
+      Content-Type: application/json
+    }
+  
+    body:json: {
+      {
+        "message": "Hello World",
+        "timestamp": "{{$timestamp}}"
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      date: Mon, 02 Nov 2026 16:43:35 GMT
+      content-type: application/json; charset=utf-8
+      transfer-encoding: chunked
+      connection: keep-alive
+      x-powered-by: Express
+      access-control-allow-origin: *
+      etag: W/"32-tK3SQEDcMplDTfKy4xe5g5xRBL4"
+      server: cloudflare
+      x-do-app-origin: 926ac182-3c90-4dd9-ad71-717f024a0eb2
+      cache-control: private
+      x-do-orig-status: 200
+      cf-cache-status: DYNAMIC
+      set-cookie: __cf_bm=7MHGWxMn7ZoK3MmKLTvc6GUYepDby7mjCXGf1B9dq7M-1793637815.6851816-1.0.1.1-F2fMnYKrDrMvuPwAAmCbHUo.rWPV6m7tjeu1o4STQMjFAtbql1W4YHbnaWaqo3bRq4xSQZRqEUv3illUz9KwjUOEhZft0S8xtb0PquVjRURdT3CbmUz8HtA8C84tdpYZ; HttpOnly; SameSite=None; Secure; Path=/; Domain=testbench-sanity.usebruno.com; Expires=Mon, 02 Nov 2026 17:13:35 GMT
+      cf-ray: a544995c0ccf8ae4-MAA
+      alt-svc: h3=":443"; ma=86400
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "message": "Hello World",
+          "timestamp": "1793637815"
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: Example to Clone (Copy)
+  
+  request: {
+    url: https://testbench-sanity.usebruno.com/api/echo/json
+    method: POST
+    mode: json
+    headers: {
+      Content-Type: application/json
+    }
+  
+    body:json: {
+      {
+        "message": "Hello World",
+        "timestamp": "{{$timestamp}}"
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      date: Mon, 02 Nov 2026 16:43:35 GMT
+      content-type: application/json; charset=utf-8
+      transfer-encoding: chunked
+      connection: keep-alive
+      x-powered-by: Express
+      access-control-allow-origin: *
+      etag: W/"32-tK3SQEDcMplDTfKy4xe5g5xRBL4"
+      server: cloudflare
+      x-do-app-origin: 926ac182-3c90-4dd9-ad71-717f024a0eb2
+      cache-control: private
+      x-do-orig-status: 200
+      cf-cache-status: DYNAMIC
+      set-cookie: __cf_bm=7MHGWxMn7ZoK3MmKLTvc6GUYepDby7mjCXGf1B9dq7M-1793637815.6851816-1.0.1.1-F2fMnYKrDrMvuPwAAmCbHUo.rWPV6m7tjeu1o4STQMjFAtbql1W4YHbnaWaqo3bRq4xSQZRqEUv3illUz9KwjUOEhZft0S8xtb0PquVjRURdT3CbmUz8HtA8C84tdpYZ; HttpOnly; SameSite=None; Secure; Path=/; Domain=testbench-sanity.usebruno.com; Expires=Mon, 02 Nov 2026 17:13:35 GMT
+      cf-ray: a544995c0ccf8ae4-MAA
+      alt-svc: h3=":443"; ma=86400
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "message": "Hello World",
+          "timestamp": "1793637815"
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: Renamed Example
+  description: This example will be renamed
+  
+  request: {
+    url: https://testbench-sanity.usebruno.com/api/echo/json
+    method: POST
+    mode: json
+    headers: {
+      Content-Type: application/json
+    }
+  
+    body:json: {
+      {
+        "message": "Hello World",
+        "timestamp": "{{$timestamp}}"
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      date: Mon, 02 Nov 2026 16:43:42 GMT
+      content-type: application/json; charset=utf-8
+      transfer-encoding: chunked
+      connection: keep-alive
+      x-powered-by: Express
+      access-control-allow-origin: *
+      etag: W/"32-gdYCmTdsIrkR4kUiPjju5hdBs+w"
+      server: cloudflare
+      x-do-app-origin: 926ac182-3c90-4dd9-ad71-717f024a0eb2
+      cache-control: private
+      x-do-orig-status: 200
+      cf-cache-status: DYNAMIC
+      cf-ray: a5449985f81b937b-MAA
+      alt-svc: h3=":443"; ma=86400
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "message": "Hello World",
+          "timestamp": "1793637822"
+        }
+      '''
+    }
+  }
+}

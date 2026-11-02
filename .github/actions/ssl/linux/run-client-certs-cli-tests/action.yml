@@ -12,7 +12,7 @@ runs:
         CACERT=../../server/certs/ca-cert.pem
 
         # navigate to the CLI test collections directory
-        cd tests/ssl/client-certs/collections
+        cd e2e/tests/ssl/client-certs/collections
 
         echo "client cert (pem, bru) presented"
         # cert enabled → attached → mTLS handshake succeeds → assertions pass
