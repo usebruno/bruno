@@ -19,6 +19,7 @@ import { buildToastLocators } from './app-shell/toast';
 import { buildSecretVariableFormLocators } from './variable/secret-form';
 import { buildRequestLocators } from './request/pane';
 import { buildCollectionHeaderLocators } from './collection/header';
+import { buildCollectionAppLocators } from './collection/collection-app';
 import { buildCollectionProxyLocators } from './collection/proxy';
 import { buildCodeMirrorLocators } from './shared-ui/code-editor';
 import { buildEnvironmentLocators } from './environment/environment';
@@ -61,6 +62,7 @@ export type { PresetRequestType } from './collection/settings';
 export const buildCommonLocators = (page: Page) => ({
   titleBar: buildTitleBarLocators(page),
   collectionHeader: buildCollectionHeaderLocators(page),
+  collectionApp: buildCollectionAppLocators(page),
   collectionProxy: buildCollectionProxyLocators(page),
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),
