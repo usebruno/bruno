@@ -17,7 +17,7 @@ const restartAppAndGetLocators = async (restartApp: (options?: { initUserDataPat
 };
 
 test.describe('Close all collections', () => {
-  test('TC-2621: Verify user is able to close all collections', async ({ page, createTmpDir }) => {
+  test('TC-2621: Verify user is able to close all collections', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const firstCollectionName = 'CloseAllFirst';
     const secondCollectionName = 'CloseAllSecond';
     const { sidebar, modal, toast } = buildCommonLocators(page);
