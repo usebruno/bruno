@@ -1,19 +1,12 @@
 import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { ThemeProvider } from 'styled-components';
+import { ThemeProvider } from 'providers/Theme';
 import CodeSnippet from './index';
-
-const theme = {
-  font: { size: { xs: '0.75rem' } },
-  background: { elevated: '#f5f5f5' },
-  border: { border2: '#e0e0e0', radius: { base: '4px' } },
-  colors: { text: { danger: '#ef4444', warning: '#f59e0b', muted: '#999' } }
-};
 
 const renderWithTheme = (component) => {
   return render(
-    <ThemeProvider theme={theme}>
+    <ThemeProvider>
       {component}
     </ThemeProvider>
   );

@@ -24,14 +24,19 @@ const buildEnvironment = ({ uid, name, extendsFrom }) => ({
   extends: extendsFrom
 });
 
-const renderModal = (environments) => {
+const renderModal = (environments, preselectedEnvironmentUids) => {
   const slice = createSlice({ name: 'collections', initialState: { collections: [] }, reducers: {} });
   const store = configureStore({ reducer: { collections: slice.reducer } });
 
   return render(
     <Provider store={store}>
       <ThemeProvider theme={themes.light}>
-        <ExportEnvironmentModal onClose={jest.fn()} environments={environments} environmentType="collection" />
+        <ExportEnvironmentModal
+          onClose={jest.fn()}
+          environments={environments}
+          environmentType="collection"
+          preselectedEnvironmentUids={preselectedEnvironmentUids}
+        />
       </ThemeProvider>
     </Provider>
   );
@@ -76,5 +81,71 @@ describe('ExportEnvironmentModal', () => {
     fireEvent.click(screen.getByLabelText('middle'));
 
     expect(inheritanceWarningTexts()).toEqual(['inherits deleted-root, middle']);
+  });
+
+  describe('with preselected environments', () => {
+    it('lists only the preselected environments and the ones they inherit from', () => {
+      renderModal(
+        [
+          buildEnvironment({ uid: 'env-local', name: 'local' }),
+          buildEnvironment({ uid: 'env-derived', name: 'derived', extendsFrom: 'local' }),
+          buildEnvironment({ uid: 'env-other', name: 'other' })
+        ],
+        ['env-derived']
+      );
+
+      expect(screen.getByLabelText('derived')).toBeChecked();
+      expect(screen.getByLabelText('local')).not.toBeChecked();
+      expect(screen.queryByLabelText('other')).not.toBeInTheDocument();
+      expect(inheritanceWarningTexts()).toEqual(['inherits local']);
+    });
+
+    it('lists every ancestor in the inheritance chain', () => {
+      renderModal(
+        [
+          buildEnvironment({ uid: 'env-root', name: 'root' }),
+          buildEnvironment({ uid: 'env-middle', name: 'middle', extendsFrom: 'root' }),
+          buildEnvironment({ uid: 'env-leaf', name: 'leaf', extendsFrom: 'middle' }),
+          buildEnvironment({ uid: 'env-other', name: 'other' })
+        ],
+        ['env-leaf']
+      );
+
+      expect(screen.getByLabelText('root')).toBeInTheDocument();
+      expect(screen.getByLabelText('middle')).toBeInTheDocument();
+      expect(screen.getByLabelText('leaf')).toBeChecked();
+      expect(screen.queryByLabelText('other')).not.toBeInTheDocument();
+    });
+
+    it('selects only the listed environments with Select All', () => {
+      renderModal(
+        [
+          buildEnvironment({ uid: 'env-local', name: 'local' }),
+          buildEnvironment({ uid: 'env-derived', name: 'derived', extendsFrom: 'local' }),
+          buildEnvironment({ uid: 'env-other', name: 'other' })
+        ],
+        ['env-derived']
+      );
+
+      fireEvent.click(screen.getByText('Select All'));
+
+      expect(screen.getByLabelText('derived')).toBeChecked();
+      expect(screen.getByLabelText('local')).toBeChecked();
+      expect(screen.queryByLabelText('other')).not.toBeInTheDocument();
+      expect(inheritanceWarningTexts()).toEqual([]);
+    });
+
+    it('lists every environment when nothing is preselected', () => {
+      renderModal(
+        [
+          buildEnvironment({ uid: 'env-local', name: 'local' }),
+          buildEnvironment({ uid: 'env-other', name: 'other' })
+        ],
+        []
+      );
+
+      expect(screen.getByLabelText('local')).toBeChecked();
+      expect(screen.getByLabelText('other')).toBeChecked();
+    });
   });
 });

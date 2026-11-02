@@ -21,6 +21,7 @@ import StyledWrapper from './StyledWrapper';
  * @param {string} props.size - Input size: 'sm' | 'md' (default: 'md')
  * @param {string} props.className - Additional CSS class for the wrapper
  * @param {boolean} props.autoFocus - Auto-focus on mount
+ * @param {function} props.onKeyDown - Called with the input keydown event
  * @param {boolean} props.readOnly - Makes input read-only
  * @param {string} props.autoComplete - HTML autoComplete attribute
  * @param {number} props.maxLength - Max character length
@@ -45,6 +46,7 @@ const TextInput = ({
   size = 'md',
   className,
   autoFocus,
+  onKeyDown,
   readOnly,
   autoComplete,
   maxLength,
@@ -90,6 +92,7 @@ const TextInput = ({
             data-testid={testId}
             readOnly={readOnly}
             autoFocus={autoFocus}
+            onKeyDown={onKeyDown}
             autoComplete={autoComplete}
             maxLength={maxLength}
             min={min}

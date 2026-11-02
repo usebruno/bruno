@@ -1,6 +1,7 @@
 import { collectionsSlice } from './index';
 
 const {
+  updateVar,
   setRequestVars,
   setFolderVars,
   setCollectionVars,
@@ -249,5 +250,47 @@ describe('expandItem', () => {
     expect(expandedFolder.collapsed).toBe(false);
     expect(expandedFolder.items[0].collapsed).toBe(true);
     expect(expandedFolder.items[0].items[0].collapsed).toBe(true);
+  });
+
+  it('expands a request so its response examples render', () => {
+    const request = { uid: 'req1', type: 'http-request', request: {}, collapsed: true };
+
+    const next = reducer(
+      makeStateWith(request),
+      expandItem({ collectionUid: 'col1', itemUid: 'req1' })
+    );
+
+    expect(next.collections[0].items[0].collapsed).toBe(false);
+  });
+});
+
+describe('updateVar — dataType is only changed when the caller says so', () => {
+  const itemWithTypedVar = () => ({
+    uid: 'item1',
+    type: 'http-request',
+    request: { vars: { req: [{ uid: 'v1', name: 'count', value: '42', enabled: true, dataType: 'number' }], res: [] } }
+  });
+
+  const reqVarsAfter = (payloadVar) =>
+    reducer(makeStateWith(itemWithTypedVar()), updateVar({ collectionUid: 'col1', itemUid: 'item1', type: 'request', var: payloadVar }))
+      .collections[0].items[0].draft.request.vars.req;
+
+  it('keeps an existing dataType when the payload carries none', () => {
+    const vars = reqVarsAfter({ uid: 'v1', name: 'count', value: '43', enabled: true });
+
+    expect(vars[0]).toMatchObject({ value: '43', dataType: 'number' });
+  });
+
+  it('clears the dataType when the caller explicitly says string', () => {
+    const vars = reqVarsAfter({ uid: 'v1', name: 'count', value: 'abc', enabled: true, dataType: 'string' });
+
+    expect(vars[0]).toMatchObject({ value: 'abc' });
+    expect(vars[0].dataType).toBeUndefined();
+  });
+
+  it('replaces the dataType when the caller names a different one', () => {
+    const vars = reqVarsAfter({ uid: 'v1', name: 'count', value: 'true', enabled: true, dataType: 'boolean' });
+
+    expect(vars[0]).toMatchObject({ value: 'true', dataType: 'boolean' });
   });
 });
