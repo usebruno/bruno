@@ -121,7 +121,7 @@ e2e/
     │   └── create-new-collection.spec.ts
     └── feature-a/
         ├── some-behaviour.spec.ts
-        ├── test-data/     # collection/, collections/, workspace/ loaded by the fixtures
+        ├── fixtures/      # sample data: collection/, collections/, workspace/ loaded by the test fixtures
         └── init-user-data/  # preferences.json seed for the app
 ```
 

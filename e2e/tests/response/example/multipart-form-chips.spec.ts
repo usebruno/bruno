@@ -3,7 +3,7 @@ import { execSync } from 'child_process';
 import path from 'path';
 import type { Page } from '@playwright/test';
 
-const fixturePath = path.join(__dirname, 'test-data', 'collection', 'multipart-example.bru');
+const fixturePath = path.join(__dirname, 'fixtures', 'collection', 'multipart-example.bru');
 
 test.describe('Response Example - Multipart Form File Chips', () => {
   test.afterAll(async () => {

@@ -32,8 +32,8 @@ const defaultPreferences = {
 const existsAsync = (filepath: string) => fs.promises.access(filepath).then(() => true).catch(() => false);
 
 /**
- * Test data next to a spec: sample collections and workspaces in test-data/ (collection/, collections/, workspace/),
- * with the legacy fixtures/ folders still read; the app's user-data seed in init-user-data/.
+ * Test data next to a spec: sample collections and workspaces in fixtures/ (collection/, collections/, workspace/),
+ * the app's user-data seed in init-user-data/.
  */
 const firstExistingPath = (candidates: string[]) => candidates.find((p) => fs.existsSync(p));
 const findUserDataDir = (testDir: string) => {
@@ -219,15 +219,10 @@ export const test = baseTest.extend<
 
   collectionFixturePath: async ({ createTmpDir }, use, testInfo) => {
     const testDir = path.dirname(testInfo.file);
-    // test-data/collections — multiple named collections (subdirs with bruno.json/opencollection.yml)
-    // test-data/collection — single collection (single dir with bruno.json/opencollection.yml)
-    // Legacy: fixtures/collections, fixtures/collection
-    const srcPath = firstExistingPath([
-      path.join(testDir, 'test-data', 'collections'),
-      path.join(testDir, 'test-data', 'collection'),
-      path.join(testDir, 'fixtures', 'collections'),
-      path.join(testDir, 'fixtures', 'collection')
-    ]);
+    const fixturesDir = path.join(testDir, 'fixtures');
+    // fixtures/collections — multiple named collections (subdirs with bruno.json/opencollection.yml)
+    // fixtures/collection — single collection (single dir with bruno.json/opencollection.yml)
+    const srcPath = firstExistingPath([path.join(fixturesDir, 'collections'), path.join(fixturesDir, 'collection')]);
 
     if (srcPath) {
       const tmpDir = await createTmpDir(path.basename(srcPath));
@@ -243,13 +238,10 @@ export const test = baseTest.extend<
 
   workspaceFixturePath: async ({ createTmpDir }, use, testInfo) => {
     const testDir = path.dirname(testInfo.file);
-    // test-data/workspace — a workspace.yml + environments/*.yml (+ optional collections/)
-    // Legacy: fixtures/workspace. Copied to a tmp dir so tests can mutate it without affecting the source.
-    const srcPath = firstExistingPath([
-      path.join(testDir, 'test-data', 'workspace'),
-      path.join(testDir, 'fixtures', 'workspace')
-    ]);
-    if (srcPath) {
+    // fixtures/workspace — a workspace.yml + environments/*.yml (+ optional collections/)
+    // Copied to a tmp dir so tests can mutate it without affecting the source.
+    const srcPath = path.join(testDir, 'fixtures', 'workspace');
+    if (fs.existsSync(srcPath)) {
       const tmpDir = await createTmpDir('workspace');
       await fs.promises.cp(srcPath, tmpDir, { recursive: true });
       await use(tmpDir);
