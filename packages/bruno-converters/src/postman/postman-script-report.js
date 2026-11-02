@@ -9,8 +9,38 @@
  * (`pm['secret_token']` -> "pm.secret_token").
  */
 
-import j from 'jscodeshift';
+import { parse } from '@babel/parser';
 import { extractPackagesFromScript } from './postman-package-detector';
+
+// jscodeshift's own options (parser/babel5Compat.js), so this accepts what the
+// translator does — minus `tokens`, which only recast's printer needs.
+const PARSE_OPTIONS = {
+  sourceType: 'module',
+  allowHashBang: true,
+  ecmaVersion: Infinity,
+  allowImportExportEverywhere: true,
+  allowReturnOutsideFunction: true,
+  startLine: 1,
+  plugins: [
+    // Keeps `pm?.environment.get()` a plain MemberExpression, so it stays countable.
+    'estree',
+    'jsx',
+    'asyncGenerators',
+    'classProperties',
+    'doExpressions',
+    'exportExtensions',
+    'functionBind',
+    'functionSent',
+    'objectRestSpread',
+    'dynamicImport',
+    'nullishCoalescingOperator',
+    'optionalChaining',
+    ['decorators', { decoratorsBeforeExport: false }]
+  ]
+};
+
+// Skipped as wasted descent, not for correctness: a comment holds no expression.
+const COMMENT_KEYS = new Set(['leadingComments', 'trailingComments', 'innerComments']);
 
 // Both roots are counted, each kept distinct: `postman.setEnvironmentVariable`
 // has no `pm.*` equivalent, so folding them together would invent an API name
@@ -20,25 +50,26 @@ const LEGACY_ROOT = 'postman';
 const POSTMAN_ROOTS = new Set([CURRENT_ROOT, LEGACY_ROOT]);
 
 /**
- * Walks outward from the root through the enclosing member/call chain.
+ * Resolves a member chain from its outermost link down the object spine.
  *
  *   pm.environment.get('KEY')       -> pm.environment.get
  *   pm.cookies.jar().getCookie(x)   -> pm.cookies.jar   (call terminates)
  *   pm['secret_token']              -> null             (never the key)
+ *   pm.environment['k'].get()       -> null             (computed voids the chain)
  */
-const buildApiIdentifier = (rootPath) => {
-  const segments = [rootPath.value.name];
-  let current = rootPath;
+const buildApiIdentifier = (node) => {
+  const segments = [];
+  let current = node;
 
-  while (current.parent) {
-    const node = current.parent.value;
-    if (node.type !== 'MemberExpression' || node.object !== current.value) break;
-    if (node.computed || node.property.type !== 'Identifier') return null;
-
-    segments.push(node.property.name);
-    current = current.parent;
+  while (current.type === 'MemberExpression') {
+    if (current.computed || current.property.type !== 'Identifier') return null;
+    segments.unshift(current.property.name);
+    current = current.object;
   }
 
+  if (current.type !== 'Identifier' || !POSTMAN_ROOTS.has(current.name)) return null;
+
+  segments.unshift(current.name);
   return segments.join('.');
 };
 
@@ -49,22 +80,32 @@ export const countPmApiUsages = (script) => {
   const byApi = {};
   let total = 0;
 
-  j(script)
-    .find(j.Identifier)
-    .forEach((path) => {
-      if (!POSTMAN_ROOTS.has(path.value.name)) return;
+  if (!script.includes(CURRENT_ROOT) && !script.includes(LEGACY_ROOT)) return { total, byApi };
 
-      // Rules out the global as a plain value, property keys, and members of
-      // unrelated objects.
-      const parent = path.parent?.value;
-      if (parent?.type !== 'MemberExpression' || parent.object !== path.value) return;
+  const visit = (node, parent) => {
+    if (node.type === 'MemberExpression' && !(parent?.type === 'MemberExpression' && parent.object === node)) {
+      const identifier = buildApiIdentifier(node);
+      if (identifier) {
+        byApi[identifier] = (byApi[identifier] || 0) + 1;
+        total++;
+      }
+    }
 
-      const identifier = buildApiIdentifier(path);
-      if (!identifier) return;
+    for (const key in node) {
+      if (COMMENT_KEYS.has(key)) continue;
+      const value = node[key];
 
-      byApi[identifier] = (byApi[identifier] || 0) + 1;
-      total++;
-    });
+      if (Array.isArray(value)) {
+        for (const child of value) {
+          if (typeof child?.type === 'string') visit(child, node);
+        }
+      } else if (typeof value?.type === 'string') {
+        visit(value, node);
+      }
+    }
+  };
+
+  visit(parse(script, PARSE_OPTIONS).program, null);
 
   return { total, byApi };
 };

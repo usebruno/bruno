@@ -138,6 +138,53 @@ describe('countPmApiUsages', () => {
   });
 });
 
+describe('parser behaviour', () => {
+  // Pinned at the module's boundary -- text in, counts out -- so the parser
+  // underneath can be replaced without the report's meaning drifting.
+  it.each([
+    ['plain chain', 'pm.environment.get("k");', { 'pm.environment.get': 1 }],
+    ['optional chaining', 'pm?.environment.get("k");', { 'pm.environment.get': 1 }],
+    ['call ends the chain', 'pm.cookies.jar().getCookie(x);', { 'pm.cookies.jar': 1 }],
+    ['computed root', 'pm[\'secret_token\'];', {}],
+    ['computed mid-chain', 'pm.environment["dynamic"].get();', {}],
+    ['deep property chain', 'pm.response.to.have.status(200);', { 'pm.response.to.have.status': 1 }],
+    ['legacy root', 'postman.setEnvironmentVariable("a", 1);', { 'postman.setEnvironmentVariable': 1 }],
+    ['alias is not followed', 'const p = pm; p.environment.get("x");', {}],
+    ['pm as a property of something else', 'foo.pm.environment.get("k");', {}],
+    ['bare reference', 'pm;', {}],
+    ['property-style api', 'pm.info.requestName;', { 'pm.info.requestName': 1 }],
+    ['inside a callback', 'pm.sendRequest("u", (e, r) => { pm.environment.set("k", r.json().v); });',
+      { 'pm.sendRequest': 1, 'pm.environment.set': 1 }],
+    ['top-level await', 'async function f() { await pm.sendRequest("u"); }', { 'pm.sendRequest': 1 }],
+    ['hashbang', '#!/usr/bin/env node\npm.test("a", () => {});', { 'pm.test': 1 }],
+    ['class fields', 'class A { #x = 1; } pm.test("a", () => {});', { 'pm.test': 1 }],
+    ['nullish assignment', 'let a; a ??= pm.environment.get("k");', { 'pm.environment.get': 1 }],
+    ['no postman root at all', 'const a = items.map((i) => i.id);', {}]
+  ])('counts %s', (_label, script, byApi) => {
+    expect(scan(script).byApi).toEqual(byApi);
+  });
+
+  it('never counts a Postman call that only appears inside a comment', () => {
+    // Exercises all three of babel's comment attachments: leading, trailing and
+    // inner (the last attaches to bodies that hold nothing else).
+    const script = [
+      '// pm.globals.set("leading")',
+      'pm.test("a", () => {});  // pm.globals.set("trailing")',
+      'function f() { /* pm.environment.get("inner") */ }',
+      'const empty = [ /* pm.cookies.jar() */ ];'
+    ].join('\n');
+
+    expect(scan(script)).toEqual({ total: 1, byApi: { 'pm.test': 1 } });
+  });
+
+  it('reports a total matching the number of counted call sites', () => {
+    const { total, byApi } = scan('pm.test("t", () => { pm.expect(pm.response.json().a).to.eql(1); });');
+
+    expect(byApi).toEqual({ 'pm.test': 1, 'pm.expect': 1, 'pm.response.json': 1 });
+    expect(total).toBe(3);
+  });
+});
+
 describe('buildScriptUsage', () => {
   it('treats an empty or whitespace-only script as absent', () => {
     expect(translated('')).toBeNull();
@@ -156,7 +203,18 @@ describe('buildScriptUsage', () => {
   it('returns null rather than throwing when a block cannot be measured', () => {
     // Unparseable output from the regex fallback path must not cost the whole
     // import its report.
-    expect(buildScriptUsage({ source: 'pm.test("x");', translated: 'function (', fellBackToRegex: false })).toBeNull();
+    expect(
+      buildScriptUsage({ source: 'pm.test("x");', translated: 'pm.test("x"); function (', fellBackToRegex: false })
+    ).toBeNull();
+  });
+
+  it('measures a block that cannot parse but holds no Postman root as zero', () => {
+    expect(buildScriptUsage({ source: 'pm.test("x");', translated: 'function (', fellBackToRegex: false })).toEqual({
+      apiCallsTotal: 1,
+      apiCallsUntranslated: 0,
+      untranslatedApis: {},
+      fellBackToRegex: false
+    });
   });
 });
 
