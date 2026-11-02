@@ -47,6 +47,7 @@ class VarsRuntime {
       folderVariables,
       requestVariables,
       globalEnvironmentVariables,
+      globalEnvironmentName: request?.globalEnvironmentName,
       oauth2CredentialVariables,
       promptVariables,
       certsAndProxyConfig,
