@@ -165,6 +165,34 @@ describe('openapi-to-bruno collection auth placement', () => {
     expect(folders.map((folder) => folder.root.request.auth.mode)).toEqual(folders.map(() => 'inherit'));
     expect(authModes(collection)).toEqual({ '/orders/:id': 'inherit', '/orders/:id/items': 'none' });
   });
+
+  describe('on a sync, which passes the current collection auth', () => {
+    const bearerCollection = { mode: 'bearer', bearer: { token: 'my-secret-token' } };
+    const syncedWith = (spec, collectionAuth) => authModes(placed(spec, { collectionAuth }));
+    const addsApiKeyOperation = buildSpec({ paths: { '/a': [{ bearerAuth: [] }], '/b': [{ bearerAuth: [] }], '/public': undefined, '/c': [{ apiKeyHeader: [] }] } });
+
+    it('keeps the scheme that matches the collection auth after an operation with another scheme is added', () => {
+      expect(syncedWith(addsApiKeyOperation, bearerCollection)).toEqual({ '/a': 'inherit', '/b': 'inherit', '/public': 'none', '/c': 'apikey' });
+    });
+
+    it('lets nothing inherit when no scheme matches the collection auth', () => {
+      expect(syncedWith(addsApiKeyOperation, { mode: 'none' })).toEqual({ '/a': 'bearer', '/b': 'bearer', '/public': 'inherit', '/c': 'apikey' });
+    });
+
+    it('matches an api key scheme by its name and placement', () => {
+      const spec = buildSpec({ paths: { '/orders': [{ apiKeyHeader: [] }], '/search': [{ apiKeyQuery: [] }] } });
+      const queryKey = { mode: 'apikey', apikey: { key: 'api_key', value: 'secret', placement: 'queryparams' } };
+
+      expect(syncedWith(spec, queryKey)).toEqual({ '/orders': 'apikey', '/search': 'inherit' });
+    });
+
+    it('takes the scheme every secured operation shares when several schemes match the collection auth', () => {
+      const withTwoBearers = (paths) => ({ ...buildSpec({ paths }), components: { securitySchemes: { ...securitySchemes, adminBearer: { type: 'http', scheme: 'bearer' } } } });
+
+      expect(syncedWith(withTwoBearers({ '/orders': [{ bearerAuth: [] }] }), bearerCollection)).toEqual({ '/orders': 'inherit' });
+      expect(syncedWith(withTwoBearers({ '/orders': [{ bearerAuth: [] }], '/admin': [{ adminBearer: [] }] }), bearerCollection)).toEqual({ '/orders': 'bearer', '/admin': 'bearer' });
+    });
+  });
 });
 
 describe('openapi-to-bruno collection auth placement for Swagger 2.0 specs', () => {

@@ -871,6 +871,90 @@ const getSecurity = (apiSpec) => {
   };
 };
 
+const buildCollectionAuth = (scheme) => {
+  const authTemplate = {
+    mode: 'none',
+    basic: null,
+    bearer: null,
+    digest: null,
+    apikey: null,
+    oauth2: null
+  };
+
+  if (!scheme) return authTemplate;
+
+  if (scheme.type === 'http' && scheme.scheme === 'basic') {
+    return {
+      ...authTemplate,
+      mode: 'basic',
+      basic: {
+        username: '{{username}}',
+        password: '{{password}}'
+      }
+    };
+  } else if (scheme.type === 'http' && scheme.scheme === 'bearer') {
+    return {
+      ...authTemplate,
+      mode: 'bearer',
+      bearer: {
+        token: '{{token}}'
+      }
+    };
+  } else if (scheme.type === 'http' && scheme.scheme === 'digest') {
+    return {
+      ...authTemplate,
+      mode: 'digest',
+      digest: {
+        username: '{{username}}',
+        password: '{{password}}'
+      }
+    };
+  } else if (scheme.type === 'apiKey') {
+    return {
+      ...authTemplate,
+      mode: 'apikey',
+      apikey: {
+        key: scheme.name,
+        value: '{{apiKey}}',
+        placement: scheme.in === 'query' ? 'queryparams' : 'header'
+      }
+    };
+  } else if (scheme.type === 'oauth2') {
+    let flows = scheme.flows || {};
+    let grantType = 'client_credentials';
+    if (flows.authorizationCode) {
+      grantType = 'authorization_code';
+    } else if (flows.implicit) {
+      grantType = 'implicit';
+    } else if (flows.password) {
+      grantType = 'password';
+    }
+    const flowConfig = grantType === 'authorization_code' ? flows.authorizationCode || {} : grantType === 'implicit' ? flows.implicit || {} : grantType === 'password' ? flows.password || {} : flows.clientCredentials || {};
+
+    return {
+      ...authTemplate,
+      mode: 'oauth2',
+      oauth2: {
+        grantType,
+        authorizationUrl: flowConfig.authorizationUrl || '{{oauth_authorize_url}}',
+        accessTokenUrl: flowConfig.tokenUrl || '{{oauth_token_url}}',
+        refreshTokenUrl: flowConfig.refreshUrl || '{{oauth_refresh_url}}',
+        callbackUrl: '{{oauth_callback_url}}',
+        clientId: '{{oauth_client_id}}',
+        clientSecret: '{{oauth_client_secret}}',
+        scope: Array.isArray(flowConfig.scopes) ? flowConfig.scopes.join(' ') : Object.keys(flowConfig.scopes || {}).join(' '),
+        state: '{{oauth_state}}',
+        credentialsPlacement: 'header',
+        tokenPlacement: 'header',
+        tokenHeaderPrefix: 'Bearer',
+        autoFetchToken: false,
+        autoRefreshToken: true
+      }
+    };
+  }
+  return authTemplate;
+};
+
 const openAPIRuntimeExpressionToScript = (expression) => {
   // see https://swagger.io/docs/specification/links/#runtime-expressions
   if (expression === '$response.body') {
@@ -994,7 +1078,13 @@ export const parseOpenApiCollection = (data, options = {}) => {
 
     // Support both tag-based and path-based grouping
     const groupingType = options.groupBy || 'tags';
-    const collectionAuthScheme = options.authPlacement === 'collection' ? resolveCollectionAuthScheme(collectionData.security, allRequests, securityConfig.getScheme) : null;
+    const collectionAuthScheme = options.authPlacement === 'collection'
+      ? resolveCollectionAuthScheme(collectionData.security, allRequests, securityConfig.getScheme, {
+          schemeNames: Object.keys(securityConfig.schemes),
+          toAuth: buildCollectionAuth,
+          collectionAuth: options.collectionAuth
+        })
+      : null;
     const requestOptions = { ...options, collectionAuthScheme };
 
     if (groupingType === 'path') {
@@ -1038,90 +1128,6 @@ export const parseOpenApiCollection = (data, options = {}) => {
     }
 
     // Determine collection-level authentication based on global security requirements
-    const buildCollectionAuth = (scheme) => {
-      const authTemplate = {
-        mode: 'none',
-        basic: null,
-        bearer: null,
-        digest: null,
-        apikey: null,
-        oauth2: null
-      };
-
-      if (!scheme) return authTemplate;
-
-      if (scheme.type === 'http' && scheme.scheme === 'basic') {
-        return {
-          ...authTemplate,
-          mode: 'basic',
-          basic: {
-            username: '{{username}}',
-            password: '{{password}}'
-          }
-        };
-      } else if (scheme.type === 'http' && scheme.scheme === 'bearer') {
-        return {
-          ...authTemplate,
-          mode: 'bearer',
-          bearer: {
-            token: '{{token}}'
-          }
-        };
-      } else if (scheme.type === 'http' && scheme.scheme === 'digest') {
-        return {
-          ...authTemplate,
-          mode: 'digest',
-          digest: {
-            username: '{{username}}',
-            password: '{{password}}'
-          }
-        };
-      } else if (scheme.type === 'apiKey') {
-        return {
-          ...authTemplate,
-          mode: 'apikey',
-          apikey: {
-            key: scheme.name,
-            value: '{{apiKey}}',
-            placement: scheme.in === 'query' ? 'queryparams' : 'header'
-          }
-        };
-      } else if (scheme.type === 'oauth2') {
-        let flows = scheme.flows || {};
-        let grantType = 'client_credentials';
-        if (flows.authorizationCode) {
-          grantType = 'authorization_code';
-        } else if (flows.implicit) {
-          grantType = 'implicit';
-        } else if (flows.password) {
-          grantType = 'password';
-        }
-        const flowConfig = grantType === 'authorization_code' ? flows.authorizationCode || {} : grantType === 'implicit' ? flows.implicit || {} : grantType === 'password' ? flows.password || {} : flows.clientCredentials || {};
-
-        return {
-          ...authTemplate,
-          mode: 'oauth2',
-          oauth2: {
-            grantType,
-            authorizationUrl: flowConfig.authorizationUrl || '{{oauth_authorize_url}}',
-            accessTokenUrl: flowConfig.tokenUrl || '{{oauth_token_url}}',
-            refreshTokenUrl: flowConfig.refreshUrl || '{{oauth_refresh_url}}',
-            callbackUrl: '{{oauth_callback_url}}',
-            clientId: '{{oauth_client_id}}',
-            clientSecret: '{{oauth_client_secret}}',
-            scope: Array.isArray(flowConfig.scopes) ? flowConfig.scopes.join(' ') : Object.keys(flowConfig.scopes || {}).join(' '),
-            state: '{{oauth_state}}',
-            credentialsPlacement: 'header',
-            tokenPlacement: 'header',
-            tokenHeaderPrefix: 'Bearer',
-            autoFetchToken: false,
-            autoRefreshToken: true
-          }
-        };
-      }
-      return authTemplate;
-    };
-
     const collectionAuth = buildCollectionAuth(collectionAuthScheme ? collectionAuthScheme.scheme : securityConfig.supported[0]);
 
     brunoCollection.root = {

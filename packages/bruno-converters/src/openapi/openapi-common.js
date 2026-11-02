@@ -871,7 +871,14 @@ export const optsOutOfAuth = (security, collectionAuthScheme) =>
 export const inheritsCollectionAuth = (security, collectionAuthScheme) =>
   Boolean(collectionAuthScheme) && operationSchemeName(security) === collectionAuthScheme.schemeName;
 
-export const resolveCollectionAuthScheme = (globalSecurity, requests, getScheme) => {
+const authIdentity = (auth) => {
+  if (!isPlainObject(auth)) return undefined;
+  if (auth.mode === 'apikey') return `apikey:${auth.apikey?.key}:${auth.apikey?.placement}`;
+  if (auth.mode === 'oauth2') return `oauth2:${auth.oauth2?.grantType}`;
+  return auth.mode;
+};
+
+export const resolveCollectionAuthScheme = (globalSecurity, requests, getScheme, { schemeNames = [], toAuth, collectionAuth } = {}) => {
   const globalRequirements = Array.isArray(globalSecurity) ? globalSecurity : [];
   const globalSchemeName = globalRequirements.map(requirementSchemeName).find((name) => getScheme(name));
   if (globalSchemeName) {
@@ -881,5 +888,12 @@ export const resolveCollectionAuthScheme = (globalSecurity, requests, getScheme)
   const securedSchemeNames = new Set(requests.map((request) => operationSchemeName(request.operationObject.security)).filter(Boolean));
   const [sharedSchemeName] = securedSchemeNames;
   const sharedScheme = securedSchemeNames.size === 1 ? getScheme(sharedSchemeName) : undefined;
-  return sharedScheme ? { schemeName: sharedSchemeName, scheme: sharedScheme, promoted: true } : null;
+  if (collectionAuth === undefined) {
+    return sharedScheme ? { schemeName: sharedSchemeName, scheme: sharedScheme, promoted: true } : null;
+  }
+
+  const identity = authIdentity(collectionAuth);
+  const matching = identity === undefined || identity === 'none' ? [] : schemeNames.filter((name) => authIdentity(toAuth(getScheme(name))) === identity);
+  const schemeName = matching.length === 1 ? matching[0] : matching.find((name) => sharedScheme && name === sharedSchemeName);
+  return schemeName ? { schemeName, scheme: getScheme(schemeName), promoted: true } : null;
 };

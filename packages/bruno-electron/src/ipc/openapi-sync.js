@@ -858,12 +858,21 @@ const compareRequestFields = (specRequest, actualRequest) => {
   return { hasDiff, changes };
 };
 
-const specConversionOptions = (brunoConfig) => {
+const collectionRootAuth = (collectionPath) => {
+  const format = getCollectionFormat(collectionPath);
+  const rootPath = path.join(collectionPath, format === 'yml' ? 'opencollection.yml' : 'collection.bru');
+  if (!fs.existsSync(rootPath)) return { mode: 'none' };
+  const parsed = parseCollection(fs.readFileSync(rootPath, 'utf8'), { format });
+  return (format === 'yml' ? parsed?.collectionRoot : parsed)?.request?.auth ?? { mode: 'none' };
+};
+
+const specConversionOptions = (brunoConfig, collectionPath) => {
   const syncConfig = brunoConfig?.openapi?.[0];
   return {
     groupBy: syncConfig?.groupBy || 'tags',
     authPlacement: syncConfig?.authPlacement,
-    requestNameSource: syncConfig?.requestNameSource
+    requestNameSource: syncConfig?.requestNameSource,
+    ...(syncConfig?.authPlacement === 'collection' && collectionPath && { collectionAuth: collectionRootAuth(collectionPath) })
   };
 };
 
@@ -882,7 +891,7 @@ const loadStoredSpecCollection = (collectionPath, brunoConfig) => {
 
   const specRaw = fs.readFileSync(specPath, 'utf8');
   const storedSpec = parseSpec(specRaw);
-  return openApiToBruno(storedSpec, specConversionOptions(brunoConfig));
+  return openApiToBruno(storedSpec, specConversionOptions(brunoConfig, collectionPath));
 };
 
 const registerOpenAPISyncIpc = (mainWindow) => {
@@ -1038,7 +1047,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       let conversionOptions = specConversionOptions(null);
       try {
         const { brunoConfig } = loadBrunoConfig(collectionPath);
-        conversionOptions = specConversionOptions(brunoConfig);
+        conversionOptions = specConversionOptions(brunoConfig, collectionPath);
       } catch (e) {
         // Keep the defaults if brunoConfig is not available
       }
@@ -1127,7 +1136,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       }
 
       // Convert spec to Bruno collection format
-      const specAsCollection = openApiToBruno(specToCompare, specConversionOptions(brunoConfig));
+      const specAsCollection = openApiToBruno(specToCompare, specConversionOptions(brunoConfig, collectionPath));
 
       // Build map of expected items by endpoint ID (method:path)
       const specItems = buildSpecItemsMap(specAsCollection.items || []);
@@ -1288,7 +1297,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       }
 
       // Convert spec to Bruno collection format
-      const specAsCollection = openApiToBruno(specToUse, specConversionOptions(brunoConfig));
+      const specAsCollection = openApiToBruno(specToUse, specConversionOptions(brunoConfig, collectionPath));
 
       // Find the spec item for this endpoint
       const specItem = findItemInCollection(specAsCollection.items || [], method, endpointPath)?.item || null;
@@ -1392,7 +1401,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
 
       // Mode: reset - Save spec and reset all endpoints to spec (preserve tests/scripts)
       if (mode === 'reset' && diff.newSpec) {
-        const conversionOptions = specConversionOptions(brunoConfig);
+        const conversionOptions = specConversionOptions(brunoConfig, collectionPath);
         const { groupBy } = conversionOptions;
         const newCollection = openApiToBruno(diff.newSpec, conversionOptions);
 
@@ -1472,7 +1481,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       }
 
       // Mode: sync (default) — compute shared values once
-      const conversionOptions = specConversionOptions(brunoConfig);
+      const conversionOptions = specConversionOptions(brunoConfig, collectionPath);
       const { groupBy } = conversionOptions;
       let newCollection;
       if (diff.newSpec) {
