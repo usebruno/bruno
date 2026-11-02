@@ -10,3 +10,4 @@ export * from './stubs';
 export * from './helpers';
 export * from './workspace';
 export * from './app';
+export * from './openapi-sync';

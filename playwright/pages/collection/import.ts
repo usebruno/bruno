@@ -11,10 +11,16 @@ export const buildImportCollectionLocators = (page: Page) => ({
   fileInput: () => page.locator('input[type="file"]'),
   advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
   preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
+  checkForSpecUpdatesToggle: () => page.getByTestId('check-for-spec-updates-toggle'),
   bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
   bulkFormatSelect: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
   bulkLocationInput: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),
   bulkSubmitButton: () => page.getByTestId('bulk-import-collection-location-modal-submit-btn'),
+  bulkSpecUpdatesCheckbox: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates'),
+  bulkSpecUpdatesDescription: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates-description'),
+  bulkSwagger2SyncNote: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-swagger2-sync-note'),
+  bulkSelectAllCollectionsToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('selection-section-collections').getByTestId('selection-select-all-toggle'),
+  bulkCollectionCheckbox: (fileName: string) => page.getByTestId('bulk-import-collection-location-modal').getByTestId('selection-section-collections').getByRole('listitem').filter({ has: page.getByText(fileName, { exact: true }) }).getByRole('checkbox'),
   envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
   parsingError: () => page.getByTestId('import-error-message'),
   browseLink: (root?: Locator) => (root ?? page).getByTestId('import-collection-browse-link'),
@@ -68,6 +74,7 @@ export type ImportCollectionOptions = {
   expectIssues?: boolean;
   sidebarTimeout?: number;
   preserveScripts?: boolean;
+  checkForSpecUpdates?: boolean;
 };
 
 export const importCollection = async (
@@ -107,6 +114,12 @@ export const importCollection = async (
       const preserveScriptsCheckbox = locators.import.preserveScriptsToggle();
       await preserveScriptsCheckbox.check();
       await expect(preserveScriptsCheckbox).toBeChecked();
+    }
+
+    if (options.checkForSpecUpdates) {
+      const checkForSpecUpdatesToggle = locators.import.checkForSpecUpdatesToggle();
+      await checkForSpecUpdatesToggle.check();
+      await expect(checkForSpecUpdatesToggle).toBeChecked();
     }
 
     // Set location and import
