@@ -89,13 +89,13 @@ test('TC-2650: Verify header deletion via backspace clears state', { tag: '@sani
     await createRequest(page, 'request-1', 'header-backspace-clears-state', { url: 'https://example.com/api' });
     await selectRequestPaneTab(page, 'Headers');
     await expect(headers.addRow()).toBeVisible();
-    await expect(headers.badge()).toHaveCount(0);
+    await expect(headers.count()).toHaveCount(0);
   });
 
   await test.step('Type X-Test in the Name field', async () => {
     await fillRequestHeaderName(page, headers.addRow(), headerName);
     await expect(headers.requestRow(headerName)).toBeVisible();
-    await expect(headers.badge()).toHaveText('1');
+    await expect(headers.count()).toHaveText('1');
   });
 
   await test.step('Backspace until the Name field is empty', async () => {
@@ -110,8 +110,8 @@ test('TC-2650: Verify header deletion via backspace clears state', { tag: '@sani
     await request.urlLine().click();
   });
 
-  await test.step('The Headers badge drops and the header is removed', async () => {
-    await expect(headers.badge()).toHaveCount(0);
+  await test.step('The Headers count drops and the header is removed', async () => {
+    await expect(headers.count()).toHaveCount(0);
     await expect(headers.requestRow(headerName)).toHaveCount(0);
     await expect(headers.addRow()).toBeVisible();
     await expect(headers.addRow()).not.toContainText(headerName);
