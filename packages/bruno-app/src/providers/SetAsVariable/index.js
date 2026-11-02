@@ -2,8 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSelector } from 'react-redux';
 import SetAsVariableMenu from 'components/SetAsVariableMenu';
 import SetAsVariablePopover from 'components/SetAsVariablePopover';
-import { getCodeMirrorSelectionPayload } from 'utils/codemirror/selection';
-import { getPinnedSelection, isSelectionPinned, pinSelection, releasePinnedSelection } from './selectionPin';
+import { getCodeMirrorSelectionPayload, getPinnedSelection, releasePinnedSelection } from 'utils/codemirror/selection';
 import { setVarInfoSuppressed } from 'utils/codemirror/brunoVarInfo';
 import { SetAsVariableContext } from './context';
 
@@ -114,7 +113,7 @@ export function SetAsVariableProvider({ children }) {
   const showPopover = useCallback(() => setState((current) => ({ ...current, view: 'popover' })), []);
 
   const value = useMemo(
-    () => ({ openFromCodeMirror, openFromDomSelection, pinSelection, isSelectionPinned, releasePinnedSelection }),
+    () => ({ openFromCodeMirror, openFromDomSelection }),
     [openFromCodeMirror, openFromDomSelection]
   );
 

@@ -8,7 +8,7 @@ import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import { SetAsVariableContext } from 'providers/SetAsVariable/context';
-import { pinSelectionOnContextMenu } from 'utils/codemirror/selection';
+import { isSelectionPinned, pinSelectionOnContextMenu, releasePinnedSelection } from 'utils/codemirror/selection';
 import StyledWrapper from './StyledWrapper';
 
 const CodeMirror = require('codemirror');
@@ -155,13 +155,12 @@ class SingleLineEditor extends Component {
     pinSelectionOnContextMenu({
       editor,
       event,
-      context: this.context,
       enabled: this.props.enableBrunoVarInfo !== false && !this.state.maskInput
     });
   };
 
   _onBlur = () => {
-    if (this.editor && !this.context.isSelectionPinned(this.editor)) {
+    if (this.editor && !isSelectionPinned(this.editor)) {
       this.editor.setCursor(this.editor.getCursor());
     }
   };
@@ -251,7 +250,7 @@ class SingleLineEditor extends Component {
       this.editor.off('paste', this._onPaste);
       this.editor.off('blur', this._onBlur);
       this.editor.off('mousedown', this._onMouseDown);
-      if (this.context.isSelectionPinned(this.editor)) this.context.releasePinnedSelection();
+      if (isSelectionPinned(this.editor)) releasePinnedSelection();
       this.editor.off('contextmenu', this._onContextMenu);
       this._clearNewlineMarkers();
       this.editor.getWrapperElement().remove();

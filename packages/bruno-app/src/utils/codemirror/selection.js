@@ -48,19 +48,38 @@ export const getCodeMirrorSelectionPayload = (editor, event) => {
   };
 };
 
+let pinnedSelection = null;
+
 const collapseWhenUnfocused = (editor) => {
   if (editor && !editor.hasFocus()) {
     editor.setCursor(editor.getCursor());
   }
 };
 
-export const pinSelectionOnContextMenu = ({ editor, event, context, enabled }) => {
-  if (!isContextMenuGesture(event) || !enabled) {
-    context.releasePinnedSelection();
-    return;
-  }
+export const releasePinnedSelection = () => {
+  const previous = pinnedSelection;
+  pinnedSelection = null;
 
-  context.pinSelection(editor, getCodeMirrorSelectionPayload(editor, event), () => collapseWhenUnfocused(editor));
+  if (previous) {
+    collapseWhenUnfocused(previous.editor);
+  }
+};
+
+export const getPinnedSelection = (editor) => (pinnedSelection?.editor === editor ? pinnedSelection.payload : null);
+
+export const isSelectionPinned = (editor) => !!getPinnedSelection(editor);
+
+// The payload is read before releasing, so the outgoing pin's collapse cannot blank the range
+// that is about to be pinned.
+export const pinSelectionOnContextMenu = ({ editor, event, enabled }) => {
+  const eligible = enabled && isContextMenuGesture(event);
+  const payload = eligible ? getCodeMirrorSelectionPayload(editor, event) : null;
+
+  releasePinnedSelection();
+
+  if (payload) {
+    pinnedSelection = { editor, payload };
+  }
 };
 
 const BRACE_LENGTH = 2;

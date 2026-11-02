@@ -15,6 +15,7 @@ import {
   setCodeMirrorEditorValue,
   openSetAsVariableMenu,
   openSetAsVariablePopover,
+  selectWordAndCtrlClick,
   openSetAsVariablePopoverAtChar,
   openEnvironmentConfigTab,
   selectVariableScope,
@@ -625,24 +626,25 @@ test.describe('Set as variable', () => {
     });
   });
 
-  test('keeps the highlight when the same selection is right-clicked again', async ({ page, createTmpDir }) => {
+  test('clears the highlight when the menu is dismissed without opening the popover', async ({ page, createTmpDir }) => {
     const { sidebar, request, setAsVariable } = buildCommonLocators(page);
 
     await test.step('Create a collection with a request', async () => {
-      await createCollection(page, 'repin-selection', await createTmpDir('repin-selection'));
-      await createRequest(page, 'Fetch Posts', 'repin-selection');
+      await createCollection(page, 'dismiss-selection', await createTmpDir('dismiss-selection'));
+      await createRequest(page, 'Fetch Posts', 'dismiss-selection');
       await sidebar.request('Fetch Posts').click();
       await setRequestUrlAndSave(page, 'https://example.com/posts');
     });
 
-    await test.step('Right-click the selection once', async () => {
+    await test.step('The highlight survives the right-click menu', async () => {
       await openSetAsVariableMenu(page, request.urlLine(), 10);
       await expect(setAsVariable.selectionHighlight(request.urlInput()).first()).toBeVisible();
     });
 
-    await test.step('Right-clicking the same selection again keeps it highlighted', async () => {
-      await openSetAsVariableMenu(page, request.urlLine(), 10);
-      await expect(setAsVariable.selectionHighlight(request.urlInput()).first()).toBeVisible();
+    await test.step('Dismissing the menu clears the highlight', async () => {
+      await page.keyboard.press('Escape');
+      await expect(setAsVariable.menu()).toBeHidden();
+      await expect(setAsVariable.selectionHighlight(request.urlInput())).toHaveCount(0);
     });
   });
 
@@ -676,6 +678,43 @@ test.describe('Set as variable', () => {
       await setAsVariable.cancelButton().click();
       await expect(setAsVariable.popover()).toBeHidden();
       await expect(setAsVariable.selectionHighlight(valueCell)).toHaveCount(0);
+    });
+  });
+
+  test('opens the menu from a macOS ctrl+click and keeps that selection pinned', async ({ page, createTmpDir }) => {
+    test.skip(process.platform !== 'darwin', 'ctrl+click only opens a context menu on macOS');
+
+    const { sidebar, request, setAsVariable } = buildCommonLocators(page);
+
+    await test.step('Create a collection with a request', async () => {
+      await createCollection(page, 'ctrl-click', await createTmpDir('ctrl-click'));
+      await createRequest(page, 'Fetch Posts', 'ctrl-click');
+      await sidebar.request('Fetch Posts').click();
+      await setRequestUrlAndSave(page, 'https://example.com/posts');
+    });
+
+    await test.step('Ctrl+click opens the menu with the selection still highlighted', async () => {
+      await selectWordAndCtrlClick(page, request.urlLine(), 10);
+
+      await expect(setAsVariable.menu()).toBeVisible();
+      await expect(setAsVariable.selectionHighlight(request.urlInput()).first()).toBeVisible();
+    });
+
+    await test.step('The pinned range is the one the form offers', async () => {
+      await setAsVariable.menuAction().click();
+
+      await expect(setAsVariable.popover()).toBeVisible();
+      await expect(setAsVariable.value()).toHaveText('https');
+      await expect(setAsVariable.selectionHighlight(request.urlInput()).first()).toBeVisible();
+    });
+
+    await test.step('Saving replaces the pinned range in the URL', async () => {
+      await setAsVariable.nameInput().fill('scheme');
+      await selectVariableScope(page, 'request');
+      await setAsVariable.saveButton().click();
+
+      await expect(setAsVariable.popover()).toBeHidden();
+      await expect(request.urlLine()).toContainText('{{scheme}}://example.com/posts');
     });
   });
 });

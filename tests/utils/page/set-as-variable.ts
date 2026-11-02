@@ -28,8 +28,8 @@ const DOUBLE_CLICK_RESET_MS = 600;
 // Longer than CodeMirror's 100ms delayBlurEvent, so a mouse-up `contextmenu` lands after the blur.
 const CONTEXT_MENU_HOLD_MS = 200;
 
-/** Double-clicks the word under the pointer, then right-clicks that same point. */
-const selectWordAndRightClick = async (page: Page, target: Locator, offsetX = 12) => {
+/** Double-clicks the word under the pointer and hands back that point. */
+const selectWordAt = async (page: Page, target: Locator, offsetX = 12) => {
   let box: Awaited<ReturnType<Locator['boundingBox']>> = null;
   await expect(async () => {
     box = await target.boundingBox();
@@ -44,7 +44,26 @@ const selectWordAndRightClick = async (page: Page, target: Locator, offsetX = 12
   await expect(page.locator('.CodeMirror-selected').first()).toBeVisible();
 
   await page.waitForTimeout(DOUBLE_CLICK_RESET_MS);
+  return { x, y };
+};
+
+/** Double-clicks the word under the pointer, then right-clicks that same point. */
+const selectWordAndRightClick = async (page: Page, target: Locator, offsetX?: number) => {
+  const { x, y } = await selectWordAt(page, target, offsetX);
+
   await page.mouse.click(x, y, { button: 'right', delay: CONTEXT_MENU_HOLD_MS });
+};
+
+/** Ctrl+left-clicks the selected word, which is how macOS opens a context menu. */
+const selectWordAndCtrlClick = async (page: Page, target: Locator, offsetX?: number) => {
+  const { x, y } = await selectWordAt(page, target, offsetX);
+
+  await page.keyboard.down('Control');
+  try {
+    await page.mouse.click(x, y, { delay: CONTEXT_MENU_HOLD_MS });
+  } finally {
+    await page.keyboard.up('Control');
+  }
 };
 
 /** Right-clicks a selected word and returns the "Set as variable" menu. */
@@ -118,5 +137,6 @@ export {
   openSetAsVariablePopover,
   openSetAsVariablePopoverAtChar,
   selectVariableScope,
+  selectWordAndCtrlClick,
   selectWordAndRightClick
 };
