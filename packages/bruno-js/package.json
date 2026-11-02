@@ -15,6 +15,7 @@
     "generate:script-api": "node ./scripts/generate-script-api.js"
   },
   "dependencies": {
+    "@types/chai": "^4.3.20",
     "@usebruno/common": "0.1.0",
     "@usebruno/query": "0.1.0",
     "@usebruno/requests": "0.1.0",
@@ -45,7 +46,6 @@
     "@rollup/plugin-commonjs": "^23.0.2",
     "@rollup/plugin-json": "^6.0.0",
     "@rollup/plugin-node-resolve": "^15.0.1",
-    "@types/chai": "^4.3.20",
     "rollup": "3.30.0",
     "@rollup/plugin-terser": "^1.0.0",
     "typescript": "^5.9.3"

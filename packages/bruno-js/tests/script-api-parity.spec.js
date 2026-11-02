@@ -1,4 +1,4 @@
-const { describe, it, expect } = require('@jest/globals');
+const { describe, it, expect, beforeAll } = require('@jest/globals');
 const { generateScriptApi } = require('../scripts/generate-script-api');
 const ScriptRuntime = require('../src/runtime/script-runtime');
 const TestRuntime = require('../src/runtime/test-runtime');
@@ -71,7 +71,7 @@ const SHIM_ONLY_MEMBERS = {
 // Members a function-valued object (`res`) has as a function, not as script API.
 const FUNCTION_INTRINSICS = ['length', 'name', 'prototype', 'arguments', 'caller'];
 
-const makeRequest = () => ({
+const request = {
   url: 'https://example.com/users/:id?verbose=true',
   method: 'POST',
   headers: { 'content-type': 'application/json' },
@@ -80,61 +80,61 @@ const makeRequest = () => ({
   name: 'Probe',
   pathParams: [{ name: 'id', value: '1', type: 'path' }],
   tags: ['probe']
-});
+};
 
-const makeResponse = () => ({
+const response = {
   status: 200,
   statusText: 'OK',
   headers: { 'content-type': 'application/json' },
   data: { name: 'probe' },
   responseTime: 5,
   request: { protocol: 'https:', host: 'example.com', path: '/users/1' }
-});
+};
 
-const makeGrpcRequest = () => ({
+const grpcRequest = {
   url: 'grpcb.in:9000',
   method: '/hello.HelloService/SayHello',
   methodType: 'unary',
   headers: { 'x-token': 'probe' },
   name: 'Probe'
-});
+};
 
-const makeGrpcResponse = () => ({
+const grpcResponse = {
   statusCode: 0,
   statusText: 'OK',
   messages: [{ data: { reply: 'hello' }, timestamp: 1700000000 }],
   metadata: [{ name: 'content-type', value: 'application/grpc' }],
   trailers: [{ name: 'grpc-status', value: '0' }],
   duration: 12
-});
+};
 
-const grpcMessage = () => ({ data: { greeting: 'hi' }, timestamp: 1700000000 });
+const grpcMessage = { data: { greeting: 'hi' }, timestamp: 1700000000 };
 
 const runRequestByItemPathname = async () => ({});
 
-/** Runs `script` in the context's runtime entry point, forwarding `console.log` to `onLog`. */
+/** Runs `script` in the context's runtime entry point, forwarding `console.log` to `onConsoleLog`. */
 const CONTEXT_RUNNERS = {
   'pre-request': (runtime, script, onConsoleLog) =>
-    new ScriptRuntime({ runtime }).runRequestScript(script, makeRequest(), {}, {}, '.', onConsoleLog, {}, undefined, runRequestByItemPathname, 'Probe'),
+    new ScriptRuntime({ runtime }).runRequestScript(script, request, {}, {}, '.', onConsoleLog, {}, undefined, runRequestByItemPathname, 'Probe'),
   'post-response': (runtime, script, onConsoleLog) =>
-    new ScriptRuntime({ runtime }).runResponseScript(script, makeRequest(), makeResponse(), {}, {}, '.', onConsoleLog, {}, undefined, runRequestByItemPathname, 'Probe'),
+    new ScriptRuntime({ runtime }).runResponseScript(script, request, response, {}, {}, '.', onConsoleLog, {}, undefined, runRequestByItemPathname, 'Probe'),
   'tests': (runtime, script, onConsoleLog) =>
-    new TestRuntime({ runtime }).runTests(script, makeRequest(), makeResponse(), {}, {}, '.', onConsoleLog, {}, undefined, runRequestByItemPathname, 'Probe'),
+    new TestRuntime({ runtime }).runTests(script, request, response, {}, {}, '.', onConsoleLog, {}, undefined, runRequestByItemPathname, 'Probe'),
   'grpc:before-call-start': (runtime, script, onConsoleLog) =>
     new GrpcScriptRuntime({ runtime }).runGrpcRequestScript({
-      script, request: makeGrpcRequest(), envVariables: {}, runtimeVariables: {}, collectionPath: '.', onConsoleLog, processEnvVars: {}
+      script, request: grpcRequest, envVariables: {}, runtimeVariables: {}, collectionPath: '.', onConsoleLog, processEnvVars: {}
     }),
   'grpc:before-message-send': (runtime, script, onConsoleLog) =>
     new GrpcScriptRuntime({ runtime }).runGrpcBeforeMessageSendScript({
-      script, request: makeGrpcRequest(), message: grpcMessage(), envVariables: {}, runtimeVariables: {}, collectionPath: '.', onConsoleLog, processEnvVars: {}
+      script, request: grpcRequest, message: grpcMessage, envVariables: {}, runtimeVariables: {}, collectionPath: '.', onConsoleLog, processEnvVars: {}
     }),
   'grpc:after-message-receive': (runtime, script, onConsoleLog) =>
     new GrpcScriptRuntime({ runtime }).runGrpcAfterMessageReceiveScript({
-      script, request: makeGrpcRequest(), response: makeGrpcResponse(), message: grpcMessage(), envVariables: {}, runtimeVariables: {}, collectionPath: '.', onConsoleLog, processEnvVars: {}
+      script, request: grpcRequest, response: grpcResponse, message: grpcMessage, envVariables: {}, runtimeVariables: {}, collectionPath: '.', onConsoleLog, processEnvVars: {}
     }),
   'grpc:after-call-end': (runtime, script, onConsoleLog) =>
     new GrpcScriptRuntime({ runtime }).runGrpcResponseScript({
-      script, request: makeGrpcRequest(), response: makeGrpcResponse(), envVariables: {}, runtimeVariables: {}, collectionPath: '.', onConsoleLog, processEnvVars: {}
+      script, request: grpcRequest, response: grpcResponse, envVariables: {}, runtimeVariables: {}, collectionPath: '.', onConsoleLog, processEnvVars: {}
     })
 };
 
@@ -208,16 +208,22 @@ describe('script API parity with the manifest', () => {
 
   describe.each(RUNTIMES)('%s', (runtime) => {
     describe.each(contexts)('%s', (context) => {
-      it('exposes every documented member, and in Safe Mode only those without @runtime nodevm', async () => {
-        const { entries, paths, present } = await probe(context, runtime);
+      let probed;
+
+      beforeAll(async () => {
+        probed = await probe(context, runtime);
+      });
+
+      it('exposes every documented member, and in Safe Mode only those without @runtime nodevm', () => {
+        const { entries, paths, present } = probed;
         const expected = paths.filter((p) => entries.some((entry) => entry.path === p && entry.runtimes.includes(runtime)));
 
         expect(expected.filter((p) => !present.includes(p))).toEqual([]);
         expect(present.filter((p) => !expected.includes(p))).toEqual([]);
       });
 
-      it('exposes nothing undocumented', async () => {
-        const { members } = await probe(context, runtime);
+      it('exposes nothing undocumented', () => {
+        const { members } = probed;
         const undocumented = Object.entries(members).flatMap(([objectPath, { callable, names }]) => {
           const documented = documentedChildren(objectPath);
           const internal = [
