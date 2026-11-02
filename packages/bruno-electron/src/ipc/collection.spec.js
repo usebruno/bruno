@@ -69,7 +69,7 @@ jest.spyOn(fsPromises, 'readFile').mockImplementation(async () => 'mock-content'
 // Load collection.js to register IPC handlers
 const registerCollectionsIpc = require('./collection');
 
-const { copyPathTo } = require('../utils/filesystem');
+const { copyPathTo, posixifyPath } = require('../utils/filesystem');
 const { moveRequestUid } = require('../cache/requestUids');
 
 describe('IPC collection handlers', () => {
@@ -222,7 +222,8 @@ describe('IPC collection handlers', () => {
       });
 
       const [, , , brunoConfig] = mainWindow.webContents.send.mock.calls.find(([channel]) => channel === 'main:collection-opened');
-      expect(brunoConfig.openapi).toEqual(readSyncConfig('Orders API'));
+      const sentConfig = brunoConfig.openapi.map((entry) => ({ ...entry, sourceUrl: posixifyPath(entry.sourceUrl) }));
+      expect(sentConfig).toEqual(readSyncConfig('Orders API'));
     });
   });
 });
