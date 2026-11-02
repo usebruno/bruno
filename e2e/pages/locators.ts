@@ -3,7 +3,7 @@
  * Page objects never import this file.
  */
 import { Page } from '../playwright';
-import { buildApiSpecPanelLocators } from './api-spec';
+import { buildApiSpecPanelLocators, buildApiSpecRowMenuLocators } from './api-spec';
 import { buildFileModeLocators } from './shared-ui/file-mode';
 import { buildPreferencesLocators } from './app-shell/preferences';
 import { buildAiPreferencesLocators } from './app-shell/ai-preferences';
@@ -69,7 +69,8 @@ export const buildCommonLocators = (page: Page) => ({
   codeEditorSearch: (editorId: string) => buildCodeEditorSearchLocators(page, editorId),
   codeEditorHints: buildCodeEditorHintLocators(page),
   openApi: {
-    render: buildApiSpecPanelLocators(page)
+    render: buildApiSpecPanelLocators(page),
+    rowMenu: buildApiSpecRowMenuLocators(page)
   },
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
