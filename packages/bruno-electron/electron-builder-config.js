@@ -11,7 +11,7 @@ const config = {
       builtAt: new Date().toISOString()
     }
   },
-  electronVersion: '37.6.1',
+  electronVersion: '43.8.4',
   directories: {
     buildResources: 'resources',
     output: 'out'
@@ -82,7 +82,9 @@ const config = {
     ],
     category: 'Development',
     desktop: {
-      MimeType: 'x-scheme-handler/bruno;'
+      entry: {
+        MimeType: 'x-scheme-handler/bruno;'
+      }
     }
   },
   deb: {
@@ -118,8 +120,9 @@ const config = {
         arch: ['x64', 'arm64']
       }
     ],
-    sign: null,
-    publisherName: 'Bruno Software Inc'
+    signtoolOptions: {
+      publisherName: 'Bruno Software Inc'
+    }
   },
   nsis: {
     include: 'resources/installer.nsh',

@@ -409,18 +409,14 @@ export const BulkImportCollectionLocation = ({
         if (finalName !== originalName) {
           renamedNames[collection.uid] = finalName;
         }
+
+        if (Object.hasOwn(rawOpenAPISpecs, collection.uid)) {
+          const fileData = selectedItems.find((item) => item.uid === collection.uid)._fileData;
+          collection.brunoConfig = buildOpenApiSyncBrunoConfig(collection, { sourceUrl: fileData.filePath, groupBy: groupingType, authPlacement, requestNameSource });
+        }
       });
 
       setRenamedCollectionNames(renamedNames);
-
-      filteredCollections.forEach((collection) => {
-        if (!Object.hasOwn(rawOpenAPISpecs, collection.uid)) {
-          return;
-        }
-
-        const fileData = selectedItems.find((item) => item.uid === collection.uid)._fileData;
-        collection.brunoConfig = buildOpenApiSyncBrunoConfig(collection, { sourceUrl: fileData.filePath, groupBy: groupingType, authPlacement, requestNameSource });
-      });
 
       // Process all selected environments and rename duplicates
       // Don't use getUniqueEnvironments as it filters out duplicates - we want to rename them instead

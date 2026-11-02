@@ -64,10 +64,8 @@ async function convertPostmanToBruno(inputFile, outputDir) {
   const inputData = await fs.readFile(inputFile, 'utf8');
 
   const collection = await postmanToBruno(JSON.parse(inputData));
-  // Writes YAML (OpenCollection) files by default
+  // Writes YAML (OpenCollection) files.
   await writeCollectionToDisk(collection, outputDir);
-  // Pass { format: 'bru' } to write .bru files instead
-  // await writeCollectionToDisk(collection, outputDir, { format: 'bru' });
 }
 
 convertPostmanToBruno('demo_collection.postman_collection.json', './bruno-collection');
@@ -96,10 +94,8 @@ async function importWSDL() {
   const wsdlContent = await fs.readFile('service.wsdl', 'utf8');
 
   const collection = await wsdlToBruno(wsdlContent);
-  // Writes YAML (OpenCollection) files by default
+  // Writes YAML (OpenCollection) files.
   await writeCollectionToDisk(collection, './soap-collection');
-  // Pass { format: 'bru' } to write .bru files instead
-  // await writeCollectionToDisk(collection, './soap-collection', { format: 'bru' });
 }
 
 importWSDL();
