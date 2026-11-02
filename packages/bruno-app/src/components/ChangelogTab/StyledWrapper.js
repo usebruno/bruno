@@ -19,13 +19,38 @@ const StyledWrapper = styled.div`
       line-height: 1.65;
       color: ${(props) => props.theme.colors?.text?.subtext2};
 
-      h3, h4 {
-        margin-top: 2.5rem;
-      }
-
       h2, h3, h4 {
         color: ${(props) => props.theme.primary?.text};
         border-bottom: none;
+        min-height: 0;
+      }
+
+      h2 {
+        margin: 0 0 0.75rem;
+        padding-bottom: 0;
+      }
+
+      h3, h4 {
+        margin: 1.25rem 0 0.35rem;
+      }
+
+      p {
+        margin: 0.25rem 0;
+        min-height: 0;
+      }
+
+      p:empty {
+        display: none;
+        margin: 0;
+      }
+
+      ul, ol {
+        margin: 0.35rem 0;
+      }
+
+      li {
+        margin: 0.1rem 0;
+        min-height: 0;
       }
 
       .badge {
@@ -70,12 +95,13 @@ const StyledWrapper = styled.div`
 
       img {
         display: block;
-        margin: 0.5rem 0 1.25rem;
+        margin: 0.5rem 0 0.25rem;
         border-radius: 8px;
         border: 1px solid ${(props) => props.theme.border?.border1};
       }
 
       hr {
+        margin: 1rem 0;
         border-top: 1px solid ${(props) => props.theme.border?.border1};
         background: none;
       }
