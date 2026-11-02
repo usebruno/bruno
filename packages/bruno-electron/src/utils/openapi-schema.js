@@ -42,11 +42,53 @@ const declaredKeysOf = (node) => declaredPropertiesOf(node).flatMap((properties)
 const declaredChild = (node, key) => node && declaredSchemaNode(node.spec, declaredPropertiesOf(node).filter((properties) => declaresIn(properties, key)).map((properties) => properties[key]));
 const declaredItems = (node) => node && declaredSchemaNode(node.spec, node.schemas.flatMap((schema) => [schema.items, ...(Array.isArray(schema.prefixItems) ? schema.prefixItems : [])]));
 
+const SCALAR_TYPES = ['string', 'number', 'integer', 'boolean'];
+const declaresOnlyScalars = (node) => node !== undefined
+  && node.schemas.some((schema) => SCALAR_TYPES.includes(schema.type))
+  && node.schemas.every((schema) => (schema.type === undefined || SCALAR_TYPES.includes(schema.type)) && !isPlainObject(schema.properties) && schema.items === undefined && schema.additionalProperties === undefined);
+
+const refName = (schema) => (isPlainObject(schema) && typeof schema.$ref === 'string' ? schema.$ref.split('/').pop() : undefined);
+
+const alternativesOf = (node) => node.schemas
+  .flatMap((schema) => ['oneOf', 'anyOf'].flatMap((key) => (Array.isArray(schema[key]) ? schema[key] : [])))
+  .map((alternative) => ({ name: refName(alternative), node: declaredSchemaNode(node.spec, [alternative]) }))
+  .filter((alternative) => alternative.node !== undefined);
+
+const matchesDiscriminator = (alternative, { propertyName, mapping }, value) => {
+  const mapped = isPlainObject(mapping) && Object.hasOwn(mapping, value) ? mapping[value] : undefined;
+  if (typeof mapped === 'string') return alternative.name === mapped.split('/').pop();
+  if (alternative.name === String(value)) return true;
+  const property = declaredChild(alternative.node, propertyName);
+  return property !== undefined && property.schemas.some((schema) => (Array.isArray(schema.enum) && schema.enum.includes(value)) || schema.const === value);
+};
+
+const alternativeWrittenFor = (node, alternatives, value) => {
+  const discriminator = node.schemas.map((schema) => schema.discriminator).find((d) => isPlainObject(d) && typeof d.propertyName === 'string');
+  if (discriminator !== undefined && Object.hasOwn(value, discriminator.propertyName)) {
+    const matched = alternatives.filter((alternative) => matchesDiscriminator(alternative, discriminator, value[discriminator.propertyName]));
+    if (matched.length === 1) return matched[0];
+  }
+  const scores = alternatives.map((alternative) => Object.keys(value).filter((key) => declaresKey(alternative.node, key)).length);
+  const best = Math.max(...scores);
+  return best > 0 && scores.indexOf(best) === scores.lastIndexOf(best) ? alternatives[scores.indexOf(best)] : undefined;
+};
+
+const otherAlternativeKeys = (node, value) => {
+  const alternatives = node === undefined ? [] : alternativesOf(node);
+  const own = alternatives.length > 1 ? alternativeWrittenFor(node, alternatives, value) : undefined;
+  if (own === undefined) return new Set();
+  const inAlternatives = new Set(alternatives.flatMap((alternative) => alternative.node.schemas));
+  const shared = { spec: node.spec, schemas: node.schemas.filter((schema) => !inAlternatives.has(schema)) };
+  return new Set(declaredKeysOf(node).filter((key) => !declaresKey(own.node, key) && !declaresKey(shared, key)));
+};
+
 module.exports = {
   derefSpecObject,
   declaredSchemaNode,
   declaresKey,
   declaredKeysOf,
   declaredChild,
-  declaredItems
+  declaredItems,
+  declaresOnlyScalars,
+  otherAlternativeKeys
 };

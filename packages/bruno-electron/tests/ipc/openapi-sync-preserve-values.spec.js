@@ -129,27 +129,27 @@ describe.each(['bru', 'yml'])('openapi sync with preserve values in a %s collect
     fs.rmSync(mockUserData, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
   });
 
-  it('removes only the fields the spec removed, and the preview shows what the sync writes', async () => {
+  it('drops the fields the spec does not have, and the preview shows what the sync writes', async () => {
     writeStoredSpec(previousSpec);
     writeUserRequest({ name: 'Rex', legacy: 'x', debug: true });
-    const expected = { name: 'Rex', age: 0, debug: true };
+    const expected = { name: 'Rex', age: 0 };
 
     expect(await previewBody()).toEqual(expected);
     expect(await applyAndReadBody(modifiedPets)).toEqual(expected);
   });
 
-  it('keeps the user fields of a request for an endpoint the spec adds', async () => {
+  it('merges a request the spec lists as new instead of overwriting it', async () => {
     writeStoredSpec({ ...previousSpec, paths: {} });
     writeUserRequest({ name: 'Rex', legacy: 'x', debug: true });
-    const expected = { name: 'Rex', legacy: 'x', age: 0, debug: true };
+    const expected = { name: 'Rex', age: 0 };
 
     expect(await previewBody()).toEqual(expected);
     expect(await applyAndReadBody({ added: [{ method: 'POST', path: '/pets' }] })).toEqual(expected);
   });
 
-  it('keeps the user fields when there is no stored spec to compare with', async () => {
+  it('drops the fields the spec does not have when there is no stored spec to compare with', async () => {
     writeUserRequest({ name: 'Rex', legacy: 'x', debug: true });
-    const expected = { name: 'Rex', legacy: 'x', age: 0, debug: true };
+    const expected = { name: 'Rex', age: 0 };
 
     expect(await previewBody()).toEqual(expected);
     expect(await applyAndReadBody(modifiedPets)).toEqual(expected);
@@ -176,7 +176,7 @@ describe.each(['bru', 'yml'])('openapi sync with preserve values in a %s collect
     ])('syncs without it and logs a warning when it is %s', async (_, content) => {
       writeStoredSpecContent(content);
       writeUserRequest({ name: 'Rex', legacy: 'x', debug: true });
-      const expected = { name: 'Rex', legacy: 'x', age: 0, debug: true };
+      const expected = { name: 'Rex', age: 0 };
 
       expect(await previewBody()).toEqual(expected);
       expect(await applyAndReadBody(modifiedPets)).toEqual(expected);
@@ -201,7 +201,7 @@ describe.each(['bru', 'yml'])('openapi sync with preserve values in a %s collect
     expect(await applyAndReadBody(modifiedPets, { preserveValues: false })).toEqual(expected);
   });
 
-  it('keeps the form fields, query params and headers the user added, and drops the ones the spec removed', async () => {
+  it('drops the form fields, query params and headers the spec does not have, whether the user added them or the spec removed them', async () => {
     const previous = formSpec({ name: string, age: { type: 'integer' } }, 'X-Old');
     writeStoredSpec(previous);
     writeUserRequestFrom(previous, (request) => ({
@@ -215,9 +215,9 @@ describe.each(['bru', 'yml'])('openapi sync with preserve values in a %s collect
     }));
 
     for (const request of await previewAndApply(formSpec({ name: string, color: string }, 'X-Trace'))) {
-      expect(namesAndValues(request.body.formUrlEncoded)).toEqual([['color', ''], ['custom', '1'], ['name', 'Rex']]);
-      expect(namesAndValues(request.params)).toEqual([['debug', '1'], ['q', 'mine']]);
-      expect(namesAndValues(request.headers)).toEqual([['X-Debug', '1'], ['X-Trace', '']]);
+      expect(namesAndValues(request.body.formUrlEncoded)).toEqual([['color', ''], ['name', 'Rex']]);
+      expect(namesAndValues(request.params)).toEqual([['q', 'mine']]);
+      expect(namesAndValues(request.headers)).toEqual([['X-Trace', '']]);
     }
   });
 
@@ -247,6 +247,65 @@ describe.each(['bru', 'yml'])('openapi sync with preserve values in a %s collect
 
       const { newData } = await preview(stored);
       expect(JSON.parse(newData.request.body.json)).toEqual({ name: 'Rex', metadata: { env: 'prod' } });
+    });
+  });
+
+  describe('Collection Changes and Spec Updates right after a sync', () => {
+    const drift = (compareSpec) => ipcMain._getHandler('renderer:get-collection-drift')({}, { collectionPath, compareSpec });
+    const listed = async () => (await drift()).modified.map(({ id, changes }) => `${id} (${changes})`);
+    const listedAfterSync = async (spec, edit) => {
+      writeStoredSpec(spec);
+      writeUserRequestFrom(spec, edit);
+      await apply(spec, modifiedPets);
+      return listed();
+    };
+    const cardOrIban = { schemas: { Card: objectSchema({ cardNumber: string }), Iban: objectSchema({ iban: string }) } };
+    const payment = { oneOf: [{ $ref: '#/components/schemas/Card' }, { $ref: '#/components/schemas/Iban' }] };
+    const cardExampleSpec = (example, components = cardOrIban) => createPetSpec({ requestBody: jsonBody(objectSchema({ payment: { ...payment, example } })) }, components);
+    const sendsIban = withJsonBody({ payment: { iban: 'DE89' } });
+    const formFields = (...pairs) => (request) => ({ ...request, body: { ...request.body, formUrlEncoded: pairs.map(([name, value]) => ({ name, value, enabled: true })) } });
+
+    it.each([
+      ['json the spec gives no schema', createPetSpec({ requestBody: { content: { 'application/json': {} } } }), withJsonBody({ amount: 5 })],
+      ['a free-form object', jsonSpec({ name: string, metadata: { type: 'object' } }), withJsonBody({ name: 'Rex', metadata: { env: 'prod' } })],
+      ['a field the schema declares and the example leaves out', createPetSpec({ requestBody: { content: { 'application/json': { schema: objectSchema({ name: string, tag: string }), example: { name: 'Rex' } } } } }), withJsonBody({ name: 'Max', tag: 'good' })],
+      ['the oneOf alternative the user sends', cardExampleSpec({ cardNumber: '' }), sendsIban],
+      ['a composed body that imports as {}', createPetSpec({ requestBody: jsonBody(payment) }, cardOrIban), withJsonBody({ iban: 'DE89' })],
+      ['a form field the schema declares and the example leaves out', createPetSpec({ requestBody: { content: { 'application/x-www-form-urlencoded': { schema: { ...objectSchema({ name: string, tag: string }), example: { name: 'Rex' } } } } } }), formFields(['name', 'Max'], ['tag', 'good'])]
+    ])('does not list an endpoint whose body keeps %s', async (_, spec, edit) => {
+      expect(await listedAfterSync(spec, edit)).toEqual([]);
+    });
+
+    it('lists an endpoint whose multipart field the user switched from text to file', async () => {
+      const spec = createPetSpec({ requestBody: { content: { 'multipart/form-data': { schema: objectSchema({ avatar: string }) } } } });
+      const pickFile = (request) => ({ ...request, body: { ...request.body, multipartForm: [{ name: 'avatar', type: 'file', value: ['/tmp/rex.png'], enabled: true }] } });
+      expect(await listedAfterSync(spec, pickFile)).toEqual(['POST:/pets (+1 form fields, -1 form fields)']);
+    });
+
+    it('lists an endpoint whose json field the user changed to another type', async () => {
+      expect(await listedAfterSync(jsonSpec({ name: string, owner: objectSchema({ id: string }) }), withJsonBody({ name: 'Rex', owner: 'Ann' }))).toEqual(['POST:/pets (body schema)']);
+    });
+
+    it('lists a field the user added until a sync drops it', async () => {
+      writeStoredSpec(newSpec);
+      writeUserRequest({ name: 'Rex', age: 3, debug: true });
+      expect(await listed()).toEqual(['POST:/pets (body schema)']);
+
+      await apply(newSpec, modifiedPets);
+      expect(await listed()).toEqual([]);
+    });
+
+    it('does not list an edit the sync kept, but still reports it as edited for the conflict check', async () => {
+      expect(await listedAfterSync(cardExampleSpec({ cardNumber: '' }), sendsIban)).toEqual([]);
+      expect((await drift()).edited.map(({ id }) => id)).toEqual(['POST:/pets']);
+    });
+
+    it('lists an endpoint in Spec Updates when the spec changes it, even if the sync keeps the request as it is', async () => {
+      await listedAfterSync(cardExampleSpec({ cardNumber: '' }), sendsIban);
+      const changed = cardExampleSpec({ cardNumber: '', cvv: '' }, { schemas: { ...cardOrIban.schemas, Card: objectSchema({ cardNumber: string, cvv: string }) } });
+
+      expect(JSON.parse((await preview(changed)).newData.request.body.json)).toEqual({ payment: { iban: 'DE89' } });
+      expect((await drift(changed)).modified.map(({ id }) => id)).toEqual(['POST:/pets']);
     });
   });
 
@@ -300,13 +359,31 @@ describe.each(['bru', 'yml'])('openapi sync with preserve values in a %s collect
         }))
       }, { schemas: { Card: objectSchema({ cardNumber: string }), Iban: objectSchema({ iban: string }) } });
 
-      it('keeps the user\'s iban, drops what the spec removed and adds what it added', async () => {
+      it('keeps the user\'s iban without the card fields, drops the fields the spec does not have and adds what it added', async () => {
         const previous = paymentSpec(['Card', 'Iban'], { legacy: string });
         writeStoredSpec(previous);
         writeUserRequestFrom(previous, withJsonBody({ amount: 5, payment: { iban: 'DE89' }, debug: true, legacy: 'x' }));
 
         for (const request of await previewAndApply(paymentSpec(['Card', 'Iban'], { currency: string }))) {
-          expect(JSON.parse(request.body.json)).toEqual({ amount: 5, payment: { cardNumber: '', iban: 'DE89' }, currency: '', debug: true });
+          expect(JSON.parse(request.body.json)).toEqual({ amount: 5, payment: { iban: 'DE89' }, currency: '' });
+        }
+      });
+
+      it('matches the alternative the user sends by its discriminator', async () => {
+        const kindSpec = createPetSpec({
+          requestBody: jsonBody(objectSchema({
+            payment: {
+              oneOf: [{ $ref: '#/components/schemas/Card' }, { $ref: '#/components/schemas/Iban' }],
+              discriminator: { propertyName: 'kind', mapping: { card: '#/components/schemas/Card', iban: '#/components/schemas/Iban' } },
+              example: { kind: 'card', cardNumber: '' }
+            }
+          }))
+        }, { schemas: { Card: objectSchema({ kind: string, cardNumber: string }), Iban: objectSchema({ kind: string, iban: string }) } });
+        writeStoredSpec(kindSpec);
+        writeUserRequestFrom(kindSpec, withJsonBody({ payment: { kind: 'iban' } }));
+
+        for (const request of await previewAndApply(kindSpec)) {
+          expect(JSON.parse(request.body.json)).toEqual({ payment: { kind: 'iban' } });
         }
       });
 
@@ -321,37 +398,46 @@ describe.each(['bru', 'yml'])('openapi sync with preserve values in a %s collect
       });
     });
 
-    it.each([
-      ['without a type', {}],
-      ['typed as an object', { type: 'object' }]
-    ])('drops a field the spec removed from the oneOf alternative the user sends, with payment %s', async (_, paymentType) => {
-      const paymentSpec = (ibanProperties) => createPetSpec({
+    describe('a oneOf property', () => {
+      const paymentSpec = (paymentType, ibanProperties) => createPetSpec({
         requestBody: jsonBody(objectSchema({
           amount: { type: 'number' },
           payment: { ...paymentType, oneOf: [{ $ref: '#/components/schemas/Card' }, { $ref: '#/components/schemas/Iban' }] }
         }))
       }, { schemas: { Card: objectSchema({ cardNumber: string }), Iban: objectSchema(ibanProperties) } });
-      const previous = paymentSpec({ iban: string, bic: string });
-      writeStoredSpec(previous);
-      writeUserRequestFrom(previous, withJsonBody({ amount: 5, payment: { iban: 'DE', bic: 'B', note: 'mine' } }));
 
-      for (const request of await previewAndApply(paymentSpec({ iban: string }))) {
-        expect(JSON.parse(request.body.json)).toEqual({ amount: 5, payment: { iban: 'DE', note: 'mine' } });
-      }
+      const syncPayment = async (paymentType) => {
+        const previous = paymentSpec(paymentType, { iban: string, bic: string });
+        writeStoredSpec(previous);
+        writeUserRequestFrom(previous, withJsonBody({ amount: 5, payment: { iban: 'DE', bic: 'B', note: 'mine' } }));
+        return (await previewAndApply(paymentSpec(paymentType, { iban: string }))).map((request) => JSON.parse(request.body.json));
+      };
+
+      it('keeps the user object as written when the spec writes the property as ""', async () => {
+        for (const body of await syncPayment({})) {
+          expect(body).toEqual({ amount: 5, payment: { iban: 'DE', bic: 'B', note: 'mine' } });
+        }
+      });
+
+      it('drops the fields the alternatives do not declare when the spec writes the property as {}', async () => {
+        for (const body of await syncPayment({ type: 'object' })) {
+          expect(body).toEqual({ amount: 5, payment: { iban: 'DE' } });
+        }
+      });
     });
 
-    it('drops a field the spec removed from a top-level allOf body that imports as {}', async () => {
+    it('keeps only the declared fields of a top-level allOf body that imports as {}', async () => {
       const baseSpec = (properties) => createPetSpec({ requestBody: jsonBody({ allOf: [{ $ref: '#/components/schemas/Base' }] }) }, { schemas: { Base: objectSchema(properties) } });
       const previous = baseSpec({ name: string, legacy: string });
       writeStoredSpec(previous);
       writeUserRequestFrom(previous, withJsonBody({ name: 'Rex', legacy: 'x', debug: true }));
 
       for (const request of await previewAndApply(baseSpec({ name: string }))) {
-        expect(JSON.parse(request.body.json)).toEqual({ name: 'Rex', debug: true });
+        expect(JSON.parse(request.body.json)).toEqual({ name: 'Rex' });
       }
     });
 
-    it('drops a field the spec removed from the items of an array whose template is empty', async () => {
+    it('keeps the user items as written when the spec writes the array as []', async () => {
       const paymentsSpec = (ibanProperties) => createPetSpec({
         requestBody: jsonBody(objectSchema({
           amount: { type: 'number' },
@@ -363,7 +449,7 @@ describe.each(['bru', 'yml'])('openapi sync with preserve values in a %s collect
       writeUserRequestFrom(previous, withJsonBody({ amount: 5, payments: [{ iban: 'DE', bic: 'B' }] }));
 
       for (const request of await previewAndApply(paymentsSpec({ iban: string }))) {
-        expect(JSON.parse(request.body.json)).toEqual({ amount: 5, payments: [{ iban: 'DE' }] });
+        expect(JSON.parse(request.body.json)).toEqual({ amount: 5, payments: [{ iban: 'DE', bic: 'B' }] });
       }
     });
 
@@ -418,6 +504,20 @@ describe.each(['bru', 'yml'])('openapi sync with preserve values in a %s collect
       expect(request.params.map((p) => p.value).sort()).toEqual(['archived', 'available', 'pending', 'sold']);
       expect(request.params.filter((p) => p.enabled).map((p) => p.value)).toEqual(['pending']);
     }
+  });
+
+  it('drops the enum value the user picked when the spec swaps it for a new one, and brings the new one in unticked', async () => {
+    const enumSpec = (values) => createPetSpec({ parameters: [{ name: 'status', in: 'query', schema: { type: 'string', enum: values } }] });
+    const previous = enumSpec(['available', 'pending', 'sold']);
+    writeStoredSpec(previous);
+    writeUserRequestFrom(previous, (request) => ({ ...request, params: request.params.map((p) => ({ ...p, enabled: p.value === 'sold' })) }));
+
+    const [previewed, applied] = await previewAndApply(enumSpec(['available', 'pending', 'archived']));
+    for (const request of [previewed, applied]) {
+      expect(request.params.map((p) => p.value).sort()).toEqual(['archived', 'available', 'pending']);
+      expect(request.params.filter((p) => p.enabled)).toEqual([]);
+    }
+    expect(applied.url).toBe(openApiToBruno(previous).items[0].request.url.split('?')[0]);
   });
 
   it('keeps the enum value the user picked when the spec turns the param into a plain one with another old value as example', async () => {
@@ -485,7 +585,7 @@ describe.each(['bru', 'yml'])('openapi sync with preserve values in a %s collect
     }
   });
 
-  it('keeps a header the user added and disabled, and the enabled state of the spec header', async () => {
+  it('drops a header the user added and keeps the enabled state of the spec header', async () => {
     const previous = formSpec({ name: string }, 'X-Trace');
     writeStoredSpec(previous);
     writeUserRequestFrom(previous, (request) => ({
@@ -495,7 +595,7 @@ describe.each(['bru', 'yml'])('openapi sync with preserve values in a %s collect
 
     for (const request of await previewAndApply(formSpec({ name: string, age: { type: 'integer' } }, 'X-Trace'))) {
       const headers = request.headers.map(({ name, value, enabled }) => [name, value, enabled !== false]).sort(([a], [b]) => a.localeCompare(b));
-      expect(headers).toEqual([['X-Debug', '1', false], ['X-Trace', 'trace-1', true]]);
+      expect(headers).toEqual([['X-Trace', 'trace-1', true]]);
     }
   });
 
@@ -512,12 +612,41 @@ describe.each(['bru', 'yml'])('openapi sync with preserve values in a %s collect
     }));
 
     const [, applied] = await previewAndApply(next);
-    expect(applied.url).toBe(`${base}?status=sold&debug=1`);
+    expect(applied.url).toBe(`${base}?status=sold`);
 
     await apply(next, { added: [{ method: 'POST', path: '/pets' }] });
     const requestFiles = fs.readdirSync(collectionPath).filter((file) => file.endsWith(`.${format}`) && !file.startsWith('opencollection'));
     expect(requestFiles).toEqual([`Create pet.${format}`]);
-    expect(readRequest().url).toBe(`${base}?status=sold&debug=1`);
+    expect(readRequest().url).toBe(`${base}?status=sold`);
+  });
+
+  it('fills an empty text body with the spec text when there is no stored spec', async () => {
+    writeUserRequestFrom(textSpec('old example'), (request) => ({ ...request, body: { ...request.body, text: '' } }));
+    for (const request of await previewAndApply(textSpec('new example'))) {
+      expect(request.body.text).toBe('new example');
+    }
+  });
+
+  it('takes the spec field when the spec switches a multipart field from text to file', async () => {
+    const multipartSpec = (avatar) => createPetSpec({ requestBody: { content: { 'multipart/form-data': { schema: objectSchema({ avatar }) } } } });
+    const previous = multipartSpec(string);
+    writeStoredSpec(previous);
+    writeUserRequestFrom(previous, (request) => ({ ...request, body: { ...request.body, multipartForm: request.body.multipartForm.map((f) => ({ ...f, value: 'abc' })) } }));
+
+    for (const request of await previewAndApply(multipartSpec({ type: 'string', format: 'binary' }))) {
+      expect(request.body.multipartForm.map(({ name, type, value }) => [name, type, value])).toEqual([['avatar', 'file', []]]);
+    }
+  });
+
+  it('drops a ticked enum header value the spec removed', async () => {
+    const modeSpec = (values) => createPetSpec({ parameters: [{ name: 'X-Mode', in: 'header', schema: { type: 'string', enum: values } }] });
+    const previous = modeSpec(['fast', 'safe']);
+    writeStoredSpec(previous);
+    writeUserRequestFrom(previous, (request) => ({ ...request, headers: request.headers.map((h) => ({ ...h, enabled: h.value === 'safe' })) }));
+
+    for (const request of await previewAndApply(modeSpec(['fast', 'eco']))) {
+      expect(request.headers.map(({ name, value, enabled }) => [name, value, enabled])).toEqual([['X-Mode', 'fast', false], ['X-Mode', 'eco', false]]);
+    }
   });
 
   it('treats a raw body saved with Windows line endings as unedited', async () => {
@@ -530,27 +659,45 @@ describe.each(['bru', 'yml'])('openapi sync with preserve values in a %s collect
     expect(applied.body.text).toBe('new example');
   });
 
-  it('compares each endpoint with its own previous spec when one sync changes several endpoints', async () => {
-    const operation = (summary, properties) => ({ post: { summary, requestBody: jsonBody(objectSchema(properties)), responses: OK } });
-    const petsAndOwners = (petProperties, ownerProperties) => ({
+  it('merges every endpoint against its own schema when one sync changes several endpoints', async () => {
+    const operation = (summary, schema) => ({ post: { summary, requestBody: jsonBody(schema), responses: OK } });
+    const petsAndOwners = (petSchema, ownerSchema) => ({
       openapi: '3.0.3',
       info: { title: 'Pets', version: '1' },
-      paths: { '/pets': operation('Create pet', petProperties), '/owners': operation('Create owner', ownerProperties) }
+      paths: { '/pets': operation('Create pet', petSchema), '/owners': operation('Create owner', ownerSchema) }
     });
-    const previous = petsAndOwners({ name: string, legacy: string }, { email: string });
-    const next = petsAndOwners({ name: string, age: { type: 'integer' } }, { email: string, phone: string });
+    const previous = petsAndOwners(objectSchema({ name: string, legacy: string }), objectSchema({ email: string, nickname: string }));
+    const next = petsAndOwners(objectSchema({ name: string, age: { type: 'integer' } }), { ...objectSchema({ email: string, phone: string, nickname: string }), example: { email: '', phone: '' } });
     const ownerFile = path.join(collectionPath, `Create owner.${format}`);
     writeStoredSpec(previous);
-    writeUserRequestFrom(previous, withJsonBody({ name: 'Rex', legacy: 'x', debug: true }));
-    writeUserRequestFrom(previous, withJsonBody({ email: 'a@b.c', legacy: 'y' }), { name: 'Create owner', file: ownerFile });
+    writeUserRequestFrom(previous, withJsonBody({ name: 'Rex', legacy: 'x', nickname: 'R' }));
+    writeUserRequestFrom(previous, withJsonBody({ email: 'a@b.c', nickname: 'Al', legacy: 'y' }), { name: 'Create owner', file: ownerFile });
     const previewedBody = async (endpointId) => JSON.parse((await preview(next, { endpointId })).newData.request.body.json);
-    const expectedPet = { name: 'Rex', age: 0, debug: true };
-    const expectedOwner = { email: 'a@b.c', phone: '', legacy: 'y' };
+    const expectedPet = { name: 'Rex', age: 0 };
+    const expectedOwner = { email: 'a@b.c', phone: '', nickname: 'Al' };
 
     expect(await previewedBody('POST:/pets')).toEqual(expectedPet);
     expect(await previewedBody('POST:/owners')).toEqual(expectedOwner);
     await apply(next, { modified: [{ method: 'POST', path: '/pets' }, { method: 'POST', path: '/owners' }] });
     expect(JSON.parse(readRequest().body.json)).toEqual(expectedPet);
     expect(JSON.parse(readRequest(ownerFile).body.json)).toEqual(expectedOwner);
+  });
+
+  it('compares every endpoint with its own previous spec when one sync changes several endpoints', async () => {
+    const operation = (summary, example) => ({ post: { summary, requestBody: { content: { 'text/plain': { schema: { type: 'string', example } } } }, responses: OK } });
+    const petsAndOwners = (petText, ownerText) => ({
+      openapi: '3.0.3',
+      info: { title: 'Pets', version: '1' },
+      paths: { '/pets': operation('Create pet', petText), '/owners': operation('Create owner', ownerText) }
+    });
+    const previous = petsAndOwners('pet old', 'owner old');
+    const ownerFile = path.join(collectionPath, `Create owner.${format}`);
+    writeStoredSpec(previous);
+    writeUserRequestFrom(previous, (request) => request);
+    writeUserRequestFrom(previous, (request) => request, { name: 'Create owner', file: ownerFile });
+
+    await apply(petsAndOwners('pet new', 'owner new'), { modified: [{ method: 'POST', path: '/pets' }, { method: 'POST', path: '/owners' }] });
+    expect(readRequest().body.text).toBe('pet new');
+    expect(readRequest(ownerFile).body.text).toBe('owner new');
   });
 });

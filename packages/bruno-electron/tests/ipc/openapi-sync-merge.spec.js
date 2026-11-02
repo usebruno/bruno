@@ -126,6 +126,10 @@ describe('maskJsonInterpolations', () => {
 // Task 3: mergeJsonValues
 // ---------------------------------------------------------------------------
 describe('mergeJsonValues', () => {
+  const string = { type: 'string' };
+  const object = (properties) => ({ type: 'object', properties });
+  const declaredFor = (schema, components) => helpers.declaredBodyOf({ openapi: '3.0.3', info: { title: 'Pets', version: '1' }, paths: { '/pets': { post: { requestBody: { content: { 'application/json': { schema } } } } } }, components }, 'POST', '/pets');
+
   it('keeps user value for shared key', () => {
     expect(helpers.mergeJsonValues({ id: 10 }, { id: 0 }, true)).toEqual({ id: 10 });
   });
@@ -138,40 +142,94 @@ describe('mergeJsonValues', () => {
     expect(helpers.mergeJsonValues({ id: 10, old: 'x' }, { id: 0 }, true)).toEqual({ id: 10 });
   });
 
-  it('with a previous spec, removes only keys the previous spec had', () => {
-    expect(helpers.mergeJsonValues({ id: 10, old: 'x', mine: 1 }, { id: 0 }, true, { id: 0, old: '' })).toEqual({ id: 10, mine: 1 });
+  it('keeps a field the schema declares in another oneOf alternative', () => {
+    const declared = declaredFor({ oneOf: [object({ type: string, repoId: { type: 'integer' } }), object({ type: string, projectId: { type: 'integer' } })] });
+    expect(helpers.mergeJsonValues({ type: 'gitlab', projectId: 987654, debug: true }, { type: '' }, true, declared)).toEqual({ type: 'gitlab', projectId: 987654 });
   });
 
-  it('with a previous spec, keeps the fields of another oneOf alternative', () => {
-    const template = { type: '', repoId: 0, ref: '' };
-    expect(helpers.mergeJsonValues({ type: 'gitlab', projectId: 987654, ref: 'main' }, template, true, template))
-      .toEqual({ type: 'gitlab', repoId: 0, ref: 'main', projectId: 987654 });
+  it('keeps only the declared fields of an object the spec example leaves out', () => {
+    const declared = declaredFor(object({ id: { type: 'integer' }, owner: object({ name: string }) }));
+    expect(helpers.mergeJsonValues({ id: 7, owner: { name: 'Ann', debug: true } }, { id: 0 }, true, declared)).toEqual({ id: 7, owner: { name: 'Ann' } });
   });
 
-  it('with a previous spec, keeps user keys under an empty spec object and in array elements', () => {
-    expect(helpers.mergeJsonValues({ meta: { campaign: 'spring' } }, { meta: {} }, true, { meta: {} })).toEqual({ meta: { campaign: 'spring' } });
-    expect(helpers.mergeJsonValues({ items: [{ id: 1, note: 'x' }] }, { items: [{ id: 0 }] }, true, { items: [{ id: 0 }] }))
-      .toEqual({ items: [{ id: 1, note: 'x' }] });
+  it('keeps a user object as written where the spec example has a scalar', () => {
+    const declared = declaredFor(object({ payment: { oneOf: [object({ iban: string })] } }));
+    expect(helpers.mergeJsonValues({ payment: { iban: 'DE', note: 'mine' } }, { payment: '' }, true, declared)).toEqual({ payment: { iban: 'DE', note: 'mine' } });
+  });
+
+  it('keeps a user array as written where the spec example array is empty', () => {
+    const declared = declaredFor(object({ list: { type: 'array', items: object({ a: { type: 'integer' } }) } }));
+    expect(helpers.mergeJsonValues({ list: [{ a: 1, note: 'mine' }] }, { list: [] }, true, declared)).toEqual({ list: [{ a: 1, note: 'mine' }] });
+  });
+
+  describe('when the spec example shows another oneOf alternative than the user sends', () => {
+    const ref = (name) => ({ $ref: `#/components/schemas/${name}` });
+    const components = { schemas: { Card: object({ kind: string, holder: string, cardNumber: string }), Iban: object({ kind: string, holder: string, iban: string }) } };
+    const cardExample = { kind: '', holder: '', cardNumber: '' };
+    const merge = (user, schema, example = cardExample) => helpers.mergeJsonValues(user, example, true, declaredFor(schema, components));
+
+    it('does not add the fields only the other alternative declares', () => {
+      expect(merge({ holder: 'Ann', iban: 'DE89' }, { oneOf: [ref('Card'), ref('Iban')] })).toEqual({ kind: '', holder: 'Ann', iban: 'DE89' });
+    });
+
+    it('matches the alternative by the discriminator mapping', () => {
+      const schema = { oneOf: [ref('Card'), ref('Iban')], discriminator: { propertyName: 'kind', mapping: { c: '#/components/schemas/Card', i: '#/components/schemas/Iban' } } };
+      expect(merge({ kind: 'i' }, schema)).toEqual({ kind: 'i', holder: '' });
+    });
+
+    it('matches the alternative by its schema name when the discriminator has no mapping', () => {
+      expect(merge({ kind: 'Iban' }, { oneOf: [ref('Card'), ref('Iban')], discriminator: { propertyName: 'kind' } })).toEqual({ kind: 'Iban', holder: '' });
+    });
+
+    it('matches the alternative whose discriminator property allows the value', () => {
+      const schema = { oneOf: [object({ kind: { enum: ['card'] }, cardNumber: string }), object({ kind: { const: 'iban' }, iban: string })], discriminator: { propertyName: 'kind' } };
+      expect(merge({ kind: 'iban' }, schema, { kind: '', cardNumber: '' })).toEqual({ kind: 'iban' });
+    });
+
+    it('adds the example fields when no single alternative matches best', () => {
+      expect(merge({ holder: 'Ann' }, { oneOf: [ref('Card'), ref('Iban')] }, { kind: '', holder: '', iban: '' })).toEqual({ kind: '', holder: 'Ann', iban: '' });
+    });
+
+    it('adds a field the alternatives share through allOf', () => {
+      const schema = { allOf: [object({ currency: string }), { oneOf: [ref('Card'), ref('Iban')] }] };
+      expect(merge({ iban: 'DE89' }, schema, { currency: '', cardNumber: '' })).toEqual({ currency: '', iban: 'DE89' });
+    });
+
+    it('matches each array item on its own', () => {
+      const schema = object({ payments: { type: 'array', items: { oneOf: [ref('Card'), ref('Iban')] } } });
+      expect(merge({ payments: [{ iban: 'DE89' }, { cardNumber: '4111' }] }, schema, { payments: [{ cardNumber: '' }] })).toEqual({ payments: [{ iban: 'DE89' }, { cardNumber: '4111' }] });
+    });
   });
 
   describe('when the spec object is empty', () => {
-    it('keeps the user object without a previous spec', () => {
+    it('keeps the user object when no schema declares its fields', () => {
       expect(helpers.mergeJsonValues({ name: 'Rex', meta: { campaign: 'spring', tags: { a: 1 } } }, { name: '', meta: {} }, true))
         .toEqual({ name: 'Rex', meta: { campaign: 'spring', tags: { a: 1 } } });
     });
 
-    it('keeps the user object when the previous spec listed its fields', () => {
-      expect(helpers.mergeJsonValues({ id: 7, owner: { name: 'Ann', age: 3 } }, { id: 0, owner: {} }, true, { id: 0, owner: { name: '', age: 0 } }))
+    it('keeps only the fields the schema declares', () => {
+      const declared = declaredFor(object({ id: { type: 'integer' }, owner: { allOf: [object({ name: string }), object({ age: { type: 'integer' } })] } }));
+      expect(helpers.mergeJsonValues({ id: 7, owner: { name: 'Ann', age: 3, debug: true } }, { id: 0, owner: {} }, true, declared))
         .toEqual({ id: 7, owner: { name: 'Ann', age: 3 } });
+    });
+
+    it('keeps every field of a free-form map', () => {
+      const declared = declaredFor(object({ metadata: { type: 'object', additionalProperties: string } }));
+      expect(helpers.mergeJsonValues({ metadata: { env: 'prod', team: { name: 'core' } } }, { metadata: {} }, true, declared))
+        .toEqual({ metadata: { env: 'prod', team: { name: 'core' } } });
     });
 
     it('keeps the whole user body when the spec body is an empty object', () => {
       expect(helpers.mergeJsonValues({ name: 'Rex', age: 3 }, {}, true)).toEqual({ name: 'Rex', age: 3 });
-      expect(helpers.mergeJsonValues({ name: 'Rex', age: 3 }, {}, true, { name: '', age: 0 })).toEqual({ name: 'Rex', age: 3 });
     });
 
     it('keeps each user array element when the spec element is an empty object', () => {
       expect(helpers.mergeJsonValues({ items: [{ k: 'a' }, { k: 'b', n: 1 }] }, { items: [{}] }, true)).toEqual({ items: [{ k: 'a' }, { k: 'b', n: 1 }] });
+    });
+
+    it('keeps only the declared fields of each user array element', () => {
+      const declared = declaredFor(object({ items: { type: 'array', items: { oneOf: [object({ k: string }), object({ n: { type: 'integer' } })] } } }));
+      expect(helpers.mergeJsonValues({ items: [{ k: 'a', debug: true }, { n: 1 }] }, { items: [{}] }, true, declared)).toEqual({ items: [{ k: 'a' }, { n: 1 }] });
     });
 
     it('keeps an empty user object', () => {
@@ -340,6 +398,22 @@ describe('mergeFieldListPreserving', () => {
     expect(out[0].enabled).toBe(true);
   });
 
+  it('drops extra entries with a name the spec has once', () => {
+    const out = helpers.mergeFieldListPreserving([{ name: 'id', value: '' }], [{ name: 'id', value: '1' }, { name: 'id', value: '2' }]);
+    expect(out.map((e) => e.value)).toEqual(['1']);
+  });
+
+  it('drops a path param the spec does not have', () => {
+    const out = helpers.mergeFieldListPreserving([{ name: 'petId', value: '', type: 'path' }], [{ name: 'id', value: '5', type: 'path' }]);
+    expect(out.map((e) => e.name)).toEqual(['petId']);
+  });
+
+  it('pairs the enabled entry over a disabled one that has the spec value', () => {
+    const limit = (value, enabled) => ({ name: 'limit', value, type: 'query', enabled });
+    const out = helpers.mergeFieldListPreserving([limit('', false)], [limit('', false), limit('10', true)]);
+    expect(out).toEqual([limit('10', true)]);
+  });
+
   const status = (values, enabledValue) => values.map((value) => ({ name: 'status', value, type: 'query', enabled: value === enabledValue }));
   const valuesOf = (out) => out.map((e) => e.value);
   const enabledOf = (out) => out.filter((e) => e.enabled).map((e) => e.value);
@@ -363,29 +437,9 @@ describe('mergeFieldListPreserving', () => {
   });
 
   describe('with the previously synced spec', () => {
-    it('keeps an entry the user added', () => {
-      const out = helpers.mergeFieldListPreserving([{ name: 'q', value: '' }], [{ name: 'q', value: 'hi' }, { name: 'debug', value: '1' }], true, [{ name: 'q', value: '' }]);
-      expect(out.map((e) => [e.name, e.value])).toEqual([['q', 'hi'], ['debug', '1']]);
-    });
-
-    it('drops an entry the spec removed since the last sync', () => {
-      const out = helpers.mergeFieldListPreserving([{ name: 'q', value: '' }], [{ name: 'q', value: 'hi' }, { name: 'gone', value: 'x' }], true, [{ name: 'q', value: '' }, { name: 'gone', value: '' }]);
-      expect(out.map((e) => e.name)).toEqual(['q']);
-    });
-
-    it('keeps extra entries with a name the spec still has', () => {
-      const out = helpers.mergeFieldListPreserving([{ name: 'id', value: '' }], [{ name: 'id', value: '1' }, { name: 'id', value: '2' }], true, [{ name: 'id', value: '' }]);
-      expect(out.map((e) => e.value)).toEqual(['1', '2']);
-    });
-
-    it('keeps every user entry when the previous spec had none', () => {
-      const out = helpers.mergeFieldListPreserving([{ name: 'q', value: '' }], [{ name: 'gone', value: 'x' }], true, []);
-      expect(out.map((e) => e.name)).toEqual(['q', 'gone']);
-    });
-
-    it('drops path params the spec does not have, since the url follows the spec', () => {
-      const out = helpers.mergeFieldListPreserving([{ name: 'petId', value: '', type: 'path' }], [{ name: 'id', value: '5', type: 'path' }], true, []);
-      expect(out.map((e) => e.name)).toEqual(['petId']);
+    it('drops the entries the spec does not have, whether the user added them or the spec removed them', () => {
+      const out = helpers.mergeFieldListPreserving([{ name: 'q', value: '' }], [{ name: 'q', value: 'hi' }, { name: 'debug', value: '1' }, { name: 'gone', value: 'x' }], true, [{ name: 'q', value: '' }, { name: 'gone', value: '' }]);
+      expect(out.map((e) => [e.name, e.value])).toEqual([['q', 'hi']]);
     });
 
     it('follows the spec when preserve values is off', () => {
@@ -462,10 +516,10 @@ describe('mergeFieldListPreserving', () => {
         expect(enabledOf(out)).toEqual(['bb']);
       });
 
-      it('keeps an extra entry the user added under the same name', () => {
+      it('drops a value the user added under the same name', () => {
         const out = helpers.mergeFieldListPreserving(status(['a', 'b']), status(['a', 'b', 'z'], 'z'), true, status(['a', 'b']));
-        expect(valuesOf(out)).toEqual(['a', 'b', 'z']);
-        expect(enabledOf(out)).toEqual(['z']);
+        expect(valuesOf(out)).toEqual(['a', 'b']);
+        expect(enabledOf(out)).toEqual([]);
       });
 
       it.each([
@@ -497,10 +551,10 @@ describe('mergeFieldListPreserving', () => {
       });
     });
 
-    it('keeps every value of a plain param, including one equal to the old example', () => {
+    it('keeps the value that matches the spec when a plain param has several', () => {
       const plain = (value, enabled) => ({ name: 'status', value, type: 'query', enabled });
       const out = helpers.mergeFieldListPreserving([plain('pending', true)], [plain('available', true), plain('pending', true)], true, [plain('available', true)]);
-      expect(out).toEqual([plain('pending', true), plain('available', true)]);
+      expect(out).toEqual([plain('pending', true)]);
     });
 
     it('pairs entries named like built-in object properties', () => {
@@ -668,27 +722,23 @@ describe('mergeBody', () => {
     expect(out.graphql).toEqual(spec.graphql);
   });
 
+  it('drops the form fields the user added', () => {
+    const out = helpers.mergeBody(
+      { mode: 'formUrlEncoded', formUrlEncoded: [{ name: 'a', value: 'mine' }, { name: 'custom', value: '1' }] },
+      { mode: 'formUrlEncoded', formUrlEncoded: [{ name: 'a', value: '' }] }
+    );
+    expect(out.formUrlEncoded.map((e) => [e.name, e.value])).toEqual([['a', 'mine']]);
+  });
+
+  it('keeps a picked file and drops the multipart fields the user added', () => {
+    const out = helpers.mergeBody(
+      { mode: 'multipartForm', multipartForm: [{ name: 'file', type: 'file', value: ['/tmp/a.png'] }, { name: 'note', type: 'text', value: 'hi' }] },
+      { mode: 'multipartForm', multipartForm: [{ name: 'file', type: 'file', value: [] }, { name: 'title', type: 'text', value: '' }] }
+    );
+    expect(out.multipartForm.map((e) => [e.name, e.value])).toEqual([['file', ['/tmp/a.png']], ['title', '']]);
+  });
+
   describe('with the previously synced spec', () => {
-    it('keeps the form fields the user added', () => {
-      const out = helpers.mergeBody(
-        { mode: 'formUrlEncoded', formUrlEncoded: [{ name: 'a', value: 'mine' }, { name: 'custom', value: '1' }] },
-        { mode: 'formUrlEncoded', formUrlEncoded: [{ name: 'a', value: '' }] },
-        true,
-        { mode: 'formUrlEncoded', formUrlEncoded: [{ name: 'a', value: '' }] }
-      );
-      expect(out.formUrlEncoded.map((e) => [e.name, e.value])).toEqual([['a', 'mine'], ['custom', '1']]);
-    });
-
-    it('keeps the multipart fields the user added, including a picked file', () => {
-      const out = helpers.mergeBody(
-        { mode: 'multipartForm', multipartForm: [{ name: 'file', type: 'file', value: ['/tmp/a.png'] }, { name: 'note', type: 'text', value: 'hi' }] },
-        { mode: 'multipartForm', multipartForm: [{ name: 'file', type: 'file', value: [] }, { name: 'title', type: 'text', value: '' }] },
-        true,
-        { mode: 'multipartForm', multipartForm: [{ name: 'file', type: 'file', value: [] }] }
-      );
-      expect(out.multipartForm.map((e) => [e.name, e.value])).toEqual([['file', ['/tmp/a.png']], ['title', ''], ['note', 'hi']]);
-    });
-
     it('replaces a text body the user did not edit with the new spec text', () => {
       const out = helpers.mergeBody({ mode: 'text', text: 'old example' }, { mode: 'text', text: 'new example' }, true, { mode: 'text', text: 'old example' });
       expect(out.text).toBe('new example');
@@ -782,22 +832,22 @@ describe('mergeBody', () => {
       const body = (...pairs) => ({ mode, [mode]: pairs.map(([name, value]) => ({ name, value, type: 'text' })) });
       const namesAndValuesOf = (out) => out[mode].map(({ name, value }) => [name, value]);
 
-      it('keeps a field the schema still declares when the spec example leaves it out', () => {
-        const declaredBodies = helpers.declaredBodiesFor(formSpecWith({ name: string, tag: string }, { name: 'Rex' }), formSpecWith({ name: string, tag: string }), 'POST', '/pets');
-        const out = helpers.mergeBody(body(['name', 'Max'], ['tag', 'good']), body(['name', 'Rex']), true, body(['name', ''], ['tag', '']), declaredBodies);
+      it('keeps a field the schema declares when the spec example leaves it out', () => {
+        const declared = helpers.declaredBodyOf(formSpecWith({ name: string, tag: string }, { name: 'Rex' }), 'POST', '/pets');
+        const out = helpers.mergeBody(body(['name', 'Max'], ['tag', 'good']), body(['name', 'Rex']), true, body(['name', ''], ['tag', '']), declared);
         expect(namesAndValuesOf(out)).toEqual([['name', 'Max'], ['tag', 'good']]);
       });
 
-      it('drops a field the schema no longer declares', () => {
-        const declaredBodies = helpers.declaredBodiesFor(formSpecWith({ name: string }), formSpecWith({ name: string, tag: string }), 'POST', '/pets');
-        const out = helpers.mergeBody(body(['name', 'Max'], ['tag', 'good']), body(['name', '']), true, body(['name', ''], ['tag', '']), declaredBodies);
+      it('drops a field the schema does not declare', () => {
+        const declared = helpers.declaredBodyOf(formSpecWith({ name: string }), 'POST', '/pets');
+        const out = helpers.mergeBody(body(['name', 'Max'], ['tag', 'good']), body(['name', '']), true, body(['name', ''], ['tag', '']), declared);
         expect(namesAndValuesOf(out)).toEqual([['name', 'Max']]);
       });
 
-      it('drops a field the previous schema declared but its example left out, once the schema drops it', () => {
-        const declaredBodies = helpers.declaredBodiesFor(formSpecWith({ name: string }), formSpecWith({ name: string, tag: string }, { name: 'Rex' }), 'POST', '/pets');
-        const out = helpers.mergeBody(body(['name', 'Max'], ['tag', 'good']), body(['name', '']), true, body(['name', 'Rex']), declaredBodies);
-        expect(namesAndValuesOf(out)).toEqual([['name', 'Max']]);
+      it('drops a second entry of a field the spec lists', () => {
+        const declared = helpers.declaredBodyOf(formSpecWith({ name: string, tag: string }), 'POST', '/pets');
+        const out = helpers.mergeBody(body(['name', 'Max'], ['tag', 'a'], ['tag', 'b']), body(['name', ''], ['tag', '']), true, body(['name', ''], ['tag', '']), declared);
+        expect(namesAndValuesOf(out)).toEqual([['name', 'Max'], ['tag', 'a']]);
       });
     });
   });
@@ -837,13 +887,13 @@ describe('mergeSpecIntoRequest (sync mode)', () => {
     const userParams = [query('status', 'sold', true), query('limit', '20', false), query('debug', '1', true), { name: 'id', value: '7', type: 'path', enabled: true }];
     const sync = (user, spec, options = { previousSpecItem: { request: { params: statusAndLimit } } }) => helpers.mergeSpecIntoRequest(user, spec, options).request.url;
 
-    it('rebuilds the query string from the enabled query params', () => {
-      expect(sync(userWith('{{old}}/pets/7?status=sold&debug=1', userParams), specWith('{{baseUrl}}/pets/:id', statusAndLimit))).toBe('{{baseUrl}}/pets/:id?status=sold&debug=1');
+    it('rebuilds the query string from the enabled query params the spec has', () => {
+      expect(sync(userWith('{{old}}/pets/7?status=sold&debug=1', userParams), specWith('{{baseUrl}}/pets/:id', statusAndLimit))).toBe('{{baseUrl}}/pets/:id?status=sold');
     });
 
     it('adds a query param the spec added and turned on', () => {
       const spec = specWith('{{baseUrl}}/pets/:id', [...statusAndLimit, query('page', '', true)]);
-      expect(sync(userWith('{{old}}/pets/7?status=sold&debug=1', userParams), spec)).toBe('{{baseUrl}}/pets/:id?status=sold&page=&debug=1');
+      expect(sync(userWith('{{old}}/pets/7?status=sold&debug=1', userParams), spec)).toBe('{{baseUrl}}/pets/:id?status=sold&page=');
     });
 
     it('drops a query param the spec removed', () => {
@@ -853,13 +903,18 @@ describe('mergeSpecIntoRequest (sync mode)', () => {
     });
 
     it('keeps a query param written without a value as it is', () => {
-      const user = userWith('{{old}}/pets?flag&{{qs}}&status=sold', [query('flag', '', true), query('{{qs}}', '', true), query('status', 'sold', true)]);
-      expect(sync(user, specWith('{{baseUrl}}/pets', statusAndLimit))).toBe('{{baseUrl}}/pets?status=sold&flag&{{qs}}');
+      const user = userWith('{{old}}/pets?flag&status=sold', [query('flag', '', true), query('status', 'sold', true)]);
+      expect(sync(user, specWith('{{baseUrl}}/pets', [query('status', '', false), query('flag', '', false)]))).toBe('{{baseUrl}}/pets?status=sold&flag');
     });
 
     it('writes the value of a param that now has one', () => {
       const user = userWith('{{old}}/pets?flag', [query('flag', 'on', true)]);
-      expect(sync(user, specWith('{{baseUrl}}/pets', statusAndLimit))).toBe('{{baseUrl}}/pets?flag=on');
+      expect(sync(user, specWith('{{baseUrl}}/pets', [query('flag', '', false)]))).toBe('{{baseUrl}}/pets?flag=on');
+    });
+
+    it('keeps a value typed into the url next to the imported empty param', () => {
+      const user = userWith('{{old}}/pets?limit=10', [query('limit', '10', true), query('limit', '', false)]);
+      expect(sync(user, specWith('{{baseUrl}}/pets', [query('limit', '', false)]))).toBe('{{baseUrl}}/pets?limit=10');
     });
 
     it('keeps the chosen value in the url when the spec turns an enum into a plain value', () => {
@@ -901,72 +956,53 @@ describe('mergeSpecIntoRequest (sync mode)', () => {
     expect(JSON.parse(out.request.body.json)).toEqual({ id: 10, name: '' });
   });
 
-  describe('body with the previously synced spec', () => {
-    const syncBody = (userBody, specBody, previousBody, options = {}) => {
+  describe('json body', () => {
+    const syncBody = (userBody, specBody, options = {}) => {
       const user = { ...existing, request: { ...existing.request, body: { mode: 'json', json: JSON.stringify(userBody) } } };
       const spec = { ...specItem, request: { ...specItem.request, body: { mode: 'json', json: JSON.stringify(specBody) } } };
-      const previousSpecItem = { request: { body: previousBody === undefined ? {} : { mode: 'json', json: JSON.stringify(previousBody) } } };
-      return JSON.parse(helpers.mergeSpecIntoRequest(user, spec, { previousSpecItem, ...options }).request.body.json);
+      return JSON.parse(helpers.mergeSpecIntoRequest(user, spec, options).request.body.json);
     };
 
-    it('keeps a field the user added', () => {
-      expect(syncBody({ name: 'Rex', debug: true }, { name: '', age: 0 }, { name: '' })).toEqual({ name: 'Rex', age: 0, debug: true });
-    });
-
-    it('keeps the fields of a different oneOf branch than the one the spec shows', () => {
-      const card = { amount: 0, payment: { cardNumber: '' } };
-      expect(syncBody({ amount: 5, payment: { iban: 'DE89' } }, card, card)).toEqual({ amount: 5, payment: { cardNumber: '', iban: 'DE89' } });
+    it('drops the fields the spec does not have and fills in new ones', () => {
+      expect(syncBody({ name: 'Rex', debug: true, legacy: 'x' }, { name: '', age: 0 })).toEqual({ name: 'Rex', age: 0 });
     });
 
     it('keeps the user body when the spec body is empty', () => {
-      expect(syncBody({ amount: 5, payment: { iban: 'DE89' } }, {}, {})).toEqual({ amount: 5, payment: { iban: 'DE89' } });
-    });
-
-    it('removes only the fields the spec removed since the last sync and fills in new ones', () => {
-      const user = { amount: 5, payment: { iban: 'DE89' }, debug: true, legacy: 'x' };
-      const spec = { amount: 0, payment: { cardNumber: '' }, currency: '' };
-      const previous = { amount: 0, payment: { cardNumber: '' }, legacy: '' };
-      expect(syncBody(user, spec, previous)).toEqual({ amount: 5, payment: { cardNumber: '', iban: 'DE89' }, currency: '', debug: true });
-    });
-
-    it('keeps the user fields when the previous spec had no body for the endpoint', () => {
-      expect(syncBody({ name: 'Rex', debug: true }, { name: '', age: 0 }, undefined)).toEqual({ name: 'Rex', age: 0, debug: true });
+      expect(syncBody({ amount: 5, payment: { iban: 'DE89' } }, {})).toEqual({ amount: 5, payment: { iban: 'DE89' } });
     });
 
     it('follows the spec when preserve values is off', () => {
-      expect(syncBody({ name: 'Rex', debug: true }, { name: '', age: 0 }, { name: '' }, { preserveValues: false })).toEqual({ name: '', age: 0 });
+      expect(syncBody({ name: 'Rex', debug: true }, { name: '', age: 0 }, { preserveValues: false })).toEqual({ name: '', age: 0 });
     });
 
-    it('keeps a value that still equals the previous spec value when the spec value changes', () => {
-      expect(syncBody({ status: 'active', name: 'Rex' }, { status: 'enabled', name: '' }, { status: 'active', name: '' })).toEqual({ status: 'active', name: 'Rex' });
+    it('keeps the user value when the spec value changes', () => {
+      expect(syncBody({ status: 'active', name: 'Rex' }, { status: 'enabled', name: '' })).toEqual({ status: 'active', name: 'Rex' });
     });
 
     it('keeps the discriminator value when the spec renames its mapping key', () => {
-      expect(syncBody({ petType: 'cat', meow: true }, { petType: 'feline', meow: false }, { petType: 'cat', meow: false })).toEqual({ petType: 'cat', meow: true });
-    });
-
-    it('keeps a value the user edited when the spec value changes', () => {
-      expect(syncBody({ status: 'paused' }, { status: 'enabled' }, { status: 'active' })).toEqual({ status: 'paused' });
+      expect(syncBody({ petType: 'cat', meow: true }, { petType: 'feline', meow: false })).toEqual({ petType: 'cat', meow: true });
     });
 
     it('keeps an empty string where the spec now has an object', () => {
-      const owner = { name: '', age: 0 };
-      expect(syncBody({ id: 7, owner: '' }, { id: 0, owner }, { id: 0, owner })).toEqual({ id: 7, owner: '' });
+      expect(syncBody({ id: 7, owner: '' }, { id: 0, owner: { name: '', age: 0 } })).toEqual({ id: 7, owner: '' });
     });
 
     it('keeps an empty string where the spec value is an empty object', () => {
-      expect(syncBody({ since: '' }, { since: {} }, {})).toEqual({ since: '' });
+      expect(syncBody({ since: '' }, { since: {} })).toEqual({ since: '' });
     });
 
-    it('keeps fields named like built-in object properties', () => {
-      expect(syncBody({ name: 'Rex', toString: 'mine' }, { name: '', constructor: '' }, { name: '' })).toEqual({ name: 'Rex', constructor: '', toString: 'mine' });
+    it('keeps the values of fields named like built-in object properties', () => {
+      expect(syncBody({ name: 'Rex', constructor: 'mine', toString: 'x' }, { name: '', constructor: '', toString: '' })).toEqual({ name: 'Rex', constructor: 'mine', toString: 'x' });
+    });
+
+    it('adds a spec field named like a built-in object property that the user does not have', () => {
+      expect(syncBody({ name: 'Rex' }, { name: '', constructor: '' })).toEqual({ name: 'Rex', constructor: '' });
     });
 
     it('keeps a __proto__ field as a normal field', () => {
       const user = { ...existing, request: { ...existing.request, body: { mode: 'json', json: '{"name":"Rex","__proto__":{"admin":true}}' } } };
-      const spec = { ...specItem, request: { ...specItem.request, body: { mode: 'json', json: '{"name":""}' } } };
-      const previousSpecItem = { request: { body: { mode: 'json', json: '{"name":""}' } } };
-      const json = helpers.mergeSpecIntoRequest(user, spec, { previousSpecItem }).request.body.json;
+      const spec = { ...specItem, request: { ...specItem.request, body: { mode: 'json', json: '{"name":"","__proto__":{"admin":false}}' } } };
+      const json = helpers.mergeSpecIntoRequest(user, spec).request.body.json;
       expect(JSON.parse(json)).toEqual(JSON.parse('{"name":"Rex","__proto__":{"admin":true}}'));
       expect(Object.keys(JSON.parse(json))).toEqual(['name', '__proto__']);
     });
@@ -974,8 +1010,7 @@ describe('mergeSpecIntoRequest (sync mode)', () => {
     it('keeps {{variables}} in the user body', () => {
       const user = { ...existing, request: { ...existing.request, body: { mode: 'json', json: '{"name":"{{petName}}","id":{{petId}}}' } } };
       const spec = { ...specItem, request: { ...specItem.request, body: { mode: 'json', json: '{"name":"","id":0,"age":0}' } } };
-      const previousSpecItem = { request: { body: { mode: 'json', json: '{"name":"","id":0}' } } };
-      const json = helpers.mergeSpecIntoRequest(user, spec, { previousSpecItem }).request.body.json;
+      const json = helpers.mergeSpecIntoRequest(user, spec).request.body.json;
       expect(json).toBe('{\n  "name": "{{petName}}",\n  "id": {{petId}},\n  "age": 0\n}');
     });
 
@@ -994,72 +1029,67 @@ describe('mergeSpecIntoRequest (sync mode)', () => {
         requestBodies: { Pet: { content: { 'application/json; charset=utf-8': { schema: object({ name: string, tag: string }) } } } }
       };
       const jsonSpecWith = (schema) => ({ openapi: '3.0.3', info: { title: 'Pets', version: '1' }, paths: { '/pets': { post: { requestBody: { content: { 'application/json': { schema } } } } } }, components });
-      const declaredOptions = (newSchema, previousSchema) => ({ declaredBodies: helpers.declaredBodiesFor(jsonSpecWith(newSchema), jsonSpecWith(previousSchema), 'POST', '/pets') });
+      const declaredOptions = (schema) => ({ declaredBody: helpers.declaredBodyOf(jsonSpecWith(schema), 'POST', '/pets') });
 
-      it('keeps the fields of an alternative the spec no longer shows first', () => {
-        const options = declaredOptions({ oneOf: [ref('Bird'), ref('Dog'), ref('Cat')] }, { oneOf: [ref('Dog'), ref('Cat')] });
-        expect(syncBody({ petType: 'dog', bark: true }, { petType: '', chirp: false }, { petType: '', bark: false }, options)).toEqual({ petType: 'dog', chirp: false, bark: true });
+      it('keeps the fields of an alternative the spec example does not show', () => {
+        const options = declaredOptions({ oneOf: [ref('Bird'), ref('Dog'), ref('Cat')] });
+        expect(syncBody({ petType: 'dog', bark: true, debug: true }, { petType: '' }, options)).toEqual({ petType: 'dog', bark: true });
       });
 
-      it('keeps a field the schema still declares when the spec example leaves it out', () => {
-        const options = declaredOptions(object({ name: string, tag: string }), object({ name: string, tag: string }));
-        expect(syncBody({ name: 'Max', tag: 'good' }, { name: 'Rex' }, { name: '', tag: '' }, options)).toEqual({ name: 'Max', tag: 'good' });
+      it('keeps a field the schema declares when the spec example leaves it out', () => {
+        expect(syncBody({ name: 'Max', tag: 'good' }, { name: 'Rex' }, declaredOptions(object({ name: string, tag: string })))).toEqual({ name: 'Max', tag: 'good' });
       });
 
-      it('drops a field the schema no longer declares in any alternative', () => {
-        const options = declaredOptions({ oneOf: [object({ name: string }), ref('Dog')] }, object({ name: string, legacy: string }));
-        expect(syncBody({ name: 'Max', legacy: 'x' }, { name: '' }, { name: '', legacy: '' }, options)).toEqual({ name: 'Max' });
+      it('keeps a declared __proto__ field the spec example leaves out as a normal field', () => {
+        const options = declaredOptions({ type: 'object', properties: JSON.parse('{"name":{"type":"string"},"__proto__":{"type":"object"}}') });
+        const body = syncBody(JSON.parse('{"name":"Max","__proto__":{"admin":true}}'), { name: '' }, options);
+        expect(body).toEqual(JSON.parse('{"name":"Max","__proto__":{"admin":true}}'));
+        expect(Object.keys(body)).toEqual(['name', '__proto__']);
       });
 
-      it('drops a field the previous schema declared but its example left out, once the schema drops it', () => {
-        const options = declaredOptions(object({ name: string }), object({ name: string, tag: string }));
-        expect(syncBody({ name: 'Max', tag: 'good' }, { name: '' }, { name: '' }, options)).toEqual({ name: 'Max' });
+      it('drops a field no alternative of the schema declares', () => {
+        const options = declaredOptions({ oneOf: [object({ name: string }), ref('Dog')] });
+        expect(syncBody({ name: 'Max', legacy: 'x' }, { name: '' }, options)).toEqual({ name: 'Max' });
       });
 
       it('looks through $ref and allOf in nested objects', () => {
         const owner = { allOf: [ref('Person'), object({ nickname: string })] };
-        const options = declaredOptions(object({ owner }), object({ owner }));
-        expect(syncBody({ owner: { name: 'Ann', nickname: 'A' } }, { owner: { name: '' } }, { owner: { name: '', nickname: '' } }, options)).toEqual({ owner: { name: 'Ann', nickname: 'A' } });
+        expect(syncBody({ owner: { name: 'Ann', nickname: 'A', debug: true } }, { owner: { name: '' } }, declaredOptions(object({ owner })))).toEqual({ owner: { name: 'Ann', nickname: 'A' } });
       });
 
       it('looks at the array item schema', () => {
         const tags = { type: 'array', items: object({ label: string, note: string }) };
-        const options = declaredOptions(object({ tags }), object({ tags }));
-        expect(syncBody({ tags: [{ label: 'a', note: 'n' }] }, { tags: [{ label: '' }] }, { tags: [{ label: '', note: '' }] }, options)).toEqual({ tags: [{ label: 'a', note: 'n' }] });
+        expect(syncBody({ tags: [{ label: 'a', note: 'n', debug: true }] }, { tags: [{ label: '' }] }, declaredOptions(object({ tags })))).toEqual({ tags: [{ label: 'a', note: 'n' }] });
       });
 
       it('handles a recursive schema', () => {
         const user = { name: 'a', children: [{ name: 'b', children: [{ name: 'c', children: [] }] }] };
-        expect(syncBody(user, { name: '', children: [{ name: '' }] }, { name: '', children: [{ name: '', extra: '' }] }, declaredOptions(ref('Node'), ref('Node')))).toEqual(user);
+        expect(syncBody(user, { name: '', children: [{ name: '' }] }, declaredOptions(ref('Node')))).toEqual(user);
       });
 
       it('finds a referenced request body for a path with a param', () => {
         const spec = { ...jsonSpecWith(string), paths: { '/pets/{petId}': { post: { requestBody: { $ref: '#/components/requestBodies/Pet' } } } } };
-        const options = { declaredBodies: helpers.declaredBodiesFor(spec, spec, 'POST', '/pets/:petId') };
-        expect(syncBody({ name: 'Max', tag: 'good' }, { name: 'Rex' }, { name: '', tag: '' }, options)).toEqual({ name: 'Max', tag: 'good' });
+        const options = { declaredBody: helpers.declaredBodyOf(spec, 'POST', '/pets/:petId') };
+        expect(syncBody({ name: 'Max', tag: 'good' }, { name: 'Rex' }, options)).toEqual({ name: 'Max', tag: 'good' });
       });
 
       it('falls back to the spec example when a schema cannot be resolved', () => {
-        const options = declaredOptions({ $ref: 'pets.yaml#/Pet' }, { $ref: 'pets.yaml#/Pet' });
-        expect(syncBody({ name: 'Max', legacy: 'x' }, { name: '' }, { name: '', legacy: '' }, options)).toEqual({ name: 'Max' });
+        expect(syncBody({ name: 'Max', legacy: 'x' }, { name: '' }, declaredOptions({ $ref: 'pets.yaml#/Pet' }))).toEqual({ name: 'Max' });
       });
 
       it('counts properties written next to a $ref', () => {
         const withTag = { $ref: '#/components/schemas/Person', properties: { tag: string } };
-        expect(syncBody({ name: 'Max', tag: 'good' }, { name: '' }, { name: '', tag: '' }, declaredOptions(withTag, withTag))).toEqual({ name: 'Max', tag: 'good' });
-        const withLegacy = { $ref: '#/components/schemas/Person', properties: { legacy: string } };
-        expect(syncBody({ name: 'Max', legacy: 'x' }, { name: '' }, { name: '' }, declaredOptions(ref('Person'), withLegacy))).toEqual({ name: 'Max' });
+        expect(syncBody({ name: 'Max', tag: 'good' }, { name: '' }, declaredOptions(withTag))).toEqual({ name: 'Max', tag: 'good' });
+        expect(syncBody({ name: 'Max', tag: 'good' }, { name: '' }, declaredOptions(ref('Person')))).toEqual({ name: 'Max' });
       });
 
       it('does not count a property the schema forbids with false', () => {
-        const options = declaredOptions(object({ name: string, tag: false }), object({ name: string, tag: string }));
-        expect(syncBody({ name: 'Max', tag: 'good' }, { name: '' }, { name: '', tag: '' }, options)).toEqual({ name: 'Max' });
+        expect(syncBody({ name: 'Max', tag: 'good' }, { name: '' }, declaredOptions(object({ name: string, tag: false })))).toEqual({ name: 'Max' });
       });
 
       it('looks at prefixItems', () => {
         const tags = { type: 'array', prefixItems: [object({ label: string, note: string })] };
-        const options = declaredOptions(object({ tags }), object({ tags }));
-        expect(syncBody({ tags: [{ label: 'a', note: 'n' }] }, { tags: [{ label: '' }] }, { tags: [{ label: '', note: '' }] }, options)).toEqual({ tags: [{ label: 'a', note: 'n' }] });
+        expect(syncBody({ tags: [{ label: 'a', note: 'n', debug: true }] }, { tags: [{ label: '' }] }, declaredOptions(object({ tags })))).toEqual({ tags: [{ label: 'a', note: 'n' }] });
       });
 
       it('resolves a percent-encoded reference', () => {
@@ -1070,30 +1100,20 @@ describe('mergeSpecIntoRequest (sync mode)', () => {
             '/dogs/{petId}': { post: { requestBody: { $ref: '#/paths/~1pets~1%7BpetId%7D/post/requestBody' } } }
           }
         };
-        const options = { declaredBodies: helpers.declaredBodiesFor(spec, spec, 'POST', '/dogs/:petId') };
-        expect(syncBody({ name: 'Max', tag: 'good' }, { name: '' }, { name: '', tag: '' }, options)).toEqual({ name: 'Max', tag: 'good' });
+        const options = { declaredBody: helpers.declaredBodyOf(spec, 'POST', '/dogs/:petId') };
+        expect(syncBody({ name: 'Max', tag: 'good' }, { name: '' }, options)).toEqual({ name: 'Max', tag: 'good' });
       });
 
       it('reads only the first media type, like the converter', () => {
         const withMediaTypes = (first, second) => ({ ...jsonSpecWith(string), paths: { '/pets': { post: { requestBody: { content: { 'application/json': { schema: first }, 'application/merge-patch+json': { schema: second } } } } } } });
-        const withLegacy = object({ name: string, legacy: string });
-        const options = { declaredBodies: helpers.declaredBodiesFor(withMediaTypes(object({ name: string }), withLegacy), withMediaTypes(withLegacy, withLegacy), 'POST', '/pets') };
-        expect(syncBody({ name: 'Max', legacy: 'x' }, { name: '' }, { name: '', legacy: '' }, options)).toEqual({ name: 'Max' });
-      });
-
-      it('ignores the previous schema when the previous body had another mode', () => {
-        const formBody = { ...jsonSpecWith(string), paths: { '/pets': { post: { requestBody: { content: { 'application/x-www-form-urlencoded': { schema: object({ name: string, tag: string }) } } } } } } };
-        const user = { ...existing, request: { ...existing.request, body: { mode: 'json', json: '{"name":"Max","tag":"good"}' } } };
-        const spec = { ...specItem, request: { ...specItem.request, body: { mode: 'json', json: '{"name":""}' } } };
-        const previousSpecItem = { request: { body: { mode: 'formUrlEncoded', formUrlEncoded: [{ name: 'name', value: '' }, { name: 'tag', value: '' }] } } };
-        const declaredBodies = helpers.declaredBodiesFor(jsonSpecWith(object({ name: string })), formBody, 'POST', '/pets');
-        expect(JSON.parse(helpers.mergeSpecIntoRequest(user, spec, { previousSpecItem, declaredBodies }).request.body.json)).toEqual({ name: 'Max', tag: 'good' });
+        const options = { declaredBody: helpers.declaredBodyOf(withMediaTypes(object({ name: string }), object({ name: string, legacy: string })), 'POST', '/pets') };
+        expect(syncBody({ name: 'Max', legacy: 'x' }, { name: '' }, options)).toEqual({ name: 'Max' });
       });
 
       it('finds a path with a colon inside a segment', () => {
         const spec = { ...jsonSpecWith(string), paths: { '/v1/pets:batchGet': { post: { requestBody: { content: { 'application/json': { schema: object({ name: string, tag: string }) } } } } } } };
-        const options = { declaredBodies: helpers.declaredBodiesFor(spec, spec, 'POST', '/v1/pets:batchGet') };
-        expect(syncBody({ name: 'Max', tag: 'good' }, { name: '' }, { name: '', tag: '' }, options)).toEqual({ name: 'Max', tag: 'good' });
+        const options = { declaredBody: helpers.declaredBodyOf(spec, 'POST', '/v1/pets:batchGet') };
+        expect(syncBody({ name: 'Max', tag: 'good' }, { name: '' }, options)).toEqual({ name: 'Max', tag: 'good' });
       });
     });
   });
@@ -1125,6 +1145,13 @@ describe('mergeSpecIntoRequest (sync mode)', () => {
     expect(out.request.headers.map((h) => [h.name, h.value])).toEqual([['X-Debug', '1']]);
   });
 
+  it('headers: keeps the user value when the imported empty header is still there', () => {
+    const withBoth = { ...existing, request: { ...existing.request, headers: [{ name: 'X-Debug', value: '', enabled: false }, { name: 'x-debug', value: '1', enabled: true }] } };
+    const spec = { ...specItem, request: { ...specItem.request, headers: [{ name: 'X-Debug', value: '', enabled: false }] } };
+    const out = helpers.mergeSpecIntoRequest(withBoth, spec, { previousSpecItem: { request: { headers: [{ name: 'X-Debug', value: '' }] } } });
+    expect(out.request.headers.map((h) => [h.name, h.value, h.enabled])).toEqual([['X-Debug', '1', true]]);
+  });
+
   it('params: keeps a query param and a path param with the same name apart', () => {
     const withBoth = { ...existing, request: { ...existing.request, params: [{ name: 'id', value: 'q1', type: 'query', enabled: true }, { name: 'id', value: '7', type: 'path', enabled: true }] } };
     const specParams = [{ name: 'id', value: '', type: 'path', enabled: true }, { name: 'id', value: '', type: 'query', enabled: true }];
@@ -1153,7 +1180,7 @@ describe('mergeSpecIntoRequest (sync mode)', () => {
     expect(h.value).toBe('mine');
   });
 
-  it('params and headers: keeps the ones the user added and drops the ones the spec removed since the last sync', () => {
+  it('params and headers: drops the ones the spec does not have, whether the user added them or the spec removed them', () => {
     const withExtras = {
       ...existing,
       request: {
@@ -1164,8 +1191,8 @@ describe('mergeSpecIntoRequest (sync mode)', () => {
     };
     const previousSpecItem = { request: { params: [{ name: 'q', value: '' }, { name: 'old', value: '' }], headers: [{ name: 'H', value: '' }] } };
     const out = helpers.mergeSpecIntoRequest(withExtras, specItem, { previousSpecItem });
-    expect(out.request.params.map((p) => p.name)).toEqual(['q', 'p', 'debug']);
-    expect(out.request.headers.map((h) => h.name)).toEqual(['H', 'X-Debug']);
+    expect(out.request.params.map((p) => p.name)).toEqual(['q', 'p']);
+    expect(out.request.headers.map((h) => h.name)).toEqual(['H']);
   });
 
   it('auth: preserves user auth values when mode matches', () => {
@@ -1269,5 +1296,62 @@ describe('compareRequestFields auth comparison', () => {
     const result = helpers.compareRequestFields(spec, actual);
     expect(result.hasDiff).toBe(true);
     expect(result.changes.join(',')).toContain('auth');
+  });
+});
+
+describe('compareRequestFields for a request a sync keeps', () => {
+  const string = { type: 'string' };
+  const object = (properties) => ({ type: 'object', properties });
+  const declaredFor = (mediaType, schema) => helpers.declaredBodyOf({ openapi: '3.0.3', info: { title: 'Pets', version: '1' }, paths: { '/pets': { post: { requestBody: { content: { [mediaType]: { schema } } } } } } }, 'POST', '/pets');
+  const request = (body) => ({ params: [], headers: [], auth: { mode: 'none' }, body });
+  const json = (value) => request({ mode: 'json', json: value === null ? null : JSON.stringify(value) });
+  const compare = (spec, actual, declaredBody) => helpers.compareRequestFields(spec, actual, { keptBySync: true, declaredBody });
+
+  it('treats json the spec gives no schema as unchanged, and still flags it between two specs', () => {
+    expect(compare(json(null), json({ amount: 5 })).hasDiff).toBe(false);
+    expect(helpers.compareRequestFields(json(null), json({ amount: 5 })).hasDiff).toBe(true);
+  });
+
+  it('treats a field the body schema declares as unchanged, and still flags it between two specs', () => {
+    const declared = declaredFor('application/json', object({ name: string, tag: string }));
+    expect(compare(json({ name: '' }), json({ name: 'Max', tag: 'good' }), declared).hasDiff).toBe(false);
+    expect(helpers.compareRequestFields(json({ name: '' }), json({ name: 'Max', tag: 'good' })).hasDiff).toBe(true);
+  });
+
+  it('treats a free-form object as unchanged', () => {
+    const declared = declaredFor('application/json', object({ metadata: { type: 'object' } }));
+    expect(compare(json({ metadata: {} }), json({ metadata: { env: 'prod' } }), declared).hasDiff).toBe(false);
+  });
+
+  it('flags a field the schema does not declare and a field the user removed', () => {
+    const declared = declaredFor('application/json', object({ name: string, age: { type: 'integer' } }));
+    expect(compare(json({ name: '', age: 0 }), json({ name: 'Max', age: 3, debug: true }), declared).changes).toEqual(['body schema']);
+    expect(compare(json({ name: '', age: 0 }), json({ name: 'Max' }), declared).changes).toEqual(['body schema']);
+  });
+
+  it('flags a json field whose type the user changed', () => {
+    const declared = declaredFor('application/json', object({ owner: object({ id: string }), name: string }));
+    expect(compare(json({ owner: { id: '' } }), json({ owner: 'Ann' }), declared).changes).toEqual(['body schema']);
+    expect(compare(json({ name: '' }), json({ name: { first: 'Ann' } }), declared).changes).toEqual(['body schema']);
+    expect(compare(json({ owner: { id: '' } }), json({ owner: null }), declared).hasDiff).toBe(false);
+  });
+
+  it('flags an object where the spec example has a plain value and no schema says otherwise', () => {
+    expect(compare(json({ meta: '' }), json({ meta: { env: 'prod' } })).changes).toEqual(['body schema']);
+  });
+
+  it('does not flag the object the user sends for a oneOf property the spec writes as ""', () => {
+    const declared = declaredFor('application/json', object({ payment: { oneOf: [object({ iban: string }), object({ cardNumber: string })] } }));
+    expect(compare(json({ payment: '' }), json({ payment: { iban: 'DE89' } }), declared).hasDiff).toBe(false);
+  });
+
+  it('treats a form field the body schema declares as unchanged, and flags a field type the user changed', () => {
+    const declared = declaredFor('application/x-www-form-urlencoded', object({ name: string, tag: string }));
+    const form = (...names) => request({ mode: 'formUrlEncoded', formUrlEncoded: names.map((name) => ({ name, value: '' })) });
+    expect(compare(form('name'), form('name', 'tag'), declared).hasDiff).toBe(false);
+    expect(compare(form('name'), form('name', 'debug'), declared).changes).toEqual(['+1 form fields']);
+
+    const multipart = (type) => request({ mode: 'multipartForm', multipartForm: [{ name: 'avatar', type, value: '' }] });
+    expect(compare(multipart('text'), multipart('file'), declaredFor('multipart/form-data', object({ avatar: string }))).changes).toEqual(['+1 form fields', '-1 form fields']);
   });
 });
