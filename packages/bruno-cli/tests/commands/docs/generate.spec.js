@@ -42,7 +42,7 @@ describe('bru docs generate', () => {
 
     const html = fs.readFileSync(output, 'utf8');
     expect(html).toContain('<title>collection - API Documentation</title>');
-    expect(html).toContain('new window.OpenCollection');
+    expect(html).toContain('Bruno.apiDocs(');
     expect(html).toContain('const collectionData =');
   });
 
@@ -56,7 +56,7 @@ describe('bru docs generate', () => {
   it('leaves out the git repo url when --no-git-link is used', async () => {
     const output = path.join(outDir, 'b.html');
     await generate.handler({ output, gitLink: false });
-    expect(fs.readFileSync(output, 'utf8')).not.toContain('gitCollectionUrl');
+    expect(fs.readFileSync(output, 'utf8')).not.toContain('repositoryUrl');
   });
 
   it('still writes a smaller but valid doc when no request matches the tag filter', async () => {
@@ -68,7 +68,7 @@ describe('bru docs generate', () => {
     const allHtml = fs.readFileSync(all, 'utf8');
     const filteredHtml = fs.readFileSync(filtered, 'utf8');
     expect(filteredHtml.length).toBeLessThan(allHtml.length);
-    expect(filteredHtml).toContain('new window.OpenCollection');
+    expect(filteredHtml).toContain('Bruno.apiDocs(');
   });
 
   it('creates any missing folders in the output path', async () => {
@@ -121,7 +121,7 @@ describe('bru docs generate', () => {
     const output = path.join(outDir, 'no-env-folder.html');
     await generate.handler({ output, gitLink: false, allEnvs: true });
     expect(fs.existsSync(output)).toBe(true);
-    expect(fs.readFileSync(output, 'utf8')).toContain('new window.OpenCollection');
+    expect(fs.readFileSync(output, 'utf8')).toContain('Bruno.apiDocs(');
   });
 });
 
@@ -479,7 +479,7 @@ describe('bru docs generate: git link', () => {
     const output = path.join(outDir, 'git.html');
     await generate.handler({ output, gitLink: true });
     const html = fs.readFileSync(output, 'utf8');
-    expect(html).toContain('gitCollectionUrl');
+    expect(html).toContain('repositoryUrl');
     expect(html).toContain('https://example.com/team/repo.git');
   });
 
@@ -575,7 +575,7 @@ describe('bru docs generate: yml (OpenCollection) collection', () => {
     await generate.handler({ output, gitLink: false });
     const html = fs.readFileSync(output, 'utf8');
     expect(html).toContain('<title>ymlcollection - API Documentation</title>');
-    expect(html).toContain('new window.OpenCollection');
+    expect(html).toContain('Bruno.apiDocs(');
   });
 
   it('shows the collection version from the OpenCollection info.version', async () => {

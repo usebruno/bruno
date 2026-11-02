@@ -1,8 +1,8 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections } from '../../utils/page';
+import { addRowToActiveTab, closeAllCollections, saveEnvironment } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { ENV_NAMES, openEnvironmentsList } from './helpers';
-import { DELETE_KEY, IS_MAC, SELECT_ALL_KEY, ctrlClickRows, openRowContextMenu } from '../../utils/page/environments';
+import { DELETE_KEY, IS_MAC, SELECT_ALL_KEY, clickEmptyListSpace, ctrlClickRows, openRowContextMenu } from '../../utils/page/environments';
 
 const [ENV_1, ENV_2, ENV_3, ENV_4] = ENV_NAMES;
 
@@ -75,21 +75,19 @@ test.describe('Collection environments list shortcuts', () => {
     await expect(selectedRows()).toHaveCount(0);
   });
 
-  test('the delete key needs a selection and then deletes every selected environment', async ({ page }) => {
+  test('the delete key deletes the open environment, or every selected environment', async ({ page }) => {
     const { environment } = buildCommonLocators(page);
-    const { deleteModal, rowNames, selectedRows, selectedRowNames } = environment.sidebarActions;
+    const { deleteModal, rowNames } = environment.sidebarActions;
 
-    await test.step('Nothing is selected, so nothing happens', async () => {
+    await test.step('With nothing selected, the delete key targets the open environment', async () => {
       await environment.sidebarListItemExact('collection', ENV_2).click();
       await page.keyboard.press(DELETE_KEY);
 
-      // Keys are handled in order, so once select all has applied, a modal from the Delete key would be open.
-      await page.keyboard.press(SELECT_ALL_KEY);
-      await expect(selectedRowNames()).toHaveText(ENV_NAMES);
-      await expect(deleteModal.root()).toHaveCount(0);
+      await expect(deleteModal.root()).toContainText(ENV_2);
+      await expect(deleteModal.confirm()).toHaveText('Delete');
 
-      await page.keyboard.press(SELECT_ALL_KEY);
-      await expect(selectedRows()).toHaveCount(0);
+      await page.keyboard.press('Escape');
+      await expect(deleteModal.root()).toBeHidden();
     });
 
     await test.step('With Env 2 and Env 3 selected, the delete modal opens', async () => {
@@ -104,6 +102,63 @@ test.describe('Collection environments list shortcuts', () => {
 
       await expect(deleteModal.root()).toBeHidden();
       await expect(rowNames()).toHaveText([ENV_1, ENV_4]);
+    });
+  });
+
+  test('the delete key does nothing when the search hides the open environment', async ({ page }) => {
+    const { environment } = buildCommonLocators(page);
+    const { deleteModal, rowNames, searchInput } = environment.sidebarActions;
+
+    await environment.sidebarListItemExact('collection', ENV_2).click();
+
+    await test.step('Search for another environment, so the open one is hidden', async () => {
+      await searchInput().fill('3');
+      await expect(rowNames()).toHaveText([ENV_3]);
+    });
+
+    await test.step('The delete key with the list focused opens no modal', async () => {
+      await clickEmptyListSpace(page);
+      await page.keyboard.press(DELETE_KEY);
+      await expect(deleteModal.root()).toBeHidden();
+    });
+
+    await test.step('Clearing the search shows the open environment again, so the delete key targets it', async () => {
+      await searchInput().fill('');
+      await expect(rowNames()).toHaveText(ENV_NAMES);
+      await clickEmptyListSpace(page);
+      await page.keyboard.press(DELETE_KEY);
+      await expect(deleteModal.root()).toContainText(ENV_2);
+
+      await page.keyboard.press('Escape');
+      await expect(deleteModal.root()).toBeHidden();
+    });
+  });
+
+  test('the delete key does nothing while the unsaved changes warning is open', async ({ page }) => {
+    const { environment, modal } = buildCommonLocators(page);
+    const { deleteModal, sectionBody } = environment.sidebarActions;
+    const unsavedWarning = modal.byTitle('Unsaved changes');
+
+    await test.step('Edit the open environment, then click another one', async () => {
+      await environment.sidebarListItemExact('collection', ENV_2).click();
+      await addRowToActiveTab(page, 'unsavedVar', 'unsaved value');
+      await environment.sidebarListItemExact('collection', ENV_3).click();
+      await expect(unsavedWarning).toBeVisible();
+    });
+
+    await test.step('The delete key opens no delete modal behind the warning', async () => {
+      await sectionBody().focus();
+      await expect(sectionBody()).toBeFocused();
+
+      await page.keyboard.press(DELETE_KEY);
+      await expect(deleteModal.root()).toBeHidden();
+      await expect(unsavedWarning).toBeVisible();
+    });
+
+    await test.step('Closing the warning and saving leaves the list clean', async () => {
+      await unsavedWarning.getByRole('button', { name: 'Close', exact: true }).last().click();
+      await expect(unsavedWarning).toBeHidden();
+      await saveEnvironment(page);
     });
   });
 

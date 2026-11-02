@@ -8,7 +8,7 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 
-const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) => {
+const AwsV4Auth = ({ item, collection, updateAuth, request, save, readOnly }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -140,7 +140,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           onRun={handleRun}
           collection={collection}
           item={item}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
       </div>
@@ -156,11 +156,11 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           collection={collection}
           item={item}
           isSecret={true}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
 
-        <SensitiveFieldWarning fieldName="awsv4-secret-access-key" secretName="secretAccessKey" value={awsv4Auth?.secretAccessKey} collection={collection} item={item} disabled={disabled} onReplaceValue={handleSecretAccessKeyChange} />
+        <SensitiveFieldWarning fieldName="awsv4-secret-access-key" secretName="secretAccessKey" value={awsv4Auth?.secretAccessKey} collection={collection} item={item} fieldKey="secretAccessKey" onReplaceValue={handleSecretAccessKeyChange} />
       </div>
 
       <label className="block mb-1">Session Token</label>
@@ -174,10 +174,10 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           collection={collection}
           item={item}
           isSecret={true}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
-        <SensitiveFieldWarning fieldName="awsv4-session-token" secretName="sessionToken" value={awsv4Auth?.sessionToken} collection={collection} item={item} disabled={disabled} onReplaceValue={handleSessionTokenChange} />
+        <SensitiveFieldWarning fieldName="awsv4-session-token" secretName="sessionToken" value={awsv4Auth?.sessionToken} collection={collection} item={item} fieldKey="sessionToken" onReplaceValue={handleSessionTokenChange} />
       </div>
 
       <label className="block mb-1">Service</label>
@@ -190,7 +190,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           onRun={handleRun}
           collection={collection}
           item={item}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
       </div>
@@ -205,7 +205,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           onRun={handleRun}
           collection={collection}
           item={item}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
       </div>
@@ -220,7 +220,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           onRun={handleRun}
           collection={collection}
           item={item}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
       </div>

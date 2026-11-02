@@ -3,21 +3,23 @@ import { IconCommand, IconBackspace } from '@tabler/icons';
 import { isMacOS } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
 
-export const SelectAllShortcutHint = () => (
+const ShortcutHint = ({ keys }) => (
   <StyledWrapper>
-    <span className="keycap">{isMacOS() ? <IconCommand size={13} strokeWidth={2} /> : 'Ctrl'}</span>
-    <span className="keycap">A</span>
+    {keys.map((key, index) => (
+      <span className="keycap" key={index}>
+        {key}
+      </span>
+    ))}
   </StyledWrapper>
 );
 
-export const DeleteShortcutHint = () =>
-  isMacOS() ? (
-    <StyledWrapper>
-      <span className="keycap"><IconCommand size={13} strokeWidth={2} /></span>
-      <span className="keycap"><IconBackspace size={13} strokeWidth={2} /></span>
-    </StyledWrapper>
-  ) : (
-    <StyledWrapper>
-      <span className="keycap">Del</span>
-    </StyledWrapper>
-  );
+const commandKey = <IconCommand size={13} strokeWidth={2} />;
+const backspaceKey = <IconBackspace size={13} strokeWidth={2} />;
+
+export const SelectAllShortcutHint = () => (
+  <ShortcutHint keys={isMacOS() ? [commandKey, 'A'] : ['Ctrl+A']} />
+);
+
+export const DeleteShortcutHint = () => (
+  <ShortcutHint keys={isMacOS() ? [commandKey, backspaceKey] : ['Del']} />
+);
