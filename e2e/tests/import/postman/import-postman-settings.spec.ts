@@ -1,8 +1,8 @@
-import { test, expect } from '../../../playwright';
+import { test, expect } from '@e2e/test';
 import * as path from 'path';
-import { closeAllCollections, importCollection } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
-import { selectRequestPaneTab } from '../../../pages';
+import { closeAllCollections, importCollection } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
+import { selectRequestPaneTab } from '@e2e/pages';
 
 test.describe('Import Postman Collection with Settings', () => {
   let locators: ReturnType<typeof buildCommonLocators>;

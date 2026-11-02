@@ -1,5 +1,5 @@
-import { test, expect, Page } from '../../../playwright';
-import { closeAllCollections, createCollection, createRequest, selectRequestPaneTab, openRequest } from '../../../pages';
+import { test, expect, Page } from '@e2e/test';
+import { closeAllCollections, createCollection, createRequest, selectRequestPaneTab, openRequest } from '@e2e/pages';
 
 // Generate a large JSON body that requires scrolling
 const generateLargeJsonBody = () => JSON.stringify(

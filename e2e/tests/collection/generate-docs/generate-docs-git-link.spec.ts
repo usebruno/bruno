@@ -1,6 +1,6 @@
 import { execSync } from 'child_process';
-import { test, expect } from '../../../playwright';
-import { buildCommonLocators } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators } from '@e2e/pages';
 
 const COLLECTION_NAME = 'GenerateDocsOrder';
 

@@ -1,10 +1,10 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp } from '../../../playwright';
-import { openCollection, openRequest, sendRequest, selectEnvironment, expectResponseContains, openEnvironmentConfigTab, closeEnvironmentPanel } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
-import { buildCommonLocators } from '../../../pages';
-import { waitForCollectionMount } from '../../../pages';
+import { test, expect, closeElectronApp } from '@e2e/test';
+import { openCollection, openRequest, sendRequest, selectEnvironment, expectResponseContains, openEnvironmentConfigTab, closeEnvironmentPanel } from '@e2e/pages';
+import { waitForReadyPage } from '@e2e/support';
+import { buildCommonLocators } from '@e2e/pages';
+import { waitForCollectionMount } from '@e2e/pages';
 
 const NEW_VALUE = 'NEW_VALUE_global_env_e2e_42';
 const INITIAL_VALUE = 'INITIAL_VALUE_global_env_e2e_001';

@@ -1,7 +1,7 @@
-import { test, expect, Page } from '../../playwright';
-import { closeAllCollections, createCollection, createFolder, createRequest, openFolderRequest, selectRequestPaneTab, saveRequest, openCollectionSettings, selectCollectionPaneTab, openFolderSettings, createEnvironment, addEnvironmentVariables, saveEnvironment, buildCommonLocators } from '../../pages';
-import { buildToastLocators } from '../../pages';
-import { buildAutocompleteLocators, pressAutocompleteShortcut, setEditorState } from '../../pages';
+import { test, expect, Page } from '@e2e/test';
+import { closeAllCollections, createCollection, createFolder, createRequest, openFolderRequest, selectRequestPaneTab, saveRequest, openCollectionSettings, selectCollectionPaneTab, openFolderSettings, createEnvironment, addEnvironmentVariables, saveEnvironment, buildCommonLocators } from '@e2e/pages';
+import { buildToastLocators } from '@e2e/pages';
+import { buildAutocompleteLocators, pressAutocompleteShortcut, setEditorState } from '@e2e/pages';
 
 const VAR_NAME = 'shadowvar';
 

@@ -1,7 +1,7 @@
-import { test, expect, Locator, Page } from '../../../playwright';
-import { closeAllCollections, createCollection, createRequest } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
-import { waitForPredicate } from '../../../support';
+import { test, expect, Locator, Page } from '@e2e/test';
+import { closeAllCollections, createCollection, createRequest } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
+import { waitForPredicate } from '@e2e/support';
 
 const isRequestSaved = async (saveButton: Locator) => {
   // Saved state uses the className cursor-default; unsaved uses cursor-pointer.

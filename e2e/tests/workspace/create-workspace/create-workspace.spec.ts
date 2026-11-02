@@ -1,9 +1,9 @@
 import path from 'path';
 import fs from 'fs';
 import yaml from 'js-yaml';
-import { test, expect, closeElectronApp } from '../../../playwright';
-import { waitForReadyPage } from '../../../support';
-import { buildCreateWorkspaceModalLocators, openCreateWorkspaceModal } from '../../../pages';
+import { test, expect, closeElectronApp } from '@e2e/test';
+import { waitForReadyPage } from '@e2e/support';
+import { buildCreateWorkspaceModalLocators, openCreateWorkspaceModal } from '@e2e/pages';
 
 type WorkspaceConfig = {
   opencollection?: string;

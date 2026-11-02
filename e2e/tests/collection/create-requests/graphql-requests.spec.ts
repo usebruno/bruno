@@ -1,6 +1,6 @@
-import { test, expect } from '../../../playwright';
-import { closeAllCollections } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { closeAllCollections } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 test.describe('Create GraphQL Requests', () => {
   let locators: ReturnType<typeof buildCommonLocators>;

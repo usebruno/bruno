@@ -1,5 +1,5 @@
-import { test } from '../../../playwright';
-import { setSandboxMode, runCollection, validateRunnerResults } from '../../../pages';
+import { test } from '@e2e/test';
+import { setSandboxMode, runCollection, validateRunnerResults } from '@e2e/pages';
 
 test.describe.serial('URL helper methods', () => {
   test.describe('req.getHost(), req.getPath(), req.getQueryString(), req.getPathParams()', () => {

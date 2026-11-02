@@ -1,5 +1,5 @@
-import { test, expect, Page } from '../../../playwright';
-import { closeAllCollections, openRequest } from '../../../pages';
+import { test, expect, Page } from '@e2e/test';
+import { closeAllCollections, openRequest } from '@e2e/pages';
 
 const qb = (page: Page) => page.locator('.graphql-query-builder-container');
 

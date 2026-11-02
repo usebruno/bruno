@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection, createRequest, sendRequest } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { closeAllCollections, createCollection, createRequest, sendRequest } from '@e2e/pages';
 
 /**
  * Select a tab in the response pane, handling the overflow dropdown (>>) if the tab is hidden.

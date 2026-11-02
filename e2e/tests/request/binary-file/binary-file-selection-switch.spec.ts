@@ -1,9 +1,9 @@
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import { test, expect, type Locator, type Page } from '../../../playwright';
-import { closeAllCollections, createCollection, createRequest, openRequest, selectRequestPaneTab, mockBrowseFiles, sendRequest } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
+import { test, expect, type Locator, type Page } from '@e2e/test';
+import { closeAllCollections, createCollection, createRequest, openRequest, selectRequestPaneTab, mockBrowseFiles, sendRequest } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 // Intentionally inline as these are specific for this test and not reusable
 const selectRow = async (rows: Locator, index: number, otherIndex: number, label: string) => {

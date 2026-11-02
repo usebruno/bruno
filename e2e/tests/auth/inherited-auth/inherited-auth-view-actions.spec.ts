@@ -1,6 +1,6 @@
-import { test, expect } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections, closeAllOpenTabs, openCollection, openInheritedAuth, readField, typeIntoField } from '../../../pages';
-import { AUTH_MODE_LABELS } from '../../../constants';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators, closeAllCollections, closeAllOpenTabs, openCollection, openInheritedAuth, readField, typeIntoField } from '@e2e/pages';
+import { AUTH_MODE_LABELS } from '@e2e/constants';
 
 const COLLECTION_NAME = 'inherited-auth-collection';
 

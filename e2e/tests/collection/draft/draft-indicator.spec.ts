@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections, createCollection, createFolder, writeCollectionProxyField } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators, closeAllCollections, createCollection, createFolder, writeCollectionProxyField } from '@e2e/pages';
 
 test.describe.serial('Draft indicator in collection and folder settings', () => {
   test.afterAll(async ({ page }) => {

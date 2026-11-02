@@ -1,8 +1,8 @@
 import path from 'path';
 import fs from 'fs';
 import AdmZip from 'adm-zip';
-import { test, expect, Page } from '../../../playwright';
-import { buildCommonLocators, createCollection, createEnvironment, openCollection, openCollectionSettings, closeAllCollections, waitForCollectionMount } from '../../../pages';
+import { test, expect, Page } from '@e2e/test';
+import { buildCommonLocators, createCollection, createEnvironment, openCollection, openCollectionSettings, closeAllCollections, waitForCollectionMount } from '@e2e/pages';
 
 const findCollectionDir = (location: string) =>
   path.join(location, fs.readdirSync(location).find((entry) => fs.statSync(path.join(location, entry)).isDirectory())!);

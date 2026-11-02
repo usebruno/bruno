@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import jsyaml from 'js-yaml';
-import { closeElectronApp, ElectronApplication, expect, test, waitForReadyPage } from '../../../../playwright';
+import { closeElectronApp, ElectronApplication, expect, test, waitForReadyPage } from '@e2e/test';
 import {
   buildCommonLocators,
   editCodeMirrorEditor,
@@ -9,7 +9,7 @@ import {
   openRequest,
   openRequestInFolder,
   sendRequestAndSaveResponseExample
-} from '../../../../pages';
+} from '@e2e/pages';
 
 const binaryPreviewCases = [
   {

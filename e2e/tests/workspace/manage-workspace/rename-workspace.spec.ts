@@ -1,11 +1,11 @@
 import path from 'path';
 import fs from 'fs';
 import yaml from 'js-yaml';
-import { test, expect, closeElectronApp, ElectronApplication } from '../../../playwright';
-import { createWorkspace } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
-import { buildCommonLocators } from '../../../pages';
-import { goToManageWorkspace, openWorkspaceActionsMenu } from '../../../pages';
+import { test, expect, closeElectronApp, ElectronApplication } from '@e2e/test';
+import { createWorkspace } from '@e2e/pages';
+import { waitForReadyPage } from '@e2e/support';
+import { buildCommonLocators } from '@e2e/pages';
+import { goToManageWorkspace, openWorkspaceActionsMenu } from '@e2e/pages';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 

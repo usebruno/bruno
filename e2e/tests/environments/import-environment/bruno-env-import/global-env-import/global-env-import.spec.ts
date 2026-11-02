@@ -1,6 +1,6 @@
-import { test, expect } from '../../../../../playwright';
+import { test, expect } from '@e2e/test';
 import path from 'path';
-import { buildCommonLocators } from '../../../../../pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 test.describe.serial('Global Environment Import Tests', () => {
   test('should import single global environment', async ({ pageWithUserData: page }) => {

@@ -1,6 +1,6 @@
-import { test, expect } from '../../../playwright';
-import { createCollection, createRequest, openRequest, closeAllCollections, selectRequestPaneTab, sendRequest } from '../../../pages';
-import { buildCommonLocators, getTableCell } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { createCollection, createRequest, openRequest, closeAllCollections, selectRequestPaneTab, sendRequest } from '@e2e/pages';
+import { buildCommonLocators, getTableCell } from '@e2e/pages';
 
 const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
 

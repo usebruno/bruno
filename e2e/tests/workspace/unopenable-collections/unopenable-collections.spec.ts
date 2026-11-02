@@ -1,8 +1,8 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp } from '../../../playwright';
-import { switchWorkspace, buildCommonLocators } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
+import { test, expect, closeElectronApp } from '@e2e/test';
+import { switchWorkspace, buildCommonLocators } from '@e2e/pages';
+import { waitForReadyPage } from '@e2e/support';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 const fixturePath = path.join(__dirname, 'test-data', 'workspace-with-broken-collections');

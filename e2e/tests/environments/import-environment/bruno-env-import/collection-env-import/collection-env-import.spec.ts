@@ -1,7 +1,7 @@
-import { test, expect } from '../../../../../playwright';
+import { test, expect } from '@e2e/test';
 import path from 'path';
 import fs from 'fs';
-import { buildCommonLocators } from '../../../../../pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 test.describe.serial('Collection Environment Import Tests', () => {
   test('should import single collection environment', async ({ pageWithUserData: page }) => {

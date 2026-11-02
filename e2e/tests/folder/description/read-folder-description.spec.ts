@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { openFolderSettings } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { openFolderSettings } from '@e2e/pages';
 
 test.describe('Folder Settings Descriptions - Read', () => {
   test('reads descriptions from headers and vars in a pre-existing folder.bru', async ({

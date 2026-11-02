@@ -1,10 +1,10 @@
-import { test, expect } from '../../../../playwright';
+import { test, expect } from '@e2e/test';
 import path from 'path';
 import fs from 'fs';
 
-import { findEnvironmentByName, readExportedJson } from '../../../../support';
-import { openCollection, openEnvironmentConfigTab } from '../../../../pages';
-import { buildCommonLocators } from '../../../../pages';
+import { findEnvironmentByName, readExportedJson } from '@e2e/support';
+import { openCollection, openEnvironmentConfigTab } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 // Helper function to load expected fixtures
 function loadExpectedFixture(fixturePath: string) {

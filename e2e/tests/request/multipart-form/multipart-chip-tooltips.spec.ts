@@ -1,6 +1,6 @@
-import { test, expect } from '../../../playwright';
+import { test, expect } from '@e2e/test';
 import type { Locator } from '@playwright/test';
-import { closeAllCollections } from '../../../pages';
+import { closeAllCollections } from '@e2e/pages';
 
 test.describe('Multipart Form - Chip Tooltip Swap', () => {
   test.afterAll(async ({ pageWithUserData: page }) => {

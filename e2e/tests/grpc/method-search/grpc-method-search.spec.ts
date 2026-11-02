@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { selectEnvironment } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { selectEnvironment } from '@e2e/pages';
 
 test.describe('Grpc Collection - Method Search Functionality', () => {
   test.beforeAll(async ({ pageWithUserData: page }) => {

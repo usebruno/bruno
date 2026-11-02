@@ -1,8 +1,8 @@
-import { test, expect } from '../../../playwright';
+import { test, expect } from '@e2e/test';
 import AdmZip from 'adm-zip';
 import * as fs from 'fs';
 import * as path from 'path';
-import { closeAllCollections, exportCollectionAsZip, importCollection, openCollectionFromDialog } from '../../../pages';
+import { closeAllCollections, exportCollectionAsZip, importCollection, openCollectionFromDialog } from '@e2e/pages';
 
 const COLLECTION_NAME = 'Zip Git Metadata';
 

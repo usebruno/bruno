@@ -1,6 +1,6 @@
-import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection, createRequest, openCollection, openRequest, saveRequest, selectRequestPaneTab } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { closeAllCollections, createCollection, createRequest, openCollection, openRequest, saveRequest, selectRequestPaneTab } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 import * as fs from 'fs';
 import * as path from 'path';
 

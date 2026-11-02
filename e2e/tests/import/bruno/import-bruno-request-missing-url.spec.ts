@@ -1,6 +1,6 @@
-import { test, expect } from '../../../playwright';
+import { test, expect } from '@e2e/test';
 import * as path from 'path';
-import { importCollection, closeAllCollections, buildCommonLocators } from '../../../pages';
+import { importCollection, closeAllCollections, buildCommonLocators } from '@e2e/pages';
 
 test.describe('Import Bruno Collection - request with missing URL', () => {
   test.afterAll(async ({ page }) => {

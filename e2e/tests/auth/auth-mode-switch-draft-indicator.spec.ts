@@ -1,5 +1,5 @@
-import { test, expect } from '../../playwright';
-import { closeAllCollections, createCollection, createRequest, openRequest, readField, saveRequest, selectAuthMode, selectRequestPaneTab, typeIntoField } from '../../pages';
+import { test, expect } from '@e2e/test';
+import { closeAllCollections, createCollection, createRequest, openRequest, readField, saveRequest, selectAuthMode, selectRequestPaneTab, typeIntoField } from '@e2e/pages';
 
 type CollectionFormat = 'bru' | 'yml';
 

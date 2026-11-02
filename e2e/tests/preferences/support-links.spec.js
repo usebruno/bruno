@@ -1,4 +1,4 @@
-import { test, expect } from '../../playwright';
+import { test, expect } from '@e2e/test';
 
 test('Should verify all support links with correct URL in preference > Support tab', async ({ page }) => {
   // Open Preferences

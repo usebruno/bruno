@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection, createRequest, openRequest, addPreRequestScript, saveRequest, sendRequest, selectResponsePaneTab } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { closeAllCollections, createCollection, createRequest, openRequest, addPreRequestScript, saveRequest, sendRequest, selectResponsePaneTab } from '@e2e/pages';
 
 test.describe('Timeline — bru.runRequest skips unsupported item types', () => {
   test.afterEach(async ({ page }) => {

@@ -1,6 +1,6 @@
-import { test, expect } from '../../../playwright';
+import { test, expect } from '@e2e/test';
 import * as path from 'path';
-import { closeAllCollections, openCollection } from '../../../pages';
+import { closeAllCollections, openCollection } from '@e2e/pages';
 
 test.describe('Import OpenAPI Collection with Examples', () => {
   let originalShowOpenDialog;

@@ -1,8 +1,8 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp } from '../../playwright';
-import { waitForReadyPage } from '../../support';
-import { readSnapshot, findSnapshotCollectionEntry, seedSnapshotWithCollections } from '../../support';
+import { test, expect, closeElectronApp } from '@e2e/test';
+import { waitForReadyPage } from '@e2e/support';
+import { readSnapshot, findSnapshotCollectionEntry, seedSnapshotWithCollections } from '@e2e/support';
 
 test.describe('Snapshot: Collection Deduplication', () => {
   test('duplicate collection entries for the same pathname are deduplicated, with the latest entry taking precedence', async ({ launchElectronApp, createTmpDir }) => {

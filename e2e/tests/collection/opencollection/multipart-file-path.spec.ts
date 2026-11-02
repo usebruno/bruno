@@ -1,5 +1,5 @@
-import { test, expect, closeElectronApp } from '../../../playwright';
-import { addMultipartFileToLastRow, buildCommonLocators, openRequest, removeFirstMultipartFile, saveRequest, selectRequestBodyMode, selectRequestPaneTab, sendRequestAndWaitForResponse } from '../../../pages';
+import { test, expect, closeElectronApp } from '@e2e/test';
+import { addMultipartFileToLastRow, buildCommonLocators, openRequest, removeFirstMultipartFile, saveRequest, selectRequestBodyMode, selectRequestPaneTab, sendRequestAndWaitForResponse } from '@e2e/pages';
 import * as fs from 'fs';
 import * as path from 'path';
 

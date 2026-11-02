@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { closeAllCollections, openCollection } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { closeAllCollections, openCollection } from '@e2e/pages';
 
 test.describe('Insomnia URL Import', () => {
   test.afterEach(async ({ page }) => {

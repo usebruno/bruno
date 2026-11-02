@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection, createRequest, deleteRequest } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { closeAllCollections, createCollection, createRequest, deleteRequest } from '@e2e/pages';
 
 test.describe('Delete Request Sequence Updation', () => {
   test.afterAll(async ({ page }) => {

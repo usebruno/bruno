@@ -1,5 +1,5 @@
-import { test, expect } from '../../playwright';
-import { closeAllCollections } from '../../pages';
+import { test, expect } from '@e2e/test';
+import { closeAllCollections } from '@e2e/pages';
 import { setupRequestDocs, clickDocsToolbarBtn } from './actions';
 
 test.describe('Rich Text Docs Editor Edge Cases - Lists', () => {

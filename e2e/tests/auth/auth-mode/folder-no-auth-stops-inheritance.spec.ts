@@ -1,6 +1,6 @@
-import { test, expect } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections, createCollection, createFolder, createRequest, openRequest, selectAuthMode, selectRequestPaneTab, selectResponsePaneTab, sendRequest, typeIntoField } from '../../../pages';
-import { AUTH_MODE_LABELS } from '../../../constants';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators, closeAllCollections, createCollection, createFolder, createRequest, openRequest, selectAuthMode, selectRequestPaneTab, selectResponsePaneTab, sendRequest, typeIntoField } from '@e2e/pages';
+import { AUTH_MODE_LABELS } from '@e2e/constants';
 
 const DEFAULT_SENT_HEADERS: Array<[string, string | RegExp]> = [
   ['Accept', 'application/json, text/plain, */*'],

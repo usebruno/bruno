@@ -1,7 +1,7 @@
-import { test, expect } from '../../../../playwright';
-import { openCollection, selectEnvironment, openRequest, openEnvironmentConfigTab, setSandboxMode } from '../../../../pages';
-import { openVariablesTab, readVariableValue } from '../../../../pages';
-import { buildCommonLocators } from '../../../../pages';
+import { test, expect } from '@e2e/test';
+import { openCollection, selectEnvironment, openRequest, openEnvironmentConfigTab, setSandboxMode } from '@e2e/pages';
+import { openVariablesTab, readVariableValue } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 test.describe('req.onFail', () => {
   test('handler writes overwrite the values set in the main body', async ({ pageWithUserData: page }) => {

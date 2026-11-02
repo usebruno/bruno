@@ -1,5 +1,5 @@
-import { expect, test } from '../../playwright';
-import { buildCommonLocators } from '../../pages';
+import { expect, test } from '@e2e/test';
+import { buildCommonLocators } from '@e2e/pages';
 
 const MAX_CONNECTION_TIME = 3000;
 const BRU_REQ_NAME = /^ws-test-request$/;

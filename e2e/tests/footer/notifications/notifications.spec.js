@@ -1,4 +1,4 @@
-import { test, expect } from '../../../playwright';
+import { test, expect } from '@e2e/test';
 
 test.describe('Notifications Modal', () => {
   test('should open notifications modal when clicking bell icon and close with close button', async ({ page }) => {

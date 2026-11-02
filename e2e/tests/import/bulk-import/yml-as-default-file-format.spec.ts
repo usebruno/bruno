@@ -1,8 +1,8 @@
-import { test, expect } from '../../../playwright';
+import { test, expect } from '@e2e/test';
 import * as path from 'path';
 import * as fs from 'fs';
-import { closeAllCollections, openBulkImportModal } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
+import { closeAllCollections, openBulkImportModal } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 test.describe('TC-3098: Bulk Import default file format', { tag: '@sanity' }, () => {
   const testDataDir = path.join(__dirname, '../test-data');

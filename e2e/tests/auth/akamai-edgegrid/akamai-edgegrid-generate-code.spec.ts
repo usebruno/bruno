@@ -1,5 +1,5 @@
-import { expect, Page, test } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections, closeGenerateCodeDialog, createCollection, createRequest, getGeneratedSnippet, openRequest, saveRequest, selectAuthMode, selectRequestPaneTab, typeIntoField } from '../../../pages';
+import { expect, Page, test } from '@e2e/test';
+import { buildCommonLocators, closeAllCollections, closeGenerateCodeDialog, createCollection, createRequest, getGeneratedSnippet, openRequest, saveRequest, selectAuthMode, selectRequestPaneTab, typeIntoField } from '@e2e/pages';
 
 /**
  * Generate Code for Akamai EdgeGrid. The snippet must carry a real EG1-HMAC-SHA256

@@ -1,8 +1,8 @@
-import { test, expect, Page } from '../../../playwright';
+import { test, expect, Page } from '@e2e/test';
 import path from 'path';
 import fs from 'fs';
-import { buildCommonLocators } from '../../../pages';
-import { scrollVirtuosoRowIntoView } from '../../../pages';
+import { buildCommonLocators } from '@e2e/pages';
+import { scrollVirtuosoRowIntoView } from '@e2e/pages';
 
 // Env JSON export → import round-trip for both BRU and YML collections.
 // The export writes typed datatypes (number/boolean/object) and strips the

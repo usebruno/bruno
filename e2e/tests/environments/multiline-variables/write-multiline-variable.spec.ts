@@ -1,4 +1,4 @@
-import { test, expect } from '../../../playwright';
+import { test, expect } from '@e2e/test';
 
 test.describe('Multiline Variables - Write Test', () => {
   test('should create and use multiline environment variable dynamically', async ({ pageWithUserData: page }) => {

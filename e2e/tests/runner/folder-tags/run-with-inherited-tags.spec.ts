@@ -1,6 +1,6 @@
-import { test, expect } from '../../../playwright';
-import { openRunnerTabWithTagsReady, addRunnerTag, clearRunnerTags, buildRunnerLocators } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { openRunnerTabWithTagsReady, addRunnerTag, clearRunnerTags, buildRunnerLocators } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 const COLLECTION_NAME = 'runner-folder-tags';
 

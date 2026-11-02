@@ -1,9 +1,9 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp } from '../../playwright';
-import { createCollection, openRequest, selectRequestPaneTab } from '../../pages';
-import { waitForReadyPage } from '../../support';
-import { buildCommonLocators } from '../../pages';
+import { test, expect, closeElectronApp } from '@e2e/test';
+import { createCollection, openRequest, selectRequestPaneTab } from '@e2e/pages';
+import { waitForReadyPage } from '@e2e/support';
+import { buildCommonLocators } from '@e2e/pages';
 
 const readSnapshot = (userDataPath: string) => {
   const snapshotPath = path.join(userDataPath, 'ui-state-snapshot.json');

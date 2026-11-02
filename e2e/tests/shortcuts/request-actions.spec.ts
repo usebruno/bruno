@@ -1,5 +1,5 @@
-import { expect, test } from '../../playwright';
-import { closeAllCollections, createRequest, selectRequestPaneTab } from '../../pages';
+import { expect, test } from '@e2e/test';
+import { closeAllCollections, createRequest, selectRequestPaneTab } from '@e2e/pages';
 import {
   modifier,
   expectResponsePlaceholderShortcut,

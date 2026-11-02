@@ -1,5 +1,5 @@
-import { expect, test } from '../../playwright';
-import { buildCommonLocators, closeAllCollections, createRequest, expandFolder, openCollectionSettings, openRequest } from '../../pages';
+import { expect, test } from '@e2e/test';
+import { buildCommonLocators, closeAllCollections, createRequest, expandFolder, openCollectionSettings, openRequest } from '@e2e/pages';
 import {
   collectionName,
   fillAndCreateNewRequest,

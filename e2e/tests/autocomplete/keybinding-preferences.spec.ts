@@ -1,6 +1,6 @@
-import { test, expect, Page } from '../../playwright';
-import { closeAllCollections, createCollection, createRequest, openRequest, openPreferences, selectPreferencesTab, closePreferences, buildCommonLocators } from '../../pages';
-import { buildAutocompleteLocators, expectAutocompleteStaysClosed, pressAutocompleteShortcut, setEditorState } from '../../pages';
+import { test, expect, Page } from '@e2e/test';
+import { closeAllCollections, createCollection, createRequest, openRequest, openPreferences, selectPreferencesTab, closePreferences, buildCommonLocators } from '@e2e/pages';
+import { buildAutocompleteLocators, expectAutocompleteStaysClosed, pressAutocompleteShortcut, setEditorState } from '@e2e/pages';
 
 const ACTION = 'triggerAutocomplete';
 const NEW_COMBO_KEYS = ['Control', 'Shift', 'Space'];

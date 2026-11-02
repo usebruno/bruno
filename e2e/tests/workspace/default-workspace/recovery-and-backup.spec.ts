@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp } from '../../../playwright';
-import { waitForReadyPage } from '../../../support';
+import { test, expect, closeElectronApp } from '@e2e/test';
+import { waitForReadyPage } from '@e2e/support';
 
 test.describe('Default Workspace Recovery and Backup', () => {
   test.describe('Global Environments Backup', () => {

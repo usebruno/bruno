@@ -1,8 +1,8 @@
-import { test, expect } from '../../../playwright';
-import { closeAllCollections } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { closeAllCollections } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 import { ENV_NAMES, openEnvironmentsList } from './helpers';
-import { SELECT_MODIFIER, clickEmptyListSpace, ctrlClickRows, openRowContextMenu } from '../../../pages';
+import { SELECT_MODIFIER, clickEmptyListSpace, ctrlClickRows, openRowContextMenu } from '@e2e/pages';
 
 const [ENV_1, ENV_2, ENV_3, ENV_4] = ENV_NAMES;
 

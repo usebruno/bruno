@@ -1,6 +1,6 @@
-import { test, expect } from '../../../../playwright';
-import { openCollection, sendRequest, openEnvironmentSelector } from '../../../../pages';
-import { buildCommonLocators } from '../../../../pages';
+import { test, expect } from '@e2e/test';
+import { openCollection, sendRequest, openEnvironmentSelector } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 test.describe('Global environment variable persistence via script', () => {
   test('bru.deleteGlobalEnvVar() removes variable from global environment', async ({

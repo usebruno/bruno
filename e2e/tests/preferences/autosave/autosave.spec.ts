@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { createCollection, closeAllCollections, createRequest } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { createCollection, closeAllCollections, createRequest } from '@e2e/pages';
 
 const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
 

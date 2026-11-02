@@ -1,6 +1,6 @@
-import { test, expect } from '../../../../../playwright';
-import { setSandboxMode, openRequest, sendAndWaitForResponse, selectResponsePaneTab, resetResponse } from '../../../../../pages';
-import { buildCommonLocators } from '../../../../../pages';
+import { test, expect } from '@e2e/test';
+import { setSandboxMode, openRequest, sendAndWaitForResponse, selectResponsePaneTab, resetResponse } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 const COLLECTION = 'global-client-certs-enabled';
 

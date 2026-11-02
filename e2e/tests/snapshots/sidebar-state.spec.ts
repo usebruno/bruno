@@ -1,7 +1,7 @@
-import { test, expect, closeElectronApp, type Page } from '../../playwright';
-import { createCollection, createExampleFromSidebar, createRequest, openExampleFromSidebar, openRequest } from '../../pages';
-import { waitForReadyPage } from '../../support';
-import { buildCommonLocators } from '../../pages';
+import { test, expect, closeElectronApp, type Page } from '@e2e/test';
+import { createCollection, createExampleFromSidebar, createRequest, openExampleFromSidebar, openRequest } from '@e2e/pages';
+import { waitForReadyPage } from '@e2e/support';
+import { buildCommonLocators } from '@e2e/pages';
 
 test.describe('Snapshot: Sidebar-Tab Restoration', () => {
   test('open tabs are restored after app restart and tied to the sidebar items', async ({ launchElectronApp, createTmpDir }) => {

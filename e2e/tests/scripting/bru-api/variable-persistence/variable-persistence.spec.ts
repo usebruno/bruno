@@ -1,9 +1,9 @@
-import { test, expect } from '../../../../playwright';
+import { test, expect } from '@e2e/test';
 import fs from 'fs';
 import path from 'path';
-import { openCollection, selectEnvironment, openEnvironmentSelector } from '../../../../pages';
-import { buildCommonLocators } from '../../../../pages';
-import { runCollection, validateRunnerResults } from '../../../../pages';
+import { openCollection, selectEnvironment, openEnvironmentSelector } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
+import { runCollection, validateRunnerResults } from '@e2e/pages';
 
 const PERSISTENCE_TIMEOUT = 10000;
 

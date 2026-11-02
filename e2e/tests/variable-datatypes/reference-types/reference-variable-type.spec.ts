@@ -1,6 +1,6 @@
-import { test, expect, Page } from '../../../playwright';
-import { openEnvironmentConfigTab, scrollVirtuosoRowIntoView, selectEnvironment } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
+import { test, expect, Page } from '@e2e/test';
+import { openEnvironmentConfigTab, scrollVirtuosoRowIntoView, selectEnvironment } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 import {
   arrayMatrix,
   collectionMatrix,

@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect, Page } from '../../../playwright';
-import { addEnvironmentVariable, addEnvironmentVariables, closeEnvironmentPanel, copyEnvironment, createCollection, createEnvironment, deleteEnvironment, expectResponseContains, getResponseBody, openCollection, openEnvironmentConfigTab, openEnvironmentInSettings, openRequest, openUrlVarTooltip, renameEnvironment, runCollection, saveEnvironment, searchEnvironmentVariables, selectEnvironment, selectResponsePaneTab, sendRequest, setEnvironmentInheritance, setEnvironmentSecrets, setEnvironmentVariableValue, validateRunnerResults } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
+import { test, expect, Page } from '@e2e/test';
+import { addEnvironmentVariable, addEnvironmentVariables, closeEnvironmentPanel, copyEnvironment, createCollection, createEnvironment, deleteEnvironment, expectResponseContains, getResponseBody, openCollection, openEnvironmentConfigTab, openEnvironmentInSettings, openRequest, openUrlVarTooltip, renameEnvironment, runCollection, saveEnvironment, searchEnvironmentVariables, selectEnvironment, selectResponsePaneTab, sendRequest, setEnvironmentInheritance, setEnvironmentSecrets, setEnvironmentVariableValue, validateRunnerResults } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 import {
   BASE_SECRETS,
   DEV_SECRETS,

@@ -9,6 +9,7 @@ if (process.env.CI) {
 }
 
 export default defineConfig({
+  tsconfig: './e2e/tsconfig.json',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

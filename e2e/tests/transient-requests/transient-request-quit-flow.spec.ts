@@ -1,6 +1,6 @@
-import { test, expect } from '../../playwright';
-import { createCollection, createTransientRequest, fillRequestUrl, closeAllCollections } from '../../pages';
-import { buildCommonLocators } from '../../pages';
+import { test, expect } from '@e2e/test';
+import { createCollection, createTransientRequest, fillRequestUrl, closeAllCollections } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 test.describe('Transient Requests - Quit Flow', () => {
   test('should open transient save modal when saving during app quit flow', async ({ page, electronApp, createTmpDir }) => {

@@ -1,7 +1,7 @@
-import { test, expect } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections, createApp, createCollection, saveRequest } from '../../../pages';
-import { addCollectionAppCodeFromEmptyState, openMigrateToYmlModalFromPill, setCollectionAppCode } from '../../../pages';
-import { CLICK_COUNTER_APP, CLICK_COUNTER_APP_EDITED } from '../../../constants';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators, closeAllCollections, createApp, createCollection, saveRequest } from '@e2e/pages';
+import { addCollectionAppCodeFromEmptyState, openMigrateToYmlModalFromPill, setCollectionAppCode } from '@e2e/pages';
+import { CLICK_COUNTER_APP, CLICK_COUNTER_APP_EDITED } from '@e2e/constants';
 
 const APP_NAME = 'Demo_app';
 const collectionName = 'migrate-unsaved-app';

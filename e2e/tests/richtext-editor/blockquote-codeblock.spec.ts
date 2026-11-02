@@ -1,5 +1,5 @@
-import { test, expect } from '../../playwright';
-import { closeAllCollections } from '../../pages';
+import { test, expect } from '@e2e/test';
+import { closeAllCollections } from '@e2e/pages';
 import { setupRequestDocs, clickDocsToolbarBtn, expectDocsToolbarBtnDisabled } from './actions';
 
 test.describe('Rich Text Editor Edge Cases - Blockquote and Code Block', () => {

@@ -1,8 +1,8 @@
 import { Page } from '@playwright/test';
-import { test, expect } from '../../../playwright';
-import { buildGrpcCommonLocators, buildResponseErrorsLocators } from '../../../pages';
-import { selectEnvironment, selectResponsePaneTab, sendGrpcRequest, streamGrpcMessagesAndEndCall } from '../../../pages';
-import { setSandboxMode } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { buildGrpcCommonLocators, buildResponseErrorsLocators } from '@e2e/pages';
+import { selectEnvironment, selectResponsePaneTab, sendGrpcRequest, streamGrpcMessagesAndEndCall } from '@e2e/pages';
+import { setSandboxMode } from '@e2e/pages';
 
 const COLLECTION_NAME = 'GrpcHooks';
 const SANDBOX_MODES = ['safe', 'developer'] as const;

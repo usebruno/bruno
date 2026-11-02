@@ -1,5 +1,5 @@
-import { test, expect, ElectronApplication, Page } from '../../playwright';
-import { createCollection, createRequest, createApp, selectAppView, activeAppPreviewSlot, appEmptyState, selectRequestBodyMode, saveRequest } from '../../pages';
+import { test, expect, ElectronApplication, Page } from '@e2e/test';
+import { createCollection, createRequest, createApp, selectAppView, activeAppPreviewSlot, appEmptyState, selectRequestBodyMode, saveRequest } from '@e2e/pages';
 
 /*
  * The collection app's preview runs inside an out-of-process <webview> guest,

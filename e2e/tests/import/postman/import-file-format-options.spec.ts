@@ -1,8 +1,8 @@
-import { test, expect } from '../../../playwright';
+import { test, expect } from '@e2e/test';
 import * as fs from 'fs';
 import * as path from 'path';
-import { closeAllCollections } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
+import { closeAllCollections } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 test.describe('Import Collection File Format Options toggle', () => {
   test.afterAll(async ({ page }) => {

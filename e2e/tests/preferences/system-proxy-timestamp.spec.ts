@@ -1,5 +1,5 @@
-import { expect, test } from '../../playwright';
-import { buildPreferencesLocators, openSystemProxyPanel } from '../../pages';
+import { expect, test } from '@e2e/test';
+import { buildPreferencesLocators, openSystemProxyPanel } from '@e2e/pages';
 
 // The System Proxy panel renders a "Last refreshed: <timestamp>" label that is
 // produced by the `formatProxyTimestamp` util. The label is created only when the user

@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { openCollectionSettings, focusCollectionSettingsTab, selectCollectionPaneTab } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { openCollectionSettings, focusCollectionSettingsTab, selectCollectionPaneTab } from '@e2e/pages';
 
 test.describe('Collection Settings Descriptions (YAML) - Read', () => {
   test('reads descriptions from headers and vars in a pre-existing opencollection.yml', async ({

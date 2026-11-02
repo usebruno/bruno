@@ -1,8 +1,8 @@
-import { test, expect } from '../../../playwright';
-import { addRowToActiveTab, saveEnvironment } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { addRowToActiveTab, saveEnvironment } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 import { ENV_NAMES, openWorkspaceEnvironments } from './helpers';
-import { DELETE_KEY, SELECT_ALL_KEY, clickEmptyListSpace, ctrlClickRows, deleteAllWorkspaceEnvironments, openRowContextMenu } from '../../../pages';
+import { DELETE_KEY, SELECT_ALL_KEY, clickEmptyListSpace, ctrlClickRows, deleteAllWorkspaceEnvironments, openRowContextMenu } from '@e2e/pages';
 
 const [ENV_1, ENV_2, ENV_3, ENV_4] = ENV_NAMES;
 

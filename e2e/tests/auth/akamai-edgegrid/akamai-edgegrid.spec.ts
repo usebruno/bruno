@@ -1,5 +1,5 @@
-import { expect, test } from '../../../playwright';
-import { addEnvironmentVariable, buildCommonLocators, closeAllCollections, closeAllTabs, createCollection, createEnvironment, createRequest, getResponseBody, openRequest, saveEnvironment, saveRequest, selectEnvironment, selectRequestPaneTab, selectResponsePaneTab, sendRequestAndWaitForResponse } from '../../../pages';
+import { expect, test } from '@e2e/test';
+import { addEnvironmentVariable, buildCommonLocators, closeAllCollections, closeAllTabs, createCollection, createEnvironment, createRequest, getResponseBody, openRequest, saveEnvironment, saveRequest, selectEnvironment, selectRequestPaneTab, selectResponsePaneTab, sendRequestAndWaitForResponse } from '@e2e/pages';
 
 // Shared test creds - the local simulator (packages/bruno-tests/src/auth/edgegrid.js) knows
 // this secret, so signed requests validate (200) and the response echoes the effective values.

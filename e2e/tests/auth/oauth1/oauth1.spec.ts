@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection, createRequest, openRequest, selectRequestPaneTab, saveRequest } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { closeAllCollections, createCollection, createRequest, openRequest, selectRequestPaneTab, saveRequest } from '@e2e/pages';
 
 const label = (page, text: string) => page.locator('label').filter({ hasText: new RegExp(`^${text}$`) });
 const sectionLabel = (page, text: string) => page.locator('.oauth1-section-label').filter({ hasText: text });

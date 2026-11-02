@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect } from '../../playwright';
-import { createCollection, closeAllCollections, createRequest, createEnvironment, addEnvironmentVariable, saveEnvironment, closeEnvironmentPanel, setRequestUrlAndSave, selectScriptSubTab, editCodeMirrorEditor, setCodeMirrorEditorValue, openSetAsVariableMenu, openSetAsVariablePopover, selectWordAndCtrlClick, openSetAsVariablePopoverAtChar, openEnvironmentConfigTab, selectVariableScope, selectRequestPaneTab } from '../../pages';
-import { buildCommonLocators } from '../../pages';
+import { test, expect } from '@e2e/test';
+import { createCollection, closeAllCollections, createRequest, createEnvironment, addEnvironmentVariable, saveEnvironment, closeEnvironmentPanel, setRequestUrlAndSave, selectScriptSubTab, editCodeMirrorEditor, setCodeMirrorEditorValue, openSetAsVariableMenu, openSetAsVariablePopover, selectWordAndCtrlClick, openSetAsVariablePopoverAtChar, openEnvironmentConfigTab, selectVariableScope, selectRequestPaneTab } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 test.describe.configure({ timeout: 60_000 });
 

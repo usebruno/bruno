@@ -1,6 +1,6 @@
 import path from 'path';
-import { test, expect } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections, importCollection } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators, closeAllCollections, importCollection } from '@e2e/pages';
 
 const collectionFile = path.join(__dirname, 'test-data', 'postman-collection-vars-mixed-disabled.json');
 

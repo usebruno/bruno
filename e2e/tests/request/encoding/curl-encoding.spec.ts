@@ -1,6 +1,6 @@
-import { test, expect } from '../../../playwright';
-import { openCollection } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { openCollection } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 test.describe('Code Generation URL Encoding', () => {
   test.describe('when encodeUrl is true', () => {

@@ -1,5 +1,5 @@
-import { test, expect, Page } from '../../playwright';
-import { buildCommonLocators, closeAllCollections, createCollection, createRequest, openPreRequestScriptEditor, setCodeEditorContent, openCodeEditorSearchBar, openCodeEditorReplaceBar, closeCodeEditorSearchBar, setCodeEditorCursor, setCodeEditorSelection, scrollCodeEditorToLine, focusCodeEditor, getCodeEditorScrollTop, appendTextToCodeEditor } from '../../pages';
+import { test, expect, Page } from '@e2e/test';
+import { buildCommonLocators, closeAllCollections, createCollection, createRequest, openPreRequestScriptEditor, setCodeEditorContent, openCodeEditorSearchBar, openCodeEditorReplaceBar, closeCodeEditorSearchBar, setCodeEditorCursor, setCodeEditorSelection, scrollCodeEditorToLine, focusCodeEditor, getCodeEditorScrollTop, appendTextToCodeEditor } from '@e2e/pages';
 import process from 'node:process';
 
 const cmdKey = process.platform === 'darwin' ? 'Meta' : 'Control';

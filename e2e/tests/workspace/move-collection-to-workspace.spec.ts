@@ -1,9 +1,9 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, Page, ElectronApplication, closeElectronApp } from '../../playwright';
-import { createCollection, createRequest, openRequest, openWorkspaceFromDialog } from '../../pages';
-import { waitForReadyPage } from '../../support';
-import { buildCommonLocators } from '../../pages';
+import { test, expect, Page, ElectronApplication, closeElectronApp } from '@e2e/test';
+import { createCollection, createRequest, openRequest, openWorkspaceFromDialog } from '@e2e/pages';
+import { waitForReadyPage } from '@e2e/support';
+import { buildCommonLocators } from '@e2e/pages';
 
 const workspaceYml = (name: string) =>
   ['opencollection: 1.0.0', 'info:', `  name: ${name}`, '  type: workspace', 'collections:', 'specs: []', 'docs: \'\'', ''].join(

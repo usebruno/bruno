@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { buildCommonLocators, expandFolder, createCollection, createFolder, createRequest, expandCollection, selectRequestPaneTab, closeAllCollections } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators, expandFolder, createCollection, createFolder, createRequest, expandCollection, selectRequestPaneTab, closeAllCollections } from '@e2e/pages';
 
 test.describe('Cross-Collection Drag and Drop', () => {
   test.afterEach(async ({ page }) => {

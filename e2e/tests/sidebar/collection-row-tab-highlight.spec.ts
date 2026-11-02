@@ -1,4 +1,4 @@
-import { test, expect } from '../../playwright';
+import { test, expect } from '@e2e/test';
 import * as path from 'path';
 import {
   buildCommonLocators,
@@ -8,7 +8,7 @@ import {
   openRequest,
   buildApiSpecPanelLocators,
   openApiSpecFromDialog
-} from '../../pages';
+} from '@e2e/pages';
 
 const COLLECTION = 'Spec Highlight Test';
 const SPEC = {

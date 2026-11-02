@@ -1,10 +1,10 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp } from '../../playwright';
-import { waitForReadyPage } from '../../support';
-import { openWorkspaceFromDialog } from '../../pages';
-import { buildTitleBarLocators } from '../../pages';
-import { buildMockServerLocators, createMockServerFromCollection, openMockServerFromSidebar, openMockServerTab, startMockServer, stopMockServer, syncResponsesFromExamples } from '../../pages';
+import { test, expect, closeElectronApp } from '@e2e/test';
+import { waitForReadyPage } from '@e2e/support';
+import { openWorkspaceFromDialog } from '@e2e/pages';
+import { buildTitleBarLocators } from '@e2e/pages';
+import { buildMockServerLocators, createMockServerFromCollection, openMockServerFromSidebar, openMockServerTab, startMockServer, stopMockServer, syncResponsesFromExamples } from '@e2e/pages';
 
 const COLLECTION_NAME = 'mock-server-other-collection';
 const BROWSER_ORIGIN = 'https://docs.example.com';

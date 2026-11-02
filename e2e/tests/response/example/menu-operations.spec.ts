@@ -1,7 +1,7 @@
-import { test, expect } from '../../../playwright';
+import { test, expect } from '@e2e/test';
 import { execSync } from 'child_process';
 import path from 'path';
-import { clickResponseAction, sendRequest, toggleRequestExamples } from '../../../pages';
+import { clickResponseAction, sendRequest, toggleRequestExamples } from '@e2e/pages';
 
 test.describe.serial('Response Example Menu Operations', () => {
   test.setTimeout(1 * 60 * 1000); // 1 minute for all tests in this describe block, default is 30 seconds.

@@ -1,6 +1,6 @@
-import { expect, Page } from '../../playwright';
-import { createCollection, createFolder, openCollectionSettings, openFolderSettings, selectCollectionPaneTab, selectfolderPaneTab, selectRequestPaneTab } from '../../pages';
-import { buildCommonLocators } from '../../pages';
+import { expect, Page } from '@e2e/test';
+import { createCollection, createFolder, openCollectionSettings, openFolderSettings, selectCollectionPaneTab, selectfolderPaneTab, selectRequestPaneTab } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 export const setupRequestDocs = async (page: Page, createTmpDir: (tag?: string) => Promise<string>, collectionName: string) => {
   const tmpDir = await createTmpDir(collectionName);

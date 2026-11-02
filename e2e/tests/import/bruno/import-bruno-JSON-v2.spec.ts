@@ -1,7 +1,7 @@
 import path from 'path';
-import { test, expect } from '../../../playwright';
-import { importCollection, closeAllCollections, readCollectionProxyField } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { importCollection, closeAllCollections, readCollectionProxyField } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 test.describe('Import Bruno v2 JSON collection', () => {
   test.afterEach(async ({ page }) => {

@@ -1,5 +1,5 @@
-import { expect, test } from '../../playwright';
-import { buildCommonLocators, closeAllCollections, closeFileModeSearch, createCollection, createTransientRequest, fillRequestUrl, openRequest, saveTransientViaModal, SEARCH_CONTENT, searchInFileMode, setFileModeRaw, setUrlInFileModeRaw, switchToFileMode } from '../../pages';
+import { expect, test } from '@e2e/test';
+import { buildCommonLocators, closeAllCollections, closeFileModeSearch, createCollection, createTransientRequest, fillRequestUrl, openRequest, saveTransientViaModal, SEARCH_CONTENT, searchInFileMode, setFileModeRaw, setUrlInFileModeRaw, switchToFileMode } from '@e2e/pages';
 
 type CollectionFormat = 'bru' | 'yml';
 

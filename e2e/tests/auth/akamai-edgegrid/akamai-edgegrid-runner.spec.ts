@@ -1,5 +1,5 @@
-import { test } from '../../../playwright';
-import { closeAllCollections, openCollection, openRequest, selectEnvironment, sendRequestAndWaitForResponse } from '../../../pages';
+import { test } from '@e2e/test';
+import { closeAllCollections, openCollection, openRequest, selectEnvironment, sendRequestAndWaitForResponse } from '@e2e/pages';
 
 /**
  * End-to-end EdgeGrid (EG1-HMAC-SHA256) auth against the local simulator

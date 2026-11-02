@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { activeAppView, closeAllCollections, confirmMigration, createCollection, createRequest, getAppWebviewHtml, openMigrateToYmlModalFromOverview, openRequest, saveRequest, setAppCode } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { activeAppView, closeAllCollections, confirmMigration, createCollection, createRequest, getAppWebviewHtml, openMigrateToYmlModalFromOverview, openRequest, saveRequest, setAppCode } from '@e2e/pages';
 
 const COLLECTION_NAME = 'app-migration';
 const APP_CODE = '<div id="request-app">Hello from the request app</div>';

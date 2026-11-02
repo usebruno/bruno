@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect, closeElectronApp } from '../../../playwright';
-import { sendRequest } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
-import { buildCommonLocators } from '../../../pages';
+import { test, expect, closeElectronApp } from '@e2e/test';
+import { sendRequest } from '@e2e/pages';
+import { waitForReadyPage } from '@e2e/support';
+import { buildCommonLocators } from '@e2e/pages';
 
 test.describe.serial('bru.setCollectionVar(name, value) - default persistence', () => {
   test('collection var set via script persists across restart', async ({

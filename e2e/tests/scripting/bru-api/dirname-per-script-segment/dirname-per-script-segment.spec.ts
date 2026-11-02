@@ -1,6 +1,6 @@
-import { expect, test } from '../../../../playwright';
-import { openCollection, selectEnvironment } from '../../../../pages';
-import { buildRunnerLocators, runCollection, setSandboxMode, validateRunnerResults } from '../../../../pages';
+import { expect, test } from '@e2e/test';
+import { openCollection, selectEnvironment } from '@e2e/pages';
+import { buildRunnerLocators, runCollection, setSandboxMode, validateRunnerResults } from '@e2e/pages';
 
 const COLLECTION = 'dirname-filename-test';
 const EXPECTED_PASSING_TESTS = 8;

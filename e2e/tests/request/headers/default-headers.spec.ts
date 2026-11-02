@@ -1,6 +1,6 @@
-import { test, expect } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections, createCollection, createRequest, selectRequestPaneTab, sendRequest } from '../../../pages';
-import { fillRequestHeaderName, fillRequestHeaderValue, readResponsePreviewBody, showInheritedHeaders } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators, closeAllCollections, createCollection, createRequest, selectRequestPaneTab, sendRequest } from '@e2e/pages';
+import { fillRequestHeaderName, fillRequestHeaderValue, readResponsePreviewBody, showInheritedHeaders } from '@e2e/pages';
 
 const DEFAULT_HEADERS = [
   'User-Agent',

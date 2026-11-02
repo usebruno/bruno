@@ -1,6 +1,6 @@
-import { test, expect } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections, createCollection, createFolder, createRequest, expandFolder, openFolderRequest, openRequest, selectRequestPaneTab, sendRequest } from '../../../pages';
-import { fillRequestHeaderName, fillRequestHeaderValue, readResponsePreviewBody, seedCollectionHeaders, seedFolderHeaders, showInheritedHeaders } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators, closeAllCollections, createCollection, createFolder, createRequest, expandFolder, openFolderRequest, openRequest, selectRequestPaneTab, sendRequest } from '@e2e/pages';
+import { fillRequestHeaderName, fillRequestHeaderValue, readResponsePreviewBody, seedCollectionHeaders, seedFolderHeaders, showInheritedHeaders } from '@e2e/pages';
 
 const ECHO_HEADERS_URL = 'http://localhost:8081/headers';
 const DEFAULT_HEADER_COUNT = 5;

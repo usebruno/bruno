@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect } from '../../../playwright';
-import { closeAllCollections, openCollectionSettings, selectCollectionPaneTab } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { closeAllCollections, openCollectionSettings, selectCollectionPaneTab } from '@e2e/pages';
 
 const COLLECTION_NAME = 'BruVersionTest';
 

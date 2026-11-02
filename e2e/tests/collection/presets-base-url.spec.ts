@@ -1,5 +1,5 @@
-import { test, expect } from '../../playwright';
-import { buildCommonLocators, closeAllCollections, createCollection, createRequestFromEmptyStateCta, deleteRequest, setRequestUrlPreset } from '../../pages';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators, closeAllCollections, createCollection, createRequestFromEmptyStateCta, deleteRequest, setRequestUrlPreset } from '@e2e/pages';
 
 const COLLECTION_NAME = 'presets-base-url';
 const BASE_URL = 'https://api.example.com';

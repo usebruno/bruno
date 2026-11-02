@@ -1,6 +1,6 @@
-import { test, expect } from '../../../../../playwright';
-import { openCollection } from '../../../../../pages';
-import { buildCommonLocators } from '../../../../../pages';
+import { test, expect } from '@e2e/test';
+import { openCollection } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 const BRU_REQ_NAME = /^ws-ssl-request$/;
 

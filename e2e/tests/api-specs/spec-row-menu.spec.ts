@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import yaml from 'js-yaml';
-import { test, expect, closeElectronApp, ElectronApplication } from '../../playwright';
+import { test, expect, closeElectronApp, ElectronApplication } from '@e2e/test';
 import {
   openWorkspaceFromDialog,
   buildCommonLocators,
@@ -10,8 +10,8 @@ import {
   expandApiSpecsSection,
   openApiSpecRowMenu,
   chooseApiSpecRowAction
-} from '../../pages';
-import { waitForReadyPage, stubOpenDirectoryDialog } from '../../support';
+} from '@e2e/pages';
+import { waitForReadyPage, stubOpenDirectoryDialog } from '@e2e/support';
 
 const OPENAPI_FIXTURES = path.resolve(__dirname, '..', 'import', 'openapi', 'test-data');
 const COMPREHENSIVE_TITLE = 'Comprehensive API Test Collection';

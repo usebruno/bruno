@@ -1,5 +1,5 @@
-import { test, expect, Page } from '../../playwright';
-import { createCollection, createFolder, createApp, activeAppPreviewSlot, buildCommonLocators, expandFolder } from '../../pages';
+import { test, expect, Page } from '@e2e/test';
+import { createCollection, createFolder, createApp, activeAppPreviewSlot, buildCommonLocators, expandFolder } from '@e2e/pages';
 
 const openCollectionMenu = async (page: Page, collectionName: string) => {
   const { sidebar, actions } = buildCommonLocators(page);

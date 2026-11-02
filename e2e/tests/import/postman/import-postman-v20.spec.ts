@@ -1,6 +1,6 @@
-import { test } from '../../../playwright';
+import { test } from '@e2e/test';
 import * as path from 'path';
-import { closeAllCollections, importCollection } from '../../../pages';
+import { closeAllCollections, importCollection } from '@e2e/pages';
 
 test.describe('Import Postman Collection v2.0', () => {
   test.afterEach(async ({ page }) => {

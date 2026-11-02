@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { selectRequestPaneTab } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { selectRequestPaneTab } from '@e2e/pages';
 
 test.describe('No Redirects Settings Tests', () => {
   test('should configure and test no redirects settings', async ({

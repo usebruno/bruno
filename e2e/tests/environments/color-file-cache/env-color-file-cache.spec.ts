@@ -1,6 +1,6 @@
-import { test, expect } from '../../../playwright';
-import { buildCommonLocators } from '../../../pages';
-import { openEnvironmentDropdown } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators } from '@e2e/pages';
+import { openEnvironmentDropdown } from '@e2e/pages';
 
 const COLLECTION_NAME = 'Env Color Collection';
 const ENVIRONMENT_NAME = 'Local';

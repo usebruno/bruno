@@ -1,6 +1,6 @@
-import { test, expect } from '../../playwright';
-import { switchToOpenTab } from '../../pages';
-import { buildMockServerLocators, openMockServerTab, syncResponsesFromExamples, createMockServerFromCollection } from '../../pages';
+import { test, expect } from '@e2e/test';
+import { switchToOpenTab } from '@e2e/pages';
+import { buildMockServerLocators, openMockServerTab, syncResponsesFromExamples, createMockServerFromCollection } from '@e2e/pages';
 
 const COLLECTION_NAME = 'mock-server-test-collection';
 

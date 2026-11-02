@@ -1,6 +1,6 @@
-import { test, expect } from '../../playwright';
-import { closeAllCollections, createCollection, createRequest, sendRequest, addAssertion, addPreRequestScript, addPostResponseScript, addTestScript, selectRequestPaneTab, clickResponseAction, selectResponsePaneTab } from '../../pages';
-import { buildCommonLocators } from '../../pages';
+import { test, expect } from '@e2e/test';
+import { closeAllCollections, createCollection, createRequest, sendRequest, addAssertion, addPreRequestScript, addPostResponseScript, addTestScript, selectRequestPaneTab, clickResponseAction, selectResponsePaneTab } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 test.describe('Response Clearing', () => {
   test.afterEach(async ({ page }) => {

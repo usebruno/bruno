@@ -1,6 +1,6 @@
-import { test, expect } from '../../../playwright';
-import { buildCommonLocators, openRequest, selectScriptSubTab } from '../../../pages';
-import { setWindowContentSize } from '../../../support';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators, openRequest, selectScriptSubTab } from '@e2e/pages';
+import { setWindowContentSize } from '@e2e/support';
 
 const COLLECTION_NAME = 'ScriptSubTabsOverflow';
 const REQUEST_NAME = 'LifecycleHooks';

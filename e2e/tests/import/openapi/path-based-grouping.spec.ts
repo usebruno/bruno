@@ -1,6 +1,6 @@
-import { test, expect } from '../../../playwright';
+import { test, expect } from '@e2e/test';
 import * as path from 'path';
-import { closeAllCollections } from '../../../pages';
+import { closeAllCollections } from '@e2e/pages';
 
 test.describe('OpenAPI Path-Based Grouping', () => {
   test.afterEach(async ({ page }) => {

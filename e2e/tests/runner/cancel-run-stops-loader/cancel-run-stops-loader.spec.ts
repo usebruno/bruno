@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { closeAllCollections, openRunnerTab, buildRunnerLocators } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { closeAllCollections, openRunnerTab, buildRunnerLocators } from '@e2e/pages';
 
 test.describe('Collection Runner', () => {
   test.afterEach(async ({ pageWithUserData: page }) => {

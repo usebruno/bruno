@@ -1,7 +1,7 @@
-import { test, expect } from '../../../playwright';
+import { test, expect } from '@e2e/test';
 import * as path from 'path';
 import * as fs from 'fs';
-import { closeAllCollections } from '../../../pages';
+import { closeAllCollections } from '@e2e/pages';
 
 test.describe('Open Multiple Collections', () => {
   let originalShowOpenDialog;

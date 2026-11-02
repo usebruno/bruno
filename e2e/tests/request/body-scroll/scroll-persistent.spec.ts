@@ -1,6 +1,6 @@
-import { test, expect, Page } from '../../../playwright';
-import { closeAllCollections, createCollection, createRequest, selectRequestPaneTab, selectResponsePaneTab, selectScriptSubTab, openCollection, openRequest, sendRequest } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
+import { test, expect, Page } from '@e2e/test';
+import { closeAllCollections, createCollection, createRequest, selectRequestPaneTab, selectResponsePaneTab, selectScriptSubTab, openCollection, openRequest, sendRequest } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 // ---------------------------------------------------------------------------
 // Content generators - produce enough content to make each area scrollable

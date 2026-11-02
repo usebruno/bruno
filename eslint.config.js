@@ -98,6 +98,25 @@ module.exports = runESMImports().then(() => defineConfig([
     }
   },
   {
+    // E2E specs import shared code through the aliases in e2e/tsconfig.json, never by relative path
+    files: ['e2e/tests/**/*.{ts,js}'],
+    ignores: ['**/test-data/**', '**/init-user-data/**'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          {
+            regex: '^(\\.\\./)+(playwright|pages|support|data|constants|servers)(/.*)?$',
+            message: 'Import shared E2E code through its alias: @e2e/test, @e2e/pages, @e2e/support, @e2e/data, @e2e/constants or @e2e/servers.'
+          },
+          {
+            regex: '^@e2e/(pages|support|data|constants|servers)/.+',
+            message: 'Import from the barrel (for example @e2e/pages), not from a file inside it.'
+          }
+        ]
+      }]
+    }
+  },
+  {
     files: ['packages/bruno-app/**/*.{js,jsx,ts}'],
     ignores: ['**/*.config.js', '**/public/**/*', '**/plugins/**/*'],
     languageOptions: {

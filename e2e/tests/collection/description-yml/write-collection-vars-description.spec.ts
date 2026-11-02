@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { test, expect } from '../../../playwright';
+import { test, expect } from '@e2e/test';
 
 test.describe('Collection Settings Descriptions (YAML) - Write (Vars)', () => {
   test('writes a multiline description to a pre-request var and persists it to opencollection.yml', async ({

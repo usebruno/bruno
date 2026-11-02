@@ -1,6 +1,6 @@
-import { test, expect, Page, Locator } from '../../playwright';
-import { closeAllCollections, createCollection, createFolder, saveRequest, selectRequestPaneTab } from '../../pages';
-import { buildCommonLocators } from '../../pages';
+import { test, expect, Page, Locator } from '@e2e/test';
+import { closeAllCollections, createCollection, createFolder, saveRequest, selectRequestPaneTab } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 // Build a collection from scratch via the UI, then add typed vars at every
 // scope (request / folder / collection / environment) and verify the

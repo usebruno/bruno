@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect } from '../../../playwright';
-import { createCollection, createRequest, deleteCollectionFromOverview } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { createCollection, createRequest, deleteCollectionFromOverview } from '@e2e/pages';
 
 test.describe('Delete collection', () => {
   test('Delete collection from workspace overview removes files from disk', async ({ page, createTmpDir }) => {

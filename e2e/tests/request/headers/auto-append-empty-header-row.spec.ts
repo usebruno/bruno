@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections, createCollection, createFolder, createRequest, selectRequestPaneTab } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators, closeAllCollections, createCollection, createFolder, createRequest, selectRequestPaneTab } from '@e2e/pages';
 
 test.afterEach(async ({ page }) => {
   await closeAllCollections(page);

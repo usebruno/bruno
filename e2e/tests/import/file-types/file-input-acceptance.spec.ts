@@ -1,4 +1,4 @@
-import { test, expect } from '../../../playwright';
+import { test, expect } from '@e2e/test';
 
 test.describe('File Input Acceptance', () => {
   test('File input accepts expected file types', async ({ page }) => {

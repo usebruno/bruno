@@ -1,5 +1,5 @@
-import { expect, test } from '../../../playwright';
-import { closeAllCollections, createCollection, createFolder, createRequest, getResponseBody, openFolderRequest, openRequest, selectAuthMode, selectRequestPaneTab, sendRequestAndWaitForResponse } from '../../../pages';
+import { expect, test } from '@e2e/test';
+import { closeAllCollections, createCollection, createFolder, createRequest, getResponseBody, openFolderRequest, openRequest, selectAuthMode, selectRequestPaneTab, sendRequestAndWaitForResponse } from '@e2e/pages';
 
 /**
  * EdgeGrid is configurable at collection settings, folder settings, and request level. These

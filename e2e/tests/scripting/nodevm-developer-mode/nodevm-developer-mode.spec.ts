@@ -1,5 +1,5 @@
-import { expect, test } from '../../../playwright';
-import { buildCommonLocators, openRequest, openRequestInFolder, selectResponsePaneTabViaOverflow, sendRequest, setSandboxMode } from '../../../pages';
+import { expect, test } from '@e2e/test';
+import { buildCommonLocators, openRequest, openRequestInFolder, selectResponsePaneTabViaOverflow, sendRequest, setSandboxMode } from '@e2e/pages';
 
 const COLLECTION = 'nodevm-developer-mode';
 const COLLECTION_SCRIPT_COLLECTION = 'nodevm-collection-script-target';

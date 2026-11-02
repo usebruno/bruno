@@ -1,8 +1,8 @@
 import * as path from 'path';
-import { test, expect, closeElectronApp, type ElectronApplication, type Page } from '../../../playwright';
-import { buildCommonLocators, openRequest, selectResponsePaneTab, sendRequest } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
-import { buildTimelineHeaderLocators } from '../../../pages';
+import { test, expect, closeElectronApp, type ElectronApplication, type Page } from '@e2e/test';
+import { buildCommonLocators, openRequest, selectResponsePaneTab, sendRequest } from '@e2e/pages';
+import { waitForReadyPage } from '@e2e/support';
+import { buildTimelineHeaderLocators } from '@e2e/pages';
 import { startNtlmServer, type NtlmEndpoint } from '@usebruno/tests/ntlm';
 
 const PASSWORD = 'Br!unoNtlm';

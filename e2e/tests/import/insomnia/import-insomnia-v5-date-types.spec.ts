@@ -1,7 +1,7 @@
-import { test, expect } from '../../../playwright';
+import { test, expect } from '@e2e/test';
 import * as path from 'path';
 import * as fs from 'fs';
-import { closeAllCollections, importCollection } from '../../../pages';
+import { closeAllCollections, importCollection } from '@e2e/pages';
 
 test.describe.serial('Import Insomnia Collection - date types preserved', () => {
   test.afterEach(async ({ page }) => {

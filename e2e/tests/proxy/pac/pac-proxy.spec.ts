@@ -1,8 +1,8 @@
 import * as path from 'path';
 import { pathToFileURL } from 'url';
-import { test } from '../../../playwright';
-import { setSandboxMode, runCollection, validateRunnerResults } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
+import { test } from '@e2e/test';
+import { setSandboxMode, runCollection, validateRunnerResults } from '@e2e/pages';
+import { waitForReadyPage } from '@e2e/support';
 import { startServers, stopServers, PAC_PORT, type TestServers } from './server';
 
 test.describe.serial('PAC Proxy', () => {

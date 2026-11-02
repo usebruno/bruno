@@ -1,5 +1,5 @@
-import { test, expect, Page } from '../../playwright';
-import { createCollection, createApp, buildCommonLocators } from '../../pages';
+import { test, expect, Page } from '@e2e/test';
+import { createCollection, createApp, buildCommonLocators } from '@e2e/pages';
 
 const appSidebarRow = (page: Page, collectionName: string, appName: string) => {
   const { sidebar } = buildCommonLocators(page);

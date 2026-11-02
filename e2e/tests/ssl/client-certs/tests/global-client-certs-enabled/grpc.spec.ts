@@ -1,6 +1,6 @@
-import { test, expect } from '../../../../../playwright';
-import { setSandboxMode, openRequest, resetResponse } from '../../../../../pages';
-import { buildGrpcCommonLocators } from '../../../../../pages';
+import { test, expect } from '@e2e/test';
+import { setSandboxMode, openRequest, resetResponse } from '@e2e/pages';
+import { buildGrpcCommonLocators } from '@e2e/pages';
 
 const COLLECTION = 'global-client-certs-enabled';
 

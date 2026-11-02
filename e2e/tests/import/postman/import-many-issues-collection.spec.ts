@@ -1,7 +1,7 @@
-import { test, expect } from '../../../playwright';
+import { test, expect } from '@e2e/test';
 import * as path from 'path';
-import { closeAllCollections, dismissImportIssuesToasts, importCollection } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
+import { closeAllCollections, dismissImportIssuesToasts, importCollection } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 test.describe('Import Postman Collection with many issues (URL too long warning)', () => {
   test.afterEach(async ({ page }) => {

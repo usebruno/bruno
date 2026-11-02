@@ -1,6 +1,6 @@
-import { test, expect } from '../../../playwright';
-import { openFolderSettingsByPath, selectFolderSettingsTab, selectRequestPaneTab } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { openFolderSettingsByPath, selectFolderSettingsTab, selectRequestPaneTab } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 const COLLECTION_NAME = 'folder-tags-yml';
 

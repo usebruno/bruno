@@ -1,6 +1,6 @@
-import { test } from '../../../../playwright';
-import { openCollection, selectEnvironment } from '../../../../pages';
-import { runCollection, validateRunnerResults } from '../../../../pages';
+import { test } from '@e2e/test';
+import { openCollection, selectEnvironment } from '@e2e/pages';
+import { runCollection, validateRunnerResults } from '@e2e/pages';
 
 test.describe('Script collection-variable propagation across requests in one runner invocation', () => {
   test('request 2 observes request 1\'s setCollectionVar write', async ({

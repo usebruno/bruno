@@ -1,8 +1,8 @@
-import { test, expect } from '../../../playwright';
+import { test, expect } from '@e2e/test';
 import type { Locator } from '@playwright/test';
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { closeAllCollections } from '../../../pages';
+import { closeAllCollections } from '@e2e/pages';
 
 const getViewportCollectionName = (index: number) => `Viewport Collection ${String(index).padStart(2, '0')}`;
 

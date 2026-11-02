@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { test, expect } from '../../../playwright';
+import { test, expect } from '@e2e/test';
 
 test.describe('Collection Settings Descriptions - Write (Headers)', () => {
   test('writes a multiline description to a header and persists it to collection.bru', async ({

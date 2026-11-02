@@ -1,12 +1,12 @@
 import fs from 'fs';
 import path from 'path';
-import { test as base, expect, closeElectronApp, ElectronApplication, Page } from '../../playwright';
-import { findSnapshotCollectionEntry, readSnapshot, waitForReadyPage } from '../../support';
-import { openWorkspaceFromDialog, switchWorkspace } from '../../pages';
-import { buildTitleBarLocators } from '../../pages';
-import { buildCommonLocators } from '../../pages';
-import { openPreferences, selectPreferencesTab, closePreferences } from '../../pages';
-import { buildMockServerLocators, createMockServerFromCollection, syncResponsesFromExamples, startMockServer, setMockServerBetaFeature, openMockServerTab } from '../../pages';
+import { test as base, expect, closeElectronApp, ElectronApplication, Page } from '@e2e/test';
+import { findSnapshotCollectionEntry, readSnapshot, waitForReadyPage } from '@e2e/support';
+import { openWorkspaceFromDialog, switchWorkspace } from '@e2e/pages';
+import { buildTitleBarLocators } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
+import { openPreferences, selectPreferencesTab, closePreferences } from '@e2e/pages';
+import { buildMockServerLocators, createMockServerFromCollection, syncResponsesFromExamples, startMockServer, setMockServerBetaFeature, openMockServerTab } from '@e2e/pages';
 import { closeTabByName, focusTabWithoutSidebarFocus, modifier, pressShortcut } from '../shortcuts/helpers';
 
 const COLLECTION_NAME = 'mock-server-test-collection';

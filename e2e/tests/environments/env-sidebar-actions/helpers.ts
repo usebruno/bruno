@@ -1,7 +1,7 @@
-import { test, Page, ElectronApplication } from '../../../playwright';
-import { openCollectionFromDialog, openEnvironmentConfigTab } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
-import { createEnvironmentFromSidebar, deleteAllWorkspaceEnvironments, openWorkspaceEnvironmentsTab } from '../../../pages';
+import { test, Page, ElectronApplication } from '@e2e/test';
+import { openCollectionFromDialog, openEnvironmentConfigTab } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
+import { createEnvironmentFromSidebar, deleteAllWorkspaceEnvironments, openWorkspaceEnvironmentsTab } from '@e2e/pages';
 
 const COLLECTION_NAME = 'Env Sidebar Actions';
 

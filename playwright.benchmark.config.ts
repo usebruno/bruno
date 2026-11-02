@@ -1,6 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
+  tsconfig: './e2e/tsconfig.json',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: 0,

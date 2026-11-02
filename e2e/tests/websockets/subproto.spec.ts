@@ -1,5 +1,5 @@
-import { test, expect } from '../../playwright';
-import { buildCommonLocators } from '../../pages';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators } from '@e2e/pages';
 
 const BRU_REQ_NAME = /^ws-test-request-with-subproto$/;
 

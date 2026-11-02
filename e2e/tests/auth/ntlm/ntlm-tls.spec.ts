@@ -1,9 +1,9 @@
 import * as path from 'path';
-import { test, expect, closeElectronApp, type ElectronApplication } from '../../../playwright';
-import { buildCommonLocators, openRequest, sendRequest } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
+import { test, expect, closeElectronApp, type ElectronApplication } from '@e2e/test';
+import { buildCommonLocators, openRequest, sendRequest } from '@e2e/pages';
+import { waitForReadyPage } from '@e2e/support';
 import { startNtlmServer, type NtlmEndpoint } from '@usebruno/tests/ntlm';
-import { SELF_SIGNED_CERTIFICATE, TLS_HANDSHAKE_FAILURE } from '../../../constants';
+import { SELF_SIGNED_CERTIFICATE, TLS_HANDSHAKE_FAILURE } from '@e2e/constants';
 
 const PASSWORD = 'Br!unoNtlm';
 

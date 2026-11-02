@@ -1,5 +1,5 @@
-import { test, expect, ElectronApplication } from '../../playwright';
-import { createCollection, createRequest, openRequest, setAppCode, previewApp, saveRequest, selectRequestBodyMode, evalInActiveAppGuest as guestEval, waitForAppGuestReady as waitForGuestReady } from '../../pages';
+import { test, expect, ElectronApplication } from '@e2e/test';
+import { createCollection, createRequest, openRequest, setAppCode, previewApp, saveRequest, selectRequestBodyMode, evalInActiveAppGuest as guestEval, waitForAppGuestReady as waitForGuestReady } from '@e2e/pages';
 
 const guestResult = (page, electronApp: ElectronApplication) =>
   guestEval(page, electronApp, `document.getElementById('out') && document.getElementById('out').getAttribute('data-result')`);

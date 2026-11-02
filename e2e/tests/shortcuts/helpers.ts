@@ -1,6 +1,6 @@
-import { expect, Page } from '../../playwright';
-import { closeAllCollections, createCollection, createFolder, createRequest, openCollection, openRequest as openRequestBase } from '../../pages';
-import { buildCommonLocators } from '../../pages';
+import { expect, Page } from '@e2e/test';
+import { closeAllCollections, createCollection, createFolder, createRequest, openCollection, openRequest as openRequestBase } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 export const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
 export const collectionName = 'kb-collection';

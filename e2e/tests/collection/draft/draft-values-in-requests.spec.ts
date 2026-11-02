@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { createCollection, closeAllCollections, writeCollectionProxyField } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { createCollection, closeAllCollections, writeCollectionProxyField } from '@e2e/pages';
 
 test.describe('Draft values are used in requests', () => {
   test.afterEach(async ({ page }) => {

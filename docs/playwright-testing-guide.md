@@ -62,7 +62,7 @@ You can also create tests manually by following the established patterns.
 ### Basic Test Structure
 
 ```typescript
-import { test, expect } from '../../playwright';
+import { test, expect } from '@e2e/test';
 
 test('Test description', async ({ page }) => {
   // Test steps here
@@ -76,7 +76,7 @@ test('Test description', async ({ page }) => {
 ### Test with Temporary Data
 
 ```typescript
-import { test, expect } from '../../playwright';
+import { test, expect } from '@e2e/test';
 
 test('Test with temporary data', async ({ page, createTmpDir }) => {
   // Create temporary directory for test data
@@ -97,6 +97,8 @@ test('Test with temporary data', async ({ page, createTmpDir }) => {
 ### Directory Structure
 
 All E2E code lives under `e2e/`. The Playwright configs (`playwright.config.ts`, `playwright.benchmark.config.ts`, `playwright.merge.config.ts`) stay at the repo root.
+
+Specs import shared code through path aliases defined in `e2e/tsconfig.json`: `@e2e/test` (the custom `test` and `expect`), `@e2e/pages`, `@e2e/support`, `@e2e/data`, `@e2e/constants` and `@e2e/servers`. Always import from the alias itself, never from a file inside it (`@e2e/pages`, not `@e2e/pages/request/body`); lint enforces both rules in `e2e/tests/`. Page objects inside `e2e/pages/` import each other by relative path.
 
 ```
 e2e/
@@ -134,7 +136,7 @@ e2e/
 ### Test File Template
 
 ```typescript
-import { test, expect } from '../../playwright';
+import { test, expect } from '@e2e/test';
 
 test.describe('Feature Name', () => {
   test('should perform specific action', async ({ page }) => {
@@ -226,8 +228,8 @@ npx playwright test --trace on
 A spec builds locators once and destructures the groups it needs — no per-section imports at the call site:
 
 ```typescript
-import { test, expect } from '../../playwright';
-import { buildCommonLocators, createCollection, createRequest, closeAllCollections } from '../../pages';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators, createCollection, createRequest, closeAllCollections } from '@e2e/pages';
 
 test('should rename a request via the sidebar', async ({ page, createTmpDir }) => {
   const { sidebar, actions, dropdown } = buildCommonLocators(page);
@@ -334,8 +336,8 @@ const defaultPreferences = {
 Each test should be independent and not rely on other tests — its own temp dir, its own data, deterministic cleanup:
 
 ```typescript
-import { test, expect } from '../../playwright';
-import { buildCommonLocators, createCollection, closeAllCollections } from '../../pages';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators, createCollection, closeAllCollections } from '@e2e/pages';
 
 test('should create a collection', async ({ page, createTmpDir }) => {
   const { sidebar } = buildCommonLocators(page);
@@ -353,8 +355,8 @@ test('should create a collection', async ({ page, createTmpDir }) => {
 Always verify the expected outcome through locators from a page module:
 
 ```typescript
-import { test, expect } from '../../playwright';
-import { buildCommonLocators, createCollection, createRequest, saveRequest, closeAllCollections } from '../../pages';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators, createCollection, createRequest, saveRequest, closeAllCollections } from '@e2e/pages';
 
 test('should save a request', async ({ page, createTmpDir }) => {
   const { tabs } = buildCommonLocators(page);
@@ -414,8 +416,8 @@ test('renames a request', async ({ page, createTmpDir }) => {
 Prefer auto-retrying assertions and action helpers that encapsulate the wait; never wait on a raw inline selector.
 
 ```typescript
-import { test, expect } from '../../playwright';
-import { buildCommonLocators, sendRequestAndWaitForResponse } from '../../pages';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators, sendRequestAndWaitForResponse } from '@e2e/pages';
 
 test('should wait for async operations', async ({ page }) => {
   const { response } = buildCommonLocators(page);
@@ -435,8 +437,8 @@ test('should wait for async operations', async ({ page }) => {
 ### 8. Use Test Data Management
 
 ```typescript
-import { test, expect } from '../../playwright';
-import { buildCommonLocators, openCollection } from '../../pages';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators, openCollection } from '@e2e/pages';
 
 test('should work with test data', async ({ page, createTmpDir }) => {
   const { sidebar } = buildCommonLocators(page);
@@ -458,8 +460,8 @@ All examples use `buildCommonLocators` for locators and the exported action help
 ### Example 1: Basic Collection Creation
 
 ```typescript
-import { test, expect } from '../../playwright';
-import { buildCommonLocators, createCollection, closeAllCollections } from '../../pages';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators, createCollection, closeAllCollections } from '@e2e/pages';
 
 test('should create a new collection', async ({ page, createTmpDir }) => {
   const { sidebar } = buildCommonLocators(page);
@@ -475,14 +477,14 @@ test('should create a new collection', async ({ page, createTmpDir }) => {
 ### Example 2: Request Creation and Execution
 
 ```typescript
-import { test, expect } from '../../playwright';
+import { test, expect } from '@e2e/test';
 import {
   buildCommonLocators,
   createCollection,
   createRequest,
   sendRequestAndWaitForResponse,
   closeAllCollections
-} from '../../pages';
+} from '@e2e/pages';
 
 test('should create and execute an HTTP request', async ({ page, createTmpDir }) => {
   const { response } = buildCommonLocators(page);
@@ -505,14 +507,14 @@ test('should create and execute an HTTP request', async ({ page, createTmpDir })
 ### Example 3: Environment Management
 
 ```typescript
-import { test, expect } from '../../playwright';
+import { test, expect } from '@e2e/test';
 import {
   buildCommonLocators,
   createCollection,
   createEnvironment,
   addEnvironmentVariable,
   closeAllCollections
-} from '../../pages';
+} from '@e2e/pages';
 
 test('should create and use environment variables', async ({ page, createTmpDir }) => {
   const { environment } = buildCommonLocators(page);

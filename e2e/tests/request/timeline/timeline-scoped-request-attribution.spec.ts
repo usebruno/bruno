@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection, createFolder, createRequest, expandFolder, openRequest, addCollectionScript, addFolderScript, addPreRequestScript, saveRequest, sendRequest, selectResponsePaneTab } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { closeAllCollections, createCollection, createFolder, createRequest, expandFolder, openRequest, addCollectionScript, addFolderScript, addPreRequestScript, saveRequest, sendRequest, selectResponsePaneTab } from '@e2e/pages';
 
 test.describe('Timeline — scoped request attribution', () => {
   test.afterEach(async ({ page }) => {

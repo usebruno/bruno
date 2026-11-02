@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
-import { test, expect, Page } from '../../../playwright';
-import { addEnvironmentVariable, addEnvironmentVariables, addPostResponseScript, closeAllCollections, closeEnvironmentPanel, copyEnvironment, createCollection, createEnvironment, createRequest, deleteEnvironment, disableEnvironmentVariable, expectResponseContains, getResponseBody, openEnvironmentConfigTab, openEnvironmentInSettings, openRequest, openUrlVarTooltip, renameEnvironment, runCollection, saveEnvironment, saveRequest, searchEnvironmentVariables, selectEnvironment, selectRequestBodyMode, selectRequestPaneTab, selectResponsePaneTab, sendRequest, setCodeMirrorEditorValue, setEnvironmentInheritance, setEnvironmentVariableValue, setRequestUrlAndSave, validateRunnerResults, type EnvironmentVariable } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
+import { test, expect, Page } from '@e2e/test';
+import { addEnvironmentVariable, addEnvironmentVariables, addPostResponseScript, closeAllCollections, closeEnvironmentPanel, copyEnvironment, createCollection, createEnvironment, createRequest, deleteEnvironment, disableEnvironmentVariable, expectResponseContains, getResponseBody, openEnvironmentConfigTab, openEnvironmentInSettings, openRequest, openUrlVarTooltip, renameEnvironment, runCollection, saveEnvironment, saveRequest, searchEnvironmentVariables, selectEnvironment, selectRequestBodyMode, selectRequestPaneTab, selectResponsePaneTab, sendRequest, setCodeMirrorEditorValue, setEnvironmentInheritance, setEnvironmentVariableValue, setRequestUrlAndSave, validateRunnerResults, type EnvironmentVariable } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 // Every environment, variable and request this suite asserts on is authored through the app
 // itself, so nothing here reads the committed inheritance workspace fixture — a secret gets

@@ -1,8 +1,8 @@
-import { test, expect, closeElectronApp } from '../../../playwright';
+import { test, expect, closeElectronApp } from '@e2e/test';
 import path from 'path';
-import { activeTabIsInStrip, buildCommonLocators, openRequest } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
-import { initBruCollection, writeBruRequest } from '../../../data';
+import { activeTabIsInStrip, buildCommonLocators, openRequest } from '@e2e/pages';
+import { waitForReadyPage } from '@e2e/support';
+import { initBruCollection, writeBruRequest } from '@e2e/data';
 
 const COLLECTION_NAME = 'TabStripCol';
 const REQUEST_COUNT = 10;

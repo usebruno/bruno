@@ -1,6 +1,6 @@
-import { expect, test } from '../../playwright';
-import { buildCommonLocators } from '../../pages';
-import { createTransientRequest, selectRequestPaneTab, closeAllTabs, switchToOpenTab } from '../../pages';
+import { expect, test } from '@e2e/test';
+import { buildCommonLocators } from '@e2e/pages';
+import { createTransientRequest, selectRequestPaneTab, closeAllTabs, switchToOpenTab } from '@e2e/pages';
 
 test.describe('websocket expanded-message persistence across tab switches', () => {
   test.afterEach(async ({ page }) => {

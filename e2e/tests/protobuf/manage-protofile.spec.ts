@@ -1,6 +1,6 @@
-import { test, expect } from '../../playwright';
-import { closeAllCollections } from '../../pages';
-import { selectEnvironment } from '../../pages';
+import { test, expect } from '@e2e/test';
+import { closeAllCollections } from '@e2e/pages';
+import { selectEnvironment } from '@e2e/pages';
 
 test.describe('manage protofile', () => {
   test.beforeAll(async ({ pageWithUserData: page }) => {

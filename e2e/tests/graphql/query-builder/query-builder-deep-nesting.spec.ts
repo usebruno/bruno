@@ -1,6 +1,6 @@
 import * as path from 'path';
-import { test, expect } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections, getEchoedGraphqlQuery, getGraphqlQueryEditorValue, loadGraphqlSchemaFromFile, openGraphqlQueryBuilder, openRequest, sendRequest, setGraphqlQueryEditorValue, tickQueryBuilderField } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { buildCommonLocators, closeAllCollections, getEchoedGraphqlQuery, getGraphqlQueryEditorValue, loadGraphqlSchemaFromFile, openGraphqlQueryBuilder, openRequest, sendRequest, setGraphqlQueryEditorValue, tickQueryBuilderField } from '@e2e/pages';
 
 const DEEP_SCHEMA_PATH = path.join(__dirname, 'test-data', 'deep-schema.graphql');
 const LEVELS = Array.from({ length: 13 }, (_, i) => `level${String(i + 2).padStart(2, '0')}`);

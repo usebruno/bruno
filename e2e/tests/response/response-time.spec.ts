@@ -1,6 +1,6 @@
-import { test, expect, Page } from '../../playwright';
-import { closeAllCollections, createCollection, createRequest, selectResponsePaneTab, sendRequestAndWaitForResponse } from '../../pages';
-import { buildCommonLocators } from '../../pages';
+import { test, expect, Page } from '@e2e/test';
+import { closeAllCollections, createCollection, createRequest, selectResponsePaneTab, sendRequestAndWaitForResponse } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 const COLLECTION = 'response-time';
 const WAIT_MS = 2000;

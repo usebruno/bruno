@@ -1,12 +1,12 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp } from '../../playwright';
-import { waitForReadyPage } from '../../support';
-import { openWorkspaceFromDialog } from '../../pages';
-import { buildCommonLocators } from '../../pages';
-import { buildTitleBarLocators } from '../../pages';
-import { buildMockServerLocators, openCreateMockServerModal, openMockServerSettings } from '../../pages';
-import { buildApiSpecPanelLocators, openApiSpecFromDialog } from '../../pages';
+import { test, expect, closeElectronApp } from '@e2e/test';
+import { waitForReadyPage } from '@e2e/support';
+import { openWorkspaceFromDialog } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
+import { buildTitleBarLocators } from '@e2e/pages';
+import { buildMockServerLocators, openCreateMockServerModal, openMockServerSettings } from '@e2e/pages';
+import { buildApiSpecPanelLocators, openApiSpecFromDialog } from '@e2e/pages';
 
 const EMPTY_WORKSPACE_YML = [
   'opencollection: 1.0.0',

@@ -1,5 +1,5 @@
-import { test, expect } from '../../playwright';
-import { buildMockServerLocators, openCreateMockServerModal } from '../../pages';
+import { test, expect } from '@e2e/test';
+import { buildMockServerLocators, openCreateMockServerModal } from '@e2e/pages';
 
 const COLLECTION_NAME = 'mock-server-test-collection';
 

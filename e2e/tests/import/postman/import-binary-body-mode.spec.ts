@@ -1,7 +1,7 @@
 import path from 'path';
-import { test, expect } from '../../../playwright';
-import { closeAllCollections, mockBrowseFiles, openCollection, selectRequestPaneTab } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { closeAllCollections, mockBrowseFiles, openCollection, selectRequestPaneTab } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 test.describe('Import Postman Collection with binary body mode', () => {
   test.afterEach(async ({ page }) => {

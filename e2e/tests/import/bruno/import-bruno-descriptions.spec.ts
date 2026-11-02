@@ -1,7 +1,7 @@
-import { test, expect, Page, Locator } from '../../../playwright';
+import { test, expect, Page, Locator } from '@e2e/test';
 import path from 'path';
-import { closeAllCollections, expandFolder, importCollection, selectRequestPaneTab } from '../../../pages';
-import { buildCommonLocators } from '../../../pages';
+import { closeAllCollections, expandFolder, importCollection, selectRequestPaneTab } from '@e2e/pages';
+import { buildCommonLocators } from '@e2e/pages';
 
 type DescriptionRow = {
   singleLine?: string;

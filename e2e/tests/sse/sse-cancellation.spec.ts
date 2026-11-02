@@ -1,4 +1,4 @@
-import { test, expect } from '../../playwright';
+import { test, expect } from '@e2e/test';
 
 test.describe('SSE Connection Cancellation', () => {
   test.beforeEach(async ({ pageWithUserData: page }) => {

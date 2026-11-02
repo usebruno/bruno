@@ -1,8 +1,8 @@
-import { test, expect, Page } from '../../../playwright';
-import { addEnvironmentVariable, buildCommonLocators, closeAllCollections, closeEnvironmentPanel, createCollection, createEnvironment, createFolder, createRequest, openCollectionSettings, openEnvironmentConfigTab, openEnvironmentInSettings, openFolderSettings, openRequest, saveEnvironment, saveFolderSettings, saveRequest, selectAuthMode, selectCollectionPaneTab, selectEnvironment, selectfolderPaneTab, selectRequestPaneTab, writeFieldValue } from '../../../pages';
-import { AUTH_MODE_LABELS } from '../../../constants';
-import { setApiKeyValue } from '../../../pages';
-import { addVarsRow } from '../../../pages';
+import { test, expect, Page } from '@e2e/test';
+import { addEnvironmentVariable, buildCommonLocators, closeAllCollections, closeEnvironmentPanel, createCollection, createEnvironment, createFolder, createRequest, openCollectionSettings, openEnvironmentConfigTab, openEnvironmentInSettings, openFolderSettings, openRequest, saveEnvironment, saveFolderSettings, saveRequest, selectAuthMode, selectCollectionPaneTab, selectEnvironment, selectfolderPaneTab, selectRequestPaneTab, writeFieldValue } from '@e2e/pages';
+import { AUTH_MODE_LABELS } from '@e2e/constants';
+import { setApiKeyValue } from '@e2e/pages';
+import { addVarsRow } from '@e2e/pages';
 
 const PLAINTEXT_WARNING = 'Store sensitive info as a secret variable or in a .env file';
 const ENVIRONMENT_FIELD_WARNING = 'Mark the environment variable as secret for better security';

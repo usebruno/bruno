@@ -2,9 +2,9 @@
 // This test runs on our testbench and we need a stable collection to benchmark.
 // Have a discussion with the QA team (Abhishek) to come up with some collection.
 // The numbers coming out of this collection becomes less dependable as the collection evolves.
-import { test, expect } from '../../../playwright';
+import { test, expect } from '@e2e/test';
 import { type Page, type ElectronApplication, type CDPSession } from '@playwright/test';
-import { openCollection, closeAllCollections, selectEnvironment, openRunnerTab, buildRunnerLocators, buildCommonLocators } from '../../../pages';
+import { openCollection, closeAllCollections, selectEnvironment, openRunnerTab, buildRunnerLocators, buildCommonLocators } from '@e2e/pages';
 import {
   RendererMemorySampler,
   MainMemorySampler,

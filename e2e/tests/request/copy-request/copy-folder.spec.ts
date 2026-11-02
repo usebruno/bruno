@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection, createFolder, createRequest, expandFolder } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { closeAllCollections, createCollection, createFolder, createRequest, expandFolder } from '@e2e/pages';
 
 test.describe.serial('Copy and Paste Folders', () => {
   test.afterAll(async ({ page }) => {

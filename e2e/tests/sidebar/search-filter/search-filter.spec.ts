@@ -1,4 +1,4 @@
-import { test, expect, closeElectronApp } from '../../../playwright';
+import { test, expect, closeElectronApp } from '@e2e/test';
 import path from 'path';
 import {
   buildCommonLocators,
@@ -9,9 +9,9 @@ import {
   createFolder,
   createRequest,
   expandCollection
-} from '../../../pages';
-import { waitForReadyPage } from '../../../support';
-import { initBruCollection, writeBruRequest, writeBruFolder } from '../../../data';
+} from '@e2e/pages';
+import { waitForReadyPage } from '@e2e/support';
+import { initBruCollection, writeBruRequest, writeBruFolder } from '@e2e/data';
 
 const COLLECTION_NAME = 'SearchCol';
 

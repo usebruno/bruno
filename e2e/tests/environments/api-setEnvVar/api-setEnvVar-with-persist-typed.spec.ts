@@ -1,7 +1,7 @@
-import { test, expect, closeElectronApp } from '../../../playwright';
+import { test, expect, closeElectronApp } from '@e2e/test';
 import fs from 'fs';
 import path from 'path';
-import { sendRequest } from '../../../pages';
+import { sendRequest } from '@e2e/pages';
 
 const ENV_FILE_ORIGINAL = `vars {
   host: https://testbench-sanity.usebruno.com

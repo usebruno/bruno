@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { closeAllCollections, buildCommonLocators, openExportToPostmanModal, closeExportToPostmanModal, dismissModalIfOpen, exportCollectionToPostman } from '../../../pages';
+import { test, expect } from '@e2e/test';
+import { closeAllCollections, buildCommonLocators, openExportToPostmanModal, closeExportToPostmanModal, dismissModalIfOpen, exportCollectionToPostman } from '@e2e/pages';
 import * as fs from 'fs';
 import * as nodePath from 'path';
 

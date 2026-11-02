@@ -1,4 +1,4 @@
-import { test, expect } from '../../playwright';
+import { test, expect } from '@e2e/test';
 
 test.describe('Sidebar Section Auto-Expand', () => {
   test('Clicking action button on collapsed section should expand it', async ({ page }) => {
