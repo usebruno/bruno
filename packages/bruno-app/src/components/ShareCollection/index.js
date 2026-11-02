@@ -108,7 +108,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
 
   return (
     <>
-      <Modal size="lg" title="Share Collection" handleCancel={onClose} hideFooter>
+      <Modal size="lg" title="Share Collection" handleCancel={onClose} hideFooter dataTestId="share-collection-modal">
         <StyledWrapper className="flex flex-col">
           <p className="text-sm mb-4">
             Bruno uses{' '}
@@ -130,6 +130,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
             <div
               className={`format-card ${selectedFormat === EXPORT_FORMATS.ZIP ? 'selected' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={() => !isDisabled && setSelectedFormat(EXPORT_FORMATS.ZIP)}
+              data-testid="export-format-zip"
             >
               <div className="card-header">
                 <span className="card-title">Bruno Collection (ZIP)</span>
@@ -157,6 +158,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
             <div
               className={`format-card ${selectedFormat === EXPORT_FORMATS.YAML ? 'selected' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={() => !isDisabled && setSelectedFormat(EXPORT_FORMATS.YAML)}
+              data-testid="export-format-yaml"
             >
               <div className="card-header">
                 <span className="card-title">Single File (YAML)</span>

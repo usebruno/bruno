@@ -22,10 +22,9 @@ const openOverview = async (page: Page, collectionName: string) => {
 };
 
 test.describe('Collection settings overview', () => {
-  test.setTimeout(90 * 1000);
   test('TC-2619: Verify Location of the collection is displayed below the Overview', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const collectionName = 'OverviewLocation';
-    const location = await createTmpDir('TC-2619');
+    const location = await createTmpDir(collectionName);
     const expectedPath = path.join(location, collectionName);
     const { collectionOverview } = buildCommonLocators(page);
 
@@ -53,14 +52,12 @@ test.describe('Collection settings overview', () => {
 
     await test.step('Clicking the collection name opens Overview by default', async () => {
       // createCollection ends by clicking the new collection's name in the sidebar.
-      await createCollection(page, collectionName, await createTmpDir('TC-2620'));
-      await expect(paneTabs.collectionSettingsTab('overview')).toContainClass('active');
+      await createCollection(page, collectionName, await createTmpDir(collectionName));
+      await paneTabs.collectionSettingsTab('overview').and(page.locator('.active')).waitFor({ state: 'visible' });
     });
 
     await test.step('Read the current environment counts', async () => {
-      const globalLabel = (await collectionOverview.globalEnvironmentCount().innerText()).trim();
-      globalCountBefore = Number(globalLabel.match(/^(\d+)/)?.[1]);
-      expect(globalCountBefore).not.toBeNaN();
+      globalCountBefore = parseInt(await collectionOverview.globalEnvironmentCount().innerText());
       await expect(collectionOverview.collectionEnvironmentCount()).toHaveText(environmentCountLabel(0, 'collection'));
     });
 
@@ -91,9 +88,9 @@ test.describe('Collection settings overview', () => {
     const { collectionOverview } = buildCommonLocators(page);
 
     await test.step('Create a collection with two requests', async () => {
-      await createCollection(page, collectionName, await createTmpDir('TC-2622'));
-      await createRequest(page, 'List users', collectionName);
-      await createRequest(page, 'Create user', collectionName);
+      await createCollection(page, collectionName, await createTmpDir(collectionName));
+      await createRequest(page, 'request 1', collectionName);
+      await createRequest(page, 'request 2', collectionName);
     });
 
     await test.step('Requests section shows the request count', async () => {
@@ -105,10 +102,10 @@ test.describe('Collection settings overview', () => {
 
   test('TC-2623: Verify Share Collection option is available', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const collectionName = 'OverviewShare';
-    const { collectionOverview, modal, shareCollection } = buildCommonLocators(page);
+    const { collectionOverview, shareCollection } = buildCommonLocators(page);
 
     await test.step('Open collection Overview', async () => {
-      await createCollection(page, collectionName, await createTmpDir('TC-2623'));
+      await createCollection(page, collectionName, await createTmpDir(collectionName));
       await openOverview(page, collectionName);
     });
 
@@ -118,7 +115,7 @@ test.describe('Collection settings overview', () => {
       await expect(share).toBeVisible();
       await share.click();
 
-      const shareModal = modal.byTitle('Share Collection');
+      const shareModal = shareCollection.modal();
       await expect(shareModal).toBeVisible();
       await expect(shareCollection.zipCard()).toBeVisible();
       await expect(shareCollection.yamlCard()).toBeVisible();
@@ -132,7 +129,7 @@ test.describe('Collection settings overview', () => {
 
   test('TC-2624: Verify Generate docs option is available in the Documentation section', { tag: '@sanity' }, async ({ page, electronApp, createTmpDir }) => {
     const collectionName = 'OverviewDocs';
-    const docsDirectory = await createTmpDir('TC-2624');
+    const docsDirectory = await createTmpDir(collectionName);
     const { collectionOverview, generateDocs } = buildCommonLocators(page);
 
     await test.step('Open collection Overview', async () => {
@@ -153,7 +150,7 @@ test.describe('Collection settings overview', () => {
       await expect(generateDocs.modal()).toBeVisible();
       await expect(generateDocs.generateButton()).toBeVisible();
       await expect(generateDocs.cancelButton()).toBeVisible();
-      await expect(generateDocs.generateButton()).toBeEnabled({ timeout: 10000 });
+      await expect(generateDocs.generateButton()).toBeEnabled();
     });
 
     await test.step('Generate saves the HTML documentation locally', async () => {
