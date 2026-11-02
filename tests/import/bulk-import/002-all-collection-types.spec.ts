@@ -53,7 +53,7 @@ test.describe('All Collection Types Bulk Import', () => {
 
     // Select a location and import
     await page.locator('#collection-location').fill(await createTmpDir('all-collection-types-test'));
-    await bulkImportModal.getByRole('button', { name: 'Import' }).click();
+    await bulkImportModal.getByRole('button', { name: 'Import', exact: true }).click();
 
     // Wait for import to complete (summary modal shows with "Close" button)
     await expect(bulkImportModal.getByRole('button', { name: 'Close' })).toBeVisible();
