@@ -70,15 +70,15 @@ describe('toOpenCollectionScripts', () => {
     expect(toOpenCollectionScripts({ script: { req: 'pre()' } } as any, GRPC_SCRIPT_KEYS)).toBeUndefined();
   });
 
-  it('trims code and skips whitespace-only scripts', () => {
+  it('preserves surrounding whitespace and skips whitespace-only scripts', () => {
     const out = toOpenCollectionScripts(
-      { script: { req: '  pre()  ', res: '   \n  ' }, tests: '  test()  ' } as any,
+      { script: { req: '\npre()\n\n', res: '   \n  ' }, tests: 'test()\n' } as any,
       HTTP_SCRIPT_KEYS
     );
 
     expect(out).toEqual([
-      { type: 'before-request', code: 'pre()' },
-      { type: 'tests', code: 'test()' }
+      { type: 'before-request', code: '\npre()\n\n' },
+      { type: 'tests', code: 'test()\n' }
     ]);
   });
 
