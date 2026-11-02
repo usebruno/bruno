@@ -1,6 +1,13 @@
 import { test, expect, Page } from '@e2e/test';
-import { fillRequestUrl, sendRequest, clickResponseAction, createCollection, closeAllCollections, closeAllTabs } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  fillRequestUrl,
+  sendRequest,
+  clickResponseAction,
+  createCollection,
+  closeAllCollections,
+  closeAllTabs,
+  buildCommonLocators
+} from '@e2e/pages';
 
 test.describe.serial('Scratch Requests', () => {
   let locators: ReturnType<typeof buildCommonLocators>;

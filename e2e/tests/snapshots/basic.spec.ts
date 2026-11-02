@@ -1,9 +1,21 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp, type Page } from '@e2e/test';
-import { createCollection, createRequest, openRequest, openCollection, switchWorkspace, selectRequestPaneTab } from '@e2e/pages';
+import {
+  test,
+  expect,
+  closeElectronApp,
+  type Page
+} from '@e2e/test';
+import {
+  createCollection,
+  createRequest,
+  openRequest,
+  openCollection,
+  switchWorkspace,
+  selectRequestPaneTab,
+  buildCommonLocators
+} from '@e2e/pages';
 import { waitForReadyPage } from '@e2e/support';
-import { buildCommonLocators } from '@e2e/pages';
 
 /**
  * Helper: read the snapshot JSON from the user data directory.

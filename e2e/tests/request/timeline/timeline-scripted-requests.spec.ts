@@ -1,6 +1,20 @@
 import { test, expect } from '@e2e/test';
-import { closeAllCollections, createCollection, createFolder, createRequest, openRequest, expandFolder, addPreRequestScript, addPostResponseScript, addFolderScript, addCollectionScript, saveRequest, sendRequest, selectResponsePaneTab } from '@e2e/pages';
-import { runCollection } from '@e2e/pages';
+import {
+  closeAllCollections,
+  createCollection,
+  createFolder,
+  createRequest,
+  openRequest,
+  expandFolder,
+  addPreRequestScript,
+  addPostResponseScript,
+  addFolderScript,
+  addCollectionScript,
+  saveRequest,
+  sendRequest,
+  selectResponsePaneTab,
+  runCollection
+} from '@e2e/pages';
 
 test.describe('Timeline — scripted requests (sendRequest / runRequest)', () => {
   // Each test sets up its own collection and tears it down. No shared state.

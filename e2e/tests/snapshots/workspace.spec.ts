@@ -1,6 +1,11 @@
 import path from 'path';
 import { test, expect, closeElectronApp } from '@e2e/test';
-import { createCollection, createRequest, openRequest, openWorkspaceFromDialog } from '@e2e/pages';
+import {
+  createCollection,
+  createRequest,
+  openRequest,
+  openWorkspaceFromDialog
+} from '@e2e/pages';
 import { waitForReadyPage } from '@e2e/support';
 import fs from 'fs';
 

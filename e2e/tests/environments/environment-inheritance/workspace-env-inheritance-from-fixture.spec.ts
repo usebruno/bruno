@@ -1,8 +1,32 @@
 import fs from 'fs';
 import path from 'path';
 import { test, expect } from '@e2e/test';
-import { addEnvironmentVariables, closeEnvironmentPanel, copyEnvironment, createEnvironment, deleteEnvironment, expectResponseContains, getResponseBody, openCollection, openEnvironmentConfigTab, openEnvironmentInSettings, openRequest, openUrlVarTooltip, renameEnvironment, runCollection, saveEnvironment, searchEnvironmentVariables, selectEnvironment, selectResponsePaneTab, sendRequest, setEnvironmentInheritance, setEnvironmentSecrets, setEnvironmentVariableValue, validateRunnerResults } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  addEnvironmentVariables,
+  closeEnvironmentPanel,
+  copyEnvironment,
+  createEnvironment,
+  deleteEnvironment,
+  expectResponseContains,
+  getResponseBody,
+  openCollection,
+  openEnvironmentConfigTab,
+  openEnvironmentInSettings,
+  openRequest,
+  openUrlVarTooltip,
+  renameEnvironment,
+  runCollection,
+  saveEnvironment,
+  searchEnvironmentVariables,
+  selectEnvironment,
+  selectResponsePaneTab,
+  sendRequest,
+  setEnvironmentInheritance,
+  setEnvironmentSecrets,
+  setEnvironmentVariableValue,
+  validateRunnerResults,
+  buildCommonLocators
+} from '@e2e/pages';
 import {
   seedEchoSecrets,
   seedWorkspaceVarsSecrets,

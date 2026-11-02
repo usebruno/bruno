@@ -1,8 +1,20 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect, Page, Locator } from '@e2e/test';
-import { saveRequest, scrollVirtuosoRowIntoView, selectEnvironment, selectRequestPaneTab, selectResponsePaneTab, sendRequestAndWaitForResponse } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  test,
+  expect,
+  Page,
+  Locator
+} from '@e2e/test';
+import {
+  saveRequest,
+  scrollVirtuosoRowIntoView,
+  selectEnvironment,
+  selectRequestPaneTab,
+  selectResponsePaneTab,
+  sendRequestAndWaitForResponse,
+  buildCommonLocators
+} from '@e2e/pages';
 
 /**
  * These tests cover the DataTypeSelector on the surfaces where it remains

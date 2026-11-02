@@ -1,8 +1,7 @@
 import { test, expect } from '@e2e/test';
 import * as path from 'path';
 import * as fs from 'fs';
-import { closeAllCollections, openCollection } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import { closeAllCollections, openCollection, buildCommonLocators } from '@e2e/pages';
 
 test.describe('Default ignores for node_modules and .git', () => {
   test.afterEach(async ({ page }) => {

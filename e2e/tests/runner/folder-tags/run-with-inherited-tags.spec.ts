@@ -1,6 +1,11 @@
 import { test, expect } from '@e2e/test';
-import { openRunnerTabWithTagsReady, addRunnerTag, clearRunnerTags, buildRunnerLocators } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  openRunnerTabWithTagsReady,
+  addRunnerTag,
+  clearRunnerTags,
+  buildRunnerLocators,
+  buildCommonLocators
+} from '@e2e/pages';
 
 const COLLECTION_NAME = 'runner-folder-tags';
 

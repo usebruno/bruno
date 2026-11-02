@@ -1,5 +1,10 @@
 import { test, expect } from '@e2e/test';
-import { closeAllCollections, createCollection, createFolder, createRequest } from '@e2e/pages';
+import {
+  closeAllCollections,
+  createCollection,
+  createFolder,
+  createRequest
+} from '@e2e/pages';
 
 const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
 

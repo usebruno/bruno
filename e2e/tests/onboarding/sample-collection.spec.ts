@@ -1,5 +1,10 @@
 import path from 'path';
-import { test, expect, errors, closeElectronApp } from '@e2e/test';
+import {
+  test,
+  expect,
+  errors,
+  closeElectronApp
+} from '@e2e/test';
 import { waitForReadyPage } from '@e2e/support';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data-fresh');

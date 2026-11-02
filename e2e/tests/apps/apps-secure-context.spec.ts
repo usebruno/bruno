@@ -1,5 +1,13 @@
 import { test, expect } from '@e2e/test';
-import { createCollection, createRequest, openRequest, setAppCode, previewApp, evalInActiveAppGuest as guestEval, waitForAppGuestReady } from '@e2e/pages';
+import {
+  createCollection,
+  createRequest,
+  openRequest,
+  setAppCode,
+  previewApp,
+  evalInActiveAppGuest as guestEval,
+  waitForAppGuestReady
+} from '@e2e/pages';
 
 /*
  * App guests must run in a secure context.

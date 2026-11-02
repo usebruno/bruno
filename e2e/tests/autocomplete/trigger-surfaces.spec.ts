@@ -1,7 +1,24 @@
 import { test, expect } from '@e2e/test';
-import { closeAllCollections, createCollection, createEnvironment, addEnvironmentVariables, saveEnvironment, createRequest, openRequest, selectAuthMode, selectRequestBodyMode, selectRequestPaneTab, selectScriptSubTab, buildCommonLocators } from '@e2e/pages';
-import { buildRequestLocators } from '@e2e/pages';
-import { authFieldEditor, codeMirrorOf, readEditorValue, expectSingleBraceOpensAutocomplete, expectSingleBraceDoesNotOpenAutocomplete } from '@e2e/pages';
+import {
+  closeAllCollections,
+  createCollection,
+  createEnvironment,
+  addEnvironmentVariables,
+  saveEnvironment,
+  createRequest,
+  openRequest,
+  selectAuthMode,
+  selectRequestBodyMode,
+  selectRequestPaneTab,
+  selectScriptSubTab,
+  buildCommonLocators,
+  buildRequestLocators,
+  authFieldEditor,
+  codeMirrorOf,
+  readEditorValue,
+  expectSingleBraceOpensAutocomplete,
+  expectSingleBraceDoesNotOpenAutocomplete
+} from '@e2e/pages';
 
 test.describe('single `{` trigger surfaces', () => {
   test.afterEach(async ({ page }) => {

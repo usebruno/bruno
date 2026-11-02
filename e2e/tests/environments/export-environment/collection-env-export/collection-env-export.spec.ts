@@ -3,8 +3,7 @@ import path from 'path';
 import fs from 'fs';
 
 import { findEnvironmentByName, readExportedJson } from '@e2e/support';
-import { openCollection, openEnvironmentConfigTab } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import { openCollection, openEnvironmentConfigTab, buildCommonLocators } from '@e2e/pages';
 
 // Helper function to load expected fixtures
 function loadExpectedFixture(fixturePath: string) {

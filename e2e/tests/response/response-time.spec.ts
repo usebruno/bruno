@@ -1,6 +1,12 @@
 import { test, expect, Page } from '@e2e/test';
-import { closeAllCollections, createCollection, createRequest, selectResponsePaneTab, sendRequestAndWaitForResponse } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  closeAllCollections,
+  createCollection,
+  createRequest,
+  selectResponsePaneTab,
+  sendRequestAndWaitForResponse,
+  buildCommonLocators
+} from '@e2e/pages';
 
 const COLLECTION = 'response-time';
 const WAIT_MS = 2000;

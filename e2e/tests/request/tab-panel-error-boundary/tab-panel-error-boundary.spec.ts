@@ -1,6 +1,5 @@
 import { expect, Page, test } from '@e2e/test';
-import { openRequest } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import { openRequest, buildCommonLocators } from '@e2e/pages';
 
 // NOTE: Rewritten instead of `selectRequestPaneTab` from actions.ts because we want to avoid assertion
 // of tab active state

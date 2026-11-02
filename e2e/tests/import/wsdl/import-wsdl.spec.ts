@@ -1,6 +1,13 @@
 import { test, expect } from '@e2e/test';
 import * as path from 'path';
-import { closeAllCollections, importCollection, openCollection, openfolder, openRequest, readRequestBody } from '@e2e/pages';
+import {
+  closeAllCollections,
+  importCollection,
+  openCollection,
+  openfolder,
+  openRequest,
+  readRequestBody
+} from '@e2e/pages';
 
 test.describe('Import WSDL Collection', () => {
   const testDataDir = path.join(__dirname, 'test-data');

@@ -1,6 +1,10 @@
 import { test, expect } from '@e2e/test';
-import { setSandboxMode, openRequest, resetResponse } from '@e2e/pages';
-import { buildGrpcCommonLocators } from '@e2e/pages';
+import {
+  setSandboxMode,
+  openRequest,
+  resetResponse,
+  buildGrpcCommonLocators
+} from '@e2e/pages';
 
 const COLLECTION = 'global-client-certs-disabled';
 

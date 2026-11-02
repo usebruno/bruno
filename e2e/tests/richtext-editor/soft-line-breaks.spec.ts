@@ -1,6 +1,11 @@
 import { test, expect } from '@e2e/test';
 import { closeAllCollections } from '@e2e/pages';
-import { setupRequestDocs, setMarkdownSource, getMarkdownSource, pasteIntoRichTextEditor } from './actions';
+import {
+  setupRequestDocs,
+  setMarkdownSource,
+  getMarkdownSource,
+  pasteIntoRichTextEditor
+} from './actions';
 
 const WRAPPED_MARKDOWN_SOURCE = [
   'This line was hand-wrapped for readability but is meant to read as',

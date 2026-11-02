@@ -1,7 +1,14 @@
 import { test, expect } from '@e2e/test';
-import { closeAllCollections } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
-import { openRequest, fillRequestUrl, sendRequestAndWaitForResponse, switchResponseFormat, switchToPreviewTab, switchToEditorTab } from '@e2e/pages';
+import {
+  closeAllCollections,
+  buildCommonLocators,
+  openRequest,
+  fillRequestUrl,
+  sendRequestAndWaitForResponse,
+  switchResponseFormat,
+  switchToPreviewTab,
+  switchToEditorTab
+} from '@e2e/pages';
 
 test.describe.serial('Response Format Select and Preview', () => {
   test.afterAll(async ({ pageWithUserData: page }) => {

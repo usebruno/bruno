@@ -1,5 +1,23 @@
-import { expect, Locator, Page, test } from '@e2e/test';
-import { buildCommonLocators, closeAllCollections, createCollection, createRequest, expectLinkOpensRequest, expectTransientRequestOpened, openRequest, selectRequestBodyMode, sendRequestAndWaitForResponse, setCodeMirrorValue as setCmValue, switchResponseFormat, switchToPreviewTab } from '@e2e/pages';
+import {
+  expect,
+  Locator,
+  Page,
+  test
+} from '@e2e/test';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  createCollection,
+  createRequest,
+  expectLinkOpensRequest,
+  expectTransientRequestOpened,
+  openRequest,
+  selectRequestBodyMode,
+  sendRequestAndWaitForResponse,
+  setCodeMirrorValue as setCmValue,
+  switchResponseFormat,
+  switchToPreviewTab
+} from '@e2e/pages';
 
 const ECHO_URL = 'http://localhost:8081/api/echo/json';
 const CUSTOM_ECHO_URL = 'http://localhost:8081/api/echo/custom';

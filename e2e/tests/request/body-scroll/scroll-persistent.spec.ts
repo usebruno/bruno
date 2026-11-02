@@ -1,6 +1,16 @@
 import { test, expect, Page } from '@e2e/test';
-import { closeAllCollections, createCollection, createRequest, selectRequestPaneTab, selectResponsePaneTab, selectScriptSubTab, openCollection, openRequest, sendRequest } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  closeAllCollections,
+  createCollection,
+  createRequest,
+  selectRequestPaneTab,
+  selectResponsePaneTab,
+  selectScriptSubTab,
+  openCollection,
+  openRequest,
+  sendRequest,
+  buildCommonLocators
+} from '@e2e/pages';
 
 // ---------------------------------------------------------------------------
 // Content generators - produce enough content to make each area scrollable

@@ -1,8 +1,6 @@
 import { test, expect } from '@e2e/test';
-import { closeAllCollections } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import { closeAllCollections, buildCommonLocators, clickEmptyListSpace } from '@e2e/pages';
 import { ENV_NAMES, openEnvironmentsList } from './helpers';
-import { clickEmptyListSpace } from '@e2e/pages';
 
 const [ENV_1, ENV_2, ENV_3, ENV_4] = ENV_NAMES;
 

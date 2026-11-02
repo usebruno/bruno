@@ -1,6 +1,14 @@
 import path from 'path';
 import { test, expect } from '@e2e/test';
-import { buildCommonLocators, closeAllCollections, createCollection, importEnvironment, openImportReview, clickOutsideModal, openEnvironmentSelector } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  createCollection,
+  importEnvironment,
+  openImportReview,
+  clickOutsideModal,
+  openEnvironmentSelector
+} from '@e2e/pages';
 
 const fixture = (name: string) => path.join(__dirname, 'test-data', name);
 

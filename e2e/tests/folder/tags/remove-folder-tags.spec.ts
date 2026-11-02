@@ -1,8 +1,14 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from '@e2e/test';
-import { openFolderSettingsByPath, selectFolderSettingsTab, selectRequestPaneTab, removeTag, saveFolderSettings } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  openFolderSettingsByPath,
+  selectFolderSettingsTab,
+  selectRequestPaneTab,
+  removeTag,
+  saveFolderSettings,
+  buildCommonLocators
+} from '@e2e/pages';
 
 const COLLECTION_NAME = 'folder-tags';
 

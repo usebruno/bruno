@@ -1,6 +1,15 @@
 import { test, expect } from '@e2e/test';
-import { createRequest, sendRequest, getResponseBody } from '@e2e/pages';
-import { buildMockServerLocators, openMockServerTab, syncResponsesFromExamples, startMockServer, stopMockServer, createMockServerFromCollection } from '@e2e/pages';
+import {
+  createRequest,
+  sendRequest,
+  getResponseBody,
+  buildMockServerLocators,
+  openMockServerTab,
+  syncResponsesFromExamples,
+  startMockServer,
+  stopMockServer,
+  createMockServerFromCollection
+} from '@e2e/pages';
 
 const COLLECTION_NAME = 'mock-server-test-collection';
 const DEFAULT_MOCK_PORT = '4500';

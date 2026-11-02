@@ -1,7 +1,12 @@
 import { test, expect } from '@e2e/test';
-import { addRowToActiveTab } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
-import { addDotEnvVariable, createDotEnvFile, createEnvironmentFromSidebar, openWorkspaceEnvironmentsTab } from '@e2e/pages';
+import {
+  addRowToActiveTab,
+  buildCommonLocators,
+  addDotEnvVariable,
+  createDotEnvFile,
+  createEnvironmentFromSidebar,
+  openWorkspaceEnvironmentsTab
+} from '@e2e/pages';
 
 test.describe('Workspace Environments status dot', () => {
   test('TC-3275: Verify environment status dot icon in workspace Environments tab', async ({

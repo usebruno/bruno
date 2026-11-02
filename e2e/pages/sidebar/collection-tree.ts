@@ -1,4 +1,9 @@
-import { Locator, Page, expect, test } from '../../playwright';
+import {
+  Locator,
+  Page,
+  expect,
+  test
+} from '../../playwright';
 import { buildRequestTabsLocators } from '../app-shell/tabs';
 import { buildOpenCollectionPickerLocators } from '../collection/open-collection-picker';
 import { collectionSlug } from '../../../packages/bruno-app/src/utils/collections/collectionSlug';

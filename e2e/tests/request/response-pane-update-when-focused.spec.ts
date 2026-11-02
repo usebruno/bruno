@@ -1,6 +1,13 @@
 import { test, expect } from '@e2e/test';
-import { createCollection, createRequest, sendRequest, openRequest, closeAllCollections, selectRequestPaneTab } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  createCollection,
+  createRequest,
+  sendRequest,
+  openRequest,
+  closeAllCollections,
+  selectRequestPaneTab,
+  buildCommonLocators
+} from '@e2e/pages';
 
 const runShortcut = process.platform === 'darwin' ? 'Meta+Enter' : 'Control+Enter';
 const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';

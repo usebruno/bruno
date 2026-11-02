@@ -1,7 +1,19 @@
 import fs from 'fs';
 import path from 'path';
-import { closeElectronApp, ElectronApplication, expect, test, waitForReadyPage } from '@e2e/test';
-import { buildCommonLocators, resetRequestTimeoutToInherit, saveRequest, selectRequestPaneTab, setRequestTimeoutPreference } from '@e2e/pages';
+import {
+  closeElectronApp,
+  ElectronApplication,
+  expect,
+  test,
+  waitForReadyPage
+} from '@e2e/test';
+import {
+  buildCommonLocators,
+  resetRequestTimeoutToInherit,
+  saveRequest,
+  selectRequestPaneTab,
+  setRequestTimeoutPreference
+} from '@e2e/pages';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 const fixtureCollectionsPath = path.join(__dirname, 'test-data', 'collections');

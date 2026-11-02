@@ -1,7 +1,17 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from '@e2e/test';
-import { buildCommonLocators, createCollection, createFolder, createRequest, closeAllCollections, openRenameModal, renameItemTo, renameViaFilename, revealFilesystemName } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  createCollection,
+  createFolder,
+  createRequest,
+  closeAllCollections,
+  openRenameModal,
+  renameItemTo,
+  renameViaFilename,
+  revealFilesystemName
+} from '@e2e/pages';
 import { findCollectionDir } from '../utils';
 
 test.describe('Naming collisions - rename folder', () => {

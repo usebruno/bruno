@@ -1,4 +1,9 @@
-import { test, expect, ElectronApplication, Page } from '@e2e/test';
+import {
+  test,
+  expect,
+  ElectronApplication,
+  Page
+} from '@e2e/test';
 import { setupSortingTestFixture, TestFixture } from '@e2e/data';
 import { getCollectionTreeStructure, closeAllCollections } from '@e2e/pages';
 

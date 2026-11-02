@@ -1,9 +1,13 @@
 import path from 'path';
 import fs from 'fs';
 import yaml from 'js-yaml';
-import { test, expect, closeElectronApp, waitForReadyPage } from '@e2e/test';
-import { createWorkspaceZip, importWorkspaceFromZip } from '@e2e/pages';
-import { buildTitleBarLocators } from '@e2e/pages';
+import {
+  test,
+  expect,
+  closeElectronApp,
+  waitForReadyPage
+} from '@e2e/test';
+import { createWorkspaceZip, importWorkspaceFromZip, buildTitleBarLocators } from '@e2e/pages';
 
 type WorkspaceConfig = {
   info?: { name: string; type: string };

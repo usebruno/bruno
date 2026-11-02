@@ -1,6 +1,12 @@
 import path from 'path';
 import { test, expect } from '@e2e/test';
-import { buildCommonLocators, closeAllCollections, createCollection, importEnvironment, selectEnvironment } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  createCollection,
+  importEnvironment,
+  selectEnvironment
+} from '@e2e/pages';
 
 const envFile = path.join(__dirname, 'test-data', 'unreadable-color-env.json');
 

@@ -1,9 +1,14 @@
 import { test, expect, Page } from '@e2e/test';
 import * as fs from 'fs';
 import * as path from 'path';
-import { openApiSpecFromDialog, openApiSpecSidebarItem, buildApiSpecPanelLocators, removeAllApiSpecsFromWorkspace } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
-import { activeTabIsInStrip } from '@e2e/pages';
+import {
+  openApiSpecFromDialog,
+  openApiSpecSidebarItem,
+  buildApiSpecPanelLocators,
+  removeAllApiSpecsFromWorkspace,
+  buildCommonLocators,
+  activeTabIsInStrip
+} from '@e2e/pages';
 
 const SPEC_COUNT = 12;
 const specTitle = (index: number) => `Scroll Spec ${String(index).padStart(2, '0')}`;

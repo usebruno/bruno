@@ -1,7 +1,12 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '@e2e/test';
-import { buildCommonLocators } from '@e2e/pages';
-import { openRequest, sendRequestAndWaitForResponse, switchToPreviewTab, expandAllXmlNodes } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  openRequest,
+  sendRequestAndWaitForResponse,
+  switchToPreviewTab,
+  expandAllXmlNodes
+} from '@e2e/pages';
 
 const COLLECTION_NAME = 'xml-preview';
 

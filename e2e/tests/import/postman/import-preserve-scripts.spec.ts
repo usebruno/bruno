@@ -1,7 +1,11 @@
 import { test, expect } from '@e2e/test';
 import * as path from 'path';
-import { closeAllCollections, importCollection, selectScriptSubTab } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  closeAllCollections,
+  importCollection,
+  selectScriptSubTab,
+  buildCommonLocators
+} from '@e2e/pages';
 
 const postmanFile = path.resolve(__dirname, 'test-data', 'postman-with-scripts.json');
 

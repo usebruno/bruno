@@ -1,9 +1,36 @@
 import path from 'path';
 import { test, expect, Page } from '@e2e/test';
-import { addEnvironmentVariable, buildCommonLocators, clickSensitiveFieldAction, closeAllCollections, closeEnvironmentPanel, createCollection, createEnvironment, createFolder, createRequest, openCollectionSettings, openEnvironmentConfigTab, openFolderRequest, openFolderSettings, openInheritedAuth, openRequest, readField, saveEnvironment, saveFolderSettings, saveRequest, saveSecretTo, selectAuthMode, selectCollectionPaneTab, selectfolderPaneTab, selectRequestPaneTab, setEnvironmentVariableValue, writeFieldValue } from '@e2e/pages';
+import {
+  addEnvironmentVariable,
+  buildCommonLocators,
+  clickSensitiveFieldAction,
+  closeAllCollections,
+  closeEnvironmentPanel,
+  createCollection,
+  createEnvironment,
+  createFolder,
+  createRequest,
+  openCollectionSettings,
+  openEnvironmentConfigTab,
+  openFolderRequest,
+  openFolderSettings,
+  openInheritedAuth,
+  openRequest,
+  readField,
+  saveEnvironment,
+  saveFolderSettings,
+  saveRequest,
+  saveSecretTo,
+  selectAuthMode,
+  selectCollectionPaneTab,
+  selectfolderPaneTab,
+  selectRequestPaneTab,
+  setEnvironmentVariableValue,
+  writeFieldValue,
+  setApiKeyValue,
+  addVarsRow
+} from '@e2e/pages';
 import { AUTH_MODE_LABELS } from '@e2e/constants';
-import { setApiKeyValue } from '@e2e/pages';
-import { addVarsRow } from '@e2e/pages';
 import { readFileIfExists } from '@e2e/support';
 
 const API_KEY_FIELD = 'apikey-value';

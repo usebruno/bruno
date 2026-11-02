@@ -1,7 +1,17 @@
-import { test, expect, ElectronApplication, Page } from '@e2e/test';
+import {
+  test,
+  expect,
+  ElectronApplication,
+  Page
+} from '@e2e/test';
 import * as path from 'path';
 import * as fs from 'fs';
-import { buildCommonLocators, closeAllCollections, toggleOpenCollectionItem, closeOpenCollectionModal } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  toggleOpenCollectionItem,
+  closeOpenCollectionModal
+} from '@e2e/pages';
 
 const writeCollection = (dir: string, name: string) => {
   fs.mkdirSync(dir, { recursive: true });

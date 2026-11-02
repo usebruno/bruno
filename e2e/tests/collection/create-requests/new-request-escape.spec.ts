@@ -1,6 +1,13 @@
 import { test, expect } from '@e2e/test';
-import { buildCommonLocators, closeAllCollections, createCollection, openNewRequestModal } from '@e2e/pages';
-import { buildAutocompleteLocators, expectAutocompleteStaysClosed, expectSingleBraceOpensAutocomplete } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  createCollection,
+  openNewRequestModal,
+  buildAutocompleteLocators,
+  expectAutocompleteStaysClosed,
+  expectSingleBraceOpensAutocomplete
+} from '@e2e/pages';
 
 test.describe('New Request modal - Escape key', () => {
   test.afterEach(async ({ page }) => {

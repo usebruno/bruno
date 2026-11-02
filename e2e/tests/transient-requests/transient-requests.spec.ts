@@ -1,6 +1,14 @@
 import { test, expect } from '@e2e/test';
-import { createTransientRequest, fillRequestUrl, closeAllCollections, createCollection, sendRequest, clickResponseAction, selectRequestPaneTab } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  createTransientRequest,
+  fillRequestUrl,
+  closeAllCollections,
+  createCollection,
+  sendRequest,
+  clickResponseAction,
+  selectRequestPaneTab,
+  buildCommonLocators
+} from '@e2e/pages';
 
 const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
 

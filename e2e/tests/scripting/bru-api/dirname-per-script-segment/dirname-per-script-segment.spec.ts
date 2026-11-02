@@ -1,6 +1,12 @@
 import { expect, test } from '@e2e/test';
-import { openCollection, selectEnvironment } from '@e2e/pages';
-import { buildRunnerLocators, runCollection, setSandboxMode, validateRunnerResults } from '@e2e/pages';
+import {
+  openCollection,
+  selectEnvironment,
+  buildRunnerLocators,
+  runCollection,
+  setSandboxMode,
+  validateRunnerResults
+} from '@e2e/pages';
 
 const COLLECTION = 'dirname-filename-test';
 const EXPECTED_PASSING_TESTS = 8;

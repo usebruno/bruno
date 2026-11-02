@@ -1,7 +1,19 @@
 import { test, expect } from '@e2e/test';
-import { closeAllCollections, createCollection, createRequest, openRequest, selectRequestBodyMode, selectRequestPaneTab, buildCommonLocators } from '@e2e/pages';
-import { buildRequestLocators } from '@e2e/pages';
-import { buildAutocompleteLocators, codeMirrorOf, expectAutocompleteStaysClosed, pressAutocompleteShortcut, readEditorValue } from '@e2e/pages';
+import {
+  closeAllCollections,
+  createCollection,
+  createRequest,
+  openRequest,
+  selectRequestBodyMode,
+  selectRequestPaneTab,
+  buildCommonLocators,
+  buildRequestLocators,
+  buildAutocompleteLocators,
+  codeMirrorOf,
+  expectAutocompleteStaysClosed,
+  pressAutocompleteShortcut,
+  readEditorValue
+} from '@e2e/pages';
 
 test.describe('Variable autocomplete — Ctrl+Space shortcut', () => {
   test.afterEach(async ({ page }) => {

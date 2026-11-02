@@ -1,6 +1,17 @@
 import { test, expect } from '@e2e/test';
-import { closeAllCollections, openCollection, openRequest, selectRequestPaneTab, sendRequest, selectEnvironment, addAssertion, editAssertion, deleteAssertion, saveRequest } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  closeAllCollections,
+  openCollection,
+  openRequest,
+  selectRequestPaneTab,
+  sendRequest,
+  selectEnvironment,
+  addAssertion,
+  editAssertion,
+  deleteAssertion,
+  saveRequest,
+  buildCommonLocators
+} from '@e2e/pages';
 
 test.describe.serial('Assertions - BRU Collection', () => {
   test.beforeAll(async ({ pageWithUserData: page }) => {

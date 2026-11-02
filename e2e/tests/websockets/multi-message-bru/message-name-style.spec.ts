@@ -1,6 +1,5 @@
 import { expect, test } from '@e2e/test';
-import { openRequest, closeAllCollections } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import { openRequest, closeAllCollections, buildCommonLocators } from '@e2e/pages';
 
 const COLLECTION_NAME = 'ws-multi-message';
 const SINGLE_MSG_REQ = 'ws-single-msg';

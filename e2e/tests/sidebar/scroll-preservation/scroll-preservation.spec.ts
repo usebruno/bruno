@@ -1,4 +1,9 @@
-import { test, expect, closeElectronApp, type Locator } from '@e2e/test';
+import {
+  test,
+  expect,
+  closeElectronApp,
+  type Locator
+} from '@e2e/test';
 import path from 'path';
 import { buildCommonLocators, renameCollectionItem } from '@e2e/pages';
 import { waitForReadyPage } from '@e2e/support';

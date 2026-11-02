@@ -1,6 +1,12 @@
 import { test, expect } from '@e2e/test';
-import { setSandboxMode, openRequest, sendAndWaitForResponse, selectResponsePaneTab, resetResponse } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  setSandboxMode,
+  openRequest,
+  sendAndWaitForResponse,
+  selectResponsePaneTab,
+  resetResponse,
+  buildCommonLocators
+} from '@e2e/pages';
 
 const COLLECTION = 'client-certs-enabled-yml';
 

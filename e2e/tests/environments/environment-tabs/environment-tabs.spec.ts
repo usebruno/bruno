@@ -2,8 +2,16 @@ import { Page } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import { expect, test } from '@e2e/test';
-import { addRowToActiveTab, closeAllCollections, createEnvironment, deleteAllGlobalEnvironments, importCollection, openCollection, saveEnvironment } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  addRowToActiveTab,
+  closeAllCollections,
+  createEnvironment,
+  deleteAllGlobalEnvironments,
+  importCollection,
+  openCollection,
+  saveEnvironment,
+  buildCommonLocators
+} from '@e2e/pages';
 
 const envLocators = (page: Page) => buildCommonLocators(page).environment;
 

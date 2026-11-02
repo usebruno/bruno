@@ -1,6 +1,18 @@
 import { test, Page } from '@e2e/test';
-import { buildCommonLocators, closeAllCollections, createCollection, createRequest, openRequest, selectRequestPaneTab, selectRequestBodyMode, saveRequest, sendRequestAndWaitForResponse, expectResponseContains } from '@e2e/pages';
-import { fillRequestHeaderName, fillRequestHeaderValue } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  createCollection,
+  createRequest,
+  openRequest,
+  selectRequestPaneTab,
+  selectRequestBodyMode,
+  saveRequest,
+  sendRequestAndWaitForResponse,
+  expectResponseContains,
+  fillRequestHeaderName,
+  fillRequestHeaderValue
+} from '@e2e/pages';
 
 const ECHO_URL = 'http://localhost:8081/api/echo/everything';
 const FORM_URL_ENCODED_BODY_MODE = 'Form URL Encoded';

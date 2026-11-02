@@ -3,7 +3,12 @@ import { pathToFileURL } from 'url';
 import { test } from '@e2e/test';
 import { setSandboxMode, runCollection, validateRunnerResults } from '@e2e/pages';
 import { waitForReadyPage } from '@e2e/support';
-import { startServers, stopServers, PAC_PORT, type TestServers } from './server';
+import {
+  startServers,
+  stopServers,
+  PAC_PORT,
+  type TestServers
+} from './server';
 
 test.describe.serial('PAC Proxy', () => {
   let servers: TestServers;

@@ -1,7 +1,13 @@
 import { test, expect, Page } from '@e2e/test';
 import * as path from 'path';
-import { closeAllCollections, dismissImportIssuesToasts, expandFolder, expectRequestMaxRedirects, importCollection } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  closeAllCollections,
+  dismissImportIssuesToasts,
+  expandFolder,
+  expectRequestMaxRedirects,
+  importCollection,
+  buildCommonLocators
+} from '@e2e/pages';
 import { DEFAULT_MAX_REDIRECTS } from '@usebruno/common/utils';
 
 const COLLECTION_NAME = 'Max Redirects Collection';

@@ -1,7 +1,11 @@
 import { test, expect } from '@e2e/test';
 import * as path from 'path';
-import { closeAllCollections, dismissImportIssuesToasts, importCollection } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  closeAllCollections,
+  dismissImportIssuesToasts,
+  importCollection,
+  buildCommonLocators
+} from '@e2e/pages';
 
 test.describe('Import Postman Collection with partial import issues', () => {
   test.afterEach(async ({ page }) => {

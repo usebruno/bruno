@@ -2,8 +2,15 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from '@e2e/test';
-import { closeAllCollections, createCollection, createRequest, openRequest, selectRequestPaneTab, sendRequest } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  closeAllCollections,
+  createCollection,
+  createRequest,
+  openRequest,
+  selectRequestPaneTab,
+  sendRequest,
+  buildCommonLocators
+} from '@e2e/pages';
 
 const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
 

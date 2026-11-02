@@ -1,5 +1,16 @@
 import { test, expect } from '@e2e/test';
-import { buildCommonLocators, closeAllCollections, createCollection, createRequest, dismissCodeEditorHints, focusScriptEditor, readCodeEditorHints, readScriptEditorContent, showRootScriptHints, typeInScriptEditor } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  createCollection,
+  createRequest,
+  dismissCodeEditorHints,
+  focusScriptEditor,
+  readCodeEditorHints,
+  readScriptEditorContent,
+  showRootScriptHints,
+  typeInScriptEditor
+} from '@e2e/pages';
 
 const COLLECTION = 'script-autocomplete-scope';
 const REQUEST = 'ScopedHints';

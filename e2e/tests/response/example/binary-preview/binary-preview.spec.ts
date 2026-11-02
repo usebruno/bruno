@@ -1,7 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import jsyaml from 'js-yaml';
-import { closeElectronApp, ElectronApplication, expect, test, waitForReadyPage } from '@e2e/test';
+import {
+  closeElectronApp,
+  ElectronApplication,
+  expect,
+  test,
+  waitForReadyPage
+} from '@e2e/test';
 import {
   buildCommonLocators,
   editCodeMirrorEditor,

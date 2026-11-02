@@ -1,8 +1,7 @@
 import { test, expect } from '@e2e/test';
 import fs from 'fs';
 import path from 'path';
-import { sendRequest } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import { sendRequest, buildCommonLocators } from '@e2e/pages';
 
 // Regression guard: Save commits the script-set value of an ephemeral env var
 // (set via `bru.setEnvVar` without `{ persist: true }`) instead of rolling it

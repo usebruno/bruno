@@ -2,7 +2,16 @@ import fs from 'fs';
 import path from 'path';
 import jsyaml from 'js-yaml';
 import { test, expect } from '@e2e/test';
-import { buildCommonLocators, closeAllCollections, openCollection, openMigrateToYmlModalFromOverview, openCollectionOverview, confirmMigration, selectEnvironment, sendRequestAndWaitForResponse } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  openCollection,
+  openMigrateToYmlModalFromOverview,
+  openCollectionOverview,
+  confirmMigration,
+  selectEnvironment,
+  sendRequestAndWaitForResponse
+} from '@e2e/pages';
 
 test.describe('Migrate collection from bru to yml format', () => {
   test.afterAll(async ({ pageWithUserData: page }) => {

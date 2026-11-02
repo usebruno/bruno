@@ -1,7 +1,14 @@
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
-import { test, expect, ElectronApplication, Page, waitForReadyPage, closeElectronApp } from '@e2e/test';
+import {
+  test,
+  expect,
+  ElectronApplication,
+  Page,
+  waitForReadyPage,
+  closeElectronApp
+} from '@e2e/test';
 import { getCollectionTreeStructure, CollectionTreeItem, closeAllCollections } from '@e2e/pages';
 
 const formats = ['bru', 'yml'] as const;

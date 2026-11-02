@@ -1,7 +1,14 @@
 import path from 'path';
 import fs from 'fs';
 import { test, expect, closeElectronApp } from '@e2e/test';
-import { createRequest, createEnvironment, selectEnvironment, openRequest, openWorkspaceFromDialog, openCollection } from '@e2e/pages';
+import {
+  createRequest,
+  createEnvironment,
+  selectEnvironment,
+  openRequest,
+  openWorkspaceFromDialog,
+  openCollection
+} from '@e2e/pages';
 import { waitForReadyPage } from '@e2e/support';
 
 const buildWorkspaceYml = (workspaceName: string, collectionPath: string) => [

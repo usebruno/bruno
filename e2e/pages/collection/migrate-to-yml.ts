@@ -1,4 +1,9 @@
-import { Locator, Page, expect, test } from '../../playwright';
+import {
+  Locator,
+  Page,
+  expect,
+  test
+} from '../../playwright';
 import { buildSidebarLocators } from '../sidebar/collection-tree';
 
 /**

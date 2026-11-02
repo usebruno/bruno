@@ -1,5 +1,20 @@
 import { test, expect } from '@e2e/test';
-import { buildCommonLocators, closeAllCollections, createCollection, createRequest, openPreRequestScriptEditor, setCodeEditorContent, openCodeEditorSearchBar, openCodeEditorReplaceBar, closeCodeEditorSearchBar, setCodeEditorCursor, focusCodeEditor, getCodeEditorValueAndCursor, replaceMatchThenTypeBeforeSearchRefresh, replaceMatchThenCloseSearchBarBeforeRefresh } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  createCollection,
+  createRequest,
+  openPreRequestScriptEditor,
+  setCodeEditorContent,
+  openCodeEditorSearchBar,
+  openCodeEditorReplaceBar,
+  closeCodeEditorSearchBar,
+  setCodeEditorCursor,
+  focusCodeEditor,
+  getCodeEditorValueAndCursor,
+  replaceMatchThenTypeBeforeSearchRefresh,
+  replaceMatchThenCloseSearchBarBeforeRefresh
+} from '@e2e/pages';
 
 const SCRIPT_EDITOR_ID = 'pre-request-script-editor';
 const COLLECTION_NAME = 'search-edit-cursor-test';

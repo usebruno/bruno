@@ -1,5 +1,16 @@
-import { Locator, Page, expect, test } from '../playwright';
-import { MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH, dragSidebarToWidth, revealFolderRow, buildSidebarLocators } from './sidebar/collection-tree';
+import {
+  Locator,
+  Page,
+  expect,
+  test
+} from '../playwright';
+import {
+  MAX_SIDEBAR_WIDTH,
+  MIN_SIDEBAR_WIDTH,
+  dragSidebarToWidth,
+  revealFolderRow,
+  buildSidebarLocators
+} from './sidebar/collection-tree';
 import { buildSandboxLocators } from './collection/settings';
 import { buildTimelineLocators } from './response/timeline';
 

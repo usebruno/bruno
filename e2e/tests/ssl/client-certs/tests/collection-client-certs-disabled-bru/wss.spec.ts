@@ -1,6 +1,10 @@
 import { test, expect } from '@e2e/test';
-import { setSandboxMode, openRequest, disconnectWs } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  setSandboxMode,
+  openRequest,
+  disconnectWs,
+  buildCommonLocators
+} from '@e2e/pages';
 
 const COLLECTION = 'client-certs-disabled-bru';
 

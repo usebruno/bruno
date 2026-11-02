@@ -1,4 +1,10 @@
-import { expect, Page, Locator, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../playwright';
+import {
+  expect,
+  Page,
+  Locator,
+  ElectronApplication,
+  waitForReadyPage as waitForReadyPageImpl
+} from '../playwright';
 
 export type WaitForAppReadyOptions = {
   timeout?: number;

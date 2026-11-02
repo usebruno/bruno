@@ -1,5 +1,11 @@
 import { test, expect } from '@e2e/test';
-import { buildRunnerLocators, dragSidebarToWidth, findToolbarCollapseSidebarWidth, MIN_SIDEBAR_WIDTH, runCollection } from '@e2e/pages';
+import {
+  buildRunnerLocators,
+  dragSidebarToWidth,
+  findToolbarCollapseSidebarWidth,
+  MIN_SIDEBAR_WIDTH,
+  runCollection
+} from '@e2e/pages';
 import { setWindowContentSize } from '@e2e/support';
 
 const collectionName = 'Runner Responsive Toolbar';

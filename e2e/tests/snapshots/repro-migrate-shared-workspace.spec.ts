@@ -1,7 +1,17 @@
 import fs from 'fs';
 import path from 'path';
 import { test, expect } from '@e2e/test';
-import { buildCommonLocators, confirmMigration, createCollection, createRequest, openCollection, openMigrateToYmlModalFromOverview, openRequest, openWorkspaceFromDialog, switchWorkspace } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  confirmMigration,
+  createCollection,
+  createRequest,
+  openCollection,
+  openMigrateToYmlModalFromOverview,
+  openRequest,
+  openWorkspaceFromDialog,
+  switchWorkspace
+} from '@e2e/pages';
 import { waitForReadyPage } from '@e2e/support';
 
 /**

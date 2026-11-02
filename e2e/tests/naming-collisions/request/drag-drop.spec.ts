@@ -1,7 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from '@e2e/test';
-import { buildCommonLocators, createCollection, createRequest, createFolder, closeAllCollections } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  createCollection,
+  createRequest,
+  createFolder,
+  closeAllCollections
+} from '@e2e/pages';
 import { listRequestFiles, findCollectionDir, minimalBru } from '../utils';
 
 test.describe('Naming collisions - drag/drop request', () => {

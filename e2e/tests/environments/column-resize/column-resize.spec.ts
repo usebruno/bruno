@@ -1,5 +1,14 @@
 import { test, expect } from '@e2e/test';
-import { buildCommonLocators, openCollection, selectEnvironment, createEnvironment, openEnvironmentConfigTab, openEnvironmentInSettings, getEnvironmentColumnWidths, dragEnvironmentColumnDivider } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  openCollection,
+  selectEnvironment,
+  createEnvironment,
+  openEnvironmentConfigTab,
+  openEnvironmentInSettings,
+  getEnvironmentColumnWidths,
+  dragEnvironmentColumnDivider
+} from '@e2e/pages';
 
 const MIN_COLUMN_WIDTH = 80;
 // Name / Value / Description proportions; must match DEFAULT_COLUMN_WIDTHS in EnvironmentVariablesTable

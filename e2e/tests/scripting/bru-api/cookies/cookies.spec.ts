@@ -1,5 +1,10 @@
 import { test } from '@e2e/test';
-import { setSandboxMode, runFolder, selectEnvironment, validateRunnerResults } from '@e2e/pages';
+import {
+  setSandboxMode,
+  runFolder,
+  selectEnvironment,
+  validateRunnerResults
+} from '@e2e/pages';
 
 test.describe.serial('bru.cookies PropertyList API', () => {
   test('all cookie tests pass in developer mode', async ({ pageWithUserData: page }) => {

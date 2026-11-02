@@ -1,8 +1,29 @@
 import { test, expect, Page } from '@e2e/test';
-import { closeAllTabs, copyVariableValue, foldObjectLine, getVariableRowNames, getVariablesScrollRange, getVariablesScrollTop, getValueEditorScrollRange, getValueEditorScrollTop, openRequest, openVariableDrawer, openVariablesTab, readVariableValue, reopenVariablesTab, scrollValueEditorTo, scrollVariablesTo, selectEnvironment, sendRequestAndWaitForResponse, switchToOpenTab, toggleSecretReveal, unfoldObjectLine } from '@e2e/pages';
+import {
+  closeAllTabs,
+  copyVariableValue,
+  foldObjectLine,
+  getVariableRowNames,
+  getVariablesScrollRange,
+  getVariablesScrollTop,
+  getValueEditorScrollRange,
+  getValueEditorScrollTop,
+  openRequest,
+  openVariableDrawer,
+  openVariablesTab,
+  readVariableValue,
+  reopenVariablesTab,
+  scrollValueEditorTo,
+  scrollVariablesTo,
+  selectEnvironment,
+  sendRequestAndWaitForResponse,
+  switchToOpenTab,
+  toggleSecretReveal,
+  unfoldObjectLine,
+  selectNoEnvironment,
+  buildCommonLocators
+} from '@e2e/pages';
 import { readClipboard } from '@e2e/support';
-import { selectNoEnvironment } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
 
 /**
  * The read-only Variables tab: collection header → "..." → Variables.

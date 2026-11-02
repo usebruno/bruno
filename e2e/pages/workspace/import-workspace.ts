@@ -1,7 +1,14 @@
 import AdmZip from 'adm-zip';
 import * as path from 'path';
 import { clickImportWorkspace } from '../app-shell/title-bar';
-import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage } from '../../playwright';
+import {
+  test,
+  expect,
+  Page,
+  Locator,
+  ElectronApplication,
+  waitForReadyPage
+} from '../../playwright';
 import { buildWorkspaceYml } from '../../support/workspace';
 
 export const buildImportWorkspaceModalLocators = (page: Page) => {

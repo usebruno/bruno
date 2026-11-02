@@ -1,6 +1,20 @@
 import { test, expect, closeElectronApp } from '@e2e/test';
-import { createCollection, createFolder, createWorkspace, focusFolderSettingsTab, openfolder, selectfolderPaneTab, selectFolderScriptPaneTab, switchWorkspace } from '@e2e/pages';
-import { readSnapshot, findSnapshotFolderTab, waitForReadyPage, waitForSnapshotFile } from '@e2e/support';
+import {
+  createCollection,
+  createFolder,
+  createWorkspace,
+  focusFolderSettingsTab,
+  openfolder,
+  selectfolderPaneTab,
+  selectFolderScriptPaneTab,
+  switchWorkspace
+} from '@e2e/pages';
+import {
+  readSnapshot,
+  findSnapshotFolderTab,
+  waitForReadyPage,
+  waitForSnapshotFile
+} from '@e2e/support';
 
 test.describe('Snapshot: folder Pane Interactivity', () => {
   test('folder pane tab interactivity is preserved after workspace switch', async ({ launchElectronApp, createTmpDir }) => {

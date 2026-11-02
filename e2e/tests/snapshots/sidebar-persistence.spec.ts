@@ -1,9 +1,13 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect, closeElectronApp, Page } from '@e2e/test';
+import {
+  test,
+  expect,
+  closeElectronApp,
+  Page
+} from '@e2e/test';
 import { buildSidebarLocators } from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
-import { readSnapshot, waitForSnapshotFile } from '@e2e/support';
+import { waitForReadyPage, readSnapshot, waitForSnapshotFile } from '@e2e/support';
 import { SIDEBAR_WIDTH_KEY, SIDEBAR_COLLAPSED_KEY } from '../../../packages/bruno-app/src/utils/common/localStorage';
 
 async function resizeSidebar(page: Page, targetWidth: number) {

@@ -1,5 +1,12 @@
 import { expect, test } from '@e2e/test';
-import { closeGenerateCodeDialog, getGeneratedSnippet, openCollection, openRequestInFolder, readGeneratedSnippet, setInterpolateVariables } from '@e2e/pages';
+import {
+  closeGenerateCodeDialog,
+  getGeneratedSnippet,
+  openCollection,
+  openRequestInFolder,
+  readGeneratedSnippet,
+  setInterpolateVariables
+} from '@e2e/pages';
 
 const COLLECTION = 'generate-code-encoding';
 const FOLDER = 'requests';

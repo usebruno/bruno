@@ -1,5 +1,15 @@
 import { test, expect } from '@e2e/test';
-import { buildCommonLocators, closeAllCollections, createCollection, createRequest, createEnvironment, addEnvironmentVariable, openMigrateToYmlModalFromOverview, openMigrateDraftsStep, discardAllDraftsAndMigrate } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  createCollection,
+  createRequest,
+  createEnvironment,
+  addEnvironmentVariable,
+  openMigrateToYmlModalFromOverview,
+  openMigrateDraftsStep,
+  discardAllDraftsAndMigrate
+} from '@e2e/pages';
 
 test.describe('Migrate to YML — invalid environment draft blocks migrate', () => {
   test.afterEach(async ({ page }) => {

@@ -1,8 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Page, test, expect } from '@e2e/test';
-import { expandCollection, expandFolder } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import { expandCollection, expandFolder, buildCommonLocators } from '@e2e/pages';
 
 export type RequestFileFormat = 'bru' | 'yml';
 

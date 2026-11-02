@@ -1,4 +1,9 @@
-import { test, expect, Page, ElectronApplication } from '../../playwright';
+import {
+  test,
+  expect,
+  Page,
+  ElectronApplication
+} from '../../playwright';
 import { buildItemActionLocators } from '../sidebar/item-actions';
 import { buildSidebarLocators } from '../sidebar/collection-tree';
 import { selectRequestPaneTab } from './pane';

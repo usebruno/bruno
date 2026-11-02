@@ -1,4 +1,9 @@
-import { Locator, Page, expect, test } from '../../playwright';
+import {
+  Locator,
+  Page,
+  expect,
+  test
+} from '../../playwright';
 
 export type SecretTargetType = 'global' | 'environment';
 

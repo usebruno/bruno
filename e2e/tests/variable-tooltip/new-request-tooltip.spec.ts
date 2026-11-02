@@ -1,6 +1,14 @@
 import { test, expect } from '@e2e/test';
-import { addEnvironmentVariables, closeEnvironmentPanel, createCollection, createEnvironment, openNewRequestModal, openUrlVarTooltip, saveEnvironment } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  addEnvironmentVariables,
+  closeEnvironmentPanel,
+  createCollection,
+  createEnvironment,
+  openNewRequestModal,
+  openUrlVarTooltip,
+  saveEnvironment,
+  buildCommonLocators
+} from '@e2e/pages';
 
 for (const { position, prefix } of [
   { position: 'below the URL', prefix: '' },

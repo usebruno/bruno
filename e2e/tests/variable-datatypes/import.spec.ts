@@ -1,7 +1,16 @@
-import { test, expect, Page, Locator } from '@e2e/test';
+import {
+  test,
+  expect,
+  Page,
+  Locator
+} from '@e2e/test';
 import path from 'path';
-import { closeAllCollections, importCollection, selectRequestPaneTab } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  closeAllCollections,
+  importCollection,
+  selectRequestPaneTab,
+  buildCommonLocators
+} from '@e2e/pages';
 
 // OpenCollection (.yml) import: typed `{type, data}` structs at every scope
 // land in the env editor with the right DataTypeSelector label.

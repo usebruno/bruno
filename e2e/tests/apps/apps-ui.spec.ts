@@ -1,5 +1,22 @@
 import { test, expect, Page } from '@e2e/test';
-import { createCollection, createRequest, openRequest, selectRequestPaneTab, setAppCode, setAppEnabled, readAppEditor, requestPaneAppTab, openRequestPaneTabOverflow, requestPaneOverflowTabItem, activeAppView, previewApp, exitApp, selectViewMode, saveRequest, closeAllTabs } from '@e2e/pages';
+import {
+  createCollection,
+  createRequest,
+  openRequest,
+  selectRequestPaneTab,
+  setAppCode,
+  setAppEnabled,
+  readAppEditor,
+  requestPaneAppTab,
+  openRequestPaneTabOverflow,
+  requestPaneOverflowTabItem,
+  activeAppView,
+  previewApp,
+  exitApp,
+  selectViewMode,
+  saveRequest,
+  closeAllTabs
+} from '@e2e/pages';
 
 const SIMPLE_APP = `<div id="hello">Hello from the app</div>`;
 

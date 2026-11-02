@@ -1,4 +1,9 @@
-import { ElectronApplication, Page, expect, test } from '../../playwright';
+import {
+  ElectronApplication,
+  Page,
+  expect,
+  test
+} from '../../playwright';
 import { buildResponseLocators } from '../response/pane';
 
 const buildLocators = (page: Page) => ({

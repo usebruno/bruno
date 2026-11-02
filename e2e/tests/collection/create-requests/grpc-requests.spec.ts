@@ -1,6 +1,5 @@
 import { test, expect } from '@e2e/test';
-import { buildCommonLocators } from '@e2e/pages';
-import { closeAllCollections } from '@e2e/pages';
+import { buildCommonLocators, closeAllCollections } from '@e2e/pages';
 
 test.describe('Create gRPC Requests', () => {
   let locators: ReturnType<typeof buildCommonLocators>;

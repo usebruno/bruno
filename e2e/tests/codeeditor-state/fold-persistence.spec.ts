@@ -1,5 +1,18 @@
-import { test, expect, Page, Locator } from '@e2e/test';
-import { closeAllCollections, createCollection, createRequest, openRequest, selectRequestPaneTab, selectResponsePaneTab, sendRequestAndWaitForResponse } from '@e2e/pages';
+import {
+  test,
+  expect,
+  Page,
+  Locator
+} from '@e2e/test';
+import {
+  closeAllCollections,
+  createCollection,
+  createRequest,
+  openRequest,
+  selectRequestPaneTab,
+  selectResponsePaneTab,
+  sendRequestAndWaitForResponse
+} from '@e2e/pages';
 
 const ECHO_URL = 'http://localhost:8081/api/echo/json';
 

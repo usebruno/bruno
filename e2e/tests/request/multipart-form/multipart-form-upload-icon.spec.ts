@@ -1,6 +1,13 @@
 import { test, expect } from '@e2e/test';
-import { closeAllCollections, createCollection, createRequest, openCollection, openRequest, selectRequestPaneTab } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  closeAllCollections,
+  createCollection,
+  createRequest,
+  openCollection,
+  openRequest,
+  selectRequestPaneTab,
+  buildCommonLocators
+} from '@e2e/pages';
 
 test.describe.serial('Multipart Form - Upload Icon Visibility', () => {
   test.afterAll(async ({ page }) => {

@@ -1,6 +1,11 @@
 import path from 'path';
 import { test, expect, closeElectronApp } from '@e2e/test';
-import { buildCommonLocators, openCollection, selectEnvironment, waitForCollectionMount } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  openCollection,
+  selectEnvironment,
+  waitForCollectionMount
+} from '@e2e/pages';
 import { waitForReadyPage, waitForSnapshotCollectionEnvironment } from '@e2e/support';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');

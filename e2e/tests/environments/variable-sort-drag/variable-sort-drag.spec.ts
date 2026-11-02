@@ -2,8 +2,16 @@ import fs from 'fs';
 import path from 'path';
 import { test, expect } from '@e2e/test';
 import { Page } from '@playwright/test';
-import { importCollection, createEnvironment, closeAllCollections, addRowToActiveTab, cycleVariableSort, getVisibleVariableNames, dragVariableRow } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  importCollection,
+  createEnvironment,
+  closeAllCollections,
+  addRowToActiveTab,
+  cycleVariableSort,
+  getVisibleVariableNames,
+  dragVariableRow,
+  buildCommonLocators
+} from '@e2e/pages';
 
 const variablesTab = (page: Page) => buildCommonLocators(page).environment.variablesTab();
 const secretsTab = (page: Page) => buildCommonLocators(page).environment.secretsTab();

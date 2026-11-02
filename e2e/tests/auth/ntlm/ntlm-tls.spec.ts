@@ -1,5 +1,10 @@
 import * as path from 'path';
-import { test, expect, closeElectronApp, type ElectronApplication } from '@e2e/test';
+import {
+  test,
+  expect,
+  closeElectronApp,
+  type ElectronApplication
+} from '@e2e/test';
 import { buildCommonLocators, openRequest, sendRequest } from '@e2e/pages';
 import { waitForReadyPage } from '@e2e/support';
 import { startNtlmServer, type NtlmEndpoint } from '@usebruno/tests/ntlm';

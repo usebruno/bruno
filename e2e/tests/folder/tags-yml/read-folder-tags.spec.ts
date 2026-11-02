@@ -1,6 +1,10 @@
 import { test, expect } from '@e2e/test';
-import { openFolderSettingsByPath, selectFolderSettingsTab, selectRequestPaneTab } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  openFolderSettingsByPath,
+  selectFolderSettingsTab,
+  selectRequestPaneTab,
+  buildCommonLocators
+} from '@e2e/pages';
 
 const COLLECTION_NAME = 'folder-tags-yml';
 

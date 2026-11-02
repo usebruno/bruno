@@ -1,4 +1,9 @@
-import { test, expect, Page, ElectronApplication } from '../../playwright';
+import {
+  test,
+  expect,
+  Page,
+  ElectronApplication
+} from '../../playwright';
 import * as path from 'path';
 import { buildRequestLocators, selectRequestPaneTab } from './pane';
 import { buildDropdownLocators } from '../shared-ui/dropdown';

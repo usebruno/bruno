@@ -1,6 +1,15 @@
-import { test, expect, Locator, Page } from '@e2e/test';
-import { closeAllCollections, createCollection, createRequest } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  test,
+  expect,
+  Locator,
+  Page
+} from '@e2e/test';
+import {
+  closeAllCollections,
+  createCollection,
+  createRequest,
+  buildCommonLocators
+} from '@e2e/pages';
 import { waitForPredicate } from '@e2e/support';
 
 const isRequestSaved = async (saveButton: Locator) => {

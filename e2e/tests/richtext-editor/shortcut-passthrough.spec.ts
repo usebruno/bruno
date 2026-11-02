@@ -1,7 +1,12 @@
 import { test, expect } from '@e2e/test';
 import { closeAllCollections, setRequestUrlAndSave } from '@e2e/pages';
 import { setupRequestDocs } from './actions';
-import { modifier, pressShortcut, remapKeybinding, resetKeybindings } from '../shortcuts/helpers';
+import {
+  modifier,
+  pressShortcut,
+  remapKeybinding,
+  resetKeybindings
+} from '../shortcuts/helpers';
 
 // keybinding which is bound in Tiptap and also has a global handler (Cmd/Ctrl+B) should not trigger the global handler when docs is focused.
 // keybinding which is not bound in Tiptap (Cmd/Ctrl+,) should still trigger the global handler when docs is focused.

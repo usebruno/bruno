@@ -1,8 +1,12 @@
 import { test, expect } from '@e2e/test';
 import fs from 'fs';
 import path from 'path';
-import { openCollection, sendRequest, selectEnvironment } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  openCollection,
+  sendRequest,
+  selectEnvironment,
+  buildCommonLocators
+} from '@e2e/pages';
 
 const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
 

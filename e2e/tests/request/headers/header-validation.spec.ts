@@ -1,6 +1,14 @@
 import { test, expect } from '@e2e/test';
-import { closeAllCollections, createCollection, createRequest, openCollection, openRequest, saveRequest, selectRequestPaneTab } from '@e2e/pages';
-import { getTableCell } from '@e2e/pages';
+import {
+  closeAllCollections,
+  createCollection,
+  createRequest,
+  openCollection,
+  openRequest,
+  saveRequest,
+  selectRequestPaneTab,
+  getTableCell
+} from '@e2e/pages';
 
 const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
 

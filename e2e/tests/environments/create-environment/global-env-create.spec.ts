@@ -1,7 +1,16 @@
 import { test, expect } from '@e2e/test';
 import path from 'path';
-import { importCollection, createEnvironment, addEnvironmentVariables, saveEnvironment, sendRequest, expectResponseContains, closeAllCollections, deleteAllGlobalEnvironments } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  importCollection,
+  createEnvironment,
+  addEnvironmentVariables,
+  saveEnvironment,
+  sendRequest,
+  expectResponseContains,
+  closeAllCollections,
+  deleteAllGlobalEnvironments,
+  buildCommonLocators
+} from '@e2e/pages';
 
 test.describe('Global Environment Create Tests', () => {
   test.setTimeout(60000);

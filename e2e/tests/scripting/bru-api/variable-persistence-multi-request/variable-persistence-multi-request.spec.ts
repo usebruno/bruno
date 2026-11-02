@@ -1,8 +1,12 @@
 import { test, expect } from '@e2e/test';
 import fs from 'fs';
 import path from 'path';
-import { openCollection, selectEnvironment } from '@e2e/pages';
-import { runCollection, validateRunnerResults } from '@e2e/pages';
+import {
+  openCollection,
+  selectEnvironment,
+  runCollection,
+  validateRunnerResults
+} from '@e2e/pages';
 
 const PERSISTENCE_TIMEOUT = 10000;
 

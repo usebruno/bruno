@@ -1,7 +1,12 @@
 import path from 'path';
 import fs from 'fs';
 import yaml from 'js-yaml';
-import { test, expect, closeElectronApp, ElectronApplication } from '@e2e/test';
+import {
+  test,
+  expect,
+  closeElectronApp,
+  ElectronApplication
+} from '@e2e/test';
 import {
   openWorkspaceFromDialog,
   buildCommonLocators,

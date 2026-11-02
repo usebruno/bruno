@@ -1,7 +1,15 @@
 import * as path from 'path';
 import { once } from 'events';
 import { test, expect, closeElectronApp } from '@e2e/test';
-import { buildCommonLocators, copyUnresolvedVariableNames, openRequest, openUnresolvedVariablesPopover, openUnresolvedVariablesPopoverWithKeyboard, selectResponsePaneTab, sendAndWaitForResponse } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  copyUnresolvedVariableNames,
+  openRequest,
+  openUnresolvedVariablesPopover,
+  openUnresolvedVariablesPopoverWithKeyboard,
+  selectResponsePaneTab,
+  sendAndWaitForResponse
+} from '@e2e/pages';
 import { waitForReadyPage } from '@e2e/support';
 import { startLocalServer } from '@e2e/servers';
 

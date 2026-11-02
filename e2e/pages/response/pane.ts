@@ -1,4 +1,9 @@
-import { test, expect, Page, Locator } from '../../playwright';
+import {
+  test,
+  expect,
+  Page,
+  Locator
+} from '../../playwright';
 import { selectPaneTab } from '../shared-ui/pane-tabs';
 
 /**

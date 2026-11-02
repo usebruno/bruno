@@ -1,5 +1,12 @@
 import { test, expect } from '@e2e/test';
-import { sendRequest, openRequest, selectEnvironment, openEnvironmentSelector, closeEnvironmentPanel, closeAllCollections } from '@e2e/pages';
+import {
+  sendRequest,
+  openRequest,
+  selectEnvironment,
+  openEnvironmentSelector,
+  closeEnvironmentPanel,
+  closeAllCollections
+} from '@e2e/pages';
 
 test.describe.serial('bru.deleteEnvVar(name)', () => {
   test('should remove ephemeral variable from UI after deletion', async ({ pageWithUserData: page }) => {

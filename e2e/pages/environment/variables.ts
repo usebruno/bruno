@@ -1,4 +1,9 @@
-import { test, expect, Page, Locator } from '../../playwright';
+import {
+  test,
+  expect,
+  Page,
+  Locator
+} from '../../playwright';
 import { buildEnvironmentLocators } from './environment';
 import { type EnvironmentType } from './selector';
 import { openEnvironmentInSettings, saveEnvironment } from './settings';

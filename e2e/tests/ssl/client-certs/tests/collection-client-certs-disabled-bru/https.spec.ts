@@ -1,6 +1,5 @@
 import { test, expect } from '@e2e/test';
-import { setSandboxMode, openRequest } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import { setSandboxMode, openRequest, buildCommonLocators } from '@e2e/pages';
 import { TLS_HANDSHAKE_FAILURE } from '@e2e/constants';
 
 const COLLECTION = 'client-certs-disabled-bru';

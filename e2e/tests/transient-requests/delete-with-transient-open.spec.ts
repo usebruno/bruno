@@ -1,6 +1,13 @@
 import { test, expect, ConsoleMessage } from '@e2e/test';
-import { closeAllCollections, createCollection, createRequest, createTransientRequest, deleteRequest, fillRequestUrl } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  closeAllCollections,
+  createCollection,
+  createRequest,
+  createTransientRequest,
+  deleteRequest,
+  fillRequestUrl,
+  buildCommonLocators
+} from '@e2e/pages';
 
 const COLLECTION_NAME = 'delete-with-transient';
 

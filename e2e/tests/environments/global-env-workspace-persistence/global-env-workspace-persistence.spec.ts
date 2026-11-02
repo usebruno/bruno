@@ -1,6 +1,12 @@
 import path from 'path';
 import { test, expect, closeElectronApp } from '@e2e/test';
-import { createWorkspace, switchWorkspace, createCollection, createEnvironment, openCollection } from '@e2e/pages';
+import {
+  createWorkspace,
+  switchWorkspace,
+  createCollection,
+  createEnvironment,
+  openCollection
+} from '@e2e/pages';
 import { waitForReadyPage } from '@e2e/support';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');

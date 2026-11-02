@@ -1,7 +1,14 @@
 import { test, expect } from '@e2e/test';
-import { openCollection, selectEnvironment, openRequest, openEnvironmentConfigTab, setSandboxMode } from '@e2e/pages';
-import { openVariablesTab, readVariableValue } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  openCollection,
+  selectEnvironment,
+  openRequest,
+  openEnvironmentConfigTab,
+  setSandboxMode,
+  openVariablesTab,
+  readVariableValue,
+  buildCommonLocators
+} from '@e2e/pages';
 
 test.describe('req.onFail', () => {
   test('handler writes overwrite the values set in the main body', async ({ pageWithUserData: page }) => {

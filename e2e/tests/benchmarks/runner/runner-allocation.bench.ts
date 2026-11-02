@@ -4,7 +4,14 @@
 // The numbers coming out of this collection becomes less dependable as the collection evolves.
 import { test, expect } from '@e2e/test';
 import { type Page, type ElectronApplication, type CDPSession } from '@playwright/test';
-import { openCollection, closeAllCollections, selectEnvironment, openRunnerTab, buildRunnerLocators, buildCommonLocators } from '@e2e/pages';
+import {
+  openCollection,
+  closeAllCollections,
+  selectEnvironment,
+  openRunnerTab,
+  buildRunnerLocators,
+  buildCommonLocators
+} from '@e2e/pages';
 import {
   RendererMemorySampler,
   MainMemorySampler,

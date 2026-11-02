@@ -1,7 +1,14 @@
 import path from 'path';
 import fs from 'fs';
 import { test, expect } from '@e2e/test';
-import { buildCommonLocators, createCollection, createEnvironment, openEnvironmentConfigTab, setAutoSave, closeAllCollections } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  createCollection,
+  createEnvironment,
+  openEnvironmentConfigTab,
+  setAutoSave,
+  closeAllCollections
+} from '@e2e/pages';
 
 // The env .bru/.yml file, found without assuming the collection's on-disk nesting.
 const readEnvFile = (collectionsDir: string, collectionName: string, envName: string): string => {

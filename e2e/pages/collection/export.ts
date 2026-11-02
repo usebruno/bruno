@@ -1,4 +1,9 @@
-import { test, expect, Page, ElectronApplication } from '../../playwright';
+import {
+  test,
+  expect,
+  Page,
+  ElectronApplication
+} from '../../playwright';
 import * as path from 'path';
 import * as fs from 'fs';
 import AdmZip from 'adm-zip';

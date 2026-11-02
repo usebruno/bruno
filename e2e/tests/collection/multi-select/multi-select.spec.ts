@@ -1,6 +1,16 @@
 import { test, expect } from '@e2e/test';
-import { buildCommonLocators } from '@e2e/pages';
-import { createCollection, createFolder, createRequest, expandFolder, closeAllCollections, clickEmptySidebarSpace, createApp, createExampleFromSidebar, toggleRequestExamples } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  createCollection,
+  createFolder,
+  createRequest,
+  expandFolder,
+  closeAllCollections,
+  clickEmptySidebarSpace,
+  createApp,
+  createExampleFromSidebar,
+  toggleRequestExamples
+} from '@e2e/pages';
 
 // Ctrl on Windows/Linux, Cmd on macOS (matches app's navigator.userAgent check).
 const SELECT_MODIFIER: 'Meta' | 'Control' = process.platform === 'darwin' ? 'Meta' : 'Control';

@@ -1,10 +1,29 @@
-import { test, expect, closeElectronApp, Page, ElectronApplication } from '@e2e/test';
+import {
+  test,
+  expect,
+  closeElectronApp,
+  Page,
+  ElectronApplication
+} from '@e2e/test';
 import * as fs from 'fs';
 import * as path from 'path';
 import { waitForReadyPage, waitForSnapshotApiSpecTabs } from '@e2e/support';
-import { openApiSpecFromDialog, openApiSpecSidebarItem, createApiSpec, buildApiSpecPanelLocators, typeIntoApiSpecEditor, pressSaveShortcut, closeOtherTabsFrom, closeApiSpecTab, removeApiSpecFromWorkspace, removeAllApiSpecsFromWorkspace, expandApiSpecsSection } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
-import { createTransientRequest, closeAllTabs } from '@e2e/pages';
+import {
+  openApiSpecFromDialog,
+  openApiSpecSidebarItem,
+  createApiSpec,
+  buildApiSpecPanelLocators,
+  typeIntoApiSpecEditor,
+  pressSaveShortcut,
+  closeOtherTabsFrom,
+  closeApiSpecTab,
+  removeApiSpecFromWorkspace,
+  removeAllApiSpecsFromWorkspace,
+  expandApiSpecsSection,
+  buildCommonLocators,
+  createTransientRequest,
+  closeAllTabs
+} from '@e2e/pages';
 
 const FIRST_SPEC = { file: 'openapi-comprehensive.yaml', name: 'Comprehensive API Test Collection' };
 const SECOND_SPEC = { file: 'openapi-path-grouping.json', name: 'Path Grouping Test API' };

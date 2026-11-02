@@ -1,6 +1,14 @@
 import { test, expect } from '@e2e/test';
-import { closeAllCollections, createCollection, createRequest, openCollection, openRequest, saveRequest, selectRequestPaneTab } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  closeAllCollections,
+  createCollection,
+  createRequest,
+  openCollection,
+  openRequest,
+  saveRequest,
+  selectRequestPaneTab,
+  buildCommonLocators
+} from '@e2e/pages';
 import * as fs from 'fs';
 import * as path from 'path';
 

@@ -1,7 +1,15 @@
 import { test, expect } from '@e2e/test';
-import { buildResponseErrorsLocators, buildCommonLocators } from '@e2e/pages';
-import { openRequest, selectRequestPaneTab, selectScriptSubTab, editCodeMirrorEditor, sendAndWaitForErrorCard, sendAndWaitForResponse } from '@e2e/pages';
-import { setSandboxMode } from '@e2e/pages';
+import {
+  buildResponseErrorsLocators,
+  buildCommonLocators,
+  openRequest,
+  selectRequestPaneTab,
+  selectScriptSubTab,
+  editCodeMirrorEditor,
+  sendAndWaitForErrorCard,
+  sendAndWaitForResponse,
+  setSandboxMode
+} from '@e2e/pages';
 
 for (const mode of ['safe', 'developer'] as const) {
   test.describe(`Draft Script Error Context [${mode} mode]`, () => {

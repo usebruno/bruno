@@ -1,5 +1,10 @@
 import { test, expect } from '@e2e/test';
-import { createCollection, closeAllCollections, createRequest, selectRequestPaneTab } from '@e2e/pages';
+import {
+  createCollection,
+  closeAllCollections,
+  createRequest,
+  selectRequestPaneTab
+} from '@e2e/pages';
 
 test.describe('EditableTable - Focus and Placeholder', () => {
   test.afterEach(async ({ page }) => {

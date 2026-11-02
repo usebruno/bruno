@@ -1,5 +1,13 @@
 import { test, expect } from '@e2e/test';
-import { clickResponseAction, closeAllCollections, createCollection, createRequest, sendRequest, switchResponseFormat, switchToEditorTab } from '@e2e/pages';
+import {
+  clickResponseAction,
+  closeAllCollections,
+  createCollection,
+  createRequest,
+  sendRequest,
+  switchResponseFormat,
+  switchToEditorTab
+} from '@e2e/pages';
 
 test.describe('Response Pane Actions', () => {
   test.afterAll(async ({ page }) => {

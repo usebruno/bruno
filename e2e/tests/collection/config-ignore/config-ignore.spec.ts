@@ -1,8 +1,19 @@
-import { test, expect, closeElectronApp, waitForReadyPage } from '@e2e/test';
+import {
+  test,
+  expect,
+  closeElectronApp,
+  waitForReadyPage
+} from '@e2e/test';
 import * as path from 'path';
 import * as fs from 'fs';
-import { closeAllCollections, expandFolder, openCollection, openCollectionFromDialog, removeCollection } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  closeAllCollections,
+  expandFolder,
+  openCollection,
+  openCollectionFromDialog,
+  removeCollection,
+  buildCommonLocators
+} from '@e2e/pages';
 
 const ymlRequest = (name: string) => `info:
   name: ${name}

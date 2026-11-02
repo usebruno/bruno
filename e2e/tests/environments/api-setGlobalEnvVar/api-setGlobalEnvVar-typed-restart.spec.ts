@@ -1,10 +1,15 @@
 import path from 'path';
 import fs from 'fs';
 import { test, expect, closeElectronApp } from '@e2e/test';
-import { openCollection, openRequest, sendRequest, selectEnvironment } from '@e2e/pages';
+import {
+  openCollection,
+  openRequest,
+  sendRequest,
+  selectEnvironment,
+  buildCommonLocators,
+  waitForCollectionMount
+} from '@e2e/pages';
 import { waitForReadyPage } from '@e2e/support';
-import { buildCommonLocators } from '@e2e/pages';
-import { waitForCollectionMount } from '@e2e/pages';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 const workspaceFixturePath = path.join(__dirname, 'test-data', 'workspace');

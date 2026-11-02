@@ -1,8 +1,19 @@
 import { test, expect, Page } from '@e2e/test';
-import { buildResponseErrorsLocators, buildCommonLocators } from '@e2e/pages';
-import { openRequest, closeAllTabs, sendAndWaitForErrorCard, sendAndWaitForResponse, openFolderRequest, selectResponsePaneTab } from '@e2e/pages';
+import {
+  buildResponseErrorsLocators,
+  buildCommonLocators,
+  openRequest,
+  closeAllTabs,
+  sendAndWaitForErrorCard,
+  sendAndWaitForResponse,
+  openFolderRequest,
+  selectResponsePaneTab,
+  setSandboxMode,
+  runCollection,
+  buildRunnerLocators,
+  openRunnerResult
+} from '@e2e/pages';
 import { getScrollMetrics } from '@e2e/support';
-import { setSandboxMode, runCollection, buildRunnerLocators, openRunnerResult } from '@e2e/pages';
 
 for (const mode of ['safe', 'developer'] as const) {
   test.describe(`Script Error Display [${mode} mode]`, () => {

@@ -1,11 +1,15 @@
 import path from 'path';
 import fs from 'fs';
 import { test, expect, closeElectronApp } from '@e2e/test';
-import { createWorkspace, switchWorkspace } from '@e2e/pages';
+import {
+  createWorkspace,
+  switchWorkspace,
+  buildCommonLocators,
+  buildTitleBarLocators,
+  goToManageWorkspace,
+  openWorkspaceActionsMenu
+} from '@e2e/pages';
 import { waitForReadyPage } from '@e2e/support';
-import { buildCommonLocators } from '@e2e/pages';
-import { buildTitleBarLocators } from '@e2e/pages';
-import { goToManageWorkspace, openWorkspaceActionsMenu } from '@e2e/pages';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 

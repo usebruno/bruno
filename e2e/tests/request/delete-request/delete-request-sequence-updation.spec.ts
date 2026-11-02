@@ -1,5 +1,10 @@
 import { test, expect } from '@e2e/test';
-import { closeAllCollections, createCollection, createRequest, deleteRequest } from '@e2e/pages';
+import {
+  closeAllCollections,
+  createCollection,
+  createRequest,
+  deleteRequest
+} from '@e2e/pages';
 
 test.describe('Delete Request Sequence Updation', () => {
   test.afterAll(async ({ page }) => {

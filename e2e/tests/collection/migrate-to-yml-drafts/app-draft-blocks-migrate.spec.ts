@@ -1,6 +1,14 @@
 import { test, expect } from '@e2e/test';
-import { buildCommonLocators, closeAllCollections, createApp, createCollection, saveRequest } from '@e2e/pages';
-import { addCollectionAppCodeFromEmptyState, openMigrateToYmlModalFromPill, setCollectionAppCode } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  createApp,
+  createCollection,
+  saveRequest,
+  addCollectionAppCodeFromEmptyState,
+  openMigrateToYmlModalFromPill,
+  setCollectionAppCode
+} from '@e2e/pages';
 import { CLICK_COUNTER_APP, CLICK_COUNTER_APP_EDITED } from '@e2e/constants';
 
 const APP_NAME = 'Demo_app';

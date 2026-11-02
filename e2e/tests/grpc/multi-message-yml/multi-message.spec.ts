@@ -3,7 +3,14 @@ import path from 'node:path';
 import yaml from 'js-yaml';
 import { bruToJsonV2 } from '@usebruno/lang';
 import { expect, test } from '@e2e/test';
-import { addGrpcMessage, createCollection, createRequest, generateGrpcSampleMessage, saveRequest, selectGrpcMethod } from '@e2e/pages';
+import {
+  addGrpcMessage,
+  createCollection,
+  createRequest,
+  generateGrpcSampleMessage,
+  saveRequest,
+  selectGrpcMethod
+} from '@e2e/pages';
 
 const REQUEST_NAME = 'grpc-multi-msg';
 const GRPC_URL = 'localhost:50051';

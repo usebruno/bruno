@@ -1,7 +1,12 @@
 import * as path from 'path';
 import { test, expect } from '@e2e/test';
-import { closeAllCollections, mockBrowseFiles, openCollection, selectRequestPaneTab } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  closeAllCollections,
+  mockBrowseFiles,
+  openCollection,
+  selectRequestPaneTab,
+  buildCommonLocators
+} from '@e2e/pages';
 
 const MISSING_FILE_WARNING = 'The file above is not in the given directory, please upload it again.';
 

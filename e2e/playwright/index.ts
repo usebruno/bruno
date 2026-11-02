@@ -1,4 +1,10 @@
-import { test as baseTest, BrowserContext, ElectronApplication, Page, TestInfo } from '@playwright/test';
+import {
+  test as baseTest,
+  BrowserContext,
+  ElectronApplication,
+  Page,
+  TestInfo
+} from '@playwright/test';
 import { merge } from 'lodash-es';
 import * as path from 'path';
 import * as os from 'os';

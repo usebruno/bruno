@@ -1,5 +1,16 @@
 import { test, expect } from '@e2e/test';
-import { buildCommonLocators, closeAllCollections, createCollection, createFolder, createRequest, openRequest, readField, selectAuthMode, selectRequestPaneTab, typeIntoField } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  createCollection,
+  createFolder,
+  createRequest,
+  openRequest,
+  readField,
+  selectAuthMode,
+  selectRequestPaneTab,
+  typeIntoField
+} from '@e2e/pages';
 import { AUTH_MODE_LABELS } from '@e2e/constants';
 
 test.describe('Effective auth mode resolution', () => {

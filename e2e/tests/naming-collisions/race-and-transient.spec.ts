@@ -1,7 +1,16 @@
 import process from 'node:process';
 import * as path from 'path';
 import { test, expect } from '@e2e/test';
-import { buildCommonLocators, createCollection, createRequest, createFolder, createTransientRequest, saveTransientRequestAs, closeAllCollections, copyItem } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  createCollection,
+  createRequest,
+  createFolder,
+  createTransientRequest,
+  saveTransientRequestAs,
+  closeAllCollections,
+  copyItem
+} from '@e2e/pages';
 import { listRequestFiles, findCollectionDir } from './utils';
 
 const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';

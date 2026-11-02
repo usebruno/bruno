@@ -1,4 +1,10 @@
-import { test, expect, Locator, Page, ElectronApplication } from '../playwright';
+import {
+  test,
+  expect,
+  Locator,
+  Page,
+  ElectronApplication
+} from '../playwright';
 
 const apiSpecsSection = (page: Page) =>
   page.locator('.sidebar-section').filter({ has: page.locator('.section-title', { hasText: 'API Specs' }) });

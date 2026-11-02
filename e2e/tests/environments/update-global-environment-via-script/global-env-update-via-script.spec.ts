@@ -1,6 +1,5 @@
 import { test, expect } from '@e2e/test';
-import { closeAllCollections } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import { closeAllCollections, buildCommonLocators } from '@e2e/pages';
 
 test.describe('Global Environment Variable Update via Script', () => {
   test.afterEach(async ({ pageWithUserData: page }) => {

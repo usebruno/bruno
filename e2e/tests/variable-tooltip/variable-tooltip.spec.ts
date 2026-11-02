@@ -1,6 +1,26 @@
 import { test, expect } from '@e2e/test';
-import { createCollection, closeAllCollections, createRequest, createFolder, expandFolder, createEnvironment, addEnvironmentVariable, addEnvironmentVariables, saveEnvironment, selectRequestPaneTab, closeEnvironmentPanel, deleteAllGlobalEnvironments, setRequestUrlAndSave, openUrlVarTooltip, dismissVarTooltip, openEnvValueVarTooltip, openCollectionSettings, selectCollectionPaneTab, openEnvironmentConfigTab } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  createCollection,
+  closeAllCollections,
+  createRequest,
+  createFolder,
+  expandFolder,
+  createEnvironment,
+  addEnvironmentVariable,
+  addEnvironmentVariables,
+  saveEnvironment,
+  selectRequestPaneTab,
+  closeEnvironmentPanel,
+  deleteAllGlobalEnvironments,
+  setRequestUrlAndSave,
+  openUrlVarTooltip,
+  dismissVarTooltip,
+  openEnvValueVarTooltip,
+  openCollectionSettings,
+  selectCollectionPaneTab,
+  openEnvironmentConfigTab,
+  buildCommonLocators
+} from '@e2e/pages';
 import { SECRET_DATATYPE_CASES } from '@e2e/constants';
 
 const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';

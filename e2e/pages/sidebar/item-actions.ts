@@ -1,4 +1,9 @@
-import { test, expect, Page, ElectronApplication } from '../../playwright';
+import {
+  test,
+  expect,
+  Page,
+  ElectronApplication
+} from '../../playwright';
 import { collectionSlug } from '../../../packages/bruno-app/src/utils/collections/collectionSlug';
 import { EmptyStateRequestType, buildSidebarLocators } from './collection-tree';
 import { buildModalLocators } from '../shared-ui/modal';

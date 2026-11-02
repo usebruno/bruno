@@ -1,8 +1,30 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect, Locator, Page } from '@e2e/test';
-import { closeAllCollections, createCollection, createRequest, openRequest, selectRequestPaneTab, selectAuthMode, buildCommonLocators } from '@e2e/pages';
-import { authFieldEditor, buildAutocompleteLocators, expectAutocompleteStaysClosed, maskedCharacters, pasteIntoEditor, pressAutocompleteShortcut, readEditorValue, setEditorState, pickHint, firstRenderedLine } from '@e2e/pages';
+import {
+  test,
+  expect,
+  Locator,
+  Page
+} from '@e2e/test';
+import {
+  closeAllCollections,
+  createCollection,
+  createRequest,
+  openRequest,
+  selectRequestPaneTab,
+  selectAuthMode,
+  buildCommonLocators,
+  authFieldEditor,
+  buildAutocompleteLocators,
+  expectAutocompleteStaysClosed,
+  maskedCharacters,
+  pasteIntoEditor,
+  pressAutocompleteShortcut,
+  readEditorValue,
+  setEditorState,
+  pickHint,
+  firstRenderedLine
+} from '@e2e/pages';
 
 const expectFullyMasked = async (editor: Locator, realValue: string) => {
   await expect(maskedCharacters(editor)).toHaveCount(realValue.length);

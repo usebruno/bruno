@@ -1,4 +1,9 @@
-import { expect, Locator, Page, test } from '../../playwright';
+import {
+  expect,
+  Locator,
+  Page,
+  test
+} from '../../playwright';
 
 export const buildSetAsVariableLocators = (page: Page) => ({
   menu: () => page.getByTestId('set-as-variable-menu-dropdown'),

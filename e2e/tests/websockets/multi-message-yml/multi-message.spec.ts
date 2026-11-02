@@ -1,6 +1,10 @@
 import { expect, test } from '@e2e/test';
-import { buildCommonLocators } from '@e2e/pages';
-import { openRequest, saveRequest, closeAllCollections } from '@e2e/pages';
+import {
+  buildCommonLocators,
+  openRequest,
+  saveRequest,
+  closeAllCollections
+} from '@e2e/pages';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 

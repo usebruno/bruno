@@ -1,6 +1,14 @@
 import { test, expect } from '@e2e/test';
-import { openFolderRunModal, folderRunButton, folderRunCount, dismissFolderRunModal, addRunnerTag, clearRunnerTags, buildRunnerLocators } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  openFolderRunModal,
+  folderRunButton,
+  folderRunCount,
+  dismissFolderRunModal,
+  addRunnerTag,
+  clearRunnerTags,
+  buildRunnerLocators,
+  buildCommonLocators
+} from '@e2e/pages';
 
 const COLLECTION_NAME = 'runner-folder-tags';
 

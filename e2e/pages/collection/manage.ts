@@ -1,4 +1,9 @@
-import { test, expect, Page, ElectronApplication } from '../../playwright';
+import {
+  test,
+  expect,
+  Page,
+  ElectronApplication
+} from '../../playwright';
 import { buildDropdownLocators } from '../shared-ui/dropdown';
 import { buildModalLocators } from '../shared-ui/modal';
 import { revealCollectionsTop } from '../sidebar/collection-tree';

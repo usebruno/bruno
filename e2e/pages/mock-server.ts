@@ -1,4 +1,9 @@
-import { test, expect, Page, Locator } from '../playwright';
+import {
+  test,
+  expect,
+  Page,
+  Locator
+} from '../playwright';
 import { openPreferences, selectPreferencesTab, closePreferences } from './app-shell/preferences';
 import { buildModalLocators } from './shared-ui/modal';
 

@@ -1,6 +1,10 @@
 import { expect, test } from '@e2e/test';
-import { closeAllTabs, createTransientRequest, selectRequestPaneTab } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  closeAllTabs,
+  createTransientRequest,
+  selectRequestPaneTab,
+  buildCommonLocators
+} from '@e2e/pages';
 
 test.describe('websocket message default body', () => {
   test.afterEach(async ({ page }) => {

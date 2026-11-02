@@ -1,11 +1,27 @@
 import fs from 'fs';
 import path from 'path';
-import { ElectronApplication, expect, Locator, Page, test } from '@e2e/test';
-import { closeAllCollections, expandCollection, expandFolder, selectResponsePaneTab, sendRequestAndWaitForResponse } from '@e2e/pages';
-import { closeDevToolsConsole, openNetworkRequestDetails } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
-import { openCollectionFromPath, waitForCollectionMount } from '@e2e/pages';
-import { buildRunnerLocators, openRunnerResultTimeline, runCollection } from '@e2e/pages';
+import {
+  ElectronApplication,
+  expect,
+  Locator,
+  Page,
+  test
+} from '@e2e/test';
+import {
+  closeAllCollections,
+  expandCollection,
+  expandFolder,
+  selectResponsePaneTab,
+  sendRequestAndWaitForResponse,
+  closeDevToolsConsole,
+  openNetworkRequestDetails,
+  buildCommonLocators,
+  openCollectionFromPath,
+  waitForCollectionMount,
+  buildRunnerLocators,
+  openRunnerResultTimeline,
+  runCollection
+} from '@e2e/pages';
 
 const COLLECTION = 'timeline-headers';
 const REQUEST = 'get-headers';

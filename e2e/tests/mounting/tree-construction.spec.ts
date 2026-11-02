@@ -1,6 +1,16 @@
 import * as path from 'path';
-import { test, expect, ElectronApplication, Page } from '@e2e/test';
-import { setupTestFixture, setupStaticFixture, TestFixture, StaticTestFixture } from '@e2e/data';
+import {
+  test,
+  expect,
+  ElectronApplication,
+  Page
+} from '@e2e/test';
+import {
+  setupTestFixture,
+  setupStaticFixture,
+  TestFixture,
+  StaticTestFixture
+} from '@e2e/data';
 import { getCollectionTreeStructure, CollectionTreeItem, closeAllCollections } from '@e2e/pages';
 
 const formats = ['bru', 'yml'] as const;

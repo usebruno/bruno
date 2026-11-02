@@ -1,7 +1,13 @@
 import { test, expect, Page } from '@e2e/test';
-import { buildResponseErrorsLocators, buildCommonLocators } from '@e2e/pages';
-import { openRequest, sendAndWaitForErrorCard, sendAndWaitForResponse, closeAllTabs } from '@e2e/pages';
-import { setSandboxMode } from '@e2e/pages';
+import {
+  buildResponseErrorsLocators,
+  buildCommonLocators,
+  openRequest,
+  sendAndWaitForErrorCard,
+  sendAndWaitForResponse,
+  closeAllTabs,
+  setSandboxMode
+} from '@e2e/pages';
 
 /**
  * Resolves the CodeMirror scroller `scrollTop` for an editor inside a given

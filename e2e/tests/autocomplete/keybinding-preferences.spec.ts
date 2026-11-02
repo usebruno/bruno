@@ -1,6 +1,18 @@
 import { test, expect, Page } from '@e2e/test';
-import { closeAllCollections, createCollection, createRequest, openRequest, openPreferences, selectPreferencesTab, closePreferences, buildCommonLocators } from '@e2e/pages';
-import { buildAutocompleteLocators, expectAutocompleteStaysClosed, pressAutocompleteShortcut, setEditorState } from '@e2e/pages';
+import {
+  closeAllCollections,
+  createCollection,
+  createRequest,
+  openRequest,
+  openPreferences,
+  selectPreferencesTab,
+  closePreferences,
+  buildCommonLocators,
+  buildAutocompleteLocators,
+  expectAutocompleteStaysClosed,
+  pressAutocompleteShortcut,
+  setEditorState
+} from '@e2e/pages';
 
 const ACTION = 'triggerAutocomplete';
 const NEW_COMBO_KEYS = ['Control', 'Shift', 'Space'];

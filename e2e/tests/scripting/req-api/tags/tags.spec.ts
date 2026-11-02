@@ -1,5 +1,10 @@
 import { test } from '@e2e/test';
-import { setSandboxMode, runFolder, selectEnvironment, validateRunnerResults } from '@e2e/pages';
+import {
+  setSandboxMode,
+  runFolder,
+  selectEnvironment,
+  validateRunnerResults
+} from '@e2e/pages';
 
 test.describe.serial('req tags inherited from folders', () => {
   test.beforeEach(() => test.setTimeout(2 * 60 * 1000));

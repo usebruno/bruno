@@ -1,9 +1,11 @@
-import { closeElectronApp, ElectronApplication, expect, test } from '@e2e/test';
-import { buildCommonLocators } from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
-import { clickOpenWorkspace } from '@e2e/pages';
-import { stubOpenDirectoryDialog } from '@e2e/support';
-import { createWorkspaceFromYml } from '@e2e/support';
+import {
+  closeElectronApp,
+  ElectronApplication,
+  expect,
+  test
+} from '@e2e/test';
+import { buildCommonLocators, clickOpenWorkspace } from '@e2e/pages';
+import { waitForReadyPage, stubOpenDirectoryDialog, createWorkspaceFromYml } from '@e2e/support';
 
 test.describe('Open Workspace', () => {
   test('TC-1011: Verify the Open Workspace from the device', { tag: '@sanity' }, async ({

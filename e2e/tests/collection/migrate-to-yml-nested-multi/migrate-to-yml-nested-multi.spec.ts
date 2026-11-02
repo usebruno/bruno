@@ -1,7 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 import { test, expect } from '@e2e/test';
-import { closeAllCollections, openCollection, buildCommonLocators, confirmMigration, openMigrateToYmlModalFromOverview } from '@e2e/pages';
+import {
+  closeAllCollections,
+  openCollection,
+  buildCommonLocators,
+  confirmMigration,
+  openMigrateToYmlModalFromOverview
+} from '@e2e/pages';
 
 test.describe('Migrating one collection to yml closes its tabs and leaves other collections untouched', () => {
   test.afterAll(async ({ pageWithUserData: page }) => {

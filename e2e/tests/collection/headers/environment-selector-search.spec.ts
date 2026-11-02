@@ -1,6 +1,11 @@
 import { test, expect } from '@e2e/test';
-import { closeAllCollections, buildCommonLocators, openCollection } from '@e2e/pages';
-import { openEnvironmentDropdown, closeEnvironmentSelector } from '@e2e/pages';
+import {
+  closeAllCollections,
+  buildCommonLocators,
+  openCollection,
+  openEnvironmentDropdown,
+  closeEnvironmentSelector
+} from '@e2e/pages';
 
 // TODO: We need to revisit and make it parallel safe
 test.describe.serial('Environment Selector Search', () => {

@@ -1,7 +1,11 @@
 import { test, expect } from '@e2e/test';
-import { closeAllCollections, createCollection, selectRequestPaneTab } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
-import { createRequestFromCurl } from '@e2e/pages';
+import {
+  closeAllCollections,
+  createCollection,
+  selectRequestPaneTab,
+  buildCommonLocators,
+  createRequestFromCurl
+} from '@e2e/pages';
 
 const COLLECTION_NAME = 'curl-data-binary';
 

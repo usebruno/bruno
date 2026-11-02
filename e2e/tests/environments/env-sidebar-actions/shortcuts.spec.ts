@@ -1,8 +1,17 @@
 import { test, expect } from '@e2e/test';
-import { addRowToActiveTab, closeAllCollections, saveEnvironment } from '@e2e/pages';
-import { buildCommonLocators } from '@e2e/pages';
+import {
+  addRowToActiveTab,
+  closeAllCollections,
+  saveEnvironment,
+  buildCommonLocators,
+  DELETE_KEY,
+  IS_MAC,
+  SELECT_ALL_KEY,
+  clickEmptyListSpace,
+  ctrlClickRows,
+  openRowContextMenu
+} from '@e2e/pages';
 import { ENV_NAMES, openEnvironmentsList } from './helpers';
-import { DELETE_KEY, IS_MAC, SELECT_ALL_KEY, clickEmptyListSpace, ctrlClickRows, openRowContextMenu } from '@e2e/pages';
 
 const [ENV_1, ENV_2, ENV_3, ENV_4] = ENV_NAMES;
 
