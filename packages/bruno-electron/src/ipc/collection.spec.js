@@ -73,9 +73,12 @@ const { copyPathTo } = require('../utils/filesystem');
 const { moveRequestUid } = require('../cache/requestUids');
 
 describe('IPC collection handlers', () => {
+  let mainWindow;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    registerCollectionsIpc({ webContents: { send: jest.fn() } }, {});
+    mainWindow = { webContents: { send: jest.fn() } };
+    registerCollectionsIpc(mainWindow, {});
   });
 
   describe('renderer:move-item', () => {
@@ -210,6 +213,16 @@ describe('IPC collection handlers', () => {
       expect(readSyncConfig('Orders API')).toEqual([
         { sourceUrl: '../orders.yaml', groupBy: 'tags', lastSyncDate: expect.any(String), specHash: specHashOf(specContent) }
       ]);
+    });
+
+    it('opens the collection with the sync config it saved, including specHash and lastSyncDate', async () => {
+      await importCollectionHandler({}, openApiCollection('orders', 'Orders API'), collectionLocation, {
+        format: 'bru',
+        rawOpenAPISpecs: { orders: ordersSpec }
+      });
+
+      const [, , , brunoConfig] = mainWindow.webContents.send.mock.calls.find(([channel]) => channel === 'main:collection-opened');
+      expect(brunoConfig.openapi).toEqual(readSyncConfig('Orders API'));
     });
   });
 });

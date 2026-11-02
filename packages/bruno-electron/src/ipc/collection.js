@@ -1549,7 +1549,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           const specContent = typeof rawOpenAPISpec === 'string'
             ? rawOpenAPISpec
             : JSON.stringify(rawOpenAPISpec, null, 2);
-          await saveSpecAndUpdateMetadata({ collectionPath, specContent });
+          const syncMetadata = await saveSpecAndUpdateMetadata({ collectionPath, specContent });
+          brunoConfig.openapi[0] = { ...brunoConfig.openapi[0], ...syncMetadata };
         }
 
         const { size, filesCount } = await getCollectionStats(collectionPath);

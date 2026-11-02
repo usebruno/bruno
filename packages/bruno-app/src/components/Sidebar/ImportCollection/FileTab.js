@@ -7,7 +7,7 @@ import { isOpenApiSpec, isSwagger2Spec } from 'utils/importers/openapi-collectio
 import { isWSDLCollection } from 'utils/importers/wsdl-collection';
 import { isBrunoCollection } from 'utils/importers/bruno-collection';
 import { isOpenCollection } from 'utils/importers/opencollection';
-import { parseFileText } from 'utils/importers/common';
+import { parseFileText } from 'utils/importers/file-reader';
 import { useTheme } from 'providers/Theme';
 
 const convertFileToObject = async (file) => parseFileText(await file.text(), file);
