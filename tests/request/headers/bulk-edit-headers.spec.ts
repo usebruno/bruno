@@ -1,5 +1,5 @@
 import { expect, test } from '../../../playwright';
-import { closeAllCollections, createCollection, createRequest, selectRequestPaneTab } from '../../utils/page';
+import { openRequest, selectRequestPaneTab } from '../../utils/page';
 import { appendRequestHeaderBulkLines, buildRequestLocators, fillRequestHeaderName, fillRequestHeaderValue } from '../../utils/request';
 
 const checked = { name: 'X-Checked', value: 'checked-value' };
@@ -24,17 +24,11 @@ const allLines = [
 // or Electron setup is still cut off at the 30s project default.
 test.describe.configure({ timeout: 120_000 });
 
-test.afterEach(async ({ page }) => {
-  if (!page) return;
-  await closeAllCollections(page);
-});
-
-test('TC-592: Verify the Link from Key/Value to Bulk Edit View for Request Headers.', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+test('TC-592: Verify the Link from Key/Value to Bulk Edit View for Request Headers.', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
   const headers = buildRequestLocators(page).headers;
 
   await test.step('Open an HTTP request on the Headers tab', async () => {
-    await createCollection(page, 'bulk-edit-headers', await createTmpDir('bulk-edit-headers'));
-    await createRequest(page, 'get-headers', 'bulk-edit-headers', { url: 'https://example.com' });
+    await openRequest(page, 'bulk-edit-headers', 'get-headers');
     await selectRequestPaneTab(page, 'Headers');
 
     await expect(headers.table()).toBeVisible();
