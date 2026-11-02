@@ -49,7 +49,7 @@ test.describe.serial('PAC Proxy', () => {
     // Compute the file:// URL at runtime so it is correct on every OS:
     //   Mac/Linux → file:///abs/path/to/test.pac
     //   Windows   → file:///C:/abs/path/to/test.pac
-    const pacUrl = pathToFileURL(path.join(__dirname, 'fixtures', 'pac-files', 'test.pac')).href;
+    const pacUrl = pathToFileURL(path.join(__dirname, 'test-data', 'pac-files', 'test.pac')).href;
     const initUserDataPath = path.join(__dirname, 'init-user-data');
     const app = await launchElectronApp({ initUserDataPath, templateVars: { pacUrl } });
 

@@ -82,7 +82,7 @@ test.describe.serial('System Proxy with PAC', () => {
 
   // Covers the local-file PAC case (user-selected .pac file on disk).
   test('resolves OS-level PAC URL in system proxy mode (file:// PAC)', async ({ launchElectronApp }) => {
-    const pacUrl = pathToFileURL(path.join(__dirname, '..', 'pac', 'fixtures', 'pac-files', 'test.pac')).href;
+    const pacUrl = pathToFileURL(path.join(__dirname, '..', 'pac', 'test-data', 'pac-files', 'test.pac')).href;
     enableSystemPac(pacUrl);
 
     const initUserDataPath = path.join(__dirname, 'init-user-data');

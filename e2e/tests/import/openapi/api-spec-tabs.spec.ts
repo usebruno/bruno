@@ -11,7 +11,7 @@ const SECOND_SPEC = { file: 'openapi-path-grouping.json', name: 'Path Grouping T
 const EDITABLE_SPEC = { file: 'openapi-with-examples.yaml', name: 'API with Examples' };
 const EDIT_MARKER = '# edited from the spec editor\n';
 
-const fixture = (name: string) => path.resolve(__dirname, 'fixtures', name);
+const fixture = (name: string) => path.resolve(__dirname, 'test-data', name);
 
 test.describe('API specs open as workspace tabs', () => {
   test.beforeAll(async ({ electronApp }) => {

@@ -1,7 +1,7 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/e2e/tests/websockets/multi-message-bru/fixtures/collection"
+    "{{projectRoot}}/e2e/tests/websockets/multi-message-bru/test-data/collection"
   ],
   "preferences": {
     "onboarding": {

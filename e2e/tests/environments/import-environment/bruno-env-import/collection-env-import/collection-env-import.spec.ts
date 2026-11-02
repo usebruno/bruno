@@ -5,8 +5,8 @@ import { buildCommonLocators } from '../../../../../pages';
 
 test.describe.serial('Collection Environment Import Tests', () => {
   test('should import single collection environment', async ({ pageWithUserData: page }) => {
-    const singleEnvFile = path.join(__dirname, '../../../fixtures/environment-exports/local.json');
-    const collectionPath = path.join(__dirname, 'fixtures/collection');
+    const singleEnvFile = path.join(__dirname, '../../../test-data/environment-exports/local.json');
+    const collectionPath = path.join(__dirname, 'test-data/collection');
     const environmentsPath = path.join(collectionPath, 'environments');
 
     await test.step('Clean up existing environments and open collection', async () => {
@@ -70,8 +70,8 @@ test.describe.serial('Collection Environment Import Tests', () => {
   });
 
   test('should import multiple collection environments', async ({ pageWithUserData: page }) => {
-    const multiEnvFile = path.join(__dirname, '../../../fixtures/environment-exports/bruno-collection-environments.json');
-    const collectionPath = path.join(__dirname, 'fixtures/collection');
+    const multiEnvFile = path.join(__dirname, '../../../test-data/environment-exports/bruno-collection-environments.json');
+    const collectionPath = path.join(__dirname, 'test-data/collection');
     const environmentsPath = path.join(collectionPath, 'environments');
 
     await test.step('Clean up existing environments and open collection', async () => {

@@ -4,7 +4,7 @@ import { buildCommonLocators } from '../../../../../pages';
 
 test.describe.serial('Global Environment Import Tests', () => {
   test('should import single global environment', async ({ pageWithUserData: page }) => {
-    const singleEnvFile = path.join(__dirname, '../../../fixtures/environment-exports/local.json');
+    const singleEnvFile = path.join(__dirname, '../../../test-data/environment-exports/local.json');
 
     await test.step('Open collection and clean up existing global environments', async () => {
       // Open the collection from sidebar
@@ -71,7 +71,7 @@ test.describe.serial('Global Environment Import Tests', () => {
   });
 
   test('should import multiple global environments', async ({ pageWithUserData: page }) => {
-    const multiEnvFile = path.join(__dirname, '../../../fixtures/environment-exports/bruno-global-environments.json');
+    const multiEnvFile = path.join(__dirname, '../../../test-data/environment-exports/bruno-global-environments.json');
 
     await test.step('Open collection and clean up existing global environments', async () => {
       // Open the collection from sidebar

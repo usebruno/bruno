@@ -1,7 +1,7 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/e2e/tests/environments/export-environment/collection-env-export/fixtures/collection"
+    "{{projectRoot}}/e2e/tests/environments/export-environment/collection-env-export/test-data/collection"
   ],
   "preferences": {
     "onboarding": {

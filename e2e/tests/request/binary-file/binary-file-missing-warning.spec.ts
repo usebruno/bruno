@@ -11,7 +11,7 @@ test.describe('File / Binary body missing-file warning', () => {
   });
 
   test('should show warning for missing binary file', async ({ page, electronApp, createTmpDir }) => {
-    const collectionFile = path.resolve(__dirname, 'fixtures', 'binary-file-missing-warning.yml');
+    const collectionFile = path.resolve(__dirname, 'test-data', 'binary-file-missing-warning.yml');
     const locators = buildCommonLocators(page);
 
     const importDir = await createTmpDir('imported-collection');

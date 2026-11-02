@@ -7,7 +7,7 @@ import { waitForCollectionMount } from '../../../pages';
 
 const NEW_VALUE = 'VALUE_global_nonsecret_e2e_42';
 const initUserDataPath = path.join(__dirname, 'init-user-data');
-const workspaceFixturePath = path.join(__dirname, 'fixtures', 'workspace');
+const workspaceFixturePath = path.join(__dirname, 'test-data', 'workspace');
 
 test.describe('bru.setGlobalEnvVar(name, value) - non-secret variable persistence (workspace mode)', () => {
   test('persisted non-secret global var survives app restart and interpolates on the next launch', async ({

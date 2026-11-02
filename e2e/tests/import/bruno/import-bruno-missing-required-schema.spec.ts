@@ -3,7 +3,7 @@ import * as path from 'path';
 
 test.describe('Import Bruno Collection - Missing Required Schema Fields', () => {
   test('Import Bruno collection missing required version field should fail', async ({ page }) => {
-    const brunoFile = path.resolve(__dirname, 'fixtures', 'bruno-missing-required-fields.json');
+    const brunoFile = path.resolve(__dirname, 'test-data', 'bruno-missing-required-fields.json');
 
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();

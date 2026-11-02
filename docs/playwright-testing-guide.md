@@ -121,7 +121,7 @@ e2e/
     │   └── create-new-collection.spec.ts
     └── feature-a/
         ├── some-behaviour.spec.ts
-        ├── fixtures/      # sample data: collection/, collections/, workspace/ loaded by the test fixtures
+        ├── test-data/     # sample data: collection/, collections/, workspace/ loaded by the Playwright fixtures
         └── init-user-data/  # preferences.json seed for the app
 ```
 

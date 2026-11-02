@@ -1,7 +1,7 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/e2e/tests/websockets/fixtures/collection"
+    "{{projectRoot}}/e2e/tests/websockets/test-data/collection"
   ],
   "preferences": {
     "onboarding": {

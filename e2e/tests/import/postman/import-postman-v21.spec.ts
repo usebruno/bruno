@@ -8,7 +8,7 @@ test.describe('Import Postman Collection v2.1', () => {
   });
 
   test('Import Postman Collection v2.1 successfully', async ({ page, createTmpDir }) => {
-    const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-v21.json');
+    const postmanFile = path.resolve(__dirname, 'test-data', 'postman-v21.json');
 
     await importCollection(page, postmanFile, await createTmpDir('postman-v21-test'), {
       expectedCollectionName: 'Postman v2.1 Collection'

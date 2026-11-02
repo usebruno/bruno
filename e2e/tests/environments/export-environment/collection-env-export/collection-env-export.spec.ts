@@ -8,7 +8,7 @@ import { buildCommonLocators } from '../../../../pages';
 
 // Helper function to load expected fixtures
 function loadExpectedFixture(fixturePath: string) {
-  const fullPath = path.join(__dirname, '..', '../fixtures', 'environment-exports', fixturePath);
+  const fullPath = path.join(__dirname, '..', '../test-data', 'environment-exports', fixturePath);
   console.log(fullPath);
   return JSON.parse(fs.readFileSync(fullPath, 'utf8'));
 }

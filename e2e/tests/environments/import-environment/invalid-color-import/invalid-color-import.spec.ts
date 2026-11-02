@@ -2,7 +2,7 @@ import path from 'path';
 import { test, expect } from '../../../../playwright';
 import { buildCommonLocators, closeAllCollections, createCollection, importEnvironment, selectEnvironment } from '../../../../pages';
 
-const envFile = path.join(__dirname, 'fixtures', 'unreadable-color-env.json');
+const envFile = path.join(__dirname, 'test-data', 'unreadable-color-env.json');
 
 test.describe('Import environment - a colour that cannot be read', () => {
   test.afterEach(async ({ page }) => {

@@ -22,7 +22,7 @@ const restartAppAndGetLocators = async (restartApp: (options?: { initUserDataPat
 test.describe.skip('Close All Collections', () => {
   test.afterAll(async () => {
     // Reset the request file to the original state after saving changes
-    execSync(`git checkout -- "${path.join(__dirname, 'fixtures', 'collections', 'collection 1', 'test-request.bru')}"`);
+    execSync(`git checkout -- "${path.join(__dirname, 'test-data', 'collections', 'collection 1', 'test-request.bru')}"`);
   });
 
   test('should show/hide close all icon based on hover state', async ({ pageWithUserData: page }) => {

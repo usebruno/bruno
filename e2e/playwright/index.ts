@@ -32,7 +32,7 @@ const defaultPreferences = {
 const existsAsync = (filepath: string) => fs.promises.access(filepath).then(() => true).catch(() => false);
 
 /**
- * Test data next to a spec: sample collections and workspaces in fixtures/ (collection/, collections/, workspace/),
+ * Test data next to a spec: sample collections and workspaces in test-data/ (collection/, collections/, workspace/),
  * the app's user-data seed in init-user-data/.
  */
 const firstExistingPath = (candidates: string[]) => candidates.find((p) => fs.existsSync(p));
@@ -219,10 +219,10 @@ export const test = baseTest.extend<
 
   collectionFixturePath: async ({ createTmpDir }, use, testInfo) => {
     const testDir = path.dirname(testInfo.file);
-    const fixturesDir = path.join(testDir, 'fixtures');
-    // fixtures/collections — multiple named collections (subdirs with bruno.json/opencollection.yml)
-    // fixtures/collection — single collection (single dir with bruno.json/opencollection.yml)
-    const srcPath = firstExistingPath([path.join(fixturesDir, 'collections'), path.join(fixturesDir, 'collection')]);
+    const testDataDir = path.join(testDir, 'test-data');
+    // test-data/collections — multiple named collections (subdirs with bruno.json/opencollection.yml)
+    // test-data/collection — single collection (single dir with bruno.json/opencollection.yml)
+    const srcPath = firstExistingPath([path.join(testDataDir, 'collections'), path.join(testDataDir, 'collection')]);
 
     if (srcPath) {
       const tmpDir = await createTmpDir(path.basename(srcPath));
@@ -238,9 +238,9 @@ export const test = baseTest.extend<
 
   workspaceFixturePath: async ({ createTmpDir }, use, testInfo) => {
     const testDir = path.dirname(testInfo.file);
-    // fixtures/workspace — a workspace.yml + environments/*.yml (+ optional collections/)
+    // test-data/workspace — a workspace.yml + environments/*.yml (+ optional collections/)
     // Copied to a tmp dir so tests can mutate it without affecting the source.
-    const srcPath = path.join(testDir, 'fixtures', 'workspace');
+    const srcPath = path.join(testDir, 'test-data', 'workspace');
     if (fs.existsSync(srcPath)) {
       const tmpDir = await createTmpDir('workspace');
       await fs.promises.cp(srcPath, tmpDir, { recursive: true });

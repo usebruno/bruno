@@ -3,7 +3,7 @@ import path from 'path';
 import { Page } from '@playwright/test';
 import { importCollection, createEnvironment, addRowToActiveTab, closeAllCollections, deleteAllGlobalEnvironments } from '../../../pages';
 
-const collectionFile = path.join(__dirname, '..', 'create-environment', 'fixtures', 'bruno-collection.json');
+const collectionFile = path.join(__dirname, '..', 'create-environment', 'test-data', 'bruno-collection.json');
 
 const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
 const tabDraftIcon = (page: Page) => page.locator('.request-tab.active').getByTestId('tab-draft-icon');

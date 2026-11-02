@@ -1,7 +1,7 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/e2e/tests/scripting/inbuilt-libraries/fs/fixtures/collections/should_allow_fs"
+    "{{projectRoot}}/e2e/tests/scripting/inbuilt-libraries/fs/test-data/collections/should_allow_fs"
   ],
   "preferences": {
     "onboarding": {

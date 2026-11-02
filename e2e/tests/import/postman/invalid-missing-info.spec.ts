@@ -3,7 +3,7 @@ import * as path from 'path';
 
 test.describe('Invalid Postman Collection - Missing Info', () => {
   test('Handle Postman collection missing required info field', async ({ page }) => {
-    const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-invalid-missing-info.json');
+    const postmanFile = path.resolve(__dirname, 'test-data', 'postman-invalid-missing-info.json');
 
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();

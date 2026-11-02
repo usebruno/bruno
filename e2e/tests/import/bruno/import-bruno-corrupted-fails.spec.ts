@@ -3,7 +3,7 @@ import * as path from 'path';
 
 test.describe('Import Corrupted Bruno Collection - Should Fail', () => {
   test('Import Bruno collection with invalid JSON structure should fail', async ({ page }) => {
-    const brunoFile = path.resolve(__dirname, 'fixtures', 'bruno-malformed.json');
+    const brunoFile = path.resolve(__dirname, 'test-data', 'bruno-malformed.json');
 
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();

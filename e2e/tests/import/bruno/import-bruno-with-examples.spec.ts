@@ -8,7 +8,7 @@ test.describe('Import Bruno Collection with Examples', () => {
   });
 
   test('Import Bruno collection with examples successfully', async ({ page }) => {
-    const brunoFile = path.resolve(__dirname, 'fixtures', 'bruno-with-examples.json');
+    const brunoFile = path.resolve(__dirname, 'test-data', 'bruno-with-examples.json');
 
     await test.step('Open import collection modal', async () => {
       await page.getByTestId('collections-header-add-menu').click();

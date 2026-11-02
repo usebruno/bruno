@@ -9,7 +9,7 @@ test.describe('Import Postman Collection with binary body mode', () => {
   });
 
   test('should import a Postman binary body and preserve the file path', async ({ page, electronApp, createTmpDir }) => {
-    const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-import-binary-body-mode.json');
+    const postmanFile = path.resolve(__dirname, 'test-data', 'postman-import-binary-body-mode.json');
     const locators = buildCommonLocators(page);
     const importDir = await createTmpDir('imported-collection');
 

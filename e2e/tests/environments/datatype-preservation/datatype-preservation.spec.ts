@@ -102,7 +102,7 @@ for (const { format, collectionName } of FORMATS) {
       // Remove the env file the import step created so the fixture is reusable.
       const importedFile = path.join(
         __dirname,
-        'fixtures',
+        'test-data',
         format,
         'environments',
         `${IMPORTED_ENV_NAME}.${format}`

@@ -2,7 +2,7 @@ import * as path from 'path';
 import { test, expect } from '../../../playwright';
 import { buildCommonLocators, closeAllCollections, getEchoedGraphqlQuery, getGraphqlQueryEditorValue, loadGraphqlSchemaFromFile, openGraphqlQueryBuilder, openRequest, sendRequest, setGraphqlQueryEditorValue, tickQueryBuilderField } from '../../../pages';
 
-const DEEP_SCHEMA_PATH = path.join(__dirname, 'fixtures', 'deep-schema.graphql');
+const DEEP_SCHEMA_PATH = path.join(__dirname, 'test-data', 'deep-schema.graphql');
 const LEVELS = Array.from({ length: 13 }, (_, i) => `level${String(i + 2).padStart(2, '0')}`);
 const LEVEL_PATHS = LEVELS.reduce((paths, level) => [...paths, `${paths[paths.length - 1]}.${level}`], ['Query.deepTree']);
 const LEVEL14_PATH = LEVEL_PATHS[LEVEL_PATHS.length - 1];

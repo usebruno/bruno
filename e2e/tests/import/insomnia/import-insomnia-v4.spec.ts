@@ -8,7 +8,7 @@ test.describe('Import Insomnia Collection v4', () => {
   });
 
   test('Import Insomnia Collection v4 successfully', async ({ page, createTmpDir }) => {
-    const insomniaFile = path.resolve(__dirname, 'fixtures', 'insomnia-v4.json');
+    const insomniaFile = path.resolve(__dirname, 'test-data', 'insomnia-v4.json');
 
     await importCollection(page, insomniaFile, await createTmpDir('insomnia-v4-test'), {
       expectedCollectionName: 'Test API Collection v4'

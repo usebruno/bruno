@@ -3,7 +3,7 @@ import * as path from 'path';
 import { closeAllCollections, importCollection, openCollection, openfolder, openRequest, readRequestBody } from '../../../pages';
 
 test.describe('Import WSDL Collection', () => {
-  const testDataDir = path.join(__dirname, 'fixtures');
+  const testDataDir = path.join(__dirname, 'test-data');
 
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);

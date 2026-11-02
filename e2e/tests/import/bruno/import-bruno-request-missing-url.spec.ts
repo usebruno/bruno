@@ -15,7 +15,7 @@ test.describe('Import Bruno Collection - request with missing URL', () => {
 
   for (const { fixture, collectionName, type, requestName, exampleName } of cases) {
     test(`imports a ${type} request without a URL`, async ({ page, createTmpDir }) => {
-      const brunoFile = path.resolve(__dirname, 'fixtures', fixture);
+      const brunoFile = path.resolve(__dirname, 'test-data', fixture);
       const location = await createTmpDir(collectionName);
 
       await test.step('Import the collection', async () => {

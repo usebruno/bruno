@@ -20,7 +20,7 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
     page,
     createTmpDir
   }) => {
-    const insomniaFile = path.resolve(__dirname, 'fixtures', 'insomnia-v5-with-envs.yaml');
+    const insomniaFile = path.resolve(__dirname, 'test-data', 'insomnia-v5-with-envs.yaml');
 
     await test.step('Import Insomnia v5 collection with environments', async () => {
       await page.getByTestId('collections-header-add-menu').click();

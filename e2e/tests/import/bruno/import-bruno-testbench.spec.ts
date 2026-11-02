@@ -8,7 +8,7 @@ test.describe('Import Bruno Testbench Collection', () => {
   });
 
   test('Import Bruno Testbench collection successfully', async ({ page, createTmpDir }) => {
-    const brunoFile = path.resolve(__dirname, 'fixtures', 'bruno-testbench.json');
+    const brunoFile = path.resolve(__dirname, 'test-data', 'bruno-testbench.json');
 
     await importCollection(page, brunoFile, await createTmpDir('bruno-testbench-test'), {
       expectedCollectionName: 'bruno-testbench'

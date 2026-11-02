@@ -13,7 +13,7 @@ test.describe('Postman URL Import', () => {
     // fail or succeed. Give the test more room than the fetch it waits on.
     test.setTimeout(60_000);
 
-    const postmanUrl = 'https://raw.githubusercontent.com/usebruno/bruno/refs/heads/main/tests/import/postman/fixtures/postman-v21.json';
+    const postmanUrl = 'https://raw.githubusercontent.com/usebruno/bruno/refs/heads/main/tests/import/postman/test-data/postman-v21.json';
 
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();

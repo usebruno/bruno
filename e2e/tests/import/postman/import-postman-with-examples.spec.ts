@@ -21,7 +21,7 @@ test.describe('Import Postman Collection with Examples', () => {
   });
 
   test('should import Postman collection with examples successfully', async ({ page, electronApp, createTmpDir }) => {
-    const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-with-examples.json');
+    const postmanFile = path.resolve(__dirname, 'test-data', 'postman-with-examples.json');
 
     // Create a temporary directory for the collection to be imported into
     const importDir = await createTmpDir('imported-collection');

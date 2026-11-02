@@ -19,7 +19,7 @@ test.describe('API Spec Panel - open & preview validation', () => {
   });
 
   test('Reject a file with an unsupported extension', async ({ page, electronApp }) => {
-    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-invalid-extension.txt');
+    const openApiFile = path.resolve(__dirname, 'test-data', 'openapi-invalid-extension.txt');
     await openApiSpecFromDialog(page, electronApp, openApiFile);
     await expect(
       page.getByText(INVALID_EXTENSION_MESSAGE)
@@ -27,14 +27,14 @@ test.describe('API Spec Panel - open & preview validation', () => {
   });
 
   test('Show the empty-spec message when opening an empty file', async ({ page, electronApp }) => {
-    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-empty.yaml');
+    const openApiFile = path.resolve(__dirname, 'test-data', 'openapi-empty.yaml');
     await openApiSpecFromDialog(page, electronApp, openApiFile);
     await openApiSpecSidebarItem(page, 'openapi-empty');
     await expect(page.getByText(SPEC_PREVIEW_ERRORS.EMPTY)).toBeVisible();
   });
 
   test('Show a parse error when opening malformed YAML', async ({ page, electronApp }) => {
-    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-malformed.yaml');
+    const openApiFile = path.resolve(__dirname, 'test-data', 'openapi-malformed.yaml');
     await openApiSpecFromDialog(page, electronApp, openApiFile);
     await openApiSpecSidebarItem(page, 'openapi-malformed');
     await expect(
@@ -43,7 +43,7 @@ test.describe('API Spec Panel - open & preview validation', () => {
   });
 
   test('Show a parse error when opening malformed JSON', async ({ page, electronApp }) => {
-    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-broken.json');
+    const openApiFile = path.resolve(__dirname, 'test-data', 'openapi-broken.json');
     await openApiSpecFromDialog(page, electronApp, openApiFile);
     await openApiSpecSidebarItem(page, 'openapi-broken');
     await expect(
@@ -52,7 +52,7 @@ test.describe('API Spec Panel - open & preview validation', () => {
   });
 
   test('Show a spec error when the file parses but is not a valid OpenAPI document', async ({ page, electronApp }) => {
-    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-missing-info.yaml');
+    const openApiFile = path.resolve(__dirname, 'test-data', 'openapi-missing-info.yaml');
 
     await openApiSpecFromDialog(page, electronApp, openApiFile);
     await openApiSpecSidebarItem(page, 'openapi-missing-info');
@@ -64,7 +64,7 @@ test.describe('API Spec Panel - open & preview validation', () => {
   });
 
   test('Render a spec whose paths live in a referenced file', async ({ page, electronApp }) => {
-    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-multifile.yaml');
+    const openApiFile = path.resolve(__dirname, 'test-data', 'openapi-multifile.yaml');
     await openApiSpecFromDialog(page, electronApp, openApiFile);
     await openApiSpecSidebarItem(page, 'Multi File API');
     // "Hello endpoint" lives only in openapi-multifile-endpoint.yaml, so a preview showing it
@@ -74,7 +74,7 @@ test.describe('API Spec Panel - open & preview validation', () => {
   });
 
   test('Render a valid spec without any preview error', async ({ page, electronApp }) => {
-    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-simple.json');
+    const openApiFile = path.resolve(__dirname, 'test-data', 'openapi-simple.json');
     await openApiSpecFromDialog(page, electronApp, openApiFile);
     await openApiSpecSidebarItem(page, 'Simple Test API');
     // Panel opens for the valid spec (filename shown in the header) and no preview error appears

@@ -1,6 +1,6 @@
 {
   "maximized": false,
-  "lastOpenedCollections": ["{{projectRoot}}/e2e/tests/proxy/system-pac/fixtures/collection"],
+  "lastOpenedCollections": ["{{projectRoot}}/e2e/tests/proxy/system-pac/test-data/collection"],
   "preferences": {
     "onboarding": {
       "hasLaunchedBefore": true,

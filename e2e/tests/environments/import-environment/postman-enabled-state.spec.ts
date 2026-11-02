@@ -2,7 +2,7 @@ import path from 'path';
 import { test, expect } from '../../../playwright';
 import { buildCommonLocators, closeAllCollections, createCollection, importEnvironment } from '../../../pages';
 
-const envFile = path.join(__dirname, 'fixtures', 'postman-env-mixed-enabled.json');
+const envFile = path.join(__dirname, 'test-data', 'postman-env-mixed-enabled.json');
 
 test.describe('Postman env import preserves enabled/disabled state', () => {
   test.afterEach(async ({ page }) => {

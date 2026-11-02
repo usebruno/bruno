@@ -8,8 +8,8 @@ test.describe('Collection Environment Import Tests', () => {
   });
 
   test('should import collection environment from file', async ({ page, createTmpDir }) => {
-    const openApiFile = path.join(__dirname, 'fixtures', 'collection.json');
-    const envFile = path.join(__dirname, 'fixtures', 'collection-env.json');
+    const openApiFile = path.join(__dirname, 'test-data', 'collection.json');
+    const envFile = path.join(__dirname, 'test-data', 'collection-env.json');
 
     // Import test collection
     await page.getByTestId('collections-header-add-menu').click();

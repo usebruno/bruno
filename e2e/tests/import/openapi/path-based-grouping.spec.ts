@@ -9,7 +9,7 @@ test.describe('OpenAPI Path-Based Grouping', () => {
   });
 
   test('should import with path-based folder grouping', async ({ page, createTmpDir }) => {
-    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-path-grouping.json');
+    const openApiFile = path.resolve(__dirname, 'test-data', 'openapi-path-grouping.json');
 
     // Start the import process
     await page.getByTestId('collections-header-add-menu').click();

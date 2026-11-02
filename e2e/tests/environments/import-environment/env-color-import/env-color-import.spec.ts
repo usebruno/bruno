@@ -8,7 +8,7 @@ test.describe.serial('Environment Color Import Tests', () => {
   });
 
   test('should import global environment with color preserved', async ({ pageWithUserData: page }) => {
-    const envWithColorFile = path.join(__dirname, 'fixtures/env-with-color.json');
+    const envWithColorFile = path.join(__dirname, 'test-data/env-with-color.json');
 
     await test.step('Open collection and navigate to global environment import', async () => {
       // Open the collection from sidebar

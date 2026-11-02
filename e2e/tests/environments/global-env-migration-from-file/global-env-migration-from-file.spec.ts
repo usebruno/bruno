@@ -5,7 +5,7 @@ import { openCollection } from '../../../pages';
 import { waitForReadyPage } from '../../../support';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
-const workspaceFixturePath = path.join(__dirname, 'fixtures', 'workspace');
+const workspaceFixturePath = path.join(__dirname, 'test-data', 'workspace');
 
 /**
  * Replicate the uid generation from bruno-electron/src/utils/common.js

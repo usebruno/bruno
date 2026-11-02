@@ -1,6 +1,6 @@
 {
   "maximized": false,
-  "lastOpenedCollections": ["{{projectRoot}}/e2e/tests/ssl/client-certs/tests/collection-client-certs-enabled-yml/fixtures/collection"],
+  "lastOpenedCollections": ["{{projectRoot}}/e2e/tests/ssl/client-certs/tests/collection-client-certs-enabled-yml/test-data/collection"],
   "preferences": {
     "request": {
       "sslVerification": true,

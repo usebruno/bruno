@@ -10,7 +10,7 @@ test.describe('Import Postman Collection with partial import issues', () => {
   });
 
   test('should import valid requests and show issues toast for skipped items', async ({ page, createTmpDir }) => {
-    const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-with-import-issues.json');
+    const postmanFile = path.resolve(__dirname, 'test-data', 'postman-with-import-issues.json');
     const tmpDir = await createTmpDir('postman-partial-import');
     const locators = buildCommonLocators(page);
 
@@ -69,7 +69,7 @@ test.describe('Import Postman Collection with partial import issues', () => {
   });
 
   test('should allow copying import issues to clipboard', async ({ page, createTmpDir }) => {
-    const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-with-import-issues.json');
+    const postmanFile = path.resolve(__dirname, 'test-data', 'postman-with-import-issues.json');
     const tmpDir = await createTmpDir('postman-partial-import-copy');
     const locators = buildCommonLocators(page);
 
@@ -85,7 +85,7 @@ test.describe('Import Postman Collection with partial import issues', () => {
   });
 
   test('should open GitHub issue with prefilled details when clicking Report on GitHub', async ({ page, createTmpDir }) => {
-    const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-with-import-issues.json');
+    const postmanFile = path.resolve(__dirname, 'test-data', 'postman-with-import-issues.json');
     const tmpDir = await createTmpDir('postman-partial-import-report');
     const locators = buildCommonLocators(page);
 

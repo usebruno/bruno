@@ -14,7 +14,7 @@ import { buildCommonLocators } from '../../../pages';
  * read the active pane.
  */
 
-const FIXTURE = path.resolve(__dirname, 'fixtures', 'postman-edgegrid-collection.json');
+const FIXTURE = path.resolve(__dirname, 'test-data', 'postman-edgegrid-collection.json');
 const COLLECTION_NAME = 'EgdeGrid Auth';
 const REQUEST_LEVEL = 'Edgegrid auth -  request level';
 const INHERIT_REQUEST = 'Edgegrid Auth - inherit';

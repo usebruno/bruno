@@ -40,7 +40,7 @@ export const writeBruFolder = (dir: string, name: string, seq: number) => {
 /**
  * Write an HTTP request `.bru`, optionally with saved response examples. The `example { ... }`
  * block shape matches the bru serializer output (see
- * packages/bruno-lang/v2/tests/examples/fixtures/bru/bruToJson-single-example.bru).
+ * packages/bruno-lang/v2/tests/examples/test-data/bru/bruToJson-single-example.bru).
  */
 export const writeBruRequest = (dir: string, name: string, options: WriteRequestOptions) => {
   const { seq, method = 'get', url = 'https://echo.usebruno.com', examples = [] } = options;

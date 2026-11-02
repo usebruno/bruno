@@ -89,7 +89,7 @@ test.describe.serial('Draft indicator in collection and folder settings', () => 
     const fileChooserPromise = page.waitForEvent('filechooser');
     await page.getByTestId('protobuf-add-file-button').click();
     const fileChooser = await fileChooserPromise;
-    await fileChooser.setFiles('./tests/collection/draft/fixtures/grpcbin.proto');
+    await fileChooser.setFiles('./e2e/tests/collection/draft/test-data/grpcbin.proto');
 
     // Wait for the file to be processed and added to the table
     // The file goes through IPC to get the path, then Redux to update state
@@ -135,13 +135,13 @@ test.describe.serial('Draft indicator in collection and folder settings', () => 
     const certFileChooserPromise = page.waitForEvent('filechooser');
     await chooseFileButton('certFilePath').click();
     const certFileChooser = await certFileChooserPromise;
-    await certFileChooser.setFiles('./tests/collection/draft/fixtures/grpcbin.proto');
+    await certFileChooser.setFiles('./e2e/tests/collection/draft/test-data/grpcbin.proto');
 
     // Select key file using file picker (using grpcbin.proto as a dummy file)
     const keyFileChooserPromise = page.waitForEvent('filechooser');
     await chooseFileButton('keyFilePath').click();
     const keyFileChooser = await keyFileChooserPromise;
-    await keyFileChooser.setFiles('./tests/collection/draft/fixtures/grpcbin.proto');
+    await keyFileChooser.setFiles('./e2e/tests/collection/draft/test-data/grpcbin.proto');
 
     // Both file paths must land in the form before submitting, else validation blocks the add
     await expect(fileChip('certFilePath')).toHaveText(/grpcbin\.proto/);

@@ -2,7 +2,7 @@ import path from 'path';
 import { test, expect } from '../../../playwright';
 import { buildCommonLocators, closeAllCollections, importCollection } from '../../../pages';
 
-const collectionFile = path.join(__dirname, 'fixtures', 'postman-collection-vars-mixed-disabled.json');
+const collectionFile = path.join(__dirname, 'test-data', 'postman-collection-vars-mixed-disabled.json');
 
 test.describe('Postman collection variable import preserves disabled state', () => {
   test.afterEach(async ({ page }) => {

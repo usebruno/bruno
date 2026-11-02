@@ -213,7 +213,7 @@ test.describe('Description import — Bruno JSON (.bru) collection', () => {
   }, testInfo) => {
     testInfo.setTimeout(120_000);
 
-    const fixtureFile = path.resolve(__dirname, 'fixtures', 'descriptions-collection-bru.json');
+    const fixtureFile = path.resolve(__dirname, 'test-data', 'descriptions-collection-bru.json');
     const collectionLocation = await createTmpDir('descriptions-imported-bru');
 
     await importCollection(page, fixtureFile, collectionLocation, {
@@ -236,7 +236,7 @@ test.describe('Description import — OpenCollection (.yml) collection', () => {
   }, testInfo) => {
     testInfo.setTimeout(120_000);
 
-    const fixtureFile = path.resolve(__dirname, 'fixtures', 'descriptions-collection.yml');
+    const fixtureFile = path.resolve(__dirname, 'test-data', 'descriptions-collection.yml');
     const collectionLocation = await createTmpDir('descriptions-imported-yml');
 
     await importCollection(page, fixtureFile, collectionLocation, {

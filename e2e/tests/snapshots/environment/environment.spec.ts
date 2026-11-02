@@ -11,7 +11,7 @@ const legacyPromptVariablesInitUserDataPath = path.join(
 
 const migrationCollectionPath = path.join(
   __dirname,
-  'fixtures/collection'
+  'test-data/collection'
 );
 
 test.describe('Snapshot: Collection Environment Persistence', () => {

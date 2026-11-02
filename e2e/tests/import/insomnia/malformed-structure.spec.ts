@@ -3,7 +3,7 @@ import * as path from 'path';
 
 test.describe('Invalid Insomnia Collection - Malformed Structure', () => {
   test('Handle malformed Insomnia collection structure', async ({ page }) => {
-    const insomniaFile = path.resolve(__dirname, 'fixtures', 'insomnia-malformed.json');
+    const insomniaFile = path.resolve(__dirname, 'test-data', 'insomnia-malformed.json');
 
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();

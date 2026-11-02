@@ -16,7 +16,7 @@ test.describe('Import Postman Collection with Settings', () => {
   });
 
   test('should import Postman collection settings successfully', async ({ page, createTmpDir }) => {
-    const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-with-settings.json');
+    const postmanFile = path.resolve(__dirname, 'test-data', 'postman-with-settings.json');
 
     await importCollection(page, postmanFile, await createTmpDir('postman-settings-test'), {
       expectedCollectionName: 'Postman Collection with Settings'

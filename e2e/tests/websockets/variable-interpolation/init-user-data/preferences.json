@@ -1,7 +1,7 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/e2e/tests/websockets/variable-interpolation/fixtures/collection"
+    "{{projectRoot}}/e2e/tests/websockets/variable-interpolation/test-data/collection"
   ],
   "preferences": {
     "onboarding": {

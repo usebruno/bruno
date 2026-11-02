@@ -1,8 +1,8 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/e2e/tests/environments/collection-default-environment/fixtures/collection",
-    "{{projectRoot}}/e2e/tests/environments/collection-default-environment/fixtures/collection-missing"
+    "{{projectRoot}}/e2e/tests/environments/collection-default-environment/test-data/collection",
+    "{{projectRoot}}/e2e/tests/environments/collection-default-environment/test-data/collection-missing"
   ],
   "preferences": {
     "onboarding": {

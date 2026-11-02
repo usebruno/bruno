@@ -10,7 +10,7 @@ runs:
         $ErrorActionPreference = "Stop"
         
         # navigate to CA certificates test collection directory
-        Set-Location tests\ssl\custom-ca-certs\collection
+        Set-Location e2e\tests\ssl\custom-ca-certs\collection
 
         Write-Host "custom valid ca cert"
         # should pass

@@ -10,7 +10,7 @@ test.describe('Import Postman Collection with many issues (URL too long warning)
   });
 
   test('should show URL-too-long warning when include failed request data is checked', async ({ page, createTmpDir }) => {
-    const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-with-many-import-issues.json');
+    const postmanFile = path.resolve(__dirname, 'test-data', 'postman-with-many-import-issues.json');
     const tmpDir = await createTmpDir('postman-many-issues');
     const locators = buildCommonLocators(page);
 

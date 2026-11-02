@@ -1,7 +1,7 @@
 {
   "collections": [
     {
-      "path": "{{projectRoot}}/e2e/tests/interpolation/prompt-variables/fixtures/collection",
+      "path": "{{projectRoot}}/e2e/tests/interpolation/prompt-variables/test-data/collection",
       "securityConfig": {
         "jsSandboxMode": "safe"
       }

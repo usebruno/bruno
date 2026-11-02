@@ -1,7 +1,7 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/e2e/tests/request/multipart-form/fixtures/collection"
+    "{{projectRoot}}/e2e/tests/request/multipart-form/test-data/collection"
   ],
   "preferences": {
     "onboarding": {

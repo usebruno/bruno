@@ -3,7 +3,7 @@ import * as path from 'path';
 
 test.describe('Invalid Postman Collection - Malformed Structure', () => {
   test('Handle malformed Postman collection structure', async ({ page }) => {
-    const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-malformed.json');
+    const postmanFile = path.resolve(__dirname, 'test-data', 'postman-malformed.json');
 
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();

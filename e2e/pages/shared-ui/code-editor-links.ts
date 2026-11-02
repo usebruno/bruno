@@ -4,7 +4,7 @@ import { buildRequestLocators } from '../request/pane';
 
 export type LinkAwareRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
-// Name of the committed fixture collection under tests/codeeditor-state/codemirror/fixtures.
+// Name of the committed sample collection used by the link-aware specs.
 export const LINK_AWARE_COLLECTION_NAME = 'codemirror-linkaware';
 
 // Cmd on macOS, Ctrl elsewhere — matches isCmdOrCtrlPressed() in linkAware.js.

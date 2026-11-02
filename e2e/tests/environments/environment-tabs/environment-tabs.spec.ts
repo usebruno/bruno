@@ -52,7 +52,7 @@ const deleteRow = async (page: Page, name: string) => {
   await varRow(page, name).locator('button:has(.icon-tabler-trash)').click();
 };
 
-const collectionFile = path.join(__dirname, '..', 'create-environment', 'fixtures', 'bruno-collection.json');
+const collectionFile = path.join(__dirname, '..', 'create-environment', 'test-data', 'bruno-collection.json');
 
 test.describe('Environment Variables / Secrets tab separation', () => {
   test.afterEach(async ({ page }) => {

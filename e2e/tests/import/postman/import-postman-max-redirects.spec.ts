@@ -10,7 +10,7 @@ const COLLECTION_NAME = 'Max Redirects Collection';
 const OFFENDERS = ['Null Limit', 'Negative Limit', 'Quoted Limit', 'Boolean Limit'];
 
 const importFixture = async (page: Page, tmpDir: string) => {
-  const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-with-max-redirects.json');
+  const postmanFile = path.resolve(__dirname, 'test-data', 'postman-with-max-redirects.json');
   await importCollection(page, postmanFile, tmpDir, {
     expectedCollectionName: COLLECTION_NAME,
     expectIssues: true

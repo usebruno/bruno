@@ -13,7 +13,7 @@ runs:
         $cacert = "..\..\server\certs\ca-cert.pem"
 
         # navigate to the CLI test collections directory
-        Set-Location tests\ssl\client-certs\collections
+        Set-Location e2e\tests\ssl\client-certs\collections
 
         Write-Host "client cert (pem, bru) presented"
         # cert enabled → attached → mTLS handshake succeeds → assertions pass

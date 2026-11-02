@@ -3,7 +3,7 @@ import * as path from 'path';
 
 test.describe('Invalid File Handling', () => {
   test('Handle invalid file without crashing', async ({ page }) => {
-    const invalidFile = path.resolve(__dirname, 'fixtures', 'invalid.txt');
+    const invalidFile = path.resolve(__dirname, 'test-data', 'invalid.txt');
 
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();

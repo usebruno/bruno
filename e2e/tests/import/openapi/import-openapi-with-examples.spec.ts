@@ -21,7 +21,7 @@ test.describe('Import OpenAPI Collection with Examples', () => {
   });
 
   test('should import OpenAPI collection with examples successfully', async ({ page, electronApp, createTmpDir }) => {
-    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-with-examples.yaml');
+    const openApiFile = path.resolve(__dirname, 'test-data', 'openapi-with-examples.yaml');
 
     // Create a temporary directory for the collection to be imported into
     const importDir = await createTmpDir('imported-openapi-collection');
@@ -139,7 +139,7 @@ test.describe('Import OpenAPI Collection with Examples', () => {
   });
 
   test('should import OpenAPI collection with path-based grouping', async ({ page, electronApp, createTmpDir }) => {
-    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-with-examples.yaml');
+    const openApiFile = path.resolve(__dirname, 'test-data', 'openapi-with-examples.yaml');
 
     // Create a temporary directory for the collection to be imported into
     const importDir = await createTmpDir('imported-openapi-collection-path');

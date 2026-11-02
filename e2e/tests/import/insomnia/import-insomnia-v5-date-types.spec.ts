@@ -12,7 +12,7 @@ test.describe.serial('Import Insomnia Collection - date types preserved', () => 
     page,
     createTmpDir
   }) => {
-    const insomniaFile = path.resolve(__dirname, 'fixtures', 'insomnia-v5-dates.yaml');
+    const insomniaFile = path.resolve(__dirname, 'test-data', 'insomnia-v5-dates.yaml');
     const collectionName = 'Date Type Test';
     const collectionDir = await createTmpDir('insomnia-dates-test');
 

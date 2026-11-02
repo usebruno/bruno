@@ -20,7 +20,7 @@ test.describe('Import Postman Collection with API Key in Query Params', () => {
   });
 
   test('should import Postman collection with API Key in Query Params successfully', async ({ page, electronApp, createTmpDir }) => {
-    const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-import-apikey-query-collection.json');
+    const postmanFile = path.resolve(__dirname, 'test-data', 'postman-import-apikey-query-collection.json');
     const locators = buildCommonLocators(page);
 
     const importDir = await createTmpDir('imported-collection');

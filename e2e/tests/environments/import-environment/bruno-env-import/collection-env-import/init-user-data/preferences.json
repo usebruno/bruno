@@ -1,7 +1,7 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/e2e/tests/environments/import-environment/bruno-env-import/collection-env-import/fixtures/collection"
+    "{{projectRoot}}/e2e/tests/environments/import-environment/bruno-env-import/collection-env-import/test-data/collection"
   ],
   "preferences": {
     "onboarding": {

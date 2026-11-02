@@ -8,7 +8,7 @@ test.describe('Import OpenAPI v3 JSON Collection', () => {
   });
 
   test('Import simple OpenAPI v3 JSON successfully', async ({ page, createTmpDir }) => {
-    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-simple.json');
+    const openApiFile = path.resolve(__dirname, 'test-data', 'openapi-simple.json');
 
     await importCollection(page, openApiFile, await createTmpDir('simple-test'), {
       expectedCollectionName: 'Simple Test API'

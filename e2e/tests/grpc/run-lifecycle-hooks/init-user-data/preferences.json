@@ -1,6 +1,6 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/e2e/tests/grpc/run-lifecycle-hooks/fixtures/collection"
+    "{{projectRoot}}/e2e/tests/grpc/run-lifecycle-hooks/test-data/collection"
   ]
 }

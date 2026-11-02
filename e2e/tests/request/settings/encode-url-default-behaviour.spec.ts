@@ -3,7 +3,7 @@ import { expect, test } from '../../../playwright';
 import { buildCommonLocators, selectRequestPaneTab } from '../../../pages';
 
 test.use({
-  collectionFixturePath: path.join(__dirname, 'fixtures', 'collections')
+  collectionFixturePath: path.join(__dirname, 'test-data', 'collections')
 });
 
 test.describe('Encode URL Setting Tests', () => {

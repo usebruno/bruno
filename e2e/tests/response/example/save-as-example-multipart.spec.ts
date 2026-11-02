@@ -2,7 +2,7 @@ import { test, expect } from '../../../playwright';
 import fs from 'fs';
 import path from 'path';
 
-const fixturePath = path.join(__dirname, 'fixtures', 'collection', 'multipart-example.bru');
+const fixturePath = path.join(__dirname, 'test-data', 'collection', 'multipart-example.bru');
 
 test.describe('Response Example - multipart files preserved when creating example from request', () => {
   // Snapshot the fixture so we restore the exact working-tree state (including

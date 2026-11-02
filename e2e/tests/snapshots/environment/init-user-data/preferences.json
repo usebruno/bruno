@@ -1,7 +1,7 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/e2e/tests/snapshots/environment/fixtures/collection"
+    "{{projectRoot}}/e2e/tests/snapshots/environment/test-data/collection"
   ],
   "preferences": {
     "onboarding": {

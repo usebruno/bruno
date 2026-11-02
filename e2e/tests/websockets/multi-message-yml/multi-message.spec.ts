@@ -7,8 +7,8 @@ import { join } from 'path';
 const COLLECTION_NAME = 'ws-multi-message-yml';
 const MULTI_MSG_REQ = 'ws-multi-msg';
 const SINGLE_MSG_REQ = 'ws-single-msg';
-const MULTI_MSG_YML_PATH = join(__dirname, 'fixtures/collection/ws-multi-msg.yml');
-const SINGLE_MSG_YML_PATH = join(__dirname, 'fixtures/collection/ws-single-msg.yml');
+const MULTI_MSG_YML_PATH = join(__dirname, 'test-data/collection/ws-multi-msg.yml');
+const SINGLE_MSG_YML_PATH = join(__dirname, 'test-data/collection/ws-single-msg.yml');
 const MAX_CONNECTION_TIME = 3000;
 
 test.describe.serial('websocket multi-message (yml format)', () => {

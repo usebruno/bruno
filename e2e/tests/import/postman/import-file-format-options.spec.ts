@@ -10,7 +10,7 @@ test.describe('Import Collection File Format Options toggle', () => {
   });
 
   test('TC-3097: imports with the default OpenCollection (YAML) format', { tag: '@sanity' }, async ({ page, electronApp, createTmpDir }) => {
-    const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-import-apikey-header-collection.json');
+    const postmanFile = path.resolve(__dirname, 'test-data', 'postman-import-apikey-header-collection.json');
     const locators = buildCommonLocators(page);
     const importDir = await createTmpDir('import-default-yml');
     const collectionDir = path.join(importDir, 'My Collection');
@@ -57,7 +57,7 @@ test.describe('Import Collection File Format Options toggle', () => {
   });
 
   test('TC-3292: File Format dropdown is hidden by default for import collection', { tag: '@sanity' }, async ({ page }) => {
-    const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-import-apikey-header-collection.json');
+    const postmanFile = path.resolve(__dirname, 'test-data', 'postman-import-apikey-header-collection.json');
     const locators = buildCommonLocators(page);
 
     await test.step('Click + and Import collection', async () => {
@@ -80,7 +80,7 @@ test.describe('Import Collection File Format Options toggle', () => {
   });
 
   test('TC-3296: BRU format can be selected while importing collection', { tag: '@sanity' }, async ({ page, electronApp, createTmpDir }) => {
-    const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-import-apikey-header-collection.json');
+    const postmanFile = path.resolve(__dirname, 'test-data', 'postman-import-apikey-header-collection.json');
     const locators = buildCommonLocators(page);
 
     await test.step('Open import collection modal', async () => {

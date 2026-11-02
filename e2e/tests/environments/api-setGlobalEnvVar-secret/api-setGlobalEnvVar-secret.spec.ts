@@ -9,7 +9,7 @@ import { waitForCollectionMount } from '../../../pages';
 const NEW_VALUE = 'NEW_VALUE_global_env_e2e_42';
 const INITIAL_VALUE = 'INITIAL_VALUE_global_env_e2e_001';
 const initUserDataPath = path.join(__dirname, 'init-user-data');
-const workspaceFixturePath = path.join(__dirname, 'fixtures', 'workspace');
+const workspaceFixturePath = path.join(__dirname, 'test-data', 'workspace');
 
 const findApiTokenSecret = (secretsJson: any, workspaceDir: string) => {
   const collection = secretsJson.collections?.find((c: any) =>

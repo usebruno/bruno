@@ -1,6 +1,6 @@
 {
   "maximized": false,
-  "lastOpenedCollections": ["{{projectRoot}}/e2e/tests/ssl/custom-ca-certs/tests/wss-success/fixtures/wss-collection"],
+  "lastOpenedCollections": ["{{projectRoot}}/e2e/tests/ssl/custom-ca-certs/tests/wss-success/test-data/wss-collection"],
   "preferences": {
     "onboarding": {
       "hasLaunchedBefore": true,

@@ -10,7 +10,7 @@ runs:
         $ErrorActionPreference = "Stop"
         
         # navigate to basic SSL test collection directory
-        Set-Location tests\ssl\basic-ssl\collections\badssl
+        Set-Location e2e\tests\ssl\basic-ssl\collections\badssl
 
         Write-Host "basic ssl success"
         # should pass

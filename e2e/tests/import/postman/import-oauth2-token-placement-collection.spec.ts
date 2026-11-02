@@ -9,7 +9,7 @@ test.describe('Import Postman Collection with OAuth2 token placement', () => {
   });
 
   test('token placement drives which field is displayed after import', async ({ page, electronApp, createTmpDir }) => {
-    const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-import-oauth2-token-placement-collection.json');
+    const postmanFile = path.resolve(__dirname, 'test-data', 'postman-import-oauth2-token-placement-collection.json');
     const locators = buildCommonLocators(page);
     const oauth2 = locators.auth.oauth2;
 

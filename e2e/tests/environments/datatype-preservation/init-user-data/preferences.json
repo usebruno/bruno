@@ -1,8 +1,8 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/e2e/tests/environments/datatype-preservation/fixtures/bru",
-    "{{projectRoot}}/e2e/tests/environments/datatype-preservation/fixtures/yml"
+    "{{projectRoot}}/e2e/tests/environments/datatype-preservation/test-data/bru",
+    "{{projectRoot}}/e2e/tests/environments/datatype-preservation/test-data/yml"
   ],
   "preferences": {
     "onboarding": {

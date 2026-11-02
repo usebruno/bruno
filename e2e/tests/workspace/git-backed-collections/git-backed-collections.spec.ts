@@ -9,7 +9,7 @@ type CollectionEntry = { name?: string; path?: string; remote?: string };
 type WorkspaceConfig = { collections?: CollectionEntry[] };
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
-const fixturesPath = path.join(__dirname, 'fixtures');
+const fixturesPath = path.join(__dirname, 'test-data');
 
 const REMOTE_URL = 'https://github.com/usebruno/sample-collection.git';
 

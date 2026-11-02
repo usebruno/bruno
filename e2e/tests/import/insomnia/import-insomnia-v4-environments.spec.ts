@@ -20,7 +20,7 @@ test.describe('Import Insomnia v4 Collection - Environment Import', () => {
     page,
     createTmpDir
   }) => {
-    const insomniaFile = path.resolve(__dirname, 'fixtures', 'insomnia-v4-with-envs.json');
+    const insomniaFile = path.resolve(__dirname, 'test-data', 'insomnia-v4-with-envs.json');
 
     await test.step('Import Insomnia v4 collection with environments', async () => {
       await page.getByTestId('collections-header-add-menu').click();

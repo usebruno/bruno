@@ -37,7 +37,7 @@ const resetSearch = async (page: Page) => {
   await input.waitFor({ state: 'detached' });
 };
 
-const collectionFile = path.join(__dirname, '..', 'create-environment', 'fixtures', 'bruno-collection.json');
+const collectionFile = path.join(__dirname, '..', 'create-environment', 'test-data', 'bruno-collection.json');
 const COLLECTION_NAME = 'test_collection';
 
 // Reads the on-disk environment file for `envName`, regardless of format (.bru/.yml).

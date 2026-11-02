@@ -113,14 +113,14 @@ reviews:
         - Avoid using test.only
         - Use multiple assertions
         - Promote the use of `test.step` as much as possible so the generated reports are easier to read
-        - Ensure that the `fixtures` like the collections are nested inside the `fixtures` folder 
+        - Ensure that sample data like the collections is nested inside the spec's `test-data` folder (the app's preferences seed goes in `init-user-data`)
           
 
 
-          **Fixture Example***: Here's an example of possible fixture and test pair
+          **Test-data Example***: Here's an example of possible test-data and test pair
           ```
           .
-          ├── fixtures
+          ├── test-data
           │   └── collection
           │       ├── base.bru
           │       ├── bruno.json
@@ -128,17 +128,17 @@ reviews:
           │       ├── ws-test-request-with-headers.bru
           │       ├── ws-test-request-with-subproto.bru
           │       └── ws-test-request.bru
-          ├── connection.spec.ts # <- Depends on the collection in ./fixtures/collection
+          ├── connection.spec.ts # <- Depends on the collection in ./test-data/collection
           ├── headers.spec.ts
           ├── persistence.spec.ts
           ├── variable-interpolation
-          │   ├── fixtures
+          │   ├── test-data
           │   │   └── collection
           │   │       ├── environments
           │   │       ├── bruno.json
           │   │       └── ws-interpolation-test.bru
           │   ├── init-user-data
-          │   └── variable-interpolation.spec.ts # <- Depends on the collection in ./variable-interpolation/fixtures/collection
+          │   └── variable-interpolation.spec.ts # <- Depends on the collection in ./variable-interpolation/test-data/collection
           └── subproto.spec.ts
           ```
 

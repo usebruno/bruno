@@ -9,7 +9,7 @@ test.describe('OpenAPI Duplicate Names Handling', () => {
   });
 
   test('should handle duplicate operation names', async ({ page, createTmpDir }) => {
-    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-duplicate-operation-name.yaml');
+    const openApiFile = path.resolve(__dirname, 'test-data', 'openapi-duplicate-operation-name.yaml');
 
     // start the import process
     await page.getByTestId('collections-header-add-menu').click();

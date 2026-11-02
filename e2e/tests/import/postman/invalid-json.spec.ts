@@ -3,7 +3,7 @@ import * as path from 'path';
 
 test.describe('Invalid Postman Collection - Invalid JSON', () => {
   test('Handle invalid JSON syntax', async ({ page }) => {
-    const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-invalid-schema.json');
+    const postmanFile = path.resolve(__dirname, 'test-data', 'postman-invalid-schema.json');
 
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();

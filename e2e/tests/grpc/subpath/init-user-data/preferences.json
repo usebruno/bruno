@@ -1,6 +1,6 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/e2e/tests/grpc/subpath/fixtures/collection"
+    "{{projectRoot}}/e2e/tests/grpc/subpath/test-data/collection"
   ]
 }

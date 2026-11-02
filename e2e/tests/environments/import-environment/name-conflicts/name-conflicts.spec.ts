@@ -2,7 +2,7 @@ import path from 'path';
 import { test, expect } from '../../../../playwright';
 import { buildCommonLocators, closeAllCollections, createCollection, importEnvironment, openImportReview, clickOutsideModal, openEnvironmentSelector } from '../../../../pages';
 
-const fixture = (name: string) => path.join(__dirname, 'fixtures', name);
+const fixture = (name: string) => path.join(__dirname, 'test-data', name);
 
 test.describe('Import environment - name conflict handling', () => {
   test.describe('collection scope', () => {

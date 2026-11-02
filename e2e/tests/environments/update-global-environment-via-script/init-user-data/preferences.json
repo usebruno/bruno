@@ -1,7 +1,7 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/e2e/tests/environments/update-global-environment-via-script/fixtures/collection"
+    "{{projectRoot}}/e2e/tests/environments/update-global-environment-via-script/test-data/collection"
   ],
   "preferences": {
     "onboarding": {

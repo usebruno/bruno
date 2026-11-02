@@ -7,7 +7,7 @@ test.describe.serial('Response Example Menu Operations', () => {
   test.setTimeout(1 * 60 * 1000); // 1 minute for all tests in this describe block, default is 30 seconds.
   test.afterAll(async () => {
     // Reset the collection request file to the original state
-    execSync(`git checkout -- ${path.join(__dirname, 'fixtures', 'collection', 'menu-operations.bru')}`);
+    execSync(`git checkout -- ${path.join(__dirname, 'test-data', 'collection', 'menu-operations.bru')}`);
   });
 
   test('should clone a response example via three dots menu', async ({ pageWithUserData: page }) => {

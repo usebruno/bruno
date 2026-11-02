@@ -4,7 +4,7 @@ import { closeElectronApp, ElectronApplication, expect, test, waitForReadyPage }
 import { buildCommonLocators, resetRequestTimeoutToInherit, saveRequest, selectRequestPaneTab, setRequestTimeoutPreference } from '../../../pages';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
-const fixtureCollectionsPath = path.join(__dirname, 'fixtures', 'collections');
+const fixtureCollectionsPath = path.join(__dirname, 'test-data', 'collections');
 
 type LaunchFixtures = {
   launchElectronApp: (options?: { initUserDataPath?: string; templateVars?: Record<string, string> }) => Promise<ElectronApplication>;

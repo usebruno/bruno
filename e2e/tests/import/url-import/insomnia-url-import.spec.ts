@@ -8,7 +8,7 @@ test.describe('Insomnia URL Import', () => {
   });
 
   test('Insomnia URL import', async ({ page, createTmpDir }) => {
-    const insomniaUrl = 'https://raw.githubusercontent.com/usebruno/bruno/refs/heads/main/tests/import/insomnia/fixtures/insomnia-v5.yaml';
+    const insomniaUrl = 'https://raw.githubusercontent.com/usebruno/bruno/refs/heads/main/tests/import/insomnia/test-data/insomnia-v5.yaml';
 
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();

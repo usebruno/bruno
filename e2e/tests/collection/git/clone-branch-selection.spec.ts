@@ -7,7 +7,7 @@ import { waitForReadyPage } from '../../../support';
 import { currentGitBranch, hasGitInstalled, runGit } from './helpers';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
-const fixturesPath = path.join(__dirname, 'fixtures');
+const fixturesPath = path.join(__dirname, 'test-data');
 
 const WORKSPACE_NAME = 'Clone WS';
 const REPOSITORY_URL = 'https://github.com/usebruno/github-rest-api-collection';

@@ -8,7 +8,7 @@ test.describe('OpenAPI Security Schemes Import', () => {
   });
 
   test('Import OpenAPI spec with security schemes', async ({ page, createTmpDir }) => {
-    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-with-security-schemes.json');
+    const openApiFile = path.resolve(__dirname, 'test-data', 'openapi-with-security-schemes.json');
 
     await importCollection(page, openApiFile, await createTmpDir('openapi-with-security'), {
       expectedCollectionName: 'API with Security Schemes'
@@ -16,7 +16,7 @@ test.describe('OpenAPI Security Schemes Import', () => {
   });
 
   test('Import OpenAPI spec without security schemes', async ({ page, createTmpDir }) => {
-    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-without-security-schemes.json');
+    const openApiFile = path.resolve(__dirname, 'test-data', 'openapi-without-security-schemes.json');
 
     await importCollection(page, openApiFile, await createTmpDir('openapi-without-security'), {
       expectedCollectionName: 'API without Security Schemes'

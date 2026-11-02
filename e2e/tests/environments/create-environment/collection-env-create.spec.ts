@@ -8,7 +8,7 @@ test.describe('Collection Environment Create Tests', () => {
     page,
     createTmpDir
   }) => {
-    const collectionFile = path.join(__dirname, 'fixtures', 'bruno-collection.json');
+    const collectionFile = path.join(__dirname, 'test-data', 'bruno-collection.json');
     const locators = buildCommonLocators(page);
 
     await test.step('Import collection', async () => {

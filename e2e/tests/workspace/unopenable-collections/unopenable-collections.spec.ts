@@ -5,8 +5,8 @@ import { switchWorkspace, buildCommonLocators } from '../../../pages';
 import { waitForReadyPage } from '../../../support';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
-const fixturePath = path.join(__dirname, 'fixtures', 'workspace-with-broken-collections');
-const localOnlyFixturePath = path.join(__dirname, 'fixtures', 'workspace-local-only');
+const fixturePath = path.join(__dirname, 'test-data', 'workspace-with-broken-collections');
+const localOnlyFixturePath = path.join(__dirname, 'test-data', 'workspace-local-only');
 
 const WORKSPACE_NAME = 'Broken WS';
 const HEALTHY_COLL = 'Healthy Coll';

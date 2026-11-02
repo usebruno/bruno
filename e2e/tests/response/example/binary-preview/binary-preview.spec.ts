@@ -83,7 +83,7 @@ const binaryPreviewCases = [
 ];
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
-const fixtureCollectionPath = path.join(__dirname, 'fixtures', 'collection');
+const fixtureCollectionPath = path.join(__dirname, 'test-data', 'collection');
 
 type LaunchFixtures = {
   launchElectronApp: (options?: { initUserDataPath?: string; templateVars?: Record<string, string> }) => Promise<ElectronApplication>;

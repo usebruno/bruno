@@ -4,7 +4,7 @@ import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 
 const BRU_REQ_NAME = /^base$/;
-const BRU_PATH = join(__dirname, 'fixtures/collection/base.bru');
+const BRU_PATH = join(__dirname, 'test-data/collection/base.bru');
 
 // TODO: reaper move to someplace common
 const isRequestSaved = async (saveButton: Locator) => {

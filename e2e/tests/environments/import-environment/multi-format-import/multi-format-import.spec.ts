@@ -4,7 +4,7 @@ import { buildCommonLocators, closeAllCollections, createCollection, openEnviron
 
 type EnvironmentScope = 'collection' | 'global';
 
-const fixture = (name: string) => path.join(__dirname, 'fixtures', name);
+const fixture = (name: string) => path.join(__dirname, 'test-data', name);
 
 const openImportReviewFromEmpty = async (page: Page, scope: EnvironmentScope, ...filePaths: string[]) => {
   const { environment } = buildCommonLocators(page);

@@ -12,7 +12,7 @@ import {
 
 const COLLECTION = 'Spec Highlight Test';
 const SPEC = {
-  file: path.resolve(__dirname, '..', 'import', 'openapi', 'fixtures', 'openapi-simple.json'),
+  file: path.resolve(__dirname, '..', 'import', 'openapi', 'test-data', 'openapi-simple.json'),
   name: 'Simple Test API'
 };
 
