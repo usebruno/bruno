@@ -1,0 +1,29 @@
+/**
+ * Single entry point for page objects used by specs.
+ *
+ * Temporarily re-exports the legacy page layer from tests/utils/page,
+ * along with page objects missing from its barrel. Once migration is
+ * complete, only local page objects will be exported.
+ *
+ * TODO: Export environment/environment.ts after resolving its
+ * openEnvironmentSelector conflict with actions.ts.
+ */
+
+export * from '../../tests/utils/page';
+export * from './api-spec';
+export * from './response-timeline';
+export * from './app-shell/title-bar';
+export * from './app-shell/devtools';
+export * from './app-shell/network-log';
+export * from './app-shell/toast';
+export * from './collection/header';
+export * from './collection/docs';
+export * from './collection/proxy';
+export * from './components/code-editor';
+export * from './variable/secret-form';
+export * from './workspace/create-workspace-modal';
+export * from './workspace/import-workspace';
+export * from './workspace/manage-workspace';
+export * from './workspace/remove-workspace-modal';
+export * from './workspace/rename-workspace-modal';
+export * from './workspace/workspace-overview';
