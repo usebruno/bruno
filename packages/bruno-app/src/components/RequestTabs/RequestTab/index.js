@@ -629,7 +629,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     <StyledWrapper className="flex items-center justify-between tab-container px-2">
       {showConfirmClose && (
         <ConfirmRequestClose
-          item={item}
+          name={item.name}
+          type="request"
           onCancel={() => setShowConfirmClose(false)}
           onCloseWithoutSave={() => {
             isWS && closeWsConnection(item.uid);

@@ -25,6 +25,7 @@ import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponseStopWatch from 'components/ResponsePane/ResponseStopWatch';
 import WSMessagesList from './WsResponsePane/WSMessagesList';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
+import { useSetAsVariable } from 'providers/SetAsVariable/context';
 import useResponsePaneErrors from 'hooks/useResponsePaneErrors';
 
 // Width threshold for expanded right-side action buttons
@@ -36,6 +37,7 @@ const ResponsePane = ({ item, collection }) => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const rightContentRef = useRef(null);
+  const setAsVariable = useSetAsVariable();
 
   const response = item.response || {};
 
@@ -302,7 +304,11 @@ const ResponsePane = ({ item, collection }) => {
       <section className="response-pane-content">
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {alertsSection}
-        <div className={classnames('response-tab-content', { hidden: responsePaneErrors.isCardFullPane })} data-testid="response-tab-content">
+        <div
+          className={classnames('response-tab-content', { hidden: responsePaneErrors.isCardFullPane })}
+          data-testid="response-tab-content"
+          onContextMenu={(event) => setAsVariable.openFromDomSelection(event, { collection, item })}
+        >
           {!item?.response ? (
             focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
               <Timeline

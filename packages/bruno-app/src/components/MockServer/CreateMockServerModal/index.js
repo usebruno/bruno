@@ -14,6 +14,7 @@ import { mountCollection } from 'providers/ReduxStore/slices/collections/actions
 import {
   generateMockResponsesFromSpec,
   loadMockResponses,
+  loadMockResponsesFromSpec,
   syncMockResponsesFromExamples
 } from 'providers/ReduxStore/slices/mock-server/index';
 import {
@@ -363,6 +364,20 @@ const CreateMockServerModal = ({
             globalDelay: values.globalDelay,
             workspaceUid: activeWorkspaceUid
           });
+
+      if (resolvedSourceType === 'spec') {
+        try {
+          await dispatch(loadMockResponsesFromSpec({
+            workspacePath: resolveMockResponseLocation(instance, workspaces, activeWorkspace).workspacePath,
+            specPath,
+            generateFromSchema: false
+          })).unwrap();
+        } catch (err) {
+          setFieldTouched('specUid', true, false);
+          setFieldError('specUid', err.message || 'The selected API spec is not valid');
+          return;
+        }
+      }
 
       try {
         const savedInstance = await dispatch(saveMockServerInstance(instance));

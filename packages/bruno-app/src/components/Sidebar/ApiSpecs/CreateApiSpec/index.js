@@ -223,14 +223,12 @@ const CreateApiSpec = ({ onClose }) => {
   );
 
   const exportCollectionAsApiSpec = (values) => {
-    const { requests, envVariables, processEnvVariables, collectionVariables } = collectionSource.collectionData;
+    const { requests, envVariables, collectionVariables } = collectionSource.collectionData;
 
     const variables = buildSpecVariables({
       collectionVariables,
       envVariables,
-      environment: values.environment,
-      processEnvVariables,
-      workspaceProcessEnvVariables: activeWorkspace?.processEnvVariables
+      environment: values.environment
     });
 
     const environmentsList = Object.entries(envVariables || {}).map(([name, vars]) => ({

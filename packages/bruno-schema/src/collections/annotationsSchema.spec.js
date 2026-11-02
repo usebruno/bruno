@@ -15,6 +15,7 @@ describe('annotation acceptance', () => {
         params: [
           { uid: 'ccccccccccccccccccccc', name: 'q', value: '1', type: 'query', annotations: [{ name: 'hint' }] }
         ],
+        body: { mode: 'none' }
       },
     };
 
@@ -43,7 +44,14 @@ describe('annotation acceptance', () => {
           uid: 'ggggggggggggggggggggg',
           type: 'http-request',
           name: 'Req2',
-          request: { url: '/path', method: 'POST', headers: [], params: [], vars: { req: [{ uid: 'hhhhhhhhhhhhhhhhhhhhh', name: 'base', value: 'https://example.com', annotations: [{ name: 'base-note' }] }] } }
+          request: {
+            url: '/path',
+            method: 'POST',
+            headers: [],
+            params: [],
+            body: { mode: 'none' },
+            vars: { req: [{ uid: 'hhhhhhhhhhhhhhhhhhhhh', name: 'base', value: 'https://example.com', annotations: [{ name: 'base-note' }] }] }
+          }
         }
       ]
     };

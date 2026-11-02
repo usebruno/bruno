@@ -65,7 +65,7 @@ export const StyledWrapper = styled.div`
   }
 
   .search-block input {
-    height: 28px;
+    height: 32px;
     padding-top: 0;
     padding-bottom: 0;
   }

@@ -57,31 +57,18 @@ const brunoCollection = await wsdlToBruno(wsdlContent);
 ```javascript
 
 const { postmanToBruno } = require('@usebruno/converters');
+const { writeCollectionToDisk } = require('@usebruno/filestore');
 const fs = require('fs/promises');
-const path = require('path');
 
-async function convertPostmanToBruno(inputFile, outputFile) {
-  try {
-    // Read Postman collection file
-    const inputData = await fs.readFile(inputFile, 'utf8');
-    
-    // Convert to Bruno collection
-    const brunoCollection = await postmanToBruno(JSON.parse(inputData));
-    
-    // Save Bruno collection
-    await fs.writeFile(outputFile, JSON.stringify(brunoCollection, null, 2));
-    
-    console.log('Conversion successful!');
-  } catch (error) {
-    console.error('Error during conversion:', error);
-  }
+async function convertPostmanToBruno(inputFile, outputDir) {
+  const inputData = await fs.readFile(inputFile, 'utf8');
+
+  const collection = await postmanToBruno(JSON.parse(inputData));
+  // Writes YAML (OpenCollection) files.
+  await writeCollectionToDisk(collection, outputDir);
 }
 
-// Usage
-const inputFilePath = path.resolve(__dirname, 'demo_collection.postman_collection.json');
-const outputFilePath = path.resolve(__dirname, 'bruno-collection.json');
-
-convertPostmanToBruno(inputFilePath, outputFilePath);
+convertPostmanToBruno('demo_collection.postman_collection.json', './bruno-collection');
 
 ``` 
 
@@ -100,23 +87,15 @@ The WSDL importer supports the following features:
 
 ```javascript
 import { wsdlToBruno } from '@usebruno/converters';
+import { writeCollectionToDisk } from '@usebruno/filestore';
 import fs from 'fs/promises';
 
 async function importWSDL() {
-  try {
-    // Read WSDL file
-    const wsdlContent = await fs.readFile('service.wsdl', 'utf8');
-    
-    // Convert to Bruno collection
-    const brunoCollection = await wsdlToBruno(wsdlContent);
-    
-    // Save Bruno collection
-    await fs.writeFile('soap-collection.json', JSON.stringify(brunoCollection, null, 2));
-    
-    console.log('WSDL import successful!');
-  } catch (error) {
-    console.error('Error during WSDL import:', error);
-  }
+  const wsdlContent = await fs.readFile('service.wsdl', 'utf8');
+
+  const collection = await wsdlToBruno(wsdlContent);
+  // Writes YAML (OpenCollection) files.
+  await writeCollectionToDisk(collection, './soap-collection');
 }
 
 importWSDL();

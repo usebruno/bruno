@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "name": "Env Sidebar Actions",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"]
+}
