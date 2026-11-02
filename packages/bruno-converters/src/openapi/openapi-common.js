@@ -2,6 +2,7 @@ import each from 'lodash/each';
 import isPlainObject from 'lodash/isPlainObject';
 import MarkdownIt from 'markdown-it';
 import { REQUEST_NAME_SOURCES } from '@usebruno/common';
+import { sanitizeName } from '@usebruno/common/utils';
 import { uuid, sanitizeTag } from '../common';
 
 // Content type patterns for matching MIME type variants
@@ -730,6 +731,19 @@ export const getRequestName = (request, requestNameSource) => {
   const preferred = REQUEST_NAME_SOURCES.includes(requestNameSource) ? requestNameSource : 'summary';
   return [preferred, ...REQUEST_NAME_SOURCES.filter((source) => source !== preferred)]
     .reduce((name, source) => name || requestNameBySource[source](request), '');
+};
+
+const fileNameKey = (name) => sanitizeName(name).toLowerCase();
+
+export const uniqueRequestName = (name, usedNames) => {
+  let uniqueName = name;
+  let counter = 1;
+  while (usedNames.has(fileNameKey(uniqueName))) {
+    uniqueName = `${name} (${counter})`;
+    counter++;
+  }
+  usedNames.add(fileNameKey(uniqueName));
+  return uniqueName;
 };
 
 /**

@@ -1,4 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
+import { sanitizeName } from '@usebruno/common/utils';
 import openApiToBruno from '../../src/openapi/openapi-to-bruno';
 
 const buildOpenApiSpec = (paths) => ({
@@ -290,7 +291,19 @@ describe.each([
         }
       });
 
-      expect(names).toEqual(['Lists pets', 'Lists pets (POST)']);
+      expect(names).toEqual(['Lists pets', 'Lists pets (1)']);
+    });
+
+    it('numbers each further duplicate in order', () => {
+      const names = namesOf({
+        '/pets': {
+          get: { summary: 'Pets', responses: {} },
+          post: { summary: 'Pets', responses: {} },
+          put: { summary: 'Pets', responses: {} }
+        }
+      });
+
+      expect(names).toEqual(['Pets', 'Pets (1)', 'Pets (2)']);
     });
 
     it('de-duplicates operations that share a method and path', () => {
@@ -300,6 +313,18 @@ describe.each([
       }, { requestNameSource: 'path' });
 
       expect(names).toEqual(['GET /pets', 'GET /pets/']);
+    });
+
+    it('de-duplicates names that become the same file once sanitized or compared without case', () => {
+      const names = namesOf({
+        '/a/b': { get: { summary: 'Nested', responses: {} } },
+        '/a-b': { get: { summary: 'Dashed', responses: {} } },
+        '/Users': { get: { summary: 'Upper users', responses: {} } },
+        '/users': { get: { summary: 'Lower users', responses: {} } }
+      }, { requestNameSource: 'path' });
+
+      expect(names).toEqual(['GET /a/b', 'GET /a-b (1)', 'GET /Users', 'GET /users (1)']);
+      expect(new Set(names.map((name) => sanitizeName(name).toLowerCase())).size).toBe(4);
     });
   });
 

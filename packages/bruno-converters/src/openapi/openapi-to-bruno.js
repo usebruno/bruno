@@ -12,6 +12,7 @@ import {
   groupRequestsByPath,
   normalizeItemName,
   getRequestName,
+  uniqueRequestName,
   getTagDescriptions,
   toSpecString,
   operationSchemeName,
@@ -259,23 +260,7 @@ const objectValueFromSchema = (param) => {
 const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {}) => {
   let _operationObject = request.operationObject;
 
-  let operationName = getRequestName(request, options.requestNameSource);
-
-  if (usedNames.has(operationName)) {
-    // Make name unique to prevent filename collisions
-    // Try adding method info first
-    let uniqueName = `${operationName} (${request.method.toUpperCase()})`;
-
-    // If still not unique, add counter
-    let counter = 1;
-    while (usedNames.has(uniqueName)) {
-      uniqueName = `${operationName} (${counter})`;
-      counter++;
-    }
-
-    operationName = uniqueName;
-  }
-  usedNames.add(operationName);
+  const operationName = uniqueRequestName(getRequestName(request, options.requestNameSource), usedNames);
 
   // replace OpenAPI links in path by Bruno variables
   let path = request.path.replace(/{([a-zA-Z]+)}/g, `{{${_operationObject.operationId}_$1}}`);

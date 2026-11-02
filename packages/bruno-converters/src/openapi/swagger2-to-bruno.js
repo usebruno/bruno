@@ -4,6 +4,7 @@
  */
 
 import each from 'lodash/each';
+import xor from 'lodash/xor';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid, sanitizeTags } from '../common';
 import {
   ensureUrl,
@@ -13,6 +14,7 @@ import {
   groupRequestsByTags,
   groupRequestsByPath,
   getRequestName,
+  uniqueRequestName,
   getTagDescriptions,
   toSpecString,
   operationSchemeName,
@@ -124,6 +126,13 @@ const addParamToRequest = (brunoRequestItem, location, name, value, description,
   }
 };
 
+const asksForSchemeScopes = (definition, requestedScopes) =>
+  definition.type !== 'oauth2' || !Array.isArray(requestedScopes) || requestedScopes.length === 0
+  || xor(requestedScopes, Object.keys(definition.scopes || {})).length === 0;
+
+const inheritsSchemeAuth = (security, collectionAuthScheme) => inheritsCollectionAuth(security, collectionAuthScheme)
+  && asksForSchemeScopes(collectionAuthScheme.scheme, security[0][collectionAuthScheme.schemeName]);
+
 /**
  * Transforms a single Swagger 2.0 operation into a Bruno request item
  * @param {Object} request - The parsed request object with operationObject, method, path, global
@@ -137,19 +146,7 @@ const transformSwaggerRequestItem = (request, usedNames = new Set(), options = {
   const produces = op.produces || request.global.produces || ['application/json'];
 
   // Determine operation name
-  let operationName = getRequestName(request, options.requestNameSource);
-
-  // Make names unique to prevent filename collisions
-  if (usedNames.has(operationName)) {
-    let uniqueName = `${operationName} (${request.method.toUpperCase()})`;
-    let counter = 1;
-    while (usedNames.has(uniqueName)) {
-      uniqueName = `${operationName} (${counter})`;
-      counter++;
-    }
-    operationName = uniqueName;
-  }
-  usedNames.add(operationName);
+  const operationName = uniqueRequestName(getRequestName(request, options.requestNameSource), usedNames);
 
   let path = request.path;
 
@@ -279,7 +276,7 @@ const transformSwaggerRequestItem = (request, usedNames = new Set(), options = {
     brunoRequestItem.request.auth.mode = 'none';
   }
 
-  const securityDef = inheritsCollectionAuth(op.security, collectionAuthScheme) ? null : request.global.security.getDefinition(schemeName);
+  const securityDef = inheritsSchemeAuth(op.security, collectionAuthScheme) ? null : request.global.security.getDefinition(schemeName);
 
   if (securityDef) {
     applyAuth(brunoRequestItem, securityDef, op.security[0][schemeName]);
@@ -609,7 +606,9 @@ export const parseSwagger2Collection = (data, options = {}) => {
 
     // Grouping
     const groupingType = options.groupBy || 'tags';
-    const collectionAuthScheme = options.authPlacement === 'collection' ? resolveCollectionAuthScheme(collectionData.security, allRequests, securityConfig.getDefinition) : null;
+    const resolvedAuthScheme = options.authPlacement === 'collection' ? resolveCollectionAuthScheme(collectionData.security, allRequests, securityConfig.getDefinition) : null;
+    const nothingInheritsPromotedScheme = resolvedAuthScheme?.promoted && !allRequests.some((request) => inheritsSchemeAuth(request.operationObject.security, resolvedAuthScheme));
+    const collectionAuthScheme = nothingInheritsPromotedScheme ? null : resolvedAuthScheme;
     const requestOptions = { ...options, collectionAuthScheme };
 
     if (groupingType === 'path') {

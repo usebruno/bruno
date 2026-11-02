@@ -103,6 +103,8 @@ const convertCollection = async (format, rawData, { groupingType, authPlacement,
 
 const DEFAULT_OPENAPI_SETTINGS = { groupingType: 'tags', authPlacement: 'request', requestNameSource: 'summary' };
 
+const isOpenApiFile = (fileData) => fileData.type === 'openapi';
+
 const canSyncSpec = (fileData) => fileData.type === 'openapi' && !isSwagger2Spec(fileData.data) && Boolean(fileData.filePath);
 
 export function normalizeName(name) {
@@ -212,17 +214,12 @@ export const BulkImportCollectionLocation = ({
   const [selectedCollections, setSelectedCollections] = useState(importedCollection.map((col) => col.uid));
   const [selectedEnvironments, setSelectedEnvironments] = useState(isBulkImport ? importedEnvironmentFromBulk.map((env) => env.uid) : []);
 
-  const selectedFiles = importedCollection
-    .filter((col) => selectedCollections.includes(col.uid) && col._fileData)
+  const filesOf = (collectionUids) => importedCollection
+    .filter((col) => collectionUids.includes(col.uid) && col._fileData)
     .map((col) => col._fileData);
-  const hasSelectedOpenApiSpec = selectedFiles.some((fileData) => fileData.type === 'openapi');
+  const selectedFiles = filesOf(selectedCollections);
+  const hasSelectedOpenApiSpec = selectedFiles.some(isOpenApiFile);
   const hasSyncableSpec = selectedFiles.some(canSyncSpec);
-  if (enableCheckForSpecUpdates && !hasSyncableSpec) {
-    setEnableCheckForSpecUpdates(false);
-  }
-  if (!hasSelectedOpenApiSpec && openApiSettings !== DEFAULT_OPENAPI_SETTINGS) {
-    setOpenApiSettings(DEFAULT_OPENAPI_SETTINGS);
-  }
   const { groupingType, authPlacement, requestNameSource } = openApiSettings;
   const changeOpenApiSetting = (name) => (value) => setOpenApiSettings((settings) => ({ ...settings, [name]: value }));
   const showOpenApiOptions = isMultipleImport && hasOpenApiSpec;
@@ -271,9 +268,19 @@ export const BulkImportCollectionLocation = ({
   }, [status, selectedCollections]);
 
   // Handlers
+  const changeSelectedCollections = (nextSelected) => {
+    const nextFiles = filesOf(nextSelected);
+    setSelectedCollections(nextSelected);
+    if (!nextFiles.some(canSyncSpec)) {
+      setEnableCheckForSpecUpdates(false);
+    }
+    if (!nextFiles.some(isOpenApiFile)) {
+      setOpenApiSettings(DEFAULT_OPENAPI_SETTINGS);
+    }
+  };
   const handleCollectionToggle = (uid) => {
-    setSelectedCollections((prev) =>
-      prev.includes(uid) ? prev.filter((id) => id !== uid) : [...prev, uid]
+    changeSelectedCollections(
+      selectedCollections.includes(uid) ? selectedCollections.filter((id) => id !== uid) : [...selectedCollections, uid]
     );
   };
   const handleEnvironmentToggle = (uid) => {
@@ -282,11 +289,11 @@ export const BulkImportCollectionLocation = ({
     );
   };
   const handleSelectAllCollections = (e, filteredCollectionUids) => {
-    setSelectedCollections((prevSelected) => (
+    changeSelectedCollections(
       e.target.checked
-        ? Array.from(new Set([...prevSelected, ...filteredCollectionUids]))
-        : prevSelected.filter((uid) => !filteredCollectionUids.includes(uid))
-    ));
+        ? Array.from(new Set([...selectedCollections, ...filteredCollectionUids]))
+        : selectedCollections.filter((uid) => !filteredCollectionUids.includes(uid))
+    );
   };
   const handleSelectAllEnvironments = (e, filteredEnvironmentUids) => {
     setSelectedEnvironments((prevSelected) => (

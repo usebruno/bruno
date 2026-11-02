@@ -315,11 +315,34 @@ describe('openapi-to-bruno collection auth placement for Swagger 2.0 specs', () 
     expect(authModes(placed(spec))).toEqual(expected);
   });
 
-  it('lets an oauth2 operation inherit the collection scheme whatever scopes it requests', () => {
-    const collection = placed(buildSwaggerSpec({ security: [{ oauth: ['read', 'write'] }], paths: { '/orders': [{ oauth: ['read'] }] } }));
+  it('lets an oauth2 operation inherit the collection scheme only when it requests the same scopes', () => {
+    const spec = buildSwaggerSpec({
+      security: [{ oauth: ['read', 'write'] }],
+      paths: { '/orders': [{ oauth: ['read'] }], '/invoices': [{ oauth: ['write', 'read'] }], '/payments': [{ oauth: [] }], '/items': undefined }
+    });
+    const collection = placed(spec);
 
     expect(collection.root.request.auth).toMatchObject({ mode: 'oauth2', oauth2: { grantType: 'client_credentials', scope: 'read write' } });
-    expect(authModes(collection)).toEqual({ '/orders': 'inherit' });
+    expect(authModes(collection)).toEqual({ '/orders': 'oauth2', '/invoices': 'inherit', '/payments': 'inherit', '/items': 'inherit' });
+    expect(requestAt(collection, '/orders').auth).toEqual(requestAt(openApiToBruno(spec), '/orders').auth);
+    expect(requestAt(collection, '/orders').auth.oauth2.scope).toBe('read');
+  });
+
+  it('keeps the requested scopes of an operation when the promoted scheme has more', () => {
+    const collection = placed(buildSwaggerSpec({ paths: { '/orders': [{ oauth: ['read'] }], '/invoices': [{ oauth: ['read', 'write'] }] } }));
+
+    expect(collection.root.request.auth).toMatchObject({ mode: 'oauth2', oauth2: { scope: 'read write' } });
+    expect(authModes(collection)).toEqual({ '/orders': 'oauth2', '/invoices': 'inherit' });
+    expect(requestAt(collection, '/orders').auth.oauth2.scope).toBe('read');
+  });
+
+  it('promotes no scheme that no operation would inherit', () => {
+    const spec = buildSwaggerSpec({ paths: { '/orders': [{ oauth: ['read'] }], '/health': undefined } });
+    const collection = placed(spec);
+
+    expect(collection.root.request.auth.mode).toBe('none');
+    expect(authModes(collection)).toEqual({ '/orders': 'oauth2', '/health': 'inherit' });
+    expect(requestAt(collection, '/orders').auth).toEqual(requestAt(openApiToBruno(spec), '/orders').auth);
   });
 
   it('applies to folders and requests when grouping by path', () => {

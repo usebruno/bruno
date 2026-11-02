@@ -190,7 +190,7 @@ describe('swagger2-to-bruno grouping', () => {
 
       // Tag-based grouping shares a global usedNames set, so second occurrence gets a suffix
       expect(usersFolder.items[0].name).toBe('List items');
-      expect(petsFolder.items[0].name).toBe('List items (GET)');
+      expect(petsFolder.items[0].name).toBe('List items (1)');
     });
 
     it('should not add suffixes to duplicate names in different path-based folders', () => {
