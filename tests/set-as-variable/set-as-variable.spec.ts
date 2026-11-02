@@ -207,8 +207,8 @@ test.describe('Set as variable', () => {
 
     await test.step('Creating an environment enables that scope', async () => {
       await setAsVariable.createEnvLink('environment').click();
-      await setAsVariable.createEnvName().fill('Staging');
-      await setAsVariable.createEnvSubmit().click();
+      await setAsVariable.createEnvName('environment').fill('Staging');
+      await setAsVariable.createEnvSubmit('environment').click();
 
       await expect(setAsVariable.scopeBadge()).toContainText('Environment');
     });
@@ -231,7 +231,7 @@ test.describe('Set as variable', () => {
       await openSetAsVariablePopover(page, request.urlLine(), 10);
       await setAsVariable.addToToggle().click();
       await setAsVariable.createEnvLink('environment').click();
-      await setAsVariable.createEnvName().fill('stag');
+      await setAsVariable.createEnvName('environment').fill('stag');
     });
 
     await test.step('Collapsing and reopening Add to leaves the half-typed name intact', async () => {
@@ -239,7 +239,7 @@ test.describe('Set as variable', () => {
       await expect(setAsVariable.scopeList()).toBeHidden();
 
       await setAsVariable.addToToggle().click();
-      await expect(setAsVariable.createEnvName()).toHaveValue('stag');
+      await expect(setAsVariable.createEnvName('environment')).toHaveValue('stag');
     });
   });
 
@@ -400,7 +400,7 @@ test.describe('Set as variable', () => {
   });
 
   test('persists the inferred data type to disk', async ({ page, createTmpDir }) => {
-    const { sidebar, request, setAsVariable } = buildCommonLocators(page);
+    const { sidebar, setAsVariable } = buildCommonLocators(page);
     const dir = await createTmpDir('typed-var');
 
     await test.step('Put a number in the URL', async () => {

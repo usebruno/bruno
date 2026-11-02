@@ -48,11 +48,11 @@ bugs to the shared logic, not the reporting surface.
 
 - A new app runner option (tags, delay, bail) needs a `bru run` flag, or a stated reason.
 - Import: the app imports Postman, Insomnia, OpenAPI, WSDL and OpenCollection; `bru import`
-  (`commands/import.js`) only OpenAPI and WSDL. Changes to a shared converter affect both.
+  (`commands/import.js`) only OpenAPI, WSDL and Postman. Changes to a shared converter affect both.
 - **Known-divergent by design.** The CLI has no preferences store (so no `resolveInheritedSettings`),
   no Electron window, no system-browser OAuth, and no `@usebruno/schema` validation. Its runner
-  handles only `REQUEST_ITEM_TYPES = ['http-request', 'graphql-request']`
-  (`bruno-cli/src/utils/collection.js`).
+  supports only `http-request` and `graphql-request`: it has no gRPC or WebSocket transport, and
+  every request item goes through the HTTP pipeline in `runner/run-single-request.js`.
 
 ## 2. Persisted fields — every layer that carries a field list
 

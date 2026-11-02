@@ -13,10 +13,10 @@ export const buildSetAsVariableLocators = (page: Page) => ({
   scopeList: () => page.getByTestId('set-as-variable-scopes'),
   scopeOption: (scopeType: string) => page.getByTestId(`set-as-variable-scope-${scopeType}`),
   secretCheckbox: () => page.getByTestId('set-as-variable-secret'),
-  createEnvLink: (scopeType: string) => page.getByTestId(`set-as-variable-create-env-${scopeType}`),
-  createEnvName: () => page.getByTestId('set-as-variable-create-env-name'),
-  createEnvSubmit: () => page.getByTestId('set-as-variable-create-env-submit'),
-  createEnvError: () => page.getByTestId('set-as-variable-create-env-error'),
+  createEnvLink: (scopeType: string) => page.getByTestId(`set-as-variable-create-env-link-${scopeType}`),
+  createEnvName: (scopeType: string) => page.getByTestId(`set-as-variable-create-env-input-${scopeType}`),
+  createEnvSubmit: (scopeType: string) => page.getByTestId(`set-as-variable-create-env-submit-${scopeType}`),
+  createEnvError: (scopeType: string) => page.getByTestId(`set-as-variable-create-env-error-${scopeType}`),
   saveButton: () => page.getByTestId('set-as-variable-save'),
   cancelButton: () => page.getByTestId('set-as-variable-cancel')
 });

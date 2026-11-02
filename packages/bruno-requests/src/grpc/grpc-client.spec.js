@@ -5,6 +5,8 @@
 // Store captured values for assertions
 let capturedChannelOptions = null;
 let capturedHost = null;
+let capturedRequestPath = null;
+let capturedClientDefinition = null;
 
 // Mock GrpcReflection to capture options
 const mockListServices = jest.fn().mockResolvedValue(['test.Service']);
@@ -18,11 +20,24 @@ const mockListMethods = jest.fn().mockResolvedValue([
   }
 ]);
 
+// Set to false to mimic a library version that no longer exposes the service definition
+let mockReflectionExposesServiceDefinition = true;
+
 jest.mock('grpc-js-reflection-client', () => ({
-  GrpcReflection: jest.fn().mockImplementation((host, credentials, options) => {
+  GrpcReflection: jest.fn().mockImplementation((host, credentials, options, version) => {
     capturedChannelOptions = options;
     capturedHost = host;
+    // Mirrors the library's internal client, the one whose method paths get prefixed.
+    class ReflectionServiceClient {
+      close() {}
+    }
+    if (mockReflectionExposesServiceDefinition) {
+      ReflectionServiceClient.service = {
+        ServerReflectionInfo: { path: `/grpc.reflection.${version}.ServerReflection/ServerReflectionInfo` }
+      };
+    }
     return {
+      client: new ReflectionServiceClient(),
       listServices: mockListServices,
       listMethods: mockListMethods
     };
@@ -66,14 +81,18 @@ jest.mock('@grpc/grpc-js', () => {
   };
 
   return {
-    makeGenericClientConstructor: jest.fn(() => {
+    makeGenericClientConstructor: jest.fn((definition) => {
+      capturedClientDefinition = definition;
       return jest.fn().mockImplementation((host, credentials, options) => {
         capturedChannelOptions = options;
         capturedHost = host;
         const mockRpc = createMockRpc();
         return {
           close: jest.fn(),
-          makeUnaryRequest: jest.fn().mockReturnValue(mockRpc),
+          makeUnaryRequest: jest.fn().mockImplementation((path) => {
+            capturedRequestPath = path;
+            return mockRpc;
+          }),
           makeClientStreamRequest: jest.fn().mockReturnValue(mockRpc),
           makeServerStreamRequest: jest.fn().mockReturnValue(mockRpc),
           makeBidiStreamRequest: jest.fn().mockReturnValue(mockRpc)
@@ -99,6 +118,7 @@ jest.mock('@grpc/proto-loader', () => ({
   load: jest.fn().mockResolvedValue({})
 }));
 
+import nodePath from 'path';
 import { GrpcClient } from './grpc-client';
 
 describe('GrpcClient', () => {
@@ -109,6 +129,9 @@ describe('GrpcClient', () => {
     jest.clearAllMocks();
     capturedChannelOptions = null;
     capturedHost = null;
+    capturedRequestPath = null;
+    capturedClientDefinition = null;
+    mockReflectionExposesServiceDefinition = true;
     mockEventCallback = jest.fn();
     grpcClient = new GrpcClient(mockEventCallback);
   });
@@ -713,6 +736,260 @@ describe('GrpcClient', () => {
       expect(capturedChannelOptions['grpc.http_connect_target']).toBeUndefined();
       expect(capturedChannelOptions['grpc.enable_http_proxy']).toBeUndefined();
       expect(capturedHost).toBe('myserver:50051');
+    });
+  });
+
+  describe('URL subpath support in startConnection', () => {
+    const baseRequest = {
+      url: 'grpc://myserver:50051',
+      uid: 'test-request-uid',
+      method: '/test.Service/TestMethod',
+      headers: {},
+      body: {
+        grpc: [{ content: '{}' }]
+      }
+    };
+
+    const baseCollection = {
+      uid: 'test-collection-uid',
+      pathname: '/test/path'
+    };
+
+    beforeEach(() => {
+      grpcClient.methods.set('/test.Service/TestMethod', {
+        path: '/test.Service/TestMethod',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (val) => Buffer.from(JSON.stringify(val)),
+        responseDeserialize: (val) => JSON.parse(val.toString())
+      });
+    });
+
+    test('should include URL subpath in the gRPC request path', async () => {
+      await grpcClient.startConnection({
+        request: { ...baseRequest, url: 'grpcs://myserver:443/my-subpath' },
+        collection: baseCollection
+      });
+
+      expect(capturedRequestPath).toBe('/my-subpath/test.Service/TestMethod');
+    });
+
+    test('should preserve URL subpath case sensitivity', async () => {
+      await grpcClient.startConnection({
+        request: { ...baseRequest, url: 'grpcs://myserver:443/MySubPath' },
+        collection: baseCollection
+      });
+
+      expect(capturedRequestPath).toBe('/MySubPath/test.Service/TestMethod');
+    });
+
+    test('should lowercase the host while preserving the subpath case', async () => {
+      await grpcClient.startConnection({
+        request: { ...baseRequest, url: 'grpcs://MyServer:443/MySubPath' },
+        collection: baseCollection
+      });
+
+      expect(capturedHost).toBe('myserver:443');
+      expect(capturedRequestPath).toBe('/MySubPath/test.Service/TestMethod');
+    });
+
+    test('should work without subpath (standard URL)', async () => {
+      await grpcClient.startConnection({
+        request: baseRequest,
+        collection: baseCollection
+      });
+
+      expect(capturedRequestPath).toBe('/test.Service/TestMethod');
+    });
+
+    test('should connect to host without subpath in channel target', async () => {
+      await grpcClient.startConnection({
+        request: { ...baseRequest, url: 'grpcs://myserver:443/my-subpath' },
+        collection: baseCollection
+      });
+
+      expect(capturedHost).toBe('myserver:443');
+    });
+  });
+
+  describe('URL subpath support in loadMethodsFromReflection', () => {
+    const baseRequest = {
+      url: 'grpc://myserver:50051',
+      uid: 'test-request-uid',
+      headers: {}
+    };
+
+    const baseParams = {
+      collectionUid: 'test-collection-uid',
+      sendEvent: jest.fn()
+    };
+
+    test('should include URL subpath in the reflection method paths', async () => {
+      const request = { ...baseRequest, url: 'grpcs://myserver:443/MySubPath' };
+
+      const methods = await grpcClient.loadMethodsFromReflection({ request, ...baseParams });
+
+      expect(capturedClientDefinition.ServerReflectionInfo.path).toBe(
+        '/MySubPath/grpc.reflection.v1.ServerReflection/ServerReflectionInfo'
+      );
+      expect(capturedHost).toBe('myserver:443');
+      expect(methods).toHaveLength(1);
+    });
+
+    test('should leave the reflection client untouched without a subpath', async () => {
+      await grpcClient.loadMethodsFromReflection({ request: baseRequest, ...baseParams });
+
+      expect(capturedClientDefinition).toBeNull();
+    });
+
+    test('should include URL subpath in the v1alpha method paths when v1 is unavailable', async () => {
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      mockListServices.mockRejectedValueOnce(new Error('12 UNIMPLEMENTED'));
+      const request = { ...baseRequest, url: 'grpcs://myserver:443/MySubPath' };
+
+      const methods = await grpcClient.loadMethodsFromReflection({ request, ...baseParams });
+
+      expect(capturedClientDefinition.ServerReflectionInfo.path).toBe(
+        '/MySubPath/grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo'
+      );
+      expect(methods).toHaveLength(1);
+      warn.mockRestore();
+    });
+
+    test('should skip the URL subpath when the reflection client exposes no service definition', async () => {
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      mockReflectionExposesServiceDefinition = false;
+      const request = { ...baseRequest, url: 'grpcs://myserver:443/MySubPath' };
+
+      const methods = await grpcClient.loadMethodsFromReflection({ request, ...baseParams });
+
+      expect(capturedClientDefinition).toBeNull();
+      expect(methods).toHaveLength(1);
+      expect(warn).toHaveBeenCalledWith('Could not read the reflection service definition; reflection will skip the URL subpath');
+      warn.mockRestore();
+    });
+  });
+
+  describe('generateGrpcurlCommand', () => {
+    const baseRequest = {
+      url: 'grpcs://myserver:443',
+      method: '/test.Service/TestMethod',
+      methodType: 'unary',
+      headers: {},
+      body: {
+        grpc: [{ content: '{"greeting":"hello"}' }]
+      }
+    };
+
+    describe('transport flags', () => {
+      test('should send a scheme-less host over TLS, the way the connection does', () => {
+        const command = grpcClient.generateGrpcurlCommand({
+          request: { ...baseRequest, url: 'myserver:443' },
+          certificates: { ca: '/certs/ca.pem' }
+        });
+
+        expect(command).not.toContain('-plaintext');
+        expect(command).toContain('-cacert /certs/ca.pem');
+      });
+
+      test('should send a scheme-less localhost in plaintext, the way the connection does', () => {
+        const command = grpcClient.generateGrpcurlCommand({ request: { ...baseRequest, url: 'localhost:50051' } });
+
+        expect(command).toContain('-plaintext');
+      });
+
+      test('should pass the client certificate and key for a grpcs url', () => {
+        const command = grpcClient.generateGrpcurlCommand({
+          request: baseRequest,
+          certificates: { cert: '/certs/client.crt', key: '/certs/client.key' }
+        });
+
+        expect(command).not.toContain('-plaintext');
+        expect(command).toContain('-cert /certs/client.crt');
+        expect(command).toContain('-key /certs/client.key');
+      });
+
+      test('should use plaintext for a grpc url', () => {
+        const command = grpcClient.generateGrpcurlCommand({ request: { ...baseRequest, url: 'grpc://myserver:50051' } });
+
+        expect(command).toContain('-plaintext');
+        expect(command).not.toContain('-cacert');
+      });
+
+      test('should target the socket path for a unix socket url', () => {
+        const command = grpcClient.generateGrpcurlCommand({ request: { ...baseRequest, url: 'unix:///tmp/grpc.sock' } });
+
+        expect(command).toContain('-plaintext -unix -authority localhost');
+        expect(command).toContain('/tmp/grpc.sock test.Service/TestMethod');
+      });
+    });
+
+    describe('target and method', () => {
+      test('should append the URL subpath to the method, with its case preserved', () => {
+        const command = grpcClient.generateGrpcurlCommand({ request: { ...baseRequest, url: 'grpcs://myserver:443/MySubPath' } });
+
+        expect(command).toContain('myserver:443 MySubPath/test.Service/TestMethod');
+      });
+
+      test('should call the method directly without a subpath', () => {
+        const command = grpcClient.generateGrpcurlCommand({ request: baseRequest });
+
+        expect(command).toContain('myserver:443 test.Service/TestMethod');
+      });
+
+      test('should lowercase the host', () => {
+        const command = grpcClient.generateGrpcurlCommand({ request: { ...baseRequest, url: 'grpcs://MyServer:443/MySubPath' } });
+
+        expect(command).toContain('myserver:443 MySubPath/test.Service/TestMethod');
+      });
+    });
+
+    describe('headers, proto files and messages', () => {
+      test('should pass each header with -H', () => {
+        const command = grpcClient.generateGrpcurlCommand({
+          request: { ...baseRequest, headers: { 'x-api-key': 'secret', 'authorization': 'Bearer token' } }
+        });
+
+        expect(command).toContain('-H "x-api-key: secret"');
+        expect(command).toContain('-H "authorization: Bearer token"');
+      });
+
+      test('should resolve the proto file against the collection path', () => {
+        const collectionPath = nodePath.resolve('/collections/grpc');
+        const command = grpcClient.generateGrpcurlCommand({
+          request: { ...baseRequest, protoPath: 'protos/hello.proto' },
+          collectionPath
+        });
+
+        expect(command).toContain(`-import-path ${nodePath.join(collectionPath, 'protos')}`);
+        expect(command).toContain('-proto hello.proto');
+      });
+
+      test('should omit proto flags in reflection mode', () => {
+        const command = grpcClient.generateGrpcurlCommand({ request: baseRequest });
+
+        expect(command).not.toContain('-import-path');
+        expect(command).not.toContain('-proto ');
+      });
+
+      test('should send a unary message with -d', () => {
+        const command = grpcClient.generateGrpcurlCommand({ request: baseRequest });
+
+        expect(command).toContain(`-d '{"greeting":"hello"}'`);
+      });
+
+      test('should stream every message over stdin for a client streaming method', () => {
+        const command = grpcClient.generateGrpcurlCommand({
+          request: {
+            ...baseRequest,
+            methodType: 'client-streaming',
+            body: { grpc: [{ content: '{"greeting":"one"}' }, { content: '{"greeting":"two"}' }] }
+          }
+        });
+
+        expect(command).toContain('-d @');
+        expect(command).toContain('<< EOF\n{"greeting":"one"}\n{"greeting":"two"}\nEOF');
+      });
     });
   });
 });
