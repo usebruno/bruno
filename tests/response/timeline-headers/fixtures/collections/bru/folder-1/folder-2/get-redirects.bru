@@ -1,0 +1,30 @@
+meta {
+  name: get-redirects
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:8081/api/redirect/2
+  body: none
+  auth: inherit
+}
+
+headers {
+  request-header-1: request-header-value-1
+  request-header-2: request-header-value-2
+  request-set-header-1: request-set-header-definition-1
+  request-interpolated-1: {{request-token-1}}
+  request-delete-header-1: request-delete-header-value-1
+  request-delete-headers-1: request-delete-headers-value-1
+  request-delete-headers-2: request-delete-headers-value-2
+  shared-header-1: request-shared-value-1
+}
+
+script:pre-request {
+  req.setHeader('request-set-header-1', 'request-set-header-script-1');
+  req.setHeader('request-set-header-2', 'request-set-header-script-2');
+  req.deleteHeader('request-delete-header-1');
+  req.deleteHeaders(['request-delete-headers-1', 'request-delete-headers-2']);
+  bru.setVar('request-token-1', 'request-interpolated-script-1');
+}

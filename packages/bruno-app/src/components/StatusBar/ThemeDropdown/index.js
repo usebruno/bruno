@@ -213,29 +213,31 @@ const ThemeDropdown = ({ children }) => {
     const isActiveSystemTheme = isSystemMode && ((isLight && displayedTheme === 'light') || (!isLight && displayedTheme === 'dark'));
 
     return (
-      <div className="theme-list" role="listbox" aria-label={label}>
+      <div className="theme-list">
         <div className="theme-list-label">
           {label}
           {isActiveSystemTheme && <span className="active-badge">Active</span>}
         </div>
-        {themes.map((theme, index) => {
-          const isActive = currentVariant === theme.id;
-          return (
-            <div
-              key={theme.id}
-              ref={(el) => (refs.current[index] = el)}
-              className={`theme-item ${isActive ? 'active' : ''} ${getFocusedClass(section, index)}`}
-              role="option"
-              aria-selected={isActive}
-              tabIndex={-1}
-              onClick={() => handleThemeSelect(theme.id, isLight)}
-              onMouseEnter={() => handleMouseEnter(section, index)}
-            >
-              <span className="theme-item-label">{theme.name}</span>
-              {isActive && <IconCheck size={14} strokeWidth={2} className="check-icon" />}
-            </div>
-          );
-        })}
+        <div className="theme-list-items" role="listbox" aria-label={label}>
+          {themes.map((theme, index) => {
+            const isActive = currentVariant === theme.id;
+            return (
+              <div
+                key={theme.id}
+                ref={(el) => (refs.current[index] = el)}
+                className={`theme-item ${isActive ? 'active' : ''} ${getFocusedClass(section, index)}`}
+                role="option"
+                aria-selected={isActive}
+                tabIndex={-1}
+                onClick={() => handleThemeSelect(theme.id, isLight)}
+                onMouseEnter={() => handleMouseEnter(section, index)}
+              >
+                <span className="theme-item-label">{theme.name}</span>
+                {isActive && <IconCheck size={14} strokeWidth={2} className="check-icon" />}
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   };

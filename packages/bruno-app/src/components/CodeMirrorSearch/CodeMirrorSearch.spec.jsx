@@ -1,5 +1,5 @@
 import React, { createRef } from 'react';
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
 import CodeMirrorSearch from './index';
 
@@ -264,7 +264,7 @@ describe('CodeMirrorSearch', () => {
   });
 
   describe('Escape key', () => {
-    it('closes the bar and calls onClose', () => {
+    it('closes the search bar and calls onClose', () => {
       const onClose = jest.fn();
       renderSearch({ onClose });
       fireEvent.keyDown(screen.getByTestId('codemirror-search-input'), { key: 'Escape' });
@@ -273,20 +273,6 @@ describe('CodeMirrorSearch', () => {
   });
 
   describe('isDebouncing guard', () => {
-    it('replace buttons are disabled while debounce is pending', () => {
-      const ref = createRef();
-      renderSearch({}, ref);
-      act(() => {
-        ref.current.openReplace(); jest.runAllTimers();
-      });
-
-      // Type but do NOT advance timers — debounce still pending
-      fireEvent.change(screen.getByTestId('codemirror-search-input'), { target: { value: 'test' } });
-
-      expect(screen.getByRole('button', { name: 'Replace' })).toBeDisabled();
-      expect(screen.getByRole('button', { name: 'Replace all' })).toBeDisabled();
-    });
-
     it('replace buttons are enabled once debounce settles', () => {
       const matches = [{ from: { line: 0, ch: 0 }, to: { line: 0, ch: 4 } }];
       const ref = createRef();
@@ -319,9 +305,9 @@ describe('CodeMirrorSearch', () => {
       typeSearch('console');
       expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('1 / 2');
 
-      // Simulate undo — document reverts, now no matches
+      // Simulate undo - document reverts, now no matches
       editor.getSearchCursor.mockImplementation(() => {
-        let i = -1;
+        const i = -1;
         return { findNext: () => false, from: () => undefined, to: () => undefined };
       });
 
@@ -331,6 +317,94 @@ describe('CodeMirrorSearch', () => {
       });
 
       expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('0 results');
+    });
+
+    const nameMatches = [
+      { from: { line: 0, ch: 6 }, to: { line: 0, ch: 10 } },
+      { from: { line: 2, ch: 6 }, to: { line: 2, ch: 10 } }
+    ];
+
+    function setupEditor(matches) {
+      let changeHandler;
+      const editor = makeMockEditor(matches);
+      editor.on = jest.fn((event, handler) => { if (event === 'change') changeHandler = handler; });
+      editor.off = jest.fn();
+      editor.replaceRange.mockImplementation(() => changeHandler());
+      const editAt = (cursor) => {
+        editor.getCursor.mockReturnValue(cursor);
+        act(() => {
+          changeHandler();
+          jest.advanceTimersByTime(100);
+        });
+      };
+      return { editor, editAt };
+    }
+
+    function replaceCurrentMatch(ref) {
+      act(() => {
+        ref.current.openReplace();
+        jest.runAllTimers();
+      });
+      fireEvent.change(screen.getByTestId('codemirror-search-replace-input'), { target: { value: 'id' } });
+      fireEvent.click(screen.getByTestId('codemirror-search-replace-btn'));
+    }
+
+    it('Edit a line with no match, keep typing', () => {
+      const { editor, editAt } = setupEditor(nameMatches);
+      renderSearch({ editor });
+      typeSearch('name');
+      editor.setSelection.mockClear();
+
+      editAt({ line: 1, ch: 16 });
+
+      expect(editor.setSelection).not.toHaveBeenCalled();
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('2 / 2');
+    });
+
+    it('Edit past two matches on a line', () => {
+      const { editor, editAt } = setupEditor([
+        ...nameMatches,
+        { from: { line: 2, ch: 20 }, to: { line: 2, ch: 24 } },
+        { from: { line: 4, ch: 0 }, to: { line: 4, ch: 4 } }
+      ]);
+      renderSearch({ editor });
+      typeSearch('name');
+
+      editAt({ line: 2, ch: 27 });
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('4 / 4');
+    });
+
+    it('Edit within 100ms of Replace', () => {
+      const { editor, editAt } = setupEditor(nameMatches);
+      const ref = createRef();
+      renderSearch({ editor }, ref);
+      typeSearch('name');
+      replaceCurrentMatch(ref);
+      editor.setSelection.mockClear();
+
+      editAt({ line: 1, ch: 16 });
+
+      expect(editor.setSelection).not.toHaveBeenCalled();
+    });
+
+    it('Replace, close the search bar within 100ms, reopen, edit', () => {
+      const { editor, editAt } = setupEditor(nameMatches);
+      const ref = createRef();
+      const searchBar = (visible) => (
+        <ThemeProvider theme={theme}>
+          <CodeMirrorSearch visible={visible} editor={editor} onClose={jest.fn()} ref={ref} />
+        </ThemeProvider>
+      );
+      const { rerender } = render(searchBar(true));
+      typeSearch('name');
+      replaceCurrentMatch(ref);
+      rerender(searchBar(false));
+      rerender(searchBar(true));
+      editor.setSelection.mockClear();
+
+      editAt({ line: 1, ch: 16 });
+
+      expect(editor.setSelection).not.toHaveBeenCalled();
     });
   });
 

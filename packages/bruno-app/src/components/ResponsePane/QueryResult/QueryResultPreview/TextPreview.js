@@ -1,6 +1,11 @@
-import React, { memo, useMemo } from 'react';
+import LinkifyIt from 'linkify-it';
+import React, { Fragment, memo, useMemo } from 'react';
+import { useChunkedReveal } from 'hooks/useChunkedReveal';
+import { isHttpUrl } from 'utils/url';
 
-const TextPreview = memo(({ data }) => {
+const linkify = new LinkifyIt();
+
+const TextPreview = memo(({ data, onLinkClick }) => {
   const displayData = useMemo(() => {
     if (data === null || data === undefined) {
       return String(data);
@@ -15,9 +20,56 @@ const TextPreview = memo(({ data }) => {
     return String(data);
   }, [data]);
 
+  // Split into plain-text and URL segments so only genuine http(s) links (never a bare
+  // //host, ftp:, or mailto: match) become clickable - everything else renders as-is.
+  const segments = useMemo(() => {
+    if (typeof onLinkClick !== 'function') {
+      return [{ text: displayData }];
+    }
+
+    const matches = linkify.match(displayData);
+    if (!matches?.length) {
+      return [{ text: displayData }];
+    }
+
+    const parts = [];
+    let cursor = 0;
+    matches.forEach((match) => {
+      if (!isHttpUrl(match.url)) return;
+      if (match.index > cursor) {
+        parts.push({ text: displayData.slice(cursor, match.index) });
+      }
+      parts.push({ text: match.raw, url: match.url });
+      cursor = match.lastIndex;
+    });
+    if (cursor < displayData.length) {
+      parts.push({ text: displayData.slice(cursor) });
+    }
+    return parts;
+  }, [displayData, onLinkClick]);
+
+  const [visibleCount, sentinelRef] = useChunkedReveal(segments.length);
+
   return (
-    <div className="p-4 font-mono text-[13px] whitespace-pre-wrap break-words overflow-auto overflow-x-hidden w-full max-w-full h-full">
-      {displayData}
+    <div
+      data-testid="text-preview-container"
+      className="p-4 font-mono text-[13px] whitespace-pre-wrap break-words overflow-auto overflow-x-hidden w-full max-w-full h-full"
+    >
+      {segments.slice(0, visibleCount).map((segment, index) =>
+        segment.url ? (
+          <span
+            key={index}
+            data-testid="text-preview-link"
+            style={{ cursor: 'pointer', textDecoration: 'underline' }}
+            onClick={() => onLinkClick(segment.url)}
+          >
+            {segment.text}
+          </span>
+        ) : (
+          <Fragment key={index}>{segment.text}</Fragment>
+        )
+      )}
+      {visibleCount < segments.length && <div ref={sentinelRef} data-testid="text-preview-reveal-sentinel" />}
     </div>
   );
 });

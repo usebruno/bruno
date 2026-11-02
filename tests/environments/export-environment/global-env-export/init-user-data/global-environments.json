@@ -47,6 +47,21 @@
           "description": "Secret line one\nSecret line two"
         }
       ]
+    },
+    {
+      "uid": "Kq2vDdmTzXaLm4hRpWs8N",
+      "name": "derived",
+      "extends": "local",
+      "variables": [
+        {
+          "uid": "9bMxQnv3RtYWk1cLdEuZ7",
+          "name": "region",
+          "value": "eu-west-1",
+          "type": "text",
+          "enabled": true,
+          "secret": false
+        }
+      ]
     }
   ],
   "activeGlobalEnvironmentUid": "FfmX1qYW2EaOpLWeNPLKM"

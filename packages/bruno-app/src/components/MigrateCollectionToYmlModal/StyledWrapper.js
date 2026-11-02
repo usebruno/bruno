@@ -60,6 +60,16 @@ const StyledWrapper = styled.div`
     font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.colors.text.muted};
   }
+
+  .warning-text {
+    color: ${(props) => props.theme.status.warning.text};
+  }
+
+  .transient-item {
+    background-color: ${(props) => props.theme.background.surface0};
+    border: 1px solid ${(props) => props.theme.border.border0};
+    border-radius: 4px;
+  }
 `;
 
 export default StyledWrapper;

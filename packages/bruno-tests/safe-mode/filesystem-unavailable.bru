@@ -1,0 +1,23 @@
+meta {
+  name: filesystem unavailable
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("bru.isSafeMode() is true when filesystem access is checked", function() {
+    expect(bru.isSafeMode()).to.equal(true);
+  });
+
+  test("require('fs') is unavailable in the default sandbox", function() {
+    expect(function() {
+      require("fs");
+    }).to.throw("Cannot find module fs");
+  });
+}

@@ -17,7 +17,8 @@ import {
   IconFileCode,
   IconFileOff,
   IconCode,
-  IconAppWindow
+  IconAppWindow,
+  IconTransform
 } from '@tabler/icons';
 import IconSparkles from 'components/Icons/IconSparkles';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
@@ -26,9 +27,12 @@ import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionFileMode } from 'providers/ReduxStore/slices/collections';
 import { toggleAiSidebar } from 'providers/ReduxStore/slices/chat';
-import { findItemInCollection, findItemInCollectionByPathname } from 'utils/collections';
-import find from 'lodash/find';
+import { showMigrateToYmlModal } from 'providers/ReduxStore/slices/collection-migration';
+import { findItemInCollection, findItemInCollectionByPathname, getWorkspaceCollections } from 'utils/collections';
 import get from 'lodash/get';
+import isEqual from 'lodash/isEqual';
+import { selectCollections, selectActiveWorkspace } from 'src/selectors/collections';
+import { selectActiveTab, selectActiveTabUid, selectTabCountsByCollection, selectFirstTabUidByCollection } from 'src/selectors/tab';
 import { addTab, focusTab, setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
 import { uuid } from 'utils/common';
 import toast from 'react-hot-toast';
@@ -41,7 +45,6 @@ import ToolHint from 'components/ToolHint';
 import JsSandboxMode from 'components/SecuritySettings/JsSandboxMode';
 import ActionIcon from 'ui/ActionIcon';
 import { getRevealInFolderLabel } from 'utils/common/platform';
-import { normalizePath } from 'utils/common/path';
 import classNames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
@@ -49,25 +52,48 @@ import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 import { getMockServerInstances, openMockServerDashboard } from 'utils/mock-server/mock-server-instances';
 
+const readDismissedCollections = () => {
+  try {
+    const raw = localStorage.getItem('bruno.migrateToYmlPill.dismissed');
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
 const CollectionHeader = ({ collection, isScratchCollection }) => {
   const dispatch = useDispatch();
-  const workspaces = useSelector((state) => state.workspaces.workspaces);
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
-  const collections = useSelector((state) => state.collections.collections);
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeTabUid = useSelector(selectActiveTabUid);
+  const focusedTab = useSelector(selectActiveTab);
   const preferences = useSelector((state) => state.app.preferences);
   const isAiEnabled = get(preferences, 'ai.enabled', false);
   const isAiSidebarOpen = useSelector((state) => state.chat.isOpen);
 
   // Get the current active workspace
-  const currentWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  const currentWorkspace = useSelector(selectActiveWorkspace);
+
+  const mountedCollections = useSelector((state) =>
+    getWorkspaceCollections({
+      collections: selectCollections(state),
+      workspaces: state.workspaces.workspaces,
+      activeWorkspace: selectActiveWorkspace(state)
+    })
+      .filter((c) => c.mountStatus === 'mounted')
+      .map((c) => ({ uid: c.uid, name: c.name })), isEqual);
+
+  // Per-collection tab counts (switcher badges) and first open tab (focused
+  // when switching to that collection).
+  const tabCountsByCollection = useSelector(selectTabCountsByCollection);
+  const firstTabUidByCollection = useSelector(selectFirstTabUidByCollection);
+
   const gitRootPath = collection?.git?.gitRootPath;
   const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
   const mockServerInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
 
   // Active request (used by the Request / App / File view-mode toggle)
-  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const activeItem = focusedTab && collection
     ? (findItemInCollection(collection, activeTabUid)
       || (focusedTab.pathname ? findItemInCollectionByPathname(collection, focusedTab.pathname) : null))
@@ -92,6 +118,36 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const [closeWorkspaceModalOpen, setCloseWorkspaceModalOpen] = useState(false);
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
   const [showCreateMockServerModal, setShowCreateMockServerModal] = useState(false);
+
+  const [migratePillDismissed, setMigratePillDismissed] = useState(true);
+  useEffect(() => {
+    if (!collection?.pathname) return;
+    const dismissed = readDismissedCollections();
+    setMigratePillDismissed(dismissed.includes(collection.pathname));
+  }, [collection?.pathname]);
+
+  const dismissMigratePill = (e) => {
+    e?.stopPropagation();
+    if (!collection?.pathname) return;
+    const dismissed = readDismissedCollections();
+    if (!dismissed.includes(collection.pathname)) {
+      dismissed.push(collection.pathname);
+      try {
+        localStorage.setItem('bruno.migrateToYmlPill.dismissed', JSON.stringify(dismissed));
+      } catch { }
+    }
+    setMigratePillDismissed(true);
+  };
+
+  const openMigrateToYmlModal = () => {
+    dispatch(
+      showMigrateToYmlModal({
+        collectionUid: collection.uid,
+        collectionPathname: collection.pathname,
+        collectionName: collection.name
+      })
+    );
+  };
 
   const switcherRef = useRef();
   const workspaceActionsRef = useRef();
@@ -163,22 +219,11 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const hasOpenApiUpdates = hasOpenApiSyncConfigured && collectionUpdates[collection.uid]?.hasUpdates;
   const hasOpenApiError = hasOpenApiSyncConfigured && collectionUpdates[collection.uid]?.error;
 
-  // Get mounted collections for the current workspace (excluding scratch collections)
-  const mountedCollections = collections.filter((c) => {
-    if (c.mountStatus !== 'mounted') return false;
-
-    const isScratch = workspaces.some((w) => w.scratchCollectionUid === c.uid);
-    if (isScratch) return false;
-
-    const workspaceCollectionPaths = currentWorkspace?.collections?.map((wc) => wc.path) || [];
-    return workspaceCollectionPaths.some((wcPath) => normalizePath(c.pathname) === normalizePath(wcPath));
-  });
-
   // Count tabs for the current collection
-  const tabCount = tabs.filter((t) => t.collectionUid === collection.uid).length;
+  const tabCount = tabCountsByCollection[collection.uid] || 0;
 
   // Get tab count for a given collection uid
-  const getTabCount = (collectionUid) => tabs.filter((t) => t.collectionUid === collectionUid).length;
+  const getTabCount = (collectionUid) => tabCountsByCollection[collectionUid] || 0;
 
   // Get tab count for workspace (scratch collection)
   const workspaceTabCount = currentWorkspace?.scratchCollectionUid
@@ -204,9 +249,9 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     switcherRef.current?.hide();
     if (!targetCollection?.uid) return;
 
-    const existingTab = tabs.find((t) => t.collectionUid === targetCollection.uid);
-    if (existingTab) {
-      dispatch(focusTab({ uid: existingTab.uid }));
+    const existingTabUid = firstTabUidByCollection[targetCollection.uid];
+    if (existingTabUid) {
+      dispatch(focusTab({ uid: existingTabUid }));
     } else {
       dispatch(
         addTab({
@@ -288,6 +333,9 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
       : []),
     ...(!hasOpenApiSyncConfigured
       ? [{ id: 'openapi-sync', label: 'OpenAPI', leftSection: OpenAPISyncIcon, onClick: viewOpenApiSync }]
+      : []),
+    ...(isMockServerEnabled
+      ? [{ id: 'mock-server', label: 'Mock Server', leftSection: IconServer2, onClick: viewMockServer }]
       : []),
     { id: 'collection-settings', label: 'Collection Settings', leftSection: IconSettings, onClick: viewCollectionSettings }
   ];
@@ -704,6 +752,31 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                   </ActionIcon>
                 </ToolHint>
               )}
+              {collection.format === 'bru' && !migratePillDismissed && (
+                <div
+                  className="migrate-yml-pill"
+                  data-testid="migrate-yml-pill"
+                  title="Migrate this collection to YML"
+                >
+                  <button
+                    type="button"
+                    className="pill-main"
+                    onClick={openMigrateToYmlModal}
+                  >
+                    <IconTransform size={13} strokeWidth={1.5} />
+                    <span className="pill-label">Migrate to YML</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="pill-dismiss"
+                    onClick={dismissMigratePill}
+                    aria-label="Dismiss"
+                    data-testid="migrate-yml-pill-dismiss"
+                  >
+                    <IconX size={12} strokeWidth={2} />
+                  </button>
+                </div>
+              )}
               {/* OpenAPI Sync - standalone only when configured and beta enabled */}
               {hasOpenApiSyncConfigured && (
                 <ToolHint
@@ -725,13 +798,6 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                   <IconRun size={16} strokeWidth={1.5} />
                 </ActionIcon>
               </ToolHint>
-              {isMockServerEnabled && (
-                <ToolHint text="Mock Server" toolhintId="MockServerToolhintId" place="bottom">
-                  <ActionIcon onClick={viewMockServer} aria-label="Mock Server" size="sm" data-testid="mock-server">
-                    <IconServer2 size={16} strokeWidth={1.5} />
-                  </ActionIcon>
-                </ToolHint>
-              )}
               {/* JS Sandbox Mode - always visible */}
               <JsSandboxMode collection={collection} />
               {/* Overflow menu */}

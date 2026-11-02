@@ -90,7 +90,9 @@ const AuthMode = ({ collection }) => {
       <div className="inline-flex items-center cursor-pointer auth-mode-selector" data-testid="auth-mode-selector">
         <MenuDropdown
           items={menuItems}
-          placement="bottom-end"
+          placement="bottom-start"
+          appendTo={() => document.body}
+          hideOnReferenceClip={true}
           selectedItemId={authMode}
         >
           <div className="flex items-center justify-center auth-mode-label select-none" data-testid="auth-mode-label">

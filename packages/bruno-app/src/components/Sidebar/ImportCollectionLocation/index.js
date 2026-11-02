@@ -8,10 +8,10 @@ import { IconCaretDown } from '@tabler/icons';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import { postmanToBruno } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
-import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
+import { convertOpenapiToBruno, isSwagger2Spec, buildOpenApiSyncBrunoConfig } from 'utils/importers/openapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
 import { processOpenCollection } from 'utils/importers/opencollection';
-import { wsdlToBruno } from '@usebruno/converters';
+import { convertWsdlToBruno } from 'utils/importers/wsdl-collection';
 import { toastError } from 'utils/common/error';
 import { addLog } from 'providers/ReduxStore/slices/logs';
 import Portal from 'components/Portal';
@@ -56,7 +56,7 @@ const getCollectionName = (format, rawData) => {
 
 // Convert raw data to Bruno collection format
 // Returns { collection, issues } where issues tracks items that were skipped or degraded
-const convertCollection = async (format, rawData, { groupingType, collectionFormat, preserveScripts } = {}) => {
+const convertCollection = async (format, rawData, { groupingType, collectionFormat, preserveScripts, filePath } = {}) => {
   try {
     let collection;
     let issues = [];
@@ -66,7 +66,7 @@ const convertCollection = async (format, rawData, { groupingType, collectionForm
         collection = convertOpenapiToBruno(rawData, { groupBy: groupingType, collectionFormat });
         break;
       case 'wsdl':
-        collection = await wsdlToBruno(rawData);
+        collection = await convertWsdlToBruno(rawData, filePath);
         break;
       case 'postman': {
         const result = await postmanToBruno(rawData, { preserveScripts });
@@ -119,7 +119,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
   const isZipImport = format === 'bruno-zip';
   const isOpenApiFromUrl = isOpenApi && !!sourceUrl && !filePath;
   const isOpenApiFromFile = isOpenApi && !!filePath && !sourceUrl;
-  const isSwagger2 = isOpenApi && rawData?.swagger && String(rawData.swagger).startsWith('2');
+  const isSwagger2 = isOpenApi && isSwagger2Spec(rawData);
   const showCheckForSpecUpdatesOption = isOpenApiFromUrl || isOpenApiFromFile;
 
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
@@ -145,32 +145,13 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
         .required('Location is required')
     }),
     onSubmit: async (values) => {
-      const { collection: convertedCollection, issues } = await convertCollection(format, rawData, { groupingType, collectionFormat, preserveScripts });
+      const { collection: convertedCollection, issues } = await convertCollection(format, rawData, { groupingType, collectionFormat, preserveScripts, filePath });
       const options = { format: collectionFormat };
 
       if (showCheckForSpecUpdatesOption && enableCheckForSpecUpdates) {
         const syncSourceUrl = sourceUrl || filePath; // URL or absolute path (backend converts to relative)
-        const baseBrunoConfig = {
-          version: convertedCollection.version || '1',
-          name: convertedCollection.name || 'Untitled Collection',
-          type: 'collection',
-          ignore: ['node_modules', '.git']
-        };
-
-        convertedCollection.brunoConfig = {
-          ...baseBrunoConfig,
-          ...convertedCollection.brunoConfig,
-          openapi: [
-            {
-              sourceUrl: syncSourceUrl,
-              groupBy: groupingType,
-              autoCheck: true,
-              autoCheckInterval: 5
-            }
-          ]
-        };
-
-        options.rawOpenAPISpec = rawContent || rawData;
+        convertedCollection.brunoConfig = buildOpenApiSyncBrunoConfig(convertedCollection, { sourceUrl: syncSourceUrl, groupBy: groupingType });
+        options.rawOpenAPISpecs = { [convertedCollection.uid]: rawContent || rawData };
       }
 
       handleSubmit(convertedCollection, values.collectionLocation, options);
@@ -417,6 +398,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
                   onChange={(e) => setEnableCheckForSpecUpdates(e.target.checked)}
                   disabled={isSwagger2}
                   className={`checkbox mt-0.5 ${isSwagger2 ? '' : 'cursor-pointer'}`}
+                  data-testid="check-for-spec-updates-toggle"
                 />
                 <div>
                   <span className="checkbox-option-label">Check for Spec Updates</span>

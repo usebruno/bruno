@@ -290,6 +290,45 @@ describe('postman-collection', () => {
     expect(brunoCollection.root.request.vars.req).toEqual([]);
   });
 
+  it('should preserve the disabled state of collection variables', async () => {
+    const collectionWithDisabledVar = {
+      info: {
+        _postman_id: 'c1d0e5a6-2b3c-4d5e-6f7a-8b9c0d1e2f3a',
+        name: 'collection with disabled var',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      variable: [
+        { key: 'enabledVar', value: 'value1' },
+        { key: 'disabledVar', value: 'value2', disabled: true },
+        { key: 'explicitlyEnabledVar', value: 'value3', disabled: false }
+      ],
+      item: []
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithDisabledVar);
+
+    expect(brunoCollection.root.request.vars.req).toEqual([
+      {
+        uid: 'mockeduuidvalue123456',
+        name: 'enabledVar',
+        value: 'value1',
+        enabled: true
+      },
+      {
+        uid: 'mockeduuidvalue123456',
+        name: 'disabledVar',
+        value: 'value2',
+        enabled: false
+      },
+      {
+        uid: 'mockeduuidvalue123456',
+        name: 'explicitlyEnabledVar',
+        value: 'value3',
+        enabled: true
+      }
+    ]);
+  });
+
   it('should correctly import protocolProfileBehavior settings from Postman requests', async () => {
     const collectionWithSettings = {
       info: {

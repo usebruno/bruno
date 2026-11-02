@@ -1,0 +1,36 @@
+info:
+  name: 04-sync-vars
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: http://localhost:8081/ping
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("sync vars expression starting async work does not crash the app", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: Promise.resolve().then(() => bru.sleep(5))
+        method: jsonq
+      variable:
+        name: drainBorn
+        scope: runtime
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

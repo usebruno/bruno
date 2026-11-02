@@ -13,6 +13,8 @@ const setupGraphQL = require('./graphql');
 const sseRouter = require('./sse');
 const fileBinaryRouter = require('./file-binary');
 const waitForRouter = require('./wait-for');
+const largePayloadRouter = require('./large-payload');
+const grpcServer = require('./grpc');
 
 const app = new express();
 const port = process.env.PORT || 8081;
@@ -29,9 +31,13 @@ const saveRawBody = (req, res, buf) => {
   req.rawBody = buf.toString();
 };
 
-app.use(bodyParser.json({ verify: saveRawBody }));
-app.use(bodyParser.urlencoded({ extended: true, verify: saveRawBody }));
-app.use(bodyParser.text({ verify: saveRawBody }));
+/*
+ * body-parser defaults to a 100kb limit on these three parsers, which is too small for
+ * tests that echo back multi-megabyte bodies.
+ */
+app.use(bodyParser.json({ limit: '10mb', verify: saveRawBody }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb', verify: saveRawBody }));
+app.use(bodyParser.text({ limit: '10mb', verify: saveRawBody }));
 app.use(xmlParser());
 // Only parse raw body for content types not already handled by other parsers
 app.use(express.raw({
@@ -59,6 +65,7 @@ app.use('/api/redirect', redirectRouter);
 app.use('/api/mix', mixRouter);
 app.use('/api/sse', sseRouter);
 app.use('/api/wait-for', waitForRouter);
+app.use('/api/large-payload', largePayloadRouter);
 
 app.get('/ping', function (req, res) {
   return res.send('pong');
@@ -105,6 +112,11 @@ app.use((err, req, res, next) => {
 const server = require('http').createServer(app);
 
 server.on('upgrade', wsRouter);
+
+grpcServer.start().catch((err) => {
+  console.error('Failed to start gRPC testbench', err);
+  process.exit(1);
+});
 
 setupGraphQL(app).then(() => {
   server.listen(port, function () {

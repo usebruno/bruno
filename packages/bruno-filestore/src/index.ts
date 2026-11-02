@@ -13,10 +13,12 @@ import {
   parseYmlCollection,
   parseYmlFolder,
   parseYmlEnvironment,
+  parseYmlMockServer,
   stringifyYmlItem,
   stringifyYmlFolder,
   stringifyYmlCollection,
-  stringifyYmlEnvironment
+  stringifyYmlEnvironment,
+  stringifyYmlMockServer
 } from './formats/yml';
 import { dotenvToJson } from '@usebruno/lang';
 import BruParserWorker from './workers';
@@ -148,6 +150,21 @@ export const stringifyEnvironment = (envObj: BrunoEnvironment, options: Stringif
   throw new Error(`Unsupported format: ${options.format}`);
 };
 
+// mock server — workspace-level entity, opencollection yml only
+export const parseMockServer = (content: string, options: ParseOptions = { format: 'yml' }): any => {
+  if (options.format === 'yml') {
+    return parseYmlMockServer(content);
+  }
+  throw new Error(`Unsupported format: ${options.format}`);
+};
+
+export const stringifyMockServer = (mockServerObj: any, options: StringifyOptions = { format: 'yml' }): string => {
+  if (options.format === 'yml') {
+    return stringifyYmlMockServer(mockServerObj);
+  }
+  throw new Error(`Unsupported format: ${options.format}`);
+};
+
 export const parseDotEnv = (content: string): Record<string, string> => {
   return dotenvToJson(content);
 };
@@ -155,5 +172,6 @@ export const parseDotEnv = (content: string): Record<string, string> => {
 export { redactLargeBruTextBlocks, restoreRedactedBlocks };
 export type { RedactedBlock, RedactionResult } from './formats/bru/utils/redact-large-text-blocks';
 export { BruParserWorker };
+export { writeCollectionToDisk, writeCollectionToDiskLegacy } from './writeCollectionToDisk';
 export * from './types';
 export * from './constants';

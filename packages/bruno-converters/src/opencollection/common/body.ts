@@ -115,7 +115,7 @@ export const fromOpenCollectionBody = (body: HttpRequestBody | GraphQLBody | und
               type: field.type || 'text',
               name: field.name || '',
               value: Array.isArray(field.value) ? field.value : (field.value || ''),
-              contentType: null,
+              contentType: field.contentType || null,
               enabled: field.disabled !== true
             };
             const desc = typeof field.description === 'string' ? field.description : field.description?.content;
@@ -200,6 +200,10 @@ export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefin
 
         if (field.description && typeof field.description === 'string' && field.description.trim().length) {
           entry.description = field.description;
+        }
+
+        if (field.contentType && typeof field.contentType === 'string' && field.contentType.trim().length) {
+          entry.contentType = field.contentType;
         }
 
         if (field.enabled === false) {

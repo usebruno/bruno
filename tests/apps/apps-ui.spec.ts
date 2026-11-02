@@ -1,4 +1,4 @@
-import { test, expect } from '../../playwright';
+import { test, expect, Page } from '../../playwright';
 import {
   createCollection,
   createRequest,
@@ -22,7 +22,7 @@ const SIMPLE_APP = `<div id="hello">Hello from the app</div>`;
 
 // Assert the App tab is absent from the request pane — checks both the visible
 // tab row and the ResponsiveTabs overflow dropdown (tabs can overflow at narrow widths).
-const expectNoAppTab = async (page) => {
+const expectNoAppTab = async (page: Page) => {
   await expect(requestPaneAppTab(page)).toHaveCount(0);
   await openRequestPaneTabOverflow(page);
   await expect(requestPaneOverflowTabItem(page, /^App$/)).toHaveCount(0);
@@ -30,7 +30,7 @@ const expectNoAppTab = async (page) => {
 };
 
 test.describe('Apps - request-level UI', () => {
-  test('App tab and view-mode toggle are gated behind the Enable App setting', async ({ page, createTmpDir }) => {
+  test('TC-3370 TC-3371 App tab and view-mode toggle are gated behind the Enable App setting', async ({ page, createTmpDir }) => {
     const collectionPath = await createTmpDir('apps-ui-gating');
     const collectionName = 'apps-gate';
     await createCollection(page, collectionName, collectionPath);
@@ -140,28 +140,59 @@ test.describe('Apps - request-level UI', () => {
     });
   });
 
-  test('GraphQL requests do not expose the "Enable App" setting', async ({ page, createTmpDir }) => {
-    const collectionPath = await createTmpDir('apps-ui-graphql');
-    const collectionName = 'apps-gql';
+  test('TC-4197 Enable App setting is present only for HTTP requests', async ({ page, createTmpDir }) => {
+    const collectionPath = await createTmpDir('apps-ui-http-only');
+    const collectionName = 'apps-http-only';
     await createCollection(page, collectionName, collectionPath);
+
+    await createRequest(page, 'http-req', collectionName, {
+      url: 'http://localhost:8081/api/echo/anything/x',
+      method: 'GET'
+    });
     await createRequest(page, 'gql-req', collectionName, {
       url: 'http://localhost:8081/api/graphql',
       requestType: 'graphql'
     });
-    await openRequest(page, collectionName, 'gql-req', { persist: true });
+    await createRequest(page, 'grpc-req', collectionName, {
+      url: 'grpc://localhost:50051',
+      requestType: 'grpc'
+    });
+    await createRequest(page, 'ws-req', collectionName, {
+      url: 'ws://localhost:8081/ws',
+      requestType: 'ws'
+    });
 
-    await selectRequestPaneTab(page, 'Settings');
+    await test.step('HTTP request exposes the Enable App toggle in Settings', async () => {
+      await openRequest(page, collectionName, 'http-req', { persist: true });
+      await selectRequestPaneTab(page, 'Settings');
+      await expect(page.getByTestId('enable-app-toggle')).toBeVisible();
+    });
 
-    // Sibling toggles render, confirming the Settings tab loaded.
-    await expect(page.getByTestId('encode-url-toggle')).toBeVisible();
-    await expect(page.getByTestId('follow-redirects-toggle')).toBeVisible();
+    // GraphQL renders the shared Settings component, so we can visit Settings and confirm
+    // the sibling toggles render while the app toggle stays absent. gRPC has no Settings tab
+    // and WS uses its own settings pane, so for those two we only assert the app surface is
+    // absent from the request pane.
+    await test.step('gql-req: shared Settings loads without the Enable App toggle', async () => {
+      await openRequest(page, collectionName, 'gql-req', { persist: true });
+      await selectRequestPaneTab(page, 'Settings');
+      await expect(page.getByTestId('encode-url-toggle')).toBeVisible();
+      await expect(page.getByTestId('follow-redirects-toggle')).toBeVisible();
+      await expect(page.getByTestId('enable-app-toggle')).toHaveCount(0);
+      await expectNoAppTab(page);
+      await expect(page.getByTestId('view-mode-toggle')).toHaveCount(0);
+    });
 
-    await expect(page.getByTestId('enable-app-toggle')).toHaveCount(0);
-    await expectNoAppTab(page);
-    await expect(page.getByTestId('view-mode-toggle')).toHaveCount(0);
+    for (const name of ['grpc-req', 'ws-req']) {
+      await test.step(`${name}: no Enable App toggle, App tab or view-mode toggle`, async () => {
+        await openRequest(page, collectionName, name, { persist: true });
+        await expect(page.getByTestId('enable-app-toggle')).toHaveCount(0);
+        await expectNoAppTab(page);
+        await expect(page.getByTestId('view-mode-toggle')).toHaveCount(0);
+      });
+    }
   });
 
-  test('Enable App and code persist; an enabled app opens in preview mode by default', async ({ page, createTmpDir }) => {
+  test('TC-3375 Enable App and code persist; an enabled app opens in preview mode by default', async ({ page, createTmpDir }) => {
     const collectionPath = await createTmpDir('apps-ui-persist');
     await createCollection(page, 'apps-persist', collectionPath);
     await createRequest(page, 'persist-req', 'apps-persist', { url: 'http://localhost:8081/api/echo/anything/x' });

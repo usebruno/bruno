@@ -1,4 +1,6 @@
-import { test, Page } from '../../../playwright';
+import { test, expect, Page, Locator } from '../../../playwright';
+import { openPreferences, selectPreferencesTab, closePreferences } from './preferences';
+import { buildCommonLocators } from './locators';
 
 // Locators for the Mock Server dashboard, routes table, request log, and related modals.
 export const buildMockServerLocators = (page: Page) => ({
@@ -9,7 +11,8 @@ export const buildMockServerLocators = (page: Page) => ({
   collectionActionsIcon: (name: string) =>
     page.getByTestId('sidebar-collection-row').filter({ hasText: new RegExp(`^${name}$`) }).locator('.collection-actions .icon'),
   createMockServerMenuItem: () => page.getByTestId('collection-actions-create-mock-server'),
-  collectionHeaderMockServer: () => page.getByTestId('mock-server'),
+  collectionHeaderMoreActions: () => page.getByTestId('more-actions'),
+  collectionHeaderMockServer: () => page.getByTestId('more-actions-mock-server'),
 
   dashboard: () => page.getByTestId('mock-server-dashboard'),
   statusText: () => page.getByTestId('mock-server-status-text'),
@@ -23,7 +26,15 @@ export const buildMockServerLocators = (page: Page) => ({
 
   tabResponses: () => page.getByTestId('mock-server-tab-responses'),
   tabRoutes: () => page.getByTestId('mock-server-tab-routes'),
+  tabRoutesCount: () => page.getByTestId('tab-routes-count'),
   tabLog: () => page.getByTestId('mock-server-tab-log'),
+
+  responseOpenBtn: (name: string) => page.locator('[data-testid^="mock-response-open-"]').filter({ hasText: name }),
+  responseTitle: () => page.getByTestId('mock-response-title'),
+  responseNameInput: () => page.getByTestId('mock-response-name-input'),
+  responseEditBtn: () => page.getByTestId('mock-response-edit-btn'),
+  responseSaveBtn: () => page.getByTestId('mock-response-save-btn'),
+  responseCancelBtn: () => page.getByTestId('mock-response-cancel-btn'),
 
   syncExamplesBtn: () => page.getByTestId('mock-response-sync-examples-btn'),
   syncExamplesModal: () => page.getByTestId('sync-mock-examples-modal'),
@@ -32,7 +43,24 @@ export const buildMockServerLocators = (page: Page) => ({
 
   createModal: () => page.locator('.bruno-modal-card'),
   nameInput: () => page.getByTestId('mock-server-name-input'),
+  advancedSettingsToggle: () => page.getByTestId('mock-server-advanced-settings-toggle'),
+  portInput: () => page.getByTestId('mock-server-port-input'),
+  nameRequiredError: () => page.getByText('Name is required'),
+  collectionRequiredError: () => page.getByText('Collection is required'),
+  collectionSelect: () => page.getByTestId('mock-server-collection-select'),
   modalSubmit: () => page.getByTestId('modal-submit-btn'),
+  modalCancel: () => page.locator('.bruno-modal-card').getByRole('button', { name: 'Cancel' }),
+  sidebarCreateBtn: () => page.getByTestId('mock-servers-create-btn'),
+  sourceCollectionRadio: () => page.getByTestId('mock-server-source-collection'),
+  sourceSpecRadio: () => page.getByTestId('mock-server-source-spec'),
+  sourceManualRadio: () => page.getByTestId('mock-server-source-manual'),
+  syncOnCreateCheckbox: () => page.getByTestId('mock-server-sync-on-create-checkbox'),
+  specSelect: () => page.getByTestId('mock-server-spec-select'),
+  specSelectedOption: () => page.getByTestId('mock-server-spec-select').locator('option:checked'),
+  specOption: (name: string) => page.getByTestId('mock-server-spec-select').locator('option').filter({ hasText: name }),
+  settingsBtn: () => page.getByTestId('mock-server-settings-btn'),
+  sidebarItem: (name: string) => page.locator('.mock-server-item').filter({ hasText: name }),
+  sidebarSection: () => page.locator('.sidebar-section').filter({ hasText: 'Mock Servers' }),
 
   routeSearch: () => page.getByTestId('mock-server-route-search'),
   methodFilter: () => page.getByTestId('mock-server-method-filter'),
@@ -43,20 +71,33 @@ export const buildMockServerLocators = (page: Page) => ({
   logCount: () => page.getByTestId('mock-server-log-count'),
   logClear: () => page.getByTestId('mock-server-log-clear'),
   logEmptyState: () => page.getByText('No requests logged yet'),
-  logMethodBadges: () => page.locator('.log-table-container .method-badge'),
-  logPaths: () => page.locator('.log-table-container .log-path'),
-  logNoMatchLabels: () => page.locator('.log-table-container .no-match-label'),
-  logStatusCodes: () => page.locator('.log-table-container .status-code'),
+  logRows: () => page.getByTestId('mock-server-log-table').locator('tr[data-testid^="mock-server-log-row-"]'),
+  logRowStatusCode: (row: Locator) => row.locator('.status-code'),
+  logRowNoMatchLabel: (row: Locator) => row.locator('.no-match-label'),
+  logMethodBadges: () => page.getByTestId('mock-server-log-table').locator('.method-badge'),
+  logPaths: () => page.getByTestId('mock-server-log-table').locator('.log-path'),
+  logNoMatchLabels: () => page.getByTestId('mock-server-log-table').locator('.no-match-label'),
+  logStatusCodes: () => page.getByTestId('mock-server-log-table').locator('.status-code'),
+  logDelayValue: () => page.getByTestId('mock-server-log-table').locator('[data-testid="column-delay"] span').first(),
+  logDurationCell: () => page.getByTestId('mock-server-log-table').locator('[data-testid="column-duration"]').first(),
+
+  betaToggle: () => page.getByTestId('mock-server-beta-toggle'),
+  betaToggleCheckbox: () => page.getByTestId('mock-server-beta-toggle').locator('input[type="checkbox"]'),
+  betaToggleSwitch: () => page.getByTestId('mock-server-beta-toggle').locator('label'),
+  unsavedChangesDialog: () => buildCommonLocators(page).modal.byTitle('Unsaved changes'),
+  unsavedChangesButton: (name: 'Save' | 'Don\'t Save' | 'Cancel') =>
+    buildCommonLocators(page).modal.byTitle('Unsaved changes').getByRole('button', { name, exact: true }),
 
   filterOption: (label: string) => page.getByRole('option', { name: label, exact: true }),
   refreshToast: () => page.getByText(/Routes refreshed.*routes/).first()
 });
 
-// Open the mock server dashboard for a collection via the collection header tab.
+// Open the mock server dashboard for a collection via the collection header overflow menu.
 export const openMockServerTab = async (page: Page, collectionName: string) => {
   await test.step(`Open mock server tab for "${collectionName}"`, async () => {
     const ms = buildMockServerLocators(page);
     await ms.collectionName(collectionName).click();
+    await ms.collectionHeaderMoreActions().click();
     await ms.collectionHeaderMockServer().click();
     await ms.dashboard().waitFor({ state: 'visible' });
   });
@@ -101,8 +142,18 @@ export const stopMockServer = async (page: Page) => {
   });
 };
 
+// Open the create-mock-server modal from the Mock Servers sidebar section. Unlike the
+// collection flow, this needs no collection, so it works in an empty workspace.
+export const openCreateMockServerModal = async (page: Page) => {
+  await test.step('Open the create mock server modal from the sidebar', async () => {
+    const ms = buildMockServerLocators(page);
+    await ms.sidebarCreateBtn().click();
+    await ms.nameInput().waitFor({ state: 'visible', timeout: 10000 });
+  });
+};
+
 // Open the create-mock-server flow from a collection's actions menu and submit a name.
-export const createMockServerFromCollection = async (page: Page, collectionName: string, serverName: string) => {
+export const createMockServerFromCollection = async (page: Page, collectionName: string, serverName: string, port?: string) => {
   await test.step(`Create mock server "${serverName}" for "${collectionName}"`, async () => {
     const ms = buildMockServerLocators(page);
     const collection = ms.collectionRow(collectionName);
@@ -112,7 +163,56 @@ export const createMockServerFromCollection = async (page: Page, collectionName:
     await ms.createMockServerMenuItem().click();
     await ms.createModal().waitFor({ state: 'visible', timeout: 10000 });
     await ms.nameInput().fill(serverName);
+    if (port) {
+      await ms.advancedSettingsToggle().click();
+      await ms.portInput().fill(port);
+      await ms.portInput().blur();
+    }
     await ms.modalSubmit().click();
     await ms.dashboard().waitFor({ state: 'visible', timeout: 10000 });
+  });
+};
+
+// Open an existing mock server's Settings modal via its sidebar row and the dashboard.
+export const openMockServerFromSidebar = async (page: Page, serverName: string) => {
+  await test.step(`Open mock server "${serverName}" from the sidebar`, async () => {
+    const ms = buildMockServerLocators(page);
+    const section = ms.sidebarSection();
+    if (!(await section.evaluate((el) => el.classList.contains('expanded')))) {
+      await section.locator('.section-header-left').click();
+    }
+    await section.locator('.section-content').waitFor({ state: 'visible', timeout: 10000 });
+    await ms.sidebarItem(serverName).click();
+    await ms.dashboard().waitFor({ state: 'visible', timeout: 10000 });
+  });
+};
+
+export const openMockServerSettings = async (page: Page, serverName: string) => {
+  await test.step(`Open settings for mock server "${serverName}"`, async () => {
+    const ms = buildMockServerLocators(page);
+    await openMockServerFromSidebar(page, serverName);
+    await ms.settingsBtn().click();
+    await ms.nameInput().waitFor({ state: 'visible', timeout: 10000 });
+  });
+};
+
+export const setMockServerBetaFeature = async (
+  page: Page,
+  enabled: boolean,
+  { resolveUnsavedChanges }: { resolveUnsavedChanges?: 'save' | 'discard' } = {}
+) => {
+  await test.step(`${enabled ? 'Enable' : 'Disable'} the Mock Server beta feature`, async () => {
+    const ms = buildMockServerLocators(page);
+    await openPreferences(page);
+    await selectPreferencesTab(page, 'Beta');
+    const checkbox = ms.betaToggleCheckbox();
+    if ((await checkbox.isChecked()) !== enabled) {
+      await ms.betaToggleSwitch().click();
+    }
+    if (resolveUnsavedChanges) {
+      await ms.unsavedChangesButton(resolveUnsavedChanges === 'save' ? 'Save' : 'Don\'t Save').click();
+    }
+    await expect(checkbox).toBeChecked({ checked: enabled });
+    await closePreferences(page);
   });
 };

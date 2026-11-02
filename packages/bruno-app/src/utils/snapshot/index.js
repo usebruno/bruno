@@ -167,6 +167,12 @@ const normalizeWorkspaceSnapshotEntry = (pathname, entry = {}) => {
     activeWorkspaceTabType: WORKSPACE_TAB_TYPES.has(entry.activeWorkspaceTabType)
       ? entry.activeWorkspaceTabType
       : null,
+    apiSpecTabs: Array.isArray(entry.apiSpecTabs)
+      ? entry.apiSpecTabs.map((pathname) => normalizePath(pathname)).filter(Boolean)
+      : [],
+    activeApiSpecTabPathname: typeof entry.activeApiSpecTabPathname === 'string'
+      ? normalizePath(entry.activeApiSpecTabPathname) || null
+      : null,
     collections
   };
 };
@@ -260,6 +266,8 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
         lastActiveCollectionPathname: workspace.lastActiveCollectionPathname,
         sorting: workspace.sorting,
         activeWorkspaceTabType: workspace.activeWorkspaceTabType,
+        apiSpecTabs: workspace.apiSpecTabs,
+        activeApiSpecTabPathname: workspace.activeApiSpecTabPathname,
         collections: workspace.collections
       };
 

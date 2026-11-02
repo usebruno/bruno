@@ -1,0 +1,7 @@
+name: Staging
+
+variables:
+  - name: api_url
+    value: https://staging.example.com
+  - name: stage_only
+    value: staging-value

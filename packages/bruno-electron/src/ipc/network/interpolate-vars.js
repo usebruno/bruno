@@ -1,6 +1,8 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep } = require('lodash');
-const { isFormData } = require('@usebruno/common').utils;
+const { isFormData, getMediaType } = require('@usebruno/common').utils;
+const { getUnresolvedVariableCollector } = require('@usebruno/js');
+const { isBinaryRequestBody } = require('../../utils/common');
 
 const hasResolvablePathParamValue = (pathParam) => {
   if (!pathParam || pathParam.enabled === false) {
@@ -19,8 +21,6 @@ const hasResolvablePathParamValue = (pathParam) => {
 
   return true;
 };
-
-const isBinaryRequestBody = (data) => Buffer.isBuffer(data) || typeof data?.pipe === 'function';
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -44,6 +44,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   const collectionVariables = request?.collectionVariables || {};
   const folderVariables = request?.folderVariables || {};
   const requestVariables = request?.requestVariables || {};
+  const onUnresolved = getUnresolvedVariableCollector(request);
   // we clone envVars because we don't want to modify the original object
   envVariables = cloneDeep(envVariables);
 
@@ -81,7 +82,8 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     };
 
     return interpolate(str, combinedVars, {
-      escapeJSONStrings
+      escapeJSONStrings,
+      onUnresolved
     });
   };
 
@@ -97,6 +99,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   }
 
   const contentType = getContentType(request.headers);
+  const mediaType = getMediaType(contentType);
   const isGraphqlRequest = request.mode === 'graphql';
 
   // gRPC: interpolate entire body (JSON message template and any other keys).
@@ -134,7 +137,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       buffers or streams depending on size. Even if the selected file's content type is JSON, the
       transport object itself must not be interpolated.
     */
-    if (contentType.includes('json') && !isBinaryRequestBody(request.data)) {
+    if (mediaType.includes('json') && !isBinaryRequestBody(request.data)) {
       if (typeof request.data === 'string') {
         if (request.data.length) {
           request.data = _interpolate(request.data, {
@@ -150,14 +153,16 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
           request.data = JSON.parse(parsed);
         } catch (err) {}
       }
-    } else if (contentType === 'application/x-www-form-urlencoded') {
-      if (request.data && Array.isArray(request.data)) {
+    } else if (mediaType === 'application/x-www-form-urlencoded') {
+      if (typeof request.data === 'string') {
+        request.data = _interpolate(request.data);
+      } else if (request.data && Array.isArray(request.data)) {
         request.data = request.data.map((d) => ({
           ...d,
           value: _interpolate(d?.value)
         }));
       }
-    } else if (contentType.startsWith('multipart/')) {
+    } else if (mediaType.startsWith('multipart/')) {
       if (request?.data && typeof request.data === 'string') {
         request.data = _interpolate(request.data);
       } else if (Array.isArray(request?.data) && !isFormData(request.data)) {

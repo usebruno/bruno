@@ -42,6 +42,8 @@ const ResponsiveTabs = ({
     [onTabSelect]
   );
 
+  // This and `components/Tabs/useTabsOverflow` take the same measure-and-overflow approach, but
+  // their width rules differ, so check whether a fix to one also applies to the other.
   const calculateTabVisibility = useCallback(() => {
     const container = tabsContainerRef.current;
     if (!container || !tabs.length) return;
@@ -265,7 +267,7 @@ const ResponsiveTabs = ({
             placement="bottom-start"
             selectedItemId={activeTab}
           >
-            <div className="more-tabs select-none flex items-center cursor-pointer gap-1">
+            <div data-testid="responsive-tabs-more" className="more-tabs select-none flex items-center cursor-pointer gap-1">
               <IconChevronsRight size={18} strokeWidth={2} />
             </div>
           </MenuDropdown>

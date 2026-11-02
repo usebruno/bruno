@@ -3,7 +3,7 @@ jest.mock('nanoid', () => ({
   customAlphabet: () => () => 'aaaaaaaaaaaaaaaaaaaa1'
 }));
 
-import { applyScriptEnvVars, buildEnvVariable, stripEnvVarUid, getDuplicateSecretNames, writesCollidingSecrets, resolveSecretNameCollision, dedupeImportedSecrets, isEnvironmentValidationError, DUPLICATE_SECRET_NAMES_ERROR } from './environments';
+import { applyScriptEnvVars, buildEnvVariable, stripEnvVarUid, writesCollidingSecrets, orderEnvironmentsByInheritance, isEnvironmentValidationError, DUPLICATE_SECRET_NAMES_ERROR, generateCopyName } from './environments';
 import { invalidVariableNamesError } from './common/variables';
 
 describe('buildEnvVariable — dataType preservation for env export/import', () => {
@@ -137,6 +137,55 @@ describe('applyScriptEnvVars', () => {
       });
     });
 
+    it('keeps an appended override secret when the script rewrote an inherited secret', () => {
+      const result = applyScriptEnvVars(
+        [v('host', 'h')],
+        { host: 'h', token: 'rotated' },
+        null,
+        { inheritedVariables: [{ name: 'token', value: 'parent-secret', secret: true }] }
+      );
+
+      expect(result.find((x) => x.name === 'token')).toMatchObject({
+        name: 'token',
+        value: 'rotated',
+        secret: true,
+        enabled: true
+      });
+    });
+
+    // A child plain row shadows the parent's secret rather than replacing it, so the parent secret
+    // stays inherited and the rotated value lands on that plain row — in cleartext, without this.
+    it('turns a plain row shadowing an inherited secret into a secret when the script rotates it', () => {
+      const result = applyScriptEnvVars(
+        [v('token', 'dev-placeholder')],
+        { token: 'rotated' },
+        null,
+        { inheritedVariables: [{ name: 'token', value: 'parent-secret', secret: true }] }
+      );
+
+      expect(result.find((x) => x.name === 'token')).toMatchObject({
+        name: 'token',
+        value: 'rotated',
+        secret: true,
+        enabled: true
+      });
+    });
+
+    it('leaves a plain row shadowing an inherited secret alone when the script did not write it', () => {
+      const result = applyScriptEnvVars(
+        [v('token', 'dev-placeholder')],
+        { token: 'dev-placeholder' },
+        null,
+        { skipKeys: ['token'], inheritedVariables: [{ name: 'token', value: 'parent-secret', secret: true }] }
+      );
+
+      expect(result.find((x) => x.name === 'token')).toMatchObject({
+        name: 'token',
+        value: 'dev-placeholder',
+        secret: false
+      });
+    });
+
     it('removes enabled variables missing from scriptVars (script deleted them)', () => {
       const result = applyScriptEnvVars([v('host', 'h'), v('stale', 'remove-me')], { host: 'h' }, null);
       expect(result).toHaveLength(1);
@@ -219,6 +268,40 @@ describe('applyScriptEnvVars', () => {
       expect(result.find((x) => x.name === 'fresh')).toMatchObject({
         name: 'fresh',
         value: 'from-script',
+        enabled: true
+      });
+    });
+
+    it('keeps an added override secret when the script rewrote an inherited secret', () => {
+      const draftVars = [v('host', 'h')];
+      const baseline = { host: 'h' };
+      const scriptVars = { host: 'h', token: 'rotated' };
+
+      const result = applyScriptEnvVars(draftVars, scriptVars, baseline, {
+        inheritedVariables: [{ name: 'token', value: 'parent-secret', secret: true }]
+      });
+
+      expect(result.find((x) => x.name === 'token')).toMatchObject({
+        name: 'token',
+        value: 'rotated',
+        secret: true,
+        enabled: true
+      });
+    });
+
+    it('turns a plain row shadowing an inherited secret into a secret when the script rotates it', () => {
+      const draftVars = [v('token', 'dev-placeholder')];
+      const baseline = { token: 'dev-placeholder' };
+      const scriptVars = { token: 'rotated' };
+
+      const result = applyScriptEnvVars(draftVars, scriptVars, baseline, {
+        inheritedVariables: [{ name: 'token', value: 'parent-secret', secret: true }]
+      });
+
+      expect(result.find((x) => x.name === 'token')).toMatchObject({
+        name: 'token',
+        value: 'rotated',
+        secret: true,
         enabled: true
       });
     });
@@ -404,6 +487,22 @@ describe('applyScriptEnvVars', () => {
       const result = applyScriptEnvVars([secretVar('apiToken', 'old')], { apiToken: 'new' }, null);
       expect(result[0]).toMatchObject({ name: 'apiToken', value: 'new', secret: true });
     });
+
+    // The write lands on a freshly appended row, since a disabled row is never a write target.
+    // Appended as a plain row it would put the secret in the environment file in cleartext.
+    it('appends the write to a disabled secret row as a secret (direct-apply)', () => {
+      const result = applyScriptEnvVars([secretVar('apiToken', '', false)], { apiToken: 'rotated' }, null);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ name: 'apiToken', value: 'rotated', secret: true, enabled: true });
+    });
+
+    it('appends the write to a disabled secret row as a secret (baseline mode)', () => {
+      const result = applyScriptEnvVars([secretVar('apiToken', '', false)], { apiToken: 'rotated' }, {});
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ name: 'apiToken', value: 'rotated', secret: true, enabled: true });
+    });
   });
 });
 
@@ -439,71 +538,6 @@ describe('Env export → import round-trip via JSON', () => {
     expect(reimported[4]).toMatchObject({ name: 'plain', value: 'hello', secret: false });
     expect(reimported[4].dataType).toBeUndefined();
     expect(reimported[5]).toMatchObject({ name: 'token', value: '', secret: true, dataType: 'number' });
-  });
-});
-
-describe('getDuplicateSecretNames', () => {
-  it('returns an empty set when there are no variables', () => {
-    expect(getDuplicateSecretNames([]).size).toBe(0);
-    expect(getDuplicateSecretNames(undefined).size).toBe(0);
-  });
-
-  it('returns an empty set when secret names are unique', () => {
-    const vars = [
-      { name: 'token', secret: true },
-      { name: 'apiKey', secret: true }
-    ];
-    expect(getDuplicateSecretNames(vars).size).toBe(0);
-  });
-
-  it('flags a name carried by more than one secret', () => {
-    const vars = [
-      { name: 'token', secret: true },
-      { name: 'token', secret: true }
-    ];
-    expect([...getDuplicateSecretNames(vars)]).toEqual(['token']);
-  });
-
-  it('flags a collision even when one of the two secrets is disabled', () => {
-    const vars = [
-      { name: 'token', secret: true, enabled: true },
-      { name: 'token', secret: true, enabled: false }
-    ];
-    expect([...getDuplicateSecretNames(vars)]).toEqual(['token']);
-  });
-
-  it('ignores duplicate names on non-secret variables', () => {
-    const vars = [
-      { name: 'host', secret: false },
-      { name: 'host', secret: false }
-    ];
-    expect(getDuplicateSecretNames(vars).size).toBe(0);
-  });
-
-  it('does not flag a plain variable and a secret that share a name', () => {
-    const vars = [
-      { name: 'token', secret: false },
-      { name: 'token', secret: true }
-    ];
-    expect(getDuplicateSecretNames(vars).size).toBe(0);
-  });
-
-  it('compares trimmed names and ignores blank ones', () => {
-    const vars = [
-      { name: 'token', secret: true },
-      { name: '  token  ', secret: true },
-      { name: '   ', secret: true },
-      { name: '', secret: true }
-    ];
-    expect([...getDuplicateSecretNames(vars)]).toEqual(['token']);
-  });
-
-  it('is case-sensitive', () => {
-    const vars = [
-      { name: 'token', secret: true },
-      { name: 'TOKEN', secret: true }
-    ];
-    expect(getDuplicateSecretNames(vars).size).toBe(0);
   });
 });
 
@@ -594,161 +628,83 @@ describe('writesCollidingSecrets', () => {
   });
 });
 
-describe('resolveSecretNameCollision', () => {
-  const makeSecret = (uid, name, value, overrides = {}) => ({
-    uid,
-    name,
-    value,
-    type: 'text',
-    enabled: true,
-    secret: true,
-    ...overrides
+describe('generateCopyName', () => {
+  it('should append " copy" if the base name is not in the existing names', () => {
+    const existing = ['Production', 'Staging'];
+    expect(generateCopyName('Development', existing)).toEqual('Development copy');
   });
 
-  it('keeps the edited row and drops the other secrets sharing its name', () => {
-    const edited = makeSecret('uid-1', 'token', 'edited');
-    const variables = [edited, makeSecret('uid-2', 'token', 'stale'), makeSecret('uid-3', 'apiKey', 'other')];
-
-    expect(resolveSecretNameCollision(variables, edited)).toEqual([edited, variables[2]]);
+  it('should append " copy 2" if the " copy" variant already exists', () => {
+    const existing = ['Production', 'Production copy'];
+    expect(generateCopyName('Production', existing)).toEqual('Production copy 2');
   });
 
-  it('keeps the edited row even when it is not the first of the duplicates', () => {
-    const edited = makeSecret('uid-2', 'token', 'edited');
-    const variables = [makeSecret('uid-1', 'token', 'stale'), edited];
-
-    expect(resolveSecretNameCollision(variables, edited)).toEqual([edited]);
+  it('should append " copy 3" if the " copy" and " copy 2" variants already exist', () => {
+    const existing = ['Production', 'Production copy', 'Production copy 2'];
+    expect(generateCopyName('Production', existing)).toEqual('Production copy 3');
   });
 
-  // Secret values are stored under the untrimmed name, so these are two separately readable
-  // secrets rather than one collision.
-  it('leaves a whitespace-padded namesake alone, since it is a different stored key', () => {
-    const edited = makeSecret('uid-1', 'token', 'edited');
-    const padded = makeSecret('uid-2', '  token  ', 'stale');
-    const variables = [edited, padded];
-
-    expect(resolveSecretNameCollision(variables, edited)).toEqual([edited, padded]);
+  it('reuses the plain " copy" name when only " copy 2" exists', () => {
+    const existing = ['Production', 'Production copy 2'];
+    expect(generateCopyName('Production', existing)).toEqual('Production copy');
   });
 
-  it('leaves a non-secret of the same name alone', () => {
-    const edited = makeSecret('uid-1', 'token', 'edited');
-    const plain = makeSecret('uid-2', 'token', 'plain', { secret: false });
-    const variables = [edited, plain, makeSecret('uid-3', 'token', 'stale')];
-
-    expect(resolveSecretNameCollision(variables, edited)).toEqual([edited, plain]);
-  });
-
-  it('returns the list untouched when the edited secret has no collision', () => {
-    const edited = makeSecret('uid-1', 'apiKey', 'edited');
-    const variables = [edited, makeSecret('uid-2', 'token', 'other')];
-
-    expect(resolveSecretNameCollision(variables, edited)).toBe(variables);
-  });
-
-  it('returns the list untouched when the edited variable is not a secret', () => {
-    const plain = makeSecret('uid-1', 'token', 'edited', { secret: false });
-    const variables = [plain, makeSecret('uid-2', 'token', 'a'), makeSecret('uid-3', 'token', 'b')];
-
-    expect(resolveSecretNameCollision(variables, plain)).toBe(variables);
-  });
-
-  it('drops every namesake when more than two collide', () => {
-    const edited = makeSecret('uid-1', 'token', 'edited');
-    const variables = [edited, makeSecret('uid-2', 'token', 'a'), makeSecret('uid-3', 'token', 'b')];
-
-    expect(resolveSecretNameCollision(variables, edited)).toEqual([edited]);
+  it('treats an existing name as taken even when it differs only by case or whitespace', () => {
+    const existing = ['production', ' Production copy  '];
+    expect(generateCopyName('Production', existing)).toEqual('Production copy 2');
   });
 });
 
-describe('dedupeImportedSecrets', () => {
-  const makeVar = (uid, name, value, overrides = {}) => ({
-    uid,
-    name,
-    value,
-    type: 'text',
-    enabled: true,
-    secret: true,
-    ...overrides
+describe('orderEnvironmentsByInheritance', () => {
+  const env = (name, extendsFrom) => ({ name, extends: extendsFrom });
+
+  it('places a parent before the child that inherits from it', () => {
+    const dev = env('dev', 'base');
+    const base = env('base');
+
+    expect(orderEnvironmentsByInheritance([dev, base])).toEqual([base, dev]);
   });
 
-  it('returns the list untouched when secret names are unique', () => {
-    const variables = [makeVar('uid-1', 'token', ''), makeVar('uid-2', 'apiKey', '')];
+  it('orders a whole chain root first', () => {
+    const leaf = env('leaf', 'middle');
+    const middle = env('middle', 'root');
+    const root = env('root');
 
-    expect(dedupeImportedSecrets(variables)).toBe(variables);
+    expect(orderEnvironmentsByInheritance([leaf, middle, root])).toEqual([root, middle, leaf]);
   });
 
-  it('collapses two blank-valued secrets sharing a name down to the first', () => {
-    const variables = [makeVar('uid-1', 'token', ''), makeVar('uid-2', 'token', '')];
+  it('keeps the input order when no environment inherits from another', () => {
+    const first = env('first');
+    const second = env('second');
 
-    expect(dedupeImportedSecrets(variables)).toEqual([variables[0]]);
+    expect(orderEnvironmentsByInheritance([first, second])).toEqual([first, second]);
   });
 
-  it('collapses every namesake when more than two collide', () => {
-    const variables = [makeVar('uid-1', 'token', ''), makeVar('uid-2', 'token', ''), makeVar('uid-3', 'token', '')];
+  it('keeps a reference to an environment outside the set in place', () => {
+    const dev = env('dev', 'NotImported');
+    const other = env('other');
 
-    expect(dedupeImportedSecrets(variables)).toEqual([variables[0]]);
+    expect(orderEnvironmentsByInheritance([dev, other])).toEqual([dev, other]);
   });
 
-  it('collapses each colliding name independently and keeps the rest in order', () => {
-    const variables = [
-      makeVar('uid-1', 'apiKey', 'plain', { secret: false }),
-      makeVar('uid-2', 'name', ''),
-      makeVar('uid-3', 'name', ''),
-      makeVar('uid-4', 'abc', ''),
-      makeVar('uid-5', 'abc', '')
-    ];
+  it('returns every environment exactly once for a cyclic pair', () => {
+    const first = env('first', 'second');
+    const second = env('second', 'first');
 
-    expect(dedupeImportedSecrets(variables)).toEqual([variables[0], variables[1], variables[3]]);
+    expect(orderEnvironmentsByInheritance([first, second])).toHaveLength(2);
   });
 
-  // A Postman export ships secret values inline, so the twin holding one carries the only value
-  // that survives the collision.
-  it('keeps the twin holding a value over an earlier blank one', () => {
-    const variables = [makeVar('uid-1', 'token', ''), makeVar('uid-2', 'token', 'from-postman')];
+  it('keeps both environments that share a name', () => {
+    const first = env('dev');
+    const second = env('dev');
 
-    expect(dedupeImportedSecrets(variables)).toEqual([variables[1]]);
+    expect(orderEnvironmentsByInheritance([first, second])).toEqual([first, second]);
   });
 
-  it('keeps the first of several twins holding values', () => {
-    const variables = [makeVar('uid-1', 'token', 'first'), makeVar('uid-2', 'token', 'second')];
+  it('ignores a list-shaped reference, which no resolver follows', () => {
+    const dev = { name: 'dev', extends: ['base'] };
+    const base = env('base');
 
-    expect(dedupeImportedSecrets(variables)).toEqual([variables[0]]);
-  });
-
-  it('leaves duplicate non-secret names alone', () => {
-    const variables = [makeVar('uid-1', 'host', 'a', { secret: false }), makeVar('uid-2', 'host', 'b', { secret: false })];
-
-    expect(dedupeImportedSecrets(variables)).toBe(variables);
-  });
-
-  it('leaves a plain variable sharing a secret name alone', () => {
-    const variables = [makeVar('uid-1', 'token', 'plain', { secret: false }), makeVar('uid-2', 'token', '')];
-
-    expect(dedupeImportedSecrets(variables)).toBe(variables);
-  });
-
-  // Unlike resolveSecretNameCollision, nothing is stored yet, so there is no live value hiding
-  // under the untrimmed key and the padded namesake is safe to collapse.
-  it('collapses a whitespace-padded namesake, keeping the survivor name verbatim', () => {
-    const variables = [makeVar('uid-1', 'token', ''), makeVar('uid-2', '  token  ', '')];
-
-    expect(dedupeImportedSecrets(variables)).toEqual([variables[0]]);
-  });
-
-  it('ignores blank secret names', () => {
-    const variables = [makeVar('uid-1', '', ''), makeVar('uid-2', '   ', '')];
-
-    expect(dedupeImportedSecrets(variables)).toBe(variables);
-  });
-
-  it('treats names differing only in case as distinct', () => {
-    const variables = [makeVar('uid-1', 'token', ''), makeVar('uid-2', 'TOKEN', '')];
-
-    expect(dedupeImportedSecrets(variables)).toBe(variables);
-  });
-
-  it('keeps a disabled twin when it is the one holding a value', () => {
-    const variables = [makeVar('uid-1', 'token', ''), makeVar('uid-2', 'token', 'kept', { enabled: false })];
-
-    expect(dedupeImportedSecrets(variables)).toEqual([variables[1]]);
+    expect(orderEnvironmentsByInheritance([dev, base])).toEqual([dev, base]);
   });
 });

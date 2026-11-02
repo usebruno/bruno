@@ -12,6 +12,7 @@ const {
   stringifyFolder
 } = require('@usebruno/filestore');
 const { openApiToBruno } = require('@usebruno/converters');
+const { resolveEnvironmentInheritance } = require('@usebruno/common/utils');
 const { writeFile, sanitizeName, getCollectionFormat, posixifyPath } = require('../utils/filesystem');
 
 const RESERVED_FOLDER_NAMES = ['node_modules', '.git', 'environments', 'mocks'];
@@ -187,7 +188,10 @@ const fetchSpecFromSource = async ({ collectionUid, collectionPath, sourceUrl, e
       ? `${sourceUrl}&_=${Date.now()}`
       : `${sourceUrl}?_=${Date.now()}`;
 
-    const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
+    const environment = resolveEnvironmentInheritance({
+      environments,
+      targetEnvironment: _.find(environments, (e) => e.uid === activeEnvironmentUid)
+    });
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = await getCertsAndProxyConfig({
@@ -395,7 +399,7 @@ const saveOpenApiSpecFile = async ({ collectionPath, content, sourceUrl }) => {
 
 /**
  * Save an OpenAPI spec file and update sync metadata (lastSyncDate, specHash) in brunoConfig.
- * Shared by both the IPC handler (connect flow) and the import flow.
+ * Shared by both the IPC handler (connect flow) and the import flow. Returns the metadata it saved.
  */
 const saveSpecAndUpdateMetadata = async ({ collectionPath, specContent }) => {
   const { format, brunoConfig, collectionRoot } = loadBrunoConfig(collectionPath);
@@ -417,6 +421,7 @@ const saveSpecAndUpdateMetadata = async ({ collectionPath, specContent }) => {
   };
 
   await saveBrunoConfig(collectionPath, format, brunoConfig, collectionRoot);
+  return { lastSyncDate, specHash };
 };
 
 /**

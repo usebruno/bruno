@@ -1,0 +1,7 @@
+{
+  "info": { "type": "bruno-environment" },
+  "environments": [
+    { "name": "Test", "variables": [{ "name": "api_url", "value": "http://localhost:3000", "enabled": true }] },
+    { "name": "Test", "variables": [{ "name": "api_url", "value": "http://test.local", "enabled": true }] }
+  ]
+}

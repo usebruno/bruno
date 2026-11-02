@@ -36,6 +36,37 @@ describe('Environment Schema Validation', () => {
     });
   });
 
+  describe('extends', () => {
+    it('preserves the parent environment name after validation', async () => {
+      const env = buildEnvironment({ extends: 'base' });
+
+      const validated = await environmentSchema.validate(env);
+
+      expect(validated.extends).toBe('base');
+    });
+
+    it('validates an environment with no parent', async () => {
+      await expect(environmentSchema.validate(buildEnvironment())).resolves.toBeTruthy();
+    });
+
+    it('validates an environment whose parent was cleared', async () => {
+      await expect(environmentSchema.validate(buildEnvironment({ extends: null }))).resolves.toBeTruthy();
+    });
+
+    it('preserves a list of parents after validation', async () => {
+      const env = buildEnvironment({ extends: ['base', 'shared'] });
+
+      const validated = await environmentSchema.validate(env);
+
+      expect(validated.extends).toEqual(['base', 'shared']);
+    });
+
+    it('rejects a parent reference that is neither a name nor a list of names', async () => {
+      await expect(environmentSchema.validate(buildEnvironment({ extends: { parent: 'base' } }))).rejects.toThrow();
+      await expect(environmentSchema.validate(buildEnvironment({ extends: [42] }))).rejects.toThrow();
+    });
+  });
+
   describe('external secrets', () => {
     it('preserves externalSecrets with provider-specific variable keys after validation', async () => {
       const externalSecrets = {

@@ -19,7 +19,7 @@ import { getRevealInFolderLabel } from 'utils/common/platform';
 import { normalizePath } from 'utils/common/path';
 import toast from 'react-hot-toast';
 import RenameCollection from 'components/Sidebar/Collections/Collection/RenameCollection';
-import RemoveCollection from 'components/Sidebar/Collections/Collection/RemoveCollection';
+import RemoveCollections from 'components/Sidebar/Collections/Collection/RemoveCollections';
 import DeleteCollection from 'components/Sidebar/Collections/Collection/DeleteCollection';
 import ShareCollection from 'components/ShareCollection';
 import Dropdown from 'components/Dropdown';
@@ -43,6 +43,8 @@ const CollectionsList = ({ workspace }) => {
   const [showRemoveGitModal, setShowRemoveGitModal] = useState(false);
 
   const isDefaultWorkspace = workspace?.type === 'default';
+
+  const isNotCloned = (collection) => !isDefaultWorkspace && collection.notFoundLocally;
 
   const unopenableCollections = useMemo(() => {
     return (workspace.unopenableCollections || []).map((wc) => ({
@@ -102,6 +104,7 @@ const CollectionsList = ({ workspace }) => {
         environments: [],
         isGitBacked: !!wc.remote,
         isLoaded: false,
+        notFoundLocally: !!wc.notFoundLocally,
         gitRemoteUrl: wc.remote,
         git: { gitRootPath: null },
         brunoConfig: {},
@@ -118,7 +121,12 @@ const CollectionsList = ({ workspace }) => {
       };
     });
 
-    return [...resolvedCollections, ...unopenableCollections];
+    const unopenablePaths = new Set(unopenableCollections.map((c) => normalizePath(c.pathname)));
+
+    return [
+      ...resolvedCollections.filter((c) => !unopenablePaths.has(normalizePath(c.pathname))),
+      ...unopenableCollections
+    ];
   }, [workspace.collections, workspace.scratchTempDirectory, collections, unopenableCollections]);
 
   const handleOpenCollectionClick = (collection, event) => {
@@ -188,7 +196,7 @@ const CollectionsList = ({ workspace }) => {
 
   const handleRemoveCollection = (collection) => {
     dropdownRefs.current[collection.uid]?.hide();
-    if (collection.failedToOpen) {
+    if (collection.failedToOpen || collection.notFoundLocally) {
       dispatch(removeCollectionFromWorkspaceAction(workspace.uid, collection.pathname))
         .then(() => toast.success('Collection removed from workspace'))
         .catch(() => toast.error('An error occurred while removing the collection'));
@@ -274,7 +282,7 @@ const CollectionsList = ({ workspace }) => {
       )}
 
       {removeCollectionModalOpen && selectedCollectionUid && (
-        <RemoveCollection
+        <RemoveCollections
           collectionUid={selectedCollectionUid}
           onClose={() => {
             setRemoveCollectionModalOpen(false);
@@ -354,7 +362,7 @@ const CollectionsList = ({ workspace }) => {
                   {collection.failedToOpen && (
                     <StatusBadge status="danger" size="xs">Failed to open</StatusBadge>
                   )}
-                  {!isDefaultWorkspace && collection.isLoaded === false && !collection.failedToOpen && (
+                  {isNotCloned(collection) && (
                     <StatusBadge status="warning" size="xs">Not cloned</StatusBadge>
                   )}
                 </div>
@@ -374,73 +382,81 @@ const CollectionsList = ({ workspace }) => {
                   icon={<IconDots size={18} strokeWidth={1.5} />}
                 >
                   <div className="collection-dropdown">
-                    <div
-                      className="dropdown-item"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRenameCollection(collection);
-                      }}
-                    >
-                      <IconEdit size={16} strokeWidth={1.5} />
-                      <span>Rename</span>
-                    </div>
-                    <div
-                      className="dropdown-item"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleShareCollection(collection);
-                      }}
-                    >
-                      <IconShare size={16} strokeWidth={1.5} />
-                      <span>Share</span>
-                    </div>
-                    <div
-                      className="dropdown-item"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleShowInFolder(collection);
-                      }}
-                    >
-                      <IconFolder size={16} strokeWidth={1.5} />
-                      <span>{getRevealInFolderLabel()}</span>
-                    </div>
-                    {!isDefaultWorkspace && (
+                    {!collection.failedToOpen && !isNotCloned(collection) && (
                       <>
-                        {collection.isGitBacked && (
-                          <div
-                            className="dropdown-item"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCopyGitUrl(collection);
-                            }}
-                          >
-                            <IconCopy size={16} strokeWidth={1.5} />
-                            <span>Copy Git URL</span>
-                          </div>
-                        )}
-                        {!collection.isGitBacked && collection.isLoaded !== false && (
-                          <div
-                            className="dropdown-item"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleConnectGit(collection);
-                            }}
-                          >
-                            <IconBrandGit size={16} strokeWidth={1.5} />
-                            <span>Connect to Git</span>
-                          </div>
-                        )}
-                        {collection.isGitBacked && (
-                          <div
-                            className="dropdown-item"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveGit(collection);
-                            }}
-                          >
-                            <IconUnlink size={16} strokeWidth={1.5} />
-                            <span>Remove Git Remote</span>
-                          </div>
+                        <div
+                          className="dropdown-item"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRenameCollection(collection);
+                          }}
+                        >
+                          <IconEdit size={16} strokeWidth={1.5} />
+                          <span>Rename</span>
+                        </div>
+                        <div
+                          className="dropdown-item"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleShareCollection(collection);
+                          }}
+                        >
+                          <IconShare size={16} strokeWidth={1.5} />
+                          <span>Share</span>
+                        </div>
+                        <div
+                          className="dropdown-item"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleShowInFolder(collection);
+                          }}
+                        >
+                          <IconFolder size={16} strokeWidth={1.5} />
+                          <span>{getRevealInFolderLabel()}</span>
+                        </div>
+                      </>
+                    )}
+                    {!collection.failedToOpen && (
+                      <>
+                        {!isDefaultWorkspace && (
+                          <>
+                            {collection.isGitBacked && (
+                              <div
+                                className="dropdown-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCopyGitUrl(collection);
+                                }}
+                              >
+                                <IconCopy size={16} strokeWidth={1.5} />
+                                <span>Copy Git URL</span>
+                              </div>
+                            )}
+                            {!collection.isGitBacked && collection.isLoaded !== false && (
+                              <div
+                                className="dropdown-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleConnectGit(collection);
+                                }}
+                              >
+                                <IconBrandGit size={16} strokeWidth={1.5} />
+                                <span>Connect to Git</span>
+                              </div>
+                            )}
+                            {collection.isGitBacked && (
+                              <div
+                                className="dropdown-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveGit(collection);
+                                }}
+                              >
+                                <IconUnlink size={16} strokeWidth={1.5} />
+                                <span>Remove Git Remote</span>
+                              </div>
+                            )}
+                          </>
                         )}
                       </>
                     )}
@@ -454,16 +470,18 @@ const CollectionsList = ({ workspace }) => {
                       <IconX size={16} strokeWidth={1.5} />
                       <span>Remove</span>
                     </div>
-                    <div
-                      className="dropdown-item delete-item"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteCollection(collection);
-                      }}
-                    >
-                      <IconTrash size={16} strokeWidth={1.5} />
-                      <span>Delete</span>
-                    </div>
+                    {!collection.failedToOpen && !isNotCloned(collection) && (
+                      <div
+                        className="dropdown-item delete-item"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteCollection(collection);
+                        }}
+                      >
+                        <IconTrash size={16} strokeWidth={1.5} />
+                        <span>Delete</span>
+                      </div>
+                    )}
                   </div>
                 </Dropdown>
               </div>

@@ -1,12 +1,9 @@
 import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page/actions';
-import { setupRequestDocs } from './actions';
+import { setupRequestDocs, clickDocsToolbarBtn } from './actions';
+import { modifier, pressShortcut } from '../shortcuts/helpers';
 
 test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.setViewportSize({ width: 1920, height: 1080 });
-  });
-
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
@@ -19,7 +16,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
       await expect(prosemirror).toBeVisible();
 
       await prosemirror.click();
-      await locators.docs.toolbarBtn('Code block').click();
+      await clickDocsToolbarBtn(locators, 'Code block');
     });
 
     await test.step('Type code content', async () => {
@@ -37,7 +34,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
       await expect(prosemirror).toBeVisible();
 
       await prosemirror.click();
-      await locators.docs.toolbarBtn('Code block').click();
+      await clickDocsToolbarBtn(locators, 'Code block');
       await page.keyboard.type('const x = 1;');
       await page.keyboard.press('Enter');
       await page.keyboard.type('const y = 2;');
@@ -75,7 +72,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
       await expect(prosemirror).toBeVisible();
 
       await prosemirror.click();
-      await locators.docs.toolbarBtn('Code block').click();
+      await clickDocsToolbarBtn(locators, 'Code block');
     });
 
     await test.step('Paste JavaScript code', async () => {
@@ -117,7 +114,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
       await expect(prosemirror).toBeVisible();
 
       await prosemirror.click();
-      await locators.docs.toolbarBtn('Code block').click();
+      await clickDocsToolbarBtn(locators, 'Code block');
       await page.keyboard.type('const x = 1;');
     });
 
@@ -147,6 +144,98 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
       await page.keyboard.type('# Heading');
 
       await expect(locators.docs.codeEditor().locator('.cm-header')).toBeVisible();
+    });
+  });
+
+  test('Tab inserts a tab character instead of moving focus out of the code block', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-code-tab');
+    const prosemirror = locators.docs.proseMirror();
+
+    await test.step('Create a code block and type before the tab', async () => {
+      await expect(prosemirror).toBeVisible();
+      await prosemirror.click();
+      await clickDocsToolbarBtn(locators, 'Code block');
+      await page.keyboard.type('const x =');
+    });
+
+    await test.step('Press Tab, then keep typing', async () => {
+      await page.keyboard.press('Tab');
+      await page.keyboard.type('1;');
+    });
+
+    await test.step('A literal tab character was inserted', async () => {
+      await expect(locators.docs.codeBlockContent()).toHaveText('const x =\t1;');
+    });
+
+    await test.step('Focus stayed inside the editor, so the second line still lands in the code block', async () => {
+      await page.keyboard.press('Enter');
+      await page.keyboard.type('const y = 2;');
+      await expect(locators.docs.codeBlockContent()).toContainText('const y = 2;');
+    });
+  });
+
+  test('Backspace on an empty code block still removes it', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-code-backspace-remove');
+    const prosemirror = locators.docs.proseMirror();
+
+    await test.step('Insert an empty code block', async () => {
+      await expect(prosemirror).toBeVisible();
+      await prosemirror.click();
+      await clickDocsToolbarBtn(locators, 'Code block');
+      await expect(locators.docs.codeBlockPre()).toBeVisible();
+    });
+
+    await test.step('Backspace on the empty block removes it', async () => {
+      await page.keyboard.press('Backspace');
+      await expect(locators.docs.codeBlockPre()).toHaveCount(0);
+    });
+  });
+
+  test('Three consecutive Enters at the end of a code block exits it into a new paragraph', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-code-triple-enter');
+    const prosemirror = locators.docs.proseMirror();
+
+    await test.step('Create a code block with content', async () => {
+      await expect(prosemirror).toBeVisible();
+      await prosemirror.click();
+      await clickDocsToolbarBtn(locators, 'Code block');
+      await page.keyboard.type('const x = 1;');
+    });
+
+    await test.step('Press Enter three times in a row', async () => {
+      await page.keyboard.press('Enter');
+      await page.keyboard.press('Enter');
+      await page.keyboard.press('Enter');
+    });
+
+    await test.step('The cursor exits into a paragraph after the code block, instead of adding blank lines inside it', async () => {
+      await expect(prosemirror.locator('pre')).toHaveCount(1);
+      await expect(locators.docs.codeBlockContent()).toHaveText('const x = 1;');
+      await page.keyboard.type('after code block');
+      await expect(prosemirror.locator('p').last()).toContainText('after code block');
+    });
+  });
+
+  test('Cmd/Ctrl+Alt+C toggles the current block in and out of a code block', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-code-toggle-shortcut');
+    const prosemirror = locators.docs.proseMirror();
+
+    await test.step('Type a paragraph, then toggle it into a code block via the shortcut', async () => {
+      await expect(prosemirror).toBeVisible();
+      await prosemirror.click();
+      await page.keyboard.type('const x = 1;');
+      await pressShortcut(page, modifier, 'Alt', 'KeyC');
+    });
+
+    await test.step('It becomes a code block', async () => {
+      await expect(locators.docs.codeBlockPre()).toBeVisible();
+      await expect(locators.docs.codeBlockContent()).toContainText('const x = 1;');
+    });
+
+    await test.step('The same shortcut toggles it back to a paragraph', async () => {
+      await pressShortcut(page, modifier, 'Alt', 'KeyC');
+      await expect(locators.docs.codeBlockPre()).toHaveCount(0);
+      await expect(prosemirror.locator('p')).toContainText('const x = 1;');
     });
   });
 });

@@ -25,13 +25,15 @@ import StyledWrapper from './StyledWrapper';
 import { updateRequestGraphqlQuery, updateRequestGraphqlVariables } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import useGraphqlSchema from '../GraphQLSchemaActions/useGraphqlSchema';
+import { resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { findEnvironmentInCollection } from 'utils/collections';
 import { hasEffectiveAuth } from 'utils/auth';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
-import AuthMode from '../Auth/AuthMode/index';
 import TabBarAiAssist from '../TabBarAiAssist';
 import StatusDot from 'components/StatusDot';
+import useKeybinding from 'hooks/useKeybinding';
+import { REQUEST_BODY_EDITOR_CLASS } from 'utils/common/constants';
 
 const TAB_CONFIG = [
   { key: 'query', label: 'Query' },
@@ -73,7 +75,14 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
   const url = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
   const pathname = item.draft ? get(item, 'draft.pathname', '') : get(item, 'pathname', '');
   const uid = item.draft ? get(item, 'draft.uid', '') : get(item, 'uid', '');
-  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  const environment = useMemo(
+    () =>
+      resolveEnvironmentInheritance({
+        environments: collection.environments,
+        targetEnvironment: findEnvironmentInCollection(collection, collection.activeEnvironmentUid)
+      }),
+    [collection.environments, collection.activeEnvironmentUid]
+  );
   const request = item.draft ? { ...item.draft.request, pathname, uid } : { ...item.request, pathname, uid };
 
   const { schema, schemaSource, loadSchema, isLoading: isSchemaLoading, error: schemaError } = useGraphqlSchema(url, environment, request, collection);
@@ -207,14 +216,21 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
     }
   }, [variables, onVariablesChange]);
 
+  useKeybinding('prettify', (e) => {
+    if (!e.target.closest(`.${REQUEST_BODY_EDITOR_CLASS}`)) return;
+    handlePrettify();
+    return false;
+  });
+
   const tabPanel = useMemo(() => {
     switch (requestPaneTab) {
       case 'query':
         return (
-          <div className="flex flex-col h-full">
+          <div className={`flex flex-col h-full ${REQUEST_BODY_EDITOR_CLASS}`}>
             <div className="flex-1 min-h-0">
               <QueryEditor
                 ref={queryEditorRef}
+                item={item}
                 collection={collection}
                 theme={displayedTheme}
                 schema={schema}
@@ -312,13 +328,6 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
 
   let rightContent = null;
   switch (requestPaneTab) {
-    case 'auth':
-      rightContent = (
-        <div ref={schemaActionsRef} className="flex flex-grow justify-start items-center">
-          <AuthMode item={item} collection={collection} />
-        </div>
-      );
-      break;
     case 'query':
       rightContent = (
         <div ref={schemaActionsRef} className="flex items-center gap-2">
@@ -328,11 +337,12 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
           <ActionIcon
             label={showQueryBuilder ? 'Hide Query Builder' : 'Show Query Builder'}
             onClick={toggleQueryBuilder}
+            data-testid="graphql-query-builder-toggle"
           >
             <IconSidebarToggle collapsed={!showQueryBuilder} size={16} strokeWidth={1.5} />
           </ActionIcon>
           <MenuDropdown items={queryMenuItems} placement="bottom-end">
-            <ActionIcon label="More actions">
+            <ActionIcon label="More actions" data-testid="graphql-query-actions">
               <IconDots size={16} strokeWidth={1.5} />
             </ActionIcon>
           </MenuDropdown>
@@ -372,7 +382,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
       <section ref={queryBuilderContainerRef} className={classnames('flex w-full flex-1 mt-4 min-h-0')}>
         {requestPaneTab === 'query' && showQueryBuilder && (
           <>
-            <div className="graphql-query-builder-container" style={{ width: `${queryBuilderWidth}px`, minWidth: `${queryBuilderWidth}px` }}>
+            <div className="graphql-query-builder-container" data-testid="graphql-query-builder" style={{ width: `${queryBuilderWidth}px`, minWidth: `${queryBuilderWidth}px` }}>
               <QueryBuilder
                 schema={schema}
                 onQueryChange={onQueryChange}

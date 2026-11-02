@@ -14,6 +14,7 @@ const MAX_LOG_ENTRIES = 500;
 const LOG_FLUSH_MS = 300;
 const MAX_AVAILABLE_ROUTES = 50;
 const LOCALHOST_IPV4 = '127.0.0.1';
+const DEFAULT_CORS_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'];
 
 const collections = new Map();
 const pendingLogBroadcasts = new Map();
@@ -59,11 +60,19 @@ const resolveRouteMap = (mockServerUid, location = {}) => {
 };
 
 const getRouteCounts = (mockServerUid, location = {}) => {
-  const routeMap = resolveRouteMap(mockServerUid, location);
-  return {
-    routeCount: routeMap.size,
-    exampleCount: countRouteResponses(routeMap)
-  };
+  try {
+    const routeMap = resolveRouteMap(mockServerUid, location);
+    return {
+      routeCount: routeMap.size,
+      exampleCount: countRouteResponses(routeMap)
+    };
+  } catch (err) {
+    console.warn(`[MockServer] Could not count routes for ${mockServerUid}: ${err.message}`);
+    return {
+      routeCount: 0,
+      exampleCount: 0
+    };
+  }
 };
 
 const getUsedPorts = () => {
@@ -269,6 +278,7 @@ const logRequest = (collection, mockServerUid, data) => {
     matchedResponseUid: data.matchedResponseUid || null,
     matchTrace: data.matchTrace || null,
     statusCode: data.statusCode,
+    error: data.error || null,
     delay: data.delay || 0,
     duration: data.duration || 0
   };
@@ -279,6 +289,23 @@ const logRequest = (collection, mockServerUid, data) => {
   }
 
   queueLogBroadcast(mockServerUid, entry);
+};
+
+const isCorsPreflight = (headers) => Boolean(headers.origin)
+  && Boolean(headers['access-control-request-method']);
+
+const respondToOptions = (collection, mockServerUid, { req, reqPath, startTime, matchTrace = null }, res) => {
+  logRequest(collection, mockServerUid, {
+    method: 'OPTIONS',
+    path: reqPath,
+    matched: true,
+    matchedMockResponseName: isCorsPreflight(req.headers) ? 'CORS preflight' : 'Automatic OPTIONS response',
+    matchTrace,
+    statusCode: 204,
+    duration: Date.now() - startTime
+  });
+
+  res.status(204).set('Content-Length', '0').end();
 };
 
 const handleRequest = (mockServerUid, req, res) => {
@@ -299,6 +326,11 @@ const handleRequest = (mockServerUid, req, res) => {
   }
 
   if (!examples || examples.length === 0) {
+    if (method === 'OPTIONS') {
+      respondToOptions(collection, mockServerUid, { req, reqPath, startTime }, res);
+      return;
+    }
+
     logRequest(collection, mockServerUid, {
       method: req.method,
       path: reqPath,
@@ -329,6 +361,16 @@ const handleRequest = (mockServerUid, req, res) => {
   const matchTrace = { ...trace, routeKey };
 
   if (!selected) {
+    if (method === 'OPTIONS') {
+      respondToOptions(collection, mockServerUid, {
+        req,
+        reqPath,
+        startTime,
+        matchTrace: { ...matchTrace, failureReason: null }
+      }, res);
+      return;
+    }
+
     logRequest(collection, mockServerUid, {
       method: req.method,
       path: reqPath,
@@ -353,32 +395,7 @@ const handleRequest = (mockServerUid, req, res) => {
 
   const sendResponse = () => {
     const statusCode = selected.response.status || 200;
-
-    for (const header of selected.response.headers) {
-      if (!header.name || !header.value) continue;
-
-      const name = header.name.toLowerCase();
-      if (
-        name === 'transfer-encoding'
-        || name === 'content-length'
-        || name === 'content-encoding'
-        || name === 'connection'
-      ) continue;
-
-      res.setHeader(header.name, header.value);
-    }
-
-    if (!res.getHeader('content-type')) {
-      const contentTypeMap = {
-        json: 'application/json',
-        xml: 'application/xml',
-        text: 'text/plain',
-        html: 'text/html'
-      };
-      res.setHeader('content-type', contentTypeMap[selected.response.body.type] || 'text/plain');
-    }
-
-    logRequest(collection, mockServerUid, {
+    const logEntry = {
       method: req.method,
       path: reqPath,
       matched: true,
@@ -386,31 +403,86 @@ const handleRequest = (mockServerUid, req, res) => {
       matchedSourceFile: selected.sourceFile,
       matchedResponseUid: selected.responseUid || null,
       matchTrace,
+      delay
+    };
+
+    try {
+      for (const header of selected.response.headers) {
+        if (!header.name || !header.value) continue;
+
+        const name = header.name.toLowerCase();
+        if (
+          name === 'transfer-encoding'
+          || name === 'content-length'
+          || name === 'content-encoding'
+          || name === 'connection'
+        ) continue;
+
+        res.setHeader(header.name, header.value);
+      }
+
+      if (!res.getHeader('content-type')) {
+        const contentTypeMap = {
+          json: 'application/json',
+          xml: 'application/xml',
+          text: 'text/plain',
+          html: 'text/html'
+        };
+        res.setHeader('content-type', contentTypeMap[selected.response.body.type] || 'text/plain');
+      }
+
+      if (statusCode === 204) {
+        res.status(204).end();
+      } else {
+        res.status(statusCode).send(selected.response.body.content || '');
+      }
+    } catch (err) {
+      const message = err.message || 'Mock response failed';
+
+      logRequest(collection, mockServerUid, {
+        ...logEntry,
+        statusCode: 500,
+        error: message,
+        duration: Date.now() - startTime
+      });
+
+      if (!res.headersSent) {
+        res.status(500).json({ error: message });
+      }
+
+      return;
+    }
+
+    logRequest(collection, mockServerUid, {
+      ...logEntry,
       statusCode,
-      delay,
       duration: Date.now() - startTime
     });
-
-    if (statusCode === 204) {
-      res.status(204).end();
-    } else {
-      res.status(statusCode).send(selected.response.body.content || '');
-    }
   };
 
   if (delay > 0) {
-    setTimeout(sendResponse, delay);
+    setTimeout(() => {
+      try {
+        sendResponse();
+      } catch (err) {
+        if (!res.headersSent && !res.writableEnded && !res.destroyed) {
+          res.status(500).json({ error: err.message || 'Mock response failed' });
+        } else if (!res.writableEnded && !res.destroyed) {
+          res.destroy();
+        }
+      }
+    }, delay);
   } else {
     sendResponse();
   }
 };
 
 const applyMockMiddleware = (app) => {
-  app.use(cors({
+  app.use(cors((req, callback) => callback(null, {
     origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Mock-Example', 'X-Mock-Response-Code']
-  }));
+    methods: req.headers['access-control-request-method'] || DEFAULT_CORS_METHODS,
+    preflightContinue: true
+  })));
   app.use(express.json({ limit: '10mb' }));
   app.use(express.text({ type: '*/*', limit: '10mb' }));
 };
@@ -488,6 +560,10 @@ const closeHttpServer = (httpServer) => new Promise((resolve) => {
   httpServer.on('close', () => clearTimeout(forceCloseTimeout));
 });
 
+const MOCK_SERVER_DISABLED_ERROR = 'Mock server is a beta feature. Enable it in Preferences > Beta.';
+
+const isMockServerEnabled = () => preferencesUtil.isBetaFeatureEnabled('mock-server');
+
 const start = async ({
   mockServerUid,
   serverName,
@@ -500,8 +576,8 @@ const start = async ({
   port = DEFAULT_GATEWAY_PORT,
   globalDelay = 0
 }) => {
-  if (!preferencesUtil.isBetaFeatureEnabled('mock-server')) {
-    throw new Error('Mock server is a beta feature. Enable it in Preferences > Beta.');
+  if (!isMockServerEnabled()) {
+    throw new Error(MOCK_SERVER_DISABLED_ERROR);
   }
 
   if (!mockServerUid) {
@@ -527,6 +603,10 @@ const start = async ({
   app.all('*', (req, res) => handleRequest(mockServerUid, req, res));
 
   const httpServer = await listenOnPort(app, resolvedPort);
+  if (!isMockServerEnabled()) {
+    await closeHttpServer(httpServer);
+    throw new Error(MOCK_SERVER_DISABLED_ERROR);
+  }
   isolatedServers.set(mockServerUid, { httpServer, port: resolvedPort });
 
   const baseUrl = `http://localhost:${resolvedPort}`;
@@ -648,12 +728,6 @@ const getLog = (mockServerUid) => {
   return collection ? collection.requestLog : [];
 };
 
-const setDelay = (mockServerUid, delay) => {
-  const collection = collections.get(mockServerUid);
-  if (!collection) throw new Error('Mock server is not running.');
-  collection.globalDelay = Math.max(0, Number(delay) || 0);
-};
-
 const clearLog = (mockServerUid) => {
   const collection = collections.get(mockServerUid);
   if (collection) collection.requestLog = [];
@@ -676,13 +750,13 @@ const reloadRoutesFromStore = async (mockServerUid, location = {}) => {
 
 module.exports = {
   setMainWindow,
+  isMockServerEnabled,
   start,
   stop,
   stopAll,
   getStatus,
   refreshRoutes,
   getLog,
-  setDelay,
   clearLog,
   suggestPort,
   checkPortAvailable,

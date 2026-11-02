@@ -10,9 +10,10 @@ import { toBrunoPostResponseVariables } from '../common/actions';
 import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
 import { toBrunoApp } from '../common/app';
+import { normalizeOmitHeaders } from '../common/omit-headers';
 import { uuid, ensureString } from '../../../utils';
 import { utils } from '@usebruno/common';
-const { toBool, toNumber } = utils;
+const { toBool, toMaxRedirects } = utils;
 
 const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
   const info = ocRequest.info;
@@ -126,8 +127,13 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
     }
 
     settings.followRedirects = toBool(ocRequest.settings.followRedirects, true);
-    settings.maxRedirects = toNumber(ocRequest.settings.maxRedirects, 5);
+    settings.maxRedirects = toMaxRedirects(ocRequest.settings.maxRedirects);
     settings.forwardAuthorizationHeader = toBool(ocRequest.settings.forwardAuthorizationHeader, true);
+
+    const omitHeaders = normalizeOmitHeaders(ocRequest.settings.omitHeaders);
+    if (omitHeaders) {
+      settings.omitHeaders = omitHeaders;
+    }
 
     brunoItem.settings = settings;
   }

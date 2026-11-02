@@ -1,4 +1,10 @@
-import { splitOnFirst, parsePathParams, interpolateUrl, interpolateUrlPathParams, prependDefaultScheme } from './index';
+import {
+  splitOnFirst,
+  parsePathParams,
+  interpolateUrl,
+  interpolateUrlPathParams,
+  prependDefaultScheme
+} from './index';
 
 describe('Url Utils - parsePathParams', () => {
   it('should parse path - case 1', () => {

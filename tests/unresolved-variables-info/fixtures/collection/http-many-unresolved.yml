@@ -1,0 +1,19 @@
+info:
+  name: http-many-unresolved
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: http://localhost:8081/ping
+  headers:
+    - name: x-stripe
+      value: "{{stripe_secret_key}}"
+    - name: x-tenant
+      value: "{{tenant_identifier}}"
+    - name: x-client-id
+      value: "{{oauth_client_id}}"
+    - name: x-client-secret
+      value: "{{oauth_client_secret}}"
+    - name: x-region
+      value: "{{region}}"

@@ -96,4 +96,53 @@ variables:
     expect(env.name).toBe('Untitled Environment');
     expect(env.variables).toEqual([]);
   });
+
+  describe('extends', () => {
+    it('parses the parent environment name', () => {
+      const env = parseEnvironment(`name: prod
+extends: base
+variables: []
+`);
+
+      expect(env.extends).toBe('base');
+    });
+
+    it('leaves extends absent for an environment that does not declare it', () => {
+      const env = parseEnvironment(`name: prod
+variables: []
+`);
+
+      expect(env).not.toHaveProperty('extends');
+    });
+
+    it('ignores a parent reference that names nothing', () => {
+      const env = parseEnvironment(`name: prod
+extends: "   "
+variables: []
+`);
+
+      expect(env).not.toHaveProperty('extends');
+    });
+
+    it('parses a list of parents unresolved so that a save does not delete it', () => {
+      const env = parseEnvironment(`name: prod
+extends:
+  - base
+  - shared
+variables: []
+`);
+
+      expect(env.extends).toEqual(['base', 'shared']);
+    });
+
+    it('ignores a parent reference that is neither a name nor a list', () => {
+      const env = parseEnvironment(`name: prod
+extends:
+  parent: base
+variables: []
+`);
+
+      expect(env).not.toHaveProperty('extends');
+    });
+  });
 });

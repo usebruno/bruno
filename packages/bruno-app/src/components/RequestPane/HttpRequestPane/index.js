@@ -19,7 +19,6 @@ import DocsAction from 'components/Documentation/DocsAction';
 import StatusDot from 'components/StatusDot';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
-import AuthMode from '../Auth/AuthMode/index';
 import TabBarAiAssist from '../TabBarAiAssist';
 import { hasEffectiveAuth } from 'utils/auth';
 
@@ -142,13 +141,6 @@ const HttpRequestPane = ({ item, collection }) => {
       rightContent = (
         <div ref={rightContentRef}>
           <RequestBodyMode item={item} collection={collection} />
-        </div>
-      );
-      break;
-    case 'auth':
-      rightContent = (
-        <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
-          <AuthMode item={item} collection={collection} />
         </div>
       );
       break;

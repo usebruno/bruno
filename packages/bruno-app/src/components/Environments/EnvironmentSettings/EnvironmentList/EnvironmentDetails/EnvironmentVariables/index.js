@@ -1,66 +1,31 @@
 import React, { useMemo, useCallback } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
-import { get } from 'lodash';
 import { useDispatch } from 'react-redux';
-import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { markEnvironmentVariableAsSecret, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { setEnvironmentsDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
-import { flattenItems, isItemARequest } from 'utils/collections';
-import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import SensitiveWarningPopover from 'components/SensitiveFieldWarning/SensitiveWarningPopover';
 import EnvironmentVariablesTable from 'components/EnvironmentVariablesTable';
-import { sensitiveFields } from './constants';
+import { SENSITIVE_FIELD_WARNING, findUsedEnvironmentVariableUids } from 'utils/sensitive-fields';
+import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 
-const EnvironmentVariables = ({ environment, setIsModified, collection, searchQuery = '', variableType = 'variables' }) => {
+const EnvironmentVariables = ({ environment, setIsModified, collection, inheritedEnvironmentVariables, searchQuery = '', variableType = 'variables' }) => {
   const dispatch = useDispatch();
 
   const environmentsDraft = collection?.environmentsDraft;
   const hasDraftForThisEnv = environmentsDraft?.environmentUid === environment.uid;
 
-  // Check for non-secret variables used in sensitive fields
-  const nonSecretSensitiveVarUsageMap = useMemo(() => {
-    const result = {};
-    if (!collection || !environment?.variables) {
-      return result;
-    }
-    const nonSecretVars = environment.variables.filter((v) => v.enabled && !v.secret && v.name);
-    if (!nonSecretVars.length) {
-      return result;
-    }
-    const varNames = new Set(nonSecretVars.map((v) => v.name));
+  const liveEnvironment = useMemo(() => (
+    hasDraftForThisEnv ? { ...environment, variables: environmentsDraft.variables } : environment
+  ), [environment, environmentsDraft, hasDraftForThisEnv]);
 
-    const checkSensitiveField = (obj, fieldPath) => {
-      const value = get(obj, fieldPath);
-      if (typeof value === 'string') {
-        varNames.forEach((varName) => {
-          if (new RegExp(`\\{\\{\\s*${varName}\\s*\\}\\}`).test(value)) {
-            result[varName] = true;
-          }
-        });
-      }
-    };
+  const usedVariableUids = useMemo(
+    () => findUsedEnvironmentVariableUids(collection, liveEnvironment),
+    [collection, liveEnvironment]
+  );
 
-    const getObjectToProcess = (item) => {
-      if (isItemARequest(item)) {
-        return item.draft || item;
-      }
-      return item.root;
-    };
-
-    const collectionObj = getObjectToProcess(collection);
-    sensitiveFields.forEach((fieldPath) => {
-      checkSensitiveField(collectionObj, fieldPath);
-    });
-
-    const items = flattenItems(collection.items || []);
-    items.forEach((item) => {
-      const objToProcess = getObjectToProcess(item);
-      sensitiveFields.forEach((fieldPath) => {
-        checkSensitiveField(objToProcess, fieldPath);
-      });
-    });
-    return result;
-  }, [collection, environment]);
-
-  const hasSensitiveUsage = useCallback((name) => !!nonSecretSensitiveVarUsageMap[name], [nonSecretSensitiveVarUsageMap]);
+  const hasSensitiveUsage = useCallback((variable) => (
+    !!variable?.uid && usedVariableUids.has(variable.uid)
+  ), [usedVariableUids]);
 
   const handleSave = useCallback(
     (variables) => {
@@ -86,32 +51,42 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, searchQu
     dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
   }, [dispatch, collection.uid]);
 
-  const renderExtraValueContent = useCallback(
-    (variable) => {
-      if (!variable.secret && hasSensitiveUsage(variable.name)) {
+  const renderSensitiveWarning = useCallback(
+    (variable, markOwnVariableAsSecret) => {
+      if (!variable.secret && hasSensitiveUsage(variable)) {
+        const markAsSecret = markOwnVariableAsSecret ?? (() => dispatch(markEnvironmentVariableAsSecret({
+          collectionUid: collection.uid,
+          environmentScope: VARIABLE_ADD_SCOPES.ENVIRONMENT,
+          environmentUid: variable.inheritedFrom.uid,
+          variableUid: variable.uid
+        })));
         return (
-          <SensitiveFieldWarning
+          <SensitiveWarningPopover
             fieldName={variable.name}
-            warningMessage="This variable is used in sensitive fields. Add it as a secret in the Secrets tab for security"
+            warningMessage={SENSITIVE_FIELD_WARNING.USED_IN_SENSITIVE_FIELD}
+            scope={VARIABLE_ADD_SCOPES.ENVIRONMENT}
+            variableName={variable.name}
+            onMarkAsSecret={markAsSecret}
           />
         );
       }
       return null;
     },
-    [hasSensitiveUsage]
+    [hasSensitiveUsage, dispatch, collection.uid]
   );
 
   return (
     <EnvironmentVariablesTable
       key={environment?.uid}
       environment={environment}
+      inheritedEnvironmentVariables={inheritedEnvironmentVariables}
       collection={collection}
       onSave={handleSave}
       draft={hasDraftForThisEnv ? environmentsDraft : null}
       onDraftChange={handleDraftChange}
       onDraftClear={handleDraftClear}
       setIsModified={setIsModified}
-      renderExtraValueContent={renderExtraValueContent}
+      renderSensitiveWarning={renderSensitiveWarning}
       searchQuery={searchQuery}
       variableType={variableType}
     />

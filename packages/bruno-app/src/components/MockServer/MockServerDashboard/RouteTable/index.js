@@ -1,16 +1,21 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { IconCopy, IconCheck } from '@tabler/icons';
 import toast from 'react-hot-toast';
+import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
 import FilterDropdown from 'components/FilterDropdown';
+import MockSearchInput from 'components/MockServer/MockSearchInput';
 import MethodBadge from 'ui/MethodBadge';
 import { buildMockRouteTable, countMatchedRouteHits } from 'utils/mock-server/mock-responses';
 import StyledWrapper from './StyledWrapper';
 
 const RouteTable = ({ mockServerUid }) => {
+  const dispatch = useDispatch();
   const responses = useSelector((state) => state.mockServer.mockResponses[mockServerUid]) || [];
   const requestLogs = useSelector((state) => state.mockServer.requestLogs[mockServerUid]) || [];
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const [searchQuery, setSearchQuery] = useState('');
   const [methodFilter, setMethodFilter] = useState(null);
   const [copiedRouteUid, setCopiedRouteUid] = useState(null);
@@ -43,6 +48,13 @@ const RouteTable = ({ mockServerUid }) => {
     return Array.from(unique).sort().map((m) => ({ value: m, label: m }));
   }, [routes]);
 
+  const focusedTab = tabs?.find((tab) => tab.uid === activeTabUid);
+  const routeWidths = focusedTab?.tableColumnWidths?.['mock-server-routes'] || {};
+
+  const handleColumnWidthsChange = (widths) => {
+    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId: 'mock-server-routes', widths }));
+  };
+
   const handleCopyRouteUrl = async (routeUid, path) => {
     if (!baseUrl) return;
 
@@ -64,7 +76,7 @@ const RouteTable = ({ mockServerUid }) => {
       name: 'Method',
       width: '80px',
       render: ({ value }) => (
-        <MethodBadge method={value} size="sm" className="method-badge" />
+        <MethodBadge method={value} className="method-badge" />
       )
     },
     {
@@ -95,7 +107,7 @@ const RouteTable = ({ mockServerUid }) => {
     {
       key: 'responseCount',
       name: 'Responses',
-      width: '90px',
+      width: '100px',
       render: ({ row }) => <span>{row.responseCount}</span>
     },
     {
@@ -113,7 +125,7 @@ const RouteTable = ({ mockServerUid }) => {
     {
       key: 'hits',
       name: 'Hits',
-      width: '60px',
+      width: '80px',
       render: ({ value }) => <span>{value}</span>
     }
   ];
@@ -131,12 +143,11 @@ const RouteTable = ({ mockServerUid }) => {
   return (
     <StyledWrapper className="h-full w-full">
       <div className="flex items-center gap-2 mb-4">
-        <input
-          type="text"
-          className="search-input"
-          placeholder="Search routes..."
+        <MockSearchInput
+          className="flex-1"
+          placeholder="Search routes"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={setSearchQuery}
           data-testid="mock-server-route-search"
         />
         <FilterDropdown
@@ -151,12 +162,15 @@ const RouteTable = ({ mockServerUid }) => {
       </div>
 
       <EditableTable
+        tableId="mock-server-routes"
         columns={columns}
         rows={filteredRoutes}
         onChange={() => {}}
         showCheckbox={false}
         showDelete={false}
         showAddRow={false}
+        columnWidths={routeWidths}
+        onColumnWidthsChange={handleColumnWidthsChange}
         testId="mock-server-routes-table"
       />
 

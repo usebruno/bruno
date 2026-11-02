@@ -1,0 +1,203 @@
+{
+  "info": {
+    "_postman_id": "b7f3c1a4-9d2e-4c88-a1f6-3e5d0c7b2418",
+    "name": "Max Redirects Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Ordinary Limit",
+      "protocolProfileBehavior": {
+        "maxRedirects": 7
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.acme.test/users",
+          "protocol": "https",
+          "host": ["api", "acme", "test"],
+          "path": ["users"]
+        }
+      }
+    },
+    {
+      "name": "Large Limit",
+      "protocolProfileBehavior": {
+        "maxRedirects": 1000
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.acme.test/redirect-chain",
+          "protocol": "https",
+          "host": ["api", "acme", "test"],
+          "path": ["redirect-chain"]
+        }
+      }
+    },
+    {
+      "name": "Exponent Limit",
+      "protocolProfileBehavior": {
+        "maxRedirects": 1e+31
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.acme.test/redirect-chain",
+          "protocol": "https",
+          "host": ["api", "acme", "test"],
+          "path": ["redirect-chain"]
+        }
+      }
+    },
+    {
+      "name": "Fifty Limit",
+      "protocolProfileBehavior": {
+        "maxRedirects": 50
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.acme.test/boundary",
+          "protocol": "https",
+          "host": ["api", "acme", "test"],
+          "path": ["boundary"]
+        }
+      }
+    },
+    {
+      "name": "No Redirects",
+      "protocolProfileBehavior": {
+        "maxRedirects": 0
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.acme.test/no-follow",
+          "protocol": "https",
+          "host": ["api", "acme", "test"],
+          "path": ["no-follow"]
+        }
+      }
+    },
+    {
+      "name": "Unset Limit",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.acme.test/healthz",
+          "protocol": "https",
+          "host": ["api", "acme", "test"],
+          "path": ["healthz"]
+        }
+      }
+    },
+    {
+      "name": "Null Limit",
+      "protocolProfileBehavior": {
+        "maxRedirects": null
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.acme.test/unlimited",
+          "protocol": "https",
+          "host": ["api", "acme", "test"],
+          "path": ["unlimited"]
+        }
+      }
+    },
+    {
+      "name": "Negative Limit",
+      "protocolProfileBehavior": {
+        "maxRedirects": -1
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.acme.test/legacy",
+          "protocol": "https",
+          "host": ["api", "acme", "test"],
+          "path": ["legacy"]
+        }
+      }
+    },
+    {
+      "name": "Quoted Limit",
+      "protocolProfileBehavior": {
+        "maxRedirects": "100"
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.acme.test/quoted",
+          "protocol": "https",
+          "host": ["api", "acme", "test"],
+          "path": ["quoted"]
+        }
+      }
+    },
+    {
+      "name": "Fractional Limit",
+      "protocolProfileBehavior": {
+        "maxRedirects": 3.5
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.acme.test/fractional",
+          "protocol": "https",
+          "host": ["api", "acme", "test"],
+          "path": ["fractional"]
+        }
+      }
+    },
+    {
+      "name": "Boolean Limit",
+      "protocolProfileBehavior": {
+        "maxRedirects": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.acme.test/boolean",
+          "protocol": "https",
+          "host": ["api", "acme", "test"],
+          "path": ["boolean"]
+        }
+      }
+    },
+    {
+      "name": "Reporting",
+      "item": [
+        {
+          "name": "Nested Large Limit",
+          "protocolProfileBehavior": {
+            "maxRedirects": 75
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.acme.test/reports/daily",
+              "protocol": "https",
+              "host": ["api", "acme", "test"],
+              "path": ["reports", "daily"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

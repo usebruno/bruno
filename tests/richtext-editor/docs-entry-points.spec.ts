@@ -3,15 +3,11 @@ import { closeAllCollections } from '../utils/page/actions';
 import { setupCollectionDocs, setupFolderDocs } from './actions';
 
 test.describe('Rich Text Editor Edge Cases - Collection and Folder Docs Entry Points', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.setViewportSize({ width: 1920, height: 1080 });
-  });
-
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
 
-  test('Collection docs: Cancel discards the draft, Save persists it', async ({ page, createTmpDir }) => {
+  test('TC-6463: Collection docs: Cancel discards the draft, Save persists it', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const locators = await setupCollectionDocs(page, createTmpDir, 'test-collection-docs');
     const prosemirror = locators.docs.proseMirror();
     await expect(prosemirror).toBeVisible();
@@ -40,7 +36,7 @@ test.describe('Rich Text Editor Edge Cases - Collection and Folder Docs Entry Po
     });
   });
 
-  test('Folder docs: switching to Preview keeps the unsaved draft (no discard control), Save persists it', async ({ page, createTmpDir }) => {
+  test('TC-2662: Folder docs: switching to Preview keeps the unsaved draft (no discard control), Save persists it', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const locators = await setupFolderDocs(page, createTmpDir, 'test-folder-docs');
     const prosemirror = locators.docs.proseMirror();
     await expect(prosemirror).toBeVisible();

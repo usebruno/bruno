@@ -1,0 +1,16 @@
+info:
+  name: rewrite-config
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: http://localhost:8081/ping
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        // Rewrites the object seeded by `seed`, so a cell that was folded or
+        // scrolled is now showing different content.
+        bru.setVar('service_config', { region: 'eu-west-1', replicas: 5, tier: 'gold' });

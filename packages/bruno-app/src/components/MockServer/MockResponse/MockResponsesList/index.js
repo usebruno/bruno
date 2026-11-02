@@ -21,17 +21,20 @@ import {
   syncMockResponsesFromSpec as mergeMockResponsesFromSpec
 } from 'utils/mock-server/mock-responses';
 import { resolveInstanceSpec } from 'utils/mock-server/mock-server-instances';
-import { IconCopy, IconSearch, IconServer2, IconTrash } from '@tabler/icons';
-import CreateMockResponsePanel from '../CreateMockResponsePanel';
+import { IconCopy, IconPlus, IconServer2, IconTrash } from '@tabler/icons';
+import CreateMockResponseModal from '../CreateMockResponseModal';
 import GenerateFromSpecModal from '../GenerateFromSpecModal';
 import MockConfirmModal from 'components/MockServer/MockConfirmModal';
+import MockSearchInput from 'components/MockServer/MockSearchInput';
 import Button from 'ui/Button';
 import ActionIcon from 'ui/ActionIcon';
+import ListGroup from 'ui/ListGroup';
 import StyledWrapper from './StyledWrapper';
 
 const MockResponsesList = ({ instance, collection }) => {
   const dispatch = useDispatch();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [deletingResponse, setDeletingResponse] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -57,8 +60,8 @@ const MockResponsesList = ({ instance, collection }) => {
   ), [workspaces, activeWorkspaceUid]);
 
   const location = useMemo(() => (
-    resolveMockResponseLocation(instance, resolvedCollection, collections, workspaces, activeWorkspace)
-  ), [instance, resolvedCollection, collections, workspaces, activeWorkspace]);
+    resolveMockResponseLocation(instance, workspaces, activeWorkspace)
+  ), [instance, workspaces, activeWorkspace]);
 
   const spec = useMemo(() => (
     resolveInstanceSpec(instance, apiSpecs)
@@ -66,7 +69,7 @@ const MockResponsesList = ({ instance, collection }) => {
 
   useEffect(() => {
     dispatch(loadMockResponses(location));
-  }, [dispatch, location.mockServerUid, location.collectionPath, location.sourceType, location.workspacePath]);
+  }, [dispatch, location.mockServerUid, location.workspacePath]);
 
   const openResponseTab = (response) => {
     dispatch(addTab({
@@ -108,6 +111,8 @@ const MockResponsesList = ({ instance, collection }) => {
       openResponseTab(result.response);
     } catch (err) {
       toast.error(err.message || 'Failed to create mock response');
+      // rethrow so CreateMockResponseModal keeps itself open with the entered values
+      throw err;
     }
   };
 
@@ -248,9 +253,7 @@ const MockResponsesList = ({ instance, collection }) => {
     }
   };
 
-  const handleCopyUrl = async (event, response) => {
-    event.stopPropagation();
-
+  const handleCopyUrl = async (response) => {
     try {
       const url = buildMockServerTryUrl({
         port: mockServerPort,
@@ -348,16 +351,28 @@ const MockResponsesList = ({ instance, collection }) => {
         </MockConfirmModal>
       ) : null}
 
+      {showCreateModal ? (
+        <CreateMockResponseModal
+          collection={isSpecServer ? null : resolvedCollection}
+          existingResponses={responses}
+          onCreate={handleCreate}
+          onClose={() => setShowCreateModal(false)}
+        />
+      ) : null}
+
       <div className="actions">
         <div className="actions-toolbar">
-          <CreateMockResponsePanel
-            collection={isSpecServer ? null : resolvedCollection}
-            onCreate={handleCreate}
-          />
+          <Button
+            size="sm"
+            icon={<IconPlus size={14} stroke={1.75} />}
+            onClick={() => setShowCreateModal(true)}
+            data-testid="mock-response-create-btn"
+          >
+            New Mock Response
+          </Button>
 
           {isCollectionServer ? (
             <Button
-              variant="outline"
               color="secondary"
               size="sm"
               onClick={() => setShowSyncModal(true)}
@@ -370,7 +385,6 @@ const MockResponsesList = ({ instance, collection }) => {
 
           {isSpecServer ? (
             <Button
-              variant="outline"
               color="secondary"
               size="sm"
               onClick={handleGenerateFromSpec}
@@ -383,7 +397,6 @@ const MockResponsesList = ({ instance, collection }) => {
 
           {isSpecServer && responses.length > 0 ? (
             <Button
-              variant="outline"
               color="secondary"
               size="sm"
               onClick={handleSyncWithSpec}
@@ -396,88 +409,71 @@ const MockResponsesList = ({ instance, collection }) => {
         </div>
 
         {responses.length > 0 ? (
-          <div className="search-bar">
-            <IconSearch size={14} stroke={1.5} aria-hidden="true" />
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Search by name, method, or endpoint"
-              data-testid="mock-response-search-input"
-            />
-          </div>
+          <MockSearchInput
+            className="response-search"
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search by name, method, or endpoint"
+            data-testid="mock-response-search-input"
+          />
         ) : null}
       </div>
 
-      {responses.length === 0 ? (
-        <div className="text-sm opacity-70">
-          {isSpecServer ? (
-            <>
-              No mock responses yet. Generate them from your API spec, or create one manually and add rules to match requests.
-            </>
-          ) : (
-            <>
-              No mock responses yet. Create one to define routes and responses for this mock server.
-            </>
-          )}
-        </div>
-      ) : filteredResponses.length === 0 ? (
-        <div className="text-sm opacity-70">No mock responses match your search.</div>
-      ) : (
-        <div className="response-list">
-          {filteredResponses.map((response) => (
-            <div
-              key={response.uid}
-              className="response-item"
-              role="button"
-              tabIndex={0}
+      <ListGroup
+        maxWidth="100%"
+        items={filteredResponses}
+        getKey={(response) => response.uid}
+        emptyState={{
+          icon: <IconServer2 size={22} stroke={1.5} aria-hidden="true" />,
+          title: responses.length ? 'No matching mock responses' : 'No mock responses yet',
+          text: responses.length
+            ? 'No mock response matches your search.'
+            : isSpecServer
+              ? 'Generate them from your API spec, or create one manually and add rules to match requests.'
+              : 'Create one to define the routes and responses this mock server serves.'
+        }}
+        renderItem={(response) => (
+          <ListGroup.Item
+            leading={<IconServer2 size={14} stroke={1.5} className="response-item-icon" aria-hidden="true" />}
+            actions={(
+              <>
+                <ActionIcon
+                  label="Copy mock URL"
+                  onClick={() => handleCopyUrl(response)}
+                  data-testid={`mock-response-copy-${response.uid}`}
+                >
+                  <IconCopy size={15} stroke={1.5} aria-hidden="true" />
+                </ActionIcon>
+                <ActionIcon
+                  label="Delete mock response"
+                  onClick={() => setDeletingResponse(response)}
+                  data-testid={`mock-response-delete-${response.uid}`}
+                >
+                  <IconTrash size={15} stroke={1.5} aria-hidden="true" />
+                </ActionIcon>
+              </>
+            )}
+            className="response-item"
+          >
+            <button
+              type="button"
+              className="response-item-open"
               onClick={() => openResponseTab(response)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  openResponseTab(response);
-                }
-              }}
+              data-testid={`mock-response-open-${response.uid}`}
             >
-              <div className="response-item-body">
-                <div className="response-item-header">
-                  <IconServer2 size={14} stroke={1.5} className="response-item-icon" aria-hidden="true" />
-                  <div className="response-item-name">{response.name}</div>
-                </div>
-                <div className="text-xs opacity-70 mt-1 pl-[22px]">
-                  {(response.request?.method || 'GET').toUpperCase()} {response.request?.url}
-                </div>
-                <div className="text-xs opacity-60 mt-1 pl-[22px]">
-                  {response.rules?.conditions?.length
-                    ? `${response.rules.conditions.length} rule(s), ${response.rules.operator || 'AND'}`
-                    : 'No rules (default match)'}
-                </div>
+              <div className="response-item-name">{response.name}</div>
+              <div className="response-item-endpoint">
+                {(response.request?.method || 'GET').toUpperCase()} {response.request?.url}
               </div>
-
-              <ActionIcon
-                label="Copy mock URL"
-                className="response-item-copy"
-                onClick={(event) => handleCopyUrl(event, response)}
-                data-testid={`mock-response-copy-${response.uid}`}
-              >
-                <IconCopy size={15} stroke={1.5} aria-hidden="true" />
-              </ActionIcon>
-
-              <ActionIcon
-                label="Delete mock response"
-                className="response-item-delete"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setDeletingResponse(response);
-                }}
-                data-testid={`mock-response-delete-${response.uid}`}
-              >
-                <IconTrash size={15} stroke={1.5} aria-hidden="true" />
-              </ActionIcon>
-            </div>
-          ))}
-        </div>
-      )}
+              <div className="response-item-rules">
+                {response.rules?.conditions?.length
+                  ? `${response.rules.conditions.length} rule(s), ${response.rules.operator || 'AND'}`
+                  : 'No rules (default match)'}
+              </div>
+            </button>
+          </ListGroup.Item>
+        )}
+      />
     </StyledWrapper>
   );
 };

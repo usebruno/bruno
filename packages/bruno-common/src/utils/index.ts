@@ -15,6 +15,7 @@ export {
 export {
   buildFormUrlEncodedPayload,
   isFormData,
+  getMediaType,
   extractBoundaryFromContentType
 } from './form-data';
 
@@ -36,8 +37,10 @@ export {
 
 export {
   parseValueByDataType,
+  resolveVariableReference,
   getDataTypeFromValue,
   validateDataTypeValue,
+  validateVariableType,
   valueToString,
   BrunoVariableDataType,
   BRUNO_VARIABLE_DATATYPES,
@@ -49,9 +52,38 @@ export {
 } from './string';
 
 export {
+  sanitizeName,
+  validateName,
+  validateNameError,
+  generateUniqueName
+} from './naming';
+
+export {
+  getInheritableEnvironments,
+  getInheritedEnvironments,
+  resolveEnvironmentInheritance,
+  validatedEnvironmentName,
+  validatedEnvironmentExtendsFrom
+} from './environment-inheritance';
+
+export {
+  toVariablesMap,
+  getDuplicateSecretNames,
+  dedupeImportedSecrets
+} from './environment-variables';
+
+export {
+  coerceEnvName
+} from './environments';
+
+export {
   toBool,
   toNumber
 } from './type-helpers';
+
+export {
+  isValidNpmPackageName
+} from './npm';
 
 export {
   MAX_BODY_SIZE_DEFAULT,
@@ -75,3 +107,19 @@ export const resolveTimeoutSetting = (value: unknown): number | typeof TIMEOUT_I
   if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
   return 0;
 };
+
+export const DEFAULT_MAX_REDIRECTS = 5;
+
+// Parse a redirect ceiling: numbers of 0 or more pass with fractions truncated (0.9 becomes 0);
+// anything else (negatives, non-numeric values, and NaN/±Infinity, which yml spells .nan/.inf
+// and parses as real numbers) is unusable and yields undefined, leaving the caller to warn or
+// fall back to a default. Strings aren't honoured, as with the timeout setting above, since yml
+// types its scalars.
+export const parseMaxRedirects = (value: unknown): number | undefined => {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    return undefined;
+  }
+  return Math.trunc(value);
+};
+
+export const toMaxRedirects = (value: unknown): number => parseMaxRedirects(value) ?? DEFAULT_MAX_REDIRECTS;

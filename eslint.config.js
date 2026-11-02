@@ -108,7 +108,8 @@ module.exports = runESMImports().then(() => defineConfig([
         require: false,
         Buffer: false,
         process: false,
-        ipcRenderer: false
+        ipcRenderer: false,
+        __BRUNO_BENCHMARK__: false
       },
       parserOptions: {
         ecmaFeatures: {
@@ -131,6 +132,15 @@ module.exports = runESMImports().then(() => defineConfig([
     },
     rules: {
       'no-undef': 'error'
+    }
+  },
+  {
+    files: ['packages/bruno-app/**/*.{js,jsx,ts}'],
+    ignores: ['**/*.config.js', '**/public/**/*', '**/plugins/**/*'],
+    plugins: { 'react-hooks': require('eslint-plugin-react-hooks') },
+    rules: {
+      'react-hooks/rules-of-hooks': 'warn',
+      'react-hooks/exhaustive-deps': 'warn'
     }
   },
   {

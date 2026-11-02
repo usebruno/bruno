@@ -157,6 +157,29 @@ export const setCodeEditorSelection = async (
 };
 
 /**
+ * Focus the editor without changing the cursor, selection, or scroll position.
+ *
+ * Closing the search bar unmounts its input and temporarily leaves the editor
+ * unfocused. Refocus it before the next keyboard action. Using preventScroll
+ * avoids scrolling the cursor into view.
+ */
+export const focusCodeEditor = async (page: Page, editorId: string) => {
+  const cm = page.getByTestId(editorId).locator('.CodeMirror').first();
+
+  await cm.evaluate((el: any) => {
+    const instance = el.CodeMirror;
+    if (!instance) return;
+
+    const input = instance.getInputField?.();
+    if (input?.focus) {
+      input.focus({ preventScroll: true });
+    } else {
+      instance.focus();
+    }
+  });
+};
+
+/**
  * Scroll the editor so that the given line is visible.
  */
 export const scrollCodeEditorToLine = async (page: Page, editorId: string, line: number) => {
@@ -188,4 +211,40 @@ export const appendTextToCodeEditor = async (page: Page, editorId: string, text:
       el.CodeMirror.replaceRange(text, { line: lastLine, ch: lastCh });
     }
   }, text);
+};
+
+export const getCodeEditorValueAndCursor = async (page: Page, editorId: string) => {
+  const cm = buildCodeEditorSearchLocators(page, editorId).codeMirror();
+  return cm.evaluate((el: any) => {
+    const { line, ch } = el.CodeMirror.getCursor();
+    return { value: el.CodeMirror.getValue(), cursor: { line, ch }, hasSelection: el.CodeMirror.somethingSelected() };
+  });
+};
+
+export const replaceMatchThenTypeBeforeSearchRefresh = async (
+  page: Page,
+  editorId: string,
+  pos: { line: number; ch: number },
+  text: string
+) => {
+  const searchBar = buildCodeEditorSearchLocators(page, editorId);
+  const replaceButton = await searchBar.replaceBtn().elementHandle();
+  await searchBar.codeMirror().evaluate(
+    (el: any, { replaceButton, pos, text }: { replaceButton: any; pos: { line: number; ch: number }; text: string }) => {
+      replaceButton.click();
+      el.CodeMirror.setCursor(pos);
+      el.CodeMirror.replaceSelection(text);
+    },
+    { replaceButton, pos, text }
+  );
+};
+
+export const replaceMatchThenCloseSearchBarBeforeRefresh = async (page: Page, editorId: string) => {
+  const searchBar = buildCodeEditorSearchLocators(page, editorId);
+  const closeButton = await searchBar.searchCloseBtn().elementHandle();
+  await searchBar.replaceBtn().evaluate((replaceButton: HTMLElement, closeButton: any) => {
+    replaceButton.click();
+    closeButton.click();
+  }, closeButton);
+  await searchBar.searchBar().waitFor({ state: 'hidden' });
 };

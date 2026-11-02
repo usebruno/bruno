@@ -2,6 +2,7 @@ const { describe, it, expect, beforeEach, afterEach, jest: jestObj } = require('
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { parseEnvironment } = require('@usebruno/filestore');
 const {
   applyVariableUpdates,
   persistVariableUpdates,
@@ -725,7 +726,7 @@ describe('mergeScriptVarsIntoEnvList — --env-var overrides', () => {
   // script's value differs from the injected override value.
   it('persists a deliberate same-named script write that differs from the override value', () => {
     const variables = [
-      { name: 'token', value: 'real', enabled: true, type: 'text', secret: true }
+      { name: 'token', value: 'real', enabled: true, type: 'text', secret: false }
     ];
     const merged = mergeScriptVarsIntoEnvList(variables, { token: 'rotated' }, {
       overrides: new Map([['token', 'transient-cli-value']])
@@ -734,8 +735,312 @@ describe('mergeScriptVarsIntoEnvList — --env-var overrides', () => {
     const tokenEntry = merged.find((v) => v.name === 'token');
     expect(tokenEntry).toBeDefined();
     expect(tokenEntry.value).toBe('rotated');
-    // Existing on-disk metadata (secret flag) is preserved during the update.
+  });
+
+  // The write itself is honoured — the row is the script's now — but a secret's value belongs in
+  // the runtime map, not on disk; the .bru/.yml writers drop it and the json path must match.
+  it('withholds a deliberate script write to a secret row while keeping the row secret', () => {
+    const variables = [
+      { name: 'token', value: 'real', enabled: true, type: 'text', secret: true }
+    ];
+    const merged = mergeScriptVarsIntoEnvList(variables, { token: 'rotated' }, {
+      overrides: new Map([['token', 'transient-cli-value']])
+    });
+
+    const tokenEntry = merged.find((v) => v.name === 'token');
+    expect(tokenEntry.value).toBe('');
     expect(tokenEntry.secret).toBe(true);
+  });
+});
+
+// A row the env file itself declares secret is the common case: the CLI can't decrypt secrets at
+// rest, so a script write is the only way one gets a value — and that value must not land on disk.
+describe('persistVariableUpdates — script writes to a secret row', () => {
+  it.each([
+    ['json', 'dev.json', JSON.stringify({
+      name: 'dev',
+      variables: [{ name: 'secret', value: '', type: 'text', enabled: true, secret: true }]
+    }, null, 2)],
+    ['yml', 'dev.yml', 'name: dev\nvariables:\n  - secret: true\n    name: secret\n'],
+    ['bru', 'dev.bru', 'vars:secret [\n  secret\n]\n']
+  ])('keeps the written value out of the %s env file', (format, fileName, seed) => {
+    const filePath = writeFile(fileName, seed);
+
+    persistVariableUpdates(
+      { envVariables: { secret: 'secret-value', __name__: 'dev' } },
+      { envFile: { path: filePath, format } }
+    );
+
+    const raw = fs.readFileSync(filePath, 'utf8');
+    expect(raw).not.toContain('secret-value');
+    const written = format === 'json'
+      ? JSON.parse(raw).variables
+      : parseEnvironment(raw, { format }).variables;
+    expect(written).toEqual([
+      expect.objectContaining({ name: 'secret', value: '', secret: true })
+    ]);
+  });
+
+  // A disabled secret row is preserved untouched, so a write to that name would otherwise land on a
+  // freshly appended plain row — putting the secret on disk, and in git, in cleartext.
+  it('does not append a row for a write to a disabled secret name, keeping its value off disk', () => {
+    const filePath = writeFile('dev.json', JSON.stringify({
+      name: 'dev',
+      variables: [{ name: 'token', value: '', type: 'text', enabled: false, secret: true }]
+    }, null, 2));
+
+    persistVariableUpdates(
+      { envVariables: { token: 'rotated-super-secret', __name__: 'dev' } },
+      { envFile: { path: filePath, format: 'json' } }
+    );
+
+    const raw = fs.readFileSync(filePath, 'utf8');
+    expect(raw).not.toContain('rotated-super-secret');
+    expect(JSON.parse(raw).variables).toEqual([
+      { name: 'token', value: '', type: 'text', enabled: false, secret: true }
+    ]);
+  });
+
+  // The script runtime hands back the whole env map, not just the names it wrote, so every enabled
+  // secret row is reconciled on any persist — including one the script never touched. Blanking its
+  // inline value is the intended outcome: no env file the CLI writes may carry a secret's value.
+  it('empties the inline value of an untouched secret row when an unrelated var is persisted', () => {
+    const filePath = writeFile('dev.json', JSON.stringify({
+      name: 'dev',
+      variables: [
+        { name: 'token', value: 'inline-super-secret', type: 'text', enabled: true, secret: true },
+        { name: 'host', value: 'localhost', type: 'text', enabled: true, secret: false }
+      ]
+    }, null, 2));
+
+    persistVariableUpdates(
+      { envVariables: { token: 'inline-super-secret', host: 'api.example.com', __name__: 'dev' } },
+      { envFile: { path: filePath, format: 'json' } }
+    );
+
+    const raw = fs.readFileSync(filePath, 'utf8');
+    expect(raw).not.toContain('inline-super-secret');
+    expect(JSON.parse(raw).variables).toEqual([
+      { name: 'token', value: '', type: 'text', enabled: true, secret: true },
+      { name: 'host', value: 'api.example.com', type: 'text', enabled: true, secret: false }
+    ]);
+  });
+
+  // The value is emptied on the way to disk, so a dataType inferred from it would annotate the row
+  // with the type of a value no reader can see — and the app applies that type to the secret it
+  // holds in its own store, retyping a value the CLI never saw.
+  it('leaves a secret row untyped when the script writes a non-string value', () => {
+    const filePath = writeFile('dev.yml', 'name: dev\nvariables:\n  - secret: true\n    name: token\n');
+
+    persistVariableUpdates(
+      { envVariables: { token: 4242, __name__: 'dev' } },
+      { envFile: { path: filePath, format: 'yml' } }
+    );
+
+    const written = parseEnvironment(fs.readFileSync(filePath, 'utf8'), { format: 'yml' });
+    expect(written.variables).toEqual([
+      expect.objectContaining({ name: 'token', value: '', secret: true })
+    ]);
+    expect(written.variables[0].dataType).toBeUndefined();
+  });
+
+  // The counterpart: the row's declared type describes the secret in the app's store, so a write of
+  // a differently-typed value must not strip it the way it would on a plain row.
+  it('keeps a secret row\'s declared dataType when the script writes a differently-typed value', () => {
+    const filePath = writeFile(
+      'dev.yml',
+      'name: dev\nvariables:\n  - secret: true\n    name: token\n    type: number\n'
+    );
+
+    persistVariableUpdates(
+      { envVariables: { token: 'rotated-super-secret', __name__: 'dev' } },
+      { envFile: { path: filePath, format: 'yml' } }
+    );
+
+    const raw = fs.readFileSync(filePath, 'utf8');
+    expect(raw).not.toContain('rotated-super-secret');
+    expect(parseEnvironment(raw, { format: 'yml' }).variables[0].dataType).toBe('number');
+  });
+
+  // A disabled plain row carries no secret, so the write still needs a row to land on.
+  it('appends an enabled row for a write to a disabled plain name', () => {
+    const filePath = writeFile('dev.json', JSON.stringify({
+      name: 'dev',
+      variables: [{ name: 'host', value: 'parked', type: 'text', enabled: false, secret: false }]
+    }, null, 2));
+
+    persistVariableUpdates(
+      { envVariables: { host: 'live', __name__: 'dev' } },
+      { envFile: { path: filePath, format: 'json' } }
+    );
+
+    expect(JSON.parse(fs.readFileSync(filePath, 'utf8')).variables).toEqual([
+      { name: 'host', value: 'parked', type: 'text', enabled: false, secret: false },
+      { name: 'host', value: 'live', type: 'text', enabled: true, secret: false }
+    ]);
+  });
+});
+
+describe('persistVariableUpdates — inherited env vars', () => {
+  it('does not write an inherited name the script left at the parent value', () => {
+    const filePath = writeFile('dev.yml', 'name: dev\nextends: base\nvariables:\n  - name: dev_only\n    value: dev\n');
+
+    persistVariableUpdates(
+      { envVariables: { dev_only: 'dev', base_host: 'from-parent', touched: 'yes', __name__: 'dev' } },
+      {
+        envFile: {
+          path: filePath,
+          format: 'yml',
+          inheritedEnvironmentVariables: [{ name: 'base_host', value: 'from-parent' }]
+        }
+      }
+    );
+
+    const written = parseEnvironment(fs.readFileSync(filePath, 'utf8'), { format: 'yml' });
+    expect(written.variables.map((v) => v.name).sort()).toEqual(['dev_only', 'touched']);
+  });
+
+  it('persists an inherited name the script rewrote as an override in this file', () => {
+    const filePath = writeFile('dev.yml', 'name: dev\nextends: base\nvariables:\n  - name: dev_only\n    value: dev\n');
+
+    persistVariableUpdates(
+      { envVariables: { dev_only: 'dev', base_host: 'rewritten', __name__: 'dev' } },
+      {
+        envFile: {
+          path: filePath,
+          format: 'yml',
+          inheritedEnvironmentVariables: [{ name: 'base_host', value: 'from-parent' }]
+        }
+      }
+    );
+
+    const written = parseEnvironment(fs.readFileSync(filePath, 'utf8'), { format: 'yml' });
+    expect(written.variables).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: 'base_host', value: 'rewritten', enabled: true })
+    ]));
+  });
+
+  // The override row a rewrite forks into this file inherits the parent's secret flag; written as a
+  // plain row instead, the rotated secret would land on disk — and in git — in cleartext.
+  it('persists a rewritten inherited secret as a secret, keeping its value off disk', () => {
+    const filePath = writeFile('dev.yml', 'name: dev\nextends: base\nvariables:\n  - name: dev_only\n    value: dev\n');
+
+    persistVariableUpdates(
+      { envVariables: { dev_only: 'dev', base_token: 'rotated-super-secret', __name__: 'dev' } },
+      {
+        envFile: {
+          path: filePath,
+          format: 'yml',
+          inheritedEnvironmentVariables: [{ name: 'base_token', value: 'from-parent', secret: true }]
+        }
+      }
+    );
+
+    const raw = fs.readFileSync(filePath, 'utf8');
+    expect(raw).not.toContain('rotated-super-secret');
+    const written = parseEnvironment(raw, { format: 'yml' });
+    expect(written.variables).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: 'base_token', secret: true, enabled: true })
+    ]));
+  });
+
+  // The json path serializes the merged entries verbatim — it has no secret-aware writer to drop
+  // the value the way the .bru and .yml writers do.
+  it('keeps a rewritten inherited secret off disk in a json env file', () => {
+    const filePath = writeFile('dev.json', JSON.stringify({
+      name: 'dev',
+      extends: 'base',
+      variables: [{ name: 'dev_only', value: 'dev', type: 'text', enabled: true, secret: false }]
+    }, null, 2));
+
+    persistVariableUpdates(
+      { envVariables: { dev_only: 'dev', base_token: 'rotated-super-secret', __name__: 'dev' } },
+      {
+        envFile: {
+          path: filePath,
+          format: 'json',
+          inheritedEnvironmentVariables: [{ name: 'base_token', value: 'from-parent', secret: true }]
+        }
+      }
+    );
+
+    const raw = fs.readFileSync(filePath, 'utf8');
+    expect(raw).not.toContain('rotated-super-secret');
+    const tokenEntry = JSON.parse(raw).variables.find((v) => v.name === 'base_token');
+    expect(tokenEntry).toEqual({ name: 'base_token', value: '', type: 'text', enabled: true, secret: true });
+  });
+
+  // A name withheld from the write is still a name the script declared. Reading its absence from
+  // the write set as a `bru.deleteEnvVar` would delete the row this file owns — silently, since
+  // the value on the runtime map came from the parent all along.
+  it('keeps this file\'s own row for a name the parent also declares', () => {
+    const filePath = writeFile(
+      'dev.yml',
+      'name: dev\nextends: base\nvariables:\n  - name: token\n    value: dev-token\n  - name: dev_only\n    value: dev\n'
+    );
+
+    persistVariableUpdates(
+      { envVariables: { token: 'from-parent', dev_only: 'dev', __name__: 'dev' } },
+      {
+        envFile: {
+          path: filePath,
+          format: 'yml',
+          inheritedEnvironmentVariables: [{ name: 'token', value: 'from-parent', secret: true }]
+        }
+      }
+    );
+
+    const written = parseEnvironment(fs.readFileSync(filePath, 'utf8'), { format: 'yml' });
+    expect(written.variables).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: 'token', value: 'dev-token', secret: false })
+    ]));
+  });
+
+  // A plain row here shadows the parent's secret rather than replacing it, so the parent secret is
+  // still inherited and the rotated value lands on that plain row — in cleartext, without the flag.
+  it('persists a rewritten inherited secret as a secret even when this file already holds a plain row for it', () => {
+    const filePath = writeFile(
+      'dev.yml',
+      'name: dev\nextends: base\nvariables:\n  - name: token\n    value: dev-placeholder\n'
+    );
+
+    persistVariableUpdates(
+      { envVariables: { token: 'rotated-super-secret', __name__: 'dev' } },
+      {
+        envFile: {
+          path: filePath,
+          format: 'yml',
+          inheritedEnvironmentVariables: [{ name: 'token', value: 'from-parent', secret: true }]
+        }
+      }
+    );
+
+    const raw = fs.readFileSync(filePath, 'utf8');
+    expect(raw).not.toContain('rotated-super-secret');
+    const written = parseEnvironment(raw, { format: 'yml' });
+    expect(written.variables).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: 'token', secret: true, enabled: true })
+    ]));
+  });
+
+  // Deep compare, so a structurally-equal re-write of an inherited object/array var still counts
+  // as "unchanged" and does not fork a copy into this file.
+  it('treats a structurally-equal rewrite of an inherited typed var as unchanged', () => {
+    const filePath = writeFile('dev.yml', 'name: dev\nextends: base\nvariables:\n  - name: dev_only\n    value: dev\n');
+
+    persistVariableUpdates(
+      { envVariables: { dev_only: 'dev', base_config: { retries: 2 }, __name__: 'dev' } },
+      {
+        envFile: {
+          path: filePath,
+          format: 'yml',
+          inheritedEnvironmentVariables: [{ name: 'base_config', value: { retries: 2 } }]
+        }
+      }
+    );
+
+    const written = parseEnvironment(fs.readFileSync(filePath, 'utf8'), { format: 'yml' });
+    expect(written.variables.map((v) => v.name)).toEqual(['dev_only']);
   });
 });
 

@@ -1,12 +1,8 @@
 import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page/actions';
-import { setupRequestDocs } from './actions';
+import { setupRequestDocs, clickDocsToolbarBtn, expectDocsToolbarBtnDisabled } from './actions';
 
 test.describe('Rich Text Editor Edge Cases - Blockquote and Code Block', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.setViewportSize({ width: 1920, height: 1080 });
-  });
-
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
@@ -19,10 +15,10 @@ test.describe('Rich Text Editor Edge Cases - Blockquote and Code Block', () => {
     await prosemirror.click();
     await page.keyboard.type('A quoted line');
 
-    await locators.docs.toolbarBtn('Quote').click();
+    await clickDocsToolbarBtn(locators, 'Quote');
     await expect(prosemirror.locator('blockquote')).toContainText('A quoted line');
 
-    await locators.docs.toolbarBtn('Quote').click();
+    await clickDocsToolbarBtn(locators, 'Quote');
     await expect(prosemirror.locator('blockquote')).toHaveCount(0);
     await expect(prosemirror.locator('p').filter({ hasText: 'A quoted line' })).toBeVisible();
   });
@@ -35,12 +31,11 @@ test.describe('Rich Text Editor Edge Cases - Blockquote and Code Block', () => {
     await prosemirror.click();
     await page.keyboard.type('const x = 1;');
 
-    const codeBlockBtn = locators.docs.toolbarBtn('Code block');
-    await codeBlockBtn.click();
+    await clickDocsToolbarBtn(locators, 'Code block');
 
     await expect(prosemirror.locator('pre > code')).toContainText('const x = 1;');
     // Unlike blockquote/lists, code block has no toolbar-driven "exit" — the
     // action stays disabled while the cursor is inside a code block.
-    await expect(codeBlockBtn).toBeDisabled();
+    await expectDocsToolbarBtnDisabled(locators, 'Code block');
   });
 });

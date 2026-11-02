@@ -8,7 +8,7 @@ import {
   IconToggleRight
 } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
-import { BRUNO_VARIABLE_DATATYPES, parseValueByDataType, validateDataTypeValue } from '@usebruno/common/utils';
+import { BRUNO_VARIABLE_DATATYPES, validateVariableType } from '@usebruno/common/utils';
 import MenuDropdown from 'ui/MenuDropdown';
 import StyledWrapper from './StyledWrapper';
 
@@ -26,10 +26,9 @@ const TYPE_ICONS_SIZES = {
   object: 18
 };
 
-const DataTypeSelector = ({ variable, onChange, compact = false }) => {
+const DataTypeSelector = ({ variable, resolvableVariables, onChange, compact = false }) => {
   const selectedType = variable.dataType || 'string';
-  const coercedValue = parseValueByDataType(variable.value, selectedType);
-  const typeError = validateDataTypeValue(coercedValue, selectedType);
+  const typeError = validateVariableType(variable.value, selectedType, resolvableVariables);
 
   const handleTypeChange = (type) => {
     onChange({ dataType: type === 'string' ? undefined : type });

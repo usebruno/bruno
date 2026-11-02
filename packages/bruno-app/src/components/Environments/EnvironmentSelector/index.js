@@ -13,7 +13,7 @@ import ImportEnvironmentModal from 'components/Environments/Common/ImportEnviron
 import CreateGlobalEnvironment from 'components/WorkspaceHome/WorkspaceEnvironments/CreateEnvironment';
 import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
-import { transparentize, toColorString, parseToRgb } from 'polished';
+import { transparentize } from 'polished';
 
 const TABS = [
   { id: 'collection', label: 'Collection', icon: <IconDatabase size={16} strokeWidth={1.5} /> },
@@ -26,9 +26,16 @@ const EMPTY_STATE_DESCRIPTIONS = {
 };
 
 /**
- * Generates background color with transparency for environment badges
+ * Generates background color with transparency for environment badges.
  */
-const getEnvBackgroundColor = (color) => (color ? transparentize(1 - 0.12, color) : 'transparent');
+const getEnvBackgroundColor = (color) => {
+  if (!color) return 'transparent';
+  try {
+    return transparentize(1 - 0.12, color);
+  } catch {
+    return 'transparent';
+  }
+};
 
 /**
  * Calculates the style for an environment badge section

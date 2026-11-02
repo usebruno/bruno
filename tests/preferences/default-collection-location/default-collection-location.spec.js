@@ -4,7 +4,7 @@ const EXPECTED_PATH_SUFFIX = 'tests/preferences/default-collection-location';
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const DEFAULT_LOCATION_SUFFIX_PATTERN = new RegExp(`${escapeRegExp('tests/preferences')}(\\/default-collection-location)?$`);
 
-test.describe('Default Location Feature', () => {
+test.describe('TC-772: Default Location Feature', { tag: '@sanity' }, () => {
   test('Should hydrate the default location from preferences', async ({ pageWithUserData: page }) => {
     // open preferences tab
     await page.locator('.preferences-button').click();
@@ -16,7 +16,7 @@ test.describe('Default Location Feature', () => {
     await page.getByRole('tab', { name: 'General' }).click();
 
     // verify the default location is pre-filled with the expected path suffix
-    const defaultLocationInput = page.locator('.default-location-input');
+    const defaultLocationInput = page.getByTestId('general-default-location-input');
     await expect(defaultLocationInput).toHaveValue(DEFAULT_LOCATION_SUFFIX_PATTERN, { timeout: 10000 });
   });
 
@@ -31,7 +31,7 @@ test.describe('Default Location Feature', () => {
     await page.getByRole('tab', { name: 'General' }).click();
 
     // get the current default location and compute a different valid path
-    const defaultLocationInput = page.locator('.default-location-input');
+    const defaultLocationInput = page.getByTestId('general-default-location-input');
     const currentValue = await defaultLocationInput.inputValue();
     // Use parent directory as alternate path (guaranteed to exist and differ)
     const alternateExistingPath = currentValue.split('/').slice(0, -1).join('/');
@@ -56,7 +56,7 @@ test.describe('Default Location Feature', () => {
     await page.waitForTimeout(500);
     await page.getByRole('tab', { name: 'General' }).click();
 
-    const savedValue = await page.locator('.default-location-input').inputValue();
+    const savedValue = await page.getByTestId('general-default-location-input').inputValue();
     expect(savedValue).toBe(alternateExistingPath);
   });
 
@@ -114,7 +114,7 @@ test.describe('Default Location Feature', () => {
     await page.getByRole('tab', { name: 'General' }).click();
 
     // clear the default location field (readonly input, remove readonly then clear)
-    const defaultLocationInput = page.locator('.default-location-input');
+    const defaultLocationInput = page.getByTestId('general-default-location-input');
     await defaultLocationInput.evaluate((el) => {
       const input = el;
       input.removeAttribute('readonly');

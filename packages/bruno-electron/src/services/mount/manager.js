@@ -4,6 +4,8 @@ const { JobType, getPool, destroyPool } = require('../pool');
 const { FileIndex } = require('./file-index');
 const { buildTree } = require('./tree-builder');
 const { defaultClassify, uidForSeed } = require('../../utils/mount');
+const { getWsClient } = require('../../ipc/network/ws-event-handlers');
+const { transientManager } = require('../transient');
 
 // cold start only — collection-watcher handles live changes and writes through to the cache
 
@@ -60,7 +62,7 @@ const sendTree = async (collectionUid, collectionPath, tree, emit) => {
 };
 
 const ensureTransientDirectory = () => {
-  const base = path.join(require('electron').app.getPath('userData'), 'tmp', 'transient');
+  const base = transientManager.getDirectoryBase();
   if (!fs.existsSync(base)) fs.mkdirSync(base, { recursive: true });
   return fs.mkdtempSync(path.join(base, 'bruno-'));
 };
@@ -78,7 +80,7 @@ class MountManager {
       existing.win = win;
       existing.emit = emit;
       existing.brunoConfig = brunoConfig || existing.brunoConfig;
-      existing.state = this.#getIndex().entries(existing.collectionPath);
+      existing.state = this.#getIndex().entries(existing.collectionPath, { denylist: existing.brunoConfig?.ignore });
       await this.#emitTree(collectionUid, existing);
       return existing.tempDirectoryPath;
     }
@@ -98,7 +100,7 @@ class MountManager {
 
     entry.emit.loading(true);
     try {
-      entry.state = this.#getIndex().entries(collectionPath);
+      entry.state = this.#getIndex().entries(collectionPath, { denylist: brunoConfig?.ignore });
       await this.#reconcile(entry);
       await this.#emitTree(collectionUid, entry);
 
@@ -119,6 +121,10 @@ class MountManager {
   }
 
   async unmount(collectionUid) {
+    try {
+      getWsClient()?.closeForCollection(collectionUid);
+    } catch (_) {}
+
     const entry = this.#mounts.get(collectionUid);
     if (!entry) return;
     this.#mounts.delete(collectionUid);
@@ -128,11 +134,11 @@ class MountManager {
     } catch (_) {}
   }
 
-  async shutdown() {
+  async shutdown({ force = false } = {}) {
     await Promise.all(
       Array.from(this.#mounts.keys()).map((uid) => this.unmount(uid).catch(() => {}))
     );
-    await destroyPool().catch(() => {});
+    await destroyPool({ force }).catch(() => {});
     if (this.#index) {
       this.#index.close();
       this.#index = null;
@@ -222,7 +228,7 @@ class MountManager {
   }
 
   #getIndex() {
-    if (!this.#index) this.#index = new FileIndex({});
+    if (!this.#index) this.#index = new FileIndex();
     return this.#index;
   }
 }

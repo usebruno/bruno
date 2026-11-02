@@ -8,9 +8,10 @@ import EditorToolbar from './index';
 
 const mockTheme = themes.light;
 
+// Excluding rawHtmlBlock or rawHtmlTextBlock alone leaves html_block content orphaned since they share a patched renderer.
 const createEditor = () => {
   return new Editor({
-    extensions: createExtensions().filter((ext) => ext.name !== 'rawHtmlBlock'),
+    extensions: createExtensions().filter((ext) => !['rawHtmlBlock', 'rawHtmlTextBlock'].includes(ext.name)),
     content: '<p>Hello world</p>'
   });
 };

@@ -1,200 +1,45 @@
-## What's New in Bruno v4.0.0
+## What's New in Bruno v4.3.0
 
-Bruno v4.0.0 is our biggest release yet, with major improvements across the entire API workflow. This release introduces built-in AI assistance, Bruno API Docs and a reimagined Playground, a redesigned Secret Manager, typed variables, Apps, faster startup for large collections, improved WebSocket workflows, and much more.
+### External Secrets Stay in Memory, Never on Disk
 
----
+External secrets are no longer saved to disk. Bruno fetches them only when a request that uses them is sent, holds them in memory per environment, and clears them when the app is closed or the collection is removed.
 
-### AI-Powered Request Assistance
+Missing secrets, failed fetches, and unselected provider accounts are each flagged when the request is sent.
 
-AI is now built directly into your Bruno workflow, helping you work across scripts, tests, and documentation without switching tools.
+### Collection Runner
 
-The new AI chat sidebar stays grounded in your active request, so its responses remain relevant to what you are currently working on.
+* **Lower memory use.** Large collection runs now use much less memory. Runs with many iterations or large responses finish smoothly.
+* **Folder-level tags.** Tags set on a folder apply to every request inside it and work with the runner's Include and Exclude filters.
+* **Data file preview.** Long variable names and values are now fully readable, with horizontal scrolling, resizable columns, and sticky headers.
 
-* Generate scripts and test cases
-* Draft inline request documentation
-* Get autocomplete suggestions in the scripting editor
-* Use your own OpenAI, Anthropic, or OpenAI-compatible endpoint
+![Folder-level tags](https://d3icksk7srk4uh.cloudfront.net/v4.3.0/folder-tags.png)
 
-Bruno uses a **Bring Your Own Key (BYOK)** model, giving you control over your provider and account.
+### Inherited Auth and Headers, Visible on the Request
 
-![Bruno AI chat sidebar grounded in the active request](https://d3icksk7srk4uh.cloudfront.net/ai.png)
+A request set to Inherit auth now shows the effective auth read-only, with a link to where it is configured. Headers set at the folder or collection level now appear on the request too.
 
-[Configure AI](#preferences/ai) [Read Docs →](https://link.usebruno.com/docs/ai?version=4.0.0)
+![Inherited headers](https://d3icksk7srk4uh.cloudfront.net/v4.3.0/inherit-headers.png)
 
-### Apps: Build Interactive Interfaces for Your APIs
+### Try Option in Response Examples
 
-Bruno Apps let you build interactive interfaces that connect directly to your APIs.
+Saved response examples gain a **Try** action. It replays the example's request in a new transient tab.
 
-#### Request-level Apps
+![Try a saved response example in Bruno](https://d3icksk7srk4uh.cloudfront.net/v4.3.0/try-response-examples.png)
 
-Every request now includes an **App** tab. Enable **App Mode** to replace the standard response pane with a custom interface.
+### Git
 
-Request-level Apps can:
+* **Clone with a branch.** Clone Repository accepts an optional branch.
+* **All branches visible.** Imported repos with multiple branches show every branch.
+* **Deleted-file conflicts.** Merge conflicts on deleted files can be resolved in the Git UI.
+* **`.git` ignored on import and export.** Collection and workspace zips are imported without any `.git` folder, and exports never include one.
 
-* Trigger their parent request with custom variables
-* Read the response body and headers
-* Access the response status and duration
-* Display test results
+![Resolve deleted-file conflicts in Bruno's Git UI](https://d3icksk7srk4uh.cloudfront.net/v4.3.0/delete-conflict-file.png)
 
-#### Collection-level Apps
+### Themes
 
-You can also create standalone Apps within a collection.
+Three new themes join the theme list: Gruvbox (six variants), Dracula, and Cyberdream.
 
-Collection-level Apps can:
-
-* Find and trigger requests by name or path
-* Pass variables into requests
-* Chain multiple requests together
-* Read environment and collection variables
-* Open in their own tabs
-
-App code and state are stored alongside your requests and collections, making them easy to share through Git.
-
-![Bruno Apps building an interactive interface on top of an API](https://d3icksk7srk4uh.cloudfront.net/apps.png)
-
-[Read Docs →](https://link.usebruno.com/docs/apps?version=4.0.0)
-
-### Secrets Management, Fully Rebuilt
-
-The Secret Manager has been completely redesigned.
-
-Secret mappings now live alongside your environments instead of being stored in a separate `secrets.json` file. This makes secrets behave consistently with the rest of Bruno's environment system.
-
-* Unified experience for environments and secrets
-* Improved sharing and variable precedence
-* Simpler setup for external secret providers
-* Existing secrets are automatically migrated
-
-![Redesigned Secret Manager in Bruno](https://d3icksk7srk4uh.cloudfront.net/secret-manager.png)
-
-[Read Docs →](https://link.usebruno.com/docs/secret-manager?version=4.0.0)
-
-### Descriptions for Variables and Request Fields
-
-A new description column is available for:
-
-* Variables
-* Query and path parameters
-* Headers
-* Multipart form data
-* URL-encoded request bodies
-
-Descriptions support multiple lines and are preserved when importing or exporting collections, including descriptions from Postman and OpenAPI.
-
-This makes it easier to explain what each field does without relying on inline comments or separate documentation.
-
-![Description column for variables and request fields in Bruno](https://d3icksk7srk4uh.cloudfront.net/descriptions.png)
-
-### Bruno API Docs
-
-Bruno API Docs now provide a modern, website-like documentation experience with improved navigation, richer request details, and shareable pages.
-
-* Shareable page URLs
-* Global documentation search
-* New design system
-* Support for light and dark themes
-* Redesigned navigation sidebar
-* Variable types and resolved-value previews
-* Execution context for requests, folders, and collections
-
-The interactive **Playground** is also much closer to the full Bruno experience. You can execute requests directly from your documentation using a redesigned application shell with broader request support.
-
-[Read Docs →](https://link.usebruno.com/docs/collection-docs?version=4.0.0)
-
-### Typed Variables and Better Scripting
-
-Variables now support native data types across collections, environments, folders, and requests.
-
-Instead of storing every value as a string, Bruno can now preserve:
-
-* Strings
-* Numbers
-* Booleans
-* Objects
-
-This reduces the need to manually serialize and deserialize values when working with structured data in scripts.
-
-Additional scripting improvements include:
-
-* Variable mutations now persist by default
-* New APIs for reading and managing collection variables
-
-[Read Docs →](https://link.usebruno.com/docs/variables?version=4.0.0)
-
-### More Authentication Options <span class="badge">Beta</span>
-
-Bruno now includes native support for **Akamai EdgeGrid authentication**.
-
-Select Akamai EdgeGrid from the authentication type dropdown on a request, folder, or collection.
-
-![Akamai EdgeGrid authentication configuration in Bruno](https://d3icksk7srk4uh.cloudfront.net/akamai-edgegrid-auth.png)
-
-[Read Docs →](https://link.usebruno.com/docs/auth?version=4.0.0)
-
-### Faster Startup for Large Collections <span class="badge">Beta</span>
-
-Bruno can now cache parsed collection data across sessions, significantly improving startup times for large collections and workspaces.
-
-[Enable File Cache](#preferences/cache)
-
-### Better WebSocket Workflows
-
-WebSocket requests now support multiple saved messages within the same connection.
-
-You can create and manage a collection of messages, then send them individually without repeatedly recreating payloads.
-
-[Read Docs →](https://link.usebruno.com/docs/websocket?version=4.0.0)
-
-### A Better Changelog and Notification Experience
-
-Each Bruno update now has a dedicated Changelog page that opens in a new tab after upgrading.
-
-Notifications have also been redesigned to focus on:
-
-* Product announcements
-* Feature discovery
-* Important Bruno updates
-
-### OpenCollection YAML: The Future of Bruno
-
-Bruno is beginning its transition from the legacy `.bru` format to the **OpenCollection YAML** format.
-
-OpenCollection YAML provides a readable, portable, and ecosystem-friendly format for storing API collections.
-
-As part of this transition:
-
-* The `.bru` format is now deprecated
-* Existing `.bru` collections will continue to work
-* We plan to support the format for at least the next 12 months
-* New features will continue to work in both BRU and YAML during the transition
-* A guided in-app migration flow will be available in the upcoming versions to help you migrate your collections
-
-[Read Docs →](https://link.usebruno.com/docs/opencollection?version=4.0.0)
-
-### CLI Improvements
-
-The Bruno CLI now supports the redesigned Secret Manager, including native integrations with:
-
-* AWS Secrets Manager
-* Azure Key Vault
-* HashiCorp Vault
-
-This release also includes JUnit reporting fixes and improved support for YAML-based gRPC collections.
-
-[Read Docs →](https://link.usebruno.com/docs/cli?version=4.0.0)
-
-### Quality Improvements Across Bruno
-
-Bruno v4.0.0 also includes dozens of fixes and workflow improvements across the Desktop app, CLI, API Docs, imports, and the wider Bruno ecosystem.
-
-Highlights include:
-
-* Better path parameter handling
-* Improved Postman import fidelity
-* UI and usability improvements throughout the application
-* Documentation rendering fixes
-* Improved performance and stability
-* Bug fixes across Desktop, CLI, and API Docs
+![Additional dark themes in Bruno](https://d3icksk7srk4uh.cloudfront.net/v4.3.0/additional-themes.png)
 
 ---
 

@@ -1,4 +1,5 @@
 import { IconTrash, IconSend, IconChevronRight, IconChevronDown } from '@tabler/icons';
+import { resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import CodeEditor from 'components/CodeEditor/index';
 import ToolHint from 'components/ToolHint/index';
 import { get } from 'lodash';
@@ -10,6 +11,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { queueWsMessage, ensureWsConnection } from 'utils/network/index';
 import { findCollectionByUid, findEnvironmentInCollection } from 'utils/collections/index';
 import toast from 'react-hot-toast';
+import { REQUEST_BODY_EDITOR_CLASS } from 'utils/common/constants';
 import WSRequestBodyMode from '../BodyMode/index';
 import StyledWrapper from './StyledWrapper';
 
@@ -162,7 +164,10 @@ export const SingleWSMessage = ({
   const onSendMessage = useCallback(async () => {
     try {
       const col = findCollectionByUid(collections, collection.uid);
-      const environment = findEnvironmentInCollection(col, col?.activeEnvironmentUid);
+      const environment = resolveEnvironmentInheritance({
+        environments: col?.environments,
+        targetEnvironment: findEnvironmentInCollection(col, col?.activeEnvironmentUid)
+      });
 
       // Auto-connect if needed; while CONNECTING just queue — open flushes.
       await ensureWsConnection(item, col, environment, col?.runtimeVariables);
@@ -257,12 +262,13 @@ export const SingleWSMessage = ({
       </div>
       {isExpanded && (
         <div
-          className="accordion-body"
+          className={`accordion-body ${REQUEST_BODY_EDITOR_CLASS}`}
           data-testid={`ws-message-body-${index}`}
           style={{ height: editorHeight }}
         >
           <CodeEditor
             collection={collection}
+            item={item}
             theme={displayedTheme}
             font={get(preferences, 'font.codeFont', 'default')}
             fontSize={get(preferences, 'font.codeFontSize')}

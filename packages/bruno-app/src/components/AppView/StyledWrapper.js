@@ -38,7 +38,7 @@ const StyledWrapper = styled.div`
     border: 1px solid ${(props) => props.theme.border.border1};
     border-radius: 4px;
     overflow: hidden;
-    background: ${(props) => props.theme.background.surface0};
+    background: transparent;
   }
 
   .app-webview {

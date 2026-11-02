@@ -42,7 +42,7 @@ test.describe('Global Environment Import Tests', () => {
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(globalEnvFile);
 
-    // Wait for import to complete and global environment settings modal to open
+    await page.getByTestId('import-global-environment-modal-submit-btn').click();
     await expect(page.locator('.current-environment')).toContainText('Test Global Environment');
 
     const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
@@ -70,7 +70,7 @@ test.describe('Global Environment Import Tests', () => {
     await envTab.hover();
     await envTab.getByTestId('request-tab-close-icon').click({ force: true });
 
-    await page.locator('#collection-environment-test-collection .collection-item-name').first().click();
+    await page.locator('[data-collection-id="environment-test-collection"] .collection-item-name').first().click();
     await expect(page.locator('#request-url .CodeMirror-line')).toContainText('{{host}}/posts/{{userId}}');
     await page.locator('[data-testid="send-arrow-icon"]').click();
     await page.locator('[data-testid="response-status-code"]').waitFor({ state: 'visible' });
@@ -81,7 +81,7 @@ test.describe('Global Environment Import Tests', () => {
     await expect(responsePane).toContainText('"userId": 1');
 
     // Test POST request
-    await page.locator('#collection-environment-test-collection .collection-item-name').nth(1).click();
+    await page.locator('[data-collection-id="environment-test-collection"] .collection-item-name').nth(1).click();
     await expect(page.locator('#request-url .CodeMirror-line')).toContainText('{{host}}/posts');
     await page.locator('[data-testid="send-arrow-icon"]').click();
     await page.locator('[data-testid="response-status-code"]').waitFor({ state: 'visible' });

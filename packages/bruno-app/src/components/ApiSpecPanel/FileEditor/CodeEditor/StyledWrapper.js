@@ -29,8 +29,6 @@ const StyledWrapper = styled.div`
     position: relative;
   }
 
-  // Todo: dark mode temporary fix
-  // Clean this
   .CodeMirror.cm-s-monokai {
     .CodeMirror-overlayscroll-horizontal div,
     .CodeMirror-overlayscroll-vertical div {

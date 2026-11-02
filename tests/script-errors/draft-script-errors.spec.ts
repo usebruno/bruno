@@ -1,5 +1,5 @@
 import { test, expect } from '../../playwright';
-import { buildScriptErrorLocators, buildCommonLocators } from '../utils/page/locators';
+import { buildResponseErrorsLocators, buildCommonLocators } from '../utils/page/locators';
 import {
   openRequest,
   selectRequestPaneTab,
@@ -11,12 +11,12 @@ import {
 import { setSandboxMode } from '../utils/page/runner';
 
 for (const mode of ['safe', 'developer'] as const) {
-  test.describe.serial(`Draft Script Error Context [${mode} mode]`, () => {
-    let scriptErrorLocators: ReturnType<typeof buildScriptErrorLocators>;
+  test.describe(`Draft Script Error Context [${mode} mode]`, () => {
+    let responseErrorsLocators: ReturnType<typeof buildResponseErrorsLocators>;
     let commonLocators: ReturnType<typeof buildCommonLocators>;
 
     test.beforeAll(async ({ pageWithUserData: page }) => {
-      scriptErrorLocators = buildScriptErrorLocators(page);
+      responseErrorsLocators = buildResponseErrorsLocators(page);
       commonLocators = buildCommonLocators(page);
 
       await setSandboxMode(page, 'script-errors-test', mode);
@@ -46,10 +46,10 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify error card shows draft code, not saved code', async () => {
-        const card = scriptErrorLocators.card();
-        await expect(scriptErrorLocators.title(card)).toContainText('Pre-Request Script Error');
-        await expect(scriptErrorLocators.errorLine(card)).toContainText('draftOnlyUndefined');
-        await expect(scriptErrorLocators.errorLine(card)).not.toContainText('savedVar');
+        const card = responseErrorsLocators.card();
+        await expect(responseErrorsLocators.title(card)).toContainText('Pre-Request Script Error');
+        await expect(responseErrorsLocators.errorLine(card)).toContainText('draftOnlyUndefined');
+        await expect(responseErrorsLocators.errorLine(card)).not.toContainText('savedVar');
       });
     });
 
@@ -77,11 +77,11 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify error card shows draft code, not saved code', async () => {
-        const card = scriptErrorLocators.card();
+        const card = responseErrorsLocators.card();
         await expect(card).toBeVisible();
-        await expect(scriptErrorLocators.title(card)).toContainText('Post-Response Script Error');
-        await expect(scriptErrorLocators.errorLine(card)).toContainText('postDraftUndefined');
-        await expect(scriptErrorLocators.errorLine(card)).not.toContainText('savedData');
+        await expect(responseErrorsLocators.title(card)).toContainText('Post-Response Script Error');
+        await expect(responseErrorsLocators.errorLine(card)).toContainText('postDraftUndefined');
+        await expect(responseErrorsLocators.errorLine(card)).not.toContainText('savedData');
       });
     });
 
@@ -109,11 +109,11 @@ for (const mode of ['safe', 'developer'] as const) {
       });
 
       await test.step('Verify error card shows draft code, not saved code', async () => {
-        const card = scriptErrorLocators.card();
+        const card = responseErrorsLocators.card();
         await expect(card).toBeVisible();
-        await expect(scriptErrorLocators.title(card)).toContainText('Test Script Error');
-        await expect(scriptErrorLocators.errorLine(card)).toContainText('draftTestUndefined');
-        await expect(scriptErrorLocators.errorLine(card)).not.toContainText('savedTest');
+        await expect(responseErrorsLocators.title(card)).toContainText('Test Script Error');
+        await expect(responseErrorsLocators.errorLine(card)).toContainText('draftTestUndefined');
+        await expect(responseErrorsLocators.errorLine(card)).not.toContainText('savedTest');
       });
     });
   });

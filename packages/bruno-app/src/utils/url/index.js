@@ -1,5 +1,3 @@
-import find from 'lodash/find';
-
 import { interpolate } from '@usebruno/common';
 import { DEFAULT_SCHEME, hasExplicitScheme } from '@usebruno/common/utils';
 import { version as appVersion } from '../../../package.json';
