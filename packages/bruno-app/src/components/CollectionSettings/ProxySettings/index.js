@@ -10,9 +10,17 @@ import { get } from 'lodash';
 import toast from 'react-hot-toast';
 import Button from 'ui/Button';
 import SegmentedControl from 'ui/SegmentedControl';
-import Select from 'ui/Select';
+import MenuDropdown from 'ui/MenuDropdown';
+import { IconChevronDown } from '@tabler/icons';
 import Checkbox from 'ui/Checkbox';
 import { useTheme } from 'providers/Theme';
+
+const PROXY_PROTOCOL_OPTIONS = [
+  { value: 'http', label: 'HTTP' },
+  { value: 'https', label: 'HTTPS' },
+  { value: 'socks4', label: 'SOCKS4' },
+  { value: 'socks5', label: 'SOCKS5' }
+];
 
 const ProxySettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -198,18 +206,18 @@ const ProxySettings = ({ collection }) => {
   const inherit = currentProxyConfig.inherit !== undefined ? currentProxyConfig.inherit : true;
   const enabledValue = disabled ? 'false' : (inherit ? 'inherit' : 'true');
 
-  const isProxyAuthDisabled = Boolean(currentProxyConfig.config?.auth?.disabled);
+  const selectedProtocol = currentProxyConfig.config?.protocol || 'http';
 
   return (
     <StyledWrapper className="h-full w-full">
       <div className="proxy-settings bruno-form flex flex-col gap-4">
         <div className="text-muted">Configure proxy settings for this collection.</div>
 
-        <div className="field-group flex flex-col gap-2">
-          <label className="settings-label flex items-center" htmlFor="enabled">
+        <div className="flex flex-col gap-2">
+          <span id="collection-proxy-mode-label" className="settings-label flex items-center">
             Proxy mode
-            <InfoTip infotipId="request-var" style={{ zIndex: 20 }}>
-              <dl className="proxy-mode-tip grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 m-0">
+            <InfoTip infotipId="collection-proxy-mode-info" style={{ zIndex: 20 }}>
+              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 m-0">
                 <dt className="font-medium">Inherit</dt>
                 <dd className="m-0">Inherit from global preferences</dd>
                 <dt className="font-medium">Custom</dt>
@@ -218,9 +226,9 @@ const ProxySettings = ({ collection }) => {
                 <dd className="m-0">Disable proxy for this collection</dd>
               </dl>
             </InfoTip>
-          </label>
+          </span>
           <SegmentedControl
-            ariaLabel="Proxy mode"
+            ariaLabelledBy="collection-proxy-mode-label"
             name="enabled"
             value={enabledValue}
             onChange={(_value, e) => handleEnabledChange(e)}
@@ -229,7 +237,6 @@ const ProxySettings = ({ collection }) => {
               { value: 'true', label: 'Custom' },
               { value: 'false', label: 'Off' }
             ]}
-            size="md"
             className="self-start"
             data-testid="collection-proxy-mode"
           />
@@ -243,24 +250,36 @@ const ProxySettings = ({ collection }) => {
         {enabledValue === 'true' && (
           <>
             <div className="flex flex-col gap-4">
-              <div className="field-group flex flex-col gap-2">
-                <label className="settings-label" htmlFor="protocol">
+              <div className="flex flex-col gap-2">
+                <span id="collection-proxy-protocol-label" className="settings-label">
                   Protocol
-                </label>
-                <div className="protocol-select">
-                  <Select
-                    value={currentProxyConfig.config?.protocol || 'http'}
-                    onChange={(value) => handleProtocolChange({ target: { value } })}
-                    data={[
-                      { value: 'http', label: 'HTTP' },
-                      { value: 'https', label: 'HTTPS' },
-                      { value: 'socks4', label: 'SOCKS4' },
-                      { value: 'socks5', label: 'SOCKS5' }
-                    ]}
-                    allowDeselect={false}
+                </span>
+                <MenuDropdown
+                  items={PROXY_PROTOCOL_OPTIONS.map(({ value, label }) => ({
+                    id: value,
+                    label,
+                    onClick: () => handleProtocolChange({ target: { value } })
+                  }))}
+                  selectedItemId={selectedProtocol}
+                  placement="bottom-start"
+                  data-testid="collection-proxy-protocol-menu"
+                  appendTo={() => document.body}
+                  popperOptions={{ strategy: 'fixed' }}
+                  sameWidth
+                >
+                  <button
+                    type="button"
+                    id="collection-proxy-protocol-trigger"
+                    className="protocol-trigger"
+                    aria-labelledby="collection-proxy-protocol-label collection-proxy-protocol-trigger"
                     data-testid="collection-proxy-protocol"
-                  />
-                </div>
+                  >
+                    <span>
+                      {PROXY_PROTOCOL_OPTIONS.find((option) => option.value === selectedProtocol)?.label ?? selectedProtocol}
+                    </span>
+                    <IconChevronDown size={14} strokeWidth={2} />
+                  </button>
+                </MenuDropdown>
               </div>
 
               <div className="grid grid-cols-[1fr_120px] gap-3">
@@ -301,7 +320,7 @@ const ProxySettings = ({ collection }) => {
               </div>
             </div>
 
-            <div className="field-group flex flex-col gap-3">
+            <div className="flex flex-col gap-3">
               <Checkbox
                 id="auth.disabled"
                 name="auth.disabled"
@@ -310,7 +329,7 @@ const ProxySettings = ({ collection }) => {
                 label={<span className="settings-label">Proxy authentication</span>}
                 data-testid="collection-proxy-auth"
               />
-              <div className={`credentials flex flex-col gap-3 ${isProxyAuthDisabled ? 'disabled' : ''}`} aria-disabled={isProxyAuthDisabled}>
+              <div className="flex flex-col gap-3">
                 <div className="flex flex-col gap-2 min-w-0">
                   <label className="sub-label">
                     Username
@@ -322,7 +341,6 @@ const ProxySettings = ({ collection }) => {
                       onSave={handleSave}
                       onChange={handleAuthUsernameChange}
                       collection={collection}
-                      readOnly={isProxyAuthDisabled}
                       isCompact
                       data-testid="collection-proxy-username"
                     />
@@ -332,14 +350,13 @@ const ProxySettings = ({ collection }) => {
                   <label className="sub-label">
                     Password
                   </label>
-                  <div className="single-line-editor-wrapper password-wrapper mono flex items-center">
+                  <div className="single-line-editor-wrapper mono flex items-center">
                     <SingleLineEditor
                       value={proxyPassword}
                       theme={storedTheme}
                       onSave={handleSave}
                       onChange={handleAuthPasswordChange}
                       collection={collection}
-                      readOnly={isProxyAuthDisabled}
                       isSecret={true}
                       isCompact
                       data-testid="collection-proxy-password"
@@ -350,32 +367,32 @@ const ProxySettings = ({ collection }) => {
               </div>
             </div>
 
-            <div className="field-group flex flex-col gap-2">
+            <div className="flex flex-col gap-2">
               <label className="settings-label" htmlFor="bypassProxy">
                 Proxy Bypass
               </label>
-              <input
-                id="bypassProxy"
-                type="text"
-                name="bypassProxy"
-                className="textbox mono"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                onChange={handleBypassProxyChange}
-                value={currentProxyConfig.config?.bypassProxy || ''}
-              />
-              <div className="hint -mt-0.5">Separate hosts with commas. Wildcards are supported.</div>
+              <div className="flex flex-col gap-1.5">
+                <input
+                  id="bypassProxy"
+                  type="text"
+                  name="bypassProxy"
+                  className="textbox mono"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  onChange={handleBypassProxyChange}
+                  value={currentProxyConfig.config?.bypassProxy || ''}
+                />
+                <div className="hint">Separate hosts with commas. Wildcards are supported.</div>
+              </div>
             </div>
           </>
         )}
 
-        <div className="flex items-center gap-2">
-          <Button type="submit" size="sm" className="save-button" onClick={handleSave}>
-            Save
-          </Button>
-        </div>
+        <Button type="submit" size="base" className="self-start" onClick={handleSave}>
+          Save
+        </Button>
       </div>
     </StyledWrapper>
   );

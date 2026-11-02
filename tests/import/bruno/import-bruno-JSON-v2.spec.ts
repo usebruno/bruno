@@ -1,6 +1,13 @@
 import path from 'path';
 import { test, expect } from '../../../playwright';
-import { importCollection, closeAllCollections, readCollectionProxyField } from '../../utils/page';
+import {
+  importCollection,
+  closeAllCollections,
+  openCollectionSettings,
+  selectCollectionPaneTab,
+  readCollectionProxyField,
+  readCollectionProxyProtocol
+} from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Import Bruno v2 JSON collection', () => {
@@ -20,18 +27,16 @@ test.describe('Import Bruno v2 JSON collection', () => {
     });
 
     await test.step('Open collection settings → Proxy tab', async () => {
-      await locators.sidebar.collection(collectionName).hover();
-      await locators.actions.collectionActions(collectionName).click();
-      await locators.dropdown.item('Settings').click();
-      await locators.paneTabs.collectionSettingsTab('proxy').click();
+      await openCollectionSettings(page, collectionName);
+      await selectCollectionPaneTab(page, 'proxy');
     });
 
     await test.step('Verify proxy settings match the imported file', async () => {
-      await expect(page.locator('input[name="enabled"][value="true"]')).toBeChecked();
-      await expect(page.getByTestId('collection-proxy-protocol')).toHaveText('HTTP');
+      await expect(locators.collectionProxy.mode('Custom')).toBeChecked();
+      await expect.poll(() => readCollectionProxyProtocol(page)).toBe('SOCKS5');
       await expect.poll(() => readCollectionProxyField(page, 'hostname')).toBe('127.0.0.1');
       await expect.poll(() => readCollectionProxyField(page, 'port')).toBe('8080');
-      await expect(page.locator('input[name="auth.disabled"]')).not.toBeChecked();
+      await expect(locators.collectionProxy.authCheckbox()).not.toBeChecked();
     });
   });
 });

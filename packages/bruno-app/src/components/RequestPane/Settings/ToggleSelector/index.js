@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { useTheme } from 'providers/Theme';
+import SettingsRow from 'components/SettingsRow';
 
 const ToggleSelector = ({
   checked,
@@ -11,6 +12,7 @@ const ToggleSelector = ({
   'data-testid': dataTestId
 }) => {
   const { theme } = useTheme();
+  const switchId = useId();
 
   const sizeClasses = {
     small: {
@@ -33,18 +35,9 @@ const ToggleSelector = ({
   const currentSize = sizeClasses[size];
 
   return (
-    <div className="settings-row">
-      <div className="flex flex-col min-w-0">
-        <label className="text-xs font-medium text-gray-900 dark:text-gray-100">
-          {label}
-        </label>
-        {description && (
-          <p className="text-xs text-gray-700 dark:text-gray-400">
-            {description}
-          </p>
-        )}
-      </div>
+    <SettingsRow label={label} description={description} htmlFor={switchId}>
       <button
+        id={switchId}
         type="button"
         onClick={onChange}
         disabled={disabled}
@@ -68,7 +61,7 @@ const ToggleSelector = ({
           `}
         />
       </button>
-    </div>
+    </SettingsRow>
   );
 };
 

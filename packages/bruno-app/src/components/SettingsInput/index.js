@@ -1,5 +1,6 @@
 import React from 'react';
-import { useTheme } from 'providers/Theme';
+import SettingsRow from 'components/SettingsRow';
+import StyledWrapper from './StyledWrapper';
 
 const SettingsInput = ({
   id,
@@ -10,37 +11,23 @@ const SettingsInput = ({
   description = '',
   onKeyDown
 }) => {
-  const { theme } = useTheme();
-
   return (
-    <div className="settings-row">
-      <div className="flex flex-col min-w-0">
-        <label className="text-xs font-medium text-gray-900 dark:text-gray-100" htmlFor={id}>
-          {label}
-        </label>
-        {description && (
-          <p className="text-xs text-gray-700 dark:text-gray-400">
-            {description}
-          </p>
-        )}
-      </div>
-      <input
-        id={id}
-        type="text"
-        className={`block px-2 py-1 rounded outline-none transition-colors duration-100 w-32 h-[34px] ${className}`}
-        style={{
-          backgroundColor: theme.input.bg,
-          border: `1px solid ${theme.input.border}`
-        }}
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck="false"
-        value={value}
-        onChange={onChange}
-        onKeyDown={onKeyDown}
-      />
-    </div>
+    <StyledWrapper>
+      <SettingsRow label={label} description={description} htmlFor={id}>
+        <input
+          id={id}
+          type="text"
+          className={`settings-text-input block px-2 py-1 w-32 h-[34px] ${className}`}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
+          value={value}
+          onChange={onChange}
+          onKeyDown={onKeyDown}
+        />
+      </SettingsRow>
+    </StyledWrapper>
   );
 };
 

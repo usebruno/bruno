@@ -1,7 +1,8 @@
 import React from 'react';
 import { IconChevronDown, IconX } from '@tabler/icons';
-import { useTheme } from 'providers/Theme';
 import Dropdown from 'components/Dropdown';
+import SettingsRow from 'components/SettingsRow';
+import StyledWrapper from './StyledWrapper';
 
 const InheritableSettingsInput = ({
   id,
@@ -14,32 +15,16 @@ const InheritableSettingsInput = ({
   onValueChange,
   onCustomValueReset
 }) => {
-  const { theme } = useTheme();
-
   return (
-    <div className="settings-row">
-      <div className="flex flex-col min-w-0">
-        <label className="text-xs font-medium text-gray-900 dark:text-gray-100" htmlFor={id}>
-          {label}
-        </label>
-        {description && (
-          <p className="text-xs text-gray-700 dark:text-gray-400">
-            {description}
-          </p>
-        )}
-      </div>
-      <div className="flex items-center">
+    <StyledWrapper>
+      <SettingsRow label={label} description={description} htmlFor={id}>
         {isInherited ? (
           <Dropdown
+            appendTo={() => document.body}
             icon={(
               <button
                 type="button"
-                className="px-2 py-1 text-xs rounded outline-none transition-colors duration-100 w-32 h-[34px] flex items-center justify-between"
-                style={{
-                  backgroundColor: theme.input.bg,
-                  border: `1px solid ${theme.input.border}`,
-                  color: theme.text
-                }}
+                className="settings-text-input px-2 py-1 text-xs w-32 h-[34px] flex items-center justify-between"
               >
                 <span>Inherit</span>
                 <IconChevronDown size={12} />
@@ -58,12 +43,7 @@ const InheritableSettingsInput = ({
             <input
               id={id}
               type="text"
-              className="block px-2 py-1 pr-6 rounded outline-none transition-colors duration-100 w-32 h-[34px]"
-              style={{
-                backgroundColor: theme.input.bg,
-                border: `1px solid ${theme.input.border}`,
-                color: theme.text
-              }}
+              className="settings-text-input block px-2 py-1 pr-6 w-32 h-[34px]"
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
@@ -82,8 +62,8 @@ const InheritableSettingsInput = ({
             </button>
           </div>
         )}
-      </div>
-    </div>
+      </SettingsRow>
+    </StyledWrapper>
   );
 };
 

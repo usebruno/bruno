@@ -42,17 +42,25 @@ const StyledWrapper = styled.div`
     outline: none !important;
   }
 
-  .credentials.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-
-    .single-line-editor-wrapper {
-      pointer-events: none;
-    }
-  }
-
-  .protocol-select {
+  .protocol-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     width: 200px;
+    height: 34px;
+    padding: 0 10px;
+    border-radius: 4px;
+    border: 1px solid ${(props) => props.theme.input.border};
+    background-color: ${(props) => props.theme.input.bg};
+    color: ${(props) => props.theme.text};
+    cursor: pointer;
+    transition: border-color ease-in-out 0.1s;
+
+    &:hover,
+    &:focus-visible {
+      border-color: ${(props) => props.theme.input.focusBorder};
+      outline: none;
+    }
   }
 
   .single-line-editor-wrapper {
@@ -64,24 +72,6 @@ const StyledWrapper = styled.div`
   .mono .CodeMirror pre {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
     font-size: ${(props) => props.theme.font.size.sm};
-  }
-
-  .password-wrapper {
-    padding-right: 3px;
-
-    [data-testid='secret-reveal-toggle'] {
-      width: 28px;
-      height: 28px;
-      margin: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-  }
-
-  .save-button button {
-    height: 32px;
-    padding: 0 16px;
   }
 `;
 
