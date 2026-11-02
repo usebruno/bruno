@@ -1,35 +1,87 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  .settings-label {
-    width: 80px;
+  .proxy-settings {
+    max-width: 560px;
+    font-size: ${(props) => props.theme.font.size.base};
   }
 
-  .textbox {
-    border: 1px solid #ccc;
-    padding: 0.15rem 0.45rem;
-    box-shadow: none;
-    border-radius: 0px;
-    outline: none;
-    box-shadow: none;
-    transition: border-color ease-in-out 0.1s;
-    border-radius: 3px;
-    background-color: ${(props) => props.theme.input.bg};
-    border: 1px solid ${(props) => props.theme.input.border};
+  .settings-label {
+    font-size: ${(props) => props.theme.font.size.base};
+    font-weight: 500;
+  }
 
-    &:focus {
-      border: solid 1px ${(props) => props.theme.input.focusBorder} !important;
-      outline: none !important;
+  .sub-label {
+    font-size: ${(props) => props.theme.font.size.base};
+    font-weight: 400;
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
+  .hint {
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
+  .textbox,
+  .single-line-editor-wrapper {
+    width: 100%;
+    min-width: 0;
+    height: 34px;
+    padding: 0 10px;
+    border-radius: 4px;
+    border: 1px solid ${(props) => props.theme.input.border};
+    background-color: ${(props) => props.theme.input.bg};
+    box-shadow: none;
+    outline: none;
+    transition: border-color ease-in-out 0.1s;
+  }
+
+  .textbox:focus,
+  .single-line-editor-wrapper:focus-within {
+    border: solid 1px ${(props) => props.theme.input.focusBorder} !important;
+    outline: none !important;
+  }
+
+  .credentials.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+
+    .single-line-editor-wrapper {
+      pointer-events: none;
     }
   }
 
+  .protocol-select {
+    width: 200px;
+  }
+
   .single-line-editor-wrapper {
-    width: 13.2rem;
-    min-width: 0;
-    padding: 0.15rem 0.4rem;
-    border-radius: 3px;
-    border: solid 1px ${(props) => props.theme.input.border};
-    background-color: ${(props) => props.theme.input.bg};
+    display: flex;
+    align-items: center;
+  }
+
+  .mono,
+  .mono .CodeMirror pre {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+    font-size: ${(props) => props.theme.font.size.sm};
+  }
+
+  .password-wrapper {
+    padding-right: 3px;
+
+    [data-testid='secret-reveal-toggle'] {
+      width: 28px;
+      height: 28px;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  .save-button button {
+    height: 32px;
+    padding: 0 16px;
   }
 `;
 

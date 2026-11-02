@@ -10,6 +10,8 @@ import { updateItemSettings, toggleAppMode } from 'providers/ReduxStore/slices/c
 import { setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Tags from './Tags/index';
+import { SettingsGroup } from 'components/Preferences/SettingsLayout';
+import StyledWrapper from './StyledWrapper';
 
 // Default settings configuration
 const DEFAULT_SETTINGS = {
@@ -111,20 +113,21 @@ const Settings = ({ item, collection }) => {
   }, [onSave, onRun]);
 
   return (
-    <div className="h-full w-full">
+    <StyledWrapper className="h-full w-full">
       <div className="text-xs mb-4 text-muted">Configure request settings for this item.</div>
       <div className="bruno-form">
-        <div className="mb-6">
-          <h3 className="text-xs font-medium flex items-center gap-1 mb-4">
+        <div className="mb-2">
+          <h3 className="tags-heading flex items-center gap-1 select-none">
             <IconTag size={16} />
             Tags
           </h3>
-          <Tags item={item} collection={collection} />
+          <div className="tags-field">
+            <Tags item={item} collection={collection} />
+          </div>
         </div>
 
-        <div className="flex flex-col gap-4">
-
-          <div className="flex flex-col gap-4">
+        <div className="settings-list">
+          <SettingsGroup title="Request">
             <ToggleSelector
               checked={encodeUrl}
               onChange={onToggleUrlEncoding}
@@ -133,9 +136,20 @@ const Settings = ({ item, collection }) => {
               size="medium"
               data-testid="encode-url-toggle"
             />
-          </div>
+            <InheritableSettingsInput
+              id="timeout"
+              label="Timeout (ms)"
+              value={timeout}
+              description="Set maximum time to wait before aborting the request"
+              onKeyDown={handleKeyDown}
+              isInherited={isTimeoutInherited}
+              onDropdownSelect={handleTimeoutDropdownSelect}
+              onValueChange={(e) => !isTimeoutInherited && onTimeoutChange(e)}
+              onCustomValueReset={() => updateSetting({ timeout: 'inherit' })}
+            />
+          </SettingsGroup>
 
-          <div className="flex flex-col gap-4">
+          <SettingsGroup title="Redirects">
             <ToggleSelector
               checked={followRedirects}
               onChange={onToggleFollowRedirects}
@@ -144,21 +158,28 @@ const Settings = ({ item, collection }) => {
               size="medium"
               data-testid="follow-redirects-toggle"
             />
-          </div>
-
-          <div className="flex flex-col gap-4">
-            <ToggleSelector
-              checked={forwardAuthorizationHeader}
-              onChange={onToggleForwardAuthorizationOnRedirect}
-              label="Forward Authorization on Redirect"
-              description="Send Authorization and Proxy-Authorization headers when a redirect points to a different origin"
-              size="medium"
-              data-testid="forward-auth-header-toggle"
-            />
-          </div>
+            <div className="settings-subgroup">
+              <SettingsInput
+                id="maxRedirects"
+                label="Max Redirects"
+                value={maxRedirects}
+                onChange={onMaxRedirectsChange}
+                description="Set a limit for the number of redirects to follow"
+                onKeyDown={handleKeyDown}
+              />
+              <ToggleSelector
+                checked={forwardAuthorizationHeader}
+                onChange={onToggleForwardAuthorizationOnRedirect}
+                label="Forward Authorization on Redirect"
+                description="Send Authorization and Proxy-Authorization headers when a redirect points to a different origin"
+                size="medium"
+                data-testid="forward-auth-header-toggle"
+              />
+            </div>
+          </SettingsGroup>
 
           {item.type === 'http-request' && (
-            <div className="flex flex-col gap-4">
+            <SettingsGroup title="App">
               <ToggleSelector
                 checked={enableApp}
                 onChange={onToggleEnableApp}
@@ -167,32 +188,11 @@ const Settings = ({ item, collection }) => {
                 size="medium"
                 data-testid="enable-app-toggle"
               />
-            </div>
+            </SettingsGroup>
           )}
-
-          <SettingsInput
-            id="maxRedirects"
-            label="Max Redirects"
-            value={maxRedirects}
-            onChange={onMaxRedirectsChange}
-            description="Set a limit for the number of redirects to follow"
-            onKeyDown={handleKeyDown}
-          />
-
-          <InheritableSettingsInput
-            id="timeout"
-            label="Timeout (ms)"
-            value={timeout}
-            description="Set maximum time to wait before aborting the request"
-            onKeyDown={handleKeyDown}
-            isInherited={isTimeoutInherited}
-            onDropdownSelect={handleTimeoutDropdownSelect}
-            onValueChange={(e) => !isTimeoutInherited && onTimeoutChange(e)}
-            onCustomValueReset={() => updateSetting({ timeout: 'inherit' })}
-          />
         </div>
       </div>
-    </div>
+    </StyledWrapper>
   );
 };
 

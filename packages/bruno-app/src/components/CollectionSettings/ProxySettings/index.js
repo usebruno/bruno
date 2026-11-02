@@ -9,6 +9,9 @@ import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/
 import { get } from 'lodash';
 import toast from 'react-hot-toast';
 import Button from 'ui/Button';
+import SegmentedControl from 'ui/SegmentedControl';
+import Select from 'ui/Select';
+import Checkbox from 'ui/Checkbox';
 import { useTheme } from 'providers/Theme';
 
 const ProxySettings = ({ collection }) => {
@@ -195,194 +198,159 @@ const ProxySettings = ({ collection }) => {
   const inherit = currentProxyConfig.inherit !== undefined ? currentProxyConfig.inherit : true;
   const enabledValue = disabled ? 'false' : (inherit ? 'inherit' : 'true');
 
+  const isProxyAuthDisabled = Boolean(currentProxyConfig.config?.auth?.disabled);
+
   return (
     <StyledWrapper className="h-full w-full">
-      <div className="text-xs mb-4 text-muted">Configure proxy settings for this collection.</div>
-      <div className="bruno-form">
-        <div className="mb-3 flex items-center">
+      <div className="proxy-settings bruno-form flex flex-col gap-4">
+        <div className="text-muted">Configure proxy settings for this collection.</div>
+
+        <div className="field-group flex flex-col gap-2">
           <label className="settings-label flex items-center" htmlFor="enabled">
-            Config
-            <InfoTip infotipId="request-var">
-              <div>
-                <ul>
-                  <li><span style={{ width: '50px', display: 'inline-block' }}>inherit</span> - inherit from global preferences</li>
-                  <li><span style={{ width: '50px', display: 'inline-block' }}>enabled</span> - use collection-specific proxy config</li>
-                  <li><span style={{ width: '50px', display: 'inline-block' }}>disabled</span> - disable proxy for this collection</li>
-                </ul>
-              </div>
+            Proxy mode
+            <InfoTip infotipId="request-var" style={{ zIndex: 20 }}>
+              <dl className="proxy-mode-tip grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 m-0">
+                <dt className="font-medium">Inherit</dt>
+                <dd className="m-0">Inherit from global preferences</dd>
+                <dt className="font-medium">Custom</dt>
+                <dd className="m-0">Use collection-specific proxy config</dd>
+                <dt className="font-medium">Off</dt>
+                <dd className="m-0">Disable proxy for this collection</dd>
+              </dl>
             </InfoTip>
           </label>
-          <div className="flex items-center">
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="enabled"
-                value="inherit"
-                checked={enabledValue === 'inherit'}
-                onChange={handleEnabledChange}
-                className="mr-1"
-              />
-              inherit
-            </label>
-            <label className="flex items-center ml-4">
-              <input
-                type="radio"
-                name="enabled"
-                value="true"
-                checked={enabledValue === 'true'}
-                onChange={handleEnabledChange}
-                className="mr-1"
-              />
-              enabled
-            </label>
-            <label className="flex items-center ml-4">
-              <input
-                type="radio"
-                name="enabled"
-                value="false"
-                checked={enabledValue === 'false'}
-                onChange={handleEnabledChange}
-                className="mr-1"
-              />
-              disabled
-            </label>
-          </div>
+          <SegmentedControl
+            ariaLabel="Proxy mode"
+            name="enabled"
+            value={enabledValue}
+            onChange={(_value, e) => handleEnabledChange(e)}
+            items={[
+              { value: 'inherit', label: 'Inherit' },
+              { value: 'true', label: 'Custom' },
+              { value: 'false', label: 'Off' }
+            ]}
+            size="md"
+            className="self-start"
+            data-testid="collection-proxy-mode"
+          />
+          {enabledValue === 'inherit' && (
+            <div className="hint" data-testid="collection-proxy-inherit-hint">
+              Uses the proxy configured in app preferences.
+            </div>
+          )}
         </div>
+
         {enabledValue === 'true' && (
           <>
-            <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="protocol">
-                Protocol
-              </label>
-              <div className="flex items-center">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="protocol"
-                    value="http"
-                    checked={(currentProxyConfig.config?.protocol || 'http') === 'http'}
-                    onChange={handleProtocolChange}
-                    className="mr-1"
-                  />
-                  HTTP
+            <div className="flex flex-col gap-4">
+              <div className="field-group flex flex-col gap-2">
+                <label className="settings-label" htmlFor="protocol">
+                  Protocol
                 </label>
-                <label className="flex items-center ml-4">
-                  <input
-                    type="radio"
-                    name="protocol"
-                    value="https"
-                    checked={(currentProxyConfig.config?.protocol || 'http') === 'https'}
-                    onChange={handleProtocolChange}
-                    className="mr-1"
+                <div className="protocol-select">
+                  <Select
+                    value={currentProxyConfig.config?.protocol || 'http'}
+                    onChange={(value) => handleProtocolChange({ target: { value } })}
+                    data={[
+                      { value: 'http', label: 'HTTP' },
+                      { value: 'https', label: 'HTTPS' },
+                      { value: 'socks4', label: 'SOCKS4' },
+                      { value: 'socks5', label: 'SOCKS5' }
+                    ]}
+                    allowDeselect={false}
+                    data-testid="collection-proxy-protocol"
                   />
-                  HTTPS
-                </label>
-                <label className="flex items-center ml-4">
+                </div>
+              </div>
+
+              <div className="grid grid-cols-[1fr_120px] gap-3">
+                <div className="flex flex-col gap-2 min-w-0">
+                  <label className="settings-label">
+                    Hostname
+                  </label>
+                  <div className="single-line-editor-wrapper">
+                    <SingleLineEditor
+                      value={currentProxyConfig.config?.hostname || ''}
+                      theme={storedTheme}
+                      onSave={handleSave}
+                      onChange={handleHostnameChange}
+                      collection={collection}
+                      isCompact
+                      data-testid="collection-proxy-hostname"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 min-w-0">
+                  <label className="settings-label" htmlFor="port">
+                    Port
+                  </label>
                   <input
-                    type="radio"
-                    name="protocol"
-                    value="socks4"
-                    checked={(currentProxyConfig.config?.protocol || 'http') === 'socks4'}
-                    onChange={handleProtocolChange}
-                    className="mr-1"
+                    id="port"
+                    data-testid="collection-proxy-port"
+                    type="number"
+                    name="port"
+                    className="textbox"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    onChange={handlePortChange}
+                    value={currentProxyConfig.config?.port || ''}
                   />
-                  SOCKS4
-                </label>
-                <label className="flex items-center ml-4">
-                  <input
-                    type="radio"
-                    name="protocol"
-                    value="socks5"
-                    checked={(currentProxyConfig.config?.protocol || 'http') === 'socks5'}
-                    onChange={handleProtocolChange}
-                    className="mr-1"
-                  />
-                  SOCKS5
-                </label>
+                </div>
               </div>
             </div>
-            <div className="mb-3 flex items-center">
-              <label className="settings-label">
-                Hostname
-              </label>
-              <div className="single-line-editor-wrapper">
-                <SingleLineEditor
-                  value={currentProxyConfig.config?.hostname || ''}
-                  theme={storedTheme}
-                  onSave={handleSave}
-                  onChange={handleHostnameChange}
-                  collection={collection}
-                  isCompact
-                  data-testid="collection-proxy-hostname"
-                />
-              </div>
-            </div>
-            <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="port">
-                Port
-              </label>
-              <input
-                id="port"
-                data-testid="collection-proxy-port"
-                type="number"
-                name="port"
-                className="block textbox"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                onChange={handlePortChange}
-                value={currentProxyConfig.config?.port || ''}
-              />
-            </div>
-            <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="auth.disabled">
-                Auth
-              </label>
-              <input
-                type="checkbox"
+
+            <div className="field-group flex flex-col gap-3">
+              <Checkbox
+                id="auth.disabled"
                 name="auth.disabled"
                 checked={!currentProxyConfig.config?.auth?.disabled}
                 onChange={handleAuthEnabledChange}
+                label={<span className="settings-label">Proxy authentication</span>}
+                data-testid="collection-proxy-auth"
               />
-            </div>
-            <div>
-              <div className="mb-3 flex items-center">
-                <label className="settings-label">
-                  Username
-                </label>
-                <div className="single-line-editor-wrapper">
-                  <SingleLineEditor
-                    value={currentProxyConfig.config?.auth?.username || ''}
-                    theme={storedTheme}
-                    onSave={handleSave}
-                    onChange={handleAuthUsernameChange}
-                    collection={collection}
-                    isCompact
-                    data-testid="collection-proxy-username"
-                  />
+              <div className={`credentials flex flex-col gap-3 ${isProxyAuthDisabled ? 'disabled' : ''}`} aria-disabled={isProxyAuthDisabled}>
+                <div className="flex flex-col gap-2 min-w-0">
+                  <label className="sub-label">
+                    Username
+                  </label>
+                  <div className="single-line-editor-wrapper mono">
+                    <SingleLineEditor
+                      value={currentProxyConfig.config?.auth?.username || ''}
+                      theme={storedTheme}
+                      onSave={handleSave}
+                      onChange={handleAuthUsernameChange}
+                      collection={collection}
+                      readOnly={isProxyAuthDisabled}
+                      isCompact
+                      data-testid="collection-proxy-username"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 min-w-0">
+                  <label className="sub-label">
+                    Password
+                  </label>
+                  <div className="single-line-editor-wrapper password-wrapper mono flex items-center">
+                    <SingleLineEditor
+                      value={proxyPassword}
+                      theme={storedTheme}
+                      onSave={handleSave}
+                      onChange={handleAuthPasswordChange}
+                      collection={collection}
+                      readOnly={isProxyAuthDisabled}
+                      isSecret={true}
+                      isCompact
+                      data-testid="collection-proxy-password"
+                    />
+                    <SensitiveFieldWarning fieldName="proxy-password" secretName="password" value={proxyPassword} collection={collection} onReplaceValue={handleAuthPasswordChange} />
+                  </div>
                 </div>
               </div>
-              <div className="mb-3 flex items-center">
-                <label className="settings-label">
-                  Password
-                </label>
-                <div className="single-line-editor-wrapper flex items-center">
-                  <SingleLineEditor
-                    value={proxyPassword}
-                    theme={storedTheme}
-                    onSave={handleSave}
-                    onChange={handleAuthPasswordChange}
-                    collection={collection}
-                    isSecret={true}
-                    isCompact
-                    data-testid="collection-proxy-password"
-                  />
-                  <SensitiveFieldWarning fieldName="proxy-password" secretName="password" value={proxyPassword} collection={collection} onReplaceValue={handleAuthPasswordChange} />
-                </div>
-              </div>
             </div>
-            <div className="mb-3 flex items-center">
+
+            <div className="field-group flex flex-col gap-2">
               <label className="settings-label" htmlFor="bypassProxy">
                 Proxy Bypass
               </label>
@@ -390,7 +358,7 @@ const ProxySettings = ({ collection }) => {
                 id="bypassProxy"
                 type="text"
                 name="bypassProxy"
-                className="block textbox"
+                className="textbox mono"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
@@ -398,11 +366,13 @@ const ProxySettings = ({ collection }) => {
                 onChange={handleBypassProxyChange}
                 value={currentProxyConfig.config?.bypassProxy || ''}
               />
+              <div className="hint -mt-0.5">Separate hosts with commas. Wildcards are supported.</div>
             </div>
           </>
         )}
-        <div className="mt-6">
-          <Button type="submit" size="sm" onClick={handleSave}>
+
+        <div className="flex items-center gap-2">
+          <Button type="submit" size="sm" className="save-button" onClick={handleSave}>
             Save
           </Button>
         </div>

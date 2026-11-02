@@ -33,8 +33,8 @@ const ToggleSelector = ({
   const currentSize = sizeClasses[size];
 
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex flex-col">
+    <div className="settings-row">
+      <div className="flex flex-col min-w-0">
         <label className="text-xs font-medium text-gray-900 dark:text-gray-100">
           {label}
         </label>

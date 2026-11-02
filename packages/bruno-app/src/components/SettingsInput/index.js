@@ -13,8 +13,8 @@ const SettingsInput = ({
   const { theme } = useTheme();
 
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex flex-col">
+    <div className="settings-row">
+      <div className="flex flex-col min-w-0">
         <label className="text-xs font-medium text-gray-900 dark:text-gray-100" htmlFor={id}>
           {label}
         </label>
@@ -27,7 +27,7 @@ const SettingsInput = ({
       <input
         id={id}
         type="text"
-        className={`block px-2 py-1 rounded-sm outline-none transition-colors duration-100 w-24 h-8 ${className}`}
+        className={`block px-2 py-1 rounded outline-none transition-colors duration-100 w-32 h-[34px] ${className}`}
         style={{
           backgroundColor: theme.input.bg,
           border: `1px solid ${theme.input.border}`
