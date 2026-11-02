@@ -126,6 +126,21 @@ describe('openapi schema composition', () => {
       expect(requestBody(buildSpec({ schemas: plainPets, paths: postBody(schema) }))).toEqual({ petType: 'Cat', meow: '' });
     });
 
+    it('picks the defaultMapping branch and labels it with its mapping key', () => {
+      const schema = { oneOf: [ref('Cat'), ref('Dog')], discriminator: { propertyName: 'petType', mapping: { cat: '#/components/schemas/Cat', dog: '#/components/schemas/Dog' }, defaultMapping: '#/components/schemas/Dog' } };
+      expect(requestBody(buildSpec({ schemas: plainPets, paths: postBody(schema), openapi: '3.2.0' }))).toEqual({ petType: 'dog', bark: '' });
+    });
+
+    it('picks the defaultMapping branch and leaves the property unlabeled when the mapping does not list it', () => {
+      const schema = { oneOf: [ref('Cat'), ref('Dog')], discriminator: { propertyName: 'petType', defaultMapping: 'Dog' } };
+      expect(requestBody(buildSpec({ schemas: plainPets, paths: postBody(schema), openapi: '3.2.0' }))).toEqual({ petType: '', bark: '' });
+    });
+
+    it('ignores a defaultMapping that names none of the branches', () => {
+      const schema = { oneOf: [ref('Cat'), ref('Dog')], discriminator: { propertyName: 'petType', defaultMapping: 'Fish' } };
+      expect(requestBody(buildSpec({ schemas: plainPets, paths: postBody(schema), openapi: '3.2.0' }))).toEqual({ petType: 'Cat', meow: '' });
+    });
+
     it('labels the response example too', () => {
       const schema = mapped({ dog: '#/components/schemas/Dog' });
       expect(responseExample(buildSpec({ schemas: plainPets, paths: getWithResponse(schema) }))).toEqual({ petType: 'dog', bark: '' });

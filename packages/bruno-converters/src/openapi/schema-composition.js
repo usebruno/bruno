@@ -277,7 +277,11 @@ const namesOf = (schema, seen = new Set()) => {
 const readDiscriminator = (discriminator) => {
   if (typeof discriminator === 'string' && discriminator) return { propertyName: discriminator, mapping: {} };
   return isSchemaObject(discriminator) && typeof discriminator.propertyName === 'string' && discriminator.propertyName
-    ? { propertyName: discriminator.propertyName, mapping: isSchemaObject(discriminator.mapping) ? discriminator.mapping : {} }
+    ? {
+        propertyName: discriminator.propertyName,
+        mapping: isSchemaObject(discriminator.mapping) ? discriminator.mapping : {},
+        defaultMapping: typeof discriminator.defaultMapping === 'string' ? discriminator.defaultMapping : undefined
+      }
     : null;
 };
 
@@ -317,11 +321,12 @@ const inheritedDiscriminators = (schema) => {
   return walk.dedupe(walk.found);
 };
 
-const discriminatorValueFor = (schema, discriminator) => {
+const mappingKeyFor = (schema, discriminator) => {
   const names = namesOf(schema);
-  const mapped = Object.keys(discriminator.mapping).find((key) => names.includes(refTail(discriminator.mapping[key])));
-  return mapped !== undefined ? mapped : names[0];
+  return Object.keys(discriminator.mapping).find((key) => names.includes(refTail(discriminator.mapping[key])));
 };
+
+const discriminatorValueFor = (schema, discriminator) => mappingKeyFor(schema, discriminator) ?? namesOf(schema)[0];
 
 const selectAlternative = (alternatives, discriminator, context) => {
   const flattened = new Map();
@@ -337,6 +342,8 @@ const selectAlternative = (alternatives, discriminator, context) => {
   if (inProgress !== -1) return choose(inProgress, valueFor(inProgress));
 
   if (discriminator) {
+    const defaultMapped = discriminator.defaultMapping === undefined ? -1 : alternatives.findIndex((alternative) => namesOf(alternative).includes(refTail(discriminator.defaultMapping)));
+    if (defaultMapped !== -1 && usable(defaultMapped)) return choose(defaultMapped, mappingKeyFor(alternatives[defaultMapped], discriminator));
     for (const key of Object.keys(discriminator.mapping)) {
       const target = refTail(discriminator.mapping[key]);
       const index = alternatives.findIndex((alternative) => namesOf(alternative).includes(target));
