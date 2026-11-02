@@ -28,7 +28,7 @@ test.describe('Import Bruno v2 JSON collection', () => {
 
     await test.step('Verify proxy settings match the imported file', async () => {
       await expect(page.locator('input[name="enabled"][value="true"]')).toBeChecked();
-      await expect(page.locator('input[name="protocol"][value="http"]')).toBeChecked();
+      await expect(page.getByTestId('collection-proxy-protocol')).toHaveText('HTTP');
       await expect.poll(() => readCollectionProxyField(page, 'hostname')).toBe('127.0.0.1');
       await expect.poll(() => readCollectionProxyField(page, 'port')).toBe('8080');
       await expect(page.locator('input[name="auth.disabled"]')).not.toBeChecked();
