@@ -64,7 +64,7 @@ describe.each([
 
     it('falls back when the selected field is left empty by the cleanup', () => {
       expect(nameOf({ summary: ' ... ', operationId: 'getPetById' })).toBe('getPetById');
-      expect(nameOf({ summary: '**   **', operationId: 'getPetById' })).toBe('getPetById');
+      expect(nameOf({ summary: '---\n', operationId: 'getPetById' })).toBe('getPetById');
       expect(nameOf({ description: '```json\n{"id": 1}\n```', summary: 'Find pet by ID' }, { requestNameSource: 'description' })).toBe('Find pet by ID');
       expect(nameOf({ description: '---\n\n', operationId: 'getPetById' }, { requestNameSource: 'description' })).toBe('getPetById');
     });
@@ -112,7 +112,12 @@ describe.each([
       '*.*',
       '[Beta]: listPets',
       '===',
-      `Star ${String.fromCodePoint(0xE02A)} rating`
+      `Star ${String.fromCodePoint(0xE02A)} rating`,
+      '# of items in cart',
+      'Get __init__ data',
+      'Returns the `User` object',
+      '- Create user',
+      '**Find** `pet` by [ID](https://example.com/docs/(id))'
     ])('names the short single-line summary %p as written', (summary) => {
       const nameAsWritten = summary.replace(/[\r\n\s]+/g, ' ').trim().replace(/[.\s]+$/, '');
       expect(nameOf({ summary })).toBe(nameAsWritten);
@@ -120,6 +125,10 @@ describe.each([
 
     it('joins a short multi-line summary into one line', () => {
       expect(nameOf({ summary: 'Get users\n\nwith newline' })).toBe('Get users with newline');
+    });
+
+    it('strips markdown from a multi-line summary', () => {
+      expect(nameOf({ summary: '**Find** `pet`\nby [ID](https://example.com)' })).toBe('Find pet by ID');
     });
 
     it('names a long summary after its first sentence', () => {
@@ -138,24 +147,27 @@ describe.each([
   });
 
   describe('the cleanup', () => {
-    it('strips markdown from the name', () => {
-      expect(nameOf({ summary: '**Find** `pet` by [ID](https://example.com/docs/(id))' })).toBe('Find pet by ID');
-      expect(nameOf({ summary: '## Find _pet_ by ~~the~~ ID' })).toBe('Find pet by the ID');
-      expect(nameOf({ summary: '> Find <b>pet</b> by ![ID](id.png)' })).toBe('Find pet by ID');
-      expect(nameOf({ summary: '- Find pets &amp; owners &#x2014; fast' })).toBe('Find pets & owners \u2014 fast');
-      expect(nameOf({ summary: 'Returns the user&rsquo;s profile' })).toBe(`Returns the user${String.fromCodePoint(0x2019)}s profile`);
-      expect(nameOf({ summary: 'Find pet<br>by ID' })).toBe('Find pet by ID');
-      expect(nameOf({ summary: 'Calls <tt>getPet</tt> fast' })).toBe('Calls getPet fast');
-      expect(nameOf({ summary: 'Contact <foo@bar.com>' })).toBe('Contact foo@bar.com');
-      expect(nameOf({ summary: 'See [a [b] c](https://x) now' })).toBe('See a [b] c now');
-      expect(nameOf({ summary: '```json``` example' })).toBe('json example');
+    it('strips markdown from a name taken from the description', () => {
+      const descriptionNameOf = (description) => nameOf({ description }, { requestNameSource: 'description' });
+
+      expect(descriptionNameOf('**Find** `pet` by [ID](https://example.com/docs/(id))')).toBe('Find pet by ID');
+      expect(descriptionNameOf('## Find _pet_ by ~~the~~ ID')).toBe('Find pet by the ID');
+      expect(descriptionNameOf('> Find <b>pet</b> by ![ID](id.png)')).toBe('Find pet by ID');
+      expect(descriptionNameOf('- Find pets &amp; owners &#x2014; fast')).toBe('Find pets & owners \u2014 fast');
+      expect(descriptionNameOf('Returns the user&rsquo;s profile')).toBe(`Returns the user${String.fromCodePoint(0x2019)}s profile`);
+      expect(descriptionNameOf('Calls <tt>getPet</tt> fast')).toBe('Calls getPet fast');
+      expect(descriptionNameOf('Contact <foo@bar.com>')).toBe('Contact foo@bar.com');
+      expect(descriptionNameOf('See [a [b] c](https://x) now')).toBe('See a [b] c now');
+      expect(descriptionNameOf('```json``` example')).toBe('json example');
     });
 
     it('keeps escaped and code characters as written', () => {
-      expect(nameOf({ summary: 'Find \\*all\\* pets' })).toBe('Find *all* pets');
-      expect(nameOf({ summary: 'Call `**kwargs` &amp; more' })).toBe('Call **kwargs & more');
-      expect(nameOf({ summary: 'Escape quotes with `\\`' })).toBe('Escape quotes with \\');
-      expect(nameOf({ summary: 'Validate with `^\\w+\\.json$`' })).toBe('Validate with ^\\w+\\.json$');
+      const descriptionNameOf = (description) => nameOf({ description }, { requestNameSource: 'description' });
+
+      expect(descriptionNameOf('Find \\*all\\* pets')).toBe('Find *all* pets');
+      expect(descriptionNameOf('Call `**kwargs` &amp; more')).toBe('Call **kwargs & more');
+      expect(descriptionNameOf('Escape quotes with `\\`')).toBe('Escape quotes with \\');
+      expect(descriptionNameOf('Validate with `^\\w+\\.json$`')).toBe('Validate with ^\\w+\\.json$');
     });
 
     it('never uses a whole description', () => {

@@ -704,6 +704,10 @@ const capRequestName = (text) => {
 const specText = (value) => (typeof value === 'number' && Number.isFinite(value) ? String(value) : toSpecString(value));
 
 const summaryName = (summary) => {
+  const asWritten = normalizeItemName(summary);
+  if (!/[\r\n]/.test(summary) && fitsRequestNameCap(asWritten)) {
+    return asWritten;
+  }
   const name = normalizeItemName(markdownTextLines(summary).join(' '));
   return fitsRequestNameCap(name) ? name : capRequestName(firstSentence(name));
 };
