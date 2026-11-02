@@ -81,6 +81,11 @@ default "safe" mode — bridges each method explicitly** in `bruno-js/src/sandbo
 (`bru.js`, `bruno-request.js`, `bruno-response.js`, `bruno-grpc.js`, …). Implementation only →
 works in developer mode, `undefined` for most users.
 
+The JSDoc on these classes is the source of the published script API reference. A new or changed
+member needs its JSDoc per `packages/bruno-js/readme.md` § "Script API JSDoc" — summary, typed
+tags, `@category`; `@internal` for host-only state; `@runtime nodevm` if the shim deliberately
+doesn't bridge it. Then run `npm run generate:script-api` and commit `types/script-api.d.ts`.
+
 ## 4. Scope levels — collection ↔ folder ↔ request
 
 Auth, headers, vars, scripts and tests exist at three levels plus `inherit`. Each level has its own
@@ -108,6 +113,7 @@ A new auth mode or a setting that changes the wire request should change the gen
 - [ ] Shared logic moved to a leaf package where the DAG allows, instead of patched twice
 - [ ] Persisted field carried through every layer in §2 — including migration and converters (both directions)
 - [ ] New/changed `bru.*`, `req.*`, `res.*` API bridged in the QuickJS shim
+- [ ] Its JSDoc written and `types/script-api.d.ts` regenerated, with no generator warnings
 - [ ] Collection / folder / request levels and `inherit` each decided
 - [ ] gRPC and WebSocket considered; any "HTTP only" scope stated
 - [ ] Code generation updated if the wire request changed
