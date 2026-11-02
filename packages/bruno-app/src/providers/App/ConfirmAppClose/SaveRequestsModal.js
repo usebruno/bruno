@@ -37,12 +37,22 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
     const apiSpecDrafts = [];
     const relevantTabs = forceCloseTabs ? tabs.filter((t) => tabUidsToClose.includes(t.uid)) : tabs;
     const tabsByCollection = groupBy(relevantTabs, (t) => t.collectionUid);
+    // When closing specific tabs, only the drafts those tabs hold are at stake. A settings
+    // tab carries the uid of the collection / folder it edits, so one uid check covers every kind.
+    const isTabClosing = (uid) => {
+      if (!forceCloseTabs) {
+        // Quitting the app: every draft is at stake, not just the ones with a closing tab
+        return true;
+      }
+
+      return relevantTabs.some((item) => item.uid === uid);
+    };
 
     Object.keys(tabsByCollection).forEach((collectionUid) => {
       const collection = findCollectionByUid(collections, collectionUid);
       if (collection) {
         // Check for collection draft
-        if (collection.draft) {
+        if (collection.draft && isTabClosing(collectionUid)) {
           collectionDrafts.push({
             type: 'collection',
             name: collection.name,
@@ -51,7 +61,7 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
         }
 
         // Check for collection environment draft
-        if (collection.environmentsDraft) {
+        if (collection.environmentsDraft && (!forceCloseTabs || tabsByCollection[collectionUid].some((t) => t.type === 'environment-settings'))) {
           const { environmentUid, variables } = collection.environmentsDraft;
           const environment = findEnvironmentInCollection(collection, environmentUid);
           if (environment && variables) {
@@ -69,7 +79,7 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
         const items = flattenItems(collection.items);
 
         // Request drafts
-        const requests = filter(items, (item) => isItemARequest(item) && hasRequestChanges(item));
+        const requests = filter(items, (item) => isItemARequest(item) && hasRequestChanges(item) && isTabClosing(item.uid));
         each(requests, (draft) => {
           requestDrafts.push({
             ...draft,
@@ -77,7 +87,7 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
           });
         });
 
-        const apps = filter(items, (item) => item.type === 'app' && hasRequestChanges(item));
+        const apps = filter(items, (item) => item.type === 'app' && hasRequestChanges(item) && isTabClosing(item.uid));
         each(apps, (draft) => {
           appDrafts.push({
             ...draft,
@@ -86,7 +96,7 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
         });
 
         // Folder drafts
-        const folders = filter(items, (item) => item.type === 'folder' && item.draft);
+        const folders = filter(items, (item) => item.type === 'folder' && item.draft && isTabClosing(item.uid));
         each(folders, (folder) => {
           folderDrafts.push({
             type: 'folder',
@@ -114,8 +124,8 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
       });
     });
 
-    // Check for global environment draft
-    if (globalEnvironmentDraft) {
+    // The global environment is not a collection tab, so it is only at stake when quitting
+    if (globalEnvironmentDraft && !forceCloseTabs) {
       const { environmentUid, variables } = globalEnvironmentDraft;
       const environment = globalEnvironments?.find((env) => env.uid === environmentUid);
       if (environment && variables) {

@@ -33,6 +33,8 @@ import MockResponseTab from 'components/MockServer/RequestTabs/MockResponseTab';
 import ConfirmApiSpecClose from './ConfirmApiSpecClose';
 import { findApiSpecByPathname, hasUnsavedApiSpecChanges } from 'utils/api-specs';
 import { clearApiSpecDraft, saveApiSpecTabDraft } from 'providers/ReduxStore/slices/apiSpec';
+import SaveRequestsModal from 'providers/App/ConfirmAppClose/SaveRequestsModal';
+import Portal from 'ui/Portal';
 import toast from 'react-hot-toast';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid, hasOverflow, setHasOverflow, dropdownContainerRef }) => {
@@ -734,6 +736,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
 function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, tabIndex, isActive, showNewRequestShortcut, onNewRequest, collection, dispatch, dropdownContainerRef }) {
   const [showCloneRequestModal, setShowCloneRequestModal] = useState(false);
+  const [tabUidsToClose, setTabUidsToClose] = useState([]);
   const getKeybindingDisplayText = useKeybindingDisplayText();
 
   // Returns the tab-label's position for dropdown positioning.
@@ -786,45 +789,26 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     } catch (err) { }
   }
 
-  async function handleCloseMultipleTabs(tabs) {
-    const tabUidsToClose = [];
-
-    for (const tab of tabs) {
-      const item = findItemInCollection(collection, tab.uid);
-
-      try {
-        if (tab.type === 'api-spec') {
-          await dispatch(saveApiSpecTabDraft(tab.uid));
-        } else if (item && hasRequestChanges(item)) {
-          await dispatch(saveRequest(item.uid, collection.uid, true));
-        }
-      } catch (err) {
-        continue;
-      }
-
-      if (tab?.uid) {
-        tabUidsToClose.push(tab.uid);
-      }
-    }
-
-    if (tabUidsToClose.length > 0) {
-      dispatch(closeTabs({ tabUids: tabUidsToClose }));
+  function handleCloseMultipleTabs(tabs) {
+    const tabUids = tabs.map((tab) => tab.uid).filter(Boolean);
+    if (tabUids.length > 0) {
+      setTabUidsToClose(tabUids);
     }
   }
 
-  async function handleCloseOtherTabs() {
+  function handleCloseOtherTabs() {
     const otherTabs = collectionRequestTabs.filter((_, index) => index !== tabIndex);
-    await handleCloseMultipleTabs(otherTabs);
+    handleCloseMultipleTabs(otherTabs);
   }
 
-  async function handleCloseTabsToTheLeft() {
+  function handleCloseTabsToTheLeft() {
     const leftTabs = collectionRequestTabs.filter((_, index) => index < tabIndex);
-    await handleCloseMultipleTabs(leftTabs);
+    handleCloseMultipleTabs(leftTabs);
   }
 
-  async function handleCloseTabsToTheRight() {
+  function handleCloseTabsToTheRight() {
     const rightTabs = collectionRequestTabs.filter((_, index) => index > tabIndex);
-    await handleCloseMultipleTabs(rightTabs);
+    handleCloseMultipleTabs(rightTabs);
   }
 
   function handleCloseSavedTabs() {
@@ -834,8 +818,8 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     dispatch(closeTabs({ tabUids: savedTabIds }));
   }
 
-  async function handleCloseAllTabs() {
-    await handleCloseMultipleTabs(collectionRequestTabs);
+  function handleCloseAllTabs() {
+    handleCloseMultipleTabs(collectionRequestTabs);
   }
 
   const menuItems = useMemo(() => [
@@ -915,6 +899,16 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
           collectionUid={collection.uid}
           onClose={() => setShowCloneRequestModal(false)}
         />
+      )}
+
+      {tabUidsToClose.length > 0 && (
+        <Portal>
+          <SaveRequestsModal
+            forceCloseTabs={true}
+            tabUidsToClose={tabUidsToClose}
+            onClose={() => setTabUidsToClose([])}
+          />
+        </Portal>
       )}
 
       {menuDropdown}
