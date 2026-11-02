@@ -41,7 +41,7 @@ const UrlTab = ({
             setUrlInput(e.target.value);
             setErrorMessage('');
           }}
-          placeholder="Enter URL (OpenAPI/Swagger, Postman, or Insomnia specification)"
+          placeholder="Enter URL (OpenAPI/Swagger, AsyncAPI, Postman, or Insomnia specification)"
           className="flex-1 px-3 py-1 textbox"
         />
         <Button
