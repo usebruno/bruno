@@ -27,8 +27,9 @@ test.describe.configure({ timeout: 120_000 });
 test('TC-592: Verify the Link from Key/Value to Bulk Edit View for Request Headers.', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
   const headers = buildRequestLocators(page).headers;
 
-  await test.step('Open an HTTP request on the Headers tab', async () => {
-    await openRequest(page, 'bulk-edit-headers', 'get-headers');
+  await openRequest(page, 'bulk-edit-headers', 'get-headers');
+
+  await test.step('Open the Headers tab', async () => {
     await selectRequestPaneTab(page, 'Headers');
 
     await expect(headers.table()).toBeVisible();
