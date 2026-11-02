@@ -1336,6 +1336,12 @@ describe('compareRequestFields for a request a sync keeps', () => {
     expect(compare(json({ owner: { id: '' } }), json({ owner: null }), declared).hasDiff).toBe(false);
   });
 
+  it('flags a json field whose type the user changed when the schema also allows null', () => {
+    const declared = declaredFor('application/json', object({ nickname: { type: ['string', 'null'] }, tag: { anyOf: [string, { type: 'null' }] } }));
+    expect(compare(json({ nickname: '', tag: '' }), json({ nickname: { first: 'Rex' }, tag: '' }), declared).changes).toEqual(['body schema']);
+    expect(compare(json({ nickname: '', tag: '' }), json({ nickname: '', tag: { first: 'Rex' } }), declared).changes).toEqual(['body schema']);
+  });
+
   it('flags an object where the spec example has a plain value and no schema says otherwise', () => {
     expect(compare(json({ meta: '' }), json({ meta: { env: 'prod' } })).changes).toEqual(['body schema']);
   });

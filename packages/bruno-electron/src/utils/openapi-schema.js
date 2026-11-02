@@ -43,9 +43,10 @@ const declaredChild = (node, key) => node && declaredSchemaNode(node.spec, decla
 const declaredItems = (node) => node && declaredSchemaNode(node.spec, node.schemas.flatMap((schema) => [schema.items, ...(Array.isArray(schema.prefixItems) ? schema.prefixItems : [])]));
 
 const SCALAR_TYPES = ['string', 'number', 'integer', 'boolean'];
+const typesOf = (schema) => [].concat(schema.type ?? []);
 const declaresOnlyScalars = (node) => node !== undefined
-  && node.schemas.some((schema) => SCALAR_TYPES.includes(schema.type))
-  && node.schemas.every((schema) => (schema.type === undefined || SCALAR_TYPES.includes(schema.type)) && !isPlainObject(schema.properties) && schema.items === undefined && schema.additionalProperties === undefined);
+  && node.schemas.some((schema) => typesOf(schema).some((type) => SCALAR_TYPES.includes(type)))
+  && node.schemas.every((schema) => typesOf(schema).every((type) => type === 'null' || SCALAR_TYPES.includes(type)) && !isPlainObject(schema.properties) && schema.items === undefined && schema.additionalProperties === undefined);
 
 const refName = (schema) => (isPlainObject(schema) && typeof schema.$ref === 'string' ? schema.$ref.split('/').pop() : undefined);
 
