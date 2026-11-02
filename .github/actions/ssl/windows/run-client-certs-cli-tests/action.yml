@@ -9,7 +9,7 @@ runs:
         Set-StrictMode -Version Latest
         $ErrorActionPreference = "Stop"
 
-        $bru = "..\..\..\..\..\packages\bruno-cli\bin\bru.js"
+        $bru = "..\..\..\..\..\..\packages\bruno-cli\bin\bru.js"
         $cacert = "..\..\server\certs\ca-cert.pem"
 
         # navigate to the CLI test collections directory

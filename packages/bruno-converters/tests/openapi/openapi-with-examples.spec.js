@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 describe('OpenAPI with Examples', () => {
-  const openApiWithExamples = fs.readFileSync(path.resolve(__dirname, '../../../../tests/import/openapi/fixtures/openapi-with-examples.yaml'),
+  const openApiWithExamples = fs.readFileSync(path.resolve(__dirname, '../../../../e2e/tests/import/openapi/test-data/openapi-with-examples.yaml'),
     'utf8');
 
   it('should import OpenAPI collection with response examples', () => {

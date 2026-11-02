@@ -8,7 +8,7 @@ const { spawn } = require('child_process');
 const CLI_BIN = path.resolve(__dirname, '..', '..', 'bin', 'bru.js');
 const FIXTURE_WORKSPACE = path.resolve(
   __dirname, '..', '..', '..', '..',
-  'tests', 'scripting', 'additional-context-roots', 'fixtures', 'workspace'
+  'e2e', 'tests', 'scripting', 'additional-context-roots', 'test-data', 'workspace'
 );
 // The fixture .bru files hit http://localhost:8081/ping — the Bruno testbench
 // address, so the Playwright e2e can reuse the same fixture unchanged. The

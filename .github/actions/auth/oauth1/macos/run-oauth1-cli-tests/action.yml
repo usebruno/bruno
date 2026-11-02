@@ -8,7 +8,7 @@ runs:
       run: |
         set -euo pipefail
 
-        BRU_CLI="../../../../../../packages/bruno-cli/bin/bru.js"
+        BRU_CLI="../../../../../../../packages/bruno-cli/bin/bru.js"
 
         # navigate to BRU test collection directory
         cd e2e/tests/auth/oauth1/test-data/collections/bru
@@ -21,7 +21,7 @@ runs:
       run: |
         set -euo pipefail
 
-        BRU_CLI="../../../../../../packages/bruno-cli/bin/bru.js"
+        BRU_CLI="../../../../../../../packages/bruno-cli/bin/bru.js"
 
         # navigate to YML test collection directory
         cd e2e/tests/auth/oauth1/test-data/collections/yml

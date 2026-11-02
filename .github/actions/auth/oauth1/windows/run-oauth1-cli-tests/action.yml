@@ -9,7 +9,7 @@ runs:
         Set-StrictMode -Version Latest
         $ErrorActionPreference = "Stop"
 
-        $BRU_CLI = "..\..\..\..\..\..\packages\bruno-cli\bin\bru.js"
+        $BRU_CLI = "..\..\..\..\..\..\..\packages\bruno-cli\bin\bru.js"
 
         # navigate to BRU test collection directory
         Set-Location e2e\tests\auth\oauth1\test-data\collections\bru
@@ -24,7 +24,7 @@ runs:
         Set-StrictMode -Version Latest
         $ErrorActionPreference = "Stop"
 
-        $BRU_CLI = "..\..\..\..\..\..\packages\bruno-cli\bin\bru.js"
+        $BRU_CLI = "..\..\..\..\..\..\..\packages\bruno-cli\bin\bru.js"
 
         # navigate to YML test collection directory
         Set-Location e2e\tests\auth\oauth1\test-data\collections\yml

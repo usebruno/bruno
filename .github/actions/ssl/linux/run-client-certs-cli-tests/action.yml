@@ -8,7 +8,7 @@ runs:
       run: |
         set -euo pipefail
 
-        BRU=../../../../../packages/bruno-cli/bin/bru.js
+        BRU=../../../../../../packages/bruno-cli/bin/bru.js
         CACERT=../../server/certs/ca-cert.pem
 
         # navigate to the CLI test collections directory
