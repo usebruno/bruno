@@ -44,9 +44,19 @@ const declaredItems = (node) => node && declaredSchemaNode(node.spec, node.schem
 
 const SCALAR_TYPES = ['string', 'number', 'integer', 'boolean'];
 const typesOf = (schema) => [].concat(schema.type ?? []);
+const isStructure = (value) => isPlainObject(value) || Array.isArray(value);
+const allowsStructure = (schema) => !typesOf(schema).every((type) => type === 'null' || SCALAR_TYPES.includes(type))
+  || isPlainObject(schema.properties) || schema.items !== undefined || schema.additionalProperties !== undefined
+  || isStructure(schema.const) || (Array.isArray(schema.enum) && schema.enum.some(isStructure));
+const leavesTypeOpen = (spec, alternative) => {
+  const node = declaredSchemaNode(spec, [alternative]);
+  return node === undefined || node.schemas.every((schema) => typesOf(schema).length === 0 && schema.const === undefined && schema.enum === undefined);
+};
+const hasOpenAlternative = (spec, schema) => typesOf(schema).length === 0
+  && ['oneOf', 'anyOf'].some((key) => Array.isArray(schema[key]) && schema[key].some((alternative) => leavesTypeOpen(spec, alternative)));
 const declaresOnlyScalars = (node) => node !== undefined
   && node.schemas.some((schema) => typesOf(schema).some((type) => SCALAR_TYPES.includes(type)))
-  && node.schemas.every((schema) => typesOf(schema).every((type) => type === 'null' || SCALAR_TYPES.includes(type)) && !isPlainObject(schema.properties) && schema.items === undefined && schema.additionalProperties === undefined);
+  && !node.schemas.some((schema) => allowsStructure(schema) || hasOpenAlternative(node.spec, schema));
 
 const refName = (schema) => (isPlainObject(schema) && typeof schema.$ref === 'string' ? schema.$ref.split('/').pop() : undefined);
 

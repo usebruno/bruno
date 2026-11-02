@@ -1342,6 +1342,16 @@ describe('compareRequestFields for a request a sync keeps', () => {
     expect(compare(json({ nickname: '', tag: '' }), json({ nickname: '', tag: { first: 'Rex' } }), declared).changes).toEqual(['body schema']);
   });
 
+  it('does not flag an object that a union alternative without a type allows', () => {
+    const declared = declaredFor('application/json', object({ owner: { anyOf: [{ type: ['string', 'null'] }, { const: { id: 1 } }] }, extra: { anyOf: [string, {}] } }));
+    expect(compare(json({ owner: '', extra: '' }), json({ owner: { id: 1 }, extra: { any: true } }), declared).hasDiff).toBe(false);
+  });
+
+  it('flags an object in a string field whose union only narrows the format', () => {
+    const declared = declaredFor('application/json', object({ when: { type: 'string', anyOf: [{ format: 'date' }, { format: 'date-time' }] } }));
+    expect(compare(json({ when: '' }), json({ when: { day: 1 } }), declared).changes).toEqual(['body schema']);
+  });
+
   it('flags an object where the spec example has a plain value and no schema says otherwise', () => {
     expect(compare(json({ meta: '' }), json({ meta: { env: 'prod' } })).changes).toEqual(['body schema']);
   });
