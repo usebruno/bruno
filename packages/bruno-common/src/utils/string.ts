@@ -13,3 +13,8 @@ export const toDisplayString = (value: unknown, fallback = '', indentation = 2):
 
   return String(value);
 };
+
+/**
+ * Converts CRLF and lone CR line endings to LF.
+ */
+export const normalizeLineEndings = (text: string): string => text.replace(/\r\n?/g, '\n');

@@ -13,8 +13,6 @@ import {
   Kind
 } from 'graphql';
 
-const MAX_DEPTH = 7;
-
 export const PLACEHOLDER = '__bruno_placeholder__';
 
 const sanitizeQueryForParsing = (queryString) => {
@@ -175,8 +173,8 @@ const collectVariablesForInputObject = (parentKey, inputType, enabledArgs, varMa
   }
 };
 
-const collectVariablesFromSelections = (selections, enabledArgs, type, parentPath, visited, depth, varMap, usedNames) => {
-  if (!type || depth > MAX_DEPTH || visited.has(type.name)) return;
+const collectVariablesFromSelections = (selections, enabledArgs, type, parentPath, visited, varMap, usedNames) => {
+  if (!type || visited.has(type.name)) return;
 
   const nextVisited = new Set(visited);
   nextVisited.add(type.name);
@@ -194,7 +192,7 @@ const collectVariablesFromSelections = (selections, enabledArgs, type, parentPat
         }
       }
       if (!isMemberSelected) continue;
-      collectVariablesFromSelections(selections, enabledArgs, memberType, memberPath, nextVisited, depth + 1, varMap, usedNames);
+      collectVariablesFromSelections(selections, enabledArgs, memberType, memberPath, nextVisited, varMap, usedNames);
     }
     return;
   }
@@ -232,7 +230,7 @@ const collectVariablesFromSelections = (selections, enabledArgs, type, parentPat
 
     const named = getNamedType(field.type);
     if (!isLeafType(field.type) && named) {
-      collectVariablesFromSelections(selections, enabledArgs, named, fieldPath, nextVisited, depth + 1, varMap, usedNames);
+      collectVariablesFromSelections(selections, enabledArgs, named, fieldPath, nextVisited, varMap, usedNames);
     }
   }
 };
@@ -271,8 +269,8 @@ const placeholderSelectionSet = () => ({
   ]
 });
 
-const buildSelectionSetAST = (selections, namedType, parentPath, visited, depth, enabledArgs, varMap) => {
-  if (!namedType || depth > MAX_DEPTH || visited.has(namedType.name)) {
+const buildSelectionSetAST = (selections, namedType, parentPath, visited, enabledArgs, varMap) => {
+  if (!namedType || visited.has(namedType.name)) {
     return null;
   }
 
@@ -280,7 +278,7 @@ const buildSelectionSetAST = (selections, namedType, parentPath, visited, depth,
   nextVisited.add(namedType.name);
 
   if (isUnionType(namedType)) {
-    return buildUnionSelectionSet(selections, namedType, parentPath, nextVisited, depth, enabledArgs, varMap);
+    return buildUnionSelectionSet(selections, namedType, parentPath, nextVisited, enabledArgs, varMap);
   }
 
   if (!isObjectType(namedType) && !isInterfaceType(namedType)) {
@@ -294,7 +292,7 @@ const buildSelectionSetAST = (selections, namedType, parentPath, visited, depth,
     const fieldPath = parentPath ? `${parentPath}.${fieldName}` : fieldName;
     if (!selections.has(fieldPath)) continue;
 
-    const fieldAST = buildFieldAST(selections, field, fieldPath, nextVisited, depth, enabledArgs, varMap);
+    const fieldAST = buildFieldAST(selections, field, fieldPath, nextVisited, enabledArgs, varMap);
     if (fieldAST) {
       fieldSelections.push(fieldAST);
     }
@@ -308,13 +306,13 @@ const buildSelectionSetAST = (selections, namedType, parentPath, visited, depth,
   };
 };
 
-const buildFieldAST = (selections, field, fieldPath, visited, depth, enabledArgs, varMap) => {
+const buildFieldAST = (selections, field, fieldPath, visited, enabledArgs, varMap) => {
   const named = getNamedType(field.type);
   const args = buildArgumentsAST(field, fieldPath, enabledArgs, varMap);
 
   let selectionSet = null;
   if (!isLeafType(field.type)) {
-    selectionSet = buildSelectionSetAST(selections, named, fieldPath, visited, depth + 1, enabledArgs, varMap);
+    selectionSet = buildSelectionSetAST(selections, named, fieldPath, visited, enabledArgs, varMap);
     if (!selectionSet) {
       selectionSet = placeholderSelectionSet();
     }
@@ -395,7 +393,7 @@ const buildArgumentsAST = (field, fieldPath, enabledArgs, varMap) => {
   return args;
 };
 
-const buildUnionSelectionSet = (selections, unionType, parentPath, visited, depth, enabledArgs, varMap) => {
+const buildUnionSelectionSet = (selections, unionType, parentPath, visited, enabledArgs, varMap) => {
   const memberTypes = unionType.getTypes();
   const inlineFragments = [];
 
@@ -413,7 +411,7 @@ const buildUnionSelectionSet = (selections, unionType, parentPath, visited, dept
 
     if (!isMemberSelected) continue;
 
-    let selectionSet = buildSelectionSetAST(selections, memberType, memberPath, visited, depth + 1, enabledArgs, varMap);
+    let selectionSet = buildSelectionSetAST(selections, memberType, memberPath, visited, enabledArgs, varMap);
     if (!selectionSet) {
       selectionSet = placeholderSelectionSet();
     }
@@ -442,9 +440,9 @@ export const generateQueryString = (selections, argValues, schema, rootTypeName,
 
   const varMap = new Map();
   const usedNames = new Set();
-  collectVariablesFromSelections(selections, enabledArgs, rootType, rootTypeName, new Set(), 0, varMap, usedNames);
+  collectVariablesFromSelections(selections, enabledArgs, rootType, rootTypeName, new Set(), varMap, usedNames);
 
-  const selectionSet = buildSelectionSetAST(selections, rootType, rootTypeName, new Set(), 0, enabledArgs, varMap);
+  const selectionSet = buildSelectionSetAST(selections, rootType, rootTypeName, new Set(), enabledArgs, varMap);
   if (!selectionSet) return { query: '', variables: {} };
 
   const operation = rootTypeName === 'Query' ? 'query' : rootTypeName === 'Mutation' ? 'mutation' : 'subscription';
@@ -608,8 +606,8 @@ const walkVariableInputObject = (value, inputType, parentKey, argValues, enabled
   }
 };
 
-const walkSelectionSet = (selectionSet, parentType, parentPath, selections, expandedPaths, argValues, enabledArgs, variablesJson, schema, depth = 0) => {
-  if (!selectionSet || !selectionSet.selections || depth > MAX_DEPTH) return;
+const walkSelectionSet = (selectionSet, parentType, parentPath, selections, expandedPaths, argValues, enabledArgs, variablesJson, schema) => {
+  if (!selectionSet || !selectionSet.selections) return;
 
   const fieldMap = (isObjectType(parentType) || isInterfaceType(parentType))
     ? parentType.getFields()
@@ -664,7 +662,7 @@ const walkSelectionSet = (selectionSet, parentType, parentPath, selections, expa
         expandedPaths.add(fieldPath);
         const named = getNamedType(fieldMap[fieldName].type);
         if (named) {
-          walkSelectionSet(sel.selectionSet, named, fieldPath, selections, expandedPaths, argValues, enabledArgs, variablesJson, schema, depth + 1);
+          walkSelectionSet(sel.selectionSet, named, fieldPath, selections, expandedPaths, argValues, enabledArgs, variablesJson, schema);
         }
       }
     } else if (sel.kind === Kind.INLINE_FRAGMENT) {
@@ -679,7 +677,7 @@ const walkSelectionSet = (selectionSet, parentType, parentPath, selections, expa
         const memberType = named?.getTypes?.()?.find((t) => t.name === typeName)
           || schema.getType(typeName);
         if (memberType && sel.selectionSet) {
-          walkSelectionSet(sel.selectionSet, memberType, memberPath, selections, expandedPaths, argValues, enabledArgs, variablesJson, schema, depth + 1);
+          walkSelectionSet(sel.selectionSet, memberType, memberPath, selections, expandedPaths, argValues, enabledArgs, variablesJson, schema);
         }
       }
     }
