@@ -1,0 +1,4 @@
+name: Local
+variables:
+  - name: host
+    value: http://localhost:8081

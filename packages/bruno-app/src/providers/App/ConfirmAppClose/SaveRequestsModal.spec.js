@@ -40,7 +40,13 @@ beforeEach(() => {
 
 const renderModal = ({ apiSpecs = [], tabs = [], collections = [], forceCloseTabs = false, tabUidsToClose = [] } = {}) => {
   const onClose = jest.fn();
+  const dispatched = [];
+  const recordActions = () => (next) => (action) => {
+    if (typeof action !== 'function') dispatched.push(action);
+    return next(action);
+  };
   const store = configureStore({
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware({ serializableCheck: false }).concat(recordActions),
     reducer: {
       collections: (state = {}) => state,
       tabs: (state = {}) => state,
@@ -57,6 +63,7 @@ const renderModal = ({ apiSpecs = [], tabs = [], collections = [], forceCloseTab
 
   return {
     onClose,
+    dispatched,
     ...render(
       <Provider store={store}>
         <SaveRequestsModal onClose={onClose} forceCloseTabs={forceCloseTabs} tabUidsToClose={tabUidsToClose} />
@@ -204,5 +211,85 @@ describe('the unsaved changes dialog shown while quitting', () => {
     fireEvent.click(screen.getByText('Don\'t Save'));
 
     await waitFor(() => expect(clearApiSpecDraft).toHaveBeenCalledWith({ uid: 'spec-1' }));
+  });
+});
+
+describe('the unsaved changes dialog shown while closing a set of tabs', () => {
+  const request = (uid, name, { edited = true } = {}) => {
+    const item = { uid, name, type: 'http-request', pathname: `/c1/${name}.yml`, request: { url: 'http://a' } };
+    return edited ? { ...item, draft: { ...item, request: { url: 'http://b' } } } : item;
+  };
+  const requestTab = (uid) => ({ uid, collectionUid: 'c1', type: 'request' });
+
+  it('lists only the drafts held by the tabs being closed', () => {
+    renderModal({
+      collections: [{ uid: 'c1', name: 'My Collection', items: [request('r1', 'Users'), request('r2', 'Orders')] }],
+      tabs: [requestTab('r1'), requestTab('r2')],
+      forceCloseTabs: true,
+      tabUidsToClose: ['r1']
+    });
+
+    expect(screen.getByText('Request: Users')).toBeInTheDocument();
+    expect(screen.queryByText('Request: Orders')).not.toBeInTheDocument();
+  });
+
+  it('discards and closes only the tabs in range when the user does not save', async () => {
+    const { dispatched, onClose } = renderModal({
+      collections: [{ uid: 'c1', name: 'My Collection', items: [request('r1', 'Users'), request('r2', 'Orders')] }],
+      tabs: [requestTab('r1'), requestTab('r2')],
+      forceCloseTabs: true,
+      tabUidsToClose: ['r1']
+    });
+
+    fireEvent.click(screen.getByText('Don\'t Save'));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    const draftDeletes = dispatched.filter((a) => a.type === 'collections/deleteRequestDraft');
+    expect(draftDeletes.map((a) => a.payload.itemUid)).toEqual(['r1']);
+    const tabCloses = dispatched.filter((a) => a.type === 'tabs/closeTabs');
+    expect(tabCloses).toHaveLength(1);
+    expect(tabCloses[0].payload.tabUids).toEqual(['r1']);
+  });
+
+  it('closes immediately when no tab in range has unsaved changes', async () => {
+    const { container, dispatched, onClose } = renderModal({
+      collections: [{ uid: 'c1', name: 'My Collection', items: [request('r1', 'Users'), request('r2', 'Orders', { edited: false })] }],
+      tabs: [requestTab('r1'), requestTab('r2')],
+      forceCloseTabs: true,
+      tabUidsToClose: ['r2']
+    });
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(container).toBeEmptyDOMElement();
+    expect(dispatched.filter((a) => a.type === 'tabs/closeTabs')[0].payload.tabUids).toEqual(['r2']);
+  });
+
+  it('lists collection and folder drafts only when their settings tabs are in range', () => {
+    const folder = { uid: 'f1', name: 'Admin', type: 'folder', items: [], draft: { name: 'Admin' } };
+    const collections = [{ uid: 'c1', name: 'My Collection', draft: { name: 'My Collection' }, items: [folder] }];
+    const tabs = [
+      { uid: 'c1', collectionUid: 'c1', type: 'collection-settings' },
+      { uid: 'f1', collectionUid: 'c1', type: 'folder-settings' }
+    ];
+
+    const { unmount } = renderModal({ collections, tabs, forceCloseTabs: true, tabUidsToClose: ['f1'] });
+    expect(screen.getByText('Folder: Admin')).toBeInTheDocument();
+    expect(screen.queryByText('Collection: My Collection')).not.toBeInTheDocument();
+    unmount();
+
+    renderModal({ collections, tabs, forceCloseTabs: true, tabUidsToClose: ['c1', 'f1'] });
+    expect(screen.getByText('Collection: My Collection')).toBeInTheDocument();
+    expect(screen.getByText('Folder: Admin')).toBeInTheDocument();
+  });
+
+  it('still lists every draft in the collection when quitting the app', () => {
+    renderModal({
+      collections: [{ uid: 'c1', name: 'My Collection', draft: { name: 'My Collection' }, items: [request('r1', 'Users'), request('r2', 'Orders')] }],
+      tabs: [requestTab('r1')]
+    });
+
+    expect(screen.getByText('Collection: My Collection')).toBeInTheDocument();
+    expect(screen.getByText('Request: Users')).toBeInTheDocument();
+    expect(screen.getByText('Request: Orders')).toBeInTheDocument();
   });
 });

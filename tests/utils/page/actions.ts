@@ -2454,6 +2454,24 @@ const closeAllTabs = async (page: Page) => {
   });
 };
 
+/**
+ * Pick an entry from a request tab's right-click menu (e.g. "close-others", "close-left").
+ * @param page - The page object
+ * @param tabName - Exact label of the tab to right-click
+ * @param itemId - The menu item's data-item-id
+ */
+const selectTabContextMenuItem = async (page: Page, tabName: string, itemId: string) => {
+  await test.step(`Select "${itemId}" from the "${tabName}" tab menu`, async () => {
+    const tabLabel = page.locator('.request-tab').filter({ has: page.getByText(tabName, { exact: true }) }).locator('.tab-label');
+    // Aim at the label's left edge: on a short tab name the close-gradient overlay covers its centre.
+    await tabLabel.click({ button: 'right', position: { x: 5, y: 5 } });
+
+    const dropdown = page.locator('.tippy-box.dropdown');
+    await dropdown.waitFor({ state: 'visible', timeout: 5000 });
+    await dropdown.locator(`[role="menuitem"][data-item-id="${itemId}"]`).click();
+  });
+};
+
 // Switch to an already-open request tab by its label (e.g. transient tabs are "Untitled N").
 const switchToOpenTab = async (page: Page, label: string) => {
   await test.step(`Switch to tab "${label}"`, async () => {
@@ -4138,6 +4156,7 @@ export {
   streamGrpcMessagesAndEndCall,
   closeAllTabs,
   closeAllOpenTabs,
+  selectTabContextMenuItem,
   switchToOpenTab,
   createWorkspace,
   switchWorkspace,
