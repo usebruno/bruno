@@ -1,46 +1,54 @@
 import { test, expect } from '../../../playwright';
-import AdmZip from 'adm-zip';
-import * as fs from 'fs';
 import * as path from 'path';
-import { buildCommonLocators, closeAllCollections, openCollectionFromDialog, openRequest, sendRequest, switchToEditorTab } from '../../utils/page';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  exportCollectionAsZip,
+  importCollection,
+  openCollectionFromDialog,
+  openRequest,
+  removeCollection,
+  sendRequest,
+  switchToEditorTab
+} from '../../utils/page';
 
 const COLLECTION_NAME = 'Open Zip Collection';
-const COLLECTION_DIR_NAME = 'open-zip-collection';
 
-test.describe('Open an unzipped bru collection', () => {
+test.describe('Export a bru collection as ZIP and import it back', () => {
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
 
-  test('TC-3155: user is able to open an unzipped bru collection and execute a request', { tag: '@sanity' }, async ({
+  test('TC-3155: user is able to import an exported ZIP collection and execute a request', { tag: '@sanity' }, async ({
     page,
     electronApp,
     collectionFixturePath,
     createTmpDir
   }) => {
     const { sidebar, response } = buildCommonLocators(page);
-    const zipFilePath = path.join(await createTmpDir('open-zip-source'), `${COLLECTION_DIR_NAME}.zip`);
-    const unzipLocation = await createTmpDir('open-zip-extracted');
-    const unzippedCollectionPath = path.join(unzipLocation, COLLECTION_DIR_NAME);
+    const exportDir = await createTmpDir('open-zip-export');
+    const importLocation = await createTmpDir('open-zip-import');
+    const zipFilePath = path.join(exportDir, `${COLLECTION_NAME}.zip`);
 
-    await test.step('Zip the bru collection', async () => {
-      const zip = new AdmZip();
-      zip.addLocalFolder(collectionFixturePath!, COLLECTION_DIR_NAME);
-      zip.writeZip(zipFilePath);
-    });
-
-    await test.step('Unzip the collection', async () => {
-      new AdmZip(zipFilePath).extractAllTo(unzipLocation);
-      expect(fs.existsSync(path.join(unzippedCollectionPath, 'bruno.json'))).toBe(true);
-      expect(fs.existsSync(path.join(unzippedCollectionPath, 'ping.bru'))).toBe(true);
-    });
-
-    await test.step('Open the unzipped collection', async () => {
-      await openCollectionFromDialog(page, electronApp, unzippedCollectionPath);
+    await test.step('Open the bru collection', async () => {
+      await openCollectionFromDialog(page, electronApp, collectionFixturePath!);
       await expect(sidebar.collection(COLLECTION_NAME)).toBeVisible();
     });
 
-    await test.step('Execute a request from the opened collection', async () => {
+    await test.step('Export the collection as a Bruno Collection (ZIP)', async () => {
+      const zippedFiles = await exportCollectionAsZip(page, electronApp, COLLECTION_NAME, exportDir);
+      expect(zippedFiles.length).toBeGreaterThan(0);
+    });
+
+    // The imported collection keeps the same name, so close the original to keep sidebar lookups unambiguous.
+    await removeCollection(page, COLLECTION_NAME);
+
+    await test.step('Import the exported ZIP collection', async () => {
+      await importCollection(page, zipFilePath, importLocation, { expectedCollectionName: COLLECTION_NAME });
+      await expect(sidebar.collection(COLLECTION_NAME)).toBeVisible();
+    });
+
+    await test.step('Execute a request from the imported collection', async () => {
       await openRequest(page, COLLECTION_NAME, 'Ping');
       await sendRequest(page, 200);
       await switchToEditorTab(page);
