@@ -146,8 +146,8 @@ describe('addSecretToEnvironment', () => {
     expect(getCollection(store).environmentsDraft).toBeNull();
   });
 
-  it('rejects a name that already exists in the environment', async () => {
-    const store = createStore({ envVars: [makeVar('apiToken', 'old')] });
+  it('rejects a name that already exists as a secret in the environment', async () => {
+    const store = createStore({ envVars: [makeVar('apiToken', 'old', { secret: true })] });
 
     await expect(store.dispatch(addSecretToEnvironment({
       collectionUid: COLLECTION_UID,

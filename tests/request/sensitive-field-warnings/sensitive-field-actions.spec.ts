@@ -10,6 +10,7 @@ import {
   createEnvironment,
   createFolder,
   createRequest,
+  openCollectionFromDialog,
   openCollectionSettings,
   openEnvironmentConfigTab,
   openFolderRequest,
@@ -23,6 +24,7 @@ import {
   saveSecretTo,
   selectAuthMode,
   selectCollectionPaneTab,
+  selectEnvironment,
   selectfolderPaneTab,
   selectRequestPaneTab,
   setEnvironmentVariableValue,
@@ -121,6 +123,36 @@ test.describe('Sensitive field actions', () => {
       await expect(form.noEnvironmentNote('environment')).toBeVisible();
       await codeMirror.sensitiveWarning(API_KEY_FIELD).click();
       await expect(form.container()).toHaveCount(0);
+      expect(await readField(page, 'Value')).toBe('raw-secret');
+    });
+  });
+
+  test('The close button closes the form while it shows a save error', async ({ page, electronApp, collectionFixturePath }) => {
+    const { codeMirror, secretVariableForm: form } = buildCommonLocators(page);
+
+    await test.step('Open a request with a plaintext API key in a collection whose environment has an apiKeyValue secret', async () => {
+      await openCollectionFromDialog(page, electronApp, collectionFixturePath!);
+      await openRequest(page, 'sensitive-field-actions', 'login');
+      await selectEnvironment(page, 'dev');
+      await selectRequestPaneTab(page, 'Auth');
+    });
+
+    await test.step('Saving with the name of the existing secret shows an error', async () => {
+      await clickSensitiveFieldAction(page, codeMirror.sensitiveWarning(API_KEY_FIELD), API_KEY_FIELD);
+      await form.nameInput().fill('apiKeyValue');
+      await saveSecretTo(page, 'environment');
+      await expect(form.error()).toHaveText('"apiKeyValue" already exists in Collection Environment. Use a different name.');
+    });
+
+    await test.step('An outside click does not close the form while the error shows', async () => {
+      await codeMirror.sensitiveWarning(API_KEY_FIELD).click();
+      await expect(form.container()).toBeVisible();
+    });
+
+    await test.step('The close button closes the form and saves nothing', async () => {
+      await form.closeButton().click();
+      await expect(form.container()).toHaveCount(0);
+      await expect(form.actionLink(API_KEY_FIELD)).toHaveCount(0);
       expect(await readField(page, 'Value')).toBe('raw-secret');
     });
   });
