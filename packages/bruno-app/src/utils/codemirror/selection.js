@@ -1,3 +1,18 @@
+import { isMacOS } from 'utils/common/platform';
+
+const RIGHT_MOUSE_BUTTON = 2;
+const LEFT_MOUSE_BUTTON = 0;
+
+// Chromium reports a macOS ctrl+click as the left button, but it opens the context menu all the
+// same — CodeMirror normalises it the same way in `e_button`.
+const isContextMenuGesture = (event) => {
+  if (event?.button === RIGHT_MOUSE_BUTTON) {
+    return true;
+  }
+
+  return isMacOS() && event?.button === LEFT_MOUSE_BUTTON && event?.ctrlKey === true;
+};
+
 const comparePositions = (a, b) => (a.line - b.line) || (a.ch - b.ch);
 
 const isPositionWithinRange = (position, from, to) =>
@@ -31,6 +46,40 @@ export const getCodeMirrorSelectionPayload = (editor, event) => {
     to,
     editable: !editor.getOption('readOnly')
   };
+};
+
+let pinnedSelection = null;
+
+const collapseWhenUnfocused = (editor) => {
+  if (editor && !editor.hasFocus()) {
+    editor.setCursor(editor.getCursor());
+  }
+};
+
+export const releasePinnedSelection = () => {
+  const previous = pinnedSelection;
+  pinnedSelection = null;
+
+  if (previous) {
+    collapseWhenUnfocused(previous.editor);
+  }
+};
+
+export const getPinnedSelection = (editor) => (pinnedSelection?.editor === editor ? pinnedSelection.payload : null);
+
+export const isSelectionPinned = (editor) => !!getPinnedSelection(editor);
+
+// The payload is read before releasing, so the outgoing pin's collapse cannot blank the range
+// that is about to be pinned.
+export const pinSelectionOnContextMenu = ({ editor, event, enabled }) => {
+  const eligible = enabled && isContextMenuGesture(event);
+  const payload = eligible ? getCodeMirrorSelectionPayload(editor, event) : null;
+
+  releasePinnedSelection();
+
+  if (payload) {
+    pinnedSelection = { editor, payload };
+  }
 };
 
 const BRACE_LENGTH = 2;
