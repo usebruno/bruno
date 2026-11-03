@@ -44,7 +44,6 @@ class BrunoGrpcResponse {
      * @category Messages
      */
     this.messages = new GrpcMessageList(response.messages);
-    
     /**
      * The metadata the server sent before its messages.
      * @type {import('./grpc-metadata-list').ReadOnlyGrpcMetadataList}

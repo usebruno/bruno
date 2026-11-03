@@ -185,6 +185,17 @@ describe('GrpcMetadataList', () => {
       expect(list.all()).toEqual([{ key: 'content-type', value: 'application/grpc' }]);
     });
 
+    test('editing an entry a read returned does not change later reads', () => {
+      const list = new GrpcMetadataList([{ name: 'content-type', value: 'application/grpc' }]);
+
+      list.one('content-type').value = 'edited';
+      list.all()[0].value = 'edited';
+      list.find((entry) => entry.key === 'content-type').value = 'edited';
+
+      expect(list.get('content-type')).toBe('application/grpc');
+      expect(list.all()).toEqual([{ key: 'content-type', value: 'application/grpc' }]);
+    });
+
     test('no rows at all is an empty list', () => {
       expect(new GrpcMetadataList(undefined).count()).toBe(0);
     });

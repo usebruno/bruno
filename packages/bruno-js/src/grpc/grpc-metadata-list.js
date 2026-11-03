@@ -38,13 +38,12 @@ class GrpcMetadataList extends ReadOnlyPropertyList {
    */
   constructor(source, { writable = false } = {}) {
     const snapshot = !source || Array.isArray(source);
+    const rows = snapshot ? snapshotHeaderEntries(source) : null;
     super({
       keyProperty: 'key',
       valueProperty: 'value',
       caseInsensitiveKeys: true,
-      ...(snapshot
-        ? { items: snapshotHeaderEntries(source) }
-        : { dataSource: () => orderedHeaderEntries(source) })
+      dataSource: snapshot ? () => rows.map((entry) => ({ ...entry })) : () => orderedHeaderEntries(source)
     });
     this.#request = snapshot ? null : source;
     this.#writable = writable && !snapshot;
