@@ -53,7 +53,7 @@ const Info = ({ collection }) => {
             </div>
             <div className="ml-4">
               <div className="font-medium" data-testid="info-location-label">Location</div>
-              <div className="mt-1 text-muted break-all" data-testid="info-location-value">
+              <div className="mt-1 text-muted break-all" data-testid="info-collection-location">
                 {collection.pathname}
               </div>
             </div>

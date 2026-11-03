@@ -4,7 +4,7 @@ import { Page } from '../../../../playwright';
 export const buildCollectionOverviewLocators = (page: Page) => {
   return {
     locationLabel: () => page.getByTestId('info-location-label'),
-    collectionLocation: () => page.getByTestId('info-location-value'),
+    collectionLocation: () => page.getByTestId('info-collection-location'),
     environmentsLabel: () => page.getByTestId('info-environments-label'),
     collectionEnvironmentCount: () => page.getByTestId('info-collection-environment-count'),
     globalEnvironmentCount: () => page.getByTestId('info-global-environment-count'),
