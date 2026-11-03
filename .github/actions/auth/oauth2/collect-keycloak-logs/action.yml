@@ -12,7 +12,7 @@ runs:
     - name: Stage Keycloak logs
       shell: bash
       run: |
-        set -uo pipefail
+        set -euo pipefail
         mkdir -p keycloak-logs
         shopt -s nullglob
         logs=("$RUNNER_TEMP"/keycloak*.log)
@@ -22,7 +22,6 @@ runs:
           # Keycloak is started by run-oauth2-e2e-tests, so a missing log usually means
           # setup-keycloak failed first; that failure is the one worth surfacing.
           echo "::warning::No Keycloak logs found in $RUNNER_TEMP."
-          exit 0
         fi
 
     - name: Upload Keycloak logs
