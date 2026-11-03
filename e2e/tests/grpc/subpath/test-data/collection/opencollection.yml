@@ -5,5 +5,5 @@ info:
 config:
   protobuf:
     protoFiles:
-      - path: ../../../../../packages/bruno-tests/src/grpc/hello.proto
+      - path: ../../../../../../packages/bruno-tests/src/grpc/hello.proto
         type: file

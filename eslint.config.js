@@ -98,7 +98,8 @@ module.exports = runESMImports().then(() => defineConfig([
     }
   },
   {
-    // E2E specs use aliases from e2e/tsconfig.json instead of relative imports.    files: ['e2e/tests/**/*.{ts,js}'],
+    // E2E specs use aliases from e2e/tsconfig.json instead of relative imports.
+    files: ['e2e/tests/**/*.{ts,js}'],
     ignores: ['**/test-data/**', '**/init-user-data/**'],
     rules: {
       'no-restricted-imports': ['error', {
@@ -118,14 +119,37 @@ module.exports = runESMImports().then(() => defineConfig([
   {
     // Use relative imports in shared E2E code. Aliases are for specs only
     // to avoid circular dependencies through the @e2e/pages barrel.
-    files: ['e2e/**/*.{ts,js}'],
-    ignores: ['e2e/tests/**'],
+    // Page objects also never import index.ts or locators.ts (both import every page object).
+    files: ['e2e/pages/**/*.{ts,js}'],
+    ignores: ['e2e/pages/index.ts'], // the barrel re-exports every page object, including locators.ts
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [
           {
             regex: '^@e2e/',
             message: 'Shared E2E code imports by relative path. @e2e/* aliases are for specs in e2e/tests/ only.'
+          },
+          {
+            regex: '^(\\.\\.?/)+(index|locators)$|^\\.\\.?/?$|^(\\.\\./)+\\.\\.$',
+            message: 'Page objects import the specific file they need, never index.ts or locators.ts (that creates a circular import).'
+          }
+        ]
+      }]
+    }
+  },
+  {
+    // Lower layers never import page objects: page objects already depend on them.
+    files: ['e2e/{playwright,support,data,constants,servers}/**/*.{ts,js}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          {
+            regex: '^@e2e/',
+            message: 'Shared E2E code imports by relative path. @e2e/* aliases are for specs in e2e/tests/ only.'
+          },
+          {
+            regex: '^(\\.\\./)+pages(/.*)?$',
+            message: 'Shared infrastructure must not import page objects (pages depend on it, so this creates a circular import).'
           }
         ]
       }]

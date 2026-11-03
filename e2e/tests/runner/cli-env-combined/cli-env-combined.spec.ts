@@ -5,7 +5,7 @@ import path from 'path';
 
 test.describe('CLI Combined Environment Support (--env and --env-file)', () => {
   const collectionPath = path.resolve(__dirname, 'collection');
-  const BRU = 'node ../../../../packages/bruno-cli/bin/bru.js';
+  const BRU = 'node ../../../../../packages/bruno-cli/bin/bru.js';
 
   // Helper: run bru CLI and return exit code
   const runFrom = (cwd: string, args: string): number => {

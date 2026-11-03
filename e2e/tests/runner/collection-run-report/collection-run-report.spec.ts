@@ -21,7 +21,7 @@ test.describe('Collection Run Report Tests', () => {
     const junitOutputPath = path.join(outputDir, 'cli-report.xml');
 
     // Run collection via CLI with JUnit reporter
-    const command = `cd "${collectionPath}" && node ../../../../packages/bruno-cli/bin/bru.js run --reporter-junit "${junitOutputPath}"`;
+    const command = `cd "${collectionPath}" && node ../../../../../packages/bruno-cli/bin/bru.js run --reporter-junit "${junitOutputPath}"`;
 
     try {
       execSync(command, { stdio: 'pipe' });
