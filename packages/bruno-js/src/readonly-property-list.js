@@ -63,18 +63,20 @@ class ReadOnlyPropertyList {
     }
   }
 
-  // ── Protected hooks ───────────────────────────────────────────────────
+  // ── Private hooks ─────────────────────────────────────────────────────
 
   /**
    * Returns the current list of items.
    * In dynamic mode, calls the dataSource function.
    * In static mode, returns the internal array.
-   * @protected
+   * @private
    * @returns {T[]}
    */
-  _getItems() {
+  #getItems() {
     return this._dynamic ? this.#dataSource() : this._items;
   }
+
+  // ── Protected hooks ───────────────────────────────────────────────────
 
   /**
    * The single place the key match rule lives. Non-string keys never match.
@@ -128,7 +130,7 @@ class ReadOnlyPropertyList {
     // Duplicate keys resolve to the last entry, consistent with toObject()'s last-wins semantics.
     // An entry flagged `disabled: true` only answers when no enabled entry carries the key, so a
     // header switched off beside an active one never shadows it, wherever it sits in the list.
-    const matches = this._getItems().filter((i) => this._keyMatches(i[this._keyProperty], name));
+    const matches = this.#getItems().filter((i) => this._keyMatches(i[this._keyProperty], name));
     return matches.findLast((i) => !i.disabled) ?? matches.at(-1);
   }
 
@@ -138,7 +140,7 @@ class ReadOnlyPropertyList {
    * @category Read
    */
   all() {
-    return [...this._getItems()];
+    return [...this.#getItems()];
   }
 
   /**
@@ -148,7 +150,7 @@ class ReadOnlyPropertyList {
    * @category Read
    */
   idx(index) {
-    return this._getItems()[index];
+    return this.#getItems()[index];
   }
 
   /**
@@ -157,7 +159,7 @@ class ReadOnlyPropertyList {
    * @category Read
    */
   count() {
-    return this._getItems().length;
+    return this.#getItems().length;
   }
 
   /**
@@ -170,7 +172,7 @@ class ReadOnlyPropertyList {
    * @category Search
    */
   indexOf(nameOrItem) {
-    const items = this._getItems();
+    const items = this.#getItems();
     if (typeof nameOrItem === 'string') {
       return items.findIndex((i) => this._keyMatches(i[this._keyProperty], nameOrItem));
     }
@@ -199,7 +201,7 @@ class ReadOnlyPropertyList {
    */
   has(nameOrItem, value) {
     const name = nameOrItem && typeof nameOrItem === 'object' ? nameOrItem[this._keyProperty] : nameOrItem;
-    return this._getItems().some(
+    return this.#getItems().some(
       (i) => this._keyMatches(i[this._keyProperty], name) && (value === undefined || i[this._valueProperty] === value)
     );
   }
@@ -212,7 +214,7 @@ class ReadOnlyPropertyList {
    * @category Search
    */
   find(predicate, context) {
-    return this._getItems().find(this._bind(predicate, context));
+    return this.#getItems().find(this._bind(predicate, context));
   }
 
   /**
@@ -223,7 +225,7 @@ class ReadOnlyPropertyList {
    * @category Search
    */
   filter(predicate, context) {
-    return this._getItems().filter(this._bind(predicate, context));
+    return this.#getItems().filter(this._bind(predicate, context));
   }
 
   // ── Iteration ──────────────────────────────────────────────────────────
@@ -235,7 +237,7 @@ class ReadOnlyPropertyList {
    * @category Iteration
    */
   each(fn, context) {
-    this._getItems().forEach(this._bind(fn, context));
+    this.#getItems().forEach(this._bind(fn, context));
   }
 
   /**
@@ -248,7 +250,7 @@ class ReadOnlyPropertyList {
    * @category Iteration
    */
   map(fn, context) {
-    return this._getItems().map(this._bind(fn, context));
+    return this.#getItems().map(this._bind(fn, context));
   }
 
   /**
@@ -263,7 +265,7 @@ class ReadOnlyPropertyList {
    */
   reduce(fn, ...rest) {
     const bound = this._bind(fn, rest[1]);
-    return rest.length ? this._getItems().reduce(bound, rest[0]) : this._getItems().reduce(bound);
+    return rest.length ? this.#getItems().reduce(bound, rest[0]) : this.#getItems().reduce(bound);
   }
 
   // ── Transformation ─────────────────────────────────────────────────────
@@ -277,7 +279,7 @@ class ReadOnlyPropertyList {
    */
   toObject() {
     const result = {};
-    for (const item of this._getItems()) {
+    for (const item of this.#getItems()) {
       result[item[this._keyProperty]] = item[this._valueProperty];
     }
     return result;
@@ -289,7 +291,7 @@ class ReadOnlyPropertyList {
    * @category Transform
    */
   toString() {
-    return this._getItems()
+    return this.#getItems()
       .map((i) => `${i[this._keyProperty]}=${i[this._valueProperty]}`)
       .join('; ');
   }
