@@ -139,8 +139,6 @@ describe('countPmApiUsages', () => {
 });
 
 describe('parser behaviour', () => {
-  // Pinned at the module's boundary -- text in, counts out -- so the parser
-  // underneath can be replaced without the report's meaning drifting.
   it.each([
     ['plain chain', 'pm.environment.get("k");', { 'pm.environment.get': 1 }],
     ['optional chaining', 'pm?.environment.get("k");', { 'pm.environment.get': 1 }],
@@ -165,8 +163,6 @@ describe('parser behaviour', () => {
   });
 
   it('never counts a Postman call that only appears inside a comment', () => {
-    // Exercises all three of babel's comment attachments: leading, trailing and
-    // inner (the last attaches to bodies that hold nothing else).
     const script = [
       '// pm.globals.set("leading")',
       'pm.test("a", () => {});  // pm.globals.set("trailing")',
