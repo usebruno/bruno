@@ -436,7 +436,7 @@ describe('environment table usage flags', () => {
     items: request ? [request] : [],
     root: { request: {} },
     environments: [{ uid: 'env-1', name: 'Prod', variables }],
-    activeEnvironmentUid: 'env-other',
+    activeEnvironmentUid: 'env-1',
     ...extra
   });
 
@@ -541,7 +541,8 @@ describe('environment table usage flags', () => {
       environments: [
         { uid: 'base', name: 'base', variables: [inherited] },
         { uid: 'dev', name: 'dev', extends: 'base', variables: [] }
-      ]
+      ],
+      activeEnvironmentUid: 'dev'
     };
 
     expect([...findUsedEnvironmentVariableUids(collection, { uid: 'dev', variables: [] })]).toEqual(['base-token']);
@@ -609,7 +610,7 @@ describe('vars table usage flags', () => {
     expect([...findUsedEnvironmentVariableUids(collection, collection.environments[0])]).toEqual([]);
   });
 
-  it('flags the folder variable only when an inheriting request sends it', () => {
+  it('flags the folder variable used in folder auth even when a request variable overrides it', () => {
     const folderVariable = requestVar('folder-token');
     const requestVariable = requestVar('request-token');
     const inheritingRequest = {
@@ -639,7 +640,7 @@ describe('vars table usage flags', () => {
     });
 
     expect([...findUsedVarsRowUids(inherited, 'folder')]).toEqual(['folder-token']);
-    expect([...findUsedVarsRowUids(overridden, 'folder')]).toEqual([]);
+    expect([...findUsedVarsRowUids(overridden, 'folder')]).toEqual(['folder-token']);
     expect([...findUsedVarsRowUids(overridden, 'request')]).toEqual(['request-token']);
   });
 

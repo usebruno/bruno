@@ -1647,7 +1647,7 @@ describe('Bruno Autocomplete', () => {
       });
     });
 
-    describe('Manual trigger (brunoTriggerAutocomplete, Ctrl+Space)', () => {
+    describe('Manual trigger (brunoTriggerAutocomplete)', () => {
       const extraMethods = ['replaceRange', 'setCursor', 'getOption'];
       let cleanupFn;
 
@@ -1702,7 +1702,7 @@ describe('Bruno Autocomplete', () => {
         expect(mockedCodemirror.showHint).toHaveBeenCalledTimes(1);
       });
 
-      it('still works in OFF mode: Ctrl+Space only suppresses typing-triggered hints', () => {
+      it('still works in OFF mode: OFF only suppresses typing-triggered hints', () => {
         const cursor = { line: 0, ch: 0 };
         let line = '';
         mockedCodemirror.getCursor.mockReturnValue(cursor);

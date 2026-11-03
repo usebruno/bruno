@@ -1,6 +1,6 @@
 const ReadOnlyPropertyList = require('./readonly-property-list');
 
-/**
+/*
  * PropertyList - A mutable collection data structure.
  *
  * Extends ReadOnlyPropertyList with mutation methods that operate on the
@@ -11,6 +11,12 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  *   ReadOnlyPropertyList  (read-only, both modes)
  *     └── PropertyList    (sync mutations in static mode; throws in dynamic mode)
  *          └── CookieList (overrides add/upsert/remove/clear/delete with async jar ops)
+ */
+
+/**
+ * A list of `{ key, value }` entries that can be changed.
+ * @template T
+ * @extends {ReadOnlyPropertyList<T>}
  */
 class PropertyList extends ReadOnlyPropertyList {
   /**
@@ -36,6 +42,7 @@ class PropertyList extends ReadOnlyPropertyList {
 
   /**
    * Alias for add().
+   * @internal
    * @param {object} item
    */
   append(item) {
@@ -44,6 +51,7 @@ class PropertyList extends ReadOnlyPropertyList {
 
   /**
    * Insert an item at the beginning of the list.
+   * @internal
    * @param {object} item
    */
   prepend(item) {
@@ -53,6 +61,7 @@ class PropertyList extends ReadOnlyPropertyList {
 
   /**
    * Insert an item before a reference item.
+   * @internal
    * @param {object} item - The item to insert
    * @param {string|object} before - Key string or item object to insert before
    */
@@ -68,6 +77,7 @@ class PropertyList extends ReadOnlyPropertyList {
 
   /**
    * Insert an item after a reference item.
+   * @internal
    * @param {object} item - The item to insert
    * @param {string|object} after - Key string or item object to insert after
    */
@@ -124,6 +134,7 @@ class PropertyList extends ReadOnlyPropertyList {
 
   /**
    * Replace all items with a new array.
+   * @internal
    * @param {Array} items
    */
   populate(items) {
@@ -133,6 +144,7 @@ class PropertyList extends ReadOnlyPropertyList {
 
   /**
    * Clear and repopulate with new items.
+   * @internal
    * @param {Array} items
    */
   repopulate(items) {
@@ -142,6 +154,7 @@ class PropertyList extends ReadOnlyPropertyList {
 
   /**
    * Merge items from another PropertyList or array.
+   * @internal
    * @param {PropertyList|Array} source - Source of items to merge
    * @param {boolean} [prune=false] - If true, clear existing items first
    */
