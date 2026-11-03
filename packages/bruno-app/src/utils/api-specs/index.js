@@ -1,5 +1,7 @@
-import { normalizePath } from 'utils/common/path';
+import { getAbsoluteFilePath, normalizePath } from 'utils/common/path';
 import { isWindowsOS } from 'utils/common/platform';
+import { isHttpUrl } from 'utils/url';
+import { getWorkspaceCollections } from 'utils/collections';
 
 export const API_SPEC_TAB_TYPE = 'api-spec';
 
@@ -40,3 +42,17 @@ export const hasUnsavedApiSpecChanges = (apiSpec) =>
   Boolean(apiSpec) && typeof apiSpec.draft === 'string' && apiSpec.draft !== apiSpec.raw;
 
 export const getSpecLabel = (spec) => spec.name || spec.filename || spec.pathname;
+
+const syncsFromSpec = (collection, specPathKey) =>
+  (collection.brunoConfig?.openapi || []).some(({ sourceUrl } = {}) => {
+    if (!sourceUrl || isHttpUrl(sourceUrl)) return false;
+    return getApiSpecPathKey(getAbsoluteFilePath(collection.pathname, sourceUrl)) === specPathKey;
+  });
+
+export const countCollectionsSyncingFromSpec = (collections, workspace, specPathname) => {
+  const specPathKey = getApiSpecPathKey(specPathname);
+  if (!specPathKey || !Array.isArray(collections)) return 0;
+
+  return getWorkspaceCollections({ collections, activeWorkspace: workspace })
+    .filter((collection) => syncsFromSpec(collection, specPathKey)).length;
+};

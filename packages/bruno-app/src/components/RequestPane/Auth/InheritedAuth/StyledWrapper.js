@@ -47,14 +47,19 @@ const Wrapper = styled.div`
   }
 
   .inherited-auth-fields {
-    pointer-events: none;
-    cursor: not-allowed;
-    opacity: 0.65;
+    .single-line-editor.read-only,
+    .multi-line-editor.read-only,
+    input:disabled,
+    select:disabled {
+      opacity: 0.5;
+    }
 
-    /* Allow expanding collapsed sections so inherited values can be viewed. */
-    .auth-section-toggle {
-      pointer-events: auto;
-      cursor: pointer;
+    .single-line-editor.read-only .CodeMirror-lines {
+      cursor: not-allowed;
+    }
+
+    .read-only .hovered-link.CodeMirror-link {
+      text-decoration: none !important;
     }
   }
 `;

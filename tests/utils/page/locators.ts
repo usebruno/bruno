@@ -1,6 +1,7 @@
 import { Locator, Page } from '../../../playwright';
-import { buildApiSpecPanelLocators } from './openapi/render-spec';
+import { buildApiSpecPanelLocators, buildApiSpecRowMenuLocators } from './openapi/render-spec';
 import { buildOpenApiSyncLocators } from './openapi/sync';
+import { buildMockServerLocators } from './mock-server';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
@@ -13,8 +14,12 @@ import { buildDocsLocators } from './docs';
 import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
 import { buildWebsocketCommonLocators } from './websocket';
 import { buildToastLocators } from './toast';
+import { buildSecretVariableFormLocators } from './secret-variable-form';
 import { buildRequestLocators } from '../request';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
+import { buildCollectionAppLocators } from './collection/collection-app';
+import { buildCollectionProxyLocators } from './collection/proxy';
+import { buildCodeMirrorLocators } from './code-mirror';
 import { buildEnvironmentLocators } from './environments';
 import { buildTimelineHeaderLocators } from './timeline-headers';
 import { buildSetAsVariableLocators } from './set-as-variable';
@@ -26,6 +31,8 @@ import { buildCreateWorkspaceModalLocators } from './workspace/create-workspace-
 import { buildTitleBarLocators } from './title-bar';
 import { buildCloneGitRepositoryLocators } from './git/clone-git-repository';
 import { buildResponseExampleLocators } from './response-example';
+import { buildGraphqlQueryBuilderLocators } from './graphql/query-builder';
+import { buildAuthLocators } from './auth';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
@@ -36,6 +43,8 @@ const addToNoEnvNoteLocator = (popup: Locator, scopeType: 'environment' | 'globa
 export const buildCommonLocators = (page: Page) => ({
   titleBar: buildTitleBarLocators(page),
   collectionHeader: buildCollectionHeaderLocators(page),
+  collectionApp: buildCollectionAppLocators(page),
+  collectionProxy: buildCollectionProxyLocators(page),
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),
   timelineHeaders: buildTimelineHeaderLocators(page),
@@ -44,6 +53,7 @@ export const buildCommonLocators = (page: Page) => ({
   codeEditorHints: buildCodeEditorHintLocators(page),
   openApi: {
     render: buildApiSpecPanelLocators(page),
+    rowMenu: buildApiSpecRowMenuLocators(page),
     sync: buildOpenApiSyncLocators(page)
   },
   preferences: buildPreferencesLocators(page),
@@ -52,9 +62,11 @@ export const buildCommonLocators = (page: Page) => ({
   unresolvedVariablesInfo: buildUnresolvedVariablesInfoLocators(page),
   websocket: buildWebsocketCommonLocators(page),
   toast: buildToastLocators(page),
+  secretVariableForm: buildSecretVariableFormLocators(page),
   request: buildRequestLocators(page),
   setAsVariable: buildSetAsVariableLocators(page),
   responseExample: buildResponseExampleLocators(page),
+  graphqlQueryBuilder: buildGraphqlQueryBuilderLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
@@ -102,6 +114,7 @@ export const buildCommonLocators = (page: Page) => ({
     overflowTrigger: (root?: Locator) => (root ?? page).locator('.tabs .more-tabs'),
     // menu is rendered via portal, hence it rooted to page.
     overflowItem: (key: string) => page.getByTestId(`menu-dropdown-${key}`),
+    scriptSubTabsOverflowTrigger: () => page.getByTestId('script-sub-tabs').getByTestId('tabs-overflow-trigger'),
     collectionSettingsTab: (key: string) => page.getByTestId(`collection-settings-tab-${key}`),
     folderSettingsTab: (key: string) => page.getByTestId(`folder-settings-tab-${key}`),
     folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
@@ -126,6 +139,7 @@ export const buildCommonLocators = (page: Page) => ({
     any: () => page.locator('.bruno-modal'),
     formError: (text: string | RegExp) =>
       page.locator('.bruno-modal [data-testid="form-error"]').getByText(text),
+    tabOptions: () => page.locator('.bruno-modal-header-tabs').locator('.bruno-modal-header-tab'),
     title: (title: string) => page.locator('.bruno-modal-header-title').filter({ hasText: title }),
     byTitle: (title: string) => page.locator('.bruno-modal').filter({ has: page.locator('.bruno-modal-header-title').filter({ hasText: title }) }),
     itemNameInput: (root?: Locator) => (root ?? page.locator('.bruno-modal')).locator('#collection-item-name'),
@@ -155,18 +169,7 @@ export const buildCommonLocators = (page: Page) => ({
     selectAllToggle: () => page.getByTestId('selection-select-all-toggle').getByRole('checkbox'),
     searchInput: () => page.getByTestId('selection-search-input')
   },
-  codeMirror: {
-    hint: (name: string) => page.locator('.CodeMirror-hints:visible').getByRole('option', { name, exact: true }),
-    byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first(),
-    within: (scope: Locator) => scope.locator('.CodeMirror').first(),
-    /** Nth row's value-column editor in an EditableTable (Headers / Params / Vars / Assertions). */
-    valueCellAt: (scope: Locator, rowIndex: number = 0) =>
-      scope.locator('table tbody tr').nth(rowIndex).getByTestId('column-value').locator('.CodeMirror'),
-    /** Warning icon beside a sensitive input. `fieldName` is the field or variable name. */
-    sensitiveWarning: (fieldName: string) => page.getByTestId(`sensitive-field-warning-${fieldName}`),
-    sensitiveWarningIn: (root: Locator, fieldName: string) => root.getByTestId(`sensitive-field-warning-${fieldName}`),
-    sensitiveTooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text })
-  },
+  codeMirror: buildCodeMirrorLocators(page),
   // The DataTypeSelector exposes a stable trigger per row (request/folder/collection
   // vars + env vars). Compact mode shows an icon; full mode shows `.type-label`.
   dataTypeSelector: {
@@ -214,22 +217,7 @@ export const buildCommonLocators = (page: Page) => ({
     addToCreateEnvSubmit: (popup: Locator) => popup.getByTestId('var-info-add-to-create-env-submit'),
     addToError: (popup: Locator) => popup.getByTestId('var-info-add-to-error')
   },
-  auth: {
-    apiKey: {
-      placementSelector: () => page.getByTestId('auth-placement-selector'),
-      placementLabel: () => page.getByTestId('auth-placement-label')
-    },
-    oauth2: {
-      grantTypeDropdown: () => page.getByTestId('grant-type-dropdown'),
-      tokenHeaderPrefixField: () => page.getByTestId('token-header-prefix'),
-      tokenQueryParamKeyField: () => page.getByTestId('token-query-param-key')
-    },
-    modeSelector: () => page.getByTestId('auth-mode-selector'),
-    modeLabel: () => page.getByTestId('auth-mode-label'),
-    inheritedMode: () => page.getByTestId('inherited-auth-mode'),
-    inheritedFields: () => page.getByTestId('inherited-auth-fields'),
-    dropdownItem: (id: string) => page.getByTestId(`auth-mode-dropdown-${id}`)
-  },
+  auth: buildAuthLocators(page),
   presets: {
     requestType: (type: PresetRequestType) =>
       page.getByTestId(`presets-request-type-${type}`),
@@ -284,7 +272,7 @@ export const buildCommonLocators = (page: Page) => ({
     tooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text }),
     includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include Tags'),
     excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude Tags'),
-    tagChip: (name: string) => page.locator('.bruno-modal .docs-tag-item').filter({ hasText: name }),
+    tagChip: (name: string) => page.locator('.bruno-modal').getByTestId('tag-picker-item').filter({ hasText: name }),
     gitLinkLabel: () => page.locator('.bruno-modal').getByTestId('docs-git-link')
   },
   runnerResults: {
@@ -355,10 +343,16 @@ export const buildCommonLocators = (page: Page) => ({
     fileInput: () => page.locator('input[type="file"]'),
     advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
     preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
+    checkForSpecUpdatesToggle: () => page.getByTestId('check-for-spec-updates-toggle'),
     bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
     bulkFormatSelect: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
     bulkLocationInput: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),
     bulkSubmitButton: () => page.getByTestId('bulk-import-collection-location-modal-submit-btn'),
+    bulkSpecUpdatesCheckbox: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates'),
+    bulkSpecUpdatesDescription: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates-description'),
+    bulkSwagger2SyncNote: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-swagger2-sync-note'),
+    bulkSelectAllCollectionsToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('selection-section-collections').getByTestId('selection-select-all-toggle'),
+    bulkCollectionCheckbox: (fileName: string) => page.getByTestId('bulk-import-collection-location-modal').getByTestId('selection-section-collections').getByRole('listitem').filter({ has: page.getByText(fileName, { exact: true }) }).getByRole('checkbox'),
     envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
     parsingError: () => page.getByTestId('import-error-message'),
     browseLink: (root?: Locator) => (root ?? page).getByTestId('import-collection-browse-link'),
@@ -379,7 +373,9 @@ export const buildCommonLocators = (page: Page) => ({
   },
   export: {
     postmanModal: () => page.getByTestId('export-to-postman-modal'),
+    exportTab: () => page.getByTestId('share-collection-tab-export'),
     postmanFormatCard: () => page.getByTestId('export-format-postman'),
+    yamlFormatCard: () => page.getByTestId('export-format-yaml'),
     nameInput: () => page.getByLabel('Name', { exact: true }),
     locationInput: () => page.getByLabel('Location', { exact: true }),
     optionsButton: () => page.getByRole('button', { name: 'Options' }),

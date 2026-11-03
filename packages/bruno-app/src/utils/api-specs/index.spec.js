@@ -1,4 +1,5 @@
 import {
+  countCollectionsSyncingFromSpec,
   findApiSpecByPathname,
   getApiSpecTabUid,
   getSpecLabel,
@@ -113,5 +114,41 @@ describe('getSpecLabel', () => {
     expect(getSpecLabel({ name: 'Pets API', filename: 'pets.yaml', pathname: '/ws/pets.yaml' })).toBe('Pets API');
     expect(getSpecLabel({ filename: 'pets.yaml', pathname: '/ws/pets.yaml' })).toBe('pets.yaml');
     expect(getSpecLabel({ pathname: '/ws/pets.yaml' })).toBe('/ws/pets.yaml');
+  });
+});
+
+describe('countCollectionsSyncingFromSpec', () => {
+  const workspace = { collections: [{ path: '/work/orders' }, { path: '/work/payments' }, { path: '/work/users' }] };
+  const collection = (pathname, sourceUrl) => ({ pathname, brunoConfig: { openapi: [{ sourceUrl }] } });
+
+  it('counts workspace collections whose local sync source is the spec, relative or absolute', () => {
+    const collections = [
+      collection('/work/orders', '../specs/orders.yaml'),
+      collection('/work/payments', '/work/specs/orders.yaml'),
+      collection('/work/users', '../specs/users.yaml')
+    ];
+
+    expect(countCollectionsSyncingFromSpec(collections, workspace, '/work/specs/orders.yaml')).toBe(2);
+  });
+
+  it('ignores collections that sync from a URL or have no sync source', () => {
+    const collections = [
+      collection('/work/orders', 'https://example.com/specs/orders.yaml'),
+      { pathname: '/work/payments', brunoConfig: {} }
+    ];
+
+    expect(countCollectionsSyncingFromSpec(collections, workspace, '/work/specs/orders.yaml')).toBe(0);
+  });
+
+  it('ignores collections outside the workspace', () => {
+    const collections = [collection('/elsewhere/orders', '/work/specs/orders.yaml')];
+
+    expect(countCollectionsSyncingFromSpec(collections, workspace, '/work/specs/orders.yaml')).toBe(0);
+  });
+
+  it('returns 0 without a spec path or collections', () => {
+    expect(countCollectionsSyncingFromSpec([], workspace, '/work/specs/orders.yaml')).toBe(0);
+    expect(countCollectionsSyncingFromSpec(undefined, workspace, '/work/specs/orders.yaml')).toBe(0);
+    expect(countCollectionsSyncingFromSpec([collection('/work/orders', '../specs/orders.yaml')], workspace, '')).toBe(0);
   });
 });
