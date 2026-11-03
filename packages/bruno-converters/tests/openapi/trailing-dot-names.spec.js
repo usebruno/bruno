@@ -64,7 +64,7 @@ describe.each([
     const names = collection.items.map((item) => item.name);
     expect(new Set(names).size).toBe(2);
     expect(names).toContain('Add a new pet to the store');
-    expect(names).toContain('Add a new pet to the store (1)');
+    expect(names).toContain('Add a new pet to the store (GET)');
   });
 
   it('falls back to the method and path when the summary is only dots and whitespace', () => {

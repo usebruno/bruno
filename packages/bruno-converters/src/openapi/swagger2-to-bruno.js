@@ -149,7 +149,7 @@ const transformSwaggerRequestItem = (request, usedNames = new Set(), options = {
   const produces = op.produces || request.global.produces || ['application/json'];
 
   // Determine operation name
-  const operationName = uniqueRequestName(getRequestName(request, options.requestNameSource), usedNames);
+  const operationName = uniqueRequestName(getRequestName(request, options.requestNameSource), request.method, usedNames);
 
   let path = request.path;
 

@@ -899,8 +899,11 @@ export const getRequestName = (request, requestNameSource) => {
 
 const fileNameKey = (name) => sanitizeName(name).toLowerCase();
 
-export const uniqueRequestName = (name, usedNames) => {
+export const uniqueRequestName = (name, method, usedNames) => {
   let uniqueName = name;
+  if (usedNames.has(fileNameKey(uniqueName))) {
+    uniqueName = `${name} (${method.toUpperCase()})`;
+  }
   let counter = 1;
   while (usedNames.has(fileNameKey(uniqueName))) {
     uniqueName = `${name} (${counter})`;

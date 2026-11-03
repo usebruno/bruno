@@ -277,7 +277,7 @@ const objectValueFromSchema = (param, schema) => {
 const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {}) => {
   let _operationObject = request.operationObject;
 
-  const operationName = uniqueRequestName(getRequestName(request, options.requestNameSource), usedNames);
+  const operationName = uniqueRequestName(getRequestName(request, options.requestNameSource), request.method, usedNames);
 
   // replace OpenAPI links in path by Bruno variables
   let path = request.path.replace(/{([a-zA-Z]+)}/g, `{{${_operationObject.operationId}_$1}}`);

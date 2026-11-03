@@ -291,19 +291,20 @@ describe.each([
         }
       });
 
-      expect(names).toEqual(['Lists pets', 'Lists pets (1)']);
+      expect(names).toEqual(['Lists pets', 'Lists pets (POST)']);
     });
 
-    it('numbers each further duplicate in order', () => {
+    it('adds the method to a duplicate and numbers it when that name is taken too', () => {
       const names = namesOf({
         '/pets': {
           get: { summary: 'Pets', responses: {} },
-          post: { summary: 'Pets', responses: {} },
-          put: { summary: 'Pets', responses: {} }
-        }
+          post: { summary: 'Pets', responses: {} }
+        },
+        '/animals': { get: { summary: 'Pets', responses: {} } },
+        '/beasts': { get: { summary: 'Pets', responses: {} } }
       });
 
-      expect(names).toEqual(['Pets', 'Pets (1)', 'Pets (2)']);
+      expect(names).toEqual(['Pets', 'Pets (POST)', 'Pets (GET)', 'Pets (1)']);
     });
 
     it('de-duplicates operations that share a method and path', () => {
@@ -323,7 +324,7 @@ describe.each([
         '/users': { get: { summary: 'Lower users', responses: {} } }
       }, { requestNameSource: 'path' });
 
-      expect(names).toEqual(['GET /a/b', 'GET /a-b (1)', 'GET /Users', 'GET /users (1)']);
+      expect(names).toEqual(['GET /a/b', 'GET /a-b (GET)', 'GET /Users', 'GET /users (GET)']);
       expect(new Set(names.map((name) => sanitizeName(name).toLowerCase())).size).toBe(4);
     });
   });
