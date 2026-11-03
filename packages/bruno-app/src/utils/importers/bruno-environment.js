@@ -1,6 +1,6 @@
 import { BrunoError } from 'utils/common/error';
-import { buildEnvVariable, coerceEnvColor, coerceEnvName, dedupeImportedSecrets } from 'utils/environments';
-import { validatedEnvironmentExtendsFrom } from '@usebruno/common/utils';
+import { buildEnvVariable, coerceEnvColor } from 'utils/environments';
+import { coerceEnvName, dedupeImportedSecrets, validatedEnvironmentExtendsFrom } from '@usebruno/common/utils';
 
 const validateBrunoEnvironment = (env, filePath, fileName) => {
   if (!env || typeof env !== 'object') {

@@ -1407,7 +1407,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:import-collection', async (_, collection, collectionLocation, options = {}) => {
     const format = options.format || DEFAULT_COLLECTION_FORMAT;
-    const rawOpenAPISpec = options.rawOpenAPISpec;
     const collections = Array.isArray(collection) ? collection : [collection];
     let completedImports = 0;
     let failedImports = 0;
@@ -1541,11 +1540,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         await parseEnvironments(coll.environments, collectionPath);
 
         // Save OpenAPI spec file for sync support
+        const rawOpenAPISpec = options.rawOpenAPISpecs?.[coll.uid];
         if (rawOpenAPISpec && brunoConfig.openapi?.length) {
           const specContent = typeof rawOpenAPISpec === 'string'
             ? rawOpenAPISpec
             : JSON.stringify(rawOpenAPISpec, null, 2);
-          await saveSpecAndUpdateMetadata({ collectionPath, specContent });
+          const syncMetadata = await saveSpecAndUpdateMetadata({ collectionPath, specContent });
+          brunoConfig.openapi[0] = { ...brunoConfig.openapi[0], ...syncMetadata };
         }
 
         const { size, filesCount } = await getCollectionStats(collectionPath);

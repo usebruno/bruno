@@ -28,7 +28,7 @@
     "@rollup/plugin-typescript": "^12.1.2",
     "@types/jest": "^29.5.11",
     "@types/lodash": "^4.14.191",
-    "@types/node": "^24.1.0",
+    "@types/node": "^24.19.2",
     "@opencollection/types": "0.14.0",
     "@usebruno/schema-types": "0.0.1",
     "babel-jest": "^29.7.0",
