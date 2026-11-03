@@ -14,10 +14,10 @@ import { buildSkippedFilesMessage, buildExportWarningsMessage, buildSpecVariable
 import { getWorkspaceCollections } from 'utils/collections';
 import { isHttpUrl } from 'utils/url/index';
 import useDefaultApiSpecLocation from 'hooks/useDefaultApiSpecLocation';
+import SpecLocationField from 'components/Sidebar/ApiSpecs/SpecLocationField';
 import StyledWrapper from './StyledWrapper';
 import CollectionSourceFields from './CollectionSourceFields';
 import UrlSourceField from './UrlSourceField';
-import SpecLocationField from './SpecLocationField';
 import useApiSpecUrlSource from './useApiSpecUrlSource';
 import useCollectionSource from './useCollectionSource';
 import {

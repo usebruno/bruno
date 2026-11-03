@@ -7,9 +7,9 @@ const SpecLocationField = ({ location, error, onBrowse }) => (
     </label>
     <input
       id="api-spec-location"
-      data-testid="api-spec-location-input"
       type="text"
       name="apiSpecLocation"
+      data-testid="api-spec-location"
       readOnly={true}
       className="block textbox mt-1 w-full cursor-pointer"
       autoComplete="off"

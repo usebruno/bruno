@@ -1,5 +1,6 @@
 import { Locator, Page } from '../../../playwright';
-import { buildApiSpecPanelLocators } from './openapi/render-spec';
+import { buildApiSpecPanelLocators, buildApiSpecRowMenuLocators } from './openapi/render-spec';
+import { buildMockServerLocators } from './mock-server';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
@@ -50,7 +51,8 @@ export const buildCommonLocators = (page: Page) => ({
   codeEditorSearch: (editorId: string) => buildCodeEditorSearchLocators(page, editorId),
   codeEditorHints: buildCodeEditorHintLocators(page),
   openApi: {
-    render: buildApiSpecPanelLocators(page)
+    render: buildApiSpecPanelLocators(page),
+    rowMenu: buildApiSpecRowMenuLocators(page)
   },
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
@@ -337,6 +339,10 @@ export const buildCommonLocators = (page: Page) => ({
     locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
     locationInput: () => page.locator('#collection-location'),
     fileInput: () => page.locator('input[type="file"]'),
+    urlTab: () => page.getByTestId('url-tab'),
+    urlInput: () => page.getByTestId('url-input'),
+    urlImportButton: () => page.getByTestId('import-url-btn'),
+    loader: () => page.getByTestId('import-collection-loader'),
     advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
     preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
     checkForSpecUpdatesToggle: () => page.getByTestId('check-for-spec-updates-toggle'),
