@@ -7,7 +7,7 @@ const hasValue = (value) => value !== undefined && value !== null && value !== '
 export const getEnvironmentVariablesKeyValuePairs = (envVariables) => {
   const variables = {};
   each(envVariables, (variable) => {
-    if (variable.name && variable.enabled && hasValue(variable.value)) {
+    if (variable.name && variable.enabled && !variable.secret && hasValue(variable.value)) {
       variables[variable.name] = variable.value;
     }
   });
