@@ -200,21 +200,14 @@ describe('buildScriptUsage', () => {
     expect(JSON.stringify(usage)).not.toContain('secret-value');
   });
 
-  it('returns null rather than throwing when a block cannot be measured', () => {
-    // Unparseable output from the regex fallback path must not cost the whole
-    // import its report.
+  it('returns null rather than throwing when a block is unparseable', () => {
+    expect(buildScriptUsage({ source: 'pm.test("x");', translated: 'function (', fellBackToRegex: false })).toBeNull();
+  });
+
+  it('reports an unmeasurable block the same way whether or not it mentions a Postman root', () => {
     expect(
       buildScriptUsage({ source: 'pm.test("x");', translated: 'pm.test("x"); function (', fellBackToRegex: false })
     ).toBeNull();
-  });
-
-  it('measures a block that cannot parse but holds no Postman root as zero', () => {
-    expect(buildScriptUsage({ source: 'pm.test("x");', translated: 'function (', fellBackToRegex: false })).toEqual({
-      apiCallsTotal: 1,
-      apiCallsUntranslated: 0,
-      untranslatedApis: {},
-      fellBackToRegex: false
-    });
   });
 });
 

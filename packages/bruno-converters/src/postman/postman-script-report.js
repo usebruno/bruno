@@ -12,35 +12,46 @@
 import { parse } from '@babel/parser';
 import { extractPackagesFromScript } from './postman-package-detector';
 
-// jscodeshift's own options (parser/babel5Compat.js), so this accepts what the
-// translator does — minus `tokens`, which only recast's printer needs.
+// Mirrors jscodeshift's babel5Compat grammar, so whatever the translator parses parses here.
 const PARSE_OPTIONS = {
   sourceType: 'module',
-  allowHashBang: true,
-  ecmaVersion: Infinity,
   allowImportExportEverywhere: true,
   allowReturnOutsideFunction: true,
-  startLine: 1,
+  attachComment: false,
   plugins: [
-    // Keeps `pm?.environment.get()` a plain MemberExpression, so it stays countable.
+    // Without it `pm?.a.b` is an OptionalMemberExpression, which goes uncounted.
     'estree',
     'jsx',
-    'asyncGenerators',
-    'classProperties',
     'doExpressions',
-    'exportExtensions',
     'functionBind',
     'functionSent',
-    'objectRestSpread',
-    'dynamicImport',
-    'nullishCoalescingOperator',
-    'optionalChaining',
     ['decorators', { decoratorsBeforeExport: false }]
   ]
 };
 
-// Skipped as wasted descent, not for correctness: a comment holds no expression.
-const COMMENT_KEYS = new Set(['leadingComments', 'trailingComments', 'innerComments']);
+// Pruning only: neither can hold a member expression.
+const LEAF_TYPES = new Set([
+  'Identifier',
+  'Literal',
+  'PrivateIdentifier',
+  'PrivateName',
+  'Super',
+  'ThisExpression',
+  'TemplateElement',
+  'EmptyStatement',
+  'DebuggerStatement'
+]);
+const NON_CHILD_KEYS = new Set([
+  'type',
+  'start',
+  'end',
+  'loc',
+  'range',
+  'extra',
+  'leadingComments',
+  'trailingComments',
+  'innerComments'
+]);
 
 // Both roots are counted, each kept distinct: `postman.setEnvironmentVariable`
 // has no `pm.*` equivalent, so folding them together would invent an API name
@@ -73,6 +84,9 @@ const buildApiIdentifier = (node) => {
   return segments.join('.');
 };
 
+const isWholeMemberChain = (node, parent) =>
+  node.type === 'MemberExpression' && !(parent?.type === 'MemberExpression' && parent.object === node);
+
 // One entry per root reference, whatever the chain depth: a looped call and
 // `pm.response.to.have.status(200)` are each a single call site. Property-style
 // APIs (`pm.info.requestName`) count too — the translator must map them alike.
@@ -80,10 +94,8 @@ export const countPmApiUsages = (script) => {
   const byApi = {};
   let total = 0;
 
-  if (!script.includes(CURRENT_ROOT) && !script.includes(LEGACY_ROOT)) return { total, byApi };
-
   const visit = (node, parent) => {
-    if (node.type === 'MemberExpression' && !(parent?.type === 'MemberExpression' && parent.object === node)) {
+    if (isWholeMemberChain(node, parent)) {
       const identifier = buildApiIdentifier(node);
       if (identifier) {
         byApi[identifier] = (byApi[identifier] || 0) + 1;
@@ -91,8 +103,10 @@ export const countPmApiUsages = (script) => {
       }
     }
 
+    if (LEAF_TYPES.has(node.type)) return;
+
     for (const key in node) {
-      if (COMMENT_KEYS.has(key)) continue;
+      if (NON_CHILD_KEYS.has(key)) continue;
       const value = node[key];
 
       if (Array.isArray(value)) {
