@@ -814,6 +814,7 @@ const handler = async function (argv) {
       });
     };
 
+    const runStartTime = new Date().toISOString();
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
     while (currentRequestIndex < requestItems.length) {
@@ -960,7 +961,7 @@ const handler = async function (argv) {
       const reporters = {
         json: (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
         junit: (path) => makeJUnitOutput(results, path),
-        html: (path) => makeHtmlOutput(outputJson, path, runCompletionTime, environmentName)
+        html: (path) => makeHtmlOutput(outputJson, path, { runStartTime, runCompletionTime, environment: environmentName })
       };
 
       for (const formatter of Object.keys(formats)) {
