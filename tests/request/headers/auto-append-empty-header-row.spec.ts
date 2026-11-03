@@ -84,10 +84,11 @@ test('TC-2650: Verify header deletion via backspace clears state', { tag: '@sani
   const headers = request.headers;
   const headerName = 'X-Test';
 
-  await test.step('Open an API request on the Headers tab', async () => {
-    await createCollection(page, 'header-backspace-clears-state', await createTmpDir('header-backspace-clears-state'));
-    await createRequest(page, 'request-1', 'header-backspace-clears-state', { url: 'https://example.com/api' });
-    await selectRequestPaneTab(page, 'Headers');
+  await createCollection(page, 'header-backspace-clears-state', await createTmpDir('header-backspace-clears-state'));
+  await createRequest(page, 'request-1', 'header-backspace-clears-state', { url: 'https://example.com/api' });
+  await selectRequestPaneTab(page, 'Headers');
+
+  await test.step('The Headers tab starts with no headers', async () => {
     await expect(headers.addRow()).toBeVisible();
     await expect(headers.count()).toHaveCount(0);
   });
