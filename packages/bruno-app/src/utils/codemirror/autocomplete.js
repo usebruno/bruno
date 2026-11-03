@@ -165,6 +165,7 @@ const STATIC_API_HINTS = {
     'bru.cookies.toObject()',
     'bru.cookies.toString()',
     'bru.cookies.add(cookieObj)',
+    'bru.cookies.append(cookieObj)',
     'bru.cookies.upsert(cookieObj)',
     'bru.cookies.remove(name)',
     'bru.cookies.delete(name)',
