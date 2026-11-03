@@ -2,6 +2,7 @@ export * from './actions';
 export * from './request/generate-code';
 export * from './code-editor-search';
 export * from './code-editor-hints';
+export * from './script-editor';
 export * from './file-mode';
 export * from './runner';
 export * from './locators';

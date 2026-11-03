@@ -9,3 +9,17 @@ get {
   body: none
   auth: none
 }
+
+script:pre-request {
+  
+  bru.setVar("startedAt", 1)
+  
+}
+
+tests {
+  
+  test("passes", function () {
+    expect(1).to.equal(1)
+  })
+  
+}

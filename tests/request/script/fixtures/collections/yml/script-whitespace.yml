@@ -6,3 +6,16 @@ info:
 http:
   method: GET
   url: https://example.com
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |
+
+        bru.setVar("startedAt", 1)
+    - type: tests
+      code: |
+
+        test("passes", function () {
+          expect(1).to.equal(1)
+        })
