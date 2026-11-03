@@ -25,10 +25,11 @@ test.describe('Postman URL import', () => {
       await plusMenu.button().click();
       await plusMenu.importCollection().click();
       await importLocators.modal().waitFor({ state: 'visible' });
-      await importLocators.urlTab().click();
+      await importLocators.urlTab().click();    
     });
 
     await test.step('Enter the Postman collection URL in the URL input text box', async () => {
+      
       await importLocators.urlInput().waitFor({ state: 'visible' });
       await importLocators.urlInput().fill(postmanUrl);
     });
@@ -60,8 +61,8 @@ test.describe('Postman URL import', () => {
     });
 
     await test.step('Verify that Imported collection keeps its auth and variable', async () => {
-      await openCollection(page, collectionName);
-      await selectCollectionPaneTab(page, 'auth');
+      await openCollection(page, collectionName);     
+       await selectCollectionPaneTab(page, 'auth');
       await expect(auth.modeSelector()).toContainText('Bearer Token');
 
       await selectCollectionPaneTab(page, 'vars');
