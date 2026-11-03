@@ -33,6 +33,7 @@ jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
 }));
 
 jest.mock('providers/ReduxStore/slices/mock-server/index', () => ({
+  generateMockResponsesFromSpec: jest.fn(),
   loadMockResponses: jest.fn(),
   loadMockResponsesFromSpec: jest.fn(),
   syncMockResponsesFromExamples: jest.fn()
@@ -159,29 +160,6 @@ describe('CreateMockServerModal validation', () => {
     await waitFor(() => {
       expect(screen.queryByText('API spec is required')).not.toBeInTheDocument();
     });
-  });
-
-  it('does not create the mock server when the API spec fails to parse', async () => {
-    const specAction = { type: 'loadMockResponsesFromSpec' };
-    loadMockResponsesFromSpec.mockReturnValue(specAction);
-    useDispatch.mockReturnValue(jest.fn((action) => (
-      action === specAction
-        ? { unwrap: () => Promise.reject(new Error('Invalid API spec: bad indentation')) }
-        : Promise.resolve()
-    )));
-    renderModal();
-
-    fireEvent.change(screen.getByTestId('mock-server-name-input'), {
-      target: { value: 'Broken Spec Server' }
-    });
-    fireEvent.click(screen.getByTestId('mock-server-source-spec'));
-    fireEvent.change(screen.getByTestId('mock-server-spec-select'), {
-      target: { value: 'spec-1' }
-    });
-    fireEvent.click(screen.getByTestId('modal-submit-btn'));
-
-    expect(await screen.findByText('Invalid API spec: bad indentation')).toBeInTheDocument();
-    expect(saveMockServerInstance).not.toHaveBeenCalled();
   });
 });
 

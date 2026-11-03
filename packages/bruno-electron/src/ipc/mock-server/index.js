@@ -6,6 +6,7 @@ const { parseAndValidateApiSpec } = require('../../utils/apiSpecs');
 const mockServer = require('../../app/mock-server/mock-server');
 const { buildMockResponsesFromSpec } = require('../../app/mock-server/mock-spec-routes');
 const {
+  appendMockResponses,
   cloneMockServerResponses,
   createEmptyMockResponse,
   deleteMockResponse,
@@ -286,12 +287,26 @@ const registerMockServerIpc = (mainWindow) => {
       const {
         specPath,
         generateFromSchema = false,
-        workspacePath
+        persist = false,
+        workspacePath,
+        ...location
       } = payload;
 
-      const spec = readWorkspaceSpec(workspacePath, specPath);
-      const responses = buildMockResponsesFromSpec(spec, { generateFromSchema: Boolean(generateFromSchema) });
-      return { success: true, responses };
+      const spec = readWorkspaceSpec(workspacePath || location.workspacePath, specPath);
+      const generatedResponses = buildMockResponsesFromSpec(spec, { generateFromSchema: Boolean(generateFromSchema) });
+
+      if (!persist) {
+        return { success: true, responses: generatedResponses };
+      }
+
+      const createdResponses = appendMockResponses({ ...location, workspacePath }, generatedResponses);
+      await mockServer.reloadRoutesFromStore(location.mockServerUid, { ...location, workspacePath });
+
+      return {
+        success: true,
+        createdCount: createdResponses.length,
+        responses: listMockResponses({ ...location, workspacePath })
+      };
     } catch (err) {
       return { success: false, error: err.message };
     }

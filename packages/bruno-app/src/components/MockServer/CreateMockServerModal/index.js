@@ -12,6 +12,7 @@ import { areItemsLoading, getWorkspaceCollections } from 'utils/collections';
 import { matchLoadedApiSpecs } from 'components/Sidebar/ApiSpecs/matchLoadedApiSpecs';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import {
+  generateMockResponsesFromSpec,
   loadMockResponses,
   loadMockResponsesFromSpec,
   syncMockResponsesFromExamples
@@ -129,21 +130,30 @@ const syncResponsesForNewInstance = async ({
   workspaces,
   activeWorkspace,
   collection,
-  specResponses
+  specPath
 }) => {
   const location = resolveMockResponseLocation(instance, workspaces, activeWorkspace);
-  const responses = instance.sourceType === 'collection'
-    ? mergeMockResponsesFromExamples([], collectCollectionExamples(collection))
-    : specResponses;
 
-  if (!responses?.length) {
+  if (instance.sourceType === 'collection') {
+    const exampleEntries = collectCollectionExamples(collection);
+    if (!exampleEntries.length) {
+      return;
+    }
+
+    const responses = mergeMockResponsesFromExamples([], exampleEntries);
+    await dispatch(syncMockResponsesFromExamples({
+      ...location,
+      responses
+    })).unwrap();
+  } else if (instance.sourceType === 'spec' && specPath) {
+    await dispatch(generateMockResponsesFromSpec({
+      ...location,
+      specPath,
+      generateFromSchema: true
+    })).unwrap();
+  } else {
     return;
   }
-
-  await dispatch(syncMockResponsesFromExamples({
-    ...location,
-    responses
-  })).unwrap();
 
   // Reload from disk so the dashboard renders the just-persisted routes even if it
   // subscribed after the fulfilled action fired.
@@ -332,20 +342,6 @@ const CreateMockServerModal = ({
         : null;
       const collectionPathname = selectedCollection?.pathname || null;
 
-      let specResponses = null;
-      if (!isEditing && resolvedSourceType === 'spec') {
-        try {
-          ({ responses: specResponses } = await dispatch(loadMockResponsesFromSpec({
-            workspacePath: activeWorkspace?.pathname,
-            specPath
-          })).unwrap());
-        } catch (err) {
-          setFieldTouched('specUid', true, false);
-          setFieldError('specUid', err.message || 'Failed to read API spec');
-          return;
-        }
-      }
-
       const instance = editingInstance
         ? {
             uid: editingInstance.uid,
@@ -399,7 +395,7 @@ const CreateMockServerModal = ({
               workspaces,
               activeWorkspace,
               collection: selectedCollection,
-              specResponses
+              specPath
             });
           } catch (err) {
             syncError = err;
