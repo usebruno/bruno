@@ -110,5 +110,17 @@ describe('prepare-grpc-request: prepareGrpcRequest', () => {
       expect(result.headers).toEqual({ 'x-on': 'last-wins' });
       expect(result.headerEntries).toEqual([{ key: 'x-on', value: 'last-wins' }]);
     });
+
+    it('should keep the enabled value when a later same-name header is disabled', async () => {
+      mockItem.request.headers = [
+        { name: 'x-dup', value: 'enabled-value', enabled: true },
+        { name: 'x-dup', value: 'disabled-value', enabled: false }
+      ];
+
+      const result = await prepareGrpcRequest(mockItem, mockCollection, mockEnvironment, mockRuntimeVariables);
+
+      expect(result.headers).toEqual({ 'x-dup': 'enabled-value' });
+      expect(result.headerEntries).toEqual([{ key: 'x-dup', value: 'enabled-value' }]);
+    });
   });
 });

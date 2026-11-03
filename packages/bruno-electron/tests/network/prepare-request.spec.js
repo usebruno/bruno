@@ -63,6 +63,25 @@ describe('prepare-request: prepareRequest', () => {
         { key: 'x-off', value: 'off', disabled: true }
       ]);
     });
+
+    it('Should keep the enabled value when a later same-name header is disabled', async () => {
+      const request = {
+        method: 'GET',
+        url: 'test-domain',
+        body: { mode: 'none' },
+        headers: [
+          { name: 'x-dup', value: 'enabled-value', enabled: true },
+          { name: 'x-dup', value: 'disabled-value', enabled: false }
+        ],
+        auth: { mode: 'none' }
+      };
+      const result = await prepareRequest({ request, collection: { pathname: '' } });
+      expect(result.headers['x-dup']).toBe('enabled-value');
+      expect(result.headerEntries).toEqual([
+        { key: 'x-dup', value: 'enabled-value' },
+        { key: 'x-dup', value: 'disabled-value', disabled: true }
+      ]);
+    });
   });
 
   describe('Effective tags', () => {

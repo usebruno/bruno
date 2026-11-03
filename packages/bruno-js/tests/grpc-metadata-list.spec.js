@@ -141,27 +141,27 @@ describe('GrpcMetadataList', () => {
       return { list: new GrpcMetadataList(request, { writable: true }), request };
     };
 
-    test('upsert() under another casing replaces the first casing and updates the exact key', () => {
+    test('upsert() with the exact key of a later match replaces the first case-insensitive match and updates that key', () => {
       const { list, request } = createWithCasings();
       list.upsert('x-a', 'new');
       expect(request.headers).toEqual({ 'x-a': 'new', 'b': '3' });
       expect(list.get('X-A')).toBe('new');
     });
 
-    test('upsert() under the first casing updates it and leaves the other casing alone', () => {
+    test('upsert() with the exact key of the first case-insensitive match updates it in place and leaves the other casing', () => {
       const { list, request } = createWithCasings();
       list.upsert('X-A', 'new');
       expect(request.headers).toEqual({ 'X-A': 'new', 'x-a': '2', 'b': '3' });
     });
 
-    test('upsert() under a third casing replaces the first casing and appends the new one', () => {
+    test('upsert() with a key with no exact match replaces the first case-insensitive match and appends the new key', () => {
       const { list, request } = createWithCasings();
       list.upsert('X-a', 'new');
       expect(request.headers).toEqual({ 'x-a': '2', 'b': '3', 'X-a': 'new' });
       expect(list.map((entry) => entry.key)).toEqual(['x-a', 'b', 'X-a']);
     });
 
-    test('remove() drops only the first casing', () => {
+    test('remove() drops only the first case-insensitive match', () => {
       const { list, request } = createWithCasings();
       list.remove('x-a');
       expect(request.headers).toEqual({ 'x-a': '2', 'b': '3' });
