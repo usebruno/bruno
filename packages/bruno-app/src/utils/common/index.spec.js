@@ -9,6 +9,7 @@ import {
   formatSize,
   prettifyJsonString
 } from './index';
+import { LONG_LINE_LIMIT } from './long-lines';
 
 describe('common utils', () => {
   describe('normalizeFileName', () => {
@@ -186,6 +187,14 @@ describe('common utils', () => {
       expect(formatSize(1048576.1)).toBe('1.0MB');
     });
 
+    it('should format size with custom precision', () => {
+      expect(formatSize(1115, 2)).toBe('1.09KB');
+      expect(formatSize(1050, 2)).toBe('1.03KB');
+      expect(formatSize(1500, 2)).toBe('1.46KB');
+      expect(formatSize(1153433.6, 2)).toBe('1.10MB');
+      expect(formatSize(1153433600, 2)).toBe('1.07GB');
+    });
+
     it('should format invalid inputs', () => {
       expect(formatSize(null)).toBe('0B');
       expect(formatSize(undefined)).toBe('0B');
@@ -215,6 +224,15 @@ describe('common utils', () => {
       const expected = `{\n  "name": {{userName}}\n}`;
       console.log(prettifyJsonString(input));
       expect(prettifyJsonString(input)).toBe(expected);
+    });
+
+    test('should format minified JSON with a pathological single line quickly', () => {
+      const input = JSON.stringify({ payload: 'x'.repeat(LONG_LINE_LIMIT + 1) });
+      const output = prettifyJsonString(input);
+
+      expect(output).not.toBe(input);
+      expect(output.split('\n').length).toBeGreaterThan(1);
+      expect(output).toContain('"payload"');
     });
 
     test('should format complex json string', () => {

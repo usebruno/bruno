@@ -14,7 +14,7 @@ test.describe('Notifications Modal', () => {
 
     // Verify modal is visible and has the correct title
     await expect(notificationsModal).toBeVisible();
-    await expect(notificationsModal.locator('.bruno-modal-header-title')).toContainText('NOTIFICATIONS');
+    await expect(notificationsModal.locator('.bruno-modal-header-title')).toContainText('Notifications');
 
     // Click the close button
     await modalCloseButton.click();

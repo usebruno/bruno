@@ -3,10 +3,14 @@ const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
 
-const createFormData = (data, collectionPath) => {
+const createFormData = (data, collectionPath, boundary) => {
   // make axios work in node using form data
   // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
   const form = new FormData();
+  // form-data writes the boundary into each part as it is appended, so it must be set first
+  if (boundary) {
+    form.setBoundary(boundary);
+  }
   forEach(data, (datum) => {
     const { name, type, value, contentType } = datum;
     let options = {};

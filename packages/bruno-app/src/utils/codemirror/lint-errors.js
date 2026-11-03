@@ -48,7 +48,7 @@ function showLintTooltip(errors, targetElement, container) {
   const tooltip = document.createElement('div');
   tooltip.className = 'lint-error-tooltip';
 
-  errors.forEach((error, index) => {
+  errors.forEach((error) => {
     const errorDiv = document.createElement('div');
     errorDiv.className = `lint-tooltip-message ${error.severity || 'error'}`;
     errorDiv.textContent = error.message;

@@ -1,26 +1,27 @@
 import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
-import { updateCollectionDocs, deleteCollectionDraft } from 'providers/ReduxStore/slices/collections';
-import { useTheme } from 'providers/Theme';
-import { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { updateCollectionDocs } from 'providers/ReduxStore/slices/collections';
+import { useDispatch } from 'react-redux';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
-import Markdown from 'components/MarkDown';
-import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
-import { IconEdit, IconX, IconFileText } from '@tabler/icons';
+import { IconFileText } from '@tabler/icons';
 import Button from 'ui/Button/index';
-import ActionIcon from 'ui/ActionIcon/index';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useDocsEditingState } from 'components/Documentation/useDocsEditingState';
+import DocsEditor from 'components/Documentation/DocsEditor';
 
 const Docs = ({ collection }) => {
   const dispatch = useDispatch();
-  const { displayedTheme } = useTheme();
-  const [isEditing, setIsEditing] = useState(false);
-  const docs = collection.draft?.root ? get(collection, 'draft.root.docs', '') : get(collection, 'root.docs', '');
-  const preferences = useSelector((state) => state.app.preferences);
+  const { isEditing, setEditing } = useDocsEditingState();
+  const savedDocs = get(collection, 'root.docs', '');
+  const docs = collection.draft?.root ? get(collection, 'draft.root.docs', '') : savedDocs;
+
+  // Scroll tracking (both the rich-text preview/edit view and markdown mode's
+  // CodeEditor) lives in DocsEditor itself; this just owns the persisted value.
+  const [scroll, setScroll] = usePersistedState({ key: `collection-docs-scroll-${collection.uid}`, default: 0 });
 
   const toggleViewMode = () => {
-    setIsEditing((prev) => !prev);
+    setEditing(!isEditing);
   };
 
   const onEdit = (value) => {
@@ -36,7 +37,7 @@ const Docs = ({ collection }) => {
     dispatch((
       updateCollectionDocs({
         collectionUid: collection.uid,
-        docs: docs
+        docs: savedDocs
       }))
     );
     toggleViewMode();
@@ -64,35 +65,23 @@ const Docs = ({ collection }) => {
                 Save
               </Button>
             </>
-          ) : (
-            <ActionIcon className="editing-mode" onClick={toggleViewMode}>
-              <IconEdit className="cursor-pointer" size={16} strokeWidth={1.5} />
-            </ActionIcon>
-          )}
+          ) : null}
         </div>
       </div>
-      {isEditing ? (
-        <CodeEditor
-          collection={collection}
-          theme={displayedTheme}
-          value={docs}
+      <div className="flex-1 min-h-0">
+        <DocsEditor
+          docs={docs}
           onEdit={onEdit}
           onSave={onSave}
-          mode="application/text"
-          font={get(preferences, 'font.codeFont', 'default')}
-          fontSize={get(preferences, 'font.codeFontSize')}
+          isEditing={isEditing}
+          collection={collection}
+          collectionPath={collection.pathname}
+          emptyPreviewContent={documentationPlaceholder}
+          onRequestEdit={toggleViewMode}
+          initialScroll={scroll}
+          onScroll={setScroll}
         />
-      ) : (
-        <div className="h-full overflow-auto pl-1">
-          <div className="h-[1px] min-h-[500px]">
-            {
-              docs?.length > 0
-                ? <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
-                : <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={documentationPlaceholder} />
-            }
-          </div>
-        </div>
-      )}
+      </div>
     </StyledWrapper>
   );
 };

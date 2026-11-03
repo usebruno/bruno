@@ -1,4 +1,16 @@
 const interpolateVars = require('../../src/ipc/network/interpolate-vars');
+const { trackUnresolvedVariables } = require('@usebruno/js');
+
+const FORM_URL_ENCODED_CONTENT_TYPES = [
+  'application/x-www-form-urlencoded',
+  'application/x-www-form-urlencoded; charset=UTF-8',
+  'Application/X-WWW-Form-Urlencoded; charset=UTF-8'
+];
+const JSON_CONTENT_TYPES = [
+  'application/json',
+  'application/json; charset=utf-8',
+  'Application/JSON'
+];
 
 describe('interpolate-vars: interpolateVars', () => {
   describe('Interpolates string', () => {
@@ -181,6 +193,41 @@ describe('interpolate-vars: interpolateVars', () => {
         const result = interpolateVars(request, null, null, null);
         expect(result.url).toBe('http://example.com/Category(\'foobar\')/Item(1)/foobar/Tags(%22tag%20test%22)');
       });
+
+      it('keeps colon path segments when the path param has no value', async () => {
+        const request = {
+          method: 'POST',
+          url: 'https://httpbin.org/anything/:test-segment',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'test-segment',
+              value: ''
+            }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('https://httpbin.org/anything/:test-segment');
+      });
+
+      it('keeps colon path segments when the path param is disabled', async () => {
+        const request = {
+          method: 'POST',
+          url: 'https://httpbin.org/anything/:test-segment',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'test-segment',
+              value: 'replaced',
+              enabled: false
+            }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('https://httpbin.org/anything/:test-segment');
+      });
     });
 
     describe('With process environment variables', () => {
@@ -292,6 +339,68 @@ describe('interpolate-vars: interpolateVars', () => {
 
       const result = interpolateVars(request, { 'test.url': 'test.com' }, null, null);
       expect(result.data).toEqual(undefined);
+    });
+  });
+
+  describe('JSON body', () => {
+    it.each(JSON_CONTENT_TYPES)('interpolates an object body when Content-Type is "%s"', (contentType) => {
+      const request = {
+        method: 'POST',
+        url: 'http://api.example/submit',
+        headers: { 'Content-Type': contentType },
+        data: { token: '{{token}}' }
+      };
+
+      const result = interpolateVars(request, { token: 'abc123' }, null, null);
+
+      expect(result.data).toEqual({ token: 'abc123' });
+    });
+
+    it('JSON-escapes mock values in a string body when Content-Type is mixed case', () => {
+      const request = {
+        method: 'POST',
+        url: 'http://api.example/submit',
+        headers: { 'Content-Type': 'Application/JSON' },
+        data: '{"note": "{{$randomLoremParagraphs}}"}'
+      };
+
+      const result = interpolateVars(request, {}, null, null);
+
+      expect(() => JSON.parse(result.data)).not.toThrow();
+    });
+  });
+
+  describe('Form URL-encoded body', () => {
+    it.each(FORM_URL_ENCODED_CONTENT_TYPES)('interpolates field values when Content-Type is "%s"', (contentType) => {
+      const request = {
+        method: 'POST',
+        url: 'http://api.example/submit',
+        headers: { 'Content-Type': contentType },
+        data: [
+          { name: 'token', value: '{{token}}', enabled: true },
+          { name: 'static', value: 'value', enabled: true }
+        ]
+      };
+
+      const result = interpolateVars(request, { token: 'abc123' }, null, null);
+
+      expect(result.data).toEqual([
+        { name: 'token', value: 'abc123', enabled: true },
+        { name: 'static', value: 'value', enabled: true }
+      ]);
+    });
+
+    it.each(FORM_URL_ENCODED_CONTENT_TYPES)('interpolates a string body when Content-Type is "%s"', (contentType) => {
+      const request = {
+        method: 'POST',
+        url: 'http://api.example/submit',
+        headers: { 'Content-Type': contentType },
+        data: 'token={{token}}&static=value'
+      };
+
+      const result = interpolateVars(request, { token: 'abc123' }, null, null);
+
+      expect(result.data).toBe('token=abc123&static=value');
     });
   });
 
@@ -424,6 +533,259 @@ describe('interpolate-vars: interpolateVars', () => {
       expect(result.data).toContain('Content-Type: application/json');
       expect(result.data).toContain('{"test": true}');
       expect(result.data).toContain('--TestBoundary123--');
+    });
+
+    it('interpolates variables in text-based multipart/mixed body with manual boundaries', () => {
+      // User manually constructs a multipart/mixed body as a string
+      const boundary = 'CustomBoundary123';
+      const rawMultipartBody = [
+        `--${boundary}`,
+        'Content-Type: text/plain',
+        '',
+        'Token: {{token}}',
+        `--${boundary}`,
+        'Content-Type: application/json',
+        '',
+        '{"id": "{{id}}", "msg": "{{msg}}"}',
+        `--${boundary}--`,
+        ''
+      ].join('\r\n');
+
+      const request = {
+        method: 'POST',
+        url: 'https://api.example/send',
+        headers: { 'content-type': `multipart/mixed; boundary=${boundary}` },
+        data: rawMultipartBody
+      };
+
+      const result = interpolateVars(request, { token: 'abc123', id: 42, msg: 'hello' }, null, null);
+
+      expect(result.data).toContain('Token: abc123');
+      expect(result.data).toContain('{"id": "42", "msg": "hello"}');
+      // Ensure boundaries are preserved
+      expect(result.data).toContain(`--${boundary}`);
+      expect(result.data).toContain(`--${boundary}--`);
+    });
+
+    it('interpolates variables in boundary lines themselves', () => {
+      const boundaryVar = 'BoundaryVar';
+      const rawMultipartBody = [
+        `--{{boundary}}`,
+        'Content-Type: text/plain',
+        '',
+        'Hello',
+        `--{{boundary}}--`,
+        ''
+      ].join('\r\n');
+      const request = {
+        method: 'POST',
+        url: 'https://api.example/send',
+        headers: { 'content-type': 'multipart/mixed; boundary={{boundary}}' },
+        data: rawMultipartBody
+      };
+      const result = interpolateVars(request, { boundary: boundaryVar }, null, null);
+      expect(result.data).toContain(`--${boundaryVar}`);
+      expect(result.data).toContain(`--${boundaryVar}--`);
+    });
+
+    it('interpolates variables that resolve to empty string or undefined', () => {
+      const boundary = 'B';
+      const rawMultipartBody = [
+        `--${boundary}`,
+        'Content-Type: text/plain',
+        '',
+        'Token: {{missingVar}}',
+        `--${boundary}--`,
+        ''
+      ].join('\r\n');
+      const request = {
+        method: 'POST',
+        url: 'https://api.example/send',
+        headers: { 'content-type': `multipart/mixed; boundary=${boundary}` },
+        data: rawMultipartBody
+      };
+      const result = interpolateVars(request, {} /* no missingVar */, null, null);
+      expect(result.data).toContain('Token: ');
+    });
+
+    it('interpolates multiple variables in a single line or JSON object', () => {
+      const boundary = 'B2';
+      const rawMultipartBody = [
+        `--${boundary}`,
+        'Content-Type: application/json',
+        '',
+        '{"id": "{{id}}", "msg": "{{msg}}", "extra": "{{extra}}"}',
+        `--${boundary}--`,
+        ''
+      ].join('\r\n');
+      const request = {
+        method: 'POST',
+        url: 'https://api.example/send',
+        headers: { 'content-type': `multipart/mixed; boundary=${boundary}` },
+        data: rawMultipartBody
+      };
+      const result = interpolateVars(request, { id: 1, msg: 'hi', extra: 'x' }, null, null);
+      expect(result.data).toContain('"id": "1", "msg": "hi", "extra": "x"');
+    });
+
+    it('interpolates variables inside quoted and unquoted contexts', () => {
+      const boundary = 'B3';
+      const rawMultipartBody = [
+        `--${boundary}`,
+        'Content-Disposition: form-data; name="{{fieldName}}"',
+        '',
+        'Value',
+        `--${boundary}--`,
+        ''
+      ].join('\r\n');
+      const request = {
+        method: 'POST',
+        url: 'https://api.example/send',
+        headers: { 'content-type': `multipart/mixed; boundary=${boundary}` },
+        data: rawMultipartBody
+      };
+      const result = interpolateVars(request, { fieldName: 'theField' }, null, null);
+      expect(result.data).toContain('name="theField"');
+    });
+
+    it('interpolates variables in both part headers and part bodies', () => {
+      const boundary = 'B4';
+      const rawMultipartBody = [
+        `--${boundary}`,
+        'Content-Type: text/plain; charset={{charset}}',
+        '',
+        'Token: {{token}}',
+        `--${boundary}--`,
+        ''
+      ].join('\r\n');
+      const request = {
+        method: 'POST',
+        url: 'https://api.example/send',
+        headers: { 'content-type': `multipart/mixed; boundary=${boundary}` },
+        data: rawMultipartBody
+      };
+      const result = interpolateVars(request, { charset: 'utf-8', token: 'abc' }, null, null);
+      expect(result.data).toContain('charset=utf-8');
+      expect(result.data).toContain('Token: abc');
+    });
+
+    it('interpolates variables in the final boundary line', () => {
+      const boundary = 'B5';
+      const rawMultipartBody = [
+        `--${boundary}`,
+        'Content-Type: text/plain',
+        '',
+        'End',
+        `--{{finalBoundary}}--`,
+        ''
+      ].join('\r\n');
+      const request = {
+        method: 'POST',
+        url: 'https://api.example/send',
+        headers: { 'content-type': `multipart/mixed; boundary=${boundary}` },
+        data: rawMultipartBody
+      };
+      const result = interpolateVars(request, { finalBoundary: boundary }, null, null);
+      expect(result.data).toContain(`--${boundary}--`);
+    });
+
+    it('interpolates variables that appear multiple times in the body', () => {
+      const boundary = 'B6';
+      const rawMultipartBody = [
+        `--${boundary}`,
+        'Content-Type: text/plain',
+        '',
+        'Token: {{token}}, Again: {{token}}',
+        `--${boundary}--`,
+        ''
+      ].join('\r\n');
+      const request = {
+        method: 'POST',
+        url: 'https://api.example/send',
+        headers: { 'content-type': `multipart/mixed; boundary=${boundary}` },
+        data: rawMultipartBody
+      };
+      const result = interpolateVars(request, { token: 'repeat' }, null, null);
+      expect(result.data.match(/repeat/g).length).toBe(2);
+    });
+
+    it('leaves body unchanged if no variables present', () => {
+      const boundary = 'B7';
+      const rawMultipartBody = [
+        `--${boundary}`,
+        'Content-Type: text/plain',
+        '',
+        'No variables here',
+        `--${boundary}--`,
+        ''
+      ].join('\r\n');
+      const request = {
+        method: 'POST',
+        url: 'https://api.example/send',
+        headers: { 'content-type': `multipart/mixed; boundary=${boundary}` },
+        data: rawMultipartBody
+      };
+      const result = interpolateVars(request, {}, null, null);
+      expect(result.data).toBe(rawMultipartBody);
+    });
+
+    it('interpolates a multi-line field value when the boundary contains "json"', () => {
+      const request = {
+        method: 'POST',
+        url: 'http://api.example/upload',
+        headers: { 'Content-Type': 'multipart/form-data; boundary=json-boundary' },
+        data: [{ name: 'note', value: '{{note}}', type: 'text', enabled: true }]
+      };
+
+      const result = interpolateVars(request, { note: 'first line\nsecond line' }, null, null);
+
+      expect(result.data).toEqual([{ name: 'note', value: 'first line\nsecond line', type: 'text', enabled: true }]);
+    });
+  });
+
+  describe('File body streaming', () => {
+    it('keeps stream-backed JSON request bodies intact', () => {
+      const streamPayload = {
+        pipe: jest.fn(),
+        path: '/tmp/allocations.json'
+      };
+      const request = {
+        method: 'POST',
+        mode: 'file',
+        url: 'http://api.example/upload',
+        headers: { 'content-type': 'application/json' },
+        data: streamPayload
+      };
+
+      const result = interpolateVars(request, { shouldNotApply: 'value' }, null, null);
+
+      expect(result.data).toBe(streamPayload);
+    });
+  });
+
+  describe('Reports unresolved variables to a tracked request', () => {
+    it('reports misses from the url, headers and body', () => {
+      const request = {
+        method: 'POST',
+        url: '{{host}}/users',
+        headers: { 'content-type': 'application/json', 'x-tenant': '{{tenant}}' },
+        data: '{"key": "{{apiKey}}", "name": "{{name}}"}'
+      };
+      const unresolvedVariables = trackUnresolvedVariables(request);
+
+      interpolateVars(request, { name: 'bruno' }, {}, {});
+
+      expect([...unresolvedVariables]).toEqual(['host', 'tenant', 'apiKey']);
+    });
+
+    it('does not report a process.env reference inside an env var when the process variable is set', () => {
+      const request = { method: 'GET', url: '{{baseUrl}}', headers: {} };
+      const unresolvedVariables = trackUnresolvedVariables(request);
+
+      interpolateVars(request, { baseUrl: '{{process.env.BASE_URL}}' }, {}, { BASE_URL: 'https://usebruno.com' });
+
+      expect(request.url).toBe('https://usebruno.com');
+      expect(unresolvedVariables.size).toBe(0);
     });
   });
 });

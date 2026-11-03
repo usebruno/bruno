@@ -7,17 +7,45 @@
  */
 
 import { interpolate, mockDataFunctions, timeBasedDynamicVars } from '@usebruno/common';
-import { getVariableScope, isVariableSecret, getAllVariables, findCollectionByUid, findItemInCollectionByItemUid } from 'utils/collections';
+import { toDisplayString } from '@usebruno/common/utils';
+import toast from 'react-hot-toast';
+import {
+  getVariableScope,
+  isVariableSecret,
+  getAllVariables,
+  findCollectionByUid,
+  findItemInCollectionByItemUid
+} from 'utils/collections';
 import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
+import {
+  buildAddToScopes as sharedBuildAddToScopes,
+  buildScopeInfo,
+  createEnvironmentForScope
+} from 'utils/variables';
 import store from 'providers/ReduxStore';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { variableNameRegex } from 'utils/common/regex';
+import { SCOPE_LABEL, COPY_SUCCESS_TIMEOUT } from 'utils/common/constants';
+import { SCOPE_ICON } from 'utils/codemirror/scopeIcons';
+import { createAddToScopeSwitcher } from 'utils/codemirror/addToScopeSwitcher';
+import { goToVariableDefinition } from 'utils/codemirror/goToVariableDefinition';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const { get } = require('lodash');
+
+let hideActiveVarInfoPopup = () => {};
+let varInfoSuppressed = false;
+
+// The hover timer re-arms on every mousemove, so suppression must hold until the owning popup closes.
+export const setVarInfoSuppressed = (suppressed) => {
+  varInfoSuppressed = suppressed;
+  if (suppressed) {
+    hideActiveVarInfoPopup();
+  }
+};
 
 const COPY_ICON_SVG_TEXT = `
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -34,7 +62,7 @@ const CHECKMARK_ICON_SVG_TEXT = `
 
 const COPY_SUCCESS_COLOR = '#22c55e';
 
-export const COPY_SUCCESS_TIMEOUT = 1000;
+export { COPY_SUCCESS_TIMEOUT };
 
 // Editor height constraints
 const EDITOR_MIN_HEIGHT = 1.75;
@@ -64,26 +92,36 @@ const EYE_OFF_ICON_SVG = `
   </svg>
 `;
 
-const getScopeLabel = (scopeType) => {
-  const labels = {
-    'global': 'Global',
-    'environment': 'Environment',
-    'collection': 'Collection',
-    'folder': 'Folder',
-    'request': 'Request',
-    'runtime': 'Runtime',
-    'process.env': 'Process Env',
-    'dynamic': 'Dynamic',
-    'oauth2': 'OAuth2',
-    'undefined': 'Undefined',
-    'pathParam': 'Path Param'
-  };
-  return labels[scopeType] || scopeType;
+// Labels for states only the popover has (everything else comes from the shared SCOPE_LABEL).
+const POPOVER_ONLY_SCOPE_LABEL = {
+  undefined: 'Undefined',
+  unresolved: 'New',
+  pathParam: 'Path Param'
+};
+
+const getScopeLabel = (scopeType) => SCOPE_LABEL[scopeType] || POPOVER_ONLY_SCOPE_LABEL[scopeType] || scopeType;
+
+const setScopeBadgeContent = (scopeBadge, scopeType, label) => {
+  scopeBadge.innerHTML = '';
+
+  const scopeIcon = SCOPE_ICON[scopeType];
+  if (scopeIcon) {
+    const icon = document.createElement('span');
+    icon.className = 'var-scope-badge-icon';
+    icon.innerHTML = scopeIcon;
+    scopeBadge.appendChild(icon);
+  }
+
+  const labelSpan = document.createElement('span');
+  labelSpan.className = 'var-scope-badge-label';
+  labelSpan.setAttribute('data-testid', 'var-info-scope-badge-label');
+  labelSpan.textContent = label;
+  scopeBadge.appendChild(labelSpan);
 };
 
 // Get the masked display text based on the value length
 const getMaskedDisplay = (value) => {
-  const contentLength = (value || '').length;
+  const contentLength = (value === undefined || value === null ? '' : String(value)).length;
   return contentLength > 0 ? '*'.repeat(contentLength) : '';
 };
 
@@ -95,7 +133,7 @@ const updateValueDisplay = (valueDisplay, value, isSecret, isMasked, isRevealed)
   }
 
   if (typeof value === 'object') {
-    valueDisplay.textContent = value === null ? 'null' : JSON.stringify(value, null, 2);
+    valueDisplay.textContent = value === null ? 'null' : toDisplayString(value, String(value));
     return;
   }
 
@@ -132,14 +170,20 @@ const containsSecretVariableReferences = (rawValue, collection, item) => {
   return false;
 };
 
-const getCopyButton = (variableValue, onCopyCallback) => {
+const getCopyButton = (getVariableValue, onCopyCallback) => {
   const copyButton = document.createElement('button');
 
   copyButton.className = 'copy-button';
+  copyButton.setAttribute('data-testid', 'var-info-copy-button');
   copyButton.innerHTML = COPY_ICON_SVG_TEXT;
   copyButton.type = 'button';
 
   let isCopied = false;
+
+  copyButton.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  });
 
   copyButton.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -150,8 +194,13 @@ const getCopyButton = (variableValue, onCopyCallback) => {
       return;
     }
 
+    // Resolve the latest value at click time so edits/saves are reflected.
+    const valueToCopy = typeof getVariableValue === 'function' ? getVariableValue() : getVariableValue;
+
+    const valueStr = toDisplayString(valueToCopy, String(valueToCopy));
+
     navigator.clipboard
-      .writeText(variableValue)
+      .writeText(valueStr)
       .then(() => {
         isCopied = true;
         copyButton.innerHTML = CHECKMARK_ICON_SVG_TEXT;
@@ -252,15 +301,23 @@ export const renderVarInfo = (token, options) => {
             data: { item, variable: null } // variable is null since it doesn't exist yet
           };
         }
-      } else if (collection) {
-        // No item context but we have collection - create as collection variable
+      } else if (collection?.uid) {
         scopeInfo = {
           type: 'collection',
           value: '',
           data: { collection, variable: null }
         };
+      } else if (collection) {
+        // We're in the Global Environment table (no collection context).
+        // for global env colelction is {} without uid.
+        // Pass as "unresolved" so that the Add-to switcher can resolve to the first available scope.
+        scopeInfo = {
+          type: 'unresolved',
+          value: '',
+          data: { variable: null }
+        };
       } else {
-        // No context at all, show as undefined
+        // No context at all (no collection, no item) - nothing to add to, show as undefined.
         scopeInfo = {
           type: 'undefined',
           value: '',
@@ -272,11 +329,12 @@ export const renderVarInfo = (token, options) => {
 
   // Check if a runtime variable exists with the same name (even if scope is detected as collection/folder/environment)
   const hasRuntimeVariable = collection && collection.runtimeVariables && collection.runtimeVariables[variableName];
-  // Check if variable is read-only (process.env, runtime, dynamic/faker, oauth2, and undefined variables cannot be edited)
-  const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'oauth2' || scopeInfo.type === 'undefined' || hasRuntimeVariable;
+  // Check if variable is read-only (process.env, runtime, dynamic/faker, oauth2, and undefined variables cannot be
+  // edited; an inherited variable is owned by the environment it comes from, so it is edited there)
+  const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'oauth2' || scopeInfo.type === 'undefined' || hasRuntimeVariable || !!scopeInfo.inheritedFrom;
 
-  // Get raw value from scope
-  const rawValue = scopeInfo.value || '';
+  // `??` preserves typed falsy values (false / 0); `||` would clobber them to ''.
+  const rawValue = scopeInfo.value ?? '';
 
   // Check if variable should be masked:
   const isSecret = scopeInfo.type !== 'undefined' ? isVariableSecret(scopeInfo) : false;
@@ -294,20 +352,41 @@ export const renderVarInfo = (token, options) => {
 
   const varName = document.createElement('span');
   varName.className = 'var-name';
+  varName.setAttribute('data-testid', 'var-info-name');
   varName.textContent = variableName;
 
   const scopeBadge = document.createElement('span');
   scopeBadge.className = 'var-scope-badge';
+  scopeBadge.setAttribute('data-testid', 'var-info-scope-badge');
 
   // Check if a runtime variable exists - if so, show Runtime scope (even if detected as collection/folder/environment)
   const displayScopeType = hasRuntimeVariable ? 'runtime' : (scopeInfo ? scopeInfo.type : 'Unknown');
-  // Show scope label with indication if it's a new variable
   const scopeLabel = getScopeLabel(displayScopeType);
-  const isNewVariable = scopeInfo && scopeInfo.data && scopeInfo.data.variable === null;
-  scopeBadge.textContent = isNewVariable ? `${scopeLabel}` : scopeLabel;
+  const isNewVariable = scopeInfo.data && scopeInfo.data.variable === null;
+
+  const canGoToDefinition = !!collection && !isNewVariable && !hasRuntimeVariable && ['request', 'folder', 'collection', 'environment', 'global'].includes(scopeInfo.type);
+
+  // If the variable is not new and has a valid scope, make the variable name clickable to go to its definition
+  if (canGoToDefinition) {
+    varName.classList.add('var-name-link');
+    varName.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      goToVariableDefinition(scopeInfo, collection, item, variableName);
+
+      // Close the tooltip once we've navigated to the definition.
+      const popup = varName.closest('.CodeMirror-brunoVarInfo');
+      if (popup && typeof popup._hidePopup === 'function') {
+        popup._hidePopup({ immediate: true });
+      }
+    });
+  }
 
   header.appendChild(varName);
+
+  setScopeBadgeContent(scopeBadge, displayScopeType, scopeLabel);
   header.appendChild(scopeBadge);
+
   into.appendChild(header);
 
   // Check if variable name is valid
@@ -317,6 +396,7 @@ export const renderVarInfo = (token, options) => {
   if (!isValidVariableName) {
     const warningNote = document.createElement('div');
     warningNote.className = 'var-warning-note';
+    warningNote.setAttribute('data-testid', 'var-info-warning-note');
     warningNote.textContent = 'Invalid variable name! Variables must only contain alpha-numeric characters, "-", "_", "."';
     into.appendChild(warningNote);
 
@@ -328,6 +408,7 @@ export const renderVarInfo = (token, options) => {
   if (scopeInfo.type === 'dynamic' && !scopeInfo.isValidDynamicVariable) {
     const warningNote = document.createElement('div');
     warningNote.className = 'var-warning-note';
+    warningNote.setAttribute('data-testid', 'var-info-warning-note');
     warningNote.textContent = `Unknown dynamic variable "${variableName}". Check the variable name.`;
     into.appendChild(warningNote);
     return into;
@@ -337,6 +418,7 @@ export const renderVarInfo = (token, options) => {
   if (scopeInfo.type === 'dynamic' && scopeInfo.isValidDynamicVariable) {
     const readOnlyNote = document.createElement('div');
     readOnlyNote.className = 'var-readonly-note';
+    readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
     readOnlyNote.textContent = scopeInfo.isTimeBased
       ? 'Generates current timestamp on each request'
       : 'Generates random value on each request';
@@ -348,6 +430,7 @@ export const renderVarInfo = (token, options) => {
   if (scopeInfo.type === 'oauth2' && !scopeInfo.isValidOAuth2Variable) {
     const warningNote = document.createElement('div');
     warningNote.className = 'var-warning-note';
+    warningNote.setAttribute('data-testid', 'var-info-warning-note');
     warningNote.textContent = `OAuth2 token not found. Make sure you have fetched the token with the correct Token ID.`;
     into.appendChild(warningNote);
     return into;
@@ -357,20 +440,29 @@ export const renderVarInfo = (token, options) => {
   const valueContainer = document.createElement('div');
   valueContainer.className = 'var-value-container';
 
+  // Reads the Add-to switcher's pending Secret checkbox state, if a switcher is mounted.
+  const getPendingSecret = () => (
+    valueContainer._addToSwitcher && typeof valueContainer._addToSwitcher._getPendingSecret === 'function'
+      ? valueContainer._addToSwitcher._getPendingSecret()
+      : false
+  );
+
   // Create editable value display/editor (if editable)
-  if (!isReadOnly && scopeInfo) {
+  if (!isReadOnly) {
     // Handle secret/masked variables state
     let isRevealed = false;
 
     // Create display element (shows interpolated value by default)
     const valueDisplay = document.createElement('div');
     valueDisplay.className = 'var-value-editable-display';
+    valueDisplay.setAttribute('data-testid', 'var-info-value-editable');
     // Mask the displayed value if it contains secrets or references to secrets
     updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, false);
 
     // Create container for CodeMirror (hidden by default)
     const editorContainer = document.createElement('div');
     editorContainer.className = 'var-value-editor';
+    editorContainer.setAttribute('data-testid', 'var-info-value-editor');
     editorContainer.style.display = 'none'; // Hidden initially
 
     // Detect current theme from DOM
@@ -380,9 +472,10 @@ export const renderVarInfo = (token, options) => {
     // Get all variables for syntax highlighting (but prevent recursive tooltips)
     const allVariables = collection ? getAllVariables(collection, item) : {};
 
-    // Create CodeMirror instance
+    const editorInitialValue = typeof rawValue === 'string' ? rawValue : JSON.stringify(rawValue, null, 2);
+
     const cmEditor = CodeMirror(editorContainer, {
-      value: typeof rawValue === 'string' ? rawValue : String(rawValue), // Use raw value (e.g., {{echo-host}} not resolved value) (ensure it's always a string for CodeMirror) #usebruno/bruno/#6265
+      value: editorInitialValue,
       mode: 'brunovariables',
       theme: cmTheme,
       lineWrapping: true,
@@ -412,9 +505,14 @@ export const renderVarInfo = (token, options) => {
       maskedEditor.enable();
     }
 
-    // Store original value for comparison and track editing state
-    let originalValue = rawValue;
+    // Use the editor-formatted string so a no-op blur on a typed value doesn't dispatch.
+    let originalValue = editorInitialValue;
     let isEditing = false;
+    // Latest resolved value and mask state used by the copy button, eye toggle, and
+    // error-revert path. Updated after each successful save so subsequent redraws
+    // reflect the saved state. `??` preserves falsy-but-valid values like 0 / false.
+    let currentInterpolatedValue = variableValue ?? '';
+    let currentShouldMaskValue = shouldMaskValue;
 
     cmEditor.setOption('extraKeys', {
       'Enter': (cm) => {
@@ -446,12 +544,19 @@ export const renderVarInfo = (token, options) => {
     const iconsContainer = document.createElement('div');
     iconsContainer.className = 'var-icons';
 
-    // Eye toggle button (show if the displayed value is masked)
-    if (shouldMaskValue || isMasked) {
-      const toggleButton = document.createElement('button');
+    let toggleButton = null;
+    if (shouldMaskValue || isMasked || isNewVariable) {
+      toggleButton = document.createElement('button');
       toggleButton.className = 'secret-toggle-button';
+      toggleButton.setAttribute('data-testid', 'var-info-secret-toggle');
       toggleButton.innerHTML = EYE_ICON_SVG;
       toggleButton.type = 'button';
+      toggleButton.style.display = (shouldMaskValue || isMasked) ? '' : 'none';
+
+      toggleButton.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
 
       toggleButton.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -461,8 +566,8 @@ export const renderVarInfo = (token, options) => {
         // Update icon
         toggleButton.innerHTML = isRevealed ? EYE_OFF_ICON_SVG : EYE_ICON_SVG;
 
-        // Update display mode
-        updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, isRevealed);
+        // Update display mode using live state so post-save values/masking are reflected.
+        updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
 
         // Update editor mode
         if (maskedEditor) {
@@ -480,8 +585,9 @@ export const renderVarInfo = (token, options) => {
       iconsContainer.appendChild(toggleButton);
     }
 
-    // Copy button (copy actual value, not masked)
-    const copyButton = getCopyButton(variableValue || '', () => {
+    // Copy button (copy actual value, not masked). Uses a getter so it always
+    // reflects the latest saved value, not the value captured at popup creation.
+    const copyButton = getCopyButton(() => currentInterpolatedValue, () => {
       // Refocus the editor if it's currently in edit mode
       if (isEditing) {
         setTimeout(() => {
@@ -500,23 +606,30 @@ export const renderVarInfo = (token, options) => {
       if (isEditing) return;
 
       isEditing = true;
-      valueDisplay.style.display = 'none';
+
+      // Stage editor off-visual first to avoid a visible resize/text flash.
       editorContainer.style.display = 'block';
+      editorContainer.style.visibility = 'hidden';
 
       // Focus the editor and ensure proper sizing
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         cmEditor.refresh();
+
+        // Adjust height based on content before revealing editor
+        const sizer = cmEditor.getWrapperElement().querySelector('.CodeMirror-sizer');
+        const contentHeight = sizer ? sizer.clientHeight : cmEditor.getScrollInfo().height;
+        editorContainer.style.height = `${calculateEditorHeight(contentHeight)}rem`;
+
+        // Swap display only after editor layout is ready
+        valueDisplay.style.display = 'none';
+        editorContainer.style.visibility = 'visible';
         cmEditor.focus();
 
         // Set cursor to end of content
         const lineCount = cmEditor.lineCount();
         const lastLine = cmEditor.getLine(lineCount - 1);
         cmEditor.setCursor(lineCount - 1, lastLine ? lastLine.length : 0);
-
-        // Adjust height based on content
-        const contentHeight = cmEditor.getScrollInfo().height;
-        editorContainer.style.height = `${calculateEditorHeight(contentHeight)}rem`;
-      }, 0);
+      });
     });
 
     // Save on blur and return to display mode
@@ -525,54 +638,185 @@ export const renderVarInfo = (token, options) => {
 
       // Switch back to display mode
       editorContainer.style.display = 'none';
+      editorContainer.style.visibility = 'visible';
       editorContainer.style.height = `${EDITOR_MIN_HEIGHT}rem`; // Reset to minimum height
       valueDisplay.style.display = 'block';
       isEditing = false;
 
-      if (newValue !== originalValue) {
-        // Dispatch Redux action to update variable
-        const dispatch = store.dispatch;
-        dispatch(updateVariableInScope(variableName, newValue, scopeInfo, collection.uid))
-          .then(() => {
-            originalValue = newValue;
-
-            // Re-fetch scopeInfo to get the updated variable reference after save
-            const state = store.getState();
-            const freshCollection = findCollectionByUid(state.collections.collections, collection.uid);
-            if (collection) {
-              const freshItem = item ? findItemInCollectionByItemUid(freshCollection, item.uid) : null;
-              const updatedScopeInfo = getVariableScope(variableName, freshCollection, freshItem);
-              if (updatedScopeInfo) {
-                scopeInfo = updatedScopeInfo;
-              }
-            }
-
-            // Re-interpolate the new value to show the resolved value in display
-            const interpolatedValue = interpolate(newValue, allVariables);
-            // Check if the NEW value contains secret references
-            const newHasSecretRefs = containsSecretVariableReferences(newValue, collection, item);
-            const newShouldMask = isSecret || newHasSecretRefs;
-            updateValueDisplay(valueDisplay, interpolatedValue, newShouldMask, isMasked, isRevealed);
-          })
-          .catch((err) => {
-            console.error('Failed to update variable:', err);
-            // Revert on error
-            cmEditor.setValue(originalValue);
-            updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, isRevealed);
-          });
+      if (newValue === originalValue) {
+        return;
       }
+
+      // Sync the displayed value with the new value (interpolated and masked if needed).
+      const interpolatedValue = interpolate(newValue, allVariables);
+      currentInterpolatedValue = interpolatedValue ?? '';
+      const newHasSecretRefs = containsSecretVariableReferences(newValue, collection, item);
+
+      // for new variable get the secret state from the switcher
+      const ownSecret = isNewVariable ? getPendingSecret() : isSecret;
+      currentShouldMaskValue = ownSecret || newHasSecretRefs;
+      updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
+
+      // new variables are saved via the Add-to switcher, not on blur. so don't dispatch an update action here.
+      if (isNewVariable) {
+        return;
+      }
+
+      const dispatch = store.dispatch;
+      dispatch(updateVariableInScope(variableName, newValue, scopeInfo, collection.uid))
+        .then(() => {
+          originalValue = newValue;
+
+          // Re-fetch scopeInfo to get the updated variable reference after save
+          const state = store.getState();
+          const freshCollection = findCollectionByUid(state.collections.collections, collection.uid);
+          if (collection) {
+            const freshItem = item ? findItemInCollectionByItemUid(freshCollection, item.uid) : null;
+            const updatedScopeInfo = getVariableScope(variableName, freshCollection, freshItem);
+            if (updatedScopeInfo) {
+              scopeInfo = updatedScopeInfo;
+            }
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to update variable:', err);
+          toast.error(err?.message || 'Failed to update variable');
+        });
     });
 
     // Store references for cleanup
     valueContainer._cmEditor = cmEditor;
     valueContainer._maskedEditor = maskedEditor;
     valueContainer._autoCompleteCleanup = autoCompleteCleanup;
+
+    const applySecretMasking = (secretSelected) => {
+      const hasSecretRefs = containsSecretVariableReferences(cmEditor.getValue(), collection, item);
+      currentShouldMaskValue = secretSelected || hasSecretRefs;
+
+      if (!currentShouldMaskValue) {
+        isRevealed = false;
+      }
+
+      if (toggleButton) {
+        toggleButton.style.display = currentShouldMaskValue ? '' : 'none';
+        toggleButton.innerHTML = isRevealed ? EYE_OFF_ICON_SVG : EYE_ICON_SVG;
+      }
+
+      if (currentShouldMaskValue) {
+        if (!maskedEditor) {
+          maskedEditor = new MaskedEditor(cmEditor);
+          valueContainer._maskedEditor = maskedEditor;
+        }
+        isRevealed ? maskedEditor.disable() : maskedEditor.enable();
+      } else if (maskedEditor) {
+        maskedEditor.disable();
+      }
+
+      updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
+    };
+
+    // for new variables, add a switcher to select the scope to add the variable to (collection, request, folder, environment, global)
+    if (isNewVariable) {
+      const buildScopeInfoForSwitch = (scope) =>
+        buildScopeInfo({ scopeType: scope.type, state: store.getState(), collection, item });
+
+      const buildAddToScopes = () =>
+        sharedBuildAddToScopes({ state: store.getState(), collection, item });
+
+      const getFreshScopeForType = (type) => buildAddToScopes().find((s) => s.type === type);
+
+      const addToScopes = buildAddToScopes();
+
+      // If there's only one available scope, select it by default. Otherwise, use the detected scope if it's available.
+      const initialScope = addToScopes.find((s) => s.type === scopeInfo.type)
+        || (addToScopes.length === 1 ? addToScopes[0] : null);
+
+      // If the initial scope is different from the detected scope, rebuild the scopeInfo for the initial scope and update the badge.
+      // This can happen if adding variable in Global Table where collection is not available.
+      if (initialScope && initialScope.type !== scopeInfo.type) {
+        scopeInfo = buildScopeInfoForSwitch(initialScope);
+        setScopeBadgeContent(scopeBadge, initialScope.type, getScopeLabel(initialScope.type));
+      }
+
+      const removeAddToSwitcher = () => {
+        if (valueContainer._addToSwitcher) {
+          if (typeof valueContainer._addToSwitcher._destroy === 'function') {
+            valueContainer._addToSwitcher._destroy();
+          }
+          valueContainer._addToSwitcher.remove();
+          valueContainer._addToSwitcher = null;
+        }
+      };
+
+      const persistNewVariable = (secret) => {
+        const value = cmEditor.getValue();
+        const scopeInfoToSave = scopeInfo && scopeInfo.data
+          ? { ...scopeInfo, data: { ...scopeInfo.data, secret } }
+          : scopeInfo;
+
+        return store.dispatch(updateVariableInScope(variableName, value, scopeInfoToSave, collection.uid))
+          .then(() => {
+            originalValue = value;
+
+            const state = store.getState();
+            const freshCollection = findCollectionByUid(state.collections.collections, collection.uid);
+            const freshItem = item ? findItemInCollectionByItemUid(freshCollection, item.uid) : null;
+            const updatedScopeInfo = getVariableScope(variableName, freshCollection, freshItem);
+            if (updatedScopeInfo) {
+              scopeInfo = updatedScopeInfo;
+              setScopeBadgeContent(scopeBadge, updatedScopeInfo.type, getScopeLabel(updatedScopeInfo.type));
+            }
+
+            const interpolatedValue = interpolate(value, allVariables);
+            currentInterpolatedValue = interpolatedValue ?? '';
+            const newHasSecretRefs = containsSecretVariableReferences(value, collection, item);
+            // Use the secret flag actually being persisted (from the Secret checkbox).
+            currentShouldMaskValue = secret || newHasSecretRefs;
+            updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
+
+            removeAddToSwitcher();
+          });
+      };
+
+      const onSwitchScope = (scope) => {
+        const newScopeInfo = buildScopeInfoForSwitch(scope);
+        if (!newScopeInfo) {
+          return;
+        }
+        scopeInfo = newScopeInfo;
+        setScopeBadgeContent(scopeBadge, newScopeInfo.type, getScopeLabel(newScopeInfo.type));
+      };
+
+      const onCreateEnvironment = (scope, name) =>
+        createEnvironmentForScope({ scope, name, collectionUid: collection?.uid, store })
+          .then(() => getFreshScopeForType(scope.type));
+
+      const addToSwitcher = createAddToScopeSwitcher({
+        scopes: addToScopes,
+        initialScope,
+        onSwitchScope,
+        onCreateEnvironment,
+        onSecretChange: applySecretMasking
+      });
+      valueContainer._addToSwitcher = addToSwitcher;
+
+      // Called from `onDocumentClick` in showPopup when the tooltip is dismissed via an
+      // outside click. update only if user has changed the value, otherwise do nothing.
+      valueContainer._persistNewVariable = () => {
+        if (cmEditor.getValue() === originalValue) {
+          return Promise.resolve();
+        }
+
+        return persistNewVariable(getPendingSecret());
+      };
+    }
   } else {
     // Read-only display (for runtime, process.env, undefined variables)
     let isRevealed = false;
 
     const valueDisplay = document.createElement('div');
     valueDisplay.className = 'var-value-display';
+    valueDisplay.setAttribute('data-testid', 'var-info-value-display');
     // For read-only variables, still check if they reference secrets
     updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, false);
 
@@ -584,6 +828,7 @@ export const renderVarInfo = (token, options) => {
     if (shouldMaskValue || isMasked) {
       const toggleButton = document.createElement('button');
       toggleButton.className = 'secret-toggle-button';
+      toggleButton.setAttribute('data-testid', 'var-info-secret-toggle');
       toggleButton.innerHTML = EYE_ICON_SVG;
       toggleButton.type = 'button';
 
@@ -610,27 +855,41 @@ export const renderVarInfo = (token, options) => {
     if (scopeInfo.type === 'process.env') {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
       readOnlyNote.textContent = 'read-only';
       into.appendChild(readOnlyNote);
     } else if (scopeInfo.type === 'runtime' || hasRuntimeVariable) {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
       readOnlyNote.textContent = 'Set by scripts (read-only)';
       into.appendChild(readOnlyNote);
     } else if (scopeInfo.type === 'oauth2') {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
       readOnlyNote.textContent = 'read-only';
       into.appendChild(readOnlyNote);
     } else if (scopeInfo.type === 'undefined') {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
       readOnlyNote.textContent = 'No active environment';
+      into.appendChild(readOnlyNote);
+    } else if (scopeInfo.inheritedFrom) {
+      const readOnlyNote = document.createElement('div');
+      readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
+      readOnlyNote.textContent = `Inherited from ${scopeInfo.inheritedFrom.name} (read-only)`;
       into.appendChild(readOnlyNote);
     }
   }
 
   into.appendChild(valueContainer);
+
+  if (valueContainer._addToSwitcher) {
+    into.appendChild(valueContainer._addToSwitcher);
+  }
 
   return into;
 };
@@ -672,7 +931,7 @@ if (!SERVER_RENDERED) {
     const target = e.target || e.srcElement;
 
     // Prevent new tooltips if one is already active
-    if (target.nodeName !== 'SPAN' || state.hoverTimeout !== undefined) {
+    if (varInfoSuppressed || target.nodeName !== 'SPAN' || state.hoverTimeout !== undefined) {
       return;
     }
     // Show popover for both valid and invalid variables
@@ -681,8 +940,10 @@ if (!SERVER_RENDERED) {
     }
 
     const box = target.getBoundingClientRect();
+    let point = { left: e.clientX, top: e.clientY };
 
-    const onMouseMove = function () {
+    const onMouseMove = function (moveEvent) {
+      point = { left: moveEvent.clientX, top: moveEvent.clientY };
       clearTimeout(state.hoverTimeout);
       state.hoverTimeout = setTimeout(onHover, hoverTime);
     };
@@ -698,7 +959,10 @@ if (!SERVER_RENDERED) {
       CodeMirror.off(document, 'mousemove', onMouseMove);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
       state.hoverTimeout = undefined;
-      onMouseHover(cm, box);
+      if (varInfoSuppressed) {
+        return;
+      }
+      onMouseHover(cm, box, point);
     };
 
     const hoverTime = getHoverTime(cm);
@@ -708,8 +972,8 @@ if (!SERVER_RENDERED) {
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
   }
 
-  function onMouseHover(cm, box) {
-    const pos = cm.coordsChar({
+  function onMouseHover(cm, box, point) {
+    const pos = cm.coordsChar(point || {
       left: (box.left + box.right) / 2,
       top: (box.top + box.bottom) / 2
     });
@@ -810,19 +1074,27 @@ if (!SERVER_RENDERED) {
   }
 
   function showPopup(cm, box, brunoVarInfo) {
-    // If there's already an active popup, remove it first
-    if (activePopup && activePopup.parentNode) {
+    // If there's already an active popup, hide it first to ensure listeners are cleaned up
+    if (activePopup && typeof activePopup._hidePopup === 'function') {
+      activePopup._hidePopup({ immediate: true });
+    } else if (activePopup && activePopup.parentNode) {
       activePopup.parentNode.removeChild(activePopup);
       activePopup = null;
     }
 
     const popup = document.createElement('div');
     popup.className = 'CodeMirror-brunoVarInfo';
+    popup.setAttribute('data-testid', 'var-info-popup');
     popup.appendChild(brunoVarInfo);
     document.body.appendChild(popup);
 
     // Track this popup as the active one
     activePopup = popup;
+    hideActiveVarInfoPopup = () => {
+      if (activePopup === popup && typeof popup._hidePopup === 'function') {
+        popup._hidePopup({ immediate: true });
+      }
+    };
 
     const popupBox = popup.getBoundingClientRect();
     const popupStyle = popup.currentStyle || window.getComputedStyle(popup);
@@ -865,21 +1137,77 @@ if (!SERVER_RENDERED) {
     popup.style.left = `${leftPos / 16}rem`;
 
     let popupTimeout;
+    let isPinned = false;
+    let isHidden = false;
 
     const onMouseOverPopup = function () {
       clearTimeout(popupTimeout);
     };
 
     const onMouseOut = function () {
+      if (isPinned) {
+        return;
+      }
       clearTimeout(popupTimeout);
       popupTimeout = setTimeout(hidePopup, 500);
     };
 
-    const hidePopup = function () {
+    const onPopupClick = function (e) {
+      if (!popup.contains(e.target)) {
+        return;
+      }
+      isPinned = true;
+      clearTimeout(popupTimeout);
+    };
+
+    const onDocumentClick = function (e) {
+      if (popup.contains(document.activeElement)) {
+        return;
+      }
+
+      if (!popup.contains(e.target)) {
+        isPinned = false;
+
+        const valueContainer = popup.querySelector('.var-value-container');
+        if (valueContainer && typeof valueContainer._persistNewVariable === 'function') {
+          valueContainer._persistNewVariable().catch((err) => {
+            toast.error(err?.message || 'Failed to save variable');
+          });
+        }
+
+        hidePopup({ immediate: true });
+      }
+    };
+
+    // The popup is position:fixed, so any scroller around the editor strands it;
+    // scroll events do not bubble, hence the capture-phase listener on document.
+    const onScroll = function (e) {
+      if (popup.contains(e.target)) {
+        return;
+      }
+      const wrapper = cm.getWrapperElement();
+      if (!e.target.contains(wrapper) && !wrapper.contains(e.target)) {
+        return;
+      }
+      isPinned = false;
+      hidePopup({ immediate: true });
+    };
+
+    const hidePopup = function (options = {}) {
+      if (isHidden) {
+        return;
+      }
+      isHidden = true;
+
+      const { immediate = false } = options;
+      clearTimeout(popupTimeout);
       CodeMirror.off(popup, 'mouseover', onMouseOverPopup);
       CodeMirror.off(popup, 'mouseout', onMouseOut);
+      CodeMirror.off(popup, 'click', onPopupClick);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
+      CodeMirror.off(document, 'click', onDocumentClick);
       CodeMirror.off(cm, 'change', onEditorChange);
+      document.removeEventListener('scroll', onScroll, true);
 
       // Cleanup CodeMirror and MaskedEditor instances
       const valueContainer = popup.querySelector('.var-value-container');
@@ -901,11 +1229,24 @@ if (!SERVER_RENDERED) {
           valueContainer._cmEditor.getWrapperElement().remove();
           valueContainer._cmEditor = null;
         }
+
+        // Cleanup the "Add to" switcher (outside-click listener for its inline create form, etc.)
+        if (valueContainer._addToSwitcher && typeof valueContainer._addToSwitcher._destroy === 'function') {
+          valueContainer._addToSwitcher._destroy();
+          valueContainer._addToSwitcher = null;
+        }
       }
 
       // Clear the active popup reference
       if (activePopup === popup) {
         activePopup = null;
+      }
+
+      if (immediate) {
+        if (popup.parentNode) {
+          popup.parentNode.removeChild(popup);
+        }
+        return;
       }
 
       if (popup.style.opacity) {
@@ -922,13 +1263,21 @@ if (!SERVER_RENDERED) {
 
     // Hide popup when user types in the main editor
     const onEditorChange = function () {
-      hidePopup();
+      if (!isPinned) {
+        hidePopup();
+      }
     };
+
+    // Allow replacing existing popup with full cleanup
+    popup._hidePopup = hidePopup;
 
     CodeMirror.on(popup, 'mouseover', onMouseOverPopup);
     CodeMirror.on(popup, 'mouseout', onMouseOut);
+    CodeMirror.on(popup, 'click', onPopupClick);
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
+    CodeMirror.on(document, 'click', onDocumentClick);
     CodeMirror.on(cm, 'change', onEditorChange);
+    document.addEventListener('scroll', onScroll, true);
   }
 }
 

@@ -1,0 +1,8 @@
+info:
+  name: PATCH-Request
+  type: http
+  seq: 5
+
+http:
+  method: PATCH
+  url: "{{host}}/api/resource"

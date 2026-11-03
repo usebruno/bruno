@@ -117,11 +117,26 @@ const Wrapper = styled.div`
     overflow: hidden;
   }
 
+  .no-environment {
+    color: ${(props) => props.theme.colors.text.subtext0};
+  }
+
   .environment-list {
     flex: 1;
     overflow-y: auto;
     max-height: calc(75vh - 8rem);
     padding-bottom: 2.625rem;
+  }
+
+  .env-list-search {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: ${(props) => props.theme.dropdown.bg};
+    display: flex;
+    align-items: center;
+    padding: 0 4px 6px 4px;
+    margin: 0;
   }
 
   .dropdown-item-list {

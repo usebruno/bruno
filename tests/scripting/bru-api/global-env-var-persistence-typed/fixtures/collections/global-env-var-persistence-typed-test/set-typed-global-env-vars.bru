@@ -1,0 +1,25 @@
+meta {
+  name: set-typed-global-env-vars
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://testbench-sanity.usebruno.com/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setGlobalEnvVar("globalNum", 99);
+  bru.setGlobalEnvVar("globalBool", false);
+  bru.setGlobalEnvVar("globalObj", { tier: "premium", limit: 1000 });
+}
+
+tests {
+  test("typed global env vars are readable as their original types", function() {
+    expect(bru.getGlobalEnvVar("globalNum")).to.equal(99);
+    expect(bru.getGlobalEnvVar("globalBool")).to.equal(false);
+    expect(bru.getGlobalEnvVar("globalObj")).to.deep.equal({ tier: "premium", limit: 1000 });
+  });
+}

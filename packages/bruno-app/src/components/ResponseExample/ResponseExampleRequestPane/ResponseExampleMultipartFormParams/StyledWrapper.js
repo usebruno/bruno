@@ -62,7 +62,7 @@ const Wrapper = styled.div`
 
   tr {
     position: relative;
-    
+
     &:hover .delete-button.edit-mode {
       opacity: 1;
       visibility: visible;
@@ -92,10 +92,6 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.colors.text.danger};
   }
 
-  .file-value-cell {
-    width: 100%;
-  }
-
   .value-cell {
     width: 100%;
 
@@ -114,7 +110,7 @@ const Wrapper = styled.div`
     border-radius: 4px;
     color: ${(props) => props.theme.colors.text.muted};
     margin-left: 8px;
-    
+
     &:hover {
       color: ${(props) => props.theme.colors.text.red};
     }

@@ -10,12 +10,15 @@ import useLocalStorage from 'hooks/useLocalStorage';
 import CodeEditor from 'components/CodeEditor/index';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
+import { usePersistedState } from 'hooks/usePersistedState';
 import { IconSend, IconRefresh, IconWand, IconPlus, IconTrash } from '@tabler/icons';
 import ToolHint from 'components/ToolHint/index';
 import { toastError } from 'utils/common/error';
 import toast from 'react-hot-toast';
 import { getAbsoluteFilePath } from 'utils/common/path';
 import { prettifyJsonString } from 'utils/common/index';
+import useKeybinding from 'hooks/useKeybinding';
+import { REQUEST_BODY_EDITOR_CLASS } from 'utils/common/constants';
 
 const MessageToolbar = ({
   index,
@@ -38,7 +41,7 @@ const MessageToolbar = ({
         </ToolHint>
 
         <ToolHint text="Generate sample" toolhintId={`regenerate-msg-${index}`}>
-          <button onClick={onRegenerateMessage} className="toolbar-btn">
+          <button onClick={onRegenerateMessage} className="toolbar-btn" data-testid={`grpc-regenerate-message-${index}`}>
             <IconRefresh size={16} strokeWidth={1.5} />
           </button>
         </ToolHint>
@@ -68,10 +71,12 @@ const MessageToolbar = ({
   );
 };
 
-const SingleGrpcMessage = ({ message, item, collection, index, methodType, handleRun, canClientSendMultipleMessages, isLast }) => {
+const SingleGrpcMessage = ({ message, item, collection, index, methodType, handleRun, canClientSendMultipleMessages, isLast, onPrettify }) => {
   const dispatch = useDispatch();
+  const editorRef = useRef(null);
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+  const [grpcScroll, setGrpcScroll] = usePersistedState({ key: `request-grpc-msg-scroll-${item.uid}-${index}`, default: 0 });
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const isConnectionActive = useSelector((state) => state.collections.activeConnections.includes(item.uid));
 
@@ -96,9 +101,13 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, handl
 
   const onSend = async () => {
     try {
-      await sendGrpcMessage(item, collection.uid, content);
+      const { success, error } = await sendGrpcMessage(item, collection.uid, content);
+      if (!success) {
+        toastError(new Error(error), 'Message not sent');
+      }
     } catch (error) {
       console.error('Error sending message:', error);
+      toastError(error, 'Message not sent');
     }
   };
 
@@ -165,24 +174,6 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, handl
     }));
   };
 
-  const onPrettify = () => {
-    try {
-      const prettyBodyJson = prettifyJsonString(content);
-      const currentMessages = [...(body.grpc || [])];
-      currentMessages[index] = {
-        name: name ? name : `message ${index + 1}`,
-        content: prettyBodyJson
-      };
-      dispatch(updateRequestBody({
-        content: currentMessages,
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      }));
-    } catch (e) {
-      toastError(new Error('Unable to prettify. Invalid JSON format.'));
-    }
-  };
-
   const isSingleMessage = !canClientSendMultipleMessages || body.grpc.length === 1;
 
   return (
@@ -197,9 +188,11 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, handl
         onDeleteMessage={onDeleteMessage}
         showDelete={index > 0}
       />
-      <div className="editor-container">
+      <div className={`editor-container ${REQUEST_BODY_EDITOR_CLASS}`}>
         <CodeEditor
+          ref={editorRef}
           collection={collection}
+          item={item}
           theme={displayedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
@@ -209,6 +202,8 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, handl
           onSave={onSave}
           mode="application/ld+json"
           enableVariableHighlighting={true}
+          initialScroll={grpcScroll}
+          onScroll={setGrpcScroll}
         />
       </div>
     </div>
@@ -241,6 +236,33 @@ const GrpcBody = ({ item, collection, handleRun }) => {
       collectionUid: collection.uid
     }));
   };
+
+  const onPrettifyMessage = (index) => {
+    const message = body?.grpc?.[index];
+    if (!message) return;
+    try {
+      const prettyBodyJson = prettifyJsonString(message.content);
+      const currentMessages = [...body.grpc];
+      currentMessages[index] = {
+        name: message.name ? message.name : `message ${index + 1}`,
+        content: prettyBodyJson
+      };
+      dispatch(updateRequestBody({
+        content: currentMessages,
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      }));
+    } catch (e) {
+      toastError(new Error('Unable to prettify. Invalid JSON format.'));
+    }
+  };
+
+  useKeybinding('prettify', (e) => {
+    if (!e.target.closest(`.${REQUEST_BODY_EDITOR_CLASS}`)) return;
+    const message = e.target.closest('.message-container');
+    onPrettifyMessage([...message.parentElement.children].indexOf(message));
+    return false;
+  });
 
   if (!body?.grpc || !Array.isArray(body.grpc)) {
     return (
@@ -281,6 +303,7 @@ const GrpcBody = ({ item, collection, handleRun }) => {
             handleRun={handleRun}
             canClientSendMultipleMessages={canClientSendMultipleMessages}
             isLast={index === messagesToShow.length - 1}
+            onPrettify={() => onPrettifyMessage(index)}
           />
         ))}
       </div>

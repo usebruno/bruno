@@ -1,3 +1,149 @@
+/**
+ * Creates a QuickJS context with centralized lifecycle management:
+ * - vm.evalCode() auto-disposes result handles (for shim setup code)
+ * - vm.evalCodeRetained() returns the raw result (for user script execution)
+ * - all newObject/newFunction/newArray handles are tracked and disposed on teardown
+ */
+const createManagedQuickJsContext = (module) => {
+  const vm = module.newContext();
+  const disposeTracked = trackQuickJsContext(vm);
+  const evalCodeRetained = vm.evalCode.bind(vm);
+  const { waitForPendingDeferreds, disposePendingDeferreds } = trackPendingDeferreds(vm);
+
+  vm.evalCode = (code, filename = 'eval.js') => {
+    const result = evalCodeRetained(code, filename);
+    if (result.error) {
+      const error = vm.dump(result.error);
+      result.error.dispose();
+      throw error;
+    }
+    result.value.dispose();
+  };
+
+  vm.evalCodeRetained = evalCodeRetained;
+
+  return {
+    vm,
+    waitForPendingDeferreds,
+    dispose: () => disposeQuickJsContext(vm, disposeTracked, disposePendingDeferreds)
+  };
+};
+
+/**
+ * Track every deferred created by the async shims (sendRequest, axios, cookie
+ * jar, sleep, ...) so teardown can wait for them to settle. A user script that
+ * fires-and-forgets async work (e.g. an un-awaited setTimeout) resolves the
+ * wrapping closure immediately; without this, the VM is disposed before the
+ * deferred's host callback runs, and touching the freed context throws
+ * `QuickJSUseAfterFree`. Each `.settled` resolves once the deferred is
+ * resolved/rejected, so awaiting them keeps the context alive long enough.
+ *
+ * The hook installs at context creation. `waitForPendingDeferreds` drains in
+ * place (waiting can chain new deferreds) with no timeout; `disposePendingDeferreds`
+ * frees unsettled resolve/reject handles, which left alive abort JS_FreeRuntime.
+ */
+const trackPendingDeferreds = (vm) => {
+  const pendingSettles = [];
+  const deferreds = [];
+  const originalNewPromise = vm.newPromise.bind(vm);
+  vm.newPromise = (...args) => {
+    const deferred = originalNewPromise(...args);
+    deferreds.push(deferred);
+    pendingSettles.push(deferred.settled.catch(() => { }));
+    return deferred;
+  };
+
+  const waitForPendingDeferreds = async () => {
+    while (pendingSettles.length) {
+      const batch = pendingSettles.splice(0);
+      await Promise.all(batch);
+    }
+  };
+
+  const disposePendingDeferreds = () => {
+    while (deferreds.length) {
+      const deferred = deferreds.pop();
+      if (deferred.alive) {
+        deferred.dispose();
+      }
+    }
+  };
+
+  return {
+    waitForPendingDeferreds,
+    disposePendingDeferreds
+  };
+};
+
+/**
+ * Tracks handles created via newObject/newFunction/newArray so they can all be
+ * disposed before the context. quickjs-emscripten requires every heap handle to
+ * be disposed individually; shims attach then drop their ref via .dispose().
+ */
+const trackQuickJsContext = (vm) => {
+  const handles = [];
+
+  const track = (handle) => {
+    handles.push(handle);
+    return handle;
+  };
+
+  // Replace an allocator with a wrapper that records every handle it returns,
+  // so teardown can dispose them all. Behaviour is otherwise identical.
+  const trackAllocations = (method) => {
+    const original = vm[method]?.bind(vm);
+    if (!original) {
+      return;
+    }
+
+    vm[method] = (...args) => track(original(...args));
+  };
+
+  ['newObject', 'newFunction', 'newArray'].forEach(trackAllocations);
+
+  // Dispose newest-first: later handles may reference earlier ones.
+  return () => {
+    for (const handle of handles.reverse()) {
+      if (handle?.alive) {
+        handle.dispose();
+      }
+    }
+  };
+};
+
+/**
+ * Drains pending QuickJS jobs, frees leftover deferreds and tracked handles,
+ * and disposes the context. Jobs are drained BEFORE the handle flush: a job
+ * can call allocating shims or start new async work, and anything it creates
+ * must still be freed or JS_FreeRuntime aborts on the leftover GC objects.
+ */
+const disposeQuickJsContext = (vm, disposeTracked, disposePendingDeferreds) => {
+  if (!vm?.alive) {
+    return;
+  }
+
+  // Executing a job can schedule more jobs (chained `.then()`s), so keep going
+  // until `hasPendingJob()` reports the queue is empty or a job throws.
+  while (vm.runtime?.hasPendingJob?.()) {
+    const result = vm.runtime.executePendingJobs();
+    // On error, dispose the error handle and stop draining.
+    if (result.error) {
+      result.error.dispose();
+      break;
+    }
+  }
+
+  if (typeof disposePendingDeferreds === 'function') {
+    disposePendingDeferreds();
+  }
+
+  if (typeof disposeTracked === 'function') {
+    disposeTracked();
+  }
+
+  vm.dispose();
+};
+
 const marshallToVm = (value, vm) => {
   if (value === undefined) {
     return vm.undefined;
@@ -79,5 +225,8 @@ async function invokeFunction(vm, quickFn, args = []) {
 
 module.exports = {
   marshallToVm,
-  invokeFunction
+  invokeFunction,
+  createManagedQuickJsContext,
+  disposeQuickJsContext,
+  trackQuickJsContext
 };

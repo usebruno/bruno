@@ -1,7 +1,14 @@
-import { Variable } from '@opencollection/types/common/variables';
+import { Variable, VariableTypedValue } from '@opencollection/types/common/variables';
 import { FolderRequest as BrunoFolderRequest } from '@usebruno/schema-types/collection/folder';
 import { Variable as BrunoVariable, Variables as BrunoVariables } from '@usebruno/schema-types/common/variables';
 import { uuid, ensureString } from '../../../utils';
+import {
+  isTypedValue,
+  hasTypedMetadata,
+  toOpenCollectionTypedValue,
+  fromOpenCollectionTypedValue,
+  serializeVariableValue
+} from './datatype';
 
 /**
  * Convert Bruno pre-request variables to OpenCollection variables format.
@@ -19,9 +26,10 @@ export const toOpenCollectionVariables = (variables: BrunoFolderRequest['vars'] 
   }
 
   const ocVariables: Variable[] = reqVarsArray.map((v: BrunoVariable): Variable => {
+    const valueStr = serializeVariableValue(v.value);
     const variable: Variable = {
       name: v.name || '',
-      value: v.value || ''
+      value: hasTypedMetadata(v) ? toOpenCollectionTypedValue(v, valueStr) : valueStr
     };
 
     if (v?.description?.trim().length) {
@@ -49,19 +57,25 @@ export const toBrunoVariables = (variables: Variable[] | null | undefined): { re
   const reqVars: BrunoVariables = [];
 
   variables.forEach((v: Variable) => {
-    const variable: BrunoVariable = {
+    const base: BrunoVariable = {
       uid: uuid(),
       name: ensureString(v.name),
-      value: ensureString(v.value),
+      value: '',
       enabled: v.disabled !== true,
       local: false
     };
 
-    if (v.description) {
-      variable.description = typeof v.description === 'string' ? v.description : (v.description as any)?.content || '';
+    if (isTypedValue(v.value)) {
+      Object.assign(base, fromOpenCollectionTypedValue(v.value));
+    } else {
+      base.value = ensureString(v.value);
     }
 
-    reqVars.push(variable);
+    if (v.description) {
+      base.description = typeof v.description === 'string' ? v.description : (v.description as any)?.content || '';
+    }
+
+    reqVars.push(base);
   });
 
   return { req: reqVars, res: [] };

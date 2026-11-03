@@ -11,10 +11,10 @@ get {
 }
 
 script:pre-request {
-  // TODO: skipped because deleteGlobalEnvVar does not update the UI
-  bru.runner.skipRequest();
-  return;
   bru.setGlobalEnvVar("testDeleteGlobalEnvVar", "to-be-deleted");
+}
+
+script:post-response {
   bru.deleteGlobalEnvVar("testDeleteGlobalEnvVar");
 }
 
@@ -22,5 +22,11 @@ tests {
   test("should delete global env var", function() {
     const val = bru.getGlobalEnvVar("testDeleteGlobalEnvVar");
     expect(val).to.be.undefined;
+  });
+
+  test("should not throw when deleting non-existent key", function() {
+    expect(function() {
+      bru.deleteGlobalEnvVar("non-existent-key");
+    }).to.not.throw();
   });
 }

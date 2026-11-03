@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 
-const DraggableTab = ({ id, onMoveTab, index, children, className, onClick }) => {
+const DraggableTab = ({ id, onMoveTab, index, children, className, onClick, active }) => {
   const ref = React.useRef(null);
 
   const [{ handlerId, isOver }, drop] = useDrop({
@@ -35,6 +35,8 @@ const DraggableTab = ({ id, onMoveTab, index, children, className, onClick }) =>
       className={className}
       ref={ref}
       role="tab"
+      aria-selected={active}
+      data-testid="request-tab"
       style={{ opacity: isDragging || isOver ? 0 : 1 }}
       onClick={onClick}
       data-handler-id={handlerId}

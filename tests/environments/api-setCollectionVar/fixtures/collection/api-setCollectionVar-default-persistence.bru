@@ -1,0 +1,15 @@
+meta {
+  name: api-setCollectionVar-default-persistence
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setCollectionVar("token", "secret");
+}

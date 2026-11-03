@@ -1,15 +1,23 @@
 import each from 'lodash/each';
 import get from 'lodash/get';
+import isPlainObject from 'lodash/isPlainObject';
+import omit from 'lodash/omit';
 import jsyaml from 'js-yaml';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid, sanitizeTag, sanitizeTags } from '../common';
 import { swagger2ToBruno } from './swagger2-to-bruno';
+import { allowedDefault, resolveSchemaComposition, registerComponentNames, registerReferencePlaceholder } from './schema-composition';
 import {
   ensureUrl,
   BODY_TYPE_HANDLERS,
   getExampleFromSchema,
+  getExpandableObjectSchema,
+  resetExampleGenerationState,
   createBrunoExample,
   groupRequestsByTags,
-  groupRequestsByPath
+  groupRequestsByPath,
+  normalizeItemName,
+  getTagDescriptions,
+  toSpecString
 } from './openapi-common';
 
 const getContentLevelExample = (bodyContent) => {
@@ -28,15 +36,122 @@ const getSchemaPropertyExampleValue = (prop, propName, parentExample = {}) => {
   return '';
 };
 
+const withoutObjectValues = (schema) => {
+  if (!schema || typeof schema !== 'object') return schema;
+  const objectValued = ['example', 'default'].filter((keyword) => isPlainObject(schema[keyword]));
+  return objectValued.length > 0 ? omit(schema, objectValued) : schema;
+};
+
+const resolveParameterSchema = (rawSchema) => {
+  const schema = resolveSchemaComposition(rawSchema || {}) || {};
+  const items = resolveSchemaComposition(schema.items);
+  return items === schema.items ? schema : { ...schema, items: withoutObjectValues(items) };
+};
+
+const serializeParamValue = (value) => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  if (typeof value !== 'object') {
+    return String(value);
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch (err) {
+    return String(value);
+  }
+};
+
+const queryMemberDelimiter = (style) => {
+  if (style === 'pipeDelimited') return '|';
+  if (style === 'spaceDelimited') return ' ';
+  return ',';
+};
+
+const paramEntriesFromValue = (val, param) => {
+  const isQueryParam = param.in === 'query' || param.in === 'querystring';
+  const usesFormStyle = isQueryParam && (param.style === undefined || param.style === 'form');
+  const explode = typeof param.explode === 'boolean' ? param.explode : usesFormStyle;
+  const delimiter = isQueryParam ? queryMemberDelimiter(param.style) : ',';
+
+  if (Array.isArray(val)) {
+    if (!val.length) {
+      return null;
+    }
+
+    const members = val.map(serializeParamValue);
+
+    return usesFormStyle && explode
+      ? members.map((value) => ({ value, enabled: true }))
+      : [{ value: members.join(delimiter), enabled: true }];
+  }
+
+  if (val !== null && typeof val === 'object') {
+    const pairs = Object.entries(val);
+    if (!pairs.length) {
+      return null;
+    }
+
+    if (usesFormStyle && explode) {
+      return pairs.map(([key, item]) => ({ name: key, value: serializeParamValue(item), enabled: true }));
+    }
+
+    const flattened = explode
+      ? pairs.map(([key, item]) => `${key}=${serializeParamValue(item)}`)
+      : pairs.flatMap(([key, item]) => [key, serializeParamValue(item)]);
+
+    return [{ value: flattened.join(delimiter), enabled: true }];
+  }
+
+  const value = serializeParamValue(val);
+
+  return value === '' ? null : [{ value, enabled: true }];
+};
+
+const namedExampleValue = (example) => {
+  if (!example || typeof example !== 'object') {
+    return undefined;
+  }
+
+  return example.dataValue !== undefined ? example.dataValue : example.value;
+};
+
+const declaredParamValues = (param, schema) => {
+  const namedExampleValues = Object.values(param.examples || {}).map(namedExampleValue);
+
+  return [
+    param.example,
+    ...namedExampleValues,
+    schema.default,
+    schema.example,
+    Array.isArray(schema.examples) ? schema.examples[0] : undefined
+  ];
+};
+
+const entriesFromDeclaredValues = (param, schema) => {
+  for (const value of declaredParamValues(param, schema)) {
+    if (value === undefined) {
+      continue;
+    }
+
+    const entries = paramEntriesFromValue(value, param);
+    if (entries) {
+      return entries;
+    }
+  }
+
+  return null;
+};
+
 /**
- * Extracts parameter entries based on OpenAPI parameter schema
- * For enum parameters, creates multiple entries (one per enum value)
- * Handles enum, default, constant, nullable, and array types per Swagger spec
  * @param {Object} param - The OpenAPI parameter object
- * @returns {Array} - Array of objects with value and enabled properties
+ * @param {*} [fallbackValue] - Value to use once every source the spec declares has come up empty
+ * @returns {Array} - Entries of `{ value, enabled }`, plus `name` where a member overrides it
  */
-const getParameterEntries = (param) => {
-  const schema = param.schema || {};
+const getParameterEntries = (param, fallbackValue) => {
+  const schema = resolveParameterSchema(param.schema);
   const entries = [];
 
   // Handle enum parameters - create entry for each enum value
@@ -61,15 +176,10 @@ const getParameterEntries = (param) => {
   // Handle array type with items schema that has enum
   if (schema.type === 'array' && schema.items && schema.items.enum && Array.isArray(schema.items.enum) && schema.items.enum.length > 0) {
     const defaultValue = schema.items.default !== undefined ? String(schema.items.default) : null;
-    const arrayDefault = schema.default !== undefined && Array.isArray(schema.default) ? schema.default : null;
 
-    // If there's a default at array level, use it
-    if (arrayDefault) {
-      entries.push({
-        value: JSON.stringify(arrayDefault),
-        enabled: true
-      });
-      return entries;
+    const declaredEntries = entriesFromDeclaredValues(param, schema);
+    if (declaredEntries) {
+      return declaredEntries;
     }
 
     // Otherwise, create entries for each enum value in items
@@ -87,41 +197,28 @@ const getParameterEntries = (param) => {
     return entries;
   }
 
-  // For non-enum cases, return single entry with comprehensive value extraction
-  // Merges HEAD's detailed handling with MERGE_HEAD's broader example sources
-  let value = '';
-  let enabled = param.required || false;
+  const declaredEntries = entriesFromDeclaredValues(param, schema);
+  if (declaredEntries) {
+    return declaredEntries;
+  }
 
-  // Priority 1: Top-level param examples (from upstream, mutually exclusive per spec)
-  if (param.example !== undefined) {
-    value = String(param.example);
-    enabled = true;
-  } else if (param.examples) {
-    const firstExample = Object.values(param.examples)[0];
-    if (firstExample?.value !== undefined) {
-      value = String(firstExample.value);
-      enabled = true;
+  let enabled = param.required || declaredParamValues(param, schema).some((value) => value !== undefined);
+
+  if (fallbackValue !== undefined) {
+    const fallbackEntries = paramEntriesFromValue(fallbackValue, param);
+    if (fallbackEntries) {
+      return fallbackEntries;
     }
   }
 
-  // Priority 2: schema.default (from HEAD, handles array defaults with JSON.stringify)
-  if (value === '' && schema.default !== undefined) {
-    if (schema.type === 'array' && Array.isArray(schema.default)) {
-      value = JSON.stringify(schema.default);
-    } else {
-      value = String(schema.default);
-    }
-    enabled = true;
+  if (schema.nullable === true && !param.required) {
+    enabled = false;
+  } else if (param.allowEmptyValue === true && !param.required) {
+    enabled = false;
   }
 
-  // Priority 3: schema.example (from upstream)
-  if (value === '' && schema.example !== undefined) {
-    value = String(schema.example);
-    enabled = true;
-  }
-
-  // Priority 4: Array type handling (merged from both sides)
-  if (value === '' && schema.type === 'array' && schema.items) {
+  if (schema.type === 'array' && schema.items) {
+    let value;
     if (schema.items.example !== undefined) {
       value = String(schema.items.example);
     } else if (schema.items.enum && schema.items.enum.length > 0) {
@@ -129,48 +226,57 @@ const getParameterEntries = (param) => {
     } else if (schema.items.default !== undefined) {
       value = String(schema.items.default);
     } else {
-      value = '[]';
+      value = '';
     }
-    enabled = param.required || false;
+    return [{ value, enabled }];
   }
 
-  // Priority 5: schema.examples (OAS 3.1+, from upstream)
-  if (value === '' && Array.isArray(schema.examples) && schema.examples.length > 0) {
-    value = String(schema.examples[0]);
-    enabled = true;
+  if (schema.minimum !== undefined) {
+    return [{ value: String(allowedDefault(schema, schema.minimum)), enabled }];
   }
 
-  // Priority 6: schema.minimum fallback for numeric types (from upstream)
-  if (value === '' && schema.minimum !== undefined) {
-    value = String(schema.minimum);
-    enabled = param.required || false;
-  }
+  return [{ value: param.required ? String(allowedDefault(schema, '') ?? '') : '', enabled }];
+};
 
-  // Priority 7: Edge cases (from HEAD)
-  if (value === '') {
-    if (schema.nullable === true && !param.required) {
-      enabled = false;
-    } else if (param.allowEmptyValue === true && !param.required) {
-      enabled = false;
+const declaresValue = (schema) =>
+  schema.example !== undefined
+  || schema.default !== undefined
+  || (Array.isArray(schema.examples) && schema.examples.length > 0)
+  || (Array.isArray(schema.enum) && schema.enum.length > 0);
+
+const objectValueFromSchema = (param, schema) => {
+  const schemaExample = schema.example || {};
+  const value = {};
+
+  each(schema.properties, (rawProp, propName) => {
+    const prop = resolveSchemaComposition(rawProp) || {};
+    const propSchema = (prop.example === undefined && schemaExample[propName] !== undefined)
+      ? { ...prop, example: schemaExample[propName] }
+      : prop;
+    const isRequired = Array.isArray(schema.required) && schema.required.includes(propName);
+    const entries = getParameterEntries({
+      ...param, example: undefined, examples: undefined, name: propName, schema: propSchema, required: isRequired
+    });
+
+    const picked = entries.find((entry) => entry.enabled) || entries[0];
+
+    if (picked && (picked.value !== '' || declaresValue(propSchema))) {
+      value[propName] = picked.value;
     }
-  }
+  });
 
-  return [{ value, enabled }];
+  return value;
 };
 
 const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {}) => {
   let _operationObject = request.operationObject;
 
-  let operationName = _operationObject.summary || _operationObject.operationId || _operationObject.description;
+  let operationName = _operationObject.summary || _operationObject.operationId || toSpecString(_operationObject.description);
+  operationName = operationName ? normalizeItemName(operationName) : '';
   if (!operationName) {
     operationName = `${request.method} ${request.path}`;
   }
 
-  // Sanitize operation name to prevent Bruno parsing issues
-  if (operationName) {
-    // Replace line breaks and normalize whitespace
-    operationName = operationName.replace(/[\r\n\s]+/g, ' ').trim();
-  }
   if (usedNames.has(operationName)) {
     // Make name unique to prevent filename collisions
     // Try adding method info first
@@ -194,9 +300,12 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
     uid: uuid(),
     name: operationName,
     type: 'http-request',
+    settings: {
+      forwardAuthorizationHeader: false
+    },
     tags: sanitizeTags(request.operationObject.tags || [], options),
     request: {
-      docs: _operationObject.description,
+      docs: toSpecString(_operationObject.description),
       url: ensureUrl(request.global.server + path),
       method: request.method.toUpperCase(),
       auth: {
@@ -240,16 +349,16 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
   }
 
   each(_operationObject.parameters || [], (param) => {
-    // Check if parameter schema is an object type with properties
-    // If so, expand the properties into individual parameters
-    const isObjectSchema = param.schema && param.schema.properties;
+    const paramSchema = getExpandableObjectSchema(param);
+    const expandsIntoOwnParams = paramSchema && (param.in === 'query' || param.in === 'querystring');
 
-    if (isObjectSchema) {
+    if (expandsIntoOwnParams) {
       // Expand object schema properties into individual parameters
-      const schemaExample = param.schema.example || {};
+      const schemaExample = paramSchema.example || {};
 
-      each(param.schema.properties, (prop, propName) => {
-        const isRequired = Array.isArray(param.schema.required) && param.schema.required.includes(propName);
+      each(paramSchema.properties, (rawProp, propName) => {
+        const prop = resolveSchemaComposition(rawProp) || {};
+        const isRequired = Array.isArray(paramSchema.required) && paramSchema.required.includes(propName);
 
         // Create a temporary parameter object for getParameterEntries
         // Enrich property with parent example context if property lacks its own example
@@ -292,13 +401,15 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
         });
       });
     } else {
-      const entries = getParameterEntries(param);
+      const entries = paramSchema
+        ? getParameterEntries(param, objectValueFromSchema(param, paramSchema))
+        : getParameterEntries(param);
 
       entries.forEach((entry) => {
         if (param.in === 'query' || param.in === 'querystring') {
           brunoRequestItem.request.params.push({
             uid: uuid(),
-            name: param.name,
+            name: entry.name || param.name,
             value: entry.value,
             description: param.description || '',
             enabled: entry.enabled,
@@ -307,7 +418,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
         } else if (param.in === 'path') {
           brunoRequestItem.request.params.push({
             uid: uuid(),
-            name: param.name,
+            name: entry.name || param.name,
             value: entry.value,
             description: param.description || '',
             enabled: entry.enabled,
@@ -316,7 +427,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
         } else if (param.in === 'header') {
           brunoRequestItem.request.headers.push({
             uid: uuid(),
-            name: param.name,
+            name: entry.name || param.name,
             value: entry.value,
             description: param.description || '',
             enabled: entry.enabled
@@ -433,7 +544,6 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
     }
   }
 
-  // TODO: handle allOf/anyOf/oneOf
   if (_operationObject.requestBody) {
     const content = get(_operationObject, 'requestBody.content', {});
     const mimeType = Object.keys(content)[0];
@@ -677,7 +787,94 @@ const isValidRef = (ref) => {
   return ref.startsWith('#/components/');
 };
 
-const resolveRefs = (spec, components = spec?.components, cache = new Map()) => {
+const NAMED_MAPS = new Set([
+  'properties', 'patternProperties', 'definitions', '$defs', 'dependentSchemas', 'schemas', 'responses', 'parameters',
+  'requestBodies', 'headers', 'securitySchemes', 'links', 'callbacks', 'pathItems', 'paths', 'webhooks', 'content',
+  'encoding', 'variables'
+]);
+
+const isReferenceOnly = (value) => isPlainObject(value) && typeof value.$ref === 'string' && Object.keys(value).length === 1;
+
+const isExampleRef = (ref) => isValidRef(ref) && ref.startsWith('#/components/examples/');
+
+const EXAMPLE_DATA_KEYS = ['value', 'dataValue'];
+
+const componentAt = (components, refPath) => refPath
+  .replace('#/components/', '')
+  .split('/')
+  .reduce((node, key) => (node && node[key] ? node[key] : undefined), components);
+
+const EXAMPLE_COPIES = Symbol('exampleCopies');
+
+const exampleDataOf = (example) => EXAMPLE_DATA_KEYS.map((key) => example?.[key]).find((value) => value !== undefined);
+
+const resolveExampleData = (data, components, copies, inlining = []) => {
+  if (!data || typeof data !== 'object') {
+    return data;
+  }
+  if (copies.done.has(data)) {
+    return copies.done.get(data);
+  }
+  if (copies.building.has(data)) {
+    return Array.isArray(data) ? [] : {};
+  }
+  if (isReferenceOnly(data) && isExampleRef(data.$ref) && !inlining.includes(data.$ref)) {
+    const inlined = exampleDataOf(componentAt(components, data.$ref));
+    if (inlined !== undefined) {
+      return resolveExampleData(inlined, components, copies, [...inlining, data.$ref]);
+    }
+  }
+  const copy = Array.isArray(data) ? [] : {};
+  copies.building.add(data);
+  Object.entries(data).forEach(([key, value]) => {
+    copy[key] = resolveExampleData(value, components, copies, inlining);
+  });
+  copies.building.delete(data);
+  copies.done.set(data, copy);
+  return copy;
+};
+
+const exampleCopiesOf = (cache, components) => {
+  if (!cache.has(EXAMPLE_COPIES)) {
+    const copies = { done: new Map(), building: new Set() };
+    cache.set(EXAMPLE_COPIES, copies);
+    Object.values(components?.examples || {}).forEach((example) => resolveExampleData(exampleDataOf(example), components, copies));
+  }
+  return cache.get(EXAMPLE_COPIES);
+};
+
+const resolveExamples = (examples, components, cache) => {
+  if (Array.isArray(examples)) {
+    const values = examples.map((value) => resolveExampleData(value, components, exampleCopiesOf(cache, components))).filter((value) => !isReferenceOnly(value));
+    return values.length > 0 ? values : undefined;
+  }
+  if (!isPlainObject(examples)) {
+    return examples;
+  }
+  const entries = Object.entries(examples)
+    .map(([name, example]) => [name, isValidRef(example?.$ref) && !isExampleRef(example.$ref) ? undefined : resolveRefs(example, components, cache, 'example')])
+    .filter(([, example]) => example !== undefined && !isReferenceOnly(example) && !EXAMPLE_DATA_KEYS.some((key) => isReferenceOnly(example?.[key])));
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+};
+
+const resolveChild = (key, value, components, cache, role) => {
+  if (role === 'map') {
+    return resolveRefs(value, components, cache);
+  }
+  if (role === 'example') {
+    return EXAMPLE_DATA_KEYS.includes(key) ? resolveExampleData(value, components, exampleCopiesOf(cache, components)) : resolveRefs(value, components, cache);
+  }
+  if (key === 'example') {
+    const data = resolveExampleData(value, components, exampleCopiesOf(cache, components));
+    return isReferenceOnly(data) ? undefined : data;
+  }
+  if (key === 'examples') {
+    return resolveExamples(value, components, cache);
+  }
+  return resolveRefs(value, components, cache, NAMED_MAPS.has(key) && isPlainObject(value) ? 'map' : 'object');
+};
+
+function resolveRefs(spec, components = spec?.components, cache = new Map(), role = 'object') {
   if (!spec || typeof spec !== 'object') {
     return spec;
   }
@@ -687,7 +884,7 @@ const resolveRefs = (spec, components = spec?.components, cache = new Map()) => 
   }
 
   if (Array.isArray(spec)) {
-    return spec.map((item) => resolveRefs(item, components, cache));
+    return spec.map((item) => resolveRefs(item, components, cache, role));
   }
 
   // Only treat as a JSON reference if it passes all validation checks
@@ -701,20 +898,16 @@ const resolveRefs = (spec, components = spec?.components, cache = new Map()) => 
     }
 
     if (refPath.startsWith('#/components/')) {
-      const refKeys = refPath.replace('#/components/', '').split('/');
-      let ref = components;
-
-      for (const key of refKeys) {
-        if (ref && ref[key]) {
-          ref = ref[key];
-        } else {
-          return spec;
-        }
+      const ref = componentAt(components, refPath);
+      if (ref === undefined) {
+        return spec;
       }
 
-      cache.set(refPath, {});
-      const resolved = resolveRefs(ref, components, cache);
+      const placeholder = {};
+      cache.set(refPath, placeholder);
+      const resolved = resolveRefs(ref, components, cache, isExampleRef(refPath) ? 'example' : 'object');
       cache.set(refPath, resolved);
+      registerReferencePlaceholder(placeholder, resolved);
       return resolved;
     }
     return spec;
@@ -724,11 +917,14 @@ const resolveRefs = (spec, components = spec?.components, cache = new Map()) => 
   cache.set(spec, resolved);
 
   for (const [key, value] of Object.entries(spec)) {
-    resolved[key] = resolveRefs(value, components, cache);
+    const child = resolveChild(key, value, components, cache, role);
+    if (child !== undefined) {
+      resolved[key] = child;
+    }
   }
 
   return resolved;
-};
+}
 
 const getDefaultUrl = (serverObject) => {
   let url = serverObject.url;
@@ -801,11 +997,13 @@ export const parseOpenApiCollection = (data, options = {}) => {
     environments: []
   };
   try {
+    resetExampleGenerationState();
     const collectionData = resolveRefs(data);
     if (!collectionData) {
       throw new Error('Invalid OpenAPI collection. Failed to resolve refs.');
       return;
     }
+    registerComponentNames(collectionData.components?.schemas, data.components?.schemas);
 
     // Currently parsing of openapi spec is "do your best", that is
     // allows "invalid" openapi spec
@@ -814,9 +1012,27 @@ export const parseOpenApiCollection = (data, options = {}) => {
 
     let servers = collectionData.servers || [];
 
-    // Create environments based on the servers
+    // Create environments based on the servers. A server's name or description is free text
+    // that becomes the environment's filename, so it needs the same normalization as an
+    // operation name. It also needs a uniqueness guard: unlike requests, environments have
+    // no deduplication, so two servers described alike resolve to one file and the later
+    // one overwrites the earlier.
+    const usedEnvironmentNames = new Set();
     servers.forEach((server, index) => {
-      let environmentName = server.name || server.description || `Environment ${index + 1}`;
+      const serverLabel = server.name || server.description;
+      let environmentName = serverLabel ? normalizeItemName(serverLabel) : '';
+      if (!environmentName) {
+        environmentName = `Environment ${index + 1}`;
+      }
+      if (usedEnvironmentNames.has(environmentName)) {
+        let counter = 2;
+        while (usedEnvironmentNames.has(`${environmentName} (${counter})`)) {
+          counter++;
+        }
+        environmentName = `${environmentName} (${counter})`;
+      }
+      usedEnvironmentNames.add(environmentName);
+
       const serverVars = extractServerVars(server);
       const variables = serverVars.map((sv) => ({
         uid: uuid(),
@@ -855,21 +1071,30 @@ export const parseOpenApiCollection = (data, options = {}) => {
               method.toLowerCase()
             );
           })
-          .map(([method, operationObject]) => {
-            const mergedParams = mergeParams(pathItemParams, operationObject.parameters || []);
+          .reduce((requests, [method, operationObject]) => {
+            const variants = Array.isArray(operationObject['x-bruno-variants']) ? operationObject['x-bruno-variants'] : [];
+            const operations = [operationObject, ...variants.filter((variant) => variant && typeof variant === 'object')];
 
-            return {
-              method: method,
-              path: path.replace(/{([^}]+)}/g, ':$1'), // Replace placeholders enclosed in curly braces with colons
-              originalPath: path, // Keep original path for grouping
-              operationObject: { ...operationObject, parameters: mergedParams },
-              global: {
-                server: '{{baseUrl}}',
-                security: securityConfig
-              },
-              servers: operationObject.servers || pathItemObject.servers || null
-            };
-          });
+            operations.forEach((operation) => {
+              const operationObjectCleaned = { ...operation };
+              delete operationObjectCleaned['x-bruno-variants'];
+              const mergedParams = mergeParams(pathItemParams, operationObjectCleaned.parameters || []);
+
+              requests.push({
+                method: method,
+                path: path.replace(/{([^}]+)}/g, ':$1'), // Replace placeholders enclosed in curly braces with colons
+                originalPath: path, // Keep original path for grouping
+                operationObject: { ...operationObjectCleaned, parameters: mergedParams },
+                global: {
+                  server: '{{baseUrl}}',
+                  security: securityConfig
+                },
+                servers: operationObjectCleaned.servers || pathItemObject.servers || null
+              });
+            });
+
+            return requests;
+          }, []);
       })
       .reduce((acc, val) => acc.concat(val), []); // flatten
 
@@ -881,8 +1106,9 @@ export const parseOpenApiCollection = (data, options = {}) => {
     } else {
       // Default tag-based grouping
       let [groups, ungroupedRequests] = groupRequestsByTags(allRequests, options);
+      const tagDescriptions = getTagDescriptions(collectionData.tags, options);
       let brunoFolders = groups.map((group) => {
-        return {
+        const folder = {
           uid: uuid(),
           name: group.name,
           type: 'folder',
@@ -903,6 +1129,11 @@ export const parseOpenApiCollection = (data, options = {}) => {
           },
           items: group.requests.map((req) => transformOpenapiRequestItem(req, usedNames, options))
         };
+        const docs = tagDescriptions[group.name];
+        if (docs) {
+          folder.root.docs = docs;
+        }
+        return folder;
       });
 
       let ungroupedItems = ungroupedRequests.map((req) => transformOpenapiRequestItem(req, usedNames, options));
@@ -1003,7 +1234,8 @@ export const parseOpenApiCollection = (data, options = {}) => {
       },
       meta: {
         name: brunoCollection.name
-      }
+      },
+      docs: toSpecString(collectionData.info?.description)
     };
 
     return brunoCollection;

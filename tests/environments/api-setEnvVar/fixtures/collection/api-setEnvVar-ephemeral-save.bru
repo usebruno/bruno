@@ -1,0 +1,18 @@
+meta {
+  name: api-setEnvVar-ephemeral-save
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // No `{ persist: true }` — both writes become ephemeral overlays in Redux.
+  // Clicking Save in the env editor must still commit them to disk.
+  bru.setEnvVar("plain_var", "scripted_plain");
+  bru.setEnvVar("secret_var", "scripted_secret");
+}

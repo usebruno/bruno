@@ -54,7 +54,8 @@ export function getTabToFocusForCurrentWorkspace(state) {
   }
   const inWorkspaceTabs = filter(state.tabs.tabs, (t) => workspaceCollectionUids.has(t.collectionUid));
   if (inWorkspaceTabs.length > 0) {
-    return { uid: last(inWorkspaceTabs).uid };
+    const overviewTab = inWorkspaceTabs.find((t) => t.type === 'workspaceOverview');
+    return { uid: (overviewTab || last(inWorkspaceTabs)).uid };
   }
   const scratchCollectionUid = activeWorkspace.scratchCollectionUid;
   if (!scratchCollectionUid) {

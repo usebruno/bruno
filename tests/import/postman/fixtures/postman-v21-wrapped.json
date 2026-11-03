@@ -1,0 +1,66 @@
+{
+  "collection": {
+    "info": {
+      "name": "Postman v2.1 Wrapped Collection",
+      "description": "Test collection using newer Postman export format with collection envelope",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "_postman_id": "beaf4d12-a72a-47cb-902d-2942a68a59c4"
+    },
+    "item": [
+      {
+        "name": "Get Users",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}",
+              "type": "text"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/users",
+            "host": ["{{baseUrl}}"],
+            "path": ["users"],
+            "query": [
+              {
+                "key": "page",
+                "value": "1"
+              }
+            ]
+          }
+        },
+        "response": []
+      },
+      {
+        "name": "Create User",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "type": "text"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\"\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/users",
+            "host": ["{{baseUrl}}"],
+            "path": ["users"]
+          }
+        },
+        "response": []
+      }
+    ],
+    "variable": [
+      {
+        "key": "baseUrl",
+        "value": "https://api.example.com"
+      }
+    ]
+  }
+}

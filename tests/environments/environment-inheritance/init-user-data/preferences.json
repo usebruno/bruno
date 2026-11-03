@@ -1,0 +1,11 @@
+{
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    },
+    "general": {
+      "defaultWorkspacePath": "{{workspacePath}}"
+    }
+  }
+}

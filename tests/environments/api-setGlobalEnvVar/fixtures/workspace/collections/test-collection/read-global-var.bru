@@ -1,0 +1,11 @@
+meta {
+  name: read-global-var
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/query?token={{globalToken}}
+  body: none
+  auth: none
+}

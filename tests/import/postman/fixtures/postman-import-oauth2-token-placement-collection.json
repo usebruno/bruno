@@ -1,0 +1,61 @@
+{
+  "info": {
+    "_postman_id": "b1c2d3e4-1111-2222-3333-444455556666",
+    "name": "OAuth2 Token Placement",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "54316404"
+  },
+  "item": [
+    {
+      "name": "OAuth2 Token in Header",
+      "request": {
+        "auth": {
+          "type": "oauth2",
+          "oauth2": [
+            { "key": "grant_type", "value": "authorization_code", "type": "string" },
+            { "key": "addTokenTo", "value": "header", "type": "string" },
+            { "key": "headerPrefix", "value": "Bearer", "type": "string" },
+            { "key": "authUrl", "value": "https://example.com/auth", "type": "string" },
+            { "key": "accessTokenUrl", "value": "https://example.com/token", "type": "string" },
+            { "key": "clientId", "value": "client-id", "type": "string" },
+            { "key": "clientSecret", "value": "client-secret", "type": "string" }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.com/header",
+          "protocol": "https",
+          "host": ["api", "com"],
+          "path": ["header"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "OAuth2 Token in URL",
+      "request": {
+        "auth": {
+          "type": "oauth2",
+          "oauth2": [
+            { "key": "grant_type", "value": "authorization_code", "type": "string" },
+            { "key": "addTokenTo", "value": "queryParams", "type": "string" },
+            { "key": "authUrl", "value": "https://example.com/auth", "type": "string" },
+            { "key": "accessTokenUrl", "value": "https://example.com/token", "type": "string" },
+            { "key": "clientId", "value": "client-id", "type": "string" },
+            { "key": "clientSecret", "value": "client-secret", "type": "string" }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.com/url",
+          "protocol": "https",
+          "host": ["api", "com"],
+          "path": ["url"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

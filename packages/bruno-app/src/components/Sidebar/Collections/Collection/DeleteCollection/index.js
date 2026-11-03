@@ -36,19 +36,11 @@ const DeleteCollection = ({ onClose, collectionUid, workspaceUid }) => {
     return null;
   }
 
-  const customHeader = (
-    <div className="flex items-center gap-2">
-      <IconAlertTriangle size={18} strokeWidth={1.5} className="text-red-500" />
-      <span>Delete Collection</span>
-    </div>
-  );
-
   return (
     <StyledWrapper>
       <Modal
         size="sm"
         title="Delete Collection"
-        customHeader={customHeader}
         confirmText="Delete"
         cancelText="Cancel"
         confirmButtonColor="danger"

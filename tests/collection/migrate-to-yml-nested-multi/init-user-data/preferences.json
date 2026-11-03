@@ -1,0 +1,12 @@
+{
+  "lastOpenedCollections": [
+    "{{collectionPath}}/source-collection",
+    "{{collectionPath}}/other-collection"
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
+}

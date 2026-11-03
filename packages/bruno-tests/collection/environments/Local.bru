@@ -22,6 +22,14 @@ vars {
   google_auth_url: https://accounts.google.com/o/oauth2/auth
   google_access_token_url: https://accounts.google.com/o/oauth2/token
   google_scope: https://www.googleapis.com/auth/userinfo.email
+  @number
+  typed_env_num: 300
+  @boolean
+  typed_env_bool: true
+  @object
+  typed_env_obj: '''
+    {"scope":"env"}
+  '''
 }
 vars:secret [
   github_client_secret,

@@ -55,4 +55,27 @@ router.post('/reset', (req, res) => {
   res.json({ message: 'Reset complete', activeConnections: 0 });
 });
 
+// GET /api/sse/finite - Sends one event per message then closes.
+router.get('/finite', (req, res) => {
+  const messages = ['Hello', 'from', 'SSE'];
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive'
+  });
+
+  let index = 0;
+  const interval = setInterval(() => {
+    res.write(`data: ${messages[index]}\n\n`);
+    index += 1;
+    if (index >= messages.length) {
+      clearInterval(interval);
+      res.end();
+    }
+  }, 50);
+
+  req.on('close', () => clearInterval(interval));
+});
+
 module.exports = router;

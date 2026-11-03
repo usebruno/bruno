@@ -1,0 +1,54 @@
+meta {
+  name: case-insensitive
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+headers {
+  X-Custom: test-value
+  Authorization: Bearer token123
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+tests {
+  test("req.headerList.get() is case-insensitive", function() {
+    expect(req.headerList.get('x-custom')).to.equal('test-value');
+    expect(req.headerList.get('X-CUSTOM')).to.equal('test-value');
+    expect(req.headerList.get('X-Custom')).to.equal('test-value');
+  });
+
+  test("req.headerList.one() is case-insensitive", function() {
+    const header = req.headerList.one('x-custom');
+    expect(header).to.not.be.undefined;
+    expect(header.key).to.equal('X-Custom');
+    expect(header.value).to.equal('test-value');
+  });
+
+  test("req.headerList.has() is case-insensitive", function() {
+    expect(req.headerList.has('x-custom')).to.be.true;
+    expect(req.headerList.has('X-CUSTOM')).to.be.true;
+    expect(req.headerList.has('x-custom', 'test-value')).to.be.true;
+    expect(req.headerList.has('X-CUSTOM', 'wrong')).to.be.false;
+  });
+
+  test("req.headerList.indexOf() is case-insensitive with string", function() {
+    expect(req.headerList.indexOf('x-custom')).to.be.at.least(0);
+    expect(req.headerList.indexOf('X-CUSTOM')).to.be.at.least(0);
+    expect(req.headerList.indexOf('nonexistent')).to.equal(-1);
+  });
+
+  test("req.headerList.indexOf() is case-insensitive with object", function() {
+    const idx = req.headerList.indexOf({ key: 'x-custom', value: 'test-value' });
+    expect(idx).to.be.at.least(0);
+  });
+}

@@ -1,66 +1,140 @@
-import { setActiveApiSpecUid } from 'providers/ReduxStore/slices/apiSpec';
-import { showApiSpecPage as _showApiSpecPage } from 'providers/ReduxStore/slices/app';
-import Dropdown from 'components/Dropdown';
-import { IconDots, IconX } from '@tabler/icons';
-import { useState, useRef } from 'react';
+import { openApiSpecTab } from 'providers/ReduxStore/slices/apiSpec';
+import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
+import MenuDropdown from 'ui/MenuDropdown';
+import ActionIcon from 'ui/ActionIcon';
+import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
+import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
+import { isApiSpecTabForPathname } from 'utils/api-specs';
+import { isOpenApiSpec } from 'utils/importers/openapi-collection';
+import brunoPath from 'utils/common/path';
+import { IconDots } from '@tabler/icons';
+import { useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import CloseApiSpec from '../CloseApiSpec/index';
-import { forwardRef } from 'react';
+import toast from 'react-hot-toast';
+import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
+import RenameApiSpec from 'components/Sidebar/ApiSpecs/RenameApiSpec';
+import CloneApiSpec from 'components/Sidebar/ApiSpecs/CloneApiSpec';
+import RemoveApiSpec from 'components/Sidebar/ApiSpecs/RemoveApiSpec';
+import DeleteApiSpec from 'components/Sidebar/ApiSpecs/DeleteApiSpec';
+import GenerateCollectionFromSpec from 'components/Sidebar/ApiSpecs/GenerateCollectionFromSpec';
+import { getApiSpecMenuItems } from './getApiSpecMenuItems';
 
 const ApiSpecItem = ({ apiSpec }) => {
   const dispatch = useDispatch();
+  const { dropdownContainerRef } = useSidebarAccordion();
+  const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
+  const menuDropdownRef = useRef(null);
 
-  const activeApiSpecUid = useSelector((state) => state.apiSpec.activeApiSpecUid);
-  const showApiSpecPage = useSelector((state) => state.app.showApiSpecPage);
+  const isActive = useSelector((state) => {
+    const activeTab = state.tabs.tabs.find((tab) => tab.uid === state.tabs.activeTabUid);
+    return isApiSpecTabForPathname(activeTab, apiSpec?.pathname);
+  });
 
-  const [closeApiSpecModal, setCloseApiSpecModal] = useState(false);
+  const [renameApiSpecModal, setRenameApiSpecModal] = useState(false);
+  const [cloneApiSpecModal, setCloneApiSpecModal] = useState(false);
+  const [removeApiSpecModal, setRemoveApiSpecModal] = useState(false);
+  const [generateCollectionModal, setGenerateCollectionModal] = useState(false);
+  const [mockServerModal, setMockServerModal] = useState(false);
+  const [deleteApiSpecModal, setDeleteApiSpecModal] = useState(false);
+  const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
 
-  const dropdownTippyRef = useRef();
-  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
-
-  const handleOpenApiSpec = (apiSpec) => (e) => {
-    dispatch(_showApiSpecPage());
-    dispatch(setActiveApiSpecUid({ uid: apiSpec.uid }));
+  const openApiSpec = () => {
+    dispatch(openApiSpecTab(apiSpec));
   };
 
-  const MenuIcon = forwardRef((props, ref) => {
-    return (
-      <div ref={ref}>
-        <IconDots size={22} />
-      </div>
-    );
+  const handleRowKeyDown = (e) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    openApiSpec();
+  };
+
+  const handleRightClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    menuDropdownRef.current?.toggle();
+  };
+
+  const handleReveal = () => {
+    dispatch(showInFolder(brunoPath.normalize(apiSpec.pathname))).catch((error) => {
+      console.error('Error revealing the API spec', error);
+      toast.error('Error revealing the API spec');
+    });
+  };
+
+  const handleGenerateCollection = () => {
+    if (!isOpenApiSpec(apiSpec.resolvedJson || apiSpec.json)) {
+      toast.error('This file is not a valid OpenAPI document');
+      return;
+    }
+    setGenerateCollectionModal(true);
+  };
+
+  const menuItems = getApiSpecMenuItems({
+    isMockServerEnabled,
+    handlers: {
+      'generate-collection': handleGenerateCollection,
+      'generate-mock-server': () => setMockServerModal(true),
+      'clone': () => setCloneApiSpecModal(true),
+      'rename': () => setRenameApiSpecModal(true),
+      'reveal': handleReveal,
+      'remove': () => setRemoveApiSpecModal(true),
+      'delete': () => setDeleteApiSpecModal(true)
+    }
   });
 
   return (
-    <div
-      className={`flex flex-grow api-spec-item items-center h-full overflow-hidden w-full justify-between ${
-        showApiSpecPage && apiSpec?.uid == activeApiSpecUid ? 'active' : ''
-      }`}
-    >
-      {closeApiSpecModal && <CloseApiSpec apiSpec={apiSpec} onClose={() => setCloseApiSpecModal(false)} />}
+    <>
+      {renameApiSpecModal && <RenameApiSpec apiSpec={apiSpec} onClose={() => setRenameApiSpecModal(false)} />}
+      {cloneApiSpecModal && <CloneApiSpec apiSpec={apiSpec} onClose={() => setCloneApiSpecModal(false)} />}
+      {removeApiSpecModal && <RemoveApiSpec apiSpec={apiSpec} onClose={() => setRemoveApiSpecModal(false)} />}
+      {deleteApiSpecModal && <DeleteApiSpec apiSpec={apiSpec} onClose={() => setDeleteApiSpecModal(false)} />}
+      {generateCollectionModal && (
+        <GenerateCollectionFromSpec apiSpec={apiSpec} onClose={() => setGenerateCollectionModal(false)} />
+      )}
+      {mockServerModal && isMockServerEnabled && (
+        <CreateMockServerModal
+          defaultSourceType="spec"
+          defaultApiSpecUid={apiSpec.uid}
+          onClose={() => setMockServerModal(false)}
+        />
+      )}
       <div
-        className="cursor-pointer py-2 pl-4 h-8 flex items-center flex-grow w-[80%] justify-between"
-        onClick={handleOpenApiSpec(apiSpec)}
+        className={`flex flex-grow api-spec-item items-center overflow-hidden w-full justify-between ${
+          isActive && !isKeyboardFocused ? 'active' : ''
+        } ${isKeyboardFocused ? 'api-spec-keyboard-focused' : ''}`}
+        tabIndex={0}
+        data-testid="sidebar-api-spec-row"
+        data-selected={isActive ? 'true' : undefined}
+        onFocus={() => setIsKeyboardFocused(true)}
+        onBlur={() => setIsKeyboardFocused(false)}
+        onKeyDown={handleRowKeyDown}
       >
-        <span className="flex-nowrap whitespace-nowrap overflow-ellipsis overflow-hidden w-full">{apiSpec?.name}</span>
-      </div>
-      <div className="menu-icon pr-2">
-        <Dropdown onCreate={onDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
-          <div
-            className="dropdown-item close-item"
-            onClick={(e) => {
-              dropdownTippyRef.current.hide();
-              setCloseApiSpecModal(true);
-            }}
+        <div
+          className="cursor-pointer flex items-center flex-grow w-[80%] pl-3 justify-between"
+          onClick={openApiSpec}
+          onContextMenu={handleRightClick}
+        >
+          <span className="flex-nowrap whitespace-nowrap overflow-ellipsis overflow-hidden w-full">
+            {apiSpec?.name}
+          </span>
+        </div>
+        <div className="pr-2">
+          <MenuDropdown
+            ref={menuDropdownRef}
+            items={menuItems}
+            placement="bottom-start"
+            appendTo={dropdownContainerRef?.current || document.body}
+            popperOptions={{ strategy: 'fixed' }}
+            data-testid="api-spec-actions"
           >
-            <span className="dropdown-icon">
-              <IconX size={16} strokeWidth={2} />
-            </span>
-            Remove
-          </div>
-        </Dropdown>
+            <ActionIcon className="apispec-row-actions">
+              <IconDots size={18} />
+            </ActionIcon>
+          </MenuDropdown>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

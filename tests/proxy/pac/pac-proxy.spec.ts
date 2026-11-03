@@ -1,10 +1,10 @@
 import * as path from 'path';
 import { pathToFileURL } from 'url';
 import { test } from '../../../playwright';
-import { setSandboxMode, runCollection, validateRunnerResults } from '../../utils/page';
+import { setSandboxMode, runCollection, validateRunnerResults, waitForReadyPage } from '../../utils/page';
 import { startServers, stopServers, PAC_PORT, type TestServers } from './server';
 
-test.describe('PAC Proxy', () => {
+test.describe.serial('PAC Proxy', () => {
   let servers: TestServers;
 
   test.beforeAll(async () => {
@@ -32,8 +32,7 @@ test.describe('PAC Proxy', () => {
     const initUserDataPath = path.join(__dirname, 'init-user-data');
     const app = await launchElectronApp({ initUserDataPath, templateVars: { pacUrl } });
 
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     await setSandboxMode(page, 'pac-proxy-test', 'developer');
     await runCollection(page, 'pac-proxy-test');
@@ -53,8 +52,7 @@ test.describe('PAC Proxy', () => {
     const initUserDataPath = path.join(__dirname, 'init-user-data');
     const app = await launchElectronApp({ initUserDataPath, templateVars: { pacUrl } });
 
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     await setSandboxMode(page, 'pac-proxy-test', 'developer');
     await runCollection(page, 'pac-proxy-test');

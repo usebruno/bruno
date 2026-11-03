@@ -1,0 +1,1 @@
+This is a plain text file, not an OpenAPI spec.

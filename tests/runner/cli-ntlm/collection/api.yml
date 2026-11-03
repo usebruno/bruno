@@ -1,0 +1,22 @@
+info:
+  name: api
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api"
+  auth:
+    type: ntlm
+    username: ntlmtest
+    password: Br!unoNtlm
+    domain: ""
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("api authenticates", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.authenticated).to.equal(true);
+        });

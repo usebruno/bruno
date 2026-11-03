@@ -43,8 +43,7 @@ describe('Multiline Syntax Handling', () => {
     expect(translatedCode).toContain('const apiKey = bru.getCollectionVar("apiKey")');
   });
 
-  // TODO: Restore once UI update fixes are live for setCollectionVar
-  it.skip('should handle multiline collection variable set syntax', () => {
+  it('should handle multiline collection variable set syntax', () => {
     const code = `
     pm.collectionVariables
                             .set("lastRun", new Date().toISOString());
@@ -277,14 +276,17 @@ describe('Multiline Syntax Handling', () => {
     expect(translatedCode).toContain('expect(res.getStatus()).to.equal(200)');
     expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property("content-type".toLowerCase())');
 
+    // Check jsonBody translations (positive and negation)
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.jsonBody("success", true)');
+    expect(translatedCode).toContain('expect(res.getBody()).to.not.have.jsonBody("error")');
+
     // Check flow control
     expect(translatedCode).toContain('if (res.getStatus() === 401)');
     expect(translatedCode).toContain('bru.runner.stopExecution()');
     expect(translatedCode).toContain('bru.runner.setNextRequest("Next API Call")');
   });
 
-  // TODO: Restore once UI update fixes are live for setCollectionVar
-  it.skip('should translate multiline pm.collectionVariables.set in comprehensive script', () => {
+  it('should translate multiline pm.collectionVariables.set in comprehensive script', () => {
     const code = `
     pm.collectionVariables
       .set("lastRun", new Date());

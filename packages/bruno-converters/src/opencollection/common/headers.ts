@@ -9,13 +9,17 @@ export const fromOpenCollectionHeaders = (headers: HttpRequestHeader[] | undefin
     return [];
   }
 
-  return headers.map((header): BrunoKeyValue => ({
-    uid: uuid(),
-    name: header.name || '',
-    value: header.value || '',
-    description: typeof header.description === 'string' ? header.description : header.description?.content || null,
-    enabled: header.disabled !== true
-  }));
+  return headers.map((header): BrunoKeyValue => {
+    const entry: BrunoKeyValue = {
+      uid: uuid(),
+      name: header.name || '',
+      value: header.value || '',
+      enabled: header.disabled !== true
+    };
+    const desc = typeof header.description === 'string' ? header.description : header.description?.content;
+    if (desc && desc.trim().length) entry.description = desc;
+    return entry;
+  });
 };
 
 export const toOpenCollectionHeaders = (headers: BrunoKeyValue[] | null | undefined): HttpRequestHeader[] | undefined => {

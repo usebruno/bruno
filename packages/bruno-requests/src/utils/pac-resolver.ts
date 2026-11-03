@@ -2,11 +2,27 @@ import axios from 'axios';
 import crypto from 'node:crypto';
 import { readFile } from 'fs/promises';
 import https, { type AgentOptions } from 'https';
+import { networkInterfaces } from 'node:os';
 import { fileURLToPath } from 'url';
 import { createPacResolver } from 'pac-resolver';
 import { getQuickJS } from 'quickjs-emscripten';
 
 const CACHE = new Map<string, { wrapper: Promise<PacWrapper>; ts: number }>();
+
+function getLocalIpAddress(): string {
+  const interfaces = networkInterfaces();
+
+  for (const addresses of Object.values(interfaces)) {
+    for (const address of addresses ?? []) {
+      const family = String(address.family);
+      if (!address.internal && (family === 'IPv4' || family === '4')) {
+        return address.address;
+      }
+    }
+  }
+
+  return '127.0.0.1';
+}
 
 type TlsOptions = {
   ca?: string | string[];
@@ -78,7 +94,11 @@ export async function getPacResolver({ pacSource, httpsAgentRequestFields = {}, 
 
     // pac-resolver v7 uses QuickJS WASM sandbox — not affected by CVE GHSA-9j49-mfvp-vmhm (<v5)
     const qjs = await getQuickJS();
-    const resolverFn = createPacResolver(qjs, script);
+    const resolverFn = createPacResolver(qjs, script, {
+      sandbox: {
+        myIpAddress: getLocalIpAddress
+      }
+    });
 
     return {
       resolve: async (url: string) => {

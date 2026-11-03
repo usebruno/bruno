@@ -1,9 +1,8 @@
 require('dotenv').config({ path: process.env.DOTENV_PATH });
 const fs = require('fs');
 const path = require('path');
-const electron_notarize = require('electron-notarize');
 
-const notarize = async function (params) {
+const notarizeApp = async function (params) {
   if (process.platform !== 'darwin') {
     return;
   }
@@ -17,20 +16,21 @@ const notarize = async function (params) {
   }
 
   console.log(`Notarizing ${appId} found at ${appPath} using Apple ID ${process.env.APPLE_ID}`);
-
+  const teamId = 'W7LPPWA48L';
   try {
-    await electron_notarize.notarize({
-      appBundleId: appId,
+    // @electron/notarize is ESM-only
+    const { notarize } = await import('@electron/notarize');
+    await notarize({
       appPath: appPath,
       appleId: process.env.APPLE_ID,
       appleIdPassword: process.env.APPLE_ID_PASSWORD,
-      ascProvider: 'W7LPPWA48L'
+      teamId: teamId
     });
   } catch (error) {
     console.error(error);
   }
 
-  console.log(`Done notarizing ${appId}`);
+  console.log(`Done notarizing ${appPath}`);
 };
 
-module.exports = notarize;
+module.exports = notarizeApp;

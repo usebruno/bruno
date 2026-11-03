@@ -1,0 +1,29 @@
+meta {
+  name: req-2-read-and-write
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  // Request 2 must observe request 1's persistence — proves the baseline cleared between requests
+  // (otherwise this read would see undefined, the request-1-era pre-write snapshot).
+  const prev = bru.getEnvVar("counter");
+  bru.setEnvVar("seenInReq2", prev);
+  bru.setEnvVar("counter", "2");
+}
+
+tests {
+  test("request 2 observed request 1's write", function() {
+    expect(bru.getEnvVar("seenInReq2")).to.equal("1");
+  });
+
+  test("request 2 wrote counter=2", function() {
+    expect(bru.getEnvVar("counter")).to.equal("2");
+  });
+}

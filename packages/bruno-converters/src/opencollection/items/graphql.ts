@@ -15,8 +15,10 @@ import {
   fromOpenCollectionActions,
   toOpenCollectionActions,
   fromOpenCollectionAssertions,
-  toOpenCollectionAssertions
+  toOpenCollectionAssertions,
+  resolveTimeoutSetting
 } from '../common';
+import { utils, HTTP_SCRIPT_KEYS } from '@usebruno/common';
 import type {
   GraphQLRequest,
   GraphQLRequestInfo,
@@ -30,6 +32,8 @@ import type {
   BrunoKeyValue,
   BrunoHttpRequestParam
 } from '../types';
+
+const { toBool, toMaxRedirects } = utils;
 
 const getGraphqlBody = (body: GraphQLBody | GraphQLBodyVariant[] | undefined): GraphQLBody | undefined => {
   if (!body) return undefined;
@@ -45,7 +49,7 @@ export const fromOpenCollectionGraphqlItem = (item: GraphQLRequest): BrunoItem =
   const graphql = item.graphql || {};
   const runtime = item.runtime || {};
 
-  const scripts = fromOpenCollectionScripts(runtime.scripts);
+  const scripts = fromOpenCollectionScripts(runtime.scripts, HTTP_SCRIPT_KEYS);
   const graphqlBody = getGraphqlBody(graphql.body);
 
   // variables (pre-request from variables, post-response from actions)
@@ -77,19 +81,13 @@ export const fromOpenCollectionGraphqlItem = (item: GraphQLRequest): BrunoItem =
 
   const settings = item.settings;
   if (settings) {
-    brunoItem.settings = {};
-    if (settings.encodeUrl !== undefined) {
-      (brunoItem.settings as Record<string, unknown>).encodeUrl = settings.encodeUrl;
-    }
-    if (settings.timeout !== undefined) {
-      (brunoItem.settings as Record<string, unknown>).timeout = settings.timeout;
-    }
-    if (settings.followRedirects !== undefined) {
-      (brunoItem.settings as Record<string, unknown>).followRedirects = settings.followRedirects;
-    }
-    if (settings.maxRedirects !== undefined) {
-      (brunoItem.settings as Record<string, unknown>).maxRedirects = settings.maxRedirects;
-    }
+    brunoItem.settings = {
+      encodeUrl: toBool(settings.encodeUrl, true),
+      timeout: resolveTimeoutSetting(settings.timeout),
+      followRedirects: toBool(settings.followRedirects, true),
+      maxRedirects: toMaxRedirects(settings.maxRedirects),
+      forwardAuthorizationHeader: toBool(settings.forwardAuthorizationHeader, true)
+    };
   }
 
   if (info.tags?.length) {
@@ -147,7 +145,7 @@ export const toOpenCollectionGraphqlItem = (item: BrunoItem): GraphQLRequest => 
     graphql
   };
 
-  const scripts = toOpenCollectionScripts(request as Parameters<typeof toOpenCollectionScripts>[0]);
+  const scripts = toOpenCollectionScripts(request as Parameters<typeof toOpenCollectionScripts>[0], HTTP_SCRIPT_KEYS);
   const variables = toOpenCollectionVariables(request.vars as Parameters<typeof toOpenCollectionVariables>[0]);
   const assertions = toOpenCollectionAssertions(request.assertions as BrunoKeyValue[]);
 
@@ -178,10 +176,11 @@ export const toOpenCollectionGraphqlItem = (item: BrunoItem): GraphQLRequest => 
   }
 
   const settings: GraphQLRequestSettings = {
-    encodeUrl: typeof brunoSettings.encodeUrl === 'boolean' ? brunoSettings.encodeUrl : true,
-    timeout: typeof brunoSettings.timeout === 'number' ? brunoSettings.timeout : 0,
-    followRedirects: typeof brunoSettings.followRedirects === 'boolean' ? brunoSettings.followRedirects : true,
-    maxRedirects: typeof brunoSettings.maxRedirects === 'number' ? brunoSettings.maxRedirects : 5
+    encodeUrl: toBool(brunoSettings.encodeUrl, true),
+    timeout: resolveTimeoutSetting(brunoSettings.timeout),
+    followRedirects: toBool(brunoSettings.followRedirects, true),
+    maxRedirects: toMaxRedirects(brunoSettings.maxRedirects),
+    forwardAuthorizationHeader: toBool(brunoSettings.forwardAuthorizationHeader, true)
   };
   ocRequest.settings = settings;
 

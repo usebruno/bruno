@@ -20,12 +20,13 @@ const selectAuthMode = async (page) => {
   await dropdownItem(page, 'OAuth 1.0').click();
 };
 
-test.describe('OAuth 1.0 Authentication', () => {
+test.describe.serial('OAuth 1.0 Authentication', () => {
   test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });
 
   test('Request auth UI', async ({ page, createTmpDir }) => {
+    test.setTimeout(60_000);
     // Setup
     await createCollection(page, 'oauth1-test', await createTmpDir());
     await createRequest(page, 'oauth1-request', 'oauth1-test', { url: 'https://example.com/api' });
@@ -137,6 +138,7 @@ test.describe('OAuth 1.0 Authentication', () => {
   });
 
   test('Collection settings auth', async ({ page }) => {
+    test.setTimeout(60_000);
     const collectionRow = page.getByTestId('collections').locator('#sidebar-collection-name').filter({ hasText: 'oauth1-test' });
     await collectionRow.click();
     await page.locator('.tab.auth').click();

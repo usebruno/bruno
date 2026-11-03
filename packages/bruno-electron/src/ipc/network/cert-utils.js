@@ -66,9 +66,14 @@ const getCertsAndProxyConfig = async ({
   };
 
   // client certificate config
-  const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
+  const collectionCerts = get(brunoConfig, 'clientCertificates.certs', []);
+  const globalCerts = preferencesUtil.getGlobalClientCertificates();
+  const clientCertConfig = [...collectionCerts, ...globalCerts];
 
   for (let clientCert of clientCertConfig) {
+    if (clientCert?.disabled) {
+      continue;
+    }
     const domain = interpolateString(clientCert?.domain, interpolationOptions);
     const type = clientCert?.type || 'cert';
     if (domain) {
@@ -148,7 +153,7 @@ const getCertsAndProxyConfig = async ({
       } else if (globalProxySource === 'inherit') {
         proxyMode = 'system';
         const systemProxyConfig = await getCachedSystemProxy();
-        proxyConfig = systemProxyConfig || { http_proxy: null, https_proxy: null, no_proxy: null, source: 'cache-miss' };
+        proxyConfig = systemProxyConfig || { http_proxy: null, https_proxy: null, no_proxy: null, pac_url: null, source: 'cache-miss' };
       } else {
         // source === 'manual'
         proxyConfig = globalProxyConfigData;
@@ -207,11 +212,20 @@ const buildCertsAndProxyConfig = async ({
     cacheSslSession: preferencesUtil.isSslSessionCachingEnabled()
   };
 
-  // Get client certificates from bruno config and interpolate
+  // Get client certificates from bruno config and interpolate, skipping disabled certs
   const rawClientCertificates = get(brunoConfig, 'clientCertificates');
-  const clientCertificates = rawClientCertificates
-    ? interpolateObject(rawClientCertificates, interpolationOptions)
-    : undefined;
+  const clientCertificates = {
+    certs: []
+  };
+  if (rawClientCertificates?.certs?.length) {
+    const interpolatedCerts = interpolateObject(rawClientCertificates.certs, interpolationOptions);
+    clientCertificates.certs.push(...interpolatedCerts.filter((cert) => !cert?.disabled));
+  }
+  const globalCerts = preferencesUtil.getGlobalClientCertificates();
+  if (globalCerts.length) {
+    const interpolatedGlobalCerts = interpolateObject(globalCerts, interpolationOptions);
+    clientCertificates.certs.push(...interpolatedGlobalCerts.filter((cert) => !cert?.disabled));
+  }
 
   // Get proxy config from bruno config and interpolate
   const collectionProxyConfig = get(brunoConfig, 'proxy', {});

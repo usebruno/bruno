@@ -46,7 +46,7 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.colors.text.muted};
       cursor: pointer;
       transition: all 0.15s ease;
-      
+
       &:hover {
         background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
         color: ${(props) => props.theme.text};
@@ -69,7 +69,8 @@ const StyledWrapper = styled.div`
 
     .env-list-search-input {
       width: 100%;
-      padding: 5px 24px 5px 26px;
+      height: 28px;
+      padding: 0 24px 0 26px;
       font-size: 12px;
       background: transparent;
       border: 1px solid ${(props) => props.theme.border.border1};
@@ -80,7 +81,7 @@ const StyledWrapper = styled.div`
       &::placeholder {
         color: ${(props) => props.theme.colors.text.muted};
       }
-      
+
       &:focus {
         outline: none;
         border-color: ${(props) => props.theme.colors.accent};
@@ -112,6 +113,7 @@ const StyledWrapper = styled.div`
     flex-direction: column;
     overflow: hidden;
     padding: 8px;
+    border-right: 1px solid ${(props) => props.theme.border.border0};
   }
 
   .section-header {
@@ -157,14 +159,16 @@ const StyledWrapper = styled.div`
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    padding: 4px 8px;
+    height: 1.6rem;
+    padding: 0 8px;
     margin-bottom: 1px;
     font-size: 13px;
     color: ${(props) => props.theme.text};
     cursor: pointer;
     border-radius: 6px;
     transition: background 0.15s ease;
-    
+    user-select: none;
+
     .environment-name {
       flex: 1;
       white-space: nowrap;
@@ -175,8 +179,29 @@ const StyledWrapper = styled.div`
     .environment-actions {
       display: flex;
       align-items: center;
+      gap: 2px;
       opacity: 0;
       transition: opacity 0.15s ease;
+
+      .env-row-menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        background: transparent;
+        border: none;
+        border-radius: 3px;
+        color: ${(props) => props.theme.colors.text.muted};
+        cursor: pointer;
+        transition: all 0.15s ease;
+
+        &:hover {
+          background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+          color: ${(props) => props.theme.text};
+        }
+      }
 
       .activate-btn {
         display: flex;
@@ -212,23 +237,58 @@ const StyledWrapper = styled.div`
 
     &.activated .environment-actions {
       opacity: 1;
+
+      .env-row-menu-btn {
+        opacity: 0;
+      }
+    }
+
+    &:hover .environment-actions .env-row-menu-btn,
+    &:focus-within .environment-actions .env-row-menu-btn,
+    .environment-actions .env-row-menu-btn[aria-expanded='true'] {
+      opacity: 1;
     }
 
     &:hover {
-      background: ${(props) => props.theme.workspace.button.bg};
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
     }
-    
+
     &.active {
-      background: ${(props) => props.theme.background.surface0};
+      background: ${(props) => props.theme.sidebar.collection.item.bg};
       color: ${(props) => props.theme.text};
     }
-    
+
+    &.is-selected {
+      background: ${(props) => rgba(props.theme.primary.text, 0.1)};
+
+      &:hover {
+        background: ${(props) => rgba(props.theme.primary.text, 0.16)} !important;
+      }
+    }
+
+    &.create-from-search {
+      width: 100%;
+      border: none;
+      font-family: inherit;
+      text-align: left;
+      color: ${(props) => props.theme.primary.text};
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+
+      .create-from-search-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        min-width: 0;
+      }
+    }
+
     &.renaming,
     &.creating {
       cursor: default;
       padding: 4px 4px 4px 8px;
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-      
+
       &:hover {
         background: ${(props) => props.theme.workspace.button.bg};
       }
@@ -240,7 +300,7 @@ const StyledWrapper = styled.div`
       flex: 1;
       min-width: 0;
       overflow: hidden;
-      
+
       .environment-name-input {
         flex: 1;
         min-width: 0;
@@ -250,12 +310,12 @@ const StyledWrapper = styled.div`
         color: ${(props) => props.theme.text};
         font-size: 13px;
         padding: 2px 4px;
-        
+
         &::placeholder {
           color: ${(props) => props.theme.colors.text.muted};
         }
       }
-      
+
       .inline-actions {
         display: flex;
         gap: 2px;
@@ -318,7 +378,7 @@ const StyledWrapper = styled.div`
       }
     }
   }
-  
+
   .env-error {
     padding: 4px 12px;
     margin-top: 4px;

@@ -1,0 +1,48 @@
+meta {
+  name: iteration-methods
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+headers {
+  bruno: is-awesome
+  della: is-beautiful
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+tests {
+  test("req.headerList.each(fn)", function() {
+    const keys = [];
+    req.headerList.each((header) => {
+      keys.push(header.key);
+    });
+    expect(keys).to.include('bruno');
+    expect(keys).to.include('della');
+  });
+
+  test("req.headerList.map(fn)", function() {
+    const values = req.headerList.map(h => h.value);
+    expect(values).to.be.an('array');
+    expect(values).to.include('is-awesome');
+    expect(values).to.include('is-beautiful');
+  });
+
+  test("req.headerList.reduce(fn, initial)", function() {
+    const result = req.headerList.reduce((acc, h) => {
+      acc[h.key] = h.value;
+      return acc;
+    }, {});
+    expect(result.bruno).to.equal('is-awesome');
+    expect(result.della).to.equal('is-beautiful');
+  });
+}

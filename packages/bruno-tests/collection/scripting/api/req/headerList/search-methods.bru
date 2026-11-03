@@ -1,0 +1,54 @@
+meta {
+  name: search-methods
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+headers {
+  bruno: is-awesome
+  della: is-beautiful
+  x-custom: test-value
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+tests {
+  test("req.headerList.has(name)", function() {
+    expect(req.headerList.has('bruno')).to.be.true;
+    expect(req.headerList.has('nonexistent')).to.be.false;
+  });
+
+  test("req.headerList.has(name, value)", function() {
+    expect(req.headerList.has('bruno', 'is-awesome')).to.be.true;
+    expect(req.headerList.has('bruno', 'wrong-value')).to.be.false;
+  });
+
+  test("req.headerList.find(predicate)", function() {
+    const found = req.headerList.find(h => h.key === 'della');
+    expect(found).to.eql({ key: 'della', value: 'is-beautiful' });
+    expect(req.headerList.find(h => h.key === 'nonexistent')).to.be.undefined;
+  });
+
+  test("req.headerList.filter(predicate)", function() {
+    const filtered = req.headerList.filter(h => h.key.startsWith('x-') && !h.disabled);
+    expect(filtered).to.be.an('array');
+    expect(filtered.length).to.equal(1);
+    expect(filtered[0].key).to.equal('x-custom');
+  });
+
+  test("req.headerList.indexOf(item)", function() {
+    const idx = req.headerList.indexOf({ key: 'bruno', value: 'is-awesome' });
+    expect(idx).to.be.at.least(0);
+    const notFound = req.headerList.indexOf({ key: 'nonexistent', value: 'nope' });
+    expect(notFound).to.equal(-1);
+  });
+}

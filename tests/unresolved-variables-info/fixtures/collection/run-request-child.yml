@@ -1,0 +1,11 @@
+info:
+  name: run-request-child
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: http://localhost:8081/ping
+  headers:
+    - name: x-child
+      value: "{{childOnly}}"

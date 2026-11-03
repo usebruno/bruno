@@ -150,11 +150,13 @@ export const ossSchema = {
           required: ['sm', 'base', 'md', 'lg', 'xl'],
           additionalProperties: false
         },
+        border3: { type: 'string' },
         border2: { type: 'string' },
         border1: { type: 'string' },
-        border0: { type: 'string' }
+        border0: { type: 'string' },
+        subtle: { type: 'string', description: 'Light border for cards, e.g. the response alerts and code snippets' }
       },
-      required: ['radius', 'border2', 'border1', 'border0'],
+      required: ['radius', 'border3', 'border2', 'border1', 'border0', 'subtle'],
       additionalProperties: false
     },
 
@@ -334,6 +336,22 @@ export const ossSchema = {
       additionalProperties: false
     },
 
+    ws: {
+      type: 'object',
+      properties: {
+        activeMessage: {
+          type: 'object',
+          properties: {
+            label: { type: 'string' }
+          },
+          required: ['label'],
+          additionalProperties: false
+        }
+      },
+      required: ['activeMessage'],
+      additionalProperties: false
+    },
+
     requestTabPanel: {
       type: 'object',
       properties: {
@@ -394,21 +412,19 @@ export const ossSchema = {
           type: 'object',
           properties: {
             bg: { type: 'string' },
-            borderRight: { type: 'string' },
             borderBottom: { type: 'string' },
             hoverBg: { type: 'string' },
             active: {
               type: 'object',
               properties: {
-                border: { type: 'string' },
                 bg: { type: 'string' },
                 hoverBg: { type: 'string' }
               },
-              required: ['border', 'bg', 'hoverBg'],
+              required: ['bg', 'hoverBg'],
               additionalProperties: false
             }
           },
-          required: ['bg', 'borderRight', 'borderBottom', 'hoverBg', 'active'],
+          required: ['bg', 'borderBottom', 'hoverBg', 'active'],
           additionalProperties: false
         }
       },

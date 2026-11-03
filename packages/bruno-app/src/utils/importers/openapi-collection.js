@@ -11,6 +11,10 @@ export const convertOpenapiToBruno = (data, options = {}) => {
 };
 
 export const isOpenApiSpec = (data) => {
+  if (!data || typeof data !== 'object') {
+    return false;
+  }
+
   if (typeof data.info !== 'object' || data.info === null) {
     return false;
   }
@@ -25,3 +29,14 @@ export const isOpenApiSpec = (data) => {
 
   return false;
 };
+
+export const isSwagger2Spec = (spec) => Boolean(spec?.swagger) && String(spec.swagger).startsWith('2');
+
+export const buildOpenApiSyncBrunoConfig = (collection, { sourceUrl, groupBy }) => ({
+  version: collection.version || '1',
+  name: collection.name || 'Untitled Collection',
+  type: 'collection',
+  ignore: ['node_modules', '.git'],
+  ...collection.brunoConfig,
+  openapi: [{ sourceUrl, groupBy, autoCheck: true, autoCheckInterval: 5 }]
+});

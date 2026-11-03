@@ -1,7 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 const YAML = require('yaml');
+const { SCRIPT_TYPES, normalizeLineEndings } = require('@usebruno/common');
 const { NODEVM_SCRIPT_WRAPPER_OFFSET, QUICKJS_SCRIPT_WRAPPER_OFFSET } = require('./sandbox');
+
+// Scripts are normalised to LF before execution, so line numbers in errors count LF lines.
+// Source text must be split the same way or context lines drift on CRLF / CR-only files.
+const splitLines = (content) => normalizeLineEndings(content).split('\n');
 
 const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : p);
 
@@ -11,17 +16,15 @@ const ALLOWED_SOURCE_EXTENSIONS = ['.bru', '.yml'];
 const isAllowedSourceFile = (filePath) =>
   typeof filePath === 'string' && ALLOWED_SOURCE_EXTENSIONS.some((ext) => filePath.endsWith(ext));
 
-const SCRIPT_TYPES = Object.freeze({
-  PRE_REQUEST: 'pre-request',
-  POST_RESPONSE: 'post-response',
-  TEST: 'test'
-});
-
 // Bruno script types → OpenCollection YAML script types
 const SCRIPT_TYPE_TO_YML = {
   [SCRIPT_TYPES.PRE_REQUEST]: 'before-request',
   [SCRIPT_TYPES.POST_RESPONSE]: 'after-response',
-  [SCRIPT_TYPES.TEST]: 'tests'
+  [SCRIPT_TYPES.TEST]: 'tests',
+  [SCRIPT_TYPES.BEFORE_CALL_START]: 'grpc:before-call-start',
+  [SCRIPT_TYPES.BEFORE_MESSAGE_SEND]: 'grpc:before-message-send',
+  [SCRIPT_TYPES.AFTER_MESSAGE_RECEIVE]: 'grpc:after-message-receive',
+  [SCRIPT_TYPES.AFTER_CALL_END]: 'grpc:after-call-end'
 };
 
 const readFile = (filePath, cache = null) => {
@@ -38,7 +41,11 @@ const readFile = (filePath, cache = null) => {
 const BLOCK_PATTERNS = {
   [SCRIPT_TYPES.PRE_REQUEST]: /^script:pre-request\s*\{/,
   [SCRIPT_TYPES.POST_RESPONSE]: /^script:post-response\s*\{/,
-  [SCRIPT_TYPES.TEST]: /^tests\s*\{/
+  [SCRIPT_TYPES.TEST]: /^tests\s*\{/,
+  [SCRIPT_TYPES.BEFORE_CALL_START]: /^script:grpc:before-call-start\s*\{/,
+  [SCRIPT_TYPES.BEFORE_MESSAGE_SEND]: /^script:grpc:before-message-send\s*\{/,
+  [SCRIPT_TYPES.AFTER_MESSAGE_RECEIVE]: /^script:grpc:after-message-receive\s*\{/,
+  [SCRIPT_TYPES.AFTER_CALL_END]: /^script:grpc:after-call-end\s*\{/
 };
 
 /** Find the 1-indexed line where a script block's content starts in a .bru file */
@@ -54,7 +61,7 @@ const findScriptBlockStartLine = (filePath, scriptType, cache = null) => {
   const pattern = BLOCK_PATTERNS[scriptType];
   if (!pattern) return null;
 
-  const lines = content.split('\n');
+  const lines = splitLines(content);
   let result = null;
   for (let i = 0; i < lines.length; i++) {
     if (pattern.test(lines[i])) {
@@ -80,7 +87,7 @@ const findScriptBlockEndLine = (filePath, scriptType, cache = null) => {
   const pattern = BLOCK_PATTERNS[scriptType];
   if (!pattern) return null;
 
-  const lines = content.split('\n');
+  const lines = splitLines(content);
   let inBlock = false;
   let hasContent = false;
   let result = null;
@@ -377,13 +384,13 @@ const buildContextLines = (lines, errorLine, contextLines) => {
 const getSourceContext = (filePath, errorLine, contextLines = DEFAULT_CONTEXT_LINES, cache = null) => {
   const content = readFile(filePath, cache);
   if (!content) return null;
-  return buildContextLines(content.split('\n'), errorLine, contextLines);
+  return buildContextLines(splitLines(content), errorLine, contextLines);
 };
 
 /** Extract context lines from in-memory script content (e.g. unsaved draft scripts) */
 const getSourceContextFromContent = (content, errorLine, contextLines = DEFAULT_CONTEXT_LINES) => {
   if (!content) return null;
-  return buildContextLines(content.split('\n'), errorLine, contextLines);
+  return buildContextLines(splitLines(content), errorLine, contextLines);
 };
 
 /** Build adjusted stack trace string from structured CallSite data */
@@ -747,5 +754,6 @@ module.exports = {
   findYmlScriptBlockStartLine,
   findYmlScriptBlockEndLine,
   adjustStackTrace,
-  getErrorTypeName
+  getErrorTypeName,
+  posixifyPath
 };

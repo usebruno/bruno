@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, memo } from 'react';
 import { useSelector } from 'react-redux';
-import { IconDatabase, IconLoader2 } from '@tabler/icons';
+import { IconBox, IconLoader2 } from '@tabler/icons';
 import { areItemsLoading } from 'utils/collections';
 
 const CollectionListItem = memo(({ collectionUid, collectionPath, collectionName, isSelected, onSelect }) => {
@@ -26,7 +26,7 @@ const CollectionListItem = memo(({ collectionUid, collectionPath, collectionName
       onClick={handleClick}
     >
       <div className="collection-item-content">
-        <IconDatabase size={16} strokeWidth={1.5} />
+        <IconBox size={16} strokeWidth={1.5} />
         <span className="collection-item-name">{collectionName}</span>
       </div>
       {isLoading && (

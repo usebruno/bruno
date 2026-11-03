@@ -1,12 +1,12 @@
 import { test, expect } from '../../../../../playwright';
 import { openCollection } from '../../../../utils/page';
-import { buildWebsocketCommonLocators } from '../../../../utils/page/locators';
+import { buildCommonLocators } from '../../../../utils/page/locators';
 
 const BRU_REQ_NAME = /^ws-ssl-request$/;
 
 test.describe.serial('wss with custom ca cert', () => {
   test('websocket connects over ssl', async ({ pageWithUserData: page }) => {
-    const locators = buildWebsocketCommonLocators(page);
+    const locators = buildCommonLocators(page);
 
     // Define reusable locators
     const requestItem = page.getByTitle(BRU_REQ_NAME);
@@ -17,13 +17,13 @@ test.describe.serial('wss with custom ca cert', () => {
 
     await test.step('Connect to WSS', async () => {
       await requestItem.click();
-      await locators.connectionControls.connect().click();
-      await expect(locators.connectionControls.disconnect()).toBeAttached();
+      await locators.websocket.connectionControls.connect().click();
+      await expect(locators.websocket.connectionControls.disconnect()).toBeAttached();
     });
 
     await test.step('Send message and verify response', async () => {
       await locators.runner().click();
-      const responseMessage = locators.messages().nth(2).locator('.text-ellipsis');
+      const responseMessage = locators.websocket.messages().nth(2).locator('.text-ellipsis');
       await expect(responseMessage).toHaveText(/\"headers\"/);
     });
   });

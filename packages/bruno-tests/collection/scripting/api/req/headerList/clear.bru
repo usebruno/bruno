@@ -1,0 +1,34 @@
+meta {
+  name: clear
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+headers {
+  bruno: is-awesome
+  della: is-beautiful
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+script:pre-request {
+  req.headerList.clear();
+}
+
+tests {
+  test("req.headerList.clear() removes user-defined headers", function() {
+    expect(req.headerList.has('bruno')).to.be.false;
+    expect(req.headerList.has('della')).to.be.false;
+    expect(req.getHeaders()['bruno']).to.be.undefined;
+    expect(req.getHeaders()['della']).to.be.undefined;
+  });
+}

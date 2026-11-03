@@ -2,7 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const _ = require('lodash');
 const { parseEnvironment, stringifyEnvironment } = require('@usebruno/filestore');
-const { writeFile, createDirectory } = require('../utils/filesystem');
+const { parseValueByDataType } = require('@usebruno/common/utils');
+const { writeFile, createDirectory, withFileLock } = require('../utils/filesystem');
+const { renameEnvironmentExtendsReferences } = require('../utils/environments');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
 const { decryptStringSafe } = require('../utils/encryption');
 const EnvironmentSecretsStore = require('./env-secrets');
@@ -70,10 +72,10 @@ class GlobalEnvironmentsManager {
     if (this.envHasSecrets(environment)) {
       const envSecrets = environmentSecretsStore.getEnvSecrets(workspacePath, environment);
       _.each(envSecrets, (secret) => {
-        const variable = _.find(environment.variables, (v) => v.name === secret.name);
+        const variable = _.find(environment.variables, (v) => v.name === secret.name && v.secret);
         if (variable && secret.value) {
           const decryptionResult = decryptStringSafe(secret.value);
-          variable.value = decryptionResult.value;
+          variable.value = parseValueByDataType(decryptionResult.value, variable.dataType);
         }
       });
     }
@@ -119,7 +121,7 @@ class GlobalEnvironmentsManager {
     }
   }
 
-  async createGlobalEnvironment(workspacePath, { uid, name, variables, color }) {
+  async createGlobalEnvironment(workspacePath, { uid, name, variables, color, extends: inheritedGlobalEnvironmentName }) {
     try {
       if (!workspacePath) {
         throw new Error('Workspace path is required');
@@ -143,6 +145,10 @@ class GlobalEnvironmentsManager {
         color
       };
 
+      if (inheritedGlobalEnvironmentName) {
+        environment.extends = inheritedGlobalEnvironmentName;
+      }
+
       if (this.envHasSecrets(environment)) {
         environmentSecretsStore.storeEnvSecrets(workspacePath, environment);
       }
@@ -161,7 +167,7 @@ class GlobalEnvironmentsManager {
     }
   }
 
-  async saveGlobalEnvironment(workspacePath, { environmentUid, variables, color }) {
+  async saveGlobalEnvironment(workspacePath, { environmentUid, variables, color, extends: inheritedGlobalEnvironmentName }) {
     try {
       if (!workspacePath) {
         throw new Error('Workspace path is required');
@@ -173,21 +179,36 @@ class GlobalEnvironmentsManager {
         throw new Error(`Environment file not found for uid: ${environmentUid}`);
       }
 
-      const environment = {
-        name: envFile.name,
-        variables: variables
-      };
+      // Serialize concurrent writes per env file. Two rapid scripted
+      // bru.setGlobalEnvVar() persist calls can otherwise overlap and the
+      // second writer's stringify+write can land before the first, dropping it.
+      await withFileLock(envFile.filePath, async () => {
+        const savedEnvironment = await this.parseEnvironmentFile(envFile.filePath, workspacePath);
 
-      if (color) {
-        environment.color = color;
-      }
+        // The whole file is rewritten, so start from what is on disk and overlay only
+        // the fields this save carries. Callers that just persist variables omit the
+        // rest, and anything omitted must survive the write.
+        const environment = {
+          ...savedEnvironment,
+          name: envFile.name,
+          variables: variables
+        };
 
-      if (this.envHasSecrets(environment)) {
-        environmentSecretsStore.storeEnvSecrets(workspacePath, environment);
-      }
+        if (color !== undefined) {
+          environment.color = color;
+        }
 
-      const content = await stringifyEnvironment(environment, { format: 'yml' });
-      await writeFile(envFile.filePath, content);
+        if (inheritedGlobalEnvironmentName !== undefined) {
+          environment.extends = inheritedGlobalEnvironmentName;
+        }
+
+        if (this.envHasSecrets(environment)) {
+          environmentSecretsStore.storeEnvSecrets(workspacePath, environment);
+        }
+
+        const content = await stringifyEnvironment(environment, { format: 'yml' });
+        await writeFile(envFile.filePath, content);
+      });
 
       return true;
     } catch (error) {
@@ -234,6 +255,13 @@ class GlobalEnvironmentsManager {
         fs.unlinkSync(envFile.filePath);
       }
 
+      await renameEnvironmentExtendsReferences({
+        environmentsDirPath: this.getEnvironmentsDir(workspacePath),
+        format: 'yml',
+        oldName,
+        newName
+      });
+
       const newUid = generateUidBasedOnHash(newFilePath);
       return { uid: newUid, name: newName };
     } catch (error) {
@@ -273,11 +301,44 @@ class GlobalEnvironmentsManager {
         throw new Error(`Environment file not found for uid: ${environmentUid}`);
       }
 
-      const environment = await this.parseEnvironmentFile(envFile.filePath, workspacePath);
-      environment.color = color;
+      await withFileLock(envFile.filePath, async () => {
+        const environment = await this.parseEnvironmentFile(envFile.filePath, workspacePath);
+        environment.color = color;
 
-      const content = stringifyEnvironment(environment, { format: 'yml' });
-      await writeFile(envFile.filePath, content);
+        const content = stringifyEnvironment(environment, { format: 'yml' });
+        await writeFile(envFile.filePath, content);
+      });
+
+      return true;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async saveGlobalEnvironmentExtends(workspacePath, environmentUid, inheritedGlobalEnvironmentName) {
+    try {
+      if (!workspacePath) {
+        throw new Error('Workspace path is required');
+      }
+
+      const envFile = this.findEnvironmentFileByUid(workspacePath, environmentUid);
+
+      if (!envFile) {
+        throw new Error(`Environment file not found for uid: ${environmentUid}`);
+      }
+
+      await withFileLock(envFile.filePath, async () => {
+        const environment = await this.parseEnvironmentFile(envFile.filePath, workspacePath);
+
+        if (inheritedGlobalEnvironmentName) {
+          environment.extends = inheritedGlobalEnvironmentName;
+        } else {
+          delete environment.extends;
+        }
+
+        const content = stringifyEnvironment(environment, { format: 'yml' });
+        await writeFile(envFile.filePath, content);
+      });
 
       return true;
     } catch (error) {
@@ -307,6 +368,10 @@ class GlobalEnvironmentsManager {
 
   async updateGlobalEnvironmentColorByPath(workspacePath, { environmentUid, color }) {
     return this.updateGlobalEnvironmentColor(workspacePath, environmentUid, color);
+  }
+
+  async saveGlobalEnvironmentExtendsByPath(workspacePath, { environmentUid, extends: inheritedGlobalEnvironmentName }) {
+    return this.saveGlobalEnvironmentExtends(workspacePath, environmentUid, inheritedGlobalEnvironmentName);
   }
 }
 

@@ -33,6 +33,7 @@ const DeleteWorkspace = ({ onClose, workspace }) => {
         handleCancel={onClose}
         confirmDisabled={isDeleting}
         confirmButtonColor="danger"
+        dataTestId="remove-workspace-modal"
       >
         <div className="flex items-center">
           <IconFolder size={18} strokeWidth={1.5} />

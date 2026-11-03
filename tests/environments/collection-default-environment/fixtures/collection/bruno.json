@@ -1,0 +1,8 @@
+{
+  "version": "1",
+  "name": "collection-default-environment",
+  "type": "collection",
+  "presets": {
+    "defaultEnvironment": "prod"
+  }
+}

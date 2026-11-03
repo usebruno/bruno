@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { createCollection, closeAllCollections } from '../../utils/page';
+import { createCollection, closeAllCollections, writeCollectionProxyField } from '../../utils/page';
 
 test.describe('Draft values are used in requests', () => {
   test.afterEach(async ({ page }) => {
@@ -99,9 +99,9 @@ test.describe('Draft values are used in requests', () => {
 
     // Check that the generated code contains the draft header
     // The header appears as a --header argument in the generated curl/httpie/wget command
-    await expect(generatedCodeEditor).toContainText('x-draft-header');
+    await expect(generatedCodeEditor).toContainText('X-Draft-Header');
     await expect(generatedCodeEditor).toContainText('draft-value-123');
-    await expect(generatedCodeEditor).toContainText('x-folder-draft-header');
+    await expect(generatedCodeEditor).toContainText('X-Folder-Draft-Header');
     await expect(generatedCodeEditor).toContainText('folder-draft-value-123');
 
     // Close the modal by clicking the X button using the test id
@@ -143,8 +143,8 @@ test.describe('Draft values are used in requests', () => {
     // Go to Proxy Settings tab
     await page.locator('.tab.proxy').click();
     await page.locator('input[name="enabled"][value="true"]').check();
-    await page.locator('#hostname').fill('localhost');
-    await page.locator('#port').fill('8080');
+    await writeCollectionProxyField(page, 'hostname', 'localhost');
+    await writeCollectionProxyField(page, 'port', '8080');
 
     await page.locator('.collection-item-name').filter({ hasText: 'Test Request' }).click();
 

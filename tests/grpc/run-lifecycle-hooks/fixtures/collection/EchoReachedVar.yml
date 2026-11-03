@@ -1,0 +1,23 @@
+info:
+  name: EchoReachedVar
+  type: grpc
+  seq: 9
+
+grpc:
+  url: "{{host}}"
+  method: /hello.HelloService/SayHello
+  methodType: unary
+  message:
+    - title: message 1
+      message: |-
+        {
+          "greeting": "reached-{{reached}}"
+        }
+
+runtime:
+  scripts:
+    - type: grpc:after-call-end
+      code: |-
+        // Deleted once this request has echoed it: the two sandbox modes share this collection,
+        // so a value left behind would let the next mode pass without BrokenHook's hook running.
+        bru.deleteVar('reached');

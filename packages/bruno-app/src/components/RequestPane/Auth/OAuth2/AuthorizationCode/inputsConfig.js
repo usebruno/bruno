@@ -22,7 +22,8 @@ const inputsConfig = [
   },
   {
     key: 'state',
-    label: 'State'
+    label: 'State',
+    tooltip: 'If left empty, Bruno automatically generates a secure random value to help protect against CSRF attacks.'
   }
 ];
 

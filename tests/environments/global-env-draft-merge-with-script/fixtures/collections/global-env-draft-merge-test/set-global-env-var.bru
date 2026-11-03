@@ -1,0 +1,22 @@
+meta {
+  name: set-global-env-var
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setGlobalEnvVar("scriptGlobalToken", "from-script-456");
+}
+
+tests {
+  test("should set global env var", function() {
+    const val = bru.getGlobalEnvVar("scriptGlobalToken");
+    expect(val).to.equal("from-script-456");
+  });
+}

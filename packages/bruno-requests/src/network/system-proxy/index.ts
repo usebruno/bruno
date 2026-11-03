@@ -95,6 +95,7 @@ export async function getSystemProxy(): Promise<ProxyConfiguration> {
       http_proxy: proxyEnvironmentVariables?.http_proxy || systemProxyEnvironmentVariables?.http_proxy,
       https_proxy: proxyEnvironmentVariables?.https_proxy || systemProxyEnvironmentVariables?.https_proxy,
       no_proxy: proxyEnvironmentVariables?.no_proxy || systemProxyEnvironmentVariables?.no_proxy,
+      pac_url: systemProxyEnvironmentVariables?.pac_url || null,
       source: hasEnvironmentProxy ? `${systemProxyEnvironmentVariables?.source} + environment` : systemProxyEnvironmentVariables?.source
     };
   } catch (error) {

@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "network-log-scroll",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

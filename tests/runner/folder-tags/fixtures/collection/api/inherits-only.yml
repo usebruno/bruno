@@ -1,0 +1,8 @@
+info:
+  name: inherits-only
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: http://localhost:8081/ping

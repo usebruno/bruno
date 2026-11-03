@@ -23,13 +23,17 @@ test.describe('Folder docs sticky edit/preview button', () => {
     await docsTab.click();
 
     // The editing-mode toggle should show "Edit" initially
-    const editToggle = page.locator('.editing-mode');
+    const editToggle = page.getByTestId('settings-tab-bar').getByTestId('docs-edit-toggle');
     await expect(editToggle).toBeVisible();
     await expect(editToggle).toHaveText('Edit');
 
     // Click "Edit" to enter editing mode
     await editToggle.click();
     await expect(editToggle).toHaveText('Preview');
+
+    // Switch to Markdown mode
+    const markdownToggle = page.locator('.docs-mode-switch button').filter({ hasText: 'Markdown' });
+    await markdownToggle.click();
 
     // Type long content into the CodeMirror editor to make it scrollable
     const codeMirror = page.locator('.CodeMirror');

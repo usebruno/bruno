@@ -6,7 +6,7 @@ class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
 
-    this.state = { hasError: false };
+    this.state = { hasError: false, clearCaches: false };
   }
 
   componentDidMount() {
@@ -19,6 +19,10 @@ class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     console.log({ error, errorInfo });
     this.setState({ hasError: true, error, errorInfo });
+  }
+
+  async clearCache() {
+    await window.ipcRenderer.invoke('main:cache-clear');
   }
 
   returnToApp() {
@@ -35,15 +39,18 @@ class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
+      const { error, errorInfo } = this.state;
+      const stackTrace = error?.stack || errorInfo?.componentStack || 'No stack trace available';
+
       return (
-        <div className="flex text-center justify-center p-20 h-full">
-          <div className="bg-white rounded-lg p-10 w-full">
-            <div className="m-auto" style={{ width: '256px' }}>
-              <Bruno width={256} />
+        <div className="flex p-10 h-full min-h-screen gap-6">
+          <div className="flex-1 bg-white rounded-lg p-10 text-center flex-shrink-0">
+            <div className="m-auto" style={{ width: '120px' }}>
+              <Bruno width={120} />
             </div>
 
             <h1 className="text-2xl font-medium text-red-600 mb-2">Oops! Something went wrong</h1>
-            <p className="text-red-500 mb-2">
+            <p className="mb-2">
               If you are using an official production build: the above error is most likely a bug!
               <br />
               Please report this under:
@@ -56,18 +63,58 @@ class ErrorBoundary extends React.Component {
               </a>
             </p>
 
-            <button
-              className="bg-red-500 text-white px-4 py-2 mt-4 rounded hover:bg-red-600 transition"
-              onClick={() => this.returnToApp()}
-            >
-              Return to App
-            </button>
+            <div className="inline-flex flex-col items-center mt-4">
+              <button
+                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
+                onClick={() => this.returnToApp()}
+              >
+                Return to App
+              </button>
 
-            <div className="text-red-500 mt-3">
-              <a href="" className="hover:underline cursor-pointer" onClick={this.forceQuit}>
-                Force Quit
-              </a>
+              <div className="flex items-center my-3 w-full">
+                <div className="flex-1 border-t border-gray-300"></div>
+                <span className="px-3 text-gray-500 text-sm">or</span>
+                <div className="flex-1 border-t border-gray-300"></div>
+              </div>
+
+              <div className="mt-1 pt-1 flex flex-col items-center gap-2">
+                <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none hover:text-gray-800 transition">
+                  <input
+                    type="checkbox"
+                    checked={this.state.clearCaches}
+                    onChange={(e) => this.setState({ clearCaches: e.target.checked })}
+                    className="cursor-pointer"
+                  />
+                  Clear caches on quit
+                </label>
+                <a
+                  href=""
+                  className="text-sm text-red-400 border border-red-400 hover:text-red-600 px-4 py-2 rounded transition cursor-pointer"
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    try {
+                      if (this.state.clearCaches) {
+                        await this.clearCache();
+                      }
+                    } finally {
+                      this.forceQuit();
+                    }
+                  }}
+                >
+                  Force Quit
+                </a>
+              </div>
             </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 flex-shrink-0 flex-1 overflow-auto">
+            <h2 className="text-lg font-medium text-red-600 mb-3">Stack Trace</h2>
+            {error?.message && (
+              <p className="text-red-500 font-medium mb-2">{error.message}</p>
+            )}
+            <pre className="text-left text-sm text-gray-700 whitespace-pre-wrap break-words font-mono bg-gray-100 p-4 rounded overflow-auto max-h-full">
+              {stackTrace}
+            </pre>
           </div>
         </div>
       );

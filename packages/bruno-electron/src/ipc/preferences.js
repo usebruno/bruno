@@ -8,7 +8,8 @@ const { resolveDefaultLocation } = require('../utils/default-location');
 const onboardUser = require('../app/onboarding');
 const LastOpenedCollections = require('../store/last-opened-collections');
 const WindowStateStore = require('../store/window-state');
-const { clearAgentCache } = require('@usebruno/requests');
+const { clearAgentCache, clearPacCache } = require('@usebruno/requests');
+const mockServer = require('../app/mock-server/mock-server');
 
 const registerPreferencesIpc = (mainWindow) => {
   const lastOpenedCollections = new LastOpenedCollections();
@@ -53,7 +54,11 @@ const registerPreferencesIpc = (mainWindow) => {
 
   ipcMain.handle('renderer:save-preferences', async (event, preferences) => {
     try {
+      const wasMockServerEnabled = mockServer.isMockServerEnabled();
       await savePreferences(preferences);
+      if (wasMockServerEnabled && !mockServer.isMockServerEnabled()) {
+        await mockServer.stopAll().catch((error) => console.error('Failed to stop mock servers', error));
+      }
     } catch (error) {
       return Promise.reject(error);
     }
@@ -61,6 +66,15 @@ const registerPreferencesIpc = (mainWindow) => {
 
   ipcMain.handle('renderer:clear-http-https-agent-cache', async () => {
     try {
+      clearAgentCache();
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:refresh-pac-cache', async () => {
+    try {
+      clearPacCache();
       clearAgentCache();
     } catch (error) {
       return Promise.reject(error);
@@ -81,7 +95,10 @@ const registerPreferencesIpc = (mainWindow) => {
   });
 
   ipcMain.handle('renderer:refresh-system-proxy', async () => {
-    return await fetchSystemProxy({ refresh: true });
+    const variables = await fetchSystemProxy({ refresh: true });
+    clearPacCache();
+    clearAgentCache();
+    return variables;
   });
 };
 
