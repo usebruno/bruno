@@ -1242,11 +1242,12 @@ describe('exportApiSpec - secrets and other placeholders left unfilled', () => {
     await expectValidSpec(content);
   });
 
-  it('does not turn placeholders in a base url query string into path parameters', () => {
-    const { specPath, operation } = exportUrl('{{baseUrl}}/users?key={{apiKey}}', { variables: { baseUrl: 'https://api.test' } });
+  it('leaves the query string out of the path for a base url request', async () => {
+    const { content, specPath, operation } = exportUrl('{{baseUrl}}/users?key={{apiKey}}&page=1', { variables: { baseUrl: 'https://api.test' } });
 
-    expect(specPath).toBe('/users?key={{apiKey}}');
+    expect(specPath).toBe('/users');
     expect(operation.parameters).toBeUndefined();
+    await expectValidSpec(content);
   });
 
   it('keeps OAuth2 and process env placeholders out of the path and host as valid placeholders', async () => {
@@ -1258,6 +1259,16 @@ describe('exportApiSpec - secrets and other placeholders left unfilled', () => {
       variables: { 'process.env.HOST': { default: '{{process.env.HOST}}' } }
     }]);
     expect(operation.parameters).toEqual([pathParam('$oauth2.cred.access_token')]);
+    await expectValidSpec(content);
+  });
+
+  it('keeps the spelling of a secret that reaches the host through another variable', async () => {
+    const { content, operation } = exportUrl('{{apiRoot}}/data', { variables: { apiRoot: 'https://{{tenantSecret}}.api.test' } });
+
+    expect(operation.servers).toEqual([{
+      url: 'https://{tenantSecret}.api.test',
+      variables: { tenantSecret: { default: '{{tenantSecret}}' } }
+    }]);
     await expectValidSpec(content);
   });
 

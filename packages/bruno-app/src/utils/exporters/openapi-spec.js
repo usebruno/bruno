@@ -115,9 +115,9 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
 
   const restoreUnresolvedPlaceholders = (value) => value.replace(/%7B%7B(.*?)%7D%7D/gi, '{{$1}}');
 
-  // URL parsing lowercases the host, so restore each placeholder's spelling from the raw url
-  const restorePlaceholderCase = (value, rawUrl) => {
-    const originalNames = new Map([...rawUrl.matchAll(templateVarRegex)].map((m) => [m[1].toLowerCase(), m[1]]));
+  // URL parsing lowercases the host, so restore each placeholder's spelling from the url before parsing
+  const restorePlaceholderCase = (value, url) => {
+    const originalNames = new Map([...url.matchAll(templateVarRegex)].map((m) => [m[1].toLowerCase(), m[1]]));
     return value.replace(templateVarRegex, (match, name) => `{{${originalNames.get(name.toLowerCase()) ?? name}}}`);
   };
 
@@ -157,7 +157,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
       const urlDetails = new URL(resolvedUrl);
       return {
         url: restoreUnresolvedPlaceholders(urlDetails.pathname),
-        operationLevelServer: buildServerEntry(restorePlaceholderCase(urlDetails.origin, rawUrl), variables)
+        operationLevelServer: buildServerEntry(restorePlaceholderCase(urlDetails.origin, resolvedUrl), variables)
       };
     }
 
@@ -179,7 +179,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
       const queryStart = rawPath.search(/[?#]/);
       const pathOnly = queryStart === -1 ? rawPath : rawPath.slice(0, queryStart);
       const placeholderNames = [...new Set([...pathOnly.matchAll(templateVarRegex)].map((m) => m[1]))];
-      const url = pathOnly.replace(templateVarRegex, '{$1}') + rawPath.slice(pathOnly.length);
+      const url = pathOnly.replace(templateVarRegex, '{$1}');
       const { request } = item;
       const { method, params = [], headers = [], body, auth } = request || {};
 
@@ -187,7 +187,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
 
       const pathParamsRegex = /(?<!{){([^{}]+)}(?!})/g;
 
-      const pathMatches = rawPath.match(pathParamsRegex) || [];
+      const pathMatches = pathOnly.match(pathParamsRegex) || [];
 
       // Build known path param names from the params array
       const knownPathParamNames = new Set(
