@@ -1,8 +1,8 @@
 -- name: upsert_runner_response :exec
 INSERT INTO runner_responses (
-  request_uid, collection_uid, request_file_id, response_file_id, body_file_id
+  request_uid, collection_uid, iteration_index, request_file_id, response_file_id, body_file_id
 ) VALUES (
-  @request_uid, @collection_uid, @request_file_id, @response_file_id, @body_file_id
+  @request_uid, @collection_uid, @iteration_index, @request_file_id, @response_file_id, @body_file_id
 )
 ON CONFLICT (request_uid) DO UPDATE SET
   request_file_id = COALESCE(excluded.request_file_id, request_file_id),

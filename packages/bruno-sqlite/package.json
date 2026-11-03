@@ -1,6 +1,7 @@
 {
   "name": "@usebruno/sqlite",
   "version": "0.1.0",
+  "private": true,
   "license": "MIT",
   "main": "dist/node/cjs/index.js",
   "module": "dist/node/esm/index.js",

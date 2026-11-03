@@ -5,11 +5,12 @@ import { IconCaretDown } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { useTheme } from 'providers/Theme';
 import SingleLineEditor from 'components/SingleLineEditor';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAPIKeyPlacement } from 'utils/collections';
 
-const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) => {
+const ApiKeyAuth = ({ item, collection, updateAuth, request, save, readOnly }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const dropdownTippyRef = useRef();
@@ -33,7 +34,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
   });
 
   const handleAuthChange = (property, value) => {
-    if (disabled) {
+    if (readOnly) {
       return;
     }
     dispatch(
@@ -50,7 +51,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
   };
 
   useEffect(() => {
-    !disabled
+    !readOnly
     && !apikeyAuth?.placement
     && dispatch(
       updateAuth({
@@ -62,7 +63,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
         }
       })
     );
-  }, [apikeyAuth, disabled]);
+  }, [apikeyAuth, readOnly]);
 
   return (
     <StyledWrapper className="w-full">
@@ -75,13 +76,14 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
           onChange={(val) => handleAuthChange('key', val)}
           onRun={handleRun}
           collection={collection}
-          readOnly={disabled}
+          item={item}
+          readOnly={readOnly}
           isCompact
         />
       </div>
 
       <label className="block mb-1">Value</label>
-      <div className="single-line-editor-wrapper mb-3">
+      <div className="single-line-editor-wrapper mb-3 flex items-center">
         <SingleLineEditor
           value={apikeyAuth.value || ''}
           theme={storedTheme}
@@ -89,14 +91,17 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
           onChange={(val) => handleAuthChange('value', val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
+          isSecret={true}
           isCompact
-          readOnly={disabled}
+          readOnly={readOnly}
         />
+        <SensitiveFieldWarning fieldName="apikey-value" secretName="value" value={apikeyAuth.value} collection={collection} item={item} fieldKey="value" onReplaceValue={(val) => handleAuthChange('value', val)} />
       </div>
 
       <label className="block mb-1">Add To</label>
-      <div data-testid="auth-placement-selector" className="inline-flex items-center cursor-pointer auth-placement-selector w-fit">
-        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
+      <div data-testid="auth-placement-selector" className={`inline-flex items-center ${readOnly ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} auth-placement-selector w-fit`}>
+        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end" disabled={readOnly}>
           <div
             className="dropdown-item"
             onClick={() => {

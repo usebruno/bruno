@@ -2,6 +2,7 @@ const { ipcMain } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { getWorkspaceApiSpecs, validateWorkspacePath } = require('../../utils/workspace-config');
+const { parseAndValidateApiSpec } = require('../../utils/apiSpecs');
 const mockServer = require('../../app/mock-server/mock-server');
 const { buildMockResponsesFromSpec } = require('../../app/mock-server/mock-spec-routes');
 const {
@@ -17,27 +18,6 @@ const {
 } = require('../../app/mock-server/mock-server-store');
 
 const getResponses = (location) => listMockResponses(location);
-
-const parseSpecContent = (content) => {
-  let spec;
-  try {
-    spec = JSON.parse(content);
-  } catch {
-    const yaml = require('js-yaml');
-    try {
-      spec = yaml.load(content);
-    } catch (err) {
-      throw new Error(`Invalid API spec: ${err.reason || err.message}`);
-    }
-  }
-
-  // YAML happily parses most text into a scalar; without a paths map there is nothing to mock.
-  if (!spec || typeof spec !== 'object' || !spec.paths || typeof spec.paths !== 'object') {
-    throw new Error('Invalid API spec: no paths found.');
-  }
-
-  return spec;
-};
 
 const readWorkspaceSpec = (workspacePath, specPath) => {
   if (!specPath) {
@@ -58,7 +38,7 @@ const readWorkspaceSpec = (workspacePath, specPath) => {
     throw new Error('API spec file not found.');
   }
 
-  return parseSpecContent(fs.readFileSync(resolvedPath, 'utf8'));
+  return parseAndValidateApiSpec(fs.readFileSync(resolvedPath, 'utf8'));
 };
 
 const registerMockServerIpc = (mainWindow) => {
