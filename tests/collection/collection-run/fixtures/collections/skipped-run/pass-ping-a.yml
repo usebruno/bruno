@@ -1,5 +1,5 @@
 info:
-  name: Plain Request
+  name: First Passed Ping
   type: http
   seq: 2
 
@@ -12,6 +12,6 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        test("first ping returned 200", function() {
+        test("first passed ping returned 200", function() {
           expect(res.getStatus()).to.equal(200);
         });

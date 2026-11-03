@@ -1,9 +1,7 @@
 info:
-  name: Smoke Request
+  name: Ping Without Tag
   type: http
-  seq: 1
-  tags:
-    - smoke
+  seq: 2
 
 http:
   method: GET

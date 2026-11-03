@@ -1,5 +1,5 @@
 info:
-  name: Passed Two
+  name: Second Passed Ping
   type: http
   seq: 4
 
@@ -12,6 +12,6 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        test("second ping returned 200", function() {
+        test("second passed ping returned 200", function() {
           expect(res.getStatus()).to.equal(200);
         });
