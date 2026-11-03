@@ -1441,8 +1441,6 @@ export interface HeaderList {
   /**
    * Set a header on the request, the same as `upsert`.
    *
-   * A header with `disabled: true` is listed but not sent.
-   *
    * @param itemOrName - A header, a `Name: value` string, or a header name.
    * @param value - The value, with a header name.
    * @example
@@ -1452,15 +1450,14 @@ export interface HeaderList {
    */
   add(itemOrName: string | Header, value?: string): void;
   /**
-   * Set a header on the request, replacing the header of the same name.
+   * Set an enabled header on the request, replacing the enabled header of the same name.
    *
-   * Header names match case-insensitively; the replaced header takes the new name's case. It
-   * replaces an enabled or a disabled header, so upserting a disabled header's name enables it. A
-   * header with `disabled: true` is listed but not sent, and disables a header it replaces.
+   * Header names match case-insensitively; the replaced header takes the new name's case. A
+   * disabled header of that name is left as it is, so the new header is listed beside it.
    *
    * @param itemOrName - A header, or a header name.
    * @param value - The value, with a header name.
-   * @returns `true` when the header is new, `false` when it replaced one, and `null` when no name was given. Safe Mode always returns `undefined`.
+   * @returns `true` when no enabled header had the name, `false` when it replaced one, and `null` when no name was given. Safe Mode always returns `undefined`.
    * @example
    * req.headerList.upsert('Content-Type', 'application/json');
    * @category Write
@@ -1469,8 +1466,9 @@ export interface HeaderList {
   /**
    * Remove headers from the request, enabled and disabled.
    *
-   * With a name, or a header (matched by name only), it removes every header of that name; names
-   * match case-insensitively. With a function, it removes every header the function accepts.
+   * With a name, or a header (matched by name only), it removes the enabled header of that name
+   * and every disabled one; names match case-insensitively. With a function, it removes every
+   * header the function accepts.
    *
    * @param predicate - A header name, a header, or a function that returns `true` for the headers to remove.
    * @param context - The `this` of a function `predicate`. Safe Mode ignores it.

@@ -23,8 +23,9 @@ const {
  * - **Case-insensitive** key lookups (HTTP headers are case-insensitive)
  * - **Disabled headers** surfaced with `disabled: true`
  * - **Read-only mode** for response headers (write methods throw)
- * - Deleted or disabled headers are tracked in `req.__headersToDelete` so the axios interceptor
- *   keeps suppressing defaults (User-Agent, Accept-Encoding) that axios adds after the script ran
+ * - Deleted headers are tracked in `req.__headersToDelete` so the axios interceptor keeps
+ *   suppressing defaults (User-Agent, Accept-Encoding) that axios adds after the script ran
+ * - Writes only edit enabled headers: a disabled entry is only ever removed, never written to
  *
  * Accepts the raw request config object (`req`) directly — no dependency on BrunoRequest.
  * Access: `req.headerList` (PropertyList API) vs `req.headers` (raw headers object).
@@ -83,7 +84,7 @@ const {
  *
  * | Method                            | Description                                              |
  * |-----------------------------------|----------------------------------------------------------|
- * | `add(headerObj\|name, value?)`    | Sets a header; accepts `{key,value,disabled?}`, `"Key: Value"`, or `(name, value)` |
+ * | `add(headerObj\|name, value?)`    | Sets a header; accepts `{key,value}`, `"Key: Value"`, or `(name, value)` |
  * | `upsert(headerObj\|name, value?)` | Sets (or replaces) a header; returns true/false/null      |
  * | `remove(predicate, context?)`     | Deletes header(s) by name, predicate, or object           |
  * | `clear()`                         | Removes **all** headers (enabled and disabled)            |
@@ -189,17 +190,40 @@ class HeaderList extends ReadOnlyPropertyList {
   }
 
   /**
-   * Splice out every entry the predicate matches; removed enabled headers are tracked.
-   * The predicate sees a copy, like every other callback.
-   * @param {Function} matches
+   * The key of the first header in `req.headers` whose name matches `key` case-insensitively.
+   * Write methods pick their target in `req.headers` order, not entries order, because a
+   * `req.setHeaders()` can leave the two in a different order.
+   * @param {string} key
+   * @returns {string | undefined}
    */
-  #removeWhere(matches) {
+  #firstEnabledKey(key) {
+    return Object.keys(this.#req.headers).find((k) => this._keyMatches(k, key));
+  }
+
+  /**
+   * Delete the enabled header whose key is the first in `req.headers` to match `key`
+   * case-insensitively, tracking it for the axios interceptor.
+   * @param {string} key
+   */
+  #deleteEnabled(key) {
+    const entries = this.#entries();
+    const matchingKey = this.#firstEnabledKey(key);
+    // A truthiness test, so a header with an empty name is never removed this way.
+    if (!matchingKey) return;
+    entries.splice(entries.findIndex((entry) => !entry.disabled && entry.key === matchingKey), 1);
+    this.#trackDeleted(matchingKey);
+    this.#project();
+  }
+
+  /**
+   * Drop every disabled entry whose name matches `key` case-insensitively. Disabled entries are
+   * not in `req.headers`, so nothing is projected or tracked.
+   * @param {string} key
+   */
+  #dropDisabled(key) {
     const entries = this.#entries();
     for (let i = entries.length - 1; i >= 0; i--) {
-      if (matches({ ...entries[i] })) {
-        if (!entries[i].disabled) {
-          this.#trackDeleted(entries[i].key);
-        }
+      if (entries[i].disabled && this._keyMatches(entries[i].key, key)) {
         entries.splice(i, 1);
       }
     }
@@ -294,8 +318,6 @@ class HeaderList extends ReadOnlyPropertyList {
 
   /**
    * Set a header on the request, the same as `upsert`.
-   *
-   * A header with `disabled: true` is listed but not sent.
    * @param {Header | string} itemOrName - A header, a `Name: value` string, or a header name.
    * @param {string} [value] - The value, with a header name.
    * @example
@@ -315,15 +337,14 @@ class HeaderList extends ReadOnlyPropertyList {
   }
 
   /**
-   * Set a header on the request, replacing the header of the same name.
+   * Set an enabled header on the request, replacing the enabled header of the same name.
    *
-   * Header names match case-insensitively; the replaced header takes the new name's case. It
-   * replaces an enabled or a disabled header, so upserting a disabled header's name enables it. A
-   * header with `disabled: true` is listed but not sent, and disables a header it replaces.
+   * Header names match case-insensitively; the replaced header takes the new name's case. A
+   * disabled header of that name is left as it is, so the new header is listed beside it.
    * @param {Header | string} itemOrName - A header, or a header name.
    * @param {string} [value] - The value, with a header name.
-   * @returns {boolean | null | undefined} `true` when the header is new, `false` when it replaced
-   *   one, and `null` when no name was given. Safe Mode always returns `undefined`.
+   * @returns {boolean | null | undefined} `true` when no enabled header had the name, `false` when
+   *   it replaced one, and `null` when no name was given. Safe Mode always returns `undefined`.
    * @example
    * req.headerList.upsert('Content-Type', 'application/json');
    * @category Write
@@ -336,50 +357,34 @@ class HeaderList extends ReadOnlyPropertyList {
     }
     if (!item || typeof item !== 'object' || !item.key) return null;
 
-    const disabled = item.disabled === true;
     const entries = this.#entries();
-    const firstMatch = entries.find((entry) => this._keyMatches(entry.key, item.key));
-    // COMPAT: the request can carry two casings of one header (collection `X-Token`, request
-    // `x-token`). Like the pre-refactor upsert, an exact key wins and the first variant is dropped;
-    // renaming the first in place would leave a duplicate whose older value wins the projection.
-    const existing = entries.find((entry) => entry.key === item.key) ?? firstMatch;
-
-    if (firstMatch && firstMatch !== existing) {
-      if (!firstMatch.disabled) {
-        this.#trackDeleted(firstMatch.key);
-      }
-      entries.splice(entries.indexOf(firstMatch), 1);
+    // The request can carry two casings of one header (collection `X-Token`, request `x-token`):
+    // the first in `req.headers` order decides, and is dropped when its casing differs.
+    const existingKey = this.#firstEnabledKey(item.key);
+    const existed = existingKey !== undefined;
+    if (existed && existingKey !== item.key) {
+      entries.splice(entries.findIndex((entry) => !entry.disabled && entry.key === existingKey), 1);
+      this.#trackDeleted(existingKey);
     }
 
-    if (existing && !existing.disabled && (existing.key !== item.key || disabled)) {
-      // The old exact key is what axios would see when it adds defaults back.
-      this.#trackDeleted(existing.key);
-    }
-
-    const entry = existing ?? {};
-    if (!existing) {
-      entries.push(entry);
-    }
-    entry.key = item.key;
-    entry.value = item.value;
-    if (disabled) {
-      entry.disabled = true;
+    const existing = entries.find((entry) => !entry.disabled && entry.key === item.key);
+    if (existing) {
+      existing.value = item.value;
     } else {
-      delete entry.disabled;
+      entries.push({ key: item.key, value: item.value });
     }
 
-    if (!disabled) {
-      this.#untrackDeleted(item.key);
-    }
+    this.#untrackDeleted(item.key);
     this.#project();
-    return !existing;
+    return !existed;
   }
 
   /**
    * Remove headers from the request, enabled and disabled.
    *
-   * With a name, or a header (matched by name only), it removes every header of that name; names
-   * match case-insensitively. With a function, it removes every header the function accepts.
+   * With a name, or a header (matched by name only), it removes the enabled header of that name
+   * and every disabled one; names match case-insensitively. With a function, it removes every
+   * header the function accepts.
    * @param {string | Header | ((header: Header) => boolean)} predicate - A header name, a header,
    *   or a function that returns `true` for the headers to remove.
    * @param {any} [context] - The `this` of a function `predicate`. Safe Mode ignores it.
@@ -390,18 +395,24 @@ class HeaderList extends ReadOnlyPropertyList {
    */
   remove(predicate, context) {
     this.#assertWritable();
-    let matches;
     if (typeof predicate === 'function') {
-      matches = this._bind(predicate, context);
+      const bound = this._bind(predicate, context);
+      for (const header of this.all()) {
+        if (bound(header)) {
+          if (header.disabled) {
+            this.#dropDisabled(header.key);
+          } else {
+            this.#deleteEnabled(header.key);
+          }
+        }
+      }
     } else if (typeof predicate === 'string') {
-      matches = (header) => this._keyMatches(header.key, predicate);
+      this.#deleteEnabled(predicate);
+      this.#dropDisabled(predicate);
     } else if (predicate && typeof predicate === 'object' && predicate.key) {
-      matches = (header) => this._keyMatches(header.key, predicate.key);
-    } else {
-      return;
+      this.#deleteEnabled(predicate.key);
+      this.#dropDisabled(predicate.key);
     }
-    this.#removeWhere(matches);
-    this.#project();
   }
 
   /**
@@ -410,7 +421,11 @@ class HeaderList extends ReadOnlyPropertyList {
    */
   clear() {
     this.#assertWritable();
-    this.#removeWhere(() => true);
+    const entries = this.#entries();
+    for (const key of Object.keys(this.#req.headers)) {
+      this.#trackDeleted(key);
+    }
+    entries.length = 0;
     this.#project();
   }
 
@@ -508,7 +523,17 @@ class HeaderList extends ReadOnlyPropertyList {
     }
     if (prune && items.length > 0) {
       const sourceKeys = new Set(items.map((i) => (i.key || '').toLowerCase()));
-      this.#removeWhere((header) => !sourceKeys.has(header.key.toLowerCase()));
+      const entries = this.#entries();
+      for (const key of Object.keys(this.#req.headers)) {
+        if (!sourceKeys.has(key.toLowerCase())) {
+          this.#trackDeleted(key);
+        }
+      }
+      for (let i = entries.length - 1; i >= 0; i--) {
+        if (!sourceKeys.has(entries[i].key.toLowerCase())) {
+          entries.splice(i, 1);
+        }
+      }
       this.#project();
     }
   }
