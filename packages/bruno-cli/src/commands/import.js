@@ -8,7 +8,7 @@ const { openApiToBruno, wsdlToBruno, postmanToBruno, postmanToBrunoEnvironment }
 const { coerceEnvName, dedupeImportedSecrets, generateUniqueName, sanitizeName, validateName, validateNameError } = require('@usebruno/common').utils;
 const { exists, isDirectory, canonicalPath } = require('../utils/filesystem');
 const { formatImportSummary, formatImportIssues, formatPackageReport, hasImportErrors } = require('../utils/import-report');
-const { writeCollectionToDiskLegacy } = require('@usebruno/io');
+const { writeCollectionLegacy } = require('@usebruno/io');
 
 const command = 'import <type>';
 const desc = 'Import a collection (OpenAPI, WSDL, Postman) from other formats';
@@ -358,7 +358,7 @@ const writeBrunoCollection = async (collection, { output, outputFile, collection
   }
 
   const outputDir = await resolveCollectionOutputDir(output, collection.name);
-  await writeCollectionToDiskLegacy(collection, outputDir, {
+  await writeCollectionLegacy(collection, outputDir, {
     format: collectionFormat === 'opencollection' ? 'yml' : 'bru'
   });
   console.log(chalk.green(`Bruno collection created at ${outputDir}`));
