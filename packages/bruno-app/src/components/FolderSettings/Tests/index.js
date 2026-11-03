@@ -44,6 +44,7 @@ const Tests = ({ collection, folder }) => {
         <CodeEditor
           ref={testsEditorRef}
           collection={collection}
+          testId="folder-tests-editor"
           docKey="folder-tests"
           value={tests || ''}
           theme={displayedTheme}
