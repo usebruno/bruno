@@ -1,4 +1,4 @@
-import { Page, test } from '../../../playwright';
+import { expect, Page, test } from '../../../playwright';
 import { escapeRegExp } from '../helpers';
 import { readLastHopRequestHeaderLines, readRequestHops } from './network-log';
 
@@ -22,6 +22,8 @@ export const buildDevToolsLocators = (page: Page) => {
   return {
     trigger: () => page.locator('button[data-trigger="dev-tools"]'),
     header: () => page.getByTestId('console-header'),
+    consoleTab: () => page.getByTestId('console-tab'),
+    logEntry: (text: string) => page.getByTestId('console-log-entry').filter({ hasText: text }),
     networkTab: () => page.getByTestId('network-tab'),
     networkRows: () => page.getByTestId('network-request-row'),
     closeButton: () => page.getByTitle('Close console'),
@@ -39,6 +41,21 @@ export const buildDevToolsLocators = (page: Page) => {
     requestHops: () => readRequestHops(page.getByTestId('details-panel')),
     terminalSession: (index: number) => page.getByTestId(`session-list-${index}`)
   };
+};
+
+export const openDevTools = async (page: Page) => {
+  await test.step('Open DevTools', async () => {
+    const devtools = buildDevToolsLocators(page);
+    await devtools.trigger().click();
+    await devtools.header().waitFor({ state: 'visible' });
+  });
+};
+
+export const selectDevToolsConsoleTab = async (page: Page) => {
+  await test.step('Select the DevTools Console tab', async () => {
+    const consoleTab = buildDevToolsLocators(page).consoleTab();
+    await consoleTab.click();
+  });
 };
 
 export const openNetworkRequestDetails = async (page: Page) => {
