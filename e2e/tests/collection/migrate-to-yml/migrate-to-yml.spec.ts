@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import jsyaml from 'js-yaml';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -11,7 +11,7 @@ import {
   confirmMigration,
   selectEnvironment,
   sendRequestAndWaitForResponse
-} from '@e2e/pages';
+} from '../../../pages';
 
 test.describe('Migrate collection from bru to yml format', () => {
   test.afterAll(async ({ pageWithUserData: page }) => {

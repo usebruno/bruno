@@ -1,11 +1,11 @@
-import { expect, test } from '@e2e/test';
+import { expect, test } from '../../playwright';
 import {
   closeAllTabs,
   createTransientRequest,
   elementIsInsideDropdown,
   selectRequestPaneTab,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../pages';
 
 test.describe('websocket sticky header dropdown overlap', () => {
   test.afterEach(async ({ page }) => {

@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 
 test('Check if the workspace name is visible in the sidebar', async ({ page }) => {
   // Wait for the app to be loaded

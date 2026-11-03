@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { once } from 'events';
-import { test, expect, closeElectronApp } from '@e2e/test';
+import { test, expect, closeElectronApp } from '../../playwright';
 import {
   buildCommonLocators,
   copyUnresolvedVariableNames,
@@ -9,9 +9,9 @@ import {
   openUnresolvedVariablesPopoverWithKeyboard,
   selectResponsePaneTab,
   sendAndWaitForResponse
-} from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
-import { startLocalServer } from '@e2e/servers';
+} from '../../pages';
+import { waitForReadyPage } from '../../support';
+import { startLocalServer } from '../../servers';
 
 const COLLECTION = 'unresolved-variables-info';
 const INIT_USER_DATA_PATH = path.join(__dirname, 'init-user-data');

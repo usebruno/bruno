@@ -4,14 +4,14 @@ import {
   expect,
   ElectronApplication,
   Page
-} from '@e2e/test';
+} from '../../playwright';
 import {
   setupTestFixture,
   setupStaticFixture,
   TestFixture,
   StaticTestFixture
-} from '@e2e/data';
-import { getCollectionTreeStructure, CollectionTreeItem, closeAllCollections } from '@e2e/pages';
+} from '../../data';
+import { getCollectionTreeStructure, CollectionTreeItem, closeAllCollections } from '../../pages';
 
 const formats = ['bru', 'yml'] as const;
 

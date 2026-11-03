@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 
 test.describe('Sidebar Toggle', () => {
   test('should toggle sidebar visibility when clicking the toggle button', async ({ page }) => {

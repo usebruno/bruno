@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -16,7 +16,7 @@ import {
   seedCollectionHeaders,
   seedFolderHeaders,
   showInheritedHeaders
-} from '@e2e/pages';
+} from '../../../pages';
 
 const ECHO_HEADERS_URL = 'http://localhost:8081/headers';
 const DEFAULT_HEADER_COUNT = 5;

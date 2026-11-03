@@ -1,10 +1,10 @@
-import { test, expect, Page } from '@e2e/test';
+import { test, expect, Page } from '../../playwright';
 import {
   openRequest,
   sendRequest,
   switchToOpenTab,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../pages';
 
 const elapsedSeconds = async (page: Page) => {
   const text = await buildCommonLocators(page).response.elapsedTime().innerText();

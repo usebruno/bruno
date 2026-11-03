@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   closeAllCollections,
   createCollection,
@@ -9,7 +9,7 @@ import {
   saveRequest,
   sendRequest,
   selectResponsePaneTab
-} from '@e2e/pages';
+} from '../../../pages';
 
 // Regression: inner script's sendRequest/runRequest must bubble to outer Timeline.
 test.describe('Timeline — nested bru.runRequest bubbles inner scripted entries to outer Timeline', () => {

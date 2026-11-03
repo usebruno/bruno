@@ -1,5 +1,5 @@
-import { test, expect } from '@e2e/test';
-import { closeAllCollections, createCollection, createRequest } from '@e2e/pages';
+import { test, expect } from '../../playwright';
+import { closeAllCollections, createCollection, createRequest } from '../../pages';
 
 test.describe('Large Response Crash/High Memory Usage Prevention', () => {
   // Increase timeout to 1 minute for all tests in this describe block, default is 30 seconds.

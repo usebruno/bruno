@@ -1,5 +1,5 @@
-import { test, expect } from '@e2e/test';
-import { buildCommonLocators, openEnvironmentDropdown } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { buildCommonLocators, openEnvironmentDropdown } from '../../../pages';
 
 const COLLECTION_NAME = 'Env Color Collection';
 const ENVIRONMENT_NAME = 'Local';

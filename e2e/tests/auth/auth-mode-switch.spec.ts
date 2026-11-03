@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   closeAllCollections,
   createCollection,
@@ -10,7 +10,7 @@ import {
   selectAuthMode,
   selectRequestPaneTab,
   typeIntoField
-} from '@e2e/pages';
+} from '../../pages';
 
 test.describe('Auth mode switch preserves saved data', () => {
   test.afterEach(async ({ page }) => {

@@ -1,5 +1,5 @@
-import { test, expect } from '@e2e/test';
-import { buildCommonLocators, closeAllCollections } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { buildCommonLocators, closeAllCollections } from '../../../pages';
 
 test.describe.serial('Sidebar empty-state "+ Add request" CTA', () => {
   let locators: ReturnType<typeof buildCommonLocators>;

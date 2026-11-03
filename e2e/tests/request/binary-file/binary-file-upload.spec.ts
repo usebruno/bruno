@@ -1,7 +1,7 @@
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   closeAllCollections,
   createCollection,
@@ -10,7 +10,7 @@ import {
   selectRequestPaneTab,
   sendRequest,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
 

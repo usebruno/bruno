@@ -1,5 +1,5 @@
 import path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -7,8 +7,8 @@ import {
   createRequest,
   openCollectionSettings,
   selectCollectionPaneTab
-} from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
+} from '../../../pages';
+import { waitForReadyPage } from '../../../support';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 test.describe('Create collection', () => {

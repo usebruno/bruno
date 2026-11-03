@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp } from '@e2e/test';
-import { waitForReadyPage } from '@e2e/support';
+import { test, expect, closeElectronApp } from '../../../playwright';
+import { waitForReadyPage } from '../../../support';
 
 const env = {
   DISABLE_SAMPLE_COLLECTION_IMPORT: 'false'

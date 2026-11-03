@@ -1,7 +1,7 @@
 import * as path from 'path';
-import { test, expect } from '@e2e/test';
-import { runCollection, validateRunnerResults } from '@e2e/pages';
-import { cliOutput, runCLIAsync } from '@e2e/support';
+import { test, expect } from '../../../playwright';
+import { runCollection, validateRunnerResults } from '../../../pages';
+import { cliOutput, runCLIAsync } from '../../../support';
 
 const COLLECTION = path.resolve(__dirname, 'test-data/collections/crlf-line-comment');
 

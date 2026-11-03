@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@e2e/test';
+import { test, expect, Page } from '../../playwright';
 import {
   closeAllTabs,
   copyVariableValue,
@@ -22,8 +22,8 @@ import {
   unfoldObjectLine,
   selectNoEnvironment,
   buildCommonLocators
-} from '@e2e/pages';
-import { readClipboard } from '@e2e/support';
+} from '../../pages';
+import { readClipboard } from '../../support';
 
 /**
  * The read-only Variables tab: collection header → "..." → Variables.

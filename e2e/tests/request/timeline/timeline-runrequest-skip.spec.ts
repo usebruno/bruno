@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   closeAllCollections,
   createCollection,
@@ -8,7 +8,7 @@ import {
   saveRequest,
   sendRequest,
   selectResponsePaneTab
-} from '@e2e/pages';
+} from '../../../pages';
 
 test.describe('Timeline — bru.runRequest skips unsupported item types', () => {
   test.afterEach(async ({ page }) => {

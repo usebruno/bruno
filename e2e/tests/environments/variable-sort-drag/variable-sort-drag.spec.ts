@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import { Page } from '@playwright/test';
 import {
   importCollection,
@@ -11,7 +11,7 @@ import {
   getVisibleVariableNames,
   dragVariableRow,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 const variablesTab = (page: Page) => buildCommonLocators(page).environment.variablesTab();
 const secretsTab = (page: Page) => buildCommonLocators(page).environment.secretsTab();

@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   createCollection,
   closeAllCollections,
@@ -20,8 +20,8 @@ import {
   selectCollectionPaneTab,
   openEnvironmentConfigTab,
   buildCommonLocators
-} from '@e2e/pages';
-import { SECRET_DATATYPE_CASES } from '@e2e/constants';
+} from '../../pages';
+import { SECRET_DATATYPE_CASES } from '../../constants';
 
 const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
 

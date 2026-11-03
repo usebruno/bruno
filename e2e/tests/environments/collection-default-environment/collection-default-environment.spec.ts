@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   openCollection,
@@ -7,7 +7,7 @@ import {
   selectResponsePaneTab,
   closeAllCollections,
   waitForCollectionMount
-} from '@e2e/pages';
+} from '../../../pages';
 
 test.describe('Collection Default Environment', () => {
   test.afterEach(async ({ pageWithUserData: page }) => {

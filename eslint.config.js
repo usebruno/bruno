@@ -98,58 +98,16 @@ module.exports = runESMImports().then(() => defineConfig([
     }
   },
   {
-    // E2E specs use aliases from e2e/tsconfig.json instead of relative imports.
-    files: ['e2e/tests/**/*.{ts,js}'],
-    ignores: ['**/test-data/**', '**/init-user-data/**'],
-    rules: {
-      'no-restricted-imports': ['error', {
-        patterns: [
-          {
-            regex: '^(\\.\\./)+(playwright|pages|support|data|constants|servers)(/.*)?$',
-            message: 'Import shared E2E code through its alias: @e2e/test, @e2e/pages, @e2e/support, @e2e/data, @e2e/constants or @e2e/servers.'
-          },
-          {
-            regex: '^@e2e/(pages|support|data|constants|servers)/.+',
-            message: 'Import from the barrel (for example @e2e/pages), not from a file inside it.'
-          }
-        ]
-      }]
-    }
-  },
-  {
-    // Use relative imports in shared E2E code. Aliases are for specs only
-    // to avoid circular dependencies through the @e2e/pages barrel.
-    // Page objects also never import index.ts or locators.ts (both import every page object).
+    // Page objects never import index.ts or locators.ts: both import every page object,
+    // so importing either from inside e2e/pages/ creates a circular import.
     files: ['e2e/pages/**/*.{ts,js}'],
     ignores: ['e2e/pages/index.ts'], // the barrel re-exports every page object, including locators.ts
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [
           {
-            regex: '^@e2e/',
-            message: 'Shared E2E code imports by relative path. @e2e/* aliases are for specs in e2e/tests/ only.'
-          },
-          {
             regex: '^(\\.\\.?/)+(index|locators)$|^\\.\\.?/?$|^(\\.\\./)+\\.\\.$',
             message: 'Page objects import the specific file they need, never index.ts or locators.ts (that creates a circular import).'
-          }
-        ]
-      }]
-    }
-  },
-  {
-    // Lower layers never import page objects: page objects already depend on them.
-    files: ['e2e/{playwright,support,data,constants,servers}/**/*.{ts,js}'],
-    rules: {
-      'no-restricted-imports': ['error', {
-        patterns: [
-          {
-            regex: '^@e2e/',
-            message: 'Shared E2E code imports by relative path. @e2e/* aliases are for specs in e2e/tests/ only.'
-          },
-          {
-            regex: '^(\\.\\./)+pages(/.*)?$',
-            message: 'Shared infrastructure must not import page objects (pages depend on it, so this creates a circular import).'
           }
         ]
       }]

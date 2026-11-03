@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { test, expect } from '@e2e/test';
-import { buildCommonLocators, closeAllCollections, createCollection } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { buildCommonLocators, closeAllCollections, createCollection } from '../../../pages';
 
 test.describe('Remove collection', () => {
   test.afterEach(async ({ page }) => {

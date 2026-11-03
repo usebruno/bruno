@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   createCollection,
@@ -8,7 +8,7 @@ import {
   createFolder,
   closeAllCollections,
   cloneItem
-} from '@e2e/pages';
+} from '../../../pages';
 import { listRequestFiles, findCollectionDir } from '../utils';
 
 test.describe('Naming collisions - clone folder', () => {

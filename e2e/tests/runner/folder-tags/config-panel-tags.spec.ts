@@ -1,11 +1,11 @@
-import { test, expect, Page } from '@e2e/test';
+import { test, expect, Page } from '../../../playwright';
 import {
   openRunnerTabWithTagsReady,
   addRunnerTag,
   clearRunnerTags,
   runnerConfigItem,
   buildRunnerLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 const COLLECTION_NAME = 'runner-folder-tags';
 

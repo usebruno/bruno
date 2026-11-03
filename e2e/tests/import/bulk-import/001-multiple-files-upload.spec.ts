@@ -1,6 +1,6 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { closeAllCollections } from '@e2e/pages';
+import { closeAllCollections } from '../../../pages';
 
 test.describe('Multiple Files Upload', () => {
   const testDataDir = path.join(__dirname, '../test-data');

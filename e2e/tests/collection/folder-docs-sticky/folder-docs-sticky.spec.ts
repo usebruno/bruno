@@ -1,10 +1,10 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   createCollection,
   createFolder,
   closeAllCollections
-} from '@e2e/pages';
+} from '../../../pages';
 
 test.describe('Folder docs sticky edit/preview button', () => {
   test.afterEach(async ({ page }) => {

@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@e2e/test';
+import { test, expect, Page } from '../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -15,7 +15,7 @@ import {
   focusCodeEditor,
   getCodeEditorScrollTop,
   appendTextToCodeEditor
-} from '@e2e/pages';
+} from '../../pages';
 import process from 'node:process';
 
 const cmdKey = process.platform === 'darwin' ? 'Meta' : 'Control';

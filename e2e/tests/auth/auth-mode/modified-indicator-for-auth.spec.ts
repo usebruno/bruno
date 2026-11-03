@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -9,8 +9,8 @@ import {
   saveRequest,
   selectAuthMode,
   selectRequestPaneTab
-} from '@e2e/pages';
-import { AUTH_MODE_LABELS } from '@e2e/constants';
+} from '../../../pages';
+import { AUTH_MODE_LABELS } from '../../../constants';
 
 test.describe('Modified indicator for auth tab', () => {
   test.afterEach(async ({ page }) => {

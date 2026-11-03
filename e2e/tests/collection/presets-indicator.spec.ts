@@ -1,6 +1,6 @@
 import type { Locator } from '@playwright/test';
-import { test, expect } from '@e2e/test';
-import { buildCommonLocators, closeAllCollections, createCollection } from '@e2e/pages';
+import { test, expect } from '../../playwright';
+import { buildCommonLocators, closeAllCollections, createCollection } from '../../pages';
 
 test.describe('Presets status dot in collection settings', () => {
   test.afterEach(async ({ page }) => {

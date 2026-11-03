@@ -1,5 +1,5 @@
-import { test, expect } from '@e2e/test';
-import { createCollection, openCollection, buildSandboxLocators } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { createCollection, openCollection, buildSandboxLocators } from '../../../pages';
 
 test.describe('Default JavaScript Sandbox Mode', () => {
   test('should set jsSandboxMode to safe by default when creating a new collection', async ({ page, createTmpDir }) => {

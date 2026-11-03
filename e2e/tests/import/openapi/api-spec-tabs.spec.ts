@@ -4,10 +4,10 @@ import {
   closeElectronApp,
   Page,
   ElectronApplication
-} from '@e2e/test';
+} from '../../../playwright';
 import * as fs from 'fs';
 import * as path from 'path';
-import { waitForReadyPage, waitForSnapshotApiSpecTabs } from '@e2e/support';
+import { waitForReadyPage, waitForSnapshotApiSpecTabs } from '../../../support';
 import {
   openApiSpecFromDialog,
   openApiSpecSidebarItem,
@@ -23,7 +23,7 @@ import {
   buildCommonLocators,
   createTransientRequest,
   closeAllTabs
-} from '@e2e/pages';
+} from '../../../pages';
 
 const FIRST_SPEC = { file: 'openapi-comprehensive.yaml', name: 'Comprehensive API Test Collection' };
 const SECOND_SPEC = { file: 'openapi-path-grouping.json', name: 'Path Grouping Test API' };

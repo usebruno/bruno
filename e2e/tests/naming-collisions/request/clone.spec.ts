@@ -1,6 +1,6 @@
 import process from 'node:process';
 import * as path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   createCollection,
@@ -8,7 +8,7 @@ import {
   createFolder,
   closeAllCollections,
   cloneItem
-} from '@e2e/pages';
+} from '../../../pages';
 import { listRequestFiles } from '../utils';
 
 // The clone shortcut is Cmd+D (mac) / Ctrl+D (win/linux).

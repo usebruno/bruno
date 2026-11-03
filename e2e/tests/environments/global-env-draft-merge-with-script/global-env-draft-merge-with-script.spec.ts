@@ -1,10 +1,10 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   openCollection,
   sendRequest,
   openEnvironmentSelector,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
 

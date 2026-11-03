@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { test, expect } from '@e2e/test';
-import { openRequest, selectRequestPaneTab, buildCommonLocators } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { openRequest, selectRequestPaneTab, buildCommonLocators } from '../../../pages';
 
 const COLLECTION = 'req-description';
 const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';

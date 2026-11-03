@@ -1,6 +1,6 @@
 import * as net from 'net';
-import { test, expect } from '@e2e/test';
-import { closeAllCollections, createCollection, createRequest } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { closeAllCollections, createCollection, createRequest } from '../../../pages';
 
 const TLS_EXTENSION_KEY_SHARE = 0x0033;
 const GROUP_X25519 = 0x001d;

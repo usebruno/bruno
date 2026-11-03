@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   closeAllCollections,
   buildCommonLocators,
@@ -8,7 +8,7 @@ import {
   switchResponseFormat,
   switchToPreviewTab,
   switchToEditorTab
-} from '@e2e/pages';
+} from '../../../pages';
 
 test.describe.serial('Response Format Select and Preview', () => {
   test.afterAll(async ({ pageWithUserData: page }) => {

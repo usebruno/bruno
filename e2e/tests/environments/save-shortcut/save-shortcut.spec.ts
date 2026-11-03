@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import path from 'path';
 import { Page } from '@playwright/test';
 import {
@@ -7,7 +7,7 @@ import {
   addRowToActiveTab,
   closeAllCollections,
   deleteAllGlobalEnvironments
-} from '@e2e/pages';
+} from '../../../pages';
 
 const collectionFile = path.join(__dirname, '..', 'create-environment', 'test-data', 'bruno-collection.json');
 

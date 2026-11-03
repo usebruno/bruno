@@ -1,5 +1,5 @@
-import { test } from '@e2e/test';
-import { setSandboxMode, runCollection, validateRunnerResults } from '@e2e/pages';
+import { test } from '../../../playwright';
+import { setSandboxMode, runCollection, validateRunnerResults } from '../../../pages';
 
 test.describe('additionalContextRoots npm resolution [developer mode]', () => {
   test('Collection A resolves shared-lib via walk-up', async ({ pageWithUserData: page }) => {

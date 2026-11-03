@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { test, expect } from '@e2e/test';
-import { openFolderSettings, setTableRowDescriptionValue } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { openFolderSettings, setTableRowDescriptionValue } from '../../../pages';
 
 test.describe('Folder Settings Descriptions (YAML) - Write (Headers)', () => {
   test('writes a multiline description to a header and persists it to folder.yml', async ({

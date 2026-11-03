@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   closeAllCollections,
   createCollection,
@@ -13,7 +13,7 @@ import {
   expectAutocompleteStaysClosed,
   pressAutocompleteShortcut,
   readEditorValue
-} from '@e2e/pages';
+} from '../../pages';
 
 test.describe('Variable autocomplete — Ctrl+Space shortcut', () => {
   test.afterEach(async ({ page }) => {

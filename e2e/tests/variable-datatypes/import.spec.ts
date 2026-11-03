@@ -3,14 +3,14 @@ import {
   expect,
   Page,
   Locator
-} from '@e2e/test';
+} from '../../playwright';
 import path from 'path';
 import {
   closeAllCollections,
   importCollection,
   selectRequestPaneTab,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../pages';
 
 // OpenCollection (.yml) import: typed `{type, data}` structs at every scope
 // land in the env editor with the right DataTypeSelector label.

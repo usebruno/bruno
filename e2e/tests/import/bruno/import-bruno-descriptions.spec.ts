@@ -3,7 +3,7 @@ import {
   expect,
   Page,
   Locator
-} from '@e2e/test';
+} from '../../../playwright';
 import path from 'path';
 import {
   closeAllCollections,
@@ -11,7 +11,7 @@ import {
   importCollection,
   selectRequestPaneTab,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 type DescriptionRow = {
   singleLine?: string;

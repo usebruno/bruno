@@ -1,12 +1,12 @@
 import path from 'path';
-import { test, expect, closeElectronApp } from '@e2e/test';
+import { test, expect, closeElectronApp } from '../../playwright';
 import {
   createCollection,
   createRequest,
   openRequest,
   openWorkspaceFromDialog
-} from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
+} from '../../pages';
+import { waitForReadyPage } from '../../support';
 import fs from 'fs';
 
 const buildWorkspaceYml = (workspaceName: string) => [

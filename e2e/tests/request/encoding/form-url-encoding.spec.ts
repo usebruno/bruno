@@ -1,4 +1,4 @@
-import { test, Page } from '@e2e/test';
+import { test, Page } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -12,7 +12,7 @@ import {
   expectResponseContains,
   fillRequestHeaderName,
   fillRequestHeaderValue
-} from '@e2e/pages';
+} from '../../../pages';
 
 const ECHO_URL = 'http://localhost:8081/api/echo/everything';
 const FORM_URL_ENCODED_BODY_MODE = 'Form URL Encoded';

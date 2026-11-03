@@ -1,5 +1,5 @@
-import { test, expect } from '@e2e/test';
-import { closeAllCollections } from '@e2e/pages';
+import { test, expect } from '../../playwright';
+import { closeAllCollections } from '../../pages';
 import { setupRequestDocs, setMarkdownSource, getMarkdownSource } from './actions';
 
 const VIDEO_SRC = 'https://example.com/movie.mp4';

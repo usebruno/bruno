@@ -5,9 +5,9 @@ import {
   expect,
   closeElectronApp,
   Page
-} from '@e2e/test';
-import { buildSidebarLocators } from '@e2e/pages';
-import { waitForReadyPage, readSnapshot, waitForSnapshotFile } from '@e2e/support';
+} from '../../playwright';
+import { buildSidebarLocators } from '../../pages';
+import { waitForReadyPage, readSnapshot, waitForSnapshotFile } from '../../support';
 import { SIDEBAR_WIDTH_KEY, SIDEBAR_COLLAPSED_KEY } from '../../../packages/bruno-app/src/utils/common/localStorage';
 
 async function resizeSidebar(page: Page, targetWidth: number) {

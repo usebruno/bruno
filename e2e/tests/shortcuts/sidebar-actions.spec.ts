@@ -1,5 +1,5 @@
-import { expect, test } from '@e2e/test';
-import { closeAllCollections, createFolder, openCollection } from '@e2e/pages';
+import { expect, test } from '../../playwright';
+import { closeAllCollections, createFolder, openCollection } from '../../pages';
 import {
   altShortcutDisplayText,
   closePreferencesTab,

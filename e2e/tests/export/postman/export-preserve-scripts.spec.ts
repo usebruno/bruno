@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   closeAllCollections,
   buildCommonLocators,
@@ -6,7 +6,7 @@ import {
   closeExportToPostmanModal,
   dismissModalIfOpen,
   exportCollectionToPostman
-} from '@e2e/pages';
+} from '../../../pages';
 import * as fs from 'fs';
 import * as nodePath from 'path';
 

@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import path from 'path';
 import {
   importCollection,
@@ -9,7 +9,7 @@ import {
   expectResponseContains,
   removeCollection,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 test.describe('Collection Environment Create Tests', () => {
   test('should import collection and create environment for request usage', async ({

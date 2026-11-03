@@ -8,8 +8,8 @@ import {
   Page,
   waitForReadyPage,
   closeElectronApp
-} from '@e2e/test';
-import { getCollectionTreeStructure, CollectionTreeItem, closeAllCollections } from '@e2e/pages';
+} from '../../playwright';
+import { getCollectionTreeStructure, CollectionTreeItem, closeAllCollections } from '../../pages';
 
 const formats = ['bru', 'yml'] as const;
 type Format = (typeof formats)[number];

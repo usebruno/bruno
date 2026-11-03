@@ -1,5 +1,5 @@
-import { test, expect } from '@e2e/test';
-import { closeAllCollections } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { closeAllCollections } from '../../../pages';
 import * as path from 'path';
 import * as fs from 'fs';
 

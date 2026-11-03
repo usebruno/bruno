@@ -1,9 +1,9 @@
 import path from 'path';
 import fs from 'fs';
 import { ElectronApplication } from '@playwright/test';
-import { test, expect, closeElectronApp } from '@e2e/test';
-import { waitForReadyPage } from '@e2e/support';
-import { buildCommonLocators } from '@e2e/pages';
+import { test, expect, closeElectronApp } from '../../playwright';
+import { waitForReadyPage } from '../../support';
+import { buildCommonLocators } from '../../pages';
 
 const initUserDataFresh = path.join(__dirname, 'init-user-data-fresh');
 const initUserDataExisting = path.join(__dirname, 'init-user-data-existing');

@@ -4,8 +4,8 @@ import {
   expect,
   errors,
   closeElectronApp
-} from '@e2e/test';
-import { waitForReadyPage } from '@e2e/support';
+} from '../../playwright';
+import { waitForReadyPage } from '../../support';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data-fresh');
 

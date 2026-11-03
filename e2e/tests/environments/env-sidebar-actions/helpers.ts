@@ -1,4 +1,4 @@
-import { test, Page, ElectronApplication } from '@e2e/test';
+import { test, Page, ElectronApplication } from '../../../playwright';
 import {
   openCollectionFromDialog,
   openEnvironmentConfigTab,
@@ -6,7 +6,7 @@ import {
   createEnvironmentFromSidebar,
   deleteAllWorkspaceEnvironments,
   openWorkspaceEnvironmentsTab
-} from '@e2e/pages';
+} from '../../../pages';
 
 const COLLECTION_NAME = 'Env Sidebar Actions';
 

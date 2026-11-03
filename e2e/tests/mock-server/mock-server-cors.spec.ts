@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp } from '@e2e/test';
-import { waitForReadyPage } from '@e2e/support';
+import { test, expect, closeElectronApp } from '../../playwright';
+import { waitForReadyPage } from '../../support';
 import {
   openWorkspaceFromDialog,
   buildTitleBarLocators,
@@ -12,7 +12,7 @@ import {
   startMockServer,
   stopMockServer,
   syncResponsesFromExamples
-} from '@e2e/pages';
+} from '../../pages';
 
 const COLLECTION_NAME = 'mock-server-other-collection';
 const BROWSER_ORIGIN = 'https://docs.example.com';

@@ -1,11 +1,11 @@
-import { expect, test } from '@e2e/test';
+import { expect, test } from '../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
   createTransientRequest,
   fillRequestUrl,
   saveTransientViaModal
-} from '@e2e/pages';
+} from '../../pages';
 import {
   closePreferencesTab,
   closeTabByName,

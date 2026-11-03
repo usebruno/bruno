@@ -1,13 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   createCollection,
   createRequest,
   createFolder,
   closeAllCollections
-} from '@e2e/pages';
+} from '../../../pages';
 import { listRequestFiles, findCollectionDir } from '../utils';
 
 /** Seed a folder (with its folder settings file) directly on disk. */

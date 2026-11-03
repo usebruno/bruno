@@ -1,13 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   createCollection,
   closeAllCollections,
   openCloneCollectionModal,
   chooseCloneLocation
-} from '@e2e/pages';
+} from '../../../pages';
 
 test.describe('Naming collisions - clone collection', () => {
   test.afterEach(async ({ page }) => {

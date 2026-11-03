@@ -1,9 +1,9 @@
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
-import { test, expect, closeElectronApp } from '@e2e/test';
-import { switchWorkspace, buildCommonLocators, openCloneDialogFromImport } from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
+import { test, expect, closeElectronApp } from '../../../playwright';
+import { switchWorkspace, buildCommonLocators, openCloneDialogFromImport } from '../../../pages';
+import { waitForReadyPage } from '../../../support';
 import { currentGitBranch, hasGitInstalled, runGit } from './helpers';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');

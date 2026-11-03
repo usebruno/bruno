@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@e2e/test';
+import { test, expect, Page } from '../../../playwright';
 import * as fs from 'fs';
 import * as path from 'path';
 import {
@@ -8,7 +8,7 @@ import {
   removeAllApiSpecsFromWorkspace,
   buildCommonLocators,
   activeTabIsInStrip
-} from '@e2e/pages';
+} from '../../../pages';
 
 const SPEC_COUNT = 12;
 const specTitle = (index: number) => `Scroll Spec ${String(index).padStart(2, '0')}`;

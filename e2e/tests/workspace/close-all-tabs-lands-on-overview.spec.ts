@@ -1,11 +1,11 @@
-import { test, expect, closeElectronApp } from '@e2e/test';
+import { test, expect, closeElectronApp } from '../../playwright';
 import {
   createCollection,
   createRequest,
   openRequest,
   buildCommonLocators
-} from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
+} from '../../pages';
+import { waitForReadyPage } from '../../support';
 
 test.describe('Close all tabs lands on workspace overview', () => {
   test('closing the last request tab focuses the workspace Overview tab', async ({

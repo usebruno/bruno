@@ -7,7 +7,7 @@ import {
   closeElectronApp,
   ElectronApplication,
   Page
-} from '@e2e/test';
+} from '../../../playwright';
 import {
   addEnvironmentVariable,
   addEnvironmentVariables,
@@ -45,8 +45,8 @@ import {
   validateRunnerResults,
   type EnvironmentVariable,
   buildCommonLocators
-} from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
+} from '../../../pages';
+import { waitForReadyPage } from '../../../support';
 
 // The workspace ("global") environments this suite asserts on are authored through the app
 // itself, so nothing here reads the committed inheritance workspace fixture — a secret gets its

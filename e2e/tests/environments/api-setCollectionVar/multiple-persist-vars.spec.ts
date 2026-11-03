@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect } from '@e2e/test';
-import { sendRequest, buildCommonLocators } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { sendRequest, buildCommonLocators } from '../../../pages';
 
 const COLLECTION_FILE_ORIGINAL = `meta {
   name: collection

@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { closeEnvironmentPanel, openEnvironmentConfigTab, setEnvironmentSecrets } from '@e2e/pages';
+import { closeEnvironmentPanel, openEnvironmentConfigTab, setEnvironmentSecrets } from '../../../pages';
 
 // `echo` and `workspace-vars` assert the whole environment they resolved, secret rows included, so
 // the values below have to be in the secret store before either request goes out. The CLI suite

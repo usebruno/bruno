@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@e2e/test';
+import { test, expect, Page } from '../../../playwright';
 import {
   closeAllCollections,
   createCollection,
@@ -10,7 +10,7 @@ import {
   openRequest,
   sendRequest,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 // ---------------------------------------------------------------------------
 // Content generators - produce enough content to make each area scrollable

@@ -1,4 +1,4 @@
-import { test, expect, ElectronApplication } from '@e2e/test';
+import { test, expect, ElectronApplication } from '../../playwright';
 import {
   createCollection,
   createRequest,
@@ -9,7 +9,7 @@ import {
   selectRequestBodyMode,
   evalInActiveAppGuest as guestEval,
   waitForAppGuestReady as waitForGuestReady
-} from '@e2e/pages';
+} from '../../pages';
 
 const guestResult = (page, electronApp: ElectronApplication) =>
   guestEval(page, electronApp, `document.getElementById('out') && document.getElementById('out').getAttribute('data-result')`);

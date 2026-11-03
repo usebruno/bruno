@@ -1,5 +1,5 @@
-import { test, expect, type Locator } from '@e2e/test';
-import { openCollection, openRequest, sendRequest } from '@e2e/pages';
+import { test, expect, type Locator } from '../../../playwright';
+import { openCollection, openRequest, sendRequest } from '../../../pages';
 
 const COLLECTION_NAME = 'network-log-scroll';
 const REQUEST_NAME = 'network-log-scroll';

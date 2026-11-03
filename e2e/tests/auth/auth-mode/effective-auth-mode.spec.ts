@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -10,8 +10,8 @@ import {
   selectAuthMode,
   selectRequestPaneTab,
   typeIntoField
-} from '@e2e/pages';
-import { AUTH_MODE_LABELS } from '@e2e/constants';
+} from '../../../pages';
+import { AUTH_MODE_LABELS } from '../../../constants';
 
 test.describe('Effective auth mode resolution', () => {
   test.afterEach(async ({ page }) => {

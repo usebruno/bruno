@@ -1,11 +1,11 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   openCollection,
   openEnvironmentSelector,
   openRequest,
   sendRequest,
   expectResponseContains
-} from '@e2e/pages';
+} from '../../../pages';
 
 test.describe('Global Environment process.env Resolution', () => {
   test('should resolve process.env variables referenced in global environment', async ({

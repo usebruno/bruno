@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   createCollection,
@@ -9,7 +9,7 @@ import {
   copyItem,
   pasteIntoCollection,
   pasteIntoFolder
-} from '@e2e/pages';
+} from '../../../pages';
 import { listRequestFiles } from '../utils';
 
 test.describe('Naming collisions - copy/paste request', () => {

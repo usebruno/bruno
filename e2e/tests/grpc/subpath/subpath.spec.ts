@@ -1,5 +1,5 @@
-import { test, expect } from '@e2e/test';
-import { buildGrpcCommonLocators, openCollection, sendGrpcRequest } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { buildGrpcCommonLocators, openCollection, sendGrpcRequest } from '../../../pages';
 
 const COLLECTION_NAME = 'GrpcSubpath';
 const METHOD = 'HelloService/SayHello';

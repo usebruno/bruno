@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   buildCommonLocators,
   confirmMigration,
@@ -11,8 +11,8 @@ import {
   openRequest,
   openWorkspaceFromDialog,
   switchWorkspace
-} from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
+} from '../../pages';
+import { waitForReadyPage } from '../../support';
 
 /**
  * Failure chain (fixed by remapping snapshot tabs across all workspaces):

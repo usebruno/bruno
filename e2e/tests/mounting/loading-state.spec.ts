@@ -3,9 +3,9 @@ import {
   expect,
   ElectronApplication,
   Page
-} from '@e2e/test';
-import { setupTestFixture, TestFixture } from '@e2e/data';
-import { isCollectionLoading, closeAllCollections } from '@e2e/pages';
+} from '../../playwright';
+import { setupTestFixture, TestFixture } from '../../data';
+import { isCollectionLoading, closeAllCollections } from '../../pages';
 
 const formats = ['bru', 'yml'] as const;
 

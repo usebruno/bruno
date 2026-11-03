@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   addEnvironmentVariables,
   closeEnvironmentPanel,
@@ -8,7 +8,7 @@ import {
   openUrlVarTooltip,
   saveEnvironment,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../pages';
 
 for (const { position, prefix } of [
   { position: 'below the URL', prefix: '' },

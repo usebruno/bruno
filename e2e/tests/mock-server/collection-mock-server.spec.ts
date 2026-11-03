@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   createRequest,
   sendRequest,
@@ -9,7 +9,7 @@ import {
   startMockServer,
   stopMockServer,
   createMockServerFromCollection
-} from '@e2e/pages';
+} from '../../pages';
 
 const COLLECTION_NAME = 'mock-server-test-collection';
 const DEFAULT_MOCK_PORT = '4500';

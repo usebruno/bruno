@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp } from '@e2e/test';
+import { test, expect, closeElectronApp } from '../../../playwright';
 import {
   openCollection,
   openRequest,
@@ -8,8 +8,8 @@ import {
   selectEnvironment,
   expectResponseContains,
   waitForCollectionMount
-} from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
+} from '../../../pages';
+import { waitForReadyPage } from '../../../support';
 
 const NEW_VALUE = 'VALUE_global_nonsecret_e2e_42';
 const initUserDataPath = path.join(__dirname, 'init-user-data');

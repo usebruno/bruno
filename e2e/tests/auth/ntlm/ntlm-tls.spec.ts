@@ -4,11 +4,11 @@ import {
   expect,
   closeElectronApp,
   type ElectronApplication
-} from '@e2e/test';
-import { buildCommonLocators, openRequest, sendRequest } from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
+} from '../../../playwright';
+import { buildCommonLocators, openRequest, sendRequest } from '../../../pages';
+import { waitForReadyPage } from '../../../support';
 import { startNtlmServer, type NtlmEndpoint } from '@usebruno/tests/ntlm';
-import { SELF_SIGNED_CERTIFICATE, TLS_HANDSHAKE_FAILURE } from '@e2e/constants';
+import { SELF_SIGNED_CERTIFICATE, TLS_HANDSHAKE_FAILURE } from '../../../constants';
 
 const PASSWORD = 'Br!unoNtlm';
 

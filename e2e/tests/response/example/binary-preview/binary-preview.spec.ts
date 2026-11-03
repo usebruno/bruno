@@ -7,7 +7,7 @@ import {
   expect,
   test,
   waitForReadyPage
-} from '@e2e/test';
+} from '../../../../playwright';
 import {
   buildCommonLocators,
   editCodeMirrorEditor,
@@ -15,7 +15,7 @@ import {
   openRequest,
   openRequestInFolder,
   sendRequestAndSaveResponseExample
-} from '@e2e/pages';
+} from '../../../../pages';
 
 const binaryPreviewCases = [
   {

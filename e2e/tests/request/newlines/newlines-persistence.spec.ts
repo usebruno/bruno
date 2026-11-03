@@ -1,11 +1,11 @@
-import { test, expect, closeElectronApp } from '@e2e/test';
+import { test, expect, closeElectronApp } from '../../../playwright';
 import {
   createCollection,
   openCollection,
   selectRequestPaneTab,
   getTableCell
-} from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
+} from '../../../pages';
+import { waitForReadyPage } from '../../../support';
 
 test('should persist request with newlines across app restarts', async ({ createTmpDir, launchElectronApp }) => {
   // Two full app launches plus a restart; waitForReadyPage alone allows 45s each,

@@ -1,7 +1,7 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { closeAllCollections, openBulkImportModal, buildCommonLocators } from '@e2e/pages';
-import { expectSyncedWithSpec, readBrunoJsonSyncConfig, readOpenApiSyncConfig } from '@e2e/support';
+import { closeAllCollections, openBulkImportModal, buildCommonLocators } from '../../../pages';
+import { expectSyncedWithSpec, readBrunoJsonSyncConfig, readOpenApiSyncConfig } from '../../../support';
 
 test.describe('Bulk Import check for spec updates', () => {
   const testDataDir = path.join(__dirname, '../test-data');

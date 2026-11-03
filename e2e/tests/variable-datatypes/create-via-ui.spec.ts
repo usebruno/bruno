@@ -3,7 +3,7 @@ import {
   expect,
   Page,
   Locator
-} from '@e2e/test';
+} from '../../playwright';
 import {
   closeAllCollections,
   createCollection,
@@ -11,7 +11,7 @@ import {
   saveRequest,
   selectRequestPaneTab,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../pages';
 
 // Build a collection from scratch via the UI, then add typed vars at every
 // scope (request / folder / collection / environment) and verify the

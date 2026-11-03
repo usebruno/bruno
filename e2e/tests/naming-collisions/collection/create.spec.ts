@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { test, expect } from '@e2e/test';
-import { createCollection, closeAllCollections } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { createCollection, closeAllCollections } from '../../../pages';
 
 test.describe('Naming collisions - create collection', () => {
   test.afterEach(async ({ page }) => {

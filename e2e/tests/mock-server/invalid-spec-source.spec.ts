@@ -1,13 +1,13 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp } from '@e2e/test';
-import { waitForReadyPage } from '@e2e/support';
+import { test, expect, closeElectronApp } from '../../playwright';
+import { waitForReadyPage } from '../../support';
 import {
   buildMockServerLocators,
   openCreateMockServerModal,
   buildApiSpecPanelLocators,
   openApiSpecFromDialog
-} from '@e2e/pages';
+} from '../../pages';
 
 // The Mock Servers sidebar section is behind a beta flag.
 const PREFERENCES = JSON.stringify({

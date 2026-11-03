@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import AdmZip from 'adm-zip';
 import YAML from 'yaml';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -10,7 +10,7 @@ import {
   exportCollectionAsSingleYaml,
   exportCollectionAsZip,
   exportCollectionToPostman
-} from '@e2e/pages';
+} from '../../../pages';
 
 const collectionName = 'export-collection';
 const postmanCollectionName = 'export-postman';

@@ -1,4 +1,4 @@
-import { expect, test } from '@e2e/test';
+import { expect, test } from '../../../../playwright';
 import {
   openCollection,
   selectEnvironment,
@@ -6,7 +6,7 @@ import {
   runCollection,
   setSandboxMode,
   validateRunnerResults
-} from '@e2e/pages';
+} from '../../../../pages';
 
 const COLLECTION = 'dirname-filename-test';
 const EXPECTED_PASSING_TESTS = 8;

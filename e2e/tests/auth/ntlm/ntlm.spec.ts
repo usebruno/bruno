@@ -5,15 +5,15 @@ import {
   closeElectronApp,
   type ElectronApplication,
   type Page
-} from '@e2e/test';
+} from '../../../playwright';
 import {
   buildCommonLocators,
   openRequest,
   selectResponsePaneTab,
   sendRequest,
   buildTimelineHeaderLocators
-} from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
+} from '../../../pages';
+import { waitForReadyPage } from '../../../support';
 import { startNtlmServer, type NtlmEndpoint } from '@usebruno/tests/ntlm';
 
 const PASSWORD = 'Br!unoNtlm';

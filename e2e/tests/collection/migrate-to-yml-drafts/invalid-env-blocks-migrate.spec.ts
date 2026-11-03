@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -9,7 +9,7 @@ import {
   openMigrateToYmlModalFromOverview,
   openMigrateDraftsStep,
   discardAllDraftsAndMigrate
-} from '@e2e/pages';
+} from '../../../pages';
 
 test.describe('Migrate to YML — invalid environment draft blocks migrate', () => {
   test.afterEach(async ({ page }) => {

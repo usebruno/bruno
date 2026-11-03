@@ -1,5 +1,5 @@
-import { test, expect } from '@e2e/test';
-import { closeAllCollections } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { closeAllCollections } from '../../../pages';
 
 test.describe('GitHub Repository URL Import', () => {
   test.afterEach(async ({ page }) => {

@@ -1,6 +1,6 @@
 import path from 'path';
-import { expect, test } from '@e2e/test';
-import { buildCommonLocators, selectRequestPaneTab } from '@e2e/pages';
+import { expect, test } from '../../../playwright';
+import { buildCommonLocators, selectRequestPaneTab } from '../../../pages';
 
 test.use({
   collectionFixturePath: path.join(__dirname, 'test-data', 'collections')

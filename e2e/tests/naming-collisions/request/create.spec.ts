@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   createCollection,
@@ -10,7 +10,7 @@ import {
   createRequestViaModal,
   createRequestWithEditedFilename,
   revealFilesystemName
-} from '@e2e/pages';
+} from '../../../pages';
 import { listRequestFiles, findCollectionDir, isCaseInsensitiveFs } from '../utils';
 
 test.describe('Naming collisions - create request', () => {

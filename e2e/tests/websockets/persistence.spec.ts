@@ -1,5 +1,5 @@
-import { expect, Locator, test } from '@e2e/test';
-import { buildCommonLocators } from '@e2e/pages';
+import { expect, Locator, test } from '../../playwright';
+import { buildCommonLocators } from '../../pages';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 

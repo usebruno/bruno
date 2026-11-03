@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -6,7 +6,7 @@ import {
   createFolder,
   createRequest,
   expandFolder
-} from '@e2e/pages';
+} from '../../../pages';
 
 test.describe('Cross-Collection Drag and Drop for folder', () => {
   test.afterEach(async ({ page }) => {

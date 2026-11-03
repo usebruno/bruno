@@ -1,5 +1,5 @@
-import { test, expect } from '@e2e/test';
-import { setSandboxMode, runCollection, validateRunnerResults } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { setSandboxMode, runCollection, validateRunnerResults } from '../../../pages';
 
 test.describe.serial('QuickJS safe mode teardown', () => {
   test('contains the engine trap, keeps the abort visible in the app output, and stays healthy on a second run', async ({

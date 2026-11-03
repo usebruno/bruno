@@ -1,5 +1,5 @@
-import { test, expect } from '@e2e/test';
-import { buildGrpcCommonLocators } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { buildGrpcCommonLocators } from '../../../pages';
 
 const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
 

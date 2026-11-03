@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp } from '@e2e/test';
-import { waitForReadyPage } from '@e2e/support';
+import { test, expect, closeElectronApp } from '../../playwright';
+import { waitForReadyPage } from '../../support';
 import {
   openWorkspaceFromDialog,
   buildCommonLocators,
@@ -11,7 +11,7 @@ import {
   openMockServerSettings,
   buildApiSpecPanelLocators,
   openApiSpecFromDialog
-} from '@e2e/pages';
+} from '../../pages';
 
 const EMPTY_WORKSPACE_YML = [
   'opencollection: 1.0.0',

@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   closeAllCollections,
   createCollection,
@@ -14,7 +14,7 @@ import {
   selectScriptSubTab,
   setAppEnabled,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../pages';
 
 test.describe('AI Assist tab-bar placement', () => {
   test.afterEach(async ({ pageWithUserData }) => {

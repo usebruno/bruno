@@ -1,12 +1,12 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp } from '@e2e/test';
+import { test, expect, closeElectronApp } from '../../playwright';
 import {
   waitForReadyPage,
   readSnapshot,
   findSnapshotCollectionEntry,
   seedSnapshotWithCollections
-} from '@e2e/support';
+} from '../../support';
 
 test.describe('Snapshot: Collection Deduplication', () => {
   test('duplicate collection entries for the same pathname are deduplicated, with the latest entry taking precedence', async ({ launchElectronApp, createTmpDir }) => {

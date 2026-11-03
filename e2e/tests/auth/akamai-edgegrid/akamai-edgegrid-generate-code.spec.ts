@@ -1,4 +1,4 @@
-import { expect, Page, test } from '@e2e/test';
+import { expect, Page, test } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -11,7 +11,7 @@ import {
   selectAuthMode,
   selectRequestPaneTab,
   typeIntoField
-} from '@e2e/pages';
+} from '../../../pages';
 
 /**
  * Generate Code for Akamai EdgeGrid. The snippet must carry a real EG1-HMAC-SHA256

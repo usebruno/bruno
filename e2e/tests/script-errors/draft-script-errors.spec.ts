@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   buildResponseErrorsLocators,
   buildCommonLocators,
@@ -9,7 +9,7 @@ import {
   sendAndWaitForErrorCard,
   sendAndWaitForResponse,
   setSandboxMode
-} from '@e2e/pages';
+} from '../../pages';
 
 for (const mode of ['safe', 'developer'] as const) {
   test.describe(`Draft Script Error Context [${mode} mode]`, () => {

@@ -1,5 +1,5 @@
-import { test, expect, closeElectronApp } from '@e2e/test';
-import { waitForReadyPage } from '@e2e/support';
+import { test, expect, closeElectronApp } from '../../playwright';
+import { waitForReadyPage } from '../../support';
 
 test('should persist cookies across app restarts', async ({ createTmpDir, launchElectronApp }) => {
   // Create a temporary user-data directory so we control where the cookies store file is written.

@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   openCollection,
@@ -8,7 +8,7 @@ import {
   openEnvironmentInSettings,
   getEnvironmentColumnWidths,
   dragEnvironmentColumnDivider
-} from '@e2e/pages';
+} from '../../../pages';
 
 const MIN_COLUMN_WIDTH = 80;
 // Name / Value / Description proportions; must match DEFAULT_COLUMN_WIDTHS in EnvironmentVariablesTable

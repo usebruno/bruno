@@ -1,13 +1,13 @@
-import { test, expect, closeElectronApp } from '@e2e/test';
+import { test, expect, closeElectronApp } from '../../../playwright';
 import path from 'path';
 import {
   buildCommonLocators,
   collapseFolder,
   expandFolder,
   openRequest
-} from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
-import { initBruCollection, writeBruFolder, writeBruRequest } from '@e2e/data';
+} from '../../../pages';
+import { waitForReadyPage } from '../../../support';
+import { initBruCollection, writeBruFolder, writeBruRequest } from '../../../data';
 
 const COLLECTION_NAME = 'RevealCol';
 const EXAMPLE_NAME = 'saved-ok';

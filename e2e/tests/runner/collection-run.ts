@@ -1,10 +1,10 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   setSandboxMode,
   runCollection,
   validateRunnerResults,
   getRunnerResultCounts
-} from '@e2e/pages';
+} from '../../pages';
 
 test.describe.parallel('Collection Run', () => {
   test('Run bruno-testbench in Developer Mode', async ({ pageWithUserData: page }) => {

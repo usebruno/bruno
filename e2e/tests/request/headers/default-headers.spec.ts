@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -10,7 +10,7 @@ import {
   fillRequestHeaderValue,
   readResponsePreviewBody,
   showInheritedHeaders
-} from '@e2e/pages';
+} from '../../../pages';
 
 const DEFAULT_HEADERS = [
   'User-Agent',

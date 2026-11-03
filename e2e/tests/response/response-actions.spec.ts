@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   clickResponseAction,
   closeAllCollections,
@@ -7,7 +7,7 @@ import {
   sendRequest,
   switchResponseFormat,
   switchToEditorTab
-} from '@e2e/pages';
+} from '../../pages';
 
 test.describe('Response Pane Actions', () => {
   test.afterAll(async ({ page }) => {

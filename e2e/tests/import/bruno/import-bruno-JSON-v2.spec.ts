@@ -1,11 +1,11 @@
 import path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   importCollection,
   closeAllCollections,
   readCollectionProxyField,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 test.describe('Import Bruno v2 JSON collection', () => {
   test.afterEach(async ({ page }) => {

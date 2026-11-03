@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect } from '@e2e/test';
-import { sendRequest, setSandboxMode, buildCommonLocators } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { sendRequest, setSandboxMode, buildCommonLocators } from '../../../pages';
 
 test.describe('bru.setEnvVar(name, value, { persist: true }) - legacy arg', () => {
   test('legacy persist flag is silently ignored and the var persists in both safe and developer mode', async ({

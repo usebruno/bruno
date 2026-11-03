@@ -6,14 +6,14 @@ import {
   expect,
   closeElectronApp,
   ElectronApplication
-} from '@e2e/test';
+} from '../../../playwright';
 import {
   createWorkspace,
   buildCommonLocators,
   goToManageWorkspace,
   openWorkspaceActionsMenu
-} from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
+} from '../../../pages';
+import { waitForReadyPage } from '../../../support';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 

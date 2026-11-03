@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import { execSync } from 'child_process';
 import path from 'path';
 import type { Page } from '@playwright/test';

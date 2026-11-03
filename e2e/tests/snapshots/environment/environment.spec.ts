@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp } from '@e2e/test';
+import { test, expect, closeElectronApp } from '../../../playwright';
 import {
   buildCommonLocators,
   createCollection,
@@ -8,13 +8,13 @@ import {
   openCollection,
   openCollectionSettings,
   selectEnvironment
-} from '@e2e/pages';
+} from '../../../pages';
 import {
   waitForReadyPage,
   readSnapshot,
   findSnapshotCollectionEntry,
   waitForSnapshotCollectionEnvironment
-} from '@e2e/support';
+} from '../../../support';
 
 const legacyPromptVariablesInitUserDataPath = path.join(
   __dirname,

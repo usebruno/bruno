@@ -1,10 +1,10 @@
-import { expect, test } from '@e2e/test';
+import { expect, test } from '../../playwright';
 import {
   buildCommonLocators,
   createTransientRequest,
   selectRequestPaneTab,
   closeAllTabs
-} from '@e2e/pages';
+} from '../../pages';
 
 test.describe('websocket message header selection on delete', () => {
   test.afterEach(async ({ page }) => {

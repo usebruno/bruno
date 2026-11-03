@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import * as path from 'path';
 import * as fs from 'fs';
 import {
@@ -6,7 +6,7 @@ import {
   openCollection,
   selectRequestPaneTab,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 /**
  * Imports the real Postman EdgeGrid collection and asserts every credential value lands in the

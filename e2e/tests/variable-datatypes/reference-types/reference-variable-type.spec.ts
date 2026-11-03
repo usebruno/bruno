@@ -1,10 +1,10 @@
-import { test, expect, Page } from '@e2e/test';
+import { test, expect, Page } from '../../../playwright';
 import {
   openEnvironmentConfigTab,
   scrollVirtuosoRowIntoView,
   selectEnvironment,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 import {
   arrayMatrix,
   collectionMatrix,

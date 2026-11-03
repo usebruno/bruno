@@ -1,5 +1,5 @@
-import { test, expect, Page } from '@e2e/test';
-import { buildCommonLocators } from '@e2e/pages';
+import { test, expect, Page } from '../../../playwright';
+import { buildCommonLocators } from '../../../pages';
 
 const openEnvironmentConfigure = async (page: Page, envName: string) => {
   const locators = buildCommonLocators(page);

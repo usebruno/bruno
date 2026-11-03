@@ -1,9 +1,9 @@
 import { execSync } from 'child_process';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import { Page, ElectronApplication } from '@playwright/test';
 import path from 'path';
-import { waitForReadyPage } from '@e2e/support';
-import { openCollection, buildCommonLocators } from '@e2e/pages';
+import { waitForReadyPage } from '../../../support';
+import { openCollection, buildCommonLocators } from '../../../pages';
 
 /**
  * Helper function to restart app and get fresh state with locators

@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   createCollection,
   createRequest,
@@ -7,7 +7,7 @@ import {
   previewApp,
   evalInActiveAppGuest as guestEval,
   waitForAppGuestReady
-} from '@e2e/pages';
+} from '../../pages';
 
 /*
  * App guests must run in a secure context.

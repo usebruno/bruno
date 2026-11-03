@@ -1,6 +1,6 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { closeAllCollections, openCollection } from '@e2e/pages';
+import { closeAllCollections, openCollection } from '../../../pages';
 
 test.describe('Import Postman Collection with Examples', () => {
   let originalShowOpenDialog;

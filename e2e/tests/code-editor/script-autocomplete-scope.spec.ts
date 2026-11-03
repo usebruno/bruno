@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -10,7 +10,7 @@ import {
   readScriptEditorContent,
   showRootScriptHints,
   typeInScriptEditor
-} from '@e2e/pages';
+} from '../../pages';
 
 const COLLECTION = 'script-autocomplete-scope';
 const REQUEST = 'ScopedHints';

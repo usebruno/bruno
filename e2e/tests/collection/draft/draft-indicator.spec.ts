@@ -1,11 +1,11 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
   createCollection,
   createFolder,
   writeCollectionProxyField
-} from '@e2e/pages';
+} from '../../../pages';
 
 test.describe.serial('Draft indicator in collection and folder settings', () => {
   test.afterAll(async ({ page }) => {

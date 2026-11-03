@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   createCollection,
   closeAllCollections,
@@ -21,7 +21,7 @@ import {
   selectVariableScope,
   selectRequestPaneTab,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../pages';
 
 test.describe.configure({ timeout: 60_000 });
 

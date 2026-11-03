@@ -1,11 +1,11 @@
 import path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
   createCollection,
   importEnvironment
-} from '@e2e/pages';
+} from '../../../pages';
 
 const envFile = path.join(__dirname, 'test-data', 'postman-env-mixed-enabled.json');
 

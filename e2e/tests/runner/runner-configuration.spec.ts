@@ -1,5 +1,5 @@
-import { test, expect } from '@e2e/test';
-import { openRunnerTab, buildRunnerLocators } from '@e2e/pages';
+import { test, expect } from '../../playwright';
+import { openRunnerTab, buildRunnerLocators } from '../../pages';
 
 const COLLECTION_NAME = 'bruno-testbench';
 

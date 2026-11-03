@@ -1,6 +1,6 @@
 import process from 'node:process';
 import * as path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   buildCommonLocators,
   createCollection,
@@ -10,7 +10,7 @@ import {
   saveTransientRequestAs,
   closeAllCollections,
   copyItem
-} from '@e2e/pages';
+} from '../../pages';
 import { listRequestFiles, findCollectionDir } from './utils';
 
 const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';

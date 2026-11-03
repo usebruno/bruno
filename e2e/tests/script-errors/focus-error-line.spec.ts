@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@e2e/test';
+import { test, expect, Page } from '../../playwright';
 import {
   buildResponseErrorsLocators,
   buildCommonLocators,
@@ -7,7 +7,7 @@ import {
   sendAndWaitForResponse,
   closeAllTabs,
   setSandboxMode
-} from '@e2e/pages';
+} from '../../pages';
 
 /**
  * Resolves the CodeMirror scroller `scrollTop` for an editor inside a given

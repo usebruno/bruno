@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   createCollection,
@@ -9,7 +9,7 @@ import {
   openNewFolderModal,
   createFolderViaModal,
   revealFilesystemName
-} from '@e2e/pages';
+} from '../../../pages';
 import { findCollectionDir } from '../utils';
 
 test.describe('Naming collisions - create folder', () => {

@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../../playwright';
 import {
   buildCommonLocators,
   closeEnvironmentPanel,
@@ -10,7 +10,7 @@ import {
   selectEnvironment,
   setEnvironmentSecrets,
   sendRequestAndSaveResponseExample
-} from '@e2e/pages';
+} from '../../../../pages';
 
 const COLLECTION = 'try-example-yml';
 const REQUEST = 'try-example';

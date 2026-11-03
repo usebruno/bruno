@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -8,8 +8,8 @@ import {
   addCollectionAppCodeFromEmptyState,
   openMigrateToYmlModalFromPill,
   setCollectionAppCode
-} from '@e2e/pages';
-import { CLICK_COUNTER_APP, CLICK_COUNTER_APP_EDITED } from '@e2e/constants';
+} from '../../../pages';
+import { CLICK_COUNTER_APP, CLICK_COUNTER_APP_EDITED } from '../../../constants';
 
 const APP_NAME = 'Demo_app';
 const collectionName = 'migrate-unsaved-app';

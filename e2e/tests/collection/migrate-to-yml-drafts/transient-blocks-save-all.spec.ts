@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -10,7 +10,7 @@ import {
   openMigrateToYmlModalFromOverview,
   openMigrateDraftsStep,
   saveAllDraftsAndMigrate
-} from '@e2e/pages';
+} from '../../../pages';
 
 const firstDirIn = (dir: string) =>
   path.join(dir, fs.readdirSync(dir).find((entry) => fs.statSync(path.join(dir, entry)).isDirectory())!);

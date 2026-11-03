@@ -1,5 +1,5 @@
 import path from 'path';
-import { test, expect, Page } from '@e2e/test';
+import { test, expect, Page } from '../../../playwright';
 import {
   addEnvironmentVariable,
   buildCommonLocators,
@@ -29,9 +29,9 @@ import {
   writeFieldValue,
   setApiKeyValue,
   addVarsRow
-} from '@e2e/pages';
-import { AUTH_MODE_LABELS } from '@e2e/constants';
-import { readFileIfExists } from '@e2e/support';
+} from '../../../pages';
+import { AUTH_MODE_LABELS } from '../../../constants';
+import { readFileIfExists } from '../../../support';
 
 const API_KEY_FIELD = 'apikey-value';
 

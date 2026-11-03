@@ -1,5 +1,5 @@
-import { test, expect } from '@e2e/test';
-import { closeAllCollections, sendRequest, buildCommonLocators } from '@e2e/pages';
+import { test, expect } from '../../playwright';
+import { closeAllCollections, sendRequest, buildCommonLocators } from '../../pages';
 
 test.describe.serial('URL Interpolation', () => {
   test.afterAll(async ({ pageWithUserData: page }) => {

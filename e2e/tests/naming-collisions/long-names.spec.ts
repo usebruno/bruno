@@ -1,10 +1,10 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   buildCommonLocators,
   createCollection,
   closeAllCollections,
   createRequestViaModal
-} from '@e2e/pages';
+} from '../../pages';
 import { listRequestFiles } from './utils';
 
 test.describe('Naming collisions - long names', () => {

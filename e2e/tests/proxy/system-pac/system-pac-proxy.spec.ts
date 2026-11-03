@@ -1,8 +1,8 @@
 import * as path from 'path';
 import { execFileSync } from 'child_process';
 import { pathToFileURL } from 'url';
-import { test } from '@e2e/test';
-import { setSandboxMode, runCollection, validateRunnerResults } from '@e2e/pages';
+import { test } from '../../../playwright';
+import { setSandboxMode, runCollection, validateRunnerResults } from '../../../pages';
 import {
   startServers,
   stopServers,

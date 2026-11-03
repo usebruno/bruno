@@ -1,10 +1,10 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   openFolderSettingsByPath,
   selectFolderSettingsTab,
   addTag,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 const COLLECTION_NAME = 'folder-tags';
 

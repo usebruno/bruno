@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import YAML from 'yaml';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -9,7 +9,7 @@ import {
   createFolder,
   createRequest,
   expandFolder
-} from '@e2e/pages';
+} from '../../../pages';
 
 const requestUrl = 'https://echo.usebruno.com';
 

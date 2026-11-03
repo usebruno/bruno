@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   activeAppView,
   closeAllCollections,
@@ -10,7 +10,7 @@ import {
   openRequest,
   saveRequest,
   setAppCode
-} from '@e2e/pages';
+} from '../../../pages';
 
 const COLLECTION_NAME = 'app-migration';
 const APP_CODE = '<div id="request-app">Hello from the request app</div>';

@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import * as path from 'path';
 
 test.describe('Invalid Postman Collection - Missing Info', () => {

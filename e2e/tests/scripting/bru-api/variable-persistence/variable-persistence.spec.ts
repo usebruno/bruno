@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../../playwright';
 import fs from 'fs';
 import path from 'path';
 import {
@@ -8,7 +8,7 @@ import {
   buildCommonLocators,
   runCollection,
   validateRunnerResults
-} from '@e2e/pages';
+} from '../../../../pages';
 
 const PERSISTENCE_TIMEOUT = 10000;
 

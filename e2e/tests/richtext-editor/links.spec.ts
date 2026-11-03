@@ -1,5 +1,5 @@
-import { test, expect, Locator } from '@e2e/test';
-import { closeAllCollections } from '@e2e/pages';
+import { test, expect, Locator } from '../../playwright';
+import { closeAllCollections } from '../../pages';
 import { modifier } from '../shortcuts/helpers';
 import { setupRequestDocs, clickDocsToolbarBtn } from './actions';
 

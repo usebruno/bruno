@@ -1,4 +1,4 @@
-import { test, expect, closeElectronApp } from '@e2e/test';
+import { test, expect, closeElectronApp } from '../../../playwright';
 import {
   addMultipartFileToLastRow,
   buildCommonLocators,
@@ -8,7 +8,7 @@ import {
   selectRequestBodyMode,
   selectRequestPaneTab,
   sendRequestAndWaitForResponse
-} from '@e2e/pages';
+} from '../../../pages';
 import * as fs from 'fs';
 import * as path from 'path';
 

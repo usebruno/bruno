@@ -1,11 +1,11 @@
 import jsyaml from 'js-yaml';
-import { test, expect, Page } from '@e2e/test';
+import { test, expect, Page } from '../../../playwright';
 import {
   generateCollectionDocs,
   buildCommonLocators,
   getCollectionTreeStructure,
   type CollectionTreeItem
-} from '@e2e/pages';
+} from '../../../pages';
 
 const COLLECTION_NAME = 'GenerateDocsOrder';
 

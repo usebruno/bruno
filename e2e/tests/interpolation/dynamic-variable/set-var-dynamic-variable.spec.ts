@@ -1,10 +1,10 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   closeAllCollections,
   openCollection,
   sendRequest,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 test.describe.serial('Dynamic Variable Interpolation', () => {
   test.afterEach(async ({ pageWithUserData: page }) => {

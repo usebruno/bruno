@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   openFolderSettingsByPath,
   selectFolderSettingsTab,
@@ -8,7 +8,7 @@ import {
   removeTag,
   saveFolderSettings,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 const COLLECTION_NAME = 'folder-tags-yml';
 

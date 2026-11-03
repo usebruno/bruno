@@ -6,7 +6,7 @@ import {
   expect,
   type Locator,
   type Page
-} from '@e2e/test';
+} from '../../../playwright';
 import {
   closeAllCollections,
   createCollection,
@@ -16,7 +16,7 @@ import {
   mockBrowseFiles,
   sendRequest,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 // Intentionally inline as these are specific for this test and not reusable
 const selectRow = async (rows: Locator, index: number, otherIndex: number, label: string) => {

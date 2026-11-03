@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@e2e/test';
+import { test, expect, Page } from '../../playwright';
 import {
   closeAllCollections,
   createCollection,
@@ -6,7 +6,7 @@ import {
   selectResponsePaneTab,
   sendRequestAndWaitForResponse,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../pages';
 
 const COLLECTION = 'response-time';
 const WAIT_MS = 2000;

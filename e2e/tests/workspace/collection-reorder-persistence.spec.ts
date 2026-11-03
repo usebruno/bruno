@@ -1,9 +1,9 @@
 import path from 'path';
 import fs from 'fs';
 import yaml from 'js-yaml';
-import { test, expect, closeElectronApp } from '@e2e/test';
-import { createCollection } from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
+import { test, expect, closeElectronApp } from '../../playwright';
+import { createCollection } from '../../pages';
+import { waitForReadyPage } from '../../support';
 
 type WorkspaceConfig = { collections?: { name: string }[] };
 

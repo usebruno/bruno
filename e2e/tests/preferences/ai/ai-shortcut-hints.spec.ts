@@ -1,5 +1,5 @@
-import { test, expect } from '@e2e/test';
-import { buildCommonLocators, openAiPreferences } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { buildCommonLocators, openAiPreferences } from '../../../pages';
 
 const expectedModifier = process.platform === 'darwin' ? '⌘' : 'Ctrl';
 

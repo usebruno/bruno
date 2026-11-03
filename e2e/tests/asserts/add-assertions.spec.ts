@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   closeAllCollections,
   openCollection,
@@ -11,7 +11,7 @@ import {
   deleteAssertion,
   saveRequest,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../pages';
 
 test.describe.serial('Assertions - BRU Collection', () => {
   test.beforeAll(async ({ pageWithUserData: page }) => {

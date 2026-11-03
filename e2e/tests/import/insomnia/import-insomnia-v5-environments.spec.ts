@@ -1,6 +1,6 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { openCollection, closeAllCollections } from '@e2e/pages';
+import { openCollection, closeAllCollections } from '../../../pages';
 
 test.describe('Import Insomnia v5 Collection - Environment Import', () => {
   test.afterEach(async ({ page }) => {

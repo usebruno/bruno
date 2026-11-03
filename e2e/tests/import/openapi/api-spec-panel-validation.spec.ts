@@ -1,6 +1,6 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { openApiSpecFromDialog, openApiSpecSidebarItem } from '@e2e/pages';
+import { openApiSpecFromDialog, openApiSpecSidebarItem } from '../../../pages';
 import { SPEC_PREVIEW_ERRORS } from '../../../../packages/bruno-app/src/components/ApiSpecPanel/constants';
 import { INVALID_EXTENSION_MESSAGE } from '../../../../packages/bruno-electron/src/app/apiSpecs';
 

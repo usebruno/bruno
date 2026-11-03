@@ -1,11 +1,11 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import * as path from 'path';
 import {
   closeAllCollections,
   dismissImportIssuesToasts,
   importCollection,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 test.describe('Import Postman Collection with many issues (URL too long warning)', () => {
   test.afterEach(async ({ page }) => {

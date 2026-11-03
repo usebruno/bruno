@@ -1,5 +1,5 @@
-import { test, expect } from '@e2e/test';
-import { buildCommonLocators } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { buildCommonLocators } from '../../../pages';
 
 test.describe('Redirect Authorization Stripping E2E Tests', () => {
   let locators: ReturnType<typeof buildCommonLocators>;

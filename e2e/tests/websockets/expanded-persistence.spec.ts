@@ -1,11 +1,11 @@
-import { expect, test } from '@e2e/test';
+import { expect, test } from '../../playwright';
 import {
   buildCommonLocators,
   createTransientRequest,
   selectRequestPaneTab,
   closeAllTabs,
   switchToOpenTab
-} from '@e2e/pages';
+} from '../../pages';
 
 test.describe('websocket expanded-message persistence across tab switches', () => {
   test.afterEach(async ({ page }) => {

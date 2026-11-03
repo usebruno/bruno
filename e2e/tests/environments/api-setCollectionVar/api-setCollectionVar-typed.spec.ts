@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect, closeElectronApp } from '@e2e/test';
-import { sendRequest, buildCommonLocators } from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
+import { test, expect, closeElectronApp } from '../../../playwright';
+import { sendRequest, buildCommonLocators } from '../../../pages';
+import { waitForReadyPage } from '../../../support';
 
 const COLLECTION_FILE_ORIGINAL = `meta {
   name: collection

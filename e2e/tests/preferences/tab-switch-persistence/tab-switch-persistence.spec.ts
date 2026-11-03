@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 
 test.describe('Preferences Tab Switch Persistence', () => {
   test('should persist General tab SSL setting when immediately switching tabs', async ({ page }) => {

@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -6,7 +6,7 @@ import {
   createTransientRequestFromPreset,
   setRequestTypePreset,
   PresetRequestType
-} from '@e2e/pages';
+} from '../../pages';
 
 const PRESET_CASES: { requestType: PresetRequestType; label: string; tabMethod: string }[] = [
   { requestType: 'http', label: 'HTTP', tabMethod: 'GET' },

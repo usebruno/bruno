@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../../../playwright';
 import {
   setSandboxMode,
   openRequest,
@@ -6,7 +6,7 @@ import {
   selectResponsePaneTab,
   resetResponse,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../../../pages';
 
 const COLLECTION = 'global-client-certs-enabled';
 

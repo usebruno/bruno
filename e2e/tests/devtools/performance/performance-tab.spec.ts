@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 
 test.describe('DevTools Performance Tab', () => {
   test('should display performance metrics when Performance tab is opened', async ({ page }) => {

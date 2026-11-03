@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -11,7 +11,7 @@ import {
   sendRequest,
   setGraphqlQueryEditorValue,
   tickQueryBuilderField
-} from '@e2e/pages';
+} from '../../../pages';
 
 const DEEP_SCHEMA_PATH = path.join(__dirname, 'test-data', 'deep-schema.graphql');
 const LEVELS = Array.from({ length: 13 }, (_, i) => `level${String(i + 2).padStart(2, '0')}`);

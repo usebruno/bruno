@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   addEnvironmentVariables,
   closeEnvironmentPanel,
@@ -26,7 +26,7 @@ import {
   setEnvironmentVariableValue,
   validateRunnerResults,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 import {
   seedEchoSecrets,
   seedWorkspaceVarsSecrets,

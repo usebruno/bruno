@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@e2e/test';
+import { test, expect, Page } from '../../playwright';
 import {
   createCollection,
   createRequest,
@@ -16,7 +16,7 @@ import {
   selectViewMode,
   saveRequest,
   closeAllTabs
-} from '@e2e/pages';
+} from '../../pages';
 
 const SIMPLE_APP = `<div id="hello">Hello from the app</div>`;
 

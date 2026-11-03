@@ -1,8 +1,8 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp } from '@e2e/test';
-import { createCollection, buildCommonLocators } from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
+import { test, expect, closeElectronApp } from '../../playwright';
+import { createCollection, buildCommonLocators } from '../../pages';
+import { waitForReadyPage } from '../../support';
 
 const WORKSPACE_YML_WORKSPACEB = [
   'opencollection: 1.0.0',

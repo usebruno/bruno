@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -6,7 +6,7 @@ import {
   createFolder,
   createRequest,
   selectRequestPaneTab
-} from '@e2e/pages';
+} from '../../../pages';
 
 test.afterEach(async ({ page }) => {
   await closeAllCollections(page);

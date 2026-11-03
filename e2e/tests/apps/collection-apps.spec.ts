@@ -3,7 +3,7 @@ import {
   expect,
   ElectronApplication,
   Page
-} from '@e2e/test';
+} from '../../playwright';
 import {
   createCollection,
   createRequest,
@@ -13,7 +13,7 @@ import {
   appEmptyState,
   selectRequestBodyMode,
   saveRequest
-} from '@e2e/pages';
+} from '../../pages';
 
 /*
  * The collection app's preview runs inside an out-of-process <webview> guest,

@@ -1,5 +1,5 @@
-import { test, expect } from '@e2e/test';
-import { closeAllCollections, setRequestUrlAndSave } from '@e2e/pages';
+import { test, expect } from '../../playwright';
+import { closeAllCollections, setRequestUrlAndSave } from '../../pages';
 import { setupRequestDocs } from './actions';
 import {
   modifier,

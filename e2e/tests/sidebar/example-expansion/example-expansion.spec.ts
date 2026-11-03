@@ -1,8 +1,8 @@
-import { test, expect, closeElectronApp } from '@e2e/test';
+import { test, expect, closeElectronApp } from '../../../playwright';
 import path from 'path';
-import { buildCommonLocators, collapseFolder, expandFolder } from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
-import { initBruCollection, writeBruRequest, writeBruFolder } from '@e2e/data';
+import { buildCommonLocators, collapseFolder, expandFolder } from '../../../pages';
+import { waitForReadyPage } from '../../../support';
+import { initBruCollection, writeBruRequest, writeBruFolder } from '../../../data';
 
 const COLLECTION_NAME = 'ExampleCol';
 

@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -14,7 +14,7 @@ import {
   getCodeEditorValueAndCursor,
   replaceMatchThenTypeBeforeSearchRefresh,
   replaceMatchThenCloseSearchBarBeforeRefresh
-} from '@e2e/pages';
+} from '../../pages';
 
 const SCRIPT_EDITOR_ID = 'pre-request-script-editor';
 const COLLECTION_NAME = 'search-edit-cursor-test';

@@ -1,14 +1,14 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect, closeElectronApp } from '@e2e/test';
+import { test, expect, closeElectronApp } from '../../../playwright';
 import {
   buildCommonLocators,
   openCollection,
   openMigrateToYmlModalFromOverview,
   openCollectionOverview,
   confirmMigration
-} from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
+} from '../../../pages';
+import { waitForReadyPage } from '../../../support';
 
 const listFilesRecursive = (dir: string): string[] => {
   const results: string[] = [];

@@ -1,10 +1,10 @@
-import { expect, test } from '@e2e/test';
+import { expect, test } from '../../playwright';
 import {
   openRequest,
   selectRequestPaneTab,
   closeAllOpenTabs,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../pages';
 
 const COLLECTION_NAME = 'collection';
 const LONG_MSG_REQ = 'ws-long-msg';

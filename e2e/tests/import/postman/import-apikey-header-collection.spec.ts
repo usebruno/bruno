@@ -1,11 +1,11 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import * as path from 'path';
 import {
   closeAllCollections,
   openCollection,
   selectRequestPaneTab,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 test.describe('Import Postman Collection with API Key in Header', () => {
   let originalShowOpenDialog;

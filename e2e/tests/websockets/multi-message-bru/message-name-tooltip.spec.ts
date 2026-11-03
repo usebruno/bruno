@@ -1,10 +1,10 @@
-import { expect, test } from '@e2e/test';
+import { expect, test } from '../../../playwright';
 import {
   openRequest,
   closeAllCollections,
   renameWsMessage,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 const COLLECTION_NAME = 'ws-multi-message';
 const SINGLE_MSG_REQ = 'ws-single-msg';

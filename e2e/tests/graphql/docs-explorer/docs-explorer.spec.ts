@@ -1,5 +1,5 @@
-import { test, expect } from '@e2e/test';
-import { createCollection, closeAllCollections, buildCommonLocators } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { createCollection, closeAllCollections, buildCommonLocators } from '../../../pages';
 
 test.describe('GraphQL Docs Explorer', () => {
   test.afterEach(async ({ page }) => {

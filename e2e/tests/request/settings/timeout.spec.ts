@@ -6,14 +6,14 @@ import {
   expect,
   test,
   waitForReadyPage
-} from '@e2e/test';
+} from '../../../playwright';
 import {
   buildCommonLocators,
   resetRequestTimeoutToInherit,
   saveRequest,
   selectRequestPaneTab,
   setRequestTimeoutPreference
-} from '@e2e/pages';
+} from '../../../pages';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 const fixtureCollectionsPath = path.join(__dirname, 'test-data', 'collections');

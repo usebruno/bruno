@@ -1,6 +1,6 @@
-import { test } from '@e2e/test';
+import { test } from '../../../playwright';
 import { type ElectronApplication, type Page } from '@playwright/test';
-import { openCollection, closeAllCollections } from '@e2e/pages';
+import { openCollection, closeAllCollections } from '../../../pages';
 import { summarize } from '../utils/stats';
 import { writeResults, buildResultEntry, type ResultEntry } from '../utils/results';
 import { startTimer } from '../utils/timing';

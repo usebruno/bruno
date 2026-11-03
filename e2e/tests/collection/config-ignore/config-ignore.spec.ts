@@ -3,7 +3,7 @@ import {
   expect,
   closeElectronApp,
   waitForReadyPage
-} from '@e2e/test';
+} from '../../../playwright';
 import * as path from 'path';
 import * as fs from 'fs';
 import {
@@ -13,7 +13,7 @@ import {
   openCollectionFromDialog,
   removeCollection,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 const ymlRequest = (name: string) => `info:
   name: ${name}

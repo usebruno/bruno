@@ -1,12 +1,12 @@
-import { test, expect, closeElectronApp } from '@e2e/test';
+import { test, expect, closeElectronApp } from '../../playwright';
 import {
   createCollection,
   createRequest,
   openRequest,
   createEnvironment,
   buildCommonLocators
-} from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
+} from '../../pages';
+import { waitForReadyPage } from '../../support';
 
 test.describe('Snapshot: Global Tab Restoration', () => {
   test('preferences and global environment tabs are restored and reusable after restart', async ({ launchElectronApp, createTmpDir }) => {

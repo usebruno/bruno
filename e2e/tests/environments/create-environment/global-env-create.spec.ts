@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import path from 'path';
 import {
   importCollection,
@@ -10,7 +10,7 @@ import {
   closeAllCollections,
   deleteAllGlobalEnvironments,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 test.describe('Global Environment Create Tests', () => {
   test.setTimeout(60000);

@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@e2e/test';
+import { test, expect, Page } from '../../../playwright';
 import {
   addEnvironmentVariable,
   buildCommonLocators,
@@ -24,8 +24,8 @@ import {
   writeFieldValue,
   setApiKeyValue,
   addVarsRow
-} from '@e2e/pages';
-import { AUTH_MODE_LABELS } from '@e2e/constants';
+} from '../../../pages';
+import { AUTH_MODE_LABELS } from '../../../constants';
 
 const PLAINTEXT_WARNING = 'Store sensitive info as a secret variable or in a .env file';
 const ENVIRONMENT_FIELD_WARNING = 'Mark the environment variable as secret for better security';

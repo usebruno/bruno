@@ -6,8 +6,8 @@ import {
   closeElectronApp,
   ElectronApplication,
   Page
-} from '@e2e/test';
-import { findSnapshotCollectionEntry, readSnapshot, waitForReadyPage } from '@e2e/support';
+} from '../../playwright';
+import { findSnapshotCollectionEntry, readSnapshot, waitForReadyPage } from '../../support';
 import {
   openWorkspaceFromDialog,
   switchWorkspace,
@@ -22,7 +22,7 @@ import {
   startMockServer,
   setMockServerBetaFeature,
   openMockServerTab
-} from '@e2e/pages';
+} from '../../pages';
 import {
   closeTabByName,
   focusTabWithoutSidebarFocus,

@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   closeAllCollections,
   createCollection,
@@ -6,7 +6,7 @@ import {
   saveRequest,
   selectRequestPaneTab,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 test.describe('Tag persistence', () => {
   test.afterEach(async ({ page }) => {

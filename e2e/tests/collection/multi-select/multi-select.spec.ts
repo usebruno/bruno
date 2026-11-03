@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   createCollection,
@@ -10,7 +10,7 @@ import {
   createApp,
   createExampleFromSidebar,
   toggleRequestExamples
-} from '@e2e/pages';
+} from '../../../pages';
 
 // Ctrl on Windows/Linux, Cmd on macOS (matches app's navigator.userAgent check).
 const SELECT_MODIFIER: 'Meta' | 'Control' = process.platform === 'darwin' ? 'Meta' : 'Control';

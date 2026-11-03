@@ -1,12 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
   createCollection,
   createFolder
-} from '@e2e/pages';
+} from '../../../pages';
 
 test.describe('Add folder under collection', () => {
   test.afterEach(async ({ page }) => {

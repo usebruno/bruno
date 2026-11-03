@@ -1,12 +1,12 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildRunnerLocators,
   dragSidebarToWidth,
   findToolbarCollapseSidebarWidth,
   MIN_SIDEBAR_WIDTH,
   runCollection
-} from '@e2e/pages';
-import { setWindowContentSize } from '@e2e/support';
+} from '../../../pages';
+import { setWindowContentSize } from '../../../support';
 
 const collectionName = 'Runner Responsive Toolbar';
 const wideWindowSize = { width: 1150, height: 800 };

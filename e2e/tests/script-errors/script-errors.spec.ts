@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@e2e/test';
+import { test, expect, Page } from '../../playwright';
 import {
   buildResponseErrorsLocators,
   buildCommonLocators,
@@ -12,8 +12,8 @@ import {
   runCollection,
   buildRunnerLocators,
   openRunnerResult
-} from '@e2e/pages';
-import { getScrollMetrics } from '@e2e/support';
+} from '../../pages';
+import { getScrollMetrics } from '../../support';
 
 for (const mode of ['safe', 'developer'] as const) {
   test.describe(`Script Error Display [${mode} mode]`, () => {

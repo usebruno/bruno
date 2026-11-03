@@ -1,10 +1,10 @@
-import { expect, Page, test } from '@e2e/test';
+import { expect, Page, test } from '../../../playwright';
 import {
   openCollection,
   openRequestInFolder,
   sendRequest,
   setUrlEncoding
-} from '@e2e/pages';
+} from '../../../pages';
 
 const COLLECTION = 'generate-code-encoding';
 const FOLDER = 'requests';

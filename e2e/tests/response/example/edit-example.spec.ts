@@ -1,7 +1,7 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import { execSync } from 'child_process';
 import path from 'path';
-import { clickResponseAction, toggleRequestExamples } from '@e2e/pages';
+import { clickResponseAction, toggleRequestExamples } from '../../../pages';
 
 test.describe.serial('Edit Response Examples', () => {
   test.afterAll(async () => {

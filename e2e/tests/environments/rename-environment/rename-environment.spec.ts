@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect, Page } from '@e2e/test';
-import { openEnvironmentConfigTab, renameEnvironment, buildCommonLocators } from '@e2e/pages';
+import { test, expect, Page } from '../../../playwright';
+import { openEnvironmentConfigTab, renameEnvironment, buildCommonLocators } from '../../../pages';
 
 // A rename must move the environment file *and* keep the name stored inside it in
 // sync. Only the yml format persists a name; bru derives it from the filename.

@@ -3,7 +3,7 @@ import {
   Locator,
   Page,
   test
-} from '@e2e/test';
+} from '../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -17,7 +17,7 @@ import {
   setCodeMirrorValue as setCmValue,
   switchResponseFormat,
   switchToPreviewTab
-} from '@e2e/pages';
+} from '../../pages';
 
 const ECHO_URL = 'http://localhost:8081/api/echo/json';
 const CUSTOM_ECHO_URL = 'http://localhost:8081/api/echo/custom';

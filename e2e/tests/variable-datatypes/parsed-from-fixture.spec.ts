@@ -5,7 +5,7 @@ import {
   expect,
   Page,
   Locator
-} from '@e2e/test';
+} from '../../playwright';
 import {
   saveRequest,
   scrollVirtuosoRowIntoView,
@@ -14,7 +14,7 @@ import {
   selectResponsePaneTab,
   sendRequestAndWaitForResponse,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../pages';
 
 /**
  * These tests cover the DataTypeSelector on the surfaces where it remains

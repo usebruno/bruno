@@ -1,5 +1,5 @@
-import { test, expect } from '@e2e/test';
-import { buildCommonLocators, closeAllCollections, openCollection } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { buildCommonLocators, closeAllCollections, openCollection } from '../../../pages';
 
 const BRU_REQ_NAME = /^ws-interpolation-test$/;
 const MAX_CONNECTION_TIME = 10000; // Increased timeout for external server

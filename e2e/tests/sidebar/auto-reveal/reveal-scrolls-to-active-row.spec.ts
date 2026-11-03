@@ -1,8 +1,8 @@
-import { test, expect, closeElectronApp } from '@e2e/test';
+import { test, expect, closeElectronApp } from '../../../playwright';
 import path from 'path';
-import { buildCommonLocators, expandFolder, openRequest } from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
-import { initBruCollection, writeBruFolder, writeBruRequest } from '@e2e/data';
+import { buildCommonLocators, expandFolder, openRequest } from '../../../pages';
+import { waitForReadyPage } from '../../../support';
+import { initBruCollection, writeBruFolder, writeBruRequest } from '../../../data';
 
 const COLLECTION_NAME = 'RevealScrollCol';
 const FILLER_COUNT = 60;

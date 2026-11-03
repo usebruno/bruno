@@ -1,5 +1,5 @@
-import { test, expect, closeElectronApp } from '@e2e/test';
-import { waitForReadyPage } from '@e2e/support';
+import { test, expect, closeElectronApp } from '../../playwright';
+import { waitForReadyPage } from '../../support';
 
 test('should add a cookie via the modal raw-edit mode', async ({ createTmpDir, launchElectronApp }) => {
   const userDataPath = await createTmpDir('cookie-raw-mode');

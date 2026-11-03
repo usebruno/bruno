@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp } from '@e2e/test';
+import { test, expect, closeElectronApp } from '../../../playwright';
 import {
   openCollection,
   openRequest,
@@ -11,8 +11,8 @@ import {
   closeEnvironmentPanel,
   buildCommonLocators,
   waitForCollectionMount
-} from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
+} from '../../../pages';
+import { waitForReadyPage } from '../../../support';
 
 const NEW_VALUE = 'NEW_VALUE_global_env_e2e_42';
 const INITIAL_VALUE = 'INITIAL_VALUE_global_env_e2e_001';

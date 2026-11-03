@@ -1,6 +1,6 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../../playwright';
 import path from 'path';
-import { closeAllCollections } from '@e2e/pages';
+import { closeAllCollections } from '../../../../pages';
 
 test.describe.serial('Environment Color Import Tests', () => {
   test.afterAll(async ({ pageWithUserData: page }) => {

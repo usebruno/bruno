@@ -1,7 +1,7 @@
-import { test } from '@e2e/test';
+import { test } from '../../../playwright';
 import * as path from 'path';
-import { closeAllCollections, importCollection } from '@e2e/pages';
-import { expectSyncedWithSpec, readOpenApiSyncConfig } from '@e2e/support';
+import { closeAllCollections, importCollection } from '../../../pages';
+import { expectSyncedWithSpec, readOpenApiSyncConfig } from '../../../support';
 
 test.describe('Import OpenAPI with Check for Spec Updates', () => {
   test.afterEach(async ({ page }) => {

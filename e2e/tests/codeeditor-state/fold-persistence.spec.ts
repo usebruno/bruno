@@ -3,7 +3,7 @@ import {
   expect,
   Page,
   Locator
-} from '@e2e/test';
+} from '../../playwright';
 import {
   closeAllCollections,
   createCollection,
@@ -12,7 +12,7 @@ import {
   selectRequestPaneTab,
   selectResponsePaneTab,
   sendRequestAndWaitForResponse
-} from '@e2e/pages';
+} from '../../pages';
 
 const ECHO_URL = 'http://localhost:8081/api/echo/json';
 

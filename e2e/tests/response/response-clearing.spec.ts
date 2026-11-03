@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   closeAllCollections,
   createCollection,
@@ -12,7 +12,7 @@ import {
   clickResponseAction,
   selectResponsePaneTab,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../pages';
 
 test.describe('Response Clearing', () => {
   test.afterEach(async ({ page }) => {

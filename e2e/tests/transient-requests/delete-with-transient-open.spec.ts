@@ -1,4 +1,4 @@
-import { test, expect, ConsoleMessage } from '@e2e/test';
+import { test, expect, ConsoleMessage } from '../../playwright';
 import {
   closeAllCollections,
   createCollection,
@@ -7,7 +7,7 @@ import {
   deleteRequest,
   fillRequestUrl,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../pages';
 
 const COLLECTION_NAME = 'delete-with-transient';
 

@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   sendRequestAndWaitForResponse,
   closeAllCollections,
@@ -10,7 +10,7 @@ import {
   selectResponsePaneTab,
   runCollection,
   validateRunnerResults
-} from '@e2e/pages';
+} from '../../../pages';
 
 // The test PEM file is gitignored (*.pem). Write it to both fixture directories
 // at module load time so collectionFixturePath includes it when copying.

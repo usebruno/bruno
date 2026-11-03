@@ -1,12 +1,12 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   openCollection,
   openEnvironmentSelector,
   closeEnvironmentPanel,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 /**
  * Regression test for the workspace-watcher IPC channel mismatch.

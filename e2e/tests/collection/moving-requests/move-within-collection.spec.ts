@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   createCollection,
@@ -6,7 +6,7 @@ import {
   createFolder,
   expandFolder,
   closeAllCollections
-} from '@e2e/pages';
+} from '../../../pages';
 
 test.describe('Move across folders within the same collection', () => {
   test.afterEach(async ({ page }) => {

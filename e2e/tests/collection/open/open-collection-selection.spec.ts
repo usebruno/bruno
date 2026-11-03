@@ -3,7 +3,7 @@ import {
   expect,
   ElectronApplication,
   Page
-} from '@e2e/test';
+} from '../../../playwright';
 import * as path from 'path';
 import * as fs from 'fs';
 import {
@@ -11,7 +11,7 @@ import {
   closeAllCollections,
   toggleOpenCollectionItem,
   closeOpenCollectionModal
-} from '@e2e/pages';
+} from '../../../pages';
 
 const writeCollection = (dir: string, name: string) => {
   fs.mkdirSync(dir, { recursive: true });

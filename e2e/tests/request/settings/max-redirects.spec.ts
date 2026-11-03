@@ -1,5 +1,5 @@
-import { test, expect } from '@e2e/test';
-import { selectRequestPaneTab } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { selectRequestPaneTab } from '../../../pages';
 
 test.describe('Max Redirects Settings Tests', () => {
   test('should configure and test max redirects settings', async ({

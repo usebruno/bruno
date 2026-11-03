@@ -1,7 +1,7 @@
 import { Page } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
-import { expect, test } from '@e2e/test';
+import { expect, test } from '../../../playwright';
 import {
   addRowToActiveTab,
   closeAllCollections,
@@ -11,7 +11,7 @@ import {
   openCollection,
   saveEnvironment,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 const envLocators = (page: Page) => buildCommonLocators(page).environment;
 

@@ -3,11 +3,11 @@ import {
   expect,
   closeElectronApp,
   type Locator
-} from '@e2e/test';
+} from '../../../playwright';
 import path from 'path';
-import { buildCommonLocators, renameCollectionItem } from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
-import { initBruCollection, writeBruRequest } from '@e2e/data';
+import { buildCommonLocators, renameCollectionItem } from '../../../pages';
+import { waitForReadyPage } from '../../../support';
+import { initBruCollection, writeBruRequest } from '../../../data';
 
 const COLLECTION_NAME = 'ScrollKeepCol';
 const REQUEST_COUNT = 50;

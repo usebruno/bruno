@@ -1,7 +1,7 @@
 import { execSync } from 'child_process';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import path from 'path';
-import { clickResponseAction, toggleRequestExamples } from '@e2e/pages';
+import { clickResponseAction, toggleRequestExamples } from '../../../pages';
 
 test.describe.serial('Create and Delete Response Examples', () => {
   test.afterAll(async () => {

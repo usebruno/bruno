@@ -1,6 +1,6 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import path from 'path';
-import { closeAllCollections } from '@e2e/pages';
+import { closeAllCollections } from '../../../pages';
 
 test.describe('Global Environment Import Tests', () => {
   test('should import global environment from file', async ({ newPage: page, createTmpDir }) => {

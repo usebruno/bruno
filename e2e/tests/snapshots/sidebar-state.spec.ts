@@ -3,7 +3,7 @@ import {
   expect,
   closeElectronApp,
   type Page
-} from '@e2e/test';
+} from '../../playwright';
 import {
   createCollection,
   createExampleFromSidebar,
@@ -11,8 +11,8 @@ import {
   openExampleFromSidebar,
   openRequest,
   buildCommonLocators
-} from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
+} from '../../pages';
+import { waitForReadyPage } from '../../support';
 
 test.describe('Snapshot: Sidebar-Tab Restoration', () => {
   test('open tabs are restored after app restart and tied to the sidebar items', async ({ launchElectronApp, createTmpDir }) => {

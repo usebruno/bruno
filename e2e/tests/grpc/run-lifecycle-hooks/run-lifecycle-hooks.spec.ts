@@ -1,5 +1,5 @@
 import { Page } from '@playwright/test';
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../../playwright';
 import {
   buildGrpcCommonLocators,
   buildResponseErrorsLocators,
@@ -8,7 +8,7 @@ import {
   sendGrpcRequest,
   streamGrpcMessagesAndEndCall,
   setSandboxMode
-} from '@e2e/pages';
+} from '../../../pages';
 
 const COLLECTION_NAME = 'GrpcHooks';
 const SANDBOX_MODES = ['safe', 'developer'] as const;

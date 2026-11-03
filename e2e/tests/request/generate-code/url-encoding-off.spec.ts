@@ -1,11 +1,11 @@
-import { expect, test } from '@e2e/test';
+import { expect, test } from '../../../playwright';
 import {
   closeGenerateCodeDialog,
   getGeneratedSnippet,
   openCollection,
   openRequestInFolder,
   setUrlEncoding
-} from '@e2e/pages';
+} from '../../../pages';
 
 const COLLECTION = 'generate-code-encoding';
 const FOLDER = 'requests';

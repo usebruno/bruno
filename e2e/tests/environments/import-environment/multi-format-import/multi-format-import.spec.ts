@@ -1,11 +1,11 @@
 import path from 'path';
-import { test, expect, Page } from '@e2e/test';
+import { test, expect, Page } from '../../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
   createCollection,
   openEnvironmentSelector
-} from '@e2e/pages';
+} from '../../../../pages';
 
 type EnvironmentScope = 'collection' | 'global';
 

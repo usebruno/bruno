@@ -1,6 +1,6 @@
-import { test, expect } from '@e2e/test';
-import { setSandboxMode, openRequest, buildCommonLocators } from '@e2e/pages';
-import { TLS_HANDSHAKE_FAILURE } from '@e2e/constants';
+import { test, expect } from '../../../../../playwright';
+import { setSandboxMode, openRequest, buildCommonLocators } from '../../../../../pages';
+import { TLS_HANDSHAKE_FAILURE } from '../../../../../constants';
 
 const COLLECTION = 'client-certs-disabled-yml';
 

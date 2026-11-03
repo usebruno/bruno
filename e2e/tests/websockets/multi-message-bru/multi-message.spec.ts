@@ -1,10 +1,10 @@
-import { expect, test } from '@e2e/test';
+import { expect, test } from '../../../playwright';
 import {
   buildCommonLocators,
   openRequest,
   saveRequest,
   closeAllCollections
-} from '@e2e/pages';
+} from '../../../pages';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 

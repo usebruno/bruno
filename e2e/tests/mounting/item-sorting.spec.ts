@@ -3,9 +3,9 @@ import {
   expect,
   ElectronApplication,
   Page
-} from '@e2e/test';
-import { setupSortingTestFixture, TestFixture } from '@e2e/data';
-import { getCollectionTreeStructure, closeAllCollections } from '@e2e/pages';
+} from '../../playwright';
+import { setupSortingTestFixture, TestFixture } from '../../data';
+import { getCollectionTreeStructure, closeAllCollections } from '../../pages';
 
 const formats = ['bru', 'yml'] as const;
 

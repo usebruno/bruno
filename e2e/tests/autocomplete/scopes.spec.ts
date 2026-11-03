@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@e2e/test';
+import { test, expect, Page } from '../../playwright';
 import {
   closeAllCollections,
   createCollection,
@@ -18,7 +18,7 @@ import {
   buildAutocompleteLocators,
   pressAutocompleteShortcut,
   setEditorState
-} from '@e2e/pages';
+} from '../../pages';
 
 const VAR_NAME = 'shadowvar';
 

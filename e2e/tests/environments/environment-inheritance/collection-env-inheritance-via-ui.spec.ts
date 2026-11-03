@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
-import { test, expect, Page } from '@e2e/test';
+import { test, expect, Page } from '../../../playwright';
 import {
   addEnvironmentVariable,
   addEnvironmentVariables,
@@ -37,7 +37,7 @@ import {
   validateRunnerResults,
   type EnvironmentVariable,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 
 // Every environment, variable and request this suite asserts on is authored through the app
 // itself, so nothing here reads the committed inheritance workspace fixture — a secret gets

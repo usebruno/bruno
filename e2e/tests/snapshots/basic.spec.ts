@@ -5,7 +5,7 @@ import {
   expect,
   closeElectronApp,
   type Page
-} from '@e2e/test';
+} from '../../playwright';
 import {
   createCollection,
   createRequest,
@@ -14,8 +14,8 @@ import {
   switchWorkspace,
   selectRequestPaneTab,
   buildCommonLocators
-} from '@e2e/pages';
-import { waitForReadyPage } from '@e2e/support';
+} from '../../pages';
+import { waitForReadyPage } from '../../support';
 
 /**
  * Helper: read the snapshot JSON from the user data directory.

@@ -1,5 +1,5 @@
-import { test, expect } from '@e2e/test';
-import { createCollection, createEnvironment, closeAllCollections } from '@e2e/pages';
+import { test, expect } from '../../../playwright';
+import { createCollection, createEnvironment, closeAllCollections } from '../../../pages';
 
 test.describe('Environment Variables Focus Retention', () => {
   test.afterEach(async ({ page }) => {

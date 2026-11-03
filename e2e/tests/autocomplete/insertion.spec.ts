@@ -5,7 +5,7 @@ import {
   expect,
   Locator,
   Page
-} from '@e2e/test';
+} from '../../playwright';
 import {
   closeAllCollections,
   createCollection,
@@ -24,7 +24,7 @@ import {
   setEditorState,
   pickHint,
   firstRenderedLine
-} from '@e2e/pages';
+} from '../../pages';
 
 const expectFullyMasked = async (editor: Locator, realValue: string) => {
   await expect(maskedCharacters(editor)).toHaveCount(realValue.length);

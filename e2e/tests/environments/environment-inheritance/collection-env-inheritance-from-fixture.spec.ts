@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect, Page } from '@e2e/test';
+import { test, expect, Page } from '../../../playwright';
 import {
   addEnvironmentVariable,
   addEnvironmentVariables,
@@ -28,7 +28,7 @@ import {
   setEnvironmentVariableValue,
   validateRunnerResults,
   buildCommonLocators
-} from '@e2e/pages';
+} from '../../../pages';
 import {
   BASE_SECRETS,
   DEV_SECRETS,

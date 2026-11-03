@@ -1,5 +1,5 @@
-import { test } from '@e2e/test';
-import { setSandboxMode, runCollection, validateRunnerResults } from '@e2e/pages';
+import { test } from '../../../../playwright';
+import { setSandboxMode, runCollection, validateRunnerResults } from '../../../../pages';
 
 test.describe.parallel('bru.isSafeMode() API', () => {
   test('returns false when running in developer mode', async ({ pageWithUserData: page }) => {

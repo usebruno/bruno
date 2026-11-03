@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@e2e/test';
+import { test, expect, Page } from '../../playwright';
 import {
   closeAllCollections,
   createCollection,
@@ -12,7 +12,7 @@ import {
   expectAutocompleteStaysClosed,
   pressAutocompleteShortcut,
   setEditorState
-} from '@e2e/pages';
+} from '../../pages';
 
 const ACTION = 'triggerAutocomplete';
 const NEW_COMBO_KEYS = ['Control', 'Shift', 'Space'];

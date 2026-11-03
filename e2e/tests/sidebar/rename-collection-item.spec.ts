@@ -1,10 +1,10 @@
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   buildCommonLocators,
   createCollection,
   createRequest,
   closeAllCollections
-} from '@e2e/pages';
+} from '../../pages';
 
 test.describe('Rename Collection Item - File Extension', () => {
   test.afterEach(async ({ page }) => {

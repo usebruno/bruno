@@ -1,5 +1,5 @@
 import path from 'path';
-import { test } from '@e2e/test';
+import { test } from '../../../playwright';
 import { verifyInvalidFileIndicators } from './helpers';
 
 test.describe('Invalid file indicator', () => {

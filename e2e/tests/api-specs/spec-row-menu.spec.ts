@@ -6,7 +6,7 @@ import {
   expect,
   closeElectronApp,
   ElectronApplication
-} from '@e2e/test';
+} from '../../playwright';
 import {
   openWorkspaceFromDialog,
   buildCommonLocators,
@@ -15,8 +15,8 @@ import {
   expandApiSpecsSection,
   openApiSpecRowMenu,
   chooseApiSpecRowAction
-} from '@e2e/pages';
-import { waitForReadyPage, stubOpenDirectoryDialog } from '@e2e/support';
+} from '../../pages';
+import { waitForReadyPage, stubOpenDirectoryDialog } from '../../support';
 
 const OPENAPI_FIXTURES = path.resolve(__dirname, '..', 'import', 'openapi', 'test-data');
 const COMPREHENSIVE_TITLE = 'Comprehensive API Test Collection';

@@ -1,7 +1,7 @@
-import { test, expect, closeElectronApp } from '@e2e/test';
+import { test, expect, closeElectronApp } from '../../playwright';
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { waitForReadyPage } from '@e2e/support';
+import { waitForReadyPage } from '../../support';
 
 test('should handle corrupted passkey and still display saved cookie list', async ({ createTmpDir, launchElectronApp }) => {
   const userDataPath = await createTmpDir('corrupted-passkey');

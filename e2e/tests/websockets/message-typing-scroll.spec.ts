@@ -1,5 +1,5 @@
-import { expect, test } from '@e2e/test';
-import { openRequest, closeAllCollections, buildCommonLocators } from '@e2e/pages';
+import { expect, test } from '../../playwright';
+import { openRequest, closeAllCollections, buildCommonLocators } from '../../pages';
 
 const COLLECTION_NAME = 'collection';
 const SCROLL_REQ = 'ws-scroll-top';

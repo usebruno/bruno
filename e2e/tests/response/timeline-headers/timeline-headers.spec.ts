@@ -6,7 +6,7 @@ import {
   Locator,
   Page,
   test
-} from '@e2e/test';
+} from '../../../playwright';
 import {
   closeAllCollections,
   expandCollection,
@@ -21,7 +21,7 @@ import {
   buildRunnerLocators,
   openRunnerResultTimeline,
   runCollection
-} from '@e2e/pages';
+} from '../../../pages';
 
 const COLLECTION = 'timeline-headers';
 const REQUEST = 'get-headers';

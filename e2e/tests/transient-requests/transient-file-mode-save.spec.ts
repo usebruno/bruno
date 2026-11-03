@@ -1,4 +1,4 @@
-import { expect, test } from '@e2e/test';
+import { expect, test } from '../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -13,7 +13,7 @@ import {
   setFileModeRaw,
   setUrlInFileModeRaw,
   switchToFileMode
-} from '@e2e/pages';
+} from '../../pages';
 
 type CollectionFormat = 'bru' | 'yml';
 
