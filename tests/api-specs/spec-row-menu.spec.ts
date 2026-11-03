@@ -1,0 +1,485 @@
+import path from 'path';
+import fs from 'fs';
+import yaml from 'js-yaml';
+import { test, expect, closeElectronApp, ElectronApplication } from '../../playwright';
+import { waitForReadyPage, openWorkspaceFromDialog } from '../utils/page';
+import { buildCommonLocators } from '../utils/page/locators';
+import { buildTitleBarLocators } from '../utils/page/title-bar';
+import { buildMockServerLocators } from '../utils/page/mock-server';
+import { expandApiSpecsSection, openApiSpecRowMenu, chooseApiSpecRowAction } from '../utils/page/openapi/render-spec';
+import { stubOpenDirectoryDialog } from '../utils/stubs';
+
+const OPENAPI_FIXTURES = path.resolve(__dirname, '..', 'import', 'openapi', 'fixtures');
+const COMPREHENSIVE_TITLE = 'Comprehensive API Test Collection';
+const EXAMPLES_TITLE = 'API with Examples';
+const WORKSPACE_NAME = 'SpecMenuWorkspace';
+const SYNCED_COLLECTION = 'Examples Sync';
+const SPLIT_TITLE = 'Split Petstore';
+
+const REVEAL_LABELS: Record<string, string> = {
+  darwin: 'Reveal in Finder',
+  win32: 'Reveal in File Explorer'
+};
+const revealLabel = REVEAL_LABELS[process.platform] ?? 'Reveal in File Manager';
+
+const buildPreferences = ({ mockServer }: { mockServer: boolean }) => JSON.stringify({
+  preferences: {
+    onboarding: { hasLaunchedBefore: true, hasSeenWelcomeModal: true },
+    beta: { 'mock-server': mockServer },
+    _migrations: { mockServerBetaOnByDefault: true }
+  }
+}, null, 2);
+
+const buildWorkspaceYml = ({ withSyncedCollection, withSplitSpec }: { withSyncedCollection: boolean; withSplitSpec: boolean }) => [
+  'opencollection: 1.0.0',
+  'info:',
+  `  name: ${WORKSPACE_NAME}`,
+  '  type: workspace',
+  ...(withSyncedCollection
+    ? ['collections:', `  - name: ${SYNCED_COLLECTION}`, '    path: collections/examples-sync']
+    : ['collections: []']),
+  'specs:',
+  `  - name: ${COMPREHENSIVE_TITLE}`,
+  '    path: specs/comprehensive.yaml',
+  `  - name: ${EXAMPLES_TITLE}`,
+  '    path: specs/examples.yaml',
+  '  - name: notes',
+  '    path: specs/notes.yaml',
+  ...(withSplitSpec ? [`  - name: ${SPLIT_TITLE}`, '    path: specs/split.yaml'] : []),
+  'docs: \'\'',
+  ''
+].join('\n');
+
+const readWorkspaceSpecs = (workspacePath: string): Array<{ name: string; path: string }> => {
+  const config = yaml.load(fs.readFileSync(path.join(workspacePath, 'workspace.yml'), 'utf8')) as { specs?: Array<{ name: string; path: string }> };
+  return config.specs ?? [];
+};
+
+const readWorkspaceSpecPaths = (workspacePath: string): string[] => readWorkspaceSpecs(workspacePath).map((spec) => spec.path);
+
+const findFileNamed = (dir: string, prefix: string): string | null => {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const entryPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      const found = findFileNamed(entryPath, prefix);
+      if (found) return found;
+    } else if (entry.name.startsWith(prefix)) {
+      return entryPath;
+    }
+  }
+  return null;
+};
+
+type CreateTmpDir = (tag?: string) => Promise<string>;
+type LaunchElectronApp = (options: { userDataPath: string }) => Promise<ElectronApplication>;
+type SeedOptions = { mockServer?: boolean; withSyncedCollection?: boolean; withSplitSpec?: boolean };
+
+const seedWorkspace = async (createTmpDir: CreateTmpDir, { mockServer = true, withSyncedCollection = false, withSplitSpec = false }: SeedOptions) => {
+  const userDataPath = await createTmpDir('spec-row-menu-userdata');
+  fs.writeFileSync(path.join(userDataPath, 'preferences.json'), buildPreferences({ mockServer }));
+
+  const workspacePath = await createTmpDir('spec-row-menu-workspace');
+  fs.mkdirSync(path.join(workspacePath, 'specs'));
+  fs.mkdirSync(path.join(workspacePath, 'collections'));
+  fs.copyFileSync(path.join(OPENAPI_FIXTURES, 'openapi-comprehensive.yaml'), path.join(workspacePath, 'specs', 'comprehensive.yaml'));
+  fs.copyFileSync(path.join(OPENAPI_FIXTURES, 'openapi-with-examples.yaml'), path.join(workspacePath, 'specs', 'examples.yaml'));
+  fs.writeFileSync(path.join(workspacePath, 'specs', 'notes.yaml'), 'title: Not an API\nitems:\n  - one\n');
+  fs.writeFileSync(path.join(workspacePath, 'workspace.yml'), buildWorkspaceYml({ withSyncedCollection, withSplitSpec }));
+
+  if (withSplitSpec) {
+    fs.mkdirSync(path.join(workspacePath, 'specs', 'paths'));
+    fs.writeFileSync(path.join(workspacePath, 'specs', 'split.yaml'), [
+      'openapi: 3.0.3',
+      'info:',
+      `  title: ${SPLIT_TITLE}`,
+      '  version: 1.0.0',
+      'paths:',
+      '  /pets:',
+      '    $ref: \'./paths/pets.yaml\'',
+      ''
+    ].join('\n'));
+    fs.writeFileSync(path.join(workspacePath, 'specs', 'paths', 'pets.yaml'), [
+      'get:',
+      '  summary: List pets',
+      '  responses:',
+      '    \'200\':',
+      '      description: ok',
+      ''
+    ].join('\n'));
+  }
+
+  if (withSyncedCollection) {
+    const collectionPath = path.join(workspacePath, 'collections', 'examples-sync');
+    fs.mkdirSync(collectionPath);
+    fs.writeFileSync(path.join(collectionPath, 'bruno.json'), JSON.stringify({
+      version: '1',
+      name: SYNCED_COLLECTION,
+      type: 'collection',
+      openapi: [{ sourceUrl: '../../specs/examples.yaml', groupBy: 'tags', autoCheck: false }]
+    }, null, 2));
+  }
+
+  return { userDataPath, workspacePath };
+};
+
+const launchOnWorkspace = async (launchElectronApp: LaunchElectronApp, createTmpDir: CreateTmpDir, options: SeedOptions = {}) => {
+  const { userDataPath, workspacePath } = await seedWorkspace(createTmpDir, options);
+  const app = await launchElectronApp({ userDataPath });
+  const page = await waitForReadyPage(app);
+  const titleBar = buildTitleBarLocators(page);
+  const { render, rowMenu } = buildCommonLocators(page).openApi;
+
+  await test.step('Open the seeded workspace and wait for its specs', async () => {
+    await openWorkspaceFromDialog(app, page, workspacePath);
+    await expect(titleBar.activeWorkspaceName()).toHaveText(WORKSPACE_NAME, { timeout: 10000 });
+    await expandApiSpecsSection(page);
+    await expect(render.sidebarRow(COMPREHENSIVE_TITLE)).toBeVisible({ timeout: 10000 });
+    await expect(render.sidebarRow(EXAMPLES_TITLE)).toBeVisible();
+  });
+
+  return { app, page, workspacePath, render, menu: rowMenu };
+};
+
+test.describe('API spec row context menu', () => {
+  test('lists every action in design order and reaches the existing actions', async ({ launchElectronApp, createTmpDir }) => {
+    test.setTimeout(90000);
+    const { app, page, workspacePath, render, menu } = await launchOnWorkspace(launchElectronApp, createTmpDir);
+    const { toast, import: importStep } = buildCommonLocators(page);
+
+    try {
+      await test.step('Menu items appear in the designed order with the divider before Remove', async () => {
+        await openApiSpecRowMenu(page, COMPREHENSIVE_TITLE);
+        await expect(menu.menuItems()).toHaveCount(7);
+        expect(await menu.menuEntries()).toEqual([
+          'generate-collection',
+          'generate-mock-server',
+          'clone',
+          'rename',
+          'reveal',
+          'divider',
+          'remove',
+          'delete'
+        ]);
+        await expect(menu.menuItem('generate-mock-server')).toContainText('Beta');
+        await expect(menu.menuItem('reveal')).toHaveText(revealLabel);
+        await expect(menu.menuItem('delete')).toHaveClass(/delete-item/);
+        await page.keyboard.press('Escape');
+        await expect(menu.menuItems()).toHaveCount(0);
+      });
+
+      await test.step('Record what the OS is asked to reveal', async () => {
+        await app.evaluate(({ shell }) => {
+          (globalThis as any).__revealed = [];
+          shell.showItemInFolder = (target: string) => {
+            (globalThis as any).__revealed.push(target);
+          };
+        });
+      });
+
+      await test.step('Right-click opens the menu of the row that was clicked', async () => {
+        await render.sidebarRow(EXAMPLES_TITLE).click({ button: 'right' });
+        await expect(menu.menuItems()).toHaveCount(7);
+        await menu.menuItem('reveal').click();
+        await expect.poll(() => app.evaluate(() => (globalThis as any).__revealed)).toEqual([
+          path.join(workspacePath, 'specs', 'examples.yaml')
+        ]);
+      });
+
+      await test.step('Reveal from the actions icon asks the OS to show that spec file', async () => {
+        await chooseApiSpecRowAction(page, COMPREHENSIVE_TITLE, 'reveal');
+        await expect.poll(() => app.evaluate(() => (globalThis as any).__revealed)).toEqual([
+          path.join(workspacePath, 'specs', 'examples.yaml'),
+          path.join(workspacePath, 'specs', 'comprehensive.yaml')
+        ]);
+      });
+
+      await test.step('Generate Collection on a non-OpenAPI file reports instead of opening the import step', async () => {
+        await chooseApiSpecRowAction(page, 'notes', 'generate-collection');
+        await expect(toast.byMessage('This file is not a valid OpenAPI document')).toBeVisible();
+        await expect(importStep.locationModal()).toHaveCount(0);
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+
+  test('hides Generate Mock Server when the beta flag is off', async ({ launchElectronApp, createTmpDir }) => {
+    test.setTimeout(60000);
+    const { app, page, menu } = await launchOnWorkspace(launchElectronApp, createTmpDir, { mockServer: false });
+
+    try {
+      await test.step('The menu has no mock server entry', async () => {
+        await openApiSpecRowMenu(page, COMPREHENSIVE_TITLE);
+        await expect(menu.menuItems()).toHaveCount(6);
+        await expect(menu.menuItem('generate-mock-server')).toHaveCount(0);
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+
+  test('renaming changes the sidebar name and workspace entry, and keeps the file and its sync link', async ({ launchElectronApp, createTmpDir }) => {
+    test.setTimeout(60000);
+    const { app, page, workspacePath, render, menu } = await launchOnWorkspace(launchElectronApp, createTmpDir, { withSyncedCollection: true });
+    const specPath = path.join(workspacePath, 'specs', 'examples.yaml');
+    const fileBefore = fs.readFileSync(specPath, 'utf8');
+
+    try {
+      await test.step('Rename starts from the current name', async () => {
+        await chooseApiSpecRowAction(page, EXAMPLES_TITLE, 'rename');
+        await expect(menu.renameModal()).toBeVisible();
+        await expect(menu.renameInput()).toHaveValue(EXAMPLES_TITLE);
+        await menu.renameInput().fill('Orders API');
+        await menu.renameSubmit().click();
+      });
+
+      await test.step('The row and workspace.yml carry the new name, the file is untouched', async () => {
+        await expect(render.sidebarRow('Orders API')).toBeVisible({ timeout: 10000 });
+        await expect(render.sidebarRow(EXAMPLES_TITLE)).toHaveCount(0);
+        await expect.poll(() => readWorkspaceSpecs(workspacePath)).toContainEqual({ name: 'Orders API', path: 'specs/examples.yaml' });
+        expect(fs.readFileSync(specPath, 'utf8')).toBe(fileBefore);
+      });
+
+      await test.step('The collection that syncs from the spec still points at it', async () => {
+        await chooseApiSpecRowAction(page, 'Orders API', 'delete');
+        await expect(menu.connectedCollectionsWarning()).toBeVisible();
+        await menu.deleteCancel().click();
+        await expect(menu.deleteModal()).toHaveCount(0);
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+
+  test('cloning copies the file into the workspace spec folder under the typed name, and refuses a clash', async ({ launchElectronApp, createTmpDir }) => {
+    test.setTimeout(60000);
+    const { app, page, workspacePath, render, menu } = await launchOnWorkspace(launchElectronApp, createTmpDir);
+    const { toast } = buildCommonLocators(page);
+    const sourcePath = path.join(workspacePath, 'specs', 'comprehensive.yaml');
+    const clonePath = path.join(workspacePath, 'apispec', 'Comprehensive Clone.yaml');
+
+    try {
+      await test.step('Clone suggests a copy name and the workspace spec folder', async () => {
+        await chooseApiSpecRowAction(page, COMPREHENSIVE_TITLE, 'clone');
+        await expect(menu.cloneModal()).toBeVisible();
+        await expect(menu.cloneNameInput()).toHaveValue(`${COMPREHENSIVE_TITLE} copy`);
+        await expect(menu.cloneLocationInput()).toHaveValue(path.join(workspacePath, 'apispec'));
+      });
+
+      await test.step('A name too long for a file name with its extension is refused before cloning', async () => {
+        await menu.cloneNameInput().fill('a'.repeat(251));
+        await menu.cloneSubmit().click();
+        await expect(menu.cloneNameError()).toHaveText('must be 250 characters or less');
+        await expect(menu.cloneModal()).toBeVisible();
+      });
+
+      await test.step('Clone under a valid name', async () => {
+        await menu.cloneNameInput().fill('Comprehensive Clone');
+        await menu.cloneSubmit().click();
+      });
+
+      await test.step('The copy is its own row with the typed name, next to the source', async () => {
+        await expect(render.sidebarRow('Comprehensive Clone')).toBeVisible({ timeout: 10000 });
+        await expect(render.sidebarRow(COMPREHENSIVE_TITLE)).toBeVisible();
+        expect(fs.readFileSync(clonePath, 'utf8')).toBe(fs.readFileSync(sourcePath, 'utf8'));
+        await expect.poll(() => readWorkspaceSpecs(workspacePath)).toContainEqual({
+          name: 'Comprehensive Clone',
+          path: 'apispec/Comprehensive Clone.yaml'
+        });
+      });
+
+      await test.step('Cloning onto an existing file is refused and the dialog stays open', async () => {
+        await chooseApiSpecRowAction(page, COMPREHENSIVE_TITLE, 'clone');
+        await menu.cloneNameInput().fill('Comprehensive Clone');
+        await menu.cloneSubmit().click();
+        await expect(toast.byMessage(/already exists/)).toBeVisible();
+        await expect(menu.cloneModal()).toBeVisible();
+        expect(readWorkspaceSpecPaths(workspacePath).filter((specPath) => specPath === 'apispec/Comprehensive Clone.yaml')).toHaveLength(1);
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+
+  test('cloning a spec that uses other files defaults to its own folder, and warns before copying it elsewhere', async ({ launchElectronApp, createTmpDir }) => {
+    test.setTimeout(60000);
+    const { app, page, workspacePath, render, menu } = await launchOnWorkspace(launchElectronApp, createTmpDir, { withSplitSpec: true });
+    const specsFolder = path.join(workspacePath, 'specs');
+
+    try {
+      await test.step('Clone suggests the folder the spec is in, with no warning', async () => {
+        await expect(render.sidebarRow(SPLIT_TITLE)).toBeVisible();
+        await chooseApiSpecRowAction(page, SPLIT_TITLE, 'clone');
+        await expect(menu.cloneLocationInput()).toHaveValue(specsFolder);
+        await expect(menu.cloneRelativeRefsWarning()).toHaveCount(0);
+      });
+
+      await test.step('Picking another folder shows the relative references warning', async () => {
+        await stubOpenDirectoryDialog(app, [path.join(workspacePath, 'collections')]);
+        await menu.cloneBrowse().click();
+        await expect(menu.cloneLocationInput()).toHaveValue(path.join(workspacePath, 'collections'));
+        await expect(menu.cloneRelativeRefsWarning()).toHaveText(
+          'This spec uses other files through relative references, and only this file is copied. Clone it into the same folder to keep those references working.'
+        );
+      });
+
+      await test.step('Going back to the spec folder clears the warning and the copy lands next to the source', async () => {
+        await stubOpenDirectoryDialog(app, [specsFolder]);
+        await menu.cloneBrowse().click();
+        await expect(menu.cloneLocationInput()).toHaveValue(specsFolder);
+        await expect(menu.cloneRelativeRefsWarning()).toHaveCount(0);
+        await menu.cloneNameInput().fill('Split Clone');
+        await menu.cloneSubmit().click();
+        await expect(render.sidebarRow('Split Clone')).toBeVisible({ timeout: 10000 });
+        expect(fs.existsSync(path.join(specsFolder, 'Split Clone.yaml'))).toBe(true);
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+
+  test('removing from workspace keeps the file and closes the open view', async ({ launchElectronApp, createTmpDir }) => {
+    test.setTimeout(60000);
+    const { app, page, workspacePath, render, menu } = await launchOnWorkspace(launchElectronApp, createTmpDir);
+    const specPath = path.join(workspacePath, 'specs', 'comprehensive.yaml');
+
+    try {
+      await test.step('Open the spec so its tab is showing', async () => {
+        await render.sidebarRow(COMPREHENSIVE_TITLE).click();
+        await expect(render.specTab('comprehensive.yaml')).toBeVisible();
+      });
+
+      await test.step('Cancel leaves the spec, its tab, the file and the workspace entry alone', async () => {
+        await chooseApiSpecRowAction(page, COMPREHENSIVE_TITLE, 'remove');
+        await expect(menu.removeModal()).toBeVisible();
+        await menu.removeCancel().click();
+        await expect(menu.removeModal()).toHaveCount(0);
+        await expect(render.sidebarRow(COMPREHENSIVE_TITLE)).toBeVisible();
+        await expect(render.specTab('comprehensive.yaml')).toBeVisible();
+        expect(fs.existsSync(specPath)).toBe(true);
+        expect(readWorkspaceSpecPaths(workspacePath)).toContain('specs/comprehensive.yaml');
+      });
+
+      await test.step('Remove from Workspace', async () => {
+        await chooseApiSpecRowAction(page, COMPREHENSIVE_TITLE, 'remove');
+        await expect(menu.removeModal()).toBeVisible();
+        await expect(menu.removeModal()).toContainText('Remove from Workspace');
+        await expect(menu.removeModal()).toContainText(specPath);
+        await menu.removeSubmit().click();
+      });
+
+      await test.step('Row and tab are gone, file and other specs stay', async () => {
+        await expect(render.sidebarRow(COMPREHENSIVE_TITLE)).toHaveCount(0, { timeout: 10000 });
+        await expect(render.specTab('comprehensive.yaml')).toHaveCount(0);
+        await expect(render.sidebarRow(EXAMPLES_TITLE)).toBeVisible();
+        expect(fs.existsSync(specPath)).toBe(true);
+        await expect.poll(() => readWorkspaceSpecPaths(workspacePath)).not.toContain('specs/comprehensive.yaml');
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+
+  test('deleting removes the file and closes the open view', async ({ launchElectronApp, createTmpDir }) => {
+    test.setTimeout(60000);
+    const { app, page, workspacePath, render, menu } = await launchOnWorkspace(launchElectronApp, createTmpDir);
+    const specPath = path.join(workspacePath, 'specs', 'examples.yaml');
+
+    try {
+      await test.step('Open the spec so its tab is showing', async () => {
+        await render.sidebarRow(EXAMPLES_TITLE).click();
+        await expect(render.specTab('examples.yaml')).toBeVisible();
+      });
+
+      await test.step('Delete names the file and its path, with no sync warning', async () => {
+        await chooseApiSpecRowAction(page, EXAMPLES_TITLE, 'delete');
+        await expect(menu.deleteModal()).toBeVisible();
+        await expect(menu.deleteModal()).toContainText(specPath);
+        await expect(menu.connectedCollectionsWarning()).toHaveCount(0);
+        await menu.deleteSubmit().click();
+      });
+
+      await test.step('Row, tab and file are gone, other specs stay', async () => {
+        await expect(render.sidebarRow(EXAMPLES_TITLE)).toHaveCount(0, { timeout: 10000 });
+        await expect(render.specTab('examples.yaml')).toHaveCount(0);
+        await expect(render.sidebarRow(COMPREHENSIVE_TITLE)).toBeVisible();
+        await expect.poll(() => fs.existsSync(specPath)).toBe(false);
+        await expect.poll(() => readWorkspaceSpecPaths(workspacePath)).not.toContain('specs/examples.yaml');
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+
+  test('warns before deleting a spec that a collection syncs from', async ({ launchElectronApp, createTmpDir }) => {
+    test.setTimeout(60000);
+    const { app, page, workspacePath, render, menu } = await launchOnWorkspace(launchElectronApp, createTmpDir, { withSyncedCollection: true });
+
+    try {
+      await test.step('The spec a collection syncs from shows the warning', async () => {
+        await chooseApiSpecRowAction(page, EXAMPLES_TITLE, 'delete');
+        await expect(menu.connectedCollectionsWarning()).toHaveText(
+          '1 collection syncs from this spec. Deleting it will stop that collection from getting updates.'
+        );
+        await page.keyboard.press('Escape');
+        await expect(menu.deleteModal()).toHaveCount(0);
+      });
+
+      await test.step('A spec nothing syncs from shows no warning', async () => {
+        await chooseApiSpecRowAction(page, COMPREHENSIVE_TITLE, 'delete');
+        await expect(menu.deleteModal()).toBeVisible();
+        await expect(menu.connectedCollectionsWarning()).toHaveCount(0);
+        await menu.deleteCancel().click();
+        await expect(menu.deleteModal()).toHaveCount(0);
+      });
+
+      await test.step('Closing the dialogs deleted nothing', async () => {
+        await expect(render.sidebarRow(EXAMPLES_TITLE)).toBeVisible();
+        await expect(render.sidebarRow(COMPREHENSIVE_TITLE)).toBeVisible();
+        expect(fs.existsSync(path.join(workspacePath, 'specs', 'examples.yaml'))).toBe(true);
+        expect(fs.existsSync(path.join(workspacePath, 'specs', 'comprehensive.yaml'))).toBe(true);
+        expect(readWorkspaceSpecPaths(workspacePath)).toEqual(expect.arrayContaining(['specs/examples.yaml', 'specs/comprehensive.yaml']));
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+
+  test('generates a collection through the existing import location step', async ({ launchElectronApp, createTmpDir }) => {
+    test.setTimeout(90000);
+    const { app, page, workspacePath } = await launchOnWorkspace(launchElectronApp, createTmpDir);
+    const { sidebar, import: importStep } = buildCommonLocators(page);
+
+    try {
+      await test.step('The import location step opens with the spec title prefilled', async () => {
+        await chooseApiSpecRowAction(page, COMPREHENSIVE_TITLE, 'generate-collection');
+        await expect(importStep.locationModal()).toBeVisible();
+        await expect(importStep.locationModal().getByText(COMPREHENSIVE_TITLE)).toBeVisible();
+      });
+
+      await test.step('Confirming creates the collection with the spec requests', async () => {
+        await importStep.importButton(importStep.locationModal()).click();
+        await expect(sidebar.collection(COMPREHENSIVE_TITLE)).toBeVisible({ timeout: 15000 });
+        await expect.poll(() => findFileNamed(workspacePath, 'Get all users'), { timeout: 10000 }).not.toBeNull();
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+
+  test('opens the mock server modal on the spec source with the spec preselected', async ({ launchElectronApp, createTmpDir }) => {
+    test.setTimeout(60000);
+    const { app, page } = await launchOnWorkspace(launchElectronApp, createTmpDir);
+    const mockServer = buildMockServerLocators(page);
+
+    try {
+      await test.step('The modal opens on the spec source with this spec selected', async () => {
+        await chooseApiSpecRowAction(page, EXAMPLES_TITLE, 'generate-mock-server');
+        await expect(mockServer.sourceSpecRadio()).toBeChecked();
+        await expect(mockServer.specSelectedOption()).toHaveText(EXAMPLES_TITLE);
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+});

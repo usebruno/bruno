@@ -350,6 +350,8 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-hint-variable {
     display: flex;
     align-items: center;
+    min-width: 0;
+    overflow: hidden;
     font-size: 11px;
     font-weight: 500;
   }

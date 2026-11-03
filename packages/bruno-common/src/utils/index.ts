@@ -54,7 +54,8 @@ export {
 export {
   sanitizeName,
   validateName,
-  validateNameError
+  validateNameError,
+  generateUniqueName
 } from './naming';
 
 export {
@@ -66,13 +67,23 @@ export {
 } from './environment-inheritance';
 
 export {
-  toVariablesMap
+  toVariablesMap,
+  getDuplicateSecretNames,
+  dedupeImportedSecrets
 } from './environment-variables';
+
+export {
+  coerceEnvName
+} from './environments';
 
 export {
   toBool,
   toNumber
 } from './type-helpers';
+
+export {
+  isValidNpmPackageName
+} from './npm';
 
 export {
   MAX_BODY_SIZE_DEFAULT,
