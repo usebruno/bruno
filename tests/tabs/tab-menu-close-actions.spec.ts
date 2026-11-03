@@ -152,6 +152,28 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     await expect(page.locator('#request-url .CodeMirror')).toContainText('/req-3');
   });
 
+  test('Inspect tab in the modal focuses that tab and keeps everything open', async ({ pageWithUserData: page }) => {
+    await openRequests(page, ['req-1', 'req-2', 'req-3']);
+    await editUrl(page, 'req-3');
+    await tab(page, 'req-1').click();
+    await expect(tab(page, 'req-1')).toHaveClass(/active/);
+
+    await selectTabContextMenuItem(page, 'req-1', 'close-right');
+    const modal = unsavedModal(page);
+    await expect(modal).toBeVisible({ timeout: 3000 });
+
+    const row = modal.getByRole('listitem').filter({ hasText: 'Request: req-3' });
+    await row.hover();
+    await row.getByRole('button', { name: 'Inspect tab' }).click();
+
+    await expect(modal).not.toBeVisible();
+    await expect(tab(page, 'req-3')).toHaveClass(/active/);
+    for (const name of ['req-1', 'req-2', 'req-3']) {
+      await expect(tab(page, name)).toBeVisible();
+    }
+    await expect(tab(page, 'req-3').locator('.has-changes-icon')).toBeVisible();
+  });
+
   test('Close to the Left closes immediately when nothing in range is unsaved', async ({ pageWithUserData: page }) => {
     await openRequests(page, ['req-1', 'req-2', 'req-3']);
     await editUrl(page, 'req-3');
