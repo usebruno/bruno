@@ -628,7 +628,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   }
 
   return (
-    <StyledWrapper className="flex items-center justify-between tab-container px-2">
+    <StyledWrapper className="flex items-center justify-between tab-container px-2" onContextMenu={handleRightClick}>
       {showConfirmClose && (
         <ConfirmRequestClose
           name={item.name}
@@ -679,7 +679,6 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         ref={tabLabelRef}
         className={`flex items-baseline tab-label ${tab.preview ? 'italic' : ''}`}
         data-testid="request-tab-label"
-        onContextMenu={handleRightClick}
         onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
         onMouseDown={handleMouseDown}
         onMouseUp={(e) => {
