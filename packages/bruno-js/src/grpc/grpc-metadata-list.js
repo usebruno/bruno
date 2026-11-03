@@ -58,6 +58,85 @@ class GrpcMetadataList extends ReadOnlyPropertyList {
     }
   }
 
+  // ── Docs for inherited methods (see readme § "Doc overrides") ─────────
+
+  /**
+   * Get the value of an entry.
+   *
+   * Keys match case-insensitively. With several entries of that key, the last one wins.
+   * @override get
+   * @param name - The key.
+   * @returns The value, or `undefined` when there is no such entry.
+   * @example
+   * const status = bru.grpc.response.trailers.get('grpc-status');
+   */
+
+  /**
+   * Get an entry by key.
+   *
+   * Keys match case-insensitively. With several entries of that key, the last one wins.
+   * @override one
+   * @param name - The key.
+   * @returns The entry, or `undefined` when there is no such entry.
+   */
+
+  /**
+   * Check whether an entry exists.
+   *
+   * Keys match case-insensitively.
+   * @override has
+   * @param nameOrItem - A key, or an entry whose key to look for (its value is not compared).
+   * @returns Whether a matching entry exists.
+   * @example
+   * if (!bru.grpc.request.metadata.has('authorization')) {
+   *   bru.grpc.request.metadata.upsert('authorization', `Bearer ${bru.getEnvVar('token')}`);
+   * }
+   */
+
+  /**
+   * Get the position of an entry.
+   *
+   * Keys match case-insensitively.
+   * @override indexOf
+   * @param nameOrItem - A key, or an entry to match by key and value.
+   * @returns The zero-based position of the first match, or `-1` when none matches.
+   */
+
+  /**
+   * Call `fn` once for each entry, in order.
+   * @override each
+   * @param fn - Called with each entry and its position.
+   */
+
+  /**
+   * Get the first entry `predicate` accepts.
+   * @override find
+   * @param predicate - Called with each entry and its position.
+   * @returns The entry, or `undefined` when none matches.
+   */
+
+  /**
+   * Get every entry `predicate` accepts.
+   * @override filter
+   * @param predicate - Called with each entry and its position.
+   * @returns The matching entries, in order.
+   */
+
+  /**
+   * Build an array from the result of `fn` for each entry.
+   * @override map
+   * @example
+   * const keys = bru.grpc.response.metadata.map((entry) => entry.key);
+   */
+
+  /**
+   * Combine the entries into a single value, as `Array.prototype.reduce` does.
+   *
+   * Without `initialValue`, the first entry is the starting value, and an empty list throws.
+   * @override reduce
+   * @param fn - Called with the value so far, each entry and its position; returns the next value.
+   */
+
   // ── Transform override ────────────────────────────────────────────────
 
   /**

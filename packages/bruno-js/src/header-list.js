@@ -204,6 +204,91 @@ class HeaderList extends ReadOnlyPropertyList {
     }
   }
 
+  // ── Docs for inherited methods (see readme § "Doc overrides") ─────────
+
+  /**
+   * Get the value of a header.
+   *
+   * Header names match case-insensitively. On `req.headerList` a disabled header counts too, but
+   * an enabled header of the same name wins over it.
+   * @override get
+   * @param name - The header's name.
+   * @returns The value, or `undefined` when there is no such header.
+   * @example
+   * const type = res.headerList.get('content-type');
+   */
+
+  /**
+   * Get a header by name.
+   *
+   * Header names match case-insensitively. On `req.headerList` a disabled header counts too, but
+   * an enabled header of the same name wins over it.
+   * @override one
+   * @param name - The header's name.
+   * @returns The header, or `undefined` when there is no such header.
+   */
+
+  /**
+   * Check whether a header exists.
+   *
+   * Header names match case-insensitively.
+   * @override has
+   * @param nameOrItem - A header name, or a header whose name to look for (its value is not
+   *   compared).
+   * @param value - When given, the header's value must also be equal (`===`) to it.
+   * @returns Whether a matching header exists.
+   * @example
+   * if (!req.headerList.has('authorization')) {
+   *   req.headerList.add('Authorization', `Bearer ${bru.getEnvVar('token')}`);
+   * }
+   */
+
+  /**
+   * Get the position of a header.
+   *
+   * Header names match case-insensitively.
+   * @override indexOf
+   * @param nameOrItem - A header name, or a header to match by name and value.
+   * @returns The zero-based position of the first match, or `-1` when none matches.
+   */
+
+  /**
+   * Call `fn` once for each header, in order.
+   * @override each
+   * @param fn - Called with each header and its position.
+   */
+
+  /**
+   * Get every header `predicate` accepts.
+   * @override filter
+   * @param predicate - Called with each header and its position.
+   * @returns The matching headers, in order.
+   */
+
+  /**
+   * Get the first header `predicate` accepts.
+   * @override find
+   * @param predicate - Called with each header and its position.
+   * @returns The header, or `undefined` when none matches.
+   */
+
+  /**
+   * Build an array from the result of `fn` for each header.
+   * @override map
+   * @param fn - Called with each header and its position.
+   * @returns The results, in the order of the headers.
+   * @example
+   * const names = res.headerList.map((header) => header.key);
+   */
+
+  /**
+   * Combine the headers into a single value, as `Array.prototype.reduce` does.
+   *
+   * Without `initialValue`, the first header is the starting value, and an empty list throws.
+   * @override reduce
+   * @param fn - Called with the value so far, each header and its position; returns the next value.
+   */
+
   // ── Write methods ──────────────────────────────────────────────────────
 
   /**
@@ -368,34 +453,6 @@ class HeaderList extends ReadOnlyPropertyList {
     this.populate(items);
   }
 
-  /**
-   * Set every header of `source` on the request, replacing same-name headers.
-   * @param {ReadOnlyHeaderList | Header[]} source - A header list, such as `res.headerList`, or an
-   *   array of headers.
-   * @param {boolean} [prune] - `true` also removes the headers whose names are not in `source`. An
-   *   empty `source` removes nothing.
-   * @category Write
-   */
-  assimilate(source, prune) {
-    this.#assertWritable();
-    let items;
-    if (ReadOnlyPropertyList.isPropertyList(source)) {
-      items = source.all();
-    } else if (Array.isArray(source)) {
-      items = source;
-    } else {
-      items = [];
-    }
-    for (const item of items) {
-      this.add(item);
-    }
-    if (prune && items.length > 0) {
-      const sourceKeys = new Set(items.map((i) => (i.key || '').toLowerCase()));
-      this.#removeWhere((header) => !sourceKeys.has(header.key.toLowerCase()));
-      this.#project();
-    }
-  }
-
   // ── Transform overrides ───────────────────────────────────────────────
 
   /**
@@ -425,6 +482,34 @@ class HeaderList extends ReadOnlyPropertyList {
     const headers = this.all().filter((h) => !h.disabled);
     if (headers.length === 0) return '';
     return headers.map((h) => `${h.key}: ${h.value}`).join('\n') + '\n';
+  }
+
+  /**
+   * Set every header of `source` on the request, replacing same-name headers.
+   * @param {ReadOnlyHeaderList | Header[]} source - A header list, such as `res.headerList`, or an
+   *   array of headers.
+   * @param {boolean} [prune] - `true` also removes the headers whose names are not in `source`. An
+   *   empty `source` removes nothing.
+   * @category Write
+   */
+  assimilate(source, prune) {
+    this.#assertWritable();
+    let items;
+    if (ReadOnlyPropertyList.isPropertyList(source)) {
+      items = source.all();
+    } else if (Array.isArray(source)) {
+      items = source;
+    } else {
+      items = [];
+    }
+    for (const item of items) {
+      this.add(item);
+    }
+    if (prune && items.length > 0) {
+      const sourceKeys = new Set(items.map((i) => (i.key || '').toLowerCase()));
+      this.#removeWhere((header) => !sourceKeys.has(header.key.toLowerCase()));
+      this.#project();
+    }
   }
 }
 

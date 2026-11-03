@@ -104,12 +104,11 @@ class ReadOnlyPropertyList {
   /**
    * Get the value of the entry with the given key.
    *
-   * Keys match exactly, or case-insensitively in header and metadata lists. With several entries
-   * of that key, the last one wins, and an enabled entry wins over one with `disabled: true`.
+   * Keys are case-sensitive. With several entries of that key, the last one wins.
    * @param {string} name - The key.
    * @returns {any} The value, or `undefined` when no entry has that key.
    * @example
-   * const sessionId = bru.cookies.get('sid');
+   * const value = list.get('id');
    * @category Read
    */
   get(name) {
@@ -120,8 +119,7 @@ class ReadOnlyPropertyList {
   /**
    * Get the entry with the given key.
    *
-   * Keys match exactly, or case-insensitively in header and metadata lists. With several entries
-   * of that key, the last one wins, and an enabled entry wins over one with `disabled: true`.
+   * Keys are case-sensitive. With several entries of that key, the last one wins.
    * @param {string} name - The key.
    * @returns {T | undefined} The entry, or `undefined` when no entry has that key.
    * @category Read
@@ -166,8 +164,7 @@ class ReadOnlyPropertyList {
    * Get the position of an entry.
    *
    * With a key, it finds the first entry of that key. With an entry, it finds the first one with
-   * the same key and value, so a copy of an entry finds it too. Keys match exactly, or
-   * case-insensitively in header and metadata lists.
+   * the same key and value, so a copy of an entry finds it too. Keys are case-sensitive.
    * @param {string | T} nameOrItem - A key, or an entry to match by key and value.
    * @returns {number} The zero-based position of the first match, or `-1` when none matches.
    * @category Search
@@ -189,14 +186,14 @@ class ReadOnlyPropertyList {
   /**
    * Check whether an entry with the given key exists.
    *
-   * Keys match exactly, or case-insensitively in header and metadata lists.
+   * Keys are case-sensitive.
    * @param {string | T} nameOrItem - A key, or an entry whose key to look for (its value is not
    *   compared).
    * @param {any} [value] - When given, the entry's value must also be equal (`===`) to it.
    * @returns {boolean} Whether a matching entry exists.
    * @example
-   * if (!bru.cookies.has('sid')) {
-   *   bru.setVar('loggedIn', false);
+   * if (!list.has('id')) {
+   *   bru.setVar('missingId', true);
    * }
    * @category Search
    */
@@ -247,7 +244,7 @@ class ReadOnlyPropertyList {
    * @param {any} [context] - The `this` of `fn`.
    * @returns {any[]} The results, in the order of the entries.
    * @example
-   * const names = bru.cookies.map((cookie) => cookie.key);
+   * const keys = list.map((entry) => entry.key);
    * @category Iteration
    */
   map(fn, context) {

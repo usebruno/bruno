@@ -352,6 +352,43 @@ class CookieList extends ReadOnlyPropertyList {
       }
     };
   }
+
+  // ── Docs for inherited methods (see readme § "Doc overrides") ─────────
+
+  /**
+   * Get the value of a cookie the request sends.
+   *
+   * Names are case-sensitive. With several cookies of that name, the last one wins.
+   * @override get
+   * @param name - The cookie's name.
+   * @returns The value, or `undefined` when there is no such cookie.
+   * @example
+   * const sessionId = bru.cookies.get('sid');
+   */
+
+  /**
+   * Check whether the request sends a cookie with the given name.
+   *
+   * Names are case-sensitive.
+   * @override has
+   * @param nameOrItem - A cookie name, or a cookie whose name to look for (its value is not
+   *   compared).
+   * @param value - When given, the cookie's value must also be equal (`===`) to it.
+   * @returns Whether a matching cookie exists.
+   * @example
+   * if (!bru.cookies.has('sid')) {
+   *   bru.setVar('loggedIn', false);
+   * }
+   */
+
+  /**
+   * Build an array from the result of `fn` for each cookie.
+   * @override map
+   * @param fn - Called with each cookie and its position.
+   * @returns The results, in the order of the cookies.
+   * @example
+   * const names = bru.cookies.map((cookie) => cookie.key);
+   */
 }
 
 module.exports = CookieList;
