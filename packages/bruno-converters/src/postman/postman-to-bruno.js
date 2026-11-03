@@ -214,7 +214,7 @@ const translationFailureReporter = (issues, path) => ({ message, fallback }) => 
   });
 };
 
-const translateOrPreserve = (exec, preserveScripts, translationOptions, scriptUsages = []) => {
+const translateOrPreserve = (exec, preserveScripts, translationOptions, scriptUsages) => {
   if (preserveScripts) {
     return Array.isArray(exec) ? exec.join('\n') : exec;
   }
@@ -224,7 +224,7 @@ const translateOrPreserve = (exec, preserveScripts, translationOptions, scriptUs
   return translated;
 };
 
-const importScriptsFromEvents = (events, requestObject, preserveScripts = false, translationOptions, scriptUsages = []) => {
+const importScriptsFromEvents = (events, requestObject, preserveScripts = false, translationOptions, scriptUsages) => {
   events.forEach((event) => {
     if (event.script && event.script.exec) {
       if (event.listen === 'prerequest') {
@@ -480,7 +480,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
   }
 };
 
-const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = false, logTranslationFailures = true } = {}, scriptMap, issues = [], scriptUsages = [], parentPath = '') => {
+const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = false, logTranslationFailures = true } = {}, scriptMap, issues = [], scriptUsages, parentPath = '') => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
