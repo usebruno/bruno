@@ -2,10 +2,6 @@ name: 'Run OAuth2 E2E Tests'
 description: 'Start Keycloak and run the OAuth2 (Keycloak) E2E tests on Linux, macOS and Windows'
 
 inputs:
-  port:
-    description: 'HTTP port Keycloak listens on'
-    required: false
-    default: '8090'
   artifact-suffix:
     description: 'Suffix for the uploaded Playwright report artifact name (linux, macos, windows)'
     required: true
@@ -18,7 +14,7 @@ runs:
     - name: Start Keycloak and run OAuth2 E2E tests
       shell: bash
       env:
-        KEYCLOAK_PORT: ${{ inputs.port }}
+        KEYCLOAK_PORT: '8090'
       run: |
         set -euo pipefail
 
