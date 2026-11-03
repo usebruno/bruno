@@ -69,6 +69,8 @@ class ReadOnlyPropertyList {
    * Returns the current list of items.
    * In dynamic mode, calls the dataSource function.
    * In static mode, returns the internal array.
+   * @protected
+   * @returns {T[]}
    */
   _getItems() {
     return this._dynamic ? this.#dataSource() : this._items;
@@ -78,6 +80,7 @@ class ReadOnlyPropertyList {
    * The single place the key match rule lives. Non-string keys never match.
    * @param {string} a
    * @param {string} b
+   * @protected
    * @returns {boolean}
    */
   _keyMatches(a, b) {
@@ -89,6 +92,7 @@ class ReadOnlyPropertyList {
    * Binds `this` for a callback when a context is supplied.
    * @param {Function} fn
    * @param {*} [context]
+   * @protected
    * @returns {Function}
    */
   _bind(fn, context) {
@@ -100,7 +104,8 @@ class ReadOnlyPropertyList {
   /**
    * Get the value of the entry with the given key.
    *
-   * Keys are case-sensitive. With several entries of that key, the last one wins.
+   * Keys match exactly, or case-insensitively in header and metadata lists. With several entries
+   * of that key, the last one wins, and an enabled entry wins over one with `disabled: true`.
    * @param {string} name - The key.
    * @returns {any} The value, or `undefined` when no entry has that key.
    * @example
@@ -115,7 +120,8 @@ class ReadOnlyPropertyList {
   /**
    * Get the entry with the given key.
    *
-   * Keys are case-sensitive. With several entries of that key, the last one wins.
+   * Keys match exactly, or case-insensitively in header and metadata lists. With several entries
+   * of that key, the last one wins, and an enabled entry wins over one with `disabled: true`.
    * @param {string} name - The key.
    * @returns {T | undefined} The entry, or `undefined` when no entry has that key.
    * @category Read
@@ -159,9 +165,11 @@ class ReadOnlyPropertyList {
   /**
    * Get the position of an entry.
    *
-   * Matches an entry with the same key and value, so a copy of an entry finds it too.
-   * @param {T} item - An entry.
-   * @returns {number} The zero-based position, or `-1` when no entry matches.
+   * With a key, it finds the first entry of that key. With an entry, it finds the first one with
+   * the same key and value, so a copy of an entry finds it too. Keys match exactly, or
+   * case-insensitively in header and metadata lists.
+   * @param {string | T} nameOrItem - A key, or an entry to match by key and value.
+   * @returns {number} The zero-based position of the first match, or `-1` when none matches.
    * @category Search
    */
   indexOf(nameOrItem) {
@@ -181,8 +189,9 @@ class ReadOnlyPropertyList {
   /**
    * Check whether an entry with the given key exists.
    *
-   * Keys are case-sensitive.
-   * @param {string} name - The key.
+   * Keys match exactly, or case-insensitively in header and metadata lists.
+   * @param {string | T} nameOrItem - A key, or an entry whose key to look for (its value is not
+   *   compared).
    * @param {any} [value] - When given, the entry's value must also be equal (`===`) to it.
    * @returns {boolean} Whether a matching entry exists.
    * @example
@@ -201,6 +210,7 @@ class ReadOnlyPropertyList {
   /**
    * Get the first entry `predicate` accepts.
    * @param {(item: T, index: number) => boolean} predicate - Called with each entry and its position.
+   * @param {any} [context] - The `this` of `predicate`.
    * @returns {T | undefined} The entry, or `undefined` when none matches.
    * @category Search
    */
@@ -211,6 +221,7 @@ class ReadOnlyPropertyList {
   /**
    * Get every entry `predicate` accepts.
    * @param {(item: T, index: number) => boolean} predicate - Called with each entry and its position.
+   * @param {any} [context] - The `this` of `predicate`.
    * @returns {T[]} The matching entries, in order.
    * @category Search
    */
@@ -223,6 +234,7 @@ class ReadOnlyPropertyList {
   /**
    * Call `fn` once for each entry, in order.
    * @param {(item: T, index: number) => void} fn - Called with each entry and its position.
+   * @param {any} [context] - The `this` of `fn`.
    * @category Iteration
    */
   each(fn, context) {
@@ -232,6 +244,7 @@ class ReadOnlyPropertyList {
   /**
    * Build an array from the result of `fn` for each entry.
    * @param {(item: T, index: number) => any} fn - Called with each entry and its position.
+   * @param {any} [context] - The `this` of `fn`.
    * @returns {any[]} The results, in the order of the entries.
    * @example
    * const names = bru.cookies.map((cookie) => cookie.key);
@@ -245,9 +258,10 @@ class ReadOnlyPropertyList {
    * Combine the entries into a single value, as `Array.prototype.reduce` does.
    *
    * Without `initialValue`, the first entry is the starting value, and an empty list throws.
-   * @type {(fn: (accumulator: any, item: T, index: number) => any, initialValue?: any) => any}
+   * @type {(fn: (accumulator: any, item: T, index: number) => any, initialValue?: any, context?: any) => any}
    * @param fn - Called with the value so far, each entry and its position; returns the next value.
    * @param initialValue - The starting value.
+   * @param context - The `this` of `fn`.
    * @category Iteration
    */
   reduce(fn, ...rest) {

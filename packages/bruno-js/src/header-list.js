@@ -209,7 +209,7 @@ class HeaderList extends ReadOnlyPropertyList {
   /**
    * Set a header on the request, the same as `upsert`.
    *
-   * A `disabled` flag on the given header is ignored: the header is always sent.
+   * A header with `disabled: true` is listed but not sent.
    * @param {Header | string} itemOrName - A header, a `Name: value` string, or a header name.
    * @param {string} [value] - The value, with a header name.
    * @example
@@ -229,11 +229,11 @@ class HeaderList extends ReadOnlyPropertyList {
   }
 
   /**
-   * Set a header on the request, replacing the enabled header of the same name.
+   * Set a header on the request, replacing the header of the same name.
    *
-   * Header names match case-insensitively; the replaced header takes the new name's case. A
-   * disabled header of that name stays in the list. A `disabled` flag on the given header is
-   * ignored: the header is always sent.
+   * Header names match case-insensitively; the replaced header takes the new name's case. It
+   * replaces an enabled or a disabled header, so upserting a disabled header's name enables it. A
+   * header with `disabled: true` is listed but not sent, and disables a header it replaces.
    * @param {Header | string} itemOrName - A header, or a header name.
    * @param {string} [value] - The value, with a header name.
    * @returns {boolean | null | undefined} `true` when the header is new, `false` when it replaced
@@ -369,9 +369,12 @@ class HeaderList extends ReadOnlyPropertyList {
   }
 
   /**
-   * Merge items from another property list or array.
-   * @param {ReadOnlyPropertyList|Array} source - Source of items to merge
-   * @param {boolean} [prune=false] - If true, remove items not present in source after merging
+   * Set every header of `source` on the request, replacing same-name headers.
+   * @param {ReadOnlyHeaderList | Header[]} source - A header list, such as `res.headerList`, or an
+   *   array of headers.
+   * @param {boolean} [prune] - `true` also removes the headers whose names are not in `source`. An
+   *   empty `source` removes nothing.
+   * @category Write
    */
   assimilate(source, prune) {
     this.#assertWritable();

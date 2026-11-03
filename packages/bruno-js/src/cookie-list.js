@@ -138,7 +138,7 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  * The cookies the current request sends, with methods to change them and `jar()` for other URLs.
  *
  * The list is read from the cookie jar each time, so it reflects every change at once.
- * @extends {PropertyList<Cookie>}
+ * @extends {ReadOnlyPropertyList<Cookie>}
  */
 class CookieList extends ReadOnlyPropertyList {
   /**
@@ -187,20 +187,21 @@ class CookieList extends ReadOnlyPropertyList {
   }
 
   /**
-   * Add a cookie to the jar (alias for {@link CookieList#add}).
-   *
-   * @param {object} cookieObj - Cookie object with at least `key` and `value`.
-   * @param {Function} [callback] - Optional `(error) => void` callback. If omitted, returns a Promise.
-   * @returns {Promise<void>|void} A Promise when no callback is given.
+   * Store a cookie for the request's URL, the same as `add`.
+   * @param {CookieInput} cookieObj - The cookie.
+   * @param {(error?: Error | null) => void} [callback] - Called with an error, or with none on success.
+   *   Without it, the method returns a promise.
+   * @returns {Promise<void> | void} A promise, unless `callback` is given.
    * @example
    * await bru.cookies.append({ key: 'lang', value: 'en' });
+   * @category Write
    */
   append(cookieObj, callback) {
     return this.add(cookieObj, callback);
   }
 
   /**
-   * Set (or replace) a cookie in the jar for the current request URL.
+   * Store a cookie for the request's URL.
    *
    * It replaces a cookie with the same name, domain and path. Fails when `cookieObj` is not an
    * object or has no `key`.
