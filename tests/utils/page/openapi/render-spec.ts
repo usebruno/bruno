@@ -23,11 +23,12 @@ export const buildApiSpecPanelLocators = (page: Page) => ({
   sidebarRowRemoveMenuItem: () => page.getByTestId('api-spec-actions-remove'),
   createApiSpecMenuItem: () => page.getByTestId('api-specs-header-add-menu-create-api-spec'),
   createApiSpecModal: () => page.locator('.bruno-modal').filter({ hasText: 'Create API Spec' }),
-  createApiSpecCollectionLocation: () => page.locator('.bruno-modal #collection-location'),
-  createApiSpecName: () => page.locator('.bruno-modal #api-spec-name'),
-  createApiSpecLocation: () => page.locator('.bruno-modal #api-spec-location'),
+  createApiSpecCollectionLocation: () => page.getByTestId('api-spec-collection-location'),
+  createApiSpecName: () => page.getByTestId('api-spec-name-input'),
+  createApiSpecLocation: () => page.getByTestId('api-spec-location-input'),
   swaggerOperation: (specPath: string) =>
     page.locator('.opblock').filter({ has: page.locator(`.opblock-summary-path[data-path="${specPath}"]`) }),
+  swaggerOperationSummary: (operation: Locator) => operation.locator('.opblock-summary'),
   swaggerTryItOut: (operation: Locator) => operation.locator('.try-out__btn'),
   swaggerPathParamInput: (operation: Locator, name: string) =>
     operation.locator(`tr[data-param-name="${name}"][data-param-in="path"] input`)
@@ -71,7 +72,13 @@ export const createApiSpec = async (
   await test.step(`Create API spec "${name}" in ${location}`, async () => {
     await stubOpenDirectoryDialog(electronApp, [location]);
 
-    const { addMenuButton, createApiSpecMenuItem, createApiSpecModal } = buildApiSpecPanelLocators(page);
+    const {
+      addMenuButton,
+      createApiSpecMenuItem,
+      createApiSpecModal,
+      createApiSpecName,
+      createApiSpecLocation
+    } = buildApiSpecPanelLocators(page);
     await addMenuButton().click();
     await createApiSpecMenuItem().click();
 
@@ -79,9 +86,9 @@ export const createApiSpec = async (
     await expect(modal).toBeVisible();
 
     await modal.getByLabel('Blank Spec').check();
-    await modal.locator('#api-spec-name').fill(name);
-    await modal.locator('#api-spec-location').click();
-    await expect(modal.locator('#api-spec-location')).toHaveValue(location);
+    await createApiSpecName().fill(name);
+    await createApiSpecLocation().click();
+    await expect(createApiSpecLocation()).toHaveValue(location);
 
     await modal.getByTestId('modal-submit-btn').click();
     await expect(modal).toHaveCount(0);
@@ -116,11 +123,7 @@ export const createApiSpecFromCollection = async (
     await createApiSpecName().fill(name);
     await stubOpenDirectoryDialog(electronApp, [location]);
     await createApiSpecLocation().click();
-    // The folder picker resolves asynchronously, wait for the field to receive the stubbed path
-    await page.waitForFunction(
-      ({ dir }) => (document.querySelector('.bruno-modal #api-spec-location') as HTMLInputElement | null)?.value === dir,
-      { dir: location }
-    );
+    await expect(createApiSpecLocation()).toHaveValue(location);
 
     await modal.getByTestId('modal-submit-btn').click();
     await modal.waitFor({ state: 'detached' });

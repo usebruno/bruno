@@ -7,6 +7,7 @@ const SpecLocationField = ({ location, error, onBrowse }) => (
     </label>
     <input
       id="api-spec-location"
+      data-testid="api-spec-location-input"
       type="text"
       name="apiSpecLocation"
       readOnly={true}

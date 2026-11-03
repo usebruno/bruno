@@ -24,7 +24,7 @@ test.describe('Create API spec from a collection: secrets', () => {
 
   test('writes variable values but never secret values into the spec', async ({ page, electronApp, createTmpDir, collectionFixturePath }) => {
     const specsDir = await createTmpDir('secrets-spec');
-    const { swaggerOperation, swaggerTryItOut, swaggerPathParamInput } = buildApiSpecPanelLocators(page);
+    const { swaggerOperation, swaggerOperationSummary, swaggerTryItOut, swaggerPathParamInput } = buildApiSpecPanelLocators(page);
 
     await test.step('Give the environment secrets a value', async () => {
       await openCollectionFromDialog(page, electronApp, collectionFixturePath!);
@@ -67,7 +67,7 @@ test.describe('Create API spec from a collection: secrets', () => {
 
     await test.step('Swagger shows a fill-in box for the secret in the path, prefilled with its placeholder', async () => {
       const operation = swaggerOperation('/{secvar}/env-var-value');
-      await operation.locator('.opblock-summary').click();
+      await swaggerOperationSummary(operation).click();
       await swaggerTryItOut(operation).click();
       await expect(swaggerPathParamInput(operation, 'secvar')).toHaveValue('{{secvar}}');
     });
