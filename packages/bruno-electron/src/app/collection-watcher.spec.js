@@ -80,7 +80,7 @@ const fs = require('fs');
 const os = require('os');
 const { getBrunoConfig } = require('../store/bruno-config');
 const { hasRequestExtension } = require('../utils/filesystem');
-const { parseRequest } = require('@usebruno/filestore');
+const { parseRequest, parseRequestViaWorker } = require('@usebruno/filestore');
 const collectionWatcher = require('./collection-watcher');
 
 const treeUpdates = (send) => send.mock.calls.filter(([channel]) => channel === 'main:collection-tree-updated');
@@ -168,6 +168,17 @@ describe('CollectionWatcher', () => {
       );
       expect(loadedAt).toBeGreaterThan(channels.lastIndexOf('main:collection-tree-updated'));
       expect(deliveredFilePaths(win.webContents.send)).toEqual(filePaths);
+    });
+
+    it('parses only the prioritized request with top priority on the worker thread', async () => {
+      const win = { webContents: { send: jest.fn() } };
+      parseRequestViaWorker.mockImplementation(async () => ({ name: 'req', type: 'http-request' }));
+      collectionWatcher.addWatcher(win, watchPath, collectionUid, {}, false, true, { prioritizedPathname: filePaths[1] });
+
+      await watcherHandlers.add(filePaths[0]);
+      await watcherHandlers.add(filePaths[1]);
+
+      expect(parseRequestViaWorker.mock.calls.map(([, options]) => options.priority)).toEqual([undefined, -1]);
     });
 
     it('sends a file added after the scan as a single addFile', async () => {

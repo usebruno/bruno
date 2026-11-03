@@ -411,7 +411,8 @@ const CollectionItemRow = ({
         collectionUid,
         collectionPathname: collection.pathname,
         brunoConfig: collection.brunoConfig,
-        skipTabRestore: true
+        skipTabRestore: true,
+        prioritizedPathname: item.pathname
       }))
         .then(revealMountedItem)
         .catch(() => {});

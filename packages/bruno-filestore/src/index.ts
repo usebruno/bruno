@@ -66,10 +66,10 @@ const getWorkerInstance = (): BruParserWorker => {
   return globalWorkerInstance;
 };
 
-export const parseRequestViaWorker = async (content: string, options: { format: CollectionFormat; filename?: string }): Promise<any> => {
+export const parseRequestViaWorker = async (content: string, options: { format: CollectionFormat; filename?: string; priority?: number }): Promise<any> => {
   const fileParserWorker = getWorkerInstance();
 
-  return await fileParserWorker.parseRequest(content, options.format);
+  return await fileParserWorker.parseRequest(content, options.format, options.priority);
 };
 
 export const stringifyRequestViaWorker = async (requestObj: any, options: { format: CollectionFormat }): Promise<string> => {

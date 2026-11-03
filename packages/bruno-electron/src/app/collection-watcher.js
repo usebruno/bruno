@@ -452,7 +452,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         // This is to update the file info in the UI
         file.data = await parseRequestViaWorker(content, {
           format,
-          filename: pathname
+          filename: pathname,
+          priority: watcher.prioritizedPathnames[collectionUid] === pathname ? -1 : undefined
         });
         stageToCache(collectionPath, pathname, file.data);
         file.partial = false;
@@ -787,6 +788,7 @@ class CollectionWatcher {
   constructor() {
     this.watchers = {};
     this.loadingStates = {};
+    this.prioritizedPathnames = {};
     this.tempDirectoryMap = {};
   }
 
@@ -860,6 +862,7 @@ class CollectionWatcher {
   cleanupLoadingState(collectionUid) {
     discardTreeUpdateBatch(collectionUid);
     delete this.loadingStates[collectionUid];
+    delete this.prioritizedPathnames[collectionUid];
   }
 
   addWatcher(win, watchPath, collectionUid, brunoConfig, forcePolling = false, useWorkerThread, options = {}) {
@@ -869,7 +872,8 @@ class CollectionWatcher {
     }
 
     // v2 already loaded the tree from cache; skip startup scan and stage live edits
-    const { ignoreInitial = false, fileIndex = null, workspacePathname = null } = options;
+    const { ignoreInitial = false, fileIndex = null, workspacePathname = null, prioritizedPathname = null } = options;
+    this.prioritizedPathnames[collectionUid] = prioritizedPathname;
     if (fileIndex) {
       fileIndexByCollection.set(watchPath, fileIndex);
     }
