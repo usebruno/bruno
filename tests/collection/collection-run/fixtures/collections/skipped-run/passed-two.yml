@@ -1,0 +1,17 @@
+info:
+  name: Passed Two
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: http://localhost:8081/ping
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("second ping returned 200", function() {
+          expect(res.getStatus()).to.equal(200);
+        });

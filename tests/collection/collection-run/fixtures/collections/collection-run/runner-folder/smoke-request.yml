@@ -1,0 +1,11 @@
+info:
+  name: Smoke Request
+  type: http
+  seq: 1
+  tags:
+    - smoke
+
+http:
+  method: GET
+  url: http://localhost:8081/ping
+  auth: inherit

@@ -1,0 +1,13 @@
+{
+  "maximized": false,
+  "lastOpenedCollections": [
+    "{{collectionPath}}/collection-run",
+    "{{collectionPath}}/skipped-run"
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
+}
