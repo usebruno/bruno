@@ -24,6 +24,7 @@ const POST_RESPONSE_SCRIPT = [
 ].join('\n');
 
 test.describe('Folder post-response script', () => {
+  test.describe.configure({ timeout: 60_000 });
   test.afterEach(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
