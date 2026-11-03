@@ -633,6 +633,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
         collectionUid
       })
     );
+    const networkRequestsGeneration = getState().collections.networkRequestsGeneration || 0;
 
     const environment = resolveEnvironmentInheritance({
       environments: collectionCopy.environments,
@@ -672,6 +673,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
               requestUid,
               itemUid,
               collectionUid,
+              networkRequestsGeneration,
               response: serializedResponse,
               requestSent
             })
@@ -688,6 +690,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
                 requestUid,
                 itemUid,
                 collectionUid,
+                networkRequestsGeneration,
                 response: null,
                 requestSent
               })
@@ -708,6 +711,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
               requestUid,
               itemUid,
               collectionUid,
+              networkRequestsGeneration,
               response: errorResponse,
               requestSent
             })

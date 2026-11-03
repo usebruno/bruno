@@ -210,7 +210,7 @@ const initialState = {
   mockResponseEditors: {}
 };
 
-const appendRequestTimelineEntry = (state, collection, item, entry) => {
+const appendRequestTimelineEntry = (state, collection, item, entry, requestGeneration) => {
   state.requestTimelineEvents ||= {};
   state.networkRequestIds ||= [];
   collection.timeline ||= [];
@@ -232,8 +232,11 @@ const appendRequestTimelineEntry = (state, collection, item, entry) => {
   // Keep the Network tab's session history independent from each request's
   // Response-pane timeline. A request started before Clear stays cleared even
   // if a later lifecycle event arrives afterward.
-  item._networkRequestsGeneration ??= state.networkRequestsGeneration || 0;
-  if (item._networkRequestsGeneration === (state.networkRequestsGeneration || 0)) {
+  if (requestGeneration === undefined) {
+    item._networkRequestsGeneration ??= state.networkRequestsGeneration || 0;
+    requestGeneration = item._networkRequestsGeneration;
+  }
+  if (requestGeneration === (state.networkRequestsGeneration || 0)) {
     state.networkRequestIds.push(requestEventId);
   }
 };
@@ -732,15 +735,17 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (item) {
-          // Ignore a late response from an earlier send of the same request item.
-          if (requestUid && item.requestUid !== requestUid) return;
+          // Keep the current response UI tied to the latest send, but retain
+          // history for earlier sends that complete out of order.
+          const isLatestRequest = !requestUid || item.requestUid === requestUid;
+          if (isLatestRequest) {
+            item.requestState = 'received';
+            item.response = action.payload.response;
+            item.cancelTokenUid = item.response?.stream?.running ? item.cancelTokenUid : null;
+            item.requestStartTime = null;
+          }
 
-          item.requestState = 'received';
-          item.response = action.payload.response;
-          item.cancelTokenUid = item.response.stream?.running ? item.cancelTokenUid : null;
-          item.requestStartTime = null;
-
-          const timelineRequest = action.payload.requestSent || item.requestSent || item.request;
+          const timelineRequest = action.payload.requestSent || (isLatestRequest ? item.requestSent : null) || item.request;
 
           // Ensure timestamp is a number (milliseconds since epoch)
           const timestamp = timelineRequest?.timestamp instanceof Date
@@ -754,14 +759,14 @@ export const collectionsSlice = createSlice({
             collectionUid: collection.uid,
             folderUid: null,
             itemUid: item.uid,
-            requestUid: item.requestUid,
+            requestUid: requestUid || item.requestUid,
             timestamp: timestamp,
             data: {
               request: timelineRequest,
               response: action.payload.response,
               timestamp: timestamp
             }
-          });
+          }, action.payload.networkRequestsGeneration ?? (isLatestRequest ? item._networkRequestsGeneration : -1));
         }
       }
     },
@@ -778,7 +783,6 @@ export const collectionsSlice = createSlice({
       if (eventType === 'request') {
         item.requestSent = eventData;
         item.requestSent.timestamp = Date.now();
-        item._networkRequestsGeneration = state.networkRequestsGeneration || 0;
         item.response = {
           initiatedGrpcResponse,
           statusText: isUnary ? 'PENDING' : 'STREAMING'
@@ -4119,7 +4123,6 @@ export const collectionsSlice = createSlice({
       if (eventType === 'request') {
         item.requestSent = eventData;
         item.requestSent.timestamp = Date.now();
-        item._networkRequestsGeneration = state.networkRequestsGeneration || 0;
         item.response = {
           ...initiatedWsResponse,
           initiatedWsResponse,

@@ -16,7 +16,9 @@ const {
   clearAllNetworkRequests,
   clearRequestTimeline,
   initRunRequestEvent,
-  responseReceived
+  responseReceived,
+  runGrpcRequestEvent,
+  runWsRequestEvent
 } = collectionsSlice.actions;
 const reducer = collectionsSlice.reducer;
 
@@ -373,6 +375,63 @@ describe('independent Network and response histories', () => {
     expect(completed.collections[0].timeline[0]).toMatchObject({ type: 'request', requestEventId });
   });
 
+  it('records an earlier HTTP run without replacing the latest response state', () => {
+    const latestResponse = { statusCode: 202 };
+    const state = makeStateWith({
+      uid: 'item1',
+      request: { method: 'GET', url: 'https://example.com' },
+      response: latestResponse,
+      requestState: 'sending'
+    });
+    const firstRun = reducer(state, initRunRequestEvent({
+      requestUid: 'run1',
+      itemUid: 'item1',
+      collectionUid: 'col1'
+    }));
+    const latestRun = reducer(firstRun, initRunRequestEvent({
+      requestUid: 'run2',
+      itemUid: 'item1',
+      collectionUid: 'col1'
+    }));
+    const latestItemBeforeOldResponse = latestRun.collections[0].items[0];
+
+    const afterOldResponse = reducer(latestRun, responseReceived({
+      requestUid: 'run1',
+      networkRequestsGeneration: 0,
+      collectionUid: 'col1',
+      itemUid: 'item1',
+      requestSent: { method: 'GET', url: 'https://first.example', timestamp: 10 },
+      response: { statusCode: 200 }
+    }));
+
+    const updatedItem = afterOldResponse.collections[0].items[0];
+    expect(updatedItem.requestUid).toBe('run2');
+    expect(updatedItem.requestState).toBe(latestItemBeforeOldResponse.requestState);
+    expect(updatedItem.response).toEqual(latestResponse);
+    expect(afterOldResponse.collections[0].timeline).toHaveLength(1);
+    const oldRunEvent = afterOldResponse.requestTimelineEvents[afterOldResponse.networkRequestIds[0]];
+    expect(oldRunEvent).toMatchObject({
+      requestUid: 'run1',
+      data: {
+        request: { url: 'https://first.example' },
+        response: { statusCode: 200 }
+      }
+    });
+
+    const completed = reducer(afterOldResponse, responseReceived({
+      requestUid: 'run2',
+      networkRequestsGeneration: 0,
+      collectionUid: 'col1',
+      itemUid: 'item1',
+      requestSent: { method: 'GET', url: 'https://second.example', timestamp: 20 },
+      response: { statusCode: 201 }
+    }));
+
+    expect(completed.collections[0].timeline).toHaveLength(2);
+    expect(completed.networkRequestIds).toHaveLength(2);
+    expect(completed.collections[0].items[0].response).toEqual({ statusCode: 201 });
+  });
+
   it('keeps an in-flight request out of Network after clear but completes its response timeline', () => {
     const state = makeStateWith({
       uid: 'item1',
@@ -415,22 +474,75 @@ describe('independent Network and response histories', () => {
     }));
     const afterStaleResponse = reducer(secondRun, responseReceived({
       requestUid: 'run1',
+      networkRequestsGeneration: 0,
       collectionUid: 'col1',
       itemUid: 'item1',
       response: { statusCode: 200 }
     }));
 
     expect(afterStaleResponse.networkRequestIds).toEqual([]);
-    expect(afterStaleResponse.collections[0].timeline).toBeUndefined();
+    expect(afterStaleResponse.collections[0].timeline).toHaveLength(1);
+    expect(afterStaleResponse.requestTimelineEvents[afterStaleResponse.collections[0].timeline[0].requestEventId])
+      .toMatchObject({ requestUid: 'run1', data: { response: { statusCode: 200 } } });
 
     const completed = reducer(afterStaleResponse, responseReceived({
       requestUid: 'run2',
+      networkRequestsGeneration: 1,
       collectionUid: 'col1',
       itemUid: 'item1',
       response: { statusCode: 201 }
     }));
     expect(completed.networkRequestIds).toHaveLength(1);
     expect(completed.requestTimelineEvents[completed.networkRequestIds[0]].data.response.statusCode).toBe(201);
+    expect(completed.collections[0].timeline).toHaveLength(2);
+  });
+
+  it('keeps a pre-clear gRPC request start out of Network history', () => {
+    const state = makeStateWith({
+      uid: 'item1',
+      type: 'grpc-request',
+      request: { methodType: 'unary' }
+    });
+    const started = reducer(state, initRunRequestEvent({
+      requestUid: 'run1',
+      itemUid: 'item1',
+      collectionUid: 'col1'
+    }));
+    const cleared = reducer(started, clearAllNetworkRequests());
+
+    const afterRequestStart = reducer(cleared, runGrpcRequestEvent({
+      itemUid: 'item1',
+      collectionUid: 'col1',
+      eventType: 'request',
+      eventData: { method: 'unary' }
+    }));
+
+    expect(afterRequestStart.networkRequestIds).toEqual([]);
+    expect(afterRequestStart.collections[0].timeline).toHaveLength(1);
+  });
+
+  it('keeps a pre-clear WebSocket request start out of Network history', () => {
+    const state = makeStateWith({
+      uid: 'item1',
+      type: 'ws-request',
+      request: {}
+    });
+    const started = reducer(state, initRunRequestEvent({
+      requestUid: 'run1',
+      itemUid: 'item1',
+      collectionUid: 'col1'
+    }));
+    const cleared = reducer(started, clearAllNetworkRequests());
+
+    const afterRequestStart = reducer(cleared, runWsRequestEvent({
+      itemUid: 'item1',
+      collectionUid: 'col1',
+      eventType: 'request',
+      eventData: { url: 'wss://example.com' }
+    }));
+
+    expect(afterRequestStart.networkRequestIds).toEqual([]);
+    expect(afterRequestStart.collections[0].timeline).toHaveLength(1);
   });
 
   it('keeps Network history when the request Timeline is cleared', () => {
