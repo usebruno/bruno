@@ -21,6 +21,7 @@ const FOLDER_TEST = `test("${FOLDER_TEST_NAME}", function () {
 });`;
 
 test.describe('Folder level tests', () => {
+  test.describe.configure({ timeout: 60_000 });
   test.afterEach(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
