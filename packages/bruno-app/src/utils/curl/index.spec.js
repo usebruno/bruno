@@ -67,4 +67,20 @@ describe('form bodies imported from a cURL command', () => {
       ['b', '2', true]
     ]);
   });
+
+  // A repeated key gives `querystring.parse` an array, and keyValueSchema declares
+  // a param's `value` a string -- one array-valued param fails validation, so the
+  // repeats are split into one param each.
+  it('splits a repeated url-encoded key into one param per value', () => {
+    const request = getRequestFromCurlCommand(
+      `curl --url https://e.com/ -H 'Content-Type: application/x-www-form-urlencoded' -d 'tag=a&tag=b&other=z'`
+    );
+
+    expect(request.body.formUrlEncoded.map((p) => [p.name, p.value, p.enabled])).toEqual([
+      ['tag', 'a', true],
+      ['tag', 'b', true],
+      ['other', 'z', true]
+    ]);
+    expect(request.body.formUrlEncoded.every((p) => typeof p.value === 'string')).toBe(true);
+  });
 });

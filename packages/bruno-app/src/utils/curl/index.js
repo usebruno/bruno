@@ -17,7 +17,11 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
   const parseFormData = (parsedBody) => {
     const formData = [];
     forOwn(parsedBody, (value, key) => {
-      formData.push({ name: key, value, enabled: true });
+      // `querystring.parse` hands back an array when a key repeats (`-d 'tag=a&tag=b'`),
+      // but keyValueSchema declares a param's `value` a string, so each repeat
+      // becomes its own enabled param rather than one array-valued entry.
+      const values = Array.isArray(value) ? value : [value];
+      values.forEach((entry) => formData.push({ name: key, value: entry, enabled: true }));
     });
 
     return formData;
