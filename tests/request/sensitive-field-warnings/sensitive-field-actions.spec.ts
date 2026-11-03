@@ -157,6 +157,25 @@ test.describe('Sensitive field actions', () => {
     });
   });
 
+  test('The form closes when the page scrolls but stays open when its own input scrolls', async ({ page, electronApp, collectionFixturePath }) => {
+    const { codeMirror, secretVariableForm: form } = buildCommonLocators(page);
+
+    await test.step('Open the form for a plaintext API key', async () => {
+      await openCollectionFromDialog(page, electronApp, collectionFixturePath!);
+      await openRequest(page, 'sensitive-field-actions', 'login');
+      await selectEnvironment(page, 'dev');
+      await selectRequestPaneTab(page, 'Auth');
+      await clickSensitiveFieldAction(page, codeMirror.sensitiveWarning(API_KEY_FIELD), API_KEY_FIELD);
+      await expect(form.container()).toBeVisible();
+    });
+
+    await test.step('A scroll outside the form closes it', async () => {
+      await codeMirror.sensitiveWarning(API_KEY_FIELD).dispatchEvent('scroll');
+      await expect(form.container()).toHaveCount(0);
+      await expect(form.actionLink(API_KEY_FIELD)).toHaveCount(0);
+    });
+  });
+
   test('Create One creates the environment and selects it', async ({ page, createTmpDir }) => {
     const collectionName = 'secret-action-create-environment';
     const { codeMirror, secretVariableForm: form, toast } = buildCommonLocators(page);
