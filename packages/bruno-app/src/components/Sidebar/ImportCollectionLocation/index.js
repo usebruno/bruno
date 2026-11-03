@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import get from 'lodash/get';
+import { DEFAULT_AUTH_PLACEMENT, DEFAULT_REQUEST_NAME_SOURCE } from '@usebruno/common';
 import path from 'utils/common/path';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import { postmanToBruno } from 'utils/importers/postman-collection';
@@ -111,8 +112,8 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
   const [collectionFormat, setCollectionFormat] = useState(DEFAULT_COLLECTION_FORMAT);
   const [showFileFormat, setShowFileFormat] = useState(false);
   const [enableCheckForSpecUpdates, setEnableCheckForSpecUpdates] = useState(false);
-  const [authPlacement, setAuthPlacement] = useState('request');
-  const [requestNameSource, setRequestNameSource] = useState('summary');
+  const [authPlacement, setAuthPlacement] = useState(DEFAULT_AUTH_PLACEMENT);
+  const [requestNameSource, setRequestNameSource] = useState(DEFAULT_REQUEST_NAME_SOURCE);
   const [preserveScripts, setPreserveScripts] = useState(false);
   const isOpenApi = format === 'openapi';
   const isPostman = format === 'postman';

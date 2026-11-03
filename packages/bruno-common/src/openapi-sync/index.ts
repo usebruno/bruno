@@ -6,6 +6,10 @@ type AuthPlacement = typeof AUTH_PLACEMENTS[number];
 
 type RequestNameSource = typeof REQUEST_NAME_SOURCES[number];
 
+export const DEFAULT_AUTH_PLACEMENT: AuthPlacement = 'request';
+
+export const DEFAULT_REQUEST_NAME_SOURCE: RequestNameSource = 'summary';
+
 interface OpenApiSyncConfig {
   sourceUrl: string;
   groupBy?: 'tags' | 'path';

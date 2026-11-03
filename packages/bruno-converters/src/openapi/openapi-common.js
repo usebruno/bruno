@@ -1,7 +1,7 @@
 import each from 'lodash/each';
 import isPlainObject from 'lodash/isPlainObject';
 import MarkdownIt from 'markdown-it';
-import { REQUEST_NAME_SOURCES } from '@usebruno/common';
+import { DEFAULT_REQUEST_NAME_SOURCE, REQUEST_NAME_SOURCES } from '@usebruno/common';
 import { sanitizeName } from '@usebruno/common/utils';
 import {
   resolveSchemaComposition,
@@ -892,7 +892,7 @@ const requestNameBySource = {
 };
 
 export const getRequestName = (request, requestNameSource) => {
-  const preferred = REQUEST_NAME_SOURCES.includes(requestNameSource) ? requestNameSource : 'summary';
+  const preferred = REQUEST_NAME_SOURCES.includes(requestNameSource) ? requestNameSource : DEFAULT_REQUEST_NAME_SOURCE;
   return [preferred, ...REQUEST_NAME_SOURCES.filter((source) => source !== preferred)]
     .reduce((name, source) => name || requestNameBySource[source](request), '');
 };

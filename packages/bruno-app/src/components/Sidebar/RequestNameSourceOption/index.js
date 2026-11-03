@@ -1,12 +1,15 @@
+import { REQUEST_NAME_SOURCES } from '@usebruno/common';
 import ImportSettingRow from 'components/Sidebar/ImportSettingRow';
 import ImportSettingDropdown from 'components/Sidebar/ImportSettingDropdown';
 
-const requestNameSourceOptions = [
-  { value: 'summary', label: 'Summary' },
-  { value: 'operationId', label: 'operationId' },
-  { value: 'description', label: 'Description' },
-  { value: 'path', label: 'Path' }
-];
+const requestNameSourceLabels = {
+  summary: 'Summary',
+  operationId: 'operationId',
+  description: 'Description',
+  path: 'Path'
+};
+
+const requestNameSourceOptions = REQUEST_NAME_SOURCES.map((value) => ({ value, label: requestNameSourceLabels[value] }));
 
 const RequestNameSourceOption = ({ value, onChange, disabled = false }) => (
   <ImportSettingRow

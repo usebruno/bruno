@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import { DEFAULT_AUTH_PLACEMENT, DEFAULT_REQUEST_NAME_SOURCE } from '@usebruno/common';
 import path from 'utils/common/path';
 import { browseDirectory, importCollection } from 'providers/ReduxStore/slices/collections/actions';
 import Portal from 'components/Portal';
@@ -101,7 +102,7 @@ const convertCollection = async (format, rawData, { groupingType, authPlacement,
   return { collection, issues };
 };
 
-const DEFAULT_OPENAPI_SETTINGS = { groupingType: 'tags', authPlacement: 'request', requestNameSource: 'summary' };
+const DEFAULT_OPENAPI_SETTINGS = { groupingType: 'tags', authPlacement: DEFAULT_AUTH_PLACEMENT, requestNameSource: DEFAULT_REQUEST_NAME_SOURCE };
 
 const isOpenApiFile = (fileData) => fileData.type === 'openapi';
 

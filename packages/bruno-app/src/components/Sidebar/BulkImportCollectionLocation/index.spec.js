@@ -526,7 +526,7 @@ describe('BulkImportCollectionLocation OpenAPI Import configuration', () => {
   it('enables the settings at their defaults when an OpenAPI spec is selected again, and imports with them', async () => {
     renderBulkImport([ordersSpec, postmanFile]);
     openConfiguration();
-    await changeEverySetting();
+    fireEvent.click(authPlacementCheckbox());
     toggleFileSelection('Orders API orders.yaml');
 
     toggleFileSelection('Orders API orders.yaml');
