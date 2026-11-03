@@ -8,7 +8,7 @@ const { openApiToBruno, wsdlToBruno, postmanToBruno, postmanToBrunoEnvironment }
 const { coerceEnvName, dedupeImportedSecrets, generateUniqueName, sanitizeName, validateName, validateNameError } = require('@usebruno/common').utils;
 const { exists, isDirectory, canonicalPath } = require('../utils/filesystem');
 const { formatImportSummary, formatImportIssues, formatPackageReport, hasImportErrors } = require('../utils/import-report');
-const { writeCollectionToDiskLegacy } = require('@usebruno/filestore');
+const { writeCollectionToDiskLegacy } = require('@usebruno/io');
 
 const command = 'import <type>';
 const desc = 'Import a collection (OpenAPI, WSDL, Postman) from other formats';

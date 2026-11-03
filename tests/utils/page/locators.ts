@@ -1,5 +1,6 @@
 import { Locator, Page } from '../../../playwright';
-import { buildApiSpecPanelLocators } from './openapi/render-spec';
+import { buildApiSpecPanelLocators, buildApiSpecRowMenuLocators } from './openapi/render-spec';
+import { buildMockServerLocators } from './mock-server';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
@@ -50,7 +51,8 @@ export const buildCommonLocators = (page: Page) => ({
   codeEditorSearch: (editorId: string) => buildCodeEditorSearchLocators(page, editorId),
   codeEditorHints: buildCodeEditorHintLocators(page),
   openApi: {
-    render: buildApiSpecPanelLocators(page)
+    render: buildApiSpecPanelLocators(page),
+    rowMenu: buildApiSpecRowMenuLocators(page)
   },
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
@@ -343,10 +345,16 @@ export const buildCommonLocators = (page: Page) => ({
     loader: () => page.getByTestId('import-collection-loader'),
     advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
     preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
+    checkForSpecUpdatesToggle: () => page.getByTestId('check-for-spec-updates-toggle'),
     bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
     bulkFormatSelect: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
     bulkLocationInput: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),
     bulkSubmitButton: () => page.getByTestId('bulk-import-collection-location-modal-submit-btn'),
+    bulkSpecUpdatesCheckbox: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates'),
+    bulkSpecUpdatesDescription: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates-description'),
+    bulkSwagger2SyncNote: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-swagger2-sync-note'),
+    bulkSelectAllCollectionsToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('selection-section-collections').getByTestId('selection-select-all-toggle'),
+    bulkCollectionCheckbox: (fileName: string) => page.getByTestId('bulk-import-collection-location-modal').getByTestId('selection-section-collections').getByRole('listitem').filter({ has: page.getByText(fileName, { exact: true }) }).getByRole('checkbox'),
     envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
     parsingError: () => page.getByTestId('import-error-message'),
     browseLink: (root?: Locator) => (root ?? page).getByTestId('import-collection-browse-link'),
