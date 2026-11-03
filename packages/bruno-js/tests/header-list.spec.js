@@ -1272,6 +1272,30 @@ describe('Response Headers (res.headerList)', () => {
       expect('idx' in headerList).toBe(true);
     });
 
+    test('editing an entry a read returned does not change later reads', () => {
+      const { headerList } = createResHeaders({ 'content-type': 'application/json', 'set-cookie': ['a=1'] });
+
+      headerList.one('content-type').value = 'hacked';
+      headerList.all()[0].value = 'hacked';
+      headerList.idx(0).value = 'hacked';
+      headerList.find((header) => header.key === 'content-type').value = 'hacked';
+      headerList.one('set-cookie').value.push('b=2');
+
+      expect(headerList.get('content-type')).toBe('application/json');
+      expect(headerList.get('set-cookie')).toEqual(['a=1']);
+    });
+
+    test('an edited entry does not reach a request through assimilate()', () => {
+      const { headerList } = createResHeaders({ 'content-type': 'application/json' });
+      const rawReq = { url: 'https://example.com', method: 'GET', headers: {} };
+      const brunoReq = new BrunoRequest(rawReq);
+
+      headerList.one('content-type').value = 'hacked';
+      brunoReq.headerList.assimilate(headerList);
+
+      expect(rawReq.headers).toEqual({ 'content-type': 'application/json' });
+    });
+
     test('response headers repopulate throws read-only', () => {
       const { headerList } = createResHeaders();
       expect(() => headerList.repopulate([])).toThrow('read-only');

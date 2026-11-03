@@ -124,14 +124,15 @@ class HeaderList extends ReadOnlyPropertyList {
    * @param {boolean} [options.writable=true] - When false, write methods throw.
    */
   constructor(source, { writable = true } = {}) {
+    const snapshot = writable ? null : snapshotHeaderEntries(source?.headers);
     super({
       caseInsensitiveKeys: true,
-      // Writable: every read reconciles req.headers into req.headerEntries and hands out copies,
-      // so `one(k).disabled = true` on the result cannot bypass the write methods.
-      // Read-only: static snapshot of response headers.
-      ...(writable
-        ? { dataSource: () => orderedHeaderEntries(source) }
-        : { items: snapshotHeaderEntries(source?.headers) })
+      dataSource: writable
+        ? () => orderedHeaderEntries(source)
+        : () => snapshot.map((entry) => ({
+            ...entry,
+            value: Array.isArray(entry.value) ? [...entry.value] : entry.value
+          }))
     });
     this.#req = writable ? source : null;
     this.#writable = writable;
