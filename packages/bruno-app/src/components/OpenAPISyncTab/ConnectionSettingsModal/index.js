@@ -55,6 +55,7 @@ const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, 
     <Modal
       size="md"
       title="Connection Settings"
+      dataTestId="connection-settings-modal"
       hideFooter={true}
       handleCancel={onClose}
     >

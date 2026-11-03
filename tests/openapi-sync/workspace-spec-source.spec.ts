@@ -11,11 +11,7 @@ import {
   pickWorkspaceSpec,
   waitForWorkspaceMenuFocus
 } from '../utils/page/openapi/sync';
-import {
-  buildApiSpecPanelLocators,
-  expandApiSpecsSection,
-  removeApiSpecFromWorkspace
-} from '../utils/page/openapi/render-spec';
+import { expandApiSpecsSection, removeApiSpecFromWorkspace } from '../utils/page/openapi/render-spec';
 
 const WORKSPACE_NAME = 'Spec Source Workspace';
 const COLLECTION_NAME = 'Pets Collection';
@@ -109,7 +105,7 @@ const launchInWorkspace = async (launchElectronApp: LaunchElectronApp, userDataP
   const app = await launchElectronApp({ userDataPath });
   const page = await waitForReadyPage(app);
   await openWorkspaceFromDialog(app, page, workspacePath);
-  await expect(buildCommonLocators(page).titleBar.activeWorkspaceName()).toHaveText(WORKSPACE_NAME, { timeout: 10000 });
+  await buildCommonLocators(page).titleBar.activeWorkspaceName().filter({ hasText: WORKSPACE_NAME }).waitFor({ timeout: 10000 });
   return { app, page, sync: buildCommonLocators(page).openApi.sync };
 };
 
@@ -134,7 +130,7 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
 
         await test.step('The dropdown lists the workspace specs in the same order as the sidebar', async () => {
           await expandApiSpecsSection(page);
-          await expect(buildApiSpecPanelLocators(page).sidebarRows()).toHaveText([/Pets API/, /Zoo API/, /Legacy API/]);
+          await expect(buildCommonLocators(page).openApi.render.sidebarRows()).toHaveText([/Pets API/, /Zoo API/, /Legacy API/]);
           await sync.workspaceSelect().click();
           await expect(sync.workspaceOptions()).toHaveText(['Pets API', 'Zoo API', 'Legacy API']);
           await waitForWorkspaceMenuFocus(page);
@@ -430,7 +426,7 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
       connectedSource: () => '../../specs/zoo.yaml'
     });
     const { app, page, sync } = await launchInWorkspace(launchElectronApp, userDataPath, workspacePath);
-    const apiSpecs = buildApiSpecPanelLocators(page);
+    const apiSpecs = buildCommonLocators(page).openApi.render;
 
     try {
       await openConnectedOpenApiSyncTab(page, COLLECTION_NAME);

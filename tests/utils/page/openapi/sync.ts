@@ -4,7 +4,7 @@ import { buildSidebarLocators } from '../sidebar';
 import { buildCollectionHeaderLocators } from '../collection/collection-header';
 
 export const buildOpenApiSyncLocators = (page: Page) => {
-  const settingsModal = () => page.locator('.bruno-modal-card').filter({ hasText: 'Connection Settings' });
+  const settingsModal = () => page.getByTestId('connection-settings-modal');
   const workspaceMenu = () => page.getByRole('menu').filter({
     has: page.locator('[data-testid^="spec-source-workspace-menu-"]')
   });
