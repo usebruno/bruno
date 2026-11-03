@@ -1,4 +1,4 @@
-import { test, expect, Page } from '../../../playwright';
+import { test, expect, Page, Locator } from '../../../playwright';
 import {
   buildCommonLocators,
   createCollection,
@@ -17,9 +17,7 @@ const openHeaders = async (page: Page, collectionName: string) => {
   await selectCollectionPaneTab(page, 'headers');
 };
 
-const headerRows = (page: Page) => page.getByTestId('collection-headers').locator('tbody tr');
-
-const fillHeaderCell = async (cell: ReturnType<Page['locator']>, value: string) => {
+const fillHeaderCell = async (cell: Locator, value: string) => {
   await cell.locator('.CodeMirror').evaluate((el, next) => {
     const cm = (el as { CodeMirror?: { setValue: (text: string) => void } }).CodeMirror;
     if (!cm) {
@@ -30,11 +28,11 @@ const fillHeaderCell = async (cell: ReturnType<Page['locator']>, value: string) 
   await expect(cell).toContainText(value);
 };
 
-const typeAndPickHint = async (page: Page, editor: ReturnType<Page['locator']>, typed: string, hintText: string) => {
+const typeAndPickHint = async (page: Page, editor: Locator, typed: string, hintText: string) => {
   await editor.click();
   await page.keyboard.type(typed, { delay: 40 });
 
-  const hint = page.locator('.CodeMirror-hints .CodeMirror-hint').filter({ hasText: hintText }).first();
+  const hint = buildCommonLocators(page).codeMirror.hint(hintText);
   await expect(hint).toBeVisible();
   await hint.click();
   await expect(editor).toContainText(hintText);
@@ -45,11 +43,11 @@ test.describe('Collection settings headers', () => {
 
   test('TC-2625: Navigate to Headers Tab from API Collection UI', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const collectionName = 'HeadersNavigate';
+    const { collectionSettingsHeaders, paneTabs } = buildCommonLocators(page);
 
     await test.step('Open a collection on the Overview tab', async () => {
-      await page.locator('[data-app-state="loaded"]').waitFor();
       await createCollection(page, collectionName, await createTmpDir('tc-2625'));
-      await expect(page.getByTestId('collection-settings-tab-overview')).toContainClass('active');
+      await expect(paneTabs.collectionSettingsTab('overview')).toContainClass('active');
     });
 
     await test.step('Headers becomes the active tab', async () => {
@@ -57,38 +55,35 @@ test.describe('Collection settings headers', () => {
     });
 
     await test.step('The header table, Bulk Edit, and Save are shown', async () => {
-      const table = page.getByTestId('collection-headers');
-      await expect(table.locator('.column-name').getByText('Name', { exact: true })).toBeVisible();
-      await expect(table.locator('.column-name').getByText('Value', { exact: true })).toBeVisible();
-      await expect(page.getByTestId('bulk-edit-toggle')).toBeVisible();
-      await expect(page.getByTestId('collection-settings-content').getByRole('button', { name: 'Save', exact: true })).toBeVisible();
+      await expect(collectionSettingsHeaders.nameColumnHeader()).toBeVisible();
+      await expect(collectionSettingsHeaders.valueColumnHeader()).toBeVisible();
+      await expect(collectionSettingsHeaders.bulkEditToggle()).toBeVisible();
+      await expect(collectionSettingsHeaders.saveButton()).toBeVisible();
     });
   });
 
   test('TC-2626: Add a Single Request Header with Valid Name and Value', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const collectionName = 'HeadersAdd';
+    const { collectionSettingsHeaders } = buildCommonLocators(page);
 
     await test.step('Open the Headers tab of a new collection', async () => {
-      await page.locator('[data-app-state="loaded"]').waitFor();
       await createCollection(page, collectionName, await createTmpDir('tc-2626'));
       await openHeaders(page, collectionName);
-      await expect(headerRows(page)).toHaveCount(1);
+      await expect(collectionSettingsHeaders.rows()).toHaveCount(1);
     });
 
     await test.step('Choose Content-Type from the name suggestions', async () => {
-      const nameEditor = headerRows(page).first().getByTestId('column-name').locator('.CodeMirror');
-      await typeAndPickHint(page, nameEditor, 'Content-Ty', 'Content-Type');
+      await typeAndPickHint(page, collectionSettingsHeaders.nameEditor(collectionSettingsHeaders.rows().first()), 'Content-Ty', 'Content-Type');
     });
 
     await test.step('Choose application/json from the value suggestions', async () => {
-      const valueEditor = headerRows(page).first().getByTestId('column-value').locator('.CodeMirror');
-      await typeAndPickHint(page, valueEditor, 'application/js', 'application/json');
+      await typeAndPickHint(page, collectionSettingsHeaders.valueEditor(collectionSettingsHeaders.rows().first()), 'application/js', 'application/json');
     });
 
     await test.step('The table shows the header that was entered', async () => {
-      const row = page.getByTestId('collection-headers').locator('tbody tr[data-row-name="Content-Type"]');
-      await expect(row.getByTestId('column-name')).toContainText('Content-Type');
-      await expect(row.getByTestId('column-value')).toContainText('application/json');
+      const row = collectionSettingsHeaders.rowByName('Content-Type');
+      await expect(collectionSettingsHeaders.nameCell(row)).toContainText('Content-Type');
+      await expect(collectionSettingsHeaders.valueCell(row)).toContainText('application/json');
     });
   });
 
@@ -96,19 +91,19 @@ test.describe('Collection settings headers', () => {
     const collectionName = 'HeadersSave';
     const headerName = 'X-Collection';
     const headerValue = 'from-collection';
+    const { collectionSettingsHeaders, toast, timeline } = buildCommonLocators(page);
 
     await test.step('Enter a header on the Headers tab', async () => {
-      await page.locator('[data-app-state="loaded"]').waitFor();
       await createCollection(page, collectionName, await createTmpDir('tc-2627'));
       await openHeaders(page, collectionName);
 
-      const row = headerRows(page).first();
-      await fillHeaderCell(row.getByTestId('column-name'), headerName);
-      await fillHeaderCell(row.getByTestId('column-value'), headerValue);
+      const row = collectionSettingsHeaders.rows().first();
+      await fillHeaderCell(collectionSettingsHeaders.nameCell(row), headerName);
+      await fillHeaderCell(collectionSettingsHeaders.valueCell(row), headerValue);
     });
 
     await test.step('Save persists the header', async () => {
-      const save = page.getByTestId('collection-settings-content').getByRole('button', { name: 'Save', exact: true });
+      const save = collectionSettingsHeaders.saveButton();
       await expect(save).toBeVisible();
 
       const background = await save.evaluate((el) => getComputedStyle(el).backgroundColor);
@@ -122,14 +117,13 @@ test.describe('Collection settings headers', () => {
       expect(blue).toBeLessThan(140);
 
       await save.click();
-      await expect(page.getByText('Collection Settings saved successfully')).toBeVisible();
+      await expect(toast.byMessage('Collection Settings saved successfully')).toBeVisible();
     });
 
     await test.step('The saved header is on the request timeline', async () => {
       await createRequest(page, 'Echo headers', collectionName, { url: ECHO_HEADERS_URL });
       await sendRequest(page, 200);
 
-      const { timeline } = buildCommonLocators(page);
       await selectResponsePaneTab(page, 'Timeline');
       await timeline.itemHeader(timeline.items().first()).click();
 
@@ -142,30 +136,29 @@ test.describe('Collection settings headers', () => {
     const collectionName = 'HeadersBulk';
     const headerName = 'X-Bulk';
     const headerValue = 'bulk-value';
+    const { collectionSettingsHeaders } = buildCommonLocators(page);
 
     await test.step('Add a header on the Headers tab', async () => {
-      await page.locator('[data-app-state="loaded"]').waitFor();
       await createCollection(page, collectionName, await createTmpDir('tc-2629'));
       await openHeaders(page, collectionName);
 
-      const row = headerRows(page).first();
-      await fillHeaderCell(row.getByTestId('column-name'), headerName);
-      await fillHeaderCell(row.getByTestId('column-value'), headerValue);
+      const row = collectionSettingsHeaders.rows().first();
+      await fillHeaderCell(collectionSettingsHeaders.nameCell(row), headerName);
+      await fillHeaderCell(collectionSettingsHeaders.valueCell(row), headerValue);
     });
 
     await test.step('Bulk Edit shows the header as text', async () => {
-      await page.getByTestId('bulk-edit-toggle').click();
-      const editor = page.getByTestId('collection-settings-content').locator('.CodeMirror').first();
-      await expect(editor).toBeVisible();
-      await expect(editor).toContainText(`${headerName}:${headerValue}`);
-      await expect(page.getByTestId('collection-headers')).toBeHidden();
+      await collectionSettingsHeaders.bulkEditToggle().click();
+      await expect(collectionSettingsHeaders.bulkEditor()).toBeVisible();
+      await expect(collectionSettingsHeaders.bulkEditor()).toContainText(`${headerName}:${headerValue}`);
+      await expect(collectionSettingsHeaders.table()).toBeHidden();
     });
 
     await test.step('Key/Value Edit restores the table row', async () => {
-      await page.getByTestId('key-value-edit-toggle').click();
-      const row = page.getByTestId('collection-headers').locator(`tbody tr[data-row-name="${headerName}"]`);
-      await expect(row.getByTestId('column-name')).toContainText(headerName);
-      await expect(row.getByTestId('column-value')).toContainText(headerValue);
+      await collectionSettingsHeaders.keyValueEditToggle().click();
+      const row = collectionSettingsHeaders.rowByName(headerName);
+      await expect(collectionSettingsHeaders.nameCell(row)).toContainText(headerName);
+      await expect(collectionSettingsHeaders.valueCell(row)).toContainText(headerValue);
     });
   });
 });
