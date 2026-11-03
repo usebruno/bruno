@@ -13,6 +13,8 @@ import SegmentedControl from 'ui/SegmentedControl';
 import MenuDropdown from 'ui/MenuDropdown';
 import { IconChevronDown } from '@tabler/icons';
 import Checkbox from 'ui/Checkbox';
+import SettingsField from 'ui/patterns/SettingsField';
+import SettingsList from 'ui/patterns/SettingsList';
 import { useTheme } from 'providers/Theme';
 
 const PROXY_PROTOCOL_OPTIONS = [
@@ -210,83 +212,83 @@ const ProxySettings = ({ collection }) => {
 
   return (
     <StyledWrapper className="h-full w-full">
-      <div className="proxy-settings bruno-form flex flex-col gap-4">
+      <SettingsList className="proxy-settings bruno-form">
         <div className="text-muted">Configure proxy settings for this collection.</div>
 
-        <div className="flex flex-col gap-2">
-          <span id="collection-proxy-mode-label" className="settings-label flex items-center">
-            Proxy mode
-            <InfoTip infotipId="collection-proxy-mode-info" style={{ zIndex: 20 }}>
-              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 m-0">
-                <dt className="font-medium">Inherit</dt>
-                <dd className="m-0">Inherit from global preferences</dd>
-                <dt className="font-medium">Custom</dt>
-                <dd className="m-0">Use collection-specific proxy config</dd>
-                <dt className="font-medium">Off</dt>
-                <dd className="m-0">Disable proxy for this collection</dd>
-              </dl>
-            </InfoTip>
-          </span>
-          <SegmentedControl
-            ariaLabelledBy="collection-proxy-mode-label"
-            name="enabled"
-            value={enabledValue}
-            onChange={(_value, e) => handleEnabledChange(e)}
-            items={[
-              { value: 'inherit', label: 'Inherit' },
-              { value: 'true', label: 'Custom' },
-              { value: 'false', label: 'Off' }
-            ]}
-            className="self-start"
-            data-testid="collection-proxy-mode"
-          />
-          {enabledValue === 'inherit' && (
-            <div className="hint" data-testid="collection-proxy-inherit-hint">
-              Uses the proxy configured in app preferences.
+        {/* Lines only between the settings sections, not around the intro or the Save button */}
+        <SettingsList dividers>
+
+          <SettingsField
+            label={(
+              <span className="flex items-center">
+                <span id="collection-proxy-mode-label">Proxy mode</span>
+                <InfoTip infotipId="collection-proxy-mode-info" style={{ zIndex: 20 }}>
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 m-0">
+                    <dt className="font-medium">Inherit</dt>
+                    <dd className="m-0">Inherit from global preferences</dd>
+                    <dt className="font-medium">Custom</dt>
+                    <dd className="m-0">Use collection-specific proxy config</dd>
+                    <dt className="font-medium">Off</dt>
+                    <dd className="m-0">Disable proxy for this collection</dd>
+                  </dl>
+                </InfoTip>
+              </span>
+            )}
+          >
+            <div className="flex flex-col gap-2">
+              <SegmentedControl
+                ariaLabelledBy="collection-proxy-mode-label"
+                name="enabled"
+                value={enabledValue}
+                onChange={(_value, e) => handleEnabledChange(e)}
+                items={[
+                  { value: 'inherit', label: 'Inherit' },
+                  { value: 'true', label: 'Custom' },
+                  { value: 'false', label: 'Off' }
+                ]}
+                className="self-start"
+                data-testid="collection-proxy-mode"
+              />
+              {enabledValue === 'inherit' && (
+                <div className="hint" data-testid="collection-proxy-inherit-hint">
+                  Uses the proxy configured in app preferences.
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </SettingsField>
 
-        {enabledValue === 'true' && (
-          <>
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <span id="collection-proxy-protocol-label" className="settings-label">
-                  Protocol
-                </span>
-                <MenuDropdown
-                  items={PROXY_PROTOCOL_OPTIONS.map(({ value, label }) => ({
-                    id: value,
-                    label,
-                    onClick: () => handleProtocolChange({ target: { value } })
-                  }))}
-                  selectedItemId={selectedProtocol}
-                  placement="bottom-start"
-                  data-testid="collection-proxy-protocol-menu"
-                  appendTo={() => document.body}
-                  popperOptions={{ strategy: 'fixed' }}
-                  sameWidth
-                >
-                  <button
-                    type="button"
-                    id="collection-proxy-protocol-trigger"
-                    className="protocol-trigger"
-                    aria-labelledby="collection-proxy-protocol-label collection-proxy-protocol-trigger"
-                    data-testid="collection-proxy-protocol"
+          {enabledValue === 'true' && (
+            <>
+              <div className="grid grid-cols-[112px_1fr_120px] gap-3">
+                <SettingsField label="Protocol" labelId="collection-proxy-protocol-label">
+                  <MenuDropdown
+                    items={PROXY_PROTOCOL_OPTIONS.map(({ value, label }) => ({
+                      id: value,
+                      label,
+                      onClick: () => handleProtocolChange({ target: { value } })
+                    }))}
+                    selectedItemId={selectedProtocol}
+                    placement="bottom-start"
+                    data-testid="collection-proxy-protocol-menu"
+                    appendTo={() => document.body}
+                    popperOptions={{ strategy: 'fixed' }}
+                    sameWidth
                   >
-                    <span>
-                      {PROXY_PROTOCOL_OPTIONS.find((option) => option.value === selectedProtocol)?.label ?? selectedProtocol}
-                    </span>
-                    <IconChevronDown size={14} strokeWidth={2} />
-                  </button>
-                </MenuDropdown>
-              </div>
-
-              <div className="grid grid-cols-[1fr_120px] gap-3">
-                <div className="flex flex-col gap-2 min-w-0">
-                  <label className="settings-label">
-                    Hostname
-                  </label>
+                    <button
+                      type="button"
+                      id="collection-proxy-protocol-trigger"
+                      className="protocol-trigger"
+                      aria-labelledby="collection-proxy-protocol-label collection-proxy-protocol-trigger"
+                      data-testid="collection-proxy-protocol"
+                    >
+                      <span>
+                        {PROXY_PROTOCOL_OPTIONS.find((option) => option.value === selectedProtocol)?.label ?? selectedProtocol}
+                      </span>
+                      <IconChevronDown size={14} strokeWidth={2} />
+                    </button>
+                  </MenuDropdown>
+                </SettingsField>
+                <SettingsField label="Hostname" labelId="collection-proxy-hostname-label">
                   <div className="single-line-editor-wrapper">
                     <SingleLineEditor
                       value={currentProxyConfig.config?.hostname || ''}
@@ -298,11 +300,8 @@ const ProxySettings = ({ collection }) => {
                       data-testid="collection-proxy-hostname"
                     />
                   </div>
-                </div>
-                <div className="flex flex-col gap-2 min-w-0">
-                  <label className="settings-label" htmlFor="port">
-                    Port
-                  </label>
+                </SettingsField>
+                <SettingsField label="Port" htmlFor="port">
                   <input
                     id="port"
                     data-testid="collection-proxy-port"
@@ -316,64 +315,60 @@ const ProxySettings = ({ collection }) => {
                     onChange={handlePortChange}
                     value={currentProxyConfig.config?.port || ''}
                   />
-                </div>
+                </SettingsField>
               </div>
-            </div>
 
-            <div className="flex flex-col gap-3">
-              <Checkbox
-                id="auth.disabled"
-                name="auth.disabled"
-                checked={!currentProxyConfig.config?.auth?.disabled}
-                onChange={handleAuthEnabledChange}
-                label={<span className="settings-label">Proxy authentication</span>}
-                data-testid="collection-proxy-auth"
-              />
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-col gap-2 min-w-0">
-                  <label className="sub-label">
-                    Username
-                  </label>
-                  <div className="single-line-editor-wrapper mono">
-                    <SingleLineEditor
-                      value={currentProxyConfig.config?.auth?.username || ''}
-                      theme={storedTheme}
-                      onSave={handleSave}
-                      onChange={handleAuthUsernameChange}
-                      collection={collection}
-                      isCompact
-                      data-testid="collection-proxy-username"
-                    />
-                  </div>
+              <SettingsList gap="md">
+                <SettingsField layout="leading" label="Proxy authentication" htmlFor="auth.disabled">
+                  <Checkbox
+                    id="auth.disabled"
+                    name="auth.disabled"
+                    checked={!currentProxyConfig.config?.auth?.disabled}
+                    onChange={handleAuthEnabledChange}
+                    data-testid="collection-proxy-auth"
+                  />
+                </SettingsField>
+                <div className="grid grid-cols-2 gap-3">
+                  <SettingsField label="Username" labelId="collection-proxy-username-label">
+                    <div className="single-line-editor-wrapper mono">
+                      <SingleLineEditor
+                        value={currentProxyConfig.config?.auth?.username || ''}
+                        theme={storedTheme}
+                        onSave={handleSave}
+                        onChange={handleAuthUsernameChange}
+                        collection={collection}
+                        isCompact
+                        data-testid="collection-proxy-username"
+                      />
+                    </div>
+                  </SettingsField>
+                  <SettingsField label="Password" labelId="collection-proxy-password-label">
+                    <div className="single-line-editor-wrapper mono flex items-center">
+                      <SingleLineEditor
+                        value={proxyPassword}
+                        theme={storedTheme}
+                        onSave={handleSave}
+                        onChange={handleAuthPasswordChange}
+                        collection={collection}
+                        isSecret={true}
+                        isCompact
+                        data-testid="collection-proxy-password"
+                      />
+                      <SensitiveFieldWarning fieldName="proxy-password" secretName="password" value={proxyPassword} collection={collection} onReplaceValue={handleAuthPasswordChange} />
+                    </div>
+                  </SettingsField>
                 </div>
-                <div className="flex flex-col gap-2 min-w-0">
-                  <label className="sub-label">
-                    Password
-                  </label>
-                  <div className="single-line-editor-wrapper mono flex items-center">
-                    <SingleLineEditor
-                      value={proxyPassword}
-                      theme={storedTheme}
-                      onSave={handleSave}
-                      onChange={handleAuthPasswordChange}
-                      collection={collection}
-                      isSecret={true}
-                      isCompact
-                      data-testid="collection-proxy-password"
-                    />
-                    <SensitiveFieldWarning fieldName="proxy-password" secretName="password" value={proxyPassword} collection={collection} onReplaceValue={handleAuthPasswordChange} />
-                  </div>
-                </div>
-              </div>
-            </div>
+              </SettingsList>
 
-            <div className="flex flex-col gap-2">
-              <label className="settings-label" htmlFor="bypassProxy">
-                Proxy Bypass
-              </label>
-              <div className="flex flex-col gap-1.5">
+              <SettingsField
+                label="Proxy bypass"
+                description="Separate hosts with commas. Wildcards are supported."
+                descriptionId="bypassProxy-description"
+                htmlFor="bypassProxy"
+              >
                 <input
                   id="bypassProxy"
+                  aria-describedby="bypassProxy-description"
                   type="text"
                   name="bypassProxy"
                   className="textbox mono"
@@ -384,16 +379,16 @@ const ProxySettings = ({ collection }) => {
                   onChange={handleBypassProxyChange}
                   value={currentProxyConfig.config?.bypassProxy || ''}
                 />
-                <div className="hint">Separate hosts with commas. Wildcards are supported.</div>
-              </div>
-            </div>
-          </>
-        )}
+              </SettingsField>
+            </>
+          )}
+
+        </SettingsList>
 
         <Button type="submit" size="base" className="self-start" onClick={handleSave}>
           Save
         </Button>
-      </div>
+      </SettingsList>
     </StyledWrapper>
   );
 };

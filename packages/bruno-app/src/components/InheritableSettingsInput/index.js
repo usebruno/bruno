@@ -1,7 +1,7 @@
 import React from 'react';
 import { IconChevronDown, IconX } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
-import SettingsRow from 'components/SettingsRow';
+import SettingsField from 'ui/patterns/SettingsField';
 import StyledWrapper from './StyledWrapper';
 
 const InheritableSettingsInput = ({
@@ -17,14 +17,23 @@ const InheritableSettingsInput = ({
 }) => {
   return (
     <StyledWrapper>
-      <SettingsRow label={label} description={description} htmlFor={id}>
+      <SettingsField
+        layout="inline"
+        label={label}
+        description={description}
+        htmlFor={isInherited ? undefined : id}
+        labelId={isInherited ? `${id}-label` : undefined}
+        descriptionId={description ? `${id}-description` : undefined}
+      >
         {isInherited ? (
           <Dropdown
             appendTo={() => document.body}
             icon={(
               <button
                 type="button"
-                className="settings-text-input px-2 py-1 text-xs w-32 h-[34px] flex items-center justify-between"
+                aria-labelledby={`${id}-label`}
+                aria-describedby={description ? `${id}-description` : undefined}
+                className="settings-text-input px-2 py-1 text-xs w-24 h-[34px] flex items-center justify-between"
               >
                 <span>Inherit</span>
                 <IconChevronDown size={12} />
@@ -42,8 +51,9 @@ const InheritableSettingsInput = ({
           <div className="relative">
             <input
               id={id}
+              aria-describedby={description ? `${id}-description` : undefined}
               type="text"
-              className="settings-text-input block px-2 py-1 pr-6 w-32 h-[34px]"
+              className="settings-text-input block px-2 py-1 pr-6 w-24 h-[34px]"
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
@@ -62,7 +72,7 @@ const InheritableSettingsInput = ({
             </button>
           </div>
         )}
-      </SettingsRow>
+      </SettingsField>
     </StyledWrapper>
   );
 };

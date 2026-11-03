@@ -1,7 +1,6 @@
 import React, { useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import get from 'lodash/get';
-import { IconTag } from '@tabler/icons';
 import { utils } from '@usebruno/common';
 import ToggleSelector from 'components/RequestPane/Settings/ToggleSelector';
 import SettingsInput from 'components/SettingsInput';
@@ -10,7 +9,8 @@ import { updateItemSettings, toggleAppMode } from 'providers/ReduxStore/slices/c
 import { setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Tags from './Tags/index';
-import SettingsGroup from 'components/SettingsGroup';
+import SettingsField from 'ui/patterns/SettingsField';
+import SettingsList from 'ui/patterns/SettingsList';
 import StyledWrapper from './StyledWrapper';
 
 // Default settings configuration
@@ -116,83 +116,75 @@ const Settings = ({ item, collection }) => {
     <StyledWrapper className="h-full w-full">
       <div className="text-xs mb-4 text-muted">Configure request settings for this item.</div>
       <div className="bruno-form">
-        <div className="settings-list">
-          <SettingsGroup
-            gap="12px"
-            title={(
+        <SettingsList dividers className="request-settings-list">
+          <SettingsField
+            label={(
               <span className="flex items-center gap-1">
-                <IconTag size={16} />
                 Tags
               </span>
             )}
+            labelId="request-settings-tags-label"
+            className="tags-field"
           >
-            <div className="tags-field">
+            <div className="w-full">
               <Tags item={item} collection={collection} />
             </div>
-          </SettingsGroup>
-
-          <SettingsGroup gap="12px" title="Request">
-            <ToggleSelector
-              checked={encodeUrl}
-              onChange={onToggleUrlEncoding}
-              label="URL Encoding"
-              description="Automatically encode query parameters in the URL"
-              size="medium"
-              data-testid="encode-url-toggle"
-            />
-            <InheritableSettingsInput
-              id="timeout"
-              label="Timeout (ms)"
-              value={timeout}
-              description="Set maximum time to wait before aborting the request"
-              onKeyDown={handleKeyDown}
-              isInherited={isTimeoutInherited}
-              onDropdownSelect={handleTimeoutDropdownSelect}
-              onValueChange={(e) => !isTimeoutInherited && onTimeoutChange(e)}
-              onCustomValueReset={() => updateSetting({ timeout: 'inherit' })}
-            />
-          </SettingsGroup>
-
-          <SettingsGroup gap="12px" title="Redirects">
-            <ToggleSelector
-              checked={followRedirects}
-              onChange={onToggleFollowRedirects}
-              label="Automatically Follow Redirects"
-              description="Follow HTTP redirects automatically"
-              size="medium"
-              data-testid="follow-redirects-toggle"
-            />
-            <SettingsInput
-              id="maxRedirects"
-              label="Max Redirects"
-              value={maxRedirects}
-              onChange={onMaxRedirectsChange}
-              description="Set a limit for the number of redirects to follow"
-              onKeyDown={handleKeyDown}
-            />
-            <ToggleSelector
-              checked={forwardAuthorizationHeader}
-              onChange={onToggleForwardAuthorizationOnRedirect}
-              label="Forward Authorization on Redirect"
-              description="Send Authorization and Proxy-Authorization headers when a redirect points to a different origin"
-              size="medium"
-              data-testid="forward-auth-header-toggle"
-            />
-          </SettingsGroup>
+          </SettingsField>
+          <ToggleSelector
+            checked={encodeUrl}
+            onChange={onToggleUrlEncoding}
+            label="URL Encoding"
+            description="Automatically encode query parameters in the URL"
+            size="medium"
+            data-testid="encode-url-toggle"
+          />
+          <InheritableSettingsInput
+            id="timeout"
+            label="Timeout (ms)"
+            value={timeout}
+            description="Set maximum time to wait before aborting the request"
+            onKeyDown={handleKeyDown}
+            isInherited={isTimeoutInherited}
+            onDropdownSelect={handleTimeoutDropdownSelect}
+            onValueChange={(e) => !isTimeoutInherited && onTimeoutChange(e)}
+            onCustomValueReset={() => updateSetting({ timeout: 'inherit' })}
+          />
+          <ToggleSelector
+            checked={followRedirects}
+            onChange={onToggleFollowRedirects}
+            label="Automatically Follow Redirects"
+            description="Follow HTTP redirects automatically"
+            size="medium"
+            data-testid="follow-redirects-toggle"
+          />
+          <SettingsInput
+            id="maxRedirects"
+            label="Max Redirects"
+            value={maxRedirects}
+            onChange={onMaxRedirectsChange}
+            description="Set a limit for the number of redirects to follow"
+            onKeyDown={handleKeyDown}
+          />
+          <ToggleSelector
+            checked={forwardAuthorizationHeader}
+            onChange={onToggleForwardAuthorizationOnRedirect}
+            label="Forward Authorization on Redirect"
+            description="Send Authorization and Proxy-Authorization headers when a redirect points to a different origin."
+            size="medium"
+            data-testid="forward-auth-header-toggle"
+          />
 
           {item.type === 'http-request' && (
-            <SettingsGroup gap="12px" title="App">
-              <ToggleSelector
-                checked={enableApp}
-                onChange={onToggleEnableApp}
-                label="Enable App"
-                description="Show the App tab and app view mode for this request"
-                size="medium"
-                data-testid="enable-app-toggle"
-              />
-            </SettingsGroup>
+            <ToggleSelector
+              checked={enableApp}
+              onChange={onToggleEnableApp}
+              label="Enable App"
+              description="Show the App tab and app view mode for this request"
+              size="medium"
+              data-testid="enable-app-toggle"
+            />
           )}
-        </div>
+        </SettingsList>
       </div>
     </StyledWrapper>
   );

@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   .settings-text-input {
-    border-radius: 4px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
     border: 1px solid ${(props) => props.theme.input.border};
     background-color: ${(props) => props.theme.input.bg};
     color: ${(props) => props.theme.text};

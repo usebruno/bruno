@@ -2,19 +2,8 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   .proxy-settings {
-    max-width: 560px;
+    max-width: 500px;
     font-size: ${(props) => props.theme.font.size.base};
-  }
-
-  .settings-label {
-    font-size: ${(props) => props.theme.font.size.base};
-    font-weight: 500;
-  }
-
-  .sub-label {
-    font-size: ${(props) => props.theme.font.size.base};
-    font-weight: 400;
-    color: ${(props) => props.theme.colors.text.muted};
   }
 
   .hint {
@@ -28,12 +17,18 @@ const StyledWrapper = styled.div`
     min-width: 0;
     height: 34px;
     padding: 0 10px;
-    border-radius: 4px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
     border: 1px solid ${(props) => props.theme.input.border};
     background-color: ${(props) => props.theme.input.bg};
+    color: ${(props) => props.theme.text};
     box-shadow: none;
     outline: none;
     transition: border-color ease-in-out 0.1s;
+  }
+
+  .single-line-editor-wrapper {
+    display: flex;
+    align-items: center;
   }
 
   .textbox:focus,
@@ -46,10 +41,10 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    width: 200px;
+    width: 100%;
     height: 34px;
     padding: 0 10px;
-    border-radius: 4px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
     border: 1px solid ${(props) => props.theme.input.border};
     background-color: ${(props) => props.theme.input.bg};
     color: ${(props) => props.theme.text};
@@ -61,11 +56,6 @@ const StyledWrapper = styled.div`
       border-color: ${(props) => props.theme.input.focusBorder};
       outline: none;
     }
-  }
-
-  .single-line-editor-wrapper {
-    display: flex;
-    align-items: center;
   }
 
   .mono,

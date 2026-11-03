@@ -1,6 +1,6 @@
 import React, { useId } from 'react';
 import { useTheme } from 'providers/Theme';
-import SettingsRow from 'components/SettingsRow';
+import SettingsField from 'ui/patterns/SettingsField';
 
 const ToggleSelector = ({
   checked,
@@ -35,9 +35,16 @@ const ToggleSelector = ({
   const currentSize = sizeClasses[size];
 
   return (
-    <SettingsRow label={label} description={description} htmlFor={switchId}>
+    <SettingsField
+      layout="inline"
+      label={label}
+      description={description}
+      htmlFor={switchId}
+      descriptionId={description ? `${switchId}-description` : undefined}
+    >
       <button
         id={switchId}
+        aria-describedby={description ? `${switchId}-description` : undefined}
         type="button"
         onClick={onChange}
         disabled={disabled}
@@ -61,7 +68,7 @@ const ToggleSelector = ({
           `}
         />
       </button>
-    </SettingsRow>
+    </SettingsField>
   );
 };
 

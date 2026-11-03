@@ -1,17 +1,15 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  .settings-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    max-width: 720px;
+  /* Keep each control close to its label; spacing and dividers come from SettingsList */
+  .request-settings-list {
+    max-width: 600px;
   }
 
   .tags-field {
     div:has(> [data-testid='tag-input']) {
       height: 34px;
-      border-radius: 4px;
+      border-radius: ${(props) => props.theme.border.radius.sm};
       border: 1px solid ${(props) => props.theme.input.border};
       background-color: ${(props) => props.theme.input.bg};
       transition: border-color ease-in-out 0.1s;

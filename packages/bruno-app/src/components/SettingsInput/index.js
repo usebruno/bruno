@@ -1,5 +1,5 @@
 import React from 'react';
-import SettingsRow from 'components/SettingsRow';
+import SettingsField from 'ui/patterns/SettingsField';
 import StyledWrapper from './StyledWrapper';
 
 const SettingsInput = ({
@@ -13,11 +13,18 @@ const SettingsInput = ({
 }) => {
   return (
     <StyledWrapper>
-      <SettingsRow label={label} description={description} htmlFor={id}>
+      <SettingsField
+        layout="inline"
+        label={label}
+        description={description}
+        htmlFor={id}
+        descriptionId={description ? `${id}-description` : undefined}
+      >
         <input
           id={id}
+          aria-describedby={description ? `${id}-description` : undefined}
           type="text"
-          className={`settings-text-input block px-2 py-1 w-32 h-[34px] ${className}`}
+          className={`settings-text-input block px-2 py-1 w-24 h-[34px] ${className}`}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
@@ -26,7 +33,7 @@ const SettingsInput = ({
           onChange={onChange}
           onKeyDown={onKeyDown}
         />
-      </SettingsRow>
+      </SettingsField>
     </StyledWrapper>
   );
 };
