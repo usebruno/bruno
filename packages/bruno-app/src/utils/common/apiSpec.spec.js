@@ -75,6 +75,24 @@ describe('buildSpecVariables', () => {
     expect(variables).toEqual({ other: 'kept' });
   });
 
+  it('keeps the placeholder when an enabled secret in the environment overrides a collection variable', () => {
+    const variables = buildSpecVariables({
+      collectionVariables: { host: 'https://collection-host.test', other: 'kept' },
+      envVariables: { Prod: [{ name: 'host', value: '', enabled: true, secret: true }] },
+      environment: 'Prod'
+    });
+    expect(variables).toEqual({ other: 'kept' });
+  });
+
+  it('keeps the collection value when the secret with the same name is switched off', () => {
+    const variables = buildSpecVariables({
+      collectionVariables: { host: 'https://collection-host.test' },
+      envVariables: { Prod: [{ name: 'host', value: '', enabled: false, secret: true }] },
+      environment: 'Prod'
+    });
+    expect(variables).toEqual({ host: 'https://collection-host.test' });
+  });
+
   it('copes with a collection that has nothing in it', () => {
     expect(buildSpecVariables({})).toEqual({});
   });

@@ -14,10 +14,20 @@ export const getEnvironmentVariablesKeyValuePairs = (envVariables) => {
   return variables;
 };
 
-export const buildSpecVariables = ({ collectionVariables, envVariables, environment }) => ({
-  ...(collectionVariables || {}),
-  ...(environment ? getEnvironmentVariablesKeyValuePairs(envVariables?.[environment] || {}) : {})
-});
+export const buildSpecVariables = ({ collectionVariables, envVariables, environment }) => {
+  const environmentVariables = environment ? envVariables?.[environment] || {} : {};
+
+  // An enabled secret overrides a collection variable of the same name at runtime, so keep its placeholder
+  const secretNames = new Set();
+  each(environmentVariables, (variable) => {
+    if (variable.enabled && variable.secret) secretNames.add(variable.name);
+  });
+  const collectionValues = Object.fromEntries(
+    Object.entries(collectionVariables || {}).filter(([name]) => !secretNames.has(name))
+  );
+
+  return { ...collectionValues, ...getEnvironmentVariablesKeyValuePairs(environmentVariables) };
+};
 
 export const buildSkippedFilesMessage = (skipped) => {
   const listed = skipped.slice(0, MAX_SKIPPED_FILES_LISTED);
