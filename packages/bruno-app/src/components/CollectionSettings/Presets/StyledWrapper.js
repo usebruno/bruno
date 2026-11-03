@@ -4,7 +4,7 @@ const StyledWrapper = styled.div`
   max-width: 800px;
 
   .preset-field {
-    margin-top: 1.5rem;
+    margin-top: 1rem;
 
     &:first-of-type {
       margin-top: 0;
