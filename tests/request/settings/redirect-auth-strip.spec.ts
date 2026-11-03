@@ -8,7 +8,7 @@ test.describe('Redirect Authorization Stripping E2E Tests', () => {
     locators = buildCommonLocators(page);
   });
 
-  test('should strip Authorization and Proxy-Authorization on cross-origin redirects when setting is OFF', async ({
+  test('should strip Authorization on cross-origin redirects when setting is OFF', async ({
     pageWithUserData: page
   }) => {
     await test.step('Arrange - Open collection and request', async () => {
@@ -25,7 +25,7 @@ test.describe('Redirect Authorization Stripping E2E Tests', () => {
       await expect(locators.response.statusCode()).toContainText('200', { timeout: 15000 });
       const fullText = await locators.response.previewContainer().innerText();
       expect(fullText).not.toContain('"authorization":');
-      expect(fullText).not.toContain('"proxy-authorization":');
+      expect(fullText).toContain('"proxy-authorization": "Bearer proxy-test"');
     });
 
     await test.step('Cleanup - Close tab', async () => {

@@ -204,8 +204,7 @@ function makeAxiosInstance({
 
             if (!forwardAuthorizationHeader) {
               Object.keys(requestConfig.headers).forEach((key) => {
-                const lowerKey = key.toLowerCase();
-                if (lowerKey === 'authorization' || lowerKey === 'proxy-authorization') {
+                if (key.toLowerCase() === 'authorization') {
                   delete requestConfig.headers[key];
                 }
               });

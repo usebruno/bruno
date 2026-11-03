@@ -226,7 +226,7 @@ describe('makeAxiosInstance', () => {
       return adapter;
     }
 
-    it('should strip Authorization and Proxy-Authorization headers on cross-origin redirect when forwardAuthorizationHeader is false', async () => {
+    it('should strip the Authorization header on cross-origin redirect when forwardAuthorizationHeader is false', async () => {
       const stubAdapter = createRedirectingStubAdapter('https://other-domain.com/target');
       const instance = makeAxiosInstance({
         followRedirects: true,
@@ -259,7 +259,8 @@ describe('makeAxiosInstance', () => {
       // Redirected call should strip auth headers but keep custom headers
       expect(calls[1].url).toBe('https://other-domain.com/target');
       expect(calls[1].headers['Authorization']).toBeUndefined();
-      expect(calls[1].headers['Proxy-Authorization']).toBeUndefined();
+      // The proxy is the same party before and after the redirect, so its credential stays
+      expect(calls[1].headers['Proxy-Authorization']).toBe('Bearer proxy-token');
       expect(calls[1].headers['X-Amz-Date']).toBeUndefined();
       expect(calls[1].headers['X-Amz-Security-Token']).toBeUndefined();
       expect(calls[1].headers['Custom-Header']).toBe('keep-me');
