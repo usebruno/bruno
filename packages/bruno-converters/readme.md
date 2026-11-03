@@ -57,7 +57,7 @@ const brunoCollection = await wsdlToBruno(wsdlContent);
 ```javascript
 
 const { postmanToBruno } = require('@usebruno/converters');
-const { writeCollectionToDisk } = require('@usebruno/filestore');
+const { writeCollectionToDisk } = require('@usebruno/io');
 const fs = require('fs/promises');
 
 async function convertPostmanToBruno(inputFile, outputDir) {
@@ -87,7 +87,7 @@ The WSDL importer supports the following features:
 
 ```javascript
 import { wsdlToBruno } from '@usebruno/converters';
-import { writeCollectionToDisk } from '@usebruno/filestore';
+import { writeCollectionToDisk } from '@usebruno/io';
 import fs from 'fs/promises';
 
 async function importWSDL() {

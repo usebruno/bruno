@@ -1,0 +1,13 @@
+openapi: 3.0.3
+info:
+  title: Sample Orders API
+  version: 1.0.0
+servers:
+  - url: https://jsonplaceholder.typicode.com
+paths:
+  /orders:
+    get:
+      summary: List orders
+      responses:
+        '200':
+          description: List of orders

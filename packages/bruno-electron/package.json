@@ -61,7 +61,6 @@
     "diff": "^8.0.3",
     "dotenv": "^16.0.3",
     "electron-is-dev": "^2.0.0",
-    "electron-notarize": "^1.2.2",
     "electron-store": "^8.1.0",
     "electron-util": "^0.17.2",
     "express": "4.22.3",
@@ -91,8 +90,9 @@
     "dmg-license": "^1.0.11"
   },
   "devDependencies": {
-    "electron": "~37.6.1",
-    "electron-builder": "^24.13.3",
+    "@electron/notarize": "^3.1.2",
+    "electron": "~43.8.4",
+    "electron-builder": "^26.18.0",
     "electron-devtools-installer": "^4.0.0"
   }
 }
