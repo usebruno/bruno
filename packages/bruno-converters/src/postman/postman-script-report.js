@@ -150,7 +150,7 @@ export const buildScriptUsage = ({ source, translated, fellBackToRegex }) => {
   // A fallback never translated structurally, so it counts towards neither side
   // of the ratio.
   if (fellBackToRegex) {
-    return { apiCallsTotal: 0, apiCallsUntranslated: 0, untranslatedApis: {}, fellBackToRegex: true };
+    return { apiUsagesTotal: 0, apiUsagesUntranslated: 0, untranslatedApis: {}, fellBackToRegex: true };
   }
 
   try {
@@ -165,8 +165,8 @@ export const buildScriptUsage = ({ source, translated, fellBackToRegex }) => {
     }
 
     return {
-      apiCallsTotal: sourceApis.total,
-      apiCallsUntranslated: untranslated.total,
+      apiUsagesTotal: sourceApis.total,
+      apiUsagesUntranslated: untranslated.total,
       untranslatedApis,
       fellBackToRegex: false
     };
@@ -183,19 +183,19 @@ export const buildPreservedScriptsReport = () => ({ preserveScripts: true });
 const emptyReport = () => ({
   preserveScripts: false,
   fullyTranslated: true,
-  apiCallsTotal: 0,
-  apiCallsUntranslated: 0,
+  apiUsagesTotal: 0,
+  apiUsagesUntranslated: 0,
   untranslatedApis: {},
-  scriptsFellBackToRegex: 0
+  scriptsUsingRegexFallback: 0
 });
 
 const toReport = (usage) => ({
   preserveScripts: false,
-  fullyTranslated: usage.apiCallsUntranslated === 0 && !usage.fellBackToRegex,
-  apiCallsTotal: usage.apiCallsTotal,
-  apiCallsUntranslated: usage.apiCallsUntranslated,
+  fullyTranslated: usage.apiUsagesUntranslated === 0 && !usage.fellBackToRegex,
+  apiUsagesTotal: usage.apiUsagesTotal,
+  apiUsagesUntranslated: usage.apiUsagesUntranslated,
   untranslatedApis: usage.untranslatedApis,
-  scriptsFellBackToRegex: usage.fellBackToRegex ? 1 : 0
+  scriptsUsingRegexFallback: usage.fellBackToRegex ? 1 : 0
 });
 
 /**
@@ -216,9 +216,9 @@ export const mergeScriptTranslationReports = (reports) => {
   const merged = emptyReport();
 
   for (const report of present) {
-    merged.apiCallsTotal += report.apiCallsTotal || 0;
-    merged.apiCallsUntranslated += report.apiCallsUntranslated || 0;
-    merged.scriptsFellBackToRegex += report.scriptsFellBackToRegex || 0;
+    merged.apiUsagesTotal += report.apiUsagesTotal || 0;
+    merged.apiUsagesUntranslated += report.apiUsagesUntranslated || 0;
+    merged.scriptsUsingRegexFallback += report.scriptsUsingRegexFallback || 0;
 
     for (const [api, count] of Object.entries(report.untranslatedApis || {})) {
       merged.untranslatedApis[api] = (merged.untranslatedApis[api] || 0) + count;
@@ -226,7 +226,7 @@ export const mergeScriptTranslationReports = (reports) => {
   }
 
   // Recomputed, not ANDed, so the merged flag means what a single one does.
-  merged.fullyTranslated = merged.apiCallsUntranslated === 0 && merged.scriptsFellBackToRegex === 0;
+  merged.fullyTranslated = merged.apiUsagesUntranslated === 0 && merged.scriptsUsingRegexFallback === 0;
   return merged;
 };
 

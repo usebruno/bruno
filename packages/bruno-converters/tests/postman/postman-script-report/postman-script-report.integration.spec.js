@@ -42,10 +42,10 @@ describe('postman script report (against the real converter)', () => {
     expect(report).toEqual({
       preserveScripts: false,
       fullyTranslated: true,
-      apiCallsTotal: 5,
-      apiCallsUntranslated: 0,
+      apiUsagesTotal: 5,
+      apiUsagesUntranslated: 0,
       untranslatedApis: {},
-      scriptsFellBackToRegex: 0
+      scriptsUsingRegexFallback: 0
     });
   });
 
@@ -55,7 +55,7 @@ describe('postman script report (against the real converter)', () => {
     );
 
     expect(report.fullyTranslated).toBe(false);
-    expect(report.apiCallsUntranslated).toBe(1);
+    expect(report.apiUsagesUntranslated).toBe(1);
     expect(report.untranslatedApis).toEqual({ 'pm.someUnknownApi.doThing': 1 });
   });
 
@@ -66,7 +66,7 @@ describe('postman script report (against the real converter)', () => {
       ])
     );
 
-    expect(report.apiCallsTotal).toBe(1);
+    expect(report.apiUsagesTotal).toBe(1);
     expect(report.untranslatedApis).toEqual({ 'pm.someUnknownApi.doThing': 1 });
   });
 
@@ -101,10 +101,10 @@ describe('postman script report (against the real converter)', () => {
     expect(report).toEqual({
       preserveScripts: false,
       fullyTranslated: false,
-      apiCallsTotal: 0,
-      apiCallsUntranslated: 0,
+      apiUsagesTotal: 0,
+      apiUsagesUntranslated: 0,
       untranslatedApis: {},
-      scriptsFellBackToRegex: 1
+      scriptsUsingRegexFallback: 1
     });
   });
 
@@ -122,7 +122,7 @@ describe('postman script report (against the real converter)', () => {
       )
     );
 
-    expect(report.apiCallsTotal).toBe(3);
+    expect(report.apiUsagesTotal).toBe(3);
     expect(report.untranslatedApis).toEqual({
       'pm.someUnknownApi.collectionLevel': 1,
       'pm.someUnknownApi.folderLevel': 1,
@@ -140,8 +140,8 @@ describe('postman script report (against the real converter)', () => {
       ])
     );
 
-    expect(report.apiCallsTotal).toBe(2);
-    expect(report.apiCallsUntranslated).toBe(1);
+    expect(report.apiUsagesTotal).toBe(2);
+    expect(report.apiUsagesUntranslated).toBe(1);
     expect(report.untranslatedApis).toEqual({ 'postman.someUnknownApi.legacyThing': 1 });
   });
 
@@ -163,10 +163,10 @@ describe('postman script report (against the real converter)', () => {
     expect(report).toEqual({
       preserveScripts: false,
       fullyTranslated: true,
-      apiCallsTotal: 0,
-      apiCallsUntranslated: 0,
+      apiUsagesTotal: 0,
+      apiUsagesUntranslated: 0,
       untranslatedApis: {},
-      scriptsFellBackToRegex: 0
+      scriptsUsingRegexFallback: 0
     });
   });
 
@@ -181,10 +181,10 @@ describe('postman script report (against the real converter)', () => {
     expect(scriptTranslationReport).toEqual({
       preserveScripts: false,
       fullyTranslated: true,
-      apiCallsTotal: 2,
-      apiCallsUntranslated: 0,
+      apiUsagesTotal: 2,
+      apiUsagesUntranslated: 0,
       untranslatedApis: {},
-      scriptsFellBackToRegex: 0
+      scriptsUsingRegexFallback: 0
     });
   });
 

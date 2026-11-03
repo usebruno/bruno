@@ -37,11 +37,11 @@ describe('translate-postman-scripts worker', () => {
     mockTranslatePostmanScript
       .mockReturnValueOnce({
         translated: 'bru.setEnvVar("k", "v");',
-        usage: { apiCallsTotal: 1, apiCallsUntranslated: 0, untranslatedApis: {}, fellBackToRegex: false }
+        usage: { apiUsagesTotal: 1, apiUsagesUntranslated: 0, untranslatedApis: {}, fellBackToRegex: false }
       })
       .mockReturnValueOnce({
         translated: 'pm.vault.get("k");',
-        usage: { apiCallsTotal: 1, apiCallsUntranslated: 1, untranslatedApis: { 'pm.vault.get': 1 }, fellBackToRegex: false }
+        usage: { apiUsagesTotal: 1, apiUsagesUntranslated: 1, untranslatedApis: { 'pm.vault.get': 1 }, fellBackToRegex: false }
       });
 
     const result = runWorker([
@@ -51,7 +51,7 @@ describe('translate-postman-scripts worker', () => {
 
     expect(result.map(([uid]) => uid)).toEqual(['a', 'b']);
     expect(result[1][1].scriptUsages).toEqual([
-      { apiCallsTotal: 1, apiCallsUntranslated: 1, untranslatedApis: { 'pm.vault.get': 1 }, fellBackToRegex: false }
+      { apiUsagesTotal: 1, apiUsagesUntranslated: 1, untranslatedApis: { 'pm.vault.get': 1 }, fellBackToRegex: false }
     ]);
   });
 

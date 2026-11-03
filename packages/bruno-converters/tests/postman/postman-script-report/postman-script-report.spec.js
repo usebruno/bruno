@@ -191,7 +191,7 @@ describe('buildScriptUsage', () => {
     const usage = translated('pm.environment.set("k", "secret-value");', 'bru.setEnvVar("k", "secret-value");');
 
     expect(Object.keys(usage).sort()).toEqual([
-      'apiCallsTotal', 'apiCallsUntranslated', 'fellBackToRegex', 'untranslatedApis'
+      'apiUsagesTotal', 'apiUsagesUntranslated', 'fellBackToRegex', 'untranslatedApis'
     ]);
     expect(JSON.stringify(usage)).not.toContain('secret-value');
   });
@@ -219,10 +219,10 @@ describe('aggregateScriptUsage', () => {
     const empty = {
       preserveScripts: false,
       fullyTranslated: true,
-      apiCallsTotal: 0,
-      apiCallsUntranslated: 0,
+      apiUsagesTotal: 0,
+      apiUsagesUntranslated: 0,
       untranslatedApis: {},
-      scriptsFellBackToRegex: 0
+      scriptsUsingRegexFallback: 0
     };
 
     expect(aggregateScriptUsage([])).toEqual(empty);
@@ -238,10 +238,10 @@ describe('aggregateScriptUsage', () => {
     expect(report).toEqual({
       preserveScripts: false,
       fullyTranslated: true,
-      apiCallsTotal: 1,
-      apiCallsUntranslated: 0,
+      apiUsagesTotal: 1,
+      apiUsagesUntranslated: 0,
       untranslatedApis: {},
-      scriptsFellBackToRegex: 0
+      scriptsUsingRegexFallback: 0
     });
   });
 
@@ -253,8 +253,8 @@ describe('aggregateScriptUsage', () => {
       )
     ]);
 
-    expect(report.apiCallsTotal).toBe(2);
-    expect(report.apiCallsUntranslated).toBe(1);
+    expect(report.apiUsagesTotal).toBe(2);
+    expect(report.apiUsagesUntranslated).toBe(1);
     expect(report.untranslatedApis).toEqual({ 'pm.vault.get': 1 });
     expect(report.fullyTranslated).toBe(false);
   });
@@ -262,9 +262,9 @@ describe('aggregateScriptUsage', () => {
   it('counts a fallback separately and excludes it from both sides of the ratio', () => {
     const report = aggregateScriptUsage([fellBack('pm.vault.get("k");\npm.test("broken", function() { ')]);
 
-    expect(report.scriptsFellBackToRegex).toBe(1);
-    expect(report.apiCallsTotal).toBe(0);
-    expect(report.apiCallsUntranslated).toBe(0);
+    expect(report.scriptsUsingRegexFallback).toBe(1);
+    expect(report.apiUsagesTotal).toBe(0);
+    expect(report.apiUsagesUntranslated).toBe(0);
     expect(report.untranslatedApis).toEqual({});
   });
 
@@ -274,8 +274,8 @@ describe('aggregateScriptUsage', () => {
       fellBack('pm.test("x", function() { ')
     ]);
 
-    expect(report.apiCallsUntranslated).toBe(0);
-    expect(report.scriptsFellBackToRegex).toBe(1);
+    expect(report.apiUsagesUntranslated).toBe(0);
+    expect(report.scriptsUsingRegexFallback).toBe(1);
     expect(report.fullyTranslated).toBe(false);
   });
 
@@ -286,7 +286,7 @@ describe('aggregateScriptUsage', () => {
       translated('pm.vault.get("c");')
     ]);
 
-    expect(report.apiCallsTotal).toBe(3);
+    expect(report.apiUsagesTotal).toBe(3);
     expect(report.untranslatedApis).toEqual({ 'pm.vault.get': 3 });
   });
 
@@ -296,17 +296,17 @@ describe('aggregateScriptUsage', () => {
 
     expect(Object.keys(report.untranslatedApis)).toHaveLength(60);
     const sum = Object.values(report.untranslatedApis).reduce((a, b) => a + b, 0);
-    expect(sum).toBe(report.apiCallsUntranslated);
+    expect(sum).toBe(report.apiUsagesUntranslated);
   });
 });
 
 const collectionReport = (overrides = {}) => ({
   preserveScripts: false,
   fullyTranslated: true,
-  apiCallsTotal: 1,
-  apiCallsUntranslated: 0,
+  apiUsagesTotal: 1,
+  apiUsagesUntranslated: 0,
   untranslatedApis: {},
-  scriptsFellBackToRegex: 0,
+  scriptsUsingRegexFallback: 0,
   ...overrides
 });
 
@@ -323,15 +323,15 @@ describe('mergeScriptTranslationReports', () => {
     const merged = mergeScriptTranslationReports([
       collectionReport({
         fullyTranslated: false,
-        apiCallsTotal: 10,
-        apiCallsUntranslated: 3,
+        apiUsagesTotal: 10,
+        apiUsagesUntranslated: 3,
         untranslatedApis: { 'pm.vault.get': 3 },
-        scriptsFellBackToRegex: 1
+        scriptsUsingRegexFallback: 1
       }),
       collectionReport({
         fullyTranslated: false,
-        apiCallsTotal: 5,
-        apiCallsUntranslated: 2,
+        apiUsagesTotal: 5,
+        apiUsagesUntranslated: 2,
         untranslatedApis: { 'pm.vault.get': 1, 'pm.someUnknownApi': 1 }
       })
     ]);
@@ -339,10 +339,10 @@ describe('mergeScriptTranslationReports', () => {
     expect(merged).toEqual({
       preserveScripts: false,
       fullyTranslated: false,
-      apiCallsTotal: 15,
-      apiCallsUntranslated: 5,
+      apiUsagesTotal: 15,
+      apiUsagesUntranslated: 5,
       untranslatedApis: { 'pm.vault.get': 4, 'pm.someUnknownApi': 1 },
-      scriptsFellBackToRegex: 1
+      scriptsUsingRegexFallback: 1
     });
   });
 
@@ -355,10 +355,10 @@ describe('mergeScriptTranslationReports', () => {
   it('skips collections that produced no report', () => {
     const merged = mergeScriptTranslationReports([
       null,
-      collectionReport({ fullyTranslated: false, apiCallsUntranslated: 1, untranslatedApis: { 'pm.x': 1 } })
+      collectionReport({ fullyTranslated: false, apiUsagesUntranslated: 1, untranslatedApis: { 'pm.x': 1 } })
     ]);
 
-    expect(merged.apiCallsTotal).toBe(1);
+    expect(merged.apiUsagesTotal).toBe(1);
     expect(merged.untranslatedApis).toEqual({ 'pm.x': 1 });
   });
 
@@ -368,7 +368,7 @@ describe('mergeScriptTranslationReports', () => {
     expect(
       mergeScriptTranslationReports([
         collectionReport(),
-        collectionReport({ fullyTranslated: false, apiCallsUntranslated: 1, untranslatedApis: { 'pm.x': 1 } })
+        collectionReport({ fullyTranslated: false, apiUsagesUntranslated: 1, untranslatedApis: { 'pm.x': 1 } })
       ]).fullyTranslated
     ).toBe(false);
 
@@ -376,7 +376,7 @@ describe('mergeScriptTranslationReports', () => {
     expect(
       mergeScriptTranslationReports([
         collectionReport(),
-        collectionReport({ fullyTranslated: false, scriptsFellBackToRegex: 1 })
+        collectionReport({ fullyTranslated: false, scriptsUsingRegexFallback: 1 })
       ]).fullyTranslated
     ).toBe(false);
   });
@@ -386,12 +386,12 @@ describe('mergeScriptTranslationReports', () => {
       Object.fromEntries(Array.from({ length: 30 }, (_, i) => [`pm.api${offset + i}`, offset + i + 1]));
 
     const merged = mergeScriptTranslationReports([
-      collectionReport({ fullyTranslated: false, apiCallsUntranslated: 465, untranslatedApis: buildApis(0) }),
-      collectionReport({ fullyTranslated: false, apiCallsUntranslated: 1365, untranslatedApis: buildApis(30) })
+      collectionReport({ fullyTranslated: false, apiUsagesUntranslated: 465, untranslatedApis: buildApis(0) }),
+      collectionReport({ fullyTranslated: false, apiUsagesUntranslated: 1365, untranslatedApis: buildApis(30) })
     ]);
 
     expect(Object.keys(merged.untranslatedApis)).toHaveLength(60);
     const sum = Object.values(merged.untranslatedApis).reduce((a, b) => a + b, 0);
-    expect(sum).toBe(merged.apiCallsUntranslated);
+    expect(sum).toBe(merged.apiUsagesUntranslated);
   });
 });
