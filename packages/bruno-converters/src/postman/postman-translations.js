@@ -1,5 +1,4 @@
 import translateCode from '../utils/postman-to-bruno-translator';
-import { buildScriptUsage } from './postman-script-report';
 
 const replacements = {
   'pm\\.environment\\.get\\(': 'bru.getEnvVar(',
@@ -189,48 +188,34 @@ const processRegexReplacement = (code) => {
 
 const firstLine = (message) => String(message ?? '').split('\n')[0];
 
-/**
- * Translates one Postman script, alongside its API-usage measurement.
- *
- * `usage` is measured here, not by the caller, because a fallback to
- * find-and-replace is only visible at this point — the translated text alone
- * doesn't reveal which pass produced it.
- *
- * @param {string|string[]} script
- * @returns {{ translated: string, usage: Object|null }}
- */
-const translatePostmanScript = (script, { onTranslationFailure, logFailures = true } = {}) => {
-  const source = Array.isArray(script) ? script.join('\n') : script;
+const postmanTranslation = (script, { onTranslationFailure, logFailures = true } = {}) => {
+  let modifiedScript = Array.isArray(script) ? script.join('\n') : script;
+  let translatedScript;
 
   try {
-    const translated = translateCode(source);
-    return { translated, usage: buildScriptUsage({ source, translated, fellBackToRegex: false }) };
+    translatedScript = translateCode(modifiedScript);
   } catch (e) {
     if (logFailures) {
       console.warn('Error in postman translation:', e);
     }
     let fallback = 'regex';
 
-    let translated;
     try {
-      translated = processRegexReplacement(source);
-    } catch (regexError) {
+      translatedScript = processRegexReplacement(modifiedScript);
+    } catch (e) {
       if (logFailures) {
-        console.warn('Error in postman translation:', regexError);
+        console.warn('Error in postman translation:', e);
       }
-      translated = source;
+      translatedScript = modifiedScript;
       fallback = 'verbatim';
     }
 
     if (onTranslationFailure) {
       onTranslationFailure({ message: firstLine(e?.message), fallback });
     }
-
-    return { translated, usage: buildScriptUsage({ source, translated, fellBackToRegex: true }) };
   }
+
+  return translatedScript;
 };
 
-const postmanTranslation = (script, options) => translatePostmanScript(script, options).translated;
-
-export { translatePostmanScript };
 export default postmanTranslation;

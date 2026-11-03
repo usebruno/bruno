@@ -153,7 +153,6 @@ const scriptTranslationWorker = async (scriptMap) => {
 
     try {
       const translatedScripts = new Map();
-      const scriptUsages = [];
       const result = await workerPool.runTask({ scripts: scriptEntries });
 
       if (result.error) {
@@ -161,12 +160,11 @@ const scriptTranslationWorker = async (scriptMap) => {
         throw new Error(result.error);
       }
 
-      result.forEach(([uid, { request, scriptUsages: usages }]) => {
+      result.forEach(([uid, { request }]) => {
         translatedScripts.set(uid, { request });
-        scriptUsages.push(...usages);
       });
 
-      return { translatedScripts, scriptUsages };
+      return translatedScripts;
     } finally {
       workerPool.terminate();
     }
@@ -178,7 +176,6 @@ const scriptTranslationWorker = async (scriptMap) => {
   const batches = createBalancedBatches(scriptEntries, workerCount);
 
   const translatedScripts = new Map();
-  const scriptUsages = [];
 
   // Create worker pool with optimal size
   const workerPool = new WorkerPool(path.join(__dirname, './src/workers/scripts/translate-postman-scripts.js'), workerCount);
@@ -188,9 +185,8 @@ const scriptTranslationWorker = async (scriptMap) => {
   const batchPromises = batches.map((batch) => {
     return workerPool.runTask({ scripts: batch })
       .then((modScripts) => {
-        modScripts.forEach(([name, { request, scriptUsages: usages }]) => {
+        modScripts.forEach(([name, { request }]) => {
           translatedScripts.set(name, { request });
-          scriptUsages.push(...usages);
         });
       })
       .catch((err) => {
@@ -207,7 +203,7 @@ const scriptTranslationWorker = async (scriptMap) => {
     workerPool.terminate();
   }
 
-  return { translatedScripts, scriptUsages };
+  return translatedScripts;
 };
 
 export default scriptTranslationWorker;
