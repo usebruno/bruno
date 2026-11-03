@@ -9,8 +9,8 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    # Keycloak is started here and tests run in same step due cause Github Actions kills a child-process
-    # when the step ends. KC_HOME comes from the setup-keycloak step.
+    # Keycloak is started and the tests run in the same step because GitHub Actions kills
+    # background processes when a step ends. KC_HOME comes from the setup-keycloak step.
     - name: Start Keycloak and run OAuth2 E2E tests
       shell: bash
       env:

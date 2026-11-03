@@ -28,7 +28,7 @@ export const buildAuthLocators = (page: Page) => ({
     tokenSection: (title: string) => page.getByRole('heading', { name: title, exact: true }),
     copyTokenButton: () => page.getByRole('button', { name: 'Copy token' }),
     noToken: () => page.getByTestId('oauth2-no-token'),
-    tokenValue: (title: string) => page.getByTestId(`oauth2-token-value-${title}`),
+    tokenValue: (tokenKey: 'access-token' | 'refresh-token' | 'id-token') => page.getByTestId(`oauth2-token-value-${tokenKey}`),
     getAccessTokenBtn: () => page.getByTestId('oauth2-get-access-token')
   },
   modeSelector: () => page.getByTestId('auth-mode-selector'),

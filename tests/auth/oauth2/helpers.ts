@@ -121,7 +121,7 @@ export const readFetchedAccessToken = async (page: Parameters<typeof openRequest
   const { tokenSection, tokenValue } = buildCommonLocators(page).auth.oauth2;
   await expect(tokenSection('Access Token')).toBeVisible({ timeout: 15_000 });
   await tokenSection('Access Token').click();
-  return tokenValue('Access Token').textContent();
+  return tokenValue('access-token').textContent();
 };
 
 const STATE_MISMATCH_ERROR
