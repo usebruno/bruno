@@ -5,7 +5,7 @@ import { IconChevronDown, IconChevronRight, IconCopy, IconCheck } from '@tabler/
 import { getAllVariables } from 'utils/collections/index';
 import { interpolate } from '@usebruno/common';
 
-const TokenSection = ({ title, token }) => {
+const TokenSection = ({ title, token, testId }) => {
   if (!token) return null;
 
   const [isExpanded, setIsExpanded] = useState(false);
@@ -36,7 +36,6 @@ const TokenSection = ({ title, token }) => {
     <div className="mb-2 border dark:border-gray-700 rounded-lg overflow-hidden">
       <div
         className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
-        data-testid={`oauth2-token-section-${title}`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center space-x-2 w-full">
@@ -63,7 +62,7 @@ const TokenSection = ({ title, token }) => {
                   : <IconCopy size={16} className="text-gray-500" />}
               </button>
             </div>
-            <div className="font-mono text-xs bg-gray-50 dark:bg-gray-800 p-2 rounded break-all" data-testid={`oauth2-token-value-${title}`}>
+            <div className="font-mono text-xs bg-gray-50 dark:bg-gray-800 p-2 rounded break-all" data-testid={`oauth2-token-value-${testId}`}>
               {token}
             </div>
           </div>
@@ -141,9 +140,9 @@ const Oauth2TokenViewer = ({ collection, item, url, credentialsId, handleRun }) 
           <pre className="text-red-600 dark:text-red-400">Error fetching token. Check network logs for more details.</pre>
         ) : (
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
-            <TokenSection title="Access Token" token={creds.access_token} />
-            <TokenSection title="Refresh Token" token={creds.refresh_token} />
-            <TokenSection title="ID Token" token={creds.id_token} />
+            <TokenSection title="Access Token" token={creds.access_token} testId="access-token" />
+            <TokenSection title="Refresh Token" token={creds.refresh_token} testId="refresh-token" />
+            <TokenSection title="ID Token" token={creds.id_token} testId="id-token" />
             {(creds.token_type || creds.scope) ? (
               <div className="mt-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs">
                 <div className="grid grid-cols-2 gap-2">

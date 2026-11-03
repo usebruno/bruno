@@ -15,8 +15,6 @@ runs:
       with:
         distribution: temurin
         java-version: '21'
-    # NOTE: On Windows, GitHub Actions terminates child process tree when the step completes.
-    # So keycloak is started in the same step where tests are ran.
     - name: Download and prepare Keycloak
       shell: bash
       working-directory: ${{ runner.temp }}
