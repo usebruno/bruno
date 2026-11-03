@@ -14,7 +14,7 @@ npm run lint:fix         # ESLint fix
 npm test --workspaces    # Unit tests (Jest) across all packages
 ```
 
-Full script list: root `package.json`. Setup: `nvm use && npm i --legacy-peer-deps && npm run setup` (Node **v22.12.0**, see `.nvmrc`).
+Full script list: root `package.json`. Setup: `nvm use && npm i --legacy-peer-deps && npm run setup` (Node **v24.22.1**, see `.nvmrc`).
 
 ### Running a single test
 
@@ -33,11 +33,12 @@ Prefer the smallest scope — one workspace, one spec — over `--workspaces` or
 ### Building shared packages
 
 `npm run dev` does **not** rebuild the shared packages (bruno-common, bruno-requests,
-bruno-filestore, bruno-sqlite, bruno-converters, bruno-query, bruno-schema-types, bruno-graphql-docs).
+bruno-filestore, bruno-io, bruno-sqlite, bruno-converters, bruno-query, bruno-schema-types,
+bruno-graphql-docs).
 After editing one, rebuild it or run its watcher, or the app won't pick up changes:
 
 ```bash
-npm run build:bruno-common      # also :bruno-requests, :bruno-filestore, :bruno-sqlite, etc.
+npm run build:bruno-common      # also :bruno-requests, :bruno-filestore, :bruno-io, :bruno-sqlite, etc.
 npm run watch:common            # also watch:requests, watch:converters
 ```
 

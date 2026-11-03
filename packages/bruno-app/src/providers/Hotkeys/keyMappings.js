@@ -47,7 +47,7 @@ export const KEY_BINDING_SECTIONS = [
   {
     heading: 'Editor',
     bindings: {
-      triggerAutocomplete: { mac: 'ctrl+bind+space', windows: 'ctrl+bind+space', name: 'Trigger Autocomplete' }
+      triggerAutocomplete: { mac: 'alt+bind+space', windows: 'ctrl+bind+space', name: 'Trigger Autocomplete' }
     }
   },
   {

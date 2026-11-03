@@ -1,0 +1,246 @@
+import React, { useRef, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import Tippy from '@tippyjs/react';
+import toast from 'react-hot-toast';
+import { IconAlertTriangle } from '@tabler/icons';
+import {
+  addSecretToEnvironment,
+  markEnvironmentVariableAsSecret,
+  removeVariableFromScope
+} from 'providers/ReduxStore/slices/collections/actions';
+import { getEffectiveActiveEnvironmentUid } from 'utils/collections';
+import { SCOPE_LABEL, VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+import {
+  PLAINTEXT_SCOPE,
+  findOverridingVariableScope,
+  replaceVariableReferences,
+  replaceWithVariableValues,
+  resolveSensitiveVariable
+} from 'utils/sensitive-fields';
+import SecretVariableForm from './SecretVariableForm';
+import WarningMessage from './WarningMessage';
+import StyledWrapper from './StyledWrapper';
+
+const HOVER_CLOSE_DELAY_MS = 150;
+const POPOVER_Z_INDEX = 15;
+
+const ACTION_LABELS = {
+  [PLAINTEXT_SCOPE]: 'Save as secret variable',
+  [VARIABLE_ADD_SCOPES.ENVIRONMENT]: 'Mark as secret',
+  [VARIABLE_ADD_SCOPES.GLOBAL]: 'Mark as secret',
+  [VARIABLE_ADD_SCOPES.REQUEST]: 'Move to environment',
+  [VARIABLE_ADD_SCOPES.FOLDER]: 'Move to environment',
+  [VARIABLE_ADD_SCOPES.COLLECTION]: 'Move to environment'
+};
+
+const SCOPE_DISPLAY_NAME = {
+  [VARIABLE_ADD_SCOPES.REQUEST]: `${SCOPE_LABEL[VARIABLE_ADD_SCOPES.REQUEST]} Vars`,
+  [VARIABLE_ADD_SCOPES.FOLDER]: `${SCOPE_LABEL[VARIABLE_ADD_SCOPES.FOLDER]} Vars`,
+  [VARIABLE_ADD_SCOPES.COLLECTION]: `${SCOPE_LABEL[VARIABLE_ADD_SCOPES.COLLECTION]} Vars`,
+  [VARIABLE_ADD_SCOPES.ENVIRONMENT]: 'Collection Environment',
+  [VARIABLE_ADD_SCOPES.GLOBAL]: 'Global Environment'
+};
+
+const MOVE_SCOPES = [VARIABLE_ADD_SCOPES.REQUEST, VARIABLE_ADD_SCOPES.FOLDER, VARIABLE_ADD_SCOPES.COLLECTION];
+
+/** Active environment uid for the global or collection scope. */
+const getActiveEnvironmentUid = (collection, environmentScope) => (
+  environmentScope === VARIABLE_ADD_SCOPES.GLOBAL
+    ? collection.activeGlobalEnvironmentUid
+    : getEffectiveActiveEnvironmentUid(collection)
+);
+
+/** The request/folder/collection var that "Move to environment" deletes. Vars tables pass its uid; auth fields look it up by name. */
+const findVariableToMove = ({ collection, item, variableName, variableUid, value }) => {
+  if (variableUid) {
+    return { uid: variableUid, value, ownerUid: item?.uid };
+  }
+  const resolved = resolveSensitiveVariable(variableName, { collection, item });
+  if (!resolved) {
+    return null;
+  }
+  return { uid: resolved.variable.uid, value: resolved.variable.value, ownerUid: resolved.owner?.uid };
+};
+
+/** The environment row that "Mark as secret" updates. Inherited rows point to their base environment. */
+const getMarkAsSecretTarget = ({ collection, item, scope, variableName }) => {
+  const resolved = resolveSensitiveVariable(variableName, { collection, item });
+  if (!resolved) {
+    return null;
+  }
+  return {
+    collectionUid: collection.uid,
+    environmentScope: scope,
+    environmentUid: resolved.inheritedFrom?.uid ?? getActiveEnvironmentUid(collection, scope),
+    variableUid: resolved.variable.uid
+  };
+};
+
+/** Changes `{{from}}` to `{{to}}` in a field value. */
+const renameVariableReference = (text, from, to) => (
+  replaceVariableReferences(text, (name, match) => (name === from ? `{{${to}}}` : match))
+);
+
+const SensitiveWarningPopover = ({
+  fieldName,
+  secretName = '',
+  warningMessage,
+  scope,
+  variableName,
+  value,
+  variableUid,
+  collection,
+  item,
+  onReplaceValue,
+  onMarkAsSecret
+}) => {
+  const dispatch = useDispatch();
+  const closeTimerRef = useRef(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
+  const [secretFormState, setSecretFormState] = useState(null);
+
+  const collectionUid = collection?.uid;
+  const movedVariable = secretFormState?.movedVariable;
+  const isOpen = isHovered || isPinned || !!secretFormState;
+
+  const close = () => {
+    clearTimeout(closeTimerRef.current);
+    setIsHovered(false);
+    setIsPinned(false);
+    setSecretFormState(null);
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === 'Escape' && (isPinned || secretFormState)) {
+      event.stopPropagation();
+      close();
+    }
+  };
+
+  const handleMouseEnter = () => {
+    clearTimeout(closeTimerRef.current);
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    closeTimerRef.current = setTimeout(() => setIsHovered(false), HOVER_CLOSE_DELAY_MS);
+  };
+
+  const markAsSecret = () => {
+    if (onMarkAsSecret) {
+      return onMarkAsSecret();
+    }
+    const target = getMarkAsSecretTarget({ collection, item, scope, variableName });
+    if (!target) {
+      return Promise.reject(new Error(`"${variableName}" was not found`));
+    }
+    return dispatch(markEnvironmentVariableAsSecret(target));
+  };
+
+  /** Runs the warning link: plain values and scoped vars open the form, env vars are marked as secret directly. */
+  const handleAction = (event) => {
+    event.stopPropagation();
+    if (scope === PLAINTEXT_SCOPE) {
+      setSecretFormState({ name: secretName, value: replaceWithVariableValues(value, { collection, item }) });
+      return;
+    }
+    if (MOVE_SCOPES.includes(scope)) {
+      const moved = findVariableToMove({ collection, item, variableName, variableUid, value });
+      if (!moved) {
+        close();
+        toast.error(`"${variableName}" was not found`);
+        return;
+      }
+      setSecretFormState({ name: variableName, value: replaceWithVariableValues(moved.value, { collection, item }), movedVariable: moved });
+      return;
+    }
+    close();
+    markAsSecret()
+      .then(() => toast.success(`"${variableName}" is moved to Secrets`))
+      .catch((error) => toast.error(error.message));
+  };
+
+  /** Adds the secret to the environment, then points the field to it and deletes the moved var. */
+  const saveSecret = ({ name, value: secretValue, targetType }) => {
+    if (!movedVariable && !onReplaceValue) {
+      return Promise.reject(new Error('This field cannot be updated'));
+    }
+
+    const overridingScope = findOverridingVariableScope(name, {
+      collection,
+      item,
+      targetScope: targetType,
+      ignoreVariableUid: movedVariable?.uid
+    });
+    if (overridingScope) {
+      return Promise.reject(new Error(`"${name}" already exists in ${SCOPE_DISPLAY_NAME[overridingScope]}. Use a different name.`));
+    }
+
+    return dispatch(addSecretToEnvironment({ collectionUid, environmentScope: targetType, name, value: secretValue }))
+      .then(() => {
+        if (!movedVariable) {
+          onReplaceValue(`{{${name}}}`);
+          return;
+        }
+        if (name !== variableName && onReplaceValue) {
+          onReplaceValue(renameVariableReference(value, variableName, name));
+        }
+        dispatch(removeVariableFromScope({
+          collectionUid,
+          scope,
+          ownerUid: movedVariable.ownerUid,
+          variableUid: movedVariable.uid
+        }));
+      })
+      .then(() => toast.success(`Secret "${name}" created`));
+  };
+
+  const popoverContent = secretFormState ? (
+    <SecretVariableForm
+      collection={collection}
+      sourceLabel={movedVariable ? SCOPE_DISPLAY_NAME[scope] : null}
+      defaultName={secretFormState.name}
+      defaultValue={secretFormState.value}
+      onSave={saveSecret}
+      onClose={close}
+    />
+  ) : (
+    <WarningMessage
+      fieldName={fieldName}
+      message={warningMessage}
+      actionLabel={ACTION_LABELS[scope]}
+      onAction={handleAction}
+    />
+  );
+
+  return (
+    <StyledWrapper
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onClick={() => setIsPinned(true)}
+      onKeyDown={handleKeyDown}
+    >
+      <Tippy
+        visible={isOpen}
+        interactive
+        placement="bottom-start"
+        arrow={false}
+        animation={false}
+        maxWidth="none"
+        zIndex={POPOVER_Z_INDEX}
+        appendTo={() => document.body}
+        onClickOutside={() => {
+          if (!secretFormState) close();
+        }}
+        render={(attrs) => <div {...attrs}>{popoverContent}</div>}
+      >
+        <button type="button" className="mr-[4px] flex items-center" data-testid={`sensitive-field-warning-${fieldName}`}>
+          <IconAlertTriangle className="tooltip-icon cursor-pointer" size={16} />
+        </button>
+      </Tippy>
+    </StyledWrapper>
+  );
+};
+
+export default SensitiveWarningPopover;
