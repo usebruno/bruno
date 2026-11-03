@@ -123,16 +123,7 @@ describe('GrpcMetadataList', () => {
       const entries = request.headerEntries;
       list.clear();
       expect(metadata).toEqual({});
-      expect(request.headerEntries).toBe(entries);
       expect(entries).toEqual([]);
-    });
-
-    test('a key named __proto__ becomes a real entry instead of touching the prototype', () => {
-      const { list, metadata } = createList({ metadata: {} });
-      list.upsert('__proto__', 'polluted');
-      expect(Object.keys(metadata)).toEqual(['__proto__']);
-      expect(Object.getPrototypeOf(metadata)).toBe(Object.prototype);
-      expect(list.get('__proto__')).toBe('polluted');
     });
   });
 

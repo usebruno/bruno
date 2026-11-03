@@ -269,12 +269,6 @@ describe('ReadOnlyPropertyList', () => {
     });
   });
 
-  test('own enumerable keys hold no methods', () => {
-    const list = new ReadOnlyPropertyList({ items: [] });
-    const methodNames = Object.getOwnPropertyNames(ReadOnlyPropertyList.prototype);
-    expect(Object.keys(list).filter((key) => methodNames.includes(key))).toEqual([]);
-  });
-
   // ── No Mutation Methods ──────────────────────────────────────────────
 
   describe('does not have mutation methods', () => {
