@@ -109,6 +109,7 @@ const SecretVariableForm = ({ collection, sourceLabel, defaultName, defaultValue
             size="xs"
             aria-label="Close"
             data-testid="secret-variable-close"
+            disabled={isSaving}
             onClick={(event) => {
               event.stopPropagation();
               onClose();
