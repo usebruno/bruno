@@ -308,7 +308,8 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
     const { callbackUrl, clientId, authorizationUrl, scope, state, pkce, accessTokenUrl, additionalParameters } = oauth2;
     const useSystemBrowser = preferencesUtil.shouldUseSystemBrowser();
     const effectiveCallbackUrl = callbackUrl && callbackUrl.length ? callbackUrl : BRUNO_OAUTH2_CALLBACK_URL;
-
+    // Use the user-configured state if present, otherwise generate a cryptographically
+    // random one. The state is validated when the callback is received to prevent CSRF.
     const effectiveState = generateState({ userState: state });
 
     const authorizationUrlWithQueryParams = new URL(authorizationUrl);
