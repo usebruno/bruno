@@ -1,10 +1,18 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
+import { ThemeProvider } from 'styled-components';
 import { configureStore } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
 import { saveApiSpecToFile, clearApiSpecDraft } from 'providers/ReduxStore/slices/apiSpec';
 import SaveRequestsModal from './SaveRequestsModal';
+
+const theme = {
+  border: { border0: '#ccc', radius: { base: '4px' } },
+  modal: { title: { color: '#000' } },
+  font: { size: { xs: '12px' } },
+  request: { methods: { get: 'green' } }
+};
 
 jest.mock('react-hot-toast', () => ({
   __esModule: true,
@@ -38,7 +46,7 @@ beforeEach(() => {
   saveApiSpecToFile.mockImplementation(() => () => Promise.resolve());
 });
 
-const renderModal = ({ apiSpecs = [], tabs = [], collections = [], forceCloseTabs = false, tabUidsToClose = [] } = {}) => {
+const renderModal = ({ apiSpecs = [], tabs = [], collections = [], globalEnvironments = [], globalEnvironmentDraft = null, forceCloseTabs = false, tabUidsToClose = [] } = {}) => {
   const onClose = jest.fn();
   const dispatched = [];
   const recordActions = () => (next) => (action) => {
@@ -57,7 +65,7 @@ const renderModal = ({ apiSpecs = [], tabs = [], collections = [], forceCloseTab
       collections: { collections },
       tabs: { tabs },
       apiSpec: { apiSpecs },
-      globalEnvironments: { globalEnvironments: [], globalEnvironmentDraft: null }
+      globalEnvironments: { globalEnvironments, globalEnvironmentDraft }
     }
   });
 
@@ -65,9 +73,11 @@ const renderModal = ({ apiSpecs = [], tabs = [], collections = [], forceCloseTab
     onClose,
     dispatched,
     ...render(
-      <Provider store={store}>
-        <SaveRequestsModal onClose={onClose} forceCloseTabs={forceCloseTabs} tabUidsToClose={tabUidsToClose} />
-      </Provider>
+      <ThemeProvider theme={theme}>
+        <Provider store={store}>
+          <SaveRequestsModal onClose={onClose} forceCloseTabs={forceCloseTabs} tabUidsToClose={tabUidsToClose} />
+        </Provider>
+      </ThemeProvider>
     )
   };
 };
@@ -114,15 +124,16 @@ describe('the unsaved changes dialog shown while quitting', () => {
     expect(screen.getByText('1')).toBeInTheDocument();
   });
 
-  it('lists API specs after the other unsaved items', () => {
+  it('lists unsaved items in the order their tabs are open', () => {
+    const item = { uid: 'r1', name: 'Users', type: 'http-request', pathname: '/c1/Users.yml', request: { method: 'GET', url: 'http://a' }, draft: { request: { method: 'GET', url: 'http://b' } } };
     renderModal({
-      collections: [{ uid: 'c1', name: 'My Collection', draft: { name: 'My Collection' }, items: [] }],
+      collections: [{ uid: 'c1', name: 'My Collection', draft: { name: 'My Collection' }, items: [item] }],
       apiSpecs: [{ uid: 'spec-1', name: 'Petstore', pathname: SPEC_PATHNAME, raw: 'openapi: 3.0.0', draft: 'openapi: 3.1.0' }],
-      tabs: [{ uid: 't1', collectionUid: 'c1', type: 'http-request' }, specTab(SPEC_PATHNAME)]
+      tabs: [specTab(SPEC_PATHNAME), { uid: 'r1', collectionUid: 'c1', type: 'request' }, { uid: 'c1', collectionUid: 'c1', type: 'collection-settings' }]
     });
 
-    const entries = screen.getAllByRole('listitem').map((node) => node.textContent);
-    expect(entries).toEqual(['Collection: My Collection', 'API Spec: Petstore']);
+    const entries = screen.getAllByRole('listitem').map((node) => node.querySelector('.truncate').textContent);
+    expect(entries).toEqual(['API Spec: Petstore', 'Request: Users', 'Collection: My Collection']);
   });
 
   it('names every spec it could not save in one message and stays open', async () => {
@@ -216,8 +227,8 @@ describe('the unsaved changes dialog shown while quitting', () => {
 
 describe('the unsaved changes dialog shown while closing a set of tabs', () => {
   const request = (uid, name, { edited = true } = {}) => {
-    const item = { uid, name, type: 'http-request', pathname: `/c1/${name}.yml`, request: { url: 'http://a' } };
-    return edited ? { ...item, draft: { ...item, request: { url: 'http://b' } } } : item;
+    const item = { uid, name, type: 'http-request', pathname: `/c1/${name}.yml`, request: { method: 'GET', url: 'http://a' } };
+    return edited ? { ...item, draft: { ...item, request: { method: 'GET', url: 'http://b' } } } : item;
   };
   const requestTab = (uid) => ({ uid, collectionUid: 'c1', type: 'request' });
 
@@ -280,6 +291,35 @@ describe('the unsaved changes dialog shown while closing a set of tabs', () => {
     renderModal({ collections, tabs, forceCloseTabs: true, tabUidsToClose: ['c1', 'f1'] });
     expect(screen.getByText('Collection: My Collection')).toBeInTheDocument();
     expect(screen.getByText('Folder: Admin')).toBeInTheDocument();
+  });
+
+  it('lists the global environment draft only when its tab is in range', () => {
+    const globalEnvironments = [{ uid: 'g1', name: 'Prod', variables: [] }];
+    const globalEnvironmentDraft = { environmentUid: 'g1', variables: [{ name: 'host', value: 'x' }] };
+    const tabs = [requestTab('r1'), { uid: 'ge', collectionUid: null, type: 'global-environment-settings' }];
+    const collections = [{ uid: 'c1', name: 'My Collection', items: [request('r1', 'Users')] }];
+
+    const { unmount } = renderModal({ collections, tabs, globalEnvironments, globalEnvironmentDraft, forceCloseTabs: true, tabUidsToClose: ['r1'] });
+    expect(screen.queryByText('Global Environment: Prod')).not.toBeInTheDocument();
+    unmount();
+
+    renderModal({ collections, tabs, globalEnvironments, globalEnvironmentDraft, forceCloseTabs: true, tabUidsToClose: ['r1', 'ge'] });
+    expect(screen.getByText('Global Environment: Prod')).toBeInTheDocument();
+  });
+
+  it('focuses the tab and closes the dialog when an item is opened from the list', () => {
+    const { dispatched, onClose } = renderModal({
+      collections: [{ uid: 'c1', name: 'My Collection', items: [request('r1', 'Users')] }],
+      tabs: [requestTab('r1')],
+      forceCloseTabs: true,
+      tabUidsToClose: ['r1']
+    });
+
+    fireEvent.click(screen.getByLabelText('Inspect tab'));
+
+    expect(dispatched).toContainEqual(expect.objectContaining({ type: 'tabs/focusTab', payload: { uid: 'r1' } }));
+    expect(dispatched.some((a) => a.type === 'tabs/closeTabs')).toBe(false);
+    expect(onClose).toHaveBeenCalled();
   });
 
   it('still lists every draft in the collection when quitting the app', () => {
