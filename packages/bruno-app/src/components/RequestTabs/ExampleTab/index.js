@@ -117,8 +117,8 @@ const ExampleTab = ({ tab, collection }) => {
     <StyledWrapper className="flex items-center justify-between tab-container px-2">
       {showConfirmClose && (
         <ConfirmRequestClose
-          item={item}
-          example={example}
+          name={example.name}
+          type="example"
           onCancel={() => setShowConfirmClose(false)}
           onCloseWithoutSave={() => {
             dispatch(deleteRequestDraft({

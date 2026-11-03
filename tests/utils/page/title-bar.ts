@@ -3,8 +3,11 @@ import { Page, test } from '../../../playwright';
 export const buildTitleBarLocators = (page: Page) => ({
   workspaceMenuTrigger: () => page.getByTestId('workspace-menu'),
   activeWorkspaceName: () => page.getByTestId('workspace-menu').getByTestId('workspace-name'),
+  createWorkspaceOption: () => page.getByTestId('workspace-menu-create-workspace'),
+  openWorkspaceOption: () => page.getByTestId('workspace-menu-open-workspace'),
   importWorkspaceOption: () => page.getByTestId('workspace-menu-import-workspace'),
-  manageWorkspacesOption: () => page.getByTestId('workspace-menu-manage-workspaces')
+  manageWorkspacesOption: () => page.getByTestId('workspace-menu-manage-workspaces'),
+  responseLayoutToggle: () => page.getByTestId('app-titlebar').getByTestId('response-layout-toggle-btn')
 });
 
 export const clickImportWorkspace = async (page: Page) => {
@@ -12,6 +15,14 @@ export const clickImportWorkspace = async (page: Page) => {
   await test.step('Open workspace menu and click "Import workspace"', async () => {
     await titleBar.workspaceMenuTrigger().click();
     await titleBar.importWorkspaceOption().click();
+  });
+};
+
+export const clickOpenWorkspace = async (page: Page) => {
+  const titleBar = buildTitleBarLocators(page);
+  await test.step('Open the workspace menu and click "Open workspace"', async () => {
+    await titleBar.workspaceMenuTrigger().click();
+    await titleBar.openWorkspaceOption().click();
   });
 };
 

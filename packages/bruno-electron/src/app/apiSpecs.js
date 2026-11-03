@@ -3,9 +3,11 @@ const path = require('node:path');
 const { dialog, ipcMain } = require('electron');
 const { normalizeAndResolvePath } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
-const { parseApiSpecContent, resolveExternalApiSpecRefs } = require('../utils/apiSpecs');
+const { parseApiSpecContent, resolveExternalApiSpecRefs, getApiSpecDisplayName } = require('../utils/apiSpecs');
 const {
   addApiSpecToWorkspace,
+  findApiSpecEntry,
+  hasWorkspaceFile,
   readWorkspaceConfig,
   getWorkspaceUid
 } = require('../utils/workspace-config');
@@ -35,6 +37,12 @@ const prepareWorkspaceConfigForClient = (workspaceConfig, isDefault) => {
   return workspaceConfig;
 };
 
+const broadcastWorkspaceConfig = (win, workspacePath, config) => {
+  const workspaceUid = getWorkspaceUid(workspacePath);
+  const configForClient = prepareWorkspaceConfigForClient(config, workspaceUid === 'default');
+  win.webContents.send('main:workspace-config-updated', workspacePath, workspaceUid, configForClient);
+};
+
 const openApiSpecDialog = async (win, watcher, options = {}) => {
   const { filePaths } = await dialog.showOpenDialog(win, {
     properties: ['openFile', 'createFile'],
@@ -44,11 +52,13 @@ const openApiSpecDialog = async (win, watcher, options = {}) => {
   if (filePaths && filePaths[0]) {
     const resolvedPath = normalizeAndResolvePath(filePaths[0]);
     try {
-      await openApiSpec(win, watcher, resolvedPath, options);
+      return await openApiSpec(win, watcher, resolvedPath, options);
     } catch (err) {
       console.error(`[ERROR] Cannot open API spec: "${resolvedPath}"`);
     }
   }
+
+  return null;
 };
 
 const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
@@ -57,36 +67,16 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
 
     const uid = generateUidBasedOnHash(apiSpecPath);
 
-    if (options.workspacePath) {
-      const workspaceFilePath = path.join(options.workspacePath, 'workspace.yml');
-
-      if (fs.existsSync(workspaceFilePath)) {
-        const workspaceConfig = readWorkspaceConfig(options.workspacePath);
-        const specs = workspaceConfig.specs;
-
-        const specName = path.basename(apiSpecPath, path.extname(apiSpecPath));
-
-        const existingSpec = specs.find((a) => {
-          if (!a.path) return false;
-          const existingPath = path.isAbsolute(a.path)
-            ? a.path
-            : path.resolve(options.workspacePath, a.path);
-          return existingPath === apiSpecPath || a.name === specName;
-        });
-
-        if (!existingSpec) {
-          await addApiSpecToWorkspace(options.workspacePath, {
-            name: specName,
-            path: apiSpecPath
-          });
-
-          const updatedConfig = readWorkspaceConfig(options.workspacePath);
-          const workspaceUid = getWorkspaceUid(options.workspacePath);
-          const isDefault = workspaceUid === 'default';
-          const configForClient = prepareWorkspaceConfigForClient(updatedConfig, isDefault);
-          win.webContents.send('main:workspace-config-updated', options.workspacePath, workspaceUid, configForClient);
-        }
+    if (hasWorkspaceFile(options.workspacePath) && !findApiSpecEntry(options.workspacePath, apiSpecPath)) {
+      if (!fs.existsSync(apiSpecPath)) {
+        throw new Error(`API spec file not found: ${apiSpecPath}`);
       }
+      const apiSpecContent = parseApiSpecContent(fs.readFileSync(apiSpecPath, 'utf8'), path.extname(apiSpecPath));
+      await addApiSpecToWorkspace(options.workspacePath, {
+        name: getApiSpecDisplayName(apiSpecContent, apiSpecPath),
+        path: apiSpecPath
+      });
+      broadcastWorkspaceConfig(win, options.workspacePath, readWorkspaceConfig(options.workspacePath));
     }
 
     if (!watcher.hasWatcher(apiSpecPath)) {
@@ -101,18 +91,22 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
         pathname: apiSpecPath,
         uid: uid,
         raw: rawContent,
-        name: path.basename(apiSpecPath, path.extname(apiSpecPath)),
+        name: getApiSpecDisplayName(apiSpecContent, apiSpecPath),
         filename: path.basename(apiSpecPath),
         json: apiSpecContent,
         resolvedJson: resolvedJson
       });
     }
+
+    return apiSpecPath;
   } catch (err) {
     if (!options.dontSendDisplayErrors) {
       win.webContents.send('main:display-error', {
         message: err.message || 'An error occurred while opening the apiSpec'
       });
     }
+
+    return null;
   }
 };
 

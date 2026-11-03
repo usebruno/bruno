@@ -8,8 +8,16 @@ jest.mock('electron', () => ({
   ipcMain: { emit: jest.fn() }
 }));
 
-const { ipcMain } = require('electron');
-const { openApiSpec } = require('../../src/app/apiSpecs');
+jest.mock('../../src/store/default-workspace', () => ({
+  defaultWorkspaceManager: {
+    getDefaultWorkspacePath: () => null,
+    getDefaultWorkspaceUid: () => 'default'
+  }
+}));
+
+const yaml = require('js-yaml');
+const { dialog, ipcMain } = require('electron');
+const { openApiSpec, openApiSpecDialog } = require('../../src/app/apiSpecs');
 
 describe('openApiSpec', () => {
   let tmpDir;
@@ -141,5 +149,177 @@ describe('openApiSpec', () => {
       expect.objectContaining({ pathname: specPath, json: null })
     );
     expect(win.webContents.send).not.toHaveBeenCalledWith('main:display-error', expect.anything());
+  });
+});
+
+describe('the path openApiSpec reports back', () => {
+  let tmpDir;
+  let win;
+  let watcher;
+
+  const writeSpecFile = (filename, content) => {
+    const filePath = path.join(tmpDir, filename);
+    fs.writeFileSync(filePath, content);
+    return filePath;
+  };
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-apispec-opened-'));
+    win = { webContents: { send: jest.fn() } };
+    watcher = { hasWatcher: jest.fn().mockReturnValue(false) };
+    dialog.showOpenDialog.mockReset();
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('is the spec that was opened, so the caller can show it without waiting for the watcher', async () => {
+    const specPath = writeSpecFile('openapi.yaml', 'openapi: 3.0.0\n');
+
+    await expect(openApiSpec(win, watcher, specPath)).resolves.toBe(specPath);
+  });
+
+  test('is null for a file Bruno cannot open, so nothing is shown for it', async () => {
+    const specPath = writeSpecFile('spec.txt', 'not a spec');
+
+    await expect(openApiSpec(win, watcher, specPath)).resolves.toBeNull();
+  });
+
+  test('comes back through the dialog when the user picks a spec', async () => {
+    const specPath = writeSpecFile('openapi.yaml', 'openapi: 3.0.0\n');
+    dialog.showOpenDialog.mockResolvedValue({ canceled: false, filePaths: [specPath] });
+
+    await expect(openApiSpecDialog(win, watcher)).resolves.toBe(specPath);
+  });
+
+  test('is null when the user closes the dialog without picking anything', async () => {
+    dialog.showOpenDialog.mockResolvedValue({ canceled: true, filePaths: [] });
+
+    await expect(openApiSpecDialog(win, watcher)).resolves.toBeNull();
+  });
+
+  test('is null when the user picks a file Bruno cannot open', async () => {
+    const specPath = writeSpecFile('spec.txt', 'not a spec');
+    dialog.showOpenDialog.mockResolvedValue({ canceled: false, filePaths: [specPath] });
+
+    await expect(openApiSpecDialog(win, watcher)).resolves.toBeNull();
+    expect(win.webContents.send).toHaveBeenCalledWith('main:display-error', {
+      message: INVALID_EXTENSION_MESSAGE
+    });
+  });
+});
+
+describe('openApiSpec workspace entry', () => {
+  let tmpDir;
+  let workspacePath;
+  let win;
+  let watcher;
+
+  const writeSpecFile = (relativePath, content) => {
+    const filePath = path.join(tmpDir, relativePath);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, content);
+    return filePath;
+  };
+
+  const readSpecs = () => yaml.load(fs.readFileSync(path.join(workspacePath, 'workspace.yml'), 'utf8')).specs;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-apispec-ws-'));
+    workspacePath = path.join(tmpDir, 'workspace');
+    fs.mkdirSync(workspacePath);
+    fs.writeFileSync(
+      path.join(workspacePath, 'workspace.yml'),
+      ['opencollection: 1.0.0', 'info:', '  name: Test', '  type: workspace', 'collections: []', 'specs: []', 'docs: \'\''].join('\n')
+    );
+    win = { webContents: { send: jest.fn() } };
+    watcher = { hasWatcher: jest.fn().mockReturnValue(false) };
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  });
+
+  test('stores the spec title as the workspace entry name', async () => {
+    const specPath = writeSpecFile('a/openapi.yaml', 'openapi: 3.0.0\ninfo:\n  title: Orders API\n  version: 1.0.0\npaths: {}\n');
+
+    await openApiSpec(win, watcher, specPath, { workspacePath });
+
+    expect(readSpecs()).toEqual([{ name: 'Orders API', path: '../a/openapi.yaml' }]);
+  });
+
+  test('falls back to the filename without its extension when the spec has no usable title', async () => {
+    const specPath = writeSpecFile('a/my.api.v1.yaml', 'openapi: 3.0.0\ninfo:\n  title: 123\npaths: {}\n');
+
+    await openApiSpec(win, watcher, specPath, { workspacePath });
+
+    expect(readSpecs()[0].name).toBe('my.api.v1');
+  });
+
+  test('falls back to the filename when the file does not parse, without an error', async () => {
+    const specPath = writeSpecFile('a/broken.yaml', 'openapi: 3.0.0\ninfo:\n  title: Test\n   version: : :\n');
+
+    await openApiSpec(win, watcher, specPath, { workspacePath });
+
+    expect(readSpecs()[0].name).toBe('broken');
+    expect(win.webContents.send).not.toHaveBeenCalledWith('main:display-error', expect.anything());
+  });
+
+  test('keeps the workspace readable when the spec title carries control characters', async () => {
+    // The file holds the escape sequences as text; js-yaml decodes them into real control
+    // characters, which is how a hostile title reaches the workspace writer.
+    const specPath = writeSpecFile('a/openapi.yaml', 'openapi: 3.0.0\ninfo:\n  title: "Orders\\u0001API\\nv2"\npaths: {}\n');
+
+    await openApiSpec(win, watcher, specPath, { workspacePath });
+
+    expect(readSpecs()[0].name).toBe('Orders\u0001API\nv2');
+  });
+
+  test('adds two files with the same filename from different folders as two entries', async () => {
+    const first = writeSpecFile('a/openapi.yaml', 'openapi: 3.0.0\ninfo:\n  title: Orders API\npaths: {}\n');
+    const second = writeSpecFile('b/openapi.yaml', 'openapi: 3.0.0\ninfo:\n  title: Payments API\npaths: {}\n');
+
+    await openApiSpec(win, watcher, first, { workspacePath });
+    await openApiSpec(win, watcher, second, { workspacePath });
+
+    expect(readSpecs()).toEqual([
+      { name: 'Orders API', path: path.relative(workspacePath, first).split(path.sep).join('/') },
+      { name: 'Payments API', path: path.relative(workspacePath, second).split(path.sep).join('/') }
+    ]);
+  });
+
+  test('does not add a second entry when the same path is opened twice', async () => {
+    const specPath = writeSpecFile('a/openapi.yaml', 'openapi: 3.0.0\ninfo:\n  title: Orders API\npaths: {}\n');
+
+    await openApiSpec(win, watcher, specPath, { workspacePath });
+    await openApiSpec(win, watcher, specPath, { workspacePath });
+
+    expect(readSpecs()).toHaveLength(1);
+  });
+
+  test('reports a missing file instead of writing a workspace entry', async () => {
+    const missing = path.join(tmpDir, 'a', 'missing.yaml');
+
+    await openApiSpec(win, watcher, missing, { workspacePath });
+
+    expect(readSpecs()).toEqual([]);
+    expect(win.webContents.send).toHaveBeenCalledWith('main:display-error', expect.objectContaining({
+      message: `API spec file not found: ${missing}`
+    }));
+  });
+
+  test('keeps watching a listed spec whose file is missing, without an error', async () => {
+    const missing = path.join(tmpDir, 'a', 'gone.yaml');
+    fs.writeFileSync(
+      path.join(workspacePath, 'workspace.yml'),
+      ['opencollection: 1.0.0', 'info:', '  name: Test', '  type: workspace', 'collections: []', 'specs:', '  - name: gone', '    path: ../a/gone.yaml', 'docs: \'\''].join('\n')
+    );
+
+    await openApiSpec(win, watcher, missing, { workspacePath });
+
+    expect(win.webContents.send).not.toHaveBeenCalledWith('main:display-error', expect.anything());
+    expect(ipcMain.emit).toHaveBeenCalledWith('main:apispec-opened', win, missing, expect.any(String), workspacePath);
+    expect(readSpecs()).toEqual([{ name: 'gone', path: '../a/gone.yaml' }]);
   });
 });

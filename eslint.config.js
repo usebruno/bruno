@@ -24,6 +24,7 @@ const mainLintFiles = [
   'packages/bruno-converters/**/*.js',
   'packages/bruno-electron/**/*.js',
   'packages/bruno-filestore/**/*.ts',
+  'packages/bruno-io/**/*.ts',
   'packages/bruno-schema-types/**/*.ts',
   'packages/bruno-js/**/*.js',
   'packages/bruno-lang/**/*.js',
@@ -108,7 +109,8 @@ module.exports = runESMImports().then(() => defineConfig([
         require: false,
         Buffer: false,
         process: false,
-        ipcRenderer: false
+        ipcRenderer: false,
+        __BRUNO_BENCHMARK__: false
       },
       parserOptions: {
         ecmaFeatures: {
@@ -246,6 +248,25 @@ module.exports = runESMImports().then(() => defineConfig([
         ecmaVersion: 'latest',
         sourceType: 'module',
         project: './packages/bruno-filestore/tsconfig.json'
+      }
+    },
+    rules: {
+      'no-undef': 'error'
+    }
+  },
+  {
+    files: ['packages/bruno-io/**/*.ts'],
+    ignores: ['**/*.config.js', '**/dist/**/*'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest
+      },
+      parser: require('@typescript-eslint/parser'),
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        project: './packages/bruno-io/tsconfig.json'
       }
     },
     rules: {

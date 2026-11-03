@@ -1,17 +1,12 @@
-import type { DatabaseSync, StatementSync, SupportedValueType } from 'node:sqlite';
-import type { StatementDef } from '../shared/types';
-import type { SQLiteMutationEvent, SQLiteParams } from '../shared/ipc';
+import type { DatabaseSync, StatementSync, SQLInputValue } from 'node:sqlite';
+import type { SQLiteParams, StatementDef } from '../shared/types';
 import { statements as statementDefs } from '../generated/node/statements';
-
-export type OnMutation = (event: SQLiteMutationEvent) => void;
 
 export class Statements {
   _prepared: Map<string, StatementSync> = new Map();
   _defs: Map<string, StatementDef> = new Map();
-  _onMutation?: OnMutation;
 
-  constructor(db: DatabaseSync, onMutation?: OnMutation) {
-    this._onMutation = onMutation;
+  constructor(db: DatabaseSync) {
     for (const def of statementDefs) {
       this._defs.set(def.name, def);
       try {
@@ -33,13 +28,10 @@ export class Statements {
     if (stmt === undefined) {
       throw new Error(`Statement "${name}" could not be prepared against this database`);
     }
-    const args = params as Record<string, SupportedValueType>;
+    const args = params as Record<string, SQLInputValue>;
     switch (def.type) {
-      case 'exec': {
-        const result = stmt.run(args);
-        this._onMutation?.({ name: def.name, tables: def.tables });
-        return result;
-      }
+      case 'exec':
+        return stmt.run(args);
       case 'one':
         return stmt.get(args);
       case 'many':

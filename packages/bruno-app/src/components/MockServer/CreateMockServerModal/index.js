@@ -8,12 +8,13 @@ import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import Button from 'ui/Button';
 import { normalizePath } from 'utils/common/path';
-import { areItemsLoading, isScratchCollection } from 'utils/collections';
+import { areItemsLoading, getWorkspaceCollections } from 'utils/collections';
 import { matchLoadedApiSpecs } from 'components/Sidebar/ApiSpecs/matchLoadedApiSpecs';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import {
   generateMockResponsesFromSpec,
   loadMockResponses,
+  loadMockResponsesFromSpec,
   syncMockResponsesFromExamples
 } from 'providers/ReduxStore/slices/mock-server/index';
 import {
@@ -164,7 +165,8 @@ const CreateMockServerModal = ({
   onDelete,
   editingInstance = null,
   defaultCollectionUid = null,
-  defaultSourceType = 'collection'
+  defaultSourceType = 'collection',
+  defaultApiSpecUid = null
 }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
@@ -182,21 +184,9 @@ const CreateMockServerModal = ({
   const activeWorkspace = workspaces.find((workspace) => workspace.uid === activeWorkspaceUid);
   const isEditing = Boolean(editingInstance);
 
-  const workspaceCollections = useMemo(() => {
-    if (!activeWorkspace) {
-      return [];
-    }
-
-    return collections.filter((collection) => {
-      if (isScratchCollection(collection, workspaces)) {
-        return false;
-      }
-
-      return activeWorkspace.collections?.some(
-        (workspaceCollection) => normalizePath(workspaceCollection.path) === normalizePath(collection.pathname)
-      );
-    });
-  }, [activeWorkspace, collections, workspaces]);
+  const workspaceCollections = useMemo(() => (
+    getWorkspaceCollections({ collections, workspaces, activeWorkspace })
+  ), [activeWorkspace, collections, workspaces]);
 
   const workspaceApiSpecs = useMemo(() => {
     if (!activeWorkspace) {
@@ -223,10 +213,13 @@ const CreateMockServerModal = ({
   const configuredInstances = useSelector((state) => getMockServerInstances(state), shallowEqual);
   const hasCollectionOptions = collectionSelectOptions.length > 0;
   const hasSpecOptions = specSelectOptions.length > 0;
+  const defaultSpecUid = defaultApiSpecUid && specSelectOptions.some((option) => option.uid === defaultApiSpecUid)
+    ? defaultApiSpecUid
+    : '';
   const initialCollectionUid = editingInstance?.collectionUid || defaultCollection?.uid || '';
   const initialSpecUid = editingInstance
     ? (resolveSelectedSpecUid(editingInstance, workspaceApiSpecs) || editingInstance.specPath || '')
-    : '';
+    : defaultSpecUid;
 
   const initialSourceType = (() => {
     if (editingInstance) {
@@ -375,6 +368,20 @@ const CreateMockServerModal = ({
             globalDelay: values.globalDelay,
             workspaceUid: activeWorkspaceUid
           });
+
+      if (resolvedSourceType === 'spec') {
+        try {
+          await dispatch(loadMockResponsesFromSpec({
+            workspacePath: resolveMockResponseLocation(instance, workspaces, activeWorkspace).workspacePath,
+            specPath,
+            generateFromSchema: false
+          })).unwrap();
+        } catch (err) {
+          setFieldTouched('specUid', true, false);
+          setFieldError('specUid', err.message || 'The selected API spec is not valid');
+          return;
+        }
+      }
 
       try {
         const savedInstance = await dispatch(saveMockServerInstance(instance));

@@ -17,7 +17,6 @@ import get from 'lodash/get';
 const CreateWorkspace = ({ onClose }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
-  const workspaces = useSelector((state) => state.workspaces.workspaces);
   const preferences = useSelector((state) => state.app.preferences);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -36,13 +35,7 @@ const CreateWorkspace = ({ onClose }) => {
         .trim()
         .min(1, 'Workspace name can\'t be empty')
         .max(255, 'Must be 255 characters or less')
-        .required('Workspace name is required')
-        .test('unique-name', 'A workspace with this name already exists', function (value) {
-          if (!value) return true;
-
-          return !workspaces.some((w) =>
-            !w.isCreating && w.name && w.name.toLowerCase() === value.toLowerCase());
-        }),
+        .required('Workspace name is required'),
       workspaceFolderName: Yup.string()
         .min(1, 'Must be at least 1 character')
         .max(255, 'Must be 255 characters or less')

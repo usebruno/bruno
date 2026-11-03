@@ -14,9 +14,27 @@ const uidForSeed = (seed) => sha256(seed).slice(0, 21);
 
 const resolveDenylist = (patterns) => [...DEFAULT_DENYLIST, ...(patterns || [])];
 
-const isDenied = (relativePathPosix, patterns) => {
+const GLOB_METACHAR = /[*?[\]{}]/;
+
+// Plain folder names are prefixes, same as the watcher. Globs stay path.matchesGlob
+// on the path itself: stripping a trailing slash turns `**/` into `**`.
+const matchesPlainPrefix = (relativePathPosix, patterns) => {
   for (const pattern of patterns) {
-    if (path.matchesGlob(relativePathPosix, pattern)) return true;
+    const raw = posixifyPath(pattern);
+    if (!raw || GLOB_METACHAR.test(raw)) continue;
+    const folder = raw.replace(/\/+$/, '');
+    if (!folder) continue;
+    if (relativePathPosix === folder || relativePathPosix.startsWith(`${folder}/`)) return true;
+  }
+  return false;
+};
+
+const isDenied = (relativePathPosix, patterns) => {
+  if (matchesPlainPrefix(relativePathPosix, patterns)) return true;
+  for (const pattern of patterns) {
+    const raw = posixifyPath(pattern);
+    if (!raw || !GLOB_METACHAR.test(raw)) continue;
+    if (path.matchesGlob(relativePathPosix, raw)) return true;
   }
   return false;
 };
@@ -54,6 +72,7 @@ const walk = (root, denylist) => {
 
       if (isDir) {
         if (DENY_DIRS.has(entry.name)) continue;
+        if (matchesPlainPrefix(posixifyPath(childRel), denylist)) continue;
         visit(childAbs, childRel);
       } else if (isFile) {
         if (isDenied(posixifyPath(childRel), denylist)) continue;

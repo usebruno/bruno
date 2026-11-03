@@ -44,6 +44,9 @@ const NetworkLogsEntry = ({ entry }) => {
     case 'info':
       className = 'network-logs-entry network-logs-entry--info';
       break;
+    case 'timing':
+      className = 'network-logs-entry network-logs-entry--timing';
+      break;
     case 'requestHeader':
       className = 'network-logs-entry';
       break;

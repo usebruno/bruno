@@ -1,0 +1,14 @@
+info:
+  name: http-streamed
+  type: http
+  seq: 8
+
+http:
+  method: GET
+  url: "{{process.env.STREAMING_URL}}"
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.getVar('afterStream');

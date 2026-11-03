@@ -22,7 +22,8 @@ import WSAuth from './WSAuth';
 import WSSettingsPane from '../WSSettingsPane/index';
 import TabBarAiAssist from '../TabBarAiAssist';
 import { hasEffectiveAuth } from 'utils/auth';
-import { AUTH_MODES_WS } from 'utils/common/constants';
+import { AUTH_MODES_WS, REQUEST_BODY_EDITOR_CLASS } from 'utils/common/constants';
+import useKeybinding from 'hooks/useKeybinding';
 
 const WSRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
@@ -102,6 +103,12 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
       toast.error('Nothing to prettify');
     }
   }, [body, dispatch, item.uid, collection.uid]);
+
+  useKeybinding('prettify', (e) => {
+    if (!e.target.closest(`.${REQUEST_BODY_EDITOR_CLASS}`)) return;
+    onPrettifyAll();
+    return false;
+  });
 
   const headers = getPropertyFromDraftOrRequest(item, 'request.headers');
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');

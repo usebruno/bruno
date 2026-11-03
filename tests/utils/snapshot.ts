@@ -85,6 +85,29 @@ export const findSnapshotCollectionEntry = (snapshot: any, collectionPath: strin
   ) || null;
 };
 
+export const waitForSnapshotApiSpecTabs = async (
+  userDataPath: string,
+  specPathnames: string[],
+  options: { activePathname?: string; timeout?: number } = {}
+) => {
+  const { activePathname, timeout = 15000 } = options;
+  const expectedPathnames = specPathnames.map((specPathname) => path.normalize(specPathname));
+
+  await expect.poll(() => {
+    const workspaces = readSnapshot(userDataPath)?.workspaces;
+    if (!Array.isArray(workspaces)) return false;
+
+    return workspaces.some((workspace: any) => {
+      const apiSpecTabs = (workspace?.apiSpecTabs ?? []).map((tabPathname: string) => path.normalize(tabPathname));
+      if (!expectedPathnames.every((specPathname) => apiSpecTabs.includes(specPathname))) return false;
+      if (!activePathname) return true;
+
+      return typeof workspace?.activeApiSpecTabPathname === 'string'
+        && path.normalize(workspace.activeApiSpecTabPathname) === path.normalize(activePathname);
+    });
+  }, { timeout }).toBe(true);
+};
+
 export const waitForSnapshotCollectionEnvironment = async (
   userDataPath: string,
   collectionPath: string,

@@ -1,4 +1,4 @@
-import { normalizePath } from 'utils/common/path';
+import { getApiSpecPathKey } from 'utils/api-specs';
 
 /**
  * Pairs each workspace API spec entry (from workspace.yml) with its loaded
@@ -21,9 +21,11 @@ export const matchLoadedApiSpecs = (workspaceApiSpecs, allApiSpecs) => {
 
   return workspaceApiSpecs
     .map((ws) => {
-      const wsPath = normalizePath(ws?.path);
-      if (!wsPath) return undefined;
-      return loadedApiSpecs.find((apiSpec) => normalizePath(apiSpec?.pathname) === wsPath);
+      const wsPathKey = getApiSpecPathKey(ws?.path);
+      if (!wsPathKey) return undefined;
+      const loadedSpec = loadedApiSpecs.find((apiSpec) => getApiSpecPathKey(apiSpec?.pathname) === wsPathKey);
+      if (!loadedSpec) return undefined;
+      return { ...loadedSpec, name: ws.name || loadedSpec.name };
     })
     .filter(Boolean);
 };

@@ -18,10 +18,11 @@ it before non-trivial cross-package or architectural work.
   bruno-requests, bruno-graphql-docs, bruno-schema, bruno-schema-types, bruno-toml, bruno-sqlite
   (a leaf, but *not* platform-neutral — see guardrail 6).
 - **Mid consumers:** bruno-js → (common, query); bruno-converters → (common, schema; schema-types
-  as devDep); bruno-filestore → (common, lang; schema-types as devDep).
+  as devDep); bruno-filestore → (common, lang; schema-types as devDep); bruno-io → (filestore,
+  common; schema-types as devDep).
 - **Top consumers (things flow *into* them, never out):** bruno-cli → (common, converters,
-  filestore, js, lang, requests); bruno-electron → (common, converters, filestore, js, lang,
-  requests, schema, sqlite); bruno-app → (common, converters, graphql-docs, schema, sqlite).
+  filestore, io, js, lang, requests); bruno-electron → (common, converters, filestore, js, lang,
+  requests, schema, sqlite); bruno-app → (common, converters, graphql-docs, schema).
 
 Guardrails this enforces:
 
@@ -35,15 +36,15 @@ Guardrails this enforces:
 3. **bruno-js must stay Electron-free.** It runs in both the Electron main process *and* the CLI
    (bruno-cli → js). Adding an `electron`/IPC import to bruno-js breaks the CLI. Sandbox logic
    belongs in bruno-js; host wiring belongs in bruno-electron.
-4. **bruno-schema-types is types-only** (a *devDependency* of converters/filestore, built with
+4. **bruno-schema-types is types-only** (a *devDependency* of converters/filestore/io, built with
    plain `tsc`). Import types from it; never add runtime code or a runtime import of it.
 5. **bruno-schema (Yup) and bruno-schema-types (TS types) are distinct and both live.** app +
    converters use `@usebruno/schema` for runtime validation; filestore + converters use
    `@usebruno/schema-types` for compile-time types. A data-model change usually touches both.
-6. **bruno-sqlite has two entry points and they must not cross.** `@usebruno/sqlite` (= `/node`) is
-   main-process only (`node:sqlite`, `node:fs`, `node:crypto`); `@usebruno/sqlite/web` is renderer
-   only (react + @tanstack/react-query peers). Importing either from the other side breaks the
-   bundle. See `.claude/rules/sqlite.md`.
+6. **bruno-sqlite is main-process only.** `@usebruno/sqlite` (= `/node`) imports `node:sqlite`,
+   `node:fs` and `node:crypto`; importing it from the renderer breaks the bundle. The renderer
+   reaches statements only through the per-statement IPC handlers in bruno-electron. See
+   `.claude/rules/sqlite.md`.
 
 ## Declared dependencies must match real imports
 

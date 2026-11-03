@@ -65,6 +65,43 @@ reviews:
           `@usebruno/schema-types` where applicable).
         - Do not ask for unrelated `.js` files to be converted as part of an unrelated PR — that
           contradicts an incremental, file-at-a-time migration approach.
+    - path: 'packages/**/src/**/*.{js,jsx,ts,tsx}'
+      instructions: |
+        Bruno implements the same behaviour more than once, and a change to one side of a pair is
+        not a finished change. Ask of every changed file: what else had to change with it?
+
+        - App vs CLI (highest priority). `bruno-electron` and `bruno-cli` keep duplicated copies
+          of the request pipeline: execution (`ipc/network/index.js` vs
+          `runner/run-single-request.js` + `commands/run.js`), `prepare-request.js`,
+          `axios-instance.js`, `interpolate-vars.js`, `interpolate-string.js`,
+          `utils/collection.js` (including `mergeHeaders`/`mergeScripts`/`mergeVars`/`mergeAuth`),
+          environments (`utils/environments.js` vs `utils/environment.js` +
+          `persist-variables.js`), `proxy-util.js`, `oauth2.js`, `awsv4auth-helper.js`,
+          `form-data.js`, `filesystem.js`. If logic changes on one side and
+          the twin holds the same logic untouched, flag it and name the twin path. A bug fixed in
+          the app is a bug still present in `bru run`.
+        - Prefer unifying over duplicating. Where the logic has no Electron- or CLI-only
+          dependency, suggest moving it into `@usebruno/requests` or `@usebruno/common` rather
+          than patching both copies — `utils/cookies.js` is the precedent (one line in each
+          runtime, re-exporting the shared implementation).
+        - Scripting API. A change to `bruno-js/src/{bru,bruno-request,bruno-response}.js` needs the
+          matching bridge in `bruno-js/src/sandbox/quickjs/shims/`. QuickJS is the default "safe"
+          sandbox, so an unbridged API is `undefined` for most users.
+        - Persisted fields. `bruno-filestore` (both formats, parse and stringify) and
+          `bruno-converters/src/opencollection/items/*` (both directions) are separate field
+          lists — a field in one but not the other is lost on export. `bruno-schema` (Yup) is
+          `.noUnknown(true).strict()` on the save path, so a missing field there throws. The app
+          save transform (`transformRequestToSaveToFilesystem` in
+          `bruno-app/src/utils/collections/index.js`) and the BRU → YML migration
+          (`bruno-electron/src/ipc/yml-migration.js`) must carry the field too.
+        - Scope and protocol. A feature added at one of request/folder/collection level, or
+          handled for HTTP only on a path gRPC and WebSocket also flow through, needs an explicit
+          decision recorded rather than left unstated.
+
+        Deliberate, stated asymmetries are not findings: the CLI has no preferences store, no
+        Electron window and no system-browser OAuth flow, and its runner intentionally handles
+        only `http-request` and `graphql-request`. Never claim a missing twin without confirming
+        the twin file exists and holds the counterpart logic.
     - path: 'tests/**/**.*'
       instructions: |
         Review the following e2e test code written using the Playwright test library. Ensure that:

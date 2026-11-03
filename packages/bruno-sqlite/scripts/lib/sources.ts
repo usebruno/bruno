@@ -2,20 +2,6 @@ import * as path from 'path';
 import * as fs from 'fs';
 import type { Migration, StatementDef, StatementType } from '../../src/shared/types';
 
-const { Parser } = require('node-sql-parser');
-const sqlParser = new Parser();
-
-const extractTables = (sql: string): string[] => {
-  try {
-    let list: string[] = sqlParser.tableList(sql, { database: 'Sqlite' });
-    // This is in the form of statement::db::table, hence the second index access
-    return Array.from(list.map((entry) => entry.split('::')[2]));
-  } catch (error) {
-    console.warn(`Could not determine the tables for statement:\n${sql}\n${(error as Error).message}`);
-    return [];
-  }
-};
-
 const ROOT_DIR = process.cwd();
 const MIGRATIONS_DIR = path.join(ROOT_DIR, 'migrations');
 const STATEMENTS_DIR = path.join(ROOT_DIR, 'statements');
@@ -94,7 +80,7 @@ const parseStatementFile = (relative: string, content: string): StatementDef[] =
     if (sql === '') {
       throw new Error(`Statement "${current.name}" in ${relative} has no SQL body.`);
     }
-    defs.push({ name: current.name, type: current.type, sql, tables: extractTables(sql), readBigInts: current.readBigInts });
+    defs.push({ name: current.name, type: current.type, sql, readBigInts: current.readBigInts });
   };
 
   content.split('\n').forEach((line) => {

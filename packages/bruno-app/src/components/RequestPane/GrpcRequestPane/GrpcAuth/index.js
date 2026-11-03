@@ -7,7 +7,6 @@ import BasicAuth from '../../Auth/BasicAuth';
 import ApiKeyAuth from '../../Auth/ApiKeyAuth';
 import OAuth2 from '../../Auth/OAuth2/index';
 import WsseAuth from '../../Auth/WsseAuth';
-import StyledWrapper from './StyledWrapper';
 import InheritedAuth, { InheritedAuthSourceLabel } from '../../Auth/InheritedAuth';
 import { getEffectiveAuthSource } from 'utils/auth';
 import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
@@ -77,7 +76,7 @@ const GrpcAuth = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full overflow-y-scroll">
+    <div className="w-full overflow-y-scroll">
       <div className="flex flex-col items-start gap-2 mb-4 min-w-0">
         <GrpcAuthMode item={item} collection={collection} />
         {authMode === 'inherit' && inheritedSource ? (
@@ -90,7 +89,7 @@ const GrpcAuth = ({ item, collection }) => {
         ) : null}
       </div>
       {getAuthView()}
-    </StyledWrapper>
+    </div>
   );
 };
 
