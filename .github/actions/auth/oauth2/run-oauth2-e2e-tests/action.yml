@@ -36,7 +36,15 @@ runs:
 
         "${kc_bin}" start-dev --http-port="${KEYCLOAK_PORT}" --import-realm > "${log}" 2>&1 &
         kc_pid=$!
-        trap 'kill "${kc_pid}" 2>/dev/null || true' EXIT
+        # On Windows, kc_pid belongs to the kc.bat wrapper (cmd.exe), not to Java.
+        # `kill` would stop only the wrapper and leave Keycloak running, so use
+        # taskkill /T to kill the whole tree.
+        if [ "${RUNNER_OS}" = "Windows" ]; then
+          kc_winpid="$(cat "/proc/${kc_pid}/winpid")"
+          trap 'taskkill //PID "${kc_winpid}" //T //F > /dev/null 2>&1 || true' EXIT
+        else
+          trap 'kill "${kc_pid}" 2>/dev/null || true' EXIT
+        fi
 
         echo "Waiting for Keycloak (realm bruno) on :${KEYCLOAK_PORT} ..."
         ready=false
