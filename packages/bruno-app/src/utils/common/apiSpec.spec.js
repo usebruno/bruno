@@ -93,6 +93,20 @@ describe('buildSpecVariables', () => {
     expect(variables).toEqual({ host: 'https://collection-host.test' });
   });
 
+  it('keeps the placeholder when the environment has a secret and a plain variable of the same name', () => {
+    const variables = buildSpecVariables({
+      collectionVariables: {},
+      envVariables: {
+        Prod: [
+          { name: 'host', value: '', enabled: true, secret: true },
+          { name: 'host', value: 'https://plain-host.test', enabled: true }
+        ]
+      },
+      environment: 'Prod'
+    });
+    expect(variables).toEqual({});
+  });
+
   it('copes with a collection that has nothing in it', () => {
     expect(buildSpecVariables({})).toEqual({});
   });

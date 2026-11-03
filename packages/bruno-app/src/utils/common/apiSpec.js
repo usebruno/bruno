@@ -17,16 +17,18 @@ export const getEnvironmentVariablesKeyValuePairs = (envVariables) => {
 export const buildSpecVariables = ({ collectionVariables, envVariables, environment }) => {
   const environmentVariables = environment ? envVariables?.[environment] || {} : {};
 
-  // An enabled secret overrides a collection variable of the same name at runtime, so keep its placeholder
+  // An enabled secret wins at runtime over a collection or plain environment variable of the same name,
+  // so keep its placeholder
   const secretNames = new Set();
   each(environmentVariables, (variable) => {
     if (variable.enabled && variable.secret) secretNames.add(variable.name);
   });
-  const collectionValues = Object.fromEntries(
-    Object.entries(collectionVariables || {}).filter(([name]) => !secretNames.has(name))
-  );
+  const withoutSecretNames = (values) => Object.fromEntries(Object.entries(values).filter(([name]) => !secretNames.has(name)));
 
-  return { ...collectionValues, ...getEnvironmentVariablesKeyValuePairs(environmentVariables) };
+  return {
+    ...withoutSecretNames(collectionVariables || {}),
+    ...withoutSecretNames(getEnvironmentVariablesKeyValuePairs(environmentVariables))
+  };
 };
 
 export const buildSkippedFilesMessage = (skipped) => {

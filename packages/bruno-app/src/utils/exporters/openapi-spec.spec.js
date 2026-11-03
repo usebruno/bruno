@@ -1235,19 +1235,52 @@ describe('exportApiSpec - secrets and other placeholders left unfilled', () => {
   });
 
   it('keeps a port after a secret at the start of the url in the server', async () => {
-    const { content, specPath, operation } = exportUrl('{{apiHost}}:8080/users?limit=10');
+    const { content, specPath, operation } = exportUrl('{{apiHost}}:8080/users#top');
 
     expect(specPath).toBe('/users');
     expect(operation.servers[0].url).toBe('{apiHost}:8080');
     await expectValidSpec(content);
   });
 
-  it('leaves the query string out of the path for a base url request', async () => {
-    const { content, specPath, operation } = exportUrl('{{baseUrl}}/users?key={{apiKey}}&page=1', { variables: { baseUrl: 'https://api.test' } });
+  it('leaves the query string out of the path and exports query params that are only in the url', () => {
+    const { specPath, operation } = exportUrl('{{baseUrl}}/users?key={{apiKey}}&page=1&page=2', { variables: { baseUrl: 'https://api.test' } });
 
     expect(specPath).toBe('/users');
-    expect(operation.parameters).toBeUndefined();
-    await expectValidSpec(content);
+    expect(isValidPathTemplate(specPath)).toBe(true);
+    expect(operation.parameters).toEqual([
+      { name: 'key', in: 'query', description: '', required: true, example: '{{apiKey}}' },
+      { name: 'page', in: 'query', description: '', required: true, example: '1' }
+    ]);
+  });
+
+  it('does not repeat a query param that is already in the params list', () => {
+    const { operation } = exportUrl('https://api.test/x?page=1&q=find', {
+      request: { params: [{ name: 'page', value: '1', type: 'query', enabled: true }] }
+    });
+
+    expect(operation.parameters.map((p) => [p.name, p.in])).toEqual([['page', 'query'], ['q', 'query']]);
+  });
+
+  it('writes the placeholder text as the server default when the environment has a secret and a plain variable of the same name', () => {
+    const environments = [{
+      name: 'Prod',
+      variables: [
+        { name: 'baseUrl', value: 'https://api.test/{{apiKey}}', enabled: true },
+        { name: 'apiKey', value: 'decrypted-secret', enabled: true, secret: true },
+        { name: 'apiKey', value: 'plain-value', enabled: true }
+      ]
+    }];
+
+    const { content, spec } = exportUrl('{{baseUrl}}/users', { environments });
+
+    expect(spec.servers[0].variables).toEqual({ apiKey: { default: '{{apiKey}}' } });
+    expect(content).not.toContain('plain-value');
+  });
+
+  it('takes the host spelling only from the host, not from a placeholder in the path', () => {
+    const { operation } = exportUrl('https://{{Tenant}}.api.test/{{alias}}', { variables: { alias: '{{tenant}}' } });
+
+    expect(operation.servers).toEqual([{ url: 'https://{Tenant}.api.test', variables: { Tenant: { default: '{{Tenant}}' } } }]);
   });
 
   it('keeps OAuth2 and process env placeholders out of the path and host as valid placeholders', async () => {

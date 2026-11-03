@@ -3,6 +3,19 @@ import { interpolate } from '@usebruno/common';
 import { isValidUrl } from 'utils/url/index';
 const xml2js = require('xml2js');
 
+// Query params of a raw url as { name, value } pairs, first occurrence of each name
+const getUrlQueryParams = (url) => {
+  const query = url.split('#')[0].split('?').slice(1).join('?');
+  const seen = new Set();
+  return query
+    .split('&')
+    .map((pair) => {
+      const separator = pair.indexOf('=');
+      return separator === -1 ? { name: pair, value: '' } : { name: pair.slice(0, separator), value: pair.slice(separator + 1) };
+    })
+    .filter(({ name }) => name && !seen.has(name) && seen.add(name));
+};
+
 export const exportApiSpec = ({ variables, items, name, environments }) => {
   // Filter only include http-request and graphql-request items that aren't transient
   items = items.filter((item) => ['http-request', 'graphql-request'].includes(item.type) && !item.isTransient);
@@ -115,9 +128,10 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
 
   const restoreUnresolvedPlaceholders = (value) => value.replace(/%7B%7B(.*?)%7D%7D/gi, '{{$1}}');
 
-  // URL parsing lowercases the host, so restore each placeholder's spelling from the url before parsing
+  // URL parsing lowercases the host, so restore each placeholder's spelling from the host of the url before parsing
   const restorePlaceholderCase = (value, url) => {
-    const originalNames = new Map([...url.matchAll(templateVarRegex)].map((m) => [m[1].toLowerCase(), m[1]]));
+    const [host] = url.match(/^[^/?#]*\/\/[^/?#]*/) || [url];
+    const originalNames = new Map([...host.matchAll(templateVarRegex)].map((m) => [m[1].toLowerCase(), m[1]]));
     return value.replace(templateVarRegex, (match, name) => `{{${originalNames.get(name.toLowerCase()) ?? name}}}`);
   };
 
@@ -180,6 +194,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
       const pathOnly = queryStart === -1 ? rawPath : rawPath.slice(0, queryStart);
       const placeholderNames = [...new Set([...pathOnly.matchAll(templateVarRegex)].map((m) => m[1]))];
       const url = pathOnly.replace(templateVarRegex, '{$1}');
+      const urlQueryParams = getUrlQueryParams(item?.request?.url || '');
       const { request } = item;
       const { method, params = [], headers = [], body, auth } = request || {};
 
@@ -194,6 +209,8 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
         params?.filter((p) => p?.type === 'path').map((p) => p?.name) || []
       );
 
+      const queryParamNames = new Set(params?.filter((p) => p?.type !== 'path').map((p) => p?.name));
+
       const parameters = [
         // Query params (exclude path-type params to avoid duplication)
         ...params?.filter((p) => p?.type !== 'path').map((param) => ({
@@ -203,6 +220,16 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
           required: param?.enabled,
           example: param?.value
         })),
+        // Query params written only in the url, not in the params list
+        ...urlQueryParams
+          .filter(({ name }) => !queryParamNames.has(name))
+          .map(({ name, value }) => ({
+            name,
+            in: 'query',
+            description: '',
+            required: true,
+            example: value
+          })),
         ...headers?.map((header) => ({
           name: header?.name,
           in: 'header',
@@ -586,11 +613,13 @@ const generateInfoSection = (name) => {
   };
 };
 
-// Convert env variable array to { name: value } object (only enabled, non-secret vars)
+// Convert env variable array to { name: value } object (only enabled vars; a name with an enabled secret is
+// left out, because the secret wins at runtime)
 const getEnabledVarsAsObject = (variables = []) => {
+  const secretNames = new Set(variables.filter((v) => v.enabled && v.secret).map((v) => v.name));
   const result = {};
   variables.forEach((v) => {
-    if (v.name && v.enabled && !v.secret) {
+    if (v.name && v.enabled && !secretNames.has(v.name)) {
       result[v.name] = v.value;
     }
   });
