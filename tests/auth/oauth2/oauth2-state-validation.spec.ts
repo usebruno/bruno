@@ -5,7 +5,9 @@ import {
   startOAuth2Flow,
   getCapturedAuthUrl,
   getIssuedStateFromAuthorizationUrl,
-  loginToKeycloakForAuthCode,
+  loginToKeycloak,
+  getAuthCodeFromCallbackUrl,
+  getAccessTokenFromCallbackUrl,
   fireDeepLinkCallback,
   readFetchedAccessToken,
   expectStateMismatchWithoutToken
@@ -46,8 +48,8 @@ test.describe('OAuth2 callback state validation', () => {
       return state;
     });
 
-    const authCode = await test.step('obtain a valid auth code from Keycloak', () =>
-      loginToKeycloakForAuthCode(authUrl as string));
+    const authCode = await test.step('obtain a valid auth code from Keycloak', async () =>
+      getAuthCodeFromCallbackUrl(await loginToKeycloak(authUrl as string)));
 
     const callbackUrl = `${CALLBACK_URL}?code=${authCode}&state=${encodeURIComponent(issuedState)}`;
 
@@ -69,8 +71,8 @@ test.describe('OAuth2 callback state validation', () => {
       return state;
     });
 
-    const authCode = await test.step('obtain a valid auth code from Keycloak', () =>
-      loginToKeycloakForAuthCode(authUrl as string));
+    const authCode = await test.step('obtain a valid auth code from Keycloak', async () =>
+      getAuthCodeFromCallbackUrl(await loginToKeycloak(authUrl as string)));
 
     const callbackUrl = `${CALLBACK_URL}?code=${authCode}&state=${encodeURIComponent(issuedState)}`;
 
@@ -91,35 +93,41 @@ test.describe('OAuth2 callback state validation', () => {
   test('implicit grant: (user-supplied state): issues userState accepts matching callback', async ({ restartApp }) => {
     const { app, page } = await startOAuth2Flow(restartApp, 'ImplicitUserSuppliedState');
 
-    const issuedState = await test.step('capture and verify the issued state carries userState', async () => {
+    const authUrl = await getCapturedAuthUrl(app);
+
+    expect(authUrl).toBeTruthy();
+
+    await test.step('capture and verify the issued state carries userState', async () => {
       const state = await getIssuedStateFromAuthorizationUrl(app);
       expect(state).toBe(USER_STATE);
-      return state;
     });
 
-    const callbackUrl
-      = `${CALLBACK_URL}#access_token=${PROVIDER_ACCESS_TOKEN}&token_type=Bearer&expires_in=3600&state=${encodeURIComponent(issuedState)}`;
+    const callbackUrl = await test.step('obtain a token callback from Keycloak', () =>
+      loginToKeycloak(authUrl as string));
 
     await fireDeepLinkCallback(app, callbackUrl);
 
-    expect(await readFetchedAccessToken(page)).toBe(PROVIDER_ACCESS_TOKEN);
+    expect(await readFetchedAccessToken(page)).toBe(getAccessTokenFromCallbackUrl(callbackUrl));
   });
 
   test('implicit grant: (no state): issues a random state accepts matching callback', async ({ restartApp }) => {
     const { app, page } = await startOAuth2Flow(restartApp, 'AuthorizationImplicit');
 
-    const issuedState = await test.step('capture and verify a cryptographically random state was issued', async () => {
+    const authUrl = await getCapturedAuthUrl(app);
+
+    expect(authUrl).toBeTruthy();
+
+    await test.step('capture and verify a cryptographically random state was issued', async () => {
       const state = await getIssuedStateFromAuthorizationUrl(app);
       expect(state).toMatch(GENERATED_STATE_PATTERN);
-      return state;
     });
 
-    const callbackUrl
-      = `${CALLBACK_URL}#access_token=${PROVIDER_ACCESS_TOKEN}&token_type=Bearer&expires_in=3600&state=${encodeURIComponent(issuedState)}`;
+    const callbackUrl = await test.step('obtain a token callback from Keycloak', () =>
+      loginToKeycloak(authUrl as string));
 
     await fireDeepLinkCallback(app, callbackUrl);
 
-    expect(await readFetchedAccessToken(page)).toBe(PROVIDER_ACCESS_TOKEN);
+    expect(await readFetchedAccessToken(page)).toBe(getAccessTokenFromCallbackUrl(callbackUrl));
   });
 
   test('implicit grant: rejects callback when returned state does not match issued state', async ({ restartApp }) => {

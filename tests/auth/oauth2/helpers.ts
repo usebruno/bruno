@@ -58,7 +58,12 @@ export const getIssuedStateFromAuthorizationUrl = async (app: ElectronApplicatio
   return state as string;
 };
 
-export const loginToKeycloakForAuthCode = async (authorizationUrl: string): Promise<string> => {
+/**
+ * Log in to Keycloak as the test user and return the callback URL it redirects to.
+ * For the authorization code flow the code is in the query; for the implicit flow
+ * the token is in the fragment.
+ */
+export const loginToKeycloak = async (authorizationUrl: string): Promise<string> => {
   const loginPage = await fetch(authorizationUrl, { redirect: 'manual' });
   expect(loginPage.ok, 'Keycloak authorize should return a login page').toBeTruthy();
 
@@ -90,9 +95,19 @@ export const loginToKeycloakForAuthCode = async (authorizationUrl: string): Prom
 
   const location = submission.headers.get('location');
   expect(location, 'Keycloak login should redirect to the callback URL').toBeTruthy();
-  const code = new URL(location as string).searchParams.get('code');
+  return location as string;
+};
+
+export const getAuthCodeFromCallbackUrl = (callbackUrl: string): string => {
+  const code = new URL(callbackUrl).searchParams.get('code');
   expect(code, 'Keycloak callback redirect should carry an auth code').toBeTruthy();
   return code as string;
+};
+
+export const getAccessTokenFromCallbackUrl = (callbackUrl: string): string => {
+  const token = new URLSearchParams(new URL(callbackUrl).hash.slice(1)).get('access_token');
+  expect(token, 'Keycloak callback redirect should carry an access token in the fragment').toBeTruthy();
+  return token as string;
 };
 
 /** Fire a deep-link callback through the real protocol handler (cross-platform path). */
