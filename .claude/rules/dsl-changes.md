@@ -5,6 +5,7 @@ paths:
   - "packages/bruno-cli/**"
   - "packages/bruno-lang/**"
   - "packages/bruno-filestore/**"
+  - "packages/bruno-io/**"
   - "packages/bruno-schema/**"
   - "packages/bruno-schema-types/**"
   - "packages/bruno-converters/**"

@@ -6,9 +6,9 @@ import {
   isMockServerRelatedTab,
   isMockServerNameTaken,
   isMockServerPortTaken,
-  normalizeMockTabType,
   suggestNextMockServerPort
 } from './mock-server-instances';
+import { normalizeMockTabType } from './mock-tab-type';
 
 describe('mock server tab helpers', () => {
   it('normalizes legacy mock-server-dashboard and mocker tab types to mock-server', () => {
