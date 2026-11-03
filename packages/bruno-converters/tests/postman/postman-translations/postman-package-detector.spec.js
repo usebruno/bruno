@@ -194,6 +194,11 @@ describe('postman-package-detector :: classifyPackages', () => {
     expect(report.devMode).toEqual(['lodash']);
     expect(report.safeMode).toEqual(['uuid']);
   });
+
+  test('leaves names that are not valid npm package names out of needsInstall', () => {
+    const report = classifyPackages(['ajv', 'x; rm -rf ~', '$(whoami)']);
+    expect(report.needsInstall).toEqual(['ajv']);
+  });
 });
 
 describe('postman-package-detector :: buildPackageReport', () => {
@@ -206,6 +211,12 @@ describe('postman-package-detector :: buildPackageReport', () => {
     const report = buildPackageReport(['ajv']);
     expect(report.hasAny).toBe(true);
     expect(report.needsInstall).toEqual(['ajv']);
+  });
+
+  test('sets hasAny=false when every package needing install has an invalid name', () => {
+    const report = buildPackageReport(['x; rm -rf ~']);
+    expect(report.hasAny).toBe(false);
+    expect(report.needsInstall).toEqual([]);
   });
 
   test('sets hasAny=true when there are unsupported packages to flag', () => {

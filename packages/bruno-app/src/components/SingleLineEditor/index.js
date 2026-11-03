@@ -8,6 +8,7 @@ import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import { SetAsVariableContext } from 'providers/SetAsVariable/context';
+import { isSelectionPinned, pinSelectionOnContextMenu, releasePinnedSelection } from 'utils/codemirror/selection';
 import StyledWrapper from './StyledWrapper';
 
 const CodeMirror = require('codemirror');
@@ -117,6 +118,7 @@ class SingleLineEditor extends Component {
     this.editor.on('paste', this._onPaste);
     this.editor.on('blur', this._onBlur);
     this.editor.on('contextmenu', this._onContextMenu);
+    this.editor.on('mousedown', this._onMouseDown);
     this.addOverlay(variables);
     this._enableMaskedEditor(this.props.isSecret);
     this.setState({ maskInput: this.props.isSecret });
@@ -149,8 +151,16 @@ class SingleLineEditor extends Component {
     }
   };
 
+  _onMouseDown = (editor, event) => {
+    pinSelectionOnContextMenu({
+      editor,
+      event,
+      enabled: this.props.enableBrunoVarInfo !== false && !this.state.maskInput
+    });
+  };
+
   _onBlur = () => {
-    if (this.editor) {
+    if (this.editor && !isSelectionPinned(this.editor)) {
       this.editor.setCursor(this.editor.getCursor());
     }
   };
@@ -239,6 +249,8 @@ class SingleLineEditor extends Component {
       this.editor.off('change', this._onEdit);
       this.editor.off('paste', this._onPaste);
       this.editor.off('blur', this._onBlur);
+      this.editor.off('mousedown', this._onMouseDown);
+      if (isSelectionPinned(this.editor)) releasePinnedSelection();
       this.editor.off('contextmenu', this._onContextMenu);
       this._clearNewlineMarkers();
       this.editor.getWrapperElement().remove();

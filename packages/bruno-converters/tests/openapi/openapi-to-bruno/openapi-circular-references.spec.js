@@ -13,6 +13,94 @@ describe('openapi-circular-references', () => {
 
     expect(brunoCollection).toMatchObject(circularRefsOutput);
   });
+
+  describe('an example that refers to a recursive schema', () => {
+    const folderRef = { $ref: '#/components/schemas/Folder' };
+    const buildSpec = (content, componentsFirst = true) => {
+      const head = { openapi: '3.0.0', info: { title: 'Demo', version: '1.0.0' } };
+      const components = {
+        schemas: { Folder: { type: 'object', properties: { name: { type: 'string' }, children: { type: 'array', items: folderRef } } } },
+        examples: { DocsFolder: { value: { name: 'docs', children: [] } } }
+      };
+      const paths = {
+        '/folders': { post: { summary: 'Create folder', requestBody: { content: { 'application/json': { schema: folderRef, ...content } } }, responses: { 200: { description: 'OK' } } } }
+      };
+      return componentsFirst ? { ...head, components, paths } : { ...head, paths, components };
+    };
+    const requestBody = (spec) => JSON.parse(openApiToBruno(spec).items[0].request.body.json);
+
+    it.each([
+      ['example', true],
+      ['example', false],
+      ['examples', true],
+      ['examples', false]
+    ])('builds the body from the schema when %s points at the schema (components first: %s)', (variant, componentsFirst) => {
+      const content = variant === 'example' ? { example: folderRef } : { examples: { e: { value: folderRef } } };
+      expect(requestBody(buildSpec(content, componentsFirst))).toEqual(requestBody(buildSpec({}, componentsFirst)));
+    });
+
+    it('stops the recursion when the example points at a recursive schema', () => {
+      expect(requestBody(buildSpec({ example: folderRef }))).toEqual({ name: '', children: [{}] });
+    });
+
+    it('keeps a schema reference inside a larger example as a plain value', () => {
+      expect(requestBody(buildSpec({ example: { name: 'docs', children: [folderRef] } }))).toEqual({ name: 'docs', children: [folderRef] });
+    });
+
+    it('uses the value of an example that points at another example', () => {
+      const content = { examples: { e: { $ref: '#/components/examples/DocsFolder' } } };
+      expect(requestBody(buildSpec(content))).toEqual({ name: 'docs', children: [] });
+    });
+
+    it('fills in another example referenced inside example data', () => {
+      const content = { example: { name: 'root', children: [{ $ref: '#/components/examples/DocsFolder' }] } };
+      expect(requestBody(buildSpec(content))).toEqual({ name: 'root', children: [{ name: 'docs', children: [] }] });
+    });
+  });
+
+  describe('an example that refers back to itself', () => {
+    const exampleRef = (name) => ({ $ref: `#/components/examples/${name}` });
+    const buildSpec = (content, componentsFirst = true) => {
+      const head = { openapi: '3.0.0', info: { title: 'Demo', version: '1.0.0' } };
+      const components = {
+        examples: {
+          Tree: { value: { name: 'root', children: [exampleRef('Tree')] } },
+          Root: { value: { name: 'root', child: exampleRef('Child') } },
+          Child: { value: { name: 'child', parent: exampleRef('Root') } }
+        }
+      };
+      const paths = {
+        '/folders': { post: { summary: 'Create folder', requestBody: { content: { 'application/json': { schema: { type: 'object' }, ...content } } }, responses: { 200: { description: 'OK' } } } }
+      };
+      return componentsFirst ? { ...head, components, paths } : { ...head, paths, components };
+    };
+    const requestBody = (spec) => JSON.parse(openApiToBruno(spec).items[0].request.body.json);
+
+    it.each([
+      ['example', true],
+      ['example', false],
+      ['examples', true],
+      ['examples', false]
+    ])('stops at the self reference when %s points at the example (components first: %s)', (variant, componentsFirst) => {
+      const content = variant === 'example' ? { example: exampleRef('Tree') } : { examples: { e: exampleRef('Tree') } };
+      expect(requestBody(buildSpec(content, componentsFirst))).toEqual({ name: 'root', children: [{}] });
+    });
+
+    it.each([
+      ['Root', true, { name: 'root', child: { name: 'child', parent: {} } }],
+      ['Root', false, { name: 'root', child: { name: 'child', parent: {} } }],
+      ['Child', true, { name: 'child', parent: {} }],
+      ['Child', false, { name: 'child', parent: {} }]
+    ])('stops where a ring of examples loops back, starting from %s (components first: %s)', (name, componentsFirst, expected) => {
+      expect(requestBody(buildSpec({ examples: { e: exampleRef(name) } }, componentsFirst))).toEqual(expected);
+    });
+
+    it('stops at example data that contains itself', () => {
+      const tree = { name: 'root' };
+      tree.children = [tree];
+      expect(requestBody(buildSpec({ example: tree }))).toEqual({ name: 'root', children: [{}] });
+    });
+  });
 });
 
 const circularRefsData = {
