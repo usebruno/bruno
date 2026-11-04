@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
 import { v4 as uuid } from 'uuid';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
@@ -84,7 +85,7 @@ const OpenAPISyncTab = ({ collection }) => {
 
   return (
     <StyledWrapper className="flex flex-col h-full relative px-4 pt-4 overflow-auto">
-      <div className="sync-page w-full">
+      <div className={classnames('sync-page w-full', { 'flex flex-1 pb-4': !isConfigured })}>
 
         {/* Setup form when not configured */}
         {!isConfigured && (
