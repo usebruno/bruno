@@ -1,5 +1,5 @@
 import { find, map, filter, cloneDeep, each, concat } from 'lodash';
-import { parseQueryParams, buildQueryString as stringifyQueryParams } from '@usebruno/common/utils';
+import { parseQueryParams, buildQueryString as stringifyQueryParams, nextCopyName } from '@usebruno/common/utils';
 import { uuid } from 'utils/common';
 import { findItemForExampleEditor,
   getMockResponseUidFromItemUid,
@@ -78,7 +78,7 @@ export const cloneResponseExample = (state, action) => {
 
   clonedExample.uid = clonedUid || uuid();
 
-  clonedExample.name = `${originalExample.name} (Copy)`;
+  clonedExample.name = nextCopyName(originalExample.name, map(item.draft.examples, (e) => e.name));
 
   if (clonedExample.request && clonedExample.request.body) {
     if (!clonedExample.request.body.mode) {
