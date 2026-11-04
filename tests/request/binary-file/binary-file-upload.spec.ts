@@ -30,7 +30,8 @@ test.describe.serial('File / Binary body upload', () => {
   const collectionName = 'binary-file-upload';
   const jsonRequestName = 'json-upload';
   const octetRequestName = 'octet-upload';
-  const LARGE_FILE_BYTES = 1024 * 1024;
+  // Over the 20 MiB STREAMING_FILE_SIZE_THRESHOLD, so these upload as an fs.ReadStream.
+  const LARGE_FILE_BYTES = 25 * 1024 * 1024;
 
   // contentType is what Bruno derives from the extension — the only on-the-wire difference between cases.
   const largeFileCases = [
@@ -57,7 +58,7 @@ test.describe.serial('File / Binary body upload', () => {
     // body is sent as an fs.ReadStream — this is the exact code path that
     // produced the bug. Anything <= 20 MiB would go through the Buffer path,
     // which was never broken.
-    const LARGE_JSON_BYTES = 80 * 1024 * 1024; // 25 MiB > 20 MiB threshold
+    const LARGE_JSON_BYTES = 80 * 1024 * 1024;
     const jsonBuffer = Buffer.alloc(LARGE_JSON_BYTES, 'a');
     jsonFilePath = path.join(tmpDir, 'payload.json');
     await fs.promises.writeFile(jsonFilePath, jsonBuffer);
@@ -163,7 +164,7 @@ test.describe.serial('File / Binary body upload', () => {
       expect(Number(bytesReceivedMatch![1])).toBe(fixture.sizeInBytes);
 
       expect(responseText).toContain(`"sha256": "${fixture.sha256}"`);
-      expect(responseText).toContain('"looksLikeSerializedNodeStream": false');
+      expect(responseText).toContain('"transferEncoding": "chunked"');
     });
   }
 });
