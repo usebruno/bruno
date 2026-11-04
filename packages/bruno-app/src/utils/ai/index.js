@@ -32,6 +32,16 @@ export const getAiApiKey = ({ providerId }) =>
 export const testAiProvider = ({ providerId }) =>
   callIpc('renderer:ai-test-provider', { providerId });
 
+export const copilotSignIn = () => callIpc('renderer:ai-copilot-sign-in');
+
+export const copilotCancelSignIn = () => callIpc('renderer:ai-copilot-cancel-sign-in');
+
+export const copilotSaveToken = ({ token }) => callIpc('renderer:ai-copilot-save-token', { token });
+
+export const copilotRefreshModels = () => callIpc('renderer:ai-copilot-refresh-models');
+
+export const copilotSignOut = () => callIpc('renderer:ai-copilot-sign-out');
+
 export const aiGenerateText = (params) =>
   callIpc('renderer:ai-generate-text', params);
 

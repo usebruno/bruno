@@ -1,7 +1,7 @@
 const { ipcMain } = require('electron');
 const { generateText } = require('ai');
 const { getPreferences } = require('../../store/preferences');
-const { aiKeyStore } = require('../../store/ai-keys');
+const { getProviderKey, hasProviderKey } = require('./credentials');
 const { getModel, getAvailableModels, isReasoningModel, isOpenAiReasoningModel } = require('./providers');
 const { buildSystemPrompt, buildUserPrompt, STOP_SEQUENCES, sanitizeSuggestion } = require('./autocomplete-prompts');
 
@@ -12,7 +12,10 @@ const SUPPORTED_SCRIPT_TYPES = ['tests', 'pre-request', 'post-response'];
 const FAST_MODEL_PREFERENCE = [
   'gpt-4o-mini',
   'gpt-5-mini',
-  'claude-haiku-4-5'
+  'claude-haiku-4-5',
+  'github-copilot:gpt-5-mini',
+  'github-copilot:gpt-4o-mini',
+  'github-copilot:claude-haiku-4.5'
 ];
 
 // In-process LRU + TTL cache for completions. Keyed on (model, scriptType,
@@ -65,11 +68,9 @@ const isAutocompleteEnabled = () => {
   return Boolean(ai.enabled) && ac.enabled !== false;
 };
 
-const hasApiKey = (providerId) => aiKeyStore.hasKey(providerId);
-
 const pickAutocompleteModelId = () => {
   const ai = getAiPrefs();
-  const available = getAvailableModels({ aiPreferences: ai, hasApiKey });
+  const available = getAvailableModels({ aiPreferences: ai, hasApiKey: hasProviderKey });
   if (available.length === 0) return null;
 
   const preferred = getAutocompletePrefs().model;
@@ -88,7 +89,7 @@ const pickAutocompleteModelId = () => {
 
 const resolveModel = (modelId) => getModel(modelId, {
   aiPreferences: getAiPrefs(),
-  getApiKey: (providerId) => aiKeyStore.getKey(providerId)
+  getApiKey: getProviderKey
 });
 
 // Active per-request AbortControllers, keyed by client-supplied requestId.
