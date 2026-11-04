@@ -1,0 +1,10 @@
+openapi: 3.0.0
+info:
+  title: Outside API
+  version: 1.0.0
+paths:
+  /things:
+    get:
+      responses:
+        '200':
+          description: OK
