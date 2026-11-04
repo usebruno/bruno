@@ -151,18 +151,50 @@ const openCollection = async (page: Page, collectionName: string) => {
  * fixture collection copied to a tmp dir (e.g. via the `collectionFixturePath` fixture).
  * @param page - The page object
  * @param electronApp - The Electron application object
- * @param collectionPath - Absolute path to the collection folder to open
+ * @param collectionPath - Absolute path (or paths) to the collection folder(s) to open
  * @returns void
  */
-const openCollectionFromDialog = async (page: Page, electronApp: ElectronApplication, collectionPath: string) => {
-  await test.step(`Open collection from dialog at "${collectionPath}"`, async () => {
-    await electronApp.evaluate(({ dialog }, dir) => {
-      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
-    }, collectionPath);
+const openCollectionFromDialog = async (
+  page: Page,
+  electronApp: ElectronApplication,
+  collectionPath: string | string[]
+) => {
+  const dirs = Array.isArray(collectionPath) ? collectionPath : [collectionPath];
+  await test.step(`Open collection from dialog at "${dirs.join('", "')}"`, async () => {
+    await electronApp.evaluate(({ dialog }, filePaths) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths });
+    }, dirs);
 
     const locators = buildCommonLocators(page);
     await locators.plusMenu.button().click();
     await locators.plusMenu.openCollection().click();
+  });
+};
+
+/**
+ * Snapshot the main process's real `dialog.showOpenDialog` so a spec that stubs the folder
+ * picker can put it back. `electronApp` is worker-scoped, so an un-restored stub leaks into
+ * every later spec in the same worker — pair this with `restoreOpenDialog` in `afterAll`.
+ * @param electronApp - The Electron application object
+ * @returns void
+ */
+const stashOpenDialog = async (electronApp: ElectronApplication) => {
+  await electronApp.evaluate(({ dialog }) => {
+    (global as any).__origShowOpenDialog = dialog.showOpenDialog;
+  });
+};
+
+/**
+ * Restore the `dialog.showOpenDialog` snapshot taken by `stashOpenDialog`.
+ * @param electronApp - The Electron application object
+ * @returns void
+ */
+const restoreOpenDialog = async (electronApp: ElectronApplication) => {
+  await electronApp.evaluate(({ dialog }) => {
+    const original = (global as any).__origShowOpenDialog;
+    if (original) {
+      dialog.showOpenDialog = original;
+    }
   });
 };
 
@@ -4055,6 +4087,8 @@ export {
   closeAllCollections,
   openCollection,
   openCollectionFromDialog,
+  stashOpenDialog,
+  restoreOpenDialog,
   createCollection,
   createRequest,
   createUntitledRequest,

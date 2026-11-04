@@ -1,78 +1,86 @@
-import { test, expect } from '../../../playwright';
-import * as fs from 'fs';
+import { test, expect, ElectronApplication, Page } from '../../../playwright';
 import * as path from 'path';
 import {
   buildCommonLocators,
   closeAllCollections,
   openCollectionFromDialog,
-  toggleOpenCollectionItem
+  restoreOpenDialog,
+  stashOpenDialog
 } from '../../utils/page';
 
-const writeCollection = (dir: string, name: string) => {
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'opencollection.yml'), `opencollection: "1.0.0"\ninfo:\n  name: ${name}\n`);
+/** A collection the picker should discover: its name, and the location it reports relative to the picked folder. */
+type DiscoveredCollection = { name: string; location: string };
+
+const openEveryCollectionUnder = async (
+  page: Page,
+  electronApp: ElectronApplication,
+  root: string,
+  expected: DiscoveredCollection[]
+) => {
+  const { modal, openCollectionPicker, sidebar } = buildCommonLocators(page);
+
+  await openCollectionFromDialog(page, electronApp, root);
+
+  await test.step('The modal lists every discovered collection at its nested location', async () => {
+    await expect(modal.byTitle('Open Collection')).toBeVisible();
+    await expect(openCollectionPicker.titles()).toHaveCount(expected.length);
+    for (const { name, location } of expected) {
+      await expect(openCollectionPicker.itemDescription(name)).toHaveText(location);
+    }
+  });
+
+  await test.step('Select every collection and open them', async () => {
+    await openCollectionPicker.selectAllToggle().click();
+    await expect(modal.footer()).toContainText(`${expected.length} of ${expected.length} selected`);
+    await modal.button('Open').click();
+  });
+
+  await test.step('Every selected collection is in the sidebar', async () => {
+    for (const { name } of expected) {
+      await expect(sidebar.collection(name)).toBeVisible();
+    }
+  });
 };
 
 test.describe('Open nested collections', () => {
   test.beforeAll(async ({ electronApp }) => {
-    await electronApp.evaluate(({ dialog }) => {
-      (global as any).__origShowOpenDialog = dialog.showOpenDialog;
-    });
+    await stashOpenDialog(electronApp);
   });
 
   test.afterAll(async ({ electronApp }) => {
-    await electronApp.evaluate(({ dialog }) => {
-      dialog.showOpenDialog = (global as any).__origShowOpenDialog;
-    });
+    await restoreOpenDialog(electronApp);
   });
 
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
 
-  test('TC-4448 lists the parent and nested sibling collections in the modal and opens all selected collections in the sidebar', { tag: '@sanity' }, async ({
+  test('TC-4448: lists a collection folder alongside the sibling collections inside it and opens all of them', async ({
     page,
     electronApp,
-    createTmpDir
+    collectionFixturePath
   }) => {
-    const { modal, openCollectionPicker, sidebar } = buildCommonLocators(page);
-    const parentDir = await createTmpDir('open-nested-collections');
-    const collections = [
-      { dir: parentDir, name: 'Parent Collection' },
-      { dir: path.join(parentDir, 'alpha'), name: 'Alpha Collection' },
-      { dir: path.join(parentDir, 'beta'), name: 'Beta Collection' }
-    ];
+    const root = path.join(collectionFixturePath!, 'nested-siblings');
 
-    await test.step('Create a parent collection with two nested collections', async () => {
-      for (const { dir, name } of collections) {
-        writeCollection(dir, name);
-      }
-    });
+    await openEveryCollectionUnder(page, electronApp, root, [
+      // The picked folder is itself a collection, so it reports its own folder name.
+      { name: 'Parent Collection', location: 'nested-siblings' },
+      { name: 'Alpha Collection', location: 'alpha' },
+      { name: 'Beta Collection', location: 'beta' }
+    ]);
+  });
 
-    await test.step('Open the parent folder', async () => {
-      await openCollectionFromDialog(page, electronApp, parentDir);
-    });
+  test('TC-4449: discovers collections several folders below the picked root and opens all of them', async ({
+    page,
+    electronApp,
+    collectionFixturePath
+  }) => {
+    const root = path.join(collectionFixturePath!, 'deeply-nested');
 
-    await test.step('Modal lists the parent and both nested collections', async () => {
-      await expect(modal.byTitle('Open Collection')).toBeVisible();
-      await expect(openCollectionPicker.titles()).toHaveCount(collections.length);
-      for (const { name } of collections) {
-        await expect(openCollectionPicker.item(name)).toBeVisible();
-      }
-    });
-
-    await test.step('Select every collection and open them', async () => {
-      for (const { name } of collections) {
-        await toggleOpenCollectionItem(page, name);
-        await expect(openCollectionPicker.itemCheckbox(name)).toBeChecked();
-      }
-      await modal.button('Open').click();
-    });
-
-    await test.step('All selected collections appear in the sidebar', async () => {
-      for (const { name } of collections) {
-        await expect(sidebar.collection(name)).toBeVisible();
-      }
-    });
+    await openEveryCollectionUnder(page, electronApp, root, [
+      { name: 'Payments Collection', location: 'services/payments/v1' },
+      { name: 'Identity Collection', location: 'services/identity/internal/v2' },
+      { name: 'Inventory Collection', location: 'teams/platform/apis/internal/inventory' }
+    ]);
   });
 });
