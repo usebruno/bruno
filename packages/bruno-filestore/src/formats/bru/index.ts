@@ -278,6 +278,9 @@ export const parseBruCollection = (data: string | any, parsed: boolean = false):
     const transformedJson: any = {
       request: {
         headers: _.get(json, 'headers', []),
+        // shared URL query params defined at the collection/folder level via a `query {}` block.
+        // entries are tagged type 'query' so the runners can inherit them like request-level params.
+        params: _.get(json, 'query', []).map((param: any) => ({ ...param, type: 'query' })),
         auth: _.get(json, 'auth', {}),
         script: _.get(json, 'script', {}),
         vars: _.get(json, 'vars', {}),
@@ -325,6 +328,9 @@ export const parseBruCollection = (data: string | any, parsed: boolean = false):
 export const stringifyBruCollection = (json: any, isFolder?: boolean): string => {
   try {
     const collectionBruJson: any = {
+      // shared URL query params round-trip back into a `query {}` block so hand-edited
+      // collection/folder params survive a save from the app
+      query: _.get(json, 'request.params', []).filter((param: any) => !param.type || param.type === 'query'),
       headers: _.get(json, 'request.headers', []),
       script: {
         req: _.get(json, 'request.script.req', ''),

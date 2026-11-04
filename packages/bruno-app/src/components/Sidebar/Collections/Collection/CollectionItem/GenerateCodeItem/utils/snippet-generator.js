@@ -1,6 +1,6 @@
 import { buildHar } from '@usebruno/common';
 import { stripOrigin } from '@usebruno/common/utils';
-import { getAllVariables, getTreePathFromCollectionToItem, mergeHeaders } from 'utils/collections/index';
+import { getAllVariables, getTreePathFromCollectionToItem, mergeHeaders, getInheritedQueryParams, applyInheritedQueryParams } from 'utils/collections/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { get } from 'lodash';
 import { interpolateUrl, interpolateUrlPathParams, prependDefaultScheme } from 'utils/url/index';
@@ -67,18 +67,25 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
 
     const requestTreePath = getTreePathFromCollectionToItem(collection, item);
     const mergedHeaders = mergeHeaders(collection, request, requestTreePath);
+    // The send path merges collection/folder query params into the URL; do the
+    // same here so generated snippets show the effective request URL.
+    const urlWithInheritedParams = applyInheritedQueryParams(
+      request.url,
+      getInheritedQueryParams(collection, requestTreePath),
+      request.params
+    );
 
     const settings = item.draft ? get(item, 'draft.settings') : get(item, 'settings');
 
     // buildHar intentionally does NOT resolve `{{var}}` / `:pathParam` in the URL
     const sourceUrl = shouldInterpolate
       ? interpolateUrlPathParams(
-          interpolateUrl({ url: request.url, variables }) || '',
+          interpolateUrl({ url: urlWithInheritedParams, variables }) || '',
           request.params,
           variables,
           { raw: true }
         )
-      : prependDefaultScheme(request.url);
+      : prependDefaultScheme(urlWithInheritedParams);
 
     const { har, rawUrl, encodedUrl, unhash } = await buildHar({
       request: {

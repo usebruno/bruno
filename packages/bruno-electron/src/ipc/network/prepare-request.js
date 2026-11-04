@@ -2,7 +2,7 @@ const { get, each, filter, find } = require('lodash');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
-const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials, mergeAuth } = require('../../utils/collection');
+const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials, mergeAuth, getInheritedQueryParams, applyInheritedQueryParams } = require('../../utils/collection');
 const { getEffectiveTags, getOwnTags, getInheritedTagsFromTreePath } = require('@usebruno/common');
 const path = require('node:path');
 const { isLargeFile } = require('../../utils/filesystem');
@@ -403,6 +403,10 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
     request.promptVariables = collection?.promptVariables || {};
   }
+
+  // shared query params defined at the collection/folder level merge into the URL;
+  // params the request defines itself (in the URL or request.params) always win
+  url = applyInheritedQueryParams(url, getInheritedQueryParams(collection, requestTreePath), request.params);
 
   const disabledHeaders = [];
   each(get(request, 'headers', []), (h) => {
