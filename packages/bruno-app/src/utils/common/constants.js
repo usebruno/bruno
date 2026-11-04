@@ -2,6 +2,7 @@ export const REQUEST_TYPES = ['http-request', 'graphql-request', 'grpc-request',
 
 export const DEFAULT_COLLECTION_FORMAT = 'yml';
 
+export const REQUEST_BODY_EDITOR_CLASS = 'request-body-editor';
 export const MAX_RENDERABLE_RESPONSE_BYTES = 50 * 1024 * 1024;
 
 export const DEFAULT_SIDEBAR_WIDTH = 250;
@@ -36,7 +37,7 @@ export const AUTOCOMPLETE_SCOPES = {
 
 /**
  * Which keystrokes open the variable autocomplete dropdown in a field (passed as the editors'
- * `variableAutocomplete` prop). Ctrl+Space (the manual trigger) works in every mode.
+ * `variableAutocomplete` prop). The Trigger Autocomplete shortcut (the manual trigger) works in every mode.
  */
 export const AUTOCOMPLETE_TRIGGER = {
   SINGLE_BRACE: 'singleBrace', // `{` opens it (and `{{` still does)

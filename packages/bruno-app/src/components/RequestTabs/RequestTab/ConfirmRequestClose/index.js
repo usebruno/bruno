@@ -26,7 +26,7 @@ const ConfirmRequestClose = ({ name, type, onCancel, onCloseWithoutSave, onSaveA
           <IconAlertTriangle size={32} strokeWidth={1.5} className="text-yellow-600" />
           <h1 className="ml-2 text-lg font-medium">Hold on..</h1>
         </div>
-        <div className="font-normal mt-4">
+        <div className="font-normal mt-4 overflow-auto">
           You have unsaved changes in {type} <span className="font-medium">{name}</span>.
         </div>
 

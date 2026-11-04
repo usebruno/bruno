@@ -122,7 +122,6 @@ const closeAllCollections = async (page) => {
     await expect(page.getByTestId('collections').locator('.collection-name')).toHaveCount(0);
   });
 };
-
 /**
  * Open a collection from the sidebar and accept the JavaScript Sandbox modal
  * @param page - The page object
@@ -457,9 +456,10 @@ const createRequestFromEmptyStateCta = async (
  * Works with HTTP, GraphQL, gRPC, and WebSocket requests
  * @param page - The page object
  * @param url - The URL to fill
+ * @param options - `replace: true` overwrites the existing URL; by default the text is inserted at the cursor
  * @returns void
  */
-const fillRequestUrl = async (page: Page, url: string) => {
+const fillRequestUrl = async (page: Page, url: string, { replace = false } = {}) => {
   await test.step(`Fill request URL: ${url}`, async () => {
     // HTTP/GraphQL requests use #request-url
     // gRPC/WebSocket don't have a specific ID, so we need to find the CodeMirror in the active request pane
@@ -468,13 +468,16 @@ const fillRequestUrl = async (page: Page, url: string) => {
 
     // Try HTTP/GraphQL selector first
     const isHttpOrGraphql = await httpGraphqlUrl.isVisible().catch(() => false);
+    const selectAll = () => page.keyboard.press(process.platform === 'darwin' ? 'Meta+a' : 'Control+a');
 
     if (isHttpOrGraphql) {
       await httpGraphqlUrl.click();
+      if (replace) await selectAll();
       await page.locator('#request-url textarea').fill(url);
     } else {
       // Fall back to generic selector for gRPC/WebSocket
       await grpcWsUrl.click();
+      if (replace) await selectAll();
       await page.locator('.input-container textarea').first().fill(url);
     }
 
@@ -661,6 +664,7 @@ type ImportCollectionOptions = {
   expectIssues?: boolean;
   sidebarTimeout?: number;
   preserveScripts?: boolean;
+  checkForSpecUpdates?: boolean;
 };
 
 const importCollection = async (
@@ -700,6 +704,12 @@ const importCollection = async (
       const preserveScriptsCheckbox = locators.import.preserveScriptsToggle();
       await preserveScriptsCheckbox.check();
       await expect(preserveScriptsCheckbox).toBeChecked();
+    }
+
+    if (options.checkForSpecUpdates) {
+      const checkForSpecUpdatesToggle = locators.import.checkForSpecUpdatesToggle();
+      await checkForSpecUpdatesToggle.check();
+      await expect(checkForSpecUpdatesToggle).toBeChecked();
     }
 
     // Set location and import
@@ -2501,9 +2511,34 @@ type ScriptSubTab = 'pre-request' | 'post-response' | 'before-call-start' | 'bef
 const selectScriptSubTab = async (page: Page, subTab: ScriptSubTab) => {
   await test.step(`Select Script sub-tab "${subTab}"`, async () => {
     await selectRequestPaneTab(page, 'Script');
-    const trigger = buildCommonLocators(page).paneTabs.tabTrigger(subTab);
-    await trigger.click();
-    await expect(trigger).toContainClass('active');
+    const locators = buildCommonLocators(page);
+    const tabTrigger = locators.paneTabs.tabTrigger(subTab);
+    const overflowTrigger = locators.paneTabs.scriptSubTabsOverflowTrigger();
+
+    // The sub-tab row re-measures via ResizeObserver/rAF, so a trigger can detach mid-click.
+    // Retry the whole sequence so a mid-action re-layout doesn't fail the test.
+    await expect(async () => {
+      if (await tabTrigger.isVisible()) {
+        await tabTrigger.click({ timeout: 2000 });
+        await expect(tabTrigger).toContainClass('active', { timeout: 2000 });
+        return;
+      }
+
+      if (await overflowTrigger.isVisible()) {
+        const item = locators.paneTabs.overflowItem(subTab);
+        // The chevron toggles the menu, so clicking it again after a failed attempt would close it.
+        if (!(await item.isVisible())) {
+          await overflowTrigger.click({ timeout: 2000 });
+        }
+        await item.waitFor({ state: 'visible', timeout: 2000 });
+        await item.click({ timeout: 2000 });
+        // Selecting pulls the tab into the visible row, so its trigger exists again.
+        await expect(tabTrigger).toContainClass('active', { timeout: 2000 });
+        return;
+      }
+
+      throw new Error(`Script sub-tab "${subTab}" not found in visible tabs or overflow dropdown`);
+    }).toPass({ timeout: 15000 });
   });
 };
 
@@ -2782,51 +2817,6 @@ const readField = async (page: Page, labelText: string): Promise<string> => {
   const editor = fieldEditor(page, labelText).first();
   await editor.waitFor({ state: 'visible' });
   return editor.evaluate((el: any) => (el as any).CodeMirror?.getValue() ?? '');
-};
-
-export type CollectionProxyField = 'hostname' | 'port' | 'username' | 'password';
-
-const COLLECTION_PROXY_FIELD_TEST_IDS: Record<CollectionProxyField, string> = {
-  hostname: 'collection-proxy-hostname',
-  port: 'collection-proxy-port',
-  username: 'collection-proxy-username',
-  password: 'collection-proxy-password'
-};
-
-const collectionProxyFieldRoot = (page: Page, field: CollectionProxyField) =>
-  page.getByTestId(COLLECTION_PROXY_FIELD_TEST_IDS[field]);
-
-/** Read a collection proxy hostname, port, username, or password field. */
-const readCollectionProxyField = async (page: Page, field: CollectionProxyField): Promise<string> => {
-  const root = collectionProxyFieldRoot(page, field);
-  await root.waitFor({ state: 'visible' });
-
-  if (field === 'port') {
-    return root.inputValue();
-  }
-
-  const editor = root.locator('.CodeMirror').first();
-  await editor.waitFor({ state: 'visible' });
-  return editor.evaluate((el: any) => (el as any).CodeMirror?.getValue() ?? '');
-};
-
-/** Set a collection proxy hostname, port, username, or password field. */
-const writeCollectionProxyField = async (page: Page, field: CollectionProxyField, value: string) => {
-  const root = collectionProxyFieldRoot(page, field);
-  await root.waitFor({ state: 'visible' });
-
-  if (field === 'port') {
-    await root.fill(value);
-    await expect.poll(() => root.inputValue()).toBe(value);
-    return;
-  }
-
-  const editor = root.locator('.CodeMirror').first();
-  await editor.waitFor({ state: 'visible' });
-  await editor.evaluate((el: any, nextValue: string) => {
-    el.CodeMirror?.setValue(nextValue);
-  }, value);
-  await expect.poll(() => readCollectionProxyField(page, field)).toBe(value);
 };
 
 const openFolderSettings = async (page: Page, collectionName: string, folderName = 'api') => {
@@ -3257,6 +3247,12 @@ const openExportToPostmanModal = async (page: Page, collectionName: string) => {
 
     await openShareCollectionModal(page, collectionName);
 
+    // In enterprise version, the export tab is visible, so need to click it to proceed.
+    const exportTab = locators.export.exportTab();
+    if (await exportTab.isVisible()) {
+      await exportTab.click();
+    }
+
     await locators.export.postmanFormatCard().click();
     await locators.modal.button('Proceed').click();
     await expect(locators.modal.title('Export to Postman')).toBeVisible();
@@ -3315,6 +3311,37 @@ const exportCollectionToPostman = async (
   });
 };
 
+const exportCollectionAsSingleYaml = async (
+  page: Page,
+  electronApp: ElectronApplication,
+  collectionName: string,
+  outputDir: string
+) => {
+  const filePath = path.join(outputDir, `${collectionName}.yml`);
+  const locators = buildCommonLocators(page);
+
+  // FileSaver.saveAs triggers Electron's will-download event;
+  // set the save path to the temp directory to avoid the system save dialog.
+  await electronApp.evaluate(({ session }, savePath) => {
+    session.defaultSession.once('will-download', (_event, item) => {
+      item.setSavePath(savePath);
+    });
+  }, filePath);
+
+  await openShareCollectionModal(page, collectionName);
+
+  // In enterprise version, the export tab is visible, so need to click it to proceed.
+  const exportTab = locators.export.exportTab();
+  if (await exportTab.isVisible()) {
+    await exportTab.click();
+  }
+
+  await locators.export.yamlFormatCard().click();
+  await locators.modal.button('Proceed').click();
+  await expect.poll(() => fs.existsSync(filePath)).toBe(true);
+  return fs.readFileSync(filePath, 'utf8');
+};
+
 const exportCollectionAsZip = async (
   page: Page,
   electronApp: ElectronApplication,
@@ -3333,6 +3360,11 @@ const exportCollectionAsZip = async (
 
     return await test.step('Export as ZIP and read the written entries', async () => {
       const locators = buildCommonLocators(page);
+      // In enterprise version, the export tab is visible, so need to click it to proceed.
+      const exportTab = locators.export.exportTab();
+      if (await exportTab.isVisible()) {
+        await exportTab.click();
+      }
       await locators.modal.button('Proceed').click();
       await expect(locators.modal.title('Share Collection')).toBeHidden();
       await expect.poll(() => fs.existsSync(zipPath), { timeout: 10000 }).toBe(true);
@@ -4129,8 +4161,6 @@ export {
   typeIntoField,
   writeFieldValue,
   readField,
-  writeCollectionProxyField,
-  readCollectionProxyField,
   createExampleFromSidebar,
   openExampleFromSidebar,
   toggleRequestExamples,
@@ -4150,6 +4180,7 @@ export {
   closeExportToPostmanModal,
   dismissModalIfOpen,
   exportCollectionToPostman,
+  exportCollectionAsSingleYaml,
   exportCollectionAsZip,
   addTag,
   removeTag,

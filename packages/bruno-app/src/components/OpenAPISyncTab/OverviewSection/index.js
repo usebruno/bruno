@@ -157,7 +157,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
   return (
     <div className="overview-section">
       {bannerState && (
-        <div className={`overview-status-banner ${bannerState.variant}`}>
+        <div className={`overview-status-banner ${bannerState.variant}`} data-testid="openapi-sync-overview-banner">
           <div className="banner-text">
             <div className="banner-title-row">
               {bannerState.variant === 'success'
