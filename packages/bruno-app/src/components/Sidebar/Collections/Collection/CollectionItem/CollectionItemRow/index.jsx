@@ -55,6 +55,7 @@ import { selectCollectionByUid } from 'src/selectors/collections';
 import {
   canCollectionItemBeDropped,
   determineCollectionItemDrop,
+  getCloneDisplayName,
   getInitialExampleName,
   findParentItemInCollection,
   getSortedDraggedItems,
@@ -660,11 +661,12 @@ const CollectionItemRow = ({
     toast.success(`${getItemTypeLabel(item)} copied`);
   };
 
-  // One-click clone: display name becomes "<source> copy"; the filesystem name
-  // uniqueness is resolved silently by electron.
+  // One-click clone: display name takes the next free copy slot among siblings; the filesystem
+  // name uniqueness is resolved silently by electron.
   const handleCloneItem = () => {
     if (!isCloneable) return;
-    dispatch(cloneItem(`${item.name} copy`, sanitizeName(`${item.name} copy`), item.uid, collectionUid))
+    const newName = getCloneDisplayName(selectCollectionByUid(store.getState(), collectionUid), item);
+    dispatch(cloneItem(newName, sanitizeName(newName), item.uid, collectionUid))
       .then(() => toast.success(`${getItemTypeLabel(item)} cloned!`))
       .catch((err) => toast.error(formatIpcError(err) || `An error occurred while cloning the ${getItemTypeLabel(item).toLowerCase()}`));
   };

@@ -40,7 +40,7 @@ test.describe('Naming collisions - clone request', () => {
     });
   });
 
-  test('cloning twice keeps the display name and suffixes only the filename', async ({ page, createTmpDir }) => {
+  test('cloning twice numbers the display name', async ({ page, createTmpDir }) => {
     const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('clone-request-twice');
 
@@ -51,19 +51,20 @@ test.describe('Naming collisions - clone request', () => {
     await expect(sidebar.request('login copy')).toBeVisible();
     await cloneItem(page, 'login');
 
-    await test.step('Sidebar shows two "login copy" entries (duplicate display names allowed)', async () => {
-      await expect(sidebar.itemByName('login copy')).toHaveCount(2);
+    await test.step('Sidebar shows "login copy" and "login copy 2"', async () => {
+      await expect(sidebar.itemByName('login copy')).toHaveCount(1);
+      await expect(sidebar.itemByName('login copy 2')).toHaveCount(1);
     });
 
-    await test.step('On disk: display name preserved, filesystem name suffixed', async () => {
+    await test.step('On disk: each clone has its own file', async () => {
       const files = listRequestFiles(testDir);
       expect(files).toContain('login.bru');
       expect(files).toContain('login copy.bru');
-      expect(files).toContain('login copy 1.bru');
+      expect(files).toContain('login copy 2.bru');
     });
   });
 
-  test('cloning a "copy" appends another "copy"', async ({ page, createTmpDir }) => {
+  test('cloning a "copy" joins the counter instead of appending another "copy"', async ({ page, createTmpDir }) => {
     const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('clone-request-append');
 
@@ -72,15 +73,72 @@ test.describe('Naming collisions - clone request', () => {
 
     await cloneItem(page, 'login copy');
 
-    await test.step('Sidebar shows "login copy copy" (appended, not deduped)', async () => {
-      await expect(sidebar.itemByName('login copy copy')).toHaveCount(1);
+    await test.step('Sidebar shows "login copy 2", not "login copy copy"', async () => {
+      await expect(sidebar.itemByName('login copy 2')).toHaveCount(1);
+      await expect(sidebar.itemByName('login copy copy')).toHaveCount(0);
     });
 
-    await test.step('On disk: "login copy.bru" + "login copy copy.bru"', async () => {
+    await test.step('On disk: "login copy.bru" + "login copy 2.bru"', async () => {
       const files = listRequestFiles(testDir);
       expect(files).toContain('login copy.bru');
-      expect(files).toContain('login copy copy.bru');
+      expect(files).toContain('login copy 2.bru');
     });
+  });
+
+  test('clones of the original and of a copy share one counter', async ({ page, createTmpDir }) => {
+    const { sidebar } = buildCommonLocators(page);
+    const testDir = await createTmpDir('clone-request-shared-counter');
+
+    await createCollection(page, 'Clone Counter', testDir, 'bru');
+    await createRequest(page, 'Get Entity Details', 'Clone Counter');
+
+    await test.step('Clone the original, then the copy, then the original again', async () => {
+      await cloneItem(page, 'Get Entity Details');
+      await expect(sidebar.request('Get Entity Details copy')).toBeVisible();
+
+      await cloneItem(page, 'Get Entity Details copy');
+      await expect(sidebar.request('Get Entity Details copy 2')).toBeVisible();
+
+      await cloneItem(page, 'Get Entity Details');
+      await expect(sidebar.request('Get Entity Details copy 3')).toBeVisible();
+    });
+
+    await test.step('No name carries more than one copy token', async () => {
+      await expect(sidebar.itemByName('Get Entity Details copy copy')).toHaveCount(0);
+    });
+
+    await test.step('On disk: one file per clone', async () => {
+      const files = listRequestFiles(testDir);
+      expect(files).toContain('Get Entity Details.bru');
+      expect(files).toContain('Get Entity Details copy.bru');
+      expect(files).toContain('Get Entity Details copy 2.bru');
+      expect(files).toContain('Get Entity Details copy 3.bru');
+    });
+  });
+
+  test('the Clone Request modal prefills the next free copy name', async ({ page, createTmpDir }) => {
+    const { sidebar } = buildCommonLocators(page);
+    const testDir = await createTmpDir('clone-request-modal-prefill');
+
+    await createCollection(page, 'Clone Prefill', testDir, 'bru');
+    await createRequest(page, 'login', 'Clone Prefill');
+
+    await cloneItem(page, 'login');
+    await expect(sidebar.request('login copy')).toBeVisible();
+
+    await test.step('Open "Clone Request" from the request tab menu', async () => {
+      await sidebar.itemByName('login').click();
+      // The tab's close gradient covers the centre, so right-click near the tab label's left edge.
+      await page.locator('.request-tab.active .tab-label').click({ button: 'right', position: { x: 4, y: 8 } });
+      await page.getByTestId('menu-dropdown-clone-request').click();
+    });
+
+    await test.step('Prefill skips the taken "login copy"', async () => {
+      await expect(page.locator('#collection-item-name')).toHaveValue('login copy 2');
+    });
+
+    // The modal would block the collection teardown in afterEach.
+    await page.keyboard.press('Escape');
   });
 
   test('clones a request inside a folder, into the same folder', async ({ page, createTmpDir }) => {
