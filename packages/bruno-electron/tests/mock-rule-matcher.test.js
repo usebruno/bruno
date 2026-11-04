@@ -77,6 +77,53 @@ describe('mock-rule-matcher', () => {
     }, context)).toBe(true);
   });
 
+  it('selects the isNull response when the header is omitted', () => {
+    const requestContext = buildRequestContext({
+      headers: { 'content-type': 'application/json' },
+      query: {},
+      body: {}
+    });
+    const { selected } = evaluateResponseCandidates([
+      {
+        responseUid: 'missing-plan',
+        responseName: 'missing-plan',
+        rules: {
+          operator: 'AND',
+          conditions: [{ target: 'header', key: 'X-Plan', operator: 'isNull', value: 'premium' }]
+        }
+      },
+      {
+        responseUid: 'fallback',
+        responseName: 'fallback',
+        rules: { operator: 'AND', conditions: [] }
+      }
+    ], requestContext);
+
+    expect(selected.responseUid).toBe('missing-plan');
+  });
+
+  it('treats an empty header as null', () => {
+    const requestContext = buildRequestContext({
+      headers: { 'x-plan': '' },
+      query: {},
+      body: {}
+    });
+
+    expect(evaluateCondition({
+      target: 'header',
+      key: 'X-Plan',
+      operator: 'isNull',
+      value: 'premium'
+    }, requestContext)).toBe(true);
+
+    expect(evaluateCondition({
+      target: 'header',
+      key: 'X-Plan',
+      operator: 'isNotNull',
+      value: ''
+    }, requestContext)).toBe(false);
+  });
+
   it('matches AND and OR rule groups', () => {
     expect(matchesRules({
       operator: 'AND',
