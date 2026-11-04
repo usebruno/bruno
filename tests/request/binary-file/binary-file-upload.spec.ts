@@ -4,16 +4,13 @@ import * as path from 'path';
 import { test, expect } from '../../../playwright';
 import {
   closeAllCollections,
-  createCollection,
-  createRequest,
+  openCollectionFromDialog,
   openRequest,
-  selectRequestPaneTab,
   sendRequest,
-  verifyResponseSize
+  setFileBody
 } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
-
-const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
+import { writePayloadFile, type PayloadFile } from '../../utils/fixtures/payload-file';
 
 /**
  * E2E test for File / Binary request body uploads.
@@ -24,23 +21,24 @@ const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a'
  * Server-side endpoints:
  *   POST /api/file-binary/binary-upload-json           — application/json
  *   POST /api/file-binary/binary-upload-octet-stream   — application/octet-stream
+ *   POST /api/file-binary/binary-upload-any            — any content-type
  *
- * Both echo back { bytesReceived, sha256, looksLikeSerializedNodeStream, ... }
+ * All three echo back { bytesReceived, sha256, looksLikeSerializedNodeStream, ... }
  * so we can assert the upload arrived byte-exact.
  */
 test.describe.serial('File / Binary body upload', () => {
   const collectionName = 'binary-file-upload';
   const jsonRequestName = 'json-upload';
   const octetRequestName = 'octet-upload';
-  const txtRequestName = 'txt-file-upload';
-  const csvRequestName = 'csv-file-upload';
-  const imgRequestName = 'image-file-upload';
-  const pdfRequestName = 'pdf-file-upload';
-  const TIMEOUTS = {
-    DEFAULT: 30_000,
-    LONG: 60_000,
-    EXTENDED: 180_000
-  } as const;
+  const LARGE_FILE_BYTES = 1024 * 1024;
+
+  // contentType is what Bruno derives from the extension — the only on-the-wire difference between cases.
+  const largeFileCases = [
+    { id: 'TC-2230', label: 'TXT', requestName: 'txt-file-upload', fileName: 'large-txt-file.txt', contentType: 'text/plain' },
+    { id: 'TC-2231', label: 'PDF', requestName: 'pdf-file-upload', fileName: 'large-file.pdf', contentType: 'application/pdf' },
+    { id: 'TC-2232', label: 'Image(.png)', requestName: 'image-file-upload', fileName: 'large-image.png', contentType: 'image/png' },
+    { id: 'TC-2236', label: 'CSV', requestName: 'csv-file-upload', fileName: 'large-csv-file.csv', contentType: 'text/csv' }
+  ] as const;
 
   let tmpDir: string;
   let jsonFilePath: string;
@@ -49,18 +47,10 @@ test.describe.serial('File / Binary body upload', () => {
   let octetFileSha256: string;
   let jsonFileSize: number;
   let octetFileSize: number;
-  let txtFilePath: string;
-  let txtFileSizeInBytes: number;
-  let csvFilePath: string;
-  let csvFileSizeInBytes: number;
-  let imgFilePath: string;
-  let imgFileSizeInBytes: number;
-  let pdfFilePath: string;
-  let pdfFileSizeInBytes: number;
+  const largeFileFixtures: Record<string, PayloadFile> = {};
 
-  test.beforeAll(async ({ page, electronApp, createTmpDir }) => {
-    test.setTimeout(TIMEOUTS.EXTENDED);
-    tmpDir = await createTmpDir('binary-file-upload');
+  test.beforeAll(async ({ page, electronApp, createTmpDir, collectionFixturePath }) => {
+    tmpDir = await createTmpDir('binary-file-upload-payloads');
 
     // The JSON file is intentionally larger than the 20 MiB streaming
     // threshold (STREAMING_FILE_SIZE_THRESHOLD in prepare-request.js) so the
@@ -80,79 +70,19 @@ test.describe.serial('File / Binary body upload', () => {
     octetFileSize = Buffer.byteLength(octetContent);
     octetFileSha256 = crypto.createHash('sha256').update(octetContent).digest('hex');
 
-    // Create a large text file and save it in the temporary directory (tmpDir)
-    txtFileSizeInBytes = 1 * 1024 * 1024;
-    const txtBuffer = Buffer.alloc(txtFileSizeInBytes, 'a');
-    txtFilePath = path.join(tmpDir, 'large-txt-file.txt');
-    await fs.promises.writeFile(txtFilePath, txtBuffer);
+    for (const largeFileCase of largeFileCases) {
+      largeFileFixtures[largeFileCase.requestName] = await writePayloadFile({
+        dir: tmpDir,
+        fileName: largeFileCase.fileName,
+        sizeInBytes: LARGE_FILE_BYTES
+      });
+    }
 
-    // Create a large csv file and save it in the temporary directory (tmpDir)
-    csvFileSizeInBytes = 1 * 1024 * 1024;
-    csvFilePath = path.join(tmpDir, 'large-csv-file.csv');
-    const header = 'id,name,email,status\n';
-    const row = '1,Test User,user@example.com,active\n';
-    const rowCount = Math.ceil((csvFileSizeInBytes - Buffer.byteLength(header)) / Buffer.byteLength(row));
-    await fs.promises.writeFile(csvFilePath, header + row.repeat(rowCount), 'utf8');
-
-    // Create a large png file and save it in the temporary directory (tmpDir)
-    imgFileSizeInBytes = 1 * 1024 * 1024;
-    const imgBuffer = Buffer.alloc(imgFileSizeInBytes, 'a');
-    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(imgBuffer);
-    imgFilePath = path.join(tmpDir, 'large-image.png');
-    await fs.promises.writeFile(imgFilePath, imgBuffer);
-
-    // Create a large pdf file and save it in the temporary directory (tmpDir)
-    pdfFileSizeInBytes = 1 * 1024 * 1024;
-    const pdfBuffer = Buffer.alloc(pdfFileSizeInBytes, 'a');
-    pdfBuffer.write('%PDF-1.4\n');
-    pdfFilePath = path.join(tmpDir, 'large-file.pdf');
-    await fs.promises.writeFile(pdfFilePath, pdfBuffer);
-
-    // Stash and replace the native file picker dialog so FilePickerEditor's
-    // Browse button resolves to a path of our choosing. The currentSelection
-    // is updated per-test so each test picks the right file.
+    // openCollectionFromDialog leaves its mock in place, and electronApp is worker-scoped.
     await electronApp.evaluate(({ dialog }) => {
       (dialog as any).__originalShowOpenDialog = dialog.showOpenDialog;
-      (dialog as any).__currentSelection = '';
-      dialog.showOpenDialog = async () => ({
-        canceled: false,
-        filePaths: [(dialog as any).__currentSelection]
-      });
     });
-
-    await test.step('Create collection and requests', async () => {
-      await createCollection(page, collectionName, tmpDir);
-      await createRequest(page, jsonRequestName, collectionName, {
-        url: 'http://localhost:8081/api/file-binary/binary-upload-json',
-        method: 'POST',
-        inFolder: false
-      });
-      await createRequest(page, octetRequestName, collectionName, {
-        url: 'http://localhost:8081/api/file-binary/binary-upload-octet-stream',
-        method: 'POST',
-        inFolder: false
-      });
-      await createRequest(page, txtRequestName, collectionName, {
-        url: 'https://httpbin.org/post',
-        method: 'POST',
-        inFolder: false
-      });
-      await createRequest(page, pdfRequestName, collectionName, {
-        url: 'https://httpbin.org/post',
-        method: 'POST',
-        inFolder: false
-      });
-      await createRequest(page, imgRequestName, collectionName, {
-        url: 'https://httpbin.org/post',
-        method: 'POST',
-        inFolder: false
-      });
-      await createRequest(page, csvRequestName, collectionName, {
-        url: 'https://httpbin.org/post',
-        method: 'POST',
-        inFolder: false
-      });
-    });
+    await openCollectionFromDialog(page, electronApp, collectionFixturePath!);
   });
 
   test.afterAll(async ({ page, electronApp }) => {
@@ -160,61 +90,19 @@ test.describe.serial('File / Binary body upload', () => {
       if ((dialog as any).__originalShowOpenDialog) {
         dialog.showOpenDialog = (dialog as any).__originalShowOpenDialog;
         delete (dialog as any).__originalShowOpenDialog;
-        delete (dialog as any).__currentSelection;
       }
     });
     await closeAllCollections(page);
   });
 
-  // Switches the body to File / Binary, adds a row, picks the file, and
-  // (optionally) overrides the content-type. Bruno's `updateFile` reducer
-  // auto-fills content-type from the file extension via mime.contentType
-  // (.json → application/json; charset=utf-8, .bin → application/octet-stream),
-  // so when we want a different value (e.g. plain "application/json") we
-  // must select-all and replace — typing into the prefilled cell would
-  // splice into it at the caret and produce a corrupted header.
-  const configureFileBody = async (
-    page: import('@playwright/test').Page,
-    overrideContentType?: string
-  ) => {
-    await selectRequestPaneTab(page, 'Body');
-
-    const locators = buildCommonLocators(page);
-    await locators.request.bodyModeSelector().click();
-    await page.locator('.dropdown-item').filter({ hasText: 'File / Binary' }).click();
-
-    await test.step('Add file row and pick the file', async () => {
-      await page.getByRole('button', { name: /Add File/i }).click();
-      await page.locator('.file-picker-btn').first().click();
-      await expect(page.locator('.file-picker-selected').first()).toBeVisible({ timeout: 5000 });
-    });
-
-    if (overrideContentType) {
-      await test.step(`Override content-type to "${overrideContentType}"`, async () => {
-        // Second column in the FileBody table is the content-type editor (SingleLineEditor / CodeMirror)
-        const contentTypeCell = page.locator('table tbody tr').first().locator('td').nth(1);
-        await contentTypeCell.locator('.CodeMirror').click();
-        await page.keyboard.press(selectAllShortcut);
-        await page.keyboard.press('Backspace');
-        await page.keyboard.type(overrideContentType);
-        // Commit the value and blur the editor so the new content-type is persisted
-        await page.keyboard.press('Tab');
-      });
-    }
-  };
-
   test('JSON content-type: file bytes are sent verbatim, not as serialized stream metadata', async ({
     page,
     electronApp
   }) => {
-    await electronApp.evaluate(({ dialog }, filePath: string) => {
-      (dialog as any).__currentSelection = filePath;
-    }, jsonFilePath);
-
     await openRequest(page, collectionName, jsonRequestName, { persist: true });
     // Override the auto-detected "application/json; charset=utf-8" with plain
     // "application/json" — that's the exact header the bug repro used.
-    await configureFileBody(page, 'application/json');
+    await setFileBody(page, electronApp, jsonFilePath, 'application/json');
     await sendRequest(page, 200, 30000);
 
     const locators = buildCommonLocators(page);
@@ -236,12 +124,8 @@ test.describe.serial('File / Binary body upload', () => {
     page,
     electronApp
   }) => {
-    await electronApp.evaluate(({ dialog }, filePath: string) => {
-      (dialog as any).__currentSelection = filePath;
-    }, octetFilePath);
-
     await openRequest(page, collectionName, octetRequestName, { persist: true });
-    await configureFileBody(page);
+    await setFileBody(page, electronApp, octetFilePath);
 
     await sendRequest(page, 200, 30000);
 
@@ -258,50 +142,28 @@ test.describe.serial('File / Binary body upload', () => {
     expect(responseText).toContain('"looksLikeSerializedNodeStream": false');
   });
 
-  test('TC-2230: Verify successful execution with a large TXT file', { tag: '@sanity' }, async ({ page, electronApp }) => {
-    test.setTimeout(TIMEOUTS.EXTENDED);
-    await electronApp.evaluate(({ dialog }, filePath: string) => {
-      (dialog as any).__currentSelection = filePath;
-    }, txtFilePath);
+  for (const largeFileCase of largeFileCases) {
+    test(`${largeFileCase.id}: Verify successful execution with a large ${largeFileCase.label} file`, { tag: '@sanity' }, async ({
+      page,
+      electronApp
+    }) => {
+      const fixture = largeFileFixtures[largeFileCase.requestName];
 
-    await openRequest(page, collectionName, txtRequestName, { persist: true });
-    await configureFileBody(page);
-    await sendRequest(page, 200, TIMEOUTS.LONG);
-    await verifyResponseSize(page, txtFileSizeInBytes, TIMEOUTS.DEFAULT); ;
-  });
+      await openRequest(page, collectionName, largeFileCase.requestName, { persist: true });
+      await setFileBody(page, electronApp, fixture.path);
+      await sendRequest(page, 200, 30000);
 
-  test('TC-2231: Verify successful execution with a large PDF file', { tag: '@sanity' }, async ({ page, electronApp }) => {
-    test.setTimeout(TIMEOUTS.EXTENDED);
-    await electronApp.evaluate(({ dialog }, filePath: string) => {
-      (dialog as any).__currentSelection = filePath;
-    }, pdfFilePath);
+      const locators = buildCommonLocators(page);
+      const responseText = await locators.response.previewContainer().innerText();
 
-    await openRequest(page, collectionName, pdfRequestName, { persist: true });
-    await configureFileBody(page);
-    await sendRequest(page, 200, TIMEOUTS.LONG);
-    await verifyResponseSize(page, pdfFileSizeInBytes, TIMEOUTS.DEFAULT);
-  });
+      expect(responseText).toContain(largeFileCase.contentType);
 
-  test('TC-2232: Verify successful execution with a large Image(.png) file', { tag: '@sanity' }, async ({ page, electronApp }) => {
-    test.setTimeout(TIMEOUTS.EXTENDED);
-    await electronApp.evaluate(({ dialog }, filePath: string) => {
-      (dialog as any).__currentSelection = filePath;
-    }, imgFilePath);
-    await openRequest(page, collectionName, imgRequestName, { persist: true });
-    await configureFileBody(page);
-    await sendRequest(page, 200, TIMEOUTS.LONG);
-    await verifyResponseSize(page, imgFileSizeInBytes, TIMEOUTS.DEFAULT);
-  });
+      const bytesReceivedMatch = responseText.match(/"bytesReceived":\s*(\d+)/);
+      expect(bytesReceivedMatch).not.toBeNull();
+      expect(Number(bytesReceivedMatch![1])).toBe(fixture.sizeInBytes);
 
-  test('TC-2236: Verify successful execution with a large CSV file', { tag: '@sanity' }, async ({ page, electronApp }) => {
-    test.setTimeout(TIMEOUTS.EXTENDED);
-    await electronApp.evaluate(({ dialog }, filePath: string) => {
-      (dialog as any).__currentSelection = filePath;
-    }, csvFilePath);
-
-    await openRequest(page, collectionName, csvRequestName, { persist: true });
-    await configureFileBody(page);
-    await sendRequest(page, 200, TIMEOUTS.LONG);
-    await verifyResponseSize(page, csvFileSizeInBytes, TIMEOUTS.DEFAULT);
-  });
+      expect(responseText).toContain(`"sha256": "${fixture.sha256}"`);
+      expect(responseText).toContain('"looksLikeSerializedNodeStream": false');
+    });
+  }
 });

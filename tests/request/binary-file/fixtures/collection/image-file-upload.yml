@@ -1,0 +1,8 @@
+info:
+  name: image-file-upload
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: http://localhost:8081/api/file-binary/binary-upload-any
