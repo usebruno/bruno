@@ -142,7 +142,9 @@ const safeDecodeURIComponent = (s: string): string => {
   try {
     return decodeURIComponent(s);
   } catch {
-    return s.replace(/%[0-9A-Fa-f]{2}/g, (m) => {
+    // Decode complete UTF-8 characters together; decoding each byte separately
+    // loses valid multibyte characters whenever another escape is malformed.
+    return s.replace(/%(?:[cd][0-9a-f]%[89ab][0-9a-f]|e[0-9a-f](?:%[89ab][0-9a-f]){2}|f[0-4](?:%[89ab][0-9a-f]){3}|[0-9a-f]{2})/gi, (m) => {
       try {
         return decodeURIComponent(m);
       } catch {

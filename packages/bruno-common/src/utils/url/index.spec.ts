@@ -11,6 +11,16 @@ import {
 } from './index';
 
 describe('encodeUrl', () => {
+  it.each([
+    ['Jos%C3%A9%', 'Jos%C3%A9%25'],
+    ['%E4%B8%AD%ZZ', '%E4%B8%AD%25ZZ'],
+    ['%F0%9F%98%80%', '%F0%9F%98%80%25'],
+    ['%FF%C3%A9', '%25FF%C3%A9']
+  ])('preserves encoded Unicode beside invalid escapes in path %s', (path, expected) => {
+    expect(encodeUrl(`https://example.com/${path}?redirect=%20`))
+      .toBe(`https://example.com/${expected}?redirect=%2520`);
+  });
+
   describe('basic functionality', () => {
     it('should return the original URL when query string is empty', () => {
       const url = 'https://example.com/path?';
