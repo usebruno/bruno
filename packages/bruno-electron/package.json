@@ -34,6 +34,7 @@
     "@ai-sdk/openai": "3.0.12",
     "@apidevtools/json-schema-ref-parser": "14.2.1",
     "@aws-sdk/credential-providers": "3.1019.0",
+    "@github/copilot-sdk": "1.0.28",
     "@grpc/grpc-js": "1.14.6",
     "@grpc/proto-loader": "^0.7.13",
     "@lydell/node-pty": "^1.1.0",

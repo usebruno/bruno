@@ -13,12 +13,15 @@ import { savePreferences } from 'providers/ReduxStore/slices/app';
 import ToggleSwitch from 'components/ToggleSwitch';
 import { clearAiApiKey, getAiStatus } from 'utils/ai';
 import ProviderCard from './ProviderCard';
+import CopilotProviderCard from './CopilotProviderCard';
 import CompatEndpointCard from './CompatEndpointCard';
 import AutocompletePane from './AutocompletePane';
 import SecurityPane from './SecurityPane';
 import StyledWrapper from './StyledWrapper';
 
 const OPENAI_COMPATIBLE_PREFIX = 'openai-compatible:';
+const COPILOT_PROVIDER_ID = 'github-copilot';
+const COPILOT_AUTO_MODEL_ID = `${COPILOT_PROVIDER_ID}:auto`;
 const isCompatProviderId = (id) => typeof id === 'string' && id.startsWith(OPENAI_COMPATIBLE_PREFIX);
 
 const aiPreferencesSchema = Yup.object().shape({
@@ -56,6 +59,7 @@ const aiPreferencesSchema = Yup.object().shape({
 });
 
 let lastActiveSubTab = 'config';
+let lastCopilotTokenInputOpen = false;
 
 const AI = () => {
   const dispatch = useDispatch();
@@ -66,6 +70,11 @@ const AI = () => {
   const setActiveTab = useCallback((tab) => {
     lastActiveSubTab = tab;
     setActiveTabState(tab);
+  }, []);
+  const [copilotTokenInputOpen, setCopilotTokenInputOpenState] = useState(lastCopilotTokenInputOpen);
+  const setCopilotTokenInputOpen = useCallback((open) => {
+    lastCopilotTokenInputOpen = open;
+    setCopilotTokenInputOpenState(open);
   }, []);
 
   const refreshStatus = useCallback(async () => {
@@ -81,6 +90,15 @@ const AI = () => {
   useEffect(() => {
     refreshStatus();
   }, [refreshStatus]);
+
+  useEffect(() => {
+    const { ipcRenderer } = window;
+    if (!ipcRenderer) return undefined;
+    const unsubscribe = ipcRenderer.on('main:ai-status-changed', (next) => {
+      if (next) setStatus(next);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const providerIds = status ? Object.keys(status.providers) : [];
 
@@ -201,7 +219,7 @@ const AI = () => {
     return grouped;
   }, [status]);
 
-  const isModelEnabled = (modelId) => get(formik.values, `models.${modelId}.enabled`, true);
+  const isModelEnabled = (modelId) => modelId === COPILOT_AUTO_MODEL_ID || get(formik.values, `models.${modelId}.enabled`, true);
 
   const handleToggleModel = (modelId, next) => {
     formik.setFieldValue(`models.${modelId}.enabled`, next);
@@ -394,6 +412,26 @@ const AI = () => {
                           formik.setFieldValue(`providers.${id}.enabled`, !providerEnabled)}
                       />
                     );
+
+                    if (id === COPILOT_PROVIDER_ID && status.copilot) {
+                      return (
+                        <CopilotProviderCard
+                          key={id}
+                          provider={provider}
+                          providerEnabled={providerEnabled}
+                          providerToggle={providerToggle}
+                          copilot={status.copilot}
+                          models={modelsByProvider[id] || []}
+                          isModelEnabled={isModelEnabled}
+                          onToggleModel={handleToggleModel}
+                          onStatusChange={(next) => setStatus(next)}
+                          onSignOut={() => formik.setFieldValue(`providers.${id}.enabled`, false)}
+                          onSignedIn={() => formik.setFieldValue(`providers.${id}.enabled`, true)}
+                          tokenInputOpen={copilotTokenInputOpen}
+                          onTokenInputOpenChange={setCopilotTokenInputOpen}
+                        />
+                      );
+                    }
 
                     return (
                       <ProviderCard

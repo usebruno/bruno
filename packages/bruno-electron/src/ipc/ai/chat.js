@@ -1,5 +1,5 @@
 const { ipcMain } = require('electron');
-const { streamText, stepCountIs } = require('ai');
+const { stepCountIs } = require('ai');
 const { z } = require('zod');
 const { get } = require('lodash');
 const { CONTENT_TYPES, TOOL_LABELS, buildSystemPrompt, resolveContentType } = require('./chat-prompts');
@@ -14,7 +14,8 @@ const {
   formatSearchRequestsResult
 } = require('./context');
 const { getPreferences } = require('../../store/preferences');
-const { isBuiltInModelId } = require('./providers');
+const { resolveMaxOutputTokens } = require('./providers');
+const { streamAiText } = require('./generate');
 
 const getSecurityPrefs = () => get(getPreferences(), 'ai.security', null);
 
@@ -277,14 +278,14 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
     };
 
     try {
-      const result = streamText({
+      const result = streamAiText({
         model,
         system: buildSystemPrompt(effectiveType, hasMultiple),
         messages: allMessages,
         tools,
         stopWhen: stepCountIs(8),
         toolChoice: 'auto',
-        maxOutputTokens: isBuiltInModelId(effectiveModelId) ? 16000 : undefined,
+        maxOutputTokens: resolveMaxOutputTokens(effectiveModelId, 16000),
         abortSignal: controller.signal
       });
 

@@ -1,7 +1,7 @@
 const { ipcMain } = require('electron');
-const { generateText } = require('ai');
 const { getPreferences } = require('../../store/preferences');
-const { aiKeyStore } = require('../../store/ai-keys');
+const { getProviderKey, hasProviderKey } = require('./credentials');
+const { generateAiText } = require('./generate');
 const { getModel, getAvailableModels, isReasoningModel, isOpenAiReasoningModel } = require('./providers');
 const { buildSystemPrompt, buildUserPrompt, STOP_SEQUENCES, sanitizeSuggestion } = require('./autocomplete-prompts');
 
@@ -65,11 +65,9 @@ const isAutocompleteEnabled = () => {
   return Boolean(ai.enabled) && ac.enabled !== false;
 };
 
-const hasApiKey = (providerId) => aiKeyStore.hasKey(providerId);
-
 const pickAutocompleteModelId = () => {
   const ai = getAiPrefs();
-  const available = getAvailableModels({ aiPreferences: ai, hasApiKey });
+  const available = getAvailableModels({ aiPreferences: ai, hasApiKey: hasProviderKey });
   if (available.length === 0) return null;
 
   const preferred = getAutocompletePrefs().model;
@@ -88,7 +86,7 @@ const pickAutocompleteModelId = () => {
 
 const resolveModel = (modelId) => getModel(modelId, {
   aiPreferences: getAiPrefs(),
-  getApiKey: (providerId) => aiKeyStore.getKey(providerId)
+  getApiKey: getProviderKey
 });
 
 // Active per-request AbortControllers, keyed by client-supplied requestId.
@@ -150,7 +148,7 @@ const registerAutocompleteIpc = () => {
     const openAiReasoning = isOpenAiReasoningModel(modelId);
 
     try {
-      const { text } = await generateText({
+      const { text } = await generateAiText({
         model,
         system: buildSystemPrompt(scriptType),
         prompt: buildUserPrompt({ prefix, suffix, scriptType, requestContext, variableNames, siblingScripts, security }),

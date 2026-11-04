@@ -1,5 +1,15 @@
 const { createOpenAI } = require('@ai-sdk/openai');
 const { createAnthropic } = require('@ai-sdk/anthropic');
+const {
+  COPILOT_PROVIDER_ID,
+  COPILOT_PROVIDER_LABEL,
+  NO_TOKEN_MESSAGE: COPILOT_NO_TOKEN_MESSAGE,
+  isCopilotModelId,
+  copilotBrunoModelId,
+  getCopilotCatalog,
+  findCopilotModel
+} = require('./copilot');
+const { AUTO_MODEL_ID: COPILOT_AUTO_MODEL_ID, createCopilotModelRef } = require('./copilot-runtime');
 
 const OPENAI_COMPATIBLE_PREFIX = 'openai-compatible:';
 
@@ -63,6 +73,8 @@ const isOpenAiReasoningModel = (modelId) => {
   return Boolean(def?.reasoning && def?.provider === 'openai');
 };
 
+const resolveMaxOutputTokens = (modelId, requested) => (MODEL_DEFINITIONS[modelId] ? requested : undefined);
+
 // Cache SDK instances. Built-in keyed by `${providerId}:${apiKey}`; compat
 // also folds baseURL in so editing the URL rebuilds the SDK.
 const sdkCache = new Map();
@@ -87,6 +99,12 @@ const compatProviderEntry = (endpoint) => ({
   isCustom: true,
   endpointId: endpoint.id,
   baseURL: endpoint.baseURL || ''
+});
+
+const copilotProviderEntry = () => ({
+  id: COPILOT_PROVIDER_ID,
+  label: COPILOT_PROVIDER_LABEL,
+  isCustom: false
 });
 
 const getSdk = ({ providerId, apiKey, baseURL }) => {
@@ -125,8 +143,16 @@ const listProviders = (aiPreferences) => {
     ? aiPreferences.openaiCompatibleEndpoints
     : [];
 
-  return [...builtIn, ...endpoints.map(compatProviderEntry)];
+  return [...builtIn, copilotProviderEntry(), ...endpoints.map(compatProviderEntry)];
 };
+
+const copilotModelEntries = () => getCopilotCatalog().models.map((model) => ({
+  id: copilotBrunoModelId(model.modelId),
+  label: model.label,
+  provider: COPILOT_PROVIDER_ID,
+  isCustom: false,
+  multiplier: model.multiplier
+}));
 
 const listModels = (aiPreferences) => {
   const builtIn = Object.entries(MODEL_DEFINITIONS).map(([id, def]) => ({
@@ -154,10 +180,10 @@ const listModels = (aiPreferences) => {
     }
   }
 
-  return [...builtIn, ...custom];
+  return [...builtIn, ...copilotModelEntries(), ...custom];
 };
 
-/** Resolve a Bruno model id (built-in or custom) into its provider config. */
+/** Resolve a Bruno model id (built-in, Copilot or custom) into its provider config. */
 const resolveModelDefinition = (modelId, aiPreferences) => {
   if (MODEL_DEFINITIONS[modelId]) {
     const def = MODEL_DEFINITIONS[modelId];
@@ -165,6 +191,17 @@ const resolveModelDefinition = (modelId, aiPreferences) => {
       providerId: def.provider,
       sdkModelId: def.modelId,
       label: def.label,
+      baseURL: null
+    };
+  }
+
+  if (isCopilotModelId(modelId)) {
+    const copilotModel = findCopilotModel(modelId);
+    if (!copilotModel) return null;
+    return {
+      providerId: COPILOT_PROVIDER_ID,
+      sdkModelId: copilotModel.modelId,
+      label: copilotModel.label,
       baseURL: null
     };
   }
@@ -187,10 +224,9 @@ const resolveModelDefinition = (modelId, aiPreferences) => {
   return null;
 };
 
-const isBuiltInModelId = (modelId) => Boolean(MODEL_DEFINITIONS[modelId]);
-
 const providerLabel = (providerId, aiPreferences) => {
   if (PROVIDERS[providerId]) return PROVIDERS[providerId].label;
+  if (providerId === COPILOT_PROVIDER_ID) return COPILOT_PROVIDER_LABEL;
   const endpointId = endpointIdFromProviderId(providerId);
   if (endpointId) {
     const endpoint = getCompatEndpoint(aiPreferences, endpointId);
@@ -213,7 +249,11 @@ const getModel = (modelId, { aiPreferences, getApiKey }) => {
   }
 
   const isCompat = isOpenAiCompatibleProviderId(def.providerId);
+  const isCopilot = def.providerId === COPILOT_PROVIDER_ID;
   const apiKey = getApiKey(def.providerId);
+  if (!apiKey && isCopilot) {
+    throw new Error(COPILOT_NO_TOKEN_MESSAGE);
+  }
   if (!apiKey && !isCompat) {
     throw new Error(`${providerLabel(def.providerId, aiPreferences)} API key is not configured. Add it in Preferences > AI.`);
   }
@@ -221,9 +261,12 @@ const getModel = (modelId, { aiPreferences, getApiKey }) => {
   if (isCompat && !def.baseURL) {
     throw new Error(`${providerLabel(def.providerId, aiPreferences)} is missing a Base URL. Set one in Preferences > AI.`);
   }
+  if (isCopilot) {
+    return createCopilotModelRef({ token: apiKey, modelId: def.sdkModelId });
+  }
 
   const sdk = getSdk({ providerId: def.providerId, apiKey, baseURL: def.baseURL });
-  if (isOpenAiCompatibleProviderId(def.providerId)) return sdk.chat(def.sdkModelId);
+  if (isCompat) return sdk.chat(def.sdkModelId);
   return sdk(def.sdkModelId);
 };
 
@@ -239,7 +282,8 @@ const getAvailableModels = ({ aiPreferences, hasApiKey }) => {
     if (!isCompat && !hasApiKey(model.provider)) continue;
 
     const modelConfig = aiPreferences?.models?.[model.id];
-    if (modelConfig?.enabled === false) continue;
+    const alwaysOn = model.id === copilotBrunoModelId(COPILOT_AUTO_MODEL_ID);
+    if (modelConfig?.enabled === false && !alwaysOn) continue;
 
     if (isCompat) {
       const endpointId = endpointIdFromProviderId(model.provider);
@@ -253,7 +297,7 @@ const getAvailableModels = ({ aiPreferences, hasApiKey }) => {
 };
 
 const isKnownProviderId = (providerId, aiPreferences) => {
-  if (PROVIDERS[providerId]) return true;
+  if (PROVIDERS[providerId] || providerId === COPILOT_PROVIDER_ID) return true;
   const endpointId = endpointIdFromProviderId(providerId);
   if (!endpointId) return false;
   return Boolean(getCompatEndpoint(aiPreferences, endpointId));
@@ -289,9 +333,9 @@ module.exports = {
   providerIdFromEndpointId,
   getCompatEndpoint,
   isKnownProviderId,
-  isBuiltInModelId,
   isReasoningModel,
   isOpenAiReasoningModel,
+  resolveMaxOutputTokens,
   validateApiKeyForProvider,
   providerLabel
 };
