@@ -89,6 +89,7 @@ const builder = (yargs) => {
     .example('$0 import postman --source my-api.postman_collection.json --output ~/Desktop/my-api')
     .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop/my-api -n "My API"')
     .example('$0 import postman -s https://example.com/my-api.postman_collection.json -o ~/Desktop/my-api --preserve-scripts')
+    .example('$0 import postman --source my-api.postman_collection.json --output ~/Desktop/my-api --env staging.postman_environment.json --env prod.postman_environment.json')
     .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop/my-api -e staging.postman_environment.json -e prod.postman_environment.json');
 };
 
