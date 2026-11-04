@@ -31,6 +31,7 @@ import { buildCloneGitRepositoryLocators } from './git/clone-git-repository';
 import { buildResponseExampleLocators } from './response-example';
 import { buildGraphqlQueryBuilderLocators } from './graphql/query-builder';
 import { buildAuthLocators } from './auth';
+import { buildUnsavedChangesModalLocators } from './unsaved-changes-modal';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
@@ -73,6 +74,7 @@ export const buildCommonLocators = (page: Page) => ({
   cloneGitRepository: buildCloneGitRepositoryLocators(page),
   migrateToYml: buildMigrateToYmlLocators(page),
   environment: buildEnvironmentLocators(page),
+  unsavedChangesModal: buildUnsavedChangesModalLocators(page),
   variablesTab: buildVariablesTabLocators(page),
   actions: {
     collectionActions: (collectionName: string) =>
@@ -90,6 +92,8 @@ export const buildCommonLocators = (page: Page) => ({
   },
   tabs: {
     allRequestTabs: () => page.locator('.request-tab'),
+    // The whole tab element (not just its label) for an exact tab name, e.g. to assert it closed
+    tabByName: (name: string) => page.locator('.request-tab').filter({ has: page.getByText(name, { exact: true }) }),
     requestTab: (requestName: string) => page.locator('.request-tab .tab-label').filter({ hasText: requestName }),
     folderTab: (folderName: string) => page.locator('.request-tab .tab-label').filter({ hasText: folderName }),
     collectionSettingsTab: () =>
@@ -102,7 +106,8 @@ export const buildCommonLocators = (page: Page) => ({
     closableTabs: () => page.locator('.request-tab').filter({ has: page.getByTestId('request-tab-close-icon') }),
     closeTabIcon: (tab: Locator) => tab.getByTestId('request-tab-close-icon'),
     draftIndicator: () => page.locator('.request-tab.active .has-changes-icon'),
-    tabDraftIndicator: (tab: Locator) => tab.locator('.has-changes-icon')
+    tabDraftIndicator: (tab: Locator) => tab.locator('.has-changes-icon'),
+    tabCloseGradient: (tab: Locator) => tab.locator('.close-gradient')
   },
   paneTabs: {
     responsiveTab: (key: string) => page.getByTestId(`responsive-tab-${key}`),
@@ -405,6 +410,7 @@ export const buildCommonLocators = (page: Page) => ({
       rowDeleteButton: (rowIndex: number) => getBodyRow(rowIndex).getByTestId('column-delete'),
       allRows: () => container().locator('tbody tr'),
       rowNameInput: (row: Locator) => row.locator('input[type="text"]').first(),
+      rowNameEditor: (row: Locator) => row.getByTestId('column-name').locator('.CodeMirror').first(),
       rowValueEditor: (row: Locator) => row.getByTestId('column-value').locator('.CodeMirror').first()
     };
   },
