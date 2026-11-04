@@ -786,7 +786,6 @@ const removeCollection = async (page: Page, collectionName: string) => {
       // Drafts modal - click "Discard All and Remove"
       await page.getByRole('button', { name: 'Discard All and Remove' }).click();
     } else {
-      // Regular modal - it names the collection being removed, then click Remove
       await expect(removeModal.getByTestId('remove-collection-name')).toHaveText(collectionName);
       await locators.modal.button('Remove').click();
     }
