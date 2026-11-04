@@ -71,7 +71,7 @@ const builder = (yargs) => {
       type: 'boolean',
       default: false
     })
-    .option('environment', {
+    .option('env', {
       alias: 'e',
       describe: 'Postman environment export(s) to convert alongside the collection (postman only)',
       type: 'array'
@@ -376,7 +376,7 @@ const reportImport = (collection, issues) => {
 
 const handler = async (argv) => {
   try {
-    const { type, source, output, collectionFormat, outputFile, collectionName, insecure, groupBy, preserveScripts, environment } = argv;
+    const { type, source, output, collectionFormat, outputFile, collectionName, insecure, groupBy, preserveScripts, env } = argv;
 
     if (!type || !IMPORT_TYPES.includes(type)) {
       console.error(chalk.red(`Import type must be one of: ${IMPORT_TYPES.join(', ')}`));
@@ -402,7 +402,7 @@ const handler = async (argv) => {
       const { collection, issues } = await importPostmanCollection(source, {
         insecure,
         preserveScripts,
-        environmentSources: environment
+        environmentSources: env
       });
 
       if (collectionName) {
