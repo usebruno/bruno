@@ -397,7 +397,7 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
                 {item.tabUid && (
                   <button
                     type="button"
-                    className="unsaved-item-go-to-tab ml-auto shrink-0 invisible group-hover:visible"
+                    className="unsaved-item-go-to-tab ml-1 shrink-0 invisible group-hover:visible"
                     title="Inspect tab"
                     aria-label="Inspect tab"
                     onClick={(e) => goToTab(e, item.tabUid)}

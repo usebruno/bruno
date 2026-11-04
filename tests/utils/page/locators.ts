@@ -92,7 +92,6 @@ export const buildCommonLocators = (page: Page) => ({
   },
   tabs: {
     allRequestTabs: () => page.locator('.request-tab'),
-    // The whole tab element (not just its label) for an exact tab name, e.g. to assert it closed
     tabByName: (name: string) => page.locator('.request-tab').filter({ has: page.getByText(name, { exact: true }) }),
     requestTab: (requestName: string) => page.locator('.request-tab .tab-label').filter({ hasText: requestName }),
     folderTab: (folderName: string) => page.locator('.request-tab .tab-label').filter({ hasText: folderName }),
