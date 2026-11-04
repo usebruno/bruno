@@ -10,7 +10,7 @@ test.describe('Insomnia URL import', () => {
   });
 
   test('TC-813: imports a valid Insomnia collection from a direct URL', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
-     // Fetches the collection over the network; the main-process axios timeout is 30s,
+    // Fetches the collection over the network; the main-process axios timeout is 30s,
     // so a slow fetch is killed before it can fail or succeed. The collection is large,
     // so give the import more room than that fetch.
     test.setTimeout(60_000);
