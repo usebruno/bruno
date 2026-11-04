@@ -1,5 +1,6 @@
 import { Locator, Page } from '../../../playwright';
 import { buildApiSpecPanelLocators, buildApiSpecRowMenuLocators } from './openapi/render-spec';
+import { buildOpenApiSyncLocators } from './openapi/sync';
 import { buildMockServerLocators } from './mock-server';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
@@ -52,7 +53,8 @@ export const buildCommonLocators = (page: Page) => ({
   codeEditorHints: buildCodeEditorHintLocators(page),
   openApi: {
     render: buildApiSpecPanelLocators(page),
-    rowMenu: buildApiSpecRowMenuLocators(page)
+    rowMenu: buildApiSpecRowMenuLocators(page),
+    sync: buildOpenApiSyncLocators(page)
   },
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),

@@ -153,6 +153,8 @@ const parseSpec = (content) => {
 /**
  * Validate that a parsed spec object is a valid OpenAPI 3.x document.
  * Swagger 2.0 is not supported — the converter only handles OpenAPI 3.x.
+ * The spec picker in bruno-app (getOpenApiSpecError in OpenAPISyncTab/SpecSourcePicker/utils.js)
+ * checks the same rules and a few stricter ones. Keep the two in sync.
  */
 const isValidOpenApiSpec = (spec) => {
   if (!spec || typeof spec !== 'object') return false;
