@@ -178,8 +178,7 @@ export const revealFolderRow = async (
 };
 
 /**
- * Ignores a folder by right-clicking its sidebar row, choosing "Ignore" and confirming the
- * "Ignore Folder" modal. Waits for the "Folder ignored" toast.
+ * Ignores a folder from the sidebar.
  * @param page - The Playwright page object
  * @param collectionName - The collection holding the folder
  * @param folderName - The folder to ignore
