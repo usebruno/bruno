@@ -7,7 +7,8 @@ import {
   createRequest,
   createFolder,
   closeAllCollections,
-  cloneItem
+  cloneItem,
+  openActiveRequestTabMenu
 } from '../../utils/page';
 import { listRequestFiles } from '../utils';
 
@@ -117,7 +118,7 @@ test.describe('Naming collisions - clone request', () => {
   });
 
   test('the Clone Request modal prefills the next free copy name', async ({ page, createTmpDir }) => {
-    const { sidebar } = buildCommonLocators(page);
+    const { modal, sidebar, tabs } = buildCommonLocators(page);
     const testDir = await createTmpDir('clone-request-modal-prefill');
 
     await createCollection(page, 'Clone Prefill', testDir, 'bru');
@@ -128,13 +129,12 @@ test.describe('Naming collisions - clone request', () => {
 
     await test.step('Open "Clone Request" from the request tab menu', async () => {
       await sidebar.itemByName('login').click();
-      // The tab's close gradient covers the centre, so right-click near the tab label's left edge.
-      await page.locator('.request-tab.active .tab-label').click({ button: 'right', position: { x: 4, y: 8 } });
-      await page.getByTestId('menu-dropdown-clone-request').click();
+      await openActiveRequestTabMenu(page);
+      await tabs.requestTabMenuItem('clone-request').click();
     });
 
     await test.step('Prefill skips the taken "login copy"', async () => {
-      await expect(page.locator('#collection-item-name')).toHaveValue('login copy 2');
+      await expect(modal.itemNameInput()).toHaveValue('login copy 2');
     });
 
     // The modal would block the collection teardown in afterEach.
