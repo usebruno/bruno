@@ -156,6 +156,7 @@ const simpleTranslations = {
   'bru.cookies.map': 'pm.cookies.map',
   'bru.cookies.reduce': 'pm.cookies.reduce',
   'bru.cookies.add': 'pm.cookies.add',
+  'bru.cookies.append': 'pm.cookies.append',
   'bru.cookies.upsert': 'pm.cookies.upsert',
   'bru.cookies.remove': 'pm.cookies.remove',
 
