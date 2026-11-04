@@ -19,9 +19,9 @@ test.describe('Import WSDL Collection', () => {
 
     await test.step('Open the plus menu and choose Import collection', async () => {
       await plusMenu.button().click();
-      await expect(plusMenu.importCollection()).toBeVisible();
+      await plusMenu.importCollection().waitFor({ state: 'visible' });
       await plusMenu.importCollection().click();
-      await expect(importLocators.modal()).toBeVisible();
+      await importLocators.modal().waitFor({ state: 'visible' });
     });
 
     await test.step(' Verify that Import dialog shows File, Git Repository, and URL', async () => {
@@ -33,7 +33,7 @@ test.describe('Import WSDL Collection', () => {
     await test.step('Choose the WSDL XML file', async () => {
       await expect(importLocators.chooseFilesButton()).toBeVisible();
       await importLocators.fileInput().setInputFiles(wsdlFile);
-      await locationModal.waitFor({ state: 'visible', timeout: 10000 });
+      await locationModal.waitFor({ state: 'visible' });
       await expect(locationModal.getByText('WSDL Collection')).toBeVisible();
     });
 
