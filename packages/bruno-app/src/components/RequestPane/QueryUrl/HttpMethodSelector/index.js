@@ -10,6 +10,11 @@ const KEY = Object.freeze({ ENTER: 'Enter', ESCAPE: 'Escape' });
 
 const DEFAULT_METHOD = 'GET';
 
+// An HTTP method is a token: it cannot contain whitespace. A value made only of
+// spaces used to pass the "not empty" checks below and get committed, which left
+// the trigger button with nothing visible to click on (#9755).
+const toMethod = (value) => (value || '').replace(/\s+/g, '').toUpperCase();
+
 const TriggerButton = ({ method, methodSpanRef, showCaret, ...props }) => {
   return (
     <button
@@ -49,8 +54,7 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect, showCaret
   const blurInput = () => inputRef.current?.blur();
 
   const handleInputChange = (e) => {
-    const val = e.target.value.toUpperCase();
-    onMethodSelect(val);
+    onMethodSelect(toMethod(e.target.value));
   };
 
   const handleMethodSelect = useCallback((verb) => {
@@ -62,9 +66,8 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect, showCaret
 
   const handleBlur = (e) => {
     // Keep the current value when blurring
-    let currentValue = '';
-    if (e.target.value && e.target.value.length > 0) {
-      currentValue = e.target.value.toUpperCase();
+    let currentValue = toMethod(e.target.value);
+    if (currentValue) {
       selectedMethodRef.current = currentValue;
     } else {
       currentValue = selectedMethodRef.current;
@@ -97,7 +100,7 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect, showCaret
         return;
       }
       case KEY.ENTER: {
-        onMethodSelect(e.target.value ? e.target.value.toUpperCase() : DEFAULT_METHOD);
+        onMethodSelect(toMethod(e.target.value) || DEFAULT_METHOD);
         setIsCustomMode(false);
         blurInput();
         return;

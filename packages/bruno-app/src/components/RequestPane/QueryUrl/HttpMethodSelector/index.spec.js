@@ -230,6 +230,77 @@ describe('HttpMethodSelector', () => {
       });
     });
 
+    it('should drop whitespace from a custom method while typing', async () => {
+      renderWithTheme(<HttpMethodSelector onMethodSelect={mockOnMethodSelect} />);
+
+      const button = screen.getByRole('button');
+      fireEvent.click(button);
+
+      await waitFor(() => {
+        const addCustom = screen.getByText('+ Add Custom');
+        fireEvent.click(addCustom);
+      });
+
+      const input = await screen.findByRole('textbox');
+      fireEvent.change(input, { target: { value: ' ' } });
+      expect(mockOnMethodSelect).toHaveBeenLastCalledWith('');
+
+      fireEvent.change(input, { target: { value: 'cus tom ' } });
+      expect(mockOnMethodSelect).toHaveBeenLastCalledWith('CUSTOM');
+    });
+
+    it('should fall back to the previous method on blur when the custom method is only spaces', async () => {
+      const Harness = () => {
+        const [method, setMethod] = React.useState('POST');
+        return (
+          <HttpMethodSelector
+            method={method}
+            onMethodSelect={(value) => {
+              mockOnMethodSelect(value);
+              setMethod(value);
+            }}
+          />
+        );
+      };
+      renderWithTheme(<Harness />);
+
+      const button = screen.getByRole('button');
+      fireEvent.click(button);
+
+      await waitFor(() => {
+        const addCustom = screen.getByText('+ Add Custom');
+        fireEvent.click(addCustom);
+      });
+
+      const input = await screen.findByRole('textbox');
+      fireEvent.change(input, { target: { value: '   ' } });
+      fireEvent.blur(input);
+
+      await waitFor(() => {
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+        expect(mockOnMethodSelect).toHaveBeenLastCalledWith('POST');
+        expect(screen.getByRole('button')).toHaveTextContent('POST');
+      });
+    });
+
+    it('should set default method on Enter key when the custom method is only spaces', async () => {
+      renderWithTheme(<HttpMethodSelector onMethodSelect={mockOnMethodSelect} />);
+
+      const button = screen.getByRole('button');
+      fireEvent.click(button);
+
+      await waitFor(() => {
+        const addCustom = screen.getByText('+ Add Custom');
+        fireEvent.click(addCustom);
+      });
+
+      const input = await screen.findByRole('textbox');
+      fireEvent.change(input, { target: { value: '  ' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
+
+      expect(mockOnMethodSelect).toHaveBeenLastCalledWith('GET');
+    });
+
     it('should exit custom mode on blur and keep the custom method', async () => {
       renderWithTheme(<HttpMethodSelector onMethodSelect={mockOnMethodSelect} />);
 
