@@ -12,7 +12,12 @@ import {
 } from '../../utils/page';
 import { buildApiSpecPanelLocators, createApiSpecFromCollection, removeAllApiSpecsFromWorkspace } from '../../utils/page/openapi/render-spec';
 
-const SECRETS = { secvar: 'secvar-from-secret-store', apiKey: 'api-key-from-secret-store', tenantSecret: 'tenant-from-secret-store' };
+const SECRETS = {
+  secvar: 'secvar-from-secret-store',
+  apiKey: 'api-key-from-secret-store',
+  tenantSecret: 'tenant-from-secret-store',
+  secretPort: 'port-from-secret-store'
+};
 
 const secvarPathParam = { name: 'secvar', in: 'path', required: true, example: '{{secvar}}', schema: { type: 'string' } };
 
@@ -62,6 +67,18 @@ test.describe('Create API spec from a collection: secrets', () => {
     await test.step('A secret in a request host keeps its spelling as a server variable', async () => {
       expect(spec.paths['/data'].get.servers).toEqual([
         { url: 'https://{tenantSecret}.api.test', variables: { tenantSecret: { default: '{{tenantSecret}}' } } }
+      ]);
+    });
+
+    await test.step('A prompt variable stays in the path as a path parameter, without a made-up query param', async () => {
+      expect(spec.paths['/users/{?User Id}'].get.parameters).toEqual([
+        { name: '?User Id', in: 'path', required: true, example: '{{?User Id}}', schema: { type: 'string' } }
+      ]);
+    });
+
+    await test.step('A secret port stays in the server as a server variable', async () => {
+      expect(spec.paths['/health'].get.servers).toEqual([
+        { url: 'http://localhost:{secretPort}', variables: { secretPort: { default: '{{secretPort}}' } } }
       ]);
     });
 

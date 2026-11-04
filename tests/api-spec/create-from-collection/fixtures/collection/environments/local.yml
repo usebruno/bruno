@@ -12,3 +12,5 @@ variables:
     value: env-var-value
   - secret: true
     name: tenantSecret
+  - secret: true
+    name: secretPort

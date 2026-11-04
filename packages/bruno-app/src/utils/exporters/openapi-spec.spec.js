@@ -1110,6 +1110,7 @@ describe('exportApiSpec - secrets and other placeholders left unfilled', () => {
   };
 
   const pathParam = (name) => ({ name, in: 'path', required: true, example: `{{${name}}}`, schema: { type: 'string' } });
+  const withSecrets = (...names) => [{ name: 'local', variables: names.map((name) => ({ name, value: '', enabled: true, secret: true })) }];
 
   const expectValidSpec = async (content) => {
     await expect(SwaggerParser.validate(jsyaml.load(content))).resolves.toBeDefined();
@@ -1216,7 +1217,7 @@ describe('exportApiSpec - secrets and other placeholders left unfilled', () => {
   });
 
   it('keeps the spelling of a secret left in a request host and writes its placeholder text as the default', async () => {
-    const { content, operation } = exportUrl('https://{{tenantToken}}.api.test:{{port}}/data', { variables: { port: '8443' } });
+    const { content, operation } = exportUrl('https://{{tenantToken}}.api.test:{{port}}/data', { variables: { port: '8443' }, environments: withSecrets('tenantToken') });
 
     expect(operation.servers).toEqual([{
       url: 'https://{tenantToken}.api.test:8443',
@@ -1226,7 +1227,7 @@ describe('exportApiSpec - secrets and other placeholders left unfilled', () => {
   });
 
   it('uses a secret at the start of the url as the server', async () => {
-    const { content, specPath, operation } = exportUrl('{{apiHost}}/users/{{id}}');
+    const { content, specPath, operation } = exportUrl('{{apiHost}}/users/{{id}}', { environments: withSecrets('apiHost') });
 
     expect(specPath).toBe('/users/{id}');
     expect(operation.servers).toEqual([{ url: '{apiHost}', variables: { apiHost: { default: '{{apiHost}}' } } }]);
@@ -1278,7 +1279,7 @@ describe('exportApiSpec - secrets and other placeholders left unfilled', () => {
   });
 
   it('takes the host spelling only from the host, not from a placeholder in the path', () => {
-    const { operation } = exportUrl('https://{{Tenant}}.api.test/{{alias}}', { variables: { alias: '{{tenant}}' } });
+    const { operation } = exportUrl('https://{{Tenant}}.api.test/{{alias}}', { variables: { alias: '{{tenant}}' }, environments: withSecrets('Tenant') });
 
     expect(operation.servers).toEqual([{ url: 'https://{Tenant}.api.test', variables: { Tenant: { default: '{{Tenant}}' } } }]);
   });
@@ -1296,7 +1297,7 @@ describe('exportApiSpec - secrets and other placeholders left unfilled', () => {
   });
 
   it('keeps the spelling of a secret that reaches the host through another variable', async () => {
-    const { content, operation } = exportUrl('{{apiRoot}}/data', { variables: { apiRoot: 'https://{{tenantSecret}}.api.test' } });
+    const { content, operation } = exportUrl('{{apiRoot}}/data', { variables: { apiRoot: 'https://{{tenantSecret}}.api.test' }, environments: withSecrets('tenantSecret') });
 
     expect(operation.servers).toEqual([{
       url: 'https://{tenantSecret}.api.test',
@@ -1311,7 +1312,8 @@ describe('exportApiSpec - secrets and other placeholders left unfilled', () => {
       variables: [
         { name: 'baseUrl', value: 'https://{{region}}.api.test/{{apiKey}}', enabled: true },
         { name: 'region', value: 'eu', enabled: true },
-        { name: 'apiKey', value: 'decrypted-secret', enabled: true, secret: true }
+        { name: 'apiKey', value: 'decrypted-secret', enabled: true, secret: true },
+        { name: 'tenantToken', value: '', enabled: true, secret: true }
       ]
     }];
     const { content } = exportApiSpec({
@@ -1331,5 +1333,123 @@ describe('exportApiSpec - secrets and other placeholders left unfilled', () => {
     expect(request.request.params.filter((p) => p.type === 'path').map((p) => [p.name, p.value])).toEqual([['secvar', '{{secvar}}']]);
     expect(tenant.request.vars.req.map((v) => [v.name, v.value])).toEqual([['baseUrl', 'https://{{tenantToken}}.api.test']]);
     expect(collection.environments[0].variables.find((v) => v.name === 'apiKey')).toMatchObject({ value: '', secret: true });
+  });
+});
+
+describe('exportApiSpec - export invariants across url shapes', () => {
+  // Every secret below has a value on purpose, so a leak shows up as one of these strings
+  const SECRET_VALUE = /secret-value/;
+  const environments = [{
+    name: 'local',
+    variables: [
+      { name: 'secvar', value: 'secret-value-secvar', enabled: true, secret: true },
+      { name: 'apiKey', value: 'secret-value-apikey', enabled: true, secret: true },
+      { name: 'tenantSecret', value: 'secret-value-tenant', enabled: true, secret: true },
+      { name: 'secretPort', value: 'secret-value-port', enabled: true, secret: true },
+      { name: 'region', value: 'secret-value-region', enabled: true, secret: true },
+      { name: 'pass', value: 'secret-value-pass', enabled: true, secret: true },
+      { name: 'var', value: 'env-var-value', enabled: true }
+    ]
+  }];
+  const declaredSecrets = environments[0].variables.filter((v) => v.secret).map((v) => v.name);
+  const variables = { baseUrl: 'https://api.test', var: 'env-var-value' };
+
+  const request = (url, params = []) => ({ url, params });
+  const idParam = [{ name: 'id', value: '1', type: 'path', enabled: true }];
+
+  const exportRequests = (requests) => {
+    const items = requests.map(({ url, params }, index) => ({
+      name: `Request ${index + 1}`,
+      type: 'http-request',
+      pathname: path.join('collection', `Request ${index + 1}.bru`),
+      depth: 1,
+      request: { url, method: 'GET', params, headers: [], body: {}, auth: {} }
+    }));
+    const { content } = exportApiSpec({ variables, items, name: 'Test API', environments });
+    return { content, spec: jsyaml.load(content) };
+  };
+
+  const operationsOf = (spec) =>
+    Object.entries(spec.paths).flatMap(([specPath, pathItem]) =>
+      Object.values(pathItem).flatMap((operation) => [operation, ...(operation['x-bruno-variants'] || [])].map((op) => ({ specPath, op }))));
+
+  const expectInvariants = async ({ content, spec }, { requestCount, hasSchemalessParams }) => {
+    expect(content).not.toMatch(SECRET_VALUE);
+
+    const operations = operationsOf(spec);
+    expect(operations).toHaveLength(requestCount);
+
+    operations.forEach(({ specPath, op }) => {
+      expect(specPath.startsWith('/')).toBe(true);
+      expect(isValidPathTemplate(specPath)).toBe(true);
+      const templateNames = [...new Set([...specPath.matchAll(/\{([^{}]+)\}/g)].map((m) => m[1]))].sort();
+      const declaredNames = (op.parameters || []).filter((p) => p.in === 'path').map((p) => p.name).sort();
+      expect(declaredNames).toEqual(templateNames);
+    });
+
+    [...(spec.servers || []), ...operations.flatMap(({ op }) => op.servers || [])].forEach((server) => {
+      expect(server.url).not.toBe('null');
+      expect(server.url).not.toContain('{{');
+      [...server.url.matchAll(/\{([^{}]+)\}/g)].forEach(([, name]) => expect(typeof server.variables?.[name]?.default).toBe('string'));
+    });
+
+    // OSS query, header and params-list path params carry no schema yet, which swagger-parser rejects
+    if (!hasSchemalessParams) {
+      await expect(SwaggerParser.validate(jsyaml.load(content))).resolves.toBeDefined();
+    }
+
+    const reimported = openApiToBruno(jsyaml.load(content));
+    reimported.environments.forEach((environment) => environment.variables
+      .filter((v) => v.secret)
+      .forEach((v) => expect(declaredSecrets).toContain(v.name)));
+  };
+
+  const rows = [
+    ['a secret and a variable in the path', [request('https://test.com/{{secvar}}/{{var}}')], { paths: ['/{secvar}/env-var-value'], server: { url: 'https://test.com' } }],
+    ['prompt variables stay in the path and keep two requests apart', [request('{{baseUrl}}/users/{{?User Id}}'), request('{{baseUrl}}/users/{{?User Id}}/posts')], { paths: ['/users/{?User Id}', '/users/{?User Id}/posts'] }],
+    ['a secret port', [request('http://localhost:{{secretPort}}/api/users')], { paths: ['/api/users'], server: { url: 'http://localhost:{secretPort}', variables: { secretPort: { default: '{{secretPort}}' } } } }],
+    ['a secret port after a host', [request('https://api.test:{{secretPort}}/data')], { paths: ['/data'], server: { url: 'https://api.test:{secretPort}', variables: { secretPort: { default: '{{secretPort}}' } } } }],
+    ['a secret at the start with a bruno path param', [request('{{apiKey}}/users/:id', idParam)], { paths: ['/users/{id}'], server: { url: '{apiKey}', variables: { apiKey: { default: '{{apiKey}}' } } }, hasSchemalessParams: true }],
+    ['a base url with a bruno path param', [request('{{baseUrl}}/users/:id', idParam)], { paths: ['/users/{id}'], hasSchemalessParams: true }],
+    ['a literal port after the base url host is not mistaken for the base url', [request('https://api.test:8443/data')], { paths: ['/data'], server: { url: 'https://api.test:8443' } }],
+    ['a url without a scheme and a secret in the host', [request('api-{{region}}.test/x')], { paths: ['/x'], server: { url: 'api-{region}.test', variables: { region: { default: '{{region}}' } } } }],
+    ['a url without a scheme and a secret port', [request('localhost:{{secretPort}}/x')], { paths: ['/x'], server: { url: 'localhost:{secretPort}', variables: { secretPort: { default: '{{secretPort}}' } } } }],
+    ['a plain url without a scheme', [request('localhost:8080/items')], { paths: ['/items'], server: { url: 'localhost:8080' } }],
+    ['secrets and prompt variables in the query', [request('{{baseUrl}}/search?key={{secvar}}&q={{?Search term}}')], { paths: ['/search'], hasSchemalessParams: true }],
+    ['a secret in the host keeps its spelling', [request('https://{{tenantSecret}}.api.test/data')], { paths: ['/data'], server: { url: 'https://{tenantSecret}.api.test', variables: { tenantSecret: { default: '{{tenantSecret}}' } } } }],
+    ['credentials with a secret are dropped from the server', [request('https://user:{{pass}}@api.test/z')], { paths: ['/z'], server: { url: 'https://api.test' } }],
+    ['an unknown variable at the start', [request('{{nope}}/ping')], { paths: ['/ping'], server: { url: '{nope}', variables: { nope: { default: '' } } } }],
+    ['a relative url with a secret', [request('/relative/{{secvar}}')], { paths: ['/relative/{secvar}'] }]
+  ];
+
+  it.each(rows)('%s', async (label, requests, expected) => {
+    const exported = exportRequests(requests);
+
+    expect(Object.keys(exported.spec.paths)).toEqual(expected.paths);
+    if (expected.server) {
+      expect(operationsOf(exported.spec)[0].op.servers).toEqual([expected.server]);
+    }
+    await expectInvariants(exported, { requestCount: requests.length, hasSchemalessParams: expected.hasSchemalessParams });
+  });
+
+  it('exports query params from a url with a prompt variable without inventing new ones', () => {
+    const { spec } = exportRequests([request('{{baseUrl}}/search?key={{secvar}}&q={{?Search term}}')]);
+
+    expect(operationsOf(spec)[0].op.parameters.map((p) => [p.in, p.name, p.example])).toEqual([
+      ['query', 'key', '{{secvar}}'],
+      ['query', 'q', '{{?Search term}}']
+    ]);
+  });
+
+  it('keeps an empty default for a plain collection variable used in an environment base url', () => {
+    const items = [{ name: 'Request', type: 'http-request', pathname: path.join('collection', 'Request.bru'), depth: 1, request: { url: '{{baseUrl}}/x', method: 'GET', params: [], headers: [], body: {}, auth: {} } }];
+    const plainEnvironments = [{ name: 'local', variables: [{ name: 'baseUrl', value: 'https://api.test/{{apiVersion}}', enabled: true }] }];
+    const { content } = exportApiSpec({ variables: { apiVersion: 'v2' }, items, name: 'Test API', environments: plainEnvironments });
+
+    const localServer = jsyaml.load(content).servers.find((server) => server.description === 'local');
+    expect(localServer.variables).toEqual({ apiVersion: { default: '' } });
+
+    const reimported = openApiToBruno(jsyaml.load(content)).environments.find((e) => e.name === 'local');
+    expect(reimported.variables.find((v) => v.name === 'apiVersion')).toMatchObject({ value: '', secret: false });
   });
 });
