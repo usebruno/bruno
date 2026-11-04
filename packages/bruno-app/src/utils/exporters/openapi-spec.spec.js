@@ -1312,6 +1312,35 @@ describe('exportApiSpec - secrets and other placeholders left unfilled', () => {
     await expectValidSpec(content);
   });
 
+  it('never fills in a secret, even when the caller passes its value', async () => {
+    const { content, specPath, operation } = exportUrl('https://test.com/{{secvar}}/{{process.env.TOKEN}}/{{$secrets.vault.token}}/{{$oauth2.cred.access_token}}', {
+      variables: {
+        'secvar': 'leaked-env-secret',
+        'process.env.TOKEN': 'leaked-dotenv-secret',
+        'process': { env: { TOKEN: 'leaked-nested-dotenv-secret' } },
+        '$secrets.vault.token': 'leaked-vault-secret',
+        '$secrets': { vault: { token: 'leaked-nested-vault-secret' } },
+        '$oauth2.cred.access_token': 'leaked-oauth2-secret'
+      },
+      environments: withSecrets('secvar')
+    });
+
+    expect(content).not.toMatch(/leaked-/);
+    expect(specPath).toBe('/{secvar}/{process.env.TOKEN}/{$secrets.vault.token}/{$oauth2.cred.access_token}');
+    expect(operation.parameters.map((param) => param.name)).toEqual(['secvar', 'process.env.TOKEN', '$secrets.vault.token', '$oauth2.cred.access_token']);
+    await expectValidSpec(content);
+  });
+
+  it('never writes a secret passed by the caller into a server default', () => {
+    const { content } = exportUrl('{{baseUrl}}/x', {
+      variables: { baseUrl: 'https://{{apiKey}}.api.test', apiKey: 'leaked-api-key' },
+      environments: withSecrets('apiKey')
+    });
+
+    expect(content).not.toContain('leaked-api-key');
+    expect(jsyaml.load(content).servers.find((server) => server.description === 'Base Server').variables).toEqual({ apiKey: { default: '{{apiKey}}' } });
+  });
+
   it('re-imports into Bruno with secrets still pointing at the variables they came from', () => {
     const environments = [{
       name: 'Prod',

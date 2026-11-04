@@ -81,7 +81,10 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
   const secretVariableNames = new Set(
     (environments || []).flatMap((env) => (env.variables || []).filter((v) => v.enabled && v.secret).map((v) => v.name))
   );
-  const isSecretName = (varName) => secretVariableNames.has(varName) || /^(\$secrets\.|process\.env\.|\$oauth2\.)/.test(varName);
+  const isSecretName = (varName) => secretVariableNames.has(varName) || /^(\$secrets|process|\$oauth2)(\.|$)/.test(varName);
+
+  // Secrets are never filled in, even when the caller passes their values
+  variables = Object.fromEntries(Object.entries(variables || {}).filter(([varName]) => !isSecretName(varName)));
 
   // Build an OpenAPI server entry from a URL (supports {{var}} templates)
   const buildServerEntry = (url, vars, description) => {
