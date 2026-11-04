@@ -20,4 +20,19 @@ describe('getRequestFromCurlCommand', () => {
     expect(Array.isArray(request.body.file)).toBe(true);
     expect(request.body.file[0].filePath).toBe('/path/to/payload.json');
   });
+
+  it('should parse raw multipart form data from --data-raw', () => {
+    const curl = `curl --url 'https://example.com/apply' \
+      -H 'content-type: multipart/form-data; boundary=----WebKitFormBoundaryTest' \
+      --data-raw $'------WebKitFormBoundaryTest\\r\\nContent-Disposition: form-data; name="first_name"\\r\\n\\r\\nAda\\r\\n------WebKitFormBoundaryTest\\r\\nContent-Disposition: form-data; name="response"\\r\\n\\r\\n[{"answer":"yes"}]\\r\\n------WebKitFormBoundaryTest\\r\\nContent-Disposition: form-data; name=""\\r\\n\\r\\n30\\r\\n------WebKitFormBoundaryTest--\\r\\n'`;
+
+    const request = getRequestFromCurlCommand(curl);
+
+    expect(request.body.mode).toBe('multipartForm');
+    expect(request.body.multipartForm).toEqual([
+      { name: 'first_name', value: 'Ada', type: 'text', enabled: true },
+      { name: 'response', value: '[{"answer":"yes"}]', type: 'text', enabled: true },
+      { name: '', value: '30', type: 'text', enabled: true }
+    ]);
+  });
 });
