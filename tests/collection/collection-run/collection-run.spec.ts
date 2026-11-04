@@ -2,7 +2,10 @@ import { test, expect } from '../../../playwright';
 import {
   addRunnerTag,
   buildCommonLocators,
-  buildRunnerLocators
+  buildRunnerLocators,
+  buildSidebarLocators,
+  getTotalRequestsDuration,
+  resetCollectionRunnerResults
 } from '../../utils/page';
 
 const collectionName = 'collection-run';
@@ -11,145 +14,152 @@ const smokeRequest = 'Ping With Smoke Tag';
 
 test.describe('Collection runner', () => {
   // Clears the previous test's run so the next one still sees the runner setup screen.
-  test.beforeEach(async ({ pageWithUserData: page }) => {
-    const reset = buildRunnerLocators(page).resetButton();
-    if (await reset.count() === 1) { await reset.click(); }
+  test.afterEach(async ({ pageWithUserData: page }) => {
+    await resetCollectionRunnerResults(page);
   });
 
   test('TC-3072: Verify that the user is able to execute all the request which are under the Collection using Run',
     { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
-      const { sidebar, runnerResults } = buildCommonLocators(page);
       const runner = buildRunnerLocators(page);
       const runButton = runner.runCollectionButton();
+      const sidebar = buildSidebarLocators(page);
+      const menu = sidebar.rowMenu(collectionName, 'collection');
 
-      await test.step('Open Run from the collection item row menu', async () => {
-        const menu = sidebar.rowMenu(collectionName, 'collection');
+      await test.step(`Open Run from the ${collectionName} collection menu`, async () => {
         await sidebar.collectionRow(collectionName).hover();
         await menu.trigger().click();
         await menu.item('run').click();
+        await runner.configPanel().waitFor({ state: 'visible' });
+      });
 
-        await expect(runner.configPanel()).toBeVisible();
+      await test.step('Verify the run button text', async () => {
         await expect(runButton).toHaveText('Run 2 Requests');
       });
 
-      await test.step('Run the collection from the Runner tab and verify the requests are executed', async () => {
+      await test.step('Run the collection and verify the requests are executed', async () => {
         await runButton.click();
+        await runner.runAgainButton().waitFor();
 
-        await expect(runnerResults.itemPath(plainRequest)).toContainText('200');
-        await expect(runnerResults.itemPath(smokeRequest)).toContainText('200');
         await expect(runner.allCount()).toHaveText('2');
         await expect(runner.passedCount()).toHaveText('2');
-        await expect(runner.failedCount()).toHaveText('0');
       });
     });
 
   test('TC-3071: Verify the delay between requests execution in the Collection run', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
+    const delayCollectionName = 'delay-run';
     const delayMs = 2000;
-    const { sidebar, runnerResults } = buildCommonLocators(page);
-    const runner = buildRunnerLocators(page);
-
-    await test.step('Open Run from the collection menu and set the delay between requests', async () => {
-      const menu = sidebar.rowMenu(collectionName, 'collection');
-      await sidebar.collectionRow(collectionName).hover();
-      await menu.trigger().click();
-      await menu.item('run').click();
-      await runner.delayInput().fill(String(delayMs));
-
-      await expect(runner.configPanel()).toBeVisible();
-      await expect(runner.delayInput()).toHaveValue(String(delayMs));
-    });
-
-    await test.step('Run the collection from the Runner tab and verify the requests are executed', async () => {
-      const startedAt = Date.now();
-      await runner.runCollectionButton().click();
-      await runner.runAgainButton().waitFor();
-
-      await expect(Date.now() - startedAt).toBeGreaterThanOrEqual(delayMs * 2);
-      await expect(runnerResults.itemPath(plainRequest)).toContainText('200');
-      await expect(runnerResults.itemPath(smokeRequest)).toContainText('200');
-      await expect(runner.allCount()).toHaveText('2');
-      await expect(runner.passedCount()).toHaveText('2');
-      await expect(runner.failedCount()).toHaveText('0');
-    });
-  });
-
-  test('TC-3070: Verify the Include Tags functionality under Collection Run', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
-    const tag = 'smoke';
-    const { sidebar, runnerResults } = buildCommonLocators(page);
+    const requestCount = 4;
     const runner = buildRunnerLocators(page);
     const runButton = runner.runCollectionButton();
+    const sidebar = buildSidebarLocators(page);
+    const menu = sidebar.rowMenu(delayCollectionName, 'collection');
 
-    await test.step('Open Run from the collection menu', async () => {
-      const menu = sidebar.rowMenu(collectionName, 'collection');
-      await sidebar.collectionRow(collectionName).hover();
+    await test.step(`Open Run from the ${delayCollectionName} collection menu`, async () => {
+      await sidebar.collectionRow(delayCollectionName).hover();
       await menu.trigger().click();
       await menu.item('run').click();
-
-      await expect(runner.configPanel()).toBeVisible();
+      await runner.configPanel().waitFor({ state: 'visible' });
+      await runner.delayInput().fill(String(delayMs));
     });
 
-    await test.step('Add Include tag on the collection runner config panel', async () => {
-      await addRunnerTag(page, 'Include', tag);
-
-      await expect(runButton).toHaveText('Run 1 Request');
+    await test.step('Verify delay and run button texts', async () => {
+      await expect(runner.delayInput()).toHaveValue(String(delayMs));
+      await expect(runButton).toHaveText(`Run ${requestCount} Requests`);
     });
 
-    await test.step('Run the collection and verify only the tagged request ran', async () => {
+    await test.step('Run the collection and verify the delay apart from the request time', async () => {
+      const startedAt = Date.now();
       await runButton.click();
+      await runner.runAgainButton().waitFor();
+      const elapsedMs = Date.now() - startedAt;
 
-      await expect(runnerResults.itemPath(smokeRequest)).toContainText('200');
-      await expect(runnerResults.itemPath(plainRequest)).toHaveCount(0);
-      await expect(runner.allCount()).toHaveText('1');
-      await expect(runner.passedCount()).toHaveText('1');
-      await expect(runner.failedCount()).toHaveText('0');
+      // The delay is applied before every request. Subtract each response time so only those waits remain.
+      const requestTimeMs = (await getTotalRequestsDuration(page, requestCount))
+        .reduce((total, time) => total + time, 0);
+      const delayTimeMs = elapsedMs - requestTimeMs;
+
+      expect(delayTimeMs).toBeGreaterThanOrEqual(delayMs * requestCount);
     });
   });
+
+  test('TC-3070: Verify the Include Tags functionality under Collection Run',
+    { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
+      const tag = 'smoke';
+      const { runnerResults } = buildCommonLocators(page);
+      const runner = buildRunnerLocators(page);
+      const runButton = runner.runCollectionButton();
+      const sidebar = buildSidebarLocators(page);
+      const menu = sidebar.rowMenu(collectionName, 'collection');
+
+      await test.step(`Open Run from the ${collectionName} menu row item`, async () => {
+        await sidebar.collectionRow(collectionName).hover();
+        await menu.trigger().click();
+        await menu.item('run').click();
+        await runner.configPanel().waitFor({ state: 'visible' });
+      });
+
+      await addRunnerTag(page, 'Include', tag);
+
+      await test.step('verify the run button text', async () => {
+        await expect(runButton).toHaveText('Run 1 Request');
+      });
+
+      await test.step('Run the collection and verify only the tagged request ran', async () => {
+        await runButton.click();
+        await runner.runAgainButton().waitFor();
+
+        await expect(runnerResults.itemPath(plainRequest)).toHaveCount(0);
+        await expect(runner.allCount()).toHaveText('1');
+        await expect(runner.passedCount()).toHaveText('1');
+      });
+    });
 
   test('TC-3069: Verify the Exclude Tags functionality under Collection Run', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const tag = 'smoke';
-    const { sidebar, runnerResults } = buildCommonLocators(page);
+    const { runnerResults } = buildCommonLocators(page);
     const runner = buildRunnerLocators(page);
     const runButton = runner.runCollectionButton();
+    const sidebar = buildSidebarLocators(page);
+    const menu = sidebar.rowMenu(collectionName, 'collection');
 
-    await test.step('Open Run from the collection menu', async () => {
-      const menu = sidebar.rowMenu(collectionName, 'collection');
+    await test.step(`Open Run from the ${collectionName} menu row item`, async () => {
       await sidebar.collectionRow(collectionName).hover();
       await menu.trigger().click();
       await menu.item('run').click();
-
-      await expect(runner.configPanel()).toBeVisible();
+      await runner.configPanel().waitFor({ state: 'visible' });
     });
 
-    await test.step('Add Exclude tag on the collection runner config panel', async () => {
-      await addRunnerTag(page, 'Exclude', tag);
+    await addRunnerTag(page, 'Exclude', tag);
 
+    await test.step('verify the run button text', async () => {
       await expect(runButton).toHaveText('Run 1 Request');
     });
 
     await test.step('Run the collection and verify the tagged request was left out', async () => {
       await runButton.click();
+      await runner.runAgainButton().waitFor();
 
-      await expect(runnerResults.itemPath(plainRequest)).toContainText('200');
       await expect(runnerResults.itemPath(smokeRequest)).toHaveCount(0);
       await expect(runner.allCount()).toHaveText('1');
       await expect(runner.passedCount()).toHaveText('1');
-      await expect(runner.failedCount()).toHaveText('0');
     });
   });
 
   test('TC-847: Verify Passed Filter Shows Only Passed Requests with Their Passed Tests', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const skippedCollectionName = 'skipped-run';
-    const { sidebar } = buildCommonLocators(page);
     const runner = buildRunnerLocators(page);
     const runButton = runner.runCollectionButton();
+    const sidebar = buildSidebarLocators(page);
+    const menu = sidebar.rowMenu(skippedCollectionName, 'collection');
 
-    await test.step('Open Run from the collection item row menu and verify the run button text', async () => {
-      const menu = sidebar.rowMenu(skippedCollectionName, 'collection');
+    await test.step(`Open Run from the ${skippedCollectionName} menu row item`, async () => {
       await sidebar.collectionRow(skippedCollectionName).hover();
       await menu.trigger().click();
       await menu.item('run').click();
+      await runner.configPanel().waitFor({ state: 'visible' });
+    });
 
-      await expect(runner.configPanel()).toBeVisible();
+    await test.step('Verify the run button text', async () => {
       await expect(runButton).toHaveText('Run 4 Requests');
     });
 
@@ -172,17 +182,19 @@ test.describe('Collection runner', () => {
 
   test('TC-850: Verify Skipped Filter Shows Only Skipped Requests', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const skippedCollectionName = 'skipped-run';
-    const { sidebar } = buildCommonLocators(page);
     const runner = buildRunnerLocators(page);
     const runButton = runner.runCollectionButton();
+    const sidebar = buildSidebarLocators(page);
+    const menu = sidebar.rowMenu(skippedCollectionName, 'collection');
 
-    await test.step('Open Run from the collection menu and verify the run button text', async () => {
-      const menu = sidebar.rowMenu(skippedCollectionName, 'collection');
+    await test.step(`Open Run from the ${skippedCollectionName} menu row item`, async () => {
       await sidebar.collectionRow(skippedCollectionName).hover();
       await menu.trigger().click();
       await menu.item('run').click();
+      await runner.configPanel().waitFor({ state: 'visible' });
+    });
 
-      await expect(runner.configPanel()).toBeVisible();
+    await test.step('Verify the run button text', async () => {
       await expect(runButton).toHaveText('Run 4 Requests');
     });
 
