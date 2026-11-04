@@ -87,6 +87,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const locators = buildCommonLocators(page);
         await setKeybindingsEnabled(page, false);
 
+        // The shortcut itself is off, so it must not open Global Search
+        await pressShortcut(page, modifier, 'KeyK');
+        await expect(locators.globalSearch.input()).toBeHidden();
+
         await locators.statusBarGlobalSearch().click();
 
         await expect(locators.globalSearch.input()).toBeVisible();
