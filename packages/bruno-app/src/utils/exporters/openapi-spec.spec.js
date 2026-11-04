@@ -1254,6 +1254,12 @@ describe('exportApiSpec - secrets and other placeholders left unfilled', () => {
     ]);
   });
 
+  it('exports a query param written without a value as an empty one and ignores the fragment', () => {
+    const { operation } = exportUrl('https://api.test/x?flag&q=a=b#section');
+
+    expect(operation.parameters.map((param) => [param.name, param.example])).toEqual([['flag', ''], ['q', 'a=b']]);
+  });
+
   it('does not repeat a query param that is already in the params list', () => {
     const { operation } = exportUrl('https://api.test/x?page=1&q=find', {
       request: { params: [{ name: 'page', value: '1', type: 'query', enabled: true }] }

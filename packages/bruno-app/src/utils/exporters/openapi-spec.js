@@ -1,6 +1,7 @@
 import jsyaml from 'js-yaml';
 import { interpolate } from '@usebruno/common';
-import { isValidUrl } from 'utils/url/index';
+import { parseQueryParams } from '@usebruno/common/utils';
+import { isValidUrl, splitOnFirst } from 'utils/url/index';
 const xml2js = require('xml2js');
 
 const placeholderRegex = /\{\{([^}]+)\}\}/g;
@@ -10,25 +11,11 @@ const maskPlaceholders = (value) => value.replace(placeholderRegex, (placeholder
 
 // Query params of a raw url as { name, value } pairs, first occurrence of each name
 const getUrlQueryParams = (url) => {
-  const masked = maskPlaceholders(url);
-  const queryStart = masked.indexOf('?');
-  const fragmentStart = masked.indexOf('#');
-  if (queryStart === -1 || (fragmentStart !== -1 && fragmentStart < queryStart)) return [];
-
-  const queryEnd = fragmentStart === -1 ? url.length : fragmentStart;
+  const [, query] = splitOnFirst(url, '?');
   const seen = new Set();
-  const pairs = [];
-  let pairStart = queryStart + 1;
-  for (let index = pairStart; index <= queryEnd; index++) {
-    if (index === queryEnd || masked[index] === '&') {
-      const separator = masked.slice(pairStart, index).indexOf('=');
-      pairs.push(separator === -1
-        ? { name: url.slice(pairStart, index), value: '' }
-        : { name: url.slice(pairStart, pairStart + separator), value: url.slice(pairStart + separator + 1, index) });
-      pairStart = index + 1;
-    }
-  }
-  return pairs.filter(({ name }) => name && !seen.has(name) && seen.add(name));
+  return parseQueryParams(query)
+    .map(({ name, value }) => ({ name, value: value ?? '' }))
+    .filter(({ name }) => !seen.has(name) && seen.add(name));
 };
 
 // Split a url into server and path as text when the URL parser can't be used: the address (host or port) has a
