@@ -81,6 +81,11 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
         body.mode = 'formUrlEncoded';
         body.formUrlEncoded = parseFormData(parsedBody);
       } else if (normalizedContentType.includes('multipart/form-data')) {
+        // A raw multipart MIME envelope is not a structured --form field array.
+        // Reject it instead of persisting a body that breaks filestore serialization.
+        if (!Array.isArray(parsedBody)) {
+          return null;
+        }
         body.mode = 'multipartForm';
         body.multipartForm = parsedBody;
       } else if (isPlainTextContentType(contentType)) {
