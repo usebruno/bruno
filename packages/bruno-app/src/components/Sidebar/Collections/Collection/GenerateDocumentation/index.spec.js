@@ -147,6 +147,17 @@ describe('GenerateDocumentation', () => {
     expect(screen.getByTestId('generate-btn')).toBeEnabled();
   });
 
+  it('keeps Generate disabled while the collection is still mounting and its items have not arrived', () => {
+    renderModal(buildCollection({ mountStatus: 'mounting', items: [] }));
+    expect(screen.getByTestId('generate-btn')).toBeDisabled();
+    expect(screen.getByText(/Loading collection/i)).toBeInTheDocument();
+  });
+
+  it('enables Generate once the collection has mounted', () => {
+    renderModal(buildCollection({ mountStatus: 'mounted' }));
+    expect(screen.getByTestId('generate-btn')).toBeEnabled();
+  });
+
   it('generates docs with the resolved git url, the shared filename, and the format-aware version', () => {
     mockGitRemote = { gitCollectionUrl: 'https://github.com/org/repo.git', isResolved: true };
     const { onClose } = renderModal(buildCollection({ name: 'My Collection' }));
