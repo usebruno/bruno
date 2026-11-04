@@ -8,7 +8,8 @@ import {
   createRequest,
   openRequest,
   selectRequestPaneTab,
-  sendRequest
+  sendRequest,
+  verifyResponseSize
 } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
@@ -31,6 +32,15 @@ test.describe.serial('File / Binary body upload', () => {
   const collectionName = 'binary-file-upload';
   const jsonRequestName = 'json-upload';
   const octetRequestName = 'octet-upload';
+  const txtRequestName = 'txt-file-upload';
+  const csvRequestName = 'csv-file-upload';
+  const imgRequestName = 'image-file-upload';
+  const pdfRequestName = 'pdf-file-upload';
+  const TIMEOUTS = {
+    DEFAULT: 30_000,
+    LONG: 60_000,
+    EXTENDED: 180_000
+  } as const;
 
   let tmpDir: string;
   let jsonFilePath: string;
@@ -39,8 +49,17 @@ test.describe.serial('File / Binary body upload', () => {
   let octetFileSha256: string;
   let jsonFileSize: number;
   let octetFileSize: number;
+  let txtFilePath: string;
+  let txtFileSizeInBytes: number;
+  let csvFilePath: string;
+  let csvFileSizeInBytes: number;
+  let imgFilePath: string;
+  let imgFileSizeInBytes: number;
+  let pdfFilePath: string;
+  let pdfFileSizeInBytes: number;
 
   test.beforeAll(async ({ page, electronApp, createTmpDir }) => {
+    test.setTimeout(TIMEOUTS.EXTENDED);
     tmpDir = await createTmpDir('binary-file-upload');
 
     // The JSON file is intentionally larger than the 20 MiB streaming
@@ -60,6 +79,34 @@ test.describe.serial('File / Binary body upload', () => {
     await fs.promises.writeFile(octetFilePath, octetContent);
     octetFileSize = Buffer.byteLength(octetContent);
     octetFileSha256 = crypto.createHash('sha256').update(octetContent).digest('hex');
+
+    // Create a large text file and save it in the temporary directory (tmpDir)
+    txtFileSizeInBytes = 1 * 1024 * 1024;
+    const txtBuffer = Buffer.alloc(txtFileSizeInBytes, 'a');
+    txtFilePath = path.join(tmpDir, 'large-txt-file.txt');
+    await fs.promises.writeFile(txtFilePath, txtBuffer);
+
+    // Create a large csv file and save it in the temporary directory (tmpDir)
+    csvFileSizeInBytes = 1 * 1024 * 1024;
+    csvFilePath = path.join(tmpDir, 'large-csv-file.csv');
+    const header = 'id,name,email,status\n';
+    const row = '1,Test User,user@example.com,active\n';
+    const rowCount = Math.ceil((csvFileSizeInBytes - Buffer.byteLength(header)) / Buffer.byteLength(row));
+    await fs.promises.writeFile(csvFilePath, header + row.repeat(rowCount), 'utf8');
+
+    // Create a large png file and save it in the temporary directory (tmpDir)
+    imgFileSizeInBytes = 1 * 1024 * 1024;
+    const imgBuffer = Buffer.alloc(imgFileSizeInBytes, 'a');
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(imgBuffer);
+    imgFilePath = path.join(tmpDir, 'large-image.png');
+    await fs.promises.writeFile(imgFilePath, imgBuffer);
+
+    // Create a large pdf file and save it in the temporary directory (tmpDir)
+    pdfFileSizeInBytes = 1 * 1024 * 1024;
+    const pdfBuffer = Buffer.alloc(pdfFileSizeInBytes, 'a');
+    pdfBuffer.write('%PDF-1.4\n');
+    pdfFilePath = path.join(tmpDir, 'large-file.pdf');
+    await fs.promises.writeFile(pdfFilePath, pdfBuffer);
 
     // Stash and replace the native file picker dialog so FilePickerEditor's
     // Browse button resolves to a path of our choosing. The currentSelection
@@ -82,6 +129,26 @@ test.describe.serial('File / Binary body upload', () => {
       });
       await createRequest(page, octetRequestName, collectionName, {
         url: 'http://localhost:8081/api/file-binary/binary-upload-octet-stream',
+        method: 'POST',
+        inFolder: false
+      });
+      await createRequest(page, txtRequestName, collectionName, {
+        url: 'https://httpbin.org/post',
+        method: 'POST',
+        inFolder: false
+      });
+      await createRequest(page, pdfRequestName, collectionName, {
+        url: 'https://httpbin.org/post',
+        method: 'POST',
+        inFolder: false
+      });
+      await createRequest(page, imgRequestName, collectionName, {
+        url: 'https://httpbin.org/post',
+        method: 'POST',
+        inFolder: false
+      });
+      await createRequest(page, csvRequestName, collectionName, {
+        url: 'https://httpbin.org/post',
         method: 'POST',
         inFolder: false
       });
@@ -189,5 +256,52 @@ test.describe.serial('File / Binary body upload', () => {
 
     expect(responseText).toContain(`"sha256": "${octetFileSha256}"`);
     expect(responseText).toContain('"looksLikeSerializedNodeStream": false');
+  });
+
+  test('TC-2230: Verify successful execution with a large TXT file', { tag: '@sanity' }, async ({ page, electronApp }) => {
+    test.setTimeout(TIMEOUTS.EXTENDED);
+    await electronApp.evaluate(({ dialog }, filePath: string) => {
+      (dialog as any).__currentSelection = filePath;
+    }, txtFilePath);
+
+    await openRequest(page, collectionName, txtRequestName, { persist: true });
+    await configureFileBody(page);
+    await sendRequest(page, 200, TIMEOUTS.LONG);
+    await verifyResponseSize(page, txtFileSizeInBytes, TIMEOUTS.DEFAULT); ;
+  });
+
+  test('TC-2231: Verify successful execution with a large PDF file', { tag: '@sanity' }, async ({ page, electronApp }) => {
+    test.setTimeout(TIMEOUTS.EXTENDED);
+    await electronApp.evaluate(({ dialog }, filePath: string) => {
+      (dialog as any).__currentSelection = filePath;
+    }, pdfFilePath);
+
+    await openRequest(page, collectionName, pdfRequestName, { persist: true });
+    await configureFileBody(page);
+    await sendRequest(page, 200, TIMEOUTS.LONG);
+    await verifyResponseSize(page, pdfFileSizeInBytes, TIMEOUTS.DEFAULT);
+  });
+
+  test('TC-2232: Verify successful execution with a large Image(.png) file', { tag: '@sanity' }, async ({ page, electronApp }) => {
+    test.setTimeout(TIMEOUTS.EXTENDED);
+    await electronApp.evaluate(({ dialog }, filePath: string) => {
+      (dialog as any).__currentSelection = filePath;
+    }, imgFilePath);
+    await openRequest(page, collectionName, imgRequestName, { persist: true });
+    await configureFileBody(page);
+    await sendRequest(page, 200, TIMEOUTS.LONG);
+    await verifyResponseSize(page, imgFileSizeInBytes, TIMEOUTS.DEFAULT);
+  });
+
+  test('TC-2236: Verify successful execution with a large CSV file', { tag: '@sanity' }, async ({ page, electronApp }) => {
+    test.setTimeout(TIMEOUTS.EXTENDED);
+    await electronApp.evaluate(({ dialog }, filePath: string) => {
+      (dialog as any).__currentSelection = filePath;
+    }, csvFilePath);
+
+    await openRequest(page, collectionName, csvRequestName, { persist: true });
+    await configureFileBody(page);
+    await sendRequest(page, 200, TIMEOUTS.LONG);
+    await verifyResponseSize(page, csvFileSizeInBytes, TIMEOUTS.DEFAULT);
   });
 });

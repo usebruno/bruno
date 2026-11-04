@@ -10,7 +10,7 @@ const ResponseSize = ({ size }) => {
   const sizeToDisplay = formatSize(size, 2);
 
   return (
-    <StyledWrapper title={(size?.toLocaleString() || '0') + 'B'} className="ml-2">
+    <StyledWrapper title={(size?.toLocaleString() || '0') + 'B'} className="ml-2" data-testid="response-size">
       {sizeToDisplay}
     </StyledWrapper>
   );
