@@ -1,39 +1,36 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect } from '../../../playwright';
-import { buildCommonLocators, createCollection } from '../../utils/page';
+import { test, expect, closeElectronApp } from '../../../playwright';
+import { buildCommonLocators, removeCollection, waitForReadyPage } from '../../utils/page';
+
+const COLLECTION_NAME = 'remove-test-collection';
 
 test.describe('Remove collection', () => {
-  test('TC-2614 should remove a collection from the sidebar without deleting its files', { tag: '@sanity' }, async ({ newPage: page, createTmpDir }) => {
-    const collectionName = 'remove-test-collection';
-    const tmpDir = await createTmpDir(collectionName);
-    const collectionFile = path.join(tmpDir, collectionName, 'opencollection.yml');
-    const { sidebar, actions, dropdown, modal, toast } = buildCommonLocators(page);
+  test('TC-2614: should remove a collection from the sidebar without deleting its files', { tag: '@sanity' }, async ({ launchElectronApp, collectionFixturePath }) => {
+    const collectionPath = collectionFixturePath!;
+    const collectionFile = path.join(collectionPath, 'opencollection.yml');
+    const originalContent = fs.readFileSync(collectionFile, 'utf-8');
 
-    const originalContent = await test.step('Create a collection', async () => {
-      await createCollection(page, collectionName, tmpDir);
-      await expect(sidebar.collection(collectionName)).toBeVisible();
-      return fs.readFileSync(collectionFile, 'utf-8');
+    const app = await launchElectronApp({
+      initUserDataPath: path.join(__dirname, 'init-user-data'),
+      templateVars: { collectionPath }
+    });
+    const page = await waitForReadyPage(app);
+    const { sidebar, toast } = buildCommonLocators(page);
+
+    await test.step('Fixture collection is open in the sidebar', async () => {
+      await expect(sidebar.collection(COLLECTION_NAME)).toBeVisible();
     });
 
-    await test.step('Open Remove from the collection menu', async () => {
-      await sidebar.collection(collectionName).hover();
-      await actions.collectionActions(collectionName).click();
-      await dropdown.item('Remove').click();
-    });
+    await removeCollection(page, COLLECTION_NAME);
 
-    await test.step('Confirm the Remove dialog', async () => {
-      const removeModal = modal.byTitle('Remove Collection');
-      await expect(removeModal).toBeVisible();
-      await expect(removeModal).toContainText(collectionName);
-      await modal.button('Remove').click();
-    });
-
-    await test.step('Collection leaves the sidebar and its file is unchanged', async () => {
+    await test.step('Collection leaves the sidebar and its files are untouched', async () => {
       await expect(toast.byMessage('Collection removed from workspace')).toBeVisible();
-      await expect(modal.byTitle('Remove Collection')).toBeHidden();
-      await expect(sidebar.collection(collectionName)).toHaveCount(0);
+      await expect(sidebar.collection(COLLECTION_NAME)).toHaveCount(0);
+      expect(fs.existsSync(collectionPath)).toBe(true);
       expect(fs.readFileSync(collectionFile, 'utf-8')).toBe(originalContent);
     });
+
+    await closeElectronApp(app);
   });
 });
