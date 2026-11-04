@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import Tippy from '@tippyjs/react';
 import toast from 'react-hot-toast';
@@ -96,6 +96,7 @@ const SensitiveWarningPopover = ({
 }) => {
   const dispatch = useDispatch();
   const closeTimerRef = useRef(null);
+  const popoverRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [secretFormState, setSecretFormState] = useState(null);
@@ -110,6 +111,15 @@ const SensitiveWarningPopover = ({
     setIsPinned(false);
     setSecretFormState(null);
   };
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const closeOnOutsideScroll = (event) => {
+      if (!popoverRef.current?.contains(event.target)) close();
+    };
+    window.addEventListener('scroll', closeOnOutsideScroll, true);
+    return () => window.removeEventListener('scroll', closeOnOutsideScroll, true);
+  }, [isOpen]);
 
   const handleKeyDown = (event) => {
     if (event.key === 'Escape' && (isPinned || secretFormState)) {
@@ -233,7 +243,7 @@ const SensitiveWarningPopover = ({
         onClickOutside={() => {
           if (!secretFormState) close();
         }}
-        render={(attrs) => <div {...attrs}>{popoverContent}</div>}
+        render={(attrs) => <div ref={popoverRef} {...attrs}>{popoverContent}</div>}
       >
         <button type="button" className="mr-[4px] flex items-center" data-testid={`sensitive-field-warning-${fieldName}`}>
           <IconAlertTriangle className="tooltip-icon cursor-pointer" size={16} />

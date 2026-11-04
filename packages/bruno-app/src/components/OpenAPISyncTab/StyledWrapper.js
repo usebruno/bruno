@@ -1,97 +1,7 @@
 import styled from 'styled-components';
-import { rgba, darken } from 'polished';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
-
-  .setup-header {
-    margin-bottom: 1.5rem;
-  }
-
-  .setup-title {
-    font-size: ${(props) => props.theme.font.size.base};
-    font-weight: 600;
-    color: ${(props) => props.theme.text};
-    margin: 0 0 0.375rem 0;
-  }
-
-  .setup-description {
-    font-size: ${(props) => props.theme.font.size.sm};
-    color: ${(props) => props.theme.colors.text.muted};
-    line-height: 1.5;
-    margin: 0;
-  }
-
-  .setup-form {
-    border: 1px solid ${(props) => props.theme.border.border1};
-    border-radius: ${(props) => props.theme.border.radius.md};
-    padding: 1rem;
-    margin-bottom: 1.25rem;
-
-    .url-label {
-      display: block;
-      font-size: ${(props) => props.theme.font.size.sm};
-      font-weight: 500;
-      color: ${(props) => props.theme.text};
-      margin-bottom: 0.5rem;
-    }
-
-    .url-row {
-      display: flex;
-      gap: 0.5rem;
-      align-items: center;
-      margin-top: 0.25rem;
-    }
-
-    .url-input {
-      flex: 1;
-      padding: 0.25rem 0.75rem;
-      font-size: ${(props) => props.theme.font.size.sm};
-      color: ${(props) => props.theme.text};
-      background: ${(props) => props.theme.input.bg};
-      border: 1px solid ${(props) => props.theme.input.border};
-      border-radius: ${(props) => props.theme.border.radius.md};
-      outline: none;
-
-      &:focus {
-        border-color: ${(props) => props.theme.input.focusBorder};
-      }
-
-      &::placeholder {
-        color: ${(props) => props.theme.colors.text.muted};
-      }
-    }
-  }
-
-  .setup-hint {
-    font-size: ${(props) => props.theme.font.size.xs};
-    color: ${(props) => props.theme.colors.text.muted};
-    margin: 0.5rem 0 0 0;
-  }
-
-  .setup-error {
-    font-size: ${(props) => props.theme.font.size.sm};
-    color: ${(props) => props.theme.colors.text.danger};
-    margin: 0.5rem 0 0 0;
-  }
-
-  .setup-features {
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-  }
-
-  .setup-feature {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: ${(props) => props.theme.font.size.sm};
-    color: ${(props) => props.theme.colors.text.muted};
-
-    svg {
-      color: ${(props) => props.theme.colors.text.green};
-      flex-shrink: 0;
-    }
-  }
 
   /* Spec Info Card — borderless header */
   .spec-info-card {
@@ -628,32 +538,6 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.text};
       display: block;
       margin-bottom: 5px;
-    }
-
-    .settings-input {
-      width: 100%;
-      padding: 7px 10px;
-      font-size: 12px;
-      font-family: monospace;
-      color: ${(props) => props.theme.text};
-      border: 1px solid ${(props) => props.theme.border.border1};
-      border-radius: 5px;
-      background: ${(props) => props.theme.input.bg};
-      outline: none;
-      box-sizing: border-box;
-      text-align: left;
-
-      &:focus {
-        border-color: ${(props) => props.theme.input.focusBorder};
-      }
-
-      &.file-pick-btn {
-        cursor: pointer;
-        color: ${(props) => props.theme.colors.text.muted};
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
     }
 
     .settings-toggle-row {
@@ -2333,51 +2217,6 @@ const StyledWrapper = styled.div`
         border-bottom: none;
       }
     }
-  }
-
-  /* URL/File mode toggle in setup form and settings modal */
-  .setup-mode-toggle {
-    display: inline-flex;
-    flex-shrink: 0;
-    align-items: stretch;
-    align-self: stretch;
-    gap: 2px;
-    padding: 2px;
-    background: ${(props) => props.theme.background.surface1};
-    border-radius: ${(props) => props.theme.border.radius.md};
-  }
-
-  .setup-mode-btn {
-    padding: 0 0.65rem;
-    font-size: ${(props) => props.theme.font.size.sm};
-    font-weight: 500;
-    color: ${(props) => props.theme.text};
-    background: transparent;
-    border: none;
-    border-radius: calc(${(props) => props.theme.border.radius.md} - 3px);
-    cursor: pointer;
-    transition: background 0.12s, color 0.12s;
-    white-space: nowrap;
-
-    &.active {
-      background: ${(props) => darken(0.03, props.theme.background.base)};
-      color: ${(props) => props.theme.button2.color.secondary.text};
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
-    }
-
-    &:hover:not(.active) {
-      color: ${(props) => props.theme.text};
-    }
-  }
-
-  .file-pick-btn {
-    text-align: left;
-    cursor: pointer;
-    font-family: monospace;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: ${(props) => props.theme.colors.text.muted};
   }
 
   /* File not found banner */

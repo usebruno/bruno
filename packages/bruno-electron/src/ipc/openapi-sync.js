@@ -153,6 +153,8 @@ const parseSpec = (content) => {
 /**
  * Validate that a parsed spec object is a valid OpenAPI 3.x document.
  * Swagger 2.0 is not supported — the converter only handles OpenAPI 3.x.
+ * The spec picker in bruno-app (getOpenApiSpecError in OpenAPISyncTab/SpecSourcePicker/utils.js)
+ * checks the same rules and a few stricter ones. Keep the two in sync.
  */
 const isValidOpenApiSpec = (spec) => {
   if (!spec || typeof spec !== 'object') return false;
@@ -399,7 +401,7 @@ const saveOpenApiSpecFile = async ({ collectionPath, content, sourceUrl }) => {
 
 /**
  * Save an OpenAPI spec file and update sync metadata (lastSyncDate, specHash) in brunoConfig.
- * Shared by both the IPC handler (connect flow) and the import flow.
+ * Shared by both the IPC handler (connect flow) and the import flow. Returns the metadata it saved.
  */
 const saveSpecAndUpdateMetadata = async ({ collectionPath, specContent }) => {
   const { format, brunoConfig, collectionRoot } = loadBrunoConfig(collectionPath);
@@ -421,6 +423,7 @@ const saveSpecAndUpdateMetadata = async ({ collectionPath, specContent }) => {
   };
 
   await saveBrunoConfig(collectionPath, format, brunoConfig, collectionRoot);
+  return { lastSyncDate, specHash };
 };
 
 /**

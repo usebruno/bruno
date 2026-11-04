@@ -1,5 +1,6 @@
 import { Page, Locator, expect } from '../../../playwright';
 import { buildRequestLocators } from '../request';
+import { IS_MAC } from './environments';
 
 /**
  * Locators for variable-autocomplete dropdown (utils/codemirror/autocomplete.js).
@@ -81,14 +82,15 @@ export const expectSingleBraceDoesNotOpenAutocomplete = async (page: Page, edito
 };
 
 /**
- * "Trigger Autocomplete" shortcut (Ctrl+Space)
+ * "Trigger Autocomplete" shortcut (Option+Space on macOS, Ctrl+Space elsewhere)
  * @param page - The page object
  */
 export const pressAutocompleteShortcut = async (page: Page) => {
-  await page.keyboard.down('Control');
+  const modifier = IS_MAC ? 'Alt' : 'Control';
+  await page.keyboard.down(modifier);
   await page.keyboard.down('Space');
   await page.keyboard.up('Space');
-  await page.keyboard.up('Control');
+  await page.keyboard.up(modifier);
 };
 
 /**
