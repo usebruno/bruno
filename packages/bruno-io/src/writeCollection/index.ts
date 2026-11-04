@@ -76,7 +76,7 @@ const writeItems = (items: BrunoItem[], dirPath: string, format: CollectionForma
   }
 };
 
-const writeCollection = async (
+const writeCollectionInFormat = async (
   collection: BrunoCollection,
   outputDir: string,
   format: CollectionFormat
@@ -128,17 +128,17 @@ const writeCollection = async (
  * collection directory in the default (`yml`) format. `outputDir` is created if missing and must
  * otherwise be empty.
  */
-export const writeCollectionToDisk = (collection: BrunoCollection, outputDir: string): Promise<string> => {
-  return writeCollection(collection, outputDir, DEFAULT_COLLECTION_FORMAT);
+export const writeCollection = (collection: BrunoCollection, outputDir: string): Promise<string> => {
+  return writeCollectionInFormat(collection, outputDir, DEFAULT_COLLECTION_FORMAT);
 };
 
 /**
- * Same as `writeCollectionToDisk`, but lets the caller pick the on-disk format.
+ * Same as `writeCollection`, but lets the caller pick the on-disk format.
  */
-export const writeCollectionToDiskLegacy = (
+export const writeCollectionLegacy = (
   collection: BrunoCollection,
   outputDir: string,
   options: WriteCollectionOptions = {}
 ): Promise<string> => {
-  return writeCollection(collection, outputDir, options.format || DEFAULT_COLLECTION_FORMAT);
+  return writeCollectionInFormat(collection, outputDir, options.format || DEFAULT_COLLECTION_FORMAT);
 };

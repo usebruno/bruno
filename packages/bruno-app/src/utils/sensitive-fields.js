@@ -137,7 +137,7 @@ const SCOPE_PRIORITY = [
 /** Scope of a same-name variable that would win over a new variable in `targetScope`, or null. */
 export const findOverridingVariableScope = (variableName, { collection, item, targetScope, ignoreVariableUid } = {}) => {
   const resolved = resolveSensitiveVariable(variableName, { collection, item, ignoreVariableUid });
-  if (!resolved) {
+  if (!resolved || (resolved.type === targetScope && !resolved.variable.secret)) {
     return null;
   }
   return SCOPE_PRIORITY.indexOf(resolved.type) <= SCOPE_PRIORITY.indexOf(targetScope) ? resolved.type : null;

@@ -816,6 +816,24 @@ describe('findOverridingVariableScope', () => {
     expect(findOverridingVariableScope('token', { collection, targetScope: 'global' })).toBe('environment');
   });
 
+  it('allows a plain variable in the target environment because the new secret wins', () => {
+    const collection = buildCollection({
+      environments: [environment('env-1', 'Dev', [{ ...plain('token', 'dev'), uid: 'env-token' }])],
+      activeEnvironmentUid: 'env-1'
+    });
+
+    expect(findOverridingVariableScope('token', { collection, targetScope: 'environment' })).toBeNull();
+  });
+
+  it('flags a secret that already exists in the target environment', () => {
+    const collection = buildCollection({
+      environments: [environment('env-1', 'Dev', [{ ...secret('token', 'dev'), uid: 'env-token' }])],
+      activeEnvironmentUid: 'env-1'
+    });
+
+    expect(findOverridingVariableScope('token', { collection, targetScope: 'environment' })).toBe('environment');
+  });
+
   it('allows a name that a new environment secret would override', () => {
     const collection = buildCollection({ collectionVars: [{ ...plain('token', 'c'), uid: 'collection-token' }] });
 
