@@ -39,8 +39,6 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
     const apiSpecDrafts = [];
     const relevantTabs = forceCloseTabs ? tabs.filter((t) => tabUidsToClose.includes(t.uid)) : tabs;
     const tabsByCollection = groupBy(relevantTabs, (t) => t.collectionUid);
-    // When closing specific tabs, only the drafts those tabs hold are at stake. A settings
-    // tab carries the uid of the collection / folder it edits, so one uid check covers every kind.
     const isTabClosing = (uid) => {
       if (!forceCloseTabs) {
         // Quitting the app: every draft is at stake, not just the ones with a closing tab
@@ -49,8 +47,7 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
 
       return relevantTabs.some((item) => item.uid === uid);
     };
-    // Drafts are listed in the order their tabs appear in the tab bar; a draft without an open
-    // tab (possible only when quitting) sorts after the rest.
+
     const tabIndexOf = (predicate) => {
       const index = relevantTabs.findIndex(predicate);
       return index === -1 ? Infinity : index;
@@ -154,9 +151,13 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
       }
     }
 
-    return [...collectionDrafts, ...folderDrafts, ...environmentDrafts, ...appDrafts, ...requestDrafts, ...apiSpecDrafts]
+    const drafts = [...collectionDrafts, ...folderDrafts, ...environmentDrafts, ...appDrafts, ...requestDrafts, ...apiSpecDrafts];
+
+    const sortedByTabSequence = drafts
       .sort((a, b) => a.tabIndex - b.tabIndex)
       .map((draft) => ({ ...draft, tabUid: relevantTabs[draft.tabIndex]?.uid }));
+
+    return sortedByTabSequence;
   }, [collections, tabs, apiSpecs, globalEnvironments, globalEnvironmentDraft, forceCloseTabs, tabUidsToClose]);
 
   const totalDraftsCount = allDrafts.length;

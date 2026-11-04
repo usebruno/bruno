@@ -8,7 +8,6 @@ const StyledWrapper = styled.div`
     border-radius: ${(props) => props.theme.border.radius.base};
   }
 
-  /* Mirrors the modal header's close button so the two controls read as one family */
   .unsaved-item-go-to-tab {
     color: ${(props) => props.theme.modal.title.color};
     opacity: 0.7;
@@ -19,18 +18,14 @@ const StyledWrapper = styled.div`
     }
   }
 
-  /* Wide enough for the longest method label (OPT, GRPC) so every name starts on the same column */
   .unsaved-item-icon {
     width: 36px;
 
-    /* Only the type icons take the header color; the request method keeps its own method color */
     > svg {
       color: ${(props) => props.theme.modal.title.color};
       opacity: 0.7;
     }
 
-    /* The sidebar method label reserves sidebar-specific width, margin and baseline offset;
-       inside this fixed slot it must center like the other icons. */
     > div {
       min-width: 0;
       justify-content: center;
