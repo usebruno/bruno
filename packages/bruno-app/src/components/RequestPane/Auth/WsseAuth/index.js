@@ -8,7 +8,7 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
-const WsseAuth = ({ item, collection, updateAuth, request, save, disabled }) => {
+const WsseAuth = ({ item, collection, updateAuth, request, save, readOnly }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -60,7 +60,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save, disabled }) => 
           onRun={handleRun}
           collection={collection}
           item={item}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
       </div>
@@ -76,10 +76,10 @@ const WsseAuth = ({ item, collection, updateAuth, request, save, disabled }) => 
           collection={collection}
           item={item}
           isSecret={true}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
-        <SensitiveFieldWarning fieldName="wsse-password" secretName="password" value={wsseAuth?.password} collection={collection} item={item} disabled={disabled} onReplaceValue={handlePasswordChange} />
+        <SensitiveFieldWarning fieldName="wsse-password" secretName="password" value={wsseAuth?.password} collection={collection} item={item} fieldKey="password" onReplaceValue={handlePasswordChange} />
       </div>
     </StyledWrapper>
   );

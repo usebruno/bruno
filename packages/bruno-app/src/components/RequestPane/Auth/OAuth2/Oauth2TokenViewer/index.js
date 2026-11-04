@@ -35,7 +35,7 @@ const TokenSection = ({ title, token }) => {
   return (
     <div className="mb-2 border dark:border-gray-700 rounded-lg overflow-hidden">
       <div
-        className="auth-section-toggle flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
+        className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center space-x-2 w-full">
