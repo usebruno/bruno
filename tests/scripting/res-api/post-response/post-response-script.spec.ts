@@ -47,7 +47,6 @@ test.describe('Post-response script', () => {
       await sendRequest(page);
       await selectResponsePaneTab(page, 'Tests');
 
-      // Assert
       await test.step('Verify post-response script tests passed', async () => {
         await expect(response.testSummary('postResponse')).toContainText(
           'Post-Response Tests (2), Passed: 2, Failed: 0'
