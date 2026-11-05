@@ -15,7 +15,7 @@ const {
 const { openApiToBruno } = require('@usebruno/converters');
 const { resolveEnvironmentInheritance, buildQueryString, parseQueryParams } = require('@usebruno/common/utils');
 const { writeFile, sanitizeName, getCollectionFormat, posixifyPath } = require('../utils/filesystem');
-const { derefSpecObject, declaredSchemaNode, declaresKey, declaredKeysOf, declaredChild, declaredItems, declaresOnlyScalars, otherAlternativeKeys } = require('../utils/openapi-schema');
+const { derefSpecObject, declaredSchemaNode, declaresKey, declaredKeysOf, declaredChild, declaredItems, declaresOnlyScalars, keyLeavesShapeOpen, itemsLeaveShapeOpen, otherAlternativeKeys } = require('../utils/openapi-schema');
 
 const RESERVED_FOLDER_NAMES = ['node_modules', '.git', 'environments', 'mocks'];
 const { getEnvVars } = require('../utils/collection');
@@ -543,12 +543,13 @@ const declaredBodyOf = (spec, method, endpointPath) => {
   return isPlainObject(media) ? declaredSchemaNode(spec, [media.schema]) : undefined;
 };
 
-const withoutUndeclaredFields = (userVal, declared) => {
-  if (Array.isArray(userVal)) return userVal.map((item) => withoutUndeclaredFields(item, declaredItems(declared)));
+const withoutUndeclaredFields = (userVal, declared, shapeOpen = false) => {
+  if (shapeOpen) return userVal;
+  if (Array.isArray(userVal)) return itemsLeaveShapeOpen(declared) ? userVal : userVal.map((item) => withoutUndeclaredFields(item, declaredItems(declared)));
   if (!isPlainObject(userVal) || declaredKeysOf(declared).length === 0) return userVal;
   const out = {};
   for (const key of Object.keys(userVal)) {
-    if (declaresKey(declared, key)) setOwn(out, key, withoutUndeclaredFields(userVal[key], declaredChild(declared, key)));
+    if (declaresKey(declared, key)) setOwn(out, key, withoutUndeclaredFields(userVal[key], declaredChild(declared, key), keyLeavesShapeOpen(declared, key)));
   }
   return out;
 };
@@ -557,6 +558,11 @@ const withoutUndeclaredFields = (userVal, declared) => {
  * Recursively merge a user JSON value with a spec JSON value.
  *
  * Rules (when preserveValues=true):
+ *   - Open:   a property whose schema offers a choice of shapes (more than one non-null oneOf/anyOf
+ *             alternative, also through allOf or a single non-null alternative that offers one) and
+ *             has no type, properties or example of its own, behind its $ref or in its allOf parts,
+ *             or an item of an array without example whose items offer such a choice (shapeOpen),
+ *             keeps the user value as written, also where the spec template lacks it.
  *   - Object: walk spec keys; keep user value when present, use spec default otherwise,
  *             except for a key that only another oneOf/anyOf alternative declares than the
  *             one the user object is written for (matched by discriminator, otherwise the
@@ -566,33 +572,36 @@ const withoutUndeclaredFields = (userVal, declared) => {
  *             An empty spec object (a free-form map, or a composed schema the converter leaves
  *             as {}) keeps the user object; when the schema declares properties for it, only
  *             those are kept.
- *   - Array:  if user array is empty, return spec template.
+ *   - Array:  if user array is empty, return spec template, or the user array when its items
+ *             offer such a choice and the array has no example.
  *             Otherwise re-shape each user element against the first spec element as template.
  *   - Scalar: keep user value unless it is undefined.
  *
  * When preserveValues=false the spec value is returned as-is.
  */
-const mergeJsonValues = (userVal, specVal, preserveValues = true, declared) => {
+const mergeJsonValues = (userVal, specVal, preserveValues = true, declared, shapeOpen = false) => {
   if (!preserveValues) return specVal;
+  if (shapeOpen) return userVal;
   if (isPlainObject(specVal) && isPlainObject(userVal)) {
     if (Object.keys(specVal).length === 0) return withoutUndeclaredFields(userVal, declared);
     const otherBranchKeys = otherAlternativeKeys(declared, userVal);
     const out = {};
     for (const key of Object.keys(specVal)) {
-      if (Object.hasOwn(userVal, key)) setOwn(out, key, mergeJsonValues(userVal[key], specVal[key], preserveValues, declaredChild(declared, key)));
+      if (Object.hasOwn(userVal, key)) setOwn(out, key, mergeJsonValues(userVal[key], specVal[key], preserveValues, declaredChild(declared, key), keyLeavesShapeOpen(declared, key)));
       else if (!otherBranchKeys.has(key)) setOwn(out, key, specVal[key]);
     }
     for (const key of Object.keys(userVal)) {
-      if (!Object.hasOwn(specVal, key) && declaresKey(declared, key)) setOwn(out, key, withoutUndeclaredFields(userVal[key], declaredChild(declared, key)));
+      if (!Object.hasOwn(specVal, key) && declaresKey(declared, key)) setOwn(out, key, withoutUndeclaredFields(userVal[key], declaredChild(declared, key), keyLeavesShapeOpen(declared, key)));
     }
     return out;
   }
   if (Array.isArray(specVal) && Array.isArray(userVal)) {
-    if (userVal.length === 0) return specVal;
+    const itemsOpen = itemsLeaveShapeOpen(declared);
+    if (userVal.length === 0) return itemsOpen ? userVal : specVal;
     const template = specVal.length > 0 ? specVal[0] : undefined;
     if (template === undefined) return userVal;
     const declaredItem = declaredItems(declared);
-    return userVal.map((el) => mergeJsonValues(el, template, preserveValues, declaredItem));
+    return userVal.map((el) => mergeJsonValues(el, template, preserveValues, declaredItem, itemsOpen));
   }
   return userVal === undefined ? specVal : userVal;
 };
