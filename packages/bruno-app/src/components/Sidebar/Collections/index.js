@@ -68,7 +68,10 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
 
   const renderedSidebarEntries = useMemo(
     () => sidebarEntries.map((entry) => {
-      if (entry.kind !== 'loaded' || entry.collection.mountStatus === 'mounted' || !itemsByRoot.has(entry.collection.pathname)) {
+      // A collection turns 'mounted' before the watcher has delivered its items, so keep showing
+      // the search index's items until loading finishes; switching early empties the list.
+      const isReady = entry.collection?.mountStatus === 'mounted' && !entry.collection.isLoading;
+      if (entry.kind !== 'loaded' || isReady || !itemsByRoot.has(entry.collection.pathname)) {
         return entry;
       }
       return { ...entry, collection: { ...entry.collection, items: itemsByRoot.get(entry.collection.pathname) } };
