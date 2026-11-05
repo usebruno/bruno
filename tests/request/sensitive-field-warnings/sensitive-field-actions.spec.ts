@@ -10,6 +10,7 @@ import {
   createEnvironment,
   createFolder,
   createRequest,
+  openCollectionFromDialog,
   openCollectionSettings,
   openEnvironmentConfigTab,
   openFolderRequest,
@@ -23,6 +24,7 @@ import {
   saveSecretTo,
   selectAuthMode,
   selectCollectionPaneTab,
+  selectEnvironment,
   selectfolderPaneTab,
   selectRequestPaneTab,
   setEnvironmentVariableValue,
@@ -122,6 +124,89 @@ test.describe('Sensitive field actions', () => {
       await codeMirror.sensitiveWarning(API_KEY_FIELD).click();
       await expect(form.container()).toHaveCount(0);
       expect(await readField(page, 'Value')).toBe('raw-secret');
+    });
+  });
+
+  test('The close button closes the form while it shows a save error', async ({ page, electronApp, collectionFixturePath }) => {
+    const { codeMirror, secretVariableForm: form } = buildCommonLocators(page);
+
+    await test.step('Open a request with a plaintext API key in a collection whose environment has an apiKeyValue secret', async () => {
+      await openCollectionFromDialog(page, electronApp, collectionFixturePath!);
+      await openRequest(page, 'sensitive-field-actions', 'login');
+      await selectEnvironment(page, 'dev');
+      await selectRequestPaneTab(page, 'Auth');
+    });
+
+    await test.step('Saving with the name of the existing secret shows an error', async () => {
+      await clickSensitiveFieldAction(page, codeMirror.sensitiveWarning(API_KEY_FIELD), API_KEY_FIELD);
+      await form.nameInput().fill('apiKeyValue');
+      await saveSecretTo(page, 'environment');
+      await expect(form.error()).toHaveText('"apiKeyValue" already exists in Collection Environment. Use a different name.');
+    });
+
+    await test.step('An outside click does not close the form while the error shows', async () => {
+      await codeMirror.sensitiveWarning(API_KEY_FIELD).click();
+      await expect(form.container()).toBeVisible();
+    });
+
+    await test.step('The close button closes the form and saves nothing', async () => {
+      await form.closeButton().click();
+      await expect(form.container()).toHaveCount(0);
+      await expect(form.actionLink(API_KEY_FIELD)).toHaveCount(0);
+      expect(await readField(page, 'Value')).toBe('raw-secret');
+    });
+  });
+
+  test('Save as secret turns a plain environment variable with the same name into the secret', async ({ page, electronApp, collectionFixturePath }) => {
+    const { codeMirror, secretVariableForm: form, toast } = buildCommonLocators(page);
+    const environmentFile = path.join(collectionFixturePath!, 'environments', 'staging.yml');
+
+    await test.step('Open a request with a plaintext API key in a collection whose environment has a plain apiKeyValue variable', async () => {
+      await openCollectionFromDialog(page, electronApp, collectionFixturePath!);
+      await openRequest(page, 'sensitive-field-actions', 'login');
+      await selectEnvironment(page, 'staging');
+      await selectRequestPaneTab(page, 'Auth');
+    });
+
+    await test.step('Saving with the name of the plain variable succeeds', async () => {
+      await clickSensitiveFieldAction(page, codeMirror.sensitiveWarning(API_KEY_FIELD), API_KEY_FIELD);
+      await form.nameInput().fill('apiKeyValue');
+      await saveSecretTo(page, 'environment');
+      await expect(form.container()).toHaveCount(0);
+      await expect(toast.byMessage('Secret "apiKeyValue" created')).toBeVisible();
+      await expect.poll(() => readField(page, 'Value')).toBe('{{apiKeyValue}}');
+    });
+
+    await test.step('The environment has one apiKeyValue row, marked as secret', async () => {
+      await expect.poll(() => readFileIfExists(environmentFile)).not.toContain('plain-env-value');
+      const environmentYml = readFileIfExists(environmentFile);
+      expect(environmentYml.match(/name: apiKeyValue/g)).toHaveLength(1);
+      expect(environmentYml).toContain('secret: true');
+    });
+  });
+
+  test('The form closes when the page scrolls but stays open when its own input scrolls', async ({ page, electronApp, collectionFixturePath }) => {
+    const { codeMirror, secretVariableForm: form } = buildCommonLocators(page);
+
+    await test.step('Open the form for a plaintext API key', async () => {
+      await openCollectionFromDialog(page, electronApp, collectionFixturePath!);
+      await openRequest(page, 'sensitive-field-actions', 'login');
+      await selectEnvironment(page, 'dev');
+      await selectRequestPaneTab(page, 'Auth');
+      await clickSensitiveFieldAction(page, codeMirror.sensitiveWarning(API_KEY_FIELD), API_KEY_FIELD);
+      await expect(form.container()).toBeVisible();
+    });
+
+    await test.step('A scroll inside a long value input keeps the form open', async () => {
+      await form.valueInput().fill('a'.repeat(200));
+      await form.valueInput().dispatchEvent('scroll');
+      await expect(form.container()).toBeVisible();
+    });
+
+    await test.step('A scroll outside the form closes it', async () => {
+      await codeMirror.sensitiveWarning(API_KEY_FIELD).dispatchEvent('scroll');
+      await expect(form.container()).toHaveCount(0);
+      await expect(form.actionLink(API_KEY_FIELD)).toHaveCount(0);
     });
   });
 

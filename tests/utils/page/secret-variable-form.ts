@@ -10,6 +10,7 @@ export const buildSecretVariableFormLocators = (page: Page) => {
     nameInput: () => page.getByTestId('secret-variable-name-input'),
     valueInput: () => page.getByTestId('secret-variable-value-input'),
     source: () => page.getByTestId('secret-variable-source'),
+    closeButton: () => page.getByTestId('secret-variable-close'),
     target: (type: SecretTargetType) => page.getByTestId(`secret-variable-scope-${type}`),
     noEnvironmentNote,
     createOneLink: (type: SecretTargetType) => page.getByTestId(`secret-variable-create-env-link-${type}`),
