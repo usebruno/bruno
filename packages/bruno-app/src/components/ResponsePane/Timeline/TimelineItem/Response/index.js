@@ -1,5 +1,7 @@
 import { useTheme } from 'providers/Theme';
-import { MAX_RENDERABLE_RESPONSE_BYTES } from 'utils/common/constants';
+import { useSelector } from 'react-redux';
+import get from 'lodash/get';
+import { DEFAULT_MAX_PREVIEW_SIZE_MB } from 'utils/common/constants';
 import { formatSize } from 'utils/common';
 import BodyBlock from '../Common/Body/index';
 import Headers from '../Common/Headers/index';
@@ -44,7 +46,8 @@ const ResponseMeta = ({ code, statusText, duration, size }) => {
 
 const Response = ({ collection, response, item }) => {
   let { status, statusCode, statusText, dataBuffer, headers, data, error, duration, size } = response || {};
-  const isLoaded = size > MAX_RENDERABLE_RESPONSE_BYTES;
+  const maxPreviewSizeMB = useSelector((state) => get(state.app.preferences, 'response.maxPreviewSizeMB', DEFAULT_MAX_PREVIEW_SIZE_MB));
+  const isBodyHeldBack = size > maxPreviewSizeMB * 1024 * 1024;
   if (!dataBuffer) {
     dataBuffer = Buffer.from(safeStringifyJSONIfNotString(data))?.toString('base64');
   }
@@ -66,7 +69,7 @@ const Response = ({ collection, response, item }) => {
         headers={headers}
         item={item}
         type="response"
-        isLoaded={isLoaded}
+        isBodyHeldBack={isBodyHeldBack}
       />
     </>
   );

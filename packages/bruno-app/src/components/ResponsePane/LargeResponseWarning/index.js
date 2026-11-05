@@ -1,16 +1,24 @@
 import React from 'react';
+import { useDispatch } from 'react-redux';
 import { IconDownload, IconCopy, IconEye, IconAlertTriangle } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import StyledWrapper from './StyledWrapper';
 import { formatSize } from 'utils/common/index';
 import Button from 'ui/Button/index';
-import { MAX_RENDERABLE_RESPONSE_BYTES } from 'utils/common/constants';
+import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { updateActivePreferencesTab } from 'providers/ReduxStore/slices/app';
 
-const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
+const LargeResponseWarning = ({ item, collectionUid, responseSize, onRevealResponse }) => {
   const { ipcRenderer } = window;
+  const dispatch = useDispatch();
   const response = item.response || {};
-  const isDownloadOnly = responseSize > MAX_RENDERABLE_RESPONSE_BYTES;
+  const isDownloadOnly = !response.data && !response.dataBuffer;
+
+  const openPreferences = () => {
+    dispatch(updateActivePreferencesTab({ tab: 'general' }));
+    dispatch(addTab({ type: 'preferences', uid: collectionUid ? `${collectionUid}-preferences` : 'preferences', collectionUid }));
+  };
 
   const downloadResponseToFile = () => {
     return new Promise((resolve) => {
@@ -56,17 +64,11 @@ const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
             Large Response Warning
           </div>
           <div className="warning-description">
-            Handling responses over <span className="size-highlight supported-size">{formatSize(10 * 1024 * 1024)}</span> could degrade performance.
+            This response exceeds your configured preview size limit.
             <br />
-            Size of current response: <span className="size-highlight current-size">{formatSize(responseSize)}</span>
-            {isDownloadOnly ? (
-              <>
-                <br />
-                <span data-testid="large-response-download-only">
-                  Responses over <span className="size-highlight">{formatSize(MAX_RENDERABLE_RESPONSE_BYTES)}</span> can only be downloaded.
-                </span>
-              </>
-            ) : null}
+            Current response size: <span className="size-highlight current-size">{formatSize(responseSize)}</span>
+            <br />
+            You can increase the maximum response size in <button className="text-link" onClick={openPreferences} data-testid="large-response-open-preferences">Preferences</button> to preview larger responses. Higher limits may impact performance and memory usage.
           </div>
         </div>
       </div>

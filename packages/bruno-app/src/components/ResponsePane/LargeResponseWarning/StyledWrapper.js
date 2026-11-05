@@ -39,11 +39,6 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.colors.text.danger};
       background: ${(props) => props.theme.colors.text.danger}15;
     }
-
-    .supported-size {
-      color: ${(props) => props.theme.colors.text.yellow};
-      background: ${(props) => props.theme.colors.text.yellow}15;
-    }
   }
 
   .warning-actions {
