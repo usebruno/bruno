@@ -1,5 +1,5 @@
-import ImportSettingRow from 'components/Sidebar/ImportSettingRow';
-import ImportSettingDropdown from 'components/Sidebar/ImportSettingDropdown';
+import ImportSettingRow from 'components/Sidebar/ImportSettings/ImportSettingRow';
+import ImportSettingDropdown from 'components/Sidebar/ImportSettings/ImportSettingDropdown';
 
 const folderArrangementOptions = [
   { value: 'tags', label: 'Tags' },

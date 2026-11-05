@@ -1,5 +1,5 @@
 import ToggleSwitch from 'components/ToggleSwitch';
-import ImportSettingRow from 'components/Sidebar/ImportSettingRow';
+import ImportSettingRow from 'components/Sidebar/ImportSettings/ImportSettingRow';
 
 const CheckForSpecUpdatesOption = ({ checked, onChange, disabled = false, showSwagger2Note = false, testId, descriptionTestId, className }) => (
   <ImportSettingRow

@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ThemeProvider } from 'providers/Theme';
 import Modal from 'components/Modal';
-import ImportSettingDropdown from 'components/Sidebar/ImportSettingDropdown';
+import ImportSettingDropdown from 'components/Sidebar/ImportSettings/ImportSettingDropdown';
 import ImportAdvancedSection from './index';
 
 const renderInModal = (handleConfirm = jest.fn()) => render(

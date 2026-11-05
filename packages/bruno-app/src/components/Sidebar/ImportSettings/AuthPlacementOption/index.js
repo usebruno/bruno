@@ -1,5 +1,5 @@
 import ToggleSwitch from 'components/ToggleSwitch';
-import ImportSettingRow from 'components/Sidebar/ImportSettingRow';
+import ImportSettingRow from 'components/Sidebar/ImportSettings/ImportSettingRow';
 
 const AuthPlacementOption = ({ value, onChange, disabled = false }) => {
   const isCollection = value === 'collection';
