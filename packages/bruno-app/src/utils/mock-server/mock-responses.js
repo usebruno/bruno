@@ -171,7 +171,7 @@ const demoValueForCondition = (condition) => {
     return '';
   }
 
-  if (operator === 'isNotEmpty' || operator === 'isDefined' || operator === 'isString') {
+  if (operator === 'isNotEmpty' || operator === 'isDefined' || operator === 'isString' || operator === 'isNotNull') {
     return 'value';
   }
 

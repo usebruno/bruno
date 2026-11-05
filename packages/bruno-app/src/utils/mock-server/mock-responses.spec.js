@@ -316,6 +316,17 @@ describe('buildDemoRequestFromRules', () => {
     expect(demo.body.json).toEqual({ count: 1, note: null });
   });
 
+  it('uses a non-empty sample for a saved isNotNull rule', () => {
+    const demo = buildDemoRequestFromRules(request, {
+      operator: 'AND',
+      conditions: [
+        { target: 'header', key: 'X-Present', operator: 'isNotNull', value: '' }
+      ]
+    });
+
+    expect(demo.headers).toEqual([{ name: 'X-Present', value: 'value', enabled: true }]);
+  });
+
   it('picks samples that satisfy notContains and notIn', () => {
     const demo = buildDemoRequestFromRules(request, {
       operator: 'AND',
