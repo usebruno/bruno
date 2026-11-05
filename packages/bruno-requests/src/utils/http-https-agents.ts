@@ -241,12 +241,67 @@ export class PatchedHttpsProxyAgent extends HttpsProxyAgent<any> {
   }
 }
 
+const matchesCertificateDomain = (requestUrl: URL, domain: string): boolean => {
+  // A certificate domain is a hostname pattern and optional port, not a URL.
+  if (/[\\/@?#\s]/.test(domain)) {
+    return false;
+  }
+
+  let configuredUrl: URL;
+  try {
+    configuredUrl = new URL(`${requestUrl.protocol}//${domain}`);
+  } catch {
+    return false;
+  }
+
+  // Parsing with the request protocol normalizes default ports (e.g. HTTPS 443).
+  if (/:\d+$/.test(domain) && configuredUrl.port !== requestUrl.port) {
+    return false;
+  }
+
+  const hostnameLabels = requestUrl.hostname.toLowerCase().split('.');
+  const domainLabels = configuredUrl.hostname.toLowerCase().split('.');
+  return domainLabels.length === hostnameLabels.length && domainLabels.every((pattern, index) => {
+    const label = hostnameLabels[index];
+    const parts = pattern.split('*');
+    if (parts.length === 1) {
+      return label === pattern;
+    }
+
+    const prefix = parts.shift()!;
+    const suffix = parts.pop()!;
+    if (!label || !label.startsWith(prefix) || !label.endsWith(suffix)) {
+      return false;
+    }
+
+    let offset = prefix.length;
+    const end = label.length - suffix.length;
+    for (const part of parts) {
+      const position = label.indexOf(part, offset);
+      if (position === -1) {
+        return false;
+      }
+      offset = position + part.length;
+    }
+    return offset <= end;
+  });
+};
+
 /** Read the first enabled client certificate matching a request URL. */
 const getClientCertificate = ({ requestUrl, collectionPath, clientCertificates }: Pick<
   GetCertsAndProxyConfigParams, 'requestUrl' | 'collectionPath' | 'clientCertificates'
 >): CertsConfig | undefined => {
   const certsConfig: CertsConfig = {};
   const clientCertConfig = get(clientCertificates, 'certs', []) as ClientCertificate[];
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(requestUrl || '');
+  } catch {
+    return undefined;
+  }
+  if (!['https:', 'grpc:', 'grpcs:'].includes(parsedUrl.protocol)) {
+    return undefined;
+  }
 
   for (const clientCert of clientCertConfig) {
     if (clientCert?.disabled) {
@@ -255,9 +310,7 @@ const getClientCertificate = ({ requestUrl, collectionPath, clientCertificates }
     const domain = clientCert?.domain;
     const type = clientCert?.type || 'cert';
     if (domain) {
-      const escapedDomain = domain.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
-      const hostRegex = new RegExp('^(https:\\/\\/|grpc:\\/\\/|grpcs:\\/\\/)?' + escapedDomain + '(?=$|[/:?#])', 'i');
-      if (requestUrl && requestUrl.match(hostRegex)) {
+      if (matchesCertificateDomain(parsedUrl, domain)) {
         if (type === 'cert') {
           try {
             let certFilePath = clientCert?.certFilePath;

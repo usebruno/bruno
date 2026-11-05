@@ -44,4 +44,16 @@ describe('bru.getClientCertificate', () => {
     });
     expect(bru.getVar('certificate')).toMatchObject({ cert: 'certificate', key: 'private key' });
   });
+
+  it.each([
+    ['api.example.com', 'https://api.example.com:443@attacker.test'],
+    ['*.example.com', 'https://attacker.test/path/.example.com']
+  ])('does not expose %s credentials to a misleading URL in Safe Mode', async (domain, requestUrl) => {
+    const bru = makeBru([{ ...pem, domain }]);
+    await executeQuickJsVmAsync({
+      script: `bru.setVar("certificate", bru.getClientCertificate(${JSON.stringify(requestUrl)}));`,
+      context: { bru }, collectionPath
+    });
+    expect(bru.getVar('certificate')).toBeUndefined();
+  });
 });

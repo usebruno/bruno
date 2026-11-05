@@ -44,6 +44,54 @@ describe('getClientCertificate', () => {
     expect(resolve([pem], 'https://api.example.com.attacker.test/token')).toBeUndefined();
   });
 
+  it.each([
+    ['api.example.com', 'https://api.example.com:443@attacker.test'],
+    ['api.example.com', 'https://api.example.com:9443@attacker.test/token'],
+    ['*.example.com', 'https://attacker.test/path/.example.com'],
+    ['*.example.com', 'https://attacker.test/?next=.example.com'],
+    ['*.example.com', 'https://attacker.test/#.example.com'],
+    ['*.example.com', 'https://user.example.com@attacker.test'],
+    ['*.example.com:9443', 'https://attacker.test/path/.example.com:9443']
+  ])('does not select %s from userinfo, a path, query, or fragment in %s', (domain, requestUrl) => {
+    expect(resolve([{ ...pem, domain }], requestUrl)).toBeUndefined();
+  });
+
+  it.each([
+    ['*.example.com', 'https://nested.api.example.com/token'],
+    ['api.example.com:9443', 'https://api.example.com:94430/token'],
+    ['api.example.com:9443', 'https://api.example.com/token'],
+    ['api.example.com', 'not a URL'],
+    ['api.example.com', 'https://'],
+    ['api.example.com/path', 'https://api.example.com/path'],
+    ['user@api.example.com', 'https://user@api.example.com']
+  ])('rejects a different authority or invalid configuration: %s / %s', (domain, requestUrl) => {
+    expect(resolve([{ ...pem, domain }], requestUrl)).toBeUndefined();
+  });
+
+  it.each([
+    ['api.example.com', 'https://API.EXAMPLE.COM/token'],
+    ['api.example.com', 'https://user:password@api.example.com:9443/token'],
+    ['api.example.com:443', 'https://api.example.com/token'],
+    ['api.example.com:443', 'https://api.example.com:443/token'],
+    ['api.example.com:9443', 'https://api.example.com:9443/token'],
+    ['*.example.com', 'https://api.example.com/token'],
+    ['api*.example.com', 'https://api1.example.com/token'],
+    ['a*b*c.example.com', 'https://axbyc.example.com/token'],
+    ['localhost:9443', 'https://localhost:9443/token'],
+    ['[::1]:9443', 'https://[::1]:9443/token'],
+    ['api.example.com:9443', 'grpcs://api.example.com:9443/token']
+  ])('matches the parsed authority for %s / %s', (domain, requestUrl) => {
+    expect(resolve([{ ...pem, domain }], requestUrl)).toHaveProperty('cert');
+  });
+
+  it('does not allow wildcard prefixes and suffixes to overlap', () => {
+    expect(resolve([{ ...pem, domain: 'ab*bc.example.com' }], 'https://abc.example.com')).toBeUndefined();
+  });
+
+  it.each(['api.example.com:443 ', 'api.example.com:44\t3'])('does not ignore a configured port containing whitespace: %s', (domain) => {
+    expect(resolve([{ ...pem, domain }], 'https://api.example.com:9443')).toBeUndefined();
+  });
+
   it('returns undefined without a match or configuration', () => {
     expect(resolve([pem], 'https://other.example.com')).toBeUndefined();
     expect(getClientCertificate({ collectionPath, requestUrl: 'https://api.example.com' })).toBeUndefined();
