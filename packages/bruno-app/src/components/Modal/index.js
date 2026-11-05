@@ -38,7 +38,8 @@ const ModalFooter = ({
   footerLeft,
   confirmButtonColor = 'primary',
   dataTestId = 'modal',
-  className = ''
+  className = '',
+  confirmAutoFocus = false
 }) => {
   confirmText = confirmText || 'Save';
   cancelText = cancelText || 'Cancel';
@@ -70,6 +71,7 @@ const ModalFooter = ({
             onClick={handleSubmit}
             className="submit"
             data-testid={`${dataTestId}-submit-btn`}
+            autoFocus={confirmAutoFocus}
           >
             {confirmText}
           </Button>
@@ -101,7 +103,8 @@ const Modal = ({
   confirmButtonColor = 'primary',
   noPadding,
   headerClassName,
-  footerClassName
+  footerClassName,
+  confirmAutoFocus = false
 }) => {
   const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -120,8 +123,8 @@ const Modal = ({
         return closeModal({ type: 'esc' });
       }
       case ENTER_KEY_CODE: {
-        const isSubmitButton = event.target?.type === 'submit';
-        if (!shiftKey && !ctrlKey && !altKey && !metaKey && handleConfirm && !isSubmitButton && !confirmDisabled) {
+        const isButton = event.target?.tagName === 'BUTTON';
+        if (!isButton && !shiftKey && !ctrlKey && !altKey && !metaKey && handleConfirm && !confirmDisabled) {
           return handleConfirm();
         }
       }
@@ -172,13 +175,14 @@ const Modal = ({
           cancelText={cancelText}
           handleCancel={() => closeModal({ type: 'button' })}
           handleSubmit={handleConfirm}
-          confirmDisabled={confirmDisabled}
+          confirmDisabled={confirmDisabled || isClosing}
           hideCancel={hideCancel}
           hideFooter={hideFooter}
           footerLeft={footerLeft}
           confirmButtonColor={confirmButtonColor}
           dataTestId={dataTestId}
           className={footerClassName}
+          confirmAutoFocus={confirmAutoFocus}
         />
       </div>
 
