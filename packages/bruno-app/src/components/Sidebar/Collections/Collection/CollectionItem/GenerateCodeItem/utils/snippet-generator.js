@@ -51,6 +51,59 @@ const addCurlAuthFlags = (curlCommand, auth) => {
   return curlCommand;
 };
 
+const PYTHON_ESCAPES = { '\\': '\\\\', '\n': '\\n', '\r': '\\r', '\t': '\\t' };
+
+// Escapes a string for a double-quoted Python literal. Quotes are optional
+// because HTTPSnippet already escapes them in dict values, but not in keys.
+const escapePythonString = (value, escapeQuotes) =>
+  Array.from(value, (char) => {
+    if (PYTHON_ESCAPES[char]) return PYTHON_ESCAPES[char];
+    if (escapeQuotes && char === '"') return '\\"';
+    const code = char.charCodeAt(0);
+    return code < 0x20 || code === 0x7f ? `\\x${code.toString(16).padStart(2, '0')}` : char;
+  }).join('');
+
+const escapeJsonForPython = (value) => {
+  if (Array.isArray(value)) return value.map(escapeJsonForPython);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [escapePythonString(key, true), escapeJsonForPython(item)]));
+  }
+  return typeof value === 'string' ? escapePythonString(value, false) : value;
+};
+
+// Mime types HTTPSnippet parses into an object for the dict-literal clients.
+const HTTPSNIPPET_JSON_MIME_TYPES = ['application/json', 'application/x-json', 'text/json', 'text/x-json'];
+
+// HTTPSnippet's Python requests client prints JSON and url-encoded bodies as
+// dict literals without escaping backslashes or control characters, so a
+// newline in a value ends the string early and the script does not run.
+// Pre-escape those bodies so the printed literal decodes to the original data.
+const escapeBodyForPythonRequests = (har) => {
+  const postData = har.postData;
+  if (!postData) return har;
+
+  if (postData.mimeType === 'application/x-www-form-urlencoded' && Array.isArray(postData.params)) {
+    const params = postData.params.map((param) => ({
+      ...param,
+      name: escapePythonString(String(param.name), true),
+      value: escapePythonString(String(param.value ?? ''), false)
+    }));
+    return { ...har, postData: { ...postData, params } };
+  }
+
+  if (HTTPSNIPPET_JSON_MIME_TYPES.includes(postData.mimeType) && postData.text) {
+    try {
+      const text = JSON.stringify(escapeJsonForPython(JSON.parse(postData.text)));
+      return { ...har, postData: { ...postData, text } };
+    } catch (error) {
+      // HTTPSnippet prints invalid JSON as an escaped string, which is already valid Python
+      return har;
+    }
+  }
+
+  return har;
+};
+
 const generateSnippet = async ({ language, item, collection, shouldInterpolate = false }) => {
   try {
     // Get HTTPSnippet dynamically so mocks can be applied in tests
@@ -99,9 +152,11 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
 
     const isCurl = language.target === 'shell' && language.client === 'curl';
     const isLibcurl = language.target === 'c' && language.client === 'libcurl';
+    const isPythonRequests = language.target === 'python' && language.client === 'requests';
+    const snippetHar = isPythonRequests ? escapeBodyForPythonRequests(har) : har;
 
     // Generate snippet using HTTPSnippet
-    const snippet = new HTTPSnippet({ ...har, headers: mergeCookieHeaders(har.headers, isCurl || isLibcurl) });
+    const snippet = new HTTPSnippet({ ...snippetHar, headers: mergeCookieHeaders(har.headers, isCurl || isLibcurl) });
     let result = snippet.convert(language.target, language.client);
 
     // curl --digest / --ntlm flags. Snippet-text manipulation, not HAR.
