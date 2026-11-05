@@ -23,6 +23,8 @@ export const buildRunnerLocators = (page: Page) => ({
   requestItems: () => page.getByTestId('runner-request-item'),
   delayInput: () => page.getByTestId('runner-delay-input'),
   resultItems: () => page.getByTestId('runner-result-item'),
+  resultStatus: () => page.getByTestId('runner-result-status'),
+  responseTime: () => page.getByTestId('response-time'),
   passedTestRows: () => page.getByTestId('runner-test-row-passed'),
   failedTestRows: () => page.getByTestId('runner-test-row-failed'),
   requestLoader: () => page.getByTestId('runner-result-item').locator('.animate-spin'),
