@@ -46,14 +46,21 @@ describe('search_index statements', () => {
     expect(rows[0].requestName).toBe('Newer');
   });
 
-  it('matches requests when the term matches collection_name only', () => {
-    const matchPath = '/collections/unique-widget-api';
-    const otherPath = '/collections/other-stuff';
-    upsertRequest({ collection_path: matchPath, collection_name: 'UniqueWidgetAPI', request_path: 'ping.bru', request_name: 'ping' });
-    upsertRequest({ collection_path: otherPath, collection_name: 'OtherStuff', request_path: 'health.bru', request_name: 'health' });
+  // The count must equal the request rows the sidebar shows, which match on name or url only
+  it('counts requests whose name or url matches', () => {
+    const collectionPath = '/collections/demo';
+    upsertRequest({ collection_path: collectionPath, collection_name: 'Demo', request_path: 'a.bru', request_name: 'Get users' });
+    upsertRequest({ collection_path: collectionPath, collection_name: 'Demo', request_path: 'b.bru', request_name: 'Ping', request_url: '/users' });
 
-    expect(count('%Widget%', matchPath)).toBe(1);
-    expect(count('%Widget%', otherPath)).toBe(0);
+    expect(count('%users%', collectionPath)).toBe(2);
+  });
+
+  it('does not count requests that only match on method, path or collection name', () => {
+    const collectionPath = '/collections/widget-api';
+    upsertRequest({ collection_path: collectionPath, collection_name: 'Widget API', request_path: 'getters/ping.bru', request_name: 'Ping', request_type: 'GET', request_url: '/ping' });
+
+    expect(count('%get%', collectionPath)).toBe(0);
+    expect(count('%widget%', collectionPath)).toBe(0);
   });
 
   it('treats escaped % and _ as literal characters', () => {

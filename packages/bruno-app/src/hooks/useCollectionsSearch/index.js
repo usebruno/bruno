@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useLayoutEffect, useSyncExternalStore } from 'react';
 import { useSelector } from 'react-redux';
 import get from 'lodash/get';
 
@@ -178,6 +178,14 @@ export const createSearchStore = () => {
         if (query !== snapshot.query) start(query);
       }, DEBOUNCE_MS);
     },
+    setContext: (next) => {
+      const rootsChanged = next.indexRoots !== undefined && next.indexRoots.join('\0') !== context.indexRoots.join('\0');
+      const rowsChanged = next.rows !== undefined && next.rows !== context.rows;
+      Object.assign(context, next);
+      if (rootsChanged && snapshot.query) start(snapshot.query);
+      // Virtuoso's range callbacks run before the parent's effect, so they may have checked the previous rows
+      else if (rowsChanged) loadVisible();
+    },
     onRangeChanged: (range) => {
       context.range = range;
       loadVisible();
@@ -191,21 +199,26 @@ const store = createSearchStore();
 const useCollectionsSearch = ({ sidebarEntries }) => {
   const searchIndexEnabled = useSelector((state) => get(state, 'app.preferences.cache.searchIndex.enabled', false));
   const loadedEntries = searchIndexEnabled ? sidebarEntries.filter((entry) => entry.kind === 'loaded') : [];
-  store.context.roots = loadedEntries
+  const roots = loadedEntries
     .filter((entry) => entry.collection.mountStatus !== 'mounted')
     .map((entry) => entry.collection.pathname);
-  store.context.indexRoots = loadedEntries
+  const indexRoots = loadedEntries
     .filter((entry) => entry.collection.pathname)
     .map((entry) => entry.collection.pathname);
-  store.context.order = sidebarEntries.map(getEntryPath);
+  const order = sidebarEntries.map(getEntryPath);
   const { query, itemsByRoot, indexing, matchCount } = useSyncExternalStore(store.subscribe, store.getSnapshot);
+
+  // Synced after commit so a discarded render never leaks its collections into the store
+  useLayoutEffect(() => {
+    store.setContext({ roots, indexRoots, order });
+  });
 
   return {
     query,
     itemsByRoot,
     indexing,
     matchCount,
-    searchContext: store.context,
+    setSearchContext: store.setContext,
     setQuery: store.setQuery,
     onRangeChanged: store.onRangeChanged,
     onItemsRendered: store.onItemsRendered

@@ -49,7 +49,8 @@ SELECT COUNT(*) AS total
 FROM search_index
 WHERE entity = 'request'
   AND collection_path = @collection_path
-  AND (name LIKE @like ESCAPE '\' OR path LIKE @like ESCAPE '\' OR method LIKE @like ESCAPE '\' OR url LIKE @like ESCAPE '\' OR collection_name LIKE @like ESCAPE '\');
+  -- Same fields the sidebar filters on (doesRequestMatchSearchText), so the count equals the rows shown
+  AND (name LIKE @like ESCAPE '\' OR url LIKE @like ESCAPE '\');
 
 -- name: search_index_collection_source :one
 SELECT source_path AS sourcePath

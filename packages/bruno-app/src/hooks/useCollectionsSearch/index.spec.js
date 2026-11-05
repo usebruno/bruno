@@ -85,6 +85,56 @@ describe('createSearchStore', () => {
     expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:search-cancel');
   });
 
+  it('re-runs the active search when a collection is opened or closed', () => {
+    const store = createSearchStore();
+    store.subscribe(() => {});
+    store.setContext({ roots: ['/a'], indexRoots: ['/a'] });
+    startSearch(store, 'hit');
+
+    store.setContext({ roots: ['/a', '/b'], indexRoots: ['/a', '/b'] });
+
+    expect(window.ipcRenderer.invoke).toHaveBeenLastCalledWith('renderer:search-collections', { roots: ['/a', '/b'], query: 'hit' });
+  });
+
+  it('keeps the active search when only the mount status of a collection changes', () => {
+    const store = createSearchStore();
+    store.subscribe(() => {});
+    store.setContext({ roots: ['/a'], indexRoots: ['/a'] });
+    startSearch(store, 'hit');
+
+    store.setContext({ roots: [], indexRoots: ['/a'] });
+
+    const searches = window.ipcRenderer.invoke.mock.calls.filter(([channel]) => channel === 'renderer:search-collections');
+    expect(searches).toHaveLength(1);
+  });
+
+  it('loads a collection\'s matches once new rows bring it into view', async () => {
+    const store = createSearchStore();
+    store.subscribe(() => {});
+    const offscreenRows = Array.from({ length: 200 }, () => ({ collectionPathname: '/before' }));
+    store.setContext({ roots: ['/a'], indexRoots: ['/a'], order: ['/before', '/a'], rows: offscreenRows });
+    startSearch(store, 'hit');
+    resolveSearch(1);
+    await flush();
+    listener({ type: 'batch', id: 1, root: '/a', paths: ['req.bru'] });
+    await flush();
+    expect(window.ipcRenderer.invoke).not.toHaveBeenCalledWith('renderer:search-window', expect.anything());
+
+    store.setContext({ rows: [] });
+    await flush();
+
+    expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:search-window', { id: 1, collectionPath: '/a', relativePaths: ['req.bru'] });
+  });
+
+  it('does not search when collections change with no active query', () => {
+    const store = createSearchStore();
+    store.subscribe(() => {});
+
+    store.setContext({ roots: ['/a'], indexRoots: ['/a'] });
+
+    expect(window.ipcRenderer.invoke).not.toHaveBeenCalledWith('renderer:search-collections', expect.anything());
+  });
+
   it('does not use the main-process search when the index is off', () => {
     const store = createSearchStore();
     store.subscribe(() => {});

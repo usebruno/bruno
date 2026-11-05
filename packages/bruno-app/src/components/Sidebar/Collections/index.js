@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useLayoutEffect, useState, useMemo, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
 import StyledWrapper from './StyledWrapper';
@@ -46,7 +46,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     itemsByRoot,
     indexing: searchIndexing,
     matchCount: searchMatchCount,
-    searchContext,
+    setSearchContext,
     setQuery,
     onRangeChanged,
     onItemsRendered
@@ -84,7 +84,9 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     }),
     [renderedSidebarEntries, debouncedSearchText, searchCollapsedCollectionUids]
   );
-  searchContext.rows = rows;
+  useLayoutEffect(() => {
+    setSearchContext({ rows });
+  }, [rows, setSearchContext]);
 
   // Ghost rows carry only path/name. GitRemoteCollectionRow needs the full entry (for `remote`).
   const ghostsByPath = useMemo(() => {

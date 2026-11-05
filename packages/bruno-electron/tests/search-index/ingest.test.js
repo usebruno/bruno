@@ -2,24 +2,18 @@ const { ingestParsedFile, removeFromSearchIndex } = require('../../src/services/
 
 const makeSearchIndex = () => {
   const rows = new Map();
-  let revision = 0;
   return {
-    get revision() {
-      return revision;
-    },
     upsert: (entry) => {
       const prior = rows.get(entry.requestPath);
       if (prior && prior.mtime > entry.mtime) return false;
       if (prior && prior.mtime === entry.mtime && prior.hash === entry.hash) return false;
       rows.set(entry.requestPath, { mtime: entry.mtime, hash: entry.hash, name: entry.requestName });
-      revision += 1;
       return true;
     },
     upsertMeta: () => false,
     remove: (collectionPath, requestPath) => {
       if (!rows.has(requestPath)) return false;
       rows.delete(requestPath);
-      revision += 1;
       return true;
     },
     removeMeta: () => false,
@@ -76,10 +70,8 @@ describe('search-index ingest', () => {
       data: { name: 'One', type: 'http-request', request: { method: 'GET', url: '/' } }
     };
     ingestParsedFile({ ...ctx, result });
-    const revision = searchIndex.revision;
     const changed = ingestParsedFile({ ...ctx, result: { ...result } });
     expect(changed).toBe(false);
-    expect(searchIndex.revision).toBe(revision);
   });
 
   it('removes request rows', () => {

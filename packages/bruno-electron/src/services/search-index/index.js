@@ -5,12 +5,6 @@ const { defaultClassify } = require('../../utils/mount');
 const likePattern = (term) => `%${String(term ?? '').replace(/[\\%_]/g, '\\$&')}%`;
 
 class SearchIndex {
-  #revision = 0;
-
-  get revision() {
-    return this.#revision;
-  }
-
   #execute(name, params) {
     return getStatements().execute(name, params);
   }
@@ -18,7 +12,6 @@ class SearchIndex {
   #mutate(name, params) {
     const result = this.#execute(name, params);
     const changes = typeof result?.changes === 'number' ? result.changes : 1;
-    if (changes > 0) this.#revision += 1;
     return changes > 0;
   }
 
