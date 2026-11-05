@@ -70,6 +70,10 @@ const PresetsSettings = ({ collection }) => {
   return (
     <StyledWrapper className="h-full w-full">
       <FieldList className="presets-settings bruno-form">
+        <div>
+          <h1 className="font-medium text-[0.9375rem]">Presets</h1>
+          <div className="text-xs mt-1 text-muted">Set defaults for new requests and the environment this collection opens with.</div>
+        </div>
         <FieldList gap="lg" className="presets-fields">
           <FormField
             label="Default Request Type"

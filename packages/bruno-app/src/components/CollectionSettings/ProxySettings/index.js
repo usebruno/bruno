@@ -223,7 +223,10 @@ const ProxySettings = ({ collection }) => {
   return (
     <StyledWrapper className="h-full w-full">
       <FieldList className="proxy-settings bruno-form">
-        <div className="text-muted">Configure proxy settings for this collection.</div>
+        <div>
+          <h1 className="font-medium text-[0.9375rem]">Proxy Settings</h1>
+          <div className="text-xs mt-1 text-muted">Configure proxy settings for this collection.</div>
+        </div>
 
         {/* Lines only between the settings sections, not around the intro or the Save button */}
         <FieldList dividers>
