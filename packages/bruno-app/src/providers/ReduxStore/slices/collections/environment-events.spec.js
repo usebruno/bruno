@@ -1,4 +1,5 @@
 import reducer, { collectionAddEnvFileEvent, collectionUnlinkEnvFileEvent } from 'providers/ReduxStore/slices/collections';
+import { collectionUnlinkEnvFileEvent as collectionUnlinkEnvFileEventThunk } from 'providers/ReduxStore/slices/collections/actions';
 
 const COLLECTION_UID = 'col-1';
 const ENV_UID = 'env-1';
@@ -125,5 +126,53 @@ describe('collectionUnlinkEnvFileEvent', () => {
 
     expect(nextState.collections[0].environments.map((e) => e.uid)).toEqual([ENV_UID]);
     expect(nextState.collections[0].activeEnvironmentUid).toBe(ENV_UID);
+  });
+});
+
+describe('collectionUnlinkEnvFileEvent thunk', () => {
+  const payload = (environment) => ({ data: environment, meta: { collectionUid: COLLECTION_UID } });
+
+  const makeGetState = (activeEnvironmentUid) => () => ({
+    collections: {
+      collections: [{ uid: COLLECTION_UID, pathname: '/coll', environments: [makeEnvironment()], activeEnvironmentUid }]
+    },
+    workspaces: {
+      workspaces: [{ uid: 'ws-1', pathname: '/workspace' }],
+      activeWorkspaceUid: 'ws-1'
+    }
+  });
+
+  beforeEach(() => {
+    window.ipcRenderer = { invoke: jest.fn().mockResolvedValue() };
+  });
+
+  afterEach(() => {
+    delete window.ipcRenderer;
+  });
+
+  it('clears the persisted environment selection when the active environment file is removed', () => {
+    const dispatch = jest.fn();
+
+    collectionUnlinkEnvFileEventThunk(payload(makeEnvironment()))(dispatch, makeGetState(ENV_UID));
+
+    expect(dispatch).toHaveBeenCalledWith(collectionUnlinkEnvFileEvent(payload(makeEnvironment())));
+    expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:update-ui-state-snapshot', {
+      type: 'COLLECTION_ENVIRONMENT',
+      data: {
+        collectionPath: '/coll',
+        workspacePathname: '/workspace',
+        environmentPath: '',
+        selectedEnvironment: ''
+      }
+    });
+  });
+
+  it('leaves the persisted selection alone when a non-active environment file is removed', () => {
+    const dispatch = jest.fn();
+
+    collectionUnlinkEnvFileEventThunk(payload(makeEnvironment()))(dispatch, makeGetState('env-2'));
+
+    expect(dispatch).toHaveBeenCalledWith(collectionUnlinkEnvFileEvent(payload(makeEnvironment())));
+    expect(window.ipcRenderer.invoke).not.toHaveBeenCalled();
   });
 });

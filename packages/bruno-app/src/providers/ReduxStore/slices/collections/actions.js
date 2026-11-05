@@ -37,6 +37,7 @@ import brunoClipboard from 'utils/bruno-clipboard';
 
 import {
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
+  collectionUnlinkEnvFileEvent as _collectionUnlinkEnvFileEvent,
   createCollection as _createCollection,
   removeCollection as _removeCollection,
   selectEnvironment as _selectEnvironment,
@@ -3259,6 +3260,35 @@ export const collectionAddEnvFileEvent = (payload) => (dispatch, getState) => {
       .then(resolve)
       .catch(reject);
   });
+};
+
+export const collectionUnlinkEnvFileEvent = (payload) => (dispatch, getState) => {
+  const { data: environment, meta } = payload;
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, meta.collectionUid);
+  const wasActiveEnvironment = Boolean(collection) && collection.activeEnvironmentUid === environment.uid;
+
+  dispatch(_collectionUnlinkEnvFileEvent(payload));
+
+  if (!wasActiveEnvironment) {
+    return;
+  }
+
+  // The snapshot serializer keeps the previously saved selection when Redux has none,
+  // so clear it explicitly; otherwise a file recreated at the same path is re-selected on next launch.
+  const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
+  const { ipcRenderer } = window;
+  ipcRenderer
+    .invoke('renderer:update-ui-state-snapshot', {
+      type: 'COLLECTION_ENVIRONMENT',
+      data: {
+        collectionPath: collection.pathname,
+        workspacePathname: activeWorkspace?.pathname || null,
+        environmentPath: '',
+        selectedEnvironment: ''
+      }
+    })
+    .catch((err) => console.error('Failed to clear the persisted environment selection:', err));
 };
 
 export const importCollection = (collection, collectionLocation, options = {}) => (dispatch, getState) => {
