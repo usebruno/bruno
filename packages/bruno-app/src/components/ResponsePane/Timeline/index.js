@@ -8,6 +8,7 @@ import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
 import { buildTimelineEntries, getEntryKind, countByKind } from './buildEntries';
 import { FILTER_CHIPS } from './entryMeta';
+import { useSelector } from 'react-redux';
 
 const getEffectiveAuthSource = (collection, item) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
@@ -49,6 +50,7 @@ const getEffectiveAuthSource = (collection, item) => {
 
 const Timeline = ({ collection, item }) => {
   const wrapperRef = useRef(null);
+  const requestTimelineEvents = useSelector((state) => state.collections.requestTimelineEvents || {});
   const [scroll, setScroll] = usePersistedState({ key: `response-timeline-scroll-${item.uid}`, default: 0 });
   useTrackScroll({ ref: wrapperRef, selector: null, onChange: setScroll, initialValue: scroll });
   const [activeFilter, setActiveFilter] = useState('all');
@@ -61,9 +63,15 @@ const Timeline = ({ collection, item }) => {
   );
   const isGrpcRequest = item.type === 'grpc-request' || item.type === 'ws-request';
 
+  const resolvedTimeline = useMemo(
+    () => (collection?.timeline || [])
+      .map((entry) => entry.requestEventId ? requestTimelineEvents[entry.requestEventId] : entry)
+      .filter(Boolean),
+    [collection?.timeline, requestTimelineEvents]
+  );
   const entries = useMemo(
-    () => buildTimelineEntries(collection?.timeline, item.uid, authSource),
-    [collection?.timeline, item.uid, authSource]
+    () => buildTimelineEntries(resolvedTimeline, item.uid, authSource),
+    [resolvedTimeline, item.uid, authSource]
   );
   const counts = useMemo(() => countByKind(entries), [entries]);
 

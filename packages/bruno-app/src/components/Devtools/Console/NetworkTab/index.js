@@ -4,11 +4,14 @@ import { useSelector, useDispatch } from 'react-redux';
 import {
   IconNetwork,
   IconArrowUp,
-  IconArrowDown
+  IconArrowDown,
+  IconTrash
 } from '@tabler/icons';
 import {
-  setSelectedRequest
+  setSelectedRequest,
+  clearSelectedRequest
 } from 'providers/ReduxStore/slices/logs';
+import { clearAllNetworkRequests } from 'providers/ReduxStore/slices/collections';
 import { useResizableColumns } from 'hooks/useResizableColumns';
 import { formatDuration } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
@@ -147,24 +150,17 @@ const NetworkTab = () => {
 
   const { networkFilters, selectedRequest } = useSelector((state) => state.logs);
   const collections = useSelector((state) => state.collections.collections);
+  const networkRequestIds = useSelector((state) => state.collections.networkRequestIds || []);
+  const requestTimelineEvents = useSelector((state) => state.collections.requestTimelineEvents || {});
 
   const allRequests = useMemo(() => {
-    const requests = [];
-    collections.forEach((collection) => {
-      if (collection.timeline) {
-        collection.timeline
-          .filter((entry) => entry.type === 'request')
-          .forEach((entry) => {
-            requests.push({
-              ...entry,
-              collectionName: collection.name,
-              collectionUid: collection.uid
-            });
-          });
-      }
-    });
-    return requests.sort((a, b) => a.timestamp - b.timestamp);
-  }, [collections]);
+    const collectionNames = new Map(collections.map((collection) => [collection.uid, collection.name]));
+    return networkRequestIds
+      .map((requestEventId) => requestTimelineEvents[requestEventId])
+      .filter(Boolean)
+      .map((entry) => ({ ...entry, collectionName: collectionNames.get(entry.collectionUid) }))
+      .sort((a, b) => a.timestamp - b.timestamp);
+  }, [collections, networkRequestIds, requestTimelineEvents]);
 
   const filteredRequests = useMemo(() => {
     return allRequests.filter((request) => {
@@ -183,6 +179,11 @@ const NetworkTab = () => {
     });
   };
 
+  const handleClearNetworkLogs = () => {
+    dispatch(clearAllNetworkRequests());
+    dispatch(clearSelectedRequest());
+  };
+
   const sortedRequests = useMemo(
     () => sortRequests(filteredRequests, sortConfig.key, sortConfig.direction),
     [filteredRequests, sortConfig]
@@ -192,10 +193,21 @@ const NetworkTab = () => {
     <StyledWrapper>
       <div className="network-content">
         {filteredRequests.length === 0 ? (
-          <div className="network-empty">
+          <div className="network-empty" data-testid="network-empty">
             <IconNetwork size={48} strokeWidth={1} />
             <p>No network requests</p>
             <span>Requests will appear here as you make API calls</span>
+            {allRequests.length > 0 ? (
+              <button
+                className="network-clear-button"
+                onClick={handleClearNetworkLogs}
+                title="Clear all network requests"
+                data-testid="clear-network-logs-empty"
+              >
+                <IconTrash size={16} strokeWidth={1.5} />
+                <span>Clear</span>
+              </button>
+            ) : null}
           </div>
         ) : (
           <div className={`requests-container${resizingIdx !== null ? ' is-resizing' : ''}`}>
