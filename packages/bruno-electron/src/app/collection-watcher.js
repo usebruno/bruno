@@ -31,6 +31,8 @@ const dotEnvWatcher = require('./dotenv-watcher');
 const { checkpoint } = require('../utils/benchmark');
 
 const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
+const WSL_POLLING_INTERVAL_MS = 2000;
+const DEFAULT_POLLING_INTERVAL_MS = 100;
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -831,13 +833,18 @@ class CollectionWatcher {
     const watcher = chokidar.watch(watchPath, {
       ignoreInitial,
       usePolling: isWSLPath(watchPath) || forcePolling ? true : false,
-      ignored: (filepath) => {
+      interval: isWSLPath(watchPath) ? WSL_POLLING_INTERVAL_MS : DEFAULT_POLLING_INTERVAL_MS,
+      ignored: (filepath, stats) => {
         const normalizedPath = normalizeAndResolvePath(filepath);
         const relativePath = path.relative(watchPath, normalizedPath);
         const basename = path.basename(filepath);
 
         // Ignore .env files - handled by dotenv-watcher
         if (basename === '.env' || basename.startsWith('.env.')) {
+          return true;
+        }
+
+        if (stats?.isFile() && basename !== 'bruno.json' && !hasRequestExtension(basename)) {
           return true;
         }
 
