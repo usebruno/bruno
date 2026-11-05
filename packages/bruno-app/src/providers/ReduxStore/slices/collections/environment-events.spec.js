@@ -1,4 +1,4 @@
-import reducer, { collectionAddEnvFileEvent } from 'providers/ReduxStore/slices/collections';
+import reducer, { collectionAddEnvFileEvent, collectionUnlinkEnvFileEvent } from 'providers/ReduxStore/slices/collections';
 
 const COLLECTION_UID = 'col-1';
 const ENV_UID = 'env-1';
@@ -98,5 +98,32 @@ describe('collectionAddEnvFileEvent', () => {
     );
 
     expect(nextState.collections[0].environments[0].externalSecrets).toBeUndefined();
+  });
+});
+
+describe('collectionUnlinkEnvFileEvent', () => {
+  const unlink = (environment) => collectionUnlinkEnvFileEvent({ data: environment, meta: { collectionUid: COLLECTION_UID } });
+
+  it('clears activeEnvironmentUid when the active environment file is removed', () => {
+    const environment = makeEnvironment();
+    const state = makeInitialState([environment]);
+    state.collections[0].activeEnvironmentUid = ENV_UID;
+
+    const nextState = reducer(state, unlink(environment));
+
+    expect(nextState.collections[0].environments).toHaveLength(0);
+    expect(nextState.collections[0].activeEnvironmentUid).toBeNull();
+  });
+
+  it('keeps activeEnvironmentUid when a different environment file is removed', () => {
+    const activeEnvironment = makeEnvironment();
+    const otherEnvironment = makeEnvironment({ uid: 'env-2', name: 'other_env', pathname: '/coll/environments/other_env.bru' });
+    const state = makeInitialState([activeEnvironment, otherEnvironment]);
+    state.collections[0].activeEnvironmentUid = ENV_UID;
+
+    const nextState = reducer(state, unlink(otherEnvironment));
+
+    expect(nextState.collections[0].environments.map((e) => e.uid)).toEqual([ENV_UID]);
+    expect(nextState.collections[0].activeEnvironmentUid).toBe(ENV_UID);
   });
 });
