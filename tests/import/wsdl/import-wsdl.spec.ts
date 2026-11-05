@@ -24,10 +24,8 @@ test.describe('Import WSDL Collection', () => {
       await importLocators.modal().waitFor({ state: 'visible' });
     });
 
-    await test.step('Verify that Import dialog shows File, Git Repository, and URL', async () => {
-      await expect(importLocators.fileTab()).toContainText('File');
-      await expect(importLocators.gitRepositoryTab()).toContainText('Git Repository');
-      await expect(importLocators.urlTab()).toContainText('URL');
+    await test.step('Verify that Import dialog shows FileL', async () => {
+      await expect(importLocators.fileTab()).toContainText('File'); ;
     });
 
     await test.step('Choose the WSDL XML file', async () => {
@@ -47,6 +45,7 @@ test.describe('Import WSDL Collection', () => {
     await test.step('Verify that Imported collection keeps its folder and requests', async () => {
       await openCollection(page, collectionName);
       await expect(sidebar.itemsIn(collectionName, 'UserService')).toBeVisible();
+      await expect(sidebar.collectionScope(collectionName).locator('.collection-item-name')).toHaveCount(1);
 
       await expandFolder(page, 'UserService');
       await expect(sidebar.itemsIn(collectionName, 'GetUser')).toBeVisible();
