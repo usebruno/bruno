@@ -122,7 +122,6 @@ const closeAllCollections = async (page) => {
     await expect(page.getByTestId('collections').locator('.collection-name')).toHaveCount(0);
   });
 };
-
 /**
  * Open a collection from the sidebar and accept the JavaScript Sandbox modal
  * @param page - The page object
@@ -665,6 +664,7 @@ type ImportCollectionOptions = {
   expectIssues?: boolean;
   sidebarTimeout?: number;
   preserveScripts?: boolean;
+  checkForSpecUpdates?: boolean;
 };
 
 const importCollection = async (
@@ -704,6 +704,12 @@ const importCollection = async (
       const preserveScriptsCheckbox = locators.import.preserveScriptsToggle();
       await preserveScriptsCheckbox.check();
       await expect(preserveScriptsCheckbox).toBeChecked();
+    }
+
+    if (options.checkForSpecUpdates) {
+      const checkForSpecUpdatesToggle = locators.import.checkForSpecUpdatesToggle();
+      await checkForSpecUpdatesToggle.check();
+      await expect(checkForSpecUpdatesToggle).toBeChecked();
     }
 
     // Set location and import
