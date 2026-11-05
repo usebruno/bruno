@@ -33,8 +33,8 @@ describe('FieldList', () => {
     expect(container.firstChild).toHaveClass('field-list--dividers');
   });
 
-  it('passes className and data-testid through', () => {
-    renderWithTheme(<FieldList className="page-list" data-testid="list"><div>A</div></FieldList>);
-    expect(screen.getByTestId('list')).toHaveClass('page-list');
+  it('passes className through', () => {
+    const { container } = renderWithTheme(<FieldList className="page-list"><div>A</div></FieldList>);
+    expect(container.firstChild).toHaveClass('page-list');
   });
 });

@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  /* Keep each control close to its label; spacing and dividers come from FieldList */
+  /* Cap the list width so inline controls stay close to their labels on wide panes */
   .request-settings-list {
     max-width: 600px;
   }

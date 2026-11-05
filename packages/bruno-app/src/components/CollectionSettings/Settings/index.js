@@ -10,15 +10,10 @@ import StyledWrapper from './StyledWrapper';
 export const SETTINGS_SECTIONS = ['presets', 'proxy', 'clientCert'];
 export const DEFAULT_SETTINGS_SECTION = 'presets';
 
-const GROUPS = [
-  {
-    label: 'General',
-    items: [
-      { key: 'presets', label: 'Presets', Icon: IconAdjustmentsHorizontal },
-      { key: 'proxy', label: 'Proxy', Icon: IconWorld },
-      { key: 'clientCert', label: 'Client certificates', Icon: IconCertificate }
-    ]
-  }
+const ITEMS = [
+  { key: 'presets', label: 'Presets', Icon: IconAdjustmentsHorizontal },
+  { key: 'proxy', label: 'Proxy', Icon: IconWorld },
+  { key: 'clientCert', label: 'Client certificates', Icon: IconCertificate }
 ];
 
 const renderSection = (section, collection) => {
@@ -39,28 +34,24 @@ const Settings = ({ collection, section, onSelect, indicators = {} }) => {
   return (
     <StyledWrapper className="flex h-full w-full overflow-hidden">
       <nav className="settings-sidebar" aria-label="Collection settings" data-testid="collection-settings-sidebar">
-        {GROUPS.map((group) => (
-          <div className="settings-group" key={group.label}>
-            <div className="settings-group-label">{group.label}</div>
-            {group.items.map(({ key, label, Icon }) => {
-              const isActive = key === activeSection;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  className={classnames('settings-item', { active: isActive })}
-                  aria-current={isActive ? 'page' : undefined}
-                  onClick={() => onSelect(key)}
-                  data-testid={`collection-settings-tab-${key}`}
-                >
-                  <Icon size={16} strokeWidth={1.5} className="settings-item-icon" aria-hidden="true" />
-                  <span className="settings-item-label">{label}</span>
-                  {indicators[key] && <StatusDot dataTestId={`collection-settings-${key}`} />}
-                </button>
-              );
-            })}
-          </div>
-        ))}
+        <div className="settings-group-label">General</div>
+        {ITEMS.map(({ key, label, Icon }) => {
+          const isActive = key === activeSection;
+          return (
+            <button
+              key={key}
+              type="button"
+              className={classnames('settings-item', { active: isActive })}
+              aria-current={isActive ? 'page' : undefined}
+              onClick={() => onSelect(key)}
+              data-testid={`collection-settings-tab-${key}`}
+            >
+              <Icon size={16} strokeWidth={1.5} className="settings-item-icon" aria-hidden="true" />
+              <span className="settings-item-label">{label}</span>
+              {indicators[key] && <StatusDot />}
+            </button>
+          );
+        })}
       </nav>
       <div className="settings-content" data-testid="collection-settings-section-content">
         {renderSection(activeSection, collection)}

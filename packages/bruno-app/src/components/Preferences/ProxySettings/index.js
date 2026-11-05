@@ -139,7 +139,7 @@ const ProxySettings = ({ close }) => {
     preferences.proxy.pac?.source?.startsWith('file://') ? 'file' : 'url'
   );
 
-  // Same setter calls the four mode radios made
+  // Mode picker: Off sets disabled; the other modes clear it and set the source
   const handleProxyModeChange = (mode) => {
     setProxyMode(mode);
     if (mode === 'off') {

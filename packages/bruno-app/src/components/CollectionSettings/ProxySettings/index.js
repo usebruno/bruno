@@ -114,7 +114,7 @@ const ProxySettings = ({ collection }) => {
     if (!editor) return;
     e.preventDefault();
     editor.focus();
-    editor.setCursor(editor.lineCount(), 0);
+    editor.execCommand('goDocEnd');
   };
 
   const handleEnabledChange = (e) => {

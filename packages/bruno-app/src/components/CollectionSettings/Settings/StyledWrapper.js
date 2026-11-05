@@ -11,13 +11,9 @@ const StyledWrapper = styled.div`
     border-right: 1px solid ${(props) => props.theme.border.border0};
   }
 
-  .settings-group + .settings-group {
-    margin-top: 20px;
-  }
-
   .settings-group-label {
     padding: 4px 8px 6px 12px;
-    font-size: 13px;
+    font-size: ${(props) => props.theme.font.size.base};
     color: ${(props) => props.theme.colors.text.muted};
     user-select: none;
   }
@@ -34,7 +30,7 @@ const StyledWrapper = styled.div`
     border: none;
     border-radius: 6px;
     background: transparent;
-    font-size: 13px;
+    font-size: ${(props) => props.theme.font.size.base};
     text-align: left;
     color: ${(props) => props.theme.text};
     cursor: pointer;

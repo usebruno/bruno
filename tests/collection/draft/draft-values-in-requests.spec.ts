@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { createCollection, closeAllCollections, writeCollectionProxyField } from '../../utils/page';
+import { buildCommonLocators, createCollection, closeAllCollections, selectCollectionPaneTab, writeCollectionProxyField } from '../../utils/page';
 
 test.describe('Draft values are used in requests', () => {
   test.afterEach(async ({ page }) => {
@@ -141,9 +141,8 @@ test.describe('Draft values are used in requests', () => {
     await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
 
     // Open Settings > Proxy
-    await page.getByTestId('collection-settings-tab-settings').click();
-    await page.getByTestId('collection-settings-tab-proxy').click();
-    await page.locator('input[name="enabled"][value="true"]').check();
+    await selectCollectionPaneTab(page, 'proxy');
+    await buildCommonLocators(page).collectionProxy.mode('Custom').check();
     await writeCollectionProxyField(page, 'hostname', 'localhost');
     await writeCollectionProxyField(page, 'port', '8080');
 

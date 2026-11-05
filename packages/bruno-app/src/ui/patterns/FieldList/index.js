@@ -16,12 +16,11 @@ const GAPS = { sm: '0.75rem', md: '1rem' };
  *   padding above and below its content instead, so the line sits in the middle
  * @param {string} props.className - Extra class, e.g. for the page's own max-width
  */
-const FieldList = ({ gap = 'md', dividers = false, className, children, 'data-testid': dataTestId }) => {
+const FieldList = ({ gap = 'md', dividers = false, className, children }) => {
   return (
     <StyledWrapper
       className={classnames('field-list', { 'field-list--dividers': dividers }, className)}
       $gap={GAPS[gap] ?? GAPS.md}
-      data-testid={dataTestId}
     >
       {children}
     </StyledWrapper>

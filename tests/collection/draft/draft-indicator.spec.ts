@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections, createCollection, createFolder, writeCollectionProxyField } from '../../utils/page';
+import { buildCommonLocators, closeAllCollections, createCollection, createFolder, selectCollectionPaneTab, writeCollectionProxyField } from '../../utils/page';
 
 test.describe.serial('Draft indicator in collection and folder settings', () => {
   test.afterAll(async ({ page }) => {
@@ -116,8 +116,8 @@ test.describe.serial('Draft indicator in collection and folder settings', () => 
     await expect(collectionTab.locator('.close-icon')).toBeVisible();
     await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
 
-    // Click on Client Certificates tab
-    await buildCommonLocators(page).paneTabs.collectionSettingsTab('clientCert').click();
+    // Open Settings > Client certificates
+    await selectCollectionPaneTab(page, 'clientCert');
 
     // Open the add certificate modal
     await page.getByTestId('add-client-cert').click();
@@ -173,11 +173,10 @@ test.describe.serial('Draft indicator in collection and folder settings', () => 
     await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
 
     // Open Settings > Proxy
-    await page.getByTestId('collection-settings-tab-settings').click();
-    await page.getByTestId('collection-settings-tab-proxy').click();
+    await selectCollectionPaneTab(page, 'proxy');
 
-    // Enable proxy - select "enabled" radio button
-    await page.locator('input[name="enabled"][value="true"]').check();
+    // Enable proxy - select the "Custom" mode
+    await buildCommonLocators(page).collectionProxy.mode('Custom').check();
 
     // Fill in hostname and port
     await writeCollectionProxyField(page, 'hostname', 'localhost');

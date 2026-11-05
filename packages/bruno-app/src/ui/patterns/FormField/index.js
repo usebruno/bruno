@@ -40,8 +40,7 @@ const FormField = ({
   descriptionId,
   controlWidth = '8rem',
   className,
-  children,
-  'data-testid': dataTestId
+  children
 }) => {
   const LabelTag = htmlFor ? 'label' : 'span';
 
@@ -49,7 +48,6 @@ const FormField = ({
     <StyledWrapper
       className={classnames('form-field', `form-field--${layout}`, className)}
       $controlWidth={controlWidth}
-      data-testid={dataTestId}
     >
       {(label || description) && (
         <div className="form-field-text">

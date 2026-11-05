@@ -23,7 +23,8 @@ export const buildCollectionProxyLocators = (page: Page) => ({
 /** Read the selected collection proxy protocol label (e.g. 'HTTP', 'SOCKS5'). */
 export const readCollectionProxyProtocol = async (page: Page): Promise<string> => {
   const trigger = buildCollectionProxyLocators(page).protocol();
-  await trigger.waitFor({ state: 'visible' });
+  // No waitFor: callers poll this, so a miss returns '' and the poll retries
+  if (!(await trigger.isVisible())) return '';
   return (await trigger.innerText()).trim();
 };
 

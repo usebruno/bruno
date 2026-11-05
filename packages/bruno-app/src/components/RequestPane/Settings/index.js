@@ -118,15 +118,11 @@ const Settings = ({ item, collection }) => {
       <div className="bruno-form">
         <FieldList dividers className="request-settings-list">
           <FormField
-            label={(
-              <span className="flex items-center gap-1">
-                Tags
-              </span>
-            )}
+            label="Tags"
             labelId="request-settings-tags-label"
             className="tags-field"
           >
-            <div className="w-full">
+            <div className="w-full" role="group" aria-labelledby="request-settings-tags-label">
               <Tags item={item} collection={collection} />
             </div>
           </FormField>

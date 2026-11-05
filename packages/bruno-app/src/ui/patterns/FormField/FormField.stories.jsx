@@ -99,7 +99,7 @@ const DemoForm = ({ layout, withErrors = false }) => {
           name={ids('mode')}
           value={mode}
           onChange={setMode}
-          size="medium"
+          size="md"
           items={[
             { value: 'inherit', label: 'Inherit' },
             { value: 'custom', label: 'Custom' },
