@@ -16,8 +16,14 @@ import {
   groupRequestsByTags,
   groupRequestsByPath,
   normalizeItemName,
+  getRequestName,
+  uniqueRequestName,
   getTagDescriptions,
-  toSpecString
+  toSpecString,
+  operationSchemeName,
+  optsOutOfAuth,
+  inheritsCollectionAuth,
+  resolveCollectionAuthScheme
 } from './openapi-common';
 
 const getContentLevelExample = (bodyContent) => {
@@ -271,27 +277,7 @@ const objectValueFromSchema = (param, schema) => {
 const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {}) => {
   let _operationObject = request.operationObject;
 
-  let operationName = _operationObject.summary || _operationObject.operationId || toSpecString(_operationObject.description);
-  operationName = operationName ? normalizeItemName(operationName) : '';
-  if (!operationName) {
-    operationName = `${request.method} ${request.path}`;
-  }
-
-  if (usedNames.has(operationName)) {
-    // Make name unique to prevent filename collisions
-    // Try adding method info first
-    let uniqueName = `${operationName} (${request.method.toUpperCase()})`;
-
-    // If still not unique, add counter
-    let counter = 1;
-    while (usedNames.has(uniqueName)) {
-      uniqueName = `${operationName} (${counter})`;
-      counter++;
-    }
-
-    operationName = uniqueName;
-  }
-  usedNames.add(operationName);
+  const operationName = uniqueRequestName(getRequestName(request, options.requestNameSource), request.method, usedNames);
 
   // replace OpenAPI links in path by Bruno variables
   let path = request.path.replace(/{([a-zA-Z]+)}/g, `{{${_operationObject.operationId}_$1}}`);
@@ -437,16 +423,14 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
     }
   });
 
-  // Handle explicit no-auth case where security: [] on the operation
-  if (Array.isArray(_operationObject.security) && _operationObject.security.length === 0) {
-    brunoRequestItem.request.auth.mode = 'inherit';
+  const { collectionAuthScheme } = options;
+  const schemeName = operationSchemeName(_operationObject.security);
+
+  if (optsOutOfAuth(_operationObject.security, collectionAuthScheme)) {
+    brunoRequestItem.request.auth.mode = 'none';
   }
 
-  let auth = null;
-  if (_operationObject.security && _operationObject.security.length > 0) {
-    const schemeName = Object.keys(_operationObject.security[0])[0];
-    auth = request.global.security.getScheme(schemeName);
-  }
+  const auth = inheritsCollectionAuth(_operationObject.security, collectionAuthScheme) ? null : request.global.security.getScheme(schemeName);
 
   if (auth) {
     if (auth.type === 'http' && auth.scheme === 'basic') {
@@ -971,8 +955,92 @@ const getSecurity = (apiSpec) => {
           .filter(Boolean)
       : [],
     schemes: securitySchemes,
-    getScheme: (schemeName) => securitySchemes[schemeName]
+    getScheme: (schemeName) => (typeof schemeName === 'string' && Object.hasOwn(securitySchemes, schemeName) ? securitySchemes[schemeName] : undefined)
   };
+};
+
+const buildCollectionAuth = (scheme) => {
+  const authTemplate = {
+    mode: 'none',
+    basic: null,
+    bearer: null,
+    digest: null,
+    apikey: null,
+    oauth2: null
+  };
+
+  if (!scheme) return authTemplate;
+
+  if (scheme.type === 'http' && scheme.scheme === 'basic') {
+    return {
+      ...authTemplate,
+      mode: 'basic',
+      basic: {
+        username: '{{username}}',
+        password: '{{password}}'
+      }
+    };
+  } else if (scheme.type === 'http' && scheme.scheme === 'bearer') {
+    return {
+      ...authTemplate,
+      mode: 'bearer',
+      bearer: {
+        token: '{{token}}'
+      }
+    };
+  } else if (scheme.type === 'http' && scheme.scheme === 'digest') {
+    return {
+      ...authTemplate,
+      mode: 'digest',
+      digest: {
+        username: '{{username}}',
+        password: '{{password}}'
+      }
+    };
+  } else if (scheme.type === 'apiKey') {
+    return {
+      ...authTemplate,
+      mode: 'apikey',
+      apikey: {
+        key: scheme.name,
+        value: '{{apiKey}}',
+        placement: scheme.in === 'query' ? 'queryparams' : 'header'
+      }
+    };
+  } else if (scheme.type === 'oauth2') {
+    let flows = scheme.flows || {};
+    let grantType = 'client_credentials';
+    if (flows.authorizationCode) {
+      grantType = 'authorization_code';
+    } else if (flows.implicit) {
+      grantType = 'implicit';
+    } else if (flows.password) {
+      grantType = 'password';
+    }
+    const flowConfig = grantType === 'authorization_code' ? flows.authorizationCode || {} : grantType === 'implicit' ? flows.implicit || {} : grantType === 'password' ? flows.password || {} : flows.clientCredentials || {};
+
+    return {
+      ...authTemplate,
+      mode: 'oauth2',
+      oauth2: {
+        grantType,
+        authorizationUrl: flowConfig.authorizationUrl || '{{oauth_authorize_url}}',
+        accessTokenUrl: flowConfig.tokenUrl || '{{oauth_token_url}}',
+        refreshTokenUrl: flowConfig.refreshUrl || '{{oauth_refresh_url}}',
+        callbackUrl: '{{oauth_callback_url}}',
+        clientId: '{{oauth_client_id}}',
+        clientSecret: '{{oauth_client_secret}}',
+        scope: Array.isArray(flowConfig.scopes) ? flowConfig.scopes.join(' ') : Object.keys(flowConfig.scopes || {}).join(' '),
+        state: '{{oauth_state}}',
+        credentialsPlacement: 'header',
+        tokenPlacement: 'header',
+        tokenHeaderPrefix: 'Bearer',
+        autoFetchToken: false,
+        autoRefreshToken: true
+      }
+    };
+  }
+  return authTemplate;
 };
 
 const openAPIRuntimeExpressionToScript = (expression) => {
@@ -1100,9 +1168,17 @@ export const parseOpenApiCollection = (data, options = {}) => {
 
     // Support both tag-based and path-based grouping
     const groupingType = options.groupBy || 'tags';
+    const collectionAuthScheme = options.authPlacement === 'collection'
+      ? resolveCollectionAuthScheme(collectionData.security, allRequests, securityConfig.getScheme, {
+          schemeNames: Object.keys(securityConfig.schemes),
+          toAuth: buildCollectionAuth,
+          collectionAuth: options.collectionAuth
+        })
+      : null;
+    const requestOptions = { ...options, collectionAuthScheme };
 
     if (groupingType === 'path') {
-      brunoCollection.items = groupRequestsByPath(allRequests, transformOpenapiRequestItem, options);
+      brunoCollection.items = groupRequestsByPath(allRequests, transformOpenapiRequestItem, requestOptions);
     } else {
       // Default tag-based grouping
       let [groups, ungroupedRequests] = groupRequestsByTags(allRequests, options);
@@ -1127,7 +1203,7 @@ export const parseOpenApiCollection = (data, options = {}) => {
               name: group.name
             }
           },
-          items: group.requests.map((req) => transformOpenapiRequestItem(req, usedNames, options))
+          items: group.requests.map((req) => transformOpenapiRequestItem(req, usedNames, requestOptions))
         };
         const docs = tagDescriptions[group.name];
         if (docs) {
@@ -1136,97 +1212,13 @@ export const parseOpenApiCollection = (data, options = {}) => {
         return folder;
       });
 
-      let ungroupedItems = ungroupedRequests.map((req) => transformOpenapiRequestItem(req, usedNames, options));
+      const ungroupedItems = ungroupedRequests.map((req) => transformOpenapiRequestItem(req, usedNames, requestOptions));
       let brunoCollectionItems = brunoFolders.concat(ungroupedItems);
       brunoCollection.items = brunoCollectionItems;
     }
 
     // Determine collection-level authentication based on global security requirements
-    const buildCollectionAuth = (scheme) => {
-      const authTemplate = {
-        mode: 'none',
-        basic: null,
-        bearer: null,
-        digest: null,
-        apikey: null,
-        oauth2: null
-      };
-
-      if (!scheme) return authTemplate;
-
-      if (scheme.type === 'http' && scheme.scheme === 'basic') {
-        return {
-          ...authTemplate,
-          mode: 'basic',
-          basic: {
-            username: '{{username}}',
-            password: '{{password}}'
-          }
-        };
-      } else if (scheme.type === 'http' && scheme.scheme === 'bearer') {
-        return {
-          ...authTemplate,
-          mode: 'bearer',
-          bearer: {
-            token: '{{token}}'
-          }
-        };
-      } else if (scheme.type === 'http' && scheme.scheme === 'digest') {
-        return {
-          ...authTemplate,
-          mode: 'digest',
-          digest: {
-            username: '{{username}}',
-            password: '{{password}}'
-          }
-        };
-      } else if (scheme.type === 'apiKey') {
-        return {
-          ...authTemplate,
-          mode: 'apikey',
-          apikey: {
-            key: scheme.name,
-            value: '{{apiKey}}',
-            placement: scheme.in === 'query' ? 'queryparams' : 'header'
-          }
-        };
-      } else if (scheme.type === 'oauth2') {
-        let flows = scheme.flows || {};
-        let grantType = 'client_credentials';
-        if (flows.authorizationCode) {
-          grantType = 'authorization_code';
-        } else if (flows.implicit) {
-          grantType = 'implicit';
-        } else if (flows.password) {
-          grantType = 'password';
-        }
-        const flowConfig = grantType === 'authorization_code' ? flows.authorizationCode || {} : grantType === 'implicit' ? flows.implicit || {} : grantType === 'password' ? flows.password || {} : flows.clientCredentials || {};
-
-        return {
-          ...authTemplate,
-          mode: 'oauth2',
-          oauth2: {
-            grantType,
-            authorizationUrl: flowConfig.authorizationUrl || '{{oauth_authorize_url}}',
-            accessTokenUrl: flowConfig.tokenUrl || '{{oauth_token_url}}',
-            refreshTokenUrl: flowConfig.refreshUrl || '{{oauth_refresh_url}}',
-            callbackUrl: '{{oauth_callback_url}}',
-            clientId: '{{oauth_client_id}}',
-            clientSecret: '{{oauth_client_secret}}',
-            scope: Array.isArray(flowConfig.scopes) ? flowConfig.scopes.join(' ') : Object.keys(flowConfig.scopes || {}).join(' '),
-            state: '{{oauth_state}}',
-            credentialsPlacement: 'header',
-            tokenPlacement: 'header',
-            tokenHeaderPrefix: 'Bearer',
-            autoFetchToken: false,
-            autoRefreshToken: true
-          }
-        };
-      }
-      return authTemplate;
-    };
-
-    let collectionAuth = buildCollectionAuth(securityConfig.supported[0]);
+    const collectionAuth = buildCollectionAuth(collectionAuthScheme ? collectionAuthScheme.scheme : securityConfig.supported[0]);
 
     brunoCollection.root = {
       request: {
