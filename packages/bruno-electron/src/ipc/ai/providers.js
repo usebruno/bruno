@@ -7,9 +7,10 @@ const {
   isCopilotModelId,
   copilotBrunoModelId,
   getCopilotCatalog,
-  findCopilotModel
+  findCopilotModel,
+  AUTO_MODEL_ID: COPILOT_AUTO_MODEL_ID,
+  createCopilotModelRef
 } = require('./copilot');
-const { AUTO_MODEL_ID: COPILOT_AUTO_MODEL_ID, createCopilotModelRef } = require('./copilot-runtime');
 
 const OPENAI_COMPATIBLE_PREFIX = 'openai-compatible:';
 

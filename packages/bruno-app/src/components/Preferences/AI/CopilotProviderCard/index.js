@@ -101,6 +101,7 @@ const CopilotProviderCard = ({
 
   const signedIn = copilot.state === 'signed-in';
   const signingIn = copilot.state === 'signing-in';
+  const settingUp = signedIn && copilot.settingUp;
   const errorMessage = feedback || copilot.error;
 
   const runAction = async (name, action, fallbackMessage) => {
@@ -156,6 +157,8 @@ const CopilotProviderCard = ({
   let statusText = 'Not signed in';
   if (signingIn) {
     statusText = 'Waiting for GitHub';
+  } else if (settingUp) {
+    statusText = 'Setting up';
   } else if (signedIn) {
     statusText = models.length > 0 ? `${enabledModelsCount}/${models.length} models` : 'No models available';
   }
@@ -364,7 +367,7 @@ const CopilotProviderCard = ({
                   <ActionIcon
                     label="Refresh models"
                     onClick={handleRefreshModels}
-                    disabled={busy !== null}
+                    disabled={busy !== null || settingUp}
                     data-testid="ai-copilot-refresh-models"
                   >
                     <IconRefresh size={15} strokeWidth={1.5} className={busy === 'refresh' ? 'spin' : ''} />
@@ -382,6 +385,13 @@ const CopilotProviderCard = ({
               </div>
             )}
 
+            {settingUp && (
+              <div className="copilot-hint inline-flex items-center gap-1.5 text-[11px]" role="status" data-testid="ai-copilot-setting-up">
+                <IconLoader2 size={12} className="spin" />
+                Setting up GitHub Copilot. Downloading about 70 MB, only needed once.
+              </div>
+            )}
+
             {errorMessage && (
               <div className="feedback error flex items-center gap-1.5 text-[11px] px-2 py-1" role="alert">
                 <IconAlertCircle size={12} />
@@ -389,7 +399,7 @@ const CopilotProviderCard = ({
               </div>
             )}
 
-            {signedIn && models.length > 0 && (
+            {signedIn && !settingUp && models.length > 0 && (
               <div className="flex flex-col gap-1.5">
                 <div className="models-label-row flex items-center justify-between text-[11px]">
                   <span>Models</span>

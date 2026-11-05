@@ -22,8 +22,7 @@ const config = {
       to: 'data/sample-collection.json'
     }
   ],
-  files: ['**/*'],
-  asarUnpack: ['**/node_modules/@github/copilot-sdk-*/**'],
+  files: ['**/*', '!**/node_modules/@github/copilot-sdk-*/**'],
   afterSign: 'notarize.js',
   mac: {
     artifactName: '${name}_${version}_${arch}_${os}.${ext}',

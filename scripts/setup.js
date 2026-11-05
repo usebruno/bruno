@@ -69,24 +69,9 @@ function forceInstallPlatformDeps() {
   // Note: make sure to hard pin deps and only add deps that have been checked
   // for sec vuln already since the following will be force installed.
   const deps = {
-    darwin: [
-      '@lydell/node-pty-darwin-arm64@1.1.0',
-      '@lydell/node-pty-darwin-x64@1.1.0',
-      '@github/copilot-sdk-darwin-arm64@1.0.28',
-      '@github/copilot-sdk-darwin-x64@1.0.28'
-    ],
-    win32: [
-      '@lydell/node-pty-win32-arm64@1.1.0',
-      '@lydell/node-pty-win32-x64@1.1.0',
-      '@github/copilot-sdk-win32-arm64@1.0.28',
-      '@github/copilot-sdk-win32-x64@1.0.28'
-    ],
-    linux: [
-      '@lydell/node-pty-linux-arm64@1.1.0',
-      '@lydell/node-pty-linux-x64@1.1.0',
-      '@github/copilot-sdk-linux-arm64@1.0.28',
-      '@github/copilot-sdk-linux-x64@1.0.28'
-    ]
+    darwin: ['@lydell/node-pty-darwin-arm64@1.1.0', '@lydell/node-pty-darwin-x64@1.1.0'],
+    win32: ['@lydell/node-pty-win32-arm64@1.1.0', '@lydell/node-pty-win32-x64@1.1.0'],
+    linux: ['@lydell/node-pty-linux-arm64@1.1.0', '@lydell/node-pty-linux-x64@1.1.0']
   };
 
   // Ignore if no deps need to be installed

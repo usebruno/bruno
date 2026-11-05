@@ -2,30 +2,14 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 const { CopilotClient, RuntimeConnection, defineTool } = require('@github/copilot-sdk');
+const { installCopilotRuntime } = require('./runtime-download');
 
 const COPILOT_MODEL_KIND = 'github-copilot-sdk';
 const AUTO_MODEL_ID = 'auto';
-const ASAR_SEGMENT = `${path.sep}app.asar${path.sep}`;
-const UNPACKED_ASAR_SEGMENT = `${path.sep}app.asar.unpacked${path.sep}`;
 
 const createCopilotModelRef = ({ token, modelId }) => ({ kind: COPILOT_MODEL_KIND, token, modelId });
 
 const isCopilotModelRef = (model) => model?.kind === COPILOT_MODEL_KIND;
-
-const resolvePackageRoot = (packageName) => (require.resolve.paths(packageName) || [])
-  .map((base) => path.join(base, ...packageName.split('/')))
-  .find((candidate) => fs.existsSync(path.join(candidate, 'package.json')));
-
-const toUnpackedAsarPath = (filePath) => filePath.replace(ASAR_SEGMENT, UNPACKED_ASAR_SEGMENT);
-
-const packagedRuntimePath = () => {
-  if (!app.isPackaged) return null;
-  const platform = `${process.platform}-${process.arch}`;
-  const packageRoot = resolvePackageRoot(`@github/copilot-sdk-${platform}`);
-  if (!packageRoot) return null;
-  const wrapper = process.platform === 'win32' ? 'copilot-runtime.exe' : 'copilot-runtime';
-  return toUnpackedAsarPath(path.join(packageRoot, 'prebuilds', platform, wrapper));
-};
 
 const parseRuntimeHttpError = (err) => {
   const message = typeof err?.message === 'string' ? err.message : '';
@@ -78,12 +62,12 @@ const stopCopilotRuntime = async () => {
 };
 
 const getCopilotClient = async (token) => {
+  const runtimePath = await installCopilotRuntime();
   if (runtime?.token === token) return runtime.ready;
   await stopCopilotRuntime();
 
   const directory = path.join(app.getPath('userData'), 'copilot-sdk');
   fs.mkdirSync(directory, { recursive: true });
-  const runtimePath = packagedRuntimePath();
   const client = new CopilotClient({
     gitHubToken: token,
     useLoggedInUser: false,
@@ -92,7 +76,7 @@ const getCopilotClient = async (token) => {
     baseDirectory: directory,
     workingDirectory: directory,
     clientInfo: { applicationName: 'Bruno', applicationVersion: app.getVersion() },
-    ...(runtimePath ? { connection: RuntimeConnection.forStdio({ path: runtimePath }) } : {})
+    connection: RuntimeConnection.forStdio({ path: runtimePath })
   });
   const ready = client.start().then(() => client);
   const current = { token, client, ready };
@@ -292,6 +276,5 @@ module.exports = {
   listCopilotModels,
   streamCopilotText,
   generateCopilotText,
-  buildCopilotPrompt,
-  toUnpackedAsarPath
+  buildCopilotPrompt
 };

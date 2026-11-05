@@ -1,5 +1,5 @@
 const { streamText, generateText } = require('ai');
-const { isCopilotModelRef, streamCopilotText, generateCopilotText } = require('./copilot-runtime');
+const { isCopilotModelRef, streamCopilotText, generateCopilotText } = require('./copilot');
 
 const streamAiText = (args) => (isCopilotModelRef(args.model) ? streamCopilotText(args) : streamText(args));
 
