@@ -451,6 +451,50 @@ describe.each(['bru', 'yml'])('openapi sync with preserve values in a %s collect
       }
     });
 
+    it.each([
+      ['the user items', [{ iban: 'DE', bic: 'B', note: 'mine' }]],
+      ['an empty user array', []]
+    ])('keeps %s as written when the property is a oneOf of arrays with no type', async (_, payments) => {
+      const paymentsSpec = (ibanProperties) => createPetSpec({
+        requestBody: jsonBody(objectSchema({
+          amount: { type: 'number' },
+          payments: { oneOf: [{ type: 'array', items: { $ref: '#/components/schemas/Card' } }, { type: 'array', items: { $ref: '#/components/schemas/Iban' } }] }
+        }))
+      }, { schemas: { Card: objectSchema({ cardNumber: string }), Iban: objectSchema(ibanProperties) } });
+      const previous = paymentsSpec({ iban: string, bic: string });
+      writeStoredSpec(previous);
+      writeUserRequestFrom(previous, withJsonBody({ amount: 5, payments }));
+
+      for (const request of await previewAndApply(paymentsSpec({ iban: string }))) {
+        expect(JSON.parse(request.body.json)).toEqual({ amount: 5, payments });
+      }
+    });
+
+    it.each([
+      ['the first alternative of its parent oneOf', ['CardOrder', 'CashOrder']],
+      ['the second alternative of its parent oneOf', ['CashOrder', 'CardOrder']],
+      ['a parent oneOf the spec writes as {}', ['AnyOrder', 'CardOrder']]
+    ])('keeps the user object as written when the property with no type is in %s', async (_, orders) => {
+      const orderSpec = (ibanProperties) => createPetSpec({
+        requestBody: jsonBody(objectSchema({ order: { type: 'object', oneOf: orders.map((name) => ({ $ref: `#/components/schemas/${name}` })) } }))
+      }, {
+        schemas: {
+          Card: objectSchema({ cardNumber: string }),
+          Iban: objectSchema(ibanProperties),
+          CardOrder: objectSchema({ payment: { oneOf: [{ $ref: '#/components/schemas/Card' }, { $ref: '#/components/schemas/Iban' }] } }),
+          CashOrder: objectSchema({ cash: { type: 'number' } }),
+          AnyOrder: { type: 'object' }
+        }
+      });
+      const previous = orderSpec({ iban: string, bic: string });
+      writeStoredSpec(previous);
+      writeUserRequestFrom(previous, withJsonBody({ order: { payment: { iban: 'DE', bic: 'B', note: 'mine' } } }));
+
+      for (const request of await previewAndApply(orderSpec({ iban: string }))) {
+        expect(JSON.parse(request.body.json)).toEqual({ order: { payment: { iban: 'DE', bic: 'B', note: 'mine' } } });
+      }
+    });
+
     it.each(['oneOf', 'anyOf'])('drops removed fields and adds new ones for a property whose %s has one shape besides null', async (keyword) => {
       const cardSpec = (cardProperties) => createPetSpec({
         requestBody: jsonBody(objectSchema({ amount: { type: 'number' }, payment: { [keyword]: [{ $ref: '#/components/schemas/Card' }, { type: 'null' }] } }))

@@ -543,12 +543,13 @@ const declaredBodyOf = (spec, method, endpointPath) => {
   return isPlainObject(media) ? declaredSchemaNode(spec, [media.schema]) : undefined;
 };
 
-const withoutUndeclaredFields = (userVal, declared) => {
-  if (Array.isArray(userVal)) return userVal.map((item) => withoutUndeclaredFields(item, declaredItems(declared)));
+const withoutUndeclaredFields = (userVal, declared, shapeOpen = false) => {
+  if (shapeOpen) return userVal;
+  if (Array.isArray(userVal)) return itemsLeaveShapeOpen(declared) ? userVal : userVal.map((item) => withoutUndeclaredFields(item, declaredItems(declared)));
   if (!isPlainObject(userVal) || declaredKeysOf(declared).length === 0) return userVal;
   const out = {};
   for (const key of Object.keys(userVal)) {
-    if (declaresKey(declared, key)) setOwn(out, key, withoutUndeclaredFields(userVal[key], declaredChild(declared, key)));
+    if (declaresKey(declared, key)) setOwn(out, key, withoutUndeclaredFields(userVal[key], declaredChild(declared, key), keyLeavesShapeOpen(declared, key)));
   }
   return out;
 };
@@ -557,10 +558,11 @@ const withoutUndeclaredFields = (userVal, declared) => {
  * Recursively merge a user JSON value with a spec JSON value.
  *
  * Rules (when preserveValues=true):
- *   - Object: a value whose schema offers a choice of shapes (more than one non-null oneOf/anyOf
- *             alternative, also through allOf) and has no type, properties or example of its own
- *             (shapeOpen) keeps the user object as written.
- *             Otherwise walk spec keys; keep user value when present, use spec default otherwise,
+ *   - Open:   a property whose schema offers a choice of shapes (more than one non-null oneOf/anyOf
+ *             alternative, also through allOf) and has no type, properties or example of its own,
+ *             or an item of an array without example whose items offer such a choice (shapeOpen),
+ *             keeps the user value as written, also where the spec template lacks it.
+ *   - Object: walk spec keys; keep user value when present, use spec default otherwise,
  *             except for a key that only another oneOf/anyOf alternative declares than the
  *             one the user object is written for (matched by discriminator, otherwise the
  *             only alternative declaring the most of its keys).
@@ -578,8 +580,8 @@ const withoutUndeclaredFields = (userVal, declared) => {
  */
 const mergeJsonValues = (userVal, specVal, preserveValues = true, declared, shapeOpen = false) => {
   if (!preserveValues) return specVal;
+  if (shapeOpen) return userVal;
   if (isPlainObject(specVal) && isPlainObject(userVal)) {
-    if (shapeOpen) return userVal;
     if (Object.keys(specVal).length === 0) return withoutUndeclaredFields(userVal, declared);
     const otherBranchKeys = otherAlternativeKeys(declared, userVal);
     const out = {};
@@ -588,7 +590,7 @@ const mergeJsonValues = (userVal, specVal, preserveValues = true, declared, shap
       else if (!otherBranchKeys.has(key)) setOwn(out, key, specVal[key]);
     }
     for (const key of Object.keys(userVal)) {
-      if (!Object.hasOwn(specVal, key) && declaresKey(declared, key)) setOwn(out, key, withoutUndeclaredFields(userVal[key], declaredChild(declared, key)));
+      if (!Object.hasOwn(specVal, key) && declaresKey(declared, key)) setOwn(out, key, withoutUndeclaredFields(userVal[key], declaredChild(declared, key), keyLeavesShapeOpen(declared, key)));
     }
     return out;
   }
