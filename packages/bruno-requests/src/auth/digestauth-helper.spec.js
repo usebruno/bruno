@@ -143,6 +143,6 @@ describe('Digest Auth RFC 7616 compliance', () => {
     expect(auth).toMatch(/response="[a-f0-9]{32}"/);
     expect(auth).toMatch(/cnonce="[a-f0-9]+"/);
     expect(auth).toMatch(/opaque="5ccc069c403ebaf9f0171e9517f40e41"/);
-    expect(auth).toMatch(/algorithm="MD5"/);
+    expect(auth).toMatch(/algorithm=MD5/);
   });
 });
