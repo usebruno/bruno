@@ -13,8 +13,8 @@ import SegmentedControl from 'ui/SegmentedControl';
 import MenuDropdown from 'ui/MenuDropdown';
 import { IconChevronDown } from '@tabler/icons';
 import Checkbox from 'ui/Checkbox';
-import SettingsField from 'ui/patterns/SettingsField';
-import SettingsList from 'ui/patterns/SettingsList';
+import FormField from 'ui/patterns/FormField';
+import FieldList from 'ui/patterns/FieldList';
 import { useTheme } from 'providers/Theme';
 
 const PROXY_PROTOCOL_OPTIONS = [
@@ -106,6 +106,16 @@ const ProxySettings = ({ collection }) => {
   };
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
+
+  // The compact editor is shorter than its 34px box; a click on the box's padding focuses the editor too
+  const focusEditorFromBox = (e) => {
+    if (e.target !== e.currentTarget) return;
+    const editor = e.currentTarget.querySelector('.CodeMirror')?.CodeMirror;
+    if (!editor) return;
+    e.preventDefault();
+    editor.focus();
+    editor.setCursor(editor.lineCount(), 0);
+  };
 
   const handleEnabledChange = (e) => {
     const value = e.target.value;
@@ -212,13 +222,13 @@ const ProxySettings = ({ collection }) => {
 
   return (
     <StyledWrapper className="h-full w-full">
-      <SettingsList className="proxy-settings bruno-form">
+      <FieldList className="proxy-settings bruno-form">
         <div className="text-muted">Configure proxy settings for this collection.</div>
 
         {/* Lines only between the settings sections, not around the intro or the Save button */}
-        <SettingsList dividers>
+        <FieldList dividers>
 
-          <SettingsField
+          <FormField
             label={(
               <span className="flex items-center">
                 <span id="collection-proxy-mode-label">Proxy mode</span>
@@ -255,12 +265,12 @@ const ProxySettings = ({ collection }) => {
                 </div>
               )}
             </div>
-          </SettingsField>
+          </FormField>
 
           {enabledValue === 'true' && (
             <>
-              <div className="grid grid-cols-[112px_1fr_120px] gap-3">
-                <SettingsField label="Protocol" labelId="collection-proxy-protocol-label">
+              <div className="grid grid-cols-[112px_1fr_96px] gap-3">
+                <FormField label="Protocol" labelId="collection-proxy-protocol-label">
                   <MenuDropdown
                     items={PROXY_PROTOCOL_OPTIONS.map(({ value, label }) => ({
                       id: value,
@@ -287,9 +297,9 @@ const ProxySettings = ({ collection }) => {
                       <IconChevronDown size={14} strokeWidth={2} />
                     </button>
                   </MenuDropdown>
-                </SettingsField>
-                <SettingsField label="Hostname" labelId="collection-proxy-hostname-label">
-                  <div className="single-line-editor-wrapper">
+                </FormField>
+                <FormField label="Hostname" labelId="collection-proxy-hostname-label">
+                  <div className="single-line-editor-wrapper" onMouseDown={focusEditorFromBox}>
                     <SingleLineEditor
                       value={currentProxyConfig.config?.hostname || ''}
                       theme={storedTheme}
@@ -300,8 +310,8 @@ const ProxySettings = ({ collection }) => {
                       data-testid="collection-proxy-hostname"
                     />
                   </div>
-                </SettingsField>
-                <SettingsField label="Port" htmlFor="port">
+                </FormField>
+                <FormField label="Port" htmlFor="port">
                   <input
                     id="port"
                     data-testid="collection-proxy-port"
@@ -315,11 +325,11 @@ const ProxySettings = ({ collection }) => {
                     onChange={handlePortChange}
                     value={currentProxyConfig.config?.port || ''}
                   />
-                </SettingsField>
+                </FormField>
               </div>
 
-              <SettingsList gap="md">
-                <SettingsField layout="leading" label="Proxy authentication" htmlFor="auth.disabled">
+              <FieldList gap="md">
+                <FormField layout="leading" label="Proxy authentication" htmlFor="auth.disabled">
                   <Checkbox
                     id="auth.disabled"
                     name="auth.disabled"
@@ -327,10 +337,10 @@ const ProxySettings = ({ collection }) => {
                     onChange={handleAuthEnabledChange}
                     data-testid="collection-proxy-auth"
                   />
-                </SettingsField>
+                </FormField>
                 <div className="grid grid-cols-2 gap-3">
-                  <SettingsField label="Username" labelId="collection-proxy-username-label">
-                    <div className="single-line-editor-wrapper mono">
+                  <FormField label="Username" labelId="collection-proxy-username-label">
+                    <div className="single-line-editor-wrapper" onMouseDown={focusEditorFromBox}>
                       <SingleLineEditor
                         value={currentProxyConfig.config?.auth?.username || ''}
                         theme={storedTheme}
@@ -341,9 +351,9 @@ const ProxySettings = ({ collection }) => {
                         data-testid="collection-proxy-username"
                       />
                     </div>
-                  </SettingsField>
-                  <SettingsField label="Password" labelId="collection-proxy-password-label">
-                    <div className="single-line-editor-wrapper mono flex items-center">
+                  </FormField>
+                  <FormField label="Password" labelId="collection-proxy-password-label">
+                    <div className="single-line-editor-wrapper flex items-center" onMouseDown={focusEditorFromBox}>
                       <SingleLineEditor
                         value={proxyPassword}
                         theme={storedTheme}
@@ -356,11 +366,11 @@ const ProxySettings = ({ collection }) => {
                       />
                       <SensitiveFieldWarning fieldName="proxy-password" secretName="password" value={proxyPassword} collection={collection} onReplaceValue={handleAuthPasswordChange} />
                     </div>
-                  </SettingsField>
+                  </FormField>
                 </div>
-              </SettingsList>
+              </FieldList>
 
-              <SettingsField
+              <FormField
                 label="Proxy bypass"
                 description="Separate hosts with commas. Wildcards are supported."
                 descriptionId="bypassProxy-description"
@@ -371,7 +381,7 @@ const ProxySettings = ({ collection }) => {
                   aria-describedby="bypassProxy-description"
                   type="text"
                   name="bypassProxy"
-                  className="textbox mono"
+                  className="textbox"
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"
@@ -379,16 +389,16 @@ const ProxySettings = ({ collection }) => {
                   onChange={handleBypassProxyChange}
                   value={currentProxyConfig.config?.bypassProxy || ''}
                 />
-              </SettingsField>
+              </FormField>
             </>
           )}
 
-        </SettingsList>
+        </FieldList>
 
-        <Button type="submit" size="base" className="self-start" onClick={handleSave}>
+        <Button type="submit" size="base" className="self-start mt-2" onClick={handleSave}>
           Save
         </Button>
-      </SettingsList>
+      </FieldList>
     </StyledWrapper>
   );
 };

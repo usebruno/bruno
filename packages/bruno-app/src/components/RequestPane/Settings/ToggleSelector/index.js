@@ -1,6 +1,6 @@
 import React, { useId } from 'react';
 import { useTheme } from 'providers/Theme';
-import SettingsField from 'ui/patterns/SettingsField';
+import FormField from 'ui/patterns/FormField';
 
 const ToggleSelector = ({
   checked,
@@ -35,7 +35,7 @@ const ToggleSelector = ({
   const currentSize = sizeClasses[size];
 
   return (
-    <SettingsField
+    <FormField
       layout="inline"
       label={label}
       description={description}
@@ -68,7 +68,7 @@ const ToggleSelector = ({
           `}
         />
       </button>
-    </SettingsField>
+    </FormField>
   );
 };
 

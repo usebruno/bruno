@@ -172,8 +172,9 @@ test.describe.serial('Draft indicator in collection and folder settings', () => 
     await expect(collectionTab.locator('.close-icon')).toBeVisible();
     await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
 
-    // Click on Proxy tab
-    await page.locator('.tab.proxy').click();
+    // Open Settings > Proxy
+    await page.getByTestId('collection-settings-tab-settings').click();
+    await page.getByTestId('collection-settings-tab-proxy').click();
 
     // Enable proxy - select "enabled" radio button
     await page.locator('input[name="enabled"][value="true"]').check();

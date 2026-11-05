@@ -9,8 +9,8 @@ import { updateItemSettings, toggleAppMode } from 'providers/ReduxStore/slices/c
 import { setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Tags from './Tags/index';
-import SettingsField from 'ui/patterns/SettingsField';
-import SettingsList from 'ui/patterns/SettingsList';
+import FormField from 'ui/patterns/FormField';
+import FieldList from 'ui/patterns/FieldList';
 import StyledWrapper from './StyledWrapper';
 
 // Default settings configuration
@@ -116,8 +116,8 @@ const Settings = ({ item, collection }) => {
     <StyledWrapper className="h-full w-full">
       <div className="text-xs mb-4 text-muted">Configure request settings for this item.</div>
       <div className="bruno-form">
-        <SettingsList dividers className="request-settings-list">
-          <SettingsField
+        <FieldList dividers className="request-settings-list">
+          <FormField
             label={(
               <span className="flex items-center gap-1">
                 Tags
@@ -129,7 +129,7 @@ const Settings = ({ item, collection }) => {
             <div className="w-full">
               <Tags item={item} collection={collection} />
             </div>
-          </SettingsField>
+          </FormField>
           <ToggleSelector
             checked={encodeUrl}
             onChange={onToggleUrlEncoding}
@@ -184,7 +184,7 @@ const Settings = ({ item, collection }) => {
               data-testid="enable-app-toggle"
             />
           )}
-        </SettingsList>
+        </FieldList>
       </div>
     </StyledWrapper>
   );

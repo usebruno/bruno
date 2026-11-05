@@ -140,8 +140,9 @@ test.describe('Draft values are used in requests', () => {
     // Click on collection in sidebar to open collection settings
     await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
 
-    // Go to Proxy Settings tab
-    await page.locator('.tab.proxy').click();
+    // Open Settings > Proxy
+    await page.getByTestId('collection-settings-tab-settings').click();
+    await page.getByTestId('collection-settings-tab-proxy').click();
     await page.locator('input[name="enabled"][value="true"]').check();
     await writeCollectionProxyField(page, 'hostname', 'localhost');
     await writeCollectionProxyField(page, 'port', '8080');

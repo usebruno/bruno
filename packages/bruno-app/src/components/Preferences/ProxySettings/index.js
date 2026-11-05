@@ -13,8 +13,8 @@ import SystemProxy from './SystemProxy';
 import Checkbox from 'ui/Checkbox';
 import MenuDropdown from 'ui/MenuDropdown';
 import SegmentedControl from 'ui/SegmentedControl';
-import SettingsField from 'ui/patterns/SettingsField';
-import SettingsList from 'ui/patterns/SettingsList';
+import FormField from 'ui/patterns/FormField';
+import FieldList from 'ui/patterns/FieldList';
 
 const PROXY_MODE_OPTIONS = [
   { 'value': 'off', 'label': 'Off', 'data-testid': 'off-proxy-mode' },
@@ -168,8 +168,8 @@ const ProxySettings = ({ close }) => {
     <StyledWrapper>
       <div className="section-header">Proxy Settings</div>
       <form className="bruno-form proxy-settings" onSubmit={formik.handleSubmit}>
-        <SettingsList dividers>
-          <SettingsField label="Mode" labelId="preferences-proxy-mode-label">
+        <FieldList dividers>
+          <FormField label="Mode" labelId="preferences-proxy-mode-label">
             <SegmentedControl
               ariaLabelledBy="preferences-proxy-mode-label"
               name="mode"
@@ -178,7 +178,7 @@ const ProxySettings = ({ close }) => {
               items={PROXY_MODE_OPTIONS}
               data-testid="preferences-proxy-mode"
             />
-          </SettingsField>
+          </FormField>
 
           {proxyMode === 'inherit' ? (
             <div className="text-muted system-proxy-settings">
@@ -188,8 +188,8 @@ const ProxySettings = ({ close }) => {
 
           {proxyMode === 'manual' ? (
             <>
-              <div className="grid grid-cols-[112px_1fr_120px] gap-3">
-                <SettingsField label="Protocol" labelId="preferences-proxy-protocol-label">
+              <div className="grid grid-cols-[112px_1fr_96px] gap-3">
+                <FormField label="Protocol" labelId="preferences-proxy-protocol-label">
                   <MenuDropdown
                     items={PROXY_PROTOCOL_OPTIONS.map(({ value, label }) => ({
                       id: value,
@@ -214,8 +214,8 @@ const ProxySettings = ({ close }) => {
                       <IconChevronDown size={14} strokeWidth={2} />
                     </button>
                   </MenuDropdown>
-                </SettingsField>
-                <SettingsField
+                </FormField>
+                <FormField
                   label="Hostname"
                   htmlFor="config.hostname"
                   error={fieldError(formik.touched.config?.hostname, formik.errors.config?.hostname)}
@@ -232,8 +232,8 @@ const ProxySettings = ({ close }) => {
                     onChange={formik.handleChange}
                     value={formik.values.config.hostname || ''}
                   />
-                </SettingsField>
-                <SettingsField
+                </FormField>
+                <FormField
                   label="Port"
                   htmlFor="config.port"
                   error={fieldError(formik.touched.config?.port, formik.errors.config?.port)}
@@ -250,11 +250,11 @@ const ProxySettings = ({ close }) => {
                     onChange={formik.handleChange}
                     value={formik.values.config.port}
                   />
-                </SettingsField>
+                </FormField>
               </div>
 
-              <SettingsList gap="md">
-                <SettingsField layout="leading" label="Proxy authentication" htmlFor="config.auth.disabled">
+              <FieldList gap="md">
+                <FormField layout="leading" label="Proxy authentication" htmlFor="config.auth.disabled">
                   <Checkbox
                     id="config.auth.disabled"
                     name="config.auth.disabled"
@@ -265,9 +265,9 @@ const ProxySettings = ({ close }) => {
                     inputClassName="mousetrap"
                     data-testid="preferences-proxy-auth"
                   />
-                </SettingsField>
+                </FormField>
                 <div className="grid grid-cols-2 gap-3">
-                  <SettingsField
+                  <FormField
                     label="Username"
                     htmlFor="config.auth.username"
                     error={fieldError(formik.touched.config?.auth?.username, formik.errors.config?.auth?.username)}
@@ -276,7 +276,7 @@ const ProxySettings = ({ close }) => {
                       id="config.auth.username"
                       type="text"
                       name="config.auth.username"
-                      className="textbox mono"
+                      className="textbox"
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
@@ -284,8 +284,8 @@ const ProxySettings = ({ close }) => {
                       value={formik.values.config.auth.username}
                       onChange={formik.handleChange}
                     />
-                  </SettingsField>
-                  <SettingsField
+                  </FormField>
+                  <FormField
                     label="Password"
                     htmlFor="config.auth.password"
                     error={fieldError(formik.touched.config?.auth?.password, formik.errors.config?.auth?.password)}
@@ -295,7 +295,6 @@ const ProxySettings = ({ close }) => {
                         id="config.auth.password"
                         type={passwordVisible ? `text` : 'password'}
                         name="config.auth.password"
-                        className="mono"
                         autoComplete="off"
                         autoCorrect="off"
                         autoCapitalize="off"
@@ -312,11 +311,11 @@ const ProxySettings = ({ close }) => {
                         {passwordVisible ? <IconEyeOff size={16} strokeWidth={2} /> : <IconEye size={16} strokeWidth={2} />}
                       </button>
                     </div>
-                  </SettingsField>
+                  </FormField>
                 </div>
-              </SettingsList>
+              </FieldList>
 
-              <SettingsField
+              <FormField
                 label="Proxy bypass"
                 description="Separate hosts with commas. Wildcards are supported."
                 descriptionId="config.bypassProxy-description"
@@ -328,7 +327,7 @@ const ProxySettings = ({ close }) => {
                   aria-describedby="config.bypassProxy-description"
                   type="text"
                   name="config.bypassProxy"
-                  className="textbox mono"
+                  className="textbox"
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"
@@ -336,12 +335,12 @@ const ProxySettings = ({ close }) => {
                   onChange={formik.handleChange}
                   value={formik.values.config.bypassProxy || ''}
                 />
-              </SettingsField>
+              </FormField>
             </>
           ) : null}
 
           {proxyMode === 'pac' ? (
-            <SettingsField
+            <FormField
               label="PAC"
               labelId="preferences-proxy-pac-label"
               descriptionId="pac.source-description"
@@ -421,9 +420,9 @@ const ProxySettings = ({ close }) => {
                   </span>
                 ) : null}
               </div>
-            </SettingsField>
+            </FormField>
           ) : null}
-        </SettingsList>
+        </FieldList>
       </form>
     </StyledWrapper>
   );

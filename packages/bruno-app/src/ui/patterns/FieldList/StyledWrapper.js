@@ -6,7 +6,7 @@ const StyledWrapper = styled.div`
   gap: ${(props) => props.$gap};
   min-width: 0;
 
-  &.settings-list--dividers {
+  &.field-list--dividers {
     gap: 0;
 
     > * {

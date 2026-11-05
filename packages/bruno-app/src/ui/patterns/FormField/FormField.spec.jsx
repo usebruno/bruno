@@ -3,7 +3,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from 'styled-components';
-import SettingsField from './index';
+import FormField from './index';
 
 const theme = {
   text: '#343434',
@@ -13,21 +13,21 @@ const theme = {
 
 const renderWithTheme = (ui) => render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);
 
-describe('SettingsField', () => {
+describe('FormField', () => {
   it('renders a real <label> tied to the control when htmlFor is given', () => {
     renderWithTheme(
-      <SettingsField label="Hostname" htmlFor="host">
+      <FormField label="Hostname" htmlFor="host">
         <input id="host" />
-      </SettingsField>
+      </FormField>
     );
     expect(screen.getByLabelText('Hostname')).toHaveAttribute('id', 'host');
   });
 
   it('renders the label as a span with labelId when there is no htmlFor', () => {
     renderWithTheme(
-      <SettingsField label="Protocol" labelId="protocol-label">
+      <FormField label="Protocol" labelId="protocol-label">
         <button type="button" aria-labelledby="protocol-label">HTTP</button>
-      </SettingsField>
+      </FormField>
     );
     const label = screen.getByText('Protocol');
     expect(label.tagName).toBe('SPAN');
@@ -36,18 +36,18 @@ describe('SettingsField', () => {
 
   it('gives the description an id the control can use as its accessible description', () => {
     renderWithTheme(
-      <SettingsField label="Proxy Bypass" description="Separate hosts with commas" htmlFor="bypass" descriptionId="bypass-description">
+      <FormField label="Proxy Bypass" description="Separate hosts with commas" htmlFor="bypass" descriptionId="bypass-description">
         <input id="bypass" aria-describedby="bypass-description" />
-      </SettingsField>
+      </FormField>
     );
     expect(screen.getByLabelText('Proxy Bypass')).toHaveAccessibleDescription('Separate hosts with commas');
   });
 
   it('shows the description and the error', () => {
     renderWithTheme(
-      <SettingsField label="Port" description="Proxy port" error="Specify port between 1 and 65535" htmlFor="port">
+      <FormField label="Port" description="Proxy port" error="Specify port between 1 and 65535" htmlFor="port">
         <input id="port" />
-      </SettingsField>
+      </FormField>
     );
     expect(screen.getByText('Proxy port')).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('Specify port between 1 and 65535');
@@ -55,31 +55,31 @@ describe('SettingsField', () => {
 
   it('applies the layout class (stacked by default, inline when asked)', () => {
     const { container, rerender } = renderWithTheme(
-      <SettingsField label="A" htmlFor="a"><input id="a" /></SettingsField>
+      <FormField label="A" htmlFor="a"><input id="a" /></FormField>
     );
-    expect(container.firstChild).toHaveClass('settings-field--stacked');
+    expect(container.firstChild).toHaveClass('form-field--stacked');
 
     rerender(
       <ThemeProvider theme={theme}>
-        <SettingsField layout="inline" label="A" htmlFor="a"><input id="a" /></SettingsField>
+        <FormField layout="inline" label="A" htmlFor="a"><input id="a" /></FormField>
       </ThemeProvider>
     );
-    expect(container.firstChild).toHaveClass('settings-field--inline');
+    expect(container.firstChild).toHaveClass('form-field--inline');
 
     rerender(
       <ThemeProvider theme={theme}>
-        <SettingsField layout="leading" label="A" htmlFor="a"><input id="a" type="checkbox" /></SettingsField>
+        <FormField layout="leading" label="A" htmlFor="a"><input id="a" type="checkbox" /></FormField>
       </ThemeProvider>
     );
-    expect(container.firstChild).toHaveClass('settings-field--leading');
+    expect(container.firstChild).toHaveClass('form-field--leading');
   });
 
   it('leading layout: clicking the label toggles the checkbox', async () => {
     const user = userEvent.setup();
     renderWithTheme(
-      <SettingsField layout="leading" label="Proxy authentication" description="Send credentials" htmlFor="auth">
+      <FormField layout="leading" label="Proxy authentication" description="Send credentials" htmlFor="auth">
         <input id="auth" type="checkbox" />
-      </SettingsField>
+      </FormField>
     );
     const checkbox = screen.getByLabelText('Proxy authentication');
     expect(checkbox).not.toBeChecked();

@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { IconChevronDown } from '@tabler/icons';
-import SettingsList from './index';
-import SettingsField from '../SettingsField';
+import FieldList from './index';
+import FormField from '../FormField';
 import Checkbox from '../../Checkbox';
 import SegmentedControl from '../../SegmentedControl';
 import MenuDropdown from '../../MenuDropdown';
 
 export default {
-  title: 'Patterns/SettingsList',
-  component: SettingsList,
+  title: 'Patterns/FieldList',
+  component: FieldList,
   tags: ['autodocs'],
   argTypes: {
     gap: { control: 'radio', options: ['sm', 'md'], description: 'Space between items: \'sm\' 12px, \'md\' 16px' },
@@ -46,18 +46,18 @@ const PROTOCOLS = [
   { id: 'socks5', label: 'SOCKS5' }
 ];
 
-/** Inline settings list (like Request Settings): input, SegmentedControl, Checkbox and MenuDropdown rows. */
+/** Inline field list (like Request Settings): input, SegmentedControl, Checkbox and MenuDropdown rows. */
 const InlineDemo = ({ gap, dividers }) => {
   const [maxRedirects, setMaxRedirects] = useState('5');
   const [encode, setEncode] = useState('on');
   const [follow, setFollow] = useState(true);
   const [protocol, setProtocol] = useState('http');
   return (
-    <SettingsList gap={gap} dividers={dividers} className="max-w-[600px]">
-      <SettingsField layout="inline" label="Max Redirects" description="Set a limit for the number of redirects to follow" htmlFor="list-max">
+    <FieldList gap={gap} dividers={dividers} className="max-w-[600px]">
+      <FormField layout="inline" label="Max Redirects" description="Set a limit for the number of redirects to follow" htmlFor="list-max">
         <DemoInput id="list-max" value={maxRedirects} onChange={(e) => setMaxRedirects(e.target.value)} style={{ width: 96 }} />
-      </SettingsField>
-      <SettingsField layout="inline" label="URL Encoding" description="Automatically encode query parameters in the URL" labelId="list-encode">
+      </FormField>
+      <FormField layout="inline" label="URL Encoding" description="Automatically encode query parameters in the URL" labelId="list-encode">
         <SegmentedControl
           ariaLabelledBy="list-encode"
           name="list-encode"
@@ -66,11 +66,11 @@ const InlineDemo = ({ gap, dividers }) => {
           size="sm"
           items={[{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }]}
         />
-      </SettingsField>
-      <SettingsField layout="inline" label="Automatically Follow Redirects" description="Follow HTTP redirects automatically" htmlFor="list-follow">
+      </FormField>
+      <FormField layout="inline" label="Automatically Follow Redirects" description="Follow HTTP redirects automatically" htmlFor="list-follow">
         <Checkbox id="list-follow" checked={follow} onChange={(e) => setFollow(e.target.checked)} />
-      </SettingsField>
-      <SettingsField layout="inline" label="Protocol" description="Protocol used to talk to the proxy" labelId="list-protocol">
+      </FormField>
+      <FormField layout="inline" label="Protocol" description="Protocol used to talk to the proxy" labelId="list-protocol">
         <MenuDropdown
           items={PROTOCOLS.map((item) => ({ ...item, onClick: () => setProtocol(item.id) }))}
           selectedItemId={protocol}
@@ -82,8 +82,8 @@ const InlineDemo = ({ gap, dividers }) => {
             <IconChevronDown size={14} strokeWidth={2} />
           </DemoTrigger>
         </MenuDropdown>
-      </SettingsField>
-    </SettingsList>
+      </FormField>
+    </FieldList>
   );
 };
 
@@ -93,8 +93,8 @@ const StackedDemo = ({ gap, dividers }) => {
   const [protocol, setProtocol] = useState('http');
   const [auth, setAuth] = useState(true);
   return (
-    <SettingsList gap={gap} dividers={dividers} className="max-w-[500px]">
-      <SettingsField label="Proxy mode" labelId="stacked-mode">
+    <FieldList gap={gap} dividers={dividers} className="max-w-[500px]">
+      <FormField label="Proxy mode" labelId="stacked-mode">
         <SegmentedControl
           ariaLabelledBy="stacked-mode"
           name="stacked-mode"
@@ -102,8 +102,8 @@ const StackedDemo = ({ gap, dividers }) => {
           onChange={setMode}
           items={[{ value: 'inherit', label: 'Inherit' }, { value: 'custom', label: 'Custom' }, { value: 'off', label: 'Off' }]}
         />
-      </SettingsField>
-      <SettingsField label="Protocol" labelId="stacked-protocol">
+      </FormField>
+      <FormField label="Protocol" labelId="stacked-protocol">
         <MenuDropdown
           items={PROTOCOLS.map((item) => ({ ...item, onClick: () => setProtocol(item.id) }))}
           selectedItemId={protocol}
@@ -115,19 +115,19 @@ const StackedDemo = ({ gap, dividers }) => {
             <IconChevronDown size={14} strokeWidth={2} />
           </DemoTrigger>
         </MenuDropdown>
-      </SettingsField>
-      <SettingsList gap="sm">
-        <SettingsField layout="leading" label="Proxy authentication" htmlFor="stacked-auth">
+      </FormField>
+      <FieldList gap="sm">
+        <FormField layout="leading" label="Proxy authentication" htmlFor="stacked-auth">
           <Checkbox id="stacked-auth" checked={auth} onChange={(e) => setAuth(e.target.checked)} />
-        </SettingsField>
-        <SettingsField label="Username" htmlFor="stacked-user">
+        </FormField>
+        <FormField label="Username" htmlFor="stacked-user">
           <DemoInput id="stacked-user" defaultValue="proxy-user" style={{ width: '100%' }} />
-        </SettingsField>
-      </SettingsList>
-      <SettingsField label="Proxy Bypass" description="Separate hosts with commas. Wildcards are supported." htmlFor="stacked-bypass">
+        </FormField>
+      </FieldList>
+      <FormField label="Proxy Bypass" description="Separate hosts with commas. Wildcards are supported." htmlFor="stacked-bypass">
         <DemoInput id="stacked-bypass" defaultValue="localhost,127.0.0.1" style={{ width: '100%' }} />
-      </SettingsField>
-    </SettingsList>
+      </FormField>
+    </FieldList>
   );
 };
 

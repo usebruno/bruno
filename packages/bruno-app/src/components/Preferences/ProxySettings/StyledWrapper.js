@@ -32,11 +32,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .mono {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: ${(props) => props.theme.font.size.sm};
-  }
-
   /* Password input + show/hide button inside one bordered field */
   .password-field {
     display: flex;

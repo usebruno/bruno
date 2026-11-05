@@ -1,7 +1,7 @@
 import React from 'react';
 import { IconChevronDown, IconX } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
-import SettingsField from 'ui/patterns/SettingsField';
+import FormField from 'ui/patterns/FormField';
 import StyledWrapper from './StyledWrapper';
 
 const InheritableSettingsInput = ({
@@ -17,7 +17,7 @@ const InheritableSettingsInput = ({
 }) => {
   return (
     <StyledWrapper>
-      <SettingsField
+      <FormField
         layout="inline"
         label={label}
         description={description}
@@ -33,7 +33,7 @@ const InheritableSettingsInput = ({
                 type="button"
                 aria-labelledby={`${id}-label`}
                 aria-describedby={description ? `${id}-description` : undefined}
-                className="settings-text-input px-2 py-1 text-xs w-24 h-[34px] flex items-center justify-between"
+                className="settings-text-input px-2 py-1 w-24 h-[34px] flex items-center justify-between"
               >
                 <span>Inherit</span>
                 <IconChevronDown size={12} />
@@ -72,7 +72,7 @@ const InheritableSettingsInput = ({
             </button>
           </div>
         )}
-      </SettingsField>
+      </FormField>
     </StyledWrapper>
   );
 };

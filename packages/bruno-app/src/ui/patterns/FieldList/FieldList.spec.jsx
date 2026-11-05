@@ -2,39 +2,39 @@ import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
-import SettingsList from './index';
+import FieldList from './index';
 
 const theme = { border: { border0: '#efefef' } };
 
 const renderWithTheme = (ui) => render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);
 
-describe('SettingsList', () => {
+describe('FieldList', () => {
   it('renders its items in order', () => {
     renderWithTheme(
-      <SettingsList>
+      <FieldList>
         <div>First</div>
         <div>Second</div>
-      </SettingsList>
+      </FieldList>
     );
     const items = screen.getAllByText(/First|Second/);
     expect(items.map((el) => el.textContent)).toEqual(['First', 'Second']);
   });
 
   it('adds the dividers class only when asked', () => {
-    const { container, rerender } = renderWithTheme(<SettingsList><div>A</div></SettingsList>);
-    expect(container.firstChild).toHaveClass('settings-list');
-    expect(container.firstChild).not.toHaveClass('settings-list--dividers');
+    const { container, rerender } = renderWithTheme(<FieldList><div>A</div></FieldList>);
+    expect(container.firstChild).toHaveClass('field-list');
+    expect(container.firstChild).not.toHaveClass('field-list--dividers');
 
     rerender(
       <ThemeProvider theme={theme}>
-        <SettingsList dividers><div>A</div></SettingsList>
+        <FieldList dividers><div>A</div></FieldList>
       </ThemeProvider>
     );
-    expect(container.firstChild).toHaveClass('settings-list--dividers');
+    expect(container.firstChild).toHaveClass('field-list--dividers');
   });
 
   it('passes className and data-testid through', () => {
-    renderWithTheme(<SettingsList className="page-list" data-testid="list"><div>A</div></SettingsList>);
+    renderWithTheme(<FieldList className="page-list" data-testid="list"><div>A</div></FieldList>);
     expect(screen.getByTestId('list')).toHaveClass('page-list');
   });
 });

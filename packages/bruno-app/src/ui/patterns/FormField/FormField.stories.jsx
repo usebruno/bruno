@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { IconChevronDown } from '@tabler/icons';
-import SettingsField from './index';
+import FormField from './index';
 import Checkbox from '../../Checkbox';
 import SegmentedControl from '../../SegmentedControl';
 import MenuDropdown from '../../MenuDropdown';
 
 export default {
-  title: 'Patterns/SettingsField',
-  component: SettingsField,
+  title: 'Patterns/FormField',
+  component: FormField,
   tags: ['autodocs'],
   argTypes: {
     layout: {
@@ -62,7 +62,7 @@ const PROTOCOLS = [
   { id: 'socks5', label: 'SOCKS5' }
 ];
 
-/** One settings form with all four kinds of control: input, SegmentedControl, Checkbox, MenuDropdown. */
+/** One form with all four kinds of control: input, SegmentedControl, Checkbox, MenuDropdown. */
 const DemoForm = ({ layout, withErrors = false }) => {
   const [port, setPort] = useState(withErrors ? '99999' : '8080');
   const [mode, setMode] = useState('custom');
@@ -73,7 +73,7 @@ const DemoForm = ({ layout, withErrors = false }) => {
 
   return (
     <List $layout={layout}>
-      <SettingsField
+      <FormField
         layout={layout}
         label="Port"
         description="Port of the proxy server."
@@ -86,9 +86,9 @@ const DemoForm = ({ layout, withErrors = false }) => {
           onChange={(e) => setPort(e.target.value)}
           style={{ width: inline ? 128 : '100%' }}
         />
-      </SettingsField>
+      </FormField>
 
-      <SettingsField
+      <FormField
         layout={layout}
         label="Proxy mode"
         description="Inherit from preferences, use a custom proxy, or turn it off."
@@ -99,15 +99,16 @@ const DemoForm = ({ layout, withErrors = false }) => {
           name={ids('mode')}
           value={mode}
           onChange={setMode}
+          size="medium"
           items={[
             { value: 'inherit', label: 'Inherit' },
             { value: 'custom', label: 'Custom' },
             { value: 'off', label: 'Off' }
           ]}
         />
-      </SettingsField>
+      </FormField>
 
-      <SettingsField
+      <FormField
         layout={layout}
         label="Protocol"
         description="Protocol used to talk to the proxy."
@@ -126,10 +127,10 @@ const DemoForm = ({ layout, withErrors = false }) => {
             <IconChevronDown size={14} strokeWidth={2} />
           </DemoTrigger>
         </MenuDropdown>
-      </SettingsField>
+      </FormField>
 
       {/* Checkboxes sit before their label in a stacked form, and on the right in an inline list */}
-      <SettingsField
+      <FormField
         layout={inline ? 'inline' : 'leading'}
         label="Proxy authentication"
         description="Send a username and password to the proxy."
@@ -140,7 +141,7 @@ const DemoForm = ({ layout, withErrors = false }) => {
           checked={auth}
           onChange={(e) => setAuth(e.target.checked)}
         />
-      </SettingsField>
+      </FormField>
     </List>
   );
 };
@@ -152,15 +153,15 @@ const LeadingDemo = () => {
   const [protocol, setProtocol] = useState('http');
   return (
     <List $layout="stacked">
-      <SettingsField
+      <FormField
         layout="leading"
         label="Proxy authentication"
         description="Send a username and password to the proxy."
         htmlFor="story-leading-auth"
       >
         <Checkbox id="story-leading-auth" checked={auth} onChange={(e) => setAuth(e.target.checked)} />
-      </SettingsField>
-      <SettingsField
+      </FormField>
+      <FormField
         layout="leading"
         label="Keep default CA certificates"
         description="Trust the system certificates as well as your custom one."
@@ -168,8 +169,8 @@ const LeadingDemo = () => {
         error={keepDefaults ? undefined : 'Some requests may fail without the default certificates'}
       >
         <Checkbox id="story-leading-keep" checked={keepDefaults} onChange={(e) => setKeepDefaults(e.target.checked)} />
-      </SettingsField>
-      <SettingsField layout="stacked" label="Proxy mode" labelId="story-leading-mode-label">
+      </FormField>
+      <FormField layout="stacked" label="Proxy mode" labelId="story-leading-mode-label">
         <SegmentedControl
           ariaLabelledBy="story-leading-mode-label"
           name="story-leading-mode"
@@ -181,8 +182,8 @@ const LeadingDemo = () => {
             { value: 'off', label: 'Off' }
           ]}
         />
-      </SettingsField>
-      <SettingsField layout="stacked" label="Protocol" labelId="story-leading-protocol-label">
+      </FormField>
+      <FormField layout="stacked" label="Protocol" labelId="story-leading-protocol-label">
         <MenuDropdown
           items={PROTOCOLS.map((item) => ({ ...item, onClick: () => setProtocol(item.id) }))}
           selectedItemId={protocol}
@@ -195,10 +196,10 @@ const LeadingDemo = () => {
             <IconChevronDown size={14} strokeWidth={2} />
           </DemoTrigger>
         </MenuDropdown>
-      </SettingsField>
-      <SettingsField layout="stacked" label="Hostname" htmlFor="story-leading-host">
+      </FormField>
+      <FormField layout="stacked" label="Hostname" htmlFor="story-leading-host">
         <DemoInput id="story-leading-host" defaultValue="localhost" style={{ width: '100%' }} />
-      </SettingsField>
+      </FormField>
     </List>
   );
 };

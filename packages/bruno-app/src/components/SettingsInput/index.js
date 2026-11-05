@@ -1,5 +1,5 @@
 import React from 'react';
-import SettingsField from 'ui/patterns/SettingsField';
+import FormField from 'ui/patterns/FormField';
 import StyledWrapper from './StyledWrapper';
 
 const SettingsInput = ({
@@ -13,7 +13,7 @@ const SettingsInput = ({
 }) => {
   return (
     <StyledWrapper>
-      <SettingsField
+      <FormField
         layout="inline"
         label={label}
         description={description}
@@ -33,7 +33,7 @@ const SettingsInput = ({
           onChange={onChange}
           onKeyDown={onKeyDown}
         />
-      </SettingsField>
+      </FormField>
     </StyledWrapper>
   );
 };

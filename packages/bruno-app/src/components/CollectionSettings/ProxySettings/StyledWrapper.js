@@ -29,6 +29,7 @@ const StyledWrapper = styled.div`
   .single-line-editor-wrapper {
     display: flex;
     align-items: center;
+    cursor: text;
   }
 
   .textbox:focus,
@@ -56,12 +57,6 @@ const StyledWrapper = styled.div`
       border-color: ${(props) => props.theme.input.focusBorder};
       outline: none;
     }
-  }
-
-  .mono,
-  .mono .CodeMirror pre {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
-    font-size: ${(props) => props.theme.font.size.sm};
   }
 `;
 

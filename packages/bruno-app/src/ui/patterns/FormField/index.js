@@ -3,7 +3,11 @@ import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 
 /**
- * SettingsField renders a label, optional description, control, and error.
+ * FormField renders a label, optional description, control, and error.
+ *
+ * Presentational only: no state, no context, no generated IDs. The caller owns the control and
+ * its wiring. Not the same as ui/InputWrapper, which is the internal wrapper of TextInput, Select
+ * and MaskedInput; use FormField when a screen composes its own control.
  *
  * Layouts:
  * - stacked (default): Text above the control. For full-width inputs and pickers.
@@ -16,7 +20,7 @@ import StyledWrapper from './StyledWrapper';
  * - Otherwise, use `labelId` with `aria-labelledby` to associate the label.
  * - Use `descriptionId` with `aria-describedby` to associate the description.
  *
- * @param {ReactNode} props.label - Setting label
+ * @param {ReactNode} props.label - Field label
  * @param {ReactNode} props.description - Optional description below the label
  * @param {ReactNode} props.error - Optional validation message
  * @param {'stacked'|'inline'|'leading'} props.layout - Layout (default: 'stacked')
@@ -24,9 +28,9 @@ import StyledWrapper from './StyledWrapper';
  * @param {string} props.labelId - Label ID for aria-labelledby
  * @param {string} props.descriptionId - Description ID for aria-describedby
  * @param {string} props.controlWidth - Inline control width (default: '8rem')
- * @param {ReactNode} props.children - Setting control
+ * @param {ReactNode} props.children - The control
  */
-const SettingsField = ({
+const FormField = ({
   label,
   description,
   error,
@@ -43,27 +47,27 @@ const SettingsField = ({
 
   return (
     <StyledWrapper
-      className={classnames('settings-field', `settings-field--${layout}`, className)}
+      className={classnames('form-field', `form-field--${layout}`, className)}
       $controlWidth={controlWidth}
       data-testid={dataTestId}
     >
       {(label || description) && (
-        <div className="settings-field-text">
+        <div className="form-field-text">
           {label && (
-            <LabelTag id={labelId} className="settings-field-label" htmlFor={htmlFor}>
+            <LabelTag id={labelId} className="form-field-label" htmlFor={htmlFor}>
               {label}
             </LabelTag>
           )}
           {description && (
-            <p id={descriptionId} className="settings-field-description">
+            <p id={descriptionId} className="form-field-description">
               {description}
             </p>
           )}
         </div>
       )}
-      <div className="settings-field-control">{children}</div>
+      <div className="form-field-control">{children}</div>
       {error && (
-        <div className="settings-field-error" role="alert">
+        <div className="form-field-error" role="alert">
           {error}
         </div>
       )}
@@ -71,4 +75,4 @@ const SettingsField = ({
   );
 };
 
-export default SettingsField;
+export default FormField;
