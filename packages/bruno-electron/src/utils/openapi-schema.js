@@ -58,6 +58,20 @@ const declaresOnlyScalars = (node) => node !== undefined
   && node.schemas.some((schema) => typesOf(schema).some((type) => SCALAR_TYPES.includes(type)))
   && !node.schemas.some((schema) => allowsStructure(schema) || hasOpenAlternative(node.spec, schema));
 
+const leavesShapeOpen = (spec, schema) => {
+  const own = derefSpecObject(spec, schema);
+  return isPlainObject(own) && typesOf(own).length === 0 && own.properties === undefined && own.example === undefined
+    && ['oneOf', 'anyOf'].some((key) => Array.isArray(own[key]));
+};
+const keyLeavesShapeOpen = (node, key) => {
+  const schemas = declaredPropertiesOf(node).filter((properties) => declaresIn(properties, key)).map((properties) => properties[key]);
+  return schemas.length > 0 && schemas.every((schema) => leavesShapeOpen(node.spec, schema));
+};
+const itemsLeaveShapeOpen = (node) => {
+  const items = node === undefined ? [] : node.schemas.filter((schema) => schema.items !== undefined).map((schema) => schema.items);
+  return items.length > 0 && !node.schemas.some((schema) => schema.example !== undefined) && items.every((schema) => leavesShapeOpen(node.spec, schema));
+};
+
 const refName = (schema) => (isPlainObject(schema) && typeof schema.$ref === 'string' ? schema.$ref.split('/').pop() : undefined);
 
 const alternativesOf = (node) => node.schemas
@@ -101,5 +115,7 @@ module.exports = {
   declaredChild,
   declaredItems,
   declaresOnlyScalars,
+  keyLeavesShapeOpen,
+  itemsLeaveShapeOpen,
   otherAlternativeKeys
 };
