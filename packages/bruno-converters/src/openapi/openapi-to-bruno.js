@@ -2,6 +2,7 @@ import each from 'lodash/each';
 import get from 'lodash/get';
 import isPlainObject from 'lodash/isPlainObject';
 import omit from 'lodash/omit';
+import uniq from 'lodash/uniq';
 import jsyaml from 'js-yaml';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid, sanitizeTag, sanitizeTags } from '../common';
 import { swagger2ToBruno } from './swagger2-to-bruno';
@@ -939,6 +940,10 @@ const getDefaultUrl = (serverObject) => {
 
 // Extract { name, value } pairs from an OpenAPI server object.
 // Converts {varName} to {{varName}} for template URLs and includes variable defaults.
+// Placeholders that Bruno fills in itself: process env, secrets providers, OAuth2 credentials and dynamic values
+const RESERVED_VARIABLE_NAME = /^(\$|process(\.|$))/;
+const VARIABLE_NAME = /^[\w-.]+$/;
+
 const extractServerVars = (server) => {
   const vars = [];
   if (server.variables && Object.keys(server.variables).length > 0) {
@@ -955,6 +960,7 @@ const extractServerVars = (server) => {
       // Bruno exports secrets and variables without a value with their own placeholder as the default,
       // so import them as empty secrets
       const isPlaceholder = value === `{{${variableName}}}`;
+      if (isPlaceholder && RESERVED_VARIABLE_NAME.test(variableName)) return;
       vars.push({ name: variableName, value: isPlaceholder ? '' : String(value), secret: isPlaceholder });
     });
   } else {
@@ -1102,6 +1108,25 @@ export const parseOpenApiCollection = (data, options = {}) => {
           }, []);
       })
       .reduce((acc, val) => acc.concat(val), []); // flatten
+
+    // A secret in a request's own server has no environment of its own, so add it to every environment
+    const requestServerSecretNames = uniq(
+      allRequests.flatMap((request) => (request.servers?.[0] ? extractServerVars(request.servers[0]) : []))
+        .filter((serverVar) => serverVar.secret && VARIABLE_NAME.test(serverVar.name))
+        .map((serverVar) => serverVar.name)
+    );
+    brunoCollection.environments.forEach((environment) => {
+      requestServerSecretNames
+        .filter((secretName) => !environment.variables.some((variable) => variable.name === secretName))
+        .forEach((secretName) => environment.variables.push({
+          uid: uuid(),
+          name: secretName,
+          value: '',
+          type: 'text',
+          enabled: true,
+          secret: true
+        }));
+    });
 
     // Support both tag-based and path-based grouping
     const groupingType = options.groupBy || 'tags';

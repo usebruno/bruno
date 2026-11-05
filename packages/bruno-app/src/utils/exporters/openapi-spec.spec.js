@@ -1341,6 +1341,26 @@ describe('exportApiSpec - secrets and other placeholders left unfilled', () => {
     expect(jsyaml.load(content).servers.find((server) => server.description === 'Base Server').variables).toEqual({ apiKey: { default: '{{apiKey}}' } });
   });
 
+  it('re-imports placeholders Bruno fills in itself without a variable that would hide them', () => {
+    const environments = [{ name: 'Prod', variables: [{ name: 'baseUrl', value: 'https://{{process.env.HOST}}/{{$secrets.vault.path}}', enabled: true }] }];
+    const { content } = exportApiSpec({ variables: {}, items: [itemWithUrl('{{baseUrl}}/data')], name: 'Test API', environments });
+
+    const environment = openApiToBruno(jsyaml.load(content)).environments.find((env) => env.name === 'Prod');
+    expect(environment.variables.map((v) => [v.name, v.value])).toEqual([['baseUrl', 'https://{{process.env.HOST}}/{{$secrets.vault.path}}']]);
+  });
+
+  it('re-imports a secret from a request host as an empty secret in every environment', () => {
+    const environments = [
+      { name: 'Prod', variables: [{ name: 'baseUrl', value: 'https://api.test', enabled: true }] },
+      { name: 'Staging', variables: [{ name: 'baseUrl', value: 'https://staging.test', enabled: true }] }
+    ];
+    const { content } = exportApiSpec({ variables: {}, items: [itemWithUrl('https://{{tenantSecret}}.other.test/data')], name: 'Test API', environments: [...environments, ...withSecrets('tenantSecret')] });
+
+    openApiToBruno(jsyaml.load(content)).environments
+      .filter((env) => ['Prod', 'Staging'].includes(env.name))
+      .forEach((env) => expect(env.variables.find((v) => v.name === 'tenantSecret')).toMatchObject({ value: '', secret: true }));
+  });
+
   it('re-imports into Bruno with secrets still pointing at the variables they came from', () => {
     const environments = [{
       name: 'Prod',
