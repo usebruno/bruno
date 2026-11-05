@@ -1,3 +1,5 @@
+const { redactBinaryData, getContentType } = require('@usebruno/common/runner');
+
 const deleteHeaderIfExists = (headers, header) => {
   Object.keys(headers).forEach((key) => {
     if (key.toLowerCase() === header.toLowerCase()) {
@@ -7,6 +9,19 @@ const deleteHeaderIfExists = (headers, header) => {
 };
 
 const sanitizeResultsForReporter = (results, { skipAllHeaders = false, skipHeaders = [], skipRequestBody = false, skipResponseBody = false } = {}) => {
+  if (Array.isArray(results)) {
+    results.forEach((result) => {
+      if (result.request?.data && result.request?.headers) {
+        const requestContentType = getContentType(result.request.headers);
+        result.request.data = redactBinaryData(result.request.data, requestContentType);
+      }
+      if (result.response?.data && result.response?.headers) {
+        const responseContentType = getContentType(result.response.headers);
+        result.response.data = redactBinaryData(result.response.data, responseContentType);
+      }
+    });
+  }
+
   if (skipAllHeaders) {
     results.forEach((result) => {
       result.request.headers = {};

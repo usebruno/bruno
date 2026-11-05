@@ -48,6 +48,52 @@ describe('reporter-skip-body', () => {
       expect(json.results[0].request).not.toHaveProperty('data');
       expect(json.results[0].response).not.toHaveProperty('data');
     });
+
+    it('should redact binary response bodies (e.g. PDF) in JSON report even when headers are skipped', () => {
+      const mockResult = createMockResult();
+      mockResult.response.headers['content-type'] = 'application/pdf';
+      mockResult.response.data = '%PDF-1.4 binary content...';
+
+      sanitizeResultsForReporter([mockResult], { skipAllHeaders: true });
+
+      expect(mockResult.response.data).toBe('Response content redacted (binary data)');
+      expect(mockResult.response.headers).toEqual({});
+    });
+
+    it('should redact binary request bodies in JSON report', () => {
+      const mockResult = createMockResult();
+      mockResult.request.headers['content-type'] = 'application/octet-stream';
+      mockResult.request.data = 'binary stream data';
+
+      sanitizeResultsForReporter([mockResult]);
+
+      expect(mockResult.request.data).toBe('Response content redacted (binary data)');
+    });
+
+    it('should redact protobuf response bodies in JSON report', () => {
+      const mockResult = createMockResult();
+      mockResult.response.headers['content-type'] = 'application/x-protobuf';
+      mockResult.response.data = 'raw-protobuf-binary';
+
+      sanitizeResultsForReporter([mockResult]);
+
+      expect(mockResult.response.data).toBe('Response content redacted (binary data)');
+    });
+
+    it('should redact parquet and epub binary response bodies in JSON report', () => {
+      const parquetResult = createMockResult();
+      parquetResult.response.headers['content-type'] = 'application/vnd.apache.parquet';
+      parquetResult.response.data = 'PAR1binarydata';
+
+      const epubResult = createMockResult();
+      epubResult.response.headers['content-type'] = 'application/epub+zip';
+      epubResult.response.data = 'PKepubdata';
+
+      sanitizeResultsForReporter([parquetResult, epubResult]);
+
+      expect(parquetResult.response.data).toBe('Response content redacted (binary data)');
+      expect(epubResult.response.data).toBe('Response content redacted (binary data)');
+    });
   });
 
   describe('HTML report', () => {
@@ -179,6 +225,17 @@ describe('reporter-skip-request-body and reporter-skip-response-body', () => {
 
       expect(result.request).not.toHaveProperty('data');
       expect(result.response).not.toHaveProperty('data');
+    });
+
+    it('should redact binary response bodies (e.g. PDF) in HTML report', () => {
+      const mockResult = createMockResult();
+      mockResult.response.headers['content-type'] = 'application/pdf';
+      mockResult.response.data = '%PDF-1.4 binary stream data...';
+
+      const embedded = extractEmbeddedData(generateHtml([mockResult]));
+      const result = embedded.results[0].results[0];
+
+      expect(result.response.data).toBe('Response content redacted (binary data)');
     });
   });
 });

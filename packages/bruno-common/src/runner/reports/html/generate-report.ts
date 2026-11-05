@@ -1,5 +1,5 @@
 import { T_RunnerResults } from '../../types';
-import { isHtmlContentType, getContentType, redactImageData, encodeBase64 } from '../../utils';
+import { isHtmlContentType, getContentType, redactBinaryData, encodeBase64 } from '../../utils';
 import htmlTemplateString from './template';
 
 const generateHtmlReport = ({
@@ -24,12 +24,12 @@ const generateHtmlReport = ({
           ...result,
           request: {
             ...result.request,
-            data: request?.data ? redactImageData(request?.data, requestContentType) : request?.data,
+            data: request?.data ? redactBinaryData(request?.data, requestContentType) : request?.data,
             isHtml: isHtmlContentType(requestContentType)
           },
           response: {
             ...result.response,
-            data: response?.data ? redactImageData(response?.data, responseContentType) : response?.data,
+            data: response?.data ? redactBinaryData(response?.data, responseContentType) : response?.data,
             isHtml: isHtmlContentType(responseContentType)
           }
         };
