@@ -112,15 +112,18 @@ const normalizeWindowsNamedPipe = (pipePath) => {
   return pipePath;
 };
 
+// RFC 6761 loopback names; matched by suffix
+const isLoopbackHostname = (hostname) => {
+  const host = hostname.replace(/\.$/, '');
+  return host === 'localhost' || host.endsWith('.localhost') || host === '127.0.0.1' || host === '[::1]';
+};
+
 // Parse gRPC URL into components, handling TCP, Unix sockets, and Windows named pipes
 const getParsedGrpcUrlObject = (url) => {
   const addProtocolIfMissing = (str) => {
     if (str.includes('://')) return str;
-    const lower = str.toLowerCase();
-    if (lower.includes('localhost') || lower.includes('127.0.0.1')) {
-      return `grpc://${str}`;
-    }
-    return `grpcs://${str}`;
+    const hostname = new URL(`grpcs://${str}`).hostname.toLowerCase();
+    return isLoopbackHostname(hostname) ? `grpc://${str}` : `grpcs://${str}`;
   };
   const removeTrailingSlash = (str) => (str.endsWith('/') ? str.slice(0, -1) : str);
 
