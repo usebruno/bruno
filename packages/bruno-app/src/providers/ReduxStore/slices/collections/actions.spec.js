@@ -355,7 +355,8 @@ describe('collection actions', () => {
             headers: exampleRequest.headers,
             params: exampleRequest.params,
             body: exampleRequest.body,
-            auth: { mode: 'inherit' }
+            // the example saved no auth, so the source request's own auth is used
+            auth: { mode: 'bearer', bearer: { token: 'abc' } }
           })
         })
       );
@@ -368,6 +369,78 @@ describe('collection actions', () => {
           preview: false,
           autoSend: true
         })
+      );
+    });
+
+    // https://github.com/usebruno/bruno/issues/9759
+    it('resolves inherited auth through the source request\'s folders', async () => {
+      const folderAuth = { mode: 'bearer', bearer: { token: 'folder-token' } };
+      const getState = () => ({
+        collections: {
+          tempDirectories: { 'collection-uid': '/tmp/transient/collection' },
+          collections: [
+            {
+              uid: 'collection-uid',
+              pathname: '/bruno/collection',
+              format: 'yml',
+              root: { request: { auth: { mode: 'none' } } },
+              items: [
+                {
+                  uid: 'folder-uid',
+                  type: 'folder',
+                  name: 'api',
+                  pathname: '/bruno/collection/api',
+                  root: { request: { auth: folderAuth } },
+                  items: [
+                    {
+                      uid: 'item-uid',
+                      type: 'http-request',
+                      name: 'Get User',
+                      pathname: '/bruno/collection/api/get-user.yml',
+                      request: { method: 'GET', url: exampleRequest.url, auth: { mode: 'inherit' } },
+                      examples: [
+                        {
+                          uid: 'example-uid',
+                          name: 'Success',
+                          type: 'http-request',
+                          request: { ...exampleRequest, auth: { mode: 'inherit' } }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      });
+      const dispatch = jest.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
+
+      await tryResponseExample({ itemUid: 'item-uid', collectionUid: 'collection-uid', exampleUid: 'example-uid' })(dispatch, getState);
+
+      expect(window.ipcRenderer.invoke).toHaveBeenCalledWith(
+        'renderer:new-request',
+        expect.stringContaining('Untitled 1.yml'),
+        expect.objectContaining({
+          isTransient: true,
+          request: expect.objectContaining({ auth: folderAuth })
+        })
+      );
+    });
+
+    it('keeps the auth the example saved when it is a concrete mode', async () => {
+      const exampleAuth = { mode: 'apikey', apikey: { key: 'x-api-key', value: 'k', placement: 'header' } };
+      const base = buildState();
+      base.collections.collections[0].items[0].examples[0].request = { ...exampleRequest, auth: exampleAuth };
+      const getState = () => base;
+      const dispatch = jest.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
+
+      await tryResponseExample({ itemUid: 'item-uid', collectionUid: 'collection-uid', exampleUid: 'example-uid' })(dispatch, getState);
+
+      expect(window.ipcRenderer.invoke).toHaveBeenCalledWith(
+        'renderer:new-request',
+        expect.stringContaining('Untitled 1.yml'),
+        expect.objectContaining({ request: expect.objectContaining({ auth: exampleAuth }) })
       );
     });
 

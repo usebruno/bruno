@@ -1784,6 +1784,16 @@ export const tryResponseExample = ({ itemUid, collectionUid, exampleUid }) => (d
   const requestName = generateTransientRequestName(collection);
   const filename = sanitizeName(requestName);
 
+  // The transient request is written to the collection's temp directory, outside
+  // the source request's folders, so an `inherit` auth would be resolved against
+  // the collection root and skip folder-level auth (#9759). Use the auth the
+  // example saved when it is a concrete mode; otherwise resolve the source
+  // request's auth through its own folders, as sending that request would.
+  const exampleAuth = exampleRequest.auth;
+  const auth = exampleAuth?.mode && exampleAuth.mode !== 'inherit'
+    ? exampleAuth
+    : resolveInheritedAuth(item, collection).auth;
+
   return dispatch(
     newHttpRequest({
       requestName,
@@ -1797,7 +1807,8 @@ export const tryResponseExample = ({ itemUid, collectionUid, exampleUid }) => (d
       autoSend: true,
       headers: exampleRequest.headers || [],
       params: exampleRequest.params || [],
-      ...(exampleRequest.body ? { body: exampleRequest.body } : {})
+      ...(exampleRequest.body ? { body: exampleRequest.body } : {}),
+      ...(auth ? { auth } : {})
     })
   );
 };
