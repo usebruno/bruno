@@ -241,31 +241,11 @@ export class PatchedHttpsProxyAgent extends HttpsProxyAgent<any> {
   }
 }
 
-const getCertsAndProxyConfig = ({
-  requestUrl,
-  collectionPath,
-  options,
-  clientCertificates,
-  collectionLevelProxy,
-  appLevelProxyConfig,
-  systemProxyConfig
-}: GetCertsAndProxyConfigParams): GetCertsAndProxyConfigResult => {
+/** Read the first enabled client certificate matching a request URL. */
+const getClientCertificate = ({ requestUrl, collectionPath, clientCertificates }: Pick<
+  GetCertsAndProxyConfigParams, 'requestUrl' | 'collectionPath' | 'clientCertificates'
+>): CertsConfig | undefined => {
   const certsConfig: CertsConfig = {};
-
-  // Only load CA certificates when TLS verification is enabled
-  if (options.shouldVerifyTls) {
-    const caCertFilePath = options.shouldUseCustomCaCertificate && options.customCaCertificateFilePath ? options.customCaCertificateFilePath : undefined;
-    const caCertificatesData = getCACertificates({
-      caCertFilePath,
-      shouldKeepDefaultCerts: options.shouldKeepDefaultCaCertificates
-    });
-
-    // configure HTTPS agent with aggregated CA certificates
-    certsConfig.caCertificatesCount = caCertificatesData.caCertificatesCount;
-    certsConfig.ca = caCertificatesData.caCertificates || [];
-  }
-
-  // client certificate config
   const clientCertConfig = get(clientCertificates, 'certs', []) as ClientCertificate[];
 
   for (const clientCert of clientCertConfig) {
@@ -275,7 +255,8 @@ const getCertsAndProxyConfig = ({
     const domain = clientCert?.domain;
     const type = clientCert?.type || 'cert';
     if (domain) {
-      const hostRegex = '^(https:\\/\\/|grpc:\\/\\/|grpcs:\\/\\/)?' + domain.replace(/\./g, '\\.').replace(/\*/g, '.*');
+      const escapedDomain = domain.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+      const hostRegex = new RegExp('^(https:\\/\\/|grpc:\\/\\/|grpcs:\\/\\/)?' + escapedDomain + '(?=$|[/:?#])', 'i');
       if (requestUrl && requestUrl.match(hostRegex)) {
         if (type === 'cert') {
           try {
@@ -310,10 +291,39 @@ const getCertsAndProxyConfig = ({
           }
         }
         certsConfig.passphrase = clientCert.passphrase;
-        break;
+        return certsConfig;
       }
     }
   }
+
+  return undefined;
+};
+
+const getCertsAndProxyConfig = ({
+  requestUrl,
+  collectionPath,
+  options,
+  clientCertificates,
+  collectionLevelProxy,
+  appLevelProxyConfig,
+  systemProxyConfig
+}: GetCertsAndProxyConfigParams): GetCertsAndProxyConfigResult => {
+  const certsConfig: CertsConfig = {};
+
+  // Only load CA certificates when TLS verification is enabled
+  if (options.shouldVerifyTls) {
+    const caCertFilePath = options.shouldUseCustomCaCertificate && options.customCaCertificateFilePath ? options.customCaCertificateFilePath : undefined;
+    const caCertificatesData = getCACertificates({
+      caCertFilePath,
+      shouldKeepDefaultCerts: options.shouldKeepDefaultCaCertificates
+    });
+
+    // configure HTTPS agent with aggregated CA certificates
+    certsConfig.caCertificatesCount = caCertificatesData.caCertificatesCount;
+    certsConfig.ca = caCertificatesData.caCertificates || [];
+  }
+
+  Object.assign(certsConfig, getClientCertificate({ requestUrl, collectionPath, clientCertificates }));
 
   /**
    * Proxy configuration
@@ -637,6 +647,6 @@ const getHttpHttpsAgents = async ({
   return { httpAgent, httpsAgent };
 };
 
-export { getHttpHttpsAgents };
+export { getClientCertificate, getHttpHttpsAgents };
 
 export type { GetHttpHttpsAgentsParams, ResolveAgentsFromPacParams, ResolveAgentsFromPacResult };

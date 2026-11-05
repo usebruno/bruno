@@ -97,6 +97,20 @@ export interface Bru {
    */
   sendRequest(options: string | SendRequestOptions, callback?: (error: any, response: SendRequestResponse | null) => any): Promise<SendRequestResponse>;
   /**
+   * Read the first enabled client certificate configured for a URL.
+   *
+   * Uses the same effective certificate configuration as bru.sendRequest.
+   * Returns undefined when no certificate matches. Do not log or persist
+   * the returned private key or passphrase.
+   *
+   * @param url - The absolute URL, with variables already interpolated.
+   * @example
+   * const certificate = bru.getClientCertificate(bru.interpolate('{{authUrl}}'));
+   * // PEM cert/key fields can be passed to a custom HTTPS client's TLS options.
+   * @category Requests
+   */
+  getClientCertificate(url: string): ScriptClientCertificate | undefined;
+  /**
    * The cookies the current request sends, and `jar()` for the cookies of any URL.
    *
    * @example
@@ -956,6 +970,30 @@ export interface SendRequestResponse {
    * The response body. A JSON body is parsed.
    */
   data: any;
+}
+
+/**
+ * Certificate contents for a matching URL. Treat all fields as secrets.
+ *
+ * @category Types
+ */
+export interface ScriptClientCertificate {
+  /**
+   * The PEM certificate, for a cert/key configuration.
+   */
+  cert?: string;
+  /**
+   * The PEM private key, for a cert/key configuration.
+   */
+  key?: string;
+  /**
+   * The PFX contents encoded as base64. Decode before passing to a binary API.
+   */
+  pfx?: string;
+  /**
+   * The configured key or PFX passphrase.
+   */
+  passphrase?: string;
 }
 
 /**
