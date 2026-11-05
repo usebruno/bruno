@@ -5,6 +5,7 @@
 
 // top level
 export * from './api-spec';
+export * from './openapi-sync';
 export * from './mock-server';
 export * from './runner';
 
@@ -29,6 +30,7 @@ export * from './collection/migrate-to-yml';
 export * from './collection/mount';
 export * from './collection/open-collection-picker';
 export * from './collection/proxy';
+export * from './collection/remove';
 export * from './collection/settings';
 
 // environment

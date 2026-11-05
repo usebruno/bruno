@@ -978,6 +978,17 @@ export interface CookieList {
    */
   add(cookieObj: CookieInput, callback?: (error?: Error | null | undefined) => void): void | Promise<void>;
   /**
+   * Store a cookie for the request's URL, the same as `add`.
+   *
+   * @param cookieObj - The cookie.
+   * @param callback - Called with an error, or with none on success. Without it, the method returns a promise.
+   * @returns A promise, unless `callback` is given.
+   * @example
+   * await bru.cookies.append({ key: 'lang', value: 'en' });
+   * @category Write
+   */
+  append(cookieObj: CookieInput, callback?: (error?: Error | null | undefined) => void): void | Promise<void>;
+  /**
    * Store a cookie for the request's URL.
    *
    * It replaces a cookie with the same name, domain and path. Fails when `cookieObj` is not an
@@ -1051,12 +1062,12 @@ export interface CookieList {
    */
   jar(): CookieJar;
   /**
-   * Get the value of the entry with the given key.
+   * Get the value of a cookie the request sends.
    *
-   * Keys are case-sensitive. With several entries of that key, the last one wins.
+   * Names are case-sensitive. With several cookies of that name, the last one wins.
    *
-   * @param name - The key.
-   * @returns The value, or `undefined` when no entry has that key.
+   * @param name - The cookie's name.
+   * @returns The value, or `undefined` when there is no such cookie.
    * @example
    * const sessionId = bru.cookies.get('sid');
    * @category Read
@@ -1097,61 +1108,66 @@ export interface CookieList {
   /**
    * Get the position of an entry.
    *
-   * Matches an entry with the same key and value, so a copy of an entry finds it too.
+   * With a key, it finds the first entry of that key. With an entry, it finds the first one with
+   * the same key and value, so a copy of an entry finds it too. Keys are case-sensitive.
    *
-   * @param item - An entry.
-   * @returns The zero-based position, or `-1` when no entry matches.
+   * @param nameOrItem - A key, or an entry to match by key and value.
+   * @returns The zero-based position of the first match, or `-1` when none matches.
    * @category Search
    */
-  indexOf(item: Cookie): number;
+  indexOf(nameOrItem: string | Cookie): number;
   /**
-   * Check whether an entry with the given key exists.
+   * Check whether the request sends a cookie with the given name.
    *
-   * Keys are case-sensitive.
+   * Names are case-sensitive.
    *
-   * @param name - The key.
-   * @param value - When given, the entry's value must also be equal (`===`) to it.
-   * @returns Whether a matching entry exists.
+   * @param nameOrItem - A cookie name, or a cookie whose name to look for (its value is not compared).
+   * @param value - When given, the cookie's value must also be equal (`===`) to it.
+   * @returns Whether a matching cookie exists.
    * @example
    * if (!bru.cookies.has('sid')) {
    *   bru.setVar('loggedIn', false);
    * }
    * @category Search
    */
-  has(name: string, value?: any): boolean;
+  has(nameOrItem: string | Cookie, value?: any): boolean;
   /**
    * Get the first entry `predicate` accepts.
    *
    * @param predicate - Called with each entry and its position.
+   * @param context - The `this` of `predicate`.
    * @returns The entry, or `undefined` when none matches.
    * @category Search
    */
-  find(predicate: (item: Cookie, index: number) => boolean): Cookie | undefined;
+  find(predicate: (item: Cookie, index: number) => boolean, context?: any): Cookie | undefined;
   /**
    * Get every entry `predicate` accepts.
    *
    * @param predicate - Called with each entry and its position.
+   * @param context - The `this` of `predicate`.
    * @returns The matching entries, in order.
    * @category Search
    */
-  filter(predicate: (item: Cookie, index: number) => boolean): Cookie[];
+  filter(predicate: (item: Cookie, index: number) => boolean, context?: any): Cookie[];
   /**
    * Call `fn` once for each entry, in order.
    *
    * @param fn - Called with each entry and its position.
+   * @param context - The `this` of `fn`.
    * @category Iteration
    */
-  each(fn: (item: Cookie, index: number) => void): void;
+  each(fn: (item: Cookie, index: number) => void, context?: any): void;
   /**
-   * Build an array from the result of `fn` for each entry.
+   * Build an array from the result of `fn` for each cookie.
    *
-   * @param fn - Called with each entry and its position.
-   * @returns The results, in the order of the entries.
+   * @param fn - Called with each cookie and its position.
+   * @param context - The `this` of `fn`.
+   * @returns The results, in the order of the cookies.
    * @example
    * const names = bru.cookies.map((cookie) => cookie.key);
    * @category Iteration
    */
-  map(fn: (item: Cookie, index: number) => any): any[];
+  map(fn: (item: Cookie, index: number) => any, context?: any): any[];
   /**
    * Combine the entries into a single value, as `Array.prototype.reduce` does.
    *
@@ -1159,9 +1175,10 @@ export interface CookieList {
    *
    * @param fn - Called with the value so far, each entry and its position; returns the next value.
    * @param initialValue - The starting value.
+   * @param context - The `this` of `fn`.
    * @category Iteration
    */
-  reduce(fn: (accumulator: any, item: Cookie, index: number) => any, initialValue?: any): any;
+  reduce(fn: (accumulator: any, item: Cookie, index: number) => any, initialValue?: any, context?: any): any;
   /**
    * Convert the entries to a `{ key: value }` object.
    *
@@ -1353,8 +1370,8 @@ export interface HeaderList {
    *
    * Header names match case-insensitively.
    *
-   * @param name - A header name, or a header whose name to look for (its value is not compared).
-   * @param value - With a name, the header's value must also be equal (`===`) to it.
+   * @param nameOrItem - A header name, or a header whose name to look for (its value is not compared).
+   * @param value - When given, the header's value must also be equal (`===`) to it.
    * @returns Whether a matching header exists.
    * @example
    * if (!req.headerList.has('authorization')) {
@@ -1362,17 +1379,17 @@ export interface HeaderList {
    * }
    * @category Search
    */
-  has(name: string | Header, value?: any): boolean;
+  has(nameOrItem: string | Header, value?: any): boolean;
   /**
    * Get the position of a header.
    *
    * Header names match case-insensitively.
    *
-   * @param item - A header name, or a header to match by name and value.
+   * @param nameOrItem - A header name, or a header to match by name and value.
    * @returns The zero-based position of the first match, or `-1` when none matches.
    * @category Search
    */
-  indexOf(item: string | Header): number;
+  indexOf(nameOrItem: string | Header): number;
   /**
    * Call `fn` once for each header, in order.
    *
@@ -1382,23 +1399,23 @@ export interface HeaderList {
    */
   each(fn: (item: Header, index: number) => void, context?: any): void;
   /**
-   * Get every header `fn` accepts.
+   * Get every header `predicate` accepts.
    *
-   * @param fn - Called with each header and its position.
-   * @param context - The `this` of `fn`.
+   * @param predicate - Called with each header and its position.
+   * @param context - The `this` of `predicate`.
    * @returns The matching headers, in order.
    * @category Search
    */
-  filter(fn: (item: Header, index: number) => boolean, context?: any): Header[];
+  filter(predicate: (item: Header, index: number) => boolean, context?: any): Header[];
   /**
-   * Get the first header `fn` accepts.
+   * Get the first header `predicate` accepts.
    *
-   * @param fn - Called with each header and its position.
-   * @param context - The `this` of `fn`.
+   * @param predicate - Called with each header and its position.
+   * @param context - The `this` of `predicate`.
    * @returns The header, or `undefined` when none matches.
    * @category Search
    */
-  find(fn: (item: Header, index: number) => boolean, context?: any): Header | undefined;
+  find(predicate: (item: Header, index: number) => boolean, context?: any): Header | undefined;
   /**
    * Build an array from the result of `fn` for each header.
    *
@@ -1424,8 +1441,6 @@ export interface HeaderList {
   /**
    * Set a header on the request, the same as `upsert`.
    *
-   * A `disabled` flag on the given header is ignored: the header is always sent.
-   *
    * @param itemOrName - A header, a `Name: value` string, or a header name.
    * @param value - The value, with a header name.
    * @example
@@ -1435,15 +1450,14 @@ export interface HeaderList {
    */
   add(itemOrName: string | Header, value?: string): void;
   /**
-   * Set a header on the request, replacing the enabled header of the same name.
+   * Set an enabled header on the request, replacing the enabled header of the same name.
    *
    * Header names match case-insensitively; the replaced header takes the new name's case. A
-   * disabled header of that name stays in the list. A `disabled` flag on the given header is
-   * ignored: the header is always sent.
+   * disabled header of that name is left as it is, so the new header is listed beside it.
    *
    * @param itemOrName - A header, or a header name.
    * @param value - The value, with a header name.
-   * @returns `true` when the header is new, `false` when it replaced one, and `null` when no name was given. Safe Mode always returns `undefined`.
+   * @returns `true` when no enabled header had the name, `false` when it replaced one, and `null` when no name was given. Safe Mode always returns `undefined`.
    * @example
    * req.headerList.upsert('Content-Type', 'application/json');
    * @category Write
@@ -1452,8 +1466,9 @@ export interface HeaderList {
   /**
    * Remove headers from the request, enabled and disabled.
    *
-   * With a name, or a header (matched by name only), it removes every header of that name; names
-   * match case-insensitively. With a function, it removes every header the function accepts.
+   * With a name, or a header (matched by name only), it removes the enabled header of that name
+   * and every disabled one; names match case-insensitively. With a function, it removes every
+   * header the function accepts.
    *
    * @param predicate - A header name, a header, or a function that returns `true` for the headers to remove.
    * @param context - The `this` of a function `predicate`. Safe Mode ignores it.
@@ -1526,6 +1541,14 @@ export interface HeaderList {
    */
   all(): Header[];
   /**
+   * Get the entry at a position in the list.
+   *
+   * @param index - The zero-based position.
+   * @returns The entry, or `undefined` when the list is shorter.
+   * @category Read
+   */
+  idx(index: number): Header | undefined;
+  /**
    * Get the number of entries.
    *
    * @returns The number of entries.
@@ -1576,8 +1599,8 @@ export interface ReadOnlyHeaderList {
    *
    * Header names match case-insensitively.
    *
-   * @param name - A header name, or a header whose name to look for (its value is not compared).
-   * @param value - With a name, the header's value must also be equal (`===`) to it.
+   * @param nameOrItem - A header name, or a header whose name to look for (its value is not compared).
+   * @param value - When given, the header's value must also be equal (`===`) to it.
    * @returns Whether a matching header exists.
    * @example
    * if (!req.headerList.has('authorization')) {
@@ -1585,17 +1608,17 @@ export interface ReadOnlyHeaderList {
    * }
    * @category Search
    */
-  has(name: string | Header, value?: any): boolean;
+  has(nameOrItem: string | Header, value?: any): boolean;
   /**
    * Get the position of a header.
    *
    * Header names match case-insensitively.
    *
-   * @param item - A header name, or a header to match by name and value.
+   * @param nameOrItem - A header name, or a header to match by name and value.
    * @returns The zero-based position of the first match, or `-1` when none matches.
    * @category Search
    */
-  indexOf(item: string | Header): number;
+  indexOf(nameOrItem: string | Header): number;
   /**
    * Call `fn` once for each header, in order.
    *
@@ -1605,23 +1628,23 @@ export interface ReadOnlyHeaderList {
    */
   each(fn: (item: Header, index: number) => void, context?: any): void;
   /**
-   * Get every header `fn` accepts.
+   * Get every header `predicate` accepts.
    *
-   * @param fn - Called with each header and its position.
-   * @param context - The `this` of `fn`.
+   * @param predicate - Called with each header and its position.
+   * @param context - The `this` of `predicate`.
    * @returns The matching headers, in order.
    * @category Search
    */
-  filter(fn: (item: Header, index: number) => boolean, context?: any): Header[];
+  filter(predicate: (item: Header, index: number) => boolean, context?: any): Header[];
   /**
-   * Get the first header `fn` accepts.
+   * Get the first header `predicate` accepts.
    *
-   * @param fn - Called with each header and its position.
-   * @param context - The `this` of `fn`.
+   * @param predicate - Called with each header and its position.
+   * @param context - The `this` of `predicate`.
    * @returns The header, or `undefined` when none matches.
    * @category Search
    */
-  find(fn: (item: Header, index: number) => boolean, context?: any): Header | undefined;
+  find(predicate: (item: Header, index: number) => boolean, context?: any): Header | undefined;
   /**
    * Build an array from the result of `fn` for each header.
    *
@@ -1673,6 +1696,14 @@ export interface ReadOnlyHeaderList {
    * @category Read
    */
   all(): Header[];
+  /**
+   * Get the entry at a position in the list.
+   *
+   * @param index - The zero-based position.
+   * @returns The entry, or `undefined` when the list is shorter.
+   * @category Read
+   */
+  idx(index: number): Header | undefined;
   /**
    * Get the number of entries.
    *
@@ -2055,46 +2086,50 @@ export interface GrpcMetadataList {
   /**
    * Get the value of an entry.
    *
-   * Keys match case-insensitively.
+   * Keys match case-insensitively. With several entries of that key, the last one wins.
    *
-   * @param key - The key.
+   * @param name - The key.
    * @returns The value, or `undefined` when there is no such entry.
    * @example
    * const status = bru.grpc.response.trailers.get('grpc-status');
    * @category Read
    */
-  get(key: string): any;
+  get(name: string): any;
   /**
    * Get an entry by key.
    *
-   * Keys match case-insensitively.
+   * Keys match case-insensitively. With several entries of that key, the last one wins.
    *
-   * @param key - The key.
+   * @param name - The key.
    * @returns The entry, or `undefined` when there is no such entry.
    * @category Read
    */
-  one(key: string): MetadataEntry | undefined;
+  one(name: string): MetadataEntry | undefined;
   /**
    * Check whether an entry exists.
    *
    * Keys match case-insensitively.
    *
-   * @param key - The key.
+   * @param nameOrItem - A key, or an entry whose key to look for (its value is not compared).
    * @param value - When given, the entry's value must also be equal (`===`) to it.
    * @returns Whether a matching entry exists.
+   * @example
+   * if (!bru.grpc.request.metadata.has('authorization')) {
+   *   bru.grpc.request.metadata.upsert('authorization', `Bearer ${bru.getEnvVar('token')}`);
+   * }
    * @category Search
    */
-  has(key: string, value?: any): boolean;
+  has(nameOrItem: string | MetadataEntry, value?: any): boolean;
   /**
    * Get the position of an entry.
    *
    * Keys match case-insensitively.
    *
-   * @param item - A key, or an entry to match by key and value.
-   * @returns The zero-based position, or `-1` when no entry matches.
+   * @param nameOrItem - A key, or an entry to match by key and value.
+   * @returns The zero-based position of the first match, or `-1` when none matches.
    * @category Search
    */
-  indexOf(item: string | MetadataEntry): number;
+  indexOf(nameOrItem: string | MetadataEntry): number;
   /**
    * Call `fn` once for each entry, in order.
    *
@@ -2104,29 +2139,31 @@ export interface GrpcMetadataList {
    */
   each(fn: (item: MetadataEntry, index: number) => void, context?: any): void;
   /**
-   * Get the first entry `fn` accepts.
+   * Get the first entry `predicate` accepts.
    *
-   * @param fn - Called with each entry and its position.
-   * @param context - The `this` of `fn`.
+   * @param predicate - Called with each entry and its position.
+   * @param context - The `this` of `predicate`.
    * @returns The entry, or `undefined` when none matches.
    * @category Search
    */
-  find(fn: (item: MetadataEntry, index: number) => boolean, context?: any): MetadataEntry | undefined;
+  find(predicate: (item: MetadataEntry, index: number) => boolean, context?: any): MetadataEntry | undefined;
   /**
-   * Get every entry `fn` accepts.
+   * Get every entry `predicate` accepts.
    *
-   * @param fn - Called with each entry and its position.
-   * @param context - The `this` of `fn`.
+   * @param predicate - Called with each entry and its position.
+   * @param context - The `this` of `predicate`.
    * @returns The matching entries, in order.
    * @category Search
    */
-  filter(fn: (item: MetadataEntry, index: number) => boolean, context?: any): MetadataEntry[];
+  filter(predicate: (item: MetadataEntry, index: number) => boolean, context?: any): MetadataEntry[];
   /**
    * Build an array from the result of `fn` for each entry.
    *
    * @param fn - Called with each entry and its position.
    * @param context - The `this` of `fn`.
    * @returns The results, in the order of the entries.
+   * @example
+   * const keys = bru.grpc.response.metadata.map((entry) => entry.key);
    * @category Iteration
    */
   map(fn: (item: MetadataEntry, index: number) => any, context?: any): any[];
@@ -2198,6 +2235,14 @@ export interface GrpcMetadataList {
    * @category Read
    */
   all(): MetadataEntry[];
+  /**
+   * Get the entry at a position in the list.
+   *
+   * @param index - The zero-based position.
+   * @returns The entry, or `undefined` when the list is shorter.
+   * @category Read
+   */
+  idx(index: number): MetadataEntry | undefined;
   /**
    * Get the number of entries.
    *
@@ -2343,46 +2388,50 @@ export interface ReadOnlyGrpcMetadataList {
   /**
    * Get the value of an entry.
    *
-   * Keys match case-insensitively.
+   * Keys match case-insensitively. With several entries of that key, the last one wins.
    *
-   * @param key - The key.
+   * @param name - The key.
    * @returns The value, or `undefined` when there is no such entry.
    * @example
    * const status = bru.grpc.response.trailers.get('grpc-status');
    * @category Read
    */
-  get(key: string): any;
+  get(name: string): any;
   /**
    * Get an entry by key.
    *
-   * Keys match case-insensitively.
+   * Keys match case-insensitively. With several entries of that key, the last one wins.
    *
-   * @param key - The key.
+   * @param name - The key.
    * @returns The entry, or `undefined` when there is no such entry.
    * @category Read
    */
-  one(key: string): MetadataEntry | undefined;
+  one(name: string): MetadataEntry | undefined;
   /**
    * Check whether an entry exists.
    *
    * Keys match case-insensitively.
    *
-   * @param key - The key.
+   * @param nameOrItem - A key, or an entry whose key to look for (its value is not compared).
    * @param value - When given, the entry's value must also be equal (`===`) to it.
    * @returns Whether a matching entry exists.
+   * @example
+   * if (!bru.grpc.request.metadata.has('authorization')) {
+   *   bru.grpc.request.metadata.upsert('authorization', `Bearer ${bru.getEnvVar('token')}`);
+   * }
    * @category Search
    */
-  has(key: string, value?: any): boolean;
+  has(nameOrItem: string | MetadataEntry, value?: any): boolean;
   /**
    * Get the position of an entry.
    *
    * Keys match case-insensitively.
    *
-   * @param item - A key, or an entry to match by key and value.
-   * @returns The zero-based position, or `-1` when no entry matches.
+   * @param nameOrItem - A key, or an entry to match by key and value.
+   * @returns The zero-based position of the first match, or `-1` when none matches.
    * @category Search
    */
-  indexOf(item: string | MetadataEntry): number;
+  indexOf(nameOrItem: string | MetadataEntry): number;
   /**
    * Call `fn` once for each entry, in order.
    *
@@ -2392,29 +2441,31 @@ export interface ReadOnlyGrpcMetadataList {
    */
   each(fn: (item: MetadataEntry, index: number) => void, context?: any): void;
   /**
-   * Get the first entry `fn` accepts.
+   * Get the first entry `predicate` accepts.
    *
-   * @param fn - Called with each entry and its position.
-   * @param context - The `this` of `fn`.
+   * @param predicate - Called with each entry and its position.
+   * @param context - The `this` of `predicate`.
    * @returns The entry, or `undefined` when none matches.
    * @category Search
    */
-  find(fn: (item: MetadataEntry, index: number) => boolean, context?: any): MetadataEntry | undefined;
+  find(predicate: (item: MetadataEntry, index: number) => boolean, context?: any): MetadataEntry | undefined;
   /**
-   * Get every entry `fn` accepts.
+   * Get every entry `predicate` accepts.
    *
-   * @param fn - Called with each entry and its position.
-   * @param context - The `this` of `fn`.
+   * @param predicate - Called with each entry and its position.
+   * @param context - The `this` of `predicate`.
    * @returns The matching entries, in order.
    * @category Search
    */
-  filter(fn: (item: MetadataEntry, index: number) => boolean, context?: any): MetadataEntry[];
+  filter(predicate: (item: MetadataEntry, index: number) => boolean, context?: any): MetadataEntry[];
   /**
    * Build an array from the result of `fn` for each entry.
    *
    * @param fn - Called with each entry and its position.
    * @param context - The `this` of `fn`.
    * @returns The results, in the order of the entries.
+   * @example
+   * const keys = bru.grpc.response.metadata.map((entry) => entry.key);
    * @category Iteration
    */
   map(fn: (item: MetadataEntry, index: number) => any, context?: any): any[];
@@ -2443,6 +2494,14 @@ export interface ReadOnlyGrpcMetadataList {
    * @category Read
    */
   all(): MetadataEntry[];
+  /**
+   * Get the entry at a position in the list.
+   *
+   * @param index - The zero-based position.
+   * @returns The entry, or `undefined` when the list is shorter.
+   * @category Read
+   */
+  idx(index: number): MetadataEntry | undefined;
   /**
    * Get the number of entries.
    *

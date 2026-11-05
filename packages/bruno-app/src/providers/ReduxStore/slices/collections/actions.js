@@ -2412,7 +2412,7 @@ export const addSecretToEnvironment = ({ collectionUid, environmentScope, name, 
     environmentScope,
     environmentUid,
     update: (variables, environment) => {
-      if (variables.some((variable) => variable.name === name)) {
+      if (variables.some((variable) => variable.name === name && variable.secret)) {
         throw new Error(`"${name}" already exists in ${environment.name}`);
       }
       return resolveOrCreateEnabledVariable(variables, name, value, true).updatedVariables;

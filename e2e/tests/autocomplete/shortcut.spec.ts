@@ -15,7 +15,7 @@ import {
   readEditorValue
 } from '../../pages';
 
-test.describe('Variable autocomplete — Ctrl+Space shortcut', () => {
+test.describe('Variable autocomplete — Trigger Autocomplete shortcut', () => {
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });

@@ -43,6 +43,7 @@ const STATIC_API_HINTS = {
     'req.headerList.get(name)',
     'req.headerList.one(name)',
     'req.headerList.all()',
+    'req.headerList.idx(index)',
     'req.headerList.count()',
     'req.headerList.has(name)',
     'req.headerList.has(name, value)',
@@ -87,6 +88,7 @@ const STATIC_API_HINTS = {
     'res.headerList.get(name)',
     'res.headerList.one(name)',
     'res.headerList.all()',
+    'res.headerList.idx(index)',
     'res.headerList.count()',
     'res.headerList.has(name)',
     'res.headerList.has(name, value)',
@@ -163,6 +165,7 @@ const STATIC_API_HINTS = {
     'bru.cookies.toObject()',
     'bru.cookies.toString()',
     'bru.cookies.add(cookieObj)',
+    'bru.cookies.append(cookieObj)',
     'bru.cookies.upsert(cookieObj)',
     'bru.cookies.remove(name)',
     'bru.cookies.delete(name)',
@@ -219,8 +222,8 @@ const VARIABLE_SCOPE_DISPLAY_ORDER = [
   AUTOCOMPLETE_SCOPES.REQUEST,
   AUTOCOMPLETE_SCOPES.RUNTIME,
   AUTOCOMPLETE_SCOPES.PROCESS_ENV,
-  AUTOCOMPLETE_SCOPES.DYNAMIC,
-  AUTOCOMPLETE_SCOPES.OAUTH2
+  AUTOCOMPLETE_SCOPES.OAUTH2,
+  AUTOCOMPLETE_SCOPES.DYNAMIC
 ];
 
 /**
@@ -1015,7 +1018,7 @@ export const getAutoCompleteHints = (cm, allVariables = {}, anywordAutocompleteH
     return null;
   }
 
-  // OFF: typing never opens the variable list (Ctrl+Space forces SINGLE_BRACE, so it still does)
+  // OFF: typing never opens the variable list (the Trigger Autocomplete shortcut forces SINGLE_BRACE, so it still does)
   if (context === 'variables' && getTriggerMode(options) === AUTOCOMPLETE_TRIGGER.OFF) {
     return null;
   }
@@ -1135,8 +1138,8 @@ const handleKeyupForAutocomplete = (cm, event, options) => {
   }
 
   const changeGeneration = cm.changeGeneration();
-  // Ctrl+Space shortcut fires our manual trigger on keydown, but releasing those two physical keys
-  // fires the keyup event. Skip for those.
+  // The Trigger Autocomplete shortcut fires our manual trigger on keydown, but releasing its two physical
+  // keys fires the keyup event. Skip for those.
   if (changeGeneration === cm._brunoLastAutocompleteChangeGeneration) {
     return;
   }
@@ -1164,7 +1167,7 @@ const TRIGGER_CLOSE_CHARACTERS = /[\s()\[\];:>,]/;
 
 /**
  * Manually (re)trigger autocomplete at the current caret position. invoked by the
- * Ctrl+Space shortcut (HotkeysProvider).
+ * Trigger Autocomplete shortcut (HotkeysProvider): Option+Space on macOS, Ctrl+Space elsewhere.
  *
  * @param {Object} cm - CodeMirror editor instance
  * @param {Object} options - The same options object passed to setupAutoComplete
@@ -1264,7 +1267,7 @@ export const setupAutoComplete = (editor, options = {}) => {
     editor.on('mousedown', clickHandler);
   }
 
-  // Manual trigger, invoked by the global Ctrl+Space shortcut (HotkeysProvider).
+  // Manual trigger, invoked by the global Trigger Autocomplete shortcut (HotkeysProvider).
   editor.brunoTriggerAutocomplete = () => triggerAutocompleteAtCaret(editor, options);
 
   return () => {

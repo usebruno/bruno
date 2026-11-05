@@ -4,6 +4,7 @@
  */
 import { Page } from '../playwright';
 import { buildApiSpecPanelLocators, buildApiSpecRowMenuLocators } from './api-spec';
+import { buildOpenApiSyncLocators } from './openapi-sync';
 import { buildFileModeLocators } from './shared-ui/file-mode';
 import { buildPreferencesLocators } from './app-shell/preferences';
 import { buildAiPreferencesLocators } from './app-shell/ai-preferences';
@@ -70,7 +71,8 @@ export const buildCommonLocators = (page: Page) => ({
   codeEditorHints: buildCodeEditorHintLocators(page),
   openApi: {
     render: buildApiSpecPanelLocators(page),
-    rowMenu: buildApiSpecRowMenuLocators(page)
+    rowMenu: buildApiSpecRowMenuLocators(page),
+    sync: buildOpenApiSyncLocators(page)
   },
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
