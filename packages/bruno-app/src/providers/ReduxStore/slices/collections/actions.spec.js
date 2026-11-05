@@ -428,6 +428,59 @@ describe('collection actions', () => {
       );
     });
 
+    it('stops at a folder whose auth is none, like sending the request does', async () => {
+      const getState = () => ({
+        collections: {
+          tempDirectories: { 'collection-uid': '/tmp/transient/collection' },
+          collections: [
+            {
+              uid: 'collection-uid',
+              pathname: '/bruno/collection',
+              format: 'yml',
+              root: { request: { auth: { mode: 'bearer', bearer: { token: 'collection-token' } } } },
+              items: [
+                {
+                  uid: 'folder-uid',
+                  type: 'folder',
+                  name: 'api',
+                  pathname: '/bruno/collection/api',
+                  root: { request: { auth: { mode: 'bearer', bearer: { token: 'folder-token' } } } },
+                  items: [
+                    {
+                      uid: 'public-uid',
+                      type: 'folder',
+                      name: 'public',
+                      pathname: '/bruno/collection/api/public',
+                      root: { request: { auth: { mode: 'none' } } },
+                      items: [
+                        {
+                          uid: 'item-uid',
+                          type: 'http-request',
+                          name: 'Health',
+                          pathname: '/bruno/collection/api/public/health.yml',
+                          request: { method: 'GET', url: exampleRequest.url, auth: { mode: 'inherit' } },
+                          examples: [{ uid: 'example-uid', name: 'Success', type: 'http-request', request: exampleRequest }]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      });
+      const dispatch = jest.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
+
+      await tryResponseExample({ itemUid: 'item-uid', collectionUid: 'collection-uid', exampleUid: 'example-uid' })(dispatch, getState);
+
+      expect(window.ipcRenderer.invoke).toHaveBeenCalledWith(
+        'renderer:new-request',
+        expect.stringContaining('Untitled 1.yml'),
+        expect.objectContaining({ request: expect.objectContaining({ auth: { mode: 'none' } }) })
+      );
+    });
+
     it('keeps the auth the example saved when it is a concrete mode', async () => {
       const exampleAuth = { mode: 'apikey', apikey: { key: 'x-api-key', value: 'k', placement: 'header' } };
       const base = buildState();
