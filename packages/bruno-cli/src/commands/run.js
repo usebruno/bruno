@@ -1,4 +1,5 @@
 const fs = require('fs');
+const { setTimeout } = require('node:timers/promises');
 const chalk = require('chalk');
 const path = require('path');
 const { forOwn, cloneDeep } = require('lodash');
@@ -827,7 +828,19 @@ const handler = async function (argv) {
 
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
+    let isFirstRequest = true;
     while (currentRequestIndex < requestItems.length) {
+      const isValidDelay = !Number.isNaN(delay) && delay > 0;
+      if (!isFirstRequest && isValidDelay && !runAbortSignal.aborted) {
+        console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay / 1000).toFixed(3)}s before next request.`));
+        await setTimeout(delay, undefined, { signal: runAbortSignal }).catch(() => {});
+      }
+
+      if (!isFirstRequest && Number.isNaN(delay)) {
+        console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
+      }
+      isFirstRequest = false;
+
       const requestItem = cloneDeep(requestItems[currentRequestIndex]);
       const { name, pathname } = requestItem;
 
@@ -847,17 +860,6 @@ const handler = async function (argv) {
         persistPaths,
         runAbortSignal
       );
-
-      const isLastRun = currentRequestIndex === requestItems.length - 1;
-      const isValidDelay = !Number.isNaN(delay) && delay > 0;
-      if (isValidDelay && !isLastRun) {
-        console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay / 1000).toFixed(3)}s before next request.`));
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
-
-      if (Number.isNaN(delay) && !isLastRun) {
-        console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
-      }
 
       results.push({
         ...result,

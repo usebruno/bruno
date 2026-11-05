@@ -1,3 +1,4 @@
+const { setTimeout } = require('node:timers/promises');
 const https = require('https');
 const axios = require('axios');
 const path = require('path');
@@ -1639,7 +1640,13 @@ const registerNetworkIpc = (mainWindow) => {
 
         let currentRequestIndex = 0;
         let nJumps = 0; // count the number of jumps to avoid infinite loops
+        let isFirstRequest = true;
         while (currentRequestIndex < folderRequests.length) {
+          if (!isFirstRequest && delay > 0) {
+            await setTimeout(delay, undefined, { signal: abortController.signal }).catch(() => {});
+          }
+          isFirstRequest = false;
+
           // user requested to cancel runner
           if (abortController.signal.aborted) {
             let error = new Error('Runner execution cancelled');
@@ -1894,18 +1901,6 @@ const registerNetworkIpc = (mainWindow) => {
 
             let response, responseTime;
             try {
-              if (delay && !Number.isNaN(delay) && delay > 0) {
-                const delayPromise = new Promise((resolve) => setTimeout(resolve, delay));
-
-                const cancellationPromise = new Promise((_, reject) => {
-                  abortController.signal.addEventListener('abort', () => {
-                    reject(new Error('Cancelled'));
-                  });
-                });
-
-                await Promise.race([delayPromise, cancellationPromise]);
-              }
-
               /** @type {import('axios').AxiosResponse} */
               response = await axiosInstance(refreshExplicitHeaderNames(request));
               response.data = await promisifyStream(response.data, currentAbortController, false);
