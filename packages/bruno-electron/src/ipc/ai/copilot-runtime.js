@@ -16,13 +16,15 @@ const resolvePackageRoot = (packageName) => (require.resolve.paths(packageName) 
   .map((base) => path.join(base, ...packageName.split('/')))
   .find((candidate) => fs.existsSync(path.join(candidate, 'package.json')));
 
+const toUnpackedAsarPath = (filePath) => filePath.replace(ASAR_SEGMENT, UNPACKED_ASAR_SEGMENT);
+
 const packagedRuntimePath = () => {
   if (!app.isPackaged) return null;
   const platform = `${process.platform}-${process.arch}`;
   const packageRoot = resolvePackageRoot(`@github/copilot-sdk-${platform}`);
   if (!packageRoot) return null;
   const wrapper = process.platform === 'win32' ? 'copilot-runtime.exe' : 'copilot-runtime';
-  return path.join(packageRoot, 'prebuilds', platform, wrapper).replace(ASAR_SEGMENT, UNPACKED_ASAR_SEGMENT);
+  return toUnpackedAsarPath(path.join(packageRoot, 'prebuilds', platform, wrapper));
 };
 
 const parseRuntimeHttpError = (err) => {
@@ -290,5 +292,6 @@ module.exports = {
   listCopilotModels,
   streamCopilotText,
   generateCopilotText,
-  buildCopilotPrompt
+  buildCopilotPrompt,
+  toUnpackedAsarPath
 };

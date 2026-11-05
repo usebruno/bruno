@@ -219,10 +219,11 @@ const AI = () => {
     return grouped;
   }, [status]);
 
-  const isModelEnabled = (modelId) => modelId === COPILOT_AUTO_MODEL_ID || get(formik.values, `models.${modelId}.enabled`, true);
+  const isModelEnabled = (modelId) => modelId === COPILOT_AUTO_MODEL_ID || get(formik.values, ['models', modelId, 'enabled'], true);
 
   const handleToggleModel = (modelId, next) => {
-    formik.setFieldValue(`models.${modelId}.enabled`, next);
+    const models = formik.values.models || {};
+    formik.setFieldValue('models', { ...models, [modelId]: { ...models[modelId], enabled: next } });
   };
 
   const endpoints = formik.values.openaiCompatibleEndpoints || [];

@@ -167,12 +167,14 @@ const CopilotProviderCard = ({
         onClick={() => setExpanded(!expanded)}
         role="button"
         tabIndex={0}
+        aria-expanded={expanded}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             setExpanded(!expanded);
           }
         }}
+        data-testid={`ai-provider-${provider.id}-header`}
       >
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <IconBrandGithub size={18} strokeWidth={1.5} className="provider-logo flex-shrink-0" />
