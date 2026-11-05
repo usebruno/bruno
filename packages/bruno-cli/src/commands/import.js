@@ -5,7 +5,7 @@ const chalk = require('chalk');
 const jsyaml = require('js-yaml');
 const axios = require('axios');
 const { openApiToBruno, wsdlToBruno, postmanToBruno, postmanToBrunoEnvironment } = require('@usebruno/converters');
-const { AUTH_PLACEMENTS, REQUEST_NAME_SOURCES } = require('@usebruno/common');
+const { AUTH_PLACEMENTS, REQUEST_NAME_SOURCES, DEFAULT_AUTH_PLACEMENT, DEFAULT_REQUEST_NAME_SOURCE } = require('@usebruno/common');
 const { coerceEnvName, dedupeImportedSecrets, generateUniqueName, sanitizeName, validateName, validateNameError } = require('@usebruno/common').utils;
 const { exists, isDirectory, canonicalPath } = require('../utils/filesystem');
 const { formatImportSummary, formatImportIssues, formatPackageReport, hasImportErrors } = require('../utils/import-report');
@@ -71,13 +71,13 @@ const builder = (yargs) => {
       describe: 'Where to set the spec\'s auth: "request" on each request, "collection" on the collection for requests to inherit. Other schemes stay on their requests (openapi only)',
       type: 'string',
       choices: AUTH_PLACEMENTS,
-      default: 'request'
+      default: DEFAULT_AUTH_PLACEMENT
     })
     .option('request-name-source', {
       describe: 'Field used to name the imported requests: "summary", "operationId", "description" or "path" (method and path). Missing fields fall back in that order (openapi only)',
       type: 'string',
       choices: REQUEST_NAME_SOURCES,
-      default: 'summary'
+      default: DEFAULT_REQUEST_NAME_SOURCE
     })
     .option('preserve-scripts', {
       describe: 'Preserve scripts (keep Postman scripts verbatim, no pm.* → bru.* translation) (postman only)',
