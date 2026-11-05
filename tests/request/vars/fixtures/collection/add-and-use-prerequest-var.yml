@@ -5,5 +5,5 @@ info:
 
 http:
   method: GET
-  url: https://example.com
+  url: '{{baseUrl}}'
   auth: inherit

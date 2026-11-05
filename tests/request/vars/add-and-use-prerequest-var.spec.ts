@@ -3,9 +3,9 @@ import {
   buildCommonLocators,
   closeAllCollections,
   openRequest,
+  sendRequest,
   saveRequest,
   selectRequestPaneTab,
-  setRequestUrlAndSave,
   switchResponseFormat
 } from '../../utils/page';
 
@@ -32,20 +32,13 @@ test.describe('Pre-request variable URL', () => {
       await preRequestVars.rowValueEditor(row).click();
       await page.keyboard.type(baseUrl);
       await saveRequest(page);
-    });
-
-    await test.step('Set the request URL to the pre-request variable', async () => {
       await expect(preRequestVars.rowNameInput(row)).toHaveValue('baseUrl');
       await expect(preRequestVars.rowValueEditor(row)).toHaveText(baseUrl);
-      await request.urlInput().click();
-      await page.keyboard.press('ControlOrMeta+a');
-      await page.keyboard.press('Backspace');
-      await setRequestUrlAndSave(page, '{{baseUrl}}');
-      await expect(request.urlLine()).toHaveText('{{baseUrl}}');
     });
 
     await test.step('Send the request', async () => {
-      await request.sendButton().click();
+      await expect(request.urlLine()).toHaveText('{{baseUrl}}');
+      await sendRequest(page, 200);
     });
 
     await test.step('Response is 200 and the body is pong', async () => {
