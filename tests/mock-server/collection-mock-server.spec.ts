@@ -196,7 +196,10 @@ test.describe.serial('Mock Server', () => {
   });
 
   test('should handle OPTIONS preflight with 204', async () => {
-    const res = await fetch(`${getMockBase()}/health`, { method: 'OPTIONS' });
+    const res = await fetch(`${getMockBase()}/health`, {
+      method: 'OPTIONS',
+      headers: { 'Origin': 'https://example.com', 'Access-Control-Request-Method': 'GET' }
+    });
     expect(res.status).toBe(204);
     expect(res.headers.get('access-control-allow-origin')).toBe('*');
   });

@@ -7,6 +7,7 @@ import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
 import MultiLineEditor from 'components/MultiLineEditor';
 import StyledWrapper from './StyledWrapper';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
 const ResponseExampleFormUrlEncodedParams = ({ item, collection, exampleUid, editMode = false }) => {
   const dispatch = useDispatch();
@@ -80,6 +81,7 @@ const ResponseExampleFormUrlEncodedParams = ({ item, collection, exampleUid, edi
           collection={collection}
           item={item}
           placeholder={!value ? 'Value' : ''}
+          variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
         />
       )
     }

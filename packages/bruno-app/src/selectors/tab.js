@@ -1,5 +1,49 @@
 import { createSelector } from '@reduxjs/toolkit';
 
+// The full tab array. Use only when the component needs to render all tabs.
+export const selectTabs = (state) => state.tabs.tabs;
+
+export const selectActiveTabUid = (state) => state.tabs.activeTabUid;
+
+export const selectTabByUid = (state, tabUid) =>
+  tabUid ? state.tabs.tabs.find((t) => t.uid === tabUid) : undefined;
+
+export const selectActiveTab = (state) =>
+  selectTabByUid(state, state.tabs.activeTabUid);
+
+// Number of open tabs per collection uid. Memoized on the tabs array, so it
+// keeps the same reference until a tab is opened, closed or moved.
+export const selectTabCountsByCollection = createSelector([selectTabs], (tabs) => {
+  const counts = {};
+  for (const t of tabs) {
+    counts[t.collectionUid] = (counts[t.collectionUid] || 0) + 1;
+  }
+  return counts;
+});
+
+// Uid of the first open tab (in tab-strip order) per collection uid.
+export const selectFirstTabUidByCollection = createSelector([selectTabs], (tabs) => {
+  const firstTabs = {};
+  for (const t of tabs) {
+    if (!(t.collectionUid in firstTabs)) {
+      firstTabs[t.collectionUid] = t.uid;
+    }
+  }
+  return firstTabs;
+});
+
+/**
+ * Creates a memoized selector for tabs belonging to a collection.
+ *
+ * The selector is created per component instance so each consumer maintains
+ * its own cache. Create it with `useMemo` when used inside a component.
+ */
+export const makeSelectTabsForCollection = () =>
+  createSelector(
+    [selectTabs, (_state, collectionUid) => collectionUid],
+    (tabs, collectionUid) => tabs.filter((t) => t.collectionUid === collectionUid)
+  );
+
 export const getTabUidForItem = ({ itemUid, itemPathname, collectionUid }) => createSelector([
   (state) => state.tabs.tabs
 ], (tabs) => {
@@ -48,12 +92,15 @@ export const isTabForItemActive = ({ itemUid, itemPathname, collectionUid }) => 
   return activeTab.type !== 'response-example' && activeTab.pathname === itemPathname;
 });
 
-export const isTabForItemPresent = ({ itemUid, itemPathname, collectionUid }) => createSelector([
-  (state) => state.tabs.tabs
-], (tabs) => tabs.some((tab) => {
-  if (collectionUid && tab.collectionUid !== collectionUid) {
-    return false;
-  }
+export const selectActiveTabCollectionUid = createSelector([
+  (state) => state.tabs.tabs,
+  (state) => state.tabs.activeTabUid
+], (tabs, activeTabUid) => tabs.find((tab) => tab.uid === activeTabUid)?.collectionUid ?? null);
 
-  return tab.uid === itemUid || (itemPathname && tab.type !== 'response-example' && tab.pathname === itemPathname);
-}));
+export const selectIsActiveTabCollectionLoaded = createSelector([
+  (state) => state.collections.collections,
+  selectActiveTabCollectionUid
+], (collections, collectionUid) => {
+  const collection = collections.find((c) => c.uid === collectionUid);
+  return Boolean(collection) && collection.mountStatus === 'mounted' && !collection.isLoading;
+});

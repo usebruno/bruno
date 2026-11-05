@@ -1,7 +1,55 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { parseApiSpecContent, resolveExternalApiSpecRefs } = require('../apiSpecs');
+const { parseApiSpecContent, parseAndValidateApiSpec, resolveExternalApiSpecRefs, getApiSpecDisplayName } = require('../apiSpecs');
+
+describe('parseAndValidateApiSpec', () => {
+  const validYaml = 'openapi: 3.0.0\ninfo:\n  title: Pets\n  version: 1.0.0\npaths:\n  /pets: {}\n';
+
+  it('returns the parsed spec for valid OpenAPI 3 YAML and Swagger 2.0 JSON', () => {
+    expect(parseAndValidateApiSpec(validYaml).paths).toEqual({ '/pets': {} });
+    const swagger = { swagger: '2.0', info: { title: 'Pets', version: '1' }, paths: { '/pets': {} } };
+    expect(parseAndValidateApiSpec(JSON.stringify(swagger))).toEqual(swagger);
+  });
+
+  it('rejects content that is not valid YAML or JSON', () => {
+    expect(() => parseAndValidateApiSpec('openapi: 3.0.0\ninfo:\n  title: x\n   version: : :\npaths: ['))
+      .toThrow(/^API spec is not valid YAML or JSON: bad indentation of a mapping entry \(line 4, column \d+\)\.$/);
+  });
+
+  it.each([
+    ['plain text', 'just some text'],
+    ['an empty file', ''],
+    ['a missing openapi/swagger field', 'info:\n  title: x\npaths:\n  /a: {}\n'],
+    ['a missing info object', 'openapi: 3.0.0\npaths:\n  /a: {}\n']
+  ])('rejects %s as not an OpenAPI or Swagger spec', (_label, content) => {
+    expect(() => parseAndValidateApiSpec(content)).toThrow('must have an openapi or swagger version and an info object');
+  });
+
+  it.each([
+    ['missing', 'openapi: 3.0.0\ninfo:\n  title: x\n'],
+    ['empty', 'openapi: 3.0.0\ninfo:\n  title: x\npaths: {}\n']
+  ])('rejects a spec whose paths are %s', (_label, content) => {
+    expect(() => parseAndValidateApiSpec(content)).toThrow('does not define any paths');
+  });
+});
+
+describe('getApiSpecDisplayName', () => {
+  const specPath = path.join('specs', 'orders.v2.yaml');
+
+  it('uses the trimmed spec title', () => {
+    expect(getApiSpecDisplayName({ info: { title: '  Orders API  ' } }, specPath)).toBe('Orders API');
+  });
+
+  it.each([
+    ['a blank title', { info: { title: '   ' } }],
+    ['a title that is not text', { info: { title: 123 } }],
+    ['no info block', {}],
+    ['content that did not parse', null]
+  ])('falls back to the filename without its extension for %s', (_, content) => {
+    expect(getApiSpecDisplayName(content, specPath)).toBe('orders.v2');
+  });
+});
 
 describe('parseApiSpecContent', () => {
   it('parses yaml and json by extension', () => {

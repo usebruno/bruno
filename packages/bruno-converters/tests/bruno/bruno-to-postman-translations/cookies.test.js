@@ -152,6 +152,12 @@ if (bru.getVar("clearAll") === "true") {
     expect(translatedCode).toBe('const token = pm.cookies.get("authToken");');
   });
 
+  it('should translate bru.cookies.append to pm.cookies.append', () => {
+    const code = 'bru.cookies.append({ key: "lang", value: "en" });';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.cookies.append({ key: "lang", value: "en" });');
+  });
+
   it('should translate bru.cookies.has to pm.cookies.has', () => {
     const code = 'const exists = bru.cookies.has("sessionId");';
     const translatedCode = translateBruToPostman(code);
