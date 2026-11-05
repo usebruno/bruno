@@ -196,8 +196,18 @@ describe('mergeJsonValues', () => {
     });
 
     it('matches each array item on its own', () => {
-      const schema = object({ payments: { type: 'array', items: { oneOf: [ref('Card'), ref('Iban')] } } });
+      const schema = object({ payments: { type: 'array', items: { type: 'object', oneOf: [ref('Card'), ref('Iban')] } } });
       expect(merge({ payments: [{ iban: 'DE89' }, { cardNumber: '4111' }] }, schema, { payments: [{ cardNumber: '' }] })).toEqual({ payments: [{ iban: 'DE89' }, { cardNumber: '4111' }] });
+    });
+
+    it('keeps an empty user array whose items offer a choice of shapes', () => {
+      const schema = object({ payments: { type: 'array', items: { oneOf: [ref('Card'), ref('Iban')] } } });
+      expect(merge({ payments: [] }, schema, { payments: [{ cardNumber: '' }] })).toEqual({ payments: [] });
+    });
+
+    it('keeps array items that offer a choice of shapes under a key the spec example leaves out', () => {
+      const schema = object({ order: { type: 'object', oneOf: [object({ cash: { type: 'number' } }), object({ payments: { type: 'array', items: { oneOf: [ref('Card'), ref('Iban')] } } })] } });
+      expect(merge({ order: { payments: [{ iban: 'DE89', note: 'mine' }] } }, schema, { order: { cash: 0 } })).toEqual({ order: { payments: [{ iban: 'DE89', note: 'mine' }] } });
     });
   });
 

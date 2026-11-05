@@ -508,6 +508,30 @@ describe.each(['bru', 'yml'])('openapi sync with preserve values in a %s collect
       }
     });
 
+    it.each([
+      ['a nullable object whose oneOf only sets required', { anyOf: [{ $ref: '#/components/schemas/Card' }, { type: 'null' }] }],
+      ['a nullable allOf around that object', { nullable: true, allOf: [{ $ref: '#/components/schemas/Card' }] }],
+      ['a subtype whose base lists its subtypes in a oneOf', { $ref: '#/components/schemas/CardPayment' }]
+    ])('drops removed fields and adds new ones for %s', async (_, payment) => {
+      const cardSpec = (cardProperties) => createPetSpec({
+        requestBody: jsonBody(objectSchema({ amount: { type: 'number' }, payment }))
+      }, {
+        schemas: {
+          Card: { ...objectSchema(cardProperties), oneOf: Object.keys(cardProperties).map((name) => ({ required: [name] })) },
+          Payment: { oneOf: [{ $ref: '#/components/schemas/CardPayment' }, { $ref: '#/components/schemas/IbanPayment' }] },
+          CardPayment: { allOf: [{ $ref: '#/components/schemas/Payment' }, objectSchema(cardProperties)] },
+          IbanPayment: { allOf: [{ $ref: '#/components/schemas/Payment' }, objectSchema({ iban: string })] }
+        }
+      });
+      const previous = cardSpec({ cardNumber: string, cvv: string });
+      writeStoredSpec(previous);
+      writeUserRequestFrom(previous, withJsonBody({ amount: 5, payment: { cardNumber: '4111', cvv: '123' } }));
+
+      for (const request of await previewAndApply(cardSpec({ cardNumber: string, expiry: string }))) {
+        expect(JSON.parse(request.body.json)).toEqual({ amount: 5, payment: { cardNumber: '4111', expiry: '' } });
+      }
+    });
+
     it('keeps only the declared fields of a top-level allOf body that imports as {}', async () => {
       const baseSpec = (properties) => createPetSpec({ requestBody: jsonBody({ allOf: [{ $ref: '#/components/schemas/Base' }] }) }, { schemas: { Base: objectSchema(properties) } });
       const previous = baseSpec({ name: string, legacy: string });

@@ -67,16 +67,22 @@ const alternativesInAncestry = (spec, schema, seen = new Set()) => {
   const branches = (key) => (Array.isArray(schema[key]) ? schema[key] : []).map((branch) => derefSpecObject(spec, branch)).filter(isPlainObject);
   return [...branches('oneOf'), ...branches('anyOf'), ...branches('allOf').flatMap((parent) => alternativesInAncestry(spec, parent, seen))];
 };
+const pinsShape = (spec, schema, seen = new Set()) => {
+  if (!isPlainObject(schema) || seen.has(schema)) return false;
+  seen.add(schema);
+  return typesOf(schema).length > 0 || schema.properties !== undefined || schema.example !== undefined
+    || pinsShape(spec, resolveSpecRef(spec, schema.$ref), seen)
+    || (Array.isArray(schema.allOf) && schema.allOf.some((part) => pinsShape(spec, part, seen)));
+};
 const offersChoice = (spec, schema, seen = new Set()) => {
   if (seen.has(schema)) return false;
   seen.add(schema);
   const shapes = alternativesInAncestry(spec, schema).filter((alternative) => !isNullOnly(alternative));
-  return shapes.length > 1 || shapes.some((shape) => offersChoice(spec, shape, seen));
+  return shapes.length > 1 || shapes.some((shape) => !pinsShape(spec, shape) && offersChoice(spec, shape, seen));
 };
 const leavesShapeOpen = (spec, schema) => {
   const own = derefSpecObject(spec, schema);
-  return isPlainObject(own) && typesOf(own).length === 0 && own.properties === undefined && own.example === undefined
-    && offersChoice(spec, own);
+  return isPlainObject(own) && !pinsShape(spec, schema) && offersChoice(spec, own);
 };
 const keyLeavesShapeOpen = (node, key) => {
   const schemas = declaredPropertiesOf(node).filter((properties) => declaresIn(properties, key)).map((properties) => properties[key]);

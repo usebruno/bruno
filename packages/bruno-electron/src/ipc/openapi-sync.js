@@ -559,7 +559,8 @@ const withoutUndeclaredFields = (userVal, declared, shapeOpen = false) => {
  *
  * Rules (when preserveValues=true):
  *   - Open:   a property whose schema offers a choice of shapes (more than one non-null oneOf/anyOf
- *             alternative, also through allOf) and has no type, properties or example of its own,
+ *             alternative, also through allOf or a single non-null alternative that offers one) and
+ *             has no type, properties or example of its own, behind its $ref or in its allOf parts,
  *             or an item of an array without example whose items offer such a choice (shapeOpen),
  *             keeps the user value as written, also where the spec template lacks it.
  *   - Object: walk spec keys; keep user value when present, use spec default otherwise,
