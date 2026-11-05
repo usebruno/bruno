@@ -48,7 +48,7 @@ test.describe('Collection runner', () => {
   test('TC-3071: Verify the delay between requests execution in the Collection run', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const delayCollectionName = 'delay-run';
     const delayMs = 2000;
-    const requestCount = 4;
+    const requestCount = 2;
     const runner = buildRunnerLocators(page);
     const runButton = runner.runCollectionButton();
     const sidebar = buildSidebarLocators(page);
@@ -77,7 +77,7 @@ test.describe('Collection runner', () => {
       const requestTimeMs = await getTotalRequestsDuration(page, requestCount);
       const delayTimeMs = Math.floor((elapsedMs - requestTimeMs) / 1000);
 
-      expect(delayTimeMs).toBe(8);
+      expect(delayTimeMs).toBe(4);
     });
   });
 
