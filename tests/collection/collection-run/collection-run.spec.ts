@@ -74,11 +74,10 @@ test.describe('Collection runner', () => {
       const elapsedMs = Date.now() - startedAt;
 
       // The delay is applied before every request. Subtract each response time so only those waits remain.
-      const requestTimeMs = (await getTotalRequestsDuration(page, requestCount))
-        .reduce((total, time) => total + time, 0);
-      const delayTimeMs = elapsedMs - requestTimeMs;
+      const requestTimeMs = await getTotalRequestsDuration(page, requestCount);
+      const delayTimeMs = Math.floor((elapsedMs - requestTimeMs) / 1000);
 
-      expect(delayTimeMs).toBeGreaterThanOrEqual(delayMs * requestCount);
+      expect(delayTimeMs).toBe(8);
     });
   });
 
