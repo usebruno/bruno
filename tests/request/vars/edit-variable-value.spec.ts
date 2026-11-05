@@ -1,54 +1,30 @@
-/// <reference path="../../../packages/bruno-filestore/src/types/bruno-lang.d.ts" />
 import { test, expect } from '../../../playwright';
 import * as fs from 'fs';
 import * as path from 'path';
-import { bruToJsonV2 } from '@usebruno/lang';
-import { initBruCollection, writeBruRequest } from '../../utils/fixtures/bru-collection';
+import yaml from 'js-yaml';
 import {
   buildCommonLocators,
   closeAllCollections,
   dismissVarTooltip,
-  openCollection,
-  openCollectionFromDialog,
+  openRequest,
   openUrlVarTooltip
 } from '../../utils/page';
 
 test.describe('Edit variable - first edit with Enter', () => {
-  test.beforeAll(async ({ electronApp }) => {
-    await electronApp.evaluate(({ dialog }) => {
-      (global as any).__origShowOpenDialog = dialog.showOpenDialog;
-    });
-  });
-
-  test.afterAll(async ({ electronApp }) => {
-    await electronApp.evaluate(({ dialog }) => {
-      dialog.showOpenDialog = (global as any).__origShowOpenDialog;
-    });
-  });
-
-  test.afterEach(async ({ page }) => {
+  test.afterEach(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 
   test('TC-2491 saves and persists the variable value edit when Enter is pressed', { tag: '@sanity' }, async ({
-    page,
-    electronApp,
-    createTmpDir
+    pageWithUserData: page,
+    collectionFixturePath
   }) => {
-    const { sidebar, varInfoPopup } = buildCommonLocators(page);
-    const collectionDir = await createTmpDir('first-edit-enter-save');
-    const requestName = 'First Edit Request';
-    const requestPath = path.join(collectionDir, `${requestName}.bru`);
+    const { varInfoPopup } = buildCommonLocators(page);
+    const requestName = 'edit-variable-value';
+    const requestPath = path.join(collectionFixturePath!, `${requestName}.yml`);
     const updatedValue = 'updated-value';
 
-    await test.step('Create the collection and open the request', async () => {
-      initBruCollection(collectionDir, 'First Edit Collection');
-      writeBruRequest(collectionDir, requestName, { seq: 1, url: 'https://example.com?key={{editVar}}' });
-      fs.appendFileSync(requestPath, '\nvars:pre-request {\n  editVar: initial-value\n}\n');
-      await openCollectionFromDialog(page, electronApp, collectionDir);
-      await openCollection(page, 'First Edit Collection');
-      await sidebar.request(requestName).click();
-    });
+    await openRequest(page, 'request-vars', requestName);
 
     const popup = await openUrlVarTooltip(page, 'editVar', 'valid');
     await test.step('Edit the variable value and press Enter', async () => {
@@ -64,10 +40,10 @@ test.describe('Edit variable - first edit with Enter', () => {
       await expect(varInfoPopup.editor(popup)).toBeHidden();
       await expect(varInfoPopup.editableValue(popup)).toHaveText(updatedValue);
       await expect.poll(async () => {
-        const savedRequest = bruToJsonV2(await fs.promises.readFile(requestPath, 'utf8')) as {
-          vars?: { req?: { name: string; value?: string }[] };
+        const savedRequest = yaml.load(await fs.promises.readFile(requestPath, 'utf8')) as {
+          runtime?: { variables?: { name: string; value?: string }[] };
         };
-        return savedRequest.vars?.req?.find((variable) => variable.name === 'editVar')?.value;
+        return savedRequest.runtime?.variables?.find((variable) => variable.name === 'editVar')?.value;
       }).toBe(updatedValue);
     });
 

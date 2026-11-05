@@ -2,8 +2,6 @@ import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
-  createCollection,
-  createRequest,
   openRequest,
   saveRequest,
   selectRequestPaneTab,
@@ -12,21 +10,17 @@ import {
 } from '../../utils/page';
 
 test.describe('Pre-request variable URL', () => {
-  test.afterEach(async ({ page }) => {
+  test.afterEach(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 
-  test('TC-195 resolves baseUrl from pre-request Vars and returns the response', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
-    const collectionName = 'Pre-request URL Collection';
-    const requestName = 'Base URL Request';
+  test('TC-195 resolves baseUrl from pre-request Vars and returns the response', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
+    const collectionName = 'request-vars';
+    const requestName = 'add-and-use-prerequest-var';
     const baseUrl = 'http://localhost:8081/ping';
     const { table, request, response } = buildCommonLocators(page);
 
-    await test.step('Create the collection and open the request', async () => {
-      await createCollection(page, collectionName, await createTmpDir('pre-request-base-url'));
-      await createRequest(page, requestName, collectionName, { url: 'https://example.com', method: 'GET' });
-      await openRequest(page, collectionName, requestName);
-    });
+    await openRequest(page, collectionName, requestName);
 
     await test.step('Open the Vars tab', async () => {
       await selectRequestPaneTab(page, 'Vars');
