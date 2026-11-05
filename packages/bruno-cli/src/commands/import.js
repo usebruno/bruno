@@ -71,7 +71,7 @@ const builder = (yargs) => {
       type: 'boolean',
       default: false
     })
-    .option('environment', {
+    .option('env', {
       alias: 'e',
       describe: 'Postman environment export(s) to convert alongside the collection (postman only)',
       type: 'array'
@@ -89,6 +89,7 @@ const builder = (yargs) => {
     .example('$0 import postman --source my-api.postman_collection.json --output ~/Desktop/my-api')
     .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop/my-api -n "My API"')
     .example('$0 import postman -s https://example.com/my-api.postman_collection.json -o ~/Desktop/my-api --preserve-scripts')
+    .example('$0 import postman --source my-api.postman_collection.json --output ~/Desktop/my-api --env staging.postman_environment.json --env prod.postman_environment.json')
     .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop/my-api -e staging.postman_environment.json -e prod.postman_environment.json');
 };
 
@@ -376,7 +377,7 @@ const reportImport = (collection, issues) => {
 
 const handler = async (argv) => {
   try {
-    const { type, source, output, collectionFormat, outputFile, collectionName, insecure, groupBy, preserveScripts, environment } = argv;
+    const { type, source, output, collectionFormat, outputFile, collectionName, insecure, groupBy, preserveScripts, env } = argv;
 
     if (!type || !IMPORT_TYPES.includes(type)) {
       console.error(chalk.red(`Import type must be one of: ${IMPORT_TYPES.join(', ')}`));
@@ -402,7 +403,7 @@ const handler = async (argv) => {
       const { collection, issues } = await importPostmanCollection(source, {
         insecure,
         preserveScripts,
-        environmentSources: environment
+        environmentSources: env
       });
 
       if (collectionName) {
