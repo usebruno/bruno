@@ -70,7 +70,7 @@ const PresetsSettings = ({ collection }) => {
   return (
     <StyledWrapper className="h-full w-full">
       <FieldList className="presets-settings bruno-form">
-        <FieldList className="presets-fields">
+        <FieldList gap="lg" className="presets-fields">
           <FormField
             label="Default Request Type"
             description="Selected by default for new requests."

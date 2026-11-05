@@ -253,7 +253,7 @@ const ProxySettings = ({ close }) => {
                 </FormField>
               </div>
 
-              <FieldList gap="md">
+              <div className="flex flex-col gap-2.5">
                 <FormField layout="leading" label="Proxy authentication" htmlFor="config.auth.disabled">
                   <Checkbox
                     id="config.auth.disabled"
@@ -313,7 +313,7 @@ const ProxySettings = ({ close }) => {
                     </div>
                   </FormField>
                 </div>
-              </FieldList>
+              </div>
 
               <FormField
                 label="Proxy bypass"

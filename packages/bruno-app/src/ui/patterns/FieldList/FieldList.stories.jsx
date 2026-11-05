@@ -12,7 +12,7 @@ export default {
   component: FieldList,
   tags: ['autodocs'],
   argTypes: {
-    gap: { control: 'radio', options: ['sm', 'md'], description: 'Space between items: \'sm\' 12px, \'md\' 16px' },
+    gap: { control: 'radio', options: ['sm', 'md', 'lg'], description: 'Space between items: \'sm\' 12px, \'md\' 16px, \'lg\' 22px' },
     dividers: { control: 'boolean', description: 'Faint line between items' }
   }
 };

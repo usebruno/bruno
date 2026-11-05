@@ -2,7 +2,7 @@ import React from 'react';
 import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 
-const GAPS = { sm: '0.75rem', md: '1rem' };
+const GAPS = { sm: '0.75rem', md: '1rem', lg: '1.375rem' };
 
 /**
  * FieldList - stacks fields (usually FormField) vertically with one consistent spacing.
@@ -11,7 +11,8 @@ const GAPS = { sm: '0.75rem', md: '1rem' };
  * Owns the space *between* items; FormField owns the spacing *inside* an item. Nest a list to group
  * related fields more tightly (e.g. a checkbox and the fields it controls).
  *
- * @param {'sm'|'md'} props.gap - Space between items: 'sm' 12px, 'md' 16px (default)
+ * @param {'sm'|'md'|'lg'} props.gap - Space between items: 'sm' 12px, 'md' 16px (default), 'lg' 22px
+ *   (between sections of a form)
  * @param {boolean} props.dividers - Draw a faint line between items; each item then gets the gap as
  *   padding above and below its content instead, so the line sits in the middle
  * @param {string} props.className - Extra class, e.g. for the page's own max-width
