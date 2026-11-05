@@ -844,10 +844,6 @@ class CollectionWatcher {
           return true;
         }
 
-        if (stats?.isFile() && basename !== 'bruno.json' && !hasRequestExtension(basename)) {
-          return true;
-        }
-
         // Check if any path segment matches a default ignore pattern (handles symlinks)
         const pathSegments = relativePath.split(path.sep);
         if (pathSegments.some((segment) => defaultIgnores.includes(segment))) {
