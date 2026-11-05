@@ -31,12 +31,12 @@
     "build": "rollup -c",
     "watch": "rollup -c -w",
     "pretest": "npm run generate",
-    "test": "cross-env NODE_OPTIONS=\"--experimental-sqlite\" jest",
-    "test:watch": "cross-env NODE_OPTIONS=\"--experimental-sqlite\" jest --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
     "prepack": "npm run test && npm run build",
     "migration:new": "tsx scripts/new-migration.ts",
-    "schema": "cross-env NODE_OPTIONS=\"--experimental-sqlite\" tsx scripts/generate-schema.ts",
-    "migration:verify": "cross-env NODE_OPTIONS=\"--experimental-sqlite\" tsx --env-file=.env scripts/verify-migrations.ts"
+    "schema": "tsx scripts/generate-schema.ts",
+    "migration:verify": "tsx --env-file=.env scripts/verify-migrations.ts"
   },
   "devDependencies": {
     "@babel/preset-env": "7.26.0",
