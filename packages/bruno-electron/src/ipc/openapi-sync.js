@@ -557,7 +557,10 @@ const withoutUndeclaredFields = (userVal, declared) => {
  * Recursively merge a user JSON value with a spec JSON value.
  *
  * Rules (when preserveValues=true):
- *   - Object: walk spec keys; keep user value when present, use spec default otherwise,
+ *   - Object: a value whose schema offers a choice of shapes (more than one non-null oneOf/anyOf
+ *             alternative, also through allOf) and has no type, properties or example of its own
+ *             (shapeOpen) keeps the user object as written.
+ *             Otherwise walk spec keys; keep user value when present, use spec default otherwise,
  *             except for a key that only another oneOf/anyOf alternative declares than the
  *             one the user object is written for (matched by discriminator, otherwise the
  *             only alternative declaring the most of its keys).
@@ -566,10 +569,8 @@ const withoutUndeclaredFields = (userVal, declared) => {
  *             An empty spec object (a free-form map, or a composed schema the converter leaves
  *             as {}) keeps the user object; when the schema declares properties for it, only
  *             those are kept.
- *             Otherwise a value whose schema is a oneOf/anyOf with no type, properties or
- *             example of its own (shapeOpen) keeps the user object as written.
  *   - Array:  if user array is empty, return spec template, or the user array when its items
- *             are such a oneOf/anyOf and the array has no example.
+ *             offer such a choice and the array has no example.
  *             Otherwise re-shape each user element against the first spec element as template.
  *   - Scalar: keep user value unless it is undefined.
  *
@@ -578,8 +579,8 @@ const withoutUndeclaredFields = (userVal, declared) => {
 const mergeJsonValues = (userVal, specVal, preserveValues = true, declared, shapeOpen = false) => {
   if (!preserveValues) return specVal;
   if (isPlainObject(specVal) && isPlainObject(userVal)) {
-    if (Object.keys(specVal).length === 0) return withoutUndeclaredFields(userVal, declared);
     if (shapeOpen) return userVal;
+    if (Object.keys(specVal).length === 0) return withoutUndeclaredFields(userVal, declared);
     const otherBranchKeys = otherAlternativeKeys(declared, userVal);
     const out = {};
     for (const key of Object.keys(specVal)) {

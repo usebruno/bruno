@@ -228,7 +228,7 @@ describe('mergeJsonValues', () => {
     });
 
     it('keeps only the declared fields of each user array element', () => {
-      const declared = declaredFor(object({ items: { type: 'array', items: { oneOf: [object({ k: string }), object({ n: { type: 'integer' } })] } } }));
+      const declared = declaredFor(object({ items: { type: 'array', items: { type: 'object', oneOf: [object({ k: string }), object({ n: { type: 'integer' } })] } } }));
       expect(helpers.mergeJsonValues({ items: [{ k: 'a', debug: true }, { n: 1 }] }, { items: [{}] }, true, declared)).toEqual({ items: [{ k: 'a' }, { n: 1 }] });
     });
 
