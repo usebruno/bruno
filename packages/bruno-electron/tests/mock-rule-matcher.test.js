@@ -1,5 +1,6 @@
 const {
   buildRequestContext,
+  compareValues,
   evaluateCondition,
   evaluateResponseCandidates,
   getJsonPathValue,
@@ -44,15 +45,23 @@ describe('mock-rule-matcher', () => {
     expect(evaluateCondition({
       target: 'header',
       key: 'X-Plan',
-      operator: 'isNotNull',
+      operator: 'eq',
       value: 'premium'
     }, context)).toBe(true);
 
     expect(evaluateCondition({
       target: 'header',
       key: 'X-Plan',
-      operator: 'isNull'
-    }, context)).toBe(false);
+      operator: 'eq',
+      value: '"premium"'
+    }, context)).toBe(true);
+
+    expect(evaluateCondition({
+      target: 'header',
+      key: 'X-Plan',
+      operator: 'neq',
+      value: 'free'
+    }, context)).toBe(true);
 
     expect(evaluateCondition({
       target: 'header',
@@ -77,51 +86,106 @@ describe('mock-rule-matcher', () => {
     }, context)).toBe(true);
   });
 
-  it('selects the isNull response when the header is omitted', () => {
-    const requestContext = buildRequestContext({
-      headers: { 'content-type': 'application/json' },
-      query: {},
-      body: {}
-    });
-    const { selected } = evaluateResponseCandidates([
-      {
-        responseUid: 'missing-plan',
-        responseName: 'missing-plan',
-        rules: {
-          operator: 'AND',
-          conditions: [{ target: 'header', key: 'X-Plan', operator: 'isNull', value: 'premium' }]
-        }
-      },
-      {
-        responseUid: 'fallback',
-        responseName: 'fallback',
-        rules: { operator: 'AND', conditions: [] }
-      }
-    ], requestContext);
+  it('evaluates every assertion operator', () => {
+    const cases = [
+      ['eq', 'premium', 'premium', true],
+      ['eq', 'premium', '"premium"', true],
+      ['eq', 'premium', 'free', false],
+      ['eq', 2, '2', true],
+      ['in', 'premium', '"premium", "free"', true],
+      ['neq', 'premium', 'free', true],
+      ['gt', '10', '2', true],
+      ['gt', '2', '10', false],
+      ['gte', 2, '2', true],
+      ['lt', 1, '2', true],
+      ['lte', 2, '2', true],
+      ['in', 'active', 'active, paused', true],
+      ['in', 'free', '[active, paused]', false],
+      ['notIn', 'free', 'active, paused', true],
+      ['contains', 'premium', 'pre', true],
+      ['contains', ['a', 'b'], 'b', true],
+      ['notContains', 'premium', 'free', true],
+      ['length', 'abcd', '4', true],
+      ['length', ['a'], '2', false],
+      ['matches', 'premium', '/^pre/', true],
+      ['notMatches', 'premium', '^free', true],
+      ['notMatches', 'premium', '(', false],
+      ['startsWith', 'premium', 'pre', true],
+      ['endsWith', 'premium', 'ium', true],
+      ['between', '5', '1, 10', true],
+      ['between', '11', '1, 10', false],
+      ['isEmpty', '', '', true],
+      ['isEmpty', 'a', '', false],
+      ['isEmpty', undefined, '', false],
+      ['isNotEmpty', 'a', '', true],
+      ['isNotEmpty', '', '', false],
+      ['isNull', null, '', true],
+      ['isNull', undefined, '', false],
+      ['isUndefined', undefined, '', true],
+      ['isUndefined', '', '', false],
+      ['isDefined', '', '', true],
+      ['isDefined', undefined, '', false],
+      ['isTruthy', true, '', true],
+      ['isTruthy', 'true', '', false],
+      ['isFalsy', false, '', true],
+      ['isJson', { ok: true }, '', true],
+      ['isJson', 'ok', '', false],
+      ['isNumber', 2, '', true],
+      ['isNumber', '2', '', false],
+      ['isString', '2', '', true],
+      ['isBoolean', false, '', true],
+      ['isArray', ['a'], '', true],
+      ['isArray', { ok: true }, '', false]
+    ];
 
-    expect(selected.responseUid).toBe('missing-plan');
+    cases.forEach(([operator, actual, expected, pass]) => {
+      expect([operator, String(actual), compareValues(operator, actual, expected)]).toEqual([operator, String(actual), pass]);
+    });
   });
 
-  it('treats an empty header as null', () => {
-    const requestContext = buildRequestContext({
+  it('applies type operators to header and query strings', () => {
+    const ctx = buildRequestContext({
+      headers: {
+        'x-n': '1',
+        'x-b': 'true',
+        'x-j': '{"ok":true}',
+        'x-a': '["value"]',
+        'x-z': 'null'
+      },
+      query: { f: 'false' },
+      body: {}
+    });
+
+    expect(evaluateCondition({ target: 'header', key: 'X-N', operator: 'isNumber' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'header', key: 'X-B', operator: 'isTruthy' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'header', key: 'X-B', operator: 'isBoolean' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'header', key: 'X-J', operator: 'isJson' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'header', key: 'X-A', operator: 'isArray' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'header', key: 'X-Z', operator: 'isNull' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'query', key: 'f', operator: 'isFalsy' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'header', key: 'X-N', operator: 'length', value: '1' }, ctx)).toBe(true);
+  });
+
+  it('distinguishes a missing header from an empty one and from JSON null', () => {
+    const missing = buildRequestContext({
+      headers: {},
+      query: {},
+      body: { note: null, count: 2, items: ['a'] }
+    });
+    const empty = buildRequestContext({
       headers: { 'x-plan': '' },
       query: {},
       body: {}
     });
 
-    expect(evaluateCondition({
-      target: 'header',
-      key: 'X-Plan',
-      operator: 'isNull',
-      value: 'premium'
-    }, requestContext)).toBe(true);
-
-    expect(evaluateCondition({
-      target: 'header',
-      key: 'X-Plan',
-      operator: 'isNotNull',
-      value: ''
-    }, requestContext)).toBe(false);
+    expect(evaluateCondition({ target: 'header', key: 'X-Plan', operator: 'isUndefined' }, missing)).toBe(true);
+    expect(evaluateCondition({ target: 'header', key: 'X-Plan', operator: 'isNull' }, missing)).toBe(false);
+    expect(evaluateCondition({ target: 'header', key: 'X-Plan', operator: 'isDefined' }, missing)).toBe(false);
+    expect(evaluateCondition({ target: 'header', key: 'X-Plan', operator: 'isEmpty' }, empty)).toBe(true);
+    expect(evaluateCondition({ target: 'header', key: 'X-Plan', operator: 'isUndefined' }, empty)).toBe(false);
+    expect(evaluateCondition({ target: 'body', key: '$.note', operator: 'isNull' }, missing)).toBe(true);
+    expect(evaluateCondition({ target: 'body', key: '$.count', operator: 'gt', value: '1' }, missing)).toBe(true);
+    expect(evaluateCondition({ target: 'body', key: '$.items', operator: 'contains', value: 'a' }, missing)).toBe(true);
   });
 
   it('matches AND and OR rule groups', () => {

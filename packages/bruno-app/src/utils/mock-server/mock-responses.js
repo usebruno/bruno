@@ -145,29 +145,134 @@ const demoValueForMatches = (pattern) => {
   return pattern;
 };
 
-// 'not_equals' matches anything except the value; an empty sample keeps the demo readable.
-const demoValueForCondition = (condition) => {
-  if (condition.operator === 'isNotNull') {
-    return 'value';
+const numericOrNull = (value) => {
+  if (value == null || String(value).trim() === '' || isNaN(value)) {
+    return null;
   }
+  return Number(value);
+};
 
-  if (condition.operator === 'not_equals' || condition.operator === 'isNull') {
+const patternOf = (value) => {
+  const text = value || '';
+  if (text.startsWith('/') && text.endsWith('/') && text.length > 1) {
+    return text.slice(1, -1);
+  }
+  return text;
+};
+
+const firstListItem = (value) => (value || '').replace(/^\[|\]$/g, '').split(',')[0].trim();
+
+// Samples are strings for headers and query params. Body rules convert a few of them to JSON types.
+const demoValueForCondition = (condition) => {
+  const operator = condition.operator;
+  const raw = condition.value || '';
+
+  if (operator === 'not_equals' || operator === 'neq' || operator === 'isEmpty') {
     return '';
   }
 
-  if (condition.operator === 'matches') {
-    return demoValueForMatches(condition.value || '');
+  if (operator === 'isNotEmpty' || operator === 'isDefined' || operator === 'isString') {
+    return 'value';
   }
 
-  return condition.value || '';
+  if (operator === 'matches' || operator === 'regex') {
+    return demoValueForMatches(patternOf(raw));
+  }
+
+  if (operator === 'notMatches') {
+    const pattern = patternOf(raw);
+    return ['', 'a', 'value'].find((sample) => {
+      try {
+        return !new RegExp(pattern).test(sample);
+      } catch {
+        return false;
+      }
+    }) || 'a';
+  }
+
+  if (operator === 'gt') {
+    const number = numericOrNull(raw);
+    return number == null ? '1' : String(number + 1);
+  }
+
+  if (operator === 'lt') {
+    const number = numericOrNull(raw);
+    return number == null ? '0' : String(number - 1);
+  }
+
+  if (operator === 'in') {
+    return firstListItem(raw);
+  }
+
+  if (operator === 'notContains') {
+    return ['other', 'sample', 'x'].find((sample) => !sample.includes(raw)) || '';
+  }
+
+  if (operator === 'notIn') {
+    const items = (raw || '').replace(/^\[|\]$/g, '').split(',').map((item) => item.trim());
+    return ['other', 'sample', 'x'].find((sample) => !items.includes(sample)) || '';
+  }
+
+  if (operator === 'length') {
+    const number = numericOrNull(raw);
+    return 'x'.repeat(number > 0 ? number : 0);
+  }
+
+  if (operator === 'between') {
+    return firstListItem(raw);
+  }
+
+  if (operator === 'isNumber') {
+    return '1';
+  }
+
+  if (operator === 'isBoolean' || operator === 'isTruthy') {
+    return 'true';
+  }
+
+  if (operator === 'isFalsy') {
+    return 'false';
+  }
+
+  if (operator === 'isNull') {
+    return 'null';
+  }
+
+  if (operator === 'isJson') {
+    return '{"ok":true}';
+  }
+
+  if (operator === 'isArray') {
+    return '["value"]';
+  }
+
+  return raw;
 };
+
+const demoBodyValue = (condition) => {
+  const operator = condition.operator;
+  if (operator === 'isNull') return null;
+  if (operator === 'isBoolean' || operator === 'isTruthy') return true;
+  if (operator === 'isFalsy') return false;
+  if (operator === 'isArray') return ['value'];
+  if (operator === 'isJson') return { ok: true };
+
+  const sample = demoValueForCondition(condition);
+  if (['isNumber', 'gt', 'lt', 'gte', 'lte', 'between'].includes(operator)) {
+    const number = numericOrNull(sample);
+    return number === null ? sample : number;
+  }
+  return sample;
+};
+
+const includeInDemo = (condition) => condition.operator !== 'isUndefined';
 
 // Builds a request that satisfies the response's rules: header/query conditions
 // become headers/params and body conditions build a JSON body from their $.paths.
 // This is what the Demo Request tab shows and what Try sends.
 export const buildDemoRequestFromRules = (request, rules) => {
   const conditions = (rules?.conditions || []).filter((condition) => condition?.key);
-  const includeInDemo = (condition) => condition.operator !== 'isNull';
+
   const headers = conditions
     .filter((condition) => condition.target === 'header' && includeInDemo(condition))
     .map((condition) => ({ name: condition.key, value: demoValueForCondition(condition), enabled: true }));
@@ -176,11 +281,11 @@ export const buildDemoRequestFromRules = (request, rules) => {
     .filter((condition) => condition.target === 'query' && includeInDemo(condition))
     .map((condition) => ({ name: condition.key, value: demoValueForCondition(condition), type: 'query', enabled: true }));
 
-  const bodyConditions = conditions.filter((condition) => condition.target === 'body');
+  const bodyConditions = conditions.filter((condition) => condition.target === 'body' && includeInDemo(condition));
   let body = null;
   if (bodyConditions.length) {
     const bodyObject = {};
-    bodyConditions.forEach((condition) => setJsonPathValue(bodyObject, condition.key, demoValueForCondition(condition)));
+    bodyConditions.forEach((condition) => setJsonPathValue(bodyObject, condition.key, demoBodyValue(condition)));
     body = { mode: 'json', content: JSON.stringify(bodyObject, null, 2) };
     if (body?.mode === 'json' && body?.content) {
       body.json = JSON.parse(body.content);
