@@ -18,6 +18,7 @@ const externalDeps = [
   '@opencollection/types',
   /@opencollection\/types\/.*/,
   // Runtime dependencies
+  '@babel/parser',
   'lodash',
   'lodash/each',
   'lodash/get',
