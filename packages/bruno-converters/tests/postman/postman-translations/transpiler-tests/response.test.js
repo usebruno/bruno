@@ -888,6 +888,12 @@ describe('Response Translation', () => {
     expect(translatedCode).toBe('const n = res.headerList.count();');
   });
 
+  it('should translate pm.response.headers.idx to res.headerList.idx', () => {
+    const code = 'const first = pm.response.headers.idx(0);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const first = res.headerList.idx(0);');
+  });
+
   it('should translate pm.response.headers.toObject to res.headerList.toObject', () => {
     const code = 'const obj = pm.response.headers.toObject();';
     const translatedCode = translateCode(code);

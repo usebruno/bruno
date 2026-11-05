@@ -1,4 +1,3 @@
-const { toMetadataObject } = require('./grpc-metadata');
 const GrpcMetadataList = require('./grpc-metadata-list');
 const GrpcMessageList = require('./grpc-message-list');
 const GrpcMessage = require('./grpc-message');
@@ -17,8 +16,6 @@ const GrpcMessage = require('./grpc-message');
  * What the server of a gRPC call has answered so far: status, metadata, trailers and messages.
  */
 class BrunoGrpcResponse {
-  #response;
-
   /**
    * @param {object} response - The call so far; complete in `afterCallEnd`, partial in `afterMessageReceive`
    * @param {object} [options]
@@ -26,7 +23,6 @@ class BrunoGrpcResponse {
    *   Supplied only by `afterMessageReceive`
    */
   constructor(response, { message } = {}) {
-    this.#response = response;
     /**
      * The gRPC status code, `0` for OK. `undefined` while the call is still open.
      * @type {number | undefined}
@@ -54,14 +50,14 @@ class BrunoGrpcResponse {
      * @readonly
      * @category Metadata
      */
-    this.metadata = new GrpcMetadataList(() => toMetadataObject(this.#response.metadata), { writable: false });
+    this.metadata = new GrpcMetadataList(response.metadata);
     /**
      * The metadata the server sent at the end of the call. Empty while the call is still open.
      * @type {import('./grpc-metadata-list').ReadOnlyGrpcMetadataList}
      * @readonly
      * @category Metadata
      */
-    this.trailers = new GrpcMetadataList(() => toMetadataObject(this.#response.trailers), { writable: false });
+    this.trailers = new GrpcMetadataList(response.trailers);
     /**
      * How long the call took, in milliseconds. `undefined` while the call is still open.
      * @type {number | undefined}

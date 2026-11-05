@@ -74,7 +74,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
   // Conflict count: endpoints modified in both spec and collection
   const conflictCount = hasDriftData && specDrift?.modified
     ? (() => {
-        const localModifiedIds = new Set((collectionDrift.modified || []).map((ep) => ep.id));
+        const localModifiedIds = new Set((collectionDrift.edited || []).map((ep) => ep.id));
         return specDrift.modified.filter((ep) => localModifiedIds.has(ep.id)).length;
       })()
     : 0;
@@ -157,7 +157,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
   return (
     <div className="overview-section">
       {bannerState && (
-        <div className={`overview-status-banner ${bannerState.variant}`}>
+        <div className={`overview-status-banner ${bannerState.variant}`} data-testid="openapi-sync-overview-banner">
           <div className="banner-text">
             <div className="banner-title-row">
               {bannerState.variant === 'success'

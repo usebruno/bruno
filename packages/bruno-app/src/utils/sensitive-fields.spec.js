@@ -557,8 +557,17 @@ describe('environment table usage flags', () => {
     const otherCollection = collectionWithEnvVariables(request, []);
     const globalEnvironments = [{ uid: 'global-1', name: 'Shared', variables: [globalVariable] }];
 
-    expect([...findUsedGlobalEnvironmentVariableUids([openCollection], globalEnvironments, globalEnvironments[0])]).toEqual([]);
-    expect([...findUsedGlobalEnvironmentVariableUids([otherCollection], globalEnvironments, globalEnvironments[0])]).toEqual(['global-token']);
+    expect([...findUsedGlobalEnvironmentVariableUids([openCollection], globalEnvironments, 'global-1', globalEnvironments[0])]).toEqual([]);
+    expect([...findUsedGlobalEnvironmentVariableUids([otherCollection], globalEnvironments, 'global-1', globalEnvironments[0])]).toEqual(['global-token']);
+  });
+
+  it('does not flag a global variable when no global environment is selected', () => {
+    const globalVariable = tokenVariable('global-token');
+    const request = requestWithAuthValue('auth.bearer.token', '{{token}}');
+    const collection = collectionWithEnvVariables(request, []);
+    const globalEnvironments = [{ uid: 'global-1', name: 'Shared', variables: [globalVariable] }];
+
+    expect([...findUsedGlobalEnvironmentVariableUids([collection], globalEnvironments, null, globalEnvironments[0])]).toEqual([]);
   });
 
   it('uses the unsaved environment draft when deciding which row wins', () => {
