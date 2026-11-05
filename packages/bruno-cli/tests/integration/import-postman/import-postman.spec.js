@@ -62,14 +62,14 @@ describe('CLI import postman — imported collections run with bru run', () => {
     expect(profileRequest.headers['x-token']).toBe('from-pre-request');
   };
 
-  it('writes the collection and its --environment, and the run passes', async () => {
+  it('writes the collection and its --env, and the run passes', async () => {
     const collectionDir = path.join(workDir, 'collection');
 
     const importResult = await runCli([
       'import', 'postman',
       '--source', COLLECTION_FIXTURE,
       '--output', collectionDir,
-      '--environment', stageEnvironment()
+      '--env', stageEnvironment()
     ], workDir);
 
     expect(importResult.code).toBe(0);
@@ -97,7 +97,7 @@ describe('CLI import postman — imported collections run with bru run', () => {
       'import', 'postman',
       '--source', COLLECTION_FIXTURE,
       '--output', collectionDir,
-      '--environment', environmentPath, environmentPath
+      '--env', environmentPath, environmentPath
     ], workDir);
 
     expect(collectionImport.code).toBe(0);
@@ -114,7 +114,7 @@ describe('CLI import postman — imported collections run with bru run', () => {
       'import', 'postman',
       '--source', COLLECTION_FIXTURE,
       '--output', collectionDir,
-      '--environment', environmentPath, upperCasePath
+      '--env', environmentPath, upperCasePath
     ], workDir);
 
     expect(collectionImport.code).toBe(0);
@@ -132,7 +132,7 @@ describe('CLI import postman — imported collections run with bru run', () => {
       'import', 'postman',
       '--source', COLLECTION_FIXTURE,
       '--output-file', outputFile,
-      '--environment', environmentPath
+      '--env', environmentPath
     ], workDir);
 
     expect(code).toBe(0);

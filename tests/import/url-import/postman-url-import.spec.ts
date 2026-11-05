@@ -1,50 +1,78 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, openCollection } from '../../utils/page';
+import * as fs from 'fs';
+import * as path from 'path';
+import { closeAllCollections, expandFolder, openCollection, selectCollectionPaneTab } from '../../utils/page';
+import { buildCommonLocators } from '../../utils/page/locators';
 
-test.describe('Postman URL Import', () => {
+test.describe('Postman URL import', () => {
   test.afterEach(async ({ page }) => {
-    // cleanup: close all collections
     await closeAllCollections(page);
   });
 
-  test('Postman URL import', async ({ page, createTmpDir }) => {
-    // Fetches a fixture over the network; the main-process axios timeout is 30s,
-    // equal to the default test budget, so a slow fetch is killed before it can
-    // fail or succeed. Give the test more room than the fetch it waits on.
+  test('TC-811: Imports a valid Postman collection from a URL via sidebar plus menu', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+    // Fetches the collection over the network; the main-process axios timeout is 30s,
+    // so a slow fetch is killed before it can fail or succeed. The collection is large,
+    // so give the import more room than that fetch.
     test.setTimeout(60_000);
 
-    const postmanUrl = 'https://raw.githubusercontent.com/usebruno/bruno/refs/heads/main/tests/import/postman/fixtures/postman-v21.json';
+    const postmanUrl = 'https://raw.githubusercontent.com/usebruno/bruno/refs/heads/main/tests/import/postman/fixtures/postman-url-import-collection.json';
+    const { plusMenu, import: importLocators, request, sidebar, table, auth } = buildCommonLocators(page);
+    const collectionName = 'Sunshine Conversations API';
+    const locationModal = importLocators.locationModal();
+    const collectionTempDir = await createTmpDir('sunshine-conversations');
 
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
+    await test.step('Open import collection modal and switch to URL tab', async () => {
+      await plusMenu.button().click();
+      await plusMenu.importCollection().click();
+      await importLocators.modal().waitFor({ state: 'visible' });
+      await importLocators.urlTab().click();
+    });
 
-    // Wait for import collection modal to be ready
-    const importModal = page.getByTestId('import-collection-modal');
-    await importModal.waitFor({ state: 'visible' });
+    await test.step('Enter the Postman collection URL in the URL input text box', async () => {
+      await importLocators.urlInput().waitFor({ state: 'visible' });
+      await importLocators.urlInput().fill(postmanUrl);
+    });
 
-    await page.getByTestId('url-tab').click();
-    await page.getByTestId('url-input').waitFor({ state: 'visible' });
-    await page.getByTestId('url-input').fill(postmanUrl);
-    await page.locator('#import-url-button').click();
+    await test.step('Import the collection from the URL', async () => {
+      await importLocators.urlImportButton().click();
+      await importLocators.loader().waitFor({ state: 'hidden' });
+      await locationModal.getByText(collectionName).waitFor({ state: 'visible' });
+      await importLocators.locationInput().fill(collectionTempDir);
+      await importLocators.importButton().click();
+      await locationModal.waitFor({ state: 'hidden' });
+    });
 
-    // Wait for the loader to disappear
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
+    await test.step('Verify that Imported collection keeps its folder and request', async () => {
+      await expect(sidebar.collection(collectionName)).toBeVisible();
 
-    // Verify that the collection location modal appears
-    const locationModal = page.getByTestId('import-collection-location-modal');
-    await expect(locationModal.getByText('Postman v2.1 Collection')).toBeVisible();
+      await openCollection(page, collectionName);
+      await expect(sidebar.itemsIn(collectionName, 'Apps')).toBeVisible();
+      await expect(sidebar.itemsIn(collectionName, 'App Keys')).toBeVisible();
 
-    // Select a location and import
-    await page.locator('#collection-location').fill(await createTmpDir('postman-v21-collection'));
-    await locationModal.getByRole('button', { name: 'Import' }).click();
-    await locationModal.waitFor({ state: 'hidden' });
+      await expandFolder(page, 'Apps');
 
-    // Verify the collection was imported successfully and configure it
-    await expect(page.locator('#sidebar-collection-name').getByText('Postman v2.1 Collection')).toBeVisible();
-    await openCollection(page, 'Postman v2.1 Collection');
+      const createAppRequest = sidebar.itemsIn(collectionName, 'Create App');
+      await expect(createAppRequest).toBeVisible();
+      await createAppRequest.click();
 
-    // Verify these folder names are present
-    await expect(page.locator('.collection-item-name').getByText('Get Users')).toBeVisible();
-    await expect(page.locator('.collection-item-name').getByText('Create User')).toBeVisible();
+      await expect(request.methodDropdown()).toContainText('POST');
+      await expect(request.urlLine()).toContainText('{{url}}/v2/apps');
+    });
+
+    await test.step('Verify that Imported collection keeps its auth and variable', async () => {
+      await openCollection(page, collectionName);
+      await selectCollectionPaneTab(page, 'auth');
+      await expect(auth.modeSelector()).toContainText('Bearer Token');
+
+      await selectCollectionPaneTab(page, 'vars');
+      await expect(table('collection-vars-req').rowByName('url')).toContainText('https://{{subdomain}}.zendesk.com/sc');
+    });
+
+    await test.step('Verify the imported collection and request are saved as YAML', async () => {
+      const collectionDir = path.join(collectionTempDir, collectionName);
+
+      await expect.poll(() => fs.existsSync(path.join(collectionDir, 'opencollection.yml'))).toBe(true);
+      expect(fs.existsSync(path.join(collectionDir, 'Apps', 'Create App.yml'))).toBe(true);
+    });
   });
 });

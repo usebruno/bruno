@@ -1,5 +1,6 @@
 import { Locator, Page } from '../../../playwright';
 import { buildApiSpecPanelLocators, buildApiSpecRowMenuLocators } from './openapi/render-spec';
+import { buildOpenApiSyncLocators } from './openapi/sync';
 import { buildMockServerLocators } from './mock-server';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
@@ -52,7 +53,8 @@ export const buildCommonLocators = (page: Page) => ({
   codeEditorHints: buildCodeEditorHintLocators(page),
   openApi: {
     render: buildApiSpecPanelLocators(page),
-    rowMenu: buildApiSpecRowMenuLocators(page)
+    rowMenu: buildApiSpecRowMenuLocators(page),
+    sync: buildOpenApiSyncLocators(page)
   },
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
@@ -330,15 +332,19 @@ export const buildCommonLocators = (page: Page) => ({
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
-    openCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }),
-    createCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }),
-    importCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' })
+    createCollection: () => page.getByTestId('collections-header-add-menu-create'),
+    importCollection: () => page.getByTestId('collections-header-add-menu-import'),
+    openCollection: () => page.getByTestId('collections-header-add-menu-open')
   },
   import: {
     modal: () => page.locator('[data-testid="import-collection-modal"]'),
     locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
     locationInput: () => page.locator('#collection-location'),
     fileInput: () => page.locator('input[type="file"]'),
+    urlTab: () => page.getByTestId('url-tab'),
+    urlInput: () => page.getByTestId('url-input'),
+    urlImportButton: () => page.getByTestId('import-url-btn'),
+    loader: () => page.getByTestId('import-collection-loader'),
     advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
     preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
     checkForSpecUpdatesToggle: () => page.getByTestId('check-for-spec-updates-toggle'),

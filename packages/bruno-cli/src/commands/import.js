@@ -9,7 +9,7 @@ const { AUTH_PLACEMENTS, REQUEST_NAME_SOURCES } = require('@usebruno/common');
 const { coerceEnvName, dedupeImportedSecrets, generateUniqueName, sanitizeName, validateName, validateNameError } = require('@usebruno/common').utils;
 const { exists, isDirectory, canonicalPath } = require('../utils/filesystem');
 const { formatImportSummary, formatImportIssues, formatPackageReport, hasImportErrors } = require('../utils/import-report');
-const { writeCollectionToDiskLegacy } = require('@usebruno/io');
+const { writeCollectionLegacy } = require('@usebruno/io');
 
 const command = 'import <type>';
 const desc = 'Import a collection (OpenAPI, WSDL, Postman) from other formats';
@@ -84,7 +84,7 @@ const builder = (yargs) => {
       type: 'boolean',
       default: false
     })
-    .option('environment', {
+    .option('env', {
       alias: 'e',
       describe: 'Postman environment export(s) to convert alongside the collection (postman only)',
       type: 'array'
@@ -104,6 +104,7 @@ const builder = (yargs) => {
     .example('$0 import postman --source my-api.postman_collection.json --output ~/Desktop/my-api')
     .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop/my-api -n "My API"')
     .example('$0 import postman -s https://example.com/my-api.postman_collection.json -o ~/Desktop/my-api --preserve-scripts')
+    .example('$0 import postman --source my-api.postman_collection.json --output ~/Desktop/my-api --env staging.postman_environment.json --env prod.postman_environment.json')
     .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop/my-api -e staging.postman_environment.json -e prod.postman_environment.json');
 };
 
@@ -336,7 +337,7 @@ const convertPostmanEnvironment = async (source, { insecure }) => {
 
 const importPostmanCollection = async (source, { insecure, preserveScripts, environmentSources = [] }) => {
   const postmanCollection = await readPostmanFile(source, { insecure });
-  const { collection, issues, translationIssues } = await postmanToBruno(postmanCollection, {
+  const { collection, issues } = await postmanToBruno(postmanCollection, {
     preserveScripts,
     logTranslationFailures: false
   });
@@ -352,7 +353,7 @@ const importPostmanCollection = async (source, { insecure, preserveScripts, envi
     collection.environments.push({ ...environment, name });
   }
 
-  return { collection, issues: [...issues, ...translationIssues] };
+  return { collection, issues };
 };
 
 const writeBrunoCollection = async (collection, { output, outputFile, collectionFormat = 'opencollection' }) => {
@@ -373,7 +374,7 @@ const writeBrunoCollection = async (collection, { output, outputFile, collection
   }
 
   const outputDir = await resolveCollectionOutputDir(output, collection.name);
-  await writeCollectionToDiskLegacy(collection, outputDir, {
+  await writeCollectionLegacy(collection, outputDir, {
     format: collectionFormat === 'opencollection' ? 'yml' : 'bru'
   });
   console.log(chalk.green(`Bruno collection created at ${outputDir}`));
@@ -391,7 +392,7 @@ const reportImport = (collection, issues) => {
 
 const handler = async (argv) => {
   try {
-    const { type, source, output, collectionFormat, outputFile, collectionName, insecure, groupBy, authPlacement, requestNameSource, preserveScripts, environment } = argv;
+    const { type, source, output, collectionFormat, outputFile, collectionName, insecure, groupBy, authPlacement, requestNameSource, preserveScripts, env } = argv;
 
     if (!type || !IMPORT_TYPES.includes(type)) {
       console.error(chalk.red(`Import type must be one of: ${IMPORT_TYPES.join(', ')}`));
@@ -417,7 +418,7 @@ const handler = async (argv) => {
       const { collection, issues } = await importPostmanCollection(source, {
         insecure,
         preserveScripts,
-        environmentSources: environment
+        environmentSources: env
       });
 
       if (collectionName) {

@@ -49,5 +49,7 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     const path = webUtils.getPathForFile(file);
     return path;
   },
-  openExternal: (url) => shell.openExternal(url)
+  openExternal: (url) => /^(https?|mailto):/i.test(url)
+    ? shell.openExternal(url)
+    : Promise.reject(new Error('Blocked URL scheme'))
 });

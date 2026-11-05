@@ -1395,7 +1395,7 @@ describe('Bruno Autocomplete', () => {
     });
 
     describe('scope-based grouping', () => {
-      it('groups by scope in global -> collection -> environment -> folder -> request -> runtime -> process.env -> dynamic -> oauth2 order, then alphabetically within a scope', () => {
+      it('groups by scope in global -> collection -> environment -> folder -> request -> runtime -> process.env -> oauth2 -> dynamic order, then alphabetically within a scope', () => {
         const hints = [
           'zRequestVar',
           'aRequestVar',
@@ -1432,21 +1432,21 @@ describe('Bruno Autocomplete', () => {
           'zRequestVar',
           'runtimeVar',
           'processEnvVar',
-          'dynamicVar',
-          'oauthVar'
+          'oauthVar',
+          'dynamicVar'
         ]);
       });
 
-      it('sorts an unscoped hint (no recognized scope at all) after every real scope -- including `dynamic` and `oauth2`', () => {
+      it('sorts an unscoped hint (no recognized scope at all) after every real scope -- including `oauth2` and `dynamic`', () => {
         const hints = ['$guid', 'plainHint', 'requestVar', 'oauthVar'];
         const variableScopes = { $guid: 'dynamic', requestVar: 'request', oauthVar: 'oauth2' };
 
         const result = extractNextSegmentSuggestions(hints, '', variableScopes);
 
-        expect(result).toEqual(['requestVar', '$guid', 'oauthVar', 'plainHint']);
+        expect(result).toEqual(['requestVar', 'oauthVar', '$guid', 'plainHint']);
       });
 
-      it('sorts the `process` segment of process.env variables under the process.env scope: after runtime, before dynamic and oauth2', () => {
+      it('sorts the `process` segment of process.env variables under the process.env scope: after runtime, before oauth2 and dynamic', () => {
         // Real shape of the hints: process.env.FOO is split into progressive prefixes, and only the
         // full name has a scope entry -- the `process` segment that comes out has none of its own.
         const hints = ['$guid', 'process', 'process.env', 'process.env.FOO', 'requestVar', 'runtimeVar', 'oauthVar'];
@@ -1460,7 +1460,7 @@ describe('Bruno Autocomplete', () => {
 
         const result = extractNextSegmentSuggestions(hints, '', variableScopes);
 
-        expect(result).toEqual(['requestVar', 'runtimeVar', 'process', '$guid', 'oauthVar']);
+        expect(result).toEqual(['requestVar', 'runtimeVar', 'process', 'oauthVar', '$guid']);
       });
 
       it('keeps process.env drill-down segments in the process.env group when drilling in (`process.env.`)', () => {
