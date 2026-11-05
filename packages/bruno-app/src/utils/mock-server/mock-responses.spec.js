@@ -276,18 +276,68 @@ describe('buildDemoRequestFromRules', () => {
     expect(new RegExp('literal').test(demo.params[0].value)).toBe(true);
   });
 
-  it('uses an empty sample for not_equals and skips keyless conditions', () => {
+  it('uses an empty sample for not_equals and neq, and skips keyless conditions', () => {
     const demo = buildDemoRequestFromRules(request, {
       operator: 'OR',
       conditions: [
         { target: 'header', key: 'X-Env', operator: 'not_equals', value: 'prod' },
+        { target: 'header', key: 'X-Neq', operator: 'neq', value: 'prod' },
         { target: 'query', key: '', operator: 'equals', value: 'ignored' }
       ]
     });
 
-    expect(demo.headers).toEqual([{ name: 'X-Env', value: '', enabled: true }]);
+    expect(demo.headers).toEqual([
+      { name: 'X-Env', value: '', enabled: true },
+      { name: 'X-Neq', value: '', enabled: true }
+    ]);
     expect(demo.params).toEqual([]);
     expect(demo.body).toBeNull();
+  });
+
+  it('builds samples for assertion operators and omits keys that must be absent', () => {
+    const demo = buildDemoRequestFromRules(request, {
+      operator: 'AND',
+      conditions: [
+        { target: 'header', key: 'X-Min', operator: 'gt', value: '10' },
+        { target: 'header', key: 'X-Gone', operator: 'isUndefined', value: 'nope' },
+        { target: 'query', key: 'status', operator: 'in', value: 'active, paused' },
+        { target: 'query', key: 'missing', operator: 'isNull', value: '' },
+        { target: 'body', key: '$.count', operator: 'isNumber', value: '' },
+        { target: 'body', key: '$.note', operator: 'isNull', value: 'x' },
+        { target: 'body', key: '$.ghost', operator: 'isUndefined', value: '' }
+      ]
+    });
+
+    expect(demo.headers).toEqual([{ name: 'X-Min', value: '11', enabled: true }]);
+    expect(demo.params).toEqual([
+      { name: 'status', value: 'active', type: 'query', enabled: true },
+      { name: 'missing', value: 'null', type: 'query', enabled: true }
+    ]);
+    expect(demo.body.json).toEqual({ count: 1, note: null });
+  });
+
+  it('uses a non-empty sample for a saved isNotNull rule', () => {
+    const demo = buildDemoRequestFromRules(request, {
+      operator: 'AND',
+      conditions: [
+        { target: 'header', key: 'X-Present', operator: 'isNotNull', value: '' }
+      ]
+    });
+
+    expect(demo.headers).toEqual([{ name: 'X-Present', value: 'value', enabled: true }]);
+  });
+
+  it('picks samples that satisfy notContains and notIn', () => {
+    const demo = buildDemoRequestFromRules(request, {
+      operator: 'AND',
+      conditions: [
+        { target: 'header', key: 'X-A', operator: 'notContains', value: 'o' },
+        { target: 'query', key: 'b', operator: 'notIn', value: 'other, sample' }
+      ]
+    });
+
+    expect(demo.headers[0].value).not.toContain('o');
+    expect(['other', 'sample']).not.toContain(demo.params[0].value);
   });
 
   it('returns a bare request when there are no rules', () => {
