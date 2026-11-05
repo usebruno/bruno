@@ -24,8 +24,8 @@ test.describe('Import WSDL Collection', () => {
       await importLocators.modal().waitFor({ state: 'visible' });
     });
 
-    await test.step('Verify that Import dialog shows FileL', async () => {
-      await expect(importLocators.fileTab()).toContainText('File'); ;
+    await test.step('Verify that Import dialog shows File', async () => {
+      await expect(importLocators.fileTab()).toContainText('File');
     });
 
     await test.step('Choose the WSDL XML file', async () => {
