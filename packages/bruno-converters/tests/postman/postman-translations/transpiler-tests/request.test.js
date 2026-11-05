@@ -195,6 +195,12 @@ describe('Request Translation', () => {
     expect(translatedCode).toBe('const n = req.headerList.count();');
   });
 
+  it('should translate pm.request.headers.idx to req.headerList.idx', () => {
+    const code = 'const first = pm.request.headers.idx(0);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const first = req.headerList.idx(0);');
+  });
+
   it('should translate pm.request.headers.clear to req.headerList.clear', () => {
     const code = 'pm.request.headers.clear();';
     const translatedCode = translateCode(code);

@@ -6,7 +6,6 @@ import toast from 'react-hot-toast';
 import themes from 'themes/index';
 import MockResponsesList from './index';
 import {
-  generateMockResponsesFromSpec,
   loadMockResponsesFromSpec,
   syncMockResponsesFromExamples
 } from 'providers/ReduxStore/slices/mock-server/index';
@@ -33,7 +32,6 @@ jest.mock('components/Modal', () => ({ children, handleConfirm, confirmText }) =
 jest.mock('providers/ReduxStore/slices/mock-server/index', () => ({
   createMockResponse: jest.fn(),
   deleteMockResponse: jest.fn(),
-  generateMockResponsesFromSpec: jest.fn(),
   loadMockResponses: jest.fn(() => ({ type: 'load-responses' })),
   loadMockResponsesFromSpec: jest.fn(),
   saveMockResponse: jest.fn(),
@@ -93,14 +91,13 @@ describe('MockResponsesList spec actions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     dispatch = jest.fn((action) => {
-      if (action?.type === 'generate-from-spec' || action?.type === 'load-from-spec') {
+      if (action?.type === 'load-from-spec') {
         return rejection(NO_PATHS);
       }
       return { unwrap: () => Promise.resolve({}) };
     });
     useDispatch.mockReturnValue(dispatch);
     useSelector.mockImplementation((selector) => selector(storeState));
-    generateMockResponsesFromSpec.mockReturnValue({ type: 'generate-from-spec' });
     loadMockResponsesFromSpec.mockReturnValue({ type: 'load-from-spec' });
     syncMockResponsesFromExamples.mockReturnValue({ type: 'save-responses' });
   });
@@ -110,17 +107,6 @@ describe('MockResponsesList spec actions', () => {
       <MockResponsesList instance={instance} />
     </ThemeProvider>
   );
-
-  it('does not add responses when generating from a spec that has no paths', async () => {
-    renderList();
-
-    fireEvent.click(screen.getByTestId('mock-response-generate-from-spec-btn'));
-    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
-
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(NO_PATHS));
-    expect(syncMockResponsesFromExamples).not.toHaveBeenCalled();
-    expect(screen.getByText('List pets')).toBeInTheDocument();
-  });
 
   it('keeps existing responses when syncing a spec that has no paths', async () => {
     renderList();

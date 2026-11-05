@@ -132,12 +132,10 @@ const createGenerator = (program) => {
 
   const oneLine = (text) => text.replace(/\s*\n\s*/g, ' ');
 
-  /** Reads the JSDoc of a symbol or a signature. */
-  const readDoc = (source) => {
-    // A typedef `@property`'s comment keeps the `- ` that separates it from the name, as `@param` and `@returns` text does.
-    const text = partsToString(source.getDocumentationComment(checker)).replace(/^-\s+/, '');
+  /** A doc with the given comment text and no tags yet. */
+  const docFromText = (text) => {
     const [summary = '', ...rest] = text.split(/\n\s*\n/);
-    const doc = {
+    return {
       text,
       summary: oneLine(summary).trim(),
       description: rest.join('\n\n').trim(),
@@ -151,6 +149,12 @@ const createGenerator = (program) => {
       internal: false,
       protected: false
     };
+  };
+
+  /** Reads the JSDoc of a symbol or a signature. */
+  const readDoc = (source) => {
+    // A typedef `@property`'s comment keeps the `- ` that separates it from the name, as `@param` and `@returns` text does.
+    const doc = docFromText(partsToString(source.getDocumentationComment(checker)).replace(/^-\s+/, ''));
 
     // `getJsDocTags` leaves out the tags a `@typedef` shares its comment with, such as a
     // `@category` written above it.
@@ -191,6 +195,96 @@ const createGenerator = (program) => {
     for (const runtime of doc.runtimes || []) {
       if (!RUNTIMES.includes(runtime)) fail(`${where}: unknown @runtime "${runtime}" (expected one of ${RUNTIMES.join(', ')})`);
     }
+  };
+
+  // ── Doc overrides ────────────────────────────────────────────────────
+
+  // A subclass re-documents an inherited member with a JSDoc block of its own that names the
+  // member with `@override <name>` and has no declaration under it. The block replaces the
+  // inherited summary and description; its `@param`, `@returns` and `@example` tags replace the
+  // inherited ones they match, and the rest are inherited. Types always come from the base.
+  const OVERRIDE_TAGS = new Set(['override', 'param', 'returns', 'return', 'example']);
+
+  const isOverrideDoc = (doc) => doc.tags.some((tag) => tag.name === 'override');
+
+  /** Parses one comment of a class body; `null` unless it is an `@override` block. */
+  const parseOverride = (commentText, where) => {
+    // The comment alone is not a node, so it is parsed above a stand-in declaration.
+    const sourceFile = ts.createSourceFile('override.js', `${commentText}\nvar __override;`, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+    const jsDoc = ts.getJSDocCommentsAndTags(sourceFile.statements[0]).find(ts.isJSDoc);
+    const tags = (jsDoc && jsDoc.tags) || [];
+    const marker = tags.find((tag) => tag.tagName.text === 'override');
+    if (!marker) return null;
+
+    const tagText = (tag) => (ts.getTextOfJSDocComment(tag.comment) || '').replace(/\r\n?/g, '\n').trim();
+    const name = tagText(marker);
+    if (!/^\w+$/.test(name)) fail(`${where}: @override must name one member, got "${name}"`);
+    const doc = docFromText((ts.getTextOfJSDocComment(jsDoc.comment) || '').replace(/\r\n?/g, '\n').trim());
+    if (!doc.summary) fail(`${where}: the @override block for ${name} has no summary`);
+
+    for (const tag of tags) {
+      const tagName = tag.tagName.text;
+      if (!OVERRIDE_TAGS.has(tagName)) fail(`${where}: @${tagName} in the @override block for ${name}; it is inherited from the base`);
+      if (tag.typeExpression) fail(`${where}: @${tagName} in the @override block for ${name} has a type; types come from the base`);
+      if (ts.isJSDocParameterTag(tag)) doc.params.set(tag.name.getText(), oneLine(tagText(tag)).replace(/^-\s*/, ''));
+      if (tagName === 'returns' || tagName === 'return') doc.returns = oneLine(tagText(tag)).replace(/^-\s*/, '');
+      if (tagName === 'example') doc.examples.push(tagText(tag));
+    }
+    return { name, doc };
+  };
+
+  /** The `@override` blocks of a class body, by member name, with the members that follow each. */
+  const overridesByClass = new Map();
+  const overridesOf = (classDecl) => {
+    if (overridesByClass.has(classDecl)) return overridesByClass.get(classDecl);
+    const sourceFile = classDecl.getSourceFile();
+    const text = sourceFile.getFullText();
+    const memberNames = classDecl.members.map((member) => (member.name ? member.name.getText() : null));
+    const overrides = new Map();
+    // Every comment of the body leads a member, or the closing brace.
+    for (const [index, pos] of [...classDecl.members.map((member) => member.pos), classDecl.members.end].entries()) {
+      const followers = memberNames.slice(index).filter(Boolean);
+      for (const range of ts.getLeadingCommentRanges(text, pos) || []) {
+        const commentText = text.slice(range.pos, range.end);
+        if (!commentText.startsWith('/**')) continue;
+        const { line } = sourceFile.getLineAndCharacterOfPosition(range.pos);
+        const where = `${path.relative(ROOT, sourceFile.fileName)}:${line + 1}`;
+        const override = parseOverride(commentText, where);
+        if (!override) continue;
+        if (overrides.has(override.name)) fail(`${where}: a second @override block for ${override.name}`);
+        overrides.set(override.name, { doc: override.doc, followers });
+      }
+    }
+    overridesByClass.set(classDecl, overrides);
+    return overrides;
+  };
+
+  /** The inherited doc with the override's parts in place of the ones they replace. */
+  const applyOverride = (inherited, override) => {
+    let tags = inherited.tags;
+    if (override.examples.length) {
+      // The examples go where the inherited ones were, or else before `@category`.
+      tags = [];
+      let placed = false;
+      for (const tag of inherited.tags) {
+        if (!placed && (tag.name === 'example' || tag.name === 'category')) {
+          tags.push(...override.examples.map((text) => ({ name: 'example', text })));
+          placed = true;
+        }
+        if (tag.name !== 'example') tags.push(tag);
+      }
+      if (!placed) tags.push(...override.examples.map((text) => ({ name: 'example', text })));
+    }
+    return {
+      ...inherited,
+      text: override.text,
+      summary: override.summary,
+      description: override.description,
+      tags,
+      params: new Map([...inherited.params, ...override.params]),
+      returns: override.returns || inherited.returns,
+      examples: override.examples.length ? override.examples : inherited.examples
+    };
   };
 
   // ── Types ────────────────────────────────────────────────────────────
@@ -341,34 +435,73 @@ const createGenerator = (program) => {
     (decl) => ts.getCombinedModifierFlags(decl) & ts.ModifierFlags.Readonly
   );
 
+  /** The T of an `Omit<T, …>` or `Pick<T, …>` alias. */
+  const omitOrPickSource = (type) => {
+    const decl = type.aliasSymbol && type.aliasSymbol.declarations && type.aliasSymbol.declarations[0];
+    if (!decl) return null;
+    const node = ts.isJSDocTypedefTag(decl) ? decl.typeExpression && decl.typeExpression.type : ts.isTypeAliasDeclaration(decl) ? decl.type : null;
+    if (!node || !ts.isTypeReferenceNode(node) || !['Omit', 'Pick'].includes(node.typeName.getText()) || !node.typeArguments) return null;
+    return checker.getTypeFromTypeNode(node.typeArguments[0]);
+  };
+
   /**
    * The member names of the type an `Omit<T, …>` or `Pick<T, …>` alias is made from, in T's order.
    * TypeScript orders a mapped type's members by internal type ids, which shift with every file the
    * program loads (such as the other packages' built `dist`), so the output would not be stable.
    */
   const sourceMemberOrder = (type) => {
-    const decl = type.aliasSymbol && type.aliasSymbol.declarations && type.aliasSymbol.declarations[0];
-    if (!decl) return null;
-    const node = ts.isJSDocTypedefTag(decl) ? decl.typeExpression && decl.typeExpression.type : ts.isTypeAliasDeclaration(decl) ? decl.type : null;
-    if (!node || !ts.isTypeReferenceNode(node) || !['Omit', 'Pick'].includes(node.typeName.getText()) || !node.typeArguments) return null;
-    return checker.getPropertiesOfType(checker.getTypeFromTypeNode(node.typeArguments[0])).map((symbol) => symbol.name);
+    const source = omitOrPickSource(type);
+    return source ? checker.getPropertiesOfType(source).map((symbol) => symbol.name) : null;
   };
 
-  const propertiesInOrder = (type) => {
+  /** The JS class whose `@override` blocks document a type's inherited members, if any. */
+  const docClassOf = (entry) => {
+    const symbol = entry.symbol.flags & ts.SymbolFlags.Class ? entry.symbol : omitOrPickSource(entry.type)?.getSymbol();
+    const decl = symbol && symbol.flags & ts.SymbolFlags.Class ? symbol.valueDeclaration : null;
+    return decl && ts.isClassLike(decl) && isJsDeclaration(decl) ? decl : null;
+  };
+
+  /**
+   * Moves each overridden member to where its `@override` block is: before the first member that
+   * follows the block. A block with no member after it leaves the member in its inherited place.
+   */
+  const placeOverrides = (order, overrides) => {
+    let placed = order;
+    for (const [name, { followers }] of overrides) {
+      if (!placed.includes(name)) continue;
+      const others = placed.filter((member) => member !== name);
+      const before = followers.find((follower) => others.includes(follower));
+      if (!before) continue;
+      others.splice(others.indexOf(before), 0, name);
+      placed = others;
+    }
+    return placed;
+  };
+
+  const propertiesInOrder = (type, docClass) => {
     const properties = checker.getPropertiesOfType(type);
-    const order = sourceMemberOrder(type);
+    let order = sourceMemberOrder(type);
+    if (docClass) order = placeOverrides(order || properties.map((symbol) => symbol.name), overridesOf(docClass));
     return order ? [...properties].sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name)) : properties;
   };
 
-  const describeMembers = (type, owner) => {
+  const describeMembers = (type, owner, docClass) => {
+    const overrides = docClass ? overridesOf(docClass) : new Map();
     const members = [];
-    for (const symbol of propertiesInOrder(type)) {
+    for (const symbol of propertiesInOrder(type, docClass)) {
       const name = symbol.name;
       // `#private` members surface as `#name` (or `__#…` in older compilers); well-known symbols as `__@…`.
       if (name.startsWith('#') || name.startsWith('__#') || name.startsWith('__@')) continue;
       const where = `${owner}.${name}`;
-      const doc = readDoc(symbol);
+      let doc = readDoc(symbol);
+      // TypeScript reads an `@override` block as the JSDoc of the declaration right under it.
+      if (isOverrideDoc(doc)) fail(`${where}: an @override block sits directly above it; give ${name} its own JSDoc, or move the block`);
       if (doc.internal || doc.protected || hiddenByModifier(symbol)) continue;
+      if (overrides.has(name)) {
+        const inherited = (symbol.declarations || []).every((decl) => decl.parent !== docClass);
+        if (!inherited) fail(`${where}: ${owner} declares ${name} itself; edit its JSDoc instead of an @override block`);
+        doc = applyOverride(doc, overrides.get(name).doc);
+      }
       if (!doc.summary) {
         skipped.push(where);
         continue;
@@ -380,6 +513,12 @@ const createGenerator = (program) => {
       const memberType = checker.getTypeOfSymbol(symbol);
       const signatures = checker.getSignaturesOfType(checker.getNonNullableType(memberType), ts.SignatureKind.Call);
       const isMethod = signatures.length > 0 && checker.getPropertiesOfType(memberType).length === 0;
+      if (overrides.has(name)) {
+        const paramNames = new Set(isMethod ? signatures.flatMap((s) => s.parameters.map((p) => p.name)) : []);
+        for (const param of overrides.get(name).doc.params.keys()) {
+          if (!paramNames.has(param)) fail(`${where}: the @override block documents a parameter "${param}" that ${name} does not have`);
+        }
+      }
 
       if (isMethod) {
         members.push({
@@ -430,7 +569,15 @@ const createGenerator = (program) => {
         callSignatures: []
       };
       describedTypes.set(entry, described);
-      described.members = describeMembers(type, name);
+      const docClass = docClassOf(entry);
+      described.members = describeMembers(type, name, docClass);
+      // An `Omit` view drops some members, so only the class itself shows an override is stale.
+      if (docClass && entry.symbol.flags & ts.SymbolFlags.Class) {
+        const documented = new Set(described.members.map((member) => member.name));
+        for (const overridden of overridesOf(docClass).keys()) {
+          if (!documented.has(overridden)) fail(`${name}: @override block for ${overridden}, which ${name} does not inherit as a documented member`);
+        }
+      }
       described.callSignatures = callSignatures.map((s) => describeSignature(s, doc, name));
     } else {
       collectType(type, name);

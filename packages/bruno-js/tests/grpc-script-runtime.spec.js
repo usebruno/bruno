@@ -268,6 +268,28 @@ describe('GrpcScriptRuntime', () => {
         expect(request.headers).toEqual({ 'X-Token': 'authored' });
       }
     );
+
+    it.each(['nodevm', 'quickjs'])(
+      'editing a returned metadata or trailer entry does not change later reads (%s)',
+      async (runtime) => {
+        if (runtime === 'quickjs') await quickJsLoader();
+        const script = `
+        bru.grpc.response.metadata.one('content-type').value = 'edited';
+        bru.grpc.response.trailers.all()[0].value = 'edited';
+        bru.setVar('contentType', bru.grpc.response.metadata.get('content-type'));
+        bru.setVar('grpcStatus', bru.grpc.response.trailers.get('grpc-status'));
+      `;
+
+        const result = await runAfterCallEnd(script, makeRequest(), makeResponse(), {
+          runtime
+        });
+
+        expect(result.runtimeVariables).toEqual({
+          contentType: 'application/grpc',
+          grpcStatus: '0'
+        });
+      }
+    );
   });
 
   describe('beforeMessageSend (runGrpcBeforeMessageSendScript)', () => {
