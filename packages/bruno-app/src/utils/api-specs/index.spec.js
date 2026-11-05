@@ -2,6 +2,7 @@ import {
   countCollectionsSyncingFromSpec,
   findApiSpecByPathname,
   getApiSpecTabUid,
+  getSpecLabel,
   hasUnsavedApiSpecChanges,
   isApiSpecTab,
   isApiSpecTabForPathname
@@ -105,6 +106,14 @@ describe('API spec tab identity', () => {
       expect(hasUnsavedApiSpecChanges(null)).toBe(false);
       expect(hasUnsavedApiSpecChanges(undefined)).toBe(false);
     });
+  });
+});
+
+describe('getSpecLabel', () => {
+  it('labels a spec by its name, then its filename, then its path', () => {
+    expect(getSpecLabel({ name: 'Pets API', filename: 'pets.yaml', pathname: '/ws/pets.yaml' })).toBe('Pets API');
+    expect(getSpecLabel({ filename: 'pets.yaml', pathname: '/ws/pets.yaml' })).toBe('pets.yaml');
+    expect(getSpecLabel({ pathname: '/ws/pets.yaml' })).toBe('/ws/pets.yaml');
   });
 });
 

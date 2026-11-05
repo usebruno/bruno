@@ -1,4 +1,4 @@
-const { cloneDeep, each, get } = require('lodash');
+const { cloneDeep, get } = require('lodash');
 const interpolateVars = require('./interpolate-vars');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, mergeAuth, getFormattedCollectionOauth2Credentials } = require('../../utils/collection');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -6,6 +6,7 @@ const { getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingClientCredent
 const { setAuthHeaders } = require('./prepare-request');
 const { getCertsAndProxyConfig } = require('./cert-utils');
 const { interpolateString } = require('./interpolate-string');
+const { buildHeaderEntries } = require('@usebruno/js');
 
 const processHeaders = (headers) => {
   Object.entries(headers).forEach(([key, value]) => {
@@ -136,7 +137,6 @@ const configureRequest = async (grpcRequest, request, collection, envVars, runti
 const buildGrpcRequest = async (item, collection, environment, runtimeVariables) => {
   const request = item.draft ? item.draft.request : item.request;
   const collectionRoot = collection?.draft?.root ? get(collection, 'draft.root', {}) : get(collection, 'root', {});
-  const headers = {};
   const url = request.url;
   const { promptVariables = {} } = collection;
 
@@ -152,11 +152,7 @@ const buildGrpcRequest = async (item, collection, environment, runtimeVariables)
     request.promptVariables = promptVariables;
   }
 
-  each(get(request, 'headers', []), (h) => {
-    if (h.enabled && h.name?.length > 0) {
-      headers[h.name] = h.value;
-    }
-  });
+  const { headers, headerEntries } = buildHeaderEntries(get(request, 'headers', []).filter((h) => h.enabled));
 
   const processEnvVars = getProcessEnvVars(collection.uid);
   const envVars = getEnvVars(environment);
@@ -170,6 +166,7 @@ const buildGrpcRequest = async (item, collection, environment, runtimeVariables)
     methodType: request.methodType,
     url,
     headers,
+    headerEntries,
     authMode: resolveAuthMode(request, collectionRoot),
     processEnvVars,
     envVars,

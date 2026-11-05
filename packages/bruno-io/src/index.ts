@@ -1,2 +1,2 @@
-export { writeCollectionToDisk, writeCollectionToDiskLegacy } from './writeCollectionToDisk';
+export { writeCollection, writeCollectionLegacy } from './writeCollection';
 export * from './types';
