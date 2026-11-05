@@ -344,22 +344,22 @@ test.describe('Ignore a folder from the sidebar menu', () => {
       await ignoreFolder(page, collectionName, 'hidden');
       await expect.poll(() => JSON.parse(fs.readFileSync(brunoConfigPath, 'utf8')).ignore).toContain('hidden');
 
-      await test.step('Step 02: Observe the collection tree after ignoring the folder.', async () => {
+      await test.step('Observe the collection tree after ignoring the folder.', async () => {
         await expect(sidebar.itemsIn(collectionName, 'hidden')).not.toBeVisible();
         await expect(sidebar.itemsIn(collectionName, 'Hidden Request')).not.toBeVisible();
         await expect(sidebar.itemsIn(collectionName, 'Visible Request')).toBeVisible();
       });
 
-      await test.step('Step 03: Reopen Bruno and workspace/collection.', async () => {
+      await test.step('Reopen Bruno and workspace/collection.', async () => {
         await closeElectronApp(electronApp);
         electronApp = await launchElectronApp({ userDataPath });
         page = await waitForReadyPage(electronApp);
         ({ sidebar } = buildCommonLocators(page));
         await sidebar.collection(collectionName).waitFor({ state: 'visible' });
         await openCollection(page, collectionName);
-        await expect(sidebar.itemsIn(collectionName, 'hidden')).not.toBeVisible();
-        await expect(sidebar.itemsIn(collectionName, 'Hidden Request')).not.toBeVisible();
         await expect(sidebar.itemsIn(collectionName, 'Visible Request')).toBeVisible();
+        await expect(sidebar.itemsIn(collectionName, 'hidden')).toHaveCount(0);
+        await expect(sidebar.itemsIn(collectionName, 'Hidden Request')).toHaveCount(0);
       });
     } finally {
       await closeElectronApp(electronApp);
@@ -390,13 +390,13 @@ test.describe('Ignore a folder from the sidebar menu', () => {
       await ignoreFolder(page, collectionName, 'hidden');
       await expect.poll(() => JSON.parse(fs.readFileSync(brunoConfigPath, 'utf8')).ignore).toContain('hidden');
 
-      await test.step('Step 02: Observe the collection tree after ignoring the folder.', async () => {
+      await test.step('Observe the collection tree after ignoring the folder.', async () => {
         await expect(sidebar.itemsIn(collectionName, 'hidden')).not.toBeVisible();
         await expect(sidebar.itemsIn(collectionName, 'Hidden Request')).not.toBeVisible();
         await expect(sidebar.itemsIn(collectionName, 'Visible Request')).toBeVisible();
       });
 
-      await test.step('Step 03: Reopen Bruno and workspace/collection.', async () => {
+      await test.step('Reopen Bruno and workspace/collection.', async () => {
         await closeElectronApp(electronApp);
         electronApp = await launchElectronApp({ userDataPath });
         page = await waitForReadyPage(electronApp);
@@ -404,9 +404,9 @@ test.describe('Ignore a folder from the sidebar menu', () => {
         await sidebar.collection(collectionName).waitFor({ state: 'visible' });
         await openCollection(page, collectionName);
 
-        await expect(sidebar.itemsIn(collectionName, 'hidden')).not.toBeVisible();
-        await expect(sidebar.itemsIn(collectionName, 'Hidden Request')).not.toBeVisible();
         await expect(sidebar.itemsIn(collectionName, 'Visible Request')).toBeVisible();
+        await expect(sidebar.itemsIn(collectionName, 'hidden')).toHaveCount(0);
+        await expect(sidebar.itemsIn(collectionName, 'Hidden Request')).toHaveCount(0);
       });
     } finally {
       await closeElectronApp(electronApp);
