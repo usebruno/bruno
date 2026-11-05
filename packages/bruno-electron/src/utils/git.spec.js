@@ -1,4 +1,10 @@
-const { parseRemoteBranches } = require('./git');
+jest.mock('simple-git', () => jest.fn(() => ({
+  outputHandler: jest.fn(),
+  clone: jest.fn((_url, _path, _options, callback) => callback(null, 'cloned'))
+})));
+
+const simpleGit = require('simple-git');
+const { parseRemoteBranches, cloneGitRepository } = require('./git');
 
 describe('parseRemoteBranches', () => {
   it('reads the branch names and the default branch out of ls-remote output', () => {
@@ -42,5 +48,15 @@ describe('parseRemoteBranches', () => {
   it('returns an empty listing for empty output', () => {
     expect(parseRemoteBranches('')).toEqual({ branches: [], defaultBranch: null });
     expect(parseRemoteBranches(undefined)).toEqual({ branches: [], defaultBranch: null });
+  });
+});
+
+describe('cloneGitRepository', () => {
+  const win = { webContents: { send: jest.fn() } };
+
+  it('enables core.longpaths so deeply nested files can be checked out on Windows', async () => {
+    await cloneGitRepository(win, { url: 'https://example.com/repo.git', path: '/collections/repo', processUid: 'p1' });
+
+    expect(simpleGit).toHaveBeenCalledWith({ baseDir: '/collections/repo', config: ['core.longpaths=true'] });
   });
 });
