@@ -25,7 +25,7 @@ describe('useDetectSensitiveField', () => {
   it('uses the request variable when the field belongs to that request', () => {
     const { result } = renderHook(() => useDetectSensitiveField(collection));
 
-    expect(result.current.isSensitive('Bearer {{token}}', request)).toMatchObject({
+    expect(result.current.isSensitive('{{token}}', request)).toMatchObject({
       showWarning: true,
       warningMessage: '"token" is a request variable and is stored in plain text. Move it to an environment as a secret.'
     });

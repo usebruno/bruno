@@ -6,7 +6,9 @@ export const useDetectSensitiveField = (collection) => {
     const result = classifySensitiveValue(value, { collection, item });
     return {
       showWarning: result.showWarning,
-      warningMessage: result.warningMessage
+      warningMessage: result.warningMessage,
+      scope: result.scope,
+      variableName: result.variableName
     };
   }, [collection]);
 

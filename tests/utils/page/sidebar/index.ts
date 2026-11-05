@@ -15,11 +15,20 @@ export const buildSidebarLocators = (page: Page) => {
   const item = (name: string) => page.locator('.collection-item-name').filter({ hasText: name });
 
   const collectionScope = (name: string) => page.locator(`[data-collection-id="${collectionSlug(name)}"]`);
+  const inlineCollectionCreatorRoot = () => page.getByTestId('inline-collection-creator');
 
   return {
+    inlineCollectionCreator: {
+      root: inlineCollectionCreatorRoot,
+      nameInput: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-input'),
+      advancedButton: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-advanced-btn'),
+      createButton: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-save-btn'),
+      cancelButton: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-cancel-btn')
+    },
     collectionsContainer: () => page.getByTestId('collections'),
     collectionsScroller: () => page.getByTestId('sidebar-collections-scroller'),
     collection: (name?: string) => name ? page.locator('#sidebar-collection-name').filter({ hasText: name }) : page.locator('#sidebar-collection-name'),
+    collectionExact: (name: string) => page.locator('#sidebar-collection-name').and(page.getByTitle(name, { exact: true })),
     item,
     folder: item,
     request: item,
@@ -72,6 +81,9 @@ export const buildSidebarLocators = (page: Page) => {
     dragHandle: () => page.getByTestId('sidebar-drag-handle'),
     toggleSidebarButton: () => page.getByTestId('toggle-sidebar-button'),
     sidebarContainer: () => page.getByTestId('sidebar'),
+    searchToggle: () => page.getByTestId('sidebar-search-toggle'),
+    searchInput: () => page.getByTestId('sidebar-search-input'),
+    searchClear: () => page.getByTestId('sidebar-search-clear-icon'),
 
     // Modals opened from a sidebar row's "..." menu.
     renameItemModal: {

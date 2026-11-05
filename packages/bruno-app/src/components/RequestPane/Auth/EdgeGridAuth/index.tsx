@@ -5,7 +5,6 @@ import { useDispatch } from 'react-redux';
 
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
@@ -36,7 +35,7 @@ interface AkamaiEdgeGridAuthProps {
   request: any;
   updateAuth: (payload: any) => any;
   save: () => void;
-  disabled?: boolean;
+  readOnly?: boolean;
 }
 
 const FIELDS: Array<{ key: EdgeGridField; label: string; tooltip?: string; isSecret?: boolean }> = [
@@ -73,13 +72,12 @@ type EdgeGridFieldConfig = (typeof FIELDS)[number];
 const BASIC_FIELDS = FIELDS.slice(0, 3);
 const ADVANCED_FIELDS = FIELDS.slice(3);
 
-const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ item, collection, updateAuth, request, save, disabled }) => {
+const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ item, collection, updateAuth, request, save, readOnly }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
   const edgeGridAuth: AkamaiEdgeGridAuthValues = get(request, 'auth.akamaiEdgegrid') || {};
   const requestUrl = get(request, 'url', '');
-  const { isSensitive } = useDetectSensitiveField(collection);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
@@ -118,7 +116,6 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ item, collection, upd
   const renderField = ({ key, label, tooltip, isSecret }: EdgeGridFieldConfig) => {
     const rawValue = key === 'baseURL' ? edgeGridAuth.baseURL || requestUrl : edgeGridAuth[key];
     const fieldValue = rawValue === null || rawValue === undefined ? '' : String(rawValue);
-    const { showWarning, warningMessage } = isSecret ? isSensitive(rawValue, item) : { showWarning: false, warningMessage: '' };
     return (
       <div key={key}>
         <label>
@@ -140,12 +137,10 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ item, collection, upd
             collection={collection}
             item={item}
             isSecret={isSecret}
-            readOnly={disabled}
+            readOnly={readOnly}
             isCompact
           />
-          {showWarning && (
-            <SensitiveFieldWarning fieldName={`edgegrid-${key}`} warningMessage={warningMessage} />
-          )}
+          {isSecret && <SensitiveFieldWarning fieldName={`edgegrid-${key}`} secretName={key} value={rawValue} collection={collection} item={item} fieldKey={key} onReplaceValue={(val: string) => handleFieldChange(key, val)} />}
         </div>
       </div>
     );

@@ -105,7 +105,7 @@ describe('Collection Schema Validation', () => {
     expect(isValid).toBeTruthy();
   });
 
-  it('collection schema validation must fail - invalid grpc collection item with params', async () => {
+  it('collection schema strips unknown grpc request params', async () => {
     const collection = {
       version: '1',
       uid: uuid(),
@@ -136,7 +136,8 @@ describe('Collection Schema Validation', () => {
       ]
     };
 
-    expect(collectionSchema.validate(collection)).rejects.toThrow('items[0].request field has unspecified keys: params');
+    const validated = await collectionSchema.validate(collection);
+    expect(validated.items[0].request.params).toBeUndefined();
   });
 
 
