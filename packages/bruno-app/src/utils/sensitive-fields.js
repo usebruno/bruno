@@ -297,7 +297,7 @@ export const findUsedEnvironmentVariableUids = (collection, environment) => {
 };
 
 /** Non-secret global rows used by a sensitive field in an collection. */
-export const findUsedGlobalEnvironmentVariableUids = (collections, globalEnvironments, environment) => {
+export const findUsedGlobalEnvironmentVariableUids = (collections, globalEnvironments, activeGlobalEnvironmentUid, environment) => {
   const uids = new Set();
   if (!environment?.uid) {
     return uids;
@@ -307,7 +307,7 @@ export const findUsedGlobalEnvironmentVariableUids = (collections, globalEnviron
     collectSentVariableUids({
       ...collection,
       globalEnvironments: environments,
-      activeGlobalEnvironmentUid: environment.uid
+      activeGlobalEnvironmentUid
     }, 'global').forEach((uid) => uids.add(uid));
   });
   return uids;

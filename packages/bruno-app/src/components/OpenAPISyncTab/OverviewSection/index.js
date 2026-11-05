@@ -74,7 +74,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
   // Conflict count: endpoints modified in both spec and collection
   const conflictCount = hasDriftData && specDrift?.modified
     ? (() => {
-        const localModifiedIds = new Set((collectionDrift.modified || []).map((ep) => ep.id));
+        const localModifiedIds = new Set((collectionDrift.edited || []).map((ep) => ep.id));
         return specDrift.modified.filter((ep) => localModifiedIds.has(ep.id)).length;
       })()
     : 0;

@@ -42,6 +42,7 @@ const replacements = {
   'pm\\.request\\.headers\\.has\\(': 'req.headerList.has(',
   'pm\\.request\\.headers\\.one\\(': 'req.headerList.one(',
   'pm\\.request\\.headers\\.all\\(': 'req.headerList.all(',
+  'pm\\.request\\.headers\\.idx\\(': 'req.headerList.idx(',
   'pm\\.request\\.headers\\.count\\(': 'req.headerList.count(',
   'pm\\.request\\.headers\\.indexOf\\(': 'req.headerList.indexOf(',
   'pm\\.request\\.headers\\.find\\(': 'req.headerList.find(',
@@ -68,6 +69,7 @@ const replacements = {
   'pm\\.response\\.headers\\.has\\(': 'res.headerList.has(',
   'pm\\.response\\.headers\\.one\\(': 'res.headerList.one(',
   'pm\\.response\\.headers\\.all\\(': 'res.headerList.all(',
+  'pm\\.response\\.headers\\.idx\\(': 'res.headerList.idx(',
   'pm\\.response\\.headers\\.count\\(': 'res.headerList.count(',
   'pm\\.response\\.headers\\.indexOf\\(': 'res.headerList.indexOf(',
   'pm\\.response\\.headers\\.find\\(': 'res.headerList.find(',
@@ -161,6 +163,7 @@ const replacements = {
   'pm\\.cookies\\.map\\(': 'bru.cookies.map(',
   'pm\\.cookies\\.reduce\\(': 'bru.cookies.reduce(',
   'pm\\.cookies\\.add\\(': 'bru.cookies.add(',
+  'pm\\.cookies\\.append\\(': 'bru.cookies.append(',
   'pm\\.cookies\\.upsert\\(': 'bru.cookies.upsert(',
   // Lossy: position-aware inserts map to add (position irrelevant for cookies)
   'pm\\.cookies\\.prepend\\(': 'bru.cookies.add(',
