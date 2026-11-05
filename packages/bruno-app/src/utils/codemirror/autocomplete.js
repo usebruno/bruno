@@ -43,6 +43,7 @@ const STATIC_API_HINTS = {
     'req.headerList.get(name)',
     'req.headerList.one(name)',
     'req.headerList.all()',
+    'req.headerList.idx(index)',
     'req.headerList.count()',
     'req.headerList.has(name)',
     'req.headerList.has(name, value)',
@@ -87,6 +88,7 @@ const STATIC_API_HINTS = {
     'res.headerList.get(name)',
     'res.headerList.one(name)',
     'res.headerList.all()',
+    'res.headerList.idx(index)',
     'res.headerList.count()',
     'res.headerList.has(name)',
     'res.headerList.has(name, value)',
@@ -163,6 +165,7 @@ const STATIC_API_HINTS = {
     'bru.cookies.toObject()',
     'bru.cookies.toString()',
     'bru.cookies.add(cookieObj)',
+    'bru.cookies.append(cookieObj)',
     'bru.cookies.upsert(cookieObj)',
     'bru.cookies.remove(name)',
     'bru.cookies.delete(name)',
@@ -219,8 +222,8 @@ const VARIABLE_SCOPE_DISPLAY_ORDER = [
   AUTOCOMPLETE_SCOPES.REQUEST,
   AUTOCOMPLETE_SCOPES.RUNTIME,
   AUTOCOMPLETE_SCOPES.PROCESS_ENV,
-  AUTOCOMPLETE_SCOPES.DYNAMIC,
-  AUTOCOMPLETE_SCOPES.OAUTH2
+  AUTOCOMPLETE_SCOPES.OAUTH2,
+  AUTOCOMPLETE_SCOPES.DYNAMIC
 ];
 
 /**
