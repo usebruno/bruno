@@ -1,0 +1,40 @@
+openapi: 3.0.3
+info:
+  title: Collection Auth API
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+    basicAuth:
+      type: http
+      scheme: basic
+paths:
+  /orders:
+    get:
+      summary: List orders
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+  /admin/reports:
+    get:
+      summary: Admin reports
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          description: OK
+  /health:
+    get:
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: OK
