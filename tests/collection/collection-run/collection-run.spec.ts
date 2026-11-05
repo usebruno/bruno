@@ -25,7 +25,7 @@ test.describe('Collection runner', () => {
       const sidebar = buildSidebarLocators(page);
       const menu = sidebar.rowMenu(collectionName, 'collection');
 
-      await test.step(`Open Run from the ${collectionName} collection menu`, async () => {
+      await test.step(`Open run from the ${collectionName} collection menu`, async () => {
         await sidebar.collectionRow(collectionName).hover();
         await menu.trigger().click();
         await menu.item('run').click();
@@ -38,6 +38,7 @@ test.describe('Collection runner', () => {
 
       await test.step('Run the collection and verify the requests are executed', async () => {
         await runButton.click();
+        // Run Again appears only after the whole collection run finishes
         await runner.runAgainButton().waitFor();
 
         await expect(runner.allCount()).toHaveText('2');
@@ -54,7 +55,7 @@ test.describe('Collection runner', () => {
     const sidebar = buildSidebarLocators(page);
     const menu = sidebar.rowMenu(delayCollectionName, 'collection');
 
-    await test.step(`Open Run from the ${delayCollectionName} collection menu`, async () => {
+    await test.step(`Open run from the ${delayCollectionName} collection menu`, async () => {
       await sidebar.collectionRow(delayCollectionName).hover();
       await menu.trigger().click();
       await menu.item('run').click();
@@ -70,6 +71,7 @@ test.describe('Collection runner', () => {
     await test.step('Run the collection and verify the delay apart from the request time', async () => {
       const startedAt = Date.now();
       await runButton.click();
+      // Run Again appears only after the whole collection run finishes
       await runner.runAgainButton().waitFor();
       const elapsedMs = Date.now() - startedAt;
 
@@ -81,7 +83,7 @@ test.describe('Collection runner', () => {
     });
   });
 
-  test('TC-3070: Verify the Include Tags functionality under Collection Run',
+  test('TC-3070: Verify the include tags functionality under Collection Run',
     { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
       const tag = 'smoke';
       const { runnerResults } = buildCommonLocators(page);
@@ -90,7 +92,7 @@ test.describe('Collection runner', () => {
       const sidebar = buildSidebarLocators(page);
       const menu = sidebar.rowMenu(collectionName, 'collection');
 
-      await test.step(`Open Run from the ${collectionName} menu row item`, async () => {
+      await test.step(`Open run from the ${collectionName} menu row item`, async () => {
         await sidebar.collectionRow(collectionName).hover();
         await menu.trigger().click();
         await menu.item('run').click();
@@ -105,6 +107,7 @@ test.describe('Collection runner', () => {
 
       await test.step('Run the collection and verify only the tagged request ran', async () => {
         await runButton.click();
+        // Run Again appears only after the whole collection run finishes
         await runner.runAgainButton().waitFor();
 
         await expect(runnerResults.itemPath(plainRequest)).toHaveCount(0);
@@ -113,7 +116,7 @@ test.describe('Collection runner', () => {
       });
     });
 
-  test('TC-3069: Verify the Exclude Tags functionality under Collection Run', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
+  test('TC-3069: Verify the exclude tags functionality under Collection Run', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const tag = 'smoke';
     const { runnerResults } = buildCommonLocators(page);
     const runner = buildRunnerLocators(page);
@@ -121,7 +124,7 @@ test.describe('Collection runner', () => {
     const sidebar = buildSidebarLocators(page);
     const menu = sidebar.rowMenu(collectionName, 'collection');
 
-    await test.step(`Open Run from the ${collectionName} menu row item`, async () => {
+    await test.step(`Open run from the ${collectionName} menu row item`, async () => {
       await sidebar.collectionRow(collectionName).hover();
       await menu.trigger().click();
       await menu.item('run').click();
@@ -136,6 +139,7 @@ test.describe('Collection runner', () => {
 
     await test.step('Run the collection and verify the tagged request was left out', async () => {
       await runButton.click();
+      // Run Again appears only after the whole collection run finishes
       await runner.runAgainButton().waitFor();
 
       await expect(runnerResults.itemPath(smokeRequest)).toHaveCount(0);
@@ -144,14 +148,15 @@ test.describe('Collection runner', () => {
     });
   });
 
-  test('TC-847: Verify Passed Filter Shows Only Passed Requests with Their Passed Tests', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
+  test('TC-847: Verify passed filter shows only passed requests with their passed tests', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const skippedCollectionName = 'skipped-run';
+    const { runnerResults } = buildCommonLocators(page);
     const runner = buildRunnerLocators(page);
     const runButton = runner.runCollectionButton();
     const sidebar = buildSidebarLocators(page);
     const menu = sidebar.rowMenu(skippedCollectionName, 'collection');
 
-    await test.step(`Open Run from the ${skippedCollectionName} menu row item`, async () => {
+    await test.step(`Open run from the ${skippedCollectionName} menu row item`, async () => {
       await sidebar.collectionRow(skippedCollectionName).hover();
       await menu.trigger().click();
       await menu.item('run').click();
@@ -162,8 +167,9 @@ test.describe('Collection runner', () => {
       await expect(runButton).toHaveText('Run 4 Requests');
     });
 
-    await test.step('Run the collection from the Runner tab and verify the requests are executed', async () => {
+    await test.step('Run the collection from the runner tab and verify the requests are executed', async () => {
       await runButton.click();
+      // Run Again appears only after the whole collection run finishes
       await runner.runAgainButton().waitFor();
 
       await expect(runner.allCount()).toHaveText('4');
@@ -176,17 +182,20 @@ test.describe('Collection runner', () => {
       await expect(runner.passedCount()).toHaveText('2');
       await expect(runner.resultItems()).toHaveCount(2);
       await expect(runner.passedTestRows()).toHaveCount(2);
+      await expect(runnerResults.itemPath('First Passed Ping')).toHaveCount(1);
+      await expect(runnerResults.itemPath('Second Passed Ping')).toHaveCount(1);
     });
   });
 
-  test('TC-850: Verify Skipped Filter Shows Only Skipped Requests', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
+  test('TC-850: Verify skipped filter shows only skipped requests', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const skippedCollectionName = 'skipped-run';
+    const { runnerResults } = buildCommonLocators(page);
     const runner = buildRunnerLocators(page);
     const runButton = runner.runCollectionButton();
     const sidebar = buildSidebarLocators(page);
     const menu = sidebar.rowMenu(skippedCollectionName, 'collection');
 
-    await test.step(`Open Run from the ${skippedCollectionName} menu row item`, async () => {
+    await test.step(`Open run from the ${skippedCollectionName} menu row item`, async () => {
       await sidebar.collectionRow(skippedCollectionName).hover();
       await menu.trigger().click();
       await menu.item('run').click();
@@ -199,6 +208,7 @@ test.describe('Collection runner', () => {
 
     await test.step('Run the collection', async () => {
       await runButton.click();
+      // Run Again appears only after the whole collection run finishes
       await runner.runAgainButton().waitFor();
 
       await expect(runner.allCount()).toHaveText('4');
@@ -210,6 +220,8 @@ test.describe('Collection runner', () => {
 
       await expect(runner.skippedCount()).toHaveText('2');
       await expect(runner.resultItems()).toHaveCount(2);
+      await expect(runnerResults.itemPath('First Skipped Ping')).toHaveCount(1);
+      await expect(runnerResults.itemPath('Second Skipped Ping')).toHaveCount(1);
     });
   });
 });
