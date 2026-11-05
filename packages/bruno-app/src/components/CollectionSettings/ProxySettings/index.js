@@ -272,63 +272,67 @@ const ProxySettings = ({ collection }) => {
 
           {enabledValue === 'true' && (
             <>
-              <div className="grid grid-cols-[112px_1fr_96px] gap-3">
-                <FormField label="Protocol" labelId="collection-proxy-protocol-label">
-                  <MenuDropdown
-                    items={PROXY_PROTOCOL_OPTIONS.map(({ value, label }) => ({
-                      id: value,
-                      label,
-                      onClick: () => handleProtocolChange({ target: { value } })
-                    }))}
-                    selectedItemId={selectedProtocol}
-                    placement="bottom-start"
-                    data-testid="collection-proxy-protocol-menu"
-                    appendTo={() => document.body}
-                    popperOptions={{ strategy: 'fixed' }}
-                    sameWidth
-                  >
-                    <button
-                      type="button"
-                      id="collection-proxy-protocol-trigger"
-                      className="protocol-trigger"
-                      aria-labelledby="collection-proxy-protocol-label collection-proxy-protocol-trigger"
-                      data-testid="collection-proxy-protocol"
+              <div className="flex flex-col gap-3">
+                <div className="w-[200px]">
+                  <FormField label="Protocol" labelId="collection-proxy-protocol-label">
+                    <MenuDropdown
+                      items={PROXY_PROTOCOL_OPTIONS.map(({ value, label }) => ({
+                        id: value,
+                        label,
+                        onClick: () => handleProtocolChange({ target: { value } })
+                      }))}
+                      selectedItemId={selectedProtocol}
+                      placement="bottom-start"
+                      data-testid="collection-proxy-protocol-menu"
+                      appendTo={() => document.body}
+                      popperOptions={{ strategy: 'fixed' }}
+                      sameWidth
                     >
-                      <span>
-                        {PROXY_PROTOCOL_OPTIONS.find((option) => option.value === selectedProtocol)?.label ?? selectedProtocol}
-                      </span>
-                      <IconChevronDown size={14} strokeWidth={2} />
-                    </button>
-                  </MenuDropdown>
-                </FormField>
-                <FormField label="Hostname" labelId="collection-proxy-hostname-label">
-                  <div className="single-line-editor-wrapper" onMouseDown={focusEditorFromBox}>
-                    <SingleLineEditor
-                      value={currentProxyConfig.config?.hostname || ''}
-                      theme={storedTheme}
-                      onSave={handleSave}
-                      onChange={handleHostnameChange}
-                      collection={collection}
-                      isCompact
-                      data-testid="collection-proxy-hostname"
+                      <button
+                        type="button"
+                        id="collection-proxy-protocol-trigger"
+                        className="protocol-trigger"
+                        aria-labelledby="collection-proxy-protocol-label collection-proxy-protocol-trigger"
+                        data-testid="collection-proxy-protocol"
+                      >
+                        <span>
+                          {PROXY_PROTOCOL_OPTIONS.find((option) => option.value === selectedProtocol)?.label ?? selectedProtocol}
+                        </span>
+                        <IconChevronDown size={14} strokeWidth={2} />
+                      </button>
+                    </MenuDropdown>
+                  </FormField>
+                </div>
+                <div className="grid grid-cols-[1fr_96px] gap-3">
+                  <FormField label="Hostname" labelId="collection-proxy-hostname-label">
+                    <div className="single-line-editor-wrapper" onMouseDown={focusEditorFromBox}>
+                      <SingleLineEditor
+                        value={currentProxyConfig.config?.hostname || ''}
+                        theme={storedTheme}
+                        onSave={handleSave}
+                        onChange={handleHostnameChange}
+                        collection={collection}
+                        isCompact
+                        data-testid="collection-proxy-hostname"
+                      />
+                    </div>
+                  </FormField>
+                  <FormField label="Port" htmlFor="port">
+                    <input
+                      id="port"
+                      data-testid="collection-proxy-port"
+                      type="number"
+                      name="port"
+                      className="textbox"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      onChange={handlePortChange}
+                      value={currentProxyConfig.config?.port || ''}
                     />
-                  </div>
-                </FormField>
-                <FormField label="Port" htmlFor="port">
-                  <input
-                    id="port"
-                    data-testid="collection-proxy-port"
-                    type="number"
-                    name="port"
-                    className="textbox"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                    onChange={handlePortChange}
-                    value={currentProxyConfig.config?.port || ''}
-                  />
-                </FormField>
+                  </FormField>
+                </div>
               </div>
 
               <div className="flex flex-col gap-2.5">

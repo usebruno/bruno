@@ -49,24 +49,24 @@ const ProxySettings = ({ close }) => {
             return false;
           }
         })
-        .max(2048)
+        .max(2048, 'PAC URL must be less than 2048 characters')
         .nullable()
     }).optional(),
     config: Yup.object({
       protocol: Yup.string().required().oneOf(['http', 'https', 'socks4', 'socks5']),
-      hostname: Yup.string().max(1024),
+      hostname: Yup.string().max(1024, 'Hostname must be less than 1024 characters'),
       port: Yup.number()
-        .min(1)
-        .max(65535)
-        .typeError('Specify port between 1 and 65535')
+        .min(1, 'Port must be between 1 and 65535.')
+        .max(65535, 'Port must be between 1 and 65535.')
+        .typeError('Port must be between 1 and 65535.')
         .nullable()
         .transform((_, val) => (val ? Number(val) : null)),
       auth: Yup.object({
         disabled: Yup.boolean().optional(),
-        username: Yup.string().max(1024),
-        password: Yup.string().max(1024)
+        username: Yup.string().max(1024, 'Username must be less than 1024 characters'),
+        password: Yup.string().max(1024, 'Password must be less than 1024 characters')
       }).optional(),
-      bypassProxy: Yup.string().optional().max(1024)
+      bypassProxy: Yup.string().optional().max(1024, 'Bypass proxy must be less than 1024 characters')
     }).required()
   });
 
@@ -188,69 +188,75 @@ const ProxySettings = ({ close }) => {
 
           {proxyMode === 'manual' ? (
             <>
-              <div className="grid grid-cols-[112px_1fr_96px] gap-3">
-                <FormField label="Protocol" labelId="preferences-proxy-protocol-label">
-                  <MenuDropdown
-                    items={PROXY_PROTOCOL_OPTIONS.map(({ value, label }) => ({
-                      id: value,
-                      label,
-                      onClick: () => formik.setFieldValue('config.protocol', value)
-                    }))}
-                    selectedItemId={protocol}
-                    placement="bottom-start"
-                    data-testid="preferences-proxy-protocol-menu"
-                    appendTo={() => document.body}
-                    popperOptions={{ strategy: 'fixed' }}
-                    sameWidth
-                  >
-                    <button
-                      type="button"
-                      id="preferences-proxy-protocol-trigger"
-                      className="protocol-trigger"
-                      aria-labelledby="preferences-proxy-protocol-label preferences-proxy-protocol-trigger"
-                      data-testid="preferences-proxy-protocol"
+              <div className="flex flex-col gap-3">
+                <div className="w-[200px]">
+                  <FormField label="Protocol" labelId="preferences-proxy-protocol-label">
+                    <MenuDropdown
+                      items={PROXY_PROTOCOL_OPTIONS.map(({ value, label }) => ({
+                        id: value,
+                        label,
+                        onClick: () => formik.setFieldValue('config.protocol', value)
+                      }))}
+                      selectedItemId={protocol}
+                      placement="bottom-start"
+                      data-testid="preferences-proxy-protocol-menu"
+                      appendTo={() => document.body}
+                      popperOptions={{ strategy: 'fixed' }}
+                      sameWidth
                     >
-                      <span>{PROXY_PROTOCOL_OPTIONS.find((option) => option.value === protocol)?.label ?? protocol}</span>
-                      <IconChevronDown size={14} strokeWidth={2} />
-                    </button>
-                  </MenuDropdown>
-                </FormField>
-                <FormField
-                  label="Hostname"
-                  htmlFor="config.hostname"
-                  error={fieldError(formik.touched.config?.hostname, formik.errors.config?.hostname)}
-                >
-                  <input
-                    id="config.hostname"
-                    type="text"
-                    name="config.hostname"
-                    className="textbox"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                    onChange={formik.handleChange}
-                    value={formik.values.config.hostname || ''}
-                  />
-                </FormField>
-                <FormField
-                  label="Port"
-                  htmlFor="config.port"
-                  error={fieldError(formik.touched.config?.port, formik.errors.config?.port)}
-                >
-                  <input
-                    id="config.port"
-                    type="number"
-                    name="config.port"
-                    className="textbox"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                    onChange={formik.handleChange}
-                    value={formik.values.config.port}
-                  />
-                </FormField>
+                      <button
+                        type="button"
+                        id="preferences-proxy-protocol-trigger"
+                        className="protocol-trigger"
+                        aria-labelledby="preferences-proxy-protocol-label preferences-proxy-protocol-trigger"
+                        data-testid="preferences-proxy-protocol"
+                      >
+                        <span>{PROXY_PROTOCOL_OPTIONS.find((option) => option.value === protocol)?.label ?? protocol}</span>
+                        <IconChevronDown size={14} strokeWidth={2} />
+                      </button>
+                    </MenuDropdown>
+                  </FormField>
+                </div>
+                <div className="grid grid-cols-[1fr_96px] gap-3">
+                  <FormField
+                    label="Hostname"
+                    htmlFor="config.hostname"
+                    error={fieldError(formik.touched.config?.hostname, formik.errors.config?.hostname)}
+                  >
+                    <input
+                      id="config.hostname"
+                      type="text"
+                      name="config.hostname"
+                      className="textbox"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                      value={formik.values.config.hostname || ''}
+                    />
+                  </FormField>
+                  <FormField
+                    label="Port"
+                    htmlFor="config.port"
+                    error={fieldError(formik.touched.config?.port, formik.errors.config?.port)}
+                  >
+                    <input
+                      id="config.port"
+                      type="number"
+                      name="config.port"
+                      className="textbox"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                      value={formik.values.config.port}
+                    />
+                  </FormField>
+                </div>
               </div>
 
               <div className="flex flex-col gap-2.5">
@@ -283,6 +289,7 @@ const ProxySettings = ({ close }) => {
                       spellCheck="false"
                       value={formik.values.config.auth.username}
                       onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
                     />
                   </FormField>
                   <FormField
@@ -301,6 +308,7 @@ const ProxySettings = ({ close }) => {
                         spellCheck="false"
                         value={formik.values.config.auth.password}
                         onChange={formik.handleChange}
+                        onBlur={formik.handleBlur}
                       />
                       <button
                         type="button"
@@ -333,6 +341,7 @@ const ProxySettings = ({ close }) => {
                   autoCapitalize="off"
                   spellCheck="false"
                   onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                   value={formik.values.config.bypassProxy || ''}
                 />
               </FormField>
@@ -385,6 +394,7 @@ const ProxySettings = ({ close }) => {
                       autoCapitalize="off"
                       spellCheck="false"
                       onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
                       value={formik.values.pac.source || ''}
                       placeholder="https://example.com/proxy.pac"
                     />
@@ -399,6 +409,7 @@ const ProxySettings = ({ close }) => {
                           .then((fileUrl) => {
                             if (fileUrl) {
                               formik.setFieldValue('pac.source', fileUrl);
+                              formik.setFieldTouched('pac.source', true, false);
                             }
                           })
                           .catch(() => toast.error('Failed to open file picker'));
