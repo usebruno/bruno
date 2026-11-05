@@ -1,0 +1,8 @@
+{
+    "collections": [
+        {
+			"pathname": "{{projectRoot}}/e2e/tests/scripting/inbuilt-libraries/jsonwebtoken/test-data/collection",
+			"selectedEnvironment": "Prod"
+		}
+    ]
+}

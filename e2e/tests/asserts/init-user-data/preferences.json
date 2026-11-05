@@ -1,0 +1,11 @@
+{
+  "lastOpenedCollections": [
+    "{{projectRoot}}/e2e/tests/asserts/test-data/collection"
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
+}

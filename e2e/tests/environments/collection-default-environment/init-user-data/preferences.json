@@ -1,0 +1,13 @@
+{
+  "maximized": false,
+  "lastOpenedCollections": [
+    "{{projectRoot}}/e2e/tests/environments/collection-default-environment/test-data/collection",
+    "{{projectRoot}}/e2e/tests/environments/collection-default-environment/test-data/collection-missing"
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
+}

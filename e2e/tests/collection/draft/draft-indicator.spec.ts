@@ -1,0 +1,335 @@
+import { test, expect } from '../../../playwright';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  createCollection,
+  createFolder,
+  writeCollectionProxyField
+} from '../../../pages';
+
+test.describe.serial('Draft indicator in collection and folder settings', () => {
+  test.afterAll(async ({ page }) => {
+    // cleanup: close all collections
+    await closeAllCollections(page);
+  });
+
+  test('Verify draft indicator appears when changing collection settings - Headers', async ({ page, createTmpDir }) => {
+    const collectionName = 'test-draft';
+
+    // Create a new collection
+    await createCollection(page, collectionName, await createTmpDir());
+
+    // Verify the collection settings tab is open
+    await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'Collection' })).toBeVisible();
+
+    // Verify initially there is NO draft indicator (close icon is present)
+    const collectionTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) });
+    await expect(collectionTab.locator('.close-icon')).toBeVisible();
+    await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
+
+    await page.locator('.tab.headers').click();
+
+    const headerTable = page.locator('table').first();
+    const headerRow = headerTable.locator('tbody tr').first();
+
+    const nameEditor = headerRow.locator('.CodeMirror').first();
+    await nameEditor.click();
+    await page.keyboard.type('X-Custom-Header');
+
+    const valueEditor = headerRow.locator('.CodeMirror').nth(1);
+    await valueEditor.click();
+    await page.keyboard.type('custom-value');
+
+    // Verify draft indicator appears in the tab
+    await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
+    await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
+
+    // Save the changes
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    // Verify draft indicator is gone after saving
+    await expect(collectionTab.locator('.close-icon')).toBeVisible();
+    await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
+  });
+
+  test('Verify draft indicator appears when changing collection settings - Auth', async ({ page }) => {
+    // Verify the collection settings tab is open
+    const collectionTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) });
+    await expect(collectionTab).toBeVisible();
+
+    // Verify initially there is NO draft indicator
+    await expect(collectionTab.locator('.close-icon')).toBeVisible();
+    await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
+
+    // Click on Auth tab
+    await page.locator('.tab.auth').click();
+
+    // Change auth mode from 'none' to 'bearer' by clicking the dropdown
+    await page.locator('.auth-mode-label').click();
+    await page.locator('.dropdown-item').filter({ hasText: 'Bearer Token' }).click();
+
+    // Verify draft indicator appears in the tab
+    await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
+    await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
+
+    // Save the changes
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    // Verify draft indicator is gone after saving
+    await expect(collectionTab.locator('.close-icon')).toBeVisible();
+    await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
+  });
+
+  test('Verify draft indicator appears when changing collection settings - Protobuf', async ({ page }) => {
+    const collectionTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) });
+    await expect(collectionTab).toBeVisible();
+
+    // Verify initially there is NO draft indicator
+    await expect(collectionTab.locator('.close-icon')).toBeVisible();
+    await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
+
+    // Click on Protobuf tab
+    await page.locator('.tab.protobuf').click();
+
+    // Add a new proto file - handle file picker dialog
+    const fileChooserPromise = page.waitForEvent('filechooser');
+    await page.getByTestId('protobuf-add-file-button').click();
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles('./e2e/tests/collection/draft/test-data/grpcbin.proto');
+
+    // Wait for the file to be processed and added to the table
+    // The file goes through IPC to get the path, then Redux to update state
+    const protoFilesTable = page.getByTestId('protobuf-proto-file-name');
+    await expect(protoFilesTable.getByText('grpcbin.proto')).toBeVisible();
+
+    // Verify draft indicator appears
+    await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
+    await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
+
+    // Save the changes
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    // Verify draft indicator is gone after saving
+    await expect(collectionTab.locator('.close-icon')).toBeVisible();
+    await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
+  });
+
+  test('Verify draft indicator appears when changing client certificate settings', async ({ page }) => {
+    const collectionTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) });
+    await expect(collectionTab).toBeVisible();
+
+    // Verify initially there is NO draft indicator
+    await expect(collectionTab.locator('.close-icon')).toBeVisible();
+    await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
+
+    // Click on Client Certificates tab
+    await buildCommonLocators(page).paneTabs.collectionSettingsTab('clientCert').click();
+
+    // Open the add certificate modal
+    await page.getByTestId('add-client-cert').click();
+    const addCertModal = page.getByTestId('add-client-cert-modal');
+    await expect(addCertModal).toBeVisible();
+
+    // Fill domain
+    await addCertModal.locator('#domain').fill('test.com');
+
+    // The file inputs are hidden; the visible "Choose file" button next to each one opens the picker
+    const chooseFileButton = (field: string) => addCertModal.getByTestId(`choose-file-${field}`);
+    const fileChip = (field: string) => addCertModal.getByTestId(`file-chip-${field}`);
+
+    // Select cert file using file picker (using grpcbin.proto as a dummy file)
+    const certFileChooserPromise = page.waitForEvent('filechooser');
+    await chooseFileButton('certFilePath').click();
+    const certFileChooser = await certFileChooserPromise;
+    await certFileChooser.setFiles('./e2e/tests/collection/draft/test-data/grpcbin.proto');
+
+    // Select key file using file picker (using grpcbin.proto as a dummy file)
+    const keyFileChooserPromise = page.waitForEvent('filechooser');
+    await chooseFileButton('keyFilePath').click();
+    const keyFileChooser = await keyFileChooserPromise;
+    await keyFileChooser.setFiles('./e2e/tests/collection/draft/test-data/grpcbin.proto');
+
+    // Both file paths must land in the form before submitting, else validation blocks the add
+    await expect(fileChip('certFilePath')).toHaveText(/grpcbin\.proto/);
+    await expect(fileChip('keyFilePath')).toHaveText(/grpcbin\.proto/);
+
+    // Add the certificate
+    await page.getByTestId('add-client-cert-modal-submit-btn').click();
+    await expect(addCertModal).not.toBeVisible();
+    await expect(page.locator('.listgroup-item').filter({ hasText: 'test.com' })).toBeVisible();
+
+    // Verify draft indicator appears
+    await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
+    await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
+
+    // Save the changes
+    await page.getByTestId('client-cert-save-btn').click();
+
+    // Verify draft indicator is gone after saving
+    await expect(collectionTab.locator('.close-icon')).toBeVisible();
+    await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
+  });
+
+  test('Verify draft indicator appears when changing proxy settings', async ({ page }) => {
+    const collectionTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) });
+    await expect(collectionTab).toBeVisible();
+
+    // Verify initially there is NO draft indicator
+    await expect(collectionTab.locator('.close-icon')).toBeVisible();
+    await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
+
+    // Click on Proxy tab
+    await page.locator('.tab.proxy').click();
+
+    // Enable proxy - select "enabled" radio button
+    await page.locator('input[name="enabled"][value="true"]').check();
+
+    // Fill in hostname and port
+    await writeCollectionProxyField(page, 'hostname', 'localhost');
+    await writeCollectionProxyField(page, 'port', '8080');
+
+    // Verify draft indicator appears
+    await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
+    await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
+
+    // Save the changes
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    // Verify draft indicator is gone after saving
+    await expect(collectionTab.locator('.close-icon')).toBeVisible();
+    await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
+  });
+
+  test('Verify draft indicator appears when changing collection settings - Vars', async ({ page }) => {
+    const collectionTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) });
+
+    // Verify initially there is NO draft indicator
+    await expect(collectionTab.locator('.close-icon')).toBeVisible();
+
+    await page.locator('.tab.vars').click();
+
+    const varsTable = page.locator('table').first();
+    const varRow = varsTable.locator('tbody tr').first();
+
+    const varNameInput = varRow.locator('input[type="text"]');
+    await varNameInput.click();
+    await varNameInput.fill('testVar');
+    const varValueEditor = varRow.getByTestId(/^test-multiline-editor-\d+\.value$/);
+    await varValueEditor.click();
+    await page.keyboard.type('testValue');
+
+    // Verify draft indicator appears
+    await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
+    await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
+
+    // Save the changes
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    // Verify draft indicator is gone after saving
+    await expect(collectionTab.locator('.close-icon')).toBeVisible();
+    await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
+  });
+
+  test('Verify draft indicator appears when changing folder settings - Headers', async ({ page }) => {
+    const collectionName = 'test-draft';
+
+    await createFolder(page, 'test-folder', collectionName);
+
+    // Open folder settings by double-clicking the folder
+    await page.locator('.collection-item-name').filter({ hasText: 'test-folder' }).dblclick();
+
+    // Verify folder settings tab is open
+    const folderTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'test-folder' }) });
+    await expect(folderTab).toBeVisible();
+
+    await expect(folderTab.locator('.close-icon')).toBeVisible();
+    await expect(folderTab.locator('.has-changes-icon')).not.toBeVisible();
+
+    const headerTable = page.locator('table').first();
+    const headerRow = headerTable.locator('tbody tr').first();
+
+    const nameEditor = headerRow.locator('.CodeMirror').first();
+    await nameEditor.click();
+    await page.keyboard.type('X-Folder-Header');
+
+    const valueEditor = headerRow.locator('.CodeMirror').nth(1);
+    await valueEditor.click();
+    await page.keyboard.type('folder-value');
+
+    // Verify draft indicator appears in the folder tab
+    await expect(folderTab.locator('.has-changes-icon')).toBeVisible();
+    await expect(folderTab.locator('.close-icon')).not.toBeVisible();
+
+    // Save the changes
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    // Verify draft indicator is gone after saving
+    await expect(folderTab.locator('.close-icon')).toBeVisible();
+    await expect(folderTab.locator('.has-changes-icon')).not.toBeVisible();
+  });
+
+  test('Verify draft indicator appears when changing folder settings - Auth', async ({ page }) => {
+    // Open folder settings by double-clicking the folder from previous test
+    await page.locator('.collection-item-name').filter({ hasText: 'test-folder' }).dblclick();
+
+    // Verify folder settings tab is open
+    const folderTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'test-folder' }) });
+    await expect(folderTab).toBeVisible();
+
+    // Verify initially no draft indicator
+    await expect(folderTab.locator('.close-icon')).toBeVisible();
+
+    // Click on Auth tab
+    await page.locator('.tab.auth').click();
+
+    // Change auth mode by clicking the dropdown
+    await page.locator('.auth-mode-label').click();
+    await page.locator('.dropdown-item').filter({ hasText: 'Bearer Token' }).click();
+
+    // Verify draft indicator appears
+    await expect(folderTab.locator('.has-changes-icon')).toBeVisible();
+    await expect(folderTab.locator('.close-icon')).not.toBeVisible();
+
+    // Save the changes
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    // Verify draft indicator is gone
+    await expect(folderTab.locator('.close-icon')).toBeVisible();
+    await expect(folderTab.locator('.has-changes-icon')).not.toBeVisible();
+  });
+
+  test('Verify draft indicator appears when changing folder settings - Vars', async ({ page }) => {
+    // Open folder settings by double-clicking the folder from previous test
+    await page.locator('.collection-item-name').filter({ hasText: 'test-folder' }).dblclick();
+
+    // Verify folder settings tab is open
+    const folderTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'test-folder' }) });
+    await expect(folderTab).toBeVisible();
+
+    await expect(folderTab.locator('.close-icon')).toBeVisible();
+
+    await page.locator('.tab.vars').click();
+
+    const varsTable = page.locator('table').first();
+    const varRow = varsTable.locator('tbody tr').first();
+
+    const varNameInput = varRow.locator('input[type="text"]');
+    await varNameInput.click();
+    await varNameInput.fill('folderVar');
+
+    const folderVarValueEditor = varRow.getByTestId(/^test-multiline-editor-\d+\.value$/);
+    await folderVarValueEditor.click();
+    await page.keyboard.type('folderValue');
+
+    // Verify draft indicator appears
+    await expect(folderTab.locator('.has-changes-icon')).toBeVisible();
+    await expect(folderTab.locator('.close-icon')).not.toBeVisible();
+
+    // Save the changes
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    // Verify draft indicator is gone
+    await expect(folderTab.locator('.close-icon')).toBeVisible();
+    await expect(folderTab.locator('.has-changes-icon')).not.toBeVisible();
+  });
+});

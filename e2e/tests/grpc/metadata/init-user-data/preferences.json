@@ -1,0 +1,15 @@
+{
+  "maximized": false,
+  "lastOpenedCollections": [
+    "{{projectRoot}}/e2e/tests/grpc/metadata/test-data/collection"
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    },
+    "beta": {
+      "nodevm": false
+    }
+  }
+}

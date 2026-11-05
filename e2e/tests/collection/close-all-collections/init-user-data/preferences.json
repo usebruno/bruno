@@ -1,0 +1,12 @@
+{
+  "lastOpenedCollections": [
+    "{{projectRoot}}/e2e/tests/collection/close-all-collections/test-data/collections/collection 1",
+    "{{projectRoot}}/e2e/tests/collection/close-all-collections/test-data/collections/collection 2"
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
+}

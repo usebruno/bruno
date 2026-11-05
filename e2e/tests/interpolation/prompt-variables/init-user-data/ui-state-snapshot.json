@@ -1,0 +1,8 @@
+{
+  "collections": [
+    {
+      "pathname": "{{projectRoot}}/e2e/tests/interpolation/prompt-variables/test-data/collection",
+      "selectedEnvironment": "local"
+    }
+  ]
+}

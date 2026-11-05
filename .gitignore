@@ -3,10 +3,10 @@
 # dependencies
 bun.lockb
 node_modules
-# Fake npm packages under test fixtures aren't installed by a package manager,
+# Fake npm packages under test-data folders aren't installed by a package manager,
 # so they must be tracked in git for the e2e tests to work when cloned fresh.
-!tests/scripting/additional-context-roots/fixtures/**/node_modules
-!tests/scripting/additional-context-roots/fixtures/**/node_modules/**
+!e2e/tests/scripting/additional-context-roots/test-data/**/node_modules
+!e2e/tests/scripting/additional-context-roots/test-data/**/node_modules/**
 yarn.lock
 pnpm-lock.yaml
 .pnp
@@ -62,7 +62,7 @@ skills-lock.json
 /blob-report/
 
 # Benchmark results (generated at runtime)
-tests/benchmarks/results/
+e2e/tests/benchmarks/results/
 /benchmark-report/
 
 # Development plan files

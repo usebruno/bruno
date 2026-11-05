@@ -8,10 +8,10 @@ runs:
       run: |
         set -euo pipefail
 
-        BRU_CLI="../../../../../../packages/bruno-cli/bin/bru.js"
+        BRU_CLI="../../../../../../../packages/bruno-cli/bin/bru.js"
 
         # navigate to BRU test collection directory
-        cd tests/auth/oauth1/fixtures/collections/bru
+        cd e2e/tests/auth/oauth1/test-data/collections/bru
 
         echo "=== BRU Format Collection Run ==="
         node $BRU_CLI run --env Local --output junit-bru.xml --format junit
@@ -21,10 +21,10 @@ runs:
       run: |
         set -euo pipefail
 
-        BRU_CLI="../../../../../../packages/bruno-cli/bin/bru.js"
+        BRU_CLI="../../../../../../../packages/bruno-cli/bin/bru.js"
 
         # navigate to YML test collection directory
-        cd tests/auth/oauth1/fixtures/collections/yml
+        cd e2e/tests/auth/oauth1/test-data/collections/yml
 
         echo "=== YML Format Collection Run ==="
         node $BRU_CLI run --env Local --output junit-yml.xml --format junit

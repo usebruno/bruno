@@ -1,0 +1,28 @@
+{
+  "maximized": false,
+  "lastOpenedCollections": ["{{projectRoot}}/e2e/tests/ssl/client-certs/tests/global-client-certs-disabled/test-data/collection"],
+  "preferences": {
+    "request": {
+      "sslVerification": true,
+      "customCaCertificate": {
+        "enabled": true,
+        "filePath": "{{projectRoot}}/e2e/tests/ssl/client-certs/server/certs/ca-cert.pem"
+      },
+      "keepDefaultCaCertificates": {
+        "enabled": true
+      },
+      "clientCertificates": {
+        "certs": [
+          {
+            "domain": "localhost",
+            "type": "cert",
+            "certFilePath": "{{projectRoot}}/e2e/tests/ssl/client-certs/server/certs/client-cert.pem",
+            "keyFilePath": "{{projectRoot}}/e2e/tests/ssl/client-certs/server/certs/client-key.pem",
+            "passphrase": "",
+            "disabled": true
+          }
+        ]
+      }
+    }
+  }
+}

@@ -9,10 +9,10 @@ runs:
         Set-StrictMode -Version Latest
         $ErrorActionPreference = "Stop"
 
-        $BRU_CLI = "..\..\..\..\..\..\packages\bruno-cli\bin\bru.js"
+        $BRU_CLI = "..\..\..\..\..\..\..\packages\bruno-cli\bin\bru.js"
 
         # navigate to BRU test collection directory
-        Set-Location tests\auth\oauth1\fixtures\collections\bru
+        Set-Location e2e\tests\auth\oauth1\test-data\collections\bru
 
         Write-Host "=== BRU Format Collection Run ==="
         $process = Start-Process -FilePath "node" -ArgumentList "$BRU_CLI run --env Local --output junit-bru.xml --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
@@ -24,10 +24,10 @@ runs:
         Set-StrictMode -Version Latest
         $ErrorActionPreference = "Stop"
 
-        $BRU_CLI = "..\..\..\..\..\..\packages\bruno-cli\bin\bru.js"
+        $BRU_CLI = "..\..\..\..\..\..\..\packages\bruno-cli\bin\bru.js"
 
         # navigate to YML test collection directory
-        Set-Location tests\auth\oauth1\fixtures\collections\yml
+        Set-Location e2e\tests\auth\oauth1\test-data\collections\yml
 
         Write-Host "=== YML Format Collection Run ==="
         $process = Start-Process -FilePath "node" -ArgumentList "$BRU_CLI run --env Local --output junit-yml.xml --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"

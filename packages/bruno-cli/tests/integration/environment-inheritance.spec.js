@@ -13,7 +13,7 @@ const {
 const WORKSPACE_FIXTURE_DIR = path.resolve(
   __dirname,
   '..', '..', '..', '..',
-  'tests', 'environments', 'environment-inheritance', 'fixtures', 'workspace'
+  'e2e', 'tests', 'environments', 'environment-inheritance', 'test-data', 'workspace'
 );
 const COLLECTIONS_FIXTURE_DIR = path.join(WORKSPACE_FIXTURE_DIR, 'collections');
 
