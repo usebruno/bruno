@@ -17,6 +17,6 @@ export const cliOutput = ({ code, stdout, stderr }: { code: number; stdout: stri
   `bru exited ${code}\n--- stdout ---\n${stdout}\n--- stderr ---\n${stderr}`;
 
 export const importOpenApiWithCli = (specPath: string, outputFile: string, flags: string[] = []) => {
-  execFileSync('node', [BRU_BIN, 'import', 'openapi', '--source', specPath, '--output-file', outputFile, ...flags], { stdio: 'pipe' });
+  execFileSync('node', [BRU_BIN, 'import', 'openapi', '--source', specPath, '--output-file', outputFile, ...flags], { stdio: 'pipe', timeout: 20000 });
   return JSON.parse(fs.readFileSync(outputFile, 'utf8'));
 };
