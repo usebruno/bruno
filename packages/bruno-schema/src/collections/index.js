@@ -582,7 +582,7 @@ const wsRequestSchema = Yup.object({
 
 const wsSettingsSchema = Yup.object({
     timeout: Yup.number()
-      .default(500),
+      .default(30000),
     keepAliveInterval: Yup.number()
       .default(0)
 }).noUnknown(true);
