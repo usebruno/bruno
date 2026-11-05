@@ -916,6 +916,12 @@ describe('GrpcClient', () => {
         expect(expanded).toContain('-plaintext');
       });
 
+      test('should send a scheme-less 127.0.0.0/8 address in plaintext', () => {
+        const command = grpcClient.generateGrpcurlCommand({ request: { ...baseRequest, url: '127.0.0.2:50051' } });
+
+        expect(command).toContain('-plaintext');
+      });
+
       test('should send a scheme-less host that merely contains localhost over TLS', () => {
         const command = grpcClient.generateGrpcurlCommand({
           request: { ...baseRequest, url: 'localhost.attacker.example:443' }

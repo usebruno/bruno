@@ -5,6 +5,7 @@ import { generateGrpcSampleMessage } from './grpcMessageGenerator';
 import * as tls from 'tls';
 import { isString } from 'lodash';
 import * as nodePath from 'node:path';
+import { isLoopbackHost } from '../utils/url-validation';
 
 /**
  * Configuration options for loading and parsing Protocol Buffers definitions.
@@ -112,18 +113,11 @@ const normalizeWindowsNamedPipe = (pipePath) => {
   return pipePath;
 };
 
-// RFC 6761 loopback names; matched by suffix
-const isLoopbackHostname = (hostname) => {
-  const host = hostname.replace(/\.$/, '');
-  return host === 'localhost' || host.endsWith('.localhost') || host === '127.0.0.1' || host === '[::1]';
-};
-
 // Parse gRPC URL into components, handling TCP, Unix sockets, and Windows named pipes
 const getParsedGrpcUrlObject = (url) => {
   const addProtocolIfMissing = (str) => {
     if (str.includes('://')) return str;
-    const hostname = new URL(`grpcs://${str}`).hostname.toLowerCase();
-    return isLoopbackHostname(hostname) ? `grpc://${str}` : `grpcs://${str}`;
+    return isLoopbackHost(new URL(`grpcs://${str}`).hostname) ? `grpc://${str}` : `grpcs://${str}`;
   };
   const removeTrailingSlash = (str) => (str.endsWith('/') ? str.slice(0, -1) : str);
 
