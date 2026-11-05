@@ -1454,7 +1454,9 @@ describe('exportApiSpec - export invariants across url shapes', () => {
     ['a secret in the host keeps its spelling', [request('https://{{tenantSecret}}.api.test/data')], { paths: ['/data'], server: { url: 'https://{tenantSecret}.api.test', variables: { tenantSecret: { default: '{{tenantSecret}}' } } } }],
     ['credentials with a secret are dropped from the server', [request('https://user:{{pass}}@api.test/z')], { paths: ['/z'], server: { url: 'https://api.test' } }],
     ['an unknown variable at the start', [request('{{nope}}/ping')], { paths: ['/ping'], server: { url: '{nope}', variables: { nope: { default: '' } } } }],
-    ['a relative url with a secret', [request('/relative/{{secvar}}')], { paths: ['/relative/{secvar}'] }]
+    ['a relative url with a secret', [request('/relative/{{secvar}}')], { paths: ['/relative/{secvar}'] }],
+    ['a secret scheme', [request('{{secvar}}://api.test/users')], { paths: ['/users'], server: { url: '{secvar}://api.test', variables: { secvar: { default: '{{secvar}}' } } } }],
+    ['a process env scheme', [request('{{process.env.PROTOCOL}}://api.test/users')], { paths: ['/users'], server: { url: '{process.env.PROTOCOL}://api.test', variables: { 'process.env.PROTOCOL': { default: '{{process.env.PROTOCOL}}' } } } }]
   ];
 
   it.each(rows)('%s', async (label, requests, expected) => {
@@ -1474,6 +1476,27 @@ describe('exportApiSpec - export invariants across url shapes', () => {
       ['query', 'key', '{{secvar}}'],
       ['query', 'q', '{{?Search term}}']
     ]);
+  });
+
+  it.each([
+    ['https://slash.test/', 'https://slash.test/users', '/users'],
+    ['https://slash.test/api/', 'https://slash.test/api/users', '/users'],
+    ['https://slash.test/', 'https://slash.test/', '/']
+  ])('treats a request under the base url %s as a path on the root server', (baseUrl, url, expectedPath) => {
+    const items = [{ name: 'Request', type: 'http-request', pathname: path.join('collection', 'Request.bru'), depth: 1, request: { url, method: 'GET', params: [], headers: [], body: {}, auth: {} } }];
+    const slashEnvironments = [{ name: 'local', variables: [{ name: 'baseUrl', value: baseUrl, enabled: true }] }];
+    const spec = jsyaml.load(exportApiSpec({ variables: {}, items, name: 'Test API', environments: slashEnvironments }).content);
+
+    expect(Object.keys(spec.paths)).toEqual([expectedPath]);
+    expect(spec.paths[expectedPath].get.servers).toBeUndefined();
+  });
+
+  it('gives a request that only shares a prefix with the base url its own server', () => {
+    const items = [{ name: 'Request', type: 'http-request', pathname: path.join('collection', 'Request.bru'), depth: 1, request: { url: 'https://slash.test/apiusers', method: 'GET', params: [], headers: [], body: {}, auth: {} } }];
+    const prefixEnvironments = [{ name: 'local', variables: [{ name: 'baseUrl', value: 'https://slash.test/api', enabled: true }] }];
+    const spec = jsyaml.load(exportApiSpec({ variables: {}, items, name: 'Test API', environments: prefixEnvironments }).content);
+
+    expect(spec.paths['/apiusers'].get.servers).toEqual([{ url: 'https://slash.test' }]);
   });
 
   it('keeps an empty default for a plain collection variable used in an environment base url', () => {

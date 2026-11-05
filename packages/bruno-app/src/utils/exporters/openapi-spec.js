@@ -18,7 +18,7 @@ const getUrlQueryParams = (url) => {
     .filter(({ name }) => !seen.has(name) && seen.add(name));
 };
 
-// Split a url into server and path as text when the URL parser can't be used: the address (host or port) has a
+// Split a url into server and path as text when the URL parser can't be used: the address (scheme, host or port) has a
 // placeholder in it, or the url has no scheme. Placeholders stay whole and keep their spelling.
 const splitAddressAsText = (url) => {
   const masked = maskPlaceholders(url);
@@ -27,7 +27,7 @@ const splitAddressAsText = (url) => {
   const [scheme = ''] = masked.match(/^[^/?#]*?:\/\//) || [];
   const addressLength = masked.slice(scheme.length).search(/[/?#]/);
   const addressEnd = addressLength === -1 ? masked.length : scheme.length + addressLength;
-  if (scheme && !url.slice(scheme.length, addressEnd).includes('{{')) return null;
+  if (scheme && !url.slice(0, addressEnd).includes('{{')) return null;
 
   const credentialsEnd = masked.lastIndexOf('@', addressEnd - 1);
   const hostStart = credentialsEnd >= scheme.length ? credentialsEnd + 1 : scheme.length;
@@ -200,8 +200,9 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
 
     // URL matches a known baseUrl value directly (e.g. user typed template vars inline)
     for (const source of baseUrlSources) {
-      const rest = rawUrl.slice(source.baseUrl.length);
-      if (rawUrl.startsWith(source.baseUrl) && (rest === '' || /^[/?#]/.test(rest))) {
+      const baseUrl = source.baseUrl.replace(/\/+$/, '');
+      const rest = rawUrl.slice(baseUrl.length);
+      if (rawUrl.startsWith(baseUrl) && (rest === '' || /^[/?#]/.test(rest))) {
         const rawPath = rest;
         const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
         return { url: path, operationLevelServer: null };
