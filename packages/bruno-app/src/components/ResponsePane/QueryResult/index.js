@@ -1,6 +1,9 @@
 import { debounce } from 'lodash';
 import { useTheme } from 'providers/Theme/index';
 import React, { useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
+import get from 'lodash/get';
+import { DEFAULT_MAX_PREVIEW_SIZE_MB } from 'utils/common/constants';
 import { formatResponse, getContentType } from 'utils/common';
 import { getDefaultResponseFormat, detectContentTypeFromBase64 } from 'utils/response';
 import LargeResponseWarning from '../LargeResponseWarning';
@@ -122,7 +125,8 @@ const QueryResult = ({
     return 0;
   }, [dataBuffer, item.response]);
 
-  const isLargeResponse = responseSize > 10 * 1024 * 1024; // 10 MB
+  const maxPreviewSizeMB = useSelector((state) => get(state.app.preferences, 'response.maxPreviewSizeMB', DEFAULT_MAX_PREVIEW_SIZE_MB));
+  const isLargeResponse = responseSize > maxPreviewSizeMB * 1024 * 1024;
 
   const detectedContentType = useMemo(() => {
     return detectContentTypeFromBase64(dataBuffer);
@@ -197,6 +201,7 @@ const QueryResult = ({
       ) : isLargeResponse && !showLargeResponse ? (
         <LargeResponseWarning
           item={item}
+          collectionUid={collection?.uid}
           responseSize={responseSize}
           onRevealResponse={() => setShowLargeResponse(true)}
         />

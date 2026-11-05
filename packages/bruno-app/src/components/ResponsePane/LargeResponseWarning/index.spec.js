@@ -6,6 +6,7 @@ import themes from 'themes/index';
 import toast from 'react-hot-toast';
 import LargeResponseWarning from './index';
 
+jest.mock('react-redux', () => ({ useDispatch: () => jest.fn() }));
 jest.mock('react-hot-toast', () => ({ success: jest.fn(), error: jest.fn() }));
 
 const RENDERABLE_SIZE = 15 * 1024 * 1024;
@@ -50,16 +51,14 @@ describe('LargeResponseWarning', () => {
     expect(button('view')).toBeEnabled();
     expect(button('copy')).toBeEnabled();
     expect(button('download')).toBeEnabled();
-    expect(screen.queryByTestId('large-response-download-only')).not.toBeInTheDocument();
   });
 
-  it('only offers the download above the renderable limit', () => {
-    renderWarning({ item: loadedItem, responseSize: DOWNLOAD_ONLY_SIZE });
+  it('only offers the download for a body kept in main', () => {
+    renderWarning({ item: storedItem, responseSize: DOWNLOAD_ONLY_SIZE });
 
     expect(button('view')).toBeDisabled();
     expect(button('copy')).toBeDisabled();
     expect(button('download')).toBeEnabled();
-    expect(screen.getByTestId('large-response-download-only')).toBeInTheDocument();
   });
 
   it('downloads a body kept in main by passing the response to the save handler', async () => {

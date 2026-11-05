@@ -106,6 +106,9 @@ const defaultPreferences = {
       customRedactedHeaders: [],
       customRedactedVariables: []
     }
+  },
+  response: {
+    maxPreviewSizeMB: 10
   }
 };
 
@@ -240,7 +243,10 @@ const preferencesSchema = Yup.object().shape({
       customRedactedHeaders: Yup.array().of(Yup.string().max(200)).max(200),
       customRedactedVariables: Yup.array().of(Yup.string().max(200)).max(200)
     }).optional()
-  }).optional()
+  }).optional(),
+  response: Yup.object({
+    maxPreviewSizeMB: Yup.number().positive('Number must be greater than 0')
+  })
 });
 
 class PreferencesStore {
@@ -458,6 +464,9 @@ const preferencesUtil = {
     } catch (err) {
       console.error('Failed to save preferences in markAsLaunched:', err);
     }
+  },
+  getMaxPreviewSizeMB: () => {
+    return get(getPreferences(), 'response.maxPreviewSizeMB', 10);
   }
 };
 

@@ -17,7 +17,8 @@ export const buildPreferencesLocators = (page: Page) => ({
     autoSaveEnabled: () => page.locator('#autoSaveEnabled'),
     autoSaveInterval: () => page.locator('#autoSaveInterval'),
     /** The "Request Timeout (in ms)" field on the General tab */
-    requestTimeoutInput: () => page.locator('input[name="timeout"]')
+    requestTimeoutInput: () => page.locator('input[name="timeout"]'),
+    maxPreviewSizeInput: () => page.locator('#maxPreviewSizeMB')
   },
   /** Locators on the Keybindings tab, each takes the action id (e.g. `triggerAutocomplete`) */
   keybindings: {
@@ -139,4 +140,16 @@ export const openSystemProxyPanel = async (page: Page) => {
   const systemProxyLocators = buildPreferencesLocators(page).systemProxy;
   await systemProxyLocators.systemProxyMode().click();
   await systemProxyLocators.systemProxyRefreshButton().waitFor({ state: 'visible' });
+};
+
+export const setMaxPreviewSizePreference = async (page: Page, megabytes: number) => {
+  await test.step(`Set max preview size preference to ${megabytes}MB`, async () => {
+    const preferences = buildPreferencesLocators(page);
+    await openPreferences(page);
+    await selectPreferencesTab(page, 'General');
+    await preferences.general.maxPreviewSizeInput().fill(String(megabytes));
+    await expect(preferences.general.maxPreviewSizeInput()).toHaveValue(String(megabytes));
+    await closePreferences(page);
+    await preferences.openTab().waitFor({ state: 'detached' });
+  });
 };
