@@ -31,7 +31,9 @@ const InheritableSettingsInput = ({
             icon={(
               <button
                 type="button"
-                aria-describedby={description ? `${id}-label ${id}-description` : `${id}-label`}
+                id={`${id}-inherit-trigger`}
+                aria-labelledby={`${id}-label ${id}-inherit-trigger`}
+                aria-describedby={description ? `${id}-description` : undefined}
                 className="settings-text-input px-2 py-1 w-24 h-[34px] flex items-center justify-between"
               >
                 <span>Inherit</span>

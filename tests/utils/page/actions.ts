@@ -1673,6 +1673,8 @@ const openCollectionSettings = async (page: Page, collectionName: string, { pers
   });
 };
 
+const COLLECTION_SETTINGS_SECTIONS = ['presets', 'proxy', 'clientcert'];
+
 /**
  * Select a tab in the collection settings pane
  * @param page - The page object
@@ -1680,8 +1682,6 @@ const openCollectionSettings = async (page: Page, collectionName: string, { pers
  *   Settings section ('presets', 'proxy', 'clientCert'), which opens the Settings tab first
  * @returns void
  */
-const COLLECTION_SETTINGS_SECTIONS = ['presets', 'proxy', 'clientcert'];
-
 const selectCollectionPaneTab = async (page: Page, tabName: string) => {
   await test.step(`Select collection pane tab "${tabName}"`, async () => {
     const locators = buildCommonLocators(page);

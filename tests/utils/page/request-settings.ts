@@ -9,8 +9,7 @@ export const buildRequestSettingsLocators = (page: Page) => ({
   timeoutInput: () => page.locator('#timeout'),
   /** The "X" button that resets a custom timeout back to inherit */
   timeoutResetButton: () => page.getByRole('button', { name: 'Reset to inherit' }),
-  /** The dropdown button shown when the timeout is inherited */
-  timeoutInheritButton: () => page.getByRole('button', { name: 'Inherit', exact: true }),
+  timeoutInheritButton: () => page.getByRole('button', { name: 'Timeout (ms) Inherit', exact: true }),
   encodeUrlToggle: () => page.getByTestId('encode-url-toggle'),
   followRedirectsToggle: () => page.getByTestId('follow-redirects-toggle'),
   forwardAuthToggle: () => page.getByTestId('forward-auth-header-toggle'),
