@@ -100,7 +100,12 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect, showCaret
         return;
       }
       case KEY.ENTER: {
-        onMethodSelect(toMethod(e.target.value) || DEFAULT_METHOD);
+        const method = toMethod(e.target.value) || DEFAULT_METHOD;
+        // blurInput() runs handleBlur, which restores selectedMethodRef when the
+        // input is empty; record the choice first so Enter on an empty input
+        // ends on the default method instead of the previous one.
+        selectedMethodRef.current = method;
+        onMethodSelect(method);
         setIsCustomMode(false);
         blurInput();
         return;

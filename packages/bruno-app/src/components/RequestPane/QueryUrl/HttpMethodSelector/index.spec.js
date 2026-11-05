@@ -301,6 +301,41 @@ describe('HttpMethodSelector', () => {
       expect(mockOnMethodSelect).toHaveBeenLastCalledWith('GET');
     });
 
+    it('should end on the default method after Enter on an empty input even when blur follows', async () => {
+      const Harness = () => {
+        const [method, setMethod] = React.useState('POST');
+        return (
+          <HttpMethodSelector
+            method={method}
+            onMethodSelect={(value) => {
+              mockOnMethodSelect(value);
+              setMethod(value);
+            }}
+          />
+        );
+      };
+      renderWithTheme(<Harness />);
+
+      const button = screen.getByRole('button');
+      fireEvent.click(button);
+
+      await waitFor(() => {
+        const addCustom = screen.getByText('+ Add Custom');
+        fireEvent.click(addCustom);
+      });
+
+      const input = await screen.findByRole('textbox');
+      fireEvent.change(input, { target: { value: '' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.blur(input);
+
+      await waitFor(() => {
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+        expect(screen.getByRole('button')).toHaveTextContent('GET');
+      });
+      expect(mockOnMethodSelect).toHaveBeenLastCalledWith('GET');
+    });
+
     it('should exit custom mode on blur and keep the custom method', async () => {
       renderWithTheme(<HttpMethodSelector onMethodSelect={mockOnMethodSelect} />);
 
