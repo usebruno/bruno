@@ -152,11 +152,24 @@ test.describe('Snapshot: collection Pane Interactivity', () => {
       await openCollectionSettings(page, 'OtherCol', { persist: true });
     });
 
+    await test.step('Wait until the snapshot holds the saved request tab and the active collection', async () => {
+      // The snapshot stores the active collection path with forward slashes on every platform.
+      const otherColSnapshotPath = otherColPath.replace(/\\/g, '/');
+      await expect.poll(() => {
+        const snapshot = readSnapshot(userDataPath);
+        const savedTabsCol = snapshot?.collections?.find((c: any) => c.pathname?.includes(savedTabsColPath));
+        const hasSavedRequestTab = Boolean(
+          savedTabsCol?.tabs?.some((t: any) => t.permanent && t.pathname?.includes('saved-req'))
+        );
+        const isOtherColActive = Boolean(
+          snapshot?.workspaces?.some((w: any) => w.lastActiveCollectionPathname?.includes(otherColSnapshotPath))
+        );
+        return hasSavedRequestTab && isOtherColActive;
+      }).toBe(true);
+    });
+
     await test.step('Restart so that only the active collection is mounted', async () => {
-      // Background flushing takes about 2 seconds to complete
-      await page.waitForTimeout(2000);
       await closeElectronApp(app);
-      await waitForSnapshotFile(userDataPath);
     });
 
     const app2 = await launchElectronApp({ userDataPath });
