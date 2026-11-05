@@ -104,19 +104,15 @@ const getCopilotClient = async (token) => {
 };
 
 const toCatalogModel = (model) => {
-  const limits = model?.capabilities?.limits || {};
-  const maxOutputTokens = Number(limits.max_output_tokens ?? limits.maxOutputTokens);
   const multiplier = Number(model?.billing?.multiplier);
   return {
     modelId: model.id,
     label: model.name || model.id,
-    reasoning: Array.isArray(model?.supportedReasoningEfforts) && model.supportedReasoningEfforts.length > 0,
-    maxOutputTokens: Number.isFinite(maxOutputTokens) && maxOutputTokens > 0 ? maxOutputTokens : 0,
     multiplier: Number.isFinite(multiplier) ? multiplier : 1
   };
 };
 
-const AUTO_CATALOG_MODEL = { modelId: AUTO_MODEL_ID, label: 'Auto', reasoning: false, maxOutputTokens: 0, multiplier: 1 };
+const AUTO_CATALOG_MODEL = { modelId: AUTO_MODEL_ID, label: 'Auto', multiplier: 1 };
 
 const listCopilotModels = async (token) => {
   const client = await getCopilotClient(token);

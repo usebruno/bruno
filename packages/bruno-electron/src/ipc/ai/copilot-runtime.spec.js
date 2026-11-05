@@ -164,16 +164,16 @@ describe('ipc/ai/copilot-runtime', () => {
       };
 
       await expect(runtime.listCopilotModels('gho_one')).resolves.toEqual([
-        { modelId: 'auto', label: 'Auto', reasoning: false, maxOutputTokens: 0, multiplier: 1 },
-        { modelId: 'gpt-4.1', label: 'GPT-4.1', reasoning: false, maxOutputTokens: 16384, multiplier: 0 },
-        { modelId: 'gpt-6-luna', label: 'GPT-6 Luna', reasoning: true, maxOutputTokens: 0, multiplier: 1 }
+        { modelId: 'auto', label: 'Auto', multiplier: 1 },
+        { modelId: 'gpt-4.1', label: 'GPT-4.1', multiplier: 0 },
+        { modelId: 'gpt-6-luna', label: 'GPT-6 Luna', multiplier: 1 }
       ]);
     });
 
     it('shows only Auto for plans without manual model selection', async () => {
       mockSdk.modelList = { models: [] };
       await expect(runtime.listCopilotModels('github_pat_abc')).resolves.toEqual([
-        { modelId: 'auto', label: 'Auto', reasoning: false, maxOutputTokens: 0, multiplier: 1 }
+        { modelId: 'auto', label: 'Auto', multiplier: 1 }
       ]);
     });
 

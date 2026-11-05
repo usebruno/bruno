@@ -48,8 +48,8 @@ const jsonResponse = (body, status = 200) =>
 const accountBody = { login: 'octocat', name: 'Octo Cat', avatar_url: 'https://avatars.example/octocat' };
 const account = { login: 'octocat', name: 'Octo Cat', avatarUrl: 'https://avatars.example/octocat' };
 const catalog = [
-  { modelId: 'auto', label: 'Auto', reasoning: false, maxOutputTokens: 0, multiplier: 1 },
-  { modelId: 'gpt-4.1', label: 'GPT-4.1', reasoning: false, maxOutputTokens: 16384, multiplier: 0 }
+  { modelId: 'auto', label: 'Auto', multiplier: 1 },
+  { modelId: 'gpt-4.1', label: 'GPT-4.1', multiplier: 0 }
 ];
 
 const routeAccount = (reply = () => jsonResponse(accountBody)) => {

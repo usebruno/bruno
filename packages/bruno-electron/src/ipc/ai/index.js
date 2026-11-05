@@ -4,7 +4,7 @@ const { z } = require('zod');
 const { getPreferences } = require('../../store/preferences');
 const { aiKeyStore } = require('../../store/ai-keys');
 const { getProviderKey, hasProviderKey } = require('./credentials');
-const { COPILOT_PROVIDER_ID, getCopilotState, refreshModels: refreshCopilotModels, registerCopilotIpc } = require('./copilot');
+const { COPILOT_PROVIDER_ID, getCopilotState, registerCopilotIpc } = require('./copilot');
 const {
   PROVIDERS,
   listProviders,
@@ -153,15 +153,6 @@ const registerAiIpc = (mainWindow) => {
     if (!isKnownProviderId(providerId, aiPrefs)) {
       return { ok: false, error: `Unknown provider: ${providerId}` };
     }
-    if (providerId === COPILOT_PROVIDER_ID) {
-      try {
-        await refreshCopilotModels();
-        return { ok: true };
-      } catch (err) {
-        return { ok: false, error: err.message };
-      }
-    }
-
     const apiKey = aiKeyStore.getKey(providerId);
     // Built-in providers must have a key to test. Compat endpoints can be
     // hit without one (server may or may not require it).

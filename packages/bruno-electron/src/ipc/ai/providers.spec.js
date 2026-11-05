@@ -36,8 +36,8 @@ const {
 const copilotSession = () => ({
   account: { login: 'octocat' },
   models: [
-    { modelId: 'gpt-4o', label: 'GPT-4o', reasoning: false, maxOutputTokens: 4096, multiplier: 0 },
-    { modelId: 'claude-sonnet-4.5', label: 'Claude Sonnet 4.5', reasoning: true, maxOutputTokens: 0, multiplier: 1 }
+    { modelId: 'gpt-4o', label: 'GPT-4o', multiplier: 0 },
+    { modelId: 'claude-sonnet-4.5', label: 'Claude Sonnet 4.5', multiplier: 1 }
   ]
 });
 
@@ -108,7 +108,7 @@ describe('ipc/ai/providers with GitHub Copilot', () => {
     it('keeps Copilot Auto available even when a saved setting turned it off', () => {
       mockSession = {
         ...copilotSession(),
-        models: [{ modelId: 'auto', label: 'Auto', reasoning: false, maxOutputTokens: 0, multiplier: 1 }, ...copilotSession().models]
+        models: [{ modelId: 'auto', label: 'Auto', multiplier: 1 }, ...copilotSession().models]
       };
       const aiPreferences = enabledPrefs({
         models: { 'github-copilot:auto': { enabled: false }, 'github-copilot:gpt-4o': { enabled: false } }
