@@ -140,10 +140,16 @@ const RULES_WORKSPACE_NAME = 'CorsRulesWorkspace';
 const RULES_MOCK_SERVER = 'CORS Rules Mock';
 const RULES_MOCK_PORT = '4711';
 
+// add a feature check
+// const RULES_PREFERENCES = JSON.stringify({
+//   preferences: {
+//     onboarding: { hasLaunchedBefore: true, hasSeenWelcomeModal: true },
+//     beta: { 'mock-server': true }
+//   }
+// }, null, 2);
 const RULES_PREFERENCES = JSON.stringify({
   preferences: {
-    onboarding: { hasLaunchedBefore: true, hasSeenWelcomeModal: true },
-    beta: { 'mock-server': true }
+    onboarding: { hasLaunchedBefore: true, hasSeenWelcomeModal: true }
   }
 }, null, 2);
 

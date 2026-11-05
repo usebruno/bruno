@@ -11,13 +11,14 @@ import ApiSpecsSection from './Sections/ApiSpecsSection/index';
 import MockServersSection from './Sections/MockServersSection/index';
 import useKeybinding from 'hooks/useKeybinding';
 import useClearSidebarSelectionOnEscape from 'hooks/useClearSidebarSelectionOnEscape';
-import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
+import { useBetaFeature } from 'utils/beta-features';
 
 const MIN_LEFT_SIDEBAR_WIDTH = 220;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
 
 const Sidebar = () => {
-  const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
+  // change this to a feature check
+  const isMockServerEnabled = useBetaFeature('mock-server');
   const sidebarSections = useMemo(() => {
     const sections = [
       {

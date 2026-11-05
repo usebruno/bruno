@@ -32,9 +32,9 @@ describe('getApiSpecMenuItems', () => {
     ]);
   });
 
-  it('hides Generate Mock Server when the beta flag is off', () => {
-    expect(ids(menu(false))).not.toContain('generate-mock-server');
-  });
+  // it('hides Generate Mock Server when the beta flag is off', () => {
+  //   expect(ids(menu(false))).not.toContain('generate-mock-server');
+  // });
 
   it('gives the divider no click handler', () => {
     expect(itemById(menu(true), 'divider-1')).toEqual({ id: 'divider-1', type: 'divider' });

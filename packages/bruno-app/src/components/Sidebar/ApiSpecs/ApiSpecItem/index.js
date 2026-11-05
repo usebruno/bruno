@@ -22,7 +22,8 @@ import { getApiSpecMenuItems } from './getApiSpecMenuItems';
 const ApiSpecItem = ({ apiSpec }) => {
   const dispatch = useDispatch();
   const { dropdownContainerRef } = useSidebarAccordion();
-  const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
+  // change this to a feature check
+  const isMockServerEnabled = useBetaFeature('mock-server');
   const menuDropdownRef = useRef(null);
 
   const isActive = useSelector((state) => {
