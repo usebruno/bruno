@@ -2110,6 +2110,15 @@ describe('generateSnippet – Python requests string escaping', () => {
     expect(payloadLine(result)).toBe('payload = { "note": "line1\\nline2" }');
   });
 
+  it('escapes newlines, backslashes and quotes inside a url-encoded form name', async () => {
+    const result = await generate(pythonRequests, {
+      mode: 'formUrlEncoded',
+      formUrlEncoded: [{ name: 'say "hi"\nC:\\temp', value: 'value', enabled: true }]
+    });
+
+    expect(payloadLine(result)).toBe('payload = { "say \\"hi\\"\\nC:\\\\temp": "value" }');
+  });
+
   it('leaves a body that is not valid JSON to HTTPSnippet', async () => {
     const result = await generate(pythonRequests, { mode: 'json', json: '{"q": "a\nb"' });
 
