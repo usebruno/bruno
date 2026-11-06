@@ -134,6 +134,12 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   };
 
   const handleRightClick = (event) => {
+    // Modals rendered by this tab live in a portal, so their React events still bubble here
+    // even though they are outside the tab's DOM node.
+    if (!event.currentTarget.contains(event.target)) {
+      return;
+    }
+
     event.preventDefault();
     event.stopPropagation();
     menuDropdownRef.current?.show();
