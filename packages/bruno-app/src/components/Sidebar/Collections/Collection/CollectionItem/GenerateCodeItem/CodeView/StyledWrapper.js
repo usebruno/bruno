@@ -32,7 +32,7 @@ const StyledWrapper = styled.div`
       }
 
       .CodeMirror-line {
-        padding: 0 4px;
+        padding: 0 40px 0 0;
       }
     }
   }
