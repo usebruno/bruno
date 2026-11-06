@@ -16,6 +16,12 @@ import HtmlPreview from './HtmlPreview';
 import VideoPreview from './VideoPreview';
 import JsonPreview from './JsonPreview';
 import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
+import { updateRequestTests, updateResponseScript } from 'providers/ReduxStore/slices/collections';
+import {
+  appendSnippet,
+  generatePostResponseSnippet,
+  generateTestSnippet
+} from 'utils/responseJsonToScript';
 
 const QueryResultPreview = ({
   selectedTab,
@@ -56,6 +62,32 @@ const QueryResultPreview = ({
     () => resolveLinkClickHandler(item, collection),
     [item, collection]
   );
+
+  // Append a generated test snippet (from right-clicking a response JSON
+  // property) to the request's tests.
+  const handleConvertToTest = ({ path, value }) => {
+    const existing = item.draft ? get(item, 'draft.request.tests') : get(item, 'request.tests');
+    dispatch(
+      updateRequestTests({
+        tests: appendSnippet(existing, generateTestSnippet(path, value)),
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      })
+    );
+  };
+
+  // Append a generated post-response snippet (from right-clicking a
+  // response JSON property) to the request's post-response script.
+  const handleConvertToPostResponse = ({ path }) => {
+    const existing = item.draft ? get(item, 'draft.request.script.res') : get(item, 'request.script.res');
+    dispatch(
+      updateResponseScript({
+        script: appendSnippet(existing, generatePostResponseSnippet(path)),
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      })
+    );
+  };
 
   if (selectedTab === 'editor') {
     return (
@@ -106,7 +138,15 @@ const QueryResultPreview = ({
       return <VideoPreview contentType={contentType} dataBuffer={dataBuffer} />;
     }
     case 'preview-json': {
-      return <JsonPreview data={data} displayedTheme={displayedTheme} onLinkClick={handleResponseLinkClick} />;
+      return (
+        <JsonPreview
+          data={data}
+          displayedTheme={displayedTheme}
+          onLinkClick={handleResponseLinkClick}
+          onConvertToTest={handleConvertToTest}
+          onConvertToPostResponse={handleConvertToPostResponse}
+        />
+      );
     }
 
     case 'preview-text': {

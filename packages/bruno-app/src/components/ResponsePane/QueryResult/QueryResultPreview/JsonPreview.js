@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ReactJson from 'react-json-view';
+import get from 'lodash/get';
 import ErrorBanner from 'ui/ErrorBanner';
+import MenuDropdown from 'ui/MenuDropdown';
 import { isHttpUrl } from 'utils/url';
+import { cursorAnchorStyle } from 'utils/common/cursorAnchor';
+import { getResponseJsonPath } from 'utils/responseJsonToScript';
 
-const JsonPreview = ({ data, displayedTheme, onLinkClick }) => {
+const JsonPreview = ({ data, displayedTheme, onLinkClick, onConvertToTest, onConvertToPostResponse }) => {
+  const [menu, setMenu] = useState(null);
   // Helper function to validate and parse JSON data
   const validateJsonData = (data) => {
     // If data is already an object or array, use it directly
@@ -50,23 +55,71 @@ const JsonPreview = ({ data, displayedTheme, onLinkClick }) => {
     onLinkClick(selection.value.trim());
   };
 
+  const closeMenu = () => setMenu(null);
+
+  // Right-click a property in the JSON tree to convert it into a test or
+  // a post-response script. The path is read from the clicked
+  // react-json-view row; react-json-view exposes no right-click API.
+  const handleContextMenu = (event) => {
+    const path = getResponseJsonPath(event.target);
+    if (!path || (typeof onConvertToTest !== 'function' && typeof onConvertToPostResponse !== 'function')) {
+      return;
+    }
+    event.preventDefault();
+    setMenu({
+      x: event.clientX,
+      y: event.clientY,
+      path,
+      value: get(jsonData.data, path)
+    });
+  };
+
+  const handleConvert = (kind) => {
+    if (!menu) {
+      return;
+    }
+    if (kind === 'test' && typeof onConvertToTest === 'function') {
+      onConvertToTest(menu);
+    } else if (kind === 'post-response' && typeof onConvertToPostResponse === 'function') {
+      onConvertToPostResponse(menu);
+    }
+    closeMenu();
+  };
+
   return (
-    <ReactJson
-      src={jsonData.data}
-      theme={displayedTheme === 'light' ? 'rjv-default' : 'monokai'}
-      collapsed={1}
-      displayDataTypes={false}
-      displayObjectSize={true}
-      enableClipboard={true}
-      onSelect={handleSelect}
-      name={false}
-      style={{
-        backgroundColor: 'transparent',
-        fontSize: '12px',
-        fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
-        padding: '16px'
-      }}
-    />
+    <div onContextMenu={handleContextMenu}>
+      <ReactJson
+        src={jsonData.data}
+        theme={displayedTheme === 'light' ? 'rjv-default' : 'monokai'}
+        collapsed={1}
+        displayDataTypes={false}
+        displayObjectSize={true}
+        enableClipboard={true}
+        onSelect={handleSelect}
+        name={false}
+        style={{
+          backgroundColor: 'transparent',
+          fontSize: '12px',
+          fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+          padding: '16px'
+        }}
+      />
+      {menu && (
+        <MenuDropdown
+          items={[
+            { id: 'test', label: 'Convert to test', onClick: () => handleConvert('test') },
+            { id: 'post-response', label: 'Convert to post-response script', onClick: () => handleConvert('post-response') }
+          ]}
+          placement="bottom-start"
+          opened={true}
+          onChange={(isOpen) => !isOpen && closeMenu()}
+          appendTo={document.body}
+          data-testid="response-json-convert-menu"
+        >
+          <div style={cursorAnchorStyle({ x: menu.x, y: menu.y })} />
+        </MenuDropdown>
+      )}
+    </div>
   );
 };
 
