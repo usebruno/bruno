@@ -26,7 +26,7 @@ function normalize(value: any) {
  * Once a value is found will not recurse further into that value.
  */
 function getValue(source: any, prop: string, deep = false): any {
-  if (typeof source !== 'object') return;
+  if (!source || typeof source !== 'object') return;
 
   let value;
 
@@ -37,7 +37,7 @@ function getValue(source: any, prop: string, deep = false): any {
     if (deep) {
       value = [value];
       for (const [key, item] of Object.entries(source)) {
-        if (key !== prop && typeof item === 'object') {
+        if (key !== prop && item && typeof item === 'object') {
           value.push(getValue(source[key], prop, deep));
         }
       }
@@ -118,8 +118,7 @@ export function get(source: any, path: string, ...fns: PredicateOrMapper[]) {
     .filter((s) => s.length > 0)
     .map((str) => {
       str = str.replace(/\[|\]/g, '');
-      const index = parseInt(str);
-      return isNaN(index) ? str : index;
+      return /^\d+$/.test(str) ? parseInt(str, 10) : str;
     });
 
   let index = 0,
