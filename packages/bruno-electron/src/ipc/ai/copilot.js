@@ -19,7 +19,6 @@ const REQUEST_TIMEOUT_MS = 15000;
 const NO_TOKEN_MESSAGE = 'Not signed in to GitHub Copilot. Sign in from Preferences > AI.';
 const SESSION_EXPIRED_MESSAGE = 'GitHub Copilot sign-in is no longer valid. Sign in again from Preferences > AI.';
 const NO_ACCESS_MESSAGE = 'This GitHub account does not have access to Copilot. Ask your GitHub admin for a Copilot seat.';
-const TOKEN_REJECTED_MESSAGE = 'GitHub rejected this token. Use a fine-grained personal access token with the "Copilot Requests" permission.';
 
 const isCopilotModelId = (id) => typeof id === 'string' && id.startsWith(COPILOT_MODEL_PREFIX);
 
@@ -208,12 +207,7 @@ const fetchModels = async (token, apiEndpoint) => {
   return models;
 };
 
-const resolveCopilotToken = () => {
-  const credential = oauthCredentialsStore.getCredential(COPILOT_PROVIDER_ID);
-  return credential?.token
-    ? { token: credential.token, method: credential.method }
-    : { token: null, method: null };
-};
+const resolveCopilotToken = () => oauthCredentialsStore.getCredential(COPILOT_PROVIDER_ID)?.token || null;
 
 const getCopilotCatalog = () => {
   const session = aiCopilotStore.getSession();
@@ -268,13 +262,12 @@ let lastError = null;
 let pendingSignIn = null;
 
 const getCopilotState = () => {
-  const { token, method } = resolveCopilotToken();
+  const token = resolveCopilotToken();
   let state = 'signed-out';
   if (pendingSignIn) state = 'signing-in';
   else if (token) state = 'signed-in';
   return {
     state,
-    authMethod: token ? method : null,
     userCode: pendingSignIn?.userCode || null,
     verificationUri: pendingSignIn?.verificationUri || null,
     account: token ? aiCopilotStore.getSession()?.account || null : null,
@@ -283,7 +276,7 @@ const getCopilotState = () => {
 };
 
 const refreshModels = async () => {
-  const { token } = resolveCopilotToken();
+  const token = resolveCopilotToken();
   if (!token) throw new Error(NO_TOKEN_MESSAGE);
   try {
     const account = await fetchAccount(token);
@@ -304,8 +297,8 @@ const cancelSignIn = () => {
   pendingSignIn = null;
 };
 
-const storeToken = (token, method) => {
-  oauthCredentialsStore.setCredential(COPILOT_PROVIDER_ID, { token, method });
+const storeToken = (token) => {
+  oauthCredentialsStore.setCredential(COPILOT_PROVIDER_ID, { token });
   aiCopilotStore.clearSession();
   lastError = null;
 };
@@ -328,7 +321,7 @@ const startSignIn = async ({ onSettled }) => {
     .then(async ({ accessToken }) => {
       if (pendingSignIn !== attempt) return;
       pendingSignIn = null;
-      storeToken(accessToken, 'device');
+      storeToken(accessToken);
       await refreshModels().catch(() => {});
       onSettled();
     })
@@ -338,22 +331,6 @@ const startSignIn = async ({ onSettled }) => {
       lastError = err.message;
       onSettled();
     });
-};
-
-const saveToken = async (token) => {
-  const trimmed = typeof token === 'string' ? token.trim() : '';
-  if (!trimmed) throw new Error('Token cannot be empty');
-  cancelSignIn();
-  storeToken(trimmed, 'pat');
-  try {
-    await refreshModels();
-  } catch (err) {
-    if (err.message !== SESSION_EXPIRED_MESSAGE) throw err;
-    oauthCredentialsStore.clearCredential(COPILOT_PROVIDER_ID);
-    aiCopilotStore.clearSession();
-    lastError = TOKEN_REJECTED_MESSAGE;
-    throw new Error(TOKEN_REJECTED_MESSAGE);
-  }
 };
 
 const signOut = () => {
@@ -381,15 +358,6 @@ const registerCopilotIpc = ({ buildStatus, broadcastStatus, clearSdkCache, isAiE
     return publish();
   });
 
-  ipcMain.handle('renderer:ai-copilot-save-token', async (_event, { token } = {}) => {
-    try {
-      await saveToken(token);
-    } finally {
-      publish();
-    }
-    return buildStatus();
-  });
-
   ipcMain.handle('renderer:ai-copilot-refresh-models', async () => {
     try {
       await refreshModels();
@@ -404,7 +372,7 @@ const registerCopilotIpc = ({ buildStatus, broadcastStatus, clearSdkCache, isAiE
     return publish();
   });
 
-  if (isAiEnabled() && resolveCopilotToken().token) {
+  if (isAiEnabled() && resolveCopilotToken()) {
     refreshModels()
       .then(publish)
       .catch((err) => {
@@ -417,24 +385,14 @@ const registerCopilotIpc = ({ buildStatus, broadcastStatus, clearSdkCache, isAiE
 module.exports = {
   COPILOT_PROVIDER_ID,
   COPILOT_PROVIDER_LABEL,
-  COPILOT_MODEL_PREFIX,
   NO_TOKEN_MESSAGE,
-  NO_ACCESS_MESSAGE,
-  SESSION_EXPIRED_MESSAGE,
-  TOKEN_REJECTED_MESSAGE,
   isCopilotModelId,
   copilotBrunoModelId,
-  normalizeModelCatalog,
-  isUserInitiatedRequest,
   resolveCopilotToken,
   getCopilotCatalog,
   findCopilotModel,
   createCopilotSdk,
   getCopilotState,
   refreshModels,
-  startSignIn,
-  cancelSignIn,
-  saveToken,
-  signOut,
   registerCopilotIpc
 };

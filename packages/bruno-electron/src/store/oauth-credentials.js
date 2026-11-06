@@ -9,15 +9,15 @@ class OAuthCredentialsStore {
     });
   }
 
-  setCredential(key, { token, method }) {
-    this.store.set(`credentials.${key}`, { token: encryptString(token), method });
+  setCredential(key, { token }) {
+    this.store.set(`credentials.${key}`, { token: encryptString(token) });
   }
 
   getCredential(key) {
     const entry = this.store.get(`credentials.${key}`);
     if (!entry?.token) return null;
     try {
-      return { token: decryptString(entry.token), method: entry.method || null };
+      return { token: decryptString(entry.token) };
     } catch (err) {
       console.error(`Failed to decrypt OAuth credential for ${key}:`, err.message);
       return null;

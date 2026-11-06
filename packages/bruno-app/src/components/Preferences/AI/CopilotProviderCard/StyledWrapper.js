@@ -20,11 +20,6 @@ const StyledWrapper = styled.div`
       border-color: ${(props) => props.theme.accents.primary};
     }
 
-    &.selected {
-      border-color: ${(props) => props.theme.accents.primary};
-      background: ${(props) => rgba(props.theme.accents.primary, 0.07)};
-    }
-
     &:focus-visible {
       outline: none;
       box-shadow: 0 0 0 2px ${(props) => rgba(props.theme.accents.primary, 0.4)};
@@ -64,10 +59,6 @@ const StyledWrapper = styled.div`
     height: 20px;
     border-radius: 50%;
     flex-shrink: 0;
-    color: ${(props) => props.theme.colors.text.muted};
-  }
-
-  .copilot-account-meta {
     color: ${(props) => props.theme.colors.text.muted};
   }
 

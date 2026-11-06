@@ -58,7 +58,6 @@ const aiPreferencesSchema = Yup.object().shape({
 });
 
 let lastActiveSubTab = 'config';
-let lastCopilotTokenInputOpen = false;
 
 const AI = () => {
   const dispatch = useDispatch();
@@ -69,11 +68,6 @@ const AI = () => {
   const setActiveTab = useCallback((tab) => {
     lastActiveSubTab = tab;
     setActiveTabState(tab);
-  }, []);
-  const [copilotTokenInputOpen, setCopilotTokenInputOpenState] = useState(lastCopilotTokenInputOpen);
-  const setCopilotTokenInputOpen = useCallback((open) => {
-    lastCopilotTokenInputOpen = open;
-    setCopilotTokenInputOpenState(open);
   }, []);
 
   const refreshStatus = useCallback(async () => {
@@ -218,10 +212,11 @@ const AI = () => {
     return grouped;
   }, [status]);
 
-  const isModelEnabled = (modelId) => get(formik.values, `models.${modelId}.enabled`, true);
+  const isModelEnabled = (modelId) => get(formik.values, ['models', modelId, 'enabled'], true);
 
   const handleToggleModel = (modelId, next) => {
-    formik.setFieldValue(`models.${modelId}.enabled`, next);
+    const models = formik.values.models || {};
+    formik.setFieldValue('models', { ...models, [modelId]: { ...models[modelId], enabled: next } });
   };
 
   const endpoints = formik.values.openaiCompatibleEndpoints || [];
@@ -425,8 +420,7 @@ const AI = () => {
                           onToggleModel={handleToggleModel}
                           onStatusChange={(next) => setStatus(next)}
                           onSignOut={() => formik.setFieldValue(`providers.${id}.enabled`, false)}
-                          tokenInputOpen={copilotTokenInputOpen}
-                          onTokenInputOpenChange={setCopilotTokenInputOpen}
+                          onSignedIn={() => formik.setFieldValue(`providers.${id}.enabled`, true)}
                         />
                       );
                     }

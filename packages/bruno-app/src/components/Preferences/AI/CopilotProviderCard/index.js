@@ -6,9 +6,6 @@ import {
   IconChevronDown,
   IconCopy,
   IconExternalLink,
-  IconEye,
-  IconEyeOff,
-  IconKey,
   IconLoader2,
   IconLogout,
   IconRefresh,
@@ -25,18 +22,10 @@ import { formatIpcError } from 'utils/common/error';
 import {
   copilotCancelSignIn,
   copilotRefreshModels,
-  copilotSaveToken,
   copilotSignIn,
   copilotSignOut
 } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
-
-const CREATE_TOKEN_URL = 'https://github.com/settings/personal-access-tokens/new';
-
-const AUTH_METHOD_LABEL = {
-  device: 'Signed in with GitHub',
-  pat: 'Using a personal access token'
-};
 
 const stopBubble = (e) => e.stopPropagation();
 
@@ -58,24 +47,14 @@ const CopilotProviderCard = ({
   onToggleModel,
   onStatusChange,
   onSignOut,
-  tokenInputOpen,
-  onTokenInputOpenChange
+  onSignedIn
 }) => {
   const { theme } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(null);
   const [feedback, setFeedback] = useState(null);
-  const [tokenDraft, setTokenDraft] = useState('');
-  const [showToken, setShowToken] = useState(false);
   const [codeAutoCopied, setCodeAutoCopied] = useState(false);
   const { copied: codeCopied, copyToClipboard } = useCopyToClipboard(1500);
-
-  const closeTokenInput = () => {
-    onTokenInputOpenChange(false);
-    setTokenDraft('');
-    setShowToken(false);
-    setFeedback(null);
-  };
 
   const prev = useRef({ enabled: providerEnabled });
   const disabledBySignOut = useRef(false);
@@ -89,6 +68,14 @@ const CopilotProviderCard = ({
     disabledBySignOut.current = false;
     prev.current = { enabled: providerEnabled };
   }, [providerEnabled]);
+
+  const previousState = useRef(copilot.state);
+  useEffect(() => {
+    if (previousState.current !== 'signed-in' && copilot.state === 'signed-in' && !providerEnabled) {
+      onSignedIn?.();
+    }
+    previousState.current = copilot.state;
+  }, [copilot.state, providerEnabled, onSignedIn]);
 
   const signedIn = copilot.state === 'signed-in';
   const signingIn = copilot.state === 'signing-in';
@@ -113,7 +100,6 @@ const CopilotProviderCard = ({
   );
 
   const handleSignIn = () => runAction('sign-in', async () => {
-    closeTokenInput();
     const status = await copilotSignIn();
     onStatusChange?.(status);
     const { userCode, verificationUri } = status?.copilot || {};
@@ -125,11 +111,6 @@ const CopilotProviderCard = ({
     onStatusChange?.(await copilotCancelSignIn());
     setCodeAutoCopied(false);
   }, 'Failed to cancel sign-in');
-
-  const handleSaveToken = () => runAction('save-token', async () => {
-    onStatusChange?.(await copilotSaveToken({ token: tokenDraft.trim() }));
-    closeTokenInput();
-  }, 'Failed to save token');
 
   const handleRefreshModels = () => runAction('refresh', async () => {
     onStatusChange?.(await copilotRefreshModels());
@@ -158,12 +139,14 @@ const CopilotProviderCard = ({
         onClick={() => setExpanded(!expanded)}
         role="button"
         tabIndex={0}
+        aria-expanded={expanded}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             setExpanded(!expanded);
           }
         }}
+        data-testid={`ai-provider-${provider.id}-header`}
       >
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <IconBrandGithub size={18} strokeWidth={1.5} className="provider-logo flex-shrink-0" />
@@ -204,90 +187,7 @@ const CopilotProviderCard = ({
                   >
                     Sign in with GitHub
                   </Button>
-                  <button
-                    type="button"
-                    className={`copilot-option-btn ${tokenInputOpen ? 'selected' : ''}`}
-                    aria-expanded={tokenInputOpen}
-                    aria-controls="ai-copilot-token-section"
-                    onClick={() => (tokenInputOpen ? closeTokenInput() : onTokenInputOpenChange(true))}
-                    data-testid="ai-copilot-use-token"
-                  >
-                    <IconKey size={14} strokeWidth={1.5} />
-                    <span>Use a token instead</span>
-                  </button>
                 </div>
-
-                {tokenInputOpen && (
-                  <div id="ai-copilot-token-section" className="flex flex-col gap-1.5">
-                    <div>
-                      <div className="key-section-label flex items-center justify-between gap-2 text-[11px] mb-1">
-                        <span>Fine-grained personal access token</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <div className="relative flex-1 flex items-center">
-                          <input
-                            id="ai-copilot-token"
-                            type={showToken ? 'text' : 'password'}
-                            className="key-input w-full h-8 box-border text-xs leading-none pl-2.5 pr-8"
-                            placeholder="github_pat_..."
-                            autoComplete="off"
-                            autoCorrect="off"
-                            autoCapitalize="off"
-                            spellCheck="false"
-                            value={tokenDraft}
-                            onChange={(e) => setTokenDraft(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && tokenDraft.trim() && busy === null) {
-                                e.preventDefault();
-                                handleSaveToken();
-                              } else if (e.key === 'Escape') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                closeTokenInput();
-                              }
-                            }}
-                            autoFocus
-                            data-testid="ai-copilot-token-input"
-                          />
-                          <button
-                            type="button"
-                            className="key-eye-btn absolute right-1 p-1 inline-flex items-center cursor-pointer"
-                            onClick={() => setShowToken(!showToken)}
-                            tabIndex={-1}
-                            aria-label={showToken ? 'Hide token' : 'Show token'}
-                          >
-                            {showToken ? <IconEyeOff size={14} /> : <IconEye size={14} />}
-                          </button>
-                        </div>
-                        <button
-                          type="button"
-                          className="btn-primary h-8 box-border px-3 text-xs font-medium inline-flex items-center justify-center gap-1 cursor-pointer"
-                          disabled={busy !== null || !tokenDraft.trim()}
-                          onClick={handleSaveToken}
-                          data-testid="ai-copilot-save-token"
-                        >
-                          {busy === 'save-token' ? <IconLoader2 size={13} className="spin" /> : <IconCheck size={13} />}
-                          Save
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="copilot-hint text-[11px]">
-                        Give the token the "Copilot Requests" permission. Classic tokens are not supported.
-                      </div>
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        color="secondary"
-                        icon={<IconExternalLink size={12} strokeWidth={1.5} />}
-                        onClick={() => openExternal(CREATE_TOKEN_URL)}
-                        data-testid="ai-copilot-create-token"
-                      >
-                        Create a token
-                      </Button>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
@@ -343,11 +243,6 @@ const CopilotProviderCard = ({
                   <span className="text-xs font-medium truncate" data-testid="ai-copilot-account">
                     {copilot.account?.login ? `@${copilot.account.login}` : 'GitHub account'}
                   </span>
-                  {AUTH_METHOD_LABEL[copilot.authMethod] && (
-                    <span className="copilot-account-meta text-[11px] truncate" data-testid="ai-copilot-auth-method">
-                      {AUTH_METHOD_LABEL[copilot.authMethod]}
-                    </span>
-                  )}
                 </div>
                 <div className="flex items-center gap-0.5 flex-shrink-0">
                   <ActionIcon
