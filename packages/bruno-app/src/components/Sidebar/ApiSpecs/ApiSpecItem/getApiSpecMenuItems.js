@@ -1,5 +1,4 @@
 import { IconBox, IconServer, IconCopy, IconEdit, IconFolder, IconX, IconTrash } from '@tabler/icons';
-import StatusBadge from 'ui/StatusBadge';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 
 const API_SPEC_MENU = [
@@ -8,7 +7,6 @@ const API_SPEC_MENU = [
     id: 'generate-mock-server',
     leftSection: IconServer,
     label: 'Generate Mock Server',
-    rightSection: <StatusBadge status="info" size="xs">Beta</StatusBadge>,
     requires: 'mockServer'
   },
   { id: 'clone', leftSection: IconCopy, label: 'Clone' },
