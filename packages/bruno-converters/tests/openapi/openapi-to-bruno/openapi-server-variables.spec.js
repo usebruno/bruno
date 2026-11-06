@@ -224,6 +224,158 @@ servers:
   });
 });
 
+describe('server variables whose default is their own placeholder', () => {
+  const spec = `
+openapi: '3.0.0'
+info:
+  title: 'Placeholder Defaults API'
+  version: '1.0.0'
+servers:
+  - url: 'https://{region}.api.test/{apiKey}'
+    description: 'Prod'
+    variables:
+      region:
+        default: 'eu'
+      apiKey:
+        default: '{{apiKey}}'
+paths:
+  /data:
+    get:
+      summary: 'Tenant data'
+      servers:
+        - url: 'https://{tenantToken}.api.test'
+          variables:
+            tenantToken:
+              default: '{{tenantToken}}'
+      responses:
+        '200':
+          description: 'OK'
+`;
+
+  it('imports the variable as an empty secret in the environment', () => {
+    const env = openApiToBruno(spec).environments[0];
+
+    expect(env.variables.find((v) => v.name === 'apiKey')).toMatchObject({ value: '', secret: true });
+    expect(env.variables.find((v) => v.name === 'region')).toMatchObject({ value: 'eu', secret: false });
+  });
+
+  it('imports a server that is only a secret base url as a single empty secret base url', () => {
+    const secretBaseUrlSpec = `
+openapi: '3.0.0'
+info:
+  title: 'Secret Base Url API'
+  version: '1.0.0'
+servers:
+  - url: '{baseUrl}'
+    description: 'Prod'
+    variables:
+      baseUrl:
+        default: '{{baseUrl}}'
+paths: {}
+`;
+    const env = openApiToBruno(secretBaseUrlSpec).environments[0];
+
+    expect(env.variables.map((v) => [v.name, v.value, v.secret])).toEqual([['baseUrl', '', true]]);
+  });
+
+  it('does not add a request variable that would hide the environment value', () => {
+    const request = openApiToBruno(spec).items[0];
+
+    expect(request.request.vars.req.map((v) => [v.name, v.value])).toEqual([['baseUrl', 'https://{{tenantToken}}.api.test']]);
+  });
+});
+
+describe('server variables that bruno resolves itself or that only a request uses', () => {
+  const RESERVED_NAME = /^(\$|process(\.|$))/;
+  const ok = { 200: { description: 'OK' } };
+  const server = (url, defaults, description) => ({
+    url,
+    ...(description && { description }),
+    variables: Object.fromEntries(Object.entries(defaults).map(([name, value]) => [name, typeof value === 'object' ? value : { default: value }]))
+  });
+  const operation = (servers) => ({ get: { responses: ok, ...(servers && { servers }) } });
+  const envVars = (collection) => collection.environments.map((env) => env.variables.map((v) => [v.name, v.value, v.secret]));
+  const requestVars = (collection) => collection.items.map((item) => (item.request.vars?.req || []).map((v) => [v.name, v.value]));
+
+  const rows = [
+    ['R1 a plain default', { servers: [server('https://{tenant}.api.test', { tenant: 'eu' }, 'Prod')], paths: { '/x': operation() } },
+      { envs: [[['baseUrl', 'https://{{tenant}}.api.test', false], ['tenant', 'eu', false]]] }],
+    ['R2 its own placeholder', { servers: [server('https://{tenant}.api.test', { tenant: '{{tenant}}' }, 'Prod')], paths: { '/x': operation() } },
+      { envs: [[['baseUrl', 'https://{{tenant}}.api.test', false], ['tenant', '', true]]] }],
+    ['R3 an empty default', { servers: [server('https://{tenant}.api.test', { tenant: '' }, 'Prod')], paths: { '/x': operation() } },
+      { envs: [[['baseUrl', 'https://{{tenant}}.api.test', false], ['tenant', '', false]]] }],
+    ['R4 an enum without a default', { servers: [server('https://{tenant}.api.test', { tenant: { enum: ['a', 'b'] } }, 'Prod')], paths: { '/x': operation() } },
+      { envs: [[['baseUrl', 'https://{{tenant}}.api.test', false], ['tenant', 'a', false]]] }],
+    ['R5 a process env placeholder', { servers: [server('https://{process.env.HOST}/v1', { 'process.env.HOST': '{{process.env.HOST}}' }, 'Prod')], paths: { '/x': operation() } },
+      { envs: [[['baseUrl', 'https://{{process.env.HOST}}/v1', false]]] }],
+    ['R6 a vault secret placeholder', { servers: [server('https://api.test/{$secrets.v.path}', { '$secrets.v.path': '{{$secrets.v.path}}' }, 'Prod')], paths: { '/x': operation() } },
+      { envs: [[['baseUrl', 'https://api.test/{{$secrets.v.path}}', false]]] }],
+    ['R7 an OAuth2 placeholder', { servers: [server('https://api.test/{$oauth2.c.access_token}', { '$oauth2.c.access_token': '{{$oauth2.c.access_token}}' }, 'Prod')], paths: { '/x': operation() } },
+      { envs: [[['baseUrl', 'https://api.test/{{$oauth2.c.access_token}}', false]]] }],
+    ['R8 a reserved name with a real default from another tool', { servers: [server('https://{process.env.HOST}', { 'process.env.HOST': 'api.test' }, 'Prod')], paths: { '/x': operation() } },
+      { envs: [[['baseUrl', 'https://{{process.env.HOST}}', false], ['process.env.HOST', 'api.test', false]]] }],
+    ['R9 another variable as the default', { servers: [server('https://{tenant}.api.test', { tenant: '{{other}}' }, 'Prod')], paths: { '/x': operation() } },
+      { envs: [[['baseUrl', 'https://{{tenant}}.api.test', false], ['tenant', '{{other}}', false]]] }],
+    ['O1 a secret in a request server', { servers: [server('https://api.test', {}, 'Prod')], paths: { '/x': operation([server('https://{tenantSecret}.api.test', { tenantSecret: '{{tenantSecret}}' })]) } },
+      { envs: [[['baseUrl', 'https://api.test', false], ['tenantSecret', '', true]]], requests: [[['baseUrl', 'https://{{tenantSecret}}.api.test']]] }],
+    ['O2 the same secret in two request servers', { servers: [server('https://api.test', {}, 'Prod')], paths: {
+      '/x': operation([server('https://{tenantSecret}.api.test', { tenantSecret: '{{tenantSecret}}' })]),
+      '/y': operation([server('https://{tenantSecret}.other.test', { tenantSecret: '{{tenantSecret}}' })])
+    } }, { envs: [[['baseUrl', 'https://api.test', false], ['tenantSecret', '', true]]] }],
+    ['O3 a request secret that is already a root secret', { servers: [server('https://{tenantSecret}.api.test', { tenantSecret: '{{tenantSecret}}' }, 'Prod')], paths: {
+      '/x': operation([server('https://{tenantSecret}.other.test', { tenantSecret: '{{tenantSecret}}' })])
+    } }, { envs: [[['baseUrl', 'https://{{tenantSecret}}.api.test', false], ['tenantSecret', '', true]]] }],
+    ['O4 a request secret whose name is a plain root variable', { servers: [server('https://{tenant}.api.test', { tenant: 'eu' }, 'Prod')], paths: {
+      '/x': operation([server('https://{tenant}.other.test', { tenant: '{{tenant}}' })])
+    } }, { envs: [[['baseUrl', 'https://{{tenant}}.api.test', false], ['tenant', 'eu', false]]] }],
+    ['O5 a plain variable in a request server', { servers: [server('https://api.test', {}, 'Prod')], paths: { '/x': operation([server('https://{region}.api.test', { region: 'eu' })]) } },
+      { envs: [[['baseUrl', 'https://api.test', false]]], requests: [[['baseUrl', 'https://{{region}}.api.test'], ['region', 'eu']]] }],
+    ['O6 a process env placeholder in a request server', { servers: [server('https://api.test', {}, 'Prod')], paths: { '/x': operation([server('https://{process.env.HOST}', { 'process.env.HOST': '{{process.env.HOST}}' })]) } },
+      { envs: [[['baseUrl', 'https://api.test', false]]], requests: [[['baseUrl', 'https://{{process.env.HOST}}']]] }],
+    ['O7 a secret in a path item server', { servers: [server('https://api.test', {}, 'Prod')], paths: {
+      '/x': { servers: [server('https://{tenantSecret}.api.test', { tenantSecret: '{{tenantSecret}}' })], ...operation() }
+    } }, { envs: [[['baseUrl', 'https://api.test', false], ['tenantSecret', '', true]]] }],
+    ['O8 a secret in a variant request server', { servers: [server('https://api.test', {}, 'Prod')], paths: {
+      '/x': { get: { 'responses': ok, 'x-bruno-variants': [{ summary: 'Variant', responses: ok, servers: [server('https://{tenantSecret}.api.test', { tenantSecret: '{{tenantSecret}}' })] }] } }
+    } }, { envs: [[['baseUrl', 'https://api.test', false], ['tenantSecret', '', true]]] }],
+    ['O9 a request secret when there is no root server', { paths: { '/x': operation([server('https://{tenantSecret}.api.test', { tenantSecret: '{{tenantSecret}}' })]) } },
+      { envs: [] }],
+    ['O10 a request secret with two root servers', { servers: [server('https://api.test', {}, 'Prod'), server('https://staging.test', {}, 'Staging')], paths: {
+      '/x': operation([server('https://{tenantSecret}.api.test', { tenantSecret: '{{tenantSecret}}' })])
+    } }, { envs: [
+      [['baseUrl', 'https://api.test', false], ['tenantSecret', '', true]],
+      [['baseUrl', 'https://staging.test', false], ['tenantSecret', '', true]]
+    ] }],
+    ['R10 a bare reserved name and a dynamic value', { servers: [server('https://{process}.api.test/{$randomInt}', { process: '{{process}}', $randomInt: '{{$randomInt}}' }, 'Prod')], paths: { '/x': operation() } },
+      { envs: [[['baseUrl', 'https://{{process}}.api.test/{{$randomInt}}', false]]] }],
+    ['R11 names that only start like a reserved one', { servers: [server('https://{processor}.{myprocess.x}.test', { 'processor': '{{processor}}', 'myprocess.x': '{{myprocess.x}}' }, 'Prod')], paths: { '/x': operation() } },
+      { envs: [[['baseUrl', 'https://{{processor}}.{{myprocess.x}}.test', false], ['processor', '', true], ['myprocess.x', '', true]]] }],
+    ['O11 a dynamic value or an invalid name in a request server', { servers: [server('https://api.test', {}, 'Prod')], paths: {
+      '/x': operation([server('https://{$randomInt}.{tenant id}.api.test', { '$randomInt': '{{$randomInt}}', 'tenant id': '{{tenant id}}' })])
+    } }, { envs: [[['baseUrl', 'https://api.test', false]]] }],
+    ['O12 a secret only in the second request server, which Bruno does not use', { servers: [server('https://api.test', {}, 'Prod')], paths: {
+      '/x': operation([server('https://api.test', {}), server('https://{tenantSecret}.api.test', { tenantSecret: '{{tenantSecret}}' })])
+    } }, { envs: [[['baseUrl', 'https://api.test', false]]] }]
+  ];
+
+  it.each(rows)('%s', (label, { servers, paths }, expected) => {
+    const collection = openApiToBruno({ openapi: '3.0.0', info: { title: 'T', version: '1' }, ...(servers && { servers }), paths });
+
+    expect(envVars(collection)).toEqual(expected.envs);
+    if (expected.requests) {
+      expect(requestVars(collection)).toEqual(expected.requests);
+    }
+
+    collection.environments.forEach((env) => {
+      const names = env.variables.map((v) => v.name);
+      expect(new Set(names).size).toBe(names.length);
+      env.variables.filter((v) => v.secret).forEach((v) => expect(v).toMatchObject({ value: '', enabled: true }));
+      env.variables.filter((v) => RESERVED_NAME.test(v.name)).forEach((v) => expect(v.value).not.toBe(`{{${v.name}}}`));
+      env.variables.filter((v) => RESERVED_NAME.test(v.name)).forEach((v) => expect(v.secret).toBe(false));
+    });
+  });
+});
+
 describe('operation-level servers to request vars', () => {
   it('should set request vars.req with baseUrl when operation has its own servers', () => {
     const spec = {

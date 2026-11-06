@@ -28,5 +28,10 @@ export {
   getSystemProxy,
   getSentHeaders,
   applySentHeadersToRequest,
-  applyOmitConnectionToAxiosConfig
+  applyOmitConnectionToAxiosConfig,
+  readCurrentTime,
+  measureTimeSince,
+  startHop,
+  completeHop,
+  measureResponseTime
 } from './network';

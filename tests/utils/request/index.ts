@@ -2,17 +2,22 @@ import { test, expect, Page, Locator } from '../../../playwright';
 import {
   openCollectionSettings,
   openFolderSettings,
+  selectAuthMode,
   selectCollectionPaneTab,
-  selectfolderPaneTab
+  selectfolderPaneTab,
+  selectRequestPaneTab,
+  writeFieldValue
 } from '../page/actions';
+import { AUTH_MODE_LABELS } from '../constants';
 import { buildCommonLocators } from '../page/locators';
+import { buildQueryParamsLocators } from './params/query';
 
 export const buildRequestLocators = (page: Page) => ({
   urlInput: () => page.getByTestId('request-url').locator('.CodeMirror'),
   urlLine: () => page.getByTestId('request-url').locator('.CodeMirror-line'),
   sendButton: () => page.getByTestId('send-arrow-icon'),
-  methodDropdown: () => page.getByTestId('request-method-selector'),
-  newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
+  methodDropdown: () => page.getByTestId('method-selector'),
+  newRequestUrl: () => page.getByTestId('new-request-url').locator('.CodeMirror'),
   requestNameInput: () => page.getByPlaceholder('Request Name'),
   requestTestId: () => page.getByTestId('request-name'),
   generateCodeButton: () => page.getByTestId('generate-code-button'),
@@ -43,6 +48,7 @@ export const buildRequestLocators = (page: Page) => ({
     inheritedSectionRow: () => page.getByTestId('inherited-headers-section-row'),
     requestSectionRow: () => page.getByTestId('request-headers-section-row'),
     defaultRow: (name: string) => page.getByTestId(`default-header-row-${name.toLowerCase()}`),
+    defaultValueScroller: (name: string) => page.getByTestId(`default-header-row-${name.toLowerCase()}`).getByTestId('column-value').locator('.CodeMirror-scroll'),
     requestRow: (name: string) => page.getByTestId(`request-header-row-${name.toLowerCase()}`),
     inheritedRow: (name: string) => page.getByTestId(`inherited-header-row-${name.toLowerCase()}`),
     inheritedSource: (name: string) => page.getByTestId(`inherited-header-source-${name.toLowerCase()}`),
@@ -51,7 +57,8 @@ export const buildRequestLocators = (page: Page) => ({
     paneScroller: () => page.getByTestId('request-pane').getByTestId('flex-boundary'),
     defaultInfo: (name: string) => page.getByTestId(`default-header-info-${name.toLowerCase()}`),
     defaultInfoTooltip: (name: string) => page.getByTestId(`default-header-info-tooltip-${name.toLowerCase()}`)
-  }
+  },
+  queryParams: buildQueryParamsLocators(page)
 });
 
 // Request-type radios in the New Request dialog. `from-curl` is the odd one out —
@@ -207,4 +214,13 @@ export const seedFolderHeaders = async (
   await openFolderSettings(page, collectionName, folderName);
   await selectfolderPaneTab(page, 'headers');
   await setSettingsHeadersBulk(page, headersText, 'folder');
+};
+
+/** Opens the request's Auth tab, picks API Key and sets its Value field. */
+export const setApiKeyValue = async (page: Page, value: string) => {
+  await test.step(`Set the API key value to "${value}"`, async () => {
+    await selectRequestPaneTab(page, 'Auth');
+    await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
+    await writeFieldValue(page, 'Value', value);
+  });
 };

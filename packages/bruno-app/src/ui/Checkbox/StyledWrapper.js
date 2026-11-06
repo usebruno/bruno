@@ -20,13 +20,13 @@ const sizeStyles = {
   lg: css`
     --checkbox-box-size: 16px;
     --checkbox-label-size: ${(props) => props.theme.font.size.base};
-    --checkbox-border-radius: 4px;
+    --checkbox-border-radius: 2px;
     --checkbox-border-width: 1px;
   `,
   xl: css`
     --checkbox-box-size: 18px;
     --checkbox-label-size: ${(props) => props.theme.font.size.md};
-    --checkbox-border-radius: 4px;
+    --checkbox-border-radius: 2px;
     --checkbox-border-width: 1px;
   `
 };
@@ -69,11 +69,15 @@ const StyledWrapper = styled.div`
     background-color: transparent;
     transition: background-color 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
     pointer-events: none;
+    box-sizing: border-box;
 
     .checkbox-icon {
+      display: block;
+      flex-shrink: 0;
       opacity: 0;
       color: ${(props) => props.theme.button2.color.primary.text};
       transition: opacity 0.1s ease;
+
     }
   }
 

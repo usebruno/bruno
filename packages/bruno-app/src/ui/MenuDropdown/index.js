@@ -1,6 +1,8 @@
 import React, { forwardRef, useRef, useCallback, useState, useImperativeHandle, useEffect, useMemo } from 'react';
+import classnames from 'classnames';
 import Dropdown from 'components/Dropdown';
 import SubMenuItem from './SubMenuItem';
+import StyledWrapper from './StyledWrapper';
 
 // Constants
 const NAVIGATION_KEYS = ['ArrowDown', 'ArrowUp', 'Home', 'End', 'Escape'];
@@ -26,6 +28,8 @@ const getNextIndex = (currentIndex, total, key, noFocus) => {
  *   - leftSection: React component or React element (rendered on the left side, for items only)
  *   - rightSection: React component or React element (rendered on the right side, for items only)
  *   - label: string (display text for items, or label text for labels; also used for aria-label and title if not provided)
+ *   - shortcut: ReactNode (optional, display-only shortcut hint after the label, for items only;
+ *     the owner binds it and must keep the binding active while the menu is open)
  *   - ariaLabel: string (accessibility label, falls back to label or title if not provided)
  *   - onClick: function (handler when item is clicked, for items only)
  *   - title: string (tooltip text, falls back to label or ariaLabel if not provided)
@@ -50,6 +54,7 @@ const getNextIndex = (currentIndex, total, key, noFocus) => {
  * @param {string} props.groupStyle - Style for grouped items: 'action' (default, normal case) or 'select' (uppercase labels, indented items)
  * @param {boolean} props.autoFocusFirstOption - Optional flag to auto-focus first option when dropdown opens (default: false)
  * @param {string} props.submenuPlacement - Placement of submenus: 'right' (default) or 'left'. Controls both position and arrow direction.
+ * @param {boolean} props.disabled - Optional flag to keep the dropdown from opening and show the trigger as disabled (default: false)
  * @param {Object} props.dropdownProps - Other props passed to underlying Dropdown component
  * @param {React.Ref} ref - Optional ref to expose open/close methods
  */
@@ -69,6 +74,7 @@ const MenuDropdown = forwardRef(({
   groupStyle = 'action',
   autoFocusFirstOption = false,
   submenuPlacement = 'right',
+  disabled = false,
   'data-testid': testId = 'menu-dropdown',
   menuClassName,
   ...dropdownProps
@@ -157,6 +163,7 @@ const MenuDropdown = forwardRef(({
             className: option.className,
             leftSection: option.leftSection,
             rightSection: option.rightSection,
+            shortcut: option.shortcut,
             ariaLabel: option.ariaLabel,
             title: option.title,
             submenu: option.submenu,
@@ -199,6 +206,8 @@ const MenuDropdown = forwardRef(({
       return item;
     });
   }, [normalizedItems, showTickMark, selectedItemId]);
+
+  const hasShortcuts = enhancedItems.some((item) => item.shortcut);
 
   // Clear focused class from all items
   const clearFocusedClass = (menuContainer) => {
@@ -263,13 +272,22 @@ const MenuDropdown = forwardRef(({
       e.stopPropagation();
       const nextIndex = getNextIndex(currentIndex, itemsToNavigate.length, e.key, isNoMenuItemFocused);
       focusMenuItem(itemsToNavigate[nextIndex], true);
+      return;
     }
+
+    // Shortcut handlers (Mousetrap, on document) run after this one, so check once the event has
+    // propagated: a handled shortcut prevents the default, and the menu closes.
+    const { nativeEvent } = e;
+    setTimeout(() => {
+      if (nativeEvent.defaultPrevented) updateOpenState(false);
+    });
   }, [getMenuItems, enhancedItems, handleItemClick, updateOpenState]);
 
   // Toggle dropdown visibility
   const handleTriggerClick = useCallback(() => {
+    if (disabled) return;
     updateOpenState(!isOpen);
-  }, [isOpen, updateOpenState]);
+  }, [disabled, isOpen, updateOpenState]);
 
   // Close dropdown when clicking outside
   const handleClickOutside = useCallback((instance, event) => {
@@ -386,6 +404,11 @@ const MenuDropdown = forwardRef(({
     <>
       {renderSection(item.leftSection)}
       <span className="dropdown-label">{item.label}</span>
+      {item.shortcut ? (
+        <kbd className="dropdown-shortcut" data-testid={`${testId}-${String(item.id).toLowerCase()}-shortcut`}>
+          {item.shortcut}
+        </kbd>
+      ) : null}
       {rightContent}
     </>
   );
@@ -469,6 +492,8 @@ const MenuDropdown = forwardRef(({
     });
   };
 
+  const disabledTriggerClassName = disabled ? 'cursor-not-allowed opacity-50' : undefined;
+
   // Clone children to attach click handler and aria-expanded
   const triggerElement = React.isValidElement(children)
     ? React.cloneElement(children, {
@@ -477,11 +502,23 @@ const MenuDropdown = forwardRef(({
           handleTriggerClick();
         },
         'aria-expanded': isOpen,
+        'aria-disabled': disabled || undefined,
+        ...(disabled && { className: classnames(children.props.className, disabledTriggerClassName) }),
         // Preserve a trigger's own `data-testid` (e.g. a semantically named
         // toolbar button) instead of clobbering it with the dropdown's testId.
         'data-testid': children.props['data-testid'] || testId
       })
-    : <div onClick={handleTriggerClick} aria-expanded={isOpen} data-testid={testId}>{children}</div>;
+    : (
+        <div
+          onClick={handleTriggerClick}
+          aria-expanded={isOpen}
+          aria-disabled={disabled || undefined}
+          className={disabledTriggerClassName}
+          data-testid={testId}
+        >
+          {children}
+        </div>
+      );
 
   return (
     <Dropdown
@@ -489,18 +526,23 @@ const MenuDropdown = forwardRef(({
       icon={triggerElement}
       placement={placement}
       className={className}
-      visible={isOpen}
+      visible={isOpen && !disabled}
       onClickOutside={handleClickOutside}
       {...dropdownProps}
     >
-      <div {...(testId && { 'data-testid': testId + '-dropdown' })}>
+      <StyledWrapper {...(testId && { 'data-testid': testId + '-dropdown' })}>
         {header && (
           <div className="dropdown-header-container">
             {header}
             <div className="dropdown-divider"></div>
           </div>
         )}
-        <div role="menu" tabIndex={-1} onKeyDown={handleMenuKeyDown} className={menuClassName}>
+        <div
+          role="menu"
+          tabIndex={-1}
+          onKeyDown={handleMenuKeyDown}
+          className={classnames(menuClassName, { 'has-shortcuts': hasShortcuts })}
+        >
           {renderMenuContent()}
         </div>
         {footer && (
@@ -511,7 +553,7 @@ const MenuDropdown = forwardRef(({
             </div>
           </>
         )}
-      </div>
+      </StyledWrapper>
     </Dropdown>
   );
 });

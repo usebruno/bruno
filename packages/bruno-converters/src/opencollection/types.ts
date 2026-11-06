@@ -204,7 +204,7 @@ export interface BrunoConfig {
   clientCertificates?: {
     certs?: Array<{
       domain?: string;
-      type?: 'pem' | 'pkcs12';
+      type?: 'cert' | 'pfx';
       certFilePath?: string;
       keyFilePath?: string;
       pfxFilePath?: string;
@@ -219,6 +219,8 @@ export interface BrunoConfig {
   openapi?: Array<{
     sourceUrl: string;
     groupBy?: 'tags' | 'path';
+    authPlacement?: 'request' | 'collection';
+    requestNameSource?: 'summary' | 'operationId' | 'description' | 'path';
     lastSyncDate?: string;
     specHash?: string;
     autoCheck?: boolean;

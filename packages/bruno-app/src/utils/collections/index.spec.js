@@ -3,6 +3,7 @@ import {
   mergeHeaders,
   transformRequestToSaveToFilesystem,
   getCollectionItemCounts,
+  countInvalidItems,
   getVariableScope,
   isVariableSecret,
   getAvailableAddToScopes,
@@ -12,10 +13,15 @@ import {
   getEnvironmentVariables,
   getVisibleSidebarUidsInOrder,
   getSelectionInfo,
+  getBulkActionsSelection,
   getUniqueTagsFromItems,
   getCollectionVersion,
-  isCollectionItemCollapsed
+  isCollectionItemCollapsed,
+  getVariableNamesWithScope,
+  getWorkspaceCollections,
+  getTreePathFromCollectionToItem
 } from './index';
+import * as platformUtils from 'utils/common/platform';
 
 describe('mergeHeaders', () => {
   it('should include headers from collection, folder and request (with correct precedence)', () => {
@@ -100,6 +106,45 @@ describe('transformRequestToSaveToFilesystem', () => {
 
     expect(transformed.request.params[0].annotations).toEqual([{ name: 'param-note', value: 'keep me' }]);
     expect(transformed.request.headers[0].annotations).toEqual([{ name: 'header-note', value: 'keep me' }]);
+  });
+});
+
+describe('countInvalidItems', () => {
+  const parseError = { message: 'Line 11, col 1:\nExpected "\\n"' };
+
+  it('counts files with a parse error at every depth', () => {
+    const items = [
+      {
+        type: 'folder',
+        name: 'Outer',
+        items: [
+          { type: 'http-request', name: 'Broken', error: parseError },
+          {
+            type: 'folder',
+            name: 'Inner',
+            items: [{ type: 'http-request', name: 'AlsoBroken', error: parseError }]
+          }
+        ]
+      },
+      { type: 'http-request', name: 'RootBroken', error: parseError },
+      { type: 'http-request', name: 'Fine', request: {} }
+    ];
+
+    expect(countInvalidItems(items)).toBe(3);
+  });
+
+  it('ignores transient items and files that are only partially loaded', () => {
+    const items = [
+      { type: 'http-request', name: 'Transient', isTransient: true, error: parseError },
+      { type: 'http-request', name: 'TooLarge', partial: true, loading: false }
+    ];
+
+    expect(countInvalidItems(items)).toBe(0);
+  });
+
+  it('returns 0 for an empty or missing tree', () => {
+    expect(countInvalidItems([])).toBe(0);
+    expect(countInvalidItems()).toBe(0);
   });
 });
 
@@ -203,6 +248,42 @@ describe('getVariableScope — global environment secrets', () => {
 
     expect(scopeInfo.data.variable).toEqual(variable);
     expect(isVariableSecret(scopeInfo)).toBe(false);
+  });
+});
+
+describe('getVariableScope — ignoreVariableUid', () => {
+  const request = {
+    uid: 'request-1',
+    type: 'http-request',
+    request: { vars: { req: [{ uid: 'request-token', name: 'token', value: 'request', enabled: true }], res: [] } }
+  };
+  const collection = {
+    items: [request],
+    root: { request: { vars: { req: [{ uid: 'collection-token', name: 'token', value: 'collection', enabled: true }], res: [] } } }
+  };
+
+  it('skips the ignored row and returns the next scope that has the name', () => {
+    const scopeInfo = getVariableScope('token', collection, request, { ignoreVariableUid: 'request-token' });
+
+    expect(scopeInfo.type).toBe('collection');
+    expect(scopeInfo.value).toBe('collection');
+  });
+});
+
+describe('getVariableScope — folder item', () => {
+  const folder = {
+    uid: 'folder-1',
+    type: 'folder',
+    root: { request: { vars: { req: [{ uid: 'folder-var', name: 'folderVar', value: 'folder', enabled: true }], res: [] } } },
+    items: []
+  };
+  const collection = { items: [folder], root: {} };
+
+  it('returns folder scope for a variable defined on the same folder', () => {
+    const scopeInfo = getVariableScope('folderVar', collection, folder);
+
+    expect(scopeInfo.type).toBe('folder');
+    expect(scopeInfo.data.folder).toBe(folder);
   });
 });
 
@@ -777,6 +858,47 @@ describe('getSelectionInfo', () => {
   });
 });
 
+describe('getBulkActionsSelection', () => {
+  it('derives pure-collection menu flags and collapsible entries', () => {
+    const result = getBulkActionsSelection({
+      collections: [buildCollectionA(), buildCollectionB()],
+      workspaces: [],
+      selectedUids: ['colA', 'colB']
+    });
+
+    expect(result).toMatchObject({
+      isPureCollectionSelection: true,
+      canDelete: false,
+      canCollapse: true,
+      allCollapsed: false
+    });
+    expect(result.collapsibleEntries.map((e) => e.uid).sort()).toEqual(['colA', 'colB']);
+  });
+
+  it('allows delete for app/folder/request selections and excludes scratch collections from resolution', () => {
+    const scratch = { uid: 'scratch', pathname: '/scratch', collapsed: false, items: [] };
+    const result = getBulkActionsSelection({
+      collections: [
+        buildCollectionA({
+          collection: {
+            items: [{ uid: 'app1', type: 'app', pathname: '/colA/app1' }]
+          }
+        }),
+        scratch
+      ],
+      workspaces: [{ scratchCollectionUid: 'scratch' }],
+      selectedUids: ['app1', 'scratch']
+    });
+
+    expect(result.effectiveSelection.map((e) => e.uid)).toEqual(['app1']);
+    expect(result).toMatchObject({
+      isPureCollectionSelection: false,
+      canDelete: true,
+      canCollapse: false
+    });
+  });
+});
+
 describe('isCollectionItemCollapsed', () => {
   it('treats a folder as expanded by default (item.collapsed unset)', () => {
     expect(isCollectionItemCollapsed({ type: 'folder' })).toBe(false);
@@ -887,5 +1009,197 @@ describe('getEnvironmentVariables', () => {
   it('returns no variables without a collection or an active environment', () => {
     expect(getEnvironmentVariables(null)).toEqual({});
     expect(variablesFor(null)).toEqual({});
+  });
+});
+
+describe('getVariableNamesWithScope', () => {
+  const buildCollection = () => ({
+    uid: 'col-1',
+    root: {
+      request: { vars: { req: [{ uid: 'cv1', name: 'collectionVar', value: 'collection-value', enabled: true }] } }
+    },
+    activeEnvironmentUid: 'env-1',
+    environments: [
+      { uid: 'env-1', name: 'Dev', variables: [{ uid: 'ev1', name: 'envVar', value: 'env-value', enabled: true, secret: false }] }
+    ],
+    globalEnvironmentVariables: { globalVar: 'global-value' },
+    activeGlobalEnvironmentUid: 'genv-1',
+    globalEnvironments: [
+      { uid: 'genv-1', name: 'Workspace', variables: [{ uid: 'gv1', name: 'globalVar', value: 'global-value', enabled: true, secret: false }] }
+    ],
+    runtimeVariables: { runtimeVar: 'runtime-value' },
+    promptVariables: { '?promptVar': 'prompt-value' },
+    processEnvVariables: { API_KEY: 'secret-key' },
+    oauth2Credentials: [
+      { credentialsId: 'cred1', credentials: { access_token: 'token-value' } }
+    ]
+  });
+
+  it('tags every variable across global/collection/environment/runtime with its scope', () => {
+    const all = getVariableNamesWithScope(buildCollection(), null);
+    const byName = Object.fromEntries(all.map((v) => [v.name, v.scope]));
+
+    expect(byName.globalVar).toBe('global');
+    expect(byName.collectionVar).toBe('collection');
+    expect(byName.envVar).toBe('environment');
+    expect(byName.runtimeVar).toBe('runtime');
+  });
+
+  it('includes prompt variables, tagged with the runtime scope', () => {
+    const all = getVariableNamesWithScope(buildCollection(), null);
+    const byName = Object.fromEntries(all.map((v) => [v.name, v.scope]));
+
+    expect(byName['?promptVar']).toBe('runtime');
+  });
+
+  it('includes oauth2 credential variables tagged with scope=oauth2', () => {
+    const all = getVariableNamesWithScope(buildCollection(), null);
+
+    expect(all).toContainEqual({ name: '$oauth2.cred1.access_token', scope: 'oauth2' });
+  });
+
+  it('includes process.env variables prefixed as process.env.<name>', () => {
+    const all = getVariableNamesWithScope(buildCollection(), null);
+
+    expect(all).toContainEqual({ name: 'process.env.API_KEY', scope: 'process.env' });
+  });
+
+  it('includes every built-in dynamic/mock variable, each with no resolved value needed', () => {
+    const all = getVariableNamesWithScope(buildCollection(), null);
+    const dynamicEntries = all.filter((v) => v.scope === 'dynamic');
+
+    expect(dynamicEntries.length).toBeGreaterThan(0);
+    expect(dynamicEntries.every((v) => v.name.startsWith('$'))).toBe(true);
+  });
+
+  it('excludes the internal bookkeeping keys getAllVariables() adds (pathParams, maskedEnvVariables, process)', () => {
+    const all = getVariableNamesWithScope(buildCollection(), null);
+    const names = all.map((v) => v.name);
+
+    expect(names).not.toContain('pathParams');
+    expect(names).not.toContain('maskedEnvVariables');
+    expect(names).not.toContain('process');
+  });
+
+  it('returns only the built-in dynamic variables when there is no collection', () => {
+    const all = getVariableNamesWithScope(null, null);
+
+    expect(all.length).toBeGreaterThan(0);
+    expect(all.every((v) => v.scope === 'dynamic')).toBe(true);
+  });
+});
+
+describe('getWorkspaceCollections', () => {
+  const collectionOne = { uid: 'c1', name: 'One', pathname: '/home/dev/collections/one' };
+  const collectionTwo = { uid: 'c2', name: 'Two', pathname: '/home/dev/collections/two' };
+  const scratch = { uid: 'scratch-uid', name: 'Scratch', pathname: '/home/dev/scratch' };
+  const otherWorkspaceCollection = { uid: 'c3', name: 'Three', pathname: '/home/dev/other/three' };
+
+  const activeWorkspace = {
+    uid: 'w1',
+    scratchCollectionUid: 'scratch-uid',
+    collections: [
+      { path: '/home/dev/collections/one' },
+      { path: '/home/dev/collections/two/' },
+      { path: '/home/dev/scratch' }
+    ]
+  };
+  const otherWorkspace = {
+    uid: 'w2',
+    collections: [{ path: '/home/dev/other/three' }]
+  };
+  const workspaces = [activeWorkspace, otherWorkspace];
+  const collections = [collectionOne, collectionTwo, scratch, otherWorkspaceCollection];
+
+  it('returns only the collections listed by the active workspace, excluding scratch', () => {
+    const result = getWorkspaceCollections({ collections, workspaces, activeWorkspace });
+
+    expect(result).toEqual([collectionOne, collectionTwo]);
+  });
+
+  it('matches paths regardless of separators and trailing slashes', () => {
+    const windowsWorkspace = {
+      uid: 'w3',
+      collections: [{ path: 'C:\\Users\\dev\\collections\\one\\' }]
+    };
+    const windowsCollection = { uid: 'c4', name: 'One', pathname: 'C:/Users/dev/collections/one' };
+
+    const result = getWorkspaceCollections({
+      collections: [windowsCollection],
+      workspaces: [windowsWorkspace],
+      activeWorkspace: windowsWorkspace
+    });
+
+    expect(result).toEqual([windowsCollection]);
+  });
+
+  it('returns an empty list with no active workspace, or a workspace listing none', () => {
+    const emptyWorkspace = { uid: 'w4', collections: [] };
+
+    expect(getWorkspaceCollections({ collections, workspaces, activeWorkspace: null })).toEqual([]);
+    expect(getWorkspaceCollections({ collections, workspaces: [emptyWorkspace], activeWorkspace: emptyWorkspace })).toEqual([]);
+  });
+
+  describe('path case', () => {
+    const mixedCaseWorkspace = { uid: 'w5', collections: [{ path: 'C:\\Users\\Dev\\Collections\\One' }] };
+    const lowerCaseCollection = { uid: 'c5', name: 'One', pathname: 'c:/users/dev/collections/one' };
+    const listFor = () => getWorkspaceCollections({
+      collections: [lowerCaseCollection],
+      workspaces: [mixedCaseWorkspace],
+      activeWorkspace: mixedCaseWorkspace
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('matches paths that differ only in case on Windows, like the sidebar does', () => {
+      jest.spyOn(platformUtils, 'isWindowsOS').mockReturnValue(true);
+
+      expect(listFor()).toEqual([lowerCaseCollection]);
+    });
+
+    it('keeps paths that differ in case apart on case-sensitive platforms', () => {
+      jest.spyOn(platformUtils, 'isWindowsOS').mockReturnValue(false);
+
+      expect(listFor()).toEqual([]);
+    });
+  });
+});
+
+describe('getTreePathFromCollectionToItem', () => {
+  const collection = {
+    uid: 'col',
+    items: [
+      { uid: 'root-req', type: 'http-request' },
+      {
+        uid: 'folder-a',
+        type: 'folder',
+        items: [
+          { uid: 'nested-req', type: 'http-request' },
+          { uid: 'folder-b', type: 'folder', items: [{ uid: 'deep-req', type: 'http-request' }] }
+        ]
+      }
+    ]
+  };
+
+  it('returns the root-first ancestor chain ending with the item', () => {
+    const path = getTreePathFromCollectionToItem(collection, { uid: 'deep-req' });
+    expect(path.map((node) => node.uid)).toEqual(['folder-a', 'folder-b', 'deep-req']);
+  });
+
+  it('returns a single entry for a root-level item', () => {
+    expect(getTreePathFromCollectionToItem(collection, { uid: 'root-req' }).map((n) => n.uid)).toEqual(['root-req']);
+  });
+
+  it('returns live item objects from the collection, not the argument', () => {
+    const [folderA] = getTreePathFromCollectionToItem(collection, { uid: 'nested-req' });
+    expect(folderA).toBe(collection.items[1]);
+  });
+
+  it('returns an empty path for an unknown item, a missing uid, or an empty collection', () => {
+    expect(getTreePathFromCollectionToItem(collection, { uid: 'nope' })).toEqual([]);
+    expect(getTreePathFromCollectionToItem(collection, {})).toEqual([]);
+    expect(getTreePathFromCollectionToItem({ uid: 'empty' }, { uid: 'deep-req' })).toEqual([]);
   });
 });

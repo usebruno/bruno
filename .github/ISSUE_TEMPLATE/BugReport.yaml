@@ -1,6 +1,6 @@
 name: Bug Report
 description: File a bug report
-labels: ['bug']
+labels: ['bug', 'status-new']
 body:
   - type: markdown
     attributes:

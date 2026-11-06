@@ -1,0 +1,17 @@
+meta {
+  name: isSafeMode
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("bru.isSafeMode() returns true in the default sandbox", function() {
+    expect(bru.isSafeMode()).to.equal(true);
+  });
+}

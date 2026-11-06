@@ -26,6 +26,30 @@ describe('prepare-request: prepareRequest', () => {
     });
   });
 
+  describe('Header entries', () => {
+    it('Should emit headerEntries in row order with disabled rows flagged, and one entry per enabled name', async () => {
+      const request = {
+        method: 'GET',
+        url: 'https://usebruno.com',
+        body: { mode: 'none' },
+        headers: [
+          { name: 'x-on', value: 'on', enabled: true },
+          { name: 'x-off', value: 'off', enabled: false },
+          { name: '', value: 'nameless', enabled: true },
+          { name: 'x-on', value: 'last-wins', enabled: true }
+        ],
+        auth: { mode: 'none' }
+      };
+      const result = await prepareRequest({ request });
+      expect(result.headers['x-on']).toBe('last-wins');
+      expect(result.headers).not.toHaveProperty('x-off');
+      expect(result.headerEntries).toEqual([
+        { key: 'x-on', value: 'last-wins' },
+        { key: 'x-off', value: 'off', disabled: true }
+      ]);
+    });
+  });
+
   describe('Properly maps inherited auth from collectionRoot', () => {
     // Initialize Test Fixtures
     let collection, item;
@@ -604,6 +628,47 @@ describe('prepare-request: prepareRequest', () => {
       expect(result.data).toBe(mockStream);
       expect(createReadStreamSpy).toHaveBeenCalled();
       expect(readFileSyncSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Multipart form body mode', () => {
+    const multipartRequest = (headers) => ({
+      request: {
+        method: 'POST',
+        url: 'https://example.com/upload',
+        headers,
+        params: [],
+        body: {
+          mode: 'multipartForm',
+          multipartForm: [{ name: 'name', value: 'John Doe', type: 'text', enabled: true }]
+        }
+      }
+    });
+
+    it('sets Content-Type to multipart/form-data when the request has none', async () => {
+      const result = await prepareRequest(multipartRequest([]));
+
+      expect(result.headers['content-type']).toBe('multipart/form-data');
+    });
+
+    it.each([
+      'multipart/form-data; boundary=custom',
+      'multipart/mixed'
+    ])('keeps the user Content-Type "%s"', async (contentType) => {
+      const item = multipartRequest([{ name: 'content-type', value: contentType, enabled: true }]);
+
+      const result = await prepareRequest(item);
+
+      expect(result.headers['content-type']).toBe(contentType);
+    });
+
+    it('does not add a second Content-Type header when the user header differs in case', async () => {
+      const item = multipartRequest([{ name: 'Content-Type', value: 'multipart/form-data; boundary=custom', enabled: true }]);
+
+      const result = await prepareRequest(item);
+
+      const contentTypeHeaderNames = Object.keys(result.headers).filter((name) => name.toLowerCase() === 'content-type');
+      expect(contentTypeHeaderNames).toEqual(['Content-Type']);
     });
   });
 

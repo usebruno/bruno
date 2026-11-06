@@ -153,9 +153,10 @@ export const ossSchema = {
         border3: { type: 'string' },
         border2: { type: 'string' },
         border1: { type: 'string' },
-        border0: { type: 'string' }
+        border0: { type: 'string' },
+        subtle: { type: 'string', description: 'Light border for cards, e.g. the response alerts and code snippets' }
       },
-      required: ['radius', 'border3', 'border2', 'border1', 'border0'],
+      required: ['radius', 'border3', 'border2', 'border1', 'border0', 'subtle'],
       additionalProperties: false
     },
 

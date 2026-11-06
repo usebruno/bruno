@@ -80,7 +80,7 @@ describe('createDatabase', () => {
 
   it('opens the file database even when a statement cannot be prepared', () => {
     jest.doMock('../../src/generated/node/statements', () => ({
-      statements: [{ name: 'broken', sql: 'NOT VALID SQL', type: 'one', tables: [] }]
+      statements: [{ name: 'broken', sql: 'NOT VALID SQL', type: 'one' }]
     }));
     const { createDatabase } = require('../../src/node/index');
 

@@ -17,6 +17,7 @@ import collectionMigrationReducer from './slices/collection-migration';
 import { draftDetectMiddleware } from './middlewares/draft/middleware';
 import { autosaveMiddleware } from './middlewares/autosave/middleware';
 import { snapshotMiddleware } from './middlewares/snapshot/middleware';
+import { benchmarkMiddleware } from './middlewares/benchmark/middleware';
 
 const isDevEnv = () => {
   return import.meta.env.MODE === 'development';
@@ -43,7 +44,10 @@ export const store = configureStore({
     chat: chatReducer,
     collectionMigration: collectionMigrationReducer
   },
-  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(middleware)
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware()
+      .prepend(...(__BRUNO_BENCHMARK__ ? [benchmarkMiddleware] : []))
+      .concat(middleware)
 });
 
 export default store;

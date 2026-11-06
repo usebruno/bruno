@@ -207,7 +207,25 @@ test('shows the runtime-default explanation through ToolHint', async ({ page, cr
   await test.step('Explain the required Host header', async () => {
     await headers.defaultInfo('Host').hover();
     await expect(headers.defaultInfo('Host')).toHaveCSS('cursor', 'pointer');
-    await expect(headers.defaultInfoTooltip('Host')).toHaveText('Required by HTTP, cannot be omitted');
+    await expect(headers.defaultInfoTooltip('Host')).toHaveText('Automatically added at runtime. Required by HTTP, cannot be omitted');
+  });
+});
+
+test('scrolls a long default header value horizontally', async ({ page, createTmpDir }) => {
+  await createCollection(page, 'default-headers-scroll', await createTmpDir('default-headers-scroll'));
+  await createRequest(page, 'request-1', 'default-headers-scroll', { url: 'https://example.com' });
+  await selectRequestPaneTab(page, 'Headers');
+  const headers = await showInheritedHeaders(page);
+  const acceptValue = headers.defaultValueScroller('Accept');
+
+  await test.step('Overflow the value cell', async () => {
+    await expect.poll(() => acceptValue.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
+  });
+
+  await test.step('Scroll the value with a horizontal wheel', async () => {
+    await acceptValue.hover();
+    await page.mouse.wheel(200, 0);
+    await expect.poll(() => acceptValue.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
   });
 });
 

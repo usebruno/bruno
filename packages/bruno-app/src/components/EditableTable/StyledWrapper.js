@@ -16,11 +16,6 @@ const StyledWrapper = styled.div`
     overflow: clip;
   }
 
-  /* Sticky section rows must stick to the pane scroller, not this clip box. */
-  &.has-section-rows .table-container {
-    overflow: visible;
-  }
-
   &.has-section-rows thead tr {
     height: 35px;
   }
@@ -194,9 +189,8 @@ const StyledWrapper = styled.div`
         background: ${(props) => props.theme.sidebar.bg};
 
         td.full-width-row {
-          position: sticky;
-          top: 34px;
-          z-index: 12;
+          position: relative;
+          z-index: 11;
           height: 35px;
           max-height: 35px;
           padding: 0 !important;

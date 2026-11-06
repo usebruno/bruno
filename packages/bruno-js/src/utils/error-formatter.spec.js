@@ -10,6 +10,7 @@ const {
   parseStackTrace,
   parseErrorLocation,
   getSourceContextFromContent,
+  getSourceContext,
   adjustStackTrace,
   buildStackFromCallSites,
   posixifyPath
@@ -1160,6 +1161,45 @@ get {
       expect(result).not.toBeNull();
       expect(result.lines).toHaveLength(3);
       expect(result.startLine).toBe(1);
+    });
+
+    it('should strip CRLF line endings from context lines', () => {
+      const content = 'line1\r\nline2\r\nline3';
+      const result = getSourceContextFromContent(content, 2, 1);
+
+      expect(result.lines.map((l) => l.content)).toEqual(['line1', 'line2', 'line3']);
+    });
+
+    it('should split CR-only content into the same lines as the executed script', () => {
+      const content = 'line1\rline2\rline3';
+      const result = getSourceContextFromContent(content, 3, 0);
+
+      expect(result).not.toBeNull();
+      expect(result.lines).toEqual([{ lineNumber: 3, content: 'line3', isError: true }]);
+    });
+  });
+
+  describe('.bru file with CRLF line endings', () => {
+    let crlfBruPath;
+
+    beforeEach(() => {
+      crlfBruPath = path.join(testDir, 'crlf.bru');
+      fs.writeFileSync(crlfBruPath, MULTI_BLOCK_BRU.replace(/\n/g, '\r\n'));
+    });
+
+    it('should find the same block boundaries as the LF version', () => {
+      expect(findScriptBlockStartLine(crlfBruPath, 'pre-request')).toBe(14);
+      expect(findScriptBlockEndLine(crlfBruPath, 'pre-request')).toBe(15);
+    });
+
+    it('should return context lines without a trailing carriage return', () => {
+      const result = getSourceContext(crlfBruPath, 14, 1);
+
+      expect(result.lines).toEqual([
+        { lineNumber: 13, content: 'script:pre-request {', isError: false },
+        { lineNumber: 14, content: '  const token = bru.getEnvVar(\'token\');', isError: true },
+        { lineNumber: 15, content: '  req.setHeader(\'Authorization\', token);', isError: false }
+      ]);
     });
   });
 });

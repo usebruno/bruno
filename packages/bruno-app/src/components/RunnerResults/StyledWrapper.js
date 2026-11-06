@@ -145,7 +145,7 @@ const Wrapper = styled.div`
   }
 
   /* Icon-only actions: the label is dropped, so aria-label carries the name. */
-  .tiny .runner-actions {
+  .runner-toolbar.tiny .runner-actions {
     .button-content {
       display: none;
     }

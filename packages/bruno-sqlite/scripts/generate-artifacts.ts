@@ -5,7 +5,6 @@ import { literal } from './lib/literal';
 
 const GENERATED_DIR = path.join(process.cwd(), 'src', 'generated');
 const NODE_DIR = path.join(GENERATED_DIR, 'node');
-const WEB_DIR = path.join(GENERATED_DIR, 'web');
 
 const BANNER = '// GENERATED FILE - DO NOT EDIT. Run `npm run generate`.';
 
@@ -26,21 +25,6 @@ const main = () => {
   writeFile(
     path.join(NODE_DIR, 'statements.ts'),
     `${BANNER}\nimport type { StatementDef } from '../../shared/types';\n\nexport const statements: StatementDef[] = ${literal(statements)};\n`
-  );
-
-  const typeMap: Record<string, string> = {};
-  const tableMap: Record<string, string[]> = {};
-  for (const statement of statements) {
-    typeMap[statement.name] = statement.type;
-    tableMap[statement.name] = statement.tables;
-  }
-  const statementName = statements.length > 0 ? 'keyof typeof statementTypes' : 'string';
-  writeFile(
-    path.join(WEB_DIR, 'statements.ts'),
-    `${BANNER}\n\n`
-    + `export const statementTypes = ${literal(typeMap)} as const;\n\n`
-    + `export type StatementName = ${statementName};\n\n`
-    + `export const statementTables: Record<string, readonly string[]> = ${literal(tableMap)};\n`
   );
 
   console.log(`Generated ${migrations.length} migration(s) and ${statements.length} statement(s).`);
