@@ -79,6 +79,61 @@ describe('normalizeOpenApiSyncConfigs', () => {
     ]);
   });
 
+  it('keeps a supported authPlacement next to groupBy', () => {
+    ['request', 'collection'].forEach((authPlacement) => {
+      const [config] = normalizeOpenApiSyncConfigs([
+        { sourceUrl: 'https://example.com/openapi.json', groupBy: 'tags', authPlacement }
+      ]);
+
+      expect(config).toEqual({
+        sourceUrl: 'https://example.com/openapi.json',
+        groupBy: 'tags',
+        authPlacement,
+        autoCheck: true,
+        autoCheckInterval: 5
+      });
+      expect(Object.keys(config).slice(0, 3)).toEqual(['sourceUrl', 'groupBy', 'authPlacement']);
+    });
+  });
+
+  it('leaves authPlacement out when it is missing or unsupported', () => {
+    [undefined, null, '', 'Collection', 'requests', true, 1].forEach((authPlacement) => {
+      const [config] = normalizeOpenApiSyncConfigs([
+        { sourceUrl: 'https://example.com/openapi.json', authPlacement }
+      ]);
+
+      expect('authPlacement' in config).toBe(false);
+    });
+  });
+
+  it('keeps a supported requestNameSource after authPlacement', () => {
+    ['summary', 'operationId', 'description', 'path'].forEach((requestNameSource) => {
+      const [config] = normalizeOpenApiSyncConfigs([
+        { sourceUrl: 'https://example.com/openapi.json', groupBy: 'tags', authPlacement: 'collection', requestNameSource }
+      ]);
+
+      expect(config).toEqual({
+        sourceUrl: 'https://example.com/openapi.json',
+        groupBy: 'tags',
+        authPlacement: 'collection',
+        requestNameSource,
+        autoCheck: true,
+        autoCheckInterval: 5
+      });
+      expect(Object.keys(config).slice(0, 4)).toEqual(['sourceUrl', 'groupBy', 'authPlacement', 'requestNameSource']);
+    });
+  });
+
+  it('leaves requestNameSource out when it is missing or unsupported', () => {
+    [undefined, null, '', 'Summary', 'operationid', 'title', 1].forEach((requestNameSource) => {
+      const [config] = normalizeOpenApiSyncConfigs([
+        { sourceUrl: 'https://example.com/openapi.json', requestNameSource }
+      ]);
+
+      expect('requestNameSource' in config).toBe(false);
+    });
+  });
+
   it('keeps the entry but drops an unsupported groupBy', () => {
     const [config] = normalizeOpenApiSyncConfigs([
       { sourceUrl: 'https://example.com/openapi.json', groupBy: 'tag' }
