@@ -5,7 +5,11 @@ export const extractMimeType = (contentType = '') => {
   return match ? match[0] : cleaned;
 };
 
-export const getDefaultResponseFormat = (contentType) => {
+// `detection` is the "Response format detection" preference: 'auto' detects the format from the
+// content type and falls back to Raw; 'json' falls back to JSON for content types that cannot
+// be identified (missing, unknown or generic text).
+export const getDefaultResponseFormat = (contentType, { detection = 'auto' } = {}) => {
+  const fallbackFormat = detection === 'json' ? 'json' : 'raw';
   const mime = extractMimeType(contentType);
 
   const rules = [
@@ -45,7 +49,7 @@ export const getDefaultResponseFormat = (contentType) => {
     { test: /^application\/pdf$/, result: { format: 'base64', tab: 'preview' } },
 
     // ====== Any other text types ======
-    { test: /^text\//, result: { format: 'raw', tab: 'editor' } }
+    { test: /^text\//, result: { format: fallbackFormat, tab: 'editor' } }
   ];
 
   for (const rule of rules) {
@@ -55,7 +59,7 @@ export const getDefaultResponseFormat = (contentType) => {
   }
 
   // ====== Fallback ======
-  return { format: 'raw', tab: 'editor' };
+  return { format: fallbackFormat, tab: 'editor' };
 };
 
 // Safe HTML escaping for webview content
