@@ -152,8 +152,8 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
       return reject(new Error('Collection not found'));
     }
 
-    const collectionCopy = cloneDeep(collection);
-    const item = findItemInCollection(collectionCopy, itemUid);
+    // Only the item is needed, cloning the whole collection on every (auto) save is costly for large collections
+    const item = cloneDeep(findItemInCollection(collection, itemUid));
     if (!item) {
       return reject(new Error('Not able to locate item'));
     }
@@ -198,8 +198,7 @@ export const saveFile = (content, itemUid, collectionUid, silent = false) => asy
     throw new Error('Collection not found');
   }
 
-  const collectionCopy = cloneDeep(collection);
-  const item = findItemInCollection(collectionCopy, itemUid);
+  const item = cloneDeep(findItemInCollection(collection, itemUid));
 
   // Item is not used to save the bru file
   // This is to validate if the bru content is associated with a valid item
