@@ -165,6 +165,29 @@ const Wrapper = styled.div`
     &:hover div.drag-request-border {
       border-left: solid 1px ${(props) => props.theme.sidebar.dragbar.activeBorder};
     }
+
+    &.collapsed {
+      left: 4px;
+      right: auto;
+      width: 8px;
+      z-index: 10;
+
+      div.drag-request-border,
+      &:hover div.drag-request-border {
+        border-left: none;
+      }
+    }
+  }
+
+  .sidebar-handle-tooltip {
+    .shortcut {
+      opacity: 0.6;
+    }
+
+    .hint {
+      margin-top: 2px;
+      opacity: 0.7;
+    }
   }
 `;
 
