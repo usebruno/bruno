@@ -267,6 +267,11 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
 
     ipcRenderer
       .invoke('renderer:save-multiple-requests', itemsToSave)
+      .then(() => {
+        each(items, (item) => {
+          dispatch(_saveRequest({ itemUid: item.uid, collectionUid: item.collectionUid }));
+        });
+      })
       .then(resolve)
       .catch((err) => {
         toast.error('Failed to save requests!');

@@ -1,9 +1,11 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
+import { ThemeProvider } from 'styled-components';
 import { configureStore } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
 import { saveApiSpecToFile, clearApiSpecDraft } from 'providers/ReduxStore/slices/apiSpec';
+import theme from 'themes/light/light';
 import SaveRequestsModal from './SaveRequestsModal';
 
 jest.mock('react-hot-toast', () => ({
@@ -58,9 +60,11 @@ const renderModal = ({ apiSpecs = [], tabs = [], collections = [], forceCloseTab
   return {
     onClose,
     ...render(
-      <Provider store={store}>
-        <SaveRequestsModal onClose={onClose} forceCloseTabs={forceCloseTabs} tabUidsToClose={tabUidsToClose} />
-      </Provider>
+      <ThemeProvider theme={theme}>
+        <Provider store={store}>
+          <SaveRequestsModal onClose={onClose} forceCloseTabs={forceCloseTabs} tabUidsToClose={tabUidsToClose} />
+        </Provider>
+      </ThemeProvider>
     )
   };
 };
@@ -107,11 +111,11 @@ describe('the unsaved changes dialog shown while quitting', () => {
     expect(screen.getByText('1')).toBeInTheDocument();
   });
 
-  it('lists API specs after the other unsaved items', () => {
+  it('lists unsaved items in the order their tabs are open', () => {
     renderModal({
       collections: [{ uid: 'c1', name: 'My Collection', draft: { name: 'My Collection' }, items: [] }],
       apiSpecs: [{ uid: 'spec-1', name: 'Petstore', pathname: SPEC_PATHNAME, raw: 'openapi: 3.0.0', draft: 'openapi: 3.1.0' }],
-      tabs: [{ uid: 't1', collectionUid: 'c1', type: 'http-request' }, specTab(SPEC_PATHNAME)]
+      tabs: [{ uid: 'c1', collectionUid: 'c1', type: 'collection-settings' }, specTab(SPEC_PATHNAME)]
     });
 
     const entries = screen.getAllByRole('listitem').map((node) => node.textContent);

@@ -7,6 +7,7 @@ export * from './runner';
 export * from './locators';
 export * from './auth';
 export * from './tab-strip';
+export * from './unsaved-changes-modal';
 export * from './websocket';
 export * from './sidebar';
 export * from './git/clone-git-repository';
