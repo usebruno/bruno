@@ -253,6 +253,7 @@ const FileTab = ({
             Drop file(s) to import or{' '}
             <button
               className="underline cursor-pointer"
+              data-testid="choose-files-button"
               onClick={handleBrowseFiles}
               style={{ color: theme.textLink }}
             >
