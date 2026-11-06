@@ -6,6 +6,15 @@ const StyledWrapper = styled.div`
     overflow-y: auto;
     border: 1px solid ${(props) => props.theme.border.border0};
     border-radius: ${(props) => props.theme.border.radius.base};
+    // A non-auto scrollbar-color makes Chromium ignore the global ::-webkit-scrollbar rules,
+    // so the thumb can be hidden and revealed by swapping the color alone.
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.2s ease;
+
+    &:hover {
+      scrollbar-color: ${(props) => props.theme.scrollbar.color} transparent;
+    }
   }
 
   .unsaved-item-go-to-tab {
