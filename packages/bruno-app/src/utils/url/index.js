@@ -166,6 +166,10 @@ export const interpolateUrl = ({ url, variables }) => {
 };
 
 export const interpolateUrlPathParams = (url, params, variables = {}, options = {}) => {
+  if (!url || typeof url !== 'string') {
+    return url;
+  }
+
   const substituteValue = (value) => {
     const v = value == null ? '' : String(value);
     return options.encodeUrl ? encodeURIComponent(v) : v;
