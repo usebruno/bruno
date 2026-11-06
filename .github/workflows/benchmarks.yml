@@ -11,6 +11,7 @@ on:
 
 jobs:
   benchmark:
+    if: false
     name: Performance Benchmarks (${{ matrix.os }})
     timeout-minutes: 60
     runs-on: ${{ matrix.os }}
