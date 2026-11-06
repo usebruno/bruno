@@ -1,14 +1,16 @@
 import { IconFilter, IconX } from '@tabler/icons';
 import React, { useMemo, useRef, useState } from 'react';
 import { Tooltip as ReactInfotip } from 'react-tooltip';
+import StyledWrapper from './StyledWrapper';
 
 const QueryResultFilter = ({ filter, filterExpanded, onChange, onExpandChange, mode }) => {
   const inputRef = useRef(null);
-  const [isExpanded, setIsExpanded] = useState(filterExpanded || false);
+  const [localExpanded, setLocalExpanded] = useState(false);
+  const isExpanded = filterExpanded ?? localExpanded;
 
   const handleFilterClick = () => {
     const newExpanded = !isExpanded;
-    setIsExpanded(newExpanded);
+    setLocalExpanded(newExpanded);
     // Reset filter search input when closing
     if (!newExpanded) {
       onChange('');
@@ -52,10 +54,8 @@ const QueryResultFilter = ({ filter, filterExpanded, onChange, onExpandChange, m
   }, [mode]);
 
   return (
-    <div
-      className="response-filter absolute bottom-2 w-full justify-end right-0 flex flex-row items-center gap-2 py-4 px-2 pointer-events-none"
-    >
-      {infotipText && !isExpanded && <ReactInfotip anchorId="request-filter-icon" html={infotipText} />}
+    <StyledWrapper className="response-filter-toolbar flex flex-row items-center gap-2 pointer-events-auto">
+      {infotipText && !isExpanded && <ReactInfotip anchorId="request-filter-icon" html={infotipText} className="z-50" />}
       <input
         ref={inputRef}
         type="text"
@@ -67,15 +67,16 @@ const QueryResultFilter = ({ filter, filterExpanded, onChange, onExpandChange, m
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck="false"
-        className={`block ml-14 p-2 py-1 transition-all duration-200 ease-in-out border border-gray-300 rounded-md ${
-          isExpanded ? 'w-full opacity-100 pointer-events-auto' : 'w-[0] opacity-0'
+        tabIndex={isExpanded ? 0 : -1}
+        className={`block p-1.5 transition-all duration-200 ease-in-out border rounded-md focus:outline-none ${
+          isExpanded ? 'w-48 opacity-100 pointer-events-auto' : 'w-[0] opacity-0'
         }`}
         onChange={handleInputChange}
       />
-      <div className="text-gray-500 cursor-pointer pointer-events-auto" id="request-filter-icon" onClick={handleFilterClick}>
+      <div className="cursor-pointer pointer-events-auto" id="request-filter-icon" onClick={handleFilterClick}>
         {isExpanded ? <IconX size={20} strokeWidth={1.5} /> : <IconFilter size={20} strokeWidth={1.5} />}
       </div>
-    </div>
+    </StyledWrapper>
   );
 };
 
