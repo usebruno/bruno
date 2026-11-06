@@ -5,14 +5,8 @@ import { ThemeProvider } from 'styled-components';
 import { configureStore } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
 import { saveApiSpecToFile, clearApiSpecDraft } from 'providers/ReduxStore/slices/apiSpec';
+import theme from 'themes/light/light';
 import SaveRequestsModal from './SaveRequestsModal';
-
-const theme = {
-  border: { border0: '#ccc', radius: { base: '4px' } },
-  modal: { title: { color: '#000' } },
-  font: { size: { xs: '12px' } },
-  request: { methods: { get: 'green' } }
-};
 
 jest.mock('react-hot-toast', () => ({
   __esModule: true,
