@@ -284,7 +284,7 @@ class SearchService {
           name: row.requestName,
           type: row.requestProtocol || 'http-request',
           seq: row.requestSeq,
-          request: { method: row.requestType, url: row.requestUrl }
+          request: { method: row.requestType ?? undefined, url: row.requestUrl ?? undefined }
         }
       };
     };

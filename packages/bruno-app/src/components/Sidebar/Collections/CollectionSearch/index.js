@@ -20,6 +20,11 @@ const CollectionSearch = ({ searchText, setSearchText, indexing, matchCount }) =
           value={searchText}
           onChange={(e) => setSearchText(e.target.value.toLowerCase())}
         />
+        {searchText !== '' && matchCount != null && (
+          <span className="match-count" data-testid="sidebar-search-match-count">
+            {matchCount === 1 ? '1 match' : `${matchCount} matches`}
+          </span>
+        )}
         {searchText !== '' && indexing && (
           <IconLoader2
             className="animate-spin indexing-icon"
@@ -34,11 +39,6 @@ const CollectionSearch = ({ searchText, setSearchText, indexing, matchCount }) =
           </div>
         )}
       </div>
-      {searchText !== '' && matchCount != null && (
-        <div className="match-count" data-testid="sidebar-search-match-count">
-          {matchCount === 1 ? '1 match' : `${matchCount} matches`}
-        </div>
-      )}
     </StyledWrapper>
   );
 };

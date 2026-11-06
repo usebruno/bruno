@@ -243,4 +243,24 @@ describe('SearchService', () => {
     ]));
     expect(mockPool.run).not.toHaveBeenCalled();
   });
+
+  it('hydrates an indexed request without a method the same way as a parsed one', async () => {
+    mockSearchIndex.rowsForCollection.mockReturnValue([{
+      requestPath: 'socket.bru',
+      requestName: 'Socket',
+      requestProtocol: 'ws-request',
+      requestSeq: null,
+      requestType: null,
+      requestUrl: null
+    }]);
+
+    const service = new SearchService();
+    const id = service.search({ roots: ['/c'], query: 'socket' }, () => {});
+    const result = await service.resolveWindow({ id, collectionPath: '/c', relativePaths: ['socket.bru'] });
+
+    const [item] = result.items;
+    expect(item).toEqual(expect.objectContaining({ name: 'Socket', type: 'ws-request' }));
+    expect(item.request.method).toBeUndefined();
+    expect(item.request.url).toBeUndefined();
+  });
 });
