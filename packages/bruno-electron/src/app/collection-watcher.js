@@ -747,7 +747,7 @@ class CollectionWatcher {
     }
   }
 
-  startCollectionDiscovery(win, collectionUid) {
+  startCollectionDiscovery(win, collectionUid, requestCount) {
     this.initializeLoadingState(collectionUid);
     const state = this.loadingStates[collectionUid];
 
@@ -756,7 +756,8 @@ class CollectionWatcher {
 
     win.webContents.send('main:collection-loading-state-updated', {
       collectionUid,
-      isLoading: true
+      isLoading: true,
+      ...(requestCount != null ? { requestCount } : {})
     });
   }
 
@@ -811,14 +812,14 @@ class CollectionWatcher {
     }
 
     // v2 already loaded the tree from cache; skip startup scan and stage live edits
-    const { ignoreInitial = false, fileIndex = null, workspacePathname = null } = options;
+    const { ignoreInitial = false, fileIndex = null, workspacePathname = null, requestCount = null } = options;
     if (fileIndex) {
       fileIndexByCollection.set(watchPath, fileIndex);
     }
 
     this.initializeLoadingState(collectionUid);
 
-    this.startCollectionDiscovery(win, collectionUid);
+    this.startCollectionDiscovery(win, collectionUid, requestCount);
 
     if (brunoConfig) {
       setBrunoConfig(collectionUid, brunoConfig);

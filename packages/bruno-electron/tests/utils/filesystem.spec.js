@@ -3,7 +3,8 @@ const os = require('os');
 const path = require('path');
 const {
   withFileLock,
-  removeGitMetadata
+  removeGitMetadata,
+  getCollectionStats
 } = require('../../src/utils/filesystem');
 
 // Manual-gate helper: returns a Promise + a `resolve` function. Tests use this
@@ -245,5 +246,41 @@ describe('removeGitMetadata', () => {
     } finally {
       fs.rmSync(outside, { recursive: true, force: true });
     }
+  });
+});
+
+describe('getCollectionStats', () => {
+  let root;
+
+  beforeEach(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-collection-stats-'));
+    fs.writeFileSync(path.join(root, 'collection.bru'), 'meta');
+    fs.writeFileSync(path.join(root, 'get-users.bru'), 'http');
+    fs.writeFileSync(path.join(root, 'ping.yml'), 'http');
+    fs.mkdirSync(path.join(root, 'folder'));
+    fs.writeFileSync(path.join(root, 'folder', 'folder.bru'), 'folder');
+    fs.writeFileSync(path.join(root, 'folder', 'nested.bru'), 'http');
+    fs.mkdirSync(path.join(root, 'environments'));
+    fs.writeFileSync(path.join(root, 'environments', 'local.bru'), 'vars');
+    fs.mkdirSync(path.join(root, 'hidden'));
+    fs.writeFileSync(path.join(root, 'hidden', 'ignored.bru'), 'http');
+  });
+
+  afterEach(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  test('counts request files separately from bru files', async () => {
+    const stats = await getCollectionStats(root);
+
+    expect(stats.requestCount).toBe(4);
+    expect(stats.filesCount).toBe(6);
+  });
+
+  test('applies ignore patterns to both counts', async () => {
+    const stats = await getCollectionStats(root, ['hidden']);
+
+    expect(stats.requestCount).toBe(3);
+    expect(stats.filesCount).toBe(5);
   });
 });
