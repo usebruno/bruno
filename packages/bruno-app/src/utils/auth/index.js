@@ -58,6 +58,40 @@ export const resolveInheritedAuth = (item, collection, scanContext = null) => {
   return resolvedRequest;
 };
 
+/**
+ * The auth a request is sent with, resolved the way the electron side's
+ * `mergeAuth` does it: the request's own mode when it is not `inherit`, else the
+ * closest folder whose mode is not `inherit` (a folder set to `none` is a
+ * boundary and stops inheritance), else the collection's auth.
+ *
+ * `resolveInheritedAuth` skips `none` folders because the UI uses it to show
+ * which auth a request *would* fall back to; for execution the boundary matters.
+ */
+export const resolveAuthForExecution = (item, collection) => {
+  const mergedRequest = {
+    ...(item.request || {}),
+    ...(item.draft?.request || {})
+  };
+  const ownAuth = mergedRequest.auth;
+  if (ownAuth?.mode && ownAuth.mode !== 'inherit') {
+    return ownAuth;
+  }
+
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  for (let idx = requestTreePath.length - 1; idx >= 0; idx--) {
+    const i = requestTreePath[idx];
+    if (i.type === 'folder') {
+      const folderAuth = i?.draft ? get(i, 'draft.request.auth') : get(i, 'root.request.auth');
+      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'inherit') {
+        return folderAuth;
+      }
+    }
+  }
+
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  return get(collectionRoot, 'request.auth', { mode: 'none' });
+};
+
 export const getEffectiveAuthSource = (collection, item) => {
   const authMode = item?.draft
     ? get(item, 'draft.request.auth.mode')
