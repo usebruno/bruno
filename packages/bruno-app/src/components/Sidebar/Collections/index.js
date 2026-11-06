@@ -71,10 +71,10 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
       // A collection turns 'mounted' before the watcher has delivered its items, so keep showing
       // the search index's items until loading finishes; switching early empties the list.
       const isReady = entry.collection?.mountStatus === 'mounted' && !entry.collection.isLoading;
-      if (entry.kind !== 'loaded' || isReady || !itemsByRoot.has(entry.collection.pathname)) {
-        return entry;
-      }
-      return { ...entry, collection: { ...entry.collection, items: itemsByRoot.get(entry.collection.pathname) } };
+      if (entry.kind !== 'loaded' || isReady) return entry;
+      const items = itemsByRoot.get(entry.collection.pathname);
+      if (items === undefined) return entry;
+      return { ...entry, collection: { ...entry.collection, items } };
     }),
     [sidebarEntries, itemsByRoot]
   );

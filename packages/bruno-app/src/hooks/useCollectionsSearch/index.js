@@ -197,18 +197,18 @@ const store = createSearchStore();
 
 const useCollectionsSearch = ({ sidebarEntries }) => {
   const searchIndexEnabled = useSelector((state) => get(state, 'app.preferences.cache.searchIndex.enabled', false));
-  const loadedEntries = searchIndexEnabled ? sidebarEntries.filter((entry) => entry.kind === 'loaded') : [];
-  const roots = loadedEntries
-    .filter((entry) => entry.collection.mountStatus !== 'mounted')
-    .map((entry) => entry.collection.pathname);
-  const indexRoots = loadedEntries
-    .filter((entry) => entry.collection.pathname)
-    .map((entry) => entry.collection.pathname);
+  const roots = [];
+  const indexRoots = [];
   const ignore = {};
-  for (const entry of loadedEntries) {
-    const pathname = entry.collection?.pathname;
-    const patterns = entry.collection?.brunoConfig?.ignore;
-    if (pathname && Array.isArray(patterns)) ignore[pathname] = patterns;
+  if (searchIndexEnabled) {
+    for (const entry of sidebarEntries) {
+      if (entry.kind !== 'loaded') continue;
+      const { pathname, mountStatus, brunoConfig } = entry.collection;
+      if (mountStatus !== 'mounted') roots.push(pathname);
+      if (!pathname) continue;
+      indexRoots.push(pathname);
+      if (Array.isArray(brunoConfig?.ignore)) ignore[pathname] = brunoConfig.ignore;
+    }
   }
   const order = sidebarEntries.map(getEntryPath);
   const { query, itemsByRoot, indexing, matchCount } = useSyncExternalStore(store.subscribe, store.getSnapshot);

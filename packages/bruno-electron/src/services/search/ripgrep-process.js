@@ -61,13 +61,12 @@ const remember = (root, query, paths, key) => {
   history.set(root, [{ query, paths, patternsKey: key }, ...(history.get(root) || [])].slice(0, HISTORY_SIZE));
 };
 
-const isExcluded = (relativePath, patterns) => {
-  const relativePosix = posixifyPath(relativePath);
-  if (relativePosix.split('/')[0] === 'mocks') return true;
-  return isDenied(relativePosix, resolveDenylist(patterns));
-};
+const isExcluded = (relativePosix, denylist) => relativePosix === 'mocks'
+  || relativePosix.startsWith('mocks/')
+  || isDenied(relativePosix, denylist);
 
 const searchRoot = (id, root, query, targets, narrowed, patterns) => new Promise((resolve) => {
+  const denylist = resolveDenylist(patterns);
   const pattern = `(?m)^[ \\t]*(?:name|url)[ \\t]*:[^\\r\\n]*?${escapeRegExp(query)}`;
   const child = spawn(RG_PATH, [...RG_ARGS, '--regexp', pattern, '--', ...targets], {
     cwd: narrowed ? root : undefined,
@@ -87,7 +86,7 @@ const searchRoot = (id, root, query, targets, narrowed, patterns) => new Promise
   const collect = (line) => {
     if (!line) return;
     const relativePath = path.relative(root, path.resolve(root, line));
-    if (defaultClassify(relativePath)?.type !== 'request' || isExcluded(relativePath, patterns)) return;
+    if (defaultClassify(relativePath)?.type !== 'request' || isExcluded(posixifyPath(relativePath), denylist)) return;
     paths.push(relativePath);
     if (matched.length <= NARROW_LIMIT) matched.push(relativePath);
     if (paths.length >= BATCH_SIZE) flush();
