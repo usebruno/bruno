@@ -36,10 +36,10 @@ describe('bru.getClientCertificate', () => {
     expect(new Bru({ collectionPath }).getClientCertificate('https://api.example.com')).toBeUndefined();
   });
 
-  it('makes matching certificate contents available in Safe Mode', async () => {
+  it.each(['https://api.example.com/token', 'wss://api.example.com/socket'])('makes matching certificate contents available in Safe Mode for %s', async (requestUrl) => {
     const bru = makeBru([pem]);
     await executeQuickJsVmAsync({
-      script: 'bru.setVar("certificate", bru.getClientCertificate("https://api.example.com/token"));',
+      script: `bru.setVar("certificate", bru.getClientCertificate(${JSON.stringify(requestUrl)}));`,
       context: { bru }, collectionPath
     });
     expect(bru.getVar('certificate')).toMatchObject({ cert: 'certificate', key: 'private key' });

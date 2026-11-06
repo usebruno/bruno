@@ -63,7 +63,13 @@ describe('getClientCertificate', () => {
     ['api.example.com', 'not a URL'],
     ['api.example.com', 'https://'],
     ['api.example.com/path', 'https://api.example.com/path'],
-    ['user@api.example.com', 'https://user@api.example.com']
+    ['user@api.example.com', 'https://user@api.example.com'],
+    ['api.example.com:', 'https://api.example.com:8443/token'],
+    ['api.example.com:', 'https://api.example.com/token'],
+    ['[::1]:', 'https://[::1]:9443/token'],
+    ['api.example.com:9443', 'wss://api.example.com/socket'],
+    ['api.example.com', 'ws://api.example.com/socket'],
+    ['api.example.com', 'http://api.example.com/token']
   ])('rejects a different authority or invalid configuration: %s / %s', (domain, requestUrl) => {
     expect(resolve([{ ...pem, domain }], requestUrl)).toBeUndefined();
   });
@@ -79,7 +85,10 @@ describe('getClientCertificate', () => {
     ['a*b*c.example.com', 'https://axbyc.example.com/token'],
     ['localhost:9443', 'https://localhost:9443/token'],
     ['[::1]:9443', 'https://[::1]:9443/token'],
-    ['api.example.com:9443', 'grpcs://api.example.com:9443/token']
+    ['api.example.com:9443', 'grpcs://api.example.com:9443/token'],
+    ['api.example.com', 'wss://api.example.com/socket'],
+    ['api.example.com:443', 'wss://api.example.com/socket'],
+    ['*.example.com:9443', 'wss://ws.example.com:9443/socket']
   ])('matches the parsed authority for %s / %s', (domain, requestUrl) => {
     expect(resolve([{ ...pem, domain }], requestUrl)).toHaveProperty('cert');
   });

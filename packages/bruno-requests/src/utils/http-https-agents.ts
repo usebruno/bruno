@@ -243,7 +243,8 @@ export class PatchedHttpsProxyAgent extends HttpsProxyAgent<any> {
 
 const matchesCertificateDomain = (requestUrl: URL, domain: string): boolean => {
   // A certificate domain is a hostname pattern and optional port, not a URL.
-  if (/[\\/@?#\s]/.test(domain)) {
+  // A trailing colon (empty port) would otherwise parse and skip the port check.
+  if (/[\\/@?#\s]|:$/.test(domain)) {
     return false;
   }
 
@@ -299,7 +300,7 @@ const getClientCertificate = ({ requestUrl, collectionPath, clientCertificates }
   } catch {
     return undefined;
   }
-  if (!['https:', 'grpc:', 'grpcs:'].includes(parsedUrl.protocol)) {
+  if (!['https:', 'grpc:', 'grpcs:', 'wss:'].includes(parsedUrl.protocol)) {
     return undefined;
   }
 
