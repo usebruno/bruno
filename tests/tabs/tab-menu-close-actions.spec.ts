@@ -1,15 +1,20 @@
+import fs from 'fs';
+import path from 'path';
 import { expect, test, Locator, Page } from '../../playwright';
 import {
   buildCommonLocators,
-  closeAllOpenTabs,
+  closeAllCollections,
   openCollection,
+  openCollectionFromPath,
   openEnvironmentSelector,
   openRequest,
   selectEnvironment,
-  selectTabContextMenuItem
+  selectTabContextMenuItem,
+  waitForCollectionMount
 } from '../utils/page';
 
 const collectionName = 'tab-menu-collection';
+const fixtureCollectionPath = path.join(__dirname, 'fixtures', 'collection');
 
 // The tab menu's bulk close actions (Close Others / Left / Right / All) must offer the same
 // "Unsaved changes" choice as the Close All shortcut instead of silently saving every draft.
@@ -78,16 +83,21 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     await expect(draftIndicator(page, name)).toBeVisible();
   };
 
-  test.beforeEach(async ({ pageWithUserData: page }) => {
+  // The app is shared across the file, so every test opens its own copy of the fixture:
+  // tests that press Save write to disk and must not leak into the next test.
+  test.beforeEach(async ({ page, electronApp, createTmpDir }) => {
+    const collectionDir = await createTmpDir(collectionName);
+    fs.cpSync(fixtureCollectionPath, collectionDir, { recursive: true });
+    await openCollectionFromPath(page, electronApp, collectionDir);
+    await waitForCollectionMount(page, collectionName);
     await openCollection(page, collectionName);
   });
 
-  // The fixture is a tmp copy, but the app instance is shared across tests in this file
-  test.afterEach(async ({ pageWithUserData: page }) => {
-    await closeAllOpenTabs(page, false);
+  test.afterEach(async ({ page }) => {
+    await closeAllCollections(page);
   });
 
-  test('Close Others lists only the drafts in range; Cancel keeps every tab', async ({ pageWithUserData: page }) => {
+  test('Close Others lists only the drafts in range; Cancel keeps every tab', async ({ page }) => {
     await openRequests(page, ['req-1', 'req-2', 'req-3']);
     await editUrl(page, 'req-1');
     await editUrl(page, 'req-2');
@@ -109,7 +119,7 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     }
   });
 
-  test('Close Others with Don\'t Save discards and closes the tabs in range', async ({ pageWithUserData: page }) => {
+  test('Close Others with Don\'t Save discards and closes the tabs in range', async ({ page }) => {
     await openRequests(page, ['req-1', 'req-2', 'req-3']);
     await editUrl(page, 'req-1');
     await editUrl(page, 'req-2');
@@ -130,7 +140,7 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     await expect(draftIndicator(page, 'req-1')).not.toBeVisible();
   });
 
-  test('Close to the Right with Save saves and closes the tabs in range', async ({ pageWithUserData: page }) => {
+  test('Close to the Right with Save saves and closes the tabs in range', async ({ page }) => {
     await openRequests(page, ['req-1', 'req-2', 'req-3']);
     await editUrl(page, 'req-3');
     await editUrl(page, 'req-1');
@@ -153,7 +163,7 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     await expect(buildCommonLocators(page).request.urlInput()).toContainText('/req-3');
   });
 
-  test('Inspect tab in the modal focuses that tab and keeps everything open', async ({ pageWithUserData: page }) => {
+  test('Inspect tab in the modal focuses that tab and keeps everything open', async ({ page }) => {
     await openRequests(page, ['req-1', 'req-2', 'req-3']);
     await editUrl(page, 'req-3');
     await tab(page, 'req-1').click();
@@ -174,7 +184,7 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     await expect(draftIndicator(page, 'req-3')).toBeVisible();
   });
 
-  test('Close to the Left closes immediately when nothing in range is unsaved', async ({ pageWithUserData: page }) => {
+  test('Close to the Left closes immediately when nothing in range is unsaved', async ({ page }) => {
     await openRequests(page, ['req-1', 'req-2', 'req-3']);
     await editUrl(page, 'req-3');
 
@@ -187,7 +197,7 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     await expect(draftIndicator(page, 'req-3')).toBeVisible();
   });
 
-  test('Close All from the tab menu asks before closing unsaved tabs', async ({ pageWithUserData: page }) => {
+  test('Close All from the tab menu asks before closing unsaved tabs', async ({ page }) => {
     await openRequests(page, ['req-1', 'req-2']);
     await editUrl(page, 'req-2');
 
@@ -202,7 +212,7 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     await expect(tab(page, 'req-2')).not.toBeVisible({ timeout: 3000 });
   });
 
-  test('Close to the Left prompts for collection, folder and environment drafts; Don\'t Save discards them', async ({ pageWithUserData: page }) => {
+  test('Close to the Left prompts for collection, folder and environment drafts; Don\'t Save discards them', async ({ page }) => {
     await openCollectionSettingsWithDraft(page);
     await openFolderSettingsWithDraft(page);
     await openEnvironmentWithDraft(page, 'http://draft-left');
@@ -244,7 +254,7 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     await expect(settingsTabDraftIndicator(page, folderTab(page))).not.toBeVisible();
   });
 
-  test('Close to the Right prompts for collection, folder and environment drafts; Save All saves them', async ({ pageWithUserData: page }) => {
+  test('Close to the Right prompts for collection, folder and environment drafts; Save All saves them', async ({ page }) => {
     const { environment } = buildCommonLocators(page);
     await openRequests(page, ['req-1']);
     await editUrl(page, 'req-1');
