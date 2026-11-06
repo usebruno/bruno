@@ -1,6 +1,5 @@
 import fs from 'fs';
-import path from 'path';
-import { expect, test, Locator, Page } from '../../playwright';
+import { expect, test } from '../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -8,98 +7,33 @@ import {
   openCollectionFromPath,
   openEnvironmentSelector,
   openRequest,
-  selectEnvironment,
   selectTabContextMenuItem,
   waitForCollectionMount
 } from '../utils/page';
-
-const collectionName = 'tab-menu-collection';
-const fixtureCollectionPath = path.join(__dirname, 'fixtures', 'collection');
+import {
+  collectionName,
+  collectionTab,
+  draftIndicator,
+  editUrl,
+  environmentTab,
+  environmentTabCloseGradient,
+  expectCollectionFilesUnchanged,
+  expectCollectionFileToContain,
+  fixtureCollectionPath,
+  folderTab,
+  openCollectionSettingsWithDraft,
+  openEnvironmentWithDraft,
+  openFolderSettingsWithDraft,
+  openRequests,
+  settingsTabDraftIndicator,
+  tab,
+  unsavedModal
+} from './helpers';
 
 // The tab menu's bulk close actions (Close Others / Left / Right / All) must offer the same
 // "Unsaved changes" choice as the Close All shortcut instead of silently saving every draft.
 test.describe('Tab menu - bulk close actions with unsaved changes', () => {
-  const tab = (page: Page, name: string) => buildCommonLocators(page).tabs.tabByName(name);
-  const draftIndicator = (page: Page, name: string) => buildCommonLocators(page).tabs.tabDraftIndicator(tab(page, name));
-  const unsavedModal = (page: Page) => buildCommonLocators(page).unsavedChangesModal;
-
-  const openRequests = async (page: Page, names: string[]) => {
-    for (const name of names) {
-      await openRequest(page, collectionName, name, { persist: true });
-      await expect(tab(page, name)).toBeVisible({ timeout: 3000 });
-    }
-  };
-
-  const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
-
-  // Collection settings, folder settings and the environment editor have no tab menu of their
-  // own, but they sit in the same tab strip, so a request tab's Close Left / Right sweeps them up.
-  const collectionTab = (page: Page) => buildCommonLocators(page).tabs.collectionSettingsTab();
-  const folderTab = (page: Page) => tab(page, 'admin');
-  const environmentTab = (page: Page) => buildCommonLocators(page).environment.collectionEnvTab();
-  const settingsTabDraftIndicator = (page: Page, settingsTab: Locator) => buildCommonLocators(page).tabs.tabDraftIndicator(settingsTab);
-  const environmentTabCloseGradient = (page: Page) => buildCommonLocators(page).tabs.tabCloseGradient(environmentTab(page));
-
-  const fillFirstHeaderRow = async (page: Page, tableTestId: string, name: string) => {
-    const table = buildCommonLocators(page).table(tableTestId);
-    await table.rowNameEditor(table.row(0)).click();
-    await page.keyboard.type(name);
-    await table.rowValueEditor(table.row(0)).click();
-    await page.keyboard.type('value');
-  };
-
-  const openCollectionSettingsWithDraft = async (page: Page) => {
-    const { sidebar, paneTabs } = buildCommonLocators(page);
-    await sidebar.collectionRow(collectionName).dblclick();
-    await expect(collectionTab(page)).toBeVisible({ timeout: 3000 });
-    await paneTabs.collectionSettingsTab('headers').click();
-    await fillFirstHeaderRow(page, 'collection-headers', 'X-Collection-Header');
-    await expect(settingsTabDraftIndicator(page, collectionTab(page))).toBeVisible();
-  };
-
-  const openFolderSettingsWithDraft = async (page: Page) => {
-    await buildCommonLocators(page).sidebar.folder('admin').dblclick();
-    await expect(folderTab(page)).toBeVisible({ timeout: 3000 });
-    await fillFirstHeaderRow(page, 'folder-headers', 'X-Folder-Header');
-    await expect(settingsTabDraftIndicator(page, folderTab(page))).toBeVisible();
-  };
-
-  const openEnvironmentWithDraft = async (page: Page, value: string) => {
-    const { environment } = buildCommonLocators(page);
-    await selectEnvironment(page, 'Local');
-    await openEnvironmentSelector(page, 'collection');
-    await environment.configureButton().click();
-    await expect(environmentTab(page)).toBeVisible({ timeout: 3000 });
-    await environment.variableValue('host').click();
-    await page.keyboard.press(selectAllShortcut);
-    await page.keyboard.type(value);
-    await expect(environmentTabCloseGradient(page)).toHaveClass(/has-changes/);
-  };
-
-  const editUrl = async (page: Page, name: string) => {
-    await tab(page, name).click();
-    await buildCommonLocators(page).request.urlInput().click();
-    await page.keyboard.type(`/${name}`);
-    await expect(draftIndicator(page, name)).toBeVisible();
-  };
-
-  // Cancel and Don't Save must leave the collection on disk exactly as the fixture shipped it.
-  const expectCollectionFilesUnchanged = (collectionDir: string) => {
-    const walk = (dir: string): string[] => fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-      const entryPath = path.join(dir, entry.name);
-      return entry.isDirectory() ? walk(entryPath) : [entryPath];
-    });
-    for (const fixtureFile of walk(fixtureCollectionPath)) {
-      const relativePath = path.relative(fixtureCollectionPath, fixtureFile);
-      expect(fs.readFileSync(path.join(collectionDir, relativePath), 'utf8'), relativePath).toBe(fs.readFileSync(fixtureFile, 'utf8'));
-    }
-  };
-
   let collectionDir: string;
-
-  // Saves land on disk asynchronously, so poll the file rather than read it once.
-  const expectCollectionFileToContain = (relativePath: string, text: string) =>
-    expect.poll(() => fs.readFileSync(path.join(collectionDir, relativePath), 'utf8'), { message: relativePath, timeout: 3000 }).toContain(text);
 
   // The app is shared across the file, so every test opens its own copy of the fixture:
   // tests that press Save write to disk and must not leak into the next test.
@@ -302,9 +236,9 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     await expect(draftIndicator(page, 'req-1')).toBeVisible();
 
     // Save All wrote the collection, folder and environment drafts to disk
-    await expectCollectionFileToContain('opencollection.yml', 'X-Collection-Header');
-    await expectCollectionFileToContain('admin/folder.yml', 'X-Folder-Header');
-    await expectCollectionFileToContain('environments/Local.yml', 'http://saved-right');
+    await expectCollectionFileToContain(collectionDir, 'opencollection.yml', 'X-Collection-Header');
+    await expectCollectionFileToContain(collectionDir, 'admin/folder.yml', 'X-Folder-Header');
+    await expectCollectionFileToContain(collectionDir, 'environments/Local.yml', 'http://saved-right');
 
     // The saved environment value is on disk, so reopening the editor shows it without a draft
     await openEnvironmentSelector(page, 'collection');
