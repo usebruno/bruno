@@ -19,6 +19,7 @@ import { buildRequestLocators } from '../request';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
 import { buildCollectionAppLocators } from './collection/collection-app';
 import { buildCollectionProxyLocators } from './collection/proxy';
+import { buildCollectionRunLocators } from './collection/collection-run';
 import { buildCodeMirrorLocators } from './code-mirror';
 import { buildEnvironmentLocators } from './environments';
 import { buildTimelineHeaderLocators } from './timeline-headers';
@@ -351,11 +352,18 @@ export const buildCommonLocators = (page: Page) => ({
     advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
     preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
     checkForSpecUpdatesToggle: () => page.getByTestId('check-for-spec-updates-toggle'),
+    advancedSectionToggle: () => page.getByTestId('import-advanced-section-toggle'),
+    authPlacementToggle: () => page.getByTestId('auth-placement-toggle'),
+    requestNameSourceDropdown: () => page.getByTestId('request-name-source-dropdown'),
+    requestNameSourceOption: (value: string) => page.getByTestId(`request-name-source-option-${value.toLowerCase()}`),
     bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
     bulkFormatSelect: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
     bulkLocationInput: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),
     bulkSubmitButton: () => page.getByTestId('bulk-import-collection-location-modal-submit-btn'),
-    bulkSpecUpdatesCheckbox: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates'),
+    bulkOpenApiConfigurationToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByRole('button', { name: 'OpenAPI Import configuration' }),
+    bulkGroupingDropdown: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('grouping-dropdown'),
+    bulkGroupingOption: (value: string) => page.getByTestId('bulk-import-collection-location-modal').getByTestId(`grouping-option-${value}`),
+    bulkSpecUpdatesToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates'),
     bulkSpecUpdatesDescription: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates-description'),
     bulkSwagger2SyncNote: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-swagger2-sync-note'),
     bulkSelectAllCollectionsToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('selection-section-collections').getByTestId('selection-select-all-toggle'),

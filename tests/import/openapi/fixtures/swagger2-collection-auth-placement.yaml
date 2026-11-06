@@ -1,0 +1,40 @@
+swagger: '2.0'
+info:
+  title: Swagger Collection Auth API
+  version: 1.0.0
+host: api.example.com
+schemes:
+  - https
+security:
+  - apiKeyAuth: []
+securityDefinitions:
+  apiKeyAuth:
+    type: apiKey
+    in: header
+    name: X-API-Key
+  basicAuth:
+    type: basic
+paths:
+  /orders:
+    get:
+      summary: List orders
+      security:
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: OK
+  /admin/reports:
+    get:
+      summary: Admin reports
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          description: OK
+  /health:
+    get:
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: OK

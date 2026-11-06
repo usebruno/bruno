@@ -58,6 +58,41 @@ const declaresOnlyScalars = (node) => node !== undefined
   && node.schemas.some((schema) => typesOf(schema).some((type) => SCALAR_TYPES.includes(type)))
   && !node.schemas.some((schema) => allowsStructure(schema) || hasOpenAlternative(node.spec, schema));
 
+const isNullOnly = (schema) => (typesOf(schema).length > 0 && typesOf(schema).every((type) => type === 'null'))
+  || (Array.isArray(schema.enum) && schema.enum.length > 0 && schema.enum.every((value) => value === null))
+  || (Object.hasOwn(schema, 'const') && schema.const === null);
+const alternativesInAncestry = (spec, schema, seen = new Set()) => {
+  if (seen.has(schema)) return [];
+  seen.add(schema);
+  const branches = (key) => (Array.isArray(schema[key]) ? schema[key] : []).map((branch) => derefSpecObject(spec, branch)).filter(isPlainObject);
+  return [...branches('oneOf'), ...branches('anyOf'), ...branches('allOf').flatMap((parent) => alternativesInAncestry(spec, parent, seen))];
+};
+const pinsShape = (spec, schema, seen = new Set()) => {
+  if (!isPlainObject(schema) || seen.has(schema)) return false;
+  seen.add(schema);
+  return typesOf(schema).length > 0 || schema.properties !== undefined || schema.example !== undefined
+    || pinsShape(spec, resolveSpecRef(spec, schema.$ref), seen)
+    || (Array.isArray(schema.allOf) && schema.allOf.some((part) => pinsShape(spec, part, seen)));
+};
+const offersChoice = (spec, schema, seen = new Set()) => {
+  if (seen.has(schema)) return false;
+  seen.add(schema);
+  const shapes = alternativesInAncestry(spec, schema).filter((alternative) => !isNullOnly(alternative));
+  return shapes.length > 1 || shapes.some((shape) => !pinsShape(spec, shape) && offersChoice(spec, shape, seen));
+};
+const leavesShapeOpen = (spec, schema) => {
+  const own = derefSpecObject(spec, schema);
+  return isPlainObject(own) && !pinsShape(spec, schema) && offersChoice(spec, own);
+};
+const keyLeavesShapeOpen = (node, key) => {
+  const schemas = declaredPropertiesOf(node).filter((properties) => declaresIn(properties, key)).map((properties) => properties[key]);
+  return schemas.length > 0 && schemas.every((schema) => leavesShapeOpen(node.spec, schema));
+};
+const itemsLeaveShapeOpen = (node) => {
+  const items = node === undefined ? [] : node.schemas.filter((schema) => schema.items !== undefined).map((schema) => schema.items);
+  return items.length > 0 && !node.schemas.some((schema) => schema.example !== undefined) && items.every((schema) => leavesShapeOpen(node.spec, schema));
+};
+
 const refName = (schema) => (isPlainObject(schema) && typeof schema.$ref === 'string' ? schema.$ref.split('/').pop() : undefined);
 
 const alternativesOf = (node) => node.schemas
@@ -101,5 +136,7 @@ module.exports = {
   declaredChild,
   declaredItems,
   declaresOnlyScalars,
+  keyLeavesShapeOpen,
+  itemsLeaveShapeOpen,
   otherAlternativeKeys
 };
