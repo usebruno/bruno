@@ -4,7 +4,6 @@ import toast from 'react-hot-toast';
 import {
   createMockResponse,
   deleteMockResponse,
-  generateMockResponsesFromSpec,
   loadMockResponses,
   loadMockResponsesFromSpec,
   saveMockResponse,
@@ -23,7 +22,6 @@ import {
 import { resolveInstanceSpec } from 'utils/mock-server/mock-server-instances';
 import { IconCopy, IconPlus, IconServer2, IconTrash } from '@tabler/icons';
 import CreateMockResponseModal from '../CreateMockResponseModal';
-import GenerateFromSpecModal from '../GenerateFromSpecModal';
 import MockConfirmModal from 'components/MockServer/MockConfirmModal';
 import MockSearchInput from 'components/MockServer/MockSearchInput';
 import Button from 'ui/Button';
@@ -33,9 +31,7 @@ import StyledWrapper from './StyledWrapper';
 
 const MockResponsesList = ({ instance, collection }) => {
   const dispatch = useDispatch();
-  const [isGenerating, setIsGenerating] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [deletingResponse, setDeletingResponse] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -113,33 +109,6 @@ const MockResponsesList = ({ instance, collection }) => {
       toast.error(err.message || 'Failed to create mock response');
       // rethrow so CreateMockResponseModal keeps itself open with the entered values
       throw err;
-    }
-  };
-
-  const handleGenerateFromSpec = () => {
-    if (!spec?.pathname) {
-      toast.error('Open the API spec in this workspace first.');
-      return;
-    }
-
-    setShowGenerateModal(true);
-  };
-
-  const handleConfirmGenerateFromSpec = async ({ generateFromSchema }) => {
-    setIsGenerating(true);
-    try {
-      const result = await dispatch(generateMockResponsesFromSpec({
-        ...location,
-        specPath: spec.pathname,
-        generateFromSchema
-      })).unwrap();
-
-      setShowGenerateModal(false);
-      toast.success(`Generated ${result.createdCount} mock response(s) from API spec`);
-    } catch (err) {
-      toast.error(err.message || 'Failed to generate mock responses from spec');
-    } finally {
-      setIsGenerating(false);
     }
   };
 
@@ -222,7 +191,7 @@ const MockResponsesList = ({ instance, collection }) => {
       })).unwrap();
 
       setShowSyncSpecModal(false);
-      toast.success('Mock responses synced with spec');
+      toast.success(`Synced ${specResponses.length} mock response(s) with spec`);
     } catch (err) {
       toast.error(err.message || 'Failed to sync mock responses with spec');
     } finally {
@@ -290,19 +259,6 @@ const MockResponsesList = ({ instance, collection }) => {
         </MockConfirmModal>
       ) : null}
 
-      {showGenerateModal ? (
-        <GenerateFromSpecModal
-          specName={spec?.name || instance.specPath}
-          isGenerating={isGenerating}
-          onClose={() => {
-            if (!isGenerating) {
-              setShowGenerateModal(false);
-            }
-          }}
-          onConfirm={handleConfirmGenerateFromSpec}
-        />
-      ) : null}
-
       {showSyncModal ? (
         <MockConfirmModal
           title="Sync with Collection Examples"
@@ -343,7 +299,7 @@ const MockResponsesList = ({ instance, collection }) => {
             {' '}
             <span className="font-medium">{spec?.name || instance.specPath || 'this API spec'}</span>
             {' '}
-            will be overwritten with the latest spec data (bodies generated from schema).
+            will be overwritten with the latest spec data (bodies generated from schema), and new endpoints will be added.
           </p>
           <p className="mt-3 text-sm opacity-80">
             Custom mock responses without a matching endpoint will be kept.
@@ -387,23 +343,11 @@ const MockResponsesList = ({ instance, collection }) => {
             <Button
               color="secondary"
               size="sm"
-              onClick={handleGenerateFromSpec}
-              disabled={isGenerating || !spec?.pathname}
-              data-testid="mock-response-generate-from-spec-btn"
-            >
-              {isGenerating ? 'Generating...' : 'Generate from API Spec'}
-            </Button>
-          ) : null}
-
-          {isSpecServer && responses.length > 0 ? (
-            <Button
-              color="secondary"
-              size="sm"
               onClick={handleSyncWithSpec}
-              disabled={!spec?.pathname}
+              disabled={isSyncingSpec || !spec?.pathname}
               data-testid="mock-response-sync-spec-btn"
             >
-              Sync with Spec
+              {isSyncingSpec ? 'Syncing...' : 'Sync with Spec'}
             </Button>
           ) : null}
         </div>
@@ -429,7 +373,7 @@ const MockResponsesList = ({ instance, collection }) => {
           text: responses.length
             ? 'No mock response matches your search.'
             : isSpecServer
-              ? 'Generate them from your API spec, or create one manually and add rules to match requests.'
+              ? 'Sync them from your API spec, or create one manually and add rules to match requests.'
               : 'Create one to define the routes and responses this mock server serves.'
         }}
         renderItem={(response) => (

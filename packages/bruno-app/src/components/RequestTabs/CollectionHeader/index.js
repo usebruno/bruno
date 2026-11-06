@@ -89,8 +89,8 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const tabCountsByCollection = useSelector(selectTabCountsByCollection);
   const firstTabUidByCollection = useSelector(selectFirstTabUidByCollection);
 
-  const gitRootPath = collection?.git?.gitRootPath;
-  const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
+  // change this to feature test
+  const isMockServerEnabled = useBetaFeature('mock-server');
   const mockServerInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
 
   // Active request (used by the Request / App / File view-mode toggle)

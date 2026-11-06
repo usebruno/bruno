@@ -2,7 +2,6 @@ import path from 'path';
 import fs from 'fs';
 import { test, expect, closeElectronApp } from '../../playwright';
 import { waitForReadyPage, openWorkspaceFromDialog } from '../utils/page';
-import { buildCommonLocators } from '../utils/page/locators';
 import { buildTitleBarLocators } from '../utils/page/title-bar';
 import { buildMockServerLocators, openCreateMockServerModal, openMockServerSettings } from '../utils/page/mock-server';
 import { buildApiSpecPanelLocators, openApiSpecFromDialog } from '../utils/page/openapi/render-spec';
@@ -18,16 +17,12 @@ const EMPTY_WORKSPACE_YML = [
   ''
 ].join('\n');
 
-// The Mock Servers sidebar section is behind a beta flag, so it has to be enabled for the
-// create-mock-server button and the mock server rows to exist at all.
+// add a feature check
 const PREFERENCES = JSON.stringify({
   preferences: {
     onboarding: {
       hasLaunchedBefore: true,
       hasSeenWelcomeModal: true
-    },
-    beta: {
-      'mock-server': true
     }
   }
 }, null, 2);

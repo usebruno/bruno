@@ -33,7 +33,9 @@ import React from 'react';
  * isArray     : is array
  */
 
-const AssertionOperator = ({ operator, onChange }) => {
+export const isUnaryAssertionOperator = (operator) => operator?.startsWith('is');
+
+const AssertionOperator = ({ operator, onChange, disabled = false }) => {
   const operators = [
     'eq',
     'neq',
@@ -81,7 +83,7 @@ const AssertionOperator = ({ operator, onChange }) => {
   };
 
   return (
-    <select value={operator} onChange={handleChange} className="mousetrap" data-testid="assertion-operator-select">
+    <select value={operator} onChange={handleChange} className="mousetrap" data-testid="assertion-operator-select" disabled={disabled}>
       {operators.map((operator) => (
         <option key={operator} value={operator}>
           {getLabel(operator)}

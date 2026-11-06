@@ -12,8 +12,13 @@ jest.mock('../../src/store/preferences', () => ({
   })
 }));
 
+// change this to a feature check
+// jest.mock('../../src/app/mock-server/mock-server', () => ({
+//   isMockServerEnabled: () => Boolean(mockPreferencesState.beta['mock-server']),
+//   stopAll: jest.fn(() => Promise.resolve())
+// }));
+
 jest.mock('../../src/app/mock-server/mock-server', () => ({
-  isMockServerEnabled: () => Boolean(mockPreferencesState.beta['mock-server']),
   stopAll: jest.fn(() => Promise.resolve())
 }));
 

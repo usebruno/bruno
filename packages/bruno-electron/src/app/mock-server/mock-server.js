@@ -560,8 +560,9 @@ const closeHttpServer = (httpServer) => new Promise((resolve) => {
   httpServer.on('close', () => clearTimeout(forceCloseTimeout));
 });
 
-const MOCK_SERVER_DISABLED_ERROR = 'Mock server is a beta feature. Enable it in Preferences > Beta.';
+const MOCK_SERVER_DISABLED_ERROR = 'Mock server might be disabled as a feature';
 
+// change this to a feature check
 const isMockServerEnabled = () => preferencesUtil.isBetaFeatureEnabled('mock-server');
 
 const start = async ({

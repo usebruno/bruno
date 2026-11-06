@@ -24,9 +24,7 @@ const revealLabel = REVEAL_LABELS[process.platform] ?? 'Reveal in File Manager';
 
 const buildPreferences = ({ mockServer }: { mockServer: boolean }) => JSON.stringify({
   preferences: {
-    onboarding: { hasLaunchedBefore: true, hasSeenWelcomeModal: true },
-    beta: { 'mock-server': mockServer },
-    _migrations: { mockServerBetaOnByDefault: true }
+    onboarding: { hasLaunchedBefore: true, hasSeenWelcomeModal: true }
   }
 }, null, 2);
 
@@ -160,7 +158,6 @@ test.describe('API spec row context menu', () => {
           'remove',
           'delete'
         ]);
-        await expect(menu.menuItem('generate-mock-server')).toContainText('Beta');
         await expect(menu.menuItem('reveal')).toHaveText(revealLabel);
         await expect(menu.menuItem('delete')).toHaveClass(/delete-item/);
         await page.keyboard.press('Escape');
@@ -197,21 +194,6 @@ test.describe('API spec row context menu', () => {
         await chooseApiSpecRowAction(page, 'notes', 'generate-collection');
         await expect(toast.byMessage('This file is not a valid OpenAPI document')).toBeVisible();
         await expect(importStep.locationModal()).toHaveCount(0);
-      });
-    } finally {
-      await closeElectronApp(app);
-    }
-  });
-
-  test('hides Generate Mock Server when the beta flag is off', async ({ launchElectronApp, createTmpDir }) => {
-    test.setTimeout(60000);
-    const { app, page, menu } = await launchOnWorkspace(launchElectronApp, createTmpDir, { mockServer: false });
-
-    try {
-      await test.step('The menu has no mock server entry', async () => {
-        await openApiSpecRowMenu(page, COMPREHENSIVE_TITLE);
-        await expect(menu.menuItems()).toHaveCount(6);
-        await expect(menu.menuItem('generate-mock-server')).toHaveCount(0);
       });
     } finally {
       await closeElectronApp(app);
