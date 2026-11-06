@@ -359,6 +359,12 @@ const isURL = (arg) => {
     return true;
   }
 
+  // Accept URLs with a protocol prefix that contain Bruno variables like {{var}}
+  // These can't be parsed by URL.parse yet but are valid Bruno URLs
+  if (/^[a-zA-Z]+:\/\//.test(arg)) {
+    return true;
+  }
+
   // Check if it looks like a domain without protocol
   // This regex matches domain patterns like:
   // - example.com
@@ -431,20 +437,43 @@ const getUrlString = (url) => {
 const parseUrl = (url) => {
   const parsedUrl = URL.parse(url);
 
-  const queries = parseQueryParams(parsedUrl.query, { decode: false });
+  // If URL.parse returns a valid host, use standard parsing
+  if (parsedUrl?.host) {
+    const queries = parseQueryParams(parsedUrl.query, { decode: false });
 
-  let formattedUrl = URL.format(parsedUrl);
-  if (!url.endsWith('/') && formattedUrl.endsWith('/')) {
-    // Remove trailing slashes if origin url does not have a trailing slash
-    formattedUrl = formattedUrl.slice(0, -1);
+    let formattedUrl = URL.format(parsedUrl);
+    if (!url.endsWith('/') && formattedUrl.endsWith('/')) {
+      // Remove trailing slashes if origin url does not have a trailing slash
+      formattedUrl = formattedUrl.slice(0, -1);
+    }
+
+    const urlWithoutQuery = formattedUrl.split('?')[0];
+
+    return {
+      url: formattedUrl,
+      urlWithoutQuery,
+      queries
+    };
   }
 
-  const urlWithoutQuery = formattedUrl.split('?')[0];
+  // Fallback for URLs containing Bruno variables (e.g., http://{{host}}/path)
+  // that can't be parsed by URL.parse yet
+  const queryIndex = url.indexOf('?');
+  if (queryIndex >= 0) {
+    const urlWithoutQuery = url.slice(0, queryIndex);
+    const queryString = url.slice(queryIndex + 1);
+    const queries = parseQueryParams(queryString, { decode: false });
+    return {
+      url: url,
+      urlWithoutQuery,
+      queries
+    };
+  }
 
   return {
-    url: formattedUrl,
-    urlWithoutQuery,
-    queries
+    url: url,
+    urlWithoutQuery: url,
+    queries: []
   };
 };
 
