@@ -168,4 +168,146 @@ describe('createSearchStore', () => {
     expect(store.getSnapshot().query).toBe('hit');
     expect(window.ipcRenderer.invoke).not.toHaveBeenCalledWith('renderer:search-collections', expect.anything());
   });
+
+  describe('when the search term changes while results are in flight', () => {
+    let searches;
+    let windows;
+
+    const deferred = (payload) => {
+      let resolve;
+      const promise = new Promise((res) => {
+        resolve = res;
+      });
+      return { payload, promise, resolve };
+    };
+
+    const request = (name) => ({ uid: name, name, type: 'http-request', request: { method: 'GET', url: '' } });
+
+    const windowRequests = () => windows.map(({ payload }) => payload);
+
+    beforeEach(() => {
+      searches = [];
+      windows = [];
+      window.ipcRenderer.invoke = jest.fn((channel, payload) => {
+        if (channel === 'renderer:search-collections') {
+          const search = deferred(payload);
+          searches.push(search);
+          return search.promise;
+        }
+        if (channel === 'renderer:search-window') {
+          const pending = deferred(payload);
+          windows.push(pending);
+          return pending.promise;
+        }
+        return Promise.resolve();
+      });
+    });
+
+    const createStore = () => {
+      const store = createSearchStore();
+      store.subscribe(() => {});
+      store.setContext({ roots: ['/a'], indexRoots: ['/a'], order: ['/a'], rows: [] });
+      return store;
+    };
+
+    it('only searches for the last term typed within the debounce window', () => {
+      const store = createStore();
+
+      store.setQuery('a');
+      jest.advanceTimersByTime(100);
+      store.setQuery('ab');
+      jest.advanceTimersByTime(100);
+      store.setQuery('abc');
+      jest.advanceTimersByTime(300);
+
+      expect(searches.map(({ payload }) => payload.query)).toEqual(['abc']);
+      expect(store.getSnapshot().query).toBe('abc');
+    });
+
+    it('applies only the newest search when the older search id resolves last', async () => {
+      const store = createStore();
+      startSearch(store, 'a');
+      startSearch(store, 'ab');
+
+      listener({ type: 'batch', id: 1, root: '/a', paths: ['old.bru'] });
+      listener({ type: 'status', id: 1, indexing: false, matchCount: 5 });
+      listener({ type: 'batch', id: 2, root: '/a', paths: ['new.bru'] });
+      listener({ type: 'status', id: 2, indexing: false, matchCount: 1 });
+
+      searches[1].resolve(2);
+      await flush();
+      searches[0].resolve(1);
+      await flush();
+      listener({ type: 'status', id: 1, indexing: true, matchCount: 7 });
+      await flush();
+
+      expect(store.getSnapshot()).toEqual(expect.objectContaining({ query: 'ab', indexing: false, matchCount: 1 }));
+      expect(windowRequests()).toEqual([{ id: 2, collectionPath: '/a', relativePaths: ['new.bru'] }]);
+    });
+
+    it('drops a window that returns after its search was replaced, then loads the new search', async () => {
+      const store = createStore();
+      startSearch(store, 'a');
+      searches[0].resolve(1);
+      await flush();
+      listener({ type: 'batch', id: 1, root: '/a', paths: ['old.bru'] });
+      await flush();
+      expect(windowRequests()).toEqual([{ id: 1, collectionPath: '/a', relativePaths: ['old.bru'] }]);
+
+      startSearch(store, 'ab');
+      searches[1].resolve(2);
+      await flush();
+      listener({ type: 'batch', id: 2, root: '/a', paths: ['new.bru'] });
+      await flush();
+
+      windows[0].resolve({ items: [request('a-old')] });
+      await flush();
+      expect(store.getSnapshot().itemsByRoot.get('/a')).toBeUndefined();
+      expect(windowRequests()[1]).toEqual({ id: 2, collectionPath: '/a', relativePaths: ['new.bru'] });
+
+      windows[1].resolve({ items: [request('ab-new')] });
+      await flush();
+      expect(store.getSnapshot().itemsByRoot.get('/a')).toEqual([request('ab-new')]);
+    });
+
+    it('drops the previous search\'s results when the same term is typed again', async () => {
+      const store = createStore();
+      startSearch(store, 'a');
+      searches[0].resolve(1);
+      await flush();
+      startSearch(store, 'ab');
+      startSearch(store, 'a');
+
+      listener({ type: 'status', id: 1, indexing: false, matchCount: 9 });
+      searches[2].resolve(3);
+      searches[1].resolve(2);
+      await flush();
+      listener({ type: 'status', id: 1, indexing: false, matchCount: 9 });
+      listener({ type: 'status', id: 2, indexing: false, matchCount: 4 });
+      listener({ type: 'batch', id: 1, root: '/a', paths: ['old.bru'] });
+      await flush();
+
+      expect(store.getSnapshot()).toEqual(expect.objectContaining({ query: 'a', matchCount: null }));
+      expect(windowRequests()).toEqual([]);
+
+      listener({ type: 'status', id: 3, indexing: false, matchCount: 2 });
+      expect(store.getSnapshot().matchCount).toBe(2);
+    });
+
+    it('ignores a search that resolves after the term was cleared', async () => {
+      const store = createStore();
+      startSearch(store, 'a');
+      store.setQuery('');
+
+      searches[0].resolve(1);
+      await flush();
+      listener({ type: 'status', id: 1, indexing: true, matchCount: 3 });
+      listener({ type: 'batch', id: 1, root: '/a', paths: ['old.bru'] });
+      await flush();
+
+      expect(store.getSnapshot()).toEqual(expect.objectContaining({ query: '', indexing: false, matchCount: null }));
+      expect(store.getSnapshot().itemsByRoot.size).toBe(0);
+      expect(windowRequests()).toEqual([]);
+    });
+  });
 });
