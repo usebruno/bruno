@@ -183,6 +183,9 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   });
 
   if (request?.pathParams?.length) {
+    // with URL encoding on, path param values are data, so reserved characters such as "/" must be escaped
+    const toPathParamSegment = (value) => (request.settings?.encodeUrl ? encodeURIComponent(value) : value);
+
     let url = request.url;
     const urlSearchRaw = getRawQueryString(request.url);
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -206,7 +209,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
           if (!hasResolvablePathParamValue(existingPathParam)) {
             return '/' + path;
           }
-          return '/' + existingPathParam.value;
+          return '/' + toPathParamSegment(existingPathParam.value);
         }
 
         // for OData-style parameters (parameters inside parentheses)
@@ -225,7 +228,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
               if (name) {
                 const existingPathParam = request.pathParams.find((param) => param.name === name);
                 if (hasResolvablePathParamValue(existingPathParam)) {
-                  result = result.replace(':' + match[1], existingPathParam.value);
+                  result = result.replace(':' + match[1], toPathParamSegment(existingPathParam.value));
                 }
               }
             }
