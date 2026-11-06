@@ -130,11 +130,16 @@ export default function useReflectionManagement(item, collection) {
     debouncedLoad(url, onDone);
   };
 
+  const cancelScheduledReflection = () => {
+    debouncedLoad.cancel();
+  };
+
   return {
     isLoadingMethods,
     reflectionCache,
     loadMethodsFromReflection,
     scheduleReflection,
+    cancelScheduledReflection,
     hasCachedMethods,
     getCachedMethods,
     clearCacheForUrl,
