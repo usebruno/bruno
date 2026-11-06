@@ -8,6 +8,40 @@ describe('insomnia-collection', () => {
     expect(brunoCollection).toMatchObject(expectedOutput);
   });
 
+  it('should import file params in multipart bodies as Bruno file entries', async () => {
+    const request = {
+      _id: 'req_upload',
+      _type: 'request',
+      parentId: 'wrk_1',
+      name: 'Upload',
+      url: 'http://localhost/upload',
+      method: 'POST',
+      body: {
+        mimeType: 'multipart/form-data',
+        params: [
+          { name: 'upload', type: 'file', fileName: '/tmp/report.csv' },
+          { name: 'label', value: 'report' },
+          { name: 'skipped', type: 'file', fileName: '/tmp/skip.csv', disabled: true },
+          { name: 'empty', type: 'file', fileName: '' }
+        ]
+      },
+      headers: [],
+      parameters: [],
+      authentication: {}
+    };
+    const brunoCollection = insomniaToBruno({
+      _type: 'export',
+      __export_format: 4,
+      resources: [{ _id: 'wrk_1', _type: 'workspace', name: 'Upload collection' }, request]
+    });
+
+    const form = brunoCollection.items[0].request.body.multipartForm;
+    expect(form[0]).toMatchObject({ type: 'file', name: 'upload', value: ['/tmp/report.csv'], enabled: true });
+    expect(form[1]).toMatchObject({ type: 'text', name: 'label', value: 'report', enabled: true });
+    expect(form[2]).toMatchObject({ type: 'file', name: 'skipped', value: ['/tmp/skip.csv'], enabled: false });
+    expect(form[3]).toMatchObject({ type: 'file', name: 'empty', value: [] });
+  });
+
   it('should import empty mimeType bodies as Bruno text bodies', async () => {
     const brunoCollection = insomniaToBruno(insomniaCollectionWithEmptyMimeTypeBody);
 
