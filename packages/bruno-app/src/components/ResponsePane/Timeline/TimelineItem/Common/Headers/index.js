@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons';
+import compareHeaderNames from 'components/ResponsePane/utils/compareHeaderNames';
 
 const toEntries = (headers) => {
   if (!headers) return [];
@@ -11,7 +12,7 @@ const toEntries = (headers) => {
 
 const Headers = ({ headers, variant }) => {
   const [isOpen, setIsOpen] = useState(true);
-  const entries = toEntries(headers);
+  const entries = toEntries(headers).sort((headerA, headerB) => compareHeaderNames(headerA.name, headerB.name));
   const count = entries.length;
 
   return (
