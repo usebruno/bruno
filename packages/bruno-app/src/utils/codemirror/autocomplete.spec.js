@@ -1564,6 +1564,16 @@ describe('Bruno Autocomplete', () => {
         expect(mockedCodemirror.off).toHaveBeenCalledWith('keydown', expect.any(Function));
       });
 
+      it('closes an open hint list when cleaned up, since its dropdown lives outside the editor', () => {
+        const close = jest.fn();
+        mockedCodemirror.state = { completionActive: { close } };
+        cleanupFn = setupAutoComplete(mockedCodemirror, { getAllVariables: mockGetAllVariables });
+
+        cleanupFn();
+
+        expect(close).toHaveBeenCalledTimes(1);
+      });
+
       it('should not setup if editor is null', () => {
         const result = setupAutoComplete(null, { getAllVariables: mockGetAllVariables });
 
