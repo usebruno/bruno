@@ -1,40 +1,52 @@
 import { test, expect } from '../../playwright';
-import { closeAllCollections, createCollection, createRequest } from '../utils/page/actions';
+import { closeAllCollections, createCollection, createRequest, sendRequest } from '../utils/page/actions';
+import { buildPreferencesLocators, setMaxPreviewSizePreference } from '../utils/page/preferences';
+
+const MB = 1024 * 1024;
+const largePayloadUrl = (bytes: number) => `http://localhost:8081/api/large-payload?size=${bytes}`;
 
 test.describe('Large Response Crash/High Memory Usage Prevention', () => {
-  // Increase timeout to 1 minute for all tests in this describe block, default is 30 seconds.
-  // Prevents tests from failing due to timeout while waiting for the response, especially on slower internet connections.
-  test.setTimeout(1 * 60 * 1000); // 1 minute
-
-  test.afterAll(async ({ page }) => {
-    // cleanup: close all collections
+  test.afterEach(async ({ page }) => {
+    await setMaxPreviewSizePreference(page, 10);
     await closeAllCollections(page);
   });
 
-  test('Show appropriate warning for responses over 10MB', async ({ page, createTmpDir }) => {
-    const collectionName = 'size-warning-test';
-    const requestName = 'large-response';
+  test('Show warning for responses over the max preview size', async ({ page, createTmpDir }) => {
+    await createCollection(page, 'size-warning-test', await createTmpDir('size-warning-test'));
+    await createRequest(page, 'large-response', 'size-warning-test', { url: largePayloadUrl(11 * MB) });
+    await sendRequest(page, 200);
 
-    // Create collection (auto-opens the collection)
-    await createCollection(page, collectionName, await createTmpDir(collectionName));
+    await expect(page.getByText('Large Response Warning')).toBeVisible();
+    await expect(page.getByText('This response exceeds your configured preview size limit.')).toBeVisible();
+    await expect(page.getByTestId('large-response-view')).toBeEnabled();
+    await expect(page.getByTestId('large-response-download')).toBeEnabled();
+    await expect(page.getByTestId('large-response-copy')).toBeEnabled();
+  });
 
-    // Create request using the dialog/modal flow
-    await createRequest(page, requestName, collectionName, {
-      url: 'https://samples.json-format.com/employees/json/employees_50MB.json'
-    });
+  test('Raising the max preview size reveals the response', async ({ page, createTmpDir }) => {
+    await setMaxPreviewSizePreference(page, 1);
+    await createCollection(page, 'size-limit-test', await createTmpDir('size-limit-test'));
+    await createRequest(page, 'large-response', 'size-limit-test', { url: largePayloadUrl(2 * MB) });
+    await sendRequest(page, 200);
+    await expect(page.getByText('Large Response Warning')).toBeVisible();
 
-    // Send request
-    const sendButton = page.getByTestId('send-arrow-icon');
-    await sendButton.click();
+    await setMaxPreviewSizePreference(page, 3);
+    await page.locator('.collection-item-name').filter({ hasText: 'large-response' }).click();
 
-    // Verify warning appears
-    await expect(page.getByText('Large Response Warning')).toBeVisible({ timeout: 60000 });
+    await expect(page.getByText('Large Response Warning')).toHaveCount(0);
+    await expect(page.getByTestId('response-preview-container')).toContainText('bruno large payload');
+  });
 
-    // Verify warning content
-    await expect(page.getByText('Handling responses over')).toBeVisible();
-    await expect(page.getByText('could degrade performance')).toBeVisible();
+  test('Preferences link opens the General preferences', async ({ page, createTmpDir }) => {
+    const preferences = buildPreferencesLocators(page);
+    await setMaxPreviewSizePreference(page, 1);
+    await createCollection(page, 'size-preferences-test', await createTmpDir('size-preferences-test'));
+    await createRequest(page, 'large-response', 'size-preferences-test', { url: largePayloadUrl(2 * MB) });
+    await sendRequest(page, 200);
 
-    // Verify action button
-    await expect(page.getByRole('button', { name: 'View', exact: true })).toBeVisible();
+    await page.getByTestId('large-response-open-preferences').click();
+
+    await expect(preferences.openTab()).toBeVisible();
+    await expect(preferences.general.maxPreviewSizeInput()).toHaveValue('1');
   });
 });
