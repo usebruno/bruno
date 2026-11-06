@@ -5,10 +5,19 @@ export const BRUNO_VARIABLE_DATATYPES: readonly BrunoVariableDataType[] = ['stri
 export const isBrunoVariableDataType = (t: unknown): t is BrunoVariableDataType =>
   typeof t === 'string' && (BRUNO_VARIABLE_DATATYPES as readonly string[]).includes(t);
 
+const FORBIDDEN_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+
 const getByPath = (obj: Record<string, any>, path: string): any => {
-  if (obj == null) return undefined;
+  if (obj == null || typeof obj !== 'object' || FORBIDDEN_KEYS.has(path)) return undefined;
   if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path];
-  return path.split('.').reduce<any>((acc, key) => (acc == null ? undefined : acc[key]), obj);
+  const parts = path.split('.');
+  let current: any = obj;
+  for (const key of parts) {
+    if (current == null || typeof current !== 'object' || FORBIDDEN_KEYS.has(key)) return undefined;
+    if (!Object.prototype.hasOwnProperty.call(current, key)) return undefined;
+    current = current[key];
+  }
+  return current;
 };
 
 export const resolveVariableReference = (value: any, resolvableVariables: Record<string, any>): any => {

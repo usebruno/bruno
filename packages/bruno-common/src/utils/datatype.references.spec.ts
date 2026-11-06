@@ -65,6 +65,14 @@ describe('parseValueByDataType — reference resolution', () => {
     it('out-of-bounds array index', () => {
       expect(parseValueByDataType('{{ports.5}}', 'number', ports)).toBe('{{ports.5}}');
     });
+
+    it('prototype and constructor properties are not resolved or leaked', () => {
+      expect(parseValueByDataType('{{constructor}}', 'string', {})).toBe('{{constructor}}');
+      expect(parseValueByDataType('{{__proto__}}', 'string', {})).toBe('{{__proto__}}');
+      expect(parseValueByDataType('{{prototype}}', 'string', {})).toBe('{{prototype}}');
+      expect(parseValueByDataType('{{server.constructor}}', 'string', server)).toBe('{{server.constructor}}');
+      expect(parseValueByDataType('{{server.toString}}', 'string', server)).toBe('{{server.toString}}');
+    });
   });
 
   describe('returns the resolved value uncoerced', () => {
