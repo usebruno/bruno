@@ -134,7 +134,10 @@ export const buildCommonLocators = (page: Page) => ({
       page.getByTestId('settings-tab-bar').getByTestId(`ai-assist-trigger-${scriptType}`)
   },
   folder: {
-    chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
+    chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron'),
+    postResponseScriptEditor: () => buildCodeMirrorLocators(page).byTestId('folder-post-response-script-editor'),
+    preRequestScriptEditor: () => buildCodeMirrorLocators(page).byTestId('folder-pre-request-script-editor'),
+    testsEditor: () => buildCodeMirrorLocators(page).byTestId('folder-tests-editor')
   },
   modal: {
     any: () => page.locator('.bruno-modal'),

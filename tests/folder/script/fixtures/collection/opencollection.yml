@@ -1,0 +1,10 @@
+opencollection: "1.0.0"
+info:
+  name: folder-post-response
+
+extensions:
+  bruno:
+    presets:
+      defaultEnvironment: Development
+
+bundled: false
