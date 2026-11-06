@@ -232,8 +232,8 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     await expect(draftIndicator(page, 'req-1')).toBeVisible();
 
     // Save All wrote the collection, folder and environment drafts to disk
-    await expectCollectionFileToContain(collectionDir, 'opencollection.yml', 'X-Collection-Header');
-    await expectCollectionFileToContain(collectionDir, 'admin/folder.yml', 'X-Folder-Header');
+    await expectCollectionFileToContain(collectionDir, 'opencollection.yml', '// draft');
+    await expectCollectionFileToContain(collectionDir, 'admin/folder.yml', '// draft');
     await expectCollectionFileToContain(collectionDir, 'environments/Local.yml', 'http://saved-right');
 
     // The saved environment value is on disk, so reopening the editor shows it without a draft
