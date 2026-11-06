@@ -1691,16 +1691,26 @@ const openCollectionSettings = async (page: Page, collectionName: string, { pers
   });
 };
 
+const COLLECTION_SETTINGS_SECTIONS = ['presets', 'proxy', 'clientcert'];
+
 /**
  * Select a tab in the collection settings pane
  * @param page - The page object
- * @param tabName - The tab name key (e.g. 'auth', 'headers', 'overview', 'script', 'vars')
+ * @param tabName - The tab name key (e.g. 'auth', 'headers', 'overview', 'script', 'vars'), or a
+ *   Settings section ('presets', 'proxy', 'clientCert'), which opens the Settings tab first
  * @returns void
  */
 const selectCollectionPaneTab = async (page: Page, tabName: string) => {
   await test.step(`Select collection pane tab "${tabName}"`, async () => {
     const locators = buildCommonLocators(page);
-    const tab = locators.paneTabs.collectionSettingsTab(tabName.toLowerCase());
+    const key = tabName.toLowerCase() === 'clientcert' ? 'clientCert' : tabName.toLowerCase();
+    if (COLLECTION_SETTINGS_SECTIONS.includes(tabName.toLowerCase())) {
+      // Presets, Proxy and Client certificates live in the Settings tab's sidebar
+      const settingsTab = locators.paneTabs.collectionSettingsTab('settings');
+      await settingsTab.click();
+      await expect(settingsTab).toContainClass('active');
+    }
+    const tab = locators.paneTabs.collectionSettingsTab(key);
     await tab.click();
     await expect(tab).toContainClass('active');
   });

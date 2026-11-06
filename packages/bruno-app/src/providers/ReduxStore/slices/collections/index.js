@@ -382,12 +382,16 @@ export const collectionsSlice = createSlice({
       }
     },
     updateSettingsSelectedTab: (state, action) => {
-      const { collectionUid, folderUid, tab } = action.payload;
+      const { collectionUid, tab, isSettingsSection } = action.payload;
 
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
         collection.settingsSelectedTab = tab;
+        // Remember the last section picked inside the Settings tab, so coming back to Settings reopens it
+        if (isSettingsSection) {
+          collection.settingsLastSection = tab;
+        }
       }
     },
     updatedFolderSettingsSelectedTab: (state, action) => {

@@ -1,7 +1,6 @@
 import React, { useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import get from 'lodash/get';
-import { IconTag } from '@tabler/icons';
 import { utils } from '@usebruno/common';
 import ToggleSelector from 'components/RequestPane/Settings/ToggleSelector';
 import SettingsInput from 'components/SettingsInput';
@@ -10,6 +9,9 @@ import { updateItemSettings, toggleAppMode } from 'providers/ReduxStore/slices/c
 import { setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Tags from './Tags/index';
+import FormField from 'ui/patterns/FormField';
+import FieldList from 'ui/patterns/FieldList';
+import StyledWrapper from './StyledWrapper';
 
 // Default settings configuration
 const DEFAULT_SETTINGS = {
@@ -111,74 +113,27 @@ const Settings = ({ item, collection }) => {
   }, [onSave, onRun]);
 
   return (
-    <div className="h-full w-full">
+    <StyledWrapper className="h-full w-full">
       <div className="text-xs mb-4 text-muted">Configure request settings for this item.</div>
       <div className="bruno-form">
-        <div className="mb-6">
-          <h3 className="text-xs font-medium flex items-center gap-1 mb-4">
-            <IconTag size={16} />
-            Tags
-          </h3>
-          <Tags item={item} collection={collection} />
-        </div>
-
-        <div className="flex flex-col gap-4">
-
-          <div className="flex flex-col gap-4">
-            <ToggleSelector
-              checked={encodeUrl}
-              onChange={onToggleUrlEncoding}
-              label="URL Encoding"
-              description="Automatically encode query parameters in the URL"
-              size="medium"
-              data-testid="encode-url-toggle"
-            />
-          </div>
-
-          <div className="flex flex-col gap-4">
-            <ToggleSelector
-              checked={followRedirects}
-              onChange={onToggleFollowRedirects}
-              label="Automatically Follow Redirects"
-              description="Follow HTTP redirects automatically"
-              size="medium"
-              data-testid="follow-redirects-toggle"
-            />
-          </div>
-
-          <div className="flex flex-col gap-4">
-            <ToggleSelector
-              checked={forwardAuthorizationHeader}
-              onChange={onToggleForwardAuthorizationOnRedirect}
-              label="Forward Authorization on Redirect"
-              description="Send Authorization and Proxy-Authorization headers when a redirect points to a different origin"
-              size="medium"
-              data-testid="forward-auth-header-toggle"
-            />
-          </div>
-
-          {item.type === 'http-request' && (
-            <div className="flex flex-col gap-4">
-              <ToggleSelector
-                checked={enableApp}
-                onChange={onToggleEnableApp}
-                label="Enable App"
-                description="Show the App tab and app view mode for this request"
-                size="medium"
-                data-testid="enable-app-toggle"
-              />
+        <FieldList dividers className="request-settings-list">
+          <FormField
+            label="Tags"
+            labelId="request-settings-tags-label"
+            className="tags-field"
+          >
+            <div className="w-full" role="group" aria-labelledby="request-settings-tags-label">
+              <Tags item={item} collection={collection} />
             </div>
-          )}
-
-          <SettingsInput
-            id="maxRedirects"
-            label="Max Redirects"
-            value={maxRedirects}
-            onChange={onMaxRedirectsChange}
-            description="Set a limit for the number of redirects to follow"
-            onKeyDown={handleKeyDown}
+          </FormField>
+          <ToggleSelector
+            checked={encodeUrl}
+            onChange={onToggleUrlEncoding}
+            label="URL Encoding"
+            description="Automatically encode query parameters in the URL"
+            size="medium"
+            data-testid="encode-url-toggle"
           />
-
           <InheritableSettingsInput
             id="timeout"
             label="Timeout (ms)"
@@ -190,9 +145,44 @@ const Settings = ({ item, collection }) => {
             onValueChange={(e) => !isTimeoutInherited && onTimeoutChange(e)}
             onCustomValueReset={() => updateSetting({ timeout: 'inherit' })}
           />
-        </div>
+          <ToggleSelector
+            checked={followRedirects}
+            onChange={onToggleFollowRedirects}
+            label="Automatically Follow Redirects"
+            description="Follow HTTP redirects automatically"
+            size="medium"
+            data-testid="follow-redirects-toggle"
+          />
+          <SettingsInput
+            id="maxRedirects"
+            label="Max Redirects"
+            value={maxRedirects}
+            onChange={onMaxRedirectsChange}
+            description="Set a limit for the number of redirects to follow"
+            onKeyDown={handleKeyDown}
+          />
+          <ToggleSelector
+            checked={forwardAuthorizationHeader}
+            onChange={onToggleForwardAuthorizationOnRedirect}
+            label="Forward Authorization on Redirect"
+            description="Send Authorization and Proxy-Authorization headers when a redirect points to a different origin."
+            size="medium"
+            data-testid="forward-auth-header-toggle"
+          />
+
+          {item.type === 'http-request' && (
+            <ToggleSelector
+              checked={enableApp}
+              onChange={onToggleEnableApp}
+              label="Enable App"
+              description="Show the App tab and app view mode for this request"
+              size="medium"
+              data-testid="enable-app-toggle"
+            />
+          )}
+        </FieldList>
       </div>
-    </div>
+    </StyledWrapper>
   );
 };
 

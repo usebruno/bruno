@@ -261,7 +261,7 @@ const ClientCertSettings = ({ collection }) => {
           dataTestId: 'add-client-cert'
         }}
         footerActions={(
-          <Button type="button" size="sm" data-testid="client-cert-save-btn" onClick={handleSave}>
+          <Button type="button" size="base" data-testid="client-cert-save-btn" onClick={handleSave}>
             Save
           </Button>
         )}

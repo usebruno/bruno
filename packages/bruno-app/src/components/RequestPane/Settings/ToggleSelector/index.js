@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { useTheme } from 'providers/Theme';
+import FormField from 'ui/patterns/FormField';
 
 const ToggleSelector = ({
   checked,
@@ -11,6 +12,7 @@ const ToggleSelector = ({
   'data-testid': dataTestId
 }) => {
   const { theme } = useTheme();
+  const switchId = useId();
 
   const sizeClasses = {
     small: {
@@ -33,18 +35,16 @@ const ToggleSelector = ({
   const currentSize = sizeClasses[size];
 
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex flex-col">
-        <label className="text-xs font-medium text-gray-900 dark:text-gray-100">
-          {label}
-        </label>
-        {description && (
-          <p className="text-xs text-gray-700 dark:text-gray-400">
-            {description}
-          </p>
-        )}
-      </div>
+    <FormField
+      layout="inline"
+      label={label}
+      description={description}
+      htmlFor={switchId}
+      descriptionId={description ? `${switchId}-description` : undefined}
+    >
       <button
+        id={switchId}
+        aria-describedby={description ? `${switchId}-description` : undefined}
         type="button"
         onClick={onChange}
         disabled={disabled}
@@ -68,7 +68,7 @@ const ToggleSelector = ({
           `}
         />
       </button>
-    </div>
+    </FormField>
   );
 };
 

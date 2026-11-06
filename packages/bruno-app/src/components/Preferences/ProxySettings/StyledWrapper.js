@@ -6,23 +6,80 @@ const StyledWrapper = styled.div`
   gap: 1rem;
   width: 100%;
 
-  .settings-label {
-    width: 100px;
+  .proxy-settings {
+    max-width: 500px;
+    font-size: ${(props) => props.theme.font.size.base};
   }
 
   .textbox {
-    border: 1px solid #ccc;
-    padding: 0.15rem 0.45rem;
+    width: 100%;
+    min-width: 0;
+    height: 34px;
+    padding: 0 10px;
+    line-height: normal;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    border: 1px solid ${(props) => props.theme.input.border};
+    background-color: ${(props) => props.theme.input.bg};
+    color: ${(props) => props.theme.text};
     box-shadow: none;
     outline: none;
     transition: border-color ease-in-out 0.1s;
-    border-radius: 3px;
-    background-color: ${(props) => props.theme.input.bg};
-    border: 1px solid ${(props) => props.theme.input.border};
 
-    &:focus {
+    &:focus,
+    &:focus-within {
       border: solid 1px ${(props) => props.theme.input.focusBorder} !important;
       outline: none !important;
+    }
+  }
+
+  /* Password input + show/hide button inside one bordered field */
+  .password-field {
+    display: flex;
+    align-items: center;
+    padding-right: 3px;
+
+    input {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: inherit;
+    }
+
+    .password-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      color: ${(props) => props.theme.colors.text.muted};
+
+      &:hover {
+        color: ${(props) => props.theme.text};
+      }
+    }
+  }
+
+  .protocol-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 34px;
+    padding: 0 10px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    border: 1px solid ${(props) => props.theme.input.border};
+    background-color: ${(props) => props.theme.input.bg};
+    color: ${(props) => props.theme.text};
+    cursor: pointer;
+    transition: border-color ease-in-out 0.1s;
+
+    &:hover,
+    &:focus-visible {
+      border-color: ${(props) => props.theme.input.focusBorder};
+      outline: none;
     }
   }
 
@@ -30,13 +87,12 @@ const StyledWrapper = styled.div`
     display: inline-flex;
     flex-shrink: 0;
     border: 1px solid ${(props) => props.theme.input.border};
-    border-radius: ${(props) => props.theme.border.radius.base};
+    border-radius: ${(props) => props.theme.border.radius.sm};
     overflow: hidden;
-    margin-right: 12px;
   }
 
   .pac-mode-btn {
-    height: 34px;
+    height: 32px;
     padding: 0.1rem 0.6rem;
     font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
@@ -58,10 +114,13 @@ const StyledWrapper = styled.div`
   }
 
   .pac-source-input {
-    width: 265px;
+    flex: 1;
+    width: auto;
   }
 
   .pac-file-btn {
+    display: flex;
+    align-items: center;
     text-align: left;
     cursor: pointer;
     color: ${(props) => props.theme.colors.text.muted};
@@ -70,14 +129,12 @@ const StyledWrapper = styled.div`
     text-overflow: ellipsis;
   }
 
-  .pac-hint {
-    font-size: ${(props) => props.theme.font.size.xs};
-    color: ${(props) => props.theme.colors.text.muted};
-    margin-top: 4px;
-    padding-left: 100px;
-  }
-
   .system-proxy-settings {
+    /* SystemProxy lines up its variable rows on a fixed label column */
+    .settings-label {
+      width: 100px;
+    }
+
     label {
       color: ${(props) => props.theme.colors.text.yellow};
     }
