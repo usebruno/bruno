@@ -1,7 +1,8 @@
 /**
- * Measures the `pm.*` API surface of a Postman script, so an import can report
- * how much of it the translator covered. Counting lives beside the translator so
- * script text never crosses a worker or IPC boundary.
+ * Measures the `pm.*` API surface of a Postman import, so it can report how much
+ * of it the translator covered. Both sides are read once the import is done — the
+ * Postman source for the total, the Bruno collection for what the translator left
+ * behind — so no measurement has to travel through the translator or its workers.
  *
  * Only API identifiers and counts may escape — never arguments, values, URLs or
  * script bodies. Hence computed access goes unreported, and hence not reusing
@@ -10,7 +11,7 @@
  */
 
 import { parse } from '@babel/parser';
-import { extractPackagesFromScript } from './postman-package-detector';
+import { forEachBrunoScript, forEachPostmanScript } from './postman-script-sources';
 
 // Mirrors jscodeshift's babel5Compat grammar, so whatever the translator parses parses here.
 const PARSE_OPTIONS = {
@@ -136,49 +137,61 @@ const restoreLegacyRoot = (api, sourceApis) => {
   return sourceApis[legacy] ? legacy : api;
 };
 
+// The only two the importer translates; anything else never reaches the output.
+const TRANSLATED_EVENTS = new Set(['prerequest', 'test']);
+
+const collectPostmanScripts = (postmanCollection) => {
+  const scripts = [];
+
+  forEachPostmanScript(postmanCollection, (script, listen) => {
+    if (TRANSLATED_EVENTS.has(listen)) scripts.push(script);
+  });
+
+  return scripts;
+};
+
 /**
- * Measures one translated block; untranslated call sites are the `pm.*`
- * references still standing in the output.
- *
- * @param {{source: string, translated: string, fellBackToRegex: boolean}} block
- * @returns {Object|null} null when the block held no script or could not be
- *   measured — one unmeasurable block must not cost the import its report.
+ * Sound only on the Bruno side. There, a parse result is purely a count, so
+ * output naming neither root holds nothing to report whether or not it parses.
+ * On the Postman side the parse doubles as the fallback signal, so every source
+ * script has to be parsed, root or no root.
  */
-export const buildScriptUsage = ({ source, translated, fellBackToRegex }) => {
-  if (!source || !source.trim()) return null;
+const mentionsPostmanRoot = (script) => script.includes(CURRENT_ROOT) || script.includes(LEGACY_ROOT);
 
-  // A fallback never translated structurally, so it counts towards neither side
-  // of the ratio.
-  if (fellBackToRegex) {
-    return { apiUsagesTotal: 0, apiUsagesUntranslated: 0, untranslatedApis: {}, fellBackToRegex: true };
-  }
+const collectBrunoScripts = (brunoCollection) => {
+  const scripts = [];
 
-  try {
-    const sourceApis = countPmApiUsages(source);
-    const { translatedSource } = extractPackagesFromScript(translated);
-    const untranslated = countPmApiUsages(translatedSource);
-    const untranslatedApis = {};
+  forEachBrunoScript(brunoCollection, (script) => {
+    if (mentionsPostmanRoot(script)) scripts.push(script);
+  });
 
-    for (const [api, count] of Object.entries(untranslated.byApi)) {
-      const name = restoreLegacyRoot(api, sourceApis.byApi);
-      untranslatedApis[name] = (untranslatedApis[name] || 0) + count;
+  return scripts;
+};
+
+const measure = (scripts) => {
+  const byApi = {};
+  let total = 0;
+  let unparseable = 0;
+
+  for (const script of scripts) {
+    if (typeof script !== 'string' || !script.trim()) continue;
+
+    try {
+      const usages = countPmApiUsages(script);
+      total += usages.total;
+      for (const [api, count] of Object.entries(usages.byApi)) {
+        byApi[api] = (byApi[api] || 0) + count;
+      }
+    } catch {
+      unparseable++;
     }
-
-    return {
-      apiUsagesTotal: sourceApis.total,
-      apiUsagesUntranslated: untranslated.total,
-      untranslatedApis,
-      fellBackToRegex: false
-    };
-  } catch (err) {
-    // Measurement must never fail an import.
-    console.warn('Could not measure Postman script translation:', err?.message);
-    return null;
   }
+
+  return { total, byApi, unparseable };
 };
 
 // Translation never ran, so the counts would describe nothing.
-export const buildPreservedScriptsReport = () => ({ preserveScripts: true });
+const preservedScriptsReport = () => ({ preserveScripts: true });
 
 const emptyReport = () => ({
   preserveScripts: false,
@@ -189,18 +202,42 @@ const emptyReport = () => ({
   scriptsUsingRegexFallback: 0
 });
 
-const toReport = (usage) => ({
-  preserveScripts: false,
-  fullyTranslated: usage.apiUsagesUntranslated === 0 && !usage.fellBackToRegex,
-  apiUsagesTotal: usage.apiUsagesTotal,
-  apiUsagesUntranslated: usage.apiUsagesUntranslated,
-  untranslatedApis: usage.untranslatedApis,
-  scriptsUsingRegexFallback: usage.fellBackToRegex ? 1 : 0
-});
+/**
+ * Builds an import's one report, by measuring the Postman source it was given
+ * against the Bruno collection it produced.
+ *
+ * Zeroes mean "nothing to translate" — distinct from an import of something
+ * other than Postman, which produces no report at all.
+ */
+export const buildScriptTranslationReport = ({ postmanCollection, brunoCollection, preserveScripts }) => {
+  if (preserveScripts) return preservedScriptsReport();
+
+  const source = measure(collectPostmanScripts(postmanCollection));
+  const remaining = measure(collectBrunoScripts(brunoCollection));
+
+  const untranslatedApis = {};
+  for (const [api, count] of Object.entries(remaining.byApi)) {
+    const name = restoreLegacyRoot(api, source.byApi);
+    untranslatedApis[name] = (untranslatedApis[name] || 0) + count;
+  }
+
+  // A source script that won't parse is precisely what sends the translator to its
+  // regex pass, whose output won't parse either — so it sits out both counts above.
+  const scriptsUsingRegexFallback = source.unparseable;
+
+  return {
+    preserveScripts: false,
+    // `remaining.unparseable` too: output we could not read is output we cannot vouch for.
+    fullyTranslated: remaining.total === 0 && remaining.unparseable === 0 && scriptsUsingRegexFallback === 0,
+    apiUsagesTotal: source.total,
+    apiUsagesUntranslated: remaining.total,
+    untranslatedApis,
+    scriptsUsingRegexFallback
+  };
+};
 
 /**
- * Sums reports into one, for both roll-ups: a collection's measured blocks, and
- * a bulk import's per-collection reports into its single entry.
+ * Sums a bulk import's per-collection reports into its single entry.
  *
  * @returns {Object|null} null when nothing was reported, which is how an import
  *   of no Postman collection ends up with no report at all.
@@ -211,7 +248,7 @@ export const mergeScriptTranslationReports = (reports) => {
 
   // One "preserve scripts" choice covers a whole import, so the flag is all
   // there is to merge.
-  if (present.every((report) => report.preserveScripts)) return buildPreservedScriptsReport();
+  if (present.every((report) => report.preserveScripts)) return preservedScriptsReport();
 
   const merged = emptyReport();
 
@@ -229,11 +266,3 @@ export const mergeScriptTranslationReports = (reports) => {
   merged.fullyTranslated = merged.apiUsagesUntranslated === 0 && merged.scriptsUsingRegexFallback === 0;
   return merged;
 };
-
-/**
- * Rolls one collection's measured blocks into its report. Always returns one,
- * even with no script at all: zeroes say "nothing to translate", where no report
- * is indistinguishable from an import that was never measured.
- */
-export const aggregateScriptUsage = (usages) =>
-  mergeScriptTranslationReports((usages || []).filter(Boolean).map(toReport)) || emptyReport();
