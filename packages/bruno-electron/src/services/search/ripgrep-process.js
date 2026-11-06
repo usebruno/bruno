@@ -1,8 +1,8 @@
 const path = require('node:path');
 const { spawn } = require('node:child_process');
-const { rgPath } = require('@vscode/ripgrep');
+const { rgPath } = require('@vscode/ripgrep-universal');
 const escapeRegExp = require('lodash/escapeRegExp');
-const { defaultClassify, DENY_DIRS } = require('../../utils/mount');
+const { defaultClassify, DENY_DIRS, isDenied, posixifyPath, resolveDenylist } = require('../../utils/mount');
 
 const RG_PATH = rgPath.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
 const BATCH_SIZE = 200;
@@ -50,16 +50,24 @@ const chunkPaths = (relativePaths) => {
   return chunks;
 };
 
-const findNarrowing = (entries = [], query) => entries
-  .filter((entry) => query.toLowerCase().includes(entry.query.toLowerCase()))
+const patternsKey = (patterns) => (patterns || []).join('\0');
+
+const findNarrowing = (entries = [], query, key) => entries
+  .filter((entry) => entry.patternsKey === key && query.toLowerCase().includes(entry.query.toLowerCase()))
   .reduce((best, entry) => (!best || entry.paths.length < best.paths.length ? entry : best), null);
 
-const remember = (root, query, paths) => {
+const remember = (root, query, paths, key) => {
   if (paths.length > NARROW_LIMIT) return;
-  history.set(root, [{ query, paths }, ...(history.get(root) || [])].slice(0, HISTORY_SIZE));
+  history.set(root, [{ query, paths, patternsKey: key }, ...(history.get(root) || [])].slice(0, HISTORY_SIZE));
 };
 
-const searchRoot = (id, root, query, targets, narrowed) => new Promise((resolve) => {
+const isExcluded = (relativePath, patterns) => {
+  const relativePosix = posixifyPath(relativePath);
+  if (relativePosix.split('/')[0] === 'mocks') return true;
+  return isDenied(relativePosix, resolveDenylist(patterns));
+};
+
+const searchRoot = (id, root, query, targets, narrowed, patterns) => new Promise((resolve) => {
   const pattern = `(?m)^[ \\t]*(?:name|url)[ \\t]*:[^\\r\\n]*?${escapeRegExp(query)}`;
   const child = spawn(RG_PATH, [...RG_ARGS, '--regexp', pattern, '--', ...targets], {
     cwd: narrowed ? root : undefined,
@@ -79,7 +87,7 @@ const searchRoot = (id, root, query, targets, narrowed) => new Promise((resolve)
   const collect = (line) => {
     if (!line) return;
     const relativePath = path.relative(root, path.resolve(root, line));
-    if (defaultClassify(relativePath)?.type !== 'request') return;
+    if (defaultClassify(relativePath)?.type !== 'request' || isExcluded(relativePath, patterns)) return;
     paths.push(relativePath);
     if (matched.length <= NARROW_LIMIT) matched.push(relativePath);
     if (paths.length >= BATCH_SIZE) flush();
@@ -104,22 +112,24 @@ const searchRoot = (id, root, query, targets, narrowed) => new Promise((resolve)
   });
 });
 
-const search = async ({ id, roots, query }) => {
+const search = async ({ id, roots, query, ignore }) => {
   stop();
   current = { id, child: null };
 
   for (const root of query ? roots : []) {
-    const prior = findNarrowing(history.get(root), query);
+    const patterns = ignore?.[root];
+    const key = patternsKey(patterns);
+    const prior = findNarrowing(history.get(root), query, key);
     const rootMatches = [];
     let failed = false;
     for (const targets of prior ? chunkPaths(prior.paths) : [[root]]) {
-      const result = await searchRoot(id, root, query, targets, Boolean(prior));
+      const result = await searchRoot(id, root, query, targets, Boolean(prior), patterns);
       if (!isCurrent(id)) return;
       if (rootMatches.length <= NARROW_LIMIT) rootMatches.push(...result.matched);
       failed = failed || result.failed;
     }
     if (failed) history.delete(root);
-    else remember(root, query, rootMatches);
+    else remember(root, query, rootMatches, key);
   }
 
   if (isCurrent(id)) {

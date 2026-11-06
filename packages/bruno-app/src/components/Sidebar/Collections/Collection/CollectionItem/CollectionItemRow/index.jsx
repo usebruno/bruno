@@ -78,6 +78,7 @@ import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections/index';
 
 const highlightMatch = (text, query) => {
+  if (typeof text !== 'string') return text;
   const needle = query?.trim().toLowerCase();
   if (!needle) return text;
 

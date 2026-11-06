@@ -136,7 +136,7 @@ class SearchService {
     }
   }
 
-  search({ roots, query }, onMessage) {
+  search({ roots, query, ignore }, onMessage) {
     this.#stopActive();
     const id = ++this.#nextId;
     this.#active = {
@@ -151,7 +151,9 @@ class SearchService {
       windows: new Map()
     };
     this.#emitStatus();
-    this.#getHost().postMessage({ type: 'search', id, roots, query });
+    const message = { type: 'search', id, roots, query };
+    if (ignore) message.ignore = ignore;
+    this.#getHost().postMessage(message);
     return id;
   }
 

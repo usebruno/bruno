@@ -2,6 +2,20 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
+// Jest cannot load this ESM package. Point spawn at the same binary the package exports.
+jest.mock('@vscode/ripgrep-universal', () => {
+  const path = require('node:path');
+  const binary = process.platform === 'win32' ? 'rg.exe' : 'rg';
+  return {
+    rgPath: path.join(
+      path.resolve(__dirname, '../../../../../node_modules/@vscode/ripgrep-universal'),
+      'bin',
+      `${process.platform}-${process.env.npm_config_arch || process.arch}`,
+      binary
+    )
+  };
+});
+
 const writeRequest = (root, relativePath, name) => {
   const filePath = path.join(root, relativePath);
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -28,7 +42,7 @@ describe('ripgrep process', () => {
 
   afterEach(() => {
     delete process.parentPort;
-    fs.rmSync(root, { recursive: true, force: true });
+    if (root) fs.rmSync(root, { recursive: true, force: true });
   });
 
   const search = async (data) => {
@@ -49,6 +63,16 @@ describe('ripgrep process', () => {
     const paths = await search({ ignore: { [root]: ['ignored', '**/skip/**'] } });
 
     expect(paths).toEqual(['hit.bru']);
+  });
+
+  it('skips requests in the collection-root mocks folder', async () => {
+    writeRequest(root, 'hit.bru', 'hit');
+    writeRequest(root, path.join('mocks', 'hit.bru'), 'hit');
+    writeRequest(root, path.join('nested', 'mocks', 'hit.bru'), 'hit');
+
+    const paths = await search({});
+
+    expect(paths).toEqual(['hit.bru', path.join('nested', 'mocks', 'hit.bru')].sort());
   });
 
   it('searches every folder when the collection has no ignore config', async () => {

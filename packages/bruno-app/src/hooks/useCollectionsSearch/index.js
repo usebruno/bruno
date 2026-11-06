@@ -25,6 +25,10 @@ const mergeItems = (existing = [], incoming = []) => {
 
 const getEntryPath = (entry) => (entry.kind === 'ghost' ? entry.entry?.path : entry.collection?.pathname);
 
+const ignoreSignature = (ignore = {}) => Object.keys(ignore).sort()
+  .map((root) => `${root}\0${[].concat(ignore[root] || []).join('\0')}`)
+  .join('\n');
+
 const findRootToLoad = ({ rows, range, roots, order, matches, requested }) => {
   const position = new Map(order.map((pathname, index) => [pathname, index]));
   const lastRowByRoot = new Map();
@@ -45,7 +49,7 @@ const findRootToLoad = ({ rows, range, roots, order, matches, requested }) => {
 
 export const createSearchStore = () => {
   const listeners = new Set();
-  const context = { roots: [], indexRoots: [], order: [], rows: [], range: { startIndex: 0, endIndex: getVisibleRows() } };
+  const context = { roots: [], indexRoots: [], order: [], rows: [], ignore: {}, range: { startIndex: 0, endIndex: getVisibleRows() } };
   let snapshot = { query: '', itemsByRoot: new Map(), indexing: false, matchCount: null };
   let searchId = null;
   let generation = 0;
@@ -135,7 +139,7 @@ export const createSearchStore = () => {
       window.ipcRenderer.invoke('renderer:search-cancel');
       return;
     }
-    window.ipcRenderer.invoke('renderer:search-collections', { roots: context.indexRoots, query })
+    window.ipcRenderer.invoke('renderer:search-collections', { roots: context.indexRoots, query, ignore: context.ignore })
       .then((id) => {
         if (current !== generation) return;
         searchId = id;
@@ -175,8 +179,9 @@ export const createSearchStore = () => {
     setContext: (next) => {
       const rootsChanged = next.indexRoots !== undefined && next.indexRoots.join('\0') !== context.indexRoots.join('\0');
       const rowsChanged = next.rows !== undefined && next.rows !== context.rows;
+      const ignoreChanged = next.ignore !== undefined && ignoreSignature(next.ignore) !== ignoreSignature(context.ignore);
       Object.assign(context, next);
-      if (rootsChanged && snapshot.query) start(snapshot.query);
+      if ((rootsChanged || ignoreChanged) && snapshot.query) start(snapshot.query);
       // Virtuoso's range callbacks run before the parent's effect, so they may have checked the previous rows
       else if (rowsChanged) loadVisible();
     },
@@ -199,12 +204,18 @@ const useCollectionsSearch = ({ sidebarEntries }) => {
   const indexRoots = loadedEntries
     .filter((entry) => entry.collection.pathname)
     .map((entry) => entry.collection.pathname);
+  const ignore = {};
+  for (const entry of loadedEntries) {
+    const pathname = entry.collection?.pathname;
+    const patterns = entry.collection?.brunoConfig?.ignore;
+    if (pathname && Array.isArray(patterns)) ignore[pathname] = patterns;
+  }
   const order = sidebarEntries.map(getEntryPath);
   const { query, itemsByRoot, indexing, matchCount } = useSyncExternalStore(store.subscribe, store.getSnapshot);
 
   // Synced after commit so a discarded render never leaks its collections into the store
   useLayoutEffect(() => {
-    store.setContext({ roots, indexRoots, order });
+    store.setContext({ roots, indexRoots, order, ignore });
   });
 
   return {

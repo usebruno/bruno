@@ -12,7 +12,7 @@ const isSearchablePath = (relativePath) => typeof relativePath === 'string'
   && !relativePath.split(/[\\/]/).includes('..')
   && defaultClassify(relativePath)?.type === 'request';
 
-const searchCollections = (event, { roots, query } = {}) => {
+const searchCollections = (event, { roots, query, ignore } = {}) => {
   if (!preferencesUtil.isSearchIndexEnabled()) return null;
   if (typeof query !== 'string') throw new Error('Search query must be a string');
   if (!Array.isArray(roots) || !roots.every((root) => typeof root === 'string' && path.isAbsolute(root))) {
@@ -20,7 +20,7 @@ const searchCollections = (event, { roots, query } = {}) => {
   }
 
   const win = BrowserWindow.fromWebContents(event.sender);
-  return service.search({ roots, query }, (message) => {
+  return service.search({ roots, query, ignore }, (message) => {
     if (!win || win.isDestroyed()) return;
     win.webContents.send('main:search-results', message);
   });
