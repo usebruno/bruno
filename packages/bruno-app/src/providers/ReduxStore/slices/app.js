@@ -28,7 +28,9 @@ const initialState = {
   leftSidebarWidth: null,
   sidebarCollapsed: null,
   showSidebarSearch: false,
+  sidebarSearchResetToken: 0,
   focusedSidebarPath: null,
+  sidebarFocusRequest: null,
   screenWidth: 500,
   showHomePage: false,
   showManageWorkspacePage: false,
@@ -243,6 +245,15 @@ export const appSlice = createSlice({
     setFocusedSidebarPath: (state, action) => {
       state.focusedSidebarPath = action.payload;
     },
+    setSidebarFocusRequest: (state, action) => {
+      state.sidebarFocusRequest = action.payload;
+    },
+    clearSidebarFocusRequest: (state) => {
+      state.sidebarFocusRequest = null;
+    },
+    resetSidebarSearch: (state) => {
+      state.sidebarSearchResetToken += 1;
+    },
     updateGitOperationProgress: (state, action) => {
       const { uid, data } = action.payload;
       if (!state.gitOperationProgress[uid]) {
@@ -315,6 +326,9 @@ export const {
   toggleSidebarCollapse,
   toggleSidebarSearch,
   setFocusedSidebarPath,
+  setSidebarFocusRequest,
+  clearSidebarFocusRequest,
+  resetSidebarSearch,
   updateGitOperationProgress,
   removeGitOperationProgress,
   setGitVersion,

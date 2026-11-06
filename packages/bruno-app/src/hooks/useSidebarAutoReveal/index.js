@@ -1,17 +1,14 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { revealTabInSidebar } from 'providers/ReduxStore/slices/collections/actions';
+import { isElementVisibleInScroller } from 'utils/collections/sidebarNavigation';
 import { selectActiveTabCollectionUid, selectIsActiveTabCollectionLoaded } from 'src/selectors/tab';
 
 const isRowVisible = (scroller, rowUid) => {
   if (!scroller || !rowUid) return false;
 
   const rowElement = scroller.querySelector(`[data-row-uid="${rowUid}"]`);
-  if (!rowElement) return false;
-
-  const rowTop = rowElement.offsetTop - scroller.scrollTop;
-
-  return rowTop >= 0 && rowTop + rowElement.offsetHeight <= scroller.clientHeight;
+  return isElementVisibleInScroller(scroller, rowElement);
 };
 
 const useSidebarAutoReveal = ({
