@@ -1,0 +1,78 @@
+name: Deploy Script API Docs (Staging)
+
+# Regenerates script-api.d.ts from this repo's JSDoc, renders it with the
+# bruno-scripting-docs repo's TypeDoc setup, and deploys the site to the
+# staging bucket. Generating here (rather than trusting the committed file
+# or the docs repo's pinned fetch ref) means the deployed docs always match
+# the commit that triggered the run, even if a merge slipped past the
+# generate:script-api --check lint gate.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/bruno-js/**'
+
+permissions:
+  contents: read
+
+env:
+  DOCS_REPO: teambruno/bruno-scripting-docs
+  DOCS_REF: main
+  DOCS_BUCKET: staging-docs-usebruno-site-612715200896
+  DOCS_PREFIX: script-api
+  DOCS_DISTRIBUTION_ID: E32R7ZQGSX0X4L
+  AWS_REGION: us-east-1
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      # DOCS_REPO is private: needs a fine-grained PAT with Contents: read on it.
+      - name: Checkout ${{ env.DOCS_REPO }}
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ env.DOCS_REPO }}
+          ref: ${{ env.DOCS_REF }}
+          token: ${{ secrets.SCRIPTING_DOCS_READ_TOKEN }}
+          path: docs-site
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+        with:
+          skip-build: 'true'
+
+      - name: Generate script-api.d.ts
+        run: npm run generate:script-api
+
+      # The generated file replaces the docs repo's `npm run fetch` step, so
+      # the site is built from this commit's API, not the pinned fetch ref
+      - name: Build docs site
+        run: |
+          mkdir -p docs-site/types
+          cp packages/bruno-js/types/script-api.d.ts docs-site/types/script-api.d.ts
+          cd docs-site
+          npm ci
+          npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.STAGING_DOCS_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.STAGING_DOCS_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to S3
+        run: |
+          aws s3 sync docs-site/dist "s3://$DOCS_BUCKET/$DOCS_PREFIX" --delete \
+            --exclude "*.html" --cache-control "public,max-age=300"
+          aws s3 sync docs-site/dist "s3://$DOCS_BUCKET/$DOCS_PREFIX" --delete \
+            --exclude "*" --include "*.html" \
+            --cache-control "no-cache" --content-type "text/html"
+
+      - name: Invalidate CloudFront
+        run: aws cloudfront create-invalidation --distribution-id "$DOCS_DISTRIBUTION_ID" --paths "/*"
