@@ -39,7 +39,7 @@ describe('createSearchStore', () => {
     store.context.indexRoots = ['/mounted', '/unmounted'];
 
     startSearch(store, 'hit');
-    expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:search-collections', { roots: ['/mounted', '/unmounted'], query: 'hit' });
+    expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:search-collections', { roots: ['/mounted', '/unmounted'], query: 'hit', ignore: {} });
 
     listener({ type: 'status', id: 7, indexing: true, matchCount: 3 });
     expect(store.getSnapshot().indexing).toBe(false);
@@ -93,7 +93,7 @@ describe('createSearchStore', () => {
 
     store.setContext({ roots: ['/a', '/b'], indexRoots: ['/a', '/b'] });
 
-    expect(window.ipcRenderer.invoke).toHaveBeenLastCalledWith('renderer:search-collections', { roots: ['/a', '/b'], query: 'hit' });
+    expect(window.ipcRenderer.invoke).toHaveBeenLastCalledWith('renderer:search-collections', { roots: ['/a', '/b'], query: 'hit', ignore: {} });
   });
 
   it('keeps the active search when only the mount status of a collection changes', () => {
@@ -124,6 +124,30 @@ describe('createSearchStore', () => {
     await flush();
 
     expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:search-window', { id: 1, collectionPath: '/a', relativePaths: ['req.bru'] });
+  });
+
+  it('sends each collection\'s ignore config with the search', () => {
+    const store = createSearchStore();
+    store.subscribe(() => {});
+    store.setContext({ roots: ['/a'], indexRoots: ['/a'], ignore: { '/a': ['generated'] } });
+
+    startSearch(store, 'hit');
+
+    expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:search-collections', { roots: ['/a'], query: 'hit', ignore: { '/a': ['generated'] } });
+  });
+
+  it('re-runs the active search when a collection\'s ignore config changes', () => {
+    const store = createSearchStore();
+    store.subscribe(() => {});
+    store.setContext({ roots: ['/a'], indexRoots: ['/a'], ignore: { '/a': [] } });
+    startSearch(store, 'hit');
+
+    store.setContext({ ignore: { '/a': ['generated'] } });
+    store.setContext({ ignore: { '/a': ['generated'] } });
+
+    const searches = window.ipcRenderer.invoke.mock.calls.filter(([channel]) => channel === 'renderer:search-collections');
+    expect(searches).toHaveLength(2);
+    expect(searches[1][1]).toEqual({ roots: ['/a'], query: 'hit', ignore: { '/a': ['generated'] } });
   });
 
   it('does not search when collections change with no active query', () => {

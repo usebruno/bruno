@@ -124,6 +124,14 @@ describe('SearchService', () => {
     expect(lastStatus(onMessage)).toEqual({ type: 'status', id, indexing: false, matchCount: 0 });
   });
 
+  it('passes each collection\'s ignore config to ripgrep', () => {
+    const service = new SearchService();
+    const ignore = { '/c': ['generated'] };
+    const id = service.search({ roots: ['/c'], query: 'hit', ignore }, jest.fn());
+
+    expect(mockHost.postMessage).toHaveBeenCalledWith({ type: 'search', id, roots: ['/c'], query: 'hit', ignore });
+  });
+
   it('ignores ripgrep messages from a superseded search', () => {
     const onMessage = jest.fn();
     const service = new SearchService();
