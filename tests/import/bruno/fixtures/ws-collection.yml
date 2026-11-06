@@ -1,0 +1,19 @@
+opencollection: '1.0.0'
+
+info:
+  name: ws-import-yml
+
+items:
+  - info:
+      name: echo-ws
+      type: websocket
+      seq: 1
+    websocket:
+      url: ws://localhost:8081/ws/echo
+      message:
+        type: json
+        data: |-
+          {
+            "hello": "world"
+          }
+      auth: inherit

@@ -1,0 +1,29 @@
+{
+  "name": "ws-import-bru",
+  "version": "1",
+  "items": [
+    {
+      "uid": "ws-echo-1",
+      "type": "ws-request",
+      "name": "echo-ws",
+      "seq": 1,
+      "request": {
+        "url": "ws://localhost:8081/ws/echo",
+        "headers": [],
+        "body": {
+          "mode": "ws",
+          "ws": [
+            {
+              "name": "message 1",
+              "type": "json",
+              "content": "{\n  \"hello\": \"world\"\n}"
+            }
+          ]
+        },
+        "auth": {
+          "mode": "inherit"
+        }
+      }
+    }
+  ]
+}
