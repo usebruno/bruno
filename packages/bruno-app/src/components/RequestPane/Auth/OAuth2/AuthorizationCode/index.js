@@ -13,6 +13,7 @@ import AdditionalParams from '../AdditionalParams/index';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
+import { removeLineBreaks } from '../utils';
 
 const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAuth, collection, folder, readOnly }) => {
   const dispatch = useDispatch();
@@ -81,7 +82,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           autoFetchToken,
           tokenSource,
           additionalParameters,
-          [key]: value
+          [key]: removeLineBreaks(value)
         }
       })
     );
