@@ -32,6 +32,7 @@ import ErrorDetailsPanel from './ErrorDetailsPanel';
 import Performance from '../Performance';
 import StyledWrapper from './StyledWrapper';
 import { useResizablePanel } from 'hooks/useResizablePanel';
+import { getLogMessageParts } from './utils';
 
 const MIN_DETAILS_PANEL_WIDTH = 280;
 const DETAILS_PANEL_MAX_RATIO = 0.7;
@@ -135,6 +136,34 @@ const getBrunoTypeMetadata = (obj) => {
 const LogMessage = ({ message, args }) => {
   const { displayedTheme } = useTheme();
 
+  const handleLogLinkClick = (event, url) => {
+    if (globalThis.window?.ipcRenderer?.openExternal) {
+      event.preventDefault();
+      globalThis.window.ipcRenderer.openExternal(url);
+    }
+  };
+
+  const renderText = (text, keyPrefix) => {
+    return getLogMessageParts(text).map((part, index) => {
+      const key = `${keyPrefix}-${index}`;
+      if (part.type === 'link') {
+        return (
+          <a
+            key={key}
+            className="log-link"
+            href={part.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(event) => handleLogLinkClick(event, part.url)}
+          >
+            {part.text}
+          </a>
+        );
+      }
+      return part.text;
+    });
+  };
+
   const formatMessage = (msg, originalArgs) => {
     if (originalArgs && originalArgs.length > 0) {
       return originalArgs.map((arg, index) => {
@@ -183,8 +212,8 @@ const LogMessage = ({ message, args }) => {
   return (
     <span className="log-message">
       {Array.isArray(formattedMessage) ? formattedMessage.map((item, index) => (
-        <span key={index}>{item} </span>
-      )) : formattedMessage}
+        <span key={index}>{typeof item === 'string' ? renderText(item, index) : item} </span>
+      )) : renderText(formattedMessage, 'message')}
     </span>
   );
 };
