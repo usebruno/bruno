@@ -1690,6 +1690,94 @@ describe('postman-collection binary body import', () => {
       contentType: 'application/octet-stream'
     });
   });
+
+  it('should handle graphql request with object, string, or null variables without crashing runtime', async () => {
+    const nullProtoSource = Object.create(null);
+    nullProtoSource.query = 'query GetNullProto { ping }';
+    nullProtoSource.variables = { key: 'proto-val' };
+
+    const graphqlCollection = {
+      info: {
+        _postman_id: 'gql-test-id',
+        name: 'gql collection',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'GraphQL with object variables',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://api.example.com/graphql' },
+            body: {
+              mode: 'graphql',
+              graphql: {
+                query: 'query GetUser($id: ID!) { user(id: $id) { name } }',
+                variables: { id: '123', active: true }
+              }
+            }
+          }
+        },
+        {
+          name: 'GraphQL with string variables',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://api.example.com/graphql' },
+            body: {
+              mode: 'graphql',
+              graphql: {
+                query: 'query GetItems { items { id } }',
+                variables: '{\n  "limit": 10\n}'
+              }
+            }
+          }
+        },
+        {
+          name: 'GraphQL with null variables and null query',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://api.example.com/graphql' },
+            body: {
+              mode: 'graphql',
+              graphql: {
+                query: '',
+                variables: null
+              }
+            }
+          }
+        },
+        {
+          name: 'GraphQL with null-prototype source',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://api.example.com/graphql' },
+            body: {
+              mode: 'graphql',
+              graphql: nullProtoSource
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(graphqlCollection);
+
+    expect(brunoCollection.items[0].type).toBe('graphql-request');
+    expect(brunoCollection.items[0].request.body.mode).toBe('graphql');
+    expect(typeof brunoCollection.items[0].request.body.graphql.variables).toBe('string');
+    expect(JSON.parse(brunoCollection.items[0].request.body.graphql.variables)).toEqual({ id: '123', active: true });
+
+    expect(brunoCollection.items[1].request.body.graphql.variables).toBe('{\n  "limit": 10\n}');
+
+    expect(brunoCollection.items[2].request.body.graphql.variables).toBe('');
+    expect(brunoCollection.items[2].request.body.graphql.query).toBe('');
+
+    expect(brunoCollection.items[3].request.body.graphql.query).toBe('query GetNullProto { ping }');
+    expect(JSON.parse(brunoCollection.items[3].request.body.graphql.variables)).toEqual({ key: 'proto-val' });
+  });
 });
 
 const expectedOutput = {
