@@ -1,6 +1,0 @@
-{
-  "version": "1",
-  "name": "tab-menu-collection",
-  "type": "collection",
-  "ignore": ["node_modules", ".git"]
-}
