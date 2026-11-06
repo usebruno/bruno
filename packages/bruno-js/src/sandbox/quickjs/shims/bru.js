@@ -6,6 +6,12 @@ const addBruShimToContext = (vm, bru) => {
   const bruObject = vm.newObject();
   const bruRunnerObject = vm.newObject();
 
+  const getClientCertificate = vm.newFunction('getClientCertificate', (url) => {
+    return marshallToVm(bru.getClientCertificate(vm.dump(url)), vm);
+  });
+  vm.setProp(bruObject, 'getClientCertificate', getClientCertificate);
+  getClientCertificate.dispose();
+
   let cwd = vm.newFunction('cwd', function () {
     return marshallToVm(bru.cwd(), vm);
   });

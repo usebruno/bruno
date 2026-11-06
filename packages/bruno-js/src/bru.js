@@ -2,10 +2,21 @@ const { cloneDeep, isEqual } = require('lodash');
 const xmlFormat = require('xml-formatter');
 const { interpolate: _interpolate } = require('@usebruno/common');
 const { createSendRequest } = require('@usebruno/requests').scripting;
+const { getClientCertificate: resolveClientCertificate } = require('@usebruno/requests');
 const { jar: createCookieJar, getCookiesForUrl } = require('@usebruno/requests').cookies;
 const CookieList = require('./cookie-list');
 
 const variableNameRegex = /^[\w-.]*$/;
+
+/**
+ * Certificate contents for a matching URL. Treat all fields as secrets.
+ * @category Types
+ * @typedef {object} ScriptClientCertificate
+ * @property {string} [cert] - The PEM certificate, for a cert/key configuration.
+ * @property {string} [key] - The PEM private key, for a cert/key configuration.
+ * @property {string} [pfx] - The PFX contents encoded as base64. Decode before passing to a binary API.
+ * @property {string} [passphrase] - The configured key or PFX passphrase.
+ */
 
 const assertValidVariableName = (key) => {
   if (variableNameRegex.test(key) === false) {
@@ -219,6 +230,36 @@ class Bru {
           this._recordScriptedRequest({ source: 'sendRequest', scope: scopeSnapshot, ...entry })
       });
       return send(...args);
+    };
+    /**
+     * Read the first enabled client certificate configured for a URL.
+     *
+     * Uses the same effective certificate configuration as bru.sendRequest.
+     * Returns undefined when no certificate matches. Do not log or persist
+     * the returned private key or passphrase.
+     * @type {(url: string) => ScriptClientCertificate | undefined}
+     * @param url - The absolute URL, with variables already interpolated.
+     * @example
+     * const certificate = bru.getClientCertificate(bru.interpolate('{{authUrl}}'));
+     * // PEM cert/key fields can be passed to a custom HTTPS client's TLS options.
+     * @category Requests
+     */
+    this.getClientCertificate = (url) => {
+      if (typeof url !== 'string' || !url.length) {
+        throw new TypeError('A URL is required to select a client certificate');
+      }
+      const certificate = resolveClientCertificate({
+        collectionPath,
+        ...certsAndProxyConfig,
+        requestUrl: url
+      });
+      if (!certificate) {
+        return undefined;
+      }
+      const { cert, key, pfx, passphrase } = certificate;
+      return pfx
+        ? { pfx: pfx.toString('base64'), passphrase }
+        : { cert: cert?.toString('utf8'), key: key?.toString('utf8'), passphrase };
     };
     /** @internal */
     this.runtime = runtime;
