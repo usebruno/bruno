@@ -1,0 +1,17 @@
+meta {
+  name: query-echo
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:8081/query?owner=query-echo
+  body: none
+  auth: none
+}
+
+script:post-response {
+  test('initial run', function () {
+    expect(res.getBody().owner).to.equal('query-echo');
+  });
+}
