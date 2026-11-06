@@ -210,7 +210,7 @@ describe('swagger2-to-bruno auth', () => {
     expect(req.request.auth.oauth2.grantType).toBe('password');
   });
 
-  it('sets auth mode to inherit when operation security is explicitly empty', () => {
+  it('sets auth mode to none when operation security is explicitly empty', () => {
     const spec = {
       swagger: '2.0',
       info: { title: 'Mixed Auth API', version: '1.0' },

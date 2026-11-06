@@ -392,6 +392,16 @@ describe('postmanTranslations - cookie API conversions', () => {
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
+  test('should convert pm.cookies.append to bru.cookies.append', () => {
+    const inputScript = `pm.cookies.append({ key: 'lang', value: 'en' });`;
+    expect(postmanTranslation(inputScript)).toBe(`bru.cookies.append({ key: 'lang', value: 'en' });`);
+  });
+
+  test('should convert pm.request.headers.idx and pm.response.headers.idx to headerList.idx', () => {
+    const inputScript = `const a = pm.request.headers.idx(0);\nconst b = pm.response.headers.idx(1);`;
+    expect(postmanTranslation(inputScript)).toBe(`const a = req.headerList.idx(0);\nconst b = res.headerList.idx(1);`);
+  });
+
   test('should convert pm.cookies.has in conditional', () => {
     const inputScript = `if (pm.cookies.has('auth')) {
   console.log(pm.cookies.get('auth'));

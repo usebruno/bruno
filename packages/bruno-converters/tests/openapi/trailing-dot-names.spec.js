@@ -76,7 +76,7 @@ describe.each([
       })
     );
 
-    expect(collection.items.map((item) => item.name)).toEqual(['post /pet']);
+    expect(collection.items.map((item) => item.name)).toEqual(['POST /pet']);
   });
 
   it('leaves interior dots and names without a trailing dot untouched', () => {

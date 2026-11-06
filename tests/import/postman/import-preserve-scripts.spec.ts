@@ -10,7 +10,7 @@ test.describe('Import Postman Collection with preserve scripts option enabled', 
     await closeAllCollections(page);
   });
 
-  test('should hide the preserve scripts checkbox until advanced options is shown', async ({ page }) => {
+  test('should hide the preserve scripts toggle until the Advanced section is expanded', async ({ page }) => {
     const locators = buildCommonLocators(page);
 
     await test.step('Open import modal and upload the Postman collection', async () => {
@@ -20,15 +20,11 @@ test.describe('Import Postman Collection with preserve scripts option enabled', 
       await locators.import.locationModal().waitFor({ state: 'visible', timeout: 10000 });
     });
 
-    await test.step('Checkbox is hidden until Advanced Options is shown', async () => {
-      await expect(page.getByTestId('preserve-scripts-toggle')).toHaveCount(0);
-    });
+    await test.step('Preserve scripts is hidden until the Advanced section is expanded', async () => {
+      await expect(locators.import.preserveScriptsToggle()).toBeHidden();
 
-    await test.step('Advanced Options toggle reveals the Preserve scripts checkbox', async () => {
-      const locationModal = locators.import.locationModal();
-      await locationModal.getByRole('button', { name: 'Options' }).click();
-      await page.getByTestId('show-advanced-options-toggle').click();
-      await expect(page.getByTestId('preserve-scripts-toggle')).toBeVisible();
+      await locators.import.advancedSectionToggle().click();
+      await expect(locators.import.preserveScriptsToggle()).toBeVisible();
     });
 
     await test.step('Close the import modal', async () => {

@@ -1,6 +1,7 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { closeAllCollections, importCollection, openCollection, openfolder, openRequest, readRequestBody } from '../../utils/page/actions';
+import { closeAllCollections, expandFolder, importCollection, openCollection, openfolder, openRequest, readRequestBody } from '../../utils/page/actions';
+import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Import WSDL Collection', () => {
   const testDataDir = path.join(__dirname, 'fixtures');
@@ -9,135 +10,111 @@ test.describe('Import WSDL Collection', () => {
     await closeAllCollections(page);
   });
 
-  test('Import WSDL XML file as Bruno collection', async ({ page, createTmpDir }) => {
+  test('TC-815: imports a valid WSDL XML file as a Bruno collection', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const wsdlFile = path.join(testDataDir, 'wsdl.xml');
+    const { plusMenu, import: importLocators, request, sidebar, tabs } = buildCommonLocators(page);
+    const collectionName = 'TestWSDLServiceXML';
+    const locationModal = importLocators.locationModal();
+    const collectionTempDir = await createTmpDir('wsdl-xml-test');
 
-    await test.step('Open import collection modal', async () => {
-      await page.getByTestId('collections-header-add-menu').click();
-      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
-
-      // Wait for import collection modal to be ready
-      const importModal = page.getByRole('dialog');
-      await importModal.waitFor({ state: 'visible' });
+    await test.step('Open the plus menu and choose Import collection', async () => {
+      await plusMenu.button().click();
+      await plusMenu.importCollection().waitFor({ state: 'visible' });
+      await plusMenu.importCollection().click();
+      await importLocators.modal().waitFor({ state: 'visible' });
     });
 
-    await test.step('Choose WSDL XML file', async () => {
-      await page.setInputFiles('input[type="file"]', wsdlFile);
-
-      // Wait for location modal to appear after file processing
-      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
-      await locationModal.waitFor({ state: 'visible', timeout: 10000 });
+    await test.step('Verify that Import dialog shows File', async () => {
+      await expect(importLocators.fileTab()).toContainText('File');
     });
 
-    await test.step('Select the location for the collection and submit to import', async () => {
-      // Verify that the location selection modal is displayed to import the collection
-      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
-      await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
+    await test.step('Choose the WSDL XML file', async () => {
+      await expect(importLocators.chooseFilesButton()).toBeVisible();
+      await importLocators.fileInput().setInputFiles(wsdlFile);
+      await locationModal.waitFor({ state: 'visible' });
+      await expect(locationModal.getByText('WSDL Collection')).toBeVisible();
+    });
 
-      // select a location
-      await page.locator('#collection-location').fill(await createTmpDir('wsdl-xml-test'));
-      await locationModal.getByRole('button', { name: 'Import' }).click();
+    await test.step('Import the collection', async () => {
+      await importLocators.locationInput().fill(collectionTempDir);
+      await importLocators.importButton().click();
       await locationModal.waitFor({ state: 'hidden' });
-      await expect(page.locator('#sidebar-collection-name').getByText('TestWSDLServiceXML')).toBeVisible();
+      await sidebar.collection(collectionName).waitFor({ state: 'visible' });
     });
 
-    await test.step('Verify that the collection was imported successfully', async () => {
-      // verify the collection was imported successfully
-      await expect(page.locator('#sidebar-collection-name').getByText('TestWSDLServiceXML')).toBeVisible();
+    await test.step('Verify that Imported collection keeps its folder and requests', async () => {
+      await openCollection(page, collectionName);
+      await expect(sidebar.itemsIn(collectionName, 'UserService')).toBeVisible();
+      await expect(sidebar.collectionScope(collectionName).locator('.collection-item-name')).toHaveCount(1);
 
-      // open the collection and accept the sandbox modal
-      await openCollection(page, 'TestWSDLServiceXML');
+      await expandFolder(page, 'UserService');
+      await expect(sidebar.itemsIn(collectionName, 'GetUser')).toBeVisible();
+      await expect(sidebar.itemsIn(collectionName, 'CreateUser')).toBeVisible();
 
-      // verify that all requests were imported correctly
-      await expect(page.locator('[data-collection-id="testwsdlservicexml"] .collection-item-name')).toHaveCount(1);
-    });
-
-    await test.step('Verify that folders and requests were imported correctly', async () => {
-      await expect(page.locator('[data-collection-id="testwsdlservicexml"] .collection-item-name').getByText('UserService')).toBeVisible();
-      // open the user service folder
-      await page.locator('[data-collection-id="testwsdlservicexml"] .collection-item-name').getByText('UserService').click();
-
-      await expect(page.locator('[data-collection-id="testwsdlservicexml"] .collection-item-name').getByText('GetUser')).toBeVisible();
-      await expect(page.locator('[data-collection-id="testwsdlservicexml"] .collection-item-name').getByText('CreateUser')).toBeVisible();
-    });
-
-    await test.step('Verify the GetUser request is imported correctly', async () => {
-      await page.locator('[data-collection-id="testwsdlservicexml"] .collection-item-name').getByText('GetUser').click();
-      await expect(page.locator('.request-tab.active').getByText('GetUser')).toBeVisible();
-      await expect(page.locator('#request-url').getByText('http://example.com/soap/userservice')).toBeVisible();
+      await sidebar.itemsIn(collectionName, 'GetUser').click();
+      await expect(tabs.activeRequestTab()).toContainText('GetUser');
+      await expect(request.urlLine()).toContainText('http://example.com/soap/userservice');
     });
   });
 
   test('Import WSDL JSON file as Bruno collection', async ({ page, createTmpDir }) => {
     const wsdlFile = path.join(testDataDir, 'wsdl-bruno.json');
+    const { plusMenu, import: importLocators, request, sidebar, tabs } = buildCommonLocators(page);
+    const collectionName = 'TestWSDLServiceJSON';
+    const locationModal = importLocators.locationModal();
+    const collectionTempDir = await createTmpDir('wsdl-json-test');
 
     await test.step('Open import collection modal', async () => {
-      await page.getByTestId('collections-header-add-menu').click();
-      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
-
-      // Wait for import collection modal to be ready
-      const importModal = page.getByRole('dialog');
-      await importModal.waitFor({ state: 'visible' });
+      await plusMenu.button().click();
+      await plusMenu.importCollection().click();
+      await importLocators.modal().waitFor({ state: 'visible' });
     });
 
     await test.step('Choose WSDL JSON file', async () => {
-      await page.setInputFiles('input[type="file"]', wsdlFile);
-
-      // Wait for location modal to appear after file processing
-      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
+      await importLocators.fileInput().setInputFiles(wsdlFile);
       await locationModal.waitFor({ state: 'visible', timeout: 10000 });
     });
 
     await test.step('Select the location for the collection and submit to import', async () => {
-      // Verify that the location selection modal is displayed to import the collection
-      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
       await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
-
-      // Wait for collection to appear in the location modal
-      await expect(locationModal.getByText('TestWSDLServiceJSON')).toBeVisible();
-
-      // select a location
-      await page.locator('#collection-location').fill(await createTmpDir('wsdl-json-test'));
-      await locationModal.getByRole('button', { name: 'Import' }).click();
+      await expect(locationModal.getByText(collectionName)).toBeVisible();
+      await importLocators.locationInput().fill(collectionTempDir);
+      await importLocators.importButton().click();
       await locationModal.waitFor({ state: 'hidden' });
     });
 
     await test.step('Verify that the collection was imported successfully', async () => {
-      // verify the collection was imported successfully
-      await expect(page.locator('#sidebar-collection-name').getByText('TestWSDLServiceJSON')).toBeVisible();
-
-      // open the collection and accept the sandbox modal
-      await openCollection(page, 'TestWSDLServiceJSON');
-
-      // verify that all requests were imported correctly
-      await expect(page.locator('[data-collection-id="testwsdlservicejson"] .collection-item-name')).toHaveCount(1);
+      await expect(sidebar.collection(collectionName)).toBeVisible();
+      await openCollection(page, collectionName);
+      await expect(sidebar.collectionScope(collectionName).locator('.collection-item-name')).toHaveCount(1);
     });
 
     await test.step('Verify that folders and requests were imported correctly', async () => {
-      await expect(page.locator('[data-collection-id="testwsdlservicejson"] .collection-item-name').getByText('UserService')).toBeVisible();
-      // open the user service folder
-      await page.locator('[data-collection-id="testwsdlservicejson"] .collection-item-name').getByText('UserService').click();
-
-      await expect(page.locator('[data-collection-id="testwsdlservicejson"] .collection-item-name').getByText('GetUser')).toBeVisible();
-      await expect(page.locator('[data-collection-id="testwsdlservicejson"] .collection-item-name').getByText('CreateUser')).toBeVisible();
+      await expect(sidebar.itemsIn(collectionName, 'UserService')).toBeVisible();
+      await expandFolder(page, 'UserService');
+      await expect(sidebar.itemsIn(collectionName, 'GetUser')).toBeVisible();
+      await expect(sidebar.itemsIn(collectionName, 'CreateUser')).toBeVisible();
     });
 
     await test.step('Verify the CreateUser request is imported correctly', async () => {
-      await page.locator('[data-collection-id="testwsdlservicejson"] .collection-item-name').getByText('CreateUser').click();
-      await expect(page.locator('.request-tab.active').getByText('CreateUser')).toBeVisible();
-      await expect(page.locator('#request-url').getByText('http://example.com/soap/userservice')).toBeVisible();
+      await sidebar.itemsIn(collectionName, 'CreateUser').click();
+      await expect(tabs.activeRequestTab()).toContainText('CreateUser');
+      await expect(request.urlLine()).toContainText('http://example.com/soap/userservice');
     });
   });
 
   test('Import a multi-file WSDL bundle, resolving schemaLocation references', async ({ page, createTmpDir }) => {
     const wsdlFile = path.join(testDataDir, 'multifile', 'Service.wsdl');
-    await importCollection(page, wsdlFile, await createTmpDir('wsdl-multifile-test'));
+    const { tabs } = buildCommonLocators(page);
+    const collectionTempDir = await createTmpDir('wsdl-multifile-test');
+
+    await importCollection(page, wsdlFile, collectionTempDir);
 
     await test.step('Open the imported Submit request', async () => {
       await openCollection(page, 'MultiFileWSDLService');
       await openfolder(page, 'MultiFileWSDLService', 'PartyService');
       await openRequest(page, 'MultiFileWSDLService', 'Submit');
-      await expect(page.locator('.request-tab.active').getByText('Submit')).toBeVisible();
+      await expect(tabs.activeRequestTab()).toContainText('Submit');
     });
 
     await test.step('Verify the body was built from the imported schema documents', async () => {

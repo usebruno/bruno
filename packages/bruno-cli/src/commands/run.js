@@ -136,10 +136,16 @@ const builder = async (yargs) => {
       default: 'safe',
       type: 'string'
     })
+    .option('cache-modules', {
+      type: 'boolean',
+      default: false,
+      describe: 'Share npm modules across script runs in the developer sandbox'
+    })
     .option('experimental-cache-modules', {
       type: 'boolean',
       default: false,
-      describe: 'Share npm modules across script runs in the developer sandbox (experimental)'
+      deprecated: 'use --cache-modules',
+      describe: 'Share npm modules across script runs in the developer sandbox'
     })
     .option('output', {
       alias: 'o',
@@ -316,6 +322,7 @@ const handler = async function (argv) {
       reporterJunit,
       reporterHtml,
       sandbox,
+      cacheModules: cacheModulesFlag,
       experimentalCacheModules,
       testsOnly,
       bail,
@@ -613,10 +620,14 @@ const handler = async function (argv) {
     if (verbose) {
       options['verbose'] = true;
     }
-    if (experimentalCacheModules && sandbox !== 'developer') {
-      console.warn(chalk.yellow('--experimental-cache-modules requires --sandbox developer; ignoring flag'));
+    if (experimentalCacheModules) {
+      console.warn(chalk.yellow('--experimental-cache-modules is deprecated and will be removed in a future release; use --cache-modules instead'));
     }
-    options['cacheModules'] = sandbox === 'developer' && experimentalCacheModules === true;
+    const cacheModules = cacheModulesFlag === true || experimentalCacheModules === true;
+    if (cacheModules && sandbox !== 'developer') {
+      console.warn(chalk.yellow('--cache-modules requires --sandbox developer; ignoring flag'));
+    }
+    options['cacheModules'] = sandbox === 'developer' && cacheModules;
     if (cacert && cacert.length) {
       if (insecure) {
         console.error(chalk.red(`Ignoring the cacert option since insecure connections are enabled`));
