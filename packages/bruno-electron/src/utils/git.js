@@ -30,6 +30,7 @@ const getSimpleGitInstanceForPath = (gitRootPath) => {
   let git = simpleGitInstances.get(gitRootPath);
   if (!git) {
     git = createSimpleGit(gitRootPath);
+    git.env({ ...process.env, GIT_OPTIONAL_LOCKS: '0' });
     simpleGitInstances.set(gitRootPath, git);
   }
   return git;
