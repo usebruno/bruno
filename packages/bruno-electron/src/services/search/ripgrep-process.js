@@ -52,9 +52,15 @@ const chunkPaths = (relativePaths) => {
 
 const patternsKey = (patterns) => (patterns || []).join('\0');
 
-const findNarrowing = (entries = [], query, key) => entries
-  .filter((entry) => entry.patternsKey === key && query.toLowerCase().includes(entry.query.toLowerCase()))
-  .reduce((best, entry) => (!best || entry.paths.length < best.paths.length ? entry : best), null);
+const findNarrowing = (entries = [], query, key) => {
+  const needle = query.toLowerCase();
+  let best = null;
+  for (const entry of entries) {
+    if (entry.patternsKey !== key || !needle.includes(entry.query.toLowerCase())) continue;
+    if (!best || entry.paths.length < best.paths.length) best = entry;
+  }
+  return best;
+};
 
 const remember = (root, query, paths, key) => {
   if (paths.length > NARROW_LIMIT) return;

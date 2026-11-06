@@ -2,8 +2,8 @@ import { useLayoutEffect, useSyncExternalStore } from 'react';
 import { useSelector } from 'react-redux';
 import get from 'lodash/get';
 import { doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
+import { SIDEBAR_ROW_HEIGHT } from 'utils/common/constants';
 
-export const SIDEBAR_ROW_HEIGHT = 26;
 const EXTRA_ROWS = 10;
 const DEBOUNCE_MS = 300;
 
