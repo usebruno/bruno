@@ -122,6 +122,33 @@ describe('CodeEditor', () => {
     jest.restoreAllMocks();
   });
 
+  it('does not refresh wrapped-line measurements when the scroll prop changes', () => {
+    const props = { value: '{"message":"response"}', collection: collectionA, initialScroll: 0 };
+    const { rerender } = setupEditorWithRef(props);
+    const editor = CodeMirror.mock.results[0].value;
+    editor.refresh.mockClear();
+    editor.scrollTo.mockClear();
+
+    rerender({ ...props, initialScroll: 120 });
+
+    expect(editor.scrollTo).toHaveBeenCalledWith(null, 120);
+    expect(editor.refresh).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['font', 'Courier New'],
+    ['fontSize', 18]
+  ])('refreshes measurements after the %s prop changes', (key, value) => {
+    const props = { value: 'response', collection: collectionA, font: 'Consolas', fontSize: 14 };
+    const { rerender } = setupEditorWithRef(props);
+    const editor = CodeMirror.mock.results[0].value;
+    editor.refresh.mockClear();
+
+    rerender({ ...props, [key]: value });
+
+    expect(editor.refresh).toHaveBeenCalledTimes(1);
+  });
+
   it('starts in degraded mode for a pathological line', () => {
     const view = setupEditorWithRef({ value: 'x'.repeat(LONG_LINE_LIMIT + 1) });
 
