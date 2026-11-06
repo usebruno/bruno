@@ -22,6 +22,7 @@ import useWsEventListeners from 'utils/network/ws-event-listeners';
 import Portal from 'components/Portal';
 import SaveTransientRequestContainer from 'components/SaveTransientRequest/Container';
 import SaveTransientRequest from 'components/SaveTransientRequest';
+import usePersistedTabCleanup from 'hooks/usePersistedTabCleanup';
 
 const TransientRequestModalsRenderer = ({ modals }) => {
   if (modals.length === 0) {
@@ -43,6 +44,7 @@ const TransientRequestModalsRenderer = ({ modals }) => {
 };
 
 export default function Main() {
+  usePersistedTabCleanup();
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isDragging = useSelector((state) => state.app.isDragging);
   const showManageWorkspacePage = useSelector((state) => state.app.showManageWorkspacePage);
