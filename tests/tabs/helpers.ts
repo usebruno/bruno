@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { expect, Locator, Page } from '../../playwright';
-import { editCodeMirrorEditor, openEnvironmentSelector, openRequest, selectEnvironment } from '../utils/page';
+import { editCodeMirrorEditor, fillRequestUrl, openEnvironmentSelector, openRequest, selectEnvironment, switchToOpenTab } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
 export const collectionName = 'tab-menu-collection';
@@ -60,10 +60,9 @@ export const openEnvironmentWithDraft = async (page: Page, value: string) => {
   await expect(environmentTabCloseGradient(page)).toHaveClass(/has-changes/);
 };
 
-export const editUrl = async (page: Page, name: string) => {
-  await tab(page, name).click();
-  await buildCommonLocators(page).request.urlInput().click();
-  await page.keyboard.type(`/${name}`);
+export const draftRequestUrl = async (page: Page, name: string, url: string) => {
+  await switchToOpenTab(page, name);
+  await fillRequestUrl(page, url);
   await expect(draftIndicator(page, name)).toBeVisible();
 };
 

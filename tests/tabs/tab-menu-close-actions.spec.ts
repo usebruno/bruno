@@ -13,7 +13,7 @@ import {
   collectionName,
   collectionTab,
   draftIndicator,
-  editUrl,
+  draftRequestUrl,
   environmentTab,
   environmentTabCloseGradient,
   expectCollectionFilesUnchanged,
@@ -47,9 +47,9 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
 
   test('Close Others lists only the drafts in range; Cancel keeps every tab', async ({ page }) => {
     await openRequests(page, ['req-1', 'req-2', 'req-3']);
-    await editUrl(page, 'req-1');
-    await editUrl(page, 'req-2');
-    await editUrl(page, 'req-3');
+    await draftRequestUrl(page, 'req-1', '/req-1');
+    await draftRequestUrl(page, 'req-2', '/req-2');
+    await draftRequestUrl(page, 'req-3', '/req-3');
 
     await selectTabContextMenuItem(page, 'req-2', 'close-others');
 
@@ -74,8 +74,8 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
 
   test('Close Others with Don\'t Save discards and closes the tabs in range', async ({ page }) => {
     await openRequests(page, ['req-1', 'req-2', 'req-3']);
-    await editUrl(page, 'req-1');
-    await editUrl(page, 'req-2');
+    await draftRequestUrl(page, 'req-1', '/req-1');
+    await draftRequestUrl(page, 'req-2', '/req-2');
 
     await selectTabContextMenuItem(page, 'req-2', 'close-others');
     const modal = unsavedModal(page).root();
@@ -99,8 +99,8 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
 
   test('Close to the Right with Save saves and closes the tabs in range', async ({ page }) => {
     await openRequests(page, ['req-1', 'req-2', 'req-3']);
-    await editUrl(page, 'req-3');
-    await editUrl(page, 'req-1');
+    await draftRequestUrl(page, 'req-3', '/req-3');
+    await draftRequestUrl(page, 'req-1', '/req-1');
 
     await selectTabContextMenuItem(page, 'req-1', 'close-right');
     const modal = unsavedModal(page).root();
@@ -128,7 +128,7 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
 
   test('Inspect tab in the modal focuses that tab and keeps everything open', async ({ page }) => {
     await openRequests(page, ['req-1', 'req-2', 'req-3']);
-    await editUrl(page, 'req-3');
+    await draftRequestUrl(page, 'req-3', '/req-3');
     await tab(page, 'req-1').click();
     await expect(tab(page, 'req-1')).toHaveClass(/active/);
 
@@ -153,7 +153,7 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
 
   test('Close to the Left closes immediately when nothing in range is unsaved', async ({ page }) => {
     await openRequests(page, ['req-1', 'req-2', 'req-3']);
-    await editUrl(page, 'req-3');
+    await draftRequestUrl(page, 'req-3', '/req-3');
 
     await selectTabContextMenuItem(page, 'req-3', 'close-left');
 
@@ -168,7 +168,7 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
 
   test('Close All from the tab menu asks before closing unsaved tabs', async ({ page }) => {
     await openRequests(page, ['req-1', 'req-2']);
-    await editUrl(page, 'req-2');
+    await draftRequestUrl(page, 'req-2', '/req-2');
 
     await selectTabContextMenuItem(page, 'req-1', 'close-all');
     const modal = unsavedModal(page).root();
@@ -191,7 +191,7 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     await openFolderSettingsWithDraft(page);
     await openEnvironmentWithDraft(page, 'http://draft-left');
     await openRequests(page, ['req-1', 'req-2']);
-    await editUrl(page, 'req-2');
+    await draftRequestUrl(page, 'req-2', '/req-2');
 
     await selectTabContextMenuItem(page, 'req-1', 'close-left');
 
@@ -239,7 +239,7 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
   test('Close to the Right prompts for collection, folder and environment drafts; Save All saves them', async ({ page }) => {
     const { environment } = buildCommonLocators(page);
     await openRequests(page, ['req-1']);
-    await editUrl(page, 'req-1');
+    await draftRequestUrl(page, 'req-1', '/req-1');
     await openCollectionSettingsWithDraft(page);
     await openFolderSettingsWithDraft(page);
     await openEnvironmentWithDraft(page, 'http://saved-right');
