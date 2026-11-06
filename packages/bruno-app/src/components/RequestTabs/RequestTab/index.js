@@ -134,7 +134,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const handleRightClick = (event) => {
     event.preventDefault();
     event.stopPropagation();
-    menuDropdownRef.current?.show();
+    menuDropdownRef.current?.show({ x: event.clientX, y: event.clientY });
   };
 
   // Prevent the browser's autoscroll (triggered on middle-button mousedown)
@@ -899,6 +899,7 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
       ref={menuDropdownRef}
       items={menuItems}
       placement="bottom-start"
+      popperOptions={{ strategy: 'fixed' }}
       appendTo={dropdownContainerRef?.current || document.body}
       getReferenceClientRect={getTabLabelRect}
     >

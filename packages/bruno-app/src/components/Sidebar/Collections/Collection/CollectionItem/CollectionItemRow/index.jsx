@@ -403,7 +403,7 @@ const CollectionItemRow = ({
       return;
     }
 
-    menuDropdownRef.current?.show();
+    menuDropdownRef.current?.show({ x: e.clientX, y: e.clientY });
   };
 
   const indents = range(depth);

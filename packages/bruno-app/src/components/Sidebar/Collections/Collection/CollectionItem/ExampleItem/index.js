@@ -213,7 +213,7 @@ const ExampleItem = ({ example, item, collection, depth, searchText, openBulkMen
       return;
     }
 
-    menuDropdownRef.current?.show();
+    menuDropdownRef.current?.show({ x: e.clientX, y: e.clientY });
   };
 
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
