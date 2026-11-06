@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { expect, Locator, Page } from '../../playwright';
-import { openEnvironmentSelector, openRequest, selectEnvironment } from '../utils/page';
+import { editCodeMirrorEditor, openEnvironmentSelector, openRequest, selectEnvironment } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
 export const collectionName = 'tab-menu-collection';
@@ -28,27 +28,23 @@ export const openRequests = async (page: Page, names: string[]) => {
   }
 };
 
-const fillFirstHeaderRow = async (page: Page, tableTestId: string, name: string) => {
-  const table = buildCommonLocators(page).table(tableTestId);
-  await table.rowNameEditor(table.row(0)).click();
-  await page.keyboard.type(name);
-  await table.rowValueEditor(table.row(0)).click();
-  await page.keyboard.type('value');
-};
-
 export const openCollectionSettingsWithDraft = async (page: Page) => {
   const { sidebar, paneTabs } = buildCommonLocators(page);
   await sidebar.collectionRow(collectionName).dblclick();
   await expect(collectionTab(page)).toBeVisible({ timeout: 3000 });
-  await paneTabs.collectionSettingsTab('headers').click();
-  await fillFirstHeaderRow(page, 'collection-headers', 'X-Collection-Header');
+  await paneTabs.collectionSettingsTab('script').click();
+  await paneTabs.tabTrigger('pre-request').click();
+  await editCodeMirrorEditor(page, 'collection-pre-request-script-editor', '// draft');
   await expect(settingsTabDraftIndicator(page, collectionTab(page))).toBeVisible();
 };
 
 export const openFolderSettingsWithDraft = async (page: Page) => {
   await buildCommonLocators(page).sidebar.folder('admin').dblclick();
   await expect(folderTab(page)).toBeVisible({ timeout: 3000 });
-  await fillFirstHeaderRow(page, 'folder-headers', 'X-Folder-Header');
+  const { paneTabs } = buildCommonLocators(page);
+  await paneTabs.folderSettingsTab('script').click();
+  await paneTabs.tabTrigger('pre-request').click();
+  await editCodeMirrorEditor(page, 'folder-pre-request-script-editor', '// draft');
   await expect(settingsTabDraftIndicator(page, folderTab(page))).toBeVisible();
 };
 
