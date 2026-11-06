@@ -147,10 +147,6 @@ class SearchIndex {
     this.#mutate('search_index_clear');
   }
 
-  clearCollection(collectionPath) {
-    this.#mutate('search_index_clear_collection', { collection_path: collectionPath });
-  }
-
   transaction(callback) {
     return transaction(callback);
   }
@@ -162,4 +158,4 @@ const getSearchIndex = () => {
   return instance;
 };
 
-module.exports = { SearchIndex, getSearchIndex };
+module.exports = { getSearchIndex };

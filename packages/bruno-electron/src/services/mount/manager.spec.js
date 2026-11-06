@@ -2,20 +2,9 @@ jest.mock('electron', () => ({
   app: { getPath: jest.fn(() => require('node:os').tmpdir()) }
 }));
 
-const mockPrefs = { searchIndexEnabled: false };
-jest.mock('../../store/preferences', () => ({
-  preferencesUtil: { isSearchIndexEnabled: () => mockPrefs.searchIndexEnabled }
-}));
-
-const mockSearchIndex = { transaction: (fn) => fn() };
-jest.mock('../search-index', () => ({
-  getSearchIndex: () => mockSearchIndex
-}));
-
-const mockIngest = jest.fn();
+const mockIngestBatch = jest.fn();
 jest.mock('../search-index/ingest', () => ({
-  ingestParsedFile: (...args) => mockIngest(...args),
-  removeFromSearchIndex: jest.fn()
+  ingestBatch: (...args) => mockIngestBatch(...args)
 }));
 
 const mockStatus = { added: [], updated: [], removed: [] };
@@ -112,14 +101,12 @@ describe('MountManager.unmount', () => {
 
 describe('MountManager reconcile', () => {
   afterEach(() => {
-    mockPrefs.searchIndexEnabled = false;
     mockStatus.added = [];
     mockRun.mockReset();
-    mockIngest.mockReset();
+    mockIngestBatch.mockReset();
   });
 
   it('parses changed files at mount priority and writes them to the search index', async () => {
-    mockPrefs.searchIndexEnabled = true;
     mockStatus.added = [{ relativePath: 'req.bru' }];
     mockRun.mockResolvedValue({ relativePath: 'req.bru', mtime: 1n, hash: 'h', data: { name: 'Req' } });
 
@@ -127,10 +114,9 @@ describe('MountManager reconcile', () => {
     const { collectionPath } = await mountCollection(manager);
 
     expect(mockRun).toHaveBeenCalledWith('parse-file', expect.objectContaining({ relativePath: 'req.bru' }), { priority: 5 });
-    expect(mockIngest).toHaveBeenCalledWith(expect.objectContaining({
-      searchIndex: mockSearchIndex,
-      collectionPath,
-      result: expect.objectContaining({ relativePath: 'req.bru' })
-    }));
+    expect(mockIngestBatch).toHaveBeenCalledWith({
+      parsed: [{ collectionPath, result: expect.objectContaining({ relativePath: 'req.bru' }) }],
+      removed: []
+    });
   });
 });

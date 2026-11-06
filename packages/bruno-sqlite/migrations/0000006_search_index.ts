@@ -20,11 +20,13 @@ export const up = (): string => {
     ) WITHOUT ROWID;
 
     CREATE INDEX IF NOT EXISTS idx_search_index_folders ON search_index(collection_path, path, name, seq) WHERE entity = 'folder';
+    CREATE INDEX IF NOT EXISTS idx_search_index_request_folders ON search_index(collection_path, folder_path) WHERE entity = 'request';
   `;
 };
 
 export const down = (): string => {
   return `
+    DROP INDEX IF EXISTS idx_search_index_request_folders;
     DROP INDEX IF EXISTS idx_search_index_folders;
     DROP TABLE IF EXISTS search_index;
   `;

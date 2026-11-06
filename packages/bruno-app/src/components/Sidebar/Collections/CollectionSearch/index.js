@@ -22,7 +22,7 @@ const CollectionSearch = ({ searchText, setSearchText, indexing, matchCount }) =
         />
         {searchText !== '' && indexing && (
           <IconLoader2
-            className="animate-spin indexing-icon with-clear"
+            className="animate-spin indexing-icon"
             size={18}
             strokeWidth={1.5}
             data-testid="sidebar-search-indexing"

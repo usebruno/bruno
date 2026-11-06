@@ -38,11 +38,11 @@ const environmentSecretsStore = new EnvironmentSecretsStore();
 // registered collections stage parsed data into the git-lite snapshot (no-op otherwise)
 const fileIndexByCollection = new Map();
 const stageToCache = (collectionPath, pathname, data) => {
-  stageParsedToSearchIndex(collectionPath, pathname, data);
+  const version = stageParsedToSearchIndex(collectionPath, pathname, data);
   const index = fileIndexByCollection.get(collectionPath);
   if (!index) return;
   try {
-    index.stageParsed(collectionPath, pathname, data);
+    index.stageParsed(collectionPath, pathname, data, version);
   } catch (err) {
     console.error('[collection-watcher] cache stage failed for', pathname, err);
   }

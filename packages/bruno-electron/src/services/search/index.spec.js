@@ -62,7 +62,7 @@ jest.mock('../search-index', () => ({
 
 const mockIngest = jest.fn();
 jest.mock('../search-index/ingest', () => ({
-  ingestParsedFile: (...args) => mockIngest(...args)
+  ingestBatch: ({ parsed }) => parsed.forEach((entry) => mockIngest(entry))
 }));
 
 jest.mock('../../cache/requestUids', () => ({

@@ -1,12 +1,13 @@
 import { useLayoutEffect, useSyncExternalStore } from 'react';
 import { useSelector } from 'react-redux';
 import get from 'lodash/get';
+import { doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 
-const ROW_HEIGHT = 26;
+export const SIDEBAR_ROW_HEIGHT = 26;
 const EXTRA_ROWS = 10;
 const DEBOUNCE_MS = 300;
 
-const getVisibleRows = () => Math.ceil(window.innerHeight / ROW_HEIGHT);
+const getVisibleRows = () => Math.ceil(window.innerHeight / SIDEBAR_ROW_HEIGHT);
 
 const mergeItems = (existing = [], incoming = []) => {
   const merged = [...existing];
@@ -20,13 +21,6 @@ const mergeItems = (existing = [], incoming = []) => {
     }
   }
   return merged;
-};
-
-const hasMatchingRequest = (items = [], query) => {
-  const needle = query.toLowerCase();
-  return items.some((item) => (item.type === 'folder'
-    ? hasMatchingRequest(item.items, query)
-    : item.name?.toLowerCase().includes(needle) || item.request?.url?.toLowerCase().includes(needle)));
 };
 
 const getEntryPath = (entry) => (entry.kind === 'ghost' ? entry.entry?.path : entry.collection?.pathname);
@@ -92,7 +86,7 @@ export const createSearchStore = () => {
         const itemsByRoot = new Map(snapshot.itemsByRoot).set(root, mergeItems(snapshot.itemsByRoot.get(root), result.items));
         snapshot = { ...snapshot, itemsByRoot };
         loaded = true;
-        showsRows = hasMatchingRequest(result.items, snapshot.query);
+        showsRows = Boolean(doesFolderHaveItemsMatchSearchText({ items: result.items }, snapshot.query));
         emit();
       }
     } catch (error) {

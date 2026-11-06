@@ -7,6 +7,7 @@ jest.mock('../../src/store/preferences', () => ({
 }));
 
 jest.mock('../../src/utils/mount', () => ({
+  ...jest.requireActual('../../src/utils/mount'),
   hashFile: jest.fn(() => 'hash-1')
 }));
 

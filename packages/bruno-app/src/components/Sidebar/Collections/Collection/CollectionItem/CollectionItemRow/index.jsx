@@ -23,10 +23,10 @@ import {
 } from '@tabler/icons';
 import { useSelector, useDispatch, useStore } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem, mountCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem, mountCollection, revealItemInSidebar } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
 import { formatIpcError } from 'utils/common/error';
-import { toggleCollectionItem, expandItem, collapseItem, addResponseExample, expandCollection } from 'providers/ReduxStore/slices/collections';
+import { toggleCollectionItem, expandItem, collapseItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { uuid } from 'utils/common';
 import { copyRequest, setFocusedSidebarPath, insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -42,8 +42,7 @@ import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from '
 import {
   getDefaultRequestPaneTab,
   getItemTypeLabel,
-  findItemInCollectionByPathname,
-  findParentItemInCollectionByPathname
+  findItemInCollectionByPathname
 } from 'utils/collections';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
@@ -389,16 +388,10 @@ const CollectionItemRow = ({
   };
 
   const revealMountedItem = () => {
-    const mounted = selectCollectionByUid(store.getState(), collectionUid);
+    const collection = selectCollectionByUid(store.getState(), collectionUid);
+    const mounted = collection && findItemInCollectionByPathname(collection, item.pathname);
     if (!mounted) return;
-    dispatch(expandCollection(collectionUid));
-    let folder = isItemAFolder(item)
-      ? findItemInCollectionByPathname(mounted, item.pathname)
-      : findParentItemInCollectionByPathname(mounted, item.pathname);
-    while (folder) {
-      dispatch(expandItem({ itemUid: folder.uid, collectionUid }));
-      folder = findParentItemInCollectionByPathname(mounted, folder.pathname);
-    }
+    dispatch(revealItemInSidebar({ collectionUid, itemUid: mounted.uid, expandTarget: isItemAFolder(item) }));
   };
 
   const handleClick = (event) => {

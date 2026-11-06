@@ -18,16 +18,12 @@ const StyledWrapper = styled.div`
 
   .indexing-icon {
     position: absolute;
-    right: 8px;
+    right: 28px;
     top: 0;
     bottom: 0;
     margin: auto 0;
     color: ${(props) => props.theme.sidebar.muted};
     pointer-events: none;
-
-    &.with-clear {
-      right: 28px;
-    }
   }
 
   input {

@@ -4,13 +4,14 @@ import { savePreferences, clearHttpHttpsAgentCache } from 'providers/ReduxStore/
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { IconEraser } from '@tabler/icons';
-import useFileCache from 'hooks/useFileCache';
-import useSearchIndex from 'hooks/useSearchIndex';
+import useCacheSize from 'hooks/useCacheSize';
 import { useTheme } from 'providers/Theme';
 import ToggleSwitch from 'components/ToggleSwitch';
 import ActionIcon from 'ui/ActionIcon';
 import StyledWrapper from './StyledWrapper';
 import { formatSize } from 'utils/common';
+
+const fileIndexBytes = (row) => row?.bytes ?? null;
 
 const Cache = () => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -21,8 +22,15 @@ const Cache = () => {
   const sslSessionEnabled = get(preferences, 'cache.sslSession.enabled', false);
   const searchIndexEnabled = get(preferences, 'cache.searchIndex.enabled', false);
 
-  const { size: fileCacheSize, clear: clearFileCache } = useFileCache();
-  const { size: searchIndexSize, clear: clearSearchIndex } = useSearchIndex();
+  const { size: fileCacheSize, clear: clearFileCache } = useCacheSize({
+    sizeChannel: 'datastore:file-index:file_index_size',
+    clearChannel: 'datastore:file-index:file_index_clear',
+    toSize: fileIndexBytes
+  });
+  const { size: searchIndexSize, clear: clearSearchIndex } = useCacheSize({
+    sizeChannel: 'renderer:get-search-index-size',
+    clearChannel: 'renderer:clear-search-index'
+  });
 
   const persist = (next) => {
     dispatch(savePreferences({ ...preferences, cache: next })).catch(() => {

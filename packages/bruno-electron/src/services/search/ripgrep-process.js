@@ -1,7 +1,8 @@
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { rgPath } = require('@vscode/ripgrep');
-const { defaultClassify } = require('../../utils/mount');
+const escapeRegExp = require('lodash/escapeRegExp');
+const { defaultClassify, DENY_DIRS } = require('../../utils/mount');
 
 const RG_PATH = rgPath.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
 const BATCH_SIZE = 200;
@@ -16,19 +17,13 @@ const RG_ARGS = [
   '--glob', '*.bru',
   '--glob', '*.yml',
   '--glob', '*.yaml',
-  '--glob', '!**/node_modules/**',
-  '--glob', '!**/.git/**',
-  '--glob', '!**/.svn/**',
-  '--glob', '!**/.hg/**',
-  '--glob', '!**/.bruno/**'
+  ...[...DENY_DIRS].flatMap((dir) => ['--glob', `!**/${dir}/**`])
 ];
 
 let current = null;
 const history = new Map();
 
 const post = (message) => process.parentPort.postMessage(message);
-
-const escapeRegex = (text) => text.replace(/[\\^$.|?*+()[\]{}]/g, '\\$&');
 
 const isCurrent = (id) => current?.id === id;
 
@@ -65,7 +60,7 @@ const remember = (root, query, paths) => {
 };
 
 const searchRoot = (id, root, query, targets, narrowed) => new Promise((resolve) => {
-  const pattern = `(?m)^[ \\t]*(?:name|url)[ \\t]*:[^\\r\\n]*?${escapeRegex(query)}`;
+  const pattern = `(?m)^[ \\t]*(?:name|url)[ \\t]*:[^\\r\\n]*?${escapeRegExp(query)}`;
   const child = spawn(RG_PATH, [...RG_ARGS, '--regexp', pattern, '--', ...targets], {
     cwd: narrowed ? root : undefined,
     stdio: ['ignore', 'pipe', 'ignore']

@@ -138,3 +138,4 @@ erDiagram
 **Indexes**
 
 - `idx_search_index_folders` on (`collection_path`, `path`, `name`, `seq`)
+- `idx_search_index_request_folders` on (`collection_path`, `folder_path`)

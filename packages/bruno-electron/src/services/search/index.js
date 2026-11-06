@@ -7,7 +7,7 @@ const { defaultClassify, hashFileAsync, FOLDER_ROOT_BASENAMES } = require('../..
 const { preferencesUtil } = require('../../store/preferences');
 const { getPool, JobType, JobPriority } = require('../pool');
 const { getSearchIndex } = require('../search-index');
-const { ingestParsedFile } = require('../search-index/ingest');
+const { ingestBatch } = require('../search-index/ingest');
 
 const RIPGREP_PROCESS_FILE = path.join(__dirname, 'ripgrep-process.js');
 const STATUS_INTERVAL_MS = 150;
@@ -39,6 +39,8 @@ const withFolderFiles = (probedDirs, relativePaths) => {
   return [...files];
 };
 
+const jobKey = (collectionPath, relativePath) => `${collectionPath}\0${relativePath}`;
+
 const isIndexedVersion = async (absolutePath, indexed) => {
   const stat = await fs.promises.stat(absolutePath, { bigint: true });
   if (indexed.mtime !== null && indexed.mtime !== undefined && BigInt(indexed.mtime) === stat.mtimeNs) return true;
@@ -47,12 +49,12 @@ const isIndexedVersion = async (absolutePath, indexed) => {
 
 class SearchService {
   #host = null;
-  #onMessage = null;
   #nextId = 0;
   #active = null;
-  #window = null;
   #fileIndex = null;
   #ingestQueue = [];
+  // bumped on every index write so cached window lookups know to re-read
+  #indexWrites = 0;
   #statusTimer = null;
 
   #getHost() {
@@ -63,7 +65,7 @@ class SearchService {
       const active = this.#active;
       if (!active || message.id !== active.id) return;
       if (message.type === 'batch') {
-        this.#onMessage?.(message);
+        active.onMessage(message);
         this.#backfill(active, message.root, message.paths);
         return;
       }
@@ -111,7 +113,7 @@ class SearchService {
     this.#flushIngest();
     const active = this.#active;
     if (!active) return;
-    this.#onMessage?.({
+    active.onMessage({
       type: 'status',
       id: active.id,
       indexing: active.searching || active.pending > 0,
@@ -137,9 +139,17 @@ class SearchService {
   search({ roots, query }, onMessage) {
     this.#stopActive();
     const id = ++this.#nextId;
-    this.#window = null;
-    this.#onMessage = onMessage;
-    this.#active = { id, roots, query, searching: true, pending: 0, jobs: new Map(), versions: new Map() };
+    this.#active = {
+      id,
+      roots,
+      query,
+      onMessage,
+      searching: true,
+      pending: 0,
+      jobs: new Map(),
+      versions: new Map(),
+      windows: new Map()
+    };
     this.#emitStatus();
     this.#getHost().postMessage({ type: 'search', id, roots, query });
     return id;
@@ -147,8 +157,6 @@ class SearchService {
 
   cancel() {
     this.#stopActive();
-    this.#window = null;
-    this.#onMessage = null;
     this.#host?.postMessage({ type: 'cancel' });
   }
 
@@ -195,12 +203,9 @@ class SearchService {
   }
 
   #schedule(active, collectionPath, relativePath, priority) {
-    const key = `${collectionPath}\0${relativePath}`;
+    const key = jobKey(collectionPath, relativePath);
     const existing = active.jobs.get(key);
-    if (existing) {
-      if (priority < existing.priority && getPool().prioritize([existing.promise], priority)) existing.priority = priority;
-      return existing.result;
-    }
+    if (existing) return existing.result;
 
     const promise = getPool().run(
       JobType.ParseFile,
@@ -230,50 +235,41 @@ class SearchService {
 
   #flushIngest() {
     if (!this.#ingestQueue.length) return;
-    const queue = this.#ingestQueue;
+    const parsed = this.#ingestQueue;
     this.#ingestQueue = [];
-    if (!preferencesUtil.isSearchIndexEnabled()) return;
+    this.#indexWrites += 1;
     const fileIndex = preferencesUtil.isFileCacheEnabled() ? this.#getFileIndex() : null;
-    try {
-      const searchIndex = getSearchIndex();
-      searchIndex.transaction(() => {
-        for (const { collectionPath, result } of queue) {
-          ingestParsedFile({
-            searchIndex,
-            fileIndex,
-            collectionPath,
-            collectionName: path.basename(collectionPath),
-            result
-          });
-        }
-      });
-    } catch (err) {
-      console.warn('[search] failed to persist search index', err);
-    }
+    ingestBatch({ parsed, fileIndex });
+  }
+
+  #promote(active, collectionPath, relativePaths, priority) {
+    const jobs = relativePaths
+      .map((relativePath) => active.jobs.get(jobKey(collectionPath, relativePath)))
+      .filter((job) => job && priority < job.priority);
+    if (!jobs.length || !getPool().prioritize(jobs.map((job) => job.promise), priority)) return;
+    for (const job of jobs) job.priority = priority;
   }
 
   async resolveWindow({ id, collectionPath, relativePaths }) {
     const active = this.#active;
     if (!active || id !== active.id) return { stale: true };
     this.#flushIngest();
-    if (this.#window?.id !== id) this.#window = { id, collections: new Map() };
-    let collection = this.#window.collections.get(collectionPath);
+    let collection = active.windows.get(collectionPath);
     if (!collection) {
-      collection = { resolved: new Set(), probedDirs: new Set() };
-      this.#window.collections.set(collectionPath, collection);
+      collection = { resolved: new Set(), probedDirs: new Set(), indexWrites: -1 };
+      active.windows.set(collectionPath, collection);
     }
+    if (collection.indexWrites !== this.#indexWrites) {
+      const searchIndex = getSearchIndex();
+      collection.indexWrites = this.#indexWrites;
+      collection.rowsByPath = new Map(searchIndex.rowsForCollection(collectionPath).map((row) => [row.requestPath, row]));
+      collection.foldersByPath = new Map(searchIndex.foldersFor(collectionPath).map((row) => [row.folderPath, row]));
+    }
+    const { rowsByPath, foldersByPath } = collection;
 
     const wanted = withFolderFiles(collection.probedDirs, relativePaths).filter((relativePath) => !collection.resolved.has(relativePath));
     const windowEntries = new Map();
     const toParse = [];
-
-    const searchIndex = getSearchIndex();
-    const rowsByPath = new Map(
-      searchIndex.rowsForCollection(collectionPath).map((row) => [row.requestPath, row])
-    );
-    const foldersByPath = new Map(
-      searchIndex.foldersFor(collectionPath).map((row) => [row.folderPath, row])
-    );
 
     const fromIndex = (relativePath) => {
       if (defaultClassify(relativePath)?.type === 'folder') {
@@ -300,6 +296,7 @@ class SearchService {
       }
     }
 
+    this.#promote(active, collectionPath, toParse, JobPriority.search);
     const parsed = await Promise.all(toParse.map((relativePath) => this.#schedule(active, collectionPath, relativePath, JobPriority.search)));
     if (this.#active !== active) return { stale: true };
 
@@ -316,7 +313,6 @@ class SearchService {
     clearTimeout(this.#statusTimer);
     this.#statusTimer = null;
     this.#active = null;
-    this.#onMessage = null;
     const host = this.#host;
     this.#host = null;
     host?.kill();

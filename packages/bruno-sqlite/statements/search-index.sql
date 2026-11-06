@@ -110,9 +110,6 @@ WHERE collection_path = @collection_path AND entity = 'folder';
 -- name: search_index_clear :exec
 DELETE FROM search_index;
 
--- name: search_index_clear_collection :exec
-DELETE FROM search_index WHERE collection_path = @collection_path;
-
 -- name: search_index_size :one
 SELECT COALESCE(SUM(LENGTH(CAST(collection_path AS BLOB)) + LENGTH(CAST(path AS BLOB))
                     + LENGTH(CAST(name AS BLOB)) + LENGTH(CAST(COALESCE(url, '') AS BLOB))

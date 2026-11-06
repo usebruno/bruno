@@ -11,7 +11,7 @@ import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
 import { flattenSidebarTree } from 'utils/collections/flattenSidebarTree';
 import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
-import useCollectionsSearch from 'hooks/useCollectionsSearch';
+import useCollectionsSearch, { SIDEBAR_ROW_HEIGHT } from 'hooks/useCollectionsSearch';
 import useSidebarAutoReveal from 'hooks/useSidebarAutoReveal';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 import { selectCollections, selectCollectionSortOrder, selectSelectedSidebarUids } from 'src/selectors/collections';
@@ -186,7 +186,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
           rangeChanged={onRangeChanged}
           itemsRendered={onItemsRendered}
           computeItemKey={(_, row) => row.id}
-          defaultItemHeight={26}
+          defaultItemHeight={SIDEBAR_ROW_HEIGHT}
           increaseViewportBy={{ top: 400, bottom: 600 }}
           itemContent={(_, row) => (
             <SidebarRow

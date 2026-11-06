@@ -44,12 +44,9 @@ const registerSearchIpc = () => {
   ipcMain.handle('renderer:search-window', resolveSearchWindow);
   ipcMain.handle('renderer:search-cancel', () => service.cancel());
   ipcMain.handle('renderer:get-search-index-size', () => getSearchIndex().size());
-  ipcMain.handle('renderer:clear-search-index', () => {
-    getSearchIndex().clear();
-    return { searchIndexSize: getSearchIndex().size() };
-  });
+  ipcMain.handle('renderer:clear-search-index', () => getSearchIndex().clear());
 };
 
 const shutdown = () => service.shutdown();
 
-module.exports = { registerSearchIpc, searchCollections, resolveSearchWindow, shutdown };
+module.exports = { registerSearchIpc, shutdown };
