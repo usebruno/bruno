@@ -2462,7 +2462,8 @@ const closeAllTabs = async (page: Page) => {
  */
 const selectTabContextMenuItem = async (page: Page, tabName: string, itemId: string) => {
   await test.step(`Select "${itemId}" from the "${tabName}" tab menu`, async () => {
-    const tabLabel = page.locator('.request-tab').filter({ has: page.getByText(tabName, { exact: true }) }).locator('.tab-label');
+    const locators = buildCommonLocators(page);
+    const tabLabel = locators.tabs.tabByName(tabName).locator('.tab-label');
     // Aim at the label's left edge: on a short tab name the close-gradient overlay covers its centre.
     await tabLabel.click({ button: 'right', position: { x: 5, y: 5 } });
 
@@ -2475,7 +2476,8 @@ const selectTabContextMenuItem = async (page: Page, tabName: string, itemId: str
 // Switch to an already-open request tab by its label (e.g. transient tabs are "Untitled N").
 const switchToOpenTab = async (page: Page, label: string) => {
   await test.step(`Switch to tab "${label}"`, async () => {
-    const tab = page.getByTestId('request-tab').filter({ has: page.getByText(label, { exact: true }) });
+    const locators = buildCommonLocators(page);
+    const tab = locators.tabs.tabByName(label);
     await tab.click();
     await expect(tab).toHaveAttribute('aria-selected', 'true');
   });
