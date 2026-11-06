@@ -79,6 +79,9 @@ const defaultPreferences = {
     },
     file: {
       enabled: false
+    },
+    searchIndex: {
+      enabled: false
     }
   },
   ai: {
@@ -200,6 +203,9 @@ const preferencesSchema = Yup.object().shape({
       enabled: Yup.boolean()
     }),
     file: Yup.object({
+      enabled: Yup.boolean()
+    }),
+    searchIndex: Yup.object({
       enabled: Yup.boolean()
     })
   }).optional(),
@@ -445,6 +451,9 @@ const preferencesUtil = {
   },
   isFileCacheEnabled: () => {
     return get(getPreferences(), 'cache.file.enabled', false);
+  },
+  isSearchIndexEnabled: () => {
+    return get(getPreferences(), 'cache.searchIndex.enabled', false);
   },
   hasLaunchedBefore: () => {
     return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);

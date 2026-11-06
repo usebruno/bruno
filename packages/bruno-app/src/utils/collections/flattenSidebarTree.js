@@ -182,6 +182,7 @@ const flattenCollection = ({
   collection,
   hasSearch,
   searchText,
+  searchCollapsedCollectionUids,
   appendRow,
   addItemToIndex,
   addCollectionToIndex
@@ -210,8 +211,7 @@ const flattenCollection = ({
 
   addCollectionToIndex(collection.uid, collection);
 
-  // Search reveals matching descendants regardless of the collapsed state.
-  const isExpanded = hasSearch || !collection.collapsed;
+  const isExpanded = hasSearch ? !searchCollapsedCollectionUids.has(collection.uid) : !collection.collapsed;
 
   if (!isExpanded) return;
 
@@ -257,7 +257,7 @@ const flattenCollection = ({
  * each row carry only structural data.
  *
  * @param {Array} sidebarEntries
- * @param {{ searchText?: string }} options
+ * @param {{ searchText?: string, searchCollapsedCollectionUids?: Set<string> }} options
  * @returns {{
  *   rows: Array<Object>,
  *   itemsByUid: Map,
@@ -265,7 +265,7 @@ const flattenCollection = ({
  * }}
  */
 export const flattenSidebarTree = (sidebarEntries = [], options = {}) => {
-  const { searchText = '' } = options;
+  const { searchText = '', searchCollapsedCollectionUids = new Set() } = options;
   const hasSearch = Boolean(searchText.trim());
 
   const rows = [];
@@ -315,6 +315,7 @@ export const flattenSidebarTree = (sidebarEntries = [], options = {}) => {
       collection: entry.collection,
       hasSearch,
       searchText,
+      searchCollapsedCollectionUids,
       appendRow,
       addItemToIndex,
       addCollectionToIndex

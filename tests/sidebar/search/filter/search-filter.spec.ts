@@ -1,7 +1,8 @@
-import { test, expect, closeElectronApp } from '../../../playwright';
+import { test, expect, closeElectronApp } from '../../../../playwright';
 import path from 'path';
 import {
   buildCommonLocators,
+  clearSearchIndex,
   collapseFolder,
   createApp,
   expandFolder,
@@ -10,8 +11,8 @@ import {
   createFolder,
   createRequest,
   expandCollection
-} from '../../utils/page';
-import { initBruCollection, writeBruRequest, writeBruFolder } from '../../utils/fixtures/bru-collection';
+} from '../../../utils/page';
+import { initBruCollection, writeBruRequest, writeBruFolder } from '../../../utils/fixtures/bru-collection';
 
 const COLLECTION_NAME = 'SearchCol';
 
@@ -35,6 +36,7 @@ test.describe('Sidebar search filtering', () => {
       templateVars: { collectionPath: collectionDir.split(path.sep).join('/') }
     });
     const page = await waitForReadyPage(app);
+    await clearSearchIndex(page);
     const locators = buildCommonLocators(page);
     const searchInput = page.getByTestId('sidebar-search-input');
     const row = locators.sidebar.item;
@@ -60,6 +62,8 @@ test.describe('Sidebar search filtering', () => {
         // `auth` is still collapsed in state; the search overrides that at render time.
         await expect(row('login')).toBeVisible();
         await expect(row('logout')).toBeVisible();
+        await expect(row('login').locator('.search-match')).toHaveText('log');
+        await expect(row('logout').locator('.search-match')).toHaveText('log');
         await expect(row('search-me')).toHaveCount(0);
         await expect(row('health')).toHaveCount(0);
         // Apps are never surfaced while searching, even though "log-app" matches "log".

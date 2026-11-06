@@ -71,6 +71,9 @@ const initialState = {
     cache: {
       sslSession: {
         enabled: false
+      },
+      searchIndex: {
+        enabled: false
       }
     },
     ai: {

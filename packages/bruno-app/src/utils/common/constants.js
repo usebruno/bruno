@@ -7,6 +7,7 @@ export const MAX_RENDERABLE_RESPONSE_BYTES = 50 * 1024 * 1024;
 
 export const DEFAULT_SIDEBAR_WIDTH = 250;
 export const DEFAULT_SIDEBAR_COLLAPSED = false;
+export const SIDEBAR_ROW_HEIGHT = 26;
 
 export const PRESET_REQUEST_TYPES = {
   HTTP: 'http',
