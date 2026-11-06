@@ -11,6 +11,7 @@ const { sanitizeName, validateName, generateUniqueName } = require('@usebruno/co
 const DEFAULT_GITIGNORE = [
   '# Secrets',
   '.env*',
+  '!.env.sample*',
   '',
   '# Dependencies',
   'node_modules',
