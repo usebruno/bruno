@@ -165,10 +165,23 @@ const safeDecodeURIComponent = (s: string): string => {
 // per PR #5507's contract — query values are user data and pre-encoded inputs
 // are a legitimate signal that the user wants the encoding to survive a server
 // URL-decode pass (the redirect-URL use case). See `encodeUrl` below.
+//
+// One escape is decoded back after encoding: `%24` → `$`. `$` is a legal path
+// byte (RFC 3986 §3.3 sub-delim) with no structural role in URI parsing — the
+// same class as `!~*'()`, which `encodeURIComponent` already preserves — yet
+// it was going out as %24 and breaking `$`-operation APIs (HL7 FHIR,
+// OData — issue #9030). The bytes that stay encoded (`:`, `@`, `&`, `=`, `;`,
+// `+`, `,`, `#`, ...) are structurally reserved elsewhere in the URI and the
+// existing contract expects them encoded in path segments (see the HAR
+// colon/fragment scenarios). Because the segment was decoded first, every
+// `%XX` the encoder emits is ours, so the replacement cannot clobber user data.
+const encodePathSegment = (segment: string): string =>
+  encodeURIComponent(safeDecodeURIComponent(segment)).replace(/%24/g, '$');
+
 const encodePathSegments = (path: string): string =>
   path
     .split('/')
-    .map((segment) => encodeURIComponent(safeDecodeURIComponent(segment)))
+    .map(encodePathSegment)
     .join('/');
 
 // Encodes path segments and query name/value pairs when the URL Encoding toggle is on.
