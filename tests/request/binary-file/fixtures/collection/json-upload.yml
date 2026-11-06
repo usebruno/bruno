@@ -1,0 +1,8 @@
+info:
+  name: json-upload
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://localhost:8081/api/file-binary/binary-upload-json

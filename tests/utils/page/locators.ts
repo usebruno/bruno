@@ -180,6 +180,8 @@ export const buildCommonLocators = (page: Page) => ({
     menuItem: (type: string) => page.locator('[role="menu"]').last().getByText(type, { exact: true })
   },
   filePicker: {
+    button: (scope?: Locator) => (scope ?? page).locator('.file-picker-btn'),
+    selected: (scope?: Locator) => (scope ?? page).locator('.file-picker-selected'),
     warningTooltip: () => page.getByTestId('file-picker-warning-tooltip')
   },
   // The variable-info popup shown when hovering a `{{var}}` token in an editor.
@@ -315,8 +317,7 @@ export const buildCommonLocators = (page: Page) => ({
       rows: () => page.getByTestId('test-result-item'),
       passed: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-pass') }),
       failed: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-fail') })
-    },
-    responseSize: () => page.getByTestId('response-size')
+    }
   },
   timeline: {
     items: () => page.getByTestId('timeline-item'),
