@@ -19,7 +19,7 @@ test.describe('make grpc requests', () => {
     });
   };
 
-  test('make unary request', async ({ pageWithUserData: page }) => {
+  test('TC-789: make unary request with a greeting and get an OK reply', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     await setupGrpcTest(page);
     const locators = buildGrpcCommonLocators(page);
 
@@ -39,8 +39,8 @@ test.describe('make grpc requests', () => {
       await locators.request.sendButton().click();
       await expect(locators.response.statusCode()).toBeVisible({ timeout: 2000 });
       await expect(locators.response.statusText()).toBeVisible({ timeout: 2000 });
-      await expect(locators.response.statusCode()).toHaveText(/0/);
-      await expect(locators.response.statusText()).toHaveText(/OK/);
+      await expect(locators.response.statusCode()).toHaveText(/^0$/);
+      await expect(locators.response.statusText()).toHaveText(/^OK$/);
     });
 
     await test.step('verify response message count', async () => {
@@ -51,6 +51,10 @@ test.describe('make grpc requests', () => {
       await expect(locators.response.content()).toBeVisible();
       await expect(locators.response.container()).toBeVisible();
       await expect(locators.response.singleResponse()).toBeVisible();
+    });
+
+    await test.step('verify the reply echoes the greeting', async () => {
+      await expect(locators.response.content()).toContainText('hello amoveo');
     });
 
     /* TODO: Reflection fetching incorrectly marks requests as modified, causing save indicators to appear. This save step prevents test timeouts by clearing the modified state. This is a temporary workaround until the reflection fetching issue is resolved. */

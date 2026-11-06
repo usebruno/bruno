@@ -1,7 +1,7 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/tests/grpc/make-request/fixtures/collection"
+    "{{collectionPath}}"
   ],
   "preferences": {
     "onboarding": {
