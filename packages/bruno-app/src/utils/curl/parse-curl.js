@@ -216,7 +216,9 @@ const setAuth = (request, value) => {
     return;
   }
 
-  const [username, password] = value.split(':');
+  const separatorIndex = value.indexOf(':');
+  const username = separatorIndex === -1 ? value : value.slice(0, separatorIndex);
+  const password = separatorIndex === -1 ? '' : value.slice(separatorIndex + 1);
 
   // Store credentials temporarily for finalization in post-processing
   request.authCredentials = {
