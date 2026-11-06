@@ -181,6 +181,8 @@ export const buildCommonLocators = (page: Page) => ({
     menuItem: (type: string) => page.locator('[role="menu"]').last().getByText(type, { exact: true })
   },
   filePicker: {
+    button: (scope?: Locator) => (scope ?? page).locator('.file-picker-btn'),
+    selected: (scope?: Locator) => (scope ?? page).locator('.file-picker-selected'),
     warningTooltip: () => page.getByTestId('file-picker-warning-tooltip')
   },
   // The variable-info popup shown when hovering a `{{var}}` token in an editor.
