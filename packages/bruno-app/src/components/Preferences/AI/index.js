@@ -13,12 +13,14 @@ import { savePreferences } from 'providers/ReduxStore/slices/app';
 import ToggleSwitch from 'components/ToggleSwitch';
 import { clearAiApiKey, getAiStatus } from 'utils/ai';
 import ProviderCard from './ProviderCard';
+import CopilotProviderCard from './CopilotProviderCard';
 import CompatEndpointCard from './CompatEndpointCard';
 import AutocompletePane from './AutocompletePane';
 import SecurityPane from './SecurityPane';
 import StyledWrapper from './StyledWrapper';
 
 const OPENAI_COMPATIBLE_PREFIX = 'openai-compatible:';
+const COPILOT_PROVIDER_ID = 'github-copilot';
 const isCompatProviderId = (id) => typeof id === 'string' && id.startsWith(OPENAI_COMPATIBLE_PREFIX);
 
 const aiPreferencesSchema = Yup.object().shape({
@@ -81,6 +83,15 @@ const AI = () => {
   useEffect(() => {
     refreshStatus();
   }, [refreshStatus]);
+
+  useEffect(() => {
+    const { ipcRenderer } = window;
+    if (!ipcRenderer) return undefined;
+    const unsubscribe = ipcRenderer.on('main:ai-status-changed', (next) => {
+      if (next) setStatus(next);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const providerIds = status ? Object.keys(status.providers) : [];
 
@@ -201,10 +212,11 @@ const AI = () => {
     return grouped;
   }, [status]);
 
-  const isModelEnabled = (modelId) => get(formik.values, `models.${modelId}.enabled`, true);
+  const isModelEnabled = (modelId) => get(formik.values, ['models', modelId, 'enabled'], true);
 
   const handleToggleModel = (modelId, next) => {
-    formik.setFieldValue(`models.${modelId}.enabled`, next);
+    const models = formik.values.models || {};
+    formik.setFieldValue('models', { ...models, [modelId]: { ...models[modelId], enabled: next } });
   };
 
   const endpoints = formik.values.openaiCompatibleEndpoints || [];
@@ -394,6 +406,24 @@ const AI = () => {
                           formik.setFieldValue(`providers.${id}.enabled`, !providerEnabled)}
                       />
                     );
+
+                    if (id === COPILOT_PROVIDER_ID && status.copilot) {
+                      return (
+                        <CopilotProviderCard
+                          key={id}
+                          provider={provider}
+                          providerEnabled={providerEnabled}
+                          providerToggle={providerToggle}
+                          copilot={status.copilot}
+                          models={modelsByProvider[id] || []}
+                          isModelEnabled={isModelEnabled}
+                          onToggleModel={handleToggleModel}
+                          onStatusChange={(next) => setStatus(next)}
+                          onSignOut={() => formik.setFieldValue(`providers.${id}.enabled`, false)}
+                          onSignedIn={() => formik.setFieldValue(`providers.${id}.enabled`, true)}
+                        />
+                      );
+                    }
 
                     return (
                       <ProviderCard
