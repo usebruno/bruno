@@ -1,4 +1,3 @@
-import fs from 'fs';
 import { expect, test } from '../../playwright';
 import {
   buildCommonLocators,
@@ -19,7 +18,6 @@ import {
   environmentTabCloseGradient,
   expectCollectionFilesUnchanged,
   expectCollectionFileToContain,
-  fixtureCollectionPath,
   folderTab,
   openCollectionSettingsWithDraft,
   openEnvironmentWithDraft,
@@ -35,11 +33,9 @@ import {
 test.describe('Tab menu - bulk close actions with unsaved changes', () => {
   let collectionDir: string;
 
-  // The app is shared across the file, so every test opens its own copy of the fixture:
-  // tests that press Save write to disk and must not leak into the next test.
-  test.beforeEach(async ({ page, electronApp, createTmpDir }) => {
-    collectionDir = await createTmpDir(collectionName);
-    fs.cpSync(fixtureCollectionPath, collectionDir, { recursive: true });
+  // Each test gets its own copy of the fixture, so tests that press Save don't leak into the next one.
+  test.beforeEach(async ({ page, electronApp, collectionFixturePath }) => {
+    collectionDir = collectionFixturePath!;
     await openCollectionFromPath(page, electronApp, collectionDir);
     await waitForCollectionMount(page, collectionName);
     await openCollection(page, collectionName);
