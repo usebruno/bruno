@@ -383,6 +383,7 @@ const CreateApiSpec = ({ onClose }) => {
             <div className="relative">
               <input
                 id="api-spec-name"
+                data-testid="api-spec-name-input"
                 type="text"
                 name="apiSpecName"
                 ref={inputRef}

@@ -14,6 +14,7 @@ export * from './collection/collection-actions';
 export * from './mounting';
 export * from './collection/migrate-to-yml';
 export * from './collection/proxy';
+export * from './collection/collection-run';
 export * from './preferences';
 export * from './ai';
 export * from './mock-server';
