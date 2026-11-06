@@ -6,9 +6,6 @@ const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, 
 const { getEffectiveTags, getOwnTags, getInheritedTagsFromTreePath } = require('@usebruno/common');
 const { buildHeaderEntries } = require('@usebruno/js');
 const path = require('node:path');
-const { isLargeFile } = require('../../utils/filesystem');
-
-const STREAMING_FILE_SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
 const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   const collectionAuth = get(collectionRoot, 'request.auth');
@@ -473,14 +470,21 @@ const prepareRequest = async (item, collection = {}, abortController) => {
         }
 
         try {
-          // Large files can cause "JavaScript heap out of memory" errors when loaded entirely into memory.
-          if (isLargeFile(filePath, STREAMING_FILE_SIZE_THRESHOLD)) {
-            // For large files: Use streaming to avoid memory issues
-            axiosRequest.data = fs.createReadStream(filePath);
-          } else {
-            // For smaller files: Use synchronous read for better performance
-            axiosRequest.data = fs.readFileSync(filePath);
-          }
+          const stats = fs.statSync(filePath);
+          const stream = fs.createReadStream(filePath, {
+            highWaterMark: 64 * 1024,
+            autoClose: true
+          });
+          stream.on('error', (error) => {
+            console.error('Stream error:', error);
+          });
+          axiosRequest.data = stream;
+          axiosRequest.headers['content-length'] = stats.size;
+
+          // Prevent axios from buffering/limiting large file uploads
+          axiosRequest.maxContentLength = Infinity;
+          axiosRequest.maxBodyLength = Infinity;
+          axiosRequest.timeout = 0;
         } catch (error) {
           console.error('Error reading file:', error);
         }
