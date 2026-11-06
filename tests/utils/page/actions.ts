@@ -2416,6 +2416,16 @@ const closeAllOpenTabs = async (page: Page, saveChanges = false) => {
   });
 };
 
+// Right-click a request tab's label and pick an entry from its context menu.
+// Aim at the label's left edge: on a short tab name the close-gradient overlay covers its centre.
+const clickTabContextMenuItem = async (page: Page, tabLabel: Locator, itemId: string) => {
+  await tabLabel.click({ button: 'right', position: { x: 5, y: 5 } });
+
+  const dropdown = page.locator('.tippy-box.dropdown');
+  await dropdown.waitFor({ state: 'visible', timeout: 5000 });
+  await dropdown.locator(`[role="menuitem"][data-item-id="${itemId}"]`).click();
+};
+
 /**
  * Close all open request tabs using the right-click context menu
  * @param page - The page object
@@ -2429,16 +2439,7 @@ const closeAllTabs = async (page: Page) => {
       return; // No request tabs to close
     }
 
-    // Right-click on the tab label to open context menu. Aim at its left edge
-    // on a short tab name the close-gradient overlay covers the label's centre.
-    await requestTabLabel.click({ button: 'right', position: { x: 5, y: 5 } });
-
-    // Wait for the dropdown menu to appear
-    const dropdown = page.locator('.tippy-box.dropdown');
-    await dropdown.waitFor({ state: 'visible', timeout: 5000 });
-
-    // Click "Close All" menu item
-    await dropdown.locator('[role="menuitem"][data-item-id="close-all"]').click();
+    await clickTabContextMenuItem(page, requestTabLabel, 'close-all');
 
     // Handle "Unsaved Transient Requests" modal if it appears
     const discardAllButton = page.getByRole('button', { name: 'Discard All' });
@@ -2462,14 +2463,8 @@ const closeAllTabs = async (page: Page) => {
  */
 const selectTabContextMenuItem = async (page: Page, tabName: string, itemId: string) => {
   await test.step(`Select "${itemId}" from the "${tabName}" tab menu`, async () => {
-    const locators = buildCommonLocators(page);
-    const tabLabel = locators.tabs.tabByName(tabName).locator('.tab-label');
-    // Aim at the label's left edge: on a short tab name the close-gradient overlay covers its centre.
-    await tabLabel.click({ button: 'right', position: { x: 5, y: 5 } });
-
-    const dropdown = page.locator('.tippy-box.dropdown');
-    await dropdown.waitFor({ state: 'visible', timeout: 5000 });
-    await dropdown.locator(`[role="menuitem"][data-item-id="${itemId}"]`).click();
+    const tabLabel = buildCommonLocators(page).tabs.tabByName(tabName).locator('.tab-label');
+    await clickTabContextMenuItem(page, tabLabel, itemId);
   });
 };
 
