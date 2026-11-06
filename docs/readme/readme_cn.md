@@ -74,7 +74,7 @@ Bruno 可以在我们的 [网站上下载](https://www.usebruno.com/downloads) �
 
 ```sh
 # 在 Mac 电脑上用 Homebrew 安装
-brew install bruno
+brew install --cask bruno
 
 # 在 Windows 上用 Chocolatey 安装
 choco install bruno

@@ -58,7 +58,7 @@
 
 ```sh
 # Mac पर Homebrew के माध्यम से
-brew install bruno
+brew install --cask bruno
 
 # Windows पर Chocolatey के माध्यम से
 choco install bruno
