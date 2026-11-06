@@ -65,7 +65,7 @@ describe('reporter-skip-body', () => {
         results,
         summary: { totalRequests: 1, passedRequests: 1, failedRequests: 0, errorRequests: 0, skippedRequests: 0, totalAssertions: 1, passedAssertions: 1, failedAssertions: 0, totalTests: 1, passedTests: 1, failedTests: 0 }
       }],
-      version: 'usebruno v1.16.0',
+      version: 'v1.16.0',
       environment: null,
       runCompletionTime: '2024-01-15T14:30:45.123Z'
     });
@@ -137,7 +137,7 @@ describe('reporter-skip-request-body and reporter-skip-response-body', () => {
         results,
         summary: { totalRequests: 1, passedRequests: 1, failedRequests: 0, errorRequests: 0, skippedRequests: 0, totalAssertions: 1, passedAssertions: 1, failedAssertions: 0, totalTests: 1, passedTests: 1, failedTests: 0 }
       }],
-      version: 'usebruno v1.16.0',
+      version: 'v1.16.0',
       environment: null,
       runCompletionTime: '2024-01-15T14:30:45.123Z'
     });

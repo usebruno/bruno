@@ -8,6 +8,7 @@ jest.mock('@usebruno/common/runner', () => ({
 }));
 
 const makeHtmlOutput = require('../../src/reporters/html');
+const { CLI_VERSION } = require('../../src/constants');
 
 describe('makeHtmlOutput', () => {
   let writeFileSyncSpy;
@@ -39,7 +40,7 @@ describe('makeHtmlOutput', () => {
       }
     };
 
-    await makeHtmlOutput(mockResults, '/tmp/test.html', '2024-01-15T14:30:45.123Z', 'production');
+    await makeHtmlOutput(mockResults, '/tmp/test.html', { runStartTime: '2024-01-15T14:30:40.000Z', runCompletionTime: '2024-01-15T14:30:45.123Z', environment: 'production' });
 
     expect(mockGenerateHtmlReport).toHaveBeenCalledWith(expect.objectContaining({
       environment: 'production'
@@ -64,10 +65,30 @@ describe('makeHtmlOutput', () => {
       }
     };
 
-    await makeHtmlOutput(mockResults, '/tmp/test.html', '2024-01-15T14:30:45.123Z');
+    await makeHtmlOutput(mockResults, '/tmp/test.html', { runStartTime: '2024-01-15T14:30:40.000Z', runCompletionTime: '2024-01-15T14:30:45.123Z' });
 
     expect(mockGenerateHtmlReport).toHaveBeenCalledWith(expect.objectContaining({
       environment: null
+    }));
+  });
+
+  it('should pass the CLI version to generateHtmlReport as v followed by the version number', async () => {
+    await makeHtmlOutput({ results: [], summary: {} }, '/tmp/test.html');
+
+    expect(mockGenerateHtmlReport).toHaveBeenCalledWith(expect.objectContaining({
+      version: `v${CLI_VERSION}`
+    }));
+  });
+
+  it('should pass the run\'s start and completion times to generateHtmlReport', async () => {
+    await makeHtmlOutput({ results: [], summary: {} }, '/tmp/test.html', {
+      runStartTime: '2024-01-15T14:30:40.000Z',
+      runCompletionTime: '2024-01-15T14:30:45.123Z'
+    });
+
+    expect(mockGenerateHtmlReport).toHaveBeenCalledWith(expect.objectContaining({
+      runStartTime: '2024-01-15T14:30:40.000Z',
+      runCompletionTime: '2024-01-15T14:30:45.123Z'
     }));
   });
 });
