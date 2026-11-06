@@ -203,7 +203,7 @@ export const multiLineMsg = (...messages) => {
   return messages.filter((m) => m !== undefined && m !== null && m !== '').join('\n');
 };
 
-export const formatSize = (bytes) => {
+export const formatSize = (bytes, precision = 1) => {
   // Handle invalid inputs
   if (isNaN(bytes) || typeof bytes !== 'number') {
     return '0B';
@@ -213,13 +213,13 @@ export const formatSize = (bytes) => {
     return bytes + 'B';
   }
   if (bytes < 1024 * 1024) {
-    return (bytes / 1024).toFixed(1) + 'KB';
+    return (bytes / 1024).toFixed(precision) + 'KB';
   }
   if (bytes < 1024 * 1024 * 1024) {
-    return (bytes / (1024 * 1024)).toFixed(1) + 'MB';
+    return (bytes / (1024 * 1024)).toFixed(precision) + 'MB';
   }
 
-  return (bytes / (1024 * 1024 * 1024)).toFixed(1) + 'GB';
+  return (bytes / (1024 * 1024 * 1024)).toFixed(precision) + 'GB';
 };
 
 const ONE_SECOND_MS = 1000;
@@ -545,4 +545,10 @@ export const formatProxyTimestamp = (timestamp) => {
     })
     .replace(/[\u00A0\u202F]/g, ' ')
     .replace(/\b(a|p)m\b/gi, (match) => match.toUpperCase());
+};
+
+export const stopEnterFromConfirmingModal = (event) => {
+  if (event.key === 'Enter') {
+    event.stopPropagation();
+  }
 };

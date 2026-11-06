@@ -47,4 +47,9 @@ tests {
   test("req.headerList.count()", function() {
     expect(req.headerList.count()).to.be.at.least(3);
   });
+
+  test("req.headerList.idx(index)", function() {
+    expect(req.headerList.idx(0)).to.eql(req.headerList.all()[0]);
+    expect(req.headerList.idx(99)).to.be.undefined;
+  });
 }

@@ -231,7 +231,7 @@ describe('swagger2-to-bruno grouping', () => {
       const req = collection.items[0];
 
       // Should fall back to method + path
-      expect(req.name).toContain('get');
+      expect(req.name).toBe('GET /items');
     });
   });
 });

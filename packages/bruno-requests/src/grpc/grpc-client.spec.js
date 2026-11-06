@@ -894,8 +894,40 @@ describe('GrpcClient', () => {
 
       test('should send a scheme-less localhost in plaintext, the way the connection does', () => {
         const command = grpcClient.generateGrpcurlCommand({ request: { ...baseRequest, url: 'localhost:50051' } });
+        const uppercased = grpcClient.generateGrpcurlCommand({ request: { ...baseRequest, url: 'LOCALHOST:50051' } });
 
         expect(command).toContain('-plaintext');
+        expect(uppercased).toContain('-plaintext');
+      });
+
+      test('should send a scheme-less subdomain of the reserved .localhost TLD in plaintext', () => {
+        const command = grpcClient.generateGrpcurlCommand({ request: { ...baseRequest, url: 'db.localhost:50051' } });
+
+        expect(command).toContain('-plaintext');
+      });
+
+      test('should send a scheme-less IPv6 loopback in plaintext, in any spelling', () => {
+        const short = grpcClient.generateGrpcurlCommand({ request: { ...baseRequest, url: '[::1]:50051' } });
+        const expanded = grpcClient.generateGrpcurlCommand({
+          request: { ...baseRequest, url: '[0:0:0:0:0:0:0:1]:50051' }
+        });
+
+        expect(short).toContain('-plaintext');
+        expect(expanded).toContain('-plaintext');
+      });
+
+      test('should send a scheme-less 127.0.0.0/8 address in plaintext', () => {
+        const command = grpcClient.generateGrpcurlCommand({ request: { ...baseRequest, url: '127.0.0.2:50051' } });
+
+        expect(command).toContain('-plaintext');
+      });
+
+      test('should send a scheme-less host that merely contains localhost over TLS', () => {
+        const command = grpcClient.generateGrpcurlCommand({
+          request: { ...baseRequest, url: 'localhost.attacker.example:443' }
+        });
+
+        expect(command).not.toContain('-plaintext');
       });
 
       test('should pass the client certificate and key for a grpcs url', () => {

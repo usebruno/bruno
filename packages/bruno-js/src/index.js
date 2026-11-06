@@ -5,6 +5,7 @@ const VarsRuntime = require('./runtime/vars-runtime');
 const AssertRuntime = require('./runtime/assert-runtime');
 const { runScriptInNodeVm } = require('./sandbox/node-vm');
 const { trackUnresolvedVariables, getUnresolvedVariableCollector } = require('./unresolved-variables');
+const { buildHeaderEntries } = require('./utils/header-entries');
 const {
   formatErrorWithContext,
   formatErrorWithContextV2,
@@ -30,6 +31,7 @@ module.exports = {
   runScriptInNodeVm,
   trackUnresolvedVariables,
   getUnresolvedVariableCollector,
+  buildHeaderEntries,
   formatErrorWithContext,
   formatErrorWithContextV2,
   SCRIPT_TYPES,

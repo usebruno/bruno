@@ -62,7 +62,7 @@ hand:
 | Layer | Where | Missed → |
 |---|---|---|
 | Types | `bruno-schema-types/src/collection/item.ts` | type drift |
-| Yup schema | `bruno-schema/src/collections/index.js` — `.noUnknown(true).strict()` | **throws on save** |
+| Yup schema | `bruno-schema/src/collections/index.js` — `.noUnknown(true)`, cast output is persisted | **silently stripped on save** |
 | App save transform | `bruno-app/src/utils/collections/index.js` — `transformRequestToSaveToFilesystem`, `transform{Collection,Folder}RootToSave`, `transformCollectionToSaveToExportAsFile` | dropped before reaching disk / Bruno JSON export |
 | On-disk formats | `bruno-filestore/src/formats/{bru,yml}` (+ `bruno-lang`) — parse **and** stringify | lost in one format |
 | BRU → YML migration | `bruno-electron/src/ipc/yml-migration.js` (bru parse → yml stringify) | lost when a user migrates |

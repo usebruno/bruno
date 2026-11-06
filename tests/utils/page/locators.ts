@@ -1,5 +1,6 @@
 import { Locator, Page } from '../../../playwright';
 import { buildApiSpecPanelLocators, buildApiSpecRowMenuLocators } from './openapi/render-spec';
+import { buildOpenApiSyncLocators } from './openapi/sync';
 import { buildMockServerLocators } from './mock-server';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
@@ -18,6 +19,7 @@ import { buildRequestLocators } from '../request';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
 import { buildCollectionAppLocators } from './collection/collection-app';
 import { buildCollectionProxyLocators } from './collection/proxy';
+import { buildCollectionRunLocators } from './collection/collection-run';
 import { buildCodeMirrorLocators } from './code-mirror';
 import { buildEnvironmentLocators } from './environments';
 import { buildTimelineHeaderLocators } from './timeline-headers';
@@ -52,7 +54,8 @@ export const buildCommonLocators = (page: Page) => ({
   codeEditorHints: buildCodeEditorHintLocators(page),
   openApi: {
     render: buildApiSpecPanelLocators(page),
-    rowMenu: buildApiSpecRowMenuLocators(page)
+    rowMenu: buildApiSpecRowMenuLocators(page),
+    sync: buildOpenApiSyncLocators(page)
   },
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
@@ -330,23 +333,37 @@ export const buildCommonLocators = (page: Page) => ({
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
-    openCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }),
-    createCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }),
-    importCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' })
+    createCollection: () => page.getByTestId('collections-header-add-menu-create'),
+    importCollection: () => page.getByTestId('collections-header-add-menu-import'),
+    openCollection: () => page.getByTestId('collections-header-add-menu-open')
   },
   import: {
     modal: () => page.locator('[data-testid="import-collection-modal"]'),
     locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
     locationInput: () => page.locator('#collection-location'),
     fileInput: () => page.locator('input[type="file"]'),
+    urlTab: () => page.getByTestId('url-tab'),
+    urlInput: () => page.getByTestId('url-input'),
+    urlImportButton: () => page.getByTestId('import-url-btn'),
+    loader: () => page.getByTestId('import-collection-loader'),
+    fileTab: () => page.getByTestId('file-tab'),
+    gitRepositoryTab: () => page.getByTestId('github-tab'),
+    chooseFilesButton: () => page.getByTestId('choose-files-button'),
     advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
     preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
     checkForSpecUpdatesToggle: () => page.getByTestId('check-for-spec-updates-toggle'),
+    advancedSectionToggle: () => page.getByTestId('import-advanced-section-toggle'),
+    authPlacementToggle: () => page.getByTestId('auth-placement-toggle'),
+    requestNameSourceDropdown: () => page.getByTestId('request-name-source-dropdown'),
+    requestNameSourceOption: (value: string) => page.getByTestId(`request-name-source-option-${value.toLowerCase()}`),
     bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
     bulkFormatSelect: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
     bulkLocationInput: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),
     bulkSubmitButton: () => page.getByTestId('bulk-import-collection-location-modal-submit-btn'),
-    bulkSpecUpdatesCheckbox: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates'),
+    bulkOpenApiConfigurationToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByRole('button', { name: 'OpenAPI Import configuration' }),
+    bulkGroupingDropdown: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('grouping-dropdown'),
+    bulkGroupingOption: (value: string) => page.getByTestId('bulk-import-collection-location-modal').getByTestId(`grouping-option-${value}`),
+    bulkSpecUpdatesToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates'),
     bulkSpecUpdatesDescription: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates-description'),
     bulkSwagger2SyncNote: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-swagger2-sync-note'),
     bulkSelectAllCollectionsToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('selection-section-collections').getByTestId('selection-select-all-toggle'),

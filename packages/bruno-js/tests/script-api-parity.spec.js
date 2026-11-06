@@ -49,19 +49,6 @@ const READ_ONLY_LIST_WRITES = {
   'bru.grpc.response.trailers': ['upsert', 'add', 'remove', 'clear']
 };
 
-// Members a script can reach but must not use, so the docs leave them out (marked @internal):
-// - bru.cookies inherits PropertyList's positional writes; on cookies they throw, and `append`
-//   exists only in Developer Mode.
-// - Header and metadata lists block the base `idx` with an own `idx = undefined` field.
-const UNSUPPORTED_MEMBERS = {
-  'bru.cookies': ['append', 'prepend', 'insert', 'insertAfter', 'populate', 'repopulate', 'assimilate'],
-  'req.headerList': ['idx'],
-  'res.headerList': ['idx'],
-  'bru.grpc.request.metadata': ['idx'],
-  'bru.grpc.response.metadata': ['idx'],
-  'bru.grpc.response.trailers': ['idx']
-};
-
 // Defined by the QuickJS shim (src/sandbox/quickjs/shims/bru.js) although Bru has no such method,
 // so calling them in Safe Mode throws. Not documented, as there is nothing to call.
 const SHIM_ONLY_MEMBERS = {
@@ -229,7 +216,6 @@ describe('script API parity with the manifest', () => {
           const internal = [
             ...(INTERNAL_MEMBERS[objectPath] || []),
             ...(READ_ONLY_LIST_WRITES[objectPath] || []),
-            ...(UNSUPPORTED_MEMBERS[objectPath] || []),
             ...(SHIM_ONLY_MEMBERS[runtime]?.[objectPath] || [])
           ];
           return names
