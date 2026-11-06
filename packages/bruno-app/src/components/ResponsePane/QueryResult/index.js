@@ -31,14 +31,35 @@ const PREVIEW_FORMAT_OPTIONS = [
 const formatErrorMessage = (error) => {
   if (!error) return 'Something went wrong';
 
-  const remoteMethodError = 'Error invoking remote method \'send-http-request\':';
-
-  if (error?.includes(remoteMethodError)) {
-    const parts = error.split(remoteMethodError);
-    return parts[1]?.trim() || error;
+  let errorStr = error;
+  if (typeof error === 'object') {
+    if (typeof error.message === 'string' && error.message) {
+      errorStr = error.message;
+    } else if (typeof error.error_description === 'string' && error.error_description) {
+      errorStr = typeof error.error === 'string'
+        ? `${error.error}: ${error.error_description}`
+        : error.error_description;
+    } else if (typeof error.error === 'string' && error.error) {
+      errorStr = error.error;
+    } else {
+      try {
+        errorStr = JSON.stringify(error, null, 2);
+      } catch {
+        errorStr = String(error);
+      }
+    }
+  } else if (typeof error !== 'string') {
+    errorStr = String(error);
   }
 
-  return error;
+  const remoteMethodError = 'Error invoking remote method \'send-http-request\':';
+
+  if (errorStr.includes(remoteMethodError)) {
+    const parts = errorStr.split(remoteMethodError);
+    return parts[1]?.trim() || errorStr;
+  }
+
+  return errorStr;
 };
 
 // Custom hook to determine the initial format and tab based on the data buffer and headers
