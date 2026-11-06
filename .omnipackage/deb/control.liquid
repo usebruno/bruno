@@ -1,0 +1,14 @@
+Source: {{ package_name }}
+Section: devel
+Priority: optional
+Maintainer: {{ maintainer }}
+Build-Depends: debhelper (>= 8.0.0), {{ build_dependencies | join: ', ' }}
+Standards-Version: 3.9.4
+Homepage: {{ homepage }}
+
+Package: {{ package_name }}
+Architecture: any
+Depends: ${misc:Depends}{% if runtime_dependencies.size > 0 %}, {{ runtime_dependencies | join: ', ' }}{% endif %}
+Description: {{ description }}
+ Bruno is a fast and Git-friendly open-source API client for exploring and
+ testing APIs, built as an offline-first desktop application.
