@@ -2,6 +2,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from '../../../playwright';
 import { openRequest, selectRequestPaneTab } from '../../utils/page';
+import { replaceRequestUrl, typeAtEndOfRequestUrl } from '../../utils/request';
+import { buildQueryParamsLocators } from '../../utils/request/params/query';
 
 const COLLECTION = 'req-description';
 const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
@@ -38,5 +40,23 @@ test.describe('Request Description - Write (Query Params)', () => {
     expect(fileContent).toContain('@description');
     expect(fileContent).toContain('Query line one');
     expect(fileContent).toContain('Query line two');
+  });
+
+  test('keeps query param descriptions when the request url is edited', async ({ pageWithUserData: page }) => {
+    const queryParams = buildQueryParamsLocators(page);
+
+    await openRequest(page, COLLECTION, 'request-with-descriptions');
+    await selectRequestPaneTab(page, 'Params');
+    await expect(queryParams.descriptionFirstLineByName('q')).toHaveText('Single-line query desc');
+
+    await replaceRequestUrl(page, 'https://example.com/api?q=search&page=2&plain-query=value');
+    await expect(queryParams.valueByName('page')).toContainText('2');
+    await expect(queryParams.descriptionFirstLineByName('q')).toHaveText('Single-line query desc');
+
+    // typing in the url bar rebuilds the params on every keystroke
+    await typeAtEndOfRequestUrl(page, '-edited');
+    await expect(queryParams.valueByName('plain-query')).toContainText('value-edited');
+    await expect(queryParams.descriptionFirstLineByName('q')).toHaveText('Single-line query desc');
+    await expect(queryParams.descriptionFirstLineByName('page')).toHaveText('Multi-line query desc line one');
   });
 });
