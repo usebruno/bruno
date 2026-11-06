@@ -3,8 +3,14 @@ import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
 
+export const sortResponseHeaders = (headers) => {
+  return Object.entries(headers).sort(([firstName], [secondName]) =>
+    firstName.toLowerCase().localeCompare(secondName.toLowerCase())
+  );
+};
+
 const ResponseHeaders = ({ headers, item }) => {
-  const headersArray = typeof headers === 'object' ? Object.entries(headers) : [];
+  const headersArray = typeof headers === 'object' ? sortResponseHeaders(headers) : [];
   const wrapperRef = useRef(null);
   const [scroll, setScroll] = usePersistedState({ key: `response-headers-scroll-${item?.uid}`, default: 0 });
   useTrackScroll({ ref: wrapperRef, selector: '.response-tab-content', onChange: setScroll, initialValue: scroll });
