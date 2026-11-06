@@ -126,6 +126,21 @@ describe('node-vm sandbox', () => {
       expect(context.bru.setVar).toHaveBeenCalledWith('result', 'cross-platform');
     });
 
+    it('should load a local module whose name begins with .. inside the collection', async () => {
+      fs.writeFileSync(path.join(collectionPath, '..private.js'), 'module.exports = "dot-prefixed";');
+
+      const script = `
+        const value = require('./..private.js');
+        bru.setVar('result', value);
+      `;
+
+      const context = { bru: { setVar: jest.fn() }, console: console };
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'dot-prefixed');
+    });
+
     it('should block access outside collection path', async () => {
       const script = `
         const outside = require('../../outside');
