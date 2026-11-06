@@ -64,6 +64,12 @@ const waitForGuestReady = async (electronApp: ElectronApplication, collectionNam
 
 // Set the CodeMirror editor in the active CollectionApp tab. We use the API
 // directly to avoid auto-close-bracket corruption when typing HTML/JS.
+// Saving only does something once the editor change has become a draft on the tab, so a Ctrl+S sent right
+// after a programmatic CodeMirror setValue can be a no-op. Wait for the tab's unsaved marker first.
+const waitForActiveTabDraft = async (page: Page) => {
+  await expect(page.locator('.request-tab.active').getByTestId('tab-draft-icon')).toBeVisible();
+};
+
 const setCollectionAppCode = async (page: Page, code: string) => {
   await selectAppView(page, 'code');
   const editor = activeAppPreviewSlot(page).getByTestId('collection-app-code').locator('.CodeMirror').first();
@@ -72,6 +78,7 @@ const setCollectionAppCode = async (page: Page, code: string) => {
     const cm = (el as any).CodeMirror;
     if (cm) cm.setValue(val);
   }, code);
+  await waitForActiveTabDraft(page);
 };
 
 // A minimal app that exposes helpers the test can drive from the host side.
@@ -160,6 +167,7 @@ test.describe('Collection apps', () => {
       const cm = (el as any).CodeMirror;
       if (cm) cm.setValue('{"q":"{{q}}"}');
     });
+    await waitForActiveTabDraft(page);
     await saveRequest(page);
 
     await createApp(page, 'Runner App', { collectionName: 'col-apps-run' });
