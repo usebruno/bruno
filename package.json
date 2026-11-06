@@ -28,7 +28,6 @@
     "@lerna-lite/cli": "^4.11.2",
     "@lerna-lite/publish": "^4.11.2",
     "@lerna-lite/version": "^4.11.2",
-    "@opencollection/types": "~0.7.0",
     "@playwright/test": "1.62.1",
     "@rollup/plugin-json": "^6.1.0",
     "@stylistic/eslint-plugin": "^5.3.1",
