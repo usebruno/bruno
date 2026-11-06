@@ -353,7 +353,7 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
           <span className="font-medium">{totalDraftsCount}</span> {pluralizeWord('item', totalDraftsCount)}?
         </p>
 
-        <ul className="unsaved-items-list mt-4 scrollbar-visible" data-testid="unsaved-items-list">
+        <ul className="unsaved-items-list mt-4" data-testid="unsaved-items-list">
           {allDrafts.map((item, index) => {
             const iconProps = { size: 16, strokeWidth: 1.5 };
             let prefix;
