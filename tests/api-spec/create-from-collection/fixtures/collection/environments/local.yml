@@ -1,0 +1,16 @@
+name: local
+variables:
+  - name: baseUrl
+    value: https://{{region}}.api.test/{{apiKey}}
+  - name: region
+    value: eu
+  - secret: true
+    name: apiKey
+  - secret: true
+    name: secvar
+  - name: var
+    value: env-var-value
+  - secret: true
+    name: tenantSecret
+  - secret: true
+    name: secretPort

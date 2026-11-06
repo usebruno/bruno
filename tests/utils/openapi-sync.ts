@@ -17,10 +17,12 @@ const specHashOf = (specFile: string) => {
   return crypto.createHash('md5').update(JSON.stringify(jsyaml.load(fs.readFileSync(specFile, 'utf8')))).digest('hex');
 };
 
-export const expectSyncedWithSpec = (collectionDir: string, syncConfig: any, specFile: string) => {
+export const expectSyncedWithSpec = (collectionDir: string, syncConfig: any, specFile: string, { authPlacement = 'request', requestNameSource = 'summary' } = {}) => {
   expect(syncConfig).toEqual([{
     sourceUrl: path.relative(collectionDir, specFile).split(path.sep).join('/'),
     groupBy: 'tags',
+    authPlacement,
+    requestNameSource,
     autoCheck: true,
     autoCheckInterval: 5,
     lastSyncDate: expect.any(String),

@@ -2,8 +2,9 @@
  * ReadOnlyPropertyList - A read-only collection data structure.
  *
  * Two modes:
- * - Static mode: items stored internally in an array (for response headers, etc.)
- * - Dynamic mode: a dataSource function returns fresh items on every read (for cookies, request headers)
+ * - Static mode: items passed to the constructor are copied into an internal array
+ * - Dynamic mode: a dataSource function returns the items on every read; it reads either a live
+ *   source (request headers, the cookie jar) or a snapshot (response headers, gRPC response metadata)
  *
  * Items are plain objects with a configurable key property (keyProperty) and value property (valueProperty).
  *
@@ -14,8 +15,7 @@
  *   ReadOnlyPropertyList   (read-only, both modes)
  *     ├── HeaderList       (sync writes to the request's headers)
  *     ├── GrpcMetadataList (sync writes to the gRPC request's metadata)
- *     ├── CookieList       (async add/upsert/remove/clear/delete against the cookie jar)
- *     └── PropertyList     (generic array-owning list with sync mutations; kept for reference, no runtime consumer)
+ *     └── CookieList       (async add/upsert/remove/clear/delete against the cookie jar)
  *
  * Convention:
  *   #field / #method  – truly private, inaccessible to subclasses

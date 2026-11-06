@@ -31,6 +31,14 @@ describe('getEnvironmentVariablesKeyValuePairs', () => {
     ];
     expect(getEnvironmentVariablesKeyValuePairs(variables)).toEqual({ baseUrl: 'https://api.test' });
   });
+
+  it('leaves out a secret even when it arrives with its value', () => {
+    const variables = [
+      { name: 'token', value: 'decrypted-token', enabled: true, secret: true },
+      { name: 'baseUrl', value: 'https://api.test', enabled: true }
+    ];
+    expect(getEnvironmentVariablesKeyValuePairs(variables)).toEqual({ baseUrl: 'https://api.test' });
+  });
 });
 
 describe('buildSpecVariables', () => {
@@ -56,6 +64,47 @@ describe('buildSpecVariables', () => {
       environment: ''
     });
     expect(variables.baseUrl).toBe('https://collection.test');
+  });
+
+  it('does not let a secret base url with a value into the merged variables', () => {
+    const variables = buildSpecVariables({
+      collectionVariables: { other: 'kept' },
+      envVariables: { Prod: [{ name: 'baseUrl', value: 'https://secret-host.test', enabled: true, secret: true }] },
+      environment: 'Prod'
+    });
+    expect(variables).toEqual({ other: 'kept' });
+  });
+
+  it('keeps the placeholder when an enabled secret in the environment overrides a collection variable', () => {
+    const variables = buildSpecVariables({
+      collectionVariables: { host: 'https://collection-host.test', other: 'kept' },
+      envVariables: { Prod: [{ name: 'host', value: '', enabled: true, secret: true }] },
+      environment: 'Prod'
+    });
+    expect(variables).toEqual({ other: 'kept' });
+  });
+
+  it('keeps the collection value when the secret with the same name is switched off', () => {
+    const variables = buildSpecVariables({
+      collectionVariables: { host: 'https://collection-host.test' },
+      envVariables: { Prod: [{ name: 'host', value: '', enabled: false, secret: true }] },
+      environment: 'Prod'
+    });
+    expect(variables).toEqual({ host: 'https://collection-host.test' });
+  });
+
+  it('keeps the placeholder when the environment has a secret and a plain variable of the same name', () => {
+    const variables = buildSpecVariables({
+      collectionVariables: {},
+      envVariables: {
+        Prod: [
+          { name: 'host', value: '', enabled: true, secret: true },
+          { name: 'host', value: 'https://plain-host.test', enabled: true }
+        ]
+      },
+      environment: 'Prod'
+    });
+    expect(variables).toEqual({});
   });
 
   it('copes with a collection that has nothing in it', () => {
