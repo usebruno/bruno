@@ -49,7 +49,7 @@ const prepareMockObj = (
   obj: Record<string, any>,
   escapeJSONStrings: boolean
 ): Record<string, any> => {
-  const processed: Record<string, any> = {};
+  const processed: Record<string, any> = Object.create(null);
 
   for (const [key, value] of Object.entries(obj)) {
     if (typeof value === 'string') {
