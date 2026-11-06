@@ -83,10 +83,28 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     await expect(draftIndicator(page, name)).toBeVisible();
   };
 
+  // Cancel and Don't Save must leave the collection on disk exactly as the fixture shipped it.
+  const expectCollectionFilesUnchanged = (collectionDir: string) => {
+    const walk = (dir: string): string[] => fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+      const entryPath = path.join(dir, entry.name);
+      return entry.isDirectory() ? walk(entryPath) : [entryPath];
+    });
+    for (const fixtureFile of walk(fixtureCollectionPath)) {
+      const relativePath = path.relative(fixtureCollectionPath, fixtureFile);
+      expect(fs.readFileSync(path.join(collectionDir, relativePath), 'utf8'), relativePath).toBe(fs.readFileSync(fixtureFile, 'utf8'));
+    }
+  };
+
+  let collectionDir: string;
+
+  // Saves land on disk asynchronously, so poll the file rather than read it once.
+  const expectCollectionFileToContain = (relativePath: string, text: string) =>
+    expect.poll(() => fs.readFileSync(path.join(collectionDir, relativePath), 'utf8'), { message: relativePath, timeout: 3000 }).toContain(text);
+
   // The app is shared across the file, so every test opens its own copy of the fixture:
   // tests that press Save write to disk and must not leak into the next test.
   test.beforeEach(async ({ page, electronApp, createTmpDir }) => {
-    const collectionDir = await createTmpDir(collectionName);
+    collectionDir = await createTmpDir(collectionName);
     fs.cpSync(fixtureCollectionPath, collectionDir, { recursive: true });
     await openCollectionFromPath(page, electronApp, collectionDir);
     await waitForCollectionMount(page, collectionName);
@@ -117,6 +135,7 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
       await expect(tab(page, name)).toBeVisible();
       await expect(draftIndicator(page, name)).toBeVisible();
     }
+    expectCollectionFilesUnchanged(collectionDir);
   });
 
   test('Close Others with Don\'t Save discards and closes the tabs in range', async ({ page }) => {
@@ -138,6 +157,7 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     await openRequest(page, collectionName, 'req-1', { persist: true });
     await expect(tab(page, 'req-1')).toBeVisible({ timeout: 3000 });
     await expect(draftIndicator(page, 'req-1')).not.toBeVisible();
+    expectCollectionFilesUnchanged(collectionDir);
   });
 
   test('Close to the Right with Save saves and closes the tabs in range', async ({ page }) => {
@@ -210,6 +230,7 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     await unsavedModal(page).button('Don\'t Save').click();
     await expect(tab(page, 'req-1')).not.toBeVisible({ timeout: 3000 });
     await expect(tab(page, 'req-2')).not.toBeVisible({ timeout: 3000 });
+    expectCollectionFilesUnchanged(collectionDir);
   });
 
   test('Close to the Left prompts for collection, folder and environment drafts; Don\'t Save discards them', async ({ page }) => {
@@ -252,6 +273,7 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     await buildCommonLocators(page).sidebar.folder('admin').dblclick();
     await expect(folderTab(page)).toBeVisible({ timeout: 3000 });
     await expect(settingsTabDraftIndicator(page, folderTab(page))).not.toBeVisible();
+    expectCollectionFilesUnchanged(collectionDir);
   });
 
   test('Close to the Right prompts for collection, folder and environment drafts; Save All saves them', async ({ page }) => {
@@ -278,6 +300,11 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     await expect(environmentTab(page)).not.toBeVisible({ timeout: 3000 });
     await expect(tab(page, 'req-1')).toBeVisible();
     await expect(draftIndicator(page, 'req-1')).toBeVisible();
+
+    // Save All wrote the collection, folder and environment drafts to disk
+    await expectCollectionFileToContain('opencollection.yml', 'X-Collection-Header');
+    await expectCollectionFileToContain('admin/folder.yml', 'X-Folder-Header');
+    await expectCollectionFileToContain('environments/Local.yml', 'http://saved-right');
 
     // The saved environment value is on disk, so reopening the editor shows it without a draft
     await openEnvironmentSelector(page, 'collection');
