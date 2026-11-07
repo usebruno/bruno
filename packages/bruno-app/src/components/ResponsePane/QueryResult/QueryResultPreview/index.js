@@ -24,6 +24,7 @@ const QueryResultPreview = ({
   formattedData,
   item,
   contentType,
+  responseContentType,
   collection,
   codeMirrorMode,
   previewMode,
@@ -114,7 +115,7 @@ const QueryResultPreview = ({
     }
 
     case 'preview-xml': {
-      return <XmlPreview data={data} contentType={contentType} onLinkClick={handleResponseLinkClick} />;
+      return <XmlPreview data={data} contentType={responseContentType} onLinkClick={handleResponseLinkClick} />;
     }
 
     default:

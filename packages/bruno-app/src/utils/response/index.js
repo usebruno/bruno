@@ -422,7 +422,7 @@ export const extractMultipartXmlPart = (body, contentType = '') => {
   const isXmlPart = (part) => part.content !== null && /xml/i.test(extractMimeType(part.headers['content-type']));
 
   // The root of multipart/related is the part named by start, or else the first part (RFC 2387)
-  if (extractMimeType(contentType) === 'multipart/related') {
+  if (extractMimeType(contentType).trim() === 'multipart/related') {
     const rootPart = params.start
       ? parts.find((part) => normalizeContentId(part.headers['content-id']) === normalizeContentId(params.start))
       : parts[0];

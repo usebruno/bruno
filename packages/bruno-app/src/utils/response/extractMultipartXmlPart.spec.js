@@ -72,6 +72,7 @@ describe('extractMultipartXmlPart', () => {
 
     expect(extractMultipartXmlPart(body, contentType)).toBe('<envelope/>');
     expect(extractMultipartXmlPart(body, `multipart/related; boundary=${BOUNDARY}`)).toBe('<attachment/>');
+    expect(extractMultipartXmlPart(body, `multipart/related ; boundary="${BOUNDARY}"; start="<root@example.com>"`)).toBe('<envelope/>');
   });
 
   it('returns only the root part of multipart/related', () => {
