@@ -342,3 +342,50 @@ export const getBinaryPreviewType = (mime) => {
   }
   return null;
 };
+
+// RFC 7230 token characters, which header field names are made of.
+const MIME_HEADER_LINE = /^([A-Za-z0-9!#$%&'*+.^_`|~-]+):\s*(.*)$/;
+
+/**
+ * Returns the XML part of a MIME multipart body, such as the SOAP envelope of an
+ * MTOM/XOP (multipart/related) response, or null when the body is not multipart or
+ * has no XML part. The boundary is read from the body's first delimiter line, so the
+ * response headers are not needed.
+ */
+export const extractMultipartXmlPart = (body) => {
+  if (typeof body !== 'string') {
+    return null;
+  }
+
+  const firstDelimiter = body.trimStart().match(/^--([^\r\n]+?)[ \t]*\r?\n/);
+  if (!firstDelimiter) {
+    return null;
+  }
+
+  const parts = body.split(`--${firstDelimiter[1]}`).slice(1);
+  for (const part of parts) {
+    // The close delimiter ("--boundary--") ends the body
+    if (part.startsWith('--')) {
+      break;
+    }
+
+    const lines = part.replace(/^[ \t]*\r?\n/, '').replace(/\r?\n$/, '').split(/\r?\n/);
+    let contentType = '';
+    let i = 0;
+    for (; i < lines.length; i++) {
+      const header = lines[i].match(MIME_HEADER_LINE);
+      if (!header) {
+        break;
+      }
+      if (header[1].toLowerCase() === 'content-type') {
+        contentType = header[2];
+      }
+    }
+
+    if (/xml/i.test(extractMimeType(contentType))) {
+      return lines.slice(i).join('\n').trim();
+    }
+  }
+
+  return null;
+};

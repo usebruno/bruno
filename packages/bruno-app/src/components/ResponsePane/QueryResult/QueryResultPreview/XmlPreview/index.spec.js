@@ -59,6 +59,34 @@ describe('XmlPreview', () => {
     });
   });
 
+  describe('MTOM/XOP multipart responses', () => {
+    const boundary = 'MIMEBoundary_6dede28bbb936f74e760b0f330c8d24abbf13537c40601ce';
+    const mtomResponse = [
+      `--${boundary}`,
+      'Content-Type: application/xop+xml; charset=utf-8; type="text/xml"',
+      'Content-Transfer-Encoding: binary',
+      'Content-ID: <0.1dede28bbb936f74e760b0f330c8d24abbf13537c40601ce@apache.org>',
+      '',
+      '<?xml version="1.0" encoding="utf-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"><soapenv:Body><getUserResponse><name>Bob</name></getUserResponse></soapenv:Body></soapenv:Envelope>',
+      `--${boundary}--`,
+      ''
+    ].join('\r\n');
+
+    it('renders the SOAP envelope of the XML root part', () => {
+      renderXmlPreview(mtomResponse);
+
+      expect(screen.getByText('soapenv:Envelope')).toBeInTheDocument();
+      expect(screen.getByText('soapenv:Body')).toBeInTheDocument();
+      expect(screen.queryByTestId('error-banner')).not.toBeInTheDocument();
+    });
+
+    it('shows the cannot-preview banner when the multipart body has no XML part', () => {
+      renderXmlPreview([`--${boundary}`, 'Content-Type: text/plain', '', 'hello', `--${boundary}--`].join('\r\n'));
+
+      expectErrorBanner(CANNOT_PREVIEW_TITLE, PARSE_ERROR_MESSAGE);
+    });
+  });
+
   describe('invalid XML', () => {
     it('shows the cannot-preview banner for non-XML text', () => {
       renderXmlPreview('this is not xml at all');
