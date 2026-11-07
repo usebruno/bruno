@@ -9,10 +9,10 @@ const CANNOT_PREVIEW_TITLE = 'Cannot preview as XML';
 const PARSE_ERROR_MESSAGE = 'Failed to parse XML string. Invalid XML format.';
 const INVALID_INPUT_MESSAGE = 'Invalid input. Expected an XML string.';
 
-const renderXmlPreview = (data) =>
+const renderXmlPreview = (data, contentType) =>
   render(
     <ThemeProvider theme={darkTheme}>
-      <XmlPreview data={data} />
+      <XmlPreview data={data} contentType={contentType} />
     </ThemeProvider>
   );
 
@@ -77,6 +77,13 @@ describe('XmlPreview', () => {
 
       expect(screen.getByText('soapenv:Envelope')).toBeInTheDocument();
       expect(screen.getByText('soapenv:Body')).toBeInTheDocument();
+      expect(screen.queryByTestId('error-banner')).not.toBeInTheDocument();
+    });
+
+    it('uses the response Content-Type to find the root part after a preamble', () => {
+      renderXmlPreview(`preamble\r\n${mtomResponse}`, `multipart/related; type="application/xop+xml"; boundary="${boundary}"; start="<0.1dede28bbb936f74e760b0f330c8d24abbf13537c40601ce@apache.org>"`);
+
+      expect(screen.getByText('soapenv:Envelope')).toBeInTheDocument();
       expect(screen.queryByTestId('error-banner')).not.toBeInTheDocument();
     });
 

@@ -6,7 +6,7 @@ import { extractMultipartXmlPart } from 'utils/response';
 import StyledWrapper from './StyledWrapper';
 
 // The expected "data" prop must be an XML string.
-export default function XmlPreview({ data, defaultExpanded = true, onLinkClick }) {
+export default function XmlPreview({ data, contentType, defaultExpanded = true, onLinkClick }) {
   const parsedResult = useMemo(() => {
     if (typeof data !== 'string') {
       return {
@@ -16,7 +16,7 @@ export default function XmlPreview({ data, defaultExpanded = true, onLinkClick }
     }
 
     // MTOM/XOP responses wrap the XML in a MIME multipart body, so fall back to its XML part
-    const parsed = parseXMLString(data) ?? parseXMLString(extractMultipartXmlPart(data));
+    const parsed = parseXMLString(data) ?? parseXMLString(extractMultipartXmlPart(data, contentType));
 
     if (parsed === null) {
       return {
@@ -29,7 +29,7 @@ export default function XmlPreview({ data, defaultExpanded = true, onLinkClick }
       error: null,
       data: parsed
     };
-  }, [data]);
+  }, [data, contentType]);
 
   if (parsedResult.error) {
     return (

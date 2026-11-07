@@ -114,7 +114,7 @@ const QueryResultPreview = ({
     }
 
     case 'preview-xml': {
-      return <XmlPreview data={data} onLinkClick={handleResponseLinkClick} />;
+      return <XmlPreview data={data} contentType={contentType} onLinkClick={handleResponseLinkClick} />;
     }
 
     default:

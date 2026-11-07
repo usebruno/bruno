@@ -47,6 +47,41 @@ describe('extractMultipartXmlPart', () => {
     expect(extractMultipartXmlPart(body)).toBe(xml.replace(/\r\n/g, '\n'));
   });
 
+  it('uses the boundary from the Content-Type and ignores a preamble', () => {
+    const body = ['This is a multi-part message in MIME format.', `--${BOUNDARY}`, 'Content-Type: text/xml', '', '<root/>', `--${BOUNDARY}--`].join('\r\n');
+
+    expect(extractMultipartXmlPart(body)).toBeNull();
+    expect(extractMultipartXmlPart(body, `multipart/related; type="text/xml"; boundary="${BOUNDARY}"`)).toBe('<root/>');
+  });
+
+  it('selects the root part named by the start parameter', () => {
+    const body = [
+      `--${BOUNDARY}`,
+      'Content-Type: text/xml',
+      'Content-ID: <attachment@example.com>',
+      '',
+      '<attachment/>',
+      `--${BOUNDARY}`,
+      'Content-Type: application/xop+xml; type="text/xml"',
+      'Content-ID: <root@example.com>',
+      '',
+      '<envelope/>',
+      `--${BOUNDARY}--`
+    ].join('\r\n');
+    const contentType = `multipart/related; type="application/xop+xml"; boundary="${BOUNDARY}"; start="<root@example.com>"; start-info="text/xml"`;
+
+    expect(extractMultipartXmlPart(body, contentType)).toBe('<envelope/>');
+    expect(extractMultipartXmlPart(body, `multipart/related; boundary=${BOUNDARY}`)).toBe('<attachment/>');
+  });
+
+  it('decodes a base64 transfer-encoded XML part', () => {
+    const xml = '<root><name>Zoë</name></root>';
+    const encoded = Buffer.from(xml, 'utf8').toString('base64');
+    const body = [`--${BOUNDARY}`, 'Content-Type: text/xml; charset=utf-8', 'Content-Transfer-Encoding: base64', '', encoded.slice(0, 20), encoded.slice(20), `--${BOUNDARY}--`].join('\r\n');
+
+    expect(extractMultipartXmlPart(body)).toBe(xml);
+  });
+
   it('skips parts that are not XML', () => {
     const body = [`--${BOUNDARY}`, 'Content-Type: text/plain', '', 'hello', `--${BOUNDARY}`, 'Content-Type: application/soap+xml', '', '<root/>', `--${BOUNDARY}--`].join('\r\n');
 

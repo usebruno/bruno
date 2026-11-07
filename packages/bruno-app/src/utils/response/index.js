@@ -348,49 +348,81 @@ export const getBinaryPreviewType = (mime) => {
 // RFC 7230 token characters, which header field names are made of.
 const MIME_HEADER_LINE = /^([A-Za-z0-9!#$%&'*+.^_`|~-]+):\s*(.*)$/;
 
+// Parameters of a Content-Type header, e.g. boundary and start of multipart/related
+const getContentTypeParams = (contentType) => {
+  const params = {};
+  const paramPattern = /;\s*([^=;\s]+)\s*=\s*("(?:[^"\\]|\\.)*"|[^;]*)/g;
+  for (const [, name, value] of String(contentType).matchAll(paramPattern)) {
+    params[name.toLowerCase()] = value.trim().replace(/^"(.*)"$/, '$1');
+  }
+  return params;
+};
+
+const normalizeContentId = (id = '') => id.trim().replace(/^<(.*)>$/, '$1');
+
+const decodeBase64Text = (text) => {
+  try {
+    const bytes = Uint8Array.from(atob(text.replace(/\s+/g, '')), (char) => char.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  } catch (error) {
+    return null;
+  }
+};
+
+const parseMimePart = (part) => {
+  const lines = part.replace(/^[ \t]*\r?\n/, '').split(/\r?\n/);
+  const headers = {};
+  let i = 0;
+  for (; i < lines.length; i++) {
+    const header = lines[i].match(MIME_HEADER_LINE);
+    if (!header) {
+      break;
+    }
+    headers[header[1].toLowerCase()] = header[2].trim();
+  }
+
+  const content = lines.slice(i).join('\n').trim();
+  const isBase64 = (headers['content-transfer-encoding'] || '').toLowerCase() === 'base64';
+  return { headers, content: isBase64 ? decodeBase64Text(content) : content };
+};
+
 /**
  * Returns the XML part of a MIME multipart body, such as the SOAP envelope of an
  * MTOM/XOP (multipart/related) response, or null when the body is not multipart or
- * has no XML part. The boundary is read from the body's first delimiter line, so the
- * response headers are not needed.
+ * has no XML part.
+ *
+ * The boundary comes from the response Content-Type when given, otherwise from the
+ * body's first delimiter line. The root part named by the Content-Type's start
+ * parameter is preferred, then the first XML part.
  */
-export const extractMultipartXmlPart = (body) => {
+export const extractMultipartXmlPart = (body, contentType = '') => {
   if (typeof body !== 'string') {
     return null;
   }
 
-  const trimmedBody = body.trimStart();
-  const firstDelimiter = trimmedBody.match(/^--([^\r\n]+?)[ \t]*\r?\n/);
-  if (!firstDelimiter) {
+  const params = getContentTypeParams(contentType);
+  const boundary = params.boundary || body.trimStart().match(/^--([^\r\n]+?)[ \t]*\r?\n/)?.[1];
+  if (!boundary) {
     return null;
   }
 
-  // A delimiter is "--boundary" at the start of a line, followed by "--", whitespace or the line end
-  const delimiter = new RegExp(`(?:^|\\r?\\n)--${escapeRegExp(firstDelimiter[1])}(?=--|[ \\t]*(?:\\r?\\n|$))`);
-  const parts = trimmedBody.split(delimiter).slice(1);
-  for (const part of parts) {
+  // A delimiter is "--boundary" at the start of a line, followed by "--", whitespace or the line end.
+  // Text before the first delimiter is the preamble and is ignored.
+  const delimiter = new RegExp(`(?:^|\\r?\\n)--${escapeRegExp(boundary)}(?=--|[ \\t]*(?:\\r?\\n|$))`);
+  const parts = [];
+  for (const part of body.split(delimiter).slice(1)) {
     // The close delimiter ("--boundary--") ends the body
     if (part.startsWith('--')) {
       break;
     }
-
-    const lines = part.replace(/^[ \t]*\r?\n/, '').split(/\r?\n/);
-    let contentType = '';
-    let i = 0;
-    for (; i < lines.length; i++) {
-      const header = lines[i].match(MIME_HEADER_LINE);
-      if (!header) {
-        break;
-      }
-      if (header[1].toLowerCase() === 'content-type') {
-        contentType = header[2];
-      }
-    }
-
-    if (/xml/i.test(extractMimeType(contentType))) {
-      return lines.slice(i).join('\n').trim();
-    }
+    parts.push(parseMimePart(part));
   }
 
-  return null;
+  const isXmlPart = (part) => part.content !== null && /xml/i.test(extractMimeType(part.headers['content-type']));
+  const rootPart = params.start
+    ? parts.find((part) => normalizeContentId(part.headers['content-id']) === normalizeContentId(params.start))
+    : null;
+  const xmlPart = rootPart && isXmlPart(rootPart) ? rootPart : parts.find(isXmlPart);
+
+  return xmlPart ? xmlPart.content : null;
 };
