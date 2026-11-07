@@ -24,6 +24,8 @@ import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponseStopWatch from 'components/ResponsePane/ResponseStopWatch';
 import WSMessagesList from './WsResponsePane/WSMessagesList';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
+import { IconArrowsSort, IconSortAscendingLetters, IconSortDescendingLetters } from '@tabler/icons';
+import { useHeaderSortOrder } from './ResponseHeaders/sortOrder';
 
 // Width threshold for expanded right-side action buttons
 const RIGHT_CONTENT_EXPANDED_WIDTH = 135;
@@ -34,6 +36,7 @@ const ResponsePane = ({ item, collection }) => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
+  const [headerSortOrder, toggleHeaderSort] = useHeaderSortOrder();
   const rightContentRef = useRef(null);
 
   const response = item.response || {};
@@ -176,7 +179,7 @@ const ResponsePane = ({ item, collection }) => {
         );
       }
       case 'headers': {
-        return <ResponseHeaders headers={response.headers} />;
+        return <ResponseHeaders headers={response.headers} item={item} sortOrder={headerSortOrder} />;
       }
       case 'timeline': {
         return <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />;
@@ -233,6 +236,11 @@ const ResponsePane = ({ item, collection }) => {
 
   const rightContent = !isLoading ? (
     <div ref={rightContentRef} className="flex justify-end items-center right-side-container gap-3">
+      {focusedTab?.responsePaneTab === 'headers' && item?.response && (() => {
+        const SortIcon = headerSortOrder === 'alphabetical' ? IconSortDescendingLetters : headerSortOrder === 'reverseAlphabetical' ? IconArrowsSort : IconSortAscendingLetters;
+        const label = headerSortOrder === 'alphabetical' ? 'Sort headers Z-A' : headerSortOrder === 'reverseAlphabetical' ? 'Clear header sort' : 'Sort headers A-Z';
+        return <button type="button" onClick={toggleHeaderSort} title={label} aria-label={label}><SortIcon size={16} strokeWidth={1.5} /></button>;
+      })()}
       {hasScriptError && !showScriptErrorCard && (
         <ScriptErrorIcon
           itemUid={item.uid}
