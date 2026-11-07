@@ -41,7 +41,7 @@ describe('extractMultipartXmlPart', () => {
   });
 
   it('ignores boundary text that is not at the start of a delimiter line', () => {
-    const xml = [`<root><ref>see --${BOUNDARY}</ref>`, `--${BOUNDARY}-suffix`, '</root>'].join('\r\n');
+    const xml = [`<root><ref>see --${BOUNDARY}</ref>`, `--${BOUNDARY}-suffix`, `--${BOUNDARY}--suffix`, '</root>'].join('\r\n');
     const body = [`--${BOUNDARY}`, 'Content-Type: text/xml', '', xml, `--${BOUNDARY}--`].join('\r\n');
 
     expect(extractMultipartXmlPart(body)).toBe(xml.replace(/\r\n/g, '\n'));

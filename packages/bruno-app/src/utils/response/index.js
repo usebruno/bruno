@@ -406,9 +406,9 @@ export const extractMultipartXmlPart = (body, contentType = '') => {
     return null;
   }
 
-  // A delimiter is "--boundary" at the start of a line, followed by "--", whitespace or the line end.
-  // Text before the first delimiter is the preamble and is ignored.
-  const delimiter = new RegExp(`(?:^|\\r?\\n)--${escapeRegExp(boundary)}(?=--|[ \\t]*(?:\\r?\\n|$))`);
+  // A delimiter is "--boundary" (or the close delimiter "--boundary--") on a line of its own,
+  // up to trailing whitespace. Text before the first delimiter is the preamble and is ignored.
+  const delimiter = new RegExp(`(?:^|\\r?\\n)--${escapeRegExp(boundary)}(?=(?:--)?[ \\t]*(?:\\r?\\n|$))`);
   const parts = [];
   for (const part of body.split(delimiter).slice(1)) {
     // The close delimiter ("--boundary--") ends the body
