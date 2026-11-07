@@ -69,26 +69,23 @@ const safeJsonParse = (jsonString, context = 'JSON string') => {
   }
 };
 
+// Binary (`-bin`) metadata values are shown base64 encoded, as grpcurl and Postman do.
+// Metadata.getMap() returns them as Buffers; a JSON-cloned Buffer is { type: 'Buffer', data: [...] }.
+const grpcMetadataValueToString = (value) => {
+  if (Buffer.isBuffer(value)) {
+    return value.toString('base64');
+  }
+  if (value && typeof value === 'object' && value.type === 'Buffer' && Array.isArray(value.data)) {
+    return Buffer.from(value.data).toString('base64');
+  }
+  return value.toString();
+};
+
 const processGrpcMetadata = (metadata) => {
-  return Object.entries(metadata).map(([name, value]) => {
-    if (Array.isArray(value)) {
-      return {
-        name,
-        value: value
-          .map((v) => {
-            if (v && typeof v === 'object' && v.type === 'Buffer' && Array.isArray(v.data)) {
-              return Buffer.from(v.data).toString('base64');
-            }
-            return v.toString();
-          })
-          .join(', ')
-      };
-    }
-    if (value && typeof value === 'object' && value.type === 'Buffer' && Array.isArray(value.data)) {
-      return { name, value: Buffer.from(value.data).toString('base64') };
-    }
-    return { name, value: value.toString() };
-  });
+  return Object.entries(metadata).map(([name, value]) => ({
+    name,
+    value: Array.isArray(value) ? value.map(grpcMetadataValueToString).join(', ') : grpcMetadataValueToString(value)
+  }));
 };
 
 // Unix socket: unix:/path, unix:///path, unix-abstract:name
@@ -1118,4 +1115,4 @@ class GrpcClient {
   }
 }
 
-export { GrpcClient };
+export { GrpcClient, processGrpcMetadata };
