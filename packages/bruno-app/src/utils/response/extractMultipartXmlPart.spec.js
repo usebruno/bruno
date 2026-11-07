@@ -74,6 +74,30 @@ describe('extractMultipartXmlPart', () => {
     expect(extractMultipartXmlPart(body, `multipart/related; boundary=${BOUNDARY}`)).toBe('<attachment/>');
   });
 
+  it('returns only the root part of multipart/related', () => {
+    const body = [
+      `--${BOUNDARY}`,
+      'Content-Type: application/octet-stream',
+      'Content-ID: <first@example.com>',
+      '',
+      'binary',
+      `--${BOUNDARY}`,
+      'Content-Type: text/xml',
+      'Content-ID: <attachment@example.com>',
+      '',
+      '<attachment/>',
+      `--${BOUNDARY}--`
+    ].join('\r\n');
+
+    // Without start, the first part is the root, and it is not XML
+    expect(extractMultipartXmlPart(body, `multipart/related; boundary="${BOUNDARY}"`)).toBeNull();
+    // A start parameter that names no part
+    expect(extractMultipartXmlPart(body, `multipart/related; boundary="${BOUNDARY}"; start="<missing@example.com>"`)).toBeNull();
+    // Other multipart types and bodies without headers fall back to the first XML part
+    expect(extractMultipartXmlPart(body, `multipart/mixed; boundary="${BOUNDARY}"`)).toBe('<attachment/>');
+    expect(extractMultipartXmlPart(body)).toBe('<attachment/>');
+  });
+
   it('decodes a base64 transfer-encoded XML part', () => {
     const xml = '<root><name>Zoë</name></root>';
     const encoded = Buffer.from(xml, 'utf8').toString('base64');

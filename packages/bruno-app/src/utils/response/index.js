@@ -392,8 +392,9 @@ const parseMimePart = (part) => {
  * has no XML part.
  *
  * The boundary comes from the response Content-Type when given, otherwise from the
- * body's first delimiter line. The root part named by the Content-Type's start
- * parameter is preferred, then the first XML part.
+ * body's first delimiter line. For multipart/related, only the root part is returned:
+ * the one named by the start parameter, or else the first part. Otherwise the first
+ * XML part is returned.
  */
 export const extractMultipartXmlPart = (body, contentType = '') => {
   if (typeof body !== 'string') {
@@ -419,10 +420,15 @@ export const extractMultipartXmlPart = (body, contentType = '') => {
   }
 
   const isXmlPart = (part) => part.content !== null && /xml/i.test(extractMimeType(part.headers['content-type']));
-  const rootPart = params.start
-    ? parts.find((part) => normalizeContentId(part.headers['content-id']) === normalizeContentId(params.start))
-    : null;
-  const xmlPart = rootPart && isXmlPart(rootPart) ? rootPart : parts.find(isXmlPart);
 
+  // The root of multipart/related is the part named by start, or else the first part (RFC 2387)
+  if (extractMimeType(contentType) === 'multipart/related') {
+    const rootPart = params.start
+      ? parts.find((part) => normalizeContentId(part.headers['content-id']) === normalizeContentId(params.start))
+      : parts[0];
+    return rootPart && isXmlPart(rootPart) ? rootPart.content : null;
+  }
+
+  const xmlPart = parts.find(isXmlPart);
   return xmlPart ? xmlPart.content : null;
 };
