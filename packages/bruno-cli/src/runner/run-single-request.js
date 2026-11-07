@@ -693,7 +693,6 @@ const runSingleRequest = async function (
       } catch (error) {
         console.error('Error applying API key to URL:', error.message);
       }
-      delete request.apiKeyAuthValueForQueryParams;
     }
 
     let response, responseTime;
