@@ -19,7 +19,8 @@ const EXPORT_FORMATS = {
 
 const ShareCollection = ({ onClose, collectionUid }) => {
   const collection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
-  const isCollectionLoading = areItemsLoading(collection);
+  // A collection that is still mounting has no items yet, so exporting it would write an empty file.
+  const isCollectionLoading = collection?.mountStatus === 'mounting' || areItemsLoading(collection);
   const [selectedFormat, setSelectedFormat] = useState(EXPORT_FORMATS.ZIP);
   const [isExporting, setIsExporting] = useState(false);
   const [showPostmanExportModal, setShowPostmanExportModal] = useState(false);

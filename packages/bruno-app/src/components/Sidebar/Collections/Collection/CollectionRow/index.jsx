@@ -130,9 +130,9 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
 
   const ensureCollectionIsMounted = () => {
     if (collection.mountStatus === 'mounted' || collection.mountStatus === 'mounting') {
-      return;
+      return Promise.resolve();
     }
-    dispatch(mountCollection({
+    return dispatch(mountCollection({
       collectionUid: collection.uid,
       collectionPathname: collection.pathname,
       brunoConfig: collection.brunoConfig
@@ -214,13 +214,18 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   };
 
   const viewCollectionSettings = () => {
-    dispatch(
-      addTab({
-        uid: collection.uid,
-        collectionUid: collection.uid,
-        type: 'collection-settings'
-      })
-    );
+    const openSettingsTab = () => {
+      dispatch(
+        addTab({
+          uid: collection.uid,
+          collectionUid: collection.uid,
+          type: 'collection-settings'
+        })
+      );
+    };
+    // A mount started here replaces the collection's open tabs with its saved ones when it
+    // finishes, so the settings tab is added once that mount has settled, whether or not it succeeds.
+    ensureCollectionIsMounted().then(openSettingsTab, openSettingsTab);
   };
 
   const handleShowInFolder = () => {
