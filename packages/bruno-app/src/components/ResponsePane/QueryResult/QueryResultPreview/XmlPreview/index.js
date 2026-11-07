@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import ErrorBanner from 'ui/ErrorBanner';
 import { useChunkedReveal } from 'hooks/useChunkedReveal';
 import { isHttpUrl } from 'utils/url';
+import { extractMultipartXmlPart } from 'utils/response';
 import StyledWrapper from './StyledWrapper';
 
 // The expected "data" prop must be an XML string.
@@ -14,7 +15,8 @@ export default function XmlPreview({ data, defaultExpanded = true, onLinkClick }
       };
     }
 
-    const parsed = parseXMLString(data);
+    // MTOM/XOP responses wrap the XML in a MIME multipart body, so fall back to its XML part
+    const parsed = parseXMLString(data) ?? parseXMLString(extractMultipartXmlPart(data));
 
     if (parsed === null) {
       return {
