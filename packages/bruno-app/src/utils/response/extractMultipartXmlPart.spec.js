@@ -40,6 +40,13 @@ describe('extractMultipartXmlPart', () => {
     expect(extractMultipartXmlPart(body)).toBe('<a:root xmlns:a="urn:a">\n<a:x>1</a:x>\n</a:root>');
   });
 
+  it('ignores boundary text that is not at the start of a delimiter line', () => {
+    const xml = [`<root><ref>see --${BOUNDARY}</ref>`, `--${BOUNDARY}-suffix`, '</root>'].join('\r\n');
+    const body = [`--${BOUNDARY}`, 'Content-Type: text/xml', '', xml, `--${BOUNDARY}--`].join('\r\n');
+
+    expect(extractMultipartXmlPart(body)).toBe(xml.replace(/\r\n/g, '\n'));
+  });
+
   it('skips parts that are not XML', () => {
     const body = [`--${BOUNDARY}`, 'Content-Type: text/plain', '', 'hello', `--${BOUNDARY}`, 'Content-Type: application/soap+xml', '', '<root/>', `--${BOUNDARY}--`].join('\r\n');
 

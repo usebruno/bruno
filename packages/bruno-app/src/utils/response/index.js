@@ -1,3 +1,5 @@
+import { escapeRegExp } from 'lodash';
+
 // Normalize & extract MIME type from full header
 export const extractMimeType = (contentType = '') => {
   const cleaned = String(contentType).trim().toLowerCase();
@@ -357,19 +359,22 @@ export const extractMultipartXmlPart = (body) => {
     return null;
   }
 
-  const firstDelimiter = body.trimStart().match(/^--([^\r\n]+?)[ \t]*\r?\n/);
+  const trimmedBody = body.trimStart();
+  const firstDelimiter = trimmedBody.match(/^--([^\r\n]+?)[ \t]*\r?\n/);
   if (!firstDelimiter) {
     return null;
   }
 
-  const parts = body.split(`--${firstDelimiter[1]}`).slice(1);
+  // A delimiter is "--boundary" at the start of a line, followed by "--", whitespace or the line end
+  const delimiter = new RegExp(`(?:^|\\r?\\n)--${escapeRegExp(firstDelimiter[1])}(?=--|[ \\t]*(?:\\r?\\n|$))`);
+  const parts = trimmedBody.split(delimiter).slice(1);
   for (const part of parts) {
     // The close delimiter ("--boundary--") ends the body
     if (part.startsWith('--')) {
       break;
     }
 
-    const lines = part.replace(/^[ \t]*\r?\n/, '').replace(/\r?\n$/, '').split(/\r?\n/);
+    const lines = part.replace(/^[ \t]*\r?\n/, '').split(/\r?\n/);
     let contentType = '';
     let i = 0;
     for (; i < lines.length; i++) {
