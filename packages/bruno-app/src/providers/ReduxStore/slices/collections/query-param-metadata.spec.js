@@ -134,6 +134,21 @@ describe('url edits keep query param metadata the url cannot hold', () => {
     ]);
   });
 
+  it('keeps each repeated param in place when one is edited to the value of another', () => {
+    const params = changeUrl(
+      makeRequestItem([
+        queryParam({ uid: 'p1', name: 'tag', value: 'red', description: 'first tag' }),
+        queryParam({ uid: 'p2', name: 'tag', value: 'blue', description: 'second tag' })
+      ]),
+      'https://example.com/items?tag=blue&tag=blue'
+    );
+
+    expect(params.map((p) => [p.value, p.uid, p.description])).toEqual([
+      ['blue', 'p1', 'first tag'],
+      ['blue', 'p2', 'second tag']
+    ]);
+  });
+
   it('keeps the description when a response example url is edited', () => {
     const item = {
       ...makeRequestItem([]),
@@ -186,6 +201,21 @@ describe('url edits keep query param metadata the url cannot hold', () => {
       ['b', 'desc B']
     ]);
     expect(params[2].uid).toBe('p2');
+  });
+
+  it('keeps each repeated example param in place when one is edited to the value of another', () => {
+    const params = changeExampleUrl(
+      [
+        queryParam({ uid: 'p1', name: 'tag', value: 'red', description: 'first tag' }),
+        queryParam({ uid: 'p2', name: 'tag', value: 'blue', description: 'second tag' })
+      ],
+      'https://example.com/items?tag=blue&tag=blue'
+    );
+
+    expect(params.map((p) => [p.value, p.uid, p.description])).toEqual([
+      ['blue', 'p1', 'first tag'],
+      ['blue', 'p2', 'second tag']
+    ]);
   });
 
   it('keeps example param descriptions with their values when repeated names are reordered', () => {
