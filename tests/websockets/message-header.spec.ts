@@ -7,7 +7,7 @@ test.describe('websocket message header selection on delete', () => {
     await closeAllTabs(page);
   });
 
-  test('deleting an unselected message keeps the current selection (does not jump to first)', async ({
+  test('TC-1274: deleting an unselected message keeps the current selection (does not jump to first)', { tag: '@sanity' }, async ({
     page
   }) => {
     const { websocket } = buildCommonLocators(page);
