@@ -7,6 +7,9 @@ import { join } from 'path';
 const COLLECTION_NAME = 'ws-multi-message';
 const MULTI_MSG_REQ = 'ws-multi-msg';
 const SINGLE_MSG_REQ = 'ws-single-msg';
+const MULTI_JSON_REQ = 'ws-multi-json';
+const MULTI_XML_REQ = 'ws-multi-xml';
+const MULTI_TEXT_REQ = 'ws-multi-text';
 const MULTI_MSG_BRU_PATH = join(__dirname, 'fixtures/collection/ws-multi-msg.bru');
 const SINGLE_MSG_BRU_PATH = join(__dirname, 'fixtures/collection/ws-single-msg.bru');
 const MAX_CONNECTION_TIME = 3000;
@@ -282,5 +285,91 @@ test.describe.serial('websocket multi-message (bru format)', () => {
     await expect
       .poll(async () => await readFile(SINGLE_MSG_BRU_PATH, 'utf8'))
       .toContain('name: renamed via shortcut');
+  });
+
+  test('TC-1268: establish WebSocket connection with multiple JSON type messages', { tag: '@sanity' }, async ({
+    pageWithUserData: page
+  }) => {
+    const { websocket, runner } = buildCommonLocators(page);
+
+    await openRequest(page, COLLECTION_NAME, MULTI_JSON_REQ);
+    await expect(websocket.message.headers()).toHaveCount(2);
+    await expect(websocket.message.header(0).locator('.selected-body-mode')).toContainText('JSON');
+    await expect(websocket.message.header(1).locator('.selected-body-mode')).toContainText('JSON');
+
+    // Global send connects and executes the selected (first) message.
+    await runner().click();
+
+    await expect(websocket.connectionControls.disconnect()).toBeAttached({
+      timeout: MAX_CONNECTION_TIME
+    });
+    await expect(websocket.messages().filter({ hasText: 'subscribe' }).first()).toBeAttached({
+      timeout: MAX_CONNECTION_TIME
+    });
+
+    // Per-message send executes the second JSON message on the same connection.
+    await websocket.message.header(1).hover();
+    await websocket.message.sendButton(1).click();
+    await expect(websocket.messages().filter({ hasText: 'publish' }).first()).toBeAttached({
+      timeout: MAX_CONNECTION_TIME
+    });
+
+    await websocket.connectionControls.disconnect().click();
+  });
+
+  test('TC-1267: establish WebSocket connection with multiple XML type messages', { tag: '@sanity' }, async ({
+    pageWithUserData: page
+  }) => {
+    const { websocket, runner } = buildCommonLocators(page);
+
+    await openRequest(page, COLLECTION_NAME, MULTI_XML_REQ);
+    await expect(websocket.message.headers()).toHaveCount(2);
+    await expect(websocket.message.header(0).locator('.selected-body-mode')).toContainText('XML');
+    await expect(websocket.message.header(1).locator('.selected-body-mode')).toContainText('XML');
+
+    await runner().click();
+
+    await expect(websocket.connectionControls.disconnect()).toBeAttached({
+      timeout: MAX_CONNECTION_TIME
+    });
+    await expect(websocket.messages().filter({ hasText: 'subscribe' }).first()).toBeAttached({
+      timeout: MAX_CONNECTION_TIME
+    });
+
+    await websocket.message.header(1).hover();
+    await websocket.message.sendButton(1).click();
+    await expect(websocket.messages().filter({ hasText: 'publish' }).first()).toBeAttached({
+      timeout: MAX_CONNECTION_TIME
+    });
+
+    await websocket.connectionControls.disconnect().click();
+  });
+
+  test('TC-1266: establish WebSocket connection with multiple text type messages', { tag: '@sanity' }, async ({
+    pageWithUserData: page
+  }) => {
+    const { websocket, runner } = buildCommonLocators(page);
+
+    await openRequest(page, COLLECTION_NAME, MULTI_TEXT_REQ);
+    await expect(websocket.message.headers()).toHaveCount(2);
+    await expect(websocket.message.header(0).locator('.selected-body-mode')).toContainText('TEXT');
+    await expect(websocket.message.header(1).locator('.selected-body-mode')).toContainText('TEXT');
+
+    await runner().click();
+
+    await expect(websocket.connectionControls.disconnect()).toBeAttached({
+      timeout: MAX_CONNECTION_TIME
+    });
+    await expect(websocket.messages().filter({ hasText: 'subscribe-orders' }).first()).toBeAttached({
+      timeout: MAX_CONNECTION_TIME
+    });
+
+    await websocket.message.header(1).hover();
+    await websocket.message.sendButton(1).click();
+    await expect(websocket.messages().filter({ hasText: 'publish-orders' }).first()).toBeAttached({
+      timeout: MAX_CONNECTION_TIME
+    });
+
+    await websocket.connectionControls.disconnect().click();
   });
 });
