@@ -13,13 +13,15 @@ import {
   selectScriptSubTab,
   editCodeMirrorEditor,
   setCodeMirrorEditorValue,
+  expectNoSetAsVariableMenu,
   openSetAsVariableMenu,
   openSetAsVariablePopover,
   selectWordAndCtrlClick,
   openSetAsVariablePopoverAtChar,
   openEnvironmentConfigTab,
   selectVariableScope,
-  selectRequestPaneTab
+  selectRequestPaneTab,
+  sendRequest
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
@@ -715,6 +717,120 @@ test.describe('Set as variable', () => {
 
       await expect(setAsVariable.popover()).toBeHidden();
       await expect(request.urlLine()).toContainText('{{scheme}}://example.com/posts');
+    });
+  });
+
+  test('writes both the variable and the replaced reference to disk', async ({ page, createTmpDir }) => {
+    const { sidebar, setAsVariable, request } = buildCommonLocators(page);
+    const dir = await createTmpDir('disk-http');
+
+    await test.step('Create a request with a literal URL', async () => {
+      await createCollection(page, 'disk-http', dir);
+      await createRequest(page, 'Fetch Widgets', 'disk-http');
+      await sidebar.request('Fetch Widgets').click();
+      await setRequestUrlAndSave(page, 'https://example.com/widgets');
+    });
+
+    await test.step('Save the scheme as a request variable', async () => {
+      await openSetAsVariablePopover(page, request.urlLine(), 10);
+      await setAsVariable.nameInput().fill('scheme');
+      await selectVariableScope(page, 'request');
+      await setAsVariable.saveButton().click();
+      await expect(setAsVariable.popover()).toBeHidden();
+    });
+
+    await test.step('The file holds the variable AND the rewritten URL', async () => {
+      const requestFile = path.join(dir, 'disk-http', 'Fetch Widgets.yml');
+      await expect(() => expect(fs.existsSync(requestFile)).toBe(true)).toPass();
+
+      await expect(() => {
+        const contents = fs.readFileSync(requestFile, 'utf8');
+        expect(contents, `variable missing on disk:\n${contents}`).toContain('name: scheme');
+        expect(contents, `URL was not rewritten on disk:\n${contents}`).toContain('{{scheme}}://example.com/widgets');
+      }).toPass();
+    });
+
+    await test.step('And the request is left with nothing unsaved', async () => {
+      await expect(page.locator('.request-tab.active .close-gradient.has-changes')).toHaveCount(0);
+    });
+  });
+
+  test('does not offer the menu on a gRPC request URL', async ({ page, createTmpDir }) => {
+    const { sidebar, setAsVariable, request } = buildCommonLocators(page);
+
+    await test.step('Create a gRPC request', async () => {
+      await createCollection(page, 'grpc-gate', await createTmpDir('grpc-gate'));
+      await createRequest(page, 'Say Hello', 'grpc-gate', { requestType: 'grpc' });
+      await sidebar.request('Say Hello').click();
+      await request.protocolUrlEditor().click();
+      await page.keyboard.type('grpc://example.com/helloworld');
+    });
+
+    await test.step('Right-clicking a selection offers nothing', async () => {
+      await expectNoSetAsVariableMenu(page, request.protocolUrlLine(), 12);
+    });
+
+    await test.step('And leaves no selection pinned behind it', async () => {
+      await selectRequestPaneTab(page, 'Metadata');
+      await expect(setAsVariable.selectionHighlight(request.protocolUrlEditor())).toHaveCount(0);
+    });
+  });
+
+  test('does not offer the menu on a WebSocket request URL', async ({ page, createTmpDir }) => {
+    const { sidebar, request } = buildCommonLocators(page);
+
+    await test.step('Create a WebSocket request', async () => {
+      await createCollection(page, 'ws-gate', await createTmpDir('ws-gate'));
+      await createRequest(page, 'Echo Socket', 'ws-gate', { requestType: 'ws' });
+      await sidebar.request('Echo Socket').click();
+      await request.protocolUrlEditor().click();
+      await page.keyboard.type('wss://example.com/socket');
+    });
+
+    await test.step('Right-clicking a selection offers nothing', async () => {
+      await expectNoSetAsVariableMenu(page, request.protocolUrlLine(), 12);
+    });
+  });
+
+  test('does not offer the menu on a GraphQL response body', async ({ page, createTmpDir }) => {
+    const { sidebar, response } = buildCommonLocators(page);
+
+    await test.step('Create a GraphQL request against the test server', async () => {
+      await createCollection(page, 'gql-gate', await createTmpDir('gql-gate'));
+      await createRequest(page, 'Fetch Users', 'gql-gate', { requestType: 'graphql' });
+      await sidebar.request('Fetch Users').click();
+      await setRequestUrlAndSave(page, 'http://localhost:8081/api/graphql');
+      await setCodeMirrorEditorValue(page, 'graphql-query-editor', '{ users { id name } }');
+    });
+
+    await test.step('Send it and get a body back', async () => {
+      await sendRequest(page, 200);
+      await expect(response.tabContent().locator('.CodeMirror-line').first()).toBeVisible();
+    });
+
+    await test.step('Right-clicking the response body offers nothing', async () => {
+      await expectNoSetAsVariableMenu(page, response.tabContent().locator('.CodeMirror-line').first(), 12);
+    });
+  });
+
+  test('still offers the menu on an HTTP response body', async ({ page, createTmpDir }) => {
+    const { sidebar, setAsVariable, response } = buildCommonLocators(page);
+
+    await test.step('Create an HTTP request against the test server', async () => {
+      await createCollection(page, 'resp-menu', await createTmpDir('resp-menu'));
+      await createRequest(page, 'Echo Json', 'resp-menu');
+      await sidebar.request('Echo Json').click();
+      await setRequestUrlAndSave(page, 'http://localhost:8081/api/echo/headers');
+    });
+
+    await test.step('Send it and get a body back', async () => {
+      await sendRequest(page, 200);
+      await expect(response.tabContent().locator('.CodeMirror-line').first()).toBeVisible();
+    });
+
+    await test.step('Right-clicking the response body still offers the menu', async () => {
+      await openSetAsVariableMenu(page, response.tabContent().locator('.CodeMirror-line').first(), 12);
+      await expect(setAsVariable.menu()).toBeVisible();
     });
   });
 });

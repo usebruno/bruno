@@ -15,6 +15,8 @@ import { buildQueryParamsLocators } from './params/query';
 export const buildRequestLocators = (page: Page) => ({
   urlInput: () => page.getByTestId('request-url').locator('.CodeMirror'),
   urlLine: () => page.getByTestId('request-url').locator('.CodeMirror-line'),
+  protocolUrlLine: () => page.locator('.query-url-wrapper .CodeMirror-line').first(),
+  protocolUrlEditor: () => page.locator('.query-url-wrapper .CodeMirror').first(),
   sendButton: () => page.getByTestId('send-arrow-icon'),
   methodDropdown: () => page.getByTestId('method-selector'),
   newRequestUrl: () => page.getByTestId('new-request-url').locator('.CodeMirror'),

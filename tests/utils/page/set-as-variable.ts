@@ -76,6 +76,14 @@ const openSetAsVariableMenu = async (page: Page, target: Locator, offsetX?: numb
   return menu;
 };
 
+/** Right-clicks a selected word and asserts no "Set as variable" menu offers itself. */
+const expectNoSetAsVariableMenu = async (page: Page, target: Locator, offsetX?: number) => {
+  const setAsVariable = buildSetAsVariableLocators(page);
+  await selectWordAndRightClick(page, target, offsetX);
+
+  await expect(setAsVariable.menu()).toBeHidden();
+};
+
 /** Right-clicks a selected word and opens the "Set as new variable" form. */
 const openSetAsVariablePopover = async (page: Page, target: Locator, offsetX?: number): Promise<Locator> => {
   const setAsVariable = buildSetAsVariableLocators(page);
@@ -133,6 +141,7 @@ const selectVariableScope = async (page: Page, scopeType: string) => {
 };
 
 export {
+  expectNoSetAsVariableMenu,
   openSetAsVariableMenu,
   openSetAsVariablePopover,
   openSetAsVariablePopoverAtChar,
