@@ -35,7 +35,7 @@ import React from 'react';
 
 export const isUnaryAssertionOperator = (operator) => operator?.startsWith('is');
 
-const AssertionOperator = ({ operator, onChange, disabled = false }) => {
+const AssertionOperator = ({ operator, onChange, disabled = false, extraOperators = [], ariaLabel }) => {
   const operators = [
     'eq',
     'neq',
@@ -64,7 +64,8 @@ const AssertionOperator = ({ operator, onChange, disabled = false }) => {
     'isNumber',
     'isString',
     'isBoolean',
-    'isArray'
+    'isArray',
+    ...extraOperators
   ];
 
   const handleChange = (e) => {
@@ -83,7 +84,7 @@ const AssertionOperator = ({ operator, onChange, disabled = false }) => {
   };
 
   return (
-    <select value={operator} onChange={handleChange} className="mousetrap" data-testid="assertion-operator-select" disabled={disabled}>
+    <select value={operator} onChange={handleChange} className="mousetrap" data-testid="assertion-operator-select" disabled={disabled} aria-label={ariaLabel}>
       {operators.map((operator) => (
         <option key={operator} value={operator}>
           {getLabel(operator)}

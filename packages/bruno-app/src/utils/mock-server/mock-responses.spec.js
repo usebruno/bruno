@@ -340,6 +340,15 @@ describe('buildDemoRequestFromRules', () => {
     expect(['other', 'sample']).not.toContain(demo.params[0].value);
   });
 
+  it('excludes quoted notIn items from the sample', () => {
+    const demo = buildDemoRequestFromRules(request, {
+      operator: 'AND',
+      conditions: [{ target: 'query', key: 'b', operator: 'notIn', value: '"other", "sample"' }]
+    });
+
+    expect(['other', 'sample', '"other"', '"sample"']).not.toContain(demo.params[0].value);
+  });
+
   it('returns a bare request when there are no rules', () => {
     const demo = buildDemoRequestFromRules(request, { operator: 'AND', conditions: [] });
 

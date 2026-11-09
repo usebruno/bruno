@@ -178,12 +178,13 @@ const MockResponsesList = ({ instance, collection }) => {
   const handleConfirmSyncWithSpec = async () => {
     setIsSyncingSpec(true);
     try {
+      const { responses: currentResponses } = await dispatch(loadMockResponses(location)).unwrap();
       const { responses: specResponses } = await dispatch(loadMockResponsesFromSpec({
         workspacePath: location.workspacePath,
         specPath: spec.pathname
       })).unwrap();
 
-      const nextResponses = mergeMockResponsesFromSpec(responses, specResponses);
+      const nextResponses = mergeMockResponsesFromSpec(currentResponses, specResponses);
 
       await dispatch(syncMockResponsesFromExamples({
         ...location,

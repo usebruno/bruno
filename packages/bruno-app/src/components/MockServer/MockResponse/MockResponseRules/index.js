@@ -23,6 +23,8 @@ const toAssertionOperator = (value) => {
   return value;
 };
 
+const MOCK_ONLY_OPERATORS = ['isNotNull'];
+
 const DEFAULT_CONDITION = {
   target: 'header',
   key: '',
@@ -141,6 +143,8 @@ const MockResponseRules = ({ rules, editMode, onChange, onAddRule }) => {
           operator={toAssertionOperator(value)}
           disabled={!editMode}
           onChange={onCellChange}
+          extraOperators={MOCK_ONLY_OPERATORS}
+          ariaLabel="Rule operator"
         />
       )
     },

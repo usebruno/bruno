@@ -148,17 +148,21 @@ const resolveOpenApiSchema = (spec, schema, refStack = new Set()) => {
   return schema;
 };
 
+const numericBounds = (schema) => {
+  const hasMin = typeof schema.minimum === 'number';
+  const hasMax = typeof schema.maximum === 'number';
+  const min = hasMin ? schema.minimum : Math.min(1, hasMax ? schema.maximum : 1);
+  const max = hasMax ? schema.maximum : Math.max(100, min);
+  return [min, max];
+};
+
 const generatePrimitiveExample = (schema, type) => {
   if (type === 'integer') {
-    const min = typeof schema.minimum === 'number' ? schema.minimum : 1;
-    const max = typeof schema.maximum === 'number' ? schema.maximum : 100;
-    return fakerInt(min, max);
+    return fakerInt(...numericBounds(schema));
   }
 
   if (type === 'number') {
-    const min = typeof schema.minimum === 'number' ? schema.minimum : 1;
-    const max = typeof schema.maximum === 'number' ? schema.maximum : 100;
-    return fakerFloat(min, max);
+    return fakerFloat(...numericBounds(schema));
   }
 
   if (type === 'boolean') {

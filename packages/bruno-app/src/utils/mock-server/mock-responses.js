@@ -160,7 +160,9 @@ const patternOf = (value) => {
   return text;
 };
 
-const firstListItem = (value) => (value || '').replace(/^\[|\]$/g, '').split(',')[0].trim();
+const listItems = (value) => (value || '').replace(/^\[|\]$/g, '').split(',').map((item) => item.trim());
+
+const firstListItem = (value) => listItems(value)[0];
 
 // Samples are strings for headers and query params. Body rules convert a few of them to JSON types.
 const demoValueForCondition = (condition) => {
@@ -209,8 +211,8 @@ const demoValueForCondition = (condition) => {
   }
 
   if (operator === 'notIn') {
-    const items = (raw || '').replace(/^\[|\]$/g, '').split(',').map((item) => item.trim());
-    return ['other', 'sample', 'x'].find((sample) => !items.includes(sample)) || '';
+    const excluded = listItems(raw).flatMap((item) => [item, item.replace(/^(["'])(.*)\1$/, '$2')]);
+    return ['other', 'sample', 'x'].find((sample) => !excluded.includes(sample)) || '';
   }
 
   if (operator === 'length') {
@@ -267,9 +269,6 @@ const demoBodyValue = (condition) => {
 
 const includeInDemo = (condition) => condition.operator !== 'isUndefined';
 
-// Builds a request that satisfies the response's rules: header/query conditions
-// become headers/params and body conditions build a JSON body from their $.paths.
-// This is what the Demo Request tab shows and what Try sends.
 export const buildDemoRequestFromRules = (request, rules) => {
   const conditions = (rules?.conditions || []).filter((condition) => condition?.key);
 
