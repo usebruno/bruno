@@ -123,7 +123,7 @@ describe('CollectionWalker', () => {
     try {
       await walk('/');
 
-      expect(readdir.mock.calls.map(([target]) => target)).toEqual(['/', '/home']);
+      expect(readdir.mock.calls.map(([target]) => target)).toEqual(['/', path.join('/', 'home')]);
     } finally {
       Object.defineProperty(process, 'platform', originalPlatform);
       realpath.mockRestore();
