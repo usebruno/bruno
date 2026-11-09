@@ -8,6 +8,7 @@ import {
   isVariableSecret,
   getAvailableAddToScopes,
   getGlobalEnvironmentVariablesMasked,
+  getGlobalEnvironmentName,
   getEnvironmentVariablesMasked,
   resolveEnabledVariable,
   getEnvironmentVariables,
@@ -553,6 +554,29 @@ describe('getGlobalEnvironmentVariablesMasked', () => {
 
   it('returns an empty array when there is no active global environment', () => {
     expect(getGlobalEnvironmentVariablesMasked({ globalEnvironments: [], activeGlobalEnvironmentUid: null })).toEqual([]);
+  });
+});
+
+describe('getGlobalEnvironmentName', () => {
+  const globalEnvironments = [
+    { uid: 'genv-1', name: 'Production', variables: [] },
+    { uid: 'genv-2', name: 'Staging', variables: [] }
+  ];
+
+  it('returns the name of the active global environment', () => {
+    expect(getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid: 'genv-2' })).toBe('Staging');
+  });
+
+  it('returns undefined when no global environment is active', () => {
+    expect(getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid: null })).toBeUndefined();
+  });
+
+  it('returns undefined when the active uid matches no environment', () => {
+    expect(getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid: 'genv-9' })).toBeUndefined();
+  });
+
+  it('returns undefined when there are no global environments', () => {
+    expect(getGlobalEnvironmentName({ activeGlobalEnvironmentUid: 'genv-1' })).toBeUndefined();
   });
 });
 

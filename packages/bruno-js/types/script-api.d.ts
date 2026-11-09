@@ -193,6 +193,13 @@ export interface Bru {
    */
   getEnvName(): string | undefined;
   /**
+   * Get the name of the selected global environment.
+   *
+   * @returns The name, or `undefined` when no global environment is selected.
+   * @category Global environment
+   */
+  getGlobalEnvName(): string | undefined;
+  /**
    * Get a variable of the process environment (`process.env`), including those from the
    * collection's `.env` file.
    *

@@ -1,0 +1,4 @@
+name: scripted
+variables:
+  - name: global_scope_var
+    value: global_scope_value

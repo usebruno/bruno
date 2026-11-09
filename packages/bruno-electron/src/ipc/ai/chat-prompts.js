@@ -5,7 +5,7 @@ const BRUNO_API_REFERENCE = `
 \`\`\`javascript
 bru.getEnvVar(key) / bru.setEnvVar(key, value) / bru.setEnvVar(key, value, { persist: true })
 bru.hasEnvVar(key) / bru.deleteEnvVar(key) / bru.getEnvName()
-bru.getGlobalEnvVar(key) / bru.setGlobalEnvVar(key, value)
+bru.getGlobalEnvVar(key) / bru.setGlobalEnvVar(key, value) / bru.getGlobalEnvName()
 bru.getVar(key) / bru.setVar(key, value) / bru.hasVar(key) / bru.deleteVar(key)
 bru.getCollectionVar(key) / bru.getFolderVar(key) / bru.getRequestVar(key)
 bru.getSecretVar(key) / bru.getProcessEnv(key)

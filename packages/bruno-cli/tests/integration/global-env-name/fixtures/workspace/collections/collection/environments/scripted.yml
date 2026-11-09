@@ -1,0 +1,4 @@
+name: scripted
+variables:
+  - name: collection_scope_var
+    value: collection_scope_value
