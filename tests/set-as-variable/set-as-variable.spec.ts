@@ -813,6 +813,64 @@ test.describe('Set as variable', () => {
     });
   });
 
+  test('does not offer the menu in a gRPC bulk-edit box, which passes no request of its own', async ({ page, createTmpDir }) => {
+    const { sidebar, request } = buildCommonLocators(page);
+
+    await test.step('Open a gRPC request and switch Metadata to bulk edit', async () => {
+      await createCollection(page, 'grpc-bulk', await createTmpDir('grpc-bulk'));
+      await createRequest(page, 'Say Hello', 'grpc-bulk', { requestType: 'grpc' });
+      await sidebar.request('Say Hello').click();
+      await selectRequestPaneTab(page, 'Metadata');
+      await request.bulkEditToggle().click();
+    });
+
+    await test.step('Type a header into the bulk-edit box', async () => {
+      await request.bulkEditEditor().click();
+      await page.keyboard.type('x-api-key: secretvalue');
+    });
+
+    await test.step('Right-clicking a selection offers nothing', async () => {
+      await expectNoSetAsVariableMenu(page, request.bulkEditLine(), 12);
+    });
+  });
+
+  test('still offers the menu in an HTTP bulk-edit box', async ({ page, createTmpDir }) => {
+    const { sidebar, setAsVariable, request } = buildCommonLocators(page);
+
+    await test.step('Open an HTTP request and switch Headers to bulk edit', async () => {
+      await createCollection(page, 'http-bulk', await createTmpDir('http-bulk'));
+      await createRequest(page, 'Fetch Posts', 'http-bulk');
+      await sidebar.request('Fetch Posts').click();
+      await selectRequestPaneTab(page, 'Headers');
+      await request.bulkEditToggle().click();
+    });
+
+    await test.step('Type a header into the bulk-edit box', async () => {
+      await request.bulkEditEditor().click();
+      await page.keyboard.type('x-api-key: secretvalue');
+    });
+
+    await test.step('Right-clicking a selection still offers the menu', async () => {
+      await openSetAsVariableMenu(page, request.bulkEditLine(), 12);
+      await expect(setAsVariable.menu()).toBeVisible();
+    });
+  });
+
+  test('does not offer the menu in the GraphQL query editor', async ({ page, createTmpDir }) => {
+    const { sidebar, codeMirror } = buildCommonLocators(page);
+
+    await test.step('Create a GraphQL request with a query', async () => {
+      await createCollection(page, 'gql-query', await createTmpDir('gql-query'));
+      await createRequest(page, 'Fetch Users', 'gql-query', { requestType: 'graphql' });
+      await sidebar.request('Fetch Users').click();
+      await setCodeMirrorEditorValue(page, 'graphql-query-editor', 'query { users(role: "admin") { id } }');
+    });
+
+    await test.step('Right-clicking a selection offers nothing', async () => {
+      await expectNoSetAsVariableMenu(page, codeMirror.byTestId('graphql-query-editor').locator('.CodeMirror-line').first(), 60);
+    });
+  });
+
   test('still offers the menu on an HTTP response body', async ({ page, createTmpDir }) => {
     const { sidebar, setAsVariable, response } = buildCommonLocators(page);
 
