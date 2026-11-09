@@ -15,6 +15,11 @@ import { buildQueryParamsLocators } from './params/query';
 export const buildRequestLocators = (page: Page) => ({
   urlInput: () => page.getByTestId('request-url').locator('.CodeMirror'),
   urlLine: () => page.getByTestId('request-url').locator('.CodeMirror-line'),
+  protocolUrlLine: () => page.locator('.query-url-wrapper .CodeMirror-line').first(),
+  protocolUrlEditor: () => page.locator('.query-url-wrapper .CodeMirror').first(),
+  bulkEditToggle: () => page.getByTestId('bulk-edit-toggle'),
+  bulkEditEditor: () => page.locator('[data-testid="request-pane"] .CodeMirror').first(),
+  bulkEditLine: () => page.locator('[data-testid="request-pane"] .CodeMirror-line').first(),
   sendButton: () => page.getByTestId('send-arrow-icon'),
   methodDropdown: () => page.getByTestId('method-selector'),
   newRequestUrl: () => page.getByTestId('new-request-url').locator('.CodeMirror'),

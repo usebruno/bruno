@@ -107,6 +107,7 @@ export const buildCommonLocators = (page: Page) => ({
     closableTabs: () => page.locator('.request-tab').filter({ has: page.getByTestId('request-tab-close-icon') }),
     closeTabIcon: (tab: Locator) => tab.getByTestId('request-tab-close-icon'),
     draftIndicator: () => page.locator('.request-tab.active .has-changes-icon'),
+    activeTabDirty: () => page.locator('.request-tab.active .close-gradient.has-changes'),
     tabDraftIndicator: (tab: Locator) => tab.locator('.has-changes-icon')
   },
   paneTabs: {
