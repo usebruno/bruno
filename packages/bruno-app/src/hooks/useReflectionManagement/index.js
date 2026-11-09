@@ -7,6 +7,24 @@ import useLocalStorage from 'hooks/useLocalStorage/index';
 import { getAllVariables } from 'utils/collections';
 
 const REFLECTION_DEBOUNCE_MS = 3000;
+const REFLECTION_CACHE_KEY = 'bruno.grpc.reflectionCache';
+
+// What a non-string url stringifies to when used as a cache key
+const NON_STRING_URL_KEY = '[object Object]';
+
+/** Drops the entry a non-string url left behind, whose methods belong to no url. */
+const dropNonStringUrlEntry = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(REFLECTION_CACHE_KEY) || '{}');
+    if (!Object.hasOwn(stored, NON_STRING_URL_KEY)) return;
+    delete stored[NON_STRING_URL_KEY];
+    localStorage.setItem(REFLECTION_CACHE_KEY, JSON.stringify(stored));
+  } catch {
+    // unreadable storage falls back to the hook's default
+  }
+};
+
+dropNonStringUrlEntry();
 
 /**
  * Custom hook for managing reflection data and server discovery
@@ -16,11 +34,11 @@ const REFLECTION_DEBOUNCE_MS = 3000;
 export default function useReflectionManagement(item, collection) {
   const dispatch = useDispatch();
 
-  const [reflectionCache, setReflectionCache] = useLocalStorage('bruno.grpc.reflectionCache', {});
+  const [reflectionCache, setReflectionCache] = useLocalStorage(REFLECTION_CACHE_KEY, {});
   const [isLoadingMethods, setIsLoadingMethods] = useState(false);
 
   const resolveUrl = (url) => {
-    if (!url) return null;
+    if (!url || typeof url !== 'string') return null;
     const vars = getAllVariables(collection, item);
     return interpolate(url, vars) || url;
   };
@@ -32,12 +50,12 @@ export default function useReflectionManagement(item, collection) {
    * @returns {Promise<{methods: Array, error: Error|null}>}
    */
   const loadMethodsFromReflection = async (url, isManualRefresh = false) => {
-    if (!url) {
+    const resolvedUrl = resolveUrl(url);
+    if (!resolvedUrl) {
       return { methods: [], error: new Error('No URL provided') };
     }
 
-    const resolvedUrl = resolveUrl(url);
-    const cachedMethods = resolvedUrl ? reflectionCache[resolvedUrl] : null;
+    const cachedMethods = reflectionCache[resolvedUrl];
     if (!isManualRefresh && cachedMethods && !isLoadingMethods) {
       return { methods: cachedMethods, error: null, fromCache: true };
     }
@@ -51,12 +69,10 @@ export default function useReflectionManagement(item, collection) {
         return { methods: [], error };
       }
 
-      if (resolvedUrl) {
-        setReflectionCache((prevCache) => ({
-          ...prevCache,
-          [resolvedUrl]: methods
-        }));
-      }
+      setReflectionCache((prevCache) => ({
+        ...prevCache,
+        [resolvedUrl]: methods
+      }));
 
       return { methods, error: null, fromCache: false };
     } catch (error) {
