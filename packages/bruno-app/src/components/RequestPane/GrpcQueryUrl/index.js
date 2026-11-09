@@ -88,13 +88,16 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
 
-  const handleReflection = async (url, isManualRefresh = false) => {
+  // A reflection claims the latest slot; one that resolves after a newer claim must not apply.
+  const claimLatestReflection = () => {
     const requestId = ++latestReflectionRequestIdRef.current;
-    const { methods, error, fromCache } = await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh);
-    if (requestId !== latestReflectionRequestIdRef.current) return;
+    return () => requestId === latestReflectionRequestIdRef.current;
+  };
 
+  const applyReflectionResult = ({ methods, error, fromCache }) => {
     if (error) {
       toast.error(`Failed to load gRPC methods: ${error.message || 'Unknown error'}`);
+      setGrpcMethods([]);
       return;
     }
 
@@ -133,6 +136,14 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     }
   };
 
+  const handleReflection = async (url, isManualRefresh = false) => {
+    const isLatestReflection = claimLatestReflection();
+    const result = await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh);
+    if (!isLatestReflection()) return;
+
+    applyReflectionResult(result);
+  };
+
   const onUrlChange = (value) => {
     if (!editorRef.current?.editor) return;
     const editor = editorRef.current.editor;
@@ -158,7 +169,11 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
     if (!protoFilePath && value) {
       setIsReflectionMode(true);
-      reflectionManagement.scheduleReflection(finalUrl, handleReflection);
+      const isLatestReflection = claimLatestReflection();
+      reflectionManagement.scheduleReflection(finalUrl, (result) => {
+        if (!isLatestReflection()) return;
+        applyReflectionResult(result);
+      });
     }
   };
 

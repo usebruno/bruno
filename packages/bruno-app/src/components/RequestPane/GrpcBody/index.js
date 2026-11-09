@@ -80,7 +80,6 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, handl
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const isConnectionActive = useSelector((state) => state.collections.activeConnections.includes(item.uid));
 
-  const [reflectionCache] = useLocalStorage('bruno.grpc.reflectionCache', {});
   const [protofileCache] = useLocalStorage('bruno.grpc.protofileCache', {});
 
   const canClientStream = methodType === 'client-streaming' || methodType === 'bidi-streaming';
@@ -121,18 +120,12 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, handl
         return;
       }
 
-      const url = item.draft?.request?.url || item.request?.url;
       const protoPath = item.draft?.request?.protoPath || item.request?.protoPath;
 
       let methodMetadata = null;
       if (protoPath) {
         const absolutePath = getAbsoluteFilePath(collection.pathname, protoPath);
         const cachedMethods = protofileCache[absolutePath];
-        if (cachedMethods) {
-          methodMetadata = cachedMethods.find((method) => method.path === methodPath);
-        }
-      } else if (url) {
-        const cachedMethods = reflectionCache[url];
         if (cachedMethods) {
           methodMetadata = cachedMethods.find((method) => method.path === methodPath);
         }
