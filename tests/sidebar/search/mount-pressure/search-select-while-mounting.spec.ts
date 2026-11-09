@@ -68,3 +68,51 @@ for (const cacheMode of PRESSURE_CACHE_MODES) {
     }
   });
 }
+
+for (const cacheMode of PRESSURE_CACHE_MODES) {
+  test(`[${cacheMode.label}] search result tabs in the same collection follow preview-tab rules while it mounts`, async ({ launchElectronApp, createTmpDir }) => {
+    test.setTimeout(420_000);
+    const tag = cacheMode.tag;
+    const root = await createTmpDir(`search-select-same-collection-${tag}`);
+    const [collectionA] = buildPressureCollections(root, cacheMode.requestCount);
+
+    const userDataPath = await createTmpDir(`search-select-same-collection-user-${tag}`);
+    writePreferences(userDataPath, [collectionA], cacheMode.enabled);
+
+    const app = await launchElectronApp({ userDataPath });
+    const page = await waitForReadyPage(app);
+    await clearSearchIndex(page);
+    const sidebar = buildSidebarLocators(page);
+    const { tabs } = buildCommonLocators(page);
+    const urlLine = buildRequestLocators(page).urlLine();
+
+    try {
+      await sidebar.searchToggle().click();
+      await sidebar.searchInput().fill('needle-alpha');
+      await expect(sidebar.itemRowIn('PressureA', 'needle-alpha-unique')).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
+
+      await test.step('a second single click replaces the first preview tab, as it does once mounted', async () => {
+        await sidebar.itemRowIn('PressureA', 'needle-alpha-unique').click();
+        await expect(tabs.requestTab('needle-alpha-unique')).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
+
+        await sidebar.searchInput().fill('request-1');
+        const second = sidebar.itemRowIn('PressureA', 'request-1').first();
+        await expect(second).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
+        await second.click();
+        await expect(tabs.requestTab('request-1')).toBeVisible();
+        await expect(tabs.requestTab('needle-alpha-unique')).toHaveCount(0);
+      });
+
+      await test.step('only a double-clicked tab stays when another result is opened', async () => {
+        await sidebar.itemRowIn('PressureA', 'request-1').first().dblclick();
+        await sidebar.searchInput().fill('needle-alpha');
+        await sidebar.itemRowIn('PressureA', 'needle-alpha-unique').click();
+        await expect(tabs.requestTab('request-1')).toBeVisible();
+        await expect(tabs.requestTab('needle-alpha-unique')).toBeVisible();
+        await expect(urlLine).toContainText('https://needle-alpha.unique.example/resource', { timeout: MOUNT_TIMEOUT_MS });
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+}
