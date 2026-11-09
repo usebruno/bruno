@@ -1,0 +1,21 @@
+info:
+  name: swapped-env-names
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: '{{baseUrl}}/ping'
+  auth: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        // A getter reading the wrong map returns a real name here, not undefined.
+        test("each getter reads its own scope", function() {
+          expect(bru.getEnvName()).to.equal("workspace_scripted");
+          expect(bru.getGlobalEnvName()).to.equal("scripted");
+          expect(bru.getEnvVar("collection_scope_var")).to.equal("collection_scope_value");
+          expect(bru.getGlobalEnvVar("global_scope_var")).to.equal("global_scope_value");
+        });
