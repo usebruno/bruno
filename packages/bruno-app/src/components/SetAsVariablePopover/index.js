@@ -98,7 +98,7 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
 
           toast.success(
             rewritePending
-              ? `Variable "${name}" saved (reference inserted, save the request to persist it)`
+              ? `Variable "${name}" saved (reference inserted, save your changes to persist it)`
               : selectionChanged
                 ? `Variable "${name}" saved (selection changed, text not replaced)`
                 : `Variable "${name}" saved`
