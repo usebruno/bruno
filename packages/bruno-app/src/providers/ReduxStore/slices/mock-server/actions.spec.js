@@ -27,7 +27,7 @@ const openTab = (store, uid, type, extra = {}) => store.dispatch(addTab({
 const openTabUids = (store) => store.getState().tabs.tabs.map((tab) => tab.uid);
 
 describe('closeDisabledMockServerTabs', () => {
-  it('closes every mock server and mock response tab and leaves other tabs open', () => {
+  it('keeps mock server and mock response tabs open when the stored beta flag is false', () => {
     const store = buildStore(MOCK_SERVER_OFF);
     openTab(store, 'request-1', 'http-request');
     openTab(store, 'mock-server-1', 'mock-server', { mockServerUid: 'mock-server-1' });
@@ -35,10 +35,10 @@ describe('closeDisabledMockServerTabs', () => {
 
     store.dispatch(closeDisabledMockServerTabs());
 
-    expect(openTabUids(store)).toEqual(['request-1']);
+    expect(openTabUids(store)).toEqual(['request-1', 'mock-server-1', 'mock-response-1']);
   });
 
-  it('keeps closed mock tabs from being reopened, including ones closed by hand earlier', () => {
+  it('still reopens mock tabs that were closed by hand when the stored beta flag is false', () => {
     const store = buildStore(MOCK_SERVER_OFF);
     openTab(store, 'request-1', 'http-request');
     openTab(store, 'request-2', 'http-request');
@@ -49,13 +49,13 @@ describe('closeDisabledMockServerTabs', () => {
 
     store.dispatch(closeDisabledMockServerTabs());
 
-    expect(store.getState().tabs.recentlyClosedTabs.map((tab) => tab.uid)).toEqual(['request-2']);
+    expect(store.getState().tabs.recentlyClosedTabs.map((tab) => tab.uid)).toEqual(['request-2', 'mock-response-earlier']);
     store.dispatch(reopenLastClosedTab({ collectionUid: COLLECTION_UID }));
     store.dispatch(reopenLastClosedTab({ collectionUid: COLLECTION_UID }));
-    expect(openTabUids(store)).toEqual(['request-1', 'request-2']);
+    expect(openTabUids(store)).toEqual(['request-1', 'mock-server-1', 'mock-response-earlier', 'request-2']);
   });
 
-  it('purges mock tabs saved under legacy types from the recently closed stack', () => {
+  it('keeps mock tabs saved under legacy types on the recently closed stack', () => {
     const store = buildStore(MOCK_SERVER_OFF);
     openTab(store, 'request-1', 'http-request');
     openTab(store, 'legacy-dashboard', 'mock-server-dashboard', { mockServerUid: 'mock-server-1' });
@@ -63,7 +63,7 @@ describe('closeDisabledMockServerTabs', () => {
 
     store.dispatch(closeDisabledMockServerTabs());
 
-    expect(store.getState().tabs.recentlyClosedTabs).toEqual([]);
+    expect(store.getState().tabs.recentlyClosedTabs.map((tab) => tab.uid)).toEqual(['legacy-dashboard']);
   });
 
   it('leaves tabs untouched when no mock tabs are open or closed', () => {
@@ -103,12 +103,12 @@ describe('restoreCollectionTabs', () => {
 
   const restoredTypes = (store) => store.getState().tabs.tabs.map((tab) => tab.type);
 
-  it('drops saved mock server and mock response tabs when the feature is off', () => {
+  it('restores saved mock tabs when the stored beta flag is false', () => {
     const store = buildStore({ beta: { 'mock-server': false } });
 
     store.dispatch(restoreCollectionTabs({ collection, tabs: snapshotTabs, activeTab: null }));
 
-    expect(restoredTypes(store)).toEqual(['variables']);
+    expect(restoredTypes(store)).toEqual(['variables', 'mock-server', 'mock-server', 'mock-response']);
   });
 
   it('restores saved mock tabs when the feature is on', () => {

@@ -2,9 +2,8 @@ import { saveMockResponse } from 'providers/ReduxStore/slices/mock-server/index'
 import { syncMockResponseEditorSaved } from 'providers/ReduxStore/slices/collections';
 import { closeTabs, removeRecentlyClosedTabs, restoreTabs, updateTabMeta } from 'providers/ReduxStore/slices/tabs';
 import { resolveMockResponseLocation, getMockResponseNameError, getMockResponseDescriptionError } from 'utils/mock-server/mock-responses';
-import { findMockServerInstance, isMockServerTab } from 'utils/mock-server/mock-server-instances';
+import { findMockServerInstance } from 'utils/mock-server/mock-server-instances';
 import { mockResponseFromEditorItem } from 'utils/mock-server/mock-responses/editor';
-import { BETA_FEATURES } from 'utils/beta-features';
 
 export const saveMockResponseEditor = (responseUid) => async (dispatch, getState) => {
   const state = getState();
@@ -45,9 +44,8 @@ export const saveMockResponseEditor = (responseUid) => async (dispatch, getState
   return result.response;
 };
 
-export const isDisabledMockServerTab = (state, tab) => (
-  state.app.preferences?.beta?.[BETA_FEATURES.MOCK_SERVER] === false && isMockServerTab(tab)
-);
+// Mock Server is no longer a beta feature, so a stored beta['mock-server'] === false does not close its tabs.
+export const isDisabledMockServerTab = () => false;
 
 export const closeDisabledMockServerTabs = () => (dispatch, getState) => {
   const state = getState();
