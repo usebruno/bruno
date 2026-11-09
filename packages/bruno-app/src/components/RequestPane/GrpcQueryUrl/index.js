@@ -88,9 +88,16 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
 
+  // A reflection claims the latest slot; one that resolves after a newer claim must not apply.
+  const claimLatestReflection = () => {
+    const requestId = ++latestReflectionRequestIdRef.current;
+    return () => requestId === latestReflectionRequestIdRef.current;
+  };
+
   const applyReflectionResult = ({ methods, error, fromCache }) => {
     if (error) {
       toast.error(`Failed to load gRPC methods: ${error.message || 'Unknown error'}`);
+      setGrpcMethods([]);
       return;
     }
 
@@ -130,9 +137,9 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   };
 
   const handleReflection = async (url, isManualRefresh = false) => {
-    const requestId = ++latestReflectionRequestIdRef.current;
+    const isLatestReflection = claimLatestReflection();
     const result = await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh);
-    if (requestId !== latestReflectionRequestIdRef.current) return;
+    if (!isLatestReflection()) return;
 
     applyReflectionResult(result);
   };
@@ -162,11 +169,9 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
     if (!protoFilePath && value) {
       setIsReflectionMode(true);
-      // scheduleReflection loads the methods itself and hands back the result, so the
-      // staleness check belongs here rather than around a second load.
-      const requestId = ++latestReflectionRequestIdRef.current;
+      const isLatestReflection = claimLatestReflection();
       reflectionManagement.scheduleReflection(finalUrl, (result) => {
-        if (requestId !== latestReflectionRequestIdRef.current) return;
+        if (!isLatestReflection()) return;
         applyReflectionResult(result);
       });
     }
