@@ -721,7 +721,7 @@ test.describe('Set as variable', () => {
   });
 
   test('writes both the variable and the replaced reference to disk', async ({ page, createTmpDir }) => {
-    const { sidebar, setAsVariable, request } = buildCommonLocators(page);
+    const { sidebar, setAsVariable, request, tabs } = buildCommonLocators(page);
     const dir = await createTmpDir('disk-http');
 
     await test.step('Create a request with a literal URL', async () => {
@@ -751,7 +751,7 @@ test.describe('Set as variable', () => {
     });
 
     await test.step('And the request is left with nothing unsaved', async () => {
-      await expect(page.locator('.request-tab.active .close-gradient.has-changes')).toHaveCount(0);
+      await expect(tabs.activeTabDirty()).toHaveCount(0);
     });
   });
 
@@ -805,11 +805,11 @@ test.describe('Set as variable', () => {
 
     await test.step('Send it and get a body back', async () => {
       await sendRequest(page, 200);
-      await expect(response.tabContent().locator('.CodeMirror-line').first()).toBeVisible();
+      await expect(response.codeLine().first()).toBeVisible();
     });
 
     await test.step('Right-clicking the response body offers nothing', async () => {
-      await expectNoSetAsVariableMenu(page, response.tabContent().locator('.CodeMirror-line').first(), 12);
+      await expectNoSetAsVariableMenu(page, response.codeLine().first(), 12);
     });
   });
 
@@ -883,11 +883,11 @@ test.describe('Set as variable', () => {
 
     await test.step('Send it and get a body back', async () => {
       await sendRequest(page, 200);
-      await expect(response.tabContent().locator('.CodeMirror-line').first()).toBeVisible();
+      await expect(response.codeLine().first()).toBeVisible();
     });
 
     await test.step('Right-clicking the response body still offers the menu', async () => {
-      await openSetAsVariableMenu(page, response.tabContent().locator('.CodeMirror-line').first(), 12);
+      await openSetAsVariableMenu(page, response.codeLine().first(), 12);
       await expect(setAsVariable.menu()).toBeVisible();
     });
   });

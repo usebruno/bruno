@@ -28,6 +28,8 @@ const DOUBLE_CLICK_RESET_MS = 600;
 // Longer than CodeMirror's 100ms delayBlurEvent, so a mouse-up `contextmenu` lands after the blur.
 const CONTEXT_MENU_HOLD_MS = 200;
 
+const CONTEXT_MENU_SETTLE_MS = 400;
+
 /** Double-clicks the word under the pointer and hands back that point. */
 const selectWordAt = async (page: Page, target: Locator, offsetX = 12) => {
   let box: Awaited<ReturnType<Locator['boundingBox']>> = null;
@@ -76,10 +78,10 @@ const openSetAsVariableMenu = async (page: Page, target: Locator, offsetX?: numb
   return menu;
 };
 
-/** Right-clicks a selected word and asserts no "Set as variable" menu offers itself. */
 const expectNoSetAsVariableMenu = async (page: Page, target: Locator, offsetX?: number) => {
   const setAsVariable = buildSetAsVariableLocators(page);
   await selectWordAndRightClick(page, target, offsetX);
+  await page.waitForTimeout(CONTEXT_MENU_SETTLE_MS);
 
   await expect(setAsVariable.menu()).toBeHidden();
 };

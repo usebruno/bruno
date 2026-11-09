@@ -88,8 +88,8 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
     dispatch(updateVariableInScope(name, value, scopeInfo, selection.collection?.uid))
       .then(() => {
         const replaced = replaceSelectionWithVariable(selection, name, scopeType);
-        const persisted = replaced && selection.item && selection.collection
-          ? dispatch(saveRequest(selection.item.uid, selection.collection.uid, true))
+        const persisted = replaced && scopeType === VARIABLE_ADD_SCOPES.REQUEST
+          ? dispatch(saveRequest(selection.item.uid, selection.collection.uid, true)).catch(() => {})
           : Promise.resolve();
 
         return persisted.then(() => {
