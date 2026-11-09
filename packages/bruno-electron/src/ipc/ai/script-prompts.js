@@ -11,6 +11,7 @@ bru.getEnvName()
 
 bru.getGlobalEnvVar(key)
 bru.setGlobalEnvVar(key, value)
+bru.getGlobalEnvName()
 
 bru.getVar(key)            // runtime var
 bru.setVar(key, value)

@@ -43,6 +43,12 @@ describe('bru.getGlobalEnvName', () => {
     expect(bru._globalEnvDirty).toBeFalsy();
   });
 
+  test('getGlobalEnvVar and hasGlobalEnvVar do not expose the reserved __name__ key', () => {
+    const bru = makeBru({ globalEnvironmentVariables: { __name__: 'Production' } });
+    expect(bru.getGlobalEnvVar('__name__')).toBeUndefined();
+    expect(bru.hasGlobalEnvVar('__name__')).toBe(false);
+  });
+
   test('deleteGlobalEnvVar cannot remove the reserved __name__ key', () => {
     const bru = makeBru({ globalEnvironmentVariables: { __name__: 'Production' } });
     bru.deleteGlobalEnvVar('__name__');

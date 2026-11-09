@@ -10,7 +10,7 @@
 const API_BLOCKS = {
   bru: `bru:    env/global/collection/folder/request/runtime vars — get/set/has/delete,
         interpolate(strOrObj), sleep(ms), sendRequest(cfg), setNextRequest(name),
-        cookies, utils.minifyJson/Xml, getEnvName, getCollectionName, cwd`,
+        cookies, utils.minifyJson/Xml, getEnvName, getGlobalEnvName, getCollectionName, cwd`,
   req: `req:    url, method, headers, body, timeout. getUrl/setUrl, getHeader/setHeader,
         getBody/setBody, getMethod/setMethod, getTimeout/setTimeout.`,
   res: `res:    status, headers, body, responseTime. getStatus, getStatusText,
