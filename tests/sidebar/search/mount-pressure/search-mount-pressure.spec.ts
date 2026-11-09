@@ -10,7 +10,7 @@ const MOUNT_TIMEOUT_MS = 180_000;
 for (const cacheMode of PRESSURE_CACHE_MODES) {
   test(`[${cacheMode.label}] sidebar search indexes and finds requests while a collection mounts`, async ({ launchElectronApp, createTmpDir }) => {
     test.setTimeout(420_000);
-    const tag = cacheMode.enabled ? 'on' : 'off';
+    const tag = cacheMode.tag;
     const root = await createTmpDir(`search-mount-pressure-${tag}`);
     const [collectionA, collectionB] = buildPressureCollections(root, cacheMode.requestCount);
 
@@ -21,8 +21,8 @@ for (const cacheMode of PRESSURE_CACHE_MODES) {
     const page = await waitForReadyPage(app);
     await clearSearchIndex(page);
     const sidebar = buildSidebarLocators(page);
-    const searchInput = page.getByTestId('sidebar-search-input');
-    const matchCount = page.getByTestId('sidebar-search-match-count');
+    const searchInput = sidebar.searchInput();
+    const matchCount = sidebar.searchMatchCount();
     const indexingLoader = page.getByTestId('sidebar-search-indexing');
     const allItemRows = page.getByTestId('sidebar-collection-item-row');
     const totalRequests = cacheMode.requestCount * 2;
@@ -31,7 +31,7 @@ for (const cacheMode of PRESSURE_CACHE_MODES) {
       await test.step('an empty search term shows no loader or count while PressureA mounts', async () => {
         await expect(sidebar.collectionRow('PressureA')).toBeVisible();
         await expect(sidebar.collectionRow('PressureB')).toBeVisible();
-        await page.getByTitle('Search requests').click();
+        await sidebar.searchToggle().click();
         await expect(searchInput).toBeVisible();
         await expect(indexingLoader).toHaveCount(0);
 

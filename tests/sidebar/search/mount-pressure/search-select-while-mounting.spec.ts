@@ -1,5 +1,5 @@
 import { test, expect, closeElectronApp } from '../../../../playwright';
-import { clearSearchIndex, waitForCollectionSpinner, waitForReadyPage } from '../../../utils/page';
+import { buildCommonLocators, clearSearchIndex, waitForCollectionSpinner, waitForReadyPage } from '../../../utils/page';
 import { buildRequestLocators } from '../../../utils/request';
 import { buildSidebarLocators } from '../../../utils/page/sidebar';
 import { buildPressureCollections, PRESSURE_CACHE_MODES, writePreferences } from '../helpers';
@@ -10,7 +10,7 @@ const MOUNT_TIMEOUT_MS = 180_000;
 for (const cacheMode of PRESSURE_CACHE_MODES) {
   test(`[${cacheMode.label}] selecting a search result in another collection while the first one mounts opens both`, async ({ launchElectronApp, createTmpDir }) => {
     test.setTimeout(420_000);
-    const tag = cacheMode.enabled ? 'on' : 'off';
+    const tag = cacheMode.tag;
     const root = await createTmpDir(`search-select-while-mounting-${tag}`);
     const [collectionA, collectionB] = buildPressureCollections(root, cacheMode.requestCount);
 
@@ -21,13 +21,13 @@ for (const cacheMode of PRESSURE_CACHE_MODES) {
     const page = await waitForReadyPage(app);
     await clearSearchIndex(page);
     const sidebar = buildSidebarLocators(page);
-    const searchInput = page.getByTestId('sidebar-search-input');
+    const searchInput = sidebar.searchInput();
     const urlLine = buildRequestLocators(page).urlLine();
-    const activeTab = (name: string) => page.locator('.request-tab.active').filter({ hasText: name });
+    const activeTab = (name: string) => buildCommonLocators(page).tabs.activeRequestTab().filter({ hasText: name });
 
     try {
       await test.step('select a result in unmounted PressureA, which starts mounting it', async () => {
-        await page.getByTitle('Search requests').click();
+        await sidebar.searchToggle().click();
         await searchInput.fill('needle-alpha');
         await expect(sidebar.itemRowIn('PressureA', 'needle-alpha-unique')).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
         const spinnerShown = waitForCollectionSpinner(page, 'PressureA', SEARCH_RESULT_TIMEOUT_MS);

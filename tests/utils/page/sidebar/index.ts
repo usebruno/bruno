@@ -83,6 +83,7 @@ export const buildSidebarLocators = (page: Page) => {
     sidebarContainer: () => page.getByTestId('sidebar'),
     searchToggle: () => page.getByTestId('sidebar-search-toggle'),
     searchInput: () => page.getByTestId('sidebar-search-input'),
+    searchMatchCount: () => page.getByTestId('sidebar-search-match-count'),
     searchClear: () => page.getByTestId('sidebar-search-clear-icon'),
 
     // Modals opened from a sidebar row's "..." menu.

@@ -1,6 +1,6 @@
 import { test, expect, closeElectronApp } from '../../../../playwright';
 import path from 'path';
-import { clearSearchIndex, waitForReadyPage } from '../../../utils/page';
+import { buildCommonLocators, clearSearchIndex, waitForReadyPage } from '../../../utils/page';
 import { buildSidebarLocators } from '../../../utils/page/sidebar';
 import { initBruCollection, writeBruRequest } from '../../../utils/fixtures/bru-collection';
 import { CACHE_MODES, writePreferences } from '../helpers';
@@ -8,7 +8,7 @@ import { CACHE_MODES, writePreferences } from '../helpers';
 for (const cacheMode of CACHE_MODES) {
   test(`[${cacheMode.label}] searches unmounted collections after multiple mounts`, async ({ launchElectronApp, createTmpDir }) => {
     test.setTimeout(120_000);
-    const root = await createTmpDir(`search-unmounted-${cacheMode.enabled ? 'on' : 'off'}`);
+    const root = await createTmpDir(`search-unmounted-${cacheMode.tag}`);
     const collectionA = path.join(root, 'CollectionA');
     const collectionB = path.join(root, 'CollectionB');
     const collectionC = path.join(root, 'CollectionC');
@@ -21,19 +21,19 @@ for (const cacheMode of CACHE_MODES) {
     writeBruRequest(collectionB, 'plain-name', { seq: 1, url: 'https://payments.unique.example/charge' });
     writeBruRequest(collectionC, 'charlie-hit', { seq: 1, url: 'https://charlie.example/one' });
 
-    const userDataPath = await createTmpDir(`search-unmounted-userdata-${cacheMode.enabled ? 'on' : 'off'}`);
+    const userDataPath = await createTmpDir(`search-unmounted-userdata-${cacheMode.tag}`);
     writePreferences(userDataPath, [collectionA, collectionB, collectionC], cacheMode.enabled);
 
     const app = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(app);
     await clearSearchIndex(page);
     const sidebar = buildSidebarLocators(page);
-    const activeTab = (name: string) => page.locator('.request-tab.active').filter({ hasText: name });
+    const activeTab = (name: string) => buildCommonLocators(page).tabs.activeRequestTab().filter({ hasText: name });
 
     try {
       await test.step('mount two collections from name matches', async () => {
-        await page.getByTitle('Search requests').click();
-        const searchInput = page.getByTestId('sidebar-search-input');
+        await sidebar.searchToggle().click();
+        const searchInput = sidebar.searchInput();
         await searchInput.fill('alpha-hit');
         await expect(sidebar.itemRow('alpha-hit')).toBeVisible({ timeout: 30_000 });
         const collectionAChevron = sidebar.collectionRow('CollectionA').getByTestId('collection-chevron');
@@ -51,7 +51,7 @@ for (const cacheMode of CACHE_MODES) {
       });
 
       await test.step('find a URL-only match in the remaining unmounted collection', async () => {
-        const searchInput = page.getByTestId('sidebar-search-input');
+        const searchInput = sidebar.searchInput();
         await searchInput.fill('plain-name');
         await expect(sidebar.itemRow('plain-name')).toBeVisible({ timeout: 30_000 });
         await searchInput.fill('payments.unique');
@@ -62,13 +62,13 @@ for (const cacheMode of CACHE_MODES) {
       });
 
       await test.step('search the first mounted collection again in sequence order', async () => {
-        await page.getByTestId('sidebar-search-input').fill('alpha');
+        await sidebar.searchInput().fill('alpha');
         await expect(sidebar.itemRow('alpha-first')).toBeVisible({ timeout: 30_000 });
         await expect(sidebar.itemRow('alpha-hit')).toBeVisible();
         const names = await page.getByTestId('sidebar-collection-item-row').locator('.item-name').allTextContents();
         expect(names).toEqual(['alpha-first', 'alpha-hit']);
 
-        await page.getByTestId('sidebar-search-input').fill('');
+        await sidebar.searchInput().fill('');
         await expect(sidebar.collectionRows()).toHaveCount(3);
         await expect(page.locator('#sidebar-collection-name')).toHaveText(['CollectionA', 'CollectionB', 'CollectionC']);
 
@@ -99,8 +99,8 @@ test('[search index off] does not search unmounted collections', async ({ launch
   const sidebar = buildSidebarLocators(page);
 
   try {
-    await page.getByTitle('Search requests').click();
-    await page.getByTestId('sidebar-search-input').fill('hidden-unmounted');
+    await sidebar.searchToggle().click();
+    await sidebar.searchInput().fill('hidden-unmounted');
     await expect(sidebar.itemRow('hidden-unmounted')).toHaveCount(0);
   } finally {
     await closeElectronApp(app);

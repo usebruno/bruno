@@ -1,6 +1,7 @@
 import { test, expect, closeElectronApp } from '../../../../playwright';
 import path from 'path';
 import { clearSearchIndex, openPreferences, selectPreferencesTab, waitForReadyPage } from '../../../utils/page';
+import { buildSidebarLocators } from '../../../utils/page/sidebar';
 import { initBruCollection, writeBruRequest } from '../../../utils/fixtures/bru-collection';
 import { writePreferences } from '../helpers';
 
@@ -17,14 +18,15 @@ test.describe('Preferences > Cache > Search index', () => {
 
     const app = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(app);
+    const sidebar = buildSidebarLocators(page);
 
     try {
       await clearSearchIndex(page);
 
       await test.step('populate the search index through a sidebar search', async () => {
-        await page.getByTitle('Search requests').click();
-        await page.getByTestId('sidebar-search-input').fill('size-probe');
-        await expect(page.getByTestId('sidebar-search-match-count')).toHaveText('1 match', { timeout: 30_000 });
+        await sidebar.searchToggle().click();
+        await sidebar.searchInput().fill('size-probe');
+        await expect(sidebar.searchMatchCount()).toHaveText('1 match', { timeout: 30_000 });
       });
 
       const searchIndex = page.getByTestId('cache-item-search-index');
@@ -61,6 +63,7 @@ test.describe('Preferences > Cache > Search index', () => {
 
     const app = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(app);
+    const sidebar = buildSidebarLocators(page);
 
     try {
       await clearSearchIndex(page);
@@ -75,9 +78,9 @@ test.describe('Preferences > Cache > Search index', () => {
       });
 
       await test.step('populate the index and reopen the panel', async () => {
-        await page.getByTitle('Search requests').click();
-        await page.getByTestId('sidebar-search-input').fill('toggle-probe');
-        await expect(page.getByTestId('sidebar-search-match-count')).toHaveText('1 match', { timeout: 30_000 });
+        await sidebar.searchToggle().click();
+        await sidebar.searchInput().fill('toggle-probe');
+        await expect(sidebar.searchMatchCount()).toHaveText('1 match', { timeout: 30_000 });
         await selectPreferencesTab(page, 'General');
         await selectPreferencesTab(page, 'Cache');
         await expect(size).not.toHaveText('0B');

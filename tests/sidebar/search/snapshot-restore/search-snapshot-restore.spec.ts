@@ -1,7 +1,7 @@
 import { test, expect, closeElectronApp } from '../../../../playwright';
 import path from 'path';
 import fs from 'fs';
-import { clearSearchIndex, waitForReadyPage, waitForCollectionMount } from '../../../utils/page';
+import { buildCommonLocators, clearSearchIndex, waitForReadyPage, waitForCollectionMount } from '../../../utils/page';
 import { buildSidebarLocators } from '../../../utils/page/sidebar';
 import { readSnapshot } from '../../../utils/snapshot';
 import { CACHE_MODES, writePreferences } from '../helpers';
@@ -46,7 +46,7 @@ const SNAPSHOT_CACHE_MODES = [
 for (const cacheMode of SNAPSHOT_CACHE_MODES) {
   test(`[${cacheMode.label}] sidebar search works while a large collection mounts from the restored snapshot`, async ({ launchElectronApp, createTmpDir }) => {
     test.setTimeout(900_000);
-    const tag = cacheMode.enabled ? 'on' : 'off';
+    const tag = cacheMode.tag;
     const root = await createTmpDir(`search-snapshot-restore-${tag}`);
     const largeCollection = buildLargeYmlCollection(path.join(root, 'LargeRestored'), 'LargeRestored', cacheMode.largeRequestCount, 'metrics-large-needle');
     const otherCollection = buildLargeYmlCollection(path.join(root, 'OtherUnmounted'), 'OtherUnmounted', cacheMode.otherRequestCount, 'metrics-other-needle');
@@ -61,13 +61,13 @@ for (const cacheMode of SNAPSHOT_CACHE_MODES) {
       await clearSearchIndex(page);
       const sidebar = buildSidebarLocators(page);
       try {
-        await page.getByTitle('Search requests').click();
-        await page.getByTestId('sidebar-search-input').fill('metrics-large-needle');
+        await sidebar.searchToggle().click();
+        await sidebar.searchInput().fill('metrics-large-needle');
         await expect(sidebar.itemRowIn('LargeRestored', 'metrics-large-needle')).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
         await sidebar.itemRowIn('LargeRestored', 'metrics-large-needle').click();
-        await page.getByTestId('sidebar-search-input').fill('');
+        await sidebar.searchInput().fill('');
         await waitForCollectionMount(page, 'LargeRestored', { timeout: MOUNT_TIMEOUT_MS });
-        await expect(page.locator('.request-tab.active').filter({ hasText: 'metrics-large-needle' })).toBeVisible();
+        await expect(buildCommonLocators(page).tabs.activeRequestTab().filter({ hasText: 'metrics-large-needle' })).toBeVisible();
         // The snapshot is flushed in the background; wait until it contains the open request tab.
         await expect.poll(() => readSnapshot(userDataPath)?.collections?.some((collection: any) =>
           collection.pathname?.endsWith('LargeRestored')
@@ -84,15 +84,15 @@ for (const cacheMode of SNAPSHOT_CACHE_MODES) {
       const page = await waitForReadyPage(app);
       const sidebar = buildSidebarLocators(page);
       try {
-        await expect(page.locator('.request-tab').filter({ hasText: 'metrics-large-needle' })).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
+        await expect(buildCommonLocators(page).tabs.allRequestTabs().filter({ hasText: 'metrics-large-needle' })).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
 
-        await page.getByTitle('Search requests').click();
-        await page.getByTestId('sidebar-search-input').fill('metrics-');
+        await sidebar.searchToggle().click();
+        await sidebar.searchInput().fill('metrics-');
         await expect(sidebar.itemRowIn('OtherUnmounted', 'metrics-other-needle')).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
-        await expect(page.getByTestId('sidebar-search-match-count')).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
+        await expect(sidebar.searchMatchCount()).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
 
         await waitForCollectionMount(page, 'LargeRestored', { timeout: MOUNT_TIMEOUT_MS });
-        await expect(page.getByTestId('sidebar-search-match-count')).toHaveText('2 matches', { timeout: SEARCH_RESULT_TIMEOUT_MS });
+        await expect(sidebar.searchMatchCount()).toHaveText('2 matches', { timeout: SEARCH_RESULT_TIMEOUT_MS });
         await expect(sidebar.itemRowIn('LargeRestored', 'metrics-large-needle')).toBeVisible({ timeout: SEARCH_RESULT_TIMEOUT_MS });
         await expect(sidebar.itemRowIn('OtherUnmounted', 'metrics-other-needle')).toBeVisible();
       } finally {

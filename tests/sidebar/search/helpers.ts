@@ -6,8 +6,8 @@ import { buildSidebarLocators } from '../../utils/page/sidebar';
 import { version } from '../../../packages/bruno-app/package.json';
 
 export const CACHE_MODES = [
-  { label: 'file cache off', enabled: false },
-  { label: 'file cache on', enabled: true }
+  { label: 'file cache off', enabled: false, tag: 'off' },
+  { label: 'file cache on', enabled: true, tag: 'on' }
 ];
 
 /**

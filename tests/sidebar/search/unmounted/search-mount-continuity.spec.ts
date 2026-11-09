@@ -69,7 +69,7 @@ for (const cacheMode of CACHE_MODES) {
   for (const size of SIZES) {
     test(`[${cacheMode.label}] [${size.label}] sidebar never blanks while mounting from a search result`, async ({ launchElectronApp, createTmpDir }, testInfo) => {
       test.setTimeout(120_000);
-      const tag = `${cacheMode.enabled ? 'on' : 'off'}-${size.label}`;
+      const tag = `${cacheMode.tag}-${size.label}`;
       const root = await createTmpDir(`search-continuity-${tag}`);
       const collection = path.join(root, 'ContinuityA');
       initBruCollection(collection, 'ContinuityA');

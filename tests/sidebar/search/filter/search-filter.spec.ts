@@ -38,7 +38,7 @@ test.describe('Sidebar search filtering', () => {
     const page = await waitForReadyPage(app);
     await clearSearchIndex(page);
     const locators = buildCommonLocators(page);
-    const searchInput = page.getByTestId('sidebar-search-input');
+    const searchInput = locators.sidebar.searchInput();
     const row = locators.sidebar.item;
 
     try {
@@ -53,7 +53,7 @@ test.describe('Sidebar search filtering', () => {
         // An app whose name also matches "log" — it must still be excluded from search results.
         await createApp(page, 'log-app', { collectionName: COLLECTION_NAME });
         await expect(row('log-app')).toBeVisible({ timeout: 10000 });
-        await page.getByTitle('Search requests').click();
+        await locators.sidebar.searchToggle().click();
       });
 
       await test.step('Searching "log" force-expands the collapsed folder and hides non-matches', async () => {
