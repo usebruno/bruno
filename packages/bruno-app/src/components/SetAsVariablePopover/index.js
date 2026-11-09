@@ -89,14 +89,19 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
       .then(() => {
         const replaced = replaceSelectionWithVariable(selection, name, scopeType);
         const persisted = replaced && scopeType === VARIABLE_ADD_SCOPES.REQUEST
-          ? dispatch(saveRequest(selection.item.uid, selection.collection.uid, true)).catch(() => {})
-          : Promise.resolve();
+          ? dispatch(saveRequest(selection.item.uid, selection.collection.uid, true)).then(() => true, () => false)
+          : Promise.resolve(replaced ? false : null);
 
-        return persisted.then(() => {
+        return persisted.then((rewriteSaved) => {
+          const rewritePending = rewriteSaved === false;
+          const selectionChanged = rewriteSaved === null && selection.editable;
+
           toast.success(
-            replaced || !selection.editable
-              ? `Variable "${name}" saved`
-              : `Variable "${name}" saved (selection changed, text not replaced)`
+            rewritePending
+              ? `Variable "${name}" saved (reference inserted, save the request to persist it)`
+              : selectionChanged
+                ? `Variable "${name}" saved (selection changed, text not replaced)`
+                : `Variable "${name}" saved`
           );
           onClose();
         });

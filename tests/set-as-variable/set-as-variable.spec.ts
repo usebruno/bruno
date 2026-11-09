@@ -871,6 +871,26 @@ test.describe('Set as variable', () => {
     });
   });
 
+  test('does not offer the menu in the Settings tags input', async ({ page, createTmpDir }) => {
+    const { sidebar, codeMirror } = buildCommonLocators(page);
+
+    await test.step('Open an HTTP request on its Settings tab', async () => {
+      await createCollection(page, 'tags-gate', await createTmpDir('tags-gate'));
+      await createRequest(page, 'Fetch Posts', 'tags-gate');
+      await sidebar.request('Fetch Posts').click();
+      await selectRequestPaneTab(page, 'Settings');
+    });
+
+    await test.step('Type a tag', async () => {
+      await codeMirror.byTestId('tag-input').click();
+      await page.keyboard.type('productionready');
+    });
+
+    await test.step('Right-clicking a selection offers nothing', async () => {
+      await expectNoSetAsVariableMenu(page, codeMirror.byTestId('tag-input').locator('.CodeMirror-line').first(), 12);
+    });
+  });
+
   test('still offers the menu on an HTTP response body', async ({ page, createTmpDir }) => {
     const { sidebar, setAsVariable, response } = buildCommonLocators(page);
 
