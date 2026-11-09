@@ -159,6 +159,7 @@ class Bru {
     folderVariables,
     requestVariables,
     globalEnvironmentVariables,
+    globalEnvironmentName,
     oauth2CredentialVariables,
     collectionName,
     promptVariables,
@@ -182,6 +183,7 @@ class Bru {
     this.requestVariables = requestVariables || {};
     /** @internal */
     this.globalEnvironmentVariables = globalEnvironmentVariables || {};
+    this.globalEnvironmentName = globalEnvironmentName;
     /** @internal */
     this.oauth2CredentialVariables = oauth2CredentialVariables || {};
     /** @internal */
@@ -444,6 +446,10 @@ class Bru {
     return this.envVariables.__name__;
   }
 
+  getGlobalEnvName() {
+    return this.globalEnvironmentName;
+  }
+
   /**
    * Get a variable of the process environment (`process.env`), including those from the
    * collection's `.env` file.
@@ -588,6 +594,7 @@ class Bru {
     }
 
     assertValidVariableName(key);
+    if (key === '__name__') return;
 
     if (!Object.hasOwn(this.globalEnvironmentVariables, key) || !isEqual(this.globalEnvironmentVariables[key], value)) {
       this.globalEnvironmentVariables[key] = value;
@@ -601,6 +608,7 @@ class Bru {
    * @category Global environment
    */
   deleteGlobalEnvVar(key) {
+    if (key === '__name__') return;
     if (Object.hasOwn(this.globalEnvironmentVariables, key)) {
       delete this.globalEnvironmentVariables[key];
       this._globalEnvDirty = true;
@@ -613,7 +621,9 @@ class Bru {
    * @category Global environment
    */
   getAllGlobalEnvVars() {
-    return Object.assign({}, this.globalEnvironmentVariables);
+    const vars = Object.assign({}, this.globalEnvironmentVariables);
+    delete vars.__name__;
+    return vars;
   }
 
   /**
@@ -623,10 +633,13 @@ class Bru {
   deleteAllGlobalEnvVars() {
     const keys = Object.keys(this.globalEnvironmentVariables);
     if (!keys.length) return;
+    let removed = false;
     for (const key of keys) {
+      if (key === '__name__') continue;
       delete this.globalEnvironmentVariables[key];
+      removed = true;
     }
-    this._globalEnvDirty = true;
+    if (removed) this._globalEnvDirty = true;
   }
 
   /**

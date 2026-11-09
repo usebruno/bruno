@@ -48,6 +48,7 @@ class TestRuntime {
       folderVariables,
       requestVariables,
       globalEnvironmentVariables,
+      globalEnvironmentName: request?.globalEnvironmentName,
       oauth2CredentialVariables,
       collectionName,
       promptVariables,
