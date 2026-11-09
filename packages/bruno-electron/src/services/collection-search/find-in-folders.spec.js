@@ -2,10 +2,6 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-jest.mock('electron', () => ({
-  ipcMain: { handle: jest.fn(), on: jest.fn(), emit: jest.fn() },
-  app: { getPath: jest.fn(() => require('node:os').tmpdir()) }
-}));
 jest.mock('./mount-points', () => ({ getSkippedMountPoints: jest.fn() }));
 
 const { getSkippedMountPoints } = require('./mount-points');
@@ -165,7 +161,7 @@ describe('findCollectionsInFolders', () => {
 
     expect(result.folders).toEqual([
       folderSummary(exports, 'folder', [], [
-        { path: path.join(exports, 'Orders.postman_collection.json'), name: 'Orders.postman_collection.json', format: 'postman' }
+        { name: 'Orders.postman_collection.json', format: 'postman' }
       ])
     ]);
   });

@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import iconButtonStyles from '../IconButtonStyles';
 
 const StyledWrapper = styled.div`
   flex: 1;
@@ -48,19 +49,7 @@ const StyledWrapper = styled.div`
     right: 0.25rem;
     width: 1.375rem;
     height: 1.375rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: 0;
-    border-radius: ${(props) => props.theme.border.radius.base};
-    background: none;
-    color: ${(props) => props.theme.colors.text.muted};
-    cursor: pointer;
-
-    &:hover {
-      background: ${(props) => props.theme.background.surface1};
-      color: ${(props) => props.theme.text};
-    }
+    ${iconButtonStyles}
   }
 
   .collection-picker-summary {
@@ -79,21 +68,6 @@ const StyledWrapper = styled.div`
       font-weight: 500;
       color: ${(props) => props.theme.text};
       overflow-wrap: anywhere;
-    }
-  }
-
-  .collection-picker-link {
-    padding: 0;
-    border: 0;
-    background: none;
-    font: inherit;
-    font-size: 0.78125rem;
-    white-space: nowrap;
-    color: ${(props) => props.theme.textLink};
-    cursor: pointer;
-
-    &:hover {
-      text-decoration: underline;
     }
   }
 

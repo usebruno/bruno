@@ -39,6 +39,18 @@ describe('readCollectionName', () => {
     expect(await readCollectionName(folderPath)).toBe('Orders');
   });
 
+  it.each([
+    ['escaped quotes', 'name: "Orders \\"v2\\""', 'Orders "v2"'],
+    ['a trailing comment', 'name: Orders # main API', 'Orders'],
+    ['an unquoted colon', 'name: Orders: v2', 'Orders: v2'],
+    ['text that looks like a YAML marker', 'name: --- Orders', '--- Orders'],
+    ['only digits', 'name: 2024', '2024']
+  ])('reads a yml name with %s', async (_description, line, expected) => {
+    const folderPath = collectionWith({ 'opencollection.yml': `info:\n  ${line}\n` });
+
+    expect(await readCollectionName(folderPath)).toBe(expected);
+  });
+
   it('reads a top-level yml name when there is no info.name', async () => {
     const folderPath = collectionWith({ 'opencollection.yml': 'name: \'Legacy\'\n' });
 

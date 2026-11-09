@@ -107,8 +107,8 @@ describe('getFolderSearchOutcome with one folder', () => {
     const outcome = getFolderSearchOutcome(
       searchResult({
         folders: [folder('/work/exports', 'folder', [], [
-          { path: '/work/exports/a.zip', name: 'a.zip', format: 'zip' },
-          { path: '/work/exports/openapi.yaml', name: 'openapi.yaml', format: 'openapi' }
+          { name: 'a.zip', format: 'zip' },
+          { name: 'openapi.yaml', format: 'openapi' }
         ])],
         unreadableFolderCount: 1
       }),

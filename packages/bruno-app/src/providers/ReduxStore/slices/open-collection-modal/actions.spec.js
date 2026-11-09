@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { callIpc } from 'utils/common/ipc';
 import { browseDirectories, mountCollection, openMultipleCollections } from 'providers/ReduxStore/slices/collections/actions';
 import { updatePreferences } from 'providers/ReduxStore/slices/app';
-import { toggleCollection } from 'providers/ReduxStore/slices/collections';
+import { expandCollection } from 'providers/ReduxStore/slices/collections';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import openCollectionModalReducer, { showOpenCollectionModal } from './index';
 import {
@@ -314,7 +314,7 @@ describe('open collection modal actions', () => {
 
       expect(openMultipleCollections).not.toHaveBeenCalled();
       expect(toast.success).toHaveBeenCalledWith('Open One is already open');
-      expect(dispatchedActions).toContainEqual(toggleCollection('collection-1'));
+      expect(dispatchedActions).toContainEqual(expandCollection('collection-1'));
       expect(dispatchedActions).toContainEqual(addTab({ uid: 'collection-1', collectionUid: 'collection-1', type: 'collection-settings' }));
       expect(modalState(store).isOpen).toBe(false);
     });
@@ -615,7 +615,7 @@ describe('open collection modal actions', () => {
         collectionPathname: '/work/open',
         brunoConfig: { name: 'Open One' }
       });
-      expect(dispatchedActions).toContainEqual(toggleCollection('collection-1'));
+      expect(dispatchedActions).toContainEqual(expandCollection('collection-1'));
       expect(dispatchedActions).toContainEqual(addTab({ uid: 'collection-1', collectionUid: 'collection-1', type: 'collection-settings' }));
       expect(modalState(store).isOpen).toBe(false);
     });
@@ -629,7 +629,6 @@ describe('open collection modal actions', () => {
       store.dispatch(switchToCollection('/work/open'));
 
       expect(mountCollection).not.toHaveBeenCalled();
-      expect(dispatchedActions).not.toContainEqual(toggleCollection('collection-1'));
       expect(dispatchedActions).toContainEqual(addTab({ uid: 'collection-1', collectionUid: 'collection-1', type: 'collection-settings' }));
     });
 

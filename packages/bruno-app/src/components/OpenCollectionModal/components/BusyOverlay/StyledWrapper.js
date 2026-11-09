@@ -27,19 +27,6 @@ const StyledWrapper = styled.div`
     min-width: 0;
     overflow-wrap: anywhere;
   }
-
-  .busy-cancel {
-    padding: 0;
-    border: 0;
-    background: none;
-    font: inherit;
-    color: ${(props) => props.theme.textLink};
-    cursor: pointer;
-
-    &:hover {
-      text-decoration: underline;
-    }
-  }
 `;
 
 export default StyledWrapper;

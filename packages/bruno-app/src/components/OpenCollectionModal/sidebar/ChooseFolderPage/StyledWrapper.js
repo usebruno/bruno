@@ -23,23 +23,6 @@ const StyledWrapper = styled.div`
     padding: 0.25rem 1.25rem 1.25rem;
   }
 
-  .choose-folder-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0;
-    border: 0;
-    background: none;
-    font: inherit;
-    white-space: nowrap;
-    color: ${(props) => props.theme.textLink};
-    cursor: pointer;
-
-    &:hover {
-      text-decoration: underline;
-    }
-  }
-
   .choose-folder-auto-open {
     display: inline-flex;
     align-items: center;

@@ -1,22 +1,27 @@
 const path = require('node:path');
+const yaml = require('js-yaml');
 const { readFileStart } = require('./read-file-start');
 
 const NAME_BYTES = 16 * 1024;
 
-const unquoteYaml = (value) => {
+const parseYamlValue = (value) => {
   const trimmed = value.trim();
-  const isQuoted = (trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith('\'') && trimmed.endsWith('\''));
-  return isQuoted ? trimmed.slice(1, -1) : trimmed;
+  try {
+    const parsed = yaml.load(`value: ${trimmed}`).value;
+    return typeof parsed === 'string' ? parsed : trimmed;
+  } catch (error) {
+    return trimmed;
+  }
 };
 
 const nameFromOpenCollectionYml = (text) => {
   const infoBlock = text.match(/^info:\s*\n((?:[ \t]+.*\n?)+)/m);
   const infoName = infoBlock && infoBlock[1].match(/^[ \t]+name:(.+)$/m);
   if (infoName) {
-    return unquoteYaml(infoName[1]);
+    return parseYamlValue(infoName[1]);
   }
   const topLevelName = text.match(/^name:(.+)$/m);
-  return topLevelName ? unquoteYaml(topLevelName[1]) : null;
+  return topLevelName ? parseYamlValue(topLevelName[1]) : null;
 };
 
 const nameFromBrunoJson = (text) => {

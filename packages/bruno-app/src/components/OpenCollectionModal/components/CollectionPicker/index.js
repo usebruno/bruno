@@ -122,7 +122,7 @@ const CollectionPicker = ({
         {visibleSelectableKeys.length > 1 ? (
           <button
             type="button"
-            className="collection-picker-link"
+            className="text-link hover:underline whitespace-nowrap"
             onClick={toggleAllVisible}
             data-testid={`${testIdPrefix}-select-all`}
           >
@@ -160,7 +160,7 @@ const CollectionPicker = ({
               <span>{selectedPaths.length} selected</span>
               <button
                 type="button"
-                className="collection-picker-link"
+                className="text-link hover:underline whitespace-nowrap"
                 onClick={clearSelection}
                 data-testid={`${testIdPrefix}-clear-selection`}
               >
@@ -170,7 +170,7 @@ const CollectionPicker = ({
           ) : (
             <button
               type="button"
-              className="collection-picker-link"
+              className="text-link hover:underline whitespace-nowrap"
               onClick={onChooseOtherFolders}
               data-testid={`${testIdPrefix}-choose-other`}
             >

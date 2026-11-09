@@ -59,7 +59,7 @@ const findImportableFiles = async (folderPath) => {
     const filePath = path.join(folderPath, entry.name);
     const format = await isRealFile(entry, filePath) && await detectFormat(filePath, entry.name);
     if (format) {
-      importableFiles.push({ path: filePath, name: entry.name, format });
+      importableFiles.push({ name: entry.name, format });
     }
   }
   return importableFiles;

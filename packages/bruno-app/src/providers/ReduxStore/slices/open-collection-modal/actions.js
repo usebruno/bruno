@@ -1,11 +1,11 @@
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
-import { pluralizeWord, uuid } from 'utils/common';
+import { uuid } from 'utils/common';
 import { callIpc } from 'utils/common/ipc';
 import { selectCollections } from 'src/selectors/collections';
 import { updatePreferences } from 'providers/ReduxStore/slices/app';
 import { browseDirectories, mountCollection, openMultipleCollections } from 'providers/ReduxStore/slices/collections/actions';
-import { toggleCollection } from 'providers/ReduxStore/slices/collections';
+import { expandCollection } from 'providers/ReduxStore/slices/collections';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import {
   showOpenCollectionModal,
@@ -20,7 +20,7 @@ import {
   collectionsOpeningEnded
 } from './index';
 import { selectOpenCollectionPathKeys } from './selectors';
-import { getFolderSearchOutcome } from './folder-results';
+import { countOf, getFolderSearchOutcome } from './folder-results';
 import { getFolderName, toPathKey } from './collection-paths';
 
 const CHOOSE_FOLDER_PAGE = 'choose-folder';
@@ -50,9 +50,7 @@ export const switchToCollection = (collectionPath) => (dispatch, getState) => {
         brunoConfig: collection.brunoConfig
       }));
     }
-    if (collection.collapsed) {
-      dispatch(toggleCollection(collection.uid));
-    }
+    dispatch(expandCollection(collection.uid));
     dispatch(addTab({ uid: collection.uid, collectionUid: collection.uid, type: 'collection-settings' }));
   }
   dispatch(closeOpenCollectionModal());
@@ -79,7 +77,7 @@ export const openCollectionsFromModal = (collectionPaths) => async (dispatch, ge
     toast.success(result.opened.length === 1 ? 'Collection added to workspace' : 'Collections added to workspace');
   }
   if (failedCount > 0) {
-    toast.error(`Failed to open ${failedCount} ${pluralizeWord('collection', failedCount)}`);
+    toast.error(`Failed to open ${countOf(failedCount, 'collection')}`);
   }
 
   if (getState().openCollectionModal.openingId !== openingId) {

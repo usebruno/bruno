@@ -3,8 +3,7 @@ const { execFile } = require('node:child_process');
 
 const NETWORK_FILE_SYSTEMS = new Set([
   'nfs', 'nfs4', 'smbfs', 'smb3', 'cifs', 'afpfs', 'afp', 'webdav', 'davfs', 'davfs2',
-  'fuse', 'osxfuse', 'macfuse', 'fuseblk', 'sshfs', 'ftpfs', 'ncpfs', 'coda', '9p',
-  'autofs'
+  'sshfs', 'ftpfs', 'ncpfs', 'coda', '9p', 'autofs'
 ]);
 
 const REMOVABLE_MOUNT_PREFIXES = process.platform === 'darwin' ? ['/Volumes/'] : ['/media/', '/mnt/', '/run/media/'];

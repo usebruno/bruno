@@ -74,10 +74,10 @@ describe('findImportableFiles', () => {
     expect(await formatsByName()).toEqual({ 'openapi.yaml': 'openapi' });
   });
 
-  it('returns the full path and name of each file', async () => {
-    const filePath = writeFile('openapi.yaml', 'openapi: 3.0.0\n');
+  it('returns the name and format of each file', async () => {
+    writeFile('openapi.yaml', 'openapi: 3.0.0\n');
 
-    expect(await findImportableFiles(tempDir)).toEqual([{ path: filePath, name: 'openapi.yaml', format: 'openapi' }]);
+    expect(await findImportableFiles(tempDir)).toEqual([{ name: 'openapi.yaml', format: 'openapi' }]);
   });
 
   it('returns nothing for a folder it cannot read', async () => {

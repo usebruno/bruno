@@ -16,7 +16,7 @@ const BusyOverlay = ({ children, onCancel }) => {
       <IconLoader2 size={16} className="busy-spinner" aria-hidden="true" />
       <span className="busy-label">{children}</span>
       {onCancel ? (
-        <button type="button" className="busy-cancel" onClick={onCancel} data-testid="open-collection-busy-cancel">
+        <button type="button" className="busy-cancel text-link hover:underline" onClick={onCancel} data-testid="open-collection-busy-cancel">
           Cancel
         </button>
       ) : null}

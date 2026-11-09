@@ -57,7 +57,7 @@ const ChooseFolderPage = () => {
               <button
                 ref={focusWhenFocusIsLost}
                 type="button"
-                className="choose-folder-link"
+                className="text-link hover:underline whitespace-nowrap"
                 onClick={pickFolders}
                 data-testid="choose-folder-choose-link"
               >
