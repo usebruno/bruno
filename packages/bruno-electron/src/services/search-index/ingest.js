@@ -1,5 +1,6 @@
 const { defaultClassify } = require('../../utils/mount');
 const { preferencesUtil } = require('../../store/preferences');
+const { transaction } = require('../sqlite');
 const { getSearchIndex } = require('./index');
 const { toRow, toMetaRow } = require('./rows');
 
@@ -46,7 +47,7 @@ const ingestBatch = ({ parsed = [], removed = [], fileIndex = null }) => {
   if (!preferencesUtil.isSearchIndexEnabled()) return;
   try {
     const searchIndex = getSearchIndex();
-    searchIndex.transaction(() => {
+    transaction(() => {
       for (const { collectionPath, result } of parsed) ingestParsedFile({ searchIndex, fileIndex, collectionPath, result });
       for (const { collectionPath, relativePath } of removed) removeFromSearchIndex({ searchIndex, collectionPath, relativePath });
     });

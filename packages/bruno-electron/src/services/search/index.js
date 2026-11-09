@@ -8,6 +8,7 @@ const { preferencesUtil } = require('../../store/preferences');
 const { getPool, JobType, JobPriority } = require('../pool');
 const { getSearchIndex } = require('../search-index');
 const { ingestBatch } = require('../search-index/ingest');
+const { getRequestUid } = require('../../cache/requestUids');
 
 const RIPGREP_PROCESS_FILE = path.join(__dirname, 'ripgrep-process.js');
 const STATUS_INTERVAL_MS = 150;
@@ -88,12 +89,7 @@ class SearchService {
     return host;
   }
 
-  #getFileIndex() {
-    if (!this.#fileIndex) this.#fileIndex = new FileIndex();
-    return this.#fileIndex;
-  }
-
-  countIndexMatches(roots, query) {
+  #countIndexMatches(roots, query) {
     if (!preferencesUtil.isSearchIndexEnabled() || !query) return 0;
     try {
       const searchIndex = getSearchIndex();
@@ -117,7 +113,7 @@ class SearchService {
       type: 'status',
       id: active.id,
       indexing: active.searching || active.pending > 0,
-      matchCount: this.countIndexMatches(active.roots, active.query)
+      matchCount: this.#countIndexMatches(active.roots, active.query)
     });
   }
 
@@ -151,9 +147,7 @@ class SearchService {
       windows: new Map()
     };
     this.#emitStatus();
-    const message = { type: 'search', id, roots, query };
-    if (ignore) message.ignore = ignore;
-    this.#getHost().postMessage(message);
+    this.#getHost().postMessage({ type: 'search', id, roots, query, ignore });
     return id;
   }
 
@@ -240,7 +234,7 @@ class SearchService {
     const parsed = this.#ingestQueue;
     this.#ingestQueue = [];
     this.#indexWrites += 1;
-    const fileIndex = preferencesUtil.isFileCacheEnabled() ? this.#getFileIndex() : null;
+    const fileIndex = preferencesUtil.isFileCacheEnabled() ? (this.#fileIndex ??= new FileIndex()) : null;
     ingestBatch({ parsed, fileIndex });
   }
 
@@ -307,7 +301,6 @@ class SearchService {
     }
     for (const relativePath of windowEntries.keys()) collection.resolved.add(relativePath);
 
-    const { getRequestUid } = require('../../cache/requestUids');
     return { items: buildTree(collectionPath, windowEntries, { uidFor: getRequestUid }).items };
   }
 

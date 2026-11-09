@@ -1,5 +1,5 @@
 const path = require('node:path');
-const { getStatements, transaction } = require('../sqlite');
+const { getStatements } = require('../sqlite');
 const { defaultClassify } = require('../../utils/mount');
 
 const likePattern = (term) => `%${String(term ?? '').replace(/[\\%_]/g, '\\$&')}%`;
@@ -10,9 +10,7 @@ class SearchIndex {
   }
 
   #mutate(name, params) {
-    const result = this.#execute(name, params);
-    const changes = typeof result?.changes === 'number' ? result.changes : 1;
-    return changes > 0;
+    return this.#execute(name, params).changes > 0;
   }
 
   upsert(entry) {
@@ -97,11 +95,11 @@ class SearchIndex {
   #nameCollection({ collectionPath, name, sourcePath, mtime, hash }) {
     const sourceType = defaultClassify(sourcePath)?.type;
     if (sourceType === 'collection' && !name) return false;
-    const current = this.#execute('search_index_collection_source', { collection_path: collectionPath });
+    const current = this.#execute('search_index_collection_naming', { collection_path: collectionPath });
     const currentIsCollectionFile = current?.sourcePath && defaultClassify(current.sourcePath)?.type === 'collection';
     if (sourceType === 'config' && currentIsCollectionFile && current.sourcePath !== sourcePath) return false;
 
-    const before = this.collectionNameFor(collectionPath);
+    const before = current?.collectionName ?? null;
     let changed = this.#mutate('search_index_name_collection', {
       collection_path: collectionPath,
       name: name || null,
@@ -144,11 +142,7 @@ class SearchIndex {
   }
 
   clear() {
-    this.#mutate('search_index_clear');
-  }
-
-  transaction(callback) {
-    return transaction(callback);
+    this.#execute('search_index_clear');
   }
 }
 

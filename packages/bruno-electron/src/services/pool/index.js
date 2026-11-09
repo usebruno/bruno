@@ -9,8 +9,6 @@ const JobType = Object.freeze({
 
 const WORKER_FILE = path.join(__dirname, 'worker.js');
 
-const isQueuedIn = (promises) => (task) => promises.has(task.resolver.promise);
-
 class Pool {
   #pool;
   #queue;
@@ -30,15 +28,20 @@ class Pool {
     return this.#pool.exec(type, [args], { metadata: { priority } });
   }
 
+  #takeQueued(promises) {
+    const wanted = new Set(promises);
+    return this.#queue.remove((task) => wanted.has(task.resolver.promise));
+  }
+
   // Cancelling a started job would terminate its worker, so only queued jobs are cancelled
   cancelQueued(promises) {
-    const removed = this.#queue.remove(isQueuedIn(new Set(promises)));
+    const removed = this.#takeQueued(promises);
     for (const task of removed) task.resolver.promise.cancel();
     return removed.length;
   }
 
   prioritize(promises, priority) {
-    const removed = this.#queue.remove(isQueuedIn(new Set(promises)));
+    const removed = this.#takeQueued(promises);
     for (const task of removed) {
       task.options = { ...task.options, metadata: { ...task.options?.metadata, priority } };
       this.#queue.push(task);

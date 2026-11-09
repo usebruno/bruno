@@ -52,8 +52,8 @@ WHERE entity = 'request'
   -- Same fields the sidebar filters on (doesRequestMatchSearchText), so the count equals the rows shown
   AND (name LIKE @like ESCAPE '\' OR url LIKE @like ESCAPE '\');
 
--- name: search_index_collection_source :one
-SELECT source_path AS sourcePath
+-- name: search_index_collection_naming :one
+SELECT name AS collectionName, source_path AS sourcePath
 FROM search_index
 WHERE collection_path = @collection_path AND path = '';
 
