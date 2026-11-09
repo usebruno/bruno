@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useCallback } from 'react';
 import find from 'lodash/find';
 import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateResponsePaneTab, updateResponseFormat, updateResponseViewTab, updateResponseFilter, updateResponseFilterExpanded } from 'providers/ReduxStore/slices/tabs';
+import { updateResponsePaneTab, updateResponseFormat, updateResponseViewTab, updateResponseFilter, updateResponseFilterExpanded, updateStreamFormat, updateStreamViewTab } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
 import Overlay from './Overlay';
 import Placeholder from './Placeholder';
@@ -80,6 +80,14 @@ const ResponsePane = ({ item, collection }) => {
     dispatch(updateResponseFormat({ uid: item.uid, responseFormat: newFormat }));
   }, [dispatch, item.uid]);
 
+  const handleStreamFormatChange = useCallback((newFormat) => {
+    dispatch(updateStreamFormat({ uid: activeTabUid, streamFormat: newFormat }));
+  }, [dispatch, activeTabUid]);
+
+  const handleStreamViewTabChange = useCallback((newViewTab) => {
+    dispatch(updateStreamViewTab({ uid: activeTabUid, streamViewTab: newViewTab }));
+  }, [dispatch, activeTabUid]);
+
   const handleViewTabChange = useCallback((newViewTab) => {
     dispatch(updateResponseViewTab({ uid: item.uid, responseViewTab: newViewTab }));
   }, [dispatch, item.uid]);
@@ -156,7 +164,15 @@ const ResponsePane = ({ item, collection }) => {
       case 'response': {
         const isStream = item.response?.stream ?? false;
         if (isStream) {
-          return <WSMessagesList order={-1} messages={item.response.data} item={item} collection={collection} />;
+          return (
+            <WSMessagesList
+              messages={item.response.data}
+              streamFormat={focusedTab?.streamFormat}
+              streamViewTab={focusedTab?.streamViewTab || 'editor'}
+              item={item}
+              collection={collection}
+            />
+          );
         }
         return (
           <QueryResult
@@ -243,12 +259,23 @@ const ResponsePane = ({ item, collection }) => {
   const rightContent = !isLoading ? (
     <div ref={rightContentRef} className="flex justify-end items-center right-side-container gap-3">
       {errorsIcon}
-      {isResponseTabActive && item?.response && !(item.response?.stream ?? false) ? (
-        <>
-          {/* Result View Tabs (Visualizations + Response Format) */}
+      {isResponseTabActive && item?.response ? (
+        (item.response?.stream ?? false) ? (
           <div className="result-view-tabs">
-
-            {/* Response Format */}
+            <QueryResultTypeSelector
+              formatOptions={previewFormatOptions}
+              formatValue={focusedTab?.streamFormat || 'raw'}
+              onFormatChange={handleStreamFormatChange}
+              onPreviewTabSelect={handleStreamViewTabChange}
+              selectedTab={focusedTab?.streamViewTab || 'editor'}
+              isActiveTab={true}
+              onTabSelect={() => {
+                handleStreamViewTabChange('editor');
+              }}
+            />
+          </div>
+        ) : (
+          <div className="result-view-tabs">
             <QueryResultTypeSelector
               formatOptions={previewFormatOptions}
               formatValue={selectedFormat}
@@ -261,7 +288,7 @@ const ResponsePane = ({ item, collection }) => {
               }}
             />
           </div>
-        </>
+        )
       ) : null}
       <div className="flex items-center response-pane-status" data-testid="response-pane-status">
         <StatusCode status={response.status} isStreaming={item.response?.stream?.running} />
