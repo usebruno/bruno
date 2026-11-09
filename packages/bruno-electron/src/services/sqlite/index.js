@@ -25,6 +25,7 @@ class SqliteService {
   _db = null;
   _statements = null;
   _files = null;
+  _activeSecureDeletes = 0;
   constructor() {
     const userData = app.getPath('userData');
     const { db, statements, files } = createDatabase(path.join(userData, 'bruno.db'), {
@@ -57,6 +58,30 @@ class SqliteService {
       this._db = null;
       this._statements = null;
       this._files = null;
+    }
+  }
+
+  async withSecureDelete(callback) {
+    const raw = this._db?._db;
+    if (!raw) return callback();
+
+    if (this._activeSecureDeletes === 0) raw.exec('PRAGMA secure_delete = ON');
+    this._activeSecureDeletes += 1;
+
+    try {
+      return await callback();
+    } finally {
+      this._activeSecureDeletes -= 1;
+      if (this._activeSecureDeletes === 0) this._endSecureDelete(raw);
+    }
+  }
+
+  _endSecureDelete(raw) {
+    try {
+      raw.exec('PRAGMA secure_delete = OFF');
+      raw.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+    } catch (err) {
+      console.warn('failed to flush securely deleted pages: ', err);
     }
   }
 
@@ -141,6 +166,8 @@ const transaction = (callback) => {
   return db._transaction(callback);
 };
 
+const withSecureDelete = (callback) => (service ? service.withSecureDelete(callback) : callback());
+
 const reclaimDiskSpace = (options) => (service ? service.reclaimDiskSpace(options) : Promise.resolve());
 
-module.exports = { openDatabase, shutdown, getStatements, getFiles, transaction, reclaimDiskSpace };
+module.exports = { openDatabase, shutdown, getStatements, getFiles, transaction, withSecureDelete, reclaimDiskSpace };

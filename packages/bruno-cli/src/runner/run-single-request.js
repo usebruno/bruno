@@ -1,6 +1,5 @@
 const qs = require('qs');
 const chalk = require('chalk');
-const decomment = require('decomment');
 const fs = require('fs');
 const { forOwn, each, extend, get, compact } = require('lodash');
 const prepareRequest = require('./prepare-request');
@@ -265,7 +264,7 @@ const runSingleRequest = async function (
     if (requestScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       try {
-        const result = await scriptRuntime.runRequestScript(decomment(requestScriptFile, { space: true }),
+        const result = await scriptRuntime.runRequestScript(requestScriptFile,
           request,
           envVariables,
           runtimeVariables,
@@ -845,7 +844,7 @@ const runSingleRequest = async function (
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       try {
         const result = await scriptRuntime.runResponseScript(
-          decomment(responseScriptFile, { space: true }),
+          responseScriptFile,
           request,
           response,
           envVariables,
@@ -924,7 +923,7 @@ const runSingleRequest = async function (
       const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
       try {
         const result = await testRuntime.runTests(
-          decomment(testFile, { space: true }),
+          testFile,
           request,
           response,
           envVariables,

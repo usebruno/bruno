@@ -15,7 +15,7 @@ export const COLLECTION_SOURCE = {
 
 export const COLLECTION_SOURCE_ITEMS = [
   { value: COLLECTION_SOURCE.WORKSPACE, label: 'From workspace' },
-  { value: COLLECTION_SOURCE.FILESYSTEM, label: 'From file system' }
+  { value: COLLECTION_SOURCE.FILESYSTEM, label: 'From filesystem' }
 ];
 
 export const API_SPEC_NAME_TAKEN_ERROR = 'A spec with this name already exists in this location';

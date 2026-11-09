@@ -4,6 +4,7 @@ import { IconTrash } from '@tabler/icons';
 import MultiLineEditor from 'components/MultiLineEditor/index';
 import DotEnvErrorMessage from './DotEnvErrorMessage';
 import { MIN_TABLE_HEIGHT } from './utils';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
 const TableRow = React.memo(({ children, item }) => (
   <tr key={item.uid} data-testid={`dotenv-var-row-${item.name}`}>{children}</tr>
@@ -76,6 +77,7 @@ const DotEnvTableView = ({
                 placeholder={isLastEmptyRow ? 'Value' : ''}
                 onChange={(newValue) => currentFormik.setFieldValue(`${index}.value`, newValue, true)}
                 onSave={onSave}
+                variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
               />
             </div>
           </td>

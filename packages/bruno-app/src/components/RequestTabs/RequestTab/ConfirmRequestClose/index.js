@@ -4,11 +4,7 @@ import Modal from 'components/Modal';
 import Button from 'ui/Button';
 import Portal from 'ui/Portal';
 
-const ConfirmRequestClose = ({ item, example, onCancel, onCloseWithoutSave, onSaveAndClose }) => {
-  const isExample = !!example;
-  const itemName = isExample ? example.name : item.name;
-  const itemType = isExample ? 'example' : 'request';
-
+const ConfirmRequestClose = ({ name, type, onCancel, onCloseWithoutSave, onSaveAndClose }) => {
   return (
     <Portal>
       <Modal
@@ -30,8 +26,8 @@ const ConfirmRequestClose = ({ item, example, onCancel, onCloseWithoutSave, onSa
           <IconAlertTriangle size={32} strokeWidth={1.5} className="text-yellow-600" />
           <h1 className="ml-2 text-lg font-medium">Hold on..</h1>
         </div>
-        <div className="font-normal mt-4">
-          You have unsaved changes in {itemType} <span className="font-medium">{itemName}</span>.
+        <div className="font-normal mt-4 overflow-auto">
+          You have unsaved changes in {type} <span className="font-medium">{name}</span>.
         </div>
 
         <div className="flex justify-between mt-6">

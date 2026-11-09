@@ -67,7 +67,11 @@ class AppDocuments {
    * Chromium hands the URL to the OS as an external link.
    */
   handleProtocol() {
-    session.fromPartition(APP_PARTITION).protocol.handle(APP_SCHEME, (request) => {
+    const appSession = session.fromPartition(APP_PARTITION);
+    const ALLOWED_PERMISSIONS = new Set(['clipboard-sanitized-write']);
+    appSession.setPermissionRequestHandler((_wc, permission, callback) => callback(ALLOWED_PERMISSIONS.has(permission)));
+    appSession.setPermissionCheckHandler((_wc, permission) => ALLOWED_PERMISSIONS.has(permission));
+    appSession.protocol.handle(APP_SCHEME, (request) => {
       const html = this.htmlByToken.get(new URL(request.url).hostname);
       if (html === undefined) {
         return new Response(null, { status: 404 });

@@ -71,6 +71,7 @@ describe('runner-exchange', () => {
       expect(execute).toHaveBeenCalledWith('upsert_runner_response', {
         request_uid: 'run-1',
         collection_uid: 'col-1',
+        iteration_index: 0,
         request_file_id: 11,
         response_file_id: null,
         body_file_id: null
@@ -97,6 +98,7 @@ describe('runner-exchange', () => {
       expect(execute).toHaveBeenCalledWith('upsert_runner_response', {
         request_uid: 'run-1',
         collection_uid: 'col-1',
+        iteration_index: 0,
         request_file_id: null,
         response_file_id: 22,
         body_file_id: 11
