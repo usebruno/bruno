@@ -1,0 +1,13 @@
+{
+  "maximized": false,
+  "lastOpenedCollections": [
+    "{{projectRoot}}/tests/websockets/variable-interpolation-scopes/fixtures/collections/bru",
+    "{{projectRoot}}/tests/websockets/variable-interpolation-scopes/fixtures/collections/yml"
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
+}

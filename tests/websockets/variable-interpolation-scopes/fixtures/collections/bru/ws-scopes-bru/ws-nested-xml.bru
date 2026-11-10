@@ -1,0 +1,27 @@
+meta {
+  name: ws-nested-xml
+  type: ws
+  seq: 3
+}
+
+ws {
+  url: ws://localhost:8081/ws/echo
+  body: ws
+  auth: inherit
+}
+
+body:ws {
+  name: nested xml
+  type: xml
+  content: '''
+    <?xml version="1.0" encoding="UTF-8"?>
+    <organization xmlns:ns="http://example.com/{{department}}" version="{{version}}" orgUnit="{{orgUnit}}">
+      <region name="{{xmlRegion}}">
+        <department>{{department}}</department>
+        <infrastructure>
+          <dataCenter id="{{dataCenter}}">primary</dataCenter>
+        </infrastructure>
+      </region>
+    </organization>
+  '''
+}
