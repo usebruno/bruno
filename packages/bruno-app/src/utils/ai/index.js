@@ -34,6 +34,8 @@ export const testAiProvider = ({ providerId }) =>
 
 export const copilotSignIn = () => callIpc('renderer:ai-copilot-sign-in');
 
+export const copilotSignInWithGitHubCli = () => callIpc('renderer:ai-copilot-sign-in-with-github-cli');
+
 export const copilotCancelSignIn = () => callIpc('renderer:ai-copilot-cancel-sign-in');
 
 export const copilotRefreshModels = () => callIpc('renderer:ai-copilot-refresh-models');

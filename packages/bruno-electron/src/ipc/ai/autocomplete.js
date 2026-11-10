@@ -3,6 +3,7 @@ const { generateText } = require('ai');
 const { getPreferences } = require('../../store/preferences');
 const { getProviderKey, hasProviderKey } = require('./credentials');
 const { getModel, getAvailableModels, isReasoningModel, isOpenAiReasoningModel } = require('./providers');
+const { COPILOT_PROVIDER_ID } = require('./copilot');
 const { buildSystemPrompt, buildUserPrompt, STOP_SEQUENCES, sanitizeSuggestion } = require('./autocomplete-prompts');
 
 const SUPPORTED_SCRIPT_TYPES = ['tests', 'pre-request', 'post-response'];
@@ -12,11 +13,16 @@ const SUPPORTED_SCRIPT_TYPES = ['tests', 'pre-request', 'post-response'];
 const FAST_MODEL_PREFERENCE = [
   'gpt-4o-mini',
   'gpt-5-mini',
-  'claude-haiku-4-5',
-  'github-copilot:gpt-5-mini',
-  'github-copilot:gpt-4o-mini',
-  'github-copilot:claude-haiku-4.5'
+  'claude-haiku-4-5'
 ];
+
+const modelCost = (model) => (Number.isFinite(model.multiplier) ? model.multiplier : Infinity);
+
+const cheapestCopilotModelId = (available) => {
+  const copilot = available.filter((model) => model.provider === COPILOT_PROVIDER_ID);
+  if (copilot.length === 0) return null;
+  return copilot.reduce((best, model) => (modelCost(model) < modelCost(best) ? model : best)).id;
+};
 
 // In-process LRU + TTL cache for completions. Keyed on (model, scriptType,
 // recent-prefix, near-suffix). Bounded so unbounded typing doesn't grow it.
@@ -80,6 +86,9 @@ const pickAutocompleteModelId = () => {
   for (const id of FAST_MODEL_PREFERENCE) {
     if (available.some((m) => m.id === id)) return id;
   }
+
+  const cheapestCopilot = cheapestCopilotModelId(available);
+  if (cheapestCopilot) return cheapestCopilot;
 
   // Else fall back to the global defaultModel if it's usable, then first available.
   const defaultModel = ai.defaultModel;

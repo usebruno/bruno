@@ -20,6 +20,18 @@ class AiCopilotStore {
   clearSession() {
     this.store.delete('session');
   }
+
+  getAuthSource() {
+    return this.store.get('authSource') || null;
+  }
+
+  setAuthSource(source) {
+    this.store.set('authSource', source);
+  }
+
+  clearAuthSource() {
+    this.store.delete('authSource');
+  }
 }
 
 const aiCopilotStore = new AiCopilotStore();

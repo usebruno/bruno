@@ -300,7 +300,7 @@ const getAvailableModels = ({ aiPreferences, hasApiKey }) => {
       if (!endpoint?.baseURL) continue;
     }
 
-    out.push({ id: model.id, label: model.label, provider: model.provider });
+    out.push({ id: model.id, label: model.label, provider: model.provider, multiplier: model.multiplier });
   }
   return out;
 };

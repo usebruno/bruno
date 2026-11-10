@@ -9,6 +9,7 @@ import {
   IconLoader2,
   IconLogout,
   IconRefresh,
+  IconTerminal2,
   IconUserCircle,
   IconX
 } from '@tabler/icons';
@@ -23,6 +24,7 @@ import {
   copilotCancelSignIn,
   copilotRefreshModels,
   copilotSignIn,
+  copilotSignInWithGitHubCli,
   copilotSignOut
 } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
@@ -107,6 +109,10 @@ const CopilotProviderCard = ({
     if (verificationUri) openExternal(verificationUri);
   }, 'GitHub sign-in could not start');
 
+  const handleSignInWithGitHubCli = () => runAction('github-cli', async () => {
+    onStatusChange?.(await copilotSignInWithGitHubCli());
+  }, 'Could not use the GitHub CLI account');
+
   const handleCancelSignIn = () => runAction('cancel', async () => {
     onStatusChange?.(await copilotCancelSignIn());
     setCodeAutoCopied(false);
@@ -173,7 +179,8 @@ const CopilotProviderCard = ({
               <div className="flex flex-col gap-2.5">
                 <div className="copilot-intro text-[11px]">
                   Sign in with GitHub to use your Copilot plan in Bruno. GitHub's approval screen shows the
-                  GitHub Copilot app.
+                  GitHub Copilot app. If you use the GitHub CLI, you can use the account <code>gh</code> is signed in to
+                  instead.
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -187,6 +194,18 @@ const CopilotProviderCard = ({
                   >
                     Sign in with GitHub
                   </Button>
+                  <button
+                    type="button"
+                    className="copilot-option-btn"
+                    disabled={busy !== null}
+                    onClick={handleSignInWithGitHubCli}
+                    data-testid="ai-copilot-use-github-cli"
+                  >
+                    {busy === 'github-cli'
+                      ? <IconLoader2 size={14} className="spin" />
+                      : <IconTerminal2 size={14} strokeWidth={1.5} />}
+                    <span>Use GitHub CLI</span>
+                  </button>
                 </div>
               </div>
             )}
@@ -243,6 +262,11 @@ const CopilotProviderCard = ({
                   <span className="text-xs font-medium truncate" data-testid="ai-copilot-account">
                     {copilot.account?.login ? `@${copilot.account.login}` : 'GitHub account'}
                   </span>
+                  {copilot.authSource === 'github-cli' && (
+                    <span className="copilot-hint text-[11px] truncate" data-testid="ai-copilot-auth-source">
+                      via GitHub CLI
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-0.5 flex-shrink-0">
                   <ActionIcon

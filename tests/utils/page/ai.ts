@@ -21,7 +21,10 @@ export const buildAiPreferencesLocators = (page: Page) => ({
     /** The card header that expands or collapses the card */
     header: () => page.getByTestId('ai-provider-github-copilot-header'),
     signInButton: () => page.getByTestId('ai-copilot-sign-in'),
-    account: () => page.getByTestId('ai-copilot-account')
+    useGitHubCliButton: () => page.getByTestId('ai-copilot-use-github-cli'),
+    account: () => page.getByTestId('ai-copilot-account'),
+    /** The error shown inside the Copilot card */
+    error: () => page.getByTestId('ai-provider-github-copilot').getByRole('alert')
   }
 });
 

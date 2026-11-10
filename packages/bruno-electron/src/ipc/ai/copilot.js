@@ -3,6 +3,7 @@ const { createOpenAI } = require('@ai-sdk/openai');
 const { aiCopilotStore } = require('../../store/ai-copilot');
 const { oauthCredentialsStore } = require('../../store/oauth-credentials');
 const { requestDeviceCode, pollForToken } = require('../../utils/github-device-flow');
+const { readGitHubCliToken } = require('../../utils/github-cli');
 
 const COPILOT_PROVIDER_ID = 'github-copilot';
 const COPILOT_PROVIDER_LABEL = 'GitHub Copilot';
@@ -10,6 +11,7 @@ const COPILOT_MODEL_PREFIX = 'github-copilot:';
 
 const COPILOT_OAUTH_CLIENT_ID = 'Iv1.b507a08c87ecfe98';
 const COPILOT_OAUTH_SCOPE = 'read:user';
+const GITHUB_CLI_SOURCE = 'github-cli';
 
 const GITHUB_API_URL = 'https://api.github.com';
 const DEFAULT_COPILOT_API_ENDPOINT = 'https://api.githubcopilot.com';
@@ -19,6 +21,8 @@ const REQUEST_TIMEOUT_MS = 15000;
 const NO_TOKEN_MESSAGE = 'Not signed in to GitHub Copilot. Sign in from Preferences > AI.';
 const SESSION_EXPIRED_MESSAGE = 'GitHub Copilot sign-in is no longer valid. Sign in again from Preferences > AI.';
 const NO_ACCESS_MESSAGE = 'This GitHub account does not have access to Copilot. Ask your GitHub admin for a Copilot seat.';
+const GITHUB_CLI_MISSING_MESSAGE = 'GitHub CLI (gh) is not installed. Install it from https://cli.github.com, then try again.';
+const GITHUB_CLI_SIGNED_OUT_MESSAGE = 'GitHub CLI is not signed in. Run "gh auth login" in a terminal, then try again.';
 
 const isCopilotModelId = (id) => typeof id === 'string' && id.startsWith(COPILOT_MODEL_PREFIX);
 
@@ -207,7 +211,20 @@ const fetchModels = async (token, apiEndpoint) => {
   return models;
 };
 
-const resolveCopilotToken = () => oauthCredentialsStore.getCredential(COPILOT_PROVIDER_ID)?.token || null;
+let githubCliToken = null;
+
+const usesGitHubCli = () => aiCopilotStore.getAuthSource() === GITHUB_CLI_SOURCE;
+
+const resolveCopilotToken = () => usesGitHubCli()
+  ? githubCliToken
+  : oauthCredentialsStore.getCredential(COPILOT_PROVIDER_ID)?.token || null;
+
+const loadGitHubCliToken = async () => {
+  const { installed, token } = await readGitHubCliToken();
+  if (!installed) throw new Error(GITHUB_CLI_MISSING_MESSAGE);
+  if (!token) throw new Error(GITHUB_CLI_SIGNED_OUT_MESSAGE);
+  return token;
+};
 
 const getCopilotCatalog = () => {
   const session = aiCopilotStore.getSession();
@@ -261,21 +278,33 @@ const createCopilotSdk = ({ token, apiEndpoint }) => createOpenAI({
 let lastError = null;
 let pendingSignIn = null;
 
+const reloadGitHubCliToken = async () => {
+  try {
+    githubCliToken = await loadGitHubCliToken();
+  } catch (err) {
+    githubCliToken = null;
+    lastError = err.message;
+    throw err;
+  }
+};
+
 const getCopilotState = () => {
-  const token = resolveCopilotToken();
+  const signedIn = Boolean(resolveCopilotToken());
   let state = 'signed-out';
   if (pendingSignIn) state = 'signing-in';
-  else if (token) state = 'signed-in';
+  else if (signedIn) state = 'signed-in';
   return {
     state,
+    authSource: state === 'signed-in' && usesGitHubCli() ? GITHUB_CLI_SOURCE : null,
     userCode: pendingSignIn?.userCode || null,
     verificationUri: pendingSignIn?.verificationUri || null,
-    account: token ? aiCopilotStore.getSession()?.account || null : null,
+    account: signedIn ? aiCopilotStore.getSession()?.account || null : null,
     error: lastError
   };
 };
 
 const refreshModels = async () => {
+  if (usesGitHubCli()) await reloadGitHubCliToken();
   const token = resolveCopilotToken();
   if (!token) throw new Error(NO_TOKEN_MESSAGE);
   try {
@@ -299,8 +328,20 @@ const cancelSignIn = () => {
 
 const storeToken = (token) => {
   oauthCredentialsStore.setCredential(COPILOT_PROVIDER_ID, { token });
+  aiCopilotStore.clearAuthSource();
   aiCopilotStore.clearSession();
+  githubCliToken = null;
   lastError = null;
+};
+
+const signInWithGitHubCli = async () => {
+  cancelSignIn();
+  githubCliToken = await loadGitHubCliToken();
+  oauthCredentialsStore.clearCredential(COPILOT_PROVIDER_ID);
+  aiCopilotStore.clearSession();
+  aiCopilotStore.setAuthSource(GITHUB_CLI_SOURCE);
+  lastError = null;
+  await refreshModels().catch(() => {});
 };
 
 const startSignIn = async ({ onSettled }) => {
@@ -336,7 +377,9 @@ const startSignIn = async ({ onSettled }) => {
 const signOut = () => {
   cancelSignIn();
   oauthCredentialsStore.clearCredential(COPILOT_PROVIDER_ID);
+  aiCopilotStore.clearAuthSource();
   aiCopilotStore.clearSession();
+  githubCliToken = null;
   lastError = null;
 };
 
@@ -350,6 +393,11 @@ const registerCopilotIpc = ({ buildStatus, broadcastStatus, clearSdkCache, isAiE
 
   ipcMain.handle('renderer:ai-copilot-sign-in', async () => {
     await startSignIn({ onSettled: publish });
+    return publish();
+  });
+
+  ipcMain.handle('renderer:ai-copilot-sign-in-with-github-cli', async () => {
+    await signInWithGitHubCli();
     return publish();
   });
 
@@ -372,8 +420,10 @@ const registerCopilotIpc = ({ buildStatus, broadcastStatus, clearSdkCache, isAiE
     return publish();
   });
 
-  if (isAiEnabled() && resolveCopilotToken()) {
-    refreshModels()
+  if (usesGitHubCli() || resolveCopilotToken()) {
+    const restoreToken = usesGitHubCli() ? reloadGitHubCliToken() : Promise.resolve();
+    restoreToken
+      .then(() => (isAiEnabled() ? refreshModels() : null))
       .then(publish)
       .catch((err) => {
         console.warn('[AI] Copilot model refresh on startup failed:', err.message);
