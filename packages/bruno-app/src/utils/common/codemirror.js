@@ -4,10 +4,15 @@ import { PROMPT_VARIABLE_TEXT_PATTERN } from '@usebruno/common/utils';
 
 const CodeMirror = require('codemirror');
 
-const pathFoundInVariables = (path, obj) => {
+const pathFoundInVariables = (path, obj, { allowDefaults = false } = {}) => {
   const value = get(obj, path);
   if (value !== undefined) {
     return true;
+  }
+
+  // Defaults only apply to {{variables}}, not to /:path params
+  if (!allowDefaults) {
+    return false;
   }
 
   // {{name:-default}} always resolves, either to the variable or to its default value
@@ -45,7 +50,7 @@ export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPa
 
               // Check if it's a mock variable (starts with $) and exists in mockDataFunctions
               const isMockVariable = word.startsWith('$') && mockDataFunctions.hasOwnProperty(word.substring(1));
-              const found = isMockVariable || pathFoundInVariables(word, variables);
+              const found = isMockVariable || pathFoundInVariables(word, variables, { allowDefaults: true });
               const status = found ? 'valid' : 'invalid';
               const randomClass = `random-${(Math.random() + 1).toString(36).substring(9)}`;
               return `variable-${status} ${randomClass}`;
