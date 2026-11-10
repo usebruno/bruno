@@ -1,4 +1,5 @@
 import { test, expect, Locator, Page, ElectronApplication } from '../../../../playwright';
+import { stubOpenDirectoryDialog } from '../../stubs';
 
 const apiSpecsSection = (page: Page) =>
   page.locator('.sidebar-section').filter({ has: page.locator('.section-title', { hasText: 'API Specs' }) });
@@ -19,8 +20,47 @@ export const buildApiSpecPanelLocators = (page: Page) => ({
   sidebarRows: () => page.getByTestId('sidebar-api-spec-row'),
   sidebarRow: (name: string | RegExp) => page.getByTestId('sidebar-api-spec-row').filter({ hasText: name }),
   sidebarRowActions: (name: string | RegExp) => page.getByTestId('sidebar-api-spec-row').filter({ hasText: name }).getByTestId('api-spec-actions'),
-  sidebarRowRemoveMenuItem: () => page.getByTestId('api-spec-actions-remove')
+  createApiSpecMenuItem: () => page.getByTestId('api-specs-header-add-menu-create-api-spec'),
+  createApiSpecModal: () => page.locator('.bruno-modal').filter({ hasText: 'Create API Spec' }),
+  createApiSpecCollectionLocation: () => page.getByTestId('api-spec-collection-location'),
+  createApiSpecName: () => page.getByTestId('api-spec-name-input'),
+  createApiSpecLocation: () => page.locator('.bruno-modal').filter({ hasText: 'Create API Spec' }).getByTestId('api-spec-location'),
+  swaggerOperation: (specPath: string) =>
+    page.locator('.opblock').filter({ has: page.locator(`.opblock-summary-path[data-path="${specPath}"]`) }),
+  swaggerOperationSummary: (operation: Locator) => operation.locator('.opblock-summary'),
+  swaggerTryItOut: (operation: Locator) => operation.locator('.try-out__btn'),
+  swaggerPathParamInput: (operation: Locator, name: string) =>
+    operation.locator(`tr[data-param-name="${name}"][data-param-in="path"] input`)
 });
+
+export const buildApiSpecRowMenuLocators = (page: Page) => {
+  const openMenu = () => page.getByTestId('api-spec-actions-dropdown');
+
+  return {
+    menuItems: () => openMenu().getByRole('menuitem'),
+    menuEntries: () => openMenu().locator('[role="menuitem"], [role="separator"]').evaluateAll((entries) =>
+      entries.map((entry) => (entry.getAttribute('role') === 'separator' ? 'divider' : entry.getAttribute('data-item-id')))
+    ),
+    menuItem: (id: string) => openMenu().getByTestId(`api-spec-actions-${id}`),
+    removeModal: () => page.getByTestId('remove-api-spec-modal'),
+    removeSubmit: () => page.getByTestId('remove-api-spec-modal-submit-btn'),
+    removeCancel: () => page.getByTestId('remove-api-spec-modal').getByRole('button', { name: 'Cancel', exact: true }),
+    deleteModal: () => page.getByTestId('delete-api-spec-modal'),
+    deleteSubmit: () => page.getByTestId('delete-api-spec-modal-submit-btn'),
+    deleteCancel: () => page.getByTestId('delete-api-spec-modal').getByRole('button', { name: 'Cancel', exact: true }),
+    connectedCollectionsWarning: () => page.getByTestId('api-spec-connected-collections-warning'),
+    renameModal: () => page.getByTestId('rename-api-spec-modal'),
+    renameInput: () => page.getByTestId('rename-api-spec-name'),
+    renameSubmit: () => page.getByTestId('rename-api-spec-modal-submit-btn'),
+    cloneModal: () => page.getByTestId('clone-api-spec-modal'),
+    cloneNameInput: () => page.getByTestId('clone-api-spec-name'),
+    cloneNameError: () => page.getByTestId('clone-api-spec-name-error'),
+    cloneLocationInput: () => page.getByTestId('clone-api-spec-modal').getByTestId('api-spec-location'),
+    cloneBrowse: () => page.getByTestId('clone-api-spec-modal').getByText('Browse', { exact: true }),
+    cloneRelativeRefsWarning: () => page.getByTestId('clone-api-spec-modal').getByTestId('api-spec-relative-refs-warning'),
+    cloneSubmit: () => page.getByTestId('clone-api-spec-modal-submit-btn')
+  };
+};
 
 export const expandApiSpecsSection = async (page: Page): Promise<void> => {
   await test.step('Open the API Specs sidebar section', async () => {
@@ -58,24 +98,63 @@ export const createApiSpec = async (
   location: string
 ): Promise<void> => {
   await test.step(`Create API spec "${name}" in ${location}`, async () => {
-    await electronApp.evaluate(({ dialog }, location) => {
-      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [location] });
-    }, location);
+    await stubOpenDirectoryDialog(electronApp, [location]);
 
-    const { addMenuButton } = buildApiSpecPanelLocators(page);
+    const {
+      addMenuButton,
+      createApiSpecMenuItem,
+      createApiSpecModal,
+      createApiSpecName,
+      createApiSpecLocation
+    } = buildApiSpecPanelLocators(page);
     await addMenuButton().click();
-    await page.getByTestId('api-specs-header-add-menu-create-api-spec').click();
+    await createApiSpecMenuItem().click();
 
-    const modal = page.locator('.bruno-modal').filter({ hasText: 'Create API Spec' });
+    const modal = createApiSpecModal();
     await expect(modal).toBeVisible();
 
     await modal.getByLabel('Blank Spec').check();
-    await modal.locator('#api-spec-name').fill(name);
-    await modal.locator('#api-spec-location').click();
-    await expect(modal.locator('#api-spec-location')).toHaveValue(location);
+    await createApiSpecName().fill(name);
+    await createApiSpecLocation().click();
+    await expect(createApiSpecLocation()).toHaveValue(location);
 
     await modal.getByTestId('modal-submit-btn').click();
     await expect(modal).toHaveCount(0);
+  });
+};
+
+export const createApiSpecFromCollection = async (
+  page: Page,
+  electronApp: ElectronApplication,
+  { name, collectionPath, environment, location }: { name: string; collectionPath: string; environment: string; location: string }
+): Promise<void> => {
+  await test.step(`Create API spec "${name}" from the collection in ${collectionPath}`, async () => {
+    const {
+      addMenuButton,
+      createApiSpecMenuItem,
+      createApiSpecModal,
+      createApiSpecCollectionLocation,
+      createApiSpecName,
+      createApiSpecLocation
+    } = buildApiSpecPanelLocators(page);
+    await addMenuButton().click();
+    await createApiSpecMenuItem().click();
+
+    const modal = createApiSpecModal();
+    await modal.getByLabel('Bruno Collection').check();
+    await modal.getByTestId('api-spec-collection-source').getByRole('radio', { name: 'From filesystem', exact: true }).check();
+
+    await stubOpenDirectoryDialog(electronApp, [collectionPath]);
+    await createApiSpecCollectionLocation().click();
+    await modal.getByTestId('api-spec-environment-trigger').filter({ hasText: environment }).waitFor();
+
+    await createApiSpecName().fill(name);
+    await stubOpenDirectoryDialog(electronApp, [location]);
+    await createApiSpecLocation().click();
+    await expect(createApiSpecLocation()).toHaveValue(location);
+
+    await modal.getByTestId('modal-submit-btn').click();
+    await modal.waitFor({ state: 'detached' });
   });
 };
 
@@ -127,16 +206,30 @@ export const closeApiSpecTab = async (page: Page, tabLabel: string): Promise<voi
   });
 };
 
-const openRowActionsMenu = async (row: Locator): Promise<void> => {
+const openRowActionsMenu = async (page: Page, row: Locator): Promise<void> => {
   await row.focus();
   await row.getByTestId('api-spec-actions').click();
+  await buildApiSpecRowMenuLocators(page).menuItems().first().waitFor({ state: 'visible' });
+};
+
+export const openApiSpecRowMenu = async (page: Page, name: string): Promise<void> => {
+  await test.step(`Open the actions menu of API spec "${name}"`, async () => {
+    await openRowActionsMenu(page, buildApiSpecPanelLocators(page).sidebarRow(name));
+  });
+};
+
+export const chooseApiSpecRowAction = async (page: Page, name: string, actionId: string): Promise<void> => {
+  await openApiSpecRowMenu(page, name);
+  await test.step(`Choose "${actionId}"`, async () => {
+    await buildApiSpecRowMenuLocators(page).menuItem(actionId).click();
+  });
 };
 
 const removeApiSpecRow = async (page: Page, row: Locator): Promise<void> => {
-  const { sidebarRowRemoveMenuItem } = buildApiSpecPanelLocators(page);
-  await openRowActionsMenu(row);
-  await sidebarRowRemoveMenuItem().click();
-  await page.getByTestId('modal-submit-btn').click();
+  const { menuItem, removeSubmit } = buildApiSpecRowMenuLocators(page);
+  await openRowActionsMenu(page, row);
+  await menuItem('remove').click();
+  await removeSubmit().click();
 };
 
 export const removeApiSpecFromWorkspace = async (page: Page, name: string): Promise<void> => {
@@ -149,6 +242,7 @@ export const removeApiSpecFromWorkspace = async (page: Page, name: string): Prom
 export const removeAllApiSpecsFromWorkspace = async (page: Page): Promise<void> => {
   await test.step('Remove every API spec from the workspace', async () => {
     const { sidebarRows, section } = buildApiSpecPanelLocators(page);
+    const { removeSubmit } = buildApiSpecRowMenuLocators(page);
 
     if ((await section().count()) === 0) return;
     await expandApiSpecsSection(page);
@@ -159,7 +253,7 @@ export const removeAllApiSpecsFromWorkspace = async (page: Page): Promise<void> 
 
       await removeApiSpecRow(page, sidebarRows().first());
       await expect(sidebarRows()).toHaveCount(remaining - 1);
-      await expect(page.getByTestId('modal-submit-btn')).toHaveCount(0);
+      await expect(removeSubmit()).toHaveCount(0);
     }
   });
 };

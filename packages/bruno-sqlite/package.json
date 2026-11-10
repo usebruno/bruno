@@ -47,7 +47,7 @@
     "@rollup/plugin-terser": "1.0.0",
     "@rollup/plugin-typescript": "12.1.2",
     "@types/jest": "29.5.14",
-    "@types/node": "22.15.17",
+    "@types/node": "24.19.2",
     "babel-jest": "29.7.0",
     "cross-env": "10.1.0",
     "jest": "29.7.0",
