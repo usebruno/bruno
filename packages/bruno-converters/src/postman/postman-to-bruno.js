@@ -380,7 +380,8 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         implicit: 'implicit'
       };
 
-      const postmanGrantType = findValueUsingKey('grant_type');
+      // Postman omits `grant_type` until it is explicitly picked, leaving its default: authorization code.
+      const postmanGrantType = findValueUsingKey('grant_type') || 'authorization_code';
       const targetGrantType = oauth2GrantTypeMaps[postmanGrantType] || 'client_credentials'; // Default
 
       // Maps Postman's request-params arrays to Bruno's `additionalParameters`, converting `send_as`

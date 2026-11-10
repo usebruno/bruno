@@ -430,7 +430,10 @@ describe('processAuth', () => {
     processAuth(auth, requestObject);
     expect(requestObject.auth.mode).toBe('oauth2');
     expect(requestObject.auth.oauth2).toEqual({
-      grantType: 'client_credentials',
+      grantType: 'authorization_code',
+      authorizationUrl: '',
+      callbackUrl: '',
+      pkce: false,
       accessTokenUrl: '',
       refreshTokenUrl: '',
       clientId: '',
@@ -452,7 +455,10 @@ describe('processAuth', () => {
     processAuth(auth, requestObject);
     expect(requestObject.auth.mode).toBe('oauth2');
     expect(requestObject.auth.oauth2).toEqual({
-      grantType: 'client_credentials',
+      grantType: 'authorization_code',
+      authorizationUrl: '',
+      callbackUrl: '',
+      pkce: false,
       accessTokenUrl: '',
       refreshTokenUrl: '',
       clientId: '',
@@ -464,6 +470,41 @@ describe('processAuth', () => {
       tokenQueryKey: 'access_token',
       credentialsPlacement: 'basic_auth_header',
       credentialsId: ''
+    });
+  });
+
+  it('should fall back to the authorization_code grant when grant_type is absent', () => {
+    const auth = {
+      type: 'oauth2',
+      oauth2: [
+        { key: 'tokenName', value: 'My Token', type: 'string' },
+        { key: 'redirect_uri', value: 'https://app.example.com/callback', type: 'string' },
+        { key: 'authUrl', value: 'https://auth.example.com/authorize', type: 'string' },
+        { key: 'accessTokenUrl', value: 'https://auth.example.com/token', type: 'string' },
+        { key: 'refreshTokenUrl', value: 'https://auth.example.com/refresh', type: 'string' },
+        { key: 'clientId', value: 'client-id', type: 'string' },
+        { key: 'clientSecret', value: 'client-secret', type: 'string' },
+        { key: 'client_authentication', value: 'header', type: 'string' }
+      ]
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('oauth2');
+    expect(requestObject.auth.oauth2).toEqual({
+      grantType: 'authorization_code',
+      authorizationUrl: 'https://auth.example.com/authorize',
+      callbackUrl: 'https://app.example.com/callback',
+      pkce: false,
+      accessTokenUrl: 'https://auth.example.com/token',
+      refreshTokenUrl: 'https://auth.example.com/refresh',
+      clientId: 'client-id',
+      clientSecret: 'client-secret',
+      scope: '',
+      state: '',
+      tokenPlacement: 'header',
+      tokenHeaderPrefix: 'Bearer',
+      tokenQueryKey: 'access_token',
+      credentialsPlacement: 'basic_auth_header',
+      credentialsId: 'My Token'
     });
   });
 
