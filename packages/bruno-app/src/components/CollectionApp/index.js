@@ -14,6 +14,7 @@ import {
 import { uuid } from 'utils/common';
 import {
   appSetRuntimeVariable,
+  appUnsetRuntimeVariable,
   initRunRequestEvent,
   responseReceived,
   updateAppCode
@@ -43,7 +44,7 @@ import {
  * the code prop changes.
  *
  * Collection ctx surface differs from the request-level AppView:
- *   shared:  theme, log, variables (.resolved / .runtime.set), onThemeChange, onVariablesChange
+ *   shared:  theme, log, variables (.resolved / .runtime.set / .runtime.unset), onThemeChange, onVariablesChange
  *   added:   collection, listRequests(), runRequest(pathname, options?), onCollectionChange
  *   dropped: submitRequest, http.response, assertions, tests
  *             (and their on*Change hooks — they only make sense for one request)
@@ -79,6 +80,9 @@ const COLLECTION_CTX_BOOTSTRAP = `<script>
       runtime: {
         set: function (name, value) {
           sendToHost({ type: 'setRuntimeVariable', key: String(name), value: value });
+        },
+        unset: function (name) {
+          sendToHost({ type: 'unsetRuntimeVariable', key: String(name) });
         }
       }
     },
@@ -300,6 +304,11 @@ const CollectionApp = ({ item, collection }) => {
             dispatch(
               appSetRuntimeVariable({ collectionUid: collection.uid, key: data.key, value: data.value })
             );
+          }
+          break;
+        case 'unsetRuntimeVariable':
+          if (typeof data.key === 'string' && data.key.length) {
+            dispatch(appUnsetRuntimeVariable({ collectionUid: collection.uid, key: data.key }));
           }
           break;
         case 'listRequests': {

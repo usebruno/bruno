@@ -115,6 +115,7 @@ bru.ctx.variables.resolved    // merged env + global + collection + runtime vari
 
 bru.ctx.submitRequest(options?)          // executes THIS request; returns Promise<response>; options may carry { runtimeVariables: {...} }
 bru.ctx.variables.runtime.set(name, value) // persist a runtime variable on the collection
+bru.ctx.variables.runtime.unset(name)   // remove a runtime variable from the collection
 bru.ctx.log(...args)                     // forwarded to the Bruno devtools console
 
 bru.ctx.onInit              = (bru) => { ... }   // called ONCE when the initial state arrives — do the first render here
