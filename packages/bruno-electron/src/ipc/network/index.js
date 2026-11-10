@@ -44,6 +44,7 @@ const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const { easterEggResponse } = require('../../utils/woof');
+const { createSseDecoder } = require('./sse-decoder');
 const { createRunnerExchangeEmitters } = require('./runner-exchange');
 const { saveRunnerResponseBody } = require('../../services/runner-exchange');
 const { buildFormUrlEncodedPayload, isFormData, getMediaType, extractBoundaryFromContentType } = require('@usebruno/common').utils;
@@ -1391,6 +1392,7 @@ const registerNetworkIpc = (mainWindow) => {
     const response = await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
     if (response.stream) {
       const stream = response.stream;
+      const decoder = createSseDecoder();
       response.stream = { running: response.status >= 200 && response.status < 300 };
 
       stream.on('data', (newData) => {
@@ -1398,7 +1400,7 @@ const registerNetworkIpc = (mainWindow) => {
         response.sseChunks?.push(newData);
         seq += 1;
 
-        const parsed = parseDataFromResponse({ data: newData, headers: {} });
+        const parsed = decoder.decode(newData);
 
         mainWindow.webContents.send('main:http-stream-new-data', {
           collectionUid,
@@ -1411,6 +1413,17 @@ const registerNetworkIpc = (mainWindow) => {
 
       stream.on('close', () => {
         if (!cancelTokens[response.cancelTokenUid]) return;
+
+        const remaining = decoder.end();
+        if (remaining) {
+          mainWindow.webContents.send('main:http-stream-new-data', {
+            collectionUid,
+            itemUid: item.uid,
+            seq: ++seq,
+            timestamp: Date.now(),
+            data: { data: remaining }
+          });
+        }
 
         mainWindow.webContents.send('main:http-stream-end', {
           collectionUid,
