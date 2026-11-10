@@ -1,0 +1,90 @@
+{
+	"info": {
+		"_postman_id": "0b1e3c47-5a2d-4f80-9c31-7ad6e2f4b918",
+		"name": "Oauth2DefaultGrantType",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "56331529"
+	},
+	"auth": {
+		"type": "oauth2",
+		"oauth2": [
+			{
+				"key": "tokenName",
+				"value": "default-grant-tname",
+				"type": "string"
+			},
+			{
+				"key": "redirect_uri",
+				"value": "https://api.example.com/callback",
+				"type": "string"
+			},
+			{
+				"key": "authUrl",
+				"value": "https://api.example.com/authorize",
+				"type": "string"
+			},
+			{
+				"key": "accessTokenUrl",
+				"value": "https://api.example.com/access",
+				"type": "string"
+			},
+			{
+				"key": "refreshTokenUrl",
+				"value": "https://api.example.com/refresh",
+				"type": "string"
+			},
+			{
+				"key": "clientId",
+				"value": "{{client_id}}",
+				"type": "string"
+			},
+			{
+				"key": "clientSecret",
+				"value": "{{client_secret}}",
+				"type": "string"
+			},
+			{
+				"key": "scope",
+				"value": "scope:scope1,scope:scope2",
+				"type": "string"
+			},
+			{
+				"key": "state",
+				"value": "customState",
+				"type": "string"
+			},
+			{
+				"key": "client_authentication",
+				"value": "header",
+				"type": "string"
+			},
+			{
+				"key": "addTokenTo",
+				"value": "header",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Inherits default grant",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://api.example.com/resource",
+					"protocol": "https",
+					"host": [
+						"api",
+						"example",
+						"com"
+					],
+					"path": [
+						"resource"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
