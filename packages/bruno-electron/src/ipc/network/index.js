@@ -4,7 +4,6 @@ const path = require('path');
 const { applyOAuth1ToRequest } = require('@usebruno/requests');
 const { buildScriptedEntry } = require('@usebruno/requests').scripting;
 const qs = require('qs');
-const decomment = require('decomment');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
@@ -46,6 +45,7 @@ const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const { easterEggResponse } = require('../../utils/woof');
 const { createRunnerExchangeEmitters } = require('./runner-exchange');
+const { saveRunnerResponseBody } = require('../../services/runner-exchange');
 const { buildFormUrlEncodedPayload, isFormData, getMediaType, extractBoundaryFromContentType } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
@@ -608,7 +608,7 @@ const registerNetworkIpc = (mainWindow) => {
     if (requestScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runRequestScript(
-        decomment(requestScript, { space: true }),
+        requestScript,
         request,
         envVars,
         runtimeVariables,
@@ -737,7 +737,7 @@ const registerNetworkIpc = (mainWindow) => {
     if (responseScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runResponseScript(
-        decomment(responseScript, { space: true }),
+        responseScript,
         request,
         response,
         envVars,
@@ -1224,7 +1224,7 @@ const registerNetworkIpc = (mainWindow) => {
           let testError = null;
 
           try {
-            testResults = await testRuntime.runTests(decomment(testFile, { space: true }),
+            testResults = await testRuntime.runTests(testFile,
               request,
               response,
               envVars,
@@ -1839,7 +1839,7 @@ const registerNetworkIpc = (mainWindow) => {
             // todo:
             // i have no clue why electron can't send the request object
             // without safeParseJSON(safeStringifyJSON(request.data))
-            sendRunnerRequestSent({ requestUid, requestSent, eventData });
+            await sendRunnerRequestSent({ requestUid, requestSent, eventData });
 
             currentAbortController = new AbortController();
             request.signal = currentAbortController.signal;
@@ -1926,7 +1926,7 @@ const registerNetworkIpc = (mainWindow) => {
 
               mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
-              sendRunnerResponseReceived({
+              await sendRunnerResponseReceived({
                 requestUid,
                 responseReceived: {
                   status: response.status,
@@ -1940,6 +1940,7 @@ const registerNetworkIpc = (mainWindow) => {
                   timeline: response.timeline,
                   url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null
                 },
+                disableParsingResponseJson: Boolean(request.__brunoDisableParsingResponseJson),
                 eventData
               });
             } catch (error) {
@@ -1952,7 +1953,7 @@ const registerNetworkIpc = (mainWindow) => {
                 error.response.data = await promisifyStream(error.response.data, currentAbortController, false);
                 completeOpenHop(error.response.config);
                 error.response.responseTime = measureResponseTime(error.response.config.metadata);
-                const { data, dataBuffer } = parseDataFromResponse(error.response);
+                const { data, dataBuffer } = parseDataFromResponse(error.response, request.__brunoDisableParsingResponseJson);
                 error.response.data = data;
                 error.response.dataBuffer = dataBuffer;
 
@@ -1974,11 +1975,12 @@ const registerNetworkIpc = (mainWindow) => {
                 };
 
                 // if we get a response from the server, we consider it as a success
-                sendRunnerResponseReceived({
+                await sendRunnerResponseReceived({
                   requestUid,
                   error: error ? error.message : 'An error occurred while running the request',
                   responseReceived: response,
-                  eventData
+                  eventData,
+                  disableParsingResponseJson: Boolean(request.__brunoDisableParsingResponseJson)
                 });
               } else {
                 await executeRequestOnFailHandler(request, error, (onFailScriptResult) => {
@@ -2081,7 +2083,7 @@ const registerNetworkIpc = (mainWindow) => {
               try {
                 const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
                 testResults = await testRuntime.runTests(
-                  decomment(testFile, { space: true }),
+                  testFile,
                   request,
                   response,
                   envVars,
@@ -2257,6 +2259,10 @@ const registerNetworkIpc = (mainWindow) => {
       const dirPath = path.dirname(pathname);
       const fileName = determineFileName();
       const filePath = await chooseFileToSave(mainWindow, path.join(dirPath, fileName));
+      if (filePath && !response.dataBuffer && typeof response.storedRequestUid === 'string') {
+        await saveRunnerResponseBody(response.storedRequestUid, filePath);
+        return { success: true, filePath };
+      }
       if (filePath) {
         const encoding = getEncodingFormat();
         const data = Buffer.from(response.dataBuffer, 'base64');

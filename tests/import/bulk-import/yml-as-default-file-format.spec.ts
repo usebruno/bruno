@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import { closeAllCollections, openBulkImportModal } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
-test.describe('Bulk Import default file format', () => {
+test.describe('TC-3098: Bulk Import default file format', { tag: '@sanity' }, () => {
   const testDataDir = path.join(__dirname, '../test-data');
   const filesToImport = [
     path.join(testDataDir, 'sample-postman.json'),
@@ -23,6 +23,10 @@ test.describe('Bulk Import default file format', () => {
       await openBulkImportModal(page, filesToImport);
 
       const formatSelect = locators.import.bulkFormatSelect();
+      await expect(formatSelect).toHaveCount(0);
+
+      await locators.import.bulkModal().getByRole('button', { name: 'Options' }).click();
+      await locators.import.advancedOptionsToggle().click();
       await expect(formatSelect).toBeVisible();
       await expect(formatSelect).toHaveValue('yml');
       await expect(formatSelect.locator('option')).toHaveText(['OpenCollection (YAML)', 'BRU Format (.bru)']);

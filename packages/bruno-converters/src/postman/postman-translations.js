@@ -1,4 +1,5 @@
 import translateCode from '../utils/postman-to-bruno-translator';
+import { buildScriptUsage } from './postman-script-report';
 
 const replacements = {
   'pm\\.environment\\.get\\(': 'bru.getEnvVar(',
@@ -41,6 +42,7 @@ const replacements = {
   'pm\\.request\\.headers\\.has\\(': 'req.headerList.has(',
   'pm\\.request\\.headers\\.one\\(': 'req.headerList.one(',
   'pm\\.request\\.headers\\.all\\(': 'req.headerList.all(',
+  'pm\\.request\\.headers\\.idx\\(': 'req.headerList.idx(',
   'pm\\.request\\.headers\\.count\\(': 'req.headerList.count(',
   'pm\\.request\\.headers\\.indexOf\\(': 'req.headerList.indexOf(',
   'pm\\.request\\.headers\\.find\\(': 'req.headerList.find(',
@@ -67,6 +69,7 @@ const replacements = {
   'pm\\.response\\.headers\\.has\\(': 'res.headerList.has(',
   'pm\\.response\\.headers\\.one\\(': 'res.headerList.one(',
   'pm\\.response\\.headers\\.all\\(': 'res.headerList.all(',
+  'pm\\.response\\.headers\\.idx\\(': 'res.headerList.idx(',
   'pm\\.response\\.headers\\.count\\(': 'res.headerList.count(',
   'pm\\.response\\.headers\\.indexOf\\(': 'res.headerList.indexOf(',
   'pm\\.response\\.headers\\.find\\(': 'res.headerList.find(',
@@ -160,6 +163,7 @@ const replacements = {
   'pm\\.cookies\\.map\\(': 'bru.cookies.map(',
   'pm\\.cookies\\.reduce\\(': 'bru.cookies.reduce(',
   'pm\\.cookies\\.add\\(': 'bru.cookies.add(',
+  'pm\\.cookies\\.append\\(': 'bru.cookies.append(',
   'pm\\.cookies\\.upsert\\(': 'bru.cookies.upsert(',
   // Lossy: position-aware inserts map to add (position irrelevant for cookies)
   'pm\\.cookies\\.prepend\\(': 'bru.cookies.add(',
@@ -186,24 +190,50 @@ const processRegexReplacement = (code) => {
   return code;
 };
 
-const postmanTranslation = (script) => {
-  let modifiedScript = Array.isArray(script) ? script.join('\n') : script;
-  let translatedScript;
+const firstLine = (message) => String(message ?? '').split('\n')[0];
+
+/**
+ * Translates one Postman script, alongside its API-usage measurement.
+ *
+ * `usage` is measured here, not by the caller, because a fallback to
+ * find-and-replace is only visible at this point — the translated text alone
+ * doesn't reveal which pass produced it.
+ *
+ * @param {string|string[]} script
+ * @returns {{ translated: string, usage: Object|null }}
+ */
+const translatePostmanScript = (script, { onTranslationFailure, logFailures = true } = {}) => {
+  const source = Array.isArray(script) ? script.join('\n') : script;
 
   try {
-    translatedScript = translateCode(modifiedScript);
+    const translated = translateCode(source);
+    return { translated, usage: buildScriptUsage({ source, translated, fellBackToRegex: false }) };
   } catch (e) {
-    console.warn('Error in postman translation:', e);
-
-    try {
-      translatedScript = processRegexReplacement(modifiedScript);
-    } catch (e) {
+    if (logFailures) {
       console.warn('Error in postman translation:', e);
-      translatedScript = modifiedScript;
     }
-  }
+    let fallback = 'regex';
 
-  return translatedScript;
+    let translated;
+    try {
+      translated = processRegexReplacement(source);
+    } catch (regexError) {
+      if (logFailures) {
+        console.warn('Error in postman translation:', regexError);
+      }
+      translated = source;
+      fallback = 'verbatim';
+    }
+
+    if (onTranslationFailure) {
+      onTranslationFailure({ message: firstLine(e?.message), fallback });
+    }
+
+    return { translated, usage: buildScriptUsage({ source, translated, fellBackToRegex: true }) };
+  }
 };
 
+const postmanTranslation = (script, options) => translatePostmanScript(script, options).translated;
+
+export { translatePostmanScript };
 export default postmanTranslation;

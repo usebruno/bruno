@@ -15,12 +15,32 @@ const convertOpenApiPath = (path) => {
   return converted.replace(/\/+/g, '/');
 };
 
-const pickResponseContent = (response = {}) => (
-  response.content?.['application/json']
-  || response.content?.['text/plain']
-  || Object.values(response.content || {})[0]
-  || null
+const PREFERRED_MEDIA_TYPES = ['application/json', 'text/plain', 'application/xml'];
+
+const isJsonMediaType = (mediaType) => /[/+]json\b/i.test(mediaType || '');
+
+const pickMediaType = (mediaTypes = []) => (
+  PREFERRED_MEDIA_TYPES.find((mediaType) => mediaTypes.includes(mediaType)) || mediaTypes[0]
 );
+
+const pickSwagger2ResponseContent = (response, produces) => {
+  const exampleMediaType = pickMediaType(Object.keys(response.examples || {}));
+  const example = exampleMediaType ? response.examples[exampleMediaType] : undefined;
+  if (example === undefined && !response.schema) {
+    return null;
+  }
+
+  return { example, schema: response.schema, mediaType: exampleMediaType || pickMediaType(produces) };
+};
+
+const pickResponseContent = (response = {}, produces = []) => {
+  const mediaType = pickMediaType(Object.keys(response.content || {}));
+  if (mediaType) {
+    return { ...response.content[mediaType], mediaType };
+  }
+
+  return pickSwagger2ResponseContent(response, produces);
+};
 
 const sortStatusCodes = (statusCodes = []) => (
   [...statusCodes].sort((a, b) => {
@@ -35,7 +55,7 @@ const sortStatusCodes = (statusCodes = []) => (
   })
 );
 
-const listOperationResponses = (responses = {}) => {
+const listOperationResponses = (responses = {}, produces = []) => {
   const statusCodes = sortStatusCodes(Object.keys(responses).filter((code) => code !== 'default'));
 
   return statusCodes.map((statusCode) => {
@@ -44,15 +64,26 @@ const listOperationResponses = (responses = {}) => {
     return {
       status: Number(statusCode) || 200,
       statusText: response.description || '',
-      content: pickResponseContent(response)
+      content: pickResponseContent(response, produces)
     };
   });
 };
 
-const serializeExample = (example) => {
-  if (typeof example === 'string') {
+const isJsonText = (text) => {
+  try {
+    JSON.parse(text);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+// Strings stay as-is for text/XML media types. Under a JSON media type they must be valid
+// JSON on the wire, so plain strings are encoded while strings that already hold JSON are kept.
+const serializeExample = (example, mediaType) => {
+  if (typeof example === 'string' && (!isJsonMediaType(mediaType) || isJsonText(example))) {
     return {
-      type: 'text',
+      type: isJsonMediaType(mediaType) ? 'json' : 'text',
       content: example
     };
   }
@@ -65,13 +96,13 @@ const serializeExample = (example) => {
 
 const buildResponseBody = (content, spec, { generateFromSchema = false } = {}) => {
   if (content?.example !== undefined) {
-    return serializeExample(content.example);
+    return serializeExample(content.example, content.mediaType);
   }
 
   if (content?.examples && typeof content.examples === 'object') {
     const firstExample = Object.values(content.examples)[0];
     if (firstExample?.value !== undefined) {
-      return serializeExample(firstExample.value);
+      return serializeExample(firstExample.value, content.mediaType);
     }
   }
 
@@ -89,22 +120,17 @@ const buildResponseBody = (content, spec, { generateFromSchema = false } = {}) =
     };
   }
 
-  const example = schemaToExample(content.schema, spec);
-  const resolvedType = content.schema?.type;
-  const bodyType = resolvedType === 'string' ? 'text' : 'json';
-
-  return {
-    type: bodyType,
-    content: bodyType === 'json'
-      ? JSON.stringify(example ?? {}, null, 2)
-      : String(example ?? '')
-  };
+  return serializeExample(schemaToExample(content.schema, spec), content.mediaType);
 };
 
-const buildResponseHeaders = (body) => ([{
+// A JSON body keeps a JSON-family media type (e.g. application/problem+json) but never takes a
+// non-JSON one: schemas declared only as XML are still generated as JSON.
+const buildResponseHeaders = (body, mediaType) => ([{
   uid: uuidv4(),
   name: 'Content-Type',
-  value: body.type === 'json' ? 'application/json' : 'text/plain',
+  value: body.type === 'json'
+    ? (isJsonMediaType(mediaType) ? mediaType : 'application/json')
+    : mediaType || 'text/plain',
   description: '',
   enabled: true
 }]);
@@ -144,7 +170,7 @@ const buildMockResponseRecord = ({
     response: {
       status: pickedResponse.status,
       statusText: pickedResponse.statusText || 'OK',
-      headers: buildResponseHeaders(body),
+      headers: buildResponseHeaders(body, pickedResponse.content?.mediaType),
       body
     },
     rules: {
@@ -169,7 +195,8 @@ const buildMockResponsesFromSpec = (spec, options = {}) => {
         continue;
       }
 
-      const operationResponses = listOperationResponses(operation.responses);
+      const produces = [operation.produces, spec.produces].find(Array.isArray) || [];
+      const operationResponses = listOperationResponses(operation.responses, produces);
       const useStatusSuffix = operationResponses.length > 1;
 
       for (const pickedResponse of operationResponses) {

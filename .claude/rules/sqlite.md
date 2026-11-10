@@ -192,8 +192,10 @@ ipcMain.handle('datastore:runner_responses:get_runner_response', (_event, params
 
 - The handler validates and picks the params it forwards — never pass the renderer's object
   straight through to `execute`.
-- The file store follows the same rule: `datastore:files:stat` and `datastore:files:read` take a
-  validated `{ id }`. File writes stay main-process only — the renderer never chooses what gets
+- The file store has no channels of its own. File ids are sequential and unscoped, so a channel
+  that takes one would expose every stored blob; the renderer reaches files only through a
+  domain handler that resolves them from a scoped key (e.g. `get_runner_response` by
+  `request_uid`). File writes stay main-process only — the renderer never chooses what gets
   stored.
 - In the renderer, wrap each channel in a named hook or helper under `src/hooks/useX/index.js`
   (or the relevant util) and call `window.ipcRenderer.invoke(channel, params)` there; no component

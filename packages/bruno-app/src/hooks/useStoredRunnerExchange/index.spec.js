@@ -10,11 +10,12 @@ const RESPONSE_RECEIVED = {
   statusText: 'OK',
   headers: { 'content-type': 'application/json' },
   data: { ok: true },
-  size: 12,
+  dataBuffer: Buffer.from('{"ok":true}').toString('base64'),
+  size: 11,
   duration: 34
 };
 
-const STORED_ROW = { request: JSON.stringify(REQUEST_SENT), response: JSON.stringify(RESPONSE_RECEIVED) };
+const STORED_EXCHANGE = { requestSent: REQUEST_SENT, responseReceived: RESPONSE_RECEIVED };
 
 const settledItem = (overrides = {}) => ({
   uid: 'item-1',
@@ -38,9 +39,9 @@ describe('useStoredRunnerExchange', () => {
     delete window.ipcRenderer;
   });
 
-  describe('when the row is stored', () => {
+  describe('when the exchange is stored', () => {
     beforeEach(() => {
-      invoke.mockResolvedValue(STORED_ROW);
+      invoke.mockResolvedValue(STORED_EXCHANGE);
     });
 
     it('returns the stored payloads', async () => {
@@ -56,11 +57,18 @@ describe('useStoredRunnerExchange', () => {
 
       await waitFor(() => expect(result.current.responseReceived).toEqual(RESPONSE_RECEIVED));
     });
+
+    it('reads it in a single call', async () => {
+      const { result } = renderHook(() => useStoredRunnerExchange(settledItem()));
+
+      await waitFor(() => expect(result.current.responseReceived).toEqual(RESPONSE_RECEIVED));
+      expect(invoke).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('when no row exists', () => {
     beforeEach(() => {
-      invoke.mockResolvedValue(undefined);
+      invoke.mockResolvedValue(null);
     });
 
     it('falls back to the payloads the runner event put on the item', async () => {
@@ -76,8 +84,8 @@ describe('useStoredRunnerExchange', () => {
       const { result } = renderHook(() => useStoredRunnerExchange(settledItem()));
 
       await waitFor(() => expect(invoke).toHaveBeenCalled());
-      expect(result.current.requestSent).toBeNull();
-      expect(result.current.responseReceived).toBeNull();
+      expect(result.current.requestSent).toBeUndefined();
+      expect(result.current.responseReceived).toBeUndefined();
     });
   });
 
@@ -103,7 +111,7 @@ describe('useStoredRunnerExchange', () => {
   });
 
   it.each(['completed', 'error'])('reads by request uid once the item is %s', async (status) => {
-    invoke.mockResolvedValue(undefined);
+    invoke.mockResolvedValue(null);
 
     renderHook(() => useStoredRunnerExchange(settledItem({ status })));
 
@@ -111,7 +119,7 @@ describe('useStoredRunnerExchange', () => {
   });
 
   it('reads when a running item settles', async () => {
-    invoke.mockResolvedValue(STORED_ROW);
+    invoke.mockResolvedValue(STORED_EXCHANGE);
     const { result, rerender } = renderHook(({ item }) => useStoredRunnerExchange(item), {
       initialProps: { item: settledItem({ status: 'running' }) }
     });
@@ -123,10 +131,10 @@ describe('useStoredRunnerExchange', () => {
     expect(invoke).toHaveBeenCalledTimes(1);
   });
 
-  it('never shows the row of a previous request while the next one loads', async () => {
+  it('never shows the exchange of a previous request while the next one loads', async () => {
     let resolveNext;
     invoke
-      .mockResolvedValueOnce(STORED_ROW)
+      .mockResolvedValueOnce(STORED_EXCHANGE)
       .mockImplementationOnce(() => new Promise((resolve) => {
         resolveNext = resolve;
       }));
@@ -137,9 +145,9 @@ describe('useStoredRunnerExchange', () => {
 
     rerender({ item: settledItem({ requestUid: 'run-2' }) });
 
-    expect(result.current.requestSent).toBeNull();
-    expect(result.current.responseReceived).toBeNull();
-    resolveNext(undefined);
+    expect(result.current.requestSent).toBeUndefined();
+    expect(result.current.responseReceived).toBeUndefined();
+    resolveNext(null);
     await waitFor(() => expect(invoke).toHaveBeenLastCalledWith(CHANNEL, { request_uid: 'run-2' }));
   });
 });
