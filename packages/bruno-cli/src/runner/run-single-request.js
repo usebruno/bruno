@@ -241,7 +241,7 @@ const runSingleRequest = async function (
     const certsAndProxyConfig = {
       collectionPath,
       options: {
-        noproxy: get(options, 'noproxy', false),
+        noproxy: get(options, 'noproxy', false) || request.settings?.useProxy === false,
         shouldVerifyTls: !get(options, 'insecure', false),
         shouldUseCustomCaCertificate: !!options['cacert'],
         customCaCertificateFilePath: options['cacert'],
@@ -396,7 +396,7 @@ const runSingleRequest = async function (
     }
 
     const insecure = get(options, 'insecure', false);
-    const noproxy = get(options, 'noproxy', false);
+    const noproxy = get(options, 'noproxy', false) || request.settings?.useProxy === false;
     const cachedSystemProxy = get(options, 'cachedSystemProxy', null);
     const disableCache = !get(options, 'cacheSslSession', false);
     // NTLM authenticates the connection rather than the request, so its handshake only completes
@@ -618,7 +618,7 @@ const runSingleRequest = async function (
         let token;
         if (oauth2RequestUrl) {
           const oauth2ConfigOptions = {
-            noproxy: options.noproxy,
+            noproxy,
             shouldVerifyTls: !insecure,
             shouldUseCustomCaCertificate: !!options['cacert'],
             customCaCertificateFilePath: options['cacert'],

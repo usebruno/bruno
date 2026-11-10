@@ -128,12 +128,15 @@ const getCertsAndProxyConfig = async ({
   let proxyConfig = {};
   let proxyModeReason = '';
 
-  const collectionProxyConfig = get(brunoConfig, 'proxy', {});
+  const useProxy = request.settings?.useProxy;
+  const collectionProxyConfig = useProxy === true ? { inherit: true } : get(brunoConfig, 'proxy', {});
   const collectionProxyDisabled = get(collectionProxyConfig, 'disabled', false);
   const collectionProxyInherit = get(collectionProxyConfig, 'inherit', true);
   const collectionProxyConfigData = get(collectionProxyConfig, 'config', collectionProxyConfig);
 
-  if (!collectionProxyDisabled && !collectionProxyInherit) {
+  if (useProxy === false) {
+    proxyModeReason = 'Request-level proxy is disabled';
+  } else if (!collectionProxyDisabled && !collectionProxyInherit) {
     // Use collection-specific proxy
     proxyConfig = collectionProxyConfigData;
     proxyMode = 'on';
@@ -204,7 +207,7 @@ const buildCertsAndProxyConfig = async ({
 
   // Build options for getHttpHttpsAgents
   const options = {
-    noproxy: false,
+    noproxy: request?.settings?.useProxy === false,
     shouldVerifyTls: preferencesUtil.shouldVerifyTls(),
     shouldUseCustomCaCertificate: preferencesUtil.shouldUseCustomCaCertificate(),
     customCaCertificateFilePath: preferencesUtil.getCustomCaCertificateFilePath(),
@@ -228,14 +231,14 @@ const buildCertsAndProxyConfig = async ({
   }
 
   // Get proxy config from bruno config and interpolate
-  const collectionProxyConfig = get(brunoConfig, 'proxy', {});
+  const collectionProxyConfig = request?.settings?.useProxy === true ? { inherit: true } : get(brunoConfig, 'proxy', {});
   const collectionLevelProxy = interpolateObject(collectionProxyConfig, interpolationOptions);
 
   // Get app-level proxy config from global preferences
   const appLevelProxyConfig = preferencesUtil.getGlobalProxyConfig();
 
   // Get system proxy config
-  const systemProxyConfig = await getCachedSystemProxy();
+  const systemProxyConfig = options.noproxy ? null : await getCachedSystemProxy();
 
   return {
     collectionPath,

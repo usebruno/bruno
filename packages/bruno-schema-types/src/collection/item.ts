@@ -14,6 +14,7 @@ export type ItemType
 
 export interface HttpItemSettings {
   encodeUrl?: boolean | null;
+  useProxy?: boolean | null;
   followRedirects?: boolean | null;
   maxRedirects?: number | null;
   timeout?: number | 'inherit' | null;

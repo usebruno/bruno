@@ -115,6 +115,8 @@ export const fromOpenCollectionHttpItem = (ocRequest: HttpRequest): BrunoItem =>
       maxRedirects: toMaxRedirects(ocRequest.settings.maxRedirects),
       forwardAuthorizationHeader: toBool(ocRequest.settings.forwardAuthorizationHeader, true)
     };
+    const useProxy = (ocRequest.settings as { useProxy?: boolean }).useProxy;
+    if (typeof useProxy === 'boolean') settings.useProxy = useProxy;
     if (Array.isArray(ocRequest.settings.omitHeaders) && ocRequest.settings.omitHeaders.length) {
       settings.omitHeaders = ocRequest.settings.omitHeaders;
     }
@@ -228,13 +230,14 @@ export const toOpenCollectionHttpItem = (item: BrunoItem): HttpRequest => {
     ocRequest.runtime = runtime;
   }
 
-  const settings: HttpRequestSettings = {
+  const settings: HttpRequestSettings & { useProxy?: boolean } = {
     encodeUrl: toBool(brunoSettings?.encodeUrl, true),
     timeout: resolveTimeoutSetting(brunoSettings?.timeout),
     followRedirects: toBool(brunoSettings?.followRedirects, true),
     maxRedirects: toMaxRedirects(brunoSettings?.maxRedirects),
     forwardAuthorizationHeader: toBool(brunoSettings?.forwardAuthorizationHeader, true)
   };
+  if (typeof brunoSettings?.useProxy === 'boolean') settings.useProxy = brunoSettings.useProxy;
   if (Array.isArray(brunoSettings?.omitHeaders) && brunoSettings.omitHeaders.length) {
     settings.omitHeaders = brunoSettings.omitHeaders;
   }

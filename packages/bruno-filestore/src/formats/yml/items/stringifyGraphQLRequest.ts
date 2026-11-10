@@ -125,7 +125,7 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
 
     // settings
     const httpSettings = item.settings as BrunoHttpItemSettings | undefined;
-    const settings: GraphQLRequestSettings = {};
+    const settings: GraphQLRequestSettings & { useProxy?: boolean } = {};
     if (httpSettings?.encodeUrl === true) {
       settings.encodeUrl = true;
     } else if (httpSettings?.encodeUrl === false) {
@@ -147,6 +147,8 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
     settings.maxRedirects = toMaxRedirects(httpSettings?.maxRedirects);
 
     settings.forwardAuthorizationHeader = httpSettings?.forwardAuthorizationHeader ?? true;
+
+    if (typeof httpSettings?.useProxy === 'boolean') settings.useProxy = httpSettings.useProxy;
 
     ocRequest.settings = settings;
 
