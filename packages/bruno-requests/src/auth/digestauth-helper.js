@@ -99,8 +99,9 @@ export function addDigestInterceptor(axiosInstance, request) {
         const method = (originalRequest.method || request.method || 'GET').toUpperCase();
         const HA1 = md5(`${username}:${authDetails.realm}:${password}`);
         const HA2 = md5(`${method}:${uri}`);
+        const usesQopAuth = Boolean(authDetails.qop?.split(',').map((q) => q.trim().toLowerCase()).includes('auth'));
         let response;
-        if (authDetails.qop && authDetails.qop.split(',').map((q) => q.trim().toLowerCase()).includes('auth')) {
+        if (usesQopAuth) {
           console.debug('Using QOP \'auth\' for Digest Authentication');
           response = md5(`${HA1}:${authDetails.nonce}:${nonceCount}:${cnonce}:auth:${HA2}`);
         } else {
@@ -116,8 +117,9 @@ export function addDigestInterceptor(axiosInstance, request) {
           `response="${response}"`
         ];
 
-        if (authDetails.qop && authDetails.qop.split(',').map((q) => q.trim().toLowerCase()).includes('auth')) {
-          headerFields.push(`qop="auth"`, `algorithm="${authDetails.algorithm}"`, `nc="${nonceCount}"`, `cnonce="${cnonce}"`);
+        if (usesQopAuth) {
+          // RFC 7616 §3.4: algorithm, qop and nc are sent as unquoted tokens
+          headerFields.push('qop=auth', `algorithm=${authDetails.algorithm}`, `nc=${nonceCount}`, `cnonce="${cnonce}"`);
         }
 
         if (authDetails.opaque) {
