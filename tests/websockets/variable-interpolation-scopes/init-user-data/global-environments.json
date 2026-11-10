@@ -1,0 +1,35 @@
+{
+  "environments": [
+    {
+      "uid": "FlaexlO7lcH7UtEpWsVyz",
+      "name": "WS-Global",
+      "variables": [
+        {
+          "uid": "lflBDSYBdHkUedYhBF4Ty",
+          "name": "region",
+          "value": "US",
+          "type": "text",
+          "secret": false,
+          "enabled": true
+        },
+        {
+          "uid": "mgnCEZTCeIlVfeZiCG5Uz",
+          "name": "globalName",
+          "value": "TestGlobal",
+          "type": "text",
+          "secret": false,
+          "enabled": true
+        },
+        {
+          "uid": "nhoDFaUDfJmWgfAjDH6Va",
+          "name": "version",
+          "value": "1.0",
+          "type": "text",
+          "secret": false,
+          "enabled": true
+        }
+      ]
+    }
+  ],
+  "activeGlobalEnvironmentUid": "FlaexlO7lcH7UtEpWsVyz"
+}

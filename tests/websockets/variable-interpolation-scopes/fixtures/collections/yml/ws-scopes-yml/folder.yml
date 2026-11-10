@@ -1,0 +1,13 @@
+info:
+  name: ws-scopes-yml
+  type: folder
+  seq: 1
+
+request:
+  variables:
+    - name: userId
+      value: user123
+    - name: folderName
+      value: TestFolder
+    - name: orgUnit
+      value: HQ
