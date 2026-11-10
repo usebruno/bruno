@@ -128,7 +128,7 @@ bru.ctx.onVariablesChange   = (variables) => { ... }
 
 ### Collection-/folder-level app (edited from the collection's own app editor)
 \`\`\`js
-bru.ctx.theme / bru.ctx.variables / bru.ctx.variables.runtime.set / bru.ctx.log / bru.ctx.onInit   // as above
+bru.ctx.theme / bru.ctx.variables / bru.ctx.variables.runtime.set / bru.ctx.variables.runtime.unset / bru.ctx.log / bru.ctx.onInit   // as above
 bru.ctx.collection                        // { name, pathname } | null
 bru.ctx.listRequests()                    // Promise<Array<{ uid, name, pathname, type, method, url }>>
 bru.ctx.runRequest(pathname, options?)    // run a request by pathname; returns Promise<response>
