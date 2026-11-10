@@ -9,6 +9,12 @@
  *  }
  * });
  * Output: Hello, my name is Bruno and I am 6 years old
+ *
+ * A placeholder can carry a default value, separated by `:-`. The default is used when the
+ * variable is not defined or resolves to an empty value (undefined, null or '').
+ *
+ * Ex: interpolate('{{host:-localhost}}:{{port:-3000}}', { port: '' });
+ * Output: localhost:3000
  */
 
 import { mockDataFunctions } from '../utils/faker-functions';
@@ -16,6 +22,8 @@ import { get, isPlainObject, mapValues } from 'lodash-es';
 
 // regex to match {{$keyword}}
 const MOCK_PATTERN = /\{\{\$(\w+)\}\}/g;
+// separator between a variable name and its default value: {{name:-default}}
+const DEFAULT_VALUE_SEPARATOR = ':-';
 const JSON_SPECIAL_CHARS = /[\\\n\r\t\"]/;
 
 const escapeJSONString = (str: string): string => {
@@ -65,6 +73,56 @@ const prepareMockObj = (
   return processed;
 };
 
+type VariablePlaceholder = {
+  name: string;
+  defaultValue?: string;
+};
+
+/**
+ * Splits the content of a `{{...}}` placeholder into the variable name and its optional
+ * default value. `host:-localhost` => { name: 'host', defaultValue: 'localhost' }.
+ * Only the first `:-` is treated as the separator so the default itself may contain `:-`.
+ */
+export const parseVariablePlaceholder = (placeholder: string): VariablePlaceholder => {
+  if (typeof placeholder !== 'string') {
+    return { name: placeholder };
+  }
+
+  const separatorIndex = placeholder.indexOf(DEFAULT_VALUE_SEPARATOR);
+  if (separatorIndex <= 0) {
+    return { name: placeholder };
+  }
+
+  return {
+    name: placeholder.slice(0, separatorIndex),
+    defaultValue: placeholder.slice(separatorIndex + DEFAULT_VALUE_SEPARATOR.length)
+  };
+};
+
+const isEmptyValue = (value: unknown): boolean => {
+  return value === undefined || value === null || value === '';
+};
+
+/**
+ * Resolves a placeholder against the variables object.
+ * A variable whose name literally contains `:-` keeps working: the full placeholder is looked up
+ * first and the default value syntax only kicks in when that lookup finds nothing.
+ */
+const resolvePlaceholder = (placeholder: string, obj: Record<string, any>): any => {
+  const value = get(obj, placeholder);
+  if (value !== undefined) {
+    return value;
+  }
+
+  const { name, defaultValue } = parseVariablePlaceholder(placeholder);
+  if (defaultValue === undefined) {
+    return value;
+  }
+
+  const namedValue = get(obj, name);
+  return isEmptyValue(namedValue) ? defaultValue : namedValue;
+};
+
 type InterpolateOptions = {
   escapeJSONStrings?: boolean;
   onUnresolved?: (name: string) => void;
@@ -105,7 +163,7 @@ const replace = (
     const patternRegex = /\{\{([^}]+)\}\}/g;
     matchFound = false;
     resultStr = resultStr.replace(patternRegex, (match, placeholder) => {
-      let replacement = get(obj, placeholder);
+      let replacement = resolvePlaceholder(placeholder, obj);
       if (typeof replacement === 'object' && replacement !== null) {
         replacement = JSON.stringify(replacement);
       }

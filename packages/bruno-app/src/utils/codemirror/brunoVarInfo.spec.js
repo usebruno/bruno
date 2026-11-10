@@ -17,6 +17,7 @@ import { COPY_SUCCESS_TIMEOUT, extractVariableInfo, renderVarInfo } from './brun
 // Mock the dependencies
 jest.mock('@usebruno/common', () => ({
   interpolate: jest.fn(),
+  parseVariablePlaceholder: jest.requireActual('@usebruno/common').parseVariablePlaceholder,
   mockDataFunctions: {
     randomFirstName: jest.fn(() => 'John'),
     randomLastName: jest.fn(() => 'Doe'),
@@ -175,6 +176,24 @@ describe('extractVariableInfo', () => {
       expect(result).toEqual({
         variableName: 'nonExistent',
         variableValue: undefined
+      });
+    });
+
+    it('should resolve a variable with a default value to the variable when it is set', () => {
+      const result = extractVariableInfo('{{apiKey:-fallback-key}}', mockVariables);
+
+      expect(result).toEqual({
+        variableName: 'apiKey',
+        variableValue: 'test-api-key-123'
+      });
+    });
+
+    it('should resolve a variable with a default value to the default when it is not set', () => {
+      const result = extractVariableInfo('{{nonExistent:-http://localhost:3000}}', mockVariables);
+
+      expect(result).toEqual({
+        variableName: 'nonExistent',
+        variableValue: 'http://localhost:3000'
       });
     });
 

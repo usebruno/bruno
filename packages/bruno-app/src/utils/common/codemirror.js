@@ -1,12 +1,18 @@
 import get from 'lodash/get';
-import { mockDataFunctions } from '@usebruno/common';
+import { mockDataFunctions, parseVariablePlaceholder } from '@usebruno/common';
 import { PROMPT_VARIABLE_TEXT_PATTERN } from '@usebruno/common/utils';
 
 const CodeMirror = require('codemirror');
 
 const pathFoundInVariables = (path, obj) => {
   const value = get(obj, path);
-  return value !== undefined;
+  if (value !== undefined) {
+    return true;
+  }
+
+  // {{name:-default}} always resolves, either to the variable or to its default value
+  const { name, defaultValue } = parseVariablePlaceholder(path);
+  return defaultValue !== undefined && name.length > 0;
 };
 
 /**

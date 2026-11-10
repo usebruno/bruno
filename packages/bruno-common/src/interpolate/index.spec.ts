@@ -1,4 +1,4 @@
-import interpolate, { interpolateObject } from './index';
+import interpolate, { interpolateObject, parseVariablePlaceholder } from './index';
 import moment from 'moment';
 
 const BRUNO_BIRTH_DATE = new Date('2019-08-08');
@@ -700,6 +700,94 @@ describe('interpolate - onUnresolved', () => {
 
   it('reports a missing name reached through a nested variable', () => {
     expect(collectUnresolved('{{outer}}', { outer: 'pre-{{inner}}' })).toEqual(['inner']);
+  });
+});
+
+describe('interpolate - default values', () => {
+  it('should use the default value when the variable is not defined', () => {
+    const result = interpolate('{{host:-localhost}}', {});
+
+    expect(result).toBe('localhost');
+  });
+
+  it('should use the variable value when it is defined', () => {
+    const result = interpolate('{{host:-localhost}}', { host: 'api.example.com' });
+
+    expect(result).toBe('api.example.com');
+  });
+
+  it('should use the default value when the variable is empty or null', () => {
+    const obj = { empty: '', nullish: null };
+
+    expect(interpolate('{{empty:-fallback}}', obj)).toBe('fallback');
+    expect(interpolate('{{nullish:-fallback}}', obj)).toBe('fallback');
+  });
+
+  it('should keep falsy values that are not empty', () => {
+    const obj = { zero: 0, flag: false };
+
+    expect(interpolate('{{zero:-9}}', obj)).toBe('0');
+    expect(interpolate('{{flag:-true}}', obj)).toBe('false');
+  });
+
+  it('should allow an empty default value', () => {
+    const result = interpolate('[{{optional:-}}]', {});
+
+    expect(result).toBe('[]');
+  });
+
+  it('should support defaults that contain special characters and further separators', () => {
+    const obj = {};
+
+    expect(interpolate('{{baseUrl:-http://localhost:3000/api}}', obj)).toBe('http://localhost:3000/api');
+    expect(interpolate('{{range:-1:-5}}', obj)).toBe('1:-5');
+  });
+
+  it('should support defaults on dot notation and process.env variables', () => {
+    const obj = { user: { name: 'Bruno' }, process: { env: {} } };
+
+    expect(interpolate('{{user.name:-anonymous}}', obj)).toBe('Bruno');
+    expect(interpolate('{{user.email:-none@example.com}}', obj)).toBe('none@example.com');
+    expect(interpolate('{{process.env.API_KEY:-dev-key}}', obj)).toBe('dev-key');
+  });
+
+  it('should interpolate variables inside the resolved value, not inside the default', () => {
+    const obj = { greeting: 'Hello {{name}}', name: 'Bruno' };
+
+    expect(interpolate('{{greeting:-Hi}}', obj)).toBe('Hello Bruno');
+  });
+
+  it('should prefer a variable whose name literally contains the separator', () => {
+    const obj = { 'weird:-name': 'literal' };
+
+    expect(interpolate('{{weird:-name}}', obj)).toBe('literal');
+  });
+
+  it('should leave the placeholder unchanged when the separator is at the start', () => {
+    const result = interpolate('{{:-fallback}}', {});
+
+    expect(result).toBe('{{:-fallback}}');
+  });
+
+  it('should not report a variable as unresolved when its default is used', () => {
+    const names: string[] = [];
+    interpolate('{{host:-localhost}}/{{path}}', {}, { onUnresolved: (name) => names.push(name) });
+
+    expect(names).toEqual(['path']);
+  });
+});
+
+describe('parseVariablePlaceholder', () => {
+  it('should split a placeholder into name and default value', () => {
+    expect(parseVariablePlaceholder('host:-localhost')).toEqual({ name: 'host', defaultValue: 'localhost' });
+    expect(parseVariablePlaceholder('range:-1:-5')).toEqual({ name: 'range', defaultValue: '1:-5' });
+    expect(parseVariablePlaceholder('optional:-')).toEqual({ name: 'optional', defaultValue: '' });
+  });
+
+  it('should return only the name when there is no default value', () => {
+    expect(parseVariablePlaceholder('host')).toEqual({ name: 'host' });
+    expect(parseVariablePlaceholder('fav-food')).toEqual({ name: 'fav-food' });
+    expect(parseVariablePlaceholder(':-fallback')).toEqual({ name: ':-fallback' });
   });
 });
 
