@@ -7,17 +7,17 @@ try {
 }
 
 const fakerInt = (min, max) => {
-  if (!faker) return 1;
+  if (!faker) return Math.ceil(min);
   if (faker.number?.int) return faker.number.int({ min, max });
   if (faker.datatype?.number) return faker.datatype.number({ min, max });
-  return 1;
+  return Math.ceil(min);
 };
 
 const fakerFloat = (min, max) => {
-  if (!faker) return 1;
+  if (!faker) return min;
   if (faker.number?.float) return faker.number.float({ min, max, fractionDigits: 2 });
   if (faker.datatype?.float) return faker.datatype.float({ min, max, precision: 0.01 });
-  return 1;
+  return min;
 };
 
 const fakerBoolean = () => {
