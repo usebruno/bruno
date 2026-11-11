@@ -59,12 +59,24 @@ const findImportableFiles = async (folderPath) => {
     const filePath = path.join(folderPath, entry.name);
     const format = await isRealFile(entry, filePath) && await detectFormat(filePath, entry.name);
     if (format) {
-      importableFiles.push({ name: entry.name, format });
+      importableFiles.push({ path: filePath, name: entry.name, format });
     }
   }
   return importableFiles;
 };
 
+const readImportableFileText = async (filePath) => {
+  const name = path.basename(filePath);
+  const stats = await fs.lstat(filePath).catch(() => null);
+  const format = stats?.isFile() && await detectFormat(filePath, name);
+  if (!format || format === 'zip') {
+    throw new Error(`${name} isn’t a file Bruno can import`);
+  }
+  const text = await fs.readFile(filePath, 'utf8');
+  return text.replace(/^\uFEFF/, '');
+};
+
 module.exports = {
-  findImportableFiles
+  findImportableFiles,
+  readImportableFileText
 };

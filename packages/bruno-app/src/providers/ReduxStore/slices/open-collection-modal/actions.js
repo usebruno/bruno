@@ -1,6 +1,7 @@
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { uuid } from 'utils/common';
+import { formatIpcError } from 'utils/common/error';
 import { callIpc } from 'utils/common/ipc';
 import { selectCollections } from 'src/selectors/collections';
 import { updatePreferences } from 'providers/ReduxStore/slices/app';
@@ -16,12 +17,15 @@ import {
   folderSearchFinished,
   folderPickEnded,
   folderResultCleared,
+  importLoadStarted,
+  importLoadEnded,
   collectionsOpeningStarted,
   collectionsOpeningEnded
 } from './index';
 import { selectOpenCollectionPathKeys } from './selectors';
 import { countOf, getFolderSearchOutcome } from './folder-results';
 import { getFolderName, toPathKey } from './collection-paths';
+import { readImportableFile, readImportFiles, readImportText } from './import-sources';
 
 const CHOOSE_FOLDER_PAGE = 'choose-folder';
 const IMPORT_PAGE = 'import';
@@ -134,7 +138,44 @@ export const findCollectionsInFolders = (folderPaths, droppedFileCount = 0) => a
   }
 };
 
-export const openDroppedItems = ({ folderPaths, hasFolders, fileCount }) => async (dispatch, getState) => {
+export const cancelCollectionSearch = () => (dispatch, getState) => {
+  cancelSearchInMain(getState().openCollectionModal.chooseFolder.searchId);
+  dispatch(folderPickEnded());
+};
+
+const loadImportData = (read) => async (dispatch, getState) => {
+  if (getState().openCollectionModal.chooseFolder.searchId) {
+    dispatch(cancelCollectionSearch());
+  }
+  const loadId = uuid();
+  dispatch(importLoadStarted(loadId));
+  const isCurrentLoad = () => getState().openCollectionModal.importLoadId === loadId;
+
+  try {
+    const importData = await read();
+    if (isCurrentLoad()) {
+      dispatch(importLoadEnded());
+      return importData;
+    }
+  } catch (error) {
+    if (isCurrentLoad()) {
+      dispatch(importLoadEnded());
+      toast.error(formatIpcError(error) || 'Import collection failed');
+    }
+  }
+  return null;
+};
+
+export const loadImportFiles = (files) => loadImportData(() => readImportFiles(files));
+
+export const loadImportText = (text) => loadImportData(() => readImportText(text));
+
+export const loadImportableFile = (file) => (dispatch) => {
+  dispatch(showOpenCollectionPage(IMPORT_PAGE));
+  return dispatch(loadImportData(() => readImportableFile(file)));
+};
+
+export const openDroppedItems = ({ folderPaths, hasFolders, files }) => async (dispatch, getState) => {
   if (getState().openCollectionModal.openingId) {
     return;
   }
@@ -144,9 +185,10 @@ export const openDroppedItems = ({ folderPaths, hasFolders, fileCount }) => asyn
   }
   if (folderPaths.length > 0) {
     dispatch(showOpenCollectionPage(CHOOSE_FOLDER_PAGE));
-    await dispatch(findCollectionsInFolders(folderPaths, fileCount));
-  } else if (fileCount > 0) {
+    await dispatch(findCollectionsInFolders(folderPaths, files.length));
+  } else if (files.length > 0) {
     dispatch(showOpenCollectionPage(IMPORT_PAGE));
+    return dispatch(loadImportFiles(files));
   }
 };
 
@@ -189,11 +231,6 @@ export const saveAutoOpenFolderPicker = (enabled) => async (dispatch, getState) 
     }
     toast.error('Failed to save preferences');
   }
-};
-
-export const cancelCollectionSearch = () => (dispatch, getState) => {
-  cancelSearchInMain(getState().openCollectionModal.chooseFolder.searchId);
-  dispatch(folderPickEnded());
 };
 
 export const openCollectionModal = (page) => (dispatch, getState) => {

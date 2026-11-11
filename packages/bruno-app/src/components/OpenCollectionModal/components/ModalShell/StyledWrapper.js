@@ -66,6 +66,10 @@ const StyledWrapper = styled.div`
     flex-direction: column;
   }
 
+  .modal-card:has(.is-drag-over) .drop-overlay {
+    display: none;
+  }
+
   .modal-page {
     position: relative;
     flex: 1;

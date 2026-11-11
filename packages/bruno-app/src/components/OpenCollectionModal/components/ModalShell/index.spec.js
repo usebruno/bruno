@@ -10,8 +10,13 @@ import openCollectionModalReducer, {
   showOpenCollectionModal
 } from 'providers/ReduxStore/slices/open-collection-modal';
 import OpenCollectionModal from 'components/OpenCollectionModal';
+import { ImportHandoffContext } from '../ImportHandoff/context';
 import ModalShell from './index';
 
+jest.mock('nanoid', () => {
+  let count = 0;
+  return { customAlphabet: () => () => `mock-id-${(count += 1)}` };
+});
 jest.mock('../../sidebar/ChooseFolderPage', () => ({
   __esModule: true,
   default: () => (
@@ -39,7 +44,9 @@ const createStore = (openCollectionModal = { isOpen: true, page: 'choose-folder'
 const renderWithStore = (ui, store) =>
   render(
     <Provider store={store}>
-      <ThemeProvider>{ui}</ThemeProvider>
+      <ImportHandoffContext.Provider value={(load) => store.dispatch(load)}>
+        <ThemeProvider>{ui}</ThemeProvider>
+      </ImportHandoffContext.Provider>
     </Provider>
   );
 
@@ -155,6 +162,14 @@ describe('ModalShell', () => {
       expect(queryOverlay()).toBeInTheDocument();
     });
 
+    it('leaves a dragged link or text to the field under it', () => {
+      renderShell();
+      const textDrag = { types: ['text/plain'] };
+
+      expect(fireEvent.dragOver(dialog(), { dataTransfer: textDrag })).toBe(true);
+      expect(fireEvent.drop(dialog(), { dataTransfer: textDrag })).toBe(true);
+    });
+
     it('ignores a drag that carries no files', () => {
       renderShell();
 
@@ -184,18 +199,40 @@ describe('ModalShell', () => {
       expect(queryOverlay()).toBeInTheDocument();
     });
 
-    it('hides the overlay on drop and goes to Import when only files were dropped', () => {
+    it('hides the overlay on drop and goes to Import when only files were dropped', async () => {
       window.ipcRenderer = { getFilePath: jest.fn(), send: jest.fn() };
       const store = renderShell();
-      const item = { kind: 'file', webkitGetAsEntry: () => ({ isDirectory: false }), getAsFile: () => ({}) };
+      const file = { name: 'notes.json', text: () => Promise.resolve('{}') };
+      const item = { kind: 'file', webkitGetAsEntry: () => ({ isDirectory: false }), getAsFile: () => file };
 
       fireEvent.dragEnter(dialog(), { dataTransfer: fileDrag });
       fireEvent.drop(dialog(), { dataTransfer: { ...fileDrag, items: [item] } });
 
       expect(queryOverlay()).not.toBeInTheDocument();
       expect(store.getState().openCollectionModal.page).toBe('import');
+      await waitFor(() => expect(store.getState().openCollectionModal.importLoadId).toBeNull());
       delete window.ipcRenderer;
     });
+  });
+
+  it('offers to import the file a note names', async () => {
+    const importFile = { path: '/work/notes.json', name: 'notes.json', format: 'postman' };
+    const result = { id: 'search-1', type: 'message', note: { tone: 'info', text: 'Needs importing.', importFile } };
+    const store = createStore({ isOpen: true, page: 'choose-folder', chooseFolder: { ...closedState.chooseFolder, result } });
+    renderWithStore(<ModalShell />, store);
+
+    fireEvent.click(screen.getByTestId('open-collection-note-action'));
+
+    expect(store.getState().openCollectionModal.page).toBe('import');
+    await waitFor(() => expect(store.getState().openCollectionModal.importLoadId).toBeNull());
+  });
+
+  it('leaves the note without an action when it names no file', () => {
+    const result = { id: 'search-1', type: 'message', note: { tone: 'info', text: 'Not a collection.' } };
+    const store = createStore({ isOpen: true, page: 'choose-folder', chooseFolder: { ...closedState.chooseFolder, result } });
+    renderWithStore(<ModalShell />, store);
+
+    expect(screen.queryByTestId('open-collection-note-action')).not.toBeInTheDocument();
   });
 
   it('leaves the page reachable when nothing is opening', () => {

@@ -2,7 +2,7 @@ import { IconUpload } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
 const DropOverlay = () => (
-  <StyledWrapper role="status" data-testid="open-collection-drop-overlay">
+  <StyledWrapper className="drop-overlay" role="status" data-testid="open-collection-drop-overlay">
     <div className="drop-overlay-content">
       <span className="drop-overlay-icon" aria-hidden="true">
         <IconUpload size={22} strokeWidth={1.75} />

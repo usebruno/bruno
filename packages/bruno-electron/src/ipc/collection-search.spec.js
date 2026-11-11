@@ -9,10 +9,14 @@ jest.mock('../services/transient', () => ({
 jest.mock('../services/collection-search/find-in-folders', () => ({
   findCollectionsInFolders: jest.fn()
 }));
+jest.mock('../services/collection-search/importable-files', () => ({
+  readImportableFileText: jest.fn()
+}));
 
 const { ipcMain } = require('electron');
 const { findCollectionsInFolders } = require('../services/collection-search/find-in-folders');
-const { findInFolders, cancelSearch, registerCollectionSearchIpc } = require('./collection-search');
+const { readImportableFileText } = require('../services/collection-search/importable-files');
+const { findInFolders, cancelSearch, readImportableFile, registerCollectionSearchIpc } = require('./collection-search');
 
 const pickedFolder = path.resolve('picked');
 
@@ -31,8 +35,25 @@ describe('collection search IPC', () => {
 
     expect(ipcMain.handle.mock.calls.map(([channel]) => channel)).toEqual([
       'renderer:collection-search:find-in-folders',
-      'renderer:collection-search:cancel'
+      'renderer:collection-search:cancel',
+      'renderer:collection-search:read-importable-file'
     ]);
+  });
+
+  it('reads an importable file by its absolute path', async () => {
+    readImportableFileText.mockResolvedValue('text');
+
+    await expect(readImportableFile({ path: pickedFolder })).resolves.toBe('text');
+    expect(readImportableFileText).toHaveBeenCalledWith(pickedFolder);
+  });
+
+  it.each([
+    ['nothing', undefined],
+    ['a relative path', { path: 'openapi.json' }],
+    ['a non-string path', { path: 42 }]
+  ])('refuses to read %s', (_description, request) => {
+    expect(() => readImportableFile(request)).toThrow('Reading an importable file needs an absolute path');
+    expect(readImportableFileText).not.toHaveBeenCalled();
   });
 
   it('searches the picked folders and leaves out the transient folder', async () => {

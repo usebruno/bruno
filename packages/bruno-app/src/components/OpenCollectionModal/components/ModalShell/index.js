@@ -2,20 +2,19 @@ import { useCallback, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Portal from 'components/Portal';
 import { folderNoteDismissed } from 'providers/ReduxStore/slices/open-collection-modal';
-import { closeOpenCollectionModal, openDroppedItems } from 'providers/ReduxStore/slices/open-collection-modal/actions';
+import { closeOpenCollectionModal, loadImportableFile, openDroppedItems } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import { OPEN_COLLECTION_PAGES } from '../../sidebar/pages';
 import BusyOverlay from '../BusyOverlay';
 import DropOverlay from '../DropOverlay';
+import { useImportHandoff } from '../ImportHandoff/context';
 import ModalMenu from '../../sidebar/ModalMenu';
 import Note from '../Note';
 import PageHeader from '../PageHeader';
 import { getTabbableElements } from '../../utils/focus';
-import { readDroppedItems } from '../../utils/dropped-items';
+import { isDraggingFiles, readDroppedItems } from '../../utils/dropped-items';
 import StyledWrapper from './StyledWrapper';
 
 const TITLE_ID = 'open-collection-modal-title';
-
-const isDraggingFiles = (event) => Array.from(event.dataTransfer.types).includes('Files');
 
 const keepTabInside = (dialog, event) => {
   const tabbable = getTabbableElements(dialog);
@@ -36,6 +35,7 @@ const keepTabInside = (dialog, event) => {
 
 const ModalShell = () => {
   const dispatch = useDispatch();
+  const importFrom = useImportHandoff();
   const [opener] = useState(() => document.activeElement);
   const pageId = useSelector((state) => state.openCollectionModal.page);
   const isOpening = useSelector((state) => state.openCollectionModal.openingId !== null);
@@ -54,6 +54,9 @@ const ModalShell = () => {
   };
 
   const handleDragOver = (event) => {
+    if (!isDraggingFiles(event)) {
+      return;
+    }
     event.preventDefault();
     event.dataTransfer.dropEffect = 'copy';
   };
@@ -66,10 +69,13 @@ const ModalShell = () => {
   };
 
   const handleDrop = (event) => {
+    if (!isDraggingFiles(event)) {
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     setShowDropOverlay(false);
-    dispatch(openDroppedItems(readDroppedItems(event.dataTransfer, window.ipcRenderer.getFilePath)));
+    importFrom(openDroppedItems(readDroppedItems(event.dataTransfer, window.ipcRenderer.getFilePath)));
   };
 
   const attachDialog = useCallback((dialog) => {
@@ -120,7 +126,11 @@ const ModalShell = () => {
           <div className="modal-main">
             <PageHeader title={page.title} description={page.description} onClose={close} />
             {note ? (
-              <Note tone={note.tone} onDismiss={() => dispatch(folderNoteDismissed())}>
+              <Note
+                tone={note.tone}
+                action={note.importFile ? { label: 'Import it', onClick: () => importFrom(loadImportableFile(note.importFile)) } : null}
+                onDismiss={() => dispatch(folderNoteDismissed())}
+              >
                 {note.text}
               </Note>
             ) : null}

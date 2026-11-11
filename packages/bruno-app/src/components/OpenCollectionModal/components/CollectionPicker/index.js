@@ -92,7 +92,7 @@ const CollectionPicker = ({
   return (
     <StyledWrapper>
       <div className="collection-picker-search">
-        <IconSearch size={15} strokeWidth={1.75} className="collection-picker-search-icon" aria-hidden="true" />
+        <IconSearch size={15} strokeWidth={1.75} aria-hidden="true" />
         <input
           ref={searchInput}
           type="text"

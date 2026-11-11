@@ -6,10 +6,14 @@ import { updatePreferences } from 'providers/ReduxStore/slices/app';
 import { expandCollection } from 'providers/ReduxStore/slices/collections';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import openCollectionModalReducer, { showOpenCollectionModal } from './index';
+import { readImportableFile, readImportFiles, readImportText } from './import-sources';
 import {
   cancelCollectionSearch,
   closeOpenCollectionModal,
   findCollectionsInFolders,
+  loadImportableFile,
+  loadImportFiles,
+  loadImportText,
   openCollectionModal,
   openCollectionsFromModal,
   openDroppedItems,
@@ -29,6 +33,11 @@ jest.mock('react-hot-toast', () => {
   return { __esModule: true, default: mockToast };
 });
 jest.mock('utils/common/ipc', () => ({ callIpc: jest.fn() }));
+jest.mock('./import-sources', () => ({
+  readImportFiles: jest.fn(),
+  readImportText: jest.fn(),
+  readImportableFile: jest.fn()
+}));
 jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
   browseDirectories: jest.fn(),
   mountCollection: jest.fn(),
@@ -121,6 +130,9 @@ const pickerReturns = (result) => browseDirectories.mockReturnValue(() => result
 
 const searchReturns = (result) =>
   callIpc.mockImplementation((channel) => (channel === FIND_IN_FOLDERS ? result : Promise.resolve()));
+
+const droppedFile = { name: 'openapi.yaml' };
+const importData = { rawData: { openapi: '3.0.0' }, type: 'openapi' };
 
 const openingReturns = (result) => openMultipleCollections.mockReturnValue(() => result);
 
@@ -425,6 +437,84 @@ describe('open collection modal actions', () => {
     });
   });
 
+  describe('loading something to import', () => {
+    it('returns what it read and ends the load', async () => {
+      readImportFiles.mockResolvedValue(importData);
+      const { store } = createStore({ modal: openOn('import') });
+
+      await expect(store.dispatch(loadImportFiles([droppedFile]))).resolves.toEqual(importData);
+
+      expect(modalState(store).importLoadId).toBeNull();
+    });
+
+    it('marks the page as loading while it reads', () => {
+      readImportText.mockReturnValue(new Promise(() => {}));
+      const { store } = createStore({ modal: openOn('import') });
+
+      store.dispatch(loadImportText('https://example.com/spec.yaml'));
+
+      expect(modalState(store).importLoadId).toEqual(expect.any(String));
+    });
+
+    it('shows why in a toast when it cannot be read, without the IPC prefix', async () => {
+      readImportText.mockRejectedValue(new Error('Error invoking remote method \'renderer:x\': Error: No such file'));
+      const { store } = createStore({ modal: openOn('import') });
+
+      await expect(store.dispatch(loadImportText('{}'))).resolves.toBeNull();
+
+      expect(toast.error).toHaveBeenCalledWith('No such file');
+      expect(modalState(store).importLoadId).toBeNull();
+    });
+
+    it('ignores a read that finishes after the page was left', async () => {
+      const reading = deferred();
+      readImportText.mockReturnValue(reading.promise);
+      const { store } = createStore({ modal: openOn('import') });
+
+      const loading = store.dispatch(loadImportText('https://example.com/spec.yaml'));
+      store.dispatch(openCollectionModal('recents'));
+      reading.resolve(importData);
+
+      await expect(loading).resolves.toBeNull();
+      expect(modalState(store).importLoadId).toBeNull();
+    });
+
+    it('stays quiet about a failed read after the page was left', async () => {
+      const reading = deferred();
+      readImportText.mockReturnValue(reading.promise);
+      const { store } = createStore({ modal: openOn('import') });
+
+      const loading = store.dispatch(loadImportText('https://example.com/spec.yaml'));
+      store.dispatch(openCollectionModal('recents'));
+      reading.reject(new Error('Nope'));
+
+      await expect(loading).resolves.toBeNull();
+      expect(toast.error).not.toHaveBeenCalled();
+    });
+
+    it('cancels a running folder search, which would otherwise take the page away', async () => {
+      readImportFiles.mockResolvedValue(importData);
+      const chooseFolder = { ...closedModal.chooseFolder, status: 'searching', searchId: 'search-1', searchLabel: 'work' };
+      const { store } = createStore({ modal: openOn('import', chooseFolder) });
+
+      await store.dispatch(loadImportFiles([droppedFile]));
+
+      expect(callIpc).toHaveBeenCalledWith(CANCEL_SEARCH, { requestId: 'search-1' });
+      expect(modalState(store).chooseFolder).toMatchObject({ status: 'idle', searchId: null });
+    });
+
+    it('shows the Import page before reading a file named in a note', async () => {
+      readImportableFile.mockResolvedValue(importData);
+      const { store } = createStore({ modal: openOn('choose-folder') });
+      const file = { path: '/work/openapi.yaml', name: 'openapi.yaml', format: 'openapi' };
+
+      await expect(store.dispatch(loadImportableFile(file))).resolves.toEqual(importData);
+
+      expect(readImportableFile).toHaveBeenCalledWith(file);
+      expect(modalState(store).page).toBe('import');
+    });
+  });
+
   describe('openDroppedItems', () => {
     const plainFolderResult = folderResult(
       [{ path: '/work', status: 'folder', collectionPaths: ['/work/api'], importableFiles: [] }],
@@ -435,7 +525,7 @@ describe('open collection modal actions', () => {
       searchReturns(Promise.resolve(plainFolderResult));
       const { store } = createStore({ modal: openOn('recents') });
 
-      await store.dispatch(openDroppedItems({ folderPaths: ['/work'], hasFolders: true, fileCount: 0 }));
+      await store.dispatch(openDroppedItems({ folderPaths: ['/work'], hasFolders: true, files: [] }));
 
       expect(browseDirectories).not.toHaveBeenCalled();
       expect(callIpc).toHaveBeenCalledWith(FIND_IN_FOLDERS, expect.objectContaining({ paths: ['/work'] }));
@@ -447,16 +537,19 @@ describe('open collection modal actions', () => {
       searchReturns(Promise.resolve(plainFolderResult));
       const { store } = createStore({ modal: openOn('choose-folder') });
 
-      await store.dispatch(openDroppedItems({ folderPaths: ['/work'], hasFolders: true, fileCount: 2 }));
+      await store.dispatch(openDroppedItems({ folderPaths: ['/work'], hasFolders: true, files: [droppedFile, droppedFile] }));
 
       expect(modalState(store).chooseFolder.result.note.text).toContain('2 dropped files weren’t opened.');
     });
 
-    it('goes to Import when only files were dropped', async () => {
+    it('goes to Import and returns what the dropped files hold', async () => {
       const { store } = createStore({ modal: openOn('choose-folder') });
+      readImportFiles.mockResolvedValue(importData);
 
-      await store.dispatch(openDroppedItems({ folderPaths: [], hasFolders: false, fileCount: 1 }));
+      const result = await store.dispatch(openDroppedItems({ folderPaths: [], hasFolders: false, files: [droppedFile] }));
 
+      expect(result).toEqual(importData);
+      expect(readImportFiles).toHaveBeenCalledWith([droppedFile]);
       expect(modalState(store).page).toBe('import');
       expect(callIpc).not.toHaveBeenCalledWith(FIND_IN_FOLDERS, expect.anything());
     });
@@ -464,7 +557,7 @@ describe('open collection modal actions', () => {
     it('says when the dropped folders cannot be read', async () => {
       const { store } = createStore({ modal: openOn('recents') });
 
-      await store.dispatch(openDroppedItems({ folderPaths: [], hasFolders: true, fileCount: 1 }));
+      await store.dispatch(openDroppedItems({ folderPaths: [], hasFolders: true, files: [droppedFile] }));
 
       expect(toast.error).toHaveBeenCalledWith('Could not read the dropped folders');
       expect(modalState(store).page).toBe('recents');
@@ -473,7 +566,7 @@ describe('open collection modal actions', () => {
     it('does nothing when the drop held neither folders nor files', async () => {
       const { store } = createStore({ modal: openOn('recents') });
 
-      await store.dispatch(openDroppedItems({ folderPaths: [], hasFolders: false, fileCount: 0 }));
+      await store.dispatch(openDroppedItems({ folderPaths: [], hasFolders: false, files: [] }));
 
       expect(modalState(store).page).toBe('recents');
     });
@@ -481,7 +574,7 @@ describe('open collection modal actions', () => {
     it('ignores a drop while collections are opening', async () => {
       const { store } = createStore({ modal: { ...openOn('recents'), openingId: 'opening-1' } });
 
-      await store.dispatch(openDroppedItems({ folderPaths: ['/work'], hasFolders: true, fileCount: 0 }));
+      await store.dispatch(openDroppedItems({ folderPaths: ['/work'], hasFolders: true, files: [] }));
 
       expect(callIpc).not.toHaveBeenCalledWith(FIND_IN_FOLDERS, expect.anything());
       expect(modalState(store).page).toBe('recents');

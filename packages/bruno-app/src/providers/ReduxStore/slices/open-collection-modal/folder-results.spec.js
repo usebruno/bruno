@@ -99,7 +99,11 @@ describe('getFolderSearchOutcome with one folder', () => {
 
     expect(outcome).toEqual({
       type: 'message',
-      note: { tone: 'info', text: `exports isn’t a collection, but it has ${label} in it (${name}). That needs importing, not opening.` }
+      note: {
+        tone: 'info',
+        text: `exports isn’t a collection, but it has ${label} in it (${name}). That needs importing, not opening.`,
+        importFile: { path: `/work/exports/${name}`, name, format }
+      }
     });
   });
 
@@ -117,7 +121,8 @@ describe('getFolderSearchOutcome with one folder', () => {
 
     expect(outcome.note).toEqual({
       tone: 'warning',
-      text: 'exports isn’t a collection, but it has an importable file in it (a.zip). That needs importing, not opening. Bruno couldn’t read 1 folder inside it.'
+      text: 'exports isn’t a collection, but it has an importable file in it (a.zip). That needs importing, not opening. Bruno couldn’t read 1 folder inside it.',
+      importFile: { name: 'a.zip', format: 'zip' }
     });
   });
 

@@ -2,6 +2,7 @@ const path = require('node:path');
 const { ipcMain } = require('electron');
 const { transientManager } = require('../services/transient');
 const { findCollectionsInFolders } = require('../services/collection-search/find-in-folders');
+const { readImportableFileText } = require('../services/collection-search/importable-files');
 
 const MAX_FOLDERS_PER_SEARCH = 1000;
 const MAX_REQUEST_ID_LENGTH = 100;
@@ -51,13 +52,23 @@ const cancelSearch = (request) => {
   activeSearches.get(requestId)?.abort();
 };
 
+const readImportableFile = (request) => {
+  const { path: filePath } = request || {};
+  if (typeof filePath !== 'string' || !path.isAbsolute(filePath)) {
+    throw new Error('Reading an importable file needs an absolute path');
+  }
+  return readImportableFileText(filePath);
+};
+
 const registerCollectionSearchIpc = () => {
   ipcMain.handle('renderer:collection-search:find-in-folders', (_event, request) => findInFolders(request));
   ipcMain.handle('renderer:collection-search:cancel', (_event, request) => cancelSearch(request));
+  ipcMain.handle('renderer:collection-search:read-importable-file', (_event, request) => readImportableFile(request));
 };
 
 module.exports = {
   findInFolders,
   cancelSearch,
+  readImportableFile,
   registerCollectionSearchIpc
 };

@@ -23,7 +23,7 @@ export const countOf = (count, word) => `${count} ${pluralizeWord(word, count)}`
 const unique = (values) => [...new Set(values)];
 const sentences = (...parts) => parts.filter(Boolean).join(' ');
 
-const showMessage = (tone, text) => ({ type: 'message', note: { tone, text } });
+const showMessage = (tone, text, importFile) => ({ type: 'message', note: importFile ? { tone, text, importFile } : { tone, text } });
 
 const showList = ({ collections, folders, preselect, tone, text }) => ({
   type: 'list',
@@ -83,7 +83,7 @@ const decideOutcome = (searchResult, openPathKeys) => {
         return showMessage(tone, sentences(
           `${name} isn’t a collection, but it has ${IMPORTABLE_FILE_LABELS[file.format]} in it (${file.name}). That needs importing, not opening.`,
           missingText
-        ));
+        ), file);
       }
       return showMessage(tone, sentences(`${name} isn’t a Bruno collection.`, COLLECTION_FOLDER_HINT, missingText));
     }
