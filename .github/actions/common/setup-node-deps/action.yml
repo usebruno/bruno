@@ -37,3 +37,4 @@ runs:
         npm run build:bruno-filestore
         npm run build:bruno-io
         npm run build:bruno-sqlite
+        npm run generate:script-api --workspace=packages/bruno-js -- --manifest-only
