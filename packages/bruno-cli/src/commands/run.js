@@ -830,8 +830,8 @@ const handler = async function (argv) {
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
     let isFirstRequest = true;
+    const isValidDelay = !Number.isNaN(delay) && delay > 0;
     while (currentRequestIndex < requestItems.length) {
-      const isValidDelay = !Number.isNaN(delay) && delay > 0;
       if (!isFirstRequest && isValidDelay && !runAbortSignal.aborted) {
         console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay / 1000).toFixed(3)}s before next request.`));
         await setTimeout(delay, undefined, { signal: runAbortSignal }).catch(() => {});

@@ -1641,18 +1641,16 @@ const registerNetworkIpc = (mainWindow) => {
         let currentRequestIndex = 0;
         let nJumps = 0; // count the number of jumps to avoid infinite loops
         let isFirstRequest = true;
-        while (currentRequestIndex < folderRequests.length) {
-          if (!isFirstRequest && delay > 0) {
-            await setTimeout(delay, undefined, { signal: abortController.signal }).catch(() => {});
-          }
-          isFirstRequest = false;
-
-          // user requested to cancel runner
+        const throwIfRunCancelled = () => {
           if (abortController.signal.aborted) {
-            let error = new Error('Runner execution cancelled');
+            const error = new Error('Runner execution cancelled');
             error.isCancel = true;
             throw error;
           }
+        };
+
+        while (currentRequestIndex < folderRequests.length) {
+          throwIfRunCancelled();
 
           stopRunnerExecution = false;
 
@@ -1705,6 +1703,27 @@ const registerNetworkIpc = (mainWindow) => {
             });
             currentRequestIndex++;
             continue;
+          }
+
+          if (!isFirstRequest && delay > 0) {
+            await setTimeout(delay, undefined, { signal: abortController.signal }).catch(() => {});
+          }
+          isFirstRequest = false;
+
+          if (abortController.signal.aborted) {
+            mainWindow.webContents.send('main:run-folder-event', {
+              type: 'runner-request-skipped',
+              error: 'Runner execution cancelled',
+              responseReceived: {
+                status: 'skipped',
+                statusText: 'Runner execution cancelled',
+                data: null,
+                responseTime: 0,
+                headers: null
+              },
+              ...eventData
+            });
+            throwIfRunCancelled();
           }
 
           const request = await prepareRequest(item, collection, abortController);
