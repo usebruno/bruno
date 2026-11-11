@@ -112,7 +112,7 @@ test.describe('Redirect Authorization Stripping E2E Tests', () => {
     });
   });
 
-  test('TC-6444: Verify Authorization is still sent on a same-origin redirect when Forward Authorization on Redirect is off', { tag: '@sanity' }, async ({
+  test('TC-6444: Verify Authorization is still sent on a same-origin redirect when Forward Authorization on Redirect is OFF', { tag: '@sanity' }, async ({
     pageWithUserData: page
   }) => {
     await test.step('Arrange - Open collection and request', async () => {
