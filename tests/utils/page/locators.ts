@@ -19,7 +19,6 @@ import { buildRequestLocators } from '../request';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
 import { buildCollectionAppLocators } from './collection/collection-app';
 import { buildCollectionProxyLocators } from './collection/proxy';
-import { buildCollectionRunLocators } from './collection/collection-run';
 import { buildCodeMirrorLocators } from './code-mirror';
 import { buildEnvironmentLocators } from './environments';
 import { buildTimelineHeaderLocators } from './timeline-headers';
@@ -426,6 +425,20 @@ export const buildCommonLocators = (page: Page) => ({
       allRows: () => container().locator('tbody tr'),
       rowNameInput: (row: Locator) => row.locator('input[type="text"]').first(),
       rowValueEditor: (row: Locator) => row.getByTestId('column-value').locator('.CodeMirror').first()
+    };
+  },
+  /**
+   * Locators for the multipart form table on the request Body tab.
+   * A selected file collapses to an "N files" summary when the value column is narrow.
+   * @returns uploadButton on the last row, the selectedFiles summary, and fieldName for a row index
+   */
+  multipartForm: () => {
+    const form = buildCommonLocators(page).table('multipart-form-table');
+    const file = (testId: string) => form.container().getByTestId(testId);
+    return {
+      uploadButton: () => form.allRows().last().getByTestId('multipart-file-upload'),
+      selectedFiles: () => file('multipart-file-summary'),
+      fieldName: (rowIndex: number) => form.rowCell('name', rowIndex).getByRole('textbox')
     };
   },
   /**

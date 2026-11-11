@@ -1,0 +1,14 @@
+meta {
+  name: mixed-upload
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8081/api/multipart/mixed-content-types
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+}
