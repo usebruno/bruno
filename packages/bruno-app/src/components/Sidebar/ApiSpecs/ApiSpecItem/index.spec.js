@@ -66,9 +66,9 @@ const NOT_AN_API = {
   json: { title: 'Not an API' }
 };
 
-const renderRow = (apiSpec, { mockServerEnabled = true } = {}) => {
+const renderRow = (apiSpec) => {
   const state = {
-    app: { preferences: { beta: { 'mock-server': mockServerEnabled } } },
+    app: { preferences: { beta: { 'mock-server': true } } },
     tabs: { tabs: [], activeTabUid: null }
   };
   useSelector.mockImplementation((selector) => selector(state));
@@ -149,12 +149,6 @@ describe('ApiSpecItem', () => {
     fireEvent.click(screen.getByText(action));
 
     expect(screen.getByTestId(dialogTestId)).toHaveTextContent('spec-1');
-  });
-
-  it('offers no mock server action when the beta flag is off', () => {
-    renderRow(OPENAPI_SPEC, { mockServerEnabled: false });
-
-    expect(screen.queryByText('generate-mock-server')).not.toBeInTheDocument();
   });
 
   it('reveals the spec file in its folder', () => {

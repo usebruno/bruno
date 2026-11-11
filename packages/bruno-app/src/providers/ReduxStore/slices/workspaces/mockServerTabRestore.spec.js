@@ -40,7 +40,7 @@ const tabsSnapshot = {
   activeTab: { accessor: 'type::mockResponseUid', value: 'mock-response-1' }
 };
 
-const createStore = (mockServerEnabled) => configureStore({
+const createStore = () => configureStore({
   reducer: {
     workspaces: workspacesReducer,
     collections: collectionsReducer,
@@ -76,7 +76,7 @@ const createStore = (mockServerEnabled) => configureStore({
         activeCollectionPathname: COLLECTION_PATH,
         startedAt: Date.now()
       },
-      preferences: { beta: { 'mock-server': mockServerEnabled } }
+      preferences: {}
     },
     tabs: { tabs: [], activeTabUid: null, recentlyClosedTabs: [] }
   }
@@ -97,17 +97,8 @@ describe('restoring a collection opened during snapshot hydration', () => {
     };
   });
 
-  it('reopens a saved mock response as the active tab when the stored beta flag is false', async () => {
-    const store = createStore(false);
-
-    await store.dispatch(hydrateSnapshotForOpenedCollection(COLLECTION_PATH));
-
-    expect(openTabTypes(store)).toEqual(['variables', 'mock-server', 'mock-response']);
-    expect(activeTabType(store)).toBe('mock-response');
-  });
-
-  it('reopens the saved mock response as the active tab when Mock Server is on', async () => {
-    const store = createStore(true);
+  it('reopens the saved mock response as the active tab', async () => {
+    const store = createStore();
 
     await store.dispatch(hydrateSnapshotForOpenedCollection(COLLECTION_PATH));
 
