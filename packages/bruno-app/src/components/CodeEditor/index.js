@@ -380,6 +380,7 @@ class CodeEditor extends React.Component {
     this.addOverlay();
     this.brunoAutoCompleteCleanup = setupAutoComplete(editor, {
       showHintsFor: this.props.showHintsFor,
+      scriptType: this.props.scriptType,
       getAllVariables: () => getVariableNamesWithScope(this.props.collection, this.props.item)
     });
 
