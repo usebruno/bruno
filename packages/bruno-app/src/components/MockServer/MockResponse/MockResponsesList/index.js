@@ -67,12 +67,25 @@ const MockResponsesList = ({ instance, collection }) => {
     dispatch(loadMockResponses(location));
   }, [dispatch, location.mockServerUid, location.workspacePath]);
 
-  const openResponseTab = (response) => {
+  const openResponseTab = async (response) => {
+    const workspace = workspaces.find((item) => item.uid === activeWorkspaceUid);
+    if (!workspace) {
+      return;
+    }
+    let collectionUid = workspace.scratchCollectionUid;
+    if (!collectionUid) {
+      const { mountScratchCollection } = require('providers/ReduxStore/slices/workspaces/actions');
+      collectionUid = (await dispatch(mountScratchCollection(workspace.uid)))?.uid;
+    }
+
+    if (!collectionUid) {
+      return;
+    }
     dispatch(addTab({
       uid: response.uid,
       type: 'mock-response',
       mockServerUid: instance.uid,
-      collectionUid: resolvedCollection?.uid || instance.collectionUid,
+      collectionUid,
       responseName: response.name,
       tabName: response.name,
       preview: false
