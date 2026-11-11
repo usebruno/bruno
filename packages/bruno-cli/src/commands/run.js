@@ -859,15 +859,16 @@ const handler = async function (argv) {
         console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
       }
 
-      results.push({
+      const currentResult = {
         ...result,
         runDuration: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
         suitename: stripExtension(pathname),
         name,
         path: result.test?.filename || path.relative(collectionPath, pathname)
-      });
+      };
+      results.push(currentResult);
 
-      sanitizeResultsForReporter(results, {
+      sanitizeResultsForReporter([currentResult], {
         skipAllHeaders: reporterSkipAllHeaders,
         skipHeaders: reporterSkipHeaders,
         skipRequestBody: reporterSkipRequestBody || reporterSkipBody,
