@@ -10,7 +10,7 @@ const readEmbeddedReport = (html: string) => {
   return JSON.parse(Buffer.from(base64, 'base64').toString());
 };
 
-const runInjectedTotalRunDuration = (runStartTime?: string, runCompletionTime?: string) => {
+const formatTotalRunDurationInVm = (runStartTime?: string, runCompletionTime?: string) => {
   const ctx = vm.createContext({ runStartTime, runCompletionTime });
   vm.runInContext(`var fn = ${formatTotalRunDuration.toString()}`, ctx);
   return vm.runInContext('fn(runStartTime, runCompletionTime)', ctx);
@@ -48,23 +48,23 @@ describe('getFilteredRequestResults', () => {
 
 describe('formatTotalRunDuration', () => {
   it('shows the time from the run\'s start to its completion', () => {
-    expect(runInjectedTotalRunDuration('2026-03-17T09:41:27.385Z', '2026-03-17T09:43:05.619Z')).toBe('98.234s');
+    expect(formatTotalRunDurationInVm('2026-03-17T09:41:27.385Z', '2026-03-17T09:43:05.619Z')).toBe('98.234s');
   });
 
   it('shows a dash when the run has no start time', () => {
-    expect(runInjectedTotalRunDuration('', '2026-03-17T09:43:05.619Z')).toBe('-');
+    expect(formatTotalRunDurationInVm('', '2026-03-17T09:43:05.619Z')).toBe('-');
   });
 
   it('shows a dash when the run has no completion time', () => {
-    expect(runInjectedTotalRunDuration('2026-03-17T09:41:27.385Z', undefined)).toBe('-');
+    expect(formatTotalRunDurationInVm('2026-03-17T09:41:27.385Z', undefined)).toBe('-');
   });
 
   it('shows a dash when the run completes before it starts', () => {
-    expect(runInjectedTotalRunDuration('2026-03-17T09:43:05.619Z', '2026-03-17T09:41:27.385Z')).toBe('-');
+    expect(formatTotalRunDurationInVm('2026-03-17T09:43:05.619Z', '2026-03-17T09:41:27.385Z')).toBe('-');
   });
 
   it('shows a dash when a time is not a valid date', () => {
-    expect(runInjectedTotalRunDuration('not-a-date', '2026-03-17T09:43:05.619Z')).toBe('-');
+    expect(formatTotalRunDurationInVm('not-a-date', '2026-03-17T09:43:05.619Z')).toBe('-');
   });
 });
 
