@@ -123,6 +123,8 @@ import {
   getCollectionEnvironmentPath,
   findCollectionEnvironmentFromSnapshot,
   hydrateCollectionTabs,
+  hasInFlightCollectionTabHydration,
+  waitForCollectionTabHydration,
   hydrateSnapshotLookups
 } from 'utils/snapshot';
 
@@ -3527,40 +3529,96 @@ export const loadLargeRequest
       });
     };
 
+const inFlightCollectionMounts = new Map();
+
+export const hasInFlightCollectionMountOrTabHydration = (collectionUid) => {
+  return Boolean(
+    collectionUid
+    && (inFlightCollectionMounts.has(collectionUid) || hasInFlightCollectionTabHydration(collectionUid))
+  );
+};
+
+export const waitForCollectionMountAndTabs = async (collectionUid) => {
+  if (!collectionUid) {
+    return;
+  }
+
+  while (inFlightCollectionMounts.has(collectionUid) || hasInFlightCollectionTabHydration(collectionUid)) {
+    const activeMount = inFlightCollectionMounts.get(collectionUid);
+    if (activeMount) {
+      await activeMount.catch(() => {});
+    }
+    await waitForCollectionTabHydration(collectionUid);
+  }
+};
+
+export const openCollectionSettingsTab = (collectionUid) => (dispatch) => {
+  if (!collectionUid) {
+    return Promise.resolve();
+  }
+
+  const dispatchSettingsTab = () => {
+    dispatch(addTab({
+      uid: collectionUid,
+      collectionUid,
+      type: 'collection-settings'
+    }));
+  };
+
+  if (!hasInFlightCollectionMountOrTabHydration(collectionUid)) {
+    dispatchSettingsTab();
+    return Promise.resolve();
+  }
+
+  return waitForCollectionMountAndTabs(collectionUid).then(dispatchSettingsTab);
+};
+
 export const mountCollection
   = ({ collectionUid, collectionPathname, brunoConfig, skipTabRestore = false, workspacePathname = null }) =>
     (dispatch, getState) => {
+      if (collectionUid && inFlightCollectionMounts.has(collectionUid)) {
+        return inFlightCollectionMounts.get(collectionUid);
+      }
+
       dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounting' }));
       const fileCacheEnabled = getState().app?.preferences?.cache?.file?.enabled;
       const channel = fileCacheEnabled ? 'renderer:mount-collection-v2' : 'renderer:mount-collection';
-      return new Promise(async (resolve, reject) => {
-        callIpc(channel, { collectionUid, collectionPathname, brunoConfig, workspacePathname })
-          .then(async (transientDirPath) => {
-            dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' }));
-            dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
+      const mountPromise = callIpc(channel, { collectionUid, collectionPathname, brunoConfig, workspacePathname })
+        .then(async (transientDirPath) => {
+          dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' }));
+          dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
 
-            const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
-            if (collection?.pathname) {
-              if (!skipTabRestore) {
-                await hydrateCollectionTabs(collection, dispatch, restoreCollectionTabs, null, workspacePathname);
-              }
-
-              const collectionSnapshotState = await window.ipcRenderer
-                .invoke('renderer:snapshot:get-collection', collection.pathname, workspacePathname)
-                .catch(() => null);
-              await dispatch(hydrateCollectionWithUiStateSnapshot(
-                collectionSnapshotState
-                  ? { pathname: collection.pathname, ...collectionSnapshotState, hasSnapshotEntry: true }
-                  : { pathname: collection.pathname, hasSnapshotEntry: false }
-              ));
+          const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
+          if (collection?.pathname) {
+            if (!skipTabRestore) {
+              await hydrateCollectionTabs(collection, dispatch, restoreCollectionTabs, null, workspacePathname);
             }
-          })
-          .then(resolve)
-          .catch(() => {
-            dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'unmounted' }));
-            reject();
-          });
-      });
+
+            const collectionSnapshotState = await window.ipcRenderer
+              .invoke('renderer:snapshot:get-collection', collection.pathname, workspacePathname)
+              .catch(() => null);
+            await dispatch(hydrateCollectionWithUiStateSnapshot(
+              collectionSnapshotState
+                ? { pathname: collection.pathname, ...collectionSnapshotState, hasSnapshotEntry: true }
+                : { pathname: collection.pathname, hasSnapshotEntry: false }
+            ));
+          }
+        })
+        .catch(() => {
+          dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'unmounted' }));
+          return Promise.reject();
+        })
+        .finally(() => {
+          if (collectionUid && inFlightCollectionMounts.get(collectionUid) === mountPromise) {
+            inFlightCollectionMounts.delete(collectionUid);
+          }
+        });
+
+      if (collectionUid) {
+        inFlightCollectionMounts.set(collectionUid, mountPromise);
+      }
+
+      return mountPromise;
     };
 
 export const showInFolder = (collectionPath) => () => {
@@ -3592,24 +3650,16 @@ export const openCollectionSettings
       const state = getState();
       const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
-      return new Promise((resolve, reject) => {
-        if (!collection) {
-          return reject(new Error('Collection not found'));
-        }
+      if (!collection) {
+        return Promise.reject(new Error('Collection not found'));
+      }
 
-        dispatch(updateSettingsSelectedTab({
-          collectionUid: collection.uid,
-          tab: tabName
-        }));
+      dispatch(updateSettingsSelectedTab({
+        collectionUid: collection.uid,
+        tab: tabName
+      }));
 
-        dispatch(addTab({
-          uid: collection.uid,
-          collectionUid: collection.uid,
-          type: 'collection-settings'
-        }));
-
-        resolve();
-      });
+      return dispatch(openCollectionSettingsTab(collection.uid));
     };
 
 export const saveDotEnvVariables = (collectionUid, variables, filename = '.env') => (dispatch, getState) => {

@@ -779,7 +779,23 @@ export const deserializeTab = (snapshotTab, collection) => {
   return tab;
 };
 
-export const hydrateCollectionTabs = async (
+const inFlightCollectionTabHydrations = new Map();
+
+export const hasInFlightCollectionTabHydration = (collectionUid) => {
+  return Boolean(collectionUid && inFlightCollectionTabHydrations.has(collectionUid));
+};
+
+export const waitForCollectionTabHydration = async (collectionUid) => {
+  if (!collectionUid) {
+    return;
+  }
+
+  while (inFlightCollectionTabHydrations.has(collectionUid)) {
+    await inFlightCollectionTabHydrations.get(collectionUid).catch(() => {});
+  }
+};
+
+const runHydrateCollectionTabs = async (
   collection,
   dispatch,
   restoreTabs,
@@ -817,6 +833,45 @@ export const hydrateCollectionTabs = async (
       tabs: tabsSnapshot.tabs,
       activeTab: tabsSnapshot.activeTab
     }));
+  }
+};
+
+export const hydrateCollectionTabs = async (
+  collection,
+  dispatch,
+  restoreTabs,
+  snapshotLookups = null,
+  workspacePathname = null,
+  strictWorkspaceScope = false
+) => {
+  const collectionUid = collection?.uid;
+  const previousHydration = collectionUid ? inFlightCollectionTabHydrations.get(collectionUid) : null;
+
+  const hydrationPromise = (async () => {
+    if (previousHydration) {
+      await previousHydration.catch(() => {});
+    }
+
+    return runHydrateCollectionTabs(
+      collection,
+      dispatch,
+      restoreTabs,
+      snapshotLookups,
+      workspacePathname,
+      strictWorkspaceScope
+    );
+  })();
+
+  if (collectionUid) {
+    inFlightCollectionTabHydrations.set(collectionUid, hydrationPromise);
+  }
+
+  try {
+    return await hydrationPromise;
+  } finally {
+    if (collectionUid && inFlightCollectionTabHydrations.get(collectionUid) === hydrationPromise) {
+      inFlightCollectionTabHydrations.delete(collectionUid);
+    }
   }
 };
 
