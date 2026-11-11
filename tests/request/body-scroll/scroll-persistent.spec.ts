@@ -564,7 +564,6 @@ test.describe('Scroll Position Persistence', () => {
     });
 
     test('Docs with code blocks - scroll persists across tab switches', async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
       const getScroll = async () => locators.docs.richTextContent().evaluate((el) => el.scrollTop);
 
@@ -598,7 +597,6 @@ test.describe('Scroll Position Persistence', () => {
     });
 
     test('Docs - Markdown mode persists in edit mode across tab switches', async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
 
       await test.step('Open request docs, enter edit mode and switch to Markdown', async () => {

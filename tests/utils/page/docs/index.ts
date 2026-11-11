@@ -7,7 +7,7 @@ export const buildDocsLocators = (page: Page) => ({
   docsTab: () => page.getByTestId('responsive-tab-docs'),
   moreTabs: () => page.locator('.more-tabs'),
   proseMirror: () => page.locator('.ProseMirror'),
-  richTextContent: () => page.locator('.rich-text-editor-content').first(),
+  richTextContent: () => page.getByTestId('rich-text-editor-content').first(),
   requestDocsMarkdownEditor: () => page.getByTestId('docs-editor').locator('.CodeMirror'),
   toolbarBtn: (label: string) => page.locator(`.toolbar-btn[aria-label="${label}"]`),
   headingDropdown: () => page.locator('button.heading-dropdown-trigger'),

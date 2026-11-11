@@ -40,8 +40,10 @@ const DocsEditor = ({
   // closure below can read the latest mode/editing flags without being
   // recreated on every change; there's no external system to synchronize
   // with, so an effect would just add an unnecessary extra render pass.
+  const onSaveRef = useRef(onSave);
   isMarkdownModeRef.current = isMarkdownMode;
   isEditingRef.current = isEditing;
+  onSaveRef.current = onSave;
 
   const editor = useEditor(
     {
@@ -63,7 +65,7 @@ const DocsEditor = ({
         handleKeyDown: (_view, event) => {
           if (event.key === 's' && (event.ctrlKey || event.metaKey)) {
             event.preventDefault();
-            onSave();
+            onSaveRef.current();
             return true;
           }
           return false;
