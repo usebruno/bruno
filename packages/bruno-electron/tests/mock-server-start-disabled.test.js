@@ -50,7 +50,7 @@ describe('mock-server start when the beta feature is turned off', () => {
       sourceType: 'manual',
       workspacePath,
       port
-    })).rejects.toThrow('Enable it in Preferences > Beta');
+    })).rejects.toThrow('Mock server might be disabled as a feature');
 
     expect(getStatus(MOCK_SERVER_UID, { workspacePath }).status).toBe('stopped');
     expect(await checkPortAvailable(port)).toEqual({ available: true, reason: null });
