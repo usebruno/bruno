@@ -562,6 +562,64 @@ test.describe('Scroll Position Persistence', () => {
         lastVarIndex: 100
       });
     });
+
+    test('Docs with code blocks - scroll persists across tab switches', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const locators = buildCommonLocators(page);
+      const getScroll = async () => locators.docs.richTextContent().evaluate((el) => el.scrollTop);
+
+      await test.step('Open request docs and wait for code blocks to render', async () => {
+        await openCollection(page, 'scroll-fixtures');
+        await openRequest(page, 'scroll-fixtures', 'docs-code-blocks');
+        await selectRequestPaneTab(page, 'Docs');
+        await expect(locators.docs.codeBlockPre()).toHaveCount(30);
+      });
+
+      let saved: number;
+
+      await test.step('Scroll deep into the docs and capture position', async () => {
+        await locators.docs.richTextContent().evaluate((el) => { el.scrollTop = 4000; });
+        // Wait for the debounced save (200ms) to complete.
+        await page.waitForTimeout(400);
+        saved = await getScroll();
+        expectScrollRestored(saved, 4000);
+      });
+
+      await test.step('Switch to Headers then back to Docs', async () => {
+        await selectRequestPaneTab(page, 'Headers');
+        await selectRequestPaneTab(page, 'Docs');
+        await expect(locators.docs.codeBlockPre()).toHaveCount(30);
+      });
+
+      await test.step('Verify scroll restored', async () => {
+        await expect.poll(getScroll).toBeGreaterThan(saved - Math.max(50, saved * 0.1));
+        expectScrollRestored(await getScroll(), saved);
+      });
+    });
+
+    test('Docs - Markdown mode persists in edit mode across tab switches', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const locators = buildCommonLocators(page);
+
+      await test.step('Open request docs, enter edit mode and switch to Markdown', async () => {
+        await openCollection(page, 'scroll-fixtures');
+        await openRequest(page, 'scroll-fixtures', 'docs-code-blocks');
+        await selectRequestPaneTab(page, 'Docs');
+        await locators.docs.editToggle().click();
+        await locators.docs.modeSwitchMarkdown().click();
+        await expect(locators.docs.requestDocsMarkdownEditor()).toBeVisible();
+      });
+
+      await test.step('Switch to Headers then back to Docs', async () => {
+        await selectRequestPaneTab(page, 'Headers');
+        await selectRequestPaneTab(page, 'Docs');
+      });
+
+      await test.step('Verify Markdown mode is still active', async () => {
+        await expect(locators.docs.requestDocsMarkdownEditor()).toBeVisible();
+        await expect(locators.docs.richTextContent()).toBeHidden();
+      });
+    });
   });
 
   // -------------------------------------------------------------------------

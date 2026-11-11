@@ -13,6 +13,7 @@ import DocsEditor from 'components/Documentation/DocsEditor';
 const WorkspaceDocs = ({ workspace }) => {
   const dispatch = useDispatch();
   const [isEditing, setIsEditing] = useState(false);
+  const [isMarkdownMode, setIsMarkdownMode] = useState(false);
   const [localDocs, setLocalDocs] = useState(workspace?.docs || '');
 
   const wrapperRef = useRef(null);
@@ -100,6 +101,8 @@ const WorkspaceDocs = ({ workspace }) => {
                 onEdit={onEdit}
                 onSave={onSave}
                 isEditing={isEditing}
+                isMarkdownMode={isMarkdownMode}
+                onMarkdownModeChange={setIsMarkdownMode}
                 collectionPath={workspace?.pathname || ''}
                 onRequestEdit={toggleViewMode}
               />
