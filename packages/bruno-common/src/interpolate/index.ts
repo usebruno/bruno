@@ -107,8 +107,10 @@ const isEmptyValue = (value: unknown): boolean => {
  * Resolves a placeholder against the variables object.
  * A variable whose name literally contains `:-` keeps working: the full placeholder is looked up
  * first and the default value syntax only kicks in when that lookup finds nothing.
+ * With `deferDefaults`, a default is never applied: the placeholder stays unresolved so a later
+ * pass with the full variable scope can still supply the value.
  */
-const resolvePlaceholder = (placeholder: string, obj: Record<string, any>): any => {
+const resolvePlaceholder = (placeholder: string, obj: Record<string, any>, deferDefaults = false): any => {
   const value = get(obj, placeholder);
   if (value !== undefined) {
     return value;
@@ -120,12 +122,18 @@ const resolvePlaceholder = (placeholder: string, obj: Record<string, any>): any 
   }
 
   const namedValue = get(obj, name);
-  return isEmptyValue(namedValue) ? defaultValue : namedValue;
+  if (isEmptyValue(namedValue)) {
+    return deferDefaults ? undefined : defaultValue;
+  }
+  return namedValue;
 };
 
 type InterpolateOptions = {
   escapeJSONStrings?: boolean;
   onUnresolved?: (name: string) => void;
+  // keep `{{name:-default}}` placeholders intact when `name` is not set, instead of using the default.
+  // Used by preliminary passes that only see part of the variables (e.g. process.env only).
+  deferDefaults?: boolean;
 };
 
 const interpolate = (
@@ -137,7 +145,7 @@ const interpolate = (
     return str;
   }
 
-  const { escapeJSONStrings, onUnresolved } = options;
+  const { escapeJSONStrings, onUnresolved, deferDefaults } = options;
 
   const preparedStr = prepareMock(str, escapeJSONStrings ?? false);
 
@@ -146,13 +154,14 @@ const interpolate = (
   }
   // process the object with the mock data functions
   const preparedObj = prepareMockObj(obj, escapeJSONStrings ?? false);
-  return replace(preparedStr, preparedObj, onUnresolved);
+  return replace(preparedStr, preparedObj, onUnresolved, deferDefaults ?? false);
 };
 
 const replace = (
   str: string,
   obj: Record<string, any>,
   onUnresolved?: (name: string) => void,
+  deferDefaults = false,
   visited = new Set<string>(),
   results = new Map<string, string>()
 ): string => {
@@ -163,7 +172,7 @@ const replace = (
     const patternRegex = /\{\{([^}]+)\}\}/g;
     matchFound = false;
     resultStr = resultStr.replace(patternRegex, (match, placeholder) => {
-      let replacement = resolvePlaceholder(placeholder, obj);
+      let replacement = resolvePlaceholder(placeholder, obj, deferDefaults);
       if (typeof replacement === 'object' && replacement !== null) {
         replacement = JSON.stringify(replacement);
       }
@@ -174,7 +183,7 @@ const replace = (
 
       if (patternRegex.test(replacement) && !visited.has(match)) {
         visited.add(match);
-        const result = replace(replacement, obj, onUnresolved, visited, results);
+        const result = replace(replacement, obj, onUnresolved, deferDefaults, visited, results);
         results.set(match, result);
 
         matchFound = true;

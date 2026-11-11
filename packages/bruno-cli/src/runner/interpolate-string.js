@@ -21,7 +21,8 @@ const buildCombinedVars = ({
   envVars = envVars ? cloneDeep(envVars) : {};
 
   // envVars can inturn have values as {{process.env.VAR_NAME}}
-  // so we need to interpolate envVars first with processEnvVars
+  // so we need to interpolate envVars first with processEnvVars.
+  // {{name:-default}} placeholders are kept for the final pass, where every variable is in scope
   forOwn(envVars, (value, key) => {
     envVars[key] = interpolate(value, {
       process: {
@@ -29,7 +30,7 @@ const buildCombinedVars = ({
           ...processEnvVars
         }
       }
-    });
+    }, { deferDefaults: true });
   });
 
   // runtimeVariables take precedence over envVars

@@ -43,7 +43,8 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   envVariables = cloneDeep(envVariables);
 
   // envVars can inturn have values as {{process.env.VAR_NAME}}
-  // so we need to interpolate envVars first with processEnvVars
+  // so we need to interpolate envVars first with processEnvVars.
+  // {{name:-default}} placeholders are kept for the final pass, where every variable is in scope
   forOwn(envVariables, (value, key) => {
     envVariables[key] = interpolate(value, {
       process: {
@@ -51,7 +52,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
           ...processEnvVars
         }
       }
-    });
+    }, { deferDefaults: true });
   });
 
   const _interpolate = (str, { escapeJSONStrings } = {}) => {

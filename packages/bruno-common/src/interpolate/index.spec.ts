@@ -969,3 +969,45 @@ describe('interpolateObject', () => {
     expect(() => interpolateObject(obj, {})).toThrow('Circular reference detected during interpolation.');
   });
 });
+
+describe('interpolate - deferDefaults', () => {
+  it('should keep default-bearing placeholders intact when the variable is not in scope', () => {
+    const result = interpolate('{{host:-localhost}}/{{process.env.HOST:-127.0.0.1}}', { process: { env: {} } }, { deferDefaults: true });
+
+    expect(result).toBe('{{host:-localhost}}/{{process.env.HOST:-127.0.0.1}}');
+  });
+
+  it('should keep the placeholder intact when the variable is empty', () => {
+    const result = interpolate('{{host:-localhost}}', { host: '' }, { deferDefaults: true });
+
+    expect(result).toBe('{{host:-localhost}}');
+  });
+
+  it('should still resolve variables that are in scope', () => {
+    const obj = { process: { env: { HOST: 'env-host', PORT: '8080' } } };
+
+    expect(interpolate('{{process.env.HOST:-localhost}}', obj, { deferDefaults: true })).toBe('env-host');
+    expect(interpolate('{{process.env.PORT}}', obj, { deferDefaults: true })).toBe('8080');
+  });
+
+  it('should still prefer a variable whose name literally contains the separator', () => {
+    const result = interpolate('{{weird:-name}}', { 'weird:-name': 'literal' }, { deferDefaults: true });
+
+    expect(result).toBe('literal');
+  });
+
+  it('should defer defaults reached through recursive interpolation', () => {
+    const obj = { process: { env: { BASE: '{{host:-localhost}}:{{process.env.PORT:-3000}}' } } };
+
+    expect(interpolate('{{process.env.BASE}}', obj, { deferDefaults: true })).toBe('{{host:-localhost}}:{{process.env.PORT:-3000}}');
+  });
+
+  it('should let the combined scope pick the variable over the default', () => {
+    const processEnv = { process: { env: {} } };
+    const envVars = { base: '{{host:-localhost}}', host: 'api.example.com' };
+    const prepared = { base: interpolate(envVars.base, processEnv, { deferDefaults: true }), host: envVars.host };
+
+    expect(interpolate('{{base}}', { ...prepared, ...processEnv })).toBe('api.example.com');
+    expect(interpolate('{{base}}', { base: prepared.base, ...processEnv })).toBe('localhost');
+  });
+});
