@@ -449,8 +449,9 @@ const GlobalStyle = createGlobalStyle`
     font-size: ${(props) => props.theme.font.size.xs};
   }
 
-  // Script API docs: the autocomplete detail panel
-  .CodeMirror-hint-details {
+  // Script API docs: the autocomplete detail panel and the hover tooltip
+  .CodeMirror-hint-details,
+  .CodeMirror-brunoApiInfo {
     position: fixed;
     z-index: 50;
     box-sizing: border-box;
