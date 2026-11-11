@@ -178,9 +178,8 @@ const CopilotProviderCard = ({
             {!signedIn && !signingIn && (
               <div className="flex flex-col gap-2.5">
                 <div className="copilot-intro text-[11px]">
-                  Sign in with GitHub to use your Copilot plan in Bruno. GitHub's approval screen shows the
-                  GitHub Copilot app. If you use the GitHub CLI, you can use the account <code>gh</code> is signed in to
-                  instead.
+                  Sign in with GitHub to use your Copilot plan in Bruno. If you use the GitHub CLI, you can use the
+                  account <code>gh</code> is signed in to instead.
                 </div>
 
                 <div className="flex items-center gap-2">

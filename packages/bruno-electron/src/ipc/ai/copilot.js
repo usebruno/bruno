@@ -9,7 +9,7 @@ const COPILOT_PROVIDER_ID = 'github-copilot';
 const COPILOT_PROVIDER_LABEL = 'GitHub Copilot';
 const COPILOT_MODEL_PREFIX = 'github-copilot:';
 
-const COPILOT_OAUTH_CLIENT_ID = 'Iv1.b507a08c87ecfe98';
+const COPILOT_OAUTH_CLIENT_ID = 'Ov23ligtAyHR3IYymS1u';
 const COPILOT_OAUTH_SCOPE = 'read:user';
 const GITHUB_CLI_SOURCE = 'github-cli';
 
@@ -129,10 +129,12 @@ const supportsReasoning = (model) => {
     || (Array.isArray(supports.reasoning_effort) && supports.reasoning_effort.length > 0);
 };
 
-const isUsableChatModel = (model) => Boolean(model?.id)
+const isStreamingChatModel = (model) => Boolean(model?.id)
   && model?.capabilities?.type === 'chat'
   && model?.capabilities?.supports?.streaming !== false
-  && (model.policy ? model.policy.state === 'enabled' : model?.model_picker_enabled === true);
+  && (!model.policy || model.policy.state === 'enabled');
+
+const isPickerModel = (model) => Boolean(model.policy) || model.model_picker_enabled === true;
 
 const toCatalogModel = (model) => {
   const multiplier = Number(model?.billing?.multiplier);
@@ -175,7 +177,9 @@ const oneVariantPerName = (models) => {
 };
 
 const normalizeModelCatalog = (rawModels) => {
-  const usable = oneVariantPerName((Array.isArray(rawModels) ? rawModels : []).filter(isUsableChatModel));
+  const chatModels = (Array.isArray(rawModels) ? rawModels : []).filter(isStreamingChatModel);
+  const pickerModels = chatModels.filter(isPickerModel);
+  const usable = oneVariantPerName(pickerModels.length > 0 ? pickerModels : chatModels);
   const defaults = usable.filter((m) => m.is_chat_default === true);
   const rest = usable.filter((m) => m.is_chat_default !== true);
   return [...defaults, ...rest].map(toCatalogModel);
