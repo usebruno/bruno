@@ -18,7 +18,7 @@ export const appendBlankLineToScript = async (page: Page, subTab: ScriptSubTab |
     const editor = buildCommonLocators(page).codeMirror.byTestId(editorTestId);
     await editor.waitFor({ state: 'visible' });
     await editor.locator('textarea[tabindex="0"]').focus();
-    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+ArrowDown' : 'Control+End');
+    await page.keyboard.press('ControlOrMeta+End');
     await page.keyboard.press('Enter');
   });
 };
