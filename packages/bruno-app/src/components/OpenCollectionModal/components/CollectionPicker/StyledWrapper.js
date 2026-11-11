@@ -37,7 +37,7 @@ const StyledWrapper = styled.div`
 
   .collection-picker-search-icon {
     position: absolute;
-    top: 0.5625rem;
+    top: 0.5rem;
     left: 0.625rem;
     color: ${(props) => props.theme.colors.text.muted};
     pointer-events: none;
@@ -59,7 +59,7 @@ const StyledWrapper = styled.div`
     justify-content: space-between;
     gap: 0.625rem;
     padding: 0 1.25rem 0.625rem;
-    font-size: 0.78125rem;
+    font-size: ${(props) => props.theme.font.size.base};
     color: ${(props) => props.theme.colors.text.muted};
 
     strong {
@@ -89,7 +89,7 @@ const StyledWrapper = styled.div`
     max-width: 28rem;
     margin: 0 auto;
     padding: 2.75rem 1.5rem;
-    font-size: 0.78125rem;
+    font-size: ${(props) => props.theme.font.size.base};
     line-height: 1.5;
     color: ${(props) => props.theme.colors.text.muted};
     text-align: center;
@@ -110,7 +110,7 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 0.375rem;
-    font-size: 0.78125rem;
+    font-size: ${(props) => props.theme.font.size.base};
     color: ${(props) => props.theme.colors.text.muted};
   }
 

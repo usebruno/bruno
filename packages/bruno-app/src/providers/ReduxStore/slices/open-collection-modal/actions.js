@@ -1,5 +1,4 @@
 import toast from 'react-hot-toast';
-import get from 'lodash/get';
 import { uuid } from 'utils/common';
 import { callIpc } from 'utils/common/ipc';
 import { selectCollections } from 'src/selectors/collections';
@@ -19,7 +18,7 @@ import {
   collectionsOpeningStarted,
   collectionsOpeningEnded
 } from './index';
-import { selectOpenCollectionPathKeys } from './selectors';
+import { selectAutoOpenFolderPicker, selectOpenCollectionPathKeys } from './selectors';
 import { countOf, getFolderSearchOutcome } from './folder-results';
 import { getFolderName, toPathKey } from './collection-paths';
 
@@ -206,7 +205,7 @@ export const openCollectionModal = (page) => (dispatch, getState) => {
   if (chooseFolder.result) {
     dispatch(folderResultCleared());
   }
-  if (get(getState().app.preferences, 'openCollection.autoOpenFolderPicker', true)) {
+  if (selectAutoOpenFolderPicker(getState())) {
     dispatch(pickCollectionFolders());
   }
 };

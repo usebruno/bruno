@@ -5,7 +5,7 @@ const StyledWrapper = styled.div`
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.5625rem 0.875rem;
+  padding: 0.5rem 0.875rem;
   cursor: pointer;
 
   &:hover {
@@ -34,7 +34,7 @@ const StyledWrapper = styled.div`
 
   .collection-row-path {
     font-family: var(--font-family-mono);
-    font-size: 0.71875rem;
+    font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.colors.text.muted};
   }
 

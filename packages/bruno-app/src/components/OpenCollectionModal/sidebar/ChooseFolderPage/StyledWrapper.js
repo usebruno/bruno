@@ -28,7 +28,7 @@ const StyledWrapper = styled.div`
     align-items: center;
     gap: 0.5rem;
     align-self: flex-start;
-    font-size: 0.78125rem;
+    font-size: ${(props) => props.theme.font.size.base};
     color: ${(props) => props.theme.colors.text.muted};
     cursor: pointer;
     user-select: none;

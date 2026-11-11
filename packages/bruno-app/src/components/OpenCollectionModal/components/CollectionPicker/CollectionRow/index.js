@@ -33,7 +33,7 @@ const CollectionRow = ({ collection, location, isOpen, isSelected, testIdPrefix,
       <span className="collection-row-meta" title={metaText}>
         {metaText}
       </span>
-      {isOpen ? null : (
+      {!isOpen && (
         <Button
           size="sm"
           variant="outline"

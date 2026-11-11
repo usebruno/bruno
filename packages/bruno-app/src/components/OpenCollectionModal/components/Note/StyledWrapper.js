@@ -7,10 +7,10 @@ const StyledWrapper = styled.div`
   gap: 0.5rem;
   flex: none;
   margin: 0 1.25rem 0.625rem;
-  padding: 0.5625rem 0.75rem;
+  padding: 0.5rem 0.75rem;
   border-radius: ${(props) => props.theme.border.radius.base};
   background: ${(props) => props.theme.status[props.$tone].background};
-  font-size: 0.78125rem;
+  font-size: ${(props) => props.theme.font.size.base};
   line-height: 1.5;
 
   .note-icon {
@@ -28,6 +28,7 @@ const StyledWrapper = styled.div`
   .note-dismiss {
     width: 1.375rem;
     height: 1.375rem;
+    margin: -0.0625rem -0.375rem -0.125rem 0;
     ${iconButtonStyles}
   }
 `;

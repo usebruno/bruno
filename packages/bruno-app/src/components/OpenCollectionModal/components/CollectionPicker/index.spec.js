@@ -88,6 +88,7 @@ describe('CollectionPicker', () => {
     expect(within(billing).queryByTestId('picker-row-open')).not.toBeInTheDocument();
 
     fireEvent.click(billing);
+    expect(within(billing).getByLabelText('Select Billing')).not.toBeChecked();
     expect(openButton()).toBeDisabled();
   });
 
@@ -141,6 +142,21 @@ describe('CollectionPicker', () => {
 
     fireEvent.click(selectAll);
     expect(openButton()).toBeDisabled();
+  });
+
+  it('clears only the shown collections and keeps the selections the search hides', () => {
+    renderPicker({
+      collections: [...collections, { path: '/Users/me/work/pay-ins', name: 'Pay ins' }],
+      initialSelection: ['/Users/me/work/accounts']
+    });
+    search('pay');
+    const selectAll = screen.getByTestId('picker-select-all');
+
+    fireEvent.click(selectAll);
+    expect(openButton()).toHaveTextContent('Open 3 collections');
+
+    fireEvent.click(selectAll);
+    expect(openButton()).toHaveTextContent('Open 1 collection');
   });
 
   it('offers Select all only when two or more collections can be picked', () => {

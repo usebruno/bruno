@@ -119,19 +119,19 @@ const ModalShell = () => {
           <ModalMenu titleId={TITLE_ID} activePageId={page.id} />
           <div className="modal-main">
             <PageHeader title={page.title} description={page.description} onClose={close} />
-            {note ? (
+            {note && (
               <Note tone={note.tone} onDismiss={() => dispatch(folderNoteDismissed())}>
                 {note.text}
               </Note>
-            ) : null}
+            )}
             <div className="modal-page" data-testid={`open-collection-page-${page.id}`}>
               <div className="modal-page-content" inert={isOpening}>
                 <Page />
               </div>
-              {isOpening ? <BusyOverlay>Opening…</BusyOverlay> : null}
+              {isOpening && <BusyOverlay>Opening…</BusyOverlay>}
             </div>
           </div>
-          {showDropOverlay && !isOpening ? <DropOverlay /> : null}
+          {showDropOverlay && !isOpening && <DropOverlay />}
         </div>
       </StyledWrapper>
     </Portal>
