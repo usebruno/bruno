@@ -93,9 +93,14 @@ To re-document an inherited method for one list, add a JSDoc block with no decla
 ### Regenerating
 
 `npm run generate:script-api` (from the repo root or this package) reads the JSDoc, starting from
-the globals in `types/globals.d.ts`, and writes one file, `types/script-api.d.ts`, the API
-reference's input. It is committed: run the generator after changing the script API's JSDoc, and
-CI fails when it is stale.
+the globals in `types/globals.d.ts`, and writes two files:
+
+- `types/script-api.d.ts`, the API reference's input. It is committed: run the generator after
+  changing the script API's JSDoc, and CI fails when it is stale.
+- `bruno-app/src/utils/codemirror/generated/script-api-manifest.json`, the editor's autocomplete
+  and hover data. It is not committed: CI and `npm run setup` generate it alone with
+  `-- --manifest-only`. Without it the app still builds, and script editors offer no API hints
+  or docs.
 
 The run fails on a misspelled `@context` or `@runtime` value, a public `_`-prefixed member
 that is documented but not marked `@internal` or `@protected`, an unresolved type name, or a type

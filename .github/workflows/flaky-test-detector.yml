@@ -63,6 +63,7 @@ jobs:
           npm run build:schema-types
           npm run build:bruno-filestore
           npm run build:bruno-io
+          npm run generate:script-api --workspace=packages/bruno-js -- --manifest-only
 
       - name: Run Playwright tests
         run: xvfb-run npm run test:e2e
