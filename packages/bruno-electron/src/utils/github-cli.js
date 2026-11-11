@@ -25,17 +25,21 @@ const findGhExecutable = async () => {
   const candidates = process.platform === 'win32'
     ? ['gh', ...windowsInstallLocations().filter((candidate) => fs.existsSync(candidate))]
     : ['gh'];
+  let startError = null;
   for (const candidate of candidates) {
     try {
       await runGh(candidate, ['--version']);
-      return candidate;
-    } catch (err) {}
+      return { executable: candidate, startError: null };
+    } catch (err) {
+      if (err.code !== 'ENOENT') startError = startError || err;
+    }
   }
-  return null;
+  return { executable: null, startError };
 };
 
 const readGitHubCliToken = async ({ hostname = 'github.com' } = {}) => {
-  const executable = await findGhExecutable();
+  const { executable, startError } = await findGhExecutable();
+  if (startError && !executable) return { installed: true, token: null, startError: startError.message };
   if (!executable) return { installed: false, token: null };
   try {
     const token = await runGh(executable, ['auth', 'token', '--hostname', hostname]);

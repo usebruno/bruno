@@ -82,11 +82,19 @@ const pollForToken = async ({ clientId, deviceCode, interval, expiresIn, signal 
 
   while (Date.now() < deadline) {
     await wait(intervalSeconds * 1000, signal);
-    const { body } = await postForm(
-      ACCESS_TOKEN_URL,
-      { client_id: clientId, device_code: deviceCode, grant_type: DEVICE_GRANT_TYPE },
-      signal
-    );
+    let result;
+    try {
+      result = await postForm(
+        ACCESS_TOKEN_URL,
+        { client_id: clientId, device_code: deviceCode, grant_type: DEVICE_GRANT_TYPE },
+        signal
+      );
+    } catch (err) {
+      if (signal?.aborted) throw abortError();
+      continue;
+    }
+    const { response, body } = result;
+    if (response.status >= 500) continue;
 
     if (body?.access_token) {
       return { accessToken: body.access_token };

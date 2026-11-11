@@ -689,7 +689,7 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
   const modelMenuItems = useMemo(() => {
     const groups = new Map();
     for (const model of availableModels) {
-      const providerId = model.provider || 'other';
+      const providerId = model.provider;
       if (!groups.has(providerId)) {
         groups.set(providerId, { name: providersMap[providerId]?.label || providerId, options: [] });
       }

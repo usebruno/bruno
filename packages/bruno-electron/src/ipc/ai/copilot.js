@@ -220,8 +220,9 @@ const resolveCopilotToken = () => usesGitHubCli()
   : oauthCredentialsStore.getCredential(COPILOT_PROVIDER_ID)?.token || null;
 
 const loadGitHubCliToken = async () => {
-  const { installed, token } = await readGitHubCliToken();
+  const { installed, token, startError } = await readGitHubCliToken();
   if (!installed) throw new Error(GITHUB_CLI_MISSING_MESSAGE);
+  if (startError) throw new Error(`GitHub CLI (gh) could not be started: ${startError}`);
   if (!token) throw new Error(GITHUB_CLI_SIGNED_OUT_MESSAGE);
   return token;
 };
@@ -309,7 +310,9 @@ const refreshModels = async () => {
   if (!token) throw new Error(NO_TOKEN_MESSAGE);
   try {
     const account = await fetchAccount(token);
-    aiCopilotStore.setSession({ account, apiEndpoint: null, models: [] });
+    const sameAccount = aiCopilotStore.getSession()?.account?.login === account.login;
+    const catalog = sameAccount ? getCopilotCatalog() : { apiEndpoint: null, models: [] };
+    aiCopilotStore.setSession({ account, ...catalog });
     const apiEndpoint = await discoverApiEndpoint(token);
     const models = await fetchModels(token, apiEndpoint);
     aiCopilotStore.setSession({ account, apiEndpoint, models });

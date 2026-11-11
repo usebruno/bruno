@@ -37,8 +37,8 @@ const StyledWrapper = styled.div`
   }
 
   .copilot-code {
-    font-family: ${(props) => props.theme.font.monospace || 'monospace'};
-    font-size: 18px;
+    font-family: var(--font-family-mono);
+    font-size: ${(props) => props.theme.font.size.xl};
     font-weight: 600;
     letter-spacing: 2px;
     color: ${(props) => props.theme.text};
@@ -63,7 +63,7 @@ const StyledWrapper = styled.div`
   }
 
   .copilot-model-tag {
-    font-size: 10px;
+    font-size: ${(props) => props.theme.font.size.xs};
     line-height: 1;
     padding: 2px 5px;
     border-radius: ${(props) => props.theme.border.radius.sm};
