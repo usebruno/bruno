@@ -6,7 +6,7 @@ const parser = jsonlint.parser || jsonlint;
 /**
  * Validate JSON text and describe any syntax error as a lint annotation.
  *
- * The range covers the whole line where the parser reported the error, not a
+ * The range covers a whole line where the parser reported the error, not a
  * zero-width point. A zero-width range draws nothing in the editor, so the
  * error would only be visible as a gutter marker. jsonlint reports only the
  * start of the error, so the line is the smallest range we can highlight.
@@ -28,8 +28,19 @@ export const getJsonLintAnnotations = (text) => {
       return [];
     }
 
-    const lineIndex = line - 1;
-    const lineText = text.split('\n')[lineIndex] ?? '';
+    const lines = text.split('\n');
+    let lineIndex = line - 1;
+
+    // An error at end of input can point at a trailing empty line. CodeMirror
+    // clips a range on an empty line to zero width, so highlight the last
+    // non-empty line instead, where the body stops.
+    if (lineIndex === lines.length - 1 && !lines[lineIndex]) {
+      while (lineIndex > 0 && !lines[lineIndex]) {
+        lineIndex--;
+      }
+    }
+
+    const lineText = lines[lineIndex] ?? '';
 
     return [
       {

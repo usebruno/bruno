@@ -53,4 +53,17 @@ describe('getJsonLintAnnotations', () => {
 
     expect(annotation.from.line).toBe(2);
   });
+
+  test('highlights the last non-empty line when the error is at end of input', () => {
+    // The parser reports the empty line after the trailing newline, which CodeMirror
+    // would clip to zero width. The highlight should move back to the line where the body stops.
+    const text = '{\n  "a": 1,\n';
+
+    const annotations = getJsonLintAnnotations(text);
+
+    expect(annotations).toHaveLength(1);
+    const [annotation] = annotations;
+    expect(annotation.from).toEqual({ line: 1, ch: 0 });
+    expect(annotation.to).toEqual({ line: 1, ch: '  "a": 1,'.length });
+  });
 });
