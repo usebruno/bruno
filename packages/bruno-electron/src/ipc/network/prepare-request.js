@@ -411,7 +411,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
 
   let axiosRequest = {
     mode: request.body.mode,
-    method: request.method,
+    method: request.method ? request.method.toUpperCase() : 'GET',
     url,
     headers,
     headerEntries,

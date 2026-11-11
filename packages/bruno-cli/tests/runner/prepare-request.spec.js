@@ -50,6 +50,20 @@ describe('prepare-request: prepareRequest', () => {
     });
   });
 
+  describe('HTTP method normalization', () => {
+    it('Should normalize lowercase method to uppercase', async () => {
+      const request = { method: 'delete', url: 'https://example.com', body: { mode: 'none' }, auth: { mode: 'none' } };
+      const result = await prepareRequest({ request });
+      expect(result.method).toBe('DELETE');
+    });
+
+    it('Should default method to GET when omitted', async () => {
+      const request = { url: 'https://example.com', body: { mode: 'none' }, auth: { mode: 'none' } };
+      const result = await prepareRequest({ request });
+      expect(result.method).toBe('GET');
+    });
+  });
+
   describe('Properly maps inherited auth from collectionRoot', () => {
     // Initialize Test Fixtures
     let collection, item;

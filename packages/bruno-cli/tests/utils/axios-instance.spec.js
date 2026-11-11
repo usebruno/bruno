@@ -340,4 +340,65 @@ describe('makeAxiosInstance', () => {
       expect(calls[1].headers['Proxy-Authorization']).toBe('Bearer proxy-token');
     });
   });
+
+  describe('method case normalization', () => {
+    it('converts lowercase method to uppercase in request interceptor', async () => {
+      let capturedConfig = null;
+      const stubAdapter = (config) => {
+        capturedConfig = config;
+        return Promise.resolve({ data: {}, status: 200, statusText: 'OK', headers: {}, config });
+      };
+      const instance = makeAxiosInstance();
+
+      await instance({
+        url: 'https://api.example.com/test',
+        method: 'post',
+        adapter: stubAdapter
+      });
+
+      expect(capturedConfig.method).toBe('POST');
+    });
+
+    it('changes method to uppercase GET when following 301/302/303 redirect', async () => {
+      function createRedirectingStub(redirectUrl, redirectStatus = 302) {
+        const calls = [];
+        const adapter = (config) => {
+          calls.push(config);
+          if (calls.length === 1) {
+            const err = new Error('Redirect ' + redirectStatus);
+            err.config = config;
+            err.response = {
+              status: redirectStatus,
+              statusText: 'Found',
+              headers: { location: redirectUrl },
+              data: {}
+            };
+            return Promise.reject(err);
+          }
+          return Promise.resolve({
+            data: { success: true },
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config
+          });
+        };
+        adapter.getCalls = () => calls;
+        return adapter;
+      }
+
+      const stubAdapter = createRedirectingStub('https://api.example.com/target', 302);
+      const instance = makeAxiosInstance({ followRedirects: true });
+
+      await instance({
+        url: 'https://api.example.com/start',
+        method: 'post',
+        adapter: stubAdapter
+      });
+
+      const calls = stubAdapter.getCalls();
+      expect(calls.length).toBe(2);
+      expect(calls[1].method).toBe('GET');
+    });
+  });
 });

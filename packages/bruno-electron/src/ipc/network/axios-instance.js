@@ -143,6 +143,9 @@ function makeAxiosInstance({
   // rely on content-negotiation to receive requests with no Accept header.
   instance.defaults.headers.common['User-Agent'] = `bruno-runtime/${version}`;
   instance.interceptors.request.use(async (config) => {
+    if (config.method) {
+      config.method = config.method.toUpperCase();
+    }
     const url = URL.parse(config.url);
     config.metadata = config.metadata || {};
     completeOpenHop(config);
@@ -454,7 +457,7 @@ function makeAxiosInstance({
 
           // For 301, 302, 303: change method to GET unless it was HEAD
           if ([301, 302, 303].includes(statusCode) && originalMethod !== 'head') {
-            requestConfig.method = 'get';
+            requestConfig.method = 'GET';
             requestConfig.data = undefined;
             delete requestConfig.headers['content-length'];
             delete requestConfig.headers['Content-Length'];

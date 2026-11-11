@@ -51,7 +51,7 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
     type: 'http-request',
     request: {
       url: normalizeVariables(request.url),
-      method: request.method,
+      method: request.method ? request.method.toUpperCase() : 'GET',
       auth: {
         mode: 'none',
         basic: null,
