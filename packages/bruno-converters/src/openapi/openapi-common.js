@@ -1043,8 +1043,14 @@ export const groupRequestsByPath = (requests, transformFn, options = {}) => {
   return folders;
 };
 
-const requirementSchemeName = (requirement) =>
-  (requirement !== null && typeof requirement === 'object' && !Array.isArray(requirement) ? Object.keys(requirement)[0] : undefined);
+export const requirementSchemeNames = (requirement) =>
+  (requirement !== null && typeof requirement === 'object' && !Array.isArray(requirement)
+    ? Object.keys(requirement).filter((k) => k !== '__proto__')
+    : []);
+
+export const requirementSchemeName = (requirement) => requirementSchemeNames(requirement)[0];
+
+export const operationSchemeNames = (security) => (Array.isArray(security) && security[0] ? requirementSchemeNames(security[0]) : []);
 
 export const operationSchemeName = (security) => (Array.isArray(security) ? requirementSchemeName(security[0]) : undefined);
 
@@ -1054,7 +1060,7 @@ export const optsOutOfAuth = (security, collectionAuthScheme) =>
   (Array.isArray(security) ? security.every(isEmptyRequirement) : Boolean(collectionAuthScheme?.promoted));
 
 export const inheritsCollectionAuth = (security, collectionAuthScheme) =>
-  Boolean(collectionAuthScheme) && operationSchemeName(security) === collectionAuthScheme.schemeName;
+  Boolean(collectionAuthScheme) && operationSchemeNames(security).includes(collectionAuthScheme.schemeName);
 
 const authIdentity = (auth) => {
   if (!isPlainObject(auth)) return undefined;
@@ -1065,7 +1071,7 @@ const authIdentity = (auth) => {
 
 export const resolveCollectionAuthScheme = (globalSecurity, requests, getScheme, { schemeNames = [], toAuth, collectionAuth } = {}) => {
   const globalRequirements = Array.isArray(globalSecurity) ? globalSecurity : [];
-  const globalSchemeName = globalRequirements.map(requirementSchemeName).find((name) => getScheme(name));
+  const globalSchemeName = globalRequirements.flatMap(requirementSchemeNames).find((name) => getScheme(name));
   if (globalSchemeName) {
     return { schemeName: globalSchemeName, scheme: getScheme(globalSchemeName), promoted: false };
   }

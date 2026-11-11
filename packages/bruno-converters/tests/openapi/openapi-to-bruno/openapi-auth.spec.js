@@ -140,4 +140,161 @@ servers:
     const { items: [req] } = openApiToBruno(spec);
     expect(req.request.auth.mode).toBe('none');
   });
+
+  describe('multi-scheme AND-combined security requirements', () => {
+    it('preserves all schemes when multiple apiKey schemes are required together in query', () => {
+      const spec = `
+openapi: 3.0.3
+info:
+  title: Multi ApiKey Query API
+  version: '1.0'
+components:
+  securitySchemes:
+    tokenAPI:
+      type: apiKey
+      in: query
+      name: tokenAPI
+    cryptKey:
+      type: apiKey
+      in: query
+      name: cryptKey
+paths:
+  /secure:
+    get:
+      security:
+        - tokenAPI: []
+          cryptKey: []
+      responses:
+        '200': { description: OK }
+servers:
+  - url: https://example.com
+`;
+      const collection = openApiToBruno(spec);
+      const req = collection.items[0];
+
+      expect(req.request.auth.mode).toBe('apikey');
+      expect(req.request.auth.apikey.key).toBe('tokenAPI');
+      expect(req.request.auth.apikey.placement).toBe('queryparams');
+
+      const tokenParam = req.request.params.find((p) => p.name === 'tokenAPI' && p.type === 'query');
+      expect(tokenParam).toBeDefined();
+      expect(tokenParam.value).toBe('{{apiKey}}');
+
+      const cryptParam = req.request.params.find((p) => p.name === 'cryptKey' && p.type === 'query');
+      expect(cryptParam).toBeDefined();
+      expect(cryptParam.value).toBe('{{apiKey}}');
+    });
+
+    it('preserves all schemes with mixed query and header placements', () => {
+      const spec = `
+openapi: 3.0.3
+info:
+  title: Mixed Placements API
+  version: '1.0'
+components:
+  securitySchemes:
+    tokenAPI:
+      type: apiKey
+      in: query
+      name: tokenAPI
+    headerSecret:
+      type: apiKey
+      in: header
+      name: X-Secret-Key
+paths:
+  /mixed:
+    get:
+      security:
+        - tokenAPI: []
+          headerSecret: []
+      responses:
+        '200': { description: OK }
+servers:
+  - url: https://example.com
+`;
+      const { items: [req] } = openApiToBruno(spec);
+
+      expect(req.request.auth.mode).toBe('apikey');
+      const tokenParam = req.request.params.find((p) => p.name === 'tokenAPI' && p.type === 'query');
+      expect(tokenParam).toBeDefined();
+
+      const secretHeader = req.request.headers.find((h) => h.name === 'X-Secret-Key');
+      expect(secretHeader).toBeDefined();
+      expect(secretHeader.value).toBe('{{apiKey}}');
+    });
+
+    it('preserves sibling apiKey when primary scheme is bearer HTTP auth', () => {
+      const spec = `
+openapi: 3.0.3
+info:
+  title: Bearer And ApiKey API
+  version: '1.0'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+    apiKeyQuery:
+      type: apiKey
+      in: query
+      name: api_key
+paths:
+  /data:
+    get:
+      security:
+        - bearerAuth: []
+          apiKeyQuery: []
+      responses:
+        '200': { description: OK }
+servers:
+  - url: https://example.com
+`;
+      const { items: [req] } = openApiToBruno(spec);
+
+      expect(req.request.auth.mode).toBe('bearer');
+      expect(req.request.auth.bearer).toEqual({ token: '{{token}}' });
+
+      const queryParam = req.request.params.find((p) => p.name === 'api_key' && p.type === 'query');
+      expect(queryParam).toBeDefined();
+      expect(queryParam.value).toBe('{{apiKey}}');
+    });
+
+    it('preserves sibling schemes when operations inherit multi-scheme global security', () => {
+      const spec = `
+openapi: 3.0.3
+info:
+  title: Global Multi Security API
+  version: '1.0'
+components:
+  securitySchemes:
+    tokenAPI:
+      type: apiKey
+      in: query
+      name: tokenAPI
+    cryptKey:
+      type: apiKey
+      in: query
+      name: cryptKey
+security:
+  - tokenAPI: []
+    cryptKey: []
+paths:
+  /auto:
+    get:
+      responses:
+        '200': { description: OK }
+servers:
+  - url: https://example.com
+`;
+      const collection = openApiToBruno(spec);
+      const req = collection.items[0];
+
+      expect(collection.root.request.auth.mode).toBe('apikey');
+      expect(req.request.auth.mode).toBe('inherit');
+
+      const cryptParam = req.request.params.find((p) => p.name === 'cryptKey' && p.type === 'query');
+      expect(cryptParam).toBeDefined();
+      expect(cryptParam.value).toBe('{{apiKey}}');
+    });
+  });
 });

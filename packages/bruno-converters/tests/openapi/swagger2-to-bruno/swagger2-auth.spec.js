@@ -312,4 +312,37 @@ describe('swagger2-to-bruno auth', () => {
     expect(folder).toBeDefined();
     expect(folder.root.request.auth.mode).toBe('inherit');
   });
+
+  it('preserves all schemes in multi-scheme AND-combined requirements for Swagger 2.0', () => {
+    const spec = {
+      swagger: '2.0',
+      info: { title: 'Multi Auth API', version: '1.0' },
+      host: 'api.example.com',
+      securityDefinitions: {
+        tokenKey: { type: 'apiKey', name: 'tokenKey', in: 'query' },
+        cryptHeader: { type: 'apiKey', name: 'X-Crypt-Header', in: 'header' }
+      },
+      paths: {
+        '/multi': {
+          get: {
+            summary: 'Multi auth endpoint',
+            security: [{ tokenKey: [], cryptHeader: [] }],
+            responses: { 200: { description: 'OK' } }
+          }
+        }
+      }
+    };
+    const collection = swagger2ToBruno(spec);
+    const req = collection.items[0];
+
+    expect(req.request.auth.mode).toBe('apikey');
+    expect(req.request.auth.apikey.key).toBe('tokenKey');
+
+    const queryParam = req.request.params.find((p) => p.name === 'tokenKey' && p.type === 'query');
+    expect(queryParam).toBeDefined();
+
+    const header = req.request.headers.find((h) => h.name === 'X-Crypt-Header');
+    expect(header).toBeDefined();
+    expect(header.value).toBe('{{apiKey}}');
+  });
 });

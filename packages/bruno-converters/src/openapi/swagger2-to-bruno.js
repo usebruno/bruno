@@ -21,6 +21,8 @@ import {
   getTagDescriptions,
   toSpecString,
   operationSchemeName,
+  operationSchemeNames,
+  requirementSchemeNames,
   optsOutOfAuth,
   inheritsCollectionAuth,
   resolveCollectionAuthScheme
@@ -273,16 +275,75 @@ const transformSwaggerRequestItem = (request, usedNames = new Set(), options = {
   }
 
   const { collectionAuthScheme } = options;
-  const schemeName = operationSchemeName(op.security);
+  const isExplicitSecurity = Array.isArray(op.security);
+  const effectiveSecurity = isExplicitSecurity
+    ? op.security
+    : request.global.security.defaultSecurity;
+
+  let handledSchemeName;
 
   if (optsOutOfAuth(op.security, collectionAuthScheme)) {
     brunoRequestItem.request.auth.mode = 'none';
+  } else if (isExplicitSecurity) {
+    const reqSchemes = operationSchemeNames(op.security);
+    if (inheritsSchemeAuth(op.security, collectionAuthScheme)) {
+      handledSchemeName = collectionAuthScheme.schemeName;
+    } else {
+      const primarySchemeName = reqSchemes[0];
+      handledSchemeName = primarySchemeName;
+      const securityDef = request.global.security.getDefinition(primarySchemeName);
+
+      if (securityDef) {
+        applyAuth(brunoRequestItem, securityDef, op.security[0][primarySchemeName]);
+      }
+    }
+  } else {
+    handledSchemeName = collectionAuthScheme?.schemeName || operationSchemeName(request.global.security.defaultSecurity);
   }
 
-  const securityDef = inheritsSchemeAuth(op.security, collectionAuthScheme) ? null : request.global.security.getDefinition(schemeName);
+  // Preserve any sibling schemes in an AND-combined security requirement as explicit headers or parameters
+  if (!optsOutOfAuth(op.security, collectionAuthScheme) && effectiveSecurity && effectiveSecurity[0]) {
+    const allRequirementSchemes = requirementSchemeNames(effectiveSecurity[0]);
+    for (const sName of allRequirementSchemes) {
+      if (sName === handledSchemeName) continue;
+      const siblingDef = request.global.security.getDefinition(sName);
+      if (!siblingDef) continue;
 
-  if (securityDef) {
-    applyAuth(brunoRequestItem, securityDef, op.security[0][schemeName]);
+      if (siblingDef.type === 'apiKey') {
+        if (siblingDef.in === 'header') {
+          if (!brunoRequestItem.request.headers.some((h) => h.name.toLowerCase() === siblingDef.name.toLowerCase())) {
+            brunoRequestItem.request.headers.push({
+              uid: uuid(),
+              name: siblingDef.name,
+              value: '{{apiKey}}',
+              description: siblingDef.description || '',
+              enabled: true
+            });
+          }
+        } else if (siblingDef.in === 'query') {
+          if (!brunoRequestItem.request.params.some((p) => p.name === siblingDef.name && p.type === 'query')) {
+            brunoRequestItem.request.params.push({
+              uid: uuid(),
+              name: siblingDef.name,
+              value: '{{apiKey}}',
+              description: siblingDef.description || '',
+              enabled: true,
+              type: 'query'
+            });
+          }
+        }
+      } else if (siblingDef.type === 'basic') {
+        if (!brunoRequestItem.request.headers.some((h) => h.name.toLowerCase() === 'authorization')) {
+          brunoRequestItem.request.headers.push({
+            uid: uuid(),
+            name: 'Authorization',
+            value: 'Basic {{basicAuth}}',
+            description: siblingDef.description || '',
+            enabled: true
+          });
+        }
+      }
+    }
   }
 
   // Handle response examples from Swagger 2.0 responses
@@ -475,10 +536,13 @@ const getSecurityConfig = (swagger) => {
 
   return {
     supported: hasDefinitions
-      ? defaultSchemes.map((s) => definitions[Object.keys(s)[0]]).filter(Boolean)
+      ? defaultSchemes
+          .flatMap((s) => requirementSchemeNames(s).map((k) => definitions[k]))
+          .filter(Boolean)
       : [],
     definitions,
-    getDefinition: (name) => (typeof name === 'string' && Object.hasOwn(definitions, name) ? definitions[name] : undefined)
+    getDefinition: (name) => (typeof name === 'string' && Object.hasOwn(definitions, name) ? definitions[name] : undefined),
+    defaultSecurity: Array.isArray(swagger.security) ? swagger.security : []
   };
 };
 
