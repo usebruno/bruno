@@ -34,7 +34,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
   }
 
   let axiosRequest = {
-    method: request.method,
+    method: request.method ? request.method.toUpperCase() : 'GET',
     url: request.url,
     headers: headers,
     headerEntries,

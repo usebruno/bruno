@@ -41,7 +41,7 @@ const createRedirectConfig = (error, redirectUrl) => {
 
   // For 301, 302, 303: change method to GET unless it was HEAD
   if (METHOD_CHANGING_REDIRECTS.includes(statusCode) && originalMethod !== 'head') {
-    requestConfig.method = 'get';
+    requestConfig.method = 'GET';
     requestConfig.data = undefined;
 
     // Clean up headers that are no longer relevant
@@ -111,6 +111,9 @@ function makeAxiosInstance({
   instance.defaults.headers.common['User-Agent'] = `bruno-runtime/${CLI_VERSION}`;
 
   instance.interceptors.request.use((config) => {
+    if (config.method) {
+      config.method = config.method.toUpperCase();
+    }
     config.metadata = config.metadata || {};
 
     // Omit listed defaults and script-deleted headers. set(null) so Axios
