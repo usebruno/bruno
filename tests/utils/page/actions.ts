@@ -2076,6 +2076,42 @@ const mockBrowseFiles = async (electronApp: ElectronApplication, filePaths: stri
   }, filePaths);
 };
 
+/**
+ * Set the request body to File / Binary and pick `filePath` through the native picker.
+ * @param page - The page object
+ * @param electronApp - The Electron application object
+ * @param filePath - Absolute path to the file to attach
+ * @param contentType - Replaces the content-type Bruno auto-fills from the extension
+ * @returns void
+ */
+const setFileBody = async (
+  page: Page,
+  electronApp: ElectronApplication,
+  filePath: string,
+  contentType?: string
+) => {
+  await test.step(`Set File / Binary body to "${path.basename(filePath)}"`, async () => {
+    await selectRequestBodyMode(page, 'File / Binary');
+
+    const { request, filePicker } = buildCommonLocators(page);
+    await request.addFileButton().click();
+
+    const row = request.fileBodyRow();
+    await mockBrowseFiles(electronApp, [filePath]);
+    await filePicker.button(row).click();
+    await expect(filePicker.selected(row)).toBeVisible();
+
+    if (contentType) {
+      // Typing into the prefilled cell would splice at the caret, so select all and replace.
+      await request.fileBodyContentTypeEditor().click();
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+a' : 'Control+a');
+      await page.keyboard.press('Backspace');
+      await page.keyboard.type(contentType);
+      await page.keyboard.press('Tab');
+    }
+  });
+};
+
 const addMultipartFileToLastRow = async (page: Page, electronApp: ElectronApplication, filePath: string) => {
   await test.step(`Add multipart file "${path.basename(filePath)}"`, async () => {
     await mockBrowseFiles(electronApp, [filePath]);
@@ -4242,7 +4278,8 @@ export {
   saveTransientRequestAs,
   openImportReview,
   clickOutsideModal,
-  setWindowContentSize
+  setWindowContentSize,
+  setFileBody
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput, LinkAwareRequestType, ScriptSubTab };
