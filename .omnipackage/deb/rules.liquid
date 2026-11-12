@@ -1,0 +1,25 @@
+#!/usr/bin/make -f
+# debian/rules — Debian build rules. Indents are TABS, not spaces.
+# -*- makefile -*-
+
+export DESTROOT=$(CURDIR)/debian/{{ package_name }}
+# export DH_VERBOSE=1
+
+%:
+	dh $@
+
+# Shared with the rpm spec; 2nd arg names /usr/lib/<pkg>/ and the launcher symlink.
+override_dh_auto_install:
+	$(CURDIR)/.omnipackage/install.sh $(DESTROOT) {{ package_name }}
+
+# Don't strip — it mangles electron-builder's bundled libffmpeg/libvk_swiftshader
+# and the renderer segfaults.
+override_dh_strip:
+
+# Bundled .so/.node ship as-is: shlibdeps would fail on them and rewrite RPATHs.
+# System deps are listed explicitly in debian/control.
+override_dh_shlibdeps:
+
+# Keep dh_fixperms from clearing chrome-sandbox's setuid (postinst sets it).
+override_dh_fixperms:
+	dh_fixperms -X chrome-sandbox
