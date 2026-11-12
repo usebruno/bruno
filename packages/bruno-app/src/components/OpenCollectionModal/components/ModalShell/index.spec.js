@@ -243,6 +243,17 @@ describe('ModalShell', () => {
     expect(isOpen(store)).toBe(false);
   });
 
+  it('stays open while collections are opening', () => {
+    const store = createStore({ isOpen: true, page: 'choose-folder', openingId: 'opening-1' });
+    renderWithStore(<ModalShell />, store);
+
+    fireEvent.click(screen.getByTestId('open-collection-close'));
+    fireEvent.click(screen.getByTestId('open-collection-backdrop'));
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+
+    expect(isOpen(store)).toBe(true);
+  });
+
   it('stays open when an inner control already handled Escape', () => {
     const store = renderShell();
     const item = screen.getByTestId('open-collection-menu-item-choose-folder');

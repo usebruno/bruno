@@ -39,7 +39,7 @@ class CollectionWalker {
     this.signal = signal;
     this.maxFolders = maxFolders;
     this.excludedKeys = excludedKeys;
-    this.skippedMountPoints = skippedMountPoints;
+    this.skippedMountKeys = new Set([...skippedMountPoints].map(toPathKey));
     this.visitedKeys = new Set();
     this.collections = [];
     this.folderCount = 0;
@@ -102,7 +102,7 @@ class CollectionWalker {
     }
 
     const candidates = entries.filter((entry) =>
-      !isPrunedFolderName(entry.name, realPath) && !this.skippedMountPoints.has(path.join(realPath, entry.name)));
+      !isPrunedFolderName(entry.name, realPath) && !this.skippedMountKeys.has(toPathKey(path.join(realPath, entry.name))));
     const isFolder = await Promise.all(candidates.map((entry) => isRealFolder(entry, path.join(folderPath, entry.name))));
     return candidates
       .filter((_entry, index) => isFolder[index])

@@ -31,9 +31,12 @@ const getSearchLabel = (folderPaths) =>
 const cancelSearchInMain = (searchId) => callIpc('renderer:collection-search:cancel', { requestId: searchId });
 
 export const closeOpenCollectionModal = () => (dispatch, getState) => {
-  const { searchId } = getState().openCollectionModal.chooseFolder;
-  if (searchId) {
-    cancelSearchInMain(searchId);
+  const { openingId, chooseFolder } = getState().openCollectionModal;
+  if (openingId) {
+    return;
+  }
+  if (chooseFolder.searchId) {
+    cancelSearchInMain(chooseFolder.searchId);
   }
   dispatch(hideOpenCollectionModal());
 };
@@ -79,10 +82,10 @@ export const openCollectionsFromModal = (collectionPaths) => async (dispatch, ge
     toast.error(`Failed to open ${countOf(failedCount, 'collection')}`);
   }
 
-  if (getState().openCollectionModal.openingId !== openingId) {
-    return;
+  dispatch(collectionsOpeningEnded(openingId));
+  if (result.opened.length > 0) {
+    dispatch(closeOpenCollectionModal());
   }
-  dispatch(result.opened.length > 0 ? closeOpenCollectionModal() : collectionsOpeningEnded(openingId));
 };
 
 export const findCollectionsInFolders = (folderPaths, droppedFileCount = 0) => async (dispatch, getState) => {

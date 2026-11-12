@@ -5,7 +5,7 @@ import { browseDirectories, mountCollection, openMultipleCollections } from 'pro
 import { updatePreferences } from 'providers/ReduxStore/slices/app';
 import { expandCollection } from 'providers/ReduxStore/slices/collections';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
-import openCollectionModalReducer, { showOpenCollectionModal } from './index';
+import openCollectionModalReducer from './index';
 import {
   cancelCollectionSearch,
   closeOpenCollectionModal,
@@ -521,38 +521,22 @@ describe('open collection modal actions', () => {
       expect(modalState(store).openingId).toEqual(expect.any(String));
     });
 
-    it('leaves a modal opened again in the meantime alone', async () => {
+    it('stays open while collections are opening, so they cannot be opened a second time', async () => {
       const opening = deferred();
       openingReturns(opening.promise);
       const { store } = createStore({ modal: openOn('choose-folder') });
 
       const result = store.dispatch(openCollectionsFromModal(['/work/api']));
       store.dispatch(closeOpenCollectionModal());
-      store.dispatch(showOpenCollectionModal('recents'));
+      store.dispatch(openCollectionsFromModal(['/work/api']));
+
+      expect(modalState(store)).toMatchObject({ isOpen: true, openingId: expect.any(String) });
+      expect(openMultipleCollections).toHaveBeenCalledTimes(1);
+
       opening.resolve({ opened: ['/work/api'], failed: [], invalid: [] });
       await result;
 
-      expect(toast.success).toHaveBeenCalledWith('Collection added to workspace');
-      expect(modalState(store)).toMatchObject({ isOpen: true, page: 'recents', openingId: null });
-    });
-
-    it('lets an opening from before a close finish without ending the next one', async () => {
-      const firstOpening = deferred();
-      const secondOpening = deferred();
-      openMultipleCollections
-        .mockReturnValueOnce(() => firstOpening.promise)
-        .mockReturnValueOnce(() => secondOpening.promise);
-      const { store } = createStore({ modal: openOn('choose-folder') });
-
-      const first = store.dispatch(openCollectionsFromModal(['/work/api']));
-      store.dispatch(closeOpenCollectionModal());
-      store.dispatch(showOpenCollectionModal('choose-folder'));
-      store.dispatch(openCollectionsFromModal(['/work/billing']));
-      const { openingId } = modalState(store);
-      firstOpening.resolve({ opened: [], failed: [{ path: '/work/api', error: 'bad json' }], invalid: [] });
-      await first;
-
-      expect(modalState(store)).toMatchObject({ isOpen: true, openingId });
+      expect(modalState(store)).toMatchObject({ isOpen: false, openingId: null });
     });
 
     it('shows an error when opening fails', async () => {

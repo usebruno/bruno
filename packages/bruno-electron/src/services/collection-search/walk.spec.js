@@ -11,7 +11,7 @@ describe('CollectionWalker', () => {
   let tempDir;
 
   beforeEach(() => {
-    tempDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-collection-walk-')));
+    tempDir = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-collection-walk-')));
   });
 
   afterEach(() => {
