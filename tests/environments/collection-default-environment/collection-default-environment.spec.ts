@@ -45,6 +45,10 @@ test.describe('Collection Default Environment', () => {
   });
 
   test('resolves request variables from the default environment (verified in Timeline)', async ({ pageWithUserData: page }) => {
+    // App launch (part of the fixture) counts against the test timeout, and this test also sends a request
+    // and reads the Timeline, so the default 30s leaves little room when CI is slow to mount the sidebar.
+    test.setTimeout(60_000);
+
     // The collection's default environment (prod) sets host=http://localhost:8081.
     // On first open it is auto-selected, so {{host}} must resolve to it at send time.
     const { environment } = buildCommonLocators(page);
