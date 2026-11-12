@@ -2,6 +2,41 @@ import ws from 'ws';
 import { hexy as hexdump } from 'hexy';
 import { getParsedWsUrlObject } from './ws-url';
 
+const SUBPROTOCOL_HEADER = 'Sec-WebSocket-Protocol';
+
+const isCanonicalSubprotocolHeader = ([name]) => name === SUBPROTOCOL_HEADER;
+
+/**
+ * Collect the subprotocols requested through `Sec-WebSocket-Protocol` headers.
+ *
+ * Header names are matched case-insensitively and values may hold a comma separated list.
+ * Unlike the browser WebSocket constructor, `ws` needs the protocols as an array and throws
+ * on duplicated or empty entries, so the list is trimmed and de-duplicated here.
+ *
+ * The canonical header is read first. Bruno aggregates every enabled row under that name in
+ * the order the user gave them, while a row typed in another case keeps only its last value,
+ * so reading the aggregate first keeps the user's first choice first. A server that picks by
+ * default negotiates the first subprotocol it recognises.
+ *
+ * @param {Object} headers - Request headers keyed by name
+ * @returns {string[]} Unique subprotocols, canonical header first, then in the order given
+ */
+export const getSubprotocolsFromHeaders = (headers = {}) => {
+  const entries = Object.entries(headers).filter(
+    ([name, value]) => name.toLowerCase() === SUBPROTOCOL_HEADER.toLowerCase() && typeof value === 'string'
+  );
+
+  const protocols = [
+    ...entries.filter(isCanonicalSubprotocolHeader),
+    ...entries.filter((entry) => !isCanonicalSubprotocolHeader(entry))
+  ]
+    .flatMap(([, value]) => value.split(','))
+    .map((protocol) => protocol.trim())
+    .filter(Boolean);
+
+  return [...new Set(protocols)];
+};
+
 const normalizeMessageByFormat = (message, format) => {
   if (!message) {
     return '';
@@ -95,15 +130,7 @@ class WsClient {
     }
 
     try {
-      // Create WebSocket connection
-      // Note: unlike the standard Websocket constructor the `ws` library doesn't support adding Protocols as a single string
-      // and instead needs it broken down manually, make sure this tested with multiple protocols again.
-      const protocols = []
-        .concat([headers['Sec-WebSocket-Protocol'], headers['sec-websocket-protocol']])
-        .filter(Boolean)
-        .map((d) => d.split(','))
-        .flat()
-        .map((d) => d.trim());
+      const protocols = getSubprotocolsFromHeaders(headers);
 
       const protocolVersion = headers['Sec-WebSocket-Version'] || headers['sec-websocket-version'];
 
