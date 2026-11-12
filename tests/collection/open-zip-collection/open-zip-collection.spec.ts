@@ -32,7 +32,7 @@ test.describe('Export a bru collection as ZIP and import it back', () => {
 
     await test.step('Open the bru collection', async () => {
       await openCollectionFromDialog(page, electronApp, collectionFixturePath!);
-      await expect(sidebar.collection(COLLECTION_NAME)).toBeVisible();
+      await sidebar.collection(COLLECTION_NAME).waitFor({ state: 'visible' });
     });
 
     await test.step('Export the collection as a Bruno Collection (ZIP)', async () => {
@@ -40,7 +40,6 @@ test.describe('Export a bru collection as ZIP and import it back', () => {
       expect(zippedFiles.length).toBeGreaterThan(0);
     });
 
-    // The imported collection keeps the same name, so close the original to keep sidebar lookups unambiguous.
     await removeCollection(page, COLLECTION_NAME);
 
     await test.step('Import the exported ZIP collection', async () => {
