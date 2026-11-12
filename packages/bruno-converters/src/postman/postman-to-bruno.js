@@ -9,8 +9,9 @@ import {
   extractPackagesFromScript,
   TRANSLATOR_INJECTED_GLOBALS
 } from './postman-package-detector';
-import { translatePostmanScript } from './postman-translations';
-import { aggregateScriptUsage, buildPreservedScriptsReport } from './postman-script-report';
+import postmanTranslation from './postman-translations';
+import { buildScriptTranslationReport } from './postman-script-report';
+import { forEachBrunoScript, forEachPostmanScript } from './postman-script-sources';
 
 const { parseMaxRedirects } = utils;
 
@@ -214,17 +215,10 @@ const translationFailureReporter = (issues, path) => ({ message, fallback }) => 
   });
 };
 
-const translateOrPreserve = (exec, preserveScripts, translationOptions, scriptUsages) => {
-  if (preserveScripts) {
-    return Array.isArray(exec) ? exec.join('\n') : exec;
-  }
+const translateOrPreserve = (exec, preserveScripts, translationOptions) =>
+  preserveScripts ? (Array.isArray(exec) ? exec.join('\n') : exec) : postmanTranslation(exec, translationOptions);
 
-  const { translated, usage } = translatePostmanScript(exec, translationOptions);
-  if (usage) scriptUsages.push(usage);
-  return translated;
-};
-
-const importScriptsFromEvents = (events, requestObject, preserveScripts = false, translationOptions, scriptUsages) => {
+const importScriptsFromEvents = (events, requestObject, preserveScripts = false, translationOptions) => {
   events.forEach((event) => {
     if (event.script && event.script.exec) {
       if (event.listen === 'prerequest') {
@@ -233,7 +227,7 @@ const importScriptsFromEvents = (events, requestObject, preserveScripts = false,
         }
 
         if (event.script.exec && event.script.exec.length > 0) {
-          requestObject.script.req = translateOrPreserve(event.script.exec, preserveScripts, translationOptions, scriptUsages);
+          requestObject.script.req = translateOrPreserve(event.script.exec, preserveScripts, translationOptions);
         } else {
           requestObject.script.req = '';
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
@@ -246,7 +240,7 @@ const importScriptsFromEvents = (events, requestObject, preserveScripts = false,
         }
 
         if (event.script.exec && event.script.exec.length > 0) {
-          requestObject.script.res = translateOrPreserve(event.script.exec, preserveScripts, translationOptions, scriptUsages);
+          requestObject.script.res = translateOrPreserve(event.script.exec, preserveScripts, translationOptions);
         } else {
           requestObject.script.res = '';
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
@@ -480,7 +474,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
   }
 };
 
-const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = false, logTranslationFailures = true } = {}, scriptMap, issues = [], scriptUsages, parentPath = '') => {
+const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = false, logTranslationFailures = true } = {}, scriptMap, issues = [], parentPath = '') => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
@@ -541,7 +535,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
       processAuth(i.auth, brunoFolderItem.root.request);
 
       if (i.item && i.item.length) {
-        importPostmanV2CollectionItem(brunoFolderItem, i.item, { preserveScripts, logTranslationFailures }, scriptMap, issues, scriptUsages, itemPath);
+        importPostmanV2CollectionItem(brunoFolderItem, i.item, { preserveScripts, logTranslationFailures }, scriptMap, issues, itemPath);
       }
 
       if (i.event) {
@@ -554,7 +548,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
           importScriptsFromEvents(i.event, brunoFolderItem.root.request, preserveScripts, {
             onTranslationFailure: translationFailureReporter(issues, itemPath),
             logFailures: logTranslationFailures
-          }, scriptUsages);
+          });
         }
       }
 
@@ -667,7 +661,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
                   brunoRequestItem.request.script = {};
                 }
                 if (event.script.exec && event.script.exec.length > 0) {
-                  brunoRequestItem.request.script.req = translateOrPreserve(event.script.exec, preserveScripts, translationOptions, scriptUsages);
+                  brunoRequestItem.request.script.req = translateOrPreserve(event.script.exec, preserveScripts, translationOptions);
                 } else {
                   brunoRequestItem.request.script.req = '';
                   console.warn('Unexpected event.script.exec type', typeof event.script.exec);
@@ -678,7 +672,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
                   brunoRequestItem.request.script = {};
                 }
                 if (event.script.exec && event.script.exec.length > 0) {
-                  brunoRequestItem.request.script.res = translateOrPreserve(event.script.exec, preserveScripts, translationOptions, scriptUsages);
+                  brunoRequestItem.request.script.res = translateOrPreserve(event.script.exec, preserveScripts, translationOptions);
                 } else {
                   brunoRequestItem.request.script.res = '';
                   console.warn('Unexpected event.script.exec type', typeof event.script.exec);
@@ -1025,28 +1019,12 @@ const getBodyTypeFromContentTypeHeader = (headers) => {
 const collectPackagesFromPostmanCollection = (postmanCollection) => {
   const allPackages = new Set();
 
-  const collectFromEvents = (events) => {
-    if (!Array.isArray(events)) return;
-    events.forEach((event) => {
-      const exec = event?.script?.exec;
-      if (!exec) return;
-      const { packages } = extractPackagesFromScript(exec);
-      packages.forEach((pkg) => allPackages.add(pkg));
-    });
-  };
-
-  const visitItems = (items) => {
-    if (!Array.isArray(items)) return;
-    items.forEach((item) => {
-      collectFromEvents(item?.event);
-      if (item.item && item.item.length) {
-        visitItems(item.item);
-      }
-    });
-  };
-
-  collectFromEvents(postmanCollection?.event);
-  visitItems(postmanCollection?.item);
+  // Every event, not just the translated ones: a package named in any script is
+  // a package the user expects to be available.
+  forEachPostmanScript(postmanCollection, (script) => {
+    const { packages } = extractPackagesFromScript(script);
+    packages.forEach((pkg) => allPackages.add(pkg));
+  });
 
   return Array.from(allPackages);
 };
@@ -1054,47 +1032,13 @@ const collectPackagesFromPostmanCollection = (postmanCollection) => {
 const rewriteRequiresInBrunoCollection = (brunoCollection) => {
   const injected = new Set();
 
-  const processScriptString = (source) => {
+  forEachBrunoScript(brunoCollection, (source) => {
     const { translatedSource, packages } = extractPackagesFromScript(source);
     for (const pkg of packages) {
       if (TRANSLATOR_INJECTED_GLOBALS.has(pkg)) injected.add(pkg);
     }
     return translatedSource;
-  };
-
-  const processScriptField = (scriptObj, key) => {
-    if (!scriptObj || typeof scriptObj[key] !== 'string' || !scriptObj[key]) return;
-    const next = processScriptString(scriptObj[key]);
-    if (next !== scriptObj[key]) scriptObj[key] = next;
-  };
-
-  const visitRequest = (request) => {
-    if (!request) return;
-    if (request.script) {
-      processScriptField(request.script, 'req');
-      processScriptField(request.script, 'res');
-    }
-    if (typeof request.tests === 'string' && request.tests) {
-      const next = processScriptString(request.tests);
-      if (next !== request.tests) request.tests = next;
-    }
-  };
-
-  visitRequest(brunoCollection?.root?.request);
-
-  const visitItems = (items) => {
-    if (!Array.isArray(items)) return;
-    items.forEach((item) => {
-      if (item.type === 'folder') {
-        visitRequest(item?.root?.request);
-        visitItems(item.items);
-      } else {
-        visitRequest(item.request);
-      }
-    });
-  };
-
-  visitItems(brunoCollection.items);
+  });
 
   return Array.from(injected);
 };
@@ -1132,13 +1076,12 @@ const importPostmanV2Collection = async (collection, { useWorkers = false, prese
   };
 
   const issues = [];
-  const scriptUsages = [];
 
   if (collection.event) {
     importScriptsFromEvents(collection.event, brunoCollection.root.request, preserveScripts, {
       onTranslationFailure: translationFailureReporter(issues, 'Collection'),
       logFailures: logTranslationFailures
-    }, scriptUsages);
+    });
   }
 
   if (collection?.variable) {
@@ -1155,14 +1098,13 @@ const importPostmanV2Collection = async (collection, { useWorkers = false, prese
   // Create a single scriptMap for all items
   const scriptMap = useWorkers && !preserveScripts ? new Map() : null;
 
-  importPostmanV2CollectionItem(brunoCollection, collection.item, { preserveScripts, logTranslationFailures }, scriptMap, issues, scriptUsages);
+  importPostmanV2CollectionItem(brunoCollection, collection.item, { preserveScripts, logTranslationFailures }, scriptMap, issues);
 
   // Process all scripts in a single call at the top level
   if (useWorkers && scriptMap && scriptMap.size > 0) {
     try {
       const { default: scriptTranslationWorker } = await import('../workers/postman-translator-worker');
-      const { translatedScripts, scriptUsages: workerScriptUsages } = await scriptTranslationWorker(scriptMap);
-      scriptUsages.push(...workerScriptUsages);
+      const translatedScripts = await scriptTranslationWorker(scriptMap);
 
       // Apply translated scripts to all items in the collection
       const applyScriptsToItems = (items) => {
@@ -1215,7 +1157,7 @@ const importPostmanV2Collection = async (collection, { useWorkers = false, prese
     }
   }
 
-  return { collection: brunoCollection, issues, scriptUsages };
+  return { collection: brunoCollection, issues };
 };
 
 const parsePostmanCollection = async (collection, { useWorkers = false, preserveScripts = false, logTranslationFailures = true }) => {
@@ -1255,7 +1197,7 @@ const postmanToBruno = async (postmanCollection, { useWorkers = false, preserveS
       : postmanCollection;
     const rawPackages = collectPackagesFromPostmanCollection(rawCollectionForScan);
 
-    const { collection: parsedCollection, issues, scriptUsages } = await parsePostmanCollection(postmanCollection, { useWorkers, preserveScripts, logTranslationFailures });
+    const { collection: parsedCollection, issues } = await parsePostmanCollection(postmanCollection, { useWorkers, preserveScripts, logTranslationFailures });
     const transformedCollection = transformItemsInCollection(parsedCollection);
     const hydratedCollection = hydrateSeqInCollection(transformedCollection);
     // Apply backward compatibility transformation for string status to number
@@ -1272,7 +1214,12 @@ const postmanToBruno = async (postmanCollection, { useWorkers = false, preserveS
     const injectedPackages = preserveScripts ? [] : rewriteRequiresInBrunoCollection(validatedCollection);
     validatedCollection.packageReport = buildPackageReport([...rawPackages, ...injectedPackages]);
 
-    const scriptTranslationReport = preserveScripts ? buildPreservedScriptsReport() : aggregateScriptUsage(scriptUsages);
+    // Measured here, after every rewrite, so the Bruno side is what the user will actually run.
+    const scriptTranslationReport = buildScriptTranslationReport({
+      postmanCollection: rawCollectionForScan,
+      brunoCollection: validatedCollection,
+      preserveScripts
+    });
 
     return { collection: validatedCollection, issues, scriptTranslationReport };
   } catch (err) {
