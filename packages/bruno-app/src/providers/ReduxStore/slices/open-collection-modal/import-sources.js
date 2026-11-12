@@ -64,11 +64,13 @@ const readFileForBulkImport = async (file) => {
 };
 
 const readSeveralFiles = async (files) => {
-  const filesData = (await Promise.all(files.map(readFileForBulkImport))).filter(Boolean);
+  const results = await Promise.all(files.map(readFileForBulkImport));
+  const filesData = results.filter(Boolean);
   if (filesData.length === 0) {
     throw new Error('No valid collections found in the selected files');
   }
-  return { filesData, type: 'multiple' };
+  const skippedFileNames = files.filter((file, index) => !results[index]).map((file) => file.name);
+  return { filesData, type: 'multiple', skippedFileNames };
 };
 
 export const readImportFiles = async (files) => {

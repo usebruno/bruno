@@ -103,7 +103,8 @@ describe('import sources', () => {
         filesData: [
           { file: spec, data: openApi, type: 'openapi', filePath: '/files/openapi.json', rawContent: JSON.stringify(openApi) },
           { file: collection, data: postman, type: 'postman', filePath: '/files/postman.json', rawContent: undefined }
-        ]
+        ],
+        skippedFileNames: ['notes.json', 'broken.json']
       });
     });
 

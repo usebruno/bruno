@@ -166,7 +166,14 @@ const loadImportData = (read) => async (dispatch, getState) => {
   return null;
 };
 
-export const loadImportFiles = (files) => loadImportData(() => readImportFiles(files));
+export const loadImportFiles = (files) => async (dispatch) => {
+  const importData = await dispatch(loadImportData(() => readImportFiles(files)));
+  const skippedFileNames = importData?.skippedFileNames ?? [];
+  if (skippedFileNames.length > 0) {
+    toast(`${skippedFileNames.join(', ')} ${skippedFileNames.length === 1 ? 'isn’t a valid collection, so it was' : 'aren’t valid collections, so they were'} skipped.`);
+  }
+  return importData;
+};
 
 export const loadImportText = (text) => loadImportData(() => readImportText(text));
 

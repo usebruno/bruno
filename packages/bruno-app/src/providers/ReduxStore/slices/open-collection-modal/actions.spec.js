@@ -447,6 +447,25 @@ describe('open collection modal actions', () => {
       expect(modalState(store).importLoadId).toBeNull();
     });
 
+    it('says which picked files were skipped when it loads the rest', async () => {
+      const severalFiles = { type: 'multiple', filesData: [{ file: droppedFile, data: importData.rawData, type: 'openapi' }], skippedFileNames: ['notes.json', 'broken.json'] };
+      readImportFiles.mockResolvedValue(severalFiles);
+      const { store } = createStore({ modal: openOn('import') });
+
+      await expect(store.dispatch(loadImportFiles([droppedFile]))).resolves.toEqual(severalFiles);
+
+      expect(toast).toHaveBeenCalledWith('notes.json, broken.json aren’t valid collections, so they were skipped.');
+    });
+
+    it('stays quiet when every picked file can be loaded', async () => {
+      readImportFiles.mockResolvedValue({ type: 'multiple', filesData: [{ file: droppedFile, data: importData.rawData, type: 'openapi' }], skippedFileNames: [] });
+      const { store } = createStore({ modal: openOn('import') });
+
+      await store.dispatch(loadImportFiles([droppedFile]));
+
+      expect(toast).not.toHaveBeenCalled();
+    });
+
     it('marks the page as loading while it reads', () => {
       readImportText.mockReturnValue(new Promise(() => {}));
       const { store } = createStore({ modal: openOn('import') });
