@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectActiveTab } from 'src/selectors/tab';
 import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette, IconBrandGithub } from '@tabler/icons';
-import Mousetrap from 'mousetrap';
-import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
+import useKeybinding from 'hooks/useKeybinding';
 import ToolHint from 'components/ToolHint';
 import Cookies from 'components/Cookies';
+import GlobalSearchModal from 'components/GlobalSearchModal';
 import Notifications from 'components/Notifications';
 import Portal from 'components/Portal';
 import ThemeDropdown from './ThemeDropdown';
@@ -22,6 +22,12 @@ const StatusBar = () => {
   const logs = useSelector((state) => state.logs.logs);
   const [cookiesOpen, setCookiesOpen] = useState(false);
   const { version } = useApp();
+  const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+
+  useKeybinding('globalSearch', () => {
+    setGlobalSearchOpen(true);
+    return false; // stop bubbling
+  });
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
 
@@ -43,13 +49,6 @@ const StatusBar = () => {
     );
   };
 
-  const openGlobalSearch = () => {
-    const bindings = getKeyBindingsForActionAllOS('globalSearch') || [];
-    bindings.forEach((binding) => {
-      Mousetrap.trigger(binding);
-    });
-  };
-
   return (
     <StyledWrapper>
       {cookiesOpen && (
@@ -64,6 +63,12 @@ const StatusBar = () => {
             aria-labelledby="cookies-title"
             aria-describedby="cookies-description"
           />
+        </Portal>
+      )}
+
+      {globalSearchOpen && (
+        <Portal>
+          <GlobalSearchModal isOpen={globalSearchOpen} onClose={() => setGlobalSearchOpen(false)} />
         </Portal>
       )}
 
@@ -119,7 +124,7 @@ const StatusBar = () => {
             <button
               className="status-bar-button"
               data-trigger="search"
-              onClick={openGlobalSearch}
+              onClick={() => setGlobalSearchOpen(true)}
               tabIndex={0}
               aria-label="Global Search"
             >
