@@ -2630,6 +2630,25 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  ipcMain.handle('renderer:export-collection-yaml', async (event, collectionName, content) => {
+    if (typeof content !== 'string') {
+      throw new Error('Export content must be a string');
+    }
+
+    const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
+      title: 'Export Collection as YAML',
+      defaultPath: `${sanitizeName(collectionName)}.yml`,
+      filters: [{ name: 'YAML Files', extensions: ['yml', 'yaml'] }]
+    });
+
+    if (canceled || !filePath) {
+      return { success: false, canceled: true };
+    }
+
+    await writeFile(filePath, content);
+    return { success: true, filePath };
+  });
+
   ipcMain.handle('renderer:export-collection-postman', async (event, dirPath, fileName, content, overwrite = false) => {
     try {
       if (!dirPath || !fs.existsSync(dirPath)) {

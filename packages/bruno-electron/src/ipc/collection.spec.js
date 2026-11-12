@@ -1,4 +1,4 @@
-const { ipcMain, app } = require('electron');
+const { ipcMain, app, dialog } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -21,7 +21,8 @@ jest.mock('electron', () => {
       getVersion: jest.fn(() => '2.0.0')
     },
     dialog: {
-      showOpenDialog: jest.fn()
+      showOpenDialog: jest.fn(),
+      showSaveDialog: jest.fn()
     }
   };
 });
@@ -224,6 +225,45 @@ describe('IPC collection handlers', () => {
       const [, , , brunoConfig] = mainWindow.webContents.send.mock.calls.find(([channel]) => channel === 'main:collection-opened');
       const sentConfig = brunoConfig.openapi.map((entry) => ({ ...entry, sourceUrl: posixifyPath(entry.sourceUrl) }));
       expect(sentConfig).toEqual(readSyncConfig('Orders API'));
+    });
+  });
+
+  describe('renderer:export-collection-yaml', () => {
+    let exportHandler;
+    let exportDir;
+
+    beforeEach(() => {
+      exportHandler = ipcMain._getHandler('renderer:export-collection-yaml');
+      exportDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-export-yaml-'));
+    });
+
+    afterEach(() => {
+      fs.rmSync(exportDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+    });
+
+    it('writes the content to the path chosen in the save dialog', async () => {
+      const filePath = path.join(exportDir, 'My API.yml');
+      dialog.showSaveDialog.mockResolvedValue({ filePath, canceled: false });
+
+      const result = await exportHandler({}, 'My API', 'opencollection: 1.0.0\n');
+
+      expect(dialog.showSaveDialog).toHaveBeenCalledWith(mainWindow, expect.objectContaining({ defaultPath: 'My API.yml' }));
+      expect(result).toEqual({ success: true, filePath });
+      expect(fs.readFileSync(filePath, 'utf8')).toBe('opencollection: 1.0.0\n');
+    });
+
+    it('reports a cancel without writing when the save dialog is dismissed', async () => {
+      dialog.showSaveDialog.mockResolvedValue({ filePath: '', canceled: true });
+
+      const result = await exportHandler({}, 'My API', 'opencollection: 1.0.0\n');
+
+      expect(result).toEqual({ success: false, canceled: true });
+      expect(fs.readdirSync(exportDir)).toEqual([]);
+    });
+
+    it('rejects non-string content before opening the save dialog', async () => {
+      await expect(exportHandler({}, 'My API', { opencollection: '1.0.0' })).rejects.toThrow('Export content must be a string');
+      expect(dialog.showSaveDialog).not.toHaveBeenCalled();
     });
   });
 });
