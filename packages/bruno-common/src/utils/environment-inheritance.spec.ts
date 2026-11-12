@@ -61,7 +61,7 @@ describe('resolveEnvironmentInheritance', () => {
 
       const result = resolve({ environments: [base], target: 'base' });
 
-      expect(result).toEqual({ ...base, inheritedVariables: [] });
+      expect(result).toEqual({ ...base, inheritedVariables: [], inheritedExternalSecrets: undefined });
     });
   });
 
@@ -571,6 +571,219 @@ describe('resolveEnvironmentInheritance', () => {
         },
         { name: 'token', value: 'dev-plain-token', enabled: true, secret: false }
       ]);
+    });
+  });
+
+  describe('external secret inheritance', () => {
+    const externalSecret = (name: string, value: string) => ({ name, value });
+
+    const externalSecrets = (type: string, variables: ReturnType<typeof externalSecret>[]) => ({
+      type,
+      variables
+    });
+
+    const environmentWithSecrets = ({
+      name,
+      variables = [],
+      externalSecrets: secrets,
+      extends: extendsRef
+    }: {
+      name: string;
+      variables?: ReturnType<typeof variable>[];
+      externalSecrets?: { type: string; variables: ReturnType<typeof externalSecret>[] };
+      extends?: string;
+    }) => ({
+      uid: `uid-${name}`,
+      name,
+      variables,
+      ...(secrets ? { externalSecrets: secrets } : {}),
+      ...(extendsRef ? { extends: extendsRef } : {})
+    });
+
+    it('inherits the whole external secrets block when the child defines none', () => {
+      const vaultBase = environmentWithSecrets({
+        name: 'vault-base',
+        externalSecrets: externalSecrets('azurekv', [externalSecret('db-password', 'vault/db-password')])
+      });
+      const dev = environmentWithSecrets({
+        name: 'dev',
+        variables: [variable({ name: 'host', value: 'dev-host' })],
+        extends: 'vault-base'
+      });
+
+      const result = resolve({ environments: [vaultBase, dev], target: 'dev' })!;
+
+      expect(result.inheritedExternalSecrets).toEqual({
+        type: 'azurekv',
+        variables: [
+          {
+            name: 'db-password',
+            value: 'vault/db-password',
+            inheritedFrom: { name: 'vault-base', uid: 'uid-vault-base' }
+          }
+        ]
+      });
+    });
+
+    it('reports no inherited external secrets when no ancestor defines a block', () => {
+      const base = environment({ name: 'base', variables: [variable({ name: 'host', value: 'a' })] });
+      const dev = environment({
+        name: 'dev',
+        variables: [variable({ name: 'host', value: 'dev-host' })],
+        extends: 'base'
+      });
+
+      expect(resolve({ environments: [base, dev], target: 'dev' })!.inheritedExternalSecrets).toBeUndefined();
+    });
+
+    it('reports no inherited external secrets for an environment that inherits from nothing', () => {
+      const base = environmentWithSecrets({
+        name: 'base',
+        externalSecrets: externalSecrets('azurekv', [externalSecret('db-password', 'vault/db-password')])
+      });
+
+      const result = resolve({ environments: [base], target: 'base' })!;
+
+      expect(result.inheritedExternalSecrets).toBeUndefined();
+    });
+
+    it('lets the child shadow one inherited secret while keeping the rest', () => {
+      const vaultBase = environmentWithSecrets({
+        name: 'vault-base',
+        externalSecrets: externalSecrets('azurekv', [
+          externalSecret('db-password', 'vault/db-password'),
+          externalSecret('api-key', 'vault/api-key')
+        ])
+      });
+      const dev = environmentWithSecrets({
+        name: 'dev',
+        extends: 'vault-base',
+        externalSecrets: externalSecrets('azurekv', [externalSecret('api-key', 'vault/dev-api-key')])
+      });
+
+      const result = resolve({ environments: [vaultBase, dev], target: 'dev' })!;
+
+      expect(result.inheritedExternalSecrets).toEqual({
+        type: 'azurekv',
+        variables: [
+          {
+            name: 'db-password',
+            value: 'vault/db-password',
+            inheritedFrom: { name: 'vault-base', uid: 'uid-vault-base' }
+          }
+        ]
+      });
+    });
+
+    it('resolves a three-level chain nearest-ancestor first and credits each row to its source', () => {
+      const vaultBase = environmentWithSecrets({
+        name: 'vault-base',
+        externalSecrets: externalSecrets('azurekv', [
+          externalSecret('shared', 'vault/shared'),
+          externalSecret('base-only', 'vault/base-only')
+        ])
+      });
+      const teamVault = environmentWithSecrets({
+        name: 'team-vault',
+        extends: 'vault-base',
+        externalSecrets: externalSecrets('azurekv', [externalSecret('shared', 'vault/team-shared')])
+      });
+      const dev = environmentWithSecrets({ name: 'dev', extends: 'team-vault' });
+
+      const result = resolve({ environments: [vaultBase, teamVault, dev], target: 'dev' })!;
+
+      expect(result.inheritedExternalSecrets).toEqual({
+        type: 'azurekv',
+        variables: [
+          {
+            name: 'shared',
+            value: 'vault/team-shared',
+            inheritedFrom: { name: 'team-vault', uid: 'uid-team-vault' }
+          },
+          {
+            name: 'base-only',
+            value: 'vault/base-only',
+            inheritedFrom: { name: 'vault-base', uid: 'uid-vault-base' }
+          }
+        ]
+      });
+    });
+
+    it('ignores ancestors on a different provider type than the effective one', () => {
+      const vaultBase = environmentWithSecrets({
+        name: 'vault-base',
+        externalSecrets: externalSecrets('azurekv', [externalSecret('db-password', 'vault/db-password')])
+      });
+      const dev = environmentWithSecrets({
+        name: 'dev',
+        extends: 'vault-base',
+        externalSecrets: externalSecrets('hashicorp', [externalSecret('token', 'secret/token')])
+      });
+
+      const result = resolve({ environments: [vaultBase, dev], target: 'dev' })!;
+
+      expect(result.inheritedExternalSecrets).toBeUndefined();
+    });
+
+    it('resolves the ancestors reached so far when the chain ends on a missing parent', () => {
+      const vaultBase = environmentWithSecrets({
+        name: 'vault-base',
+        extends: 'gone',
+        externalSecrets: externalSecrets('azurekv', [externalSecret('db-password', 'vault/db-password')])
+      });
+      const dev = environmentWithSecrets({ name: 'dev', extends: 'vault-base' });
+
+      const result = resolve({ environments: [vaultBase, dev], target: 'dev' })!;
+
+      expect(result.inheritedExternalSecrets?.variables.map((row: { name: string }) => row.name)).toEqual([
+        'db-password'
+      ]);
+      expect(result.missingInheritedEnvironmentName).toBe('gone');
+    });
+
+    it('folds inherited and own secrets into one block when merged', () => {
+      const vaultBase = environmentWithSecrets({
+        name: 'vault-base',
+        externalSecrets: externalSecrets('azurekv', [
+          externalSecret('db-password', 'vault/db-password'),
+          externalSecret('api-key', 'vault/api-key')
+        ])
+      });
+      const dev = environmentWithSecrets({
+        name: 'dev',
+        extends: 'vault-base',
+        externalSecrets: externalSecrets('azurekv', [externalSecret('api-key', 'vault/dev-api-key')])
+      });
+
+      const result = resolve({ environments: [vaultBase, dev], target: 'dev', merge: true })!;
+
+      expect(result.externalSecrets).toEqual({
+        type: 'azurekv',
+        variables: [
+          {
+            name: 'db-password',
+            value: 'vault/db-password',
+            inheritedFrom: { name: 'vault-base', uid: 'uid-vault-base' }
+          },
+          { name: 'api-key', value: 'vault/dev-api-key' }
+        ]
+      });
+    });
+
+    it('leaves the block untouched when merged with nothing inherited', () => {
+      const dev = environmentWithSecrets({
+        name: 'dev',
+        externalSecrets: externalSecrets('azurekv', [externalSecret('api-key', 'vault/dev-api-key')]),
+        extends: 'base'
+      });
+      const base = environment({ name: 'base' });
+
+      const result = resolve({ environments: [base, dev], target: 'dev', merge: true })!;
+
+      expect(result.externalSecrets).toEqual({
+        type: 'azurekv',
+        variables: [{ name: 'api-key', value: 'vault/dev-api-key' }]
+      });
     });
   });
 
