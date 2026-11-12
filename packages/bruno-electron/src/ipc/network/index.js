@@ -1022,7 +1022,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       requestSent = {
         url: request.url,
-        method: request.method,
+        method: request.method ? request.method.toUpperCase() : 'GET',
         headers: headersSent,
         data: requestData,
         dataBuffer: requestDataBuffer,

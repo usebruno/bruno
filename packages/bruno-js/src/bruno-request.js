@@ -234,8 +234,9 @@ class BrunoRequest {
    * @category Method
    */
   setMethod(method) {
-    this.method = method;
-    this.req.method = method;
+    const upperMethod = typeof method === 'string' ? method.toUpperCase() : method;
+    this.method = upperMethod;
+    this.req.method = upperMethod;
   }
 
   /**

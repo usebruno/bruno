@@ -130,6 +130,12 @@ function makeAxiosInstance({
       axios.defaults.transformRequest.forEach(function (tr) {
         data = tr.call(this, data, headers);
       }, this);
+      // Uppercasing config.method in the request interceptor bypasses Axios's
+      // lowercase ['post', 'put', 'patch'] check in dispatchRequest; preserve its
+      // default Content-Type fallback without overriding null/false suppressions.
+      if (['POST', 'PUT', 'PATCH'].includes(this?.method) && typeof headers?.setContentType === 'function') {
+        headers.setContentType('application/x-www-form-urlencoded', false);
+      }
       return data;
     },
     proxy: false,
@@ -143,6 +149,9 @@ function makeAxiosInstance({
   // rely on content-negotiation to receive requests with no Accept header.
   instance.defaults.headers.common['User-Agent'] = `bruno-runtime/${version}`;
   instance.interceptors.request.use(async (config) => {
+    if (config.method) {
+      config.method = config.method.toUpperCase();
+    }
     const url = URL.parse(config.url);
     config.metadata = config.metadata || {};
     completeOpenHop(config);
@@ -453,20 +462,24 @@ function makeAxiosInstance({
           const originalMethod = (error.config.method || 'get').toLowerCase();
 
           // For 301, 302, 303: change method to GET unless it was HEAD
-          if ([301, 302, 303].includes(statusCode) && originalMethod !== 'head') {
-            requestConfig.method = 'get';
-            requestConfig.data = undefined;
-            delete requestConfig.headers['content-length'];
-            delete requestConfig.headers['Content-Length'];
+          if ([301, 302, 303].includes(statusCode)) {
+            if (originalMethod !== 'head') {
+              requestConfig.method = 'GET';
+              requestConfig.data = undefined;
+              delete requestConfig.headers['content-length'];
+              delete requestConfig.headers['Content-Length'];
 
-            delete requestConfig.headers['content-type'];
-            delete requestConfig.headers['Content-Type'];
+              delete requestConfig.headers['content-type'];
+              delete requestConfig.headers['Content-Type'];
 
-            timeline.push({
-              timestamp: new Date(),
-              type: 'info',
-              message: `Changed method from ${originalMethod.toUpperCase()} to GET for ${statusCode} redirect and removed request body`
-            });
+              timeline.push({
+                timestamp: new Date(),
+                type: 'info',
+                message: `Changed method from ${originalMethod.toUpperCase()} to GET for ${statusCode} redirect and removed request body`
+              });
+            } else {
+              requestConfig.method = 'HEAD';
+            }
           } else {
             // For 307, 308 and other status codes: preserve method and body
             if (requestConfig.data && typeof requestConfig.data === 'object'

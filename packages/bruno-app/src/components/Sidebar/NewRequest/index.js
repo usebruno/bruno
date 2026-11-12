@@ -218,7 +218,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
             filename: filename,
             requestType: curlRequestTypeDetected,
             requestUrl: request.url,
-            requestMethod: request.method,
+            requestMethod: request.method ? request.method.toUpperCase() : 'GET',
             collectionUid: collectionUid,
             itemUid: item ? item.uid : null,
             headers: request.headers,
