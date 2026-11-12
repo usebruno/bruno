@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
+import { useSelector } from 'react-redux';
 import { IconTerminal2, IconPlus } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
@@ -218,6 +219,11 @@ const TerminalTab = () => {
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const activeWorkspacePathname = useSelector((state) => {
+    const { workspaces = [], activeWorkspaceUid } = state.workspaces || {};
+    const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+    return activeWorkspace?.pathname || null;
+  });
   const { theme } = useTheme();
   const terminalTheme = getTerminalTheme(theme);
 
@@ -260,7 +266,8 @@ const TerminalTab = () => {
       if (!window.ipcRenderer) return null;
 
       try {
-        const options = cwd ? { cwd } : {};
+        const resolvedCwd = cwd || activeWorkspacePathname;
+        const options = resolvedCwd ? { cwd: resolvedCwd } : {};
         const newSessionId = await window.ipcRenderer.invoke('terminal:create', options);
         if (newSessionId) {
           await loadSessions(newSessionId);
@@ -272,7 +279,7 @@ const TerminalTab = () => {
       }
       return null;
     },
-    [loadSessions]
+    [loadSessions, activeWorkspacePathname]
   );
 
   // Listen for requests to open terminal at specific CWD
