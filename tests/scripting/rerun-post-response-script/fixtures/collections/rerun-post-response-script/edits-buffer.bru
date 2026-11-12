@@ -1,0 +1,18 @@
+meta {
+  name: edits-buffer
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  const bytes = res.getDataBuffer();
+  if (bytes && typeof bytes.fill === 'function') {
+    bytes.fill(120);
+  }
+}
