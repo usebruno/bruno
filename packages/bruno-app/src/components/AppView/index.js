@@ -7,6 +7,7 @@ import { findEnvironmentInCollection } from 'utils/collections';
 import {
   responseReceived,
   appSetRuntimeVariable,
+  appUnsetRuntimeVariable,
   initRunRequestEvent
 } from 'providers/ReduxStore/slices/collections';
 import { updateRequestPaneTab, setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
@@ -50,6 +51,9 @@ const REQUEST_CTX_BOOTSTRAP = `<script>
       runtime: {
         set: function (name, value) {
           sendToHost({ type: 'setRuntimeVariable', key: String(name), value: value });
+        },
+        unset: function (name) {
+          sendToHost({ type: 'unsetRuntimeVariable', key: String(name) });
         }
       }
     },
@@ -248,6 +252,11 @@ const AppView = ({ item, collection, code }) => {
         case 'setRuntimeVariable':
           if (typeof data.key === 'string' && data.key.length) {
             dispatch(appSetRuntimeVariable({ collectionUid: collection.uid, key: data.key, value: data.value }));
+          }
+          break;
+        case 'unsetRuntimeVariable':
+          if (typeof data.key === 'string' && data.key.length) {
+            dispatch(appUnsetRuntimeVariable({ collectionUid: collection.uid, key: data.key }));
           }
           break;
         case 'log':
