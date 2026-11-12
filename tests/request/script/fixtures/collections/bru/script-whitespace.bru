@@ -1,0 +1,25 @@
+meta {
+  name: script-whitespace
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://example.com
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  
+  bru.setVar("startedAt", 1)
+  
+}
+
+tests {
+  
+  test("passes", function () {
+    expect(1).to.equal(1)
+  })
+  
+}
