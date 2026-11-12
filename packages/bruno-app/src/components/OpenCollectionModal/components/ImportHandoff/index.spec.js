@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
 import { importCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
+import { isDirectory } from 'utils/filesystem';
 import openCollectionModalReducer from 'providers/ReduxStore/slices/open-collection-modal';
 import { useImportHandoff } from './context';
 import ImportHandoff from './index';
@@ -16,6 +17,7 @@ jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
   importCollection: jest.fn(),
   importCollectionFromZip: jest.fn()
 }));
+jest.mock('utils/filesystem', () => ({ isDirectory: jest.fn() }));
 jest.mock('components/Sidebar/ImportCollectionLocation', () => ({
   __esModule: true,
   default: ({ rawData, format, sourceUrl, filePath, rawContent, onClose, handleSubmit }) => (
@@ -136,6 +138,51 @@ describe('ImportHandoff', () => {
 
     expect(toast.error).toHaveBeenCalledWith('Folder exists');
     expect(screen.getByTestId('location-modal')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['an existing folder', true, 'Failed to import the collection'],
+    ['not a folder', false, 'Failed to import the collection: /work is not an existing folder']
+  ])('keeps the location modal open when nothing was imported and the location is %s', async (_label, isFolder, message) => {
+    importCollection.mockReturnValue(() => Promise.resolve(undefined));
+    isDirectory.mockResolvedValue(isFolder);
+    renderHandoff(single);
+    await click('Start');
+
+    await click('Import');
+
+    expect(isDirectory).toHaveBeenCalledWith('/work');
+    expect(toast.error).toHaveBeenCalledWith(message);
+    expect(screen.getByTestId('location-modal')).toBeInTheDocument();
+    expect(screen.queryByTestId('postman-prompt')).not.toBeInTheDocument();
+  });
+
+  it('starts one import when Import is pressed again before the first one finishes', async () => {
+    let finishImport;
+    importCollection.mockReturnValue(() => new Promise((resolve) => {
+      finishImport = resolve;
+    }));
+    renderHandoff(single);
+    await click('Start');
+
+    await click('Import');
+    await click('Import');
+    expect(importCollection).toHaveBeenCalledTimes(1);
+
+    await act(async () => finishImport({ path: '/work/Orders' }));
+    expect(screen.queryByTestId('location-modal')).not.toBeInTheDocument();
+  });
+
+  it('lets the user import again after an import fails', async () => {
+    importCollection.mockReturnValueOnce(() => Promise.reject(new Error('Disk full')));
+    renderHandoff(single);
+    await click('Start');
+
+    await click('Import');
+    await click('Import');
+
+    expect(importCollection).toHaveBeenCalledTimes(2);
+    expect(screen.queryByTestId('location-modal')).not.toBeInTheDocument();
   });
 
   it('just closes when the location modal is cancelled', async () => {

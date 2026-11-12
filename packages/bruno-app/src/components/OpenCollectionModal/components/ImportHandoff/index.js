@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
 import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectionLocation';
@@ -8,11 +8,18 @@ import usePostmanPackagePrompt from 'hooks/usePostmanPackagePrompt';
 import { importCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
 import { closeOpenCollectionModal } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import { formatIpcError } from 'utils/common/error';
+import { isDirectory } from 'utils/filesystem';
 import { ImportHandoffContext } from './context';
+
+const reportFailedImport = async (collectionLocation) => {
+  const isFolder = await isDirectory(collectionLocation);
+  toast.error(isFolder ? 'Failed to import the collection' : `Failed to import the collection: ${collectionLocation} is not an existing folder`);
+};
 
 const ImportHandoff = ({ children }) => {
   const dispatch = useDispatch();
   const [importData, setImportData] = useState(null);
+  const isImportingRef = useRef(false);
   const { postmanPackagePrompt, clearPostmanPackagePrompt, handleImportResolved } = usePostmanPackagePrompt();
 
   const importFrom = useCallback(async (loadImportData) => {
@@ -32,16 +39,27 @@ const ImportHandoff = ({ children }) => {
   const closeImport = () => setImportData(null);
 
   const importToLocation = (convertedCollection, collectionLocation, options = {}) => {
+    if (isImportingRef.current) {
+      return;
+    }
+    isImportingRef.current = true;
+
     const importAction = options.isZipImport
       ? importCollectionFromZip(convertedCollection.zipFilePath, collectionLocation)
       : importCollection(convertedCollection, collectionLocation, options);
 
     dispatch(importAction)
       .then((importedItem) => {
+        if (!importedItem) {
+          return reportFailedImport(collectionLocation);
+        }
         closeImport();
         handleImportResolved(convertedCollection, importedItem);
       })
-      .catch((error) => toast.error(formatIpcError(error) || 'Failed to import the collection'));
+      .catch((error) => toast.error(formatIpcError(error) || 'Failed to import the collection'))
+      .finally(() => {
+        isImportingRef.current = false;
+      });
   };
 
   return (

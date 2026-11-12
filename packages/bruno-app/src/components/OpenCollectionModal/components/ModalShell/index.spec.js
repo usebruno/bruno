@@ -396,12 +396,46 @@ describe('ModalShell', () => {
     expect(screen.getByTestId('open-collection-menu-item-choose-folder')).toHaveFocus();
   });
 
+  it('takes focus back when a control behind it grabs focus', () => {
+    const store = createStore();
+    renderWithStore(
+      <>
+        <ModalShell />
+        <input data-testid="background-search" aria-label="Search sidebar" />
+      </>,
+      store
+    );
+    const menuItem = screen.getByTestId('open-collection-menu-item-choose-folder');
+    menuItem.focus();
+
+    screen.getByTestId('background-search').focus();
+
+    expect(menuItem).toHaveFocus();
+  });
+
+  it('closes on Escape pressed on a control behind it', () => {
+    const store = createStore();
+    renderWithStore(
+      <>
+        <ModalShell />
+        <button type="button" data-testid="background-button">Background</button>
+      </>,
+      store
+    );
+
+    fireEvent.keyDown(screen.getByTestId('background-button'), { key: 'Escape' });
+
+    expect(isOpen(store)).toBe(false);
+  });
+
   it('leaves Tab and Escape to another dialog that has focus', () => {
     const store = createStore();
     renderWithStore(
       <>
         <ModalShell />
-        <button type="button" data-testid="other-dialog-button">Other</button>
+        <div role="dialog">
+          <button type="button" data-testid="other-dialog-button">Other</button>
+        </div>
       </>,
       store
     );

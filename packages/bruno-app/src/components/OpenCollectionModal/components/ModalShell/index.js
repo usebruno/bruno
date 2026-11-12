@@ -82,10 +82,20 @@ const ModalShell = () => {
     if (!dialog.contains(document.activeElement)) {
       dialog.focus();
     }
+    let lastFocused = document.activeElement;
+
+    const isInAnotherDialog = (element) => !dialog.contains(element) && element.closest('[role="dialog"]') !== null;
+
+    const handleFocusIn = (event) => {
+      if (dialog.contains(event.target)) {
+        lastFocused = event.target;
+      } else if (!isInAnotherDialog(event.target)) {
+        (lastFocused.isConnected ? lastFocused : dialog).focus();
+      }
+    };
 
     const handleKeyDown = (event) => {
-      const focusIsLost = event.target === document.body;
-      if (!focusIsLost && !dialog.contains(event.target)) {
+      if (isInAnotherDialog(event.target)) {
         return;
       }
       if (event.key === 'Escape' && !event.defaultPrevented) {
@@ -95,9 +105,11 @@ const ModalShell = () => {
         keepTabInside(dialog, event);
       }
     };
+    document.addEventListener('focusin', handleFocusIn);
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
+      document.removeEventListener('focusin', handleFocusIn);
       document.removeEventListener('keydown', handleKeyDown);
       if (opener instanceof HTMLElement && opener.isConnected) {
         opener.focus();

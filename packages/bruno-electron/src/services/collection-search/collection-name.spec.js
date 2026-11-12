@@ -1,7 +1,10 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 const { readCollectionName } = require('./collection-name');
+
+const canMakePipes = process.platform !== 'win32';
 
 describe('readCollectionName', () => {
   let tempDir;
@@ -70,6 +73,20 @@ describe('readCollectionName', () => {
     });
 
     expect(await readCollectionName(folderPath)).toBe('From yml');
+  });
+
+  (canMakePipes ? it : it.skip).each([
+    ['a named pipe', (folderPath) => execFileSync('mkfifo', [path.join(folderPath, 'opencollection.yml')])],
+    ['a link to a named pipe', (folderPath) => {
+      const pipePath = path.join(tempDir, 'pipe');
+      execFileSync('mkfifo', [pipePath]);
+      fs.symlinkSync(pipePath, path.join(folderPath, 'opencollection.yml'));
+    }]
+  ])('reads bruno.json when opencollection.yml is %s', async (_description, makeYml) => {
+    const folderPath = collectionWith({ 'bruno.json': JSON.stringify({ name: 'Payments' }) });
+    makeYml(folderPath);
+
+    expect(await readCollectionName(folderPath)).toBe('Payments');
   });
 
   it('reads the name from bruno.json', async () => {
