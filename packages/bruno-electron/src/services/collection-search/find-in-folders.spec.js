@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 
 jest.mock('./mount-points', () => ({ getSkippedMountPoints: jest.fn() }));
 
@@ -9,6 +10,7 @@ const { findCollectionsInFolders } = require('./find-in-folders');
 
 const folderLinkType = process.platform === 'win32' ? 'junction' : 'dir';
 const canRemoveReadAccess = process.platform !== 'win32' && process.getuid() !== 0;
+const canMakePipes = process.platform !== 'win32';
 
 describe('findCollectionsInFolders', () => {
   let tempDir;
@@ -142,6 +144,18 @@ describe('findCollectionsInFolders', () => {
     expect(result.folders).toEqual([folderSummary(folderPath, 'broken-collection')]);
     expect(result.collections).toEqual([]);
     expect(result.brokenCollectionPaths).toEqual([folderPath]);
+  });
+
+  (canMakePipes ? it : it.skip)('does not wait on a named pipe or a link to one in place of a config file', async () => {
+    const pipeFolder = makeFolder('pipe');
+    execFileSync('mkfifo', [path.join(pipeFolder, 'bruno.json')]);
+    const linkFolder = makeFolder('link');
+    fs.symlinkSync(path.join(pipeFolder, 'bruno.json'), path.join(linkFolder, 'bruno.json'));
+
+    const result = await findCollectionsInFolders([pipeFolder, linkFolder]);
+
+    expect(result.folders).toEqual([folderSummary(pipeFolder, 'folder'), folderSummary(linkFolder, 'broken-collection')]);
+    expect(result.brokenCollectionPaths).toEqual([linkFolder]);
   });
 
   it('does not look for importable files in a folder whose only collection cannot be opened', async () => {
