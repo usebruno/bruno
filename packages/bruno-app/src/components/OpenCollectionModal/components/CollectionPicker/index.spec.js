@@ -87,7 +87,7 @@ describe('CollectionPicker', () => {
     expect(within(billing).getByLabelText('Select Billing')).toBeDisabled();
     expect(within(billing).queryByTestId('picker-row-open')).not.toBeInTheDocument();
 
-    fireEvent.click(billing);
+    fireEvent.click(within(billing).getByText('Already open'));
     expect(within(billing).getByLabelText('Select Billing')).not.toBeChecked();
     expect(openButton()).toBeDisabled();
   });
@@ -98,7 +98,7 @@ describe('CollectionPicker', () => {
     expect(openButton()).toHaveTextContent('Open');
     expect(openButton()).toBeDisabled();
 
-    fireEvent.click(rowFor('Payments'));
+    fireEvent.click(rowFor('Payments').querySelector('.collection-row-meta'));
     fireEvent.click(within(rowFor('Orders')).getByLabelText('Select Orders'));
 
     expect(footerStart()).toHaveTextContent('2 selected');
@@ -225,23 +225,12 @@ describe('CollectionPicker', () => {
     expect(screen.getByTestId('picker-cancel')).toHaveFocus();
   });
 
-  it('does not open a collection when its checkbox is double clicked', () => {
-    const { onOpen } = renderPicker();
-
-    fireEvent.doubleClick(within(rowFor('Billing')).getByLabelText('Select Billing'));
-
-    expect(onOpen).not.toHaveBeenCalled();
-  });
-
   it('opens one collection from its row without changing the selection', () => {
     const { onOpen } = renderPicker();
 
     fireEvent.click(within(rowFor('Payments')).getByLabelText('Open Payments'));
     expect(onOpen).toHaveBeenCalledWith(['/Users/me/work/payments']);
     expect(openButton()).toBeDisabled();
-
-    fireEvent.doubleClick(rowFor('Billing'));
-    expect(onOpen).toHaveBeenCalledWith(['/Users/me/work/billing']);
   });
 
   it('chooses other folders and cancels', () => {

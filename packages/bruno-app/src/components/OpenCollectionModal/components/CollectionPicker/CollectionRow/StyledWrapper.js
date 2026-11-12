@@ -3,13 +3,27 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   position: relative;
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0.875rem;
-  cursor: pointer;
 
   &:hover {
     background: ${(props) => props.theme.background.surface0};
+  }
+
+  .collection-row-checkbox,
+  .checkbox-root,
+  .checkbox-label {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .checkbox-root {
+    gap: 0.75rem;
+    padding: 0.5rem 0.875rem;
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
   }
 
   .collection-row-main {
@@ -70,7 +84,14 @@ const StyledWrapper = styled.div`
   }
 
   &.is-open {
-    cursor: default;
+    .checkbox-root {
+      cursor: default;
+      opacity: 1;
+    }
+
+    .checkbox-box-wrapper {
+      opacity: 0.5;
+    }
 
     .collection-row-name,
     .collection-row-path {
