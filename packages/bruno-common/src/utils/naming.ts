@@ -79,6 +79,32 @@ export const validateNameError = (name: string): string => {
  * Returns `baseName`, or `baseName copy`, `baseName copy 2`, ... — the first that `checkExists`
  * reports as free.
  */
+const copySuffix = /( copy( \d+)?)+$/;
+
+/**
+ * Strips every trailing ` copy` / ` copy N` token, so a clone of a clone keeps the original base
+ * name instead of stacking another token. Falls back to `name` when stripping leaves nothing.
+ */
+export const stripCopySuffix = (name: string): string => name.replace(copySuffix, '') || name;
+
+/**
+ * Returns `<base> copy`, then `<base> copy 2`, ... — the first free among `existingNames`, where
+ * `base` is `sourceName` with any trailing copy token removed.
+ */
+export const nextCopyName = (sourceName: string, existingNames: string[]): string => {
+  const base = stripCopySuffix(sourceName);
+  const taken = new Set(existingNames);
+
+  let counter = 1;
+  let candidate = `${base} copy`;
+
+  while (taken.has(candidate)) {
+    counter++;
+    candidate = `${base} copy ${counter}`;
+  }
+  return candidate;
+};
+
 export const generateUniqueName = (baseName: string, checkExists: (name: string) => boolean): string => {
   if (!checkExists(baseName)) {
     return baseName;

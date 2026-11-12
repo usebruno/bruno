@@ -19,7 +19,8 @@ import {
   isCollectionItemCollapsed,
   getVariableNamesWithScope,
   getWorkspaceCollections,
-  getTreePathFromCollectionToItem
+  getTreePathFromCollectionToItem,
+  getCloneDisplayName
 } from './index';
 import * as platformUtils from 'utils/common/platform';
 
@@ -1201,5 +1202,41 @@ describe('getTreePathFromCollectionToItem', () => {
     expect(getTreePathFromCollectionToItem(collection, { uid: 'nope' })).toEqual([]);
     expect(getTreePathFromCollectionToItem(collection, {})).toEqual([]);
     expect(getTreePathFromCollectionToItem({ uid: 'empty' }, { uid: 'deep-req' })).toEqual([]);
+  });
+});
+
+describe('getCloneDisplayName', () => {
+  const collection = {
+    uid: 'c1',
+    items: [
+      { uid: 'req-1', name: 'login', type: 'http-request' },
+      { uid: 'req-2', name: 'login copy', type: 'http-request' },
+      {
+        uid: 'folder-1',
+        name: 'Users',
+        type: 'folder',
+        items: [
+          { uid: 'nested-1', name: 'profile', type: 'http-request' },
+          { uid: 'nested-2', name: 'profile copy', type: 'http-request' }
+        ]
+      }
+    ]
+  };
+
+  it('takes the next free slot among root-level siblings', () => {
+    expect(getCloneDisplayName(collection, collection.items[0])).toBe('login copy 2');
+  });
+
+  it('gives a clone of a copy the same base name as a clone of the original', () => {
+    expect(getCloneDisplayName(collection, collection.items[1])).toBe('login copy 2');
+  });
+
+  it('scopes the counter to the item\'s own folder', () => {
+    const nested = collection.items[2].items[0];
+    expect(getCloneDisplayName(collection, nested)).toBe('profile copy 2');
+  });
+
+  it('counts folders and requests alike as siblings', () => {
+    expect(getCloneDisplayName(collection, collection.items[2])).toBe('Users copy');
   });
 });

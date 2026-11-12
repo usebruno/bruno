@@ -12,14 +12,16 @@ import Help from 'components/Help';
 import PathDisplay from 'components/PathDisplay';
 import { useState } from 'react';
 import { IconArrowBackUp, IconEdit } from '@tabler/icons';
-import { findCollectionByUid } from 'utils/collections/index';
+import { findCollectionByUid, getWorkspaceCollections } from 'utils/collections/index';
+import { nextCopyName } from '@usebruno/common/utils';
 import get from 'lodash/get';
 
 const CloneCollection = ({ onClose, collectionUid }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
   const [isEditing, toggleEditing] = useState(false);
-  const collection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
+  const collections = useSelector((state) => state.collections.collections);
+  const collection = findCollectionByUid(collections, collectionUid);
   const preferences = useSelector((state) => state.app.preferences);
   const workspaces = useSelector((state) => state.workspaces?.workspaces || []);
   const workspaceUid = useSelector((state) => state.workspaces?.activeWorkspaceUid);
@@ -30,12 +32,16 @@ const CloneCollection = ({ onClose, collectionUid }) => {
     ? get(preferences, 'general.defaultLocation', '')
     : (activeWorkspace?.pathname ? path.join(activeWorkspace.pathname, 'collections') : '');
   const { name } = collection;
+  const cloneName = nextCopyName(
+    name,
+    getWorkspaceCollections({ collections, workspaces, activeWorkspace }).map((c) => c.name)
+  );
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      collectionName: `${name} copy`,
-      collectionFolderName: `${sanitizeName(name)} copy`,
+      collectionName: cloneName,
+      collectionFolderName: sanitizeName(cloneName),
       collectionLocation: defaultLocation
     },
     validationSchema: Yup.object({
