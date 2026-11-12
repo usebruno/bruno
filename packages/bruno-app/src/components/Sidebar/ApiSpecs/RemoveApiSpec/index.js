@@ -18,7 +18,7 @@ const RemoveApiSpec = ({ onClose, apiSpec }) => {
   return (
     <ConfirmApiSpecAction
       apiSpec={apiSpec}
-      title="Remove from Workspace"
+      title="Remove API Spec"
       confirmText="Remove"
       question="Are you sure you want to remove the following API Spec from this workspace?"
       note="The file stays on disk at the above location and can be opened again later."
