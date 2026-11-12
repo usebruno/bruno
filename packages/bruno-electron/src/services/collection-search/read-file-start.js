@@ -2,6 +2,9 @@ const fs = require('node:fs/promises');
 
 const readFileStart = async (filePath, byteCount) => {
   try {
+    if (!(await fs.stat(filePath)).isFile()) {
+      return '';
+    }
     const file = await fs.open(filePath, 'r');
     try {
       const buffer = Buffer.alloc(byteCount);
