@@ -36,7 +36,12 @@ export const buildSidebarLocators = (page: Page) => {
     folderRequest: (folderName: string, requestName: string) => {
       return page.locator(`[data-parent-name="${folderName}"]`).locator('.collection-item-name').filter({ hasText: requestName });
     },
+    collectionsActionsMenu: () => page.getByTestId('collections-header-actions-menu'),
     closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
+    // Shown in place of the collections tree when no collection is open.
+    noCollectionsMessage: () => page.getByTestId('sidebar').getByText('No collections found.', { exact: true }),
+    noCollectionsCreateLink: () => page.getByTestId('sidebar').getByText('Create', { exact: true }),
+    noCollectionsOpenLink: () => page.getByTestId('sidebar').getByText('Open', { exact: true }),
     collectionRow,
     collectionRows: () => page.getByTestId('sidebar-collection-row'),
     invalidFilesBadge: (name: string) => collectionRow(name).getByTestId('invalid-files-badge'),
