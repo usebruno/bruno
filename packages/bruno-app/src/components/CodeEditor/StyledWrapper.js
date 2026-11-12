@@ -59,10 +59,22 @@ const StyledWrapper = styled.div`
     padding-left: 3px !important;
   }
 
-  /* Override default lint highlight background when emphasizing the gutter */
-  .CodeMirror-lint-line-error,
+  /* Light danger tint across the whole line of a syntax error */
+  .CodeMirror-lint-line-error {
+    background: color-mix(in srgb, ${(props) => props.theme.colors.text.danger} 12%, transparent) !important;
+  }
+
+  /* Warnings keep no line background */
   .CodeMirror-lint-line-warning {
     background: none !important;
+  }
+
+  /* Red wavy underline instead of CodeMirror's default dark image */
+  .CodeMirror-lint-mark-error {
+    background-image: none;
+    text-decoration: underline wavy ${(props) => props.theme.colors.text.danger};
+    text-decoration-skip-ink: none;
+    text-underline-offset: 3px;
   }
 
   /* Style line numbers when there's a lint issue */
