@@ -74,7 +74,7 @@ const ApiSpecItem = ({ apiSpec }) => {
     isMockServerEnabled,
     handlers: {
       'generate-collection': handleGenerateCollection,
-      'generate-mock-server': () => setMockServerModal(true),
+      'create-mock-server': () => setMockServerModal(true),
       'clone': () => setCloneApiSpecModal(true),
       'rename': () => setRenameApiSpecModal(true),
       'reveal': handleReveal,

@@ -68,18 +68,18 @@ test.describe('Collection runner', () => {
       await expect(runButton).toHaveText(`Run ${requestCount} Requests`);
     });
 
-    await test.step('Run the collection and verify the delay apart from the request time', async () => {
+    await test.step('Run the collection and verify the total delay apart from the request time', async () => {
       const startedAt = Date.now();
       await runButton.click();
       // Run Again appears only after the whole collection run finishes
       await runner.runAgainButton().waitFor();
       const elapsedMs = Date.now() - startedAt;
 
-      // The delay is applied before every request. Subtract each response time so only those waits remain.
+      // The delay runs between requests, never before the first. Subtract each response time so only those waits remain.
       const requestTimeMs = await getTotalRequestsDuration(page, requestCount);
-      const delayTimeMs = Math.floor((elapsedMs - requestTimeMs) / 1000);
+      const totalDelaySeconds = Math.floor((elapsedMs - requestTimeMs) / 1000);
 
-      expect(delayTimeMs).toBe(4);
+      expect(totalDelaySeconds).toBe(((requestCount - 1) * delayMs) / 1000);
     });
   });
 

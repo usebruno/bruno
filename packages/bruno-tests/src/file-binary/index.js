@@ -67,4 +67,9 @@ router.post('/binary-upload-octet-stream', (req, res) => {
   return res.json(buildResponse(req));
 });
 
+// Accepts any content-type — the routes above gate on one, so arbitrary file types can't use them.
+router.post('/binary-upload-any', (req, res) => {
+  return res.json(buildResponse(req));
+});
+
 module.exports = router;

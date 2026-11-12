@@ -29,6 +29,7 @@ const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { getWsClient } = require('../ipc/network/ws-event-handlers');
 const { hasSubDirectories } = require('../utils/filesystem');
 const { readCollectionForApiSpec } = require('../utils/collection-reader');
+const { exportCollectionYaml } = require('./collection-export');
 const { transformProxyConfig } = require('@usebruno/requests');
 
 const {
@@ -2628,6 +2629,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     } catch (error) {
       throw error;
     }
+  });
+
+  ipcMain.handle('renderer:export-collection-yaml', async (event, collectionName, content) => {
+    return exportCollectionYaml(mainWindow, collectionName, content);
   });
 
   ipcMain.handle('renderer:export-collection-postman', async (event, dirPath, fileName, content, overwrite = false) => {

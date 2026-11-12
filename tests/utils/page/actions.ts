@@ -151,18 +151,50 @@ const openCollection = async (page: Page, collectionName: string) => {
  * fixture collection copied to a tmp dir (e.g. via the `collectionFixturePath` fixture).
  * @param page - The page object
  * @param electronApp - The Electron application object
- * @param collectionPath - Absolute path to the collection folder to open
+ * @param collectionPath - Absolute path (or paths) to the collection folder(s) to open
  * @returns void
  */
-const openCollectionFromDialog = async (page: Page, electronApp: ElectronApplication, collectionPath: string) => {
-  await test.step(`Open collection from dialog at "${collectionPath}"`, async () => {
-    await electronApp.evaluate(({ dialog }, dir) => {
-      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
-    }, collectionPath);
+const openCollectionFromDialog = async (
+  page: Page,
+  electronApp: ElectronApplication,
+  collectionPath: string | string[]
+) => {
+  const dirs = Array.isArray(collectionPath) ? collectionPath : [collectionPath];
+  await test.step(`Open collection from dialog at "${dirs.join('", "')}"`, async () => {
+    await electronApp.evaluate(({ dialog }, filePaths) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths });
+    }, dirs);
 
     const locators = buildCommonLocators(page);
     await locators.plusMenu.button().click();
     await locators.plusMenu.openCollection().click();
+  });
+};
+
+/**
+ * Snapshot the main process's real `dialog.showOpenDialog` so a spec that stubs the folder
+ * picker can put it back. `electronApp` is worker-scoped, so an un-restored stub leaks into
+ * every later spec in the same worker — pair this with `restoreOpenDialog` in `afterAll`.
+ * @param electronApp - The Electron application object
+ * @returns void
+ */
+const stashOpenDialog = async (electronApp: ElectronApplication) => {
+  await electronApp.evaluate(({ dialog }) => {
+    (global as any).__origShowOpenDialog = dialog.showOpenDialog;
+  });
+};
+
+/**
+ * Restore the `dialog.showOpenDialog` snapshot taken by `stashOpenDialog`.
+ * @param electronApp - The Electron application object
+ * @returns void
+ */
+const restoreOpenDialog = async (electronApp: ElectronApplication) => {
+  await electronApp.evaluate(({ dialog }) => {
+    const original = (global as any).__origShowOpenDialog;
+    if (original) {
+      dialog.showOpenDialog = original;
+    }
   });
 };
 
@@ -808,7 +840,7 @@ const removeCollection = async (page: Page, collectionName: string) => {
       // Drafts modal - click "Discard All and Remove"
       await page.getByRole('button', { name: 'Discard All and Remove' }).click();
     } else {
-      // Regular modal - click Remove button
+      await expect(removeModal.getByTestId('remove-collection-name')).toHaveText(collectionName);
       await locators.modal.button('Remove').click();
     }
 
@@ -2076,6 +2108,42 @@ const mockBrowseFiles = async (electronApp: ElectronApplication, filePaths: stri
   }, filePaths);
 };
 
+/**
+ * Set the request body to File / Binary and pick `filePath` through the native picker.
+ * @param page - The page object
+ * @param electronApp - The Electron application object
+ * @param filePath - Absolute path to the file to attach
+ * @param contentType - Replaces the content-type Bruno auto-fills from the extension
+ * @returns void
+ */
+const setFileBody = async (
+  page: Page,
+  electronApp: ElectronApplication,
+  filePath: string,
+  contentType?: string
+) => {
+  await test.step(`Set File / Binary body to "${path.basename(filePath)}"`, async () => {
+    await selectRequestBodyMode(page, 'File / Binary');
+
+    const { request, filePicker } = buildCommonLocators(page);
+    await request.addFileButton().click();
+
+    const row = request.fileBodyRow();
+    await mockBrowseFiles(electronApp, [filePath]);
+    await filePicker.button(row).click();
+    await expect(filePicker.selected(row)).toBeVisible();
+
+    if (contentType) {
+      // Typing into the prefilled cell would splice at the caret, so select all and replace.
+      await request.fileBodyContentTypeEditor().click();
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+a' : 'Control+a');
+      await page.keyboard.press('Backspace');
+      await page.keyboard.type(contentType);
+      await page.keyboard.press('Tab');
+    }
+  });
+};
+
 const addMultipartFileToLastRow = async (page: Page, electronApp: ElectronApplication, filePath: string) => {
   await test.step(`Add multipart file "${path.basename(filePath)}"`, async () => {
     await mockBrowseFiles(electronApp, [filePath]);
@@ -3323,6 +3391,26 @@ const exportCollectionToPostman = async (
   });
 };
 
+const withStubbedSaveDialog = async <T>(
+  electronApp: ElectronApplication,
+  filePath: string,
+  fn: () => Promise<T>
+): Promise<T> => {
+  await electronApp.evaluate(({ dialog }, savePath) => {
+    (dialog as any).__savedShowSaveDialog = dialog.showSaveDialog;
+    dialog.showSaveDialog = async () => ({ filePath: savePath, canceled: false });
+  }, filePath);
+
+  try {
+    return await fn();
+  } finally {
+    await electronApp.evaluate(({ dialog }) => {
+      dialog.showSaveDialog = (dialog as any).__savedShowSaveDialog;
+      delete (dialog as any).__savedShowSaveDialog;
+    });
+  }
+};
+
 const exportCollectionAsSingleYaml = async (
   page: Page,
   electronApp: ElectronApplication,
@@ -3330,28 +3418,23 @@ const exportCollectionAsSingleYaml = async (
   outputDir: string
 ) => {
   const filePath = path.join(outputDir, `${collectionName}.yml`);
-  const locators = buildCommonLocators(page);
 
-  // FileSaver.saveAs triggers Electron's will-download event;
-  // set the save path to the temp directory to avoid the system save dialog.
-  await electronApp.evaluate(({ session }, savePath) => {
-    session.defaultSession.once('will-download', (_event, item) => {
-      item.setSavePath(savePath);
+  return withStubbedSaveDialog(electronApp, filePath, async () => {
+    await openShareCollectionModal(page, collectionName);
+
+    return await test.step('Export as single YAML and read the written file', async () => {
+      const locators = buildCommonLocators(page);
+      // In enterprise version, the export tab is visible, so need to click it to proceed.
+      const exportTab = locators.export.exportTab();
+      if (await exportTab.isVisible()) {
+        await exportTab.click();
+      }
+      await locators.export.yamlFormatCard().click();
+      await locators.modal.button('Proceed').click();
+      await locators.modal.title('Share Collection').waitFor({ state: 'hidden', timeout: 10000 });
+      return fs.readFileSync(filePath, 'utf8');
     });
-  }, filePath);
-
-  await openShareCollectionModal(page, collectionName);
-
-  // In enterprise version, the export tab is visible, so need to click it to proceed.
-  const exportTab = locators.export.exportTab();
-  if (await exportTab.isVisible()) {
-    await exportTab.click();
-  }
-
-  await locators.export.yamlFormatCard().click();
-  await locators.modal.button('Proceed').click();
-  await expect.poll(() => fs.existsSync(filePath)).toBe(true);
-  return fs.readFileSync(filePath, 'utf8');
+  });
 };
 
 const exportCollectionAsZip = async (
@@ -3362,12 +3445,7 @@ const exportCollectionAsZip = async (
 ) => {
   const zipPath = path.join(outputDir, `${collectionName}.zip`);
 
-  await electronApp.evaluate(({ dialog }, filePath) => {
-    (dialog as any).__savedShowSaveDialog = dialog.showSaveDialog;
-    dialog.showSaveDialog = async () => ({ filePath, canceled: false });
-  }, zipPath);
-
-  try {
+  return withStubbedSaveDialog(electronApp, zipPath, async () => {
     await openShareCollectionModal(page, collectionName);
 
     return await test.step('Export as ZIP and read the written entries', async () => {
@@ -3378,16 +3456,10 @@ const exportCollectionAsZip = async (
         await exportTab.click();
       }
       await locators.modal.button('Proceed').click();
-      await expect(locators.modal.title('Share Collection')).toBeHidden();
-      await expect.poll(() => fs.existsSync(zipPath), { timeout: 10000 }).toBe(true);
+      await locators.modal.title('Share Collection').waitFor({ state: 'hidden', timeout: 10000 });
       return new AdmZip(zipPath).getEntries().map((entry) => entry.entryName);
     });
-  } finally {
-    await electronApp.evaluate(({ dialog }) => {
-      dialog.showSaveDialog = (dialog as any).__savedShowSaveDialog;
-      delete (dialog as any).__savedShowSaveDialog;
-    });
-  }
+  });
 };
 
 /**
@@ -4067,6 +4139,8 @@ export {
   closeAllCollections,
   openCollection,
   openCollectionFromDialog,
+  stashOpenDialog,
+  restoreOpenDialog,
   createCollection,
   createRequest,
   createUntitledRequest,
@@ -4242,7 +4316,8 @@ export {
   saveTransientRequestAs,
   openImportReview,
   clickOutsideModal,
-  setWindowContentSize
+  setWindowContentSize,
+  setFileBody
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput, LinkAwareRequestType, ScriptSubTab };
