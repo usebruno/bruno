@@ -9,6 +9,12 @@
  *  }
  * });
  * Output: Hello, my name is Bruno and I am 6 years old
+ *
+ * A placeholder can carry a default value, separated by `:-`. The default is used when the
+ * variable is not defined or resolves to an empty value (undefined, null or '').
+ *
+ * Ex: interpolate('{{host:-localhost}}:{{port:-3000}}', { port: '' });
+ * Output: localhost:3000
  */
 
 import { mockDataFunctions } from '../utils/faker-functions';
@@ -16,6 +22,8 @@ import { get, isPlainObject, mapValues } from 'lodash-es';
 
 // regex to match {{$keyword}}
 const MOCK_PATTERN = /\{\{\$(\w+)\}\}/g;
+// separator between a variable name and its default value: {{name:-default}}
+const DEFAULT_VALUE_SEPARATOR = ':-';
 const JSON_SPECIAL_CHARS = /[\\\n\r\t\"]/;
 
 const escapeJSONString = (str: string): string => {
@@ -65,9 +73,67 @@ const prepareMockObj = (
   return processed;
 };
 
+type VariablePlaceholder = {
+  name: string;
+  defaultValue?: string;
+};
+
+/**
+ * Splits the content of a `{{...}}` placeholder into the variable name and its optional
+ * default value. `host:-localhost` => { name: 'host', defaultValue: 'localhost' }.
+ * Only the first `:-` is treated as the separator so the default itself may contain `:-`.
+ */
+export const parseVariablePlaceholder = (placeholder: string): VariablePlaceholder => {
+  if (typeof placeholder !== 'string') {
+    return { name: placeholder };
+  }
+
+  const separatorIndex = placeholder.indexOf(DEFAULT_VALUE_SEPARATOR);
+  if (separatorIndex <= 0) {
+    return { name: placeholder };
+  }
+
+  return {
+    name: placeholder.slice(0, separatorIndex),
+    defaultValue: placeholder.slice(separatorIndex + DEFAULT_VALUE_SEPARATOR.length)
+  };
+};
+
+const isEmptyValue = (value: unknown): boolean => {
+  return value === undefined || value === null || value === '';
+};
+
+/**
+ * Resolves a placeholder against the variables object.
+ * A variable whose name literally contains `:-` keeps working: the full placeholder is looked up
+ * first and the default value syntax only kicks in when that lookup finds nothing.
+ * With `deferDefaults`, a default is never applied: the placeholder stays unresolved so a later
+ * pass with the full variable scope can still supply the value.
+ */
+const resolvePlaceholder = (placeholder: string, obj: Record<string, any>, deferDefaults = false): any => {
+  const value = get(obj, placeholder);
+  if (value !== undefined) {
+    return value;
+  }
+
+  const { name, defaultValue } = parseVariablePlaceholder(placeholder);
+  if (defaultValue === undefined) {
+    return value;
+  }
+
+  const namedValue = get(obj, name);
+  if (isEmptyValue(namedValue)) {
+    return deferDefaults ? undefined : defaultValue;
+  }
+  return namedValue;
+};
+
 type InterpolateOptions = {
   escapeJSONStrings?: boolean;
   onUnresolved?: (name: string) => void;
+  // keep `{{name:-default}}` placeholders intact when `name` is not set, instead of using the default.
+  // Used by preliminary passes that only see part of the variables (e.g. process.env only).
+  deferDefaults?: boolean;
 };
 
 const interpolate = (
@@ -79,7 +145,7 @@ const interpolate = (
     return str;
   }
 
-  const { escapeJSONStrings, onUnresolved } = options;
+  const { escapeJSONStrings, onUnresolved, deferDefaults } = options;
 
   const preparedStr = prepareMock(str, escapeJSONStrings ?? false);
 
@@ -88,13 +154,14 @@ const interpolate = (
   }
   // process the object with the mock data functions
   const preparedObj = prepareMockObj(obj, escapeJSONStrings ?? false);
-  return replace(preparedStr, preparedObj, onUnresolved);
+  return replace(preparedStr, preparedObj, onUnresolved, deferDefaults ?? false);
 };
 
 const replace = (
   str: string,
   obj: Record<string, any>,
   onUnresolved?: (name: string) => void,
+  deferDefaults = false,
   visited = new Set<string>(),
   results = new Map<string, string>()
 ): string => {
@@ -105,7 +172,7 @@ const replace = (
     const patternRegex = /\{\{([^}]+)\}\}/g;
     matchFound = false;
     resultStr = resultStr.replace(patternRegex, (match, placeholder) => {
-      let replacement = get(obj, placeholder);
+      let replacement = resolvePlaceholder(placeholder, obj, deferDefaults);
       if (typeof replacement === 'object' && replacement !== null) {
         replacement = JSON.stringify(replacement);
       }
@@ -116,7 +183,7 @@ const replace = (
 
       if (patternRegex.test(replacement) && !visited.has(match)) {
         visited.add(match);
-        const result = replace(replacement, obj, onUnresolved, visited, results);
+        const result = replace(replacement, obj, onUnresolved, deferDefaults, visited, results);
         results.set(match, result);
 
         matchFound = true;

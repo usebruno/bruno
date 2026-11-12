@@ -6,7 +6,7 @@
  *  LICENSE file at https://github.com/graphql/codemirror-graphql/tree/v0.8.3
  */
 
-import { interpolate, mockDataFunctions, timeBasedDynamicVars } from '@usebruno/common';
+import { interpolate, mockDataFunctions, parseVariablePlaceholder, timeBasedDynamicVars } from '@usebruno/common';
 import { toDisplayString } from '@usebruno/common/utils';
 import toast from 'react-hot-toast';
 import {
@@ -1298,7 +1298,17 @@ export const extractVariableInfo = (str, variables) => {
     if (!variableName) {
       return { variableName: undefined, variableValue: undefined };
     }
-    variableValue = interpolate(get(variables, variableName), variables);
+    // {{name:-default}}: show the info for `name`, falling back to the default value when it is not set
+    const { name, defaultValue } = parseVariablePlaceholder(variableName);
+    if (defaultValue !== undefined && get(variables, variableName) === undefined) {
+      variableName = name;
+      const resolvedValue = get(variables, variableName);
+      variableValue = resolvedValue === undefined || resolvedValue === null || resolvedValue === ''
+        ? defaultValue
+        : interpolate(resolvedValue, variables);
+    } else {
+      variableValue = interpolate(get(variables, variableName), variables);
+    }
   } else if (str.startsWith('/:')) {
     variableName = str.replace('/:', '').trim();
     // Don't return empty variable names
