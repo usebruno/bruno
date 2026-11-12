@@ -26,6 +26,7 @@ const StyledWrapper = styled.div`
     cursor: pointer;
     user-select: none;
     position: relative;
+    border-left: 3px solid transparent;
 
     span.item-name {
       white-space: nowrap;
