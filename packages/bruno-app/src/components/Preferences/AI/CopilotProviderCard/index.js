@@ -25,17 +25,12 @@ import {
   copilotRefreshModels,
   copilotSignIn,
   copilotSignInWithGitHubCli,
-  copilotSignOut
+  copilotSignOut,
+  formatCopilotMultiplier
 } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 
 const stopBubble = (e) => e.stopPropagation();
-
-const formatMultiplier = (multiplier) => {
-  if (multiplier === 0) return 'Included';
-  if (multiplier === 1 || !Number.isFinite(multiplier)) return null;
-  return `${multiplier}×`;
-};
 
 const openExternal = (url) => window?.ipcRenderer?.openExternal(url);
 
@@ -305,7 +300,7 @@ const CopilotProviderCard = ({
                   {models.map((model) => {
                     const enabled = isModelEnabled(model.id);
                     const disabled = !providerEnabled;
-                    const tag = formatMultiplier(model.multiplier);
+                    const tag = formatCopilotMultiplier(model.multiplier);
                     return (
                       <div
                         key={model.id}

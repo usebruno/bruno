@@ -42,6 +42,12 @@ export const copilotRefreshModels = () => callIpc('renderer:ai-copilot-refresh-m
 
 export const copilotSignOut = () => callIpc('renderer:ai-copilot-sign-out');
 
+export const formatCopilotMultiplier = (multiplier) => {
+  if (multiplier === 0) return 'Included';
+  if (multiplier === 1 || !Number.isFinite(multiplier)) return null;
+  return `${multiplier}×`;
+};
+
 export const aiGenerateText = (params) =>
   callIpc('renderer:ai-generate-text', params);
 

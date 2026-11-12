@@ -50,7 +50,7 @@ import {
 } from 'providers/ReduxStore/slices/collections';
 import { updateIsDragging } from 'providers/ReduxStore/slices/app';
 import { findItemInCollection, findItemInCollectionByPathname, isItemAFolder, isItemARequest } from 'utils/collections';
-import { buildAiVariablesPayload, buildAiRequestsPayload, getAiStatus } from 'utils/ai';
+import { buildAiVariablesPayload, buildAiRequestsPayload, formatCopilotMultiplier, getAiStatus } from 'utils/ai';
 
 import StyledWrapper from './StyledWrapper';
 import DiffView from './DiffView';
@@ -693,9 +693,10 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
       if (!groups.has(providerId)) {
         groups.set(providerId, { name: providersMap[providerId]?.label || providerId, options: [] });
       }
+      const usage = formatCopilotMultiplier(model.multiplier);
       groups.get(providerId).options.push({
         id: model.id,
-        label: model.label,
+        label: usage ? `${model.label} · ${usage}` : model.label,
         onClick: () => handleModelSelect(model.id)
       });
     }
