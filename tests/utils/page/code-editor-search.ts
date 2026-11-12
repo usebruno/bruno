@@ -135,6 +135,33 @@ export const setCodeEditorCursor = async (
   );
 };
 
+/** Click a document position using real mouse input, rather than setting the cursor directly. */
+export const clickCodeEditorPosition = async (
+  page: Page,
+  editorId: string,
+  pos: { line: number; ch: number }
+) => {
+  const cm = buildCodeEditorSearchLocators(page, editorId).codeMirror();
+  const point = await cm.evaluate((el: any, position) => {
+    const coords = el.CodeMirror.charCoords(position, 'window');
+    return { x: coords.left, y: (coords.top + coords.bottom) / 2 };
+  }, pos);
+  await page.mouse.click(point.x, point.y);
+};
+
+/** Read content and both selection endpoints so tests can detect a cursor jump or selected match. */
+export const getCodeEditorState = async (page: Page, editorId: string) => {
+  return buildCodeEditorSearchLocators(page, editorId).codeMirror().evaluate((el: any) => {
+    const anchor = el.CodeMirror.getCursor('anchor');
+    const head = el.CodeMirror.getCursor('head');
+    return {
+      content: el.CodeMirror.getValue() as string,
+      anchor: { line: anchor.line as number, ch: anchor.ch as number },
+      head: { line: head.line as number, ch: head.ch as number }
+    };
+  });
+};
+
 /**
  * Set a text selection in the editor and focus it so that Cmd+F pre-fills with the selected text.
  */

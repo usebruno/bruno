@@ -1,0 +1,59 @@
+name: Changelog Release Smoke (Windows)
+
+on:
+  workflow_dispatch:
+    inputs:
+      previous_version:
+        description: 'Saved version to simulate (0.0.0 exercises the upgrade gate)'
+        default: '0.0.0'
+        type: string
+  push:
+    branches: ['release/v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: changelog-release-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changelog-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+        with:
+          shell: pwsh
+
+      - name: Build renderer
+        shell: pwsh
+        run: npm run build:web
+
+      - name: Package Windows application
+        shell: pwsh
+        run: npm run build:electron -- --dir
+
+      - name: Verify packaged changelog
+        shell: pwsh
+        env:
+          BRUNO_PREVIOUS_VERSION: ${{ inputs.previous_version || '0.0.0' }}
+        run: |
+          $env:BRUNO_EXECUTABLE_PATH = Join-Path $env:GITHUB_WORKSPACE 'packages/bruno-electron/out/win-unpacked/Bruno.exe'
+          npm run test:release:changelog
+
+      - name: Upload smoke test evidence
+        uses: actions/upload-artifact@v6
+        if: ${{ !cancelled() }}
+        with:
+          name: changelog-release-smoke-windows
+          path: |
+            playwright-report/release-changelog/
+            test-results/release-changelog.xml
+            test-results/release-changelog/**/*.zip
+            test-results/release-changelog/**/error-context.md
+            test-results/release-changelog/**/user-data/preferences.json
+          retention-days: 14
