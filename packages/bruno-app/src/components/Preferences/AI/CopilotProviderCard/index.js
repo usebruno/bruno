@@ -32,7 +32,13 @@ import StyledWrapper from './StyledWrapper';
 
 const stopBubble = (e) => e.stopPropagation();
 
-const openExternal = (url) => window?.ipcRenderer?.openExternal(url);
+const openVerificationPage = async (url) => {
+  try {
+    await window.ipcRenderer.openExternal(url);
+  } catch (err) {
+    throw new Error(`Could not open your browser. Go to ${url} and enter the code.`);
+  }
+};
 
 const CopilotProviderCard = ({
   provider,
@@ -97,12 +103,15 @@ const CopilotProviderCard = ({
   );
 
   const handleSignIn = () => runAction('sign-in', async () => {
+    setCodeAutoCopied(false);
     const status = await copilotSignIn();
     onStatusChange?.(status);
     const { userCode, verificationUri } = status?.copilot || {};
     if (userCode) setCodeAutoCopied(await navigator.clipboard.writeText(userCode).then(() => true, () => false));
-    if (verificationUri) openExternal(verificationUri);
+    if (verificationUri) await openVerificationPage(verificationUri);
   }, 'GitHub sign-in could not start');
+
+  const handleOpenGitHub = () => runAction('open-github', () => openVerificationPage(copilot.verificationUri), 'Could not open GitHub');
 
   const handleSignInWithGitHubCli = () => runAction('github-cli', async () => {
     onStatusChange?.(await copilotSignInWithGitHubCli());
@@ -142,6 +151,7 @@ const CopilotProviderCard = ({
         tabIndex={0}
         aria-expanded={expanded}
         onKeyDown={(e) => {
+          if (e.target !== e.currentTarget) return;
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             setExpanded(!expanded);
@@ -222,7 +232,9 @@ const CopilotProviderCard = ({
                   <Button
                     size="sm"
                     icon={<IconExternalLink size={14} strokeWidth={1.5} />}
-                    onClick={() => openExternal(copilot.verificationUri)}
+                    loading={busy === 'open-github'}
+                    disabled={busy !== null}
+                    onClick={handleOpenGitHub}
                     data-testid="ai-copilot-open-github"
                   >
                     Open GitHub
