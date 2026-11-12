@@ -314,22 +314,24 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
     const effectiveState = generateState({ userState: state });
 
     const authorizationUrlWithQueryParams = new URL(authorizationUrl);
-    authorizationUrlWithQueryParams.searchParams.append('response_type', 'code');
-    authorizationUrlWithQueryParams.searchParams.append('client_id', clientId);
+    // Use set (not append) for standard single-valued params so re-running after editing a value
+    // (e.g. clientId) overwrites it instead of duplicating it in the authorization URL.
+    authorizationUrlWithQueryParams.searchParams.set('response_type', 'code');
+    authorizationUrlWithQueryParams.searchParams.set('client_id', clientId);
 
     if (effectiveCallbackUrl) {
-      authorizationUrlWithQueryParams.searchParams.append('redirect_uri', effectiveCallbackUrl);
+      authorizationUrlWithQueryParams.searchParams.set('redirect_uri', effectiveCallbackUrl);
     }
 
     if (scope) {
-      authorizationUrlWithQueryParams.searchParams.append('scope', scope);
+      authorizationUrlWithQueryParams.searchParams.set('scope', scope);
     }
     if (pkce) {
-      authorizationUrlWithQueryParams.searchParams.append('code_challenge', codeChallenge);
-      authorizationUrlWithQueryParams.searchParams.append('code_challenge_method', 'S256');
+      authorizationUrlWithQueryParams.searchParams.set('code_challenge', codeChallenge);
+      authorizationUrlWithQueryParams.searchParams.set('code_challenge_method', 'S256');
     }
     if (effectiveState) {
-      authorizationUrlWithQueryParams.searchParams.append('state', effectiveState);
+      authorizationUrlWithQueryParams.searchParams.set('state', effectiveState);
     }
     if (additionalParameters?.authorization?.length) {
       additionalParameters.authorization.forEach((param) => {
@@ -854,17 +856,19 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
   }
 
   const authorizationUrlWithQueryParams = new URL(authorizationUrl);
-  authorizationUrlWithQueryParams.searchParams.append('response_type', 'token');
-  authorizationUrlWithQueryParams.searchParams.append('client_id', clientId);
+  // Use set (not append) for standard single-valued params so re-running after editing a value
+  // (e.g. clientId) overwrites it instead of duplicating it in the authorization URL.
+  authorizationUrlWithQueryParams.searchParams.set('response_type', 'token');
+  authorizationUrlWithQueryParams.searchParams.set('client_id', clientId);
 
   if (effectiveCallbackUrl) {
-    authorizationUrlWithQueryParams.searchParams.append('redirect_uri', effectiveCallbackUrl);
+    authorizationUrlWithQueryParams.searchParams.set('redirect_uri', effectiveCallbackUrl);
   }
 
   if (scope) {
-    authorizationUrlWithQueryParams.searchParams.append('scope', scope);
+    authorizationUrlWithQueryParams.searchParams.set('scope', scope);
   }
-  authorizationUrlWithQueryParams.searchParams.append('state', effectiveState);
+  authorizationUrlWithQueryParams.searchParams.set('state', effectiveState);
 
   if (additionalParameters?.authorization?.length) {
     additionalParameters.authorization.forEach((param) => {
