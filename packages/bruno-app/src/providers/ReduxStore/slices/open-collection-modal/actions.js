@@ -114,9 +114,6 @@ export const findCollectionsInFolders = (folderPaths, droppedFileCount = 0) => a
 
   const outcome = getFolderSearchOutcome(searchResult, new Set(selectOpenCollectionPathKeys(getState())), droppedFileCount);
   if (outcome.type === 'list' || outcome.type === 'message') {
-    if (getState().openCollectionModal.page !== CHOOSE_FOLDER_PAGE) {
-      dispatch(showOpenCollectionPage(CHOOSE_FOLDER_PAGE));
-    }
     dispatch(folderSearchFinished({ searchId, result: { id: searchId, ...outcome } }));
     return;
   }
@@ -201,6 +198,9 @@ export const cancelCollectionSearch = () => (dispatch, getState) => {
 
 export const openCollectionModal = (page) => (dispatch, getState) => {
   const { isOpen, openingId, chooseFolder } = getState().openCollectionModal;
+  if (page !== CHOOSE_FOLDER_PAGE && chooseFolder.searchId) {
+    dispatch(cancelCollectionSearch());
+  }
   dispatch(isOpen ? showOpenCollectionPage(page) : showOpenCollectionModal(page));
 
   if (page !== CHOOSE_FOLDER_PAGE || openingId) {

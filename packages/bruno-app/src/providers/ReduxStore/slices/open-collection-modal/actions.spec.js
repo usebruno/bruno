@@ -359,12 +359,13 @@ describe('open collection modal actions', () => {
       expect(modalState(store).isOpen).toBe(false);
     });
 
-    it('goes back to Choose folder when the search ends while another page shows', async () => {
+    it('cancels the search when another page is opened, so its result never pulls the user back', async () => {
       const search = deferred();
       searchReturns(search.promise);
       const { store } = createStore({ modal: openOn('choose-folder') });
 
       const searching = store.dispatch(findCollectionsInFolders(['/work']));
+      const { searchId } = modalState(store).chooseFolder;
       store.dispatch(openCollectionModal('recents'));
       search.resolve(folderResult(
         [{ path: '/work', status: 'folder', collectionPaths: ['/work/api'], importableFiles: [] }],
@@ -372,11 +373,22 @@ describe('open collection modal actions', () => {
       ));
       await searching;
 
-      expect(modalState(store).page).toBe('choose-folder');
-      expect(modalState(store).chooseFolder.result.note).toEqual({
-        tone: 'info',
-        text: 'work isn’t a collection itself, but it has 1 collection inside. Pick the ones to open.'
-      });
+      expect(callIpc).toHaveBeenCalledWith(CANCEL_SEARCH, { requestId: searchId });
+      expect(modalState(store)).toMatchObject({ page: 'recents', chooseFolder: { status: 'idle', searchId: null, result: null } });
+    });
+
+    it('does not open a collection the search found after the user moved to another page', async () => {
+      const search = deferred();
+      searchReturns(search.promise);
+      const { store } = createStore({ modal: openOn('choose-folder') });
+
+      const searching = store.dispatch(findCollectionsInFolders(['/work/api']));
+      store.dispatch(openCollectionModal('recents'));
+      search.resolve(pickedCollection);
+      await searching;
+
+      expect(openMultipleCollections).not.toHaveBeenCalled();
+      expect(modalState(store)).toMatchObject({ isOpen: true, page: 'recents' });
     });
 
     it('shows the collections found inside a folder', async () => {

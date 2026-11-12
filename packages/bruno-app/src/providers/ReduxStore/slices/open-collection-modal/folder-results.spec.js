@@ -160,6 +160,19 @@ describe('getFolderSearchOutcome with one folder', () => {
     });
   });
 
+  it('lists what it found and warns about the folders inside it could not read', () => {
+    const outcome = getFolderSearchOutcome(
+      searchResult({ folders: [folder('/work', 'folder', [api.path])], collections: [api], unreadableFolderCount: 1 }),
+      nothingOpen
+    );
+
+    expect(outcome.collections).toEqual([api]);
+    expect(outcome.note).toEqual({
+      tone: 'warning',
+      text: 'work isn’t a collection itself, but it has 1 collection inside. Pick the ones to open. Bruno couldn’t read 1 folder inside it.'
+    });
+  });
+
   it('warns that collections may be missing when the search stopped early', () => {
     const empty = getFolderSearchOutcome(searchResult({ folders: [folder('/', 'folder')], stoppedEarly: true }), nothingOpen);
     const listed = getFolderSearchOutcome(
@@ -400,6 +413,31 @@ describe('getFolderSearchOutcome with several folders', () => {
       type: 'message',
       note: { tone: 'warning', text: 'gone doesn’t exist anymore. Bruno can’t read secrets. Check its permissions.' }
     });
+  });
+
+  it('says how many folders inside the picks it could not read when it lists what it found', () => {
+    const outcome = getFolderSearchOutcome(
+      searchResult({
+        folders: [folder(api.path, 'collection', [api.path]), folder('/work', 'folder', [billing.path])],
+        collections: [api, billing],
+        unreadableFolderCount: 2
+      }),
+      nothingOpen
+    );
+
+    expect(outcome.note).toEqual({
+      tone: 'warning',
+      text: 'Found 2 collections in the folders you picked. Pick the ones to open. Bruno couldn’t read 2 folders inside them.'
+    });
+  });
+
+  it('says how many folders inside the picks it could not read when it opens the picked collections', () => {
+    const outcome = getFolderSearchOutcome(
+      searchResult({ folders: [folder(api.path, 'collection', [api.path]), folder('/work/docs', 'folder')], collections: [api], unreadableFolderCount: 1 }),
+      nothingOpen
+    );
+
+    expect(outcome.skippedText).toBe('docs isn’t a collection, so it was skipped. Bruno couldn’t read 1 folder inside them.');
   });
 
   it('adds the stopped-early warning to the skipped text when it opens the picked collections', () => {

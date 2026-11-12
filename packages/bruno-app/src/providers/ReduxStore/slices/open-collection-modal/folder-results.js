@@ -63,7 +63,7 @@ const decideOutcome = (searchResult, openPathKeys) => {
   const toRows = (paths) => paths.map((collectionPath) => ({ path: collectionPath, name: namesByPath.get(collectionPath) }));
   const stoppedEarlyText = stoppedEarly && STOPPED_EARLY_TEXT;
   const brokenText = describeBrokenCollections(brokenCollectionPaths.length);
-  const searchTone = stoppedEarly || brokenText ? 'warning' : 'info';
+  const searchTone = stoppedEarly || brokenText || unreadableFolderCount > 0 ? 'warning' : 'info';
   const describeMissing = (place) => sentences(
     unreadableFolderCount > 0 && `Bruno couldn’t read ${countOf(unreadableFolderCount, 'folder')} inside ${place}.`,
     stoppedEarlyText
@@ -107,7 +107,7 @@ const decideOutcome = (searchResult, openPathKeys) => {
       text: sentences(
         `${name} isn’t a collection itself, but it has ${countOf(folder.collectionPaths.length, 'collection')} inside. Pick the ones to open.`,
         brokenText,
-        stoppedEarlyText
+        describeMissing('it')
       )
     });
   }
@@ -134,7 +134,7 @@ const decideOutcome = (searchResult, openPathKeys) => {
   const foldersWithCollections = folders.filter((folder) => folder.status === 'folder' && folder.collectionPaths.length > 0);
 
   if (foldersWithCollections.length === 0) {
-    const skippedText = sentences(notCollectionsText, brokenText, unreadableText, stoppedEarlyText);
+    const skippedText = sentences(notCollectionsText, brokenText, unreadableText, describeMissing('them'));
     const pathsToOpen = directPaths.filter((collectionPath) => !isOpen(collectionPath));
     if (pathsToOpen.length > 0) {
       return { type: 'open', paths: pathsToOpen, skippedText };
@@ -152,7 +152,7 @@ const decideOutcome = (searchResult, openPathKeys) => {
       notCollectionsText,
       brokenText,
       unreadableText,
-      stoppedEarlyText
+      describeMissing('them')
     )
   });
 };
