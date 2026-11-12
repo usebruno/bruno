@@ -20,6 +20,7 @@ import { buildCollectionHeaderLocators } from './collection/collection-header';
 import { buildCollectionAppLocators } from './collection/collection-app';
 import { buildCollectionProxyLocators } from './collection/proxy';
 import { buildCollectionRunLocators } from './collection/collection-run';
+import { buildShareCollectionLocators } from './collection/share-collection';
 import { buildCodeMirrorLocators } from './code-mirror';
 import { buildEnvironmentLocators } from './environments';
 import { buildTimelineHeaderLocators } from './timeline-headers';
@@ -390,6 +391,7 @@ export const buildCommonLocators = (page: Page) => ({
       };
     })()
   },
+  shareCollection: buildShareCollectionLocators(page),
   export: {
     postmanModal: () => page.getByTestId('export-to-postman-modal'),
     exportTab: () => page.getByTestId('share-collection-tab-export'),
