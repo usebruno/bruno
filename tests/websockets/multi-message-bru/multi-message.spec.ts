@@ -151,7 +151,7 @@ test.describe.serial('websocket multi-message (bru format)', () => {
     await websocket.connectionControls.disconnect().click();
   });
 
-  test('TC-1271: selecting a different message routes run-button to that message', { tag: '@sanity' }, async ({
+  test('TC-8656: selecting a different message routes run-button to that message', { tag: '@sanity' }, async ({
     pageWithUserData: page
   }) => {
     const { websocket, runner } = buildCommonLocators(page);
@@ -238,7 +238,7 @@ test.describe.serial('websocket multi-message (bru format)', () => {
     expect(bodyWsCount).toBe(1);
   });
 
-  test('TC-1274: deleting an unselected message keeps the current selection (does not jump to first)', { tag: '@sanity' }, async ({
+  test('TC-8657: deleting an unselected message keeps the current selection (does not jump to first)', { tag: '@sanity' }, async ({
     pageWithUserData: page
   }) => {
     const { websocket } = buildCommonLocators(page);
