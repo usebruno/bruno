@@ -88,6 +88,7 @@ import {
 
 import { each } from 'lodash';
 import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, reopenLastClosedTab, setSidebarRevealRequest } from 'providers/ReduxStore/slices/tabs';
+import { getTabNavigationVersion } from 'providers/ReduxStore/slices/tabs';
 import { restoreCollectionTabs } from 'providers/ReduxStore/slices/mock-server/actions';
 import { clearOpenApiSyncTabState } from 'providers/ReduxStore/slices/openapi-sync';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
@@ -123,6 +124,8 @@ import {
   getCollectionEnvironmentPath,
   findCollectionEnvironmentFromSnapshot,
   hydrateCollectionTabs,
+  hasInFlightCollectionTabHydration,
+  waitForCollectionTabHydration,
   hydrateSnapshotLookups
 } from 'utils/snapshot';
 
@@ -2805,6 +2808,8 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
       .then((remainingWorkspaces) => {
         // Close tabs for this collection
         dispatch(closeAllCollectionTabs({ collectionUid }));
+        // Invalidate any pending openCollectionSettingsTab for this collection
+        bumpCollectionInvalidationGen(collectionUid);
 
         // Remove collection from workspace in Redux state
         if (activeWorkspace) {
@@ -2863,6 +2868,8 @@ export const moveCollectionToWorkspace = (collectionUid) => (dispatch, getState)
       })
       .then(async (result) => {
         dispatch(closeAllCollectionTabs({ collectionUid }));
+        // Invalidate any pending openCollectionSettingsTab for this collection
+        bumpCollectionInvalidationGen(collectionUid);
         dispatch(removeCollectionFromWorkspace({
           workspaceUid: activeWorkspace.uid,
           collectionLocation: collection.pathname
@@ -3527,40 +3534,149 @@ export const loadLargeRequest
       });
     };
 
+const inFlightCollectionMounts = new Map();
+
+// Generation counter per collection — bumped when a collection is removed,
+// moved, or migrated. openCollectionSettingsTab captures the generation before
+// waiting and aborts if it changed, preventing a stale addTab on a removed
+// or replaced collection.
+const collectionInvalidationGen = new Map();
+const getCollectionInvalidationGen = (uid) => collectionInvalidationGen.get(uid) || 0;
+const bumpCollectionInvalidationGen = (uid) => {
+  collectionInvalidationGen.set(uid, getCollectionInvalidationGen(uid) + 1);
+};
+
+// Generation counter per collection for mount operations — bumped when a
+// mount is invalidated (e.g. by migrateCollectionToYml removing the collection
+// before re-mounting). mountCollection captures the generation when starting
+// and skips post-mount dispatches if it changed, so a stale pre-migration
+// mount resolving late cannot overwrite post-migration state.
+const collectionMountGen = new Map();
+const getMountGeneration = (uid) => collectionMountGen.get(uid) || 0;
+export const invalidateInFlightCollectionMount = (uid) => {
+  inFlightCollectionMounts.delete(uid);
+  collectionMountGen.set(uid, getMountGeneration(uid) + 1);
+};
+
+// Monotonic request ID for openCollectionSettingsTab — each new call
+// supersedes any earlier pending call.
+let latestSettingsRequestId = 0;
+
+export const hasInFlightCollectionMountOrTabHydration = (collectionUid) => {
+  return Boolean(
+    collectionUid
+    && (inFlightCollectionMounts.has(collectionUid) || hasInFlightCollectionTabHydration(collectionUid))
+  );
+};
+
+export const waitForCollectionMountAndTabs = async (collectionUid) => {
+  if (!collectionUid) {
+    return;
+  }
+
+  while (inFlightCollectionMounts.has(collectionUid) || hasInFlightCollectionTabHydration(collectionUid)) {
+    const activeMount = inFlightCollectionMounts.get(collectionUid);
+    if (activeMount) {
+      await activeMount.catch(() => {});
+    }
+    await waitForCollectionTabHydration(collectionUid);
+  }
+};
+
+export const openCollectionSettingsTab = (collectionUid) => (dispatch, getState) => {
+  if (!collectionUid) {
+    return Promise.resolve();
+  }
+
+  // Capture a request ID so that a newer openCollectionSettingsTab call
+  // supersedes this one, and snapshot the navigation version and
+  // invalidation generation so we can detect if the user navigated
+  // elsewhere or the collection was removed/migrated while we waited.
+  const requestId = ++latestSettingsRequestId;
+  const navVersion = getTabNavigationVersion();
+  const invalidationGen = getCollectionInvalidationGen(collectionUid);
+
+  const isRequestCurrent = () => {
+    if (requestId !== latestSettingsRequestId) return false;
+    if (getCollectionInvalidationGen(collectionUid) !== invalidationGen) return false;
+    if (getTabNavigationVersion() !== navVersion) return false;
+    if (!findCollectionByUid(getState().collections.collections, collectionUid)) return false;
+    return true;
+  };
+
+  const dispatchSettingsTab = () => {
+    if (!isRequestCurrent()) return;
+    dispatch(addTab({
+      uid: collectionUid,
+      collectionUid,
+      type: 'collection-settings'
+    }));
+  };
+
+  if (!hasInFlightCollectionMountOrTabHydration(collectionUid)) {
+    dispatchSettingsTab();
+    return Promise.resolve();
+  }
+
+  return waitForCollectionMountAndTabs(collectionUid).then(dispatchSettingsTab);
+};
+
 export const mountCollection
   = ({ collectionUid, collectionPathname, brunoConfig, skipTabRestore = false, workspacePathname = null }) =>
     (dispatch, getState) => {
+      if (collectionUid && inFlightCollectionMounts.has(collectionUid)) {
+        return inFlightCollectionMounts.get(collectionUid);
+      }
+
+      // Capture the mount generation so we can detect if the mount was
+      // invalidated (e.g. by migrateCollectionToYml) while we were waiting
+      // for the IPC call to resolve.
+      const mountGen = getMountGeneration(collectionUid);
+
       dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounting' }));
       const fileCacheEnabled = getState().app?.preferences?.cache?.file?.enabled;
       const channel = fileCacheEnabled ? 'renderer:mount-collection-v2' : 'renderer:mount-collection';
-      return new Promise(async (resolve, reject) => {
-        callIpc(channel, { collectionUid, collectionPathname, brunoConfig, workspacePathname })
-          .then(async (transientDirPath) => {
-            dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' }));
-            dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
+      const mountPromise = callIpc(channel, { collectionUid, collectionPathname, brunoConfig, workspacePathname })
+        .then(async (transientDirPath) => {
+          // If the mount generation changed, this mount was invalidated —
+          // skip all post-mount dispatches to avoid clobbering fresh state.
+          if (getMountGeneration(collectionUid) !== mountGen) return;
 
-            const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
-            if (collection?.pathname) {
-              if (!skipTabRestore) {
-                await hydrateCollectionTabs(collection, dispatch, restoreCollectionTabs, null, workspacePathname);
-              }
+          dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' }));
+          dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
 
-              const collectionSnapshotState = await window.ipcRenderer
-                .invoke('renderer:snapshot:get-collection', collection.pathname, workspacePathname)
-                .catch(() => null);
-              await dispatch(hydrateCollectionWithUiStateSnapshot(
-                collectionSnapshotState
-                  ? { pathname: collection.pathname, ...collectionSnapshotState, hasSnapshotEntry: true }
-                  : { pathname: collection.pathname, hasSnapshotEntry: false }
-              ));
+          const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
+          if (collection?.pathname) {
+            if (!skipTabRestore) {
+              await hydrateCollectionTabs(collection, dispatch, restoreCollectionTabs, null, workspacePathname);
             }
-          })
-          .then(resolve)
-          .catch(() => {
-            dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'unmounted' }));
-            reject();
-          });
-      });
+
+            const collectionSnapshotState = await window.ipcRenderer
+              .invoke('renderer:snapshot:get-collection', collection.pathname, workspacePathname)
+              .catch(() => null);
+            await dispatch(hydrateCollectionWithUiStateSnapshot(
+              collectionSnapshotState
+                ? { pathname: collection.pathname, ...collectionSnapshotState, hasSnapshotEntry: true }
+                : { pathname: collection.pathname, hasSnapshotEntry: false }
+            ));
+          }
+        })
+        .catch(() => {
+          if (getMountGeneration(collectionUid) !== mountGen) return;
+          dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'unmounted' }));
+          return Promise.reject();
+        })
+        .finally(() => {
+          if (collectionUid && inFlightCollectionMounts.get(collectionUid) === mountPromise) {
+            inFlightCollectionMounts.delete(collectionUid);
+          }
+        });
+
+      if (collectionUid) {
+        inFlightCollectionMounts.set(collectionUid, mountPromise);
+      }
+
+      return mountPromise;
     };
 
 export const showInFolder = (collectionPath) => () => {
@@ -3592,24 +3708,16 @@ export const openCollectionSettings
       const state = getState();
       const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
-      return new Promise((resolve, reject) => {
-        if (!collection) {
-          return reject(new Error('Collection not found'));
-        }
+      if (!collection) {
+        return Promise.reject(new Error('Collection not found'));
+      }
 
-        dispatch(updateSettingsSelectedTab({
-          collectionUid: collection.uid,
-          tab: tabName
-        }));
+      dispatch(updateSettingsSelectedTab({
+        collectionUid: collection.uid,
+        tab: tabName
+      }));
 
-        dispatch(addTab({
-          uid: collection.uid,
-          collectionUid: collection.uid,
-          type: 'collection-settings'
-        }));
-
-        resolve();
-      });
+      return dispatch(openCollectionSettingsTab(collection.uid));
     };
 
 export const saveDotEnvVariables = (collectionUid, variables, filename = '.env') => (dispatch, getState) => {
@@ -3903,6 +4011,8 @@ export const migrateCollectionToYml = (collectionUid) => async (dispatch, getSta
 
   dispatch(migrationStarted());
   dispatch(closeAllCollectionTabs({ collectionUid }));
+  bumpCollectionInvalidationGen(collectionUid);
+  invalidateInFlightCollectionMount(collectionUid);
   dispatch(ensureActiveTabInCurrentWorkspace());
   // Flush the snapshot while the collection is still in the store: its entry serializes
   // with the now-empty tab list, replacing any stale .bru tabs on disk for the active

@@ -12,8 +12,7 @@ import {
   IconUnlink,
   IconCopy
 } from '@tabler/icons';
-import { addTab } from 'providers/ReduxStore/slices/tabs';
-import { mountCollection, showInFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, openCollectionSettingsTab, showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { removeCollectionFromWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import { normalizePath } from 'utils/common/path';
@@ -148,21 +147,17 @@ const CollectionsList = ({ workspace }) => {
       return;
     }
 
-    dispatch(
-      mountCollection({
-        collectionUid: collection.uid,
-        collectionPathname: collection.pathname,
-        brunoConfig: collection.brunoConfig
-      })
-    );
+    if (collection.mountStatus !== 'mounted' && collection.mountStatus !== 'mounting') {
+      dispatch(
+        mountCollection({
+          collectionUid: collection.uid,
+          collectionPathname: collection.pathname,
+          brunoConfig: collection.brunoConfig
+        })
+      ).catch(() => {});
+    }
 
-    dispatch(
-      addTab({
-        uid: collection.uid,
-        collectionUid: collection.uid,
-        type: 'collection-settings'
-      })
-    );
+    return dispatch(openCollectionSettingsTab(collection.uid));
   };
 
   const handleRenameCollection = (collection) => {

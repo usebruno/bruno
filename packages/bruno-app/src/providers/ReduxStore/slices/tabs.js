@@ -219,12 +219,14 @@ export const tabsSlice = createSlice({
         ...(openInEditMode ? { openInEditMode: true } : {})
       });
       state.activeTabUid = uid;
+      tabNavigationVersion += 1;
     },
     focusTab: (state, action) => {
       const { uid } = action.payload;
       const tabExists = state.tabs.some((t) => t.uid === uid);
       if (tabExists) {
         state.activeTabUid = uid;
+        tabNavigationVersion += 1;
       }
     },
     switchTab: (state, action) => {
@@ -246,6 +248,7 @@ export const tabsSlice = createSlice({
       }
 
       state.activeTabUid = state.tabs[toBeActivatedTabIndex].uid;
+      tabNavigationVersion += 1;
     },
     updateRequestPaneTabWidth: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
@@ -658,6 +661,7 @@ export const tabsSlice = createSlice({
 
       state.tabs.push(tab);
       state.activeTabUid = tab.uid;
+      tabNavigationVersion += 1;
     },
     removeRecentlyClosedTabs: (state, action) => {
       const { tabUids } = action.payload;
@@ -709,5 +713,17 @@ export const {
   updateVariablesPaneOpen,
   updateVariablesPaneHeight
 } = tabsSlice.actions;
+
+// Monotonic counter incremented on explicit user-initiated tab navigation
+// (addTab, focusTab, switchTab, reopenLastClosedTab) but NOT on restoreTabs,
+// so that openCollectionSettingsTab can detect whether the user navigated
+// elsewhere while it was waiting for mount/hydration to finish.
+let tabNavigationVersion = 0;
+export const getTabNavigationVersion = () => tabNavigationVersion;
+
+// For tests: reset the counter to a known value
+export const _resetTabNavigationVersion = () => {
+  tabNavigationVersion = 0;
+};
 
 export default tabsSlice.reducer;
