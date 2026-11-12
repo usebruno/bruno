@@ -117,11 +117,40 @@ test.describe('Collection settings overview', () => {
 
       const shareModal = shareCollection.modal();
       await expect(shareModal).toBeVisible();
-      await expect(shareCollection.zipCard()).toBeVisible();
-      await expect(shareCollection.yamlCard()).toBeVisible();
-      await expect(shareCollection.postmanCard()).toBeVisible();
-      await expect(shareCollection.formatCards()).toHaveCount(3);
+    });
 
+    // Enterprise Share Collection has Git / Export / Embed tabs (`share-collection-tab-export`).
+    // OSS has no tabs — ZIP, YAML and Postman are on the modal itself.
+    const isEnterprise = await shareCollection.exportTab().isVisible();
+
+    if (isEnterprise) {
+      await test.step('Enterprise modal shows Git, Export and Embed', async () => {
+        await expect(shareCollection.gitTab()).toBeVisible();
+        await expect(shareCollection.exportTab()).toBeVisible();
+        await expect(shareCollection.embedTab()).toBeVisible();
+      });
+
+      await test.step('Export tab shows ZIP, YAML, Postman and OpenAPI', async () => {
+        await shareCollection.exportTab().click();
+        await expect(shareCollection.zipCard()).toBeVisible();
+        await expect(shareCollection.yamlCard()).toBeVisible();
+        await expect(shareCollection.postmanCard()).toBeVisible();
+        await expect(shareCollection.openApiCard()).toBeVisible();
+      });
+    } else {
+      await test.step('OSS modal shows ZIP, YAML and Postman', async () => {
+        await expect(shareCollection.gitTab()).toBeHidden();
+        await expect(shareCollection.exportTab()).toBeHidden();
+        await expect(shareCollection.embedTab()).toBeHidden();
+        await expect(shareCollection.zipCard()).toBeVisible();
+        await expect(shareCollection.yamlCard()).toBeVisible();
+        await expect(shareCollection.postmanCard()).toBeVisible();
+        await expect(shareCollection.openApiCard()).toBeHidden();
+      });
+    }
+
+    await test.step('Close the share modal', async () => {
+      const shareModal = shareCollection.modal();
       await shareCollection.closeButton().click();
       await expect(shareModal).toBeHidden();
     });
