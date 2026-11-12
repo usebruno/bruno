@@ -6,11 +6,13 @@ const generateHtmlReport = ({
   runnerResults,
   version = '', // Default to empty string if not provided
   environment = null, // Default environment if not provided
+  runStartTime = '',
   runCompletionTime = '' // Default run completion time if not provided
 }: {
   runnerResults: T_RunnerResults[];
   version?: string;
   environment?: string | null;
+  runStartTime?: string;
   runCompletionTime?: string;
 }): string => {
   const resultsWithSummaryAndCleanData = runnerResults.map(({ iterationIndex, results, summary }) => {
@@ -41,6 +43,7 @@ const generateHtmlReport = ({
     results: resultsWithSummaryAndCleanData,
     version,
     environment,
+    runStartTime,
     runCompletionTime
   })));
   return htmlString;
