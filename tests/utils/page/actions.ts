@@ -3391,6 +3391,26 @@ const exportCollectionToPostman = async (
   });
 };
 
+const withStubbedSaveDialog = async <T>(
+  electronApp: ElectronApplication,
+  filePath: string,
+  fn: () => Promise<T>
+): Promise<T> => {
+  await electronApp.evaluate(({ dialog }, savePath) => {
+    (dialog as any).__savedShowSaveDialog = dialog.showSaveDialog;
+    dialog.showSaveDialog = async () => ({ filePath: savePath, canceled: false });
+  }, filePath);
+
+  try {
+    return await fn();
+  } finally {
+    await electronApp.evaluate(({ dialog }) => {
+      dialog.showSaveDialog = (dialog as any).__savedShowSaveDialog;
+      delete (dialog as any).__savedShowSaveDialog;
+    });
+  }
+};
+
 const exportCollectionAsSingleYaml = async (
   page: Page,
   electronApp: ElectronApplication,
@@ -3398,28 +3418,23 @@ const exportCollectionAsSingleYaml = async (
   outputDir: string
 ) => {
   const filePath = path.join(outputDir, `${collectionName}.yml`);
-  const locators = buildCommonLocators(page);
 
-  // FileSaver.saveAs triggers Electron's will-download event;
-  // set the save path to the temp directory to avoid the system save dialog.
-  await electronApp.evaluate(({ session }, savePath) => {
-    session.defaultSession.once('will-download', (_event, item) => {
-      item.setSavePath(savePath);
+  return withStubbedSaveDialog(electronApp, filePath, async () => {
+    await openShareCollectionModal(page, collectionName);
+
+    return await test.step('Export as single YAML and read the written file', async () => {
+      const locators = buildCommonLocators(page);
+      // In enterprise version, the export tab is visible, so need to click it to proceed.
+      const exportTab = locators.export.exportTab();
+      if (await exportTab.isVisible()) {
+        await exportTab.click();
+      }
+      await locators.export.yamlFormatCard().click();
+      await locators.modal.button('Proceed').click();
+      await locators.modal.title('Share Collection').waitFor({ state: 'hidden', timeout: 10000 });
+      return fs.readFileSync(filePath, 'utf8');
     });
-  }, filePath);
-
-  await openShareCollectionModal(page, collectionName);
-
-  // In enterprise version, the export tab is visible, so need to click it to proceed.
-  const exportTab = locators.export.exportTab();
-  if (await exportTab.isVisible()) {
-    await exportTab.click();
-  }
-
-  await locators.export.yamlFormatCard().click();
-  await locators.modal.button('Proceed').click();
-  await expect.poll(() => fs.existsSync(filePath)).toBe(true);
-  return fs.readFileSync(filePath, 'utf8');
+  });
 };
 
 const exportCollectionAsZip = async (
@@ -3430,12 +3445,7 @@ const exportCollectionAsZip = async (
 ) => {
   const zipPath = path.join(outputDir, `${collectionName}.zip`);
 
-  await electronApp.evaluate(({ dialog }, filePath) => {
-    (dialog as any).__savedShowSaveDialog = dialog.showSaveDialog;
-    dialog.showSaveDialog = async () => ({ filePath, canceled: false });
-  }, zipPath);
-
-  try {
+  return withStubbedSaveDialog(electronApp, zipPath, async () => {
     await openShareCollectionModal(page, collectionName);
 
     return await test.step('Export as ZIP and read the written entries', async () => {
@@ -3446,16 +3456,10 @@ const exportCollectionAsZip = async (
         await exportTab.click();
       }
       await locators.modal.button('Proceed').click();
-      await expect(locators.modal.title('Share Collection')).toBeHidden();
-      await expect.poll(() => fs.existsSync(zipPath), { timeout: 10000 }).toBe(true);
+      await locators.modal.title('Share Collection').waitFor({ state: 'hidden', timeout: 10000 });
       return new AdmZip(zipPath).getEntries().map((entry) => entry.entryName);
     });
-  } finally {
-    await electronApp.evaluate(({ dialog }) => {
-      dialog.showSaveDialog = (dialog as any).__savedShowSaveDialog;
-      delete (dialog as any).__savedShowSaveDialog;
-    });
-  }
+  });
 };
 
 /**
