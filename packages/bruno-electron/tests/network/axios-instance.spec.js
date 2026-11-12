@@ -861,5 +861,46 @@ describe('axios-instance: method case normalization', () => {
     expect(secondHopConfig).not.toBeNull();
     expect(secondHopConfig.method).toBe('GET');
   });
+
+  test('preserves uppercase HEAD when following 301/302/303 redirect', async () => {
+    let secondHopConfig = null;
+    const redirectAdapter = (config) => {
+      if (config.url === START_URL) {
+        const response = { status: 302, statusText: 'Found', headers: { location: TARGET_URL }, data: {} };
+        return Promise.reject(Object.assign(new Error('Redirect 302'), { config, response }));
+      }
+      secondHopConfig = config;
+      return Promise.resolve({ data: {}, status: 200, statusText: 'OK', headers: {}, config });
+    };
+
+    const instance = makeAxiosInstance({ followRedirects: true });
+    await instance({ url: START_URL, method: 'head', adapter: redirectAdapter });
+
+    expect(secondHopConfig).not.toBeNull();
+    expect(secondHopConfig.method).toBe('HEAD');
+  });
+
+  test('preserves Axios default Content-Type for POST while respecting null suppression', async () => {
+    const defaultStub = createStubAdapter();
+    const suppressedStub = createStubAdapter();
+    const instance = makeAxiosInstance();
+
+    await instance({
+      url: START_URL,
+      method: 'post',
+      headers: { 'content-type': undefined },
+      data: Buffer.from('abc'),
+      adapter: defaultStub
+    });
+    await instance({
+      url: START_URL,
+      method: 'post',
+      headers: { 'content-type': null },
+      adapter: suppressedStub
+    });
+
+    expect(defaultStub.getConfig().headers.getContentType()).toBe('application/x-www-form-urlencoded');
+    expect(suppressedStub.getConfig().headers.getContentType()).toBeNull();
+  });
 });
 

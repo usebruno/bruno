@@ -42,6 +42,16 @@ const normalizeVariables = (value) => {
   return value;
 };
 
+const STANDARD_HTTP_METHODS = new Set(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD', 'TRACE', 'CONNECT']);
+
+const normalizeHttpMethod = (method) => {
+  if (!method) {
+    return 'GET';
+  }
+  const upper = String(method).toUpperCase();
+  return STANDARD_HTTP_METHODS.has(upper) ? upper : method;
+};
+
 const transformInsomniaRequestItem = (request, index, allRequests) => {
   const name = addSuffixToDuplicateName(request, index, allRequests);
 
@@ -51,7 +61,7 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
     type: 'http-request',
     request: {
       url: normalizeVariables(request.url),
-      method: request.method ? request.method.toUpperCase() : 'GET',
+      method: normalizeHttpMethod(request.method),
       auth: {
         mode: 'none',
         basic: null,
