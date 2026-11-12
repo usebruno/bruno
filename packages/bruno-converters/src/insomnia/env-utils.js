@@ -1,6 +1,8 @@
 import { uuid } from '../common';
 import { flattenObject } from '../utils/flatten';
 
+const regexVariable = new RegExp('{{.*?}}', 'g');
+
 /**
  * Converts an Insomnia environment node into a Bruno environment using JSON-path-like keys.
  * - Flattens env.data to dot-notation keys; values are converted to strings.
@@ -12,7 +14,7 @@ export const toBrunoEnv = (env, index = 0) => {
     variables.push({
       uid: uuid(),
       name,
-      value: String(value),
+      value: normalizeVariables(value),
       type: 'text',
       enabled: true,
       secret: false
@@ -87,4 +89,20 @@ export const buildV4Environments = (resources, workspaceId) => {
   });
 
   return result;
+};
+
+/**
+ * Normalizes Insomnia variable references in a string.
+ * - Removes leading '_.'
+ * - Removes spaces inside the variable name
+ * @param value the string to normalize
+ * @returns {string} the normalized string
+ */
+export const normalizeVariables = (value) => {
+  value = String(value ?? '');
+  const variables = value.match(regexVariable) || [];
+  variables.forEach((variable) => {
+    value = value.replace(variable, variable.replace('_.', '').replaceAll(' ', ''));
+  });
+  return value;
 };

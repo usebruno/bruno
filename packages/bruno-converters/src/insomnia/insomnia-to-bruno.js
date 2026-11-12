@@ -2,7 +2,7 @@ import each from 'lodash/each';
 import get from 'lodash/get';
 import jsyaml from 'js-yaml';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
-import { buildV5Environments, buildV4Environments } from './env-utils';
+import { buildV5Environments, buildV4Environments, normalizeVariables } from './env-utils';
 
 const parseGraphQL = (text) => {
   try {
@@ -29,17 +29,6 @@ const addSuffixToDuplicateName = (item, index, allItems) => {
     return nameSuffix;
   }, 0);
   return nameSuffix !== 0 ? `${item.name}_${nameSuffix}` : item.name;
-};
-
-const regexVariable = new RegExp('{{.*?}}', 'g');
-
-const normalizeVariables = (value) => {
-  value = String(value ?? '');
-  const variables = value.match(regexVariable) || [];
-  each(variables, (variable) => {
-    value = value.replace(variable, variable.replace('_.', '').replaceAll(' ', ''));
-  });
-  return value;
 };
 
 const transformInsomniaRequestItem = (request, index, allRequests) => {
