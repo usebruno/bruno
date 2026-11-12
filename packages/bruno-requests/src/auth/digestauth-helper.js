@@ -72,7 +72,7 @@ export function addDigestInterceptor(axiosInstance, request) {
           }, {});
 
         // Validate required auth details
-        if (!authDetails.realm || !authDetails.nonce) {
+        if (authDetails.realm === undefined || !authDetails.nonce) {
           console.warn('Missing required auth details (realm or nonce)');
           return Promise.reject(error);
         }
