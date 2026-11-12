@@ -11,6 +11,8 @@ import { useSelector } from 'react-redux';
 import { debounce, isEqual } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { setupAutoComplete, showRootHints } from 'utils/codemirror/autocomplete';
+import { HINT_ROOTS } from 'utils/codemirror/scriptApi';
+import './brunoApiInfo';
 import { setupAiAutocomplete } from 'utils/codemirror/aiGhostText';
 import { buildAutocompleteContext } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
@@ -46,6 +48,11 @@ window.JSHINT = JSHINT;
 const NORMAL_GUTTERS = ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'];
 const TAB_SIZE = 2;
 
+const brunoApiInfoOption = (props, degraded) => {
+  const showHintsFor = props.showHintsFor || [];
+  return !degraded && showHintsFor.some((group) => HINT_ROOTS.includes(group)) ? { scriptType: props.scriptType } : false;
+};
+
 const buildCodeMirrorOptions = ({
   profile,
   props,
@@ -70,6 +77,7 @@ const buildCodeMirrorOptions = ({
       collection: props.collection,
       item: props.item
     } : false,
+    brunoApiInfo: brunoApiInfoOption(props, degraded),
     keyMap: 'sublime',
     autoCloseBrackets: !degraded,
     matchBrackets: !degraded,
@@ -104,6 +112,7 @@ const applyEditorProfile = (
     collection: props.collection,
     item: props.item
   } : false);
+  editor.setOption('brunoApiInfo', brunoApiInfoOption(props, degraded));
   editor.setOption('mode', degraded ? null : (props.mode || 'application/ld+json'));
 
   if (degraded) {
@@ -380,6 +389,7 @@ class CodeEditor extends React.Component {
     this.addOverlay();
     this.brunoAutoCompleteCleanup = setupAutoComplete(editor, {
       showHintsFor: this.props.showHintsFor,
+      scriptType: this.props.scriptType,
       getAllVariables: () => getVariableNamesWithScope(this.props.collection, this.props.item)
     });
 
@@ -624,6 +634,7 @@ class CodeEditor extends React.Component {
       // Clean up lint error tooltip
       this.cleanupLintErrorTooltip?.();
       this.cleanupResizeRefresh?.();
+      this.editor.setOption('brunoApiInfo', false);
 
       const wrapper = this.editor.getWrapperElement();
       wrapper?.parentNode?.removeChild(wrapper);

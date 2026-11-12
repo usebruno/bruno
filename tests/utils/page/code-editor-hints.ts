@@ -3,7 +3,13 @@ import { selectScriptSubTab, type ScriptSubTab } from './actions';
 
 export const buildCodeEditorHintLocators = (page: Page) => ({
   popup: () => page.locator('.CodeMirror-hints'),
-  items: () => page.locator('.CodeMirror-hints .CodeMirror-hint')
+  items: () => page.locator('.CodeMirror-hints .CodeMirror-hint'),
+  apiItem: (name: string) => page.locator('.CodeMirror-hints .CodeMirror-hint-api').filter({
+    has: page.locator('.CodeMirror-hint-api-name', { hasText: name })
+  }),
+  apiItemSummary: (name: string) => buildCodeEditorHintLocators(page).apiItem(name).locator('.CodeMirror-hint-api-summary'),
+  details: () => page.getByTestId('autocomplete-hint-details'),
+  apiInfoTooltip: () => page.getByTestId('api-info-tooltip')
 });
 
 const codeMirror = (page: Page, subTab: ScriptSubTab) =>
@@ -44,5 +50,11 @@ export const showRootScriptHints = async (page: Page, subTab: ScriptSubTab) => {
 export const readCodeEditorHints = async (page: Page): Promise<string[]> => {
   const items = buildCodeEditorHintLocators(page).items();
   await items.first().waitFor({ state: 'visible' });
-  return (await items.allInnerTexts()).map((text) => text.trim());
+  return items.evaluateAll((rows) =>
+    rows.map((row) => (row.querySelector('.CodeMirror-hint-api-name') ?? row).textContent?.trim() ?? '')
+  );
+};
+
+export const hoverScriptEditorToken = async (page: Page, subTab: ScriptSubTab, token: string) => {
+  await codeMirror(page, subTab).locator('.CodeMirror-line span').filter({ hasText: new RegExp(`^${token}$`) }).first().hover();
 };

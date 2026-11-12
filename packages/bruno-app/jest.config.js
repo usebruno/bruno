@@ -18,6 +18,7 @@ module.exports = {
     '^providers/(.*)$': '<rootDir>/src/providers/$1',
     '^utils/(.*)$': '<rootDir>/src/utils/$1',
     '^test-utils/(.*)$': '<rootDir>/src/test-utils/$1',
+    '^script-api-manifest$': '<rootDir>/src/utils/codemirror/generated/script-api-manifest.json',
     '^src/(.*)$': '<rootDir>/src/$1'
   },
   clearMocks: true,

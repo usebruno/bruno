@@ -32,6 +32,9 @@ import {
 } from './autocomplete';
 import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
+// API hints are completion objects; the rest are plain strings.
+const hintTexts = (result) => result.list.map((hint) => (typeof hint === 'string' ? hint : hint.text));
+
 describe('Bruno Autocomplete', () => {
   let mockedCodemirror;
 
@@ -879,11 +882,12 @@ describe('Bruno Autocomplete', () => {
           mockedCodemirror.getRange.mockReturnValue(input);
 
           const result = getAutoCompleteHints(mockedCodemirror, {}, [], {
-            showHintsFor: ['req', 'res', 'bru']
+            showHintsFor: ['req', 'res', 'bru'],
+            scriptType: 'post-response'
           });
 
           expect(result).toBeTruthy();
-          expect(result.list).toEqual(expect.arrayContaining(expected));
+          expect(hintTexts(result)).toEqual(expect.arrayContaining(expected));
         });
       });
 
@@ -905,11 +909,12 @@ describe('Bruno Autocomplete', () => {
           mockedCodemirror.getRange.mockReturnValue(line);
 
           const result = getAutoCompleteHints(mockedCodemirror, {}, [], {
-            showHintsFor: ['req', 'res', 'bru']
+            showHintsFor: ['req', 'res', 'bru'],
+            scriptType: 'post-response'
           });
 
           expect(result).toBeTruthy();
-          expect(result.list).toEqual(expect.arrayContaining(expected));
+          expect(hintTexts(result)).toEqual(expect.arrayContaining(expected));
         });
       });
 
@@ -919,11 +924,12 @@ describe('Bruno Autocomplete', () => {
         mockedCodemirror.getRange.mockReturnValue('req.get');
 
         const result = getAutoCompleteHints(mockedCodemirror, {}, [], {
-          showHintsFor: ['req']
+          showHintsFor: ['req'],
+          scriptType: 'pre-request'
         });
 
         expect(result).toBeTruthy();
-        expect(result.list).toEqual(
+        expect(hintTexts(result)).toEqual(
           expect.arrayContaining([
             'getUrl()',
             'getMethod()',
@@ -944,11 +950,12 @@ describe('Bruno Autocomplete', () => {
         mockedCodemirror.getRange.mockReturnValue('bru.runner.');
 
         const result = getAutoCompleteHints(mockedCodemirror, {}, [], {
-          showHintsFor: ['bru']
+          showHintsFor: ['bru'],
+          scriptType: 'pre-request'
         });
 
         expect(result).toBeTruthy();
-        expect(result.list).toEqual(
+        expect(hintTexts(result)).toEqual(
           expect.arrayContaining([
             'setNextRequest(requestName)',
             'skipRequest()',
@@ -958,60 +965,98 @@ describe('Bruno Autocomplete', () => {
       });
     });
 
-    describe('gRPC hook context', () => {
-      // gRPC hooks have no `req` / `res`; everything hangs off `bru.grpc`, and each hook is
-      // handed a different subset of it — so the hints are grouped per hook, not per root.
-      const hintsFor = (line, showHintsFor) => {
+    describe('API hint docs', () => {
+      const apiHints = (line, showHintsFor) => {
         mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: line.length });
         mockedCodemirror.getLine.mockReturnValue(line);
         mockedCodemirror.getRange.mockReturnValue(line);
 
-        return getAutoCompleteHints(mockedCodemirror, {}, [], { showHintsFor });
+        return getAutoCompleteHints(mockedCodemirror, {}, [], { showHintsFor, scriptType: 'pre-request' });
       };
 
-      const grpcHints = (line, hook) => hintsFor(line, ['bru', `grpc:${hook}`]);
+      it('renders a hint row with the member\'s summary', () => {
+        const result = apiHints('bru.setEnv', ['bru']);
+        const hint = result.list.find((item) => item.text === 'setEnvVar(key, value)');
+        const row = document.createElement('li');
+
+        hint.render(row, result, hint);
+
+        expect(hint.entry.path).toBe('bru.setEnvVar');
+        expect(row.querySelector('.CodeMirror-hint-api-name').textContent).toBe('setEnvVar(key, value)');
+        expect(row.querySelector('.CodeMirror-hint-api-summary').textContent).toBe(hint.entry.summary);
+      });
+
+      it('shows the highlighted hint\'s docs beside the list until it closes', () => {
+        const { signal } = jest.requireActual('codemirror');
+        const result = apiHints('bru.setEnv', ['bru']);
+        const hint = result.list.find((item) => item.text === 'setEnvVar(key, value)');
+        const list = document.createElement('ul');
+        const row = document.createElement('li');
+        list.appendChild(row);
+        document.body.appendChild(list);
+        const details = () => document.querySelector('[data-testid="autocomplete-hint-details"]');
+
+        signal(result, 'select', hint, row);
+        expect(details().textContent).toContain('bru.setEnvVar(key: string, value: any): void');
+
+        signal(result, 'close');
+        expect(details()).toBeNull();
+        list.remove();
+      });
+    });
+
+    describe('gRPC hook context', () => {
+      // gRPC hooks have no `req` / `res`; everything hangs off `bru.grpc`, and each hook is
+      // handed a different subset of it.
+      const hintsFor = (line, scriptType) => {
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: line.length });
+        mockedCodemirror.getLine.mockReturnValue(line);
+        mockedCodemirror.getRange.mockReturnValue(line);
+
+        return getAutoCompleteHints(mockedCodemirror, {}, [], { showHintsFor: ['bru'], scriptType });
+      };
 
       it('offers only the request model before the call has produced a response', () => {
-        const result = grpcHints('bru.grpc.', 'before-call-start');
+        const result = hintsFor('bru.grpc.', 'before-call-start');
 
-        expect(result.list).toEqual(['request']);
+        expect(hintTexts(result)).toEqual(['request']);
       });
 
       it('offers both models once a message has been received', () => {
-        const result = grpcHints('bru.grpc.', 'after-message-receive');
+        const result = hintsFor('bru.grpc.', 'after-message-receive');
 
-        expect(result.list).toEqual(expect.arrayContaining(['request', 'response']));
+        expect(hintTexts(result)).toEqual(expect.arrayContaining(['request', 'response']));
       });
 
       it('offers the metadata write methods only in before-call-start', () => {
-        const writable = grpcHints('bru.grpc.request.metadata.', 'before-call-start');
-        const readOnly = grpcHints('bru.grpc.request.metadata.', 'after-call-end');
+        const writable = hintsFor('bru.grpc.request.metadata.', 'before-call-start');
+        const readOnly = hintsFor('bru.grpc.request.metadata.', 'after-call-end');
 
-        expect(writable.list).toEqual(expect.arrayContaining(['get(key)', 'upsert(key, value)', 'clear()']));
-        expect(readOnly.list).toEqual(expect.arrayContaining(['get(key)']));
-        expect(readOnly.list).not.toEqual(expect.arrayContaining(['upsert(key, value)']));
+        expect(hintTexts(writable)).toEqual(expect.arrayContaining(['get(name)', 'upsert(key, value)', 'clear()']));
+        expect(hintTexts(readOnly)).toEqual(expect.arrayContaining(['get(name)']));
+        expect(hintTexts(readOnly)).not.toEqual(expect.arrayContaining(['upsert(key, value)']));
       });
 
       it('offers request.message only in before-message-send', () => {
-        expect(grpcHints('bru.grpc.request.', 'before-message-send').list).toContain('message');
-        expect(grpcHints('bru.grpc.request.', 'before-call-start').list).not.toContain('message');
+        expect(hintTexts(hintsFor('bru.grpc.request.', 'before-message-send'))).toContain('message');
+        expect(hintTexts(hintsFor('bru.grpc.request.', 'before-call-start'))).not.toContain('message');
       });
 
       it('offers response.message only in after-message-receive', () => {
-        expect(grpcHints('bru.grpc.response.', 'after-message-receive').list).toContain('message');
+        expect(hintTexts(hintsFor('bru.grpc.response.', 'after-message-receive'))).toContain('message');
 
-        const afterCallEnd = grpcHints('bru.grpc.response.', 'after-call-end');
-        expect(afterCallEnd.list).toContain('statusCode');
-        expect(afterCallEnd.list).not.toContain('message');
+        const afterCallEnd = hintsFor('bru.grpc.response.', 'after-call-end');
+        expect(hintTexts(afterCallEnd)).toContain('statusCode');
+        expect(hintTexts(afterCallEnd)).not.toContain('message');
       });
 
       it('does not leak gRPC hints into an HTTP script editor', () => {
-        expect(hintsFor('bru.grpc.', ['req', 'res', 'bru'])).toBeNull();
+        expect(hintsFor('bru.grpc.', 'post-response')).toBeNull();
       });
 
       it('does not leak HTTP globals into a gRPC hook', () => {
-        expect(grpcHints('req.', 'before-call-start')).toBeNull();
-        expect(grpcHints('res.', 'after-call-end')).toBeNull();
+        expect(hintsFor('req.', 'before-call-start')).toBeNull();
+        expect(hintsFor('res.', 'after-call-end')).toBeNull();
       });
     });
 
@@ -1059,18 +1104,18 @@ describe('Bruno Autocomplete', () => {
       });
 
       it('should respect showHintsFor option for excluding hints', () => {
-        const options = { showHintsFor: ['res', 'bru'] };
+        const options = { showHintsFor: ['res', 'bru'], scriptType: 'post-response' };
         const result = getAutoCompleteHints(mockedCodemirror, {}, [], options);
 
         expect(result).toBeNull();
       });
 
       it('should show hints when included in showHintsFor', () => {
-        const options = { showHintsFor: ['req'] };
+        const options = { showHintsFor: ['req'], scriptType: 'pre-request' };
         const result = getAutoCompleteHints(mockedCodemirror, {}, [], options);
 
         expect(result).toBeTruthy();
-        expect(result.list).toEqual(
+        expect(hintTexts(result)).toEqual(
           expect.arrayContaining(['url', 'method'])
         );
       });
@@ -1160,11 +1205,12 @@ describe('Bruno Autocomplete', () => {
         mockedCodemirror.getRange.mockReturnValue(line);
 
         const result = getAutoCompleteHints(mockedCodemirror, {}, [], {
-          showHintsFor: ['req']
+          showHintsFor: ['req'],
+          scriptType: 'pre-request'
         });
 
         expect(result).toBeTruthy();
-        expect(result.list).toEqual(
+        expect(hintTexts(result)).toEqual(
           expect.arrayContaining(['getHeader(name)', 'getHeaders()'])
         );
       });
@@ -1176,12 +1222,13 @@ describe('Bruno Autocomplete', () => {
         mockedCodemirror.getRange.mockReturnValue(line);
 
         const result = getAutoCompleteHints(mockedCodemirror, {}, [], {
-          showHintsFor: ['req']
+          showHintsFor: ['req'],
+          scriptType: 'pre-request'
         });
 
         expect(result).toBeTruthy();
-        expect(result.list).toEqual(
-          expect.arrayContaining(['deleteHeader(name)', 'deleteHeaders(data)'])
+        expect(hintTexts(result)).toEqual(
+          expect.arrayContaining(['deleteHeader(name)', 'deleteHeaders(headers)'])
         );
       });
 
@@ -1220,12 +1267,6 @@ describe('Bruno Autocomplete', () => {
 
     it('offers the globals of the requested groups', () => {
       expect(rootHintsFor(['req', 'bru']).list).toEqual(['bru', 'req']);
-    });
-
-    // The gRPC groups are keyed by hook, but every entry hangs off `bru` — the root list must
-    // report the global, never the group key.
-    it('offers bru for the gRPC hook groups', () => {
-      expect(rootHintsFor(['bru', 'grpc:after-message-receive']).list).toEqual(['bru']);
     });
 
     it('shows nothing when no group is requested', () => {
@@ -1576,7 +1617,8 @@ describe('Bruno Autocomplete', () => {
       it('should trigger hints on character key press', () => {
         const options = {
           getAllVariables: mockGetAllVariables,
-          showHintsFor: ['req']
+          showHintsFor: ['req'],
+          scriptType: 'pre-request'
         };
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
         const keyupHandler = mockedCodemirror.on.mock.calls[0][1];
@@ -1628,7 +1670,8 @@ describe('Bruno Autocomplete', () => {
       it('should pass options to getAutoCompleteHints', () => {
         const options = {
           getAllVariables: mockGetAllVariables,
-          showHintsFor: ['req']
+          showHintsFor: ['req'],
+          scriptType: 'pre-request'
         };
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
         const keyupHandler = mockedCodemirror.on.mock.calls[0][1];
@@ -1855,7 +1898,8 @@ describe('Bruno Autocomplete', () => {
           getAllVariables: mockGetAllVariables,
           getAnywordAutocompleteHints: mockGetAnywordAutocompleteHints,
           showHintsOnClick: true,
-          showHintsFor: ['req', 'variables']
+          showHintsFor: ['req', 'variables'],
+          scriptType: 'pre-request'
         };
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
 
@@ -1928,7 +1972,8 @@ describe('Bruno Autocomplete', () => {
           }),
           getAnywordAutocompleteHints: mockGetAnywordAutocompleteHints,
           showHintsOnClick: true,
-          showHintsFor: ['req', 'variables']
+          showHintsFor: ['req', 'variables'],
+          scriptType: 'pre-request'
         };
         cleanupFn = setupAutoComplete(mockedCodemirror, options);
 
@@ -1952,11 +1997,11 @@ describe('Bruno Autocomplete', () => {
         const hintCall = mockedCodemirror.showHint.mock.calls[0][0];
         const hintResult = hintCall.hint();
 
-        expect(hintResult).toEqual({
+        expect(hintResult).toEqual(expect.objectContaining({
           list: expect.any(Array),
           from: mockCursor,
           to: mockCursor
-        });
+        }));
         expect(hintResult.list.length).toBeGreaterThan(0);
 
         jest.useRealTimers();
