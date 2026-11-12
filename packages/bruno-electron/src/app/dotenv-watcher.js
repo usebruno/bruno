@@ -24,11 +24,28 @@ const DEFAULT_WATCHER_OPTIONS = {
   depth: 0
 };
 
-const createFileHandler = (win, options) => (pathname) => {
+const isFIFO = (pathname) => {
+  try {
+    return fs.statSync(pathname).isFIFO();
+  } catch (err) {
+    return false;
+  }
+};
+
+const createFileHandler = (win, options, { skipFifoChanges = false } = {}) => (pathname) => {
   const { type, uid, uidKey, pathKey, basePath, setEnvVars } = options;
   const filename = path.basename(pathname);
 
   if (!isDotEnvFile(filename)) {
+    return;
+  }
+
+  // 1Password mounts a managed .env as a named pipe that returns fresh content on every
+  // read, which chokidar sees as a constant stream of change events. Re-reading on every
+  // one of those feeds back into more events, pegging the UI. The file is still read once
+  // on 'add' (skipFifoChanges is only passed for the 'change' handler), so values load
+  // normally on startup/collection-open.
+  if (skipFifoChanges && isFIFO(pathname)) {
     return;
   }
 
@@ -118,11 +135,12 @@ class DotEnvWatcher {
       clearEnvVars: () => clearDotEnvVars(collectionUid)
     };
 
-    const handleFile = createFileHandler(win, handlerOptions);
+    const handleAdd = createFileHandler(win, handlerOptions);
+    const handleChange = createFileHandler(win, handlerOptions, { skipFifoChanges: true });
     const handleUnlink = createUnlinkHandler(win, handlerOptions);
 
-    watcher.on('add', handleFile);
-    watcher.on('change', handleFile);
+    watcher.on('add', handleAdd);
+    watcher.on('change', handleChange);
     watcher.on('unlink', handleUnlink);
     watcher.on('error', (err) => {
       console.error(`Collection watcher error for ${collectionPath}:`, err);
@@ -169,11 +187,12 @@ class DotEnvWatcher {
       clearEnvVars: () => clearWorkspaceDotEnvVars(workspacePath)
     };
 
-    const handleFile = createFileHandler(win, handlerOptions);
+    const handleAdd = createFileHandler(win, handlerOptions);
+    const handleChange = createFileHandler(win, handlerOptions, { skipFifoChanges: true });
     const handleUnlink = createUnlinkHandler(win, handlerOptions);
 
-    watcher.on('add', handleFile);
-    watcher.on('change', handleFile);
+    watcher.on('add', handleAdd);
+    watcher.on('change', handleChange);
     watcher.on('unlink', handleUnlink);
     watcher.on('error', (err) => {
       console.error(`Workspace watcher error for ${workspacePath}:`, err);
