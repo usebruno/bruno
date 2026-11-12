@@ -84,7 +84,7 @@ describe('useProtoFileManagement — persisting protobuf config from a request',
     });
 
     const { draft } = getCollection(store);
-    expect(writtenProtobuf.protoFiles).toEqual([EXISTING_PROTO, { path: 'protos/new.proto', type: 'file' }]);
+    expect(writtenProtobuf.protoFiles).toEqual([EXISTING_PROTO, { path: 'protos/new.proto', type: 'file', exists: true }]);
     expect(draft.brunoConfig.protobuf).toEqual(writtenProtobuf);
     expect(draft.root.request.script.req).toBe(SCRIPT);
   });
@@ -104,6 +104,19 @@ describe('useProtoFileManagement — persisting protobuf config from a request',
     expect(draft.root.request.script.req).toBe(SCRIPT);
   });
 
+  it('marks a proto file added from a request as existing in the draft so the settings tab does not flag it as missing', async () => {
+    const store = createStore();
+    createDraftWithScript(store);
+    const { result, rerender } = renderProtoHook(store);
+
+    await act(async () => {
+      await result.current.addProtoFileFromRequest(`${COLLECTION_PATH}/protos/new.proto`);
+    });
+    rerender();
+
+    expect(result.current.protoFiles.every((protoFile) => protoFile.exists)).toBe(true);
+  });
+
   it('writes to disk without creating a draft when the collection has no unsaved changes', async () => {
     const store = createStore();
     const { result } = renderProtoHook(store);
@@ -112,7 +125,7 @@ describe('useProtoFileManagement — persisting protobuf config from a request',
       await result.current.addProtoFileFromRequest(`${COLLECTION_PATH}/protos/new.proto`);
     });
 
-    expect(writtenProtobuf.protoFiles).toEqual([EXISTING_PROTO, { path: 'protos/new.proto', type: 'file' }]);
+    expect(writtenProtobuf.protoFiles).toEqual([EXISTING_PROTO, { path: 'protos/new.proto', type: 'file', exists: true }]);
     expect(getCollection(store).draft).toBeUndefined();
   });
 
@@ -141,8 +154,8 @@ describe('useProtoFileManagement — persisting protobuf config from a request',
     const expectedProtoFiles = [
       EXISTING_PROTO,
       settingsTabProto,
-      { path: 'protos/first.proto', type: 'file' },
-      { path: 'protos/second.proto', type: 'file' }
+      { path: 'protos/first.proto', type: 'file', exists: true },
+      { path: 'protos/second.proto', type: 'file', exists: true }
     ];
     expect(outcome).toEqual({ success: true, relativePath: 'protos/first.proto', alreadyExists: true });
     expect(writtenProtobuf.protoFiles).toEqual(expectedProtoFiles);
