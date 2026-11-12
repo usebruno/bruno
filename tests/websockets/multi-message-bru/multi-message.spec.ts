@@ -151,7 +151,9 @@ test.describe.serial('websocket multi-message (bru format)', () => {
     await websocket.connectionControls.disconnect().click();
   });
 
-  test('selecting a different message routes run-button to that message', async ({ pageWithUserData: page }) => {
+  test('TC-8656: selecting a different message routes run-button to that message', { tag: '@sanity' }, async ({
+    pageWithUserData: page
+  }) => {
     const { websocket, runner } = buildCommonLocators(page);
 
     await openRequest(page, COLLECTION_NAME, MULTI_MSG_REQ);
@@ -234,6 +236,31 @@ test.describe.serial('websocket multi-message (bru format)', () => {
     const bruContent = await readFile(MULTI_MSG_BRU_PATH, 'utf8');
     const bodyWsCount = (bruContent.match(/body:ws/g) || []).length;
     expect(bodyWsCount).toBe(1);
+  });
+
+  test('TC-8657: deleting an unselected message keeps the current selection (does not jump to first)', { tag: '@sanity' }, async ({
+    pageWithUserData: page
+  }) => {
+    const { websocket } = buildCommonLocators(page);
+
+    await openRequest(page, COLLECTION_NAME, MULTI_MSG_REQ);
+
+    // Fixture starts with 2 messages; add one more so we can delete an unselected row
+    // while leaving the last-added (selected) message in place.
+    await websocket.message.addButton().click();
+    await websocket.message.nameInput(2).press('Escape');
+    await expect(websocket.message.headers()).toHaveCount(3);
+
+    await expect(websocket.message.messageWrapper(2)).not.toHaveClass(/disabled/);
+    await expect(websocket.message.messageWrapper(0)).toHaveClass(/disabled/);
+
+    await websocket.message.header(0).hover();
+    await websocket.message.deleteButton(0).click();
+    await expect(websocket.message.headers()).toHaveCount(2);
+
+    // Former index 2 is now index 1; selection must not jump to the first remaining message.
+    await expect(websocket.message.messageWrapper(1)).not.toHaveClass(/disabled/);
+    await expect(websocket.message.messageWrapper(0)).toHaveClass(/disabled/);
   });
 
   test('rename a message via double-click', async ({ pageWithUserData: page }) => {
