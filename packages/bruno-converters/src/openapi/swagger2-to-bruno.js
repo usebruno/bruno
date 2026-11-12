@@ -309,9 +309,9 @@ const transformSwaggerRequestItem = (request, usedNames = new Set(), options = {
       const siblingDef = request.global.security.getDefinition(sName);
       if (!siblingDef) continue;
 
-      if (siblingDef.type === 'apiKey') {
+      if (siblingDef.type === 'apiKey' && typeof siblingDef.name === 'string') {
         if (siblingDef.in === 'header') {
-          if (!brunoRequestItem.request.headers.some((h) => h.name.toLowerCase() === siblingDef.name.toLowerCase())) {
+          if (!brunoRequestItem.request.headers.some((h) => String(h.name ?? '').toLowerCase() === siblingDef.name.toLowerCase())) {
             brunoRequestItem.request.headers.push({
               uid: uuid(),
               name: siblingDef.name,
@@ -333,7 +333,7 @@ const transformSwaggerRequestItem = (request, usedNames = new Set(), options = {
           }
         }
       } else if (siblingDef.type === 'basic') {
-        if (!brunoRequestItem.request.headers.some((h) => h.name.toLowerCase() === 'authorization')) {
+        if (!brunoRequestItem.request.headers.some((h) => String(h.name ?? '').toLowerCase() === 'authorization')) {
           brunoRequestItem.request.headers.push({
             uid: uuid(),
             name: 'Authorization',
