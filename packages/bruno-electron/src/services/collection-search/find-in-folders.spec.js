@@ -235,6 +235,17 @@ describe('findCollectionsInFolders', () => {
     ]);
   });
 
+  it('lists a picked link to a collection by the path that was picked', async () => {
+    const real = makeBruCollection('Linked', 'real');
+    const link = path.join(tempDir, 'link');
+    fs.symlinkSync(real, link, folderLinkType);
+
+    const result = await findCollectionsInFolders([link]);
+
+    expect(result.collections).toEqual([{ path: link, name: 'Linked' }]);
+    expect(result.folders).toEqual([folderSummary(link, 'collection', [link])]);
+  });
+
   it('does not list a picked collection again when another pick is inside it', async () => {
     const outer = makeBruCollection('Outer', 'outer');
     const inner = makeFolder('outer', 'requests');

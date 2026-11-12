@@ -1,27 +1,15 @@
 const path = require('node:path');
-const yaml = require('js-yaml');
+const { parseCollection } = require('@usebruno/filestore');
 const { readFileStart } = require('./read-file-start');
 
-const NAME_BYTES = 16 * 1024;
-
-const parseYamlValue = (value) => {
-  const trimmed = value.trim();
-  try {
-    const parsed = yaml.load(`value: ${trimmed}`).value;
-    return typeof parsed === 'string' ? parsed : trimmed;
-  } catch (error) {
-    return trimmed;
-  }
-};
+const CONFIG_BYTES = 1024 * 1024;
 
 const nameFromOpenCollectionYml = (text) => {
-  const infoBlock = text.match(/^info:\s*\n((?:[ \t]+.*\n?)+)/m);
-  const infoName = infoBlock && infoBlock[1].match(/^[ \t]+name:(.+)$/m);
-  if (infoName) {
-    return parseYamlValue(infoName[1]);
+  try {
+    return parseCollection(text, { format: 'yml' }).brunoConfig.name;
+  } catch (error) {
+    return null;
   }
-  const topLevelName = text.match(/^name:(.+)$/m);
-  return topLevelName ? parseYamlValue(topLevelName[1]) : null;
 };
 
 const nameFromBrunoJson = (text) => {
@@ -35,10 +23,10 @@ const nameFromBrunoJson = (text) => {
 };
 
 const readCollectionName = async (collectionPath) => {
-  const ymlText = await readFileStart(path.join(collectionPath, 'opencollection.yml'), NAME_BYTES);
+  const ymlText = await readFileStart(path.join(collectionPath, 'opencollection.yml'), CONFIG_BYTES);
   const name = ymlText
-    ? nameFromOpenCollectionYml(ymlText.replace(/\r\n?/g, '\n'))
-    : nameFromBrunoJson(await readFileStart(path.join(collectionPath, 'bruno.json'), NAME_BYTES));
+    ? nameFromOpenCollectionYml(ymlText)
+    : nameFromBrunoJson(await readFileStart(path.join(collectionPath, 'bruno.json'), CONFIG_BYTES));
   return name || path.basename(collectionPath);
 };
 
