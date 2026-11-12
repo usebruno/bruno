@@ -29,6 +29,7 @@ const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { getWsClient } = require('../ipc/network/ws-event-handlers');
 const { hasSubDirectories } = require('../utils/filesystem');
 const { readCollectionForApiSpec } = require('../utils/collection-reader');
+const { exportCollectionYaml } = require('./collection-export');
 const { transformProxyConfig } = require('@usebruno/requests');
 
 const {
@@ -2631,22 +2632,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   ipcMain.handle('renderer:export-collection-yaml', async (event, collectionName, content) => {
-    if (typeof content !== 'string') {
-      throw new Error('Export content must be a string');
-    }
-
-    const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
-      title: 'Export Collection as YAML',
-      defaultPath: `${sanitizeName(collectionName)}.yml`,
-      filters: [{ name: 'YAML Files', extensions: ['yml', 'yaml'] }]
-    });
-
-    if (canceled || !filePath) {
-      return { success: false, canceled: true };
-    }
-
-    await writeFile(filePath, content);
-    return { success: true, filePath };
+    return exportCollectionYaml(mainWindow, collectionName, content);
   });
 
   ipcMain.handle('renderer:export-collection-postman', async (event, dirPath, fileName, content, overwrite = false) => {
