@@ -612,7 +612,7 @@ describe('Send Request Translation', () => {
                 method: "GET"
             });
 
-            console.log(response.json());
+            console.log(response.data);
         } catch (err) {
             console.error(err);
         }
@@ -742,6 +742,83 @@ describe('Send Request Translation', () => {
       `);
     });
 
+    it('keeps a callback passed by reference', () => {
+      // no body to rewrite, but dropping it would lose the handler the request was made for
+      expect(translateCode(`pm.sendRequest(q, handleIt);`)).toBe(`await bru.sendRequest(q, handleIt);`);
+    });
+
+    it('keeps a callback reached through a member expression', () => {
+      expect(translateCode(`pm.sendRequest(q, handlers.onDone);`))
+        .toBe(`await bru.sendRequest(q, handlers.onDone);`);
+    });
+
+    it('types a chain hanging off a variable, leaving the promise un-awaited', () => {
+      const code = `
+        const p = pm.sendRequest(q);
+        p.then(r => r.code);
+      `;
+      // awaiting would hand `p` the resolved response, leaving `.then` nothing to attach to
+      expect(translateCode(code)).toBe(`
+        const p = bru.sendRequest(q);
+        p.then(r => r.status);
+      `);
+    });
+
+    it('propagates through a chain hanging off a variable', () => {
+      const code = `
+        const p = pm.sendRequest(q);
+        p.then(r => r).then(r => r.code);
+      `;
+      expect(translateCode(code)).toBe(`
+        const p = bru.sendRequest(q);
+        p.then(r => r).then(r => r.status);
+      `);
+    });
+
+    it('still awaits a variable that carries no chain', () => {
+      const code = `
+        const r = pm.sendRequest(q);
+        r.code;
+      `;
+      expect(translateCode(code)).toBe(`
+        const r = await bru.sendRequest(q);
+        r.status;
+      `);
+    });
+
+    it('leaves an unrelated declaration sharing the config name alone', () => {
+      const code = `
+        function buildHeaders() {
+            const requestConfig = { header: [{ key: 'X', value: '1' }] };
+            return requestConfig;
+        }
+        const requestConfig = { url: 'https://echo.usebruno.com', method: 'GET' };
+        pm.sendRequest(requestConfig);
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        function buildHeaders() {
+            const requestConfig = { header: [{ key: 'X', value: '1' }] };
+            return requestConfig;
+        }
+        const requestConfig = { url: 'https://echo.usebruno.com', method: 'GET' };
+        await bru.sendRequest(requestConfig);
+      `);
+    });
+
+    it('transforms the declaration the reference resolves to, not a shadowed one', () => {
+      const code = `
+        const requestConfig = { url: 'outer', header: [{ key: 'X', value: '1' }] };
+        function send() {
+            const requestConfig = { url: 'inner', header: [{ key: 'Y', value: '2' }] };
+            pm.sendRequest(requestConfig);
+        }
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toContain(`const requestConfig = { url: 'outer', header: [{ key: 'X', value: '1' }] };`);
+      expect(translatedCode).toContain(`"Y": '2'`);
+    });
+
     it('requestConfig passed as a variable with multi-level references', () => {
       const code = `
         const requestConfig = {
@@ -800,6 +877,54 @@ describe('Send Request Translation', () => {
                 console.log(response_body, response_headers);
             }
         });
+      `);
+    });
+
+    it('resolves each of two sibling-block configs sharing a name', () => {
+      const code = `
+        if (useJson) {
+            const requestConfig = {
+                url: 'https://echo.usebruno.com',
+                method: 'POST',
+                header: {
+                    'Content-Type': 'application/json',
+                }
+            };
+            pm.sendRequest(requestConfig);
+        }
+        if (useText) {
+            const requestConfig = {
+                url: 'https://echo.usebruno.com',
+                method: 'POST',
+                header: {
+                    'Content-Type': 'text/plain',
+                }
+            };
+            pm.sendRequest(requestConfig);
+        }
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        if (useJson) {
+            const requestConfig = {
+                url: 'https://echo.usebruno.com',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            };
+            await bru.sendRequest(requestConfig);
+        }
+        if (useText) {
+            const requestConfig = {
+                url: 'https://echo.usebruno.com',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain',
+                }
+            };
+            await bru.sendRequest(requestConfig);
+        }
       `);
     });
   });
@@ -1054,10 +1179,10 @@ await bru.sendRequest({
       expect(translatedCode).toBe(`register((await bru.sendRequest({ url: 'https://echo.usebruno.com' })).then);`);
     });
 
-    it('should leave a destructured handler param alone', () => {
+    it('should rewrite a destructured handler param in place, keeping the local name', () => {
       const code = `pm.sendRequest({ url: 'https://echo.usebruno.com' }).then(({ code }) => console.log(code));`;
       const translatedCode = translateCode(code);
-      expect(translatedCode).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(({ code }) => console.log(code));`);
+      expect(translatedCode).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(({ status: code }) => console.log(code));`);
     });
 
     it('should translate a nested sendRequest chain inside an async then handler', () => {

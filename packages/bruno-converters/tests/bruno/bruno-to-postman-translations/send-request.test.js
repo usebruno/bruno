@@ -829,6 +829,39 @@ describe('Bruno to Postman Send Request Translation', () => {
     });
   });
 
+  describe('Promise Chain Handling', () => {
+    it('should translate members on a .then handler parameter', () => {
+      const code = `bru.sendRequest(q).then(res => res.status);`;
+      expect(translateBruToPostman(code)).toBe(`pm.sendRequest(q).then(res => res.code);`);
+    });
+
+    it('should type a chain hanging off a variable', () => {
+      const code = `const p = bru.sendRequest(q);\np.then(r => r.status);`;
+      expect(translateBruToPostman(code)).toBe(`const p = pm.sendRequest(q);\np.then(r => r.code);`);
+    });
+
+    it('should keep propagating while a handler forwards its parameter', () => {
+      const code = `bru.sendRequest(q).then(r => r).then(r => r.status);`;
+      expect(translateBruToPostman(code)).toBe(`pm.sendRequest(q).then(r => r).then(r => r.code);`);
+    });
+
+    it('should stop propagating once a handler returns something else', () => {
+      const code = `bru.sendRequest(q).then(r => r.data).then(d => d.status);`;
+      expect(translateBruToPostman(code)).toBe(`pm.sendRequest(q).then(r => r.json()).then(d => d.status);`);
+    });
+
+    it('should leave the global response alone', () => {
+      expect(translateBruToPostman(`const x = res.status;`)).toBe(`const x = pm.response.code;`);
+    });
+
+    it('should translate a concise-arrow callback body', () => {
+      const code = `bru.sendRequest(q, (err, res) => res.status);`;
+      expect(translateBruToPostman(code)).toBe(`pm.sendRequest(q, function(err, res) {
+  return res.code;
+});`);
+    });
+  });
+
   describe('Callback Handling', () => {
     it('should transform callback function', () => {
       const code = `
@@ -1093,6 +1126,39 @@ describe('Bruno to Postman Send Request Translation', () => {
         };
         pm.sendRequest(requestConfig);
       `);
+    });
+
+    it('should leave an unrelated declaration sharing the config name alone', () => {
+      const code = `
+        function buildHeaders() {
+            const requestConfig = { headers: { 'X': '1' } };
+            return requestConfig;
+        }
+        const requestConfig = { url: 'https://echo.usebruno.com', method: 'GET' };
+        bru.sendRequest(requestConfig);
+      `;
+      const translatedCode = translateBruToPostman(code);
+      expect(translatedCode).toBe(`
+        function buildHeaders() {
+            const requestConfig = { headers: { 'X': '1' } };
+            return requestConfig;
+        }
+        const requestConfig = { url: 'https://echo.usebruno.com', method: 'GET' };
+        pm.sendRequest(requestConfig);
+      `);
+    });
+
+    it('should transform the declaration the reference resolves to, not a shadowed one', () => {
+      const code = `
+        const requestConfig = { url: 'outer', headers: { 'X': '1' } };
+        function send() {
+            const requestConfig = { url: 'inner', headers: { 'Y': '2' } };
+            bru.sendRequest(requestConfig);
+        }
+      `;
+      const translatedCode = translateBruToPostman(code);
+      expect(translatedCode).toContain(`const requestConfig = { url: 'outer', headers: { 'X': '1' } };`);
+      expect(translatedCode).toContain(`const requestConfig = { url: 'inner', header: { 'Y': '2' } };`);
     });
 
     it('should transform variable config with raw text body', () => {
