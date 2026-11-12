@@ -19,9 +19,7 @@ export const buildShareCollectionLocators = (page: Page) => {
     openApiCard: (): Locator => page.getByTestId('export-format-openapi'),
     closeButton: (): Locator => modal().getByTestId('modal-close-button'),
     nonExportableNote: (): Locator =>
-      page.getByTestId('share-collection-non-exportable-note').or(
-        page.getByText('gRPC requests in this collection will not be exported')
-      ),
+      page.getByTestId('share-collection-non-exportable-note'),
     proceedButton: (): Locator =>
       page.getByTestId('share-collection-proceed').or(page.getByRole('button', { name: 'Proceed', exact: true })),
     collectionActions: (collectionName: string): Locator =>

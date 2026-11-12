@@ -118,7 +118,7 @@ test.describe('Export Bruno collection', () => {
     });
   });
 
-  test('TC-3050: Verify that the user is able to Export a OpenAPI Specification collection', async ({
+  test('TC-3050: Verify that the user is able to Export a OpenAPI Specification collection', { tag: '@sanity' }, async ({
     page,
     electronApp,
     createTmpDir
