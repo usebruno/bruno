@@ -104,6 +104,8 @@ export const buildEnvironmentLocators = (page: Page) => ({
   selector: () => page.getByTestId('environment-selector-trigger'),
   collectionTab: () => page.getByTestId('env-tab-collection'),
   globalTab: () => page.getByTestId('env-tab-global'),
+  collectionBadge: () => page.getByTestId('env-badge-collection'),
+  globalBadge: () => page.getByTestId('env-badge-global'),
   envOption: (name: string) =>
     page.getByTestId('env-list-item').filter({ has: page.getByText(name, { exact: true }) }),
   listOption: (name: string) => page.getByTestId('env-list-item').filter({ hasText: name }),
