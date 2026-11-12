@@ -78,6 +78,11 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
   }
 
+  .runner-loading-icon {
+    transform: scaleY(-1);
+    animation: rotateCounterClockwise 1s linear infinite;
+  }
+
   .text-muted {
     color: ${(props) => props.theme.colors.text.muted};
   }
