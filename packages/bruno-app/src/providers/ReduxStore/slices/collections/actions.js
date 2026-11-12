@@ -1948,7 +1948,7 @@ export const newApp = (params) => (dispatch, getState) => {
   });
 };
 
-export const loadGrpcMethodsFromReflection = (item, collectionUid, url) => async (dispatch, getState) => {
+export const loadGrpcMethodsFromReflection = (item, collectionUid, url, isManualRefresh = false) => async (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
@@ -1991,7 +1991,8 @@ export const loadGrpcMethodsFromReflection = (item, collectionUid, url) => async
         request: requestItem,
         collection: collectionCopy,
         environment,
-        runtimeVariables
+        runtimeVariables,
+        isManualRefresh
       })
       .then(resolve)
       .catch(reject);
