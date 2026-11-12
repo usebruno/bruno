@@ -48,11 +48,21 @@ describe('insomnia-collection', () => {
           method: 'post',
           url: 'https://api.example.com/items',
           parameters: []
+        },
+        {
+          _id: 'req_custom',
+          _type: 'request',
+          parentId: 'wrk_1',
+          name: 'Custom Method Request',
+          method: 'doWork',
+          url: 'https://api.example.com/custom',
+          parameters: []
         }
       ]
     };
     const brunoCollection = insomniaToBruno(rawInsomnia);
     expect(brunoCollection.items[0].request.method).toBe('POST');
+    expect(brunoCollection.items[1].request.method).toBe('doWork');
   });
 });
 

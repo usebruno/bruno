@@ -400,5 +400,61 @@ describe('makeAxiosInstance', () => {
       expect(calls.length).toBe(2);
       expect(calls[1].method).toBe('GET');
     });
+
+    it('preserves uppercase HEAD when following 301/302/303 redirect', async () => {
+      let redirectMethod = null;
+      const calls = [];
+      const stubAdapter = (config) => {
+        calls.push(config);
+        if (calls.length === 1) {
+          const err = new Error('Redirect 302');
+          err.config = config;
+          err.response = {
+            status: 302,
+            statusText: 'Found',
+            headers: { location: 'https://api.example.com/target' },
+            data: {}
+          };
+          return Promise.reject(err);
+        }
+        redirectMethod = config.method;
+        return Promise.resolve({ data: {}, status: 200, statusText: 'OK', headers: {}, config });
+      };
+
+      const instance = makeAxiosInstance({ followRedirects: true });
+      await instance({
+        url: 'https://api.example.com/start',
+        method: 'head',
+        adapter: stubAdapter
+      });
+
+      expect(redirectMethod).toBe('HEAD');
+    });
+
+    it('preserves Axios default Content-Type for POST while respecting null suppression', async () => {
+      const capturedContentTypes = [];
+      const stubAdapter = (config) => {
+        capturedContentTypes.push(config.headers.getContentType());
+        return Promise.resolve({ data: {}, status: 200, statusText: 'OK', headers: {}, config });
+      };
+
+      const instance = makeAxiosInstance();
+      await instance({
+        url: 'https://api.example.com/upload',
+        method: 'post',
+        headers: { 'content-type': undefined },
+        data: Buffer.from('abc'),
+        adapter: stubAdapter
+      });
+      await instance({
+        url: 'https://api.example.com/suppressed',
+        method: 'post',
+        headers: { 'content-type': null },
+        adapter: stubAdapter
+      });
+
+      expect(capturedContentTypes[0]).toBe('application/x-www-form-urlencoded');
+      expect(capturedContentTypes[1]).toBeNull();
+    });
   });
 });
