@@ -129,12 +129,10 @@ const supportsReasoning = (model) => {
     || (Array.isArray(supports.reasoning_effort) && supports.reasoning_effort.length > 0);
 };
 
-const isStreamingChatModel = (model) => Boolean(model?.id)
+const isUsableChatModel = (model) => Boolean(model?.id)
   && model?.capabilities?.type === 'chat'
   && model?.capabilities?.supports?.streaming !== false
-  && (!model.policy || model.policy.state === 'enabled');
-
-const isPickerModel = (model) => Boolean(model.policy) || model.model_picker_enabled === true;
+  && (model.policy ? model.policy.state === 'enabled' : model?.model_picker_enabled === true);
 
 const toCatalogModel = (model) => {
   const multiplier = Number(model?.billing?.multiplier);
@@ -176,10 +174,16 @@ const oneVariantPerName = (models) => {
   return [...byName.values()];
 };
 
+const COPILOT_FALLBACK_MODEL = {
+  modelId: 'gpt-4o',
+  label: 'GPT-4o',
+  reasoning: false,
+  maxOutputTokens: 0,
+  multiplier: 1
+};
+
 const normalizeModelCatalog = (rawModels) => {
-  const chatModels = (Array.isArray(rawModels) ? rawModels : []).filter(isStreamingChatModel);
-  const pickerModels = chatModels.filter(isPickerModel);
-  const usable = oneVariantPerName(pickerModels.length > 0 ? pickerModels : chatModels);
+  const usable = oneVariantPerName((Array.isArray(rawModels) ? rawModels : []).filter(isUsableChatModel));
   const defaults = usable.filter((m) => m.is_chat_default === true);
   const rest = usable.filter((m) => m.is_chat_default !== true);
   return [...defaults, ...rest].map(toCatalogModel);
@@ -202,7 +206,8 @@ const fetchModels = async (token, apiEndpoint) => {
   if (rawModels.length === 0) {
     console.warn(`[AI] Copilot returned no models from ${hostOf(apiEndpoint)}`);
   } else if (models.length === 0) {
-    console.warn(`[AI] Copilot returned ${rawModels.length} models from ${hostOf(apiEndpoint)} but none are usable: ${rawModels.map(describeExcludedModel).join('; ')}`);
+    console.warn(`[AI] Copilot returned ${rawModels.length} models from ${hostOf(apiEndpoint)} but none are usable, using ${COPILOT_FALLBACK_MODEL.modelId}: ${rawModels.map(describeExcludedModel).join('; ')}`);
+    return [COPILOT_FALLBACK_MODEL];
   } else {
     const idsWhere = (predicate) => rawModels.filter(predicate).map((m) => m?.id).join(', ') || '(none)';
     console.info(
