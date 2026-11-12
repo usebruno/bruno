@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { parseEnvironment, stringifyEnvironment } = require('@usebruno/filestore');
-const { writeFile, withFileLock } = require('./filesystem');
+const { writeEnvironmentFile, withFileLock } = require('./filesystem');
 
 /**
  * Rewrites the `extends` references that pointed at `oldName` before it was renamed to `newName`.
@@ -30,7 +30,7 @@ const renameEnvironmentExtendsReferences = async ({ environmentsDirPath, format,
         environment.extends = newName;
         environment.name = path.basename(fileName, extension);
 
-        await writeFile(filePath, stringifyEnvironment(environment, { format }));
+        await writeEnvironmentFile(filePath, stringifyEnvironment(environment, { format }));
       });
     } catch (error) {
       console.error(`Failed to update the extends reference in ${fileName}:`, error);
