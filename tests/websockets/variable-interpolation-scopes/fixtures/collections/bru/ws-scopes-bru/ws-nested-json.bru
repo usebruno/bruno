@@ -1,0 +1,30 @@
+meta {
+  name: ws-nested-json
+  type: ws
+  seq: 1
+}
+
+ws {
+  url: ws://localhost:8081/ws/echo
+  body: ws
+  auth: inherit
+}
+
+body:ws {
+  name: nested json
+  type: json
+  content: '''
+    {
+      "user": {
+        "id": "{{userId}}",
+        "company": "{{companyName}}"
+      },
+      "metadata": {
+        "department": "{{qaTeam}}",
+        "location": {
+          "region": "{{region}}"
+        }
+      }
+    }
+  '''
+}

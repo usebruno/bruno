@@ -1,0 +1,11 @@
+name: Scopes
+
+variables:
+  - name: qaTeam
+    value: QA
+  - name: environmentName
+    value: TestEnvironment
+  - name: dataCenter
+    value: DC-02
+  - name: xmlRegion
+    value: North America

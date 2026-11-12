@@ -1,0 +1,27 @@
+info:
+  name: ws-nested-json
+  type: websocket
+  seq: 1
+
+websocket:
+  url: ws://localhost:8081/ws/echo
+  message:
+    type: json
+    data: |-
+      {
+        "user": {
+          "id": "{{userId}}",
+          "company": "{{companyName}}"
+        },
+        "metadata": {
+          "department": "{{qaTeam}}",
+          "location": {
+            "region": "{{region}}"
+          }
+        }
+      }
+  auth: inherit
+
+settings:
+  timeout: 0
+  keepAliveInterval: 0

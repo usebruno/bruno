@@ -1,0 +1,19 @@
+meta {
+  name: ws-multi-text-vars
+  type: ws
+  seq: 2
+}
+
+ws {
+  url: ws://localhost:8081/ws/echo
+  body: ws
+  auth: inherit
+}
+
+body:ws {
+  name: multi text
+  type: text
+  content: '''
+    {{folderName}} - {{collectionName}} - {{environmentName}} - {{globalName}}
+  '''
+}

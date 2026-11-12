@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "ws-var-scopes-bru",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}
