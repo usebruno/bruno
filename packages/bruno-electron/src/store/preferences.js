@@ -64,7 +64,8 @@ const defaultPreferences = {
   },
   general: {
     defaultLocation: '',
-    defaultWorkspacePath: ''
+    defaultWorkspacePath: '',
+    responseFormatDetection: 'auto'
   },
   autoSave: {
     enabled: false,
@@ -186,7 +187,8 @@ const preferencesSchema = Yup.object().shape({
   }),
   general: Yup.object({
     defaultLocation: Yup.string().max(1024).nullable(),
-    defaultWorkspacePath: Yup.string().max(1024).nullable()
+    defaultWorkspacePath: Yup.string().max(1024).nullable(),
+    responseFormatDetection: Yup.string().oneOf(['auto', 'json'])
   }),
   autoSave: Yup.object({
     enabled: Yup.boolean(),
