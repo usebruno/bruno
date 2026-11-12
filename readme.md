@@ -57,6 +57,7 @@ You can explore our [paid versions](https://www.usebruno.com/pricing) to see if 
 ## Table of Contents
 
 - [Installation](#installation)
+- [Request proxy](#request-proxy)
 - [Bruno CLI](#bruno-cli)
 - [Run with Docker](#run-with-docker)
 - [Features](#features)
@@ -112,6 +113,12 @@ echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebr
   | sudo tee /etc/apt/sources.list.d/bruno.list
 sudo apt update && sudo apt install bruno
 ```
+
+## Request proxy
+
+Open a request’s **Settings** tab and use **Use App Proxy** to choose how it connects. The switch starts enabled and follows **Preferences → Proxy**, including manual, system, and PAC configurations. Turn it off to connect directly. The choice is saved with HTTP and GraphQL requests in both `.bru` and `.yml` collections.
+
+![Request proxy settings](assets/images/request-proxy-toggle.png)
 
 ## Bruno CLI
 

@@ -594,6 +594,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       timeout: parsedSettings.timeout !== undefined ? parsedSettings.timeout : 0
     };
 
+    if (settings.useProxy === 'true' || settings.useProxy === 'false') {
+      _settings.useProxy = toBool(settings.useProxy);
+    }
+
     if (parsedSettings.followRedirects !== undefined) {
       _settings.followRedirects = parsedSettings.followRedirects;
     }

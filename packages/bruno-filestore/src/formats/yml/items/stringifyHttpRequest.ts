@@ -114,7 +114,7 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
 
     // settings
     const httpSettings = item.settings as BrunoHttpItemSettings | undefined;
-    const settings: HttpRequestSettings = {};
+    const settings: HttpRequestSettings & { useProxy?: boolean } = {};
     if (httpSettings?.encodeUrl === true) {
       settings.encodeUrl = true;
     } else if (httpSettings?.encodeUrl === false) {
@@ -136,6 +136,8 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
     settings.maxRedirects = toMaxRedirects(httpSettings?.maxRedirects);
 
     settings.forwardAuthorizationHeader = httpSettings?.forwardAuthorizationHeader ?? true;
+
+    if (typeof httpSettings?.useProxy === 'boolean') settings.useProxy = httpSettings.useProxy;
 
     const omitHeaders = normalizeOmitHeaders(httpSettings?.omitHeaders);
     if (omitHeaders) {

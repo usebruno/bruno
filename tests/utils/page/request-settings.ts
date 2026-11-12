@@ -13,6 +13,7 @@ export const buildRequestSettingsLocators = (page: Page) => ({
   timeoutInheritButton: () => page.getByRole('button', { name: 'Inherit', exact: true }),
   encodeUrlToggle: () => page.getByTestId('encode-url-toggle'),
   followRedirectsToggle: () => page.getByTestId('follow-redirects-toggle'),
+  useAppProxyToggle: () => page.getByTestId('use-app-proxy-toggle'),
   forwardAuthToggle: () => page.getByTestId('forward-auth-header-toggle'),
   maxRedirectsInput: () => page.locator('#maxRedirects')
 });
