@@ -22,6 +22,8 @@ import {
   getTagDescriptions,
   toSpecString,
   operationSchemeName,
+  operationSchemeNames,
+  requirementSchemeNames,
   optsOutOfAuth,
   inheritsCollectionAuth,
   resolveCollectionAuthScheme
@@ -425,107 +427,177 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
   });
 
   const { collectionAuthScheme } = options;
-  const schemeName = operationSchemeName(_operationObject.security);
+  const isExplicitSecurity = Array.isArray(_operationObject.security);
+  const effectiveSecurity = isExplicitSecurity
+    ? _operationObject.security
+    : request.global.security.defaultSecurity;
+
+  let handledSchemeName;
 
   if (optsOutOfAuth(_operationObject.security, collectionAuthScheme)) {
     brunoRequestItem.request.auth.mode = 'none';
+  } else if (isExplicitSecurity) {
+    const reqSchemes = operationSchemeNames(_operationObject.security);
+    if (collectionAuthScheme && reqSchemes.includes(collectionAuthScheme.schemeName)) {
+      handledSchemeName = collectionAuthScheme.schemeName;
+      brunoRequestItem.request.auth.mode = 'inherit';
+    } else {
+      const primarySchemeName = reqSchemes[0];
+      handledSchemeName = primarySchemeName;
+      const auth = request.global.security.getScheme(primarySchemeName);
+
+      if (auth) {
+        if (auth.type === 'http' && auth.scheme === 'basic') {
+          brunoRequestItem.request.auth.mode = 'basic';
+          brunoRequestItem.request.auth.basic = {
+            username: '{{username}}',
+            password: '{{password}}'
+          };
+        } else if (auth.type === 'http' && auth.scheme === 'bearer') {
+          brunoRequestItem.request.auth.mode = 'bearer';
+          brunoRequestItem.request.auth.bearer = {
+            token: '{{token}}'
+          };
+        } else if (auth.type === 'http' && auth.scheme === 'digest') {
+          brunoRequestItem.request.auth.mode = 'digest';
+          brunoRequestItem.request.auth.digest = {
+            username: '{{username}}',
+            password: '{{password}}'
+          };
+        } else if (auth.type === 'apiKey') {
+          const apikeyConfig = {
+            key: auth.name,
+            value: '{{apiKey}}',
+            placement: auth.in === 'query' ? 'queryparams' : 'header'
+          };
+          brunoRequestItem.request.auth.mode = 'apikey';
+          brunoRequestItem.request.auth.apikey = apikeyConfig;
+
+          if (auth.in === 'header' || auth.in === 'cookie') {
+            brunoRequestItem.request.headers.push({
+              uid: uuid(),
+              name: auth.name,
+              value: '{{apiKey}}',
+              description: auth.description || '',
+              enabled: true
+            });
+          } else if (auth.in === 'query') {
+            brunoRequestItem.request.params.push({
+              uid: uuid(),
+              name: auth.name,
+              value: '{{apiKey}}',
+              description: auth.description || '',
+              enabled: true,
+              type: 'query'
+            });
+          }
+        } else if (auth.type === 'oauth2') {
+          // Determine flow (grant type)
+          let flows = auth.flows || {};
+          let grantType = 'client_credentials';
+          if (flows.authorizationCode) {
+            grantType = 'authorization_code';
+          } else if (flows.implicit) {
+            grantType = 'implicit';
+          } else if (flows.password) {
+            grantType = 'password';
+          } else if (flows.clientCredentials) {
+            grantType = 'client_credentials';
+          }
+
+          let flowConfig = {};
+          switch (grantType) {
+            case 'authorization_code':
+              flowConfig = flows.authorizationCode || {};
+              break;
+            case 'implicit':
+              flowConfig = flows.implicit || {};
+              break;
+            case 'password':
+              flowConfig = flows.password || {};
+              break;
+            case 'client_credentials':
+            default:
+              flowConfig = flows.clientCredentials || {};
+              break;
+          }
+
+          brunoRequestItem.request.auth.mode = 'oauth2';
+          brunoRequestItem.request.auth.oauth2 = {
+            grantType: grantType,
+            authorizationUrl: flowConfig.authorizationUrl || '{{oauth_authorize_url}}',
+            accessTokenUrl: flowConfig.tokenUrl || '{{oauth_token_url}}',
+            refreshTokenUrl: flowConfig.refreshUrl || '{{oauth_refresh_url}}',
+            callbackUrl: '{{oauth_callback_url}}',
+            clientId: '{{oauth_client_id}}',
+            clientSecret: '{{oauth_client_secret}}',
+            scope: Array.isArray(flowConfig.scopes) ? flowConfig.scopes.join(' ') : Object.keys(flowConfig.scopes || {}).join(' '),
+            state: '{{oauth_state}}',
+            credentialsPlacement: 'header',
+            tokenPlacement: 'header',
+            tokenHeaderPrefix: 'Bearer',
+            autoFetchToken: false,
+            autoRefreshToken: true
+          };
+        }
+      }
+    }
+  } else {
+    handledSchemeName = collectionAuthScheme?.schemeName || operationSchemeName(request.global.security.defaultSecurity);
   }
 
-  const auth = inheritsCollectionAuth(_operationObject.security, collectionAuthScheme) ? null : request.global.security.getScheme(schemeName);
+  // Preserve any sibling schemes in an AND-combined security requirement as explicit headers or parameters
+  if (!optsOutOfAuth(_operationObject.security, collectionAuthScheme) && effectiveSecurity && effectiveSecurity[0]) {
+    const allRequirementSchemes = requirementSchemeNames(effectiveSecurity[0]);
+    for (const sName of allRequirementSchemes) {
+      if (sName === handledSchemeName) continue;
+      const siblingScheme = request.global.security.getScheme(sName);
+      if (!siblingScheme) continue;
 
-  if (auth) {
-    if (auth.type === 'http' && auth.scheme === 'basic') {
-      brunoRequestItem.request.auth.mode = 'basic';
-      brunoRequestItem.request.auth.basic = {
-        username: '{{username}}',
-        password: '{{password}}'
-      };
-    } else if (auth.type === 'http' && auth.scheme === 'bearer') {
-      brunoRequestItem.request.auth.mode = 'bearer';
-      brunoRequestItem.request.auth.bearer = {
-        token: '{{token}}'
-      };
-    } else if (auth.type === 'http' && auth.scheme === 'digest') {
-      brunoRequestItem.request.auth.mode = 'digest';
-      brunoRequestItem.request.auth.digest = {
-        username: '{{username}}',
-        password: '{{password}}'
-      };
-    } else if (auth.type === 'apiKey') {
-      const apikeyConfig = {
-        key: auth.name,
-        value: '{{apiKey}}',
-        placement: auth.in === 'query' ? 'queryparams' : 'header'
-      };
-      brunoRequestItem.request.auth.mode = 'apikey';
-      brunoRequestItem.request.auth.apikey = apikeyConfig;
-
-      if (auth.in === 'header' || auth.in === 'cookie') {
-        brunoRequestItem.request.headers.push({
-          uid: uuid(),
-          name: auth.name,
-          value: '{{apiKey}}',
-          description: auth.description || '',
-          enabled: true
-        });
-      } else if (auth.in === 'query') {
-        brunoRequestItem.request.params.push({
-          uid: uuid(),
-          name: auth.name,
-          value: '{{apiKey}}',
-          description: auth.description || '',
-          enabled: true,
-          type: 'query'
-        });
+      if (siblingScheme.type === 'apiKey' && typeof siblingScheme.name === 'string') {
+        if (siblingScheme.in === 'header' || siblingScheme.in === 'cookie') {
+          if (!brunoRequestItem.request.headers.some((h) => String(h.name ?? '').toLowerCase() === siblingScheme.name.toLowerCase())) {
+            brunoRequestItem.request.headers.push({
+              uid: uuid(),
+              name: siblingScheme.name,
+              value: '{{apiKey}}',
+              description: siblingScheme.description || '',
+              enabled: true
+            });
+          }
+        } else if (siblingScheme.in === 'query') {
+          if (!brunoRequestItem.request.params.some((p) => p.name === siblingScheme.name && p.type === 'query')) {
+            brunoRequestItem.request.params.push({
+              uid: uuid(),
+              name: siblingScheme.name,
+              value: '{{apiKey}}',
+              description: siblingScheme.description || '',
+              enabled: true,
+              type: 'query'
+            });
+          }
+        }
+      } else if (siblingScheme.type === 'http' && siblingScheme.scheme === 'bearer') {
+        if (!brunoRequestItem.request.headers.some((h) => String(h.name ?? '').toLowerCase() === 'authorization')) {
+          brunoRequestItem.request.headers.push({
+            uid: uuid(),
+            name: 'Authorization',
+            value: 'Bearer {{token}}',
+            description: siblingScheme.description || '',
+            enabled: true
+          });
+        }
+      } else if (siblingScheme.type === 'http' && siblingScheme.scheme === 'basic') {
+        if (!brunoRequestItem.request.headers.some((h) => String(h.name ?? '').toLowerCase() === 'authorization')) {
+          brunoRequestItem.request.headers.push({
+            uid: uuid(),
+            name: 'Authorization',
+            value: 'Basic {{basicAuth}}',
+            description: siblingScheme.description || '',
+            enabled: true
+          });
+        }
       }
-    } else if (auth.type === 'oauth2') {
-      // Determine flow (grant type)
-      let flows = auth.flows || {};
-      let grantType = 'client_credentials';
-      if (flows.authorizationCode) {
-        grantType = 'authorization_code';
-      } else if (flows.implicit) {
-        grantType = 'implicit';
-      } else if (flows.password) {
-        grantType = 'password';
-      } else if (flows.clientCredentials) {
-        grantType = 'client_credentials';
-      }
-
-      let flowConfig = {};
-      switch (grantType) {
-        case 'authorization_code':
-          flowConfig = flows.authorizationCode || {};
-          break;
-        case 'implicit':
-          flowConfig = flows.implicit || {};
-          break;
-        case 'password':
-          flowConfig = flows.password || {};
-          break;
-        case 'client_credentials':
-        default:
-          flowConfig = flows.clientCredentials || {};
-          break;
-      }
-
-      brunoRequestItem.request.auth.mode = 'oauth2';
-      brunoRequestItem.request.auth.oauth2 = {
-        grantType: grantType,
-        authorizationUrl: flowConfig.authorizationUrl || '{{oauth_authorize_url}}',
-        accessTokenUrl: flowConfig.tokenUrl || '{{oauth_token_url}}',
-        refreshTokenUrl: flowConfig.refreshUrl || '{{oauth_refresh_url}}',
-        callbackUrl: '{{oauth_callback_url}}',
-        clientId: '{{oauth_client_id}}',
-        clientSecret: '{{oauth_client_secret}}',
-        scope: Array.isArray(flowConfig.scopes) ? flowConfig.scopes.join(' ') : Object.keys(flowConfig.scopes || {}).join(' '),
-        state: '{{oauth_state}}',
-        credentialsPlacement: 'header',
-        tokenPlacement: 'header',
-        tokenHeaderPrefix: 'Bearer',
-        autoFetchToken: false,
-        autoRefreshToken: true
-      };
     }
   }
 
@@ -962,11 +1034,12 @@ const getSecurity = (apiSpec) => {
   return {
     supported: hasSchemes
       ? defaultSchemes
-          .map((scheme) => securitySchemes[Object.keys(scheme)[0]])
+          .flatMap((scheme) => requirementSchemeNames(scheme).map((k) => securitySchemes[k]))
           .filter(Boolean)
       : [],
     schemes: securitySchemes,
-    getScheme: (schemeName) => (typeof schemeName === 'string' && Object.hasOwn(securitySchemes, schemeName) ? securitySchemes[schemeName] : undefined)
+    getScheme: (schemeName) => (typeof schemeName === 'string' && Object.hasOwn(securitySchemes, schemeName) ? securitySchemes[schemeName] : undefined),
+    defaultSecurity: Array.isArray(apiSpec.security) ? apiSpec.security : []
   };
 };
 
