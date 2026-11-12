@@ -158,6 +158,50 @@ describe('useReflectionManagement', () => {
     expect(refreshed.fromCache).toBe(false);
   });
 
+  it('refuses a non-string url instead of filing its methods under "[object Object]"', async () => {
+    const item = makeItem('grpc://server-a:9000');
+    const collection = makeCollection({ activeEnvUid: null, envs: [] });
+
+    const { result } = renderHook(() => useReflectionManagement(item, collection));
+
+    let outcome;
+    await act(async () => {
+      outcome = await result.current.loadMethodsFromReflection({ methods: [{ path: '/A/M' }], error: null });
+    });
+
+    expect(mockDispatch).not.toHaveBeenCalled();
+    expect(outcome.methods).toEqual([]);
+    expect(outcome.error).toBeInstanceOf(Error);
+    expect(JSON.parse(localStorage.getItem(CACHE_KEY) || '{}')).toEqual({});
+  });
+
+  it('reads back no methods for a non-string url', () => {
+    const item = makeItem('grpc://server-a:9000');
+    const collection = makeCollection({ activeEnvUid: null, envs: [] });
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ '[object Object]': [{ path: '/Stale/M' }] }));
+
+    const { result } = renderHook(() => useReflectionManagement(item, collection));
+
+    expect(result.current.hasCachedMethods({})).toBe(false);
+    expect(result.current.getCachedMethods({})).toEqual([]);
+  });
+
+  it('drops a cache entry left behind under a stringified non-string url', () => {
+    localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({
+        '[object Object]': [{ path: '/Stale/M' }],
+        'grpc://server-a:9000': [{ path: '/A/M' }]
+      })
+    );
+
+    jest.isolateModules(() => {
+      require('./index');
+    });
+
+    expect(JSON.parse(localStorage.getItem(CACHE_KEY))).toEqual({ 'grpc://server-a:9000': [{ path: '/A/M' }] });
+  });
+
   it('keys on the un-interpolated string when a variable is missing from scope', async () => {
     const item = makeItem('{{host}}');
     const collection = makeCollection({ activeEnvUid: null, envs: [] });
