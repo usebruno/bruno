@@ -554,9 +554,9 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
       const siblingScheme = request.global.security.getScheme(sName);
       if (!siblingScheme) continue;
 
-      if (siblingScheme.type === 'apiKey') {
+      if (siblingScheme.type === 'apiKey' && typeof siblingScheme.name === 'string') {
         if (siblingScheme.in === 'header' || siblingScheme.in === 'cookie') {
-          if (!brunoRequestItem.request.headers.some((h) => h.name.toLowerCase() === siblingScheme.name.toLowerCase())) {
+          if (!brunoRequestItem.request.headers.some((h) => String(h.name ?? '').toLowerCase() === siblingScheme.name.toLowerCase())) {
             brunoRequestItem.request.headers.push({
               uid: uuid(),
               name: siblingScheme.name,
@@ -578,7 +578,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
           }
         }
       } else if (siblingScheme.type === 'http' && siblingScheme.scheme === 'bearer') {
-        if (!brunoRequestItem.request.headers.some((h) => h.name.toLowerCase() === 'authorization')) {
+        if (!brunoRequestItem.request.headers.some((h) => String(h.name ?? '').toLowerCase() === 'authorization')) {
           brunoRequestItem.request.headers.push({
             uid: uuid(),
             name: 'Authorization',
@@ -588,7 +588,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
           });
         }
       } else if (siblingScheme.type === 'http' && siblingScheme.scheme === 'basic') {
-        if (!brunoRequestItem.request.headers.some((h) => h.name.toLowerCase() === 'authorization')) {
+        if (!brunoRequestItem.request.headers.some((h) => String(h.name ?? '').toLowerCase() === 'authorization')) {
           brunoRequestItem.request.headers.push({
             uid: uuid(),
             name: 'Authorization',
