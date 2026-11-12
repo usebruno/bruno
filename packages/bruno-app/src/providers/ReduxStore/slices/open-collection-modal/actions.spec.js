@@ -282,7 +282,7 @@ describe('open collection modal actions', () => {
 
       await store.dispatch(findCollectionsInFolders(['/work/api']));
 
-      expect(openMultipleCollections).toHaveBeenCalledWith(['/work/api'], { silent: true });
+      expect(openMultipleCollections).toHaveBeenCalledWith(['/work/api'], { silent: true, dontSendDisplayErrors: true });
       expect(toast.success).toHaveBeenCalledWith('Collection added to workspace');
       expect(modalState(store).isOpen).toBe(false);
     });
@@ -295,7 +295,7 @@ describe('open collection modal actions', () => {
 
       await store.dispatch(findCollectionsInFolders(['/work/api']));
 
-      expect(toast.error).toHaveBeenCalledWith('Failed to open 1 collection');
+      expect(toast.error).toHaveBeenCalledWith('Failed to open api. Unable to parse bruno.json');
       expect(modalState(store)).toMatchObject({ isOpen: true, chooseFolder: { status: 'idle', result: null } });
     });
 
@@ -524,13 +524,19 @@ describe('open collection modal actions', () => {
   });
 
   describe('openCollectionsFromModal', () => {
-    it('keeps the modal open and counts the failures when nothing opened', async () => {
-      openingReturns(Promise.resolve({ opened: [], failed: [{ path: '/work/api', error: 'Unable to parse bruno.json' }], invalid: [] }));
+    it('keeps the modal open and says why in one toast when nothing opened', async () => {
+      openingReturns(Promise.resolve({
+        opened: [],
+        failed: [{ path: '/work/api', error: 'Unable to parse opencollection.yml: Nested mappings are not allowed\n\n  name: a: b\n' }],
+        invalid: []
+      }));
       const { store } = createStore({ modal: openOn('choose-folder') });
 
       await store.dispatch(openCollectionsFromModal(['/work/api']));
 
-      expect(toast.error).toHaveBeenCalledWith('Failed to open 1 collection');
+      expect(openMultipleCollections).toHaveBeenCalledWith(['/work/api'], { silent: true, dontSendDisplayErrors: true });
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(toast.error).toHaveBeenCalledWith('Failed to open api. Unable to parse opencollection.yml: Nested mappings are not allowed');
       expect(modalState(store)).toMatchObject({ isOpen: true, openingId: null });
     });
 
@@ -541,8 +547,18 @@ describe('open collection modal actions', () => {
       await store.dispatch(openCollectionsFromModal(['/work/api', '/work/gone']));
 
       expect(toast.success).toHaveBeenCalledWith('Collection added to workspace');
-      expect(toast.error).toHaveBeenCalledWith('Failed to open 1 collection');
+      expect(toast.error).toHaveBeenCalledWith('Failed to open gone. The folder doesn’t exist anymore.');
       expect(modalState(store).isOpen).toBe(false);
+    });
+
+    it('counts the failures in one toast when several collections fail to open', async () => {
+      openingReturns(Promise.resolve({ opened: [], failed: [{ path: '/work/api', error: 'bad json' }], invalid: ['/work/gone'] }));
+      const { store } = createStore({ modal: openOn('choose-folder') });
+
+      await store.dispatch(openCollectionsFromModal(['/work/api', '/work/gone']));
+
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(toast.error).toHaveBeenCalledWith('Failed to open 2 collections');
     });
 
     it('opens the collections once even when asked twice', () => {

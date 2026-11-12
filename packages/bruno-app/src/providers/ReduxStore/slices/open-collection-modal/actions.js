@@ -58,6 +58,14 @@ export const switchToCollection = (collectionPath) => (dispatch, getState) => {
   dispatch(closeOpenCollectionModal());
 };
 
+const describeOpenFailures = (failures) => {
+  if (failures.length > 1) {
+    return `Failed to open ${countOf(failures.length, 'collection')}`;
+  }
+  const [{ path: collectionPath, error }] = failures;
+  return `Failed to open ${getFolderName(collectionPath)}. ${error.split('\n')[0]}`;
+};
+
 export const openCollectionsFromModal = (collectionPaths) => async (dispatch, getState) => {
   if (getState().openCollectionModal.openingId) {
     return;
@@ -67,19 +75,22 @@ export const openCollectionsFromModal = (collectionPaths) => async (dispatch, ge
 
   let result;
   try {
-    result = await dispatch(openMultipleCollections(collectionPaths, { silent: true }));
+    result = await dispatch(openMultipleCollections(collectionPaths, { silent: true, dontSendDisplayErrors: true }));
   } catch (error) {
     dispatch(collectionsOpeningEnded(openingId));
     toast.error('An error occurred while opening the collections');
     return;
   }
 
-  const failedCount = result.failed.length + result.invalid.length;
+  const failures = [
+    ...result.failed,
+    ...result.invalid.map((collectionPath) => ({ path: collectionPath, error: 'The folder doesn’t exist anymore.' }))
+  ];
   if (result.opened.length > 0) {
     toast.success(result.opened.length === 1 ? 'Collection added to workspace' : 'Collections added to workspace');
   }
-  if (failedCount > 0) {
-    toast.error(`Failed to open ${countOf(failedCount, 'collection')}`);
+  if (failures.length > 0) {
+    toast.error(describeOpenFailures(failures));
   }
 
   dispatch(collectionsOpeningEnded(openingId));
