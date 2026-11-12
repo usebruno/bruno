@@ -151,18 +151,50 @@ const openCollection = async (page: Page, collectionName: string) => {
  * fixture collection copied to a tmp dir (e.g. via the `collectionFixturePath` fixture).
  * @param page - The page object
  * @param electronApp - The Electron application object
- * @param collectionPath - Absolute path to the collection folder to open
+ * @param collectionPath - Absolute path (or paths) to the collection folder(s) to open
  * @returns void
  */
-const openCollectionFromDialog = async (page: Page, electronApp: ElectronApplication, collectionPath: string) => {
-  await test.step(`Open collection from dialog at "${collectionPath}"`, async () => {
-    await electronApp.evaluate(({ dialog }, dir) => {
-      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
-    }, collectionPath);
+const openCollectionFromDialog = async (
+  page: Page,
+  electronApp: ElectronApplication,
+  collectionPath: string | string[]
+) => {
+  const dirs = Array.isArray(collectionPath) ? collectionPath : [collectionPath];
+  await test.step(`Open collection from dialog at "${dirs.join('", "')}"`, async () => {
+    await electronApp.evaluate(({ dialog }, filePaths) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths });
+    }, dirs);
 
     const locators = buildCommonLocators(page);
     await locators.plusMenu.button().click();
     await locators.plusMenu.openCollection().click();
+  });
+};
+
+/**
+ * Snapshot the main process's real `dialog.showOpenDialog` so a spec that stubs the folder
+ * picker can put it back. `electronApp` is worker-scoped, so an un-restored stub leaks into
+ * every later spec in the same worker — pair this with `restoreOpenDialog` in `afterAll`.
+ * @param electronApp - The Electron application object
+ * @returns void
+ */
+const stashOpenDialog = async (electronApp: ElectronApplication) => {
+  await electronApp.evaluate(({ dialog }) => {
+    (global as any).__origShowOpenDialog = dialog.showOpenDialog;
+  });
+};
+
+/**
+ * Restore the `dialog.showOpenDialog` snapshot taken by `stashOpenDialog`.
+ * @param electronApp - The Electron application object
+ * @returns void
+ */
+const restoreOpenDialog = async (electronApp: ElectronApplication) => {
+  await electronApp.evaluate(({ dialog }) => {
+    const original = (global as any).__origShowOpenDialog;
+    if (original) {
+      dialog.showOpenDialog = original;
+    }
   });
 };
 
@@ -808,7 +840,7 @@ const removeCollection = async (page: Page, collectionName: string) => {
       // Drafts modal - click "Discard All and Remove"
       await page.getByRole('button', { name: 'Discard All and Remove' }).click();
     } else {
-      // Regular modal - click Remove button
+      await expect(removeModal.getByTestId('remove-collection-name')).toHaveText(collectionName);
       await locators.modal.button('Remove').click();
     }
 
@@ -2074,6 +2106,42 @@ const mockBrowseFiles = async (electronApp: ElectronApplication, filePaths: stri
       };
     };
   }, filePaths);
+};
+
+/**
+ * Set the request body to File / Binary and pick `filePath` through the native picker.
+ * @param page - The page object
+ * @param electronApp - The Electron application object
+ * @param filePath - Absolute path to the file to attach
+ * @param contentType - Replaces the content-type Bruno auto-fills from the extension
+ * @returns void
+ */
+const setFileBody = async (
+  page: Page,
+  electronApp: ElectronApplication,
+  filePath: string,
+  contentType?: string
+) => {
+  await test.step(`Set File / Binary body to "${path.basename(filePath)}"`, async () => {
+    await selectRequestBodyMode(page, 'File / Binary');
+
+    const { request, filePicker } = buildCommonLocators(page);
+    await request.addFileButton().click();
+
+    const row = request.fileBodyRow();
+    await mockBrowseFiles(electronApp, [filePath]);
+    await filePicker.button(row).click();
+    await expect(filePicker.selected(row)).toBeVisible();
+
+    if (contentType) {
+      // Typing into the prefilled cell would splice at the caret, so select all and replace.
+      await request.fileBodyContentTypeEditor().click();
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+a' : 'Control+a');
+      await page.keyboard.press('Backspace');
+      await page.keyboard.type(contentType);
+      await page.keyboard.press('Tab');
+    }
+  });
 };
 
 const addMultipartFileToLastRow = async (page: Page, electronApp: ElectronApplication, filePath: string) => {
@@ -4067,6 +4135,8 @@ export {
   closeAllCollections,
   openCollection,
   openCollectionFromDialog,
+  stashOpenDialog,
+  restoreOpenDialog,
   createCollection,
   createRequest,
   createUntitledRequest,
@@ -4242,7 +4312,8 @@ export {
   saveTransientRequestAs,
   openImportReview,
   clickOutsideModal,
-  setWindowContentSize
+  setWindowContentSize,
+  setFileBody
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput, LinkAwareRequestType, ScriptSubTab };

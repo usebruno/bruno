@@ -2,7 +2,7 @@ const fs = require('fs');
 const { generateHtmlReport } = require('@usebruno/common/runner');
 const { CLI_VERSION } = require('../constants');
 
-const makeHtmlOutput = async (results, outputPath, runCompletionTime, environment = null) => {
+const makeHtmlOutput = async (results, outputPath, { runStartTime, runCompletionTime, environment = null } = {}) => {
   let runnerResults = results;
   if (!results) {
     runnerResults = [];
@@ -19,8 +19,9 @@ const makeHtmlOutput = async (results, outputPath, runCompletionTime, environmen
 
   const htmlString = generateHtmlReport({
     runnerResults: runnerResults,
-    version: `usebruno v${CLI_VERSION}`,
+    version: `v${CLI_VERSION}`,
     environment: environment,
+    runStartTime: runStartTime,
     runCompletionTime: runCompletionTime
   });
   fs.writeFileSync(outputPath, htmlString);

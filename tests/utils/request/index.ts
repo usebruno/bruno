@@ -12,6 +12,9 @@ import { AUTH_MODE_LABELS } from '../constants';
 import { buildCommonLocators } from '../page/locators';
 import { buildQueryParamsLocators } from './params/query';
 
+const buildFileBodyRow = (page: Page, index: number) =>
+  page.getByTestId('file-body-table').locator('tbody tr').nth(index);
+
 export const buildRequestLocators = (page: Page) => ({
   urlInput: () => page.getByTestId('request-url').locator('.CodeMirror'),
   urlLine: () => page.getByTestId('request-url').locator('.CodeMirror-line'),
@@ -33,6 +36,10 @@ export const buildRequestLocators = (page: Page) => ({
   // File / Binary body table + the rendered file name(s).
   fileBodyTable: () => page.getByTestId('file-body-table'),
   fileBodyName: () => page.getByTestId('file-body-table').locator('.file-name'),
+  addFileButton: () => page.getByTestId('file-body-table').getByRole('button', { name: /Add File/i }),
+  fileBodyRow: (index: number = 0) => buildFileBodyRow(page, index),
+  fileBodyContentTypeEditor: (index: number = 0) =>
+    buildFileBodyRow(page, index).getByTestId('column-content-type').locator('.CodeMirror'),
   bodyVariableToken: (name: string, state?: 'valid' | 'invalid') => {
     const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
     return page.getByTestId('request-body-editor').locator('.CodeMirror').locator(selector).filter({ hasText: name }).first();
