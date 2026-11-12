@@ -7,10 +7,19 @@ import {
   buildCommonLocators,
   closeAllCollections,
   createCollection,
+  createRequest,
   exportCollectionAsSingleYaml,
   exportCollectionAsZip,
   exportCollectionToPostman
 } from '../../utils/page';
+import {
+  closeShareCollection,
+  openExportTabIfPresent,
+  openShareCollection,
+  proceedToExportApiSpec,
+  saveOpenApiSpecification,
+  selectOpenApiFormat
+} from '../../utils/page/collection/share-collection';
 
 const collectionName = 'export-collection';
 const postmanCollectionName = 'export-postman';
@@ -107,5 +116,75 @@ test.describe('Export Bruno collection', () => {
         info: { name: singleYamlCollectionName }
       });
     });
+  });
+
+  test('TC-3050: Verify that the user is able to Export a OpenAPI Specification collection', { tag: '@sanity' }, async ({
+    page,
+    electronApp,
+    createTmpDir
+  }) => {
+    const collectionName = 'new-collection';
+    const collectionLocation = await createTmpDir(collectionName);
+    const exportLocation = await createTmpDir(`${collectionName}-output`);
+    const { sidebar, shareCollection } = buildCommonLocators(page);
+
+    await test.step('Create a collection with an HTTP request and a gRPC request', async () => {
+      await createCollection(page, collectionName, collectionLocation, 'yml');
+      await expect(sidebar.collection(collectionName)).toBeVisible();
+      await createRequest(page, 'ping', collectionName, {
+        url: 'http://localhost:8081/ping',
+        method: 'GET'
+      });
+      await createRequest(page, 'grpc-request', collectionName, {
+        url: 'grpc://localhost:50051',
+        requestType: 'grpc'
+      });
+    });
+
+    await openShareCollection(page, collectionName);
+    await openExportTabIfPresent(page);
+
+    const openApiCard = shareCollection.openApiCard();
+    const isEnterprise = await openApiCard.isVisible();
+
+    if (isEnterprise) {
+      const filePath = path.join(exportLocation, `${collectionName}.yaml`);
+      await selectOpenApiFormat(page);
+
+      await test.step('gRPC requests are skipped with a note', async () => {
+        await expect(shareCollection.nonExportableNote()).toBeVisible();
+        await expect(shareCollection.nonExportableNote()).toContainText(
+          'gRPC requests in this collection will not be exported'
+        );
+      });
+
+      await proceedToExportApiSpec(page);
+
+      await test.step('Export API Spec uses the collection name as the default file name', async () => {
+        await expect(shareCollection.nameInput()).toHaveValue(collectionName);
+      });
+
+      await saveOpenApiSpecification(page, electronApp, exportLocation);
+
+      await test.step('Verify that the exported OpenAPI spec contains the HTTP request only', async () => {
+        await expect(shareCollection.exportedToast().first()).toBeVisible();
+        await expect.poll(() => fs.existsSync(filePath)).toBe(true);
+        const spec = YAML.parse(fs.readFileSync(filePath, 'utf8'));
+        expect(spec).toMatchObject({
+          openapi: expect.stringMatching(/^3\./),
+          info: { title: collectionName }
+        });
+        expect(spec.paths).toHaveProperty('/ping');
+        expect(JSON.stringify(spec)).not.toMatch(/grpc/i);
+      });
+    } else {
+      await test.step('OSS Share Collection does not offer OpenAPI Specification', async () => {
+        await expect(openApiCard).toBeHidden();
+        await expect(shareCollection.zipCard()).toBeVisible();
+        await expect(shareCollection.yamlCard()).toBeVisible();
+        await expect(shareCollection.postmanCard()).toBeVisible();
+      });
+      await closeShareCollection(page);
+    }
   });
 });
