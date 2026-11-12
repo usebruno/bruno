@@ -228,6 +228,67 @@ describe('interpolate-vars: interpolateVars', () => {
         const result = interpolateVars(request, null, null, null);
         expect(result.url).toBe('https://httpbin.org/anything/:test-segment');
       });
+
+      it('expands path variables referenced in the JSON request body', async () => {
+        const request = {
+          method: 'POST',
+          url: 'http://example.com/profiles/:profile_id/export',
+          headers: { 'content-type': 'application/json' },
+          pathParams: [
+            {
+              type: 'path',
+              name: 'profile_id',
+              value: 'abc123'
+            }
+          ],
+          data: '{"path": "export_{{profile_id}}.zip"}'
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/profiles/abc123/export');
+        expect(result.data).toBe('{"path": "export_abc123.zip"}');
+      });
+
+      it('does not expand disabled path variables in the request body', async () => {
+        const request = {
+          method: 'POST',
+          url: 'http://example.com/profiles/:profile_id/export',
+          headers: { 'content-type': 'application/json' },
+          pathParams: [
+            {
+              type: 'path',
+              name: 'profile_id',
+              value: 'abc123',
+              enabled: false
+            }
+          ],
+          data: '{"path": "export_{{profile_id}}.zip"}'
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/profiles/:profile_id/export');
+        expect(result.data).toBe('{"path": "export_{{profile_id}}.zip"}');
+      });
+
+      it('prefers the path variable over a same-named env variable, like the URL does', async () => {
+        const request = {
+          method: 'POST',
+          url: 'http://example.com/profiles/:profile_id/export',
+          headers: { 'content-type': 'application/json' },
+          pathParams: [
+            {
+              type: 'path',
+              name: 'profile_id',
+              value: 'abc123'
+            }
+          ],
+          data: '{"path": "export_{{profile_id}}.zip"}'
+        };
+
+        const result = interpolateVars(request, { profile_id: 'from-env' }, null, null);
+        expect(result.url).toBe('http://example.com/profiles/abc123/export');
+        expect(result.data).toBe('{"path": "export_abc123.zip"}');
+      });
     });
 
     describe('With process environment variables', () => {
