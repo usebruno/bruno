@@ -28,7 +28,7 @@ import { sanitizeName } from 'utils/common/regex';
 import { formatIpcError } from 'utils/common/error';
 import { toggleCollectionItem, expandItem, collapseItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { uuid } from 'utils/common';
-import { copyRequest, setFocusedSidebarPath, insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
+import { copyRequest, insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import NewApp from 'components/Sidebar/NewApp';
@@ -68,6 +68,7 @@ import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import useKeybinding from 'hooks/useKeybinding';
+import useSidebarRowFocus from 'hooks/useSidebarRowFocus';
 import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
@@ -128,10 +129,10 @@ const CollectionItemRow = ({
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
   const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
   const examplesExpanded = !isCollectionItemCollapsed(item);
-  const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
+  const isFolder = isItemAFolder(item);
+  const { isKeyboardFocused, handleFocus, handleBlur } = useSidebarRowFocus(isFolder ? item.pathname : '');
   const hasSearchText = searchText && searchText?.trim()?.length;
   const itemIsCollapsed = hasSearchText ? false : isCollectionItemCollapsed(item);
-  const isFolder = isItemAFolder(item);
   const invalidItemCount = useMemo(() => (isFolder ? countInvalidItems(item.items) : 0), [isFolder, item.items]);
 
   const isCloneable = isFolder || isItemARequest(item) || item.type === 'app';
@@ -687,17 +688,6 @@ const CollectionItemRow = ({
       });
   };
 
-  const handleFocus = () => {
-    setIsKeyboardFocused(true);
-    // For folders, set the folder path; for requests, set empty string (no terminal)
-    dispatch(setFocusedSidebarPath(isFolder ? item.pathname : ''));
-  };
-
-  const handleBlur = () => {
-    setIsKeyboardFocused(false);
-    dispatch(setFocusedSidebarPath(null));
-  };
-
   if (searchText && searchText.length) {
     if (isItemARequest(item)) {
       if (!doesRequestMatchSearchText(item, searchText)) {
@@ -757,6 +747,7 @@ const CollectionItemRow = ({
         onBlur={handleBlur}
         onMouseDown={isDragDisabled ? startBlockedDragTracking : undefined}
         onContextMenu={handleContextMenu}
+        data-sidebar-row-focus-target
         data-testid="sidebar-collection-item-row"
         data-selected={isSelected ? 'true' : undefined}
       >
@@ -779,6 +770,7 @@ const CollectionItemRow = ({
             style={{ paddingLeft: 8 }}
             onClick={handleClick}
             onDoubleClick={handleDoubleClick}
+            data-sidebar-row-activate
           >
 
             {isFolder ? (
