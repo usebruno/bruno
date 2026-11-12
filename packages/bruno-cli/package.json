@@ -11,7 +11,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/usebruno/bruno.git"
+    "url": "git+https://github.com/usebruno/bruno.git",
+    "directory": "packages/bruno-cli"
   },
   "keywords": [
     "API",
