@@ -17,11 +17,11 @@ import StyledWrapper from './StyledWrapper';
 import StatusBar from './StatusBar';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
-import stripJsonComments from 'strip-json-comments';
 import { getAllVariables, getVariableNamesWithScope } from 'utils/collections';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
+import { getJsonLintAnnotations } from 'utils/codemirror/json-lint';
 import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
 import CodeMirrorSearch from 'components/CodeMirrorSearch/index';
 import { buildSearchKeyBindings } from 'components/CodeMirrorSearch/searchKeyBindings';
@@ -262,29 +262,17 @@ class CodeEditor extends React.Component {
       }
     })));
     CodeMirror.registerHelper('lint', 'json', function (text) {
-      const found = [];
       if (!window.jsonlint) {
         if (window.console) {
           window.console.error('Error: window.jsonlint not defined, CodeMirror JSON linting cannot run.');
         }
-        return found;
+        return [];
       }
-      const jsonlint = window.jsonlint.parser || window.jsonlint;
-      try {
-        jsonlint.parse(stripJsonComments(text.replace(/(?<!"[^":{]*){{[^}]*}}(?![^"},]*")/g, '1')));
-      } catch (error) {
-        const { message, location } = error;
-        const line = location?.start?.line;
-        const column = location?.start?.column;
-        if (line && column) {
-          found.push({
-            from: CodeMirror.Pos(line - 1, column),
-            to: CodeMirror.Pos(line - 1, column),
-            message
-          });
-        }
-      }
-      return found;
+      return getJsonLintAnnotations(text).map((annotation) => ({
+        ...annotation,
+        from: CodeMirror.Pos(annotation.from.line, annotation.from.ch),
+        to: CodeMirror.Pos(annotation.to.line, annotation.to.ch)
+      }));
     });
 
     if (editor) {
