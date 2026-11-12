@@ -93,7 +93,11 @@ class CollectionWalker {
     }
 
     if (hasCollectionConfig(entries)) {
-      this.collections.push({ path: folderPath, key });
+      try {
+        this.collections.push({ path: await this.getOpenablePath(folderPath, realPath), key });
+      } catch (error) {
+        this.unreadableFolderCount += 1;
+      }
       return [];
     }
 
@@ -103,6 +107,11 @@ class CollectionWalker {
     return candidates
       .filter((_entry, index) => isFolder[index])
       .map((entry) => ({ folderPath: path.join(folderPath, entry.name), realPath: path.join(realPath, entry.name) }));
+  }
+
+  async getOpenablePath(folderPath, realPath) {
+    const stats = await fs.lstat(folderPath);
+    return stats.isSymbolicLink() ? realPath : folderPath;
   }
 }
 

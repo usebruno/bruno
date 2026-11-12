@@ -72,6 +72,7 @@ const listResult = {
 const folderResult = (folders, collections) => ({
   folders,
   collections,
+  brokenCollectionPaths: [],
   unreadableFolderCount: 0,
   stoppedEarly: false
 });
@@ -284,6 +285,28 @@ describe('open collection modal actions', () => {
       expect(openMultipleCollections).toHaveBeenCalledWith(['/work/api'], { silent: true });
       expect(toast.success).toHaveBeenCalledWith('Collection added to workspace');
       expect(modalState(store).isOpen).toBe(false);
+    });
+
+    it('does not leave the last search’s note on screen when the next pick opens straight away and fails', async () => {
+      searchReturns(Promise.resolve(pickedCollection));
+      openingReturns(Promise.resolve({ opened: [], failed: [{ path: '/work/api', error: 'Unable to parse bruno.json' }], invalid: [] }));
+      const lastResult = { id: 'search-0', type: 'message', note: { tone: 'info', text: 'docs isn’t a Bruno collection.' } };
+      const { store } = createStore({ modal: openOn('choose-folder', { ...closedModal.chooseFolder, result: lastResult }) });
+
+      await store.dispatch(findCollectionsInFolders(['/work/api']));
+
+      expect(toast.error).toHaveBeenCalledWith('Failed to open 1 collection');
+      expect(modalState(store)).toMatchObject({ isOpen: true, chooseFolder: { status: 'idle', result: null } });
+    });
+
+    it('brings back the last list when the next search is cancelled', () => {
+      searchReturns(new Promise(() => {}));
+      const { store } = createStore({ modal: openOn('choose-folder', { ...closedModal.chooseFolder, result: listResult }) });
+
+      store.dispatch(findCollectionsInFolders(['/work/docs']));
+      store.dispatch(cancelCollectionSearch());
+
+      expect(modalState(store).chooseFolder).toMatchObject({ status: 'idle', result: listResult });
     });
 
     it('says which picked folders were skipped when it opens the rest', async () => {

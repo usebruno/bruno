@@ -9,7 +9,8 @@ const FOLDER_PROBLEMS = {
   'not-found': (name) => `${name} doesn’t exist anymore.`,
   'no-access': (name) => `Bruno can’t read ${name}. Check its permissions.`,
   'not-a-folder': (name) => `${name} isn’t a folder.`,
-  'unreadable': (name) => `Bruno couldn’t read ${name}.`
+  'unreadable': (name) => `Bruno couldn’t read ${name}.`,
+  'broken-collection': (name) => `Bruno can’t open ${name} because its config can’t be read. Check its bruno.json or opencollection.yml.`
 };
 
 const IMPORTABLE_FILE_LABELS = {
@@ -44,18 +45,25 @@ const describeSkippedFolders = (folders) => {
   };
 };
 
+const describeBrokenCollections = (count) => {
+  const isOne = count === 1;
+  return count > 0
+    && `${countOf(count, 'collection')} ${isOne ? 'was' : 'were'} skipped because ${isOne ? 'its' : 'their'} config can’t be read.`;
+};
+
 const describeDroppedFiles = (count) => {
   const isOne = count === 1;
   return `${countOf(count, 'dropped file')} ${isOne ? 'wasn’t' : 'weren’t'} opened. Use Import file or URL to import ${isOne ? 'it' : 'them'}.`;
 };
 
 const decideOutcome = (searchResult, openPathKeys) => {
-  const { folders, collections, unreadableFolderCount, stoppedEarly } = searchResult;
+  const { folders, collections, brokenCollectionPaths, unreadableFolderCount, stoppedEarly } = searchResult;
   const isOpen = (collectionPath) => openPathKeys.has(toPathKey(collectionPath));
   const namesByPath = new Map(collections.map((collection) => [collection.path, collection.name]));
   const toRows = (paths) => paths.map((collectionPath) => ({ path: collectionPath, name: namesByPath.get(collectionPath) }));
   const stoppedEarlyText = stoppedEarly && STOPPED_EARLY_TEXT;
-  const searchTone = stoppedEarly ? 'warning' : 'info';
+  const brokenText = describeBrokenCollections(brokenCollectionPaths.length);
+  const searchTone = stoppedEarly || brokenText ? 'warning' : 'info';
   const describeMissing = (place) => sentences(
     unreadableFolderCount > 0 && `Bruno couldn’t read ${countOf(unreadableFolderCount, 'folder')} inside ${place}.`,
     stoppedEarlyText
@@ -77,6 +85,9 @@ const decideOutcome = (searchResult, openPathKeys) => {
 
     if (folder.collectionPaths.length === 0) {
       const missingText = describeMissing('it');
+      if (brokenText) {
+        return showMessage('warning', sentences(`${name} has no collections Bruno can open.`, brokenText, missingText));
+      }
       const tone = missingText ? 'warning' : 'info';
       if (folder.importableFiles.length > 0) {
         const [file] = folder.importableFiles;
@@ -95,6 +106,7 @@ const decideOutcome = (searchResult, openPathKeys) => {
       tone: searchTone,
       text: sentences(
         `${name} isn’t a collection itself, but it has ${countOf(folder.collectionPaths.length, 'collection')} inside. Pick the ones to open.`,
+        brokenText,
         stoppedEarlyText
       )
     });
@@ -109,9 +121,12 @@ const decideOutcome = (searchResult, openPathKeys) => {
 
   if (allPaths.length === 0) {
     const missingText = describeMissing('them');
+    const nothingText = brokenText
+      ? sentences('None of those folders has a collection Bruno can open.', brokenText)
+      : sentences('None of those folders is a Bruno collection.', COLLECTION_FOLDER_HINT);
     return showMessage(
-      unreadableText || missingText ? 'warning' : 'info',
-      sentences('None of those folders is a Bruno collection.', COLLECTION_FOLDER_HINT, unreadableText, missingText)
+      brokenText || unreadableText || missingText ? 'warning' : 'info',
+      sentences(nothingText, unreadableText, missingText)
     );
   }
 
@@ -119,7 +134,7 @@ const decideOutcome = (searchResult, openPathKeys) => {
   const foldersWithCollections = folders.filter((folder) => folder.status === 'folder' && folder.collectionPaths.length > 0);
 
   if (foldersWithCollections.length === 0) {
-    const skippedText = sentences(notCollectionsText, unreadableText, stoppedEarlyText);
+    const skippedText = sentences(notCollectionsText, brokenText, unreadableText, stoppedEarlyText);
     const pathsToOpen = directPaths.filter((collectionPath) => !isOpen(collectionPath));
     if (pathsToOpen.length > 0) {
       return { type: 'open', paths: pathsToOpen, skippedText };
@@ -135,6 +150,7 @@ const decideOutcome = (searchResult, openPathKeys) => {
     text: sentences(
       `Found ${countOf(allPaths.length, 'collection')} in the folders you picked. Pick the ones to open.`,
       notCollectionsText,
+      brokenText,
       unreadableText,
       stoppedEarlyText
     )

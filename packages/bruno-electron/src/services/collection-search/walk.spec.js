@@ -152,15 +152,14 @@ describe('CollectionWalker', () => {
     expect(walker.unreadableFolderCount).toBe(0);
   });
 
-  it('reports a picked folder that is itself a link by the path that was picked', async () => {
+  it('reports a picked folder that is itself a link by its real path', async () => {
     const target = makeCollection('bruno.json', 'real-collection');
     const link = path.join(tempDir, 'collection-link');
     fs.symlinkSync(target, link, folderLinkType);
 
     const walker = await walk(link);
 
-    expect(foundPaths(walker)).toEqual([link]);
-    expect(walker.collections[0].key).toBe(toPathKey(target));
+    expect(foundPaths(walker)).toEqual([target]);
   });
 
   it('skips the mount points it is told to skip', async () => {
@@ -259,6 +258,26 @@ describe('CollectionWalker', () => {
 
     expect(walker.stoppedEarly).toBe(true);
     expect(foundPaths(walker)).toEqual([collection]);
+  });
+
+  it('counts a collection folder that disappears before it can be checked', async () => {
+    makeCollection('bruno.json', 'vanishing');
+    const kept = makeCollection('bruno.json', 'kept');
+    const fsPromises = require('node:fs/promises');
+    const lstat = fsPromises.lstat;
+    const spy = jest.spyOn(fsPromises, 'lstat').mockImplementation((target, ...args) =>
+      (target.endsWith('vanishing')
+        ? Promise.reject(Object.assign(new Error('gone'), { code: 'ENOENT' }))
+        : lstat(target, ...args)));
+
+    try {
+      const walker = await walk(tempDir);
+
+      expect(foundPaths(walker)).toEqual([kept]);
+      expect(walker.unreadableFolderCount).toBe(1);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('falls back to Node’s own real path lookup when the native one fails', async () => {

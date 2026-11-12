@@ -36,7 +36,7 @@ describe('collection search IPC', () => {
   });
 
   it('searches the picked folders and leaves out the transient folder', async () => {
-    const result = { folders: [], collections: [], invalidCollections: [], unreadableFolderCount: 0, stoppedEarly: false };
+    const result = { folders: [], collections: [], brokenCollectionPaths: [], unreadableFolderCount: 0, stoppedEarly: false };
     findCollectionsInFolders.mockResolvedValue(result);
 
     await expect(findInFolders({ requestId: 'search-1', paths: [pickedFolder] })).resolves.toBe(result);

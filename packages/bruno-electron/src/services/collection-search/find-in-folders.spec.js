@@ -118,7 +118,7 @@ describe('findCollectionsInFolders', () => {
     expect(result.collections).toEqual([{ path: local, name: 'Local' }]);
   });
 
-  it('lists collections whose config cannot be read, named after their folder', async () => {
+  it('skips collections whose config cannot be opened and reports them', async () => {
     const workspace = makeFolder('workspace');
     const broken = makeBrokenCollection('workspace', 'broken');
     const valid = makeBruCollection('Valid', 'workspace', 'valid');
@@ -126,30 +126,32 @@ describe('findCollectionsInFolders', () => {
     const result = await findCollectionsInFolders([workspace, broken]);
 
     expect(result.folders).toEqual([
-      folderSummary(workspace, 'folder', expect.arrayContaining([valid, broken])),
-      folderSummary(broken, 'collection', [broken])
+      folderSummary(workspace, 'folder', [valid]),
+      folderSummary(broken, 'broken-collection')
     ]);
-    expect(result.collections).toEqual(expect.arrayContaining([{ path: valid, name: 'Valid' }, { path: broken, name: 'broken' }]));
-    expect(result.collections).toHaveLength(2);
+    expect(result.collections).toEqual([{ path: valid, name: 'Valid' }]);
+    expect(result.brokenCollectionPaths).toEqual([broken]);
   });
 
-  it('reads the name from a config that is not valid', async () => {
-    const folderPath = makeFolder('half-written');
-    fs.writeFileSync(path.join(folderPath, 'bruno.json'), '{ "name": "Half Written", "version": ');
-
-    const result = await findCollectionsInFolders([folderPath]);
-
-    expect(result.collections).toEqual([{ path: folderPath, name: 'Half Written' }]);
-  });
-
-  it('names a collection after its folder when its config has no name', async () => {
+  it('reports a picked collection whose config has no name as one that cannot be opened', async () => {
     const folderPath = makeFolder('nameless');
-    fs.writeFileSync(path.join(folderPath, 'bruno.json'), JSON.stringify({ version: '1' }));
+    fs.writeFileSync(path.join(folderPath, 'bruno.json'), JSON.stringify({ version: '1', type: 'collection' }));
 
     const result = await findCollectionsInFolders([folderPath]);
 
-    expect(result.folders).toEqual([folderSummary(folderPath, 'collection', [folderPath])]);
-    expect(result.collections).toEqual([{ path: folderPath, name: 'nameless' }]);
+    expect(result.folders).toEqual([folderSummary(folderPath, 'broken-collection')]);
+    expect(result.collections).toEqual([]);
+    expect(result.brokenCollectionPaths).toEqual([folderPath]);
+  });
+
+  it('does not look for importable files in a folder whose only collection cannot be opened', async () => {
+    const folderPath = makeFolder('exports');
+    makeBrokenCollection('exports', 'broken');
+    fs.writeFileSync(path.join(folderPath, 'Orders.postman_collection.json'), '{}');
+
+    const result = await findCollectionsInFolders([folderPath]);
+
+    expect(result.folders).toEqual([folderSummary(folderPath, 'folder')]);
   });
 
   it('reports the importable files of a folder without collections', async () => {
@@ -233,17 +235,6 @@ describe('findCollectionsInFolders', () => {
       ['folder', [collection]],
       ['folder', [collection]]
     ]);
-  });
-
-  it('lists a picked link to a collection by the path that was picked', async () => {
-    const real = makeBruCollection('Linked', 'real');
-    const link = path.join(tempDir, 'link');
-    fs.symlinkSync(real, link, folderLinkType);
-
-    const result = await findCollectionsInFolders([link]);
-
-    expect(result.collections).toEqual([{ path: link, name: 'Linked' }]);
-    expect(result.folders).toEqual([folderSummary(link, 'collection', [link])]);
   });
 
   it('does not list a picked collection again when another pick is inside it', async () => {

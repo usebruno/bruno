@@ -122,6 +122,7 @@ export const findCollectionsInFolders = (folderPaths, droppedFileCount = 0) => a
   }
 
   dispatch(folderPickEnded());
+  dispatch(folderResultCleared());
   if (outcome.skippedText) {
     toast(outcome.skippedText);
   }

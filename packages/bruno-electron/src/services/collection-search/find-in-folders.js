@@ -2,7 +2,7 @@ const fs = require('node:fs/promises');
 const { CollectionWalker, getRealPath, toPathKey, isSameOrInside } = require('./walk');
 const { getSkippedMountPoints } = require('./mount-points');
 const { findImportableFiles } = require('./importable-files');
-const { readCollectionName } = require('./collection-name');
+const { readCollectionConfig } = require('./collection-name');
 
 const MAX_FOLDERS = 50000;
 const PARALLEL_FILE_READS = 16;
@@ -36,6 +36,13 @@ const mapInBatches = async (items, mapItem, signal) => {
   return results;
 };
 
+const getFolderStatus = (ownCollection) => {
+  if (!ownCollection) {
+    return 'folder';
+  }
+  return ownCollection.isBroken ? 'broken-collection' : 'collection';
+};
+
 const summarizeFolder = async (folder, collections, isOnlyFolder) => {
   if (folder.status !== 'readable') {
     return { path: folder.path, status: folder.status, collectionPaths: [], importableFiles: [] };
@@ -46,8 +53,8 @@ const summarizeFolder = async (folder, collections, isOnlyFolder) => {
     : collections.filter((collection) => isSameOrInside(folder.key, collection.key));
   return {
     path: folder.path,
-    status: ownCollections.length > 0 ? 'collection' : 'folder',
-    collectionPaths: found.map((collection) => collection.path),
+    status: getFolderStatus(ownCollections[0]),
+    collectionPaths: found.filter((collection) => !collection.isBroken).map((collection) => collection.path),
     importableFiles: isOnlyFolder && found.length === 0 ? await findImportableFiles(folder.path) : []
   };
 };
@@ -70,13 +77,14 @@ const findCollectionsInFolders = async (folderPaths, { signal, maxFolders = MAX_
 
   const collections = await mapInBatches(
     walker.collections,
-    async (collection) => ({ ...collection, name: await readCollectionName(collection.path) }),
+    async (collection) => ({ ...collection, ...(await readCollectionConfig(collection.path)) }),
     signal
   );
 
   return {
     folders: await mapInBatches(folders, (folder) => summarizeFolder(folder, collections, folders.length === 1), signal),
-    collections: collections.map(({ path, name }) => ({ path, name })),
+    collections: collections.filter((collection) => !collection.isBroken).map(({ path, name }) => ({ path, name })),
+    brokenCollectionPaths: collections.filter((collection) => collection.isBroken).map((collection) => collection.path),
     unreadableFolderCount: walker.unreadableFolderCount,
     stoppedEarly: walker.stoppedEarly
   };
