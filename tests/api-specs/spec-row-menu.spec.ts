@@ -363,10 +363,10 @@ test.describe('API spec row context menu', () => {
         expect(readWorkspaceSpecPaths(workspacePath)).toContain('specs/comprehensive.yaml');
       });
 
-      await test.step('Remove from Workspace', async () => {
+      await test.step('Remove', async () => {
         await chooseApiSpecRowAction(page, COMPREHENSIVE_TITLE, 'remove');
         await expect(menu.removeModal()).toBeVisible();
-        await expect(menu.removeModal()).toContainText('Remove from Workspace');
+        await expect(menu.removeModal()).toContainText('Remove API Spec');
         await expect(menu.removeModal()).toContainText(specPath);
         await menu.removeSubmit().click();
       });
