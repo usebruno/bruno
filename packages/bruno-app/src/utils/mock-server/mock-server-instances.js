@@ -11,7 +11,6 @@ import {
   stopMockServer,
   upsertMockServerInstance
 } from 'providers/ReduxStore/slices/mock-server/index';
-
 export const DEFAULT_MOCK_SERVER_PORT = 4000;
 export const MOCK_SERVER_PORT_MIN = 1;
 export const MOCK_SERVER_PORT_MAX = 65535;
@@ -365,10 +364,26 @@ export const resolveMockServerStartPayload = (instance, { collection, apiSpecs, 
   };
 };
 
-export const openMockServerDashboard = (instance, collectionUid) => (dispatch) => {
+export const openMockServerDashboard = (instance) => async (dispatch, getState) => {
+  const { workspaces, activeWorkspaceUid } = getState().workspaces;
+  const workspace = workspaces.find((item) => item.uid === activeWorkspaceUid);
+  if (!workspace) {
+    return;
+  }
+
+  let collectionUid = workspace.scratchCollectionUid;
+  if (!collectionUid) {
+    const { mountScratchCollection } = require('providers/ReduxStore/slices/workspaces/actions');
+    collectionUid = (await dispatch(mountScratchCollection(workspace.uid)))?.uid;
+  }
+
+  if (!collectionUid) {
+    return;
+  }
+
   dispatch(addTab({
     uid: instance.uid,
-    collectionUid: collectionUid || instance.collectionUid,
+    collectionUid,
     mockServerUid: instance.uid,
     tabName: instance.name,
     type: 'mock-server'

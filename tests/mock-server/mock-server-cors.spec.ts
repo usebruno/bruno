@@ -142,8 +142,7 @@ const RULES_MOCK_PORT = '4711';
 
 const RULES_PREFERENCES = JSON.stringify({
   preferences: {
-    onboarding: { hasLaunchedBefore: true, hasSeenWelcomeModal: true },
-    beta: { 'mock-server': true }
+    onboarding: { hasLaunchedBefore: true, hasSeenWelcomeModal: true }
   }
 }, null, 2);
 

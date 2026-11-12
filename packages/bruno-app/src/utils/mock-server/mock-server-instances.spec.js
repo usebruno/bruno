@@ -6,9 +6,12 @@ import {
   isMockServerRelatedTab,
   isMockServerNameTaken,
   isMockServerPortTaken,
+  openMockServerDashboard,
   suggestNextMockServerPort
 } from './mock-server-instances';
 import { normalizeMockTabType } from './mock-tab-type';
+import { addTab } from 'providers/ReduxStore/slices/tabs';
+import * as workspaceActions from 'providers/ReduxStore/slices/workspaces/actions';
 
 describe('mock server tab helpers', () => {
   it('normalizes legacy mock-server-dashboard and mocker tab types to mock-server', () => {
@@ -118,6 +121,76 @@ describe('getMockServerPortError', () => {
   it('reports ports held by another mock server', () => {
     expect(getMockServerPortError({ available: false, reason: 'bruno' }, 4000))
       .toBe('Port 4000 is already used by another mock server in Bruno.');
+  });
+});
+
+describe('openMockServerDashboard', () => {
+  const instance = { uid: 'ms-1', name: 'Pets', collectionUid: 'col-1' };
+
+  const stateWith = (workspace) => () => ({
+    workspaces: {
+      activeWorkspaceUid: workspace ? workspace.uid : 'missing',
+      workspaces: workspace ? [workspace] : []
+    }
+  });
+
+  const dispatchThunks = (dispatch, getState) => jest.fn((action) => (
+    typeof action === 'function' ? action(dispatch, getState) : action
+  ));
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('opens the tab on the workspace scratch collection', async () => {
+    const getState = stateWith({ uid: 'ws-1', scratchCollectionUid: 'scratch-1' });
+    const dispatch = jest.fn();
+
+    await openMockServerDashboard(instance, 'col-1')(dispatch, getState);
+
+    expect(dispatch).toHaveBeenCalledWith(addTab({
+      uid: 'ms-1',
+      collectionUid: 'scratch-1',
+      mockServerUid: 'ms-1',
+      tabName: 'Pets',
+      type: 'mock-server'
+    }));
+  });
+
+  it('does nothing when no workspace is active', async () => {
+    const dispatch = jest.fn();
+
+    await openMockServerDashboard(instance)(dispatch, stateWith(null));
+
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('mounts the scratch collection when the workspace has none', async () => {
+    const getState = stateWith({ uid: 'ws-1' });
+    const dispatch = dispatchThunks(jest.fn(), getState);
+    jest.spyOn(workspaceActions, 'mountScratchCollection').mockImplementation(
+      () => () => Promise.resolve({ uid: 'scratch-mounted' })
+    );
+
+    await openMockServerDashboard(instance)(dispatch, getState);
+
+    expect(workspaceActions.mountScratchCollection).toHaveBeenCalledWith('ws-1');
+    expect(dispatch).toHaveBeenCalledWith(addTab(expect.objectContaining({
+      collectionUid: 'scratch-mounted',
+      type: 'mock-server'
+    })));
+  });
+
+  it('does not open a tab when the scratch collection cannot be mounted', async () => {
+    const getState = stateWith({ uid: 'ws-1' });
+    const dispatch = dispatchThunks(jest.fn(), getState);
+    jest.spyOn(workspaceActions, 'mountScratchCollection').mockImplementation(
+      () => () => Promise.resolve(null)
+    );
+
+    await openMockServerDashboard(instance)(dispatch, getState);
+
+    expect(dispatch.mock.calls.some(([action]) => action?.payload?.type === 'mock-server')).toBe(false);
   });
 });
 

@@ -26,8 +26,18 @@ const MockResponseSidebarItem = ({
   const [isRenaming, setIsRenaming] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
+  const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
+  const workspaces = useSelector((state) => state.workspaces.workspaces);
 
   const openResponseTab = (nextResponse) => {
+    const workspace = workspaces.find((item) => item.uid === activeWorkspaceUid);
+    if (!workspace) {
+      return;
+    }
+    const collectionUid = workspace.scratchCollectionUid;
+    if (!collectionUid) {
+      return;
+    }
     dispatch(addTab({
       uid: nextResponse.uid,
       type: 'mock-response',

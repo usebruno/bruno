@@ -54,14 +54,14 @@ import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import useKeybinding from 'hooks/useKeybinding';
 import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
-import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
-import StatusBadge from 'ui/StatusBadge';
+import { useBetaFeature } from 'utils/beta-features';
 import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
 
 const CollectionRow = ({ collection, searchText, openBulkMenu, children, isCollectionMultiDragDisabled, multiDragCollections }) => {
-  const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
+// change this to a feature check
+  const isMockServerEnabled = useBetaFeature('mock-server');
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
@@ -491,7 +491,6 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
       id: 'create-mock-server',
       leftSection: IconServer,
       label: 'Create Mock server',
-      rightSection: <StatusBadge status="info" size="xs">Beta</StatusBadge>,
       onClick: openMockServerDashboard
     }] : []),
     {

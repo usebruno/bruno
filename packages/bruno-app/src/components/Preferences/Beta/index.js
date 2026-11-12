@@ -66,14 +66,6 @@ const BETA_FEATURES = [
     docsUrl: 'https://link.usebruno.com/docs/auth'
   },
   {
-    id: BETA_FEATURE_IDS.MOCK_SERVER,
-    label: 'Mock Server',
-    description: 'Run a local mock server using response examples defined in your collection. Serve mock API responses for frontend development without a real backend.',
-    toggle: true,
-    defaultEnabled: true,
-    docsUrl: 'https://link.usebruno.com/docs/mock-server'
-  },
-  {
     id: BETA_FEATURE_IDS.GRPC_SCRIPTING,
     label: 'gRPC Scripting',
     description: 'Write scripts for gRPC requests. Inspect messages, metadata, and status across the call lifecycle.',

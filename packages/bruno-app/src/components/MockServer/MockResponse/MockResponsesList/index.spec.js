@@ -6,10 +6,11 @@ import toast from 'react-hot-toast';
 import themes from 'themes/index';
 import MockResponsesList from './index';
 import {
-  generateMockResponsesFromSpec,
   loadMockResponsesFromSpec,
   syncMockResponsesFromExamples
 } from 'providers/ReduxStore/slices/mock-server/index';
+import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { mountScratchCollection } from 'providers/ReduxStore/slices/workspaces/actions';
 
 jest.mock('react-redux', () => ({
   useDispatch: jest.fn(),
@@ -33,7 +34,6 @@ jest.mock('components/Modal', () => ({ children, handleConfirm, confirmText }) =
 jest.mock('providers/ReduxStore/slices/mock-server/index', () => ({
   createMockResponse: jest.fn(),
   deleteMockResponse: jest.fn(),
-  generateMockResponsesFromSpec: jest.fn(),
   loadMockResponses: jest.fn(() => ({ type: 'load-responses' })),
   loadMockResponsesFromSpec: jest.fn(),
   saveMockResponse: jest.fn(),
@@ -48,6 +48,10 @@ jest.mock('providers/ReduxStore/slices/tabs', () => ({
 
 jest.mock('providers/ReduxStore/slices/collections', () => ({
   removeMockResponseEditor: jest.fn()
+}));
+
+jest.mock('providers/ReduxStore/slices/workspaces/actions', () => ({
+  mountScratchCollection: jest.fn(() => ({ type: 'mount-scratch' }))
 }));
 
 const NO_PATHS = 'API spec does not define any paths.';
@@ -92,15 +96,19 @@ describe('MockResponsesList spec actions', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    storeState.workspaces.activeWorkspaceUid = 'ws-1';
+    storeState.workspaces.workspaces[0] = { uid: 'ws-1', pathname: '/tmp/ws', scratchCollectionUid: 'scratch-1' };
     dispatch = jest.fn((action) => {
-      if (action?.type === 'generate-from-spec' || action?.type === 'load-from-spec') {
+      if (action?.type === 'load-from-spec') {
         return rejection(NO_PATHS);
+      }
+      if (action?.type === 'mount-scratch') {
+        return Promise.resolve({ uid: 'scratch-mounted' });
       }
       return { unwrap: () => Promise.resolve({}) };
     });
     useDispatch.mockReturnValue(dispatch);
     useSelector.mockImplementation((selector) => selector(storeState));
-    generateMockResponsesFromSpec.mockReturnValue({ type: 'generate-from-spec' });
     loadMockResponsesFromSpec.mockReturnValue({ type: 'load-from-spec' });
     syncMockResponsesFromExamples.mockReturnValue({ type: 'save-responses' });
   });
@@ -111,17 +119,6 @@ describe('MockResponsesList spec actions', () => {
     </ThemeProvider>
   );
 
-  it('does not add responses when generating from a spec that has no paths', async () => {
-    renderList();
-
-    fireEvent.click(screen.getByTestId('mock-response-generate-from-spec-btn'));
-    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
-
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(NO_PATHS));
-    expect(syncMockResponsesFromExamples).not.toHaveBeenCalled();
-    expect(screen.getByText('List pets')).toBeInTheDocument();
-  });
-
   it('keeps existing responses when syncing a spec that has no paths', async () => {
     renderList();
 
@@ -131,5 +128,45 @@ describe('MockResponsesList spec actions', () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(NO_PATHS));
     expect(syncMockResponsesFromExamples).not.toHaveBeenCalled();
     expect(screen.getByText('List pets')).toBeInTheDocument();
+  });
+
+  const openResponse = () => {
+    renderList();
+    fireEvent.click(screen.getByTestId('mock-response-open-resp-1'));
+  };
+
+  it('opens a mock response in the workspace scratch collection', async () => {
+    storeState.workspaces.workspaces[0].scratchCollectionUid = 'scratch-1';
+
+    openResponse();
+
+    await waitFor(() => expect(addTab).toHaveBeenCalledWith(expect.objectContaining({
+      uid: 'resp-1',
+      type: 'mock-response',
+      collectionUid: 'scratch-1',
+      mockServerUid: 'ms-1'
+    })));
+    expect(mountScratchCollection).not.toHaveBeenCalled();
+  });
+
+  it('mounts the scratch collection before opening a mock response', async () => {
+    delete storeState.workspaces.workspaces[0].scratchCollectionUid;
+
+    openResponse();
+
+    await waitFor(() => expect(addTab).toHaveBeenCalledWith(expect.objectContaining({
+      collectionUid: 'scratch-mounted',
+      type: 'mock-response'
+    })));
+    expect(mountScratchCollection).toHaveBeenCalledWith('ws-1');
+  });
+
+  it('does not open a mock response when no workspace is active', async () => {
+    storeState.workspaces.activeWorkspaceUid = 'missing';
+
+    openResponse();
+
+    await waitFor(() => expect(screen.getByText('List pets')).toBeInTheDocument());
+    expect(addTab).not.toHaveBeenCalled();
   });
 });
