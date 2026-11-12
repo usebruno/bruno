@@ -12,7 +12,7 @@ import DocsEditor from 'components/Documentation/DocsEditor';
 
 const Docs = ({ collection }) => {
   const dispatch = useDispatch();
-  const { isEditing, setEditing } = useDocsEditingState();
+  const { isEditing, setEditing, isMarkdownMode, setMarkdownMode } = useDocsEditingState();
   const savedDocs = get(collection, 'root.docs', '');
   const docs = collection.draft?.root ? get(collection, 'draft.root.docs', '') : savedDocs;
 
@@ -74,6 +74,8 @@ const Docs = ({ collection }) => {
           onEdit={onEdit}
           onSave={onSave}
           isEditing={isEditing}
+          isMarkdownMode={isMarkdownMode}
+          onMarkdownModeChange={setMarkdownMode}
           collection={collection}
           collectionPath={collection.pathname}
           emptyPreviewContent={documentationPlaceholder}

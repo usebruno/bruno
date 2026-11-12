@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { saveWorkspaceDocs } from 'providers/ReduxStore/slices/workspaces/actions';
 import StyledWrapper from './StyledWrapper';
@@ -7,23 +7,15 @@ import Button from 'ui/Button';
 import toast from 'react-hot-toast';
 import ActionIcon from 'ui/ActionIcon/index';
 import { usePersistedState } from 'hooks/usePersistedState';
-import { useTrackScroll } from 'hooks/useTrackScroll';
 import DocsEditor from 'components/Documentation/DocsEditor';
 
 const WorkspaceDocs = ({ workspace }) => {
   const dispatch = useDispatch();
   const [isEditing, setIsEditing] = useState(false);
+  const [isMarkdownMode, setIsMarkdownMode] = useState(false);
   const [localDocs, setLocalDocs] = useState(workspace?.docs || '');
 
-  const wrapperRef = useRef(null);
   const [scroll, setScroll] = usePersistedState({ key: `workspace-docs-scroll-${workspace?.uid}`, default: 0 });
-  useTrackScroll({
-    ref: wrapperRef,
-    selector: '.rich-text-editor-content',
-    onChange: setScroll,
-    enabled: !isEditing,
-    initialValue: scroll
-  });
 
   // `workspace` is keyed by uid at the call site, so switching workspaces
   // remounts this component and re-initializes localDocs/isEditing fresh
@@ -91,7 +83,7 @@ const WorkspaceDocs = ({ workspace }) => {
         )}
       </div>
 
-      <div className="docs-content" ref={wrapperRef}>
+      <div className="docs-content">
         {hasDocs || isEditing ? (
           <div className="editor-container">
             <div className="flex-1 min-h-0 flex flex-col">
@@ -100,8 +92,12 @@ const WorkspaceDocs = ({ workspace }) => {
                 onEdit={onEdit}
                 onSave={onSave}
                 isEditing={isEditing}
+                isMarkdownMode={isMarkdownMode}
+                onMarkdownModeChange={setIsMarkdownMode}
                 collectionPath={workspace?.pathname || ''}
                 onRequestEdit={toggleViewMode}
+                initialScroll={scroll}
+                onScroll={setScroll}
               />
             </div>
             {isEditing && (

@@ -1,6 +1,6 @@
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import RichTextEditor from 'ui/RichTextEditor';
@@ -19,6 +19,8 @@ const DocsEditor = ({
   onEdit,
   onSave,
   isEditing,
+  isMarkdownMode,
+  onMarkdownModeChange,
   item,
   collection,
   collectionPath,
@@ -30,17 +32,6 @@ const DocsEditor = ({
 }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
-  const [isMarkdownMode, setIsMarkdownMode] = useState(false);
-  // Entering edit mode always lands on the WYSIWYG editor by default (per
-  // spec), computed during render instead of via an effect so it takes
-  // effect in the same render as the isEditing change.
-  const [wasEditing, setWasEditing] = useState(isEditing);
-  if (isEditing !== wasEditing) {
-    setWasEditing(isEditing);
-    if (isEditing && !wasEditing) {
-      setIsMarkdownMode(false);
-    }
-  }
 
   const lastEmittedDocsRef = useRef(DOCS_NOT_YET_EMITTED);
   const isMarkdownModeRef = useRef(isMarkdownMode);
@@ -49,8 +40,10 @@ const DocsEditor = ({
   // closure below can read the latest mode/editing flags without being
   // recreated on every change; there's no external system to synchronize
   // with, so an effect would just add an unnecessary extra render pass.
+  const onSaveRef = useRef(onSave);
   isMarkdownModeRef.current = isMarkdownMode;
   isEditingRef.current = isEditing;
+  onSaveRef.current = onSave;
 
   const editor = useEditor(
     {
@@ -72,7 +65,7 @@ const DocsEditor = ({
         handleKeyDown: (_view, event) => {
           if (event.key === 's' && (event.ctrlKey || event.metaKey)) {
             event.preventDefault();
-            onSave();
+            onSaveRef.current();
             return true;
           }
           return false;
@@ -140,6 +133,28 @@ const DocsEditor = ({
     initialValue: initialScroll
   });
 
+  const scrollToRestoreRef = useRef(isEditing && isMarkdownMode ? 0 : initialScroll);
+  useEffect(() => {
+    const scrollContainer = richTextWrapperRef.current?.querySelector('.rich-text-editor-content');
+    const content = scrollContainer?.querySelector('.ProseMirror');
+    const target = scrollToRestoreRef.current;
+    if (!scrollContainer || !content || !target) return;
+
+    const userScrollEvents = ['wheel', 'pointerdown', 'keydown'];
+    const resizeObserver = new ResizeObserver(() => {
+      scrollContainer.scrollTop = target;
+      if (scrollContainer.scrollTop >= target - 1) resizeObserver.disconnect();
+    });
+    const stopRestoring = () => resizeObserver.disconnect();
+
+    userScrollEvents.forEach((type) => scrollContainer.addEventListener(type, stopRestoring));
+    resizeObserver.observe(content);
+    return () => {
+      resizeObserver.disconnect();
+      userScrollEvents.forEach((type) => scrollContainer.removeEventListener(type, stopRestoring));
+    };
+  }, []);
+
   return (
     <StyledWrapper className="flex flex-col gap-y-1 h-full w-full min-w-0 max-w-full relative" data-testid={testId}>
       {isEditing && (
@@ -151,7 +166,7 @@ const DocsEditor = ({
           )}
           <ModeSwitch
             isMarkdownMode={isMarkdownMode}
-            onToggle={() => setIsMarkdownMode((prev) => !prev)}
+            onToggle={() => onMarkdownModeChange(!isMarkdownMode)}
             className="docs-mode-switch"
           />
         </div>

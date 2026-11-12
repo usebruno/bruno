@@ -10,7 +10,7 @@ import DocsEditor from 'components/Documentation/DocsEditor';
 
 const Documentation = ({ collection, folder }) => {
   const dispatch = useDispatch();
-  const { isEditing, setEditing } = useDocsEditingState();
+  const { isEditing, setEditing, isMarkdownMode, setMarkdownMode } = useDocsEditingState();
   const docs = folder.draft ? get(folder, 'draft.docs', '') : get(folder, 'root.docs', '');
 
   // Scroll tracking (both the rich-text preview/edit view and markdown mode's
@@ -45,6 +45,8 @@ const Documentation = ({ collection, folder }) => {
           onEdit={onEdit}
           onSave={onSave}
           isEditing={isEditing}
+          isMarkdownMode={isMarkdownMode}
+          onMarkdownModeChange={setMarkdownMode}
           collection={collection}
           collectionPath={collection.pathname}
           onRequestEdit={toggleViewMode}
