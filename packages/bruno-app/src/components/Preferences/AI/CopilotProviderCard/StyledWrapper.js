@@ -61,16 +61,6 @@ const StyledWrapper = styled.div`
     flex-shrink: 0;
     color: ${(props) => props.theme.colors.text.muted};
   }
-
-  .copilot-model-tag {
-    font-size: ${(props) => props.theme.font.size.xs};
-    line-height: 1;
-    padding: 2px 5px;
-    border-radius: ${(props) => props.theme.border.radius.sm};
-    border: 1px solid ${(props) => props.theme.input.border};
-    color: ${(props) => props.theme.colors.text.muted};
-    white-space: nowrap;
-  }
 `;
 
 export default StyledWrapper;
