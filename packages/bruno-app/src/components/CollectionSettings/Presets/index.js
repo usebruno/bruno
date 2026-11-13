@@ -1,6 +1,8 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
+import FormField from 'ui/patterns/FormField';
+import FieldList from 'ui/patterns/FieldList';
 import { updateCollectionPresets } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { get } from 'lodash';
@@ -67,68 +69,81 @@ const PresetsSettings = ({ collection }) => {
 
   return (
     <StyledWrapper className="h-full w-full">
-      <div className="bruno-form">
-        <div className="preset-field">
-          <label className="preset-field-label">Default Request Type</label>
-          <p className="preset-field-subtitle">Selected by default for new requests.</p>
-          <SegmentedControl
-            ariaLabel="Default Request Type"
-            name="requestType"
-            value={requestType}
-            onChange={handleRequestTypeChange}
-            items={requestTypeItems}
-            size="sm"
-          />
+      <FieldList className="presets-settings bruno-form">
+        <div>
+          <h1 className="font-medium text-[0.9375rem]">Presets</h1>
+          <div className="text-xs mt-1 text-muted">Set defaults for new requests and the environment this collection opens with.</div>
         </div>
+        <FieldList gap="lg" className="presets-fields">
+          <FormField
+            label="Default Request Type"
+            description="Selected by default for new requests."
+            labelId="presets-request-type-label"
+          >
+            <SegmentedControl
+              ariaLabelledBy="presets-request-type-label"
+              name="requestType"
+              value={requestType}
+              onChange={handleRequestTypeChange}
+              items={requestTypeItems}
+            />
+          </FormField>
 
-        <div className="preset-field">
-          <label className="preset-field-label" htmlFor="request-url">Default Base URL</label>
-          <p className="preset-field-subtitle">Pre-fills the URL field for new requests.</p>
-          <input
-            id="request-url"
-            data-testid="presets-request-url"
-            type="text"
-            name="requestUrl"
-            placeholder="Request URL"
-            className="block textbox preset-input mousetrap"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            onChange={handleRequestUrlChange}
-            value={currentPresets.requestUrl || ''}
-          />
-        </div>
+          <FormField
+            label="Default Base URL"
+            description="Pre-fills the URL field for new requests."
+            htmlFor="request-url"
+            descriptionId="request-url-description"
+          >
+            <input
+              id="request-url"
+              data-testid="presets-request-url"
+              type="text"
+              name="requestUrl"
+              placeholder="Request URL"
+              aria-describedby="request-url-description"
+              className="block textbox mousetrap"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+              onChange={handleRequestUrlChange}
+              value={currentPresets.requestUrl || ''}
+            />
+          </FormField>
 
-        <div className="preset-field">
-          <label className="preset-field-label" htmlFor="default-environment">Default Environment</label>
-          <p className="preset-field-subtitle">Selected when this collection is shared and first opened.</p>
-          <div className="default-env-dropdown">
-            <MenuDropdown
-              items={defaultEnvironmentItems}
-              selectedItemId={defaultEnvironmentName}
-              data-testid="presets-default-environment"
-              placement="bottom-start"
-              sameWidth
-            >
-              <button
-                type="button"
-                id="default-environment"
-                className="default-env-trigger flex items-center justify-between cursor-pointer"
+          <FormField
+            label="Default Environment"
+            description="Selected when this collection is shared and first opened."
+            htmlFor="default-environment"
+            descriptionId="default-environment-description"
+          >
+            <div className="default-env-dropdown">
+              <MenuDropdown
+                items={defaultEnvironmentItems}
+                selectedItemId={defaultEnvironmentName}
+                data-testid="presets-default-environment"
+                placement="bottom-start"
+                sameWidth
               >
-                <span className="truncate">{defaultEnvironmentName || 'None'}</span>
-                <IconCaretDown className="caret" size={14} strokeWidth={2} />
-              </button>
-            </MenuDropdown>
-          </div>
-        </div>
+                <button
+                  type="button"
+                  id="default-environment"
+                  aria-describedby="default-environment-description"
+                  className="default-env-trigger flex items-center justify-between cursor-pointer"
+                >
+                  <span className="truncate">{defaultEnvironmentName || 'None'}</span>
+                  <IconCaretDown className="caret" size={14} strokeWidth={2} />
+                </button>
+              </MenuDropdown>
+            </div>
+          </FormField>
+        </FieldList>
 
-        <div className="mt-6">
-          <Button type="button" size="sm" data-testid="presets-save-btn" onClick={handleSave}>
-            Save
-          </Button>
-        </div>
-      </div>
+        <Button type="button" size="base" className="self-start mt-2" data-testid="presets-save-btn" onClick={handleSave}>
+          Save
+        </Button>
+      </FieldList>
     </StyledWrapper>
   );
 };
