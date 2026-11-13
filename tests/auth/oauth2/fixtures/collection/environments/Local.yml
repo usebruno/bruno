@@ -1,0 +1,9 @@
+variables:
+  - name: host
+    value: http://127.0.0.1:8090
+  - name: realm
+    value: bruno
+  - name: client_secret
+    value: DSH25NOw5mMOCEIMrmm31EtUad4TbRLM
+  - name: userinfo_url
+    value: http://127.0.0.1:8090/realms/bruno/protocol/openid-connect/userinfo
