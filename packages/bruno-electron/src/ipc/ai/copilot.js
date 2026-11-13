@@ -1,7 +1,7 @@
 const { app, ipcMain } = require('electron');
 const { createOpenAI } = require('@ai-sdk/openai');
 const { aiCopilotStore } = require('../../store/ai-copilot');
-const { oauthCredentialsStore } = require('../../store/oauth-credentials');
+const { aiKeyStore } = require('../../store/ai-keys');
 const { requestDeviceCode, pollForToken } = require('../../utils/github-device-flow');
 const { readGitHubCliToken } = require('../../utils/github-cli');
 
@@ -258,7 +258,7 @@ const usesGitHubCli = () => aiCopilotStore.getAuthSource() === GITHUB_CLI_SOURCE
 
 const resolveCopilotToken = () => usesGitHubCli()
   ? githubCliToken
-  : oauthCredentialsStore.getCredential(COPILOT_PROVIDER_ID)?.token || null;
+  : aiKeyStore.getKey(COPILOT_PROVIDER_ID);
 
 const loadGitHubCliToken = async () => {
   const { installed, token, startError } = await readGitHubCliToken();
@@ -367,7 +367,7 @@ const cancelSignIn = () => {
 };
 
 const storeToken = (token) => {
-  oauthCredentialsStore.setCredential(COPILOT_PROVIDER_ID, { token });
+  aiKeyStore.setKey(COPILOT_PROVIDER_ID, token);
   aiCopilotStore.clearAuthSource();
   aiCopilotStore.clearSession();
   githubCliToken = null;
@@ -377,7 +377,7 @@ const storeToken = (token) => {
 const signInWithGitHubCli = async () => {
   cancelSignIn();
   githubCliToken = await loadGitHubCliToken();
-  oauthCredentialsStore.clearCredential(COPILOT_PROVIDER_ID);
+  aiKeyStore.clearKey(COPILOT_PROVIDER_ID);
   aiCopilotStore.clearSession();
   aiCopilotStore.setAuthSource(GITHUB_CLI_SOURCE);
   lastError = null;
@@ -416,7 +416,7 @@ const startSignIn = async ({ onSettled }) => {
 
 const signOut = () => {
   cancelSignIn();
-  oauthCredentialsStore.clearCredential(COPILOT_PROVIDER_ID);
+  aiKeyStore.clearKey(COPILOT_PROVIDER_ID);
   aiCopilotStore.clearAuthSource();
   aiCopilotStore.clearSession();
   githubCliToken = null;

@@ -417,6 +417,7 @@ const AI = () => {
                         isOn={providerEnabled}
                         handleToggle={() =>
                           formik.setFieldValue(`providers.${id}.enabled`, !providerEnabled)}
+                        data-testid={`ai-provider-${id}-toggle`}
                       />
                     );
 

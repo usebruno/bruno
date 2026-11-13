@@ -20,8 +20,13 @@ export const buildAiPreferencesLocators = (page: Page) => ({
     card: () => page.getByTestId('ai-provider-github-copilot'),
     /** The card header that expands or collapses the card */
     header: () => page.getByTestId('ai-provider-github-copilot-header'),
+    /** The on/off switch input in the card header */
+    providerSwitch: () => page.getByTestId('ai-provider-github-copilot-toggle').locator('input[type="checkbox"]'),
     signInButton: () => page.getByTestId('ai-copilot-sign-in'),
     useGitHubCliButton: () => page.getByTestId('ai-copilot-use-github-cli'),
+    /** The one-time code shown while waiting for approval on GitHub */
+    userCode: () => page.getByTestId('ai-copilot-user-code'),
+    cancelSignInButton: () => page.getByTestId('ai-copilot-cancel-sign-in'),
     account: () => page.getByTestId('ai-copilot-account'),
     /** The error shown inside the Copilot card */
     error: () => page.getByTestId('ai-provider-github-copilot').getByRole('alert')
