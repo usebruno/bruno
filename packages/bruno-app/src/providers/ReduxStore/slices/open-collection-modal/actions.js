@@ -20,7 +20,10 @@ import {
   importLoadStarted,
   importLoadEnded,
   collectionsOpeningStarted,
-  collectionsOpeningEnded
+  collectionsOpeningEnded,
+  recentsLoadStarted,
+  recentsLoadFinished,
+  recentsLoadFailed
 } from './index';
 import { selectOpenCollectionPathKeys } from './selectors';
 import { countOf, getFolderSearchOutcome } from './folder-results';
@@ -29,6 +32,7 @@ import { readImportableFile, readImportFiles, readImportText } from './import-so
 
 const CHOOSE_FOLDER_PAGE = 'choose-folder';
 const IMPORT_PAGE = 'import';
+const RECENTS_PAGE = 'recents';
 
 const getSearchLabel = (folderPaths) =>
   folderPaths.length === 1 ? getFolderName(folderPaths[0]) : `${folderPaths.length} folders`;
@@ -69,7 +73,7 @@ export const openCollectionsFromModal = (collectionPaths) => async (dispatch, ge
 
   let result;
   try {
-    result = await dispatch(openMultipleCollections(collectionPaths, { silent: true }));
+    result = await dispatch(openMultipleCollections(collectionPaths, { silent: true, recordRecent: true }));
   } catch (error) {
     dispatch(collectionsOpeningEnded(openingId));
     toast.error('An error occurred while opening the collections');
@@ -240,9 +244,24 @@ export const saveAutoOpenFolderPicker = (enabled) => async (dispatch, getState) 
   }
 };
 
+export const loadRecentCollections = () => async (dispatch) => {
+  const loadId = uuid();
+  dispatch(recentsLoadStarted(loadId));
+
+  try {
+    const items = await callIpc('renderer:get-recent-collections');
+    dispatch(recentsLoadFinished({ loadId, items }));
+  } catch (error) {
+    dispatch(recentsLoadFailed({ loadId, error: formatIpcError(error) }));
+  }
+};
+
 export const openCollectionModal = (page) => (dispatch, getState) => {
   const { isOpen, openingId, chooseFolder } = getState().openCollectionModal;
   dispatch(isOpen ? showOpenCollectionPage(page) : showOpenCollectionModal(page));
+  if (page === RECENTS_PAGE) {
+    dispatch(loadRecentCollections());
+  }
 
   if (page !== CHOOSE_FOLDER_PAGE || openingId) {
     return;
@@ -252,5 +271,11 @@ export const openCollectionModal = (page) => (dispatch, getState) => {
   }
   if (get(getState().app.preferences, 'openCollection.autoOpenFolderPicker', true)) {
     dispatch(pickCollectionFolders());
+  }
+};
+
+export const recentCollectionsChangedEvent = () => (dispatch, getState) => {
+  if (getState().openCollectionModal.isOpen) {
+    dispatch(loadRecentCollections());
   }
 };

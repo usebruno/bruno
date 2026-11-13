@@ -14,10 +14,12 @@ import {
   loadImportableFile,
   loadImportFiles,
   loadImportText,
+  loadRecentCollections,
   openCollectionModal,
   openCollectionsFromModal,
   openDroppedItems,
   pickCollectionFolders,
+  recentCollectionsChangedEvent,
   saveAutoOpenFolderPicker,
   switchToCollection
 } from './actions';
@@ -46,6 +48,7 @@ jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
 
 const FIND_IN_FOLDERS = 'renderer:collection-search:find-in-folders';
 const CANCEL_SEARCH = 'renderer:collection-search:cancel';
+const GET_RECENT_COLLECTIONS = 'renderer:get-recent-collections';
 
 const workspace = { uid: 'workspace-1', collections: [{ path: '/work/open' }, { path: '/work/open-too' }] };
 const openCollectionInRedux = {
@@ -63,12 +66,7 @@ const otherOpenCollectionInRedux = {
   brunoConfig: { name: 'Open Too' }
 };
 
-const closedModal = {
-  isOpen: false,
-  page: null,
-  openingId: null,
-  chooseFolder: { status: 'idle', searchId: null, searchLabel: null, result: null }
-};
+const closedModal = openCollectionModalReducer(undefined, { type: 'init' });
 
 const listResult = {
   id: 'search-0',
@@ -293,7 +291,7 @@ describe('open collection modal actions', () => {
 
       await store.dispatch(findCollectionsInFolders(['/work/api']));
 
-      expect(openMultipleCollections).toHaveBeenCalledWith(['/work/api'], { silent: true });
+      expect(openMultipleCollections).toHaveBeenCalledWith(['/work/api'], { silent: true, recordRecent: true });
       expect(toast.success).toHaveBeenCalledWith('Collection added to workspace');
       expect(modalState(store).isOpen).toBe(false);
     });
@@ -751,6 +749,132 @@ describe('open collection modal actions', () => {
 
       expect(dispatchedActions.some((action) => action.type === addTab.type)).toBe(false);
       expect(modalState(store).isOpen).toBe(false);
+    });
+  });
+
+  describe('recent collections', () => {
+    const recentItems = [
+      { path: '/work/billing', name: 'Billing', usedAt: 1700000002000, lastEvent: 'closed' },
+      { path: '/work/api', name: 'API', usedAt: 1700000001000, lastEvent: 'opened' }
+    ];
+
+    const recentsReturn = (result) =>
+      callIpc.mockImplementation((channel) => (channel === GET_RECENT_COLLECTIONS ? result : Promise.resolve()));
+
+    it('reads them from the main process', async () => {
+      recentsReturn(Promise.resolve(recentItems));
+      const { store } = createStore({ modal: openOn('recents') });
+
+      await store.dispatch(loadRecentCollections());
+
+      expect(callIpc).toHaveBeenCalledWith(GET_RECENT_COLLECTIONS);
+      expect(modalState(store).recents).toEqual({ status: 'ready', loadId: null, items: recentItems, error: null });
+    });
+
+    it('keeps the last ones on screen while it reads them again', async () => {
+      recentsReturn(Promise.resolve(recentItems));
+      const { store } = createStore({ modal: openOn('recents') });
+      await store.dispatch(loadRecentCollections());
+      const reading = deferred();
+      recentsReturn(reading.promise);
+
+      const loading = store.dispatch(loadRecentCollections());
+      expect(modalState(store).recents).toMatchObject({ status: 'ready', items: recentItems });
+
+      reading.resolve([recentItems[1]]);
+      await loading;
+      expect(modalState(store).recents).toMatchObject({ status: 'ready', items: [recentItems[1]] });
+    });
+
+    it('says why they could not be read, without the IPC prefix', async () => {
+      recentsReturn(Promise.reject(new Error('Error invoking remote method \'renderer:get-recent-collections\': Error: disk failure')));
+      const { store } = createStore({ modal: openOn('recents') });
+
+      await store.dispatch(loadRecentCollections());
+
+      expect(modalState(store).recents).toMatchObject({ status: 'error', error: 'disk failure' });
+    });
+
+    it('ignores an answer that arrives after the modal was closed and opened again', async () => {
+      const reading = deferred();
+      recentsReturn(reading.promise);
+      const { store } = createStore({ modal: openOn('recents') });
+
+      const loading = store.dispatch(loadRecentCollections());
+      store.dispatch(closeOpenCollectionModal());
+      store.dispatch(showOpenCollectionModal('recents'));
+      reading.resolve(recentItems);
+      await loading;
+
+      expect(modalState(store).recents).toEqual(closedModal.recents);
+    });
+
+    it('keeps the newest answer when an older read finishes last', async () => {
+      const olderRead = deferred();
+      const newerRead = deferred();
+      callIpc.mockReturnValueOnce(olderRead.promise).mockReturnValueOnce(newerRead.promise);
+      const { store } = createStore({ modal: openOn('recents') });
+
+      const older = store.dispatch(loadRecentCollections());
+      const newer = store.dispatch(loadRecentCollections());
+      newerRead.resolve([recentItems[0]]);
+      await newer;
+      olderRead.resolve(recentItems);
+      await older;
+
+      expect(modalState(store).recents.items).toEqual([recentItems[0]]);
+    });
+
+    it('reads them when the modal opens on Recents', async () => {
+      recentsReturn(Promise.resolve(recentItems));
+      const { store } = createStore();
+
+      store.dispatch(openCollectionModal('recents'));
+      await flushPromises();
+
+      expect(callIpc).toHaveBeenCalledWith(GET_RECENT_COLLECTIONS);
+      expect(modalState(store)).toMatchObject({ isOpen: true, page: 'recents', recents: { status: 'ready', items: recentItems } });
+    });
+
+    it('reads them when Recents is shown from another page', async () => {
+      recentsReturn(Promise.resolve(recentItems));
+      const { store } = createStore({ modal: openOn('import') });
+
+      store.dispatch(openCollectionModal('recents'));
+      await flushPromises();
+
+      expect(callIpc).toHaveBeenCalledWith(GET_RECENT_COLLECTIONS);
+      expect(modalState(store)).toMatchObject({ page: 'recents', recents: { status: 'ready', items: recentItems } });
+    });
+
+    it.each(['choose-folder', 'import'])('leaves them alone when the modal opens on %s', (page) => {
+      pickerReturns(new Promise(() => {}));
+      const { store } = createStore();
+
+      store.dispatch(openCollectionModal(page));
+
+      expect(callIpc).not.toHaveBeenCalledWith(GET_RECENT_COLLECTIONS);
+      expect(modalState(store).recents).toEqual(closedModal.recents);
+    });
+
+    it('reads them again when they change while the modal is open', async () => {
+      recentsReturn(Promise.resolve(recentItems));
+      const { store } = createStore({ modal: openOn('choose-folder') });
+
+      store.dispatch(recentCollectionsChangedEvent());
+      await flushPromises();
+
+      expect(callIpc).toHaveBeenCalledWith(GET_RECENT_COLLECTIONS);
+      expect(modalState(store).recents.items).toEqual(recentItems);
+    });
+
+    it('leaves them alone when they change while the modal is closed', () => {
+      const { store } = createStore();
+
+      store.dispatch(recentCollectionsChangedEvent());
+
+      expect(callIpc).not.toHaveBeenCalled();
+      expect(modalState(store).recents).toEqual(closedModal.recents);
     });
   });
 });
