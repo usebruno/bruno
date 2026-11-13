@@ -66,6 +66,9 @@ const defaultPreferences = {
     defaultLocation: '',
     defaultWorkspacePath: ''
   },
+  openCollection: {
+    autoOpenFolderPicker: true
+  },
   autoSave: {
     enabled: false,
     interval: 1000
@@ -187,6 +190,9 @@ const preferencesSchema = Yup.object().shape({
   general: Yup.object({
     defaultLocation: Yup.string().max(1024).nullable(),
     defaultWorkspacePath: Yup.string().max(1024).nullable()
+  }),
+  openCollection: Yup.object({
+    autoOpenFolderPicker: Yup.boolean()
   }),
   autoSave: Yup.object({
     enabled: Yup.boolean(),
@@ -381,6 +387,14 @@ class PreferencesStore {
   savePreferences(newPreferences) {
     return this.store.set('preferences', newPreferences);
   }
+
+  hasSavedPreferences() {
+    return Object.keys(this.store.get('preferences', {})).length > 0;
+  }
+
+  saveAutoOpenFolderPicker(enabled) {
+    return this.store.set('preferences.openCollection.autoOpenFolderPicker', enabled);
+  }
 }
 
 const preferencesStore = new PreferencesStore();
@@ -464,8 +478,21 @@ const preferencesUtil = {
   }
 };
 
+const saveAutoOpenFolderPicker = async (enabled) => {
+  if (typeof enabled !== 'boolean') {
+    throw new Error('The folder picker setting must be true or false');
+  }
+  if (preferencesStore.hasSavedPreferences()) {
+    preferencesStore.saveAutoOpenFolderPicker(enabled);
+    return;
+  }
+  const preferences = getPreferences();
+  await savePreferences({ ...preferences, openCollection: { ...preferences.openCollection, autoOpenFolderPicker: enabled } });
+};
+
 module.exports = {
   getPreferences,
   savePreferences,
+  saveAutoOpenFolderPicker,
   preferencesUtil
 };
