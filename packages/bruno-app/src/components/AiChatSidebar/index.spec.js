@@ -18,7 +18,8 @@ jest.mock('utils/ai', () => ({
     availableModels: [{ id: 'gpt-mock', label: 'GPT Mock', provider: 'mock' }]
   }),
   buildAiVariablesPayload: jest.fn(() => []),
-  buildAiRequestsPayload: jest.fn(() => [])
+  buildAiRequestsPayload: jest.fn(() => []),
+  formatCopilotMultiplier: jest.fn(() => null)
 }));
 
 jest.mock('components/AiChatSidebar/DiffView', () => () => null);

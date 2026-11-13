@@ -50,7 +50,7 @@ import {
 } from 'providers/ReduxStore/slices/collections';
 import { updateIsDragging } from 'providers/ReduxStore/slices/app';
 import { findItemInCollection, findItemInCollectionByPathname, isItemAFolder, isItemARequest } from 'utils/collections';
-import { buildAiVariablesPayload, buildAiRequestsPayload, getAiStatus } from 'utils/ai';
+import { buildAiVariablesPayload, buildAiRequestsPayload, formatCopilotMultiplier, getAiStatus } from 'utils/ai';
 
 import StyledWrapper from './StyledWrapper';
 import DiffView from './DiffView';
@@ -198,6 +198,7 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
   }, []);
   const [processingStage, setProcessingStage] = useState(null);
   const [availableModels, setAvailableModels] = useState([]);
+  const [providersMap, setProvidersMap] = useState({});
   const [selectedModel, setSelectedModel] = useState(() => {
     try { return localStorage.getItem(SELECTED_MODEL_LS_KEY) ?? AUTO_MODEL_ID; } catch { return AUTO_MODEL_ID; }
   });
@@ -256,9 +257,12 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
       .then((status) => {
         if (cancelled) return;
         setAvailableModels(status?.availableModels || []);
+        setProvidersMap(status?.providers || {});
       })
       .catch(() => {
-        if (!cancelled) setAvailableModels([]);
+        if (cancelled) return;
+        setAvailableModels([]);
+        setProvidersMap({});
       });
     return () => { cancelled = true; };
   }, [isOpen, aiEnabled, preferences?.ai]);
@@ -268,6 +272,7 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
     if (!ipcRenderer) return;
     const unsub = ipcRenderer.on('main:ai-status-changed', (status) => {
       setAvailableModels(status?.availableModels || []);
+      setProvidersMap(status?.providers || {});
     });
     return () => unsub();
   }, []);
@@ -681,17 +686,28 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
   ));
   ModelSelectorTrigger.displayName = 'ModelSelectorTrigger';
 
-  const modelMenuItems = useMemo(
-    () => [
-      { id: AUTO_MODEL_ID, label: 'Auto', onClick: () => handleModelSelect(AUTO_MODEL_ID) },
-      ...availableModels.map((model) => ({
+  const modelMenuItems = useMemo(() => {
+    const groups = new Map();
+    for (const model of availableModels) {
+      const providerId = model.provider;
+      if (!groups.has(providerId)) {
+        groups.set(providerId, { name: providersMap[providerId]?.label || providerId, options: [] });
+      }
+      const usage = formatCopilotMultiplier(model.multiplier);
+      groups.get(providerId).options.push({
         id: model.id,
-        label: model.label,
+        label: usage ? `${model.label} · ${usage}` : model.label,
         onClick: () => handleModelSelect(model.id)
-      }))
-    ],
-    [availableModels]
-  );
+      });
+    }
+    return [
+      {
+        name: 'Default',
+        options: [{ id: AUTO_MODEL_ID, label: 'Auto', onClick: () => handleModelSelect(AUTO_MODEL_ID) }]
+      },
+      ...groups.values()
+    ];
+  }, [availableModels, providersMap]);
 
   const hasActiveStream = messages.some((m) => m.isStreaming);
 
@@ -965,7 +981,13 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
               />
               <div className="input-actions">
                 <div className="model-selector">
-                  <MenuDropdown items={modelMenuItems} placement="top-start" selectedItemId={selectedModel}>
+                  <MenuDropdown
+                    items={modelMenuItems}
+                    placement="top-start"
+                    selectedItemId={selectedModel}
+                    showGroupDividers={false}
+                    groupStyle="select"
+                  >
                     <ModelSelectorTrigger />
                   </MenuDropdown>
                 </div>

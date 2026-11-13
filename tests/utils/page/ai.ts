@@ -1,4 +1,4 @@
-import { test, Page } from '../../../playwright';
+import { test, expect, Page } from '../../../playwright';
 import { openPreferences, selectPreferencesTab } from './preferences';
 
 export type AiPreferencesSubTab = 'config' | 'autocomplete' | 'security';
@@ -14,7 +14,25 @@ export const buildAiPreferencesLocators = (page: Page) => ({
   autocompleteKeymap: () => page.locator('.autocomplete-keymap'),
   /** A single key label inside the autocomplete keymap (exact match) */
   autocompleteKeymapKey: (label: string) =>
-    page.locator('.autocomplete-keymap').getByText(label, { exact: true })
+    page.locator('.autocomplete-keymap').getByText(label, { exact: true }),
+  /** The GitHub Copilot provider card on the Config sub-tab */
+  copilot: {
+    card: () => page.getByTestId('ai-provider-github-copilot'),
+    /** The card header that expands or collapses the card */
+    header: () => page.getByTestId('ai-provider-github-copilot-header'),
+    /** The on/off switch input in the card header */
+    providerSwitch: () => page.getByTestId('ai-provider-github-copilot-toggle').locator('input[type="checkbox"]'),
+    signInButton: () => page.getByTestId('ai-copilot-sign-in'),
+    useGitHubCliButton: () => page.getByTestId('ai-copilot-use-github-cli'),
+    /** The one-time code shown while waiting for approval on GitHub */
+    userCode: () => page.getByTestId('ai-copilot-user-code'),
+    cancelSignInButton: () => page.getByTestId('ai-copilot-cancel-sign-in'),
+    account: () => page.getByTestId('ai-copilot-account'),
+    /** The notice shown when the signed-in account has no Copilot models */
+    noModelsNotice: () => page.getByTestId('ai-copilot-no-models'),
+    /** The error shown inside the Copilot card */
+    error: () => page.getByTestId('ai-provider-github-copilot').getByRole('alert')
+  }
 });
 
 /**
@@ -28,5 +46,18 @@ export const openAiPreferences = async (page: Page, subTab?: AiPreferencesSubTab
     if (subTab) {
       await buildAiPreferencesLocators(page).subTab(subTab).click();
     }
+  });
+};
+
+/**
+ * Expand the GitHub Copilot provider card if it is collapsed.
+ */
+export const expandCopilotCard = async (page: Page) => {
+  await test.step('Expand the GitHub Copilot card', async () => {
+    const header = buildAiPreferencesLocators(page).copilot.header();
+    if ((await header.getAttribute('aria-expanded')) !== 'true') {
+      await header.click();
+    }
+    await expect(header).toHaveAttribute('aria-expanded', 'true');
   });
 };
