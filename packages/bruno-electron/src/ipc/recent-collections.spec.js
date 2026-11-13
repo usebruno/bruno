@@ -132,14 +132,14 @@ describe('recent collections IPC', () => {
     ['win32', 'D:\\work\\orders', 'D:\\'],
     ['win32', '\\\\server\\share\\orders', '\\\\server\\share\\'],
     ['darwin', '/Volumes/USB Drive/orders', '/Volumes/USB Drive'],
-    ['darwin', '/Users/me/orders', '/'],
+    ['darwin', '/Users/me/orders', '/Users/me'],
     ['linux', '/media/me/USB/orders', '/media/me/USB'],
     ['linux', '/run/media/me/USB/orders', '/run/media/me/USB'],
     ['linux', '/run/user/1000/gvfs/smb-share:server=nas,share=team/apis/orders', '/run/user/1000/gvfs/smb-share:server=nas,share=team'],
     ['linux', '/mnt/data/orders', '/mnt/data'],
-    ['linux', '/home/me/orders', '/'],
-    ['freebsd', '/usr/home/me/orders', '/']
-  ])('on %s finds the volume of %s at %s', async (platform, collectionPath, volumeRoot) => {
+    ['linux', '/home/me/orders', '/home/me'],
+    ['freebsd', '/usr/home/me/orders', '/usr/home/me']
+  ])('on %s checks %s at %s', async (platform, collectionPath, volumeRoot) => {
     onPlatform(platform);
 
     await expect(isVolumeReachable(collectionPath)).resolves.toBe(true);
@@ -184,9 +184,39 @@ describe('recent collections IPC', () => {
     expect(recentCollectionsStore.forget).toHaveBeenCalledWith(['/Users/me/deleted']);
   });
 
+  it('keeps a collection on a mount point outside the known folders while it is unmounted', async () => {
+    onPlatform('linux');
+    readdir.mockImplementation(async (folderPath) => (folderPath === '/srv/apis' ? [] : ['srv']));
+
+    await forgetMissingRecentCollections(['/srv/apis/orders']);
+
+    expect(recentCollectionsStore.forget).toHaveBeenCalledWith([]);
+  });
+
+  it('judges a missing folder by the nearest folder above it that still exists', async () => {
+    onPlatform('linux');
+    readdir.mockImplementation(async (folderPath) => {
+      if (folderPath === '/home/me/old-project') {
+        throw fsError('ENOENT');
+      }
+      return ['notes'];
+    });
+
+    await forgetMissingRecentCollections(['/home/me/old-project/api']);
+
+    expect(readdir).toHaveBeenCalledWith('/home/me');
+    expect(recentCollectionsStore.forget).toHaveBeenCalledWith(['/home/me/old-project/api']);
+  });
+
   it('forgets a folder whose path now runs through a file', async () => {
     onPlatform('darwin');
     lstat.mockRejectedValue(fsError('ENOTDIR'));
+    readdir.mockImplementation(async (folderPath) => {
+      if (folderPath === '/Users/me/notes.txt') {
+        throw fsError('ENOTDIR');
+      }
+      return ['notes.txt'];
+    });
 
     await forgetMissingRecentCollections(['/Users/me/notes.txt/orders']);
 

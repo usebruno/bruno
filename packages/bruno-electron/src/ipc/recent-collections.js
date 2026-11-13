@@ -38,12 +38,21 @@ const moveRecentCollection = (fromPath, toPath) => sendIfChanged(recentCollectio
 
 const renameRecentCollection = (collectionPath, name) => sendIfChanged(recentCollectionsStore.rename(collectionPath, name));
 
+const isNearestFolderInUse = async (folderPath) => {
+  try {
+    return (await fs.readdir(folderPath)).length > 0;
+  } catch (error) {
+    const parentPath = path.dirname(folderPath);
+    return ['ENOENT', 'ENOTDIR'].includes(error.code) && parentPath !== folderPath && isNearestFolderInUse(parentPath);
+  }
+};
+
 const isVolumeReachable = async (collectionPath) => {
   try {
     const volumeRoot = process.platform === 'win32'
       ? path.win32.parse(collectionPath).root
-      : VOLUME_ROOT_PATTERNS[process.platform]?.exec(collectionPath)?.[0] ?? '/';
-    return (await fs.readdir(volumeRoot)).length > 0;
+      : VOLUME_ROOT_PATTERNS[process.platform]?.exec(collectionPath)?.[0];
+    return volumeRoot ? (await fs.readdir(volumeRoot)).length > 0 : await isNearestFolderInUse(path.dirname(collectionPath));
   } catch {
     return false;
   }
