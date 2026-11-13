@@ -4,11 +4,11 @@ import { useSelector } from 'react-redux';
 import { IconAlertTriangle, IconCheck, IconLink, IconUpload } from '@tabler/icons';
 import Button from 'ui/Button';
 import { loadImportFiles, loadImportText } from 'providers/ReduxStore/slices/open-collection-modal/actions';
-import { describeImportText } from 'providers/ReduxStore/slices/open-collection-modal/import-sources';
 import DropZone from '../../components/DropZone';
 import { useImportHandoff } from '../../components/ImportHandoff/context';
 import { isDraggingFiles } from '../../utils/dropped-items';
 import StyledWrapper from './StyledWrapper';
+import { describeImportText } from './utils';
 
 const ACCEPTED_FILE_TYPES = [
   '.json',

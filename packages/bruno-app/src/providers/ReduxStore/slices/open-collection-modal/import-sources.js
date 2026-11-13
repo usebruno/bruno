@@ -12,7 +12,7 @@ import { isValidUrl } from 'utils/url/index';
 
 const UNSUPPORTED_FORMAT = 'Unsupported collection format';
 const ZIP_FILE = /\.zip$/i;
-const HTTP_URL = /^https?:\/\//i;
+export const HTTP_URL = /^https?:\/\//i;
 
 const IMPORT_FORMATS = [
   ['openapi', isOpenApiSpec],
@@ -145,20 +145,4 @@ const readRawText = async (text) => {
 export const readImportText = (value) => {
   const text = value.trim();
   return HTTP_URL.test(text) ? readImportUrl(text) : readRawText(text);
-};
-
-export const describeImportText = (text) => {
-  if (!HTTP_URL.test(text)) {
-    return { text: 'Raw text · Bruno detects the format' };
-  }
-  if (/\.zip(\?.*)?$/i.test(text)) {
-    return { isWarning: true, text: 'Bruno collection (.zip) from a URL · not supported yet. Download it and drop it here.' };
-  }
-  if (/\.ya?ml(\?.*)?$/i.test(text)) {
-    return { text: 'YAML from a URL · a Bruno collection is unpacked, an OpenAPI spec is converted' };
-  }
-  if (/\.json(\?.*)?$/i.test(text)) {
-    return { text: 'JSON from a URL · Bruno detects Postman, Insomnia or OpenAPI' };
-  }
-  return { text: 'URL · Bruno fetches it and detects the format' };
 };

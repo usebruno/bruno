@@ -1,6 +1,6 @@
 import { callIpc } from 'utils/common/ipc';
 import { fetchAndValidateApiSpecFromUrl } from 'utils/importers/common';
-import { describeImportText, readImportableFile, readImportFiles, readImportText } from './import-sources';
+import { readImportableFile, readImportFiles, readImportText } from './import-sources';
 
 jest.mock('utils/common/ipc', () => ({ callIpc: jest.fn() }));
 jest.mock('utils/importers/common', () => ({ fetchAndValidateApiSpecFromUrl: jest.fn() }));
@@ -208,25 +208,6 @@ describe('import sources', () => {
       await expect(readImportableFile({ path: '/work/orders.zip', name: 'orders.zip' })).resolves.toEqual({
         rawData: { zipFilePath: '/work/orders.zip', collectionName: 'orders' },
         type: 'bruno-zip'
-      });
-    });
-  });
-
-  describe('describeImportText', () => {
-    it.each([
-      ['https://a.dev/spec.yaml', 'YAML from a URL · a Bruno collection is unpacked, an OpenAPI spec is converted'],
-      ['https://a.dev/spec.yml?x=1', 'YAML from a URL · a Bruno collection is unpacked, an OpenAPI spec is converted'],
-      ['https://a.dev/spec.json', 'JSON from a URL · Bruno detects Postman, Insomnia or OpenAPI'],
-      ['https://a.dev/spec', 'URL · Bruno fetches it and detects the format'],
-      ['{ "a": 1 }', 'Raw text · Bruno detects the format']
-    ])('describes %s', (text, description) => {
-      expect(describeImportText(text)).toEqual({ text: description });
-    });
-
-    it('warns that a ZIP URL is not supported', () => {
-      expect(describeImportText('https://a.dev/a.zip')).toEqual({
-        isWarning: true,
-        text: 'Bruno collection (.zip) from a URL · not supported yet. Download it and drop it here.'
       });
     });
   });
