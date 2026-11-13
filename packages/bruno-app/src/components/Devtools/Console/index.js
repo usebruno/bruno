@@ -443,7 +443,7 @@ const Console = () => {
         <div className="console-tabs">
           <button
             className={`console-tab ${activeTab === 'console' ? 'active' : ''}`}
-            data-testid="console-tab"
+            data-testid="console-tab-btn"
             onClick={() => handleTabChange('console')}
           >
             <IconTerminal2 size={16} strokeWidth={1.5} />

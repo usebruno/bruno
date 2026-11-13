@@ -26,7 +26,6 @@ const PRE_REQUEST_HEADER_LINE = `req.setHeader('${PRE_REQUEST_HEADER}', '${PRE_R
 const PRE_REQUEST_SCRIPT = `${PRE_REQUEST_LOG_LINE}\n${PRE_REQUEST_HEADER_LINE}`;
 
 test.describe('Folder pre-request script', () => {
-  test.describe.configure({ timeout: 60_000 });
   test.afterEach(async ({ pageWithUserData: page }) => {
     await closeDevToolsConsole(page);
     await closeAllCollections(page);

@@ -1,4 +1,4 @@
-import { expect, Page, test } from '../../../playwright';
+import { Page, test } from '../../../playwright';
 import { escapeRegExp } from '../helpers';
 import { readLastHopRequestHeaderLines, readRequestHops } from './network-log';
 
