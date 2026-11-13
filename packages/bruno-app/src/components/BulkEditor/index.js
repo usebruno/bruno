@@ -83,6 +83,7 @@ const BulkEditor = ({ params, onChange, onToggle, onSave, onRun }) => {
           onEdit={handleEdit}
           onSave={onSave}
           onRun={onRun}
+          testId="bulk-edit-editor"
         />
       </div>
       <div className="flex btn-action justify-between items-center mt-3">
