@@ -33,6 +33,12 @@ const editorHeaders = () => ({
   'X-GitHub-Api-Version': COPILOT_API_VERSION
 });
 
+const chatHeaders = () => ({
+  ...editorHeaders(),
+  'OpenAI-Intent': 'conversation-panel',
+  'X-Interaction-Type': 'conversation-panel'
+});
+
 const readJson = async (response) => {
   try {
     return await response.json();
@@ -189,6 +195,32 @@ const normalizeModelCatalog = (rawModels) => {
   return [...defaults, ...rest].map(toCatalogModel);
 };
 
+const isModelRefused = async (token, apiEndpoint, modelId) => {
+  try {
+    const response = await fetch(`${apiEndpoint}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'X-Initiator': 'agent',
+        ...chatHeaders()
+      },
+      body: JSON.stringify({ model: modelId, messages: [{ role: 'user', content: 'hi' }], max_tokens: 1 }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+    });
+    if (response.status !== 400) return false;
+    console.warn(`[AI] Copilot refused ${modelId}: ${responseErrorMessage(await readJson(response)) || 'HTTP 400'}`);
+    return true;
+  } catch (err) {
+    return false;
+  }
+};
+
+const keepAnsweringModels = async (token, apiEndpoint, models) => {
+  const refused = await Promise.all(models.map((model) => isModelRefused(token, apiEndpoint, model.modelId)));
+  return models.filter((model, index) => !refused[index]);
+};
+
 const fetchModels = async (token, apiEndpoint) => {
   const response = await fetch(`${apiEndpoint}/models`, {
     headers: {
@@ -202,7 +234,7 @@ const fetchModels = async (token, apiEndpoint) => {
   }
   const body = await readJson(response);
   const rawModels = Array.isArray(body?.data) ? body.data : [];
-  const models = normalizeModelCatalog(rawModels);
+  const models = await keepAnsweringModels(token, apiEndpoint, normalizeModelCatalog(rawModels));
   if (rawModels.length === 0) {
     console.warn(`[AI] Copilot returned no models from ${hostOf(apiEndpoint)}`);
   } else if (models.length === 0) {
@@ -277,11 +309,7 @@ const copilotFetch = async (url, init = {}) => {
 const createCopilotSdk = ({ token, apiEndpoint }) => createOpenAI({
   apiKey: token,
   baseURL: apiEndpoint,
-  headers: {
-    ...editorHeaders(),
-    'OpenAI-Intent': 'conversation-panel',
-    'X-Interaction-Type': 'conversation-panel'
-  },
+  headers: chatHeaders(),
   fetch: copilotFetch
 });
 
