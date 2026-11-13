@@ -240,14 +240,6 @@ const fetchModels = async (token, apiEndpoint) => {
   } else if (models.length === 0) {
     console.warn(`[AI] Copilot returned ${rawModels.length} models from ${hostOf(apiEndpoint)} but none are usable, using ${COPILOT_FALLBACK_MODEL.modelId}: ${rawModels.map(describeExcludedModel).join('; ')}`);
     return [COPILOT_FALLBACK_MODEL];
-  } else {
-    const idsWhere = (predicate) => rawModels.filter(predicate).map((m) => m?.id).join(', ') || '(none)';
-    console.info(
-      `[AI] Copilot returned ${rawModels.length} models from ${hostOf(apiEndpoint)}`
-      + ` | policy enabled: ${idsWhere((m) => m?.policy?.state === 'enabled')}`
-      + ` | picker: ${idsWhere((m) => m?.model_picker_enabled === true)}`
-      + ` | kept: ${models.map((m) => m.modelId).join(', ')}`
-    );
   }
   return models;
 };
@@ -295,7 +287,9 @@ const isUserInitiatedRequest = (body) => {
 
 const copilotFetch = async (url, init = {}) => {
   const headers = new Headers(init.headers);
-  headers.set('X-Initiator', isUserInitiatedRequest(init.body) ? 'user' : 'agent');
+  if (!headers.has('X-Initiator')) {
+    headers.set('X-Initiator', isUserInitiatedRequest(init.body) ? 'user' : 'agent');
+  }
   const response = await fetch(url, { ...init, headers });
   if (response.status === 401) {
     throw new Error(SESSION_EXPIRED_MESSAGE);

@@ -162,6 +162,7 @@ const registerAutocompleteIpc = () => {
     try {
       const { text } = await generateText({
         model,
+        headers: { 'X-Initiator': 'agent' },
         system: buildSystemPrompt(scriptType),
         prompt: buildUserPrompt({ prefix, suffix, scriptType, requestContext, variableNames, siblingScripts, security }),
         maxOutputTokens: openAiReasoning ? 1500 : 200,
