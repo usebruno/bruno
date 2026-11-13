@@ -16,31 +16,30 @@ const FOLDER_NAME = 'api';
 const REQUEST_NAME = 'ping';
 
 const FOLDER_TEST_NAME = 'res.status == 200';
-const FOLDER_TEST = `test("${FOLDER_TEST_NAME}", function () {
+const FOLDER_TEST_SCRIPT = `test("${FOLDER_TEST_NAME}", function () {
   expect(res.status).to.equal(200);
 });`;
 
 test.describe('Folder level tests', () => {
-  test.describe.configure({ timeout: 60_000 });
   test.afterEach(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 
-  test('TC-188: Verify that Folder level tests results under the tests section of response side.', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
+  test('TC-188: Verify that a folder-level test result appears in the response Tests tab', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const { folder, response } = buildCommonLocators(page);
     const testsEditor = folder.testsEditor();
 
     await test.step('Add a folder-level test', async () => {
       await openfolder(page, COLLECTION_NAME, FOLDER_NAME);
       await selectfolderPaneTab(page, 'test');
-      await setCodeMirrorValue(testsEditor, FOLDER_TEST);
+      await setCodeMirrorValue(testsEditor, FOLDER_TEST_SCRIPT);
       await saveFolderSettings(page);
     });
 
     await openFolderRequest(page, COLLECTION_NAME, FOLDER_NAME, REQUEST_NAME);
     await sendRequest(page, 200);
 
-    await test.step('Review the folder-level test results in the response Tests tab', async () => {
+    await test.step('Verify the folder-level test results in the response Tests tab', async () => {
       await selectResponsePaneTab(page, 'Tests');
       await expect(response.assertionResults.rows()).toContainText(FOLDER_TEST_NAME);
       await expect(response.assertionResults.passed()).toHaveCount(1);
