@@ -1248,6 +1248,15 @@ const scrollEnvironmentTableTo = async (page: Page, target: Locator) => {
   }
 };
 
+const expectEnvVarValue = async (page: Page, name: string, value: string | RegExp) => {
+  const valueLine = buildCommonLocators(page).environment.varRowLine(name);
+
+  await expect(async () => {
+    await scrollEnvironmentTableTo(page, valueLine);
+    await expect(valueLine).toHaveText(value, { timeout: 1000 });
+  }).toPass({ timeout: 15000 });
+};
+
 /**
  * The trailing empty row's Name input, scrolled into the rendered window first. Only the empty
  * row carries the `Name` placeholder, so a match is always the row a new variable goes into.
@@ -4173,6 +4182,7 @@ export {
   addEnvironmentVariable,
   addEnvironmentVariables,
   addRowToActiveTab,
+  expectEnvVarValue,
   cycleVariableSort,
   getVisibleVariableNames,
   dragVariableRow,
