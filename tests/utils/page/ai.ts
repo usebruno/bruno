@@ -28,6 +28,8 @@ export const buildAiPreferencesLocators = (page: Page) => ({
     userCode: () => page.getByTestId('ai-copilot-user-code'),
     cancelSignInButton: () => page.getByTestId('ai-copilot-cancel-sign-in'),
     account: () => page.getByTestId('ai-copilot-account'),
+    /** The notice shown when the signed-in account has no Copilot models */
+    noModelsNotice: () => page.getByTestId('ai-copilot-no-models'),
     /** The error shown inside the Copilot card */
     error: () => page.getByTestId('ai-provider-github-copilot').getByRole('alert')
   }

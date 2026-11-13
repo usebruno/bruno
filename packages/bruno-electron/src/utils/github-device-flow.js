@@ -1,3 +1,5 @@
+const { setTimeout: sleep } = require('timers/promises');
+
 const DEVICE_CODE_URL = 'https://github.com/login/device/code';
 const ACCESS_TOKEN_URL = 'https://github.com/login/oauth/access_token';
 const DEVICE_GRANT_TYPE = 'urn:ietf:params:oauth:grant-type:device_code';
@@ -21,21 +23,8 @@ const abortError = () => {
   return error;
 };
 
-const wait = (ms, signal) => new Promise((resolve, reject) => {
-  if (signal?.aborted) {
-    reject(abortError());
-    return;
-  }
-  let timer = null;
-  const onAbort = () => {
-    clearTimeout(timer);
-    reject(abortError());
-  };
-  timer = setTimeout(() => {
-    signal?.removeEventListener('abort', onAbort);
-    resolve();
-  }, ms);
-  signal?.addEventListener('abort', onAbort, { once: true });
+const wait = (ms, signal) => sleep(ms, undefined, { signal }).catch(() => {
+  throw abortError();
 });
 
 const postForm = async (url, params, signal) => {

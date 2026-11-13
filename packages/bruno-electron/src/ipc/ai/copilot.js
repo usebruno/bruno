@@ -33,12 +33,6 @@ const editorHeaders = () => ({
   'X-GitHub-Api-Version': COPILOT_API_VERSION
 });
 
-const chatHeaders = () => ({
-  ...editorHeaders(),
-  'OpenAI-Intent': 'conversation-panel',
-  'X-Interaction-Type': 'conversation-panel'
-});
-
 const readJson = async (response) => {
   try {
     return await response.json();
@@ -135,10 +129,12 @@ const supportsReasoning = (model) => {
     || (Array.isArray(supports.reasoning_effort) && supports.reasoning_effort.length > 0);
 };
 
-const isUsableChatModel = (model) => Boolean(model?.id)
+const isStreamingChatModel = (model) => Boolean(model?.id)
   && model?.capabilities?.type === 'chat'
   && model?.capabilities?.supports?.streaming !== false
-  && (model.policy ? model.policy.state === 'enabled' : model?.model_picker_enabled === true);
+  && (!model.policy || model.policy.state === 'enabled');
+
+const isOfferedByGitHub = (model) => model.policy?.state === 'enabled' || model.model_picker_enabled === true;
 
 const toCatalogModel = (model) => {
   const multiplier = Number(model?.billing?.multiplier);
@@ -180,45 +176,13 @@ const oneVariantPerName = (models) => {
   return [...byName.values()];
 };
 
-const COPILOT_FALLBACK_MODEL = {
-  modelId: 'gpt-4o',
-  label: 'GPT-4o',
-  reasoning: false,
-  maxOutputTokens: 0,
-  multiplier: 1
-};
-
 const normalizeModelCatalog = (rawModels) => {
-  const usable = oneVariantPerName((Array.isArray(rawModels) ? rawModels : []).filter(isUsableChatModel));
+  const chatModels = (Array.isArray(rawModels) ? rawModels : []).filter(isStreamingChatModel);
+  const offeredModels = chatModels.filter(isOfferedByGitHub);
+  const usable = oneVariantPerName(offeredModels.length > 0 ? offeredModels : chatModels);
   const defaults = usable.filter((m) => m.is_chat_default === true);
   const rest = usable.filter((m) => m.is_chat_default !== true);
   return [...defaults, ...rest].map(toCatalogModel);
-};
-
-const isModelRefused = async (token, apiEndpoint, modelId) => {
-  try {
-    const response = await fetch(`${apiEndpoint}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'X-Initiator': 'agent',
-        ...chatHeaders()
-      },
-      body: JSON.stringify({ model: modelId, messages: [{ role: 'user', content: 'hi' }], max_tokens: 1 }),
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
-    });
-    if (response.status !== 400) return false;
-    console.warn(`[AI] Copilot refused ${modelId}: ${responseErrorMessage(await readJson(response)) || 'HTTP 400'}`);
-    return true;
-  } catch (err) {
-    return false;
-  }
-};
-
-const keepAnsweringModels = async (token, apiEndpoint, models) => {
-  const refused = await Promise.all(models.map((model) => isModelRefused(token, apiEndpoint, model.modelId)));
-  return models.filter((model, index) => !refused[index]);
 };
 
 const fetchModels = async (token, apiEndpoint) => {
@@ -234,12 +198,9 @@ const fetchModels = async (token, apiEndpoint) => {
   }
   const body = await readJson(response);
   const rawModels = Array.isArray(body?.data) ? body.data : [];
-  const models = await keepAnsweringModels(token, apiEndpoint, normalizeModelCatalog(rawModels));
-  if (rawModels.length === 0) {
-    console.warn(`[AI] Copilot returned no models from ${hostOf(apiEndpoint)}`);
-  } else if (models.length === 0) {
-    console.warn(`[AI] Copilot returned ${rawModels.length} models from ${hostOf(apiEndpoint)} but none are usable, using ${COPILOT_FALLBACK_MODEL.modelId}: ${rawModels.map(describeExcludedModel).join('; ')}`);
-    return [COPILOT_FALLBACK_MODEL];
+  const models = normalizeModelCatalog(rawModels);
+  if (models.length === 0) {
+    console.warn(`[AI] Copilot returned ${rawModels.length} models from ${hostOf(apiEndpoint)} but none are usable: ${rawModels.map(describeExcludedModel).join('; ')}`);
   }
   return models;
 };
@@ -285,6 +246,16 @@ const isUserInitiatedRequest = (body) => {
   }
 };
 
+const MODEL_REFUSED_CODES = ['model_not_supported', 'model_not_available_for_integrator'];
+
+const modelRefusedError = async (response, requestBody) => {
+  const code = (await readJson(response.clone()))?.error?.code;
+  if (!MODEL_REFUSED_CODES.includes(code)) return null;
+  const modelId = typeof requestBody === 'string' ? parseJson(requestBody)?.model : null;
+  const label = getCopilotCatalog().models.find((m) => m.modelId === modelId)?.label || modelId || 'this model';
+  return new Error(`GitHub Copilot doesn't offer ${label} to this account. Choose another Copilot model, or turn this one off in Preferences > AI.`);
+};
+
 const copilotFetch = async (url, init = {}) => {
   const headers = new Headers(init.headers);
   if (!headers.has('X-Initiator')) {
@@ -297,13 +268,21 @@ const copilotFetch = async (url, init = {}) => {
   if (response.status === 403) {
     throw await accessDeniedError(response);
   }
+  if (response.status === 400) {
+    const refused = await modelRefusedError(response, init.body);
+    if (refused) throw refused;
+  }
   return response;
 };
 
 const createCopilotSdk = ({ token, apiEndpoint }) => createOpenAI({
   apiKey: token,
   baseURL: apiEndpoint,
-  headers: chatHeaders(),
+  headers: {
+    ...editorHeaders(),
+    'OpenAI-Intent': 'conversation-panel',
+    'X-Interaction-Type': 'conversation-panel'
+  },
   fetch: copilotFetch
 });
 

@@ -3,7 +3,7 @@ const { generateText } = require('ai');
 const { getPreferences } = require('../../store/preferences');
 const { getProviderKey, hasProviderKey } = require('./credentials');
 const { getModel, getAvailableModels, isReasoningModel, isOpenAiReasoningModel } = require('./providers');
-const { COPILOT_PROVIDER_ID } = require('./copilot');
+const { COPILOT_PROVIDER_ID, isCopilotModelId } = require('./copilot');
 const { buildSystemPrompt, buildUserPrompt, STOP_SEQUENCES, sanitizeSuggestion } = require('./autocomplete-prompts');
 
 const SUPPORTED_SCRIPT_TYPES = ['tests', 'pre-request', 'post-response'];
@@ -23,6 +23,8 @@ const cheapestCopilotModelId = (available) => {
   if (copilot.length === 0) return null;
   return copilot.reduce((best, model) => (modelCost(model) < modelCost(best) ? model : best)).id;
 };
+
+const cheapestIfCopilot = (modelId, available) => (isCopilotModelId(modelId) ? cheapestCopilotModelId(available) : modelId);
 
 // In-process LRU + TTL cache for completions. Keyed on (model, scriptType,
 // recent-prefix, near-suffix). Bounded so unbounded typing doesn't grow it.
@@ -87,13 +89,10 @@ const pickAutocompleteModelId = () => {
     if (available.some((m) => m.id === id)) return id;
   }
 
-  const cheapestCopilot = cheapestCopilotModelId(available);
-  if (cheapestCopilot) return cheapestCopilot;
-
   // Else fall back to the global defaultModel if it's usable, then first available.
   const defaultModel = ai.defaultModel;
-  if (defaultModel && available.some((m) => m.id === defaultModel)) return defaultModel;
-  return available[0].id;
+  if (defaultModel && available.some((m) => m.id === defaultModel)) return cheapestIfCopilot(defaultModel, available);
+  return cheapestIfCopilot(available[0].id, available);
 };
 
 const resolveModel = (modelId) => getModel(modelId, {
@@ -162,7 +161,7 @@ const registerAutocompleteIpc = () => {
     try {
       const { text } = await generateText({
         model,
-        headers: { 'X-Initiator': 'agent' },
+        ...(isCopilotModelId(modelId) ? { headers: { 'X-Initiator': 'agent' } } : {}),
         system: buildSystemPrompt(scriptType),
         prompt: buildUserPrompt({ prefix, suffix, scriptType, requestContext, variableNames, siblingScripts, security }),
         maxOutputTokens: openAiReasoning ? 1500 : 200,

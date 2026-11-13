@@ -5,6 +5,7 @@ import {
   IconCheck,
   IconCopy,
   IconExternalLink,
+  IconInfoCircle,
   IconLoader2,
   IconLogout,
   IconRefresh,
@@ -231,6 +232,14 @@ const CopilotProviderCard = ({
               {busy === 'sign-out' ? <IconLoader2 size={15} className="spin" /> : <IconLogout size={15} strokeWidth={1.5} />}
             </ActionIcon>
           </div>
+        </div>
+      )}
+
+      {signedIn && models.length === 0 && !errorMessage && (
+        <div className="copilot-hint flex items-start gap-1.5 text-[11px]" data-testid="ai-copilot-no-models">
+          <IconInfoCircle size={12} className="flex-shrink-0 mt-0.5" />
+          GitHub didn't return any Copilot models for this account. Check your Copilot plan, or your
+          organization's Copilot model policy on GitHub, then refresh.
         </div>
       )}
 

@@ -14,9 +14,17 @@ exit 1
 
 const FAKE_USER_CODE = 'ABCD-1234';
 
+const FAKE_MODEL = {
+  id: 'gpt-4.1',
+  name: 'GPT-4.1',
+  capabilities: { type: 'chat', supports: { streaming: true } },
+  policy: { state: 'enabled' },
+  billing: { multiplier: 0 }
+};
+
 type SignInDecision = 'pending' | 'approved' | 'denied';
 
-const installFakeGitHub = (app: ElectronApplication) => app.evaluate(() => {
+const installFakeGitHub = (app: ElectronApplication, models: unknown[] = [FAKE_MODEL]) => app.evaluate((_electron, fakeModels) => {
   const realFetch = globalThis.fetch;
   const fake = { decision: 'pending' };
   (globalThis as any).__fakeGitHub = fake;
@@ -38,22 +46,14 @@ const installFakeGitHub = (app: ElectronApplication) => app.evaluate(() => {
       return json({ data: { viewer: { copilotEndpoints: { api: 'https://copilot.fake.test' } } } });
     }
     if (url === 'https://copilot.fake.test/models') {
-      return json({
-        data: [{
-          id: 'gpt-4.1',
-          name: 'GPT-4.1',
-          capabilities: { type: 'chat', supports: { streaming: true } },
-          policy: { state: 'enabled' },
-          billing: { multiplier: 0 }
-        }]
-      });
+      return json({ data: fakeModels });
     }
     if (url === 'https://copilot.fake.test/chat/completions') {
       return json({ choices: [] });
     }
     return realFetch(input, init);
   };
-});
+}, models);
 
 const decideOnGitHub = (app: ElectronApplication, decision: SignInDecision) =>
   app.evaluate((_electron, next) => {
@@ -144,9 +144,9 @@ test.describe('GitHub Copilot provider card', () => {
   });
 
   test.describe('Sign in with GitHub', () => {
-    const startSignIn = async (launchElectronApp, installFakeClipboard) => {
+    const startSignIn = async (launchElectronApp, installFakeClipboard, models?: unknown[]) => {
       const app = await launchElectronApp({ initUserDataPath: path.join(__dirname, 'init-user-data') });
-      await installFakeGitHub(app);
+      await installFakeGitHub(app, models);
       const page = await waitForReadyPage(app);
       const clipboard = await installFakeClipboard(page);
       const { copilot } = buildCommonLocators(page).ai;
@@ -176,9 +176,25 @@ test.describe('GitHub Copilot provider card', () => {
 
       await test.step('The card shows the account and models, and Copilot is on', async () => {
         await expect(copilot.account()).toHaveText('@bruno-tester');
-        await expect(copilot.header()).toContainText(/\d+\/1 models/);
+        await expect(copilot.header()).toContainText('1/1 models');
         await expect(copilot.userCode()).toHaveCount(0);
         await expect(copilot.providerSwitch()).toBeChecked();
+        await expect(copilot.noModelsNotice()).toHaveCount(0);
+      });
+    });
+
+    test('explains that no models are available when GitHub returns none', async ({ launchElectronApp, installFakeClipboard }) => {
+      const { app, copilot } = await startSignIn(launchElectronApp, installFakeClipboard, []);
+
+      await test.step('Approve the code on GitHub', async () => {
+        await decideOnGitHub(app, 'approved');
+      });
+
+      await test.step('The card shows the account, no models and a notice explaining why', async () => {
+        await expect(copilot.account()).toHaveText('@bruno-tester');
+        await expect(copilot.header()).toContainText('No models available');
+        await expect(copilot.noModelsNotice()).toContainText('GitHub didn\'t return any Copilot models for this account');
+        await expect(copilot.error()).toHaveCount(0);
       });
     });
 
