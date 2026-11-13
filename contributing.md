@@ -11,6 +11,7 @@
 | [Italiano](docs/contributing/contributing_it.md)
 | [Română](docs/contributing/contributing_ro.md)
 | [Polski](docs/contributing/contributing_pl.md)
+| [Tiếng Việt](docs/contributing/contributing_vi.md)
 | [简体中文](docs/contributing/contributing_cn.md)
 | [正體中文](docs/contributing/contributing_zhtw.md)
 | [日本語](docs/contributing/contributing_ja.md)
