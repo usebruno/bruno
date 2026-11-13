@@ -28,7 +28,7 @@ test.describe('Folder post-response script', () => {
     await closeAllCollections(page);
   });
 
-  test('TC-2816: Verify that user is able to add Post-response Script for folder level settings', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
+  test('TC-2816: Verify that user is able to add and execute a Post-response Script for folder level settings', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const { environment, folder } = buildCommonLocators(page);
     const postResponseEditor = folder.postResponseScriptEditor();
 

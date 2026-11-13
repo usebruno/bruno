@@ -31,7 +31,7 @@ test.describe('Folder pre-request script', () => {
     await closeAllCollections(page);
   });
 
-  test('TC-182: Verify that user is able to add Pre-request Script for folder level settings', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
+  test('TC-182: Verify that user is able to add and execute a Pre-request Script for folder level settings', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const { devtools, folder, timeline, timelineHeaders } = buildCommonLocators(page);
     const preRequestEditor = folder.preRequestScriptEditor();
 
