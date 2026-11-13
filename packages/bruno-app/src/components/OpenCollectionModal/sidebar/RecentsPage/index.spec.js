@@ -75,6 +75,7 @@ const modalState = (store) => store.getState().openCollectionModal;
 const findRows = () => screen.findAllByTestId('recents-row');
 const rowNames = () => screen.queryAllByTestId('recents-row').map((row) => within(row).getByTestId('recents-row-name').textContent);
 const rowFor = (name) => screen.queryAllByTestId('recents-row').find((row) => within(row).getByTestId('recents-row-name').textContent === name);
+const checkboxFor = (name) => within(rowFor(name)).getByLabelText(`Select ${name}`);
 
 describe('RecentsPage', () => {
   beforeEach(() => {
@@ -134,8 +135,8 @@ describe('RecentsPage', () => {
     renderPage();
     await findRows();
 
-    rowFor('Orders').focus();
-    fireEvent.keyDown(rowFor('Orders'), { key: 'Enter' });
+    checkboxFor('Orders').focus();
+    fireEvent.keyDown(checkboxFor('Orders'), { key: 'Enter' });
 
     expect(openMultipleCollections).toHaveBeenCalledWith(['/Users/me/shop/orders'], { silent: true, recordRecent: true });
   });
@@ -252,10 +253,10 @@ describe('RecentsPage', () => {
     openMultipleCollections.mockReturnValue(() => Promise.resolve({ opened: [], failed: [], invalid: [billing.path] }));
     const { store } = renderPage();
     await findRows();
-    rowFor('Billing').focus();
+    checkboxFor('Billing').focus();
 
     await act(async () => {
-      fireEvent.keyDown(rowFor('Billing'), { key: 'Enter' });
+      fireEvent.keyDown(checkboxFor('Billing'), { key: 'Enter' });
     });
     expect(modalState(store).isOpen).toBe(true);
     expect(rowNames()).toEqual(['Billing', 'Orders', 'Open One']);
@@ -273,7 +274,7 @@ describe('RecentsPage', () => {
     recentsReturn(Promise.resolve([billing]));
     const { store } = renderPage();
     await findRows();
-    rowFor('Billing').focus();
+    checkboxFor('Billing').focus();
 
     recentsReturn(Promise.resolve([]));
     await act(async () => {

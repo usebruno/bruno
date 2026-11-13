@@ -90,7 +90,7 @@ const CollectionList = ({
     }
     virtuoso.current.scrollIntoView({
       index,
-      done: () => rowsElement.current.querySelector(`[data-index="${index}"] .collection-list-row`)?.focus({ preventScroll: true })
+      done: () => rowsElement.current.querySelector(`[data-index="${index}"] input, [data-index="${index}"] button`)?.focus({ preventScroll: true })
     });
   };
 

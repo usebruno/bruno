@@ -8,18 +8,11 @@ const StyledWrapper = styled.div`
   height: 3rem;
   padding: 0.375rem 0.5rem;
   border-radius: ${(props) => props.theme.border.radius.md};
-  outline: none;
   cursor: pointer;
 
   &:hover,
-  &:focus-visible,
   &:has(:focus-visible) {
     background: ${(props) => props.theme.background.crust};
-  }
-
-  &:focus-visible {
-    outline: 0.0625rem solid ${(props) => props.theme.input.focusBorder};
-    outline-offset: -0.0625rem;
   }
 
   .collection-list-row-lead {
@@ -50,7 +43,6 @@ const StyledWrapper = styled.div`
   }
 
   &:not(.is-open):hover,
-  &:not(.is-open):focus-visible,
   &:not(.is-open):has(:focus-visible),
   &.is-selecting:not(.is-open) {
     .collection-list-row-icon {
@@ -118,7 +110,6 @@ const StyledWrapper = styled.div`
   }
 
   &:hover,
-  &:focus-visible,
   &:has(:focus-visible) {
     .collection-list-row-action {
       opacity: 1;

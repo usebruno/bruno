@@ -5,12 +5,6 @@ import Checkbox from 'ui/Checkbox';
 import { formatParentPath } from './utils';
 import StyledWrapper from './StyledWrapper';
 
-const removeFromTabOrder = (checkbox) => {
-  if (checkbox) {
-    checkbox.tabIndex = -1;
-  }
-};
-
 const keepTextUnselectedOnShiftClick = (event) => {
   if (event.shiftKey) {
     event.preventDefault();
@@ -33,20 +27,20 @@ const CollectionListRow = ({
   const openOrSwitch = isOpen ? onSwitch : onOpen;
 
   const handleKeyDown = (event) => {
-    if (event.target !== event.currentTarget) {
-      return;
-    }
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
       onMoveFocus(event.key === 'ArrowDown' ? 1 : -1);
-    } else if (event.key === ' ') {
+      return;
+    }
+    if (event.target.type !== 'checkbox') {
+      return;
+    }
+    if (event.key === ' ') {
       event.preventDefault();
-      if (!isOpen) {
-        onToggle(event);
-      }
+      onToggle(event);
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      openOrSwitch();
+      onOpen();
     }
   };
 
@@ -59,7 +53,6 @@ const CollectionListRow = ({
     <StyledWrapper
       ref={rowRef}
       className={classnames('collection-list-row', { 'is-open': isOpen, 'is-selecting': isSelecting })}
-      tabIndex={0}
       onMouseDown={keepTextUnselectedOnShiftClick}
       onClick={isOpen ? undefined : onToggle}
       onKeyDown={handleKeyDown}
@@ -71,7 +64,7 @@ const CollectionListRow = ({
         </span>
         {!isOpen && (
           <span className="collection-list-row-checkbox">
-            <Checkbox ref={removeFromTabOrder} checked={isSelected} onChange={() => {}} ariaLabel={`Select ${collection.name}`} />
+            <Checkbox checked={isSelected} onChange={() => {}} ariaLabel={`Select ${collection.name}`} />
           </span>
         )}
       </span>

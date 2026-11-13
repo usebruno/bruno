@@ -35,6 +35,7 @@ const renderList = (props = {}) => {
 const rows = () => screen.queryAllByTestId('list-row');
 const rowNames = () => rows().map((row) => within(row).getByTestId('list-row-name').textContent);
 const rowFor = (name) => rows().find((row) => within(row).getByTestId('list-row-name').textContent === name);
+const checkboxFor = (name) => within(rowFor(name)).getByLabelText(`Select ${name}`);
 const searchBox = () => screen.getByTestId('list-search');
 const search = (text) => fireEvent.change(searchBox(), { target: { value: text } });
 const openSelectedButton = () => screen.queryByTestId('list-open-selected');
@@ -65,18 +66,19 @@ describe('CollectionList', () => {
     expect(within(billing).queryByTestId('list-row-open')).not.toBeInTheDocument();
 
     fireEvent.click(billing);
-    fireEvent.keyDown(billing, { key: ' ' });
+    fireEvent.keyDown(within(billing).getByRole('button', { name: 'Switch to Billing' }), { key: ' ' });
 
     expect(openSelectedButton()).not.toBeInTheDocument();
   });
 
-  it('switches to a collection that is already open from its Switch button or with Enter', () => {
+  it('switches to a collection that is already open from its Switch button, leaving Enter to the button', () => {
     const { onOpen, onSwitch } = renderList({ openPathKeys: new Set(['/Users/me/work/billing']) });
+    const switchButton = within(rowFor('Billing')).getByRole('button', { name: 'Switch to Billing' });
 
-    fireEvent.click(within(rowFor('Billing')).getByRole('button', { name: 'Switch to Billing' }));
-    fireEvent.keyDown(rowFor('Billing'), { key: 'Enter' });
+    fireEvent.click(switchButton);
+    fireEvent.keyDown(switchButton, { key: 'Enter' });
 
-    expect(onSwitch).toHaveBeenCalledTimes(2);
+    expect(onSwitch).toHaveBeenCalledTimes(1);
     expect(onSwitch).toHaveBeenCalledWith('/Users/me/work/billing');
     expect(onOpen).not.toHaveBeenCalled();
   });
@@ -89,7 +91,7 @@ describe('CollectionList', () => {
     expect(within(rowFor('Orders')).getByLabelText('Select Orders')).toBeChecked();
     expect(openSelectedButton()).toHaveTextContent('Open 1 collection');
 
-    fireEvent.keyDown(rowFor('payments'), { key: ' ' });
+    fireEvent.keyDown(checkboxFor('payments'), { key: ' ' });
     expect(openSelectedButton()).toHaveTextContent('Open 2 collections');
     expect(rowFor('Billing')).toHaveClass('is-selecting');
 
@@ -105,15 +107,18 @@ describe('CollectionList', () => {
     expect(rowFor('Billing')).not.toHaveClass('is-selecting');
   });
 
-  it('opens one collection from its Open button or with Enter, without ticking it', () => {
+  it('opens one collection from its Open button or with Enter on its checkbox, without ticking it', () => {
     const { onOpen } = renderList();
+    const openButton = within(rowFor('Billing')).getByRole('button', { name: 'Open Billing' });
 
-    fireEvent.click(within(rowFor('Billing')).getByRole('button', { name: 'Open Billing' }));
+    fireEvent.click(openButton);
     expect(onOpen).toHaveBeenCalledWith(['/Users/me/work/billing']);
 
-    fireEvent.keyDown(rowFor('Accounts'), { key: 'Enter' });
+    fireEvent.keyDown(checkboxFor('Accounts'), { key: 'Enter' });
     expect(onOpen).toHaveBeenCalledWith(['/Users/me/work/accounts']);
 
+    fireEvent.keyDown(openButton, { key: 'Enter' });
+    expect(onOpen).toHaveBeenCalledTimes(2);
     expect(openSelectedButton()).not.toBeInTheDocument();
   });
 
@@ -140,8 +145,8 @@ describe('CollectionList', () => {
     renderList();
     search('work');
 
-    fireEvent.keyDown(rowFor('Accounts'), { key: ' ' });
-    fireEvent.keyDown(rowFor('payments'), { key: ' ', shiftKey: true });
+    fireEvent.keyDown(checkboxFor('Accounts'), { key: ' ' });
+    fireEvent.keyDown(checkboxFor('payments'), { key: ' ', shiftKey: true });
 
     expect(rowNames()).toEqual(['payments', 'Billing', 'Accounts']);
     expect(openSelectedButton()).toHaveTextContent('Open 3 collections');
@@ -149,26 +154,45 @@ describe('CollectionList', () => {
 
   it('moves focus between rows with the arrow keys and stops at both ends', () => {
     renderList();
-    rowFor('payments').focus();
+    checkboxFor('payments').focus();
 
-    fireEvent.keyDown(rowFor('payments'), { key: 'ArrowDown' });
-    expect(rowFor('Billing')).toHaveFocus();
+    fireEvent.keyDown(checkboxFor('payments'), { key: 'ArrowDown' });
+    expect(checkboxFor('Billing')).toHaveFocus();
 
-    fireEvent.keyDown(rowFor('Billing'), { key: 'ArrowUp' });
-    fireEvent.keyDown(rowFor('payments'), { key: 'ArrowUp' });
-    expect(rowFor('payments')).toHaveFocus();
+    fireEvent.keyDown(checkboxFor('Billing'), { key: 'ArrowUp' });
+    fireEvent.keyDown(checkboxFor('payments'), { key: 'ArrowUp' });
+    expect(checkboxFor('payments')).toHaveFocus();
 
-    rowFor('Accounts').focus();
-    fireEvent.keyDown(rowFor('Accounts'), { key: 'ArrowDown' });
-    expect(rowFor('Accounts')).toHaveFocus();
+    checkboxFor('Accounts').focus();
+    fireEvent.keyDown(checkboxFor('Accounts'), { key: 'ArrowDown' });
+    expect(checkboxFor('Accounts')).toHaveFocus();
   });
 
-  it('makes each row a tab stop and leaves the checkbox and the list box out of the tab order', () => {
-    renderList();
+  it('moves focus with the arrow keys onto the Switch button of a collection that is already open, and back', () => {
+    renderList({ openPathKeys: new Set(['/Users/me/work/accounts']) });
+    const switchButton = within(rowFor('Accounts')).getByRole('button', { name: 'Switch to Accounts' });
+    checkboxFor('Orders').focus();
 
-    expect(rowFor('Billing')).toHaveAttribute('tabindex', '0');
-    expect(within(rowFor('Billing')).getByLabelText('Select Billing')).toHaveAttribute('tabindex', '-1');
-    expect(screen.getByTestId('list-list').querySelectorAll('[tabindex="0"]')).toHaveLength(rows().length);
+    fireEvent.keyDown(checkboxFor('Orders'), { key: 'ArrowDown' });
+    expect(switchButton).toHaveFocus();
+
+    fireEvent.keyDown(switchButton, { key: 'ArrowUp' });
+    expect(checkboxFor('Orders')).toHaveFocus();
+  });
+
+  it('makes the checkbox the keyboard stop of each row, so its ticked state is announced', () => {
+    renderList();
+    const checkbox = checkboxFor('Billing');
+
+    expect(rowFor('Billing')).not.toHaveAttribute('tabindex');
+    expect(checkbox).not.toHaveAttribute('tabindex');
+    expect(screen.getByTestId('list-list').querySelectorAll('[tabindex="0"]')).toHaveLength(0);
+
+    checkbox.focus();
+    fireEvent.keyDown(checkbox, { key: ' ' });
+
+    expect(checkbox).toHaveFocus();
+    expect(checkbox).toBeChecked();
   });
 
   it('finds collections by name, by path and by the path shown with ~, in the same order', () => {
@@ -233,7 +257,7 @@ describe('CollectionList', () => {
 
   it('moves focus to the search box when the focused row goes away', async () => {
     const { rerender } = renderList();
-    rowFor('Billing').focus();
+    checkboxFor('Billing').focus();
 
     rerender({ collections: collections.filter((collection) => collection.name !== 'Billing') });
     await act(async () => {});
