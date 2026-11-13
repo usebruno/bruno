@@ -28,7 +28,7 @@ test.describe('Migrate to YML — unsaved request', () => {
 
     await test.step('Edit the request without saving', async () => {
       await fillRequestUrl(page, '/edited');
-      await expect(tabs.tabDraftIndicator(tabs.activeRequestTab())).toBeVisible();
+      await tabs.tabDraftIndicator(tabs.activeRequestTab()).waitFor({ state: 'visible' });
     });
 
     await test.step('Open the migrate modal and click Migrate', async () => {
@@ -40,7 +40,7 @@ test.describe('Migrate to YML — unsaved request', () => {
       await expect(migrateToYml.draftsStep()).toBeVisible();
       await expect(migrateToYml.draftsTitle()).toBeVisible();
       await expect(migrateToYml.draftsSummary()).toHaveText('You have unsaved changes in 1 item. Save or discard them before migrating.');
-      await expect(migrateToYml.draftsItem(`Request: ${REQUEST_NAME}.bru`)).toBeVisible();
+      await migrateToYml.draftsItem(`Request: ${REQUEST_NAME}.bru`).waitFor({ state: 'visible' });
 
       await expect(migrateToYml.draftsDiscardAll()).toBeEnabled();
       await expect(migrateToYml.draftsDiscardAll()).toHaveText('Discard All');
