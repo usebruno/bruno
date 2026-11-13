@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
 const { parseDotEnv } = require('@usebruno/filestore');
+const { isWSLPath } = require('../utils/filesystem');
 const { setDotEnvVars, clearDotEnvVars, setWorkspaceDotEnvVars, clearWorkspaceDotEnvVars } = require('../store/process-env');
 
 const isDotEnvFile = (filename) => {
@@ -102,6 +103,8 @@ class DotEnvWatcher {
 
     const watcher = chokidar.watch(collectionPath, {
       ...DEFAULT_WATCHER_OPTIONS,
+      // Native fs events do not cross the WSL boundary, so poll like collection-watcher does
+      ...(isWSLPath(collectionPath) && { usePolling: true }),
       disableGlobbing: true,
       awaitWriteFinish: {
         stabilityThreshold: 80,
@@ -152,6 +155,7 @@ class DotEnvWatcher {
 
     const watcher = chokidar.watch(workspacePath, {
       ...DEFAULT_WATCHER_OPTIONS,
+      ...(isWSLPath(workspacePath) && { usePolling: true }),
       disableGlobbing: true,
       awaitWriteFinish: {
         stabilityThreshold: 80,
