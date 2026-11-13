@@ -1,5 +1,8 @@
 import { SCRIPT_TYPES } from '@usebruno/common';
 import scriptApiManifest from 'script-api-manifest';
+import { EXTERNAL_LINK_ICON_SVG_TEXT } from 'utils/codemirror/scopeIcons';
+
+const SCRIPT_API_DOCS_URL = 'https://docs.usebruno.com/testing/script/javascript-reference';
 
 // The globals every hint starts with.
 export const HINT_ROOTS = ['bru', 'req', 'res'];
@@ -78,8 +81,71 @@ const appendParagraph = (parent, className, text) => {
   parent.appendChild(paragraph);
 };
 
+const appendSpan = (parent, className, text) => {
+  const span = document.createElement('span');
+  span.className = className;
+  span.textContent = text;
+  parent.appendChild(span);
+};
+
 /**
- * Renders an entry's docs: signature, summary, description, first example and a Safe Mode note.
+ * The signature's text in parts, with parameter names and types marked for coloring.
+ * @param {object} entry
+ * @returns {{ text: string, className?: string }[] | null}
+ */
+const getSignatureParts = (entry) => {
+  const name = entry.path.slice(entry.path.lastIndexOf('.') + 1);
+  const type = (text) => ({ text, className: 'bruno-api-doc-type' });
+
+  if (entry.returns) {
+    const params = entry.params.flatMap((param, index) => [
+      ...(index > 0 ? [{ text: ', ' }] : []),
+      { text: `${param.rest ? '...' : ''}${param.name}${param.optional ? '?' : ''}`, className: 'bruno-api-doc-param-name' },
+      { text: ': ' },
+      type(param.type)
+    ]);
+    return [{ text: `${name}(` }, ...params, { text: '): ' }, type(entry.returns.type)];
+  }
+
+  const typePrefix = `${name}: `;
+  return entry.signature.startsWith(typePrefix)
+    ? [{ text: typePrefix }, type(entry.signature.slice(typePrefix.length))]
+    : null;
+};
+
+const appendSignature = (parent, entry) => {
+  const signature = document.createElement('code');
+  signature.className = 'bruno-api-doc-signature';
+  signature.setAttribute('data-testid', 'api-doc-signature');
+  const parentPath = entry.path.includes('.') ? entry.path.slice(0, entry.path.lastIndexOf('.') + 1) : '';
+
+  const parts = getSignatureParts(entry);
+  if (parts && parts.map((part) => part.text).join('') === entry.signature) {
+    signature.appendChild(document.createTextNode(parentPath));
+    parts.forEach(({ text, className }) => {
+      if (className) appendSpan(signature, className, text);
+      else signature.appendChild(document.createTextNode(text));
+    });
+  } else {
+    signature.textContent = `${parentPath}${entry.signature}`;
+  }
+  parent.appendChild(signature);
+};
+
+const appendDocsLink = (parent) => {
+  const link = document.createElement('a');
+  link.className = 'bruno-api-doc-link';
+  link.setAttribute('data-testid', 'api-doc-link');
+  link.href = SCRIPT_API_DOCS_URL;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.innerHTML = EXTERNAL_LINK_ICON_SVG_TEXT;
+  link.appendChild(document.createTextNode('Docs'));
+  parent.appendChild(link);
+};
+
+/**
+ * Renders an entry's docs: signature, summary, description, first example and a link to the docs.
  * @param {object} entry
  * @returns {HTMLElement}
  */
@@ -87,12 +153,7 @@ export const renderApiDoc = (entry) => {
   const container = document.createElement('div');
   container.className = 'bruno-api-doc';
 
-  const signature = document.createElement('code');
-  signature.className = 'bruno-api-doc-signature';
-  signature.setAttribute('data-testid', 'api-doc-signature');
-  const parentPath = entry.path.includes('.') ? entry.path.slice(0, entry.path.lastIndexOf('.') + 1) : '';
-  signature.textContent = `${parentPath}${entry.signature}`;
-  container.appendChild(signature);
+  appendSignature(container, entry);
 
   if (entry.summary) appendParagraph(container, 'bruno-api-doc-summary', entry.summary);
   if (entry.description) {
@@ -108,13 +169,7 @@ export const renderApiDoc = (entry) => {
     container.appendChild(example);
   }
 
-  if (!isSafeModeAvailable(entry)) {
-    const note = document.createElement('p');
-    note.className = 'bruno-api-doc-note';
-    note.setAttribute('data-testid', 'api-doc-safe-mode-note');
-    note.textContent = 'Not available in Safe Mode.';
-    container.appendChild(note);
-  }
+  appendDocsLink(container);
 
   return container;
 };
