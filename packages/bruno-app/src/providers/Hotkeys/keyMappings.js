@@ -41,7 +41,8 @@ export const KEY_BINDING_SECTIONS = [
     bindings: {
       sendRequest: { mac: 'command+bind+enter', windows: 'ctrl+bind+enter', name: 'Send Request' }, // D
       changeLayout: { mac: 'command+bind+j', windows: 'ctrl+bind+j', name: 'Change Orientation' }, // D
-      prettify: { mac: 'alt+bind+shift+bind+f', windows: 'alt+bind+shift+bind+f', name: 'Prettify' } // D
+      prettify: { mac: 'alt+bind+shift+bind+f', windows: 'alt+bind+shift+bind+f', name: 'Prettify' }, // D
+      openCookies: { mac: 'command+bind+shift+bind+k', windows: 'ctrl+bind+shift+bind+k', name: 'Open Cookies' }
     }
   },
   {

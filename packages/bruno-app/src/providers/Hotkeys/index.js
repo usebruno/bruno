@@ -400,6 +400,20 @@ export const HotkeysProvider = (props) => {
       unbindAction('changeLayout');
     };
   }, [preferences, dispatch, userKeyBindings, keybindingsEnabled]);
+  // Cookies Open
+  useEffect(() => {
+    bindAction('openCookies', (e) => {
+      const cookiesButton = document.querySelector('[data-trigger="cookies"]');
+      if (cookiesButton) {
+        cookiesButton.click();
+      }
+      return false;
+    });
+
+    return () => {
+      unbindAction('openCookies');
+    };
+  }, [userKeyBindings, keybindingsEnabled]);
 
   // trigger autocomplete in the focused CodeMirror-based field.
   useEffect(() => {
