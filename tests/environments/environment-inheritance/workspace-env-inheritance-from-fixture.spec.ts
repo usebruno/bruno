@@ -7,6 +7,7 @@ import {
   copyEnvironment,
   createEnvironment,
   deleteEnvironment,
+  expectEnvVarValue,
   expectResponseContains,
   getResponseBody,
   openCollection,
@@ -82,7 +83,7 @@ test.describe('Workspace environment inheritance', () => {
 
     // An own row of the same name replaces the ancestor's, rather than adding a second row.
     await expect(environment.inheritedVarRow('workspace_overridden')).toHaveCount(0);
-    await expect(environment.varRowLine('workspace_overridden')).toHaveText('from_workspace_dev');
+    await expectEnvVarValue(page, 'workspace_overridden', 'from_workspace_dev');
 
     await expect(environment.inheritedVarRow('workspace_disabled')).toHaveCount(0);
 
@@ -105,7 +106,7 @@ test.describe('Workspace environment inheritance', () => {
 
     await test.step('An own row replaces the inherited data type, not just the value', async () => {
       await expect(environment.inheritedVarRow('workspace_typed_override')).toHaveCount(0);
-      await expect(environment.varRowLine('workspace_typed_override')).toHaveText('overridden_in_workspace_dev');
+      await expectEnvVarValue(page, 'workspace_typed_override', 'overridden_in_workspace_dev');
       await expect(
         dataTypeSelector.typeLabel(environment.varRow('workspace_typed_override'))
       ).toHaveAttribute('data-selected-type', 'string');
@@ -176,7 +177,7 @@ test.describe('Workspace environment inheritance', () => {
       await environment.inheritedVarSource('workspace_base_only').click();
 
       await expect(environment.detailsTitle()).toHaveText('workspace_base');
-      await expect(environment.varRowLine('workspace_base_only')).toHaveText('from_workspace_base');
+      await expectEnvVarValue(page, 'workspace_base_only', 'from_workspace_base');
     });
 
     await closeEnvironmentPanel(page, 'global');
@@ -198,7 +199,7 @@ test.describe('Workspace environment inheritance', () => {
 
     await expect(modal.byTitle('Unsaved changes')).toBeVisible();
     await expect(environment.detailsTitle()).toHaveText('workspace_dev');
-    await expect(environment.varRowLine('workspace_overridden')).toHaveText('edited_but_unsaved');
+    await expectEnvVarValue(page, 'workspace_overridden', 'edited_but_unsaved');
 
     await modal.closeButton().click();
     await environment.resetTab().click();
@@ -319,7 +320,7 @@ test.describe('Workspace environment inheritance', () => {
     await expect(environment.varRow('workspace_base_only')).toHaveCount(0);
 
     // `workspace_session_id` was written with a different value, so it becomes a row of its own.
-    await expect(environment.varRowLine('workspace_session_id')).toHaveText('script_session');
+    await expectEnvVarValue(page, 'workspace_session_id', 'script_session');
     await expect(environment.inheritedVarRow('workspace_session_id')).toHaveCount(0);
 
     await closeEnvironmentPanel(page, 'global');

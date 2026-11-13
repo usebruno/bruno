@@ -9,6 +9,7 @@ import {
   createCollection,
   createEnvironment,
   deleteEnvironment,
+  expectEnvVarValue,
   expectResponseContains,
   getResponseBody,
   openCollection,
@@ -124,7 +125,7 @@ test.describe('Collection environment inheritance', () => {
 
     // An own row of the same name replaces the ancestor's, rather than adding a second row.
     await expect(environment.inheritedVarRow('api_url')).toHaveCount(0);
-    await expect(environment.varRowLine('api_url')).toHaveText('https://dev.example.com');
+    await expectEnvVarValue(page, 'api_url', 'https://dev.example.com');
 
     await expect(environment.inheritedVarRow('disabled_in_base')).toHaveCount(0);
 
@@ -147,7 +148,7 @@ test.describe('Collection environment inheritance', () => {
 
     await test.step('An own row replaces the inherited data type, not just the value', async () => {
       await expect(environment.inheritedVarRow('typed_override')).toHaveCount(0);
-      await expect(environment.varRowLine('typed_override')).toHaveText('overridden_in_dev');
+      await expectEnvVarValue(page, 'typed_override', 'overridden_in_dev');
       await expect(dataTypeSelector.typeLabel(environment.varRow('typed_override'))).toHaveAttribute(
         'data-selected-type',
         'string'
@@ -212,7 +213,7 @@ test.describe('Collection environment inheritance', () => {
       await environment.inheritedVarSource('base_only').click();
 
       await expect(environment.detailsTitle()).toHaveText('base');
-      await expect(environment.varRowLine('base_only')).toHaveText('base_only_value');
+      await expectEnvVarValue(page, 'base_only', 'base_only_value');
     });
 
     await closeEnvironmentPanel(page);
@@ -234,7 +235,7 @@ test.describe('Collection environment inheritance', () => {
 
     await expect(modal.byTitle('Unsaved changes')).toBeVisible();
     await expect(environment.detailsTitle()).toHaveText('dev');
-    await expect(environment.varRowLine('dev_only')).toHaveText('edited_but_unsaved');
+    await expectEnvVarValue(page, 'dev_only', 'edited_but_unsaved');
 
     await modal.closeButton().click();
     await environment.resetTab().click();
@@ -344,7 +345,7 @@ test.describe('Collection environment inheritance', () => {
     await expect(environment.varRow('base_only')).toHaveCount(0);
 
     // `session_id` was written with a different value, so it becomes a row of its own.
-    await expect(environment.varRowLine('session_id')).toHaveText('script_session');
+    await expectEnvVarValue(page, 'session_id', 'script_session');
     await expect(environment.inheritedVarRow('session_id')).toHaveCount(0);
 
     await closeEnvironmentPanel(page);
@@ -482,7 +483,7 @@ test.describe('Collection environment inheritance', () => {
       await addEnvironmentVariable(page, LEVEL_2.overrides.region);
 
       await expect(environment.inheritedVarRow(LEVEL_2.overrides.region.name)).toHaveCount(0);
-      await expect(environment.varRowLine(LEVEL_2.overrides.region.name)).toHaveText(LEVEL_2.overrides.region.value);
+      await expectEnvVarValue(page, LEVEL_2.overrides.region.name, LEVEL_2.overrides.region.value);
     });
 
     await test.step('Saving the tab writes the own rows and leaves the inherited ones behind', async () => {

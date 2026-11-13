@@ -14,6 +14,7 @@ import {
   createRequest,
   deleteEnvironment,
   disableEnvironmentVariable,
+  expectEnvVarValue,
   expectResponseContains,
   getResponseBody,
   openEnvironmentConfigTab,
@@ -280,7 +281,7 @@ test.describe('Collection environment inheritance, authored in the app', () => {
 
     // An own row of the same name replaces the ancestor's, rather than adding a second row.
     await expect(environment.inheritedVarRow(DEV.variables.apiUrl.name)).toHaveCount(0);
-    await expect(environment.varRowLine(DEV.variables.apiUrl.name)).toHaveText(DEV.variables.apiUrl.value);
+    await expectEnvVarValue(page, DEV.variables.apiUrl.name, DEV.variables.apiUrl.value);
 
     await expect(environment.inheritedVarRow(BASE.variables.disabledInBase.name)).toHaveCount(0);
 
@@ -303,9 +304,7 @@ test.describe('Collection environment inheritance, authored in the app', () => {
 
     await test.step('An own row replaces the inherited data type, not just the value', async () => {
       await expect(environment.inheritedVarRow(DEV.variables.typedOverride.name)).toHaveCount(0);
-      await expect(environment.varRowLine(DEV.variables.typedOverride.name)).toHaveText(
-        DEV.variables.typedOverride.value
-      );
+      await expectEnvVarValue(page, DEV.variables.typedOverride.name, DEV.variables.typedOverride.value);
       await expect(
         dataTypeSelector.typeLabel(environment.varRow(DEV.variables.typedOverride.name))
       ).toHaveAttribute('data-selected-type', 'string');
@@ -375,7 +374,7 @@ test.describe('Collection environment inheritance, authored in the app', () => {
       await environment.inheritedVarSource(BASE.variables.baseOnly.name).click();
 
       await expect(environment.detailsTitle()).toHaveText(BASE.name);
-      await expect(environment.varRowLine(BASE.variables.baseOnly.name)).toHaveText(BASE.variables.baseOnly.value);
+      await expectEnvVarValue(page, BASE.variables.baseOnly.name, BASE.variables.baseOnly.value);
     });
 
     await closeEnvironmentPanel(page);
@@ -401,7 +400,7 @@ test.describe('Collection environment inheritance, authored in the app', () => {
 
     await expect(modal.byTitle('Unsaved changes')).toBeVisible();
     await expect(environment.detailsTitle()).toHaveText(DEV.name);
-    await expect(environment.varRowLine(DEV.variables.devOnly.name)).toHaveText('edited_but_unsaved');
+    await expectEnvVarValue(page, DEV.variables.devOnly.name, 'edited_but_unsaved');
 
     await modal.closeButton().click();
     await environment.resetTab().click();
@@ -511,7 +510,7 @@ test.describe('Collection environment inheritance, authored in the app', () => {
     await expect(environment.varRow(BASE.variables.baseOnly.name)).toHaveCount(0);
 
     // `session_id` was written with a different value, so it becomes a row of its own.
-    await expect(environment.varRowLine(BASE.variables.sessionId.name)).toHaveText('script_session');
+    await expectEnvVarValue(page, BASE.variables.sessionId.name, 'script_session');
     await expect(environment.inheritedVarRow(BASE.variables.sessionId.name)).toHaveCount(0);
 
     await closeEnvironmentPanel(page);
@@ -546,7 +545,7 @@ test.describe('Collection environment inheritance, authored in the app', () => {
       await expect(environment.collectionEnvTab()).toBeVisible();
       await expect(environment.detailsTitle()).toHaveText(BASE.name);
       await expect(environment.variablesTab()).toHaveClass(/active/);
-      await expect(environment.varRowLine(BASE.variables.host.name)).toHaveText(BASE.variables.host.value);
+      await expectEnvVarValue(page, BASE.variables.host.name, BASE.variables.host.value);
       await expect(environment.inheritedVarRow(BASE.variables.host.name)).toHaveCount(0);
     });
 
@@ -755,7 +754,7 @@ test.describe('Collection environment inheritance lifecycle, authored in the app
 
       for (const override of [LEVEL_2.overrides.region, LEVEL_2.overrides.count]) {
         await expect(environment.inheritedVarRow(override.name)).toHaveCount(0);
-        await expect(environment.varRowLine(override.name)).toHaveText(override.value);
+        await expectEnvVarValue(page, override.name, override.value);
       }
     });
 
