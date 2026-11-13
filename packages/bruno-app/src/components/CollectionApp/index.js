@@ -258,6 +258,7 @@ const CollectionApp = ({ item, collection }) => {
 
       dispatch(
         responseReceived({
+          requestUid,
           itemUid: target.uid,
           collectionUid: collection.uid,
           response: {

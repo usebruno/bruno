@@ -134,6 +134,19 @@ export const openCollectionFromPath = async (
 };
 
 /**
+ * Wait for the Electron renderer to reach the loaded app state.
+ * @param page - The Playwright page object
+ * @param options - Optional timeout settings
+ */
+export const waitForAppLoaded = async (
+  page: Page,
+  options: { timeout?: number } = {}
+): Promise<void> => {
+  const { timeout = 30000 } = options;
+  await page.locator('[data-app-state="loaded"]').waitFor({ timeout });
+};
+
+/**
  * Wait for a collection to finish mounting (loading spinner disappears and items are stable)
  * @param page - The Playwright page object
  * @param collectionName - The name of the collection to wait for

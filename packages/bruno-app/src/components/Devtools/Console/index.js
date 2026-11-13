@@ -19,8 +19,10 @@ import {
   setActiveTab,
   clearDebugErrors,
   updateNetworkFilter,
-  toggleAllNetworkFilters
+  toggleAllNetworkFilters,
+  clearSelectedRequest
 } from 'providers/ReduxStore/slices/logs';
+import { clearAllNetworkRequests } from 'providers/ReduxStore/slices/collections';
 
 import { DevToolsFilterDropdown } from './FilterDropdown';
 import LogIcon from './LogIcon';
@@ -235,6 +237,8 @@ const Console = () => {
   const dispatch = useDispatch();
   const { logs, filters, activeTab, selectedRequest, selectedError, networkFilters, debugErrors } = useSelector((state) => state.logs);
   const collections = useSelector((state) => state.collections.collections);
+  const networkRequestIds = useSelector((state) => state.collections.networkRequestIds || []);
+  const requestTimelineEvents = useSelector((state) => state.collections.requestTimelineEvents || {});
   const [savedDetailsPanelWidth, setSavedDetailsPanelWidth] = usePersistedState({ key: 'devtools-details-panel-width', default: 400 });
   const consoleRef = useRef(null);
   const [consoleWidth, setConsoleWidth] = useState(0);
@@ -270,24 +274,13 @@ const Console = () => {
   }, {});
 
   const allRequests = React.useMemo(() => {
-    const requests = [];
-
-    collections.forEach((collection) => {
-      if (collection.timeline) {
-        collection.timeline
-          .filter((entry) => entry.type === 'request')
-          .forEach((entry) => {
-            requests.push({
-              ...entry,
-              collectionName: collection.name,
-              collectionUid: collection.uid
-            });
-          });
-      }
-    });
-
-    return requests.sort((a, b) => a.timestamp - b.timestamp);
-  }, [collections]);
+    const collectionNames = new Map(collections.map((collection) => [collection.uid, collection.name]));
+    return networkRequestIds
+      .map((requestEventId) => requestTimelineEvents[requestEventId])
+      .filter(Boolean)
+      .map((entry) => ({ ...entry, collectionName: collectionNames.get(entry.collectionUid) }))
+      .sort((a, b) => a.timestamp - b.timestamp);
+  }, [collections, networkRequestIds, requestTimelineEvents]);
 
   const filteredLogs = logs.filter((log) => filters[log.type]);
   const filteredRequests = allRequests.filter((request) => {
@@ -327,6 +320,11 @@ const Console = () => {
 
   const handleToggleAllNetworkFilters = (enabled) => {
     dispatch(toggleAllNetworkFilters(enabled));
+  };
+
+  const handleClearNetworkLogs = () => {
+    dispatch(clearAllNetworkRequests());
+    dispatch(clearSelectedRequest());
   };
 
   const handleTabChange = (tab) => {
@@ -407,6 +405,17 @@ const Console = () => {
                 headerLabel="Filter by Method"
                 title="Filter requests by method"
               />
+            </div>
+            <div className="action-controls">
+              <button
+                className="control-button"
+                onClick={handleClearNetworkLogs}
+                title="Clear all network requests"
+                data-testid="clear-network-logs"
+                disabled={allRequests.length === 0}
+              >
+                <IconTrash size={16} strokeWidth={1.5} />
+              </button>
             </div>
           </div>
         );
