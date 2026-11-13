@@ -574,12 +574,13 @@ const parseYmlFileMeta = (data) => {
     const yaml = require('js-yaml');
     const parsed = yaml.load(data);
 
-    if (!parsed || !parsed.meta) {
-      console.log('No "meta" section found in YAML file.');
+    if (!parsed || !parsed.info) {
+      console.log('No "info" section found in YAML file.');
       return null;
     }
 
-    const metaJson = parsed.meta;
+    const metaJson = parsed.info;
+    const requestJson = parsed.http || parsed.graphql || parsed.grpc || parsed.websocket || {};
 
     // Transform to the format expected by bruno-app
     let requestType = metaJson.type;
@@ -587,7 +588,8 @@ const parseYmlFileMeta = (data) => {
       http: 'http-request',
       graphql: 'graphql-request',
       grpc: 'grpc-request',
-      ws: 'ws-request'
+      ws: 'ws-request',
+      websocket: 'ws-request'
     };
     requestType = typeMap[requestType] || 'http-request';
 
@@ -599,8 +601,8 @@ const parseYmlFileMeta = (data) => {
       settings: {},
       tags: metaJson.tags || [],
       request: {
-        method: '',
-        url: '',
+        method: requestJson.method || '',
+        url: requestJson.url || '',
         params: [],
         headers: [],
         auth: { mode: 'none' },

@@ -23,7 +23,7 @@ import {
 } from '@tabler/icons';
 import { useSelector, useDispatch, useStore } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem } from 'providers/ReduxStore/slices/collections/actions';
+import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem, mountCollection, revealItemInSidebar } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
 import { formatIpcError } from 'utils/common/error';
 import { toggleCollectionItem, expandItem, collapseItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
@@ -39,7 +39,11 @@ import RunCollectionItem from '../RunCollectionItem';
 import GenerateCodeItem from '../GenerateCodeItem';
 import { isItemARequest, isItemAFolder } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
-import { getDefaultRequestPaneTab, getItemTypeLabel } from 'utils/collections';
+import {
+  getDefaultRequestPaneTab,
+  getItemTypeLabel,
+  findItemInCollectionByPathname
+} from 'utils/collections';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
@@ -72,6 +76,26 @@ import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections/index';
+
+const highlightMatch = (text, query) => {
+  if (typeof text !== 'string') return text;
+  const needle = query?.trim().toLowerCase();
+  if (!needle) return text;
+
+  const parts = [];
+  const lowerText = text.toLowerCase();
+  let cursor = 0;
+  let match = lowerText.indexOf(needle);
+
+  while (match !== -1) {
+    parts.push(text.slice(cursor, match));
+    parts.push(<span className="search-match" key={match}>{text.slice(match, match + needle.length)}</span>);
+    cursor = match + needle.length;
+    match = lowerText.indexOf(needle, cursor);
+  }
+
+  return parts.length ? [...parts, text.slice(cursor)] : text;
+};
 
 const CollectionItemRow = ({
   item,
@@ -321,9 +345,7 @@ const CollectionItemRow = ({
     );
   };
 
-  const handleClick = (event) => {
-    if (handleSelectionClick(event)) return;
-    if (event && event.detail != 1) return;
+  const openItem = () => {
     const isRequest = isItemARequest(item);
     const isApp = item.type === 'app';
     if (isRequest || isApp) {
@@ -341,7 +363,8 @@ const CollectionItemRow = ({
           collectionUid: collectionUid,
           ...(isRequest ? { requestPaneTab: getDefaultRequestPaneTab(item) } : {}),
           type: item.type,
-          pathname: item.pathname
+          pathname: item.pathname,
+          name: item.name
         })
       );
     } else {
@@ -350,7 +373,8 @@ const CollectionItemRow = ({
           uid: item.uid,
           collectionUid: collectionUid,
           type: 'folder-settings',
-          pathname: item.pathname
+          pathname: item.pathname,
+          name: item.name
         })
       );
       if (item.collapsed) {
@@ -361,6 +385,31 @@ const CollectionItemRow = ({
           })
         );
       }
+    }
+  };
+
+  const revealMountedItem = () => {
+    const collection = selectCollectionByUid(store.getState(), collectionUid);
+    const mounted = collection && findItemInCollectionByPathname(collection, item.pathname);
+    if (!mounted) return;
+    dispatch(revealItemInSidebar({ collectionUid, itemUid: mounted.uid, expandTarget: isItemAFolder(item) }));
+  };
+
+  const handleClick = (event) => {
+    if (handleSelectionClick(event)) return;
+    if (event && event.detail != 1) return;
+    openItem();
+    const collection = selectCollectionByUid(store.getState(), collectionUid);
+    if (collection && collection.mountStatus !== 'mounted' && collection.mountStatus !== 'mounting') {
+      dispatch(mountCollection({
+        collectionUid,
+        collectionPathname: collection.pathname,
+        brunoConfig: collection.brunoConfig,
+        skipTabRestore: true,
+        prioritizedPathname: item.pathname
+      }))
+        .then(revealMountedItem)
+        .catch(() => {});
     }
   };
 
@@ -810,7 +859,7 @@ const CollectionItemRow = ({
             <div className="ml-1 flex w-full h-full items-center overflow-hidden">
               <CollectionItemIcon item={item} />
               <span className="item-name" title={item.name}>
-                {item.name}
+                {highlightMatch(item.name, searchText)}
               </span>
               <InvalidFilesBadge count={invalidItemCount} collectionUid={collectionUid} rowUid={item.uid} />
             </div>

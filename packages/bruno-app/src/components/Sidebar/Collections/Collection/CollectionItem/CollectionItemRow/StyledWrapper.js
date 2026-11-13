@@ -102,6 +102,10 @@ const Wrapper = styled.div`
       white-space: nowrap;
       text-overflow: ellipsis;
       overflow: hidden;
+
+      .search-match {
+        color: ${(props) => props.theme.primary.solid};
+      }
     }
 
     /* Single source of truth for hover/focus states: background and menu icon visibility */

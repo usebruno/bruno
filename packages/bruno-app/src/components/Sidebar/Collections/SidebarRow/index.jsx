@@ -25,7 +25,7 @@ const resolveRowObject = ({ row, itemsByUid, collectionsByUid, ghostsByPath }) =
 };
 
 const renderRow = (props) => {
-  const { row, searchText, openBulkMenu, collectionsByUid, isCollectionMultiDragDisabled, isItemMultiDragDisabled, multiDragCollections, multiDragItems } = props;
+  const { row, searchText, searchCollapsedCollectionUids, toggleSearchCollection, openBulkMenu, collectionsByUid, isCollectionMultiDragDisabled, isItemMultiDragDisabled, multiDragCollections, multiDragItems } = props;
   const resolved = resolveRowObject(props);
 
   switch (row.kind) {
@@ -35,6 +35,8 @@ const renderRow = (props) => {
         <CollectionRow
           collection={resolved}
           searchText={searchText}
+          isSearchCollapsed={searchCollapsedCollectionUids.has(resolved.uid)}
+          toggleSearchCollection={toggleSearchCollection}
           openBulkMenu={openBulkMenu}
           isCollectionMultiDragDisabled={isCollectionMultiDragDisabled}
           multiDragCollections={multiDragCollections}
@@ -124,6 +126,7 @@ const areEqual = (prev, next) => {
     && a.collectionPathname === b.collectionPathname
     && a.exampleIndex === b.exampleIndex
     && prev.searchText === next.searchText
+    && prev.searchCollapsedCollectionUids === next.searchCollapsedCollectionUids
     && prev.isCollectionMultiDragDisabled === next.isCollectionMultiDragDisabled
     && prev.isItemMultiDragDisabled === next.isItemMultiDragDisabled
     && prev.multiDragCollections === next.multiDragCollections
