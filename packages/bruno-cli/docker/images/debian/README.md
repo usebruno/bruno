@@ -2,7 +2,7 @@
 
 Debian slim variant of the Bruno CLI Docker image.
 
-**Base image:** `node:24-slim`
+**Base image:** `node:24.22.3-slim`
 
 ## Building
 

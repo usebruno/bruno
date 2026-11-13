@@ -28,7 +28,7 @@ const RenameApiSpec = ({ apiSpec, onClose }) => {
 
   return (
     <Modal
-      size="sm"
+      size="md"
       title="Rename API Spec"
       confirmText="Rename"
       confirmDisabled={formik.isSubmitting}

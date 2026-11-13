@@ -2,7 +2,7 @@
 
 Alpine Linux variant of the Bruno CLI Docker image.
 
-**Base image:** `node:24-alpine`
+**Base image:** `node:24.22.3-alpine`
 
 ## Building
 

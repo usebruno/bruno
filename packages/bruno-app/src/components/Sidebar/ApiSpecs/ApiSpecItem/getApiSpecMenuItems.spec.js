@@ -9,7 +9,7 @@ const itemById = (items, id) => items.find((item) => item.id === id);
 describe('getApiSpecMenuItems', () => {
   const makeHandlers = () => ({
     'generate-collection': jest.fn(),
-    'generate-mock-server': jest.fn(),
+    'create-mock-server': jest.fn(),
     'clone': jest.fn(),
     'rename': jest.fn(),
     'reveal': jest.fn(),
@@ -22,7 +22,7 @@ describe('getApiSpecMenuItems', () => {
   it('lists every action in design order with the divider before Remove', () => {
     expect(ids(menu(true))).toEqual([
       'generate-collection',
-      'generate-mock-server',
+      'create-mock-server',
       'clone',
       'rename',
       'reveal',
@@ -32,8 +32,20 @@ describe('getApiSpecMenuItems', () => {
     ]);
   });
 
-  it('hides Generate Mock Server when the beta flag is off', () => {
-    expect(ids(menu(false))).not.toContain('generate-mock-server');
+  it('hides Create Mock Server when the beta flag is off', () => {
+    expect(ids(menu(false))).not.toContain('create-mock-server');
+  });
+
+  it('labels each action', () => {
+    expect(menu(true).filter((item) => item.type !== 'divider').map((item) => item.label)).toEqual([
+      'Generate Collection',
+      'Create Mock Server',
+      'Clone',
+      'Rename',
+      'Reveal in Finder',
+      'Remove',
+      'Delete'
+    ]);
   });
 
   it('gives the divider no click handler', () => {
@@ -50,7 +62,7 @@ describe('getApiSpecMenuItems', () => {
 
   it.each([
     ['generate-collection', IconBox],
-    ['generate-mock-server', IconServer],
+    ['create-mock-server', IconServer],
     ['clone', IconCopy],
     ['rename', IconEdit],
     ['reveal', IconFolder],

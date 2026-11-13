@@ -135,7 +135,7 @@ describe('ApiSpecItem', () => {
   it('opens the mock server modal on the spec source with this spec', () => {
     renderRow(OPENAPI_SPEC);
 
-    fireEvent.click(screen.getByText('generate-mock-server'));
+    fireEvent.click(screen.getByText('create-mock-server'));
 
     expect(screen.getByTestId('mock-server-modal')).toHaveTextContent('spec:spec-1');
   });
@@ -154,7 +154,7 @@ describe('ApiSpecItem', () => {
   it('offers no mock server action when the beta flag is off', () => {
     renderRow(OPENAPI_SPEC, { mockServerBeta: false });
 
-    expect(screen.queryByText('generate-mock-server')).not.toBeInTheDocument();
+    expect(screen.queryByText('create-mock-server')).not.toBeInTheDocument();
   });
 
   it('reveals the spec file in its folder', () => {
