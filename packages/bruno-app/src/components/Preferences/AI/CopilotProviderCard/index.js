@@ -49,8 +49,7 @@ const CopilotProviderCard = ({
   isModelEnabled,
   onToggleModel,
   onStatusChange,
-  onSignOut,
-  onSignedIn
+  onSignOut
 }) => {
   const { theme } = useTheme();
   const [expanded, setExpanded] = useState(false);
@@ -71,14 +70,6 @@ const CopilotProviderCard = ({
     disabledBySignOut.current = false;
     prev.current = { enabled: providerEnabled };
   }, [providerEnabled]);
-
-  const previousState = useRef(copilot.state);
-  useEffect(() => {
-    if (previousState.current !== 'signed-in' && copilot.state === 'signed-in' && !providerEnabled) {
-      onSignedIn?.();
-    }
-    previousState.current = copilot.state;
-  }, [copilot.state, providerEnabled, onSignedIn]);
 
   const signedIn = copilot.state === 'signed-in';
   const signingIn = copilot.state === 'signing-in';

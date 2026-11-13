@@ -70,15 +70,26 @@ const AI = () => {
     setActiveTabState(tab);
   }, []);
 
+  const copilotState = useRef(null);
+  const enableCopilotRef = useRef(null);
+  const applyStatus = useCallback((next) => {
+    const previous = copilotState.current;
+    copilotState.current = next.copilot?.state ?? null;
+    setStatus(next);
+    if (previous && previous !== 'signed-in' && copilotState.current === 'signed-in') {
+      enableCopilotRef.current?.();
+    }
+  }, []);
+
   const refreshStatus = useCallback(async () => {
     try {
       const next = await getAiStatus();
-      setStatus(next);
+      applyStatus(next);
       setStatusError(null);
     } catch (err) {
       setStatusError(err.message || 'Failed to load AI status');
     }
-  }, []);
+  }, [applyStatus]);
 
   useEffect(() => {
     refreshStatus();
@@ -88,10 +99,10 @@ const AI = () => {
     const { ipcRenderer } = window;
     if (!ipcRenderer) return undefined;
     const unsubscribe = ipcRenderer.on('main:ai-status-changed', (next) => {
-      if (next) setStatus(next);
+      if (next) applyStatus(next);
     });
     return () => unsubscribe();
-  }, []);
+  }, [applyStatus]);
 
   const providerIds = status ? Object.keys(status.providers) : [];
 
@@ -129,6 +140,8 @@ const AI = () => {
     validationSchema: aiPreferencesSchema,
     onSubmit: () => {}
   });
+
+  enableCopilotRef.current = () => formik.setFieldValue(`providers.${COPILOT_PROVIDER_ID}.enabled`, true);
 
   const handleSave = useCallback(
     (values) =>
@@ -418,9 +431,8 @@ const AI = () => {
                           models={modelsByProvider[id] || []}
                           isModelEnabled={isModelEnabled}
                           onToggleModel={handleToggleModel}
-                          onStatusChange={(next) => setStatus(next)}
+                          onStatusChange={applyStatus}
                           onSignOut={() => formik.setFieldValue(`providers.${id}.enabled`, false)}
-                          onSignedIn={() => formik.setFieldValue(`providers.${id}.enabled`, true)}
                         />
                       );
                     }
@@ -434,7 +446,7 @@ const AI = () => {
                         models={modelsByProvider[id] || []}
                         isModelEnabled={isModelEnabled}
                         onToggleModel={handleToggleModel}
-                        onStatusChange={(next) => setStatus(next)}
+                        onStatusChange={applyStatus}
                       />
                     );
                   })}
@@ -504,7 +516,7 @@ const AI = () => {
                             models.map((m) => (m.id === modelId ? { ...m, ...patch } : m))
                           )}
                         onRemoveEndpoint={handleRemoveEndpoint}
-                        onStatusChange={(next) => setStatus(next)}
+                        onStatusChange={applyStatus}
                       />
                     );
                   })}
