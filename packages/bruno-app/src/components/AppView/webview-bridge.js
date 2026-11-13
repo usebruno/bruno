@@ -243,7 +243,7 @@ export const useAppWebview = (onGuestMessage) => {
       if (h) {
         prev.removeEventListener('console-message', h.onConsoleMessage);
         prev.removeEventListener('dom-ready', h.onDomReady);
-        prev.removeEventListener('did-start-loading', h.onStartLoading);
+        prev.removeEventListener('did-start-navigation', h.onStartNavigation);
         prev.__brunoHandlers = null;
       }
     }
@@ -267,14 +267,18 @@ export const useAppWebview = (onGuestMessage) => {
       }
     };
     const onDomReady = () => setDomReady(true);
+
     // A reload (code edit) tears down the guest; reset readiness so the next
     // dom-ready can flip us back to true.
-    const onStartLoading = () => setDomReady(false);
-
-    element.__brunoHandlers = { onConsoleMessage, onDomReady, onStartLoading };
+    const onStartNavigation = (event) => {
+      if (event.isMainFrame && !event.isInPlace) {
+        setDomReady(false);
+      }
+    };
+    element.__brunoHandlers = { onConsoleMessage, onDomReady, onStartNavigation };
     element.addEventListener('console-message', onConsoleMessage);
     element.addEventListener('dom-ready', onDomReady);
-    element.addEventListener('did-start-loading', onStartLoading);
+    element.addEventListener('did-start-navigation', onStartNavigation);
   }, []);
 
   return { domReady, pushToGuest, webviewRef };
