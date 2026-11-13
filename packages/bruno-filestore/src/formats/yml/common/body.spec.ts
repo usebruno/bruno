@@ -99,17 +99,6 @@ describe('multipart form contentType', () => {
     }
   });
 
-  it('toBrunoBody: wraps a single file path string in an array', () => {
-    const out = toBrunoBody({
-      type: 'multipart-form',
-      data: [
-        { name: 'file', type: 'file', value: './ok-asset.json' }
-      ]
-    } as any);
-
-    expect(out?.multipartForm?.[0].value).toEqual(['./ok-asset.json']);
-  });
-
   it('round-trips multipart contentType through OC conversion', () => {
     const brunoBody = {
       mode: 'multipartForm',
@@ -127,5 +116,18 @@ describe('multipart form contentType', () => {
       expect(back.multipartForm[0]).toMatchObject({ name: 'metadata', contentType: 'application/json' });
       expect(back.multipartForm[1]).toMatchObject({ name: 'avatar', contentType: 'image/png', enabled: false });
     }
+  });
+});
+
+describe('multipart form file value', () => {
+  it('toBrunoBody: wraps a single file path string in an array', () => {
+    const out = toBrunoBody({
+      type: 'multipart-form',
+      data: [
+        { name: 'file', type: 'file', value: './ok-asset.json' }
+      ]
+    } as any);
+
+    expect(out?.multipartForm?.[0].value).toEqual(['./ok-asset.json']);
   });
 });
