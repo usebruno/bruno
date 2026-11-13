@@ -84,6 +84,16 @@ describe('scriptApi', () => {
       expect([...doc.querySelectorAll('p code')].map((code) => code.textContent)).toContain('req.headerList.get()');
     });
 
+    it('links to the docs, opening outside the app', () => {
+      const link = renderApiDoc(findApiEntries('bru.setEnvVar', 'pre-request')[0]).querySelector('[data-testid="api-doc-link"]');
+
+      expect(link.href).toBe('https://docs.usebruno.com/testing/script/javascript-reference');
+      expect(link.target).toBe('_blank');
+      expect(link.rel).toBe('noopener noreferrer');
+      expect(link.textContent.trim()).toBe('Docs');
+      expect(link.querySelector('svg')).not.toBeNull();
+    });
+
     it('notes a member Safe Mode does not provide', () => {
       const nodeVmOnly = renderApiDoc(findApiEntries('bru.utils', 'pre-request')[0]);
       const everywhere = renderApiDoc(findApiEntries('bru.setEnvVar', 'pre-request')[0]);

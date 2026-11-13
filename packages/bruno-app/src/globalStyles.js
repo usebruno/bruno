@@ -483,6 +483,21 @@ const GlobalStyle = createGlobalStyle`
     margin: 0.25rem 0 0;
   }
 
+  .bruno-api-doc-summary,
+  .bruno-api-doc-description {
+    color: ${(props) => props.theme.dropdown.mutedText};
+    font-size: ${(props) => props.theme.font.size.xs};
+  }
+
+  .bruno-api-doc-param-name {
+    color: ${(props) => props.theme.primary.text};
+    font-weight: 500;
+  }
+
+  .bruno-api-doc-type {
+    color: ${(props) => props.theme.colors.text.subtext0};
+  }
+
   .bruno-api-doc-example {
     margin: 0.5rem 0 0;
     padding: 0.375rem 0.5rem;
@@ -490,6 +505,21 @@ const GlobalStyle = createGlobalStyle`
     border-radius: ${(props) => props.theme.border.radius.base};
     font-size: ${(props) => props.theme.font.size.xs};
     white-space: pre-wrap;
+  }
+
+  .bruno-api-doc-link {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    width: fit-content;
+    margin-top: 0.375rem;
+    color: ${(props) => props.theme.primary.text};
+    font-size: 10px;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
   }
 
   .bruno-api-doc .bruno-api-doc-note {
