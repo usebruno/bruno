@@ -8,8 +8,10 @@ import { useSelector } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
 import { formatResponse } from 'utils/common';
 import { PREVIEW_FORMAT_OPTIONS } from 'components/ResponsePane/QueryResult/index';
-import QueryResultPreview from 'components/ResponsePane/QueryResult/QueryResultPreview';
+import QueryResultTypeSelector from 'components/ResponsePane/QueryResult/QueryResultTypeSelector/index';
 import ErrorBanner from 'ui/ErrorBanner';
+
+const MESSAGE_FORMAT_OPTIONS = PREVIEW_FORMAT_OPTIONS.filter((option) => ['json', 'xml', 'raw', 'hex', 'base64'].includes(option.id));
 
 const extractJsonFromSSE = (content) => {
   if (typeof content !== 'string') return null;
@@ -28,6 +30,19 @@ const extractJsonFromSSE = (content) => {
   return null;
 };
 
+const extractJsonPayload = (content) => {
+  const ssePayload = extractJsonFromSSE(content);
+  if (ssePayload) return ssePayload;
+
+  try {
+    return JSON.stringify(JSON.parse(content), null, 2);
+  } catch {
+    return null;
+  }
+};
+
+const getInitialFormat = (content) => extractJsonPayload(content) ? 'json' : 'raw';
+
 /**
  *
  * @param {"incoming"|"outgoing"|"info"} type
@@ -43,17 +58,7 @@ const TypeIcon = ({ type }) => {
     error: <IconExclamationCircle {...commonProps} />
   }[type];
 };
-
-<<<<<<< HEAD
-<<<<<<< HEAD
 const WSMessageItem = memo(({ message, isOpen, onToggle, item, collection }) => {
-=======
-const WSMessageItem = memo(({ message, isOpen, onToggle, streamFormat, onStreamFormatChange }) => {
->>>>>>> 1fc4b92e6 (fix: persist SSE response format preference)
-  const [showHex, setShowHex] = useState(false);
-=======
-const WSMessageItem = memo(({ message, isOpen, onToggle, streamFormat, streamViewTab, item, collection }) => {
->>>>>>> 8da70704f (feat: align streaming UI with SSE responses.)
   const preferences = useSelector((state) => state.app.preferences);
   const { displayedTheme } = useTheme();
   const [isNew, setIsNew] = useState(false);
@@ -63,15 +68,14 @@ const WSMessageItem = memo(({ message, isOpen, onToggle, streamFormat, streamVie
   const isInfo = message.type === 'info';
   const isError = message.type === 'error';
   const isOutgoing = message.type === 'outgoing';
-  const selectedFormat = streamFormat || 'raw';
   const contentHexdump = message.messageHexdump;
 
-  const rawMessage = typeof message.message === 'string' ? message.message : (message.message != null ? String(message.message) : '');
+  const rawMessage = typeof message.message === 'string'
+    ? message.message
+    : (message.message !== null && message.message !== undefined ? String(message.message) : '');
+  const jsonPayload = useMemo(() => extractJsonPayload(rawMessage), [rawMessage]);
+  const [selectedFormat, setSelectedFormat] = useState(() => getInitialFormat(rawMessage));
 
-  // Extract JSON payload from SSE data: prefix for formatResponse
-  const sseJsonPayload = useMemo(() => extractJsonFromSSE(rawMessage), [rawMessage]);
-
-  // Derive the CodeMirror mode from PREVIEW_FORMAT_OPTIONS (same as HTTP response path)
   const codeMirrorMode = useMemo(() => {
     return PREVIEW_FORMAT_OPTIONS
       .filter((option) => option.type === 'item' || !option.type)
@@ -80,32 +84,19 @@ const WSMessageItem = memo(({ message, isOpen, onToggle, streamFormat, streamVie
 
   // Determine display value using formatResponse (same utility as HTTP response path)
   const displayValue = useMemo(() => {
+    if (selectedFormat === 'raw') return rawMessage;
     if (selectedFormat === 'hex') return contentHexdump || '';
-    if (selectedFormat === 'json' && sseJsonPayload) return sseJsonPayload;
+    if (selectedFormat === 'json' && jsonPayload) return jsonPayload;
     if (selectedFormat === 'base64') return Buffer.from(rawMessage, 'utf-8').toString('base64');
     const dataBuffer = Buffer.from(rawMessage, 'utf-8').toString('base64');
     return formatResponse(rawMessage, dataBuffer, selectedFormat) || rawMessage;
-  }, [rawMessage, selectedFormat, contentHexdump, sseJsonPayload]);
+  }, [rawMessage, selectedFormat, contentHexdump, jsonPayload]);
 
-  // Compute preview mode for the preview toggle (same logic as QueryResult/index.js)
-  const previewMode = useMemo(() => {
-    if (selectedFormat === 'html') return 'preview-web';
-    if (selectedFormat === 'json') return 'preview-json';
-    if (selectedFormat === 'xml') return 'preview-xml';
-    if (selectedFormat === 'javascript') return 'preview-web';
-    return 'preview-text';
-  }, [selectedFormat]);
-
-  const viewTab = streamViewTab || 'editor';
-
-  // Check format compatibility: structured formats need matching content
   const isCompatible = useMemo(() => {
-    if (selectedFormat === 'hex' || selectedFormat === 'raw' || selectedFormat === 'base64') return true;
-    if (!rawMessage) return true;
-    if (selectedFormat === 'json') return sseJsonPayload !== null;
-    if (selectedFormat === 'html') return /<[a-zA-Z][\s\S]*>/.test(rawMessage);
-    return false;
-  }, [rawMessage, selectedFormat, sseJsonPayload]);
+    if (selectedFormat === 'json') return jsonPayload !== null;
+    if (selectedFormat === 'xml') return !rawMessage || /<[a-zA-Z][\s\S]*>/.test(rawMessage);
+    return true;
+  }, [rawMessage, selectedFormat, jsonPayload]);
 
   useEffect(() => {
     if (notified.current === true) return;
@@ -171,22 +162,19 @@ const WSMessageItem = memo(({ message, isOpen, onToggle, streamFormat, streamVie
       </div>
       {isOpen && (
         <>
-          {isCompatible ? (
-            <div className="mt-1 h-[300px] w-full">
-              {viewTab === 'preview' ? (
-                <QueryResultPreview
-                  selectedTab="preview"
-                  data={selectedFormat === 'json' && sseJsonPayload ? JSON.parse(sseJsonPayload) : rawMessage}
-                  dataBuffer={Buffer.from(rawMessage, 'utf-8').toString('base64')}
-                  formattedData={displayValue}
-                  item={item}
-                  collection={collection}
-                  codeMirrorMode={codeMirrorMode}
-                  previewMode={previewMode}
-                  disableRunEventListener={true}
-                  displayedTheme={displayedTheme}
-                />
-              ) : (
+          <div className="mt-1 flex flex-col gap-1">
+            <div className="flex justify-end">
+              <QueryResultTypeSelector
+                formatOptions={MESSAGE_FORMAT_OPTIONS}
+                formatValue={selectedFormat}
+                onFormatChange={setSelectedFormat}
+                selectedTab="editor"
+                isActiveTab={true}
+                showPreviewToggle={false}
+              />
+            </div>
+            {isCompatible ? (
+              <div className="h-[300px] w-full">
                 <CodeEditor
                   mode={codeMirrorMode}
                   theme={displayedTheme}
@@ -197,24 +185,24 @@ const WSMessageItem = memo(({ message, isOpen, onToggle, streamFormat, streamVie
                   collection={collection}
                   readOnly
                 />
-              )}
-            </div>
-          ) : (
-            <ErrorBanner
-              errors={[{
-                title: `Cannot preview as ${PREVIEW_FORMAT_OPTIONS.find((o) => o.id === selectedFormat)?.label || selectedFormat}`,
-                message: `Invalid ${PREVIEW_FORMAT_OPTIONS.find((o) => o.id === selectedFormat)?.label || selectedFormat} format. Try selecting a different format from the dropdown above.`
-              }]}
-              className="mt-2"
-            />
-          )}
+              </div>
+            ) : (
+              <ErrorBanner
+                errors={[{
+                  title: `Cannot format as ${MESSAGE_FORMAT_OPTIONS.find((option) => option.id === selectedFormat)?.label || selectedFormat}`,
+                  message: `Invalid ${selectedFormat} format. Try selecting a different format from the dropdown above.`
+                }]}
+                className="mt-2"
+              />
+            )}
+          </div>
         </>
       )}
     </div>
   );
 });
 
-const WSMessagesList = ({ messages = [], streamFormat, streamFormat, streamViewTab, onStreamFormatChange,  item, collection }) => {
+const WSMessagesList = ({ messages = [], item, collection }) => {
   const virtuosoRef = useRef(null);
   const [scrollerElement, setScrollerElement] = useState(null);
   const [openMessages, setOpenMessages] = useState(new Set());
@@ -270,30 +258,16 @@ const WSMessagesList = ({ messages = [], streamFormat, streamFormat, streamViewT
 
   const renderItem = useCallback((_, msg) => {
     const isOpen = openMessages.has(msg.timestamp);
-<<<<<<< HEAD
-    return <WSMessageItem message={msg} isOpen={isOpen} onToggle={handleMessageToggle} item={item} collection={collection} />;
-  }, [openMessages, handleMessageToggle, item, collection]);
-=======
     return (
       <WSMessageItem
         message={msg}
         isOpen={isOpen}
         onToggle={handleMessageToggle}
-        streamFormat={streamFormat}
-<<<<<<< HEAD
-        onStreamFormatChange={onStreamFormatChange}
-      />
-    );
-  }, [openMessages, handleMessageToggle, streamFormat, onStreamFormatChange]);
->>>>>>> 1fc4b92e6 (fix: persist SSE response format preference)
-=======
-        streamViewTab={streamViewTab}
         item={item}
         collection={collection}
       />
     );
-  }, [openMessages, handleMessageToggle, streamFormat, streamViewTab, item, collection]);
->>>>>>> 8da70704f (feat: align streaming UI with SSE responses.)
+  }, [openMessages, handleMessageToggle, item, collection]);
 
   const computeItemKey = useCallback((_, msg) => {
     return msg.seq ?? msg.timestamp;
