@@ -211,7 +211,7 @@ export const toBrunoBody = (body: HttpRequestBody | null | undefined): BrunoHttp
           uid: uuid(),
           type: entry.type,
           name: ensureString(entry.name),
-          value: entry.type === 'file' ? (entry.value || []) : ensureString(entry.value),
+          value: entry.type === 'file' ? (Array.isArray(entry.value) ? entry.value : (entry.value ? [entry.value] : [])) : ensureString(entry.value),
           contentType: entry.contentType || null,
           enabled: entry.disabled !== true
         };
