@@ -1,6 +1,8 @@
 import { test, expect } from '../../../playwright';
+import * as fs from 'fs/promises';
 import * as path from 'path';
-import { closeAllCollections } from '../../utils/page';
+import { closeAllCollections, openCollection } from '../../utils/page';
+import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Multiple Files Upload', () => {
   const testDataDir = path.join(__dirname, '../test-data');
@@ -54,5 +56,68 @@ test.describe('Multiple Files Upload', () => {
     // Verify collections were imported successfully
     await expect(page.locator('#sidebar-collection-name').getByText('Sample Postman Collection')).toBeVisible();
     await expect(page.locator('#sidebar-collection-name').getByText('Sample Insomnia Collection')).toBeVisible();
+  });
+
+  test('TC-109: Imports multiple Postman collections from JSON files', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+    const sourceFile = path.join(testDataDir, 'sample-postman.json');
+    const sourceContent = JSON.parse(await fs.readFile(sourceFile, 'utf-8'));
+    const filesDir = await createTmpDir('postman-json-files');
+    const collectionNames = ['Postman Collection One', 'Postman Collection Two'];
+    const importFiles: string[] = [];
+
+    for (const [index, name] of collectionNames.entries()) {
+      const filePath = path.join(filesDir, `postman-${index + 1}.json`);
+      await fs.writeFile(filePath, JSON.stringify({
+        ...sourceContent,
+        info: { ...sourceContent.info, name }
+      }));
+      importFiles.push(filePath);
+    }
+
+    const { plusMenu, import: importLocators, request, sidebar, tabs, modal } = buildCommonLocators(page);
+    const bulkModal = importLocators.bulkModal();
+    const collectionTempDir = await createTmpDir('multiple-postman-import');
+
+    await test.step('Open the plus menu and choose import collection', async () => {
+      await plusMenu.button().click();
+      await plusMenu.importCollection().waitFor({ state: 'visible' });
+      await plusMenu.importCollection().click();
+      await importLocators.modal().waitFor({ state: 'visible' });
+    });
+
+    await test.step('Verify that import dialog shows File', async () => {
+      await expect(importLocators.fileTab()).toContainText('File');
+    });
+
+    await test.step('Choose multiple Postman JSON files', async () => {
+      await expect(importLocators.chooseFilesButton()).toBeVisible();
+      await importLocators.fileInput().setInputFiles(importFiles);
+      await bulkModal.waitFor({ state: 'visible' });
+      await expect(bulkModal.getByText(collectionNames[0])).toBeVisible();
+      await expect(bulkModal.getByText(collectionNames[1])).toBeVisible();
+    });
+
+    await test.step('Import the collections', async () => {
+      await importLocators.locationInput().fill(collectionTempDir);
+      await importLocators.bulkSubmitButton().click();
+      await modal.button('Close').waitFor({ state: 'visible' });
+      await modal.button('Close').click();
+      await bulkModal.waitFor({ state: 'hidden' });
+      await sidebar.collection(collectionNames[0]).waitFor({ state: 'visible' });
+      await sidebar.collection(collectionNames[1]).waitFor({ state: 'visible' });
+    });
+
+    await test.step('Verify that the imported collections keep their requests', async () => {
+      for (const name of collectionNames) {
+        await openCollection(page, name);
+        await expect(sidebar.itemsIn(name, 'Get Users')).toBeVisible();
+        await expect(sidebar.itemsIn(name, 'Create User')).toBeVisible();
+
+        await sidebar.itemsIn(name, 'Get Users').click();
+        await expect(tabs.activeRequestTab()).toContainText('Get Users');
+        await expect(request.methodDropdown()).toContainText('GET');
+        await expect(request.urlLine()).toContainText('https://jsonplaceholder.typicode.com/users');
+      }
+    });
   });
 });
