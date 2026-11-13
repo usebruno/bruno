@@ -4,25 +4,16 @@ import http from 'node:http';
 import https from 'node:https';
 import type { Agent as HttpAgent } from 'node:http';
 import type { Agent as HttpsAgent } from 'node:https';
-import { parse as parseUrl, type Url } from 'url';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import { HttpProxyAgent } from 'http-proxy-agent';
-import { isEmpty, get, isUndefined, isNull } from 'lodash';
+import { get, isUndefined, isNull } from 'lodash';
 import { getCACertificates } from './ca-cert';
 import { transformProxyConfig } from './proxy-util';
+import { shouldUseProxy } from './should-use-proxy';
 import { getOrCreateHttpsAgent, getOrCreateHttpAgent } from './agent-cache';
 import { getPacResolver } from './pac-resolver';
 import type { TimelineEntry } from './timeline-agent';
-
-const DEFAULT_PORTS: Record<string, number> = {
-  ftp: 21,
-  gopher: 70,
-  http: 80,
-  https: 443,
-  ws: 80,
-  wss: 443
-};
 
 type ProxyMode = 'on' | 'off' | 'system' | 'pac';
 
@@ -145,59 +136,6 @@ type GetHttpHttpsAgentsParams = {
   appLevelProxyConfig?: Record<string, any>;
   systemProxyConfig?: SystemProxyConfig;
   timeline?: TimelineEntry[];
-};
-
-/**
- * check for proxy bypass, copied from 'proxy-from-env'
- */
-const shouldUseProxy = (url: string | undefined, proxyBypass: string | undefined): boolean => {
-  if (proxyBypass === '*') {
-    return false; // Never proxy if wildcard is set.
-  }
-
-  // use proxy if no proxyBypass is set
-  if (!proxyBypass || typeof proxyBypass !== 'string' || isEmpty(proxyBypass.trim())) {
-    return true;
-  }
-
-  const parsedUrl: Url | {} = typeof url === 'string' ? parseUrl(url) : (url ? (url as unknown as Url) : {});
-  const urlObj = parsedUrl as Url;
-  let proto = urlObj.protocol;
-  let hostname = urlObj.host;
-  let port: string | null = urlObj.port;
-  if (typeof hostname !== 'string' || !hostname || typeof proto !== 'string') {
-    return false; // Don't proxy URLs without a valid scheme or host.
-  }
-
-  proto = proto.split(':', 1)[0];
-  // Stripping ports in this way instead of using parsedUrl.hostname to make
-  // sure that the brackets around IPv6 addresses are kept.
-  hostname = hostname.replace(/:\d*$/, '');
-  const portNum = parseInt(port || '', 10) || DEFAULT_PORTS[proto] || 0;
-
-  return proxyBypass.split(/[,;\s]/).every(function (dontProxyFor) {
-    if (!dontProxyFor) {
-      return true; // Skip zero-length hosts.
-    }
-    const parsedProxy = dontProxyFor.match(/^(.+):(\d+)$/);
-    let parsedProxyHostname = parsedProxy ? parsedProxy[1] : dontProxyFor;
-    const parsedProxyPort = parsedProxy ? parseInt(parsedProxy[2], 10) : 0;
-    if (parsedProxyPort && parsedProxyPort !== portNum) {
-      return true; // Skip if ports don't match.
-    }
-
-    if (!/^[.*]/.test(parsedProxyHostname)) {
-      // No wildcards, so stop proxying if there is an exact match.
-      return hostname !== parsedProxyHostname;
-    }
-
-    if (parsedProxyHostname.charAt(0) === '*') {
-      // Remove leading wildcard.
-      parsedProxyHostname = parsedProxyHostname.slice(1);
-    }
-    // Stop proxying if the hostname ends with the no_proxy host.
-    return !hostname.endsWith(parsedProxyHostname);
-  });
 };
 
 /**
