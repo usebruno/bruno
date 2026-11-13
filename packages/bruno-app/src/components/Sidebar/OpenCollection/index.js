@@ -97,7 +97,7 @@ const OpenCollectionModal = ({ onClose }) => {
           && noNestedCollections
         ) {
           try {
-            const result = await dispatch(openMultipleCollections(items.map((item) => item.pathname), { silent: true }));
+            const result = await dispatch(openMultipleCollections(items.map((item) => item.pathname), { silent: true, recordRecent: true }));
             notifyOpenResult(result);
           } catch {
             toast.error('An error occurred while opening the collections');
@@ -139,7 +139,7 @@ const OpenCollectionModal = ({ onClose }) => {
       return;
     }
     try {
-      const result = await dispatch(openMultipleCollections(selectedCollectionPaths, { silent: true }));
+      const result = await dispatch(openMultipleCollections(selectedCollectionPaths, { silent: true, recordRecent: true }));
       notifyOpenResult(result);
       if (result?.opened?.length) {
         onClose();

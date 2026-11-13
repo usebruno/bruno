@@ -2797,7 +2797,7 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
     }
 
     ipcRenderer
-      .invoke('renderer:remove-collection', collection.pathname, collectionUid, workspaceId)
+      .invoke('renderer:remove-collection', collection.pathname, collectionUid, workspaceId, collection.name)
       .then(() => {
         // Check if the collection still exists in other workspaces
         return ipcRenderer.invoke('renderer:get-collection-workspaces', collection.pathname);
