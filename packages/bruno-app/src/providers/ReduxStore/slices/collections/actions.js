@@ -111,7 +111,7 @@ import { sanitizeName } from 'utils/common/regex';
 import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
 import { getInvalidVariableNames, invalidVariableNamesError } from 'utils/common/variables';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
-import { resolveInheritedAuth } from 'utils/auth';
+import { resolveAuthForExecution, resolveInheritedAuth } from 'utils/auth';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from './index';
 import { migrationStarted, migrationCancelRequested, migrationEnded } from 'providers/ReduxStore/slices/collection-migration';
@@ -1784,6 +1784,19 @@ export const tryResponseExample = ({ itemUid, collectionUid, exampleUid }) => (d
   const requestName = generateTransientRequestName(collection);
   const filename = sanitizeName(requestName);
 
+  // The transient request is written to the collection's temp directory, outside
+  // the source request's folders, so an `inherit` auth would be resolved against
+  // the collection root and skip folder-level auth (#9759). Use the auth the
+  // example saved when it is a concrete mode; otherwise resolve the source
+  // request's auth through its own folders the way sending that request does,
+  // where a folder set to `none` stops inheritance. The auth config is copied
+  // as it is, so `{{variables}}` in it stay references and are resolved at
+  // send time like any other request.
+  const exampleAuth = exampleRequest.auth;
+  const auth = exampleAuth?.mode && exampleAuth.mode !== 'inherit'
+    ? exampleAuth
+    : resolveAuthForExecution(item, collection);
+
   return dispatch(
     newHttpRequest({
       requestName,
@@ -1797,7 +1810,8 @@ export const tryResponseExample = ({ itemUid, collectionUid, exampleUid }) => (d
       autoSend: true,
       headers: exampleRequest.headers || [],
       params: exampleRequest.params || [],
-      ...(exampleRequest.body ? { body: exampleRequest.body } : {})
+      ...(exampleRequest.body ? { body: exampleRequest.body } : {}),
+      ...(auth ? { auth } : {})
     })
   );
 };
