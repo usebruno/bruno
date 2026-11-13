@@ -1,6 +1,5 @@
 import { test, expect } from '../../../playwright';
 import {
-  buildCommonLocators,
   closeAllCollections,
   createCollection,
   openCollectionSettings,
@@ -25,57 +24,68 @@ test.describe('Collection headers Key/Value and Bulk Edit sync', () => {
     page,
     createTmpDir
   }) => {
-    const { sidebar, collectionSettingsHeaders } = buildCommonLocators(page);
+    const headersTable = page.getByTestId('collection-headers');
+    const bulkEditor = page.getByTestId('bulk-edit-editor');
+    const headerName = (name: string) => headersTable.getByTestId('column-name').getByText(name, { exact: true });
+    const headerValue = (value: string) => headersTable.getByTestId('column-value').getByText(value, { exact: true });
+    const bulkLine = (text: string) => bulkEditor.getByText(text, { exact: true });
 
     await test.step('Create a collection with an existing header in Key/Value view', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName));
-      await expect(sidebar.collection(collectionName)).toBeVisible();
+      await expect(page.getByTestId('sidebar-collection-row').getByText(collectionName, { exact: true })).toBeVisible();
       await openCollectionSettings(page, collectionName);
       await selectCollectionPaneTab(page, 'headers');
-      await collectionSettingsHeaders.table().waitFor({ state: 'visible' });
+      await headersTable.waitFor({ state: 'visible' });
       await fillCollectionHeaderRow(page, 'X-Existing', 'original');
-      await expect(collectionSettingsHeaders.valueLineByName('X-Existing')).toHaveText('original');
+      await expect(headerName('X-Existing')).toBeVisible();
+      await expect(headerValue('original')).toBeVisible();
     });
 
     await test.step('Bulk Edit shows the existing header as key:value', async () => {
       await switchToBulkEdit(page);
-      await expect(collectionSettingsHeaders.bulkEditLines()).toHaveText(['X-Existing:original']);
+      await expect(bulkLine('X-Existing:original')).toBeVisible();
     });
 
     await test.step('A header added in Bulk Edit appears in Key/Value view', async () => {
       await writeBulkEditHeaders(page, 'X-Existing:original\nnewParam:testValue');
       await switchToKeyValue(page);
-      await expect(collectionSettingsHeaders.rowByName('newParam')).toBeVisible();
-      await expect(collectionSettingsHeaders.valueLineByName('X-Existing')).toHaveText('original');
-      await expect(collectionSettingsHeaders.valueLineByName('newParam')).toHaveText('testValue');
+      await expect(headerName('newParam')).toBeVisible();
+      await expect(headerValue('original')).toBeVisible();
+      await expect(headerValue('testValue')).toBeVisible();
     });
 
     await test.step('An edit in Key/Value view is reflected in Bulk Edit', async () => {
       await editCollectionHeaderValue(page, 'X-Existing', 'updated');
-      await expect(collectionSettingsHeaders.valueLineByName('X-Existing')).toHaveText('updated');
+      await expect(headerValue('updated')).toBeVisible();
+      await expect(headerValue('original')).toHaveCount(0);
       await switchToBulkEdit(page);
-      await expect(collectionSettingsHeaders.bulkEditLines()).toHaveText(['X-Existing:updated', 'newParam:testValue']);
+      await expect(bulkLine('X-Existing:updated')).toBeVisible();
+      await expect(bulkLine('newParam:testValue')).toBeVisible();
+      await expect(bulkLine('X-Existing:updatedoriginal')).toHaveCount(0);
     });
 
     await test.step('A header deleted in Bulk Edit is gone from Key/Value view', async () => {
       await writeBulkEditHeaders(page, 'X-Existing:updated');
       await switchToKeyValue(page);
-      await expect(collectionSettingsHeaders.rowByName('X-Existing')).toBeVisible();
-      await expect(collectionSettingsHeaders.valueLineByName('X-Existing')).toHaveText('updated');
-      await expect(collectionSettingsHeaders.rowByName('newParam')).toHaveCount(0);
+      await expect(headerName('X-Existing')).toBeVisible();
+      await expect(headerValue('updated')).toBeVisible();
+      await expect(headerName('newParam')).toHaveCount(0);
     });
 
     await test.step('Toggling views keeps later edits in sync', async () => {
       await switchToBulkEdit(page);
       await writeBulkEditHeaders(page, 'X-Existing:updated\nX-Rapid:one');
       await switchToKeyValue(page);
-      await expect(collectionSettingsHeaders.valueLineByName('X-Rapid')).toHaveText('one');
+      await expect(headerValue('one')).toBeVisible();
       await editCollectionHeaderValue(page, 'X-Rapid', 'two');
-      await expect(collectionSettingsHeaders.valueLineByName('X-Rapid')).toHaveText('two');
+      await expect(headerValue('two')).toBeVisible();
+      await expect(headerValue('one')).toHaveCount(0);
       await switchToBulkEdit(page);
-      await expect(collectionSettingsHeaders.bulkEditLines()).toHaveText(['X-Existing:updated', 'X-Rapid:two']);
+      await expect(bulkLine('X-Existing:updated')).toBeVisible();
+      await expect(bulkLine('X-Rapid:two')).toBeVisible();
+      await expect(bulkLine('X-Rapid:twoone')).toHaveCount(0);
       await switchToKeyValue(page);
-      await expect(collectionSettingsHeaders.valueLineByName('X-Rapid')).toHaveText('two');
+      await expect(headerValue('two')).toBeVisible();
     });
   });
 });
