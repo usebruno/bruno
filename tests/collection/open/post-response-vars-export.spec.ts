@@ -23,35 +23,19 @@ const COLLECTION_NAME = 'post-response-vars';
 const FOLDER_NAME = 'Auth';
 const REQUEST_NAME = 'Login';
 
-const expectExportedYaml = (yaml: string) => {
-  const [itemsYaml, collectionRequest = ''] = yaml.split(/\nrequest:\n/);
-  const folderBlock = itemsYaml.split(/name: Login/)[0];
-  const requestItem = itemsYaml.split(/name: Login/)[1] ?? '';
-
-  expect(collectionRequest).toContain('actions:');
-  expect(collectionRequest).toContain('name: token');
-  expect(collectionRequest).toContain('name: baseUrl');
-
-  expect(folderBlock).toMatch(/actions:[\s\S]*name: refresh/);
-  expect(folderBlock).toContain('name: authPath');
-
-  expect(requestItem).toContain('name: grant');
-  expect(requestItem).toContain('name: sessionId');
-};
-
-test.describe('TC-4461', { tag: '@sanity' }, () => {
+test.describe('OpenCollection post-response vars export', () => {
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
 
-  test('collection and folder post-response vars round-trip in OpenCollection YAML', async ({
+  test('TC-4461: Collection and folder post-response vars round-trip in OpenCollection YAML', { tag: '@sanity' }, async ({
     page,
     electronApp,
     createTmpDir
   }, testInfo) => {
-    testInfo.setTimeout(90_000);
+    testInfo.setTimeout(60_000);
     const collectionDir = path.join(await createTmpDir(COLLECTION_NAME), COLLECTION_NAME);
-    const exportDir = await createTmpDir('exported-yaml');
+    const exportedFile = path.join(await createTmpDir('exported-yaml'), `${COLLECTION_NAME}.yml`);
     const collectionFile = path.join(collectionDir, 'opencollection.yml');
     const folderFile = path.join(collectionDir, FOLDER_NAME, 'folder.yml');
     const requestFile = path.join(collectionDir, FOLDER_NAME, `${REQUEST_NAME}.yml`);
@@ -87,12 +71,30 @@ test.describe('TC-4461', { tag: '@sanity' }, () => {
       await expect.poll(() => fs.readFileSync(requestFile, 'utf8')).toContain('name: sessionId');
     });
 
-    const yaml = await test.step('Export the collection as a single OpenCollection YAML file', async () => {
-      return exportCollectionAsSingleYaml(page, electronApp, COLLECTION_NAME, exportDir);
+    await test.step('Export the collection as a single OpenCollection YAML file', async () => {
+      await exportCollectionAsSingleYaml(page, electronApp, COLLECTION_NAME, path.dirname(exportedFile));
     });
 
-    await test.step('Exported YAML keeps collection and folder actions and the pre-request vars', async () => {
-      expectExportedYaml(yaml);
+    await test.step('Verify exported YAML keeps collection and folder actions and the pre-request vars', async () => {
+      const yaml = fs.readFileSync(exportedFile, 'utf8');
+      // Collection vars are the root request block, written after the items.
+      // Folder and request blocks use an indented request key, so this split
+      // only separates the collection block.
+      const [itemsYaml, collectionYaml = ''] = yaml.split('\nrequest:\n');
+      const folderYaml = itemsYaml.split(`name: ${FOLDER_NAME}`)[1].split(`name: ${REQUEST_NAME}`)[0];
+      const requestYaml = itemsYaml.split(`name: ${REQUEST_NAME}`)[1];
+
+      expect(collectionYaml).toContain('actions:');
+      expect(collectionYaml).toContain('name: baseUrl');
+      expect(collectionYaml).toContain('name: token');
+
+      expect(folderYaml).toContain('actions:');
+      expect(folderYaml).toContain('name: authPath');
+      expect(folderYaml).toContain('name: refresh');
+
+      expect(requestYaml).toContain('actions:');
+      expect(requestYaml).toContain('name: grant');
+      expect(requestYaml).toContain('name: sessionId');
     });
   });
 });
