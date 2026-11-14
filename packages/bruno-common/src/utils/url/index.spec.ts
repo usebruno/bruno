@@ -7,7 +7,8 @@ import {
   safeDecodeURIComponent,
   stripOrigin,
   extractMockRoutePath,
-  getMockResponseRouteKey
+  getMockResponseRouteKey,
+  isSameOrigin
 } from './index';
 
 describe('encodeUrl', () => {
@@ -521,4 +522,41 @@ describe('stripOrigin', () => {
       expect(stripOrigin(input)).toBe(expected);
     });
   }
+});
+
+describe('isSameOrigin', () => {
+  it('should return true for identical origins with different paths', () => {
+    expect(isSameOrigin('https://example.com/api/v1', 'https://example.com/api/v2')).toBe(true);
+  });
+
+  it('should return true when target is a relative path redirect', () => {
+    expect(isSameOrigin('https://example.com/login', '/dashboard')).toBe(true);
+    expect(isSameOrigin('https://example.com/api/items', 'subpath')).toBe(true);
+  });
+
+  it('should return false for different protocols', () => {
+    expect(isSameOrigin('http://example.com', 'https://example.com')).toBe(false);
+  });
+
+  it('should return false for different domains', () => {
+    expect(isSameOrigin('https://example.com', 'https://other.com')).toBe(false);
+    expect(isSameOrigin('https://api.example.com', 'https://example.com')).toBe(false);
+  });
+
+  it('should return false for different ports', () => {
+    expect(isSameOrigin('http://localhost:3000', 'http://localhost:8080')).toBe(false);
+  });
+
+  it('should handle schemeless URLs using default scheme', () => {
+    expect(isSameOrigin('localhost:3000/api', 'localhost:3000/test')).toBe(true);
+    expect(isSameOrigin('localhost:3000/api', 'http://localhost:3000/test')).toBe(true);
+    expect(isSameOrigin('localhost:3000/api', '/relative')).toBe(true);
+  });
+
+  it('should return false for invalid or empty inputs', () => {
+    expect(isSameOrigin('', 'https://example.com')).toBe(false);
+    expect(isSameOrigin('https://example.com', '')).toBe(false);
+    expect(isSameOrigin(null as any, 'https://example.com')).toBe(false);
+    expect(isSameOrigin('https://example.com', undefined as any)).toBe(false);
+  });
 });

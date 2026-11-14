@@ -323,9 +323,13 @@ const getMockResponseRouteKey = (response?: MockResponseRouteKeyInput | null): s
 };
 
 const isSameOrigin = (url1: string, url2: string): boolean => {
+  if (!url1 || !url2 || typeof url1 !== 'string' || typeof url2 !== 'string') {
+    return false;
+  }
   try {
-    const parsed1 = new URL(url1);
-    const parsed2 = new URL(url2);
+    const base1 = hasExplicitScheme(url1) ? url1 : `${DEFAULT_SCHEME}${url1}`;
+    const parsed1 = new URL(base1);
+    const parsed2 = new URL(url2, parsed1);
     return parsed1.origin === parsed2.origin;
   } catch (err) {
     return false;
