@@ -352,6 +352,8 @@ export const buildCommonLocators = (page: Page) => ({
     loader: () => page.getByTestId('import-collection-loader'),
     fileTab: () => page.getByTestId('file-tab'),
     gitRepositoryTab: () => page.getByTestId('github-tab'),
+    gitUrlInput: () => page.getByTestId('git-url-input'),
+    cloneGitButton: () => page.getByTestId('clone-git-button'),
     chooseFilesButton: () => page.getByTestId('choose-files-button'),
     advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
     preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),

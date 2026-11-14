@@ -8,10 +8,20 @@ export const buildCloneGitRepositoryLocators = (page: Page) => {
       .locator('.bruno-modal-card')
       .filter({ has: page.locator('.bruno-modal-header-title', { hasText: 'Clone Git Repository' }) });
   const branchOptions = (): Locator => page.getByRole('listbox').locator('.dropdown-item');
+  const collectionItem = (name: string): Locator =>
+    modal().getByTestId('selection-list').getByRole('listitem').filter({
+      has: page.getByText(name, { exact: true })
+    });
 
   return {
     modal,
     branchOptions,
+    locationInput: (): Locator => modal().getByTestId('clone-git-repository-location'),
+    browseLink: (): Locator => modal().getByTestId('clone-git-repository-browse'),
+    collectionList: (): Locator => modal().getByTestId('selection-list'),
+    collectionHeading: (): Locator => modal().getByTestId('selection-heading'),
+    collectionItem,
+    collectionCheckbox: (name: string): Locator => collectionItem(name).getByRole('checkbox'),
     branchSelect: (): Locator => modal().getByTestId('clone-git-repository-branch-select'),
     branchSearchInput: (): Locator => modal().locator('.select-search-input'),
     branchOption: (branchName: string): Locator => branchOptions().filter({ hasText: branchName }),
@@ -31,9 +41,9 @@ export const openCloneDialogFromImport = async (page: Page, repositoryUrl: strin
   const importModal = locators.import.modal();
   await importModal.waitFor({ state: 'visible', timeout: 10000 });
 
-  await importModal.getByTestId('github-tab').click();
-  await importModal.getByTestId('git-url-input').fill(repositoryUrl);
-  await importModal.locator('#clone-git-button').click();
+  await locators.import.gitRepositoryTab().click();
+  await locators.import.gitUrlInput().fill(repositoryUrl);
+  await locators.import.cloneGitButton().click();
 
   await modal().waitFor({ state: 'visible', timeout: 10000 });
   await expect(modal()).toContainText(repositoryUrl);
