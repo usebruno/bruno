@@ -59,7 +59,7 @@ const saveCookies = (url, headers) => {
       setCookieHeaders = Array.isArray(headers['set-cookie'])
         ? headers['set-cookie']
         : [headers['set-cookie']];
-      for (let setCookieHeader of setCookieHeaders) {
+      for (const setCookieHeader of setCookieHeaders) {
         if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
           addCookieToJar(setCookieHeader, url);
         }
@@ -169,7 +169,11 @@ const configureRequest = async (
 
   // Resolve the HTTP version. collection setting (bruno.json http.version) overrides the app preference.
   const brunoConfig = getBrunoConfig(collectionUid, collection);
-  const httpVersionMode = resolveHttpVersion(get(brunoConfig, 'http.version'), preferencesUtil.getHttpVersion());
+  const httpVersionMode = resolveHttpVersion(
+    get(request, 'settings.httpVersion'),
+    get(brunoConfig, 'http.version'),
+    preferencesUtil.getHttpVersion()
+  );
 
   const axiosInstance = makeAxiosInstance({
     proxyMode,

@@ -1,15 +1,25 @@
 import React, { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import get from 'lodash/get';
-import { IconTag } from '@tabler/icons';
+import { IconTag, IconChevronDown } from '@tabler/icons';
 import { utils } from '@usebruno/common';
 import ToggleSelector from 'components/RequestPane/Settings/ToggleSelector';
+import MenuDropdown from 'ui/MenuDropdown';
+import StatusBadge from 'ui/StatusBadge';
+import { useTheme } from 'providers/Theme';
 import SettingsInput from 'components/SettingsInput';
 import InheritableSettingsInput from 'components/InheritableSettingsInput';
 import { updateItemSettings, toggleAppMode } from 'providers/ReduxStore/slices/collections';
 import { setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Tags from './Tags/index';
+
+const HTTP_VERSION_LABELS = {
+  inherit: 'Inherit',
+  auto: 'Auto',
+  http1: 'HTTP/1.1',
+  http2: 'HTTP/2'
+};
 
 // Default settings configuration
 const DEFAULT_SETTINGS = {
@@ -22,6 +32,7 @@ const DEFAULT_SETTINGS = {
 
 const Settings = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const { theme } = useTheme();
 
   // Get current settings with defaults applied
   const getPropertyFromDraftOrRequest = (propertyKey) =>
@@ -41,6 +52,36 @@ const Settings = ({ item, collection }) => {
       settings: updatedSettings
     }));
   }, [dispatch, collection.uid, item.uid, settings]);
+
+  // HTTP version (request > collection > app).
+  const appHttpVersion = useSelector((state) => get(state.app.preferences, 'request.httpVersion', 'http1'));
+  const collectionHttpVersion = collection?.draft?.brunoConfig
+    ? get(collection, 'draft.brunoConfig.http.version', 'inherit')
+    : get(collection, 'brunoConfig.http.version', 'inherit');
+  const effectiveInheritedHttpVersion
+    = collectionHttpVersion && collectionHttpVersion !== 'inherit' ? collectionHttpVersion : appHttpVersion;
+  const currentHttpVersion = rawSettings.httpVersion || 'inherit';
+
+  const onHttpVersionChange = useCallback((value) => {
+    if (value === 'inherit') {
+      const { httpVersion, ...rest } = settings;
+      dispatch(updateItemSettings({ collectionUid: collection.uid, itemUid: item.uid, settings: rest }));
+    } else {
+      updateSetting({ httpVersion: value });
+    }
+  }, [settings, updateSetting, dispatch, collection.uid, item.uid]);
+
+  const httpVersionItems = [
+    {
+      id: 'inherit',
+      label: `Inherit (${HTTP_VERSION_LABELS[effectiveInheritedHttpVersion] || effectiveInheritedHttpVersion})`,
+      onClick: () => onHttpVersionChange('inherit')
+    },
+    { id: 'auto', label: HTTP_VERSION_LABELS.auto, onClick: () => onHttpVersionChange('auto') },
+    { id: 'http1', label: HTTP_VERSION_LABELS.http1, onClick: () => onHttpVersionChange('http1') },
+    { id: 'http2', label: HTTP_VERSION_LABELS.http2, onClick: () => onHttpVersionChange('http2') }
+  ];
+  const currentHttpVersionLabel = HTTP_VERSION_LABELS[currentHttpVersion] || HTTP_VERSION_LABELS.inherit;
 
   // Setting change handlers
   const onToggleUrlEncoding = useCallback(() =>
@@ -123,6 +164,35 @@ const Settings = ({ item, collection }) => {
         </div>
 
         <div className="flex flex-col gap-4">
+
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              <label className="text-xs font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                HTTP Version
+                <StatusBadge status="info" size="xs">Beta</StatusBadge>
+              </label>
+              <p className="text-xs text-gray-700 dark:text-gray-400">
+                Choose the HTTP version for this request. Inherit uses the collection default.
+              </p>
+            </div>
+            <MenuDropdown
+              items={httpVersionItems}
+              selectedItemId={currentHttpVersion}
+              placement="bottom-end"
+              appendTo={() => document.body}
+              popperOptions={{ strategy: 'fixed' }}
+            >
+              <button
+                type="button"
+                className="flex items-center justify-between rounded-sm px-2 py-1 h-8 w-24 outline-none cursor-pointer text-xs"
+                style={{ backgroundColor: theme.input.bg, border: `1px solid ${theme.input.border}`, color: theme.text }}
+                data-testid="request-http-version"
+              >
+                <span>{currentHttpVersionLabel}</span>
+                <IconChevronDown size={12} />
+              </button>
+            </MenuDropdown>
+          </div>
 
           <div className="flex flex-col gap-4">
             <ToggleSelector

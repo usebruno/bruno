@@ -7,6 +7,7 @@ import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/
 import { useTheme } from 'providers/Theme';
 import Button from 'ui/Button';
 import MenuDropdown from 'ui/MenuDropdown';
+import StatusBadge from 'ui/StatusBadge';
 import StyledWrapper from './StyledWrapper';
 
 // Display labels for the concrete HTTP versions (Inherit shows the resolved app value).
@@ -49,7 +50,7 @@ const Requests = ({ collection }) => {
     <StyledWrapper className="h-full w-full">
       <div className="bruno-form">
         <div className="http-version-field">
-          <label className="http-version-label">HTTP Version</label>
+          <label className="http-version-label">HTTP Version <StatusBadge status="info" size="xs">Beta</StatusBadge></label>
           <p className="http-version-subtitle">
             Choose the HTTP version for this collection. Select <strong>Inherit</strong> to use the app default.
           </p>

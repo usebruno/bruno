@@ -244,7 +244,11 @@ const buildCertsAndProxyConfig = async ({
     collectionLevelProxy,
     appLevelProxyConfig,
     systemProxyConfig,
-    httpVersion: resolveHttpVersion(get(brunoConfig, 'http.version'), preferencesUtil.getHttpVersion())
+    httpVersion: resolveHttpVersion(
+      get(request, 'settings.httpVersion'),
+      get(brunoConfig, 'http.version'),
+      preferencesUtil.getHttpVersion()
+    )
   };
 };
 

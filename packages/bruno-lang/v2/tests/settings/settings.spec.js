@@ -54,5 +54,16 @@ describe('Settings Conversion Tests', () => {
 
       expect(convertedJson).toEqual(originalJson);
     });
+
+    it('should round-trip each httpVersion mode and omit it when unset', () => {
+      for (const httpVersion of ['inherit', 'auto', 'http1', 'http2']) {
+        const json = { settings: { encodeUrl: true, httpVersion } };
+        const back = bruToJson(jsonToBru(json));
+        expect(back.settings.httpVersion).toBe(httpVersion);
+      }
+
+      const noVersion = bruToJson(jsonToBru({ settings: { encodeUrl: true } }));
+      expect(noVersion.settings.httpVersion).toBeUndefined();
+    });
   });
 });

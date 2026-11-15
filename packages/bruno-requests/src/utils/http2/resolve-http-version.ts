@@ -1,20 +1,25 @@
-import { HttpVersionMode, HttpVersionSetting, isHttpVersionMode } from '@usebruno/common';
+import { HttpVersionMode, isHttpVersionMode } from '@usebruno/common';
 
 /**
- * Resolve the HTTP version from the collection setting or fallback.
- * Defaults to 'http1' when neither is valid.
- *
- * Precedence: Desktop uses collection > app, CLI uses flag > collection.
+ * Resolve the HTTP version in order: request, collection, then app preference.
+ * Skip inherited or invalid values. Default to HTTP/1 if none is set.
  */
 export const resolveHttpVersion = (
+  requestHttpVersion?: string | null,
   collectionHttpVersion?: string | null,
   fallback?: string | null
 ): HttpVersionMode => {
-  if (collectionHttpVersion !== HttpVersionSetting.Inherit && isHttpVersionMode(collectionHttpVersion)) {
+  if (isHttpVersionMode(requestHttpVersion)) {
+    return requestHttpVersion;
+  }
+
+  if (isHttpVersionMode(collectionHttpVersion)) {
     return collectionHttpVersion;
   }
+
   if (isHttpVersionMode(fallback)) {
     return fallback;
   }
+
   return HttpVersionMode.Http1;
 };
