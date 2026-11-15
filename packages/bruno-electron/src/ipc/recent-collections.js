@@ -37,6 +37,13 @@ const moveRecentCollection = (fromPath, toPath) => sendIfChanged(recentCollectio
 
 const renameRecentCollection = (collectionPath, name) => sendIfChanged(recentCollections.rename(collectionPath, name));
 
+const recordRecentCollectionClose = async (collectionPath, name) => {
+  const collectionStats = await fs.lstat(collectionPath).catch(() => null);
+  if (!collectionStats?.isSymbolicLink()) {
+    recordRecentCollections([{ path: collectionPath, name }], 'closed');
+  }
+};
+
 const isMissingPathError = (error) => ['ENOENT', 'ENOTDIR'].includes(error.code);
 
 const isNearestFolderInUse = async (folderPath) => {
@@ -94,6 +101,7 @@ module.exports = {
   forgetMissingRecentCollections,
   moveRecentCollection,
   renameRecentCollection,
+  recordRecentCollectionClose,
   isVolumeReachable,
   setRecentCollectionsWindow
 };

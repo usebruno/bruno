@@ -14,6 +14,7 @@ const {
   forgetMissingRecentCollections,
   moveRecentCollection,
   renameRecentCollection,
+  recordRecentCollectionClose,
   isVolumeReachable,
   setRecentCollectionsWindow
 } = require('./recent-collections');
@@ -85,6 +86,28 @@ describe('recent collections IPC', () => {
     await waitForBroadcast();
 
     expect(mainWindow.webContents.send).not.toHaveBeenCalled();
+  });
+
+  it('records a close under the name the window sends', async () => {
+    lstat.mockResolvedValue({ isSymbolicLink: () => false });
+
+    await recordRecentCollectionClose('/projects/orders', 'Orders API');
+
+    expect(recentCollections.record).toHaveBeenCalledWith([{ path: '/projects/orders', name: 'Orders API' }], 'closed');
+  });
+
+  it('records the close of a collection whose folder is gone or on a drive that is unplugged', async () => {
+    await recordRecentCollectionClose('/Volumes/USB/orders', 'Orders API');
+
+    expect(recentCollections.record).toHaveBeenCalledWith([{ path: '/Volumes/USB/orders', name: 'Orders API' }], 'closed');
+  });
+
+  it('records nothing for a collection opened through a link, even one whose folder is gone', async () => {
+    lstat.mockResolvedValue({ isSymbolicLink: () => true });
+
+    await recordRecentCollectionClose('/projects/orders-link', 'Orders API');
+
+    expect(recentCollections.record).not.toHaveBeenCalled();
   });
 
   it.each([

@@ -66,6 +66,7 @@ jest.mock('@usebruno/filestore', () => ({
 
 jest.mock('./recent-collections', () => ({
   recordRecentCollections: jest.fn(),
+  recordRecentCollectionClose: jest.fn(),
   forgetMissingRecentCollections: jest.fn(),
   moveRecentCollection: jest.fn(),
   renameRecentCollection: jest.fn()
@@ -80,7 +81,7 @@ const registerCollectionsIpc = require('./collection');
 
 const { copyPathTo, posixifyPath } = require('../utils/filesystem');
 const { moveRequestUid } = require('../cache/requestUids');
-const { recordRecentCollections, forgetMissingRecentCollections, moveRecentCollection, renameRecentCollection } = require('./recent-collections');
+const { recordRecentCollections, recordRecentCollectionClose, forgetMissingRecentCollections, moveRecentCollection, renameRecentCollection } = require('./recent-collections');
 
 describe('IPC collection handlers', () => {
   let mainWindow;
@@ -329,26 +330,28 @@ describe('IPC collection handlers', () => {
 
   describe('renderer:remove-collection', () => {
     const collectionPath = path.join(os.tmpdir(), 'fake', 'orders');
-    let collectionsFolder;
     let watcher;
     let removeCollectionHandler;
 
     beforeEach(() => {
-      collectionsFolder = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-remove-collection-'));
       watcher = { removeWatcher: jest.fn() };
       registerCollectionsIpc(mainWindow, watcher);
       removeCollectionHandler = ipcMain._getHandler('renderer:remove-collection');
     });
 
-    afterEach(() => {
-      fs.rmSync(collectionsFolder, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
-    });
-
-    it('records the close before the rest of the close runs, under the collection name the window sends', async () => {
+    it('hands the close to Recents before the rest of the close runs, with the collection name the window sends', async () => {
       await removeCollectionHandler({}, collectionPath, 'orders-uid', 'default', 'Orders');
 
-      expect(recordRecentCollections).toHaveBeenCalledWith([{ path: collectionPath, name: 'Orders' }], 'closed');
-      expect(recordRecentCollections.mock.invocationCallOrder[0]).toBeLessThan(watcher.removeWatcher.mock.invocationCallOrder[0]);
+      expect(recordRecentCollectionClose).toHaveBeenCalledWith(collectionPath, 'Orders');
+      expect(recordRecentCollectionClose.mock.invocationCallOrder[0]).toBeLessThan(watcher.removeWatcher.mock.invocationCallOrder[0]);
+    });
+
+    it('closes without waiting for Recents, so a share that stops answering cannot hold up the close', async () => {
+      recordRecentCollectionClose.mockReturnValueOnce(new Promise(() => {}));
+
+      await removeCollectionHandler({}, collectionPath, 'orders-uid', 'default', 'Orders');
+
+      expect(watcher.removeWatcher).toHaveBeenCalledWith(collectionPath, mainWindow, 'orders-uid');
     });
 
     it('never reads the collection folder synchronously, so a share that stops answering cannot freeze the app', async () => {
@@ -361,23 +364,10 @@ describe('IPC collection handlers', () => {
       expect(pathsReadSynchronously).not.toContain(collectionPath);
     });
 
-    it('records the close with whatever name the window sends, leaving names that are not strings to Recents', async () => {
+    it('passes along whatever name the window sends, leaving names that are not strings to Recents', async () => {
       await removeCollectionHandler({}, collectionPath, 'orders-uid', 'default', 42);
 
-      expect(recordRecentCollections).toHaveBeenCalledWith([{ path: collectionPath, name: 42 }], 'closed');
-    });
-
-    it('records nothing when the collection path is a link, even one whose folder is gone', async () => {
-      const ordersCollection = path.join(collectionsFolder, 'orders');
-      const ordersLink = path.join(collectionsFolder, 'orders-link');
-      fs.mkdirSync(ordersCollection);
-      fs.symlinkSync(ordersCollection, ordersLink, 'junction');
-
-      await removeCollectionHandler({}, ordersLink, 'orders-uid', 'default', 'Orders API');
-      fs.rmSync(ordersCollection, { recursive: true, force: true });
-      await removeCollectionHandler({}, ordersLink, 'orders-uid', 'default', 'Orders API');
-
-      expect(recordRecentCollections).not.toHaveBeenCalled();
+      expect(recordRecentCollectionClose).toHaveBeenCalledWith(collectionPath, 42);
     });
   });
 

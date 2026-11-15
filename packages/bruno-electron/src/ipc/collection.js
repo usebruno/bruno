@@ -88,7 +88,7 @@ const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress
 const { findUniqueFolderName } = require('../utils/collection-import');
 const { renameEnvironmentExtendsReferences } = require('../utils/environments');
 const { saveSpecAndUpdateMetadata, cleanupSpecFilesForCollection } = require('./openapi-sync');
-const { recordRecentCollections, forgetMissingRecentCollections, moveRecentCollection, renameRecentCollection } = require('./recent-collections');
+const { recordRecentCollections, recordRecentCollectionClose, forgetMissingRecentCollections, moveRecentCollection, renameRecentCollection } = require('./recent-collections');
 const {
   validateWorkspacePath,
   normalizeCollectionEntry,
@@ -1389,10 +1389,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   ipcMain.handle('renderer:remove-collection', async (event, collectionPath, collectionUid, workspacePath, collectionName) => {
-    const collectionStats = await fs.promises.lstat(collectionPath).catch(() => null);
-    if (!collectionStats?.isSymbolicLink()) {
-      recordRecentCollections([{ path: collectionPath, name: collectionName }], 'closed');
-    }
+    recordRecentCollectionClose(collectionPath, collectionName);
 
     if (watcher && mainWindow) {
       watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
