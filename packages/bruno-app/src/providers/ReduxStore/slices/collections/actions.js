@@ -2412,7 +2412,7 @@ export const addSecretToEnvironment = ({ collectionUid, environmentScope, name, 
     environmentScope,
     environmentUid,
     update: (variables, environment) => {
-      if (variables.some((variable) => variable.name === name)) {
+      if (variables.some((variable) => variable.name === name && variable.secret)) {
         throw new Error(`"${name}" already exists in ${environment.name}`);
       }
       return resolveOrCreateEnabledVariable(variables, name, value, true).updatedVariables;
@@ -3272,7 +3272,7 @@ export const importCollection = (collection, collectionLocation, options = {}) =
 
       const result = await ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation, {
         format: options.format || DEFAULT_COLLECTION_FORMAT,
-        rawOpenAPISpec: options.rawOpenAPISpec
+        rawOpenAPISpecs: options.rawOpenAPISpecs
       });
       const importedPaths = result.success.items;
 

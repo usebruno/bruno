@@ -21,5 +21,5 @@ export const SelectAllShortcutHint = () => (
 );
 
 export const DeleteShortcutHint = () => (
-  <ShortcutHint keys={isMacOS() ? [commandKey, backspaceKey] : ['Del']} />
+  <ShortcutHint keys={isMacOS() ? [commandKey, backspaceKey] : ['Delete']} />
 );

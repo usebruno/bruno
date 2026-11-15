@@ -98,11 +98,15 @@ test.describe('Import Collection File Format Options toggle', () => {
 
     await test.step('Show Advanced Options with OpenCollection (YAML) selected', async () => {
       await locationModal.getByRole('button', { name: 'Options' }).click();
-      await locators.import.advancedOptionsToggle().click();
+      const toggle = locators.import.advancedOptionsToggle();
+      await expect(toggle).toHaveText('Show file format');
+      await toggle.click();
 
       const formatSelect = locators.import.formatSelect(locationModal);
       await expect(formatSelect).toBeVisible();
       await expect(formatSelect).toHaveValue('yml');
+
+      await locators.import.advancedSectionToggle().click();
       await expect(locators.import.preserveScriptsToggle()).toBeVisible();
     });
 
@@ -111,6 +115,12 @@ test.describe('Import Collection File Format Options toggle', () => {
       await formatSelect.selectOption('bru');
       await expect(formatSelect).toHaveValue('bru');
       await expect(formatSelect.locator('option')).toHaveText(['OpenCollection (YAML)', 'BRU Format (.bru)']);
+
+      await locationModal.getByRole('button', { name: 'Options' }).click();
+      const toggle = locators.import.advancedOptionsToggle();
+      await expect(toggle).toHaveText('Hide file format');
+      await toggle.click();
+      await expect(formatSelect).toHaveCount(0);
     });
 
     await test.step('Click Import', async () => {

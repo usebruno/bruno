@@ -1,7 +1,60 @@
 import jsyaml from 'js-yaml';
 import { interpolate } from '@usebruno/common';
-import { isValidUrl } from 'utils/url/index';
+import { parseQueryParams } from '@usebruno/common/utils';
+import { isValidUrl, splitOnFirst } from 'utils/url/index';
 const xml2js = require('xml2js');
+
+const placeholderRegex = /\{\{([^}]+)\}\}/g;
+
+// Blank out {{...}} placeholders, so characters inside them (like the ? of a prompt variable) aren't read as url syntax
+const maskPlaceholders = (value) => value.replace(placeholderRegex, (placeholder) => '_'.repeat(placeholder.length));
+
+// Query params of a raw url as { name, value } pairs, first occurrence of each name
+const getUrlQueryParams = (url) => {
+  const [, query] = splitOnFirst(url, '?');
+  const seen = new Set();
+  return parseQueryParams(query)
+    .map(({ name, value }) => ({ name, value: value ?? '' }))
+    .filter(({ name }) => !seen.has(name) && seen.add(name));
+};
+
+// Split a url into server and path as text when the URL parser can't be used: the address (scheme, host or port) has a
+// placeholder in it, or the url has no scheme. Placeholders stay whole and keep their spelling.
+const splitAddressAsText = (url) => {
+  const masked = maskPlaceholders(url);
+  if (!masked || masked.startsWith('/')) return null;
+
+  const [scheme = ''] = masked.match(/^[^/?#]*?:\/\//) || [];
+  const addressLength = masked.slice(scheme.length).search(/[/?#]/);
+  const addressEnd = addressLength === -1 ? masked.length : scheme.length + addressLength;
+  if (scheme && !url.slice(0, addressEnd).includes('{{')) return null;
+
+  const credentialsEnd = masked.lastIndexOf('@', addressEnd - 1);
+  const hostStart = credentialsEnd >= scheme.length ? credentialsEnd + 1 : scheme.length;
+  const host = url.slice(hostStart, addressEnd);
+  if (!host) return null;
+
+  const rest = url.slice(addressEnd);
+  return { server: url.slice(0, scheme.length) + host, path: rest.startsWith('/') ? rest : `/${rest}` };
+};
+
+// Turn a Bruno path into an OpenAPI path template: {{name}} placeholders and :name segments become {name}
+const toTemplatePath = (path) => {
+  const masked = maskPlaceholders(path);
+  const segmentParamNames = [];
+  let templatePath = '';
+  let copiedUpTo = 0;
+  for (const match of masked.matchAll(/(^|\/):([^/]+)/g)) {
+    const nameStart = match.index + match[1].length + 1;
+    const name = path.slice(nameStart, nameStart + match[2].length);
+    if (name.includes('{{')) continue;
+    templatePath += `${path.slice(copiedUpTo, nameStart - 1)}{${name}}`;
+    segmentParamNames.push(name);
+    copiedUpTo = nameStart + name.length;
+  }
+  templatePath += path.slice(copiedUpTo);
+  return { templatePath: templatePath.replace(placeholderRegex, '{$1}'), segmentParamNames };
+};
 
 export const exportApiSpec = ({ variables, items, name, environments }) => {
   // Filter only include http-request and graphql-request items that aren't transient
@@ -25,6 +78,14 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
 
   const templateVarRegex = /\{\{([^}]+)\}\}/g;
 
+  const secretVariableNames = new Set(
+    (environments || []).flatMap((env) => (env.variables || []).filter((v) => v.enabled && v.secret).map((v) => v.name))
+  );
+  const isSecretName = (varName) => secretVariableNames.has(varName) || /^(\$secrets|process|\$oauth2)(\.|$)/.test(varName);
+
+  // Secrets are never filled in, even when the caller passes their values
+  variables = Object.fromEntries(Object.entries(variables || {}).filter(([varName]) => !isSecretName(varName)));
+
   // Build an OpenAPI server entry from a URL (supports {{var}} templates)
   const buildServerEntry = (url, vars, description) => {
     const cleanedUrl = url.endsWith('/') ? url.slice(0, -1) : url;
@@ -38,7 +99,10 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
       // each match m is an array where m[0] is the full match (e.g. {{protocol}}) and m[1] is the capture group (e.g. protocol).
       matches.forEach((m) => {
         const varName = m[1];
-        serverVariables[varName] = { default: vars[varName] !== undefined ? String(vars[varName]) : '' };
+        // A secret keeps its placeholder text as a hint; any other variable without a value stays empty
+        const hasValue = Object.hasOwn(vars, varName) && vars[varName] !== undefined;
+        const fallback = isSecretName(varName) ? `{{${varName}}}` : '';
+        serverVariables[varName] = { default: hasValue ? String(vars[varName]) : fallback };
       });
       if (Object.keys(serverVariables).length > 0) {
         entry.variables = serverVariables;
@@ -66,8 +130,10 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
   if (environments && environments.length > 0) {
     for (const env of environments) {
       const envVars = getEnabledVarsAsObject(env.variables);
-      if (envVars.baseUrl) {
-        baseUrlSources.push({ baseUrl: envVars.baseUrl, description: env.name, vars: envVars });
+      const isBaseUrlSecret = env.variables?.some((v) => v.name === 'baseUrl' && v.enabled && v.secret);
+      const baseUrl = isBaseUrlSecret ? '{{baseUrl}}' : envVars.baseUrl;
+      if (baseUrl) {
+        baseUrlSources.push({ baseUrl, description: env.name, vars: envVars });
       }
     }
   }
@@ -134,8 +200,10 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
 
     // URL matches a known baseUrl value directly (e.g. user typed template vars inline)
     for (const source of baseUrlSources) {
-      if (rawUrl.startsWith(source.baseUrl)) {
-        const rawPath = rawUrl.slice(source.baseUrl.length);
+      const baseUrl = source.baseUrl.replace(/\/+$/, '');
+      const rest = rawUrl.slice(baseUrl.length);
+      if (rawUrl.startsWith(baseUrl) && (rest === '' || /^[/?#]/.test(rest))) {
+        const rawPath = rest;
         const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
         return { url: path, operationLevelServer: null };
       }
@@ -143,6 +211,11 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
 
     // Unknown URL — resolve fully and add operation-level server override
     const resolvedUrl = interpolate(rawUrl, variables);
+    const textSplit = splitAddressAsText(resolvedUrl);
+    if (textSplit) {
+      return { url: textSplit.path, operationLevelServer: buildServerEntry(textSplit.server, variables) };
+    }
+
     if (isValidUrl(resolvedUrl)) {
       const urlDetails = new URL(resolvedUrl);
       return {
@@ -151,12 +224,17 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
       };
     }
 
-    return { url: rawUrl, operationLevelServer: null };
+    return { url: rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`, operationLevelServer: null };
   };
 
   const generatePaths = () => {
     const _items = items.map((item) => {
-      const { url, operationLevelServer } = resolveRequestUrl(item?.request?.url || '', item?.request?.vars?.req);
+      const { url: rawPath, operationLevelServer } = resolveRequestUrl(item?.request?.url || '', item?.request?.vars?.req);
+      const queryStart = maskPlaceholders(rawPath).search(/[?#]/);
+      const pathOnly = queryStart === -1 ? rawPath : rawPath.slice(0, queryStart);
+      const placeholderNames = [...new Set([...pathOnly.matchAll(templateVarRegex)].map((m) => m[1]))];
+      const { templatePath: url, segmentParamNames } = toTemplatePath(pathOnly);
+      const urlQueryParams = getUrlQueryParams(item?.request?.url || '');
       const { request } = item;
       const { method, params = [], headers = [], body, auth } = request || {};
 
@@ -164,12 +242,14 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
 
       const pathParamsRegex = /(?<!{){([^{}]+)}(?!})/g;
 
-      const pathMatches = url.match(pathParamsRegex) || [];
+      const pathMatches = pathOnly.match(pathParamsRegex) || [];
 
       // Build known path param names from the params array
       const knownPathParamNames = new Set(
         params?.filter((p) => p?.type === 'path').map((p) => p?.name) || []
       );
+
+      const queryParamNames = new Set(params?.filter((p) => p?.type !== 'path').map((p) => p?.name));
 
       const parameters = [
         // Query params (exclude path-type params to avoid duplication)
@@ -180,6 +260,16 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
           required: param?.enabled,
           example: param?.value
         })),
+        // Query params written only in the url, not in the params list
+        ...urlQueryParams
+          .filter(({ name }) => !queryParamNames.has(name))
+          .map(({ name, value }) => ({
+            name,
+            in: 'query',
+            description: '',
+            required: true,
+            example: value
+          })),
         ...headers?.map((header) => ({
           name: header?.name,
           in: 'header',
@@ -202,6 +292,23 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
             name,
             in: 'path',
             required: true
+          })),
+        // Bruno :name path params that aren't in the params array
+        ...segmentParamNames
+          .filter((name) => !knownPathParamNames.has(name))
+          .map((name) => ({
+            name,
+            in: 'path',
+            required: true
+          })),
+        ...placeholderNames
+          .filter((name) => !knownPathParamNames.has(name))
+          .map((name) => ({
+            name,
+            in: 'path',
+            required: true,
+            example: `{{${name}}}`,
+            schema: { type: 'string' }
           }))
       ];
 
@@ -554,11 +661,13 @@ const generateInfoSection = (name) => {
   };
 };
 
-// Convert env variable array to { name: value } object (only enabled vars)
+// Convert env variable array to { name: value } object (only enabled vars; a name with an enabled secret is
+// left out, because the secret wins at runtime)
 const getEnabledVarsAsObject = (variables = []) => {
+  const secretNames = new Set(variables.filter((v) => v.enabled && v.secret).map((v) => v.name));
   const result = {};
   variables.forEach((v) => {
-    if (v.name && v.enabled) {
+    if (v.name && v.enabled && !secretNames.has(v.name)) {
       result[v.name] = v.value;
     }
   });

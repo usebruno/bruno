@@ -57,7 +57,7 @@ const brunoCollection = await wsdlToBruno(wsdlContent);
 ```javascript
 
 const { postmanToBruno } = require('@usebruno/converters');
-const { writeCollectionToDisk } = require('@usebruno/filestore');
+const { writeCollection } = require('@usebruno/io');
 const fs = require('fs/promises');
 
 async function convertPostmanToBruno(inputFile, outputDir) {
@@ -65,7 +65,7 @@ async function convertPostmanToBruno(inputFile, outputDir) {
 
   const collection = await postmanToBruno(JSON.parse(inputData));
   // Writes YAML (OpenCollection) files.
-  await writeCollectionToDisk(collection, outputDir);
+  await writeCollection(collection, outputDir);
 }
 
 convertPostmanToBruno('demo_collection.postman_collection.json', './bruno-collection');
@@ -87,7 +87,7 @@ The WSDL importer supports the following features:
 
 ```javascript
 import { wsdlToBruno } from '@usebruno/converters';
-import { writeCollectionToDisk } from '@usebruno/filestore';
+import { writeCollection } from '@usebruno/io';
 import fs from 'fs/promises';
 
 async function importWSDL() {
@@ -95,7 +95,7 @@ async function importWSDL() {
 
   const collection = await wsdlToBruno(wsdlContent);
   // Writes YAML (OpenCollection) files.
-  await writeCollectionToDisk(collection, './soap-collection');
+  await writeCollection(collection, './soap-collection');
 }
 
 importWSDL();

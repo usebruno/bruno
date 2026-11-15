@@ -21,10 +21,11 @@ import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
 import CodeMirrorSearch from 'components/CodeMirrorSearch';
 import { buildSearchKeyBindings } from 'components/CodeMirrorSearch/searchKeyBindings';
 import { SetAsVariableContext } from 'providers/SetAsVariable/context';
+import { openLinksExternally } from 'utils/markdown/openLinksExternally';
 
 const CodeMirror = require('codemirror');
 
-const md = new MD();
+const md = new MD().use(openLinksExternally);
 const AUTO_COMPLETE_AFTER_KEY = /^[a-zA-Z0-9_@(]$/;
 
 const createSafeGraphQLLinter = () => {

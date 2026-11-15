@@ -5,10 +5,11 @@ const chalk = require('chalk');
 const jsyaml = require('js-yaml');
 const axios = require('axios');
 const { openApiToBruno, wsdlToBruno, postmanToBruno, postmanToBrunoEnvironment } = require('@usebruno/converters');
+const { AUTH_PLACEMENTS, REQUEST_NAME_SOURCES, DEFAULT_AUTH_PLACEMENT, DEFAULT_REQUEST_NAME_SOURCE } = require('@usebruno/common');
 const { coerceEnvName, dedupeImportedSecrets, generateUniqueName, sanitizeName, validateName, validateNameError } = require('@usebruno/common').utils;
 const { exists, isDirectory, canonicalPath } = require('../utils/filesystem');
 const { formatImportSummary, formatImportIssues, formatPackageReport, hasImportErrors } = require('../utils/import-report');
-const { writeCollectionToDiskLegacy } = require('@usebruno/filestore');
+const { writeCollectionLegacy } = require('@usebruno/io');
 
 const command = 'import <type>';
 const desc = 'Import a collection (OpenAPI, WSDL, Postman) from other formats';
@@ -66,12 +67,24 @@ const builder = (yargs) => {
       choices: ['tags', 'path'],
       default: 'tags'
     })
+    .option('auth-placement', {
+      describe: 'Where to set the spec\'s auth: "request" on each request, "collection" on the collection for requests to inherit. Other schemes stay on their requests (openapi only)',
+      type: 'string',
+      choices: AUTH_PLACEMENTS,
+      default: DEFAULT_AUTH_PLACEMENT
+    })
+    .option('request-name-source', {
+      describe: 'Field used to name the imported requests: "summary", "operationId", "description" or "path" (method and path). Missing fields fall back in that order (openapi only)',
+      type: 'string',
+      choices: REQUEST_NAME_SOURCES,
+      default: DEFAULT_REQUEST_NAME_SOURCE
+    })
     .option('preserve-scripts', {
       describe: 'Preserve scripts (keep Postman scripts verbatim, no pm.* → bru.* translation) (postman only)',
       type: 'boolean',
       default: false
     })
-    .option('environment', {
+    .option('env', {
       alias: 'e',
       describe: 'Postman environment export(s) to convert alongside the collection (postman only)',
       type: 'array'
@@ -84,11 +97,14 @@ const builder = (yargs) => {
     .example('$0 import openapi -s api.yml -f ~/Desktop/my-collection.json -n "My API"')
     .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --group-by path')
     .example('$0 import openapi -s api.yml -o ~/Desktop/my-collection -g tags')
+    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --request-name-source operationId')
+    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --auth-placement collection')
     .example('$0 import wsdl --source service.wsdl --output ~/Desktop/soap-collection --collection-name "SOAP Service"')
     .example('$0 import wsdl -s https://example.com/service.wsdl -o ~/Desktop -n "Remote SOAP Service"')
     .example('$0 import postman --source my-api.postman_collection.json --output ~/Desktop/my-api')
     .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop/my-api -n "My API"')
     .example('$0 import postman -s https://example.com/my-api.postman_collection.json -o ~/Desktop/my-api --preserve-scripts')
+    .example('$0 import postman --source my-api.postman_collection.json --output ~/Desktop/my-api --env staging.postman_environment.json --env prod.postman_environment.json')
     .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop/my-api -e staging.postman_environment.json -e prod.postman_environment.json');
 };
 
@@ -321,7 +337,7 @@ const convertPostmanEnvironment = async (source, { insecure }) => {
 
 const importPostmanCollection = async (source, { insecure, preserveScripts, environmentSources = [] }) => {
   const postmanCollection = await readPostmanFile(source, { insecure });
-  const { collection, issues, translationIssues } = await postmanToBruno(postmanCollection, {
+  const { collection, issues } = await postmanToBruno(postmanCollection, {
     preserveScripts,
     logTranslationFailures: false
   });
@@ -337,7 +353,7 @@ const importPostmanCollection = async (source, { insecure, preserveScripts, envi
     collection.environments.push({ ...environment, name });
   }
 
-  return { collection, issues: [...issues, ...translationIssues] };
+  return { collection, issues };
 };
 
 const writeBrunoCollection = async (collection, { output, outputFile, collectionFormat = 'opencollection' }) => {
@@ -358,7 +374,7 @@ const writeBrunoCollection = async (collection, { output, outputFile, collection
   }
 
   const outputDir = await resolveCollectionOutputDir(output, collection.name);
-  await writeCollectionToDiskLegacy(collection, outputDir, {
+  await writeCollectionLegacy(collection, outputDir, {
     format: collectionFormat === 'opencollection' ? 'yml' : 'bru'
   });
   console.log(chalk.green(`Bruno collection created at ${outputDir}`));
@@ -376,7 +392,7 @@ const reportImport = (collection, issues) => {
 
 const handler = async (argv) => {
   try {
-    const { type, source, output, collectionFormat, outputFile, collectionName, insecure, groupBy, preserveScripts, environment } = argv;
+    const { type, source, output, collectionFormat, outputFile, collectionName, insecure, groupBy, authPlacement, requestNameSource, preserveScripts, env } = argv;
 
     if (!type || !IMPORT_TYPES.includes(type)) {
       console.error(chalk.red(`Import type must be one of: ${IMPORT_TYPES.join(', ')}`));
@@ -402,7 +418,7 @@ const handler = async (argv) => {
       const { collection, issues } = await importPostmanCollection(source, {
         insecure,
         preserveScripts,
-        environmentSources: environment
+        environmentSources: env
       });
 
       if (collectionName) {
@@ -432,7 +448,7 @@ const handler = async (argv) => {
       console.log(chalk.yellow('Converting OpenAPI specification to Bruno format...'));
 
       // Convert OpenAPI to Bruno format
-      brunoCollection = openApiToBruno(openApiSpec, { groupBy });
+      brunoCollection = openApiToBruno(openApiSpec, { groupBy, authPlacement, requestNameSource });
     } else if (type === 'wsdl') {
       console.log(chalk.yellow(`Reading WSDL from ${source}...`));
 

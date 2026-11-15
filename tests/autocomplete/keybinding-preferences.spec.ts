@@ -64,7 +64,7 @@ test.describe('Variable autocomplete — keybinding preferences', () => {
     const urlEditor = buildCommonLocators(page).request.urlInput();
     const { widget } = buildAutocompleteLocators(page);
 
-    await test.step('the default Ctrl+Space shortcut opens the dropdown before any rebinding', async () => {
+    await test.step('the default Trigger Autocomplete shortcut opens the dropdown before any rebinding', async () => {
       await urlEditor.click();
       await setEditorState(urlEditor, 'https://example.com/api', 23);
       await pressAutocompleteShortcut(page);
@@ -90,7 +90,7 @@ test.describe('Variable autocomplete — keybinding preferences', () => {
       await closePreferences(page);
     });
 
-    await test.step('the old Ctrl+Space combo no longer opens the dropdown', async () => {
+    await test.step('the old default combo no longer opens the dropdown', async () => {
       await openRequest(page, COLLECTION_NAME, REQUEST_NAME);
       await urlEditor.click();
       await setEditorState(urlEditor, 'https://example.com/api', 23);

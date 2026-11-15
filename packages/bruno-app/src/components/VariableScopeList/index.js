@@ -54,7 +54,7 @@ const VariableScopeList = ({ scopes, selectedScopeType, onSelect, onCreateEnviro
               data-testid={`${testIdPrefix}-scope-${scope.type}`}
             >
               <VariableScopeIcon scopeType={scope.type} />
-              <span className="var-add-to-option-label">{scope.label}</span>
+              <span className="var-add-to-option-label" title={scope.label}>{scope.label}</span>
             </button>
           </div>
         );

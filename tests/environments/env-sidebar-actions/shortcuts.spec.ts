@@ -25,7 +25,7 @@ test.describe('Collection environments list shortcuts', () => {
     await expect(rowMenuShortcut('delete')).toBeVisible();
     // macOS renders the Delete hint as icons, so its text is only checked on the other platforms.
     if (!IS_MAC) {
-      await expect(rowMenuShortcut('delete')).toHaveText('Del');
+      await expect(rowMenuShortcut('delete')).toHaveText('Delete');
     }
   });
 
@@ -37,7 +37,7 @@ test.describe('Collection environments list shortcuts', () => {
     await expect(contextMenuShortcut('select-all')).toBeVisible();
     await expect(contextMenuShortcut('delete')).toBeVisible();
     if (!IS_MAC) {
-      await expect(contextMenuShortcut('delete')).toHaveText('Del');
+      await expect(contextMenuShortcut('delete')).toHaveText('Delete');
     }
   });
 

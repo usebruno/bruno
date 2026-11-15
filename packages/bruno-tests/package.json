@@ -2,6 +2,7 @@
   "name": "@usebruno/tests",
   "version": "0.0.1",
   "description": "",
+  "private": true,
   "main": "src/index.js",
   "exports": {
     ".": "./src/index.js",

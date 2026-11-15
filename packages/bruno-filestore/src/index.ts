@@ -172,6 +172,5 @@ export const parseDotEnv = (content: string): Record<string, string> => {
 export { redactLargeBruTextBlocks, restoreRedactedBlocks };
 export type { RedactedBlock, RedactionResult } from './formats/bru/utils/redact-large-text-blocks';
 export { BruParserWorker };
-export { writeCollectionToDisk, writeCollectionToDiskLegacy } from './writeCollectionToDisk';
 export * from './types';
 export * from './constants';
