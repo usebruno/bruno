@@ -159,16 +159,16 @@ export const buildApiDocsHtml = (
     <title>${escapeHtmlText(collectionName)} - API Documentation</title>
     <style>
         body { margin: 0; padding: 0; }
-        #opencollection-container { width: 100vw; height: 100vh; }
+        #bruno-docs { width: 100vw; height: 100vh; }
     </style>
     <link rel="stylesheet" href="${baseUrl}/api-docs/api-docs.css">
     <script src="${baseUrl}/api-docs/api-docs.js"></script>
 </head>
 <body>
-    <div id="opencollection-container"></div>
+    <div id="bruno-docs"></div>
     <script>
         const collectionData = ${embeddedCollectionData};
-        Bruno.apiDocs(document.getElementById('opencollection-container'), {
+        Bruno.apiDocs(document.getElementById('bruno-docs'), {
             content: collectionData,${gitLine}
             theme: 'light'
         });
