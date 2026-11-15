@@ -52,6 +52,10 @@ export const buildSidebarLocators = (page: Page) => {
       collectionScope(collectionName).locator('.item-name').and(page.getByTitle(name, { exact: true })),
     itemRowIn: (collectionName: string, name: string): Locator =>
       collectionScope(collectionName).getByTestId('sidebar-collection-item-row').filter({ has: itemByName(name) }),
+    collectionItemNames: (collectionName: string): Locator =>
+      collectionScope(collectionName).locator('.item-name'),
+    folderItemNames: (collectionName: string, folderName: string): Locator =>
+      collectionScope(collectionName).and(folderScope(folderName)).locator('.item-name'),
 
     // "+ Add request" cta inside the empty collection
     emptyStateCta: (collectionName: string): Locator =>
@@ -77,8 +81,6 @@ export const buildSidebarLocators = (page: Page) => {
     collectionScope,
     collectionScopeByUid: (collectionUid: string) => page.locator(`[data-collection-uid="${collectionUid}"]`),
     folderScope,
-    itemInFolder: (folderName: string, itemName: string): Locator =>
-      folderScope(folderName).locator('.item-name').and(page.getByTitle(itemName, { exact: true })),
     scopedItem: function (collectionName: string, itemName: string) {
       return this.collectionScope(collectionName).locator('.item-name').and(page.getByTitle(itemName, { exact: true }));
     },
