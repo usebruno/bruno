@@ -130,7 +130,8 @@ const decideOutcome = (searchResult, openPathKeys) => {
     );
   }
 
-  const directPaths = unique(folders.filter((folder) => folder.status === 'collection').flatMap((folder) => folder.collectionPaths));
+  const pickedCollections = folders.filter((folder) => folder.status === 'collection');
+  const directPaths = unique(pickedCollections.flatMap((folder) => folder.collectionPaths));
   const foldersWithCollections = folders.filter((folder) => folder.status === 'folder' && folder.collectionPaths.length > 0);
 
   if (foldersWithCollections.length === 0) {
@@ -144,7 +145,7 @@ const decideOutcome = (searchResult, openPathKeys) => {
 
   return showList({
     collections: toRows(unique([...directPaths, ...allPaths])),
-    folders: foldersWithCollections.map((folder) => folder.path),
+    folders: unique([...foldersWithCollections, ...pickedCollections].map((folder) => folder.path)),
     preselect: directPaths,
     tone: searchTone,
     text: sentences(

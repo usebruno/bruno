@@ -314,7 +314,7 @@ describe('getFolderSearchOutcome with several folders', () => {
     expect(outcome).toEqual({
       type: 'list',
       collections: [orders, api, billing],
-      folders: ['/work'],
+      folders: ['/work', orders.path],
       preselect: [orders.path],
       note: {
         tone: 'info',
@@ -345,7 +345,7 @@ describe('getFolderSearchOutcome with several folders', () => {
     );
 
     expect(outcome.collections).toEqual([orders, api, billing]);
-    expect(outcome.folders).toEqual(['/work']);
+    expect(outcome.folders).toEqual(['/work', orders.path]);
   });
 
   it('says the same thing when every collection found is already open', () => {

@@ -61,6 +61,14 @@ describe('CollectionPicker', () => {
     expect(document.querySelector('.collection-picker-summary strong')).toHaveTextContent('4 collections in 2 folders');
   });
 
+  it('counts a collection picked directly as one of the folders, without changing where the rows sit', () => {
+    renderPicker({ folders: ['/Users/me/work', '/Users/me/work/shop/orders'] });
+
+    expect(document.querySelector('.collection-picker-summary strong')).toHaveTextContent('4 collections in 2 folders');
+    expect(rowFor('Orders').querySelector('.collection-row-meta')).toHaveTextContent('shop/orders');
+    expect(rowFor('Payments').querySelector('.collection-row-meta')).toHaveTextContent('payments');
+  });
+
   it('lists the collections in the order found, with the ones already open last', () => {
     renderPicker({ openPathKeys: new Set(['/Users/me/work/payments']) });
 
@@ -117,10 +125,11 @@ describe('CollectionPicker', () => {
     expect(openButton()).toHaveTextContent('Open 1 collection');
   });
 
-  it('shows an already open collection as picked without counting it', () => {
+  it('never shows an already open collection as ticked or counts it, even when it was picked directly', () => {
     renderPicker({ initialSelection: ['/Users/me/work/billing'], openPathKeys: new Set(['/Users/me/work/billing']) });
 
-    expect(within(rowFor('Billing')).getByLabelText('Select Billing')).toBeChecked();
+    expect(within(rowFor('Billing')).getByLabelText('Select Billing')).not.toBeChecked();
+    expect(within(rowFor('Billing')).getByLabelText('Select Billing')).toBeDisabled();
     expect(openButton()).toBeDisabled();
     expect(footerStart()).toHaveTextContent('Choose other folders…');
   });
