@@ -287,7 +287,7 @@ const resolveLocalWsdlSchemaRef = async (baseUri, ref) => {
 
 /**
  * Picks the directory a collection is written to: a subdirectory of `output` named after the
- * collection. `output` is created when missing, but its parent must exist.
+ * collection. `output` is created by the writer when missing, but its parent must exist.
  */
 const resolveCollectionOutputDir = async (output, collectionName) => {
   const folderName = sanitizeName(collectionName || '');
