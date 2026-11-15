@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import { Checkbox, Inner, Label, Switch, SwitchButton } from './StyledWrapper';
 
-const ToggleSwitch = ({ isOn, handleToggle, size = 'm', activeColor, ...props }) => {
+const ToggleSwitch = ({ isOn, handleToggle, size = 'm', activeColor, disabled = false, ...props }) => {
   const id = useId();
 
   return (
@@ -15,6 +15,7 @@ const ToggleSwitch = ({ isOn, handleToggle, size = 'm', activeColor, ...props })
         type="checkbox"
         size={size}
         activeColor={activeColor}
+        disabled={disabled}
         onInput={handleToggle}
       />
       <Label htmlFor={id}>

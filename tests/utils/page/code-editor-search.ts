@@ -212,3 +212,39 @@ export const appendTextToCodeEditor = async (page: Page, editorId: string, text:
     }
   }, text);
 };
+
+export const getCodeEditorValueAndCursor = async (page: Page, editorId: string) => {
+  const cm = buildCodeEditorSearchLocators(page, editorId).codeMirror();
+  return cm.evaluate((el: any) => {
+    const { line, ch } = el.CodeMirror.getCursor();
+    return { value: el.CodeMirror.getValue(), cursor: { line, ch }, hasSelection: el.CodeMirror.somethingSelected() };
+  });
+};
+
+export const replaceMatchThenTypeBeforeSearchRefresh = async (
+  page: Page,
+  editorId: string,
+  pos: { line: number; ch: number },
+  text: string
+) => {
+  const searchBar = buildCodeEditorSearchLocators(page, editorId);
+  const replaceButton = await searchBar.replaceBtn().elementHandle();
+  await searchBar.codeMirror().evaluate(
+    (el: any, { replaceButton, pos, text }: { replaceButton: any; pos: { line: number; ch: number }; text: string }) => {
+      replaceButton.click();
+      el.CodeMirror.setCursor(pos);
+      el.CodeMirror.replaceSelection(text);
+    },
+    { replaceButton, pos, text }
+  );
+};
+
+export const replaceMatchThenCloseSearchBarBeforeRefresh = async (page: Page, editorId: string) => {
+  const searchBar = buildCodeEditorSearchLocators(page, editorId);
+  const closeButton = await searchBar.searchCloseBtn().elementHandle();
+  await searchBar.replaceBtn().evaluate((replaceButton: HTMLElement, closeButton: any) => {
+    replaceButton.click();
+    closeButton.click();
+  }, closeButton);
+  await searchBar.searchBar().waitFor({ state: 'hidden' });
+};

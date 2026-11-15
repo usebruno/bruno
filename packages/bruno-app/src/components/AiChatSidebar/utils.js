@@ -1,4 +1,5 @@
 import MarkdownIt from 'markdown-it';
+import { openLinksExternally } from 'utils/markdown/openLinksExternally';
 
 const SAFE_LANG = /^[a-z0-9_+#.-]+$/i;
 const safeLanguage = (lang) => (lang && SAFE_LANG.test(lang) ? lang : 'text');
@@ -9,7 +10,7 @@ const md = new MarkdownIt({
   linkify: true,
   highlight: (str, lang) =>
     `<pre class="code-block"><code class="language-${safeLanguage(lang)}">${md.utils.escapeHtml(str)}</code></pre>`
-});
+}).use(openLinksExternally);
 
 export const renderMarkdown = (content) => md.render(content || '');
 

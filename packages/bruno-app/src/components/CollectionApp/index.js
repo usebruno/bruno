@@ -382,6 +382,7 @@ const CollectionApp = ({ item, collection }) => {
       {view === 'code' ? (
         <div className="app-pane code relative" data-testid="collection-app-code">
           <CodeEditor
+            testId="collection-app-code-editor"
             collection={collection}
             value={code || ''}
             theme={displayedTheme}

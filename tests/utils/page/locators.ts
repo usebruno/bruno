@@ -1,5 +1,7 @@
 import { Locator, Page } from '../../../playwright';
-import { buildApiSpecPanelLocators } from './openapi/render-spec';
+import { buildApiSpecPanelLocators, buildApiSpecRowMenuLocators } from './openapi/render-spec';
+import { buildOpenApiSyncLocators } from './openapi/sync';
+import { buildMockServerLocators } from './mock-server';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
@@ -12,8 +14,13 @@ import { buildDocsLocators } from './docs';
 import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
 import { buildWebsocketCommonLocators } from './websocket';
 import { buildToastLocators } from './toast';
+import { buildSecretVariableFormLocators } from './secret-variable-form';
 import { buildRequestLocators } from '../request';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
+import { buildCollectionAppLocators } from './collection/collection-app';
+import { buildCollectionProxyLocators } from './collection/proxy';
+import { buildCollectionRunLocators } from './collection/collection-run';
+import { buildCodeMirrorLocators } from './code-mirror';
 import { buildEnvironmentLocators } from './environments';
 import { buildTimelineHeaderLocators } from './timeline-headers';
 import { buildSetAsVariableLocators } from './set-as-variable';
@@ -25,8 +32,15 @@ import { buildCreateWorkspaceModalLocators } from './workspace/create-workspace-
 import { buildTitleBarLocators } from './title-bar';
 import { buildCloneGitRepositoryLocators } from './git/clone-git-repository';
 import { buildResponseExampleLocators } from './response-example';
+import { buildGraphqlQueryBuilderLocators } from './graphql/query-builder';
+import { buildAuthLocators } from './auth';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
+
+const openCollectionPickerItem = (page: Page, name: string) =>
+  page.getByTestId('selection-list').getByRole('listitem').filter({
+    has: page.getByText(name, { exact: true })
+  });
 
 const addToNoEnvNoteLocator = (popup: Locator, scopeType: 'environment' | 'global') =>
   popup.getByTestId('var-info-add-to-no-env-note')
@@ -35,6 +49,8 @@ const addToNoEnvNoteLocator = (popup: Locator, scopeType: 'environment' | 'globa
 export const buildCommonLocators = (page: Page) => ({
   titleBar: buildTitleBarLocators(page),
   collectionHeader: buildCollectionHeaderLocators(page),
+  collectionApp: buildCollectionAppLocators(page),
+  collectionProxy: buildCollectionProxyLocators(page),
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),
   timelineHeaders: buildTimelineHeaderLocators(page),
@@ -42,7 +58,9 @@ export const buildCommonLocators = (page: Page) => ({
   codeEditorSearch: (editorId: string) => buildCodeEditorSearchLocators(page, editorId),
   codeEditorHints: buildCodeEditorHintLocators(page),
   openApi: {
-    render: buildApiSpecPanelLocators(page)
+    render: buildApiSpecPanelLocators(page),
+    rowMenu: buildApiSpecRowMenuLocators(page),
+    sync: buildOpenApiSyncLocators(page)
   },
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
@@ -50,9 +68,11 @@ export const buildCommonLocators = (page: Page) => ({
   unresolvedVariablesInfo: buildUnresolvedVariablesInfoLocators(page),
   websocket: buildWebsocketCommonLocators(page),
   toast: buildToastLocators(page),
+  secretVariableForm: buildSecretVariableFormLocators(page),
   request: buildRequestLocators(page),
   setAsVariable: buildSetAsVariableLocators(page),
   responseExample: buildResponseExampleLocators(page),
+  graphqlQueryBuilder: buildGraphqlQueryBuilderLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
@@ -92,6 +112,7 @@ export const buildCommonLocators = (page: Page) => ({
     closableTabs: () => page.locator('.request-tab').filter({ has: page.getByTestId('request-tab-close-icon') }),
     closeTabIcon: (tab: Locator) => tab.getByTestId('request-tab-close-icon'),
     draftIndicator: () => page.locator('.request-tab.active .has-changes-icon'),
+    activeTabDirty: () => page.locator('.request-tab.active .close-gradient.has-changes'),
     tabDraftIndicator: (tab: Locator) => tab.locator('.has-changes-icon')
   },
   paneTabs: {
@@ -100,6 +121,7 @@ export const buildCommonLocators = (page: Page) => ({
     overflowTrigger: (root?: Locator) => (root ?? page).locator('.tabs .more-tabs'),
     // menu is rendered via portal, hence it rooted to page.
     overflowItem: (key: string) => page.getByTestId(`menu-dropdown-${key}`),
+    scriptSubTabsOverflowTrigger: () => page.getByTestId('script-sub-tabs').getByTestId('tabs-overflow-trigger'),
     collectionSettingsTab: (key: string) => page.getByTestId(`collection-settings-tab-${key}`),
     folderSettingsTab: (key: string) => page.getByTestId(`folder-settings-tab-${key}`),
     folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
@@ -124,6 +146,7 @@ export const buildCommonLocators = (page: Page) => ({
     any: () => page.locator('.bruno-modal'),
     formError: (text: string | RegExp) =>
       page.locator('.bruno-modal [data-testid="form-error"]').getByText(text),
+    tabOptions: () => page.locator('.bruno-modal-header-tabs').locator('.bruno-modal-header-tab'),
     title: (title: string) => page.locator('.bruno-modal-header-title').filter({ hasText: title }),
     byTitle: (title: string) => page.locator('.bruno-modal').filter({ has: page.locator('.bruno-modal-header-title').filter({ hasText: title }) }),
     itemNameInput: (root?: Locator) => (root ?? page.locator('.bruno-modal')).locator('#collection-item-name'),
@@ -141,30 +164,15 @@ export const buildCommonLocators = (page: Page) => ({
     list: () => page.getByTestId('selection-list'),
     titles: () => page.getByTestId('selection-list').locator('.selection-item-title'),
     descriptions: () => page.getByTestId('selection-list').locator('.selection-item-description'),
-    item: (name: string) =>
-      page.getByTestId('selection-list').getByRole('listitem').filter({
-        has: page.getByText(name, { exact: true })
-      }),
-    itemCheckbox: (name: string) =>
-      page.getByTestId('selection-list').getByRole('listitem').filter({
-        has: page.getByText(name, { exact: true })
-      }).getByRole('checkbox'),
+    item: (name: string) => openCollectionPickerItem(page, name),
+    itemCheckbox: (name: string) => openCollectionPickerItem(page, name).getByRole('checkbox'),
+    /** The location a listed collection reports, relative to the picked folder. */
+    itemDescription: (name: string) => openCollectionPickerItem(page, name).locator('.selection-item-description'),
     count: () => page.getByTestId('selection-count'),
     selectAllToggle: () => page.getByTestId('selection-select-all-toggle').getByRole('checkbox'),
     searchInput: () => page.getByTestId('selection-search-input')
   },
-  codeMirror: {
-    hint: (name: string) => page.locator('.CodeMirror-hints:visible').getByRole('option', { name, exact: true }),
-    byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first(),
-    within: (scope: Locator) => scope.locator('.CodeMirror').first(),
-    /** Nth row's value-column editor in an EditableTable (Headers / Params / Vars / Assertions). */
-    valueCellAt: (scope: Locator, rowIndex: number = 0) =>
-      scope.locator('table tbody tr').nth(rowIndex).getByTestId('column-value').locator('.CodeMirror'),
-    /** Warning icon beside a sensitive input. `fieldName` is the field or variable name. */
-    sensitiveWarning: (fieldName: string) => page.getByTestId(`sensitive-field-warning-${fieldName}`),
-    sensitiveWarningIn: (root: Locator, fieldName: string) => root.getByTestId(`sensitive-field-warning-${fieldName}`),
-    sensitiveTooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text })
-  },
+  codeMirror: buildCodeMirrorLocators(page),
   // The DataTypeSelector exposes a stable trigger per row (request/folder/collection
   // vars + env vars). Compact mode shows an icon; full mode shows `.type-label`.
   dataTypeSelector: {
@@ -175,6 +183,8 @@ export const buildCommonLocators = (page: Page) => ({
     menuItem: (type: string) => page.locator('[role="menu"]').last().getByText(type, { exact: true })
   },
   filePicker: {
+    button: (scope?: Locator) => (scope ?? page).locator('.file-picker-btn'),
+    selected: (scope?: Locator) => (scope ?? page).locator('.file-picker-selected'),
     warningTooltip: () => page.getByTestId('file-picker-warning-tooltip')
   },
   // The variable-info popup shown when hovering a `{{var}}` token in an editor.
@@ -212,22 +222,7 @@ export const buildCommonLocators = (page: Page) => ({
     addToCreateEnvSubmit: (popup: Locator) => popup.getByTestId('var-info-add-to-create-env-submit'),
     addToError: (popup: Locator) => popup.getByTestId('var-info-add-to-error')
   },
-  auth: {
-    apiKey: {
-      placementSelector: () => page.getByTestId('auth-placement-selector'),
-      placementLabel: () => page.getByTestId('auth-placement-label')
-    },
-    oauth2: {
-      grantTypeDropdown: () => page.getByTestId('grant-type-dropdown'),
-      tokenHeaderPrefixField: () => page.getByTestId('token-header-prefix'),
-      tokenQueryParamKeyField: () => page.getByTestId('token-query-param-key')
-    },
-    modeSelector: () => page.getByTestId('auth-mode-selector'),
-    modeLabel: () => page.getByTestId('auth-mode-label'),
-    inheritedMode: () => page.getByTestId('inherited-auth-mode'),
-    inheritedFields: () => page.getByTestId('inherited-auth-fields'),
-    dropdownItem: (id: string) => page.getByTestId(`auth-mode-dropdown-${id}`)
-  },
+  auth: buildAuthLocators(page),
   presets: {
     requestType: (type: PresetRequestType) =>
       page.getByTestId(`presets-request-type-${type}`),
@@ -282,7 +277,7 @@ export const buildCommonLocators = (page: Page) => ({
     tooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text }),
     includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include Tags'),
     excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude Tags'),
-    tagChip: (name: string) => page.locator('.bruno-modal .docs-tag-item').filter({ hasText: name }),
+    tagChip: (name: string) => page.locator('.bruno-modal').getByTestId('tag-picker-item').filter({ hasText: name }),
     gitLinkLabel: () => page.locator('.bruno-modal').getByTestId('docs-git-link')
   },
   runnerResults: {
@@ -342,25 +337,46 @@ export const buildCommonLocators = (page: Page) => ({
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
-    openCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }),
-    createCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }),
-    importCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' })
+    createCollection: () => page.getByTestId('collections-header-add-menu-create'),
+    importCollection: () => page.getByTestId('collections-header-add-menu-import'),
+    openCollection: () => page.getByTestId('collections-header-add-menu-open')
   },
   import: {
     modal: () => page.locator('[data-testid="import-collection-modal"]'),
     locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
     locationInput: () => page.locator('#collection-location'),
     fileInput: () => page.locator('input[type="file"]'),
+    urlTab: () => page.getByTestId('url-tab'),
+    urlInput: () => page.getByTestId('url-input'),
+    urlImportButton: () => page.getByTestId('import-url-btn'),
+    loader: () => page.getByTestId('import-collection-loader'),
+    fileTab: () => page.getByTestId('file-tab'),
+    gitRepositoryTab: () => page.getByTestId('github-tab'),
+    chooseFilesButton: () => page.getByTestId('choose-files-button'),
     advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
     preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
+    checkForSpecUpdatesToggle: () => page.getByTestId('check-for-spec-updates-toggle'),
+    advancedSectionToggle: () => page.getByTestId('import-advanced-section-toggle'),
+    authPlacementToggle: () => page.getByTestId('auth-placement-toggle'),
+    requestNameSourceDropdown: () => page.getByTestId('request-name-source-dropdown'),
+    requestNameSourceOption: (value: string) => page.getByTestId(`request-name-source-option-${value.toLowerCase()}`),
     bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
     bulkFormatSelect: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
     bulkLocationInput: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),
     bulkSubmitButton: () => page.getByTestId('bulk-import-collection-location-modal-submit-btn'),
+    bulkOpenApiConfigurationToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByRole('button', { name: 'OpenAPI Import configuration' }),
+    bulkGroupingDropdown: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('grouping-dropdown'),
+    bulkGroupingOption: (value: string) => page.getByTestId('bulk-import-collection-location-modal').getByTestId(`grouping-option-${value}`),
+    bulkSpecUpdatesToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates'),
+    bulkSpecUpdatesDescription: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates-description'),
+    bulkSwagger2SyncNote: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-swagger2-sync-note'),
+    bulkSelectAllCollectionsToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('selection-section-collections').getByTestId('selection-select-all-toggle'),
+    bulkCollectionCheckbox: (fileName: string) => page.getByTestId('bulk-import-collection-location-modal').getByTestId('selection-section-collections').getByRole('listitem').filter({ has: page.getByText(fileName, { exact: true }) }).getByRole('checkbox'),
     envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
     parsingError: () => page.getByTestId('import-error-message'),
     browseLink: (root?: Locator) => (root ?? page).getByTestId('import-collection-browse-link'),
     importButton: (root?: Locator) => (root ?? page).getByTestId('import-collection-location-modal-submit-btn'),
+    formatSelect: (root?: Locator) => (root ?? page).locator('#format'),
     ...(() => {
       const issuesToast = () => page.getByTestId('import-issues-toast').last();
       return {
@@ -376,7 +392,9 @@ export const buildCommonLocators = (page: Page) => ({
   },
   export: {
     postmanModal: () => page.getByTestId('export-to-postman-modal'),
+    exportTab: () => page.getByTestId('share-collection-tab-export'),
     postmanFormatCard: () => page.getByTestId('export-format-postman'),
+    yamlFormatCard: () => page.getByTestId('export-format-yaml'),
     nameInput: () => page.getByLabel('Name', { exact: true }),
     locationInput: () => page.getByLabel('Location', { exact: true }),
     optionsButton: () => page.getByRole('button', { name: 'Options' }),

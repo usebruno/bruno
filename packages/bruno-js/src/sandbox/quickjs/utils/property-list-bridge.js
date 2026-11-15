@@ -39,7 +39,7 @@ const createAsyncBridge = (vm, targetObj, propName, nativeMethod) => {
  *   globalPath: 'globalThis.bru.cookies',
  *   syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
  *   syncReadObjectMethods: ['one', 'all', 'idx', 'toJSON'],
- *   asyncWriteMethods: ['add', 'upsert', 'remove', 'clear', 'delete'],
+ *   asyncWriteMethods: ['add', 'append', 'upsert', 'remove', 'clear', 'delete'],
  *   withIterators: true
  * });
  *

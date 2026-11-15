@@ -42,6 +42,8 @@ const ResponsiveTabs = ({
     [onTabSelect]
   );
 
+  // This and `components/Tabs/useTabsOverflow` take the same measure-and-overflow approach, but
+  // their width rules differ, so check whether a fix to one also applies to the other.
   const calculateTabVisibility = useCallback(() => {
     const container = tabsContainerRef.current;
     if (!container || !tabs.length) return;

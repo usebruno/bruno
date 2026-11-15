@@ -2,17 +2,30 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   .tabs-list {
-    display: inline-flex;
-    height: 2rem;
-    width: fit-content;
-    justify-content: center;
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
     gap: 0.25rem;
+  }
+
+  .tabs-list-measure {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    gap: 0.25rem;
+    visibility: hidden;
+    pointer-events: none;
   }
 
   .tab-trigger {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
     border-radius: 4px;
     padding: 8px;
     font-size: 0.75rem;
@@ -31,6 +44,10 @@ const StyledWrapper = styled.div`
       background: ${(props) => props.theme.tabs.secondary.active.bg};
       color: ${(props) => props.theme.tabs.secondary.active.color};
     }
+  }
+
+  .tabs-overflow-trigger {
+    padding: 6px;
   }
 `;
 

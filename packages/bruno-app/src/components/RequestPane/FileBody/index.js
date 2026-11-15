@@ -113,7 +113,7 @@ const FileBody = ({ item, collection }) => {
                         displayMode="labelAndIcon"
                       />
                     </td>
-                    <td>
+                    <td data-testid="column-content-type">
                       <SingleLineEditor
                         className="flex items-center justify-center"
                         onSave={onSave}

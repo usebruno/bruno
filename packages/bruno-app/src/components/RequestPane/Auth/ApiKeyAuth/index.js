@@ -6,20 +6,17 @@ import Dropdown from 'components/Dropdown';
 import { useTheme } from 'providers/Theme';
 import SingleLineEditor from 'components/SingleLineEditor';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
-import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAPIKeyPlacement } from 'utils/collections';
 
-const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) => {
+const ApiKeyAuth = ({ item, collection, updateAuth, request, save, readOnly }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
   const apikeyAuth = get(request, 'auth.apikey', {});
-  const { isSensitive } = useDetectSensitiveField(collection);
-  const apiKeyValueSensitive = isSensitive(apikeyAuth.value, item);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
@@ -37,7 +34,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
   });
 
   const handleAuthChange = (property, value) => {
-    if (disabled) {
+    if (readOnly) {
       return;
     }
     dispatch(
@@ -54,7 +51,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
   };
 
   useEffect(() => {
-    !disabled
+    !readOnly
     && !apikeyAuth?.placement
     && dispatch(
       updateAuth({
@@ -66,7 +63,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
         }
       })
     );
-  }, [apikeyAuth, disabled]);
+  }, [apikeyAuth, readOnly]);
 
   return (
     <StyledWrapper className="w-full">
@@ -80,7 +77,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
           onRun={handleRun}
           collection={collection}
           item={item}
-          readOnly={disabled}
+          readOnly={readOnly}
           isCompact
         />
       </div>
@@ -97,16 +94,14 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
           item={item}
           isSecret={true}
           isCompact
-          readOnly={disabled}
+          readOnly={readOnly}
         />
-        {apiKeyValueSensitive.showWarning && (
-          <SensitiveFieldWarning fieldName="apikey-value" warningMessage={apiKeyValueSensitive.warningMessage} />
-        )}
+        <SensitiveFieldWarning fieldName="apikey-value" secretName="value" value={apikeyAuth.value} collection={collection} item={item} fieldKey="value" onReplaceValue={(val) => handleAuthChange('value', val)} />
       </div>
 
       <label className="block mb-1">Add To</label>
-      <div data-testid="auth-placement-selector" className="inline-flex items-center cursor-pointer auth-placement-selector w-fit">
-        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
+      <div data-testid="auth-placement-selector" className={`inline-flex items-center ${readOnly ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} auth-placement-selector w-fit`}>
+        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end" disabled={readOnly}>
           <div
             className="dropdown-item"
             onClick={() => {

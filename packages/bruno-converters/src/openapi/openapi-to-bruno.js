@@ -1,18 +1,30 @@
 import each from 'lodash/each';
 import get from 'lodash/get';
+import isPlainObject from 'lodash/isPlainObject';
+import omit from 'lodash/omit';
+import uniq from 'lodash/uniq';
 import jsyaml from 'js-yaml';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid, sanitizeTag, sanitizeTags } from '../common';
 import { swagger2ToBruno } from './swagger2-to-bruno';
+import { allowedDefault, resolveSchemaComposition, registerComponentNames, registerReferencePlaceholder } from './schema-composition';
 import {
   ensureUrl,
   BODY_TYPE_HANDLERS,
   getExampleFromSchema,
+  getExpandableObjectSchema,
+  resetExampleGenerationState,
   createBrunoExample,
   groupRequestsByTags,
   groupRequestsByPath,
   normalizeItemName,
+  getRequestName,
+  uniqueRequestName,
   getTagDescriptions,
-  toSpecString
+  toSpecString,
+  operationSchemeName,
+  optsOutOfAuth,
+  inheritsCollectionAuth,
+  resolveCollectionAuthScheme
 } from './openapi-common';
 
 const getContentLevelExample = (bodyContent) => {
@@ -29,6 +41,18 @@ const getSchemaPropertyExampleValue = (prop, propName, parentExample = {}) => {
   if (prop.default !== undefined) return String(prop.default);
   if (prop.enum && prop.enum.length > 0) return String(prop.enum[0]);
   return '';
+};
+
+const withoutObjectValues = (schema) => {
+  if (!schema || typeof schema !== 'object') return schema;
+  const objectValued = ['example', 'default'].filter((keyword) => isPlainObject(schema[keyword]));
+  return objectValued.length > 0 ? omit(schema, objectValued) : schema;
+};
+
+const resolveParameterSchema = (rawSchema) => {
+  const schema = resolveSchemaComposition(rawSchema || {}) || {};
+  const items = resolveSchemaComposition(schema.items);
+  return items === schema.items ? schema : { ...schema, items: withoutObjectValues(items) };
 };
 
 const serializeParamValue = (value) => {
@@ -101,8 +125,7 @@ const namedExampleValue = (example) => {
   return example.dataValue !== undefined ? example.dataValue : example.value;
 };
 
-const declaredParamValues = (param) => {
-  const schema = param.schema || {};
+const declaredParamValues = (param, schema) => {
   const namedExampleValues = Object.values(param.examples || {}).map(namedExampleValue);
 
   return [
@@ -114,8 +137,8 @@ const declaredParamValues = (param) => {
   ];
 };
 
-const entriesFromDeclaredValues = (param) => {
-  for (const value of declaredParamValues(param)) {
+const entriesFromDeclaredValues = (param, schema) => {
+  for (const value of declaredParamValues(param, schema)) {
     if (value === undefined) {
       continue;
     }
@@ -135,7 +158,7 @@ const entriesFromDeclaredValues = (param) => {
  * @returns {Array} - Entries of `{ value, enabled }`, plus `name` where a member overrides it
  */
 const getParameterEntries = (param, fallbackValue) => {
-  const schema = param.schema || {};
+  const schema = resolveParameterSchema(param.schema);
   const entries = [];
 
   // Handle enum parameters - create entry for each enum value
@@ -161,7 +184,7 @@ const getParameterEntries = (param, fallbackValue) => {
   if (schema.type === 'array' && schema.items && schema.items.enum && Array.isArray(schema.items.enum) && schema.items.enum.length > 0) {
     const defaultValue = schema.items.default !== undefined ? String(schema.items.default) : null;
 
-    const declaredEntries = entriesFromDeclaredValues(param);
+    const declaredEntries = entriesFromDeclaredValues(param, schema);
     if (declaredEntries) {
       return declaredEntries;
     }
@@ -181,12 +204,12 @@ const getParameterEntries = (param, fallbackValue) => {
     return entries;
   }
 
-  const declaredEntries = entriesFromDeclaredValues(param);
+  const declaredEntries = entriesFromDeclaredValues(param, schema);
   if (declaredEntries) {
     return declaredEntries;
   }
 
-  let enabled = param.required || declaredParamValues(param).some((value) => value !== undefined);
+  let enabled = param.required || declaredParamValues(param, schema).some((value) => value !== undefined);
 
   if (fallbackValue !== undefined) {
     const fallbackEntries = paramEntriesFromValue(fallbackValue, param);
@@ -216,10 +239,10 @@ const getParameterEntries = (param, fallbackValue) => {
   }
 
   if (schema.minimum !== undefined) {
-    return [{ value: String(schema.minimum), enabled }];
+    return [{ value: String(allowedDefault(schema, schema.minimum)), enabled }];
   }
 
-  return [{ value: '', enabled }];
+  return [{ value: param.required ? String(allowedDefault(schema, '') ?? '') : '', enabled }];
 };
 
 const declaresValue = (schema) =>
@@ -228,15 +251,16 @@ const declaresValue = (schema) =>
   || (Array.isArray(schema.examples) && schema.examples.length > 0)
   || (Array.isArray(schema.enum) && schema.enum.length > 0);
 
-const objectValueFromSchema = (param) => {
-  const schemaExample = param.schema.example || {};
+const objectValueFromSchema = (param, schema) => {
+  const schemaExample = schema.example || {};
   const value = {};
 
-  each(param.schema.properties, (prop, propName) => {
+  each(schema.properties, (rawProp, propName) => {
+    const prop = resolveSchemaComposition(rawProp) || {};
     const propSchema = (prop.example === undefined && schemaExample[propName] !== undefined)
       ? { ...prop, example: schemaExample[propName] }
       : prop;
-    const isRequired = Array.isArray(param.schema.required) && param.schema.required.includes(propName);
+    const isRequired = Array.isArray(schema.required) && schema.required.includes(propName);
     const entries = getParameterEntries({
       ...param, example: undefined, examples: undefined, name: propName, schema: propSchema, required: isRequired
     });
@@ -254,27 +278,7 @@ const objectValueFromSchema = (param) => {
 const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {}) => {
   let _operationObject = request.operationObject;
 
-  let operationName = _operationObject.summary || _operationObject.operationId || toSpecString(_operationObject.description);
-  operationName = operationName ? normalizeItemName(operationName) : '';
-  if (!operationName) {
-    operationName = `${request.method} ${request.path}`;
-  }
-
-  if (usedNames.has(operationName)) {
-    // Make name unique to prevent filename collisions
-    // Try adding method info first
-    let uniqueName = `${operationName} (${request.method.toUpperCase()})`;
-
-    // If still not unique, add counter
-    let counter = 1;
-    while (usedNames.has(uniqueName)) {
-      uniqueName = `${operationName} (${counter})`;
-      counter++;
-    }
-
-    operationName = uniqueName;
-  }
-  usedNames.add(operationName);
+  const operationName = uniqueRequestName(getRequestName(request, options.requestNameSource), request.method, usedNames);
 
   // replace OpenAPI links in path by Bruno variables
   let path = request.path.replace(/{([a-zA-Z]+)}/g, `{{${_operationObject.operationId}_$1}}`);
@@ -320,7 +324,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
   if (request.servers && request.servers.length > 0) {
     const serverVarPairs = extractServerVars(request.servers[0]);
     brunoRequestItem.request.vars = {
-      req: serverVarPairs.map((sv) => ({
+      req: serverVarPairs.filter((sv) => !sv.secret).map((sv) => ({
         uid: uuid(),
         name: sv.name,
         value: sv.value,
@@ -332,15 +336,16 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
   }
 
   each(_operationObject.parameters || [], (param) => {
-    const isObjectSchema = param.schema && param.schema.properties;
-    const expandsIntoOwnParams = isObjectSchema && (param.in === 'query' || param.in === 'querystring');
+    const paramSchema = getExpandableObjectSchema(param);
+    const expandsIntoOwnParams = paramSchema && (param.in === 'query' || param.in === 'querystring');
 
     if (expandsIntoOwnParams) {
       // Expand object schema properties into individual parameters
-      const schemaExample = param.schema.example || {};
+      const schemaExample = paramSchema.example || {};
 
-      each(param.schema.properties, (prop, propName) => {
-        const isRequired = Array.isArray(param.schema.required) && param.schema.required.includes(propName);
+      each(paramSchema.properties, (rawProp, propName) => {
+        const prop = resolveSchemaComposition(rawProp) || {};
+        const isRequired = Array.isArray(paramSchema.required) && paramSchema.required.includes(propName);
 
         // Create a temporary parameter object for getParameterEntries
         // Enrich property with parent example context if property lacks its own example
@@ -383,8 +388,8 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
         });
       });
     } else {
-      const entries = isObjectSchema
-        ? getParameterEntries(param, objectValueFromSchema(param))
+      const entries = paramSchema
+        ? getParameterEntries(param, objectValueFromSchema(param, paramSchema))
         : getParameterEntries(param);
 
       entries.forEach((entry) => {
@@ -419,16 +424,14 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
     }
   });
 
-  // Handle explicit no-auth case where security: [] on the operation
-  if (Array.isArray(_operationObject.security) && _operationObject.security.length === 0) {
-    brunoRequestItem.request.auth.mode = 'inherit';
+  const { collectionAuthScheme } = options;
+  const schemeName = operationSchemeName(_operationObject.security);
+
+  if (optsOutOfAuth(_operationObject.security, collectionAuthScheme)) {
+    brunoRequestItem.request.auth.mode = 'none';
   }
 
-  let auth = null;
-  if (_operationObject.security && _operationObject.security.length > 0) {
-    const schemeName = Object.keys(_operationObject.security[0])[0];
-    auth = request.global.security.getScheme(schemeName);
-  }
+  const auth = inheritsCollectionAuth(_operationObject.security, collectionAuthScheme) ? null : request.global.security.getScheme(schemeName);
 
   if (auth) {
     if (auth.type === 'http' && auth.scheme === 'basic') {
@@ -526,7 +529,6 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
     }
   }
 
-  // TODO: handle allOf/anyOf/oneOf
   if (_operationObject.requestBody) {
     const content = get(_operationObject, 'requestBody.content', {});
     const mimeType = Object.keys(content)[0];
@@ -770,7 +772,94 @@ const isValidRef = (ref) => {
   return ref.startsWith('#/components/');
 };
 
-const resolveRefs = (spec, components = spec?.components, cache = new Map()) => {
+const NAMED_MAPS = new Set([
+  'properties', 'patternProperties', 'definitions', '$defs', 'dependentSchemas', 'schemas', 'responses', 'parameters',
+  'requestBodies', 'headers', 'securitySchemes', 'links', 'callbacks', 'pathItems', 'paths', 'webhooks', 'content',
+  'encoding', 'variables'
+]);
+
+const isReferenceOnly = (value) => isPlainObject(value) && typeof value.$ref === 'string' && Object.keys(value).length === 1;
+
+const isExampleRef = (ref) => isValidRef(ref) && ref.startsWith('#/components/examples/');
+
+const EXAMPLE_DATA_KEYS = ['value', 'dataValue'];
+
+const componentAt = (components, refPath) => refPath
+  .replace('#/components/', '')
+  .split('/')
+  .reduce((node, key) => (node && node[key] ? node[key] : undefined), components);
+
+const EXAMPLE_COPIES = Symbol('exampleCopies');
+
+const exampleDataOf = (example) => EXAMPLE_DATA_KEYS.map((key) => example?.[key]).find((value) => value !== undefined);
+
+const resolveExampleData = (data, components, copies, inlining = []) => {
+  if (!data || typeof data !== 'object') {
+    return data;
+  }
+  if (copies.done.has(data)) {
+    return copies.done.get(data);
+  }
+  if (copies.building.has(data)) {
+    return Array.isArray(data) ? [] : {};
+  }
+  if (isReferenceOnly(data) && isExampleRef(data.$ref) && !inlining.includes(data.$ref)) {
+    const inlined = exampleDataOf(componentAt(components, data.$ref));
+    if (inlined !== undefined) {
+      return resolveExampleData(inlined, components, copies, [...inlining, data.$ref]);
+    }
+  }
+  const copy = Array.isArray(data) ? [] : {};
+  copies.building.add(data);
+  Object.entries(data).forEach(([key, value]) => {
+    copy[key] = resolveExampleData(value, components, copies, inlining);
+  });
+  copies.building.delete(data);
+  copies.done.set(data, copy);
+  return copy;
+};
+
+const exampleCopiesOf = (cache, components) => {
+  if (!cache.has(EXAMPLE_COPIES)) {
+    const copies = { done: new Map(), building: new Set() };
+    cache.set(EXAMPLE_COPIES, copies);
+    Object.values(components?.examples || {}).forEach((example) => resolveExampleData(exampleDataOf(example), components, copies));
+  }
+  return cache.get(EXAMPLE_COPIES);
+};
+
+const resolveExamples = (examples, components, cache) => {
+  if (Array.isArray(examples)) {
+    const values = examples.map((value) => resolveExampleData(value, components, exampleCopiesOf(cache, components))).filter((value) => !isReferenceOnly(value));
+    return values.length > 0 ? values : undefined;
+  }
+  if (!isPlainObject(examples)) {
+    return examples;
+  }
+  const entries = Object.entries(examples)
+    .map(([name, example]) => [name, isValidRef(example?.$ref) && !isExampleRef(example.$ref) ? undefined : resolveRefs(example, components, cache, 'example')])
+    .filter(([, example]) => example !== undefined && !isReferenceOnly(example) && !EXAMPLE_DATA_KEYS.some((key) => isReferenceOnly(example?.[key])));
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+};
+
+const resolveChild = (key, value, components, cache, role) => {
+  if (role === 'map') {
+    return resolveRefs(value, components, cache);
+  }
+  if (role === 'example') {
+    return EXAMPLE_DATA_KEYS.includes(key) ? resolveExampleData(value, components, exampleCopiesOf(cache, components)) : resolveRefs(value, components, cache);
+  }
+  if (key === 'example') {
+    const data = resolveExampleData(value, components, exampleCopiesOf(cache, components));
+    return isReferenceOnly(data) ? undefined : data;
+  }
+  if (key === 'examples') {
+    return resolveExamples(value, components, cache);
+  }
+  return resolveRefs(value, components, cache, NAMED_MAPS.has(key) && isPlainObject(value) ? 'map' : 'object');
+};
+
+function resolveRefs(spec, components = spec?.components, cache = new Map(), role = 'object') {
   if (!spec || typeof spec !== 'object') {
     return spec;
   }
@@ -780,7 +869,7 @@ const resolveRefs = (spec, components = spec?.components, cache = new Map()) => 
   }
 
   if (Array.isArray(spec)) {
-    return spec.map((item) => resolveRefs(item, components, cache));
+    return spec.map((item) => resolveRefs(item, components, cache, role));
   }
 
   // Only treat as a JSON reference if it passes all validation checks
@@ -794,20 +883,16 @@ const resolveRefs = (spec, components = spec?.components, cache = new Map()) => 
     }
 
     if (refPath.startsWith('#/components/')) {
-      const refKeys = refPath.replace('#/components/', '').split('/');
-      let ref = components;
-
-      for (const key of refKeys) {
-        if (ref && ref[key]) {
-          ref = ref[key];
-        } else {
-          return spec;
-        }
+      const ref = componentAt(components, refPath);
+      if (ref === undefined) {
+        return spec;
       }
 
-      cache.set(refPath, {});
-      const resolved = resolveRefs(ref, components, cache);
+      const placeholder = {};
+      cache.set(refPath, placeholder);
+      const resolved = resolveRefs(ref, components, cache, isExampleRef(refPath) ? 'example' : 'object');
       cache.set(refPath, resolved);
+      registerReferencePlaceholder(placeholder, resolved);
       return resolved;
     }
     return spec;
@@ -817,11 +902,14 @@ const resolveRefs = (spec, components = spec?.components, cache = new Map()) => 
   cache.set(spec, resolved);
 
   for (const [key, value] of Object.entries(spec)) {
-    resolved[key] = resolveRefs(value, components, cache);
+    const child = resolveChild(key, value, components, cache, role);
+    if (child !== undefined) {
+      resolved[key] = child;
+    }
   }
 
   return resolved;
-};
+}
 
 const getDefaultUrl = (serverObject) => {
   let url = serverObject.url;
@@ -836,6 +924,10 @@ const getDefaultUrl = (serverObject) => {
 
 // Extract { name, value } pairs from an OpenAPI server object.
 // Converts {varName} to {{varName}} for template URLs and includes variable defaults.
+// Placeholders that Bruno fills in itself: process env, secrets providers, OAuth2 credentials and dynamic values
+const RESERVED_VARIABLE_NAME = /^(\$|process(\.|$))/;
+const VARIABLE_NAME = /^[\w-.]+$/;
+
 const extractServerVars = (server) => {
   const vars = [];
   if (server.variables && Object.keys(server.variables).length > 0) {
@@ -844,10 +936,16 @@ const extractServerVars = (server) => {
       baseUrlTemplate = baseUrlTemplate.replaceAll(`{${variableName}}`, `{{${variableName}}}`);
     });
     baseUrlTemplate = baseUrlTemplate.endsWith('/') ? baseUrlTemplate.slice(0, -1) : baseUrlTemplate;
-    vars.push({ name: 'baseUrl', value: baseUrlTemplate });
+    if (baseUrlTemplate !== '{{baseUrl}}') {
+      vars.push({ name: 'baseUrl', value: baseUrlTemplate });
+    }
     each(server.variables, (variable, variableName) => {
       let value = variable.default !== undefined ? variable.default : (variable.enum ? variable.enum[0] : '');
-      vars.push({ name: variableName, value: String(value) });
+      // Bruno exports secrets and variables without a value with their own placeholder as the default,
+      // so import them as empty secrets
+      const isPlaceholder = value === `{{${variableName}}}`;
+      if (isPlaceholder && RESERVED_VARIABLE_NAME.test(variableName)) return;
+      vars.push({ name: variableName, value: isPlaceholder ? '' : String(value), secret: isPlaceholder });
     });
   } else {
     vars.push({ name: 'baseUrl', value: getDefaultUrl(server) });
@@ -868,8 +966,92 @@ const getSecurity = (apiSpec) => {
           .filter(Boolean)
       : [],
     schemes: securitySchemes,
-    getScheme: (schemeName) => securitySchemes[schemeName]
+    getScheme: (schemeName) => (typeof schemeName === 'string' && Object.hasOwn(securitySchemes, schemeName) ? securitySchemes[schemeName] : undefined)
   };
+};
+
+const buildCollectionAuth = (scheme) => {
+  const authTemplate = {
+    mode: 'none',
+    basic: null,
+    bearer: null,
+    digest: null,
+    apikey: null,
+    oauth2: null
+  };
+
+  if (!scheme) return authTemplate;
+
+  if (scheme.type === 'http' && scheme.scheme === 'basic') {
+    return {
+      ...authTemplate,
+      mode: 'basic',
+      basic: {
+        username: '{{username}}',
+        password: '{{password}}'
+      }
+    };
+  } else if (scheme.type === 'http' && scheme.scheme === 'bearer') {
+    return {
+      ...authTemplate,
+      mode: 'bearer',
+      bearer: {
+        token: '{{token}}'
+      }
+    };
+  } else if (scheme.type === 'http' && scheme.scheme === 'digest') {
+    return {
+      ...authTemplate,
+      mode: 'digest',
+      digest: {
+        username: '{{username}}',
+        password: '{{password}}'
+      }
+    };
+  } else if (scheme.type === 'apiKey') {
+    return {
+      ...authTemplate,
+      mode: 'apikey',
+      apikey: {
+        key: scheme.name,
+        value: '{{apiKey}}',
+        placement: scheme.in === 'query' ? 'queryparams' : 'header'
+      }
+    };
+  } else if (scheme.type === 'oauth2') {
+    let flows = scheme.flows || {};
+    let grantType = 'client_credentials';
+    if (flows.authorizationCode) {
+      grantType = 'authorization_code';
+    } else if (flows.implicit) {
+      grantType = 'implicit';
+    } else if (flows.password) {
+      grantType = 'password';
+    }
+    const flowConfig = grantType === 'authorization_code' ? flows.authorizationCode || {} : grantType === 'implicit' ? flows.implicit || {} : grantType === 'password' ? flows.password || {} : flows.clientCredentials || {};
+
+    return {
+      ...authTemplate,
+      mode: 'oauth2',
+      oauth2: {
+        grantType,
+        authorizationUrl: flowConfig.authorizationUrl || '{{oauth_authorize_url}}',
+        accessTokenUrl: flowConfig.tokenUrl || '{{oauth_token_url}}',
+        refreshTokenUrl: flowConfig.refreshUrl || '{{oauth_refresh_url}}',
+        callbackUrl: '{{oauth_callback_url}}',
+        clientId: '{{oauth_client_id}}',
+        clientSecret: '{{oauth_client_secret}}',
+        scope: Array.isArray(flowConfig.scopes) ? flowConfig.scopes.join(' ') : Object.keys(flowConfig.scopes || {}).join(' '),
+        state: '{{oauth_state}}',
+        credentialsPlacement: 'header',
+        tokenPlacement: 'header',
+        tokenHeaderPrefix: 'Bearer',
+        autoFetchToken: false,
+        autoRefreshToken: true
+      }
+    };
+  }
+  return authTemplate;
 };
 
 const openAPIRuntimeExpressionToScript = (expression) => {
@@ -894,11 +1076,13 @@ export const parseOpenApiCollection = (data, options = {}) => {
     environments: []
   };
   try {
+    resetExampleGenerationState();
     const collectionData = resolveRefs(data);
     if (!collectionData) {
       throw new Error('Invalid OpenAPI collection. Failed to resolve refs.');
       return;
     }
+    registerComponentNames(collectionData.components?.schemas, data.components?.schemas);
 
     // Currently parsing of openapi spec is "do your best", that is
     // allows "invalid" openapi spec
@@ -935,7 +1119,7 @@ export const parseOpenApiCollection = (data, options = {}) => {
         value: sv.value,
         type: 'text',
         enabled: true,
-        secret: false
+        secret: Boolean(sv.secret)
       }));
 
       brunoCollection.environments.push({
@@ -993,11 +1177,38 @@ export const parseOpenApiCollection = (data, options = {}) => {
       })
       .reduce((acc, val) => acc.concat(val), []); // flatten
 
+    // A secret in a request's own server has no environment of its own, so add it to every environment
+    const requestServerSecretNames = uniq(
+      allRequests.flatMap((request) => (request.servers?.[0] ? extractServerVars(request.servers[0]) : []))
+        .filter((serverVar) => serverVar.secret && VARIABLE_NAME.test(serverVar.name))
+        .map((serverVar) => serverVar.name)
+    );
+    brunoCollection.environments.forEach((environment) => {
+      requestServerSecretNames
+        .filter((secretName) => !environment.variables.some((variable) => variable.name === secretName))
+        .forEach((secretName) => environment.variables.push({
+          uid: uuid(),
+          name: secretName,
+          value: '',
+          type: 'text',
+          enabled: true,
+          secret: true
+        }));
+    });
+
     // Support both tag-based and path-based grouping
     const groupingType = options.groupBy || 'tags';
+    const collectionAuthScheme = options.authPlacement === 'collection'
+      ? resolveCollectionAuthScheme(collectionData.security, allRequests, securityConfig.getScheme, {
+          schemeNames: Object.keys(securityConfig.schemes),
+          toAuth: buildCollectionAuth,
+          collectionAuth: options.collectionAuth
+        })
+      : null;
+    const requestOptions = { ...options, collectionAuthScheme };
 
     if (groupingType === 'path') {
-      brunoCollection.items = groupRequestsByPath(allRequests, transformOpenapiRequestItem, options);
+      brunoCollection.items = groupRequestsByPath(allRequests, transformOpenapiRequestItem, requestOptions);
     } else {
       // Default tag-based grouping
       let [groups, ungroupedRequests] = groupRequestsByTags(allRequests, options);
@@ -1022,7 +1233,7 @@ export const parseOpenApiCollection = (data, options = {}) => {
               name: group.name
             }
           },
-          items: group.requests.map((req) => transformOpenapiRequestItem(req, usedNames, options))
+          items: group.requests.map((req) => transformOpenapiRequestItem(req, usedNames, requestOptions))
         };
         const docs = tagDescriptions[group.name];
         if (docs) {
@@ -1031,97 +1242,13 @@ export const parseOpenApiCollection = (data, options = {}) => {
         return folder;
       });
 
-      let ungroupedItems = ungroupedRequests.map((req) => transformOpenapiRequestItem(req, usedNames, options));
+      const ungroupedItems = ungroupedRequests.map((req) => transformOpenapiRequestItem(req, usedNames, requestOptions));
       let brunoCollectionItems = brunoFolders.concat(ungroupedItems);
       brunoCollection.items = brunoCollectionItems;
     }
 
     // Determine collection-level authentication based on global security requirements
-    const buildCollectionAuth = (scheme) => {
-      const authTemplate = {
-        mode: 'none',
-        basic: null,
-        bearer: null,
-        digest: null,
-        apikey: null,
-        oauth2: null
-      };
-
-      if (!scheme) return authTemplate;
-
-      if (scheme.type === 'http' && scheme.scheme === 'basic') {
-        return {
-          ...authTemplate,
-          mode: 'basic',
-          basic: {
-            username: '{{username}}',
-            password: '{{password}}'
-          }
-        };
-      } else if (scheme.type === 'http' && scheme.scheme === 'bearer') {
-        return {
-          ...authTemplate,
-          mode: 'bearer',
-          bearer: {
-            token: '{{token}}'
-          }
-        };
-      } else if (scheme.type === 'http' && scheme.scheme === 'digest') {
-        return {
-          ...authTemplate,
-          mode: 'digest',
-          digest: {
-            username: '{{username}}',
-            password: '{{password}}'
-          }
-        };
-      } else if (scheme.type === 'apiKey') {
-        return {
-          ...authTemplate,
-          mode: 'apikey',
-          apikey: {
-            key: scheme.name,
-            value: '{{apiKey}}',
-            placement: scheme.in === 'query' ? 'queryparams' : 'header'
-          }
-        };
-      } else if (scheme.type === 'oauth2') {
-        let flows = scheme.flows || {};
-        let grantType = 'client_credentials';
-        if (flows.authorizationCode) {
-          grantType = 'authorization_code';
-        } else if (flows.implicit) {
-          grantType = 'implicit';
-        } else if (flows.password) {
-          grantType = 'password';
-        }
-        const flowConfig = grantType === 'authorization_code' ? flows.authorizationCode || {} : grantType === 'implicit' ? flows.implicit || {} : grantType === 'password' ? flows.password || {} : flows.clientCredentials || {};
-
-        return {
-          ...authTemplate,
-          mode: 'oauth2',
-          oauth2: {
-            grantType,
-            authorizationUrl: flowConfig.authorizationUrl || '{{oauth_authorize_url}}',
-            accessTokenUrl: flowConfig.tokenUrl || '{{oauth_token_url}}',
-            refreshTokenUrl: flowConfig.refreshUrl || '{{oauth_refresh_url}}',
-            callbackUrl: '{{oauth_callback_url}}',
-            clientId: '{{oauth_client_id}}',
-            clientSecret: '{{oauth_client_secret}}',
-            scope: Array.isArray(flowConfig.scopes) ? flowConfig.scopes.join(' ') : Object.keys(flowConfig.scopes || {}).join(' '),
-            state: '{{oauth_state}}',
-            credentialsPlacement: 'header',
-            tokenPlacement: 'header',
-            tokenHeaderPrefix: 'Bearer',
-            autoFetchToken: false,
-            autoRefreshToken: true
-          }
-        };
-      }
-      return authTemplate;
-    };
-
-    let collectionAuth = buildCollectionAuth(securityConfig.supported[0]);
+    const collectionAuth = buildCollectionAuth(collectionAuthScheme ? collectionAuthScheme.scheme : securityConfig.supported[0]);
 
     brunoCollection.root = {
       request: {

@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "noEmit": true,
+    "target": "es2022",
+    "lib": ["es2022"],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "types": []
+  },
+  "files": ["types/globals.d.ts"]
+}

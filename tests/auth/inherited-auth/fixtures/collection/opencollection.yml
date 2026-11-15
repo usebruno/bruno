@@ -1,0 +1,41 @@
+opencollection: 1.0.0
+
+info:
+  name: inherited-auth-collection
+
+request:
+  auth:
+    type: oauth2
+    flow: authorization_code
+    authorizationUrl: http://localhost:8081/authorize
+    accessTokenUrl: http://localhost:8081/token
+    callbackUrl: http://localhost:8081/callback
+    credentials:
+      clientId: inherited-client-id
+      clientSecret: inherited-client-secret
+      placement: body
+    additionalParameters:
+      authorizationRequest:
+        - name: auth-header-key
+          placement: header
+          value: auth-header-value
+      accessTokenRequest:
+        - name: token-body-key
+          placement: body
+          value: token-body-value
+      refreshTokenRequest:
+        - name: refresh-query-key
+          placement: query
+          value: refresh-query-value
+    pkce:
+      disabled: true
+    tokenConfig:
+      id: credentials
+      placement:
+        header: Bearer
+      source: access_token
+    settings:
+      autoFetchToken: true
+      autoRefreshToken: false
+bundled: false
+extensions: {}

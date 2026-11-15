@@ -4,9 +4,10 @@
  * Single source of truth for sanitizing display names into filesystem-safe
  * names and validating names. Consumed by the Electron main process and the
  * renderer (and re-exported from each package's local helper so existing import
- * paths keep working). Collision-suffix resolution (`nextSuffixedName`) lives in
- * the Electron filesystem utils, since that's the only place collisions are
- * resolved against the real filesystem.
+ * paths keep working). `generateUniqueName` resolves collisions against a
+ * caller-supplied check, so the Electron main process and the CLI share it;
+ * filesystem-probing suffix resolution (`nextSuffixedName`) stays in the
+ * Electron filesystem utils.
  */
 
 const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g;
@@ -72,4 +73,23 @@ export const validateNameError = (name: string): string => {
   }
 
   return '';
+};
+
+/**
+ * Returns `baseName`, or `baseName copy`, `baseName copy 2`, ... — the first that `checkExists`
+ * reports as free.
+ */
+export const generateUniqueName = (baseName: string, checkExists: (name: string) => boolean): string => {
+  if (!checkExists(baseName)) {
+    return baseName;
+  }
+
+  let counter = 1;
+  let uniqueName = `${baseName} copy`;
+
+  while (checkExists(uniqueName)) {
+    counter++;
+    uniqueName = `${baseName} copy ${counter}`;
+  }
+  return uniqueName;
 };
