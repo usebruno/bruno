@@ -35,7 +35,7 @@ const builder = (yargs) => {
     })
     .option('output', {
       alias: 'o',
-      describe: 'Path to the output directory',
+      describe: 'Directory to create the collection in',
       type: 'string',
       conflicts: 'output-file'
     })
@@ -89,23 +89,23 @@ const builder = (yargs) => {
       describe: 'Postman environment export(s) to convert alongside the collection (postman only)',
       type: 'array'
     })
-    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --collection-name "My API"')
-    .example('$0 import openapi -s api.yml -o ~/Desktop/my-collection -n "My API"')
+    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collections --collection-name "My API"')
+    .example('$0 import openapi -s api.yml -o ~/Desktop/my-collections -n "My API"')
     .example('$0 import openapi --source https://example.com/api-spec.json --output ~/Desktop --collection-name "Remote API"')
     .example('$0 import openapi --source https://self-signed.example.com/api.json --insecure --output ~/Desktop')
     .example('$0 import openapi --source api.yml --output-file ~/Desktop/my-collection.json --collection-name "My API"')
     .example('$0 import openapi -s api.yml -f ~/Desktop/my-collection.json -n "My API"')
-    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --group-by path')
-    .example('$0 import openapi -s api.yml -o ~/Desktop/my-collection -g tags')
-    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --request-name-source operationId')
-    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --auth-placement collection')
-    .example('$0 import wsdl --source service.wsdl --output ~/Desktop/soap-collection --collection-name "SOAP Service"')
+    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collections --group-by path')
+    .example('$0 import openapi -s api.yml -o ~/Desktop/my-collections -g tags')
+    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collections --request-name-source operationId')
+    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collections --auth-placement collection')
+    .example('$0 import wsdl --source service.wsdl --output ~/Desktop/soap-collections --collection-name "SOAP Service"')
     .example('$0 import wsdl -s https://example.com/service.wsdl -o ~/Desktop -n "Remote SOAP Service"')
-    .example('$0 import postman --source my-api.postman_collection.json --output ~/Desktop/my-api')
-    .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop/my-api -n "My API"')
-    .example('$0 import postman -s https://example.com/my-api.postman_collection.json -o ~/Desktop/my-api --preserve-scripts')
-    .example('$0 import postman --source my-api.postman_collection.json --output ~/Desktop/my-api --env staging.postman_environment.json --env prod.postman_environment.json')
-    .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop/my-api -e staging.postman_environment.json -e prod.postman_environment.json');
+    .example('$0 import postman --source my-api.postman_collection.json --output ~/Desktop')
+    .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop -n "My API"')
+    .example('$0 import postman -s https://example.com/my-api.postman_collection.json -o ~/Desktop --preserve-scripts')
+    .example('$0 import postman --source my-api.postman_collection.json --output ~/Desktop/my-collections --env staging.postman_environment.json --env prod.postman_environment.json')
+    .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop/my-collections -e staging.postman_environment.json -e prod.postman_environment.json');
 };
 
 const isUrl = (str) => {
@@ -286,38 +286,25 @@ const resolveLocalWsdlSchemaRef = async (baseUri, ref) => {
 };
 
 /**
- * Picks the directory a collection is written to. An existing directory gets a new, empty
- * subdirectory named after the collection; any other path is used as is and its parent must exist.
+ * Picks the directory a collection is written to: a subdirectory of `output` named after the
+ * collection. `output` is created when missing, but its parent must exist.
  */
 const resolveCollectionOutputDir = async (output, collectionName) => {
+  const folderName = sanitizeName(collectionName || '');
+  if (!validateName(folderName)) {
+    throw new Error(`Invalid collection name "${collectionName}": ${validateNameError(folderName)}`);
+  }
+
   const resolvedOutput = path.resolve(output);
-  const isOutputDirectory = await exists(resolvedOutput) && isDirectory(resolvedOutput);
-
-  if (isOutputDirectory) {
-    const folderName = sanitizeName(collectionName || '');
-    if (!validateName(folderName)) {
-      throw new Error(`Invalid collection name "${collectionName}": ${validateNameError(folderName)}`);
+  if (await exists(resolvedOutput)) {
+    if (!isDirectory(resolvedOutput)) {
+      throw new Error(`Output path is not a directory: ${resolvedOutput}`);
     }
-    const outputDir = path.join(resolvedOutput, folderName);
-
-    if (await exists(outputDir)) {
-      if (fs.readdirSync(outputDir).length > 0) {
-        throw new Error(`Output directory is not empty: ${outputDir}`);
-      }
-    } else {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-
-    return outputDir;
+  } else if (!await exists(path.dirname(resolvedOutput))) {
+    throw new Error(`Parent directory does not exist: ${path.dirname(resolvedOutput)}`);
   }
 
-  const parentDir = path.dirname(resolvedOutput);
-  if (!await exists(parentDir)) {
-    throw new Error(`Parent directory does not exist: ${parentDir}`);
-  }
-
-  fs.mkdirSync(resolvedOutput, { recursive: true });
-  return resolvedOutput;
+  return path.join(resolvedOutput, folderName);
 };
 
 /**
