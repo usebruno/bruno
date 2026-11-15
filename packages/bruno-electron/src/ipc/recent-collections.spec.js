@@ -1,29 +1,21 @@
-jest.mock('node:fs/promises', () => ({ readdir: jest.fn(), lstat: jest.fn() }));
-jest.mock('electron', () => ({
-  ipcMain: { handle: jest.fn() }
-}));
-jest.mock('../store/recent-collections', () => ({
-  recentCollectionsStore: {
-    list: jest.fn(),
-    record: jest.fn(),
-    forget: jest.fn(),
-    move: jest.fn(),
-    rename: jest.fn()
-  }
+jest.mock('node:fs/promises', () => ({ readdir: jest.fn(), lstat: jest.fn(), stat: jest.fn() }));
+jest.mock('../services/recent-collections', () => ({
+  record: jest.fn(),
+  forget: jest.fn(),
+  move: jest.fn(),
+  rename: jest.fn()
 }));
 
-const { readdir, lstat } = require('node:fs/promises');
-const { ipcMain } = require('electron');
-const { recentCollectionsStore } = require('../store/recent-collections');
+const { readdir, lstat, stat } = require('node:fs/promises');
+const recentCollections = require('../services/recent-collections');
 const {
-  getRecentCollections,
   recordRecentCollections,
   forgetRecentCollections,
   forgetMissingRecentCollections,
   moveRecentCollection,
   renameRecentCollection,
   isVolumeReachable,
-  registerRecentCollectionsIpc
+  setRecentCollectionsWindow
 } = require('./recent-collections');
 
 const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
@@ -38,56 +30,23 @@ describe('recent collections IPC', () => {
   let mainWindow;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
     mainWindow = { isDestroyed: jest.fn(() => false), webContents: { send: jest.fn() } };
     readdir.mockResolvedValue(['orders']);
     lstat.mockRejectedValue(fsError('ENOENT'));
+    stat.mockRejectedValue(fsError('ENOENT'));
   });
 
   afterEach(() => {
     Object.defineProperty(process, 'platform', originalPlatform);
   });
 
-  it('registers the channel that lists recent collections', () => {
-    recentCollectionsStore.list.mockReturnValue([]);
-
-    registerRecentCollectionsIpc(mainWindow);
-
-    expect(ipcMain.handle.mock.calls.map(([channel]) => channel)).toEqual(['renderer:get-recent-collections']);
-    const [[, listRecentCollections]] = ipcMain.handle.mock.calls;
-    expect(listRecentCollections({})).toEqual([]);
-  });
-
-  it('fails the list request when the stored rows cannot be read', () => {
-    const readError = fsError('EACCES');
-    recentCollectionsStore.list.mockImplementationOnce(() => {
-      throw readError;
-    });
-
-    registerRecentCollectionsIpc(mainWindow);
-
-    const [[, listRecentCollections]] = ipcMain.handle.mock.calls;
-    expect(() => listRecentCollections({})).toThrow(readError);
-  });
-
-  it('lists the stored rows as they are, still listing a row whose folder is gone', () => {
-    const rows = [
-      { path: '/projects/orders', name: 'Orders API', usedAt: 2, lastEvent: 'opened' },
-      { path: '/projects/deleted', name: 'Deleted API', usedAt: 1, lastEvent: 'closed' }
-    ];
-    recentCollectionsStore.list.mockReturnValue(rows);
-
-    expect(getRecentCollections()).toEqual(rows);
-    expect(lstat).not.toHaveBeenCalled();
-    expect(readdir).not.toHaveBeenCalled();
-  });
-
   it('tells the window once per tick that recent collections changed', async () => {
-    registerRecentCollectionsIpc(mainWindow);
-    recentCollectionsStore.record.mockReturnValue(true);
-    recentCollectionsStore.forget.mockReturnValue(true);
-    recentCollectionsStore.move.mockReturnValue(true);
-    recentCollectionsStore.rename.mockReturnValue(true);
+    setRecentCollectionsWindow(mainWindow);
+    recentCollections.record.mockReturnValue(true);
+    recentCollections.forget.mockReturnValue(true);
+    recentCollections.move.mockReturnValue(true);
+    recentCollections.rename.mockReturnValue(true);
 
     recordRecentCollections([{ path: '/projects/orders', name: 'Orders API' }], 'opened');
     forgetRecentCollections(['/projects/users']);
@@ -95,10 +54,10 @@ describe('recent collections IPC', () => {
     renameRecentCollection('/workspace/collections/orders', 'Orders');
     await waitForBroadcast();
 
-    expect(recentCollectionsStore.record).toHaveBeenCalledWith([{ path: '/projects/orders', name: 'Orders API' }], 'opened');
-    expect(recentCollectionsStore.forget).toHaveBeenCalledWith(['/projects/users']);
-    expect(recentCollectionsStore.move).toHaveBeenCalledWith('/projects/orders', '/workspace/collections/orders');
-    expect(recentCollectionsStore.rename).toHaveBeenCalledWith('/workspace/collections/orders', 'Orders');
+    expect(recentCollections.record).toHaveBeenCalledWith([{ path: '/projects/orders', name: 'Orders API' }], 'opened');
+    expect(recentCollections.forget).toHaveBeenCalledWith(['/projects/users']);
+    expect(recentCollections.move).toHaveBeenCalledWith('/projects/orders', '/workspace/collections/orders');
+    expect(recentCollections.rename).toHaveBeenCalledWith('/workspace/collections/orders', 'Orders');
     expect(mainWindow.webContents.send.mock.calls).toEqual([['main:recent-collections-changed']]);
 
     recordRecentCollections([{ path: '/projects/users' }], 'closed');
@@ -108,8 +67,8 @@ describe('recent collections IPC', () => {
   });
 
   it('tells the window nothing when nothing changed', async () => {
-    registerRecentCollectionsIpc(mainWindow);
-    recentCollectionsStore.record.mockReturnValue(false);
+    setRecentCollectionsWindow(mainWindow);
+    recentCollections.record.mockReturnValue(false);
 
     recordRecentCollections([{ path: '/projects/orders' }], 'closed');
     await waitForBroadcast();
@@ -118,9 +77,9 @@ describe('recent collections IPC', () => {
   });
 
   it('tells a closed window nothing', async () => {
-    registerRecentCollectionsIpc(mainWindow);
+    setRecentCollectionsWindow(mainWindow);
     mainWindow.isDestroyed.mockReturnValue(true);
-    recentCollectionsStore.record.mockReturnValue(true);
+    recentCollections.record.mockReturnValue(true);
 
     recordRecentCollections([{ path: '/projects/orders' }], 'closed');
     await waitForBroadcast();
@@ -181,7 +140,7 @@ describe('recent collections IPC', () => {
 
     await forgetMissingRecentCollections(['/Users/me/deleted', '/Volumes/USB Drive/orders']);
 
-    expect(recentCollectionsStore.forget).toHaveBeenCalledWith(['/Users/me/deleted']);
+    expect(recentCollections.forget).toHaveBeenCalledWith(['/Users/me/deleted']);
   });
 
   it('keeps a collection on a mount point outside the known folders while it is unmounted', async () => {
@@ -190,7 +149,7 @@ describe('recent collections IPC', () => {
 
     await forgetMissingRecentCollections(['/srv/apis/orders']);
 
-    expect(recentCollectionsStore.forget).toHaveBeenCalledWith([]);
+    expect(recentCollections.forget).toHaveBeenCalledWith([]);
   });
 
   it('judges a missing folder by the nearest folder above it that still exists', async () => {
@@ -205,7 +164,37 @@ describe('recent collections IPC', () => {
     await forgetMissingRecentCollections(['/home/me/old-project/api']);
 
     expect(readdir).toHaveBeenCalledWith('/home/me');
-    expect(recentCollectionsStore.forget).toHaveBeenCalledWith(['/home/me/old-project/api']);
+    expect(recentCollections.forget).toHaveBeenCalledWith(['/home/me/old-project/api']);
+  });
+
+  it('keeps a collection behind a link to a drive that is unplugged', async () => {
+    onPlatform('linux');
+    lstat.mockImplementation(async (filePath) => {
+      if (filePath === '/home/me/Projects') {
+        return { isSymbolicLink: () => true, isDirectory: () => false };
+      }
+      throw fsError('ENOENT');
+    });
+
+    await forgetMissingRecentCollections(['/home/me/Projects/orders', '/home/me/Projects/team/orders']);
+
+    expect(recentCollections.forget).toHaveBeenCalledWith([]);
+  });
+
+  it('forgets a collection deleted behind a link whose drive is connected', async () => {
+    onPlatform('linux');
+    lstat.mockImplementation(async (filePath) => {
+      if (filePath === '/home/me/Projects') {
+        return { isSymbolicLink: () => true, isDirectory: () => false };
+      }
+      throw fsError('ENOENT');
+    });
+    stat.mockResolvedValue({ isDirectory: () => true });
+    readdir.mockResolvedValue(['billing']);
+
+    await forgetMissingRecentCollections(['/home/me/Projects/orders']);
+
+    expect(recentCollections.forget).toHaveBeenCalledWith(['/home/me/Projects/orders']);
   });
 
   it('forgets a folder whose path now runs through a file', async () => {
@@ -220,7 +209,7 @@ describe('recent collections IPC', () => {
 
     await forgetMissingRecentCollections(['/Users/me/notes.txt/orders']);
 
-    expect(recentCollectionsStore.forget).toHaveBeenCalledWith(['/Users/me/notes.txt/orders']);
+    expect(recentCollections.forget).toHaveBeenCalledWith(['/Users/me/notes.txt/orders']);
   });
 
   it.each(['EACCES', 'EPERM'])('keeps a folder it is not allowed to look at (%s), as it may still be there', async (code) => {
@@ -229,7 +218,7 @@ describe('recent collections IPC', () => {
 
     await forgetMissingRecentCollections(['/Users/me/Documents/orders']);
 
-    expect(recentCollectionsStore.forget).toHaveBeenCalledWith([]);
+    expect(recentCollections.forget).toHaveBeenCalledWith([]);
   });
 
   it('keeps a folder that exists', async () => {
@@ -238,7 +227,7 @@ describe('recent collections IPC', () => {
 
     await forgetMissingRecentCollections(['/Users/me/orders']);
 
-    expect(recentCollectionsStore.forget).toHaveBeenCalledWith([]);
+    expect(recentCollections.forget).toHaveBeenCalledWith([]);
   });
 
   it('forgets a path that now holds a file or a link, which an open never accepts', async () => {
@@ -247,6 +236,6 @@ describe('recent collections IPC', () => {
 
     await forgetMissingRecentCollections(['/Users/me/orders']);
 
-    expect(recentCollectionsStore.forget).toHaveBeenCalledWith(['/Users/me/orders']);
+    expect(recentCollections.forget).toHaveBeenCalledWith(['/Users/me/orders']);
   });
 });

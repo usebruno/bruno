@@ -2,7 +2,7 @@ import classnames from 'classnames';
 import { IconBox } from '@tabler/icons';
 import Button from 'ui/Button';
 import Checkbox from 'ui/Checkbox';
-import { formatParentPath } from './utils';
+import { formatRowPath } from './utils';
 import StyledWrapper from './StyledWrapper';
 
 const keepTextUnselectedOnShiftClick = (event) => {
@@ -73,7 +73,7 @@ const CollectionListRow = ({
           {collection.name}
         </span>
         <span className="collection-list-row-path" title={collection.path} data-testid={`${testIdPrefix}-row-path`}>
-          {formatParentPath(collection.path, collection.name)}
+          {formatRowPath(collection.path, collection.name)}
         </span>
       </span>
       <span className="collection-list-row-end">

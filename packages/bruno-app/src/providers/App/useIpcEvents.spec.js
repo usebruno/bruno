@@ -11,7 +11,7 @@ jest.mock('nanoid', () => {
 });
 
 const RECENT_COLLECTIONS_CHANGED = 'main:recent-collections-changed';
-const GET_RECENT_COLLECTIONS = 'renderer:get-recent-collections';
+const LIST_RECENT_COLLECTIONS = 'datastore:recent_collections:list_recent_collections';
 
 const closedModal = openCollectionModalReducer(undefined, { type: 'init' });
 
@@ -51,7 +51,7 @@ describe('useIpcEvents', () => {
       listeners[RECENT_COLLECTIONS_CHANGED]();
     });
 
-    expect(window.ipcRenderer.invoke).toHaveBeenCalledWith(GET_RECENT_COLLECTIONS);
+    expect(window.ipcRenderer.invoke).toHaveBeenCalledWith(LIST_RECENT_COLLECTIONS);
   });
 
   it('does not read them while the modal is closed', async () => {
@@ -61,7 +61,7 @@ describe('useIpcEvents', () => {
       listeners[RECENT_COLLECTIONS_CHANGED]();
     });
 
-    expect(window.ipcRenderer.invoke).not.toHaveBeenCalledWith(GET_RECENT_COLLECTIONS);
+    expect(window.ipcRenderer.invoke).not.toHaveBeenCalledWith(LIST_RECENT_COLLECTIONS);
   });
 
   it('stops listening for changes when it unmounts', () => {

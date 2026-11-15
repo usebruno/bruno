@@ -1,6 +1,6 @@
-import { formatParentPath } from './utils';
+import { formatRowPath } from './utils';
 
-describe('formatParentPath', () => {
+describe('formatRowPath', () => {
   it.each([
     ['/Users/me/work/payments', 'payments', '~/work'],
     ['/Users/me/work/payments', 'Payments', '~/work/payments'],
@@ -15,6 +15,6 @@ describe('formatParentPath', () => {
     ['\\\\nas\\team\\a\\b\\bruno\\payments\\api', 'api', '//nas/team/…/bruno/payments'],
     ['\\\\wsl.localhost\\Ubuntu\\home\\me\\work\\api', 'api', '//wsl.localhost/Ubuntu/home/me/work']
   ])('shows %s named %s as %s', (pathname, name, shown) => {
-    expect(formatParentPath(pathname, name)).toBe(shown);
+    expect(formatRowPath(pathname, name)).toBe(shown);
   });
 });

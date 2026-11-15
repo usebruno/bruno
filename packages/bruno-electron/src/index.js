@@ -46,7 +46,7 @@ const { openCollectionFromRecentMenu } = require('./app/collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
 const { registerCollectionSearchIpc } = require('./ipc/collection-search');
-const { registerRecentCollectionsIpc } = require('./ipc/recent-collections');
+const { setRecentCollectionsWindow } = require('./ipc/recent-collections');
 const { registerYmlMigrationIpc } = require('./ipc/yml-migration');
 const registerFilesystemIpc = require('./ipc/filesystem');
 const registerPreferencesIpc = require('./ipc/preferences');
@@ -575,7 +575,7 @@ app.on('ready', async () => {
   registerAppDocumentIpc(appDocuments, mainWindow);
   registerWsdlIpc();
   registerCollectionSearchIpc();
-  registerRecentCollectionsIpc(mainWindow);
+  setRecentCollectionsWindow(mainWindow);
 
   // Internal delegator
   ipcMain.handle('main:cache-clear', async () => {

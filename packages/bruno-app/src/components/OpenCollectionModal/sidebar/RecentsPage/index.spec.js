@@ -29,19 +29,20 @@ jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
   openMultipleCollections: jest.fn()
 }));
 
-const GET_RECENT_COLLECTIONS = 'renderer:get-recent-collections';
+const LIST_RECENT_COLLECTIONS = 'datastore:recent_collections:list_recent_collections';
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
 
 const billing = { path: '/Users/me/work/billing', name: 'Billing', usedAt: Date.now() - 5 * MINUTE, lastEvent: 'closed' };
 const openOne = { path: '/Users/me/work/open', name: 'Open One', usedAt: Date.now() - 2 * HOUR, lastEvent: 'opened' };
-const orders = { path: '/Users/me/shop/orders', name: 'Orders', usedAt: Date.now() - 30 * HOUR, lastEvent: 'opened' };
+const orders = { path: '/Users/me/shop/orders', name: 'Orders', usedAt: Date.now() - 3 * DAY, lastEvent: 'opened' };
 const recentCollections = [billing, openOne, orders];
 
 const openCollectionInRedux = { uid: 'collection-1', pathname: '/Users/me/work/open', mountStatus: 'mounted', collapsed: false };
 
 const recentsReturn = (result) =>
-  callIpc.mockImplementation((channel) => (channel === GET_RECENT_COLLECTIONS ? result : Promise.resolve()));
+  callIpc.mockImplementation((channel) => (channel === LIST_RECENT_COLLECTIONS ? result : Promise.resolve()));
 
 const renderPage = () => {
   const dispatchedActions = [];
@@ -90,7 +91,7 @@ describe('RecentsPage', () => {
     renderPage();
 
     expect(screen.getByTestId('recents-loading')).toHaveTextContent('Loading…');
-    expect(callIpc).toHaveBeenCalledWith(GET_RECENT_COLLECTIONS);
+    expect(callIpc).toHaveBeenCalledWith(LIST_RECENT_COLLECTIONS);
   });
 
   it('lists the newest first, with the ones already open greyed out at the bottom', async () => {
@@ -108,7 +109,7 @@ describe('RecentsPage', () => {
 
     expect(within(rowFor('Billing')).getByTestId('recents-row-meta')).toHaveTextContent('Closed 5m ago');
     expect(within(rowFor('Open One')).getByTestId('recents-row-meta')).toHaveTextContent('Opened 2h ago');
-    expect(within(rowFor('Orders')).getByTestId('recents-row-meta')).toHaveTextContent('Opened yesterday');
+    expect(within(rowFor('Orders')).getByTestId('recents-row-meta')).toHaveTextContent('Opened 3d ago');
   });
 
   it('puts focus in the search box once the list appears', async () => {
@@ -205,7 +206,7 @@ describe('RecentsPage', () => {
   });
 
   it('says why Recents is not available and lists the collections after trying again', async () => {
-    recentsReturn(Promise.reject(new Error('Error invoking remote method \'renderer:get-recent-collections\': Error: disk failure')));
+    recentsReturn(Promise.reject(new Error('Error invoking remote method \'datastore:recent_collections:list_recent_collections\': Error: disk failure')));
     renderPage();
 
     const failure = await screen.findByTestId('recents-error');

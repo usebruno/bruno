@@ -1,7 +1,6 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { ipcMain } = require('electron');
-const { recentCollectionsStore } = require('../store/recent-collections');
+const recentCollections = require('../services/recent-collections');
 
 const VOLUME_ROOT_PATTERNS = {
   darwin: /^\/Volumes\/[^/]+/,
@@ -30,25 +29,39 @@ const sendIfChanged = (hasChanged) => {
   }
 };
 
-const recordRecentCollections = (collections, lastEvent) => sendIfChanged(recentCollectionsStore.record(collections, lastEvent));
+const recordRecentCollections = (collections, lastEvent) => sendIfChanged(recentCollections.record(collections, lastEvent));
 
-const forgetRecentCollections = (paths) => sendIfChanged(recentCollectionsStore.forget(paths));
+const forgetRecentCollections = (paths) => sendIfChanged(recentCollections.forget(paths));
 
-const moveRecentCollection = (fromPath, toPath) => sendIfChanged(recentCollectionsStore.move(fromPath, toPath));
+const moveRecentCollection = (fromPath, toPath) => sendIfChanged(recentCollections.move(fromPath, toPath));
 
-const renameRecentCollection = (collectionPath, name) => sendIfChanged(recentCollectionsStore.rename(collectionPath, name));
+const renameRecentCollection = (collectionPath, name) => sendIfChanged(recentCollections.rename(collectionPath, name));
+
+const isMissingPathError = (error) => ['ENOENT', 'ENOTDIR'].includes(error.code);
 
 const isNearestFolderInUse = async (folderPath) => {
   try {
     return (await fs.readdir(folderPath)).length > 0;
   } catch (error) {
     const parentPath = path.dirname(folderPath);
-    return ['ENOENT', 'ENOTDIR'].includes(error.code) && parentPath !== folderPath && isNearestFolderInUse(parentPath);
+    return isMissingPathError(error) && parentPath !== folderPath && isNearestFolderInUse(parentPath);
+  }
+};
+
+const isBehindMissingLink = async (folderPath) => {
+  try {
+    return (await fs.lstat(folderPath)).isSymbolicLink() && !(await fs.stat(folderPath).catch(() => null));
+  } catch (error) {
+    const parentPath = path.dirname(folderPath);
+    return isMissingPathError(error) && parentPath !== folderPath && isBehindMissingLink(parentPath);
   }
 };
 
 const isVolumeReachable = async (collectionPath) => {
   try {
+    if (await isBehindMissingLink(path.dirname(collectionPath))) {
+      return false;
+    }
     const volumeRoot = process.platform === 'win32'
       ? path.win32.parse(collectionPath).root
       : VOLUME_ROOT_PATTERNS[process.platform]?.exec(collectionPath)?.[0];
@@ -62,7 +75,7 @@ const isFolderGone = async (collectionPath) => {
   try {
     return !(await fs.lstat(collectionPath)).isDirectory();
   } catch (error) {
-    return ['ENOENT', 'ENOTDIR'].includes(error.code) && isVolumeReachable(collectionPath);
+    return isMissingPathError(error) && isVolumeReachable(collectionPath);
   }
 };
 
@@ -71,20 +84,16 @@ const forgetMissingRecentCollections = async (paths) => {
   forgetRecentCollections(paths.filter((_collectionPath, index) => gone[index]));
 };
 
-const getRecentCollections = () => recentCollectionsStore.list();
-
-const registerRecentCollectionsIpc = (mainWindow) => {
+const setRecentCollectionsWindow = (mainWindow) => {
   _mainWindow = mainWindow;
-  ipcMain.handle('renderer:get-recent-collections', () => getRecentCollections());
 };
 
 module.exports = {
-  getRecentCollections,
   recordRecentCollections,
   forgetRecentCollections,
   forgetMissingRecentCollections,
   moveRecentCollection,
   renameRecentCollection,
   isVolumeReachable,
-  registerRecentCollectionsIpc
+  setRecentCollectionsWindow
 };

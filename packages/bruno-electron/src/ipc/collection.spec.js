@@ -1,6 +1,7 @@
 const { ipcMain, app } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
+const fsExtra = require('fs-extra');
 const os = require('node:os');
 const crypto = require('node:crypto');
 const jsyaml = require('js-yaml');
@@ -79,7 +80,6 @@ const registerCollectionsIpc = require('./collection');
 
 const { copyPathTo, posixifyPath } = require('../utils/filesystem');
 const { moveRequestUid } = require('../cache/requestUids');
-const { RecentCollectionsStore } = require('../store/recent-collections');
 const { recordRecentCollections, forgetMissingRecentCollections, moveRecentCollection, renameRecentCollection } = require('./recent-collections');
 
 describe('IPC collection handlers', () => {
@@ -330,45 +330,51 @@ describe('IPC collection handlers', () => {
   describe('renderer:remove-collection', () => {
     const collectionPath = path.join(os.tmpdir(), 'fake', 'orders');
     let collectionsFolder;
+    let watcher;
     let removeCollectionHandler;
 
     beforeEach(() => {
       collectionsFolder = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-remove-collection-'));
-      registerCollectionsIpc(mainWindow, { removeWatcher: jest.fn() });
+      watcher = { removeWatcher: jest.fn() };
+      registerCollectionsIpc(mainWindow, watcher);
       removeCollectionHandler = ipcMain._getHandler('renderer:remove-collection');
     });
 
     afterEach(() => {
-      app.getPath.mockReturnValue(os.tmpdir());
       fs.rmSync(collectionsFolder, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
     });
 
-    it('records the close as soon as it is asked, under the collection name the window sends', async () => {
-      const removal = removeCollectionHandler({}, collectionPath, 'orders-uid', 'default', 'Orders');
+    it('records the close before the rest of the close runs, under the collection name the window sends', async () => {
+      await removeCollectionHandler({}, collectionPath, 'orders-uid', 'default', 'Orders');
 
       expect(recordRecentCollections).toHaveBeenCalledWith([{ path: collectionPath, name: 'Orders' }], 'closed');
-      await removal;
+      expect(recordRecentCollections.mock.invocationCallOrder[0]).toBeLessThan(watcher.removeWatcher.mock.invocationCallOrder[0]);
     });
 
-    it('keeps the name a row has, else the folder name, when the window sends a name that is not a string', async () => {
-      const usersPath = path.join(os.tmpdir(), 'fake', 'users');
-      app.getPath.mockReturnValue(collectionsFolder);
-      const store = new RecentCollectionsStore();
-      store.record([{ path: collectionPath, name: 'Orders API' }], 'opened');
+    it('never reads the collection folder synchronously, so a share that stops answering cannot freeze the app', async () => {
+      const syncReads = [fs, fsExtra].flatMap((fsModule) => ['existsSync', 'lstatSync', 'statSync'].map((name) => jest.spyOn(fsModule, name)));
 
-      await removeCollectionHandler({}, collectionPath, 'orders-uid', 'default', { name: 'Orders' });
-      await removeCollectionHandler({}, usersPath, 'users-uid', 'default', 42);
-      recordRecentCollections.mock.calls.forEach(([collections, lastEvent]) => store.record(collections, lastEvent));
+      await removeCollectionHandler({}, collectionPath, 'orders-uid', 'default', 'Orders');
+      const pathsReadSynchronously = syncReads.flatMap((syncRead) => syncRead.mock.calls.map(([filePath]) => filePath));
+      syncReads.forEach((syncRead) => syncRead.mockRestore());
 
-      expect(store.list().map((row) => [row.path, row.name])).toEqual([[usersPath, 'users'], [collectionPath, 'Orders API']]);
+      expect(pathsReadSynchronously).not.toContain(collectionPath);
     });
 
-    it('records nothing when the collection path is a link', async () => {
+    it('records the close with whatever name the window sends, leaving names that are not strings to Recents', async () => {
+      await removeCollectionHandler({}, collectionPath, 'orders-uid', 'default', 42);
+
+      expect(recordRecentCollections).toHaveBeenCalledWith([{ path: collectionPath, name: 42 }], 'closed');
+    });
+
+    it('records nothing when the collection path is a link, even one whose folder is gone', async () => {
       const ordersCollection = path.join(collectionsFolder, 'orders');
       const ordersLink = path.join(collectionsFolder, 'orders-link');
       fs.mkdirSync(ordersCollection);
       fs.symlinkSync(ordersCollection, ordersLink, 'junction');
 
+      await removeCollectionHandler({}, ordersLink, 'orders-uid', 'default', 'Orders API');
+      fs.rmSync(ordersCollection, { recursive: true, force: true });
       await removeCollectionHandler({}, ordersLink, 'orders-uid', 'default', 'Orders API');
 
       expect(recordRecentCollections).not.toHaveBeenCalled();

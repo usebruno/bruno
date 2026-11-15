@@ -1,6 +1,6 @@
 import { tildify } from '../../../utils/collection-location';
 
-export const formatParentPath = (pathname, name) => {
+export const formatRowPath = (pathname, name) => {
   const shownPath = tildify(pathname);
   const segments = shownPath.split('/');
   if (segments.length > 1 && segments[segments.length - 1] === name) {

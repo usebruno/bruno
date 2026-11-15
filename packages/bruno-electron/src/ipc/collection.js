@@ -43,7 +43,6 @@ const {
   withDirLock,
   hasBruExtension,
   isDirectory,
-  isSymbolicLink,
   createDirectory,
   sanitizeName,
   isWSLPath,
@@ -1390,7 +1389,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   ipcMain.handle('renderer:remove-collection', async (event, collectionPath, collectionUid, workspacePath, collectionName) => {
-    if (!isSymbolicLink(collectionPath)) {
+    const collectionStats = await fs.promises.lstat(collectionPath).catch(() => null);
+    if (!collectionStats?.isSymbolicLink()) {
       recordRecentCollections([{ path: collectionPath, name: collectionName }], 'closed');
     }
 

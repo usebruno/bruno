@@ -48,7 +48,7 @@ jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
 
 const FIND_IN_FOLDERS = 'renderer:collection-search:find-in-folders';
 const CANCEL_SEARCH = 'renderer:collection-search:cancel';
-const GET_RECENT_COLLECTIONS = 'renderer:get-recent-collections';
+const LIST_RECENT_COLLECTIONS = 'datastore:recent_collections:list_recent_collections';
 
 const workspace = { uid: 'workspace-1', collections: [{ path: '/work/open' }, { path: '/work/open-too' }] };
 const openCollectionInRedux = {
@@ -759,7 +759,7 @@ describe('open collection modal actions', () => {
     ];
 
     const recentsReturn = (result) =>
-      callIpc.mockImplementation((channel) => (channel === GET_RECENT_COLLECTIONS ? result : Promise.resolve()));
+      callIpc.mockImplementation((channel) => (channel === LIST_RECENT_COLLECTIONS ? result : Promise.resolve()));
 
     it('reads them from the main process', async () => {
       recentsReturn(Promise.resolve(recentItems));
@@ -767,7 +767,7 @@ describe('open collection modal actions', () => {
 
       await store.dispatch(loadRecentCollections());
 
-      expect(callIpc).toHaveBeenCalledWith(GET_RECENT_COLLECTIONS);
+      expect(callIpc).toHaveBeenCalledWith(LIST_RECENT_COLLECTIONS);
       expect(modalState(store).recents).toEqual({ status: 'ready', loadId: null, items: recentItems, error: null });
     });
 
@@ -787,7 +787,7 @@ describe('open collection modal actions', () => {
     });
 
     it('says why they could not be read, without the IPC prefix', async () => {
-      recentsReturn(Promise.reject(new Error('Error invoking remote method \'renderer:get-recent-collections\': Error: disk failure')));
+      recentsReturn(Promise.reject(new Error('Error invoking remote method \'datastore:recent_collections:list_recent_collections\': Error: disk failure')));
       const { store } = createStore({ modal: openOn('recents') });
 
       await store.dispatch(loadRecentCollections());
@@ -832,7 +832,7 @@ describe('open collection modal actions', () => {
       store.dispatch(openCollectionModal('recents'));
       await flushPromises();
 
-      expect(callIpc).toHaveBeenCalledWith(GET_RECENT_COLLECTIONS);
+      expect(callIpc).toHaveBeenCalledWith(LIST_RECENT_COLLECTIONS);
       expect(modalState(store)).toMatchObject({ isOpen: true, page: 'recents', recents: { status: 'ready', items: recentItems } });
     });
 
@@ -843,7 +843,7 @@ describe('open collection modal actions', () => {
       store.dispatch(openCollectionModal('recents'));
       await flushPromises();
 
-      expect(callIpc).toHaveBeenCalledWith(GET_RECENT_COLLECTIONS);
+      expect(callIpc).toHaveBeenCalledWith(LIST_RECENT_COLLECTIONS);
       expect(modalState(store)).toMatchObject({ page: 'recents', recents: { status: 'ready', items: recentItems } });
     });
 
@@ -853,7 +853,7 @@ describe('open collection modal actions', () => {
 
       store.dispatch(openCollectionModal(page));
 
-      expect(callIpc).not.toHaveBeenCalledWith(GET_RECENT_COLLECTIONS);
+      expect(callIpc).not.toHaveBeenCalledWith(LIST_RECENT_COLLECTIONS);
       expect(modalState(store).recents).toEqual(closedModal.recents);
     });
 
@@ -864,7 +864,7 @@ describe('open collection modal actions', () => {
       store.dispatch(recentCollectionsChangedEvent());
       await flushPromises();
 
-      expect(callIpc).toHaveBeenCalledWith(GET_RECENT_COLLECTIONS);
+      expect(callIpc).toHaveBeenCalledWith(LIST_RECENT_COLLECTIONS);
       expect(modalState(store).recents.items).toEqual(recentItems);
     });
 

@@ -249,7 +249,7 @@ export const loadRecentCollections = () => async (dispatch) => {
   dispatch(recentsLoadStarted(loadId));
 
   try {
-    const items = await callIpc('renderer:get-recent-collections');
+    const items = await callIpc('datastore:recent_collections:list_recent_collections');
     dispatch(recentsLoadFinished({ loadId, items }));
   } catch (error) {
     dispatch(recentsLoadFailed({ loadId, error: formatIpcError(error) }));
