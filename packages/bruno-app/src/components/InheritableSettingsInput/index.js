@@ -1,78 +1,130 @@
-import React from 'react';
-import { IconChevronDown, IconX } from '@tabler/icons';
-import Dropdown from 'components/Dropdown';
+import React, { useRef } from 'react';
+import { Tooltip } from 'react-tooltip';
 import FormField from 'ui/patterns/FormField';
 import StyledWrapper from './StyledWrapper';
 
 const InheritableSettingsInput = ({
   id,
   label,
-  value,
   description,
-  onKeyDown,
+  value,
+  inheritedValue,
+  inheritedPlaceholder,
+  sourceName,
+  onSourceClick,
+  sourceLinkLabel,
   isInherited,
-  onDropdownSelect,
   onValueChange,
-  onCustomValueReset
+  onOverride,
+  onInherit,
+  onKeyDown,
+  overrideLabel,
+  inheritLabel,
+  inheritTooltip,
+  testId = id
 }) => {
+  const inputRef = useRef(null);
+  const descriptionId = description ? `${id}-description` : undefined;
+  const statusId = `${id}-status`;
+
+  const handleChange = (e) => {
+    const next = e.target.value;
+    if (next === '') {
+      onInherit();
+    } else if (/^\d+$/.test(next)) {
+      onValueChange(parseInt(next, 10));
+    }
+  };
+
+  const handleOverride = () => {
+    onOverride();
+    inputRef.current?.focus();
+  };
+
   return (
     <StyledWrapper>
       <FormField
         layout="inline"
-        label={label}
-        description={description}
-        htmlFor={isInherited ? undefined : id}
-        labelId={isInherited ? `${id}-label` : undefined}
-        descriptionId={description ? `${id}-description` : undefined}
-      >
-        {isInherited ? (
-          <Dropdown
-            appendTo={() => document.body}
-            icon={(
-              <button
-                type="button"
-                id={`${id}-inherit-trigger`}
-                aria-labelledby={`${id}-label ${id}-inherit-trigger`}
-                aria-describedby={description ? `${id}-description` : undefined}
-                className="settings-text-input px-2 py-1 w-24 h-[34px] flex items-center justify-between"
-              >
-                <span>Inherit</span>
-                <IconChevronDown size={12} />
-              </button>
+        label={(
+          <span className="inheritable-label">
+            {label}
+            {/* Visual only: screen readers get "Inherited" from the status line the input points to */}
+            {isInherited && (
+              <span className="inheritable-tag" aria-hidden="true" data-testid={`${testId}-inherited-tag`}>
+                Inherited
+              </span>
             )}
-          >
-            <div className="dropdown-item" onClick={() => onDropdownSelect('inherit')}>
-              Inherit
-            </div>
-            <div className="dropdown-item" onClick={() => onDropdownSelect('custom')}>
-              Custom
-            </div>
-          </Dropdown>
-        ) : (
-          <div className="relative">
-            <input
-              id={id}
-              aria-describedby={description ? `${id}-description` : undefined}
-              type="text"
-              className="settings-text-input block px-2 py-1 pr-6 w-24 h-[34px]"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              value={value}
-              onChange={onValueChange}
-              onKeyDown={onKeyDown}
-            />
-            <button
-              type="button"
-              onClick={onCustomValueReset}
-              className="absolute right-1 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
-              title="Reset to inherit"
-            >
-              <IconX size={14} />
-            </button>
-          </div>
+          </span>
         )}
+        description={description}
+        htmlFor={id}
+        descriptionId={descriptionId}
+        controlWidth="max-content"
+      >
+        <div className="inheritable-control">
+          <input
+            ref={inputRef}
+            id={id}
+            type="text"
+            inputMode="numeric"
+            className="settings-text-input inheritable-input block px-2 py-1 w-24 h-[34px]"
+            aria-describedby={[descriptionId, isInherited ? statusId : null].filter(Boolean).join(' ') || undefined}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            placeholder={isInherited ? (inheritedPlaceholder ?? String(inheritedValue)) : undefined}
+            value={isInherited ? '' : String(value)}
+            onChange={handleChange}
+            onKeyDown={onKeyDown}
+            data-testid={`${testId}-input`}
+          />
+          <div className="inheritable-status">
+            {isInherited ? (
+              <>
+                <span id={statusId} data-testid={`${testId}-inherited`}>
+                  <span className="sr-only">Inherited </span>
+                  From{' '}
+                  <button
+                    type="button"
+                    className="inheritable-source"
+                    onClick={onSourceClick}
+                    aria-label={sourceLinkLabel}
+                    data-testid={`${testId}-source`}
+                  >
+                    {sourceName}
+                  </button>
+                </span>
+                <span className="inheritable-separator" aria-hidden="true">·</span>
+                <button
+                  type="button"
+                  className="inheritable-link"
+                  onClick={handleOverride}
+                  aria-label={overrideLabel}
+                  data-testid={`${testId}-override`}
+                >
+                  Override
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  id={`${id}-inherit`}
+                  type="button"
+                  className="inheritable-link"
+                  onClick={onInherit}
+                  aria-label={inheritLabel}
+                  data-testid={`${testId}-inherit`}
+                >
+                  Inherit
+                </button>
+                {inheritTooltip && (
+                  <Tooltip anchorId={`${id}-inherit`} className="tooltip-mod font-normal" place="right" html={inheritTooltip} />
+                )}
+              </>
+            )}
+          </div>
+        </div>
       </FormField>
     </StyledWrapper>
   );

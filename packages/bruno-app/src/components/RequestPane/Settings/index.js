@@ -1,12 +1,13 @@
 import React, { useCallback } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import get from 'lodash/get';
 import { utils } from '@usebruno/common';
 import ToggleSelector from 'components/RequestPane/Settings/ToggleSelector';
 import SettingsInput from 'components/SettingsInput';
 import InheritableSettingsInput from 'components/InheritableSettingsInput';
 import { updateItemSettings, toggleAppMode } from 'providers/ReduxStore/slices/collections';
-import { setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
+import { setTabAppPreview, addTab } from 'providers/ReduxStore/slices/tabs';
+import { updateActivePreferencesTab } from 'providers/ReduxStore/slices/app';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Tags from './Tags/index';
 import FormField from 'ui/patterns/FormField';
@@ -24,6 +25,8 @@ const DEFAULT_SETTINGS = {
 
 const Settings = ({ item, collection }) => {
   const dispatch = useDispatch();
+  // An inherited timeout falls back to the app-wide request timeout in Preferences (0 when unset)
+  const inheritedTimeout = useSelector((state) => state.app.preferences?.request?.timeout) ?? 0;
 
   // Get current settings with defaults applied
   const getPropertyFromDraftOrRequest = (propertyKey) =>
@@ -71,26 +74,22 @@ const Settings = ({ item, collection }) => {
     }
   }, [updateSetting]);
 
-  const onTimeoutChange = useCallback((e) => {
-    const value = e.target.value;
-    // Only allow empty string or digits
-    if (value === '' || /^\d+$/.test(value)) {
-      const numericValue = value === '' ? 0 : parseInt(value, 10);
-      updateSetting({ timeout: numericValue });
-    }
-  }, [updateSetting]);
-
   // Check if timeout is inherited
   const isTimeoutInherited = timeout === 'inherit' || timeout === undefined || timeout === null;
 
-  const handleTimeoutDropdownSelect = useCallback((option) => {
-    if (option === 'inherit') {
-      updateSetting({ timeout: 'inherit' });
-    } else if (option === 'custom') {
-      // Switch to custom value - start with 0
-      updateSetting({ timeout: 0 });
-    }
-  }, [updateSetting]);
+  const onTimeoutChange = useCallback((value) => updateSetting({ timeout: value }), [updateSetting]);
+  const onTimeoutOverride = useCallback(() => updateSetting({ timeout: inheritedTimeout }), [updateSetting, inheritedTimeout]);
+  const onTimeoutInherit = useCallback(() => updateSetting({ timeout: 'inherit' }), [updateSetting]);
+
+  // The request timeout lives in Preferences > General
+  const openTimeoutSource = useCallback(() => {
+    dispatch(updateActivePreferencesTab({ tab: 'general' }));
+    dispatch(addTab({
+      type: 'preferences',
+      uid: `${collection.uid}-preferences`,
+      collectionUid: collection.uid
+    }));
+  }, [dispatch, collection.uid]);
 
   // Keyboard shortcut handlers
   const onSave = useCallback(() => {
@@ -137,13 +136,21 @@ const Settings = ({ item, collection }) => {
           <InheritableSettingsInput
             id="timeout"
             label="Timeout (ms)"
-            value={timeout}
             description="Set maximum time to wait before aborting the request"
-            onKeyDown={handleKeyDown}
+            value={timeout}
+            inheritedValue={inheritedTimeout}
+            inheritedPlaceholder={inheritedTimeout === 0 ? '0 (no timeout)' : String(inheritedTimeout)}
+            sourceName="Preferences"
+            onSourceClick={openTimeoutSource}
+            sourceLinkLabel="Open Preferences, where the default request timeout is set"
             isInherited={isTimeoutInherited}
-            onDropdownSelect={handleTimeoutDropdownSelect}
-            onValueChange={(e) => !isTimeoutInherited && onTimeoutChange(e)}
-            onCustomValueReset={() => updateSetting({ timeout: 'inherit' })}
+            onValueChange={onTimeoutChange}
+            onOverride={onTimeoutOverride}
+            onInherit={onTimeoutInherit}
+            onKeyDown={handleKeyDown}
+            overrideLabel={`Override the Preferences timeout (${inheritedTimeout} ms) for this request`}
+            inheritLabel={`Inherit the Preferences timeout (${inheritedTimeout} ms)`}
+            inheritTooltip={`Inherit from Preferences (${inheritedTimeout === 0 ? 'no timeout' : `${inheritedTimeout} ms`})`}
           />
           <ToggleSelector
             checked={followRedirects}
