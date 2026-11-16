@@ -1,0 +1,18 @@
+info:
+  name: no-env-selected
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: '{{baseUrl}}/ping'
+  auth: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("neither scope reports a name", function() {
+          expect(bru.getEnvName()).to.equal(undefined);
+          expect(bru.getGlobalEnvName()).to.equal(undefined);
+        });

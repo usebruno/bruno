@@ -183,6 +183,7 @@ class Bru {
     this.requestVariables = requestVariables || {};
     /** @internal */
     this.globalEnvironmentVariables = globalEnvironmentVariables || {};
+    /** @internal */
     this.globalEnvironmentName = globalEnvironmentName;
     /** @internal */
     this.oauth2CredentialVariables = oauth2CredentialVariables || {};
@@ -446,6 +447,11 @@ class Bru {
     return this.envVariables.__name__;
   }
 
+  /**
+   * Get the name of the selected global environment.
+   * @returns {string | undefined} The name, or `undefined` when no global environment is selected.
+   * @category Global environment
+   */
   getGlobalEnvName() {
     return this.globalEnvironmentName;
   }
@@ -563,6 +569,7 @@ class Bru {
    * @category Global environment
    */
   hasGlobalEnvVar(key) {
+    if (key === '__name__') return false;
     return Object.hasOwn(this.globalEnvironmentVariables, key);
   }
 
@@ -575,6 +582,7 @@ class Bru {
    * @category Global environment
    */
   getGlobalEnvVar(key) {
+    if (key === '__name__') return undefined;
     return this.#readVariable(this.globalEnvironmentVariables, key);
   }
 
