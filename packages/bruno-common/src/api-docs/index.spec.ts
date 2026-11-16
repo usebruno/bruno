@@ -126,7 +126,7 @@ describe('buildApiDocsHtml', () => {
     const html = buildApiDocsHtml('My API', '"data"');
     expect(html).not.toContain('repositoryUrl');
     expect(html).toContain('const collectionData = "data";');
-    expect(html).toContain('Bruno.apiDocs(document.getElementById(\'bruno-docs\'), {');
+    expect(html).toContain('Bruno.apiDocs(document.getElementById(\'bruno-api-docs\'), {');
     expect(html).not.toContain('window.OpenCollection');
     expect(html).toContain('https://cdn.usebruno.com/api-docs/api-docs.js');
   });
