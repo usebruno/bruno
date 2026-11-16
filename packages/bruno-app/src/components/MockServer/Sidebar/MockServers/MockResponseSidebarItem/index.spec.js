@@ -1,10 +1,11 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useDispatch, useSelector } from 'react-redux';
 import { ThemeProvider } from 'styled-components';
 import themes from 'themes/index';
 import MockResponseSidebarItem from './index';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { mountScratchCollection } from 'providers/ReduxStore/slices/workspaces/actions';
 
 jest.mock('react-redux', () => ({
   useDispatch: jest.fn(),
@@ -22,6 +23,10 @@ jest.mock('providers/ReduxStore/slices/tabs', () => ({
   addTab: jest.fn((payload) => ({ type: 'add-tab', payload })),
   closeTabs: jest.fn(),
   updateTabMeta: jest.fn()
+}));
+
+jest.mock('providers/ReduxStore/slices/workspaces/actions', () => ({
+  mountScratchCollection: jest.fn((uid) => ({ type: 'mount-scratch', uid }))
 }));
 
 jest.mock('providers/ReduxStore/slices/mock-server/index', () => ({
@@ -66,24 +71,39 @@ describe('MockResponseSidebarItem', () => {
     );
   };
 
-  it('opens the response in the workspace scratch collection', () => {
+  it('opens the response in the workspace scratch collection', async () => {
     renderItem('scratch-1');
 
     fireEvent.click(screen.getByRole('button', { name: 'List pets' }));
 
-    expect(addTab).toHaveBeenCalledWith(expect.objectContaining({
+    await waitFor(() => expect(addTab).toHaveBeenCalledWith(expect.objectContaining({
       uid: 'resp-1',
       type: 'mock-response',
       collectionUid: 'scratch-1',
       mockServerUid: 'ms-1'
-    }));
+    })));
+    expect(mountScratchCollection).not.toHaveBeenCalled();
   });
 
-  it('does not open the response when the workspace has no scratch collection', () => {
+  it('mounts the scratch collection before opening the response when the workspace has none', async () => {
+    useDispatch.mockReturnValue(jest.fn().mockResolvedValue({ uid: 'scratch-2' }));
     renderItem(undefined);
 
     fireEvent.click(screen.getByRole('button', { name: 'List pets' }));
 
+    await waitFor(() => expect(addTab).toHaveBeenCalledWith(expect.objectContaining({
+      collectionUid: 'scratch-2'
+    })));
+    expect(mountScratchCollection).toHaveBeenCalledWith('ws-1');
+  });
+
+  it('does not open the response when mounting the scratch collection fails', async () => {
+    useDispatch.mockReturnValue(jest.fn().mockResolvedValue(undefined));
+    renderItem(undefined);
+
+    fireEvent.click(screen.getByRole('button', { name: 'List pets' }));
+
+    await waitFor(() => expect(mountScratchCollection).toHaveBeenCalled());
     expect(addTab).not.toHaveBeenCalled();
   });
 });

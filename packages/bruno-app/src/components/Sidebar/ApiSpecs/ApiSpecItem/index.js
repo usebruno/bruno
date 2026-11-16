@@ -3,7 +3,7 @@ import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
-import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
+import { useBetaFeature } from 'utils/beta-features';
 import { isApiSpecTabForPathname } from 'utils/api-specs';
 import { isOpenApiSpec } from 'utils/importers/openapi-collection';
 import brunoPath from 'utils/common/path';

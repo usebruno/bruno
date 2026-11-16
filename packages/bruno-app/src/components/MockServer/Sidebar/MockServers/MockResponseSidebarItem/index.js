@@ -29,12 +29,16 @@ const MockResponseSidebarItem = ({
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
 
-  const openResponseTab = (nextResponse) => {
+  const openResponseTab = async (nextResponse) => {
     const workspace = workspaces.find((item) => item.uid === activeWorkspaceUid);
     if (!workspace) {
       return;
     }
-    const collectionUid = workspace.scratchCollectionUid;
+    let collectionUid = workspace.scratchCollectionUid;
+    if (!collectionUid) {
+      const { mountScratchCollection } = require('providers/ReduxStore/slices/workspaces/actions');
+      collectionUid = (await dispatch(mountScratchCollection(workspace.uid)))?.uid;
+    }
     if (!collectionUid) {
       return;
     }
