@@ -205,7 +205,7 @@ describe('import --output', () => {
 
   const lastError = () => console.error.mock.calls.at(-1)[0];
 
-  it('writes into a subdirectory named after the spec title when --output does not exist yet', async () => {
+  it('writes into a subdirectory named after the collection when --output does not exist yet', async () => {
     const output = path.join(dir, 'collections');
 
     await importTo(output);
@@ -238,7 +238,7 @@ describe('import --output', () => {
     expect(fs.readFileSync(path.join(output, 'My API', 'opencollection.yml'), 'utf8')).toContain('My API');
   });
 
-  it('writes into an existing empty collection subdirectory', async () => {
+  it('writes into an existing empty collection directory', async () => {
     fs.mkdirSync(path.join(dir, 'Orders'));
 
     await importTo(dir);
@@ -246,7 +246,7 @@ describe('import --output', () => {
     expect(fs.existsSync(path.join(dir, 'Orders', 'opencollection.yml'))).toBe(true);
   });
 
-  it('refuses a collection subdirectory that is not empty', async () => {
+  it('refuses a collection directory that is not empty', async () => {
     fs.mkdirSync(path.join(dir, 'Orders'));
     fs.writeFileSync(path.join(dir, 'Orders', 'keep.txt'), 'keep');
 
