@@ -174,7 +174,8 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const effectiveHttpVersion
     = [requestHttpVersion, collectionHttpVersion, appHttpVersion].find(isExplicitVersion) || 'http1';
 
-  const httpVersion = effectiveHttpVersion === 'http1' ? '1.1' : '2';
+  const HTTP_VERSION_PREVIEW = { http1: '1.1', http2: '2', auto: 'auto' };
+  const httpVersion = HTTP_VERSION_PREVIEW[effectiveHttpVersion] || '1.1';
 
   const defaultHeaders = useMemo(() => filterUnclaimedHeaders(getBrunoDefaultHeaders({ httpVersion }), [
     ...requestHeaderNames,
@@ -188,7 +189,8 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       name: header.name,
       value: getDefaultHeaderValue(header, request?.url),
       enabled: !omittedHeaderNames.has(normalizedName),
-      omittable: header.omittable
+      omittable: header.omittable,
+      note: header.note
     };
   }), [httpVersion, inheritedHeaders, omittedHeaderNames, request?.url, requestHeaderNames]);
 
@@ -400,12 +402,15 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       return null;
     }
 
+    const baseDefaultHint = row.omittable
+      ? 'Automatically added at runtime'
+      : 'Automatically added at runtime. Required by HTTP, cannot be omitted';
+    const defaultHeaderHint = row.note ? `${baseDefaultHint}. ${row.note}` : baseDefaultHint;
+
     return (
       <HeaderHint
         id={`default-header-info-hint-${row.uid}`}
-        text={row.omittable
-          ? 'Automatically added at runtime'
-          : 'Automatically added at runtime. Required by HTTP, cannot be omitted'}
+        text={defaultHeaderHint}
         className="default-header-info"
         testId={`default-header-info-${row.name.toLowerCase()}`}
         tooltipTestId={`default-header-info-tooltip-${row.name.toLowerCase()}`}
@@ -413,9 +418,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       >
         <button
           type="button"
-          aria-label={row.omittable
-            ? 'Automatically added at runtime'
-            : 'Automatically added at runtime. Required by HTTP, cannot be omitted'}
+          aria-label={defaultHeaderHint}
         >
           <IconInfoCircle size={18} strokeWidth={1.5} aria-hidden="true" />
         </button>

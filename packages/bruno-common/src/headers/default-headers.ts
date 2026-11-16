@@ -7,6 +7,7 @@ export type BrunoDefaultHeader = {
   /** False for required defaults such as Host. */
   omittable: boolean;
   source: BrunoDefaultHeaderSource;
+  note?: string;
 };
 
 /** Headers Bruno, Axios, or Node add automatically on HTTP sends. */
@@ -45,16 +46,34 @@ export const BRUNO_DEFAULT_HEADERS: BrunoDefaultHeader[] = [
 
 export type BrunoHttpVersion = '1.1' | '2';
 
-/**
- * The default headers as they exist on the wire for a given protocol.
- * HTTP/2 has no Connection header (forbidden, RFC 9113 §8.2.2) and carries the host in the
- * :authority pseudo-header instead of Host.
- */
-export const getBrunoDefaultHeaders = ({ httpVersion = '1.1' }: { httpVersion?: BrunoHttpVersion } = {}): BrunoDefaultHeader[] => {
-  if (httpVersion !== '2') return BRUNO_DEFAULT_HEADERS;
-  return BRUNO_DEFAULT_HEADERS
+export type BrunoHttpVersionPreview = BrunoHttpVersion | 'auto';
+
+const getHttp2Headers = (headers: BrunoDefaultHeader[]): BrunoDefaultHeader[] =>
+  headers
     .filter((header) => header.name !== 'Connection')
     .map((header) => (header.name === 'Host' ? { ...header, name: ':authority' } : header));
+
+/** Returns protocol-specific default headers. Auto mode annotates headers that depend on negotiation. */
+export const getBrunoDefaultHeaders = (
+  { httpVersion = '1.1' }: { httpVersion?: BrunoHttpVersionPreview } = {}
+): BrunoDefaultHeader[] => {
+  if (httpVersion === '2') {
+    return getHttp2Headers(BRUNO_DEFAULT_HEADERS);
+  }
+
+  if (httpVersion === 'auto') {
+    return BRUNO_DEFAULT_HEADERS.map((header) => {
+      if (header.name === 'Connection') {
+        return { ...header, note: 'Not sent if HTTP/2 is negotiated (forbidden in HTTP/2)' };
+      }
+      if (header.name === 'Host') {
+        return { ...header, note: 'Sent as :authority if HTTP/2 is negotiated' };
+      }
+      return header;
+    });
+  }
+
+  return BRUNO_DEFAULT_HEADERS;
 };
 
 export const getBrunoDefaultHeaderNames = (): string[] =>
