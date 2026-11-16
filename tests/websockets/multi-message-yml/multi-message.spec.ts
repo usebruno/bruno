@@ -432,6 +432,7 @@ test.describe.serial('websocket multi-message (yml format)', () => {
     });
 
     await test.step('Send the inactive second message via its inline send icon', async () => {
+      await websocket.message.header(0).click();
       await websocket.message.header(1).hover();
       await websocket.message.sendButton(1).click();
       await expect(websocket.messages().filter({ hasText: 'publish' }).first()).toBeVisible({
@@ -458,6 +459,7 @@ test.describe.serial('websocket multi-message (yml format)', () => {
     });
 
     await test.step('Send the inactive second message via its inline send icon', async () => {
+      await websocket.message.header(0).click();
       await websocket.message.header(1).hover();
       await websocket.message.sendButton(1).click();
       await expect(websocket.messages().filter({ hasText: 'publish' }).first()).toBeVisible({
@@ -484,6 +486,7 @@ test.describe.serial('websocket multi-message (yml format)', () => {
     });
 
     await test.step('Send the inactive second message via its inline send icon', async () => {
+      await websocket.message.header(0).click();
       await websocket.message.header(1).hover();
       await websocket.message.sendButton(1).click();
       await expect(websocket.messages().filter({ hasText: 'publish-orders' }).first()).toBeVisible({
