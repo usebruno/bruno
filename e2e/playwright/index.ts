@@ -1,10 +1,4 @@
-import {
-  test as baseTest,
-  BrowserContext,
-  ElectronApplication,
-  Page,
-  TestInfo
-} from '@playwright/test';
+import { test as baseTest, BrowserContext, ElectronApplication, Page, TestInfo } from '@playwright/test';
 import { merge } from 'lodash-es';
 import * as path from 'path';
 import * as os from 'os';
@@ -17,9 +11,9 @@ const PREFERENCES_FILE = 'preferences.json';
 
 /**
  * Default preferences for the app - preferences.json file.
- * This is overridden by the init-user-data/preferences.json file next to the spec, if it exists.
+ * This is overridden by the init-user-data/preferences.json file if it exists.
  *
- * Uses lodash/merge to merge the default preferences with that preferences.json file.
+ * Uses lodash/merge to merge the default preferences with the init-user-data/preferences.json file.
  *   - Note: arrays are merged by index, not concatenated. (e.g. lastOpenedCollections, lastOpenedWorkspaces, etc.)
  */
 const defaultPreferences = {
@@ -36,16 +30,6 @@ const defaultPreferences = {
 };
 
 const existsAsync = (filepath: string) => fs.promises.access(filepath).then(() => true).catch(() => false);
-
-/**
- * Test data next to a spec: sample collections and workspaces in fixtures/ (collection/, collections/, workspace/),
- * the app's user-data seed in init-user-data/.
- */
-const firstExistingPath = (candidates: string[]) => candidates.find((p) => fs.existsSync(p));
-const findUserDataDir = (testDir: string) => {
-  const userDataDir = path.join(testDir, 'init-user-data');
-  return fs.existsSync(userDataDir) ? userDataDir : undefined;
-};
 
 async function recursiveCopy(src: string, dest: string) {
   if (!await existsAsync(src)) {
@@ -225,10 +209,11 @@ export const test = baseTest.extend<
 
   collectionFixturePath: async ({ createTmpDir }, use, testInfo) => {
     const testDir = path.dirname(testInfo.file);
-    const testDataDir = path.join(testDir, 'fixtures');
+    const fixturesDir = path.join(testDir, 'fixtures');
     // fixtures/collections — multiple named collections (subdirs with bruno.json/opencollection.yml)
     // fixtures/collection — single collection (single dir with bruno.json/opencollection.yml)
-    const srcPath = firstExistingPath([path.join(testDataDir, 'collections'), path.join(testDataDir, 'collection')]);
+    const srcPath = [path.join(fixturesDir, 'collections'), path.join(fixturesDir, 'collection')]
+      .find((p) => fs.existsSync(p));
 
     if (srcPath) {
       const tmpDir = await createTmpDir(path.basename(srcPath));
@@ -444,9 +429,15 @@ export const test = baseTest.extend<
   restartApp: async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath, workspaceFixturePath }, use, testInfo) => {
     await use(async ({ initUserDataPath } = {}) => {
       const testDir = path.dirname(testInfo.file);
-      const srcUserDataPath = initUserDataPath || findUserDataDir(testDir);
+      const defaultInitUserDataPath = path.join(testDir, 'init-user-data');
 
-      // Copy the user data to a fresh tmp dir (same as pageWithUserData)
+      let srcUserDataPath = initUserDataPath;
+      if (!srcUserDataPath) {
+        const hasInitUserData = await fs.promises.stat(defaultInitUserDataPath).catch(() => false);
+        srcUserDataPath = hasInitUserData ? defaultInitUserDataPath : undefined;
+      }
+
+      // Copy init-user-data to a fresh tmp dir (same as pageWithUserData)
       const tmpAppDataDir = await createTmpDir();
       if (srcUserDataPath) {
         await recursiveCopy(srcUserDataPath, tmpAppDataDir);
