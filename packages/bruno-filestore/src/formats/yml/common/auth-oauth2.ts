@@ -15,7 +15,7 @@ import type {
   OAuth2 as BrunoOAuth2,
   OAuthAdditionalParameter as BrunoOAuthAdditionalParameter
 } from '@usebruno/schema-types/common/auth';
-import { isString, isNonEmptyString } from '../../../utils';
+import { isString, isNonEmptyString, ensureString } from '../../../utils';
 
 const normalizeBoolean = (value?: boolean | null): boolean | undefined =>
   typeof value === 'boolean' ? value : undefined;
@@ -323,8 +323,8 @@ const reverseAdditionalParameters = (params?: OAuth2AdditionalParameter[]): Brun
     const sendIn = reversePlacementMapping(param.placement);
 
     return {
-      name: param.name || null,
-      value: param.value || null,
+      name: ensureString(param.name),
+      value: ensureString(param.value),
       sendIn: sendIn || 'headers',
       enabled: true
     };
