@@ -1,0 +1,9 @@
+info:
+  name: Ping A
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: http://localhost:8081/ping
+  auth: inherit

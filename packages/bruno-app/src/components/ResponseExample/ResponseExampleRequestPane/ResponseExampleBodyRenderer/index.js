@@ -6,6 +6,7 @@ import CodeEditor from 'components/CodeEditor';
 import ResponseExampleFormUrlEncodedParams from '../ResponseExampleFormUrlEncodedParams';
 import ResponseExampleMultipartFormParams from '../ResponseExampleMultipartFormParams';
 import ResponseExampleFileBody from '../ResponseExampleFileBody';
+import { REQUEST_BODY_EDITOR_CLASS } from 'utils/common/constants';
 
 const ResponseExampleBodyRenderer = ({
   bodyMode,
@@ -61,7 +62,7 @@ const ResponseExampleBodyRenderer = ({
       case 'text':
       case 'sparql':
         return (
-          <div className="min-h-96">
+          <div className={`min-h-96 ${REQUEST_BODY_EDITOR_CLASS}`}>
             <CodeEditor
               collection={collection}
               item={item}

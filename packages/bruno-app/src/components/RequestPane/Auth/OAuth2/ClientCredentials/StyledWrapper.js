@@ -66,6 +66,11 @@ const Wrapper = styled.div`
 
   input[type='checkbox'] {
     cursor: pointer;
+
+    &:disabled {
+      cursor: not-allowed;
+    }
+
     accent-color: ${(props) => props.theme.primary.solid};
   }
 `;

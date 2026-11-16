@@ -158,6 +158,7 @@ describe('resolveLastOpenedWorkspacePaths', () => {
 
     lastOpenedWorkspaces = {
       getAll: jest.fn(() => [ws5, ws4, ws3, ws2, ws1]),
+      add: jest.fn(),
       remove: jest.fn()
     };
 
@@ -203,6 +204,23 @@ describe('resolveLastOpenedWorkspacePaths', () => {
     expect(result.validWorkspaces).toEqual([externalWorkspace, ws5, ws4, ws3, ws2, ws1]);
   });
 
+  test('records the reopened snapshot workspace as opened, so actions that check the opened list accept it', () => {
+    const externalWorkspace = createWorkspaceDir(rootDir, 'external-active');
+    snapshotManager.getSnapshot.mockReturnValue({ activeWorkspacePath: externalWorkspace });
+
+    resolveLastOpenedWorkspacePaths(lastOpenedWorkspaces, { validateConfig: true });
+
+    expect(lastOpenedWorkspaces.add).toHaveBeenCalledWith(externalWorkspace);
+  });
+
+  test('does not record the snapshot workspace again when it is already in the opened list', () => {
+    snapshotManager.getSnapshot.mockReturnValue({ activeWorkspacePath: ws4 });
+
+    resolveLastOpenedWorkspacePaths(lastOpenedWorkspaces, { validateConfig: true });
+
+    expect(lastOpenedWorkspaces.add).not.toHaveBeenCalled();
+  });
+
   test('does not include malformed active workspace from snapshot', () => {
     const malformedWorkspace = createWorkspaceDir(rootDir, 'malformed-active', {
       ymlContent: 'invalid: yaml: [[['
@@ -215,6 +233,7 @@ describe('resolveLastOpenedWorkspacePaths', () => {
 
     expect(result.validWorkspaces).toEqual([ws5, ws4, ws3, ws2, ws1]);
     expect(result.invalidPaths).toEqual([]);
+    expect(lastOpenedWorkspaces.add).not.toHaveBeenCalled();
   });
 
   test('skips default workspace path and removes invalid MRU entries', () => {

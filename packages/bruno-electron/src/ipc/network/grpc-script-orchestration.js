@@ -1,4 +1,3 @@
-const decomment = require('decomment');
 const { get } = require('lodash');
 const { safeParseJSON } = require('../../utils/common');
 const { GrpcScriptRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
@@ -229,7 +228,7 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
 
     try {
       scriptResult = await scriptRuntime.runGrpcRequestScript({
-        script: decomment(hookScript, { space: true }),
+        script: hookScript,
         request,
         envVariables: envVars,
         runtimeVariables,
@@ -291,7 +290,7 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
 
     try {
       scriptResult = await scriptRuntime.runGrpcResponseScript({
-        script: decomment(request.script.afterCallEnd, { space: true }),
+        script: request.script.afterCallEnd,
         request,
         response: buildCallResult(session),
         envVariables: session.envVars,
@@ -350,7 +349,7 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
 
       try {
         scriptResult = await scriptRuntime.runGrpcBeforeMessageSendScript({
-          script: decomment(hookScript, { space: true }),
+          script: hookScript,
           request,
           message: { data, timestamp: Date.now() },
           envVariables: session.envVars,
@@ -408,7 +407,7 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
 
       try {
         scriptResult = await scriptRuntime.runGrpcAfterMessageReceiveScript({
-          script: decomment(request.script.afterMessageReceive, { space: true }),
+          script: request.script.afterMessageReceive,
           request,
           response,
           message,

@@ -2,7 +2,8 @@ import { describe, it, expect } from '@jest/globals';
 import {
   sanitizeName,
   validateName,
-  validateNameError
+  validateNameError,
+  generateUniqueName
 } from './naming';
 
 describe('naming utils', () => {
@@ -64,6 +65,18 @@ describe('naming utils', () => {
 
     it('returns empty string for a valid name', () => {
       expect(validateNameError('login')).toBe('');
+    });
+  });
+
+  describe('generateUniqueName', () => {
+    it('keeps a free name unchanged', () => {
+      expect(generateUniqueName('staging', () => false)).toBe('staging');
+    });
+
+    it('adds a copy suffix, numbered from the second copy', () => {
+      const taken = ['staging', 'staging copy', 'staging copy 2'];
+
+      expect(generateUniqueName('staging', (name) => taken.includes(name))).toBe('staging copy 3');
     });
   });
 });

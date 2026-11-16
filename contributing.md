@@ -55,6 +55,7 @@ All packages live under `packages/`:
 | `bruno-requests` | Request handling (auth, network, etc.) |
 | `bruno-converters` | Import/export converters (Postman, Insomnia, OpenAPI, etc.) |
 | `bruno-filestore` | File storage and parsing of collection files |
+| `bruno-io` | Writes a converted collection to disk |
 | `bruno-sqlite` | SQLite storage layer |
 | `bruno-lang` | `.bru` language parser |
 | `bruno-toml` | TOML parser |
@@ -88,7 +89,7 @@ npm run setup
 
 - removes existing `node_modules` directories
 - installs dependencies (`npm i --legacy-peer-deps`) and platform-specific native modules
-- builds the shared packages: `graphql-docs`, `bruno-query`, `bruno-common`, `bruno-converters`, `bruno-requests`, `schema-types`, `bruno-filestore` and `bruno-sqlite`
+- builds the shared packages: `graphql-docs`, `bruno-query`, `bruno-common`, `bruno-converters`, `bruno-requests`, `schema-types`, `bruno-filestore`, `bruno-io` and `bruno-sqlite`
 - bundles the JS sandbox libraries for `bruno-js`
 
 #### 2. Run the app
@@ -119,6 +120,7 @@ npm run dev:electron
 npm run build:bruno-common
 npm run build:bruno-requests
 npm run build:bruno-filestore
+npm run build:bruno-io
 npm run build:bruno-sqlite
 
 # or run a watcher while developing
@@ -171,6 +173,7 @@ npm run test --workspace=packages/bruno-common
 npm run test --workspace=packages/bruno-requests
 npm run test --workspace=packages/bruno-converters
 npm run test --workspace=packages/bruno-filestore
+npm run test --workspace=packages/bruno-io
 npm run test --workspace=packages/bruno-sqlite
 npm run test --workspace=packages/bruno-js
 npm run test --workspace=packages/bruno-lang

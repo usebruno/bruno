@@ -44,19 +44,32 @@ and projects are `default`, `system-pac`, `auth`, and `ssl`
    for the current set (e.g. `createCollection`, `sendRequest`, `runCollection`).
 4. **Structure each test** arrange → act → assert, and wrap the phases in `test.step` so
    the HTML report reads clearly. Prefer several focused assertions over one broad check.
-5. **Wait for readiness**: `await page.locator('[data-app-state="loaded"]').waitFor()`
+5. **When the user mentions a test case id**, put that one id at the start of the
+   `test()` title, then a colon and a space — `TC-2606: <description>`. One id per
+   test. If several ids are mentioned, write a separate `test()` for each. Do not
+   invent an id, and do not put it in a comment or annotation.
+   Add a Playwright tag only when a type is mentioned in the request.
+
+   | Mentioned type | Playwright tag |
+   | --- | --- |
+   | Smoke & Sanity, or sanity | `{ tag: '@sanity' }` |
+   | regression | `{ tag: '@regression' }` |
+
+   Omit the tag when no type is mentioned.
+
+6. **Wait for readiness**: `await page.locator('[data-app-state="loaded"]').waitFor()`
    before asserting on app state.
-6. **Locate** by `data-testid` (Bruno's dominant convention) or documented classes
+7. **Locate** by `data-testid` (Bruno's dominant convention) or documented classes
    (`.collection-item-name`); stable `getByRole` / `getByText` locators are fine too.
    Avoid brittle CSS, `#id`, or index-based selectors. If no stable selector exists, add a
    `data-testid` to the component rather than locating by text.
-7. **If the test mutates a committed fixture**, restore it in `afterAll`. Existing specs
+8. **If the test mutates a committed fixture**, restore it in `afterAll`. Existing specs
    do this with `git checkout <fixturePath>` (e.g. `tests/response-examples/*.spec.ts`) —
    follow the pattern already used by neighbouring specs in that area.
-8. **Use auto-retrying assertions** (`expect(locator).toBeVisible()`); never assert
+9. **Use auto-retrying assertions** (`expect(locator).toBeVisible()`); never assert
    immediately after a file-watcher-triggered change (created files take a tick to appear).
    Reserve `page.waitForTimeout()` for when no locator assertion can wait instead.
-9. **Run it**: `npx playwright test tests/<area>/<name>.spec.ts --project=default`
+10. **Run it**: `npx playwright test tests/<area>/<name>.spec.ts --project=default`
    (the web + test servers start automatically). Debug with `--ui`, `--headed`, `--debug`,
    or `--trace on` (then `npx playwright show-trace test-results/**/trace.zip`).
 
@@ -68,3 +81,4 @@ and projects are `default`, `system-pac`, `auth`, and `ssl`
 - [ ] Any mutated committed fixture is restored in `afterAll`
 - [ ] Any codegen-generated draft refactored to fixtures/helpers + stable selectors
 - [ ] Steps wrapped in `test.step`; no `test.only`, no `page.pause()`
+- [ ] If a test case id was given, that test's title starts with that single id (`TC-2606:` followed by a space). Add `@sanity` or `@regression` only when that type was mentioned

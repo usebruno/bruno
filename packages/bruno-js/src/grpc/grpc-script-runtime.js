@@ -27,7 +27,7 @@ class GrpcScriptRuntime {
 
   /**
    * @param {object} params
-   * @param {string} params.script - The hook body, already decommented by the caller
+   * @param {string} params.script - The hook body
    * @param {object} params.request - The prepared gRPC request
    * @param {Function} params.buildGrpc - Returns the `bru.grpc` object for this hook
    * @param {object} [params.baseResult] - Hook-specific fields the shared result is built on top of
