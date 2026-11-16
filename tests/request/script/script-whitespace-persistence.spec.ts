@@ -24,44 +24,42 @@ const FORMATS = [
   { format: 'yml', collectionName: 'ScriptWhitespaceYml' }
 ] as const;
 
-test('a script keeps the blank lines around it when the request is saved', async ({
-  pageWithUserData: page,
-  collectionFixturePath
-}) => {
-  for (const { format, collectionName } of FORMATS) {
-    await test.step(`.${format} request`, async () => {
-      await openRequest(page, collectionName, REQUEST_NAME);
+for (const { format, collectionName } of FORMATS) {
+  test(`.${format}: a script keeps the blank lines around it when the request is saved`, async ({
+    pageWithUserData: page,
+    collectionFixturePath
+  }) => {
+    await openRequest(page, collectionName, REQUEST_NAME);
 
-      expect(await readScriptContent(page, 'pre-request')).toBe(FIXTURE_PRE_REQUEST_SCRIPT);
-      expect(await readScriptContent(page, 'tests')).toBe(FIXTURE_TEST_SCRIPT);
+    expect(await readScriptContent(page, 'pre-request')).toBe(FIXTURE_PRE_REQUEST_SCRIPT);
+    expect(await readScriptContent(page, 'tests')).toBe(FIXTURE_TEST_SCRIPT);
 
-      await appendBlankLineToScript(page, 'pre-request');
-      await appendBlankLineToScript(page, 'tests');
+    await appendBlankLineToScript(page, 'pre-request');
+    await appendBlankLineToScript(page, 'tests');
 
-      await saveRequest(page);
+    await saveRequest(page);
 
-      await closeAllTabs(page);
-      await openRequest(page, collectionName, REQUEST_NAME);
+    await closeAllTabs(page);
+    await openRequest(page, collectionName, REQUEST_NAME);
 
-      expect(await readScriptContent(page, 'pre-request')).toBe(EDITED_PRE_REQUEST_SCRIPT);
-      expect(await readScriptContent(page, 'tests')).toBe(EDITED_TEST_SCRIPT);
+    expect(await readScriptContent(page, 'pre-request')).toBe(EDITED_PRE_REQUEST_SCRIPT);
+    expect(await readScriptContent(page, 'tests')).toBe(EDITED_TEST_SCRIPT);
 
-      const requestFilePath = path.join(collectionFixturePath!, format, `${REQUEST_NAME}.${format}`);
-      const fileContent = fs.readFileSync(requestFilePath, 'utf8');
+    const requestFilePath = path.join(collectionFixturePath!, format, `${REQUEST_NAME}.${format}`);
+    const fileContent = fs.readFileSync(requestFilePath, 'utf8');
 
-      if (format === 'bru') {
-        const parsed = bruToJsonV2(fileContent) as { script?: Record<string, string>; tests?: string };
-        expect(parsed.script?.req).toBe(EDITED_PRE_REQUEST_SCRIPT);
-        expect(parsed.tests).toBe(EDITED_TEST_SCRIPT);
-      } else {
-        const scripts = (yaml.load(fileContent) as RequestYml).runtime?.scripts ?? [];
-        expect(scripts).toEqual(
-          expect.arrayContaining([
-            { type: 'before-request', code: EDITED_PRE_REQUEST_SCRIPT },
-            { type: 'tests', code: EDITED_TEST_SCRIPT }
-          ])
-        );
-      }
-    });
-  }
-});
+    if (format === 'bru') {
+      const parsed = bruToJsonV2(fileContent) as { script?: Record<string, string>; tests?: string };
+      expect(parsed.script?.req).toBe(EDITED_PRE_REQUEST_SCRIPT);
+      expect(parsed.tests).toBe(EDITED_TEST_SCRIPT);
+    } else {
+      const scripts = (yaml.load(fileContent) as RequestYml).runtime?.scripts ?? [];
+      expect(scripts).toEqual(
+        expect.arrayContaining([
+          { type: 'before-request', code: EDITED_PRE_REQUEST_SCRIPT },
+          { type: 'tests', code: EDITED_TEST_SCRIPT }
+        ])
+      );
+    }
+  });
+}

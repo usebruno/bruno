@@ -17,8 +17,12 @@ export const appendBlankLineToScript = async (page: Page, subTab: ScriptSubTab |
     const editorTestId = subTab === 'tests' ? 'test-script-editor' : `${subTab}-script-editor`;
     const editor = buildCommonLocators(page).codeMirror.byTestId(editorTestId);
     await editor.waitFor({ state: 'visible' });
-    await editor.locator('textarea[tabindex="0"]').focus();
-    await page.keyboard.press('ControlOrMeta+End');
+    await editor.evaluate((el: any) => {
+      const cm = el.CodeMirror;
+      cm.focus();
+      const lastLine = cm.lastLine();
+      cm.setCursor({ line: lastLine, ch: cm.getLine(lastLine).length });
+    });
     await page.keyboard.press('Enter');
   });
 };
