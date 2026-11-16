@@ -165,9 +165,14 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   );
 
   const appHttpVersion = useSelector((state) => get(state, 'app.preferences.request.httpVersion', 'http1'));
-  const collectionHttpVersion = get(collection, 'brunoConfig.http.version');
+  const collectionHttpVersion = collection?.draft?.brunoConfig
+    ? get(collection, 'draft.brunoConfig.http.version', 'inherit')
+    : get(collection, 'brunoConfig.http.version', 'inherit');
+  const requestHttpVersion = settings.httpVersion;
+
+  const isExplicitVersion = (version) => Boolean(version) && version !== 'inherit';
   const effectiveHttpVersion
-    = collectionHttpVersion && collectionHttpVersion !== 'inherit' ? collectionHttpVersion : appHttpVersion;
+    = [requestHttpVersion, collectionHttpVersion, appHttpVersion].find(isExplicitVersion) || 'http1';
 
   const httpVersion = effectiveHttpVersion === 'http2' ? '2' : '1.1';
 
