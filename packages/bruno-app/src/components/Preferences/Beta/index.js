@@ -47,7 +47,7 @@ const BETA_FEATURES = [
     id: BETA_FEATURE_IDS.AI_ASSISTANT,
     label: 'AI Assistant',
     description:
-      'Generate scripts, tests, and documentation directly from the request tab. Includes contextual chat, scripting autocomplete, and support for OpenAI, Anthropic, and OpenAI-compatible providers using your own API key.',
+      'Generate scripts, tests, and documentation directly from the request tab. Includes contextual chat, scripting autocomplete, and support for OpenAI, Anthropic, and OpenAI-compatible providers using your own API key, or GitHub Copilot with your GitHub account.',
     action: { label: 'Go to AI settings', tab: 'ai' },
     docsUrl: 'https://link.usebruno.com/docs/ai'
   },
