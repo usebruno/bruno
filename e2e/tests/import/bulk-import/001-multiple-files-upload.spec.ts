@@ -93,8 +93,8 @@ test.describe('Multiple Files Upload', () => {
       await expect(importLocators.chooseFilesButton()).toBeVisible();
       await importLocators.fileInput().setInputFiles(importFiles);
       await bulkModal.waitFor({ state: 'visible' });
-      await expect(bulkModal.getByText(collectionNames[0])).toBeVisible();
-      await expect(bulkModal.getByText(collectionNames[1])).toBeVisible();
+      await expect(importLocators.bulkCollectionName(collectionNames[0])).toBeVisible();
+      await expect(importLocators.bulkCollectionName(collectionNames[1])).toBeVisible();
     });
 
     await test.step('Import the collections', async () => {
