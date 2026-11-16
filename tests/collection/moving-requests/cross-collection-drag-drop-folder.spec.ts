@@ -17,7 +17,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await closeAllCollections(page);
   });
 
-  test('TC-493: Verify the Requests remians unchanged after folder moving from one to another collection', { tag: '@sanity' }, async ({ page, electronApp, collectionFixturePath }) => {
+  test('TC-493: Verify the Requests remains unchanged after folder moving from one to another collection', { tag: '@sanity' }, async ({ page, electronApp, collectionFixturePath }) => {
     const { sidebar } = buildCommonLocators(page);
     const folderName = 'test-folder';
     const requestNames = ['request-1', 'request-2', 'request-3'];
