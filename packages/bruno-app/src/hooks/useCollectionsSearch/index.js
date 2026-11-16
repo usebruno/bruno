@@ -25,6 +25,8 @@ const mergeItems = (existing = [], incoming = []) => {
 
 const getEntryPath = (entry) => (entry.kind === 'ghost' ? entry.entry?.path : entry.collection?.pathname);
 
+// NOTE(reaper): see if we can figure out how to get this information from electron layer
+// to have better idea of what is already a part of the bruno.json ignore list
 const ALWAYS_IGNORED = new Set(['node_modules', '.git']);
 
 const ignoreSignature = (ignore = {}) => Object.keys(ignore).sort()
