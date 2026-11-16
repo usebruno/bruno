@@ -1,13 +1,6 @@
 import { expect, test } from '../../../playwright';
 import { buildCommonLocators } from '../../utils/page/locators';
-import {
-  closeAllCollections,
-  expandCollection,
-  expandFolder,
-  openRequest,
-  selectEnvironment
-} from '../../utils/page/actions';
-import { disconnectWs } from '../../utils/page/websocket';
+import { expandCollection, expandFolder, openRequest, selectEnvironment } from '../../utils/page/actions';
 
 const ENVIRONMENT_NAME = 'Scopes';
 const MAX_CONNECTION_TIME = 10000;
@@ -62,38 +55,28 @@ const CASES: ScopeCase[] = [
   }
 ];
 
-test.describe.serial('websocket variable interpolation across scopes', () => {
-  test.afterAll(async ({ pageWithUserData: page }) => {
-    await closeAllCollections(page);
-  });
+test.describe('websocket variable interpolation across scopes', () => {
+  for (const format of FORMATS) {
+    for (const testCase of CASES) {
+      test(`(${format.label}) ${testCase.id}: ${testCase.title}`, { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
+        const { websocket } = buildCommonLocators(page);
 
-  for (const fmt of FORMATS) {
-    for (const c of CASES) {
-      test(`(${fmt.label}) ${c.id}: ${c.title}`, { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
-        const { websocket, runner, tabs } = buildCommonLocators(page);
-
-        await expandCollection(page, fmt.collectionName);
-        await expandFolder(page, fmt.folderName);
-        await openRequest(page, fmt.collectionName, c.requestName);
-        await expect(tabs.activeRequestTab()).toContainText(c.requestName);
+        await expandCollection(page, format.collectionName);
+        await expandFolder(page, format.folderName);
+        await openRequest(page, format.collectionName, testCase.requestName);
         await selectEnvironment(page, ENVIRONMENT_NAME, 'collection');
 
-        await runner().click();
-        await expect(websocket.connectionControls.disconnect()).toBeAttached({
-          timeout: MAX_CONNECTION_TIME
+        await websocket.runButton().click();
+        const payload = websocket.incomingMessageMatching(testCase.findBy);
+
+        await test.step('Assert resolved values and no leftover placeholders', async () => {
+          for (const text of testCase.expectIncludes) {
+            await expect(payload).toContainText(text, { timeout: MAX_CONNECTION_TIME });
+          }
+          for (const text of testCase.expectExcludes) {
+            await expect(payload).not.toContainText(text);
+          }
         });
-
-        const payload = websocket.messageMatching(c.findBy);
-        await expect(payload).toBeAttached({ timeout: MAX_CONNECTION_TIME });
-
-        for (const text of c.expectIncludes) {
-          await expect(payload).toContainText(text);
-        }
-        for (const text of c.expectExcludes) {
-          await expect(payload).not.toContainText(text);
-        }
-
-        await disconnectWs(page);
       });
     }
   }

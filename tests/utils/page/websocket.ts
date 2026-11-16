@@ -7,6 +7,7 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
   },
   runButton: () => page.getByTestId('run-button'),
   messages: () => page.locator('.ws-message'),
+  incomingMessages: () => page.locator('.ws-message.ws-incoming'),
   messageText: (index: number) => page.getByTestId('ws-message-content').nth(index),
   /**
    * First message whose content matches `pattern`.
@@ -17,6 +18,16 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
    */
   messageMatching: (pattern: RegExp | string) =>
     page.getByTestId('ws-message-content').filter({ hasText: pattern }).first(),
+  /**
+   * First *incoming* message whose content matches `pattern` (echo / server payload).
+   * Prefer this when asserting interpolation of a sent message so an outgoing row cannot match.
+   */
+  incomingMessageMatching: (pattern: RegExp | string) =>
+    page
+      .locator('.ws-message.ws-incoming')
+      .getByTestId('ws-message-content')
+      .filter({ hasText: pattern })
+      .first(),
   errorMessage: () => page.getByTestId('ws-message-error'),
   message: {
     container: () => page.getByTestId('ws-messages-container'),
