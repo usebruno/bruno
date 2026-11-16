@@ -2,13 +2,11 @@ import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
-  openCollectionFromDialog,
   openRequest,
   selectResponsePaneTab,
   selectScriptSubTab,
   sendRequest,
-  setCodeMirrorEditorValue,
-  waitForCollectionMount
+  setCodeMirrorEditorValue
 } from '../../utils/page';
 
 const REQUEST_URL = 'http://localhost:8081/api/echo/anything/post-response';
@@ -26,18 +24,16 @@ const COLLECTION_NAME = 'post-response-script';
 const REQUEST_NAME = 'echo';
 
 test.describe('Post-response script', () => {
-  test.afterEach(async ({ page }) => {
+  test.afterEach(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 
   test(
     'TC-2746: Verify user can add and run Post-response script for a request',
     { tag: '@sanity' },
-    async ({ page, electronApp, collectionFixturePath }) => {
+    async ({ pageWithUserData: page }) => {
       const { response, tabs } = buildCommonLocators(page);
 
-      await openCollectionFromDialog(page, electronApp, collectionFixturePath!);
-      await waitForCollectionMount(page, COLLECTION_NAME);
       await openRequest(page, COLLECTION_NAME, REQUEST_NAME);
       await tabs.requestTab(REQUEST_NAME).waitFor({ state: 'visible', timeout: 5000 });
 

@@ -2,13 +2,11 @@ import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
-  openCollectionFromDialog,
   openRequest,
   selectResponsePaneTab,
   selectScriptSubTab,
   sendRequest,
-  setCodeMirrorEditorValue,
-  waitForCollectionMount
+  setCodeMirrorEditorValue
 } from '../../utils/page';
 
 const REQUEST_URL = 'http://localhost:8081/api/echo/anything/pre-request';
@@ -23,19 +21,15 @@ const COLLECTION_NAME = 'pre-request-script';
 const REQUEST_NAME = 'echo';
 
 test.describe('Pre-request script', () => {
-  test.afterEach(async ({ page }) => {
+  test.afterEach(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 
   test('TC-197: Verify user can add and run Pre-request script for a request', { tag: '@sanity' }, async ({
-    page,
-    electronApp,
-    collectionFixturePath
+    pageWithUserData: page
   }) => {
     const { response, tabs } = buildCommonLocators(page);
 
-    await openCollectionFromDialog(page, electronApp, collectionFixturePath!);
-    await waitForCollectionMount(page, COLLECTION_NAME);
     await openRequest(page, COLLECTION_NAME, REQUEST_NAME);
     await tabs.requestTab(REQUEST_NAME).waitFor({ state: 'visible', timeout: 5000 });
 
