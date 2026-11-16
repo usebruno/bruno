@@ -115,7 +115,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
     { label: 'Folder Grouping', value: capitalize(groupBy) },
     requestNameSource && {
       label: 'Naming Requests',
-      labelTooltip: 'The field from the spec used to name each request. If an endpoint does not have it, Bruno falls back to summary, operationId, description, then method and path.',
+      labelTooltip: 'The field from the spec used to name each request. If an endpoint does not have it, Bruno falls back in the following order: summary, operationId, description, then path.',
       value: requestNameSourceLabels[requestNameSource] || requestNameSource
     },
     authPlacement && {

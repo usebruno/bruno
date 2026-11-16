@@ -74,7 +74,7 @@ const builder = (yargs) => {
       default: DEFAULT_AUTH_PLACEMENT
     })
     .option('request-name-source', {
-      describe: 'Field used to name the imported requests: "summary", "operationId", "description" or "path" (method and path). Missing fields fall back in that order (openapi only)',
+      describe: 'Field used to name the imported requests: "summary", "operationId", "description" or "path". Missing fields fall back in that order (openapi only)',
       type: 'string',
       choices: REQUEST_NAME_SOURCES,
       default: DEFAULT_REQUEST_NAME_SOURCE

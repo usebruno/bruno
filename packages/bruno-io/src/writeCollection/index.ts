@@ -22,7 +22,7 @@ const COLLECTION_FILES: Record<CollectionFormat, string> = {
 };
 
 const withExtension = (filename: string, ext: string): string => {
-  return filename.endsWith(`.${ext}`) ? filename : `${filename}.${ext}`;
+  return `${filename.replace(/\.(bru|yml)$/, '')}.${ext}`;
 };
 
 // Converters emit sparse request objects; fill what the serializers expect without dropping

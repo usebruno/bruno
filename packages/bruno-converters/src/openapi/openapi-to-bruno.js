@@ -17,8 +17,7 @@ import {
   groupRequestsByTags,
   groupRequestsByPath,
   normalizeItemName,
-  getRequestName,
-  uniqueRequestName,
+  getRequestNaming,
   getTagDescriptions,
   toSpecString,
   operationSchemeName,
@@ -278,7 +277,7 @@ const objectValueFromSchema = (param, schema) => {
 const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {}) => {
   let _operationObject = request.operationObject;
 
-  const operationName = uniqueRequestName(getRequestName(request, options.requestNameSource), request.method, usedNames);
+  const { name: operationName, filename } = getRequestNaming(request, options.requestNameSource, usedNames);
 
   // replace OpenAPI links in path by Bruno variables
   let path = request.path.replace(/{([a-zA-Z]+)}/g, `{{${_operationObject.operationId}_$1}}`);
@@ -286,6 +285,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
   const brunoRequestItem = {
     uid: uuid(),
     name: operationName,
+    ...(filename && { filename }),
     type: 'http-request',
     settings: {
       forwardAuthorizationHeader: false

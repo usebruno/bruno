@@ -216,7 +216,7 @@ describe('swagger2-to-bruno grouping', () => {
       expect(petsFolder.items[0].name).toBe('List items');
     });
 
-    it('should use method+path as name when summary and operationId are missing', () => {
+    it('should use the path as name when summary and operationId are missing', () => {
       const spec = {
         swagger: '2.0',
         info: { title: 'No Name API', version: '1.0' },
@@ -230,8 +230,8 @@ describe('swagger2-to-bruno grouping', () => {
       const collection = swagger2ToBruno(spec);
       const req = collection.items[0];
 
-      // Should fall back to method + path
-      expect(req.name).toBe('GET /items');
+      // Should fall back to the path
+      expect(req.name).toBe('/items');
     });
   });
 });

@@ -146,7 +146,7 @@ describe('ImportCollectionLocation collection auth placement', () => {
 });
 
 describe('ImportCollectionLocation naming requests', () => {
-  const NAMING_INFO = 'If an operation doesn\'t have the selected field, Bruno falls back to summary, operationId, description, then method and path.';
+  const NAMING_INFO = 'If an operation doesn\'t have the selected option, Bruno falls back in the following order: summary, operationId, description, then path.';
   const namingDropdown = () => screen.getByTestId('request-name-source-dropdown');
   const chooseNaming = async (value) => {
     fireEvent.click(namingDropdown());

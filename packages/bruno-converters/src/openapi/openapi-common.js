@@ -884,22 +884,19 @@ const descriptionName = (description) => {
 
 const identifierName = (text) => capRequestName(text.slice(0, NAME_SOURCE_MAX_LENGTH));
 
-const requestNameBySource = {
+const requestNameByField = {
   summary: ({ operationObject }) => summaryName(specText(operationObject.summary)),
   operationId: ({ operationObject }) => identifierName(specText(operationObject.operationId)),
-  description: ({ operationObject }) => descriptionName(specText(operationObject.description)),
-  path: ({ method, path, originalPath }) => identifierName(`${method.toUpperCase()} ${originalPath || path}`)
+  description: ({ operationObject }) => descriptionName(specText(operationObject.description))
 };
 
-export const getRequestName = (request, requestNameSource) => {
-  const preferred = REQUEST_NAME_SOURCES.includes(requestNameSource) ? requestNameSource : DEFAULT_REQUEST_NAME_SOURCE;
-  return [preferred, ...REQUEST_NAME_SOURCES.filter((source) => source !== preferred)]
-    .reduce((name, source) => name || requestNameBySource[source](request), '');
-};
+const pathName = ({ path, originalPath }) => identifierName(originalPath || path);
+
+const methodAndPathName = ({ method, path, originalPath }) => identifierName(`${method.toUpperCase()} ${originalPath || path}`);
 
 const fileNameKey = (name) => sanitizeName(name).toLowerCase();
 
-export const uniqueRequestName = (name, method, usedNames) => {
+const uniqueRequestName = (name, method, usedNames) => {
   let uniqueName = name;
   if (usedNames.has(fileNameKey(uniqueName))) {
     uniqueName = `${name} (${method.toUpperCase()})`;
@@ -911,6 +908,19 @@ export const uniqueRequestName = (name, method, usedNames) => {
   }
   usedNames.add(fileNameKey(uniqueName));
   return uniqueName;
+};
+
+export const getRequestNaming = (request, requestNameSource, usedNames) => {
+  const preferred = REQUEST_NAME_SOURCES.includes(requestNameSource) ? requestNameSource : DEFAULT_REQUEST_NAME_SOURCE;
+  const fields = preferred === 'path' ? [] : [preferred, ...REQUEST_NAME_SOURCES.filter((source) => source !== preferred && source !== 'path')];
+  const fieldName = fields.reduce((name, field) => name || requestNameByField[field](request), '');
+  if (fieldName) {
+    return { name: uniqueRequestName(fieldName, request.method, usedNames) };
+  }
+  return {
+    name: pathName(request) || methodAndPathName(request),
+    filename: `${uniqueRequestName(methodAndPathName(request), request.method, usedNames)}.bru`
+  };
 };
 
 /**

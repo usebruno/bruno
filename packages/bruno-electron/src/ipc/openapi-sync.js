@@ -874,6 +874,8 @@ const ensureTagFolder = async (collectionPath, folderName, format) => {
   return targetFolder;
 };
 
+const requestFileName = (item, format) => `${sanitizeName(item.filename ? item.filename.replace(/\.(bru|yml)$/, '') : item.name)}.${format}`;
+
 /**
  * Flatten a Bruno collection's items into a Map keyed by endpoint ID (METHOD:normalizedPath).
  * Each value includes the original item plus the parent folderName.
@@ -1673,7 +1675,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           }
 
           const requestContent = await stringifyRequestViaWorker(specItem, { format });
-          const sanitizedFilename = `${sanitizeName(specItem.name || path.basename(specItem.filename || '', `.${format}`))}.${format}`;
+          const sanitizedFilename = requestFileName(specItem, format);
           await writeFile(path.join(targetFolder, sanitizedFilename), requestContent);
         }
 
@@ -1809,7 +1811,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
               }
 
               const requestContent = await stringifyRequestViaWorker(newItem, { format });
-              const sanitizedFilename = `${sanitizeName(newItem.name || path.basename(newItem.filename || '', `.${format}`))}.${format}`;
+              const sanitizedFilename = requestFileName(newItem, format);
               await writeFile(path.join(targetFolder, sanitizedFilename), requestContent);
             }
           }
@@ -2053,7 +2055,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           }
 
           const requestContent = await stringifyRequestViaWorker(specItem, { format });
-          const sanitizedFilename = `${sanitizeName(specItem.name || path.basename(specItem.filename || '', `.${format}`))}.${format}`;
+          const sanitizedFilename = requestFileName(specItem, format);
           await writeFile(path.join(targetFolder, sanitizedFilename), requestContent);
           addedCount++;
         }
@@ -2146,6 +2148,7 @@ if (process.env.NODE_ENV === 'test') {
     declaredBodyOf,
     compareRequestFields,
     specConversionOptions,
-    ensureTagFolder
+    ensureTagFolder,
+    requestFileName
   };
 }

@@ -67,7 +67,7 @@ describe.each([
     expect(names).toContain('Add a new pet to the store (GET)');
   });
 
-  it('falls back to the method and path when the summary is only dots and whitespace', () => {
+  it('falls back to the path when the summary is only dots and whitespace', () => {
     const collection = openApiToBruno(
       buildSpec({
         '/pet': {
@@ -76,7 +76,7 @@ describe.each([
       })
     );
 
-    expect(collection.items.map((item) => item.name)).toEqual(['POST /pet']);
+    expect(collection.items.map((item) => item.name)).toEqual(['/pet']);
   });
 
   it('leaves interior dots and names without a trailing dot untouched', () => {

@@ -38,7 +38,7 @@ describe.each([
       ['summary', 'Find pet by ID'],
       ['operationId', 'getPetById'],
       ['description', 'Returns a single pet'],
-      ['path', 'GET /pet/{petId}']
+      ['path', '/pet/{petId}']
     ])('names the request from %s', (requestNameSource, name) => {
       expect(nameOf(petOperation, { requestNameSource })).toBe(name);
     });
@@ -52,15 +52,28 @@ describe.each([
     it.each([
       ['summary', { operationId: 'getPetById', description: 'Returns a single pet.' }, 'getPetById'],
       ['summary', { description: 'Returns a single pet.' }, 'Returns a single pet'],
-      ['summary', {}, 'GET /pet/{petId}'],
+      ['summary', {}, '/pet/{petId}'],
       ['operationId', { summary: 'Find pet by ID', description: 'Returns a single pet.' }, 'Find pet by ID'],
       ['operationId', { description: 'Returns a single pet.' }, 'Returns a single pet'],
-      ['operationId', {}, 'GET /pet/{petId}'],
+      ['operationId', {}, '/pet/{petId}'],
       ['description', { summary: 'Find pet by ID', operationId: 'getPetById' }, 'Find pet by ID'],
       ['description', { operationId: 'getPetById' }, 'getPetById'],
-      ['description', {}, 'GET /pet/{petId}']
+      ['description', {}, '/pet/{petId}']
     ])('with %s selected and only %j, falls back to %s', (requestNameSource, operation, name) => {
       expect(nameOf(operation, { requestNameSource })).toBe(name);
+    });
+
+    it('gives a request that falls back to its path a file named after its method and path', () => {
+      const [item] = openApiToBruno(buildSpec({ '/pet/{petId}': { get: { responses: {} } } })).items;
+
+      expect(item.name).toBe('/pet/{petId}');
+      expect(item.filename).toBe('GET /pet/{petId}.bru');
+    });
+
+    it('leaves the file name to the request name when a field names the request', () => {
+      const [item] = openApiToBruno(buildSpec({ '/pet/{petId}': { get: { summary: 'Find pet by ID', responses: {} } } })).items;
+
+      expect(item).not.toHaveProperty('filename');
     });
 
     it('falls back when the selected field is left empty by the cleanup', () => {
@@ -278,7 +291,7 @@ describe.each([
       const [name] = namesOf({ [longPath]: { get: { responses: {} } } }, { requestNameSource: 'path' });
 
       expect(name.length).toBeLessThanOrEqual(100);
-      expect(`GET ${longPath}`.startsWith(name)).toBe(true);
+      expect(longPath.startsWith(name)).toBe(true);
     });
   });
 
@@ -307,25 +320,60 @@ describe.each([
       expect(names).toEqual(['Pets', 'Pets (POST)', 'Pets (GET)', 'Pets (1)']);
     });
 
-    it('de-duplicates operations that share a method and path', () => {
+    it('names every operation on a shared path after the path and gives each method its own file', () => {
+      const { items } = openApiToBruno(buildSpec({
+        '/pet/{petId}': {
+          get: { summary: 'Find pet', responses: {} },
+          post: { summary: 'Update pet', responses: {} },
+          delete: { summary: 'Delete pet', responses: {} }
+        }
+      }), { requestNameSource: 'path' });
+
+      expect(items.map((item) => item.name)).toEqual(['/pet/{petId}', '/pet/{petId}', '/pet/{petId}']);
+      expect(items.map((item) => item.filename)).toEqual(['GET /pet/{petId}.bru', 'POST /pet/{petId}.bru', 'DELETE /pet/{petId}.bru']);
+    });
+
+    it('keeps the paths of operations that share a method and path apart', () => {
       const names = namesOf({
         '/pets': { get: { summary: 'Lists pets', responses: {} } },
         '/pets/': { get: { summary: 'Lists pets', responses: {} } }
       }, { requestNameSource: 'path' });
 
-      expect(names).toEqual(['GET /pets', 'GET /pets/']);
+      expect(names).toEqual(['/pets', '/pets/']);
     });
 
-    it('de-duplicates names that become the same file once sanitized or compared without case', () => {
-      const names = namesOf({
+    it('gives each request its own file when paths become the same file once sanitized or compared without case', () => {
+      const { items } = openApiToBruno(buildSpec({
         '/a/b': { get: { summary: 'Nested', responses: {} } },
         '/a-b': { get: { summary: 'Dashed', responses: {} } },
         '/Users': { get: { summary: 'Upper users', responses: {} } },
         '/users': { get: { summary: 'Lower users', responses: {} } }
-      }, { requestNameSource: 'path' });
+      }), { requestNameSource: 'path' });
+      const files = items.map((item) => item.filename);
 
-      expect(names).toEqual(['GET /a/b', 'GET /a-b (GET)', 'GET /Users', 'GET /users (GET)']);
-      expect(new Set(names.map((name) => sanitizeName(name).toLowerCase())).size).toBe(4);
+      expect(items.map((item) => item.name)).toEqual(['/a/b', '/a-b', '/Users', '/users']);
+      expect(files).toEqual(['GET /a/b.bru', 'GET /a-b (GET).bru', 'GET /Users.bru', 'GET /users (GET).bru']);
+      expect(new Set(files.map((file) => sanitizeName(file).toLowerCase())).size).toBe(4);
+    });
+
+    it('keeps files unique when a summary reads like another request\'s method and path', () => {
+      const { items } = openApiToBruno(buildSpec({
+        '/pets': {
+          get: { responses: {} },
+          post: { summary: 'GET /pets', responses: {} }
+        }
+      }));
+      const files = items.map((item) => sanitizeName(item.filename || `${item.name}.bru`).toLowerCase());
+
+      expect(items.find((item) => item.request.method === 'GET').name).toBe('/pets');
+      expect(new Set(files).size).toBe(2);
+    });
+
+    it('names the root path after the path and still gives it a file name', () => {
+      const [item] = openApiToBruno(buildSpec({ '/': { get: { responses: {} } } }), { requestNameSource: 'path' }).items;
+
+      expect(item.name).toBe('/');
+      expect(sanitizeName(item.filename)).toBe('GET -.bru');
     });
   });
 

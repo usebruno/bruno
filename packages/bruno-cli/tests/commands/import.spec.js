@@ -162,11 +162,11 @@ describe('import openapi', () => {
     });
 
     it.each([
-      ['summary', ['Find pet by ID', 'GET /pets']],
-      ['operationId', ['getPetById', 'GET /pets']],
-      ['description', ['Returns a single pet', 'GET /pets']],
-      ['path', ['GET /pets/{petId}', 'GET /pets']]
-    ])('names requests from %s, falling back to method and path', async (requestNameSource, names) => {
+      ['summary', ['Find pet by ID', '/pets']],
+      ['operationId', ['getPetById', '/pets']],
+      ['description', ['Returns a single pet', '/pets']],
+      ['path', ['/pets/{petId}', '/pets']]
+    ])('names requests from %s, falling back to the path', async (requestNameSource, names) => {
       const collection = await importOpenApi(petsSpec, { requestNameSource });
 
       expect(collection.items.map((item) => item.name)).toEqual(names);
