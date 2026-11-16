@@ -327,7 +327,7 @@ test.describe.serial('websocket multi-message (yml format)', () => {
       .toContain('renamed via shortcut');
   });
 
-  test('TC-1268: establish WebSocket connection with multiple JSON type messages', { tag: '@sanity' }, async ({
+  test('TC-1268: Establish WebSocket connection with multiple JSON type messages', { tag: '@sanity' }, async ({
     pageWithUserData: page
   }) => {
     const { websocket } = buildCommonLocators(page);
@@ -335,8 +335,8 @@ test.describe.serial('websocket multi-message (yml format)', () => {
     await test.step('Open request and verify two JSON messages', async () => {
       await openRequest(page, COLLECTION_NAME, MULTI_JSON_REQ);
       await expect(websocket.message.headers()).toHaveCount(2);
-      await expect(websocket.message.header(0).locator('.selected-body-mode')).toContainText('JSON');
-      await expect(websocket.message.header(1).locator('.selected-body-mode')).toContainText('JSON');
+      await expect(websocket.message.bodyModeLabel(0)).toContainText('JSON');
+      await expect(websocket.message.bodyModeLabel(1)).toContainText('JSON');
     });
 
     await test.step('Connect and send the first message via run button', async () => {
@@ -357,7 +357,7 @@ test.describe.serial('websocket multi-message (yml format)', () => {
     await disconnectWs(page);
   });
 
-  test('TC-1267: establish WebSocket connection with multiple XML type messages', { tag: '@sanity' }, async ({
+  test('TC-1267: Establish WebSocket connection with multiple XML type messages', { tag: '@sanity' }, async ({
     pageWithUserData: page
   }) => {
     const { websocket } = buildCommonLocators(page);
@@ -365,8 +365,8 @@ test.describe.serial('websocket multi-message (yml format)', () => {
     await test.step('Open request and verify two XML messages', async () => {
       await openRequest(page, COLLECTION_NAME, MULTI_XML_REQ);
       await expect(websocket.message.headers()).toHaveCount(2);
-      await expect(websocket.message.header(0).locator('.selected-body-mode')).toContainText('XML');
-      await expect(websocket.message.header(1).locator('.selected-body-mode')).toContainText('XML');
+      await expect(websocket.message.bodyModeLabel(0)).toContainText('XML');
+      await expect(websocket.message.bodyModeLabel(1)).toContainText('XML');
     });
 
     await test.step('Connect and send the first message via run button', async () => {
@@ -387,7 +387,7 @@ test.describe.serial('websocket multi-message (yml format)', () => {
     await disconnectWs(page);
   });
 
-  test('TC-1266: establish WebSocket connection with multiple text type messages', { tag: '@sanity' }, async ({
+  test('TC-1266: Establish WebSocket connection with multiple text type messages', { tag: '@sanity' }, async ({
     pageWithUserData: page
   }) => {
     const { websocket } = buildCommonLocators(page);
@@ -395,8 +395,8 @@ test.describe.serial('websocket multi-message (yml format)', () => {
     await test.step('Open request and verify two TEXT messages', async () => {
       await openRequest(page, COLLECTION_NAME, MULTI_TEXT_REQ);
       await expect(websocket.message.headers()).toHaveCount(2);
-      await expect(websocket.message.header(0).locator('.selected-body-mode')).toContainText('TEXT');
-      await expect(websocket.message.header(1).locator('.selected-body-mode')).toContainText('TEXT');
+      await expect(websocket.message.bodyModeLabel(0)).toContainText('TEXT');
+      await expect(websocket.message.bodyModeLabel(1)).toContainText('TEXT');
     });
 
     await test.step('Connect and send the first message via run button', async () => {
@@ -412,6 +412,84 @@ test.describe.serial('websocket multi-message (yml format)', () => {
       await expect(websocket.messages().filter({ hasText: 'publish-orders' }).first()).toBeVisible({
         timeout: MAX_CONNECTION_TIME
       });
+    });
+
+    await disconnectWs(page);
+  });
+
+  test('Send inactive JSON message via inline send without an established connection', { tag: '@sanity' }, async ({
+    pageWithUserData: page
+  }) => {
+    const { websocket } = buildCommonLocators(page);
+
+    await test.step('Open request and verify two JSON messages while disconnected', async () => {
+      await openRequest(page, COLLECTION_NAME, MULTI_JSON_REQ);
+      await expect(websocket.message.headers()).toHaveCount(2);
+      await expect(websocket.message.bodyModeLabel(0)).toContainText('JSON');
+      await expect(websocket.message.bodyModeLabel(1)).toContainText('JSON');
+      await websocket.toolbar.clearResponse().click();
+      await expect(websocket.messages()).toHaveCount(0);
+    });
+
+    await test.step('Send the inactive second message via its inline send icon', async () => {
+      await websocket.message.header(1).hover();
+      await websocket.message.sendButton(1).click();
+      await expect(websocket.messages().filter({ hasText: 'publish' }).first()).toBeVisible({
+        timeout: MAX_CONNECTION_TIME
+      });
+      await expect(websocket.messages().filter({ hasText: 'subscribe' })).toHaveCount(0);
+    });
+
+    await disconnectWs(page);
+  });
+
+  test('Send inactive XML message via inline send without an established connection', { tag: '@sanity' }, async ({
+    pageWithUserData: page
+  }) => {
+    const { websocket } = buildCommonLocators(page);
+
+    await test.step('Open request and verify two XML messages while disconnected', async () => {
+      await openRequest(page, COLLECTION_NAME, MULTI_XML_REQ);
+      await expect(websocket.message.headers()).toHaveCount(2);
+      await expect(websocket.message.bodyModeLabel(0)).toContainText('XML');
+      await expect(websocket.message.bodyModeLabel(1)).toContainText('XML');
+      await websocket.toolbar.clearResponse().click();
+      await expect(websocket.messages()).toHaveCount(0);
+    });
+
+    await test.step('Send the inactive second message via its inline send icon', async () => {
+      await websocket.message.header(1).hover();
+      await websocket.message.sendButton(1).click();
+      await expect(websocket.messages().filter({ hasText: 'publish' }).first()).toBeVisible({
+        timeout: MAX_CONNECTION_TIME
+      });
+      await expect(websocket.messages().filter({ hasText: 'subscribe' })).toHaveCount(0);
+    });
+
+    await disconnectWs(page);
+  });
+
+  test('Send inactive TEXT message via inline send without an established connection', { tag: '@sanity' }, async ({
+    pageWithUserData: page
+  }) => {
+    const { websocket } = buildCommonLocators(page);
+
+    await test.step('Open request and verify two TEXT messages while disconnected', async () => {
+      await openRequest(page, COLLECTION_NAME, MULTI_TEXT_REQ);
+      await expect(websocket.message.headers()).toHaveCount(2);
+      await expect(websocket.message.bodyModeLabel(0)).toContainText('TEXT');
+      await expect(websocket.message.bodyModeLabel(1)).toContainText('TEXT');
+      await websocket.toolbar.clearResponse().click();
+      await expect(websocket.messages()).toHaveCount(0);
+    });
+
+    await test.step('Send the inactive second message via its inline send icon', async () => {
+      await websocket.message.header(1).hover();
+      await websocket.message.sendButton(1).click();
+      await expect(websocket.messages().filter({ hasText: 'publish-orders' }).first()).toBeVisible({
+        timeout: MAX_CONNECTION_TIME
+      });
+      await expect(websocket.messages().filter({ hasText: 'subscribe-orders' })).toHaveCount(0);
     });
 
     await disconnectWs(page);
