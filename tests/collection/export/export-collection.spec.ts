@@ -7,11 +7,11 @@ import {
   buildCommonLocators,
   closeAllCollections,
   createCollection,
-  createRequest,
   exportCollectionAsSingleYaml,
   exportCollectionAsZip,
   exportCollectionToPostman
 } from '../../utils/page';
+import { isEnterpriseEdition } from '../../utils/page/preferences';
 import {
   closeShareCollection,
   openExportTabIfPresent,
@@ -117,41 +117,40 @@ test.describe('Export Bruno collection', () => {
       });
     });
   });
+});
+
+test.describe('Export OpenAPI Specification collection', () => {
+  test.afterAll(async ({ pageWithUserData: page }) => {
+    await closeAllCollections(page);
+  });
 
   test('TC-3050: Verify that the user is able to Export a OpenAPI Specification collection', { tag: '@sanity' }, async ({
-    page,
-    electronApp,
+    pageWithUserData: page,
+    reuseOrLaunchElectronApp,
     createTmpDir
-  }) => {
+  }, testInfo) => {
     const collectionName = 'new-collection';
-    const collectionLocation = await createTmpDir(collectionName);
     const exportLocation = await createTmpDir(`${collectionName}-output`);
+    const electronApp = await reuseOrLaunchElectronApp({ testFile: testInfo.file });
     const { sidebar, shareCollection } = buildCommonLocators(page);
 
-    await test.step('Create a collection with an HTTP request and a gRPC request', async () => {
-      await createCollection(page, collectionName, collectionLocation, 'yml');
+    await test.step('Open the fixture collection with an HTTP request and a gRPC request', async () => {
       await expect(sidebar.collection(collectionName)).toBeVisible();
-      await createRequest(page, 'ping', collectionName, {
-        url: 'http://localhost:8081/ping',
-        method: 'GET'
-      });
-      await createRequest(page, 'grpc-request', collectionName, {
-        url: 'grpc://localhost:50051',
-        requestType: 'grpc'
-      });
     });
+
+    const isEnterprise = await isEnterpriseEdition(page);
 
     await openShareCollection(page, collectionName);
     await openExportTabIfPresent(page);
 
     const openApiCard = shareCollection.openApiCard();
-    const isEnterprise = await openApiCard.isVisible();
 
     if (isEnterprise) {
+      await expect(openApiCard).toBeVisible();
       const filePath = path.join(exportLocation, `${collectionName}.yaml`);
       await selectOpenApiFormat(page);
 
-      await test.step('gRPC requests are skipped with a note', async () => {
+      await test.step('Verify that gRPC requests are skipped with a note', async () => {
         await expect(shareCollection.nonExportableNote()).toBeVisible();
         await expect(shareCollection.nonExportableNote()).toContainText(
           'gRPC requests in this collection will not be exported'
@@ -160,7 +159,7 @@ test.describe('Export Bruno collection', () => {
 
       await proceedToExportApiSpec(page);
 
-      await test.step('Export API Spec uses the collection name as the default file name', async () => {
+      await test.step('Verify that Export API Spec uses the collection name as the default file name', async () => {
         await expect(shareCollection.nameInput()).toHaveValue(collectionName);
       });
 

@@ -31,7 +31,14 @@ export const buildPreferencesLocators = (page: Page) => ({
   openTabCloseIcon: () => page.locator('.request-tab').filter({ hasText: 'Preferences' }).locator('.close-icon'),
 
   /** Locators for the System Proxy panel */
-  systemProxy: buildSystemProxyModeLocators(page)
+  systemProxy: buildSystemProxyModeLocators(page),
+
+  /** Locators for the License tab (present in commercial builds only) */
+  license: {
+    tab: () => page.getByRole('tab', { name: 'License', exact: true }),
+    panel: () => page.getByRole('tabpanel'),
+    enterprisePlan: () => page.getByRole('tabpanel').getByText('Enterprise', { exact: true })
+  }
 
 });
 
@@ -124,5 +131,30 @@ export const setRequestTimeoutPreference = async (page: Page, value: string) => 
     await preferences.openTab().hover();
     await preferences.openTabCloseIcon().click({ force: true });
     await preferences.openTab().waitFor({ state: 'detached' });
+  });
+};
+
+/**
+ * Open Preferences → License and report whether this build is Enterprise.
+ * OSS has no License tab, so this returns false without treating the OpenAPI
+ * export card as the edition signal.
+ */
+export const isEnterpriseEdition = async (page: Page): Promise<boolean> => {
+  return await test.step('Check the License page for Enterprise edition', async () => {
+    const preferences = buildPreferencesLocators(page);
+    await openPreferences(page);
+    await preferences.tab('General').waitFor({ state: 'visible' });
+
+    const licenseTab = preferences.license.tab();
+    if (!(await licenseTab.isVisible())) {
+      await closePreferences(page);
+      return false;
+    }
+
+    await selectPreferencesTab(page, 'License');
+    await preferences.license.panel().waitFor({ state: 'visible' });
+    const isEnterprise = await preferences.license.enterprisePlan().isVisible();
+    await closePreferences(page);
+    return isEnterprise;
   });
 };
