@@ -16,6 +16,7 @@ export const buildSidebarLocators = (page: Page) => {
   const item = (name: string) => page.locator('.collection-item-name').filter({ hasText: name });
 
   const collectionScope = (name: string) => page.locator(`[data-collection-id="${collectionSlug(name)}"]`);
+  const folderScope = (folderName: string) => page.locator(`[data-parent-name="${folderName}"]`);
   const inlineCollectionCreatorRoot = () => page.getByTestId('inline-collection-creator');
 
   return {
@@ -75,7 +76,9 @@ export const buildSidebarLocators = (page: Page) => {
     example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
     collectionScope,
     collectionScopeByUid: (collectionUid: string) => page.locator(`[data-collection-uid="${collectionUid}"]`),
-    folderScope: (folderName: string) => page.locator(`[data-parent-name="${folderName}"]`),
+    folderScope,
+    itemInFolder: (folderName: string, itemName: string): Locator =>
+      folderScope(folderName).locator('.item-name').and(page.getByTitle(itemName, { exact: true })),
     scopedItem: function (collectionName: string, itemName: string) {
       return this.collectionScope(collectionName).locator('.item-name').and(page.getByTitle(itemName, { exact: true }));
     },
