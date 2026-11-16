@@ -983,9 +983,14 @@ const EnvironmentVariablesTable = ({
 
   const showFloatingAdd = isAddRowOutOfView && !isSearchActive && !collapsedSections.own;
 
-  const handleRangeChanged = useCallback(({ endIndex }) => {
-    const isOutOfView = endIndex < lastRowIndexRef.current;
-    setIsAddRowOutOfView((prev) => (prev === isOutOfView ? prev : isOutOfView));
+  const handleAtBottomStateChange = useCallback((atBottom) => {
+    setIsAddRowOutOfView(!atBottom);
+  }, []);
+
+  // Keep the new add row visible while editing so the floating button doesn't cover the input.
+  const followNewRowWhileEditing = useCallback(() => {
+    const isTableFocused = scrollerRef.current?.contains(document.activeElement);
+    return isTableFocused ? 'auto' : false;
   }, []);
 
   const registerNameInput = useCallback((node) => {
@@ -1024,7 +1029,8 @@ const EnvironmentVariablesTable = ({
             className="table-container"
             style={{ height: tableHeight }}
             scrollerRef={handleScrollerRef}
-            rangeChanged={handleRangeChanged}
+            atBottomStateChange={handleAtBottomStateChange}
+            followOutput={followNewRowWhileEditing}
             initialTopMostItemIndex={initialTopMostItemIndex}
             overscan={Math.min(30, variableRows.length)}
             components={{ TableRow }}
