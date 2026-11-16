@@ -25,8 +25,14 @@ const mergeItems = (existing = [], incoming = []) => {
 
 const getEntryPath = (entry) => (entry.kind === 'ghost' ? entry.entry?.path : entry.collection?.pathname);
 
+const ALWAYS_IGNORED = new Set(['node_modules', '.git']);
+
 const ignoreSignature = (ignore = {}) => Object.keys(ignore).sort()
-  .map((root) => `${root}\0${[].concat(ignore[root] || []).join('\0')}`)
+  .map((root) => {
+    const patterns = [...new Set([].concat(ignore[root] || []))].filter((pattern) => !ALWAYS_IGNORED.has(pattern)).sort();
+    return patterns.length ? [root, ...patterns].join('\0') : '';
+  })
+  .filter(Boolean)
   .join('\n');
 
 const findRootToLoad = ({ rows, range, roots, order, matches, requested }) => {

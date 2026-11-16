@@ -150,6 +150,31 @@ describe('createSearchStore', () => {
     expect(searches[1][1]).toEqual({ roots: ['/a'], query: 'hit', ignore: { '/a': ['generated'] } });
   });
 
+  it('keeps the active search when a collection\'s ignore config changes only in order or in the folders that are always ignored', () => {
+    const store = createSearchStore();
+    store.subscribe(() => {});
+    store.setContext({ roots: ['/a'], indexRoots: ['/a'], ignore: { '/a': ['node_modules', '.git', 'generated'] } });
+    startSearch(store, 'hit');
+
+    store.setContext({ ignore: { '/a': ['generated'] } });
+    store.setContext({ ignore: { '/a': ['generated', 'generated', '.git'] } });
+
+    const searches = window.ipcRenderer.invoke.mock.calls.filter(([channel]) => channel === 'renderer:search-collections');
+    expect(searches).toHaveLength(1);
+  });
+
+  it('keeps the active search when a mounting collection\'s config drops the always-ignored folders', () => {
+    const store = createSearchStore();
+    store.subscribe(() => {});
+    store.setContext({ roots: ['/a'], indexRoots: ['/a'], ignore: { '/a': ['node_modules', '.git'] } });
+    startSearch(store, 'hit');
+
+    store.setContext({ roots: [], ignore: {} });
+
+    const searches = window.ipcRenderer.invoke.mock.calls.filter(([channel]) => channel === 'renderer:search-collections');
+    expect(searches).toHaveLength(1);
+  });
+
   it('does not search when collections change with no active query', () => {
     const store = createSearchStore();
     store.subscribe(() => {});
