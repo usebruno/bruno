@@ -31,12 +31,17 @@ const Sidebar = () => {
       }
     ];
 
-    if (isMockServerEnabled) {
-      sections.push({
-        id: 'mock-servers',
-        component: MockServersSection
-      });
-    }
+    // if (isMockServerEnabled) {
+    //   sections.push({
+    //     id: 'mock-servers',
+    //     component: MockServersSection
+    //   });
+    // }
+
+    sections.push({
+      id: 'mock-servers',
+      component: MockServersSection
+    });
 
     return sections;
   }, [isMockServerEnabled]);
