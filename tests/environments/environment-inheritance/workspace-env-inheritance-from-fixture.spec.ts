@@ -3,6 +3,7 @@ import path from 'path';
 import { test, expect } from '../../../playwright';
 import {
   addEnvironmentVariables,
+  clickInheritedVarSource,
   closeEnvironmentPanel,
   copyEnvironment,
   createEnvironment,
@@ -174,7 +175,7 @@ test.describe('Workspace environment inheritance', () => {
     });
 
     await test.step('The source arrow opens the environment the row came from', async () => {
-      await environment.inheritedVarSource('workspace_base_only').click();
+      await clickInheritedVarSource(page, 'workspace_base_only');
 
       await expect(environment.detailsTitle()).toHaveText('workspace_base');
       await expectEnvVarValue(page, 'workspace_base_only', 'from_workspace_base');
@@ -195,7 +196,7 @@ test.describe('Workspace environment inheritance', () => {
     await setEnvironmentVariableValue(page, 'workspace_overridden', 'edited_but_unsaved');
     await expect(environment.tabCount('variables')).toHaveClass(/unsaved/);
 
-    await environment.inheritedVarSource('workspace_base_only').click();
+    await clickInheritedVarSource(page, 'workspace_base_only');
 
     await expect(modal.byTitle('Unsaved changes')).toBeVisible();
     await expect(environment.detailsTitle()).toHaveText('workspace_dev');

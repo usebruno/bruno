@@ -6,6 +6,7 @@ import {
   addEnvironmentVariable,
   addEnvironmentVariables,
   addPostResponseScript,
+  clickInheritedVarSource,
   closeAllCollections,
   closeEnvironmentPanel,
   copyEnvironment,
@@ -400,7 +401,7 @@ test.describe('Workspace environment inheritance, authored in the app', () => {
     });
 
     await test.step('The source arrow opens the environment the row came from', async () => {
-      await environment.inheritedVarSource(BASE.variables.baseOnly.name).click();
+      await clickInheritedVarSource(page, BASE.variables.baseOnly.name);
 
       await expect(environment.detailsTitle()).toHaveText(BASE.name);
       await expectEnvVarValue(page, BASE.variables.baseOnly.name, BASE.variables.baseOnly.value);
@@ -425,7 +426,7 @@ test.describe('Workspace environment inheritance, authored in the app', () => {
     await setEnvironmentVariableValue(page, DEV.variables.overridden.name, 'edited_but_unsaved');
     await expect(environment.tabCount('variables')).toHaveClass(/unsaved/);
 
-    await environment.inheritedVarSource(BASE.variables.baseOnly.name).click();
+    await clickInheritedVarSource(page, BASE.variables.baseOnly.name);
 
     await expect(modal.byTitle('Unsaved changes')).toBeVisible();
     await expect(environment.detailsTitle()).toHaveText(DEV.name);

@@ -4,6 +4,7 @@ import { test, expect, Page } from '../../../playwright';
 import {
   addEnvironmentVariable,
   addEnvironmentVariables,
+  clickInheritedVarSource,
   closeEnvironmentPanel,
   copyEnvironment,
   createCollection,
@@ -210,7 +211,7 @@ test.describe('Collection environment inheritance', () => {
     });
 
     await test.step('The source arrow opens the environment the row came from', async () => {
-      await environment.inheritedVarSource('base_only').click();
+      await clickInheritedVarSource(page, 'base_only');
 
       await expect(environment.detailsTitle()).toHaveText('base');
       await expectEnvVarValue(page, 'base_only', 'base_only_value');
@@ -231,7 +232,7 @@ test.describe('Collection environment inheritance', () => {
     await setEnvironmentVariableValue(page, 'dev_only', 'edited_but_unsaved');
     await expect(environment.tabCount('variables')).toHaveClass(/unsaved/);
 
-    await environment.inheritedVarSource('base_only').click();
+    await clickInheritedVarSource(page, 'base_only');
 
     await expect(modal.byTitle('Unsaved changes')).toBeVisible();
     await expect(environment.detailsTitle()).toHaveText('dev');
