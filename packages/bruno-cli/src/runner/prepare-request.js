@@ -1,5 +1,4 @@
 const get = require('lodash/get');
-const each = require('lodash/each');
 const filter = require('lodash/filter');
 const find = require('lodash/find');
 const decomment = require('decomment');
@@ -7,6 +6,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const { mergeHeaders, mergeScripts, mergeVars, mergeAuth, getTreePathFromCollectionToItem } = require('../utils/collection');
 const { getEffectiveTags, getOwnTags, getInheritedTagsFromTreePath } = require('@usebruno/common');
+const { buildHeaderEntries } = require('@usebruno/js');
 const path = require('node:path');
 const { isLargeFile } = require('../utils/filesystem');
 const { getFormattedOauth2Credentials } = require('../utils/oauth2');
@@ -17,7 +17,6 @@ const prepareRequest = async (item = {}, collection = {}) => {
   const request = item?.request;
   const brunoConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig', {}) : get(collection, 'brunoConfig', {});
   const collectionPath = collection?.pathname;
-  const headers = {};
   let contentTypeDefined = false;
 
   const scriptFlow = brunoConfig?.scripts?.flow ?? 'sandwich';
@@ -29,23 +28,16 @@ const prepareRequest = async (item = {}, collection = {}) => {
     mergeAuth(collection, request, requestTreePath);
   }
 
-  const disabledHeaders = [];
-  each(get(request, 'headers', []), (h) => {
-    if (h.enabled && h.name?.length > 0) {
-      headers[h.name] = h.value;
-      if (h.name.toLowerCase() === 'content-type') {
-        contentTypeDefined = true;
-      }
-    } else if (!h.enabled && h.name?.length > 0) {
-      disabledHeaders.push({ name: h.name, value: h.value });
-    }
-  });
+  const { headers, headerEntries } = buildHeaderEntries(get(request, 'headers', []));
+  if (Object.keys(headers).some((name) => name.toLowerCase() === 'content-type')) {
+    contentTypeDefined = true;
+  }
 
   let axiosRequest = {
     method: request.method,
     url: request.url,
     headers: headers,
-    disabledHeaders,
+    headerEntries,
     name: item.name,
     pathname: item.pathname,
     tags: getEffectiveTags(getOwnTags(item), getInheritedTagsFromTreePath(requestTreePath)),

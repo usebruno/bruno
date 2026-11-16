@@ -560,6 +560,10 @@ const closeHttpServer = (httpServer) => new Promise((resolve) => {
   httpServer.on('close', () => clearTimeout(forceCloseTimeout));
 });
 
+const MOCK_SERVER_DISABLED_ERROR = 'Mock server is a beta feature. Enable it in Preferences > Beta.';
+
+const isMockServerEnabled = () => preferencesUtil.isBetaFeatureEnabled('mock-server');
+
 const start = async ({
   mockServerUid,
   serverName,
@@ -572,8 +576,8 @@ const start = async ({
   port = DEFAULT_GATEWAY_PORT,
   globalDelay = 0
 }) => {
-  if (!preferencesUtil.isBetaFeatureEnabled('mock-server')) {
-    throw new Error('Mock server is a beta feature. Enable it in Preferences > Beta.');
+  if (!isMockServerEnabled()) {
+    throw new Error(MOCK_SERVER_DISABLED_ERROR);
   }
 
   if (!mockServerUid) {
@@ -599,6 +603,10 @@ const start = async ({
   app.all('*', (req, res) => handleRequest(mockServerUid, req, res));
 
   const httpServer = await listenOnPort(app, resolvedPort);
+  if (!isMockServerEnabled()) {
+    await closeHttpServer(httpServer);
+    throw new Error(MOCK_SERVER_DISABLED_ERROR);
+  }
   isolatedServers.set(mockServerUid, { httpServer, port: resolvedPort });
 
   const baseUrl = `http://localhost:${resolvedPort}`;
@@ -742,6 +750,7 @@ const reloadRoutesFromStore = async (mockServerUid, location = {}) => {
 
 module.exports = {
   setMainWindow,
+  isMockServerEnabled,
   start,
   stop,
   stopAll,

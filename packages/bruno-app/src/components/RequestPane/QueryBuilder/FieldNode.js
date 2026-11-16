@@ -264,6 +264,7 @@ const FieldNode = ({
         aria-expanded={canExpand ? isExpanded : undefined}
         onClick={handleExpand}
         tabIndex={0}
+        data-testid={`query-builder-field-${field.path}`}
       >
         <span className="field-indent" style={{ width: indent }} />
         <span className="field-chevron">
@@ -278,6 +279,7 @@ const FieldNode = ({
         <input
           type="checkbox"
           className="field-checkbox mousetrap"
+          data-testid="query-builder-field-checkbox"
           checked={isChecked}
           onChange={handleCheck}
           onClick={(e) => e.stopPropagation()}

@@ -4,10 +4,24 @@ import { prettifyJsonString } from 'utils/common/index';
 import { isJsonLikeContentType, isPlainTextContentType, isXmlLikeContentType } from './content-type';
 
 export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-request') => {
+  const parseMultipartForm = (parsedBody) => {
+    if (!Array.isArray(parsedBody)) {
+      return [];
+    }
+
+    // multipartFormSchema declares a file entry's `value` as an array of paths;
+    // the parser gives a plain string even for `-F 'doc=@/tmp/a.pdf'`.
+    return parsedBody.map((field) => (field.type === 'file' ? { ...field, value: [field.value] } : field));
+  };
+
   const parseFormData = (parsedBody) => {
     const formData = [];
     forOwn(parsedBody, (value, key) => {
-      formData.push({ name: key, value, enabled: true });
+      // `querystring.parse` hands back an array when a key repeats (`-d 'tag=a&tag=b'`),
+      // but keyValueSchema declares a param's `value` a string, so each repeat
+      // becomes its own enabled param rather than one array-valued entry.
+      const values = Array.isArray(value) ? value : [value];
+      values.forEach((entry) => formData.push({ name: key, value: entry, enabled: true }));
     });
 
     return formData;
@@ -82,7 +96,7 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
         body.formUrlEncoded = parseFormData(parsedBody);
       } else if (normalizedContentType.includes('multipart/form-data')) {
         body.mode = 'multipartForm';
-        body.multipartForm = parsedBody;
+        body.multipartForm = parseMultipartForm(parsedBody);
       } else if (isPlainTextContentType(contentType)) {
         body.mode = 'text';
         body.text = parsedBody;

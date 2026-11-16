@@ -526,14 +526,47 @@ describe('buildHar — body / postData', () => {
     expect(har.postData.text).toBe(sparqlBody);
   });
 
-  it('graphql → mimeType=application/json, postData.text is JSON.stringify of body.graphql', async () => {
-    const graphql = { query: 'query Q { me { id } }', variables: { foo: 'bar' } };
+  it('graphql → mimeType=application/json, postData.text nests parsed variables as JSON', async () => {
+    const graphql = { query: 'query Q { me { id } }', variables: '{\n  "foo": "bar"\n}' };
     const { har } = await buildHar({
       request: baseRequest({ body: { mode: 'graphql', graphql } }),
       shouldInterpolate: false
     });
     expect(har.postData.mimeType).toBe('application/json');
+    expect(har.postData.text).toBe(JSON.stringify({ query: graphql.query, variables: { foo: 'bar' } }));
+  });
+
+  it('graphql → bruno variables in query and variables are interpolated before JSON parsing', async () => {
+    const graphql = { query: 'query Q($id: Int, $name: String) { {{field}} { id } }', variables: '{\n  "id": {{id}},\n  "name": "{{name}}"\n}' };
+    const { har } = await buildHar({
+      request: baseRequest({ body: { mode: 'graphql', graphql } }),
+      variables: { id: 42, name: 'bob', field: 'me' },
+      shouldInterpolate: true
+    });
+    expect(har.postData.text).toBe(
+      JSON.stringify({ query: 'query Q($id: Int, $name: String) { me { id } }', variables: { id: 42, name: 'bob' } })
+    );
+  });
+
+  it('graphql → invalid JSON variables falls back to the raw string instead of throwing', async () => {
+    const graphql = { query: 'query Q { me { id } }', variables: 'not valid json' };
+    const { har } = await buildHar({
+      request: baseRequest({ body: { mode: 'graphql', graphql } }),
+      shouldInterpolate: false
+    });
     expect(har.postData.text).toBe(JSON.stringify(graphql));
+  });
+
+  it('graphql → query is preserved verbatim, including newlines and # comments', async () => {
+    const graphql = {
+      query: 'query Q {\n  # comment\n  me {  id  }\n}',
+      variables: '{\n  "var": true\n}'
+    };
+    const { har } = await buildHar({
+      request: baseRequest({ body: { mode: 'graphql', graphql } }),
+      shouldInterpolate: false
+    });
+    expect(har.postData.text).toBe(JSON.stringify({ query: graphql.query, variables: { var: true } }));
   });
 
   it('file → mimeType from selected file, text=filePath, params has fileName + contentType', async () => {

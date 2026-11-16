@@ -13,11 +13,15 @@ import {
   selectScriptSubTab,
   editCodeMirrorEditor,
   setCodeMirrorEditorValue,
+  expectNoSetAsVariableMenu,
   openSetAsVariableMenu,
   openSetAsVariablePopover,
+  selectWordAndCtrlClick,
   openSetAsVariablePopoverAtChar,
   openEnvironmentConfigTab,
-  selectVariableScope
+  selectVariableScope,
+  selectRequestPaneTab,
+  sendRequest
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
@@ -592,6 +596,319 @@ test.describe('Set as variable', () => {
       await setAsVariable.nameInput().fill('scheme');
       await setAsVariable.copyButton().click();
       expect(await clipboard.copiedText()).toBe('scheme');
+    });
+  });
+
+  test('keeps the selection highlighted until the popover closes', async ({ page, createTmpDir }) => {
+    const { sidebar, request, setAsVariable } = buildCommonLocators(page);
+
+    await test.step('Create a collection with a request', async () => {
+      await createCollection(page, 'keep-selection', await createTmpDir('keep-selection'));
+      await createRequest(page, 'Fetch Posts', 'keep-selection');
+      await sidebar.request('Fetch Posts').click();
+      await setRequestUrlAndSave(page, 'https://example.com/posts');
+    });
+
+    await test.step('The highlight survives the right-click menu', async () => {
+      await openSetAsVariableMenu(page, request.urlLine(), 10);
+      await expect(setAsVariable.selectionHighlight(request.urlInput()).first()).toBeVisible();
+    });
+
+    await test.step('The highlight survives opening the popover', async () => {
+      await setAsVariable.menuAction().click();
+      await expect(setAsVariable.popover()).toBeVisible();
+      await expect(setAsVariable.value()).toHaveText('https');
+      await expect(setAsVariable.selectionHighlight(request.urlInput()).first()).toBeVisible();
+    });
+
+    await test.step('Closing the popover clears the highlight', async () => {
+      await setAsVariable.cancelButton().click();
+      await expect(setAsVariable.popover()).toBeHidden();
+      await expect(setAsVariable.selectionHighlight(request.urlInput())).toHaveCount(0);
+    });
+  });
+
+  test('clears the highlight when the menu is dismissed without opening the popover', async ({ page, createTmpDir }) => {
+    const { sidebar, request, setAsVariable } = buildCommonLocators(page);
+
+    await test.step('Create a collection with a request', async () => {
+      await createCollection(page, 'dismiss-selection', await createTmpDir('dismiss-selection'));
+      await createRequest(page, 'Fetch Posts', 'dismiss-selection');
+      await sidebar.request('Fetch Posts').click();
+      await setRequestUrlAndSave(page, 'https://example.com/posts');
+    });
+
+    await test.step('The highlight survives the right-click menu', async () => {
+      await openSetAsVariableMenu(page, request.urlLine(), 10);
+      await expect(setAsVariable.selectionHighlight(request.urlInput()).first()).toBeVisible();
+    });
+
+    await test.step('Dismissing the menu clears the highlight', async () => {
+      await page.keyboard.press('Escape');
+      await expect(setAsVariable.menu()).toBeHidden();
+      await expect(setAsVariable.selectionHighlight(request.urlInput())).toHaveCount(0);
+    });
+  });
+
+  test('keeps a multi-line editor selection highlighted until the popover closes', async ({ page, createTmpDir }) => {
+    const { sidebar, request, table, setAsVariable } = buildCommonLocators(page);
+    const valueCell = request.queryParams.valueByName('token');
+    const valueEditor = () => table('query-params-table').rowValueEditor(table('query-params-table').rowByName('token'));
+
+    await test.step('Create a request with a query param value', async () => {
+      await createCollection(page, 'keep-selection-mle', await createTmpDir('keep-selection-mle'));
+      await createRequest(page, 'Fetch Posts', 'keep-selection-mle');
+      await sidebar.request('Fetch Posts').click();
+      await setRequestUrlAndSave(page, 'https://example.com/posts?token=greeting');
+      await selectRequestPaneTab(page, 'Params');
+      await expect(valueEditor()).toBeVisible();
+    });
+
+    await test.step('The highlight survives the right-click menu', async () => {
+      await openSetAsVariableMenu(page, valueCell.locator('.CodeMirror-line'), 8);
+      await expect(setAsVariable.selectionHighlight(valueCell).first()).toBeVisible();
+    });
+
+    await test.step('The highlight survives opening the popover', async () => {
+      await setAsVariable.menuAction().click();
+      await expect(setAsVariable.popover()).toBeVisible();
+      await expect(setAsVariable.value()).toHaveText('greeting');
+      await expect(setAsVariable.selectionHighlight(valueCell).first()).toBeVisible();
+    });
+
+    await test.step('Closing the popover clears the highlight', async () => {
+      await setAsVariable.cancelButton().click();
+      await expect(setAsVariable.popover()).toBeHidden();
+      await expect(setAsVariable.selectionHighlight(valueCell)).toHaveCount(0);
+    });
+  });
+
+  test('opens the menu from a macOS ctrl+click and keeps that selection pinned', async ({ page, createTmpDir }) => {
+    test.skip(process.platform !== 'darwin', 'ctrl+click only opens a context menu on macOS');
+
+    const { sidebar, request, setAsVariable } = buildCommonLocators(page);
+
+    await test.step('Create a collection with a request', async () => {
+      await createCollection(page, 'ctrl-click', await createTmpDir('ctrl-click'));
+      await createRequest(page, 'Fetch Posts', 'ctrl-click');
+      await sidebar.request('Fetch Posts').click();
+      await setRequestUrlAndSave(page, 'https://example.com/posts');
+    });
+
+    await test.step('Ctrl+click opens the menu with the selection still highlighted', async () => {
+      await selectWordAndCtrlClick(page, request.urlLine(), 10);
+
+      await expect(setAsVariable.menu()).toBeVisible();
+      await expect(setAsVariable.selectionHighlight(request.urlInput()).first()).toBeVisible();
+    });
+
+    await test.step('The pinned range is the one the form offers', async () => {
+      await setAsVariable.menuAction().click();
+
+      await expect(setAsVariable.popover()).toBeVisible();
+      await expect(setAsVariable.value()).toHaveText('https');
+      await expect(setAsVariable.selectionHighlight(request.urlInput()).first()).toBeVisible();
+    });
+
+    await test.step('Saving replaces the pinned range in the URL', async () => {
+      await setAsVariable.nameInput().fill('scheme');
+      await selectVariableScope(page, 'request');
+      await setAsVariable.saveButton().click();
+
+      await expect(setAsVariable.popover()).toBeHidden();
+      await expect(request.urlLine()).toContainText('{{scheme}}://example.com/posts');
+    });
+  });
+
+  test('writes both the variable and the replaced reference to disk', async ({ page, createTmpDir }) => {
+    const { sidebar, setAsVariable, request, tabs } = buildCommonLocators(page);
+    const dir = await createTmpDir('disk-http');
+
+    await test.step('Create a request with a literal URL', async () => {
+      await createCollection(page, 'disk-http', dir);
+      await createRequest(page, 'Fetch Widgets', 'disk-http');
+      await sidebar.request('Fetch Widgets').click();
+      await setRequestUrlAndSave(page, 'https://example.com/widgets');
+    });
+
+    await test.step('Save the scheme as a request variable', async () => {
+      await openSetAsVariablePopover(page, request.urlLine(), 10);
+      await setAsVariable.nameInput().fill('scheme');
+      await selectVariableScope(page, 'request');
+      await setAsVariable.saveButton().click();
+      await expect(setAsVariable.popover()).toBeHidden();
+    });
+
+    await test.step('The file holds the variable AND the rewritten URL', async () => {
+      const requestFile = path.join(dir, 'disk-http', 'Fetch Widgets.yml');
+      await expect(() => expect(fs.existsSync(requestFile)).toBe(true)).toPass();
+
+      await expect(() => {
+        const contents = fs.readFileSync(requestFile, 'utf8');
+        expect(contents, `variable missing on disk:\n${contents}`).toContain('name: scheme');
+        expect(contents, `URL was not rewritten on disk:\n${contents}`).toContain('{{scheme}}://example.com/widgets');
+      }).toPass();
+    });
+
+    await test.step('And the request is left with nothing unsaved', async () => {
+      await expect(tabs.activeTabDirty()).toHaveCount(0);
+    });
+  });
+
+  test('does not offer the menu on a gRPC request URL', async ({ page, createTmpDir }) => {
+    const { sidebar, setAsVariable, request } = buildCommonLocators(page);
+
+    await test.step('Create a gRPC request', async () => {
+      await createCollection(page, 'grpc-gate', await createTmpDir('grpc-gate'));
+      await createRequest(page, 'Say Hello', 'grpc-gate', { requestType: 'grpc' });
+      await sidebar.request('Say Hello').click();
+      await request.protocolUrlEditor().click();
+      await page.keyboard.type('grpc://example.com/helloworld');
+    });
+
+    await test.step('Right-clicking a selection offers nothing', async () => {
+      await expectNoSetAsVariableMenu(page, request.protocolUrlLine(), 12);
+    });
+
+    await test.step('And leaves no selection pinned behind it', async () => {
+      await selectRequestPaneTab(page, 'Metadata');
+      await expect(setAsVariable.selectionHighlight(request.protocolUrlEditor())).toHaveCount(0);
+    });
+  });
+
+  test('does not offer the menu on a WebSocket request URL', async ({ page, createTmpDir }) => {
+    const { sidebar, request } = buildCommonLocators(page);
+
+    await test.step('Create a WebSocket request', async () => {
+      await createCollection(page, 'ws-gate', await createTmpDir('ws-gate'));
+      await createRequest(page, 'Echo Socket', 'ws-gate', { requestType: 'ws' });
+      await sidebar.request('Echo Socket').click();
+      await request.protocolUrlEditor().click();
+      await page.keyboard.type('wss://example.com/socket');
+    });
+
+    await test.step('Right-clicking a selection offers nothing', async () => {
+      await expectNoSetAsVariableMenu(page, request.protocolUrlLine(), 12);
+    });
+  });
+
+  test('does not offer the menu on a GraphQL response body', async ({ page, createTmpDir }) => {
+    const { sidebar, response } = buildCommonLocators(page);
+
+    await test.step('Create a GraphQL request against the test server', async () => {
+      await createCollection(page, 'gql-gate', await createTmpDir('gql-gate'));
+      await createRequest(page, 'Fetch Users', 'gql-gate', { requestType: 'graphql' });
+      await sidebar.request('Fetch Users').click();
+      await setRequestUrlAndSave(page, 'http://localhost:8081/api/graphql');
+      await setCodeMirrorEditorValue(page, 'graphql-query-editor', '{ users { id name } }');
+    });
+
+    await test.step('Send it and get a body back', async () => {
+      await sendRequest(page, 200);
+      await expect(response.codeLine().first()).toBeVisible();
+    });
+
+    await test.step('Right-clicking the response body offers nothing', async () => {
+      await expectNoSetAsVariableMenu(page, response.codeLine().first(), 12);
+    });
+  });
+
+  test('does not offer the menu in a gRPC bulk-edit box, which passes no request of its own', async ({ page, createTmpDir }) => {
+    const { sidebar, request } = buildCommonLocators(page);
+
+    await test.step('Open a gRPC request and switch Metadata to bulk edit', async () => {
+      await createCollection(page, 'grpc-bulk', await createTmpDir('grpc-bulk'));
+      await createRequest(page, 'Say Hello', 'grpc-bulk', { requestType: 'grpc' });
+      await sidebar.request('Say Hello').click();
+      await selectRequestPaneTab(page, 'Metadata');
+      await request.bulkEditToggle().click();
+    });
+
+    await test.step('Type a header into the bulk-edit box', async () => {
+      await request.bulkEditEditor().click();
+      await page.keyboard.type('x-api-key: secretvalue');
+    });
+
+    await test.step('Right-clicking a selection offers nothing', async () => {
+      await expectNoSetAsVariableMenu(page, request.bulkEditLine(), 12);
+    });
+  });
+
+  test('still offers the menu in an HTTP bulk-edit box', async ({ page, createTmpDir }) => {
+    const { sidebar, setAsVariable, request } = buildCommonLocators(page);
+
+    await test.step('Open an HTTP request and switch Headers to bulk edit', async () => {
+      await createCollection(page, 'http-bulk', await createTmpDir('http-bulk'));
+      await createRequest(page, 'Fetch Posts', 'http-bulk');
+      await sidebar.request('Fetch Posts').click();
+      await selectRequestPaneTab(page, 'Headers');
+      await request.bulkEditToggle().click();
+    });
+
+    await test.step('Type a header into the bulk-edit box', async () => {
+      await request.bulkEditEditor().click();
+      await page.keyboard.type('x-api-key: secretvalue');
+    });
+
+    await test.step('Right-clicking a selection still offers the menu', async () => {
+      await openSetAsVariableMenu(page, request.bulkEditLine(), 12);
+      await expect(setAsVariable.menu()).toBeVisible();
+    });
+  });
+
+  test('does not offer the menu in the GraphQL query editor', async ({ page, createTmpDir }) => {
+    const { sidebar, codeMirror } = buildCommonLocators(page);
+
+    await test.step('Create a GraphQL request with a query', async () => {
+      await createCollection(page, 'gql-query', await createTmpDir('gql-query'));
+      await createRequest(page, 'Fetch Users', 'gql-query', { requestType: 'graphql' });
+      await sidebar.request('Fetch Users').click();
+      await setCodeMirrorEditorValue(page, 'graphql-query-editor', 'query { users(role: "admin") { id } }');
+    });
+
+    await test.step('Right-clicking a selection offers nothing', async () => {
+      await expectNoSetAsVariableMenu(page, codeMirror.byTestId('graphql-query-editor').locator('.CodeMirror-line').first(), 60);
+    });
+  });
+
+  test('does not offer the menu in the Settings tags input', async ({ page, createTmpDir }) => {
+    const { sidebar, codeMirror } = buildCommonLocators(page);
+
+    await test.step('Open an HTTP request on its Settings tab', async () => {
+      await createCollection(page, 'tags-gate', await createTmpDir('tags-gate'));
+      await createRequest(page, 'Fetch Posts', 'tags-gate');
+      await sidebar.request('Fetch Posts').click();
+      await selectRequestPaneTab(page, 'Settings');
+    });
+
+    await test.step('Type a tag', async () => {
+      await codeMirror.byTestId('tag-input').click();
+      await page.keyboard.type('productionready');
+    });
+
+    await test.step('Right-clicking a selection offers nothing', async () => {
+      await expectNoSetAsVariableMenu(page, codeMirror.byTestId('tag-input').locator('.CodeMirror-line').first(), 12);
+    });
+  });
+
+  test('still offers the menu on an HTTP response body', async ({ page, createTmpDir }) => {
+    const { sidebar, setAsVariable, response } = buildCommonLocators(page);
+
+    await test.step('Create an HTTP request against the test server', async () => {
+      await createCollection(page, 'resp-menu', await createTmpDir('resp-menu'));
+      await createRequest(page, 'Echo Json', 'resp-menu');
+      await sidebar.request('Echo Json').click();
+      await setRequestUrlAndSave(page, 'http://localhost:8081/api/echo/headers');
+    });
+
+    await test.step('Send it and get a body back', async () => {
+      await sendRequest(page, 200);
+      await expect(response.codeLine().first()).toBeVisible();
+    });
+
+    await test.step('Right-clicking the response body still offers the menu', async () => {
+      await openSetAsVariableMenu(page, response.codeLine().first(), 12);
+      await expect(setAsVariable.menu()).toBeVisible();
     });
   });
 });

@@ -15,6 +15,7 @@ import {
 import StyledWrapper from './StyledWrapper';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { SetAsVariableContext } from 'providers/SetAsVariable/context';
+import { isSelectionPinned, pinSelectionOnContextMenu, releasePinnedSelection } from 'utils/codemirror/selection';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
 const CodeMirror = require('codemirror');
@@ -227,6 +228,7 @@ class MultiLineEditor extends Component {
     this.editor.on('change', this._onEdit);
     this.editor.on('blur', this._onBlur);
     this.editor.on('contextmenu', this._onContextMenu);
+    this.editor.on('mousedown', this._onMouseDown);
     this.addOverlay(variables);
     this._setupViewPersistence();
 
@@ -237,8 +239,16 @@ class MultiLineEditor extends Component {
     this._enableMaskedEditor(this.props.isSecret);
   }
 
+  _onMouseDown = (editor, event) => {
+    pinSelectionOnContextMenu({
+      editor,
+      event,
+      enabled: this.props.enableBrunoVarInfo !== false && !this.state.maskInput
+    });
+  };
+
   _onBlur = () => {
-    if (this.editor) {
+    if (this.editor && !isSelectionPinned(this.editor)) {
       this.editor.setCursor(this.editor.getCursor());
     }
   };
@@ -356,6 +366,8 @@ class MultiLineEditor extends Component {
       this._teardownViewPersistence();
       this.editor.off('change', this._onEdit);
       this.editor.off('blur', this._onBlur);
+      this.editor.off('mousedown', this._onMouseDown);
+      if (isSelectionPinned(this.editor)) releasePinnedSelection();
       this.editor.off('contextmenu', this._onContextMenu);
       this.editor.getWrapperElement().remove();
     }

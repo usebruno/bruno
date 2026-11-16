@@ -10,6 +10,7 @@ import { transformCollectionToSaveToExportAsFile } from 'utils/collections/index
 import { useSelector } from 'react-redux';
 import { findCollectionByUid, areItemsLoading } from 'utils/collections/index';
 import toast from 'react-hot-toast';
+import { formatIpcError } from 'utils/common/error';
 
 const EXPORT_FORMATS = {
   ZIP: 'zip',
@@ -54,17 +55,20 @@ const ShareCollection = ({ onClose, collectionUid }) => {
         toast.success('Collection exported successfully');
       }
     } catch (error) {
-      toast.error('Failed to export collection: ' + error.message);
+      toast.error('Failed to export collection: ' + formatIpcError(error));
     }
   };
 
-  const handleExportYaml = () => {
+  const handleExportYaml = async () => {
     try {
-      const collectionCopy = cloneDeep(collection);
-      exportOpenCollection(transformCollectionToSaveToExportAsFile(collectionCopy));
-      toast.success('Collection exported successfully');
+      const { ipcRenderer } = window;
+      const content = exportOpenCollection(transformCollectionToSaveToExportAsFile(cloneDeep(collection)));
+      const result = await ipcRenderer.invoke('renderer:export-collection-yaml', collection.name, content);
+      if (result.success) {
+        toast.success('Collection exported successfully');
+      }
     } catch (error) {
-      toast.error('Failed to export collection: ' + error.message);
+      toast.error('Failed to export collection: ' + formatIpcError(error));
       throw error;
     }
   };
@@ -89,7 +93,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
           await handleExportZip();
           break;
         case EXPORT_FORMATS.YAML:
-          handleExportYaml();
+          await handleExportYaml();
           break;
       }
       onClose();

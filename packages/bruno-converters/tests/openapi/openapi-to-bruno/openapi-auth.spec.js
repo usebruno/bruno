@@ -122,7 +122,7 @@ servers:
     expect(req.request.auth.oauth2.grantType).toBe('authorization_code');
   });
 
-  it('sets auth mode to inherit when operation security is explicitly empty', () => {
+  it('sets auth mode to none when operation security is explicitly empty', () => {
     const spec = `
 openapi: 3.0.3
 info:
@@ -138,6 +138,6 @@ servers:
   - url: https://example.com
 `;
     const { items: [req] } = openApiToBruno(spec);
-    expect(req.request.auth.mode).toBe('inherit');
+    expect(req.request.auth.mode).toBe('none');
   });
 });

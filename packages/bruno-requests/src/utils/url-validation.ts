@@ -37,6 +37,19 @@ const isLocalHostname = (host: string): boolean => {
 };
 
 /**
+ * Loopback per RFC 6761 / RFC 4291: localhost, the reserved .localhost TLD, 127.0.0.0/8 and ::1.
+ */
+const isLoopbackHost = (host: string): boolean => {
+  const hostname = hostNoBrackets(host).replace(/\.+$/, '');
+
+  if (isIP(hostname)) {
+    return isIpLoopback(hostname);
+  }
+
+  return isLocalHostname(hostname);
+};
+
+/**
  * Mirrors Chrome / Secure Contexts spec for "potentially trustworthy origins".
  */
 const isPotentiallyTrustworthyOrigin = (urlString: string): boolean => {
@@ -48,20 +61,13 @@ const isPotentiallyTrustworthyOrigin = (urlString: string): boolean => {
   }
 
   const scheme = url.protocol.replace(':', '').toLowerCase();
-  const hostname = hostNoBrackets(url.hostname).replace(/\.+$/, '');
 
   // Secure schemes
   if (scheme === 'https' || scheme === 'wss' || scheme === 'file') {
     return true;
   }
 
-  // IP literals
-  if (isIP(hostname)) {
-    return isIpLoopback(hostname);
-  }
-
-  // localhost / *.localhost
-  return isLocalHostname(hostname);
+  return isLoopbackHost(url.hostname);
 };
 
-export { isPotentiallyTrustworthyOrigin };
+export { isPotentiallyTrustworthyOrigin, isLoopbackHost };

@@ -1,4 +1,17 @@
-import { getCodeMirrorSelectionPayload, replaceSelectionWithVariable, resolveSelectionValue } from './selection';
+import {
+  getCodeMirrorSelectionPayload,
+  getPinnedSelection,
+  isSelectionPinned,
+  pinSelectionOnContextMenu,
+  releasePinnedSelection,
+  replaceSelectionWithVariable,
+  resolveSelectionValue
+} from './selection';
+import { isMacOS } from 'utils/common/platform';
+
+jest.mock('utils/common/platform', () => ({
+  isMacOS: jest.fn(() => false)
+}));
 
 const pos = (line, ch) => ({ line, ch });
 
@@ -9,27 +22,36 @@ const createEditor = ({
   readOnly = false,
   clickedChar = pos(0, 6),
   range = null,
-  document = null
-} = {}) => ({
-  somethingSelected: () => !!selection,
-  getSelection: () => selection,
-  getCursor: (which) => (which === 'from' ? from : to),
-  getOption: (name) => (name === 'readOnly' ? readOnly : undefined),
-  coordsChar: jest.fn(() => clickedChar),
-  getRange: jest.fn((a, b) => {
-    if (document !== null) {
-      const line = document.split('\n')[a.line] ?? '';
-      return line.slice(a.ch, b.ch);
-    }
-    return range === null ? selection : range;
-  }),
-  replaceRange: jest.fn(),
-  getLine: jest.fn((line) => (document === null ? selection : document.split('\n')[line] ?? '')),
-  getTokenAt: jest.fn((position) => {
-    const text = document === null ? selection : document.split('\n')[position.line] ?? '';
-    return tokenAt(text, position.ch);
-  })
-});
+  document = null,
+  focused = false
+} = {}) => {
+  let selected = selection;
+
+  return {
+    somethingSelected: () => !!selected,
+    getSelection: () => selected,
+    getCursor: (which) => (which === 'from' ? from : to),
+    hasFocus: () => focused,
+    setCursor: jest.fn(() => {
+      selected = '';
+    }),
+    getOption: (name) => (name === 'readOnly' ? readOnly : undefined),
+    coordsChar: jest.fn(() => clickedChar),
+    getRange: jest.fn((a, b) => {
+      if (document !== null) {
+        const line = document.split('\n')[a.line] ?? '';
+        return line.slice(a.ch, b.ch);
+      }
+      return range === null ? selection : range;
+    }),
+    replaceRange: jest.fn(),
+    getLine: jest.fn((line) => (document === null ? selection : document.split('\n')[line] ?? '')),
+    getTokenAt: jest.fn((position) => {
+      const text = document === null ? selection : document.split('\n')[position.line] ?? '';
+      return tokenAt(text, position.ch);
+    })
+  };
+};
 
 // Stands in for CodeMirror's javascript mode: the enclosing string literal, or a non-string token.
 const tokenAt = (text, ch) => {
@@ -448,5 +470,150 @@ describe('replaceSelectionWithVariable — cases the line scanner got wrong', ()
 
   it('replaces plain code outside any literal', () => {
     expect(rewrite('const a = 5000;', '5000')).toBe('const a = bru.getEnvVar(\'tok\');');
+  });
+});
+
+describe('pinSelectionOnContextMenu', () => {
+  const rightClick = { clientX: 10, clientY: 20, button: 2 };
+  const leftClick = { clientX: 10, clientY: 20, button: 0 };
+  const ctrlLeftClick = { clientX: 10, clientY: 20, button: 0, ctrlKey: true };
+
+  beforeEach(() => isMacOS.mockReturnValue(false));
+  afterEach(() => releasePinnedSelection());
+
+  it('pins the selection on a right-click', () => {
+    const editor = createEditor();
+    pinSelectionOnContextMenu({ editor, event: rightClick, enabled: true });
+
+    expect(isSelectionPinned(editor)).toBe(true);
+    expect(getPinnedSelection(editor)).toEqual({
+      text: 'token',
+      from: pos(0, 4),
+      to: pos(0, 9),
+      editable: true
+    });
+  });
+
+  it('does not pin on a plain left-click', () => {
+    const editor = createEditor();
+    pinSelectionOnContextMenu({ editor, event: leftClick, enabled: true });
+
+    expect(isSelectionPinned(editor)).toBe(false);
+  });
+
+  it('pins a macOS ctrl+left-click, which opens the context menu there', () => {
+    isMacOS.mockReturnValue(true);
+    const editor = createEditor();
+    pinSelectionOnContextMenu({ editor, event: ctrlLeftClick, enabled: true });
+
+    expect(isSelectionPinned(editor)).toBe(true);
+  });
+
+  it('ignores ctrl+left-click off macOS, where it is not a context-menu gesture', () => {
+    const editor = createEditor();
+    pinSelectionOnContextMenu({ editor, event: ctrlLeftClick, enabled: true });
+
+    expect(isSelectionPinned(editor)).toBe(false);
+  });
+
+  it('does not pin when the feature is disabled', () => {
+    const editor = createEditor();
+    pinSelectionOnContextMenu({ editor, event: rightClick, enabled: false });
+
+    expect(isSelectionPinned(editor)).toBe(false);
+  });
+
+  it('does not pin when nothing is selected', () => {
+    const editor = createEditor({ selection: '' });
+    pinSelectionOnContextMenu({ editor, event: rightClick, enabled: true });
+
+    expect(isSelectionPinned(editor)).toBe(false);
+  });
+
+  it('does not pin a right-click that lands outside the selection', () => {
+    const editor = createEditor({ clickedChar: pos(0, 30) });
+    pinSelectionOnContextMenu({ editor, event: rightClick, enabled: true });
+
+    expect(isSelectionPinned(editor)).toBe(false);
+  });
+
+  it('releases a stale pin when a later gesture is not eligible', () => {
+    const editor = createEditor();
+    pinSelectionOnContextMenu({ editor, event: rightClick, enabled: true });
+    pinSelectionOnContextMenu({ editor, event: leftClick, enabled: true });
+
+    expect(isSelectionPinned(editor)).toBe(false);
+  });
+
+  it('repins the same editor without losing the payload', () => {
+    // The outgoing pin's collapse must not blank the range that is about to be repinned.
+    const editor = createEditor();
+    pinSelectionOnContextMenu({ editor, event: rightClick, enabled: true });
+    pinSelectionOnContextMenu({ editor, event: rightClick, enabled: true });
+
+    expect(getPinnedSelection(editor)).toMatchObject({ text: 'token' });
+  });
+
+  it('moves the pin to the editor of the latest gesture', () => {
+    const first = createEditor();
+    const second = createEditor();
+    pinSelectionOnContextMenu({ editor: first, event: rightClick, enabled: true });
+    pinSelectionOnContextMenu({ editor: second, event: rightClick, enabled: true });
+
+    expect(isSelectionPinned(first)).toBe(false);
+    expect(isSelectionPinned(second)).toBe(true);
+  });
+});
+
+describe('getPinnedSelection', () => {
+  const rightClick = { clientX: 10, clientY: 20, button: 2 };
+
+  afterEach(() => releasePinnedSelection());
+
+  it('returns null when nothing is pinned', () => {
+    expect(getPinnedSelection(createEditor())).toBeNull();
+  });
+
+  it('returns the payload only for the editor that holds the pin', () => {
+    const pinned = createEditor();
+    const other = createEditor();
+    pinSelectionOnContextMenu({ editor: pinned, event: rightClick, enabled: true });
+
+    expect(getPinnedSelection(pinned)).not.toBeNull();
+    expect(getPinnedSelection(other)).toBeNull();
+  });
+});
+
+describe('releasePinnedSelection', () => {
+  const rightClick = { clientX: 10, clientY: 20, button: 2 };
+
+  afterEach(() => releasePinnedSelection());
+
+  it('clears the pin', () => {
+    const editor = createEditor();
+    pinSelectionOnContextMenu({ editor, event: rightClick, enabled: true });
+    releasePinnedSelection();
+
+    expect(isSelectionPinned(editor)).toBe(false);
+  });
+
+  it('collapses the selection once the editor is no longer focused', () => {
+    const editor = createEditor({ focused: false });
+    pinSelectionOnContextMenu({ editor, event: rightClick, enabled: true });
+    releasePinnedSelection();
+
+    expect(editor.setCursor).toHaveBeenCalledWith(editor.getCursor());
+  });
+
+  it('leaves a still-focused editor alone, so the caret is not disturbed', () => {
+    const editor = createEditor({ focused: true });
+    pinSelectionOnContextMenu({ editor, event: rightClick, enabled: true });
+    releasePinnedSelection();
+
+    expect(editor.setCursor).not.toHaveBeenCalled();
+  });
+
+  it('is a no-op when nothing is pinned', () => {
+    expect(() => releasePinnedSelection()).not.toThrow();
   });
 });
