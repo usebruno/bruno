@@ -2,7 +2,8 @@
  * @jest-environment node
  */
 
-import { GrpcClient, splitMethodDescriptors } from './grpc-client';
+import { GrpcClient } from './grpc-client';
+import { splitMethodDescriptors } from './method-descriptors';
 
 // hello.proto as a FileDescriptorProto, the shape server reflection hands back for every method
 // of hello.HelloService. Captured from the gRPC test server in packages/bruno-tests.

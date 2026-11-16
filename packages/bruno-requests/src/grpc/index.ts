@@ -1,2 +1,3 @@
-export { GrpcClient, splitMethodDescriptors } from './grpc-client';
+export { GrpcClient } from './grpc-client';
+export { splitMethodDescriptors } from './method-descriptors';
 export { generateGrpcSampleMessage } from './grpcMessageGenerator';
