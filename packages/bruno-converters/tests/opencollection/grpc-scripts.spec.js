@@ -108,7 +108,7 @@ describe('brunoToOpenCollection (export): grpc lifecycle scripts', () => {
     ]);
   });
 
-  it('trims the whitespace around the hooks', () => {
+  it('keeps the whitespace around the hooks', () => {
     const oc = exportItems([
       grpcItem({
         beforeCallStart: '  before()\n',
@@ -119,10 +119,10 @@ describe('brunoToOpenCollection (export): grpc lifecycle scripts', () => {
     ]);
 
     expect(oc.items[0].runtime.scripts).toEqual([
-      { type: 'grpc:before-call-start', code: 'before()' },
-      { type: 'grpc:before-message-send', code: 'beforeSend()' },
-      { type: 'grpc:after-message-receive', code: 'afterReceive()' },
-      { type: 'grpc:after-call-end', code: 'after()' }
+      { type: 'grpc:before-call-start', code: '  before()\n' },
+      { type: 'grpc:before-message-send', code: ' beforeSend() ' },
+      { type: 'grpc:after-message-receive', code: '\n afterReceive() \n' },
+      { type: 'grpc:after-call-end', code: '\n\tafter()  ' }
     ]);
   });
 
