@@ -333,13 +333,14 @@ describe.each([
       expect(items.map((item) => item.filename)).toEqual(['GET /pet/{petId}.bru', 'POST /pet/{petId}.bru', 'DELETE /pet/{petId}.bru']);
     });
 
-    it('keeps the paths of operations that share a method and path apart', () => {
-      const names = namesOf({
+    it('keeps a trailing slash in the path name and its file name', () => {
+      const { items } = openApiToBruno(buildSpec({
         '/pets': { get: { summary: 'Lists pets', responses: {} } },
         '/pets/': { get: { summary: 'Lists pets', responses: {} } }
-      }, { requestNameSource: 'path' });
+      }), { requestNameSource: 'path' });
 
-      expect(names).toEqual(['/pets', '/pets/']);
+      expect(items.map((item) => item.name)).toEqual(['/pets', '/pets/']);
+      expect(items.map((item) => item.filename)).toEqual(['GET /pets.bru', 'GET /pets/.bru']);
     });
 
     it('gives each request its own file when paths become the same file once sanitized or compared without case', () => {
@@ -374,6 +375,13 @@ describe.each([
 
       expect(item.name).toBe('/');
       expect(sanitizeName(item.filename)).toBe('GET -.bru');
+    });
+
+    it.each(['', '...'])('names a request after its method when the path %p leaves no name', (emptyPath) => {
+      const [item] = openApiToBruno(buildSpec({ [emptyPath]: { get: { responses: {} } } }), { requestNameSource: 'path' }).items;
+
+      expect(item.name).toBe('GET');
+      expect(item.filename).toBe('GET.bru');
     });
   });
 

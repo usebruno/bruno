@@ -1431,20 +1431,29 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         const getFilenameWithFormat = (item, format) => {
           if (item?.filename) {
-            const ext = path.extname(item.filename);
-            if (ext === '.bru' || ext === '.yml') {
-              return item.filename.replace(ext, `.${format}`);
-            }
-            return item.filename;
+            return item.filename.replace(/\.(bru|yml)$/, `.${format}`);
           }
           return `${item.name}.${format}`;
         };
 
+        const claimUniqueFilename = (filename, claimedFilenames) => {
+          const { name, ext } = path.parse(filename);
+          let uniqueFilename = filename;
+          let counter = 1;
+          while (claimedFilenames.has(uniqueFilename.toLowerCase())) {
+            uniqueFilename = `${name} (${counter})${ext}`;
+            counter++;
+          }
+          claimedFilenames.add(uniqueFilename.toLowerCase());
+          return uniqueFilename;
+        };
+
         // Recursive function to parse the collection items and create files/folders
         const parseCollectionItems = async (items = [], currentPath) => {
+          const requestFilenames = new Set();
           await Promise.all(items.map(async (item) => {
             if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
-              const sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
+              const sanitizedFilename = claimUniqueFilename(sanitizeName(getFilenameWithFormat(item, format)), requestFilenames);
               const content = await stringifyRequestViaWorker(item, { format });
               const filePath = path.join(currentPath, sanitizedFilename);
               safeWriteFileSync(filePath, content);
