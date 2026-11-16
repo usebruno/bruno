@@ -1,0 +1,12 @@
+opencollection: 1.0.0
+info:
+  name: "Global Environment Name"
+  type: workspace
+
+collections:
+  - name: "Global Env Name"
+    path: "collections/collection"
+
+specs:
+
+docs: ''
