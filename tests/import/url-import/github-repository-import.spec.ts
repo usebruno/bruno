@@ -1,10 +1,25 @@
 import { test, expect } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections, expandCollection, expandFolder } from '../../utils/page';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  expandCollection,
+  expandFolder,
+  restoreOpenDialog,
+  stashOpenDialog
+} from '../../utils/page';
 
 const REPOSITORY_URL = 'https://github.com/usebruno/github-rest-api-collection';
 const COLLECTION_NAME = 'github rest api';
 
 test.describe('GitHub Repository URL Import', () => {
+  test.beforeAll(async ({ electronApp }) => {
+    await stashOpenDialog(electronApp);
+  });
+
+  test.afterAll(async ({ electronApp }) => {
+    await restoreOpenDialog(electronApp);
+  });
+
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
