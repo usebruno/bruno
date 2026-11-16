@@ -1,6 +1,5 @@
 import React from 'react';
 import GradientCloseButton from './GradientCloseButton';
-import StatusBadge from 'ui/StatusBadge';
 import { IconVariable, IconSettings, IconRun, IconFolder, IconDatabase, IconWorld, IconHome, IconFileCode, IconConfetti, IconServer2 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 

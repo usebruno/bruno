@@ -99,6 +99,9 @@ describe('MockResponsesList spec actions', () => {
     storeState.workspaces.activeWorkspaceUid = 'ws-1';
     storeState.workspaces.workspaces[0] = { uid: 'ws-1', pathname: '/tmp/ws', scratchCollectionUid: 'scratch-1' };
     dispatch = jest.fn((action) => {
+      if (typeof action === 'function') {
+        return action(dispatch, () => storeState);
+      }
       if (action?.type === 'load-from-spec') {
         return rejection(NO_PATHS);
       }

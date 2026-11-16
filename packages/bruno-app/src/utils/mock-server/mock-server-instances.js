@@ -282,28 +282,6 @@ export const resolveInstanceSpec = (instance, apiSpecs) => {
   };
 };
 
-export const resolveTabCollectionUid = ({
-  sourceType,
-  collectionUid,
-  activeWorkspace,
-  workspaceCollections = []
-}) => {
-  if (sourceType === 'collection' && collectionUid) {
-    return collectionUid;
-  }
-
-  if (activeWorkspace?.scratchCollectionUid) {
-    return activeWorkspace.scratchCollectionUid;
-  }
-
-  const firstCollection = workspaceCollections.find((collection) => collection.uid);
-  if (firstCollection?.uid) {
-    return firstCollection.uid;
-  }
-
-  return collectionUid || null;
-};
-
 export const resolveMockServerWorkspacePath = (instance, workspaces = [], activeWorkspace = null) => {
   if (instance?.workspaceUid) {
     const workspace = workspaces.find((item) => item.uid === instance.workspaceUid);
@@ -364,19 +342,24 @@ export const resolveMockServerStartPayload = (instance, { collection, apiSpecs, 
   };
 };
 
-export const openMockServerDashboard = (instance) => async (dispatch, getState) => {
+// Inline require: workspaces/actions imports this module.
+const activeScratchCollectionUid = async (dispatch, getState) => {
   const { workspaces, activeWorkspaceUid } = getState().workspaces;
   const workspace = workspaces.find((item) => item.uid === activeWorkspaceUid);
   if (!workspace) {
-    return;
+    return null;
   }
 
-  let collectionUid = workspace.scratchCollectionUid;
-  if (!collectionUid) {
-    const { mountScratchCollection } = require('providers/ReduxStore/slices/workspaces/actions');
-    collectionUid = (await dispatch(mountScratchCollection(workspace.uid)))?.uid;
+  if (workspace.scratchCollectionUid) {
+    return workspace.scratchCollectionUid;
   }
 
+  const { mountScratchCollection } = require('providers/ReduxStore/slices/workspaces/actions');
+  return (await dispatch(mountScratchCollection(workspace.uid)))?.uid || null;
+};
+
+export const openMockServerDashboard = (instance) => async (dispatch, getState) => {
+  const collectionUid = await activeScratchCollectionUid(dispatch, getState);
   if (!collectionUid) {
     return;
   }
@@ -387,6 +370,23 @@ export const openMockServerDashboard = (instance) => async (dispatch, getState) 
     mockServerUid: instance.uid,
     tabName: instance.name,
     type: 'mock-server'
+  }));
+};
+
+export const openMockResponseTab = (instance, response) => async (dispatch, getState) => {
+  const collectionUid = await activeScratchCollectionUid(dispatch, getState);
+  if (!collectionUid) {
+    return;
+  }
+
+  dispatch(addTab({
+    uid: response.uid,
+    type: 'mock-response',
+    mockServerUid: instance.uid,
+    collectionUid,
+    responseName: response.name,
+    tabName: response.name,
+    preview: false
   }));
 };
 

@@ -5,7 +5,7 @@ const https = require('https');
 const net = require('net');
 const { BrowserWindow } = require('electron');
 const { v4: uuidv4 } = require('uuid');
-const { preferencesUtil } = require('../../store/preferences');
+const { isMockServerEnabled } = require('./is-enabled');
 const { buildRouteMapFromMockResponses, countRouteResponses } = require('./mock-response-routes');
 const { buildRequestContext, evaluateResponseCandidates } = require('./mock-rule-matcher');
 const DEFAULT_GATEWAY_PORT = 4000;
@@ -561,9 +561,6 @@ const closeHttpServer = (httpServer) => new Promise((resolve) => {
 });
 
 const MOCK_SERVER_DISABLED_ERROR = 'Mock server might be disabled as a feature';
-
-// change this to a feature check
-const isMockServerEnabled = () => preferencesUtil.isBetaFeatureEnabled('mock-server');
 
 const start = async ({
   mockServerUid,

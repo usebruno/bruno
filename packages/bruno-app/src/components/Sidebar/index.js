@@ -11,14 +11,13 @@ import ApiSpecsSection from './Sections/ApiSpecsSection/index';
 import MockServersSection from './Sections/MockServersSection/index';
 import useKeybinding from 'hooks/useKeybinding';
 import useClearSidebarSelectionOnEscape from 'hooks/useClearSidebarSelectionOnEscape';
-import { useBetaFeature } from 'utils/beta-features';
+import { useIsMockServerEnabled } from 'utils/mock-server/is-enabled';
 
 const MIN_LEFT_SIDEBAR_WIDTH = 220;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
 
 const Sidebar = () => {
-  // change this to a feature check
-  const isMockServerEnabled = useBetaFeature('mock-server');
+  const isMockServerEnabled = useIsMockServerEnabled();
   const sidebarSections = useMemo(() => {
     const sections = [
       {
@@ -31,17 +30,12 @@ const Sidebar = () => {
       }
     ];
 
-    // if (isMockServerEnabled) {
-    //   sections.push({
-    //     id: 'mock-servers',
-    //     component: MockServersSection
-    //   });
-    // }
-
-    sections.push({
-      id: 'mock-servers',
-      component: MockServersSection
-    });
+    if (isMockServerEnabled) {
+      sections.push({
+        id: 'mock-servers',
+        component: MockServersSection
+      });
+    }
 
     return sections;
   }, [isMockServerEnabled]);

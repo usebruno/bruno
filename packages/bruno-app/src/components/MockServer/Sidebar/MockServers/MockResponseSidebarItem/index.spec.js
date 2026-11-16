@@ -52,13 +52,20 @@ const stateWithScratch = (scratchCollectionUid) => ({
 });
 
 describe('MockResponseSidebarItem', () => {
+  let state;
+
+  const dispatch = (action) => (
+    typeof action === 'function' ? action(dispatch, () => state) : action
+  );
+
   beforeEach(() => {
     jest.clearAllMocks();
-    useDispatch.mockReturnValue(jest.fn());
+    useDispatch.mockReturnValue(jest.fn(dispatch));
   });
 
   const renderItem = (scratchCollectionUid) => {
-    useSelector.mockImplementation((selector) => selector(stateWithScratch(scratchCollectionUid)));
+    state = stateWithScratch(scratchCollectionUid);
+    useSelector.mockImplementation((selector) => selector(state));
     return render(
       <ThemeProvider theme={themes.light}>
         <MockResponseSidebarItem
@@ -86,7 +93,7 @@ describe('MockResponseSidebarItem', () => {
   });
 
   it('mounts the scratch collection before opening the response when the workspace has none', async () => {
-    useDispatch.mockReturnValue(jest.fn().mockResolvedValue({ uid: 'scratch-2' }));
+    mountScratchCollection.mockImplementation(() => () => Promise.resolve({ uid: 'scratch-2' }));
     renderItem(undefined);
 
     fireEvent.click(screen.getByRole('button', { name: 'List pets' }));
@@ -98,7 +105,7 @@ describe('MockResponseSidebarItem', () => {
   });
 
   it('does not open the response when mounting the scratch collection fails', async () => {
-    useDispatch.mockReturnValue(jest.fn().mockResolvedValue(undefined));
+    mountScratchCollection.mockImplementation(() => () => Promise.resolve(undefined));
     renderItem(undefined);
 
     fireEvent.click(screen.getByRole('button', { name: 'List pets' }));

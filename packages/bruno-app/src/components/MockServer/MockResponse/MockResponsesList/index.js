@@ -9,7 +9,7 @@ import {
   saveMockResponse,
   syncMockResponsesFromExamples
 } from 'providers/ReduxStore/slices/mock-server/index';
-import { addTab, closeTabs, updateTabMeta } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs, updateTabMeta } from 'providers/ReduxStore/slices/tabs';
 import { removeMockResponseEditor } from 'providers/ReduxStore/slices/collections';
 import {
   buildMockServerTryUrl,
@@ -19,7 +19,7 @@ import {
   syncMockResponsesFromExamples as mergeMockResponsesFromExamples,
   syncMockResponsesFromSpec as mergeMockResponsesFromSpec
 } from 'utils/mock-server/mock-responses';
-import { resolveInstanceSpec } from 'utils/mock-server/mock-server-instances';
+import { openMockResponseTab, resolveInstanceSpec } from 'utils/mock-server/mock-server-instances';
 import { IconCopy, IconPlus, IconServer2, IconTrash } from '@tabler/icons';
 import CreateMockResponseModal from '../CreateMockResponseModal';
 import MockConfirmModal from 'components/MockServer/MockConfirmModal';
@@ -67,29 +67,8 @@ const MockResponsesList = ({ instance, collection }) => {
     dispatch(loadMockResponses(location));
   }, [dispatch, location.mockServerUid, location.workspacePath]);
 
-  const openResponseTab = async (response) => {
-    const workspace = workspaces.find((item) => item.uid === activeWorkspaceUid);
-    if (!workspace) {
-      return;
-    }
-    let collectionUid = workspace.scratchCollectionUid;
-    if (!collectionUid) {
-      const { mountScratchCollection } = require('providers/ReduxStore/slices/workspaces/actions');
-      collectionUid = (await dispatch(mountScratchCollection(workspace.uid)))?.uid;
-    }
-
-    if (!collectionUid) {
-      return;
-    }
-    dispatch(addTab({
-      uid: response.uid,
-      type: 'mock-response',
-      mockServerUid: instance.uid,
-      collectionUid,
-      responseName: response.name,
-      tabName: response.name,
-      preview: false
-    }));
+  const openResponseTab = (response) => {
+    dispatch(openMockResponseTab(instance, response));
   };
 
   const handleCreate = async ({ name, description, statusCode, bodyType, exampleSelection }) => {

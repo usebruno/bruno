@@ -146,7 +146,7 @@ describe('openMockServerDashboard', () => {
     const getState = stateWith({ uid: 'ws-1', scratchCollectionUid: 'scratch-1' });
     const dispatch = jest.fn();
 
-    await openMockServerDashboard(instance, 'col-1')(dispatch, getState);
+    await openMockServerDashboard(instance)(dispatch, getState);
 
     expect(dispatch).toHaveBeenCalledWith(addTab({
       uid: 'ms-1',

@@ -7,12 +7,7 @@ import * as Yup from 'yup';
 import debounce from 'lodash/debounce';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
-// Commented out while there are no active beta features. Re-enable this import when
-// adding a beta feature its keys are then referenced as BETA_FEATURE_IDS.MY_FEATURE in the BETA_FEATURES array.
 import { IconArrowRight, IconExternalLink } from '@tabler/icons';
-import ToggleSwitch from 'components/ToggleSwitch';
-import ConfirmRequestClose from 'components/RequestTabs/RequestTab/ConfirmRequestClose';
-import useMockServerBetaToggle from './useMockServerBetaToggle';
 
 import { BETA_FEATURES as BETA_FEATURE_IDS } from 'utils/beta-features';
 import { getDocsUrlWithVersion } from 'utils/url';
@@ -112,14 +107,7 @@ const Beta = ({ close }) => {
     }
   });
 
-  const {
-    toggle: toggleMockServer,
-    handleSaved: handleMockServerSaved,
-    confirmDisableProps
-  } = useMockServerBetaToggle((enabled) => formik.setFieldValue(BETA_FEATURE_IDS.MOCK_SERVER, enabled));
-
   const handleSave = useCallback((newBetaPreferences) => {
-    const wasMockServerEnabled = preferences?.beta?.[BETA_FEATURE_IDS.MOCK_SERVER];
     dispatch(
       savePreferences({
         ...preferences,
@@ -129,12 +117,11 @@ const Beta = ({ close }) => {
         }
       })
     )
-      .then(() => handleMockServerSaved(wasMockServerEnabled, newBetaPreferences[BETA_FEATURE_IDS.MOCK_SERVER]))
       .catch((err) => {
         console.log(err);
         toast.error('Failed to update beta preferences');
       });
-  }, [dispatch, preferences, handleMockServerSaved]);
+  }, [dispatch, preferences]);
 
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
@@ -163,22 +150,12 @@ const Beta = ({ close }) => {
 
   const hasAnyBetaFeatures = BETA_FEATURES.length > 0;
 
-  const handleToggle = (featureId) => {
-    const enabled = !formik.values[featureId];
-    if (featureId === BETA_FEATURE_IDS.MOCK_SERVER) {
-      toggleMockServer(enabled);
-      return;
-    }
-    formik.setFieldValue(featureId, enabled);
-  };
-
   const goToTab = useCallback((tab) => {
     dispatch(updateActivePreferencesTab({ tab }));
   }, [dispatch]);
 
   return (
     <StyledWrapper>
-      {confirmDisableProps ? <ConfirmRequestClose {...confirmDisableProps} /> : null}
       <div className="section-header">Beta Features</div>
       <form onSubmit={formik.handleSubmit}>
         <div className="mb-6">
@@ -197,16 +174,6 @@ const Beta = ({ close }) => {
               </div>
               <div className="beta-feature-description text-xs text-gray-500 dark:text-gray-400 flex">
                 {feature.description}
-                {feature.toggle && (
-                  <div className="ml-auto">
-                    <ToggleSwitch
-                      size="xs"
-                      isOn={formik.values[feature.id]}
-                      handleToggle={() => handleToggle(feature.id)}
-                      data-testid="mock-server-beta-toggle"
-                    />
-                  </div>
-                )}
               </div>
               {(feature.action || feature.docsUrl) && (
                 <div className="beta-feature-links">

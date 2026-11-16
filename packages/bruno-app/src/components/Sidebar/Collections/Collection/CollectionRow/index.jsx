@@ -54,14 +54,13 @@ import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import useKeybinding from 'hooks/useKeybinding';
 import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
-import { useBetaFeature } from 'utils/beta-features';
+import { useIsMockServerEnabled } from 'utils/mock-server/is-enabled';
 import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
 
 const CollectionRow = ({ collection, searchText, openBulkMenu, children, isCollectionMultiDragDisabled, multiDragCollections }) => {
-// change this to a feature check
-  const isMockServerEnabled = useBetaFeature('mock-server');
+  const isMockServerEnabled = useIsMockServerEnabled();
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
