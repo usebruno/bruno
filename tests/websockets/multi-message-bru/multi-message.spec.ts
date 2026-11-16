@@ -243,24 +243,28 @@ test.describe.serial('websocket multi-message (bru format)', () => {
   }) => {
     const { websocket } = buildCommonLocators(page);
 
-    await openRequest(page, COLLECTION_NAME, MULTI_MSG_REQ);
+    await test.step('Open multi-message request and add a third message', async () => {
+      await openRequest(page, COLLECTION_NAME, MULTI_MSG_REQ);
+      await websocket.message.addButton().click();
+      await websocket.message.nameInput(2).press('Escape');
+      await expect(websocket.message.headers()).toHaveCount(3);
+    });
 
-    // Fixture starts with 2 messages; add one more so we can delete an unselected row
-    // while leaving the last-added (selected) message in place.
-    await websocket.message.addButton().click();
-    await websocket.message.nameInput(2).press('Escape');
-    await expect(websocket.message.headers()).toHaveCount(3);
+    await test.step('The last-added message (index 2) is the selected one', async () => {
+      await expect(websocket.message.messageWrapper(2)).not.toHaveClass(/disabled/);
+      await expect(websocket.message.messageWrapper(0)).toHaveClass(/disabled/);
+    });
 
-    await expect(websocket.message.messageWrapper(2)).not.toHaveClass(/disabled/);
-    await expect(websocket.message.messageWrapper(0)).toHaveClass(/disabled/);
+    await test.step('Delete a different, unselected message (the first one)', async () => {
+      await websocket.message.header(0).hover();
+      await websocket.message.deleteButton(0).click();
+      await expect(websocket.message.headers()).toHaveCount(2);
+    });
 
-    await websocket.message.header(0).hover();
-    await websocket.message.deleteButton(0).click();
-    await expect(websocket.message.headers()).toHaveCount(2);
-
-    // Former index 2 is now index 1; selection must not jump to the first remaining message.
-    await expect(websocket.message.messageWrapper(1)).not.toHaveClass(/disabled/);
-    await expect(websocket.message.messageWrapper(0)).toHaveClass(/disabled/);
+    await test.step('The previously selected message stays selected — not the new first one', async () => {
+      await expect(websocket.message.messageWrapper(1)).not.toHaveClass(/disabled/);
+      await expect(websocket.message.messageWrapper(0)).toHaveClass(/disabled/);
+    });
   });
 
   test('rename a message via double-click', async ({ pageWithUserData: page }) => {
