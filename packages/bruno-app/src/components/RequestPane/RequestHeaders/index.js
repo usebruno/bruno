@@ -174,7 +174,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const effectiveHttpVersion
     = [requestHttpVersion, collectionHttpVersion, appHttpVersion].find(isExplicitVersion) || 'http1';
 
-  const httpVersion = effectiveHttpVersion === 'http2' ? '2' : '1.1';
+  const httpVersion = effectiveHttpVersion === 'http1' ? '1.1' : '2';
 
   const defaultHeaders = useMemo(() => filterUnclaimedHeaders(getBrunoDefaultHeaders({ httpVersion }), [
     ...requestHeaderNames,

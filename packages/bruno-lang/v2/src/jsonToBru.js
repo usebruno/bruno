@@ -825,6 +825,10 @@ ${indentString(tests)}
       bru += 'settings {\n';
 
       for (const key in settingsWithoutOmitHeaders) {
+        // 'inherit' is the default for httpVersion. omit it so unchanged requests are not rewritten.
+        if (key === 'httpVersion' && settingsWithoutOmitHeaders[key] === 'inherit') {
+          continue;
+        }
         bru += `  ${key}: ${settingsWithoutOmitHeaders[key]}\n`;
       }
 

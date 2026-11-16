@@ -63,13 +63,8 @@ const Settings = ({ item, collection }) => {
   const currentHttpVersion = rawSettings.httpVersion || 'inherit';
 
   const onHttpVersionChange = useCallback((value) => {
-    if (value === 'inherit') {
-      const { httpVersion, ...rest } = settings;
-      dispatch(updateItemSettings({ collectionUid: collection.uid, itemUid: item.uid, settings: rest }));
-    } else {
-      updateSetting({ httpVersion: value });
-    }
-  }, [settings, updateSetting, dispatch, collection.uid, item.uid]);
+    updateSetting({ httpVersion: value });
+  }, [updateSetting]);
 
   const httpVersionItems = [
     {
