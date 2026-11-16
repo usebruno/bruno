@@ -59,7 +59,7 @@ describe('the dialog for removing an API spec from the workspace', () => {
   it('is titled after the action, names the spec and its path, and says the file stays on disk', () => {
     renderModal();
 
-    expect(screen.getByText('Remove from Workspace')).toBeInTheDocument();
+    expect(screen.getByText('Remove API Spec')).toBeInTheDocument();
     expect(screen.getByText('Petstore')).toBeInTheDocument();
     expect(screen.getByText(SPEC_PATHNAME)).toBeInTheDocument();
     expect(screen.getByText(/stays on disk/)).toBeInTheDocument();

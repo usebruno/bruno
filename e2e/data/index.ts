@@ -3,3 +3,4 @@
  */
 export * from './collection-generator';
 export * from './bru-collection';
+export * from './payload-file';

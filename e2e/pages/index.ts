@@ -20,6 +20,7 @@ export * from './app-shell/toast';
 
 // collection
 export * from './collection/collection-app';
+export * from './collection/collection-run';
 export * from './collection/docs';
 export * from './collection/export';
 export * from './collection/git-clone';

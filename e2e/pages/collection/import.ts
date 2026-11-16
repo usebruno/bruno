@@ -24,11 +24,18 @@ export const buildImportCollectionLocators = (page: Page) => ({
   advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
   preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
   checkForSpecUpdatesToggle: () => page.getByTestId('check-for-spec-updates-toggle'),
+  advancedSectionToggle: () => page.getByTestId('import-advanced-section-toggle'),
+  authPlacementToggle: () => page.getByTestId('auth-placement-toggle'),
+  requestNameSourceDropdown: () => page.getByTestId('request-name-source-dropdown'),
+  requestNameSourceOption: (value: string) => page.getByTestId(`request-name-source-option-${value.toLowerCase()}`),
   bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
   bulkFormatSelect: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
   bulkLocationInput: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),
   bulkSubmitButton: () => page.getByTestId('bulk-import-collection-location-modal-submit-btn'),
-  bulkSpecUpdatesCheckbox: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates'),
+  bulkOpenApiConfigurationToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByRole('button', { name: 'OpenAPI Import configuration' }),
+  bulkGroupingDropdown: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('grouping-dropdown'),
+  bulkGroupingOption: (value: string) => page.getByTestId('bulk-import-collection-location-modal').getByTestId(`grouping-option-${value}`),
+  bulkSpecUpdatesToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates'),
   bulkSpecUpdatesDescription: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates-description'),
   bulkSwagger2SyncNote: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-swagger2-sync-note'),
   bulkSelectAllCollectionsToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('selection-section-collections').getByTestId('selection-select-all-toggle'),
@@ -87,6 +94,8 @@ export type ImportCollectionOptions = {
   sidebarTimeout?: number;
   preserveScripts?: boolean;
   checkForSpecUpdates?: boolean;
+  authPlacement?: 'request' | 'collection';
+  requestNameSource?: 'summary' | 'operationId' | 'description' | 'path';
 };
 
 export const importCollection = async (
@@ -119,19 +128,29 @@ export const importCollection = async (
       await expect(locationModal.getByText(options.expectedCollectionName)).toBeVisible();
     }
 
-    // Enable 'Preserve scripts' option via the Advanced Options toggle
-    if (options.preserveScripts) {
-      await locationModal.getByRole('button', { name: 'Options' }).click();
-      await locators.import.advancedOptionsToggle().click();
-      const preserveScriptsCheckbox = locators.import.preserveScriptsToggle();
-      await preserveScriptsCheckbox.check();
-      await expect(preserveScriptsCheckbox).toBeChecked();
-    }
-
     if (options.checkForSpecUpdates) {
       const checkForSpecUpdatesToggle = locators.import.checkForSpecUpdatesToggle();
       await checkForSpecUpdatesToggle.check();
       await expect(checkForSpecUpdatesToggle).toBeChecked();
+    }
+
+    if (options.preserveScripts || options.authPlacement || options.requestNameSource) {
+      await locators.import.advancedSectionToggle().click();
+    }
+
+    if (options.preserveScripts) {
+      const preserveScriptsToggle = locators.import.preserveScriptsToggle();
+      await preserveScriptsToggle.check();
+      await expect(preserveScriptsToggle).toBeChecked();
+    }
+
+    if (options.authPlacement === 'collection') {
+      await locators.import.authPlacementToggle().check();
+    }
+
+    if (options.requestNameSource) {
+      await locators.import.requestNameSourceDropdown().click();
+      await locators.import.requestNameSourceOption(options.requestNameSource).click();
     }
 
     // Set location and import
