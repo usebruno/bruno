@@ -17,7 +17,7 @@ import {
 
 const { TEST_RSA_PRIVATE_KEY } = require('../../../../packages/bruno-tests/src/auth/oauth1');
 
-const fixtureBase = path.join(__dirname, 'test-data', 'collections');
+const fixtureBase = path.join(__dirname, 'fixtures', 'collections');
 for (const subdir of ['bru', 'yml']) {
   const pemPath = path.join(fixtureBase, subdir, 'test-private-key.pem');
   if (!fs.existsSync(pemPath)) {

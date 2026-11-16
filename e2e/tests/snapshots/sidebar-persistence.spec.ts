@@ -7,7 +7,7 @@ import {
   Page
 } from '../../playwright';
 import { buildSidebarLocators } from '../../pages';
-import { waitForReadyPage, readSnapshot, waitForSnapshotFile } from '../../support';
+import { waitForReadyPage, readSnapshot, waitForSnapshotFile } from '../../utils';
 import { SIDEBAR_WIDTH_KEY, SIDEBAR_COLLAPSED_KEY } from '../../../packages/bruno-app/src/utils/common/localStorage';
 
 async function resizeSidebar(page: Page, targetWidth: number) {

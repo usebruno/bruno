@@ -9,7 +9,7 @@ import {
   goToManageWorkspace,
   openWorkspaceActionsMenu
 } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
+import { waitForReadyPage } from '../../../utils';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 

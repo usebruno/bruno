@@ -8,10 +8,10 @@ import {
   openRequest,
   selectRequestPaneTab
 } from '../../../pages';
-import { expectSyncedWithSpec, readOpenApiSyncConfig } from '../../../support';
+import { expectSyncedWithSpec, readOpenApiSyncConfig } from '../../../utils';
 import { AUTH_MODE_LABELS } from '../../../constants';
 
-const fixture = (name: string) => path.resolve(__dirname, 'test-data', name);
+const fixture = (name: string) => path.resolve(__dirname, 'fixtures', name);
 
 const expectAuthAtCollectionLevel = async (page: Page, collectionName: string, schemeLabel: string) => {
   const locators = buildCommonLocators(page);

@@ -3,7 +3,7 @@ import fs from 'fs';
 import yaml from 'js-yaml';
 import { test, expect, closeElectronApp } from '../../playwright';
 import { createCollection } from '../../pages';
-import { waitForReadyPage } from '../../support';
+import { waitForReadyPage } from '../../utils';
 
 type WorkspaceConfig = { collections?: { name: string }[] };
 

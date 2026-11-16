@@ -1,5 +1,5 @@
 import { Page, test } from '../../playwright';
-import { escapeRegExp } from '../../support/helpers';
+import { escapeRegExp } from '../../utils/helpers';
 import { readLastHopRequestHeaderLines, readRequestHops } from './network-log';
 
 export const buildDevToolsLocators = (page: Page) => {

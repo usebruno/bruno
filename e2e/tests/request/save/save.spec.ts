@@ -10,7 +10,7 @@ import {
   createRequest,
   buildCommonLocators
 } from '../../../pages';
-import { waitForPredicate } from '../../../support';
+import { waitForPredicate } from '../../../utils';
 
 const isRequestSaved = async (saveButton: Locator) => {
   // Saved state uses the className cursor-default; unsaved uses cursor-pointer.

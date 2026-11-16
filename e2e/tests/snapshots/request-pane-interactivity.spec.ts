@@ -7,7 +7,7 @@ import {
   selectRequestPaneTab,
   buildCommonLocators
 } from '../../pages';
-import { waitForReadyPage } from '../../support';
+import { waitForReadyPage } from '../../utils';
 
 const readSnapshot = (userDataPath: string) => {
   const snapshotPath = path.join(userDataPath, 'ui-state-snapshot.json');

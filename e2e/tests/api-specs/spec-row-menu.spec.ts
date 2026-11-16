@@ -16,9 +16,9 @@ import {
   openApiSpecRowMenu,
   chooseApiSpecRowAction
 } from '../../pages';
-import { waitForReadyPage, stubOpenDirectoryDialog } from '../../support';
+import { waitForReadyPage, stubOpenDirectoryDialog } from '../../utils';
 
-const OPENAPI_FIXTURES = path.resolve(__dirname, '..', 'import', 'openapi', 'test-data');
+const OPENAPI_FIXTURES = path.resolve(__dirname, '..', 'import', 'openapi', 'fixtures');
 const COMPREHENSIVE_TITLE = 'Comprehensive API Test Collection';
 const EXAMPLES_TITLE = 'API with Examples';
 const WORKSPACE_NAME = 'SpecMenuWorkspace';

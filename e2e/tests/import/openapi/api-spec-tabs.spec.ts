@@ -7,7 +7,7 @@ import {
 } from '../../../playwright';
 import * as fs from 'fs';
 import * as path from 'path';
-import { waitForReadyPage, waitForSnapshotApiSpecTabs } from '../../../support';
+import { waitForReadyPage, waitForSnapshotApiSpecTabs } from '../../../utils';
 import {
   openApiSpecFromDialog,
   openApiSpecSidebarItem,
@@ -30,7 +30,7 @@ const SECOND_SPEC = { file: 'openapi-path-grouping.json', name: 'Path Grouping T
 const EDITABLE_SPEC = { file: 'openapi-with-examples.yaml', name: 'API with Examples' };
 const EDIT_MARKER = '# edited from the spec editor\n';
 
-const fixture = (name: string) => path.resolve(__dirname, 'test-data', name);
+const fixture = (name: string) => path.resolve(__dirname, 'fixtures', name);
 
 test.describe('API specs open as workspace tabs', () => {
   test.beforeAll(async ({ electronApp }) => {

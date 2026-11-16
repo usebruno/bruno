@@ -5,7 +5,7 @@ import {
   openRequest,
   buildCommonLocators
 } from '../../pages';
-import { waitForReadyPage } from '../../support';
+import { waitForReadyPage } from '../../utils';
 
 test.describe('Close all tabs lands on workspace overview', () => {
   test('closing the last request tab focuses the workspace Overview tab', async ({

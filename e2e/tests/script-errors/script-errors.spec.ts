@@ -13,7 +13,7 @@ import {
   buildRunnerLocators,
   openRunnerResult
 } from '../../pages';
-import { getScrollMetrics } from '../../support';
+import { getScrollMetrics } from '../../utils';
 
 for (const mode of ['safe', 'developer'] as const) {
   test.describe(`Script Error Display [${mode} mode]`, () => {

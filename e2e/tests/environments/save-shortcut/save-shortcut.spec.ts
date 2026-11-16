@@ -9,7 +9,7 @@ import {
   deleteAllGlobalEnvironments
 } from '../../../pages';
 
-const collectionFile = path.join(__dirname, '..', 'create-environment', 'test-data', 'bruno-collection.json');
+const collectionFile = path.join(__dirname, '..', 'create-environment', 'fixtures', 'bruno-collection.json');
 
 const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
 const tabDraftIcon = (page: Page) => page.locator('.request-tab.active').getByTestId('tab-draft-icon');

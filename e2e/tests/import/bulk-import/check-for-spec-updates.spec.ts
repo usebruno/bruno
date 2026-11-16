@@ -1,7 +1,7 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
 import { closeAllCollections, openBulkImportModal, buildCommonLocators } from '../../../pages';
-import { expectSyncedWithSpec, readBrunoJsonSyncConfig, readOpenApiSyncConfig } from '../../../support';
+import { expectSyncedWithSpec, readBrunoJsonSyncConfig, readOpenApiSyncConfig } from '../../../utils';
 
 test.describe('Bulk Import check for spec updates', () => {
   const testDataDir = path.join(__dirname, '../test-data');

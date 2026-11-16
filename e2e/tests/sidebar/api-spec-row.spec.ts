@@ -2,7 +2,7 @@ import { test, expect } from '../../playwright';
 import * as path from 'path';
 import { buildApiSpecPanelLocators, buildApiSpecRowMenuLocators, openApiSpecFromDialog } from '../../pages';
 
-const FIXTURES = path.resolve(__dirname, '..', 'import', 'openapi', 'test-data');
+const FIXTURES = path.resolve(__dirname, '..', 'import', 'openapi', 'fixtures');
 const SPEC_A = { file: path.join(FIXTURES, 'openapi-simple.json'), name: 'Simple Test API' };
 const SPEC_B = { file: path.join(FIXTURES, 'openapi-comprehensive.yaml'), name: 'Comprehensive API Test Collection' };
 

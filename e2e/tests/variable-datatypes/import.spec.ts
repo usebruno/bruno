@@ -124,7 +124,7 @@ test.describe('DataType selector — imported OpenCollection (.yml) collection',
   }, testInfo) => {
     testInfo.setTimeout(90_000);
 
-    const fixtureFile = path.resolve(__dirname, 'test-data', 'import', 'datatypes-collection.yml');
+    const fixtureFile = path.resolve(__dirname, 'fixtures', 'import', 'datatypes-collection.yml');
     const collectionLocation = await createTmpDir('datatypes-imported');
 
     await importCollection(page, fixtureFile, collectionLocation, {

@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import { test, expect, closeElectronApp } from '../../playwright';
-import { waitForReadyPage, readSnapshot, createWorkspaceFromYml } from '../../support';
+import { waitForReadyPage, readSnapshot, createWorkspaceFromYml } from '../../utils';
 
 const seedPreferences = (userDataPath: string, lastOpenedWorkspaces: string[]) => {
   fs.writeFileSync(

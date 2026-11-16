@@ -2,10 +2,10 @@ import path from 'path';
 import fs from 'fs';
 import { test, expect, closeElectronApp } from '../../../playwright';
 import { openCollection } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
+import { waitForReadyPage } from '../../../utils';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
-const workspaceFixturePath = path.join(__dirname, 'test-data', 'workspace');
+const workspaceFixturePath = path.join(__dirname, 'fixtures', 'workspace');
 
 /**
  * Replicate the uid generation from bruno-electron/src/utils/common.js

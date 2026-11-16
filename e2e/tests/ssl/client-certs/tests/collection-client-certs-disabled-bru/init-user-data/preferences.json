@@ -1,6 +1,6 @@
 {
   "maximized": false,
-  "lastOpenedCollections": ["{{projectRoot}}/e2e/tests/ssl/client-certs/tests/collection-client-certs-disabled-bru/test-data/collection"],
+  "lastOpenedCollections": ["{{projectRoot}}/e2e/tests/ssl/client-certs/tests/collection-client-certs-disabled-bru/fixtures/collection"],
   "preferences": {
     "request": {
       "sslVerification": true,

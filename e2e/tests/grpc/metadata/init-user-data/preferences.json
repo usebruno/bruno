@@ -1,7 +1,7 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/e2e/tests/grpc/metadata/test-data/collection"
+    "{{projectRoot}}/e2e/tests/grpc/metadata/fixtures/collection"
   ],
   "preferences": {
     "onboarding": {

@@ -1,8 +1,12 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
 import path from 'path';
 import { buildCommonLocators, expandFolder, openRequest } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
-import { initBruCollection, writeBruFolder, writeBruRequest } from '../../../data';
+import {
+  waitForReadyPage,
+  initBruCollection,
+  writeBruFolder,
+  writeBruRequest
+} from '../../../utils';
 
 const COLLECTION_NAME = 'RevealScrollCol';
 const FILLER_COUNT = 60;

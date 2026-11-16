@@ -15,8 +15,8 @@ const E2E_FIXTURES_DIR = path.resolve(__dirname, '..', '..', '..', '..', 'e2e', 
 
 // Shared with the Playwright suites: a workspace whose environment carries a secret row, and — for
 // the two-scope cases — the one that puts a collection environment in a workspace tree.
-const WORKSPACE_FIXTURE_DIR = path.join(E2E_FIXTURES_DIR, 'api-setGlobalEnvVar-secret', 'test-data', 'workspace');
-const TWO_SCOPE_FIXTURE_DIR = path.join(E2E_FIXTURES_DIR, 'environment-inheritance', 'test-data', 'workspace');
+const WORKSPACE_FIXTURE_DIR = path.join(E2E_FIXTURES_DIR, 'api-setGlobalEnvVar-secret', 'fixtures', 'workspace');
+const TWO_SCOPE_FIXTURE_DIR = path.join(E2E_FIXTURES_DIR, 'environment-inheritance', 'fixtures', 'workspace');
 
 const RUN_TIMEOUT = 60_000;
 

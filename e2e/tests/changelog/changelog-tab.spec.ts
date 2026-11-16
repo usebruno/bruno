@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import { ElectronApplication } from '@playwright/test';
 import { test, expect, closeElectronApp } from '../../playwright';
-import { waitForReadyPage } from '../../support';
+import { waitForReadyPage } from '../../utils';
 import { buildCommonLocators } from '../../pages';
 
 const initUserDataFresh = path.join(__dirname, 'init-user-data-fresh');

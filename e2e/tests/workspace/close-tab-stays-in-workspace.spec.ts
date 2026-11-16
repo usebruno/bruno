@@ -7,7 +7,7 @@ import {
   openRequest,
   buildCommonLocators
 } from '../../pages';
-import { waitForReadyPage } from '../../support';
+import { waitForReadyPage } from '../../utils';
 
 const WORKSPACE_YML_WORKSPACEB = [
   'opencollection: 1.0.0',

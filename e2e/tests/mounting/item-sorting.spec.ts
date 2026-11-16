@@ -4,7 +4,7 @@ import {
   ElectronApplication,
   Page
 } from '../../playwright';
-import { setupSortingTestFixture, TestFixture } from '../../data';
+import { setupSortingTestFixture, TestFixture } from '../../utils';
 import { getCollectionTreeStructure, closeAllCollections } from '../../pages';
 
 const formats = ['bru', 'yml'] as const;

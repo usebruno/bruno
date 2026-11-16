@@ -4,7 +4,7 @@ import {
   Page,
   Locator
 } from '../../playwright';
-import { escapeRegExp } from '../../support/helpers';
+import { escapeRegExp } from '../../utils/helpers';
 
 /**
  * Locators for pane tabs: responsive tabs, the overflow menu, and settings tabs.

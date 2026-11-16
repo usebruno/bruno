@@ -1,5 +1,5 @@
 import { Locator, Page } from '../../playwright';
-import { escapeRegExp } from '../../support/helpers';
+import { escapeRegExp } from '../../utils/helpers';
 import { readLastHopRequestHeaderLines, readRequestHops } from '../app-shell/network-log';
 
 export const buildTimelineHeaderLocators = (page: Page) => {

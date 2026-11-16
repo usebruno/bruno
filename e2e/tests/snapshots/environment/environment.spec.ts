@@ -14,7 +14,7 @@ import {
   readSnapshot,
   findSnapshotCollectionEntry,
   waitForSnapshotCollectionEnvironment
-} from '../../../support';
+} from '../../../utils';
 
 const legacyPromptVariablesInitUserDataPath = path.join(
   __dirname,
@@ -23,7 +23,7 @@ const legacyPromptVariablesInitUserDataPath = path.join(
 
 const migrationCollectionPath = path.join(
   __dirname,
-  'test-data/collection'
+  'fixtures/collection'
 );
 
 test.describe('Snapshot: Collection Environment Persistence', () => {

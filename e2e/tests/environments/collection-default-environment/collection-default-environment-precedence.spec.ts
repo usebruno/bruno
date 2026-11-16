@@ -6,10 +6,10 @@ import {
   selectEnvironment,
   waitForCollectionMount
 } from '../../../pages';
-import { waitForReadyPage, waitForSnapshotCollectionEnvironment } from '../../../support';
+import { waitForReadyPage, waitForSnapshotCollectionEnvironment } from '../../../utils';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
-const collectionRoot = path.join(__dirname, 'test-data', 'collection');
+const collectionRoot = path.join(__dirname, 'fixtures', 'collection');
 
 test.describe('Collection Default Environment - precedence', () => {
   test('snapshot selection wins over the configured default on reopen', async ({ launchElectronApp, createTmpDir }) => {

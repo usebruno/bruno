@@ -6,7 +6,7 @@ import {
   createEnvironment,
   buildCommonLocators
 } from '../../pages';
-import { waitForReadyPage } from '../../support';
+import { waitForReadyPage } from '../../utils';
 
 test.describe('Snapshot: Global Tab Restoration', () => {
   test('preferences and global environment tabs are restored and reusable after restart', async ({ launchElectronApp, createTmpDir }) => {

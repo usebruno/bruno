@@ -14,7 +14,7 @@ import {
   findSnapshotFolderTab,
   waitForReadyPage,
   waitForSnapshotFile
-} from '../../support';
+} from '../../utils';
 
 test.describe('Snapshot: folder Pane Interactivity', () => {
   test('folder pane tab interactivity is preserved after workspace switch', async ({ launchElectronApp, createTmpDir }) => {

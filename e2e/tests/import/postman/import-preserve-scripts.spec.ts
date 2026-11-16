@@ -7,7 +7,7 @@ import {
   buildCommonLocators
 } from '../../../pages';
 
-const postmanFile = path.resolve(__dirname, 'test-data', 'postman-with-scripts.json');
+const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-with-scripts.json');
 
 test.describe('Import Postman Collection with preserve scripts option enabled', () => {
   test.afterEach(async ({ page }) => {

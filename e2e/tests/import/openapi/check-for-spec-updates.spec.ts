@@ -1,7 +1,7 @@
 import { test } from '../../../playwright';
 import * as path from 'path';
 import { closeAllCollections, importCollection } from '../../../pages';
-import { expectSyncedWithSpec, readOpenApiSyncConfig } from '../../../support';
+import { expectSyncedWithSpec, readOpenApiSyncConfig } from '../../../utils';
 
 test.describe('Import OpenAPI with Check for Spec Updates', () => {
   test.afterEach(async ({ page }) => {

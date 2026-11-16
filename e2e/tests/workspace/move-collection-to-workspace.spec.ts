@@ -14,7 +14,7 @@ import {
   openWorkspaceFromDialog,
   buildCommonLocators
 } from '../../pages';
-import { waitForReadyPage } from '../../support';
+import { waitForReadyPage } from '../../utils';
 
 const workspaceYml = (name: string) =>
   ['opencollection: 1.0.0', 'info:', `  name: ${name}`, '  type: workspace', 'collections:', 'specs: []', 'docs: \'\'', ''].join(

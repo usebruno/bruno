@@ -3,13 +3,13 @@ import fs from 'fs';
 import yaml from 'js-yaml';
 import { test, expect, closeElectronApp } from '../../../playwright';
 import { switchWorkspace, createCollection } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
+import { waitForReadyPage } from '../../../utils';
 
 type CollectionEntry = { name?: string; path?: string; remote?: string };
 type WorkspaceConfig = { collections?: CollectionEntry[] };
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
-const fixturesPath = path.join(__dirname, 'test-data');
+const fixturesPath = path.join(__dirname, 'fixtures');
 
 const REMOTE_URL = 'https://github.com/usebruno/sample-collection.git';
 

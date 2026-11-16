@@ -6,7 +6,7 @@ import {
   openRequest,
   openWorkspaceFromDialog
 } from '../../pages';
-import { waitForReadyPage } from '../../support';
+import { waitForReadyPage } from '../../utils';
 import fs from 'fs';
 
 const buildWorkspaceYml = (workspaceName: string) => [

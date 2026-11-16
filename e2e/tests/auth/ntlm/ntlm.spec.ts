@@ -13,7 +13,7 @@ import {
   sendRequest,
   buildTimelineHeaderLocators
 } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
+import { waitForReadyPage } from '../../../utils';
 import { startNtlmServer, type NtlmEndpoint } from '@usebruno/tests/ntlm';
 
 const PASSWORD = 'Br!unoNtlm';

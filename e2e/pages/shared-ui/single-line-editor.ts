@@ -1,5 +1,5 @@
 import { expect, Page } from '../../playwright';
-import { escapeRegExp } from '../../support/helpers';
+import { escapeRegExp } from '../../utils/helpers';
 
 /**
  * Inline single-line editors located by their field label (auth fields, proxy settings…).

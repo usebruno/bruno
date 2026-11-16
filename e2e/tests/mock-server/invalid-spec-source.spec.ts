@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import { test, expect, closeElectronApp } from '../../playwright';
-import { waitForReadyPage } from '../../support';
+import { waitForReadyPage } from '../../utils';
 import {
   buildMockServerLocators,
   openCreateMockServerModal,

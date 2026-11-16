@@ -6,8 +6,12 @@ import {
   expandFolder,
   openRequest
 } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
-import { initBruCollection, writeBruFolder, writeBruRequest } from '../../../data';
+import {
+  waitForReadyPage,
+  initBruCollection,
+  writeBruFolder,
+  writeBruRequest
+} from '../../../utils';
 
 const COLLECTION_NAME = 'RevealCol';
 const EXAMPLE_NAME = 'saved-ok';

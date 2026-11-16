@@ -10,8 +10,12 @@ import {
   createRequest,
   expandCollection
 } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
-import { initBruCollection, writeBruRequest, writeBruFolder } from '../../../data';
+import {
+  waitForReadyPage,
+  initBruCollection,
+  writeBruRequest,
+  writeBruFolder
+} from '../../../utils';
 
 const COLLECTION_NAME = 'SearchCol';
 

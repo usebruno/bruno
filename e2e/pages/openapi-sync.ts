@@ -1,5 +1,5 @@
 import { test, Page } from '../playwright';
-import { waitForPredicate } from '../support/wait';
+import { waitForPredicate } from '../utils/wait';
 import { buildSidebarLocators } from './sidebar/collection-tree';
 import { buildCollectionHeaderLocators } from './collection/header';
 

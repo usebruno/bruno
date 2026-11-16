@@ -1,7 +1,7 @@
 import path from 'path';
 import { ElectronApplication } from '@playwright/test';
 import { test, expect, closeElectronApp } from '../../playwright';
-import { waitForReadyPage } from '../../support';
+import { waitForReadyPage } from '../../utils';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data-fresh');
 

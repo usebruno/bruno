@@ -15,7 +15,7 @@ test.describe('Import OpenAPI spec exported by Bruno with placeholders', () => {
 
   test('creates a secret for a request host and no variable for a process env placeholder', async ({ page, createTmpDir }) => {
     const { environment } = buildCommonLocators(page);
-    const openApiFile = path.resolve(__dirname, 'test-data', 'openapi-bruno-placeholders.yaml');
+    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-bruno-placeholders.yaml');
 
     await importCollection(page, openApiFile, await createTmpDir('openapi-bruno-placeholders'), {
       expectedCollectionName: 'Bruno Placeholders API'

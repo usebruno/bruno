@@ -9,10 +9,10 @@ import {
   buildCommonLocators,
   waitForCollectionMount
 } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
+import { waitForReadyPage } from '../../../utils';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
-const workspaceFixturePath = path.join(__dirname, 'test-data', 'workspace');
+const workspaceFixturePath = path.join(__dirname, 'fixtures', 'workspace');
 
 test.describe('bru.setGlobalEnvVar(name, value) - typed value persistence (workspace mode)', () => {
   test('persists number/boolean/object/string global vars with correct dataType across restart', async ({

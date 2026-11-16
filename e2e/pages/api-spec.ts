@@ -5,7 +5,7 @@ import {
   Page,
   ElectronApplication
 } from '../playwright';
-import { stubOpenDirectoryDialog } from '../support/stubs';
+import { stubOpenDirectoryDialog } from '../utils/stubs';
 
 const apiSpecsSection = (page: Page) =>
   page.locator('.sidebar-section').filter({ has: page.locator('.section-title', { hasText: 'API Specs' }) });

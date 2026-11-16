@@ -23,7 +23,7 @@ import {
  * and form-data fields no longer expose dataType, so they are not asserted
  * here.
  *
- * Fixtures under `test-data/workspace/collections/{bru,yml}` declare a single
+ * Fixtures under `fixtures/workspace/collections/{bru,yml}` declare a single
  * request whose vars block carries one row per supported dataType (string,
  * number, boolean, object). Each describe block ends with a save test that
  * mutates one row's dataType via the selector and asserts the change

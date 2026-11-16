@@ -9,7 +9,7 @@ import {
   ElectronApplication,
   waitForReadyPage
 } from '../../playwright';
-import { buildWorkspaceYml } from '../../support/workspace';
+import { buildWorkspaceYml } from '../../utils/workspace';
 
 export const buildImportWorkspaceModalLocators = (page: Page) => {
   // Scope every modal query to the dialog so we avoid the brittle

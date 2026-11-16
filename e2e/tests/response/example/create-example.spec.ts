@@ -6,7 +6,7 @@ import { clickResponseAction, toggleRequestExamples } from '../../../pages';
 test.describe.serial('Create and Delete Response Examples', () => {
   test.afterAll(async () => {
     // Reset the collection request file to the original state
-    execSync(`git checkout -- ${path.join(__dirname, 'test-data', 'collection', 'create-example.bru')}`);
+    execSync(`git checkout -- ${path.join(__dirname, 'fixtures', 'collection', 'create-example.bru')}`);
   });
 
   test('should create a response example from response bookmark', async ({ pageWithUserData: page }) => {

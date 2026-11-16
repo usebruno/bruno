@@ -33,7 +33,7 @@ import {
   addVarsRow
 } from '../../../pages';
 import { AUTH_MODE_LABELS } from '../../../constants';
-import { readFileIfExists } from '../../../support';
+import { readFileIfExists } from '../../../utils';
 
 const API_KEY_FIELD = 'apikey-value';
 

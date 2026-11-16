@@ -12,7 +12,7 @@ import {
 } from '../../../pages';
 
 test.describe('Import WSDL Collection', () => {
-  const testDataDir = path.join(__dirname, 'test-data');
+  const testDataDir = path.join(__dirname, 'fixtures');
 
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);

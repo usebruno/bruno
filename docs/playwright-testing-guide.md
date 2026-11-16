@@ -98,7 +98,7 @@ test('Test with temporary data', async ({ page, createTmpDir }) => {
 
 All E2E code lives under `e2e/`. The Playwright configs (`playwright.config.ts`, `playwright.benchmark.config.ts`, `playwright.merge.config.ts`) stay at the repo root.
 
-Specs import shared code by relative path, from each folder's `index.ts`: `playwright` (the custom `test` and `expect`), `pages`, `support`, `data`, `constants` and `servers`. Import from the folder itself, never from a file inside it (`'../../pages'`, not `'../../pages/request/body'`). The number of `../` depends on how deep the spec sits; the examples in this guide assume a spec at `e2e/tests/<feature>/`.
+Specs import shared code by relative path, from each folder's `index.ts`: `playwright` (the custom `test` and `expect`), `pages`, `utils` (which also re-exports `utils/data`), `constants` and `servers`. Import from the folder itself, not from a file inside it (`'../../pages'`, not `'../../pages/request/body'`). The one exception is a page object added after the move to `e2e/`: those aren't exported from `pages/index.ts`, so specs import them from their file (`'../../pages/notifications'`). The number of `../` depends on how deep the spec sits; the examples in this guide assume a spec at `e2e/tests/<feature>/`.
 
 Inside `e2e/pages/`, page objects import the specific file they need, never `index.ts` or `locators.ts`: both import every page object, so importing either creates a circular import. Lint enforces this rule.
 
@@ -106,7 +106,7 @@ Inside `e2e/pages/`, page objects import the specific file they need, never `ind
 e2e/
 ├── playwright/            # index.ts: test + expect with fixtures; codegen.ts; electron.ts
 ├── pages/                 # page objects: locators and actions in one file per UI section
-│   ├── index.ts           # barrel: the only page path specs import
+│   ├── index.ts           # barrel: exports the existing page objects (new ones are imported from their file)
 │   ├── locators.ts        # buildCommonLocators: every page object's locator builder in one object
 │   ├── api-spec.ts, mock-server.ts, runner.ts   # standalone areas: one file each
 │   ├── request/           # pane.ts, body.ts, headers.ts, auth.ts …
@@ -115,8 +115,8 @@ e2e/
 │   ├── app-shell/         # tabs.ts, preferences.ts, title-bar.ts, toast.ts …
 │   ├── environment/, folder/, sidebar/, variable/, workspace/
 │   └── shared-ui/         # widgets used across sections: modal, dropdown, table, code editor …
-├── support/               # infrastructure helpers: cli, wait, snapshot, stubs, app
-├── data/                  # test-data generators (collection builders)
+├── utils/                 # infrastructure helpers: cli, wait, snapshot, stubs, app
+│   └── data/              # test data generators (collection builders)
 ├── constants/             # shared constants (auth, tls, variables …)
 ├── servers/               # per-test servers (http …)
 └── tests/                 # specs and their sample data, grouped by feature
@@ -125,7 +125,7 @@ e2e/
     │   └── create-new-collection.spec.ts
     └── feature-a/
         ├── some-behaviour.spec.ts
-        ├── test-data/     # sample data: collection/, collections/, workspace/ loaded by the Playwright fixtures
+        ├── fixtures/      # sample data: collection/, collections/, workspace/ loaded by the Playwright fixtures
         └── init-user-data/  # preferences.json seed for the app
 ```
 
@@ -223,7 +223,7 @@ npx playwright test --trace on
 
 **A page module owns one section.** Each file under `e2e/pages/` covers a single UI section/domain and exports *both* a locator builder and the actions for that section, co-located. [`collection/mount.ts`](../e2e/pages/collection/mount.ts) is the reference shape — `buildCollectionTreeLocators(page)` lives alongside its actions (`waitForCollectionMount`, `openCollectionFromPath`, `getCollectionTreeStructure`, …) in one file.
 
-**New section → new file → link into common.** Create a new page module for a new section (or a new file in the matching folder, e.g. `e2e/pages/request/`; a standalone area can be a single file at the top of `e2e/pages/`, and becomes a folder once it has related files), export it from `e2e/pages/index.ts`, and map its locator builder into `buildCommonLocators` in `e2e/pages/locators.ts` so specs get it for free. This is **required** for every new page module.
+**New section → new file → import it directly.** Create a new page module for a new section (or a new file in the matching folder, e.g. `e2e/pages/request/`; a standalone area can be a single file at the top of `e2e/pages/`, and becomes a folder once it has related files). Don't add it to `e2e/pages/index.ts` or to `buildCommonLocators` in `e2e/pages/locators.ts`: specs import its locator builder and actions straight from the file. The page objects already exported from `index.ts` stay there.
 
 **Inside `e2e/pages/`, never import `index.ts` or `locators.ts`.** A page module builds the locators it needs from the specific builders (for example `buildModalLocators(page)` from `shared-ui/modal`), so page modules never import each other in a loop.
 
@@ -268,25 +268,13 @@ export const dismissNotification = async (page: Page, text: string) => {
 };
 ```
 
-Then link the builder into `buildCommonLocators` so every spec can reach it:
+A spec imports the new module from its file, next to the barrel import for existing page objects:
 
 ```typescript
-// e2e/pages/locators.ts
-import { buildNotificationLocators } from './notifications';
-
-export const buildCommonLocators = (page: Page) => ({
-  runner: () => page.getByTestId('run-button'),
-  sidebar: { /* … */ },
-  notifications: buildNotificationLocators(page),   // now buildCommonLocators(page).notifications
-  // …
-});
-```
-
-And export the new file from the barrel:
-
-```typescript
-// e2e/pages/index.ts
-export * from './notifications';
+// e2e/tests/notifications/dismiss.spec.ts
+import { test, expect } from '../../playwright';
+import { createCollection } from '../../pages';
+import { buildNotificationLocators, dismissNotification } from '../../pages/notifications';
 ```
 
 **Scope of enforcement:**
@@ -294,7 +282,7 @@ export * from './notifications';
 - **Strict for new tests** — any new spec must go through this pattern; no direct selectors, no duplicated inline queries.
 - **Lenient for existing tests** — small tweaks to an existing spec need not refactor its existing selectors. But if you rewrite or substantially modify a large portion of a spec, extract its selectors and interactions into a page module as part of the change.
 - **Don't retro-link existing modules right now** — some page modules (e.g. [`collection/mount.ts`](../e2e/pages/collection/mount.ts)) aren't wired into `buildCommonLocators` yet; leave them until their specs are next reworked. The rules above apply going forward, not as a migration mandate.
-- **Long-term goal** — every section is a page module and every module is reachable from `buildCommonLocators`, so locators and actions stay consistent and single-sourced.
+- **Long-term goal** — every section is a page module, so locators and actions stay consistent and single-sourced.
 
 ### 2. Use Semantic Selectors
 

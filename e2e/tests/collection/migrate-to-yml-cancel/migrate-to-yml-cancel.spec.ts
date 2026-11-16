@@ -8,7 +8,7 @@ import {
   openCollectionOverview,
   confirmMigration
 } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
+import { waitForReadyPage } from '../../../utils';
 
 const listFilesRecursive = (dir: string): string[] => {
   const results: string[] = [];

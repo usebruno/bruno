@@ -6,9 +6,9 @@ import {
   expandCollection,
   importCollection
 } from '../../../pages';
-import { expectSyncedWithSpec, readOpenApiSyncConfig } from '../../../support';
+import { expectSyncedWithSpec, readOpenApiSyncConfig } from '../../../utils';
 
-const specFile = path.resolve(__dirname, 'test-data', 'openapi-request-naming.yaml');
+const specFile = path.resolve(__dirname, 'fixtures', 'openapi-request-naming.yaml');
 const collectionName = 'Request Naming API';
 
 test.describe('Import OpenAPI with Naming requests', () => {

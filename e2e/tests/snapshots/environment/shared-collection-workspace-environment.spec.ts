@@ -9,7 +9,7 @@ import {
   openWorkspaceFromDialog,
   openCollection
 } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
+import { waitForReadyPage } from '../../../utils';
 
 const buildWorkspaceYml = (workspaceName: string, collectionPath: string) => [
   'opencollection: 1.0.0',

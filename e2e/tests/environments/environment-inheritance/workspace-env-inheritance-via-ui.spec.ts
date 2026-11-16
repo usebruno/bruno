@@ -46,7 +46,7 @@ import {
   type EnvironmentVariable,
   buildCommonLocators
 } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
+import { waitForReadyPage } from '../../../utils';
 
 // The workspace ("global") environments this suite asserts on are authored through the app
 // itself, so nothing here reads the committed inheritance workspace fixture — a secret gets its

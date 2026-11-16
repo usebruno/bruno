@@ -1,8 +1,8 @@
 import { test, expect } from '../../../../playwright';
 import path from 'path';
-import { importOpenApiWithCli } from '../../../../support';
+import { importOpenApiWithCli } from '../../../../utils';
 
-const fixture = (name: string) => path.resolve(__dirname, '../test-data', name);
+const fixture = (name: string) => path.resolve(__dirname, '../fixtures', name);
 
 const importSpec = async (createTmpDir: (tag?: string) => Promise<string>, specPath: string, flags: string[]) =>
   importOpenApiWithCli(specPath, path.join(await createTmpDir('openapi-collection-auth-cli'), 'collection.json'), flags);

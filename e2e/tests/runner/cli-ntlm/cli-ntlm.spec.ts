@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from '../../../playwright';
-import { cliOutput, runCLIAsync } from '../../../support';
+import { cliOutput, runCLIAsync } from '../../../utils';
 import { startNtlmServer, type NtlmEndpoint } from '@usebruno/tests/ntlm';
 
 const COLLECTION = path.resolve(__dirname, 'collection');

@@ -100,7 +100,7 @@ const DELETED_HEADERS = [
 
 const TOTAL_HEADER_COUNT = DEFAULT_HEADERS.length + ENTITY_HEADERS.length;
 
-const fixtureFor = (format: 'bru' | 'yml') => path.join(__dirname, 'test-data', 'collections', format);
+const fixtureFor = (format: 'bru' | 'yml') => path.join(__dirname, 'fixtures', 'collections', format);
 
 type HeadersSurface = {
   rows: () => Locator;

@@ -6,7 +6,7 @@ import {
   type ElectronApplication
 } from '../../../playwright';
 import { buildCommonLocators, openRequest, sendRequest } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
+import { waitForReadyPage } from '../../../utils';
 import { startNtlmServer, type NtlmEndpoint } from '@usebruno/tests/ntlm';
 import { SELF_SIGNED_CERTIFICATE, TLS_HANDSHAKE_FAILURE } from '../../../constants';
 

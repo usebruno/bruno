@@ -12,7 +12,7 @@ import {
   openRequest,
   buildCommonLocators
 } from '../../pages';
-import { waitForReadyPage } from '../../support';
+import { waitForReadyPage } from '../../utils';
 
 test.describe('Snapshot: Sidebar-Tab Restoration', () => {
   test('open tabs are restored after app restart and tied to the sidebar items', async ({ launchElectronApp, createTmpDir }) => {

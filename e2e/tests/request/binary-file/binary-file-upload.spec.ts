@@ -10,7 +10,7 @@ import {
   setFileBody,
   buildCommonLocators
 } from '../../../pages';
-import { writePayloadFile, type PayloadFile } from '../../../data';
+import { writePayloadFile, type PayloadFile } from '../../../utils';
 
 /**
  * E2E test for File / Binary request body uploads.

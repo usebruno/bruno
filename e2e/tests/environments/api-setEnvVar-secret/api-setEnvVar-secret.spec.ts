@@ -12,12 +12,12 @@ import {
   buildCommonLocators,
   waitForCollectionMount
 } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
+import { waitForReadyPage } from '../../../utils';
 
 const NEW_VALUE = 'NEW_VALUE_collection_env_e2e_42';
 const INITIAL_VALUE = 'INITIAL_VALUE_collection_env_e2e_001';
 const initUserDataPath = path.join(__dirname, 'init-user-data');
-const fixturesPath = path.join(__dirname, 'test-data', 'collections');
+const fixturesPath = path.join(__dirname, 'fixtures', 'collections');
 
 type Format = {
   label: 'bru' | 'yml';

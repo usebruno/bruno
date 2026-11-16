@@ -10,7 +10,7 @@ import {
   openEnvironmentSelector
 } from '../../../../pages';
 
-const fixture = (name: string) => path.join(__dirname, 'test-data', name);
+const fixture = (name: string) => path.join(__dirname, 'fixtures', name);
 
 test.describe('Import environment - name conflict handling', () => {
   test.describe('collection scope', () => {

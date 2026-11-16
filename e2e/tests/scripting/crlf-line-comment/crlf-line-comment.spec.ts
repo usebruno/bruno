@@ -1,9 +1,9 @@
 import * as path from 'path';
 import { test, expect } from '../../../playwright';
 import { runCollection, validateRunnerResults } from '../../../pages';
-import { cliOutput, runCLIAsync } from '../../../support';
+import { cliOutput, runCLIAsync } from '../../../utils';
 
-const COLLECTION = path.resolve(__dirname, 'test-data/collections/crlf-line-comment');
+const COLLECTION = path.resolve(__dirname, 'fixtures/collections/crlf-line-comment');
 
 test.describe('request scripts with // comments run when the collection script has CRLF line endings', () => {
   test('app runner passes every request', async ({ pageWithUserData: page }) => {

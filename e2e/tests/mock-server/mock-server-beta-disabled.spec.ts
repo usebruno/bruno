@@ -7,7 +7,7 @@ import {
   ElectronApplication,
   Page
 } from '../../playwright';
-import { findSnapshotCollectionEntry, readSnapshot, waitForReadyPage } from '../../support';
+import { findSnapshotCollectionEntry, readSnapshot, waitForReadyPage } from '../../utils';
 import {
   openWorkspaceFromDialog,
   switchWorkspace,

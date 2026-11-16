@@ -1,8 +1,12 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
 import path from 'path';
 import { buildCommonLocators, collapseFolder, expandFolder } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
-import { initBruCollection, writeBruRequest, writeBruFolder } from '../../../data';
+import {
+  waitForReadyPage,
+  initBruCollection,
+  writeBruRequest,
+  writeBruFolder
+} from '../../../utils';
 
 const COLLECTION_NAME = 'CollapseCol';
 

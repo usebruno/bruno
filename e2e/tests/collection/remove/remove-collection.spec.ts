@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { test, expect, closeElectronApp } from '../../../playwright';
 import { buildCommonLocators, removeCollection } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
+import { waitForReadyPage } from '../../../utils';
 
 const COLLECTION_NAME = 'remove-test-collection';
 

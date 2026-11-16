@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import { buildCommonLocators, openRequest, selectScriptSubTab } from '../../../pages';
-import { setWindowContentSize } from '../../../support';
+import { setWindowContentSize } from '../../../utils';
 
 const COLLECTION_NAME = 'ScriptSubTabsOverflow';
 const REQUEST_NAME = 'LifecycleHooks';

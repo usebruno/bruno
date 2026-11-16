@@ -12,7 +12,7 @@ import {
   openWorkspaceFromDialog,
   switchWorkspace
 } from '../../pages';
-import { waitForReadyPage } from '../../support';
+import { waitForReadyPage } from '../../utils';
 
 /**
  * Failure chain (fixed by remapping snapshot tabs across all workspaces):

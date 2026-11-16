@@ -1,6 +1,6 @@
 import { Locator, Page, test } from '../../playwright';
 import { switchToOpenTab } from '../app-shell/tabs';
-import { waitForPredicate } from '../../support/wait';
+import { waitForPredicate } from '../../utils/wait';
 
 export type VariablesSection = 'runtime' | 'environment';
 

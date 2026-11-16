@@ -10,7 +10,7 @@ import {
   setupStaticFixture,
   TestFixture,
   StaticTestFixture
-} from '../../data';
+} from '../../utils';
 import { getCollectionTreeStructure, CollectionTreeItem, closeAllCollections } from '../../pages';
 
 const formats = ['bru', 'yml'] as const;
@@ -148,7 +148,7 @@ for (const format of formats) {
 
     test.beforeAll(async ({ launchElectronApp }) => {
       fixture = await setupStaticFixture(
-        path.join(__dirname, 'test-data', 'method-indicators', format)
+        path.join(__dirname, 'fixtures', 'method-indicators', format)
       );
 
       app = await launchElectronApp({ userDataPath: fixture.userDataPath });

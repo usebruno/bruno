@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { test, expect, closeElectronApp } from '../../../playwright';
 import { sendRequest, buildCommonLocators } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
+import { waitForReadyPage } from '../../../utils';
 
 test.describe('bru.setEnvVar(name, value)', () => {
   test('set env var using script persists by default across restart', async ({ pageWithUserData: page, restartApp, collectionFixturePath }) => {

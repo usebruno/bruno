@@ -1,8 +1,7 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
 import path from 'path';
 import { buildCommonLocators, openRequest } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
-import { initBruCollection, writeBruRequest } from '../../../data';
+import { waitForReadyPage, initBruCollection, writeBruRequest } from '../../../utils';
 
 // A collection large enough that its bottom rows start well below the sidebar viewport.
 const COLLECTION_NAME = 'ScrollCol';

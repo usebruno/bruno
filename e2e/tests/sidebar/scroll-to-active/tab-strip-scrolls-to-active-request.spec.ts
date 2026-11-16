@@ -1,8 +1,7 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
 import path from 'path';
 import { activeTabIsInStrip, buildCommonLocators, openRequest } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
-import { initBruCollection, writeBruRequest } from '../../../data';
+import { waitForReadyPage, initBruCollection, writeBruRequest } from '../../../utils';
 
 const COLLECTION_NAME = 'TabStripCol';
 const REQUEST_COUNT = 10;

@@ -6,8 +6,7 @@ import {
 } from '../../../playwright';
 import path from 'path';
 import { buildCommonLocators, renameCollectionItem } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
-import { initBruCollection, writeBruRequest } from '../../../data';
+import { waitForReadyPage, initBruCollection, writeBruRequest } from '../../../utils';
 
 const COLLECTION_NAME = 'ScrollKeepCol';
 const REQUEST_COUNT = 50;

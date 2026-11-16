@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import { test, expect, closeElectronApp } from '../../playwright';
-import { waitForReadyPage } from '../../support';
+import { waitForReadyPage } from '../../utils';
 import {
   openWorkspaceFromDialog,
   buildCommonLocators,
@@ -38,7 +38,7 @@ const PREFERENCES = JSON.stringify({
   }
 }, null, 2);
 
-const SPEC_FIXTURE = path.resolve(__dirname, '..', 'import', 'openapi', 'test-data', 'openapi-comprehensive.yaml');
+const SPEC_FIXTURE = path.resolve(__dirname, '..', 'import', 'openapi', 'fixtures', 'openapi-comprehensive.yaml');
 const SPEC_TITLE = 'Comprehensive API Test Collection';
 const SPEC_FILENAME = 'openapi-comprehensive.yaml';
 const STALE_SPEC_SERVER = 'Stale Spec Mock';

@@ -5,7 +5,7 @@ import {
   selectRequestPaneTab,
   getTableCell
 } from '../../../pages';
-import { waitForReadyPage } from '../../../support';
+import { waitForReadyPage } from '../../../utils';
 
 test('should persist request with newlines across app restarts', async ({ createTmpDir, launchElectronApp }) => {
   // Two full app launches plus a restart; waitForReadyPage alone allows 45s each,

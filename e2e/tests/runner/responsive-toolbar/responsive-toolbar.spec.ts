@@ -6,7 +6,7 @@ import {
   MIN_SIDEBAR_WIDTH,
   runCollection
 } from '../../../pages';
-import { setWindowContentSize } from '../../../support';
+import { setWindowContentSize } from '../../../utils';
 
 const collectionName = 'Runner Responsive Toolbar';
 const wideWindowSize = { width: 1150, height: 800 };

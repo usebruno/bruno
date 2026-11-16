@@ -15,7 +15,7 @@ import {
   selectRequestPaneTab,
   buildCommonLocators
 } from '../../pages';
-import { waitForReadyPage } from '../../support';
+import { waitForReadyPage } from '../../utils';
 
 /**
  * Helper: read the snapshot JSON from the user data directory.

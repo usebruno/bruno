@@ -5,7 +5,7 @@ import {
   test
 } from '../../../playwright';
 import { buildCommonLocators, clickOpenWorkspace } from '../../../pages';
-import { waitForReadyPage, stubOpenDirectoryDialog, createWorkspaceFromYml } from '../../../support';
+import { waitForReadyPage, stubOpenDirectoryDialog, createWorkspaceFromYml } from '../../../utils';
 
 test.describe('Open Workspace', () => {
   test('TC-1011: Verify the Open Workspace from the device', { tag: '@sanity' }, async ({

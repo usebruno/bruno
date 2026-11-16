@@ -6,7 +6,7 @@ import {
   readSnapshot,
   findSnapshotCollectionEntry,
   seedSnapshotWithCollections
-} from '../../support';
+} from '../../utils';
 
 test.describe('Snapshot: Collection Deduplication', () => {
   test('duplicate collection entries for the same pathname are deduplicated, with the latest entry taking precedence', async ({ launchElectronApp, createTmpDir }) => {

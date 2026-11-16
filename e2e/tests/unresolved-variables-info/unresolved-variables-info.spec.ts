@@ -10,7 +10,7 @@ import {
   selectResponsePaneTab,
   sendAndWaitForResponse
 } from '../../pages';
-import { waitForReadyPage } from '../../support';
+import { waitForReadyPage } from '../../utils';
 import { startLocalServer } from '../../servers';
 
 const COLLECTION = 'unresolved-variables-info';

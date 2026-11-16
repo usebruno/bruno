@@ -13,11 +13,11 @@ import {
   expandApiSpecsSection,
   removeApiSpecFromWorkspace
 } from '../../pages';
-import { waitForReadyPage } from '../../support';
+import { waitForReadyPage } from '../../utils';
 
 const WORKSPACE_NAME = 'Spec Source Workspace';
 const COLLECTION_NAME = 'Pets Collection';
-const SPEC_FIXTURES = path.join(__dirname, 'test-data', 'specs');
+const SPEC_FIXTURES = path.join(__dirname, 'fixtures', 'specs');
 
 const WORKSPACE_SPECS = [
   { name: 'Pets API', file: 'pets.yaml' },

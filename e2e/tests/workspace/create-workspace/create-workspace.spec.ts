@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import yaml from 'js-yaml';
 import { test, expect, closeElectronApp } from '../../../playwright';
-import { waitForReadyPage } from '../../../support';
+import { waitForReadyPage } from '../../../utils';
 import { buildCreateWorkspaceModalLocators, openCreateWorkspaceModal } from '../../../pages';
 
 type WorkspaceConfig = {

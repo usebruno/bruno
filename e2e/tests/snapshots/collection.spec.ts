@@ -13,7 +13,7 @@ import {
   findSnapshotCollectionTab,
   waitForReadyPage,
   waitForSnapshotFile
-} from '../../support';
+} from '../../utils';
 
 test.describe('Snapshot: collection Pane Interactivity', () => {
   test('collection pane tab interactivity is preserved after workspace switch', async ({ launchElectronApp, createTmpDir }) => {

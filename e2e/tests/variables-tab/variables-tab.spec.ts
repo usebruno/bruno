@@ -23,7 +23,7 @@ import {
   selectNoEnvironment,
   buildCommonLocators
 } from '../../pages';
-import { readClipboard } from '../../support';
+import { readClipboard } from '../../utils';
 
 /**
  * The read-only Variables tab: collection header → "..." → Variables.
