@@ -105,6 +105,9 @@ export const buildCommonLocators = (page: Page) => ({
     collectionSettingsTab: () =>
       page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) }),
     activeRequestTab: () => page.locator('.request-tab.active'),
+    activeRequestTabLabel: () => page.locator('.request-tab.active').getByTestId('request-tab-label'),
+    // The request tab's right-click menu; `key` is the menu item id (e.g. 'clone-request').
+    requestTabMenuItem: (key: string) => page.getByTestId(`menu-dropdown-${key}`),
     leftChevron: () => page.getByLabel('Left Chevron'),
     scrollContainer: () => page.locator('.tabs-scroll-container'),
     activeRequestTabMethod: () => page.locator('.request-tab.active .tab-method'),

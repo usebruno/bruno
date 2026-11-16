@@ -6,6 +6,7 @@ import {
   createCollection,
   closeAllCollections,
   openCloneCollectionModal,
+  openCollectionFromDialog,
   chooseCloneLocation
 } from '../../utils/page';
 
@@ -32,6 +33,25 @@ test.describe('Naming collisions - clone collection', () => {
       await expect(sidebar.cloneCollectionModal.nameInput()).toHaveValue('MyColl copy');
       await expect(sidebar.cloneCollectionModal.locationInput()).toBeVisible();
       await expect(cloneModal.getByText('Folder Name')).toBeVisible();
+    });
+
+    // Close the modal so afterEach isn't blocked by the backdrop.
+    await cloneModal.getByRole('button', { name: 'Cancel' }).click();
+    await expect(cloneModal).toHaveCount(0, { timeout: 5000 });
+  });
+
+  test('cloning a collection that is already a copy joins the counter', async ({ page, electronApp, collectionFixturePath }) => {
+    const { modal, sidebar } = buildCommonLocators(page);
+
+    await openCollectionFromDialog(page, electronApp, path.join(collectionFixturePath, 'MyColl'));
+    await openCollectionFromDialog(page, electronApp, path.join(collectionFixturePath, 'MyColl copy'));
+
+    const cloneModal = modal.byTitle('Clone Collection');
+
+    await openCloneCollectionModal(page, 'MyColl copy');
+
+    await test.step('Modal defaults to "MyColl copy 2", not "MyColl copy copy"', async () => {
+      await expect(sidebar.cloneCollectionModal.nameInput()).toHaveValue('MyColl copy 2');
     });
 
     // Close the modal so afterEach isn't blocked by the backdrop.

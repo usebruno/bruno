@@ -1,11 +1,12 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
-import { parseQueryParams, extractPromptVariables, getDataTypeFromValue, resolveEnvironmentInheritance } from '@usebruno/common/utils';
+import { parseQueryParams, extractPromptVariables, getDataTypeFromValue, nextCopyName, resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
 import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT, VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 import get from 'lodash/get';
+import map from 'lodash/map';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
 import path, { normalizePath, isPathExternalToBasePath } from 'utils/common/path';
@@ -125,10 +126,6 @@ import {
   hydrateCollectionTabs,
   hydrateSnapshotLookups
 } from 'utils/snapshot';
-
-// Display name for a cloned/pasted item: always "<source> copy" (semantic).
-// Filename uniqueness is resolved silently by the electron main process
-const copyDisplayName = (originalName) => `${originalName} copy`;
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -1022,9 +1019,9 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
 
         // Handle folder pasting
         if (isItemAFolder(copiedItem)) {
-          // Display name becomes "<source> copy"; electron resolves the
+          // Display name takes the next free copy slot in the destination; electron resolves the
           // filesystem name uniqueness silently.
-          const newName = copyDisplayName(copiedItem.name);
+          const newName = nextCopyName(copiedItem.name, map(existingItems, (i) => i.name));
           const newFilename = sanitizeName(newName);
 
           set(copiedItem, 'name', newName);
@@ -1037,9 +1034,9 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
 
           await ipcRenderer.invoke('renderer:clone-folder', copiedItem, fullPathname, targetCollection.pathname);
         } else {
-          // Handle request pasting — display name "<source> copy"
+          // Handle request pasting — display name takes the next free copy slot in the destination;
           // electron resolves the filename uniqueness and returns the path actually used.
-          const newName = copyDisplayName(copiedItem.name);
+          const newName = nextCopyName(copiedItem.name, map(existingItems, (i) => i.name));
           const newFilename = sanitizeName(newName);
 
           const filename = resolveRequestFilename(newFilename, targetCollection.format);

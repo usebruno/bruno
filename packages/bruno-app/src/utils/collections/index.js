@@ -18,7 +18,7 @@ import {
   doesFolderHaveItemsMatchSearchText,
   doesCollectionHaveItemsMatchingSearchText
 } from 'utils/collections/search';
-import { resolveEnvironmentInheritance, toVariablesMap } from '@usebruno/common/utils';
+import { nextCopyName, resolveEnvironmentInheritance, toVariablesMap } from '@usebruno/common/utils';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -129,6 +129,16 @@ export const findParentItemInCollection = (collection, itemUid) => {
   return find(flattenedItems, (item) => {
     return item.items && find(item.items, (i) => i.uid === itemUid);
   });
+};
+
+/**
+ * Display name for a clone of `item`: the source name with any trailing copy token stripped, then
+ * the next free slot among its siblings. The filesystem name is still resolved by electron.
+ */
+export const getCloneDisplayName = (collection, item) => {
+  const parent = findParentItemInCollection(collection, item.uid) || collection;
+
+  return nextCopyName(item.name, map(parent.items, (i) => i.name));
 };
 
 export const recursivelyGetAllItemUids = (items = []) => {
