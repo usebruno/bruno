@@ -28,6 +28,8 @@ const DocsEditor = ({
   onRequestEdit,
   initialScroll,
   onScroll,
+  markdownInitialScroll,
+  onMarkdownScroll,
   testId
 }) => {
   const { displayedTheme } = useTheme();
@@ -133,7 +135,7 @@ const DocsEditor = ({
     initialValue: initialScroll
   });
 
-  const scrollToRestoreRef = useRef(isEditing && isMarkdownMode ? 0 : initialScroll);
+  const scrollToRestoreRef = useRef(initialScroll);
   useEffect(() => {
     const scrollContainer = richTextWrapperRef.current?.querySelector('.rich-text-editor-content');
     const content = scrollContainer?.querySelector('.ProseMirror');
@@ -184,8 +186,8 @@ const DocsEditor = ({
             onEdit={onEdit}
             onSave={onSave}
             mode="gfm"
-            initialScroll={initialScroll}
-            onScroll={onScroll}
+            initialScroll={markdownInitialScroll}
+            onScroll={onMarkdownScroll}
           />
         </div>
       )}

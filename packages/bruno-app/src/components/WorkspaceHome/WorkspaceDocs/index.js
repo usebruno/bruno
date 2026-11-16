@@ -16,6 +16,7 @@ const WorkspaceDocs = ({ workspace }) => {
   const [localDocs, setLocalDocs] = useState(workspace?.docs || '');
 
   const [scroll, setScroll] = usePersistedState({ key: `workspace-docs-scroll-${workspace?.uid}`, default: 0 });
+  const [markdownScroll, setMarkdownScroll] = usePersistedState({ key: `workspace-docs-markdown-scroll-${workspace?.uid}`, default: 0 });
 
   // `workspace` is keyed by uid at the call site, so switching workspaces
   // remounts this component and re-initializes localDocs/isEditing fresh
@@ -98,6 +99,8 @@ const WorkspaceDocs = ({ workspace }) => {
                 onRequestEdit={toggleViewMode}
                 initialScroll={scroll}
                 onScroll={setScroll}
+                markdownInitialScroll={markdownScroll}
+                onMarkdownScroll={setMarkdownScroll}
               />
             </div>
             {isEditing && (
