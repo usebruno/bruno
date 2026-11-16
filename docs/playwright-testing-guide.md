@@ -62,7 +62,7 @@ You can also create tests manually by following the established patterns.
 ### Basic Test Structure
 
 ```typescript
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 
 test('Test description', async ({ page }) => {
   // Test steps here
@@ -76,7 +76,7 @@ test('Test description', async ({ page }) => {
 ### Test with Temporary Data
 
 ```typescript
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 
 test('Test with temporary data', async ({ page, createTmpDir }) => {
   // Create temporary directory for test data
@@ -98,9 +98,9 @@ test('Test with temporary data', async ({ page, createTmpDir }) => {
 
 All E2E code lives under `e2e/`. The Playwright configs (`playwright.config.ts`, `playwright.benchmark.config.ts`, `playwright.merge.config.ts`) stay at the repo root.
 
-Specs import shared code through path aliases defined in `e2e/tsconfig.json`: `@e2e/test` (the custom `test` and `expect`), `@e2e/pages`, `@e2e/support`, `@e2e/data`, `@e2e/constants` and `@e2e/servers`. Always import from the alias itself, never from a file inside it (`@e2e/pages`, not `@e2e/pages/request/body`).
+Specs import shared code by relative path, from each folder's `index.ts`: `playwright` (the custom `test` and `expect`), `pages`, `support`, `data`, `constants` and `servers`. Import from the folder itself, never from a file inside it (`'../../pages'`, not `'../../pages/request/body'`). The number of `../` depends on how deep the spec sits; the examples in this guide assume a spec at `e2e/tests/<feature>/`.
 
-**Where aliases are used:** specs (`e2e/tests/`) use aliases; shared code (everything else in `e2e/`: page objects, support, data, constants, servers, fixtures) uses relative paths. Lint enforces both sides: relative or deep imports into `e2e/` fail in specs, and any `@e2e/*` import fails in shared code (it could pull in the `@e2e/pages` barrel and create a circular import). Lint also stops page objects from importing `index.ts` or `locators.ts`, because both import every page object and that creates a circular import. Import the specific file instead.
+Inside `e2e/pages/`, page objects import the specific file they need, never `index.ts` or `locators.ts`: both import every page object, so importing either creates a circular import. Lint enforces this rule.
 
 ```
 e2e/
@@ -138,7 +138,7 @@ e2e/
 ### Test File Template
 
 ```typescript
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 
 test.describe('Feature Name', () => {
   test('should perform specific action', async ({ page }) => {
@@ -230,8 +230,8 @@ npx playwright test --trace on
 A spec builds locators once and destructures the groups it needs — no per-section imports at the call site:
 
 ```typescript
-import { test, expect } from '@e2e/test';
-import { buildCommonLocators, createCollection, createRequest, closeAllCollections } from '@e2e/pages';
+import { test, expect } from '../../playwright';
+import { buildCommonLocators, createCollection, createRequest, closeAllCollections } from '../../pages';
 
 test('should rename a request via the sidebar', async ({ page, createTmpDir }) => {
   const { sidebar, actions, dropdown } = buildCommonLocators(page);
@@ -338,8 +338,8 @@ const defaultPreferences = {
 Each test should be independent and not rely on other tests — its own temp dir, its own data, deterministic cleanup:
 
 ```typescript
-import { test, expect } from '@e2e/test';
-import { buildCommonLocators, createCollection, closeAllCollections } from '@e2e/pages';
+import { test, expect } from '../../playwright';
+import { buildCommonLocators, createCollection, closeAllCollections } from '../../pages';
 
 test('should create a collection', async ({ page, createTmpDir }) => {
   const { sidebar } = buildCommonLocators(page);
@@ -357,8 +357,8 @@ test('should create a collection', async ({ page, createTmpDir }) => {
 Always verify the expected outcome through locators from a page module:
 
 ```typescript
-import { test, expect } from '@e2e/test';
-import { buildCommonLocators, createCollection, createRequest, saveRequest, closeAllCollections } from '@e2e/pages';
+import { test, expect } from '../../playwright';
+import { buildCommonLocators, createCollection, createRequest, saveRequest, closeAllCollections } from '../../pages';
 
 test('should save a request', async ({ page, createTmpDir }) => {
   const { tabs } = buildCommonLocators(page);
@@ -418,8 +418,8 @@ test('renames a request', async ({ page, createTmpDir }) => {
 Prefer auto-retrying assertions and action helpers that encapsulate the wait; never wait on a raw inline selector.
 
 ```typescript
-import { test, expect } from '@e2e/test';
-import { buildCommonLocators, sendRequestAndWaitForResponse } from '@e2e/pages';
+import { test, expect } from '../../playwright';
+import { buildCommonLocators, sendRequestAndWaitForResponse } from '../../pages';
 
 test('should wait for async operations', async ({ page }) => {
   const { response } = buildCommonLocators(page);
@@ -439,8 +439,8 @@ test('should wait for async operations', async ({ page }) => {
 ### 8. Use Test Data Management
 
 ```typescript
-import { test, expect } from '@e2e/test';
-import { buildCommonLocators, openCollection } from '@e2e/pages';
+import { test, expect } from '../../playwright';
+import { buildCommonLocators, openCollection } from '../../pages';
 
 test('should work with test data', async ({ page, createTmpDir }) => {
   const { sidebar } = buildCommonLocators(page);
@@ -462,8 +462,8 @@ All examples use `buildCommonLocators` for locators and the exported action help
 ### Example 1: Basic Collection Creation
 
 ```typescript
-import { test, expect } from '@e2e/test';
-import { buildCommonLocators, createCollection, closeAllCollections } from '@e2e/pages';
+import { test, expect } from '../../playwright';
+import { buildCommonLocators, createCollection, closeAllCollections } from '../../pages';
 
 test('should create a new collection', async ({ page, createTmpDir }) => {
   const { sidebar } = buildCommonLocators(page);
@@ -479,14 +479,14 @@ test('should create a new collection', async ({ page, createTmpDir }) => {
 ### Example 2: Request Creation and Execution
 
 ```typescript
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   buildCommonLocators,
   createCollection,
   createRequest,
   sendRequestAndWaitForResponse,
   closeAllCollections
-} from '@e2e/pages';
+} from '../../pages';
 
 test('should create and execute an HTTP request', async ({ page, createTmpDir }) => {
   const { response } = buildCommonLocators(page);
@@ -509,14 +509,14 @@ test('should create and execute an HTTP request', async ({ page, createTmpDir })
 ### Example 3: Environment Management
 
 ```typescript
-import { test, expect } from '@e2e/test';
+import { test, expect } from '../../playwright';
 import {
   buildCommonLocators,
   createCollection,
   createEnvironment,
   addEnvironmentVariable,
   closeAllCollections
-} from '@e2e/pages';
+} from '../../pages';
 
 test('should create and use environment variables', async ({ page, createTmpDir }) => {
   const { environment } = buildCommonLocators(page);
@@ -617,8 +617,6 @@ The Playwright configs stay at the repo root:
   It also starts the web dev server and the test API server (`packages/bruno-tests`, port 8081) before the run.
 - `playwright.benchmark.config.ts` runs the `*.bench.ts` files in `e2e/tests/benchmarks/`.
 - `playwright.merge.config.ts` merges sharded CI reports.
-
-Both run configs set `tsconfig: './e2e/tsconfig.json'`, which provides the `@e2e/*` import aliases.
 
 ## Additional Resources
 
