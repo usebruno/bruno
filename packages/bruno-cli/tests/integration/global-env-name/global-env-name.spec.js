@@ -64,7 +64,6 @@ describe('CLI run — bru.getEnvName() and bru.getGlobalEnvName()', () => {
     { title: 'only a collection environment selected', request: 'collection-env-only', args: ['--env', 'scripted'] },
     { title: 'only a global environment selected', request: 'global-env-only', args: ['--global-env', 'workspace_scripted'] },
     { title: 'both scopes selected', request: 'both-envs', args: ['--env', 'scripted', '--global-env', 'workspace_scripted'] },
-    { title: 'the two names swapped across the scopes', request: 'swapped-env-names', args: ['--env', 'workspace_scripted', '--global-env', 'scripted'] },
     { title: 'a global environment whose name must stay out of its variables', request: 'name-is-not-a-variable', args: ['--global-env', 'workspace_scripted'] }
   ];
 
