@@ -79,13 +79,13 @@ test('Auto-appends an empty header row when either Name or Value is filled', asy
   });
 });
 
-test('TC-2650: Verify header deletion via backspace clears state', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+test('TC-2650: Verify header deletion when header name is cleared', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
   const { request } = buildCommonLocators(page);
   const headers = request.headers;
   const headerName = 'X-Test';
 
-  await createCollection(page, 'header-backspace-clears-state', await createTmpDir('header-backspace-clears-state'));
-  await createRequest(page, 'request-1', 'header-backspace-clears-state', { url: 'https://example.com/api' });
+  await createCollection(page, 'clearing-header-name-deletes-header', await createTmpDir('clearing-header-name-deletes-header'));
+  await createRequest(page, 'request-1', 'clearing-header-name-deletes-header', { url: 'https://example.com/api' });
   await selectRequestPaneTab(page, 'Headers');
 
   await test.step('The Headers tab starts with no headers', async () => {

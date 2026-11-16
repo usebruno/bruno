@@ -187,7 +187,7 @@ test.describe('Timeline - response headers by source', () => {
   };
 
   const runResponseTimelineFor = (format: 'bru' | 'yml') => {
-    test(`[${format}] TC-6496: Verify Timeline Request shows transport defaults plus the headers entered in Bruno`, { tag: '@sanity' }, async ({ page, electronApp, createTmpDir }) => {
+    test(`[${format}] TC-6496: Verify Timeline Tab shows transport defaults plus the headers entered in Bruno`, { tag: '@sanity' }, async ({ page, electronApp, createTmpDir }) => {
       const { timelineHeaders, timeline } = buildCommonLocators(page);
 
       await openFixtureCollection(page, electronApp, createTmpDir, format);
@@ -240,7 +240,7 @@ test.describe('Timeline - response headers by source', () => {
   };
 
   const runRunnerFor = (format: 'bru' | 'yml') => {
-    test(`[${format}] TC-6499: Verify a Runner result Timeline shows the sent headers for its request`, { tag: '@sanity' }, async ({ page, electronApp, createTmpDir }) => {
+    test(`[${format}] TC-6499: Verify a runner Timeline lists the sent headers for its request`, { tag: '@sanity' }, async ({ page, electronApp, createTmpDir }) => {
       const { timelineHeaders } = buildCommonLocators(page);
       const runner = buildRunnerLocators(page);
 
