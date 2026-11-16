@@ -834,7 +834,7 @@ class CollectionWatcher {
       ignoreInitial,
       usePolling: isWSLPath(watchPath) || forcePolling ? true : false,
       interval: isWSLPath(watchPath) ? WSL_POLLING_INTERVAL_MS : DEFAULT_POLLING_INTERVAL_MS,
-      ignored: (filepath, stats) => {
+      ignored: (filepath) => {
         const normalizedPath = normalizeAndResolvePath(filepath);
         const relativePath = path.relative(watchPath, normalizedPath);
         const basename = path.basename(filepath);
