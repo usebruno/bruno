@@ -135,7 +135,7 @@ describe('ApiSpecItem', () => {
   it('opens the mock server modal on the spec source with this spec', () => {
     renderRow(OPENAPI_SPEC);
 
-    fireEvent.click(screen.getByText('generate-mock-server'));
+    fireEvent.click(screen.getByText('create-mock-server'));
 
     expect(screen.getByTestId('mock-server-modal')).toHaveTextContent('spec:spec-1');
   });

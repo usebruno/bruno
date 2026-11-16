@@ -15,6 +15,14 @@ export const getFilteredRequestResults = (results: T_RunnerRequestExecutionResul
   );
 };
 
+export const formatTotalRunDuration = (runStartTime = '', runCompletionTime = '') => {
+  const durationMs = new Date(runCompletionTime).getTime() - new Date(runStartTime).getTime();
+  if (!Number.isFinite(durationMs) || durationMs < 0) {
+    return '-';
+  }
+  return durationMs / 1000 + 's';
+};
+
 export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -441,6 +449,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
       const { createApp, ref, computed, onMounted } = Vue;
 
       const getFilteredRequestResults = ${getFilteredRequestResults.toString()};
+      const formatTotalRunDuration = ${formatTotalRunDuration.toString()};
 
       function mergeTests(runnerResults) {
         if (!Array.isArray(runnerResults)) return runnerResults; 
@@ -511,12 +520,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             return darkMode.value ? naive.darkTheme : null;
           });
 
-          const totalDuration = computed(() => {
-            const total = res.value.reduce((totalTime, iteration) => {
-              return totalTime + iteration.results.reduce((sum, result) => sum + (result.runDuration || 0), 0);
-            }, 0);
-            return total > 0 ? Math.round(total * 1000) / 1000 + 's' : '-';
-          });
+          const totalDuration = computed(() => formatTotalRunDuration(rawResults.runStartTime, rawResults.runCompletionTime));
 
           const totalDataReceived = computed(() => {
             const bytes = res.value.reduce((total, iteration) => {
@@ -642,7 +646,6 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
           );
           const summarySkippedRequests = computed(() => props?.res?.summary?.skippedRequests || 0);
           const summaryErrors = computed(() => props?.res?.results?.filter((r) => r.error || r.status === 'error').length) || 0;
-          const totalRunDuration = computed(() => props.res?.results?.reduce((total, result) => result.runDuration + total, 0));
           const iterationIndex = Number(props.res.iterationIndex) + 1;
           return {
             summaryColumns,
@@ -652,7 +655,6 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             summaryFailedControls,
             summarySkippedRequests,
             summaryErrors,
-            totalRunDuration,
             iterationTitle: 'Iteration ' + iterationIndex
           };
         }

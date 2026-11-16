@@ -9,7 +9,7 @@ const itemById = (items, id) => items.find((item) => item.id === id);
 describe('getApiSpecMenuItems', () => {
   const makeHandlers = () => ({
     'generate-collection': jest.fn(),
-    'generate-mock-server': jest.fn(),
+    'create-mock-server': jest.fn(),
     'clone': jest.fn(),
     'rename': jest.fn(),
     'reveal': jest.fn(),
@@ -22,13 +22,25 @@ describe('getApiSpecMenuItems', () => {
   it('lists every action in design order with the divider before Remove', () => {
     expect(ids(menu(true))).toEqual([
       'generate-collection',
-      'generate-mock-server',
+      'create-mock-server',
       'clone',
       'rename',
       'reveal',
       'divider-1',
       'remove',
       'delete'
+    ]);
+  });
+
+  it('labels each action', () => {
+    expect(menu(true).filter((item) => item.type !== 'divider').map((item) => item.label)).toEqual([
+      'Generate Collection',
+      'Create Mock Server',
+      'Clone',
+      'Rename',
+      'Reveal in Finder',
+      'Remove',
+      'Delete'
     ]);
   });
 
@@ -46,7 +58,7 @@ describe('getApiSpecMenuItems', () => {
 
   it.each([
     ['generate-collection', IconBox],
-    ['generate-mock-server', IconServer],
+    ['create-mock-server', IconServer],
     ['clone', IconCopy],
     ['rename', IconEdit],
     ['reveal', IconFolder],
