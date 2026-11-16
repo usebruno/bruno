@@ -27,13 +27,25 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
     return formData;
   };
 
+  const formatGraphqlVariables = (variables) => {
+    if (variables === undefined || variables === null) {
+      return '';
+    }
+
+    if (typeof variables === 'string') {
+      return prettifyJsonString(variables);
+    }
+
+    return JSON.stringify(variables, null, 2);
+  };
+
   const parseGraphQL = (text) => {
     try {
       const graphql = JSON.parse(text);
 
       return {
         query: graphql.query,
-        variables: JSON.stringify(graphql.variables, null, 2)
+        variables: formatGraphqlVariables(graphql.variables)
       };
     } catch (e) {
       return {

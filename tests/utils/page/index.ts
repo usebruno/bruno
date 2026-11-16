@@ -26,3 +26,4 @@ export * from './secret-variable-form';
 export * from './variables-tab';
 export * from './autocomplete';
 export * from './graphql/query-builder';
+export * from './graphql/variables';
