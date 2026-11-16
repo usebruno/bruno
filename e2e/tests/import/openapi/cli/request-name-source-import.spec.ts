@@ -2,7 +2,7 @@ import { test, expect } from '../../../../playwright';
 import path from 'path';
 import { importOpenApiWithCli } from '../../../../support';
 
-const specPath = path.resolve(__dirname, '../fixtures/openapi-request-naming.yaml');
+const specPath = path.resolve(__dirname, '../test-data/openapi-request-naming.yaml');
 
 const importedNames = async (createTmpDir: (tag?: string) => Promise<string>, flags: string[]) =>
   importOpenApiWithCli(specPath, path.join(await createTmpDir('openapi-request-name-source-cli'), 'collection.json'), flags).items.map((item) => item.name);
