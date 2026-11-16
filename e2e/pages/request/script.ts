@@ -88,13 +88,17 @@ export const writeScriptContent = async (page: Page, subTab: ScriptSubTab, conte
 };
 
 /**
- * Read the content of a Script sub-tab editor
+ * Read the content of a Script sub-tab editor, or of the request's Tests editor
  * @param page - The page object
- * @param subTab - The Script sub-tab to read
+ * @param subTab - The Script sub-tab to read, or 'tests' for the Tests pane tab
  */
-export const readScriptContent = async (page: Page, subTab: ScriptSubTab): Promise<string> => {
-  await selectScriptSubTab(page, subTab);
-  const editorTestId = `${subTab}-script-editor`;
+export const readScriptContent = async (page: Page, subTab: ScriptSubTab | 'tests'): Promise<string> => {
+  const editorTestId = subTab === 'tests' ? 'test-script-editor' : `${subTab}-script-editor`;
+  if (subTab === 'tests') {
+    await selectRequestPaneTab(page, 'Tests');
+  } else {
+    await selectScriptSubTab(page, subTab);
+  }
   return buildLocators(page)
     .codeMirror.byTestId(editorTestId)
     .evaluate((el: any, testId: string) => {
