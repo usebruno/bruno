@@ -1,13 +1,9 @@
 import path from 'node:path';
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, importCollection, openRequest } from '../../utils/page';
+import { importCollection, openRequest } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Import WebSocket collection', () => {
-  test.afterEach(async ({ page }) => {
-    await closeAllCollections(page);
-  });
-
   test(
     'TC-1277: Imports a WebSocket collection from Bruno JSON written as .bru',
     { tag: '@sanity' },
