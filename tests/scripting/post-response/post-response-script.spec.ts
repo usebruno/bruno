@@ -1,4 +1,4 @@
-import { test, expect } from '../../../../playwright';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -9,7 +9,7 @@ import {
   sendRequest,
   setCodeMirrorEditorValue,
   waitForCollectionMount
-} from '../../../utils/page';
+} from '../../utils/page';
 
 const REQUEST_URL = 'http://localhost:8081/api/echo/anything/post-response';
 
