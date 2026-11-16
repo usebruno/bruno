@@ -20,11 +20,6 @@ export const StyledWrapper = styled.div`
     border: 1px solid ${(props) => props.theme.input.border};
     border-radius: ${(props) => props.theme.border.radius.sm};
     outline: none;
-
-    // &::placeholder {
-    //   color: ${(props) => props.theme.colors.text.subtext0};
-    // }
-
     &:focus {
       border-color: ${(props) => props.theme.input.focusBorder};
     }
