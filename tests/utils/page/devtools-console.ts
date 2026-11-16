@@ -51,13 +51,6 @@ export const openDevTools = async (page: Page) => {
   });
 };
 
-export const selectDevToolsConsoleTab = async (page: Page) => {
-  await test.step('Select the DevTools Console tab', async () => {
-    const consoleTab = buildDevToolsLocators(page).consoleTab();
-    await consoleTab.click();
-  });
-};
-
 export const openNetworkRequestDetails = async (page: Page) => {
   await test.step('Open DevTools → Network and open the request details', async () => {
     const devtools = buildDevToolsLocators(page);

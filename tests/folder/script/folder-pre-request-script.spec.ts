@@ -12,7 +12,7 @@ import {
   sendRequest,
   setCodeMirrorValue
 } from '../../utils/page';
-import { closeDevToolsConsole, openDevTools, selectDevToolsConsoleTab } from '../../utils/page/devtools-console';
+import { closeDevToolsConsole, openDevTools } from '../../utils/page/devtools-console';
 
 const COLLECTION_NAME = 'folder-post-response';
 const FOLDER_NAME = 'api';
@@ -56,7 +56,7 @@ test.describe('Folder pre-request script', () => {
 
     await test.step('Verify the pre-request script runs before the request under the folder', async () => {
       await openDevTools(page);
-      await selectDevToolsConsoleTab(page);
+      await devtools.consoleTab().click();
       await expect(devtools.logEntry(PRE_REQUEST_MESSAGE)).toBeVisible();
       await selectResponsePaneTab(page, 'Timeline');
       await timeline.itemHeader(timeline.items().first()).click();
