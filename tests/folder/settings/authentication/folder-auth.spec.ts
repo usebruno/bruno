@@ -25,7 +25,7 @@ test.describe('Configure authentication on a folder', () => {
   });
 
   test('TC-521: Verify that user is able to configure Bearer Token Authentication for a folder', { tag: '@sanity' }, async ({ page, electronApp, collectionFixturePath }) => {
-    const { auth, settingsSaveButton } = buildCommonLocators(page);
+    const { auth, settingsSaveButton, toast } = buildCommonLocators(page);
 
     await openCollectionFromDialog(page, electronApp, path.join(collectionFixturePath!, COLLECTION_NAME));
     await openfolder(page, COLLECTION_NAME, FOLDER_NAME, { persist: true });
@@ -42,14 +42,14 @@ test.describe('Configure authentication on a folder', () => {
     });
 
     await test.step('Folder settings save Bearer Token as the active method', async () => {
-      await expect(page.getByText('Folder Settings saved successfully')).toBeVisible();
+      await expect(toast.byMessage('Folder Settings saved successfully')).toBeVisible();
       await expect(auth.modeLabel()).toHaveText(AUTH_MODE_LABELS.BEARER);
       await expect.poll(() => readField(page, 'Token')).toBe(FOLDER_TOKEN);
     });
   });
 
   test('TC-508: Verify that Configuring Basic Authentication for a folder', { tag: '@sanity' }, async ({ page, electronApp, collectionFixturePath }) => {
-    const { auth, settingsSaveButton } = buildCommonLocators(page);
+    const { auth, settingsSaveButton, toast } = buildCommonLocators(page);
 
     await openCollectionFromDialog(page, electronApp, path.join(collectionFixturePath!, COLLECTION_NAME));
     await openfolder(page, COLLECTION_NAME, FOLDER_NAME, { persist: true });
@@ -68,7 +68,7 @@ test.describe('Configure authentication on a folder', () => {
     });
 
     await test.step('Folder settings save Basic Auth with the password masked', async () => {
-      await expect(page.getByText('Folder Settings saved successfully')).toBeVisible();
+      await expect(toast.byMessage('Folder Settings saved successfully')).toBeVisible();
       await expect(auth.modeLabel()).toHaveText(AUTH_MODE_LABELS.BASIC);
       await expect.poll(() => readField(page, 'Username')).toBe(FOLDER_USERNAME);
       await expect.poll(() => readField(page, 'Password')).toBe(FOLDER_PASSWORD);

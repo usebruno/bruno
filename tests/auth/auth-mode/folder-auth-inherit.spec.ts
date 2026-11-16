@@ -5,7 +5,6 @@ import {
   closeAllCollections,
   createRequest,
   expandFolder,
-  fieldEditor,
   openCollectionFromDialog,
   openfolder,
   openRequest,
@@ -59,7 +58,7 @@ test.describe('Folder authentication inheritance', () => {
 
     await test.step(`${BEARER_REQUEST} shows the folder Bearer token`, async () => {
       await expect(auth.modeSelector()).toContainText(AUTH_MODE_LABELS.INHERIT);
-      await expect(page.getByText(`Auth inherited from ${BEARER_FOLDER}:`)).toBeVisible();
+      await expect(auth.inheritedSource(BEARER_FOLDER)).toBeVisible();
       await expect.poll(() => readField(page, 'Token')).toBe(FOLDER_TOKEN);
     });
 
@@ -92,7 +91,7 @@ test.describe('Folder authentication inheritance', () => {
 
     await test.step(`${NESTED_REQUEST} shows the parent folder Bearer token`, async () => {
       await expect(auth.modeSelector()).toContainText(AUTH_MODE_LABELS.INHERIT);
-      await expect(page.getByText(`Auth inherited from ${PARENT_FOLDER}:`)).toBeVisible();
+      await expect(auth.inheritedSource(PARENT_FOLDER)).toBeVisible();
       await expect.poll(() => readField(page, 'Token')).toBe(FOLDER_TOKEN);
     });
 
