@@ -10,6 +10,8 @@ import ChooseFolderPage from './ChooseFolderPage';
 import ImportPage from './ImportPage';
 import RecentsPage from './RecentsPage';
 import MyComputerPage from './MyComputerPage';
+import MyComputerSubtitle from './MyComputerPage/MyComputerSubtitle';
+import LocationsPage from './LocationsPage';
 import RegistryPage from './RegistryPage';
 import ApiCatalogPage from './ApiCatalogPage';
 
@@ -20,7 +22,8 @@ import ApiCatalogPage from './ApiCatalogPage';
  * @property {string} id - Stable id, stored as the current page and used in test ids.
  * @property {string} label - Menu item text.
  * @property {string} title - Page header title.
- * @property {string} description - Page header description.
+ * @property {string} [description] - Page header description.
+ * @property {React.ComponentType} [subtitle] - Shown in the page header instead of the description. It takes no props.
  * @property {React.ComponentType} icon - Tabler icon shown in the menu.
  * @property {'sources'} [group] - Pages in the group are listed under the Sources heading.
  * @property {React.ComponentType} component - Page body. It takes no props.
@@ -56,7 +59,7 @@ export const OPEN_COLLECTION_PAGES = [
     id: 'my-computer',
     label: 'My computer',
     title: 'My computer',
-    description: 'Collections Bruno found on your computer',
+    subtitle: MyComputerSubtitle,
     icon: IconDeviceLaptop,
     group: 'sources',
     component: MyComputerPage
@@ -80,3 +83,26 @@ export const OPEN_COLLECTION_PAGES = [
     component: ApiCatalogPage
   }
 ];
+
+/**
+ * Pages opened from a menu page. The menu does not list them and keeps their parent marked.
+ *
+ * @typedef {Object} OpenCollectionSubPage
+ * @property {string} id - Stable id, stored as the current page and used in test ids.
+ * @property {string} parent - Id of the menu page it belongs to. Back returns there.
+ * @property {string} title - Page header title.
+ * @property {React.ComponentType} component - Page body. It takes no props.
+ */
+
+/** @type {OpenCollectionSubPage[]} */
+const OPEN_COLLECTION_SUB_PAGES = [
+  {
+    id: 'locations',
+    parent: 'my-computer',
+    title: 'Locations',
+    component: LocationsPage
+  }
+];
+
+export const findOpenCollectionPage = (pageId) =>
+  [...OPEN_COLLECTION_PAGES, ...OPEN_COLLECTION_SUB_PAGES].find(({ id }) => id === pageId) || OPEN_COLLECTION_PAGES[0];

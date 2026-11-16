@@ -47,6 +47,7 @@ const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
 const { registerCollectionSearchIpc } = require('./ipc/collection-search');
 const { setRecentCollectionsWindow } = require('./ipc/recent-collections');
+const { registerCollectionScanIpc, stopCollectionScan } = require('./ipc/collection-scan');
 const { registerYmlMigrationIpc } = require('./ipc/yml-migration');
 const registerFilesystemIpc = require('./ipc/filesystem');
 const registerPreferencesIpc = require('./ipc/preferences');
@@ -576,6 +577,7 @@ app.on('ready', async () => {
   registerWsdlIpc();
   registerCollectionSearchIpc();
   setRecentCollectionsWindow(mainWindow);
+  registerCollectionScanIpc(mainWindow);
 
   // Internal delegator
   ipcMain.handle('main:cache-clear', async () => {
@@ -596,6 +598,8 @@ app.on('before-quit', (event) => {
   event.preventDefault();
 
   (async () => {
+    stopCollectionScan();
+
     try {
       await stopBenchmark();
     } catch (err) {

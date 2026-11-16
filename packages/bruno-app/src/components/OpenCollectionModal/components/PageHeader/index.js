@@ -1,11 +1,23 @@
-import { IconX } from '@tabler/icons';
+import { IconArrowLeft, IconX } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
-const PageHeader = ({ title, description, onClose }) => (
+const PageHeader = ({ title, description, onBack, onClose }) => (
   <StyledWrapper>
+    {onBack && (
+      <button
+        type="button"
+        className="back-button"
+        aria-label="Back"
+        onClick={onBack}
+        autoFocus
+        data-testid="open-collection-back"
+      >
+        <IconArrowLeft size={16} strokeWidth={2} />
+      </button>
+    )}
     <div className="page-header-text">
       <h3 data-testid="open-collection-page-title">{title}</h3>
-      <span className="page-header-description">{description}</span>
+      {description && <span className="page-header-description">{description}</span>}
     </div>
     <button
       type="button"

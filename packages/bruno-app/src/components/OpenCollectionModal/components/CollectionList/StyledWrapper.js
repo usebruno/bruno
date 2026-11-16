@@ -48,6 +48,15 @@ const StyledWrapper = styled.div`
     overflow: hidden;
   }
 
+  .collection-list-empty {
+    margin: 0;
+    padding: 2.75rem 1.5rem;
+    text-align: center;
+    font-size: ${(props) => props.theme.font.size.base};
+    line-height: 1.5;
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
   .collection-list-item {
     position: relative;
     padding-bottom: 0.0625rem;

@@ -17,12 +17,13 @@ export const focusWhenFocusIsLost = (element) => {
   }
 };
 
-export const focusNextTabbable = (element) => {
+export const focusNextTabbable = (element, leaving) => {
   if (document.activeElement !== element) {
     return;
   }
   const tabbable = getTabbableElements(element.closest('[role="dialog"]') ?? document.body);
-  const next = tabbable[tabbable.indexOf(element) + 1];
+  const index = tabbable.indexOf(element);
+  const next = tabbable[index + 1] ?? (leaving && tabbable.slice(0, index).findLast((candidate) => !leaving.contains(candidate)));
   if (next) {
     next.focus();
   }

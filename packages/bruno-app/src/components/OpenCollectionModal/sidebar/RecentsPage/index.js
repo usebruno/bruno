@@ -12,9 +12,7 @@ import {
 import { selectOpenCollectionPathKeys } from 'providers/ReduxStore/slices/open-collection-modal/selectors';
 import CollectionList from '../../components/CollectionList';
 import EmptyState from '../../components/EmptyState';
-import { formatRelativeTime } from '../../utils/relative-time';
-
-const describeLastUse = ({ lastEvent, usedAt }) => `${lastEvent === 'closed' ? 'Closed' : 'Opened'} ${formatRelativeTime(usedAt)}`;
+import { describeLastUse } from '../../utils/relative-time';
 
 const RecentsPage = () => {
   const dispatch = useDispatch();

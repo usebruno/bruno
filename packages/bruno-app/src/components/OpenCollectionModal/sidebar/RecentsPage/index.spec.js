@@ -198,7 +198,9 @@ describe('RecentsPage', () => {
     expect(modalState(store).page).toBe('choose-folder');
     expect(browseDirectories).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Show collections on this computer' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Show collections on this computer' }));
+    });
     expect(modalState(store).page).toBe('my-computer');
 
     fireEvent.click(screen.getByRole('button', { name: 'Import it' }));

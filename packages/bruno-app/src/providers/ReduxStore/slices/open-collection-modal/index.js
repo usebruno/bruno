@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { mergeFoundCollections } from './found-collections';
 
 const initialState = {
   isOpen: false,
@@ -15,6 +16,14 @@ const initialState = {
     status: 'idle',
     loadId: null,
     items: [],
+    error: null
+  },
+  myComputer: {
+    status: 'idle',
+    scanId: null,
+    locations: null,
+    collections: [],
+    previousCollections: [],
     error: null
   }
 };
@@ -61,6 +70,13 @@ export const openCollectionModalSlice = createSlice({
         state.chooseFolder.result.note = null;
       }
     },
+    folderResultAddedToSearch: (state, action) => {
+      const { result } = state.chooseFolder;
+      if (result?.id === action.payload.resultId && result.note) {
+        result.note = { tone: 'info', text: action.payload.text };
+        result.addedToSearch = true;
+      }
+    },
     folderResultCleared: (state) => {
       state.chooseFolder.result = null;
     },
@@ -97,6 +113,53 @@ export const openCollectionModalSlice = createSlice({
       state.recents.status = 'error';
       state.recents.loadId = null;
       state.recents.error = action.payload.error;
+    },
+    myComputerScanStarted: (state, action) => {
+      const { myComputer } = state;
+      myComputer.previousCollections = mergeFoundCollections(myComputer.previousCollections, myComputer.collections);
+      myComputer.collections = [];
+      myComputer.status = 'scanning';
+      myComputer.scanId = action.payload;
+      myComputer.error = null;
+    },
+    myComputerLocationsReceived: (state, action) => {
+      const { myComputer } = state;
+      if (action.payload.scanId !== myComputer.scanId || myComputer.status !== 'scanning') {
+        return;
+      }
+      const locationIds = new Set(action.payload.locations.map((location) => location.id));
+      const removedIds = new Set((myComputer.locations || []).map((location) => location.id).filter((id) => !locationIds.has(id)));
+      myComputer.previousCollections = myComputer.previousCollections.filter((collection) => !removedIds.has(collection.locationId));
+      myComputer.locations = action.payload.locations.map((location) => ({ ...location, status: 'scanning', found: 0 }));
+    },
+    myComputerCollectionsFound: (state, action) => {
+      const { myComputer } = state;
+      if (action.payload.scanId !== myComputer.scanId) {
+        return;
+      }
+      myComputer.collections = mergeFoundCollections(myComputer.collections, action.payload.collections);
+    },
+    myComputerScanFinished: (state, action) => {
+      const { myComputer } = state;
+      if (action.payload.scanId !== myComputer.scanId) {
+        return;
+      }
+      myComputer.locations = action.payload.locations;
+      if (action.payload.error) {
+        myComputer.status = 'error';
+        myComputer.error = action.payload.error;
+        return;
+      }
+      myComputer.status = 'done';
+      myComputer.previousCollections = [];
+    },
+    myComputerScanFailed: (state, action) => {
+      const { myComputer } = state;
+      if (action.payload.scanId !== myComputer.scanId) {
+        return;
+      }
+      myComputer.status = 'error';
+      myComputer.error = action.payload.error;
     }
   }
 });
@@ -110,6 +173,7 @@ export const {
   folderSearchFinished,
   folderPickEnded,
   folderNoteDismissed,
+  folderResultAddedToSearch,
   folderResultCleared,
   importLoadStarted,
   importLoadEnded,
@@ -117,7 +181,12 @@ export const {
   collectionsOpeningEnded,
   recentsLoadStarted,
   recentsLoadFinished,
-  recentsLoadFailed
+  recentsLoadFailed,
+  myComputerScanStarted,
+  myComputerLocationsReceived,
+  myComputerCollectionsFound,
+  myComputerScanFinished,
+  myComputerScanFailed
 } = openCollectionModalSlice.actions;
 
 export default openCollectionModalSlice.reducer;

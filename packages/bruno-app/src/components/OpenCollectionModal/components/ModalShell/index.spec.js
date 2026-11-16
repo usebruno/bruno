@@ -3,12 +3,14 @@ import { act, createEvent, fireEvent, render, screen, waitFor, within } from '@t
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'providers/Theme';
+import appReducer from 'providers/ReduxStore/slices/app';
 import openCollectionModalReducer, {
   collectionsOpeningEnded,
   collectionsOpeningStarted,
   hideOpenCollectionModal,
   showOpenCollectionModal
 } from 'providers/ReduxStore/slices/open-collection-modal';
+import { openCollectionModal } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import OpenCollectionModal from 'components/OpenCollectionModal';
 import { ImportHandoffContext } from '../ImportHandoff/context';
 import ModalShell from './index';
@@ -31,6 +33,21 @@ jest.mock('../../sidebar/ChooseFolderPage', () => ({
 jest.mock('../../sidebar/RecentsPage', () => ({
   __esModule: true,
   default: () => <input aria-label="Search recents" autoFocus />
+}));
+
+jest.mock('../../sidebar/MyComputerPage', () => ({
+  __esModule: true,
+  default: () => <input aria-label="Search my computer" />
+}));
+
+jest.mock('../../sidebar/MyComputerPage/MyComputerSubtitle', () => ({
+  __esModule: true,
+  default: () => <span data-testid="my-computer-subtitle">Searching 3 locations…</span>
+}));
+
+jest.mock('../../sidebar/LocationsPage', () => ({
+  __esModule: true,
+  default: () => <div data-testid="locations-page">Folders Bruno searches for collections.</div>
 }));
 
 const closedState = openCollectionModalReducer(undefined, { type: 'init' });
@@ -82,6 +99,80 @@ describe('ModalShell', () => {
 
     expect(screen.getByTestId('open-collection-page-title')).toHaveTextContent('Choose folder');
     expect(screen.getByTestId('open-collection-menu-item-choose-folder')).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('shows a page’s own subtitle in place of a description', () => {
+    renderShell('my-computer');
+
+    const title = screen.getByTestId('open-collection-page-title');
+    expect(title).toHaveTextContent('My computer');
+    expect(title.parentElement).toContainElement(screen.getByTestId('my-computer-subtitle'));
+  });
+
+  describe('Locations, a page under My computer', () => {
+    const renderMyComputer = (page = 'my-computer') => {
+      const store = createStore({ isOpen: true, page, myComputer: { ...closedState.myComputer, status: 'done', locations: [] } });
+      renderWithStore(<ModalShell />, store);
+      return store;
+    };
+    const myComputerSearch = () => screen.getByRole('textbox', { name: 'Search my computer', hidden: true });
+
+    it('shows its title with a Back button that takes focus, no description, and My computer marked in the menu', () => {
+      const store = renderMyComputer();
+      myComputerSearch().focus();
+
+      act(() => {
+        store.dispatch(openCollectionModal('locations'));
+      });
+
+      const title = screen.getByTestId('open-collection-page-title');
+      expect(title).toHaveTextContent('Locations');
+      expect(title.parentElement).toHaveTextContent(/^Locations$/);
+      expect(screen.getByTestId('open-collection-back')).toHaveFocus();
+      expect(screen.getByTestId('open-collection-menu-item-my-computer')).toHaveAttribute('aria-current', 'page');
+      expect(screen.getByTestId('open-collection-page-locations')).toContainElement(screen.getByTestId('locations-page'));
+    });
+
+    it('goes back to My computer from Back, keeping what was typed there and putting focus in it', async () => {
+      const store = renderMyComputer();
+      const search = myComputerSearch();
+      fireEvent.change(search, { target: { value: 'orders' } });
+      act(() => {
+        store.dispatch(openCollectionModal('locations'));
+      });
+      expect(search).not.toBeVisible();
+
+      fireEvent.click(screen.getByTestId('open-collection-back'));
+
+      expect(store.getState().openCollectionModal.page).toBe('my-computer');
+      expect(screen.queryByTestId('open-collection-back')).not.toBeInTheDocument();
+      await waitFor(() => expect(search).toHaveFocus());
+      expect(search).toBeVisible();
+      expect(search).toHaveValue('orders');
+    });
+
+    it('goes back to My computer from its menu item, leaving focus on the menu', async () => {
+      const store = renderMyComputer('locations');
+      const menuItem = screen.getByTestId('open-collection-menu-item-my-computer');
+      menuItem.focus();
+
+      fireEvent.click(menuItem);
+      await act(async () => {});
+
+      expect(store.getState().openCollectionModal.page).toBe('my-computer');
+      expect(screen.queryByTestId('locations-page')).not.toBeInTheDocument();
+      expect(myComputerSearch()).toBeVisible();
+      expect(menuItem).toHaveFocus();
+    });
+
+    it('drops the hidden My computer page when another page is chosen from Locations', () => {
+      renderMyComputer('locations');
+
+      fireEvent.click(screen.getByTestId('open-collection-menu-item-recents'));
+
+      expect(screen.getByRole('textbox', { name: 'Search recents' })).toBeInTheDocument();
+      expect(screen.queryByRole('textbox', { name: 'Search my computer', hidden: true })).not.toBeInTheDocument();
+    });
   });
 
   it('shows that collections are opening over the page and keeps the page out of reach', () => {
@@ -233,6 +324,74 @@ describe('ModalShell', () => {
     renderWithStore(<ModalShell />, store);
 
     expect(screen.queryByTestId('open-collection-note-action')).not.toBeInTheDocument();
+  });
+
+  describe('Add to search locations on the note of a found list', () => {
+    const note = { tone: 'info', text: 'work isn’t a collection itself, but it has 2 collections inside. Pick the ones to open.' };
+    const renderListNote = (fields) => {
+      const result = { id: 'search-1', type: 'list', collections: [], preselect: [], note, ...fields };
+      const store = configureStore({
+        reducer: { openCollectionModal: openCollectionModalReducer, app: appReducer },
+        preloadedState: {
+          openCollectionModal: { ...closedState, isOpen: true, page: 'choose-folder', chooseFolder: { ...closedState.chooseFolder, result } }
+        }
+      });
+      renderWithStore(<ModalShell />, store);
+    };
+
+    afterEach(() => {
+      delete window.ipcRenderer;
+    });
+
+    it('adds the folders the list was found in, says so and keeps focus in the note', async () => {
+      window.ipcRenderer = { invoke: jest.fn(() => Promise.resolve()), send: jest.fn() };
+      renderListNote({ folders: ['/Users/me/work'] });
+      const action = screen.getByTestId('open-collection-note-action');
+      expect(action).toHaveTextContent('Add to search locations');
+      action.focus();
+
+      await act(async () => {
+        fireEvent.click(action);
+      });
+
+      expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:save-search-folders', ['/Users/me/work']);
+      expect(screen.getByTestId('open-collection-note')).toHaveTextContent('Bruno now also searches work. Its collections show up in My computer too.');
+      expect(screen.queryByTestId('open-collection-note-action')).not.toBeInTheDocument();
+      expect(screen.getByTestId('open-collection-note-dismiss')).toHaveFocus();
+    });
+
+    it('ignores another click while the save is pending, keeping the note and its action when that save fails', async () => {
+      let failSave;
+      window.ipcRenderer = {
+        invoke: jest.fn(() => new Promise((_resolve, reject) => {
+          failSave = reject;
+        })),
+        send: jest.fn()
+      };
+      renderListNote({ folders: ['/Users/me/work'] });
+      const action = screen.getByTestId('open-collection-note-action');
+
+      fireEvent.click(action);
+      await act(async () => {
+        fireEvent.click(action);
+      });
+      expect(screen.getByTestId('open-collection-note')).toHaveTextContent(note.text);
+
+      await act(async () => {
+        failSave(new Error('disk full'));
+      });
+      expect(screen.getByTestId('open-collection-note')).toHaveTextContent(note.text);
+
+      fireEvent.click(screen.getByTestId('open-collection-note-action'));
+      expect(window.ipcRenderer.invoke).toHaveBeenCalledTimes(2);
+    });
+
+    it('is not offered when its folders were already added', () => {
+      renderListNote({ folders: ['/Users/me/work'], addedToSearch: true });
+
+      expect(screen.getByTestId('open-collection-note')).toHaveTextContent(note.text);
+      expect(screen.queryByTestId('open-collection-note-action')).not.toBeInTheDocument();
+    });
   });
 
   it('leaves the page reachable when nothing is opening', () => {

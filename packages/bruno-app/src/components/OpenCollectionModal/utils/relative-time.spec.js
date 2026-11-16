@@ -1,4 +1,4 @@
-import { formatRelativeTime } from './relative-time';
+import { describeLastUse, formatRelativeTime } from './relative-time';
 
 const NOW = new Date(2026, 10, 13, 12, 0);
 const MINUTE = 60 * 1000;
@@ -7,15 +7,15 @@ const DAY = 24 * HOUR;
 
 const ago = (duration) => NOW.getTime() - duration;
 
+beforeAll(() => {
+  jest.useFakeTimers({ now: NOW });
+});
+
+afterAll(() => {
+  jest.useRealTimers();
+});
+
 describe('formatRelativeTime', () => {
-  beforeAll(() => {
-    jest.useFakeTimers({ now: NOW });
-  });
-
-  afterAll(() => {
-    jest.useRealTimers();
-  });
-
   it.each([
     ['a time ahead of the clock', 'just now', ago(-5 * MINUTE)],
     ['30 seconds ago', 'just now', ago(30 * 1000)],
@@ -33,5 +33,14 @@ describe('formatRelativeTime', () => {
     ['a day in an earlier year', 'Oct 3, 2025', new Date(2025, 9, 3).getTime()]
   ])('shows %s as %s', (_description, shown, timestamp) => {
     expect(formatRelativeTime(timestamp)).toBe(shown);
+  });
+});
+
+describe('describeLastUse', () => {
+  it.each([
+    ['opened', 'Opened 5m ago'],
+    ['closed', 'Closed 5m ago']
+  ])('says when a collection was last %s', (lastEvent, shown) => {
+    expect(describeLastUse({ lastEvent, usedAt: ago(5 * MINUTE) })).toBe(shown);
   });
 });

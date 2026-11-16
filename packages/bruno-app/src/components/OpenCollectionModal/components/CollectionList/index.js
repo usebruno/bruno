@@ -22,12 +22,15 @@ const ListItem = ({ children, item, context, ...props }) => (
 
 const Scroller = ({ tabIndex, context, ...props }) => <div {...props} />;
 
-const ListNoMatch = ({ context }) => context.noMatch;
+const ListEmpty = ({ context }) => context.empty;
 
 const CollectionList = ({
   collections,
   openPathKeys,
   getMeta,
+  searchPlaceholder = 'Search collections',
+  banner = null,
+  emptyText = null,
   noMatchText,
   testIdPrefix,
   onChooseFolder,
@@ -121,7 +124,7 @@ const CollectionList = ({
           <input
             ref={searchInput}
             type="text"
-            placeholder="Search collections"
+            placeholder={searchPlaceholder}
             aria-label="Search collections"
             value={searchText}
             onChange={(event) => setSearchText(event.target.value)}
@@ -144,6 +147,8 @@ const CollectionList = ({
         {renderChooseFolderButton('secondary', `${testIdPrefix}-choose-folder`)}
       </div>
 
+      {banner}
+
       <div ref={rowsElement} className="collection-list-rows" data-testid={`${testIdPrefix}-list`}>
         <Virtuoso
           ref={virtuoso}
@@ -152,7 +157,7 @@ const CollectionList = ({
           increaseViewportBy={600}
           context={{
             lastIndex: rows.length - 1,
-            noMatch: (
+            empty: query ? (
               <NoMatch
                 query={searchText.trim()}
                 action={renderChooseFolderButton('primary', `${testIdPrefix}-no-match-choose-folder`)}
@@ -160,10 +165,14 @@ const CollectionList = ({
               >
                 {noMatchText}
               </NoMatch>
+            ) : emptyText && (
+              <p className="collection-list-empty" data-testid={`${testIdPrefix}-list-empty`}>
+                {emptyText}
+              </p>
             )
           }}
           computeItemKey={(_index, collection) => toPathKey(collection.path)}
-          components={{ Scroller, Item: ListItem, EmptyPlaceholder: ListNoMatch }}
+          components={{ Scroller, Item: ListItem, EmptyPlaceholder: ListEmpty }}
           itemContent={(index, collection) => (
             <CollectionListRow
               collection={collection}

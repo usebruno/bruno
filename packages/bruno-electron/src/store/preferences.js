@@ -1,12 +1,16 @@
+const path = require('node:path');
 const Yup = require('yup');
 const Store = require('electron-store');
-const { get, merge } = require('lodash');
+const { get, isPlainObject, merge, uniqBy } = require('lodash');
+const { toPathKey } = require('../services/collection-search/walk');
 
 /**
  * The preferences are stored in the electron store 'preferences.json'.
  * The electron process uses this module to get the preferences.
  *
  */
+
+const MAX_SEARCH_FOLDERS = 200;
 
 const defaultPreferences = {
   request: {
@@ -67,7 +71,9 @@ const defaultPreferences = {
     defaultWorkspacePath: ''
   },
   openCollection: {
-    autoOpenFolderPicker: true
+    autoOpenFolderPicker: true,
+    searchFolders: [],
+    searchWholeComputer: false
   },
   autoSave: {
     enabled: false,
@@ -192,7 +198,9 @@ const preferencesSchema = Yup.object().shape({
     defaultWorkspacePath: Yup.string().max(1024).nullable()
   }),
   openCollection: Yup.object({
-    autoOpenFolderPicker: Yup.boolean()
+    autoOpenFolderPicker: Yup.boolean(),
+    searchFolders: Yup.array().of(Yup.string().max(1024)).max(MAX_SEARCH_FOLDERS),
+    searchWholeComputer: Yup.boolean()
   }),
   autoSave: Yup.object({
     enabled: Yup.boolean(),
@@ -243,6 +251,26 @@ const preferencesSchema = Yup.object().shape({
     }).optional()
   }).optional()
 });
+
+const isSearchFolderPath = (value) => typeof value === 'string' && value.length <= 1024 && path.isAbsolute(value);
+
+const cleanSearchFolders = (folders) => {
+  const resolvedFolders = folders.filter(isSearchFolderPath).map((folder) => path.resolve(folder));
+  return uniqBy(resolvedFolders, toPathKey).slice(0, MAX_SEARCH_FOLDERS);
+};
+
+const cleanSearchSettings = (preferences) => {
+  const openCollection = isPlainObject(preferences.openCollection) ? preferences.openCollection : {};
+  const { searchFolders, searchWholeComputer } = openCollection;
+  return {
+    ...preferences,
+    openCollection: {
+      ...openCollection,
+      searchFolders: Array.isArray(searchFolders) ? cleanSearchFolders(searchFolders) : [],
+      searchWholeComputer: searchWholeComputer === true
+    }
+  };
+};
 
 class PreferencesStore {
   constructor() {
@@ -381,7 +409,7 @@ class PreferencesStore {
       this.store.set('preferences', preferences);
     }
 
-    return merge({}, defaultPreferences, preferences);
+    return cleanSearchSettings(merge({}, defaultPreferences, preferences));
   }
 
   savePreferences(newPreferences) {
@@ -394,6 +422,10 @@ class PreferencesStore {
 
   saveAutoOpenFolderPicker(enabled) {
     return this.store.set('preferences.openCollection.autoOpenFolderPicker', enabled);
+  }
+
+  saveOpenCollectionSetting(key, value) {
+    return this.store.set(`preferences.openCollection.${key}`, value);
   }
 }
 
@@ -490,9 +522,34 @@ const saveAutoOpenFolderPicker = async (enabled) => {
   await savePreferences({ ...preferences, openCollection: { ...preferences.openCollection, autoOpenFolderPicker: enabled } });
 };
 
+const saveOpenCollectionSetting = async (key, value) => {
+  if (preferencesStore.hasSavedPreferences()) {
+    preferencesStore.saveOpenCollectionSetting(key, value);
+    return;
+  }
+  const preferences = getPreferences();
+  await savePreferences({ ...preferences, openCollection: { ...preferences.openCollection, [key]: value } });
+};
+
+const saveSearchFolders = async (folders) => {
+  if (!Array.isArray(folders) || folders.length > MAX_SEARCH_FOLDERS || !folders.every(isSearchFolderPath)) {
+    throw new Error(`Search folders must be a list of up to ${MAX_SEARCH_FOLDERS} absolute folder paths`);
+  }
+  await saveOpenCollectionSetting('searchFolders', cleanSearchFolders(folders));
+};
+
+const saveSearchWholeComputer = async (enabled) => {
+  if (typeof enabled !== 'boolean') {
+    throw new Error('The whole computer search setting must be true or false');
+  }
+  await saveOpenCollectionSetting('searchWholeComputer', enabled);
+};
+
 module.exports = {
   getPreferences,
   savePreferences,
   saveAutoOpenFolderPicker,
+  saveSearchFolders,
+  saveSearchWholeComputer,
   preferencesUtil
 };

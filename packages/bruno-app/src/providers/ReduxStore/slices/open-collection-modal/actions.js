@@ -5,7 +5,7 @@ import { formatIpcError } from 'utils/common/error';
 import { callIpc } from 'utils/common/ipc';
 import { selectCollections } from 'src/selectors/collections';
 import { updatePreferences } from 'providers/ReduxStore/slices/app';
-import { browseDirectories, mountCollection, openMultipleCollections } from 'providers/ReduxStore/slices/collections/actions';
+import { browseDirectories, browseDirectory, mountCollection, openMultipleCollections } from 'providers/ReduxStore/slices/collections/actions';
 import { expandCollection } from 'providers/ReduxStore/slices/collections';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import {
@@ -16,6 +16,7 @@ import {
   folderSearchStarted,
   folderSearchFinished,
   folderPickEnded,
+  folderResultAddedToSearch,
   folderResultCleared,
   importLoadStarted,
   importLoadEnded,
@@ -23,7 +24,10 @@ import {
   collectionsOpeningEnded,
   recentsLoadStarted,
   recentsLoadFinished,
-  recentsLoadFailed
+  recentsLoadFailed,
+  myComputerScanStarted,
+  myComputerLocationsReceived,
+  myComputerScanFailed
 } from './index';
 import { selectOpenCollectionPathKeys } from './selectors';
 import { countOf, getFolderSearchOutcome } from './folder-results';
@@ -33,16 +37,22 @@ import { readImportableFile, readImportFiles, readImportText } from './import-so
 const CHOOSE_FOLDER_PAGE = 'choose-folder';
 const IMPORT_PAGE = 'import';
 const RECENTS_PAGE = 'recents';
+const MY_COMPUTER_PAGE = 'my-computer';
 
 const getSearchLabel = (folderPaths) =>
   folderPaths.length === 1 ? getFolderName(folderPaths[0]) : `${folderPaths.length} folders`;
 
 const cancelSearchInMain = (searchId) => callIpc('renderer:collection-search:cancel', { requestId: searchId });
 
+const cancelScanInMain = (scanId) => callIpc('renderer:collection-scan:cancel', { scanId });
+
 export const closeOpenCollectionModal = () => (dispatch, getState) => {
-  const { searchId } = getState().openCollectionModal.chooseFolder;
-  if (searchId) {
-    cancelSearchInMain(searchId);
+  const { chooseFolder, myComputer } = getState().openCollectionModal;
+  if (chooseFolder.searchId) {
+    cancelSearchInMain(chooseFolder.searchId);
+  }
+  if (myComputer.status === 'scanning') {
+    cancelScanInMain(myComputer.scanId);
   }
   dispatch(hideOpenCollectionModal());
 };
@@ -256,11 +266,104 @@ export const loadRecentCollections = () => async (dispatch) => {
   }
 };
 
+export const scanMyComputer = () => async (dispatch) => {
+  const scanId = uuid();
+  dispatch(myComputerScanStarted(scanId));
+
+  try {
+    const started = await callIpc('renderer:collection-scan:start', { scanId });
+    if (started) {
+      dispatch(myComputerLocationsReceived({ scanId, locations: started.locations }));
+    }
+  } catch (error) {
+    dispatch(myComputerScanFailed({ scanId, error: formatIpcError(error) || 'Could not start the scan' }));
+  }
+};
+
+const getSearchFolders = (state) => {
+  const searchFolders = get(state.app.preferences, 'openCollection.searchFolders');
+  return Array.isArray(searchFolders) ? searchFolders : [];
+};
+
+const latestSearchSettingSaveIds = {};
+
+const saveSearchSetting = (key, value, channel, failureText) => async (dispatch, getState) => {
+  const saveId = uuid();
+  latestSearchSettingSaveIds[key] = saveId;
+  const { preferences } = getState().app;
+  const previousValue = preferences.openCollection?.[key];
+  dispatch(updatePreferences({ ...preferences, openCollection: { ...preferences.openCollection, [key]: value } }));
+
+  try {
+    await callIpc(channel, value);
+  } catch (error) {
+    const current = getState().app.preferences;
+    if (latestSearchSettingSaveIds[key] === saveId && current.openCollection?.[key] === value) {
+      dispatch(updatePreferences({ ...current, openCollection: { ...current.openCollection, [key]: previousValue } }));
+    }
+    toast.error(formatIpcError(error) || failureText);
+    return false;
+  }
+
+  if (getState().openCollectionModal.myComputer.status !== 'idle') {
+    dispatch(scanMyComputer());
+  }
+  return true;
+};
+
+export const saveSearchWholeComputer = (enabled) =>
+  saveSearchSetting('searchWholeComputer', enabled, 'renderer:save-search-whole-computer', 'Could not update home folder search');
+
+export const addSearchFolders = (folderPaths) => async (dispatch, getState) => {
+  const searchFolders = getSearchFolders(getState());
+  const savedKeys = new Set(searchFolders.map(toPathKey));
+  const newFolders = folderPaths.filter((folderPath) => !savedKeys.has(toPathKey(folderPath)));
+  if (newFolders.length === 0) {
+    return true;
+  }
+  return dispatch(saveSearchSetting('searchFolders', [...searchFolders, ...newFolders], 'renderer:save-search-folders', 'Could not add that folder'));
+};
+
+export const removeSearchFolder = (folderPath) => async (dispatch, getState) => {
+  const searchFolders = getSearchFolders(getState());
+  const removedKey = toPathKey(folderPath);
+  const remainingFolders = searchFolders.filter((searchFolder) => toPathKey(searchFolder) !== removedKey);
+  if (remainingFolders.length === searchFolders.length) {
+    return true;
+  }
+  return dispatch(saveSearchSetting('searchFolders', remainingFolders, 'renderer:save-search-folders', 'Could not remove that folder'));
+};
+
+export const pickSearchFolder = () => async (dispatch) => {
+  let folderPath;
+  try {
+    folderPath = await dispatch(browseDirectory());
+  } catch (error) {
+    toast.error(formatIpcError(error) || 'Could not add that folder');
+    return;
+  }
+  if (folderPath) {
+    await dispatch(addSearchFolders([folderPath]));
+  }
+};
+
+export const addFolderResultToSearch = () => async (dispatch, getState) => {
+  const { result } = getState().openCollectionModal.chooseFolder;
+  if (await dispatch(addSearchFolders(result.folders))) {
+    const text = `Bruno now also searches ${result.folders.map(getFolderName).join(', ')}. Its collections show up in My computer too.`;
+    dispatch(folderResultAddedToSearch({ resultId: result.id, text }));
+  }
+};
+
 export const openCollectionModal = (page) => (dispatch, getState) => {
-  const { isOpen, openingId, chooseFolder } = getState().openCollectionModal;
+  const { isOpen, openingId, chooseFolder, myComputer } = getState().openCollectionModal;
   dispatch(isOpen ? showOpenCollectionPage(page) : showOpenCollectionModal(page));
   if (page === RECENTS_PAGE) {
     dispatch(loadRecentCollections());
+  }
+  if (page === MY_COMPUTER_PAGE && myComputer.status === 'idle') {
+    dispatch(loadRecentCollections());
+    dispatch(scanMyComputer());
   }
 
   if (page !== CHOOSE_FOLDER_PAGE || openingId) {

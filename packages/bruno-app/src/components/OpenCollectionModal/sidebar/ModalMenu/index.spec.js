@@ -7,6 +7,11 @@ import openCollectionModalReducer from 'providers/ReduxStore/slices/open-collect
 import { OPEN_COLLECTION_PAGES } from '../pages';
 import ModalMenu from './index';
 
+jest.mock('nanoid', () => {
+  let count = 0;
+  return { customAlphabet: () => () => `mock-id-${(count += 1)}` };
+});
+
 const renderMenu = (activePageId = 'choose-folder') => {
   const store = configureStore({
     reducer: { openCollectionModal: openCollectionModalReducer },

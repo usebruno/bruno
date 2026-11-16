@@ -32,3 +32,5 @@ export const formatRelativeTime = (timestamp) => {
   const monthAndDay = { month: 'short', day: 'numeric' };
   return date.toLocaleDateString('en-US', date.getFullYear() === new Date().getFullYear() ? monthAndDay : { ...monthAndDay, year: 'numeric' });
 };
+
+export const describeLastUse = ({ lastEvent, usedAt }) => `${lastEvent === 'closed' ? 'Closed' : 'Opened'} ${formatRelativeTime(usedAt)}`;

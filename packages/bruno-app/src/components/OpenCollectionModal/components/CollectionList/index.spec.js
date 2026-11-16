@@ -249,6 +249,47 @@ describe('CollectionList', () => {
     expect(onChooseFolder).toHaveBeenCalled();
   });
 
+  it('shows the search placeholder it is given and keeps the search box name', () => {
+    renderList({ searchPlaceholder: 'Search 4 collections' });
+
+    expect(searchBox()).toHaveAttribute('placeholder', 'Search 4 collections');
+    expect(searchBox()).toHaveAccessibleName('Search collections');
+  });
+
+  it('shows a banner between the search row and the rows', () => {
+    renderList({ banner: <div data-testid="list-banner">Add more folders to search.</div> });
+    const banner = screen.getByTestId('list-banner');
+
+    expect(screen.getByTestId('list-choose-folder').compareDocumentPosition(banner)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(banner.compareDocumentPosition(screen.getByTestId('list-list'))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('shows the empty text while there are no collections and nothing is searched', () => {
+    renderList({ collections: [], emptyText: 'Looking for collections…' });
+
+    expect(screen.getByTestId('list-list-empty')).toHaveTextContent('Looking for collections…');
+
+    search('   ');
+    expect(screen.getByTestId('list-list-empty')).toBeInTheDocument();
+    expect(screen.queryByTestId('list-no-match')).not.toBeInTheDocument();
+  });
+
+  it('says nothing matches a search even while there are no collections', () => {
+    renderList({ collections: [], emptyText: 'Looking for collections…' });
+
+    search('orders');
+
+    expect(screen.getByTestId('list-no-match')).toHaveTextContent('No collection matches “orders”');
+    expect(screen.queryByTestId('list-list-empty')).not.toBeInTheDocument();
+  });
+
+  it('shows nothing in an empty list that has no empty text', () => {
+    renderList({ collections: [] });
+
+    expect(screen.queryByTestId('list-list-empty')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('list-no-match')).not.toBeInTheDocument();
+  });
+
   it('puts focus in the search box when it appears', () => {
     renderList();
 
