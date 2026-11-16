@@ -20,7 +20,7 @@ const runGh = (executable, args) => new Promise((resolve, reject) => {
   });
 });
 
-const findGhExecutable = async () => {
+const readGitHubCliToken = async ({ hostname = 'github.com' } = {}) => {
   await waitForShellEnv().catch(() => {});
   const candidates = process.platform === 'win32'
     ? ['gh', ...windowsInstallLocations().filter((candidate) => fs.existsSync(candidate))]
@@ -28,25 +28,17 @@ const findGhExecutable = async () => {
   let startError = null;
   for (const candidate of candidates) {
     try {
-      await runGh(candidate, ['--version']);
-      return { executable: candidate, startError: null };
+      const token = await runGh(candidate, ['auth', 'token', '--hostname', hostname]);
+      return { installed: true, token: token || null };
     } catch (err) {
-      if (err.code !== 'ENOENT') startError = startError || err;
+      if (err.code === 'ENOENT') continue;
+      if (typeof err.code === 'number' || err.killed) return { installed: true, token: null };
+      startError = startError || err;
     }
   }
-  return { executable: null, startError };
-};
-
-const readGitHubCliToken = async ({ hostname = 'github.com' } = {}) => {
-  const { executable, startError } = await findGhExecutable();
-  if (startError && !executable) return { installed: true, token: null, startError: startError.message };
-  if (!executable) return { installed: false, token: null };
-  try {
-    const token = await runGh(executable, ['auth', 'token', '--hostname', hostname]);
-    return { installed: true, token: token || null };
-  } catch (err) {
-    return { installed: true, token: null };
-  }
+  return startError
+    ? { installed: true, token: null, startError: startError.message }
+    : { installed: false, token: null };
 };
 
 module.exports = { readGitHubCliToken };
