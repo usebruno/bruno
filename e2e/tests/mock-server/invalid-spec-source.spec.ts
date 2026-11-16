@@ -2,12 +2,8 @@ import path from 'path';
 import fs from 'fs';
 import { test, expect, closeElectronApp } from '../../playwright';
 import { waitForReadyPage } from '../../utils';
-import {
-  buildMockServerLocators,
-  openCreateMockServerModal,
-  buildApiSpecPanelLocators,
-  openApiSpecFromDialog
-} from '../../pages';
+import { buildMockServerLocators, openCreateMockServerModal } from '../../pages';
+import { buildApiSpecPanelLocators, openApiSpecFromDialog } from '../../pages/api-spec';
 
 // The Mock Servers sidebar section is behind a beta flag.
 const PREFERENCES = JSON.stringify({

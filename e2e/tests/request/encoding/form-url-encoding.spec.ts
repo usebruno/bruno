@@ -9,10 +9,9 @@ import {
   selectRequestBodyMode,
   saveRequest,
   sendRequestAndWaitForResponse,
-  expectResponseContains,
-  fillRequestHeaderName,
-  fillRequestHeaderValue
+  expectResponseContains
 } from '../../../pages';
+import { fillRequestHeaderName, fillRequestHeaderValue } from '../../../pages/request/headers';
 
 const ECHO_URL = 'http://localhost:8081/api/echo/everything';
 const FORM_URL_ENCODED_BODY_MODE = 'Form URL Encoded';

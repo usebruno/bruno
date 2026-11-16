@@ -22,9 +22,9 @@ import {
   selectfolderPaneTab,
   selectRequestPaneTab,
   writeFieldValue,
-  setApiKeyValue,
-  addVarsRow
+  setApiKeyValue
 } from '../../../pages';
+import { addVarsRow } from '../../../pages/request/vars';
 import { AUTH_MODE_LABELS } from '../../../constants';
 
 const PLAINTEXT_WARNING = 'Store sensitive info as a secret variable or in a .env file';

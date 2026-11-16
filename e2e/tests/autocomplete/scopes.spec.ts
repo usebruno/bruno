@@ -14,11 +14,11 @@ import {
   addEnvironmentVariables,
   saveEnvironment,
   buildCommonLocators,
-  buildToastLocators,
   buildAutocompleteLocators,
   pressAutocompleteShortcut,
   setEditorState
 } from '../../pages';
+import { buildToastLocators } from '../../pages/app-shell/toast';
 
 const VAR_NAME = 'shadowvar';
 

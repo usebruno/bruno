@@ -4,7 +4,8 @@ import {
   expect,
   test
 } from '../../../playwright';
-import { buildCommonLocators, clickOpenWorkspace } from '../../../pages';
+import { buildCommonLocators } from '../../../pages';
+import { clickOpenWorkspace } from '../../../pages/app-shell/title-bar';
 import { waitForReadyPage, stubOpenDirectoryDialog, createWorkspaceFromYml } from '../../../utils';
 
 test.describe('Open Workspace', () => {

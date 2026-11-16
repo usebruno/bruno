@@ -10,9 +10,9 @@ import {
   buildCommonLocators,
   openRequest,
   selectResponsePaneTab,
-  sendRequest,
-  buildTimelineHeaderLocators
+  sendRequest
 } from '../../../pages';
+import { buildTimelineHeaderLocators } from '../../../pages/response/timeline';
 import { waitForReadyPage } from '../../../utils';
 import { startNtlmServer, type NtlmEndpoint } from '@usebruno/tests/ntlm';
 

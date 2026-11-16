@@ -7,7 +7,8 @@ import {
   closeElectronApp,
   waitForReadyPage
 } from '../../../playwright';
-import { createWorkspaceZip, importWorkspaceFromZip, buildTitleBarLocators } from '../../../pages';
+import { buildTitleBarLocators } from '../../../pages/app-shell/title-bar';
+import { createWorkspaceZip, importWorkspaceFromZip } from '../../../pages/workspace/import-workspace';
 
 type WorkspaceConfig = {
   info?: { name: string; type: string };

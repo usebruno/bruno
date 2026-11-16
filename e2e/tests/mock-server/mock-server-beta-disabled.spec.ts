@@ -11,7 +11,6 @@ import { findSnapshotCollectionEntry, readSnapshot, waitForReadyPage } from '../
 import {
   openWorkspaceFromDialog,
   switchWorkspace,
-  buildTitleBarLocators,
   buildCommonLocators,
   openPreferences,
   selectPreferencesTab,
@@ -23,6 +22,7 @@ import {
   setMockServerBetaFeature,
   openMockServerTab
 } from '../../pages';
+import { buildTitleBarLocators } from '../../pages/app-shell/title-bar';
 import {
   closeTabByName,
   focusTabWithoutSidebarFocus,

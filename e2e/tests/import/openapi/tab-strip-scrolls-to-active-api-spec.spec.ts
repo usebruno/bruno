@@ -1,14 +1,13 @@
 import { test, expect, Page } from '../../../playwright';
 import * as fs from 'fs';
 import * as path from 'path';
+import { buildCommonLocators, activeTabIsInStrip } from '../../../pages';
 import {
   openApiSpecFromDialog,
   openApiSpecSidebarItem,
   buildApiSpecPanelLocators,
-  removeAllApiSpecsFromWorkspace,
-  buildCommonLocators,
-  activeTabIsInStrip
-} from '../../../pages';
+  removeAllApiSpecsFromWorkspace
+} from '../../../pages/api-spec';
 
 const SPEC_COUNT = 12;
 const specTitle = (index: number) => `Scroll Spec ${String(index).padStart(2, '0')}`;

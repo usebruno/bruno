@@ -8,6 +8,7 @@ import {
 import * as fs from 'fs';
 import * as path from 'path';
 import { waitForReadyPage, waitForSnapshotApiSpecTabs } from '../../../utils';
+import { buildCommonLocators, createTransientRequest, closeAllTabs } from '../../../pages';
 import {
   openApiSpecFromDialog,
   openApiSpecSidebarItem,
@@ -19,11 +20,8 @@ import {
   closeApiSpecTab,
   removeApiSpecFromWorkspace,
   removeAllApiSpecsFromWorkspace,
-  expandApiSpecsSection,
-  buildCommonLocators,
-  createTransientRequest,
-  closeAllTabs
-} from '../../../pages';
+  expandApiSpecsSection
+} from '../../../pages/api-spec';
 
 const FIRST_SPEC = { file: 'openapi-comprehensive.yaml', name: 'Comprehensive API Test Collection' };
 const SECOND_SPEC = { file: 'openapi-path-grouping.json', name: 'Path Grouping Test API' };

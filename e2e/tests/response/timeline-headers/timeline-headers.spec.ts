@@ -13,8 +13,6 @@ import {
   expandFolder,
   selectResponsePaneTab,
   sendRequestAndWaitForResponse,
-  closeDevToolsConsole,
-  openNetworkRequestDetails,
   buildCommonLocators,
   openCollectionFromPath,
   waitForCollectionMount,
@@ -22,6 +20,7 @@ import {
   openRunnerResultTimeline,
   runCollection
 } from '../../../pages';
+import { closeDevToolsConsole, openNetworkRequestDetails } from '../../../pages/app-shell/devtools';
 
 const COLLECTION = 'timeline-headers';
 const REQUEST = 'get-headers';

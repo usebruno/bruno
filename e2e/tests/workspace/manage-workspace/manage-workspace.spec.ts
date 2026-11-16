@@ -1,11 +1,7 @@
 import path from 'path';
 import { test, expect } from '../../../playwright';
-import {
-  createWorkspace,
-  buildCommonLocators,
-  goToManageWorkspace,
-  openWorkspaceActionsMenu
-} from '../../../pages';
+import { createWorkspace, buildCommonLocators } from '../../../pages';
+import { goToManageWorkspace, openWorkspaceActionsMenu } from '../../../pages/workspace/manage-workspace';
 
 test.describe('Manage Workspace', () => {
   test('TC-3109: should open terminal from the workspace actions menu', { tag: '@sanity' }, async ({ page }) => {

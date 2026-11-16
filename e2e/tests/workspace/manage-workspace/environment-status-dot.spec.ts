@@ -1,12 +1,11 @@
 import { test, expect } from '../../../playwright';
+import { addRowToActiveTab, buildCommonLocators } from '../../../pages';
 import {
-  addRowToActiveTab,
-  buildCommonLocators,
   addDotEnvVariable,
   createDotEnvFile,
   createEnvironmentFromSidebar,
   openWorkspaceEnvironmentsTab
-} from '../../../pages';
+} from '../../../pages/environment/environment';
 
 test.describe('Workspace Environments status dot', () => {
   test('TC-3275: Verify environment status dot icon in workspace Environments tab', async ({

@@ -3,7 +3,7 @@ import fs from 'fs';
 import yaml from 'js-yaml';
 import { test, expect, closeElectronApp } from '../../../playwright';
 import { waitForReadyPage } from '../../../utils';
-import { buildCreateWorkspaceModalLocators, openCreateWorkspaceModal } from '../../../pages';
+import { buildCreateWorkspaceModalLocators, openCreateWorkspaceModal } from '../../../pages/workspace/create-workspace-modal';
 
 type WorkspaceConfig = {
   opencollection?: string;

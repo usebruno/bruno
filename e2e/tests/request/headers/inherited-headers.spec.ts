@@ -11,13 +11,15 @@ import {
   selectRequestPaneTab,
   selectResponsePaneTab,
   sendRequest,
+  readResponsePreviewBody
+} from '../../../pages';
+import {
   fillRequestHeaderName,
   fillRequestHeaderValue,
-  readResponsePreviewBody,
   seedCollectionHeaders,
   seedFolderHeaders,
   showInheritedHeaders
-} from '../../../pages';
+} from '../../../pages/request/headers';
 
 const ECHO_HEADERS_URL = 'http://localhost:8081/headers';
 const DEFAULT_HEADER_COUNT = 5;

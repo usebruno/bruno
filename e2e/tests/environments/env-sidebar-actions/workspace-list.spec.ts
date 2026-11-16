@@ -1,15 +1,13 @@
 import { test, expect } from '../../../playwright';
+import { addRowToActiveTab, saveEnvironment, buildCommonLocators } from '../../../pages';
 import {
-  addRowToActiveTab,
-  saveEnvironment,
-  buildCommonLocators,
   DELETE_KEY,
   SELECT_ALL_KEY,
   clickEmptyListSpace,
   ctrlClickRows,
   deleteAllWorkspaceEnvironments,
   openRowContextMenu
-} from '../../../pages';
+} from '../../../pages/environment/environment';
 import { ENV_NAMES, openWorkspaceEnvironments } from './helpers';
 
 const [ENV_1, ENV_2, ENV_3, ENV_4] = ENV_NAMES;

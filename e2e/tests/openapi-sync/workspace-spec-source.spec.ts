@@ -2,17 +2,15 @@ import path from 'path';
 import fs from 'fs';
 import jsyaml from 'js-yaml';
 import { test, expect, closeElectronApp, ElectronApplication } from '../../playwright';
+import { openWorkspaceFromDialog, buildCommonLocators } from '../../pages';
+import { expandApiSpecsSection, removeApiSpecFromWorkspace } from '../../pages/api-spec';
 import {
-  openWorkspaceFromDialog,
-  buildCommonLocators,
   openConnectedOpenApiSyncTab,
   openConnectionSettings,
   openOpenApiSyncTab,
   pickWorkspaceSpec,
-  waitForWorkspaceMenuFocus,
-  expandApiSpecsSection,
-  removeApiSpecFromWorkspace
-} from '../../pages';
+  waitForWorkspaceMenuFocus
+} from '../../pages/openapi-sync';
 import { waitForReadyPage } from '../../utils';
 
 const WORKSPACE_NAME = 'Spec Source Workspace';

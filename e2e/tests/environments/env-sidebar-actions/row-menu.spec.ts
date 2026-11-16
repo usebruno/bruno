@@ -1,5 +1,6 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, buildCommonLocators, clickEmptyListSpace } from '../../../pages';
+import { closeAllCollections, buildCommonLocators } from '../../../pages';
+import { clickEmptyListSpace } from '../../../pages/environment/environment';
 import { ENV_NAMES, openEnvironmentsList } from './helpers';
 
 const [ENV_1, ENV_2, ENV_3, ENV_4] = ENV_NAMES;

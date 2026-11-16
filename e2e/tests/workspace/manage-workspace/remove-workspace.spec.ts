@@ -1,14 +1,9 @@
 import path from 'path';
 import fs from 'fs';
 import { test, expect, closeElectronApp } from '../../../playwright';
-import {
-  createWorkspace,
-  switchWorkspace,
-  buildCommonLocators,
-  buildTitleBarLocators,
-  goToManageWorkspace,
-  openWorkspaceActionsMenu
-} from '../../../pages';
+import { createWorkspace, switchWorkspace, buildCommonLocators } from '../../../pages';
+import { buildTitleBarLocators } from '../../../pages/app-shell/title-bar';
+import { goToManageWorkspace, openWorkspaceActionsMenu } from '../../../pages/workspace/manage-workspace';
 import { waitForReadyPage } from '../../../utils';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');

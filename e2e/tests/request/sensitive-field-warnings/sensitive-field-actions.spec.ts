@@ -29,9 +29,9 @@ import {
   selectRequestPaneTab,
   setEnvironmentVariableValue,
   writeFieldValue,
-  setApiKeyValue,
-  addVarsRow
+  setApiKeyValue
 } from '../../../pages';
+import { addVarsRow } from '../../../pages/request/vars';
 import { AUTH_MODE_LABELS } from '../../../constants';
 import { readFileIfExists } from '../../../utils';
 

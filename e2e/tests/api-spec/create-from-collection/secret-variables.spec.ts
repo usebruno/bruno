@@ -8,11 +8,9 @@ import {
   openCollection,
   openCollectionFromDialog,
   openEnvironmentConfigTab,
-  setEnvironmentSecrets,
-  buildApiSpecPanelLocators,
-  createApiSpecFromCollection,
-  removeAllApiSpecsFromWorkspace
+  setEnvironmentSecrets
 } from '../../../pages';
+import { buildApiSpecPanelLocators, createApiSpecFromCollection, removeAllApiSpecsFromWorkspace } from '../../../pages/api-spec';
 
 const SECRETS = {
   secvar: 'secvar-from-secret-store',

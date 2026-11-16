@@ -4,11 +4,9 @@ import {
   closeAllCollections,
   createApp,
   createCollection,
-  saveRequest,
-  addCollectionAppCodeFromEmptyState,
-  openMigrateToYmlModalFromPill,
-  setCollectionAppCode
+  saveRequest
 } from '../../../pages';
+import { addCollectionAppCodeFromEmptyState, openMigrateToYmlModalFromPill, setCollectionAppCode } from '../../../pages/collection/collection-app';
 import { CLICK_COUNTER_APP, CLICK_COUNTER_APP_EDITED } from '../../../constants';
 
 const APP_NAME = 'Demo_app';

@@ -1,5 +1,6 @@
 import { test, expect } from '../../../playwright';
-import { buildCommonLocators, openEnvironmentDropdown } from '../../../pages';
+import { buildCommonLocators } from '../../../pages';
+import { openEnvironmentDropdown } from '../../../pages/environment/environment';
 
 const COLLECTION_NAME = 'Env Color Collection';
 const ENVIRONMENT_NAME = 'Local';

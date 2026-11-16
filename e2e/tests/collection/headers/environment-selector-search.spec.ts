@@ -1,11 +1,6 @@
 import { test, expect } from '../../../playwright';
-import {
-  closeAllCollections,
-  buildCommonLocators,
-  openCollection,
-  openEnvironmentDropdown,
-  closeEnvironmentSelector
-} from '../../../pages';
+import { closeAllCollections, buildCommonLocators, openCollection } from '../../../pages';
+import { openEnvironmentDropdown, closeEnvironmentSelector } from '../../../pages/environment/environment';
 
 // TODO: We need to revisit and make it parallel safe
 test.describe.serial('Environment Selector Search', () => {

@@ -3,14 +3,16 @@ import {
   addRowToActiveTab,
   closeAllCollections,
   saveEnvironment,
-  buildCommonLocators,
+  buildCommonLocators
+} from '../../../pages';
+import {
   DELETE_KEY,
   IS_MAC,
   SELECT_ALL_KEY,
   clickEmptyListSpace,
   ctrlClickRows,
   openRowContextMenu
-} from '../../../pages';
+} from '../../../pages/environment/environment';
 import { ENV_NAMES, openEnvironmentsList } from './helpers';
 
 const [ENV_1, ENV_2, ENV_3, ENV_4] = ENV_NAMES;

@@ -4,7 +4,6 @@ import { test, expect, closeElectronApp } from '../../playwright';
 import { waitForReadyPage } from '../../utils';
 import {
   openWorkspaceFromDialog,
-  buildTitleBarLocators,
   buildMockServerLocators,
   createMockServerFromCollection,
   openMockServerFromSidebar,
@@ -13,6 +12,7 @@ import {
   stopMockServer,
   syncResponsesFromExamples
 } from '../../pages';
+import { buildTitleBarLocators } from '../../pages/app-shell/title-bar';
 
 const COLLECTION_NAME = 'mock-server-other-collection';
 const BROWSER_ORIGIN = 'https://docs.example.com';

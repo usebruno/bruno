@@ -20,9 +20,9 @@ import {
   switchToOpenTab,
   toggleSecretReveal,
   unfoldObjectLine,
-  selectNoEnvironment,
   buildCommonLocators
 } from '../../pages';
+import { selectNoEnvironment } from '../../pages/environment/environment';
 import { readClipboard } from '../../utils';
 
 /**

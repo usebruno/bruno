@@ -7,12 +7,8 @@ import {
   closeElectronApp,
   ElectronApplication
 } from '../../../playwright';
-import {
-  createWorkspace,
-  buildCommonLocators,
-  goToManageWorkspace,
-  openWorkspaceActionsMenu
-} from '../../../pages';
+import { createWorkspace, buildCommonLocators } from '../../../pages';
+import { goToManageWorkspace, openWorkspaceActionsMenu } from '../../../pages/workspace/manage-workspace';
 import { waitForReadyPage } from '../../../utils';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');

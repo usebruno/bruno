@@ -1,6 +1,5 @@
 import { test, expect } from '../../../playwright';
 import {
-  addVarsRow,
   buildCommonLocators,
   closeAllCollections,
   openFolderRequest,
@@ -10,6 +9,7 @@ import {
   selectResponsePaneTab,
   sendRequest
 } from '../../../pages';
+import { addVarsRow } from '../../../pages/request/vars';
 
 const COLLECTION_NAME = 'folder-post-response-vars';
 const FOLDER_NAME = 'api';

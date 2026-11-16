@@ -7,15 +7,9 @@ import {
   closeElectronApp,
   ElectronApplication
 } from '../../playwright';
-import {
-  openWorkspaceFromDialog,
-  buildCommonLocators,
-  buildTitleBarLocators,
-  buildMockServerLocators,
-  expandApiSpecsSection,
-  openApiSpecRowMenu,
-  chooseApiSpecRowAction
-} from '../../pages';
+import { openWorkspaceFromDialog, buildCommonLocators, buildMockServerLocators } from '../../pages';
+import { expandApiSpecsSection, openApiSpecRowMenu, chooseApiSpecRowAction } from '../../pages/api-spec';
+import { buildTitleBarLocators } from '../../pages/app-shell/title-bar';
 import { waitForReadyPage, stubOpenDirectoryDialog } from '../../utils';
 
 const OPENAPI_FIXTURES = path.resolve(__dirname, '..', 'import', 'openapi', 'fixtures');

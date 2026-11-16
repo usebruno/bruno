@@ -1,12 +1,6 @@
 import { test, Page, ElectronApplication } from '../../../playwright';
-import {
-  openCollectionFromDialog,
-  openEnvironmentConfigTab,
-  buildCommonLocators,
-  createEnvironmentFromSidebar,
-  deleteAllWorkspaceEnvironments,
-  openWorkspaceEnvironmentsTab
-} from '../../../pages';
+import { openCollectionFromDialog, openEnvironmentConfigTab, buildCommonLocators } from '../../../pages';
+import { createEnvironmentFromSidebar, deleteAllWorkspaceEnvironments, openWorkspaceEnvironmentsTab } from '../../../pages/environment/environment';
 
 const COLLECTION_NAME = 'Env Sidebar Actions';
 

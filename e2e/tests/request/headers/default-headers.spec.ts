@@ -6,11 +6,9 @@ import {
   createRequest,
   selectRequestPaneTab,
   sendRequest,
-  fillRequestHeaderName,
-  fillRequestHeaderValue,
-  readResponsePreviewBody,
-  showInheritedHeaders
+  readResponsePreviewBody
 } from '../../../pages';
+import { fillRequestHeaderName, fillRequestHeaderValue, showInheritedHeaders } from '../../../pages/request/headers';
 
 const DEFAULT_HEADERS = [
   'User-Agent',

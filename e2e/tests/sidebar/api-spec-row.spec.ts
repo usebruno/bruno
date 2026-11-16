@@ -1,6 +1,6 @@
 import { test, expect } from '../../playwright';
 import * as path from 'path';
-import { buildApiSpecPanelLocators, buildApiSpecRowMenuLocators, openApiSpecFromDialog } from '../../pages';
+import { buildApiSpecPanelLocators, buildApiSpecRowMenuLocators, openApiSpecFromDialog } from '../../pages/api-spec';
 
 const FIXTURES = path.resolve(__dirname, '..', 'import', 'openapi', 'fixtures');
 const SPEC_A = { file: path.join(FIXTURES, 'openapi-simple.json'), name: 'Simple Test API' };

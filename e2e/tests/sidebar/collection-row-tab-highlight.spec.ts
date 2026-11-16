@@ -5,10 +5,9 @@ import {
   createCollection,
   closeAllCollections,
   createRequest,
-  openRequest,
-  buildApiSpecPanelLocators,
-  openApiSpecFromDialog
+  openRequest
 } from '../../pages';
+import { buildApiSpecPanelLocators, openApiSpecFromDialog } from '../../pages/api-spec';
 
 const COLLECTION = 'Spec Highlight Test';
 const SPEC = {

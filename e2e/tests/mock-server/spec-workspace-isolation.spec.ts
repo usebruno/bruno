@@ -5,13 +5,12 @@ import { waitForReadyPage } from '../../utils';
 import {
   openWorkspaceFromDialog,
   buildCommonLocators,
-  buildTitleBarLocators,
   buildMockServerLocators,
   openCreateMockServerModal,
-  openMockServerSettings,
-  buildApiSpecPanelLocators,
-  openApiSpecFromDialog
+  openMockServerSettings
 } from '../../pages';
+import { buildApiSpecPanelLocators, openApiSpecFromDialog } from '../../pages/api-spec';
+import { buildTitleBarLocators } from '../../pages/app-shell/title-bar';
 
 const EMPTY_WORKSPACE_YML = [
   'opencollection: 1.0.0',
