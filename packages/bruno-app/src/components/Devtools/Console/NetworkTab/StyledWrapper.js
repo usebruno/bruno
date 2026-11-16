@@ -63,6 +63,25 @@ const StyledWrapper = styled.div`
     }
   }
 
+  .network-clear-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid ${(props) => props.theme.console.border};
+    border-radius: 4px;
+    color: ${(props) => props.theme.console.messageColor};
+    font-size: ${(props) => props.theme.font.size.sm};
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background: ${(props) => props.theme.console.logHoverBg};
+    }
+  }
+
   .requests-container {
     display: flex;
     flex-direction: column;

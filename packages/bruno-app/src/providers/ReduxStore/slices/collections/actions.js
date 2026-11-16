@@ -633,6 +633,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
         collectionUid
       })
     );
+    const networkRequestsGeneration = getState().collections.networkRequestsGeneration || 0;
 
     const environment = resolveEnvironmentInheritance({
       environments: collectionCopy.environments,
@@ -669,8 +670,10 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 
           return dispatch(
             responseReceived({
+              requestUid,
               itemUid,
               collectionUid,
+              networkRequestsGeneration,
               response: serializedResponse,
               requestSent
             })
@@ -684,8 +687,10 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
           if (err && err.message === 'Error invoking remote method \'send-http-request\': Error: Request cancelled') {
             dispatch(
               responseReceived({
+                requestUid,
                 itemUid,
                 collectionUid,
+                networkRequestsGeneration,
                 response: null,
                 requestSent
               })
@@ -703,8 +708,10 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 
           dispatch(
             responseReceived({
+              requestUid,
               itemUid,
               collectionUid,
+              networkRequestsGeneration,
               response: errorResponse,
               requestSent
             })
