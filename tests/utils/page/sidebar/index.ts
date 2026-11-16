@@ -81,6 +81,8 @@ export const buildSidebarLocators = (page: Page) => {
     collectionScope,
     collectionScopeByUid: (collectionUid: string) => page.locator(`[data-collection-uid="${collectionUid}"]`),
     folderScope,
+    itemInFolder: (folderName: string, itemName: string): Locator =>
+      folderScope(folderName).locator('.item-name').and(page.getByTitle(itemName, { exact: true })),
     scopedItem: function (collectionName: string, itemName: string) {
       return this.collectionScope(collectionName).locator('.item-name').and(page.getByTitle(itemName, { exact: true }));
     },
