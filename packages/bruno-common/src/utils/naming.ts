@@ -79,6 +79,21 @@ export const validateNameError = (name: string): string => {
  * Returns `baseName`, or `baseName copy`, `baseName copy 2`, ... — the first that `checkExists`
  * reports as free.
  */
+export const generateUniqueName = (baseName: string, checkExists: (name: string) => boolean): string => {
+  if (!checkExists(baseName)) {
+    return baseName;
+  }
+
+  let counter = 1;
+  let uniqueName = `${baseName} copy`;
+
+  while (checkExists(uniqueName)) {
+    counter++;
+    uniqueName = `${baseName} copy ${counter}`;
+  }
+  return uniqueName;
+};
+
 const copySuffix = /( copy( \d+)?)+$/;
 
 /**
@@ -95,27 +110,5 @@ export const nextCopyName = (sourceName: string, existingNames: string[]): strin
   const base = stripCopySuffix(sourceName);
   const taken = new Set(existingNames);
 
-  let counter = 1;
-  let candidate = `${base} copy`;
-
-  while (taken.has(candidate)) {
-    counter++;
-    candidate = `${base} copy ${counter}`;
-  }
-  return candidate;
-};
-
-export const generateUniqueName = (baseName: string, checkExists: (name: string) => boolean): string => {
-  if (!checkExists(baseName)) {
-    return baseName;
-  }
-
-  let counter = 1;
-  let uniqueName = `${baseName} copy`;
-
-  while (checkExists(uniqueName)) {
-    counter++;
-    uniqueName = `${baseName} copy ${counter}`;
-  }
-  return uniqueName;
+  return generateUniqueName(base, (name) => name === base || taken.has(name));
 };

@@ -105,6 +105,10 @@ describe('naming utils', () => {
       expect(stripCopySuffix('copy of login')).toBe('copy of login');
     });
 
+    it('treats a trailing lowercase "copy N" as a copy token, even in a user-typed name', () => {
+      expect(stripCopySuffix('Release copy 2024')).toBe('Release');
+    });
+
     it('keeps the name when stripping would leave nothing', () => {
       expect(stripCopySuffix('copy')).toBe('copy');
       expect(stripCopySuffix('copy 2')).toBe('copy 2');

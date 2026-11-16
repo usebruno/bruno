@@ -1239,4 +1239,14 @@ describe('getCloneDisplayName', () => {
   it('counts folders and requests alike as siblings', () => {
     expect(getCloneDisplayName(collection, collection.items[2])).toBe('Users copy');
   });
+
+  it('ignores copies of the same name outside the item\'s folder', () => {
+    const collectionWithRootCopy = {
+      ...collection,
+      items: [...collection.items, { uid: 'req-3', name: 'profile copy 2', type: 'http-request' }]
+    };
+    const nested = collectionWithRootCopy.items[2].items[0];
+
+    expect(getCloneDisplayName(collectionWithRootCopy, nested)).toBe('profile copy 2');
+  });
 });
