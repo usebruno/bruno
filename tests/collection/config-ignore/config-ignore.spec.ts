@@ -317,7 +317,7 @@ get {
   });
 });
 
-test.describe.only('Ignore a folder from the sidebar menu', () => {
+test.describe('Ignore a folder from the sidebar menu', () => {
   for (const { tc, label, initUserDataPath } of [
     { tc: 'TC-7392', label: 'on', initUserDataPath: fileCacheOnInitUserDataPath },
     { tc: 'TC-4473', label: 'off', initUserDataPath: fileCacheOffInitUserDataPath }
