@@ -38,6 +38,7 @@ const CollectionPicker = ({
   const searchInput = useRef(null);
 
   const isOpen = useCallback((collection) => openPathKeys.has(toPathKey(collection.path)), [openPathKeys]);
+  const isSelected = (collection) => selectedKeys.has(toPathKey(collection.path)) && !isOpen(collection);
   const query = searchText.trim().toLowerCase();
 
   const rows = useMemo(() => {
@@ -47,9 +48,7 @@ const CollectionPicker = ({
 
   const visibleSelectableKeys = rows.filter((collection) => !isOpen(collection)).map((collection) => toPathKey(collection.path));
   const allVisibleSelected = visibleSelectableKeys.length > 0 && visibleSelectableKeys.every((key) => selectedKeys.has(key));
-  const selectedPaths = collections
-    .filter((collection) => selectedKeys.has(toPathKey(collection.path)) && !isOpen(collection))
-    .map((collection) => collection.path);
+  const selectedPaths = collections.filter(isSelected).map((collection) => collection.path);
 
   const toggleRow = (collection) => {
     const key = toPathKey(collection.path);
@@ -139,7 +138,7 @@ const CollectionPicker = ({
               collection={collection}
               location={getLocationInFolders(folders, collection.path)}
               isOpen={isOpen(collection)}
-              isSelected={selectedKeys.has(toPathKey(collection.path))}
+              isSelected={isSelected(collection)}
               testIdPrefix={testIdPrefix}
               onToggle={() => toggleRow(collection)}
               onOpen={() => onOpen([collection.path])}

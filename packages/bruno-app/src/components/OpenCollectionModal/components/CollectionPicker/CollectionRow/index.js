@@ -11,7 +11,7 @@ const CollectionRow = ({ collection, location, isOpen, isSelected, testIdPrefix,
     <StyledWrapper className={classnames({ 'is-open': isOpen })} data-testid={`${testIdPrefix}-row`}>
       <Checkbox
         className="collection-row-checkbox"
-        checked={isSelected && !isOpen}
+        checked={isSelected}
         disabled={isOpen}
         onChange={onToggle}
         ariaLabel={`Select ${collection.name}`}
