@@ -2,7 +2,8 @@ import { expect, test } from '../../../playwright';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { expandCollection, expandFolder, openRequest, selectEnvironment } from '../../utils/page/actions';
 
-const ENVIRONMENT_NAME = 'Scopes';
+const COLLECTION_ENVIRONMENT_NAME = 'scopes';
+const GLOBAL_ENVIRONMENT_NAME = 'ws-global';
 const MAX_CONNECTION_TIME = 10000;
 
 const FORMATS = [
@@ -58,13 +59,14 @@ const CASES: ScopeCase[] = [
 test.describe('websocket variable interpolation across scopes', () => {
   for (const format of FORMATS) {
     for (const testCase of CASES) {
-      test(`(${format.label}) ${testCase.id}: ${testCase.title}`, { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
+      test(`${testCase.id}: ${testCase.title} (${format.label})`, { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
         const { websocket } = buildCommonLocators(page);
 
         await expandCollection(page, format.collectionName);
         await expandFolder(page, format.folderName);
         await openRequest(page, format.collectionName, testCase.requestName);
-        await selectEnvironment(page, ENVIRONMENT_NAME, 'collection');
+        await selectEnvironment(page, COLLECTION_ENVIRONMENT_NAME, 'collection');
+        await selectEnvironment(page, GLOBAL_ENVIRONMENT_NAME, 'global');
 
         await websocket.runButton().click();
         const payload = websocket.incomingMessageMatching(testCase.findBy);

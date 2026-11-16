@@ -1,6 +1,7 @@
 {
-  "lastOpenedCollections": [
-    "{{collectionPath}}/bru",
-    "{{collectionPath}}/yml"
-  ]
+  "preferences": {
+    "general": {
+      "defaultWorkspacePath": "{{workspacePath}}"
+    }
+  }
 }

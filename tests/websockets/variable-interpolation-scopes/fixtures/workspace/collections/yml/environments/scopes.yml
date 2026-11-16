@@ -1,4 +1,4 @@
-name: Scopes
+name: scopes
 
 variables:
   - name: qaTeam
