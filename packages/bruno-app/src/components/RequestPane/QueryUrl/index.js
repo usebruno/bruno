@@ -154,16 +154,10 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             collectionUid: collection.uid,
             query: request.body.graphql.query
           }));
-          let variables = request.body.graphql.variables;
-          try {
-            variables = JSON.parse(variables);
-          } catch (error) {
-            // Keep variables as-is if JSON parsing fails
-          }
           dispatch(updateRequestGraphqlVariables({
             itemUid: item.uid,
             collectionUid: collection.uid,
-            variables: variables
+            variables: request.body.graphql.variables
           }));
         }
 
