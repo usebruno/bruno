@@ -3,7 +3,7 @@ const decomment = require('decomment');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials, mergeAuth } = require('../../utils/collection');
-const { getEffectiveTags, getOwnTags, getInheritedTagsFromTreePath } = require('@usebruno/common');
+const { getEffectiveTags, getOwnTags, getInheritedTagsFromTreePath, appendHeader } = require('@usebruno/common');
 const path = require('node:path');
 const { isLargeFile } = require('../../utils/filesystem');
 
@@ -407,7 +407,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   const disabledHeaders = [];
   each(get(request, 'headers', []), (h) => {
     if (h.enabled && h.name?.length > 0) {
-      headers[h.name] = h.value;
+      appendHeader(headers, h.name, h.value);
       if (h.name.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
       }

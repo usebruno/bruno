@@ -7,12 +7,12 @@ const MASK_CHAR = '*';
  * actually sent. Some headers, such as "Connection", are not included in
  * clientRequest.getHeaders().
 */
-export const getSentHeaders = (clientRequest?: ClientRequest | null): Record<string, string> => {
+export const getSentHeaders = (clientRequest?: ClientRequest | null): Record<string, string | string[]> => {
   const headerBlock = (clientRequest as unknown as { _header?: unknown })?._header;
   if (typeof headerBlock !== 'string' || !headerBlock) return {};
 
   const lines = headerBlock.split(/\r?\n/);
-  const sentHeaders: Record<string, string> = {};
+  const sentHeaders: Record<string, string | string[]> = {};
 
   // Start at i = 1 to skip the request line ("GET /path HTTP/1.1")
   for (let i = 1; i < lines.length; i++) {
@@ -27,7 +27,11 @@ export const getSentHeaders = (clientRequest?: ClientRequest | null): Record<str
       /** The proxy agent injects this credential and the user never authored it, so the header
        *  stays visible but its value never is, in the timeline or in `request.headers`.
        * */
-      sentHeaders[name] = name.toLowerCase() === 'proxy-authorization' ? MASK_CHAR.repeat(value.length) : value;
+      const sentValue = name.toLowerCase() === 'proxy-authorization' ? MASK_CHAR.repeat(value.length) : value;
+
+      // A header sent on several lines keeps every value, in the order they were written
+      const previous = sentHeaders[name];
+      sentHeaders[name] = previous === undefined ? sentValue : ([] as string[]).concat(previous, sentValue);
     }
   }
 
@@ -47,12 +51,12 @@ export const getSentHeaders = (clientRequest?: ClientRequest | null): Record<str
  * */
 export const applySentHeadersToRequest = (
   request?: { headers?: Record<string, unknown> } | null,
-  response?: { sentHeaders?: Record<string, string> } | null
+  response?: { sentHeaders?: Record<string, string | string[]> } | null
 ) => {
   if (!request?.headers || !response?.sentHeaders) return;
 
   const existing = new Set(Object.keys(request.headers).map((name) => name.toLowerCase()));
-  const sentHeaders: Record<string, string> = {};
+  const sentHeaders: Record<string, string | string[]> = {};
 
   Object.entries(response.sentHeaders).forEach(([key, value]) => {
     if (!existing.has(key.toLowerCase())) sentHeaders[key] = value;

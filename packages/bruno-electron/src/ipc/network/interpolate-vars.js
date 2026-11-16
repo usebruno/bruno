@@ -92,7 +92,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
   forOwn(request.headers, (value, key) => {
     delete request.headers[key];
-    request.headers[_interpolate(key)] = _interpolate(value);
+    request.headers[_interpolate(key)] = Array.isArray(value) ? value.map((v) => _interpolate(v)) : _interpolate(value);
   });
   if (request.apiKeyHeaderName) {
     request.apiKeyHeaderName = _interpolate(request.apiKeyHeaderName);

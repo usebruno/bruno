@@ -1,4 +1,4 @@
-import { sentHeadersFromTimeline } from './index';
+import { sentHeadersFromTimeline, headerRows } from './index';
 
 const header = (message) => ({ type: 'requestHeader', message });
 const info = (message) => ({ type: 'info', message });
@@ -131,5 +131,24 @@ describe('sentHeadersFromTimeline', () => {
     expect(sentHeadersFromTimeline(undefined)).toEqual([]);
     expect(sentHeadersFromTimeline(null)).toEqual([]);
     expect(sentHeadersFromTimeline({})).toEqual([]);
+  });
+});
+
+describe('headerRows', () => {
+  test('gives each value of a header sent on several lines its own row', () => {
+    expect(headerRows({ token: ['first', 'second'], Host: 'x' })).toEqual([
+      { name: 'token', value: 'first' },
+      { name: 'token', value: 'second' },
+      { name: 'Host', value: 'x' }
+    ]);
+  });
+
+  test('reads a list of header objects as rows', () => {
+    expect(headerRows([{ name: 'token', value: 'first', enabled: true }])).toEqual([{ name: 'token', value: 'first' }]);
+  });
+
+  test('returns an empty list when there are no headers', () => {
+    expect(headerRows(undefined)).toEqual([]);
+    expect(headerRows(null)).toEqual([]);
   });
 });

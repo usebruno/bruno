@@ -96,46 +96,47 @@ const createCollectionJsonFromPathname = (collectionPath) => {
   };
 };
 
+/**
+ * Headers from one level (collection, folder or request) replace every header of the same name,
+ * ignoring casing, from the levels above it. Repeated names within the level are all kept, so
+ * each one is sent as its own header line.
+ */
+const mergeLevelHeaders = (headers, disabledHeaders, levelHeaders) => {
+  const levelEnabledHeaders = new Map();
+  levelHeaders.forEach((header) => {
+    if (header.enabled) {
+      const key = header.name?.toLowerCase?.() ?? header.name;
+      if (!levelEnabledHeaders.has(key)) {
+        levelEnabledHeaders.set(key, []);
+      }
+      levelEnabledHeaders.get(key).push({ name: header.name, value: header.value });
+    } else if (header.name?.length > 0) {
+      disabledHeaders.set(header.name, header.value);
+    }
+  });
+  levelEnabledHeaders.forEach((entries, key) => headers.set(key, entries));
+};
+
 const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
   const { includeDisabledHeaders = false } = options;
   let headers = new Map();
   let disabledHeaders = new Map();
 
   const collectionRoot = collection?.draft?.root || collection?.root || {};
-  let collectionHeaders = get(collectionRoot, 'request.headers', []);
-  collectionHeaders.forEach((header) => {
-    if (header.enabled) {
-      headers.set(header.name, header.value);
-    } else if (header.name?.length > 0) {
-      disabledHeaders.set(header.name, header.value);
-    }
-  });
+  mergeLevelHeaders(headers, disabledHeaders, get(collectionRoot, 'request.headers', []));
 
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
-      let _headers = get(folderRoot, 'request.headers', []);
-      _headers.forEach((header) => {
-        if (header.enabled) {
-          headers.set(header.name, header.value);
-        } else if (header.name?.length > 0) {
-          disabledHeaders.set(header.name, header.value);
-        }
-      });
+      mergeLevelHeaders(headers, disabledHeaders, get(folderRoot, 'request.headers', []));
     } else {
       const _headers = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'request.headers', []);
-      _headers.forEach((header) => {
-        if (header.enabled) {
-          headers.set(header.name, header.value);
-        } else if (header.name?.length > 0) {
-          disabledHeaders.set(header.name, header.value);
-        }
-      });
+      mergeLevelHeaders(headers, disabledHeaders, _headers);
     }
   }
 
   request.headers = [
-    ...Array.from(headers, ([name, value]) => ({ name, value, enabled: true })),
+    ...Array.from(headers.values()).flat().map(({ name, value }) => ({ name, value, enabled: true })),
     ...(includeDisabledHeaders ? Array.from(disabledHeaders, ([name, value]) => ({ name, value, enabled: false })) : [])
   ];
 };

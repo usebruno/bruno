@@ -333,6 +333,13 @@ describe('interpolate-vars: interpolateVars', () => {
     });
   });
 
+  it('interpolates every value of a repeated header', () => {
+    const request = { method: 'GET', url: 'test', headers: { token: ['{{first}}', '{{second}}'] } };
+
+    const result = interpolateVars(request, { first: 'a', second: 'b' }, null, null);
+    expect(result.headers.token).toEqual(['a', 'b']);
+  });
+
   describe('Handles content-type header set to false', () => {
     it('Should result empty data', async () => {
       const request = { method: 'POST', url: 'test', data: undefined, headers: { 'content-type': false } };

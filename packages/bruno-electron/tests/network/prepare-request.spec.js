@@ -182,4 +182,73 @@ describe('prepare-request: prepareRequest', () => {
       expect(result.data.variables).toBe('{"apiPermissions": {{permissionsJSON}}}');
     });
   });
+
+  describe('Repeated header names', () => {
+    const COLLECTION_PATH = path.join(path.sep, 'collection');
+
+    const httpRequest = (headers) => ({
+      uid: 'req-repeated',
+      type: 'http-request',
+      name: 'req-repeated',
+      pathname: path.join(COLLECTION_PATH, 'req-repeated.bru'),
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers,
+        params: [],
+        script: {},
+        vars: {},
+        auth: { mode: 'none' },
+        body: { mode: 'none' }
+      }
+    });
+
+    const collectionWith = (item, collectionHeaders = []) => ({
+      pathname: COLLECTION_PATH,
+      root: { request: { headers: collectionHeaders } },
+      items: [item]
+    });
+
+    it('keeps every value of a repeated header so each goes out on its own line', async () => {
+      const item = httpRequest([
+        { name: 'token', value: 'first', enabled: true },
+        { name: 'token', value: 'second', enabled: true }
+      ]);
+      const result = await prepareRequest(item, collectionWith(item));
+
+      expect(result.headers.token).toEqual(['first', 'second']);
+    });
+
+    it('groups names that differ only in casing, since header names are case-insensitive', async () => {
+      const item = httpRequest([
+        { name: 'Token', value: 'first', enabled: true },
+        { name: 'token', value: 'second', enabled: true }
+      ]);
+      const result = await prepareRequest(item, collectionWith(item));
+
+      expect(result.headers).toMatchObject({ Token: ['first', 'second'] });
+      expect(result.headers).not.toHaveProperty('token');
+    });
+
+    it('leaves disabled duplicates off the wire', async () => {
+      const item = httpRequest([
+        { name: 'token', value: 'first', enabled: false },
+        { name: 'token', value: 'second', enabled: true }
+      ]);
+      const result = await prepareRequest(item, collectionWith(item));
+
+      expect(result.headers.token).toEqual('second');
+    });
+
+    it('lets the request replace a collection header of the same name rather than add to it', async () => {
+      const item = httpRequest([
+        { name: 'token', value: 'request-a', enabled: true },
+        { name: 'token', value: 'request-b', enabled: true }
+      ]);
+      const result = await prepareRequest(item, collectionWith(item, [{ name: 'Token', value: 'collection', enabled: true }]));
+
+      expect(Object.keys(result.headers).filter((name) => name.toLowerCase() === 'token')).toEqual(['token']);
+      expect(result.headers.token).toEqual(['request-a', 'request-b']);
+    });
+  });
 });

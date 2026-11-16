@@ -1,17 +1,10 @@
 import { useState } from 'react';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons';
-
-const toEntries = (headers) => {
-  if (!headers) return [];
-  if (Array.isArray(headers)) {
-    return headers.map((h) => ({ name: h?.name, value: h?.value }));
-  }
-  return Object.entries(headers).map(([name, value]) => ({ name, value }));
-};
+import { headerRows } from 'utils/timeline';
 
 const Headers = ({ headers, variant }) => {
   const [isOpen, setIsOpen] = useState(true);
-  const entries = toEntries(headers);
+  const entries = headerRows(headers);
   const count = entries.length;
 
   return (

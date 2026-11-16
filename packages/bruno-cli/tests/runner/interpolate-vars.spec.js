@@ -14,6 +14,13 @@ const JSON_CONTENT_TYPES = [
 ];
 
 describe('interpolate-vars: interpolateVars', () => {
+  it('interpolates every value of a repeated header', () => {
+    const request = { method: 'GET', url: 'test', headers: { token: ['{{first}}', '{{second}}'] } };
+
+    const result = interpolateVars(request, { first: 'a', second: 'b' }, null, null);
+    expect(result.headers.token).toEqual(['a', 'b']);
+  });
+
   it('keeps stream-backed JSON request bodies intact', () => {
     const streamPayload = {
       pipe: jest.fn(),

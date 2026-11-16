@@ -146,7 +146,9 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
 
     add('request', `${(config.method || 'get').toString().toUpperCase()} ${config.url}`);
     for (const [name, value] of Object.entries(getSentHeaders((response as any)?.request))) {
-      add('requestHeader', `${name}: ${value}`);
+      for (const headerValue of ([] as string[]).concat(value)) {
+        add('requestHeader', `${name}: ${headerValue}`);
+      }
     }
 
     if (response) {

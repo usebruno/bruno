@@ -26,6 +26,59 @@ const mergeCookieHeaders = (headers, capitalizeCookieHeaderName) => {
   return merged;
 };
 
+/**
+ * HTTPSnippet keys headers by name, so a header repeated on the request keeps only its last value.
+ * Each repeated name (matched case-insensitively) is handed to it as one header holding a
+ * placeholder, and `expandRepeatedHeaders` writes every value back on its own line. Content-Type
+ * is left alone: the request runtime sends only its last value too.
+ */
+const collapseRepeatedHeaders = (headers) => {
+  const counts = new Map();
+  headers.forEach((header) => {
+    const key = header.name.toLowerCase();
+    counts.set(key, (counts.get(key) || 0) + 1);
+  });
+
+  const repeatedByName = new Map();
+  const collapsed = [];
+  headers.forEach((header) => {
+    const key = header.name.toLowerCase();
+    if (counts.get(key) < 2 || key === 'content-type') {
+      collapsed.push(header);
+      return;
+    }
+    if (!repeatedByName.has(key)) {
+      const placeholder = `__bruno_repeated_header_${repeatedByName.size}__`;
+      repeatedByName.set(key, { placeholder, values: [] });
+      collapsed.push({ ...header, value: placeholder });
+    }
+    repeatedByName.get(key).values.push(header.value);
+  });
+
+  return { headers: collapsed, repeated: Array.from(repeatedByName.values()) };
+};
+
+// HTTPSnippet's curl target always single-quotes a `name: value` header argument.
+const escapeForSingleQuotes = (value) => value.replace(/'/g, `'\\''`);
+
+const expandRepeatedHeaders = (snippet, repeated, isCurl) => repeated.reduce((result, { placeholder, values }) => {
+  const expanded = isCurl
+    ? result.replace(
+        new RegExp(`^([ \\t]*)(-H|--header) '([^'\\n]*): ${placeholder}'`, 'm'),
+        (_, indent, flag, name) => values.map((value) => `${indent}${flag} '${name}: ${escapeForSingleQuotes(value)}'`).join(' \\\n')
+      )
+    : result.replace(
+        new RegExp(`^([^\\r\\n]*): ${placeholder}(?=\\r?\\n|$)`, 'm'),
+        (_, name) => values.map((value) => `${name}: ${value}`).join('\r\n')
+      );
+
+  // Should HTTPSnippet's line format ever change, fall back to the last value it would have shown.
+  const lastValue = values[values.length - 1];
+  return expanded.includes(placeholder)
+    ? expanded.replaceAll(placeholder, () => (isCurl ? escapeForSingleQuotes(lastValue) : lastValue))
+    : expanded;
+}, snippet);
+
 // curl --digest / --ntlm are surface-level snippet adjustments, not part of
 // the HAR contract — keep them at this layer.
 const addCurlAuthFlags = (curlCommand, auth) => {
@@ -99,10 +152,17 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
 
     const isCurl = language.target === 'shell' && language.client === 'curl';
     const isLibcurl = language.target === 'c' && language.client === 'libcurl';
+    const isRawHttp = language.target === 'http';
+
+    let headers = mergeCookieHeaders(har.headers, isCurl || isLibcurl);
+    let repeatedHeaders = [];
+    if (isCurl || isRawHttp) {
+      ({ headers, repeated: repeatedHeaders } = collapseRepeatedHeaders(headers));
+    }
 
     // Generate snippet using HTTPSnippet
-    const snippet = new HTTPSnippet({ ...har, headers: mergeCookieHeaders(har.headers, isCurl || isLibcurl) });
-    let result = snippet.convert(language.target, language.client);
+    const snippet = new HTTPSnippet({ ...har, headers });
+    let result = expandRepeatedHeaders(snippet.convert(language.target, language.client), repeatedHeaders, isCurl);
 
     // curl --digest / --ntlm flags. Snippet-text manipulation, not HAR.
     if (isCurl) {

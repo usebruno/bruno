@@ -53,6 +53,31 @@ describe('mergeHeaders', () => {
     const names = headers.map((h) => h.name);
     expect(names).toEqual(expect.arrayContaining(['X-Collection', 'X-Folder', 'X-Request']));
   });
+
+  it('keeps every header of a repeated name within one level', () => {
+    const request = {
+      headers: [
+        { name: 'token', value: 'first', enabled: true },
+        { name: 'token', value: 'second', enabled: true }
+      ]
+    };
+
+    const headers = mergeHeaders({}, request, []);
+    expect(headers.map((h) => h.value)).toEqual(['first', 'second']);
+  });
+
+  it('lets a deeper level replace a header of the same name, ignoring casing', () => {
+    const collection = { root: { request: { headers: [{ name: 'Token', value: 'collection', enabled: true }] } } };
+    const request = {
+      headers: [
+        { name: 'token', value: 'request-a', enabled: true },
+        { name: 'token', value: 'request-b', enabled: true }
+      ]
+    };
+
+    const headers = mergeHeaders(collection, request, []);
+    expect(headers.map((h) => `${h.name}: ${h.value}`)).toEqual(['token: request-a', 'token: request-b']);
+  });
 });
 
 describe('transformRequestToSaveToFilesystem', () => {

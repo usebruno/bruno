@@ -9,15 +9,9 @@ import {
 import { clearSelectedRequest } from 'providers/ReduxStore/slices/logs';
 import QueryResponse from 'components/ResponsePane/QueryResponse/index';
 import Network from 'components/ResponsePane/Timeline/TimelineItem/Network';
-import { sentHeadersFromTimeline } from 'utils/timeline';
+import { sentHeadersFromTimeline, headerRows } from 'utils/timeline';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common/index';
-
-const formatHeaders = (headers) => {
-  if (!headers) return [];
-  if (Array.isArray(headers)) return headers;
-  return Object.entries(headers).map(([key, value]) => ({ name: key, value }));
-};
 
 const formatBody = (body) => {
   if (!body) return 'No body';
@@ -29,7 +23,7 @@ const RequestTab = ({ request, response }) => {
   const sentHeaders = sentHeadersFromTimeline(response?.timeline);
   /** In case of `bru.sendRequest` it builds its own entry in timeline,
    * so to show the headers sent in new request we need headers not sentHeaders */
-  const headers = sentHeaders.length ? sentHeaders : formatHeaders(request?.headers);
+  const headers = sentHeaders.length ? sentHeaders : headerRows(request?.headers);
 
   return (
     <div className="tab-content">
@@ -88,7 +82,7 @@ const ResponseTab = ({ response, request, collection }) => {
     <div className="tab-content">
       <div className="section">
         <h4>Response Headers</h4>
-        {formatHeaders(response?.headers).length > 0 ? (
+        {headerRows(response?.headers).length > 0 ? (
           <div className="headers-table">
             <table>
               <thead>
@@ -98,7 +92,7 @@ const ResponseTab = ({ response, request, collection }) => {
                 </tr>
               </thead>
               <tbody>
-                {formatHeaders(response.headers).map((header, index) => (
+                {headerRows(response.headers).map((header, index) => (
                   <tr key={index}>
                     <td className="header-name">{header.name}</td>
                     <td className="header-value">{header.value}</td>

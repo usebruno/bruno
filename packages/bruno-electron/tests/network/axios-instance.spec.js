@@ -810,6 +810,35 @@ describe('axios-instance: sent headers', () => {
     expect(masked).toBe('*'.repeat(credential.length));
     expect(masked).not.toContain('dXNlcj');
   });
+
+  test('a repeated header goes out on separate lines and gets one timeline entry per line', async () => {
+    let rawHeaders;
+    const echoServer = http.createServer((req, res) => {
+      rawHeaders = req.rawHeaders;
+      res.writeHead(200);
+      res.end('ok');
+    });
+    await new Promise((resolve) => echoServer.listen(0, '127.0.0.1', resolve));
+    const echoUrl = `http://127.0.0.1:${echoServer.address().port}/`;
+
+    try {
+      const instance = makeAxiosInstance();
+      const response = await instance({ url: echoUrl, method: 'get', headers: { token: ['first', 'second'] } });
+
+      const tokenLines = [];
+      for (let i = 0; i < rawHeaders.length; i += 2) {
+        if (rawHeaders[i] === 'token') tokenLines.push(rawHeaders[i + 1]);
+      }
+      expect(tokenLines).toEqual(['first', 'second']);
+
+      const tokenEntries = response.timeline
+        .filter((entry) => entry.type === 'requestHeader' && entry.message.startsWith('token:'))
+        .map((entry) => entry.message);
+      expect(tokenEntries).toEqual(['token: first', 'token: second']);
+    } finally {
+      await new Promise((resolve) => echoServer.close(resolve));
+    }
+  });
 });
 
 describe('axios-instance: string request bodies', () => {

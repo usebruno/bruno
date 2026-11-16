@@ -775,6 +775,75 @@ describe('generateSnippet – cookie header casing', () => {
   });
 });
 
+describe('generateSnippet – repeated headers', () => {
+  const collection = { root: { request: { headers: [], auth: { mode: 'none' } } } };
+
+  const itemWithHeaders = (headers) => ({
+    uid: 'r1',
+    request: { method: 'GET', url: 'https://example.com', headers, auth: { mode: 'none' } }
+  });
+
+  const generateWithRealHttpSnippet = async (language, item) => {
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+    try {
+      return await generateSnippet({ language, item, collection, shouldInterpolate: false });
+    } finally {
+      require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+    }
+  };
+
+  const tokenHeaders = [
+    { name: 'token', value: 'first', enabled: true },
+    { name: 'token', value: 'second', enabled: true }
+  ];
+
+  it('puts each value of a repeated header on its own curl line, in order', async () => {
+    const result = await generateWithRealHttpSnippet({ target: 'shell', client: 'curl' }, itemWithHeaders(tokenHeaders));
+
+    expect(result).toContain(`--header 'token: first' \\\n  --header 'token: second'`);
+    expect(result).not.toContain('__bruno_repeated_header_');
+  });
+
+  it('puts each value of a repeated header on its own raw HTTP line, in order', async () => {
+    const result = await generateWithRealHttpSnippet({ target: 'http', client: 'http1.1' }, itemWithHeaders(tokenHeaders));
+
+    expect(result).toContain('Token: first\r\nToken: second\r\n');
+    expect(result).not.toContain('__bruno_repeated_header_');
+  });
+
+  it('groups names that differ only in casing under the first casing', async () => {
+    const result = await generateWithRealHttpSnippet(
+      { target: 'shell', client: 'curl' },
+      itemWithHeaders([
+        { name: 'Token', value: 'first', enabled: true },
+        { name: 'token', value: 'second', enabled: true }
+      ])
+    );
+
+    expect(result).toContain(`--header 'Token: first' \\\n  --header 'Token: second'`);
+  });
+
+  it('keeps curl quoting intact for a value containing a single quote', async () => {
+    const result = await generateWithRealHttpSnippet(
+      { target: 'shell', client: 'curl' },
+      itemWithHeaders([
+        { name: 'token', value: `it's`, enabled: true },
+        { name: 'token', value: 'second', enabled: true }
+      ])
+    );
+
+    expect(result).toContain(`--header 'token: it'\\''s'`);
+    expect(result).toContain(`--header 'token: second'`);
+  });
+
+  it('leaves the last header line without a trailing continuation', async () => {
+    const result = await generateWithRealHttpSnippet({ target: 'shell', client: 'curl' }, itemWithHeaders(tokenHeaders));
+
+    expect(result.trimEnd().endsWith(`--header 'token: second'`)).toBe(true);
+  });
+});
+
 describe('generateSnippet with edge-case bodies', () => {
   const language = { target: 'shell', client: 'curl' };
   const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };

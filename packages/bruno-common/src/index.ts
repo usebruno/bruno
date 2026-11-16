@@ -54,6 +54,7 @@ export type {
   ApplyOmitHeadersResult,
   OmitHeadersOptions
 } from './headers/default-headers';
+export { appendHeader } from './headers/append-header';
 
 export * as utils from './utils';
 export * from './constants';

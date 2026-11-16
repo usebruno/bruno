@@ -272,10 +272,12 @@ function makeAxiosInstance({
       response.sentHeaders = sentHeaders;
 
       Object.entries(sentHeaders).forEach(([key, value]) => {
-        timeline.push({
-          timestamp: new Date(),
-          type: 'requestHeader',
-          message: `${key}: ${value}`
+        [].concat(value).forEach((headerValue) => {
+          timeline.push({
+            timestamp: new Date(),
+            type: 'requestHeader',
+            message: `${key}: ${headerValue}`
+          });
         });
       });
 
@@ -323,10 +325,12 @@ function makeAxiosInstance({
       if (error.response) error.response.sentHeaders = errorHeaders;
 
       Object.entries(errorHeaders).forEach(([key, value]) => {
-        timeline.push({
-          timestamp: new Date(),
-          type: 'requestHeader',
-          message: `${key}: ${value}`
+        [].concat(value).forEach((headerValue) => {
+          timeline.push({
+            timestamp: new Date(),
+            type: 'requestHeader',
+            message: `${key}: ${headerValue}`
+          });
         });
       });
 

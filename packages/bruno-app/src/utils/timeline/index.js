@@ -31,3 +31,15 @@ export const sentHeadersFromTimeline = (timeline) => {
   }
   return headers;
 };
+
+/** A headers object or list as display rows. A header sent on several lines holds an array value,
+ *  and each value gets its own row, the way it went out on the wire. */
+export const headerRows = (headers) => {
+  if (!headers) return [];
+  if (Array.isArray(headers)) {
+    return headers.map((h) => ({ name: h?.name, value: h?.value }));
+  }
+  return Object.entries(headers).flatMap(([name, value]) =>
+    Array.isArray(value) ? value.map((v) => ({ name, value: v })) : [{ name, value }]
+  );
+};

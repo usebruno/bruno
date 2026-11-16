@@ -61,6 +61,13 @@ describe('getSentHeaders', () => {
     });
   });
 
+  it('keeps every value of a header sent on several lines, in wire order', () => {
+    expect(getSentHeaders(asClientRequest('GET / HTTP/1.1\r\ntoken: a\r\ntoken: b\r\nHost: x\r\n\r\n'))).toEqual({
+      token: ['a', 'b'],
+      Host: 'x'
+    });
+  });
+
   it('returns an empty set when there is no block to read, rather than throwing', () => {
     expect(getSentHeaders(undefined)).toEqual({});
     expect(getSentHeaders(asClientRequest(undefined))).toEqual({});
