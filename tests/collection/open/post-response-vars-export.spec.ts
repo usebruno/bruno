@@ -1,6 +1,7 @@
 import { test, expect } from '../../../playwright';
 import * as fs from 'fs';
 import * as path from 'path';
+import YAML from 'yaml';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -22,6 +23,24 @@ import { addVarsRow } from '../../utils/request/vars';
 const COLLECTION_NAME = 'post-response-vars';
 const FOLDER_NAME = 'Auth';
 const REQUEST_NAME = 'Login';
+
+type VarsBlock = {
+  variables?: { name?: string }[];
+  actions?: { phase?: string; variable?: { name?: string } }[];
+};
+
+const expectPreRequestVar = (block: VarsBlock | undefined, name: string) => {
+  expect(block?.variables?.map((variable) => variable.name)).toContain(name);
+};
+
+const expectPostResponseVar = (block: VarsBlock | undefined, name: string) => {
+  expect(block?.actions).toEqual(expect.arrayContaining([
+    expect.objectContaining({
+      phase: 'after-response',
+      variable: expect.objectContaining({ name })
+    })
+  ]));
+};
 
 test.describe('OpenCollection post-response vars export', () => {
   test.afterEach(async ({ page }) => {
@@ -75,26 +94,19 @@ test.describe('OpenCollection post-response vars export', () => {
       await exportCollectionAsSingleYaml(page, electronApp, COLLECTION_NAME, path.dirname(exportedFile));
     });
 
-    await test.step('Verify exported YAML keeps collection and folder actions and the pre-request vars', async () => {
-      const yaml = fs.readFileSync(exportedFile, 'utf8');
-      // Collection vars are the root request block, written after the items.
-      // Folder and request blocks use an indented request key, so this split
-      // only separates the collection block.
-      const [itemsYaml, collectionYaml = ''] = yaml.split('\nrequest:\n');
-      const folderYaml = itemsYaml.split(`name: ${FOLDER_NAME}`)[1].split(`name: ${REQUEST_NAME}`)[0];
-      const requestYaml = itemsYaml.split(`name: ${REQUEST_NAME}`)[1];
+    await test.step('Verify exported YAML keeps pre-request vars and post-response actions', async () => {
+      const doc = YAML.parse(fs.readFileSync(exportedFile, 'utf8'));
+      const folder = doc.items?.find((item: { info?: { name?: string } }) => item.info?.name === FOLDER_NAME);
+      const request = folder?.items?.find((item: { info?: { name?: string } }) => item.info?.name === REQUEST_NAME);
 
-      expect(collectionYaml).toContain('actions:');
-      expect(collectionYaml).toContain('name: baseUrl');
-      expect(collectionYaml).toContain('name: token');
+      expectPreRequestVar(doc.request, 'baseUrl');
+      expectPostResponseVar(doc.request, 'token');
 
-      expect(folderYaml).toContain('actions:');
-      expect(folderYaml).toContain('name: authPath');
-      expect(folderYaml).toContain('name: refresh');
+      expectPreRequestVar(folder?.request, 'authPath');
+      expectPostResponseVar(folder?.request, 'refresh');
 
-      expect(requestYaml).toContain('actions:');
-      expect(requestYaml).toContain('name: grant');
-      expect(requestYaml).toContain('name: sessionId');
+      expectPreRequestVar(request?.runtime, 'grant');
+      expectPostResponseVar(request?.runtime, 'sessionId');
     });
   });
 });
