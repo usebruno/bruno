@@ -18,7 +18,6 @@ export const buildCloneGitRepositoryLocators = (page: Page) => {
     branchOptions,
     locationInput: (): Locator => modal().getByTestId('clone-git-repository-location'),
     browseLink: (): Locator => modal().getByTestId('clone-git-repository-browse'),
-    collectionList: (): Locator => modal().getByTestId('selection-list'),
     collectionHeading: (): Locator => modal().getByTestId('selection-heading'),
     collectionItem,
     collectionCheckbox: (name: string): Locator => collectionItem(name).getByRole('checkbox'),
