@@ -33,7 +33,7 @@ jest.mock('utils/importers/postman-collection', () => ({
 
 const openApiSpec = { openapi: '3.0.0', info: { title: 'Orders API' }, paths: {} };
 const swagger2Spec = { swagger: '2.0', info: { title: 'Legacy API' }, paths: {} };
-const AUTH_PLACEMENT_INFO = 'On import, the spec\'s security scheme is added to the collection. Operations with a different scheme keep their own auth.';
+const AUTH_PLACEMENT_INFO = 'When enabled, requests inherit authentication from the collection folder. When disabled, authentication is copied to each request.';
 
 const renderImport = ({ rawData = openApiSpec, format = 'openapi', sourceUrl = 'https://example.com/openapi.json' } = {}) => {
   const store = configureStore({
@@ -59,8 +59,8 @@ const renderImport = ({ rawData = openApiSpec, format = 'openapi', sourceUrl = '
 };
 
 const advancedToggle = () => screen.queryByRole('button', { name: 'Advanced' });
-const authPlacementCheckbox = () => screen.getByRole('checkbox', { name: /Set authentication at collection level/ });
-const authPlacementInfoIcon = () => screen.getByText('Set authentication at collection level').querySelector('svg');
+const authPlacementCheckbox = () => screen.getByRole('checkbox', { name: /Inherit authentication from collection folder/ });
+const authPlacementInfoIcon = () => screen.getByText('Inherit authentication from collection folder').querySelector('svg');
 
 const submitImport = async (handleSubmit) => {
   fireEvent.click(screen.getByText('Import'));
@@ -74,19 +74,19 @@ describe('ImportCollectionLocation collection auth placement', () => {
     ['a Swagger 2.0 spec', swagger2Spec]
   ])('is offered off by default under a collapsed Advanced section for %s', (_, rawData) => {
     renderImport({ rawData });
-    expect(screen.getByText('Set authentication at collection level')).not.toBeVisible();
+    expect(screen.getByText('Inherit authentication from collection folder')).not.toBeVisible();
 
     fireEvent.click(advancedToggle());
 
     expect(authPlacementCheckbox()).not.toBeChecked();
-    expect(screen.getByText('Requests and folders inherit it instead of getting their own copy.')).toBeInTheDocument();
+    expect(screen.getByText('Requests inherit auth from collection instead of getting their own copy.')).toBeInTheDocument();
   });
 
   it('is not offered for other formats', () => {
     renderImport({ rawData: { info: { name: 'Postman Collection' }, item: [] }, format: 'postman', sourceUrl: undefined });
     fireEvent.click(advancedToggle());
 
-    expect(screen.queryByText('Set authentication at collection level')).not.toBeInTheDocument();
+    expect(screen.queryByText('Inherit authentication from collection folder')).not.toBeInTheDocument();
   });
 
   it('explains the setting in the info tooltip, and clicking the icon leaves the switch alone', () => {
@@ -104,7 +104,7 @@ describe('ImportCollectionLocation collection auth placement', () => {
     renderImport();
     fireEvent.click(advancedToggle());
 
-    fireEvent.click(screen.getByText('Requests and folders inherit it instead of getting their own copy.'));
+    fireEvent.click(screen.getByText('Requests inherit auth from collection instead of getting their own copy.'));
 
     expect(authPlacementCheckbox()).toBeChecked();
   });
