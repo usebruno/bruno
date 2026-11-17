@@ -20,6 +20,8 @@ import {
   isCollectionItemCollapsed,
   getVariableNamesWithScope,
   getWorkspaceCollections,
+  getWorkspaceDrafts,
+  hasWorkspaceDrafts,
   getTreePathFromCollectionToItem,
   getCloneDisplayName
 } from './index';
@@ -1272,5 +1274,96 @@ describe('getCloneDisplayName', () => {
     const nested = collectionWithRootCopy.items[2].items[0];
 
     expect(getCloneDisplayName(collectionWithRootCopy, nested)).toBe('profile copy 2');
+  });
+});
+
+describe('getWorkspaceDrafts', () => {
+  const request = (uid, { edited = false, isTransient = false } = {}) => ({
+    uid,
+    name: uid,
+    type: 'http-request',
+    isTransient,
+    request: { method: 'GET', url: 'https://example.com' },
+    draft: edited
+      ? { uid, name: uid, type: 'http-request', isTransient, request: { method: 'GET', url: 'https://example.com/edited' } }
+      : null
+  });
+
+  const activeWorkspace = {
+    uid: 'w1',
+    scratchCollectionUid: 'scratch-uid',
+    collections: [{ path: '/dev/one' }, { path: '/dev/two' }, { path: '/dev/scratch' }]
+  };
+  const otherWorkspace = { uid: 'w2', collections: [{ path: '/dev/three' }] };
+  const workspaces = [activeWorkspace, otherWorkspace];
+
+  const collectionOne = {
+    uid: 'c1',
+    pathname: '/dev/one',
+    draft: { root: {} },
+    environments: [{ uid: 'env1', name: 'Local' }],
+    environmentsDraft: { environmentUid: 'env1', variables: [{ name: 'host', value: 'localhost' }] },
+    items: [
+      request('r1', { edited: true }),
+      request('r2'),
+      request('transient', { edited: true, isTransient: true }),
+      { uid: 'f1', type: 'folder', draft: { root: {} }, items: [request('r3', { edited: true })] }
+    ]
+  };
+  const collectionTwo = { uid: 'c2', pathname: '/dev/two', items: [request('r4', { edited: true })] };
+  const scratch = { uid: 'scratch-uid', pathname: '/dev/scratch', items: [request('s1', { edited: true, isTransient: true })] };
+  const otherWorkspaceCollection = { uid: 'c3', pathname: '/dev/three', draft: { root: {} }, items: [request('r5', { edited: true })] };
+  const collections = [collectionOne, collectionTwo, scratch, otherWorkspaceCollection];
+
+  it('collects drafts from every collection of the active workspace', () => {
+    const drafts = getWorkspaceDrafts({ collections, workspaces, activeWorkspace });
+
+    expect(drafts.collectionDrafts).toEqual([{ collectionUid: 'c1' }]);
+    expect(drafts.folderDrafts).toEqual([{ folderUid: 'f1', collectionUid: 'c1' }]);
+    expect(drafts.environmentDrafts).toEqual([
+      { environmentUid: 'env1', variables: [{ name: 'host', value: 'localhost' }], collectionUid: 'c1' }
+    ]);
+    expect(drafts.requestDrafts.map((draft) => [draft.uid, draft.collectionUid])).toEqual([
+      ['r1', 'c1'],
+      ['r3', 'c1'],
+      ['r4', 'c2']
+    ]);
+  });
+
+  it('keeps edited transient requests apart, including those of the scratch collection', () => {
+    const { requestDrafts, transientRequestDrafts } = getWorkspaceDrafts({ collections, workspaces, activeWorkspace });
+
+    expect(requestDrafts.map((draft) => draft.uid)).not.toContain('transient');
+    expect(transientRequestDrafts.map((draft) => [draft.uid, draft.collectionUid])).toEqual([
+      ['transient', 'c1'],
+      ['s1', 'scratch-uid']
+    ]);
+  });
+
+  it('ignores untouched transient requests, non-transient scratch items and other workspaces', () => {
+    const scratchWithMixedItems = {
+      uid: 'scratch-uid',
+      pathname: '/dev/scratch',
+      draft: { root: {} },
+      items: [request('untouched', { isTransient: true }), request('not-transient', { edited: true })]
+    };
+    const drafts = getWorkspaceDrafts({
+      collections: [scratchWithMixedItems, otherWorkspaceCollection],
+      workspaces,
+      activeWorkspace
+    });
+
+    expect(Object.values(drafts).flat()).toEqual([]);
+  });
+
+  it('reports whether the active workspace has anything to save', () => {
+    const cleanCollection = { uid: 'c6', pathname: '/dev/one', items: [request('r6'), request('t6', { isTransient: true })] };
+
+    expect(hasWorkspaceDrafts({ collections, workspaces, activeWorkspace })).toBe(true);
+    const transientOnlyCollection = { uid: 'c7', pathname: '/dev/one', items: [request('t7', { edited: true, isTransient: true })] };
+
+    expect(hasWorkspaceDrafts({ collections: [cleanCollection], workspaces, activeWorkspace })).toBe(false);
+    expect(hasWorkspaceDrafts({ collections: [transientOnlyCollection], workspaces, activeWorkspace })).toBe(true);
+    expect(hasWorkspaceDrafts({ collections, workspaces, activeWorkspace: null })).toBe(false);
   });
 });

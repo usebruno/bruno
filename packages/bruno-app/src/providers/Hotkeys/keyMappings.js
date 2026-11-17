@@ -8,6 +8,7 @@ export const KEY_BINDING_SECTIONS = [
       closeAllTabs: { mac: 'command+bind+shift+bind+w', windows: 'ctrl+bind+shift+bind+w', name: 'Close All Tabs' }, // D
       save: { mac: 'command+bind+s', windows: 'ctrl+bind+s', name: 'Save' }, // D
       saveAllTabs: { mac: 'command+bind+shift+bind+s', windows: 'ctrl+bind+shift+bind+s', name: 'Save All Tabs' }, // D
+      saveAllWorkspace: { mac: 'command+bind+alt+bind+s', windows: 'ctrl+bind+alt+bind+s', name: 'Save All in Workspace' },
       reopenLastClosedTab: { mac: 'command+bind+shift+bind+t', windows: 'ctrl+bind+shift+bind+t', name: 'Reopen Last Closed Tab' }, // D
       switchToTabAtPosition: { mac: 'command+bind+1+bind+command+bind+8', windows: 'ctrl+bind+1+bind+ctrl+bind+8', name: 'Switch to Tab at Position', readOnly: true, displayValue: { mac: 'command+bind+1 - command+bind+8', windows: 'ctrl+bind+1 - ctrl+bind+8' } }, // D
       switchToLastTab: { mac: 'command+bind+9', windows: 'ctrl+bind+9', name: 'Switch to Last Tab' }, // D

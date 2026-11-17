@@ -2588,6 +2588,66 @@ export const getWorkspaceCollections = ({ collections = [], workspaces = [], act
   });
 };
 
+export const getWorkspaceDrafts = ({ collections = [], workspaces = [], activeWorkspace = null }) => {
+  const drafts = {
+    collectionDrafts: [],
+    folderDrafts: [],
+    requestDrafts: [],
+    environmentDrafts: [],
+    transientRequestDrafts: []
+  };
+
+  const collectRequestDrafts = (collection, { transientOnly = false } = {}) => {
+    const collectionUid = collection.uid;
+
+    flattenItems(collection.items).forEach((item) => {
+      if (!isItemARequest(item) || !hasRequestChanges(item)) {
+        return;
+      }
+
+      if (item.isTransient) {
+        drafts.transientRequestDrafts.push({ ...item, collectionUid });
+      } else if (!transientOnly) {
+        drafts.requestDrafts.push({ ...item, collectionUid });
+      }
+    });
+  };
+
+  getWorkspaceCollections({ collections, workspaces, activeWorkspace }).forEach((collection) => {
+    const collectionUid = collection.uid;
+
+    if (collection.draft) {
+      drafts.collectionDrafts.push({ collectionUid });
+    }
+
+    if (collection.environmentsDraft) {
+      const { environmentUid, variables } = collection.environmentsDraft;
+      if (variables && findEnvironmentInCollection(collection, environmentUid)) {
+        drafts.environmentDrafts.push({ environmentUid, variables, collectionUid });
+      }
+    }
+
+    flattenItems(collection.items).forEach((item) => {
+      if (item.type === 'folder' && item.draft) {
+        drafts.folderDrafts.push({ folderUid: item.uid, collectionUid });
+      }
+    });
+
+    collectRequestDrafts(collection);
+  });
+
+  const scratchCollection = activeWorkspace
+    ? collections.find((collection) => collection.uid === activeWorkspace.scratchCollectionUid)
+    : null;
+  if (scratchCollection) {
+    collectRequestDrafts(scratchCollection, { transientOnly: true });
+  }
+
+  return drafts;
+};
+
+export const hasWorkspaceDrafts = (params) => Object.values(getWorkspaceDrafts(params)).some((drafts) => drafts.length > 0);
+
 export const isSelectionEntryCollapsed = (entry) =>
   entry.type === 'collection' ? entry.collection.collapsed : isCollectionItemCollapsed(entry.item);
 

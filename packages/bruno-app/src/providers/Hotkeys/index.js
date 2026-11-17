@@ -9,7 +9,7 @@ import filter from 'lodash/filter';
 import each from 'lodash/each';
 import { findCollectionByUid, findItemInCollection, flattenItems, isItemARequest, hasRequestChanges, findEnvironmentInCollection } from 'utils/collections';
 import { addTab, focusTab, reorderTabs } from 'providers/ReduxStore/slices/tabs';
-import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment, reopenClosedTab } from 'providers/ReduxStore/slices/collections/actions';
+import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment, reopenClosedTab, saveAllWorkspaceDrafts } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleSidebarCollapse, savePreferences } from 'providers/ReduxStore/slices/app';
 import { setLocalStorageValue, SIDEBAR_COLLAPSED_KEY } from 'utils/common/localStorage';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
@@ -263,6 +263,17 @@ export const HotkeysProvider = (props) => {
       unbindAction('saveAllTabs');
     };
   }, [activeTabUid, tabs, collections, dispatch, userKeyBindings, keybindingsEnabled]);
+
+  useEffect(() => {
+    bindAction('saveAllWorkspace', (e) => {
+      dispatch(saveAllWorkspaceDrafts());
+      return false;
+    });
+
+    return () => {
+      unbindAction('saveAllWorkspace');
+    };
+  }, [dispatch, userKeyBindings, keybindingsEnabled]);
 
   // Collapse sidebar
   useEffect(() => {

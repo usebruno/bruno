@@ -107,10 +107,11 @@ import {
   getTreePathFromCollectionToItem,
   mergeHeaders,
   isPathOrDescendant,
-  isCollectionItemCollapsed
+  isCollectionItemCollapsed,
+  getWorkspaceDrafts
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
-import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
+import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, DUPLICATE_SECRET_NAMES_ERROR, isEnvironmentValidationError } from 'utils/environments';
 import { getInvalidVariableNames, invalidVariableNamesError } from 'utils/common/variables';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveInheritedAuth } from 'utils/auth';
@@ -431,6 +432,54 @@ export const saveMultipleFolders = (folderDrafts) => (dispatch, getState) => {
         toast.error('Failed to save folder settings!');
         reject(err);
       });
+  });
+};
+
+export const saveAllWorkspaceDrafts = () => async (dispatch, getState) => {
+  const state = getState();
+  const { workspaces, activeWorkspaceUid } = state.workspaces;
+  const { collectionDrafts, folderDrafts, requestDrafts, environmentDrafts, transientRequestDrafts } = getWorkspaceDrafts({
+    collections: state.collections.collections,
+    workspaces,
+    activeWorkspace: workspaces.find((w) => w.uid === activeWorkspaceUid)
+  });
+
+  const saves = [];
+
+  if (collectionDrafts.length > 0) {
+    saves.push(dispatch(saveMultipleCollections(collectionDrafts)));
+  }
+  if (folderDrafts.length > 0) {
+    saves.push(dispatch(saveMultipleFolders(folderDrafts)));
+  }
+  if (requestDrafts.length > 0) {
+    saves.push(
+      dispatch(saveMultipleRequests(requestDrafts)).catch((err) => {
+        if (err?.name === 'ValidationError') {
+          toast.error(err.message);
+        }
+        throw err;
+      })
+    );
+  }
+  environmentDrafts.forEach(({ variables, environmentUid, collectionUid }) => {
+    saves.push(
+      dispatch(saveEnvironment(variables, environmentUid, collectionUid)).catch((err) => {
+        toast.error(isEnvironmentValidationError(err) ? err.message : 'Failed to save environment');
+        throw err;
+      })
+    );
+  });
+
+  if (saves.length > 0) {
+    const results = await Promise.allSettled(saves);
+    if (results.every((result) => result.status === 'fulfilled')) {
+      toast.success('Changes saved successfully');
+    }
+  }
+
+  transientRequestDrafts.forEach((draft) => {
+    dispatch(saveRequest(draft.uid, draft.collectionUid, true)).catch(() => null);
   });
 };
 
