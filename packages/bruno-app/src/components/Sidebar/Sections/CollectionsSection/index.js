@@ -19,7 +19,6 @@ import {
 import { importCollection, importCollectionFromZip, newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
 import { savePreferences, setIsCreatingCollection, setIsOpeningCollection, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
-import { openCollectionModal } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import { flattenItems, isItemTransientRequest, getWorkspaceCollections } from 'utils/collections';
 import { selectCollections, selectCollectionSortOrder, selectActiveWorkspace } from 'src/selectors/collections';
 import { sanitizeName } from 'utils/common/regex';
@@ -184,7 +183,7 @@ const CollectionsSection = () => {
   };
 
   const handleOpenCollection = () => {
-    dispatch(openCollectionModal('choose-folder'));
+    dispatch(setIsOpeningCollection(true));
   };
 
   const handleStartRequest = () => {
