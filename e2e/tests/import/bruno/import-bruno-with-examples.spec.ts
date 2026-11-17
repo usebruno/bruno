@@ -73,7 +73,7 @@ test.describe('Import Bruno Collection with Examples', () => {
       await expect(importLocators.chooseFilesButton()).toBeVisible();
       await importLocators.fileInput().setInputFiles(brunoFile);
       await locationModal.waitFor({ state: 'visible' });
-      await expect(locationModal.getByText(collectionName)).toBeVisible();
+      await expect(locationModal).toContainText(collectionName);
     });
 
     await test.step('Import the collection', async () => {

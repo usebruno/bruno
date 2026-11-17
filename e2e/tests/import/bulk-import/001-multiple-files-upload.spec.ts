@@ -1,8 +1,7 @@
 import { test, expect } from '../../../playwright';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { closeAllCollections, openCollection } from '../../../pages';
-import { buildCommonLocators } from '../../../pages/locators';
+import { buildCommonLocators, closeAllCollections, openCollection } from '../../../pages';
 
 test.describe('Multiple Files Upload', () => {
   const testDataDir = path.join(__dirname, '../test-data');

@@ -1,7 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { closeAllCollections, expandFolder, importCollection, openCollection } from '../../../pages';
-import { buildCommonLocators } from '../../../pages/locators';
+import { buildCommonLocators, closeAllCollections, expandFolder, importCollection, openCollection } from '../../../pages';
 
 test.describe('Import Insomnia Collection v4', () => {
   test.afterEach(async ({ page }) => {
