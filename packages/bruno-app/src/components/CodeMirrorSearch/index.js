@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, forwardRef } from 'react';
 import { IconRegex, IconArrowUp, IconArrowDown, IconX, IconLetterCase, IconLetterW, IconChevronRight, IconReplace, IconArrowsExchange2 } from '@tabler/icons';
-import ToolHint from 'components/ToolHint';
+import Tooltip from 'ui/Tooltip';
 import StyledWrapper from './StyledWrapper';
 import useDebounce from 'hooks/useDebounce';
 import { replaceSingle, replaceAll } from './replaceUtils';
@@ -351,15 +351,15 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
               }}
             />
             <span className="searchbar-result-count" data-testid="codemirror-search-result-count">{isDebouncing ? '...' : matchCount > 0 ? `${matchIndex + 1} / ${matchCount}` : '0 results'}</span>
-            <ToolHint text="Regex search" toolhintId="searchbar-regex-toolhint" place="top">
-              <button type="button" className={`searchbar-icon-btn ${regex ? 'active' : ''}`} onClick={handleToggleRegex} data-testid="codemirror-search-regex-btn"><IconRegex size={16} /></button>
-            </ToolHint>
-            <ToolHint text="Case sensitive" toolhintId="searchbar-case-toolhint" place="top">
-              <button type="button" className={`searchbar-icon-btn ${caseSensitive ? 'active' : ''}`} onClick={handleToggleCase} data-testid="codemirror-search-case-btn"><IconLetterCase size={14} /></button>
-            </ToolHint>
-            <ToolHint text="Whole word" toolhintId="searchbar-wholeword-toolhint" place="top">
-              <button type="button" className={`searchbar-icon-btn ${wholeWord ? 'active' : ''}`} onClick={handleToggleWholeWord} data-testid="codemirror-search-wholeword-btn"><IconLetterW size={14} /></button>
-            </ToolHint>
+            <Tooltip content="Regex search">
+              <button type="button" aria-label="Regex search" className={`searchbar-icon-btn ${regex ? 'active' : ''}`} onClick={handleToggleRegex} data-testid="codemirror-search-regex-btn"><IconRegex size={16} /></button>
+            </Tooltip>
+            <Tooltip content="Case sensitive">
+              <button type="button" aria-label="Case sensitive" className={`searchbar-icon-btn ${caseSensitive ? 'active' : ''}`} onClick={handleToggleCase} data-testid="codemirror-search-case-btn"><IconLetterCase size={14} /></button>
+            </Tooltip>
+            <Tooltip content="Whole word">
+              <button type="button" aria-label="Whole word" className={`searchbar-icon-btn ${wholeWord ? 'active' : ''}`} onClick={handleToggleWholeWord} data-testid="codemirror-search-wholeword-btn"><IconLetterW size={14} /></button>
+            </Tooltip>
             <button type="button" className="searchbar-icon-btn" title="Previous (Shift+Enter)" onClick={handlePrev} data-testid="codemirror-search-prev-btn"><IconArrowUp size={14} /></button>
             <button type="button" className="searchbar-icon-btn" title="Next (Enter)" onClick={handleNext} data-testid="codemirror-search-next-btn"><IconArrowDown size={14} /></button>
             <button type="button" className="searchbar-icon-btn" title="Close" onClick={handleSearchBarClose} data-testid="codemirror-search-close-btn"><IconX size={14} /></button>
@@ -387,12 +387,12 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
                   }
                 }}
               />
-              <ToolHint text="Replace" toolhintId="searchbar-replace-toolhint" place="top">
+              <Tooltip content="Replace">
                 <button type="button" aria-label="Replace" aria-disabled={isReplaceDisabled} className="searchbar-icon-btn searchbar-replace-btn" onClick={handleReplace} data-testid="codemirror-search-replace-btn"><IconReplace size={15} /></button>
-              </ToolHint>
-              <ToolHint text="Replace all" toolhintId="searchbar-replaceall-toolhint" place="top">
+              </Tooltip>
+              <Tooltip content="Replace all">
                 <button type="button" aria-label="Replace all" aria-disabled={isReplaceDisabled} className="searchbar-icon-btn searchbar-replace-btn" onClick={handleReplaceAll} data-testid="codemirror-search-replaceall-btn"><IconArrowsExchange2 size={15} /></button>
-              </ToolHint>
+              </Tooltip>
             </div>
           )}
         </div>

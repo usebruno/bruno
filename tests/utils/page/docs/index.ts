@@ -1,4 +1,5 @@
 import { Page } from '../../../../playwright';
+import { tooltipByText } from '../tooltip';
 
 /**
  * Locators for the request/collection/folder documentation (rich-text docs editor) section.
@@ -14,7 +15,7 @@ export const buildDocsLocators = (page: Page) => ({
   editToggle: () => page.getByTestId('docs-edit-toggle'),
   modeSwitchDocs: () => page.locator('.docs-mode-switch button').filter({ hasText: 'Rich Text' }),
   modeSwitchMarkdown: () => page.locator('.docs-mode-switch button').filter({ hasText: 'Markdown' }),
-  tooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text }),
+  tooltip: (text: string) => tooltipByText(page, text),
   codeEditor: () => page.locator('.editor-container .CodeMirror-scroll'),
   tableMenuTrigger: () => page.getByTestId('toolbar-table-menu'),
   overflowMenuTrigger: () => page.getByTestId('toolbar-overflow-menu'),

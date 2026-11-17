@@ -7,7 +7,7 @@ import {
   IconLetterT,
   IconToggleRight
 } from '@tabler/icons';
-import { Tooltip } from 'react-tooltip';
+import Tooltip from 'ui/Tooltip';
 import { BRUNO_VARIABLE_DATATYPES, validateVariableType } from '@usebruno/common/utils';
 import MenuDropdown from 'ui/MenuDropdown';
 import StyledWrapper from './StyledWrapper';
@@ -73,13 +73,7 @@ const DataTypeSelector = ({ variable, resolvableVariables, onChange, compact = f
               className="text-yellow-600 cursor-pointer"
               size={16}
             />
-            <Tooltip
-              positionStrategy="absolute"
-              className="tooltip-mod"
-              id={`type-error-${variable.uid}`}
-              content={typeError}
-              place="top"
-            />
+            <Tooltip variant="warning" id={`type-error-${variable.uid}`} content={typeError} />
           </span>
         )}
       </div>

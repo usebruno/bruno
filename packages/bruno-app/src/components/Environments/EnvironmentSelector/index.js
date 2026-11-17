@@ -11,7 +11,7 @@ import EnvironmentListContent from './EnvironmentListContent/index';
 import CreateEnvironment from '../EnvironmentSettings/CreateEnvironment';
 import ImportEnvironmentModal from 'components/Environments/Common/ImportEnvironmentModal';
 import CreateGlobalEnvironment from 'components/WorkspaceHome/WorkspaceEnvironments/CreateEnvironment';
-import ToolHint from 'components/ToolHint';
+import Tooltip from 'ui/Tooltip';
 import StyledWrapper from './StyledWrapper';
 import { transparentize } from 'polished';
 
@@ -87,9 +87,8 @@ const EnvironmentBadge = ({ environment, icon: Icon }) => {
   return (
     <>
       <Icon size={14} strokeWidth={1.5} className="env-icon" style={colorStyle} />
-      <ToolHint
-        text={environment.name}
-        toolhintId={`env-${environment.uid}`}
+      <Tooltip
+        content={environment.name}
         place="bottom-start"
         delayShow={1000}
         hidden={environment.name?.length < 7}
@@ -97,7 +96,7 @@ const EnvironmentBadge = ({ environment, icon: Icon }) => {
         <span className="env-text max-w-36 truncate overflow-hidden" style={colorStyle}>
           {environment.name}
         </span>
-      </ToolHint>
+      </Tooltip>
     </>
   );
 };

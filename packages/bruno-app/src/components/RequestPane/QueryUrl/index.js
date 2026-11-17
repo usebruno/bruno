@@ -25,7 +25,7 @@ import { isMacOS } from 'utils/common/platform';
 import { hasRequestChanges } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem/index';
-import ToolHint from 'components/ToolHint';
+import Tooltip from 'ui/Tooltip';
 import toast from 'react-hot-toast';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
@@ -420,7 +420,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             showNewlineArrow={true}
           />
           <div className="flex items-center h-full mx-2 gap-3" id="request-actions">
-            <ToolHint text="Generate Code" toolhintId="http-generate-code" place="top" positionStrategy="fixed">
+            <Tooltip content="Generate Code">
               <div
                 className="flex items-center"
                 data-testid="generate-code-button"
@@ -430,8 +430,8 @@ const QueryUrl = ({ item, collection, handleRun }) => {
               >
                 <IconCode color={theme.requestTabs.icon.color} strokeWidth={1.5} size={20} className="cursor-pointer" />
               </div>
-            </ToolHint>
-            <ToolHint text={`Save (${saveShortcut})`} toolhintId="http-save-request" place="top" positionStrategy="fixed">
+            </Tooltip>
+            <Tooltip content="Save" shortcut={saveShortcut}>
               <div
                 className="flex items-center"
                 data-testid="save-request-button"
@@ -448,7 +448,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
                   className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
                 />
               </div>
-            </ToolHint>
+            </Tooltip>
           </div>
         </div>
       </div>

@@ -14,10 +14,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .react-tooltip {
-    z-index: 10;
-  }
-
   section.main.dragging {
     cursor: col-resize;
     user-select: none;

@@ -7,6 +7,7 @@ import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
+import Tooltip from 'ui/Tooltip';
 import StyledWrapper from './StyledWrapper';
 
 interface AkamaiEdgeGridAuthValues {
@@ -121,10 +122,9 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ item, collection, upd
         <label>
           {label}
           {tooltip && (
-            <span className="field-info">
+            <Tooltip content={tooltip} className="field-info">
               <IconInfoCircle size={16} />
-              <span className="field-tooltip">{tooltip}</span>
-            </span>
+            </Tooltip>
           )}
         </label>
         <div className="single-line-editor-wrapper">

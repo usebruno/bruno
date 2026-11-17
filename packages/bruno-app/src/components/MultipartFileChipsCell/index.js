@@ -1,26 +1,24 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { IconUpload, IconX, IconFile, IconChevronDown } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
-import ToolHint from 'components/ToolHint';
+import Tooltip from 'ui/Tooltip';
 import path, { normalizePath } from 'utils/common/path';
 import Wrapper, { OverflowList } from './StyledWrapper';
 
 const basename = (filePath) => (filePath ? path.basename(normalizePath(String(filePath))) : '');
 
-const FileEntry = ({ filePath, toolhintId, editMode, onRemove, variant }) => {
+const FileEntry = ({ filePath, editMode, onRemove, variant }) => {
   const [overRemove, setOverRemove] = useState(false);
   const isChip = variant === 'chip';
 
   return (
-    <ToolHint
-      text={overRemove ? 'Remove file' : filePath}
-      toolhintId={toolhintId}
+    <Tooltip
+      content={overRemove ? 'Remove file' : filePath}
       place={overRemove ? 'bottom-end' : 'bottom-start'}
-      positionStrategy="fixed"
-      tooltipStyle={{ maxWidth: '320px', whiteSpace: 'normal', wordBreak: 'break-all' }}
+      maxWidth="320px"
       delayShow={overRemove ? 200 : 1000}
       className={isChip ? 'file-chip' : 'overflow-row'}
-      dataTestId={isChip ? 'multipart-file-chip' : 'multipart-file-overflow-row'}
+      data-testid={isChip ? 'multipart-file-chip' : 'multipart-file-overflow-row'}
     >
       <IconFile size={14} stroke={1.5} className={isChip ? 'file-chip-icon' : 'overflow-row-icon'} />
       <span className={isChip ? 'file-chip-name' : 'overflow-row-name'}>
@@ -41,7 +39,7 @@ const FileEntry = ({ filePath, toolhintId, editMode, onRemove, variant }) => {
           <IconX size={13} stroke={1.5} />
         </button>
       )}
-    </ToolHint>
+    </Tooltip>
   );
 };
 
@@ -55,7 +53,6 @@ const MORE_CHIP_RESERVE = 56;
 
 const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => {
   const containerRef = useRef(null);
-  const tooltipPrefix = useRef(`mp-tip-${Math.random().toString(36).slice(2, 10)}`).current;
   const [visibleCount, setVisibleCount] = useState(files.length);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -103,7 +100,6 @@ const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => 
       key={`${filePath}-${idx}`}
       variant="chip"
       filePath={filePath}
-      toolhintId={`${tooltipPrefix}-chip-${idx}`}
       editMode={editMode}
       onRemove={onRemove}
     />
@@ -116,7 +112,6 @@ const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => 
           key={`o-${p}-${i}`}
           variant="overflow"
           filePath={p}
-          toolhintId={`${tooltipPrefix}-overflow-${i}`}
           editMode={editMode}
           onRemove={onRemove}
         />

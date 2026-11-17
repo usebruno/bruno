@@ -126,10 +126,6 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
   }
 
-  .tooltip-mod {
-    max-width: 200px !important;
-  }
-
   .name-cell-wrapper {
     position: relative;
     width: 100%;

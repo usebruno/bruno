@@ -25,7 +25,7 @@ import useReflectionManagement from 'hooks/useReflectionManagement/index';
 import useProtoFileManagement from 'hooks/useProtoFileManagement/index';
 import MethodDropdown from './MethodDropdown';
 import ProtoFileDropdown from './ProtoFileDropdown';
-import ToolHint from 'components/ToolHint';
+import Tooltip from 'ui/Tooltip';
 
 const STREAMING_METHOD_TYPES = ['client-streaming', 'server-streaming', 'bidi-streaming'];
 const CLIENT_STREAMING_METHOD_TYPES = ['client-streaming', 'bidi-streaming'];
@@ -331,12 +331,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           onProtoFileLoad={handleProtoFileLoad}
         />
 
-        <ToolHint
-          text={isReflectionMode ? 'Refresh server reflection' : 'Refresh proto file methods'}
-          toolhintId="grpc-refresh-methods"
-          place="top"
-          positionStrategy="fixed"
-        >
+        <Tooltip content={isReflectionMode ? 'Refresh server reflection' : 'Refresh proto file methods'}>
           <div
             className="flex items-center"
             onClick={(e) => {
@@ -358,14 +353,9 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
               data-testid="refresh-methods-icon"
             />
           </div>
-        </ToolHint>
+        </Tooltip>
 
-        <ToolHint
-          text="Generate grpcurl command"
-          toolhintId="grpc-generate-grpcurl"
-          place="top"
-          positionStrategy="fixed"
-        >
+        <Tooltip content="Generate grpcurl command">
           <div
             className="flex items-center cursor-pointer"
             onClick={(e) => {
@@ -379,13 +369,11 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
               size={20}
             />
           </div>
-        </ToolHint>
+        </Tooltip>
 
-        <ToolHint
-          text={`Save (${saveShortcut})`}
-          toolhintId="grpc-save-request"
-          place="top"
-          positionStrategy="fixed"
+        <Tooltip
+          content="Save"
+          shortcut={saveShortcut}
         >
           <div
             className="flex items-center"
@@ -403,15 +391,15 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
               className={`${item.draft ? 'cursor-pointer' : 'cursor-default'}`}
             />
           </div>
-        </ToolHint>
+        </Tooltip>
 
         {isConnectionActive && isStreamingMethod && (
           <div className="connection-controls relative flex items-center h-full gap-3">
-            <ToolHint text="Cancel" toolhintId="grpc-cancel-connection" place="top" positionStrategy="fixed">
+            <Tooltip content="Cancel">
               <div className="flex items-center" onClick={handleCancelConnection} data-testid="grpc-cancel-connection-button">
                 <IconX color={theme.requestTabs.icon.color} strokeWidth={1.5} size={20} className="cursor-pointer" />
               </div>
-            </ToolHint>
+            </Tooltip>
 
             {isClientStreamingMethod && (
               <div onClick={handleEndConnection} data-testid="grpc-end-connection-button">

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getMarkRange } from '@tiptap/core';
 import { IconEdit, IconUnlink, IconCopy } from '@tabler/icons';
 import toast from 'react-hot-toast';
-import ToolHint from 'components/ToolHint';
+import Tooltip from 'ui/Tooltip';
 import { isHttpUrl } from 'utils/url/index';
 import { isMacOS } from 'utils/common/platform';
 import EditorLinkEditPopover from '../EditorLinkEditPopover';
@@ -286,7 +286,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl, onLinkClic
             <div className="view-separator" />
             <div className="action-icons">
               {isEditable && (
-                <ToolHint text="Edit link" toolhintId="edit-link">
+                <Tooltip content="Edit link">
                   <button
                     type="button"
                     className="action-icon-btn"
@@ -300,10 +300,10 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl, onLinkClic
                   >
                     <IconEdit size={14} strokeWidth={1.5} />
                   </button>
-                </ToolHint>
+                </Tooltip>
               )}
               {isEditable && (
-                <ToolHint text="Remove link" toolhintId="remove-link">
+                <Tooltip content="Remove link">
                   <button
                     type="button"
                     className="action-icon-btn"
@@ -325,9 +325,9 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl, onLinkClic
                   >
                     <IconUnlink size={14} strokeWidth={1.5} />
                   </button>
-                </ToolHint>
+                </Tooltip>
               )}
-              <ToolHint text="Copy link" toolhintId="copy-link">
+              <Tooltip content="Copy link">
                 <button
                   type="button"
                   className="action-icon-btn"
@@ -340,7 +340,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl, onLinkClic
                 >
                   <IconCopy size={14} strokeWidth={1.5} />
                 </button>
-              </ToolHint>
+              </Tooltip>
             </div>
           </div>
         </StyledWrapper>

@@ -9,7 +9,6 @@ import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import { isElectron } from 'utils/common/platform';
 import { IconX, IconLoader2, IconCheck } from '@tabler/icons';
-import InfoTip from 'components/InfoTip/index';
 import Help from 'components/Help';
 import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { addLog } from 'providers/ReduxStore/slices/logs';
@@ -838,10 +837,7 @@ export const BulkImportCollectionLocation = ({
                             />
                             <span className="ml-2">
                               Global Environment
-                              <InfoTip
-                                content="Environments will be imported and stored as global, accessible across collections."
-                                infotipId="apply-to-global-infotip"
-                              />
+                              <Help placement="top" className="ml-2">Environments will be imported and stored as global, accessible across collections.</Help>
                             </span>
                           </label>
                           <label className="flex items-center">
@@ -854,10 +850,7 @@ export const BulkImportCollectionLocation = ({
                             />
                             <span className="ml-2">
                               Duplicate Across Collections
-                              <InfoTip
-                                content="Each imported collection will receive its own copy of the environments."
-                                infotipId="apply-to-each-infotip"
-                              />
+                              <Help placement="top" className="ml-2">Each imported collection will receive its own copy of the environments.</Help>
                             </span>
                           </label>
                         </div>

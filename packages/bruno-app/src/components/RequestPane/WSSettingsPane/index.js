@@ -1,7 +1,7 @@
 import cn from 'classnames';
-import InfoTip from 'components/InfoTip/index';
+import Help from 'components/Help';
 import SingleLineEditor from 'components/SingleLineEditor';
-import ToolHint from 'components/ToolHint/index';
+import Tooltip from 'ui/Tooltip';
 import { useFormik } from 'formik';
 import get from 'lodash/get';
 import { updateItemSettings } from 'providers/ReduxStore/slices/collections';
@@ -58,28 +58,22 @@ const WSSettingsPane = ({ item, collection }) => {
       <section className="grid gap-4 items-center grid-cols-2">
         <div>
           <label className="font-medium mb-2">Timeout</label>
-          <InfoTip
-            infotipId="setting-connection-timeout"
-            className="tooltip-mod max-w-lg"
-            content={(
-              <div>
-                <p>
-                  <span>Timeout in milliseconds</span>
-                </p>
-              </div>
-            )}
-          />
+          <Help placement="top" className="ml-2">
+            <div>
+              <p>
+                <span>Timeout in milliseconds</span>
+              </p>
+            </div>
+          </Help>
         </div>
         <div>
           <div className={cn('single-line-editor-wrapper', {
             error: formErrors.timeout
           })}
           >
-            <ToolHint
-              key="timeout"
-              toolhintId="ws-settings-timeout"
-              place="top"
-              text={formErrors.timeout ? formErrors.timeout : ''}
+            <Tooltip
+              variant="error"
+              content={formErrors.timeout}
             >
               <SingleLineEditor
                 value={connectionTimeout}
@@ -88,37 +82,31 @@ const WSSettingsPane = ({ item, collection }) => {
                 collection={collection}
                 variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
               />
-            </ToolHint>
+            </Tooltip>
           </div>
         </div>
 
         <div>
           <label className="font-medium mb-2">Keep Alive Interval</label>
-          <InfoTip
-            infotipId="setting-keep-alive"
-            className="tooltip-mod max-w-lg"
-            content={(
-              <div>
-                <p>
-                  <span>
-                    Keep the websocket alive by sending ping requests to the server at every interval (in millseconds)
-                  </span>
-                </p>
-                <p className="mt-2">0 (zero) = off</p>
-              </div>
-            )}
-          />
+          <Help placement="top" className="ml-2">
+            <div>
+              <p>
+                <span>
+                  Keep the websocket alive by sending ping requests to the server at every interval (in millseconds)
+                </span>
+              </p>
+              <p className="mt-2">0 (zero) = off</p>
+            </div>
+          </Help>
         </div>
         <div>
           <div className={cn('single-line-editor-wrapper', {
             error: formErrors.keepAliveInterval
           })}
           >
-            <ToolHint
-              key="timeout"
-              toolhintId="ws-settings-keepAliveInterval"
-              place="top"
-              text={formErrors.keepAliveInterval ? formErrors.keepAliveInterval : ''}
+            <Tooltip
+              variant="error"
+              content={formErrors.keepAliveInterval}
             >
               <SingleLineEditor
                 value={keepAliveInterval}
@@ -127,7 +115,7 @@ const WSSettingsPane = ({ item, collection }) => {
                 collection={collection}
                 variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
               />
-            </ToolHint>
+            </Tooltip>
           </div>
         </div>
       </section>

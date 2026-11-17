@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { TableVirtuoso } from 'react-virtuoso';
 import { IconTrash, IconAlertCircle, IconGripVertical, IconMinusVertical } from '@tabler/icons';
-import { Tooltip } from 'react-tooltip';
+import Tooltip from 'ui/Tooltip';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import { useMouseRowDrag, DRAG_ROW_KEY_ATTR } from 'hooks/useMouseRowDrag';
@@ -379,11 +379,7 @@ const EditableTable = React.forwardRef(({
           className="text-red-600 cursor-pointer ml-1"
           size={20}
         />
-        <Tooltip
-          className="tooltip-mod"
-          id={`error-${row.uid}-${column.key}`}
-          html={error}
-        />
+        <Tooltip variant="error" id={`error-${row.uid}-${column.key}`} content={error} />
       </span>
     ) : null;
 

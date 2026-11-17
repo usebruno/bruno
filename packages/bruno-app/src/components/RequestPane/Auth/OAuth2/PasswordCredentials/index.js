@@ -1,6 +1,7 @@
 import React from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
+import Tooltip from 'ui/Tooltip';
 import { useDispatch } from 'react-redux';
 import { IconCaretDown, IconSettings, IconKey, IconAdjustmentsHorizontal, IconHelp } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
@@ -275,12 +276,9 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         />
         <label className="block min-w-[140px]">Automatically fetch token if not found</label>
         <div className="flex items-center gap-2">
-          <div className="relative group cursor-pointer">
+          <Tooltip content="Automatically fetch a new token when you try to access a resource and don't have one." place="top" className="inline-flex cursor-pointer">
             <IconHelp size={16} className="text-gray-500" />
-            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 bg-gray-700 text-white text-xs rounded-md transition-opacity duration-200">
-              Automatically fetch a new token when you try to access a resource and don't have one.
-            </span>
-          </div>
+          </Tooltip>
         </div>
       </div>
 
@@ -295,12 +293,9 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         />
         <label className={`block min-w-[140px] ${isAutoRefreshDisabled ? 'text-gray-500' : ''}`}>Auto refresh token (with refresh URL)</label>
         <div className="flex items-center gap-2">
-          <div className="relative group cursor-pointer">
+          <Tooltip content="Automatically refresh your token using the refresh URL when it expires." place="top" className="inline-flex cursor-pointer">
             <IconHelp size={16} className="text-gray-500" />
-            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 bg-gray-700 text-white text-xs rounded-md transition-opacity duration-200">
-              Automatically refresh your token using the refresh URL when it expires.
-            </span>
-          </div>
+          </Tooltip>
         </div>
       </div>
       <AdditionalParams

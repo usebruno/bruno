@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tooltip } from 'react-tooltip';
+import Tooltip from 'ui/Tooltip';
 import MenuDropdown from 'ui/MenuDropdown';
 import SegmentedControl from 'ui/SegmentedControl';
 import { IconChevronDown } from '@tabler/icons';
@@ -56,13 +56,7 @@ const CollectionSourceFields = ({
           data-testid="api-spec-collection-source"
         />
         {hasWorkspaceCollections ? null : (
-          <Tooltip
-            anchorSelect=".segment-no-collections"
-            content={NO_COLLECTIONS_HINT}
-            className="api-spec-hint-tooltip"
-            place="top"
-            data-testid="api-spec-no-collections"
-          />
+          <Tooltip anchorSelect=".segment-no-collections" content={NO_COLLECTIONS_HINT} maxWidth="200px" />
         )}
       </div>
 

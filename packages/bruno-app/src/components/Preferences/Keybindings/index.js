@@ -17,7 +17,7 @@ import {
   getKeyBindingOS,
   orderKeysForDisplay
 } from 'providers/Hotkeys/keyMappings.js';
-import { Tooltip } from 'react-tooltip';
+import Tooltip from 'ui/Tooltip';
 import ToggleSwitch from 'components/ToggleSwitch/index';
 import toast from 'react-hot-toast';
 
@@ -869,11 +869,10 @@ const Keybindings = () => {
                                   <Tooltip
                                     id={`kb-editing-error-tooltip-${action}`}
                                     anchorSelect={`#${inputId}`}
+                                    variant="error"
                                     place="bottom-start"
-                                    opacity={1}
                                     isOpen={true}
                                     content={errorMessage}
-                                    className="tooltip-mod tooltip-mod--error"
                                   />
                                 )}
                               </div>

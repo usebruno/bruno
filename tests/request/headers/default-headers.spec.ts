@@ -192,21 +192,23 @@ test('hides a default header when the request defines the same name', async ({ p
   });
 });
 
-test('shows the runtime-default explanation through ToolHint', async ({ page, createTmpDir }) => {
-  await createCollection(page, 'default-headers-toolhint', await createTmpDir('default-headers-toolhint'));
-  await createRequest(page, 'request-1', 'default-headers-toolhint', { url: 'https://example.com' });
+test('shows the runtime-default explanation in a tooltip', async ({ page, createTmpDir }) => {
+  await createCollection(page, 'default-headers-tooltip', await createTmpDir('default-headers-tooltip'));
+  await createRequest(page, 'request-1', 'default-headers-tooltip', { url: 'https://example.com' });
   await selectRequestPaneTab(page, 'Headers');
   const headers = await showInheritedHeaders(page);
 
   await test.step('Explain a default header', async () => {
     await headers.defaultInfo('Accept').hover();
     await expect(headers.defaultInfo('Accept')).toHaveCSS('cursor', 'pointer');
+    await expect(headers.defaultInfoTooltip('Accept')).toBeVisible();
     await expect(headers.defaultInfoTooltip('Accept')).toHaveText('Automatically added at runtime');
   });
 
   await test.step('Explain the required Host header', async () => {
     await headers.defaultInfo('Host').hover();
     await expect(headers.defaultInfo('Host')).toHaveCSS('cursor', 'pointer');
+    await expect(headers.defaultInfoTooltip('Host')).toBeVisible();
     await expect(headers.defaultInfoTooltip('Host')).toHaveText('Automatically added at runtime. Required by HTTP, cannot be omitted');
   });
 });

@@ -5,7 +5,7 @@ import { IconShieldCheck, IconCode } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import ToolHint from 'components/ToolHint';
+import Tooltip from 'ui/Tooltip';
 
 const SANDBOX_OPTIONS = [
   {
@@ -105,11 +105,11 @@ const JsSandboxMode = ({ collection }) => {
 
   const triggerIcon = (
     <div>
-      <ToolHint text={`${selectedMode === 'developer' ? 'Developer Mode' : 'Safe Mode'}`} toolhintId="JavascriptSandboxToolhintId" place="bottom">
+      <Tooltip content={`${selectedMode === 'developer' ? 'Developer Mode' : 'Safe Mode'}`} place="bottom">
         <div className={`sandbox-icon ${selectedMode === 'developer' ? 'developer-mode' : 'safe-mode'}`} data-testid="sandbox-mode-selector">
           {selectedMode === 'developer' ? <IconCode size={14} strokeWidth={2} /> : <IconShieldCheck size={14} strokeWidth={2} />}
         </div>
-      </ToolHint>
+      </Tooltip>
     </div>
   );
 

@@ -4,7 +4,7 @@ import DocsAction from 'components/Documentation/DocsAction';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import StatusDot from 'components/StatusDot/index';
 import ActionIcon from 'ui/ActionIcon';
-import ToolHint from 'components/ToolHint/index';
+import Tooltip from 'ui/Tooltip';
 import { IconPlus, IconWand } from '@tabler/icons';
 import { find, get } from 'lodash';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
@@ -196,16 +196,16 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
     case 'body':
       rightContent = (
         <div ref={rightContentRef} className="flex items-center gap-2">
-          <ToolHint text="Prettify All" toolhintId="prettify-all-ws">
+          <Tooltip content="Prettify All">
             <ActionIcon data-testid="ws-prettify-all" onClick={onPrettifyAll}>
               <IconWand size={14} strokeWidth={1.5} />
             </ActionIcon>
-          </ToolHint>
-          <ToolHint text="Add Message" toolhintId="add-msg-ws">
+          </Tooltip>
+          <Tooltip content="Add Message">
             <ActionIcon data-testid="ws-add-message" onClick={addNewMessage}>
               <IconPlus size={15} strokeWidth={1.5} />
             </ActionIcon>
-          </ToolHint>
+          </Tooltip>
         </div>
       );
       break;

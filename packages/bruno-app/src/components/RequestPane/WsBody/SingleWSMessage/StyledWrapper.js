@@ -8,15 +8,14 @@ const StyledWrapper = styled.div`
     border-bottom: none;
   }
 
-  /* Dim the row content when disabled, but not the tooltip */
-  .accordion-left > :not(.toolhint),
+  .accordion-left,
   .accordion-actions,
   .accordion-body {
     transition: opacity 0.15s ease;
   }
 
   &.disabled {
-    .accordion-left > :not(.toolhint),
+    .accordion-left,
     .accordion-actions,
     .accordion-body {
       opacity: 0.45;

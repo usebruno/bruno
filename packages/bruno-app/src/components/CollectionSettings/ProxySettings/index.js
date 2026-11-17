@@ -1,5 +1,5 @@
 import React from 'react';
-import InfoTip from 'components/InfoTip';
+import Help from 'components/Help';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
@@ -233,7 +233,7 @@ const ProxySettings = ({ collection }) => {
             label={(
               <span className="flex items-center">
                 <span id="collection-proxy-mode-label">Proxy mode</span>
-                <InfoTip infotipId="collection-proxy-mode-info" style={{ zIndex: 20 }}>
+                <Help placement="top" className="ml-2" width={300}>
                   <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 m-0">
                     <dt className="font-medium">Inherit</dt>
                     <dd className="m-0">Inherit from global preferences</dd>
@@ -242,7 +242,7 @@ const ProxySettings = ({ collection }) => {
                     <dt className="font-medium">Off</dt>
                     <dd className="m-0">Disable proxy for this collection</dd>
                   </dl>
-                </InfoTip>
+                </Help>
               </span>
             )}
           >

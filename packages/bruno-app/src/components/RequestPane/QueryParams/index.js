@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import get from 'lodash/get';
-import InfoTip from 'components/InfoTip';
+import Help from 'components/Help';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import {
@@ -202,7 +202,7 @@ const QueryParams = ({ item, collection }) => {
 
         <div className="mb-3 title text-xs flex items-stretch">
           <span>Path</span>
-          <InfoTip className="tooltip-mod" infotipId="path-param-InfoTip">
+          <Help placement="top" className="ml-2" width={300}>
             <div>
               Path variables are automatically added whenever the
               <code className="font-mono mx-2">:name</code>
@@ -211,7 +211,7 @@ const QueryParams = ({ item, collection }) => {
                 https://example.com/v1/users/<span>:id</span>
               </code>
             </div>
-          </InfoTip>
+          </Help>
         </div>
         {pathParams && pathParams.length > 0 ? (
           <EditableTable

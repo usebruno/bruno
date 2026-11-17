@@ -81,10 +81,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .tooltip-mod {
-    max-width: 200px !important;
-  }
-
   input[type='text'] {
     width: 100%;
     border: 1px solid transparent;

@@ -3,7 +3,7 @@ import { getRelativePathWithinBasePath, getBasename } from 'utils/common/path';
 import { useDispatch } from 'react-redux';
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import { IconX, IconUpload, IconFile } from '@tabler/icons';
-import { Tooltip } from 'react-tooltip';
+import Tooltip from 'ui/Tooltip';
 import IconAlertTriangleFilled from 'components/Icons/IconAlertTriangleFilled';
 import useMissingFileCheck from 'hooks/useMissingFileCheck';
 import useTooltipId from 'hooks/useTooltipId';
@@ -130,14 +130,11 @@ const FilePickerEditor = ({
           {hasMissingFiles && (
             <Tooltip
               id={warningTooltipId}
-              className="tooltip-mod max-w-lg"
+              variant="warning"
               place="bottom-end"
-            >
-              <div className="warning-tooltip" data-testid="file-picker-warning-tooltip">
-                <IconAlertTriangleFilled size={14} />
-                <span>The file above is not in the given directory, please upload it again.</span>
-              </div>
-            </Tooltip>
+              tooltipTestId="file-picker-warning-tooltip"
+              content="The file above is not in the given directory, please upload it again."
+            />
           )}
         </div>
       </StyledWrapper>

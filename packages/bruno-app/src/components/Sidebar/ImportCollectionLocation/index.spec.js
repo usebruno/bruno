@@ -89,12 +89,12 @@ describe('ImportCollectionLocation collection auth placement', () => {
     expect(screen.queryByText('Set authentication at collection level')).not.toBeInTheDocument();
   });
 
-  it('explains the setting in the info tooltip, and clicking the icon leaves the switch alone', () => {
+  it('explains the setting in the info tooltip, and clicking the icon leaves the switch alone', async () => {
     renderImport();
     fireEvent.click(advancedToggle());
 
     fireEvent.mouseEnter(authPlacementInfoIcon().parentElement);
-    expect(screen.getByText(AUTH_PLACEMENT_INFO)).toBeInTheDocument();
+    expect(await screen.findByText(AUTH_PLACEMENT_INFO)).toBeInTheDocument();
 
     fireEvent.click(authPlacementInfoIcon());
     expect(authPlacementCheckbox()).not.toBeChecked();
@@ -175,13 +175,13 @@ describe('ImportCollectionLocation naming requests', () => {
     expect(options.map((option) => option.querySelector('.dropdown-label').textContent)).toEqual(['Summary', 'operationId', 'Description', 'Path']);
   });
 
-  it('explains the fallback order in the info tooltip', () => {
+  it('explains the fallback order in the info tooltip', async () => {
     renderImport();
     fireEvent.click(advancedToggle());
 
     fireEvent.mouseEnter(screen.getByText('Naming requests').querySelector('svg').parentElement);
 
-    expect(screen.getByText(NAMING_INFO)).toBeInTheDocument();
+    expect(await screen.findByText(NAMING_INFO)).toBeInTheDocument();
   });
 
   it('converts with the chosen naming and saves it in the sync config', async () => {

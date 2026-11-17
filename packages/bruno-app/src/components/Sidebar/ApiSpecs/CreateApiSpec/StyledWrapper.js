@@ -6,15 +6,6 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.darkOrange};
   }
 
-  /* Small enough to sit inside the modal rather than spilling past its edge. */
-  .api-spec-hint-tooltip {
-    max-width: 12.5rem;
-    padding: 0.25rem 0.5rem;
-    font-size: ${(props) => props.theme.font.size.xs};
-    line-height: 1.3;
-    border-radius: 0.25rem;
-  }
-
   .collection-source-control {
     [role='radiogroup'] {
       height: 1.875rem;

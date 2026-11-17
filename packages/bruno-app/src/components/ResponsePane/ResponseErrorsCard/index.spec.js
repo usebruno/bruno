@@ -13,7 +13,7 @@ jest.mock('platform', () => ({
     family: process.platform === 'win32' ? 'Windows' : 'Linux'
   }
 }));
-jest.mock('components/ToolHint', () => () => null);
+jest.mock('ui/Tooltip', () => () => null);
 
 const collectionPath = path.resolve('workspace', 'collection');
 

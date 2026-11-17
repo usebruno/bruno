@@ -1,10 +1,10 @@
 import React from 'react';
 import { IconCaretDown, IconDots, IconTableOptions } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
-import ToolHint from 'components/ToolHint';
+import Tooltip from 'ui/Tooltip';
 import StyledWrapper from './StyledWrapper';
 import EditorTableMenu from '../EditorTableMenu';
-import { EDITOR_MENU_DROPDOWN_PROPS, EDITOR_TOOLBAR_TOOLTIP_PROPS } from '../../utils/editorToolbarUi';
+import { EDITOR_MENU_DROPDOWN_PROPS } from '../../utils/editorToolbarUi';
 import { useToolbarOverflow } from '../../hooks/useToolbarOverflow';
 
 const ToolbarButton = ({ tooltip, Icon, isActive, disabled, onClick, showLabel = false, testId }) => {
@@ -133,7 +133,7 @@ const EditorToolbar = ({ editor }) => {
           </MenuDropdown>
         )}
       </div>
-      <ToolHint tooltipId="editor-toolbar-tooltip" {...EDITOR_TOOLBAR_TOOLTIP_PROPS} />
+      <Tooltip id="editor-toolbar-tooltip" />
     </StyledWrapper>
   );
 };

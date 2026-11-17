@@ -1,6 +1,6 @@
 import React from 'react';
 import { IconAlertCircle } from '@tabler/icons';
-import { Tooltip } from 'react-tooltip';
+import Tooltip from 'ui/Tooltip';
 
 const DotEnvErrorMessage = React.memo(({ formik, name, index }) => {
   const meta = formik.getFieldMeta(name);
@@ -17,7 +17,7 @@ const DotEnvErrorMessage = React.memo(({ formik, name, index }) => {
   return (
     <span>
       <IconAlertCircle id={id} className="text-red-600 cursor-pointer" size={20} />
-      <Tooltip className="tooltip-mod" anchorId={id} html={meta.error || ''} />
+      <Tooltip variant="error" anchorId={id} content={meta.error} />
     </span>
   );
 });
