@@ -29,7 +29,7 @@ describe('OverviewSection', () => {
   ])('shows the %s naming as %s', (requestNameSource, label) => {
     const { getByText } = renderOverview({ requestNameSource });
 
-    expect(detailValue(getByText, 'Naming Requests')).toBe(label);
+    expect(detailValue(getByText, 'Request Naming')).toBe(label);
   });
 
   it.each([
@@ -41,12 +41,12 @@ describe('OverviewSection', () => {
     expect(detailValue(getByText, 'Auth Placement')).toBe(label);
   });
 
-  it('explains Naming Requests in a tooltip on its heading', () => {
+  it('explains Request Naming in a tooltip on its heading', () => {
     const { getByText } = renderOverview({ requestNameSource: 'summary' });
 
-    fireEvent.mouseEnter(getByText('Naming Requests').querySelector('svg').parentElement);
+    fireEvent.mouseEnter(getByText('Request Naming').querySelector('svg').parentElement);
 
-    expect(getByText('The field from the spec used to name each request.', { exact: false })).toBeInTheDocument();
+    expect(getByText('Determines how requests are named using fields from the OpenAPI spec with fallback options when unavailable.')).toBeInTheDocument();
   });
 
   it.each([
@@ -66,7 +66,7 @@ describe('OverviewSection', () => {
   it('hides naming and auth placement when the sync settings have neither', () => {
     const { queryByText } = renderOverview({});
 
-    expect(queryByText('Naming Requests')).not.toBeInTheDocument();
+    expect(queryByText('Request Naming')).not.toBeInTheDocument();
     expect(queryByText('Auth Placement')).not.toBeInTheDocument();
   });
 
@@ -94,7 +94,7 @@ describe('OverviewSection', () => {
   it('shows a value it does not recognise as written', () => {
     const { getByText } = renderOverview({ requestNameSource: 'title', authPlacement: 'folder' });
 
-    expect(detailValue(getByText, 'Naming Requests')).toBe('title');
+    expect(detailValue(getByText, 'Request Naming')).toBe('title');
     expect(detailValue(getByText, 'Auth Placement')).toBe('Folder');
     expect(detailItem(getByText, 'Auth Placement').querySelector('svg')).toBeNull();
   });
