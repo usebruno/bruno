@@ -407,7 +407,8 @@ export const buildCommonLocators = (page: Page) => ({
     locationInput: () => page.getByLabel('Location', { exact: true }),
     optionsButton: () => page.getByRole('button', { name: 'Options' }),
     advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
-    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle')
+    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
+    preserveScriptsHelp: () => page.getByTestId('preserve-scripts-help')
   },
   /**
    * Build generic table locators for any table with a testId
