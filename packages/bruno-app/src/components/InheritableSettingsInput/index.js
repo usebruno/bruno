@@ -20,8 +20,7 @@ const InheritableSettingsInput = ({
   onKeyDown,
   overrideLabel,
   inheritLabel,
-  inheritTooltip,
-  testId = id
+  inheritTooltip
 }) => {
   const inputRef = useRef(null);
   const descriptionId = description ? `${id}-description` : undefined;
@@ -50,7 +49,7 @@ const InheritableSettingsInput = ({
             {label}
             {/* Visual only: screen readers get "Inherited" from the status line the input points to */}
             {isInherited && (
-              <span className="inheritable-tag" aria-hidden="true" data-testid={`${testId}-inherited-tag`}>
+              <span className="inheritable-tag" aria-hidden="true" data-testid={`${id}-inherited-tag`}>
                 Inherited
               </span>
             )}
@@ -77,12 +76,12 @@ const InheritableSettingsInput = ({
             value={isInherited ? '' : String(value)}
             onChange={handleChange}
             onKeyDown={onKeyDown}
-            data-testid={`${testId}-input`}
+            data-testid={`${id}-input`}
           />
           <div className="inheritable-status">
             {isInherited ? (
               <>
-                <span id={statusId} data-testid={`${testId}-inherited`}>
+                <span id={statusId} data-testid={`${id}-inherited`}>
                   <span className="sr-only">Inherited </span>
                   From{' '}
                   <button
@@ -90,7 +89,7 @@ const InheritableSettingsInput = ({
                     className="inheritable-source"
                     onClick={onSourceClick}
                     aria-label={sourceLinkLabel}
-                    data-testid={`${testId}-source`}
+                    data-testid={`${id}-source`}
                   >
                     {sourceName}
                   </button>
@@ -101,7 +100,7 @@ const InheritableSettingsInput = ({
                   className="inheritable-link"
                   onClick={handleOverride}
                   aria-label={overrideLabel}
-                  data-testid={`${testId}-override`}
+                  data-testid={`${id}-override`}
                 >
                   Override
                 </button>
@@ -114,7 +113,7 @@ const InheritableSettingsInput = ({
                   className="inheritable-link"
                   onClick={onInherit}
                   aria-label={inheritLabel}
-                  data-testid={`${testId}-inherit`}
+                  data-testid={`${id}-inherit`}
                 >
                   Inherit
                 </button>

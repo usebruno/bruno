@@ -3,6 +3,7 @@ import { IconCertificate, IconTrash, IconFile, IconX, IconUpload, IconPlus, Icon
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import StyledWrapper from './StyledWrapper';
+import SettingsHeader from '../SettingsHeader';
 import { useRef, useState } from 'react';
 import Modal from 'components/Modal';
 import path from 'utils/common/path';
@@ -242,8 +243,7 @@ const ClientCertSettings = ({ collection }) => {
 
   return (
     <StyledWrapper className="w-full h-full">
-      <h1 className="font-medium text-[0.9375rem]">Client Certificates</h1>
-      <div className="text-xs mt-1 text-muted">Add client certificates to be used for specific domains.</div>
+      <SettingsHeader title="Client Certificates" description="Add client certificates to be used for specific domains." />
 
       <ListGroup
         className="mt-5"

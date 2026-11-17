@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import get from 'lodash/get';
 import { utils } from '@usebruno/common';
-import ToggleSelector from 'components/RequestPane/Settings/ToggleSelector';
+import Toggle from 'ui/Toggle';
 import SettingsInput from 'components/SettingsInput';
 import InheritableSettingsInput from 'components/InheritableSettingsInput';
 import { updateItemSettings, toggleAppMode } from 'providers/ReduxStore/slices/collections';
@@ -25,8 +25,7 @@ const DEFAULT_SETTINGS = {
 
 const Settings = ({ item, collection }) => {
   const dispatch = useDispatch();
-  // An inherited timeout falls back to the app-wide request timeout in Preferences (0 when unset)
-  const inheritedTimeout = useSelector((state) => state.app.preferences?.request?.timeout) ?? 0;
+  const inheritedTimeout = Number(useSelector((state) => state.app.preferences?.request?.timeout)) || 0;
 
   // Get current settings with defaults applied
   const getPropertyFromDraftOrRequest = (propertyKey) =>
@@ -125,7 +124,7 @@ const Settings = ({ item, collection }) => {
               <Tags item={item} collection={collection} />
             </div>
           </FormField>
-          <ToggleSelector
+          <Toggle
             checked={encodeUrl}
             onChange={onToggleUrlEncoding}
             label="URL Encoding"
@@ -152,7 +151,7 @@ const Settings = ({ item, collection }) => {
             inheritLabel={`Inherit the Preferences timeout (${inheritedTimeout} ms)`}
             inheritTooltip={`Inherit from Preferences (${inheritedTimeout === 0 ? 'no timeout' : `${inheritedTimeout} ms`})`}
           />
-          <ToggleSelector
+          <Toggle
             checked={followRedirects}
             onChange={onToggleFollowRedirects}
             label="Automatically Follow Redirects"
@@ -168,7 +167,7 @@ const Settings = ({ item, collection }) => {
             description="Set a limit for the number of redirects to follow"
             onKeyDown={handleKeyDown}
           />
-          <ToggleSelector
+          <Toggle
             checked={forwardAuthorizationHeader}
             onChange={onToggleForwardAuthorizationOnRedirect}
             label="Forward Authorization on Redirect"
@@ -178,7 +177,7 @@ const Settings = ({ item, collection }) => {
           />
 
           {item.type === 'http-request' && (
-            <ToggleSelector
+            <Toggle
               checked={enableApp}
               onChange={onToggleEnableApp}
               label="Enable App"

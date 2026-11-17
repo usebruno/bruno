@@ -3,6 +3,7 @@ import InfoTip from 'components/InfoTip';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
+import SettingsHeader from '../SettingsHeader';
 import { useDispatch } from 'react-redux';
 import { updateCollectionProxy } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
@@ -223,10 +224,7 @@ const ProxySettings = ({ collection }) => {
   return (
     <StyledWrapper className="h-full w-full">
       <FieldList className="proxy-settings bruno-form">
-        <div>
-          <h1 className="font-medium text-[0.9375rem]">Proxy Settings</h1>
-          <div className="text-xs mt-1 text-muted">Configure proxy settings for this collection.</div>
-        </div>
+        <SettingsHeader title="Proxy Settings" description="Configure proxy settings for this collection." />
 
         {/* Lines only between the settings sections, not around the intro or the Save button */}
         <FieldList dividers>

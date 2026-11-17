@@ -1,6 +1,7 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
+import SettingsHeader from '../SettingsHeader';
 import FormField from 'ui/patterns/FormField';
 import FieldList from 'ui/patterns/FieldList';
 import { updateCollectionPresets } from 'providers/ReduxStore/slices/collections';
@@ -70,10 +71,10 @@ const PresetsSettings = ({ collection }) => {
   return (
     <StyledWrapper className="h-full w-full">
       <FieldList className="presets-settings bruno-form">
-        <div>
-          <h1 className="font-medium text-[0.9375rem]">Presets</h1>
-          <div className="text-xs mt-1 text-muted">Set defaults for new requests and the environment this collection opens with.</div>
-        </div>
+        <SettingsHeader
+          title="Presets"
+          description="Set defaults for new requests and the environment this collection opens with."
+        />
         <FieldList gap="lg" className="presets-fields">
           <FormField
             label="Default Request Type"

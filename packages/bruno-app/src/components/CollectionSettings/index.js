@@ -7,7 +7,7 @@ import Headers from './Headers';
 import Auth from './Auth';
 import Script from './Script';
 import Test from './Tests';
-import Settings, { SETTINGS_SECTIONS, DEFAULT_SETTINGS_SECTION } from './Settings';
+import Settings from './Settings';
 import Protobuf from './Protobuf';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
@@ -35,10 +35,6 @@ const CollectionSettings = ({ collection }) => {
   const setSettingsSection = (section) => {
     dispatch(updateSettingsSection({ collectionUid: collection.uid, section }));
   };
-
-  const settingsSection = SETTINGS_SECTIONS.includes(collection.settingsSection)
-    ? collection.settingsSection
-    : DEFAULT_SETTINGS_SECTION;
 
   const root = collection?.draft?.root || collection?.root;
   const hasScripts = root?.request?.script?.res || root?.request?.script?.req;
@@ -99,7 +95,7 @@ const CollectionSettings = ({ collection }) => {
         return <Test collection={collection} />;
       }
       case 'settings': {
-        return <Settings collection={collection} section={settingsSection} onSelect={setSettingsSection} indicators={settingsIndicators} />;
+        return <Settings collection={collection} section={collection.settingsSection} onSelect={setSettingsSection} indicators={settingsIndicators} />;
       }
       case 'protobuf': {
         return <Protobuf collection={collection} />;

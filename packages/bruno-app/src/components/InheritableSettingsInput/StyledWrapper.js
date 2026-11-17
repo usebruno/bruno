@@ -13,8 +13,8 @@ const StyledWrapper = styled.div`
     height: 20px;
     padding: 0 6px;
     border: 1px solid ${(props) => props.theme.border.border2};
-    border-radius: 4px;
-    font-size: 11px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    font-size: ${(props) => props.theme.font.size.xs};
     font-weight: 400;
     line-height: 1;
     color: ${(props) => props.theme.colors.text.subtext2};
@@ -53,7 +53,7 @@ const StyledWrapper = styled.div`
     gap: 4px;
     margin-top: 6px;
     white-space: nowrap;
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
     line-height: 16px;
     color: ${(props) => props.theme.colors.text.muted};
   }
@@ -63,7 +63,7 @@ const StyledWrapper = styled.div`
     padding: 0;
     border: none;
     background: none;
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
     color: inherit;
     text-decoration: underline;
     text-underline-offset: 2px;
@@ -88,7 +88,7 @@ const StyledWrapper = styled.div`
     padding: 0;
     border: none;
     background: none;
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.textLink};
     cursor: pointer;
 
