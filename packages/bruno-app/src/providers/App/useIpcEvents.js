@@ -41,6 +41,7 @@ import {
   hydrateSnapshotForOpenedCollection,
   restoreActiveWorkspaceFromSnapshot
 } from 'providers/ReduxStore/slices/workspaces/actions';
+import { recentCollectionsChangedEvent } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import { workspaceDotEnvUpdateEvent, setWorkspaceDotEnvVariables } from 'providers/ReduxStore/slices/workspaces';
 import toast from 'react-hot-toast';
 import { useDispatch, useStore } from 'react-redux';
@@ -153,6 +154,10 @@ const useIpcEvents = () => {
 
     const removeOpenCollectionModalListener = ipcRenderer.on('main:open-collection', () => {
       dispatch(setIsOpeningCollection(true));
+    });
+
+    const removeRecentCollectionsChangedListener = ipcRenderer.on('main:recent-collections-changed', () => {
+      dispatch(recentCollectionsChangedEvent());
     });
 
     const removeWorkspacesReadyListener = ipcRenderer.on('main:workspaces-ready', () => {
@@ -434,6 +439,7 @@ const useIpcEvents = () => {
       removeCollectionMigrationProgressListener();
       removeOpenWorkspaceListener();
       removeOpenCollectionModalListener();
+      removeRecentCollectionsChangedListener();
       removeWorkspacesReadyListener();
       removeWorkspaceConfigUpdatedListener();
       removeWorkspaceEnvironmentAddedListener();

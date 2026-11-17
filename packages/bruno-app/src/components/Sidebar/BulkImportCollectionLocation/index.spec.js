@@ -37,6 +37,10 @@ jest.mock('utils/importers/postman-collection', () => ({
   })
 }));
 
+jest.mock('utils/importers/opencollection', () => ({
+  processOpenCollection: async (data) => ({ uid: 'converted', name: data.info.name, items: [], environments: [] })
+}));
+
 describe('BulkImportCollectionLocation helpers', () => {
   describe('normalizeName', () => {
     it('should trim and lowercase names', () => {
@@ -85,6 +89,7 @@ const swagger2Spec = {
   filePath: '/specs/legacy.json'
 };
 const postmanFile = { file: { name: 'postman.json' }, type: 'postman', data: { info: { name: 'Postman Collection' } } };
+const openCollectionFile = { file: { name: 'orders.yml' }, type: 'opencollection', data: { opencollection: '1.0.0', info: { name: 'Orders' } } };
 
 const syncEntry = (sourceUrl, settings = {}) => [{ sourceUrl, groupBy: 'tags', authPlacement: 'request', requestNameSource: 'summary', ...settings, autoCheck: true, autoCheckInterval: 5 }];
 
@@ -551,5 +556,16 @@ describe('BulkImportCollectionLocation OpenAPI Import configuration', () => {
       ['Orders API', syncEntry('/specs/orders.yaml', { groupBy: 'path', authPlacement: 'collection', requestNameSource: 'description' })],
       ['Postman Collection', undefined]
     ]);
+  });
+});
+
+describe('BulkImportCollectionLocation OpenCollection files', () => {
+  it('lists an OpenCollection file by its name and imports it with the other files', async () => {
+    renderBulkImport([postmanFile, openCollectionFile]);
+
+    expect(screen.getByRole('checkbox', { name: 'Orders orders.yml' })).toBeChecked();
+    const [collections] = await submitImport();
+
+    expect(collections.map((collection) => collection.name)).toEqual(['Postman Collection', 'Orders']);
   });
 });

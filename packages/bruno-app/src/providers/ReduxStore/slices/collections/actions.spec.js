@@ -1,4 +1,4 @@
-import { newHttpRequest, revealItemInSidebar, revealTabInSidebar, tryResponseExample } from './actions';
+import { newHttpRequest, removeCollection, revealItemInSidebar, revealTabInSidebar, tryResponseExample } from './actions';
 
 const mockUuid = jest.fn();
 
@@ -381,6 +381,25 @@ describe('collection actions', () => {
         'renderer:new-request',
         expect.stringContaining('Untitled 3.yml'),
         expect.objectContaining({ name: 'Untitled 3' })
+      );
+    });
+  });
+
+  describe('removeCollection', () => {
+    it('tells the main process the name of the collection it closes', async () => {
+      const getState = () => ({
+        collections: { collections: [{ uid: 'collection-uid', name: 'Billing', pathname: '/bruno/billing' }] },
+        workspaces: { workspaces: [{ uid: 'workspace-uid', pathname: '/bruno/workspace' }], activeWorkspaceUid: 'workspace-uid' }
+      });
+
+      await removeCollection('collection-uid')(jest.fn(), getState);
+
+      expect(window.ipcRenderer.invoke).toHaveBeenCalledWith(
+        'renderer:remove-collection',
+        '/bruno/billing',
+        'collection-uid',
+        '/bruno/workspace',
+        'Billing'
       );
     });
   });

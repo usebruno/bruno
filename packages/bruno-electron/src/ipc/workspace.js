@@ -12,6 +12,7 @@ const { defaultWorkspaceManager } = require('../store/default-workspace');
 const { globalEnvironmentsManager } = require('../store/workspace-environments');
 const { globalEnvironmentsStore } = require('../store/global-environments');
 const { resolveLastOpenedWorkspacePaths } = require('../utils/workspace-startup');
+const { forgetRecentCollections } = require('./recent-collections');
 
 const {
   createWorkspaceConfig,
@@ -574,8 +575,11 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
         require('../cache/requestUids').clearRequestUidsForCollection(collectionPath);
       }
 
-      if (deleteFiles && result.removedCollection && fs.existsSync(collectionPath)) {
-        await fsExtra.remove(collectionPath);
+      if (deleteFiles && result.removedCollection) {
+        if (fs.existsSync(collectionPath)) {
+          await fsExtra.remove(collectionPath);
+        }
+        forgetRecentCollections([collectionPath]);
       }
 
       const correctWorkspaceUid = getWorkspaceUid(workspacePath);

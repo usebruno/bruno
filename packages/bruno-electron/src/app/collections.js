@@ -6,6 +6,7 @@ const { isDirectory, getCollectionStats, normalizeAndResolvePath } = require('..
 const { generateUidBasedOnHash } = require('../utils/common');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const { parseCollection } = require('@usebruno/filestore');
+const { recordRecentCollections } = require('../ipc/recent-collections');
 
 // Track scratch collection paths (temp directories for workspace scratch requests)
 const scratchCollectionPaths = new Set();
@@ -102,7 +103,8 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
         path: collectionPath,
         opened: true,
         alreadyOpen: true,
-        uid
+        uid,
+        name: brunoConfig.name
       };
     } catch (err) {
       if (!options.dontSendDisplayErrors) {
@@ -139,7 +141,8 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
       path: collectionPath,
       opened: true,
       alreadyOpen: false,
-      uid
+      uid,
+      name: brunoConfig.name
     };
   } catch (err) {
     if (!options.dontSendDisplayErrors) {
@@ -155,10 +158,18 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
   }
 };
 
+const openCollectionFromRecentMenu = async (win, watcher, collectionPath) => {
+  const result = await openCollection(win, watcher, collectionPath);
+  if (result.opened && isDirectory(collectionPath)) {
+    recordRecentCollections([{ path: collectionPath, name: result.name }], 'opened');
+  }
+};
+
 const openCollectionsByPathname = async (win, watcher, collectionPaths, options = {}) => {
   const seenPaths = new Set();
   const result = {
     opened: [],
+    openedCollections: [],
     failed: [],
     invalid: []
   };
@@ -178,6 +189,7 @@ const openCollectionsByPathname = async (win, watcher, collectionPaths, options 
       const openResult = await openCollection(win, watcher, resolvedPath, options);
       if (openResult?.opened) {
         result.opened.push(openResult.path);
+        result.openedCollections.push({ path: openResult.path, name: openResult.name });
       } else {
         result.failed.push({
           path: resolvedPath,
@@ -196,6 +208,7 @@ const openCollectionsByPathname = async (win, watcher, collectionPaths, options 
 module.exports = {
   getCollectionConfigFile,
   openCollection,
+  openCollectionFromRecentMenu,
   openCollectionsByPathname,
   registerScratchCollectionPath
 };
