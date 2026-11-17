@@ -69,6 +69,11 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.status.info.text};
     }
   }
+
+  .early-access-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
 `;
 
 export default StyledWrapper;
