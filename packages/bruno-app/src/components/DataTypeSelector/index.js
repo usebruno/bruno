@@ -73,7 +73,7 @@ const DataTypeSelector = ({ variable, resolvableVariables, onChange, compact = f
               className="text-yellow-600 cursor-pointer"
               size={16}
             />
-            <Tooltip variant="warning" id={`type-error-${variable.uid}`} content={typeError} />
+            <Tooltip delayShow={0} id={`type-error-${variable.uid}`} content={typeError} />
           </span>
         )}
       </div>

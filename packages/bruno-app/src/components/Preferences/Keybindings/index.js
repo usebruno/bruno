@@ -869,10 +869,9 @@ const Keybindings = () => {
                                   <Tooltip
                                     id={`kb-editing-error-tooltip-${action}`}
                                     anchorSelect={`#${inputId}`}
-                                    variant="error"
                                     place="bottom-start"
                                     isOpen={true}
-                                    content={errorMessage}
+                                    content={<span style={{ color: theme.status.danger.text }}>{errorMessage}</span>}
                                   />
                                 )}
                               </div>

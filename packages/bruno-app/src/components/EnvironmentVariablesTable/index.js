@@ -236,7 +236,7 @@ const ErrorMessage = React.memo(({ id, error }) => {
   return (
     <span>
       <IconAlertCircle id={id} data-testid="env-var-name-error" className="text-red-600 cursor-pointer" size={20} />
-      <Tooltip variant="error" anchorId={id} content={error} />
+      <Tooltip delayShow={0} anchorId={id} content={error} />
     </span>
   );
 });

@@ -8,11 +8,10 @@ import Help from './index';
 // Minimal theme with the tokens ui/Tooltip reads.
 const theme = {
   font: { size: { xs: '0.6875rem' } },
-  border: { radius: { sm: '4px' } },
-  shadow: { md: '0 2px 8px rgba(0, 0, 0, 0.14)' },
-  mode: 'light',
-  text: '#343434',
-  bg: '#ffffff'
+  border: { radius: { sm: '4px' }, border1: '#e5e5e5' },
+  infoTip: { bg: '#ffffff', border: '#e5e5e5', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)' },
+  colors: { text: { muted: '#838383' } },
+  text: '#343434'
 };
 
 const renderWithTheme = (ui) => render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);

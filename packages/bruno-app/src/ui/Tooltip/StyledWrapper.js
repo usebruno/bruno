@@ -2,13 +2,7 @@ import styled, { css } from 'styled-components';
 import { Tooltip as ReactTooltip } from 'react-tooltip';
 import { rgba } from 'polished';
 
-const accentVariant = (status) => css`
-  border-left: 3px solid ${(props) => props.theme.status[status].border};
-`;
-
 const variantStyles = {
-  error: accentVariant('danger'),
-  warning: accentVariant('warning'),
   rich: css`
     padding: 0.5rem 0.625rem;
     line-height: 1.5;
@@ -22,7 +16,7 @@ const variantStyles = {
     code {
       padding: 0 0.25rem;
       border-radius: ${(props) => props.theme.border.radius.sm};
-      background-color: ${(props) => rgba(props.theme.bg, 0.12)};
+      background-color: ${(props) => rgba(props.theme.text, 0.1)};
     }
   `
 };
@@ -38,17 +32,17 @@ const StyledTooltip = styled(ReactTooltip)`
     line-height: 1.4;
     white-space: normal;
     overflow-wrap: break-word;
-    color: ${(props) => props.theme.bg};
-    background-color: ${(props) => props.theme.text};
+    color: ${(props) => props.theme.text};
+    background-color: ${(props) => props.theme.infoTip.bg};
     border-radius: ${(props) => props.theme.border.radius.sm};
-    box-shadow: ${(props) => props.theme.shadow.md};
+    box-shadow: ${(props) => props.theme.infoTip.boxShadow};
     ${(props) => variantStyles[props.$variant]}
   }
 
   .tooltip-shortcut {
     margin-left: 0.5rem;
     font-family: inherit;
-    color: ${(props) => rgba(props.theme.bg, 0.65)};
+    color: ${(props) => props.theme.colors.text.muted};
   }
 `;
 

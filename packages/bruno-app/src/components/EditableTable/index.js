@@ -379,7 +379,7 @@ const EditableTable = React.forwardRef(({
           className="text-red-600 cursor-pointer ml-1"
           size={20}
         />
-        <Tooltip variant="error" id={`error-${row.uid}-${column.key}`} content={error} />
+        <Tooltip delayShow={0} id={`error-${row.uid}-${column.key}`} content={error} />
       </span>
     ) : null;
 

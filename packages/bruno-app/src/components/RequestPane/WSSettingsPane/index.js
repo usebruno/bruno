@@ -72,7 +72,6 @@ const WSSettingsPane = ({ item, collection }) => {
           })}
           >
             <Tooltip
-              variant="error"
               content={formErrors.timeout}
             >
               <SingleLineEditor
@@ -105,7 +104,6 @@ const WSSettingsPane = ({ item, collection }) => {
           })}
           >
             <Tooltip
-              variant="error"
               content={formErrors.keepAliveInterval}
             >
               <SingleLineEditor

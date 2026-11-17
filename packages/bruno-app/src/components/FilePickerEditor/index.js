@@ -7,6 +7,7 @@ import Tooltip from 'ui/Tooltip';
 import IconAlertTriangleFilled from 'components/Icons/IconAlertTriangleFilled';
 import useMissingFileCheck from 'hooks/useMissingFileCheck';
 import useTooltipId from 'hooks/useTooltipId';
+import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 
 /**
@@ -34,6 +35,7 @@ const FilePickerEditor = ({
 }) => {
   const dispatch = useDispatch();
   const warningTooltipId = useTooltipId('file-picker-warning');
+  const { theme } = useTheme();
 
   const filePaths = (isSingleFilePicker ? [value] : value || []).filter((v) => v != null && v != '');
   const filenames = filePaths.map((v) => getBasename(collection.pathname, v));
@@ -130,10 +132,15 @@ const FilePickerEditor = ({
           {hasMissingFiles && (
             <Tooltip
               id={warningTooltipId}
-              variant="warning"
               place="bottom-end"
+              delayShow={0}
               tooltipTestId="file-picker-warning-tooltip"
-              content="The file above is not in the given directory, please upload it again."
+              content={(
+                <span className="flex items-center gap-1.5">
+                  <IconAlertTriangleFilled size={14} className="shrink-0" style={{ color: theme.status.warning.text }} />
+                  The file above is not in the given directory, please upload it again.
+                </span>
+              )}
             />
           )}
         </div>

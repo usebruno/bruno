@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from 'styled-components';
 import useTooltipId from 'hooks/useTooltipId';
 import Portal from 'ui/Portal';
 import StyledTooltip from './StyledWrapper';
@@ -6,7 +7,7 @@ import StyledTooltip from './StyledWrapper';
 /**
  * @example
  * <Tooltip content="Save" shortcut="Cmd + S"><button>Save</button></Tooltip>
- * <Tooltip variant="error" anchorId={inputId} content={error} />
+ * <Tooltip anchorId={inputId} content={error} delayShow={0} />
  * <Tooltip variant="rich" clickable content={<a href="#">Learn more</a>} />
  */
 const Tooltip = ({
@@ -21,7 +22,7 @@ const Tooltip = ({
   width,
   maxWidth,
   offset,
-  delayShow,
+  delayShow = 200,
   arrow = true,
   hidden = false,
   isOpen,
@@ -30,6 +31,7 @@ const Tooltip = ({
   'data-testid': dataTestId,
   tooltipTestId
 }) => {
+  const theme = useTheme();
   const generatedAnchorId = useTooltipId('tooltip-anchor');
   const wrapsChildren = Boolean(children);
   const anchorElementId = wrapsChildren ? anchorId || generatedAnchorId : anchorId;
@@ -65,12 +67,13 @@ const Tooltip = ({
           $maxWidth={width || maxWidth || (variant === 'rich' ? '320px' : '240px')}
           place={place}
           offset={offset}
-          delayShow={delayShow ?? (variant === 'error' || variant === 'warning' ? 0 : 200)}
+          delayShow={delayShow}
           hidden={hidden}
           isOpen={isOpen}
           clickable={clickable}
           positionStrategy="fixed"
           noArrow={!arrow}
+          border={`1px solid ${theme.border.border1}`}
           opacity={1}
         />
       </Portal>

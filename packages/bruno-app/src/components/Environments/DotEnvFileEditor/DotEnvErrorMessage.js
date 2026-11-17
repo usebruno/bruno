@@ -17,7 +17,7 @@ const DotEnvErrorMessage = React.memo(({ formik, name, index }) => {
   return (
     <span>
       <IconAlertCircle id={id} className="text-red-600 cursor-pointer" size={20} />
-      <Tooltip variant="error" anchorId={id} content={meta.error} />
+      <Tooltip delayShow={0} anchorId={id} content={meta.error} />
     </span>
   );
 });

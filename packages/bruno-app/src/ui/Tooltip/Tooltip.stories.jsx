@@ -13,7 +13,7 @@ export default {
   argTypes: {
     variant: {
       control: 'select',
-      options: ['default', 'error', 'warning', 'rich'],
+      options: ['default', 'rich'],
       description: 'Visual variant; colors invert `theme.text` and `theme.bg`'
     },
     content: { control: 'text', description: 'Tooltip body' },
@@ -49,8 +49,6 @@ export const Default = {
 
 const VARIANTS = [
   { variant: 'default', content: 'Save', shortcut: 'Cmd + S' },
-  { variant: 'error', content: 'Header name cannot contain spaces or newlines' },
-  { variant: 'warning', content: 'The file above is not in the given directory, please upload it again.' },
   {
     variant: 'rich',
     content: (
