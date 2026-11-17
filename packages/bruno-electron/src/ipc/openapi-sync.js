@@ -16,6 +16,7 @@ const { openApiToBruno } = require('@usebruno/converters');
 const { resolveEnvironmentInheritance, buildQueryString, parseQueryParams } = require('@usebruno/common/utils');
 const { writeFile, writeFileUnique, sanitizeName, getCollectionFormat, posixifyPath } = require('../utils/filesystem');
 const { derefSpecObject, declaredSchemaNode, declaresKey, declaredKeysOf, declaredChild, declaredItems, declaresOnlyScalars, keyLeavesShapeOpen, itemsLeaveShapeOpen, otherAlternativeKeys } = require('../utils/openapi-schema');
+const { COLLECTION_ROOT_BASENAMES, FOLDER_ROOT_BASENAMES } = require('../utils/mount');
 
 const RESERVED_FOLDER_NAMES = ['node_modules', '.git', 'environments', 'mocks'];
 const { getEnvVars } = require('../utils/collection');
@@ -330,22 +331,24 @@ const findItemInCollection = (items, method, targetPath, currentFolderName = nul
   return null;
 };
 
+const isFolderOrCollectionFile = (file, dirPath, collectionPath) => FOLDER_ROOT_BASENAMES.has(file) || (dirPath === collectionPath && COLLECTION_ROOT_BASENAMES.has(file));
+
 /**
  * Find an existing request file on disk by HTTP method and normalized path.
  * Scans .bru/.yml files in the collection directory recursively.
  * Returns { filePath, request, content, fileFormat } or null.
  */
-const findRequestFileOnDisk = (dirPath, method, urlPath) => {
+const findRequestFileOnDisk = (dirPath, method, urlPath, collectionPath = dirPath) => {
   if (!fs.existsSync(dirPath)) return null;
   const files = fs.readdirSync(dirPath);
   for (const file of files) {
     const filePath = path.join(dirPath, file);
     const stats = fs.statSync(filePath);
     if (stats.isDirectory() && !RESERVED_FOLDER_NAMES.includes(file)) {
-      const found = findRequestFileOnDisk(filePath, method, urlPath);
+      const found = findRequestFileOnDisk(filePath, method, urlPath, collectionPath);
       if (found) return found;
     } else if (file.endsWith('.bru') || file.endsWith('.yml') || file.endsWith('.yaml')) {
-      if (file.startsWith('folder.') || file.startsWith('collection.')) continue;
+      if (isFolderOrCollectionFile(file, dirPath, collectionPath)) continue;
       try {
         const content = fs.readFileSync(filePath, 'utf8');
         const fileFormat = file.endsWith('.yml') || file.endsWith('.yaml') ? 'yml' : 'bru';
@@ -1363,7 +1366,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           if (stats.isDirectory()) {
             files.push(...scanCollectionFiles(fullPath, relPath));
           } else if ((entry.endsWith('.bru') || entry.endsWith('.yml') || entry.endsWith('.yaml'))
-            && !entry.startsWith('folder.') && !entry.startsWith('collection.') && !entry.startsWith('opencollection.')) {
+            && !isFolderOrCollectionFile(entry, dirPath, collectionPath)) {
             files.push({ fullPath, relativePath: relPath });
           }
         }
@@ -1637,7 +1640,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
             if (stats.isDirectory() && !RESERVED_FOLDER_NAMES.includes(file)) {
               await findAndResetRequest(filePath);
             } else if ((file.endsWith('.bru') || file.endsWith('.yml') || file.endsWith('.yaml'))
-              && !file.startsWith('folder.') && !file.startsWith('collection.')) {
+              && !isFolderOrCollectionFile(file, dirPath, collectionPath)) {
               try {
                 const content = fs.readFileSync(filePath, 'utf8');
                 const fileFormat = file.endsWith('.yml') || file.endsWith('.yaml') ? 'yml' : 'bru';
@@ -1728,7 +1731,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
             if (stats.isDirectory() && !RESERVED_FOLDER_NAMES.includes(file)) {
               findAndRemoveRequest(filePath);
             } else if ((file.endsWith('.bru') || file.endsWith('.yml') || file.endsWith('.yaml'))
-              && !file.startsWith('folder.') && !file.startsWith('collection.')) {
+              && !isFolderOrCollectionFile(file, dirPath, collectionPath)) {
               try {
                 const content = fs.readFileSync(filePath, 'utf8');
                 const request = parseRequest(content, { format: file.endsWith('.yml') || file.endsWith('.yaml') ? 'yml' : 'bru' });

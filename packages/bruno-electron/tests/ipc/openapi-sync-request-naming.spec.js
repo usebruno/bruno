@@ -134,3 +134,75 @@ describe.each(['bru', 'yml'])('a request that sync adds next to a %s file with t
     expectBothRequestsKept();
   });
 });
+
+describe.each(['bru', 'yml'])('requests whose files start with folder. or collection. in a %s collection', (format) => {
+  const SOURCE_URL = 'https://example.com/folders.json';
+  const OK = { 200: { description: 'OK' } };
+  const spec = {
+    openapi: '3.0.3',
+    info: { title: 'Folders', version: '1' },
+    paths: {
+      '/folders': { post: { operationId: 'folder.create', responses: OK } },
+      '/collections': { get: { tags: ['Collections'], operationId: 'collection.list', responses: OK } },
+      '/collections/{id}': { get: { tags: ['Collections'], operationId: 'collection', responses: OK } }
+    }
+  };
+  const endpoints = [{ method: 'POST', path: '/folders' }, { method: 'GET', path: '/collections' }, { method: 'GET', path: '/collections/{id}' }];
+  const requestFiles = [`folder.create.${format}`, path.join('Collections', `collection.list.${format}`), path.join('Collections', `collection.${format}`)].sort();
+  const folderAndCollectionFiles = [path.join('Collections', `folder.${format}`), format === 'yml' ? 'opencollection.yml' : 'collection.bru'].sort();
+  const allFiles = [...requestFiles, ...folderAndCollectionFiles].sort();
+  let collectionPath;
+
+  const filesOnDisk = () => fs.readdirSync(collectionPath, { recursive: true }).filter((file) => file.endsWith(`.${format}`)).sort();
+  const reset = () => ipcMain._getHandler('renderer:apply-openapi-sync')({}, { collectionPath, diff: { newSpec: spec }, mode: 'reset' });
+  const sync = (diff, options) => ipcMain._getHandler('renderer:apply-openapi-sync')({}, {
+    collectionPath,
+    diff: { newSpec: spec, added: [], modified: [], removed: [], ...diff },
+    mode: 'sync',
+    ...options
+  });
+
+  beforeEach(async () => {
+    mockUserData = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-sync-user-data-'));
+    collectionPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-sync-collection-'));
+    const config = { version: '1', name: 'Folders', type: 'collection', openapi: [{ sourceUrl: SOURCE_URL, groupBy: 'tags' }] };
+    if (format === 'yml') {
+      fs.writeFileSync(path.join(collectionPath, 'opencollection.yml'), stringifyCollection({}, { ...config, opencollection: '1.0.0' }, { format }));
+    } else {
+      fs.writeFileSync(path.join(collectionPath, 'bruno.json'), JSON.stringify(config));
+      fs.writeFileSync(path.join(collectionPath, 'collection.bru'), stringifyCollection({ request: { auth: { mode: 'none' } } }, config, { format }));
+    }
+    registerOpenAPISyncIpc({ webContents: { send: jest.fn() } });
+    await reset();
+  });
+
+  afterEach(() => {
+    fs.rmSync(collectionPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+    fs.rmSync(mockUserData, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+  });
+
+  it('lists them as in sync, not missing, when comparing with the spec', async () => {
+    const { missing, inSync } = await ipcMain._getHandler('renderer:get-collection-drift')({}, { collectionPath, compareSpec: spec });
+
+    expect(missing).toEqual([]);
+    expect(inSync.map(({ filePath }) => filePath).sort()).toEqual(requestFiles);
+  });
+
+  it('resets them in place instead of adding copies', async () => {
+    await reset();
+
+    expect(filesOnDisk()).toEqual(allFiles);
+  });
+
+  it('updates them in place when the sync lists them as new', async () => {
+    await sync({ added: endpoints }, { addNewRequests: true });
+
+    expect(filesOnDisk()).toEqual(allFiles);
+  });
+
+  it('removes them when the spec drops them', async () => {
+    await sync({ newSpec: { ...spec, paths: {} }, removed: endpoints }, { removeDeletedRequests: true });
+
+    expect(filesOnDisk()).toEqual(folderAndCollectionFiles);
+  });
+});
