@@ -17,7 +17,7 @@ import {
   groupRequestsByTags,
   groupRequestsByPath,
   normalizeItemName,
-  getRequestNaming,
+  getRequestName,
   getTagDescriptions,
   toSpecString,
   operationSchemeName,
@@ -277,7 +277,7 @@ const objectValueFromSchema = (param, schema) => {
 const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {}) => {
   let _operationObject = request.operationObject;
 
-  const { name: operationName, filename } = getRequestNaming(request, options.requestNameSource, usedNames);
+  const { name: operationName, filename } = getRequestName(request, options.requestNameSource, usedNames);
 
   // replace OpenAPI links in path by Bruno variables
   let path = request.path.replace(/{([a-zA-Z]+)}/g, `{{${_operationObject.operationId}_$1}}`);

@@ -21,7 +21,7 @@ const {
   DEFAULT_COLLECTION_FORMAT
 } = require('@usebruno/filestore');
 const { utils } = require('@usebruno/common');
-const { resolveEnvironmentInheritance } = require('@usebruno/common/utils');
+const { resolveEnvironmentInheritance, getFilenameWithFormat } = require('@usebruno/common/utils');
 const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
 const { cookiesStore } = require('../store/cookies');
@@ -1428,13 +1428,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           collectionPath = path.join(collectionLocation, collectionName);
           coll.name = uniqueName;
         }
-
-        const getFilenameWithFormat = (item, format) => {
-          if (item?.filename) {
-            return item.filename.replace(/\.(bru|yml)$/, `.${format}`);
-          }
-          return `${item.name}.${format}`;
-        };
 
         const claimUniqueFilename = (filename, claimedFilenames) => {
           const { name, ext } = path.parse(filename);

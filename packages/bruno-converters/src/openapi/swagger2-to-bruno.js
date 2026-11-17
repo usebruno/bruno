@@ -16,7 +16,7 @@ import {
   createBrunoExample,
   groupRequestsByTags,
   groupRequestsByPath,
-  getRequestNaming,
+  getRequestName,
   getTagDescriptions,
   toSpecString,
   operationSchemeName,
@@ -148,7 +148,7 @@ const transformSwaggerRequestItem = (request, usedNames = new Set(), options = {
   const produces = op.produces || request.global.produces || ['application/json'];
 
   // Determine operation name
-  const { name: operationName, filename } = getRequestNaming(request, options.requestNameSource, usedNames);
+  const { name: operationName, filename } = getRequestName(request, options.requestNameSource, usedNames);
 
   let path = request.path;
 

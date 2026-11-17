@@ -912,7 +912,7 @@ const uniqueFileBase = (base, method, usedNames) => {
   return uniqueBase;
 };
 
-export const getRequestNaming = (request, requestNameSource, usedNames) => {
+export const getRequestName = (request, requestNameSource, usedNames) => {
   const preferred = REQUEST_NAME_SOURCES.includes(requestNameSource) ? requestNameSource : DEFAULT_REQUEST_NAME_SOURCE;
   const fields = preferred === 'path' ? [] : [preferred, ...REQUEST_NAME_SOURCES.filter((source) => source !== preferred && source !== 'path')];
   const fieldName = fields.reduce((name, field) => name || usableName(requestNameByField[field](request)), '');

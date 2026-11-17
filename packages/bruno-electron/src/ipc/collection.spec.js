@@ -253,6 +253,12 @@ describe('IPC collection handlers', () => {
         expect(requestFilesIn()).toEqual([`GET -.${format}`, `GET -export.bru.${format}`, `GET -pets.${format}`, `GET -users-.${format}`]);
       });
 
+      it.each(['bru', 'yml'])('adds the format extension to a file name that has none, in %s', async (format) => {
+        await importItems([requestItem('/users', 'GET', 'get-users')], format);
+
+        expect(requestFilesIn()).toEqual([`get-users.${format}`]);
+      });
+
       it.each(['bru', 'yml'])('writes requests that share a name to the files the converter gave them, in %s', async (format) => {
         await importItems([
           requestItem('List pets', 'GET'),

@@ -13,7 +13,7 @@ const {
   stringifyFolder
 } = require('@usebruno/filestore');
 const { openApiToBruno } = require('@usebruno/converters');
-const { resolveEnvironmentInheritance, buildQueryString, parseQueryParams } = require('@usebruno/common/utils');
+const { resolveEnvironmentInheritance, buildQueryString, parseQueryParams, getFilenameWithFormat } = require('@usebruno/common/utils');
 const { writeFile, writeFileUnique, sanitizeName, getCollectionFormat, posixifyPath } = require('../utils/filesystem');
 const { derefSpecObject, declaredSchemaNode, declaresKey, declaredKeysOf, declaredChild, declaredItems, declaresOnlyScalars, keyLeavesShapeOpen, itemsLeaveShapeOpen, otherAlternativeKeys } = require('../utils/openapi-schema');
 const { COLLECTION_ROOT_BASENAMES, FOLDER_ROOT_BASENAMES } = require('../utils/mount');
@@ -877,8 +877,6 @@ const ensureTagFolder = async (collectionPath, folderName, format) => {
   return targetFolder;
 };
 
-const requestFileBase = (item) => sanitizeName(item.filename ? item.filename.replace(/\.(bru|yml)$/, '') : item.name);
-
 /**
  * Flatten a Bruno collection's items into a Map keyed by endpoint ID (METHOD:normalizedPath).
  * Each value includes the original item plus the parent folderName.
@@ -1678,7 +1676,8 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           }
 
           const requestContent = await stringifyRequestViaWorker(specItem, { format });
-          await writeFileUnique(targetFolder, requestFileBase(specItem), format, requestContent);
+          const filename = sanitizeName(getFilenameWithFormat(specItem, format));
+          await writeFileUnique(targetFolder, filename.replace(/\.(bru|yml)$/, ''), format, requestContent);
         }
 
         // Save spec in original format
@@ -1813,7 +1812,8 @@ const registerOpenAPISyncIpc = (mainWindow) => {
               }
 
               const requestContent = await stringifyRequestViaWorker(newItem, { format });
-              await writeFileUnique(targetFolder, requestFileBase(newItem), format, requestContent);
+              const filename = sanitizeName(getFilenameWithFormat(newItem, format));
+              await writeFileUnique(targetFolder, filename.replace(/\.(bru|yml)$/, ''), format, requestContent);
             }
           }
         }
@@ -2056,7 +2056,8 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           }
 
           const requestContent = await stringifyRequestViaWorker(specItem, { format });
-          await writeFileUnique(targetFolder, requestFileBase(specItem), format, requestContent);
+          const filename = sanitizeName(getFilenameWithFormat(specItem, format));
+          await writeFileUnique(targetFolder, filename.replace(/\.(bru|yml)$/, ''), format, requestContent);
           addedCount++;
         }
       }
@@ -2148,7 +2149,6 @@ if (process.env.NODE_ENV === 'test') {
     declaredBodyOf,
     compareRequestFields,
     specConversionOptions,
-    ensureTagFolder,
-    requestFileBase
+    ensureTagFolder
   };
 }

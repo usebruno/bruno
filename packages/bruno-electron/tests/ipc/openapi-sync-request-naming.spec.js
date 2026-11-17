@@ -29,7 +29,7 @@ const { parseRequest, stringifyRequest, stringifyCollection } = require('@usebru
 const { openApiToBruno } = require('@usebruno/converters');
 const registerOpenAPISyncIpc = require('../../src/ipc/openapi-sync');
 
-const { _test: { specConversionOptions, requestFileBase } } = registerOpenAPISyncIpc;
+const { _test: { specConversionOptions } } = registerOpenAPISyncIpc;
 
 const spec = {
   openapi: '3.0.3',
@@ -57,17 +57,6 @@ describe('syncing with the saved request naming', () => {
 
   it.each([undefined, 'title', 'OperationId', 7])('names synced requests from the summary when the saved choice is %p', (requestNameSource) => {
     expect(syncedNameWith({ requestNameSource })).toBe('Find pet by ID');
-  });
-});
-
-describe('the file of a request that sync adds', () => {
-  it.each([
-    [{ name: '/pets/{petId}', filename: 'GET /pets/{petId}.bru' }, 'GET -pets-{petId}'],
-    [{ name: '/pets/{petId}', filename: 'DELETE /pets/{petId}.yml' }, 'DELETE -pets-{petId}'],
-    [{ name: 'Find pet by ID', filename: 'Find pet by ID (POST).bru' }, 'Find pet by ID (POST)'],
-    [{ name: 'Find pet by ID' }, 'Find pet by ID']
-  ])('is named after the file name the converter gives it, else after the request name: %j', (item, fileBase) => {
-    expect(requestFileBase(item)).toBe(fileBase);
   });
 });
 
