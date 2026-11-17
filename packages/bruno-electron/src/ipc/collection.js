@@ -21,7 +21,7 @@ const {
   DEFAULT_COLLECTION_FORMAT
 } = require('@usebruno/filestore');
 const { utils } = require('@usebruno/common');
-const { resolveEnvironmentInheritance } = require('@usebruno/common/utils');
+const { resolveEnvironmentInheritance, getFilenameWithFormat } = require('@usebruno/common/utils');
 const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
 const { cookiesStore } = require('../store/cookies');
@@ -1429,22 +1429,24 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           coll.name = uniqueName;
         }
 
-        const getFilenameWithFormat = (item, format) => {
-          if (item?.filename) {
-            const ext = path.extname(item.filename);
-            if (ext === '.bru' || ext === '.yml') {
-              return item.filename.replace(ext, `.${format}`);
-            }
-            return item.filename;
+        const claimUniqueFilename = (filename, claimedFilenames) => {
+          const { name, ext } = path.parse(filename);
+          let uniqueFilename = filename;
+          let counter = 1;
+          while (claimedFilenames.has(uniqueFilename.toLowerCase())) {
+            uniqueFilename = `${name} (${counter})${ext}`;
+            counter++;
           }
-          return `${item.name}.${format}`;
+          claimedFilenames.add(uniqueFilename.toLowerCase());
+          return uniqueFilename;
         };
 
         // Recursive function to parse the collection items and create files/folders
         const parseCollectionItems = async (items = [], currentPath) => {
+          const requestFilenames = new Set();
           await Promise.all(items.map(async (item) => {
             if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
-              const sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
+              const sanitizedFilename = claimUniqueFilename(sanitizeName(getFilenameWithFormat(item, format)), requestFilenames);
               const content = await stringifyRequestViaWorker(item, { format });
               const filePath = path.join(currentPath, sanitizedFilename);
               safeWriteFileSync(filePath, content);

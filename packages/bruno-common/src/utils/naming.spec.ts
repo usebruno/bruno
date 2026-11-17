@@ -3,7 +3,8 @@ import {
   sanitizeName,
   validateName,
   validateNameError,
-  generateUniqueName
+  generateUniqueName,
+  getFilenameWithFormat
 } from './naming';
 
 describe('naming utils', () => {
@@ -77,6 +78,20 @@ describe('naming utils', () => {
       const taken = ['staging', 'staging copy', 'staging copy 2'];
 
       expect(generateUniqueName('staging', (name) => taken.includes(name))).toBe('staging copy 3');
+    });
+  });
+
+  describe('getFilenameWithFormat', () => {
+    it.each([
+      [{ name: 'List pets' }, 'bru', 'List pets.bru'],
+      [{ name: 'List pets', filename: 'List pets (POST).bru' }, 'bru', 'List pets (POST).bru'],
+      [{ name: 'List pets', filename: 'List pets (POST).bru' }, 'yml', 'List pets (POST).yml'],
+      [{ name: 'List pets', filename: 'list-pets.yml' }, 'bru', 'list-pets.bru'],
+      [{ name: '/export.bru', filename: 'GET /export.bru.bru' }, 'yml', 'GET /export.bru.yml'],
+      [{ name: 'Get users', filename: 'get-users' }, 'yml', 'get-users.yml'],
+      [{ name: 'Get users', filename: null }, 'yml', 'Get users.yml']
+    ])('names %j in %s as %s', (item, format, filename) => {
+      expect(getFilenameWithFormat(item, format)).toBe(filename);
     });
   });
 });

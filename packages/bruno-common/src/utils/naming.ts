@@ -93,3 +93,10 @@ export const generateUniqueName = (baseName: string, checkExists: (name: string)
   }
   return uniqueName;
 };
+
+export const getFilenameWithFormat = (item: { name: string; filename?: string | null }, format: string): string => {
+  if (item.filename) {
+    return `${item.filename.replace(/\.(bru|yml)$/, '')}.${format}`;
+  }
+  return `${item.name}.${format}`;
+};
