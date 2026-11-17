@@ -135,7 +135,17 @@ export const buildSidebarLocators = (page: Page) => {
 
     saveRequestModal: {
       modal: (): Locator => page.locator('.bruno-modal-card').filter({ hasText: 'Save Request' }),
-      nameInput: (): Locator => page.locator('#request-name')
+      nameInput: (): Locator => page.locator('#request-name'),
+      root: (): Locator => page.getByTestId('save-transient-request-modal'),
+      requestNameInput: (): Locator => page.getByTestId('save-transient-request-name'),
+      saveButton: (): Locator => page.getByTestId('save-transient-request-submit'),
+      emptyState: (): Locator => page.getByTestId('save-transient-request-modal').getByText('No Collections Yet'),
+      newCollectionButton: (): Locator => page.getByTestId('save-transient-request-modal').getByRole('button', { name: 'New collection' }),
+      collectionNameInput: (): Locator => page.getByTestId('save-transient-request-modal').getByPlaceholder('Enter collection name'),
+      locationInput: (): Locator => page.getByTestId('save-transient-request-modal').getByPlaceholder('Select location'),
+      browseButton: (): Locator => page.getByTestId('save-transient-request-modal').getByRole('button', { name: 'Browse' }),
+      createCollectionButton: (): Locator => page.getByTestId('save-transient-request-modal').getByRole('button', { name: 'Create', exact: true }),
+      collectionOption: (name: string): Locator => page.getByTestId('save-transient-request-modal').locator('.collection-item').filter({ hasText: name })
     },
 
     filesystemName: {
