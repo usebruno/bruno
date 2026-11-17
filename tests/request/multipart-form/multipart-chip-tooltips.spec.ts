@@ -1,6 +1,7 @@
 import { test, expect } from '../../../playwright';
 import type { Locator } from '@playwright/test';
 import { closeAllCollections } from '../../utils/page';
+import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Multipart Form - Chip Tooltip Swap', () => {
   test.afterAll(async ({ pageWithUserData: page }) => {
@@ -11,7 +12,7 @@ test.describe('Multipart Form - Chip Tooltip Swap', () => {
     await page.locator('#sidebar-collection-name').getByText('collection').click();
     await page.locator('.collection-item-name').filter({ hasText: 'chip-tooltip' }).click();
 
-    const tooltip = page.locator('[role="tooltip"], .react-tooltip').filter({ visible: true });
+    const tooltip = buildCommonLocators(page).tooltip();
 
     const inlineChip = page.getByTestId('multipart-file-chip').first();
     const summary = page.getByTestId('multipart-file-summary');

@@ -11,7 +11,6 @@ import { buildRequestSettingsLocators } from './request-settings';
 import { buildUnresolvedVariablesInfoLocators } from './unresolved-variables-info';
 import { buildSidebarLocators } from './sidebar';
 import { buildDocsLocators } from './docs';
-import { tooltipByText } from './tooltip';
 import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
 import { buildWebsocketCommonLocators } from './websocket';
 import { buildToastLocators } from './toast';
@@ -49,7 +48,8 @@ const addToNoEnvNoteLocator = (popup: Locator, scopeType: 'environment' | 'globa
     .filter({ hasText: scopeType === 'global' ? 'Global Environment' : 'Collection Environment' });
 
 export const buildCommonLocators = (page: Page) => ({
-  tooltip: (text: string) => tooltipByText(page, text),
+  // Visible only: hidden tooltips can linger in the DOM while fading out.
+  tooltip: (text?: string) => page.getByRole('tooltip').filter(text ? { hasText: text, visible: true } : { visible: true }),
   titleBar: buildTitleBarLocators(page),
   collectionHeader: buildCollectionHeaderLocators(page),
   collectionApp: buildCollectionAppLocators(page),
@@ -284,7 +284,6 @@ export const buildCommonLocators = (page: Page) => ({
     advancedToggle: () => page.locator('.bruno-modal').getByTestId('docs-advanced-toggle'),
     allRequestsRadio: () => page.locator('.bruno-modal').getByTestId('docs-requests-all'),
     filterByTagsRadio: () => page.locator('.bruno-modal').getByTestId('docs-requests-filter'),
-    tooltip: (text: string) => tooltipByText(page, text),
     includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include Tags'),
     excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude Tags'),
     tagChip: (name: string) => page.locator('.bruno-modal').getByTestId('tag-picker-item').filter({ hasText: name }),

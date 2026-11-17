@@ -31,6 +31,7 @@ const StyledTooltip = styled(ReactTooltip)`
   && {
     z-index: 9999;
     max-width: ${(props) => props.$maxWidth};
+    ${(props) => props.$width && `width: ${props.$width};`}
     padding: 0.25rem 0.5rem;
     font-size: ${(props) => props.theme.font.size.xs};
     font-weight: 400;

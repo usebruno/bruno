@@ -108,4 +108,16 @@ describe('Tooltip', () => {
     await user.hover(screen.getByTestId('anchor'));
     expect(await screen.findByRole('tooltip', {}, { timeout: 150 })).toHaveTextContent('Invalid');
   });
+
+  it('prefers each anchor\'s data-tooltip-content over the shared content', async () => {
+    renderWithTheme(
+      <>
+        <span data-tooltip-id="shared" data-tooltip-content="From anchor" data-testid="anchor">anchor</span>
+        <Tooltip id="shared" content="Fallback" />
+      </>
+    );
+
+    await user.hover(screen.getByTestId('anchor'));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('From anchor');
+  });
 });

@@ -18,6 +18,7 @@ const Tooltip = ({
   anchorId,
   anchorSelect,
   place = 'top',
+  width,
   maxWidth,
   offset,
   delayShow,
@@ -31,22 +32,16 @@ const Tooltip = ({
 }) => {
   const generatedAnchorId = useTooltipId('tooltip-anchor');
   const wrapsChildren = Boolean(children);
-  const wrapperId = anchorId || generatedAnchorId;
-
-  const anchorProps = {
-    id,
-    anchorSelect,
-    anchorId: wrapsChildren ? wrapperId : anchorId
-  };
+  const anchorElementId = wrapsChildren ? anchorId || generatedAnchorId : anchorId;
 
   const renderBody = ({ content: anchorContent }) => {
-    const body = content ?? anchorContent;
+    const body = anchorContent || content;
     if (body === null || body === undefined || body === '') {
       return null;
     }
     return (
       <>
-        <span data-testid={tooltipTestId}>{body}</span>
+        {tooltipTestId ? <span data-testid={tooltipTestId}>{body}</span> : body}
         {shortcut && <kbd className="tooltip-shortcut">{shortcut}</kbd>}
       </>
     );
@@ -55,16 +50,19 @@ const Tooltip = ({
   return (
     <>
       {wrapsChildren && (
-        <span id={wrapperId} className={className} data-testid={dataTestId}>
+        <span id={anchorElementId} className={className} data-testid={dataTestId}>
           {children}
         </span>
       )}
       <Portal>
         <StyledTooltip
-          {...anchorProps}
+          id={id}
+          anchorSelect={anchorSelect}
+          anchorId={anchorElementId}
           render={renderBody}
           $variant={variant}
-          $maxWidth={maxWidth || (variant === 'rich' ? '320px' : '240px')}
+          $width={width}
+          $maxWidth={width || maxWidth || (variant === 'rich' ? '320px' : '240px')}
           place={place}
           offset={offset}
           delayShow={delayShow ?? (variant === 'error' || variant === 'warning' ? 0 : 200)}

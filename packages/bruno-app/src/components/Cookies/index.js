@@ -11,6 +11,14 @@ import moment from 'moment';
 import Tooltip from 'ui/Tooltip';
 import Button from 'ui/Button';
 
+const renderExpires = (expires) => {
+  if (!expires || !moment(expires).isValid()) {
+    return 'Session';
+  }
+  const label = new Date(expires).toLocaleString();
+  return <Tooltip content={label}>{label}</Tooltip>;
+};
+
 const ClearDomainCookiesModal = ({ onClose, domain, onClear }) => (
   <Modal onClose={onClose} handleCancel={onClose} title="Clear Domain Cookies" hideFooter={true}>
     <div className="flex items-center font-normal">
@@ -243,11 +251,7 @@ const CollectionProperties = ({ onClose }) => {
                                 </td>
                                 <td className="py-2 px-4 truncate">{cookie.path || '/'}</td>
                                 <td className="py-2 px-4 truncate">
-                                  {cookie.expires && moment(cookie.expires).isValid() ? (
-                                    <Tooltip content={new Date(cookie.expires).toLocaleString()}>
-                                      {new Date(cookie.expires).toLocaleString()}
-                                    </Tooltip>
-                                  ) : 'Session'}
+                                  {renderExpires(cookie.expires)}
                                 </td>
                                 <td className="py-2 px-4 text-center">{cookie.secure ? '✓' : ''}</td>
                                 <td className="py-2 px-4 text-center">{cookie.httpOnly ? '✓' : ''}</td>
