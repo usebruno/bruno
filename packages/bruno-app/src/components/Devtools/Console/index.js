@@ -215,7 +215,7 @@ const ConsoleTab = ({ logs, filters, logCounts, onFilterToggle, onToggleAll, onC
         ) : (
           <div className="logs-container">
             {filteredLogs.map((log) => (
-              <div key={log.id} className={`log-entry ${log.type}`}>
+              <div key={log.id} className={`log-entry ${log.type}`} data-testid="console-log-entry">
                 <div className="log-meta">
                   <LogTimestamp timestamp={log.timestamp} />
                   <LogIcon type={log.type} />
@@ -443,6 +443,7 @@ const Console = () => {
         <div className="console-tabs">
           <button
             className={`console-tab ${activeTab === 'console' ? 'active' : ''}`}
+            data-testid="console-tab-btn"
             onClick={() => handleTabChange('console')}
           >
             <IconTerminal2 size={16} strokeWidth={1.5} />

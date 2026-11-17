@@ -2,7 +2,7 @@ import { REQUEST_NAME_SOURCES } from '@usebruno/common';
 import ImportSettingRow from 'components/Sidebar/ImportSettings/ImportSettingRow';
 import ImportSettingDropdown from 'components/Sidebar/ImportSettings/ImportSettingDropdown';
 
-const requestNameSourceLabels = {
+export const requestNameSourceLabels = {
   summary: 'Summary',
   operationId: 'operationId',
   description: 'Description',

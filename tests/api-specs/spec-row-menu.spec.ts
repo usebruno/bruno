@@ -152,7 +152,7 @@ test.describe('API spec row context menu', () => {
         await expect(menu.menuItems()).toHaveCount(7);
         expect(await menu.menuEntries()).toEqual([
           'generate-collection',
-          'generate-mock-server',
+          'create-mock-server',
           'clone',
           'rename',
           'reveal',
@@ -160,7 +160,9 @@ test.describe('API spec row context menu', () => {
           'remove',
           'delete'
         ]);
-        await expect(menu.menuItem('generate-mock-server')).toContainText('Beta');
+        await expect(menu.menuItem('create-mock-server')).toContainText('Create Mock Server');
+        await expect(menu.menuItem('create-mock-server')).toContainText('Beta');
+        await expect(menu.menuItem('remove')).toHaveText('Remove');
         await expect(menu.menuItem('reveal')).toHaveText(revealLabel);
         await expect(menu.menuItem('delete')).toHaveClass(/delete-item/);
         await page.keyboard.press('Escape');
@@ -203,7 +205,7 @@ test.describe('API spec row context menu', () => {
     }
   });
 
-  test('hides Generate Mock Server when the beta flag is off', async ({ launchElectronApp, createTmpDir }) => {
+  test('hides Create Mock Server when the beta flag is off', async ({ launchElectronApp, createTmpDir }) => {
     test.setTimeout(60000);
     const { app, page, menu } = await launchOnWorkspace(launchElectronApp, createTmpDir, { mockServer: false });
 
@@ -211,7 +213,7 @@ test.describe('API spec row context menu', () => {
       await test.step('The menu has no mock server entry', async () => {
         await openApiSpecRowMenu(page, COMPREHENSIVE_TITLE);
         await expect(menu.menuItems()).toHaveCount(6);
-        await expect(menu.menuItem('generate-mock-server')).toHaveCount(0);
+        await expect(menu.menuItem('create-mock-server')).toHaveCount(0);
       });
     } finally {
       await closeElectronApp(app);
@@ -228,6 +230,7 @@ test.describe('API spec row context menu', () => {
       await test.step('Rename starts from the current name', async () => {
         await chooseApiSpecRowAction(page, EXAMPLES_TITLE, 'rename');
         await expect(menu.renameModal()).toBeVisible();
+        await expect(menu.renameModal()).toHaveClass(/modal-md/);
         await expect(menu.renameInput()).toHaveValue(EXAMPLES_TITLE);
         await menu.renameInput().fill('Orders API');
         await menu.renameSubmit().click();
@@ -360,10 +363,10 @@ test.describe('API spec row context menu', () => {
         expect(readWorkspaceSpecPaths(workspacePath)).toContain('specs/comprehensive.yaml');
       });
 
-      await test.step('Remove from Workspace', async () => {
+      await test.step('Remove', async () => {
         await chooseApiSpecRowAction(page, COMPREHENSIVE_TITLE, 'remove');
         await expect(menu.removeModal()).toBeVisible();
-        await expect(menu.removeModal()).toContainText('Remove from Workspace');
+        await expect(menu.removeModal()).toContainText('Remove API Spec');
         await expect(menu.removeModal()).toContainText(specPath);
         await menu.removeSubmit().click();
       });
@@ -474,7 +477,7 @@ test.describe('API spec row context menu', () => {
 
     try {
       await test.step('The modal opens on the spec source with this spec selected', async () => {
-        await chooseApiSpecRowAction(page, EXAMPLES_TITLE, 'generate-mock-server');
+        await chooseApiSpecRowAction(page, EXAMPLES_TITLE, 'create-mock-server');
         await expect(mockServer.sourceSpecRadio()).toBeChecked();
         await expect(mockServer.specSelectedOption()).toHaveText(EXAMPLES_TITLE);
       });

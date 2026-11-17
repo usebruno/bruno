@@ -9,6 +9,7 @@ import {
   openFolderRequest,
   openRequest,
   selectRequestPaneTab,
+  selectResponsePaneTab,
   sendRequest
 } from '../../utils/page';
 import {
@@ -235,19 +236,28 @@ test('sends collection headers on the wire', async ({ page, createTmpDir }) => {
   });
 });
 
-test('sends folder headers on the wire', async ({ page, createTmpDir }) => {
+test('TC-185: Verify that the added header in folder settings are displayed in response and timeline section of Request\'s Response.', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
   const collectionName = 'inherited-headers-send-folder';
+  const headerName = 'X-Folder-Timeline';
+  const headerValue = 'from-folder-settings';
+  const { timeline, timelineHeaders } = buildCommonLocators(page);
   await createCollection(page, collectionName, await createTmpDir(collectionName));
   await createFolder(page, 'Inner', collectionName);
   await expandFolder(page, 'Inner');
-  await seedFolderHeaders(page, collectionName, 'Inner', 'X-Folder: from-folder');
+  await seedFolderHeaders(page, collectionName, 'Inner', `${headerName}: ${headerValue}`);
   await createRequest(page, 'request-1', 'Inner', { url: ECHO_HEADERS_URL, inFolder: true });
   await openFolderRequest(page, collectionName, 'Inner', 'request-1');
 
-  await test.step('Send and confirm the folder header was received', async () => {
+  await test.step('Send and confirm the folder header was received in response and timeline section of Request\'s Response.', async () => {
     await sendRequest(page, 200);
     const body = await readResponsePreviewBody(page);
-    expect(body).toMatch(/"x-folder"\s*:\s*"from-folder"/i);
+    expect(body).toMatch(new RegExp(`"${headerName}"\\s*:\\s*"${headerValue}"`, 'i'));
+    await selectResponsePaneTab(page, 'Timeline');
+    await timeline.itemHeader(timeline.items().first()).click();
+    await expect(timelineHeaders.table()).toBeVisible();
+    await expect(timelineHeaders.row(headerName)).toHaveCount(1);
+    await expect(timelineHeaders.row(headerName)).toContainText(headerName);
+    await expect(timelineHeaders.value(headerName)).toHaveText(headerValue);
   });
 });
 

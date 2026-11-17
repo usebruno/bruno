@@ -187,6 +187,15 @@ describe('GrpcScriptRuntime', () => {
       expect(result.collectionVariables).toBeNull();
       expect(result.globalEnvironmentVariables).toBeNull();
     });
+
+    it('exposes the active global environment name via bru.getGlobalEnvName()', async () => {
+      const result = await runBeforeCallStart(
+        `bru.setVar('globalEnvName', bru.getGlobalEnvName());`,
+        makeRequest({ globalEnvironmentName: 'Production' })
+      );
+
+      expect(result.runtimeVariables).toEqual({ globalEnvName: 'Production' });
+    });
   });
 
   describe('afterCallEnd (runGrpcResponseScript)', () => {

@@ -189,7 +189,9 @@ test.describe.serial('websocket multi-message (yml format)', () => {
     await websocket.connectionControls.disconnect().click();
   });
 
-  test('selecting a different message routes run-button to that message', async ({ pageWithUserData: page }) => {
+  test('TC-1271: selecting a different message routes run-button to that message', { tag: '@sanity' }, async ({
+    pageWithUserData: page
+  }) => {
     const { websocket, runner } = buildCommonLocators(page);
 
     await openRequest(page, COLLECTION_NAME, MULTI_MSG_REQ);

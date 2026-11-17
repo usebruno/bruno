@@ -33,9 +33,15 @@ import { buildTitleBarLocators } from './title-bar';
 import { buildCloneGitRepositoryLocators } from './git/clone-git-repository';
 import { buildResponseExampleLocators } from './response-example';
 import { buildGraphqlQueryBuilderLocators } from './graphql/query-builder';
+import { buildGraphqlVariablesLocators } from './graphql/variables';
 import { buildAuthLocators } from './auth';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
+
+const openCollectionPickerItem = (page: Page, name: string) =>
+  page.getByTestId('selection-list').getByRole('listitem').filter({
+    has: page.getByText(name, { exact: true })
+  });
 
 const addToNoEnvNoteLocator = (popup: Locator, scopeType: 'environment' | 'global') =>
   popup.getByTestId('var-info-add-to-no-env-note')
@@ -68,6 +74,7 @@ export const buildCommonLocators = (page: Page) => ({
   setAsVariable: buildSetAsVariableLocators(page),
   responseExample: buildResponseExampleLocators(page),
   graphqlQueryBuilder: buildGraphqlQueryBuilderLocators(page),
+  graphqlVariables: buildGraphqlVariablesLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
@@ -100,6 +107,9 @@ export const buildCommonLocators = (page: Page) => ({
     collectionSettingsTab: () =>
       page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) }),
     activeRequestTab: () => page.locator('.request-tab.active'),
+    activeRequestTabLabel: () => page.locator('.request-tab.active').getByTestId('request-tab-label'),
+    // The request tab's right-click menu; `key` is the menu item id (e.g. 'clone-request').
+    requestTabMenuItem: (key: string) => page.getByTestId(`menu-dropdown-${key}`),
     leftChevron: () => page.getByLabel('Left Chevron'),
     scrollContainer: () => page.locator('.tabs-scroll-container'),
     activeRequestTabMethod: () => page.locator('.request-tab.active .tab-method'),
@@ -135,7 +145,10 @@ export const buildCommonLocators = (page: Page) => ({
       page.getByTestId('settings-tab-bar').getByTestId(`ai-assist-trigger-${scriptType}`)
   },
   folder: {
-    chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
+    chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron'),
+    postResponseScriptEditor: () => buildCodeMirrorLocators(page).byTestId('folder-post-response-script-editor'),
+    preRequestScriptEditor: () => buildCodeMirrorLocators(page).byTestId('folder-pre-request-script-editor'),
+    testsEditor: () => buildCodeMirrorLocators(page).byTestId('folder-tests-editor')
   },
   modal: {
     any: () => page.locator('.bruno-modal'),
@@ -159,14 +172,10 @@ export const buildCommonLocators = (page: Page) => ({
     list: () => page.getByTestId('selection-list'),
     titles: () => page.getByTestId('selection-list').locator('.selection-item-title'),
     descriptions: () => page.getByTestId('selection-list').locator('.selection-item-description'),
-    item: (name: string) =>
-      page.getByTestId('selection-list').getByRole('listitem').filter({
-        has: page.getByText(name, { exact: true })
-      }),
-    itemCheckbox: (name: string) =>
-      page.getByTestId('selection-list').getByRole('listitem').filter({
-        has: page.getByText(name, { exact: true })
-      }).getByRole('checkbox'),
+    item: (name: string) => openCollectionPickerItem(page, name),
+    itemCheckbox: (name: string) => openCollectionPickerItem(page, name).getByRole('checkbox'),
+    /** The location a listed collection reports, relative to the picked folder. */
+    itemDescription: (name: string) => openCollectionPickerItem(page, name).locator('.selection-item-description'),
     count: () => page.getByTestId('selection-count'),
     selectAllToggle: () => page.getByTestId('selection-select-all-toggle').getByRole('checkbox'),
     searchInput: () => page.getByTestId('selection-search-input')
@@ -182,6 +191,8 @@ export const buildCommonLocators = (page: Page) => ({
     menuItem: (type: string) => page.locator('[role="menu"]').last().getByText(type, { exact: true })
   },
   filePicker: {
+    button: (scope?: Locator) => (scope ?? page).locator('.file-picker-btn'),
+    selected: (scope?: Locator) => (scope ?? page).locator('.file-picker-selected'),
     warningTooltip: () => page.getByTestId('file-picker-warning-tooltip')
   },
   // The variable-info popup shown when hovering a `{{var}}` token in an editor.

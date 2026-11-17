@@ -173,3 +173,105 @@ describe('import openapi', () => {
     });
   });
 });
+
+describe('import --output', () => {
+  const spec = {
+    openapi: '3.0.3',
+    info: { title: 'Orders', version: '1.0' },
+    paths: { '/orders': { get: { summary: 'List orders', responses: { 200: { description: 'OK' } } } } }
+  };
+  let dir;
+  let source;
+
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-cli-import-output-'));
+    source = path.join(dir, 'spec.json');
+    fs.writeFileSync(source, JSON.stringify(spec));
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(process, 'exit').mockImplementation((code) => {
+      throw new Error(`process.exit(${code})`);
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+  });
+
+  const importTo = (output, flags = {}) => handler({
+    type: 'openapi', source, output, groupBy: 'tags', insecure: false, ...flags
+  });
+
+  const lastError = () => console.error.mock.calls.at(-1)[0];
+
+  it('writes into a subdirectory named after the collection when --output does not exist yet', async () => {
+    const output = path.join(dir, 'collections');
+
+    await importTo(output);
+
+    expect(fs.readdirSync(output)).toEqual(['Orders']);
+    expect(fs.existsSync(path.join(output, 'Orders', 'opencollection.yml'))).toBe(true);
+  });
+
+  it('writes into the same subdirectory when --output is an existing empty directory', async () => {
+    const output = path.join(dir, 'collections');
+    fs.mkdirSync(output);
+
+    await importTo(output);
+
+    expect(fs.existsSync(path.join(output, 'Orders', 'opencollection.yml'))).toBe(true);
+  });
+
+  it.each([
+    ['a new', false],
+    ['an existing', true]
+  ])('names the subdirectory after --collection-name for %s --output', async (_, outputExists) => {
+    const output = path.join(dir, 'collections');
+    if (outputExists) {
+      fs.mkdirSync(output);
+    }
+
+    await importTo(output, { collectionName: 'My API' });
+
+    expect(fs.readdirSync(output)).toEqual(['My API']);
+    expect(fs.readFileSync(path.join(output, 'My API', 'opencollection.yml'), 'utf8')).toContain('My API');
+  });
+
+  it('writes into an existing empty collection directory', async () => {
+    fs.mkdirSync(path.join(dir, 'Orders'));
+
+    await importTo(dir);
+
+    expect(fs.existsSync(path.join(dir, 'Orders', 'opencollection.yml'))).toBe(true);
+  });
+
+  it('refuses a collection directory that is not empty', async () => {
+    fs.mkdirSync(path.join(dir, 'Orders'));
+    fs.writeFileSync(path.join(dir, 'Orders', 'keep.txt'), 'keep');
+
+    await expect(importTo(dir)).rejects.toThrow('process.exit(1)');
+
+    expect(lastError()).toContain(`Output directory is not empty: ${path.join(dir, 'Orders')}`);
+    expect(fs.readdirSync(path.join(dir, 'Orders'))).toEqual(['keep.txt']);
+  });
+
+  it('refuses an --output whose parent does not exist', async () => {
+    await expect(importTo(path.join(dir, 'missing', 'collections'))).rejects.toThrow('process.exit(1)');
+
+    expect(lastError()).toContain(`Parent directory does not exist: ${path.join(dir, 'missing')}`);
+    expect(fs.existsSync(path.join(dir, 'missing'))).toBe(false);
+  });
+
+  it('refuses an --output that is a file', async () => {
+    await expect(importTo(source)).rejects.toThrow('process.exit(1)');
+
+    expect(lastError()).toContain(`Output path is not a directory: ${source}`);
+  });
+
+  it('refuses a --collection-name that is not a valid folder name', async () => {
+    await expect(importTo(dir, { collectionName: '   ' })).rejects.toThrow('process.exit(1)');
+
+    expect(lastError()).toContain('Invalid collection name');
+  });
+});
