@@ -186,15 +186,17 @@ describe('import openapi', () => {
     it.each([['bru', 'bru'], ['opencollection', 'yml']])('keep the name and get a file each when written as %s', async (collectionFormat, extension) => {
       importCount += 1;
       const source = path.join(dir, `spec-${importCount}.json`);
-      const output = path.join(dir, `collection-${importCount}`);
+      const output = path.join(dir, `collections-${importCount}`);
+      const collectionDir = path.join(output, 'Pets');
       fs.writeFileSync(source, JSON.stringify(duplicatesSpec));
+      fs.mkdirSync(output);
 
       await handler({ type: 'openapi', source, output, collectionFormat, groupBy: 'tags', insecure: false });
 
-      const requestFiles = fs.readdirSync(output).filter((file) => file.startsWith('List pets')).sort();
+      const requestFiles = fs.readdirSync(collectionDir).filter((file) => file.startsWith('List pets')).sort();
       expect(requestFiles).toEqual([`List pets (GET).${extension}`, `List pets (POST).${extension}`, `List pets.${extension}`]);
       requestFiles.forEach((file) => {
-        expect(parseRequest(fs.readFileSync(path.join(output, file), 'utf8'), { format: extension }).name).toBe('List pets');
+        expect(parseRequest(fs.readFileSync(path.join(collectionDir, file), 'utf8'), { format: extension }).name).toBe('List pets');
       });
     });
   });
