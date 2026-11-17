@@ -14,6 +14,7 @@ import Tags from './Tags/index';
 // Default settings configuration
 const DEFAULT_SETTINGS = {
   encodeUrl: false,
+  useProxy: true,
   followRedirects: true,
   maxRedirects: utils.DEFAULT_MAX_REDIRECTS,
   timeout: 'inherit',
@@ -29,7 +30,7 @@ const Settings = ({ item, collection }) => {
 
   const rawSettings = getPropertyFromDraftOrRequest('settings');
   const settings = { ...DEFAULT_SETTINGS, ...rawSettings };
-  const { encodeUrl, followRedirects, maxRedirects, timeout, forwardAuthorizationHeader } = settings;
+  const { encodeUrl, useProxy, followRedirects, maxRedirects, timeout, forwardAuthorizationHeader } = settings;
   const enableApp = getPropertyFromDraftOrRequest('app.enabled') === true;
 
   // Reusable function to update settings
@@ -48,6 +49,9 @@ const Settings = ({ item, collection }) => {
 
   const onToggleFollowRedirects = useCallback(() =>
     updateSetting({ followRedirects: !followRedirects }), [followRedirects, updateSetting]);
+
+  const onToggleUseProxy = useCallback(() =>
+    updateSetting({ useProxy: !(useProxy ?? true) }), [useProxy, updateSetting]);
 
   const onToggleForwardAuthorizationOnRedirect = useCallback(() =>
     updateSetting({ forwardAuthorizationHeader: !forwardAuthorizationHeader }), [forwardAuthorizationHeader, updateSetting]);
@@ -143,6 +147,17 @@ const Settings = ({ item, collection }) => {
               description="Follow HTTP redirects automatically"
               size="medium"
               data-testid="follow-redirects-toggle"
+            />
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <ToggleSelector
+              checked={useProxy ?? true}
+              onChange={onToggleUseProxy}
+              label="Use App Proxy"
+              description="Follow the app proxy settings when enabled; connect directly when disabled"
+              size="medium"
+              data-testid="use-app-proxy-toggle"
             />
           </div>
 

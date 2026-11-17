@@ -130,6 +130,9 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
     settings.maxRedirects = toMaxRedirects(ocRequest.settings.maxRedirects);
     settings.forwardAuthorizationHeader = toBool(ocRequest.settings.forwardAuthorizationHeader, true);
 
+    const useProxy = (ocRequest.settings as { useProxy?: boolean }).useProxy;
+    if (typeof useProxy === 'boolean') settings.useProxy = useProxy;
+
     const omitHeaders = normalizeOmitHeaders(ocRequest.settings.omitHeaders);
     if (omitHeaders) {
       settings.omitHeaders = omitHeaders;

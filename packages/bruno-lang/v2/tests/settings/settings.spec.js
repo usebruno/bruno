@@ -43,6 +43,14 @@ describe('Settings Conversion Tests', () => {
   });
 
   describe('round-trip conversion', () => {
+    it.each([true, false, null])('preserves the effective proxy setting for %s', (useProxy) => {
+      const fixture = require(path.join(fixturesDir, 'settings-minimal.json'));
+      const input = { ...fixture, settings: { ...fixture.settings, useProxy } };
+      const output = bruToJson(jsonToBru(input));
+
+      expect(output.settings.useProxy).toBe(useProxy ?? undefined);
+    });
+
     it('should maintain data integrity through JSON -> BRU -> JSON conversion', () => {
       const originalJson = require(path.join(fixturesDir, 'settings-all-options.json'));
 

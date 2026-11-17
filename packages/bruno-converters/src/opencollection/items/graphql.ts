@@ -88,6 +88,8 @@ export const fromOpenCollectionGraphqlItem = (item: GraphQLRequest): BrunoItem =
       maxRedirects: toMaxRedirects(settings.maxRedirects),
       forwardAuthorizationHeader: toBool(settings.forwardAuthorizationHeader, true)
     };
+    const useProxy = (settings as { useProxy?: boolean }).useProxy;
+    if (typeof useProxy === 'boolean') brunoItem.settings.useProxy = useProxy;
   }
 
   if (info.tags?.length) {
@@ -175,13 +177,14 @@ export const toOpenCollectionGraphqlItem = (item: BrunoItem): GraphQLRequest => 
     ocRequest.runtime = runtime;
   }
 
-  const settings: GraphQLRequestSettings = {
+  const settings: GraphQLRequestSettings & { useProxy?: boolean } = {
     encodeUrl: toBool(brunoSettings.encodeUrl, true),
     timeout: resolveTimeoutSetting(brunoSettings.timeout),
     followRedirects: toBool(brunoSettings.followRedirects, true),
     maxRedirects: toMaxRedirects(brunoSettings.maxRedirects),
     forwardAuthorizationHeader: toBool(brunoSettings.forwardAuthorizationHeader, true)
   };
+  if (typeof brunoSettings.useProxy === 'boolean') settings.useProxy = brunoSettings.useProxy;
   ocRequest.settings = settings;
 
   if (request.docs) {

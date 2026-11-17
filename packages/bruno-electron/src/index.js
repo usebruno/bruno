@@ -212,7 +212,7 @@ app.on('ready', async () => {
 
   startBenchmark();
 
-  if (isDev) {
+  if (isDev && process.env.PLAYWRIGHT !== 'true') {
     const { installExtension, REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS } = require('electron-devtools-installer');
     try {
       const extensions = await installExtension([REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS], {

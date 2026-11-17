@@ -649,6 +649,7 @@ const itemSchema = Yup.object({
       then: wsSettingsSchema,
       otherwise: Yup.object({
         encodeUrl: Yup.boolean().nullable(),
+        useProxy: Yup.boolean().nullable(),
         followRedirects: Yup.boolean().nullable(),
         maxRedirects: Yup.number().integer().min(0).nullable(),
         timeout: Yup.mixed().nullable(),
