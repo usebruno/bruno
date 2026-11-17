@@ -259,7 +259,7 @@ export const loadRecentCollections = () => async (dispatch) => {
 export const openCollectionModal = (page) => (dispatch, getState) => {
   const { isOpen, openingId, chooseFolder } = getState().openCollectionModal;
   dispatch(isOpen ? showOpenCollectionPage(page) : showOpenCollectionModal(page));
-  if (page === RECENTS_PAGE) {
+  if (!isOpen || page === RECENTS_PAGE) {
     dispatch(loadRecentCollections());
   }
 

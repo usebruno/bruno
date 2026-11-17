@@ -5,8 +5,12 @@ import { toPathKey } from './collection-paths';
 
 const selectWorkspaces = (state) => state.workspaces.workspaces;
 
-export const selectOpenCollectionPathKeys = createSelector(
+export const selectOpenCollections = createSelector(
   [selectCollections, selectWorkspaces, selectActiveWorkspace],
-  (collections, workspaces, activeWorkspace) =>
-    getWorkspaceCollections({ collections, workspaces, activeWorkspace }).map((collection) => toPathKey(collection.pathname))
+  (collections, workspaces, activeWorkspace) => getWorkspaceCollections({ collections, workspaces, activeWorkspace })
+);
+
+export const selectOpenCollectionPathKeys = createSelector(
+  [selectOpenCollections],
+  (openCollections) => openCollections.map((collection) => toPathKey(collection.pathname))
 );

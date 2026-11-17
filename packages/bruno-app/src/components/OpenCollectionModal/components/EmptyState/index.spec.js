@@ -47,4 +47,22 @@ describe('EmptyState', () => {
 
     expect(screen.getByRole('textbox', { name: 'Elsewhere' })).toHaveFocus();
   });
+
+  it('announces its text as a status while loading', () => {
+    render(
+      <ThemeProvider>
+        <EmptyState isLoading data-testid="loading">
+          Loading…
+        </EmptyState>
+      </ThemeProvider>
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent('Loading…');
+  });
+
+  it('is not a status when it is not loading', () => {
+    renderEmptyState();
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
 });

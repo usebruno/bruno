@@ -1,11 +1,13 @@
+import { IconLoader2 } from '@tabler/icons';
 import { focusWhenFocusIsLost } from '../../utils/focus';
 import StyledWrapper from './StyledWrapper';
 
 const focusFirstActionWhenFocusIsLost = (actions) => focusWhenFocusIsLost(actions?.querySelector('button'));
 
-const EmptyState = ({ icon: Icon, title, children, actions, foot, 'data-testid': testId }) => (
-  <StyledWrapper data-testid={testId}>
+const EmptyState = ({ icon: Icon, isLoading = false, title, children, actions, foot, 'data-testid': testId }) => (
+  <StyledWrapper role={isLoading ? 'status' : undefined} data-testid={testId}>
     <div className="empty-state">
+      {isLoading && <IconLoader2 size={20} className="empty-state-spinner" aria-hidden="true" />}
       {Icon && (
         <span className="empty-state-icon">
           <Icon size={20} strokeWidth={1.8} aria-hidden="true" />

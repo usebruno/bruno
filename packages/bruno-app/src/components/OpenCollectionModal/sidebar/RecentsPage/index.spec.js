@@ -39,19 +39,22 @@ const openOne = { path: '/Users/me/work/open', name: 'Open One', usedAt: Date.no
 const orders = { path: '/Users/me/shop/orders', name: 'Orders', usedAt: Date.now() - 3 * DAY, lastEvent: 'opened' };
 const recentCollections = [billing, openOne, orders];
 
-const openCollectionInRedux = { uid: 'collection-1', pathname: '/Users/me/work/open', mountStatus: 'mounted', collapsed: false };
+const openedInRedux = (uid, pathname, name) => ({ uid, pathname, name, importedAt: Date.now() - 10 * MINUTE, mountStatus: 'mounted', collapsed: false });
+const openCollectionInRedux = openedInRedux('collection-1', '/Users/me/work/open', 'Open One');
+const restoredCollectionInRedux = openedInRedux('collection-2', '/Users/me/work/restored', 'Restored');
 
 const recentsReturn = (result) =>
   callIpc.mockImplementation((channel) => (channel === LIST_RECENT_COLLECTIONS ? result : Promise.resolve()));
 
-const renderPage = () => {
+const renderPage = ({ open = [openCollectionInRedux] } = {}) => {
   const dispatchedActions = [];
+  const workspace = { uid: 'workspace-1', collections: open.map((collection) => ({ path: collection.pathname })) };
   const store = configureStore({
     reducer: {
       openCollectionModal: openCollectionModalReducer,
       app: appReducer,
-      collections: (state = { collections: [openCollectionInRedux] }) => state,
-      workspaces: (state = { workspaces: [{ uid: 'workspace-1', collections: [{ path: '/Users/me/work/open' }] }], activeWorkspaceUid: 'workspace-1' }) => state
+      collections: (state = { collections: open }) => state,
+      workspaces: (state = { workspaces: [workspace], activeWorkspaceUid: 'workspace-1' }) => state
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware().concat(() => (next) => (action) => {
@@ -77,6 +80,7 @@ const findRows = () => screen.findAllByTestId('recents-row');
 const rowNames = () => screen.queryAllByTestId('recents-row').map((row) => within(row).getByTestId('recents-row-name').textContent);
 const rowFor = (name) => screen.queryAllByTestId('recents-row').find((row) => within(row).getByTestId('recents-row-name').textContent === name);
 const checkboxFor = (name) => within(rowFor(name)).getByLabelText(`Select ${name}`);
+const toggleOpenCollections = () => fireEvent.click(screen.getByTestId('recents-open-toggle'));
 
 describe('RecentsPage', () => {
   beforeEach(() => {
@@ -90,17 +94,18 @@ describe('RecentsPage', () => {
     recentsReturn(new Promise(() => {}));
     renderPage();
 
-    expect(screen.getByTestId('recents-loading')).toHaveTextContent('Loading…');
+    expect(screen.getByRole('status')).toHaveTextContent('Loading…');
     expect(callIpc).toHaveBeenCalledWith(LIST_RECENT_COLLECTIONS);
   });
 
-  it('lists the newest first, with the ones already open greyed out at the bottom', async () => {
+  it('lists every recent collection newest first, greying the ones already open', async () => {
     renderPage();
     await findRows();
 
-    expect(rowNames()).toEqual(['Billing', 'Orders', 'Open One']);
+    expect(rowNames()).toEqual(['Billing', 'Open One', 'Orders']);
     expect(rowFor('Open One')).toHaveClass('is-open');
     expect(rowFor('Billing')).not.toHaveClass('is-open');
+    expect(screen.queryByTestId('recents-open-line')).not.toBeInTheDocument();
   });
 
   it('says whether each collection was last opened or closed, and when', async () => {
@@ -108,8 +113,26 @@ describe('RecentsPage', () => {
     await findRows();
 
     expect(within(rowFor('Billing')).getByTestId('recents-row-meta')).toHaveTextContent('Closed 5m ago');
-    expect(within(rowFor('Open One')).getByTestId('recents-row-meta')).toHaveTextContent('Opened 2h ago');
+    expect(within(rowFor('Open One')).getByTestId('recents-row-meta')).toHaveTextContent('Opened 10m ago');
     expect(within(rowFor('Orders')).getByTestId('recents-row-meta')).toHaveTextContent('Opened 3d ago');
+  });
+
+  it('keeps the open collections Recents has no record of behind Show, dated from when they were opened', async () => {
+    renderPage({ open: [openCollectionInRedux, restoredCollectionInRedux] });
+    await findRows();
+
+    expect(rowNames()).toEqual(['Billing', 'Open One', 'Orders']);
+    const openLine = screen.getByTestId('recents-open-line');
+    expect(openLine).toHaveTextContent('1 collection already open in this workspace isn’t shown. Show');
+
+    toggleOpenCollections();
+    expect(rowNames()).toEqual(['Billing', 'Open One', 'Restored', 'Orders']);
+    expect(rowFor('Restored')).toHaveClass('is-open');
+    expect(within(rowFor('Restored')).getByTestId('recents-row-meta')).toHaveTextContent('Opened 10m ago');
+    expect(openLine).toHaveTextContent('Showing collections already open in this workspace. Hide');
+
+    toggleOpenCollections();
+    expect(rowNames()).toEqual(['Billing', 'Open One', 'Orders']);
   });
 
   it('puts focus in the search box once the list appears', async () => {
@@ -153,14 +176,26 @@ describe('RecentsPage', () => {
     expect(modalState(store).isOpen).toBe(false);
   });
 
-  it('shows the greyed rows when every recent collection is already open', async () => {
+  it('lists a recent collection that is already open, with the unrecorded open ones behind Show', async () => {
     recentsReturn(Promise.resolve([openOne]));
-    renderPage();
+    renderPage({ open: [openCollectionInRedux, restoredCollectionInRedux] });
     await findRows();
 
+    expect(screen.queryByTestId('recents-empty')).not.toBeInTheDocument();
     expect(rowNames()).toEqual(['Open One']);
     expect(rowFor('Open One')).toHaveClass('is-open');
-    expect(screen.queryByTestId('recents-empty')).not.toBeInTheDocument();
+    expect(screen.getByTestId('recents-open-line')).toHaveTextContent('1 collection already open in this workspace isn’t shown. Show');
+
+    toggleOpenCollections();
+    expect(rowNames()).toEqual(['Open One', 'Restored']);
+  });
+
+  it('shows the empty page when Recents has no record yet, even with collections open in the workspace', async () => {
+    recentsReturn(Promise.resolve([]));
+    renderPage();
+
+    expect(await screen.findByTestId('recents-empty')).toHaveTextContent('No collections opened yet');
+    expect(rowNames()).toEqual([]);
   });
 
   it('finds a collection by its path and offers Choose folder when nothing matches', async () => {
@@ -185,7 +220,7 @@ describe('RecentsPage', () => {
 
   it('explains an empty Recents and offers the other ways to open a collection', async () => {
     recentsReturn(Promise.resolve([]));
-    const { store } = renderPage();
+    const { store } = renderPage({ open: [] });
 
     const emptyState = await screen.findByTestId('recents-empty');
     expect(emptyState).toHaveTextContent('No collections opened yet');
@@ -207,7 +242,7 @@ describe('RecentsPage', () => {
 
   it('says why Recents is not available and lists the collections after trying again', async () => {
     recentsReturn(Promise.reject(new Error('Error invoking remote method \'datastore:recent_collections:list_recent_collections\': Error: disk failure')));
-    renderPage();
+    renderPage({ open: [] });
 
     const failure = await screen.findByTestId('recents-error');
     expect(failure).toHaveTextContent('Recents isn’t available');
@@ -218,12 +253,35 @@ describe('RecentsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
 
     await findRows();
-    expect(rowNames()).toEqual(['Billing', 'Orders', 'Open One']);
+    expect(rowNames()).toEqual(['Billing', 'Open One', 'Orders']);
+  });
+
+  it('says why Recents is not available even with collections open in the workspace', async () => {
+    recentsReturn(Promise.reject(new Error('disk failure')));
+    renderPage();
+
+    expect(await screen.findByTestId('recents-error')).toHaveTextContent('disk failure');
+    expect(rowNames()).toEqual([]);
+  });
+
+  it('keeps the list and the ticked collections when a later refresh fails', async () => {
+    const { store } = renderPage();
+    await findRows();
+    fireEvent.click(rowFor('Billing'));
+
+    recentsReturn(Promise.reject(new Error('disk failure')));
+    await act(async () => {
+      store.dispatch(recentCollectionsChangedEvent());
+    });
+
+    expect(screen.queryByTestId('recents-error')).not.toBeInTheDocument();
+    expect(rowNames()).toEqual(['Billing', 'Open One', 'Orders']);
+    expect(screen.getByTestId('recents-open-selected')).toHaveTextContent('Open 1 collection');
   });
 
   it('puts focus on Open a collection folder when trying again finds no collections', async () => {
     recentsReturn(Promise.reject(new Error('disk failure')));
-    renderPage();
+    renderPage({ open: [] });
     const tryAgain = await screen.findByRole('button', { name: 'Try again' });
     tryAgain.focus();
 
@@ -260,20 +318,20 @@ describe('RecentsPage', () => {
       fireEvent.keyDown(checkboxFor('Billing'), { key: 'Enter' });
     });
     expect(modalState(store).isOpen).toBe(true);
-    expect(rowNames()).toEqual(['Billing', 'Orders', 'Open One']);
+    expect(rowNames()).toEqual(['Billing', 'Open One', 'Orders']);
 
     recentsReturn(Promise.resolve([openOne, orders]));
     await act(async () => {
       store.dispatch(recentCollectionsChangedEvent());
     });
 
-    expect(rowNames()).toEqual(['Orders', 'Open One']);
+    expect(rowNames()).toEqual(['Open One', 'Orders']);
     expect(screen.getByTestId('recents-search')).toHaveFocus();
   });
 
   it('puts focus on its first action when the last collection goes away', async () => {
     recentsReturn(Promise.resolve([billing]));
-    const { store } = renderPage();
+    const { store } = renderPage({ open: [] });
     await findRows();
     checkboxFor('Billing').focus();
 

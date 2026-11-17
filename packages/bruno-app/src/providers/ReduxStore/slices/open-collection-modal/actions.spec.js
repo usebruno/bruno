@@ -847,14 +847,38 @@ describe('open collection modal actions', () => {
       expect(modalState(store)).toMatchObject({ page: 'recents', recents: { status: 'ready', items: recentItems } });
     });
 
-    it.each(['choose-folder', 'import'])('leaves them alone when the modal opens on %s', (page) => {
+    it.each(['choose-folder', 'import'])('reads them as soon as the modal opens on %s, so Recents is ready before it is shown', async (page) => {
       pickerReturns(new Promise(() => {}));
+      recentsReturn(Promise.resolve(recentItems));
       const { store } = createStore();
 
       store.dispatch(openCollectionModal(page));
+      await flushPromises();
+
+      expect(callIpc).toHaveBeenCalledWith(LIST_RECENT_COLLECTIONS);
+      expect(modalState(store).recents).toMatchObject({ status: 'ready', items: recentItems });
+    });
+
+    it('shows the list read on opening at once when Recents is chosen, refreshing it in the background', async () => {
+      pickerReturns(new Promise(() => {}));
+      recentsReturn(Promise.resolve(recentItems));
+      const { store } = createStore();
+      store.dispatch(openCollectionModal('choose-folder'));
+      await flushPromises();
+
+      recentsReturn(new Promise(() => {}));
+      store.dispatch(openCollectionModal('recents'));
+
+      expect(callIpc.mock.calls.filter(([channel]) => channel === LIST_RECENT_COLLECTIONS)).toHaveLength(2);
+      expect(modalState(store).recents).toMatchObject({ status: 'ready', items: recentItems });
+    });
+
+    it('leaves them alone when another page is shown in the open modal', () => {
+      const { store } = createStore({ modal: openOn('recents') });
+
+      store.dispatch(openCollectionModal('import'));
 
       expect(callIpc).not.toHaveBeenCalledWith(LIST_RECENT_COLLECTIONS);
-      expect(modalState(store).recents).toEqual(closedModal.recents);
     });
 
     it('reads them again when they change while the modal is open', async () => {
