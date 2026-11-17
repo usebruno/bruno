@@ -23,6 +23,10 @@ const postmanToBruno = (collection, options = {}) => {
 };
 
 const isPostmanCollection = (data) => {
+  if (data.$kind === 'collection' && Array.isArray(data.items)) {
+    return true;
+  }
+
   // Newer Postman exports wrap the collection in a { collection: { ... } } envelope
   const info = data.info || data?.collection?.info;
   if (!info || typeof info !== 'object') {
