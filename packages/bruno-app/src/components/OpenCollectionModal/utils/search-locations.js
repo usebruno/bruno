@@ -1,12 +1,15 @@
 import { tildify } from './collection-location';
 
 const GROUP_STATUS_PRECEDENCE = ['scanning', 'denied', 'missing', 'idle'];
+const WHOLE_COMPUTER_KINDS = new Set(['home', 'computer']);
 
 const isWorkspace = (location) => location.kind === 'workspace';
 
+const isWholeComputer = (location) => WHOLE_COMPUTER_KINDS.has(location.kind);
+
 export const countSearchLocations = (locations) => {
-  const workspaceCount = locations.filter(isWorkspace).length;
-  return locations.length - workspaceCount + (workspaceCount > 0 ? 1 : 0);
+  const separateCount = locations.filter((location) => !isWorkspace(location) && !isWholeComputer(location)).length;
+  return separateCount + (locations.some(isWorkspace) ? 1 : 0) + (locations.some(isWholeComputer) ? 1 : 0);
 };
 
 const toWorkspaceGroupRow = (workspaces) => ({
@@ -21,7 +24,7 @@ const toWorkspaceGroupRow = (workspaces) => ({
 export const toLocationRows = (locations) => {
   const workspaces = locations.filter(isWorkspace);
   return locations
-    .filter((location) => location.kind !== 'home' && (!isWorkspace(location) || location === workspaces[0]))
+    .filter((location) => !isWholeComputer(location) && (!isWorkspace(location) || location === workspaces[0]))
     .map((location) => (isWorkspace(location) ? toWorkspaceGroupRow(workspaces) : { ...location, title: location.path }));
 };
 

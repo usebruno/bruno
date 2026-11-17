@@ -8,23 +8,31 @@ const defaultWorkspace = location('workspace', '/Users/me/Library/Application Su
 const teamWorkspace = location('workspace', '/Users/me/work/team', { found: 4 });
 const addedFolder = location('user', '/Users/me/projects', { found: 5 });
 const home = location('home', '/Users/me', { found: 7 });
+const computer = location('computer', '/', { id: 'computer', found: 3 });
 
 describe('countSearchLocations', () => {
   it.each([
     ['nothing when there are no locations', [], 0],
     ['each default location and added folder', [defaultLocation, documents, addedFolder], 3],
     ['every workspace folder together as one location', [defaultWorkspace, teamWorkspace], 1],
-    ['the home folder too', [defaultLocation, defaultWorkspace, teamWorkspace, home], 3]
+    ['the home folder and the rest of the computer together as one location', [defaultLocation, defaultWorkspace, teamWorkspace, home, computer], 3],
+    ['the rest of the computer as that location when the home folder is an added folder', [location('user', '/Users/me'), computer], 2]
   ])('counts %s', (_description, locations, count) => {
     expect(countSearchLocations(locations)).toBe(count);
   });
 });
 
 describe('toLocationRows', () => {
-  it('folds the workspace folders into one row where the first one was and leaves the home folder out', () => {
-    const rows = toLocationRows([defaultLocation, defaultWorkspace, addedFolder, teamWorkspace, home]);
+  it('folds the workspace folders into one row where the first one was and leaves out the home folder and the rest of the computer', () => {
+    const rows = toLocationRows([defaultLocation, defaultWorkspace, addedFolder, teamWorkspace, home, computer]);
 
     expect(rows.map((row) => row.id)).toEqual([defaultLocation.id, 'all-workspaces', addedFolder.id]);
+  });
+
+  it('keeps a folder added at / as its own row, apart from the rest of the computer', () => {
+    const rootFolder = location('user', '/');
+
+    expect(toLocationRows([rootFolder, computer])).toEqual([{ ...rootFolder, title: '/' }]);
   });
 
   it('adds up what the workspace folders found and lists them with ~ in the tooltip', () => {

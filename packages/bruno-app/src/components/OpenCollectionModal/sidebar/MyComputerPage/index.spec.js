@@ -47,6 +47,7 @@ const searchLocations = [
   location('workspace', '/Users/me/work/api'),
   location('user', '/Users/me/shop')
 ];
+const wholeComputerLocations = [location('home', '/Users/me'), { id: 'computer', path: '/', kind: 'computer' }];
 
 const billing = { path: '/Users/me/work/team/billing', name: 'Billing', mtime: Date.now() - 2 * HOUR, locationId: '/Users/me/work/team' };
 const payments = { path: '/Users/me/collections/payments', name: 'Payments', mtime: 0, locationId: '/Users/me/collections' };
@@ -234,6 +235,17 @@ describe('MyComputerPage', () => {
     finishScan(store, { locations: [] });
 
     expect(screen.getByTestId('my-computer-empty')).toHaveTextContent('Bruno searched its default locations. Open a collection folder from anywhere, or add more places to search.');
+  });
+
+  it('counts the home folder and the rest of the computer as one location when searching the whole computer found nothing', async () => {
+    const locations = [...searchLocations, ...wholeComputerLocations];
+    ipcReturns({ scan: () => Promise.resolve({ locations }) });
+    const { store } = renderPage({ searchWholeComputer: true });
+    await waitForList();
+
+    finishScan(store, { locations });
+
+    expect(screen.getByTestId('my-computer-empty')).toHaveTextContent('Bruno searched 4 locations. Open a collection folder from anywhere, or add more places to search.');
   });
 
   it('puts focus on Open a collection folder when the search ends with nothing found', async () => {

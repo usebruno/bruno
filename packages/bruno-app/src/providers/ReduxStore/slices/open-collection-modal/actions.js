@@ -312,7 +312,7 @@ const saveSearchSetting = (key, value, channel, failureText) => async (dispatch,
 };
 
 export const saveSearchWholeComputer = (enabled) =>
-  saveSearchSetting('searchWholeComputer', enabled, 'renderer:save-search-whole-computer', 'Could not update home folder search');
+  saveSearchSetting('searchWholeComputer', enabled, 'renderer:save-search-whole-computer', 'Could not update whole computer search');
 
 export const addSearchFolders = (folderPaths) => async (dispatch, getState) => {
   const searchFolders = getSearchFolders(getState());

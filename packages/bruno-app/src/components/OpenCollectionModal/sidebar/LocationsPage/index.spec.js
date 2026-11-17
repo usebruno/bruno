@@ -40,7 +40,8 @@ const teamWorkspace = location('workspace', '/Users/me/work/team', { found: 4 })
 const projects = location('user', '/Users/me/projects', { found: 5 });
 const archive = location('user', '/Volumes/archive/collections', { status: 'missing' });
 const home = location('home', '/Users/me', { found: 9 });
-const searchedLocations = [defaultLocation, documents, defaultWorkspace, teamWorkspace, projects, archive, home];
+const computer = location('computer', '/', { id: 'computer', found: 3 });
+const searchedLocations = [defaultLocation, documents, defaultWorkspace, teamWorkspace, projects, archive, home, computer];
 
 const closedState = openCollectionModalReducer(undefined, { type: 'init' });
 
@@ -89,7 +90,7 @@ describe('LocationsPage', () => {
     callIpc.mockImplementation((channel) => (channel === START_SCAN ? new Promise(() => {}) : Promise.resolve()));
   });
 
-  it('lists where the last search looked, with the workspace folders as one row and the home folder left out', () => {
+  it('lists where the last search looked, with the workspace folders as one row and the home folder and the rest of the computer left out', () => {
     renderPage();
 
     expect(rowLabels()).toEqual([
@@ -191,7 +192,7 @@ describe('LocationsPage', () => {
   });
 
   it('says when there is nowhere to search yet and still offers Add folder', () => {
-    renderPage({ locations: [home] });
+    renderPage({ locations: [home, computer], searchWholeComputer: true });
 
     expect(rows()).toHaveLength(0);
     expect(screen.getByTestId('locations-empty')).toHaveTextContent('No search locations yet.');
@@ -199,7 +200,7 @@ describe('LocationsPage', () => {
   });
 
   it('explains what Bruno skips from an info button that a keyboard and a screen reader can reach', async () => {
-    const skipsText = 'Bruno skips hidden folders, dependency caches and network drives.';
+    const skipsText = 'Bruno skips system and hidden folders, dependency caches, network drives and files that are only in the cloud.';
     renderPage();
     const info = screen.getByRole('button', { name: 'What Bruno skips' });
 

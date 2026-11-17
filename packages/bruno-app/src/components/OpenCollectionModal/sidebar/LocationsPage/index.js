@@ -13,7 +13,7 @@ import { toLocationRows } from '../../utils/search-locations';
 import LocationRow from './LocationRow';
 import StyledWrapper from './StyledWrapper';
 
-const SKIPS_TEXT = 'Bruno skips hidden folders, dependency caches and network drives.';
+const SKIPS_TEXT = 'Bruno skips system and hidden folders, dependency caches, network drives and files that are only in the cloud.';
 
 const LocationsPage = () => {
   const dispatch = useDispatch();

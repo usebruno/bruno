@@ -887,13 +887,13 @@ describe('open collection modal actions', () => {
       expect(callIpc).not.toHaveBeenCalledWith(START_SCAN, expect.anything());
     });
 
-    it('says it could not update home folder search when the failure has no message', async () => {
+    it('says it could not update whole computer search when the failure has no message', async () => {
       callIpc.mockRejectedValue(new Error());
       const { store } = createStore();
 
       await store.dispatch(saveSearchWholeComputer(true));
 
-      expect(toast.error).toHaveBeenCalledWith('Could not update home folder search');
+      expect(toast.error).toHaveBeenCalledWith('Could not update whole computer search');
     });
 
     it('keeps newer preferences when an older save fails', async () => {

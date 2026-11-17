@@ -25,7 +25,7 @@ const SearchLocationsBanner = ({ onManage }) => {
     <StyledWrapper ref={banner} role="region" aria-label="Find collections on this computer" data-testid="my-computer-banner">
       <IconSearch size={15} strokeWidth={1.75} aria-hidden="true" />
       <p className="banner-text">
-        This list shows collections Bruno finds in your default collection location and workspace folders. Add more folders, or search your whole home folder, to find the rest.
+        This list shows collections Bruno finds in your default collection location and workspace folders. Add more folders, or search your whole computer, to find the rest.
       </p>
       <Button size="sm" color="secondary" className="banner-action" onClick={onManage} data-testid="my-computer-banner-manage">
         Manage locations

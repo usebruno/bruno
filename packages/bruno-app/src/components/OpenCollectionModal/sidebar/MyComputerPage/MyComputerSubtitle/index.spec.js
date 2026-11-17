@@ -24,6 +24,7 @@ const searchedLocations = [
   location('workspace', '/Users/me/work/team'),
   location('user', '/Users/me/projects')
 ];
+const wholeComputerLocations = [location('home', '/Users/me'), { ...location('computer', '/'), id: 'computer' }];
 
 const closedState = openCollectionModalReducer(undefined, { type: 'init' });
 
@@ -62,6 +63,7 @@ describe('MyComputerSubtitle', () => {
 
   it.each([
     ['3 locations, counting the workspace folders as one', searchedLocations, 'Searching 3 locations…'],
+    ['4 locations, counting the home folder and the rest of the computer as one', [...searchedLocations, ...wholeComputerLocations], 'Searching 4 locations…'],
     ['a single location', [defaultLocation], 'Searching 1 location…']
   ])('says it is searching %s', (_description, locations, text) => {
     renderSubtitle({ status: 'scanning', locations });
@@ -71,6 +73,7 @@ describe('MyComputerSubtitle', () => {
 
   it.each([
     ['3 locations, counting the workspace folders as one', searchedLocations, 'Collections Bruno found in 3 search locations ·'],
+    ['4 locations, counting the home folder and the rest of the computer as one', [...searchedLocations, ...wholeComputerLocations], 'Collections Bruno found in 4 search locations ·'],
     ['a single location', [defaultLocation], 'Collections Bruno found in 1 search location ·']
   ])('once the search is done, says it searched %s', (_description, locations, text) => {
     renderSubtitle({ status: 'done', locations });
