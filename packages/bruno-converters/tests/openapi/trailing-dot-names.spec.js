@@ -51,7 +51,7 @@ describe.each([
     expect(collection.items.map((item) => item.name).sort()).toEqual(['Add a pet', 'Place an order']);
   });
 
-  it('deduplicates summaries that differ only by a trailing period instead of colliding', () => {
+  it('gives summaries that differ only by a trailing period separate files instead of colliding', () => {
     const collection = openApiToBruno(
       buildSpec({
         '/pet': {
@@ -61,13 +61,11 @@ describe.each([
       })
     );
 
-    const names = collection.items.map((item) => item.name);
-    expect(new Set(names).size).toBe(2);
-    expect(names).toContain('Add a new pet to the store');
-    expect(names).toContain('Add a new pet to the store (GET)');
+    expect(collection.items.map((item) => item.name)).toEqual(['Add a new pet to the store', 'Add a new pet to the store']);
+    expect(collection.items.map((item) => item.filename)).toEqual([undefined, 'Add a new pet to the store (GET).bru']);
   });
 
-  it('falls back to the method and path when the summary is only dots and whitespace', () => {
+  it('falls back to the path when the summary is only dots and whitespace', () => {
     const collection = openApiToBruno(
       buildSpec({
         '/pet': {
@@ -76,7 +74,7 @@ describe.each([
       })
     );
 
-    expect(collection.items.map((item) => item.name)).toEqual(['POST /pet']);
+    expect(collection.items.map((item) => item.name)).toEqual(['/pet']);
   });
 
   it('leaves interior dots and names without a trailing dot untouched', () => {

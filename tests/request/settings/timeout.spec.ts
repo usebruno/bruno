@@ -55,8 +55,9 @@ test.describe('Timeout Settings Tests', () => {
         await sidebar.request('timeout-test').click();
         await selectRequestPaneTab(page, 'Settings');
         await resetRequestTimeoutToInherit(page);
-        await expect(requestSettings.timeoutInheritButton()).toBeVisible();
-        await expect(requestSettings.timeoutInput()).not.toBeVisible();
+        await expect(requestSettings.timeoutInherited()).toHaveText('Inherited From Preferences');
+        await expect(requestSettings.timeoutInput()).toHaveValue('');
+        await expect(requestSettings.timeoutInput()).toHaveAttribute('placeholder', '10');
         await saveRequest(page);
       });
 
@@ -73,8 +74,9 @@ test.describe('Timeout Settings Tests', () => {
         await tabs.closeTab('timeout-test').click({ force: true });
         await sidebar.request('timeout-test').click();
         await selectRequestPaneTab(page, 'Settings');
-        await expect(requestSettings.timeoutInheritButton()).toBeVisible();
-        await expect(requestSettings.timeoutInput()).not.toBeVisible();
+        await expect(requestSettings.timeoutInherited()).toHaveText('Inherited From Preferences');
+        await expect(requestSettings.timeoutInput()).toHaveValue('');
+        await expect(requestSettings.timeoutInput()).toHaveAttribute('placeholder', '10');
       });
 
       await test.step('Send and verify the inherited timeout resolves to the preference (10ms), not the file value (5ms)', async () => {
@@ -113,8 +115,9 @@ test.describe('Timeout Settings Tests', () => {
         await sidebar.request('timeout-test-yaml').click();
         await selectRequestPaneTab(page, 'Settings');
         await resetRequestTimeoutToInherit(page);
-        await expect(requestSettings.timeoutInheritButton()).toBeVisible();
-        await expect(requestSettings.timeoutInput()).not.toBeVisible();
+        await expect(requestSettings.timeoutInherited()).toHaveText('Inherited From Preferences');
+        await expect(requestSettings.timeoutInput()).toHaveValue('');
+        await expect(requestSettings.timeoutInput()).toHaveAttribute('placeholder', '10');
         await saveRequest(page);
       });
 
@@ -131,8 +134,9 @@ test.describe('Timeout Settings Tests', () => {
         await tabs.closeTab('timeout-test-yaml').click({ force: true });
         await sidebar.request('timeout-test-yaml').click();
         await selectRequestPaneTab(page, 'Settings');
-        await expect(requestSettings.timeoutInheritButton()).toBeVisible();
-        await expect(requestSettings.timeoutInput()).not.toBeVisible();
+        await expect(requestSettings.timeoutInherited()).toHaveText('Inherited From Preferences');
+        await expect(requestSettings.timeoutInput()).toHaveValue('');
+        await expect(requestSettings.timeoutInput()).toHaveAttribute('placeholder', '10');
       });
 
       await test.step('Send and verify the inherited timeout resolves to the preference (10ms), not the file value (5ms)', async () => {

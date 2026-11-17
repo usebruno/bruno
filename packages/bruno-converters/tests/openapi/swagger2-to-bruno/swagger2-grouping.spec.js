@@ -150,7 +150,7 @@ describe('swagger2-to-bruno grouping', () => {
   });
 
   describe('duplicate name handling', () => {
-    it('should make duplicate operation names unique by appending method', () => {
+    it('should keep duplicate operation names and append the method to the file name only', () => {
       const spec = {
         swagger: '2.0',
         info: { title: 'Dup Names API', version: '1.0' },
@@ -163,14 +163,12 @@ describe('swagger2-to-bruno grouping', () => {
         }
       };
       const collection = swagger2ToBruno(spec);
-      const names = collection.items.map((i) => i.name);
 
-      // Should have unique names
-      const uniqueNames = new Set(names);
-      expect(uniqueNames.size).toBe(names.length);
+      expect(collection.items.map((i) => i.name)).toEqual(['Items', 'Items']);
+      expect(collection.items.map((i) => i.filename)).toEqual([undefined, 'Items (POST).bru']);
     });
 
-    it('should deduplicate operation names across folders in tag-based grouping', () => {
+    it('should keep duplicate operation names across tag folders and append the method to the file name only', () => {
       const spec = {
         swagger: '2.0',
         info: { title: 'Cross Folder API', version: '1.0' },
@@ -188,12 +186,13 @@ describe('swagger2-to-bruno grouping', () => {
       const usersFolder = collection.items.find((i) => i.name === 'users');
       const petsFolder = collection.items.find((i) => i.name === 'pets');
 
-      // Tag-based grouping shares a global usedNames set, so second occurrence gets a suffix
+      // Tag-based grouping shares a global usedNames set, so second occurrence gets a suffix in its file name
       expect(usersFolder.items[0].name).toBe('List items');
-      expect(petsFolder.items[0].name).toBe('List items (GET)');
+      expect(petsFolder.items[0].name).toBe('List items');
+      expect(petsFolder.items[0].filename).toBe('List items (GET).bru');
     });
 
-    it('should not add suffixes to duplicate names in different path-based folders', () => {
+    it('should not add suffixes to the file names of duplicates in different path-based folders', () => {
       const spec = {
         swagger: '2.0',
         info: { title: 'Cross Path API', version: '1.0' },
@@ -211,12 +210,14 @@ describe('swagger2-to-bruno grouping', () => {
       const usersFolder = collection.items.find((i) => i.name === 'users');
       const petsFolder = collection.items.find((i) => i.name === 'pets');
 
-      // Path-based grouping uses per-folder usedNames, so both keep original name
+      // Path-based grouping uses per-folder usedNames, so neither file name gets a suffix
       expect(usersFolder.items[0].name).toBe('List items');
       expect(petsFolder.items[0].name).toBe('List items');
+      expect(usersFolder.items[0].filename).toBeUndefined();
+      expect(petsFolder.items[0].filename).toBeUndefined();
     });
 
-    it('should use method+path as name when summary and operationId are missing', () => {
+    it('should use the path as name when summary and operationId are missing', () => {
       const spec = {
         swagger: '2.0',
         info: { title: 'No Name API', version: '1.0' },
@@ -230,8 +231,8 @@ describe('swagger2-to-bruno grouping', () => {
       const collection = swagger2ToBruno(spec);
       const req = collection.items[0];
 
-      // Should fall back to method + path
-      expect(req.name).toBe('GET /items');
+      // Should fall back to the path
+      expect(req.name).toBe('/items');
     });
   });
 });
