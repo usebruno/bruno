@@ -86,7 +86,7 @@ test.describe('Import Bruno Collection with Examples', () => {
     await test.step('Verify that the imported collection keeps its request', async () => {
       await openCollection(page, collectionName);
       await expect(sidebar.itemsIn(collectionName, requestName)).toBeVisible();
-      await expect(sidebar.collectionScope(collectionName).locator('.collection-item-name')).toHaveCount(1);
+      await expect(sidebar.itemRowsIn(collectionName)).toHaveCount(1);
 
       await sidebar.itemsIn(collectionName, requestName).click();
       await expect(tabs.activeRequestTab()).toContainText(requestName);
