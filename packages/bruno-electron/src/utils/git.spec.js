@@ -1,9 +1,10 @@
-jest.mock('simple-git', () => jest.fn(() => ({
+const mockSimpleGit = jest.fn(() => ({
   outputHandler: jest.fn(),
   clone: jest.fn((_url, _path, _options, callback) => callback(null, 'cloned'))
-})));
+}));
 
-const simpleGit = require('simple-git');
+jest.mock('simple-git', () => ({ simpleGit: (...args) => mockSimpleGit(...args) }));
+
 const { parseRemoteBranches, cloneGitRepository } = require('./git');
 
 describe('parseRemoteBranches', () => {
@@ -57,6 +58,10 @@ describe('cloneGitRepository', () => {
   it('enables core.longpaths so deeply nested files can be checked out on Windows', async () => {
     await cloneGitRepository(win, { url: 'https://example.com/repo.git', path: '/collections/repo', processUid: 'p1' });
 
-    expect(simpleGit).toHaveBeenCalledWith({ baseDir: '/collections/repo', config: ['core.longpaths=true'] });
+    expect(mockSimpleGit).toHaveBeenCalledWith({
+      baseDir: '/collections/repo',
+      config: ['core.longpaths=true'],
+      allowEnvironment: expect.any(Array)
+    });
   });
 });

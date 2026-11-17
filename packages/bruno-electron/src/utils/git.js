@@ -1,4 +1,4 @@
-const simpleGit = require('simple-git');
+const { simpleGit } = require('simple-git');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -9,8 +9,21 @@ let collectionPathToGitRootPathMap = new Map();
 
 const simpleGitInstances = new Map();
 
+const GIT_ALLOW_ENVIRONMENT = [
+  'GIT_TERMINAL_PROMPT',
+  'GIT_SSH_COMMAND',
+  'GIT_SSH',
+  'SSH_AUTH_SOCK',
+  'GIT_OPTIONAL_LOCKS'
+];
+
 // core.longpaths lifts the 260-char path limit on Windows
-const createSimpleGit = (baseDir) => simpleGit({ baseDir, config: ['core.longpaths=true'] });
+const createSimpleGit = (baseDir) =>
+  simpleGit({
+    baseDir,
+    config: ['core.longpaths=true'],
+    allowEnvironment: GIT_ALLOW_ENVIRONMENT
+  });
 
 const REMOTE_BRANCH_LISTING_TIMEOUT_MS = 10000;
 
@@ -758,9 +771,10 @@ const listBranchesForRemoteUrl = async ({ url }) => {
   try {
     const output = await simpleGit({
       baseDir: os.tmpdir(),
-      timeout: { block: REMOTE_BRANCH_LISTING_TIMEOUT_MS, stdOut: false, stdErr: false }
+      timeout: { block: REMOTE_BRANCH_LISTING_TIMEOUT_MS, stdOut: false, stdErr: false },
+      allowEnvironment: GIT_ALLOW_ENVIRONMENT
     })
-      .env({ ...process.env, GIT_TERMINAL_PROMPT: '0' })
+      .env({ GIT_TERMINAL_PROMPT: '0' })
       .listRemote(['--symref', url, 'HEAD', 'refs/heads/*']);
 
     return parseRemoteBranches(output);
