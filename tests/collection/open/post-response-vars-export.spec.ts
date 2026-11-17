@@ -47,6 +47,7 @@ test.describe('OpenCollection post-response vars export', () => {
     await closeAllCollections(page);
   });
 
+
   test('TC-4461: Collection and folder post-response vars round-trip in OpenCollection YAML', { tag: '@sanity' }, async ({
     page,
     electronApp,
