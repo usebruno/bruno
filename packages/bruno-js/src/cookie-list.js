@@ -1,9 +1,9 @@
-const PropertyList = require('./property-list');
+const ReadOnlyPropertyList = require('./readonly-property-list');
 
-/**
+/*
  * CookieList — the `bru.cookies` API for reading and writing cookies in scripts.
  *
- * Extends PropertyList in dynamic mode: the cookie list is freshly read from the
+ * Extends ReadOnlyPropertyList in dynamic mode: the cookie list is freshly read from the
  * cookie jar on every access, and write operations delegate to the jar rather
  * than mutating an in-memory array.
  *
@@ -35,17 +35,17 @@ const PropertyList = require('./property-list');
  * |--------------------|--------------------------------------------------|----------------------|
  * | `has(name)`        | `true` if a cookie with that key exists          | `true`               |
  * | `has(name, value)` | `true` if key exists **and** value matches        | `false`              |
- * | `find(predicate)`  | First cookie matching the predicate function     | `{ key: 'sid', … }` |
- * | `filter(predicate)`| Array of cookies matching the predicate          | `[{ key: … }, …]`   |
- * | `indexOf(item)`    | Index of a structurally-equal cookie, or `-1`    | `0`                  |
+ * | `find(predicate, context?)`   | First cookie matching the predicate function     | `{ key: 'sid', … }` |
+ * | `filter(predicate, context?)` | Array of cookies matching the predicate          | `[{ key: … }, …]`   |
+ * | `indexOf(item)`    | Index of a cookie by string key or structurally-equal object, or `-1` | `0` |
  *
- * ## Iteration methods (inherited)
+ * ## Iteration methods (inherited; optional `context` binds `this` in callbacks)
  *
- * | Method                  | Description                                  |
- * |-------------------------|----------------------------------------------|
- * | `each(fn)`              | Calls `fn(cookie, index)` for every cookie   |
- * | `map(fn)`               | Returns a new array of mapped values         |
- * | `reduce(fn, initial?)`  | Reduces cookies to a single value            |
+ * | Method                           | Description                                  |
+ * |----------------------------------|----------------------------------------------|
+ * | `each(fn, context?)`             | Calls `fn(cookie, index)` for every cookie   |
+ * | `map(fn, context?)`              | Returns a new array of mapped values         |
+ * | `reduce(fn, initial?, context?)` | Reduces cookies to a single value            |
  *
  * ## Transform methods (inherited)
  *
@@ -60,6 +60,7 @@ const PropertyList = require('./property-list');
  * | Method                   | Description                                          |
  * |--------------------------|------------------------------------------------------|
  * | `add(cookieObj, cb?)`    | Alias for `upsert()` — sets a cookie in the jar      |
+ * | `append(cookieObj, cb?)` | Alias for `add()`                                    |
  * | `upsert(cookieObj, cb?)` | Sets (or replaces) a cookie in the jar                |
  * | `remove(name, cb?)`      | Deletes a single cookie by name (no-op if missing)    |
  * | `delete(name, cb?)`      | Alias for `remove()`                                  |
@@ -74,7 +75,72 @@ const PropertyList = require('./property-list');
  * The jar handle exposes: `getCookie`, `getCookies`, `setCookie`, `setCookies`,
  * `deleteCookie`, `deleteCookies`, `hasCookie`, and `clear`.
  */
-class CookieList extends PropertyList {
+
+/**
+ * A cookie from the cookie jar.
+ * @category Types
+ * @typedef {object} Cookie
+ * @property {string} key - The cookie's name.
+ * @property {string} value - The cookie's value.
+ * @property {string | null} [domain] - The domain the cookie is sent to.
+ * @property {string | null} [path] - The path the cookie is sent under.
+ * @property {boolean} [secure] - Whether the cookie is only sent over HTTPS.
+ * @property {boolean} [httpOnly] - Whether the cookie is marked `HttpOnly`.
+ * @property {Date | string} [expires] - When the cookie expires, or `'Infinity'` for a session
+ *   cookie. In Safe Mode a date arrives as an ISO string.
+ */
+
+/**
+ * A cookie to store.
+ * @category Types
+ * @typedef {object} CookieInput
+ * @property {string} key - The cookie's name.
+ * @property {string} value - The cookie's value.
+ * @property {string} [domain] - The domain to send it to. Defaults to the URL's host; a
+ *   `__Host-` cookie is always host-only.
+ * @property {string} [path] - The path to send it under.
+ * @property {Date | string | number} [expires] - When it expires. Without a valid date it is a
+ *   session cookie.
+ * @property {boolean} [secure] - Only send it over HTTPS.
+ * @property {boolean} [httpOnly] - Mark it `HttpOnly`.
+ * @property {number} [maxAge] - How many seconds it lives.
+ * @property {'strict' | 'lax' | 'none'} [sameSite] - The SameSite policy.
+ */
+
+/**
+ * The cookie jar, for cookies of any URL. URL arguments may contain `{{variables}}`.
+ *
+ * Every function returns a promise, unless you pass a callback: then it returns nothing and calls
+ * the callback with an error, or on success with no error and the result.
+ * @category Types
+ * @typedef {object} CookieJar
+ * @property {(url: string, name: string, callback?: (error: Error | null | undefined, cookie?: Cookie | null) => void) => Promise<Cookie | null> | void} getCookie
+ *   Get the cookie with this name that the jar would send to `url`, or `null` when there is none.
+ * @property {(url: string, callback?: (error: Error | null | undefined, cookies?: Cookie[]) => void) => Promise<Cookie[]> | void} getCookies
+ *   Get every cookie the jar would send to `url`.
+ * @property {((url: string, name: string, value: string, callback?: (error?: Error | null) => void) => Promise<void> | void) & ((url: string, cookie: CookieInput, callback?: (error?: Error | null) => void) => Promise<void> | void)} setCookie
+ *   Store a cookie for `url`, from a name and value or from a cookie object. It replaces a cookie
+ *   with the same name, domain and path.
+ * @property {(url: string, cookies: CookieInput[], callback?: (error?: Error | null) => void) => Promise<void> | void} setCookies
+ *   Store several cookies for `url`.
+ * @property {(url: string, name: string, callback?: (error: Error | null | undefined, exists?: boolean) => void) => Promise<boolean> | void} hasCookie
+ *   Check whether the jar would send a cookie with this name to `url`.
+ * @property {(url: string, name: string, callback?: (error?: Error | null) => void) => Promise<void> | void} deleteCookie
+ *   Delete one cookie with this name that the jar would send to `url`: the one whose path is the
+ *   URL's path, or else the one with the most specific path.
+ * @property {(url: string, callback?: (error?: Error | null) => void) => Promise<void> | void} deleteCookies
+ *   Delete every cookie the jar would send to `url`.
+ * @property {(callback?: (error?: Error | null) => void) => Promise<void> | void} clear
+ *   Delete every cookie in the jar, for every domain.
+ */
+
+/**
+ * The cookies the current request sends, with methods to change them and `jar()` for other URLs.
+ *
+ * The list is read from the cookie jar each time, so it reflects every change at once.
+ * @extends {ReadOnlyPropertyList<Cookie>}
+ */
+class CookieList extends ReadOnlyPropertyList {
   /**
    * @param {object} options
    * @param {Function} options.getUrl - Returns the interpolated request URL (or falsy if unavailable)
@@ -95,42 +161,57 @@ class CookieList extends PropertyList {
         );
       }
     });
+    /** @protected */
     this._getUrl = getUrl;
+    /** @protected */
     this._interpolateFn = interpolate;
     // Factory function — returns a wrapper around the module-level cookie jar singleton
+    /** @protected */
     this._createCookieJar = createCookieJar;
   }
 
   // ── Write methods (cookie jar delegation) ─────────────────────────────
 
   /**
-   * Add a cookie to the jar (alias for {@link CookieList#upsert}).
-   *
-   * @param {object} cookieObj - Cookie object with at least `key` and `value`.
-   * @param {Function} [callback] - Optional `(error) => void` callback. If omitted, returns a Promise.
-   * @returns {Promise<void>|void} A Promise when no callback is given.
+   * Store a cookie for the request's URL, the same as `upsert`.
+   * @param {CookieInput} cookieObj - The cookie.
+   * @param {(error?: Error | null) => void} [callback] - Called with an error, or with none on success.
+   *   Without it, the method returns a promise.
+   * @returns {Promise<void> | void} A promise, unless `callback` is given.
    * @example
-   * // Promise usage
    * await bru.cookies.add({ key: 'lang', value: 'en' });
-   *
-   * // Callback usage
-   * bru.cookies.add({ key: 'lang', value: 'en' }, (err) => { if (err) throw err; });
+   * @category Write
    */
   add(cookieObj, callback) {
     return this.upsert(cookieObj, callback);
   }
 
   /**
-   * Set (or replace) a cookie in the jar for the current request URL.
+   * Store a cookie for the request's URL, the same as `add`.
+   * @param {CookieInput} cookieObj - The cookie.
+   * @param {(error?: Error | null) => void} [callback] - Called with an error, or with none on success.
+   *   Without it, the method returns a promise.
+   * @returns {Promise<void> | void} A promise, unless `callback` is given.
+   * @example
+   * await bru.cookies.append({ key: 'lang', value: 'en' });
+   * @category Write
+   */
+  append(cookieObj, callback) {
+    return this.add(cookieObj, callback);
+  }
+
+  /**
+   * Store a cookie for the request's URL.
    *
-   * If a cookie with the same key already exists for this URL, it is overwritten.
-   * Rejects with an error if `cookieObj` is not a non-null object.
-   *
-   * @param {object} cookieObj - Cookie object with at least `key` and `value`.
-   * @param {Function} [callback] - Optional `(error) => void` callback. If omitted, returns a Promise.
-   * @returns {Promise<void>|void} A Promise when no callback is given.
+   * It replaces a cookie with the same name, domain and path. Fails when `cookieObj` is not an
+   * object or has no `key`.
+   * @param {CookieInput} cookieObj - The cookie.
+   * @param {(error?: Error | null) => void} [callback] - Called with an error, or with none on success.
+   *   Without it, the method returns a promise.
+   * @returns {Promise<void> | void} A promise, unless `callback` is given.
    * @example
    * await bru.cookies.upsert({ key: 'sid', value: 'abc123', secure: true });
+   * @category Write
    */
   upsert(cookieObj, callback) {
     if (!cookieObj || typeof cookieObj !== 'object') {
@@ -148,16 +229,17 @@ class CookieList extends PropertyList {
   }
 
   /**
-   * Remove a single cookie by name from the current request URL.
+   * Delete a cookie the request sends, by name.
    *
-   * A no-op if `name` is falsy or if no cookie with that name exists
-   * (analogous to `Map.prototype.delete`).
-   *
-   * @param {string} name - The cookie key to remove.
-   * @param {Function} [callback] - Optional `(error) => void` callback. If omitted, returns a Promise.
-   * @returns {Promise<void>|void} A Promise when no callback is given.
+   * Of several cookies with that name, it deletes the one whose path is the request's path, or
+   * else the one with the most specific path. Nothing happens when there is no such cookie.
+   * @param {string} name - The cookie's name.
+   * @param {(error?: Error | null) => void} [callback] - Called with an error, or with none on success.
+   *   Without it, the method returns a promise.
+   * @returns {Promise<void> | void} A promise, unless `callback` is given.
    * @example
    * await bru.cookies.remove('sid');
+   * @category Write
    */
   remove(name, callback) {
     const url = this._getUrl();
@@ -170,9 +252,13 @@ class CookieList extends PropertyList {
   }
 
   /**
-   * Remove cookies scoped to the current request URL only.
-   * Unlike jar().clear() which removes ALL cookies globally, this only
-   * removes cookies matching the current request's domain and path.
+   * Delete every cookie the request sends.
+   *
+   * Cookies for other URLs stay; `jar().clear()` deletes those too.
+   * @param {(error?: Error | null) => void} [callback] - Called with an error, or with none on success.
+   *   Without it, the method returns a promise.
+   * @returns {Promise<void> | void} A promise, unless `callback` is given.
+   * @category Write
    */
   clear(callback) {
     const url = this._getUrl();
@@ -185,13 +271,14 @@ class CookieList extends PropertyList {
   }
 
   /**
-   * Delete a cookie by name (alias for {@link CookieList#remove}).
-   *
-   * @param {string} name - The cookie key to delete.
-   * @param {Function} [callback] - Optional `(error) => void` callback. If omitted, returns a Promise.
-   * @returns {Promise<void>|void} A Promise when no callback is given.
+   * Delete a cookie the request sends, by name, the same as `remove`.
+   * @param {string} name - The cookie's name.
+   * @param {(error?: Error | null) => void} [callback] - Called with an error, or with none on success.
+   *   Without it, the method returns a promise.
+   * @returns {Promise<void> | void} A promise, unless `callback` is given.
    * @example
    * await bru.cookies.delete('sid');
+   * @category Write
    */
   delete(name, callback) {
     return this.remove(name, callback);
@@ -200,13 +287,11 @@ class CookieList extends PropertyList {
   // ── Cookie-specific method ────────────────────────────────────────────
 
   /**
-   * Returns a jar handle for cross-URL cookie operations.
+   * Get the cookie jar, to read and write the cookies of any URL.
    *
-   * Unlike the CookieList methods (which are scoped to the current request URL),
-   * the jar handle lets you read/write cookies for **any** URL. All URL arguments
-   * are automatically interpolated with environment/collection variables.
-   *
-   * @returns {{ getCookie, getCookies, setCookie, setCookies, deleteCookie, deleteCookies, hasCookie, clear }}
+   * URL arguments may contain `{{variables}}`.
+   * @returns {CookieJar} The jar.
+   * @category Cookie jar
    * @example
    * const jar = bru.cookies.jar();
    *
@@ -267,6 +352,43 @@ class CookieList extends PropertyList {
       }
     };
   }
+
+  // ── Docs for inherited methods (see readme § "Doc overrides") ─────────
+
+  /**
+   * Get the value of a cookie the request sends.
+   *
+   * Names are case-sensitive. With several cookies of that name, the last one wins.
+   * @override get
+   * @param name - The cookie's name.
+   * @returns The value, or `undefined` when there is no such cookie.
+   * @example
+   * const sessionId = bru.cookies.get('sid');
+   */
+
+  /**
+   * Check whether the request sends a cookie with the given name.
+   *
+   * Names are case-sensitive.
+   * @override has
+   * @param nameOrItem - A cookie name, or a cookie whose name to look for (its value is not
+   *   compared).
+   * @param value - When given, the cookie's value must also be equal (`===`) to it.
+   * @returns Whether a matching cookie exists.
+   * @example
+   * if (!bru.cookies.has('sid')) {
+   *   bru.setVar('loggedIn', false);
+   * }
+   */
+
+  /**
+   * Build an array from the result of `fn` for each cookie.
+   * @override map
+   * @param fn - Called with each cookie and its position.
+   * @returns The results, in the order of the cookies.
+   * @example
+   * const names = bru.cookies.map((cookie) => cookie.key);
+   */
 }
 
 module.exports = CookieList;

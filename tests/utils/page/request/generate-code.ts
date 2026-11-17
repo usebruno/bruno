@@ -1,11 +1,26 @@
 import { test, expect, Page } from '../../../../playwright';
 import { buildCommonLocators } from '../locators';
 import { selectRequestPaneTab } from '../actions';
+import { readEditorValue } from '../autocomplete';
 
 /**
- * Open the Generate Code dialog and return the visible snippet text.
+ * Read the snippet from an already-open Generate Code dialog
+ * (without re-opening it). Use after toggling a setting inside the dialog.
  * @param page - The page object
- * @returns The text content of the generated code snippet
+ * @returns The full text of the generated code snippet
+ */
+const readGeneratedSnippet = async (page: Page): Promise<string> => {
+  return await test.step('Read generated snippet', async () => {
+    const codeEditor = page.locator('.editor-content .CodeMirror').first();
+    await expect(codeEditor).toBeVisible();
+    return await readEditorValue(codeEditor);
+  });
+};
+
+/**
+ * Open the Generate Code dialog and return the generated snippet.
+ * @param page - The page object
+ * @returns The full text of the generated code snippet
  */
 const getGeneratedSnippet = async (page: Page): Promise<string> => {
   return await test.step('Open Generate Code dialog and read snippet', async () => {
@@ -14,24 +29,7 @@ const getGeneratedSnippet = async (page: Page): Promise<string> => {
     await request.generateCodeButton().click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
-    const codeEditor = page.locator('.editor-content .CodeMirror').first();
-    await expect(codeEditor).toBeVisible();
-
-    return (await codeEditor.textContent()) ?? '';
-  });
-};
-
-/**
- * Read the currently-rendered snippet from an already-open Generate Code dialog
- * (without re-opening it). Use after toggling a setting inside the dialog.
- * @param page - The page object
- * @returns The text content of the generated code snippet
- */
-const readGeneratedSnippet = async (page: Page): Promise<string> => {
-  return await test.step('Read generated snippet', async () => {
-    const codeEditor = page.locator('.editor-content .CodeMirror').first();
-    await expect(codeEditor).toBeVisible();
-    return (await codeEditor.textContent()) ?? '';
+    return await readGeneratedSnippet(page);
   });
 };
 

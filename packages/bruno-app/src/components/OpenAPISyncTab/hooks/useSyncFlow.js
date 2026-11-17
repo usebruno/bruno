@@ -56,7 +56,7 @@ const useSyncFlow = ({
           ? (remoteDrift?.localOnly || collectionDrift?.localOnly || []).filter((ep) => localOnlyIds.includes(ep.id))
           : [];
 
-        driftedToReset = collectionDrift?.modified?.filter((ep) => {
+        driftedToReset = collectionDrift?.edited?.filter((ep) => {
           const decision = decisions[ep.id];
           return decision === 'accept-incoming';
         }) || [];

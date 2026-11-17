@@ -1,11 +1,12 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
-import { parseQueryParams, extractPromptVariables, getDataTypeFromValue, resolveEnvironmentInheritance } from '@usebruno/common/utils';
+import { parseQueryParams, extractPromptVariables, getDataTypeFromValue, nextCopyName, resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
 import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT, VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 import get from 'lodash/get';
+import map from 'lodash/map';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
 import path, { normalizePath, isPathExternalToBasePath } from 'utils/common/path';
@@ -87,7 +88,8 @@ import {
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, restoreTabs, reopenLastClosedTab, setSidebarRevealRequest } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, reopenLastClosedTab, setSidebarRevealRequest } from 'providers/ReduxStore/slices/tabs';
+import { restoreCollectionTabs } from 'providers/ReduxStore/slices/mock-server/actions';
 import { clearOpenApiSyncTabState } from 'providers/ReduxStore/slices/openapi-sync';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
@@ -95,6 +97,7 @@ import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import {
   getGlobalEnvironmentVariables,
+  getGlobalEnvironmentName,
   findCollectionByPathname,
   getReorderedItemsInTargetDirectory,
   resetSequencesInFolder,
@@ -124,10 +127,6 @@ import {
   hydrateCollectionTabs,
   hydrateSnapshotLookups
 } from 'utils/snapshot';
-
-// Display name for a cloned/pasted item: always "<source> copy" (semantic).
-// Filename uniqueness is resolved silently by the electron main process
-const copyDisplayName = (originalName) => `${originalName} copy`;
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -453,6 +452,7 @@ export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch
       activeGlobalEnvironmentUid
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+    collectionCopy.globalEnvironmentName = getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid });
 
     const environment = resolveEnvironmentInheritance({
       environments: collectionCopy.environments,
@@ -497,6 +497,7 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
       activeGlobalEnvironmentUid
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+    collectionCopy.globalEnvironmentName = getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid });
 
     const environment = resolveEnvironmentInheritance({
       environments: collectionCopy.environments,
@@ -609,6 +610,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       activeGlobalEnvironmentUid
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+    collectionCopy.globalEnvironmentName = getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid });
 
     const requestUid = uuid();
     itemCopy.requestUid = requestUid;
@@ -749,6 +751,7 @@ export const runCollectionFolder
         activeGlobalEnvironmentUid
       });
       collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+      collectionCopy.globalEnvironmentName = getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid });
 
       const folder = findItemInCollection(collectionCopy, folderUid);
 
@@ -1021,9 +1024,9 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
 
         // Handle folder pasting
         if (isItemAFolder(copiedItem)) {
-          // Display name becomes "<source> copy"; electron resolves the
+          // Display name takes the next free copy slot in the destination; electron resolves the
           // filesystem name uniqueness silently.
-          const newName = copyDisplayName(copiedItem.name);
+          const newName = nextCopyName(copiedItem.name, map(existingItems, (i) => i.name));
           const newFilename = sanitizeName(newName);
 
           set(copiedItem, 'name', newName);
@@ -1036,9 +1039,9 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
 
           await ipcRenderer.invoke('renderer:clone-folder', copiedItem, fullPathname, targetCollection.pathname);
         } else {
-          // Handle request pasting — display name "<source> copy"
+          // Handle request pasting — display name takes the next free copy slot in the destination;
           // electron resolves the filename uniqueness and returns the path actually used.
-          const newName = copyDisplayName(copiedItem.name);
+          const newName = nextCopyName(copiedItem.name, map(existingItems, (i) => i.name));
           const newFilename = sanitizeName(newName);
 
           const filename = resolveRequestFilename(newFilename, targetCollection.format);
@@ -1966,6 +1969,7 @@ export const loadGrpcMethodsFromReflection = (item, collectionUid, url) => async
       activeGlobalEnvironmentUid
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+    collectionCopy.globalEnvironmentName = getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid });
     const environment = resolveEnvironmentInheritance({
       environments: collectionCopy.environments,
       targetEnvironment: findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid)
@@ -2015,6 +2019,7 @@ export const generateGrpcurlCommand = (item, collectionUid) => async (dispatch, 
       activeGlobalEnvironmentUid
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+    collectionCopy.globalEnvironmentName = getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid });
     const environment = resolveEnvironmentInheritance({
       environments: collectionCopy.environments,
       targetEnvironment: findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid)
@@ -2411,7 +2416,7 @@ export const addSecretToEnvironment = ({ collectionUid, environmentScope, name, 
     environmentScope,
     environmentUid,
     update: (variables, environment) => {
-      if (variables.some((variable) => variable.name === name)) {
+      if (variables.some((variable) => variable.name === name && variable.secret)) {
         throw new Error(`"${name}" already exists in ${environment.name}`);
       }
       return resolveOrCreateEnabledVariable(variables, name, value, true).updatedVariables;
@@ -3103,7 +3108,7 @@ export const openCollectionEvent = (uid, pathname, brunoConfig, options = {}) =>
         .then((snapshotLookups) => hydrateCollectionTabs(
           existingCollection,
           dispatch,
-          restoreTabs,
+          restoreCollectionTabs,
           snapshotLookups,
           workspacePathname,
           true
@@ -3271,7 +3276,7 @@ export const importCollection = (collection, collectionLocation, options = {}) =
 
       const result = await ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation, {
         format: options.format || DEFAULT_COLLECTION_FORMAT,
-        rawOpenAPISpec: options.rawOpenAPISpec
+        rawOpenAPISpecs: options.rawOpenAPISpecs
       });
       const importedPaths = result.success.items;
 
@@ -3541,7 +3546,7 @@ export const mountCollection
             const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
             if (collection?.pathname) {
               if (!skipTabRestore) {
-                await hydrateCollectionTabs(collection, dispatch, restoreTabs, null, workspacePathname);
+                await hydrateCollectionTabs(collection, dispatch, restoreCollectionTabs, null, workspacePathname);
               }
 
               const collectionSnapshotState = await window.ipcRenderer

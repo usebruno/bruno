@@ -7,17 +7,29 @@ const hasValue = (value) => value !== undefined && value !== null && value !== '
 export const getEnvironmentVariablesKeyValuePairs = (envVariables) => {
   const variables = {};
   each(envVariables, (variable) => {
-    if (variable.name && variable.enabled && hasValue(variable.value)) {
+    if (variable.name && variable.enabled && !variable.secret && hasValue(variable.value)) {
       variables[variable.name] = variable.value;
     }
   });
   return variables;
 };
 
-export const buildSpecVariables = ({ collectionVariables, envVariables, environment }) => ({
-  ...(collectionVariables || {}),
-  ...(environment ? getEnvironmentVariablesKeyValuePairs(envVariables?.[environment] || {}) : {})
-});
+export const buildSpecVariables = ({ collectionVariables, envVariables, environment }) => {
+  const environmentVariables = environment ? envVariables?.[environment] || {} : {};
+
+  // An enabled secret wins at runtime over a collection or plain environment variable of the same name,
+  // so keep its placeholder
+  const secretNames = new Set();
+  each(environmentVariables, (variable) => {
+    if (variable.enabled && variable.secret) secretNames.add(variable.name);
+  });
+  const withoutSecretNames = (values) => Object.fromEntries(Object.entries(values).filter(([name]) => !secretNames.has(name)));
+
+  return {
+    ...withoutSecretNames(collectionVariables || {}),
+    ...withoutSecretNames(getEnvironmentVariablesKeyValuePairs(environmentVariables))
+  };
+};
 
 export const buildSkippedFilesMessage = (skipped) => {
   const listed = skipped.slice(0, MAX_SKIPPED_FILES_LISTED);

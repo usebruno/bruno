@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useStore } from 'react-redux';
 import SetAsVariableMenu from 'components/SetAsVariableMenu';
 import SetAsVariablePopover from 'components/SetAsVariablePopover';
-import { getCodeMirrorSelectionPayload } from 'utils/codemirror/selection';
+import { getCodeMirrorSelectionPayload, getPinnedSelection, releasePinnedSelection } from 'utils/codemirror/selection';
 import { setVarInfoSuppressed } from 'utils/codemirror/brunoVarInfo';
+import { findCollectionByUid, findItemInCollection } from 'utils/collections';
+import { supportsSetAsVariable } from 'utils/requests/setAsVariableSupport';
 import { SetAsVariableContext } from './context';
 
 const CLOSED = { view: 'closed', selection: null };
@@ -24,27 +26,52 @@ const selectionContainsPoint = (domSelection, x, y) => {
 
 export function SetAsVariableProvider({ children }) {
   const [state, setState] = useState(CLOSED);
+  const store = useStore();
   const activeTabUid = useSelector((reduxState) => reduxState.tabs.activeTabUid);
 
-  // A ref, so the open callbacks stay dependency-free and the context value keeps its identity.
   const activeTabUidRef = useRef(activeTabUid);
   activeTabUidRef.current = activeTabUid;
 
-  // The open callbacks suppress on the same tick; this keeps the flag in step afterwards.
-  useEffect(() => setVarInfoSuppressed(state.view !== 'closed'), [state.view]);
+  // Reading the settled view, because picking a menu item opens the popover and dismisses the
+  // menu in the same tick — releasing from either handler would unpin a selection still in use.
+  useEffect(() => {
+    const open = state.view !== 'closed';
+    setVarInfoSuppressed(open);
+    if (!open) releasePinnedSelection();
+  }, [state.view]);
 
   useEffect(() => {
     setState((current) => (current.selection && current.selection.tabUid !== activeTabUid ? CLOSED : current));
   }, [activeTabUid]);
+
+  const resolveRequestItem = useCallback((item) => {
+    if (item) return item;
+
+    const reduxState = store.getState();
+    const tabUid = activeTabUidRef.current;
+    const tab = reduxState.tabs.tabs.find((candidate) => candidate.uid === tabUid);
+    if (!tab) return null;
+
+    const collection = findCollectionByUid(reduxState.collections.collections, tab.collectionUid);
+    return collection ? findItemInCollection(collection, tabUid) : null;
+  }, [store]);
 
   const close = useCallback(() => setState(CLOSED), []);
 
   const dismissMenu = useCallback(() => setState((current) => (current.view === 'menu' ? CLOSED : current)), []);
 
   const openFromCodeMirror = useCallback((event, editor, { collection, item, mode } = {}) => {
-    if (isInsideFloatingUi(event.target)) return;
+    if (isInsideFloatingUi(event.target)) {
+      releasePinnedSelection();
+      return;
+    }
 
-    const payload = getCodeMirrorSelectionPayload(editor, event);
+    if (!supportsSetAsVariable(resolveRequestItem(item))) {
+      releasePinnedSelection();
+      return;
+    }
+
+    const payload = getPinnedSelection(editor) || getCodeMirrorSelectionPayload(editor, event);
     if (!payload) return;
 
     event.preventDefault();
@@ -68,10 +95,12 @@ export function SetAsVariableProvider({ children }) {
         item
       }
     });
-  }, []);
+  }, [resolveRequestItem]);
 
   const openFromDomSelection = useCallback((event, { collection, item } = {}) => {
     if (isInsideFloatingUi(event.target) || event.target?.closest?.('.CodeMirror')) return;
+
+    if (!supportsSetAsVariable(resolveRequestItem(item))) return;
 
     const domSelection = window.getSelection();
     if (!domSelection || domSelection.isCollapsed) return;
@@ -100,7 +129,7 @@ export function SetAsVariableProvider({ children }) {
         item
       }
     });
-  }, []);
+  }, [resolveRequestItem]);
 
   const showPopover = useCallback(() => setState((current) => ({ ...current, view: 'popover' })), []);
 

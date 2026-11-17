@@ -216,6 +216,15 @@ const interpolateRequest = (request: BrunoRequest, variables: Record<string, unk
         }
         break;
       }
+      case 'graphql': {
+        const graphql = { ...body.graphql };
+        if (typeof graphql.query === 'string') graphql.query = interpolate(graphql.query, variables);
+        if (typeof graphql.variables === 'string') {
+          graphql.variables = interpolate(graphql.variables, variables, { escapeJSONStrings: true });
+        }
+        body.graphql = graphql;
+        break;
+      }
       case 'text': body.text = interpolate(body.text, variables); break;
       case 'xml': body.xml = interpolate(body.xml, variables); break;
       case 'sparql': body.sparql = interpolate(body.sparql, variables); break;
@@ -573,8 +582,18 @@ const buildPostData = (body: BrunoBody | undefined): any => {
           : []
       };
     }
-    case 'graphql':
-      return { mimeType, text: JSON.stringify(body.graphql) };
+    case 'graphql': {
+      const graphql = body.graphql || {};
+      let variables = graphql.variables;
+      if (typeof variables === 'string') {
+        try {
+          variables = variables.trim() ? JSON.parse(variables) : undefined;
+        } catch {
+          // Leave as the raw string; an invalid-JSON snippet is still more useful than a thrown error.
+        }
+      }
+      return { mimeType, text: JSON.stringify({ ...graphql, variables }) };
+    }
     default:
       return { mimeType, text: body[body.mode] };
   }

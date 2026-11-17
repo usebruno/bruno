@@ -1,4 +1,6 @@
-import { test, Page, Locator } from '../../../playwright';
+import { test, expect, Page, Locator } from '../../../playwright';
+import { openPreferences, selectPreferencesTab, closePreferences } from './preferences';
+import { buildCommonLocators } from './locators';
 
 // Locators for the Mock Server dashboard, routes table, request log, and related modals.
 export const buildMockServerLocators = (page: Page) => ({
@@ -78,6 +80,13 @@ export const buildMockServerLocators = (page: Page) => ({
   logStatusCodes: () => page.getByTestId('mock-server-log-table').locator('.status-code'),
   logDelayValue: () => page.getByTestId('mock-server-log-table').locator('[data-testid="column-delay"] span').first(),
   logDurationCell: () => page.getByTestId('mock-server-log-table').locator('[data-testid="column-duration"]').first(),
+
+  betaToggle: () => page.getByTestId('mock-server-beta-toggle'),
+  betaToggleCheckbox: () => page.getByTestId('mock-server-beta-toggle').locator('input[type="checkbox"]'),
+  betaToggleSwitch: () => page.getByTestId('mock-server-beta-toggle').locator('label'),
+  unsavedChangesDialog: () => buildCommonLocators(page).modal.byTitle('Unsaved changes'),
+  unsavedChangesButton: (name: 'Save' | 'Don\'t Save' | 'Cancel') =>
+    buildCommonLocators(page).modal.byTitle('Unsaved changes').getByRole('button', { name, exact: true }),
 
   filterOption: (label: string) => page.getByRole('option', { name: label, exact: true }),
   refreshToast: () => page.getByText(/Routes refreshed.*routes/).first()
@@ -184,5 +193,26 @@ export const openMockServerSettings = async (page: Page, serverName: string) => 
     await openMockServerFromSidebar(page, serverName);
     await ms.settingsBtn().click();
     await ms.nameInput().waitFor({ state: 'visible', timeout: 10000 });
+  });
+};
+
+export const setMockServerBetaFeature = async (
+  page: Page,
+  enabled: boolean,
+  { resolveUnsavedChanges }: { resolveUnsavedChanges?: 'save' | 'discard' } = {}
+) => {
+  await test.step(`${enabled ? 'Enable' : 'Disable'} the Mock Server beta feature`, async () => {
+    const ms = buildMockServerLocators(page);
+    await openPreferences(page);
+    await selectPreferencesTab(page, 'Beta');
+    const checkbox = ms.betaToggleCheckbox();
+    if ((await checkbox.isChecked()) !== enabled) {
+      await ms.betaToggleSwitch().click();
+    }
+    if (resolveUnsavedChanges) {
+      await ms.unsavedChangesButton(resolveUnsavedChanges === 'save' ? 'Save' : 'Don\'t Save').click();
+    }
+    await expect(checkbox).toBeChecked({ checked: enabled });
+    await closePreferences(page);
   });
 };

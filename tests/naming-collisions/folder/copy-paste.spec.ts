@@ -39,7 +39,7 @@ test.describe('Naming collisions - copy/paste folder', () => {
     });
   });
 
-  test('pasting a folder twice keeps the display name and suffixes the directory', async ({ page, createTmpDir }) => {
+  test('pasting a folder twice numbers the display name', async ({ page, createTmpDir }) => {
     const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('folder-paste-twice');
 
@@ -48,13 +48,15 @@ test.describe('Naming collisions - copy/paste folder', () => {
 
     await copyItem(page, 'Users');
     await pasteIntoCollection(page, 'Paste Folder Twice'); // Users copy
-    await pasteIntoCollection(page, 'Paste Folder Twice'); // Users copy (display) -> Users copy 1 dir
+    await expect(sidebar.folder('Users copy')).toBeVisible();
+    await pasteIntoCollection(page, 'Paste Folder Twice'); // Users copy 2
 
-    await test.step('Two "Users copy" folders; directory names suffixed', async () => {
-      await expect(sidebar.itemByName('Users copy')).toHaveCount(2);
+    await test.step('"Users copy" and "Users copy 2"', async () => {
+      await expect(sidebar.itemByName('Users copy')).toHaveCount(1);
+      await expect(sidebar.itemByName('Users copy 2')).toHaveCount(1);
       const collDir = findCollectionDir(testDir);
       expect(fs.existsSync(path.join(collDir, 'Users copy'))).toBe(true);
-      expect(fs.existsSync(path.join(collDir, 'Users copy 1'))).toBe(true);
+      expect(fs.existsSync(path.join(collDir, 'Users copy 2'))).toBe(true);
     });
   });
 

@@ -21,3 +21,110 @@ describe('getRequestFromCurlCommand', () => {
     expect(request.body.file[0].filePath).toBe('/path/to/payload.json');
   });
 });
+
+describe('GraphQL variables imported from a cURL command', () => {
+  const GRAPHQL_REQUEST = 'graphql-request';
+  const QUERY = 'query Me { me { id } }';
+
+  const graphqlCurl = (body) =>
+    `curl --url https://e.com/graphql -H 'Content-Type: application/json' --data '${JSON.stringify(body)}'`;
+
+  it('formats object variables as pretty-printed JSON text', () => {
+    const curl = graphqlCurl({ query: QUERY, variables: { id: 1 } });
+
+    const request = getRequestFromCurlCommand(curl, GRAPHQL_REQUEST);
+
+    expect(request.body.graphql.variables).toBe('{\n  "id": 1\n}');
+  });
+
+  it('unwraps string-encoded variables instead of encoding them a second time', () => {
+    const curl = graphqlCurl({ query: QUERY, variables: JSON.stringify({ id: 1 }) });
+
+    const request = getRequestFromCurlCommand(curl, GRAPHQL_REQUEST);
+
+    expect(request.body.graphql.variables).toBe('{\n  "id": 1\n}');
+  });
+
+  it('keeps a Bruno placeholder inside string-encoded variables', () => {
+    const curl = graphqlCurl({ query: QUERY, variables: '{"id": {{userId}}}' });
+
+    const request = getRequestFromCurlCommand(curl, GRAPHQL_REQUEST);
+
+    expect(request.body.graphql.variables).toBe('{\n  "id": {{userId}}\n}');
+  });
+
+  it.each([
+    ['missing', { query: QUERY }],
+    ['null', { query: QUERY, variables: null }],
+    ['an empty string', { query: QUERY, variables: '' }]
+  ])('leaves the variables text empty when variables are %s', (_, body) => {
+    const curl = graphqlCurl(body);
+
+    const request = getRequestFromCurlCommand(curl, GRAPHQL_REQUEST);
+
+    expect(request.body.graphql.variables).toBe('');
+  });
+});
+
+describe('form bodies imported from a cURL command', () => {
+  // #9511: the URL-bar paste handler set the body mode but never dispatched the
+  // params, so a `--form` cURL produced an empty Body tab. The handler now
+  // dispatches setMultipartFormParams / setFormUrlEncodedParams, which fill in
+  // uid and the per-mode defaults themselves; what is asserted here is the
+  // shape the parser hands them.
+  it('parses a --form text field into a multipartForm entry', () => {
+    const curl = `curl --request GET --url https://echo.usebruno.com/ --header 'Content-Type: multipart/form-data' --form myBody=testValue`;
+
+    const request = getRequestFromCurlCommand(curl);
+
+    expect(request.body.mode).toBe('multipartForm');
+    expect(request.body.multipartForm).toEqual([
+      { name: 'myBody', value: 'testValue', type: 'text', enabled: true }
+    ]);
+  });
+
+  it('wraps a file entry value in an array, which multipartFormSchema requires', () => {
+    const request = getRequestFromCurlCommand(`curl --url https://e.com/ -F doc=@/tmp/a.pdf`);
+
+    expect(request.body.multipartForm).toEqual([
+      { name: 'doc', value: ['/tmp/a.pdf'], type: 'file', enabled: true }
+    ]);
+  });
+
+  it('leaves a text entry value a string while wrapping the file beside it', () => {
+    const request = getRequestFromCurlCommand(`curl --url https://e.com/ -F name=bruno -F doc=@/tmp/a.pdf`);
+
+    expect(request.body.multipartForm.map((p) => [p.name, p.type, p.value])).toEqual([
+      ['name', 'text', 'bruno'],
+      ['doc', 'file', ['/tmp/a.pdf']]
+    ]);
+  });
+
+  it('parses a url-encoded body into enabled params', () => {
+    const request = getRequestFromCurlCommand(
+      `curl --url https://e.com/ -H 'Content-Type: application/x-www-form-urlencoded' -d 'a=1&b=2'`
+    );
+
+    expect(request.body.mode).toBe('formUrlEncoded');
+    expect(request.body.formUrlEncoded.map((p) => [p.name, p.value, p.enabled])).toEqual([
+      ['a', '1', true],
+      ['b', '2', true]
+    ]);
+  });
+
+  // A repeated key gives `querystring.parse` an array, and keyValueSchema declares
+  // a param's `value` a string -- one array-valued param fails validation, so the
+  // repeats are split into one param each.
+  it('splits a repeated url-encoded key into one param per value', () => {
+    const request = getRequestFromCurlCommand(
+      `curl --url https://e.com/ -H 'Content-Type: application/x-www-form-urlencoded' -d 'tag=a&tag=b&other=z'`
+    );
+
+    expect(request.body.formUrlEncoded.map((p) => [p.name, p.value, p.enabled])).toEqual([
+      ['tag', 'a', true],
+      ['tag', 'b', true],
+      ['other', 'z', true]
+    ]);
+    expect(request.body.formUrlEncoded.every((p) => typeof p.value === 'string')).toBe(true);
+  });
+});

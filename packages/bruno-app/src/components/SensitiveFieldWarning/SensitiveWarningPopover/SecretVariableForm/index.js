@@ -1,5 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { useSelector, useStore } from 'react-redux';
+import { IconX } from '@tabler/icons';
+import ActionIcon from 'ui/ActionIcon';
 import TextInput from 'ui/TextInput';
 import MaskedInput from 'ui/MaskedInput';
 import useOnClickOutside from 'hooks/useOnClickOutside';
@@ -97,11 +99,25 @@ const SecretVariableForm = ({ collection, sourceLabel, defaultName, defaultValue
     >
       <div className="flex items-baseline justify-between gap-2">
         <div className="form-title">Save as a secret variable</div>
-        {sourceLabel && (
-          <div className="source-badge" data-testid="secret-variable-source">
-            from <span className="source-badge-label">{sourceLabel}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {sourceLabel && (
+            <div className="source-badge" data-testid="secret-variable-source">
+              from <span className="source-badge-label">{sourceLabel}</span>
+            </div>
+          )}
+          <ActionIcon
+            size="xs"
+            aria-label="Close"
+            data-testid="secret-variable-close"
+            disabled={isSaving}
+            onClick={(event) => {
+              event.stopPropagation();
+              onClose();
+            }}
+          >
+            <IconX size={16} strokeWidth={1.5} />
+          </ActionIcon>
+        </div>
       </div>
 
       <TextInput

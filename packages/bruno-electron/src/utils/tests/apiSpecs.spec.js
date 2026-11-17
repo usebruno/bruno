@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { parseApiSpecContent, parseAndValidateApiSpec, resolveExternalApiSpecRefs } = require('../apiSpecs');
+const { parseApiSpecContent, parseAndValidateApiSpec, resolveExternalApiSpecRefs, getApiSpecDisplayName } = require('../apiSpecs');
 
 describe('parseAndValidateApiSpec', () => {
   const validYaml = 'openapi: 3.0.0\ninfo:\n  title: Pets\n  version: 1.0.0\npaths:\n  /pets: {}\n';
@@ -31,6 +31,23 @@ describe('parseAndValidateApiSpec', () => {
     ['empty', 'openapi: 3.0.0\ninfo:\n  title: x\npaths: {}\n']
   ])('rejects a spec whose paths are %s', (_label, content) => {
     expect(() => parseAndValidateApiSpec(content)).toThrow('does not define any paths');
+  });
+});
+
+describe('getApiSpecDisplayName', () => {
+  const specPath = path.join('specs', 'orders.v2.yaml');
+
+  it('uses the trimmed spec title', () => {
+    expect(getApiSpecDisplayName({ info: { title: '  Orders API  ' } }, specPath)).toBe('Orders API');
+  });
+
+  it.each([
+    ['a blank title', { info: { title: '   ' } }],
+    ['a title that is not text', { info: { title: 123 } }],
+    ['no info block', {}],
+    ['content that did not parse', null]
+  ])('falls back to the filename without its extension for %s', (_, content) => {
+    expect(getApiSpecDisplayName(content, specPath)).toBe('orders.v2');
   });
 });
 
