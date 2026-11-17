@@ -49,17 +49,13 @@ export const buildRequestLocators = (page: Page) => ({
     inheritedSource: (name: string) => page.getByTestId(`inherited-header-source-${name.toLowerCase()}`),
     addRow: () => page.getByTestId('request-header-add-row'),
     nameEditor: (row: Locator) => row.getByTestId('column-name'),
-    requestValueCell: (row: Locator) => row.getByTestId('column-value'),
-    requestCheckbox: (row: Locator) => row.getByTestId('column-checkbox'),
-    requestCellText: (row: Locator, column: 'name' | 'value') => row.getByTestId(`column-${column}`)
-      .getByRole('presentation')
-      .filter({ hasNot: page.getByRole('presentation') }),
-    requestBulkEditToggle: () => page.getByTestId('request-pane').getByTestId('bulk-edit-toggle'),
-    requestKeyValueEditToggle: () => page.getByTestId('request-pane').getByTestId('key-value-edit-toggle'),
-    requestBulkEditor: () => page.getByTestId('request-pane').getByLabel('Code Editor'),
-    requestBulkEditorLines: () => page.getByTestId('request-pane').getByLabel('Code Editor')
-      .getByRole('presentation')
-      .filter({ hasNot: page.getByRole('presentation') }),
+    valueCell: (row: Locator) => row.getByTestId('column-value'),
+    checkbox: (row: Locator) => row.getByTestId('column-checkbox'),
+    cellText: (row: Locator, column: 'name' | 'value') => row.getByTestId(`column-${column}`).locator('.CodeMirror-line'),
+    bulkEditToggle: () => page.getByTestId('request-pane').getByTestId('bulk-edit-toggle'),
+    keyValueEditToggle: () => page.getByTestId('request-pane').getByTestId('key-value-edit-toggle'),
+    bulkEditor: () => page.getByTestId('request-pane').getByLabel('Code Editor'),
+    bulkEditorLines: () => page.getByTestId('request-pane').getByLabel('Code Editor').locator('.CodeMirror-line'),
     toggleInherited: () => page.getByTestId('toggle-inherited-headers'),
     paneScroller: () => page.getByTestId('request-pane').getByTestId('flex-boundary'),
     defaultInfo: (name: string) => page.getByTestId(`default-header-info-${name.toLowerCase()}`),
@@ -163,7 +159,7 @@ export const fillRequestHeaderValue = async (page: Page, row: Locator, value: st
  */
 export const appendRequestHeaderBulkLines = async (page: Page, lines: string[]) => {
   const { headers } = buildRequestLocators(page);
-  const editor = headers.requestBulkEditor();
+  const editor = headers.bulkEditor();
   await editor.click();
   const endOfDocument = process.platform === 'darwin' ? 'Meta+End' : 'Control+End';
   await page.keyboard.press(endOfDocument);
