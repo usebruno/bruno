@@ -7,6 +7,7 @@ import {
 import { buildRequestTabsLocators } from '../app-shell/tabs';
 import { buildOpenCollectionPickerLocators } from '../collection/open-collection-picker';
 import { buildToastLocators } from '../app-shell/toast';
+import { buildCodeMirrorLocators } from '../shared-ui/code-editor';
 import { collectionSlug } from '../../../packages/bruno-app/src/utils/collections/collectionSlug';
 
 export type EmptyStateRequestType = 'http' | 'graphql' | 'grpc' | 'websocket';
@@ -23,6 +24,7 @@ export const buildSidebarLocators = (page: Page) => {
   const item = (name: string) => page.locator('.collection-item-name').filter({ hasText: name });
 
   const collectionScope = (name: string) => page.locator(`[data-collection-id="${collectionSlug(name)}"]`);
+  const folderScope = (folderName: string) => page.locator(`[data-parent-name="${folderName}"]`);
   const inlineCollectionCreatorRoot = () => page.getByTestId('inline-collection-creator');
 
   return {
@@ -82,7 +84,9 @@ export const buildSidebarLocators = (page: Page) => {
     example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
     collectionScope,
     collectionScopeByUid: (collectionUid: string) => page.locator(`[data-collection-uid="${collectionUid}"]`),
-    folderScope: (folderName: string) => page.locator(`[data-parent-name="${folderName}"]`),
+    folderScope,
+    itemInFolder: (folderName: string, itemName: string): Locator =>
+      folderScope(folderName).locator('.item-name').and(page.getByTitle(itemName, { exact: true })),
     scopedItem: function (collectionName: string, itemName: string) {
       return this.collectionScope(collectionName).locator('.item-name').and(page.getByTitle(itemName, { exact: true }));
     },
@@ -237,7 +241,10 @@ export const dragSidebarToWidth = async (page: Page, width: number) => {
  * Locators for folder rows in the sidebar tree.
  */
 export const buildFolderLocators = (page: Page) => ({
-  chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
+  chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron'),
+  postResponseScriptEditor: () => buildCodeMirrorLocators(page).byTestId('folder-post-response-script-editor'),
+  preRequestScriptEditor: () => buildCodeMirrorLocators(page).byTestId('folder-pre-request-script-editor'),
+  testsEditor: () => buildCodeMirrorLocators(page).byTestId('folder-tests-editor')
 });
 
 const buildLocators = (page: Page) => ({

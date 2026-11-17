@@ -35,7 +35,7 @@ test.describe('Naming collisions - copy/paste request', () => {
     });
   });
 
-  test('pasting twice keeps the display name and suffixes the file', async ({ page, createTmpDir }) => {
+  test('pasting twice numbers the display name', async ({ page, createTmpDir }) => {
     const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('paste-twice');
 
@@ -44,14 +44,16 @@ test.describe('Naming collisions - copy/paste request', () => {
 
     await copyItem(page, 'login');
     await pasteIntoCollection(page, 'Paste Twice'); // login copy
-    await pasteIntoCollection(page, 'Paste Twice'); // login copy (display) -> login copy 1.bru
+    await expect(sidebar.request('login copy')).toBeVisible();
+    await pasteIntoCollection(page, 'Paste Twice'); // login copy 2
 
-    await test.step('Two "login copy" entries; filesystem name suffixed', async () => {
-      await expect(sidebar.itemByName('login copy')).toHaveCount(2);
+    await test.step('"login copy" and "login copy 2"', async () => {
+      await expect(sidebar.itemByName('login copy')).toHaveCount(1);
+      await expect(sidebar.itemByName('login copy 2')).toHaveCount(1);
       const files = listRequestFiles(testDir);
       expect(files).toContain('login.bru');
       expect(files).toContain('login copy.bru');
-      expect(files).toContain('login copy 1.bru');
+      expect(files).toContain('login copy 2.bru');
     });
   });
 
@@ -74,7 +76,7 @@ test.describe('Naming collisions - copy/paste request', () => {
     });
   });
 
-  test('pasting into the same folder twice suffixes within that folder', async ({ page, createTmpDir }) => {
+  test('pasting into the same folder twice numbers within that folder', async ({ page, createTmpDir }) => {
     const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('paste-folder-twice');
 
@@ -85,12 +87,14 @@ test.describe('Naming collisions - copy/paste request', () => {
 
     await copyItem(page, 'login');
     await pasteIntoFolder(page, 'Auth');
+    await expect(sidebar.folderRequest('Auth', 'login copy')).toBeVisible();
     await pasteIntoFolder(page, 'Auth');
 
-    await test.step('Two "login copy" in the folder; second file suffixed', async () => {
+    await test.step('"login copy" and "login copy 2" in the folder', async () => {
+      await expect(sidebar.folderRequest('Auth', 'login copy 2')).toBeVisible();
       const files = listRequestFiles(path.join(testDir, 'Paste Folder Twice', 'Auth'));
       expect(files).toContain('login copy.bru');
-      expect(files).toContain('login copy 1.bru');
+      expect(files).toContain('login copy 2.bru');
     });
   });
 

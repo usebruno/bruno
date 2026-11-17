@@ -17,6 +17,9 @@ export const buildRequestTabsLocators = (page: Page) => ({
   activeRequestTab: () => page.locator('.request-tab.active'),
   leftChevron: () => page.getByLabel('Left Chevron'),
   scrollContainer: () => page.locator('.tabs-scroll-container'),
+  activeRequestTabLabel: () => page.locator('.request-tab.active').getByTestId('request-tab-label'),
+  // The request tab's right-click menu; `key` is the menu item id (e.g. 'clone-request').
+  requestTabMenuItem: (key: string) => page.getByTestId(`menu-dropdown-${key}`),
   activeRequestTabMethod: () => page.locator('.request-tab.active .tab-method'),
   closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-tab-close-icon'),
   closableTabs: () => page.locator('.request-tab').filter({ has: page.getByTestId('request-tab-close-icon') }),
@@ -115,4 +118,15 @@ export const activeTabIsInStrip = async (page: Page) => {
   if (!strip || !tab) return false;
 
   return tab.x >= strip.x - 1 && tab.x + tab.width <= strip.x + strip.width + 1;
+};
+
+/**
+ * Open the active request tab's right-click menu. The tab's close gradient overlays the centre,
+ * so the click targets the left edge of the label.
+ */
+export const openActiveRequestTabMenu = async (page: Page) => {
+  await test.step('Open the active request tab menu', async () => {
+    const { tabs } = buildLocators(page);
+    await tabs.activeRequestTabLabel().click({ button: 'right', position: { x: 4, y: 8 } });
+  });
 };

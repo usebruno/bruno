@@ -40,7 +40,7 @@ test.describe('Naming collisions - clone folder', () => {
     });
   });
 
-  test('cloning a folder twice keeps the display name and suffixes only the directory', async ({ page, createTmpDir }) => {
+  test('cloning a folder twice numbers the display name', async ({ page, createTmpDir }) => {
     const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('folder-clone-twice');
 
@@ -48,16 +48,41 @@ test.describe('Naming collisions - clone folder', () => {
     await createFolder(page, 'Users', 'Clone Folder Twice');
 
     await cloneItem(page, 'Users');
+    await expect(sidebar.folder('Users copy')).toBeVisible();
     await cloneItem(page, 'Users');
 
-    await test.step('Sidebar shows two "Users copy" folders (duplicate display names allowed)', async () => {
-      await expect(sidebar.itemByName('Users copy')).toHaveCount(2);
+    await test.step('Sidebar shows "Users copy" and "Users copy 2"', async () => {
+      await expect(sidebar.itemByName('Users copy')).toHaveCount(1);
+      await expect(sidebar.itemByName('Users copy 2')).toHaveCount(1);
     });
 
-    await test.step('On disk: display name preserved, directory names suffixed', async () => {
+    await test.step('On disk: each clone has its own directory', async () => {
       const collDir = findCollectionDir(testDir);
       expect(fs.existsSync(path.join(collDir, 'Users copy'))).toBe(true);
-      expect(fs.existsSync(path.join(collDir, 'Users copy 1'))).toBe(true);
+      expect(fs.existsSync(path.join(collDir, 'Users copy 2'))).toBe(true);
+    });
+  });
+
+  test('cloning a folder copy joins the counter instead of appending another "copy"', async ({ page, createTmpDir }) => {
+    const { sidebar } = buildCommonLocators(page);
+    const testDir = await createTmpDir('folder-clone-of-copy');
+
+    await createCollection(page, 'Clone Folder Copy', testDir, 'bru');
+    await createFolder(page, 'Users', 'Clone Folder Copy');
+
+    await cloneItem(page, 'Users');
+    await expect(sidebar.folder('Users copy')).toBeVisible();
+    await cloneItem(page, 'Users copy');
+
+    await test.step('Sidebar shows "Users copy 2", not "Users copy copy"', async () => {
+      await expect(sidebar.itemByName('Users copy 2')).toHaveCount(1);
+      await expect(sidebar.itemByName('Users copy copy')).toHaveCount(0);
+    });
+
+    await test.step('On disk: "Users copy" + "Users copy 2"', async () => {
+      const collDir = findCollectionDir(testDir);
+      expect(fs.existsSync(path.join(collDir, 'Users copy'))).toBe(true);
+      expect(fs.existsSync(path.join(collDir, 'Users copy 2'))).toBe(true);
     });
   });
 
