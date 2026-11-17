@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { closeAllCollections, importCollection, selectScriptSubTab } from '../../utils/page';
+import { closeAllCollections, importCollection, selectScriptSubTab, sendRequest } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-with-scripts.json');
@@ -10,7 +10,7 @@ test.describe('Import Postman Collection with preserve scripts option enabled', 
     await closeAllCollections(page);
   });
 
-  test('should hide the preserve scripts toggle until the Advanced section is expanded', async ({ page }) => {
+  test('TC-4474: Verify Preserve scripts checkbox is visible under Advanced Options with default OFF on Import Collection', { tag: '@sanity' }, async ({ page }) => {
     const locators = buildCommonLocators(page);
 
     await test.step('Open import modal and upload the Postman collection', async () => {
@@ -33,7 +33,7 @@ test.describe('Import Postman Collection with preserve scripts option enabled', 
     });
   });
 
-  test('should preserve pm.* scripts as is when the option is enabled', async ({ page, createTmpDir }) => {
+  test('TC-4476: should preserve pm.* scripts as is when the option is enabled', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const importDir = await createTmpDir('preserve-scripts-on');
     const locators = buildCommonLocators(page);
 
@@ -63,7 +63,7 @@ test.describe('Import Postman Collection with preserve scripts option enabled', 
     });
   });
 
-  test('should translate pm.* scripts to bru.* by default when the option is disabled', async ({ page, createTmpDir }) => {
+  test('TC-4475:should translate pm.* scripts to bru.* by default when the option is disabled', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const importDir = await createTmpDir('preserve-scripts-off');
     const locators = buildCommonLocators(page);
 
@@ -88,6 +88,11 @@ test.describe('Import Postman Collection with preserve scripts option enabled', 
       const editor = locators.codeMirror.byTestId('post-response-script-editor');
       await expect(editor).toContainText('expect(res.getStatus()).to.equal(200)');
       await expect(editor).not.toContainText('pm.response.to.have.status');
+    });
+
+    await test.step('Run the request and check the status', async () => {
+      await sendRequest(page, 200);
+      await expect(locators.response.statusCode()).toContainText('200');
     });
   });
 });

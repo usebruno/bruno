@@ -34,10 +34,10 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "https://example.com/login",
+          "raw": "https://testbench-sanity.usebruno.com/ping",
           "protocol": "https",
-          "host": ["example", "com"],
-          "path": ["login"]
+          "host": ["testbench-sanity", "usebruno", "com"],
+          "path": ["ping"]
         }
       },
       "response": []
