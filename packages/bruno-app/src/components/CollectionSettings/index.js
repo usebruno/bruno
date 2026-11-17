@@ -1,7 +1,7 @@
 import React from 'react';
 import classnames from 'classnames';
 import get from 'lodash/get';
-import { updateSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
+import { updateSettingsSelectedTab, updateSettingsSection } from 'providers/ReduxStore/slices/collections';
 import { useDispatch } from 'react-redux';
 import Headers from './Headers';
 import Auth from './Auth';
@@ -28,14 +28,16 @@ const CollectionSettings = ({ collection }) => {
     dispatch(
       updateSettingsSelectedTab({
         collectionUid: collection.uid,
-        tab,
-        isSettingsSection: SETTINGS_SECTIONS.includes(tab)
+        tab
       })
     );
   };
-  // Section to reopen when the Settings tab is clicked: the last one used, else the default
-  const lastSettingsSection = SETTINGS_SECTIONS.includes(collection.settingsLastSection)
-    ? collection.settingsLastSection
+  const setSettingsSection = (section) => {
+    dispatch(updateSettingsSection({ collectionUid: collection.uid, section }));
+  };
+
+  const settingsSection = SETTINGS_SECTIONS.includes(collection.settingsSection)
+    ? collection.settingsSection
     : DEFAULT_SETTINGS_SECTION;
 
   const root = collection?.draft?.root || collection?.root;
@@ -74,7 +76,7 @@ const CollectionSettings = ({ collection }) => {
   const hasProxy = Object.keys(proxyConfig).length > 0 && proxyEnabled;
   const hasClientCerts = clientCertConfig.length > 0;
   const settingsIndicators = { presets: hasPresets, proxy: hasProxy, clientCert: hasClientCerts };
-  const isSettingsTab = SETTINGS_SECTIONS.includes(tab);
+  const isSettingsTab = tab === 'settings';
 
   const getTabPanel = (tab) => {
     switch (tab) {
@@ -96,10 +98,8 @@ const CollectionSettings = ({ collection }) => {
       case 'tests': {
         return <Test collection={collection} />;
       }
-      case 'presets':
-      case 'proxy':
-      case 'clientCert': {
-        return <Settings collection={collection} section={tab} onSelect={setTab} indicators={settingsIndicators} />;
+      case 'settings': {
+        return <Settings collection={collection} section={settingsSection} onSelect={setSettingsSection} indicators={settingsIndicators} />;
       }
       case 'protobuf': {
         return <Protobuf collection={collection} />;
@@ -109,7 +109,7 @@ const CollectionSettings = ({ collection }) => {
 
   const getTabClassname = (tabName) => {
     return classnames(`tab select-none ${tabName}`, {
-      active: tabName === 'settings' ? isSettingsTab : tabName === tab
+      active: tabName === tab
     });
   };
 
@@ -148,7 +148,7 @@ const CollectionSettings = ({ collection }) => {
             className={getTabClassname('settings')}
             role="tab"
             data-testid="collection-settings-tab-settings"
-            onClick={() => !isSettingsTab && setTab(lastSettingsSection)}
+            onClick={() => setTab('settings')}
           >
             Settings
             {(hasPresets || hasProxy || hasClientCerts) && <StatusDot />}

@@ -49,12 +49,12 @@ const ProxySettings = ({ close }) => {
             return false;
           }
         })
-        .max(2048, 'PAC URL must be less than 2048 characters')
+        .max(2048, 'PAC URL must be at most 2048 characters')
         .nullable()
     }).optional(),
     config: Yup.object({
       protocol: Yup.string().required().oneOf(['http', 'https', 'socks4', 'socks5']),
-      hostname: Yup.string().max(1024, 'Hostname must be less than 1024 characters'),
+      hostname: Yup.string().max(1024, 'Hostname must be at most 1024 characters'),
       port: Yup.number()
         .min(1, 'Port must be between 1 and 65535.')
         .max(65535, 'Port must be between 1 and 65535.')
@@ -63,10 +63,10 @@ const ProxySettings = ({ close }) => {
         .transform((_, val) => (val ? Number(val) : null)),
       auth: Yup.object({
         disabled: Yup.boolean().optional(),
-        username: Yup.string().max(1024, 'Username must be less than 1024 characters'),
-        password: Yup.string().max(1024, 'Password must be less than 1024 characters')
+        username: Yup.string().max(1024, 'Username must be at most 1024 characters'),
+        password: Yup.string().max(1024, 'Password must be at most 1024 characters')
       }).optional(),
-      bypassProxy: Yup.string().optional().max(1024, 'Bypass proxy must be less than 1024 characters')
+      bypassProxy: Yup.string().optional().max(1024, 'Bypass proxy must be at most 1024 characters')
     }).required()
   });
 

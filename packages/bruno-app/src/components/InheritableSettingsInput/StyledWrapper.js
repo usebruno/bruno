@@ -41,7 +41,6 @@ const StyledWrapper = styled.div`
   }
 
   .inheritable-input {
-    /* The placeholder is the value that applies, so it must stay readable (subtext2 meets 4.5:1) */
     &::placeholder {
       color: ${(props) => props.theme.colors.text.subtext2};
       opacity: 1;

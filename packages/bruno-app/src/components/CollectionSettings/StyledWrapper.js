@@ -35,9 +35,8 @@ const StyledWrapper = styled.div`
       }
     }
   }
-  /* Settings tab: the divider runs under the tabs and the sidebar border starts from it */
+    
   .settings-tab-bar.with-divider {
-    /* The wrapper drops its side padding on this tab, so the line runs edge to edge; keep tabs in place */
     padding-inline: 16px;
     border-bottom: 1px solid ${(props) => props.theme.border.border0};
 

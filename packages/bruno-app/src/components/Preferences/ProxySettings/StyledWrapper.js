@@ -32,7 +32,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-  /* Password input + show/hide button inside one bordered field */
   .password-field {
     display: flex;
     align-items: center;
@@ -130,7 +129,6 @@ const StyledWrapper = styled.div`
   }
 
   .system-proxy-settings {
-    /* SystemProxy lines up its variable rows on a fixed label column */
     .settings-label {
       width: 100px;
     }
