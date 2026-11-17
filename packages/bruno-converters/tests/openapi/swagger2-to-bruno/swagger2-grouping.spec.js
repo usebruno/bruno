@@ -150,7 +150,7 @@ describe('swagger2-to-bruno grouping', () => {
   });
 
   describe('duplicate name handling', () => {
-    it('should make duplicate operation names unique by appending method', () => {
+    it('should keep duplicate operation names and append the method to the file name only', () => {
       const spec = {
         swagger: '2.0',
         info: { title: 'Dup Names API', version: '1.0' },
@@ -163,11 +163,9 @@ describe('swagger2-to-bruno grouping', () => {
         }
       };
       const collection = swagger2ToBruno(spec);
-      const names = collection.items.map((i) => i.name);
 
-      // Should have unique names
-      const uniqueNames = new Set(names);
-      expect(uniqueNames.size).toBe(names.length);
+      expect(collection.items.map((i) => i.name)).toEqual(['Items', 'Items']);
+      expect(collection.items.map((i) => i.filename)).toEqual([undefined, 'Items (POST).bru']);
     });
 
     it('should deduplicate operation names across folders in tag-based grouping', () => {
@@ -188,9 +186,10 @@ describe('swagger2-to-bruno grouping', () => {
       const usersFolder = collection.items.find((i) => i.name === 'users');
       const petsFolder = collection.items.find((i) => i.name === 'pets');
 
-      // Tag-based grouping shares a global usedNames set, so second occurrence gets a suffix
+      // Tag-based grouping shares a global usedNames set, so second occurrence gets a suffix in its file name
       expect(usersFolder.items[0].name).toBe('List items');
-      expect(petsFolder.items[0].name).toBe('List items (GET)');
+      expect(petsFolder.items[0].name).toBe('List items');
+      expect(petsFolder.items[0].filename).toBe('List items (GET).bru');
     });
 
     it('should not add suffixes to duplicate names in different path-based folders', () => {

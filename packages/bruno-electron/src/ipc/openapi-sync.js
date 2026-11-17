@@ -14,7 +14,7 @@ const {
 } = require('@usebruno/filestore');
 const { openApiToBruno } = require('@usebruno/converters');
 const { resolveEnvironmentInheritance, buildQueryString, parseQueryParams } = require('@usebruno/common/utils');
-const { writeFile, sanitizeName, getCollectionFormat, posixifyPath } = require('../utils/filesystem');
+const { writeFile, writeFileUnique, sanitizeName, getCollectionFormat, posixifyPath } = require('../utils/filesystem');
 const { derefSpecObject, declaredSchemaNode, declaresKey, declaredKeysOf, declaredChild, declaredItems, declaresOnlyScalars, keyLeavesShapeOpen, itemsLeaveShapeOpen, otherAlternativeKeys } = require('../utils/openapi-schema');
 
 const RESERVED_FOLDER_NAMES = ['node_modules', '.git', 'environments', 'mocks'];
@@ -874,7 +874,7 @@ const ensureTagFolder = async (collectionPath, folderName, format) => {
   return targetFolder;
 };
 
-const requestFileName = (item, format) => `${sanitizeName(item.filename ? item.filename.replace(/\.(bru|yml)$/, '') : item.name)}.${format}`;
+const requestFileBase = (item) => sanitizeName(item.filename ? item.filename.replace(/\.(bru|yml)$/, '') : item.name);
 
 /**
  * Flatten a Bruno collection's items into a Map keyed by endpoint ID (METHOD:normalizedPath).
@@ -1675,8 +1675,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           }
 
           const requestContent = await stringifyRequestViaWorker(specItem, { format });
-          const sanitizedFilename = requestFileName(specItem, format);
-          await writeFile(path.join(targetFolder, sanitizedFilename), requestContent);
+          await writeFileUnique(targetFolder, requestFileBase(specItem), format, requestContent);
         }
 
         // Save spec in original format
@@ -1811,8 +1810,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
               }
 
               const requestContent = await stringifyRequestViaWorker(newItem, { format });
-              const sanitizedFilename = requestFileName(newItem, format);
-              await writeFile(path.join(targetFolder, sanitizedFilename), requestContent);
+              await writeFileUnique(targetFolder, requestFileBase(newItem), format, requestContent);
             }
           }
         }
@@ -2055,8 +2053,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           }
 
           const requestContent = await stringifyRequestViaWorker(specItem, { format });
-          const sanitizedFilename = requestFileName(specItem, format);
-          await writeFile(path.join(targetFolder, sanitizedFilename), requestContent);
+          await writeFileUnique(targetFolder, requestFileBase(specItem), format, requestContent);
           addedCount++;
         }
       }
@@ -2149,6 +2146,6 @@ if (process.env.NODE_ENV === 'test') {
     compareRequestFields,
     specConversionOptions,
     ensureTagFolder,
-    requestFileName
+    requestFileBase
   };
 }

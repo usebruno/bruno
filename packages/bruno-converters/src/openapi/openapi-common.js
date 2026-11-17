@@ -896,31 +896,29 @@ const methodAndPathName = ({ method, path, originalPath }) => identifierName(`${
 
 const fileNameKey = (name) => sanitizeName(name).toLowerCase();
 
-const uniqueRequestName = (name, method, usedNames) => {
-  let uniqueName = name;
-  if (usedNames.has(fileNameKey(uniqueName))) {
-    uniqueName = `${name} (${method.toUpperCase()})`;
+const fileSafeName = (name) => (sanitizeName(name) ? name : '');
+
+const uniqueFileBase = (base, method, usedNames) => {
+  let uniqueBase = base;
+  if (usedNames.has(fileNameKey(uniqueBase))) {
+    uniqueBase = `${base} (${method.toUpperCase()})`;
   }
   let counter = 1;
-  while (usedNames.has(fileNameKey(uniqueName))) {
-    uniqueName = `${name} (${counter})`;
+  while (usedNames.has(fileNameKey(uniqueBase))) {
+    uniqueBase = `${base} (${counter})`;
     counter++;
   }
-  usedNames.add(fileNameKey(uniqueName));
-  return uniqueName;
+  usedNames.add(fileNameKey(uniqueBase));
+  return uniqueBase;
 };
 
 export const getRequestNaming = (request, requestNameSource, usedNames) => {
   const preferred = REQUEST_NAME_SOURCES.includes(requestNameSource) ? requestNameSource : DEFAULT_REQUEST_NAME_SOURCE;
   const fields = preferred === 'path' ? [] : [preferred, ...REQUEST_NAME_SOURCES.filter((source) => source !== preferred && source !== 'path')];
-  const fieldName = fields.reduce((name, field) => name || requestNameByField[field](request), '');
-  if (fieldName) {
-    return { name: uniqueRequestName(fieldName, request.method, usedNames) };
-  }
-  return {
-    name: pathName(request) || methodAndPathName(request),
-    filename: `${uniqueRequestName(methodAndPathName(request), request.method, usedNames)}.bru`
-  };
+  const fieldName = fields.reduce((name, field) => name || fileSafeName(requestNameByField[field](request)), '');
+  const name = fieldName || pathName(request) || methodAndPathName(request);
+  const fileBase = uniqueFileBase(fieldName || methodAndPathName(request), request.method, usedNames);
+  return fileBase === name ? { name } : { name, filename: `${fileBase}.bru` };
 };
 
 /**

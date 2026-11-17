@@ -2,6 +2,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { pathToFileURL } = require('url');
+const { parseRequest } = require('@usebruno/filestore');
 
 const { builder, handler, resolveLocalWsdlSchemaRef } = require('../../src/commands/import');
 
@@ -170,6 +171,31 @@ describe('import openapi', () => {
       const collection = await importOpenApi(petsSpec, { requestNameSource });
 
       expect(collection.items.map((item) => item.name)).toEqual(names);
+    });
+  });
+
+  describe('requests that share a name', () => {
+    const listPets = { summary: 'List pets', responses: { 200: { description: 'OK' } } };
+    const duplicatesSpec = {
+      openapi: '3.0.3',
+      info: { title: 'Pets', version: '1.0' },
+      servers: [{ url: 'https://example.com' }],
+      paths: { '/pets': { get: listPets, post: listPets }, '/animals': { get: listPets } }
+    };
+
+    it.each([['bru', 'bru'], ['opencollection', 'yml']])('keep the name and get a file each when written as %s', async (collectionFormat, extension) => {
+      importCount += 1;
+      const source = path.join(dir, `spec-${importCount}.json`);
+      const output = path.join(dir, `collection-${importCount}`);
+      fs.writeFileSync(source, JSON.stringify(duplicatesSpec));
+
+      await handler({ type: 'openapi', source, output, collectionFormat, groupBy: 'tags', insecure: false });
+
+      const requestFiles = fs.readdirSync(output).filter((file) => file.startsWith('List pets')).sort();
+      expect(requestFiles).toEqual([`List pets (GET).${extension}`, `List pets (POST).${extension}`, `List pets.${extension}`]);
+      requestFiles.forEach((file) => {
+        expect(parseRequest(fs.readFileSync(path.join(output, file), 'utf8'), { format: extension }).name).toBe('List pets');
+      });
     });
   });
 });

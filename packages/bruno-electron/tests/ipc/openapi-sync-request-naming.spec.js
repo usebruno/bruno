@@ -1,6 +1,35 @@
-const { describe, it, expect } = require('@jest/globals');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { describe, it, expect, beforeEach, afterEach } = require('@jest/globals');
+
+let mockUserData;
+
+jest.mock('electron', () => {
+  const handlers = {};
+  return {
+    ipcMain: {
+      handle: jest.fn((channel, handler) => {
+        handlers[channel] = handler;
+      }),
+      on: jest.fn(),
+      _getHandler: (channel) => handlers[channel]
+    },
+    app: { getPath: jest.fn(() => mockUserData), getVersion: jest.fn(() => '1.0.0') }
+  };
+});
+
+jest.mock('@usebruno/filestore', () => {
+  const filestore = jest.requireActual('@usebruno/filestore');
+  return { ...filestore, stringifyRequestViaWorker: async (item, options) => filestore.stringifyRequest(item, options) };
+});
+
+const { ipcMain } = require('electron');
+const { parseRequest, stringifyRequest, stringifyCollection } = require('@usebruno/filestore');
 const { openApiToBruno } = require('@usebruno/converters');
-const { _test: { specConversionOptions, requestFileName } } = require('../../src/ipc/openapi-sync');
+const registerOpenAPISyncIpc = require('../../src/ipc/openapi-sync');
+
+const { _test: { specConversionOptions, requestFileBase } } = registerOpenAPISyncIpc;
 
 const spec = {
   openapi: '3.0.3',
@@ -33,11 +62,69 @@ describe('syncing with the saved request naming', () => {
 
 describe('the file of a request that sync adds', () => {
   it.each([
-    ['bru', { name: '/pets/{petId}', filename: 'GET /pets/{petId}.bru' }, 'GET -pets-{petId}.bru'],
-    ['yml', { name: '/pets/{petId}', filename: 'GET /pets/{petId}.bru' }, 'GET -pets-{petId}.yml'],
-    ['bru', { name: '/pets/{petId}', filename: 'DELETE /pets/{petId}.yml' }, 'DELETE -pets-{petId}.bru'],
-    ['yml', { name: 'Find pet by ID' }, 'Find pet by ID.yml']
-  ])('is named in %s after the file name the converter gives it, else after the request name: %j', (format, item, file) => {
-    expect(requestFileName(item, format)).toBe(file);
+    [{ name: '/pets/{petId}', filename: 'GET /pets/{petId}.bru' }, 'GET -pets-{petId}'],
+    [{ name: '/pets/{petId}', filename: 'DELETE /pets/{petId}.yml' }, 'DELETE -pets-{petId}'],
+    [{ name: 'Find pet by ID', filename: 'Find pet by ID (POST).bru' }, 'Find pet by ID (POST)'],
+    [{ name: 'Find pet by ID' }, 'Find pet by ID']
+  ])('is named after the file name the converter gives it, else after the request name: %j', (item, fileBase) => {
+    expect(requestFileBase(item)).toBe(fileBase);
+  });
+});
+
+describe.each(['bru', 'yml'])('a request that sync adds next to a %s file with the same name', (format) => {
+  const SOURCE_URL = 'https://example.com/pets.json';
+  const OK = { 200: { description: 'OK' } };
+  const listPets = { summary: 'List pets', responses: OK };
+  const previousSpec = { openapi: '3.0.3', info: { title: 'Pets', version: '1' }, paths: { '/pets': { get: listPets } } };
+  const newSpec = { openapi: '3.0.3', info: { title: 'Pets', version: '2' }, paths: { '/pets': { post: listPets, get: listPets } } };
+  let collectionPath;
+
+  const requestIn = (file) => parseRequest(fs.readFileSync(path.join(collectionPath, file), 'utf8'), { format }).request;
+
+  beforeEach(() => {
+    mockUserData = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-sync-user-data-'));
+    collectionPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-sync-collection-'));
+    const config = { version: '1', name: 'Pets', type: 'collection', openapi: [{ sourceUrl: SOURCE_URL, groupBy: 'tags' }] };
+    if (format === 'yml') {
+      fs.writeFileSync(path.join(collectionPath, 'opencollection.yml'), stringifyCollection({}, { ...config, opencollection: '1.0.0' }, { format }));
+    } else {
+      fs.writeFileSync(path.join(collectionPath, 'bruno.json'), JSON.stringify(config));
+    }
+    const [listPetsRequest] = openApiToBruno(previousSpec).items;
+    fs.writeFileSync(path.join(collectionPath, `List pets.${format}`), stringifyRequest(listPetsRequest, { format }));
+    registerOpenAPISyncIpc({ webContents: { send: jest.fn() } });
+  });
+
+  afterEach(() => {
+    fs.rmSync(collectionPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+    fs.rmSync(mockUserData, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+  });
+
+  const expectBothRequestsKept = () => {
+    expect(requestIn(`List pets.${format}`).method).toBe('GET');
+    expect(requestIn(`List pets 1.${format}`).method).toBe('POST');
+  };
+
+  it('keeps the existing request when the sync adds a new one', async () => {
+    await ipcMain._getHandler('renderer:apply-openapi-sync')({}, {
+      collectionPath,
+      addNewRequests: true,
+      removeDeletedRequests: false,
+      diff: { newSpec, added: [{ method: 'POST', path: '/pets' }], modified: [], removed: [] },
+      mode: 'sync'
+    });
+
+    expectBothRequestsKept();
+  });
+
+  it('keeps the existing request when a missing endpoint is added', async () => {
+    const specsDir = path.join(mockUserData, 'specs');
+    fs.mkdirSync(specsDir, { recursive: true });
+    fs.writeFileSync(path.join(specsDir, 'stored.json'), JSON.stringify(newSpec));
+    fs.writeFileSync(path.join(specsDir, 'metadata.json'), JSON.stringify({ [collectionPath]: [{ filename: 'stored.json', sourceUrl: SOURCE_URL }] }));
+
+    await ipcMain._getHandler('renderer:add-missing-endpoints')({}, { collectionPath, endpoints: [{ method: 'POST', path: '/pets' }] });
+
+    expectBothRequestsKept();
   });
 });

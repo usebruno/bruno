@@ -296,28 +296,66 @@ describe.each([
   });
 
   describe('uniqueness', () => {
-    it('de-duplicates names that the cleanup made equal', () => {
-      const names = namesOf({
+    it('keeps names that the cleanup made equal and gives the second its own file', () => {
+      const { items } = openApiToBruno(buildSpec({
         '/pets': {
           get: { summary: `Lists pets. ${'Filtered by status. '.repeat(8)}`, responses: {} },
           post: { summary: `Lists pets. ${'Sorted by name. '.repeat(8)}`, responses: {} }
         }
-      });
+      }));
 
-      expect(names).toEqual(['Lists pets', 'Lists pets (POST)']);
+      expect(items.map((item) => item.name)).toEqual(['Lists pets', 'Lists pets']);
+      expect(items.map((item) => item.filename)).toEqual([undefined, 'Lists pets (POST).bru']);
     });
 
-    it('adds the method to a duplicate and numbers it when that name is taken too', () => {
-      const names = namesOf({
+    it.each(['summary', 'operationId', 'description'])('shows a duplicate %s as written and adds the method, then a number, only to its file name', (requestNameSource) => {
+      const operation = { summary: 'Pets', operationId: 'Pets', description: 'Pets', responses: {} };
+      const { items } = openApiToBruno(buildSpec({
+        '/pets': { get: operation, post: operation },
+        '/animals': { get: operation },
+        '/beasts': { get: operation }
+      }), { requestNameSource });
+
+      expect(items.map((item) => item.name)).toEqual(['Pets', 'Pets', 'Pets', 'Pets']);
+      expect(items.map((item) => item.filename)).toEqual([undefined, 'Pets (POST).bru', 'Pets (GET).bru', 'Pets (1).bru']);
+    });
+
+    it('keeps names that differ only by case or by characters a file name cannot hold, with a file each', () => {
+      const { items } = openApiToBruno(buildSpec({
+        '/pets': { get: { summary: 'List Pets', responses: {} } },
+        '/animals': { get: { summary: 'list pets', responses: {} } },
+        '/a': { get: { summary: 'a/b', responses: {} } },
+        '/b': { get: { summary: 'a:b', responses: {} } }
+      }));
+      const files = items.map((item) => sanitizeName(item.filename || `${item.name}.bru`).toLowerCase());
+
+      expect(items.map((item) => item.name)).toEqual(['List Pets', 'list pets', 'a/b', 'a:b']);
+      expect(new Set(files).size).toBe(4);
+    });
+
+    it('falls back to the next field, then the path, when a name has nothing a file name can hold', () => {
+      const { items } = openApiToBruno(buildSpec({
+        '/pets': {
+          get: { summary: '???', operationId: 'listPets', responses: {} },
+          post: { summary: '<*>', operationId: '/:', responses: {} }
+        }
+      }));
+
+      expect(items.map((item) => item.name)).toEqual(['listPets', '/pets']);
+      expect(items.map((item) => item.filename)).toEqual([undefined, 'POST /pets.bru']);
+    });
+
+    it('shows the same name when a fallback field matches a name already used, with its own file', () => {
+      const { items } = openApiToBruno(buildSpec({
         '/pets': {
           get: { summary: 'Pets', responses: {} },
-          post: { summary: 'Pets', responses: {} }
-        },
-        '/animals': { get: { summary: 'Pets', responses: {} } },
-        '/beasts': { get: { summary: 'Pets', responses: {} } }
-      });
+          post: { operationId: 'Pets', responses: {} },
+          put: { description: 'Pets.', responses: {} }
+        }
+      }));
 
-      expect(names).toEqual(['Pets', 'Pets (POST)', 'Pets (GET)', 'Pets (1)']);
+      expect(items.map((item) => item.name)).toEqual(['Pets', 'Pets', 'Pets']);
+      expect(items.map((item) => item.filename)).toEqual([undefined, 'Pets (POST).bru', 'Pets (PUT).bru']);
     });
 
     it('names every operation on a shared path after the path and gives each method its own file', () => {
@@ -367,6 +405,7 @@ describe.each([
       const files = items.map((item) => sanitizeName(item.filename || `${item.name}.bru`).toLowerCase());
 
       expect(items.find((item) => item.request.method === 'GET').name).toBe('/pets');
+      expect(items.find((item) => item.request.method === 'POST').name).toBe('GET /pets');
       expect(new Set(files).size).toBe(2);
     });
 
@@ -381,7 +420,7 @@ describe.each([
       const [item] = openApiToBruno(buildSpec({ [emptyPath]: { get: { responses: {} } } }), { requestNameSource: 'path' }).items;
 
       expect(item.name).toBe('GET');
-      expect(item.filename).toBe('GET.bru');
+      expect(item.filename || `${item.name}.bru`).toBe('GET.bru');
     });
   });
 
