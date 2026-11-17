@@ -896,7 +896,7 @@ const methodAndPathName = ({ method, path, originalPath }) => identifierName(`${
 
 const fileNameKey = (name) => sanitizeName(name).toLowerCase();
 
-const fileSafeName = (name) => (sanitizeName(name) ? name : '');
+const usableName = (name) => (sanitizeName(name) ? name : '');
 
 const uniqueFileBase = (base, method, usedNames) => {
   let uniqueBase = base;
@@ -915,7 +915,7 @@ const uniqueFileBase = (base, method, usedNames) => {
 export const getRequestNaming = (request, requestNameSource, usedNames) => {
   const preferred = REQUEST_NAME_SOURCES.includes(requestNameSource) ? requestNameSource : DEFAULT_REQUEST_NAME_SOURCE;
   const fields = preferred === 'path' ? [] : [preferred, ...REQUEST_NAME_SOURCES.filter((source) => source !== preferred && source !== 'path')];
-  const fieldName = fields.reduce((name, field) => name || fileSafeName(requestNameByField[field](request)), '');
+  const fieldName = fields.reduce((name, field) => name || usableName(requestNameByField[field](request)), '');
   const name = fieldName || pathName(request) || methodAndPathName(request);
   const fileBase = uniqueFileBase(fieldName || methodAndPathName(request), request.method, usedNames);
   return fileBase === name ? { name } : { name, filename: `${fileBase}.bru` };

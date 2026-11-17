@@ -117,6 +117,12 @@ describe.each(['bru', 'yml'])('a request that sync adds next to a %s file with t
     expectBothRequestsKept();
   });
 
+  it('keeps the existing request when a reset to the spec adds a new one', async () => {
+    await ipcMain._getHandler('renderer:apply-openapi-sync')({}, { collectionPath, diff: { newSpec }, mode: 'reset' });
+
+    expectBothRequestsKept();
+  });
+
   it('keeps the existing request when a missing endpoint is added', async () => {
     const specsDir = path.join(mockUserData, 'specs');
     fs.mkdirSync(specsDir, { recursive: true });
