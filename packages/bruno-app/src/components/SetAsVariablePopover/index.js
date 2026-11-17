@@ -85,7 +85,7 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
     });
 
     setSaving(true);
-    dispatch(updateVariableInScope(name, value, scopeInfo, selection.collection?.uid))
+    dispatch(updateVariableInScope(name, value, scopeInfo, selection.collection?.uid, { silent: true }))
       .then(() => {
         const replaced = replaceSelectionWithVariable(selection, name, scopeType);
         const persisted = replaced && scopeType === VARIABLE_ADD_SCOPES.REQUEST
@@ -108,7 +108,7 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
       })
       .catch((error) => {
         setSaving(false);
-        toast.error(error.message);
+        toast.error(error?.message || 'Failed to save variable');
       });
   };
 
