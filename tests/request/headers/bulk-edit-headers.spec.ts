@@ -33,7 +33,7 @@ test('TC-592: Verify the Link from Key/Value to Bulk Edit View for Request Heade
     await selectRequestPaneTab(page, 'Headers');
 
     await expect(headers.table()).toBeVisible();
-    await expect(headers.requestNameCell(headers.addRow())).toBeVisible();
+    await expect(headers.nameEditor(headers.addRow())).toBeVisible();
     await expect(headers.requestValueCell(headers.addRow())).toBeVisible();
     await expect(headers.requestBulkEditToggle()).toBeVisible();
     await expect(headers.requestBulkEditToggle()).toBeEnabled();

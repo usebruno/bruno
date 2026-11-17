@@ -48,7 +48,7 @@ export const buildRequestLocators = (page: Page) => ({
     inheritedRow: (name: string) => page.getByTestId(`inherited-header-row-${name.toLowerCase()}`),
     inheritedSource: (name: string) => page.getByTestId(`inherited-header-source-${name.toLowerCase()}`),
     addRow: () => page.getByTestId('request-header-add-row'),
-    requestNameCell: (row: Locator) => row.getByTestId('column-name'),
+    nameEditor: (row: Locator) => row.getByTestId('column-name'),
     requestValueCell: (row: Locator) => row.getByTestId('column-value'),
     requestCheckbox: (row: Locator) => row.getByTestId('column-checkbox'),
     requestCellText: (row: Locator, column: 'name' | 'value') => row.getByTestId(`column-${column}`)
