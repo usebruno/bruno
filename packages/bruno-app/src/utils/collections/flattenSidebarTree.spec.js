@@ -1,4 +1,4 @@
-import { flattenSidebarTree, buildIndexes } from './flattenSidebarTree';
+import { flattenSidebarTree } from './flattenSidebarTree';
 
 let uid = 0;
 const nextUid = (p) => `${p}-${++uid}`;
@@ -223,24 +223,21 @@ describe('object maps', () => {
   });
 });
 
-describe('buildIndexes', () => {
+describe('row index maps', () => {
   it('maps item uid and collection uid to row index', () => {
     const c = collection('C', [request('r1', { uid: 'req-x' })], { uid: 'col-x' });
-    const rows = flatten([loaded(c)]);
-    const { rowIndexByItemUid, rowIndexByCollectionUid } = buildIndexes(rows);
+    const { rows, rowIndexByItemUid, rowIndexByCollectionUid } = flattenSidebarTree([loaded(c)]);
     expect(rows[rowIndexByItemUid.get('req-x')].kind).toBe('request');
     expect(rowIndexByCollectionUid.get('col-x')).toBe(0);
   });
   it('item-uid map targets the item row, not its example rows', () => {
     const c = collection('C', [request('r1', { uid: 'req-x', collapsed: false, examples: [{ uid: 'ex1', name: 'ok' }] })]);
-    const rows = flatten([loaded(c)]);
-    const { rowIndexByItemUid } = buildIndexes(rows);
+    const { rows, rowIndexByItemUid } = flattenSidebarTree([loaded(c)]);
     expect(rows[rowIndexByItemUid.get('req-x')].kind).toBe('request');
   });
   it('indexes example rows by exampleUid', () => {
     const c = collection('C', [request('r1', { uid: 'req-x', collapsed: false, examples: [{ uid: 'ex1', name: 'ok' }] })]);
-    const rows = flatten([loaded(c)]);
-    const { rowIndexByItemUid } = buildIndexes(rows);
+    const { rows, rowIndexByItemUid } = flattenSidebarTree([loaded(c)]);
     expect(rows[rowIndexByItemUid.get('ex1')].kind).toBe('example');
   });
 });

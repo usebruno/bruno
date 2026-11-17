@@ -1,5 +1,6 @@
 import { Locator, Page, expect, test } from '../../../../playwright';
 import { collectionSlug } from '../../../../packages/bruno-app/src/utils/collections/collectionSlug';
+import { buildToastLocators } from '../toast';
 
 export type EmptyStateRequestType = 'http' | 'graphql' | 'grpc' | 'websocket';
 
@@ -15,10 +16,21 @@ export const buildSidebarLocators = (page: Page) => {
   const item = (name: string) => page.locator('.collection-item-name').filter({ hasText: name });
 
   const collectionScope = (name: string) => page.locator(`[data-collection-id="${collectionSlug(name)}"]`);
+  const folderScope = (folderName: string) => page.locator(`[data-parent-name="${folderName}"]`);
+  const inlineCollectionCreatorRoot = () => page.getByTestId('inline-collection-creator');
 
   return {
+    inlineCollectionCreator: {
+      root: inlineCollectionCreatorRoot,
+      nameInput: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-input'),
+      advancedButton: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-advanced-btn'),
+      createButton: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-save-btn'),
+      cancelButton: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-cancel-btn')
+    },
     collectionsContainer: () => page.getByTestId('collections'),
+    collectionsScroller: () => page.getByTestId('sidebar-collections-scroller'),
     collection: (name?: string) => name ? page.locator('#sidebar-collection-name').filter({ hasText: name }) : page.locator('#sidebar-collection-name'),
+    collectionExact: (name: string) => page.locator('#sidebar-collection-name').and(page.getByTitle(name, { exact: true })),
     item,
     folder: item,
     request: item,
@@ -29,12 +41,21 @@ export const buildSidebarLocators = (page: Page) => {
     closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
     collectionRow,
     collectionRows: () => page.getByTestId('sidebar-collection-row'),
+    invalidFilesBadge: (name: string) => collectionRow(name).getByTestId('invalid-files-badge'),
+    invalidFilesTooltip: () => page.getByTestId('invalid-files-tooltip'),
+    invalidFilesSeeHere: () => page.getByTestId('invalid-files-see-here'),
+    folderInvalidFilesBadge: (collectionName: string, folderName: string) =>
+      collectionScope(collectionName).getByTestId('sidebar-collection-item-row').filter({ has: itemByName(folderName) }).getByTestId('invalid-files-badge'),
     itemRow,
     itemByName,
     itemsIn: (collectionName: string, name: string): Locator =>
       collectionScope(collectionName).locator('.item-name').and(page.getByTitle(name, { exact: true })),
     itemRowIn: (collectionName: string, name: string): Locator =>
       collectionScope(collectionName).getByTestId('sidebar-collection-item-row').filter({ has: itemByName(name) }),
+    collectionItemNames: (collectionName: string): Locator =>
+      collectionScope(collectionName).locator('.item-name'),
+    folderItemNames: (collectionName: string, folderName: string): Locator =>
+      collectionScope(collectionName).and(folderScope(folderName)).locator('.item-name'),
 
     // "+ Add request" cta inside the empty collection
     emptyStateCta: (collectionName: string): Locator =>
@@ -59,13 +80,18 @@ export const buildSidebarLocators = (page: Page) => {
     example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
     collectionScope,
     collectionScopeByUid: (collectionUid: string) => page.locator(`[data-collection-uid="${collectionUid}"]`),
-    folderScope: (folderName: string) => page.locator(`[data-parent-name="${folderName}"]`),
+    folderScope,
+    itemInFolder: (folderName: string, itemName: string): Locator =>
+      folderScope(folderName).locator('.item-name').and(page.getByTitle(itemName, { exact: true })),
     scopedItem: function (collectionName: string, itemName: string) {
       return this.collectionScope(collectionName).locator('.item-name').and(page.getByTitle(itemName, { exact: true }));
     },
     dragHandle: () => page.getByTestId('sidebar-drag-handle'),
     toggleSidebarButton: () => page.getByTestId('toggle-sidebar-button'),
     sidebarContainer: () => page.getByTestId('sidebar'),
+    searchToggle: () => page.getByTestId('sidebar-search-toggle'),
+    searchInput: () => page.getByTestId('sidebar-search-input'),
+    searchClear: () => page.getByTestId('sidebar-search-clear-icon'),
 
     // Modals opened from a sidebar row's "..." menu.
     renameItemModal: {
@@ -81,6 +107,11 @@ export const buildSidebarLocators = (page: Page) => {
 
     newFolderModal: {
       nameInput: (): Locator => page.getByTestId('new-folder-input')
+    },
+
+    ignoreFolderModal: {
+      root: (): Locator => page.getByTestId('ignore-folder-modal'),
+      confirmButton: (): Locator => page.getByTestId('ignore-folder-modal-submit-btn')
     },
 
     cloneCollectionModal: {
@@ -150,6 +181,27 @@ export const revealFolderRow = async (
       .first();
     await expect(targetRow).toBeVisible();
     return targetRow;
+  });
+};
+
+/**
+ * Ignores a folder from the sidebar.
+ * @param page - The Playwright page object
+ * @param collectionName - The collection holding the folder
+ * @param folderName - The folder to ignore
+ * @returns void
+ */
+export const ignoreFolder = async (page: Page, collectionName: string, folderName: string) => {
+  await test.step(`Ignore folder "${folderName}" from its sidebar menu`, async () => {
+    const locators = buildSidebarLocators(page);
+    const toast = buildToastLocators(page);
+
+    await locators.itemRowIn(collectionName, folderName).click({ button: 'right' });
+    await locators.rowMenu(folderName).item('ignore').click();
+    await locators.ignoreFolderModal.root().waitFor({ state: 'visible' });
+    await locators.ignoreFolderModal.confirmButton().click();
+    await locators.ignoreFolderModal.root().waitFor({ state: 'hidden' });
+    await toast.byMessage('Folder ignored').first().waitFor({ state: 'visible' });
   });
 };
 

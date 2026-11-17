@@ -10,8 +10,32 @@ import { getInheritedEnvironments } from '@usebruno/common/utils';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
 
-const ExportEnvironmentModal = ({ onClose, environments = [], environmentType }) => {
+const ExportEnvironmentModal = ({ onClose, environments = [], environmentType, preselectedEnvironmentUids }) => {
   const dispatch = useDispatch();
+
+  // empty or missing list means no preselection, so everything starts selected.
+  const preselectedKey = preselectedEnvironmentUids?.length ? preselectedEnvironmentUids.join(',') : '';
+  const preselectedUids = useMemo(
+    () => (preselectedKey ? new Set(preselectedKey.split(',')) : null),
+    [preselectedKey]
+  );
+
+  // With a preselection, list only those environments and the ones they inherit from.
+  const visibleEnvironments = useMemo(() => {
+    if (!preselectedUids) return environments;
+
+    const visibleUids = new Set();
+    environments.forEach((environment) => {
+      if (!preselectedUids.has(environment.uid)) return;
+
+      visibleUids.add(environment.uid);
+      getInheritedEnvironments({ environments, environment }).inheritedEnvironments.forEach((inherited) => {
+        visibleUids.add(inherited.uid);
+      });
+    });
+
+    return environments.filter((environment) => visibleUids.has(environment.uid));
+  }, [environments, preselectedUids]);
 
   // Helper function to truncate environment names
   const truncateEnvName = (name) => {
@@ -30,13 +54,13 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
   useEffect(() => {
     const initialSelection = {};
 
-    // Add all environments and select them by default
-    environments.forEach((env) => {
-      initialSelection[env.uid] = true;
+    // Select all by default, or only the preselected ones when given
+    visibleEnvironments.forEach((env) => {
+      initialSelection[env.uid] = preselectedUids ? preselectedUids.has(env.uid) : true;
     });
 
     setSelectedEnvironments(initialSelection);
-  }, [environments]);
+  }, [visibleEnvironments, preselectedUids]);
 
   useEffect(() => {
     const selectedCount = Object.values(selectedEnvironments).filter(Boolean).length;
@@ -72,9 +96,9 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
   };
 
   const handleSelectAll = () => {
-    const allSelected = environments.every((env) => selectedEnvironments[env.uid]) || false;
+    const allSelected = visibleEnvironments.every((env) => selectedEnvironments[env.uid]) || false;
 
-    const newSelection = environments.reduce((acc, env) => ({
+    const newSelection = visibleEnvironments.reduce((acc, env) => ({
       ...acc,
       [env.uid]: !allSelected
     }), {}) || {};
@@ -183,11 +207,11 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
                       onClick={handleSelectAll}
                       className="text-xs text-link px-1 py-0.5 rounded transition-colors"
                     >
-                      {environments.every((env) => selectedEnvironments[env.uid]) ? 'Deselect All' : 'Select All'}
+                      {visibleEnvironments.every((env) => selectedEnvironments[env.uid]) ? 'Deselect All' : 'Select All'}
                     </button>
                   </div>
-                  <div className="flex flex-col gap-1 flex-1 overflow-y-auto">
-                    {environments.map((env) => {
+                  <div className="environment-list flex flex-col gap-1 flex-1 overflow-y-auto">
+                    {visibleEnvironments.map((env) => {
                       const unselectedInheritedEnvironmentNames = unselectedInheritedEnvironmentNamesByUid[env.uid];
 
                       return (

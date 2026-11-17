@@ -1,7 +1,7 @@
 import { test, expect } from '../../playwright';
 import { execSync } from 'child_process';
 import path from 'path';
-import { clickResponseAction, sendRequest } from '../utils/page/actions';
+import { clickResponseAction, sendRequest, toggleRequestExamples } from '../utils/page/actions';
 
 test.describe.serial('Response Example Menu Operations', () => {
   test.setTimeout(1 * 60 * 1000); // 1 minute for all tests in this describe block, default is 30 seconds.
@@ -24,7 +24,7 @@ test.describe.serial('Response Example Menu Operations', () => {
       await page.getByRole('button', { name: 'Create Example' }).click();
       // Wait for modal to close
       await page.waitForSelector('text=Save Response as Example', { state: 'detached' });
-      await page.locator('.collection-item-name').filter({ hasText: 'menu-operations' }).getByTestId('request-item-chevron').click();
+      await toggleRequestExamples(page, 'menu-operations', true);
 
       const exampleRow = page.locator('.collection-item-name').filter({ hasText: 'Example to Clone' });
       await expect(exampleRow).toBeVisible();
@@ -36,8 +36,18 @@ test.describe.serial('Response Example Menu Operations', () => {
       await exampleRow.locator('.menu-icon').click({ force: true });
 
       await page.getByTestId('response-example-menu-clone').click();
-      const clonedExampleItem = page.locator('.collection-item-name').filter({ hasText: 'Example to Clone (Copy)' });
+      const clonedExampleItem = page.locator('.collection-item-name').filter({ hasText: 'Example to Clone copy' });
       await expect(clonedExampleItem).toBeVisible();
+    });
+
+    await test.step('Cloning the clone joins the counter instead of stacking "copy"', async () => {
+      const clonedExampleRow = page.locator('.collection-item-name').filter({ hasText: 'Example to Clone copy' });
+      await clonedExampleRow.hover();
+      await clonedExampleRow.locator('.menu-icon').click({ force: true });
+
+      await page.getByTestId('response-example-menu-clone').click();
+      await expect(page.locator('.collection-item-name').filter({ hasText: 'Example to Clone copy 2' })).toBeVisible();
+      await expect(page.locator('.collection-item-name').filter({ hasText: 'Example to Clone copy copy' })).toHaveCount(0);
     });
   });
 

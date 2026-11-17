@@ -29,3 +29,14 @@ export const isOpenApiSpec = (data) => {
 
   return false;
 };
+
+export const isSwagger2Spec = (spec) => Boolean(spec?.swagger) && String(spec.swagger).startsWith('2');
+
+export const buildOpenApiSyncBrunoConfig = (collection, { sourceUrl, groupBy, authPlacement, requestNameSource }) => ({
+  version: collection.version || '1',
+  name: collection.name || 'Untitled Collection',
+  type: 'collection',
+  ignore: ['node_modules', '.git'],
+  ...collection.brunoConfig,
+  openapi: [{ sourceUrl, groupBy, authPlacement, requestNameSource, autoCheck: true, autoCheckInterval: 5 }]
+});

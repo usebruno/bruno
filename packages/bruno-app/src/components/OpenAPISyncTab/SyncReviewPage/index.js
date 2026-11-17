@@ -43,7 +43,7 @@ const categorizeEndpoints = (remoteDrift, specDrift, collectionDrift) => {
 
   // Build lookup sets to determine who changed each modified endpoint
   const specModifiedIds = new Set((specDrift?.modified || []).map((ep) => ep.id));
-  const localModifiedIds = new Set((collectionDrift?.modified || []).map((ep) => ep.id));
+  const localModifiedIds = new Set((collectionDrift?.edited || []).map((ep) => ep.id));
   const noMergeBase = collectionDrift?.noStoredSpec;
 
   const specUpdatedEndpoints = [];

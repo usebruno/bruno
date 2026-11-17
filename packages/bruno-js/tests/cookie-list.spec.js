@@ -1,5 +1,4 @@
 const CookieList = require('../src/cookie-list');
-const PropertyList = require('../src/property-list');
 const ReadOnlyPropertyList = require('../src/readonly-property-list');
 
 describe('CookieList', () => {
@@ -20,10 +19,9 @@ describe('CookieList', () => {
 
   // ── Inheritance ────────────────────────────────────────────────────────
 
-  test('extends PropertyList and ReadOnlyPropertyList', () => {
+  test('extends ReadOnlyPropertyList', () => {
     const list = createCookieList();
     expect(list).toBeInstanceOf(ReadOnlyPropertyList);
-    expect(list).toBeInstanceOf(PropertyList);
     expect(list).toBeInstanceOf(CookieList);
   });
 
@@ -117,6 +115,19 @@ describe('CookieList', () => {
       const list = createCookieList({ getUrl: () => '' });
       list.add({ name: 'foo', value: 'bar' }, cb);
       expect(cb).toHaveBeenCalledWith(undefined);
+    });
+  });
+
+  describe('append()', () => {
+    test('delegates to jar.setCookie', () => {
+      const setCookie = jest.fn();
+      const cb = jest.fn();
+      const list = createCookieList({
+        createCookieJar: () => ({ setCookie })
+      });
+
+      list.append({ name: 'foo', value: 'bar' }, cb);
+      expect(setCookie).toHaveBeenCalledWith('https://example.com', { name: 'foo', value: 'bar' }, cb);
     });
   });
 

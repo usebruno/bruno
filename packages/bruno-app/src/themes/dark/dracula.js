@@ -161,7 +161,8 @@ const draculaTheme = {
     border3: colors.COMMENT,
     border2: colors.CURRENT_LINE,
     border1: colors.BG_ELEVATED,
-    border0: colors.BG_DARKER
+    border0: colors.BG_DARKER,
+    subtle: colors.BG_ELEVATED
   },
 
   colors: {

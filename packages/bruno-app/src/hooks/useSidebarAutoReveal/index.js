@@ -1,24 +1,42 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { buildIndexes } from 'utils/collections/flattenSidebarTree';
 import { revealTabInSidebar } from 'providers/ReduxStore/slices/collections/actions';
-import { SIDEBAR_REVEAL_STATUS } from 'utils/common/constants';
+import { selectActiveTabCollectionUid, selectIsActiveTabCollectionLoaded } from 'src/selectors/tab';
 
-const useSidebarAutoReveal = ({ rows, sidebarEntries, virtuosoRef }) => {
+const isRowVisible = (scroller, rowUid) => {
+  if (!scroller || !rowUid) return false;
+
+  const rowElement = scroller.querySelector(`[data-row-uid="${rowUid}"]`);
+  if (!rowElement) return false;
+
+  const rowTop = rowElement.offsetTop - scroller.scrollTop;
+
+  return rowTop >= 0 && rowTop + rowElement.offsetHeight <= scroller.clientHeight;
+};
+
+const useSidebarAutoReveal = ({
+  rowIndexByItemUid,
+  rowIndexByCollectionUid,
+  sidebarEntries,
+  virtuosoRef,
+  scrollerRef
+}) => {
   const dispatch = useDispatch();
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const activeTabCollectionUid = useSelector(
-    (state) => state.tabs.tabs.find((tab) => tab.uid === state.tabs.activeTabUid)?.collectionUid ?? null
-  );
+  const activeTabCollectionUid = useSelector(selectActiveTabCollectionUid);
+  const isActiveCollectionLoaded = useSelector(selectIsActiveTabCollectionLoaded);
+  const sidebarRevealRequest = useSelector((state) => state.tabs.sidebarRevealRequest);
   const revealedTabUidRef = useRef(null);
-  const lastScrolledTabUidRef = useRef(null);
-
-  const { rowIndexByItemUid, rowIndexByCollectionUid } = useMemo(() => buildIndexes(rows), [rows]);
+  const lastScrolledRef = useRef(null);
 
   const workspaceCollectionUids = useMemo(
     () => new Set(sidebarEntries.filter((entry) => entry.kind === 'loaded').map((entry) => entry.collection.uid)),
     [sidebarEntries]
   );
+
+  const revealRequestedAt = sidebarRevealRequest?.uid === activeTabUid
+    ? sidebarRevealRequest.requestedAt
+    : null;
 
   const activeRowIndex = activeTabUid !== null
     ? (rowIndexByItemUid.get(activeTabUid) ?? rowIndexByCollectionUid.get(activeTabUid) ?? null)
@@ -31,20 +49,29 @@ const useSidebarAutoReveal = ({ rows, sidebarEntries, virtuosoRef }) => {
     }
     if (revealedTabUidRef.current === activeTabUid) return;
 
-    if (dispatch(revealTabInSidebar(activeTabUid)) !== SIDEBAR_REVEAL_STATUS.PENDING) {
+    if (dispatch(revealTabInSidebar(activeTabUid))) {
       revealedTabUidRef.current = activeTabUid;
     }
-  }, [dispatch, activeTabUid, activeTabCollectionUid, workspaceCollectionUids, rows]);
+  }, [dispatch, activeTabUid, activeTabCollectionUid, workspaceCollectionUids, isActiveCollectionLoaded]);
 
   useEffect(() => {
     if (activeRowIndex === null) {
-      lastScrolledTabUidRef.current = null;
+      lastScrolledRef.current = null;
       return;
     }
-    if (lastScrolledTabUidRef.current === activeTabUid) return;
-    virtuosoRef.current?.scrollIntoView({ index: activeRowIndex, behavior: 'smooth' });
-    lastScrolledTabUidRef.current = activeTabUid;
-  }, [activeTabUid, activeRowIndex]);
+
+    const lastScrolled = lastScrolledRef.current;
+    if (lastScrolled?.uid === activeTabUid && lastScrolled.requestedAt === revealRequestedAt) return;
+
+    const frame = requestAnimationFrame(() => {
+      if (!isRowVisible(scrollerRef.current, activeTabUid)) {
+        virtuosoRef.current?.scrollToIndex({ index: activeRowIndex, align: 'center', behavior: 'smooth' });
+      }
+      lastScrolledRef.current = { uid: activeTabUid, requestedAt: revealRequestedAt };
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [activeTabUid, activeRowIndex, revealRequestedAt, virtuosoRef, scrollerRef]);
 };
 
 export default useSidebarAutoReveal;

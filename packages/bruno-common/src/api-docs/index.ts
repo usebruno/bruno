@@ -148,7 +148,7 @@ export const buildApiDocsHtml = (
 ): string => {
   const baseUrl = options.rendererBaseUrl ?? DEFAULT_RENDERER_BASE_URL;
   const gitLine = options.gitCollectionUrl
-    ? `\n            gitCollectionUrl: ${hardenScriptSequences(JSON.stringify(stripGitCredentials(options.gitCollectionUrl)))},`
+    ? `\n            repositoryUrl: ${hardenScriptSequences(JSON.stringify(stripGitCredentials(options.gitCollectionUrl)))},`
     : '';
 
   return `<!DOCTYPE html>
@@ -159,18 +159,17 @@ export const buildApiDocsHtml = (
     <title>${escapeHtmlText(collectionName)} - API Documentation</title>
     <style>
         body { margin: 0; padding: 0; }
-        #opencollection-container { width: 100vw; height: 100vh; }
+        #bruno-api-docs { width: 100vw; height: 100vh; }
     </style>
     <link rel="stylesheet" href="${baseUrl}/api-docs/api-docs.css">
     <script src="${baseUrl}/api-docs/api-docs.js"></script>
 </head>
 <body>
-    <div id="opencollection-container"></div>
+    <div id="bruno-api-docs"></div>
     <script>
         const collectionData = ${embeddedCollectionData};
-        new window.OpenCollection({
-            target: document.getElementById('opencollection-container'),
-            opencollection: collectionData,${gitLine}
+        Bruno.apiDocs(document.getElementById('bruno-api-docs'), {
+            content: collectionData,${gitLine}
             theme: 'light'
         });
     </script>

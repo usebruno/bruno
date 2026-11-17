@@ -14,10 +14,10 @@ import { buildSkippedFilesMessage, buildExportWarningsMessage, buildSpecVariable
 import { getWorkspaceCollections } from 'utils/collections';
 import { isHttpUrl } from 'utils/url/index';
 import useDefaultApiSpecLocation from 'hooks/useDefaultApiSpecLocation';
+import SpecLocationField from 'components/Sidebar/ApiSpecs/SpecLocationField';
 import StyledWrapper from './StyledWrapper';
 import CollectionSourceFields from './CollectionSourceFields';
 import UrlSourceField from './UrlSourceField';
-import SpecLocationField from './SpecLocationField';
 import useApiSpecUrlSource from './useApiSpecUrlSource';
 import useCollectionSource from './useCollectionSource';
 import {
@@ -223,14 +223,12 @@ const CreateApiSpec = ({ onClose }) => {
   );
 
   const exportCollectionAsApiSpec = (values) => {
-    const { requests, envVariables, processEnvVariables, collectionVariables } = collectionSource.collectionData;
+    const { requests, envVariables, collectionVariables } = collectionSource.collectionData;
 
     const variables = buildSpecVariables({
       collectionVariables,
       envVariables,
-      environment: values.environment,
-      processEnvVariables,
-      workspaceProcessEnvVariables: activeWorkspace?.processEnvVariables
+      environment: values.environment
     });
 
     const environmentsList = Object.entries(envVariables || {}).map(([name, vars]) => ({
@@ -385,6 +383,7 @@ const CreateApiSpec = ({ onClose }) => {
             <div className="relative">
               <input
                 id="api-spec-name"
+                data-testid="api-spec-name-input"
                 type="text"
                 name="apiSpecName"
                 ref={inputRef}

@@ -5,6 +5,7 @@ import last from 'lodash/last';
 import { uuid } from 'utils/common';
 import { isActiveTab as checkIsActiveTab, deserializeTab } from 'utils/snapshot';
 import { API_SPEC_TAB_TYPE, isApiSpecTabForPathname } from 'utils/api-specs';
+import { normalizeMockTabType } from 'utils/mock-server/mock-tab-type';
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
@@ -22,12 +23,9 @@ const ensureTabUid = (tab) => {
 const initialState = {
   tabs: [],
   activeTabUid: null,
-  recentlyClosedTabs: [] // LIFO stack of closed tabs, grouped by collection
+  recentlyClosedTabs: [], // LIFO stack of closed tabs, grouped by collection
+  sidebarRevealRequest: null
 };
-
-const normalizeMockTabType = (type) => (
-  type === 'mock-server-dashboard' || type === 'mocker' ? 'mock-server' : type
-);
 
 const findMockServerTab = (tabs, mockServerUid) => find(tabs, (tab) => (
   normalizeMockTabType(tab.type) === 'mock-server' && tab.mockServerUid === mockServerUid
@@ -205,6 +203,7 @@ export const tabsSlice = createSlice({
         tableColumnWidths: {},
         scriptPaneTab: null,
         docsEditing: false,
+        docsMarkdownMode: false,
         ...(uid ? { folderUid: uid } : {}),
         preview: preview !== undefined
           ? preview
@@ -335,6 +334,13 @@ export const tabsSlice = createSlice({
         tab.docsEditing = action.payload.docsEditing;
       }
     },
+    updateDocsMarkdownMode: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.docsMarkdownMode = action.payload.docsMarkdownMode;
+      }
+    },
     updateGqlDocsOpen: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
 
@@ -388,6 +394,9 @@ export const tabsSlice = createSlice({
           requestedAt: action.payload.requestedAt
         };
       }
+    },
+    setSidebarRevealRequest: (state, action) => {
+      state.sidebarRevealRequest = action.payload;
     },
     clearFocusTableRow: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
@@ -657,6 +666,10 @@ export const tabsSlice = createSlice({
 
       state.tabs.push(tab);
       state.activeTabUid = tab.uid;
+    },
+    removeRecentlyClosedTabs: (state, action) => {
+      const { tabUids } = action.payload;
+      state.recentlyClosedTabs = state.recentlyClosedTabs.filter((tab) => !tabUids.includes(tab.uid));
     }
   }
 });
@@ -676,6 +689,7 @@ export const {
   updateResponseFilter,
   updateResponseFilterExpanded,
   updateDocsEditing,
+  updateDocsMarkdownMode,
   updateGqlDocsOpen,
   updateTableColumnWidths,
   updateScriptPaneTab,
@@ -683,6 +697,7 @@ export const {
   clearFocusErrorLine,
   setFocusTableRow,
   clearFocusTableRow,
+  setSidebarRevealRequest,
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,
@@ -697,6 +712,7 @@ export const {
   updateTabState,
   setTabAppPreview,
   reopenLastClosedTab,
+  removeRecentlyClosedTabs,
   updateQueryBuilderOpen,
   updateQueryBuilderWidth,
   updateVariablesPaneOpen,

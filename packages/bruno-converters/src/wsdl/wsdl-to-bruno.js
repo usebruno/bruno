@@ -25,8 +25,7 @@ const escapeXmlAttribute = (value) => value.replace(/&/g, '&amp;').replace(/</g,
 // --- Inlined from src/common/index.js ---
 export const validateSchema = (collection = {}) => {
   try {
-    collectionSchema.validateSync(collection);
-    return collection;
+    return collectionSchema.validateSync(collection);
   } catch (err) {
     throw new Error('The Collection has an invalid schema: ' + err.message);
   }

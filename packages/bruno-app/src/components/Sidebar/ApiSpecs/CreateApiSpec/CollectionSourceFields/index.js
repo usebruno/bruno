@@ -72,7 +72,7 @@ const CollectionSourceFields = ({
             items={collectionItems}
             selectedItemId={collectionUid}
             data-testid="api-spec-collection-dropdown"
-            menuClassName="max-h-40 overflow-y-auto"
+            menuClassName="max-h-44 overflow-y-auto"
             placement="bottom-start"
             appendTo={() => document.body}
             popperOptions={{ strategy: 'fixed' }}
@@ -99,6 +99,7 @@ const CollectionSourceFields = ({
         <>
           <input
             id="collection-location"
+            data-testid="api-spec-collection-location"
             type="text"
             name="collectionLocation"
             readOnly={true}

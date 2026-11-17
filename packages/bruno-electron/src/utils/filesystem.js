@@ -6,7 +6,7 @@ const isValidPathname = require('is-valid-path');
 const os = require('os');
 // Single shared implementation lives in @usebruno/common; re-exported below so
 // `require('../utils/filesystem')` consumers keep working unchanged.
-const { sanitizeName, validateName } = require('@usebruno/common').utils;
+const { sanitizeName, validateName, generateUniqueName } = require('@usebruno/common').utils;
 
 const DEFAULT_GITIGNORE = [
   '# Secrets',
@@ -355,28 +355,6 @@ const searchForRequestFiles = (dir, collectionPath = null) => {
 
 const isWindowsOS = () => {
   return os.platform() === 'win32';
-};
-
-/**
- * Generate a unique name by adding a "copy" suffix if needed
- *
- * @param {string} baseName - The base name
- * @param {Function} checkExists - Function that takes a name and returns true if it exists
- * @returns {string} - A unique name
- */
-const generateUniqueName = (baseName, checkExists) => {
-  if (!checkExists(baseName)) {
-    return baseName;
-  }
-
-  let counter = 1;
-  let uniqueName = `${baseName} copy`;
-
-  while (checkExists(uniqueName)) {
-    counter++;
-    uniqueName = `${baseName} copy ${counter}`;
-  }
-  return uniqueName;
 };
 
 const getCollectionFormat = (collectionPath) => {
