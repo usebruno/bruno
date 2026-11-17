@@ -2065,6 +2065,49 @@ const selectResponsePaneTab = async (page: Page, tabName: string) => {
   await selectPaneTab(page, '[data-testid="response-pane"]', tabName);
 };
 
+/**
+ * Expand a Timeline entry so its detail (URL header and Request/Response/Network tabs) is shown.
+ * @param page - The page object
+ * @param entry - A Timeline entry locator, e.g. from `timeline.entriesOfKind('main')`
+ */
+const expandTimelineEntry = async (page: Page, entry: Locator) => {
+  await test.step('Expand the Timeline entry', async () => {
+    const { timeline } = buildCommonLocators(page);
+    await timeline.itemHeader(entry).click();
+    await timeline.entryDetail(entry).waitFor({ state: 'visible' });
+  });
+};
+
+/**
+ * Expand a Timeline entry and switch its detail to the Response tab.
+ * @param page - The page object
+ * @param entry - A Timeline entry locator, e.g. from `timeline.entriesOfKind('pre')`
+ */
+const openTimelineEntryResponse = async (page: Page, entry: Locator) => {
+  await test.step('Open the Timeline entry\'s Response tab', async () => {
+    const { timeline } = buildCommonLocators(page);
+    await expandTimelineEntry(page, entry);
+    await timeline.entryResponseTab(entry).click();
+    // The Request tab stays mounted (hidden) beside it, so wait on the visible Body block.
+    await entry.getByTestId('response-body-toggle').filter({ visible: true }).first().waitFor({ state: 'visible' });
+  });
+};
+
+/**
+ * Expand a Timeline entry and switch its detail to the Network tab (the raw wire trace).
+ * @param page - The page object
+ * @param entry - A Timeline entry locator, e.g. from `timeline.entriesOfKind('post')`
+ */
+const openTimelineEntryNetworkLogs = async (page: Page, entry: Locator) => {
+  await test.step('Open the Timeline entry\'s Network logs', async () => {
+    const { timeline } = buildCommonLocators(page);
+    await expandTimelineEntry(page, entry);
+    await timeline.entryNetworkTab(entry).click();
+    // The log opens with an empty, never-visible separator entry, so wait on the first visible one.
+    await entry.getByTestId('network-log-entry').filter({ visible: true }).first().waitFor({ state: 'visible' });
+  });
+};
+
 const selectResponsePaneTabViaOverflow = async (page: Page, tabName: string) => {
   await test.step(`Select tab "${tabName}" in [data-testid="response-pane"] via overflow`, async () => {
     const locators = buildCommonLocators(page);
@@ -4216,6 +4259,9 @@ export {
   expectRequestMaxRedirects,
   selectRequestBodyMode,
   selectResponsePaneTab,
+  expandTimelineEntry,
+  openTimelineEntryResponse,
+  openTimelineEntryNetworkLogs,
   selectResponsePaneTabViaOverflow,
   mockBrowseFiles,
   addMultipartFileToLastRow,

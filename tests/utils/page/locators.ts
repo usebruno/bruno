@@ -337,6 +337,20 @@ export const buildCommonLocators = (page: Page) => ({
     clearButton: () => page.getByRole('button', { name: 'Clear Timeline' }),
     container: () => page.getByTestId('timeline-container'),
     entries: () => page.getByTestId('timeline-container').getByTestId('timeline-entry'),
+    entriesOfKind: (kind: 'main' | 'pre' | 'post' | 'oauth') =>
+      page.getByTestId('timeline-container').getByTestId('timeline-entry')
+        .filter({ has: page.getByTestId(`timeline-badge-${kind}`) }),
+    entryBadge: (entry: Locator, kind: 'main' | 'pre' | 'post' | 'oauth') => entry.getByTestId(`timeline-badge-${kind}`),
+    entryUrl: (entry: Locator) => entry.getByTestId('timeline-url'),
+    entryMethod: (entry: Locator) => entry.getByTestId('timeline-method'),
+    entryStatus: (entry: Locator) => entry.getByTestId('timeline-status'),
+    entryResponseTab: (entry: Locator) => entry.getByTestId('tl-tab-response'),
+    entryResponseNoBody: (entry: Locator) => entry.getByTestId('timeline-response-no-body'),
+    entryDetail: (entry: Locator) => entry.getByTestId('timeline-detail'),
+    entryDetailUrl: (entry: Locator) => entry.getByTestId('timeline-detail-url'),
+    entryNetworkTab: (entry: Locator) => entry.getByTestId('tl-tab-network'),
+    entryErrorLogs: (entry: Locator) =>
+      entry.getByTestId('network-log-entry').and(page.locator('[data-log-type="error"]')),
     networkButton: (item: Locator) => item.getByRole('button', { name: 'Network' }),
     networkLogs: (item: Locator) => item.locator('.network-logs-container'),
     headerRow: (item: Locator, name: string) => buildTimelineHeaderRow(page, item, name),

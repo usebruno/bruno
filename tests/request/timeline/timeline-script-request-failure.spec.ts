@@ -1,59 +1,72 @@
 import { test, expect } from '../../../playwright';
 import {
+  buildCommonLocators,
   closeAllCollections,
-  createCollection,
-  createRequest,
   openRequest,
-  addPreRequestScript,
-  saveRequest,
-  sendRequest,
-  selectResponsePaneTab
-} from '../../utils/page/actions';
+  openTimelineEntryNetworkLogs,
+  openTimelineEntryResponse,
+  selectResponsePaneTab,
+  sendRequest
+} from '../../utils/page';
 
-test.describe('Timeline — runRequest network-error row shows URL and error code', () => {
-  test.afterEach(async ({ page }) => {
+const COLLECTION_NAME = 'timeline';
+// Both failing calls target a port nothing listens on, so they fail the same way on every platform.
+const UNREACHABLE_HOST = 'localhost:9999';
+const REQUEST_ERROR_MESSAGE = 'there was an error executing the request!';
+
+test.describe('Timeline - failed script requests', () => {
+  test.afterEach(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 
-  test('inner ECONNREFUSED shows inner URL + ECONNREFUSED status on outer Timeline', async ({ page, createTmpDir }) => {
-    const collectionName = 'runrequest-network-error';
-    const outer = 'outer';
-    const inner = 'inner';
+  test('TC-2385: Verify the Timeline shows a failed bru.sendRequest() call', { tag: '@sanity' }, async ({
+    pageWithUserData: page
+  }) => {
+    const { timeline } = buildCommonLocators(page);
+    // 'pre' is the Timeline's kind for every bru.sendRequest() row, whichever script sent it.
+    const sendRequestEntry = timeline.entriesOfKind('pre');
 
-    const outerUrl = 'http://localhost:8081/ping';
-    // Port nothing listens on -> guaranteed ECONNREFUSED on every platform.
-    const innerUrl = 'http://localhost:9999/nope';
+    await openRequest(page, COLLECTION_NAME, 'sendrequest-failed');
+    await sendRequest(page);
+    await selectResponsePaneTab(page, 'Timeline');
 
-    await test.step('Create outer + inner; inner points at an unreachable port', async () => {
-      await createCollection(page, collectionName, await createTmpDir(collectionName));
-      await createRequest(page, outer, collectionName, { url: outerUrl });
-      await createRequest(page, inner, collectionName, { url: innerUrl });
+    await test.step('Verify the failed call has a row with its method, address and a failed status', async () => {
+      await expect(timeline.entries()).toHaveCount(2);
+      await expect(sendRequestEntry).toHaveCount(1);
+      await expect(timeline.entryMethod(sendRequestEntry)).toHaveText('GET');
+      await expect(timeline.entryUrl(sendRequestEntry)).toContainText(UNREACHABLE_HOST);
+      await expect(timeline.entryStatus(sendRequestEntry)).toHaveText('Error');
     });
 
-    await test.step('Outer pre-request invokes inner and swallows the rejection', async () => {
-      await openRequest(page, collectionName, outer);
-      // try/catch so outer still completes 200 and the Timeline renders.
-      await addPreRequestScript(
-        page,
-        `try { await bru.runRequest("${inner}"); } catch (e) { /* expected */ }`
-      );
-      await saveRequest(page);
+    await openTimelineEntryResponse(page, sendRequestEntry);
+
+    // The row keeps the error message but no tab renders it yet, so only the absent body is asserted.
+    await test.step('Verify the failed call shows no response body', async () => {
+      await expect(timeline.entryResponseNoBody(sendRequestEntry)).toBeVisible();
+    });
+  });
+
+  test('TC-2389: Verify the Timeline shows a failed bru.runRequest() call', { tag: '@sanity' }, async ({
+    pageWithUserData: page
+  }) => {
+    const { timeline } = buildCommonLocators(page);
+    const runRequestEntry = timeline.entriesOfKind('post');
+
+    await openRequest(page, COLLECTION_NAME, 'runrequest-failed');
+    await sendRequest(page);
+    await selectResponsePaneTab(page, 'Timeline');
+
+    await test.step('Verify the Timeline lists the runRequest call', async () => {
+      await expect(timeline.entries()).toHaveCount(2);
+      await expect(runRequestEntry).toHaveCount(1);
+      await expect(timeline.entryBadge(runRequestEntry, 'post')).toHaveText('runRequest');
+      await expect(timeline.entryUrl(runRequestEntry)).toContainText(UNREACHABLE_HOST);
     });
 
-    await test.step('Send outer', async () => {
-      await sendRequest(page, 200);
-    });
+    await openTimelineEntryNetworkLogs(page, runRequestEntry);
 
-    await test.step('Outer Timeline has the runRequest row with inner URL (URL fallback)', async () => {
-      await selectResponsePaneTab(page, 'Timeline');
-
-      const rows = page.getByTestId('timeline-container').getByTestId('timeline-entry');
-      await expect(rows).toHaveCount(2); // main + runRequest
-
-      // Without the URL fallback this column would be empty.
-      const runRequestRow = rows.filter({ has: page.getByTestId('timeline-badge-post') });
-      await expect(runRequestRow).toHaveCount(1);
-      await expect(runRequestRow.getByTestId('timeline-url')).toContainText('localhost:9999');
+    await test.step('Verify the runRequest Network logs show the request error', async () => {
+      await expect(timeline.entryErrorLogs(runRequestEntry).filter({ hasText: REQUEST_ERROR_MESSAGE })).toHaveCount(1);
     });
   });
 });
