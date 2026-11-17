@@ -33,6 +33,7 @@ import { buildCloneGitRepositoryLocators } from './git/clone-git-repository';
 import { buildResponseExampleLocators } from './response-example';
 import { buildGraphqlQueryBuilderLocators } from './graphql/query-builder';
 import { buildAuthLocators } from './auth';
+import { buildMultipartFormLocators } from './request/multipart-form';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
@@ -59,6 +60,7 @@ export const buildCommonLocators = (page: Page) => ({
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
   requestSettings: buildRequestSettingsLocators(page),
+  multipartForm: buildMultipartFormLocators(page),
   unresolvedVariablesInfo: buildUnresolvedVariablesInfoLocators(page),
   websocket: buildWebsocketCommonLocators(page),
   toast: buildToastLocators(page),
@@ -425,20 +427,6 @@ export const buildCommonLocators = (page: Page) => ({
       allRows: () => container().locator('tbody tr'),
       rowNameInput: (row: Locator) => row.locator('input[type="text"]').first(),
       rowValueEditor: (row: Locator) => row.getByTestId('column-value').locator('.CodeMirror').first()
-    };
-  },
-  /**
-   * Locators for the multipart form table on the request Body tab.
-   * A selected file collapses to an "N files" summary when the value column is narrow.
-   * @returns uploadButton on the last row, the selectedFiles summary, and fieldName for a row index
-   */
-  multipartForm: () => {
-    const form = buildCommonLocators(page).table('multipart-form-table');
-    const file = (testId: string) => form.container().getByTestId(testId);
-    return {
-      uploadButton: () => form.allRows().last().getByTestId('multipart-file-upload'),
-      selectedFiles: () => file('multipart-file-summary'),
-      fieldName: (rowIndex: number) => form.rowCell('name', rowIndex).getByRole('textbox')
     };
   },
   /**

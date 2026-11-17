@@ -27,6 +27,10 @@ test.describe('Import Postman Collection with preserve scripts option enabled', 
       await expect(locators.import.preserveScriptsToggle()).toBeVisible();
     });
 
+    await test.step('Preserve scripts defaults to off', async () => {
+      await expect(locators.import.preserveScriptsToggle()).not.toBeChecked();
+    });
+
     await test.step('Close the import modal', async () => {
       await locators.modal.closeButton().click();
       await expect(locators.import.locationModal()).toBeHidden();

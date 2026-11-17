@@ -1,5 +1,6 @@
 export * from './actions';
 export * from './request/generate-code';
+export * from './request/multipart-form';
 export * from './code-editor-search';
 export * from './code-editor-hints';
 export * from './file-mode';

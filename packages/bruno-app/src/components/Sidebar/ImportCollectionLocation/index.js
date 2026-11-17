@@ -324,6 +324,8 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
                   isOn={preserveScripts}
                   handleToggle={() => setPreserveScripts(!preserveScripts)}
                   size="2xs"
+                  role="switch"
+                  aria-checked={preserveScripts}
                   data-testid="preserve-scripts-toggle"
                 />
               </ImportSettingRow>

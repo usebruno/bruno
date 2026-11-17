@@ -3,7 +3,7 @@ import {
   closeAllCollections,
   openCollectionFromPath,
   openRequest,
-  saveRequest,
+  selectMultipartFiles,
   selectRequestPaneTab,
   sendRequestAndWaitForResponse,
   waitForCollectionMount
@@ -71,19 +71,8 @@ test.describe('Multipart Form - mixed file multi-select upload', () => {
 
   test('TC-2402: selecting files of different types and sizes together uploads them in one form-data POST', { tag: '@sanity' }, async ({ page, electronApp }) => {
     test.setTimeout(60_000);
-
     const locators = buildCommonLocators(page);
-
-    await test.step('Multi-select the files onto one form field', async () => {
-      await electronApp.evaluate((_, paths) => {
-        (global as any).__mockFilePaths = paths;
-      }, files.map((file) => file.path));
-
-      const form = locators.multipartForm();
-      await form.uploadButton().click();
-      await expect(form.selectedFiles()).toBeVisible();
-      await form.fieldName(0).fill('uploads');
-    });
+    await selectMultipartFiles(page, electronApp, files.map((file) => file.path), 'uploads');
     await sendRequestAndWaitForResponse(page, 200, { timeout: 30000 });
     await test.step('confirm every file name available in the response', async () => {
       const responseText = await locators.response.previewContainer().innerText();
