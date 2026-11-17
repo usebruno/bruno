@@ -175,6 +175,24 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
     return componentId;
   };
 
+  const operationIds = new Set();
+
+  const getOperationId = (name, method) => {
+    let operationId = name;
+    if (operationIds.has(operationId)) {
+      operationId = `${name} (${method.toUpperCase()})`;
+    }
+    let suffix = 1;
+
+    while (operationIds.has(operationId)) {
+      operationId = `${name} (${suffix})`;
+      suffix += 1;
+    }
+    operationIds.add(operationId);
+
+    return operationId;
+  };
+
   const restoreUnresolvedPlaceholders = (value) => value.replace(/%7B%7B(.*?)%7D%7D/gi, '{{$1}}');
 
   // Resolve a raw request URL to a path and optional operation-level server override.
@@ -314,7 +332,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
 
       const pathBody = {
         summary: item?.name,
-        operationId: item?.name,
+        operationId: getOperationId(item?.name, method),
         description: '',
         tags: [extractTagFromDepth(item)],
         responses: {
