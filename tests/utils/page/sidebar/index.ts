@@ -39,9 +39,9 @@ export const buildSidebarLocators = (page: Page) => {
     collectionsActionsMenu: () => page.getByTestId('collections-header-actions-menu'),
     closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
     // Shown in place of the collections tree when no collection is open.
-    noCollectionsMessage: () => page.getByTestId('sidebar').getByText('No collections found.', { exact: true }),
-    noCollectionsCreateLink: () => page.getByTestId('sidebar').getByText('Create', { exact: true }),
-    noCollectionsOpenLink: () => page.getByTestId('sidebar').getByText('Open', { exact: true }),
+    noCollectionsMessage: () => page.getByTestId('collections').getByText('No collections found.', { exact: true }),
+    noCollectionsCreateLink: () => page.getByTestId('collections').getByText('Create', { exact: true }),
+    noCollectionsOpenLink: () => page.getByTestId('collections').getByText('Open', { exact: true }),
     collectionRow,
     collectionRows: () => page.getByTestId('sidebar-collection-row'),
     invalidFilesBadge: (name: string) => collectionRow(name).getByTestId('invalid-files-badge'),

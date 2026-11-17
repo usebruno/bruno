@@ -24,7 +24,7 @@ test.describe('Close all collections', () => {
     const removeCollectionsModal = modal.byTitle('Remove Collections');
 
     await test.step('Create two collections in the sidebar', async () => {
-      const collectionsDirectory = await createTmpDir('TC-2621');
+      const collectionsDirectory = await createTmpDir(firstCollectionName);
       await createCollection(page, firstCollectionName, collectionsDirectory);
       await createCollection(page, secondCollectionName, collectionsDirectory);
       await expect(sidebar.collection(firstCollectionName)).toBeVisible();
