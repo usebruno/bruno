@@ -122,6 +122,23 @@ describe('script — request items', () => {
       afterMessageReceive: 'afterReceive()'
     });
   });
+
+  it('round-trips the blank lines around a script', () => {
+    const item = itemWithAllSlots('http-request', {
+      url: 'https://example.com',
+      method: 'GET',
+      params: [],
+      body: { mode: 'none' },
+      script: { req: '\npre()\n\n', res: 'post()\n' },
+      tests: 'test()\n\n'
+    });
+
+    const yml = stringifyItem(item);
+    const parsed = parseItem(yml);
+
+    expect(parsed.request!.script).toEqual({ req: '\npre()\n\n', res: 'post()\n' });
+    expect(parsed.request!.tests).toBe('test()\n\n');
+  });
 });
 
 describe('script — collection and folder roots', () => {

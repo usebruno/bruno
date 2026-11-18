@@ -11,12 +11,13 @@ import DocsEditor from './DocsEditor';
 
 const Documentation = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const { isEditing, setEditing } = useDocsEditingState();
+  const { isEditing, setEditing, isMarkdownMode, setMarkdownMode } = useDocsEditingState();
   const docs = item?.draft ? get(item, 'draft.request.docs') : get(item, 'request.docs');
 
   // Scroll tracking (both the rich-text preview/edit view and markdown mode's
   // CodeEditor) lives in DocsEditor itself; this just owns the persisted value.
   const [scroll, setScroll] = usePersistedState({ key: `request-docs-scroll-${item?.uid}`, default: 0 });
+  const [markdownScroll, setMarkdownScroll] = usePersistedState({ key: `request-docs-markdown-scroll-${item?.uid}`, default: 0 });
 
   const onEdit = useCallback(
     (value) => {
@@ -48,12 +49,16 @@ const Documentation = ({ item, collection }) => {
         onEdit={onEdit}
         onSave={onSave}
         isEditing={isEditing}
+        isMarkdownMode={isMarkdownMode}
+        onMarkdownModeChange={setMarkdownMode}
         item={item}
         collection={collection}
         collectionPath={collection?.pathname}
         onRequestEdit={() => setEditing(true)}
         initialScroll={scroll}
         onScroll={setScroll}
+        markdownInitialScroll={markdownScroll}
+        onMarkdownScroll={setMarkdownScroll}
         testId="docs-editor"
       />
     </StyledWrapper>

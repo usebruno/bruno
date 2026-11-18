@@ -11,6 +11,11 @@ import { requestNameSourceLabels } from 'components/Sidebar/ImportSettings/Reque
 
 const capitalize = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : str;
 
+const authPlacementInfo = {
+  collection: 'Authentication is set at the collection level and inherited by each request.',
+  request: 'Authentication is set separately on each request.'
+};
+
 const SUMMARY_CARDS = [
   {
     key: 'total',
@@ -114,14 +119,14 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
     },
     { label: 'Folder Grouping', value: capitalize(groupBy) },
     requestNameSource && {
-      label: 'Naming Requests',
-      labelTooltip: 'The field from the spec used to name each request. If an endpoint does not have it, Bruno falls back to summary, operationId, description, then method and path.',
+      label: 'Request Naming',
+      labelTooltip: 'Determines how requests are named using fields from the OpenAPI spec with fallback options when unavailable.',
       value: requestNameSourceLabels[requestNameSource] || requestNameSource
     },
     authPlacement && {
       label: 'Auth Placement',
-      labelTooltip: 'Where the auth from the spec is set. Collection means it is set once on the collection and requests inherit it. Request means it is set on each request separately.',
-      value: capitalize(authPlacement)
+      value: capitalize(authPlacement),
+      tooltip: authPlacementInfo[authPlacement]
     }
   ].filter(Boolean);
 

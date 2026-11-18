@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Page, test, expect } from '../../../playwright';
-import { expandCollection, expandFolder } from '../../utils/page';
+import { expandCollection, expandFolder, openInvalidFilesTooltip } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 export type RequestFileFormat = 'bru' | 'yml';
@@ -49,7 +49,7 @@ export const verifyInvalidFileIndicators = async (
   });
 
   await test.step('hovering the count explains it and links to the overview table', async () => {
-    await sidebar.invalidFilesBadge(collectionName).hover();
+    await openInvalidFilesTooltip(page, sidebar.invalidFilesBadge(collectionName));
     await expect(sidebar.invalidFilesTooltip()).toHaveText('You have 2 invalid files. See here');
     // Click the plain text, not the "See here" link
     await sidebar.invalidFilesTooltip().click({ position: { x: 4, y: 4 } });
@@ -72,7 +72,7 @@ export const verifyInvalidFileIndicators = async (
   });
 
   await test.step('hovering a folder count shows that folder\'s count with the overview link', async () => {
-    await sidebar.folderInvalidFilesBadge(collectionName, 'nested').hover();
+    await openInvalidFilesTooltip(page, sidebar.folderInvalidFilesBadge(collectionName, 'nested'));
     await expect(sidebar.invalidFilesTooltip()).toHaveText('You have 1 invalid file. See here');
     await expect(sidebar.invalidFilesSeeHere()).toBeVisible();
   });

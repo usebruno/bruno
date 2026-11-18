@@ -207,6 +207,7 @@ export const tabsSlice = createSlice({
         streamViewTab: null,
         scriptPaneTab: null,
         docsEditing: false,
+        docsMarkdownMode: false,
         ...(uid ? { folderUid: uid } : {}),
         preview: preview !== undefined
           ? preview
@@ -349,6 +350,13 @@ export const tabsSlice = createSlice({
 
       if (tab) {
         tab.docsEditing = action.payload.docsEditing;
+      }
+    },
+    updateDocsMarkdownMode: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.docsMarkdownMode = action.payload.docsMarkdownMode;
       }
     },
     updateGqlDocsOpen: (state, action) => {
@@ -701,6 +709,7 @@ export const {
   updateResponseFilter,
   updateResponseFilterExpanded,
   updateDocsEditing,
+  updateDocsMarkdownMode,
   updateGqlDocsOpen,
   updateTableColumnWidths,
   updateScriptPaneTab,

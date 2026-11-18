@@ -1,7 +1,14 @@
 import { test, expect, closeElectronApp, waitForReadyPage } from '../../../playwright';
 import * as path from 'path';
 import * as fs from 'fs';
-import { closeAllCollections, expandFolder, openCollection, openCollectionFromDialog, removeCollection } from '../../utils/page';
+import {
+  closeAllCollections,
+  expandFolder,
+  ignoreFolder,
+  openCollection,
+  openCollectionFromDialog,
+  removeCollection
+} from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 const ymlRequest = (name: string) => `info:
@@ -13,6 +20,12 @@ http:
   method: GET
   url: https://example.com/${name}
 `;
+
+const fileCacheOnInitUserDataPath = path.join(__dirname, 'init-user-data-file-cache-on');
+const fileCacheOffInitUserDataPath = path.join(__dirname, 'init-user-data-file-cache-off');
+
+const fileCacheCollection = (collectionFixturePath: string) => path.join(collectionFixturePath, 'file-cache');
+const folderIgnoreCollection = (collectionFixturePath: string) => path.join(collectionFixturePath, 'folder-ignore');
 
 test.describe('User ignore entries in the collection config', () => {
   test.afterEach(async ({ page }) => {
@@ -144,6 +157,7 @@ get {
     collectionFixturePath
   }) => {
     const userDataPath = await createTmpDir('config-ignore-file-cache-userdata');
+    const collectionDir = fileCacheCollection(collectionFixturePath!);
     const collectionName = 'Config Ignore File Cache Test';
 
     fs.writeFileSync(
@@ -168,7 +182,7 @@ get {
     const locators = buildCommonLocators(page);
 
     try {
-      await openCollectionFromDialog(page, electronApp, collectionFixturePath!);
+      await openCollectionFromDialog(page, electronApp, collectionDir);
       await expect(locators.sidebar.collection(collectionName)).toBeVisible({ timeout: 30000 });
       await openCollection(page, collectionName);
 
@@ -301,4 +315,52 @@ get {
       await closeElectronApp(electronApp);
     }
   });
+});
+
+test.describe('Ignore a folder from the sidebar menu', () => {
+  for (const { tc, label, initUserDataPath } of [
+    { tc: 'TC-7392', label: 'on', initUserDataPath: fileCacheOnInitUserDataPath },
+    { tc: 'TC-4473', label: 'off', initUserDataPath: fileCacheOffInitUserDataPath }
+  ]) {
+    test(`${tc}: Verify Folder Can Be Ignored from the Menu with File cache ${label}`, { tag: '@sanity' }, async ({
+      launchElectronApp,
+      createTmpDir,
+      collectionFixturePath
+    }) => {
+      const userDataPath = await createTmpDir(`folder-ignore-file-cache-${label}-userdata`);
+      const collectionDir = folderIgnoreCollection(collectionFixturePath!);
+      const collectionName = 'Folder Ignore Test';
+      const brunoConfigPath = path.join(collectionDir, 'bruno.json');
+      let electronApp = await test.step(`Precondition: File cache is ${label}.`, async () => {
+        return launchElectronApp({ initUserDataPath, userDataPath });
+      });
+      try {
+        let page = await waitForReadyPage(electronApp);
+        let { sidebar } = buildCommonLocators(page);
+        await openCollectionFromDialog(page, electronApp, collectionDir);
+        await sidebar.collection(collectionName).waitFor({ state: 'visible' });
+        await openCollection(page, collectionName);
+        await ignoreFolder(page, collectionName, 'hidden');
+        await expect.poll(() => JSON.parse(fs.readFileSync(brunoConfigPath, 'utf8')).ignore).toContain('hidden');
+        await test.step('Observe the collection tree after ignoring the folder.', async () => {
+          await expect(sidebar.itemsIn(collectionName, 'hidden')).toHaveCount(0);
+          await expect(sidebar.itemsIn(collectionName, 'Hidden Request')).toHaveCount(0);
+          await expect(sidebar.itemsIn(collectionName, 'Visible Request')).toBeVisible();
+        });
+        await test.step('Reopen Bruno and workspace/collection.', async () => {
+          await closeElectronApp(electronApp);
+          electronApp = await launchElectronApp({ userDataPath });
+          page = await waitForReadyPage(electronApp);
+          ({ sidebar } = buildCommonLocators(page));
+          await sidebar.collection(collectionName).waitFor({ state: 'visible' });
+          await openCollection(page, collectionName);
+          await expect(sidebar.itemsIn(collectionName, 'Visible Request')).toBeVisible();
+          await expect(sidebar.itemsIn(collectionName, 'hidden')).toHaveCount(0);
+          await expect(sidebar.itemsIn(collectionName, 'Hidden Request')).toHaveCount(0);
+        });
+      } finally {
+        await closeElectronApp(electronApp);
+      }
+    });
+  }
 });
