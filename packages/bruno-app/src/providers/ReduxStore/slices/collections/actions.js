@@ -2457,12 +2457,10 @@ export const removeVariableFromScope = ({ collectionUid, scope, ownerUid, variab
  * @param {Object} scopeInfo - Scope information from getVariableScope()
  * @param {string} collectionUid - Collection UID
  */
-export const updateVariableInScope = (variableName, newValue, scopeInfo, collectionUid, { silent = false } = {}) => (dispatch, getState) => {
+export const updateVariableInScope = (variableName, newValue, scopeInfo, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const announceSaved = (existingVariable) => {
-      if (!silent) {
-        toast.success(`Variable "${variableName}" ${existingVariable ? 'updated' : 'created'}`);
-      }
+      toast.success(`Variable "${variableName}" ${existingVariable ? 'updated' : 'created'}`);
     };
 
     if (!scopeInfo || !variableName) {

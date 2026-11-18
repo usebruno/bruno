@@ -34,9 +34,9 @@ const expectOnlyOneToast = async (page, variableName: string) => {
 
   await test.step('Only one toast appears', async () => {
     await expect(async () => {
-      await expect(toasts.byMessage(`Variable "${variableName}" saved`)).toBeVisible({ timeout: 1000 });
+      await expect(toasts.byMessage(`Variable "${variableName}" created`)).toBeVisible({ timeout: 1000 });
       await expect(toasts.all()).toHaveCount(1, { timeout: 1000 });
-    }).toPass();
+    }).toPass({ timeout: 5000 });
   });
 };
 
