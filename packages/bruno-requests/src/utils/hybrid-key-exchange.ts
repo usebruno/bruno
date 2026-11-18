@@ -1,17 +1,6 @@
-/**
- * Post-quantum hybrid key exchange (X25519MLKEM768) for BoringSSL runtimes (Electron).
- *
- * BoringSSL sends a key share for both a classical and a post-quantum group whenever both are
- * offered, so offering X25519MLKEM768 always adds its ~1.2KB key share to the first ClientHello,
- * which some servers with small ClientHello limits reject. Connections therefore start with
- * BoringSSL's classical default. When a TLS handshake is rejected, it is retried once with the
- * other setting (hybrid group offered or not), before the socket is handed to the request, and an
- * endpoint whose retry succeeds keeps that setting for later connections. Because a rejected
- * setting is always retried, the remembered setting follows a server that adds or drops support.
- *
- * Node's OpenSSL (bruno-cli) can offer the hybrid group without sending its key share up front,
- * so it needs no retry; see bruno-cli/bin/bru.js.
- */
+// Hybrid key exchange (X25519MLKEM768) for BoringSSL (Electron). BoringSSL puts a key share for
+// every offered group in the first ClientHello, so we start classical and retry once with hybrid
+// when the handshake fails. OpenSSL (CLI) advertises hybrid without that upfront share; see bru.js.
 import { once } from 'node:events';
 import { TLSSocket, type SecureContext } from 'node:tls';
 
@@ -33,12 +22,9 @@ const isEstablishedTlsSocket = (socket: TLSSocket): boolean => socket instanceof
 
 const isBoringSsl = (): boolean => Boolean(process.versions.electron);
 
-// The endpoints that needed the hybrid group, least recently used first. A Set iterates in
-// insertion order, so re-inserting an endpoint on use and evicting the first entry makes it an LRU.
 const MAX_HYBRID_KEY_EXCHANGE_ENDPOINTS = 500;
 const hybridKeyExchangeEndpoints = new Set<string>();
 
-// Marks the endpoint most recently used, returning whether it was already remembered.
 const touchHybridKeyExchangeEndpoint = (endpointKey: string): boolean => {
   const remembered = hybridKeyExchangeEndpoints.delete(endpointKey);
   hybridKeyExchangeEndpoints.add(endpointKey);
@@ -103,9 +89,7 @@ async function connectWithKeyExchangeFallback(
   }
 }
 
-// The groups a TLS connection offers belong to its secure context, so a connection given a
-// prebuilt `secureContext` ignores `ecdhCurve`. Code that builds secure contexts registers how to
-// build each one's hybrid twin.
+// A prebuilt secureContext ignores ecdhCurve; registered factories supply a hybrid twin.
 const hybridSecureContextFactories = new WeakMap<SecureContext, () => SecureContext>();
 
 function registerHybridSecureContext(secureContext: SecureContext, createHybridSecureContext: (ecdhCurve: string) => SecureContext): void {
@@ -125,14 +109,6 @@ function applyEcdhCurveToSecureContext<T extends { ecdhCurve?: string; secureCon
 const withEcdhCurve = <T extends object>(options: T, ecdhCurve: string | undefined): T =>
   (ecdhCurve ? applyEcdhCurveToSecureContext({ ...options, ecdhCurve }) : options);
 
-/**
- * Wraps an HTTPS agent class so its TLS connections fall back between the classical and the
- * hybrid key exchange during the handshake, on BoringSSL runtimes.
- *
- * Plain `https.Agent` subclasses connect through `createConnection`, which defers the socket to
- * its callback until the handshake has settled. agent-base proxy agents (https-proxy-agent,
- * socks-proxy-agent) build the target TLS socket in `connect`, opening a fresh tunnel per attempt.
- */
 function withHybridKeyExchangeFallback<T>(BaseAgentClass: T): T {
   const usesAgentBase = typeof (BaseAgentClass as any).prototype.connect === 'function';
 

@@ -44,7 +44,7 @@ describe('connectWithKeyExchangeFallback', () => {
     expect(connect.mock.calls).toEqual([[undefined]]);
   });
 
-  it('retries a rejected handshake with the hybrid group, and offers it first from then on', async () => {
+  it('retries with hybrid and offers it first on later connections', async () => {
     const onRetry = jest.fn();
     const connect = jest.fn((ecdhCurve?: string) => fakeTlsSocket(ecdhCurve ? 'secure' : handshakeFailure));
 
@@ -187,7 +187,7 @@ describe('withHybridKeyExchangeFallback', () => {
     createdSockets.splice(0).forEach((socket) => socket.destroy());
   });
 
-  it('retries the handshake before handing the socket over, and logs the retry to the timeline', async () => {
+  it('retries before handing the socket to the caller and logs to the timeline', async () => {
     setElectronVersion('43.8.10');
     const Agent = withHybridKeyExchangeFallback(PqOnlyAgent) as any;
     const agent = new Agent();

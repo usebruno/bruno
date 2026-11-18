@@ -9,7 +9,6 @@ import { buildCommonLocators, createCollection, createRequest, selectResponsePan
 
 const RETRY_MESSAGE = 'TLS handshake failed; retrying with post-quantum key exchange (X25519MLKEM768)';
 
-// The server below runs in the test runner's Node, which needs OpenSSL 3.5+ to offer the group.
 const runtimeSupportsHybridGroup = (() => {
   try {
     tls.createSecureContext({ ecdhCurve: 'X25519MLKEM768' });
@@ -19,12 +18,8 @@ const runtimeSupportsHybridGroup = (() => {
   }
 })();
 
-// Electron's BoringSSL starts with classical key exchange only, so a server that accepts nothing
-// but the post-quantum hybrid group rejects the first handshake. The app retries it with the
-// hybrid group (bruno-requests/src/utils/hybrid-key-exchange.ts); these specs run that retry
-// against the real BoringSSL, with a custom CA so the retry has to rebuild its secure context.
 test.describe('post-quantum key exchange', () => {
-  test.skip(!runtimeSupportsHybridGroup, 'the test runner\'s Node cannot host a post-quantum-only TLS server');
+  test.skip(!runtimeSupportsHybridGroup, 'requires OpenSSL 3.5+ to host a hybrid-only TLS server');
 
   const certsDir = path.join(__dirname, 'certs');
   const initUserDataPath = path.join(__dirname, 'init-user-data');
@@ -32,7 +27,6 @@ test.describe('post-quantum key exchange', () => {
   let pqOnlyServer: https.Server;
   let pqOnlyPort: number;
   let failedHandshakes = 0;
-  // An HTTP CONNECT proxy, counting the tunnels it opens.
   let proxy: http.Server;
   let proxyPort: number;
   let tunnels = 0;
@@ -97,7 +91,7 @@ test.describe('post-quantum key exchange', () => {
     return page;
   };
 
-  test('retries a rejected handshake with the hybrid group, and starts with it from then on', async ({ launchElectronApp, createTmpDir }) => {
+  test('retries with hybrid and reuses the setting', async ({ launchElectronApp, createTmpDir }) => {
     const page = await openRequest(launchElectronApp, createTmpDir, { useProxy: false });
 
     await test.step('First request succeeds after one rejected classical handshake', async () => {

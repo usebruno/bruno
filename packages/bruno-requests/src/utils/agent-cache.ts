@@ -32,9 +32,6 @@ const timelineClassCache = new WeakMap<any, AgentClass>();
  */
 const timelineHttpClassCache = new WeakMap<any, HttpAgentClass>();
 
-/**
- * Cache for HTTPS agent classes wrapped with the hybrid key exchange fallback.
- */
 const hybridKeyExchangeFallbackClassCache = new WeakMap<any, any>();
 
 /**
@@ -69,10 +66,6 @@ function hashValue(value: string | Buffer | undefined): string | null {
  */
 const secureContextCache = new Map<string, tls.SecureContext>();
 
-/**
- * Create a TLS secure context with the CAs added on top of the OpenSSL defaults, and register
- * how to build its twin that offers the hybrid post-quantum key exchange.
- */
 function createSecureContextWithCAs(ctxOptions: tls.SecureContextOptions, ca: string | Buffer | (string | Buffer)[]): tls.SecureContext {
   const create = (options: tls.SecureContextOptions) => {
     const ctx = tls.createSecureContext(options);
@@ -229,9 +222,6 @@ function getTimelineHttpAgentClass(BaseAgentClass: any): HttpAgentClass {
   return wrappedClass;
 }
 
-/**
- * Get a cached HTTPS agent class wrapped with the hybrid key exchange fallback.
- */
 function getHybridKeyExchangeFallbackClass(AgentClass: any): any {
   if (!hybridKeyExchangeFallbackClassCache.has(AgentClass)) {
     hybridKeyExchangeFallbackClassCache.set(AgentClass, withHybridKeyExchangeFallback(AgentClass));
@@ -400,8 +390,7 @@ function getOrCreateHttpAgent({
 
 /**
  * Clear the agent cache. Useful for testing or when SSL configuration changes.
- * Destroys all cached agents to properly release their sockets, and forgets which endpoints
- * needed the hybrid post-quantum key exchange.
+ * Destroys all cached agents to properly release their sockets.
  */
 function clearAgentCache(): void {
   for (const agent of agentCache.values()) {

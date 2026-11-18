@@ -238,7 +238,6 @@ export class PatchedHttpsProxyAgent extends HttpsProxyAgent<any> {
       }
     }
 
-    // The copied secureContext replaces any hybrid key exchange context chosen for this connection.
     return super.connect(req, applyEcdhCurveToSecureContext(targetOpts));
   }
 }

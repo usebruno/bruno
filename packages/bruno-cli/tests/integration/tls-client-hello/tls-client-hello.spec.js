@@ -54,10 +54,7 @@ const runtimeSupportsHybridGroup = (() => {
   }
 })();
 
-// Some older TLS servers reset the connection when the ClientHello carries a post-quantum
-// key share, while post-quantum-only servers need the hybrid group advertised. bin/bru.js sets
-// tls.DEFAULT_ECDH_CURVE to advertise it without sending its key share. This captures the
-// handshake the CLI actually sends and closes the socket, so no certificate or network is involved.
+// Captures the ClientHello bru.js sends to a local listener (no real TLS or network).
 describe('CLI run — TLS ClientHello', () => {
   let server;
   let host;
@@ -86,7 +83,7 @@ describe('CLI run — TLS ClientHello', () => {
     await new Promise((resolve) => server.close(resolve));
   });
 
-  it('offers only classical key shares and advertises the hybrid group when supported', async () => {
+  it('sends classical key shares and advertises hybrid when supported', async () => {
     await runCli(['run', 'handshake.bru', '--env-var', `host=${host}`], tmpDir);
 
     expect(clientHello).toBeDefined();
