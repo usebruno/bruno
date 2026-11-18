@@ -17,7 +17,7 @@ it before non-trivial cross-package or architectural work.
 - **Leaf libs — zero internal `@usebruno/*` deps:** bruno-common, bruno-lang, bruno-query,
   bruno-requests, bruno-graphql-docs, bruno-schema, bruno-schema-types, bruno-toml, bruno-sqlite
   (a leaf, but *not* platform-neutral — see guardrail 6).
-- **Mid consumers:** bruno-js → (common, query); bruno-converters → (common, schema; schema-types
+- **Mid consumers:** bruno-js → (common, query, requests); bruno-converters → (common, schema; schema-types
   as devDep); bruno-filestore → (common, lang; schema-types as devDep); bruno-io → (filestore,
   common; schema-types as devDep).
 - **Top consumers (things flow *into* them, never out):** bruno-cli → (common, converters,

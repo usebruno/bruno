@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import tls from 'node:tls';
 import type { Agent as HttpAgent } from 'node:http';
 import type { Agent as HttpsAgent } from 'node:https';
+import { withHybridKeyExchangeFallback, clearHybridKeyExchangeEndpoints, registerHybridSecureContext } from './hybrid-key-exchange';
 import { createTimelineAgentClass, createTimelineHttpAgentClass, type TimelineEntry, type AgentOptions, type HttpAgentOptions, type AgentClass, type HttpAgentClass } from './timeline-agent';
 
 /**
@@ -30,6 +31,11 @@ const timelineClassCache = new WeakMap<any, AgentClass>();
  * Prevents creating new class definitions on every call.
  */
 const timelineHttpClassCache = new WeakMap<any, HttpAgentClass>();
+
+/**
+ * Cache for HTTPS agent classes wrapped with the hybrid key exchange fallback.
+ */
+const hybridKeyExchangeFallbackClassCache = new WeakMap<any, any>();
 
 /**
  * Map to assign unique IDs to agent classes.
@@ -64,6 +70,26 @@ function hashValue(value: string | Buffer | undefined): string | null {
 const secureContextCache = new Map<string, tls.SecureContext>();
 
 /**
+ * Create a TLS secure context with the CAs added on top of the OpenSSL defaults, and register
+ * how to build its twin that offers the hybrid post-quantum key exchange.
+ */
+function createSecureContextWithCAs(ctxOptions: tls.SecureContextOptions, ca: string | Buffer | (string | Buffer)[]): tls.SecureContext {
+  const create = (options: tls.SecureContextOptions) => {
+    const ctx = tls.createSecureContext(options);
+    for (const cert of Array.isArray(ca) ? ca : [ca]) {
+      if (cert) {
+        ctx.context.addCACert(cert);
+      }
+    }
+    return ctx;
+  };
+
+  const ctx = create(ctxOptions);
+  registerHybridSecureContext(ctx, (ecdhCurve) => create({ ...ctxOptions, ecdhCurve }));
+  return ctx;
+}
+
+/**
  * Build a TLS secure context that adds custom CAs on top of the OpenSSL defaults.
  *
  * When Node.js receives an explicit `ca` option in tls.connect() or https.Agent,
@@ -80,13 +106,7 @@ function buildSecureContext(ca: string | Buffer | (string | Buffer)[]): tls.Secu
     return secureContextCache.get(caHash)!;
   }
 
-  const ctx = tls.createSecureContext();
-  const caList = Array.isArray(ca) ? ca : [ca];
-  for (const cert of caList) {
-    if (cert) {
-      ctx.context.addCACert(cert);
-    }
-  }
+  const ctx = createSecureContextWithCAs({}, ca);
 
   if (caHash) {
     secureContextCache.set(caHash, ctx);
@@ -118,11 +138,7 @@ function applySecureContext<T extends AgentOptions | HttpAgentOptions>(options: 
       if (rest.key) ctxOptions.key = rest.key;
       if (rest.passphrase) ctxOptions.passphrase = rest.passphrase;
 
-      const ctx = tls.createSecureContext(ctxOptions);
-      const caList = Array.isArray(ca) ? ca : [ca!];
-      for (const caCert of caList) {
-        if (caCert) ctx.context.addCACert(caCert);
-      }
+      const ctx = createSecureContextWithCAs(ctxOptions, ca!);
 
       const { pfx: _pfx, cert: _cert, key: _key, passphrase: _pass, ...cleanRest } = rest;
       return { ...cleanRest, secureContext: ctx } as unknown as T;
@@ -214,6 +230,16 @@ function getTimelineHttpAgentClass(BaseAgentClass: any): HttpAgentClass {
 }
 
 /**
+ * Get a cached HTTPS agent class wrapped with the hybrid key exchange fallback.
+ */
+function getHybridKeyExchangeFallbackClass(AgentClass: any): any {
+  if (!hybridKeyExchangeFallbackClassCache.has(AgentClass)) {
+    hybridKeyExchangeFallbackClassCache.set(AgentClass, withHybridKeyExchangeFallback(AgentClass));
+  }
+  return hybridKeyExchangeFallbackClassCache.get(AgentClass);
+}
+
+/**
  * Type for cache key generation functions.
  */
 type CacheKeyFn<T> = (classId: number, options: T, proxyUri: string | null, hostname: string | null) => string;
@@ -236,7 +262,8 @@ function getOrCreateAgentInternal<TOptions extends HttpAgentOptions>(
   getTimelineClass: TimelineClassFn,
   cacheHitMessage: string,
   disableCache: boolean = false,
-  hostname: string | null = null
+  hostname: string | null = null,
+  wrapAgentClass: (AgentClass: any) => any = (AgentClass) => AgentClass
 ): HttpAgent | HttpsAgent {
   const agentClassId = getAgentClassId(BaseAgentClass);
   const cacheKey = getCacheKey(agentClassId, options, proxyUri, hostname);
@@ -266,7 +293,7 @@ function getOrCreateAgentInternal<TOptions extends HttpAgentOptions>(
     return agent;
   }
 
-  const AgentClass = timeline ? getTimelineClass(BaseAgentClass) : BaseAgentClass;
+  const AgentClass = wrapAgentClass(timeline ? getTimelineClass(BaseAgentClass) : BaseAgentClass);
   // Convert raw `ca` to a secureContext that adds CAs on top of OpenSSL defaults
   const resolvedOptions = applySecureContext(options);
 
@@ -277,9 +304,9 @@ function getOrCreateAgentInternal<TOptions extends HttpAgentOptions>(
     agent = new AgentClass(agentOptions, timeline);
   } else if (proxyUri) {
     // Proxy agent classes expect (proxyUri, options) constructor signature
-    agent = new BaseAgentClass(proxyUri, resolvedOptions);
+    agent = new AgentClass(proxyUri, resolvedOptions);
   } else {
-    agent = new BaseAgentClass(resolvedOptions);
+    agent = new AgentClass(resolvedOptions);
   }
 
   if (!disableCache) {
@@ -332,7 +359,8 @@ function getOrCreateHttpsAgent({
     getTimelineAgentClass,
     'Reusing cached https agent',
     disableCache,
-    hostname
+    hostname,
+    getHybridKeyExchangeFallbackClass
   );
 }
 
@@ -372,7 +400,8 @@ function getOrCreateHttpAgent({
 
 /**
  * Clear the agent cache. Useful for testing or when SSL configuration changes.
- * Destroys all cached agents to properly release their sockets.
+ * Destroys all cached agents to properly release their sockets, and forgets which endpoints
+ * needed the hybrid post-quantum key exchange.
  */
 function clearAgentCache(): void {
   for (const agent of agentCache.values()) {
@@ -381,6 +410,7 @@ function clearAgentCache(): void {
     }
   }
   agentCache.clear();
+  clearHybridKeyExchangeEndpoints();
 }
 
 /**

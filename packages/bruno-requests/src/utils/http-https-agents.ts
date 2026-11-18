@@ -12,6 +12,7 @@ import { isEmpty, get, isUndefined, isNull } from 'lodash';
 import { getCACertificates } from './ca-cert';
 import { transformProxyConfig } from './proxy-util';
 import { getOrCreateHttpsAgent, getOrCreateHttpAgent } from './agent-cache';
+import { applyEcdhCurveToSecureContext } from './hybrid-key-exchange';
 import { getPacResolver } from './pac-resolver';
 import type { TimelineEntry } from './timeline-agent';
 
@@ -237,7 +238,8 @@ export class PatchedHttpsProxyAgent extends HttpsProxyAgent<any> {
       }
     }
 
-    return super.connect(req, targetOpts);
+    // The copied secureContext replaces any hybrid key exchange context chosen for this connection.
+    return super.connect(req, applyEcdhCurveToSecureContext(targetOpts));
   }
 }
 
