@@ -69,6 +69,21 @@ describe('connectWithKeyExchangeFallback', () => {
     expect(onRetry).toHaveBeenLastCalledWith(false);
   });
 
+  it('falls back when a remembered hybrid ClientHello is rejected with ECONNRESET', async () => {
+    const connect = jest.fn((ecdhCurve?: string) => fakeTlsSocket(ecdhCurve ? 'secure' : handshakeFailure));
+    await connectWithKeyExchangeFallback(endpoint, connect);
+    const reset = Object.assign(new Error('read ECONNRESET'), { code: 'ECONNRESET' });
+    connect.mockImplementation((ecdhCurve?: string) => fakeTlsSocket(ecdhCurve === HYBRID_ECDH_CURVE ? reset : 'secure'));
+    const onRetry = jest.fn();
+
+    await connectWithKeyExchangeFallback(endpoint, connect, onRetry);
+    connect.mockClear();
+    await connectWithKeyExchangeFallback(endpoint, connect);
+
+    expect(onRetry).toHaveBeenCalledWith(false);
+    expect(connect.mock.calls).toEqual([[undefined]]);
+  });
+
   it('recognizes a handshake failure reported on a write', async () => {
     const writeFailure = Object.assign(new Error('write EPROTO 0C1C0000:error:10000410:SSL routines:OPENSSL_internal:SSLV3_ALERT_HANDSHAKE_FAILURE:../../third_party/boringssl/src/ssl/tls_record.cc:486:SSL alert number 40'), { code: 'EPROTO' });
     const connect = jest.fn((ecdhCurve?: string) => fakeTlsSocket(ecdhCurve ? 'secure' : writeFailure));

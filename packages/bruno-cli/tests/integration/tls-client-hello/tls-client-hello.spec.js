@@ -86,18 +86,15 @@ describe('CLI run — TLS ClientHello', () => {
     await new Promise((resolve) => server.close(resolve));
   });
 
-  it('offers only classical key shares', async () => {
+  it('offers only classical key shares and advertises the hybrid group when supported', async () => {
     await runCli(['run', 'handshake.bru', '--env-var', `host=${host}`], tmpDir);
 
     expect(clientHello).toBeDefined();
-    const { keyShareGroups } = parseClientHelloGroups(clientHello);
-    expect(keyShareGroups).toEqual([GROUP_X25519]);
+    const { keyShareGroups, supportedGroups } = parseClientHelloGroups(clientHello);
+    expect(keyShareGroups).toContain(GROUP_X25519);
+    expect(keyShareGroups).not.toContain(GROUP_X25519_MLKEM768);
+    if (runtimeSupportsHybridGroup) {
+      expect(supportedGroups).toContain(GROUP_X25519_MLKEM768);
+    }
   }, RUN_TIMEOUT);
-
-  // Runs after the test above, which captures the ClientHello.
-  (runtimeSupportsHybridGroup ? it : it.skip)('advertises the hybrid post-quantum group', () => {
-    expect(clientHello).toBeDefined();
-    const { supportedGroups } = parseClientHelloGroups(clientHello);
-    expect(supportedGroups).toContain(GROUP_X25519_MLKEM768);
-  });
 });

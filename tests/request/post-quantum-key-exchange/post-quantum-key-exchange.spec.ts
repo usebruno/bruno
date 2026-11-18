@@ -118,8 +118,10 @@ test.describe('post-quantum key exchange', () => {
       // Each request opens a new connection: the server doesn't keep the connection alive.
       pqOnlyServer.closeAllConnections();
       await selectResponsePaneTab(page, 'Response');
-      await sendRequestAndWaitForResponse(page, 200);
-      expect(failedHandshakes).toBe(1);
+      const failedBefore = failedHandshakes;
+      await page.getByTestId('send-arrow-icon').click();
+      await expect(buildCommonLocators(page).response.body()).toContainText('post-quantum ok');
+      expect(failedHandshakes).toBe(failedBefore);
     });
   });
 

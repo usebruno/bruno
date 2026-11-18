@@ -25,6 +25,12 @@ const HANDSHAKE_FAILURE_ALERT = 'ALERT_HANDSHAKE_FAILURE';
 const isHandshakeFailure = (error: any): boolean =>
   [error?.code, error?.message].some((value) => typeof value === 'string' && value.includes(HANDSHAKE_FAILURE_ALERT));
 
+// Servers that reject a large hybrid ClientHello may reset the connection before any TLS alert.
+const isRetryableKeyExchangeError = (error: any, fromHybridAttempt: boolean): boolean =>
+  isHandshakeFailure(error) || (fromHybridAttempt && error?.code === 'ECONNRESET');
+
+const isEstablishedTlsSocket = (socket: TLSSocket): boolean => socket instanceof TLSSocket && socket.encrypted;
+
 const isBoringSsl = (): boolean => Boolean(process.versions.electron);
 
 // The endpoints that needed the hybrid group, least recently used first. A Set iterates in
@@ -81,15 +87,17 @@ async function connectWithKeyExchangeFallback(
   try {
     return await attempt(offerHybrid);
   } catch (error) {
-    if (!isHandshakeFailure(error)) {
+    if (!isRetryableKeyExchangeError(error, offerHybrid)) {
       throw error;
     }
     onRetry?.(!offerHybrid);
     const socket = await attempt(!offerHybrid);
-    if (offerHybrid) {
-      hybridKeyExchangeEndpoints.delete(endpointKey);
-    } else {
-      rememberHybridKeyExchange(endpointKey);
+    if (isEstablishedTlsSocket(socket)) {
+      if (offerHybrid) {
+        hybridKeyExchangeEndpoints.delete(endpointKey);
+      } else {
+        rememberHybridKeyExchange(endpointKey);
+      }
     }
     return socket;
   }
