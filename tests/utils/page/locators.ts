@@ -239,6 +239,11 @@ export const buildCommonLocators = (page: Page) => ({
     defaultEnvironment: () => page.getByTestId('presets-default-environment'),
     defaultEnvironmentOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
   },
+  collectionHttp: {
+    versionTrigger: () => page.getByTestId('collection-http-version'),
+    versionOption: (label: string) => page.locator('.dropdown-item').getByText(label, { exact: true }),
+    saveBtn: () => page.getByTestId('collection-requests-save-btn')
+  },
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
     item: (tagName: string) => page.locator('.tag-item', { hasText: tagName }),
