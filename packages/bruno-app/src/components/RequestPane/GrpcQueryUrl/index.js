@@ -55,6 +55,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const methodDropdownRef = useRef(null);
   const protoDropdownRef = useRef(null);
   const latestReflectionRequestIdRef = useRef(0);
+  const loadedMethodsUrlRef = useRef(null);
 
   const protoFileManagement = useProtoFileManagement(collection, protoFilePath);
   const reflectionManagement = useReflectionManagement(item, collection);
@@ -88,8 +89,11 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
 
-  // The selected method survives a reload only while the new method list still carries its path;
-  // its type is re-read from that list, since a path can change signature between loads.
+  const setLoadedMethods = (methods, resolvedUrl = null) => {
+    loadedMethodsUrlRef.current = resolvedUrl;
+    setGrpcMethods(methods);
+  };
+
   const reconcileSelectedMethod = (methods) => {
     if (!methods || methods.length === 0) return;
 
@@ -106,17 +110,17 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     });
   };
 
-  const applyReflectionResult = ({ methods, error, fromCache }, { clearMethodsOnError }) => {
+  const applyReflectionResult = ({ methods, error, fromCache, resolvedUrl }) => {
     if (error) {
       toast.error(`Failed to load gRPC methods: ${error.message || 'Unknown error'}`);
 
-      if (clearMethodsOnError) {
-        setGrpcMethods([]);
+      if (resolvedUrl !== loadedMethodsUrlRef.current) {
+        setLoadedMethods([]);
       }
       return;
     }
 
-    setGrpcMethods(methods);
+    setLoadedMethods(methods, resolvedUrl);
     setProtoFilePath('');
     setIsReflectionMode(true);
 
@@ -139,16 +143,16 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   // A reflection claims the latest slot when it starts; a result arriving after a newer
   // claim is dropped.
-  const claimLatestReflectionSlot = ({ clearMethodsOnError = true } = {}) => {
+  const claimLatestReflectionSlot = () => {
     const requestId = ++latestReflectionRequestIdRef.current;
     return (result) => {
       if (requestId !== latestReflectionRequestIdRef.current) return;
-      applyReflectionResult(result, { clearMethodsOnError });
+      applyReflectionResult(result);
     };
   };
 
   const handleReflection = async (url, isManualRefresh = false) => {
-    const applyIfLatest = claimLatestReflectionSlot({ clearMethodsOnError: !isManualRefresh });
+    const applyIfLatest = claimLatestReflectionSlot();
     applyIfLatest(await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh));
   };
 
@@ -187,12 +191,12 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     if (error) {
       console.error('Failed to load gRPC methods:', error);
       toast.error('Failed to load gRPC methods');
-      setGrpcMethods([]);
+      setLoadedMethods([]);
       return;
     }
 
     setProtoFilePath(filePath);
-    setGrpcMethods(methods);
+    setLoadedMethods(methods);
     setIsReflectionMode(false);
 
     if (!fromCache) {
@@ -278,7 +282,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         handleReflection(url);
       }
     } else {
-      setGrpcMethods([]);
+      setLoadedMethods([]);
       setSelectedGrpcMethod(null);
       onMethodSelect({ path: '', type: '' });
     }

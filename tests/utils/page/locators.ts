@@ -492,7 +492,8 @@ export const buildGrpcCommonLocators = (page: Page) => ({
     dropdown: () => page.getByTestId('grpc-methods-dropdown'),
     item: (methodName: string) =>
       page.getByTestId('grpc-methods-dropdown').getByTestId('grpc-method-item').filter({ hasText: methodName }),
-    selectedName: () => page.getByTestId('selected-grpc-method-name')
+    selectedName: () => page.getByTestId('selected-grpc-method-name'),
+    refresh: () => page.getByTestId('refresh-methods-icon')
   },
   request: {
     queryUrlContainer: () => page.getByTestId('grpc-query-url-container'),

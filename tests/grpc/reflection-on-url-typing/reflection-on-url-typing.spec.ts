@@ -59,4 +59,33 @@ test.describe('grpc reflection on url typing', () => {
       ]);
     });
   });
+
+  test('a refresh of a freshly typed url drops the methods of the previous one', async ({
+    pageWithUserData: page
+  }) => {
+    const locators = buildGrpcCommonLocators(page);
+
+    await test.step('load the methods the served url offers', async () => {
+      await openCollection(page, COLLECTION_NAME);
+      await locators.sidebar.request('SayHello').click();
+      await expect(locators.tabs.activeRequestTab()).toContainText('SayHello', { timeout: 30000 });
+
+      await locators.request.queryUrlEditor().click();
+      await page.keyboard.type(SERVED_URL);
+      await expect(locators.toast.byMessage(/Loaded \d+ gRPC methods from reflection/)).toBeVisible({
+        timeout: REFLECTION_TIMEOUT_MS
+      });
+      await expect(locators.method.dropdown()).toBeVisible();
+    });
+
+    await test.step('point the request elsewhere and refresh before the debounce elapses', async () => {
+      await locators.request.queryUrlEditor().click();
+      await page.keyboard.press('ControlOrMeta+a');
+      await page.keyboard.type(UNSERVED_URL);
+      await locators.method.refresh().click();
+
+      await expect(locators.toast.byMessage(/Failed to load gRPC methods/)).toBeVisible({ timeout: 30000 });
+      await expect(locators.method.dropdown()).toBeHidden();
+    });
+  });
 });

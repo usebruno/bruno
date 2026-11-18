@@ -30,17 +30,17 @@ export default function useReflectionManagement(item, collection) {
    * Load gRPC methods from server reflection
    * @param {string} url - The gRPC server URL
    * @param {boolean} isManualRefresh - Whether this is a manual refresh
-   * @returns {Promise<{methods: Array, error: Error|null}>}
+   * @returns {Promise<{methods: Array, error: Error|null, resolvedUrl: string|null}>}
    */
   const loadMethodsFromReflection = async (url, isManualRefresh = false) => {
     const resolvedUrl = resolveUrl(url);
     if (!resolvedUrl) {
-      return { methods: [], error: new Error('No URL provided') };
+      return { methods: [], error: new Error('No URL provided'), resolvedUrl };
     }
 
     const cachedMethods = reflectionCache[resolvedUrl];
     if (!isManualRefresh && cachedMethods && !isLoadingMethods) {
-      return { methods: cachedMethods, error: null, fromCache: true };
+      return { methods: cachedMethods, error: null, fromCache: true, resolvedUrl };
     }
 
     setIsLoadingMethods(true);
@@ -49,7 +49,7 @@ export default function useReflectionManagement(item, collection) {
 
       if (error) {
         console.error('Error loading gRPC methods:', error);
-        return { methods: [], error };
+        return { methods: [], error, resolvedUrl };
       }
 
       setReflectionCache((prevCache) => ({
@@ -57,10 +57,10 @@ export default function useReflectionManagement(item, collection) {
         [resolvedUrl]: methods
       }));
 
-      return { methods, error: null, fromCache: false };
+      return { methods, error: null, fromCache: false, resolvedUrl };
     } catch (error) {
       console.error('Error loading gRPC methods:', error);
-      return { methods: [], error };
+      return { methods: [], error, resolvedUrl };
     } finally {
       setIsLoadingMethods(false);
     }
