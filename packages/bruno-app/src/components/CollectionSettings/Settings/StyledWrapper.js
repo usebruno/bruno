@@ -11,6 +11,10 @@ const StyledWrapper = styled.div`
     border-right: 1px solid ${(props) => props.theme.border.border0};
   }
 
+  .settings-group + .settings-group {
+    margin-top: 20px;
+  }
+
   .settings-group-label {
     padding: 4px 8px 6px 12px;
     font-size: ${(props) => props.theme.font.size.base};

@@ -1723,13 +1723,13 @@ const openCollectionSettings = async (page: Page, collectionName: string, { pers
   });
 };
 
-const COLLECTION_SETTINGS_SECTIONS = ['presets', 'proxy', 'clientcert'];
+const COLLECTION_SETTINGS_SECTIONS = ['presets', 'proxy', 'clientcert', 'http'];
 
 /**
  * Select a tab in the collection settings pane
  * @param page - The page object
  * @param tabName - The tab name key (e.g. 'auth', 'headers', 'overview', 'script', 'vars'), or a
- *   Settings section ('presets', 'proxy', 'clientCert'), which opens the Settings tab first
+ *   Settings section ('presets', 'proxy', 'clientCert', 'http'), which opens the Settings tab first
  * @returns void
  */
 const selectCollectionPaneTab = async (page: Page, tabName: string) => {

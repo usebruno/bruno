@@ -1,20 +1,35 @@
 import React, { useRef } from 'react';
 import classnames from 'classnames';
-import { IconAdjustmentsHorizontal, IconWorld, IconCertificate } from '@tabler/icons';
+import { IconAdjustmentsHorizontal, IconWorld, IconCertificate, IconApi } from '@tabler/icons';
 import StatusDot from 'components/StatusDot';
 import Presets from '../Presets';
 import ProxySettings from '../ProxySettings';
 import ClientCertSettings from '../ClientCertSettings';
+import HttpSettings from '../HttpSettings';
 import StyledWrapper from './StyledWrapper';
 
-export const SETTINGS_SECTIONS = ['presets', 'proxy', 'clientCert'];
-export const DEFAULT_SETTINGS_SECTION = 'presets';
-
-const ITEMS = [
-  { key: 'presets', label: 'Presets', Icon: IconAdjustmentsHorizontal },
-  { key: 'proxy', label: 'Proxy', Icon: IconWorld },
-  { key: 'clientCert', label: 'Client certificates', Icon: IconCertificate }
+const GROUPS = [
+  {
+    key: 'general',
+    label: 'General',
+    items: [
+      { key: 'presets', label: 'Presets', Icon: IconAdjustmentsHorizontal },
+      { key: 'proxy', label: 'Proxy', Icon: IconWorld },
+      { key: 'clientCert', label: 'Client certificates', Icon: IconCertificate }
+    ]
+  },
+  {
+    key: 'protocols',
+    label: 'Protocols',
+    items: [{ key: 'http', label: 'HTTP', Icon: IconApi }]
+  }
 ];
+
+// Flat list in sidebar order: keyboard navigation moves across groups
+const ITEMS = GROUPS.flatMap((group) => group.items);
+
+export const SETTINGS_SECTIONS = ITEMS.map(({ key }) => key);
+export const DEFAULT_SETTINGS_SECTION = 'presets';
 
 const renderSection = (section, collection) => {
   switch (section) {
@@ -22,6 +37,8 @@ const renderSection = (section, collection) => {
       return <ProxySettings collection={collection} />;
     case 'clientCert':
       return <ClientCertSettings collection={collection} />;
+    case 'http':
+      return <HttpSettings collection={collection} />;
     case 'presets':
     default:
       return <Presets collection={collection} />;
@@ -32,7 +49,7 @@ const Settings = ({ collection, section, onSelect, indicators = {} }) => {
   const activeSection = SETTINGS_SECTIONS.includes(section) ? section : DEFAULT_SETTINGS_SECTION;
   const tabRefs = useRef({});
   const idPrefix = `collection-settings-${collection.uid}`;
-  const groupLabelId = `${idPrefix}-group-label`;
+  const groupLabelId = (groupKey) => `${idPrefix}-group-${groupKey}`;
   const panelId = `${idPrefix}-panel`;
   const tabId = (key) => `${idPrefix}-tab-${key}`;
 
@@ -71,31 +88,35 @@ const Settings = ({ collection, section, onSelect, indicators = {} }) => {
   return (
     <StyledWrapper className="flex h-full w-full overflow-hidden">
       <div className="settings-sidebar" data-testid="collection-settings-sidebar">
-        <div id={groupLabelId} className="settings-group-label">General</div>
-        <div role="tablist" aria-orientation="vertical" aria-labelledby={groupLabelId} onKeyDown={handleKeyDown}>
-          {ITEMS.map(({ key, label, Icon }) => {
-            const isActive = key === activeSection;
-            return (
-              <button
-                key={key}
-                ref={(el) => (tabRefs.current[key] = el)}
-                id={tabId(key)}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                aria-controls={panelId}
-                tabIndex={isActive ? 0 : -1}
-                className={classnames('settings-item', { active: isActive })}
-                onClick={() => onSelect(key)}
-                data-testid={`collection-settings-tab-${key}`}
-              >
-                <Icon size={16} strokeWidth={1.5} className="settings-item-icon" aria-hidden="true" />
-                <span className="settings-item-label">{label}</span>
-                {indicators[key] && <StatusDot />}
-              </button>
-            );
-          })}
-        </div>
+        {GROUPS.map((group) => (
+          <div className="settings-group" key={group.key}>
+            <div id={groupLabelId(group.key)} className="settings-group-label">{group.label}</div>
+            <div role="tablist" aria-orientation="vertical" aria-labelledby={groupLabelId(group.key)} onKeyDown={handleKeyDown}>
+              {group.items.map(({ key, label, Icon }) => {
+                const isActive = key === activeSection;
+                return (
+                  <button
+                    key={key}
+                    ref={(el) => (tabRefs.current[key] = el)}
+                    id={tabId(key)}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-controls={panelId}
+                    tabIndex={isActive ? 0 : -1}
+                    className={classnames('settings-item', { active: isActive })}
+                    onClick={() => onSelect(key)}
+                    data-testid={`collection-settings-tab-${key}`}
+                  >
+                    <Icon size={16} strokeWidth={1.5} className="settings-item-icon" aria-hidden="true" />
+                    <span className="settings-item-label">{label}</span>
+                    {indicators[key] && <StatusDot />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
       <div
         id={panelId}
