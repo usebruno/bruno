@@ -88,11 +88,28 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
 
-  const applyReflectionResult = ({ methods, error, fromCache }, { clearMethodsOnError = true } = {}) => {
+  // The selected method survives a reload only while the new method list still carries its path;
+  // its type is re-read from that list, since a path can change signature between loads.
+  const reconcileSelectedMethod = (methods) => {
+    if (!methods || methods.length === 0) return;
+
+    const currentMethod = selectedGrpcMethod && methods.find((method) => method.path === selectedGrpcMethod.path);
+    if (!currentMethod) {
+      setSelectedGrpcMethod(null);
+      onMethodSelect({ path: '', type: '' });
+      return;
+    }
+
+    setSelectedGrpcMethod({
+      path: currentMethod.path,
+      type: currentMethod.type
+    });
+  };
+
+  const applyReflectionResult = ({ methods, error, fromCache }, { clearMethodsOnError }) => {
     if (error) {
       toast.error(`Failed to load gRPC methods: ${error.message || 'Unknown error'}`);
-      // Methods belong to the url they were loaded from, so a url that reflects no
-      // methods drops them — but a failed refresh of the same url keeps what is loaded.
+
       if (clearMethodsOnError) {
         setGrpcMethods([]);
       }
@@ -117,26 +134,12 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       toast.success(`Loaded ${methods.length} gRPC methods from reflection`);
     }
 
-    if (methods && methods.length > 0) {
-      const haveSelectedMethod = selectedGrpcMethod && methods.some((method) => method.path === selectedGrpcMethod.path);
-      if (!haveSelectedMethod) {
-        setSelectedGrpcMethod(null);
-        onMethodSelect({ path: '', type: '' });
-      } else if (selectedGrpcMethod) {
-        const currentMethod = methods.find((method) => method.path === selectedGrpcMethod.path);
-        if (currentMethod) {
-          setSelectedGrpcMethod({
-            path: selectedGrpcMethod.path,
-            type: currentMethod.type
-          });
-        }
-      }
-    }
+    reconcileSelectedMethod(methods);
   };
 
   // A reflection claims the latest slot when it starts; a result arriving after a newer
-  // claim is dropped. Returns the apply function that enforces it.
-  const beginReflection = ({ clearMethodsOnError = true } = {}) => {
+  // claim is dropped.
+  const claimLatestReflectionSlot = ({ clearMethodsOnError = true } = {}) => {
     const requestId = ++latestReflectionRequestIdRef.current;
     return (result) => {
       if (requestId !== latestReflectionRequestIdRef.current) return;
@@ -145,7 +148,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   };
 
   const handleReflection = async (url, isManualRefresh = false) => {
-    const applyIfLatest = beginReflection({ clearMethodsOnError: !isManualRefresh });
+    const applyIfLatest = claimLatestReflectionSlot({ clearMethodsOnError: !isManualRefresh });
     applyIfLatest(await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh));
   };
 
@@ -174,7 +177,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
     if (!protoFilePath && value) {
       setIsReflectionMode(true);
-      reflectionManagement.scheduleReflection(finalUrl, beginReflection());
+      reflectionManagement.scheduleReflection(finalUrl, claimLatestReflectionSlot());
     }
   };
 
@@ -196,21 +199,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       toast.success(`Loaded ${methods.length} gRPC methods from proto file`);
     }
 
-    if (methods && methods.length > 0) {
-      const haveSelectedMethod = selectedGrpcMethod && methods.some((method) => method.path === selectedGrpcMethod.path);
-      if (!haveSelectedMethod) {
-        setSelectedGrpcMethod(null);
-        onMethodSelect({ path: '', type: '' });
-      } else if (selectedGrpcMethod) {
-        const currentMethod = methods.find((method) => method.path === selectedGrpcMethod.path);
-        if (currentMethod) {
-          setSelectedGrpcMethod({
-            path: selectedGrpcMethod.path,
-            type: currentMethod.type
-          });
-        }
-      }
-    }
+    reconcileSelectedMethod(methods);
   };
 
   const handleGrpcurl = async (url) => {

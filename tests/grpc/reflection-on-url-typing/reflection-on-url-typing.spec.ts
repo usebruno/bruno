@@ -7,14 +7,17 @@ const SERVED_URL = 'grpc://localhost:50051';
 const UNSERVED_URL = 'grpc://localhost:50052';
 const REFLECTION_DEBOUNCE_MS = 3000;
 const REFLECTION_TIMEOUT_MS = REFLECTION_DEBOUNCE_MS + 30000;
-const FOLLOW_UP_REFLECTION_MS = REFLECTION_DEBOUNCE_MS + 2000;
 
 test.describe('grpc reflection on url typing', () => {
   test.setTimeout(120000);
 
-  test('types a url and reflects once, without a follow-up failure', async ({ pageWithUserData: page }) => {
+  test('types a url and reflects once, without a follow-up failure', async ({
+    pageWithUserData: page,
+    recordToasts
+  }) => {
     const locators = buildGrpcCommonLocators(page);
-    const failureToast = locators.toast.byMessage(/Failed to load gRPC methods/);
+    const toasts = await recordToasts(page);
+    const filterReflectionToasts = async () => (await toasts.messages()).filter((message) => /gRPC methods/.test(message));
 
     await test.step('open the request, which starts without a url', async () => {
       await openCollection(page, COLLECTION_NAME);
@@ -38,19 +41,22 @@ test.describe('grpc reflection on url typing', () => {
       await page.keyboard.press('Escape');
     });
 
-    await test.step('no second reflection fails behind the successful one', async () => {
-      await page.waitForTimeout(FOLLOW_UP_REFLECTION_MS);
-      await expect(failureToast).toHaveCount(0);
-      await expect(locators.method.dropdown()).toBeVisible();
-    });
-
     await test.step('a url nothing serves drops the methods of the one that did', async () => {
       await locators.request.queryUrlEditor().click();
       await page.keyboard.press('ControlOrMeta+a');
       await page.keyboard.type(UNSERVED_URL);
 
-      await expect(failureToast).toBeVisible({ timeout: REFLECTION_TIMEOUT_MS });
+      await expect(locators.toast.byMessage(/Failed to load gRPC methods/)).toBeVisible({
+        timeout: REFLECTION_TIMEOUT_MS
+      });
       await expect(locators.method.dropdown()).toBeHidden();
+    });
+
+    await test.step('each url was looked up once, and no reflection ran in between', async () => {
+      expect(await filterReflectionToasts()).toStrictEqual([
+        expect.stringMatching(/^Loaded \d+ gRPC methods from reflection$/),
+        expect.stringMatching(/^Failed to load gRPC methods: /)
+      ]);
     });
   });
 });
