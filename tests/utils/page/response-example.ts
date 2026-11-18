@@ -17,6 +17,7 @@ export const buildResponseExampleLocators = (page: Page) => ({
   responseContent: () => page.getByTestId('response-example-response-content'),
   responseContentCodeMirror: () => page.getByTestId('response-example-response-content').locator('.CodeMirror').first(),
   editButton: () => page.getByTestId('response-example-edit-btn'),
+  editNameInput: () => page.getByTestId('response-example-name-input'),
   tryButton: () => page.getByTestId('response-example-try-btn'),
   saveButton: () => page.getByTestId('response-example-save-btn'),
   responsePane: () => page.getByTestId('response-pane'),

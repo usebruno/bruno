@@ -4,6 +4,7 @@ import { test, expect, Page } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
+  closePreferences,
   createApp,
   createCollection,
   createExampleFromSidebar,
@@ -11,12 +12,17 @@ import {
   createTransientRequest,
   fillRequestUrl,
   openExampleFromSidebar,
+  openPreferences,
   openRequest,
   saveTransientViaModal,
-  selectAppView
+  selectAppView,
+  selectPreferencesTab
 } from '../../utils/page';
 
 const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+const saveAllInWorkspaceShortcut = `${modifier}+Alt+KeyS`;
+const saveAllTabsShortcut = `${modifier}+Shift+KeyS`;
+const savedToast = 'Changes saved successfully';
 const firstCollection = 'save-all-one';
 const secondCollection = 'save-all-two';
 
@@ -126,7 +132,7 @@ test.describe('Save all across the workspace', () => {
       await openCollectionsMenu(page);
       await expect(saveAllMenuItem(page)).not.toHaveAttribute('aria-disabled', 'true');
       await saveAllMenuItem(page).click();
-      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await expect(buildCommonLocators(page).toast.byMessage(savedToast).last()).toBeVisible();
     });
 
     await test.step('Both requests are written to disk and their tabs are clean', async () => {
@@ -145,6 +151,40 @@ test.describe('Save all across the workspace', () => {
     });
   });
 
+  test('the workspace save-all shortcut is listed in the keybindings reference', async ({ page }) => {
+    await test.step('Open the Keybindings preferences', async () => {
+      await openPreferences(page);
+      await selectPreferencesTab(page, 'Keybindings');
+    });
+
+    await test.step('Both save-all shortcuts are listed', async () => {
+      const { keybindings } = buildCommonLocators(page).preferences;
+      await expect(keybindings.row('saveAllWorkspace')).toContainText('Save All in Workspace');
+      await expect(keybindings.row('saveAllTabs')).toContainText('Save All Tabs');
+    });
+
+    await closePreferences(page);
+  });
+
+  test('the collection save-all shortcut still saves only the active collection', async ({ page }) => {
+    await test.step('Edit a request in each collection, ending on the second collection', async () => {
+      await editRequestUrl(page, firstCollection, 'req-one', 'https://example.com/one-collection-only');
+      await editRequestUrl(page, secondCollection, 'req-two', 'https://example.com/two-collection-only');
+    });
+
+    await test.step('Press the collection save-all shortcut', async () => {
+      await page.keyboard.press(saveAllTabsShortcut);
+      await expect.poll(() => readAllFiles(collectionsDir)).toContain('https://example.com/two-collection-only');
+      await expect(draftIndicatorOf(page, 'req-two')).not.toBeVisible();
+    });
+
+    await test.step('The other collection is still unsaved', async () => {
+      expect(readAllFiles(collectionsDir)).not.toContain('https://example.com/one-collection-only');
+      await openRequest(page, firstCollection, 'req-one', { persist: true });
+      await expect(draftIndicatorOf(page, 'req-one')).toBeVisible();
+    });
+  });
+
   test('shortcut saves drafts across collections, then asks where to save a transient request', async ({ page }) => {
     await test.step('Edit a request in each collection and a transient request', async () => {
       await editRequestUrl(page, firstCollection, 'req-one', 'https://example.com/one-shortcut');
@@ -155,8 +195,8 @@ test.describe('Save all across the workspace', () => {
     });
 
     await test.step('Press the workspace save-all shortcut', async () => {
-      await page.keyboard.press(`${modifier}+Alt+KeyS`);
-      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await page.keyboard.press(saveAllInWorkspaceShortcut);
+      await expect(buildCommonLocators(page).toast.byMessage(savedToast).last()).toBeVisible();
     });
 
     await test.step('Saved requests are on disk; the transient request is not yet', async () => {
@@ -175,7 +215,7 @@ test.describe('Save all across the workspace', () => {
     await test.step('Create an example and rename it without saving', async () => {
       await createExampleFromSidebar(page, 'req-one', 'example-created');
       await expect.poll(() => readAllFiles(collectionsDir)).toContain('example-created');
-      await page.getByTestId('response-example-name-input').fill('example-renamed');
+      await buildCommonLocators(page).responseExample.editNameInput().fill('example-renamed');
       expect(readAllFiles(collectionsDir)).not.toContain('example-renamed');
     });
 
@@ -183,7 +223,7 @@ test.describe('Save all across the workspace', () => {
       await openCollectionsMenu(page);
       await expect(saveAllMenuItem(page)).not.toHaveAttribute('aria-disabled', 'true');
       await saveAllMenuItem(page).click();
-      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await expect(buildCommonLocators(page).toast.byMessage(savedToast).last()).toBeVisible();
     });
 
     await test.step('The renamed example is on disk', async () => {
@@ -199,22 +239,24 @@ test.describe('Save all across the workspace', () => {
 
     await test.step('Rename its example without saving', async () => {
       await openExampleFromSidebar(page, 'rich-request', 'rich-example');
-      await page.getByTestId('response-example-edit-btn').click();
-      await page.getByTestId('response-example-name-input').fill('rich-example-renamed');
+      const { responseExample } = buildCommonLocators(page);
+      await responseExample.editButton().click();
+      await responseExample.editNameInput().fill('rich-example-renamed');
       await expect(buildCommonLocators(page).tabs.draftIndicator()).toBeVisible();
     });
 
     await test.step('Save all from the Collections menu', async () => {
       await openCollectionsMenu(page);
       await saveAllMenuItem(page).click();
-      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await expect(buildCommonLocators(page).toast.byMessage(savedToast).last()).toBeVisible();
     });
 
     await test.step('The change is on disk and the tab is clean', async () => {
       await expect.poll(() => readAllFiles(collectionsDir)).toContain('rich-example-renamed');
       await expect(buildCommonLocators(page).tabs.draftIndicator()).not.toBeVisible();
-      await expect(page.getByTestId('response-example-save-btn')).not.toBeVisible();
-      await expect(page.getByTestId('response-example-edit-btn')).toBeVisible();
+      const { responseExample } = buildCommonLocators(page);
+      await expect(responseExample.saveButton()).not.toBeVisible();
+      await expect(responseExample.editButton()).toBeVisible();
     });
   });
 
@@ -222,7 +264,7 @@ test.describe('Save all across the workspace', () => {
     await test.step('Create an app and edit its code without saving', async () => {
       await createApp(page, 'save-all-app', { collectionName: firstCollection });
       await selectAppView(page, 'code');
-      const editor = page.getByTestId('collection-app-code').locator('.CodeMirror').first();
+      const editor = buildCommonLocators(page).collectionApp.codeEditor().first();
       await editor.waitFor({ state: 'visible' });
       await editor.evaluate((el) => (el as any).CodeMirror.setValue('<p>save-all-app-code</p>'));
       await expect(buildCommonLocators(page).tabs.draftIndicator()).toBeVisible();
@@ -232,7 +274,7 @@ test.describe('Save all across the workspace', () => {
       await openCollectionsMenu(page);
       await expect(saveAllMenuItem(page)).not.toHaveAttribute('aria-disabled', 'true');
       await saveAllMenuItem(page).click();
-      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await expect(buildCommonLocators(page).toast.byMessage(savedToast).last()).toBeVisible();
     });
 
     await test.step('The app code is on disk and the tab is clean', async () => {
@@ -245,22 +287,22 @@ test.describe('Save all across the workspace', () => {
     await test.step('Create an example and rename it, keeping focus in the name field', async () => {
       await createExampleFromSidebar(page, 'req-one', 'example-created');
       await expect.poll(() => readAllFiles(collectionsDir)).toContain('example-created');
-      const nameInput = page.getByTestId('response-example-name-input');
+      const nameInput = buildCommonLocators(page).responseExample.editNameInput();
       await nameInput.fill('example-renamed-by-shortcut');
       await expect(nameInput).toBeFocused();
     });
 
     await test.step('Press the workspace save-all shortcut', async () => {
-      await page.keyboard.press(`${modifier}+Alt+KeyS`);
-      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await page.keyboard.press(saveAllInWorkspaceShortcut);
+      await expect(buildCommonLocators(page).toast.byMessage(savedToast).last()).toBeVisible();
       await expect.poll(() => readAllFiles(collectionsDir)).toContain('example-renamed-by-shortcut');
-      await expect(page.getByTestId('response-example-save-btn')).not.toBeVisible();
+      await expect(buildCommonLocators(page).responseExample.saveButton()).not.toBeVisible();
     });
   });
 
   test('menu item is enabled for an edited scratch request and asks where to save it', async ({ page }) => {
     await test.step('Edit a scratch request on the workspace overview', async () => {
-      await page.locator('.home-button').click();
+      await buildCommonLocators(page).titleBar.homeButton().click();
       await createTransientRequest(page);
       await fillRequestUrl(page, 'https://example.com/scratch-draft', { replace: true });
       await expect(buildCommonLocators(page).tabs.draftIndicator()).toBeVisible();
