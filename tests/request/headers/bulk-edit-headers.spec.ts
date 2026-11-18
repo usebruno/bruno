@@ -1,6 +1,6 @@
 import { expect, test } from '../../../playwright';
 import { openRequest, selectRequestPaneTab } from '../../utils/page';
-import { appendRequestHeaderBulkLines, buildRequestLocators, fillRequestHeaderName, fillRequestHeaderValue } from '../../utils/request';
+import { appendRequestHeadersToBulkEditor, buildRequestLocators, fillRequestHeaderName, fillRequestHeaderValue } from '../../utils/request';
 
 const checked = { name: 'X-Checked', value: 'checked-value' };
 const unchecked = { name: 'X-Unchecked', value: 'unchecked-value' };
@@ -39,31 +39,27 @@ test('TC-592: Verify the Link from Key/Value to Bulk Edit View for Request Heade
     await expect(headers.bulkEditToggle()).toBeEnabled();
   });
 
-  await test.step('Add a checked header', async () => {
+  await test.step('Add a header', async () => {
     await fillRequestHeaderName(page, headers.addRow(), checked.name);
-    await fillRequestHeaderValue(page, headers.requestRow(checked.name), checked.value);
+    await fillRequestHeaderValue(page, headers.row(checked.name), checked.value);
   });
 
   await test.step('Verify checked header defaults to enabled', async () => {
-    await expect(headers.checkbox(headers.requestRow(checked.name))).toBeChecked();
-    await expect(headers.checkbox(headers.requestRow(checked.name))).toBeEnabled();
+    await expect(headers.cellText(checked.name, 'name')).toHaveText(checked.name);
+    await expect(headers.cellText(checked.name, 'value')).toHaveText(checked.value);
+    await expect(headers.checkbox(checked.name)).toBeChecked();
+    await expect(headers.checkbox(checked.name)).toBeEnabled();
   });
 
-  await test.step('Add an unchecked header', async () => {
+  await test.step('Add a header with unchecked checkbox', async () => {
     await fillRequestHeaderName(page, headers.addRow(), unchecked.name);
-    await fillRequestHeaderValue(page, headers.requestRow(unchecked.name), unchecked.value);
-    await headers.checkbox(headers.requestRow(unchecked.name)).uncheck();
+    await fillRequestHeaderValue(page, headers.row(unchecked.name), unchecked.value);
+    await headers.checkbox(unchecked.name).uncheck();
   });
 
-  await test.step('Verify both headers in key/value view', async () => {
-    await expect(headers.cellText(headers.requestRow(checked.name), 'name')).toHaveText(checked.name);
-    await expect(headers.cellText(headers.requestRow(checked.name), 'value')).toHaveText(checked.value);
-    await expect(headers.checkbox(headers.requestRow(checked.name))).toBeChecked();
-
-    await expect(headers.cellText(headers.requestRow(unchecked.name), 'name')).toHaveText(unchecked.name);
-    await expect(headers.cellText(headers.requestRow(unchecked.name), 'value')).toHaveText(unchecked.value);
-    await expect(headers.checkbox(headers.requestRow(unchecked.name))).not.toBeChecked();
-    await expect(headers.checkbox(headers.requestRow(unchecked.name))).toBeEnabled();
+  await test.step('Verify the checkbox for the unchecked header is unchecked', async () => {
+    await expect(headers.checkbox(unchecked.name)).not.toBeChecked();
+    await expect(headers.checkbox(unchecked.name)).toBeEnabled();
   });
 
   await test.step('Switch to Bulk Edit', async () => {
@@ -78,7 +74,7 @@ test('TC-592: Verify the Link from Key/Value to Bulk Edit View for Request Heade
   });
 
   await test.step('Add an enabled line and a commented line in Bulk Edit', async () => {
-    await appendRequestHeaderBulkLines(page, [
+    await appendRequestHeadersToBulkEditor(page, [
       bulkLine(enabled.name, enabled.value),
       bulkLine(disabled.name, disabled.value, true)
     ]);
@@ -92,26 +88,26 @@ test('TC-592: Verify the Link from Key/Value to Bulk Edit View for Request Heade
     await headers.keyValueEditToggle().click();
   });
 
-  await test.step('Verify all headers are restored in Key/Value view', async () => {
+  await test.step('Verify all headers are present in Key/Value view', async () => {
     await expect(headers.keyValueEditToggle()).toBeHidden();
-    await expect(headers.table()).toBeVisible();
     await expect(headers.bulkEditToggle()).toBeVisible();
+    await expect(headers.table()).toBeVisible();
 
     for (const header of [checked, unchecked, enabled, disabled]) {
-      await expect(headers.cellText(headers.requestRow(header.name), 'name')).toHaveText(header.name);
-      await expect(headers.cellText(headers.requestRow(header.name), 'value')).toHaveText(header.value);
+      await expect(headers.cellText(header.name, 'name')).toHaveText(header.name);
+      await expect(headers.cellText(header.name, 'value')).toHaveText(header.value);
     }
   });
 
   await test.step('Verify commented headers are unchecked and enabled headers stay checked', async () => {
     for (const header of [unchecked, disabled]) {
-      const checkbox = headers.checkbox(headers.requestRow(header.name));
+      const checkbox = headers.checkbox(header.name);
       await expect(checkbox).not.toBeChecked();
       await expect(checkbox).toBeEnabled();
     }
 
     for (const header of [checked, enabled]) {
-      const checkbox = headers.checkbox(headers.requestRow(header.name));
+      const checkbox = headers.checkbox(header.name);
       await expect(checkbox).toBeChecked();
       await expect(checkbox).toBeEnabled();
     }
@@ -119,13 +115,13 @@ test('TC-592: Verify the Link from Key/Value to Bulk Edit View for Request Heade
 
   await test.step('Enable previously commented headers', async () => {
     for (const header of [unchecked, disabled]) {
-      await headers.checkbox(headers.requestRow(header.name)).click();
+      await headers.checkbox(header.name).click();
     }
   });
 
   await test.step('Verify previously commented headers are now checked', async () => {
     for (const header of [unchecked, disabled]) {
-      await expect(headers.checkbox(headers.requestRow(header.name))).toBeChecked();
+      await expect(headers.checkbox(header.name)).toBeChecked();
     }
   });
 });

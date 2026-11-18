@@ -44,14 +44,14 @@ export const buildRequestLocators = (page: Page) => ({
     requestSectionRow: () => page.getByTestId('request-headers-section-row'),
     defaultRow: (name: string) => page.getByTestId(`default-header-row-${name.toLowerCase()}`),
     defaultValueScroller: (name: string) => page.getByTestId(`default-header-row-${name.toLowerCase()}`).getByTestId('column-value').locator('.CodeMirror-scroll'),
-    requestRow: (name: string) => page.getByTestId(`request-header-row-${name.toLowerCase()}`),
+    row: (name: string) => page.getByTestId(`request-header-row-${name.toLowerCase()}`),
     inheritedRow: (name: string) => page.getByTestId(`inherited-header-row-${name.toLowerCase()}`),
     inheritedSource: (name: string) => page.getByTestId(`inherited-header-source-${name.toLowerCase()}`),
     addRow: () => page.getByTestId('request-header-add-row'),
     nameEditor: (row: Locator) => row.getByTestId('column-name'),
     valueCell: (row: Locator) => row.getByTestId('column-value'),
-    checkbox: (row: Locator) => row.getByTestId('column-checkbox'),
-    cellText: (row: Locator, column: 'name' | 'value') => row.getByTestId(`column-${column}`).locator('.CodeMirror-line'),
+    checkbox: (name: string) => page.getByTestId(`request-header-row-${name.toLowerCase()}`).getByTestId('column-checkbox'),
+    cellText: (name: string, column: 'name' | 'value') => page.getByTestId(`request-header-row-${name.toLowerCase()}`).getByTestId(`column-${column}`).locator('.CodeMirror-line'),
     bulkEditToggle: () => page.getByTestId('request-pane').getByTestId('bulk-edit-toggle'),
     keyValueEditToggle: () => page.getByTestId('request-pane').getByTestId('key-value-edit-toggle'),
     bulkEditor: () => page.getByTestId('request-pane').getByLabel('Code Editor'),
@@ -157,7 +157,7 @@ export const fillRequestHeaderValue = async (page: Page, row: Locator, value: st
 /**
  * Append lines to the request Headers bulk editor by typing, leaving the existing text in place.
  */
-export const appendRequestHeaderBulkLines = async (page: Page, lines: string[]) => {
+export const appendRequestHeadersToBulkEditor = async (page: Page, lines: string[]) => {
   const { headers } = buildRequestLocators(page);
   const editor = headers.bulkEditor();
   await editor.click();
