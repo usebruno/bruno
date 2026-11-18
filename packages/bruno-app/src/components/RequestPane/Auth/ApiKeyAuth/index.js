@@ -71,6 +71,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, readOnly }) =
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
           value={apikeyAuth.key || ''}
+          data-testid="auth-apikey-key"
           theme={storedTheme}
           onSave={handleSave}
           onChange={(val) => handleAuthChange('key', val)}
@@ -86,6 +87,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, readOnly }) =
       <div className="single-line-editor-wrapper mb-3 flex items-center">
         <SingleLineEditor
           value={apikeyAuth.value || ''}
+          data-testid="auth-apikey-value"
           theme={storedTheme}
           onSave={handleSave}
           onChange={(val) => handleAuthChange('value', val)}

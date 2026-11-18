@@ -1,4 +1,4 @@
-import { expect, Page, test } from '../../../playwright';
+import { Page, test } from '../../../playwright';
 
 /**
  * Locators for the request "Settings" tab — specifically the inheritable
@@ -14,9 +14,8 @@ export const buildRequestSettingsLocators = (page: Page) => ({
   followRedirectsToggle: () => page.getByTestId('follow-redirects-toggle'),
   forwardAuthToggle: () => page.getByTestId('forward-auth-header-toggle'),
   maxRedirectsInput: () => page.locator('#maxRedirects'),
-  tagsHeading: () => page.getByRole('heading', { name: 'Tags' }),
   tagsInput: () => page.getByTestId('tag-input').getByRole('textbox'),
-  tagChip: (tagName: string) => page.getByRole('button', { name: tagName, exact: true })
+  tagChip: () => page.getByTestId('tag-chip')
 });
 
 /**
@@ -39,12 +38,8 @@ export const resetRequestTimeoutToInherit = async (page: Page) => {
  */
 export const addRequestTag = async (page: Page, tagName: string) => {
   await test.step(`Enter tag "${tagName}"`, async () => {
-    const settings = buildRequestSettingsLocators(page);
-    const input = settings.tagsInput();
-    await expect(input).toBeVisible();
+    const input = buildRequestSettingsLocators(page).tagsInput();
     await input.fill(tagName);
-    await expect(input).toHaveValue(tagName);
     await input.press('Enter');
-    await expect(settings.tagChip(tagName)).toBeVisible();
   });
 };

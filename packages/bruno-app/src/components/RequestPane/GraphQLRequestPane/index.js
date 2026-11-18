@@ -257,6 +257,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
               />
               <button
                 type="button"
+                data-testid="graphql-variables-header"
                 className="variables-header"
                 data-testid="graphql-variables-toggle"
                 onClick={() => dispatch(updateVariablesPaneOpen({ uid: item.uid, variablesPaneOpen: !variablesOpen }))}
@@ -337,6 +338,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
           </ActionIcon>
           <ActionIcon
             label={showQueryBuilder ? 'Hide Query Builder' : 'Show Query Builder'}
+            data-testid="graphql-show-query-builder"
             onClick={toggleQueryBuilder}
             data-testid="graphql-query-builder-toggle"
           >

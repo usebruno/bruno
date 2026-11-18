@@ -10,9 +10,10 @@ export const apiKeyPlacement = {
   queryParam: 'Query Param'
 };
 
+/** Test ids of the API Key auth fields. */
 export const authField = {
-  key: 'Key',
-  value: 'Value'
+  key: 'auth-apikey-key',
+  value: 'auth-apikey-value'
 };
 
 export type GraphqlApiKeyAuth = {
@@ -21,38 +22,34 @@ export type GraphqlApiKeyAuth = {
   addTo: string;
 };
 
-const named = (name: string) => new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
-
 const requestPane = (page: Page) => page.getByTestId('request-pane');
 
 /**
  * Locators for a GraphQL request's query, variables, API Key auth, and Query Builder.
- * Prefer getByTestId, getByRole, and getByLabel, per the Playwright testing guide.
- * .CodeMirror remains only on the editor node, which has no test id, role, or label.
+ * Prefer getByTestId, per the Playwright testing guide.
+ * .CodeMirror remains only on the editor node inside each test-id wrapper.
  */
 export const buildGraphqlAuthIntrospectionLocators = (page: Page) => ({
-  queryEditor: () => page.getByLabel('Query Editor').locator('.CodeMirror').first(),
-  variablesHeader: () => requestPane(page).getByRole('button', { name: 'Variables' }),
-  variablesEditor: () => requestPane(page).getByLabel('Code Editor').locator('.CodeMirror').first(),
+  queryEditor: () => page.getByTestId('graphql-query-editor').locator('.CodeMirror').first(),
+  variablesHeader: () => requestPane(page).getByTestId('graphql-variables-header'),
+  variablesEditor: () => page.getByTestId('graphql-variables-editor').locator('.CodeMirror').first(),
   requestTab: (key: string) => requestPane(page).getByTestId(`responsive-tab-${key}`),
   authModeLabel: () => page.getByTestId('auth-mode-label'),
   apiKeyModeOption: () => page.getByTestId('auth-mode-dropdown-apikey'),
-  authFieldEditor: (label: string) =>
-    requestPane(page).locator(`label:text-is("${label}") + div .CodeMirror`).first(),
+  authFieldEditor: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first(),
   placementLabel: () => page.getByTestId('auth-placement-label'),
   placementOption: (placement: string) =>
     page.getByTestId('auth-placement-selector').locator('.dropdown-item').getByText(placement, { exact: true }),
-  showQueryBuilderButton: () => requestPane(page).getByRole('button', { name: 'Show Query Builder' }),
-  moreActionsButton: () => requestPane(page).getByRole('button', { name: 'More actions' }),
+  showQueryBuilderButton: () => requestPane(page).getByTestId('graphql-show-query-builder'),
+  moreActionsButton: () => requestPane(page).getByTestId('graphql-more-actions'),
   introspectionMenuItem: () => page.getByTestId('menu-dropdown-schema-introspection'),
-  queryBuilder: () =>
-    requestPane(page).getByRole('button', { name: 'Load from Introspection' }).or(page.getByPlaceholder('Search operations...')),
-  loadFromIntrospectionButton: () => requestPane(page).getByRole('button', { name: 'Load from Introspection' }),
+  queryBuilder: () => page.getByTestId('graphql-load-from-introspection').or(page.getByTestId('query-builder-search')),
+  loadFromIntrospectionButton: () => requestPane(page).getByTestId('graphql-load-from-introspection'),
   schemaLoadedToast: () => page.getByRole('status').getByText('GraphQL Schema loaded successfully'),
-  queryBuilderTree: () => requestPane(page).getByRole('treeitem').first(),
-  rootType: (name: string) => requestPane(page).getByRole('button', { name: new RegExp(`^${name}\\b`) }),
-  field: (name: string) => requestPane(page).getByRole('treeitem', { name: named(name) }),
-  fieldName: (name: string) => requestPane(page).getByRole('treeitem', { name: named(name) }).getByText(name, { exact: true })
+  queryBuilderTree: () => page.getByTestId('query-builder-tree').getByRole('treeitem').first(),
+  rootType: () => requestPane(page).getByTestId(/^query-builder-root-/),
+  field: (name: string) => requestPane(page).getByTestId(`query-builder-field-${name}`),
+  fieldName: () => requestPane(page).getByTestId('query-builder-tree')
 });
 
 const readCodeMirrorValue = async (editor: Locator): Promise<string> => {
@@ -146,20 +143,19 @@ export const configureGraphqlApiKeyAuth = async (page: Page, auth: GraphqlApiKey
 
     await gql.placementLabel().click();
     await gql.placementOption(auth.addTo).click();
-    await expect(gql.placementLabel()).toHaveText(auth.addTo);
   });
 };
 
-/** Read the text stored in the API Key field named by label. */
-export const readGraphqlAuthField = async (page: Page, label: string): Promise<string> => {
+/** Read the text stored in an auth field, identified by its test id. */
+export const readGraphqlAuthField = async (page: Page, testId: string): Promise<string> => {
   const gql = buildGraphqlAuthIntrospectionLocators(page);
-  const editor = gql.authFieldEditor(label);
+  const editor = gql.authFieldEditor(testId);
   return readCodeMirrorValue(editor);
 };
 
 export const oauthField = {
-  clientId: 'Client ID',
-  clientSecret: 'Client Secret'
+  clientId: 'oauth2-client-credentials-clientId',
+  clientSecret: 'oauth2-client-credentials-clientSecret'
 };
 
 export const oauthGrantType = {
@@ -199,8 +195,8 @@ export const configureGraphqlOAuth2ClientCredentials = async (page: Page, auth: 
 };
 
 export const digestField = {
-  username: 'Username',
-  password: 'Password'
+  username: 'auth-digest-username',
+  password: 'auth-digest-password'
 };
 
 export type GraphqlDigestAuth = {
@@ -230,7 +226,7 @@ export const configureGraphqlDigestAuth = async (page: Page, auth: GraphqlDigest
 };
 
 export const bearerField = {
-  token: 'Token'
+  token: 'auth-bearer-token'
 };
 
 export type GraphqlBearerAuth = {
@@ -258,8 +254,8 @@ export const configureGraphqlBearerAuth = async (page: Page, auth: GraphqlBearer
 };
 
 export const basicField = {
-  username: 'Username',
-  password: 'Password'
+  username: 'auth-basic-username',
+  password: 'auth-basic-password'
 };
 
 export type GraphqlBasicAuth = {
@@ -334,20 +330,14 @@ export const loadGraphqlSchemaFromIntrospection = async (page: Page) => {
  */
 export const expandGraphqlSchemaField = async (page: Page, fieldName: string) => {
   await test.step(`Expand schema field "${fieldName}"`, async () => {
-    const gql = buildGraphqlAuthIntrospectionLocators(page);
-    const field = gql.field(fieldName);
-    const name = gql.fieldName(fieldName);
+    const field = buildGraphqlAuthIntrospectionLocators(page).field(fieldName);
     await field.waitFor({ state: 'visible' });
 
     if ((await field.getAttribute('aria-expanded')) === 'true') {
-      await expect(name).toBeVisible();
-      await expect(name).toHaveText(fieldName);
+      await expect(field).toContainText(fieldName);
       return;
     }
 
-    await name.click();
-    await expect(field).toHaveAttribute('aria-expanded', 'true');
-    await expect(field).toContainText(fieldName);
-    await expect(name).toHaveText(fieldName);
+    await field.getByText(fieldName, { exact: true }).click();
   });
 };

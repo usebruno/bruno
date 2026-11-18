@@ -30,9 +30,9 @@ export const buildRunnerLocators = (page: Page) => ({
   selectAllButton: () => page.getByTestId('runner-select-all'),
   configResetButton: () => page.getByTestId('runner-config-reset'),
   requestItems: () => page.getByTestId('runner-request-item'),
-  requestItemNames: () => page.getByTestId('runner-request-item').locator('.request-name > span:first-child'),
+  requestItemNames: () => page.getByTestId('runner-request-item-name'),
   requestItem: (name: string) => getRequestItemByName(page, name),
-  requestDragHandle: (name: string) => getRequestItemByName(page, name).locator('.drag-handle'),
+  requestDragHandle: (name: string) => getRequestItemByName(page, name).getByTestId('runner-request-drag-handle'),
   delayInput: () => page.getByTestId('runner-delay-input'),
   resultItems: () => page.getByTestId('runner-result-item'),
   resultStatus: () => page.getByTestId('runner-result-status'),
@@ -47,10 +47,10 @@ export const buildRunnerLocators = (page: Page) => ({
   filterButton: (key: RunnerFilterKey) => page.getByTestId(`runner-filter-${key}`),
   filterSelect: () => page.getByTestId('runner-filter-select'),
   filterOption: (label: string) => page.getByRole('menuitem', { name: label, exact: true }),
-  requestCheckbox: (name: string) => getRequestItemByName(page, name).locator('.checkbox'),
-  requestCheckboxes: () => page.getByTestId('runner-request-item').locator('.checkbox'),
-  requestNameLabel: (name: string) => getRequestItemByName(page, name).locator('.request-name'),
-  requestFolderPath: (name: string) => getRequestItemByName(page, name).locator('.folder-path')
+  requestCheckbox: (name: string) => getRequestItemByName(page, name).getByTestId('runner-request-checkbox'),
+  requestCheckboxes: () => page.getByTestId('runner-request-checkbox'),
+  requestNameLabel: (name: string) => getRequestItemByName(page, name).getByTestId('runner-request-name'),
+  requestFolderPath: (name: string) => getRequestItemByName(page, name).getByTestId('runner-request-folder-path')
 });
 
 export type RunnerFilterKey = 'all' | 'passed' | 'failed' | 'skipped';
@@ -174,9 +174,7 @@ export const runnerConfigItem = (page: Page, requestName: string): Locator =>
  * @returns The request names in their configured order
  */
 export const getRunnerConfigOrder = async (page: Page): Promise<string[]> => {
-  const locators = buildRunnerLocators(page);
-  await expect(locators.requestItems().first()).toBeVisible();
-  return await locators.requestItemNames().allInnerTexts();
+  return await buildRunnerLocators(page).requestItemNames().allInnerTexts();
 };
 
 /**

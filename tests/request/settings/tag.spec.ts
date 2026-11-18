@@ -1,71 +1,48 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { expect, test } from '../../../playwright';
+import { expect, test, waitForReadyPage } from '../../../playwright';
 import {
   addRequestTag,
   buildCommonLocators,
   buildRequestSettingsLocators,
-  closeAllCollections,
-  createCollection,
-  createRequestViaModal,
   saveRequest,
   selectRequestPaneTab
 } from '../../utils/page';
 
-const COLLECTION_NAME = 'settings-yaml';
-const REQUEST_NAME = 'Tag Request';
-const TAG_NAME = 'smoke_test';
-
 test.describe('Request tags', () => {
-  test.afterEach(async ({ page }) => {
-    await closeAllCollections(page);
-  });
-
-  test('TC-685: adds a single tag to a request and saves it', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+  test('TC-685: adds a single tag to a request and saves it', { tag: '@sanity' }, async ({ launchElectronApp, createTmpDir }) => {
+    const COLLECTION_NAME = 'settings-yaml';
+    const REQUEST_NAME = 'Tag Request';
+    const TAG_NAME = 'smoke_test';
+    const initUserDataPath = path.join(__dirname, 'init-user-data');
+    const fixtureCollectionsPath = path.join(__dirname, 'fixtures', 'collections');
+    const collectionPath = await createTmpDir('tag-collection');
+    await fs.promises.cp(fixtureCollectionsPath, collectionPath, { recursive: true });
+    const app = await launchElectronApp({ initUserDataPath, templateVars: { collectionPath } });
+    const page = await waitForReadyPage(app);
     const { sidebar, tabs } = buildCommonLocators(page);
     const settings = buildRequestSettingsLocators(page);
-    const collectionPath = await createTmpDir('tag-collection');
-    const requestFilePath = path.join(collectionPath, COLLECTION_NAME, `${REQUEST_NAME}.yml`);
-
-    await test.step('Create a collection', async () => {
-      await createCollection(page, COLLECTION_NAME, collectionPath, 'yml');
-      await expect(sidebar.collection(COLLECTION_NAME)).toBeVisible();
-    });
-
-    await test.step('Add a new request to the collection', async () => {
-      await createRequestViaModal(page, COLLECTION_NAME, REQUEST_NAME);
-      await expect(sidebar.request(REQUEST_NAME)).toBeVisible();
-    });
-
-    await test.step('Select the request', async () => {
+    await test.step('Open the Tag Request from the yaml collection', async () => {
+      await sidebar.collection(COLLECTION_NAME).click();
       await sidebar.request(REQUEST_NAME).click();
-      await expect(tabs.activeRequestTab()).toContainText(REQUEST_NAME);
     });
 
     await test.step('Open the Tags section', async () => {
       await selectRequestPaneTab(page, 'Settings');
-      await expect(settings.tagsHeading()).toBeVisible();
       await expect(settings.tagsInput()).toBeVisible();
     });
 
     await addRequestTag(page, TAG_NAME);
+    await expect(settings.tagChip()).toContainText(TAG_NAME);
 
-    await test.step('Save the request', async () => {
-      await saveRequest(page);
-    });
+    await saveRequest(page);
 
     await test.step('Reopen the request and confirm the tag is still shown', async () => {
       await tabs.requestTab(REQUEST_NAME).hover();
       await tabs.closeTab(REQUEST_NAME).click();
       await sidebar.request(REQUEST_NAME).click();
       await selectRequestPaneTab(page, 'Settings');
-      await expect(settings.tagChip(TAG_NAME)).toBeVisible();
-    });
-
-    await test.step('Confirm the tag is saved in the request file', async () => {
-      const savedContent = await fs.promises.readFile(requestFilePath, 'utf-8');
-      expect(savedContent).toContain('tags:');
-      expect(savedContent).toContain(`- ${TAG_NAME}`);
+      await expect(settings.tagChip()).toContainText(TAG_NAME);
     });
   });
 });

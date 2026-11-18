@@ -40,6 +40,7 @@ const BearerAuth = ({ item, collection, updateAuth, request, save, readOnly }) =
       <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
           value={bearerToken}
+          data-testid="auth-bearer-token"
           theme={storedTheme}
           onSave={handleSave}
           onChange={(val) => handleTokenChange(val)}

@@ -1,0 +1,29 @@
+info:
+  name: GQL Introspection
+  type: graphql
+  seq: 1
+
+graphql:
+  method: POST
+  url: https://countries.trevorblades.com/graphql
+  body:
+    query: |-
+      query GetCountry($code: ID!) {
+        country(code: $code) {
+          code
+          name
+          capital
+          currency
+        }
+      }
+    variables: |-
+      {
+        "code": "IN"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

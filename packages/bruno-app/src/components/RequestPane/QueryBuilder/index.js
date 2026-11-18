@@ -127,6 +127,7 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
                   icon={<IconCloudDownload size={16} strokeWidth={1.5} />}
                   loading={isSchemaLoading}
                   disabled={isSchemaLoading}
+                  data-testid="graphql-load-from-introspection"
                   onClick={() => loadSchema('introspection')}
                 >
                   Load from Introspection
@@ -173,6 +174,7 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
         <div className="query-builder-search">
           <input
             type="text"
+            data-testid="query-builder-search"
             placeholder="Search operations..."
             value={searchText}
             className="mousetrap"
@@ -180,7 +182,7 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
           />
         </div>
 
-        <div className="query-builder-tree">
+        <div className="query-builder-tree" data-testid="query-builder-tree">
           {availableRootTypes.map((rootType) => {
             const isExpanded = effectiveExpandedRootTypes.has(rootType);
             const fields = filteredFieldsByType[rootType] || [];
@@ -190,6 +192,7 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
               <div key={rootType} className={isDisabled ? 'root-type-disabled' : ''}>
                 <button
                   type="button"
+                  data-testid={`query-builder-root-${rootType}`}
                   className="root-type-node"
                   onClick={() => !isDisabled && toggleRootType(rootType)}
                   aria-expanded={isExpanded}

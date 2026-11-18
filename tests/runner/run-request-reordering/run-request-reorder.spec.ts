@@ -30,8 +30,8 @@ test.describe('Runner request reordering', () => {
     const runner = buildRunnerLocators(page);
     let initialOrder: string[] = [];
 
+    await openRunnerTab(page, COLLECTION_NAME);
     await test.step('Note the initial order of requests in the run configuration', async () => {
-      await openRunnerTab(page, COLLECTION_NAME);
       await expect(runner.requestItems()).toHaveCount(INITIAL_ORDER.length);
       await expect(runner.configCounter()).toHaveText(`${INITIAL_ORDER.length} of ${INITIAL_ORDER.length} selected`);
 
@@ -39,16 +39,13 @@ test.describe('Runner request reordering', () => {
       expect(initialOrder).toEqual(INITIAL_ORDER);
     });
 
-    await test.step('Reorder the requests with drag and drop', async () => {
-      await dragRunnerConfigItem(page, 'Request E', 'Request A', 'above');
+    await dragRunnerConfigItem(page, 'Request E', 'Request A', 'above');
+    await expectRunnerConfigOrder(page, ['Request E', 'Request A', 'Request B', 'Request C', 'Request D']);
 
-      await expectRunnerConfigOrder(page, ['Request E', 'Request A', 'Request B', 'Request C', 'Request D']);
+    await dragRunnerConfigItem(page, 'Request A', 'Request D', 'below');
+    await expectRunnerConfigOrder(page, ['Request E', 'Request B', 'Request C', 'Request D', 'Request A']);
 
-      await dragRunnerConfigItem(page, 'Request A', 'Request D', 'below');
-      await expectRunnerConfigOrder(page, ['Request E', 'Request B', 'Request C', 'Request D', 'Request A']);
-
-      await dragRunnerConfigItem(page, 'Request C', 'Request B', 'above');
-    });
+    await dragRunnerConfigItem(page, 'Request C', 'Request B', 'above');
 
     await test.step('Verify the UI shows the intended order', async () => {
       await expectRunnerConfigOrder(page, REORDERED);
@@ -79,8 +76,8 @@ test.describe('Runner request reordering', () => {
       await expect(runner.resultItems().first()).not.toHaveText(new RegExp(`^${initialOrder[0]}`));
     });
 
-    await test.step('Reopen the run configuration screen', async () => {
-      await reopenRunnerConfig(page);
+    await reopenRunnerConfig(page);
+    await test.step('Verify the reordered requests are still listed', async () => {
       await expect(runner.requestItems()).toHaveCount(REORDERED.length);
     });
 
@@ -100,14 +97,12 @@ test.describe('Runner request checkboxes', () => {
     const runner = buildRunnerLocators(page);
     const checkboxOrder = ['Nested Request', 'Request A', 'Request B', 'Request C', 'Request D', 'Request E'];
 
-    await test.step('Add a folder with one nested request', async () => {
-      await expandCollection(page, COLLECTION_NAME);
-      await createFolder(page, FOLDER_NAME, COLLECTION_NAME);
-      await createRequestViaModal(page, FOLDER_NAME, NESTED_REQUEST, { inFolder: true });
-    });
+    await expandCollection(page, COLLECTION_NAME);
+    await createFolder(page, FOLDER_NAME, COLLECTION_NAME);
+    await createRequestViaModal(page, FOLDER_NAME, NESTED_REQUEST, { inFolder: true });
 
-    await test.step('Open the run configuration for a collection with root and nested requests', async () => {
-      await openRunnerTab(page, COLLECTION_NAME);
+    await openRunnerTab(page, COLLECTION_NAME);
+    await test.step('Verify the run configuration lists root and nested requests', async () => {
       await expect(runner.requestItem(NESTED_REQUEST)).toBeVisible({ timeout: 15000 });
       await expectRunnerConfigOrder(page, checkboxOrder);
     });
@@ -124,15 +119,13 @@ test.describe('Runner request checkboxes', () => {
       await expect(runner.requestCheckbox(NESTED_REQUEST)).toBeVisible();
     });
 
-    await test.step('Clicking a checkbox selects and deselects that request', async () => {
-      await expect(runner.requestItem('Request A')).toBeEnabled();
-      await toggleRunnerRequestCheckbox(page, 'Request A');
-      await expect(runner.requestItem('Request A')).not.toHaveClass(/is-selected/);
-      await expect(runner.configCounter()).toHaveText(`${checkboxOrder.length - 1} of ${checkboxOrder.length} selected`);
+    await expect(runner.requestItem('Request A')).toBeEnabled();
+    await toggleRunnerRequestCheckbox(page, 'Request A');
+    await expect(runner.requestItem('Request A')).not.toHaveClass(/is-selected/);
+    await expect(runner.configCounter()).toHaveText(`${checkboxOrder.length - 1} of ${checkboxOrder.length} selected`);
 
-      await toggleRunnerRequestCheckbox(page, 'Request A');
-      await expect(runner.requestItem('Request A')).toBeEnabled();
-      await expect(runner.configCounter()).toHaveText(`${checkboxOrder.length} of ${checkboxOrder.length} selected`);
-    });
+    await toggleRunnerRequestCheckbox(page, 'Request A');
+    await expect(runner.requestItem('Request A')).toBeEnabled();
+    await expect(runner.configCounter()).toHaveText(`${checkboxOrder.length} of ${checkboxOrder.length} selected`);
   });
 });

@@ -75,6 +75,7 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
                 <button
                   className="tag-item"
                   type="button"
+                  data-testid="tag-chip"
                 >
                   <IconTag size={12} className="tag-icon" aria-hidden="true" />
                   <span className="tag-text" title={_tag}>
