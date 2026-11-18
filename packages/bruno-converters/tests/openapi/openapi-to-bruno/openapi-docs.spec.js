@@ -116,7 +116,7 @@ describe('OpenAPI Import - Docs (collection & folder descriptions)', () => {
     expect(request.request.docs).toBe('');
   });
 
-  it('falls back to method and path when a non-string description is the only name source', () => {
+  it('falls back to the path when a non-string description is the only name source', () => {
     const spec = buildSpec();
     spec.paths['/pets'].get = {
       tags: ['pets'],
@@ -125,7 +125,7 @@ describe('OpenAPI Import - Docs (collection & folder descriptions)', () => {
     };
     const result = openApiToBruno(spec);
 
-    const request = findRequestByName(result.items, 'get /pets');
+    const request = findRequestByName(result.items, '/pets');
     expect(request).toBeDefined();
     expect(request.request.docs).toBe('');
   });

@@ -2,17 +2,30 @@ import { test, expect, Page, Locator } from '../../../playwright';
 import {
   openCollectionSettings,
   openFolderSettings,
+  selectAuthMode,
   selectCollectionPaneTab,
-  selectfolderPaneTab
+  selectfolderPaneTab,
+  selectRequestPaneTab,
+  writeFieldValue
 } from '../page/actions';
+import { AUTH_MODE_LABELS } from '../constants';
 import { buildCommonLocators } from '../page/locators';
+import { buildQueryParamsLocators } from './params/query';
+
+const buildFileBodyRow = (page: Page, index: number) =>
+  page.getByTestId('file-body-table').locator('tbody tr').nth(index);
 
 export const buildRequestLocators = (page: Page) => ({
   urlInput: () => page.getByTestId('request-url').locator('.CodeMirror'),
   urlLine: () => page.getByTestId('request-url').locator('.CodeMirror-line'),
+  protocolUrlLine: () => page.locator('.query-url-wrapper .CodeMirror-line').first(),
+  protocolUrlEditor: () => page.locator('.query-url-wrapper .CodeMirror').first(),
+  bulkEditToggle: () => page.getByTestId('bulk-edit-toggle'),
+  bulkEditEditor: () => page.locator('[data-testid="request-pane"] .CodeMirror').first(),
+  bulkEditLine: () => page.locator('[data-testid="request-pane"] .CodeMirror-line').first(),
   sendButton: () => page.getByTestId('send-arrow-icon'),
-  methodDropdown: () => page.getByTestId('request-method-selector'),
-  newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
+  methodDropdown: () => page.getByTestId('method-selector'),
+  newRequestUrl: () => page.getByTestId('new-request-url').locator('.CodeMirror'),
   requestNameInput: () => page.getByPlaceholder('Request Name'),
   requestTestId: () => page.getByTestId('request-name'),
   generateCodeButton: () => page.getByTestId('generate-code-button'),
@@ -23,6 +36,10 @@ export const buildRequestLocators = (page: Page) => ({
   // File / Binary body table + the rendered file name(s).
   fileBodyTable: () => page.getByTestId('file-body-table'),
   fileBodyName: () => page.getByTestId('file-body-table').locator('.file-name'),
+  addFileButton: () => page.getByTestId('file-body-table').getByRole('button', { name: /Add File/i }),
+  fileBodyRow: (index: number = 0) => buildFileBodyRow(page, index),
+  fileBodyContentTypeEditor: (index: number = 0) =>
+    buildFileBodyRow(page, index).getByTestId('column-content-type').locator('.CodeMirror'),
   bodyVariableToken: (name: string, state?: 'valid' | 'invalid') => {
     const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
     return page.getByTestId('request-body-editor').locator('.CodeMirror').locator(selector).filter({ hasText: name }).first();
@@ -60,7 +77,8 @@ export const buildRequestLocators = (page: Page) => ({
     paneScroller: () => page.getByTestId('request-pane').getByTestId('flex-boundary'),
     defaultInfo: (name: string) => page.getByTestId(`default-header-info-${name.toLowerCase()}`),
     defaultInfoTooltip: (name: string) => page.getByTestId(`default-header-info-tooltip-${name.toLowerCase()}`)
-  }
+  },
+  queryParams: buildQueryParamsLocators(page)
 });
 
 // Request-type radios in the New Request dialog. `from-curl` is the odd one out —
@@ -229,21 +247,11 @@ export const seedFolderHeaders = async (
   await setSettingsHeadersBulk(page, headersText, 'folder');
 };
 
-/** Types a name and value into the last row of a Vars table. */
-export const addVarsRow = async (page: Page, tableId: string, name: string, value: string) => {
-  await test.step(`Add "${name}" to ${tableId}`, async () => {
-    const { table } = buildCommonLocators(page);
-    const varsTable = table(tableId);
-    const nameInput = varsTable.rowNameInput(varsTable.row().last());
-    await nameInput.click();
-    await page.keyboard.type(name);
-
-    const row = varsTable.rowByName(name);
-    await expect(row).toBeVisible();
-
-    const valueEditor = varsTable.rowValueEditor(row);
-    await valueEditor.click({ force: true });
-    await expect(valueEditor).toHaveClass(/CodeMirror-focused/);
-    await page.keyboard.insertText(value);
+/** Opens the request's Auth tab, picks API Key and sets its Value field. */
+export const setApiKeyValue = async (page: Page, value: string) => {
+  await test.step(`Set the API key value to "${value}"`, async () => {
+    await selectRequestPaneTab(page, 'Auth');
+    await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
+    await writeFieldValue(page, 'Value', value);
   });
 };

@@ -18,6 +18,7 @@ packages/
   bruno-converters/   Import/export (Postman, Insomnia, OpenAPI, …) (rollup)
   bruno-requests/     Shared HTTP/gRPC/WS request building blocks (rollup)
   bruno-filestore/    .bru/.yml serialization (rollup + tsc --emitDeclarationOnly)
+  bruno-io/           Writes a converted collection to disk (rollup + tsc --emitDeclarationOnly)
   bruno-sqlite/       Local SQLite SDK — main-process only (codegen + rollup)
   bruno-query/        JSONPath-style query engine (rollup)
   bruno-lang/         Bru DSL grammars — v1 (arcsecond, legacy) + v2 (ohm-js, current)
@@ -34,7 +35,8 @@ playwright/           Test fixtures and helpers (index.ts)
 
 Build tool per package (matters for the "rebuild shared packages" step in `.claude/CLAUDE.md`):
 - **rollup** (emits `dist/cjs` + `dist/esm`): bruno-common, bruno-converters, bruno-requests,
-  bruno-query, bruno-graphql-docs; **bruno-filestore** additionally runs `tsc --emitDeclarationOnly`;
+  bruno-query, bruno-graphql-docs; **bruno-filestore** and **bruno-io** additionally run
+  `tsc --emitDeclarationOnly`;
   **bruno-sqlite** additionally runs a codegen prepass (`npm run generate`) that compiles
   `migrations/*.ts` + `statements/*.sql` into the gitignored `src/generated/`.
 - **tsc only**: bruno-schema-types.
@@ -42,9 +44,10 @@ Build tool per package (matters for the "rebuild shared packages" step in `.clau
 - **no build step (consumed straight from `src/`)**: bruno-js, bruno-lang, bruno-schema,
   bruno-toml, bruno-cli, bruno-electron, bruno-tests, bruno-docs.
 
-The 8 packages that must be rebuilt after editing (they emit `dist/`): bruno-common,
-bruno-requests, bruno-filestore, bruno-sqlite, bruno-converters, bruno-query, bruno-graphql-docs,
-bruno-schema-types. Editing bruno-js / bruno-lang / bruno-schema / bruno-toml needs no rebuild.
+The 9 packages that must be rebuilt after editing (they emit `dist/`): bruno-common,
+bruno-requests, bruno-filestore, bruno-io, bruno-sqlite, bruno-converters, bruno-query,
+bruno-graphql-docs, bruno-schema-types. Editing bruno-js / bruno-lang / bruno-schema / bruno-toml
+needs no rebuild.
 
 ## Dependency direction & ownership boundaries
 
@@ -132,7 +135,7 @@ Several are pinned to majors below the latest — do **not** assume the newest A
 - Frontend (`bruno-app`): **react 19**, **@reduxjs/toolkit ^1.8 (v1, NOT v2)**,
   **react-redux ^7 (v7)**, **styled-components ^5 (NOT v6)**, **tailwindcss ^3**,
   **@rsbuild/core ^1.1**, **codemirror 5.65.2 (CodeMirror 5, NOT the scoped `@codemirror/*`)**.
-- Desktop (`bruno-electron`): **electron ~37.6**, **electron-builder 24.13.3**, **chokidar ^3.5**,
+- Desktop (`bruno-electron`): **electron ~43.8**, **electron-builder ^26.18**, **chokidar ^3.5**,
   **@grpc/grpc-js ^1.13**, **js-yaml ^4.1**, **electron-store ^8.1**. (`ws` is a dep of
   bruno-requests/bruno-tests, **not** bruno-electron.)
 - Storage (`bruno-sqlite`): no runtime dependencies — the driver is Node's built-in **`node:sqlite`**
@@ -142,4 +145,4 @@ Several are pinned to majors below the latest — do **not** assume the newest A
 - **Hard pins in root `package.json` `overrides`: axios `1.16.0`, rollup `3.30.0`.** Bumping these
   in a leaf package has no effect — change the root override.
 - **TypeScript is not uniform**: bruno-common `^5.8`, bruno-schema-types `^5.0`, but
-  bruno-converters/filestore/graphql-docs/query/requests are `^4.8`. There is no root TS dep.
+  bruno-converters/filestore/io/graphql-docs/query/requests are `^4.8`. There is no root TS dep.

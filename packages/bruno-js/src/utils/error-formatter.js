@@ -1,8 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 const YAML = require('yaml');
-const { SCRIPT_TYPES } = require('@usebruno/common');
+const { SCRIPT_TYPES, normalizeLineEndings } = require('@usebruno/common');
 const { NODEVM_SCRIPT_WRAPPER_OFFSET, QUICKJS_SCRIPT_WRAPPER_OFFSET } = require('./sandbox');
+
+// Scripts are normalised to LF before execution, so line numbers in errors count LF lines.
+// Source text must be split the same way or context lines drift on CRLF / CR-only files.
+const splitLines = (content) => normalizeLineEndings(content).split('\n');
 
 const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : p);
 
@@ -57,7 +61,7 @@ const findScriptBlockStartLine = (filePath, scriptType, cache = null) => {
   const pattern = BLOCK_PATTERNS[scriptType];
   if (!pattern) return null;
 
-  const lines = content.split('\n');
+  const lines = splitLines(content);
   let result = null;
   for (let i = 0; i < lines.length; i++) {
     if (pattern.test(lines[i])) {
@@ -83,7 +87,7 @@ const findScriptBlockEndLine = (filePath, scriptType, cache = null) => {
   const pattern = BLOCK_PATTERNS[scriptType];
   if (!pattern) return null;
 
-  const lines = content.split('\n');
+  const lines = splitLines(content);
   let inBlock = false;
   let hasContent = false;
   let result = null;
@@ -380,13 +384,13 @@ const buildContextLines = (lines, errorLine, contextLines) => {
 const getSourceContext = (filePath, errorLine, contextLines = DEFAULT_CONTEXT_LINES, cache = null) => {
   const content = readFile(filePath, cache);
   if (!content) return null;
-  return buildContextLines(content.split('\n'), errorLine, contextLines);
+  return buildContextLines(splitLines(content), errorLine, contextLines);
 };
 
 /** Extract context lines from in-memory script content (e.g. unsaved draft scripts) */
 const getSourceContextFromContent = (content, errorLine, contextLines = DEFAULT_CONTEXT_LINES) => {
   if (!content) return null;
-  return buildContextLines(content.split('\n'), errorLine, contextLines);
+  return buildContextLines(splitLines(content), errorLine, contextLines);
 };
 
 /** Build adjusted stack trace string from structured CallSite data */

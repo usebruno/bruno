@@ -15,7 +15,7 @@ const RichTextEditor = ({ editor, hideLinkPopover = false, onLinkClick }) => {
 
   return (
     <StyledWrapper className="flex flex-col h-full min-h-0">
-      <div className="rich-text-editor-content" ref={setContentContainerEl}>
+      <div className="rich-text-editor-content" data-testid="rich-text-editor-content" ref={setContentContainerEl}>
         <EditorContent editor={editor} className="w-full h-full" />
         {!hideLinkPopover && (
           <EditorLinkPopover

@@ -8,6 +8,7 @@ import {
   createEnvironment,
   openCollection,
   openCollectionSettings,
+  selectCollectionPaneTab,
   closeAllCollections,
   waitForCollectionMount
 } from '../../utils/page';
@@ -19,7 +20,7 @@ const setDefaultViaPresets = async (page: Page, collectionName: string, environm
   await test.step(`Set default environment to "${environmentName}" via Presets`, async () => {
     const locators = buildCommonLocators(page);
     await openCollectionSettings(page, collectionName);
-    await locators.paneTabs.collectionSettingsTab('presets').click();
+    await selectCollectionPaneTab(page, 'presets');
     await locators.presets.defaultEnvironment().click();
     await locators.presets.defaultEnvironmentOption(environmentName).click();
     // The default is a draft change (like Request Type / Base URL); persist it via Save.

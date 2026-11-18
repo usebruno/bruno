@@ -1,5 +1,4 @@
 import { newHttpRequest, revealItemInSidebar, revealTabInSidebar, tryResponseExample } from './actions';
-import { SIDEBAR_REVEAL_STATUS } from 'utils/common/constants';
 
 const mockUuid = jest.fn();
 
@@ -133,7 +132,7 @@ describe('collection actions', () => {
         makeGetState(makeCollection())
       );
 
-      expect(status).toBe(SIDEBAR_REVEAL_STATUS.REVEALED);
+      expect(status).toBe(true);
       expect(dispatch.mock.calls.map(([action]) => action)).toEqual([
         { type: 'collections/expandCollection', payload: 'collection-uid' },
         { type: 'collections/expandItem', payload: { collectionUid: 'collection-uid', itemUid: 'folder-a' } },
@@ -176,7 +175,7 @@ describe('collection actions', () => {
         makeGetState(makeCollection())
       );
 
-      expect(status).toBe(SIDEBAR_REVEAL_STATUS.SKIPPED);
+      expect(status).toBe(true);
       expect(dispatch).not.toHaveBeenCalled();
     });
 
@@ -191,8 +190,8 @@ describe('collection actions', () => {
         makeGetState(makeCollection({ mountStatus: 'mounting' }))
       );
 
-      expect(loading).toBe(SIDEBAR_REVEAL_STATUS.PENDING);
-      expect(mounting).toBe(SIDEBAR_REVEAL_STATUS.PENDING);
+      expect(loading).toBe(false);
+      expect(mounting).toBe(false);
       expect(dispatch).not.toHaveBeenCalled();
     });
 
@@ -203,7 +202,7 @@ describe('collection actions', () => {
         makeGetState(makeCollection())
       );
 
-      expect(status).toBe(SIDEBAR_REVEAL_STATUS.SKIPPED);
+      expect(status).toBe(true);
       expect(dispatch).not.toHaveBeenCalled();
     });
   });
@@ -220,7 +219,7 @@ describe('collection actions', () => {
       ]);
       const dispatch = jest.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
 
-      expect(revealTabInSidebar('deep-req')(dispatch, getState)).toBe(SIDEBAR_REVEAL_STATUS.REVEALED);
+      expect(revealTabInSidebar('deep-req')(dispatch, getState)).toBe(true);
       expect(dispatch).toHaveBeenCalledWith({
         type: 'collections/expandItem',
         payload: { collectionUid: 'collection-uid', itemUid: 'folder-a' }
@@ -245,8 +244,53 @@ describe('collection actions', () => {
       const getState = makeGetStateWithTabs(makeCollection(), [{ uid: 'workspace-overview', type: 'workspaceOverview' }]);
       const dispatch = jest.fn();
 
-      expect(revealTabInSidebar('workspace-overview')(dispatch, getState)).toBe(SIDEBAR_REVEAL_STATUS.SKIPPED);
+      expect(revealTabInSidebar('workspace-overview')(dispatch, getState)).toBe(true);
       expect(dispatch).not.toHaveBeenCalled();
+    });
+
+    describe('reveal request token', () => {
+      const findRevealRequest = (dispatch) => dispatch.mock.calls
+        .map(([action]) => action)
+        .find((action) => action?.type === 'tabs/setSidebarRevealRequest');
+
+      beforeEach(() => {
+        jest.spyOn(Date, 'now').mockReturnValue(1234);
+      });
+
+      afterEach(() => {
+        Date.now.mockRestore();
+      });
+
+      it('stamps a request so a repeat reveal of the same tab still scrolls', () => {
+        const getState = makeGetStateWithTabs(makeCollection(), [
+          { uid: 'deep-req', collectionUid: 'collection-uid', type: 'http-request' }
+        ]);
+        const dispatch = jest.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
+
+        revealTabInSidebar('deep-req')(dispatch, getState);
+
+        expect(findRevealRequest(dispatch).payload).toEqual({ uid: 'deep-req', requestedAt: 1234 });
+      });
+
+      it('stamps a collection tab even though it resolves no tree item', () => {
+        const getState = makeGetStateWithTabs(makeCollection(), [
+          { uid: 'collection-uid', collectionUid: 'collection-uid', type: 'collection-settings' }
+        ]);
+        const dispatch = jest.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
+
+        expect(revealTabInSidebar('collection-uid')(dispatch, getState)).toBe(true);
+        expect(findRevealRequest(dispatch).payload).toEqual({ uid: 'collection-uid', requestedAt: 1234 });
+      });
+
+      it('does not stamp while the collection is still loading', () => {
+        const getState = makeGetStateWithTabs(makeCollection({ isLoading: true }), [
+          { uid: 'not-yet-loaded', collectionUid: 'collection-uid', type: 'http-request' }
+        ]);
+        const dispatch = jest.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
+
+        expect(revealTabInSidebar('not-yet-loaded')(dispatch, getState)).toBe(false);
+        expect(findRevealRequest(dispatch)).toBeUndefined();
+      });
     });
   });
 

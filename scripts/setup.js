@@ -108,6 +108,7 @@ async function setup() {
     execCommand('npm run build:bruno-requests', 'Building bruno-requests');
     execCommand('npm run build:schema-types', 'Building schema-types');
     execCommand('npm run build:bruno-filestore', 'Building bruno-filestore');
+    execCommand('npm run build:bruno-io', 'Building bruno-io');
     execCommand('npm run build:bruno-sqlite', 'Building bruno-sqlite');
 
     // Bundle JS sandbox libraries

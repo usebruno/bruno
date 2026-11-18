@@ -1,45 +1,52 @@
-## What's New in Bruno v4.3.0
+## What's New in Bruno v4.4.0
 
-### External Secrets Stay in Memory, Never on Disk
+### 1Password Secret Manager
 
-External secrets are no longer saved to disk. Bruno fetches them only when a request that uses them is sent, holds them in memory per environment, and clears them when the app is closed or the collection is removed.
+Bruno now reads secrets from 1Password through the 1Password Connect server. Add a 1Password account in the Secret Manager, pick the vaults to expose, and reference secrets with the same `{{secret.}}` syntax used by Doppler, Infisical and HashiCorp Vault.
 
-Missing secrets, failed fetches, and unselected provider accounts are each flagged when the request is sent.
+![1Password account set up](https://d3icksk7srk4uh.cloudfront.net/4.4.0/1pass.png)
 
-### Collection Runner
+### OpenAPI Sync and the API Spec Panel
 
-* **Lower memory use.** Large collection runs now use much less memory. Runs with many iterations or large responses finish smoothly.
-* **Folder-level tags.** Tags set on a folder apply to every request inside it and work with the runner's Include and Exclude filters.
-* **Data file preview.** Long variable names and values are now fully readable, with horizontal scrolling, resizable columns, and sticky headers.
+* **Connect to an existing spec.** A collection can be linked to a spec that is already in the workspace, without re-importing it.
+* **Choose how requests are named.** Pick summary, operationId, description or path when importing or syncing.
+* **Bulk Import: Check for Spec Updates.** The Bulk Import modal shows which specs have changes since the last sync.
+* **Spec item actions.** Right-click an item in the API Spec panel to generate, reveal, rename, clone or delete.
 
-![Folder-level tags](https://d3icksk7srk4uh.cloudfront.net/v4.3.0/folder-tags.png)
+![Spec item context menu](https://d3icksk7srk4uh.cloudfront.net/4.4.0/mock-server.png)
 
-### Inherited Auth and Headers, Visible on the Request
+### Smarter Variable Autocomplete
 
-A request set to Inherit auth now shows the effective auth read-only, with a link to where it is configured. Headers set at the folder or collection level now appear on the request too.
+* **Scope-aware ranking.** OAuth2 credentials are ranked below dynamic variables, and process-env entries stay in the list until explicitly dismissed.
+* **Readable suggestions.** Long variable names are no longer truncated, and the suggestion no longer deletes text after the cursor.
+* **Save as secret, inline.** When a sensitive value is detected in a credential field, Bruno offers to save it as a secret variable from the warning tooltip, in one click.
 
-![Inherited headers](https://d3icksk7srk4uh.cloudfront.net/v4.3.0/inherit-headers.png)
+![Save a sensitive value as a secret from the warning tooltip](https://d3icksk7srk4uh.cloudfront.net/4.4.0/secret-values.png)
 
-### Try Option in Response Examples
+### Environment Sidebar
 
-Saved response examples gain a **Try** action. It replays the example's request in a new transient tab.
+* **Multi-select and bulk actions.** Select multiple environments in a collection or global sidebar with the standard shortcuts, then duplicate, delete or move them in one step.
+* **Create from search.** When a search returns no results, the sidebar offers to create an environment with that name.
 
-![Try a saved response example in Bruno](https://d3icksk7srk4uh.cloudfront.net/v4.3.0/try-response-examples.png)
+![Environment Multi-select bulk actions](https://d3icksk7srk4uh.cloudfront.net/4.4.0/export-env.png)
+
+### Collection Runner at Scale
+
+The runner no longer freezes the app when started with high iteration counts. The Include and Exclude tag filters have been reworked so they read as a single list, and folder-level tags are matched the same way as request tags.
+
+![Collection Runner Include and Exclude tag](https://d3icksk7srk4uh.cloudfront.net/4.4.0/collection-runner.png)
+
+### Mock Servers
+
+* **CORS preflight accepts custom headers.** Browser flows that rely on header-based routing now reach the mock.
+* **No lost edits.** Unsaved mock-response edits survive a tab switch, and Edit mode is kept until the user saves or discards.
+* **Disabled means read-only.** Disabling a mock server also disables editing of its responses.
+* **Create from Spec, validated.** The dialog rejects invalid files and produces complete bodies for valid Swagger 2.0 specs.
+
 
 ### Git
 
-* **Clone with a branch.** Clone Repository accepts an optional branch.
-* **All branches visible.** Imported repos with multiple branches show every branch.
-* **Deleted-file conflicts.** Merge conflicts on deleted files can be resolved in the Git UI.
-* **`.git` ignored on import and export.** Collection and workspace zips are imported without any `.git` folder, and exports never include one.
-
-![Resolve deleted-file conflicts in Bruno's Git UI](https://d3icksk7srk4uh.cloudfront.net/v4.3.0/delete-conflict-file.png)
-
-### Themes
-
-Three new themes join the theme list: Gruvbox (six variants), Dracula, and Cyberdream.
-
-![Additional dark themes in Bruno](https://d3icksk7srk4uh.cloudfront.net/v4.3.0/additional-themes.png)
+GitHub SAML SSO failures on push and pull now show the actual error from GitHub and a link to authorise the token, imports no longer fail when the repository contains a very long file path, and the "Pull from other branches" modal uses consistent CTAs.
 
 ---
 

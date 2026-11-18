@@ -58,3 +58,17 @@ export function findSearchMatches(editor, searchText, regex, caseSensitive, whol
 export function createCacheKey(docVersion, searchText, regex, caseSensitive, wholeWord) {
   return `${docVersion}⇴${searchText}⇴${regex}⇴${caseSensitive}⇴${wholeWord}`;
 }
+
+const comparePos = (a, b) => a.line - b.line || a.ch - b.ch;
+
+// Expects matches sorted in document order.
+export const findMatchIndexAtOrAfter = (matches, pos) => {
+  let low = 0;
+  let high = matches.length;
+  while (low < high) {
+    const mid = (low + high) >> 1;
+    if (comparePos(matches[mid].from, pos) < 0) low = mid + 1;
+    else high = mid;
+  }
+  return low < matches.length ? low : 0;
+};

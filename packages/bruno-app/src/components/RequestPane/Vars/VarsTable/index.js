@@ -8,7 +8,7 @@ import MultiLineEditor from 'components/MultiLineEditor';
 import InfoTip from 'components/InfoTip';
 import DataTypeSelector from 'components/DataTypeSelector';
 import VarValueCell from 'components/VarValueCell';
-import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import SensitiveWarningPopover from 'components/SensitiveFieldWarning/SensitiveWarningPopover';
 import { valueToString } from '@usebruno/common/utils';
 import EditableTable from 'components/EditableTable';
 import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
@@ -126,7 +126,7 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, isDraft
               )
             : null}
           leadingContent={!isLastEmptyRow && usedVariableUids.has(row.uid) ? (
-            <SensitiveFieldWarning fieldName={row.name} warningMessage={plainVariableUsageWarning(row.name)} />
+            <SensitiveWarningPopover fieldName={row.name} warningMessage={plainVariableUsageWarning(row.name)} scope="request" variableName={row.name} value={row.value} collection={collection} variableUid={row.uid} item={item} />
           ) : null}
         />
       )

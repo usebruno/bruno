@@ -1,10 +1,10 @@
+const { setTimeout } = require('node:timers/promises');
 const https = require('https');
 const axios = require('axios');
 const path = require('path');
 const { applyOAuth1ToRequest } = require('@usebruno/requests');
 const { buildScriptedEntry } = require('@usebruno/requests').scripting;
 const qs = require('qs');
-const decomment = require('decomment');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
@@ -609,7 +609,7 @@ const registerNetworkIpc = (mainWindow) => {
     if (requestScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runRequestScript(
-        decomment(requestScript, { space: true }),
+        requestScript,
         request,
         envVars,
         runtimeVariables,
@@ -738,7 +738,7 @@ const registerNetworkIpc = (mainWindow) => {
     if (responseScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runResponseScript(
-        decomment(responseScript, { space: true }),
+        responseScript,
         request,
         response,
         envVars,
@@ -1225,7 +1225,7 @@ const registerNetworkIpc = (mainWindow) => {
           let testError = null;
 
           try {
-            testResults = await testRuntime.runTests(decomment(testFile, { space: true }),
+            testResults = await testRuntime.runTests(testFile,
               request,
               response,
               envVars,
@@ -1640,13 +1640,17 @@ const registerNetworkIpc = (mainWindow) => {
 
         let currentRequestIndex = 0;
         let nJumps = 0; // count the number of jumps to avoid infinite loops
-        while (currentRequestIndex < folderRequests.length) {
-          // user requested to cancel runner
+        let isFirstRequest = true;
+        const throwIfRunCancelled = () => {
           if (abortController.signal.aborted) {
-            let error = new Error('Runner execution cancelled');
+            const error = new Error('Runner execution cancelled');
             error.isCancel = true;
             throw error;
           }
+        };
+
+        while (currentRequestIndex < folderRequests.length) {
+          throwIfRunCancelled();
 
           stopRunnerExecution = false;
 
@@ -1699,6 +1703,27 @@ const registerNetworkIpc = (mainWindow) => {
             });
             currentRequestIndex++;
             continue;
+          }
+
+          if (!isFirstRequest && delay > 0) {
+            await setTimeout(delay, undefined, { signal: abortController.signal }).catch(() => {});
+          }
+          isFirstRequest = false;
+
+          if (abortController.signal.aborted) {
+            mainWindow.webContents.send('main:run-folder-event', {
+              type: 'runner-request-skipped',
+              error: 'Runner execution cancelled',
+              responseReceived: {
+                status: 'skipped',
+                statusText: 'Runner execution cancelled',
+                data: null,
+                responseTime: 0,
+                headers: null
+              },
+              ...eventData
+            });
+            throwIfRunCancelled();
           }
 
           const request = await prepareRequest(item, collection, abortController);
@@ -1895,18 +1920,6 @@ const registerNetworkIpc = (mainWindow) => {
 
             let response, responseTime;
             try {
-              if (delay && !Number.isNaN(delay) && delay > 0) {
-                const delayPromise = new Promise((resolve) => setTimeout(resolve, delay));
-
-                const cancellationPromise = new Promise((_, reject) => {
-                  abortController.signal.addEventListener('abort', () => {
-                    reject(new Error('Cancelled'));
-                  });
-                });
-
-                await Promise.race([delayPromise, cancellationPromise]);
-              }
-
               /** @type {import('axios').AxiosResponse} */
               response = await axiosInstance(refreshExplicitHeaderNames(request));
               response.data = await promisifyStream(response.data, currentAbortController, false);
@@ -2084,7 +2097,7 @@ const registerNetworkIpc = (mainWindow) => {
               try {
                 const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
                 testResults = await testRuntime.runTests(
-                  decomment(testFile, { space: true }),
+                  testFile,
                   request,
                   response,
                   envVars,
