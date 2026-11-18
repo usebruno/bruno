@@ -9,14 +9,18 @@ class CollectionScanner {
   #readLocations;
   #readRecents;
   #readExcludedPaths;
+  #readHomePath;
+  #readKnownFolders;
   #running = null;
 
-  constructor({ fork, send, readLocations, readRecents, readExcludedPaths }) {
+  constructor({ fork, send, readLocations, readRecents, readExcludedPaths, readHomePath, readKnownFolders }) {
     this.#fork = fork;
     this.#send = send;
     this.#readLocations = readLocations;
     this.#readRecents = readRecents;
     this.#readExcludedPaths = readExcludedPaths;
+    this.#readHomePath = readHomePath;
+    this.#readKnownFolders = readKnownFolders;
   }
 
   async start(scanId) {
@@ -30,6 +34,8 @@ class CollectionScanner {
       const locations = await this.#readLocations();
       const recents = this.#readRecents();
       const excludedPaths = this.#readExcludedPaths();
+      const homePath = this.#readHomePath();
+      const knownFolders = this.#readKnownFolders();
       if (this.#running !== scan) {
         return null;
       }
@@ -37,7 +43,7 @@ class CollectionScanner {
       scan.child = this.#fork(SCANNER_ENTRY, [], {
         serviceName: 'Bruno collection scan',
         stdio: 'inherit',
-        env: { ...process.env, UV_THREADPOOL_SIZE: '8' }
+        env: { ...process.env, UV_THREADPOOL_SIZE: '4' }
       });
       const finishUnexpectedly = () => {
         if (this.#running === scan) {
@@ -48,9 +54,11 @@ class CollectionScanner {
       scan.child.on('error', finishUnexpectedly);
       scan.child.on('exit', finishUnexpectedly);
       scan.child.postMessage({
-        locations: locations.map((location) => ({ id: location.id, path: location.path })),
+        locations,
         recents,
-        excludedPaths
+        excludedPaths,
+        homePath,
+        knownFolders
       });
       return { locations };
     } catch (error) {

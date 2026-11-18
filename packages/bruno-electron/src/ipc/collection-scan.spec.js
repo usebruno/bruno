@@ -30,9 +30,18 @@ const recentCollections = require('../services/recent-collections');
 const { SCANNER_ENTRY } = require('../services/collection-scan');
 const { startCollectionScan, cancelCollectionScan, stopCollectionScan, registerCollectionScanIpc } = require('./collection-scan');
 
+const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+
 const idOf = (folderPath) => (process.platform === 'win32' ? folderPath.toLowerCase() : folderPath);
 
 const toLocation = (folderPath, kind) => ({ id: idOf(path.resolve(folderPath)), path: path.resolve(folderPath), kind });
+
+const hostSystemRoot = process.platform === 'win32' ? `${process.env.SystemDrive || 'C:'}\\` : '/';
+
+const runOn = (platform, env) => {
+  Object.defineProperty(process, 'platform', { value: platform });
+  jest.replaceProperty(process, 'env', env);
+};
 
 const createChild = () => Object.assign(new EventEmitter(), { postMessage: jest.fn(), kill: jest.fn(() => true) });
 
@@ -66,7 +75,7 @@ describe('collection scan IPC', () => {
     jest.clearAllMocks();
     child = createChild();
     utilityProcess.fork.mockReturnValue(child);
-    app.getPath.mockImplementation((name) => (name === 'documents' ? at('documents') : undefined));
+    app.getPath.mockImplementation((name) => at(name));
     getPreferences.mockReturnValue({
       general: { defaultLocation: at('bruno') },
       openCollection: { searchFolders: [at('projects')], searchWholeComputer: true }
@@ -78,6 +87,11 @@ describe('collection scan IPC', () => {
     recentCollections.list.mockReturnValue([{ path: '/elsewhere/api', name: 'API', usedAt: 1700000000000, lastEvent: 'opened' }]);
     mainWindow = createWindow();
     registerCollectionScanIpc(mainWindow);
+  });
+
+  afterEach(() => {
+    Object.defineProperty(process, 'platform', originalPlatform);
+    jest.restoreAllMocks();
   });
 
   it('registers start and cancel channels that start and cancel a scan', async () => {
@@ -94,33 +108,67 @@ describe('collection scan IPC', () => {
     expect(child.kill).toHaveBeenCalledTimes(1);
   });
 
-  it('forks the scanner entry with its service name, inherited output and eight libuv threads', async () => {
+  it('forks the scanner entry with its service name, inherited output and four libuv threads', async () => {
     await startCollectionScan({ scanId: 'scan-1' });
 
     expect(utilityProcess.fork).toHaveBeenCalledWith(SCANNER_ENTRY, [], {
       serviceName: 'Bruno collection scan',
       stdio: 'inherit',
-      env: { ...process.env, UV_THREADPOOL_SIZE: '8' }
+      env: { ...process.env, UV_THREADPOOL_SIZE: '4' }
     });
   });
 
-  it('scans the default location, Documents, the workspace folders that exist, the search folders and home', async () => {
+  it('scans the default location, Documents, the workspace folders that exist, the search folders, home and the rest of the computer', async () => {
     const locations = [
       toLocation(at('bruno'), 'default-location'),
       toLocation(at('documents', 'bruno'), 'documents'),
       toLocation(at('workspaces', 'default'), 'workspace'),
       toLocation(at('workspaces', 'team'), 'workspace'),
       toLocation(at('projects'), 'user'),
-      toLocation(os.homedir(), 'home')
+      toLocation(os.homedir(), 'home'),
+      { id: 'computer', path: hostSystemRoot, kind: 'computer' }
     ];
 
     await expect(startCollectionScan({ scanId: 'scan-1' })).resolves.toEqual({ locations });
 
     expect(child.postMessage).toHaveBeenCalledWith({
-      locations: locations.map(({ id, path: locationPath }) => ({ id, path: locationPath })),
+      locations,
       recents: [{ path: '/elsewhere/api', name: 'API' }],
-      excludedPaths: ['/app-data/tmp/transient']
+      excludedPaths: ['/app-data/tmp/transient'],
+      homePath: os.homedir(),
+      knownFolders: [at('desktop'), at('documents'), at('downloads')]
     });
+  });
+
+  it('searches the real home folder of a snap on Linux, and passes it to the scanner', async () => {
+    runOn('linux', { ...process.env, SNAP_REAL_HOME: at('real-home') });
+
+    const { locations } = await startCollectionScan({ scanId: 'scan-1' });
+
+    expect(locations.filter((location) => ['home', 'computer'].includes(location.kind))).toEqual([
+      toLocation(at('real-home'), 'home'),
+      { id: 'computer', path: '/', kind: 'computer' }
+    ]);
+    expect(child.postMessage).toHaveBeenCalledWith(expect.objectContaining({ homePath: at('real-home') }));
+  });
+
+  it('uses the home folder of the account outside Linux even when SNAP_REAL_HOME is set', async () => {
+    runOn('darwin', { ...process.env, SNAP_REAL_HOME: at('real-home') });
+
+    await startCollectionScan({ scanId: 'scan-1' });
+
+    expect(child.postMessage).toHaveBeenCalledWith(expect.objectContaining({ homePath: os.homedir() }));
+  });
+
+  it.each([
+    ['the system drive', { SystemDrive: 'D:' }, 'D:\\'],
+    ['drive C when the system drive is not set', {}, 'C:\\']
+  ])('searches the rest of the computer from %s on Windows', async (_label, env, systemRoot) => {
+    runOn('win32', env);
+
+    const { locations } = await startCollectionScan({ scanId: 'scan-1' });
+
+    expect(locations[locations.length - 1]).toEqual({ id: 'computer', path: systemRoot, kind: 'computer' });
   });
 
   it('scans without recents when the database cannot be read', async () => {

@@ -17,8 +17,11 @@ const deferred = () => {
 const work = { id: '/work', path: '/work', kind: 'default-location' };
 const team = { id: '/team', path: '/team', kind: 'workspace' };
 const projects = { id: '/projects', path: '/projects', kind: 'user' };
+const computer = { id: 'computer', path: '/', kind: 'computer' };
 const recents = [{ path: '/elsewhere/api', name: 'API' }];
 const excludedPaths = ['/app-data/tmp/transient'];
+const homePath = '/home/me';
+const knownFolders = ['/home/me/Desktop', '/home/me/Documents', '/home/me/Downloads'];
 const payments = { path: '/work/payments', name: 'Payments', mtime: 1, locationId: '/work' };
 
 const idleLocations = [work, team, projects].map((location) => ({ ...location, status: 'idle', found: 0 }));
@@ -30,6 +33,8 @@ describe('CollectionScanner', () => {
   let readLocations;
   let readRecents;
   let readExcludedPaths;
+  let readHomePath;
+  let readKnownFolders;
   let scanner;
 
   beforeEach(() => {
@@ -43,20 +48,26 @@ describe('CollectionScanner', () => {
     readLocations = jest.fn(async () => [work, team, projects]);
     readRecents = jest.fn(() => recents);
     readExcludedPaths = jest.fn(() => excludedPaths);
-    scanner = new CollectionScanner({ fork, send, readLocations, readRecents, readExcludedPaths });
+    readHomePath = jest.fn(() => homePath);
+    readKnownFolders = jest.fn(() => knownFolders);
+    scanner = new CollectionScanner({ fork, send, readLocations, readRecents, readExcludedPaths, readHomePath, readKnownFolders });
   });
 
   const doneEvents = () => send.mock.calls.filter(([channel]) => channel === 'main:collection-scan:done').map(([, payload]) => payload);
 
-  it('forks the scanner and posts one start message with the location ids and paths, the recents and the excluded paths', async () => {
-    await expect(scanner.start('scan-1')).resolves.toEqual({ locations: [work, team, projects] });
+  it('forks the scanner and posts one start message with the location ids, paths and kinds, the recents, the excluded paths, the home folder and the known folders', async () => {
+    readLocations.mockResolvedValueOnce([work, computer]);
+
+    await expect(scanner.start('scan-1')).resolves.toEqual({ locations: [work, computer] });
 
     expect(fork).toHaveBeenCalledTimes(1);
     expect(fork).toHaveBeenCalledWith(SCANNER_ENTRY, [], expect.any(Object));
     expect(children[0].postMessage.mock.calls).toEqual([[{
-      locations: [{ id: '/work', path: '/work' }, { id: '/team', path: '/team' }, { id: '/projects', path: '/projects' }],
+      locations: [{ id: '/work', path: '/work', kind: 'default-location' }, { id: 'computer', path: '/', kind: 'computer' }],
       recents,
-      excludedPaths
+      excludedPaths,
+      homePath,
+      knownFolders
     }]]);
   });
 
@@ -174,6 +185,12 @@ describe('CollectionScanner', () => {
     ['reading the excluded paths', () => readExcludedPaths.mockImplementationOnce(() => {
       throw new Error('No user data folder');
     }), 'No user data folder'],
+    ['reading the home folder', () => readHomePath.mockImplementationOnce(() => {
+      throw new Error('No home folder');
+    }), 'No home folder'],
+    ['reading the known folders', () => readKnownFolders.mockImplementationOnce(() => {
+      throw new Error('Failed to get \'desktop\' path');
+    }), 'Failed to get \'desktop\' path'],
     ['forking the child', () => fork.mockImplementationOnce(() => {
       throw new Error('utilityProcess cannot be created before app is ready');
     }), 'utilityProcess cannot be created before app is ready']

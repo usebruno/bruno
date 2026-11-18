@@ -19,8 +19,16 @@ import {
 import CollectionList from '../../components/CollectionList';
 import EmptyState from '../../components/EmptyState';
 import { describeLastUse, formatRelativeTime } from '../../utils/relative-time';
-import { countSearchLocations } from '../../utils/search-locations';
+import { countSearchLocations, searchesWholeComputer } from '../../utils/search-locations';
 import SearchLocationsBanner from './SearchLocationsBanner';
+
+const describeSearchedPlaces = (locations) => {
+  if (searchesWholeComputer(locations)) {
+    return 'this computer';
+  }
+  const locationCount = countSearchLocations(locations);
+  return locationCount > 0 ? countOf(locationCount, 'location') : 'its default locations';
+};
 
 const MyComputerPage = () => {
   const dispatch = useDispatch();
@@ -78,7 +86,6 @@ const MyComputerPage = () => {
   }
 
   if (status === 'done' && collections.length === 0) {
-    const locationCount = countSearchLocations(locations);
     return (
       <EmptyState
         key="empty"
@@ -107,7 +114,7 @@ const MyComputerPage = () => {
         )}
         data-testid="my-computer-empty"
       >
-        Bruno searched {locationCount > 0 ? countOf(locationCount, 'location') : 'its default locations'}. Open a collection folder from anywhere, or add more places to search.
+        Bruno searched {describeSearchedPlaces(locations)}. Open a collection folder from anywhere, or add more places to search.
       </EmptyState>
     );
   }

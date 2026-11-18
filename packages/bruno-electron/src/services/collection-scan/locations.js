@@ -5,7 +5,7 @@ const FOLDER_CHECKED_KINDS = new Set(['default-location', 'documents', 'workspac
 
 const isAbsolutePath = (value) => typeof value === 'string' && path.isAbsolute(value);
 
-const buildScanLocations = async ({ preferences, documentsPath, defaultWorkspacePath, lastOpenedWorkspacePaths, homePath, isFolder }) => {
+const buildScanLocations = async ({ preferences, documentsPath, defaultWorkspacePath, lastOpenedWorkspacePaths, homePath, systemRoot, isFolder }) => {
   const { searchFolders, searchWholeComputer } = preferences.openCollection;
   const candidates = [
     { kind: 'default-location', path: preferences.general.defaultLocation },
@@ -27,7 +27,8 @@ const buildScanLocations = async ({ preferences, documentsPath, defaultWorkspace
         locations.set(id, { id, path: resolvedPath, kind: candidate.kind });
       }
     });
-  return [...locations.values()];
+  const computer = searchWholeComputer ? [{ id: 'computer', path: systemRoot, kind: 'computer' }] : [];
+  return [...locations.values(), ...computer];
 };
 
 module.exports = {

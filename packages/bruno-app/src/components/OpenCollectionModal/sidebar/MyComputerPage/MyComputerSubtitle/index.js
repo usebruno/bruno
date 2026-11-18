@@ -2,7 +2,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { IconRefresh } from '@tabler/icons';
 import { openCollectionModal, scanMyComputer } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import { countOf } from 'providers/ReduxStore/slices/open-collection-modal/folder-results';
-import { countSearchLocations } from '../../../utils/search-locations';
+import { countSearchLocations, searchesWholeComputer } from '../../../utils/search-locations';
 import StyledWrapper from './StyledWrapper';
 
 const MyComputerSubtitle = () => {
@@ -15,12 +15,15 @@ const MyComputerSubtitle = () => {
   }
 
   const isScanning = status === 'scanning';
-  const locationCount = countSearchLocations(locations);
+  const isWholeComputer = searchesWholeComputer(locations);
+  const locationCountText = countOf(countSearchLocations(locations), 'location');
+  const scanningText = isWholeComputer ? 'Searching my computer…' : `Searching ${locationCountText}…`;
+  const doneText = `Collections found in ${isWholeComputer ? 'this computer' : locationCountText} ·`;
 
   return (
     <StyledWrapper data-testid="my-computer-subtitle">
       <span className="subtitle-text" role="status">
-        {isScanning ? `Searching ${countOf(locationCount, 'location')}…` : `Collections Bruno found in ${countOf(locationCount, 'search location')} ·`}
+        {isScanning ? scanningText : doneText}
       </span>
       <button
         type="button"

@@ -9,9 +9,11 @@ const { runScannerProcess } = require('./scanner-process');
 const createPort = () => Object.assign(new EventEmitter(), { postMessage: jest.fn() });
 
 const startMessage = {
-  locations: [{ id: 'work', path: '/work' }],
+  locations: [{ id: 'work', path: '/work', kind: 'default-location' }, { id: 'computer', path: '/', kind: 'computer' }],
   recents: [{ path: '/elsewhere/api', name: 'API' }],
-  excludedPaths: ['/app-data/tmp/transient']
+  excludedPaths: ['/app-data/tmp/transient'],
+  homePath: '/home/me',
+  knownFolders: ['/home/me/Desktop', '/home/me/Documents', '/home/me/Downloads']
 };
 
 const statuses = [{ id: 'work', status: 'done', found: 2 }];
@@ -60,6 +62,8 @@ describe('runScannerProcess', () => {
       locations: startMessage.locations,
       recents: startMessage.recents,
       excludedPaths: startMessage.excludedPaths,
+      homePath: startMessage.homePath,
+      knownFolders: startMessage.knownFolders,
       onCollection: expect.any(Function)
     });
     expect(postedMessages()).toEqual([

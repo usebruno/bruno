@@ -1,4 +1,4 @@
-import { countSearchLocations, describeLocationStatus, toLocationRows } from './search-locations';
+import { countSearchLocations, describeLocationStatus, searchesWholeComputer, toLocationRows } from './search-locations';
 
 const location = (kind, path, fields = {}) => ({ id: path, path, kind, status: 'done', found: 0, ...fields });
 
@@ -19,6 +19,16 @@ describe('countSearchLocations', () => {
     ['the rest of the computer as that location when the home folder is an added folder', [location('user', '/Users/me'), computer], 2]
   ])('counts %s', (_description, locations, count) => {
     expect(countSearchLocations(locations)).toBe(count);
+  });
+});
+
+describe('searchesWholeComputer', () => {
+  it.each([
+    ['true with the rest of the computer', [defaultLocation, home, computer], true],
+    ['false with only default locations, workspaces and added folders', [defaultLocation, defaultWorkspace, addedFolder], false],
+    ['false when / is an added folder', [location('user', '/')], false]
+  ])('is %s', (_description, locations, expected) => {
+    expect(searchesWholeComputer(locations)).toBe(expected);
   });
 });
 

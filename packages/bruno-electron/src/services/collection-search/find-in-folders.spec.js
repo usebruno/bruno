@@ -14,7 +14,7 @@ describe('findCollectionsInFolders', () => {
   let tempDir;
 
   beforeEach(() => {
-    tempDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-collection-search-')));
+    tempDir = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-collection-search-')));
     getSkippedMountPoints.mockResolvedValue(new Set());
   });
 

@@ -63,7 +63,7 @@ describe('MyComputerSubtitle', () => {
 
   it.each([
     ['3 locations, counting the workspace folders as one', searchedLocations, 'Searching 3 locations…'],
-    ['4 locations, counting the home folder and the rest of the computer as one', [...searchedLocations, ...wholeComputerLocations], 'Searching 4 locations…'],
+    ['my computer when the whole computer is searched', [...searchedLocations, ...wholeComputerLocations], 'Searching my computer…'],
     ['a single location', [defaultLocation], 'Searching 1 location…']
   ])('says it is searching %s', (_description, locations, text) => {
     renderSubtitle({ status: 'scanning', locations });
@@ -72,23 +72,26 @@ describe('MyComputerSubtitle', () => {
   });
 
   it.each([
-    ['3 locations, counting the workspace folders as one', searchedLocations, 'Collections Bruno found in 3 search locations ·'],
-    ['4 locations, counting the home folder and the rest of the computer as one', [...searchedLocations, ...wholeComputerLocations], 'Collections Bruno found in 4 search locations ·'],
-    ['a single location', [defaultLocation], 'Collections Bruno found in 1 search location ·']
+    ['3 locations, counting the workspace folders as one', searchedLocations, 'Collections found in 3 locations ·'],
+    ['this computer when the whole computer was searched', [...searchedLocations, ...wholeComputerLocations], 'Collections found in this computer ·'],
+    ['a single location', [defaultLocation], 'Collections found in 1 location ·']
   ])('once the search is done, says it searched %s', (_description, locations, text) => {
     renderSubtitle({ status: 'done', locations });
 
     expect(subtitle()).toHaveTextContent(new RegExp(`^${text}Manage$`));
   });
 
-  it('announces a new search through the status text it keeps in place', () => {
-    renderSubtitle({ status: 'done', locations: searchedLocations });
+  it.each([
+    ['its locations', searchedLocations, /^Collections found in 3 locations ·$/, /^Searching 3 locations…$/],
+    ['the whole computer', [...searchedLocations, ...wholeComputerLocations], /^Collections found in this computer ·$/, /^Searching my computer…$/]
+  ])('announces a new search of %s through the status text it keeps in place', (_description, locations, doneText, scanningText) => {
+    renderSubtitle({ status: 'done', locations });
     const status = screen.getByRole('status');
-    expect(status).toHaveTextContent(/^Collections Bruno found in 3 search locations ·$/);
+    expect(status).toHaveTextContent(doneText);
 
     fireEvent.click(rescanButton());
 
-    expect(status).toHaveTextContent(/^Searching 3 locations…$/);
+    expect(status).toHaveTextContent(scanningText);
   });
 
   it('opens Locations from Manage', () => {

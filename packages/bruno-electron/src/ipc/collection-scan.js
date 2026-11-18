@@ -10,6 +10,7 @@ const { CollectionScanner } = require('../services/collection-scan');
 const { buildScanLocations } = require('../services/collection-scan/locations');
 
 const MAX_SCAN_ID_LENGTH = 100;
+const KNOWN_FOLDER_NAMES = ['desktop', 'documents', 'downloads'];
 
 let collectionScanner = null;
 
@@ -17,12 +18,19 @@ const isScanId = (scanId) => typeof scanId === 'string' && scanId.length > 0 && 
 
 const isFolder = (folderPath) => fs.stat(folderPath).then((stats) => stats.isDirectory(), () => false);
 
+const readHomePath = () => (process.platform === 'linux' && process.env.SNAP_REAL_HOME) || os.homedir();
+
+const readKnownFolders = () => KNOWN_FOLDER_NAMES.map((name) => app.getPath(name));
+
+const readSystemRoot = () => (process.platform === 'win32' ? `${process.env.SystemDrive || 'C:'}\\` : '/');
+
 const readScanLocations = () => buildScanLocations({
   preferences: getPreferences(),
   documentsPath: app.getPath('documents'),
   defaultWorkspacePath: defaultWorkspaceManager.getDefaultWorkspacePath(),
   lastOpenedWorkspacePaths: new LastOpenedWorkspaces().getAll(),
-  homePath: os.homedir(),
+  homePath: readHomePath(),
+  systemRoot: readSystemRoot(),
   isFolder
 });
 
@@ -63,7 +71,9 @@ const registerCollectionScanIpc = (mainWindow) => {
     },
     readLocations: readScanLocations,
     readRecents,
-    readExcludedPaths
+    readExcludedPaths,
+    readHomePath,
+    readKnownFolders
   });
   ipcMain.handle('renderer:collection-scan:start', (_event, request) => startCollectionScan(request));
   ipcMain.handle('renderer:collection-scan:cancel', (_event, request) => cancelCollectionScan(request));

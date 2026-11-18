@@ -3,9 +3,13 @@ const fsPromises = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 
-jest.mock('../collection-search/mount-points', () => ({ getSkippedMountPoints: jest.fn() }));
+jest.mock('../collection-search/mount-points', () => ({ readMountTable: jest.fn(), skippedMountPointsOf: jest.fn() }));
+jest.mock('./cloud-folders', () => ({ findCloudFolders: jest.fn(), isDatalessFile: jest.fn(), findCloudOnlyFiles: jest.fn() }));
+jest.mock('./whole-computer', () => ({ planWholeComputer: jest.fn() }));
 
-const { getSkippedMountPoints } = require('../collection-search/mount-points');
+const { readMountTable, skippedMountPointsOf } = require('../collection-search/mount-points');
+const { findCloudFolders, isDatalessFile, findCloudOnlyFiles } = require('./cloud-folders');
+const { planWholeComputer } = require('./whole-computer');
 const { scanLocations } = require('./scan');
 
 const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
@@ -17,8 +21,14 @@ describe('scanLocations', () => {
   let tempDir;
 
   beforeEach(() => {
-    tempDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-collection-scan-')));
-    getSkippedMountPoints.mockResolvedValue(new Set());
+    tempDir = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-collection-scan-')));
+    jest.clearAllMocks();
+    readMountTable.mockResolvedValue([]);
+    skippedMountPointsOf.mockReturnValue(new Set());
+    findCloudFolders.mockResolvedValue({ syncFolders: [], placeholderFolders: [] });
+    isDatalessFile.mockResolvedValue(false);
+    findCloudOnlyFiles.mockResolvedValue(new Set());
+    planWholeComputer.mockReturnValue({ roots: [], prunePaths: [] });
   });
 
   afterEach(() => {
@@ -47,14 +57,18 @@ describe('scanLocations', () => {
 
   const location = (id, ...segments) => ({ id, path: path.join(tempDir, ...segments) });
 
+  const computerAt = (...segments) => ({ id: 'computer', path: path.join(tempDir, ...segments), kind: 'computer' });
+
   const mtimeOf = (folderPath) => Math.floor(fs.statSync(folderPath).mtimeMs);
 
-  const scan = async ({ locations, recents = [], excludedPaths = [], onCollection = () => {} }) => {
+  const scan = async ({ locations, recents = [], excludedPaths = [], onCollection = () => {}, ...options }) => {
     const collections = [];
     const statuses = await scanLocations({
       locations,
       recents,
       excludedPaths,
+      homePath: path.join(tempDir, 'user-home'),
+      ...options,
       onCollection: (collection) => {
         collections.push(collection);
         onCollection(collection);
@@ -170,14 +184,18 @@ describe('scanLocations', () => {
     expect(foundPaths(collections)).toEqual([collection]);
   });
 
-  it('finds a collection 12 levels below a location but not one 13 levels below', async () => {
-    const levels = (prefix, count) => Array.from({ length: count }, (_value, index) => `${prefix}-${index + 1}`);
-    const twelveDown = makeBruCollection('Twelve', 'root', ...levels('a', 12));
-    makeBruCollection('Thirteen', 'root', ...levels('b', 13));
+  it('finds a collection 32 folders below the file system root but not one 33 below, from any location', async () => {
+    const levels = (prefix, count) => Array.from({ length: count }, (_value, index) => `${prefix}${index + 1}`);
+    const rootPath = makeFolder('root');
+    const rootDepth = path.relative(path.parse(rootPath).root, rootPath).split(path.sep).length;
+    const atLimit = makeBruCollection('At limit', 'root', ...levels('a', 32 - rootDepth));
+    makeBruCollection('Past limit', 'root', ...levels('b', 33 - rootDepth));
 
     const { collections } = await scan({ locations: [location('root', 'root')] });
+    const { collections: fromDeeper } = await scan({ locations: [location('deeper', 'root', 'b1', 'b2')] });
 
-    expect(foundPaths(collections)).toEqual([twelveDown]);
+    expect(foundPaths(collections)).toEqual([atLimit]);
+    expect(fromDeeper).toEqual([]);
   });
 
   it('does not follow folder links', async () => {
@@ -328,15 +346,77 @@ describe('scanLocations', () => {
     ]);
   });
 
-  it('does not enter skipped mount points', async () => {
+  it('skips a cloud sync folder whose path goes through a link', async () => {
+    makeBruCollection('Synced', 'data', 'home', 'Dropbox', 'api');
+    const kept = makeBruCollection('Kept', 'data', 'home', 'work', 'api');
+    const homeLink = path.join(tempDir, 'home');
+    fs.symlinkSync(path.join(tempDir, 'data', 'home'), homeLink, folderLinkType);
+    findCloudFolders.mockResolvedValue({ syncFolders: [path.join(homeLink, 'Dropbox')], placeholderFolders: [] });
+
+    const { collections } = await scan({ locations: [location('data', 'data')] });
+
+    expect(foundPaths(collections)).toEqual([kept]);
+  });
+
+  it('skips a cloud sync folder below any location, but walks a location inside one', async () => {
+    const dropbox = makeFolder('home', 'Dropbox');
+    makeBruCollection('Synced', 'home', 'Dropbox', 'synced-api');
+    const picked = makeBruCollection('Picked', 'home', 'Dropbox', 'picked', 'api');
+    const local = makeBruCollection('Local', 'home', 'work', 'api');
+    findCloudFolders.mockResolvedValue({ syncFolders: [dropbox], placeholderFolders: [dropbox] });
+    const readdir = jest.spyOn(fsPromises, 'readdir');
+
+    const { collections } = await scan({ locations: [location('home', 'home'), location('picked', 'home', 'Dropbox', 'picked')] });
+
+    expect(ownedPaths(collections)).toEqual([[local, 'home'], [picked, 'picked']].sort());
+    expect(readdir.mock.calls.map(([target]) => target)).not.toContain(dropbox);
+  });
+
+  it('reads the mount table and the cloud folders once, and does not enter the mount points the table skips', async () => {
     const mounted = makeFolder('volumes', 'network-share');
     makeBruCollection('Remote', 'volumes', 'network-share', 'remote');
     const local = makeBruCollection('Local', 'volumes', 'local');
-    getSkippedMountPoints.mockResolvedValue(new Set([mounted]));
+    makeFolder('other');
+    const mounts = [{ path: mounted, kind: 'network' }];
+    readMountTable.mockResolvedValue(mounts);
+    skippedMountPointsOf.mockReturnValue(new Set([mounted]));
+    const env = { PATH: '/usr/bin' };
+    const homePath = path.join(tempDir, 'home');
 
-    const { collections } = await scan({ locations: [location('volumes', 'volumes')] });
+    const { collections } = await scan({ locations: [location('volumes', 'volumes'), location('other', 'other')], platform: 'linux', env, homePath });
 
     expect(foundPaths(collections)).toEqual([local]);
+    expect(readMountTable.mock.calls).toEqual([[{ platform: 'linux', env, detectUsb: false }]]);
+    expect(skippedMountPointsOf.mock.calls).toEqual([[mounts, 'linux']]);
+    expect(findCloudFolders.mock.calls).toEqual([[{ platform: 'linux', homePath, env }]]);
+  });
+
+  it('walks a local disk that Choose folder skips, such as an NTFS or encrypted FUSE disk', async () => {
+    const fuseDisk = makeFolder('data', 'windows');
+    const fuseApi = makeBruCollection('NTFS API', 'data', 'windows', 'api');
+    const usb = makeFolder('data', 'usb');
+    makeBruCollection('USB API', 'data', 'usb', 'api');
+    readMountTable.mockResolvedValue([{ path: fuseDisk, kind: 'local' }, { path: usb, kind: 'removable' }]);
+    skippedMountPointsOf.mockReturnValue(new Set([fuseDisk, usb]));
+
+    const { collections } = await scan({ locations: [location('data', 'data')], platform: 'linux' });
+
+    expect(foundPaths(collections)).toEqual([fuseApi]);
+  });
+
+  it('reads no mount table on Windows unless the whole computer is searched', async () => {
+    makeFolder('work');
+    makeFolder('system');
+    const env = {};
+
+    await scan({ locations: [location('work', 'work')], platform: 'win32', env });
+
+    expect(readMountTable).not.toHaveBeenCalled();
+    expect(skippedMountPointsOf.mock.calls).toEqual([[[], 'win32']]);
+
+    await scan({ locations: [location('work', 'work'), computerAt('system')], platform: 'win32', env });
+
+    expect(readMountTable.mock.calls).toEqual([[{ platform: 'win32', env, detectUsb: true }]]);
   });
 
   it('walks a Windows placeholder folder that is listed as a link', async () => {
@@ -506,9 +586,334 @@ describe('scanLocations', () => {
       locations: [location('work', 'work')],
       recents: [],
       excludedPaths: [],
+      homePath: path.join(tempDir, 'user-home'),
       onCollection: () => {
         throw new Error('The port is closed');
       }
     })).rejects.toThrow('The port is closed');
+  });
+
+  describe('the whole computer', () => {
+    it('walks each of its roots and the locations inside them once, and credits each collection to the location closest to it', async () => {
+      const system = makeFolder('system');
+      const work = makeBruCollection('Work API', 'system', 'work', 'api');
+      makeBruCollection('Shared tool', 'system', 'usr', 'share', 'tool');
+      const localTool = makeBruCollection('Local tool', 'system', 'usr', 'local', 'tool');
+      makeBruCollection('Fixture', 'system', 'private', 'tmp', 'fixture');
+      const usbApi = makeBruCollection('USB API', 'system', 'Volumes', 'usb', 'api');
+      makeBruCollection('Other system', 'system', 'Volumes', 'usb', 'System', 'api');
+      const homeApi = makeBruCollection('Home API', 'system', 'Users', 'me', 'api');
+      const home = { ...location('home', 'system', 'Users', 'me'), kind: 'home' };
+      const mounts = [{ path: path.join(system, 'Volumes', 'usb'), kind: 'removable' }];
+      readMountTable.mockResolvedValue(mounts);
+      planWholeComputer.mockReturnValue({
+        roots: [system, path.join(system, 'usr', 'local'), path.join(system, 'Volumes', 'usb')],
+        prunePaths: [path.join(system, 'usr'), path.join(system, 'private'), path.join(system, 'Volumes'), path.join(system, 'Volumes', 'usb', 'System')]
+      });
+      const env = { SystemRoot: 'C:\\Windows' };
+      const readdir = jest.spyOn(fsPromises, 'readdir');
+
+      const { collections, statuses } = await scan({ locations: [home, computerAt('system')], platform: 'linux', env });
+
+      expect(ownedPaths(collections)).toEqual([[work, 'computer'], [localTool, 'computer'], [usbApi, 'computer'], [homeApi, 'home']].sort());
+      expect(readdir.mock.calls.filter(([target]) => target === home.path)).toHaveLength(1);
+      expect(planWholeComputer.mock.calls).toEqual([[{ platform: 'linux', mounts, env }]]);
+      expect(readMountTable.mock.calls).toEqual([[{ platform: 'linux', env, detectUsb: true }]]);
+      expect(statuses).toEqual([
+        { id: 'home', status: 'done', found: 1 },
+        { id: 'computer', status: 'done', found: 3 }
+      ]);
+    });
+
+    it('applies its prunes inside every location, and still walks a location that lies in a folder it prunes', async () => {
+      const system = makeFolder('system');
+      makeBruCollection('Cached', 'data', 'cache', 'api');
+      const dataApi = makeBruCollection('Data API', 'data', 'api');
+      const privateWork = makeBruCollection('Private work', 'system', 'private', 'work', 'api');
+      planWholeComputer.mockReturnValue({ roots: [system], prunePaths: [path.join(tempDir, 'data', 'cache'), path.join(system, 'private')] });
+
+      const { collections, statuses } = await scan({
+        locations: [location('data', 'data'), location('private-work', 'system', 'private', 'work'), computerAt('system')],
+        platform: 'linux'
+      });
+
+      expect(ownedPaths(collections)).toEqual([[dataApi, 'data'], [privateWork, 'private-work']].sort());
+      expect(statuses).toEqual([
+        { id: 'data', status: 'done', found: 1 },
+        { id: 'private-work', status: 'done', found: 1 },
+        { id: 'computer', status: 'done', found: 0 }
+      ]);
+    });
+
+    it('reports a missing location while it searches the rest', async () => {
+      makeFolder('system');
+      const systemApi = makeBruCollection('System API', 'system', 'api');
+      planWholeComputer.mockReturnValue({ roots: [path.join(tempDir, 'system')], prunePaths: [] });
+
+      const { collections, statuses } = await scan({ locations: [location('gone', 'gone'), computerAt('system')], platform: 'linux' });
+
+      expect(ownedPaths(collections)).toEqual([[systemApi, 'computer']]);
+      expect(statuses).toEqual([
+        { id: 'gone', status: 'missing', found: 0 },
+        { id: 'computer', status: 'done', found: 1 }
+      ]);
+    });
+
+    it.each([
+      ['its system root is missing', 'missing-system', 'usb', 'missing'],
+      ['only one of its other roots is missing', 'system', 'missing-usb', 'done']
+    ])('reports its status from its system root alone when %s', async (_label, systemName, usbName, status) => {
+      makeBruCollection('System API', 'system', 'api');
+      makeBruCollection('USB API', 'usb', 'api');
+      planWholeComputer.mockReturnValue({ roots: [path.join(tempDir, systemName), path.join(tempDir, usbName)], prunePaths: [] });
+
+      const { statuses } = await scan({ locations: [computerAt(systemName)], platform: 'linux' });
+
+      expect(statuses).toEqual([{ id: 'computer', status, found: 1 }]);
+    });
+
+    it('walks Desktop, Documents and Downloads that lie in a cloud sync folder as roots of their own, and nothing else in that folder', async () => {
+      const system = makeFolder('system');
+      const oneDrive = makeFolder('system', 'Users', 'me', 'OneDrive');
+      const desktopApi = makeBruCollection('Desktop API', 'system', 'Users', 'me', 'OneDrive', 'Desktop', 'api');
+      makeBruCollection('Shared API', 'system', 'Users', 'me', 'OneDrive', 'Shared', 'api');
+      const downloadsApi = makeBruCollection('Downloads API', 'system', 'Users', 'me', 'Downloads', 'api');
+      findCloudFolders.mockResolvedValue({ syncFolders: [oneDrive], placeholderFolders: [oneDrive] });
+      planWholeComputer.mockReturnValue({ roots: [system], prunePaths: [] });
+      const desktop = path.join(oneDrive, 'Desktop');
+      const knownFolders = [desktop, path.join(oneDrive, 'Documents'), path.join(system, 'Users', 'me', 'Downloads')];
+      const readdir = jest.spyOn(fsPromises, 'readdir');
+
+      const { collections, statuses } = await scan({ locations: [computerAt('system')], platform: 'linux', knownFolders });
+      const { collections: withoutComputer } = await scan({ locations: [location('users', 'system', 'Users')], platform: 'linux', knownFolders });
+
+      expect(ownedPaths(collections)).toEqual([[desktopApi, 'computer'], [downloadsApi, 'computer']].sort());
+      expect(statuses).toEqual([{ id: 'computer', status: 'done', found: 2 }]);
+      expect(readdir.mock.calls.filter(([target]) => target === desktop)).toHaveLength(1);
+      expect(readdir.mock.calls.map(([target]) => target)).not.toContain(oneDrive);
+      expect(ownedPaths(withoutComputer)).toEqual([[downloadsApi, 'users']]);
+    });
+
+    it('walks a Documents folder that links into a cloud sync folder', async () => {
+      const system = makeFolder('system');
+      const dropbox = makeFolder('system', 'home', 'Dropbox');
+      makeBruCollection('Documents API', 'system', 'home', 'Dropbox', 'Documents', 'api');
+      const documentsLink = path.join(system, 'home', 'Documents');
+      fs.symlinkSync(path.join(dropbox, 'Documents'), documentsLink, folderLinkType);
+      findCloudFolders.mockResolvedValue({ syncFolders: [dropbox], placeholderFolders: [dropbox] });
+      planWholeComputer.mockReturnValue({ roots: [system], prunePaths: [] });
+
+      const { collections } = await scan({ locations: [computerAt('system')], platform: 'linux', knownFolders: [documentsLink] });
+
+      expect(ownedPaths(collections)).toEqual([[path.join(documentsLink, 'api'), 'computer']]);
+    });
+
+    it('leaves a root that is also another location to that location, which walks it once under the whole computer prunes', async () => {
+      const system = makeFolder('system');
+      const systemApi = makeBruCollection('System API', 'system', 'api');
+      makeBruCollection('Pruned API', 'system', 'usr', 'api');
+      planWholeComputer.mockReturnValue({ roots: [system], prunePaths: [path.join(system, 'usr')] });
+      const readdir = jest.spyOn(fsPromises, 'readdir');
+
+      const { collections, statuses } = await scan({ locations: [{ id: 'system-folder', path: system, kind: 'user' }, computerAt('system')], platform: 'linux' });
+
+      expect(ownedPaths(collections)).toEqual([[systemApi, 'system-folder']]);
+      expect(readdir.mock.calls.filter(([target]) => target === system)).toHaveLength(1);
+      expect(statuses).toEqual([
+        { id: 'system-folder', status: 'done', found: 1 },
+        { id: 'computer', status: 'done', found: 0 }
+      ]);
+    });
+
+    (canRemoveReadAccess ? it : it.skip)('reports a location that is also one of its roots as denied when that folder cannot be read', async () => {
+      makeFolder('system');
+      const usb = makeFolder('usb');
+      makeBruCollection('USB API', 'usb', 'api');
+      planWholeComputer.mockReturnValue({ roots: [path.join(tempDir, 'system'), usb], prunePaths: [] });
+      fs.chmodSync(usb, 0o000);
+
+      try {
+        const { statuses } = await scan({ locations: [{ id: 'usb', path: usb, kind: 'user' }, computerAt('system')], platform: 'linux' });
+
+        expect(statuses).toEqual([
+          { id: 'usb', status: 'denied', found: 0 },
+          { id: 'computer', status: 'done', found: 0 }
+        ]);
+      } finally {
+        fs.chmodSync(usb, 0o755);
+      }
+    });
+  });
+
+  const byPath = (collections) => [...collections].sort((first, second) => first.path.localeCompare(second.path));
+
+  it('on macOS hides a collection in a placeholder folder whose manifest is only in the cloud, a recent there too, and never reads those manifests', async () => {
+    const offline = makeBruCollection('Offline name', 'cloud', 'offline-api');
+    const mixed = makeYmlCollection('Mixed name', 'cloud', 'mixed-api');
+    fs.writeFileSync(path.join(mixed, 'bruno.json'), JSON.stringify({ name: 'Mixed bru name' }));
+    const local = makeBruCollection('Local name', 'cloud', 'local-api');
+    const outside = makeBruCollection('Outside name', 'work', 'api');
+    const recentInCloud = makeBruCollection('Recent manifest name', 'elsewhere', 'cloud', 'recent-api');
+    const datalessFiles = [path.join(offline, 'bruno.json'), path.join(mixed, 'bruno.json'), path.join(recentInCloud, 'bruno.json')];
+    findCloudFolders.mockResolvedValue({ syncFolders: [], placeholderFolders: [path.join(tempDir, 'cloud'), path.join(tempDir, 'elsewhere', 'cloud')] });
+    isDatalessFile.mockImplementation(async (filePath) => datalessFiles.includes(filePath));
+    const open = jest.spyOn(fsPromises, 'open');
+
+    const { collections, statuses } = await scan({
+      locations: [location('cloud', 'cloud'), location('work', 'work')],
+      recents: [{ path: recentInCloud, name: 'Recent stored name' }],
+      platform: 'darwin'
+    });
+
+    expect(byPath(collections)).toEqual([
+      { path: local, name: 'Local name', mtime: mtimeOf(local), locationId: 'cloud' },
+      { path: outside, name: 'Outside name', mtime: mtimeOf(outside), locationId: 'work' }
+    ]);
+    expect(statuses).toEqual([
+      { id: 'cloud', status: 'done', found: 1 },
+      { id: 'work', status: 'done', found: 1 }
+    ]);
+    const openedFiles = open.mock.calls.map(([target]) => target);
+    [offline, mixed, recentInCloud].forEach((folderPath) => {
+      expect(openedFiles).not.toContain(path.join(folderPath, 'bruno.json'));
+      expect(openedFiles).not.toContain(path.join(folderPath, 'opencollection.yml'));
+    });
+    expect(isDatalessFile).toHaveBeenCalledWith(path.join(local, 'bruno.json'));
+    expect(isDatalessFile).not.toHaveBeenCalledWith(path.join(outside, 'bruno.json'));
+    expect(findCloudOnlyFiles).not.toHaveBeenCalled();
+  });
+
+  it('on Windows checks the collections in a cloud sync folder after the walk, shows the ones on disk and hides the rest, recents included', async () => {
+    const oneDrive = makeFolder('OneDrive');
+    const local = makeBruCollection('Local name', 'OneDrive', 'local-api');
+    const cloud = makeBruCollection('Cloud name', 'OneDrive', 'cloud-api');
+    const localRecent = makeYmlCollection('Recent manifest name', 'OneDrive', 'Recent', 'local-recent');
+    const cloudRecent = makeBruCollection('Cloud recent manifest name', 'OneDrive', 'Recent', 'cloud-recent');
+    const outside = makeBruCollection('Outside name', 'work', 'api');
+    findCloudFolders.mockResolvedValue({ syncFolders: [oneDrive], placeholderFolders: [oneDrive] });
+    findCloudOnlyFiles.mockImplementation(async (filePaths) => new Set(filePaths.filter((filePath) => filePath.includes('cloud-'))));
+    const open = jest.spyOn(fsPromises, 'open');
+
+    const { collections, statuses } = await scan({
+      locations: [location('local-api', 'OneDrive', 'local-api'), location('cloud-api', 'OneDrive', 'cloud-api'), location('work', 'work')],
+      recents: [{ path: localRecent, name: 'Recent stored name' }, { path: cloudRecent, name: 'Cloud recent stored name' }],
+      platform: 'win32'
+    });
+
+    expect(byPath(collections)).toEqual([
+      { path: local, name: 'Local name', mtime: mtimeOf(local), locationId: 'local-api' },
+      { path: localRecent, name: 'Recent stored name', mtime: mtimeOf(localRecent), locationId: 'recents' },
+      { path: outside, name: 'Outside name', mtime: mtimeOf(outside), locationId: 'work' }
+    ].sort((first, second) => first.path.localeCompare(second.path)));
+    expect(statuses).toEqual([
+      { id: 'local-api', status: 'done', found: 1 },
+      { id: 'cloud-api', status: 'done', found: 0 },
+      { id: 'work', status: 'done', found: 1 }
+    ]);
+    expect(findCloudOnlyFiles.mock.calls.flatMap(([filePaths]) => filePaths).sort()).toEqual([
+      path.join(local, 'bruno.json'),
+      path.join(cloud, 'bruno.json'),
+      path.join(localRecent, 'opencollection.yml'),
+      path.join(cloudRecent, 'bruno.json')
+    ].sort());
+    const openedFiles = open.mock.calls.map(([target]) => target);
+    expect(openedFiles).not.toContain(path.join(cloud, 'bruno.json'));
+    expect(openedFiles).not.toContain(path.join(cloudRecent, 'bruno.json'));
+    expect(isDatalessFile).not.toHaveBeenCalled();
+  });
+
+  it('on Windows checks the collections in a cloud sync folder in batches of 25', async () => {
+    const oneDrive = makeFolder('OneDrive');
+    Array.from({ length: 26 }, (_value, index) => makeBruCollection(`API ${index}`, 'OneDrive', `api-${index}`));
+    findCloudFolders.mockResolvedValue({ syncFolders: [oneDrive], placeholderFolders: [oneDrive] });
+
+    const { collections } = await scan({ locations: [location('onedrive', 'OneDrive')], platform: 'win32' });
+
+    expect(collections).toHaveLength(26);
+    expect(findCloudOnlyFiles.mock.calls.map(([filePaths]) => filePaths.length)).toEqual([25, 1]);
+  });
+
+  it('on Windows fails the scan when a collection checked after the walk cannot be reported', async () => {
+    makeFolder('OneDrive');
+    makeBruCollection('API', 'OneDrive', 'api');
+    findCloudFolders.mockResolvedValue({ syncFolders: [path.join(tempDir, 'OneDrive')], placeholderFolders: [path.join(tempDir, 'OneDrive')] });
+
+    await expect(scan({
+      locations: [location('onedrive', 'OneDrive')],
+      platform: 'win32',
+      onCollection: () => {
+        throw new Error('The port is closed');
+      }
+    })).rejects.toThrow('The port is closed');
+  });
+
+  describe('privacy prompts', () => {
+    const knownFoldersIn = (homePath) => ['Desktop', 'Documents', 'Downloads'].map((name) => path.join(homePath, name));
+
+    const trackReads = () => {
+      const reads = [];
+      let inFlight = 0;
+      jest.spyOn(fsPromises, 'readdir').mockImplementation(async (target, options) => {
+        reads.push({ target, alone: inFlight === 0, listsEntryKinds: Boolean(options && options.withFileTypes) });
+        inFlight += 1;
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 5));
+          return await readFolder(target, options);
+        } finally {
+          inFlight -= 1;
+        }
+      });
+      return reads;
+    };
+
+    it('on macOS first reads Desktop, Documents, Downloads and each removable root, one at a time, before searching', async () => {
+      const homePath = makeFolder('home');
+      makeFolder('home', 'Desktop');
+      makeFolder('home', 'Documents');
+      const usb = makeFolder('usb');
+      makeBruCollection('USB API', 'usb', 'api');
+      makeFolder('system');
+      readMountTable.mockResolvedValue([{ path: usb, kind: 'removable' }]);
+      planWholeComputer.mockReturnValue({ roots: [path.join(tempDir, 'system'), usb], prunePaths: [] });
+      const reads = trackReads();
+
+      const { collections } = await scan({
+        locations: [{ id: 'home', path: homePath, kind: 'home' }, computerAt('system')],
+        platform: 'darwin',
+        homePath,
+        knownFolders: knownFoldersIn(homePath)
+      });
+
+      const firstReads = [...['Desktop', 'Documents', 'Downloads'].map((name) => path.join(homePath, name)), usb];
+      expect(reads.slice(0, 4)).toEqual(firstReads.map((target) => ({ target, alone: true, listsEntryKinds: false })));
+      expect(reads.slice(4).every((read) => read.listsEntryKinds)).toBe(true);
+      expect(foundPaths(collections)).toEqual([path.join(usb, 'api')]);
+    });
+
+    it('on macOS reads only the protected folder that a location lies inside', async () => {
+      const homePath = makeFolder('home');
+      ['Desktop', 'Documents', 'Downloads'].forEach((name) => makeFolder('home', name));
+      const reads = trackReads();
+
+      await scan({ locations: [location('documents', 'home', 'Documents', 'bruno')], platform: 'darwin', homePath, knownFolders: knownFoldersIn(homePath) });
+
+      expect(reads.filter((read) => !read.listsEntryKinds).map((read) => read.target)).toEqual([path.join(homePath, 'Documents')]);
+    });
+
+    it.each([
+      ['on Linux', 'linux', 'home'],
+      ['on macOS when no location reaches them', 'darwin', 'work']
+    ])('reads no protected folder first %s', async (_label, platform, locationName) => {
+      const homePath = makeFolder('home');
+      ['Desktop', 'Documents', 'Downloads'].forEach((name) => makeFolder('home', name));
+      makeFolder('work');
+      const usb = makeFolder('usb');
+      readMountTable.mockResolvedValue([{ path: usb, kind: 'removable' }]);
+      const reads = trackReads();
+
+      await scan({ locations: [location(locationName, locationName)], platform, homePath, knownFolders: knownFoldersIn(homePath) });
+
+      expect(reads.every((read) => read.listsEntryKinds)).toBe(true);
+    });
   });
 });

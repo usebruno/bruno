@@ -200,7 +200,7 @@ describe('LocationsPage', () => {
   });
 
   it('explains what Bruno skips from an info button that a keyboard and a screen reader can reach', async () => {
-    const skipsText = 'Bruno skips system and hidden folders, dependency caches, network drives and files that are only in the cloud.';
+    const skipsText = 'Bruno skips system and hidden folders, dependency caches, network drives and cloud folders like iCloud Drive, OneDrive and Dropbox.';
     renderPage();
     const info = screen.getByRole('button', { name: 'What Bruno skips' });
 

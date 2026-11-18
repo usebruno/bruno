@@ -7,9 +7,11 @@ const isWorkspace = (location) => location.kind === 'workspace';
 
 const isWholeComputer = (location) => WHOLE_COMPUTER_KINDS.has(location.kind);
 
+export const searchesWholeComputer = (locations) => locations.some(isWholeComputer);
+
 export const countSearchLocations = (locations) => {
   const separateCount = locations.filter((location) => !isWorkspace(location) && !isWholeComputer(location)).length;
-  return separateCount + (locations.some(isWorkspace) ? 1 : 0) + (locations.some(isWholeComputer) ? 1 : 0);
+  return separateCount + (locations.some(isWorkspace) ? 1 : 0) + (searchesWholeComputer(locations) ? 1 : 0);
 };
 
 const toWorkspaceGroupRow = (workspaces) => ({

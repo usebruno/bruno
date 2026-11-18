@@ -237,7 +237,7 @@ describe('MyComputerPage', () => {
     expect(screen.getByTestId('my-computer-empty')).toHaveTextContent('Bruno searched its default locations. Open a collection folder from anywhere, or add more places to search.');
   });
 
-  it('counts the home folder and the rest of the computer as one location when searching the whole computer found nothing', async () => {
+  it('says it searched this computer when searching the whole computer found nothing', async () => {
     const locations = [...searchLocations, ...wholeComputerLocations];
     ipcReturns({ scan: () => Promise.resolve({ locations }) });
     const { store } = renderPage({ searchWholeComputer: true });
@@ -245,7 +245,7 @@ describe('MyComputerPage', () => {
 
     finishScan(store, { locations });
 
-    expect(screen.getByTestId('my-computer-empty')).toHaveTextContent('Bruno searched 4 locations. Open a collection folder from anywhere, or add more places to search.');
+    expect(screen.getByTestId('my-computer-empty')).toHaveTextContent('Bruno searched this computer. Open a collection folder from anywhere, or add more places to search.');
   });
 
   it('puts focus on Open a collection folder when the search ends with nothing found', async () => {

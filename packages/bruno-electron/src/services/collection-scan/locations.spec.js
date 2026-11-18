@@ -14,6 +14,7 @@ const buildLocations = ({ defaultLocation = at('bruno'), searchFolders = [], sea
     defaultWorkspacePath: at('workspaces', 'default'),
     lastOpenedWorkspacePaths: [],
     homePath: at('home'),
+    systemRoot: root,
     isFolder: async () => true,
     ...inputs
   });
@@ -25,7 +26,7 @@ describe('buildScanLocations', () => {
     Object.defineProperty(process, 'platform', originalPlatform);
   });
 
-  it('lists the default location, Documents, workspaces, search folders and home in that order', async () => {
+  it('lists the default location, Documents, workspaces, search folders, home and the rest of the computer in that order', async () => {
     const locations = await buildLocations({
       lastOpenedWorkspacePaths: [at('workspaces', 'team')],
       searchFolders: [at('projects'), at('archive')],
@@ -39,11 +40,12 @@ describe('buildScanLocations', () => {
       [at('workspaces', 'team'), 'workspace'],
       [at('projects'), 'user'],
       [at('archive'), 'user'],
-      [at('home'), 'home']
+      [at('home'), 'home'],
+      [root, 'computer']
     ]);
   });
 
-  it('leaves out a default location, Documents or workspace that is not a folder, but keeps search folders and home unchecked', async () => {
+  it('leaves out a default location, Documents or workspace that is not a folder, but keeps search folders, home and the computer unchecked', async () => {
     const isFolder = jest.fn(async (folderPath) => folderPath === at('workspaces', 'team'));
 
     const locations = await buildLocations({
@@ -56,7 +58,8 @@ describe('buildScanLocations', () => {
     expect(pathsAndKinds(locations)).toEqual([
       [at('workspaces', 'team'), 'workspace'],
       [at('missing-folder'), 'user'],
-      [at('home'), 'home']
+      [at('home'), 'home'],
+      [root, 'computer']
     ]);
     expect(isFolder.mock.calls.map(([folderPath]) => folderPath)).toEqual([
       at('bruno'),
@@ -66,10 +69,21 @@ describe('buildScanLocations', () => {
     ]);
   });
 
-  it('adds the home folder only when the whole computer search is on', async () => {
+  it('adds home and the rest of the computer only when the whole computer search is on', async () => {
     const locations = await buildLocations({ searchWholeComputer: false });
 
     expect(locations.map((location) => location.kind)).not.toContain('home');
+    expect(locations.map((location) => location.kind)).not.toContain('computer');
+  });
+
+  it('gives the rest of the computer a fixed id, so a search folder at the system root stays its own row', async () => {
+    const locations = await buildLocations({ searchFolders: [root], searchWholeComputer: true });
+
+    expect(locations.slice(-3)).toEqual([
+      { id: idOf(root), path: root, kind: 'user' },
+      { id: idOf(at('home')), path: at('home'), kind: 'home' },
+      { id: 'computer', path: root, kind: 'computer' }
+    ]);
   });
 
   it('checks the folders at the same time', async () => {
