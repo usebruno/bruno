@@ -4,7 +4,9 @@ import {
   closeAllCollections,
   createCollection,
   createRequest,
+  fillRequestUrl,
   selectRequestPaneTab,
+  selectResponsePaneTab,
   sendRequest
 } from '../../utils/page';
 import { fillRequestHeaderName, fillRequestHeaderValue, readResponsePreviewBody, showInheritedHeaders } from '../../utils/request';
@@ -308,5 +310,391 @@ test('sends an explicit request header instead of the matching default', async (
     const body = await readResponsePreviewBody(page);
     expect(body).toMatch(/"user-agent"\s*:\s*"custom-ua\/1\.0"/i);
     expect(body).not.toMatch(/bruno-runtime/i);
+  });
+});
+
+test('TC-6200: Verify Headers tab hides Bruno default headers until Show Additional Headers is clicked', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+  const collectionName = 'default-headers-tc-6200';
+  const { request } = buildCommonLocators(page);
+  const headers = request.headers;
+  const collectionTempDir = await createTmpDir(collectionName);
+
+  await test.step('Open the request and show the Headers tab', async () => {
+    await createCollection(page, collectionName, collectionTempDir);
+    await createRequest(page, 'request-1', collectionName, { url: 'https://example.com' });
+    await selectRequestPaneTab(page, 'Headers');
+
+    await expect(headers.inheritedSectionRow()).not.toBeVisible();
+    await expect(headers.requestSectionRow()).not.toBeVisible();
+    await expect(headers.addRow()).toBeVisible();
+    await expect(headers.toggleInherited()).toHaveText(`Show Additional Headers (${DEFAULT_HEADERS.length})`);
+  });
+
+  await test.step('Keep inherited headers hidden after switching to Params and back', async () => {
+    await selectRequestPaneTab(page, 'Params');
+    await selectRequestPaneTab(page, 'Headers');
+
+    await expect(headers.inheritedSectionRow()).not.toBeVisible();
+    await expect(headers.toggleInherited()).toHaveText(`Show Additional Headers (${DEFAULT_HEADERS.length})`);
+  });
+
+  await test.step('Show additional headers', async () => {
+    await headers.toggleInherited().click();
+
+    await expect(headers.inheritedSectionRow()).toBeVisible();
+    await expect(headers.inheritedSectionToggle()).toHaveAttribute('aria-expanded', 'true');
+    await expect(headers.defaultRow('User-Agent')).toBeVisible();
+    await expect(headers.requestSectionRow()).toBeVisible();
+    await expect(headers.requestSectionToggle()).toHaveAttribute('aria-expanded', 'true');
+    await expect(headers.toggleInherited()).toHaveText('Hide Additional Headers');
+  });
+
+  await test.step('Collapse the Inherited headers accordion', async () => {
+    await headers.inheritedSectionToggle().click();
+
+    await expect(headers.inheritedSectionToggle()).toHaveAttribute('aria-expanded', 'false');
+    await expect(headers.defaultRow('User-Agent')).not.toBeVisible();
+    await expect(headers.requestSectionToggle()).toHaveAttribute('aria-expanded', 'true');
+    await expect(headers.addRow()).toBeVisible();
+  });
+
+  await test.step('Collapse and re-expand Request headers independently', async () => {
+    await headers.requestSectionToggle().click();
+    await expect(headers.requestSectionToggle()).toHaveAttribute('aria-expanded', 'false');
+    await expect(headers.addRow()).not.toBeVisible();
+    await expect(headers.inheritedSectionToggle()).toHaveAttribute('aria-expanded', 'false');
+
+    await headers.requestSectionToggle().click();
+    await expect(headers.requestSectionToggle()).toHaveAttribute('aria-expanded', 'true');
+    await expect(headers.addRow()).toBeVisible();
+    await expect(headers.inheritedSectionToggle()).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  await test.step('Hide additional headers, then show them again', async () => {
+    await headers.toggleInherited().click();
+    await expect(headers.inheritedSectionRow()).not.toBeVisible();
+    await expect(headers.requestSectionRow()).not.toBeVisible();
+    await expect(headers.toggleInherited()).toHaveText(`Show Additional Headers (${DEFAULT_HEADERS.length})`);
+
+    await headers.toggleInherited().click();
+    await expect(headers.inheritedSectionToggle()).toHaveAttribute('aria-expanded', 'true');
+    await expect(headers.defaultRow('User-Agent')).toBeVisible();
+    await expect(headers.toggleInherited()).toHaveText('Hide Additional Headers');
+  });
+});
+
+test('TC-6201: Verify default headers list shows User-Agent, Accept, Accept-Encoding, Connection and Host with Host locked', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+  const collectionName = 'default-headers-tc-6201';
+  const { request } = buildCommonLocators(page);
+  const headers = request.headers;
+  const collectionTempDir = await createTmpDir(collectionName);
+  const omittableHeaders = DEFAULT_HEADERS.filter((name) => name !== 'Host');
+
+  await test.step('Open the request and show additional headers', async () => {
+    await createCollection(page, collectionName, collectionTempDir);
+    await createRequest(page, 'request-1', collectionName, { url: 'https://example.com' });
+    await selectRequestPaneTab(page, 'Headers');
+
+    await expect(headers.toggleInherited()).toHaveText(`Show Additional Headers (${DEFAULT_HEADERS.length})`);
+    await headers.toggleInherited().click();
+    await expect(headers.inheritedSectionToggle()).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  await test.step('List exactly the five default headers', async () => {
+    await expect(page.getByTestId(/^default-header-row-/)).toHaveCount(DEFAULT_HEADERS.length);
+    for (const name of DEFAULT_HEADERS) {
+      await expect(headers.defaultRow(name)).toBeVisible();
+    }
+  });
+
+  await test.step('Keep omittable defaults checked and enabled', async () => {
+    for (const name of omittableHeaders) {
+      const checkbox = headers.defaultCheckbox(name);
+      await expect(checkbox).toBeChecked();
+      await expect(checkbox).toBeEnabled();
+    }
+  });
+
+  await test.step('Keep Host checked and ignore clicks', async () => {
+    const hostCheckbox = headers.defaultCheckbox('Host');
+
+    await expect(hostCheckbox).toBeChecked();
+    await expect(hostCheckbox).toBeDisabled();
+    await hostCheckbox.click({ force: true });
+    await expect(hostCheckbox).toBeChecked();
+    await expect(hostCheckbox).toBeDisabled();
+  });
+
+  await test.step('Verify runtime default info tooltip on hover for Accept header', async () => {
+    await headers.defaultInfo('Accept').hover();
+    await expect(headers.defaultInfo('Accept')).toHaveCSS('cursor', 'pointer');
+    await expect(headers.defaultInfoTooltip('Accept')).toHaveText('Automatically added at runtime');
+  });
+
+  await test.step('Verify runtime default info tooltip explains Host header is required by HTTP', async () => {
+    await headers.defaultInfo('Host').hover();
+    await expect(headers.defaultInfo('Host')).toHaveCSS('cursor', 'pointer');
+    await expect(headers.defaultInfoTooltip('Host')).toHaveText('Automatically added at runtime. Required by HTTP, cannot be omitted');
+  });
+
+  await test.step('Scroll a long Accept value horizontally', async () => {
+    const acceptValue = headers.defaultValueScroller('Accept');
+
+    await expect.poll(() => acceptValue.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
+    await acceptValue.hover();
+    await page.mouse.wheel(200, 0);
+    await expect.poll(() => acceptValue.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+  });
+
+  await test.step('Display derived placeholder when request URL contains unresolved host variable', async () => {
+    await fillRequestUrl(page, '{{host}}/path', { replace: true });
+    await expect(headers.defaultRow('Host')).toContainText('<derived from request URL>');
+  });
+});
+
+test('TC-6202: Verify unchecked default headers are not included in the HTTP request, while Host is always sent', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+  test.setTimeout(60_000);
+  const collectionName = 'default-headers-tc-6202';
+  const { request, timeline, timelineHeaders } = buildCommonLocators(page);
+  const headers = request.headers;
+  const collectionTempDir = await createTmpDir(collectionName);
+  await test.step('Open the echo request and show additional headers', async () => {
+    await createCollection(page, collectionName, collectionTempDir);
+    await createRequest(page, 'request-1', collectionName, { url: ECHO_HEADERS_URL });
+    await selectRequestPaneTab(page, 'Headers');
+
+    await expect(headers.toggleInherited()).toHaveText(`Show Additional Headers (${DEFAULT_HEADERS.length})`);
+    await headers.toggleInherited().click();
+    await expect(headers.inheritedSectionToggle()).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  await test.step('Omit Accept and confirm it is absent from the echoed headers', async () => {
+    await headers.defaultCheckbox('Accept').uncheck();
+    await sendRequest(page, 200);
+
+    const body = await readResponsePreviewBody(page);
+    expect(body).not.toMatch(/"accept"\s*:/i);
+    expect(body).toMatch(/"host"\s*:/i);
+  });
+
+  await test.step('Restore Accept, omit User-Agent, and confirm User-Agent is absent', async () => {
+    await headers.defaultCheckbox('Accept').check();
+    await headers.defaultCheckbox('User-Agent').uncheck();
+    await sendRequest(page, 200);
+
+    const body = await readResponsePreviewBody(page);
+    expect(body).not.toMatch(/"user-agent"\s*:/i);
+    expect(body).toMatch(/"accept"\s*:/i);
+    expect(body).toMatch(/"host"\s*:/i);
+  });
+
+  await test.step('Restore User-Agent, omit Accept-Encoding, and confirm Accept-Encoding is absent', async () => {
+    await headers.defaultCheckbox('User-Agent').check();
+    await headers.defaultCheckbox('Accept-Encoding').uncheck();
+    await sendRequest(page, 200);
+
+    const body = await readResponsePreviewBody(page);
+    expect(body).not.toMatch(/"accept-encoding"\s*:/i);
+    expect(body).toMatch(/"accept"\s*:/i);
+    expect(body).toMatch(/"user-agent"\s*:/i);
+    expect(body).toMatch(/"host"\s*:/i);
+  });
+
+  await test.step('Restore Accept-Encoding and confirm omitted Connection is absent from Timeline request headers', async () => {
+    await headers.defaultCheckbox('Accept-Encoding').check();
+    await headers.defaultCheckbox('Connection').uncheck();
+    await sendRequest(page, 200);
+    await selectResponsePaneTab(page, 'Timeline');
+    await timeline.itemHeader(timeline.items().first()).click();
+
+    await expect(timelineHeaders.table()).toBeVisible();
+    await expect(timelineHeaders.row('Connection')).toHaveCount(0);
+    await expect(timelineHeaders.row('Host')).toHaveCount(1);
+  });
+
+  await test.step('Keep Connection unchecked after switching to Params and back to Headers', async () => {
+    await selectRequestPaneTab(page, 'Params');
+    await selectRequestPaneTab(page, 'Headers');
+
+    await expect(headers.defaultCheckbox('Connection')).not.toBeChecked();
+  });
+
+  await test.step('Send Host even though its checkbox stays locked', async () => {
+    await headers.defaultCheckbox('Connection').check();
+    await expect(headers.defaultCheckbox('Host')).toBeChecked();
+    await expect(headers.defaultCheckbox('Host')).toBeDisabled();
+    await headers.defaultCheckbox('Host').click({ force: true });
+    await expect(headers.defaultCheckbox('Host')).toBeChecked();
+
+    await sendRequest(page, 200);
+    await selectResponsePaneTab(page, 'Response');
+    await expect.poll(async () => readResponsePreviewBody(page)).toMatch(/"host"\s*:\s*"localhost:8081"/i);
+  });
+});
+
+test('TC-6203: Verify the headers sent in the HTTP request match exactly what the Headers tab shows', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+  test.setTimeout(60_000);
+  const collectionName = 'default-headers-tc-6203';
+  const { request, timeline, timelineHeaders } = buildCommonLocators(page);
+  const headers = request.headers;
+  const collectionTempDir = await createTmpDir(collectionName);
+  const enabledDefaults = ['User-Agent', 'Accept-Encoding', 'Connection', 'Host'];
+
+  await test.step('Open the echo request and show additional headers', async () => {
+    await createCollection(page, collectionName, collectionTempDir);
+    await createRequest(page, 'request-1', collectionName, { url: ECHO_HEADERS_URL });
+    await selectRequestPaneTab(page, 'Headers');
+
+    await expect(headers.toggleInherited()).toHaveText(`Show Additional Headers (${DEFAULT_HEADERS.length})`);
+    await headers.toggleInherited().click();
+    await expect(headers.inheritedSectionToggle()).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  await test.step('Add request header X-Test and keep an empty add row', async () => {
+    await fillRequestHeaderName(page, headers.addRow(), 'X-Test');
+    await fillRequestHeaderValue(page, headers.requestRow('X-Test'), 'qa-123');
+
+    await expect(headers.requestRow('X-Test')).toBeVisible();
+    await expect(headers.addRow()).toBeVisible();
+  });
+
+  await test.step('Uncheck Accept and leave the other default headers checked', async () => {
+    await headers.defaultCheckbox('Accept').uncheck();
+
+    await expect(headers.defaultCheckbox('Accept')).not.toBeChecked();
+    for (const name of enabledDefaults) {
+      await expect(headers.defaultCheckbox(name)).toBeChecked();
+    }
+  });
+
+  await test.step('Show exactly the five enabled headers the request will send', async () => {
+    await expect(headers.requestRow('X-Test')).toBeVisible();
+    await expect(headers.defaultCheckbox('Accept')).not.toBeChecked();
+    for (const name of enabledDefaults) {
+      await expect(headers.defaultRow(name)).toBeVisible();
+      await expect(headers.defaultCheckbox(name)).toBeChecked();
+    }
+  });
+
+  await test.step('Send and confirm the echo body matches the enabled headers', async () => {
+    await sendRequest(page, 200);
+    const body = await readResponsePreviewBody(page);
+
+    expect(body).toMatch(/"x-test"\s*:\s*"qa-123"/i);
+    expect(body).toMatch(/"user-agent"\s*:/i);
+    expect(body).toMatch(/"accept-encoding"\s*:/i);
+    expect(body).toMatch(/"host"\s*:/i);
+    expect(body).not.toMatch(/"accept"\s*:/i);
+  });
+
+  await test.step('Confirm Timeline request headers match the Headers tab list', async () => {
+    await selectResponsePaneTab(page, 'Timeline');
+    await timeline.itemHeader(timeline.items().first()).click();
+    await expect(timelineHeaders.table()).toBeVisible();
+
+    const sentNames = (await timelineHeaders.headerLines())
+      .map((line) => line.split(':')[0].trim().toLowerCase())
+      .sort();
+
+    expect(sentNames).toEqual(['accept-encoding', 'connection', 'host', 'user-agent', 'x-test']);
+    await expect(timelineHeaders.value('X-Test')).toHaveText('qa-123');
+  });
+
+  await test.step('Replace the default User-Agent with a request header', async () => {
+    await selectRequestPaneTab(page, 'Headers');
+    await fillRequestHeaderName(page, headers.addRow(), 'User-Agent');
+    await fillRequestHeaderValue(page, headers.requestRow('User-Agent'), 'custom-ua/1.0');
+
+    await expect(headers.requestRow('User-Agent')).toBeVisible();
+    await expect(headers.defaultRow('User-Agent')).not.toBeVisible();
+    await expect(headers.defaultRow('Accept')).toBeVisible();
+    await expect(headers.defaultRow('Accept-Encoding')).toBeVisible();
+    await expect(headers.defaultRow('Connection')).toBeVisible();
+    await expect(headers.defaultRow('Host')).toBeVisible();
+  });
+
+  await test.step('Send the explicit User-Agent instead of the runtime default', async () => {
+    await sendRequest(page, 200);
+    await selectResponsePaneTab(page, 'Response');
+    await expect.poll(async () => readResponsePreviewBody(page)).toMatch(/"user-agent"\s*:\s*"custom-ua\/1\.0"/i);
+    await expect.poll(async () => readResponsePreviewBody(page)).not.toMatch(/bruno-runtime/i);
+  });
+});
+
+test('TC-6204: Verify Timeline shows only Host when all omittable default headers are unchecked', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+  test.setTimeout(60_000);
+  const collectionName = 'default-headers-tc-6204';
+  const { request, timeline, timelineHeaders } = buildCommonLocators(page);
+  const headers = request.headers;
+  const collectionTempDir = await createTmpDir(collectionName);
+  const omittableHeaders = DEFAULT_HEADERS.filter((name) => name !== 'Host');
+  const sentHeaderNames = async () =>
+    (await timelineHeaders.headerLines())
+      .map((line) => line.split(':')[0].trim().toLowerCase())
+      .sort();
+
+  await test.step('Open the echo request and show additional headers', async () => {
+    await createCollection(page, collectionName, collectionTempDir);
+    await createRequest(page, 'request-1', collectionName, { url: ECHO_HEADERS_URL });
+    await selectRequestPaneTab(page, 'Headers');
+
+    await expect(headers.toggleInherited()).toHaveText(`Show Additional Headers (${DEFAULT_HEADERS.length})`);
+    await headers.toggleInherited().click();
+    await expect(headers.inheritedSectionToggle()).toHaveAttribute('aria-expanded', 'true');
+    await expect(headers.addRow()).toBeVisible();
+    for (const name of DEFAULT_HEADERS) {
+      await expect(headers.defaultCheckbox(name)).toBeChecked();
+    }
+  });
+
+  await test.step('Uncheck every omittable default and keep Host locked', async () => {
+    for (const name of omittableHeaders) {
+      await headers.defaultCheckbox(name).uncheck();
+      await expect(headers.defaultCheckbox(name)).not.toBeChecked();
+    }
+
+    await expect(headers.defaultCheckbox('Host')).toBeChecked();
+    await expect(headers.defaultCheckbox('Host')).toBeDisabled();
+  });
+
+  await test.step('Send the request', async () => {
+    await sendRequest(page, 200);
+  });
+
+  await test.step('Show only Host in the Timeline request headers', async () => {
+    await selectResponsePaneTab(page, 'Timeline');
+    await timeline.itemHeader(timeline.items().first()).click();
+    await expect(timelineHeaders.table()).toBeVisible();
+
+    expect(await sentHeaderNames()).toEqual(['host']);
+    for (const name of omittableHeaders) {
+      await expect(timelineHeaders.row(name)).toHaveCount(0);
+    }
+    await expect(timelineHeaders.row('Host')).toHaveCount(1);
+  });
+
+  await test.step('Match the Timeline to the only enabled header on the Headers tab', async () => {
+    await selectRequestPaneTab(page, 'Headers');
+
+    await expect(headers.defaultCheckbox('Host')).toBeChecked();
+    for (const name of omittableHeaders) {
+      await expect(headers.defaultCheckbox(name)).not.toBeChecked();
+    }
+    expect(await sentHeaderNames()).toEqual(['host']);
+  });
+
+  await test.step('Send X-Test with the defaults still omitted and show only X-Test and Host', async () => {
+    await fillRequestHeaderName(page, headers.addRow(), 'X-Test');
+    await fillRequestHeaderValue(page, headers.requestRow('X-Test'), 'qa-123');
+    await sendRequest(page, 200);
+    await selectResponsePaneTab(page, 'Timeline');
+    await timeline.itemHeader(timeline.items().nth(1)).click();
+    await timeline.itemHeader(timeline.items().first()).click();
+
+    expect(await sentHeaderNames()).toEqual(['host', 'x-test']);
+    await expect(timelineHeaders.value('X-Test')).toHaveText('qa-123');
+    for (const name of omittableHeaders) {
+      await expect(timelineHeaders.row(name)).toHaveCount(0);
+    }
   });
 });

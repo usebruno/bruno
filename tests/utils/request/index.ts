@@ -60,6 +60,7 @@ export const buildRequestLocators = (page: Page) => ({
     inheritedSectionRow: () => page.getByTestId('inherited-headers-section-row'),
     requestSectionRow: () => page.getByTestId('request-headers-section-row'),
     defaultRow: (name: string) => page.getByTestId(`default-header-row-${name.toLowerCase()}`),
+    defaultCheckbox: (name: string) => page.getByTestId(`default-header-row-${name.toLowerCase()}`).getByTestId('column-checkbox'),
     defaultValueScroller: (name: string) => page.getByTestId(`default-header-row-${name.toLowerCase()}`).getByTestId('column-value').locator('.CodeMirror-scroll'),
     requestRow: (name: string) => page.getByTestId(`request-header-row-${name.toLowerCase()}`),
     inheritedRow: (name: string) => page.getByTestId(`inherited-header-row-${name.toLowerCase()}`),
