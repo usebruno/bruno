@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { useTheme } from 'providers/Theme';
+import FormField from 'ui/patterns/FormField';
 
 const Toggle = ({
   checked,
@@ -11,6 +12,7 @@ const Toggle = ({
   'data-testid': dataTestId
 }) => {
   const { theme } = useTheme();
+  const switchId = useId();
 
   const sizeClasses = {
     small: {
@@ -32,43 +34,49 @@ const Toggle = ({
 
   const currentSize = sizeClasses[size];
 
-  return (
-    <div className="flex items-center justify-between">
-      <div className="flex flex-col">
-        <label className="text-xs font-medium text-gray-900 dark:text-gray-100">
-          {label}
-        </label>
-        {description && (
-          <p className="text-xs text-gray-700 dark:text-gray-400">
-            {description}
-          </p>
-        )}
-      </div>
-      <button
-        type="button"
-        onClick={onChange}
-        disabled={disabled}
-        data-testid={dataTestId}
-        style={{
-          backgroundColor: checked ? theme.primary.solid : theme.background.surface2
-        }}
+  const describedBy = description ? `${switchId}-description` : undefined;
+
+  const toggle = (
+    <button
+      id={switchId}
+      aria-describedby={describedBy}
+      type="button"
+      onClick={onChange}
+      disabled={disabled}
+      data-testid={dataTestId}
+      style={{
+        backgroundColor: checked ? theme.primary.solid : theme.background.surface2
+      }}
+      className={`
+        relative inline-flex ${currentSize.container} flex-shrink-0 items-center rounded-full transition-colors
+        focus:outline-none focus:ring-1 focus:ring-offset-1
+        ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+      `}
+      role="switch"
+      aria-checked={checked}
+      aria-disabled={disabled}
+    >
+      <span
         className={`
-          relative inline-flex ${currentSize.container} flex-shrink-0 items-center rounded-full transition-colors
-          focus:outline-none focus:ring-1 focus:ring-offset-1
-          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+          inline-block ${currentSize.thumb} transform rounded-full bg-white transition-transform
+          ${currentSize.translate}
         `}
-        role="switch"
-        aria-checked={checked}
-        aria-disabled={disabled}
-      >
-        <span
-          className={`
-            inline-block ${currentSize.thumb} transform rounded-full bg-white transition-transform
-            ${currentSize.translate}
-          `}
-        />
-      </button>
-    </div>
+      />
+    </button>
+  );
+
+  if (!label && !description) return toggle;
+
+  return (
+    <FormField
+      layout="inline"
+      label={label}
+      description={description}
+      htmlFor={switchId}
+      descriptionId={describedBy}
+    >
+      {toggle}
+    </FormField>
   );
 };
 

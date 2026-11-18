@@ -4,15 +4,14 @@ import { buildSidebarLocators } from '../sidebar/collection-tree';
 
 /**
  * Locators for the request "Settings" tab — specifically the inheritable
- * Timeout control (custom input, reset-to-inherit button, inherit dropdown).
+ * Timeout control (always-visible input plus its "Inherited · Override" / "Inherit" status line).
  */
 export const buildRequestSettingsLocators = (page: Page) => ({
-  /** The custom timeout <input> (only present when timeout is a custom value) */
-  timeoutInput: () => page.locator('#timeout'),
-  /** The "X" button that resets a custom timeout back to inherit */
-  timeoutResetButton: () => page.getByRole('button', { name: 'Reset to inherit' }),
-  /** The dropdown button shown when the timeout is inherited */
-  timeoutInheritButton: () => page.getByRole('button', { name: 'Inherit', exact: true }),
+  timeoutInput: () => page.getByTestId('timeout-input'),
+  timeoutInherited: () => page.getByTestId('timeout-inherited'),
+  timeoutSourceLink: () => page.getByTestId('timeout-source'),
+  timeoutOverrideButton: () => page.getByTestId('timeout-override'),
+  timeoutInheritButton: () => page.getByTestId('timeout-inherit'),
   encodeUrlToggle: () => page.getByTestId('encode-url-toggle'),
   followRedirectsToggle: () => page.getByTestId('follow-redirects-toggle'),
   forwardAuthToggle: () => page.getByTestId('forward-auth-header-toggle'),
@@ -26,8 +25,8 @@ export const buildRequestSettingsLocators = (page: Page) => ({
 export const resetRequestTimeoutToInherit = async (page: Page) => {
   await test.step('Reset request timeout to inherit', async () => {
     const settings = buildRequestSettingsLocators(page);
-    await settings.timeoutResetButton().click();
-    await settings.timeoutInheritButton().waitFor({ state: 'visible' });
+    await settings.timeoutInheritButton().click();
+    await settings.timeoutInherited().waitFor({ state: 'visible' });
   });
 };
 

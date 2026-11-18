@@ -60,6 +60,10 @@ export const buildSidebarLocators = (page: Page) => {
       collectionScope(collectionName).locator('.item-name').and(page.getByTitle(name, { exact: true })),
     itemRowIn: (collectionName: string, name: string): Locator =>
       collectionScope(collectionName).getByTestId('sidebar-collection-item-row').filter({ has: itemByName(name) }),
+    collectionItemNames: (collectionName: string): Locator =>
+      collectionScope(collectionName).locator('.item-name'),
+    folderItemNames: (collectionName: string, folderName: string): Locator =>
+      collectionScope(collectionName).and(folderScope(folderName)).locator('.item-name'),
 
     // "+ Add request" cta inside the empty collection
     emptyStateCta: (collectionName: string): Locator =>
@@ -206,6 +210,23 @@ export const ignoreFolder = async (page: Page, collectionName: string, folderNam
     await locators.ignoreFolderModal.confirmButton().click();
     await locators.ignoreFolderModal.root().waitFor({ state: 'hidden' });
     await toast.byMessage('Folder ignored').first().waitFor({ state: 'visible' });
+  });
+};
+
+/**
+ * Hovers an invalid files badge until its tooltip opens.
+ * @param page - The Playwright page object
+ * @param badge - The collection or folder invalid files badge to hover
+ * @returns void
+ */
+export const openInvalidFilesTooltip = async (page: Page, badge: Locator) => {
+  await test.step('Hover the invalid files badge for the tooltip to open', async () => {
+    const tooltip = buildSidebarLocators(page).invalidFilesTooltip();
+    await expect(async () => {
+      await page.mouse.move(0, 0);
+      await badge.hover();
+      await expect(tooltip).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10000 });
   });
 };
 

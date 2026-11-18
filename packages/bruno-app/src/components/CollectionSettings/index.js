@@ -1,15 +1,13 @@
 import React from 'react';
 import classnames from 'classnames';
 import get from 'lodash/get';
-import { updateSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
+import { updateSettingsSelectedTab, updateSettingsSection } from 'providers/ReduxStore/slices/collections';
 import { useDispatch } from 'react-redux';
-import ProxySettings from './ProxySettings';
-import ClientCertSettings from './ClientCertSettings';
 import Headers from './Headers';
 import Auth from './Auth';
 import Script from './Script';
 import Test from './Tests';
-import Presets from './Presets';
+import Settings from './Settings';
 import Protobuf from './Protobuf';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
@@ -33,6 +31,9 @@ const CollectionSettings = ({ collection }) => {
         tab
       })
     );
+  };
+  const setSettingsSection = (section) => {
+    dispatch(updateSettingsSection({ collectionUid: collection.uid, section }));
   };
 
   const root = collection?.draft?.root || collection?.root;
@@ -68,6 +69,10 @@ const CollectionSettings = ({ collection }) => {
     : get(collection, 'brunoConfig.protobuf', {});
   const presets = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.presets', {}) : get(collection, 'brunoConfig.presets', {});
   const hasPresets = presets && ((presets.requestType && presets.requestType !== DEFAULT_PRESET_REQUEST_TYPE) || (presets.requestUrl && presets.requestUrl !== ''));
+  const hasProxy = Object.keys(proxyConfig).length > 0 && proxyEnabled;
+  const hasClientCerts = clientCertConfig.length > 0;
+  const settingsIndicators = { presets: hasPresets, proxy: hasProxy, clientCert: hasClientCerts };
+  const isSettingsTab = tab === 'settings';
 
   const getTabPanel = (tab) => {
     switch (tab) {
@@ -89,14 +94,8 @@ const CollectionSettings = ({ collection }) => {
       case 'tests': {
         return <Test collection={collection} />;
       }
-      case 'presets': {
-        return <Presets collection={collection} />;
-      }
-      case 'proxy': {
-        return <ProxySettings collection={collection} />;
-      }
-      case 'clientCert': {
-        return <ClientCertSettings collection={collection} />;
+      case 'settings': {
+        return <Settings collection={collection} section={collection.settingsSection} onSelect={setSettingsSection} indicators={settingsIndicators} />;
       }
       case 'protobuf': {
         return <Protobuf collection={collection} />;
@@ -111,8 +110,8 @@ const CollectionSettings = ({ collection }) => {
   };
 
   return (
-    <StyledWrapper className="flex flex-col h-full relative px-4 py-4 overflow-hidden">
-      <div className="flex items-start justify-between gap-4" data-testid="settings-tab-bar">
+    <StyledWrapper className={classnames('flex flex-col h-full relative overflow-hidden', isSettingsTab ? 'pt-4' : 'px-4 py-4')}>
+      <div className={classnames('settings-tab-bar flex items-start justify-between gap-4', { 'with-divider': isSettingsTab })} data-testid="settings-tab-bar">
         <div className="flex flex-wrap items-center tabs" role="tablist">
           <div className={getTabClassname('overview')} role="tab" data-testid="collection-settings-tab-overview" onClick={() => setTab('overview')}>
             Overview
@@ -137,21 +136,18 @@ const CollectionSettings = ({ collection }) => {
             Tests
             {hasTests && <StatusDot />}
           </div>
-          <div className={getTabClassname('presets')} role="tab" data-testid="collection-settings-tab-presets" onClick={() => setTab('presets')}>
-            Presets
-            {hasPresets && <StatusDot />}
-          </div>
-          <div className={getTabClassname('proxy')} role="tab" data-testid="collection-settings-tab-proxy" onClick={() => setTab('proxy')}>
-            Proxy
-            {Object.keys(proxyConfig).length > 0 && proxyEnabled && <StatusDot />}
-          </div>
-          <div className={getTabClassname('clientCert')} role="tab" data-testid="collection-settings-tab-clientCert" onClick={() => setTab('clientCert')}>
-            Client Certificates
-            {clientCertConfig.length > 0 && <StatusDot />}
-          </div>
           <div className={getTabClassname('protobuf')} role="tab" data-testid="collection-settings-tab-protobuf" onClick={() => setTab('protobuf')}>
             Protobuf
             {protobufConfig.protoFiles && protobufConfig.protoFiles.length > 0 && <StatusDot />}
+          </div>
+          <div
+            className={getTabClassname('settings')}
+            role="tab"
+            data-testid="collection-settings-tab-settings"
+            onClick={() => setTab('settings')}
+          >
+            Settings
+            {(hasPresets || hasProxy || hasClientCerts) && <StatusDot />}
           </div>
         </div>
         {AI_TABS.includes(tab) && (
@@ -161,7 +157,12 @@ const CollectionSettings = ({ collection }) => {
           </div>
         )}
       </div>
-      <section className="collection-settings-content mt-4 flex-1 min-h-0 overflow-auto" data-testid="collection-settings-content">{getTabPanel(tab)}</section>
+      <section
+        className={classnames('collection-settings-content flex-1 min-h-0', isSettingsTab ? 'overflow-hidden' : 'mt-4 overflow-auto')}
+        data-testid="collection-settings-content"
+      >
+        {getTabPanel(tab)}
+      </section>
     </StyledWrapper>
   );
 };

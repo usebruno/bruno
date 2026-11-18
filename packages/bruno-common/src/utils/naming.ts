@@ -112,3 +112,10 @@ export const nextCopyName = (sourceName: string, existingNames: string[]): strin
 
   return generateUniqueName(base, (name) => name === base || taken.has(name));
 };
+
+export const getFilenameWithFormat = (item: { name: string; filename?: string | null }, format: string): string => {
+  if (item.filename) {
+    return `${item.filename.replace(/\.(bru|yml)$/, '')}.${format}`;
+  }
+  return `${item.name}.${format}`;
+};
