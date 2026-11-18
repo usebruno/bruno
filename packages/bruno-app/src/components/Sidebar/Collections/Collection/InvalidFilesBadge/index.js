@@ -36,6 +36,7 @@ const InvalidFilesBadge = ({ count, collectionUid, rowUid }) => {
           className="tooltip-mod"
           place="bottom-start"
           positionStrategy="fixed"
+          delayShow={200}
           clickable
           noArrow
           opacity={1}

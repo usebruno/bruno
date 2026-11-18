@@ -205,6 +205,23 @@ export const ignoreFolder = async (page: Page, collectionName: string, folderNam
   });
 };
 
+/**
+ * Hovers an invalid files badge until its tooltip opens.
+ * @param page - The Playwright page object
+ * @param badge - The collection or folder invalid files badge to hover
+ * @returns void
+ */
+export const openInvalidFilesTooltip = async (page: Page, badge: Locator) => {
+  await test.step('Hover the invalid files badge for the tooltip to open', async () => {
+    const tooltip = buildSidebarLocators(page).invalidFilesTooltip();
+    await expect(async () => {
+      await page.mouse.move(0, 0);
+      await badge.hover();
+      await expect(tooltip).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10000 });
+  });
+};
+
 export const MIN_SIDEBAR_WIDTH = 220;
 export const MAX_SIDEBAR_WIDTH = 600;
 
