@@ -46,3 +46,51 @@ export const makeRequest = (name, { method = 'GET', url = 'https://example.com',
     url: { raw: url, protocol: 'https', host: ['example', 'com'] }
   }
 });
+
+/**
+ * Builds a minimal Postman v3 collection (the `$kind`-tagged format) around the given items.
+ *
+ * @param {Array<Object>} items - v3 items, e.g. from {@link makeV3Request} or {@link makeV3Folder}.
+ * @param {Object} [overrides] - Top-level fields merged over the collection (e.g. `auth`, `scripts`, `variables`).
+ * @returns {Object} A collection object as postmanToBruno expects it.
+ */
+export const makeV3Collection = (items, overrides = {}) => ({
+  id: 'test-id',
+  name: 'Test Collection',
+  $kind: 'collection',
+  scripts: [],
+  items,
+  ...overrides
+});
+
+/**
+ * Builds a v3 folder. In v3 a folder is a nested `$kind: 'collection'` item.
+ *
+ * @param {string} name - The folder name.
+ * @param {Array<Object>} items - The folder's child items.
+ * @param {Object} [overrides] - Fields merged over the folder (e.g. `auth`, `scripts`, `description`).
+ * @returns {Object} A folder item for {@link makeV3Collection}.
+ */
+export const makeV3Folder = (name, items, overrides = {}) => ({
+  name,
+  $kind: 'collection',
+  scripts: [],
+  items,
+  ...overrides
+});
+
+/**
+ * Builds a v3 HTTP request item.
+ *
+ * @param {string} name - The request name, also used as the issue path in import warnings.
+ * @param {Object} [overrides] - Fields merged over the request (e.g. `method`, `body`, `auth`, `settings`).
+ * @returns {Object} A request item for {@link makeV3Collection} or {@link makeV3Folder}.
+ */
+export const makeV3Request = (name, overrides = {}) => ({
+  name,
+  $kind: 'http-request',
+  url: 'https://example.com',
+  method: 'GET',
+  headers: [],
+  ...overrides
+});
