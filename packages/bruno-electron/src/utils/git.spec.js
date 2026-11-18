@@ -149,6 +149,7 @@ describe('simple-git v4 (unmocked)', () => {
   (gitInstalled ? it : it.skip)(
     'listBranchesForRemoteUrl rejects unreachable remotes without simple-git API errors',
     async () => {
+      // listRemote uses a 10s block timeout; default Jest timeout is too short on Windows CI.
       let error;
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -163,7 +164,8 @@ describe('simple-git v4 (unmocked)', () => {
       expect(error).toBeDefined();
       expect(String(error)).not.toMatch(/simpleGit is not a function/i);
       expect(String(error)).not.toMatch(/allowEnvironment/i);
-    }
+    },
+    15000
   );
 });
 
