@@ -25,7 +25,6 @@ function configureHybridTlsDefaults(): void {
   tls.DEFAULT_ECDH_CURVE = ADVERTISE_HYBRID_WITHOUT_SHARE;
 }
 
-/** Test seam: force the OpenSSL vs BoringSSL strategy without depending on the host TLS stack. */
 function setSupportsHybridAdvertiseWithoutShareForTests(value: boolean): void {
   supportsHybridAdvertiseWithoutShare = value;
 }
@@ -87,7 +86,6 @@ type ConnectWithEcdhCurve = (ecdhCurve: string | undefined) => TLSSocket | Promi
 
 type ConnectWithKeyExchangeFallbackOptions = {
   onRetry?: (offerHybrid: boolean) => void;
-  /** ClientRequest (or stand-in): cancel destroys the active attempt and skips further retries. */
   request?: any;
 };
 
@@ -217,7 +215,6 @@ function withHybridKeyExchangeFallback<T>(BaseAgentClass: T): T {
       }
     }
 
-    // Thread the ClientRequest into createConnection so cancellation can destroy in-flight TLS.
     createSocket(req: any, options: any, callback: any) {
       if (usesAgentBase || supportsHybridAdvertiseWithoutShare) {
         return super.createSocket(req, options, callback);
