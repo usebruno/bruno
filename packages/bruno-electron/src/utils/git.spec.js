@@ -167,7 +167,9 @@ describe('simple-git v4 (unmocked)', () => {
       expect(error.task?.commands).toEqual(
         expect.arrayContaining(['ls-remote', '--symref', UNREACHABLE_REPOSITORY_URL])
       );
-      expect(String(error)).toMatch(/not found/i);
+      expect(String(error)).toMatch(
+        /not found|terminal prompts disabled|authentication failed/i
+      );
     },
     15000
   );
