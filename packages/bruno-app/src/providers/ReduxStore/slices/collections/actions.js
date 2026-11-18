@@ -2455,6 +2455,10 @@ export const removeVariableFromScope = ({ collectionUid, scope, ownerUid, variab
  */
 export const updateVariableInScope = (variableName, newValue, scopeInfo, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
+    const announceSaved = (existingVariable) => {
+      toast.success(`Variable "${variableName}" ${existingVariable ? 'updated' : 'created'}`);
+    };
+
     if (!scopeInfo || !variableName) {
       return reject(new Error('Invalid scope information or variable name'));
     }
@@ -2493,9 +2497,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
           // not pre-resolving a secret-name collision here
           // saveEnvironment's writesCollidingSecrets guard rejects it instead.
           return dispatch(saveEnvironment(updatedVariables, environment.uid, collectionUid))
-            .then(() => {
-              toast.success(`Variable "${variableName}" ${variable ? 'updated' : 'created'}`);
-            })
+            .then(() => announceSaved(variable))
             .then(resolve)
             .catch(reject);
         }
@@ -2520,7 +2522,8 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
           }
 
           // Save collection root to persist the changes
-          return dispatch(saveCollectionSettings(collectionUid))
+          return dispatch(saveCollectionSettings(collectionUid, null, true))
+            .then(() => announceSaved(variable))
             .then(resolve)
             .catch(reject);
         }
@@ -2547,7 +2550,8 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
           }
 
           // Save folder root to persist the changes
-          return dispatch(saveFolderRoot(collectionUid, folder.uid))
+          return dispatch(saveFolderRoot(collectionUid, folder.uid, true))
+            .then(() => announceSaved(variable))
             .then(resolve)
             .catch(reject);
         }
@@ -2575,6 +2579,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
 
           // Save request to persist the changes
           return dispatch(saveRequest(item.uid, collectionUid, true))
+            .then(() => announceSaved(variable))
             .then(resolve)
             .catch(reject);
         }
@@ -2601,9 +2606,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             variables: updatedVariables,
             environmentUid: activeGlobalEnvUid
           }))
-            .then(() => {
-              toast.success(`Variable "${variableName}" ${variable ? 'updated' : 'created'}`);
-            })
+            .then(() => announceSaved(variable))
             .then(resolve)
             .catch(reject);
         }
