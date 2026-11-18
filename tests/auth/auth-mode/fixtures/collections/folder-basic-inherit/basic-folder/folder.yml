@@ -1,0 +1,10 @@
+info:
+  name: basic-folder
+  type: folder
+  seq: 1
+
+request:
+  auth:
+    type: basic
+    username: bruno
+    password: della

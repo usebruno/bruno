@@ -1,0 +1,9 @@
+info:
+  name: parent-folder
+  type: folder
+  seq: 1
+
+request:
+  auth:
+    type: bearer
+    token: your_secret_token

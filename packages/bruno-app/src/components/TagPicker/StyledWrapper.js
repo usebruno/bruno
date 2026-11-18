@@ -16,15 +16,10 @@ export const StyledWrapper = styled.div`
     padding: 0.375rem 0.5rem;
     font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.text};
-    background-color: ${(props) => props.theme.bg};
-    border: 1px solid ${(props) => props.theme.border.border1};
-    border-radius: ${(props) => props.theme.border.radius.base};
+    background-color: ${(props) => props.theme.input.bg};
+    border: 1px solid ${(props) => props.theme.input.border};
+    border-radius: ${(props) => props.theme.border.radius.sm};
     outline: none;
-
-    &::placeholder {
-      color: ${(props) => props.theme.colors.text.subtext0};
-    }
-
     &:focus {
       border-color: ${(props) => props.theme.input.focusBorder};
     }

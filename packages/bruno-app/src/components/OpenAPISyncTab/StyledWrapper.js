@@ -217,47 +217,76 @@ const StyledWrapper = styled.div`
     .spec-details-grid {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      border: 1px solid ${(props) => props.theme.border.border1};
-      border-radius: 8px;
     }
 
     .spec-detail-item {
+      display: flex;
+      flex-direction: column;
       padding: 12px 16px;
-      border-right: 1px solid ${(props) => props.theme.border.border1};
-      border-bottom: 1px solid ${(props) => props.theme.border.border1};
+      border-right: 0.0625rem solid ${(props) => props.theme.border.border1};
+      border-bottom: 0.0625rem solid ${(props) => props.theme.border.border1};
 
-      &:nth-child(3n) {
-        border-right: none;
+      &:nth-child(-n+3) {
+        border-top: 0.0625rem solid ${(props) => props.theme.border.border1};
       }
 
-      &:nth-child(n+4) {
-        border-bottom: none;
+      &:nth-child(3n+1) {
+        border-left: 0.0625rem solid ${(props) => props.theme.border.border1};
       }
 
-      &:first-child { border-top-left-radius: 8px; }
-      &:nth-child(3) { border-top-right-radius: 8px; }
-      &:nth-child(4) { border-bottom-left-radius: 8px; }
-      &:last-child { border-bottom-right-radius: 8px; }
+      &:first-child {
+        border-top-left-radius: ${(props) => props.theme.border.radius.md};
+      }
+
+      &:nth-child(3) {
+        border-top-right-radius: ${(props) => props.theme.border.radius.md};
+      }
+
+      &:nth-child(3n+1):nth-last-child(-n+3) {
+        border-bottom-left-radius: ${(props) => props.theme.border.radius.md};
+      }
+
+      &:nth-child(3n):nth-last-child(-n+3),
+      &:last-child {
+        border-bottom-right-radius: ${(props) => props.theme.border.radius.md};
+      }
+    }
+
+    .spec-detail-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.25rem 0.5rem;
+      min-height: 1.125rem;
+      margin-bottom: 0.375rem;
     }
 
     .spec-detail-label {
+      display: flex;
+      align-items: center;
       font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       color: ${(props) => props.theme.colors.text.muted};
-      margin-bottom: 6px;
       font-weight: 600;
     }
 
     .spec-detail-value {
       display: inline-flex;
+      align-self: flex-start;
       align-items: center;
+      margin-top: auto;
       gap: 0px;
       font-size: 13px;
       font-weight: 500;
       color: ${(props) => props.theme.text};
+    }
 
+    .spec-detail-label,
+    .spec-detail-value {
       svg {
+        color: ${(props) => props.theme.text};
         opacity: 0.3;
       }
 

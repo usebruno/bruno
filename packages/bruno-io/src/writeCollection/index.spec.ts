@@ -74,6 +74,19 @@ describe('writeCollection methods', () => {
       expect(graphqlRequest).toHaveProperty('request.body.graphql.query', 'query { viewer { id } }');
     });
 
+    it('writes requests with the same name to their own files, swapping a .bru file extension for the format', async () => {
+      await write(collectionWith({
+        items: [
+          httpItem({ name: '/pet/{petId}', filename: 'GET /pet/{petId}.bru' }),
+          httpItem({ name: '/pet/{petId}', filename: 'DELETE /pet/{petId}.bru', request: { method: 'DELETE', url: 'https://api.example.com/pet/1' } })
+        ]
+      }));
+
+      expect(fs.readdirSync(outputDir).filter((file) => file.includes('pet')).sort()).toEqual([`DELETE -pet-{petId}.${format}`, `GET -pet-{petId}.${format}`]);
+      expect(readRequest(`GET -pet-{petId}.${format}`)).toHaveProperty('name', '/pet/{petId}');
+      expect(readRequest(`DELETE -pet-{petId}.${format}`)).toHaveProperty('request.method', 'DELETE');
+    });
+
     it('writes grpc and websocket requests', async () => {
       await write(collectionWith({
         items: [

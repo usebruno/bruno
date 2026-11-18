@@ -509,6 +509,57 @@ describe('exportApiSpec - duplicate operation variants', () => {
   });
 });
 
+describe('exportApiSpec - operation ids', () => {
+  const requestItem = (name, method, url) => ({
+    name,
+    type: 'http-request',
+    pathname: path.join('collection', `${name}.bru`),
+    depth: 1,
+    request: { url: `{{baseUrl}}${url}`, method, params: [], headers: [], body: {}, auth: {} }
+  });
+
+  const exportItems = (items) => jsyaml.load(exportApiSpec({ variables: { baseUrl: 'https://api.example.com' }, items, name: 'Test API' }).content);
+
+  it('gives requests that share a name their own operation ids and keeps the name as their summary', () => {
+    const spec = exportItems([
+      requestItem('List pets', 'GET', '/pets'),
+      requestItem('List pets', 'POST', '/pets'),
+      requestItem('List pets', 'GET', '/pets/search'),
+      requestItem('List pets', 'GET', '/pets/archive'),
+      requestItem('Create order', 'POST', '/orders')
+    ]);
+    const operations = [spec.paths['/pets'].get, spec.paths['/pets'].post, spec.paths['/pets/search'].get, spec.paths['/pets/archive'].get, spec.paths['/orders'].post];
+
+    expect(operations.map(({ operationId, summary }) => [operationId, summary])).toEqual([
+      ['List pets', 'List pets'],
+      ['List pets (POST)', 'List pets'],
+      ['List pets (GET)', 'List pets'],
+      ['List pets (1)', 'List pets'],
+      ['Create order', 'Create order']
+    ]);
+  });
+
+  it('does not give a request an operation id that another request has as its name', () => {
+    const spec = exportItems([
+      requestItem('List pets', 'GET', '/pets'),
+      requestItem('List pets (POST)', 'GET', '/pets/new'),
+      requestItem('List pets', 'POST', '/pets')
+    ]);
+
+    expect([spec.paths['/pets'].get, spec.paths['/pets/new'].get, spec.paths['/pets'].post].map(({ operationId }) => operationId)).toEqual([
+      'List pets',
+      'List pets (POST)',
+      'List pets (1)'
+    ]);
+  });
+
+  it('gives a variant that has the same name as its operation its own operation id', () => {
+    const operation = exportItems([requestItem('Update user', 'POST', '/users'), requestItem('Update user', 'POST', '/users')]).paths['/users'].post;
+
+    expect([operation.operationId, operation['x-bruno-variants'][0].operationId]).toEqual(['Update user', 'Update user (POST)']);
+  });
+});
+
 describe('exportApiSpec - parameter and body value preservation', () => {
   it('should export form request body media types without trailing colons', () => {
     const variables = { baseUrl: 'https://api.example.com' };

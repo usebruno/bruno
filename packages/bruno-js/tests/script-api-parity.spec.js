@@ -30,6 +30,7 @@ const INTERNAL_MEMBERS = {
     'folderVariables',
     'requestVariables',
     'globalEnvironmentVariables',
+    'globalEnvironmentName',
     'oauth2CredentialVariables',
     'collectionPath',
     'collectionName',
