@@ -6,6 +6,10 @@ import { TLSSocket, type SecureContext } from 'node:tls';
 
 const HYBRID_ECDH_CURVE = 'X25519:X25519MLKEM768:P-256:P-384';
 
+// Carries the ClientRequest through Agent.createSocket → createConnection so an in-flight
+// handshake can be destroyed if the request is cancelled before handoff.
+const hybridRequest = Symbol('hybridRequest');
+
 // BoringSSL: ERR_SSL_SSLV3_ALERT_HANDSHAKE_FAILURE, or EPROTO with the alert in the message.
 // OpenSSL: ERR_SSL_SSL/TLS_ALERT_HANDSHAKE_FAILURE.
 const HANDSHAKE_FAILURE_ALERT = 'ALERT_HANDSHAKE_FAILURE';
@@ -20,6 +24,24 @@ const isRetryableKeyExchangeError = (error: any, fromHybridAttempt: boolean): bo
 const isEstablishedTlsSocket = (socket: TLSSocket): boolean => socket instanceof TLSSocket && socket.encrypted;
 
 const isBoringSsl = (): boolean => Boolean(process.versions.electron);
+
+const cancellationError = (): Error => Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' });
+
+// socks-proxy-agent destroys `req` on TLS failure; a no-op stand-in keeps the real request alive for retry.
+const tlsAttemptRequest = { destroy() {} };
+
+const watchRequestCancellation = (request: any, onCancel: () => void): (() => void) => {
+  if (!request) {
+    return () => {};
+  }
+  if (request.destroyed) {
+    onCancel();
+    return () => {};
+  }
+  const onClose = () => onCancel();
+  request.once('close', onClose);
+  return () => request.off('close', onClose);
+};
 
 // Bounded by insertion order (FIFO). Cleared with the agent cache on SSL/proxy preference changes;
 // agent LRU eviction does not touch this set.
@@ -37,6 +59,12 @@ const rememberHybridEndpoint = (key: string): void => {
 
 type ConnectWithEcdhCurve = (ecdhCurve: string | undefined) => TLSSocket | Promise<TLSSocket>;
 
+type ConnectWithKeyExchangeFallbackOptions = {
+  onRetry?: (offerHybrid: boolean) => void;
+  /** ClientRequest (or stand-in): cancel destroys the active attempt and skips further retries. */
+  request?: any;
+};
+
 async function waitForHandshake(socket: TLSSocket): Promise<TLSSocket> {
   // Non-TLS sockets (https-proxy-agent's stand-in for a refused CONNECT) pass through.
   if (socket instanceof TLSSocket) {
@@ -48,28 +76,76 @@ async function waitForHandshake(socket: TLSSocket): Promise<TLSSocket> {
 async function connectWithKeyExchangeFallback(
   { host, port }: { host: string; port: number | string | undefined },
   connect: ConnectWithEcdhCurve,
-  onRetry?: (offerHybrid: boolean) => void
+  { onRetry, request }: ConnectWithKeyExchangeFallbackOptions = {}
 ): Promise<TLSSocket> {
   const key = endpointKey(host, port);
-  const attempt = async (offerHybrid: boolean) => waitForHandshake(await connect(offerHybrid ? HYBRID_ECDH_CURVE : undefined));
+  let activeSocket: { destroy?: () => void } | undefined;
+  let cancelled = false;
+  let notifyCancelled: (() => void) | undefined;
 
-  const offerHybrid = hybridKeyExchangeEndpoints.has(key);
-  try {
-    return await attempt(offerHybrid);
-  } catch (error) {
-    if (!isRetryableKeyExchangeError(error, offerHybrid)) {
-      throw error;
+  const cancel = () => {
+    if (cancelled) {
+      return;
     }
-    onRetry?.(!offerHybrid);
-    const socket = await attempt(!offerHybrid);
-    if (isEstablishedTlsSocket(socket)) {
-      if (offerHybrid) {
-        hybridKeyExchangeEndpoints.delete(key);
-      } else {
-        rememberHybridEndpoint(key);
+    cancelled = true;
+    activeSocket?.destroy?.();
+    notifyCancelled?.();
+  };
+
+  const stopWatching = watchRequestCancellation(request, cancel);
+
+  const whenCancelled = () =>
+    new Promise<never>((_, reject) => {
+      if (cancelled) {
+        reject(cancellationError());
+        return;
       }
+      notifyCancelled = () => reject(cancellationError());
+    });
+
+  const attempt = async (offerHybrid: boolean) => {
+    if (cancelled) {
+      throw cancellationError();
     }
-    return socket;
+    const socket = await connect(offerHybrid ? HYBRID_ECDH_CURVE : undefined);
+    activeSocket = socket;
+    if (cancelled) {
+      socket.destroy?.();
+      throw cancellationError();
+    }
+    try {
+      return await Promise.race([waitForHandshake(socket), whenCancelled()]);
+    } catch (error) {
+      if (cancelled) {
+        throw cancellationError();
+      }
+      throw error;
+    } finally {
+      notifyCancelled = undefined;
+    }
+  };
+
+  try {
+    const offerHybrid = hybridKeyExchangeEndpoints.has(key);
+    try {
+      return await attempt(offerHybrid);
+    } catch (error) {
+      if (cancelled || !isRetryableKeyExchangeError(error, offerHybrid)) {
+        throw cancelled ? cancellationError() : error;
+      }
+      onRetry?.(!offerHybrid);
+      const socket = await attempt(!offerHybrid);
+      if (isEstablishedTlsSocket(socket)) {
+        if (offerHybrid) {
+          hybridKeyExchangeEndpoints.delete(key);
+        } else {
+          rememberHybridEndpoint(key);
+        }
+      }
+      return socket;
+    }
+  } finally {
+    stopWatching();
   }
 }
 
@@ -93,11 +169,14 @@ function withHybridKeyExchangeFallback<T>(BaseAgentClass: T): T {
   const usesAgentBase = typeof (BaseAgentClass as any).prototype.connect === 'function';
 
   return class HybridKeyExchangeFallbackAgent extends (BaseAgentClass as any) {
-    private connectWithFallback(options: any, connect: ConnectWithEcdhCurve): Promise<TLSSocket> {
+    private connectWithFallback(options: any, connect: ConnectWithEcdhCurve, request?: any): Promise<TLSSocket> {
       return connectWithKeyExchangeFallback(
         { host: options.servername || options.host, port: options.port },
         connect,
-        (offerHybrid) => this.logRetry(offerHybrid)
+        {
+          onRetry: (offerHybrid) => this.logRetry(offerHybrid),
+          request
+        }
       );
     }
 
@@ -112,12 +191,24 @@ function withHybridKeyExchangeFallback<T>(BaseAgentClass: T): T {
       }
     }
 
+    // Thread the ClientRequest into createConnection so cancellation can destroy in-flight TLS.
+    createSocket(req: any, options: any, callback: any) {
+      if (usesAgentBase || !isBoringSsl()) {
+        return super.createSocket(req, options, callback);
+      }
+      return super.createSocket(req, { ...options, [hybridRequest]: req }, callback);
+    }
+
     createConnection(options: any, callback?: (error: Error | null, socket?: TLSSocket) => void) {
       if (usesAgentBase || !callback || !isBoringSsl()) {
         return super.createConnection(options, callback);
       }
 
-      this.connectWithFallback(options, (ecdhCurve) => super.createConnection(withEcdhCurve(options, ecdhCurve))).then((socket) => callback(null, socket), (error) => callback(error));
+      this.connectWithFallback(
+        options,
+        (ecdhCurve) => super.createConnection(withEcdhCurve(options, ecdhCurve)),
+        options[hybridRequest]
+      ).then((socket) => callback(null, socket), (error) => callback(error));
       return undefined;
     }
 
@@ -126,7 +217,13 @@ function withHybridKeyExchangeFallback<T>(BaseAgentClass: T): T {
         return super.connect(req, options);
       }
 
-      return this.connectWithFallback(options, (ecdhCurve) => super.connect(req, withEcdhCurve(options, ecdhCurve)));
+      // Pass a stand-in so socks-proxy-agent's TLS-error cleanup cannot destroy the real request
+      // before we retry; cancellation still watches the real `req`.
+      return this.connectWithFallback(
+        options,
+        (ecdhCurve) => super.connect(tlsAttemptRequest, withEcdhCurve(options, ecdhCurve)),
+        req
+      );
     }
   } as unknown as T;
 }

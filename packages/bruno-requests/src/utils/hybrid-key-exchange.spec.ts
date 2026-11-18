@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events';
 import net from 'node:net';
 import { TLSSocket } from 'node:tls';
 import {
@@ -8,6 +9,19 @@ import {
   clearHybridKeyExchangeEndpoints
 } from './hybrid-key-exchange';
 import { clearAgentCache } from './agent-cache';
+
+const fakeRequest = () => {
+  const request = new EventEmitter() as EventEmitter & { destroyed: boolean; destroy: () => void };
+  request.destroyed = false;
+  request.destroy = () => {
+    if (request.destroyed) {
+      return;
+    }
+    request.destroyed = true;
+    request.emit('close');
+  };
+  return request;
+};
 
 const handshakeFailure = Object.assign(new Error('sslv3 alert handshake failure'), { code: 'ERR_SSL_SSLV3_ALERT_HANDSHAKE_FAILURE' });
 
@@ -48,7 +62,7 @@ describe('connectWithKeyExchangeFallback', () => {
     const onRetry = jest.fn();
     const connect = jest.fn((ecdhCurve?: string) => fakeTlsSocket(ecdhCurve ? 'secure' : handshakeFailure));
 
-    await connectWithKeyExchangeFallback(endpoint, connect, onRetry);
+    await connectWithKeyExchangeFallback(endpoint, connect, { onRetry });
     await connectWithKeyExchangeFallback({ host: 'PQ.example.com', port: 443 }, connect);
 
     expect(connect.mock.calls).toEqual([[undefined], [HYBRID_ECDH_CURVE], [HYBRID_ECDH_CURVE]]);
@@ -62,7 +76,7 @@ describe('connectWithKeyExchangeFallback', () => {
     serverSupportsHybrid = false;
     const onRetry = jest.fn();
 
-    await connectWithKeyExchangeFallback(endpoint, connect, onRetry);
+    await connectWithKeyExchangeFallback(endpoint, connect, { onRetry });
     await connectWithKeyExchangeFallback(endpoint, connect);
 
     expect(connect.mock.calls).toEqual([[undefined], [HYBRID_ECDH_CURVE], [HYBRID_ECDH_CURVE], [undefined], [undefined]]);
@@ -76,7 +90,7 @@ describe('connectWithKeyExchangeFallback', () => {
     connect.mockImplementation((ecdhCurve?: string) => fakeTlsSocket(ecdhCurve === HYBRID_ECDH_CURVE ? reset : 'secure'));
     const onRetry = jest.fn();
 
-    await connectWithKeyExchangeFallback(endpoint, connect, onRetry);
+    await connectWithKeyExchangeFallback(endpoint, connect, { onRetry });
     connect.mockClear();
     await connectWithKeyExchangeFallback(endpoint, connect);
 
@@ -151,6 +165,25 @@ describe('connectWithKeyExchangeFallback', () => {
 
     await expect(connectWithKeyExchangeFallback(endpoint, () => socket as unknown as TLSSocket)).resolves.toBe(socket);
   });
+
+  it('destroys the in-flight handshake when the request is cancelled', async () => {
+    const request = fakeRequest();
+    const connect = jest.fn(() => fakeTlsSocket(handshakeFailure));
+    // Never settle the first handshake until we cancel.
+    connect.mockImplementationOnce(() => {
+      const socket = new TLSSocket(new net.Socket());
+      createdSockets.push(socket);
+      return socket;
+    });
+
+    const pending = connectWithKeyExchangeFallback(endpoint, connect, { request });
+    await Promise.resolve();
+    request.destroy();
+
+    await expect(pending).rejects.toMatchObject({ code: 'ECONNRESET' });
+    expect(connect).toHaveBeenCalledTimes(1);
+    expect(createdSockets[0].destroyed).toBe(true);
+  });
 });
 
 describe('withHybridKeyExchangeFallback', () => {
@@ -204,5 +237,59 @@ describe('withHybridKeyExchangeFallback', () => {
     await expect(createConnection(agent)).rejects.toBe(handshakeFailure);
 
     expect(agent.offeredCurves).toEqual([undefined]);
+  });
+
+  it('retries a SOCKS TLS failure without destroying the real request', async () => {
+    setElectronVersion('43.8.10');
+
+    // Mirrors socks-proxy-agent 8.0.5: TLS errors destroy `req` before the hybrid wrapper sees them.
+    class SocksLikeAgent {
+      offeredCurves: (string | undefined)[] = [];
+      receivedRequests: any[] = [];
+
+      async connect(req: any, options: { ecdhCurve?: string; secureEndpoint?: boolean }) {
+        this.offeredCurves.push(options.ecdhCurve);
+        this.receivedRequests.push(req);
+        const socket = fakeTlsSocket(options.ecdhCurve ? 'secure' : handshakeFailure);
+        socket.once('error', () => req.destroy());
+        return socket;
+      }
+    }
+
+    const Agent = withHybridKeyExchangeFallback(SocksLikeAgent) as any;
+    const agent = new Agent();
+    const request = fakeRequest();
+
+    await expect(agent.connect(request, { host: 'pq.example.com', port: 443, secureEndpoint: true })).resolves.toBeInstanceOf(TLSSocket);
+
+    expect(request.destroyed).toBe(false);
+    expect(agent.offeredCurves).toEqual([undefined, HYBRID_ECDH_CURVE]);
+    expect(agent.receivedRequests.every((attemptReq: any) => attemptReq !== request)).toBe(true);
+  });
+
+  it('destroys a pending SOCKS handshake when the request is cancelled', async () => {
+    setElectronVersion('43.8.10');
+
+    class HangingSocksAgent {
+      lastSocket: TLSSocket | undefined;
+
+      async connect() {
+        const socket = new TLSSocket(new net.Socket());
+        createdSockets.push(socket);
+        this.lastSocket = socket;
+        return socket;
+      }
+    }
+
+    const Agent = withHybridKeyExchangeFallback(HangingSocksAgent) as any;
+    const agent = new Agent();
+    const request = fakeRequest();
+
+    const pending = agent.connect(request, { host: 'pq.example.com', port: 443, secureEndpoint: true });
+    await Promise.resolve();
+    request.destroy();
+
+    await expect(pending).rejects.toMatchObject({ code: 'ECONNRESET' });
+    expect(agent.lastSocket?.destroyed).toBe(true);
   });
 });
