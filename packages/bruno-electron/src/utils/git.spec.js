@@ -192,7 +192,7 @@ describe('listBranchesForRemoteUrl (remote listing env)', () => {
     jest.resetModules();
   });
 
-  it('sets only GIT_TERMINAL_PROMPT and does not spread process.env (simple-git v4)', async () => {
+  it('passes filtered process.env plus GIT_TERMINAL_PROMPT (simple-git v4)', async () => {
     const previousConfigCount = process.env.GIT_CONFIG_COUNT;
     const previousPath = process.env.PATH;
     process.env.GIT_CONFIG_COUNT = '1';
@@ -208,8 +208,10 @@ describe('listBranchesForRemoteUrl (remote listing env)', () => {
           baseDir: expect.any(String)
         })
       );
-      expect(mockEnv).toHaveBeenCalledWith({ GIT_TERMINAL_PROMPT: '0' });
-      expect(Object.keys(mockEnv.mock.calls[0][0])).toEqual(['GIT_TERMINAL_PROMPT']);
+      const childEnv = mockEnv.mock.calls[0][0];
+      expect(childEnv.GIT_TERMINAL_PROMPT).toBe('0');
+      expect(childEnv.PATH).toBe(process.env.PATH);
+      expect(childEnv.GIT_CONFIG_COUNT).toBeUndefined();
     } finally {
       if (previousConfigCount === undefined) {
         delete process.env.GIT_CONFIG_COUNT;

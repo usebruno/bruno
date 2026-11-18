@@ -4,6 +4,7 @@ const os = require('os');
 const path = require('path');
 const { exec } = require('child_process');
 const { parseRequest } = require('@usebruno/filestore');
+const { isGuardedEnvKey } = require('@simple-git/argv-parser');
 
 let collectionPathToGitRootPathMap = new Map();
 
@@ -16,6 +17,20 @@ const GIT_ALLOW_ENVIRONMENT = [
   'SSH_AUTH_SOCK',
   'GIT_OPTIONAL_LOCKS'
 ];
+
+// simple-git replaces the child env on .env(); copy PATH/HOME/… but drop guarded keys that are not allowlisted.
+const buildGitChildProcessEnv = (overrides = {}) => {
+  const allow = new Set(GIT_ALLOW_ENVIRONMENT.map((key) => key.toLowerCase()));
+  const env = { ...process.env, ...overrides };
+
+  for (const key of Object.keys(env)) {
+    if (isGuardedEnvKey(key) && !allow.has(key.toLowerCase())) {
+      delete env[key];
+    }
+  }
+
+  return env;
+};
 
 // core.longpaths lifts the 260-char path limit on Windows
 const createSimpleGit = (baseDir) =>
@@ -774,9 +789,8 @@ const listBranchesForRemoteUrl = async ({ url }) => {
       timeout: { block: REMOTE_BRANCH_LISTING_TIMEOUT_MS, stdOut: false, stdErr: false },
       allowEnvironment: GIT_ALLOW_ENVIRONMENT
     })
-      // #9174: non-interactive ls-remote for clone branch picker. Do not spread process.env here —
-      // simple-git v4 rejects guarded vars (e.g. GIT_CONFIG_COUNT) unless allowlisted on the factory.
-      .env({ GIT_TERMINAL_PROMPT: '0' })
+      // #9174: inherit PATH/HOME via filtered process.env; GIT_TERMINAL_PROMPT disables credential prompts.
+      .env(buildGitChildProcessEnv({ GIT_TERMINAL_PROMPT: '0' }))
       .listRemote(['--symref', url, 'HEAD', 'refs/heads/*']);
 
     return parseRemoteBranches(output);
