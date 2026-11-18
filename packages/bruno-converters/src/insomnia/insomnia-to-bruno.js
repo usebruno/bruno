@@ -272,17 +272,12 @@ const parseInsomniaCollection = (data) => {
 
       const folders = requestGroups.map((folder, index, allFolder) => {
         const name = addSuffixToDuplicateName(folder, index, allFolder);
-        const requests = resources.filter(
-          (resource) => resource._type === 'request' && resource.parentId === folder._id
-        );
 
         return {
           uid: uuid(),
           name,
           type: 'folder',
-          items: createFolderStructure(resources, folder._id).concat(
-            requests.filter((r) => r.parentId === folder._id).map(transformInsomniaRequestItem)
-          )
+          items: createFolderStructure(resources, folder._id)
         };
       });
 
