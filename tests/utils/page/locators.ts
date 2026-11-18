@@ -33,6 +33,7 @@ import { buildResponseExampleLocators } from './response-example';
 import { buildGraphqlQueryBuilderLocators } from './graphql/query-builder';
 import { buildGraphqlVariablesLocators } from './graphql/variables';
 import { buildAuthLocators } from './auth';
+import { buildMultipartFormLocators } from './request/multipart-form';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
@@ -69,6 +70,7 @@ export const buildCommonLocators = (page: Page) => ({
   toast: buildToastLocators(page),
   secretVariableForm: buildSecretVariableFormLocators(page),
   request: buildRequestLocators(page),
+  multipartForm: buildMultipartFormLocators(page),
   setAsVariable: buildSetAsVariableLocators(page),
   responseExample: buildResponseExampleLocators(page),
   graphqlQueryBuilder: buildGraphqlQueryBuilderLocators(page),
@@ -105,6 +107,7 @@ export const buildCommonLocators = (page: Page) => ({
     collectionSettingsTab: () =>
       page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) }),
     activeRequestTab: () => page.locator('.request-tab.active'),
+    activeRequestWithUnsavedChanges: () => page.locator('.request-tab.active').getByTestId('request-tab-unsaved-changes'),
     activeRequestTabLabel: () => page.locator('.request-tab.active').getByTestId('request-tab-label'),
     // The request tab's right-click menu; `key` is the menu item id (e.g. 'clone-request').
     requestTabMenuItem: (key: string) => page.getByTestId(`menu-dropdown-${key}`),

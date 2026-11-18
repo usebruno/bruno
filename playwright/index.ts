@@ -262,7 +262,10 @@ export const test = baseTest.extend<
             let content = await fs.promises.readFile(path.join(initUserDataPath, file), 'utf-8');
             content = content.replace(/{{(\w+)}}/g, (_, key) => {
               if (replacements[key]) {
-                return replacements[key].replace(/\\/g, '/');
+                const normalizedPath = replacements[key].replace(/\\/g, '/');
+                // Placeholders sit inside JSON string values in init-user-data files,
+                // so escape quotes/control chars without wrapping another pair of quotes.
+                return JSON.stringify(normalizedPath).slice(1, -1);
               } else {
                 throw new Error(`\tNo replacement for {{${key}}} in ${path.join(initUserDataPath, file)}`);
               }

@@ -50,8 +50,11 @@ export const buildSidebarLocators = (page: Page) => {
     itemByName,
     itemsIn: (collectionName: string, name: string): Locator =>
       collectionScope(collectionName).locator('.item-name').and(page.getByTitle(name, { exact: true })),
-    itemRowIn: (collectionName: string, name: string): Locator =>
-      collectionScope(collectionName).getByTestId('sidebar-collection-item-row').filter({ has: itemByName(name) }),
+    itemRowIn: (collectionName: string, name: string, { rootOnly = false } = {}): Locator => {
+      const scope = collectionScope(collectionName);
+      const rows = rootOnly ? scope.and(page.locator(':not([data-parent-name])')) : scope;
+      return rows.getByTestId('sidebar-collection-item-row').filter({ has: itemByName(name) });
+    },
     collectionItemNames: (collectionName: string): Locator =>
       collectionScope(collectionName).locator('.item-name'),
     folderItemNames: (collectionName: string, folderName: string): Locator =>

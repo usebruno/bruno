@@ -1,10 +1,11 @@
 import process from 'node:process';
 import { expect, Page, test } from '../../../playwright';
+import { buildCodeMirrorLocators } from './code-mirror';
 
 const findShortcut = process.platform === 'darwin' ? 'Meta+f' : 'Control+f';
 
 export const buildFileModeLocators = (page: Page) => ({
-  editor: () => page.locator('.file-mode .CodeMirror'),
+  editor: () => buildCodeMirrorLocators(page).byTestId('request-file-mode'),
   editorContent: () => page.locator('.file-mode .CodeMirror .CodeMirror-code'),
   currentSearchMatch: () => page.locator('.file-mode .CodeMirror .cm-search-current'),
   overflowMenu: () => page.getByTestId('more-actions'),

@@ -1,6 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
 const reporter: any[] = [['list'], ['html'], ['json', { outputFile: 'playwright-report/results.json' }]];
+const testbenchBaseURL = `http://localhost:${process.env.PORT || 8081}`;
 
 if (process.env.CI) {
   reporter.push(['github']);
@@ -23,6 +24,7 @@ export default defineConfig({
     {
       name: 'default',
       testDir: './tests',
+      use: { baseURL: testbenchBaseURL },
       testIgnore: [
         'ssl/**', // custom CA certificate tests require separate server setup and certificate generation
         'auth/**', // auth tests have their own project
@@ -60,7 +62,7 @@ export default defineConfig({
     },
     {
       command: 'npm start --workspace=packages/bruno-tests',
-      url: 'http://localhost:8081/ping',
+      url: new URL('/ping', testbenchBaseURL).href,
       reuseExistingServer: !process.env.CI,
       timeout: 10 * 60 * 1000
     }

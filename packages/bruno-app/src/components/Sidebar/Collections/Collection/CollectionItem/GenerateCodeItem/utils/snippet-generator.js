@@ -51,6 +51,14 @@ const addCurlAuthFlags = (curlCommand, auth) => {
   return curlCommand;
 };
 
+const quoteCurlFormFile = (filename) => {
+  // cURL parses commas and semicolons within the shell-quoted --form argument,
+  // and trims unquoted leading/trailing whitespace from the filename.
+  return /[,;"]/.test(filename) || filename !== filename.trim()
+    ? '"' + filename.replace(/[\\"]/g, '\\$&') + '"'
+    : filename;
+};
+
 const generateSnippet = async ({ language, item, collection, shouldInterpolate = false }) => {
   try {
     // Get HTTPSnippet dynamically so mocks can be applied in tests
@@ -101,7 +109,18 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
     const isLibcurl = language.target === 'c' && language.client === 'libcurl';
 
     // Generate snippet using HTTPSnippet
-    const snippet = new HTTPSnippet({ ...har, headers: mergeCookieHeaders(har.headers, isCurl || isLibcurl) });
+    const snippetHar = { ...har, headers: mergeCookieHeaders(har.headers, isCurl || isLibcurl) };
+    // cURL-only: quote filenames so commas/semicolons/whitespace survive form parsing.
+    // Multi-file expansion belongs in buildPostData (one HAR param per path).
+    if (isCurl && har.postData?.mimeType === 'multipart/form-data' && har.postData.params) {
+      snippetHar.postData = {
+        ...har.postData,
+        params: har.postData.params.map((param) => param.fileName
+          ? { ...param, fileName: quoteCurlFormFile(param.fileName) }
+          : param)
+      };
+    }
+    const snippet = new HTTPSnippet(snippetHar);
     let result = snippet.convert(language.target, language.client);
 
     // curl --digest / --ntlm flags. Snippet-text manipulation, not HAR.

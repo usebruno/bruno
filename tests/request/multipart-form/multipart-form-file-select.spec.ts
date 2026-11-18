@@ -36,7 +36,7 @@ test.describe.serial('Multipart Form - File Select Without Key', () => {
 
     await test.step('Create collection and request', async () => {
       await createCollection(page, 'multipart-file-select', tmpDir);
-      await createRequest(page, 'test-file-select', '', {
+      await createRequest(page, 'test-file-select', 'multipart-file-select', {
         url: 'https://testbench-sanity.usebruno.com/api/echo/json',
         method: 'POST',
         inFolder: false

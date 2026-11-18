@@ -315,6 +315,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
         <Modal size="md" title="New Request" hideFooter handleCancel={onClose}>
           <form
             className="bruno-form"
+            data-testid="new-request-form"
             onSubmit={formik.handleSubmit}
           >
             <div>

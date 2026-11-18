@@ -152,6 +152,7 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect, showCaret
             <input
               ref={inputRef}
               type="text"
+              data-testid="custom-http-method-input"
               className="px-2 focus:bg-transparent"
               style={{
                 minWidth: minWidthPx,

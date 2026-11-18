@@ -556,13 +556,19 @@ const buildPostData = (body: BrunoBody | undefined): any => {
       const arr: any[] = Array.isArray(body.multipartForm) ? body.multipartForm : [];
       return {
         mimeType,
-        params: arr
-          .filter((p) => p?.enabled)
-          .map((p) => ({
+        // HAR expects one string fileName per param; Bruno stores multipart file
+        // rows as path arrays, so expand each path into its own param.
+        params: arr.filter((p) => p?.enabled).flatMap((p) => {
+          if (p.type !== 'file') {
+            return [{ name: p.name, value: p.value }];
+          }
+          const fileNames = Array.isArray(p.value) ? p.value : (p.value ? [p.value] : []);
+          return fileNames.map((fileName) => ({
             name: p.name,
-            value: p.value,
-            ...(p.type === 'file' && { fileName: p.value })
-          }))
+            value: fileName,
+            fileName
+          }));
+        })
       };
     }
     case 'file': {

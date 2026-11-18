@@ -65,6 +65,7 @@ const CodeView = ({ language, item }) => {
       </CopyToClipboard>
       <div className="editor-content">
         <CodeEditor
+          testId="generated-code-editor"
           readOnly
           collection={collection}
           item={item}

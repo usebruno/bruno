@@ -620,7 +620,7 @@ const RequestTabPanel = () => {
   if (collection.fileMode) {
     return (
       <ScopedPersistenceProvider scope={focusedTab.uid}>
-        <StyledWrapper className="flex flex-col flex-grow relative p-4 file-mode overflow-hidden">
+        <StyledWrapper className="flex flex-col flex-grow relative p-4 file-mode overflow-hidden" data-testid="request-file-mode">
           <FileEditor item={item} collection={collection} />
         </StyledWrapper>
       </ScopedPersistenceProvider>

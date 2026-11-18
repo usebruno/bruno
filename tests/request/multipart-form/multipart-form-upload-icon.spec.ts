@@ -10,7 +10,7 @@ test.describe.serial('Multipart Form - Upload Icon Visibility', () => {
   test.beforeAll(async ({ page, createTmpDir }) => {
     await test.step('Create collection and request', async () => {
       await createCollection(page, 'multipart-upload-icon', await createTmpDir('multipart-upload-icon'));
-      await createRequest(page, 'test-multipart', '', {
+      await createRequest(page, 'test-multipart', 'multipart-upload-icon', {
         url: 'https://httpbin.org/post',
         method: 'POST',
         inFolder: false

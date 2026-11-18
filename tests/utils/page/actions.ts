@@ -537,55 +537,57 @@ const createRequest = async (
 
   await test.step(`Create ${requestType.toUpperCase()} request "${requestName}" in ${parentType} "${parentName}"`, async () => {
     const locators = buildCommonLocators(page);
+    const menu = locators.sidebar.rowMenu(parentName, inFolder ? 'item' : 'collection');
 
     if (inFolder) {
       await locators.sidebar.folder(parentName).hover();
-      await locators.actions.collectionItemActions(parentName).click();
+      await menu.trigger().click();
     } else {
-      const collectionRow = locators.sidebar.collection(parentName);
-      const collectionAction = locators.actions.collectionActions(parentName);
-      // Re-hover on each poll: CSS `:hover` reveals `.collection-actions`, but sidebar
-      // re-renders (e.g. workspace snapshot hydration) can shift the row out from under a one-shot hover().
+      const collectionRow = locators.sidebar.collectionRow(parentName);
+      const collectionAction = menu.trigger();
+      // Sidebar hydration can move the row away from the pointer and hide its menu.
       await expect(async () => {
         await collectionRow.hover();
-        await expect(collectionAction).toBeVisible({ timeout: 1000 });
+        await collectionAction.click({ timeout: 1000 });
       }).toPass({ timeout: 10000 });
-      await collectionAction.click();
     }
 
-    await locators.dropdown.item('New Request').click();
+    await menu.item('new-request').click();
 
     // The modal defaults to HTTP; switch the radio for the other three types.
     if (requestType !== 'http') {
       await page.getByTestId(`${requestType}-request`).click();
     }
 
-    await page.getByPlaceholder('Request Name').fill(requestName);
+    await locators.request.requestTestId().fill(requestName);
 
     if (method && hasMethodSelector) {
-      await page.locator('.bruno-modal .method-selector').click();
+      await locators.request.newRequestMethod().click();
       const isStandardMethod = STANDARD_HTTP_METHODS.includes(method.toUpperCase());
       if (isStandardMethod) {
         await locators.modal.newRequestMethodOption(method).click();
       } else {
         await locators.modal.newRequestMethodOption('add-custom').click();
-        await page.locator('.bruno-modal .method-selector input').fill(method);
-        await page.keyboard.press('Enter');
+        const customMethod = locators.request.newRequestCustomMethod();
+        await customMethod.fill(method);
+        await customMethod.press('Enter');
       }
-      await page.waitForTimeout(200);
     }
 
     if (url) {
-      await page.locator('#new-request-url .CodeMirror').click();
+      await locators.request.newRequestUrl().click();
       await page.keyboard.type(url);
     }
 
-    await locators.modal.button('Create').click();
+    await locators.request.createNewRequestButton().click();
 
     if (inFolder) {
-      await expect(locators.sidebar.folderRequest(parentName, requestName)).toBeVisible();
+      await locators.sidebar.folderRequest(parentName, requestName).waitFor({ state: 'visible' });
+    } else if (parentName) {
+      await locators.sidebar.itemRowIn(parentName, requestName, { rootOnly: true }).waitFor({ state: 'visible' });
     } else {
-      await expect(locators.sidebar.request(requestName)).toBeVisible();
+      // Empty parentName cannot build a collection scope (`data-collection-id` is omitted).
+      await locators.sidebar.itemRow(requestName).waitFor({ state: 'visible' });
     }
   });
 };
@@ -2372,16 +2374,17 @@ const deleteAssertion = async (page: Page, rowIndex: number) => {
 };
 
 /**
- * Save the current request and verify success toast
+ * Save the current request and wait for the save to finish.
  * @param page - The page object
  * @returns void
  */
 const saveRequest = async (page: Page) => {
   await test.step('Save request', async () => {
+    const { tabs, toast } = buildCommonLocators(page);
     const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
     await page.keyboard.press(saveShortcut);
-    await expect(page.getByText('Request saved successfully').last()).toBeVisible({ timeout: 3000 });
-    await page.waitForTimeout(200);
+    await toast.byMessage('Request saved successfully').last().waitFor({ state: 'visible', timeout: 3000 });
+    await tabs.activeRequestWithUnsavedChanges().waitFor({ state: 'detached', timeout: 3000 });
   });
 };
 

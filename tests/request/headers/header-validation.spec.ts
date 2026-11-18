@@ -12,7 +12,7 @@ test.describe.serial('Header Validation', () => {
   test.beforeAll(async ({ page, createTmpDir }) => {
     await test.step('Create collection and request', async () => {
       await createCollection(page, 'header-validation', await createTmpDir('header-validation'));
-      await createRequest(page, 'test-headers', '', {
+      await createRequest(page, 'test-headers', 'header-validation', {
         url: 'https://httpbin.org/get',
         inFolder: false
       });

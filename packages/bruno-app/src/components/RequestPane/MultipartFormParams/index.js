@@ -168,6 +168,7 @@ const MultipartFormParams = ({ item, collection }) => {
       key: 'name',
       name: 'Key',
       isKeyField: true,
+      inputTestId: 'multipart-form-key',
       placeholder: 'Key',
       width: '20%'
     },
@@ -258,6 +259,7 @@ const MultipartFormParams = ({ item, collection }) => {
         testId="multipart-form-table"
         columns={columns}
         rows={params || []}
+        rowConfig={{ testId: () => 'multipart-form-row' }}
         onChange={handleParamsChange}
         defaultRow={defaultRow}
         reorderable={true}

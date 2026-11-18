@@ -41,31 +41,13 @@ test.describe('Multipart Form - mixed file multi-select upload', () => {
       writeFixture(tmpDir, 'diagram.png', diagram)
     ]);
 
-    await electronApp.evaluate(({ dialog }) => {
-      (dialog as any).__originalShowOpenDialog = dialog.showOpenDialog;
-    });
-
     await openCollectionFromPath(page, electronApp, collectionFixturePath!);
     await waitForCollectionMount(page, 'collection');
     await openRequest(page, 'collection', 'mixed-upload', { persist: true });
     await selectRequestPaneTab(page, 'Body');
-
-    await electronApp.evaluate(({ dialog }) => {
-      (global as any).__mockFilePaths = [];
-      dialog.showOpenDialog = async () => ({
-        canceled: false,
-        filePaths: (global as any).__mockFilePaths || []
-      });
-    });
   });
 
-  test.afterAll(async ({ page, electronApp }) => {
-    await electronApp.evaluate(({ dialog }) => {
-      if ((dialog as any).__originalShowOpenDialog) {
-        dialog.showOpenDialog = (dialog as any).__originalShowOpenDialog;
-        delete (dialog as any).__originalShowOpenDialog;
-      }
-    });
+  test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });
 

@@ -188,6 +188,7 @@ const getAbsoluteFilePath = (basePath, relativePath, shouldPosixify = false) => 
  * getRelativePathWithinBasePath('C:\\Users\\John\\Collections\\Api', 'C:\\Users\\John\\Collections\\Api\\files\\payload.txt', true);
  *  → "files/payload.txt"
  */
+// Test mirror: tests/utils/page/request/multipart-form.ts (`getStoredMultipartPath`).
 const getRelativePathWithinBasePath = (basePath, filePath, shouldPosixify = false) => {
   if (!basePath || !filePath) {
     return filePath;

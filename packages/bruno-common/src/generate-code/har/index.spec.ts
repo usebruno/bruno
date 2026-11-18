@@ -704,6 +704,43 @@ describe('buildHar — body / postData', () => {
     expect(har.postData.params[0]).not.toHaveProperty('fileName');
     expect(har.postData.params[1]).toEqual({ name: 'upload', value: '/tmp/x', fileName: '/tmp/x' });
   });
+
+  it('multipartForm type=file with path array → one HAR param per file under the same key', async () => {
+    const { har } = await buildHar({
+      request: baseRequest({
+        body: {
+          mode: 'multipartForm',
+          multipartForm: [
+            { name: 'upload', value: ['/tmp/a b.txt', '/tmp/c.txt'], type: 'file', enabled: true }
+          ]
+        }
+      }),
+      shouldInterpolate: false
+    });
+    expect(har.postData.params).toEqual([
+      { name: 'upload', value: '/tmp/a b.txt', fileName: '/tmp/a b.txt' },
+      { name: 'upload', value: '/tmp/c.txt', fileName: '/tmp/c.txt' }
+    ]);
+  });
+
+  it('multipartForm type=file with separate keys → one HAR param per key', async () => {
+    const { har } = await buildHar({
+      request: baseRequest({
+        body: {
+          mode: 'multipartForm',
+          multipartForm: [
+            { name: 'file1', value: ['/tmp/a.txt'], type: 'file', enabled: true },
+            { name: 'file2', value: '/tmp/b.txt', type: 'file', enabled: true }
+          ]
+        }
+      }),
+      shouldInterpolate: false
+    });
+    expect(har.postData.params).toEqual([
+      { name: 'file1', value: '/tmp/a.txt', fileName: '/tmp/a.txt' },
+      { name: 'file2', value: '/tmp/b.txt', fileName: '/tmp/b.txt' }
+    ]);
+  });
 });
 
 describe('buildHar — interpolation', () => {

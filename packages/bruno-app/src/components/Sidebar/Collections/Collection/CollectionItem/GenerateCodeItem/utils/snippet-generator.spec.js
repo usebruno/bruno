@@ -844,6 +844,70 @@ describe('generateSnippet with edge-case bodies', () => {
   });
 });
 
+describe('generateSnippet curl multipart file quoting', () => {
+  const language = { target: 'shell', client: 'curl' };
+  const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
+
+  const runWithRealHttpSnippet = async (item) => {
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+    try {
+      return await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    } finally {
+      require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+    }
+  };
+
+  it('quotes filenames that contain commas, semicolons, quotes, or edge whitespace', async () => {
+    const item = {
+      uid: 'req-quote',
+      request: {
+        method: 'POST',
+        url: 'https://example.com/upload',
+        headers: [],
+        body: {
+          mode: 'multipartForm',
+          multipartForm: [
+            { name: 'comma', value: '/tmp/a,b.txt', type: 'file', enabled: true },
+            { name: 'semi', value: "/tmp/it's;x.txt", type: 'file', enabled: true },
+            { name: 'quote', value: '/tmp/a"b.txt', type: 'file', enabled: true },
+            { name: 'space', value: '/tmp/report.txt ', type: 'file', enabled: true }
+          ]
+        },
+        auth: { mode: 'none' }
+      }
+    };
+
+    const result = await runWithRealHttpSnippet(item);
+    expect(result).toContain(`--form 'comma=@"/tmp/a,b.txt"'`);
+    expect(result).toContain(`--form 'semi=@"/tmp/it's;x.txt"'`);
+    expect(result).toContain(`--form 'quote=@"/tmp/a\\"b.txt"'`);
+    expect(result).toContain(`--form 'space=@"/tmp/report.txt "'`);
+  });
+
+  it('emits a separate --form flag for each file under the same key', async () => {
+    const item = {
+      uid: 'req-split',
+      request: {
+        method: 'POST',
+        url: 'https://example.com/upload',
+        headers: [],
+        body: {
+          mode: 'multipartForm',
+          multipartForm: [
+            { name: 'upload', value: ['/tmp/a b.txt', '/tmp/c.txt'], type: 'file', enabled: true }
+          ]
+        },
+        auth: { mode: 'none' }
+      }
+    };
+
+    const result = await runWithRealHttpSnippet(item);
+    expect(result).toContain(`--form 'upload=@/tmp/a b.txt'`);
+    expect(result).toContain(`--form 'upload=@/tmp/c.txt'`);
+  });
+});
+
 describe('generateSnippet with OAuth2 authentication', () => {
   const language = { target: 'shell', client: 'curl' };
   const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };

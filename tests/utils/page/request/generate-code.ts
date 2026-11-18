@@ -2,17 +2,19 @@ import { test, expect, Page } from '../../../../playwright';
 import { buildCommonLocators } from '../locators';
 import { selectRequestPaneTab } from '../actions';
 import { readEditorValue } from '../autocomplete';
+import { buildCodeMirrorLocators } from '../code-mirror';
 
 /**
  * Read the snippet from an already-open Generate Code dialog
- * (without re-opening it). Use after toggling a setting inside the dialog.
+ * (without re-opening it). Poll for the expected content in the spec after changing a setting.
  * @param page - The page object
  * @returns The full text of the generated code snippet
  */
 const readGeneratedSnippet = async (page: Page): Promise<string> => {
   return await test.step('Read generated snippet', async () => {
-    const codeEditor = page.locator('.editor-content .CodeMirror').first();
-    await expect(codeEditor).toBeVisible();
+    const codeEditor = buildCodeMirrorLocators(page).byTestId('generated-code-editor');
+    // An empty CodeMirror line can contain a zero-width placeholder.
+    await codeEditor.locator('.CodeMirror-line').filter({ hasText: /[^\s\u200b]/ }).first().waitFor({ state: 'visible' });
     return await readEditorValue(codeEditor);
   });
 };
@@ -27,8 +29,6 @@ const getGeneratedSnippet = async (page: Page): Promise<string> => {
     const { request } = buildCommonLocators(page);
 
     await request.generateCodeButton().click();
-    await expect(page.getByRole('dialog')).toBeVisible();
-
     return await readGeneratedSnippet(page);
   });
 };

@@ -125,7 +125,7 @@ const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => 
   );
 
   return (
-    <Wrapper className="file-value-cell" ref={containerRef}>
+    <Wrapper className="file-value-cell" ref={containerRef} data-testid="multipart-file-selection" data-file-paths={JSON.stringify(files)}>
       {collapsed ? (
         <>
           <Dropdown

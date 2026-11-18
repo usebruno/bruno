@@ -43,7 +43,7 @@ test.describe('Multipart Form - Multiple File Upload', () => {
     });
 
     await createCollection(page, 'multipart-multi-upload', tmpDir);
-    await createRequest(page, 'test-multi-upload', '', {
+    await createRequest(page, 'test-multi-upload', 'multipart-multi-upload', {
       url: 'https://testbench-sanity.usebruno.com/api/echo/json',
       method: 'POST',
       inFolder: false

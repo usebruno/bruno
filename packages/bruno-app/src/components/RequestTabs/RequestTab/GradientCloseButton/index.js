@@ -7,7 +7,10 @@ const GradientCloseButton = ({ onClick, hasChanges = false }) => {
   const canClose = typeof onClick === 'function';
 
   return (
-    <StyledWrapper className={`close-gradient ${hasChanges ? 'has-changes' : ''} ${canClose ? '' : 'no-close'}`}>
+    <StyledWrapper
+      className={`close-gradient ${hasChanges ? 'has-changes' : ''} ${canClose ? '' : 'no-close'}`}
+      data-testid={hasChanges ? 'request-tab-unsaved-changes' : undefined}
+    >
       <div
         className="close-icon-container"
         onClick={canClose ? onClick : undefined}
