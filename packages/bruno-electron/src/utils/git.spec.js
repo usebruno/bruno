@@ -169,6 +169,54 @@ describe('simple-git v4 (unmocked)', () => {
   );
 });
 
+describe('listBranchesForRemoteUrl (remote listing env)', () => {
+  let mockSimpleGit;
+  let mockEnv;
+  let mockListRemote;
+
+  beforeEach(() => {
+    mockListRemote = jest.fn().mockResolvedValue('ref: refs/heads/main\tHEAD\nabc123\trefs/heads/main');
+    mockEnv = jest.fn().mockReturnValue({ listRemote: mockListRemote });
+    mockSimpleGit = jest.fn(() => ({ env: mockEnv }));
+
+    jest.resetModules();
+    jest.doMock('simple-git', () => ({ simpleGit: (...args) => mockSimpleGit(...args) }));
+  });
+
+  afterEach(() => {
+    jest.dontMock('simple-git');
+    jest.resetModules();
+  });
+
+  it('sets only GIT_TERMINAL_PROMPT and does not spread process.env (simple-git v4)', async () => {
+    const previousConfigCount = process.env.GIT_CONFIG_COUNT;
+    const previousPath = process.env.PATH;
+    process.env.GIT_CONFIG_COUNT = '1';
+    process.env.PATH = previousPath ?? '/usr/bin';
+
+    try {
+      const { listBranchesForRemoteUrl } = require('./git');
+      await listBranchesForRemoteUrl({ url: 'https://example.com/repo.git' });
+
+      expect(mockSimpleGit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          allowEnvironment: expect.arrayContaining(['GIT_TERMINAL_PROMPT', 'GIT_SSH_COMMAND']),
+          baseDir: expect.any(String)
+        })
+      );
+      expect(mockEnv).toHaveBeenCalledWith({ GIT_TERMINAL_PROMPT: '0' });
+      expect(Object.keys(mockEnv.mock.calls[0][0])).toEqual(['GIT_TERMINAL_PROMPT']);
+    } finally {
+      if (previousConfigCount === undefined) {
+        delete process.env.GIT_CONFIG_COUNT;
+      } else {
+        process.env.GIT_CONFIG_COUNT = previousConfigCount;
+      }
+      process.env.PATH = previousPath;
+    }
+  });
+});
+
 describe('cloneGitRepository', () => {
   const mockSimpleGit = jest.fn(() => ({
     outputHandler: jest.fn(),

@@ -774,6 +774,8 @@ const listBranchesForRemoteUrl = async ({ url }) => {
       timeout: { block: REMOTE_BRANCH_LISTING_TIMEOUT_MS, stdOut: false, stdErr: false },
       allowEnvironment: GIT_ALLOW_ENVIRONMENT
     })
+      // #9174: non-interactive ls-remote for clone branch picker. Do not spread process.env here —
+      // simple-git v4 rejects guarded vars (e.g. GIT_CONFIG_COUNT) unless allowlisted on the factory.
       .env({ GIT_TERMINAL_PROMPT: '0' })
       .listRemote(['--symref', url, 'HEAD', 'refs/heads/*']);
 
