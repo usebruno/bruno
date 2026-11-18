@@ -179,6 +179,19 @@ const ResponseExample = ({ item, collection, example, openInEditMode }) => {
     };
   }, [editMode, item, collection]);
 
+  useEffect(() => {
+    const handleWorkspaceRequestsSaved = (e) => {
+      if (e.detail.itemUids.includes(item?.uid)) {
+        setEditMode(false);
+      }
+    };
+
+    window.addEventListener('workspace-requests-saved', handleWorkspaceRequestsSaved);
+    return () => {
+      window.removeEventListener('workspace-requests-saved', handleWorkspaceRequestsSaved);
+    };
+  }, [item?.uid]);
+
   return (
     <>
       <StyledWrapper className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''} ${isVerticalLayout ? 'vertical-layout' : ''}`}>

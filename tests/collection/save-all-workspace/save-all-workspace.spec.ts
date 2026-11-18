@@ -5,9 +5,11 @@ import {
   buildCommonLocators,
   closeAllCollections,
   createCollection,
+  createExampleFromSidebar,
   createRequest,
   createTransientRequest,
   fillRequestUrl,
+  openExampleFromSidebar,
   openRequest,
   saveTransientViaModal
 } from '../../utils/page';
@@ -15,6 +17,52 @@ import {
 const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
 const firstCollection = 'save-all-one';
 const secondCollection = 'save-all-two';
+
+const richRequestFile = `info:
+  name: rich-request
+  type: http
+  seq: 10
+  tags:
+    - hello
+
+http:
+  method: GET
+  url: localhost:4000/posts
+  headers:
+    - name: x-api-key
+      value: admin
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: console.log('tests')
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+examples:
+  - name: rich-example
+    description: an example
+    request:
+      url: localhost:4000/posts
+      method: GET
+      headers:
+        - name: x-api-key
+          value: admin
+    response:
+      status: 200
+      statusText: OK
+      body:
+        type: text
+        data: ""
+
+docs: hello docs
+`;
 
 const readAllFiles = (dir: string): string =>
   fs.readdirSync(dir, { withFileTypes: true })
@@ -118,6 +166,70 @@ test.describe('Save all across the workspace', () => {
     await test.step('The save dialog opens for the transient request and saves it', async () => {
       await saveTransientViaModal(page, 'transient-saved', { collectionName: secondCollection });
       await expect.poll(() => readAllFiles(collectionsDir)).toContain('https://example.com/transient-draft');
+    });
+  });
+
+  test('menu item saves a request whose only unsaved change is an example', async ({ page }) => {
+    await test.step('Create an example and rename it without saving', async () => {
+      await createExampleFromSidebar(page, 'req-one', 'example-created');
+      await expect.poll(() => readAllFiles(collectionsDir)).toContain('example-created');
+      await page.getByTestId('response-example-name-input').fill('example-renamed');
+      expect(readAllFiles(collectionsDir)).not.toContain('example-renamed');
+    });
+
+    await test.step('Save all from the Collections menu', async () => {
+      await openCollectionsMenu(page);
+      await expect(saveAllMenuItem(page)).not.toHaveAttribute('aria-disabled', 'true');
+      await saveAllMenuItem(page).click();
+      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+    });
+
+    await test.step('The renamed example is on disk', async () => {
+      await expect.poll(() => readAllFiles(collectionsDir)).toContain('example-renamed');
+    });
+  });
+
+  test('menu item clears the unsaved indicator of a request with scripts, docs and an example', async ({ page }) => {
+    await test.step('Add a request file with tags, tests, settings, docs and an example', async () => {
+      fs.writeFileSync(path.join(collectionsDir, firstCollection, 'rich-request.yml'), richRequestFile);
+      await openRequest(page, firstCollection, 'rich-request', { persist: true });
+    });
+
+    await test.step('Rename its example without saving', async () => {
+      await openExampleFromSidebar(page, 'rich-request', 'rich-example');
+      await page.getByTestId('response-example-edit-btn').click();
+      await page.getByTestId('response-example-name-input').fill('rich-example-renamed');
+      await expect(buildCommonLocators(page).tabs.draftIndicator()).toBeVisible();
+    });
+
+    await test.step('Save all from the Collections menu', async () => {
+      await openCollectionsMenu(page);
+      await saveAllMenuItem(page).click();
+      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+    });
+
+    await test.step('The change is on disk and the tab is clean', async () => {
+      await expect.poll(() => readAllFiles(collectionsDir)).toContain('rich-example-renamed');
+      await expect(buildCommonLocators(page).tabs.draftIndicator()).not.toBeVisible();
+      await expect(page.getByTestId('response-example-save-btn')).not.toBeVisible();
+      await expect(page.getByTestId('response-example-edit-btn')).toBeVisible();
+    });
+  });
+
+  test('shortcut saves an example edit while focus is in the example name field', async ({ page }) => {
+    await test.step('Create an example and rename it, keeping focus in the name field', async () => {
+      await createExampleFromSidebar(page, 'req-one', 'example-created');
+      await expect.poll(() => readAllFiles(collectionsDir)).toContain('example-created');
+      const nameInput = page.getByTestId('response-example-name-input');
+      await nameInput.fill('example-renamed-by-shortcut');
+      await expect(nameInput).toBeFocused();
+    });
+
+    await test.step('Press the workspace save-all shortcut', async () => {
+      await page.keyboard.press(`${modifier}+Alt+KeyS`);
+      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await expect.poll(() => readAllFiles(collectionsDir)).toContain('example-renamed-by-shortcut');
+      await expect(page.getByTestId('response-example-save-btn')).not.toBeVisible();
     });
   });
 

@@ -454,12 +454,21 @@ export const saveAllWorkspaceDrafts = () => async (dispatch, getState) => {
   }
   if (requestDrafts.length > 0) {
     saves.push(
-      dispatch(saveMultipleRequests(requestDrafts)).catch((err) => {
-        if (err?.name === 'ValidationError') {
-          toast.error(err.message);
-        }
-        throw err;
-      })
+      dispatch(saveMultipleRequests(requestDrafts))
+        .then(() => {
+          requestDrafts.forEach((draft) => {
+            dispatch(_saveRequest({ itemUid: draft.uid, collectionUid: draft.collectionUid }));
+          });
+          window.dispatchEvent(new CustomEvent('workspace-requests-saved', {
+            detail: { itemUids: requestDrafts.map((draft) => draft.uid) }
+          }));
+        })
+        .catch((err) => {
+          if (err?.name === 'ValidationError') {
+            toast.error(err.message);
+          }
+          throw err;
+        })
     );
   }
   environmentDrafts.forEach(({ variables, environmentUid, collectionUid }) => {

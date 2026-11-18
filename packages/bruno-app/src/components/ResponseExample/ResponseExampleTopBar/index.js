@@ -113,7 +113,7 @@ const ResponseExampleTopBar = ({
                     type="text"
                     value={example?.name || ''}
                     onChange={handleNameChange}
-                    className="example-input example-input-name"
+                    className="example-input example-input-name mousetrap"
                     placeholder="Enter example name"
                     autoFocus
                     data-testid="response-example-name-input"
@@ -123,7 +123,7 @@ const ResponseExampleTopBar = ({
                   <textarea
                     value={example?.description || ''}
                     onChange={handleDescriptionChange}
-                    className="example-input example-input-description"
+                    className="example-input example-input-description mousetrap"
                     placeholder="Enter example description"
                     rows={3}
                     data-testid="response-example-description-input"

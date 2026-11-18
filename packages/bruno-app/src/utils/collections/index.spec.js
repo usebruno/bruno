@@ -1356,6 +1356,25 @@ describe('getWorkspaceDrafts', () => {
     expect(Object.values(drafts).flat()).toEqual([]);
   });
 
+  it('counts a request whose only unsaved change is in an example', () => {
+    const withExamples = (examples, draftExamples) => ({
+      ...request('with-example'),
+      examples,
+      draft: { ...request('with-example'), draft: undefined, examples: draftExamples }
+    });
+    const savedExample = { uid: 'ex1', name: 'Created', status: 200 };
+    const draftsFor = (item) =>
+      getWorkspaceDrafts({
+        collections: [{ uid: 'c8', pathname: '/dev/one', items: [item] }],
+        workspaces,
+        activeWorkspace
+      }).requestDrafts.map((draft) => draft.uid);
+
+    expect(draftsFor(withExamples([savedExample], [{ ...savedExample, name: 'Renamed' }]))).toEqual(['with-example']);
+    expect(draftsFor(withExamples([savedExample], []))).toEqual(['with-example']);
+    expect(draftsFor(withExamples([savedExample], [{ ...savedExample }]))).toEqual([]);
+  });
+
   it('reports whether the active workspace has anything to save', () => {
     const cleanCollection = { uid: 'c6', pathname: '/dev/one', items: [request('r6'), request('t6', { isTransient: true })] };
 

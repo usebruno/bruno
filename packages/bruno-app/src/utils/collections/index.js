@@ -2588,6 +2588,18 @@ export const getWorkspaceCollections = ({ collections = [], workspaces = [], act
   });
 };
 
+const hasAnyExampleChanges = (item) => {
+  if (!item.draft) {
+    return false;
+  }
+
+  const savedExamples = item.examples || [];
+  const draftExamples = item.draft.examples || [];
+
+  return savedExamples.length !== draftExamples.length
+    || savedExamples.some((example) => hasExampleChanges(item, example.uid));
+};
+
 export const getWorkspaceDrafts = ({ collections = [], workspaces = [], activeWorkspace = null }) => {
   const drafts = {
     collectionDrafts: [],
@@ -2601,7 +2613,7 @@ export const getWorkspaceDrafts = ({ collections = [], workspaces = [], activeWo
     const collectionUid = collection.uid;
 
     flattenItems(collection.items).forEach((item) => {
-      if (!isItemARequest(item) || !hasRequestChanges(item)) {
+      if (!isItemARequest(item) || !(hasRequestChanges(item) || hasAnyExampleChanges(item))) {
         return;
       }
 
