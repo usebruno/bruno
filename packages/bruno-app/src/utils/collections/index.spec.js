@@ -1375,6 +1375,25 @@ describe('getWorkspaceDrafts', () => {
     expect(draftsFor(withExamples([savedExample], [{ ...savedExample }]))).toEqual([]);
   });
 
+  it('counts an edited standalone app', () => {
+    const app = (code, draftCode) => ({
+      uid: 'app1',
+      name: 'app1',
+      type: 'app',
+      app: { code },
+      draft: draftCode === undefined ? null : { uid: 'app1', name: 'app1', type: 'app', app: { code: draftCode } }
+    });
+    const draftsFor = (item) =>
+      getWorkspaceDrafts({
+        collections: [{ uid: 'c9', pathname: '/dev/one', items: [item] }],
+        workspaces,
+        activeWorkspace
+      }).requestDrafts.map((draft) => draft.uid);
+
+    expect(draftsFor(app('<p>one</p>', '<p>two</p>'))).toEqual(['app1']);
+    expect(draftsFor(app('<p>one</p>'))).toEqual([]);
+  });
+
   it('reports whether the active workspace has anything to save', () => {
     const cleanCollection = { uid: 'c6', pathname: '/dev/one', items: [request('r6'), request('t6', { isTransient: true })] };
 

@@ -4,6 +4,7 @@ import { test, expect, Page } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
+  createApp,
   createCollection,
   createExampleFromSidebar,
   createRequest,
@@ -11,7 +12,8 @@ import {
   fillRequestUrl,
   openExampleFromSidebar,
   openRequest,
-  saveTransientViaModal
+  saveTransientViaModal,
+  selectAppView
 } from '../../utils/page';
 
 const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
@@ -213,6 +215,29 @@ test.describe('Save all across the workspace', () => {
       await expect(buildCommonLocators(page).tabs.draftIndicator()).not.toBeVisible();
       await expect(page.getByTestId('response-example-save-btn')).not.toBeVisible();
       await expect(page.getByTestId('response-example-edit-btn')).toBeVisible();
+    });
+  });
+
+  test('menu item saves an edited app', async ({ page }) => {
+    await test.step('Create an app and edit its code without saving', async () => {
+      await createApp(page, 'save-all-app', { collectionName: firstCollection });
+      await selectAppView(page, 'code');
+      const editor = page.getByTestId('collection-app-code').locator('.CodeMirror').first();
+      await editor.waitFor({ state: 'visible' });
+      await editor.evaluate((el) => (el as any).CodeMirror.setValue('<p>save-all-app-code</p>'));
+      await expect(buildCommonLocators(page).tabs.draftIndicator()).toBeVisible();
+    });
+
+    await test.step('Save all from the Collections menu', async () => {
+      await openCollectionsMenu(page);
+      await expect(saveAllMenuItem(page)).not.toHaveAttribute('aria-disabled', 'true');
+      await saveAllMenuItem(page).click();
+      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+    });
+
+    await test.step('The app code is on disk and the tab is clean', async () => {
+      await expect.poll(() => readAllFiles(collectionsDir)).toContain('save-all-app-code');
+      await expect(buildCommonLocators(page).tabs.draftIndicator()).not.toBeVisible();
     });
   });
 

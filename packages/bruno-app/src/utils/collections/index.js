@@ -2613,7 +2613,8 @@ export const getWorkspaceDrafts = ({ collections = [], workspaces = [], activeWo
     const collectionUid = collection.uid;
 
     flattenItems(collection.items).forEach((item) => {
-      if (!isItemARequest(item) || !(hasRequestChanges(item) || hasAnyExampleChanges(item))) {
+      const isSavableItem = isItemARequest(item) || item.type === 'app';
+      if (!isSavableItem || !(hasRequestChanges(item) || hasAnyExampleChanges(item))) {
         return;
       }
 
