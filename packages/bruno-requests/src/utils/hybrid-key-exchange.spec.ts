@@ -240,6 +240,7 @@ describe('withHybridKeyExchangeFallback', () => {
 
     // Mirrors socks-proxy-agent 8.0.5: TLS errors destroy `req` before the hybrid wrapper sees them.
     class SocksLikeAgent {
+      static protocols = ['socks', 'socks5'] as const;
       offeredCurves: (string | undefined)[] = [];
       receivedRequests: any[] = [];
 
@@ -261,6 +262,44 @@ describe('withHybridKeyExchangeFallback', () => {
     expect(request.destroyed).toBe(false);
     expect(agent.offeredCurves).toEqual([undefined, HYBRID_ECDH_CURVE]);
     expect(agent.receivedRequests.every((attemptReq: any) => attemptReq !== request)).toBe(true);
+  });
+
+  it('retries an HTTPS proxy TLS failure with the real request so CONNECT can resume', async () => {
+    setSupportsHybridAdvertiseWithoutShareForTests(false);
+
+    // Mirrors https-proxy-agent: resume the tunneled socket when the request emits `socket`.
+    class HttpsProxyLikeAgent {
+      static protocols = ['http', 'https'] as const;
+      offeredCurves: (string | undefined)[] = [];
+      receivedRequests: any[] = [];
+      resumedSockets: TLSSocket[] = [];
+
+      async connect(req: any, options: { ecdhCurve?: string; secureEndpoint?: boolean }) {
+        this.offeredCurves.push(options.ecdhCurve);
+        this.receivedRequests.push(req);
+        const socket = fakeTlsSocket(options.ecdhCurve ? 'secure' : handshakeFailure);
+        const resume = (attached: TLSSocket) => {
+          this.resumedSockets.push(attached);
+          attached.resume?.();
+        };
+        req.once('socket', resume);
+        return socket;
+      }
+    }
+
+    const Agent = withHybridKeyExchangeFallback(HttpsProxyLikeAgent) as any;
+    const agent = new Agent();
+    const request = fakeRequest();
+
+    const socket = await agent.connect(request, { host: 'pq.example.com', port: 443, secureEndpoint: true });
+    request.emit('socket', socket);
+
+    expect(request.destroyed).toBe(false);
+    expect(agent.offeredCurves).toEqual([undefined, HYBRID_ECDH_CURVE]);
+    expect(agent.receivedRequests).toEqual([request, request]);
+    // Both CONNECT attempts register a resume listener; both fire for the handed-off socket.
+    expect(agent.resumedSockets.length).toBeGreaterThan(0);
+    expect(agent.resumedSockets.every((resumed: TLSSocket) => resumed === socket)).toBe(true);
   });
 
   it('destroys a pending SOCKS handshake when the request is cancelled', async () => {

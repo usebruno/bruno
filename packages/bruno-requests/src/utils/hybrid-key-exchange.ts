@@ -53,7 +53,18 @@ const isEstablishedTlsSocket = (socket: TLSSocket): boolean => socket instanceof
 const cancellationError = (): Error => Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' });
 
 // socks-proxy-agent destroys `req` on TLS failure; a no-op stand-in keeps the real request alive for retry.
+// https-proxy-agent must keep the real `req`: it resumes the CONNECT socket on `req`'s `socket` event.
 const tlsAttemptRequest = { destroy() {} };
+
+const agentDestroysRequestOnTlsError = (agent: object): boolean => {
+  for (let proto = Object.getPrototypeOf(agent); proto && proto !== Object.prototype; proto = Object.getPrototypeOf(proto)) {
+    const protocols = (proto.constructor as { protocols?: readonly string[] } | undefined)?.protocols;
+    if (Array.isArray(protocols) && protocols.some((protocol) => protocol.startsWith('socks'))) {
+      return true;
+    }
+  }
+  return false;
+};
 
 const watchRequestCancellation = (request: any, onCancel: () => void): (() => void) => {
   if (!request) {
@@ -240,11 +251,12 @@ function withHybridKeyExchangeFallback<T>(BaseAgentClass: T): T {
         return super.connect(req, options);
       }
 
-      // Pass a stand-in so socks-proxy-agent's TLS-error cleanup cannot destroy the real request
-      // before we retry; cancellation still watches the real `req`.
+      // SOCKS: stand-in so TLS-error cleanup cannot destroy the real request before we retry.
+      // HTTPS proxy: real `req` so https-proxy-agent can resume the CONNECT socket on `socket`.
+      const attemptReq = agentDestroysRequestOnTlsError(this) ? tlsAttemptRequest : req;
       return this.connectWithFallback(
         options,
-        (ecdhCurve) => super.connect(tlsAttemptRequest, withEcdhCurve(options, ecdhCurve)),
+        (ecdhCurve) => super.connect(attemptReq, withEcdhCurve(options, ecdhCurve)),
         req
       );
     }
