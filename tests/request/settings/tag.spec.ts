@@ -33,7 +33,7 @@ test.describe('Request tags', () => {
     });
 
     await addRequestTag(page, TAG_NAME);
-    await expect(settings.tagChip()).toContainText(TAG_NAME);
+    await expect(settings.addedTagChip()).toContainText(TAG_NAME);
 
     await saveRequest(page);
 
@@ -42,7 +42,7 @@ test.describe('Request tags', () => {
       await tabs.closeTab(REQUEST_NAME).click();
       await sidebar.request(REQUEST_NAME).click();
       await selectRequestPaneTab(page, 'Settings');
-      await expect(settings.tagChip()).toContainText(TAG_NAME);
+      await expect(settings.addedTagChip()).toContainText(TAG_NAME);
     });
   });
 });

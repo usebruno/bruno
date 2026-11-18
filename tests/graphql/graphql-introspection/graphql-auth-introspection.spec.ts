@@ -21,6 +21,7 @@ import {
   loadGraphqlSchemaFromIntrospection,
   openCollectionFromDialog,
   openGraphqlQueryBuilder,
+  selectGraphqlRequestTab,
   openRequest,
   readGraphqlAuthField,
   saveEnvironment,
@@ -89,8 +90,8 @@ test.describe('GraphQL introspection with interpolated API Key auth', () => {
       addTo: apiKeyPlacement.header
     });
     await test.step('Confirm API Key auth uses the interpolated header name and value', async () => {
-      await expect.poll(() => readGraphqlAuthField(page, authField.key)).toBe('{{apiKeyHeader}}');
-      await expect.poll(() => readGraphqlAuthField(page, authField.value)).toBe('{{apiKey}}');
+      expect(await readGraphqlAuthField(page, authField.key)).toBe('{{apiKeyHeader}}');
+      expect(await readGraphqlAuthField(page, authField.value)).toBe('{{apiKey}}');
       await expect(gql.placementLabel()).toHaveText(apiKeyPlacement.header);
     });
 
@@ -110,6 +111,7 @@ test.describe('GraphQL introspection with interpolated API Key auth', () => {
       await expect(timeline.headerValue(timelineItem, 'x-api-key')).toHaveText('dummy-api-key-12345');
     });
 
+    await selectGraphqlRequestTab(page, 'query');
     await openGraphqlQueryBuilder(page);
     await expect(gql.queryBuilder()).toBeVisible();
     await loadGraphqlSchemaFromIntrospection(page);
@@ -124,7 +126,7 @@ test.describe('GraphQL introspection with interpolated API Key auth', () => {
       await expect(gql.fieldName()).toContainText('countries');
     });
 
-    await expandGraphqlSchemaField(page, 'country');
+    await expandGraphqlSchemaField(page, 'Query.country');
     await test.step('Verify the country fields', async () => {
       for (const fieldName of COUNTRY_FIELDS) {
         await expect(gql.fieldName()).toContainText(fieldName);
@@ -158,12 +160,13 @@ test.describe('GraphQL introspection with interpolated OAuth 2.0 auth', () => {
     await test.step('Confirm OAuth 2.0 uses the interpolated client id and secret', async () => {
       await expect(gql.authModeLabel()).toContainText('OAuth 2.0');
       await expect(auth.oauth2.grantTypeDropdown()).toContainText(oauthGrantType.clientCredentials);
-      await expect.poll(() => readGraphqlAuthField(page, oauthField.clientId)).toBe('{{clientId}}');
-      await expect.poll(() => readGraphqlAuthField(page, oauthField.clientSecret)).toBe('{{clientSecret}}');
+      expect(await readGraphqlAuthField(page, oauthField.clientId)).toBe('{{clientId}}');
+      expect(await readGraphqlAuthField(page, oauthField.clientSecret)).toBe('{{clientSecret}}');
     });
 
     await saveRequest(page);
     await sendRequest(page);
+    await selectGraphqlRequestTab(page, 'query');
     await openGraphqlQueryBuilder(page);
     await loadGraphqlSchemaFromIntrospection(page);
   });
@@ -192,12 +195,13 @@ test.describe('GraphQL introspection with interpolated Digest auth', () => {
     });
     await test.step('Confirm Digest auth uses the interpolated username and password', async () => {
       await expect(gql.authModeLabel()).toContainText('Digest Auth');
-      await expect.poll(() => readGraphqlAuthField(page, digestField.username)).toBe('{{digestUsername}}');
-      await expect.poll(() => readGraphqlAuthField(page, digestField.password)).toBe('{{digestPassword}}');
+      expect(await readGraphqlAuthField(page, digestField.username)).toBe('{{digestUsername}}');
+      expect(await readGraphqlAuthField(page, digestField.password)).toBe('{{digestPassword}}');
     });
 
     await saveRequest(page);
     await sendRequest(page);
+    await selectGraphqlRequestTab(page, 'query');
     await openGraphqlQueryBuilder(page);
     await loadGraphqlSchemaFromIntrospection(page);
   });
@@ -224,7 +228,7 @@ test.describe('GraphQL introspection with interpolated Bearer Token auth', () =>
     });
     await test.step('Confirm Bearer Token auth uses the interpolated token', async () => {
       await expect(gql.authModeLabel()).toContainText('Bearer Token');
-      await expect.poll(() => readGraphqlAuthField(page, bearerField.token)).toBe('{{bearerToken}}');
+      expect(await readGraphqlAuthField(page, bearerField.token)).toBe('{{bearerToken}}');
     });
 
     await saveRequest(page);
@@ -236,6 +240,7 @@ test.describe('GraphQL introspection with interpolated Bearer Token auth', () =>
       await expect(timeline.headerValue(timelineItem, 'Authorization')).toHaveText(`Bearer ${BEARER_TOKEN}`);
     });
 
+    await selectGraphqlRequestTab(page, 'query');
     await openGraphqlQueryBuilder(page);
     await loadGraphqlSchemaFromIntrospection(page);
   });
@@ -266,8 +271,8 @@ test.describe('GraphQL introspection with interpolated Basic auth', () => {
     });
     await test.step('Confirm Basic auth uses the interpolated username and password', async () => {
       await expect(gql.authModeLabel()).toContainText('Basic Auth');
-      await expect.poll(() => readGraphqlAuthField(page, basicField.username)).toBe('{{basicUsername}}');
-      await expect.poll(() => readGraphqlAuthField(page, basicField.password)).toBe('{{basicPassword}}');
+      expect(await readGraphqlAuthField(page, basicField.username)).toBe('{{basicUsername}}');
+      expect(await readGraphqlAuthField(page, basicField.password)).toBe('{{basicPassword}}');
     });
 
     await saveRequest(page);
@@ -279,6 +284,7 @@ test.describe('GraphQL introspection with interpolated Basic auth', () => {
       await expect(timeline.headerValue(timelineItem, 'Authorization')).toHaveText(BASIC_AUTHORIZATION);
     });
 
+    await selectGraphqlRequestTab(page, 'query');
     await openGraphqlQueryBuilder(page);
     await loadGraphqlSchemaFromIntrospection(page);
   });

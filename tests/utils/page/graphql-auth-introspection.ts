@@ -1,9 +1,9 @@
 import { expect, Locator, Page, test } from '../../../playwright';
 
-const graphqlRequestTab = {
-  query: 'query',
-  auth: 'auth'
-};
+const graphqlTabLabel = {
+  query: 'Query',
+  auth: 'Auth'
+} as const;
 
 export const apiKeyPlacement = {
   header: 'Header',
@@ -40,15 +40,14 @@ export const buildGraphqlAuthIntrospectionLocators = (page: Page) => ({
   placementLabel: () => page.getByTestId('auth-placement-label'),
   placementOption: (placement: string) =>
     page.getByTestId('auth-placement-selector').locator('.dropdown-item').getByText(placement, { exact: true }),
-  showQueryBuilderButton: () => requestPane(page).getByTestId('graphql-show-query-builder'),
-  moreActionsButton: () => requestPane(page).getByTestId('graphql-more-actions'),
+  moreActionsButton: () => requestPane(page).getByTestId('graphql-query-actions'),
   introspectionMenuItem: () => page.getByTestId('menu-dropdown-schema-introspection'),
   queryBuilder: () => page.getByTestId('graphql-load-from-introspection').or(page.getByTestId('query-builder-search')),
   loadFromIntrospectionButton: () => requestPane(page).getByTestId('graphql-load-from-introspection'),
   schemaLoadedToast: () => page.getByRole('status').getByText('GraphQL Schema loaded successfully'),
   queryBuilderTree: () => page.getByTestId('query-builder-tree').getByRole('treeitem').first(),
   rootType: () => requestPane(page).getByTestId(/^query-builder-root-/),
-  field: (name: string) => requestPane(page).getByTestId(`query-builder-field-${name}`),
+  field: (path: string) => requestPane(page).getByTestId(`query-builder-field-${path}`),
   fieldName: () => requestPane(page).getByTestId('query-builder-tree')
 });
 
@@ -64,12 +63,12 @@ const writeCodeMirrorValue = async (editor: Locator, value: string) => {
   }, value);
 };
 
-const selectGraphqlRequestTab = async (page: Page, key: string) => {
-  const gql = buildGraphqlAuthIntrospectionLocators(page);
-  const tab = gql.requestTab(key);
+/** Switch the open GraphQL request to its Query or Auth tab and check the tab is active. */
+export const selectGraphqlRequestTab = async (page: Page, key: keyof typeof graphqlTabLabel) => {
+  const tab = buildGraphqlAuthIntrospectionLocators(page).requestTab(key);
 
   await tab.click();
-  await expect(tab).toHaveText(key === graphqlRequestTab.query ? 'Query' : 'Auth');
+  await expect(tab).toHaveText(graphqlTabLabel[key]);
 };
 
 /**
@@ -79,7 +78,7 @@ const selectGraphqlRequestTab = async (page: Page, key: string) => {
  */
 export const setGraphqlQuery = async (page: Page, query: string) => {
   await test.step('Set the GraphQL query', async () => {
-    await selectGraphqlRequestTab(page, graphqlRequestTab.query);
+    await selectGraphqlRequestTab(page, 'query');
     await writeCodeMirrorValue(buildGraphqlAuthIntrospectionLocators(page).queryEditor(), query);
   });
 };
@@ -87,20 +86,20 @@ export const setGraphqlQuery = async (page: Page, query: string) => {
 /**
  * Open the variables pane if needed and replace the GraphQL variables.
  * @param page - The page object
- * @param variables - The variables JSON to write
+ * @param variablesJson - The variables document as JSON text. The editor stores text, not an object.
  */
-export const setGraphqlVariables = async (page: Page, variables: string) => {
+export const setGraphqlVariables = async (page: Page, variablesJson: string) => {
   await test.step('Set the GraphQL variables', async () => {
-    await selectGraphqlRequestTab(page, graphqlRequestTab.query);
+    await selectGraphqlRequestTab(page, 'query');
     const gql = buildGraphqlAuthIntrospectionLocators(page);
     const editor = gql.variablesEditor();
     if (await editor.isVisible()) {
-      await writeCodeMirrorValue(editor, variables);
+      await writeCodeMirrorValue(editor, variablesJson);
       return;
     }
     await gql.variablesHeader().click();
     await editor.waitFor({ state: 'visible' });
-    await writeCodeMirrorValue(editor, variables);
+    await writeCodeMirrorValue(editor, variablesJson);
   });
 };
 
@@ -131,7 +130,7 @@ export const readGraphqlVariables = async (page: Page): Promise<string> => {
  */
 export const configureGraphqlApiKeyAuth = async (page: Page, auth: GraphqlApiKeyAuth) => {
   await test.step(`Configure API Key auth added to ${auth.addTo}`, async () => {
-    await selectGraphqlRequestTab(page, graphqlRequestTab.auth);
+    await selectGraphqlRequestTab(page, 'auth');
     const gql = buildGraphqlAuthIntrospectionLocators(page);
 
     await gql.authModeLabel().click();
@@ -175,7 +174,7 @@ export type GraphqlOAuth2ClientCredentials = {
  */
 export const configureGraphqlOAuth2ClientCredentials = async (page: Page, auth: GraphqlOAuth2ClientCredentials) => {
   await test.step('Configure OAuth 2.0 Client Credentials auth', async () => {
-    await selectGraphqlRequestTab(page, graphqlRequestTab.auth);
+    await selectGraphqlRequestTab(page, 'auth');
     const gql = buildGraphqlAuthIntrospectionLocators(page);
     const grantType = page.getByTestId('grant-type-dropdown');
 
@@ -212,7 +211,7 @@ export type GraphqlDigestAuth = {
  */
 export const configureGraphqlDigestAuth = async (page: Page, auth: GraphqlDigestAuth) => {
   await test.step('Configure Digest auth', async () => {
-    await selectGraphqlRequestTab(page, graphqlRequestTab.auth);
+    await selectGraphqlRequestTab(page, 'auth');
     const gql = buildGraphqlAuthIntrospectionLocators(page);
 
     await gql.authModeLabel().click();
@@ -241,7 +240,7 @@ export type GraphqlBearerAuth = {
  */
 export const configureGraphqlBearerAuth = async (page: Page, auth: GraphqlBearerAuth) => {
   await test.step('Configure Bearer Token auth', async () => {
-    await selectGraphqlRequestTab(page, graphqlRequestTab.auth);
+    await selectGraphqlRequestTab(page, 'auth');
     const gql = buildGraphqlAuthIntrospectionLocators(page);
 
     await gql.authModeLabel().click();
@@ -271,7 +270,7 @@ export type GraphqlBasicAuth = {
  */
 export const configureGraphqlBasicAuth = async (page: Page, auth: GraphqlBasicAuth) => {
   await test.step('Configure Basic auth', async () => {
-    await selectGraphqlRequestTab(page, graphqlRequestTab.auth);
+    await selectGraphqlRequestTab(page, 'auth');
     const gql = buildGraphqlAuthIntrospectionLocators(page);
 
     await gql.authModeLabel().click();
@@ -281,22 +280,6 @@ export const configureGraphqlBasicAuth = async (page: Page, auth: GraphqlBasicAu
     await username.waitFor({ state: 'visible' });
     await writeCodeMirrorValue(username, auth.username);
     await writeCodeMirrorValue(gql.authFieldEditor(basicField.password), auth.password);
-  });
-};
-
-/**
- * Show the Query Builder for the open GraphQL request.
- * @param page - The page object
- */
-export const openGraphqlQueryBuilder = async (page: Page) => {
-  await test.step('Open the Query Builder', async () => {
-    await selectGraphqlRequestTab(page, graphqlRequestTab.query);
-    const gql = buildGraphqlAuthIntrospectionLocators(page);
-    const showButton = gql.showQueryBuilderButton();
-    if (await showButton.isVisible()) {
-      await showButton.click();
-    }
-    await gql.queryBuilder().waitFor({ state: 'visible' });
   });
 };
 
@@ -326,11 +309,12 @@ export const loadGraphqlSchemaFromIntrospection = async (page: Page) => {
 /**
  * Expand a Query Builder field. A click on an open row collapses it, so an already open row is left as it is.
  * @param page - The page object
- * @param fieldName - The schema field to expand
+ * @param fieldPath - The schema path of the field, e.g. `Query.country`
  */
-export const expandGraphqlSchemaField = async (page: Page, fieldName: string) => {
-  await test.step(`Expand schema field "${fieldName}"`, async () => {
-    const field = buildGraphqlAuthIntrospectionLocators(page).field(fieldName);
+export const expandGraphqlSchemaField = async (page: Page, fieldPath: string) => {
+  const fieldName = fieldPath.split('.').pop() ?? fieldPath;
+  await test.step(`Expand schema field "${fieldPath}"`, async () => {
+    const field = buildGraphqlAuthIntrospectionLocators(page).field(fieldPath);
     await field.waitFor({ state: 'visible' });
 
     if ((await field.getAttribute('aria-expanded')) === 'true') {

@@ -30,7 +30,7 @@ export const buildRunnerLocators = (page: Page) => ({
   selectAllButton: () => page.getByTestId('runner-select-all'),
   configResetButton: () => page.getByTestId('runner-config-reset'),
   requestItems: () => page.getByTestId('runner-request-item'),
-  requestItemNames: () => page.getByTestId('runner-request-item-name'),
+  getRequestItemNameList: () => page.getByTestId('runner-request-item-name'),
   requestItem: (name: string) => getRequestItemByName(page, name),
   requestDragHandle: (name: string) => getRequestItemByName(page, name).getByTestId('runner-request-drag-handle'),
   delayInput: () => page.getByTestId('runner-delay-input'),
@@ -174,7 +174,7 @@ export const runnerConfigItem = (page: Page, requestName: string): Locator =>
  * @returns The request names in their configured order
  */
 export const getRunnerConfigOrder = async (page: Page): Promise<string[]> => {
-  return await buildRunnerLocators(page).requestItemNames().allInnerTexts();
+  return await buildRunnerLocators(page).getRequestItemNameList().allInnerTexts();
 };
 
 /**
@@ -214,7 +214,7 @@ export const dragRunnerConfigItem = async (
  * @returns void
  */
 export const expectRunnerConfigOrder = async (page: Page, names: string[]) => {
-  await expect(buildRunnerLocators(page).requestItemNames()).toHaveText(names);
+  await expect(buildRunnerLocators(page).getRequestItemNameList()).toHaveText(names);
 };
 
 /**

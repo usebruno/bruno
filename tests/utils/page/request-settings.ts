@@ -15,7 +15,7 @@ export const buildRequestSettingsLocators = (page: Page) => ({
   forwardAuthToggle: () => page.getByTestId('forward-auth-header-toggle'),
   maxRedirectsInput: () => page.locator('#maxRedirects'),
   tagsInput: () => page.getByTestId('tag-input').getByRole('textbox'),
-  tagChip: () => page.getByTestId('tag-chip')
+  addedTagChip: () => page.getByTestId('tag-chip')
 });
 
 /**
