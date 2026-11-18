@@ -121,21 +121,18 @@ describe('connectWithKeyExchangeFallback', () => {
     expect(connect.mock.calls[0]).toEqual([undefined]);
   });
 
-  it('forgets the least recently used endpoint once it remembers too many', async () => {
+  it('evicts the oldest remembered endpoint once the set is full', async () => {
     const connect = jest.fn((ecdhCurve?: string) => fakeTlsSocket(ecdhCurve ? 'secure' : handshakeFailure));
-    const hostAt = (index: number) => ({ host: `pq${index}.example.com`, port: 443 });
     for (let index = 0; index < MAX_HYBRID_KEY_EXCHANGE_ENDPOINTS; index++) {
-      await connectWithKeyExchangeFallback(hostAt(index), connect);
+      await connectWithKeyExchangeFallback({ host: `pq${index}.example.com`, port: 443 }, connect);
     }
-    // Using the oldest endpoint makes the second oldest the one to evict.
-    await connectWithKeyExchangeFallback(hostAt(0), connect);
-    await connectWithKeyExchangeFallback(hostAt(MAX_HYBRID_KEY_EXCHANGE_ENDPOINTS), connect);
+    await connectWithKeyExchangeFallback({ host: 'pq-overflow.example.com', port: 443 }, connect);
     connect.mockClear();
 
-    await connectWithKeyExchangeFallback(hostAt(0), connect);
-    await connectWithKeyExchangeFallback(hostAt(1), connect);
+    await connectWithKeyExchangeFallback({ host: 'pq0.example.com', port: 443 }, connect);
+    await connectWithKeyExchangeFallback({ host: 'pq-overflow.example.com', port: 443 }, connect);
 
-    expect(connect.mock.calls).toEqual([[HYBRID_ECDH_CURVE], [undefined], [HYBRID_ECDH_CURVE]]);
+    expect(connect.mock.calls).toEqual([[undefined], [HYBRID_ECDH_CURVE], [HYBRID_ECDH_CURVE]]);
   });
 
   it('forgets every endpoint when the agent cache is cleared', async () => {

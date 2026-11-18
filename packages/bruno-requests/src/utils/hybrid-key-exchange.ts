@@ -6,15 +6,14 @@ import { TLSSocket, type SecureContext } from 'node:tls';
 
 const HYBRID_ECDH_CURVE = 'X25519:X25519MLKEM768:P-256:P-384';
 
-// A handshake_failure alert. BoringSSL reports it as ERR_SSL_SSLV3_ALERT_HANDSHAKE_FAILURE, or as
-// EPROTO with the alert in the message when the failure surfaces on a write; OpenSSL reports it
-// as ERR_SSL_SSL/TLS_ALERT_HANDSHAKE_FAILURE.
+// BoringSSL: ERR_SSL_SSLV3_ALERT_HANDSHAKE_FAILURE, or EPROTO with the alert in the message.
+// OpenSSL: ERR_SSL_SSL/TLS_ALERT_HANDSHAKE_FAILURE.
 const HANDSHAKE_FAILURE_ALERT = 'ALERT_HANDSHAKE_FAILURE';
 
 const isHandshakeFailure = (error: any): boolean =>
   [error?.code, error?.message].some((value) => typeof value === 'string' && value.includes(HANDSHAKE_FAILURE_ALERT));
 
-// Servers that reject a large hybrid ClientHello may reset the connection before any TLS alert.
+// A large hybrid ClientHello may be dropped with a reset and no TLS alert.
 const isRetryableKeyExchangeError = (error: any, fromHybridAttempt: boolean): boolean =>
   isHandshakeFailure(error) || (fromHybridAttempt && error?.code === 'ECONNRESET');
 
@@ -22,54 +21,39 @@ const isEstablishedTlsSocket = (socket: TLSSocket): boolean => socket instanceof
 
 const isBoringSsl = (): boolean => Boolean(process.versions.electron);
 
+// Bounded by insertion order (FIFO). Cleared with the agent cache on SSL/proxy preference changes;
+// agent LRU eviction does not touch this set.
 const MAX_HYBRID_KEY_EXCHANGE_ENDPOINTS = 500;
 const hybridKeyExchangeEndpoints = new Set<string>();
 
-const touchHybridKeyExchangeEndpoint = (endpointKey: string): boolean => {
-  const remembered = hybridKeyExchangeEndpoints.delete(endpointKey);
-  hybridKeyExchangeEndpoints.add(endpointKey);
-  return remembered;
-};
+const endpointKey = (host: string, port: number | string | undefined): string => `${String(host).toLowerCase()}:${port}`;
 
-const usesHybridKeyExchange = (endpointKey: string): boolean =>
-  hybridKeyExchangeEndpoints.has(endpointKey) && touchHybridKeyExchangeEndpoint(endpointKey);
-
-const rememberHybridKeyExchange = (endpointKey: string): void => {
-  touchHybridKeyExchangeEndpoint(endpointKey);
+const rememberHybridEndpoint = (key: string): void => {
+  hybridKeyExchangeEndpoints.add(key);
   if (hybridKeyExchangeEndpoints.size > MAX_HYBRID_KEY_EXCHANGE_ENDPOINTS) {
     hybridKeyExchangeEndpoints.delete(hybridKeyExchangeEndpoints.values().next().value!);
   }
 };
 
-const getEndpointKey = (host: string, port: number | string | undefined): string => `${String(host).toLowerCase()}:${port}`;
+type ConnectWithEcdhCurve = (ecdhCurve: string | undefined) => TLSSocket | Promise<TLSSocket>;
 
-/**
- * Resolves with the socket once its TLS handshake completes, or rejects with its error. A socket
- * that isn't TLS (https-proxy-agent's stand-in for a refused CONNECT) resolves as is.
- */
 async function waitForHandshake(socket: TLSSocket): Promise<TLSSocket> {
+  // Non-TLS sockets (https-proxy-agent's stand-in for a refused CONNECT) pass through.
   if (socket instanceof TLSSocket) {
-    // Rejects with the socket's error if it fails first.
     await once(socket, 'secureConnect');
   }
   return socket;
 }
 
-type ConnectWithEcdhCurve = (ecdhCurve: string | undefined) => TLSSocket | Promise<TLSSocket>;
-
-/**
- * Opens a TLS connection with the setting remembered for the endpoint, and on a handshake
- * failure retries once with the other setting, remembering it if the retry succeeds.
- */
 async function connectWithKeyExchangeFallback(
   { host, port }: { host: string; port: number | string | undefined },
   connect: ConnectWithEcdhCurve,
   onRetry?: (offerHybrid: boolean) => void
 ): Promise<TLSSocket> {
-  const endpointKey = getEndpointKey(host, port);
+  const key = endpointKey(host, port);
   const attempt = async (offerHybrid: boolean) => waitForHandshake(await connect(offerHybrid ? HYBRID_ECDH_CURVE : undefined));
 
-  const offerHybrid = usesHybridKeyExchange(endpointKey);
+  const offerHybrid = hybridKeyExchangeEndpoints.has(key);
   try {
     return await attempt(offerHybrid);
   } catch (error) {
@@ -80,9 +64,9 @@ async function connectWithKeyExchangeFallback(
     const socket = await attempt(!offerHybrid);
     if (isEstablishedTlsSocket(socket)) {
       if (offerHybrid) {
-        hybridKeyExchangeEndpoints.delete(endpointKey);
+        hybridKeyExchangeEndpoints.delete(key);
       } else {
-        rememberHybridKeyExchange(endpointKey);
+        rememberHybridEndpoint(key);
       }
     }
     return socket;
@@ -97,10 +81,6 @@ function registerHybridSecureContext(secureContext: SecureContext, createHybridS
   hybridSecureContextFactories.set(secureContext, () => (hybridSecureContext ??= createHybridSecureContext(HYBRID_ECDH_CURVE)));
 }
 
-/**
- * Makes connection options carrying an `ecdhCurve` honor it when they also carry a registered
- * `secureContext`, by swapping in that context's hybrid twin.
- */
 function applyEcdhCurveToSecureContext<T extends { ecdhCurve?: string; secureContext?: SecureContext }>(options: T): T {
   const createHybridSecureContext = options.ecdhCurve && options.secureContext && hybridSecureContextFactories.get(options.secureContext);
   return createHybridSecureContext ? { ...options, secureContext: createHybridSecureContext() } : options;
