@@ -44,7 +44,7 @@ export const buildRequestLocators = (page: Page) => ({
     requestSectionRow: () => page.getByTestId('request-headers-section-row'),
     defaultRow: (name: string) => page.getByTestId(`default-header-row-${name.toLowerCase()}`),
     defaultValueScroller: (name: string) => page.getByTestId(`default-header-row-${name.toLowerCase()}`).getByTestId('column-value').locator('.CodeMirror-scroll'),
-    row: (name: string) => page.getByTestId(`request-header-row-${name.toLowerCase()}`),
+    requestRow: (name: string) => page.getByTestId(`request-header-row-${name.toLowerCase()}`),
     inheritedRow: (name: string) => page.getByTestId(`inherited-header-row-${name.toLowerCase()}`),
     inheritedSource: (name: string) => page.getByTestId(`inherited-header-source-${name.toLowerCase()}`),
     addRow: () => page.getByTestId('request-header-add-row'),

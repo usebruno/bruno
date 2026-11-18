@@ -41,7 +41,7 @@ test('TC-592: Verify the Link from Key/Value to Bulk Edit View for Request Heade
 
   await test.step('Add a header', async () => {
     await fillRequestHeaderName(page, headers.addRow(), checked.name);
-    await fillRequestHeaderValue(page, headers.row(checked.name), checked.value);
+    await fillRequestHeaderValue(page, headers.requestRow(checked.name), checked.value);
   });
 
   await test.step('Verify checked header defaults to enabled', async () => {
@@ -53,7 +53,7 @@ test('TC-592: Verify the Link from Key/Value to Bulk Edit View for Request Heade
 
   await test.step('Add a header with unchecked checkbox', async () => {
     await fillRequestHeaderName(page, headers.addRow(), unchecked.name);
-    await fillRequestHeaderValue(page, headers.row(unchecked.name), unchecked.value);
+    await fillRequestHeaderValue(page, headers.requestRow(unchecked.name), unchecked.value);
     await headers.checkbox(unchecked.name).uncheck();
   });
 
