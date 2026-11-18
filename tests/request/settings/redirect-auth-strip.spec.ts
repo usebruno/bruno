@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../../../playwright';
-import { selectResponsePaneTab } from '../../utils/page/actions';
+import { selectResponsePaneTab, sendRequest } from '../../utils/page/actions';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 const STRIP_MESSAGE
@@ -41,12 +41,9 @@ test.describe('Redirect Authorization Stripping E2E Tests', () => {
       await locators.sidebar.request('cross-origin-redirect-auth-strip').click();
     });
 
-    await test.step('Act - Send request', async () => {
-      await locators.request.sendButton().click();
-    });
+    await sendRequest(page);
 
     await test.step('Assert - Verify headers are stripped', async () => {
-      await expect(locators.response.statusCode()).toContainText('200', { timeout: 15000 });
       const fullText = await locators.response.previewContainer().innerText();
       expect(fullText).not.toContain('"authorization":');
       expect(fullText).not.toContain('"proxy-authorization":');
@@ -68,12 +65,9 @@ test.describe('Redirect Authorization Stripping E2E Tests', () => {
       await locators.sidebar.request('cross-origin-redirect-auth-forward').click();
     });
 
-    await test.step('Act - Send request', async () => {
-      await locators.request.sendButton().click();
-    });
+    await sendRequest(page);
 
     await test.step('Assert - Verify headers are preserved', async () => {
-      await expect(locators.response.statusCode()).toContainText('200', { timeout: 15000 });
       const fullText = await locators.response.previewContainer().innerText();
       expect(fullText).toContain('"authorization": "Bearer token-test"');
       expect(fullText).toContain('"proxy-authorization": "Bearer proxy-test"');
@@ -95,12 +89,9 @@ test.describe('Redirect Authorization Stripping E2E Tests', () => {
       await locators.sidebar.request('cross-origin-redirect-awsv4-strip').click();
     });
 
-    await test.step('Act - Send request', async () => {
-      await locators.request.sendButton().click();
-    });
+    await sendRequest(page);
 
     await test.step('Assert - Verify AWS headers are stripped', async () => {
-      await expect(locators.response.statusCode()).toContainText('200', { timeout: 15000 });
       const fullText = await locators.response.previewContainer().innerText();
       expect(fullText).not.toContain('"authorization":');
       expect(fullText).not.toContain('"x-amz-date":');
@@ -121,12 +112,9 @@ test.describe('Redirect Authorization Stripping E2E Tests', () => {
       await locators.sidebar.request('same-origin-redirect-auth').click();
     });
 
-    await test.step('Act - Send request', async () => {
-      await locators.request.sendButton().click();
-    });
+    await sendRequest(page);
 
     await test.step('Assert - Verify headers are still sent', async () => {
-      await expect(locators.response.statusCode()).toContainText('200', { timeout: 15000 });
       const fullText = await locators.response.previewContainer().innerText();
       expect(fullText).toContain('"authorization": "Bearer token-test"');
       expect(fullText).toContain('"proxy-authorization": "Bearer proxy-test"');

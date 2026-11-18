@@ -1,6 +1,7 @@
 import { Locator, Page } from '../../../playwright';
 import { buildApiSpecPanelLocators, buildApiSpecRowMenuLocators } from './openapi/render-spec';
 import { buildOpenApiSyncLocators } from './openapi/sync';
+import { buildMockServerLocators } from './mock-server';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
