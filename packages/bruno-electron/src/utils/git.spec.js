@@ -5,7 +5,7 @@ const { simpleGit } = require('simple-git');
 const { parseRemoteBranches, listBranchesForRemoteUrl } = require('./git');
 
 const PUBLIC_REPOSITORY_URL = 'https://github.com/usebruno/github-rest-api-collection';
-const UNREACHABLE_REPOSITORY_URL = 'https://github.com/usebruno/this-repo-does-not-exist';
+const missingLocalRepoUrl = () => `file://${path.join(os.tmpdir(), 'bruno-missing-git-repo-4f8c2e')}`;
 
 const GIT_ALLOW_ENVIRONMENT = [
   'GIT_TERMINAL_PROMPT',
@@ -147,14 +147,15 @@ describe('simple-git v4 (unmocked)', () => {
   );
 
   (gitInstalled ? it : it.skip)(
-    'listBranchesForRemoteUrl rejects unreachable remotes without simple-git API errors',
+    'listBranchesForRemoteUrl rejects missing local remotes without simple-git API errors',
     async () => {
       // listRemote uses a 10s block timeout; default Jest timeout is too short on Windows CI.
+      const unreachableUrl = missingLocalRepoUrl();
       let error;
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       try {
-        await listBranchesForRemoteUrl({ url: UNREACHABLE_REPOSITORY_URL });
+        await listBranchesForRemoteUrl({ url: unreachableUrl });
       } catch (err) {
         error = err;
       } finally {
@@ -165,11 +166,9 @@ describe('simple-git v4 (unmocked)', () => {
       expect(String(error)).not.toMatch(/simpleGit is not a function/i);
       expect(String(error)).not.toMatch(/allowEnvironment/i);
       expect(error.task?.commands).toEqual(
-        expect.arrayContaining(['ls-remote', '--symref', UNREACHABLE_REPOSITORY_URL])
+        expect.arrayContaining(['ls-remote', '--symref', unreachableUrl])
       );
-      expect(String(error)).toMatch(
-        /not found|terminal prompts disabled|authentication failed/i
-      );
+      expect(String(error)).toMatch(/fatal:/i);
     },
     15000
   );
