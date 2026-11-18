@@ -21,6 +21,7 @@ import {
   openEnvironmentConfigTab
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
+import { buildToastLocators } from '../utils/page/toast';
 import { SECRET_DATATYPE_CASES } from '../utils/constants';
 
 const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
@@ -212,6 +213,35 @@ test.describe('Variable Tooltip', () => {
       await expect(varInfoPopup.readonlyNote(tooltip)).toContainText('read-only');
       await expect(varInfoPopup.copyButton(tooltip)).toBeVisible();
       await expect(varInfoPopup.editorContainer(tooltip)).not.toBeVisible();
+    });
+  });
+
+  test('should show a single toast when creating a variable via the tooltip', async ({ page, createTmpDir }) => {
+    const { sidebar, request, varInfoPopup } = buildCommonLocators(page);
+    const toasts = buildToastLocators(page);
+
+    await test.step('Point a request URL at an undefined variable', async () => {
+      await createCollection(page, 'tooltip-toast', await createTmpDir('tooltip-toast'));
+      await createRequest(page, 'Fetch Posts', 'tooltip-toast');
+      await sidebar.request('Fetch Posts').click();
+      await setRequestUrlAndSave(page, 'https://example.com/{{apiKey}}');
+    });
+
+    await test.step('Give the undefined variable a value from the tooltip', async () => {
+      const tooltip = await openUrlVarTooltip(page, 'apiKey', 'invalid');
+      await varInfoPopup.editableValue(tooltip).click();
+      await expect(varInfoPopup.editor(tooltip)).toBeVisible();
+      await page.keyboard.type('secret-key-123');
+      await dismissVarTooltip(page);
+    });
+
+    await test.step('The variable resolves and exactly one toast reports it', async () => {
+      await expect(request.urlVariableToken('apiKey', 'valid')).toBeVisible();
+
+      await expect(async () => {
+        await expect(toasts.byMessage('Variable "apiKey" created')).toBeVisible({ timeout: 1000 });
+        await expect(toasts.all()).toHaveCount(1, { timeout: 1000 });
+      }).toPass({ timeout: 5000 });
     });
   });
 
@@ -619,7 +649,7 @@ test.describe('Variable Tooltip', () => {
       await varInfoPopup.addToToggle(tooltip).click();
       // Not enabled yet (no environment exists) — shown as an inline note, not a pickable option.
       await expect(varInfoPopup.addToOption(tooltip, 'environment')).toHaveCount(0);
-      await expect(varInfoPopup.addToNoEnvNote(tooltip, 'environment')).toContainText('No Collection Environment selected.');
+      await expect(varInfoPopup.addToNoEnvNote(tooltip, 'environment')).toContainText('No Collection Environment selected');
 
       await varInfoPopup.addToCreateEnvButton(tooltip, 'environment').click();
       await varInfoPopup.addToCreateEnvNameInput(tooltip).fill(envName);

@@ -3,12 +3,12 @@ import { IconCertificate, IconTrash, IconFile, IconX, IconUpload, IconPlus, Icon
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import StyledWrapper from './StyledWrapper';
+import SettingsHeader from '../SettingsHeader';
 import { useRef, useState } from 'react';
 import Modal from 'components/Modal';
 import path from 'utils/common/path';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning/index';
 import SingleLineEditor from 'components/SingleLineEditor/index';
-import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField/index';
 import { useTheme } from 'styled-components';
 import { useDispatch } from 'react-redux';
 import { updateCollectionClientCertificates } from 'providers/ReduxStore/slices/collections';
@@ -156,9 +156,6 @@ const ClientCertSettings = ({ collection }) => {
     }
   });
 
-  const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage } = isSensitive(formik.values.passphrase);
-
   const getFile = (e) => {
     const filePath = window?.ipcRenderer?.getFilePath(e?.files?.[0]);
     if (filePath) {
@@ -246,8 +243,7 @@ const ClientCertSettings = ({ collection }) => {
 
   return (
     <StyledWrapper className="w-full h-full">
-      <h1 className="font-medium text-[0.9375rem]">Client Certificates</h1>
-      <div className="text-xs mt-1 text-muted">Add client certificates to be used for specific domains.</div>
+      <SettingsHeader title="Client Certificates" description="Add client certificates to be used for specific domains." />
 
       <ListGroup
         className="mt-5"
@@ -265,7 +261,7 @@ const ClientCertSettings = ({ collection }) => {
           dataTestId: 'add-client-cert'
         }}
         footerActions={(
-          <Button type="button" size="sm" data-testid="client-cert-save-btn" onClick={handleSave}>
+          <Button type="button" size="base" data-testid="client-cert-save-btn" onClick={handleSave}>
             Save
           </Button>
         )}
@@ -443,7 +439,7 @@ const ClientCertSettings = ({ collection }) => {
                     isSecret={true}
                     variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
                   />
-                  {showWarning && <SensitiveFieldWarning fieldName="basic-password" warningMessage={warningMessage} />}
+                  <SensitiveFieldWarning fieldName="basic-password" secretName="passphrase" value={formik.values.passphrase} collection={collection} onReplaceValue={(val) => formik.setFieldValue('passphrase', val)} />
                 </div>
                 {formik.touched.passphrase && formik.errors.passphrase ? (
                   <div className="text-red-500 text-xs">{formik.errors.passphrase}</div>

@@ -17,6 +17,7 @@ const METADATA_READ_METHODS = [
   'has(key)',
   'has(key, value)',
   'all()',
+  'idx(index)',
   'count()',
   'indexOf(item)',
   'find(fn)',

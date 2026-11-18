@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials, mergeAuth } = require('../../utils/collection');
 const { getEffectiveTags, getOwnTags, getInheritedTagsFromTreePath } = require('@usebruno/common');
+const { buildHeaderEntries } = require('@usebruno/js');
 const path = require('node:path');
 const { isLargeFile } = require('../../utils/filesystem');
 
@@ -381,7 +382,6 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   const settings = item.draft?.settings ?? item.settings;
   const collectionRoot = collection?.draft?.root ? get(collection, 'draft.root', {}) : get(collection, 'root', {});
   const collectionPath = collection?.pathname;
-  const headers = {};
   let contentTypeDefined = false;
   let url = request.url;
 
@@ -400,28 +400,22 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     mergeVars(collection, request, requestTreePath);
     mergeAuth(collection, request, requestTreePath);
     request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
+    request.globalEnvironmentName = collection?.globalEnvironmentName;
     request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
     request.promptVariables = collection?.promptVariables || {};
   }
 
-  const disabledHeaders = [];
-  each(get(request, 'headers', []), (h) => {
-    if (h.enabled && h.name?.length > 0) {
-      headers[h.name] = h.value;
-      if (h.name.toLowerCase() === 'content-type') {
-        contentTypeDefined = true;
-      }
-    } else if (!h.enabled && h.name?.length > 0) {
-      disabledHeaders.push({ name: h.name, value: h.value });
-    }
-  });
+  const { headers, headerEntries } = buildHeaderEntries(get(request, 'headers', []));
+  if (Object.keys(headers).some((name) => name.toLowerCase() === 'content-type')) {
+    contentTypeDefined = true;
+  }
 
   let axiosRequest = {
     mode: request.body.mode,
     method: request.method,
     url,
     headers,
-    disabledHeaders,
+    headerEntries,
     name: item.name,
     pathname: item.pathname,
     tags: getEffectiveTags(getOwnTags(item), getInheritedTagsFromTreePath(requestTreePath)),
@@ -548,6 +542,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   axiosRequest.requestVariables = request.requestVariables;
   axiosRequest.promptVariables = request.promptVariables;
   axiosRequest.globalEnvironmentVariables = request.globalEnvironmentVariables;
+  axiosRequest.globalEnvironmentName = request.globalEnvironmentName;
   axiosRequest.oauth2CredentialVariables = request.oauth2CredentialVariables;
   axiosRequest.assertions = request.assertions;
   axiosRequest.oauth2Credentials = request.oauth2Credentials;

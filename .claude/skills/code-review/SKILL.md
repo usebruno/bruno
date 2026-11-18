@@ -77,7 +77,7 @@ Each file is a self-contained checklist for one lens:
 | `reviewers/react.md` | React — app files | `packages/bruno-app/**` |
 | `reviewers/cross-platform.md` | Cross-platform (macOS/Windows/Linux) | all files |
 | `reviewers/security.md` | Security & data safety | all source (excl. `tests/**`) |
-| `reviewers/dsl-changes.md` | On-disk DSL & serialization (backward compat) | `bruno-app`, `bruno-electron`, `bruno-cli`, `bruno-lang`, `bruno-filestore`, `bruno-schema(-types)`, `bruno-converters` |
+| `reviewers/dsl-changes.md` | On-disk DSL & serialization (backward compat) | `bruno-app`, `bruno-electron`, `bruno-cli`, `bruno-lang`, `bruno-filestore`, `bruno-io`, `bruno-schema(-types)`, `bruno-converters` |
 | `reviewers/feature-parity.md` | Co-related features & parity (app↔CLI, shim, converter, level, protocol twins) | `packages/**` |
 | `reviewers/e2e-tests.md` | Playwright E2E tests | `tests/**` |
 

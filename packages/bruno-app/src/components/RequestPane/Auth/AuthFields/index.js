@@ -10,8 +10,8 @@ import ApiKeyAuth from '../ApiKeyAuth';
 import EdgeGridAuth from '../EdgeGridAuth';
 import OAuth2 from '../OAuth2/index';
 
-const AuthFields = ({ authMode, collection, item, request, save, updateAuth, disabled }) => {
-  const authProps = { collection, item, request, save, updateAuth, disabled };
+const AuthFields = ({ authMode, collection, item, request, save, updateAuth, readOnly }) => {
+  const authProps = { collection, item, request, save, updateAuth, readOnly };
 
   switch (authMode) {
     case 'none': {

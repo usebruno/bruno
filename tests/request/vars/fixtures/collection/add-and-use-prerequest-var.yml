@@ -1,0 +1,9 @@
+info:
+  name: add-and-use-prerequest-var
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: '{{baseUrl}}'
+  auth: inherit

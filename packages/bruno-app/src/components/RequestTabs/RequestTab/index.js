@@ -629,7 +629,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     <StyledWrapper className="flex items-center justify-between tab-container px-2">
       {showConfirmClose && (
         <ConfirmRequestClose
-          item={item}
+          name={item.name}
+          type="request"
           onCancel={() => setShowConfirmClose(false)}
           onCloseWithoutSave={() => {
             isWS && closeWsConnection(item.uid);
@@ -675,6 +676,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       <div
         ref={tabLabelRef}
         className={`flex items-baseline tab-label ${tab.preview ? 'italic' : ''}`}
+        data-testid="request-tab-label"
         onContextMenu={handleRightClick}
         onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
         onMouseDown={handleMouseDown}

@@ -70,6 +70,41 @@ export const escapeHtml = (text) => {
 };
 
 /**
+ * Returns the byte length of the UTF-8 multi-byte character starting at `index`,
+ * or 0 if the bytes there are not a complete, well-formed multi-byte sequence before `end`
+ */
+const getUtf8SequenceLength = (buffer, index, end) => {
+  const byte = buffer[index];
+  let length;
+  if (byte >= 0xC2 && byte <= 0xDF) {
+    length = 2;
+  } else if (byte >= 0xE0 && byte <= 0xEF) {
+    length = 3;
+  } else if (byte >= 0xF0 && byte <= 0xF4) {
+    length = 4;
+  } else {
+    return 0;
+  }
+
+  if (index + length > end) return 0;
+
+  // Reject overlong encodings, UTF-16 surrogates and code points above U+10FFFF
+  const secondByte = buffer[index + 1];
+  if ((byte === 0xE0 && secondByte < 0xA0)
+    || (byte === 0xED && secondByte > 0x9F)
+    || (byte === 0xF0 && secondByte < 0x90)
+    || (byte === 0xF4 && secondByte > 0x8F)) {
+    return 0;
+  }
+
+  for (let j = 1; j < length; j++) {
+    // Continuation bytes are 10xxxxxx
+    if ((buffer[index + j] & 0xC0) !== 0x80) return 0;
+  }
+  return length;
+};
+
+/**
  * Helper to detect if buffer contains text data
  */
 const isLikelyText = (buffer) => {
@@ -85,6 +120,14 @@ const isLikelyText = (buffer) => {
       || byte === 0x0A // Line feed
       || byte === 0x0D) { // Carriage return
       textChars++;
+      continue;
+    }
+
+    // Non-ASCII characters (e.g. Chinese, Cyrillic, emoji) encoded as UTF-8 are text too
+    const sequenceLength = getUtf8SequenceLength(buffer, i, sampleSize);
+    if (sequenceLength > 0) {
+      textChars += sequenceLength;
+      i += sequenceLength - 1;
     }
   }
 

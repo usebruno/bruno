@@ -11,6 +11,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { queueWsMessage, ensureWsConnection } from 'utils/network/index';
 import { findCollectionByUid, findEnvironmentInCollection } from 'utils/collections/index';
 import toast from 'react-hot-toast';
+import { REQUEST_BODY_EDITOR_CLASS } from 'utils/common/constants';
 import WSRequestBodyMode from '../BodyMode/index';
 import StyledWrapper from './StyledWrapper';
 
@@ -261,7 +262,7 @@ export const SingleWSMessage = ({
       </div>
       {isExpanded && (
         <div
-          className="accordion-body"
+          className={`accordion-body ${REQUEST_BODY_EDITOR_CLASS}`}
           data-testid={`ws-message-body-${index}`}
           style={{ height: editorHeight }}
         >

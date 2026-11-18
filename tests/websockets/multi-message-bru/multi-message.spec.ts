@@ -1,12 +1,16 @@
 import { expect, test } from '../../../playwright';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { openRequest, saveRequest, closeAllCollections } from '../../utils/page/actions';
+import { disconnectWs } from '../../utils/page/websocket';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 
 const COLLECTION_NAME = 'ws-multi-message';
 const MULTI_MSG_REQ = 'ws-multi-msg';
 const SINGLE_MSG_REQ = 'ws-single-msg';
+const MULTI_JSON_REQ = 'ws-multi-json';
+const MULTI_XML_REQ = 'ws-multi-xml';
+const MULTI_TEXT_REQ = 'ws-multi-text';
 const MULTI_MSG_BRU_PATH = join(__dirname, 'fixtures/collection/ws-multi-msg.bru');
 const SINGLE_MSG_BRU_PATH = join(__dirname, 'fixtures/collection/ws-single-msg.bru');
 const MAX_CONNECTION_TIME = 3000;
@@ -151,7 +155,9 @@ test.describe.serial('websocket multi-message (bru format)', () => {
     await websocket.connectionControls.disconnect().click();
   });
 
-  test('selecting a different message routes run-button to that message', async ({ pageWithUserData: page }) => {
+  test('TC-8656: selecting a different message routes run-button to that message', { tag: '@sanity' }, async ({
+    pageWithUserData: page
+  }) => {
     const { websocket, runner } = buildCommonLocators(page);
 
     await openRequest(page, COLLECTION_NAME, MULTI_MSG_REQ);
@@ -236,6 +242,35 @@ test.describe.serial('websocket multi-message (bru format)', () => {
     expect(bodyWsCount).toBe(1);
   });
 
+  test('TC-8657: deleting an unselected message keeps the current selection (does not jump to first)', { tag: '@sanity' }, async ({
+    pageWithUserData: page
+  }) => {
+    const { websocket } = buildCommonLocators(page);
+
+    await test.step('Open multi-message request and add a third message', async () => {
+      await openRequest(page, COLLECTION_NAME, MULTI_MSG_REQ);
+      await websocket.message.addButton().click();
+      await websocket.message.nameInput(2).press('Escape');
+      await expect(websocket.message.headers()).toHaveCount(3);
+    });
+
+    await test.step('The last-added message (index 2) is the selected one', async () => {
+      await expect(websocket.message.messageWrapper(2)).not.toHaveClass(/disabled/);
+      await expect(websocket.message.messageWrapper(0)).toHaveClass(/disabled/);
+    });
+
+    await test.step('Delete a different, unselected message (the first one)', async () => {
+      await websocket.message.header(0).hover();
+      await websocket.message.deleteButton(0).click();
+      await expect(websocket.message.headers()).toHaveCount(2);
+    });
+
+    await test.step('The previously selected message stays selected — not the new first one', async () => {
+      await expect(websocket.message.messageWrapper(1)).not.toHaveClass(/disabled/);
+      await expect(websocket.message.messageWrapper(0)).toHaveClass(/disabled/);
+    });
+  });
+
   test('rename a message via double-click', async ({ pageWithUserData: page }) => {
     const { websocket, runner } = buildCommonLocators(page);
     await openRequest(page, COLLECTION_NAME, SINGLE_MSG_REQ);
@@ -282,5 +317,176 @@ test.describe.serial('websocket multi-message (bru format)', () => {
     await expect
       .poll(async () => await readFile(SINGLE_MSG_BRU_PATH, 'utf8'))
       .toContain('name: renamed via shortcut');
+  });
+
+  test('TC-8680: Establish WebSocket connection with multiple JSON type messages', { tag: '@sanity' }, async ({
+    pageWithUserData: page
+  }) => {
+    const { websocket } = buildCommonLocators(page);
+
+    await test.step('Open request and verify two JSON messages', async () => {
+      await openRequest(page, COLLECTION_NAME, MULTI_JSON_REQ);
+      await expect(websocket.message.headers()).toHaveCount(2);
+      await expect(websocket.message.bodyModeLabel(0)).toContainText('JSON');
+      await expect(websocket.message.bodyModeLabel(1)).toContainText('JSON');
+    });
+
+    await test.step('Connect and send the first message via run button', async () => {
+      await websocket.runButton().click();
+      await expect(websocket.messages().filter({ hasText: 'subscribe' }).first()).toBeVisible({
+        timeout: MAX_CONNECTION_TIME
+      });
+    });
+
+    await test.step('Send the second message on the same connection', async () => {
+      await websocket.message.header(1).hover();
+      await websocket.message.sendButton(1).click();
+      await expect(websocket.messages().filter({ hasText: 'publish' }).first()).toBeVisible({
+        timeout: MAX_CONNECTION_TIME
+      });
+    });
+
+    await disconnectWs(page);
+  });
+
+  test('TC-8681: Establish WebSocket connection with multiple XML type messages', { tag: '@sanity' }, async ({
+    pageWithUserData: page
+  }) => {
+    const { websocket } = buildCommonLocators(page);
+
+    await test.step('Open request and verify two XML messages', async () => {
+      await openRequest(page, COLLECTION_NAME, MULTI_XML_REQ);
+      await expect(websocket.message.headers()).toHaveCount(2);
+      await expect(websocket.message.bodyModeLabel(0)).toContainText('XML');
+      await expect(websocket.message.bodyModeLabel(1)).toContainText('XML');
+    });
+
+    await test.step('Connect and send the first message via run button', async () => {
+      await websocket.runButton().click();
+      await expect(websocket.messages().filter({ hasText: 'subscribe' }).first()).toBeVisible({
+        timeout: MAX_CONNECTION_TIME
+      });
+    });
+
+    await test.step('Send the second message on the same connection', async () => {
+      await websocket.message.header(1).hover();
+      await websocket.message.sendButton(1).click();
+      await expect(websocket.messages().filter({ hasText: 'publish' }).first()).toBeVisible({
+        timeout: MAX_CONNECTION_TIME
+      });
+    });
+
+    await disconnectWs(page);
+  });
+
+  test('TC-8682: Establish WebSocket connection with multiple text type messages', { tag: '@sanity' }, async ({
+    pageWithUserData: page
+  }) => {
+    const { websocket } = buildCommonLocators(page);
+
+    await test.step('Open request and verify two TEXT messages', async () => {
+      await openRequest(page, COLLECTION_NAME, MULTI_TEXT_REQ);
+      await expect(websocket.message.headers()).toHaveCount(2);
+      await expect(websocket.message.bodyModeLabel(0)).toContainText('TEXT');
+      await expect(websocket.message.bodyModeLabel(1)).toContainText('TEXT');
+    });
+
+    await test.step('Connect and send the first message via run button', async () => {
+      await websocket.runButton().click();
+      await expect(websocket.messages().filter({ hasText: 'subscribe-orders' }).first()).toBeVisible({
+        timeout: MAX_CONNECTION_TIME
+      });
+    });
+
+    await test.step('Send the second message on the same connection', async () => {
+      await websocket.message.header(1).hover();
+      await websocket.message.sendButton(1).click();
+      await expect(websocket.messages().filter({ hasText: 'publish-orders' }).first()).toBeVisible({
+        timeout: MAX_CONNECTION_TIME
+      });
+    });
+
+    await disconnectWs(page);
+  });
+
+  test('Send inactive JSON message via inline send without an established connection', { tag: '@sanity' }, async ({
+    pageWithUserData: page
+  }) => {
+    const { websocket } = buildCommonLocators(page);
+
+    await test.step('Open request and verify two JSON messages while disconnected', async () => {
+      await openRequest(page, COLLECTION_NAME, MULTI_JSON_REQ);
+      await expect(websocket.message.headers()).toHaveCount(2);
+      await expect(websocket.message.bodyModeLabel(0)).toContainText('JSON');
+      await expect(websocket.message.bodyModeLabel(1)).toContainText('JSON');
+      await websocket.toolbar.clearResponse().click();
+      await expect(websocket.messages()).toHaveCount(0);
+    });
+
+    await test.step('Send the inactive second message via its inline send icon', async () => {
+      await websocket.message.header(0).click();
+      await websocket.message.header(1).hover();
+      await websocket.message.sendButton(1).click();
+      await expect(websocket.messages().filter({ hasText: 'publish' }).first()).toBeVisible({
+        timeout: MAX_CONNECTION_TIME
+      });
+      await expect(websocket.messages().filter({ hasText: 'subscribe' })).toHaveCount(0);
+    });
+
+    await disconnectWs(page);
+  });
+
+  test('Send inactive XML message via inline send without an established connection', { tag: '@sanity' }, async ({
+    pageWithUserData: page
+  }) => {
+    const { websocket } = buildCommonLocators(page);
+
+    await test.step('Open request and verify two XML messages while disconnected', async () => {
+      await openRequest(page, COLLECTION_NAME, MULTI_XML_REQ);
+      await expect(websocket.message.headers()).toHaveCount(2);
+      await expect(websocket.message.bodyModeLabel(0)).toContainText('XML');
+      await expect(websocket.message.bodyModeLabel(1)).toContainText('XML');
+      await websocket.toolbar.clearResponse().click();
+      await expect(websocket.messages()).toHaveCount(0);
+    });
+
+    await test.step('Send the inactive second message via its inline send icon', async () => {
+      await websocket.message.header(0).click();
+      await websocket.message.header(1).hover();
+      await websocket.message.sendButton(1).click();
+      await expect(websocket.messages().filter({ hasText: 'publish' }).first()).toBeVisible({
+        timeout: MAX_CONNECTION_TIME
+      });
+      await expect(websocket.messages().filter({ hasText: 'subscribe' })).toHaveCount(0);
+    });
+
+    await disconnectWs(page);
+  });
+
+  test('Send inactive TEXT message via inline send without an established connection', { tag: '@sanity' }, async ({
+    pageWithUserData: page
+  }) => {
+    const { websocket } = buildCommonLocators(page);
+
+    await test.step('Open request and verify two TEXT messages while disconnected', async () => {
+      await openRequest(page, COLLECTION_NAME, MULTI_TEXT_REQ);
+      await expect(websocket.message.headers()).toHaveCount(2);
+      await expect(websocket.message.bodyModeLabel(0)).toContainText('TEXT');
+      await expect(websocket.message.bodyModeLabel(1)).toContainText('TEXT');
+      await websocket.toolbar.clearResponse().click();
+      await expect(websocket.messages()).toHaveCount(0);
+    });
+
+    await test.step('Send the inactive second message via its inline send icon', async () => {
+      await websocket.message.header(0).click();
+      await websocket.message.header(1).hover();
+      await websocket.message.sendButton(1).click();
+      await expect(websocket.messages().filter({ hasText: 'publish-orders' }).first()).toBeVisible({
+        timeout: MAX_CONNECTION_TIME
+      });
+      await expect(websocket.messages().filter({ hasText: 'subscribe-orders' })).toHaveCount(0);
+    });
+
+    await disconnectWs(page);
   });
 });

@@ -14,6 +14,8 @@ import {
 } from 'components/CodeEditor/state-persistence';
 import StyledWrapper from './StyledWrapper';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { SetAsVariableContext } from 'providers/SetAsVariable/context';
+import { isSelectionPinned, pinSelectionOnContextMenu, releasePinnedSelection } from 'utils/codemirror/selection';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
 const CodeMirror = require('codemirror');
@@ -39,6 +41,17 @@ const restoreAncestorScrolls = (snapshots) => {
 };
 
 class MultiLineEditor extends Component {
+  static contextType = SetAsVariableContext;
+
+  _onContextMenu = (editor, event) => {
+    if (this.props.enableBrunoVarInfo === false || this.state.maskInput) return;
+
+    this.context.openFromCodeMirror(event, editor, {
+      collection: this.props.collection,
+      item: this.props.item
+    });
+  };
+
   constructor(props) {
     super(props);
     // Keep a cached version of the value, this cache will be updated when the
@@ -214,6 +227,8 @@ class MultiLineEditor extends Component {
     this.cachedValue = String(this.props.value) || '';
     this.editor.on('change', this._onEdit);
     this.editor.on('blur', this._onBlur);
+    this.editor.on('contextmenu', this._onContextMenu);
+    this.editor.on('mousedown', this._onMouseDown);
     this.addOverlay(variables);
     this._setupViewPersistence();
 
@@ -224,8 +239,16 @@ class MultiLineEditor extends Component {
     this._enableMaskedEditor(this.props.isSecret);
   }
 
+  _onMouseDown = (editor, event) => {
+    pinSelectionOnContextMenu({
+      editor,
+      event,
+      enabled: this.props.enableBrunoVarInfo !== false && !this.state.maskInput
+    });
+  };
+
   _onBlur = () => {
-    if (this.editor) {
+    if (this.editor && !isSelectionPinned(this.editor)) {
       this.editor.setCursor(this.editor.getCursor());
     }
   };
@@ -343,6 +366,9 @@ class MultiLineEditor extends Component {
       this._teardownViewPersistence();
       this.editor.off('change', this._onEdit);
       this.editor.off('blur', this._onBlur);
+      this.editor.off('mousedown', this._onMouseDown);
+      if (isSelectionPinned(this.editor)) releasePinnedSelection();
+      this.editor.off('contextmenu', this._onContextMenu);
       this.editor.getWrapperElement().remove();
     }
   }
@@ -358,9 +384,6 @@ class MultiLineEditor extends Component {
    * @brief Toggle the visibility of the secret value
    */
   toggleVisibleSecret = () => {
-    if (this.props.readOnly) {
-      return;
-    }
     const maskInput = !this.state.maskInput;
     this.setState({ maskInput }, () => {
       this._enableMaskedEditor(maskInput);
@@ -378,8 +401,6 @@ class MultiLineEditor extends Component {
         type="button"
         className="mx-2"
         data-testid="secret-reveal-toggle"
-        disabled={this.props.readOnly}
-        tabIndex={this.props.readOnly ? -1 : 0}
         onClick={() => this.toggleVisibleSecret()}
       >
         {this.state.maskInput === true ? (

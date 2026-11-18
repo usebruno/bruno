@@ -54,8 +54,9 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
     <StyledWrapper className="flex flex-wrap flex-col gap-2">
       <SingleLineEditor
         className="border border-gray-500/50 px-2"
+        enableBrunoVarInfo={false}
         value={text}
-        placeholder="e.g., smoke, regression"
+        placeholder="e.g. Production ready"
         autocomplete={tagsHintList}
         showHintsOnClick={true}
         showHintsFor={[]}

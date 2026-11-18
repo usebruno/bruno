@@ -1,0 +1,20 @@
+info:
+  name: 01-with-comment
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: http://localhost:8081/ping
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        // Set the pet ID before sending the request
+        bru.setVar("petId", 9091)
+    - type: tests
+      code: |-
+        test("pre-request script ran past the comment", function() {
+          expect(bru.getVar("petId")).to.equal(9091);
+        });

@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { closeAllCollections, importCollection, selectScriptSubTab } from '../../utils/page';
+import { closeAllCollections, importCollection, selectScriptSubTab, sendRequest } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-with-scripts.json');
@@ -10,7 +10,7 @@ test.describe('Import Postman Collection with preserve scripts option enabled', 
     await closeAllCollections(page);
   });
 
-  test('should hide the preserve scripts checkbox until advanced options is shown', async ({ page }) => {
+  test('TC-4474: Verify Preserve scripts checkbox is visible under Advanced Options with default OFF on Import Collection', { tag: '@sanity' }, async ({ page }) => {
     const locators = buildCommonLocators(page);
 
     await test.step('Open import modal and upload the Postman collection', async () => {
@@ -20,15 +20,17 @@ test.describe('Import Postman Collection with preserve scripts option enabled', 
       await locators.import.locationModal().waitFor({ state: 'visible', timeout: 10000 });
     });
 
-    await test.step('Checkbox is hidden until Advanced Options is shown', async () => {
-      await expect(page.getByTestId('preserve-scripts-toggle')).toHaveCount(0);
+    await test.step('Preserve scripts is hidden until the Advanced section is expanded', async () => {
+      await expect(locators.import.preserveScriptsToggle()).toBeHidden();
+
+      await locators.import.advancedSectionToggle().click();
+      await expect(locators.import.preserveScriptsToggle()).toBeVisible();
     });
 
-    await test.step('Advanced Options toggle reveals the Preserve scripts checkbox', async () => {
-      const locationModal = locators.import.locationModal();
-      await locationModal.getByRole('button', { name: 'Options' }).click();
-      await page.getByTestId('show-advanced-options-toggle').click();
-      await expect(page.getByTestId('preserve-scripts-toggle')).toBeVisible();
+    await test.step('Preserve scripts defaults to off and can be checked', async () => {
+      await expect(locators.import.preserveScriptsToggle()).not.toBeChecked();
+      await locators.import.preserveScriptsToggle().click();
+      await expect(locators.import.preserveScriptsToggle()).toBeChecked();
     });
 
     await test.step('Close the import modal', async () => {
@@ -37,7 +39,7 @@ test.describe('Import Postman Collection with preserve scripts option enabled', 
     });
   });
 
-  test('should preserve pm.* scripts as is when the option is enabled', async ({ page, createTmpDir }) => {
+  test('TC-4476: should preserve pm.* scripts as is when the option is enabled', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const importDir = await createTmpDir('preserve-scripts-on');
     const locators = buildCommonLocators(page);
 
@@ -67,7 +69,7 @@ test.describe('Import Postman Collection with preserve scripts option enabled', 
     });
   });
 
-  test('should translate pm.* scripts to bru.* by default when the option is disabled', async ({ page, createTmpDir }) => {
+  test('TC-4475:should translate pm.* scripts to bru.* by default when the option is disabled', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const importDir = await createTmpDir('preserve-scripts-off');
     const locators = buildCommonLocators(page);
 
@@ -93,5 +95,6 @@ test.describe('Import Postman Collection with preserve scripts option enabled', 
       await expect(editor).toContainText('expect(res.getStatus()).to.equal(200)');
       await expect(editor).not.toContainText('pm.response.to.have.status');
     });
+    await sendRequest(page, 200);
   });
 });

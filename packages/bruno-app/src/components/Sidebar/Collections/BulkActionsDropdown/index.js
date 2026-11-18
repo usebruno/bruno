@@ -2,6 +2,7 @@ import React, { useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import MenuDropdown from 'ui/MenuDropdown';
+import { cursorAnchorStyle } from 'utils/common/cursorAnchor';
 import { IconX, IconFoldDown, IconFoldUp, IconTrash } from '@tabler/icons';
 import { collapseCollection, collapseItem, expandCollection, expandItem, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import toast from 'react-hot-toast';
@@ -93,15 +94,6 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
 
   const { Icon: CollapseIcon, label: collapseLabel } = getCollapseDisplay(allCollapsed, 'Selected');
 
-  const anchorStyle = {
-    position: 'fixed',
-    left: `${position?.x || 0}px`,
-    top: `${position?.y || 0}px`,
-    width: '1px',
-    height: '1px',
-    pointerEvents: 'none'
-  };
-
   const menuItems = useMemo(() => {
     if (isPureCollectionSelection) {
       const items = [
@@ -168,7 +160,7 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
       onChange={(isOpen) => !isOpen && onClose()}
       appendTo={document.body}
     >
-      <div style={anchorStyle} />
+      <div style={cursorAnchorStyle(position)} />
     </MenuDropdown>
   );
 };

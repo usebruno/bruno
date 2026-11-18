@@ -1,0 +1,15 @@
+info:
+  name: LifecycleHooks
+  type: grpc
+  seq: 1
+
+grpc:
+  url: localhost:50051
+  method: /hello.HelloService/SayHello
+  methodType: unary
+  message:
+    - title: message 1
+      message: |-
+        {
+          "greeting": "world"
+        }

@@ -675,5 +675,45 @@ for (const mode of ['safe', 'developer'] as const) {
         await expect(responseErrorsLocators.errorIcon()).toHaveCount(0);
       });
     });
+
+    test('27. A post-response script throwing a string shows its message in the error card', async ({ pageWithUserData: page }) => {
+      await test.step('Open request and send', async () => {
+        await openRequest(page, 'script-errors-test', 'post-response-string-throw');
+        await sendAndWaitForErrorCard(page);
+      });
+
+      await test.step('Verify error card content', async () => {
+        const card = responseErrorsLocators.card();
+        await expect(responseErrorsLocators.title(card)).toContainText('Post-Response Script Error');
+        await expect(responseErrorsLocators.message(card)).toBeVisible();
+      });
+
+      await test.step('Verify HTTP 200 status', async () => {
+        await expect(commonLocators.response.statusCode()).toContainText('200');
+      });
+    });
+
+    test('28. Post-response and test scripts throwing strings share one card and expand all together', async ({ pageWithUserData: page }) => {
+      await test.step('Open request and send', async () => {
+        await openRequest(page, 'script-errors-test', 'multiple-string-throws');
+        await sendAndWaitForErrorCard(page);
+      });
+
+      await test.step('Verify one card with post-response and test rows', async () => {
+        await expect(responseErrorsLocators.title()).toHaveText('2 errors');
+        await expect(responseErrorsLocators.rowToggle(responseErrorsLocators.row(0))).toContainText('Post-Response');
+        await expect(responseErrorsLocators.rowToggle(responseErrorsLocators.row(1))).toContainText('Test');
+      });
+
+      await test.step('Expand all shows both messages', async () => {
+        await responseErrorsLocators.toggleAll().click();
+        await expect(responseErrorsLocators.message(responseErrorsLocators.row(0))).toBeVisible();
+        await expect(responseErrorsLocators.message(responseErrorsLocators.row(1))).toBeVisible();
+      });
+
+      await test.step('Verify HTTP 200 status', async () => {
+        await expect(commonLocators.response.statusCode()).toContainText('200');
+      });
+    });
   });
 }

@@ -1,70 +1,99 @@
+import * as fs from 'fs';
+import * as path from 'path';
+import YAML from 'yaml';
 import { test, expect } from '../../../playwright';
-import { buildCommonLocators } from '../../utils/page/locators';
-import { closeAllCollections } from '../../utils/page';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  createCollection,
+  createFolder,
+  createRequest,
+  expandFolder
+} from '../../utils/page';
+
+const requestUrl = 'https://echo.usebruno.com';
 
 test.describe('Create HTTP Requests', () => {
-  let locators: ReturnType<typeof buildCommonLocators>;
-
-  test.beforeAll(async ({ pageWithUserData: page }) => {
-    locators = buildCommonLocators(page);
-  });
-
-  test.afterAll(async ({ pageWithUserData: page }) => {
+  test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
 
-  test('Verifies that HTTP requests are created at the expected locations', async ({ pageWithUserData: page }) => {
-    await test.step('Navigate to collection and verify it exists', async () => {
-      await expect(locators.sidebar.collection('create-requests')).toContainText('create-requests');
+  test('TC-116: Verify adding a new request under the collection', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+    const collectionName = 'http-requests';
+    const requestName = 'root-http';
+    const collectionLocation = await createTmpDir('http-requests-collection');
+    const collectionDir = path.join(collectionLocation, collectionName);
+    const { sidebar, tabs, toast } = buildCommonLocators(page);
+
+    await test.step('Create a collection', async () => {
+      await createCollection(page, collectionName, collectionLocation, 'yml');
+      await expect(sidebar.collection(collectionName)).toBeVisible();
     });
 
-    await test.step('Create HTTP request via collection three dots menu', async () => {
-      await locators.sidebar.collection('create-requests').hover();
-      await locators.actions.collectionActions('create-requests').click();
-      await locators.dropdown.item('New Request').click();
-
-      await page.getByTestId('request-name').fill('Root HTTP Request');
-      await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-      await page.keyboard.type('https://echo.usebruno.com');
-      await locators.modal.button('Create').click();
+    await test.step('Create an HTTP request from the collection menu', async () => {
+      await createRequest(page, requestName, collectionName, { url: requestUrl });
     });
 
-    await test.step('Verify HTTP request was created at collection root', async () => {
-      // Open collection and verify request is present in collection root
-      await locators.sidebar.collection('create-requests').click();
-      const requestItem = locators.sidebar.request('Root HTTP Request');
-      await expect(requestItem).toBeVisible();
-
-      // Open request and verify it is the active request
-      await requestItem.click();
-      await expect(locators.tabs.activeRequestTab()).toContainText('Root HTTP Request');
-
-      // Open folder1 and verify request is not in folder1
-      await locators.sidebar.folder('folder1').click();
-      const folderRequestItem = locators.sidebar.folderRequest('folder1', 'Root HTTP Request');
-      await expect(folderRequestItem).not.toBeVisible();
+    await test.step('New request created toast is shown', async () => {
+      await expect(toast.byMessage('New request created!').first()).toBeVisible();
     });
 
-    await test.step('Create HTTP request via folder1 three dots menu', async () => {
-      await locators.sidebar.folder('folder1').hover();
-      await locators.actions.collectionItemActions('folder1').click();
-      await locators.dropdown.item('New Request').click();
-
-      await page.getByTestId('request-name').fill('Folder HTTP Request');
-      await page.getByTestId('new-request-url').locator('.CodeMirror').click();
-      await page.keyboard.type('https://echo.usebruno.com');
-      await locators.modal.button('Create').click();
+    await test.step('Request is listed at the collection root and opened as the active tab', async () => {
+      const rootRequest = sidebar.request(requestName);
+      await expect(rootRequest).toBeVisible();
+      await rootRequest.click();
+      await expect(tabs.activeRequestTab()).toContainText(requestName);
     });
 
-    await test.step('Verify HTTP request was created within folder1', async () => {
-      // Open collection and verify request is not in collection root
-      await locators.sidebar.collection('create-requests').click();
-      const folderRequestItem = locators.sidebar.folderRequest('folder1', 'Folder HTTP Request');
-      await expect(folderRequestItem).toBeVisible();
+    await test.step('Request file is written at the collection root', async () => {
+      const rootRequestPath = path.join(collectionDir, `${requestName}.yml`);
+      const doc = YAML.parse(fs.readFileSync(rootRequestPath, 'utf8'));
+      expect(doc).toMatchObject({
+        info: { name: requestName, type: 'http' },
+        http: { url: requestUrl }
+      });
+    });
+  });
 
-      // Open request and verify it is the active request
-      await folderRequestItem.click();
-      await expect(locators.tabs.activeRequestTab()).toContainText('Folder HTTP Request');
+  test('TC-126: Verify adding a new request inside a folder', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+    const collectionName = 'http-requests';
+    const folderName = 'folder1';
+    const requestName = 'folder-http';
+    const collectionLocation = await createTmpDir('http-requests-folder');
+    const collectionDir = path.join(collectionLocation, collectionName);
+    const { sidebar, tabs, toast } = buildCommonLocators(page);
+
+    await test.step('Create a collection with a folder', async () => {
+      await createCollection(page, collectionName, collectionLocation, 'yml');
+      await createFolder(page, folderName, collectionName);
+      await expect(sidebar.scopedItem(collectionName, folderName)).toBeVisible();
+    });
+
+    await test.step('Create an HTTP request from the folder menu', async () => {
+      await expandFolder(page, folderName);
+      await createRequest(page, requestName, folderName, { url: requestUrl, inFolder: true });
+    });
+
+    await test.step('New request created toast is shown', async () => {
+      await expect(toast.byMessage('New request created!').first()).toBeVisible();
+    });
+
+    await test.step('Request is listed inside the folder and opened as the active tab', async () => {
+      const folderRequest = sidebar.folderRequest(folderName, requestName);
+      await expect(folderRequest).toBeVisible();
+      await folderRequest.click();
+      await expect(tabs.activeRequestTab()).toContainText(requestName);
+    });
+
+    await test.step('Request file is written inside the folder', async () => {
+      const folderRequestPath = path.join(collectionDir, folderName, `${requestName}.yml`);
+      const requestAtRoot = path.join(collectionDir, `${requestName}.yml`);
+      const doc = YAML.parse(fs.readFileSync(folderRequestPath, 'utf8'));
+      expect(doc).toMatchObject({
+        info: { name: requestName, type: 'http' },
+        http: { url: requestUrl }
+      });
+      expect(fs.existsSync(requestAtRoot)).toBe(false);
     });
   });
 });

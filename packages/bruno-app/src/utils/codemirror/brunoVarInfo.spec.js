@@ -880,6 +880,7 @@ describe('renderVarInfo', () => {
 
       await Promise.resolve();
       await Promise.resolve();
+      await Promise.resolve();
 
       expect(addEnvironment).not.toHaveBeenCalled();
       const errorNote = within(switcher).getByTestId('var-info-add-to-error');
@@ -924,6 +925,7 @@ describe('renderVarInfo', () => {
       nameInput.value = 'Dev';
       within(switcher).getByTestId('var-info-add-to-create-env-submit').click();
 
+      await Promise.resolve();
       await Promise.resolve();
       await Promise.resolve();
 

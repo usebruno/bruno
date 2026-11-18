@@ -183,7 +183,7 @@ servers:
       expect(result.items[0].request.auth.mode).toBe('inherit');
     });
 
-    it('should set auth mode to inherit when operation has empty security array', () => {
+    it('should set auth mode to none when operation has empty security array', () => {
       const openApiWithEmptyOperationSecurity = `
 openapi: '3.0.0'
 info:
@@ -207,7 +207,7 @@ servers:
   - url: 'https://example.com'
 `;
       const result = openApiToBruno(openApiWithEmptyOperationSecurity);
-      expect(result.items[0].request.auth.mode).toBe('inherit');
+      expect(result.items[0].request.auth.mode).toBe('none');
     });
 
     it('should set auth mode to inherit for folder root when no security is defined', () => {
