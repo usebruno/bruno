@@ -1,3 +1,4 @@
+import * as path from 'path';
 import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
@@ -5,7 +6,9 @@ import {
   createCollection,
   createFolder,
   createRequest,
-  expandFolder
+  expandCollection,
+  expandFolder,
+  openCollectionFromDialog
 } from '../../utils/page';
 
 test.describe('Cross-Collection Drag and Drop for folder', () => {
@@ -14,54 +17,36 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await closeAllCollections(page);
   });
 
-  test('Verify cross-collection folder drag and drop', async ({ page, createTmpDir }) => {
+  test('TC-493: Verify the Requests remains unchanged after folder moving from one to another collection', { tag: '@sanity' }, async ({ page, electronApp, collectionFixturePath }) => {
     const { sidebar } = buildCommonLocators(page);
+    const folderName = 'test-folder';
+    const requestNames = ['request-1', 'request-2', 'request-3'];
 
-    await createCollection(page, 'source-collection', await createTmpDir('source-collection'));
-    await createFolder(page, 'test-folder', 'source-collection');
-    await expandFolder(page, 'test-folder');
-    await createRequest(page, 'test-request-in-folder', 'test-folder', {
-      url: 'https://echo.usebruno.com',
-      inFolder: true
+    await openCollectionFromDialog(page, electronApp, path.join(collectionFixturePath!, 'source-collection'));
+    await openCollectionFromDialog(page, electronApp, path.join(collectionFixturePath!, 'target-collection'));
+    await sidebar.collection('source-collection').waitFor({ state: 'visible' });
+    await sidebar.collection('target-collection').waitFor({ state: 'visible' });
+    await expandCollection(page, 'source-collection');
+
+    await test.step('Drag the folder from the source collection onto the target collection', async () => {
+      const sourceFolder = sidebar.itemRowIn('source-collection', folderName);
+      await sourceFolder.waitFor({ state: 'visible' });
+      const targetCollection = sidebar.collectionRow('target-collection');
+      await sourceFolder.dragTo(targetCollection);
     });
 
-    await createCollection(page, 'target-collection', await createTmpDir('target-collection'));
+    await test.step('The folder and its requests are gone from the source collection', async () => {
+      await expect(sidebar.itemsIn('source-collection', folderName)).toHaveCount(0);
+      for (const requestName of requestNames) {
+        await expect(sidebar.itemsIn('source-collection', requestName)).toHaveCount(0);
+      }
+    });
 
-    // Wait for both collections to be visible in sidebar
-    await expect(sidebar.collection('source-collection')).toBeVisible();
-    await expect(sidebar.collection('target-collection')).toBeVisible();
-
-    // Locate the folder in source collection
-    const sourceFolder = page.locator('.collection-item-name').filter({ hasText: 'test-folder' });
-    await expect(sourceFolder).toBeVisible();
-
-    // Locate the target collection area (the collection name element)
-    const targetCollection = page.locator('.collection-name').filter({ hasText: 'target-collection' });
-    await expect(targetCollection).toBeVisible();
-
-    // Perform drag and drop operation
-    await sourceFolder.dragTo(targetCollection);
-
-    // Verify the folder has been moved to the target collection
-    const targetCollectionContainer = page.locator('[data-collection-id="target-collection"]');
-    await expect(
-      targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-folder' })
-    ).toBeVisible();
-
-    // Verify the folder (and its request) is no longer in the source collection.
-    const sourceCollectionContainer = page.locator('[data-collection-id="source-collection"]');
-    await expect(
-      sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-folder' })
-    ).not.toBeVisible();
-    await expect(
-      sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-request-in-folder' })
-    ).not.toBeVisible();
-
-    // Now only the target copy remains.
-    await expandFolder(page, 'test-folder');
-    await expect(
-      targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-request-in-folder' })
-    ).toBeVisible();
+    await test.step('The moved folder keeps the requests in their original order', async () => {
+      await expandCollection(page, 'target-collection');
+      await expandFolder(page, folderName);
+      await expect(sidebar.folderItemNames('target-collection', folderName)).toHaveText(requestNames);
+    });
   });
 
   test('Verify cross-collection folder drag and drop when a duplicate folder exists: silently suffixes the directory', async ({

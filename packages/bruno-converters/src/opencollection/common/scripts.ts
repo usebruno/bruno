@@ -16,7 +16,7 @@ export const toOpenCollectionScripts = (request: BrunoFolderRequest | BrunoHttpR
     if (!code?.trim().length) {
       return;
     }
-    ocScripts.push({ type, code: code.trim() });
+    ocScripts.push({ type, code });
   };
 
   pushScript('req', 'before-request', script?.req);
@@ -29,7 +29,7 @@ export const toOpenCollectionScripts = (request: BrunoFolderRequest | BrunoHttpR
   if (request?.tests?.trim().length) {
     ocScripts.push({
       type: 'tests',
-      code: request.tests.trim()
+      code: request.tests
     });
   }
 

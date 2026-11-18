@@ -28,6 +28,7 @@ export const buildAuthLocators = (page: Page) => ({
   },
   modeSelector: () => page.getByTestId('auth-mode-selector'),
   modeLabel: () => page.getByTestId('auth-mode-label'),
+  inheritedSource: (sourceName: string) => page.getByText(`Auth inherited from ${sourceName}:`),
   inheritedMode: () => page.getByTestId('inherited-auth-mode'),
   inheritedFields: () => page.getByTestId('inherited-auth-fields'),
   inheritedSecretToggle: () => page.getByTestId('inherited-auth-fields').getByTestId('secret-reveal-toggle'),

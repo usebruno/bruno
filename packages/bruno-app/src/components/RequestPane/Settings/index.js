@@ -1,18 +1,21 @@
 import React, { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import get from 'lodash/get';
-import { IconTag, IconChevronDown } from '@tabler/icons';
+import { IconChevronDown } from '@tabler/icons';
 import { utils } from '@usebruno/common';
-import ToggleSelector from 'components/RequestPane/Settings/ToggleSelector';
+import Toggle from 'ui/Toggle';
 import MenuDropdown from 'ui/MenuDropdown';
 import StatusBadge from 'ui/StatusBadge';
-import { useTheme } from 'providers/Theme';
 import SettingsInput from 'components/SettingsInput';
 import InheritableSettingsInput from 'components/InheritableSettingsInput';
 import { updateItemSettings, toggleAppMode } from 'providers/ReduxStore/slices/collections';
-import { setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
+import { setTabAppPreview, addTab } from 'providers/ReduxStore/slices/tabs';
+import { updateActivePreferencesTab } from 'providers/ReduxStore/slices/app';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Tags from './Tags/index';
+import FormField from 'ui/patterns/FormField';
+import FieldList from 'ui/patterns/FieldList';
+import StyledWrapper from './StyledWrapper';
 
 const HTTP_VERSION_LABELS = {
   inherit: 'Inherit',
@@ -32,7 +35,7 @@ const DEFAULT_SETTINGS = {
 
 const Settings = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const { theme } = useTheme();
+  const inheritedTimeout = Number(useSelector((state) => state.app.preferences?.request?.timeout)) || 0;
 
   // Get current settings with defaults applied
   const getPropertyFromDraftOrRequest = (propertyKey) =>
@@ -105,26 +108,22 @@ const Settings = ({ item, collection }) => {
     }
   }, [updateSetting]);
 
-  const onTimeoutChange = useCallback((e) => {
-    const value = e.target.value;
-    // Only allow empty string or digits
-    if (value === '' || /^\d+$/.test(value)) {
-      const numericValue = value === '' ? 0 : parseInt(value, 10);
-      updateSetting({ timeout: numericValue });
-    }
-  }, [updateSetting]);
-
   // Check if timeout is inherited
   const isTimeoutInherited = timeout === 'inherit' || timeout === undefined || timeout === null;
 
-  const handleTimeoutDropdownSelect = useCallback((option) => {
-    if (option === 'inherit') {
-      updateSetting({ timeout: 'inherit' });
-    } else if (option === 'custom') {
-      // Switch to custom value - start with 0
-      updateSetting({ timeout: 0 });
-    }
-  }, [updateSetting]);
+  const onTimeoutChange = useCallback((value) => updateSetting({ timeout: value }), [updateSetting]);
+  const onTimeoutOverride = useCallback(() => updateSetting({ timeout: inheritedTimeout }), [updateSetting, inheritedTimeout]);
+  const onTimeoutInherit = useCallback(() => updateSetting({ timeout: 'inherit' }), [updateSetting]);
+
+  // The request timeout lives in Preferences > General
+  const openTimeoutSource = useCallback(() => {
+    dispatch(updateActivePreferencesTab({ tab: 'general' }));
+    dispatch(addTab({
+      type: 'preferences',
+      uid: `${collection.uid}-preferences`,
+      collectionUid: collection.uid
+    }));
+  }, [dispatch, collection.uid]);
 
   // Keyboard shortcut handlers
   const onSave = useCallback(() => {
@@ -147,29 +146,31 @@ const Settings = ({ item, collection }) => {
   }, [onSave, onRun]);
 
   return (
-    <div className="h-full w-full">
+    <StyledWrapper className="h-full w-full">
       <div className="text-xs mb-4 text-muted">Configure request settings for this item.</div>
       <div className="bruno-form">
-        <div className="mb-6">
-          <h3 className="text-xs font-medium flex items-center gap-1 mb-4">
-            <IconTag size={16} />
-            Tags
-          </h3>
-          <Tags item={item} collection={collection} />
-        </div>
-
-        <div className="flex flex-col gap-4">
-
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col">
-              <label className="text-xs font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
+        <FieldList dividers className="request-settings-list">
+          <FormField
+            label="Tags"
+            labelId="request-settings-tags-label"
+            className="tags-field"
+          >
+            <div className="w-full" role="group" aria-labelledby="request-settings-tags-label">
+              <Tags item={item} collection={collection} />
+            </div>
+          </FormField>
+          <FormField
+            layout="inline"
+            label={(
+              <span className="inline-flex items-center gap-2">
                 HTTP Version
                 <StatusBadge status="info" size="xs">Beta</StatusBadge>
-              </label>
-              <p className="text-xs text-gray-700 dark:text-gray-400">
-                Choose the HTTP version for this request. Inherit uses the collection default.
-              </p>
-            </div>
+              </span>
+            )}
+            labelId="request-http-version-label"
+            description="Choose the HTTP version for this request. Inherit uses the collection default."
+            descriptionId="request-http-version-description"
+          >
             <MenuDropdown
               items={httpVersionItems}
               selectedItemId={currentHttpVersion}
@@ -179,62 +180,52 @@ const Settings = ({ item, collection }) => {
             >
               <button
                 type="button"
-                className="flex items-center justify-between rounded-sm px-2 py-1 h-8 w-24 outline-none cursor-pointer text-xs"
-                style={{ backgroundColor: theme.input.bg, border: `1px solid ${theme.input.border}`, color: theme.text }}
+                id="request-http-version-trigger"
+                className="settings-dropdown-trigger w-24"
+                aria-labelledby="request-http-version-label request-http-version-trigger"
+                aria-describedby="request-http-version-description"
                 data-testid="request-http-version"
               >
                 <span>{currentHttpVersionLabel}</span>
                 <IconChevronDown size={12} />
               </button>
             </MenuDropdown>
-          </div>
-
-          <div className="flex flex-col gap-4">
-            <ToggleSelector
-              checked={encodeUrl}
-              onChange={onToggleUrlEncoding}
-              label="URL Encoding"
-              description="Automatically encode query parameters in the URL"
-              size="medium"
-              data-testid="encode-url-toggle"
-            />
-          </div>
-
-          <div className="flex flex-col gap-4">
-            <ToggleSelector
-              checked={followRedirects}
-              onChange={onToggleFollowRedirects}
-              label="Automatically Follow Redirects"
-              description="Follow HTTP redirects automatically"
-              size="medium"
-              data-testid="follow-redirects-toggle"
-            />
-          </div>
-
-          <div className="flex flex-col gap-4">
-            <ToggleSelector
-              checked={forwardAuthorizationHeader}
-              onChange={onToggleForwardAuthorizationOnRedirect}
-              label="Forward Authorization on Redirect"
-              description="Send Authorization and Proxy-Authorization headers when a redirect points to a different origin"
-              size="medium"
-              data-testid="forward-auth-header-toggle"
-            />
-          </div>
-
-          {item.type === 'http-request' && (
-            <div className="flex flex-col gap-4">
-              <ToggleSelector
-                checked={enableApp}
-                onChange={onToggleEnableApp}
-                label="Enable App"
-                description="Show the App tab and app view mode for this request"
-                size="medium"
-                data-testid="enable-app-toggle"
-              />
-            </div>
-          )}
-
+          </FormField>
+          <Toggle
+            checked={encodeUrl}
+            onChange={onToggleUrlEncoding}
+            label="URL Encoding"
+            description="Automatically encode query parameters in the URL"
+            size="medium"
+            data-testid="encode-url-toggle"
+          />
+          <InheritableSettingsInput
+            id="timeout"
+            label="Timeout (ms)"
+            description="Set maximum time to wait before aborting the request"
+            value={timeout}
+            inheritedValue={inheritedTimeout}
+            inheritedPlaceholder={inheritedTimeout === 0 ? '0 (no timeout)' : String(inheritedTimeout)}
+            sourceName="Preferences"
+            onSourceClick={openTimeoutSource}
+            sourceLinkLabel="Open Preferences, where the default request timeout is set"
+            isInherited={isTimeoutInherited}
+            onValueChange={onTimeoutChange}
+            onOverride={onTimeoutOverride}
+            onInherit={onTimeoutInherit}
+            onKeyDown={handleKeyDown}
+            overrideLabel={`Override the Preferences timeout (${inheritedTimeout} ms) for this request`}
+            inheritLabel={`Inherit the Preferences timeout (${inheritedTimeout} ms)`}
+            inheritTooltip={`Inherit from Preferences (${inheritedTimeout === 0 ? 'no timeout' : `${inheritedTimeout} ms`})`}
+          />
+          <Toggle
+            checked={followRedirects}
+            onChange={onToggleFollowRedirects}
+            label="Automatically Follow Redirects"
+            description="Follow HTTP redirects automatically"
+            size="medium"
+            data-testid="follow-redirects-toggle"
+          />
           <SettingsInput
             id="maxRedirects"
             label="Max Redirects"
@@ -243,21 +234,28 @@ const Settings = ({ item, collection }) => {
             description="Set a limit for the number of redirects to follow"
             onKeyDown={handleKeyDown}
           />
-
-          <InheritableSettingsInput
-            id="timeout"
-            label="Timeout (ms)"
-            value={timeout}
-            description="Set maximum time to wait before aborting the request"
-            onKeyDown={handleKeyDown}
-            isInherited={isTimeoutInherited}
-            onDropdownSelect={handleTimeoutDropdownSelect}
-            onValueChange={(e) => !isTimeoutInherited && onTimeoutChange(e)}
-            onCustomValueReset={() => updateSetting({ timeout: 'inherit' })}
+          <Toggle
+            checked={forwardAuthorizationHeader}
+            onChange={onToggleForwardAuthorizationOnRedirect}
+            label="Forward Authorization on Redirect"
+            description="Send Authorization and Proxy-Authorization headers when a redirect points to a different origin."
+            size="medium"
+            data-testid="forward-auth-header-toggle"
           />
-        </div>
+
+          {item.type === 'http-request' && (
+            <Toggle
+              checked={enableApp}
+              onChange={onToggleEnableApp}
+              label="Enable App"
+              description="Show the App tab and app view mode for this request"
+              size="medium"
+              data-testid="enable-app-toggle"
+            />
+          )}
+        </FieldList>
       </div>
-    </div>
+    </StyledWrapper>
   );
 };
 

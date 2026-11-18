@@ -32,6 +32,22 @@ export const getAiApiKey = ({ providerId }) =>
 export const testAiProvider = ({ providerId }) =>
   callIpc('renderer:ai-test-provider', { providerId });
 
+export const copilotSignIn = () => callIpc('renderer:ai-copilot-sign-in');
+
+export const copilotSignInWithGitHubCli = () => callIpc('renderer:ai-copilot-sign-in-with-github-cli');
+
+export const copilotCancelSignIn = () => callIpc('renderer:ai-copilot-cancel-sign-in');
+
+export const copilotRefreshModels = () => callIpc('renderer:ai-copilot-refresh-models');
+
+export const copilotSignOut = () => callIpc('renderer:ai-copilot-sign-out');
+
+export const formatCopilotMultiplier = (multiplier) => {
+  if (multiplier === 0) return 'Included';
+  if (multiplier === 1 || !Number.isFinite(multiplier)) return null;
+  return `${multiplier}×`;
+};
+
 export const aiGenerateText = (params) =>
   callIpc('renderer:ai-generate-text', params);
 

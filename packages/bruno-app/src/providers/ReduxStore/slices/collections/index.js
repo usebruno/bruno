@@ -411,6 +411,15 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateSettingsSection: (state, action) => {
+      const { collectionUid, section } = action.payload;
+
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        collection.settingsSection = section;
+      }
+    },
     updatedFolderSettingsSelectedTab: (state, action) => {
       const { collectionUid, folderUid, tab } = action.payload;
 
@@ -4348,6 +4357,7 @@ export const {
   updateLastAction,
   updateSettingsSelectedTab,
   updateCollectionHttpVersion,
+  updateSettingsSection,
   updatedFolderSettingsSelectedTab,
   collectionUnlinkEnvFileEvent,
   saveEnvironment,

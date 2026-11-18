@@ -1723,16 +1723,26 @@ const openCollectionSettings = async (page: Page, collectionName: string, { pers
   });
 };
 
+const COLLECTION_SETTINGS_SECTIONS = ['presets', 'proxy', 'clientcert'];
+
 /**
  * Select a tab in the collection settings pane
  * @param page - The page object
- * @param tabName - The tab name key (e.g. 'auth', 'headers', 'overview', 'script', 'vars')
+ * @param tabName - The tab name key (e.g. 'auth', 'headers', 'overview', 'script', 'vars'), or a
+ *   Settings section ('presets', 'proxy', 'clientCert'), which opens the Settings tab first
  * @returns void
  */
 const selectCollectionPaneTab = async (page: Page, tabName: string) => {
   await test.step(`Select collection pane tab "${tabName}"`, async () => {
     const locators = buildCommonLocators(page);
-    const tab = locators.paneTabs.collectionSettingsTab(tabName.toLowerCase());
+    const key = tabName.toLowerCase() === 'clientcert' ? 'clientCert' : tabName.toLowerCase();
+    if (COLLECTION_SETTINGS_SECTIONS.includes(tabName.toLowerCase())) {
+      // Presets, Proxy and Client certificates live in the Settings tab's sidebar
+      const settingsTab = locators.paneTabs.collectionSettingsTab('settings');
+      await settingsTab.click();
+      await expect(settingsTab).toContainClass('active');
+    }
+    const tab = locators.paneTabs.collectionSettingsTab(key);
     await tab.click();
     await expect(tab).toContainClass('active');
   });
@@ -2702,13 +2712,17 @@ const writeScriptContent = async (page: Page, subTab: ScriptSubTab, content: str
 };
 
 /**
- * Read the content of a Script sub-tab editor
+ * Read the content of a Script sub-tab editor, or of the request's Tests editor
  * @param page - The page object
- * @param subTab - The Script sub-tab to read
+ * @param subTab - The Script sub-tab to read, or 'tests' for the Tests pane tab
  */
-const readScriptContent = async (page: Page, subTab: ScriptSubTab): Promise<string> => {
-  await selectScriptSubTab(page, subTab);
-  const editorTestId = `${subTab}-script-editor`;
+const readScriptContent = async (page: Page, subTab: ScriptSubTab | 'tests'): Promise<string> => {
+  const editorTestId = subTab === 'tests' ? 'test-script-editor' : `${subTab}-script-editor`;
+  if (subTab === 'tests') {
+    await selectRequestPaneTab(page, 'Tests');
+  } else {
+    await selectScriptSubTab(page, subTab);
+  }
   return buildCommonLocators(page)
     .codeMirror.byTestId(editorTestId)
     .evaluate((el: any, testId: string) => {

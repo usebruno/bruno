@@ -76,8 +76,9 @@ const initialState = {
     ai: {
       enabled: false,
       providers: {
-        openai: { enabled: false },
-        anthropic: { enabled: false }
+        'openai': { enabled: false },
+        'anthropic': { enabled: false },
+        'github-copilot': { enabled: false }
       },
       models: {},
       defaultModel: '',
