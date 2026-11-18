@@ -16,6 +16,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, inherite
   const dispatch = useDispatch();
   const globalEnvironmentDraft = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft);
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
+  const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
   const collections = useSelector((state) => state.collections.collections);
 
   const hasDraftForThisEnv = globalEnvironmentDraft?.environmentUid === environment.uid;
@@ -23,8 +24,8 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, inherite
     hasDraftForThisEnv ? { ...environment, variables: globalEnvironmentDraft.variables } : environment
   ), [environment, globalEnvironmentDraft, hasDraftForThisEnv]);
   const usedVariableUids = useMemo(
-    () => findUsedGlobalEnvironmentVariableUids(collections, globalEnvironments, liveEnvironment),
-    [collections, globalEnvironments, liveEnvironment]
+    () => findUsedGlobalEnvironmentVariableUids(collections, globalEnvironments, activeGlobalEnvironmentUid, liveEnvironment),
+    [collections, globalEnvironments, activeGlobalEnvironmentUid, liveEnvironment]
   );
   const hasSensitiveUsage = useCallback((variable) => (
     !!variable?.uid && usedVariableUids.has(variable.uid)

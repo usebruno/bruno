@@ -1,7 +1,11 @@
 const ReadOnlyPropertyList = require('../readonly-property-list');
-const { setMetadataKey } = require('./grpc-metadata');
+const {
+  liveHeaderEntries,
+  orderedHeaderEntries,
+  projectHeaderEntries,
+  snapshotHeaderEntries
+} = require('../utils/header-entries');
 
-// Extends ReadOnlyPropertyList in dynamic mode: entries are read through the accessor (live headers) on every access.
 // Keep quickjs shim up to date on any updates to this class
 
 /**
@@ -22,28 +26,28 @@ const { setMetadataKey } = require('./grpc-metadata');
  * @extends {ReadOnlyPropertyList<MetadataEntry>}
  */
 class GrpcMetadataList extends ReadOnlyPropertyList {
-  #readMetadata;
+  #request;
   #writable;
 
   /**
-   * @param {Function} readMetadata - Returns the `{ key: value }` map backing the list. A writable
-   *   list needs it to return the same live object every call, since that object is what writes edit.
+   * @param {object|Array} source - The prepared gRPC request (its `headers` and `headerEntries`
+   *   are the store, read live), or the `[{ name, value }]` rows of a response to snapshot.
    * @param {object} [options]
-   * @param {boolean} [options.writable=false] - When false, write methods throw
+   * @param {boolean} [options.writable=false] - When false, write methods throw. A snapshot is
+   *   never writable.
    */
-  constructor(readMetadata, { writable = false } = {}) {
+  constructor(source, { writable = false } = {}) {
+    const snapshot = !source || Array.isArray(source);
+    const rows = snapshot ? snapshotHeaderEntries(source) : null;
     super({
       keyProperty: 'key',
       valueProperty: 'value',
-      dataSource: () => Object.entries(readMetadata()).map(([key, value]) => ({ key, value }))
+      caseInsensitiveKeys: true,
+      dataSource: snapshot ? () => rows.map((entry) => ({ ...entry })) : () => orderedHeaderEntries(source)
     });
-    this.#readMetadata = readMetadata;
-    this.#writable = writable;
+    this.#request = snapshot ? null : source;
+    this.#writable = writable && !snapshot;
   }
-
-  // Positional access is deliberately removed from ReadOnlyPropertyList.
-  /** @internal */
-  idx = undefined;
 
   #assertWritable(method) {
     if (!this.#writable) {
@@ -53,151 +57,84 @@ class GrpcMetadataList extends ReadOnlyPropertyList {
     }
   }
 
-  #findKey(name) {
-    if (typeof name !== 'string') {
-      return undefined;
-    }
-
-    const target = name.toLowerCase();
-
-    return Object.keys(this.#readMetadata()).find((key) => key.toLowerCase() === target);
-  }
+  // ── Docs for inherited methods (see readme § "Doc overrides") ─────────
 
   /**
    * Get the value of an entry.
    *
-   * Keys match case-insensitively.
-   * @param {string} key - The key.
-   * @returns {any} The value, or `undefined` when there is no such entry.
+   * Keys match case-insensitively. With several entries of that key, the last one wins.
+   * @override get
+   * @param name - The key.
+   * @returns The value, or `undefined` when there is no such entry.
    * @example
    * const status = bru.grpc.response.trailers.get('grpc-status');
-   * @category Read
    */
-  get(key) {
-    const match = this.#findKey(key);
-
-    return match === undefined ? undefined : this.#readMetadata()[match];
-  }
 
   /**
    * Get an entry by key.
    *
-   * Keys match case-insensitively.
-   * @param {string} key - The key.
-   * @returns {MetadataEntry | undefined} The entry, or `undefined` when there is no such entry.
-   * @category Read
+   * Keys match case-insensitively. With several entries of that key, the last one wins.
+   * @override one
+   * @param name - The key.
+   * @returns The entry, or `undefined` when there is no such entry.
    */
-  one(key) {
-    const match = this.#findKey(key);
-
-    return match === undefined ? undefined : { key: match, value: this.#readMetadata()[match] };
-  }
 
   /**
    * Check whether an entry exists.
    *
    * Keys match case-insensitively.
-   * @param {string} key - The key.
-   * @param {any} [value] - When given, the entry's value must also be equal (`===`) to it.
-   * @returns {boolean} Whether a matching entry exists.
-   * @category Search
+   * @override has
+   * @param nameOrItem - A key, or an entry whose key to look for (its value is not compared).
+   * @returns Whether a matching entry exists.
+   * @example
+   * if (!bru.grpc.request.metadata.has('authorization')) {
+   *   bru.grpc.request.metadata.upsert('authorization', `Bearer ${bru.getEnvVar('token')}`);
+   * }
    */
-  has(key, value) {
-    const match = this.#findKey(key);
-
-    if (match === undefined) {
-      return false;
-    }
-
-    return value === undefined || this.#readMetadata()[match] === value;
-  }
 
   /**
    * Get the position of an entry.
    *
    * Keys match case-insensitively.
-   * @param {string | MetadataEntry} item - A key, or an entry to match by key and value.
-   * @returns {number} The zero-based position, or `-1` when no entry matches.
-   * @category Search
+   * @override indexOf
+   * @param nameOrItem - A key, or an entry to match by key and value.
+   * @returns The zero-based position of the first match, or `-1` when none matches.
    */
-  indexOf(item) {
-    const match = this.#findKey(typeof item === 'string' ? item : item?.key);
-
-    if (match === undefined) {
-      return -1;
-    }
-
-    const entries = this.all();
-
-    if (typeof item === 'string') {
-      return entries.findIndex((entry) => entry.key === match);
-    }
-
-    return entries.findIndex((entry) => entry.key === match && entry.value === item.value);
-  }
-
-  // ── Iteration overrides (optional context binding) ────────────────────
 
   /**
    * Call `fn` once for each entry, in order.
-   * @param {(item: MetadataEntry, index: number) => void} fn - Called with each entry and its position.
-   * @param {any} [context] - The `this` of `fn`.
-   * @category Iteration
+   * @override each
+   * @param fn - Called with each entry and its position.
    */
-  each(fn, context) {
-    super.each(context !== undefined ? fn.bind(context) : fn);
-  }
 
   /**
-   * Get the first entry `fn` accepts.
-   * @param {(item: MetadataEntry, index: number) => boolean} fn - Called with each entry and its
-   *   position.
-   * @param {any} [context] - The `this` of `fn`.
-   * @returns {MetadataEntry | undefined} The entry, or `undefined` when none matches.
-   * @category Search
+   * Get the first entry `predicate` accepts.
+   * @override find
+   * @param predicate - Called with each entry and its position.
+   * @returns The entry, or `undefined` when none matches.
    */
-  find(fn, context) {
-    return super.find(context !== undefined ? fn.bind(context) : fn);
-  }
 
   /**
-   * Get every entry `fn` accepts.
-   * @param {(item: MetadataEntry, index: number) => boolean} fn - Called with each entry and its
-   *   position.
-   * @param {any} [context] - The `this` of `fn`.
-   * @returns {MetadataEntry[]} The matching entries, in order.
-   * @category Search
+   * Get every entry `predicate` accepts.
+   * @override filter
+   * @param predicate - Called with each entry and its position.
+   * @returns The matching entries, in order.
    */
-  filter(fn, context) {
-    return super.filter(context !== undefined ? fn.bind(context) : fn);
-  }
 
   /**
    * Build an array from the result of `fn` for each entry.
-   * @param {(item: MetadataEntry, index: number) => any} fn - Called with each entry and its position.
-   * @param {any} [context] - The `this` of `fn`.
-   * @returns {any[]} The results, in the order of the entries.
-   * @category Iteration
+   * @override map
+   * @example
+   * const keys = bru.grpc.response.metadata.map((entry) => entry.key);
    */
-  map(fn, context) {
-    return super.map(context !== undefined ? fn.bind(context) : fn);
-  }
 
   /**
    * Combine the entries into a single value, as `Array.prototype.reduce` does.
    *
    * Without `initialValue`, the first entry is the starting value, and an empty list throws.
-   * @type {(fn: (accumulator: any, item: MetadataEntry, index: number) => any, initialValue?: any, context?: any) => any}
+   * @override reduce
    * @param fn - Called with the value so far, each entry and its position; returns the next value.
-   * @param initialValue - The starting value.
-   * @param context - The `this` of `fn`.
-   * @category Iteration
    */
-  reduce(fn, ...args) {
-    const bound = args.length > 1 ? fn.bind(args[1]) : fn;
-
-    return args.length ? super.reduce(bound, args[0]) : super.reduce(bound);
-  }
 
   // ── Transform override ────────────────────────────────────────────────
 
@@ -212,7 +149,7 @@ class GrpcMetadataList extends ReadOnlyPropertyList {
       .join('\n');
   }
 
-  // ── Write methods (edit the backing map) ──────────────────────────────
+  // ── Write methods (edit the entries, then project into the headers map) ──
 
   /**
    * Set an entry, replacing the one with the same key.
@@ -233,16 +170,20 @@ class GrpcMetadataList extends ReadOnlyPropertyList {
       return;
     }
 
-    const metadata = this.#readMetadata();
-    const existing = this.#findKey(key);
-
-    // A server reads `X-Token` and `x-token` as one key, so a re-cased upsert replaces instead of
-    // leaving two entries the transport would send as duplicates.
-    if (existing !== undefined && existing !== key) {
-      delete metadata[existing];
+    const entries = liveHeaderEntries(this.#request);
+    const firstMatch = entries.find((entry) => this._keyMatches(entry.key, key));
+    if (firstMatch && firstMatch.key !== key) {
+      entries.splice(entries.indexOf(firstMatch), 1);
     }
 
-    setMetadataKey(metadata, key, value);
+    const existing = entries.find((entry) => entry.key === key);
+    if (existing) {
+      existing.value = value;
+    } else {
+      entries.push({ key, value });
+    }
+
+    projectHeaderEntries(entries, this.#request.headers);
   }
 
   /**
@@ -276,11 +217,13 @@ class GrpcMetadataList extends ReadOnlyPropertyList {
   remove(key) {
     this.#assertWritable('remove');
 
-    const existing = this.#findKey(key);
-
-    if (existing !== undefined) {
-      delete this.#readMetadata()[existing];
+    const entries = liveHeaderEntries(this.#request);
+    const index = entries.findIndex((entry) => this._keyMatches(entry.key, key));
+    if (index !== -1) {
+      entries.splice(index, 1);
     }
+
+    projectHeaderEntries(entries, this.#request.headers);
   }
 
   /**
@@ -291,12 +234,11 @@ class GrpcMetadataList extends ReadOnlyPropertyList {
   clear() {
     this.#assertWritable('clear');
 
-    const metadata = this.#readMetadata();
+    const entries = liveHeaderEntries(this.#request);
 
-    // Emptied in place rather than reassigned
-    for (const key of Object.keys(metadata)) {
-      delete metadata[key];
-    }
+    entries.length = 0;
+
+    projectHeaderEntries(entries, this.#request.headers);
   }
 }
 

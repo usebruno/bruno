@@ -126,3 +126,7 @@ src/ui/<Name>/
 ```
 
 Consumers use the list API: `<SegmentedControl value onChange items={[{ value, label, ... }]} />`. To expose the compound API later, re-export `<Option>` / `<Name>Base` from `index.jsx`.
+
+### Patterns
+
+`src/ui/patterns/<Name>/` holds layout patterns: presentational wrappers that give screens consistent spacing and typography around controls they compose themselves (`FormField`, `FieldList`). A pattern has no state, context or behaviour and doesn't own a control, so it skips the `dataTestId`/forwarded-ref conventions above; accessibility attributes (`htmlFor`, `labelId`, `descriptionId`) are passed straight through. Title its stories `Patterns/<Name>`.

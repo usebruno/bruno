@@ -99,6 +99,7 @@ const CollectionSourceFields = ({
         <>
           <input
             id="collection-location"
+            data-testid="api-spec-collection-location"
             type="text"
             name="collectionLocation"
             readOnly={true}

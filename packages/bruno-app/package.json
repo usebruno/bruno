@@ -118,6 +118,7 @@
     "yup": "^0.32.11"
   },
   "devDependencies": {
+    "@apidevtools/swagger-parser": "10.1.1",
     "@babel/core": "7.29.7",
     "@babel/preset-env": "^7.27.2",
     "@babel/preset-react": "^7.27.1",
@@ -139,6 +140,7 @@
     "babel-plugin-styled-components": "^2.1.4",
     "cross-env": "^7.0.3",
     "jest-environment-jsdom": "^29.7.0",
+    "openapi-path-templating": "2.2.1",
     "postcss": "8.5.23",
     "storybook": "10.6.2",
     "storybook-react-rsbuild": "3.6.1",

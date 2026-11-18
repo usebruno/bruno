@@ -28,7 +28,7 @@ describe('HTML Report Generation', () => {
     // Generate HTML using mock data
     const htmlString = generateHtmlReport({
       runnerResults: mockResults,
-      version: 'usebruno v1.16.0',
+      version: 'v1.16.0',
       environment: 'production',
       runCompletionTime: '2024-01-15T14:30:45.123Z'
     });
@@ -101,7 +101,7 @@ describe('HTML Report Generation', () => {
 
     const htmlString = generateHtmlReport({
       runnerResults: mockResults,
-      version: 'usebruno v1.16.0',
+      version: 'v1.16.0',
       environment: null,
       runCompletionTime: '2024-01-15T14:30:45.123Z'
     });

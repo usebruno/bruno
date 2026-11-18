@@ -1,11 +1,12 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
-import { parseQueryParams, extractPromptVariables, getDataTypeFromValue, resolveEnvironmentInheritance } from '@usebruno/common/utils';
+import { parseQueryParams, extractPromptVariables, getDataTypeFromValue, nextCopyName, resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
 import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT, VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 import get from 'lodash/get';
+import map from 'lodash/map';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
 import path, { normalizePath, isPathExternalToBasePath } from 'utils/common/path';
@@ -96,6 +97,7 @@ import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import {
   getGlobalEnvironmentVariables,
+  getGlobalEnvironmentName,
   findCollectionByPathname,
   getReorderedItemsInTargetDirectory,
   resetSequencesInFolder,
@@ -125,10 +127,6 @@ import {
   hydrateCollectionTabs,
   hydrateSnapshotLookups
 } from 'utils/snapshot';
-
-// Display name for a cloned/pasted item: always "<source> copy" (semantic).
-// Filename uniqueness is resolved silently by the electron main process
-const copyDisplayName = (originalName) => `${originalName} copy`;
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -454,6 +452,7 @@ export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch
       activeGlobalEnvironmentUid
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+    collectionCopy.globalEnvironmentName = getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid });
 
     const environment = resolveEnvironmentInheritance({
       environments: collectionCopy.environments,
@@ -498,6 +497,7 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
       activeGlobalEnvironmentUid
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+    collectionCopy.globalEnvironmentName = getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid });
 
     const environment = resolveEnvironmentInheritance({
       environments: collectionCopy.environments,
@@ -610,6 +610,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       activeGlobalEnvironmentUid
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+    collectionCopy.globalEnvironmentName = getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid });
 
     const requestUid = uuid();
     itemCopy.requestUid = requestUid;
@@ -750,6 +751,7 @@ export const runCollectionFolder
         activeGlobalEnvironmentUid
       });
       collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+      collectionCopy.globalEnvironmentName = getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid });
 
       const folder = findItemInCollection(collectionCopy, folderUid);
 
@@ -1022,9 +1024,9 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
 
         // Handle folder pasting
         if (isItemAFolder(copiedItem)) {
-          // Display name becomes "<source> copy"; electron resolves the
+          // Display name takes the next free copy slot in the destination; electron resolves the
           // filesystem name uniqueness silently.
-          const newName = copyDisplayName(copiedItem.name);
+          const newName = nextCopyName(copiedItem.name, map(existingItems, (i) => i.name));
           const newFilename = sanitizeName(newName);
 
           set(copiedItem, 'name', newName);
@@ -1037,9 +1039,9 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
 
           await ipcRenderer.invoke('renderer:clone-folder', copiedItem, fullPathname, targetCollection.pathname);
         } else {
-          // Handle request pasting — display name "<source> copy"
+          // Handle request pasting — display name takes the next free copy slot in the destination;
           // electron resolves the filename uniqueness and returns the path actually used.
-          const newName = copyDisplayName(copiedItem.name);
+          const newName = nextCopyName(copiedItem.name, map(existingItems, (i) => i.name));
           const newFilename = sanitizeName(newName);
 
           const filename = resolveRequestFilename(newFilename, targetCollection.format);
@@ -1967,6 +1969,7 @@ export const loadGrpcMethodsFromReflection = (item, collectionUid, url) => async
       activeGlobalEnvironmentUid
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+    collectionCopy.globalEnvironmentName = getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid });
     const environment = resolveEnvironmentInheritance({
       environments: collectionCopy.environments,
       targetEnvironment: findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid)
@@ -2016,6 +2019,7 @@ export const generateGrpcurlCommand = (item, collectionUid) => async (dispatch, 
       activeGlobalEnvironmentUid
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+    collectionCopy.globalEnvironmentName = getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid });
     const environment = resolveEnvironmentInheritance({
       environments: collectionCopy.environments,
       targetEnvironment: findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid)
@@ -2412,7 +2416,7 @@ export const addSecretToEnvironment = ({ collectionUid, environmentScope, name, 
     environmentScope,
     environmentUid,
     update: (variables, environment) => {
-      if (variables.some((variable) => variable.name === name)) {
+      if (variables.some((variable) => variable.name === name && variable.secret)) {
         throw new Error(`"${name}" already exists in ${environment.name}`);
       }
       return resolveOrCreateEnabledVariable(variables, name, value, true).updatedVariables;
@@ -2455,6 +2459,10 @@ export const removeVariableFromScope = ({ collectionUid, scope, ownerUid, variab
  */
 export const updateVariableInScope = (variableName, newValue, scopeInfo, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
+    const announceSaved = (existingVariable) => {
+      toast.success(`Variable "${variableName}" ${existingVariable ? 'updated' : 'created'}`);
+    };
+
     if (!scopeInfo || !variableName) {
       return reject(new Error('Invalid scope information or variable name'));
     }
@@ -2493,9 +2501,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
           // not pre-resolving a secret-name collision here
           // saveEnvironment's writesCollidingSecrets guard rejects it instead.
           return dispatch(saveEnvironment(updatedVariables, environment.uid, collectionUid))
-            .then(() => {
-              toast.success(`Variable "${variableName}" ${variable ? 'updated' : 'created'}`);
-            })
+            .then(() => announceSaved(variable))
             .then(resolve)
             .catch(reject);
         }
@@ -2520,7 +2526,8 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
           }
 
           // Save collection root to persist the changes
-          return dispatch(saveCollectionSettings(collectionUid))
+          return dispatch(saveCollectionSettings(collectionUid, null, true))
+            .then(() => announceSaved(variable))
             .then(resolve)
             .catch(reject);
         }
@@ -2547,7 +2554,8 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
           }
 
           // Save folder root to persist the changes
-          return dispatch(saveFolderRoot(collectionUid, folder.uid))
+          return dispatch(saveFolderRoot(collectionUid, folder.uid, true))
+            .then(() => announceSaved(variable))
             .then(resolve)
             .catch(reject);
         }
@@ -2575,6 +2583,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
 
           // Save request to persist the changes
           return dispatch(saveRequest(item.uid, collectionUid, true))
+            .then(() => announceSaved(variable))
             .then(resolve)
             .catch(reject);
         }
@@ -2601,9 +2610,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             variables: updatedVariables,
             environmentUid: activeGlobalEnvUid
           }))
-            .then(() => {
-              toast.success(`Variable "${variableName}" ${variable ? 'updated' : 'created'}`);
-            })
+            .then(() => announceSaved(variable))
             .then(resolve)
             .catch(reject);
         }

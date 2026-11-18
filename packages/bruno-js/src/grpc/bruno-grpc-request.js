@@ -15,8 +15,6 @@ const GrpcMessage = require('./grpc-message');
  * The request of a gRPC call: its target, method, metadata and the messages sent.
  */
 class BrunoGrpcRequest {
-  #request;
-
   /**
    * @param {object} request - The prepared gRPC request
    * @param {object} [options]
@@ -30,7 +28,6 @@ class BrunoGrpcRequest {
    *   the model entirely, so `'message' in bru.grpc.request` is `false` there.
    */
   constructor(request, { metadataWritable = false, sentMessages = [], message } = {}) {
-    this.#request = request;
     /**
      * The server address. In `beforeCallStart` its `{{variables}}` are not interpolated yet.
      * @type {string}
@@ -84,7 +81,7 @@ class BrunoGrpcRequest {
      * @readonly
      * @category Metadata
      */
-    this.metadata = new GrpcMetadataList(() => this.#metadataEntries(), { writable: metadataWritable });
+    this.metadata = new GrpcMetadataList(request, { writable: metadataWritable });
     // The list clones what it is given, so a hook editing a message cannot reach what the call sent.
     /**
      * The messages the call has sent so far. Empty in `beforeCallStart`.
@@ -104,13 +101,6 @@ class BrunoGrpcRequest {
     if (message) {
       this.message = new GrpcMessage(message);
     }
-  }
-
-  // Provides reference for in-memory edits on setters
-  #metadataEntries() {
-    this.#request.headers ??= {};
-
-    return this.#request.headers;
   }
 }
 

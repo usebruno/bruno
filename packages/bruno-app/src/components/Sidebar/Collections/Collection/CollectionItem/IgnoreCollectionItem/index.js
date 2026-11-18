@@ -30,6 +30,7 @@ const IgnoreCollectionItem = ({ onClose, item, collectionUid }) => {
       size="md"
       title="Ignore Folder"
       confirmText="Ignore"
+      dataTestId="ignore-folder-modal"
       handleConfirm={onConfirm}
       handleCancel={onClose}
     >

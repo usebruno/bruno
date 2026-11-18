@@ -1,6 +1,6 @@
 import type { Locator } from '@playwright/test';
 import { test, expect } from '../../playwright';
-import { buildCommonLocators, closeAllCollections, createCollection } from '../utils/page';
+import { buildCommonLocators, closeAllCollections, createCollection, selectCollectionPaneTab } from '../utils/page';
 
 test.describe('Presets status dot in collection settings', () => {
   test.afterEach(async ({ page }) => {
@@ -20,10 +20,9 @@ test.describe('Presets status dot in collection settings', () => {
     });
 
     await test.step('Open the Presets sub-tab', async () => {
+      // Presets is a section of the Settings tab; the helper opens Settings first
+      await selectCollectionPaneTab(page, 'presets');
       presetsTab = locators.paneTabs.collectionSettingsTab('presets');
-      // visibility of the Presets sub-tab implies the collection settings tab is open
-      await expect(presetsTab).toBeVisible();
-      await presetsTab.click();
     });
 
     await test.step('Verify default state: HTTP selected and request URL is empty', async () => {

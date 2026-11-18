@@ -18,6 +18,12 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getEnvName', getEnvName);
   getEnvName.dispose();
 
+  let getGlobalEnvName = vm.newFunction('getGlobalEnvName', function () {
+    return marshallToVm(bru.getGlobalEnvName(), vm);
+  });
+  vm.setProp(bruObject, 'getGlobalEnvName', getGlobalEnvName);
+  getGlobalEnvName.dispose();
+
   let getCollectionName = vm.newFunction('getCollectionName', function () {
     return marshallToVm(bru.getCollectionName(), vm);
   });
@@ -358,7 +364,7 @@ const addBruShimToContext = (vm, bru) => {
     globalPath: 'globalThis.bru.cookies',
     syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
     syncReadObjectMethods: ['one', 'all', 'idx', 'toJSON'],
-    asyncWriteMethods: ['add', 'upsert', 'remove', 'clear', 'delete'],
+    asyncWriteMethods: ['add', 'append', 'upsert', 'remove', 'clear', 'delete'],
     withIterators: true
   });
 
