@@ -6,7 +6,9 @@ import {
   MAX_HYBRID_KEY_EXCHANGE_ENDPOINTS,
   connectWithKeyExchangeFallback,
   withHybridKeyExchangeFallback,
-  clearHybridKeyExchangeEndpoints
+  clearHybridKeyExchangeEndpoints,
+  setSupportsHybridAdvertiseWithoutShareForTests,
+  resetSupportsHybridAdvertiseWithoutShareForTests
 } from './hybrid-key-exchange';
 import { clearAgentCache } from './agent-cache';
 
@@ -24,10 +26,6 @@ const fakeRequest = () => {
 };
 
 const handshakeFailure = Object.assign(new Error('sslv3 alert handshake failure'), { code: 'ERR_SSL_SSLV3_ALERT_HANDSHAKE_FAILURE' });
-
-const setElectronVersion = (version: string | undefined) => {
-  Object.defineProperty(process.versions, 'electron', { value: version, configurable: true, enumerable: true });
-};
 
 const createdSockets: TLSSocket[] = [];
 
@@ -187,8 +185,6 @@ describe('connectWithKeyExchangeFallback', () => {
 });
 
 describe('withHybridKeyExchangeFallback', () => {
-  const originalElectronVersion = process.versions.electron;
-
   // An https.Agent stand-in whose handshakes are rejected unless the hybrid group is offered.
   class PqOnlyAgent {
     offeredCurves: (string | undefined)[] = [];
@@ -213,12 +209,12 @@ describe('withHybridKeyExchangeFallback', () => {
   });
 
   afterEach(() => {
-    setElectronVersion(originalElectronVersion);
+    resetSupportsHybridAdvertiseWithoutShareForTests();
     createdSockets.splice(0).forEach((socket) => socket.destroy());
   });
 
   it('retries before handing the socket to the caller and logs to the timeline', async () => {
-    setElectronVersion('43.8.10');
+    setSupportsHybridAdvertiseWithoutShareForTests(false);
     const Agent = withHybridKeyExchangeFallback(PqOnlyAgent) as any;
     const agent = new Agent();
     agent.timeline = [];
@@ -229,8 +225,8 @@ describe('withHybridKeyExchangeFallback', () => {
     expect(agent.timeline.map((entry: any) => entry.message)).toEqual(['TLS handshake failed; retrying with post-quantum key exchange (X25519MLKEM768)']);
   });
 
-  it('leaves OpenSSL runtimes to their own key exchange settings', async () => {
-    setElectronVersion(undefined);
+  it('leaves advertise-without-share runtimes to their own key exchange settings', async () => {
+    setSupportsHybridAdvertiseWithoutShareForTests(true);
     const Agent = withHybridKeyExchangeFallback(PqOnlyAgent) as any;
     const agent = new Agent();
 
@@ -240,7 +236,7 @@ describe('withHybridKeyExchangeFallback', () => {
   });
 
   it('retries a SOCKS TLS failure without destroying the real request', async () => {
-    setElectronVersion('43.8.10');
+    setSupportsHybridAdvertiseWithoutShareForTests(false);
 
     // Mirrors socks-proxy-agent 8.0.5: TLS errors destroy `req` before the hybrid wrapper sees them.
     class SocksLikeAgent {
@@ -268,7 +264,7 @@ describe('withHybridKeyExchangeFallback', () => {
   });
 
   it('destroys a pending SOCKS handshake when the request is cancelled', async () => {
-    setElectronVersion('43.8.10');
+    setSupportsHybridAdvertiseWithoutShareForTests(false);
 
     class HangingSocksAgent {
       lastSocket: TLSSocket | undefined;

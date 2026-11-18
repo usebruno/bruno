@@ -1,10 +1,38 @@
-// Hybrid key exchange (X25519MLKEM768) for BoringSSL (Electron). BoringSSL puts a key share for
-// every offered group in the first ClientHello, so we start classical and retry once with hybrid
-// when the handshake fails. OpenSSL (CLI) advertises hybrid without that upfront share; see bru.js.
+// Hybrid key exchange (X25519MLKEM768). OpenSSL can advertise the group without a key share
+// (`?X25519MLKEM768`); BoringSSL cannot, so we start classical and retry once with hybrid.
+// Strategy is selected by a createSecureContext probe, not by product/runtime identity.
 import { once } from 'node:events';
-import { TLSSocket, type SecureContext } from 'node:tls';
+import tls, { TLSSocket, type SecureContext } from 'node:tls';
 
 const HYBRID_ECDH_CURVE = 'X25519:X25519MLKEM768:P-256:P-384';
+const ADVERTISE_HYBRID_WITHOUT_SHARE = 'DEFAULT:-X25519MLKEM768:?X25519MLKEM768';
+
+const probeSupportsHybridAdvertiseWithoutShare = (): boolean => {
+  try {
+    tls.createSecureContext({ ecdhCurve: ADVERTISE_HYBRID_WITHOUT_SHARE });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+let supportsHybridAdvertiseWithoutShare = probeSupportsHybridAdvertiseWithoutShare();
+
+function configureHybridTlsDefaults(): void {
+  if (!supportsHybridAdvertiseWithoutShare) {
+    return;
+  }
+  tls.DEFAULT_ECDH_CURVE = ADVERTISE_HYBRID_WITHOUT_SHARE;
+}
+
+/** Test seam: force the OpenSSL vs BoringSSL strategy without depending on the host TLS stack. */
+function setSupportsHybridAdvertiseWithoutShareForTests(value: boolean): void {
+  supportsHybridAdvertiseWithoutShare = value;
+}
+
+function resetSupportsHybridAdvertiseWithoutShareForTests(): void {
+  supportsHybridAdvertiseWithoutShare = probeSupportsHybridAdvertiseWithoutShare();
+}
 
 // Carries the ClientRequest through Agent.createSocket → createConnection so an in-flight
 // handshake can be destroyed if the request is cancelled before handoff.
@@ -22,8 +50,6 @@ const isRetryableKeyExchangeError = (error: any, fromHybridAttempt: boolean): bo
   isHandshakeFailure(error) || (fromHybridAttempt && error?.code === 'ECONNRESET');
 
 const isEstablishedTlsSocket = (socket: TLSSocket): boolean => socket instanceof TLSSocket && socket.encrypted;
-
-const isBoringSsl = (): boolean => Boolean(process.versions.electron);
 
 const cancellationError = (): Error => Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' });
 
@@ -193,14 +219,14 @@ function withHybridKeyExchangeFallback<T>(BaseAgentClass: T): T {
 
     // Thread the ClientRequest into createConnection so cancellation can destroy in-flight TLS.
     createSocket(req: any, options: any, callback: any) {
-      if (usesAgentBase || !isBoringSsl()) {
+      if (usesAgentBase || supportsHybridAdvertiseWithoutShare) {
         return super.createSocket(req, options, callback);
       }
       return super.createSocket(req, { ...options, [hybridRequest]: req }, callback);
     }
 
     createConnection(options: any, callback?: (error: Error | null, socket?: TLSSocket) => void) {
-      if (usesAgentBase || !callback || !isBoringSsl()) {
+      if (usesAgentBase || !callback || supportsHybridAdvertiseWithoutShare) {
         return super.createConnection(options, callback);
       }
 
@@ -213,7 +239,7 @@ function withHybridKeyExchangeFallback<T>(BaseAgentClass: T): T {
     }
 
     async connect(req: any, options: any) {
-      if (!options.secureEndpoint || !isBoringSsl()) {
+      if (!options.secureEndpoint || supportsHybridAdvertiseWithoutShare) {
         return super.connect(req, options);
       }
 
@@ -234,7 +260,11 @@ function clearHybridKeyExchangeEndpoints(): void {
 
 export {
   HYBRID_ECDH_CURVE,
+  ADVERTISE_HYBRID_WITHOUT_SHARE,
   MAX_HYBRID_KEY_EXCHANGE_ENDPOINTS,
+  configureHybridTlsDefaults,
+  setSupportsHybridAdvertiseWithoutShareForTests,
+  resetSupportsHybridAdvertiseWithoutShareForTests,
   connectWithKeyExchangeFallback,
   withHybridKeyExchangeFallback,
   clearHybridKeyExchangeEndpoints,
