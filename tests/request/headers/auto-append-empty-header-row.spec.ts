@@ -100,7 +100,7 @@ test('TC-2650: Verify header deletion when header name is cleared', { tag: '@san
   });
 
   await test.step('Backspace until the Name field is empty', async () => {
-    await headers.nameEditor(headers.requestRow(headerName)).click();
+    await headers.nameCell(headers.requestRow(headerName)).click();
     await page.keyboard.press('End');
     for (let i = 0; i < headerName.length; i++) {
       await page.keyboard.press('Backspace');
