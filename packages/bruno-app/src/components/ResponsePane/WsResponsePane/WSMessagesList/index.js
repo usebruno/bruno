@@ -96,7 +96,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle, item, collection }) => 
 
   return (
     <div
-      data-testid={isError ? 'ws-message-error' : isIncoming ? 'ws-message-incoming' : 'ws-message'}
+      data-testid={isError ? 'ws-message-error' : 'ws-message'}
       className={classnames('ws-message flex flex-col p-2', {
         'ws-incoming': isIncoming,
         'ws-outgoing': isOutgoing,

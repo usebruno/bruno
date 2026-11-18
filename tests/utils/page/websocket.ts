@@ -7,7 +7,7 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
   },
   runButton: () => page.getByTestId('run-button'),
   messages: () => page.locator('.ws-message'),
-  incomingMessages: () => page.getByTestId('ws-message-incoming'),
+  incomingMessages: () => page.getByTestId('ws-message').filter({ hasClass: 'ws-incoming' }),
   messageText: (index: number) => page.getByTestId('ws-message-content').nth(index),
   /**
    * First message whose content matches `pattern`.
@@ -24,7 +24,8 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
    */
   incomingMessageMatching: (pattern: RegExp | string) =>
     page
-      .getByTestId('ws-message-incoming')
+      .getByTestId('ws-message')
+      .filter({ hasClass: 'ws-incoming' })
       .getByTestId('ws-message-content')
       .filter({ hasText: pattern })
       .first(),
