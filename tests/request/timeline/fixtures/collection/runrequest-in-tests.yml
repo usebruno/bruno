@@ -1,0 +1,14 @@
+info:
+  name: runrequest-in-tests
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: http://localhost:8081/ping
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        await bru.runRequest('headers-target');
