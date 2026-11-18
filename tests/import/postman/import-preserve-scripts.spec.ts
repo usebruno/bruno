@@ -27,8 +27,10 @@ test.describe('Import Postman Collection with preserve scripts option enabled', 
       await expect(locators.import.preserveScriptsToggle()).toBeVisible();
     });
 
-    await test.step('Preserve scripts defaults to off', async () => {
+    await test.step('Preserve scripts defaults to off and can be checked', async () => {
       await expect(locators.import.preserveScriptsToggle()).not.toBeChecked();
+      await locators.import.preserveScriptsToggle().click();
+      await expect(locators.import.preserveScriptsToggle()).toBeChecked();
     });
 
     await test.step('Close the import modal', async () => {
@@ -93,10 +95,6 @@ test.describe('Import Postman Collection with preserve scripts option enabled', 
       await expect(editor).toContainText('expect(res.getStatus()).to.equal(200)');
       await expect(editor).not.toContainText('pm.response.to.have.status');
     });
-
-    await test.step('Run the request and check the status', async () => {
-      await sendRequest(page, 200);
-      await expect(locators.response.statusCode()).toContainText('200');
-    });
+    await sendRequest(page, 200);
   });
 });

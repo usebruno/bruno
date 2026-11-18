@@ -1,19 +1,20 @@
 import { test, expect, Page, ElectronApplication } from '../../../../playwright';
+import { buildCommonLocators } from '../locators';
 
 /**
  * Locators for the multipart form table on the request Body tab.
  * Wide columns render one chip per file; a narrow column collapses them to an "N files" summary.
  */
 export const buildMultipartFormLocators = (page: Page) => {
-  const container = () => page.getByTestId('multipart-form-table');
-  const rows = () => container().locator('tbody tr');
-  const file = (testId: string) => container().getByTestId(testId);
+  const locators = buildCommonLocators(page);
+  const table = locators.table('multipart-form-table');
+  const file = (testId: string) => table.container().getByTestId(testId);
 
   return {
-    uploadButton: () => rows().last().getByTestId('multipart-file-upload'),
+    uploadButton: () => table.allRows().last().getByTestId('multipart-file-upload'),
     // .first() keeps toBeVisible strict when several chips are on screen.
     selectedFiles: () => file('multipart-file-chip').or(file('multipart-file-summary')).first(),
-    fieldName: (rowIndex: number) => rows().nth(rowIndex).getByTestId('column-name').getByRole('textbox')
+    fieldName: (rowIndex: number) => table.row(rowIndex).getByTestId('column-name').getByRole('textbox')
   };
 };
 

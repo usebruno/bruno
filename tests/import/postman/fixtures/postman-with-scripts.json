@@ -34,9 +34,9 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "https://testbench-sanity.usebruno.com/ping",
-          "protocol": "https",
-          "host": ["testbench-sanity", "usebruno", "com"],
+          "raw": "http://localhost:8081/ping",  
+          "protocol": "http",
+          "host": ["localhost", "8081"],
           "path": ["ping"]
         }
       },

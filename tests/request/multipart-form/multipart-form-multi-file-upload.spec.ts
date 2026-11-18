@@ -69,7 +69,7 @@ test.describe('Multipart Form - mixed file multi-select upload', () => {
     await closeAllCollections(page);
   });
 
-  test('TC-2402: selecting files of different types and sizes together uploads them in one form-data POST', { tag: '@sanity' }, async ({ page, electronApp }) => {
+  test('TC-2402: selecting files of different types and sizes together uploads them in one form-data POST request', { tag: '@sanity' }, async ({ page, electronApp }) => {
     test.setTimeout(60_000);
     const locators = buildCommonLocators(page);
     await selectMultipartFiles(page, electronApp, files.map((file) => file.path), 'uploads');
