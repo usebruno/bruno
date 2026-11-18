@@ -38,7 +38,25 @@ export const writePreferences = (
 
 const REQUESTS_PER_FOLDER = 25;
 
-const buildPressureCollection = (dir: string, name: string, needle: { name: string; url: string }, requestCount: number) => {
+export const parseMatchCount = (text: string | null) => {
+  const digits = text?.match(/\d+/);
+  return digits ? Number(digits[0]) : 0;
+};
+
+export const writeYmlRequest = (dir: string, name: string, options: { seq: number; url?: string }) => {
+  const { seq, url = 'https://echo.usebruno.com' } = options;
+  fs.writeFileSync(
+    path.join(dir, `${name}.yml`),
+    `info:\n  name: ${name}\n  type: http\n  seq: ${seq}\n\nhttp:\n  method: GET\n  url: ${url}\n`
+  );
+};
+
+export const initYmlCollection = (dir: string, name: string) => {
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'opencollection.yml'), `opencollection: 1.0.0\n\ninfo:\n  name: ${name}\n`);
+};
+
+export const buildPressureCollection = (dir: string, name: string, needle: { name: string; url: string }, requestCount: number) => {
   initBruCollection(dir, name);
   for (let f = 0; f * REQUESTS_PER_FOLDER < requestCount; f += 1) {
     const folderDir = writeBruFolder(dir, `folder-${f}`, f + 1);

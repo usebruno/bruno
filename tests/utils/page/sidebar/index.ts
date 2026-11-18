@@ -85,6 +85,9 @@ export const buildSidebarLocators = (page: Page) => {
     searchInput: () => page.getByTestId('sidebar-search-input'),
     searchMatchCount: () => page.getByTestId('sidebar-search-match-count'),
     searchClear: () => page.getByTestId('sidebar-search-clear-icon'),
+    searchIndexHint: () => page.getByTestId('sidebar-search-index-hint'),
+    searchIndexHintEnable: () => page.getByTestId('sidebar-search-index-hint-enable'),
+    searchIndexHintDismiss: () => page.getByTestId('sidebar-search-index-hint-dismiss'),
 
     // Modals opened from a sidebar row's "..." menu.
     renameItemModal: {
@@ -206,10 +209,13 @@ export const dragSidebarToWidth = async (page: Page, width: number) => {
  * @param page - The Playwright page object
  * @returns void
  */
+export const getSearchIndexSize = (page: Page) =>
+  page.evaluate(() => window.ipcRenderer.invoke('renderer:get-search-index-size'));
+
 export const clearSearchIndex = async (page: Page) => {
   await test.step('Clear the search index', async () => {
     await page.evaluate(() => window.ipcRenderer.invoke('renderer:clear-search-index'));
-    await expect.poll(() => page.evaluate(() => window.ipcRenderer.invoke('renderer:get-search-index-size'))).toBe(0);
+    await expect.poll(() => getSearchIndexSize(page)).toBe(0);
   });
 };
 
