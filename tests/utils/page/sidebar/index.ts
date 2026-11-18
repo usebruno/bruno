@@ -1,5 +1,6 @@
 import { Locator, Page, expect, test } from '../../../../playwright';
 import { collectionSlug } from '../../../../packages/bruno-app/src/utils/collections/collectionSlug';
+import { escapeRegExp } from '../../helpers';
 import { buildToastLocators } from '../toast';
 
 export type EmptyStateRequestType = 'http' | 'graphql' | 'grpc' | 'websocket';
@@ -40,6 +41,8 @@ export const buildSidebarLocators = (page: Page) => {
     },
     closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
     collectionRow,
+    collectionName: (name: string) =>
+      page.getByTestId('sidebar-collection-name').filter({ hasText: new RegExp(`^${escapeRegExp(name)}$`) }),
     collectionRows: () => page.getByTestId('sidebar-collection-row'),
     invalidFilesBadge: (name: string) => collectionRow(name).getByTestId('invalid-files-badge'),
     invalidFilesTooltip: () => page.getByTestId('invalid-files-tooltip'),
@@ -51,7 +54,9 @@ export const buildSidebarLocators = (page: Page) => {
     itemsIn: (collectionName: string, name: string): Locator =>
       collectionScope(collectionName).locator('.item-name').and(page.getByTitle(name, { exact: true })),
     itemRowIn: (collectionName: string, name: string): Locator =>
-      collectionScope(collectionName).getByTestId('sidebar-collection-item-row').filter({ has: itemByName(name) }),
+      collectionScope(collectionName).getByTestId('sidebar-collection-item-row').filter({
+        has: page.getByTestId('sidebar-collection-item-name').filter({ hasText: new RegExp(`^${escapeRegExp(name)}$`) })
+      }),
     collectionItemNames: (collectionName: string): Locator =>
       collectionScope(collectionName).locator('.item-name'),
     folderItemNames: (collectionName: string, folderName: string): Locator =>

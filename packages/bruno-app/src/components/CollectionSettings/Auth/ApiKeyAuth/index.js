@@ -23,7 +23,7 @@ const ApiKeyAuth = ({ collection }) => {
 
   const Icon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="flex items-center justify-end auth-type-label select-none">
+      <div ref={ref} data-testid="auth-placement-label" className="flex items-center justify-end auth-type-label select-none">
         {humanizeRequestAPIKeyPlacement(apikeyAuth?.placement)}
         <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
       </div>
@@ -61,6 +61,7 @@ const ApiKeyAuth = ({ collection }) => {
       <label className="block mb-1">Key</label>
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
+          data-testid="auth-apikey-key"
           value={apikeyAuth.key || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -73,6 +74,7 @@ const ApiKeyAuth = ({ collection }) => {
       <label className="block mb-1">Value</label>
       <div className="single-line-editor-wrapper mb-3 flex items-center">
         <SingleLineEditor
+          data-testid="auth-apikey-value"
           value={apikeyAuth.value || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -89,6 +91,7 @@ const ApiKeyAuth = ({ collection }) => {
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
           <div
             className="dropdown-item"
+            data-testid="auth-placement-header"
             onClick={() => {
               dropdownTippyRef.current.hide();
               handleAuthChange('placement', 'header');
@@ -98,6 +101,7 @@ const ApiKeyAuth = ({ collection }) => {
           </div>
           <div
             className="dropdown-item"
+            data-testid="auth-placement-queryparams"
             onClick={() => {
               dropdownTippyRef.current.hide();
               handleAuthChange('placement', 'queryparams');

@@ -70,6 +70,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, readOnly }) =
       <label className="block mb-1">Key</label>
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
+          data-testid="auth-apikey-key"
           value={apikeyAuth.key || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -85,6 +86,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, readOnly }) =
       <label className="block mb-1">Value</label>
       <div className="single-line-editor-wrapper mb-3 flex items-center">
         <SingleLineEditor
+          data-testid="auth-apikey-value"
           value={apikeyAuth.value || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -104,6 +106,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, readOnly }) =
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end" disabled={readOnly}>
           <div
             className="dropdown-item"
+            data-testid="auth-placement-header"
             onClick={() => {
               dropdownTippyRef?.current?.hide();
               handleAuthChange('placement', 'header');
@@ -113,6 +116,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, readOnly }) =
           </div>
           <div
             className="dropdown-item"
+            data-testid="auth-placement-queryparams"
             onClick={() => {
               dropdownTippyRef?.current?.hide();
               handleAuthChange('placement', 'queryparams');

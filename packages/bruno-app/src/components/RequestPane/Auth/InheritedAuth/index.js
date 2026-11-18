@@ -97,7 +97,7 @@ export const InheritedAuthSourceLabel = ({ collection, inheritedSource, supporte
   return (
     <StyledWrapper className="inherited-auth-source">
       <div className="inherited-auth-source-row">
-        <div className="inherited-auth-source-copy" title={`Auth inherited from ${inheritedSource.name}`}>
+        <div className="inherited-auth-source-copy" data-testid="inherited-auth-source" title={`Auth inherited from ${inheritedSource.name}`}>
           Auth inherited from <span className="inherited-auth-source-name">{inheritedSource.name}</span>:
         </div>
         <button

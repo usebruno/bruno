@@ -211,7 +211,7 @@ const Auth = ({ collection, folder }) => {
       </div>
       {getAuthView()}
       <div className="mt-6">
-        <Button type="submit" size="sm" onClick={handleSave}>
+        <Button type="submit" size="sm" onClick={handleSave} data-testid="save-auth-settings">
           Save
         </Button>
       </div>

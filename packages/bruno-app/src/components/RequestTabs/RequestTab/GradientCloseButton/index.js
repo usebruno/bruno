@@ -13,7 +13,7 @@ const GradientCloseButton = ({ onClick, hasChanges = false }) => {
         onClick={canClose ? onClick : undefined}
         data-testid={canClose ? 'request-tab-close-icon' : 'request-tab-draft-icon'}
       >
-        <span className="draft-icon-wrapper" data-testid="tab-draft-icon">
+        <span className="draft-icon-wrapper" data-testid="tab-draft-icon" data-has-draft={Boolean(hasChanges)}>
           <DraftTabIcon />
         </span>
         {canClose && (

@@ -4,15 +4,17 @@ import {
   createCollection,
   createRequest,
   createFolder,
+  editAuthField,
   openRequest,
   readField,
   saveRequest,
   selectAuthMode,
-  selectRequestPaneTab,
-  typeIntoField
+  selectRequestPaneTab
 } from '../utils/page';
 
 test.describe('Auth mode switch preserves saved data', () => {
+  test.describe.configure({ timeout: 60_000 });
+
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
@@ -25,7 +27,7 @@ test.describe('Auth mode switch preserves saved data', () => {
 
     await test.step('Save Bearer with a token', async () => {
       await selectAuthMode(page, 'Bearer Token');
-      await typeIntoField(page, 'Token', 'saved-bearer-token');
+      await editAuthField(page, 'bearer-token', 'saved-bearer-token');
       await saveRequest(page);
     });
 
@@ -65,7 +67,7 @@ test.describe('Auth mode switch preserves saved data', () => {
 
     await test.step('Save Bearer at the collection level', async () => {
       await selectAuthMode(page, 'Bearer Token');
-      await typeIntoField(page, 'Token', 'collection-bearer-token');
+      await editAuthField(page, 'bearer-token', 'collection-bearer-token');
       await page.getByRole('button', { name: 'Save' }).click();
     });
 
@@ -87,7 +89,7 @@ test.describe('Auth mode switch preserves saved data', () => {
 
     await test.step('Save Bearer at the folder level', async () => {
       await selectAuthMode(page, 'Bearer Token');
-      await typeIntoField(page, 'Token', 'folder-bearer-token');
+      await editAuthField(page, 'bearer-token', 'folder-bearer-token');
       await page.getByRole('button', { name: 'Save' }).click();
     });
 

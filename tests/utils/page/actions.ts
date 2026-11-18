@@ -1630,15 +1630,16 @@ const sendRequest = async (
 * @param page - The page object
 * @param collectionName - The name of the collection
 * @param requestName - The name of the request
+* @param options - Options for exact name matching and opening a permanent tab
 */
-const openRequest = async (page: Page, collectionName: string, requestName: string, { persist = false } = {}) => {
+const openRequest = async (page: Page, collectionName: string, requestName: string, { exact = false, persist = false } = {}) => {
   await test.step(`Navigate to collection "${collectionName}" and open request "${requestName}"`, async () => {
-    const collectionContainer = page.getByTestId('sidebar-collection-row').filter({ hasText: collectionName });
+    const { sidebar } = buildCommonLocators(page);
+    const collectionContainer = exact ? sidebar.collectionName(collectionName) : sidebar.collectionRow(collectionName);
     await collectionContainer.click();
-    const request = page
-      .locator(`[data-collection-id="${collectionSlug(collectionName)}"]`)
-      .getByTestId('sidebar-collection-item-row')
-      .filter({ hasText: requestName });
+    const request = exact
+      ? sidebar.itemRowIn(collectionName, requestName)
+      : sidebar.collectionScope(collectionName).getByTestId('sidebar-collection-item-row').filter({ hasText: requestName });
     // The list is virtualized. a row outside the rendered window is absent from the DOM,
     // scroll it into view before interacting.
     await scrollSidebarListTo(page, request);
@@ -2371,6 +2372,10 @@ const deleteAssertion = async (page: Page, rowIndex: number) => {
   });
 };
 
+const pressSaveShortcut = async (page: Page) => {
+  await page.keyboard.press('ControlOrMeta+s');
+};
+
 /**
  * Save the current request and verify success toast
  * @param page - The page object
@@ -2378,8 +2383,7 @@ const deleteAssertion = async (page: Page, rowIndex: number) => {
  */
 const saveRequest = async (page: Page) => {
   await test.step('Save request', async () => {
-    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
-    await page.keyboard.press(saveShortcut);
+    await pressSaveShortcut(page);
     await expect(page.getByText('Request saved successfully').last()).toBeVisible({ timeout: 3000 });
     await page.waitForTimeout(200);
   });
@@ -3800,6 +3804,10 @@ const setRequestUrlAndSave = async (page: Page, url: string) => {
   });
 };
 
+const setRequestUrl = async (page: Page, url: string) => {
+  await setCodeMirrorEditorValue(page, 'request-url', url);
+};
+
 /**
  * @param page - The page object
  */
@@ -4143,6 +4151,7 @@ const setWindowContentSize = async (app: ElectronApplication, page: Page, size: 
 export {
   waitForReadyPage,
   readClipboard,
+  setRequestUrl,
   setRequestUrlAndSave,
   openUrlVarTooltip,
   dismissVarTooltip,
@@ -4229,6 +4238,7 @@ export {
   addAssertion,
   editAssertion,
   deleteAssertion,
+  pressSaveShortcut,
   saveRequest,
   addGrpcMessage,
   generateGrpcSampleMessage,

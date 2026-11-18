@@ -52,6 +52,7 @@ const DigestAuth = ({ item, collection, updateAuth, request, save, readOnly }) =
       <label className="block mb-1">Username</label>
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
+          data-testid="auth-digest-username"
           value={digestAuth.username || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -67,6 +68,7 @@ const DigestAuth = ({ item, collection, updateAuth, request, save, readOnly }) =
       <label className="block mb-1">Password</label>
       <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
+          data-testid="auth-digest-password"
           value={digestAuth.password || ''}
           theme={storedTheme}
           onSave={handleSave}

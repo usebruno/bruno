@@ -33,6 +33,7 @@ import { buildResponseExampleLocators } from './response-example';
 import { buildGraphqlQueryBuilderLocators } from './graphql/query-builder';
 import { buildGraphqlVariablesLocators } from './graphql/variables';
 import { buildAuthLocators } from './auth';
+import { escapeRegExp } from '../helpers';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
@@ -114,12 +115,19 @@ export const buildCommonLocators = (page: Page) => ({
     closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-tab-close-icon'),
     closableTabs: () => page.locator('.request-tab').filter({ has: page.getByTestId('request-tab-close-icon') }),
     closeTabIcon: (tab: Locator) => tab.getByTestId('request-tab-close-icon'),
+    requestTabByName: (name: string) =>
+      page.getByTestId('request-tab').filter({
+        has: page.getByTestId('request-tab-name').filter({ hasText: new RegExp(`^${escapeRegExp(name)}$`) })
+      }),
+    requestTabDraftIcon: (tab: Locator) => tab.getByTestId('tab-draft-icon'),
+    discardRequestButton: () => page.getByTestId('request-tab-discard'),
     draftIndicator: () => page.locator('.request-tab.active .has-changes-icon'),
     activeTabDirty: () => page.locator('.request-tab.active .close-gradient.has-changes'),
     tabDraftIndicator: (tab: Locator) => tab.locator('.has-changes-icon')
   },
   paneTabs: {
-    responsiveTab: (key: string) => page.getByTestId(`responsive-tab-${key}`),
+    responsiveTab: (key: string, root?: Locator) => (root ?? page).getByTestId(`responsive-tab-${key}`),
+    responsiveOverflowTrigger: (root: Locator) => root.getByTestId('responsive-tabs-more'),
     // request and response may have more tabs, pass the pane to isolate further.
     overflowTrigger: (root?: Locator) => (root ?? page).locator('.tabs .more-tabs'),
     // menu is rendered via portal, hence it rooted to page.

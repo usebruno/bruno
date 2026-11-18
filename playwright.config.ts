@@ -1,5 +1,10 @@
 import { defineConfig } from '@playwright/test';
 
+const brunoDevPort = process.env.BRUNO_DEV_PORT || '3000';
+process.env.BRUNO_DEV_PORT = brunoDevPort;
+
+const testbenchBaseURL = `http://localhost:${process.env.PORT || 8081}`;
+
 const reporter: any[] = [['list'], ['html'], ['json', { outputFile: 'playwright-report/results.json' }]];
 
 if (process.env.CI) {
@@ -33,7 +38,8 @@ export default defineConfig({
     },
     {
       name: 'auth',
-      testDir: './tests/auth'
+      testDir: './tests/auth',
+      use: { baseURL: testbenchBaseURL }
     },
     {
       name: 'ssl',
@@ -53,14 +59,15 @@ export default defineConfig({
   webServer: [
     {
       command: 'npm run dev:web',
-      stdout: 'pipe', 
-      wait: { stdout: /ready\s+built in/i },
-      reuseExistingServer: !process.env.CI,
+      env: { BRUNO_PLAYWRIGHT: 'true', BRUNO_DEV_PORT: brunoDevPort },
+      url: `http://localhost:${brunoDevPort}`,
+      stdout: 'pipe',
+      reuseExistingServer: false,
       timeout: 10 * 60 * 1000
     },
     {
       command: 'npm start --workspace=packages/bruno-tests',
-      url: 'http://localhost:8081/ping',
+      url: new URL('/ping', testbenchBaseURL).href,
       reuseExistingServer: !process.env.CI,
       timeout: 10 * 60 * 1000
     }

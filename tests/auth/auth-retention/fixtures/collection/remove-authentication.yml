@@ -1,0 +1,8 @@
+info:
+  name: Remove authentication
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}"

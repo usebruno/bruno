@@ -1,6 +1,16 @@
 import { Page, test } from '../../../playwright';
 import { buildCommonLocators } from './locators';
 
+export const discardRequestDraft = async (page: Page, requestName: string) => {
+  await test.step(`Discard changes to "${requestName}"`, async () => {
+    const { tabs } = buildCommonLocators(page);
+    const tab = tabs.requestTabByName(requestName);
+    await tabs.closeTabIcon(tab).click();
+    await tabs.discardRequestButton().click();
+    await tab.waitFor({ state: 'hidden' });
+  });
+};
+
 export const activeTabIsInStrip = async (page: Page) => {
   const locators = buildCommonLocators(page);
   const strip = await locators.tabs.scrollContainer().boundingBox();

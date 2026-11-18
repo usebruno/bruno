@@ -133,6 +133,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, readOnly }) =>
       <label className="block mb-1">Access Key ID</label>
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
+          data-testid="auth-awsv4-access-key-id"
           value={awsv4Auth.accessKeyId || ''}
           theme={storedTheme}
           onSave={handleSave}

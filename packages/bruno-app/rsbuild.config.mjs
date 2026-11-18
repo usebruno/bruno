@@ -11,6 +11,7 @@ import { pluginRemoteImages } from './plugins/remote-images/index.mjs';
 const require = createRequire(import.meta.url);
 const swaggerUiDir = path.dirname(require.resolve('swagger-ui-react'));
 const swaggerImmutable = require.resolve('immutable', { paths: [swaggerUiDir] });
+const isPlaywright = process.env.BRUNO_PLAYWRIGHT === 'true';
 
 const remoteImageDomains = (process.env.BRUNO_REMOTE_IMAGE_DOMAINS || 'd3icksk7srk4uh.cloudfront.net')
   .split(',')
@@ -18,6 +19,13 @@ const remoteImageDomains = (process.env.BRUNO_REMOTE_IMAGE_DOMAINS || 'd3icksk7s
   .filter(Boolean);
 
 export default defineConfig({
+  // Compile before Electron starts so a lazy build cannot reset the renderer during a test.
+  dev: isPlaywright
+    ? { lazyCompilation: false, hmr: false, liveReload: false }
+    : undefined,
+  server: isPlaywright
+    ? { port: Number(process.env.BRUNO_DEV_PORT || 3000), strictPort: true }
+    : undefined,
   plugins: [
     pluginNodePolyfill(),
     pluginReact(),

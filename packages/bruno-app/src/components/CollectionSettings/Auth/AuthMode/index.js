@@ -94,6 +94,7 @@ const AuthMode = ({ collection }) => {
           appendTo={() => document.body}
           hideOnReferenceClip={true}
           selectedItemId={authMode}
+          data-testid="auth-mode-dropdown"
         >
           <div className="flex items-center justify-center auth-mode-label select-none" data-testid="auth-mode-label">
             {humanizeRequestAuthMode(authMode)} <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />

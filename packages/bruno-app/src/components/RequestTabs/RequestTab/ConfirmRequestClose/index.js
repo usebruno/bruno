@@ -32,7 +32,7 @@ const ConfirmRequestClose = ({ name, type, onCancel, onCloseWithoutSave, onSaveA
 
         <div className="flex justify-between mt-6">
           <div>
-            <Button color="danger" onClick={onCloseWithoutSave}>
+            <Button color="danger" onClick={onCloseWithoutSave} data-testid="request-tab-discard">
               Don't Save
             </Button>
           </div>

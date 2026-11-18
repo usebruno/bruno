@@ -24,6 +24,7 @@ export const buildRequestLocators = (page: Page) => ({
   bulkEditEditor: () => page.locator('[data-testid="request-pane"] .CodeMirror').first(),
   bulkEditLine: () => page.locator('[data-testid="request-pane"] .CodeMirror-line').first(),
   sendButton: () => page.getByTestId('send-arrow-icon'),
+  saveButton: () => page.getByTestId('save-request-button'),
   methodDropdown: () => page.getByTestId('method-selector'),
   newRequestUrl: () => page.getByTestId('new-request-url').locator('.CodeMirror'),
   requestNameInput: () => page.getByPlaceholder('Request Name'),

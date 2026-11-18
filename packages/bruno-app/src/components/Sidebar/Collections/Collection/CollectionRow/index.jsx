@@ -599,7 +599,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
               onDoubleClick={handleCollectionDoubleClick}
             />
           </ActionIcon>
-          <div className="ml-1 min-w-0" id="sidebar-collection-name" title={collection.name}>
+          <div className="ml-1 min-w-0" id="sidebar-collection-name" title={collection.name} data-testid="sidebar-collection-name">
             {collection.name}
           </div>
           <InvalidFilesBadge count={invalidItemCount} collectionUid={collection.uid} rowUid={collection.uid} />

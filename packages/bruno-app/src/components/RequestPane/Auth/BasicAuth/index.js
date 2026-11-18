@@ -52,6 +52,7 @@ const BasicAuth = ({ item, collection, updateAuth, request, save, readOnly }) =>
       <label className="block mb-1">Username</label>
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
+          data-testid="auth-basic-username"
           value={basicAuth.username || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -67,6 +68,7 @@ const BasicAuth = ({ item, collection, updateAuth, request, save, readOnly }) =>
       <label className="block mb-1">Password</label>
       <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
+          data-testid="auth-basic-password"
           value={basicAuth.password || ''}
           theme={storedTheme}
           onSave={handleSave}

@@ -699,7 +699,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             {method}
           </span>
         )}
-        <span ref={tabNameRef} className="ml-1 tab-name" title={item.name}>
+        <span ref={tabNameRef} className="ml-1 tab-name" title={item.name} data-testid="request-tab-name">
           {item.name}
         </span>
         <RequestTabMenu

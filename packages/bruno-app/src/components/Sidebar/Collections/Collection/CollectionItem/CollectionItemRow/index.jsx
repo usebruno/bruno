@@ -811,7 +811,7 @@ const CollectionItemRow = ({
 
             <div className="ml-1 flex w-full h-full items-center overflow-hidden">
               <CollectionItemIcon item={item} />
-              <span className="item-name" title={item.name}>
+              <span className="item-name" title={item.name} data-testid="sidebar-collection-item-name">
                 {item.name}
               </span>
               <InvalidFilesBadge count={invalidItemCount} collectionUid={collectionUid} rowUid={item.uid} />
