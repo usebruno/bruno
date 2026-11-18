@@ -164,6 +164,10 @@ describe('simple-git v4 (unmocked)', () => {
       expect(error).toBeDefined();
       expect(String(error)).not.toMatch(/simpleGit is not a function/i);
       expect(String(error)).not.toMatch(/allowEnvironment/i);
+      expect(error.task?.commands).toEqual(
+        expect.arrayContaining(['ls-remote', '--symref', UNREACHABLE_REPOSITORY_URL])
+      );
+      expect(String(error)).toMatch(/not found/i);
     },
     15000
   );
