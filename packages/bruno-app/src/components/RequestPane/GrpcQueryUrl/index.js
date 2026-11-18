@@ -88,16 +88,14 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
 
-  // A reflection claims the latest slot; one that resolves after a newer claim must not apply.
-  const claimLatestReflection = () => {
-    const requestId = ++latestReflectionRequestIdRef.current;
-    return () => requestId === latestReflectionRequestIdRef.current;
-  };
-
-  const applyReflectionResult = ({ methods, error, fromCache }) => {
+  const applyReflectionResult = ({ methods, error, fromCache }, { clearMethodsOnError = true } = {}) => {
     if (error) {
       toast.error(`Failed to load gRPC methods: ${error.message || 'Unknown error'}`);
-      setGrpcMethods([]);
+      // Methods belong to the url they were loaded from, so a url that reflects no
+      // methods drops them — but a failed refresh of the same url keeps what is loaded.
+      if (clearMethodsOnError) {
+        setGrpcMethods([]);
+      }
       return;
     }
 
@@ -136,12 +134,19 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     }
   };
 
-  const handleReflection = async (url, isManualRefresh = false) => {
-    const isLatestReflection = claimLatestReflection();
-    const result = await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh);
-    if (!isLatestReflection()) return;
+  // A reflection claims the latest slot when it starts; a result arriving after a newer
+  // claim is dropped. Returns the apply function that enforces it.
+  const beginReflection = ({ clearMethodsOnError = true } = {}) => {
+    const requestId = ++latestReflectionRequestIdRef.current;
+    return (result) => {
+      if (requestId !== latestReflectionRequestIdRef.current) return;
+      applyReflectionResult(result, { clearMethodsOnError });
+    };
+  };
 
-    applyReflectionResult(result);
+  const handleReflection = async (url, isManualRefresh = false) => {
+    const applyIfLatest = beginReflection({ clearMethodsOnError: !isManualRefresh });
+    applyIfLatest(await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh));
   };
 
   const onUrlChange = (value) => {
@@ -169,11 +174,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
     if (!protoFilePath && value) {
       setIsReflectionMode(true);
-      const isLatestReflection = claimLatestReflection();
-      reflectionManagement.scheduleReflection(finalUrl, (result) => {
-        if (!isLatestReflection()) return;
-        applyReflectionResult(result);
-      });
+      reflectionManagement.scheduleReflection(finalUrl, beginReflection());
     }
   };
 

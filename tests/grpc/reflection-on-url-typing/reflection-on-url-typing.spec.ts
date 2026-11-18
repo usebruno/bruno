@@ -5,12 +5,13 @@ import { openCollection } from '../../utils/page/actions';
 const COLLECTION_NAME = 'GrpcUrlTyping';
 const SERVED_URL = 'grpc://localhost:50051';
 const UNSERVED_URL = 'grpc://localhost:50052';
-// The url bar debounces reflection by 3s, then the call itself has to come back
-const REFLECTION_TIMEOUT_MS = 33000;
-// Long enough for a reflection triggered behind the one under assertion to come back
-const FOLLOW_UP_REFLECTION_MS = 5000;
+const REFLECTION_DEBOUNCE_MS = 3000;
+const REFLECTION_TIMEOUT_MS = REFLECTION_DEBOUNCE_MS + 30000;
+const FOLLOW_UP_REFLECTION_MS = REFLECTION_DEBOUNCE_MS + 2000;
 
 test.describe('grpc reflection on url typing', () => {
+  test.setTimeout(120000);
+
   test('types a url and reflects once, without a follow-up failure', async ({ pageWithUserData: page }) => {
     const locators = buildGrpcCommonLocators(page);
     const failureToast = locators.toast.byMessage(/Failed to load gRPC methods/);

@@ -186,22 +186,6 @@ describe('useReflectionManagement', () => {
     expect(result.current.getCachedMethods({})).toEqual([]);
   });
 
-  it('drops a cache entry left behind under a stringified non-string url', () => {
-    localStorage.setItem(
-      CACHE_KEY,
-      JSON.stringify({
-        '[object Object]': [{ path: '/Stale/M' }],
-        'grpc://server-a:9000': [{ path: '/A/M' }]
-      })
-    );
-
-    jest.isolateModules(() => {
-      require('./index');
-    });
-
-    expect(JSON.parse(localStorage.getItem(CACHE_KEY))).toEqual({ 'grpc://server-a:9000': [{ path: '/A/M' }] });
-  });
-
   it('keys on the un-interpolated string when a variable is missing from scope', async () => {
     const item = makeItem('{{host}}');
     const collection = makeCollection({ activeEnvUid: null, envs: [] });

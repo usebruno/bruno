@@ -9,23 +9,6 @@ import { getAllVariables } from 'utils/collections';
 const REFLECTION_DEBOUNCE_MS = 3000;
 const REFLECTION_CACHE_KEY = 'bruno.grpc.reflectionCache';
 
-// What a non-string url stringifies to when used as a cache key
-const NON_STRING_URL_KEY = '[object Object]';
-
-/** Drops the entry a non-string url left behind, whose methods belong to no url. */
-const dropNonStringUrlEntry = () => {
-  try {
-    const stored = JSON.parse(localStorage.getItem(REFLECTION_CACHE_KEY) || '{}');
-    if (!Object.hasOwn(stored, NON_STRING_URL_KEY)) return;
-    delete stored[NON_STRING_URL_KEY];
-    localStorage.setItem(REFLECTION_CACHE_KEY, JSON.stringify(stored));
-  } catch {
-    // unreadable storage falls back to the hook's default
-  }
-};
-
-dropNonStringUrlEntry();
-
 /**
  * Custom hook for managing reflection data and server discovery
  * @param {Object} item - The request item
