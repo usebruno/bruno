@@ -161,8 +161,7 @@ export const appendRequestHeadersToBulkEditor = async (page: Page, lines: string
   const { headers } = buildRequestLocators(page);
   const editor = headers.bulkEditor();
   await editor.click();
-  const endOfDocument = process.platform === 'darwin' ? 'Meta+End' : 'Control+End';
-  await page.keyboard.press(endOfDocument);
+  await page.keyboard.press('ControlOrMeta+End');
   await page.keyboard.type(`\n${lines.join('\n')}`, { delay: 5 });
 };
 
