@@ -146,7 +146,7 @@ test.describe('Export Postman Collection - Preserve scripts option', () => {
     const locators = buildCommonLocators(page);
     await openExportToPostmanModal(page, COLLECTION_NAME);
 
-    await test.step('Preserve scripts stays off, the checkbox is enabled, and the help text is shown', async () => {
+    await test.step('Advanced Options shows Preserve scripts enabled and unchecked, with the correct helper text, and it can be turned on', async () => {
       await locators.export.optionsButton().click();
       await locators.export.advancedOptionsToggle().click();
 
@@ -155,6 +155,8 @@ test.describe('Export Postman Collection - Preserve scripts option', () => {
       await expect(checkbox).toBeEnabled();
       await expect(checkbox).not.toBeChecked();
       await expect(locators.export.preserveScriptsHelp()).toHaveText('Export Bruno scripts without translating them.');
+      await checkbox.click();
+      await expect(checkbox).toBeChecked();
     });
   });
 });
