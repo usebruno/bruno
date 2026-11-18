@@ -71,7 +71,12 @@ const CollectionSettings = ({ collection }) => {
   const hasPresets = presets && ((presets.requestType && presets.requestType !== DEFAULT_PRESET_REQUEST_TYPE) || (presets.requestUrl && presets.requestUrl !== ''));
   const hasProxy = Object.keys(proxyConfig).length > 0 && proxyEnabled;
   const hasClientCerts = clientCertConfig.length > 0;
-  const settingsIndicators = { presets: hasPresets, proxy: hasProxy, clientCert: hasClientCerts };
+  // A collection HTTP version other than Inherit is a configured override
+  const httpVersion = collection.draft?.brunoConfig
+    ? get(collection, 'draft.brunoConfig.http.version', 'inherit')
+    : get(collection, 'brunoConfig.http.version', 'inherit');
+  const hasHttpVersion = httpVersion !== 'inherit';
+  const settingsIndicators = { presets: hasPresets, proxy: hasProxy, clientCert: hasClientCerts, http: hasHttpVersion };
   const isSettingsTab = tab === 'settings';
 
   const getTabPanel = (tab) => {
@@ -147,7 +152,7 @@ const CollectionSettings = ({ collection }) => {
             onClick={() => setTab('settings')}
           >
             Settings
-            {(hasPresets || hasProxy || hasClientCerts) && <StatusDot />}
+            {(hasPresets || hasProxy || hasClientCerts || hasHttpVersion) && <StatusDot />}
           </div>
         </div>
         {AI_TABS.includes(tab) && (
