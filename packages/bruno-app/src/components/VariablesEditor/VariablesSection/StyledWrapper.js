@@ -6,19 +6,19 @@ const StyledWrapper = styled.div`
     position: sticky;
     top: 0;
     z-index: 3;
-    width: 100%;
     height: ${SECTION_HEADER_HEIGHT};
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0 8px;
-    border: none;
     background: ${(props) => props.theme.bg};
     color: ${(props) => props.theme.text};
+    user-select: none;
+  }
+
+  .section-toggle {
+    border: none;
+    background: transparent;
+    color: inherit;
     font: inherit;
     text-align: left;
     cursor: pointer;
-    user-select: none;
 
     &:hover {
       background: ${(props) => props.theme.background.surface0};
