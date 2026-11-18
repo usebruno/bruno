@@ -34,10 +34,10 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "https://example.com/login",
-          "protocol": "https",
-          "host": ["example", "com"],
-          "path": ["login"]
+          "raw": "http://localhost:8081/ping",  
+          "protocol": "http",
+          "host": ["localhost", "8081"],
+          "path": ["ping"]
         }
       },
       "response": []
