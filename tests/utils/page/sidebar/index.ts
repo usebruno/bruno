@@ -85,9 +85,6 @@ export const buildSidebarLocators = (page: Page) => {
     searchInput: () => page.getByTestId('sidebar-search-input'),
     searchMatchCount: () => page.getByTestId('sidebar-search-match-count'),
     searchClear: () => page.getByTestId('sidebar-search-clear-icon'),
-    searchIndexHint: () => page.getByTestId('sidebar-search-index-hint'),
-    searchIndexHintEnable: () => page.getByTestId('sidebar-search-index-hint-enable'),
-    searchIndexHintDismiss: () => page.getByTestId('sidebar-search-index-hint-dismiss'),
 
     // Modals opened from a sidebar row's "..." menu.
     renameItemModal: {

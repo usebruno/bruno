@@ -5,8 +5,8 @@ import { buildSidebarLocators } from '../../../utils/page/sidebar';
 import { initBruCollection, writeBruRequest } from '../../../utils/fixtures/bru-collection';
 import { writePreferences } from '../helpers';
 
-test.describe('Preferences > Cache > Search index', () => {
-  test('shows the index size and resets it to 0B when cleared', async ({ launchElectronApp, createTmpDir }) => {
+test.describe('Preferences > Cache > Search cache', () => {
+  test('shows the cache size and resets it to 0B when cleared', async ({ launchElectronApp, createTmpDir }) => {
     test.setTimeout(120_000);
     const root = await createTmpDir('search-index-size');
     const collection = path.join(root, 'SizeCollection');
@@ -29,10 +29,10 @@ test.describe('Preferences > Cache > Search index', () => {
         await expect(sidebar.searchMatchCount()).toHaveText('1 match', { timeout: 30_000 });
       });
 
-      const searchIndex = page.getByTestId('cache-item-search-index');
-      const size = searchIndex.getByTestId('search-index-size');
+      const searchCache = page.getByTestId('cache-item-search-index');
+      const size = searchCache.getByTestId('search-index-size');
 
-      await test.step('show the index size in Preferences > Cache', async () => {
+      await test.step('show the cache size in Preferences > Cache', async () => {
         await openPreferences(page);
         await selectPreferencesTab(page, 'Cache');
         await expect(size).toBeVisible();
@@ -41,9 +41,9 @@ test.describe('Preferences > Cache > Search index', () => {
         await expect(size).toHaveText(/^\d+(\.\d+)?(B|KB|MB)$/);
       });
 
-      await test.step('clear the search index', async () => {
-        await searchIndex.getByRole('button', { name: 'Clear search index' }).click();
-        await expect(page.getByText('Search index cleared')).toBeVisible();
+      await test.step('clear the search cache', async () => {
+        await searchCache.getByRole('button', { name: 'Clear search cache' }).click();
+        await expect(page.getByText('Search cache cleared')).toBeVisible();
         await expect(size).toHaveText('0B');
       });
     } finally {
@@ -51,7 +51,7 @@ test.describe('Preferences > Cache > Search index', () => {
     }
   });
 
-  test('reads the size again on reopening the panel and clears with the search index turned off', async ({ launchElectronApp, createTmpDir }) => {
+  test('reads the size again on reopening the panel and clears with Enhanced Search turned off', async ({ launchElectronApp, createTmpDir }) => {
     test.setTimeout(120_000);
     const root = await createTmpDir('search-index-size-toggle');
     const collection = path.join(root, 'ToggleCollection');
@@ -68,8 +68,8 @@ test.describe('Preferences > Cache > Search index', () => {
     try {
       await clearSearchIndex(page);
 
-      const searchIndex = page.getByTestId('cache-item-search-index');
-      const size = searchIndex.getByTestId('search-index-size');
+      const searchCache = page.getByTestId('cache-item-search-index');
+      const size = searchCache.getByTestId('search-index-size');
 
       await test.step('open Preferences > Cache with an empty index', async () => {
         await openPreferences(page);
@@ -86,12 +86,16 @@ test.describe('Preferences > Cache > Search index', () => {
         await expect(size).not.toHaveText('0B');
       });
 
-      await test.step('clear the index with the search index turned off', async () => {
-        const toggle = searchIndex.getByTestId('cache.searchIndex.enabled');
-        await toggle.locator('label').click();
-        await expect(toggle.getByRole('checkbox')).not.toBeChecked();
-        await searchIndex.getByRole('button', { name: 'Clear search index' }).click();
-        await expect(page.getByText('Search index cleared')).toBeVisible();
+      await test.step('clear the index with Enhanced Search turned off', async () => {
+        await searchCache.getByRole('button', { name: 'Enhanced Search' }).click();
+        const toggle = page.getByTestId('features.enhancedSearch');
+        await expect(toggle).toBeVisible();
+        await toggle.click();
+        await expect(toggle).not.toBeChecked();
+
+        await selectPreferencesTab(page, 'Cache');
+        await searchCache.getByRole('button', { name: 'Clear search cache' }).click();
+        await expect(page.getByText('Search cache cleared')).toBeVisible();
         await expect(size).toHaveText('0B');
       });
     } finally {

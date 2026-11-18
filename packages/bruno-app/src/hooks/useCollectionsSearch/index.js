@@ -204,7 +204,7 @@ export const createSearchStore = () => {
 const store = createSearchStore();
 
 const useCollectionsSearch = ({ sidebarEntries }) => {
-  const searchIndexEnabled = useSelector((state) => get(state, 'app.preferences.cache.searchIndex.enabled', false));
+  const searchIndexEnabled = useSelector((state) => get(state, 'app.preferences.features.enhancedSearch', true));
   const roots = [];
   const indexRoots = [];
   const ignore = {};

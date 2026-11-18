@@ -71,6 +71,22 @@ const StyledWrapper = styled.div`
     margin: 0;
   }
 
+  .cache-item-inline-link {
+    display: inline;
+    padding: 0;
+    border: none;
+    background: none;
+    color: ${(props) => props.theme.textLink};
+    font: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:hover {
+      opacity: 0.85;
+    }
+  }
+
   .cache-item-size {
     font-size: ${(props) => props.theme.font.size.base};
     color: ${(props) => props.theme.colors.text.subtext2};

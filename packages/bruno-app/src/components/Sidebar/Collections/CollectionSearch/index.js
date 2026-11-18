@@ -1,5 +1,4 @@
 import { IconSearch, IconX, IconLoader2 } from '@tabler/icons';
-import SearchIndexHint from './SearchIndexHint';
 import StyledWrapper from './StyledWrapper';
 
 const CollectionSearch = ({ searchText, setSearchText, indexing, matchCount }) => {
@@ -40,7 +39,6 @@ const CollectionSearch = ({ searchText, setSearchText, indexing, matchCount }) =
           </div>
         )}
       </div>
-      <SearchIndexHint />
     </StyledWrapper>
   );
 };

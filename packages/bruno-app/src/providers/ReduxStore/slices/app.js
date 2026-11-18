@@ -71,10 +71,10 @@ const initialState = {
     cache: {
       sslSession: {
         enabled: false
-      },
-      searchIndex: {
-        enabled: false
       }
+    },
+    features: {
+      enhancedSearch: true
     },
     ai: {
       enabled: false,

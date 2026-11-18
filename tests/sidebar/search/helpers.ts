@@ -31,7 +31,8 @@ export const writePreferences = (
     lastOpenedCollections: collections,
     preferences: {
       onboarding: { hasLaunchedBefore: true, hasSeenWelcomeModal: true, lastSeenVersion: version },
-      cache: { file: { enabled: fileCacheEnabled }, searchIndex: { enabled: searchIndexEnabled } }
+      cache: { file: { enabled: fileCacheEnabled } },
+      features: { enhancedSearch: searchIndexEnabled }
     }
   }));
 };
