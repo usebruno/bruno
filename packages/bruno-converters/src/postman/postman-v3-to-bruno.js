@@ -30,10 +30,10 @@ export const isPostmanV3Collection = (collection) => {
 
 const joinPath = (parentPath, name) => (parentPath ? `${parentPath} / ${name}` : name);
 
-// Collection/folder auth is a one-entry list, request auth a single object; missing means inherit.
+// Collection/folder auth is a one-entry list, request auth a single object; Postman treats missing or `inherit` as inherit.
 const readAuth = (auth) => {
   const entry = Array.isArray(auth) ? auth[0] : auth;
-  if (!entry || typeof entry !== 'object' || !entry.type) return null;
+  if (!entry || typeof entry !== 'object' || !entry.type || entry.type === 'inherit') return null;
   return { type: entry.type, values: toKeyValueObject(entry.credentials) };
 };
 
