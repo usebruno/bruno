@@ -19,8 +19,7 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
   messageMatching: (pattern: RegExp | string) =>
     page.getByTestId('ws-message-content').filter({ hasText: pattern }).first(),
   /**
-   * First *incoming* message whose content matches `pattern` (echo / server payload).
-   * Prefer this when asserting interpolation of a sent message so an outgoing row cannot match.
+   * First incoming message whose content matches `pattern | string`
    */
   incomingMessageMatching: (pattern: RegExp | string) =>
     page
