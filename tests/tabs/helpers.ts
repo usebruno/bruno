@@ -1,13 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import { expect, Locator, Page } from '../../playwright';
-import { editCodeMirrorEditor, fillRequestUrl, openEnvironmentSelector, openRequest, selectEnvironment, switchToOpenTab } from '../utils/page';
+import { editCodeMirrorEditor, fillRequestUrl, openEnvironmentSelector, openRequest, selectEnvironment, setEnvironmentVariableValue, switchToOpenTab } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
 export const collectionName = 'tab-menu-collection';
 export const fixtureCollectionPath = path.join(__dirname, 'fixtures', 'collection');
-
-const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
 
 export const tab = (page: Page, name: string) => buildCommonLocators(page).tabs.tabByName(name);
 export const draftIndicator = (page: Page, name: string) => buildCommonLocators(page).tabs.tabDraftIndicator(tab(page, name));
@@ -54,9 +52,7 @@ export const openEnvironmentWithDraft = async (page: Page, value: string) => {
   await openEnvironmentSelector(page, 'collection');
   await environment.configureButton().click();
   await expect(environmentTab(page)).toBeVisible();
-  await environment.variableValue('host').click();
-  await page.keyboard.press(selectAllShortcut);
-  await page.keyboard.type(value);
+  await setEnvironmentVariableValue(page, 'host', value);
   await expect(environmentTabCloseGradient(page)).toHaveClass(/has-changes/);
 };
 
