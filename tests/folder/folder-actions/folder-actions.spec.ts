@@ -118,6 +118,10 @@ test.describe('Folder actions', () => {
     await test.step('Verify the Copy option is visible', async () => {
       await expect(sidebar.rowMenu(folderName).item('copy')).toBeVisible();
     });
+
+    await test.step('Close the folder actions menu', async () => {
+      await page.keyboard.press('Escape');
+    });
   });
 
   test('TC-929: Verify that user is able to copy a folder and paste it into the collection with the same requests', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
