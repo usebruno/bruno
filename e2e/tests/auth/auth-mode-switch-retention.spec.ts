@@ -16,8 +16,8 @@ import {
   openInheritedAuth,
   openRequest,
   readField,
-  saveAuthSettings,
   saveRequest,
+  saveSettings,
   selectApiKeyAuth,
   selectAuthMode,
   selectCollectionPaneTab,
@@ -26,23 +26,12 @@ import {
   selectResponsePaneTab,
   sendRequest
 } from '../../pages';
-import { AUTH_MODE_LABELS } from '../../constants';
+import { AUTH_MODE_LABELS, SELECTED_AUTH_MODE_LABELS } from '../../constants';
 
 const REQUEST_URL = 'http://localhost:8081/headers';
 
-// The mode selector labels these two modes differently from their dropdown entries.
-const SELECTED_MODE_LABELS = { NTLM: 'NTLM', AWSV4: 'AWS Sig V4' };
-
-type AuthLevel = 'request' | 'folder' | 'collection';
-
-const readRequestFile = (collectionDir: string, requestName: string) => {
-  const fileName = `${requestName}.yml`;
-  const entry = (fs.readdirSync(collectionDir, { recursive: true }) as string[]).find((file) => path.basename(file) === fileName);
-  if (!entry) {
-    throw new Error(`${fileName} not found under ${collectionDir}`);
-  }
-  return fs.readFileSync(path.join(collectionDir, entry), 'utf8');
-};
+const readRequestFile = (collectionDir: string, requestName: string) =>
+  fs.readFileSync(path.join(collectionDir, `${requestName}.yml`), 'utf8');
 
 const openLatestTimelineEntry = async (page: Page) => {
   const { timeline } = buildCommonLocators(page);
@@ -64,33 +53,24 @@ test.describe('Auth data retention on auth mode switch', () => {
     const folderName = 'folder-1';
     const locators = buildCommonLocators(page);
 
-    const save = async (level: AuthLevel) => {
-      if (level === 'request') {
-        await saveRequest(page);
-      } else {
-        await saveAuthSettings(page, level);
-      }
-    };
-
-    const verifyRetention = async (level: AuthLevel, apiKey: { Key: string; Value: string }, bearerToken: string) => {
-      await test.step(`${level}: configure and save API Key auth in the header`, async () => {
+    const verifyRetention = async (save: () => Promise<void>, apiKey: { Key: string; Value: string }, bearerToken: string) => {
+      await test.step('Configure and save API Key auth in the header', async () => {
         await selectApiKeyAuth(page);
         await fillAuthFields(page, apiKey);
-        await save(level);
+        await save();
         await expectAuthState(page, AUTH_MODE_LABELS.APIKEY, apiKey);
-        await expect(locators.auth.apiKey.placementLabel()).toContainText('Header');
       });
 
-      await test.step(`${level}: switch to Bearer Token without saving`, async () => {
+      await test.step('Switch to Bearer Token without saving', async () => {
         await selectAuthMode(page, AUTH_MODE_LABELS.BEARER);
         await expectAuthState(page, AUTH_MODE_LABELS.BEARER, { Token: '' });
       });
 
-      await test.step(`${level}: enter a Bearer Token without saving`, async () => {
+      await test.step('Enter a Bearer Token without saving', async () => {
         await fillAuthFields(page, { Token: bearerToken });
       });
 
-      await test.step(`${level}: switch back to API Key and verify the saved data is restored`, async () => {
+      await test.step('Switch back to API Key and verify the saved data is restored', async () => {
         await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
         await expectAuthState(page, AUTH_MODE_LABELS.APIKEY, apiKey);
         await expect(locators.auth.apiKey.placementLabel()).toContainText('Header');
@@ -107,19 +87,19 @@ test.describe('Auth data retention on auth mode switch', () => {
     await test.step('Request level', async () => {
       await openRequest(page, collectionName, 'request-1');
       await selectRequestPaneTab(page, 'Auth');
-      await verifyRetention('request', { Key: 'api_key', Value: 'test_key_123' }, 'bearer_token_456');
+      await verifyRetention(() => saveRequest(page), { Key: 'api_key', Value: 'test_key_123' }, 'bearer_token_456');
     });
 
     await test.step('Folder level', async () => {
       await openFolderSettings(page, collectionName, folderName);
       await selectfolderPaneTab(page, 'auth');
-      await verifyRetention('folder', { Key: 'folder_api_key', Value: 'folder_key_123' }, 'folder_bearer_456');
+      await verifyRetention(() => saveSettings(page, 'folder'), { Key: 'folder_api_key', Value: 'folder_key_123' }, 'folder_bearer_456');
     });
 
     await test.step('Collection level', async () => {
       await openCollectionSettings(page, collectionName);
       await selectCollectionPaneTab(page, 'auth');
-      await verifyRetention('collection', { Key: 'collection_api_key', Value: 'collection_key_123' }, 'collection_bearer_456');
+      await verifyRetention(() => saveSettings(page, 'collection'), { Key: 'collection_api_key', Value: 'collection_key_123' }, 'collection_bearer_456');
     });
 
     await test.step('A request inheriting from the collection shows the collection API Key auth', async () => {
@@ -185,13 +165,13 @@ test.describe('Auth data retention on auth mode switch', () => {
 
     await test.step('Step 7: switch to NTLM Auth — the unsaved Digest values are not carried over', async () => {
       await selectAuthMode(page, AUTH_MODE_LABELS.NTLM);
-      await expectAuthState(page, SELECTED_MODE_LABELS.NTLM, { Username: '', Password: '', Domain: '' });
+      await expectAuthState(page, SELECTED_AUTH_MODE_LABELS.NTLM, { Username: '', Password: '', Domain: '' });
     });
 
     await test.step('Step 8: switch to AWS Sig v4 and enter an access key without saving', async () => {
       await selectAuthMode(page, AUTH_MODE_LABELS.AWSV4);
       await fillAuthFields(page, { 'Access Key ID': 'access_key_xyz' });
-      await expectAuthState(page, SELECTED_MODE_LABELS.AWSV4, { 'Access Key ID': 'access_key_xyz' });
+      await expectAuthState(page, SELECTED_AUTH_MODE_LABELS.AWSV4, { 'Access Key ID': 'access_key_xyz' });
     });
 
     await test.step('Step 9: switch to WSSE Auth — fields start empty', async () => {
@@ -280,11 +260,12 @@ test.describe('Auth data retention on auth mode switch', () => {
     const collectionName = 'auth-retention-no-auth';
     const requestName = 'request-1';
     const bearerToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
-    const collectionDir = await createTmpDir();
+    const collectionLocation = await createTmpDir();
+    const collectionDir = path.join(collectionLocation, collectionName);
     const locators = buildCommonLocators(page);
 
     await test.step('Precondition: a request saved with Bearer Token auth', async () => {
-      await createCollection(page, collectionName, collectionDir);
+      await createCollection(page, collectionName, collectionLocation);
       await createRequest(page, requestName, collectionName, { url: REQUEST_URL });
       await openRequest(page, collectionName, requestName);
       await selectRequestPaneTab(page, 'Auth');

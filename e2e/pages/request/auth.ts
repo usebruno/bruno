@@ -1,6 +1,5 @@
 import { test, expect, Page } from '../../playwright';
 import { AUTH_MODE_LABELS } from '../../constants';
-import { buildCommonLocators } from '../locators';
 import { selectRequestPaneTab } from './pane';
 import { readField, typeIntoField, writeFieldValue } from '../shared-ui/single-line-editor';
 import { expandFolder, openRequest } from '../sidebar/collection-tree';
@@ -89,14 +88,4 @@ export const expectAuthState = async (page: Page, modeLabel: string, fields: Aut
 export const selectApiKeyAuth = async (page: Page) => {
   await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
   await expect(buildAuthLocators(page).apiKey.placementLabel()).toContainText('Header');
-};
-
-/** Saves the collection or folder settings pane through its Save button. */
-export const saveAuthSettings = async (page: Page, level: 'collection' | 'folder') => {
-  await test.step(`Save ${level} settings`, async () => {
-    const { settingsSaveButton, toast } = buildCommonLocators(page);
-    const savedToast = level === 'collection' ? 'Collection Settings saved successfully' : 'Folder Settings saved successfully';
-    await settingsSaveButton().click();
-    await expect(toast.byMessage(savedToast).last()).toBeVisible();
-  });
 };

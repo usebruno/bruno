@@ -2,6 +2,7 @@ import { expect, Page, Locator } from '../../playwright';
 import { buildRequestLocators } from './pane';
 import { openCollectionSettings, selectCollectionPaneTab } from '../collection/settings';
 import { openFolderSettings, selectfolderPaneTab } from '../folder/settings';
+import { saveSettings } from '../shared-ui/settings-pane';
 
 /**
  * Type a header name into an EditableTable Name cell (CodeMirror).
@@ -45,12 +46,7 @@ export const showInheritedHeaders = async (page: Page) => {
 type SettingsHeaderScope = 'collection' | 'folder';
 
 const setSettingsHeadersBulk = async (page: Page, headersText: string, scope: SettingsHeaderScope) => {
-  const content = page.getByTestId(
-    scope === 'collection' ? 'collection-settings-content' : 'folder-settings-content'
-  );
-  const savedMessage = scope === 'collection'
-    ? 'Collection Settings saved successfully'
-    : 'Folder Settings saved successfully';
+  const content = page.getByTestId(`${scope}-settings-content`);
 
   await content.getByTestId('bulk-edit-toggle').click();
   const editor = content.locator('.CodeMirror').first();
@@ -61,8 +57,7 @@ const setSettingsHeadersBulk = async (page: Page, headersText: string, scope: Se
     cm.setValue(text);
   }, headersText);
   await content.getByTestId('key-value-edit-toggle').click();
-  await content.getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(page.getByText(savedMessage)).toBeVisible({ timeout: 5000 });
+  await saveSettings(page, scope);
 };
 
 /**
