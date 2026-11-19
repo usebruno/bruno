@@ -93,6 +93,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
             <div className="single-line-editor-wrapper flex-1 flex items-center">
               <SingleLineEditor
                 value={value}
+                data-testid={`oauth2-client-credentials-${key}`}
                 theme={storedTheme}
                 onSave={handleSave}
                 onChange={(val) => handleChange(key, val)}

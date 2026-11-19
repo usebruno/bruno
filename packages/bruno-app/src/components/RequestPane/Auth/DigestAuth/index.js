@@ -53,6 +53,7 @@ const DigestAuth = ({ item, collection, updateAuth, request, save, readOnly }) =
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
           value={digestAuth.username || ''}
+          data-testid="auth-digest-username"
           theme={storedTheme}
           onSave={handleSave}
           onChange={(val) => handleUsernameChange(val)}
@@ -68,6 +69,7 @@ const DigestAuth = ({ item, collection, updateAuth, request, save, readOnly }) =
       <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
           value={digestAuth.password || ''}
+          data-testid="auth-digest-password"
           theme={storedTheme}
           onSave={handleSave}
           onChange={(val) => handlePasswordChange(val)}

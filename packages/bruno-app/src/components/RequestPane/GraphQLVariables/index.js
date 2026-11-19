@@ -27,6 +27,7 @@ const GraphQLVariables = ({ variables, item, collection }) => {
 
   return (
     <CodeEditor
+      testId="graphql-variables-editor"
       collection={collection}
       item={item}
       value={variables || ''}
