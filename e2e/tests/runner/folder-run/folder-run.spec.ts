@@ -10,8 +10,8 @@ import {
   buildRunnerLocators,
   buildRunnerTagLocators,
   getRunnerResultResponseTimeMs
-} from '../../utils/page/runner';
-import { buildCommonLocators } from '../../utils/page/locators';
+} from '../../../pages/runner';
+import { buildCommonLocators } from '../../../pages';
 
 const COLLECTION_NAME = 'folder-run';
 

@@ -2,6 +2,12 @@ import fs from 'fs';
 
 export const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+/** Parses a duration string ("312ms" or "1.24s") into milliseconds. */
+export const parseDurationMs = (text: string) => {
+  const value = text.trim();
+  return value.endsWith('ms') ? Number(value.slice(0, -2)) : Math.round(parseFloat(value) * 1000);
+};
+
 export const findEnvironmentByName = (environments: any[], name: string) =>
   environments.find((environment) => environment.name === name);
 
