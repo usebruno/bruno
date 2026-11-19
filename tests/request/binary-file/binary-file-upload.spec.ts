@@ -96,7 +96,7 @@ test.describe.serial('File / Binary body upload', () => {
     await closeAllCollections(page);
   });
 
-  test('JSON content-type: file bytes are sent verbatim, not as serialized stream metadata', async ({
+  test('TC-2227: Verify execution using a large JSON file as request payload', { tag: '@sanity' }, async ({
     page,
     electronApp
   }) => {

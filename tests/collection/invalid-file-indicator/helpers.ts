@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Page, test, expect } from '../../../playwright';
+import { Locator, Page, test, expect } from '../../../playwright';
 import { expandCollection, expandFolder } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
@@ -35,6 +35,15 @@ const BROKEN_REQUEST: Record<RequestFileFormat, string> = {
   yml: FIXED_REQUEST.yml.replace('url: https', 'url: "https')
 };
 
+const openInvalidFilesTooltip = async (page: Page, badge: Locator) => {
+  const tooltip = buildCommonLocators(page).sidebar.invalidFilesTooltip();
+  await expect(async () => {
+    await page.mouse.move(0, 0);
+    await badge.hover();
+    await tooltip.waitFor({ state: 'visible', timeout: 1000 });
+  }).toPass({ timeout: 10000 });
+};
+
 export const verifyInvalidFileIndicators = async (
   page: Page,
   { collectionName, collectionPath, format }: { collectionName: string; collectionPath: string; format: RequestFileFormat }
@@ -49,7 +58,7 @@ export const verifyInvalidFileIndicators = async (
   });
 
   await test.step('hovering the count explains it and links to the overview table', async () => {
-    await sidebar.invalidFilesBadge(collectionName).hover();
+    await openInvalidFilesTooltip(page, sidebar.invalidFilesBadge(collectionName));
     await expect(sidebar.invalidFilesTooltip()).toHaveText('You have 2 invalid files. See here');
     // Click the plain text, not the "See here" link
     await sidebar.invalidFilesTooltip().click({ position: { x: 4, y: 4 } });
@@ -72,7 +81,7 @@ export const verifyInvalidFileIndicators = async (
   });
 
   await test.step('hovering a folder count shows that folder\'s count with the overview link', async () => {
-    await sidebar.folderInvalidFilesBadge(collectionName, 'nested').hover();
+    await openInvalidFilesTooltip(page, sidebar.folderInvalidFilesBadge(collectionName, 'nested'));
     await expect(sidebar.invalidFilesTooltip()).toHaveText('You have 1 invalid file. See here');
     await expect(sidebar.invalidFilesSeeHere()).toBeVisible();
   });

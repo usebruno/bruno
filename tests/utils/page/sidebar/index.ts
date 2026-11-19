@@ -1,5 +1,6 @@
 import { Locator, Page, expect, test } from '../../../../playwright';
 import { collectionSlug } from '../../../../packages/bruno-app/src/utils/collections/collectionSlug';
+import { buildToastLocators } from '../toast';
 
 export type EmptyStateRequestType = 'http' | 'graphql' | 'grpc' | 'websocket';
 
@@ -15,6 +16,7 @@ export const buildSidebarLocators = (page: Page) => {
   const item = (name: string) => page.locator('.collection-item-name').filter({ hasText: name });
 
   const collectionScope = (name: string) => page.locator(`[data-collection-id="${collectionSlug(name)}"]`);
+  const folderScope = (folderName: string) => page.locator(`[data-parent-name="${folderName}"]`);
   const inlineCollectionCreatorRoot = () => page.getByTestId('inline-collection-creator');
 
   return {
@@ -50,6 +52,10 @@ export const buildSidebarLocators = (page: Page) => {
       collectionScope(collectionName).locator('.item-name').and(page.getByTitle(name, { exact: true })),
     itemRowIn: (collectionName: string, name: string): Locator =>
       collectionScope(collectionName).getByTestId('sidebar-collection-item-row').filter({ has: itemByName(name) }),
+    collectionItemNames: (collectionName: string): Locator =>
+      collectionScope(collectionName).locator('.item-name'),
+    folderItemNames: (collectionName: string, folderName: string): Locator =>
+      collectionScope(collectionName).and(folderScope(folderName)).locator('.item-name'),
 
     // "+ Add request" cta inside the empty collection
     emptyStateCta: (collectionName: string): Locator =>
@@ -74,7 +80,9 @@ export const buildSidebarLocators = (page: Page) => {
     example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
     collectionScope,
     collectionScopeByUid: (collectionUid: string) => page.locator(`[data-collection-uid="${collectionUid}"]`),
-    folderScope: (folderName: string) => page.locator(`[data-parent-name="${folderName}"]`),
+    folderScope,
+    itemInFolder: (folderName: string, itemName: string): Locator =>
+      folderScope(folderName).locator('.item-name').and(page.getByTitle(itemName, { exact: true })),
     scopedItem: function (collectionName: string, itemName: string) {
       return this.collectionScope(collectionName).locator('.item-name').and(page.getByTitle(itemName, { exact: true }));
     },
@@ -99,6 +107,11 @@ export const buildSidebarLocators = (page: Page) => {
 
     newFolderModal: {
       nameInput: (): Locator => page.getByTestId('new-folder-input')
+    },
+
+    ignoreFolderModal: {
+      root: (): Locator => page.getByTestId('ignore-folder-modal'),
+      confirmButton: (): Locator => page.getByTestId('ignore-folder-modal-submit-btn')
     },
 
     cloneCollectionModal: {
@@ -168,6 +181,27 @@ export const revealFolderRow = async (
       .first();
     await expect(targetRow).toBeVisible();
     return targetRow;
+  });
+};
+
+/**
+ * Ignores a folder from the sidebar.
+ * @param page - The Playwright page object
+ * @param collectionName - The collection holding the folder
+ * @param folderName - The folder to ignore
+ * @returns void
+ */
+export const ignoreFolder = async (page: Page, collectionName: string, folderName: string) => {
+  await test.step(`Ignore folder "${folderName}" from its sidebar menu`, async () => {
+    const locators = buildSidebarLocators(page);
+    const toast = buildToastLocators(page);
+
+    await locators.itemRowIn(collectionName, folderName).click({ button: 'right' });
+    await locators.rowMenu(folderName).item('ignore').click();
+    await locators.ignoreFolderModal.root().waitFor({ state: 'visible' });
+    await locators.ignoreFolderModal.confirmButton().click();
+    await locators.ignoreFolderModal.root().waitFor({ state: 'hidden' });
+    await toast.byMessage('Folder ignored').first().waitFor({ state: 'visible' });
   });
 };
 

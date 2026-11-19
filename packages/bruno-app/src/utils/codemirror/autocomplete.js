@@ -106,6 +106,7 @@ const STATIC_API_HINTS = {
     'bru',
     'bru.cwd()',
     'bru.getEnvName()',
+    'bru.getGlobalEnvName()',
     'bru.getProcessEnv(key)',
     'bru.hasEnvVar(key)',
     'bru.getEnvVar(key)',
@@ -1276,6 +1277,9 @@ export const setupAutoComplete = (editor, options = {}) => {
     if (options.showHintsOnClick) {
       editor.off('mousedown', clickHandler);
     }
+    // The dropdown is on `document.body`, outside the editor, and normally closes when the editor blurs.
+    // editor that is unmounted while focused (e.g. a modal closing) never blurs, so close it here.
+    editor.state.completionActive?.close();
     delete editor.brunoTriggerAutocomplete;
   };
 };

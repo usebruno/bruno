@@ -36,8 +36,18 @@ test.describe.serial('Response Example Menu Operations', () => {
       await exampleRow.locator('.menu-icon').click({ force: true });
 
       await page.getByTestId('response-example-menu-clone').click();
-      const clonedExampleItem = page.locator('.collection-item-name').filter({ hasText: 'Example to Clone (Copy)' });
+      const clonedExampleItem = page.locator('.collection-item-name').filter({ hasText: 'Example to Clone copy' });
       await expect(clonedExampleItem).toBeVisible();
+    });
+
+    await test.step('Cloning the clone joins the counter instead of stacking "copy"', async () => {
+      const clonedExampleRow = page.locator('.collection-item-name').filter({ hasText: 'Example to Clone copy' });
+      await clonedExampleRow.hover();
+      await clonedExampleRow.locator('.menu-icon').click({ force: true });
+
+      await page.getByTestId('response-example-menu-clone').click();
+      await expect(page.locator('.collection-item-name').filter({ hasText: 'Example to Clone copy 2' })).toBeVisible();
+      await expect(page.locator('.collection-item-name').filter({ hasText: 'Example to Clone copy copy' })).toHaveCount(0);
     });
   });
 

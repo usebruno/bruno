@@ -1,5 +1,6 @@
 import React from 'react';
-import { useTheme } from 'providers/Theme';
+import FormField from 'ui/patterns/FormField';
+import StyledWrapper from './StyledWrapper';
 
 const SettingsInput = ({
   id,
@@ -10,37 +11,30 @@ const SettingsInput = ({
   description = '',
   onKeyDown
 }) => {
-  const { theme } = useTheme();
-
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex flex-col">
-        <label className="text-xs font-medium text-gray-900 dark:text-gray-100" htmlFor={id}>
-          {label}
-        </label>
-        {description && (
-          <p className="text-xs text-gray-700 dark:text-gray-400">
-            {description}
-          </p>
-        )}
-      </div>
-      <input
-        id={id}
-        type="text"
-        className={`block px-2 py-1 rounded-sm outline-none transition-colors duration-100 w-24 h-8 ${className}`}
-        style={{
-          backgroundColor: theme.input.bg,
-          border: `1px solid ${theme.input.border}`
-        }}
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck="false"
-        value={value}
-        onChange={onChange}
-        onKeyDown={onKeyDown}
-      />
-    </div>
+    <StyledWrapper>
+      <FormField
+        layout="inline"
+        label={label}
+        description={description}
+        htmlFor={id}
+        descriptionId={description ? `${id}-description` : undefined}
+      >
+        <input
+          id={id}
+          aria-describedby={description ? `${id}-description` : undefined}
+          type="text"
+          className={`settings-text-input block px-2 py-1 w-24 h-[34px] ${className}`}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
+          value={value}
+          onChange={onChange}
+          onKeyDown={onKeyDown}
+        />
+      </FormField>
+    </StyledWrapper>
   );
 };
 

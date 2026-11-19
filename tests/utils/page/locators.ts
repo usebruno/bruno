@@ -1,7 +1,6 @@
 import { Locator, Page } from '../../../playwright';
 import { buildApiSpecPanelLocators, buildApiSpecRowMenuLocators } from './openapi/render-spec';
 import { buildOpenApiSyncLocators } from './openapi/sync';
-import { buildMockServerLocators } from './mock-server';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
@@ -19,7 +18,6 @@ import { buildRequestLocators } from '../request';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
 import { buildCollectionAppLocators } from './collection/collection-app';
 import { buildCollectionProxyLocators } from './collection/proxy';
-import { buildCollectionRunLocators } from './collection/collection-run';
 import { buildShareCollectionLocators } from './collection/share-collection';
 import { buildCodeMirrorLocators } from './code-mirror';
 import { buildEnvironmentLocators } from './environments';
@@ -34,6 +32,7 @@ import { buildTitleBarLocators } from './title-bar';
 import { buildCloneGitRepositoryLocators } from './git/clone-git-repository';
 import { buildResponseExampleLocators } from './response-example';
 import { buildGraphqlQueryBuilderLocators } from './graphql/query-builder';
+import { buildGraphqlVariablesLocators } from './graphql/variables';
 import { buildAuthLocators } from './auth';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
@@ -74,6 +73,7 @@ export const buildCommonLocators = (page: Page) => ({
   setAsVariable: buildSetAsVariableLocators(page),
   responseExample: buildResponseExampleLocators(page),
   graphqlQueryBuilder: buildGraphqlQueryBuilderLocators(page),
+  graphqlVariables: buildGraphqlVariablesLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
@@ -106,6 +106,9 @@ export const buildCommonLocators = (page: Page) => ({
     collectionSettingsTab: () =>
       page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) }),
     activeRequestTab: () => page.locator('.request-tab.active'),
+    activeRequestTabLabel: () => page.locator('.request-tab.active').getByTestId('request-tab-label'),
+    // The request tab's right-click menu; `key` is the menu item id (e.g. 'clone-request').
+    requestTabMenuItem: (key: string) => page.getByTestId(`menu-dropdown-${key}`),
     leftChevron: () => page.getByLabel('Left Chevron'),
     scrollContainer: () => page.locator('.tabs-scroll-container'),
     activeRequestTabMethod: () => page.locator('.request-tab.active .tab-method'),
@@ -141,7 +144,10 @@ export const buildCommonLocators = (page: Page) => ({
       page.getByTestId('settings-tab-bar').getByTestId(`ai-assist-trigger-${scriptType}`)
   },
   folder: {
-    chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
+    chevron: (folderName: string) => page.locator('.collection-item-name').filter({ has: page.getByText(folderName, { exact: true }) }).getByTestId('folder-chevron'),
+    postResponseScriptEditor: () => buildCodeMirrorLocators(page).byTestId('folder-post-response-script-editor'),
+    preRequestScriptEditor: () => buildCodeMirrorLocators(page).byTestId('folder-pre-request-script-editor'),
+    testsEditor: () => buildCodeMirrorLocators(page).byTestId('folder-tests-editor')
   },
   modal: {
     any: () => page.locator('.bruno-modal'),
@@ -353,6 +359,8 @@ export const buildCommonLocators = (page: Page) => ({
     loader: () => page.getByTestId('import-collection-loader'),
     fileTab: () => page.getByTestId('file-tab'),
     gitRepositoryTab: () => page.getByTestId('github-tab'),
+    gitUrlInput: () => page.getByTestId('git-url-input'),
+    cloneGitButton: () => page.getByTestId('clone-git-button'),
     chooseFilesButton: () => page.getByTestId('choose-files-button'),
     advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
     preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
@@ -401,7 +409,8 @@ export const buildCommonLocators = (page: Page) => ({
     locationInput: () => page.getByLabel('Location', { exact: true }),
     optionsButton: () => page.getByRole('button', { name: 'Options' }),
     advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
-    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle')
+    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
+    preserveScriptsHelp: () => page.getByTestId('preserve-scripts-help')
   },
   /**
    * Build generic table locators for any table with a testId
