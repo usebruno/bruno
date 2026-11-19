@@ -265,11 +265,7 @@ export const HotkeysProvider = (props) => {
   }, [activeTabUid, tabs, collections, dispatch, userKeyBindings, keybindingsEnabled]);
 
   useEffect(() => {
-    bindAction('saveAllWorkspace', (e) => {
-      if (e.getModifierState('AltGraph')) {
-        return true;
-      }
-
+    bindAction('saveAllWorkspace', () => {
       dispatch(saveAllWorkspaceDrafts());
       return false;
     });

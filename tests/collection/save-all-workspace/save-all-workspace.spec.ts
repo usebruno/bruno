@@ -21,7 +21,7 @@ import {
 } from '../../utils/page';
 
 const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
-const saveAllInWorkspaceShortcut = `${modifier}+Alt+KeyS`;
+const saveAllInWorkspaceShortcut = 'Alt+Shift+KeyS';
 const saveAllTabsShortcut = `${modifier}+Shift+KeyS`;
 const savedToast = 'Changes saved successfully';
 const firstCollection = 'save-all-one';
