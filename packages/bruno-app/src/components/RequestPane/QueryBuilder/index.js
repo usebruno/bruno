@@ -127,7 +127,7 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
                   icon={<IconCloudDownload size={16} strokeWidth={1.5} />}
                   loading={isSchemaLoading}
                   disabled={isSchemaLoading}
-                  data-testid="graphql-load-from-introspection"
+                  data-testid="gql-load-from-introspection-btn"
                   onClick={() => loadSchema('introspection')}
                 >
                   Load from Introspection

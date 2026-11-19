@@ -7,7 +7,7 @@ import { buildAiPreferencesLocators } from './ai';
 import { buildCodeEditorSearchLocators } from './code-editor-search';
 import { buildCodeEditorHintLocators } from './code-editor-hints';
 import { buildRequestSettingsLocators } from './request-settings';
-import { buildGraphqlAuthIntrospectionLocators } from './graphql-auth-introspection';
+import { buildGraphqlAuthIntrospectionLocators } from './graphql/auth-introspection/graphql-auth-introspection';
 import { buildUnresolvedVariablesInfoLocators } from './unresolved-variables-info';
 import { buildSidebarLocators } from './sidebar';
 import { buildDocsLocators } from './docs';

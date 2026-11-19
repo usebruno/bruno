@@ -260,7 +260,6 @@ const FieldNode = ({
     <>
       <div
         className="field-node"
-        data-testid={`query-builder-field-${field.name}`}
         role="treeitem"
         aria-expanded={canExpand ? isExpanded : undefined}
         onClick={handleExpand}

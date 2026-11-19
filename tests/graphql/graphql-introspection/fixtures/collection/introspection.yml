@@ -5,20 +5,15 @@ info:
 
 graphql:
   method: POST
-  url: https://countries.trevorblades.com/graphql
+  url: '{{baseUrl}}'
   body:
     query: |-
-      query GetCountry($code: ID!) {
-        country(code: $code) {
-          code
+      query GetCompany {
+        company {
+          ceo
           name
-          capital
-          currency
+          founder
         }
-      }
-    variables: |-
-      {
-        "code": "IN"
       }
   auth: inherit
 

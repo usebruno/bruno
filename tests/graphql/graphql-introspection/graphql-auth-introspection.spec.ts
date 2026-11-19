@@ -1,109 +1,82 @@
-import { test, expect, ElectronApplication, Page } from '../../../playwright';
+import { test, expect, Page } from '../../../playwright';
 import {
-  addEnvironmentVariables,
   buildCommonLocators,
-  closeAllCollections,
-  closeEnvironmentPanel,
   configureGraphqlApiKeyAuth,
   configureBasicAuth,
   configureBearerAuth,
   configureDigestAuth,
   configureOAuth2ClientCredentials,
-  apiKeyPlacement,
+  apiKeyPlacementLabel,
   authField,
   basicField,
   bearerField,
   digestField,
   oauthField,
   oauthGrantType,
-  createEnvironment,
   expandGraphqlSchemaField,
   loadGraphqlSchemaFromIntrospection,
-  openCollectionFromDialog,
   openGraphqlQueryBuilder,
   selectGraphqlRequestTab,
   openRequest,
   readGraphqlAuthField,
-  saveEnvironment,
   saveRequest,
+  selectEnvironment,
   selectResponsePaneTab,
-  sendRequest,
-  waitForCollectionMount
+  sendRequest
 } from '../../utils/page';
 
-// One Electron app at a time. A cold app plus the live schema call needs more than 30 seconds.
-test.describe.configure({ mode: 'default', timeout: 60_000 });
-
-test.afterEach(async ({ page }) => {
-  await closeAllCollections(page);
-});
+// One Electron app at a time: parallel cold starts time out while the app loads.
+test.describe.configure({ mode: 'serial' });
 
 const COLLECTION_NAME = 'gql-introspection';
 const REQUEST_NAME = 'GQL Introspection';
 const ENVIRONMENT_NAME = 'GQL-Test';
-const ENDPOINT = 'https://countries.trevorblades.com/graphql';
-
 /**
- * Open a fresh copy of the shared GraphQL yaml collection and its request.
- * Each test gets its own copy, so saving auth in one case does not leak into the next.
+ * Open the GraphQL request from the collection that pageWithUserData loads from the fixture.
+ * The app is shared across tests, so the Query Builder and response timeline can still hold
+ * state from an earlier test. Close the builder and clear the timeline when the request is open.
  */
-const openIntrospectionRequest = async (
-  page: Page,
-  electronApp: ElectronApplication,
-  collectionFixturePath: string
-) => {
-  await openCollectionFromDialog(page, electronApp, collectionFixturePath);
-  await waitForCollectionMount(page, COLLECTION_NAME);
+const openIntrospectionRequest = async (page: Page) => {
+  const { tabs, timeline, graphqlQueryBuilder } = buildCommonLocators(page);
+  if (await tabs.requestTab(REQUEST_NAME).isVisible()) {
+    if (await graphqlQueryBuilder.container().isVisible()) {
+      await graphqlQueryBuilder.toggleButton().click();
+    }
+    await selectResponsePaneTab(page, 'Timeline');
+    await timeline.clearButton().click();
+  }
   await openRequest(page, COLLECTION_NAME, REQUEST_NAME, { persist: true });
-  await expect(buildCommonLocators(page).tabs.activeRequestTab()).toContainText(REQUEST_NAME);
 };
 
 test.describe('GraphQL introspection with interpolated API Key auth', () => {
-  test('TC-1479: loads the schema after API Key auth is set from environment variables', { tag: '@sanity' }, async ({ page, electronApp, collectionFixturePath }) => {
-    const COUNTRY_FIELDS = ['code', 'name', 'capital', 'currency'];
-    const { environment, response, tabs, timeline, graphqlAuthIntrospection: gql } = buildCommonLocators(page);
+  test('TC-1479: loads the schema after API Key auth is set from environment variables', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
+    const COMPANY_FIELDS = ['ceo', 'name', 'founder'];
+    const { response, tabs, timeline, graphqlAuthIntrospection: gql } = buildCommonLocators(page);
 
-    await openIntrospectionRequest(page, electronApp, collectionFixturePath!);
+    await openIntrospectionRequest(page);
 
-    await createEnvironment(page, ENVIRONMENT_NAME, 'collection');
-    await addEnvironmentVariables(page, [
-      { name: 'baseUrl', value: ENDPOINT },
-      { name: 'apiKey', value: 'dummy-api-key-12345' },
-      { name: 'apiKeyHeader', value: 'x-api-key' }
-    ]);
-    await saveEnvironment(page);
-
-    await test.step('Confirm the GQL-Test environment', async () => {
-      await expect(environment.currentEnvironment()).toContainText(ENVIRONMENT_NAME);
-      await expect(environment.varRowsByValue('baseUrl', ENDPOINT)).toBeVisible();
-      await expect(environment.varRowsByValue('apiKey', 'dummy-api-key-12345')).toBeVisible();
-      await expect(environment.varRowsByValue('apiKeyHeader', 'x-api-key')).toBeVisible();
-    });
-
-    await closeEnvironmentPanel(page);
+    await selectEnvironment(page, ENVIRONMENT_NAME);
     await tabs.requestTab(REQUEST_NAME).click();
-    await expect(tabs.activeRequestTab()).toContainText(REQUEST_NAME);
 
     await configureGraphqlApiKeyAuth(page, {
       key: '{{apiKeyHeader}}',
       value: '{{apiKey}}',
-      addTo: apiKeyPlacement.header
+      addTo: apiKeyPlacementLabel.header
     });
 
     await test.step('Confirm API Key auth uses the interpolated header name and value', async () => {
       expect(await readGraphqlAuthField(page, authField.key)).toBe('{{apiKeyHeader}}');
       expect(await readGraphqlAuthField(page, authField.value)).toBe('{{apiKey}}');
-      await expect(gql.placementLabel()).toHaveText(apiKeyPlacement.header);
+      await expect(gql.placementLabel()).toHaveText(apiKeyPlacementLabel.header);
     });
 
     await saveRequest(page);
     await sendRequest(page);
 
-    await test.step('Verify the country response', async () => {
+    await test.step('Verify the company response', async () => {
       await expect(response.statusCode()).toContainText('200');
-      await expect(response.previewContainer()).toContainText('India');
-      await expect(response.previewContainer()).toContainText('New Delhi');
-      await expect(response.previewContainer()).toContainText('INR');
+      await expect(response.previewContainer()).toContainText('SpaceX');
+      await expect(response.previewContainer()).toContainText('Elon Musk');
     });
 
     await selectResponsePaneTab(page, 'Timeline');
@@ -124,38 +97,28 @@ test.describe('GraphQL introspection with interpolated API Key auth', () => {
       await expect(gql.queryBuilderTree()).toBeVisible();
     });
 
-    await test.step('Verify the schema includes the country operation', async () => {
+    await test.step('Verify the schema includes the company operation', async () => {
       await expect(gql.rootType()).toContainText('Query');
-      await expect(gql.fieldName()).toContainText('country');
-      await expect(gql.fieldName()).toContainText('countries');
+      await expect(gql.fieldName()).toContainText('company');
     });
 
-    await expandGraphqlSchemaField(page, 'Query.country');
+    await expandGraphqlSchemaField(page, 'Query.company');
 
-    await test.step('Verify the country fields', async () => {
-      for (const fieldName of COUNTRY_FIELDS) {
-        await expect(gql.field(`Query.country.${fieldName}`)).toBeVisible();
+    await test.step('Verify the company fields', async () => {
+      for (const fieldName of COMPANY_FIELDS) {
+        await expect(gql.field(`Query.company.${fieldName}`)).toBeVisible();
       }
     });
   });
 });
 
 test.describe('GraphQL introspection with interpolated OAuth 2.0 auth', () => {
-  test('TC-1475: loads the schema after OAuth 2.0 auth is set from environment variables', { tag: '@sanity' }, async ({ page, electronApp, collectionFixturePath }) => {
-    const OAUTH_CLIENT_ID = 'dummy-client-id';
-    const OAUTH_CLIENT_SECRET = 'dummy-client-secret';
+  test('TC-1475: loads the schema after OAuth 2.0 auth is set from environment variables', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const { auth, tabs, graphqlAuthIntrospection: gql } = buildCommonLocators(page);
 
-    await openIntrospectionRequest(page, electronApp, collectionFixturePath!);
+    await openIntrospectionRequest(page);
 
-    await createEnvironment(page, ENVIRONMENT_NAME, 'collection');
-    await addEnvironmentVariables(page, [
-      { name: 'baseUrl', value: ENDPOINT },
-      { name: 'clientId', value: OAUTH_CLIENT_ID },
-      { name: 'clientSecret', value: OAUTH_CLIENT_SECRET }
-    ]);
-    await saveEnvironment(page);
-    await closeEnvironmentPanel(page);
+    await selectEnvironment(page, ENVIRONMENT_NAME);
     await tabs.requestTab(REQUEST_NAME).click();
 
     await configureOAuth2ClientCredentials(page, {
@@ -175,24 +138,21 @@ test.describe('GraphQL introspection with interpolated OAuth 2.0 auth', () => {
     await selectGraphqlRequestTab(page, 'query');
     await openGraphqlQueryBuilder(page);
     await loadGraphqlSchemaFromIntrospection(page);
+
+    await test.step('Verify the schema includes the company operation', async () => {
+      await expect(gql.rootType()).toContainText('Query');
+      await expect(gql.fieldName()).toContainText('company');
+    });
   });
 });
 
 test.describe('GraphQL introspection with interpolated Digest auth', () => {
-  test('TC-1474: loads the schema after Digest auth is set from environment variables', { tag: '@sanity' }, async ({ page, electronApp, collectionFixturePath }) => {
-    const DIGEST_USERNAME = 'testuser';
-    const DIGEST_PASSWORD = 'Test@123';
+  test('TC-1474: loads the schema after Digest auth is set from environment variables', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const { tabs, graphqlAuthIntrospection: gql } = buildCommonLocators(page);
 
-    await openIntrospectionRequest(page, electronApp, collectionFixturePath!);
+    await openIntrospectionRequest(page);
 
-    await createEnvironment(page, ENVIRONMENT_NAME, 'collection');
-    await addEnvironmentVariables(page, [
-      { name: 'digestUsername', value: DIGEST_USERNAME },
-      { name: 'digestPassword', value: DIGEST_PASSWORD }
-    ]);
-    await saveEnvironment(page);
-    await closeEnvironmentPanel(page);
+    await selectEnvironment(page, ENVIRONMENT_NAME);
     await tabs.requestTab(REQUEST_NAME).click();
 
     await configureDigestAuth(page, {
@@ -200,7 +160,7 @@ test.describe('GraphQL introspection with interpolated Digest auth', () => {
       password: '{{digestPassword}}'
     });
 
-    await test.step('Confirm Digest auth uses the interpolated username and password', async () => {
+    await test.step('Verify Digest auth stores the variable placeholders for username and password', async () => {
       await expect(gql.authModeLabel()).toContainText('Digest Auth');
       expect(await readGraphqlAuthField(page, digestField.username)).toBe('{{digestUsername}}');
       expect(await readGraphqlAuthField(page, digestField.password)).toBe('{{digestPassword}}');
@@ -211,23 +171,22 @@ test.describe('GraphQL introspection with interpolated Digest auth', () => {
     await selectGraphqlRequestTab(page, 'query');
     await openGraphqlQueryBuilder(page);
     await loadGraphqlSchemaFromIntrospection(page);
+
+    await test.step('Verify the schema includes the company operation', async () => {
+      await expect(gql.rootType()).toContainText('Query');
+      await expect(gql.fieldName()).toContainText('company');
+    });
   });
 });
 
 test.describe('GraphQL introspection with interpolated Bearer Token auth', () => {
-  test('TC-1473: loads the schema after Bearer Token auth is set from environment variables', { tag: '@sanity' }, async ({ page, electronApp, collectionFixturePath }) => {
+  test('TC-1473: loads the schema after Bearer Token auth is set from environment variables', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const BEARER_TOKEN = 'dummy-bearer-token-12345';
     const { tabs, timeline, graphqlAuthIntrospection: gql } = buildCommonLocators(page);
 
-    await openIntrospectionRequest(page, electronApp, collectionFixturePath!);
+    await openIntrospectionRequest(page);
 
-    await createEnvironment(page, ENVIRONMENT_NAME, 'collection');
-    await addEnvironmentVariables(page, [
-      { name: 'baseUrl', value: ENDPOINT },
-      { name: 'bearerToken', value: BEARER_TOKEN }
-    ]);
-    await saveEnvironment(page);
-    await closeEnvironmentPanel(page);
+    await selectEnvironment(page, ENVIRONMENT_NAME);
     await tabs.requestTab(REQUEST_NAME).click();
 
     await configureBearerAuth(page, {
@@ -252,26 +211,24 @@ test.describe('GraphQL introspection with interpolated Bearer Token auth', () =>
     await selectGraphqlRequestTab(page, 'query');
     await openGraphqlQueryBuilder(page);
     await loadGraphqlSchemaFromIntrospection(page);
+
+    await test.step('Verify the schema includes the company operation', async () => {
+      await expect(gql.rootType()).toContainText('Query');
+      await expect(gql.fieldName()).toContainText('company');
+    });
   });
 });
 
 test.describe('GraphQL introspection with interpolated Basic auth', () => {
-  test('TC-1472: loads the schema after Basic auth is set from environment variables', { tag: '@sanity' }, async ({ page, electronApp, collectionFixturePath }) => {
+  test('TC-1472: loads the schema after Basic auth is set from environment variables', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const BASIC_USERNAME = 'testuser';
     const BASIC_PASSWORD = 'Test@123';
     const BASIC_AUTHORIZATION = `Basic ${Buffer.from(`${BASIC_USERNAME}:${BASIC_PASSWORD}`).toString('base64')}`;
     const { tabs, timeline, graphqlAuthIntrospection: gql } = buildCommonLocators(page);
 
-    await openIntrospectionRequest(page, electronApp, collectionFixturePath!);
+    await openIntrospectionRequest(page);
 
-    await createEnvironment(page, ENVIRONMENT_NAME, 'collection');
-    await addEnvironmentVariables(page, [
-      { name: 'baseUrl', value: ENDPOINT },
-      { name: 'basicUsername', value: BASIC_USERNAME },
-      { name: 'basicPassword', value: BASIC_PASSWORD }
-    ]);
-    await saveEnvironment(page);
-    await closeEnvironmentPanel(page);
+    await selectEnvironment(page, ENVIRONMENT_NAME);
     await tabs.requestTab(REQUEST_NAME).click();
 
     await configureBasicAuth(page, {
@@ -298,5 +255,10 @@ test.describe('GraphQL introspection with interpolated Basic auth', () => {
     await selectGraphqlRequestTab(page, 'query');
     await openGraphqlQueryBuilder(page);
     await loadGraphqlSchemaFromIntrospection(page);
+
+    await test.step('Verify the schema includes the company operation', async () => {
+      await expect(gql.rootType()).toContainText('Query');
+      await expect(gql.fieldName()).toContainText('company');
+    });
   });
 });

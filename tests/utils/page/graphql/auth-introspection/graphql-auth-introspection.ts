@@ -1,12 +1,12 @@
-import { expect, Locator, Page, test } from '../../../playwright';
-import { writeCodeMirrorValue } from './actions';
+import { expect, Locator, Page, test } from '../../../../../playwright';
+import { writeCodeMirrorValue } from '../../actions';
 
 const graphqlTabLabel = {
   query: 'Query',
   auth: 'Auth'
 } as const;
 
-export const apiKeyPlacement = {
+export const apiKeyPlacementLabel = {
   header: 'Header',
   queryParam: 'Query Param'
 };
@@ -70,11 +70,11 @@ export const buildGraphqlAuthIntrospectionLocators = (page: Page) => ({
     page.getByTestId('auth-placement-selector').locator('.dropdown-item').getByText(placement, { exact: true }),
   moreActionsButton: () => requestPane(page).getByTestId('graphql-query-actions'),
   introspectionMenuItem: () => page.getByTestId('menu-dropdown-schema-introspection'),
-  queryBuilder: () => page.getByTestId('graphql-load-from-introspection').or(page.getByTestId('query-builder-search')),
-  loadFromIntrospectionButton: () => requestPane(page).getByTestId('graphql-load-from-introspection'),
+  queryBuilder: () => page.getByTestId('gql-load-from-introspection-btn').or(page.getByTestId('query-builder-search')),
+  loadFromIntrospectionButton: () => requestPane(page).getByTestId('gql-load-from-introspection-btn'),
   schemaLoadedToast: () => page.getByRole('status').getByText('GraphQL Schema loaded successfully'),
   queryBuilderTree: () => page.getByTestId('query-builder-tree').getByRole('treeitem').first(),
-  rootType: () => requestPane(page).getByTestId(/^query-builder-root-/),
+  rootType: () => requestPane(page).getByTestId('query-builder-root-Query'),
   field: (path: string) => requestPane(page).getByTestId(`query-builder-field-${path}`),
   fieldName: () => requestPane(page).getByTestId('query-builder-tree')
 });
