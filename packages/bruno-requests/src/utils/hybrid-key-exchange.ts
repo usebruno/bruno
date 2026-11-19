@@ -6,6 +6,8 @@ import tls, { TLSSocket, type SecureContext } from 'node:tls';
 
 const HYBRID_ECDH_CURVE = 'X25519:X25519MLKEM768:P-256:P-384';
 const ADVERTISE_HYBRID_WITHOUT_SHARE = 'DEFAULT:-X25519MLKEM768:?X25519MLKEM768';
+const CLASSICAL_ECDH_CURVE
+  = 'X25519:P-256:X448:P-521:P-384:ffdhe2048:ffdhe3072:ffdhe4096:ffdhe6144:ffdhe8192';
 
 // advertise = OpenSSL 3.5+; retry = BoringSSL+PQ; none = OpenSSL < 3.5 (do not arm hybrid retry).
 type HybridTlsCapability = 'advertise' | 'retry' | 'none';
@@ -34,6 +36,8 @@ let hybridTlsCapability = probeHybridTlsCapability();
 function configureHybridTlsDefaults(): void {
   if (hybridTlsCapability === 'advertise') {
     tls.DEFAULT_ECDH_CURVE = ADVERTISE_HYBRID_WITHOUT_SHARE;
+  } else if (hybridTlsCapability === 'none') {
+    tls.DEFAULT_ECDH_CURVE = CLASSICAL_ECDH_CURVE;
   }
 }
 
@@ -188,7 +192,17 @@ async function connectWithKeyExchangeFallback(
     if (cancelled || request?.destroyed) {
       throw cancellationError();
     }
-    const socket = await connect(offerHybrid ? HYBRID_ECDH_CURVE : undefined);
+    const cancelledDuringConnect = whenCancelled();
+    const connectPromise = Promise.resolve(connect(offerHybrid ? HYBRID_ECDH_CURVE : undefined));
+    void connectPromise.then(
+      (pendingSocket) => {
+        if (cancelled) {
+          pendingSocket.destroy?.();
+        }
+      },
+      () => {}
+    );
+    const socket = await Promise.race([connectPromise, cancelledDuringConnect]);
     activeSocket = socket;
     if (cancelled || request?.destroyed) {
       socket.destroy?.();

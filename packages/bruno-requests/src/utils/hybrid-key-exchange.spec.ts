@@ -192,6 +192,29 @@ describe('connectWithKeyExchangeFallback', () => {
     expect(connect).toHaveBeenCalledTimes(1);
   });
 
+  it('rejects and destroys the socket when the request is cancelled while connect is pending', async () => {
+    const request = fakeRequest();
+    let resolveConnect!: (socket: TLSSocket) => void;
+    const connect = jest.fn(
+      () =>
+        new Promise<TLSSocket>((resolve) => {
+          resolveConnect = resolve;
+        })
+    );
+
+    const pending = connectWithKeyExchangeFallback(endpoint, connect, { request });
+    await Promise.resolve();
+    request.destroy();
+    await expect(pending).rejects.toMatchObject({ code: 'ECONNRESET' });
+
+    const socket = new TLSSocket(new net.Socket());
+    createdSockets.push(socket);
+    resolveConnect(socket);
+    await Promise.resolve();
+    expect(socket.destroyed).toBe(true);
+    expect(connect).toHaveBeenCalledTimes(1);
+  });
+
   it('stops when the request abort signal fires before the socket is attached', async () => {
     const abortController = new AbortController();
     const request = Object.assign(fakeRequest(), { signal: abortController.signal });
