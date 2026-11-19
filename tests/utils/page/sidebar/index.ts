@@ -177,16 +177,30 @@ export const getStoredSidebarState = async (page: Page): Promise<string | null> 
   return page.evaluate((key) => window.localStorage.getItem(key), SIDEBAR_COLLAPSED_STORAGE_KEY);
 };
 
-/** Expand the sidebar if collapsed and wait for it to open. */
+/** Expand the sidebar if collapsed and wait for it to finish opening. */
 export const expandSidebar = async (page: Page) => {
   await test.step('Expand sidebar', async () => {
     if ((await getSidebarWidth(page)) === 0) {
       await buildSidebarLocators(page).toggleSidebarButton().click();
     }
 
-    await page.waitForFunction(() => {
+    // Wait for the sidebar animation to finish so we get its final width.
+    await page.waitForFunction(async () => {
       const node = document.querySelector('[data-testid="sidebar"]') as HTMLElement | null;
-      return !!node && node.offsetWidth > 0;
+      if (!node) return false;
+
+      const readWidth = () => node.getBoundingClientRect().width;
+      const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+      const first = readWidth();
+      if (first === 0) return false;
+
+      await nextFrame();
+      const second = readWidth();
+      await nextFrame();
+      const third = readWidth();
+
+      return first === second && second === third;
     });
   });
 };
