@@ -33,9 +33,9 @@ import ToolHint from 'components/ToolHint';
 import toast from 'react-hot-toast';
 
 const formatInterval = (ms) => {
-  const totalSeconds = Math.round(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
+  const minutes = Math.floor(ms / 60000);
+  // Keep fractional seconds (e.g. 1.4s) without printing floating-point noise
+  const seconds = Number(((ms % 60000) / 1000).toFixed(3));
   if (!minutes) return `${seconds}s`;
   return seconds ? `${minutes}m ${seconds}s` : `${minutes}m`;
 };
@@ -496,9 +496,14 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         testId="send-arrow-icon"
       />
       <MenuDropdown items={scheduleMenuItems} placement="bottom-end" disabled={Boolean(scheduledSend)} data-testid="schedule-send-menu">
-        <div className="flex items-center h-full px-1 cursor-pointer" data-testid="schedule-send-trigger">
+        <button
+          type="button"
+          aria-label="More send options"
+          className="flex items-center h-full px-1 cursor-pointer"
+          data-testid="schedule-send-trigger"
+        >
           <IconChevronDown color={theme.requestTabs.icon.color} strokeWidth={1.5} size={16} />
-        </div>
+        </button>
       </MenuDropdown>
       {scheduleModalOpen && (
         <ScheduleSendModal

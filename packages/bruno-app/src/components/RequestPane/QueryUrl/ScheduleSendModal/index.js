@@ -8,13 +8,15 @@ const UNIT_MS = {
 };
 
 const MIN_INTERVAL_MS = 1000;
+// setTimeout stores its delay as a signed 32-bit integer; larger values overflow and fire immediately
+const MAX_INTERVAL_MS = 2147483647;
 
 const ScheduleSendModal = ({ onConfirm, onClose }) => {
   const [value, setValue] = useState('5');
   const [unit, setUnit] = useState('seconds');
   const amount = Number(value);
   const intervalMs = Math.round(amount * UNIT_MS[unit]);
-  const isValid = Number.isFinite(intervalMs) && intervalMs >= MIN_INTERVAL_MS;
+  const isValid = Number.isFinite(intervalMs) && intervalMs >= MIN_INTERVAL_MS && intervalMs <= MAX_INTERVAL_MS;
 
   const handleConfirm = () => {
     if (!isValid) return;
@@ -65,7 +67,7 @@ const ScheduleSendModal = ({ onConfirm, onClose }) => {
           </div>
           {!isValid && (
             <div className="text-red-500 mt-2" data-testid="schedule-send-error">
-              The interval must be at least 1 second
+              The interval must be between 1 second and 35791 minutes
             </div>
           )}
         </form>
