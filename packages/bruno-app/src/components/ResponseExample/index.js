@@ -165,7 +165,7 @@ const ResponseExample = ({ item, collection, example, openInEditMode }) => {
   // Keyboard shortcut support for Ctrl/Cmd+S
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key === 's') {
         e.preventDefault();
         if (editMode && item && collection) {
           handleSave();
@@ -180,6 +180,10 @@ const ResponseExample = ({ item, collection, example, openInEditMode }) => {
   }, [editMode, item, collection]);
 
   useEffect(() => {
+    if (!editMode) {
+      return;
+    }
+
     const handleWorkspaceRequestsSaved = (e) => {
       if (e.detail.itemUids.includes(item?.uid)) {
         setEditMode(false);
@@ -190,7 +194,7 @@ const ResponseExample = ({ item, collection, example, openInEditMode }) => {
     return () => {
       window.removeEventListener('workspace-requests-saved', handleWorkspaceRequestsSaved);
     };
-  }, [item?.uid]);
+  }, [editMode, item?.uid]);
 
   return (
     <>

@@ -649,6 +649,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         validatePathIsInsideCollection(pathname);
 
+        syncExampleUidsCache(pathname, request.examples);
+
         const content = await stringifyRequestViaWorker(request, { format: r.format });
         await writeFile(pathname, content);
       }

@@ -1372,6 +1372,7 @@ describe('getWorkspaceDrafts', () => {
 
     expect(draftsFor(withExamples([savedExample], [{ ...savedExample, name: 'Renamed' }]))).toEqual(['with-example']);
     expect(draftsFor(withExamples([savedExample], []))).toEqual(['with-example']);
+    expect(draftsFor(withExamples([savedExample], [{ uid: 'ex2', name: 'Added', status: 200 }]))).toEqual(['with-example']);
     expect(draftsFor(withExamples([savedExample], [{ ...savedExample }]))).toEqual([]);
   });
 
@@ -1396,10 +1397,9 @@ describe('getWorkspaceDrafts', () => {
 
   it('reports whether the active workspace has anything to save', () => {
     const cleanCollection = { uid: 'c6', pathname: '/dev/one', items: [request('r6'), request('t6', { isTransient: true })] };
-
-    expect(hasWorkspaceDrafts({ collections, workspaces, activeWorkspace })).toBe(true);
     const transientOnlyCollection = { uid: 'c7', pathname: '/dev/one', items: [request('t7', { edited: true, isTransient: true })] };
 
+    expect(hasWorkspaceDrafts({ collections, workspaces, activeWorkspace })).toBe(true);
     expect(hasWorkspaceDrafts({ collections: [cleanCollection], workspaces, activeWorkspace })).toBe(false);
     expect(hasWorkspaceDrafts({ collections: [transientOnlyCollection], workspaces, activeWorkspace })).toBe(true);
     expect(hasWorkspaceDrafts({ collections, workspaces, activeWorkspace: null })).toBe(false);

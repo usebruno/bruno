@@ -266,6 +266,10 @@ export const HotkeysProvider = (props) => {
 
   useEffect(() => {
     bindAction('saveAllWorkspace', (e) => {
+      if (e.getModifierState('AltGraph')) {
+        return true;
+      }
+
       dispatch(saveAllWorkspaceDrafts());
       return false;
     });

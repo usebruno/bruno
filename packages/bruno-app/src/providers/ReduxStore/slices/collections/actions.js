@@ -452,15 +452,20 @@ export const saveAllWorkspaceDrafts = () => async (dispatch, getState) => {
   if (folderDrafts.length > 0) {
     saves.push(dispatch(saveMultipleFolders(folderDrafts)));
   }
-  if (requestDrafts.length > 0) {
+  const requestDraftsByCollection = new Map();
+  requestDrafts.forEach((draft) => {
+    const collectionRequestDrafts = requestDraftsByCollection.get(draft.collectionUid) || [];
+    requestDraftsByCollection.set(draft.collectionUid, [...collectionRequestDrafts, draft]);
+  });
+  requestDraftsByCollection.forEach((collectionRequestDrafts) => {
     saves.push(
-      dispatch(saveMultipleRequests(requestDrafts))
+      dispatch(saveMultipleRequests(collectionRequestDrafts))
         .then(() => {
-          requestDrafts.forEach((draft) => {
+          collectionRequestDrafts.forEach((draft) => {
             dispatch(_saveRequest({ itemUid: draft.uid, collectionUid: draft.collectionUid }));
           });
           window.dispatchEvent(new CustomEvent('workspace-requests-saved', {
-            detail: { itemUids: requestDrafts.map((draft) => draft.uid) }
+            detail: { itemUids: collectionRequestDrafts.map((draft) => draft.uid) }
           }));
         })
         .catch((err) => {
@@ -470,7 +475,7 @@ export const saveAllWorkspaceDrafts = () => async (dispatch, getState) => {
           throw err;
         })
     );
-  }
+  });
   environmentDrafts.forEach(({ variables, environmentUid, collectionUid }) => {
     saves.push(
       dispatch(saveEnvironment(variables, environmentUid, collectionUid)).catch((err) => {
