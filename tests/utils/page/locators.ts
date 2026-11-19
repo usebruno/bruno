@@ -441,7 +441,6 @@ export const buildCommonLocators = (page: Page) => ({
       rowDeleteButton: (rowIndex: number) => getBodyRow(rowIndex).getByTestId('column-delete'),
       allRows: () => container().locator('tbody tr'),
       rowNameInput: (row: Locator) => row.locator('input[type="text"]').first(),
-      rowNameEditor: (row: Locator) => row.getByTestId('column-name').locator('.CodeMirror').first(),
       rowValueEditor: (row: Locator) => row.getByTestId('column-value').locator('.CodeMirror').first()
     };
   },
