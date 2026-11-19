@@ -18,6 +18,7 @@ import MenuDropdown from 'ui/MenuDropdown';
 import Modal from 'components/Modal';
 import DeleteResponseExampleModal from './DeleteResponseExampleModal';
 import GenerateCodeItem from '../GenerateCodeItem';
+import CollectionItemIcon from '../CollectionItemIcon';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
@@ -249,8 +250,16 @@ const ExampleItem = ({ example, item, collection, depth, searchText, openBulkMen
         style={{ paddingLeft: 8 }}
       >
         <div style={{ width: 16, minWidth: 16 }}></div>
-        <ExampleIcon size={16} color="currentColor" className="example-icon mr-1 flex-shrink-0" />
-        <span className="item-name truncate">{example.name}</span>
+        <div className="ml-1 flex w-full h-full items-center overflow-hidden">
+          {/* Reserve the parent's icon width, including longer method labels. */}
+          <div className="relative flex-shrink-0">
+            <div className="invisible" aria-hidden="true">
+              <CollectionItemIcon item={item} />
+            </div>
+            <ExampleIcon size={16} color="currentColor" className="example-icon absolute left-0 top-1/2 -translate-y-1/2" data-testid="sidebar-response-example-icon" />
+          </div>
+          <span className="item-name truncate">{example.name}</span>
+        </div>
       </div>
       {!isMultiSelected && (
         <div className="menu-icon pr-2">
