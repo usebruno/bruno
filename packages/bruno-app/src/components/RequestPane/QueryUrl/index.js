@@ -18,9 +18,13 @@ import { saveRequest, cancelRequest } from 'providers/ReduxStore/slices/collecti
 import { getRequestFromCurlCommand } from 'utils/curl';
 import HttpMethodSelector from './HttpMethodSelector';
 import { useTheme } from 'providers/Theme';
-import { IconDeviceFloppy, IconCode } from '@tabler/icons';
+import { IconDeviceFloppy, IconCode, IconChevronDown } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import SendButton from 'components/RequestPane/SendButton';
+import ScheduleSendModal from 'components/RequestPane/ScheduleSendModal';
+import MenuDropdown from 'ui/MenuDropdown';
+import useScheduledSend from 'hooks/useScheduledSend';
+import { startScheduledSend, stopScheduledSend } from 'providers/ReduxStore/slices/collections/scheduled-send';
 import { isMacOS } from 'utils/common/platform';
 import { hasRequestChanges } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
@@ -39,6 +43,8 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   const isLoading = ['queued', 'sending'].includes(item.requestState);
 
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const scheduledSend = useScheduledSend(item.uid);
   const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
 
   useEffect(() => {
@@ -392,8 +398,14 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   const handleCancelRequest = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    dispatch(cancelRequest(item.cancelTokenUid, item, collection));
+    stopScheduledSend(item.uid);
+    if (isLoading || item.response?.stream?.running) {
+      dispatch(cancelRequest(item.cancelTokenUid, item, collection));
+    }
   };
+  const scheduleMenuItems = [
+    { id: 'repeat-on-interval', label: 'Repeat on Interval', testId: 'repeat-on-interval', onClick: () => setScheduleModalOpen(true) }
+  ];
   return (
     <StyledWrapper className="flex items-center w-full">
       <div className="flex items-center h-full url-input-group">
@@ -453,11 +465,25 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         </div>
       </div>
       <SendButton
-        isLoading={isLoading || item.response?.stream?.running}
+        isLoading={isLoading || item.response?.stream?.running || Boolean(scheduledSend)}
         onSend={handleRun}
         onCancel={handleCancelRequest}
         testId="send-arrow-icon"
       />
+      <MenuDropdown items={scheduleMenuItems} placement="bottom-end" disabled={Boolean(scheduledSend)} data-testid="schedule-send-menu">
+        <div className="flex items-center h-full px-1 cursor-pointer" data-testid="schedule-send-trigger">
+          <IconChevronDown color={theme.requestTabs.icon.color} strokeWidth={1.5} size={16} />
+        </div>
+      </MenuDropdown>
+      {scheduleModalOpen && (
+        <ScheduleSendModal
+          onClose={() => setScheduleModalOpen(false)}
+          onConfirm={(intervalMs) => {
+            dispatch(startScheduledSend(item.uid, collection.uid, intervalMs));
+            setScheduleModalOpen(false);
+          }}
+        />
+      )}
       {generateCodeItemModalOpen && (
         <GenerateCodeItem
           collectionUid={collection.uid}
