@@ -25,6 +25,10 @@ export const stopScheduledSend = (itemUid) => {
   notify();
 };
 
+export const stopScheduledSendsWithoutTab = (openTabUids) => {
+  [...schedules.keys()].filter((itemUid) => !openTabUids.has(itemUid)).forEach(stopScheduledSend);
+};
+
 export const startScheduledSend = (itemUid, collectionUid, intervalMs) => (dispatch, getState) => {
   stopScheduledSend(itemUid);
 
@@ -46,8 +50,9 @@ export const startScheduledSend = (itemUid, collectionUid, intervalMs) => (dispa
       return;
     }
 
-    // A new send would cancel an open streaming response, so leave it running and wait for the next tick
-    if (!item.response?.stream?.running) {
+    // A send already in flight (or an open stream, which a new send would cancel) is left alone until the next tick
+    const isBusy = ['queued', 'sending'].includes(item.requestState) || item.response?.stream?.running;
+    if (!isBusy) {
       try {
         // Waiting for the send to settle keeps sends from overlapping and prompts from stacking up
         await dispatch(sendRequest(item, collectionUid));

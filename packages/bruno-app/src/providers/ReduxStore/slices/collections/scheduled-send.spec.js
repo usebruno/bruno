@@ -1,17 +1,17 @@
 import toast from 'react-hot-toast';
-import { startScheduledSend, stopScheduledSend, getScheduledSend } from './scheduled-send';
+import { startScheduledSend, stopScheduledSend, stopScheduledSendsWithoutTab, getScheduledSend } from './scheduled-send';
 import { sendRequest } from './actions';
 
 jest.mock('react-hot-toast', () => ({ error: jest.fn() }));
 jest.mock('./actions', () => ({ sendRequest: jest.fn() }));
 
-const buildState = ({ tabOpen = true, itemExists = true, streamRunning = false } = {}) => ({
+const buildState = ({ tabOpen = true, itemExists = true, streamRunning = false, requestState = null } = {}) => ({
   collections: {
     collections: [
       {
         uid: 'c1',
         items: itemExists
-          ? [{ uid: 'r1', type: 'http-request', response: streamRunning ? { stream: { running: true } } : null }]
+          ? [{ uid: 'r1', type: 'http-request', requestState, response: streamRunning ? { stream: { running: true } } : null }]
           : []
       }
     ]
@@ -99,6 +99,28 @@ describe('scheduled send', () => {
     state = buildState();
     await jest.advanceTimersByTimeAsync(1000);
     expect(sendRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips the tick while a manual send is still in flight', async () => {
+    state = buildState({ requestState: 'sending' });
+    dispatch(startScheduledSend('r1', 'c1', 1000));
+    expect(sendRequest).not.toHaveBeenCalled();
+
+    state = buildState();
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(sendRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops right away when its tab is no longer open', () => {
+    dispatch(startScheduledSend('r1', 'c1', 1000));
+    stopScheduledSendsWithoutTab(new Set(['other-tab']));
+    expect(getScheduledSend('r1')).toBeNull();
+  });
+
+  it('keeps running while its tab is open', () => {
+    dispatch(startScheduledSend('r1', 'c1', 1000));
+    stopScheduledSendsWithoutTab(new Set(['r1']));
+    expect(getScheduledSend('r1')).not.toBeNull();
   });
 
   it('stops when the tab is closed', async () => {
