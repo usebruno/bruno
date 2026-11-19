@@ -1,7 +1,6 @@
 import { Locator, Page } from '../../../playwright';
 import { buildApiSpecPanelLocators, buildApiSpecRowMenuLocators } from './openapi/render-spec';
 import { buildOpenApiSyncLocators } from './openapi/sync';
-import { buildMockServerLocators } from './mock-server';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
@@ -19,7 +18,6 @@ import { buildRequestLocators } from '../request';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
 import { buildCollectionAppLocators } from './collection/collection-app';
 import { buildCollectionProxyLocators } from './collection/proxy';
-import { buildCollectionRunLocators } from './collection/collection-run';
 import { buildCodeMirrorLocators } from './code-mirror';
 import { buildEnvironmentLocators } from './environments';
 import { buildTimelineHeaderLocators } from './timeline-headers';
@@ -409,7 +407,8 @@ export const buildCommonLocators = (page: Page) => ({
     locationInput: () => page.getByLabel('Location', { exact: true }),
     optionsButton: () => page.getByRole('button', { name: 'Options' }),
     advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
-    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle')
+    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
+    preserveScriptsHelp: () => page.getByTestId('preserve-scripts-help')
   },
   /**
    * Build generic table locators for any table with a testId

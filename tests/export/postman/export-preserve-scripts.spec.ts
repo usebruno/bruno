@@ -142,4 +142,21 @@ test.describe('Export Postman Collection - Preserve scripts option', () => {
       expect(JSON.parse(fs.readFileSync(nodePath.join(outputDir, `${COLLECTION_NAME}.json`), 'utf-8')).stale).toBe(true);
     });
   });
+  test('TC-4477: Verify that Export to Postman displays the "Preserve scripts" checkbox under Advanced Options with correct helper text and unchecked by default', { tag: '@sanity' }, async ({ pageWithUserData: page, createTmpDir }) => {
+    const locators = buildCommonLocators(page);
+    await openExportToPostmanModal(page, COLLECTION_NAME);
+
+    await test.step('Advanced Options shows Preserve scripts enabled and unchecked, with the correct helper text, and it can be turned on', async () => {
+      await locators.export.optionsButton().click();
+      await locators.export.advancedOptionsToggle().click();
+
+      const checkbox = locators.export.preserveScriptsToggle();
+      await expect(checkbox).toBeVisible();
+      await expect(checkbox).toBeEnabled();
+      await expect(checkbox).not.toBeChecked();
+      await expect(locators.export.preserveScriptsHelp()).toHaveText('Export Bruno scripts without translating them.');
+      await checkbox.click();
+      await expect(checkbox).toBeChecked();
+    });
+  });
 });
