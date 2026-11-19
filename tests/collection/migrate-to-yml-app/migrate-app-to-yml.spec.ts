@@ -20,7 +20,7 @@ test.describe('Migrating a collection with app code from bru to yml', () => {
     await closeAllCollections(page);
   });
 
-  test('keeps the request app enabled with its code after migration', async ({
+  test('TC-5986: Verify after migration user is able to view app code at request level', { tag: '@sanity' }, async ({
     pageWithUserData: page,
     createTmpDir,
     reuseOrLaunchElectronApp
