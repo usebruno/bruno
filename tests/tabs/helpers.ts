@@ -1,59 +1,54 @@
 import fs from 'fs';
 import path from 'path';
-import { expect, Locator, Page } from '../../playwright';
+import { expect, Page } from '../../playwright';
 import { editCodeMirrorEditor, fillRequestUrl, openEnvironmentSelector, openRequest, selectEnvironment, setEnvironmentVariableValue, switchToOpenTab } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
 export const collectionName = 'tab-menu-collection';
 export const fixtureCollectionPath = path.join(__dirname, 'fixtures', 'collection');
 
-export const tab = (page: Page, name: string) => buildCommonLocators(page).tabs.tabByName(name);
-export const draftIndicator = (page: Page, name: string) => buildCommonLocators(page).tabs.tabDraftIndicator(tab(page, name));
-export const unsavedModal = (page: Page) => buildCommonLocators(page).unsavedChangesModal;
-
-// Collection settings, folder settings and the environment editor have no tab menu of their
-// own, but they sit in the same tab strip, so a request tab's Close Left / Right sweeps them up.
-export const collectionTab = (page: Page) => buildCommonLocators(page).tabs.collectionSettingsTab();
-export const folderTab = (page: Page) => tab(page, 'admin');
-export const environmentTab = (page: Page) => buildCommonLocators(page).environment.collectionEnvTab();
-export const settingsTabDraftIndicator = (page: Page, settingsTab: Locator) => buildCommonLocators(page).tabs.tabDraftIndicator(settingsTab);
-export const environmentTabCloseGradient = (page: Page) => buildCommonLocators(page).tabs.tabCloseGradient(environmentTab(page));
+export const draftIndicator = (page: Page, name: string) => {
+  const { tabs } = buildCommonLocators(page);
+  return tabs.tabDraftIndicator(tabs.tabByName(name));
+};
 
 export const openRequests = async (page: Page, names: string[]) => {
+  const { tabs } = buildCommonLocators(page);
   for (const name of names) {
     await openRequest(page, collectionName, name, { persist: true });
-    await expect(tab(page, name)).toBeVisible();
+    await expect(tabs.tabByName(name)).toBeVisible();
   }
 };
 
 export const openCollectionSettingsWithDraft = async (page: Page) => {
-  const { sidebar, paneTabs } = buildCommonLocators(page);
+  const { sidebar, paneTabs, tabs } = buildCommonLocators(page);
   await sidebar.collectionRow(collectionName).dblclick();
-  await expect(collectionTab(page)).toBeVisible();
+  await expect(tabs.collectionSettingsTab()).toBeVisible();
   await paneTabs.collectionSettingsTab('script').click();
   await paneTabs.tabTrigger('pre-request').click();
   await editCodeMirrorEditor(page, 'collection-pre-request-script-editor', '// draft');
-  await expect(settingsTabDraftIndicator(page, collectionTab(page))).toBeVisible();
+  await expect(tabs.tabDraftIndicator(tabs.collectionSettingsTab())).toBeVisible();
 };
 
 export const openFolderSettingsWithDraft = async (page: Page) => {
-  await buildCommonLocators(page).sidebar.folder('admin').dblclick();
-  await expect(folderTab(page)).toBeVisible();
-  const { paneTabs } = buildCommonLocators(page);
+  const { sidebar, paneTabs, tabs } = buildCommonLocators(page);
+  const folderTab = tabs.tabByName('admin');
+  await sidebar.folder('admin').dblclick();
+  await expect(folderTab).toBeVisible();
   await paneTabs.folderSettingsTab('script').click();
   await paneTabs.tabTrigger('pre-request').click();
   await editCodeMirrorEditor(page, 'folder-pre-request-script-editor', '// draft');
-  await expect(settingsTabDraftIndicator(page, folderTab(page))).toBeVisible();
+  await expect(tabs.tabDraftIndicator(folderTab)).toBeVisible();
 };
 
 export const openEnvironmentWithDraft = async (page: Page, value: string) => {
-  const { environment } = buildCommonLocators(page);
+  const { environment, tabs } = buildCommonLocators(page);
   await selectEnvironment(page, 'Local');
   await openEnvironmentSelector(page, 'collection');
   await environment.configureButton().click();
-  await expect(environmentTab(page)).toBeVisible();
+  await expect(environment.collectionEnvTab()).toBeVisible();
   await setEnvironmentVariableValue(page, 'host', value);
-  await expect(environmentTabCloseGradient(page)).toHaveClass(/has-changes/);
+  await expect(tabs.tabCloseGradient(environment.collectionEnvTab())).toHaveClass(/has-changes/);
 };
 
 export const editRequestUrlWithoutSaving = async (page: Page, name: string, url: string) => {
